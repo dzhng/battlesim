@@ -1,0 +1,454 @@
+{
+  "family": "leclerc",
+  "lane": "F-B",
+  "slice": "07",
+  "surveyed": "2026-11-11",
+  "reconciled": {
+    "slice": "07b",
+    "date": "2026-11-11",
+    "decisions": "decisions.md C4-C10"
+  },
+  "convention": {
+    "frame": "x forward, y left, z up, metres; the hull box is centred on x = 0, y = 0 and stands on z = 0",
+    "hull_box": "the top is max(the real hull or turret roof, the top of the tallest bulky dressing - 0.3 m) (decisions.md C4, after F-B1). Sights, sensors, radars and roof guns that are not a roster mount are dressing, held to unitArt.ts's 0.3 m bulky / 0.15 m thin allowance. The box covers the body, including an armoured turret overhang (FC8)",
+    "pivot": "the centre of the turret ring; for a fixed mount, the trunnion or hinge it is drawn on (only pivot + muzzle reaches the simulation)",
+    "muzzle": "muzzle_m is measured from the mount's pivot: the simulation fires from pivot + muzzle (crates/sim/src/weapons/muzzle.rs:12-22; decisions.md C5)",
+    "eye": "the sight's height over the ground (catalog.rs:181); kept unless a source contradicts it (FA-6)"
+  },
+  "thresholds": {
+    "hull_dimension": "fix when off by more than max(0.10 m, 3 %)",
+    "pivot": "fix when off by more than 0.15 m on any axis",
+    "muzzle_point": "fix when the world muzzle point (pivot + muzzle) is off by more than 0.15 m on any axis; a value written in another convention is fixed whatever its size (C5)",
+    "eye_m": "kept unless a source contradicts it",
+    "note": "One set for every lane (decisions.md C10). The lanes' own variants (F-A's max(0.10 m, 3 %) for muzzles, F-C's 0.30 m muzzle reach) are retired."
+  },
+  "verdicts": {
+    "keep": "the frame number agrees with the references within the thresholds",
+    "fix": "slice 15 changes it to `new`: a row in fix-rows.json, or the parent's row where the fixture takes the field through extends",
+    "unresolved": "kept at today's value: nothing measures it well enough to move it; named",
+    "art-only": "not a frame number: the family slice fixes the art",
+    "inherits": "the fixture extends another unit and this appearance takes its rows"
+  },
+  "sources": [
+    {
+      "id": "armyrecognition-xlr",
+      "kind": "published",
+      "ref": "https://www.armyrecognition.com/military-products/army/main-battle-tanks/main-battle-tanks/leclerc-scorpion-xlr-mbt-main-battle-tank-technical-data-sheet-specifications-pictures-video-10704171",
+      "note": "XLR: 9.87 m gun forward, 6.88 m hull, 3.71 m wide, 2.53 m to the turret roof (Defence Redefined agrees)"
+    },
+    {
+      "id": "wp-leclerc",
+      "kind": "published",
+      "ref": "https://en.wikipedia.org/wiki/Leclerc_tank",
+      "note": "base Leclerc: 9.87 / 6.88 m, 3.60 m wide, 2.53 m"
+    },
+    {
+      "id": "bp-leclerc",
+      "kind": "drawing (copyrighted)",
+      "ref": "https://www.the-blueprints.com/blueprints/tanks/tanks-k-l/72148/view/leclerc/",
+      "note": "2416 x 3061 px, two sides and top, pre-XLR, with a 3 m scale bar (223 px/m); measured in throwaway (Q4 rung 2); only the numbers are committed. At its own scale: width 3.60 m, 9.94 m overall, but the hull 7.21 m (top view, body) or 7.43 m (side, with rear stowage), roof 2.39 m and gun axis 2.12 m."
+    }
+  ],
+  "appearances": {
+    "europe_leclerc_xlr": {
+      "unit": "europe_leclerc_xlr",
+      "fixture": "fixtures/units/roster/europe.json",
+      "published": {
+        "length_m": 6.88,
+        "length_gun_forward_m": 9.87,
+        "width_m": 3.71,
+        "height_m": 2.53,
+        "source": "armyrecognition-xlr"
+      },
+      "current": {
+        "extends": "roster_profile_improved_mbt",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 28.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 65.0,
+            "turn_deg_s": 45.0
+          }
+        },
+        "half_extents_m": [
+          3.44,
+          1.8,
+          1.265
+        ],
+        "eye_m": 2.378,
+        "mounts": [
+          {
+            "id": "cannon",
+            "pivot_m": [
+              0.0,
+              0.0,
+              1.518
+            ],
+            "muzzle_m": [
+              6.43,
+              0.0,
+              0.455
+            ],
+            "turret": true
+          },
+          {
+            "id": "HMG",
+            "pivot_m": [
+              -0.25,
+              -0.58,
+              2.378
+            ],
+            "muzzle_m": [
+              1.43,
+              0.0,
+              0.32
+            ],
+            "turret": true,
+            "on": "cannon"
+          }
+        ]
+      },
+      "measured": null,
+      "heights": {
+        "roof_m": 2.53,
+        "roof_source": "published",
+        "sight_top_m": null,
+        "sight_part": "none measured; the art draws none over the roof",
+        "sight_source": null,
+        "rule_top_m": 2.53,
+        "box_top_m": 2.53,
+        "art": {
+          "hull_top_m": 2.605,
+          "tallest_dressing": null,
+          "tallest_dressing_top_m": null,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
+        {
+          "field": "half_extents_m[0]",
+          "old": 3.44,
+          "new": null,
+          "verdict": "keep",
+          "source": "armyrecognition-xlr, wp-leclerc",
+          "confidence": "medium",
+          "note": "6.88 m published; the drawing's longer hull is rejected (F-B8)"
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 1.8,
+          "new": null,
+          "verdict": "keep",
+          "source": "armyrecognition-xlr",
+          "confidence": null,
+          "note": "3.71 m (XLR) against 3.60 m: 0.11 m, on the threshold (max(0.10, 3 % = 0.111)), not past it. The model already draws 3.80 m"
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.265,
+          "new": null,
+          "verdict": "keep",
+          "source": "armyrecognition-xlr",
+          "confidence": null,
+          "note": "2.53 m; the drawing's 2.39 m is rejected with its hull length"
+        },
+        {
+          "field": "eye_m",
+          "old": 2.378,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.cannon.pivot_m",
+          "old": [
+            0.0,
+            0.0,
+            1.518
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": "low",
+          "note": "the ring is not drawn; the hatches sit 0.47 of the hull length behind the nose, consistent with a ring just ahead of mid-hull"
+        },
+        {
+          "field": "mounts.cannon.muzzle_m",
+          "old": [
+            6.43,
+            0.0,
+            0.455
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": "armyrecognition-xlr",
+          "confidence": null,
+          "note": "world x 6.43 m gives 9.87 m gun forward exactly; z 1.973 m against the drawing's 2.12 m, inside the threshold"
+        },
+        {
+          "field": "mounts.HMG.pivot_m",
+          "old": [
+            -0.25,
+            -0.58,
+            2.378
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.HMG.muzzle_m",
+          "old": [
+            1.43,
+            0.0,
+            0.32
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        }
+      ]
+    }
+  },
+  "overlays": {
+    "note": "Registered overlay: the drawing is scaled by its hull length set to `registration.span_m` and anchored on the nose and ground line; the model silhouette (vehicle mode) and the frame box are laid over it. Stations sample 19 points along the span: the top (z) in side and front views, the full width in the top view, drawing against model. Drawing silhouettes include roof fittings, antennas, the gun and, where the crop catches them, dimension arrows. The overlay images contain the copyrighted drawing, so they are not committed. Registered at the drawing's own scale bar (span = hull pixels / 223 px/m), because the drawing's hull disagrees with the published 6.88 m.",
+    "views": [
+      {
+        "view": "side",
+        "drawing": "bp-leclerc",
+        "registration": {
+          "model": "europe_leclerc_xlr",
+          "span_m": 7.43,
+          "nose_px": 698,
+          "tail_px": 2355,
+          "ground_px": 1870
+        },
+        "measure": "top_z_m",
+        "stations": [
+          {
+            "x_m": 3.34,
+            "drawing": 2.26,
+            "model": 2.08
+          },
+          {
+            "x_m": 2.97,
+            "drawing": 2.26,
+            "model": 2.09
+          },
+          {
+            "x_m": 2.6,
+            "drawing": 2.29,
+            "model": 2.09
+          },
+          {
+            "x_m": 2.23,
+            "drawing": 2.38,
+            "model": 2.09
+          },
+          {
+            "x_m": 1.86,
+            "drawing": 2.56,
+            "model": 2.17
+          },
+          {
+            "x_m": 1.49,
+            "drawing": 2.56,
+            "model": 2.21
+          },
+          {
+            "x_m": 1.11,
+            "drawing": 3.14,
+            "model": 2.73
+          },
+          {
+            "x_m": 0.74,
+            "drawing": 3.21,
+            "model": 2.73
+          },
+          {
+            "x_m": 0.37,
+            "drawing": 2.78,
+            "model": 2.73
+          },
+          {
+            "x_m": 0.0,
+            "drawing": 2.78,
+            "model": 2.82
+          },
+          {
+            "x_m": -0.37,
+            "drawing": 2.69,
+            "model": 2.78
+          },
+          {
+            "x_m": -0.74,
+            "drawing": 2.67,
+            "model": 2.33
+          },
+          {
+            "x_m": -1.11,
+            "drawing": 2.6,
+            "model": 2.35
+          },
+          {
+            "x_m": -1.49,
+            "drawing": 2.59,
+            "model": 2.39
+          },
+          {
+            "x_m": -1.86,
+            "drawing": 2.76,
+            "model": 2.38
+          },
+          {
+            "x_m": -2.23,
+            "drawing": 1.8,
+            "model": 2.16
+          },
+          {
+            "x_m": -2.6,
+            "drawing": 1.82,
+            "model": 1.55
+          },
+          {
+            "x_m": -2.97,
+            "drawing": 1.82,
+            "model": 1.55
+          },
+          {
+            "x_m": -3.34,
+            "drawing": 1.82,
+            "model": 1.55
+          }
+        ]
+      },
+      {
+        "view": "top",
+        "drawing": "bp-leclerc",
+        "registration": {
+          "model": "europe_leclerc_xlr",
+          "span_m": 7.21,
+          "nose_px": 674,
+          "tail_px": 2282,
+          "centreline_px": 2620
+        },
+        "measure": "width_m",
+        "stations": [
+          {
+            "x_m": 3.24,
+            "drawing": 3.74,
+            "model": 3.69
+          },
+          {
+            "x_m": 2.88,
+            "drawing": 3.74,
+            "model": 3.78
+          },
+          {
+            "x_m": 2.52,
+            "drawing": 3.74,
+            "model": 3.74
+          },
+          {
+            "x_m": 2.16,
+            "drawing": 3.74,
+            "model": 3.78
+          },
+          {
+            "x_m": 1.8,
+            "drawing": 3.73,
+            "model": 3.69
+          },
+          {
+            "x_m": 1.44,
+            "drawing": 3.74,
+            "model": 3.78
+          },
+          {
+            "x_m": 1.08,
+            "drawing": 3.48,
+            "model": 3.77
+          },
+          {
+            "x_m": 0.72,
+            "drawing": 3.48,
+            "model": 3.78
+          },
+          {
+            "x_m": 0.36,
+            "drawing": 3.48,
+            "model": 3.79
+          },
+          {
+            "x_m": 0.0,
+            "drawing": 3.43,
+            "model": 3.78
+          },
+          {
+            "x_m": -0.36,
+            "drawing": 3.43,
+            "model": 3.79
+          },
+          {
+            "x_m": -0.72,
+            "drawing": 3.47,
+            "model": 3.78
+          },
+          {
+            "x_m": -1.08,
+            "drawing": 3.47,
+            "model": 3.79
+          },
+          {
+            "x_m": -1.44,
+            "drawing": 3.47,
+            "model": 3.75
+          },
+          {
+            "x_m": -1.8,
+            "drawing": 3.43,
+            "model": 3.75
+          },
+          {
+            "x_m": -2.16,
+            "drawing": 3.43,
+            "model": 3.75
+          },
+          {
+            "x_m": -2.52,
+            "drawing": 3.43,
+            "model": 3.75
+          },
+          {
+            "x_m": -2.88,
+            "drawing": 3.43,
+            "model": 3.75
+          },
+          {
+            "x_m": -3.24,
+            "drawing": 3.43,
+            "model": 3.75
+          }
+        ]
+      }
+    ]
+  },
+  "notes": [
+    {
+      "appearances": [
+        "europe_leclerc_xlr"
+      ],
+      "note": "(no note for the Leclerc XLR)",
+      "class": null,
+      "why": ""
+    }
+  ],
+  "answers": null,
+  "gaps": null
+}

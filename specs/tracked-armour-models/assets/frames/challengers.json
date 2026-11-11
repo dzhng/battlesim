@@ -1,0 +1,731 @@
+{
+  "family": "challengers",
+  "lane": "F-A",
+  "slice": "07",
+  "surveyed": "2026-11-11",
+  "reconciled": {
+    "slice": "07b",
+    "date": "2026-11-11",
+    "decisions": "decisions.md C4-C10"
+  },
+  "convention": {
+    "frame": "x forward, y left, z up, metres; the hull box is centred on x = 0, y = 0 and stands on z = 0",
+    "hull_box": "the top is max(the real hull or turret roof, the top of the tallest bulky dressing - 0.3 m) (decisions.md C4, after F-B1). Sights, sensors, radars and roof guns that are not a roster mount are dressing, held to unitArt.ts's 0.3 m bulky / 0.15 m thin allowance. The box covers the body, including an armoured turret overhang (FC8)",
+    "pivot": "the centre of the turret ring; for a fixed mount, the trunnion or hinge it is drawn on (only pivot + muzzle reaches the simulation)",
+    "muzzle": "muzzle_m is measured from the mount's pivot: the simulation fires from pivot + muzzle (crates/sim/src/weapons/muzzle.rs:12-22; decisions.md C5)",
+    "eye": "the sight's height over the ground (catalog.rs:181); kept unless a source contradicts it (FA-6)"
+  },
+  "thresholds": {
+    "hull_dimension": "fix when off by more than max(0.10 m, 3 %)",
+    "pivot": "fix when off by more than 0.15 m on any axis",
+    "muzzle_point": "fix when the world muzzle point (pivot + muzzle) is off by more than 0.15 m on any axis; a value written in another convention is fixed whatever its size (C5)",
+    "eye_m": "kept unless a source contradicts it",
+    "note": "One set for every lane (decisions.md C10). The lanes' own variants (F-A's max(0.10 m, 3 %) for muzzles, F-C's 0.30 m muzzle reach) are retired."
+  },
+  "verdicts": {
+    "keep": "the frame number agrees with the references within the thresholds",
+    "fix": "slice 15 changes it to `new`: a row in fix-rows.json, or the parent's row where the fixture takes the field through extends",
+    "unresolved": "kept at today's value: nothing measures it well enough to move it; named",
+    "art-only": "not a frame number: the family slice fixes the art",
+    "inherits": "the fixture extends another unit and this appearance takes its rows"
+  },
+  "sources": [
+    {
+      "id": "cr2_tes",
+      "kind": "drawing (copyrighted)",
+      "ref": "https://www.the-blueprints.com/blueprints/tanks/tanks-c/41764/view/challenger_ii/",
+      "licence": "copyrighted (the-blueprints.com); measured in throwaway/, not committed",
+      "note": "shows: Challenger 2 TES, both sides, top, front, rear (shaded); scale_px_per_m: 53.7; scale_from: gun forward 11.55 m over muzzle..rear plate: side 620 px (53.7), top 600 px (51.9); front 51.7 from the 4.2 m TES width. The hull then measures 8.38 m (published 8.3); views: {'side': [0, 0, 651, 186], 'top': [0, 213, 651, 442], 'front': [53, 658, 280, 843]}"
+    }
+  ],
+  "appearances": {
+    "europe_challenger_challenger_2_tes": {
+      "unit": "europe_challenger_challenger_2_tes",
+      "fixture": "fixtures/units/roster/europe.json",
+      "published": {
+        "hull_length_m": 8.3,
+        "gun_forward_m": 11.55,
+        "width_m": 4.2,
+        "height_m": 2.49,
+        "source": "en.wikipedia.org Challenger 2 (8.3 hull, 3.5 / 4.2 with appliqué, 2.49 high); gun forward 11.55 m (army-technology). Wikipedia's 13.5 m gun forward is rejected: the L30A1 barrel is 6.6 m and the drawing agrees with 11.55"
+      },
+      "current": {
+        "extends": "roster_profile_heavy_mbt",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 24.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 55.0,
+            "turn_deg_s": 45.0
+          }
+        },
+        "half_extents_m": [
+          4.15,
+          2.1,
+          1.245
+        ],
+        "eye_m": 2.341,
+        "mounts": [
+          {
+            "id": "cannon",
+            "pivot_m": [
+              0.2,
+              0.0,
+              1.494
+            ],
+            "muzzle_m": [
+              5.561,
+              0.0,
+              0.448
+            ],
+            "turret": true
+          },
+          {
+            "id": "HMG",
+            "pivot_m": [
+              -0.05,
+              -0.58,
+              2.341
+            ],
+            "muzzle_m": [
+              1.43,
+              0.0,
+              0.32
+            ],
+            "turret": true,
+            "on": "cannon"
+          }
+        ]
+      },
+      "measured": {
+        "measured": {
+          "hull_length_m": 8.38,
+          "gun_overhang_m": "3.01 (side), 3.18 (top), 3.25 (published)",
+          "muzzle_from_pivot_m": "6.96 (side), 7.17 (top), 7.20 (published)",
+          "commander_cupola_x_m": -0.42,
+          "roof_m": 2.3,
+          "turret_body_x_m": {
+            "front": "about +3.0",
+            "box_rear": -1.96,
+            "bar_armour_rear": -2.5
+          },
+          "model": {
+            "overall_length_m": 10.0,
+            "turret_body_x_m": [
+              -2.224,
+              1.976
+            ],
+            "muzzle_world_x_m": 5.761
+          }
+        }
+      },
+      "heights": {
+        "roof_m": 2.49,
+        "roof_source": "published (MoD); drawing 2.3 m runs 5 % low",
+        "sight_top_m": 2.76,
+        "sight_part": "commander's sight",
+        "sight_source": "art",
+        "rule_top_m": 2.49,
+        "box_top_m": 2.49,
+        "art": {
+          "hull_top_m": 2.587,
+          "tallest_dressing": "dressing_ecm_mast",
+          "tallest_dressing_top_m": 3.214,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
+        {
+          "field": "half_extents_m[0]",
+          "old": 4.15,
+          "new": null,
+          "verdict": "keep",
+          "source": "published 8.3; drawing 8.38",
+          "confidence": null,
+          "note": "(measured 4.19)"
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 2.1,
+          "new": null,
+          "verdict": "keep",
+          "source": "published 4.2 with appliqué",
+          "confidence": null,
+          "note": "at the tracked cap (limits.rs) (measured 2.1)"
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.245,
+          "new": null,
+          "verdict": "keep",
+          "source": "published 2.49 (MoD)",
+          "confidence": null,
+          "note": "the drawing's 2.3 m is trusted less than the published figure; its other heights run 5 % low (measured 1.15)"
+        },
+        {
+          "field": "eye_m",
+          "old": 2.341,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.cannon.pivot_m",
+          "old": [
+            0.2,
+            0.0,
+            1.494
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": "cr2 top: the cupola sits at -0.42 m, behind the ring as on every turret; low confidence",
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.cannon.muzzle_m",
+          "old": [
+            5.561,
+            0.0,
+            0.448
+          ],
+          "new": [
+            7.2,
+            0,
+            0.448
+          ],
+          "verdict": "fix",
+          "source": "army-technology 11.55 m gun forward on the 8.3 m hull; cr2_tes top 7.17 m from the pivot",
+          "confidence": "high",
+          "note": "C5: 11.55 - 4.15 = 7.40 m world, less the 0.2 m pivot = 7.20 m. F-A's 7.1 averaged two drawing readings; 7.2 is the published figure the Challenger 3's 6.95 m is derived from the same way, so the two guns differ by the published 0.25 m. Lane: the frame's gun is 1.5 m short: the model reaches 10.0 m gun forward against 11.55 (measured 7.1)"
+        },
+        {
+          "field": "mounts.HMG.pivot_m",
+          "old": [
+            -0.05,
+            -0.58,
+            2.341
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.HMG.muzzle_m",
+          "old": [
+            1.43,
+            0.0,
+            0.32
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        }
+      ]
+    },
+    "europe_challenger_challenger_3": {
+      "unit": "europe_challenger_challenger_3",
+      "fixture": "fixtures/units/roster/europe.json",
+      "published": {
+        "gun_forward_m": 11.3,
+        "hull_length_m": 8.3,
+        "width_m": 4.2,
+        "height_m": "over 3 at the sight",
+        "source": "Calibre Defence, Challenger 3 technical profile (2026): 11.3 m gun forward, 4.2 m wide with armour, over 3 m to the sight; the hull is the Challenger 2's"
+      },
+      "current": {
+        "extends": "europe_challenger_challenger_2_tes",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 24.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 55.0,
+            "turn_deg_s": 45.0
+          }
+        },
+        "half_extents_m": [
+          4.15,
+          2.1,
+          1.245
+        ],
+        "eye_m": 2.341,
+        "mounts": [
+          {
+            "id": "cannon",
+            "pivot_m": [
+              0.2,
+              0.0,
+              1.494
+            ],
+            "muzzle_m": [
+              5.561,
+              0.0,
+              0.448
+            ],
+            "turret": true
+          },
+          {
+            "id": "HMG",
+            "pivot_m": [
+              -0.05,
+              -0.58,
+              2.341
+            ],
+            "muzzle_m": [
+              1.43,
+              0.0,
+              0.32
+            ],
+            "turret": true,
+            "on": "cannon"
+          }
+        ]
+      },
+      "measured": {
+        "measured": {
+          "muzzle_from_pivot_m": "6.95: 11.3 - 8.3 = 3.0 past the front (4.15 + 3.0 - 0.2); the L55A1's 6.6 m tube is the L30A1's length",
+          "model": {
+            "turret_body_x_m": [
+              -2.174,
+              2.049
+            ]
+          }
+        }
+      },
+      "heights": {
+        "roof_m": 2.49,
+        "roof_source": "the Challenger 2's (same hull, turret roof unpublished)",
+        "sight_top_m": 3.0,
+        "sight_part": "commander's sight",
+        "sight_source": "Calibre Defence: 'over 3 m to the sight'",
+        "rule_top_m": 2.7,
+        "box_top_m": 2.7,
+        "art": {
+          "hull_top_m": 2.585,
+          "tallest_dressing": "dressing_commander_sight",
+          "tallest_dressing_top_m": 2.757,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
+        {
+          "field": "half_extents_m[0]",
+          "old": 4.15,
+          "new": null,
+          "verdict": "keep",
+          "source": "the Challenger 2 hull",
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 2.1,
+          "new": null,
+          "verdict": "keep",
+          "source": "the Challenger 2 hull",
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.245,
+          "new": 1.35,
+          "verdict": "fix",
+          "source": "Calibre Defence Challenger 3 profile: 'over 3 m to the sight'",
+          "confidence": "medium-low",
+          "note": "C4: box top = max(roof, tallest bulky dressing - 0.3 m). The roof stays the Challenger 2's 2.49 m, but the Challenger 3's commander's sight stands over 3.0 m, so its box top is at least 2.70 m. The Challenger 3 gains its own half_extents_m (it inherits the Challenger 2's today). The art's sight (2.76 m) is drawn low; slice 20 raises it."
+        },
+        {
+          "field": "eye_m",
+          "old": 2.341,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.cannon.pivot_m",
+          "old": [
+            0.2,
+            0.0,
+            1.494
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.cannon.muzzle_m",
+          "old": [
+            5.561,
+            0.0,
+            0.448
+          ],
+          "new": [
+            6.95,
+            0,
+            0.448
+          ],
+          "verdict": "fix",
+          "source": "Calibre Defence 11.3 m gun forward",
+          "confidence": "high",
+          "note": "11.3 - 4.15 - 0.2 = 6.95 m from the pivot; the Challenger 3's own muzzle row (it inherits the Challenger 2's today). Lane: the Challenger 3 inherits the Challenger 2's muzzle; it needs its own, 0.15 m shorter than the Challenger 2's fixed one (measured 6.95)"
+        },
+        {
+          "field": "mounts.HMG.pivot_m",
+          "old": [
+            -0.05,
+            -0.58,
+            2.341
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.HMG.muzzle_m",
+          "old": [
+            1.43,
+            0.0,
+            0.32
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        }
+      ]
+    }
+  },
+  "overlays": {
+    "note": "Station readouts from copyrighted drawings, measured in the lane's throwaway/ (FA3); no image is committed.",
+    "by_appearance": {
+      "europe_challenger_challenger_2_tes": [
+        {
+          "view": "side",
+          "drawing": "cr2_tes",
+          "scale_px_per_m": 53.7,
+          "long_axis_m": 11.862,
+          "drawing_extent_m": [
+            11.86,
+            3.26
+          ],
+          "model_extent_m": [
+            10.0,
+            2.83
+          ],
+          "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
+          "drawing_across_m": [
+            0.84,
+            1.28,
+            1.6,
+            2.18,
+            2.36,
+            2.48,
+            2.89,
+            2.94,
+            3.0,
+            2.92,
+            2.25,
+            2.22,
+            1.81,
+            1.43,
+            0.19,
+            0.2,
+            null,
+            0.19,
+            0.17
+          ],
+          "model_across_m": [
+            1.45,
+            1.27,
+            1.4,
+            1.51,
+            2.51,
+            2.57,
+            2.55,
+            2.72,
+            2.76,
+            2.66,
+            2.66,
+            2.18,
+            2.03,
+            2.03,
+            1.97,
+            1.75,
+            0.2,
+            0.2,
+            0.2
+          ],
+          "read": "the drawing's gun runs 1.5 m past the model's"
+        },
+        {
+          "view": "top",
+          "drawing": "cr2_tes",
+          "scale_px_per_m": 51.9,
+          "long_axis_m": 12.274,
+          "drawing_extent_m": [
+            12.27,
+            4.22
+          ],
+          "model_extent_m": [
+            10.0,
+            4.22
+          ],
+          "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
+          "drawing_across_m": [
+            0.19,
+            0.19,
+            null,
+            0.21,
+            0.21,
+            4.07,
+            4.18,
+            4.18,
+            4.07,
+            4.03,
+            4.1,
+            4.1,
+            4.1,
+            4.18,
+            4.18,
+            4.08,
+            4.05,
+            3.95,
+            3.31
+          ],
+          "model_across_m": [
+            0.21,
+            0.21,
+            0.21,
+            4.18,
+            4.22,
+            3.99,
+            4.22,
+            4.18,
+            4.18,
+            4.18,
+            4.22,
+            4.22,
+            3.99,
+            4.12,
+            4.12,
+            4.12,
+            4.12,
+            4.12,
+            4.12
+          ]
+        },
+        {
+          "view": "front",
+          "drawing": "cr2_tes",
+          "scale_px_per_m": 51.7,
+          "long_axis_m": 4.217,
+          "drawing_extent_m": [
+            4.22,
+            3.39
+          ],
+          "model_extent_m": [
+            4.22,
+            2.82
+          ],
+          "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
+          "drawing_across_m": [
+            1.32,
+            2.38,
+            2.32,
+            2.5,
+            2.36,
+            3.11,
+            3.19,
+            3.15,
+            2.55,
+            2.44,
+            2.44,
+            2.77,
+            2.88,
+            2.94,
+            2.28,
+            2.46,
+            2.46,
+            2.51,
+            1.33
+          ],
+          "model_across_m": [
+            0.87,
+            2.17,
+            2.32,
+            2.42,
+            2.13,
+            2.3,
+            2.09,
+            2.07,
+            2.21,
+            1.92,
+            2.07,
+            2.09,
+            2.09,
+            2.07,
+            2.07,
+            2.42,
+            2.4,
+            2.17,
+            1.53
+          ]
+        }
+      ],
+      "europe_challenger_challenger_3": [
+        {
+          "view": "side",
+          "drawing": "cr2_tes",
+          "scale_px_per_m": 53.7,
+          "long_axis_m": 11.862,
+          "drawing_extent_m": [
+            11.86,
+            3.26
+          ],
+          "model_extent_m": [
+            9.98,
+            2.79
+          ],
+          "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
+          "drawing_across_m": [
+            0.84,
+            1.28,
+            1.6,
+            2.18,
+            2.36,
+            2.48,
+            2.89,
+            2.94,
+            3.0,
+            2.92,
+            2.25,
+            2.22,
+            1.81,
+            1.43,
+            0.19,
+            0.2,
+            null,
+            0.19,
+            0.17
+          ],
+          "model_across_m": [
+            1.66,
+            1.32,
+            1.75,
+            1.82,
+            2.44,
+            2.53,
+            2.53,
+            2.72,
+            2.72,
+            2.66,
+            2.66,
+            2.18,
+            2.07,
+            1.99,
+            1.81,
+            1.6,
+            0.19,
+            0.19,
+            0.2
+          ],
+          "read": "Challenger 2 drawing: hull and gun reach only"
+        },
+        {
+          "view": "top",
+          "drawing": "cr2_tes",
+          "scale_px_per_m": 51.9,
+          "long_axis_m": 12.274,
+          "drawing_extent_m": [
+            12.27,
+            4.22
+          ],
+          "model_extent_m": [
+            9.98,
+            4.1
+          ],
+          "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
+          "drawing_across_m": [
+            0.19,
+            0.19,
+            null,
+            0.21,
+            0.21,
+            4.07,
+            4.18,
+            4.18,
+            4.07,
+            4.03,
+            4.1,
+            4.1,
+            4.1,
+            4.18,
+            4.18,
+            4.08,
+            4.05,
+            3.95,
+            3.31
+          ],
+          "model_across_m": [
+            0.21,
+            0.21,
+            0.21,
+            4.05,
+            4.05,
+            4.05,
+            4.05,
+            4.05,
+            4.05,
+            4.07,
+            4.05,
+            4.05,
+            4.05,
+            4.05,
+            4.05,
+            4.05,
+            4.07,
+            4.05,
+            4.05
+          ],
+          "read": "Challenger 2 drawing: hull only"
+        }
+      ]
+    }
+  },
+  "notes": [
+    {
+      "appearances": [
+        "europe_challenger_challenger_2_tes"
+      ],
+      "note": "turret shape wrong",
+      "class": "art (plus the frame's short gun)",
+      "why": "the real turret's front reaches about +3.0 m, 0.9-1.2 m behind the nose; the model's stops at +1.98 m. The turret box is about 5.0 m long against the model's 4.2 m, with long flat sides and steep front faces. The short gun (fix row) makes the turret look stubby too"
+    },
+    {
+      "appearances": [
+        "europe_challenger_challenger_3"
+      ],
+      "note": "turret shape wrong",
+      "class": "art (plus the frame's short gun)",
+      "why": "the hull matches the Challenger 2's; the new turret has no drawing or licensable photo (only the generated references), so its shape is the art's call. The short gun, as on the Challenger 2, is the frame row"
+    }
+  ],
+  "answers": {
+    "9": "Challenger 2 and 3 'turret shape wrong' are art, made worse by the frame's 1.5 m short gun (a fix row each)."
+  },
+  "gaps": null
+}

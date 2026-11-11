@@ -106,3 +106,47 @@ A fix past a cap is out of scope and gets named.
 
 The user wants a frame left as it is, for example "keep the Leopard at 3.0".
 That removes one row from slice 15.
+
+## Results (2026-11-11, lanes F-A, F-B and F-C, reconciled in 07b)
+
+- **Output.** There is one `assets/frames/<family>.json` per family, all in
+  one shape (decisions.md C9). Slice 15 applies
+  `assets/frames/fix-rows.json` as written:
+  - 64 rows: 20 hull box, 41 shell origin, 2 mobility and 1 eye;
+  - parents come before the units that extend them;
+  - every hull row is inside the tracked caps.
+
+  `visualizations/frames.html` shows each unit's outline, numbers and rows.
+- **Final thresholds** (C10):
+  - hull dimensions: max(0.10 m, 3 %);
+  - pivots and muzzle points: 0.15 m on any axis;
+  - a value in another convention is fixed whatever its size.
+- **Conventions.**
+  - The box top is max(roof, tallest bulky dressing - 0.3 m) (C4).
+  - `muzzle_m` is measured from the pivot (C5).
+- **Answers.**
+  1. T-90M: the pivot is right; the turret art sits ahead of it.
+  2. T-80BVM: the hull is 0.39 m long; the turret is too low, not too
+     small.
+  3. Howitzers: the M109A7, 2S19M2 and PLZ-05 boxes are too tall and the
+     PzH 2000's too short. All four gun pivots are placeholders and move to
+     their trunnions.
+  4. Leopard 2A6: the roof is 2.64 m and the PERI 3.0 m, so the box is
+     2.70 m. The 2A7V and 2A8 get 2.83 m.
+  5. Puma: the MELLS fits; the PERI sets the box at 3.30 m.
+  6. T-15: the muzzle moves from 2.94 to 3.4 m.
+  7. M270 and MARS II: the hinge is at the rear.
+  8. Ajax: the HMG pivot is at [0.15, -0.72, 2.78] and its muzzle
+     [0.95, 0, 0.05].
+  9. Every other note is classified in its family file.
+- **Named changes beyond the lanes' lists:**
+  - the Buk-M3 becomes tracked, with a 9.3 m hull (C6);
+  - the Challenger 3 gets its own box and cannon;
+  - the Bradley 25 mm and BMP-3 100 mm muzzles are fixed (C5).
+- **Unresolved, kept at today's values:**
+  - M109A7 width;
+  - PLZ-05 hull length (its generated view failed the photo check, C7);
+  - T-15 height;
+  - the Bradley barrel's height.
+
+  The Buk's pivot is a photo estimate (± 0.5 m).

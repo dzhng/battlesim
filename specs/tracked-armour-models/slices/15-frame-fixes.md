@@ -19,8 +19,10 @@ Data only:
 
 ## The chain, in order
 
-1. **Edit the roster JSON.** The rows come from `assets/frames/*.json`. Respect
-   the caps in `crates/contract/src/limits.rs:21-24`.
+1. **Edit the roster JSON.** Apply `assets/frames/fix-rows.json` in its order:
+   each row names its fixture, JSON path, old and new values, and digest
+   consequence (slice 07b, decisions.md C9). Every hull row is already
+   inside the caps in `crates/contract/src/limits.rs:21-24`.
 2. **Bless the catalog:** `BLESS_CATALOG=1 cargo test -p sim --test sim catalog::`.
    Blender reads frames only from `fixtures/catalog.json` (`catalog_frames.py:21-23`).
 3. **Wreck footprints.** Copy each changed hull's half extents into the wreck's
@@ -31,7 +33,9 @@ Data only:
    `crates/sim/src/battle.rs:2139`).
 5. **Allowances and hatches.**
    - Check the dressing allowance on every lowered roof, before blessing
-     (`unitArt.ts:44-45`).
+     (`unitArt.ts:44-45`). Where the box top stands more than 0.1 m over the
+     real roof (C4), a non-dressing part must still reach it:
+     `fix-rows.json` lists these under `derived.art_fit`.
    - Re-check hatches against moved pivots (`specs/done/off-centre-turrets.md`).
    - The 2A8 inherits the 2A7V frame.
 6. **Minimal fit edits.** Families whose frame changed get only the edits
@@ -45,13 +49,16 @@ Data only:
 
    `paris-corner-*.json` hold frozen Abrams data and only change if an Abrams
    frame changed.
-8. **Digest check.** The digest diff may change only for the fixed units and the
-   Ajax. Record every changed digest's cause in `decisions.md`.
+8. **Digest check.** The digest diff may change only for the units in
+   `fix-rows.json` and the units that extend them (the 2A8, the M1E3). Record every changed digest's cause in `decisions.md`.
 
 ## Known rows
 
-- **Leopard 2A6/2A7V (and so 2A8).** Height 3.0 m → about 2.6 m, if the survey
-  confirms it. The HMG pivot z and `eye_m` drop with the roof.
+The full list is `assets/frames/fix-rows.json` (64 rows). These need more
+than a value change:
+
+- **Buk-M3.** It becomes tracked: a new profile and a tracked `mobility`
+  block, plus a 9.3 m hull (C6).
 - **Ajax.** Add the roof machine gun mount:
   - shape: `{"id":"HMG","weapons":["hmg"],"turret":true,"on":"autocannon", ...}`,
     the same as the Leopard's (`europe.json:85`);
@@ -59,9 +66,8 @@ Data only:
   - `assets/catalog.json` gains its appearance mount draw;
   - the art parents the existing RWS parts (`ajax.py:119-123`) under the new
     mount's nodes, in slice 27.
-- **T-15.** `muzzle_m`, if the survey moved it.
-- **Possible:** the T-90M pivot, the Puma MELLS, the howitzers, as the survey
-  finds.
+- **Challenger 3.** It gains its own `half_extents_m` and cannon `muzzle_m`
+  instead of inheriting the Challenger 2's.
 
 ## Verification
 

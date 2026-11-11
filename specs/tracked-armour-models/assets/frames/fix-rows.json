@@ -1,0 +1,1292 @@
+{
+  "slice": "07b",
+  "date": "2026-11-11",
+  "applies_to": "slice 15, step 1: edit fixtures/units/roster/*.json at json_path, old to new, in this order (parents before the units that extend them)",
+  "json_path": "units.<id>.<field>; mounts[id=X] is the mount whose id is X. Where `old` is absent the unit inherits the value (inherited_old) and the row adds the field to its own entry",
+  "digest": "what each row changes in a battle: hull box, shell origin, eye or mobility",
+  "caps": "every hull row is inside crates/contract/src/limits.rs:21-24 (tracked half-width 2.1 m, half-length 4.8 m)",
+  "counts": {
+    "hull box": 20,
+    "shell origin": 41,
+    "mobility": 2,
+    "eye": 1
+  },
+  "rows": [
+    {
+      "appearance": "eastern_2s19_msta_s_2s19m2",
+      "unit": "eastern_2s19_msta_s_2s19m2",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "json_path": "units.eastern_2s19_msta_s_2s19m2.body.hull.half_extents_m",
+      "old": [
+        3.575,
+        1.79,
+        1.495
+      ],
+      "new": [
+        3.575,
+        1.69,
+        1.41
+      ],
+      "digest": "hull box",
+      "source": "published width 3.38 m; MSTA-S.jpg (square-on): roof 2.82 m, cupola 2.97 m",
+      "reason": "0.2 m wide. C4: box top = max(roof, tallest bulky dressing - 0.3 m). max(2.82 roof, 2.97 - 0.3 = 2.67) = 2.82 m: F-C's value, now by the rule. Lane: The published 2.985 m is the cupola (2.97 m on the same photo)."
+    },
+    {
+      "appearance": "eastern_2s19_msta_s_2s19m2",
+      "unit": "eastern_2s19_msta_s_2s19m2",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "json_path": "units.eastern_2s19_msta_s_2s19m2.mounts[id=gun].pivot_m",
+      "old": [
+        -2.1,
+        0.0,
+        3.0
+      ],
+      "new": [
+        1.35,
+        0,
+        2.19
+      ],
+      "digest": "shell origin",
+      "source": "trunnion, side photo; the art's is (1.25, 2.20)",
+      "reason": "Named shell-origin change: the placeholder pivot moves to the trunnion (FC7). Lane: The fixed gun mount's pivot sits 2-3 m behind the turret front and above its roof, and pivot + muzzle lands short of the real muzzle (placeholder numbers from the artillery roster commit d1518dc4f, no recorded basis). The art already draws the gun near the real trunnion."
+    },
+    {
+      "appearance": "eastern_2s19_msta_s_2s19m2",
+      "unit": "eastern_2s19_msta_s_2s19m2",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "json_path": "units.eastern_2s19_msta_s_2s19m2.mounts[id=gun].muzzle_m",
+      "old": [
+        7.15,
+        0.0,
+        0.0
+      ],
+      "new": [
+        6.99,
+        0,
+        0
+      ],
+      "digest": "shell origin",
+      "source": "the commonly published 11.917 m overall on the 7.15 m hull",
+      "reason": "C5 audit: with the pivot at the trunnion (1.35 m), 11.917 - 3.575 - 1.35 = 6.99 m. F-C kept 7.15 m (world 8.50 m, 0.16 m long) inside its retired 0.30 m threshold; under C10 it is past 0.15 m. Lane: With the new pivot the muzzle lands at 8.50 m: 0.16 m long, inside the 0.3 m muzzle threshold."
+    },
+    {
+      "appearance": "eastern_bmp_ifv_family_bmp_2m_berezhok",
+      "unit": "eastern_bmp_ifv_family_bmp_2m_berezhok",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "json_path": "units.eastern_bmp_ifv_family_bmp_2m_berezhok.body.hull.half_extents_m",
+      "old": [
+        3.3675,
+        1.575,
+        1.225
+      ],
+      "new": [
+        3.3675,
+        1.575,
+        1.075
+      ],
+      "digest": "hull box",
+      "source": "turret roof 2.07 m (photo) / 2.14 m (1981 drawing); 2.45 m overall (Wikipedia)",
+      "reason": "C4: box top = max(roof, tallest bulky dressing - 0.3 m). Roof 2.07-2.14 m; the sight housings and launcher reach 2.45 m, so the top is 2.15 m: F-C's value, now by the rule. Lane: 2.45 m is the launcher and sight tops. The art's roof (2.21 m) stays inside tolerance."
+    },
+    {
+      "appearance": "eastern_bmp_ifv_family_bmp_2m_berezhok",
+      "unit": "eastern_bmp_ifv_family_bmp_2m_berezhok",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "json_path": "units.eastern_bmp_ifv_family_bmp_2m_berezhok.mounts[id=autocannon].pivot_m",
+      "old": [
+        0.3,
+        0.0,
+        1.593
+      ],
+      "new": [
+        0.1,
+        0.0,
+        1.593
+      ],
+      "digest": "shell origin",
+      "source": "assets/references/bmp/eastern_bmp_ifv_family_bmp_2m_berezhok-side-3.jpg (square-on BMP-2, CC0; upload stretched 1.17x horizontally, corrected)",
+      "reason": "The ring centre is 0.09 m ahead of hull centre: 0.2 m off, just over the 0.15 m threshold (borderline)."
+    },
+    {
+      "appearance": "eastern_bmp_ifv_family_bmp_2m_berezhok",
+      "unit": "eastern_bmp_ifv_family_bmp_2m_berezhok",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "json_path": "units.eastern_bmp_ifv_family_bmp_2m_berezhok.mounts[id=autocannon].muzzle_m",
+      "old": [
+        2.829,
+        0.0,
+        0.441
+      ],
+      "new": [
+        2.39,
+        0.0,
+        0.441
+      ],
+      "digest": "shell origin",
+      "source": "muzzle 2.48 m (photo) and 2.50 m (drawing) ahead of hull centre",
+      "reason": "The frame puts the muzzle at 3.13 m, 0.24 m behind the nose; the real 30 mm ends 0.88 m behind it. 0.65 m off."
+    },
+    {
+      "appearance": "eastern_bmp_ifv_family_bmp_2m_berezhok",
+      "unit": "eastern_bmp_ifv_family_bmp_2m_berezhok",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "json_path": "units.eastern_bmp_ifv_family_bmp_2m_berezhok.mounts[id=launcher].pivot_m",
+      "old": [
+        0.3,
+        0.851,
+        2.009
+      ],
+      "new": [
+        0.1,
+        0.851,
+        2.009
+      ],
+      "digest": "shell origin",
+      "source": null,
+      "reason": "Moves with the turret pivot."
+    },
+    {
+      "appearance": "eastern_bmp_ifv_family_bmp_3",
+      "unit": "eastern_bmp_ifv_family_bmp_3",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "json_path": "units.eastern_bmp_ifv_family_bmp_3.mounts[id=main_gun].muzzle_m",
+      "old": [
+        3.8,
+        0.0,
+        0.35
+      ],
+      "new": [
+        3.35,
+        0,
+        0.35
+      ],
+      "digest": "shell origin",
+      "source": "assets/references/bmp/eastern_bmp_ifv_family_bmp_3-side-3.png (FMSO, public domain; 56.2 px/m)",
+      "reason": "C5 audit: on the drawing the 100 mm muzzle stands 0.07 m past the nose (world x about 3.64 m, gun axis 2.03 m). The frame's world point (4.1 m) is 0.46 m past that. Lane: The drawing's ring centre is +0.27 m."
+    },
+    {
+      "appearance": "eastern_buk_buk_m3_medium_range_air_defense",
+      "unit": "eastern_buk_buk_m3_medium_range_air_defense",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "json_path": "units.eastern_buk_buk_m3_medium_range_air_defense.extends",
+      "old": "roster_profile_wheeled_ifv",
+      "new": "roster_profile_ifv",
+      "digest": "mobility",
+      "source": "fixtures/units/ground/profiles.json; europe_gepard_1a2",
+      "reason": "C6: the Buk-M3 rides the tracked GM-569; it takes the profile the other tracked air defence and IFV units extend (the Gepard, the M2A4, the CV9040C, the BMP-3). The two profiles hold the same sensors and sound, so the profile name alone changes nothing; the mobility row below is what moves."
+    },
+    {
+      "appearance": "eastern_buk_buk_m3_medium_range_air_defense",
+      "unit": "eastern_buk_buk_m3_medium_range_air_defense",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "json_path": "units.eastern_buk_buk_m3_medium_range_air_defense.mobility",
+      "old": {
+        "wheeled": {
+          "offroad_kmh": 35.0,
+          "reverse_speed_factor": 0.3,
+          "road_kmh": 80.0,
+          "turn_deg_s": 35.0,
+          "turning_radius_m": 8.0
+        }
+      },
+      "new": {
+        "tracked": {
+          "offroad_kmh": 28,
+          "road_kmh": 65,
+          "turn_deg_s": 45,
+          "reverse_speed_factor": 0.4
+        }
+      },
+      "digest": "mobility",
+      "source": "militarytoday Buk-M3 (about 65 km/h on roads); the Gepard's tracked block",
+      "reason": "C6: the simulation drives it on tracks, not wheels: the Gepard's tracked block (65 km/h on roads, which the Buk-M3 shares), and no turning radius."
+    },
+    {
+      "appearance": "eastern_buk_buk_m3_medium_range_air_defense",
+      "unit": "eastern_buk_buk_m3_medium_range_air_defense",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "json_path": "units.eastern_buk_buk_m3_medium_range_air_defense.body.hull.half_extents_m",
+      "old": [
+        4.876,
+        1.6,
+        1.78
+      ],
+      "new": [
+        4.65,
+        1.6,
+        1.78
+      ],
+      "digest": "hull box",
+      "source": "armyrecognition Buk-M3 9K317M data sheet: 9.3 x 3.25 x 3.8 m (also the M1/M2 TELAR's)",
+      "reason": "C6: 9.3 m, the best-sourced published length (the M3's own data sheet; 8.0 m is a figure the same site repeats for most of the system's vehicles). Inside the tracked cap (half-length 4.8 m). Lane: No trustworthy published dimension; the photos have no scale. But 9.75 m is past the tracked cap (4.8 m half-length), which matters once the mobility is fixed (see findings); 9.3 m is the best-supported figure then"
+    },
+    {
+      "appearance": "eastern_buk_buk_m3_medium_range_air_defense",
+      "unit": "eastern_buk_buk_m3_medium_range_air_defense",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "json_path": "units.eastern_buk_buk_m3_medium_range_air_defense.mounts[id=launcher].pivot_m",
+      "old": [
+        -2.45,
+        0.0,
+        2.37
+      ],
+      "new": [
+        2.0,
+        0,
+        2.37
+      ],
+      "digest": "shell origin",
+      "source": "photo-side, photo-rear",
+      "reason": "The frame and the art put the turret at the rear behind a cab; the real TELAR's turret stands forward of mid-hull over a rear engine deck, its base centred about 0.23 of the hull length ahead of the middle"
+    },
+    {
+      "appearance": "eastern_buk_buk_m3_medium_range_air_defense",
+      "unit": "eastern_buk_buk_m3_medium_range_air_defense",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "json_path": "units.eastern_buk_buk_m3_medium_range_air_defense.mounts[id=launcher].muzzle_m",
+      "old": [
+        2.5,
+        0.0,
+        0.59
+      ],
+      "new": [
+        0.3,
+        0,
+        0.93
+      ],
+      "digest": "shell origin",
+      "source": "photo-side",
+      "reason": "In travel the six containers lie on the turret with their noses forward against the radar's back face, about x 2.3 m and z 3.3 m (old world point [0.05, 0, 2.96] m)"
+    },
+    {
+      "appearance": "eastern_plz_05_chinese_tracked_155_mm_howitzer",
+      "unit": "eastern_plz_05_chinese_tracked_155_mm_howitzer",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "json_path": "units.eastern_plz_05_chinese_tracked_155_mm_howitzer.body.hull.half_extents_m",
+      "old": [
+        3.65,
+        1.7,
+        1.55
+      ],
+      "new": [
+        3.65,
+        1.7,
+        1.625
+      ],
+      "digest": "hull box",
+      "source": "Wikipedia 3.55 m overall with the QJC-88 MG",
+      "reason": "C4: box top = max(roof, tallest bulky dressing - 0.3 m). The roof is unmeasured (no drawing, no square-on photo; the generated view failed its photo check, C7). The roof MG's mount is bulky dressing, as on the M109A7, so the top is 3.55 - 0.3 = 3.25 m, 0.15 m over today's 3.1 m. The art's non-dressing top is already 3.17 m. Lane: Width matches; nothing measures the hull length or the roof. Unresolved, named."
+    },
+    {
+      "appearance": "eastern_plz_05_chinese_tracked_155_mm_howitzer",
+      "unit": "eastern_plz_05_chinese_tracked_155_mm_howitzer",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "json_path": "units.eastern_plz_05_chinese_tracked_155_mm_howitzer.mounts[id=gun].pivot_m",
+      "old": [
+        -3.0,
+        0.0,
+        2.9
+      ],
+      "new": [
+        0.5,
+        0,
+        2.32
+      ],
+      "digest": "shell origin",
+      "source": "the art's trunnion (nothing better)",
+      "reason": "Named shell-origin change: the placeholder pivot moves to the trunnion (FC7). Lane: The fixed gun mount's pivot sits 2-3 m behind the turret front and above its roof, and pivot + muzzle lands short of the real muzzle (placeholder numbers from the artillery roster commit d1518dc4f, no recorded basis). The art already draws the gun near the real trunnion."
+    },
+    {
+      "appearance": "eastern_plz_05_chinese_tracked_155_mm_howitzer",
+      "unit": "eastern_plz_05_chinese_tracked_155_mm_howitzer",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "json_path": "units.eastern_plz_05_chinese_tracked_155_mm_howitzer.mounts[id=gun].muzzle_m",
+      "old": [
+        8.06,
+        0.0,
+        0.0
+      ],
+      "new": [
+        7.45,
+        0,
+        0
+      ],
+      "digest": "shell origin",
+      "source": "overall 11.6 m on the 7.3 m hull: muzzle 7.95 m ahead of hull centre",
+      "reason": "8.06 m is the whole L52 tube."
+    },
+    {
+      "appearance": "eastern_t_14_armata_main_battle_tank",
+      "unit": "eastern_t_14_armata_main_battle_tank",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "json_path": "units.eastern_t_14_armata_main_battle_tank.body.hull.half_extents_m",
+      "old": [
+        4.35,
+        1.75,
+        1.65
+      ],
+      "new": [
+        4.35,
+        1.75,
+        1.4
+      ],
+      "digest": "hull box",
+      "source": "t14_line (roof 2.67-2.81 m, panoramic sight 2.9-3.1 m)",
+      "reason": "C4: box top = max(roof, tallest bulky dressing - 0.3 m). Roof 2.75 m; the commander's panoramic sight head reaches 3.1 m, so the top is 2.80 m (F-A's 2.75 m left the sight 0.35 m over it). Lane: the published 3.3 m reaches the roof sensors and the weapon station, not the turret roof (2.67-2.81 m). The model overruns the drawing's outline over the whole turret and deck (measured 1.375)"
+    },
+    {
+      "appearance": "eastern_t_14_armata_main_battle_tank",
+      "unit": "eastern_t_14_armata_main_battle_tank",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "json_path": "units.eastern_t_14_armata_main_battle_tank.body.hull.eye_m",
+      "old": 3.162,
+      "new": 3.0,
+      "digest": "eye",
+      "source": "the commander's panoramic sight head, 2.9-3.1 m",
+      "reason": "dressing_panorama must then fit the 0.3 m bulky allowance over the 2.75 m roof; check it in slice 15 (measured 3.0)"
+    },
+    {
+      "appearance": "eastern_t_14_armata_main_battle_tank",
+      "unit": "eastern_t_14_armata_main_battle_tank",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "json_path": "units.eastern_t_14_armata_main_battle_tank.mounts[id=cannon].pivot_m",
+      "old": [
+        -0.3,
+        0.0,
+        1.98
+      ],
+      "new": [
+        -0.3,
+        0.0,
+        1.8
+      ],
+      "digest": "shell origin",
+      "source": "t14_line: the turret's centre sits 0.63 m behind the hull's middle, as the model's does (-0.68); t14_line deck at the turret",
+      "reason": "(measured -0.3) (measured 1.81)"
+    },
+    {
+      "appearance": "eastern_t_14_armata_main_battle_tank",
+      "unit": "eastern_t_14_armata_main_battle_tank",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "json_path": "units.eastern_t_14_armata_main_battle_tank.mounts[id=cannon].muzzle_m",
+      "old": [
+        6.75,
+        0.0,
+        0.594
+      ],
+      "new": [
+        6.75,
+        0.0,
+        0.46
+      ],
+      "digest": "shell origin",
+      "source": "published 10.8 - 8.7 = 2.1 past the front (4.35 + 2.1 + 0.3 = 6.75); t14_line gun axis 2.26 m over the new 1.8 m ring",
+      "reason": "(measured 0.46)"
+    },
+    {
+      "appearance": "eastern_t_14_armata_main_battle_tank",
+      "unit": "eastern_t_14_armata_main_battle_tank",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "json_path": "units.eastern_t_14_armata_main_battle_tank.mounts[id=HMG].pivot_m",
+      "old": [
+        -0.55,
+        -0.58,
+        3.162
+      ],
+      "new": [
+        -0.55,
+        -0.58,
+        2.8
+      ],
+      "digest": "shell origin",
+      "source": "the weapon station's base sits on the 2.75 m roof",
+      "reason": "(measured 2.8)"
+    },
+    {
+      "appearance": "eastern_t_15_armata_heavy_ifv",
+      "unit": "eastern_t_15_armata_heavy_ifv",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "json_path": "units.eastern_t_15_armata_heavy_ifv.mounts[id=autocannon].muzzle_m",
+      "old": [
+        2.94,
+        0.0,
+        0.504
+      ],
+      "new": [
+        3.4,
+        0.0,
+        0.504
+      ],
+      "digest": "shell origin",
+      "source": "2A42 barrel 2.416 m; quarter photo against the Kornet container",
+      "reason": "the mantlet sits 1.28 m ahead of the ring in the model; 1.28 + about 2.2 m of exposed barrel gives 3.4 (plus or minus 0.15). That is 0.46 m past the frame (measured 3.4)"
+    },
+    {
+      "appearance": "eastern_t_72_t_72b3_2016",
+      "unit": "eastern_t_72_t_72b3_2016",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "json_path": "units.eastern_t_72_t_72b3_2016.mounts[id=cannon].muzzle_m",
+      "old": [
+        6.3,
+        0.0,
+        0.401
+      ],
+      "new": [
+        6.1,
+        0.0,
+        0.401
+      ],
+      "digest": "shell origin",
+      "source": "published 9.53 - 6.86 = 2.67 m past the hull front (3.43 + 2.67 = 6.10); t72b top 6.12",
+      "reason": "0.20 m past the 3 % threshold (0.19 m); the model is 9.81 m gun forward against 9.53 (measured 6.1)"
+    },
+    {
+      "appearance": "eastern_t_80_t_80bvm",
+      "unit": "eastern_t_80_t_80bvm",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "json_path": "units.eastern_t_80_t_80bvm.body.hull.half_extents_m",
+      "old": [
+        3.7,
+        1.8015,
+        1.101
+      ],
+      "new": [
+        3.505,
+        1.8015,
+        1.101
+      ],
+      "digest": "hull box",
+      "source": "T-80BVM card 7.01 m; t80bv drawing 6.85 m",
+      "reason": "7.4 m is Foss's T-80B figure; the BVM card, the T-80U and the drawing all give about 7.0 m (0.39 m, 5 %, over) (measured 3.425)"
+    },
+    {
+      "appearance": "eastern_type_99_ztz_99a",
+      "unit": "eastern_type_99_ztz_99a",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "json_path": "units.eastern_type_99_ztz_99a.body.hull.half_extents_m",
+      "old": [
+        3.8,
+        1.85,
+        1.175
+      ],
+      "new": [
+        3.8,
+        1.85,
+        1.25
+      ],
+      "digest": "hull box",
+      "source": "ztz99a side 2.53 m; side photo about 2.49",
+      "reason": "the published 2.35 m is labelled hull height. The drawing, whose lengths match the published ones exactly, and the photo agree on about 2.5 m to the bustle roof (measured 1.265)"
+    },
+    {
+      "appearance": "europe_ajax_tracked_reconnaissance_vehicle",
+      "unit": "europe_ajax_tracked_reconnaissance_vehicle",
+      "fixture": "fixtures/units/roster/europe.json",
+      "json_path": "units.europe_ajax_tracked_reconnaissance_vehicle.body.hull.half_extents_m",
+      "old": [
+        3.81,
+        1.675,
+        1.5
+      ],
+      "new": [
+        3.81,
+        1.675,
+        1.35
+      ],
+      "digest": "hull box",
+      "source": "Wikipedia 3.0 m overall (the ORION sight's top); the art's roof 2.57 m",
+      "reason": "C4: box top = max(roof, tallest bulky dressing - 0.3 m). Roof 2.57 m (the art; no drawing exists); the ORION head reaches 3.0 m, so the top is 2.70 m. The ORION goes under dressing_*, its base stays hull. Lane: No free drawing; the art's roof is the measurement, cross-checked by the published overall height meeting its sight top. 2.6 m keeps the roof inside tolerance."
+    },
+    {
+      "appearance": "europe_ajax_tracked_reconnaissance_vehicle",
+      "unit": "europe_ajax_tracked_reconnaissance_vehicle",
+      "fixture": "fixtures/units/roster/europe.json",
+      "json_path": "units.europe_ajax_tracked_reconnaissance_vehicle.mounts[id=HMG]",
+      "old": null,
+      "new": {
+        "id": "HMG",
+        "name": "HMG",
+        "weapons": [
+          "hmg"
+        ],
+        "turret": true,
+        "on": "autocannon",
+        "pivot_m": [
+          0.15,
+          -0.72,
+          2.78
+        ],
+        "muzzle_m": [
+          0.95,
+          0,
+          0.05
+        ]
+      },
+      "digest": "shell origin",
+      "source": "ajax.py:119-123 (the RWS art; slice 07 Q8)",
+      "reason": "User decision Q9b: the roof machine gun as a mount on the autocannon, shaped as the Leopard's (europe.json:85). Pivot at the RWS body centre (yaw through the bearing, pitch through the cradle), muzzle 0.95 m ahead and 0.05 m up (FC13). The RWS sits on the turret roof, which does not move under C4. A named balance change. Lane: User decision Q9b. See question 8."
+    },
+    {
+      "appearance": "europe_challenger_challenger_2_tes",
+      "unit": "europe_challenger_challenger_2_tes",
+      "fixture": "fixtures/units/roster/europe.json",
+      "json_path": "units.europe_challenger_challenger_2_tes.mounts[id=cannon].muzzle_m",
+      "old": [
+        5.561,
+        0.0,
+        0.448
+      ],
+      "new": [
+        7.2,
+        0,
+        0.448
+      ],
+      "digest": "shell origin",
+      "source": "army-technology 11.55 m gun forward on the 8.3 m hull; cr2_tes top 7.17 m from the pivot",
+      "reason": "C5: 11.55 - 4.15 = 7.40 m world, less the 0.2 m pivot = 7.20 m. F-A's 7.1 averaged two drawing readings; 7.2 is the published figure the Challenger 3's 6.95 m is derived from the same way, so the two guns differ by the published 0.25 m. Lane: the frame's gun is 1.5 m short: the model reaches 10.0 m gun forward against 11.55 (measured 7.1)"
+    },
+    {
+      "appearance": "europe_cv90120_light_tank",
+      "unit": "europe_cv90120_light_tank",
+      "fixture": "fixtures/units/roster/europe.json",
+      "json_path": "units.europe_cv90120_light_tank.body.hull.half_extents_m",
+      "old": [
+        3.475,
+        1.65,
+        1.325
+      ],
+      "new": [
+        3.475,
+        1.65,
+        1.25
+      ],
+      "digest": "hull box",
+      "source": "military-today and Tank Encyclopedia: 2.4 m turret roof, 2.8 m panoramic sight",
+      "reason": "C4: box top = max(roof, tallest bulky dressing - 0.3 m). Roof 2.4 m; the panoramic sight reaches 2.8 m, so the top is 2.50 m (F-C's 2.40 m left it 0.4 m over). Lane: 2.65 m is 0.25 m over the roof; the art's turret roof is already 2.40 m."
+    },
+    {
+      "appearance": "europe_cv90_cv9040c",
+      "unit": "europe_cv90_cv9040c",
+      "fixture": "fixtures/units/roster/europe.json",
+      "json_path": "units.europe_cv90_cv9040c.body.hull.half_extents_m",
+      "old": [
+        3.4,
+        1.6,
+        1.4
+      ],
+      "new": [
+        3.4,
+        1.69,
+        1.25
+      ],
+      "digest": "hull box",
+      "source": "published C width 3.38 m (hhogman.se; Steel Beasts wiki 3.4 m); Mick Bell Strf 9040 plan (roof 2.37 m, cupola 2.53 m); hhogman 2.71 m overall for the C",
+      "reason": "0.18 m narrow. The base plan's 3.11 m over the tracks plus the C's side armour. C4: box top = max(roof, tallest bulky dressing - 0.3 m). The C's roof lies between the base plan's 2.37 m and about 2.5 m (its roof armour is unmeasured), and its tallest fittings reach 2.71 m, so the rule gives 2.41-2.50 m. F-C's 2.50 m is within 0.10 m of every reading and keeps the art's 2.54 m roof. Lane: 2.8 m is 0.3 m over any reading of the roof. 2.50 keeps the model's own roof (2.54 m) inside tolerance, so the art needs no change for it."
+    },
+    {
+      "appearance": "europe_cv90_cv9040c",
+      "unit": "europe_cv90_cv9040c",
+      "fixture": "fixtures/units/roster/europe.json",
+      "json_path": "units.europe_cv90_cv9040c.mounts[id=autocannon].muzzle_m",
+      "old": [
+        3.9,
+        0.0,
+        0.504
+      ],
+      "new": [
+        3.6,
+        0,
+        0.504
+      ],
+      "digest": "shell origin",
+      "source": "Mick Bell Strf 9040 plan: ring -0.44 m, muzzle 3.17 m from hull centre",
+      "reason": "C5 audit: on the plan the 40 mm muzzle is 3.61 m from the ring, 0.1 m behind the nose. The frame's 3.9 m from the pivot reaches 0.29 m further. F-C compared world points on different hulls and kept it inside its 0.30 m reach threshold, retired by C10. Lane: Muzzle at x 3.55 m; the plan has 3.17 m on its shorter hull (0.1 m behind the nose). On the C's 7.0 m hull that is about 3.3 m: 0.25 m, inside 0.3 m."
+    },
+    {
+      "appearance": "europe_cv90_mk_iv",
+      "unit": "europe_cv90_mk_iv",
+      "fixture": "fixtures/units/roster/europe.json",
+      "json_path": "units.europe_cv90_mk_iv.mounts[id=autocannon].muzzle_m",
+      "old": [
+        3.9,
+        0.0,
+        0.504
+      ],
+      "new": [
+        3.7,
+        0,
+        0.504
+      ],
+      "digest": "shell origin",
+      "source": "europe_cv90_mk_iv-side-2-generated.jpg and -side.jpg; the 9040C's plan",
+      "reason": "C5 audit and C7: both the generated side view and the photo put the muzzle at the nose line (world x about 3.35 m), and the 9040C's longer 40 mm reaches 3.6 m from the ring. 3.9 m overshoots by 0.2 m. Lane: Same hull and ring as the 9040C."
+    },
+    {
+      "appearance": "europe_gepard_1a2",
+      "unit": "europe_gepard_1a2",
+      "fixture": "fixtures/units/roster/europe.json",
+      "json_path": "units.europe_gepard_1a2.body.hull.half_extents_m",
+      "old": [
+        3.556,
+        1.685,
+        1.645
+      ],
+      "new": [
+        3.556,
+        1.685,
+        1.5
+      ],
+      "digest": "hull box",
+      "source": "bp-gepard, kmw",
+      "reason": "the turret roof is 2.74 to 2.78 m; the 3.29 m box reaches the retracted search radar, 0.5 m over the roof. Radars are sensors, so dressing (F-B6): the box top is 3.29 - 0.3 = 3.0 m. The art must put the stowed search radar under a dressing_* node"
+    },
+    {
+      "appearance": "europe_gepard_1a2",
+      "unit": "europe_gepard_1a2",
+      "fixture": "fixtures/units/roster/europe.json",
+      "json_path": "units.europe_gepard_1a2.mounts[id=gun].muzzle_m",
+      "old": [
+        3.56,
+        1.28,
+        0.0
+      ],
+      "new": [
+        4.1,
+        0.88,
+        0.26
+      ],
+      "digest": "shell origin",
+      "source": "bp-gepard, kmw",
+      "reason": "world [3.56, 1.28, 2.11] m against [4.04 to 4.12, 0.86 to 0.90, 2.33 to 2.37] m: the guns reach 0.5 m past the nose (7.68 m overall), sit 0.4 m closer to the centreline and 0.26 m higher. One mount stands for both guns; this is the left one"
+    },
+    {
+      "appearance": "europe_leopard_2_2a6",
+      "unit": "europe_leopard_2_2a6",
+      "fixture": "fixtures/units/roster/europe.json",
+      "json_path": "units.europe_leopard_2_2a6.body.hull.half_extents_m",
+      "old": [
+        3.85,
+        1.875,
+        1.5
+      ],
+      "new": [
+        3.85,
+        1.875,
+        1.35
+      ],
+      "digest": "hull box",
+      "source": "knds-2a6, wp-leopard-2, bp-leo2a6",
+      "reason": "roof 2.64 m (KNDS; the drawing 2.58 m). The PERI's top is about 3.0 m (Wikipedia's overall height; the drawing 2.91 m), 0.36 m over the roof, so the box top is 3.0 - 0.3 = 2.70 m (F-B1), 0.06 m over the roof"
+    },
+    {
+      "appearance": "europe_leopard_2_2a6",
+      "unit": "europe_leopard_2_2a6",
+      "fixture": "fixtures/units/roster/europe.json",
+      "json_path": "units.europe_leopard_2_2a6.mounts[id=cannon].muzzle_m",
+      "old": [
+        7.12,
+        0.0,
+        0.54
+      ],
+      "new": [
+        6.82,
+        0,
+        0.25
+      ],
+      "digest": "shell origin",
+      "source": "knds-2a6, bp-leo2a6, photo-2a6-side-2",
+      "reason": "world muzzle [7.42, 0, 2.34] m. 10.97 m gun forward on the 7.70 m box puts x at 7.12 m (the old offset is that world x, pivot not subtracted). The gun axis is 2.04 m in the drawing and 2.01 to 2.08 m in the photo, not 2.34 m, so z is 2.05 m"
+    },
+    {
+      "appearance": "europe_leopard_2_2a7v",
+      "unit": "europe_leopard_2_2a7v",
+      "fixture": "fixtures/units/roster/europe.json",
+      "json_path": "units.europe_leopard_2_2a7v.body.hull.half_extents_m",
+      "old": [
+        3.85,
+        1.875,
+        1.5
+      ],
+      "new": [
+        4.025,
+        1.875,
+        1.415
+      ],
+      "digest": "hull box",
+      "source": "knds-2a8, photos-2a7v-2a8; knds-2a7, knds-2a8",
+      "reason": "8.05 m with the hull-front armour module that both variants carry (0.35 m, 4.5 %). Within the 4.8 m cap. The module adds length at the front only, so the box centre moves 0.175 m forward and every turret point moves 0.175 m aft in box coordinates roof 2.64 m (2A7) / 2.72 m (2A8); PERI 3.13 m, 0.41 m over the 2A8's roof, so the box top is 3.13 - 0.3 = 2.83 m (F-B1). The 2A8 inherits the 2A7V frame"
+    },
+    {
+      "appearance": "europe_leopard_2_2a7v",
+      "unit": "europe_leopard_2_2a7v",
+      "fixture": "fixtures/units/roster/europe.json",
+      "json_path": "units.europe_leopard_2_2a7v.mounts[id=cannon].pivot_m",
+      "old": [
+        0.3,
+        0.0,
+        1.8
+      ],
+      "new": [
+        0.125,
+        0,
+        1.8
+      ],
+      "digest": "shell origin",
+      "source": "half_extents_m[0] fix",
+      "reason": "the same ring as the 2A6's, 0.175 m aft of the lengthened box's centre"
+    },
+    {
+      "appearance": "europe_leopard_2_2a7v",
+      "unit": "europe_leopard_2_2a7v",
+      "fixture": "fixtures/units/roster/europe.json",
+      "json_path": "units.europe_leopard_2_2a7v.mounts[id=cannon].muzzle_m",
+      "old": [
+        7.12,
+        0.0,
+        0.54
+      ],
+      "new": [
+        6.82,
+        0,
+        0.25
+      ],
+      "digest": "shell origin",
+      "source": "knds-2a7, bp-leo2a6, photo-2a6-side-2",
+      "reason": "the same gun on the same turret as the 2A6, so the same offset; world [6.945, 0, 2.05] m, i.e. 10.97 m gun forward (KNDS's 2A7 page and an earlier 2A8 brochure). The 2A8 datasheet's 11.17 m is rejected: the same gun and ring with a module that only adds hull at the front cannot add 0.2 m of gun reach"
+    },
+    {
+      "appearance": "europe_leopard_2_2a7v",
+      "unit": "europe_leopard_2_2a7v",
+      "fixture": "fixtures/units/roster/europe.json",
+      "json_path": "units.europe_leopard_2_2a7v.mounts[id=HMG].pivot_m",
+      "old": [
+        0.05,
+        -0.58,
+        2.82
+      ],
+      "new": [
+        -0.125,
+        -0.58,
+        2.82
+      ],
+      "digest": "shell origin",
+      "source": "half_extents_m[0] fix",
+      "reason": "moves with the turret"
+    },
+    {
+      "appearance": "europe_mars_ii_multiple_launch_rocket_system",
+      "unit": "europe_mars_ii_multiple_launch_rocket_system",
+      "fixture": "fixtures/units/roster/europe.json",
+      "json_path": "units.europe_mars_ii_multiple_launch_rocket_system.mounts[id=gun].pivot_m",
+      "old": [
+        -1.6,
+        0.0,
+        2.2
+      ],
+      "new": [
+        -3.2,
+        0,
+        1.2
+      ],
+      "digest": "shell origin",
+      "source": "bp-m270a1, photos-raised",
+      "reason": "the elevation hinge at the rear of the launcher box (Q7). The mount is fixed (turret: false), so only pivot + muzzle reaches the simulation; the pivot records where the art hinges the box (D3)"
+    },
+    {
+      "appearance": "europe_mars_ii_multiple_launch_rocket_system",
+      "unit": "europe_mars_ii_multiple_launch_rocket_system",
+      "fixture": "fixtures/units/roster/europe.json",
+      "json_path": "units.europe_mars_ii_multiple_launch_rocket_system.mounts[id=gun].muzzle_m",
+      "old": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "new": [
+        3.7,
+        0,
+        0.8
+      ],
+      "digest": "shell origin",
+      "source": "bp-m270a1",
+      "reason": "the rockets leave the pods' front face: world [0.5, 0, 2.0] m against the old [-0.6, 0, 2.2] m, which lies 1.1 m inside the box"
+    },
+    {
+      "appearance": "europe_puma_level_c",
+      "unit": "europe_puma_level_c",
+      "fixture": "fixtures/units/roster/europe.json",
+      "json_path": "units.europe_puma_level_c.body.hull.half_extents_m",
+      "old": [
+        3.7,
+        2.0,
+        1.8
+      ],
+      "new": [
+        3.7,
+        2.0,
+        1.65
+      ],
+      "digest": "hull box",
+      "source": "Bundeswehr via Wikipedia: 3.1 m turret roof, 3.6 m to the optics",
+      "reason": "C4: box top = max(roof, tallest bulky dressing - 0.3 m). Roof 3.1 m; the PERI head reaches 3.6 m, so the top is 3.30 m (F-C's 3.1 m left the PERI 0.5 m over it). The art's PERI (3.70 m) comes down 0.1 m, and a non-dressing part (its mast) must reach 3.2 m for the hull fit's 0.1 m tolerance. Lane: 3.6 m is the PERI optics. The art's roof is already 3.11 m, so the hull fit only changes for the PERI (below)."
+    },
+    {
+      "appearance": "europe_pzh_2000_tracked_155_mm_howitzer",
+      "unit": "europe_pzh_2000_tracked_155_mm_howitzer",
+      "fixture": "fixtures/units/roster/europe.json",
+      "json_path": "units.europe_pzh_2000_tracked_155_mm_howitzer.body.hull.half_extents_m",
+      "old": [
+        3.935,
+        1.79,
+        1.53
+      ],
+      "new": [
+        4.165,
+        1.79,
+        1.53
+      ],
+      "digest": "hull box",
+      "source": "hull 7.92 m (globalsecurity) plus the 0.41 m turret overhang at the rear (photo)",
+      "reason": "The body is 8.33 m: 0.46 m over the frame. Centring the box on it puts the hull's centre 0.2 m ahead of the box origin."
+    },
+    {
+      "appearance": "europe_pzh_2000_tracked_155_mm_howitzer",
+      "unit": "europe_pzh_2000_tracked_155_mm_howitzer",
+      "fixture": "fixtures/units/roster/europe.json",
+      "json_path": "units.europe_pzh_2000_tracked_155_mm_howitzer.mounts[id=gun].pivot_m",
+      "old": [
+        -3.0,
+        0.0,
+        2.9
+      ],
+      "new": [
+        0.6,
+        0,
+        2.7
+      ],
+      "digest": "shell origin",
+      "source": "trunnion 0.2-0.65 m ahead of hull centre (+0.2 m into the box) at 2.7 m, photo",
+      "reason": "Named shell-origin change: the placeholder pivot moves to the trunnion (FC7). Lane: The fixed gun mount's pivot sits 2-3 m behind the turret front and above its roof, and pivot + muzzle lands short of the real muzzle (placeholder numbers from the artillery roster commit d1518dc4f, no recorded basis). The art already draws the gun near the real trunnion."
+    },
+    {
+      "appearance": "europe_pzh_2000_tracked_155_mm_howitzer",
+      "unit": "europe_pzh_2000_tracked_155_mm_howitzer",
+      "fixture": "fixtures/units/roster/europe.json",
+      "json_path": "units.europe_pzh_2000_tracked_155_mm_howitzer.mounts[id=gun].muzzle_m",
+      "old": [
+        8.06,
+        0.0,
+        0.0
+      ],
+      "new": [
+        7.1,
+        0,
+        0
+      ],
+      "digest": "shell origin",
+      "source": "the 11.67 m overall length (muzzle 7.3-7.7 m ahead of hull centre, depending on whether it is taken from the hull or the turret rear)",
+      "reason": "8.06 m is the whole tube, breech included; about 7 m of it is ahead of the trunnion."
+    },
+    {
+      "appearance": "us_m109_paladin_m109a7",
+      "unit": "us_m109_paladin_m109a7",
+      "fixture": "fixtures/units/roster/us.json",
+      "json_path": "units.us_m109_paladin_m109a7.body.hull.half_extents_m",
+      "old": [
+        3.4,
+        1.95,
+        1.625
+      ],
+      "new": [
+        3.4,
+        1.95,
+        1.48
+      ],
+      "digest": "hull box",
+      "source": "M109A6 drawing (A proietti, CC BY-SA 4.0): roof 2.77-2.80 m, cupola with its MG mount 3.26 m",
+      "reason": "C4: box top = max(roof, tallest bulky dressing - 0.3 m). Roof 2.8 m; the commander's cupola and MG mount reach 3.26 m, so the top is 2.96 m (F-C's 2.80 m left the cupola 0.46 m over). The cupola is dressing; its ring stays hull to meet the 0.1 m fit tolerance. Lane: 3.25 m is the cupola and its MG mount (3.26 m on the drawing)."
+    },
+    {
+      "appearance": "us_m109_paladin_m109a7",
+      "unit": "us_m109_paladin_m109a7",
+      "fixture": "fixtures/units/roster/us.json",
+      "json_path": "units.us_m109_paladin_m109a7.mounts[id=gun].pivot_m",
+      "old": [
+        -2.3,
+        0.0,
+        3.0
+      ],
+      "new": [
+        0.7,
+        0,
+        2.27
+      ],
+      "digest": "shell origin",
+      "source": "trunnion on the A6 drawing, moved into a box centred on hull plus bustle (hull centre +0.42 m)",
+      "reason": "Named shell-origin change: the placeholder pivot (2-3 m behind the turret front, over its roof) moves to the trunnion (FC7). Lane: The fixed gun mount's pivot sits 2-3 m behind the turret front and above its roof, and pivot + muzzle lands short of the real muzzle (placeholder numbers from the artillery roster commit d1518dc4f, no recorded basis). The art already draws the gun near the real trunnion. Off 3.0 m along x and 0.7 m in height."
+    },
+    {
+      "appearance": "us_m10_booker",
+      "unit": "us_m10_booker",
+      "fixture": "fixtures/units/roster/us.json",
+      "json_path": "units.us_m10_booker.body.hull.half_extents_m",
+      "old": [
+        3.5,
+        1.7,
+        1.49
+      ],
+      "new": [
+        3.5,
+        1.7,
+        1.3
+      ],
+      "digest": "hull box",
+      "source": "photo-side, photo-side-2, overt",
+      "reason": "the roof is about 2.5 m (photos 2.39 and 2.58 m, Overt 2.5 m); the 2.98 m box reaches the commander's sight dome. The sight's top (2.89 m) stands 0.4 m over the roof, past the 0.3 m bulky allowance, so the box top is 2.89 - 0.3 = 2.6 m (F-B1)"
+    },
+    {
+      "appearance": "us_m10_booker",
+      "unit": "us_m10_booker",
+      "fixture": "fixtures/units/roster/us.json",
+      "json_path": "units.us_m10_booker.mounts[id=cannon].muzzle_m",
+      "old": [
+        4.95,
+        0.0,
+        0.32
+      ],
+      "new": [
+        5.75,
+        0,
+        0.32
+      ],
+      "digest": "shell origin",
+      "source": "photo-side, overt",
+      "reason": "world muzzle x 4.65 m (8.15 m overall) against 5.45 m from the photo and about 9 m overall from Overt"
+    },
+    {
+      "appearance": "us_m1_abrams_sep_v2",
+      "unit": "us_m1_abrams_sep_v2",
+      "fixture": "fixtures/units/roster/us.json",
+      "json_path": "units.us_m1_abrams_sep_v2.mounts[id=cannon].muzzle_m",
+      "old": [
+        5.805,
+        0.0,
+        0.439
+      ],
+      "new": [
+        5.555,
+        0,
+        0.439
+      ],
+      "digest": "shell origin",
+      "source": "army-fact-file, bp-m1a2-sep",
+      "reason": "the world muzzle sits at x 6.055 m (10.02 m overall); 9.77 m gun forward puts it at 5.805 m (the drawing: 5.88 m). The old offset equals the intended world x, so the pivot's 0.25 m was never subtracted. z 1.903 m agrees with the drawing's 1.95 m axis."
+    },
+    {
+      "appearance": "us_m1_abrams_sep_v2",
+      "unit": "us_m1_abrams_sep_v2",
+      "fixture": "fixtures/units/roster/us.json",
+      "json_path": "units.us_m1_abrams_sep_v2.mounts[id=HMG].muzzle_m",
+      "old": [
+        1.43,
+        0.0,
+        0.32
+      ],
+      "new": [
+        1.67,
+        0,
+        0.58
+      ],
+      "digest": "shell origin",
+      "source": "bp-m1a2-sep",
+      "reason": "the drawing's remote-station M2 has its muzzle at x 1.67 m, z 2.87 m (0.43 m over the roof); the frame puts it at [1.43, -0.58, 2.614] m, 0.24 m short and 0.26 m low"
+    },
+    {
+      "appearance": "us_m270_mlrs_m270a2",
+      "unit": "us_m270_mlrs_m270a2",
+      "fixture": "fixtures/units/roster/us.json",
+      "json_path": "units.us_m270_mlrs_m270a2.mounts[id=gun].pivot_m",
+      "old": [
+        -1.6,
+        0.0,
+        2.2
+      ],
+      "new": [
+        -3.2,
+        0,
+        1.2
+      ],
+      "digest": "shell origin",
+      "source": "bp-m270a1, photos-raised",
+      "reason": "the elevation hinge at the rear of the launcher box (Q7). The mount is fixed (turret: false), so only pivot + muzzle reaches the simulation; the pivot records where the art hinges the box (D3)"
+    },
+    {
+      "appearance": "us_m270_mlrs_m270a2",
+      "unit": "us_m270_mlrs_m270a2",
+      "fixture": "fixtures/units/roster/us.json",
+      "json_path": "units.us_m270_mlrs_m270a2.mounts[id=gun].muzzle_m",
+      "old": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "new": [
+        3.7,
+        0,
+        0.8
+      ],
+      "digest": "shell origin",
+      "source": "bp-m270a1",
+      "reason": "the rockets leave the pods' front face: world [0.5, 0, 2.0] m against the old [-0.6, 0, 2.2] m, which lies 1.1 m inside the box"
+    },
+    {
+      "appearance": "us_m2_bradley_ifv_m2a4",
+      "unit": "us_m2_bradley_ifv_m2a4",
+      "fixture": "fixtures/units/roster/us.json",
+      "json_path": "units.us_m2_bradley_ifv_m2a4.body.hull.half_extents_m",
+      "old": [
+        3.275,
+        1.8,
+        1.49
+      ],
+      "new": [
+        3.275,
+        1.8,
+        1.38
+      ],
+      "digest": "hull box",
+      "source": "Jane's: 2.565 m turret roof, 2.972 m gunner's sight; the art's commander's independent viewer 3.06 m",
+      "reason": "C4: box top = max(roof, tallest bulky dressing - 0.3 m). Roof 2.565 m; the tallest sight head (the A3/A4's commander's independent viewer, 3.06 m in the art, unmeasured on a real vehicle; Jane's gunner's sight 2.97 m) puts the top at 2.76 m (F-C's 2.565 m left it 0.49 m over). Lane: 2.98 m is the gunner's sight. The art's roof is already 2.537 m."
+    },
+    {
+      "appearance": "us_m2_bradley_ifv_m2a4",
+      "unit": "us_m2_bradley_ifv_m2a4",
+      "fixture": "fixtures/units/roster/us.json",
+      "json_path": "units.us_m2_bradley_ifv_m2a4.mounts[id=autocannon].muzzle_m",
+      "old": [
+        3.6,
+        0.0,
+        0.536
+      ],
+      "new": [
+        2.5,
+        0,
+        0.536
+      ],
+      "digest": "shell origin",
+      "source": "assets/references/bradley/us_m3_bradley_cfv_m3a3-side.jpg (square-on, 193 px/m on the 6.55 m hull); -m2a4-side.jpg",
+      "reason": "C5 audit: the square-on photo puts the 25 mm muzzle 1.98 m ahead of hull centre, about 1.3 m behind the nose, and the M2A4 quarter shows it behind the glacis break too. The frame's world point (3.1 m) overshoots by 1.1 m. The barrel's height in the photo (about 2.05 m against the frame's 2.47 m) is named for slice 26, not fixed: one photo in dust. Lane: No measurement contradicts them."
+    },
+    {
+      "appearance": "us_m3_bradley_cfv_m3a3",
+      "unit": "us_m3_bradley_cfv_m3a3",
+      "fixture": "fixtures/units/roster/us.json",
+      "json_path": "units.us_m3_bradley_cfv_m3a3.body.hull.half_extents_m",
+      "old": [
+        3.275,
+        1.8,
+        1.49
+      ],
+      "new": [
+        3.275,
+        1.8,
+        1.38
+      ],
+      "digest": "hull box",
+      "source": "Jane's: 2.565 m turret roof, 2.972 m gunner's sight; the art's commander's independent viewer 3.06 m",
+      "reason": "C4: box top = max(roof, tallest bulky dressing - 0.3 m). Roof 2.565 m; the tallest sight head (the A3/A4's commander's independent viewer, 3.06 m in the art, unmeasured on a real vehicle; Jane's gunner's sight 2.97 m) puts the top at 2.76 m (F-C's 2.565 m left it 0.49 m over). Lane: 2.98 m is the gunner's sight. The art's roof is already 2.537 m."
+    },
+    {
+      "appearance": "us_m3_bradley_cfv_m3a3",
+      "unit": "us_m3_bradley_cfv_m3a3",
+      "fixture": "fixtures/units/roster/us.json",
+      "json_path": "units.us_m3_bradley_cfv_m3a3.mounts[id=autocannon].muzzle_m",
+      "old": [
+        3.6,
+        0.0,
+        0.536
+      ],
+      "new": [
+        2.5,
+        0,
+        0.536
+      ],
+      "digest": "shell origin",
+      "source": "assets/references/bradley/us_m3_bradley_cfv_m3a3-side.jpg (square-on, 193 px/m on the 6.55 m hull); -m2a4-side.jpg",
+      "reason": "C5 audit: the square-on photo puts the 25 mm muzzle 1.98 m ahead of hull centre, about 1.3 m behind the nose, and the M2A4 quarter shows it behind the glacis break too. The frame's world point (3.1 m) overshoots by 1.1 m. The barrel's height in the photo (about 2.05 m against the frame's 2.47 m) is named for slice 26, not fixed: one photo in dust. Lane: No measurement contradicts them."
+    },
+    {
+      "appearance": "europe_challenger_challenger_3",
+      "unit": "europe_challenger_challenger_3",
+      "fixture": "fixtures/units/roster/europe.json",
+      "json_path": "units.europe_challenger_challenger_3.body.hull.half_extents_m",
+      "old": null,
+      "inherited_old": [
+        4.15,
+        2.1,
+        1.245
+      ],
+      "new": [
+        4.15,
+        2.1,
+        1.35
+      ],
+      "digest": "hull box",
+      "source": "Calibre Defence Challenger 3 profile: 'over 3 m to the sight'",
+      "reason": "C4: box top = max(roof, tallest bulky dressing - 0.3 m). The roof stays the Challenger 2's 2.49 m, but the Challenger 3's commander's sight stands over 3.0 m, so its box top is at least 2.70 m. The Challenger 3 gains its own half_extents_m (it inherits the Challenger 2's today). The art's sight (2.76 m) is drawn low; slice 20 raises it."
+    },
+    {
+      "appearance": "europe_challenger_challenger_3",
+      "unit": "europe_challenger_challenger_3",
+      "fixture": "fixtures/units/roster/europe.json",
+      "json_path": "units.europe_challenger_challenger_3.mounts[id=cannon].muzzle_m",
+      "old": null,
+      "inherited_old": [
+        5.561,
+        0.0,
+        0.448
+      ],
+      "new": [
+        6.95,
+        0,
+        0.448
+      ],
+      "digest": "shell origin",
+      "source": "Calibre Defence 11.3 m gun forward",
+      "reason": "11.3 - 4.15 - 0.2 = 6.95 m from the pivot; the Challenger 3's own muzzle row (it inherits the Challenger 2's today). Lane: the Challenger 3 inherits the Challenger 2's muzzle; it needs its own, 0.15 m shorter than the Challenger 2's fixed one (measured 6.95)"
+    },
+    {
+      "appearance": "us_m1_abrams_sep_v2_trophy",
+      "unit": "us_m1_abrams_sep_v2_trophy",
+      "fixture": "fixtures/units/roster/us.json",
+      "json_path": "units.us_m1_abrams_sep_v2_trophy.mounts[id=cannon].muzzle_m",
+      "old": [
+        5.805,
+        0.0,
+        0.439
+      ],
+      "new": [
+        5.555,
+        0,
+        0.439
+      ],
+      "digest": "shell origin",
+      "source": "army-fact-file, bp-m1a2-sep",
+      "reason": "As us_m1_abrams_sep_v2: this fixture restates the field, so it has its own row in fix-rows.json. the world muzzle sits at x 6.055 m (10.02 m overall); 9.77 m gun forward puts it at 5.805 m (the drawing: 5.88 m). The old offset equals the intended world x, so the pivot's 0.25 m was never subtracted. z 1.903 m agrees with the drawing's 1.95 m axis."
+    },
+    {
+      "appearance": "us_m1_abrams_sep_v2_trophy",
+      "unit": "us_m1_abrams_sep_v2_trophy",
+      "fixture": "fixtures/units/roster/us.json",
+      "json_path": "units.us_m1_abrams_sep_v2_trophy.mounts[id=HMG].muzzle_m",
+      "old": [
+        1.43,
+        0.0,
+        0.32
+      ],
+      "new": [
+        1.67,
+        0,
+        0.58
+      ],
+      "digest": "shell origin",
+      "source": "bp-m1a2-sep",
+      "reason": "As us_m1_abrams_sep_v2: this fixture restates the field, so it has its own row in fix-rows.json. the drawing's remote-station M2 has its muzzle at x 1.67 m, z 2.87 m (0.43 m over the roof); the frame puts it at [1.43, -0.58, 2.614] m, 0.24 m short and 0.26 m low"
+    },
+    {
+      "appearance": "us_m1_abrams_sep_v3_trophy",
+      "unit": "us_m1_abrams_sep_v3_trophy",
+      "fixture": "fixtures/units/roster/us.json",
+      "json_path": "units.us_m1_abrams_sep_v3_trophy.mounts[id=cannon].muzzle_m",
+      "old": [
+        5.805,
+        0.0,
+        0.439
+      ],
+      "new": [
+        5.555,
+        0,
+        0.439
+      ],
+      "digest": "shell origin",
+      "source": "army-fact-file, bp-m1a2-sep",
+      "reason": "As us_m1_abrams_sep_v2: this fixture restates the field, so it has its own row in fix-rows.json. the world muzzle sits at x 6.055 m (10.02 m overall); 9.77 m gun forward puts it at 5.805 m (the drawing: 5.88 m). The old offset equals the intended world x, so the pivot's 0.25 m was never subtracted. z 1.903 m agrees with the drawing's 1.95 m axis."
+    },
+    {
+      "appearance": "us_m1_abrams_sep_v3_trophy",
+      "unit": "us_m1_abrams_sep_v3_trophy",
+      "fixture": "fixtures/units/roster/us.json",
+      "json_path": "units.us_m1_abrams_sep_v3_trophy.mounts[id=HMG].muzzle_m",
+      "old": [
+        1.43,
+        0.0,
+        0.32
+      ],
+      "new": [
+        1.67,
+        0,
+        0.58
+      ],
+      "digest": "shell origin",
+      "source": "bp-m1a2-sep",
+      "reason": "As us_m1_abrams_sep_v2: this fixture restates the field, so it has its own row in fix-rows.json. the drawing's remote-station M2 has its muzzle at x 1.67 m, z 2.87 m (0.43 m over the roof); the frame puts it at [1.43, -0.58, 2.614] m, 0.24 m short and 0.26 m low"
+    }
+  ],
+  "derived": {
+    "note": "Steps slice 15 derives from the rows above (slices/15-frame-fixes.md, the chain).",
+    "wreck_footprint": {
+      "what": "copy each changed hull's half extents into its wreck's footprint_half_m in assets/catalog.json (validate.ts:1658-1667)",
+      "appearances": [
+        "eastern_2s19_msta_s_2s19m2",
+        "eastern_bmp_ifv_family_bmp_2m_berezhok",
+        "eastern_buk_buk_m3_medium_range_air_defense",
+        "eastern_plz_05_chinese_tracked_155_mm_howitzer",
+        "eastern_t_14_armata_main_battle_tank",
+        "eastern_t_80_t_80bvm",
+        "eastern_type_99_ztz_99a",
+        "europe_ajax_tracked_reconnaissance_vehicle",
+        "europe_challenger_challenger_3",
+        "europe_cv90120_light_tank",
+        "europe_cv90_cv9040c",
+        "europe_gepard_1a2",
+        "europe_leopard_2_2a6",
+        "europe_leopard_2_2a7v",
+        "europe_puma_level_c",
+        "europe_pzh_2000_tracked_155_mm_howitzer",
+        "us_m109_paladin_m109a7",
+        "us_m10_booker",
+        "us_m2_bradley_ifv_m2a4",
+        "us_m3_bradley_cfv_m3a3"
+      ]
+    },
+    "track_gauge": {
+      "what": "retune track_gauge in assets/catalog.json where the half-width changed; it is a fraction of half-width (fielded.rs:440)",
+      "appearances": [
+        "eastern_2s19_msta_s_2s19m2",
+        "europe_cv90_cv9040c"
+      ]
+    },
+    "mount_draw": {
+      "what": "assets/catalog.json gains the Ajax's HMG mount draw",
+      "appearances": [
+        "europe_ajax_tracked_reconnaissance_vehicle"
+      ]
+    },
+    "art_fit": {
+      "what": "where the box top stands more than 0.1 m over the real roof (C4), the art keeps a non-dressing part (a sight's mast or cupola ring) within 0.1 m of the box top and puts the head under dressing_*; slice 15's minimal fit edits",
+      "appearances": [
+        "europe_ajax_tracked_reconnaissance_vehicle",
+        "europe_challenger_challenger_3",
+        "europe_cv90_cv9040c",
+        "europe_cv90_mk_iv",
+        "europe_gepard_1a2",
+        "europe_leopard_2_2a7v",
+        "europe_leopard_2_2a8",
+        "europe_puma_level_c",
+        "us_m109_paladin_m109a7",
+        "us_m2_bradley_ifv_m2a4",
+        "us_m3_bradley_cfv_m3a3"
+      ]
+    }
+  }
+}

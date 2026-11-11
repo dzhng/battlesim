@@ -1,0 +1,525 @@
+{
+  "family": "m270_mlrs",
+  "lane": "F-B",
+  "slice": "07",
+  "surveyed": "2026-11-11",
+  "reconciled": {
+    "slice": "07b",
+    "date": "2026-11-11",
+    "decisions": "decisions.md C4-C10"
+  },
+  "convention": {
+    "frame": "x forward, y left, z up, metres; the hull box is centred on x = 0, y = 0 and stands on z = 0",
+    "hull_box": "the top is max(the real hull or turret roof, the top of the tallest bulky dressing - 0.3 m) (decisions.md C4, after F-B1). Sights, sensors, radars and roof guns that are not a roster mount are dressing, held to unitArt.ts's 0.3 m bulky / 0.15 m thin allowance. The box covers the body, including an armoured turret overhang (FC8)",
+    "pivot": "the centre of the turret ring; for a fixed mount, the trunnion or hinge it is drawn on (only pivot + muzzle reaches the simulation)",
+    "muzzle": "muzzle_m is measured from the mount's pivot: the simulation fires from pivot + muzzle (crates/sim/src/weapons/muzzle.rs:12-22; decisions.md C5)",
+    "eye": "the sight's height over the ground (catalog.rs:181); kept unless a source contradicts it (FA-6)"
+  },
+  "thresholds": {
+    "hull_dimension": "fix when off by more than max(0.10 m, 3 %)",
+    "pivot": "fix when off by more than 0.15 m on any axis",
+    "muzzle_point": "fix when the world muzzle point (pivot + muzzle) is off by more than 0.15 m on any axis; a value written in another convention is fixed whatever its size (C5)",
+    "eye_m": "kept unless a source contradicts it",
+    "note": "One set for every lane (decisions.md C10). The lanes' own variants (F-A's max(0.10 m, 3 %) for muzzles, F-C's 0.30 m muzzle reach) are retired."
+  },
+  "verdicts": {
+    "keep": "the frame number agrees with the references within the thresholds",
+    "fix": "slice 15 changes it to `new`: a row in fix-rows.json, or the parent's row where the fixture takes the field through extends",
+    "unresolved": "kept at today's value: nothing measures it well enough to move it; named",
+    "art-only": "not a frame number: the family slice fixes the art",
+    "inherits": "the fixture extends another unit and this appearance takes its rows"
+  },
+  "sources": [
+    {
+      "id": "bp-m270a1",
+      "kind": "drawing (copyrighted)",
+      "ref": "https://www.the-blueprints.com/blueprints/tanks/tanks-m/78053/view/m270a1_mlrs",
+      "note": "4461 x 2646 px, dimensioned (6972 x 2972 x 2591 mm, 4330 mm road wheel span): stowed side, raised side, top, front and rear; measured in throwaway (Q4 rung 2); only the numbers are committed. Stowed: the launcher box runs from x +0.50 m (its front face) to the hull's rear, 1.39 to 2.62 m high; its rear hinge pin sits at x -3.21 m, z 1.19 m. The raised view hinges the box at its rear end and lifts the front over the cab."
+    },
+    {
+      "id": "photos-raised",
+      "kind": "photo",
+      "ref": "assets/references/m270_mlrs/us_m270_mlrs_m270a2-three_quarter_front.jpg, -three_quarter_rear.jpg; assets/references/mars_ii/europe_mars_ii_multiple_launch_rocket_system-three_quarter_front.jpg, -three_quarter_front-2.jpg, -three_quarter_rear.jpg",
+      "note": "every raised launcher stands on a hinge at the rear of its box, its front end lifted over the cab"
+    }
+  ],
+  "appearances": {
+    "us_m270_mlrs_m270a2": {
+      "unit": "us_m270_mlrs_m270a2",
+      "fixture": "fixtures/units/roster/us.json",
+      "published": {
+        "length_m": 6.97,
+        "width_m": 2.97,
+        "height_m": 2.59,
+        "source": "bp-m270a1 (dimensioned); the A2 keeps the A1's carrier and launcher"
+      },
+      "current": {
+        "extends": "roster_profile_light_tank",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 24.0,
+            "reverse_speed_factor": 0.3,
+            "road_kmh": 58.0,
+            "turn_deg_s": 28.0
+          }
+        },
+        "half_extents_m": [
+          3.485,
+          1.485,
+          1.31
+        ],
+        "eye_m": 2.358,
+        "mounts": [
+          {
+            "id": "gun",
+            "pivot_m": [
+              -1.6,
+              0.0,
+              2.2
+            ],
+            "muzzle_m": [
+              1.0,
+              0.0,
+              0.0
+            ],
+            "turret": false
+          }
+        ]
+      },
+      "measured": null,
+      "heights": {
+        "roof_m": 2.6,
+        "roof_source": "drawing 2.591 m; published 2.62 m",
+        "sight_top_m": null,
+        "sight_part": "none",
+        "sight_source": null,
+        "rule_top_m": 2.6,
+        "box_top_m": 2.62,
+        "art": {
+          "hull_top_m": 2.75,
+          "tallest_dressing": null,
+          "tallest_dressing_top_m": null,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
+        {
+          "field": "half_extents_m[0]",
+          "old": 3.485,
+          "new": null,
+          "verdict": "keep",
+          "source": "bp-m270a1",
+          "confidence": null,
+          "note": "6.97 x 2.97 x 2.62 m against the drawing's 6.972 x 2.972 x 2.591 m"
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 1.485,
+          "new": null,
+          "verdict": "keep",
+          "source": "bp-m270a1",
+          "confidence": null,
+          "note": "6.97 x 2.97 x 2.62 m against the drawing's 6.972 x 2.972 x 2.591 m"
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.31,
+          "new": null,
+          "verdict": "keep",
+          "source": "bp-m270a1",
+          "confidence": null,
+          "note": "6.97 x 2.97 x 2.62 m against the drawing's 6.972 x 2.972 x 2.591 m"
+        },
+        {
+          "field": "eye_m",
+          "old": 2.358,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.gun.pivot_m",
+          "old": [
+            -1.6,
+            0.0,
+            2.2
+          ],
+          "new": [
+            -3.2,
+            0,
+            1.2
+          ],
+          "verdict": "fix",
+          "source": "bp-m270a1, photos-raised",
+          "confidence": "high",
+          "note": "the elevation hinge at the rear of the launcher box (Q7). The mount is fixed (turret: false), so only pivot + muzzle reaches the simulation; the pivot records where the art hinges the box (D3)"
+        },
+        {
+          "field": "mounts.gun.muzzle_m",
+          "old": [
+            1.0,
+            0.0,
+            0.0
+          ],
+          "new": [
+            3.7,
+            0,
+            0.8
+          ],
+          "verdict": "fix",
+          "source": "bp-m270a1",
+          "confidence": "high",
+          "note": "the rockets leave the pods' front face: world [0.5, 0, 2.0] m against the old [-0.6, 0, 2.2] m, which lies 1.1 m inside the box"
+        }
+      ]
+    }
+  },
+  "overlays": {
+    "note": "Registered overlay: the drawing is scaled by its hull length set to `registration.span_m` and anchored on the nose and ground line; the model silhouette (vehicle mode) and the frame box are laid over it. Stations sample 19 points along the span: the top (z) in side and front views, the full width in the top view, drawing against model. Drawing silhouettes include roof fittings, antennas, the gun and, where the crop catches them, dimension arrows. The overlay images contain the copyrighted drawing, so they are not committed. The side crop catches the drawing's dimension arrows ahead of the nose.",
+    "views": [
+      {
+        "view": "side",
+        "drawing": "bp-m270a1",
+        "registration": {
+          "model": "us_m270_mlrs_m270a2",
+          "span_m": 6.97,
+          "nose_px": 1403,
+          "tail_px": 2973,
+          "ground_px": 652
+        },
+        "measure": "top_z_m",
+        "stations": [
+          {
+            "x_m": 3.14,
+            "drawing": 2.61,
+            "model": 2.24
+          },
+          {
+            "x_m": 2.79,
+            "drawing": 2.72,
+            "model": 2.53
+          },
+          {
+            "x_m": 2.44,
+            "drawing": 2.71,
+            "model": 2.53
+          },
+          {
+            "x_m": 2.09,
+            "drawing": 2.69,
+            "model": 2.66
+          },
+          {
+            "x_m": 1.74,
+            "drawing": 2.61,
+            "model": 2.62
+          },
+          {
+            "x_m": 1.39,
+            "drawing": 2.5,
+            "model": 2.3
+          },
+          {
+            "x_m": 1.05,
+            "drawing": 2.51,
+            "model": 2.56
+          },
+          {
+            "x_m": 0.7,
+            "drawing": 2.52,
+            "model": 2.7
+          },
+          {
+            "x_m": 0.35,
+            "drawing": 2.61,
+            "model": 2.7
+          },
+          {
+            "x_m": 0.0,
+            "drawing": 2.61,
+            "model": 2.7
+          },
+          {
+            "x_m": -0.35,
+            "drawing": 2.61,
+            "model": 2.7
+          },
+          {
+            "x_m": -0.7,
+            "drawing": 2.61,
+            "model": 2.7
+          },
+          {
+            "x_m": -1.05,
+            "drawing": 2.64,
+            "model": 2.7
+          },
+          {
+            "x_m": -1.39,
+            "drawing": 2.63,
+            "model": 2.7
+          },
+          {
+            "x_m": -1.74,
+            "drawing": 2.63,
+            "model": 2.7
+          },
+          {
+            "x_m": -2.09,
+            "drawing": 2.61,
+            "model": 2.7
+          },
+          {
+            "x_m": -2.44,
+            "drawing": 2.61,
+            "model": 2.7
+          },
+          {
+            "x_m": -2.79,
+            "drawing": 2.6,
+            "model": 2.7
+          },
+          {
+            "x_m": -3.14,
+            "drawing": 2.6,
+            "model": 2.72
+          }
+        ]
+      },
+      {
+        "view": "top",
+        "drawing": "bp-m270a1",
+        "registration": {
+          "model": "us_m270_mlrs_m270a2",
+          "span_m": 6.97,
+          "nose_px": 1335,
+          "tail_px": 2965,
+          "centreline_px": 1060
+        },
+        "measure": "width_m",
+        "stations": [
+          {
+            "x_m": 3.14,
+            "drawing": 2.75,
+            "model": 2.97
+          },
+          {
+            "x_m": 2.79,
+            "drawing": 2.86,
+            "model": 2.97
+          },
+          {
+            "x_m": 2.44,
+            "drawing": 2.86,
+            "model": 2.97
+          },
+          {
+            "x_m": 2.09,
+            "drawing": 2.85,
+            "model": 2.97
+          },
+          {
+            "x_m": 1.74,
+            "drawing": 2.98,
+            "model": 2.97
+          },
+          {
+            "x_m": 1.39,
+            "drawing": 2.97,
+            "model": 2.97
+          },
+          {
+            "x_m": 1.05,
+            "drawing": 2.97,
+            "model": 2.98
+          },
+          {
+            "x_m": 0.7,
+            "drawing": 2.97,
+            "model": 2.98
+          },
+          {
+            "x_m": 0.35,
+            "drawing": 2.97,
+            "model": 2.98
+          },
+          {
+            "x_m": 0.0,
+            "drawing": 2.97,
+            "model": 3.03
+          },
+          {
+            "x_m": -0.35,
+            "drawing": 2.97,
+            "model": 2.98
+          },
+          {
+            "x_m": -0.7,
+            "drawing": 2.97,
+            "model": 2.98
+          },
+          {
+            "x_m": -1.05,
+            "drawing": 2.97,
+            "model": 2.98
+          },
+          {
+            "x_m": -1.39,
+            "drawing": 2.97,
+            "model": 2.98
+          },
+          {
+            "x_m": -1.74,
+            "drawing": 2.97,
+            "model": 2.98
+          },
+          {
+            "x_m": -2.09,
+            "drawing": 2.97,
+            "model": 2.97
+          },
+          {
+            "x_m": -2.44,
+            "drawing": 2.86,
+            "model": 2.97
+          },
+          {
+            "x_m": -2.79,
+            "drawing": 2.86,
+            "model": 2.97
+          },
+          {
+            "x_m": -3.14,
+            "drawing": 2.86,
+            "model": 2.97
+          }
+        ]
+      },
+      {
+        "view": "front",
+        "drawing": "bp-m270a1",
+        "registration": {
+          "model": "us_m270_mlrs_m270a2",
+          "span_m": 2.97,
+          "left_px": 2203,
+          "right_px": 2878,
+          "ground_px": 2636
+        },
+        "measure": "top_z_m",
+        "stations": [
+          {
+            "y_m": -1.34,
+            "drawing": 2.67,
+            "model": 2.53
+          },
+          {
+            "y_m": -1.19,
+            "drawing": 2.68,
+            "model": 2.56
+          },
+          {
+            "y_m": -1.04,
+            "drawing": 2.77,
+            "model": 2.56
+          },
+          {
+            "y_m": -0.89,
+            "drawing": 2.78,
+            "model": 2.62
+          },
+          {
+            "y_m": -0.74,
+            "drawing": 2.77,
+            "model": 2.66
+          },
+          {
+            "y_m": -0.59,
+            "drawing": 2.77,
+            "model": 2.64
+          },
+          {
+            "y_m": -0.45,
+            "drawing": 2.76,
+            "model": 2.61
+          },
+          {
+            "y_m": -0.3,
+            "drawing": 2.76,
+            "model": 2.56
+          },
+          {
+            "y_m": -0.15,
+            "drawing": 2.68,
+            "model": 2.58
+          },
+          {
+            "y_m": 0.0,
+            "drawing": 2.65,
+            "model": 2.56
+          },
+          {
+            "y_m": 0.15,
+            "drawing": 2.66,
+            "model": 2.58
+          },
+          {
+            "y_m": 0.3,
+            "drawing": 2.66,
+            "model": 2.56
+          },
+          {
+            "y_m": 0.45,
+            "drawing": 2.68,
+            "model": 2.61
+          },
+          {
+            "y_m": 0.59,
+            "drawing": 2.68,
+            "model": 2.64
+          },
+          {
+            "y_m": 0.74,
+            "drawing": 2.68,
+            "model": 2.66
+          },
+          {
+            "y_m": 0.89,
+            "drawing": 2.68,
+            "model": 2.62
+          },
+          {
+            "y_m": 1.04,
+            "drawing": 2.67,
+            "model": 2.76
+          },
+          {
+            "y_m": 1.19,
+            "drawing": 2.66,
+            "model": 2.76
+          },
+          {
+            "y_m": 1.34,
+            "drawing": 2.66,
+            "model": 2.53
+          }
+        ]
+      }
+    ]
+  },
+  "notes": [
+    {
+      "appearances": [
+        "us_m270_mlrs_m270a2"
+      ],
+      "note": "the pivot for the rocket launcher needs to go in the back",
+      "class": "art",
+      "why": "Q7: yes. The drawing and every raised photo hinge the box at its rear; the art puts the turntable and hinge at x1 - 1.0, the front (rocket_artillery.py:164-168). D3 redraws them at the rear, still stowed.; frame part: the mount's pivot and muzzle (fix)"
+    }
+  ],
+  "answers": {
+    "Q7": "Yes. The M270A2 three-quarter-front and three-quarter-rear photos, all three MARS II three-quarter photos and the M270A1 drawing's raised view show the box hinged at its rear end, at the hull's rear, with its front end lifted over the cab. Stowed, the hinge pin sits at x -3.21 m, z 1.19 m."
+  },
+  "gaps": null
+}
