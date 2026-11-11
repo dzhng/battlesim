@@ -1,0 +1,130 @@
+{
+  "family": "puma",
+  "lane": "F-C",
+  "surveyed": "2026-11-11",
+  "convention": "The hull box reaches the hull and turret roof; sights, antennas and roof guns are dressing within 0.3 m (bulky) or 0.15 m across (thin); the pivot sits at the centre of the turret ring (a fixed howitzer mount: its trunnion); the muzzle sits at the real barrel length. Box length covers the body (hull plus any armoured turret overhang), centred on the box origin.",
+  "thresholds": {
+    "hull_dimension": "max(0.10 m, 3 %)",
+    "pivot_x_m": 0.15,
+    "muzzle_reach_m": 0.3,
+    "note": "Slice 07's guesses, kept: every fix row below clears them by a wide margin or is named as borderline. muzzle_reach_m is added by lane F-C (the slice set none for muzzles)."
+  },
+  "units": [
+    {
+      "unit": "europe_puma_level_c",
+      "published": {
+        "length_m": {
+          "value": 7.4,
+          "source": "KNDS Puma page via Wikipedia"
+        },
+        "width_m": {
+          "value": 4.0,
+          "source": "Wikipedia: 3.7 m base, 4.0 m up-armoured (level C)"
+        },
+        "height_m": {
+          "value": 3.6,
+          "source": "Wikipedia (Bundeswehr): 3.6 m for the optics"
+        },
+        "turret_roof_m": {
+          "value": 3.1,
+          "source": "Wikipedia (Bundeswehr): 3.1 m for the turret roof"
+        }
+      },
+      "model_glb": {
+        "bounds_no_dressing_m": [
+          [-3.755, 3.678],
+          [-2.014, 2.044],
+          [0.0, 3.697]
+        ],
+        "turret_roof_m": 3.11,
+        "mells_m": {
+          "x": [-0.7, 0.615],
+          "y": [0.86, 1.32],
+          "z": [2.68, 3.16]
+        },
+        "peri_m": {
+          "x": [-1.42, -1.011],
+          "y": [0.33, 0.77],
+          "z": [3.11, 3.697]
+        }
+      },
+      "verdicts": [
+        {
+          "field": "half_extents_m[0]",
+          "frame": 3.7,
+          "verdict": "keep"
+        },
+        {
+          "field": "half_extents_m[1]",
+          "frame": 2.0,
+          "verdict": "keep",
+          "why": "Level C, 4.0 m."
+        },
+        {
+          "field": "half_extents_m[2]",
+          "frame": 1.8,
+          "verdict": "fix",
+          "new": 1.55,
+          "source": "turret roof 3.1 m (Bundeswehr figures on Wikipedia)",
+          "why": "3.6 m is the PERI optics. The art's roof is already 3.11 m, so the hull fit only changes for the PERI (below)."
+        },
+        {
+          "field": "eye_m",
+          "frame": 3.45,
+          "verdict": "keep",
+          "why": "The PERI head is where the commander looks from."
+        },
+        {
+          "field": "mounts",
+          "frame": "autocannon pivot [-0.45, 0, 2.55], muzzle [4.1, 0, 0.4]; launcher (MELLS) pivot [-0.45, 1.08, 2.95] on autocannon",
+          "verdict": "keep"
+        }
+      ],
+      "dressing_conflicts": [
+        {
+          "part": "PERI commander's sight on its mast",
+          "top_m": 3.697,
+          "over_new_roof_m": 0.6,
+          "across_m": 0.41,
+          "why": "Not dressing today, so it sets the hull top. Marked dressing over a 3.1 m box it breaks both allowances (0.3 m bulky, 0.15 m thin). Same question as the Leopard PERI (slice 07 Q4): slice 15 decides."
+        }
+      ],
+      "notes": [
+        {
+          "note": "body shape wrong",
+          "class": "art",
+          "why": "Length and width match the published figures; the hull roof and turret roof match too. What reads wrong is the hull's own outline (prow, upper glacis, side modules), slice 27. The height fix is the PERI, not the body."
+        },
+        {
+          "note": "front side panels sticks out",
+          "class": "art",
+          "why": "Side modules (puma.py:85-101) run past the prow; slice 09 side_skirt, adopted in slice 27."
+        }
+      ],
+      "frame": {
+        "file": "fixtures/units/roster/europe.json",
+        "half_extents_m": [3.7, 2.0, 1.8],
+        "eye_m": 3.45,
+        "mounts": [
+          {
+            "id": "autocannon",
+            "pivot_m": [-0.45, 0, 2.55],
+            "muzzle_m": [4.1, 0, 0.4]
+          },
+          {
+            "id": "launcher",
+            "pivot_m": [-0.45, 1.08, 2.95],
+            "muzzle_m": [1.05, 0, 0],
+            "on": "autocannon"
+          }
+        ]
+      }
+    }
+  ],
+  "questions": {
+    "5_mells": {
+      "answer": "No. The MELLS spans y 0.86-1.32 m against the 2.0 m half-width, and x -0.70..0.62 m inside the length. Its top is 3.16 m: 0.06 m over a 3.1 m roof, inside the 0.1 m hull tolerance, and as the launcher mount (on the autocannon) it is measured outside the hull fit anyway (validate.ts OFF_HULL). It sits at the turret's left side, top about level with the roof, as in the photos.",
+      "frame_change": "none for the MELLS; its pivot stays at z 2.95 because the roof does not move."
+    }
+  }
+}

@@ -43,9 +43,31 @@
    "licence": "CC-BY-SA-4.0",
    "sha256": "3b99f1d97017d45780043ec5fe56739efed906fd52b2c2b395f90388d40462ea",
    "note": "RAE 2013 car in desert finish, front quarter with the gun raised."
+  },
+  {
+   "file": "eastern_2s19_msta_s_2s19m2-side.jpg",
+   "variant": "eastern_2s19_msta_s_2s19m2",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:MSTA-S.jpg",
+   "author": "Владислав Фальшивомонетчик",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "6bbabc320b539fd4036e8f735cc9175dcec7b4669120aa24273540894bec8ade",
+   "note": "2S19 (earlier standard; hull and turret shell as the M2) square-on left side at a parade rehearsal, nose left, gun slightly elevated. Scaled to the 7.15 m hull: deck 1.29 m, turret roof 2.82 m, cupola 2.97 m (the published 2.985 m height), turret 3.99 m long from 1.53 m ahead of hull centre to 2.46 m behind, trunnion near 1.35 m ahead at 2.19 m, about 5.5 m of barrel ahead of it."
+  },
+  {
+   "file": "eastern_2s19_msta_s_2s19m2-side-2.jpg",
+   "variant": "eastern_2s19_msta_s_2s19m2",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:UA_Air_Assault_Forces_captured_Msta-SM2_01.jpg",
+   "author": "25th Sicheslavshchyna Air Assault Brigade",
+   "licence": "CC-BY-4.0",
+   "sha256": "c5a43eab3c99f405fe98873252a444c564607015c4a64003c325c5bee78975f9",
+   "note": "Captured 2S19M2, near side-on from the front left with a soldier beside it for scale (wide angle, close). Road wheels give about 147 px/m at the turret front: deck edge about 1.36 m, turret roof about 2.9 m."
   }
  ],
  "gaps": [
-  "eastern_2s19_msta_s_2s19m2: no side profile or top view"
+  "eastern_2s19_msta_s_2s19m2: no top view; the side-on profile is the earlier 2S19 (same hull and turret shell)"
  ]
 }

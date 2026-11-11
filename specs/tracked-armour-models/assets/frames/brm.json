@@ -1,0 +1,114 @@
+{
+  "family": "brm",
+  "lane": "F-C",
+  "surveyed": "2026-11-11",
+  "convention": "The hull box reaches the hull and turret roof; sights, antennas and roof guns are dressing within 0.3 m (bulky) or 0.15 m across (thin); the pivot sits at the centre of the turret ring (a fixed howitzer mount: its trunnion); the muzzle sits at the real barrel length. Box length covers the body (hull plus any armoured turret overhang), centred on the box origin.",
+  "thresholds": {
+    "hull_dimension": "max(0.10 m, 3 %)",
+    "pivot_x_m": 0.15,
+    "muzzle_reach_m": 0.3,
+    "note": "Slice 07's guesses, kept: every fix row below clears them by a wide margin or is named as borderline. muzzle_reach_m is added by lane F-C (the slice set none for muzzles)."
+  },
+  "units": [
+    {
+      "unit": "eastern_brm_brm_3k",
+      "published": {
+        "length_m": {
+          "value": 7.02,
+          "source": "topwar.ru BRM-3K 'Lynx'; weaponsystems.net; armedconflicts.com"
+        },
+        "width_m": {
+          "value": 3.28,
+          "source": "same (over the fenders)"
+        },
+        "height_m": {
+          "value": 2.57,
+          "source": "same: 'on non-removable parts of the tower'"
+        }
+      },
+      "measured": {
+        "sources": [
+          "assets/references/brm/eastern_brm_brm_3k-side-2.png (the BMP-3 drawing: the hull the BRM is built on)"
+        ],
+        "glacis": {
+          "nose_tip_m": {
+            "real": [1.39, 1.44],
+            "model": 0.95
+          },
+          "upper_glacis_deg_above_horizontal": {
+            "real": [8, 15],
+            "model": 17.8
+          },
+          "lower_glacis_deg_above_horizontal": {
+            "real": [55, 65],
+            "model": [31, 34]
+          },
+          "reading": "The BMP-3 hull's nose is high and blunt: a short, steep lower plate (about 60 deg) under a long, shallow upper glacis carrying the trim vane. The model's nose is 0.45 m low, which makes its upper glacis dive and its lower plate lie nearly flat: the user's note."
+        }
+      },
+      "model_glb": {
+        "bounds_no_dressing_m": [
+          [-3.644, 3.565],
+          [-1.58, 1.58],
+          [0.0, 2.435]
+        ],
+        "turret_roof_m": 2.3,
+        "hull_roof_m": [1.56, 1.7]
+      },
+      "overlays": [
+        {
+          "view": "side",
+          "image": "brm.brm_3k-side.png",
+          "drawing": "the BMP-3 drawing (hull only applies)",
+          "drawing_m": [1.09, 1.8, 1.8, 1.81, 1.9, 1.87, 1.9, 1.9, 1.9, 1.9, 1.92, 1.9, 2.22, 2.63, 2.37, 2.38, 2.44, 2.42, 2.19, 2.24, 2.24, 2.06, 2.05, 2.05, 2.05, 2.03, 2.01, 2.01, 2.01],
+          "model_m": [1.37, 1.9, 1.85, 1.87, 1.73, 1.73, 1.73, 1.8, 1.8, 1.8, 1.71, 1.55, 2.38, 2.38, 2.38, 2.38, 2.3, 2.38, 2.3, 2.3, 2.06, 2.06, 2.03, 2.03, 2.03, 2.03, 2.03, 2.03, 1.1]
+        }
+      ],
+      "verdicts": [
+        {
+          "field": "half_extents_m[0]",
+          "frame": 3.57,
+          "verdict": "keep",
+          "why": "7.14 m on the BMP-3 hull (S13); 7.02 m published is 1.7 % off."
+        },
+        {
+          "field": "half_extents_m[1]",
+          "frame": 1.6,
+          "verdict": "keep",
+          "why": "3.2 m against 3.28 m over the fenders: 0.08 m, inside 0.10 m."
+        },
+        {
+          "field": "half_extents_m[2]",
+          "frame": 1.2,
+          "verdict": "keep",
+          "why": "2.57 m is to the turret's fixed fittings; the art's roof is 2.30 m and the BMP-3's 2.37 m. 2.4 m sits between them."
+        },
+        {
+          "field": "mounts.autocannon",
+          "frame": "pivot [0.3, 0, 1.56], muzzle [3.0, 0, 0.43]",
+          "verdict": "keep",
+          "why": "Same ring position as the BMP-3 (+0.27 m on the drawing)."
+        }
+      ],
+      "notes": [
+        {
+          "note": "front slopes down too much, bottom should actually slope up more",
+          "class": "art",
+          "why": "Glacis geometry: brm.py's nose (0.95 m) and plates. S13 rebuilds the BRM on bmp.py's BMP-3 hull, which needs the same correction (see bmp.json). No frame change."
+        }
+      ],
+      "frame": {
+        "file": "fixtures/units/roster/eastern.json",
+        "half_extents_m": [3.57, 1.6, 1.2],
+        "eye_m": 2.3,
+        "mounts": [
+          {
+            "id": "autocannon",
+            "pivot_m": [0.3, 0, 1.56],
+            "muzzle_m": [2.999, 0, 0.432]
+          }
+        ]
+      }
+    }
+  ]
+}

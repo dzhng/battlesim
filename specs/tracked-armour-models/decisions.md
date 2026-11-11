@@ -548,3 +548,210 @@ down. Least confident first.
   - F-B9: needs-user (the wheeled profile). Provisional call: leave it
     wheeled this pass. Reverse it by moving the Buk to a tracked profile with
     a 9.3 m hull.
+## Lane F-C, frame survey (slice 07, 2026-11-11)
+
+The CV90 family, Bradley, Puma, Ajax, BMP and BRM, and the SP howitzers. The
+rows and evidence are in `assets/frames/{cv90,bradley,puma,ajax,bmp,brm,sp_howitzers}.json`.
+
+- **FC1 Which source wins.** Manufacturer, official or Jane's figures beat
+  secondary sites. A free drawing beats a photo. A square-on photo is
+  measured only where a drawing or a published figure cross-checks it.
+  - Why: the M3A3 side photo read the Bradley's turret roof at 2.68-2.78 m,
+    and Jane's gives 2.565 m. A low, close camera reads the turret's side
+    armour edge, not the roof, so a photo-only roof is an upper bound.
+  - The BMP-2 square-on photo (CC0) turned out to be stretched 1.17x
+    horizontally on upload: its road wheels are wider than tall. Corrected,
+    it agrees with the 1981 drawing within 0.07 m.
+- **FC2 A box's height is the turret roof.** Published heights for six of
+  these units are to a sight, a hatch or an MG mount (Bradley 2.98, Puma 3.6,
+  CV90120 2.65, BMP-2M 2.45, M109 3.25, 2S19 2.99), so they come down.
+- **FC3 Sight heads that break the dressing allowance are named, not
+  solved.** Once the box drops to the roof, four sights stand 0.45-0.6 m
+  above it and about 0.4 m across: the Puma's PERI, the Ajax's ORION, the
+  CV90120's panoramic sight and the M2A4's CIV. That is over the 0.3 m bulky
+  allowance and wider than a thin part (`unitArt.ts:44-45`). The BMP-2M's
+  sight housings sit 0.01 m past it.
+  - This is the Leopard PERI question (slice 07 Q4) again, and `unitArt.ts`
+    is the coordinator's.
+  - The options for slice 15: allow sight heads above the bulky allowance by
+    rule, draw the sight heads under 0.15 m across, or set each box at the
+    sight top minus 0.3 m. The lane recommends the first. A sight head is
+    not cover, and a box at sight height is what made these frames wrong.
+- **FC4 CV9040C height 2.50 m.**
+  - The free Mick Bell plan measures the base Strf 9040's roof at 2.37 m.
+  - The C kit raises the published overall height from 2.5 to 2.71 m, with
+    roof armour and roof smoke dischargers.
+  - 2.50 m sits between those, and keeps the model's roof (2.54 m) inside
+    tolerance. The alternative is 2.37 m, if the C kit adds nothing to the
+    roof.
+- **FC5 CV90 Mk IV height unresolved, kept at 2.8 m.** There is no free
+  drawing and no square-on photo. The official 2.8 m is an overall height.
+  It is named for slice 15, not guessed.
+- **FC6 CV90120 length kept at 6.95 m.** The 6.6 m on military-today and
+  Tank Encyclopedia describes the prototype. The CV90120-T rides the Mk
+  III/IV chassis, whose official length is 6.8 m, which is within 3 % of
+  6.95 m.
+- **FC7 Howitzer gun mounts move to the trunnion.** All four have pivots
+  2-3 m behind the turret front and above its roof, with `muzzle_m` set to
+  the whole tube.
+  - They came in with the artillery roster commit (`d1518dc4f`) and have no
+    recorded basis. The art already draws the gun near the real trunnion.
+  - The muzzle reach comes from published overall lengths where the photos
+    disagree, as on the 2S19, where the photo's barrel may be the vehicle
+    behind.
+  - The simulation fires every mount's rounds from its pivot plus its
+    muzzle (`crates/sim/src/weapons/muzzle.rs:12-22`). These rows move where
+    shells leave, so they are named digest changes for slice 15.
+- **FC8 A box covers the body, including an armoured turret overhang.**
+  - The PzH 2000's turret overhangs the hull rear by about 0.4 m, so its box
+    grows from 7.87 to 8.33 m.
+  - The M109's bustle makes 7.02 m against 6.8 m. That is 3.2 %, borderline,
+    and kept.
+  - The alternative is hull length only. It was rejected because the bustle
+    is armour a shot can hit.
+- **FC9 Thresholds kept as slice 07 set them:** max(0.10 m, 3 %) for hull
+  dimensions and 0.15 m for pivots along x. The lane adds 0.30 m for a
+  muzzle's reach, because the slice set none. Borderline rows are named in
+  their JSON (BMP-2M pivot 0.2 m, M109 length 3.2 %).
+- **FC10 BMP-2M turret ring at +0.1 m, from the square-on photo.** The 1981
+  U.S. Army drawing puts it at -0.48 m, and the U.S. Army BMP-1 graphic puts
+  its turret further forward still. The photo is a real vehicle, so it
+  wins. The muzzle agrees in both the photo and the drawing, 2.48-2.50 m
+  ahead of hull centre, and that is the stronger row.
+- **FC11 Unresolved, kept at today's values:**
+  - M109A7 width: 3.15 m (family) against 3.9 m (A7 sources, probably over
+    the turret racks).
+  - PLZ-05 box: no square-on reference. The single-source 6.1 m hull is
+    rejected against the seven-wheel hull in the photos.
+- **FC12 Ajax roof from the art.** No free drawing of the Ajax exists. The
+  art's roof (2.57 m) stands, because the published 3.0 m height lands on
+  the art's ORION sight top (3.04 m). The box is 2.6 m.
+- **FC13 Ajax roof MG mount** at pivot `[0.15, -0.72, 2.78]` (the RWS body
+  centre: yaw through the bearing, pitch through the cradle) and muzzle
+  `[0.95, 0, 0.05]`. The values come from the art, as slice 07 Q8 asks.
+- **FC14 References committed only under allowed licences.** A BMP-3 photo
+  under CC BY-SA 1.0 (not on the list) was measured in `throwaway/` only.
+  - The BMP-3 public-domain drawing is committed twice: in `bmp/` and, as
+    the hull the BRM-3K is built on, in `brm/`.
+  - Libraries hold files per family folder, and S13 keeps the two
+    families' folders apart.
+- **FC15 Overlay vehicle mode used locally, not committed.**
+  - It keeps `wheel_*` and `track_*`, drops `dressing_*`, and aligns on the
+    lower hull's rear and the ground (the bustle and gun spoil a bounding
+    box alignment).
+  - It accepts a known px/m from a scale bar.
+  - Lane F-A owns the committed version; these two alignment options are
+    offered to it.
+
+### Lane F-C decision audit (slice 07, before commit)
+
+Each entry gives the verdict, then the confidence that the user would have
+made the same call. Entries are grouped by verdict, least confident first.
+FC1-FC15 above give the reasoning; this audit adds the calls they left out.
+
+**Review these first:** FA-1 (sight heads), FA-2 (no generated views), FA-3
+(the CV9040C roof).
+
+Needs the user:
+
+- **FA-1 What happens to sight heads above a lowered roof (FC3).**
+  - The scenario: the Puma's box drops from 3.6 m (its PERI sight's top) to
+    3.1 m (its turret roof). The PERI head, 0.41 m across, now stands 0.6 m
+    over the box.
+  - The validator's dressing rule lets bulky parts reach only 0.3 m past the
+    box. Above that, only thin parts (at most 0.15 m across, like an
+    antenna) may rise. So the export fails on the PERI.
+  - The same happens on the Ajax, the CV90120 and the M2A4, and marginally
+    on the BMP-2M.
+  - The gap: slice 07 assumed sights fit the allowance; for these units they
+    don't.
+  - The reach: every future lowered roof hits it, and so does the Leopard
+    (Q4).
+  - Provisional call (reversible): slice 15 lands the roof heights and adds
+    one dressing rule for sight heads above the bulky allowance. To reverse
+    it, set each box at the sight top minus 0.3 m instead.
+  - Confidence: low.
+- **FA-2 Q4 rung 3 (generated orthographic views) went unused.**
+  - The scenario: the CV90 Mk IV and the PLZ-05 have no free drawing and no
+    square-on photo. The ladder's last rung is a paid image-generator view,
+    scaled to the published size and checked against a photo.
+  - The lane left both units' heights and lengths at today's values, marked
+    unresolved, instead of paying for generations.
+  - A generated view only guesses the inner proportions, the same ones the
+    published figures leave open. It would cost money and still be checked
+    against the same oblique photos.
+  - Provisional call: unresolved rows stay at today's frames. Run rung 3 for
+    those two only if the family slice can't judge them from the quarter
+    photos.
+  - Confidence: medium.
+
+Sound:
+
+- **FA-3 The CV9040C roof at 2.50 m (FC4) is a reasoned middle, not a
+  measurement.**
+  - The scenario: the free plan shows the base Strf 9040's roof at 2.37 m.
+    The C kit's published height grows by 0.21 m, but nothing says how much
+    of that is roof.
+  - 2.50 m is the midpoint, and it leaves the art untouched.
+  - If the user prefers measured-only, the row is 2.37 m and the turret art
+    drops 0.17 m.
+  - Confidence: medium.
+- **FA-4 Photos measured as drawings, outside the ladder's literal rungs
+  (FC1).**
+  - The ladder names drawings and generated views. The lane also measured
+    square-on photos (BMP-2, 2S19, PzH 2000, M3A3), and committed those
+    under allowed licences as references.
+  - The guard: a photo counts only where a drawing or published figure
+    cross-checks it. That guard is what caught the Bradley photo reading
+    0.15 m high.
+  - Confidence: medium-high.
+- **FA-5 A base or earlier variant's drawing stands in for the roster
+  variant.**
+  - The Strf 9040 plan stands for the CV9040C, the M109A6 drawing for the
+    A7, the BMP-2 for the BMP-2M, and the base 2S19 photo for the 2S19M2.
+  - Each entry's note names what differs, for example the A7's six Bradley
+    road wheels.
+  - Only the shared parts (the hull, roof, turret shell and ring) are read
+    from them.
+  - Confidence: high.
+- **FA-6 `eye_m` kept on every unit, even where the box drops.**
+  - The contract defines the eye as the sight's height above the hull base
+    (`catalog.rs:181`), not a fraction of the box.
+  - The old values look like 0.9-0.94 times the old box heights. They still
+    sit at or below each real sight, so lowering the box doesn't move what
+    the crew sees from.
+  - Confidence: medium-high.
+- **FA-7 Mount numbers come from overall length where a photo disagrees.**
+  - The 2S19's photo barrel reads 5.5 m from the trunnion. Its published
+    11.917 m overall length gives 7.0 m.
+  - The PzH 2000's muzzle is 7.1 m, the midpoint of a hull-rear and a
+    turret-rear reading of the overall length.
+  - Both errors are a tenth of the 2-3 m they replace.
+  - Confidence: medium.
+- **FA-8 The frame file layout.**
+  - There is one JSON per family: `cv90` (it holds the CV90120, as slice 25
+    does), `bradley`, `puma`, `ajax`, `bmp`, `brm`, `sp_howitzers`.
+  - Each unit holds published, measured, model, overlays, verdicts (field,
+    frame, verdict, new, source, why), dressing conflicts and notes, plus
+    the family's answers to the slice's questions.
+  - Overlay images are `<family>.<unit>-<view>.png` beside it.
+  - The reach: slice 15 reads the verdict rows, and the coordinator's
+    `frames.html` reads the images. The other lanes may shape theirs
+    differently. The coordinator should merge on `verdicts[].verdict ==
+    "fix"`.
+  - Confidence: medium-high.
+- **FA-9 Verification was the narrowest check.** The six touched libraries
+  were checked with `checkReferences` (the code `asset check` runs per
+  library), and all were clean. A full `asset check` needs a bake, which
+  lanes don't do. Confidence: high.
+- **FA-10 Thresholds recorded here (FC9), not in slice 07's file.** Three
+  lanes share that file, while `decisions.md` merges by union. The
+  coordinator copies the final values into the slice when it closes 07.
+  Confidence: high.
+- **FA-11 Reference files.**
+  - The Mick Bell sheet is split into four view files at full resolution, so
+    each keeps the scale bar's 236.6 px/m.
+  - The U.S. Army GIFs are committed as PNG conversions.
+  - The PzH 2000 and 2S19 photos were resized to the 1600 px limit.
+  - Files are named with the existing `-n` suffix.
+  - Confidence: high.
