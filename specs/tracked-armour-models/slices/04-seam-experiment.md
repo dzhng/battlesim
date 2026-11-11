@@ -60,3 +60,22 @@ The output is the signature `armour_parts.panel_seam` takes in slice 13.
 
 The user wants the bake despite the machinery it needs. Open the follow-up
 spec now instead of queueing it.
+
+## Results (lane E2, 2026-11-11)
+
+**Verdict: grooves, 2 cm wide × 2 cm deep.** The bake did not clearly win:
+it ranked third and fourth, and scored 0.5–2.5 lower on surface. The verdict,
+costs, telemetry, scores, the `panel_seam` signature and the lessons for
+slice 13 are in [`../decisions.md`](../decisions.md) ("Lane E2") and
+[`../assets/experiments/04/verdict.md`](../assets/experiments/04/verdict.md).
+The checkpoint shots are `../assets/experiments/04/sheets/`.
+
+- **Starting dimensions.** The 1 cm × 6 mm grooves vanished at `battle_zoom`
+  on the T-72B3, so the one deeper re-run (2 × 2 cm) was recorded.
+- **Not done here:**
+  - **Grooves were not judged in the game renderer.** Every candidate went
+    through Blender EEVEE with the game shader's albedo × vertex colour ×
+    `colour_scale`. The game's lighting and wear threshold were not
+    reproduced. Slice 13's re-export and bake are the first look in the game's renderer.
+  - **The seam layout was a readability probe,** not taken from the
+    references. Slice 13 places seams on the real joints.
