@@ -54,6 +54,17 @@
    "licence": "CC-BY-SA-4.0",
    "sha256": "fff23f035a58e31a434e1e5ffd4c08ef04a6c5609580f9762b344d75e73d82b2",
    "note": "Left running gear: road wheels, return rollers, skirt."
+  },
+  {
+   "file": "europe_pzh_2000_tracked_155_mm_howitzer-side-2.jpg",
+   "variant": "europe_pzh_2000_tracked_155_mm_howitzer",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:IL%C3%9C_2012_-_Pzh_2000.jpg",
+   "author": "synaxonag",
+   "licence": "CC-BY-2.0",
+   "sha256": "a5b368ae5fc6731966aba331e4e9e665fff893f1246f84177d14e700f1426bf3",
+   "note": "PzH 2000 left side from a little above, nose left, gun slightly elevated (Bundeswehr, ILÜ 2012). Scaled to the 7.92 m hull: deck about 1.8 m, turret roof 2.95-3.06 m, turret about 4.8 m long from 0.40 m ahead of hull centre to 0.4 m past the hull rear, trunnion about 0.2 m ahead at 2.7 m, about 7.0 m of barrel ahead of it. +-0.1 m: the view looks down on the roof."
   }
  ],
  "gaps": [

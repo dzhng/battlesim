@@ -21,6 +21,17 @@
    "licence": "CC-BY-SA-4.0",
    "sha256": "b516487491d82b308b279eb36c8b652824634c95cc60290dd81bd70a401786ac",
    "note": "Monument at the Rubtsovsk plant, side quarter: hull, six road wheels, turret and its sensor mast."
+  },
+  {
+   "file": "eastern_brm_brm_3k-side-2.png",
+   "variant": "eastern_brm_brm_3k",
+   "view": "side",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:BMP-3_line_drawing.gif",
+   "author": "U.S. Army (FMSO, Red Star, January 1996)",
+   "licence": "public-domain",
+   "sha256": "ad20fdd5c6ede8db4fd8bec83a8d71e9de9eb2f3bd7e8bfa3a1a6770cc77b8ee",
+   "note": "The BMP-3 the BRM-3K is built on (its hull and running gear; the turret differs), side line drawing, nose right; 56.2 px/m from the 7.14 m hull. Hull nose tip 1.39 m, upper glacis about 15 deg above horizontal, lower glacis about 65 deg. Low resolution: angles +-5 deg."
   }
  ],
  "gaps": [
