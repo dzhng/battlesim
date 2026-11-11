@@ -2989,3 +2989,30 @@ critique, and the T-14's turret drop (above).
   - two-decimal track gauges;
   - the throwaway row applier, which works by text surgery so each fixture
     keeps its formatting and isn't committed.
+
+## Generator pivot (2026-11-12, coordinator with the user)
+
+- **G1 Models come from image-to-3D generators, not agent-built geometry.** (User.) "The whole
+  point of this entire spec is NOT for you to create the models yourself ... it's WAY cheaper to
+  use a dedicated 3D model and it's WAY better." The slice 13 lane (seams, cupola, wear, facets) was
+  cancelled. Slices 08-12 and 15 stay merged: frames are gameplay truth whatever draws the body.
+  Slices 16-29 are rewritten around the per-unit pipeline once the pilot (G6) proves it.
+- **G2 Inputs are matched views of the measured model, made photoreal.** (Agent, from the trial in
+  `assets/source/skins/{t72,abrams}/generator-trial/`.) One three-quarter image from a photo came out
+  13-36 % short (the generator guesses the hidden length), and the T-72B3 photo was CC-BY-SA, which
+  may not feed a shipped asset. Views rendered from our measured model and restyled by the Bento
+  image model with the outline held keep the proportions (side and top views within 1 % of the
+  render) and are licence-clean. The image model enlarged nose-on views by 9-25 %; they are scaled
+  back to the render's outline before upload.
+- **G3 Per unit: Tripo h3.1 multiview (front/left/back/right) and Rodin v2.5 (five views), pick the
+  better.** (User.) Tripo had the only T-72B3 with the glacis right; Rodin the best Abrams. Hunyuan
+  Pro (four views) was close; Meshy (one view) clean but dearest; Hunyuan Rapid blobby. About $1.00 a
+  unit at list price, plus the image edits.
+- **G4 Tripo multiview comes out about 15 % short** (hull length/width 1.67 against 1.96 on the
+  T-72B3) even with one-scale front and back views. Fitting each body to its battle frame per axis
+  corrects it; the pilot checks that the road wheels don't read oval.
+- **G5 The inputs' shape errors carry into every output.** All five Abrams came back with the same
+  too-thick turret: our measured model's, not the generators'. Shape notes from the user's lineup
+  review are fixed in the measured model before its views are rendered.
+- **G6 Pilot first:** the T-72B3 (Tripo) and the Abrams (Rodin, after its turret fix) taken all the
+  way into the game, then the spec is rewritten from what it proves.
