@@ -61,14 +61,22 @@ def glacis_z(v, x, nose_z=NOSE_Z):
     return ROOF_Z - max(0.0, x - GLACIS_X) / (half - GLACIS_X) * (ROOF_Z - nose_z)
 
 
+def hull_profiles(v, nose_z=NOSE_Z):
+    """The upper and lower hull's side profiles (XZ), as `hull_body`
+    extrudes them; together they are the hull's outline (`HS.Outline`)."""
+    half = v.length / 2
+    return ([(-half, 0.90), (3.15, 0.90), (half, 1.05), (half, nose_z), (GLACIS_X, ROOF_Z), (-3.35, ROOF_Z),
+             (-half, 1.75)], [(-3.10, 0.44), (2.85, 0.44), (3.30, 0.92), (-half, 0.92), (-half, 0.72)])
+
+
 def hull_body(v, nose_z=NOSE_Z):
     """The hull; `nose_z` the nose plate's top (the CV90120 sets its own)."""
     m, hull = v.mats, v.hull
     half = v.length / 2
-    prism("hull_upper", [(-half, 0.90), (3.15, 0.90), (half, 1.05), (half, nose_z), (GLACIS_X, ROOF_Z), (-3.35, ROOF_Z),
-                         (-half, 1.75)], 3.00, mat=m["paint"], parent=hull, bevel=0.05)
-    prism("hull_lower", [(-3.10, 0.44), (2.85, 0.44), (3.30, 0.92), (-half, 0.92), (-half, 0.72)], 2.24,
-          mat=m["paint"], parent=hull, bevel=0.04)
+    upper, lower = hull_profiles(v, nose_z)
+    prism("hull_upper", upper, 3.00, mat=m["paint"], parent=hull, bevel=0.05)
+    prism("hull_lower", lower, 2.24, mat=m["paint"], parent=hull, bevel=0.04)
+    outline = HS.Outline(upper, lower)
     slope = math.atan((ROOF_Z - nose_z) / (half - GLACIS_X))
     RF.hatch("driver_hatch", (2.20, 0.60, nose_z + (half - 2.20) * math.tan(slope)), m, hull, radius=0.28,
              rot=(0, slope, 0))
@@ -84,8 +92,8 @@ def hull_body(v, nose_z=NOSE_Z):
         HF.light_with_guard(f"tail_light_{s}", (-half + 0.10, side * 1.35, 1.55), 0.05, dict(m, lamp=m["tail"]), hull,
                             rot=(0, 0, math.pi))
         HF.tow_hook(f"rear_tow_{s}", (-half + 0.12, side * 0.95, 0.80), m, hull, size=0.12, rot=(0, 0, math.pi))
-        box(f"front_fender_{s}", (0.40, 0.52, 0.04), (3.10, side * TRACK_Y, 0.98), m["paint"], hull, bevel=0.012,
-            rot=(0, 0.30, 0), lods=MID)
+        AR.track_fender(f"front_fender_{s}", outline, side, TRACK_Y - 0.26, TRACK_Y + 0.26, 2.91,
+                        3.30, 1.06, m, hull, slope=-math.tan(0.30))
     AR.bolted_panel("rear_door", (-half - 0.01, 0, 0.80), (0.04, 1.10, 0.90), m, hull, bolts=(0, 0),
         bevel=0.02, lods=VP.ALL)
     box("rear_door_handle", (0.04, 0.20, 0.04), (-half - 0.04, 0.30, 1.30), m["steel"], hull, lods=NEAR)
@@ -93,32 +101,6 @@ def hull_body(v, nose_z=NOSE_Z):
               slats=7, rot=(0, slope, 0))
     RF.hatch("roof_hatch_L", (-2.20, 0.55, ROOF_Z), m, hull, size=(0.80, 0.70))
     RF.hatch("roof_hatch_R", (-2.20, -0.55, ROOF_Z), m, hull, size=(0.80, 0.70))
-
-
-def follow_tiles(v, s, side, cols, top):
-    """The side armour as tiles whose tops follow `top(x)` (the hull's
-    edge, falling down the glacis), the front lower tile's leading corner
-    cut up toward the nose, so no tile stands above the hull's outline."""
-    m, hull = v.mats, v.hull
-    x0, x1, z0, z1, gap, depth = -3.25, 2.95, 0.64, 1.72, 0.025, 0.08
-    tx, tz = (x1 - x0) / cols, (z1 - z0) / 2
-    y = side * (SIDE_Y - depth / 2)
-    for i in range(cols):
-        a, b = x0 + tx * i + gap / 2, x0 + tx * (i + 1) - gap / 2
-        for j in range(2):
-            lo, hi = z0 + tz * j + gap / 2, z0 + tz * (j + 1) - gap / 2
-            xs = [b] + ([GLACIS_X] if a < GLACIS_X < b else []) + [a]
-            tops = [(x, min(hi, top(x))) for x in xs]
-            if min(z for _, z in tops) - lo < 0.10:
-                continue
-            foot = [(a, lo), (b - 0.25, lo), (b, lo + 0.25)] if (i == cols - 1 and j == 0) else [(a, lo), (b, lo)]
-            prism(f"side_armour_{s}_{i}_{j}", foot + tops, depth, loc=(0, y, 0), mat=m["paint"], parent=hull,
-                  bevel=0.02)
-            for k in range(4):
-                bx = (a + b) / 2 + (k % 2 - 0.5) * (b - a) * 0.7
-                bz = min((lo + hi) / 2 + (k // 2 - 0.5) * (hi - lo) * 0.7, top(bx) - 0.06)
-                cyl(f"side_armour_{s}_{i}_{j}_bolt_{k}", 0.018, 0.016, (bx, side * (SIDE_Y + 0.006), bz), "Y",
-                    m["steel"], hull, seg=6, lods=FINE)
 
 
 def hull_sides(v, mk4, nose_z=None):
@@ -142,7 +124,10 @@ def hull_sides(v, mk4, nose_z=None):
         else:
             def top(x):
                 return glacis_z(v, x, nose_z) - 0.03
-            follow_tiles(v, s, side, cols, top)
+            # The tiles' foot rises toward the sprocket at the front.
+            AR.side_skirt(f"side_armour_{s}", HS.Outline(*hull_profiles(v, nose_z)), side, SIDE_Y, -3.25, 2.95,
+                          [(-3.25, 0.64), (2.675, 0.64), (2.95, 0.915)], m, hull, top=1.72, panels=cols, rows=2,
+                          depth=0.08, gap=0.025, inset=0.03, bolts=(2, 2))
             box(f"tool_rail_{s}", (GLACIS_X + 3.10, 0.04, 0.04), ((GLACIS_X - 3.10) / 2, side * (SIDE_Y - 0.02), 1.76),
                 m["steel"], hull, lods=MID)
             slope = math.atan((ROOF_Z - nose_z) / (v.length / 2 - GLACIS_X))

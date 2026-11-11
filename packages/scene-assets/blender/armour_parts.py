@@ -1,5 +1,6 @@
-"""Armour added to a hull or turret: fields of armour tiles, slat armour,
-bolted applique panels and weld beads.
+"""Armour added to a hull or turret: fields of armour tiles, side skirts and
+track fenders kept inside the hull's outline, slat armour, bolted applique
+panels and weld beads.
 
 Every part keeps the contracts the kernel documents (`vehicle_parts`).
 """
@@ -7,8 +8,13 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from parts import box, cyl  # noqa: E402
+import hull_shape as HS  # noqa: E402
+from parts import box, cyl, prism  # noqa: E402
 from vehicle_parts import ALL, FINE, MID, NEAR, place, tube_part  # noqa: E402
+
+# A side panel the outline leaves lower than this is dropped, so a run of
+# skirts stops where the glacis takes over rather than ending in a sliver.
+MIN_PANEL_M = 0.12
 
 
 def armour_tiles(name, loc, size, grid, depth, mats, parent, gap=0.025, bolts=True, rot=(0, 0, 0), lods=ALL):
@@ -88,3 +94,101 @@ def weld_line(name, points, mats, parent, radius=0.007, loc=(0, 0, 0), rot=(0, 0
 
     made = tube_part(name=name, path_for=seam, radius=radius, mat=mats["paint"], parent=parent, lods=FINE)
     return place(made, loc, rot)
+
+
+def side_skirt(name, outline, side, y, x0, x1, foot, mats, parent, top=None, panels=1, rows=1, depth=0.06,
+               gap=0.02, inset=0.03, bolts=(2, 1), lods=ALL):
+    """A run of armour plates in the side plane (skirts over the track, or
+    side armour tiles), the outer face at `side * y` (`side` +1 left, -1
+    right) and `depth` thick inward. The run spans [x0, x1] in `panels`
+    columns and `rows` rows, each cell less `gap`, from `foot` up to `top`:
+    each a height or (x, z) points of a line carried on along its end
+    segments, the foot convex (rising toward a sprocket) and the top
+    concave. Without `top` the run reaches the outline. Every panel is
+    clipped to `outline` (`hull_shape.Outline`) moved in by `inset`: never
+    above outline.top(x) - inset, never ahead of outline.front(z) - inset.
+    A panel left lower than MIN_PANEL_M is dropped, so the run stops where
+    the glacis takes over. Each has a grid of `bolts` (along x, up z) bolt
+    heads close up. Names {name}_{k}, or {name}_{k}_{j} in row j of
+    several. Returns its meshes. Roles: paint, steel."""
+    feet, tops = _line(foot, x0, x1), None if top is None else _line(top, x0, x1)
+    cuts = _cuts(feet, -1) + ([] if tops is None else _cuts(tops, 1))
+    lo = min(z for _, z in feet)
+    hi = max(z for _, z in tops) if tops is not None else max(z for _, z in outline.points) - inset
+    w, h = (x1 - x0) / panels, (hi - lo) / rows
+    made = []
+    for k in range(panels):
+        for j in range(rows):
+            a, b = x0 + w * k + gap / 2, x0 + w * (k + 1) - gap / 2
+            zlo, zhi = lo + h * j + gap / 2, lo + h * (j + 1) - gap / 2
+            panel = [(a, zlo), (b, zlo), (b, zhi), (a, zhi)]
+            for cut in cuts:
+                panel = HS.clip_half_plane(panel, *cut)
+            panel = outline.clip(panel, inset)
+            if len(panel) < 3 or max(z for _, z in panel) - min(z for _, z in panel) < MIN_PANEL_M:
+                continue
+            first = panel.index(min(panel))
+            panel = panel[first:] + panel[:first]
+            tag = f"{name}_{k}" if rows == 1 else f"{name}_{k}_{j}"
+            made += prism(tag, panel, depth, loc=(0, side * (y - depth / 2), 0), mat=mats["paint"], parent=parent,
+                          bevel=0.02, lods=lods)
+            made += _panel_bolts(tag, panel, side, y, bolts, mats, parent)
+    return made
+
+
+def track_fender(name, outline, side, y_in, y_out, x0, x1, z, mats, parent, slope=0.0, depth=0.04):
+    """The shelf over the track's top run, from `y_in` to `y_out` out from the
+    centre line on the `side` (+1 left, -1 right) and [x0, x1] along the
+    hull, `depth` thick: its top at height `z` at x0, rising `slope` (dz/dx)
+    toward the front, its front end clipped to `outline`
+    (`hull_shape.Outline`). Returns its meshes. Roles: paint."""
+    z1 = z + slope * (x1 - x0)
+    shelf = outline.clip([(x0, z - depth), (x1, z1 - depth), (x1, z1), (x0, z)], 0.0)
+    if len(shelf) < 3:
+        return []
+    first = shelf.index(min(shelf))
+    return prism(name, shelf[first:] + shelf[:first], y_out - y_in, loc=(0, side * (y_in + y_out) / 2, 0),
+                 mat=mats["paint"], parent=parent, bevel=0.012, lods=MID)
+
+
+def _line(spec, x0, x1):
+    """A panel run's foot or top as (x, z) points: a height is level from
+    `x0` to `x1`."""
+    if isinstance(spec, (int, float)):
+        return [(x0, spec), (x1, spec)]
+    return list(spec)
+
+
+def _cuts(points, sense):
+    """The half-planes (nx, nz, c) of a line through `points` that keep what
+    lies above it (`sense` -1, a foot) or below it (+1, a top). Raises
+    ValueError on a foot that isn't convex or a top that isn't concave: the
+    half-planes would cut what the line leaves."""
+    cuts, last = [], None
+    for (xa, za), (xb, zb) in zip(points, points[1:]):
+        if xb <= xa:
+            raise ValueError(f"a panel line must run forward: {points}")
+        slope = (zb - za) / (xb - xa)
+        if last is not None and sense * (slope - last) > 1e-9:
+            raise ValueError(f"a panel {'top' if sense > 0 else 'foot'} must bend {'down' if sense > 0 else 'up'}: "
+                             f"{points}")
+        cuts.append((-sense * slope, sense, sense * (za - slope * xa)))
+        last = slope
+    return cuts
+
+
+def _panel_bolts(tag, panel, side, y, bolts, mats, parent):
+    """Bolt heads in a grid of `bolts` (along x, up z) across a panel's own
+    span, seen close up only."""
+    nx, nz = bolts
+    xs = [x for x, _ in panel]
+    a, b = min(xs), max(xs)
+    made = []
+    for n in range(nx * nz):
+        i, j = n % nx, n // nx
+        bx = (a + b) / 2 + ((i / (nx - 1) if nx > 1 else 0.5) - 0.5) * (b - a) * 0.7
+        lo, hi = HS.span(panel, bx, 0)
+        bz = (lo + hi) / 2 + ((j / (nz - 1) if nz > 1 else 0.5) - 0.5) * (hi - lo) * 0.7
+        made += cyl(f"{tag}_bolt_{n}", 0.018, 0.016, (bx, side * (y + 0.006), bz), "Y", mats["steel"], parent,
+                    seg=6, lods=FINE)
+    return made
