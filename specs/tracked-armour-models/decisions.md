@@ -2080,3 +2080,13 @@ Review these first: every receipt now reads as stale, and the kernel's
     that reaches `tyre_wheel` through `wreckage`'s thrown wheels.
   - `aircraft_parts.py` is lane J's file, and its one changed line is the
     `vehicle_guns` import the slice named.
+- **C16 The shared slices 08–12 run as four parallel lanes** (2026-11-11). The
+  lanes are 08; 09 with 11 (both edit `armour_parts.py`); 10; and 12. Each
+  branches from the slice 02 merge (`e598a571c`).
+  - They commit source code and evidence only, never GLBs or receipts. Slice 16
+    re-exports every model once, so binary LFS files can't conflict between
+    lanes. This is the short-lived seam the README warns about.
+  - For this wave only, lane 08 alone edits the lint allowlist and baseline,
+    for the exact wheeled entries its narrowing exposes.
+  - Slice 13 follows lane 09+11, because it adds `panel_seam` to
+    `armour_parts.py`.
