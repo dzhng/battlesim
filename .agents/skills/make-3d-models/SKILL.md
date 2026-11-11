@@ -110,7 +110,8 @@ gives its arguments.
     not, so expect them in pink.
 - **`scripts/closeups.py`** renders tier 0 of each model from six framed
   close views, or your own (`--shot`, given as fractions of the bounds so one
-  list fits every model). Each view comes out shaded and as a matcap.
+  list fits every model, or in metres for a camera that keeps its distance).
+  Each view comes out shaded and as a matcap.
   - The matcap shows the surface alone: wrinkles, dents and undulation that
     paint hides.
   - The shaded view shows seams, floating parts and paint.
