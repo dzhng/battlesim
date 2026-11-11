@@ -1,0 +1,5 @@
+us_m2_bradley_ifv_m2a4-corner-matcap distance 0.00382 mae 0.13825 diff16 0.00288 pixelmatch 0.00243 edgeDiff32 0.00398 edgeEnergyRatio 0.99253
+europe_cv90_cv9040c-corner-matcap distance 0.00209 mae 0.06703 diff16 0.00137 pixelmatch 0.00091 edgeDiff32 0.00237 edgeEnergyRatio 0.99531
+us_m2_bradley_ifv_m2a4-corner-shaded distance 0.0015 mae 0.10087 diff16 0.0018 pixelmatch 0.00122 edgeDiff32 0.00311 edgeEnergyRatio 0.99912
+europe_cv90120_light_tank-corner-shaded distance 0.00071 mae 0.04329 diff16 0.00043 pixelmatch 0.0002 edgeDiff32 0.00126 edgeEnergyRatio 0.99852
+europe_cv90_cv9040c-corner-shaded distance 0.00037 mae 0.01386 diff16 8e-05 pixelmatch 2e-05 edgeDiff32 0.00039 edgeEnergyRatio 1.00122

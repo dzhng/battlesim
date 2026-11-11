@@ -57,10 +57,11 @@ ROOF = 0.60
 def hull_body(v, m3):
     m, hull = v.mats, v.hull
     half = v.length / 2
-    prism("hull_upper", [(-half, 0.90), (3.05, 0.90), (half, 1.20), (2.05, ROOF_Z), (-3.20, ROOF_Z),
-                         (-half, 1.84)], 3.20, mat=m["paint"], parent=hull, bevel=0.05)
-    prism("hull_lower", [(-3.05, 0.44), (2.75, 0.44), (3.20, 0.92), (-half, 0.92), (-half, 0.72)], 2.30,
-          mat=m["paint"], parent=hull, bevel=0.04)
+    upper = [(-half, 0.90), (3.05, 0.90), (half, 1.20), (2.05, ROOF_Z), (-3.20, ROOF_Z), (-half, 1.84)]
+    lower = [(-3.05, 0.44), (2.75, 0.44), (3.20, 0.92), (-half, 0.92), (-half, 0.72)]
+    prism("hull_upper", upper, 3.20, mat=m["paint"], parent=hull, bevel=0.05)
+    prism("hull_lower", lower, 2.30, mat=m["paint"], parent=hull, bevel=0.04)
+    outline = HS.Outline(upper, lower)
     slope = math.atan((ROOF_Z - 1.20) / (half - 2.05))
     # The folded trim vane across the glacis, the driver's hatch at its head.
     AR.bolted_panel("trim_vane", (2.66, 0.0, 1.56), (0.80, 2.20, 0.05), m, hull, bolts=(2, 4), bevel=0.02,
@@ -76,8 +77,8 @@ def hull_body(v, m3):
         HF.shackle(f"rear_shackle_{s}", (-3.25, side * 0.95, 0.72), m, hull, size=0.13, rot=(0, 0, math.pi / 2))
         HF.light_with_guard(f"tail_light_{s}", (-3.22, side * 1.38, 1.62), 0.05, dict(m, lamp=m["tail"]), hull,
                             rot=(0, 0, math.pi))
-        box(f"front_fender_{s}", (0.40, 0.56, 0.04), (3.05, side * TRACK_Y, 0.98), m["paint"], hull, bevel=0.012,
-            rot=(0, 0.30, 0), lods=MID)
+        AR.track_fender(f"front_fender_{s}", outline, side, TRACK_Y - 0.28, TRACK_Y + 0.28, 2.86,
+                        3.25, 1.06, m, hull, slope=-math.tan(0.30))
     # The rear ramp, its door and the cable coiled round it.
     AR.bolted_panel("rear_ramp", (-half + 0.0, 0, 0.70), (0.08, 1.80, 1.10), m, hull, bolts=(0, 0),
         bevel=0.03, lods=VP.ALL)

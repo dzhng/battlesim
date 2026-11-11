@@ -498,4 +498,4 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    run("abrams", "us_desert_tan", build, wreck)
+    run("abrams", "us_desert_tan", build, wreck, chip=1.0)

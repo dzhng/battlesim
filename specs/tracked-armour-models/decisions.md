@@ -2222,6 +2222,8 @@ belt hangs 1 cm over low rollers rather than resting on them.
 
 ## Slice 12 decisions (2026-11-11, lane for closed hatches and no crew)
 
+## Lane 09+11 decisions (2026-11-11, shared slices 09 and 11, decision C16)
+
 Each entry gives the decision, the gap the plan left, its reach, a verdict
 and a confidence, least confident first.
 
@@ -2327,3 +2329,262 @@ The six entries above stand as written. The trace found two more:
   howitzers) look the same, so this is a fault in `roof_parts.cupola`. It is a
   coordinator fix to a shared part, done in slice 13's lane before slice 16's
   re-export.
+Review these first:
+- the bevel floor reaching `s300` and the wheeled families;
+- the Bradley proof barely moving;
+- fenders bounded by the envelope, not the upper hull alone.
+
+- **L1 The bevel floor re-bevels the wheeled callers, `s300` included.**
+  - *Scenario.* `bolted_panel` now floors its bevel at `PLATE_BEVEL`, and
+    `armour_tiles` raises a thin tile's bevel toward `depth * 0.45`. Every
+    caller of these shares the change, tracked or not. That means about 20
+    wheeled scripts: Boxer, BTR, Stryker, Patriot, S-300, S-350,
+    IRIS-T SLM, Fennek, Jaguar, Centauro, VBCI, ZBL-08 and the truck
+    chassis. They pass 0.008–0.015 m today.
+  - When slice 16 re-exports them, those plates re-bevel. Triangle counts
+    stay the same and vertices move under a centimetre. `parallel.md`
+    lets lane B re-export `s300` only "to prove it unchanged", and after
+    this it can't be.
+  - *Gap.* The slice kept the floor out of `parts.py` so buildings and jets
+    don't move, but didn't say whether the armour helpers' wheeled callers
+    may move.
+  - *Reach.*
+    - Slice 16's re-export and lane B's `s300` check.
+    - The README's "wheeled siblings … re-exported and checked only" now
+      means checked for a small, named bevel change.
+  - *Verdict.* Sound. A per-caller exception would be the special case the
+    floor exists to remove, and the plates gain the same narrow edge. The
+    coordinator should tell lane B before it runs the `s300` check.
+  - *Confidence:* medium.
+- **L2 The Bradley proof barely moves, because its jut is the applique,
+  not the fender.**
+  - *Scenario.* The Bradley's "front side panels sticks out" is its
+    applique tiles and skirt standing above the glacis, plain in the
+    corner crop. Its fender sat inside the side outline already. On
+    `track_fender` its front comes back up to 4 cm.
+  - The CV9040C's and Mk IV's jut is likewise their `armour_tiles` side
+    armour. The CV90120, already on `side_skirt`, has none (the unprimed
+    critique saw the same).
+  - *Gap.* The plan named the fender as the proof on a user note (S7).
+  - *Reach.* Slices 25 and 26 carry the visible fix by moving those runs
+    onto `side_skirt`. Lane rules kept this lane off those lines.
+  - *Verdict.* Sound for the lane. The user's note on these two vehicles is
+    not yet fixed, and the end-of-pass report should say so until 25 and
+    26 land.
+  - *Confidence:* medium.
+- **L3 Fenders are bounded by the upper and lower hull's envelope, not the
+  upper hull alone.**
+  - *Scenario.* The critique said the far-side Bradley fender "pokes out
+    past the nose". Bounding it by the upper hull alone (the sponson it
+    sits beside) was tried. On both the Bradley and the CV90 the whole
+    fender then lies inside the sponson, so the clip removed exactly the
+    part you could see and the fender vanished. That was reverted.
+  - With the envelope, the fender is a mudguard over the sprocket. It
+    stands ahead of the narrower lower nose plate, inside the side
+    elevation.
+  - *Gap.* Which profiles bound a part that sits beside one hull piece and
+    under another.
+  - *Reach.* Families choose which profiles to pass. The rule is "inside
+    the side elevation", the D2 contract.
+  - *Verdict.* Sound. A fender that should tuck under a sponson needs its
+    own lower `z` (family data), not a stricter outline.
+  - *Confidence:* medium-high.
+- **L4 `side_skirt` grew `rows` and line-shaped `foot`/`top`.**
+  - *Scenario.* `follow_tiles` was a two-row grid, its front lower tile cut
+    up at 45° to clear the sprocket. One run per row would rename the
+    CV90's tiles from `side_armour_R_{column}_{row}` to row-first, and the
+    CV90 wreck's `side_armour_R_1_` would then blow off a whole row.
+  - So `rows` names panels `{name}_{k}_{j}`. The foot is a height or a
+    convex line of (x, z) points (it may rise toward a sprocket), and the
+    top is a height or a concave line. Each line becomes half-planes, so
+    one Sutherland-Hodgman pass clips everything. A foot that isn't
+    convex, or a top that isn't concave, raises `ValueError`.
+  - *Gap.* The seam's `foot` was a function of x with no rows. Breakpoints
+    can't be read from a function.
+  - *Reach.* Families pass data points, not closures.
+  - *Verdict.* Sound.
+  - *Confidence:* medium-high.
+- **L5 How the outline clips: the inset is per edge, and only the belly
+  is skipped.**
+  - *Scenario.* Each outline edge's half-plane moves in by
+    `inset * max(|nx|, |nz|)`. On a shallow edge that is exactly `inset`
+    vertically, and on a steep one `inset` horizontally, so both "never
+    above top(x) - inset" and "never ahead of front(z) - inset" hold. The
+    prototype's `glacis_z - 0.03` falls out exactly.
+  - The first version skipped every downward-facing edge, so skirts could
+    hang below the hull. `hull_shape_test` caught a fender passing under a
+    shallow lower nose. Now only the lowest edge (the belly) is skipped.
+  - *Gap.* The seam said "shrunk by inset" and named only top, front and
+    rear.
+  - *Reach.* Every `side_skirt` and `track_fender`. Below the belly, a
+    panel is still bounded by the lower glacis and rear plate lines,
+    carried on.
+  - *Verdict.* Sound.
+  - *Confidence:* high.
+- **L6 The CV90 identity is a named difference** (`slices/09`, result).
+  - The CV9040C and Mk IV are byte-identical.
+  - On the CV90120 the glacis-head tile's top follows the outline, where
+    the prototype cut a chord up to 3 cm under it. One collinear vertex
+    drops, and ten bolts per side move 0.4–8.4 cm onto their tile's own
+    clipped span.
+  - A panel is dropped when its whole clipped height is under
+    `MIN_PANEL_M`. The prototype dropped one when its lowest top stood
+    under 10 cm. Neither drops a CV90120 tile.
+  - *Confidence:* high.
+- **L7 The probe's five non-convex hulls are left to their families.**
+  - *Scenario.*
+    - BRM-3K: a 14 cm roof step.
+    - T-72B3, T-90M, T-80BVM and Type 99A: the upper box's underside
+      breaks upward toward the nose, 3–10 cm.
+  - Nothing here changes those scripts. Each family slice passes
+    `envelope=True`, adds `hull_lower`, or gives the BRM a `top`.
+  - The Armata's rings and the Abrams' loft were expected to fail, and
+    are convex.
+  - *Confidence:* high.
+- **L8 The CV90's and Bradley's hull profiles have one owner each.**
+  - `cv90.hull_profiles(v, nose_z)` feeds both `hull_body`'s prisms and
+    `hull_sides`' outline.
+  - The Bradley's two profiles became locals in `hull_body`.
+  - This touches the two `prism` lines in each `hull_body`. They are next
+    to, but not on, lines lane 12 may edit (hatches).
+  - *Confidence:* high.
+- **L9 `track_fender` takes the plate floor too:**
+  `min(PLATE_BEVEL, depth * 0.45)`, so 0.018 m on today's 0.04 m fenders
+  (was 0.012). The slice listed three helpers, but the fender is an armour
+  plate the same module draws. *Confidence:* high.
+- **L10 Slice 09 shipped `side_skirt` at 0.02 m, not the seam's interim
+  0.01 m.** That is the prototype's own bevel, so the identity proof held.
+  Slice 11 replaced the literal with `PLATE_BEVEL`, at the same value.
+  *Confidence:* high.
+- **L11 The Abrams' wear evidence is the vertex alpha, not a closeup.**
+  - Workbench closeups don't draw the game's chips. So the slice measures
+    the paint's wear attribute: the Abrams' mean goes from 0.121 to
+    0.230, and the Leopard 2A6's is 0.234.
+  - A wear-mask render shows where the wear lands.
+  - The critique flagged the shared recipe smearing wear across faces and
+    wheel discs. That is a `parts.py` matter, outside this lane.
+  - *Confidence:* high.
+- **Territory.**
+  - `asset check` finds `hull_shape_test.py` with no wiring: it imports
+    `bpy`, so it runs in Blender.
+  - A wider bevel never adds triangles: the segment count is per tier
+    (`parts._bevel_for`).
+- **Trivial discretion (3).**
+  - The front-corner shot is `corner:6.8m,4.6m,1.2m:3.0m,1.45m,1.0m:50` at
+    1200×750.
+  - The probe, diff, wear-mask and wear-stat scripts are committed beside
+    their evidence.
+  - Before-exports were made at `e598a571c`, into `throwaway/`.
+
+### Lane 09+11 decision audit (2026-11-11, before commit)
+
+L1–L11 above give the reasoning for the calls the lane named while it
+worked. This audit traced the session's steps and commits (`35952c02e`,
+`a01d095a7`, `7dd22c35f`) for calls those entries left out, and checked
+each claim against the exports.
+
+Review these first:
+- A2, the gap at a run's foot and top;
+- L1, the floor reaching `s300`;
+- the L9 correction.
+
+**Verdicts on L1–L11.** All are sound.
+
+- L1 is a coordinator matter, not a user one: tell lane B before its
+  `s300` check.
+- L2 leaves the user's "front side panels sticks out" note open on the
+  Bradley, CV9040C and Mk IV until slices 25 and 26 land. That is the
+  plan's scoping, so the end-of-pass report must say so.
+- **L9 correction.** The claim "0.018 m on today's 0.04 m fenders" holds
+  only for a fender the outline leaves whole. That is the CV90120's: its
+  vertices move 1 cm. On the CV9040C and the Bradley, the clipped front
+  edge is short, so Blender's bevel clamp (`clamp_overlap`) holds the
+  wider bevel back. Their exports are node-for-node unchanged by slice 11.
+  The floor still applies; it just can't widen a bevel the plate's own
+  short edge limits.
+
+**Calls the entries above missed.**
+
+- **A1 A fender the outline clips away entirely now fails the export.**
+  - *Scenario.* A family places a `track_fender` wholly ahead of its hull's
+    nose. Before the review, `track_fender` returned nothing and the
+    export carried on with no fender. Now `parts.prism` gets an empty
+    profile and the build stops with Blender's face error.
+  - *Gap.* The seam said nothing about a part clipped to nothing.
+  - *Reach.* Any family that misplaces a fender finds out at export, not
+    in a closeup.
+  - *Verdict.* Sound. A fender that vanishes silently is a family bug the
+    lint can't see. The error is terse, so a family lane that hits it
+    should know what it means.
+  - *Confidence:* medium.
+- **A2 A run's foot and top keep half a gap, even with one row.**
+  - *Scenario.* A family calls `side_skirt(..., foot=0.55, top=1.20)`. The
+    panels run from 0.56 to 1.19, not 0.55 to 1.20. Every cell is shrunk
+    by half the `gap` on each side, as the prototype's tiles were, so the
+    run's own edges sit a centimetre inside the heights the family passed.
+  - The alternative: the gap only between panels, so a single-row skirt
+    meets its foot and top exactly.
+  - *Gap.* The seam said "each panel is the rectangle … [foot(x),
+    top(x)]".
+  - *Reach.* Every family migrating to `side_skirt` authors foot and top
+    knowing this. It is 1 cm at the default gap.
+  - *Verdict.* Sound for now, because it kept the CV90120 identical. If a
+    family slice finds itself adding `gap / 2` to its heights, the rule
+    should change to gaps between panels only. That costs only re-exports.
+  - *Confidence:* medium.
+- **A3 Rows without a `top` divide the run up to the outline's highest
+  point.**
+  - *Scenario.* `side_skirt(..., rows=2)` with no `top` splits the band from
+    the foot to the hull's roof height (less `inset`) into two rows. The
+    outline then cuts the upper row down the glacis. The rows do not follow
+    the glacis down.
+  - *Gap.* The seam had no rows.
+  - *Reach.* Only matters for a multi-row run without a top; no caller does
+    that today.
+  - *Verdict.* Sound: the simplest well-defined meaning.
+  - *Confidence:* medium-high.
+- **A4 The belly is one edge: the outline's lowest.**
+  - *Scenario.* A hull whose side elevation bottoms out at a point (two
+    sloping belly edges meeting, a V) has no edge lying wholly at its
+    lowest height. So no edge is skipped. A skirt hanging below that point
+    is then cut by both sloping lines carried on.
+  - *Gap.* L5 decided to skip only the belly, but not what counts as one.
+  - *Reach.* No tracked hull has a V belly: all 37 probe outlines have a
+    flat bottom edge.
+  - *Verdict.* Sound.
+  - *Confidence:* high.
+- **A5 `hull_shape` exports `clip_half_plane` and `span`.**
+  - *Scenario.* `armour_parts` clips a panel by its foot and top lines with
+    the same Sutherland-Hodgman step the outline uses. It also places bolts
+    across a clipped panel's vertical span. Both come from `hull_shape`
+    rather than a private copy.
+  - *Gap.* The seam named only `Outline`'s three queries.
+  - *Reach.* Slice 13's `panel_seam`, or any helper that cuts a shape by a
+    line, should import these rather than write its own.
+  - *Verdict.* Sound: one owner for the side-plane geometry.
+  - *Confidence:* high.
+- **A6 The probe looked only at parts named `hull*`.**
+  - *Scenario.* The probe recorded every `prism` and `loft` whose name
+    starts with `hull` while each tracked appearance built. A hull that
+    also draws its silhouette with other names was judged without those
+    pieces:
+    - the T-15's `troop_compartment`;
+    - the Leopard's `front_module`;
+    - the T-72's and Type 99's `splash_board`.
+  - *Gap.* "Build an `Outline` for every tracked hull" didn't say which
+    pieces make a hull.
+  - *Reach.* Each family slice decides which profiles bound its panels, and
+    may add a convex piece the probe didn't see.
+  - *Verdict.* Sound. Adding a convex piece can't make a convex envelope
+    fail; a notched one would raise when the family builds it.
+  - *Confidence:* high.
+- **A7 Evidence PNGs are committed under the spec, in LFS.** That is about
+  20 MB across `assets/after/09/` and `11/`: final shots, before shots for
+  the corner crop, the paired crops, and the scripts that made them. Per
+  "keep generated assets" and the lane's evidence ownership. *Confidence:*
+  high.
+- **Handoff, not a decision.** The scene-assets Blender README's
+  `hull_shape` row still reads "its plan rings, and where a part sits on a
+  leaning face". It should add "the side outline its skirts and fenders
+  keep inside". That README is outside this lane's files, and lane 08 may
+  edit the same table, so it is the coordinator's one-line fix at merge.

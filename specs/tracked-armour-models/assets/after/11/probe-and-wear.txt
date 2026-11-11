@@ -1,0 +1,33 @@
+before/us_m1_abrams_sep_v2.glb: 34346 paint verts (tier 0), alpha mean 0.1210, p50 0.082, p90 0.279, p99 0.453, share > 0.3 0.0623
+after11/us_m1_abrams_sep_v2.glb: 34346 paint verts (tier 0), alpha mean 0.2300, p50 0.185, p90 0.493, p99 0.620, share > 0.3 0.3258
+before/europe_leopard_2_2a6.glb: 36068 paint verts (tier 0), alpha mean 0.2337, p50 0.182, p90 0.538, p99 0.620, share > 0.3 0.3269
+after11/europe_leopard_2_2a6.glb: 36068 paint verts (tier 0), alpha mean 0.2337, p50 0.182, p90 0.538, p99 0.620, share > 0.3 0.3269
+
+before, after: VARIANT eastern_t_80_t_80bvm [72845, 21972, 6161, 2364]
+before, after: VARIANT eastern_t_80_t_80bvm [72845, 21972, 6161, 2364]
+
+# geometry diffs (before vs after slice 11)
+## eastern_t_80_t_80bvm
+CHANGED engine_door_plate_LOD0 same count 422, max move 0.007071 m trs d=0
+CHANGED engine_door_plate_LOD1 same count 144, max move 0.007071 m trs d=0
+identical nodes: 1431 of 1433
+## us_m1_abrams_sep_v2
+CHANGED cheek_plate_L_plate_LOD0 same count 266, max move 0.007071 m trs d=0
+CHANGED cheek_plate_L_plate_LOD1 same count 96, max move 0.007071 m trs d=0
+CHANGED cheek_plate_R_plate_LOD0 same count 266, max move 0.007071 m trs d=0
+CHANGED cheek_plate_R_plate_LOD1 same count 96, max move 0.007071 m trs d=0
+identical nodes: 1243 of 1247
+## europe_leopard_2_2a6
+CHANGED engine_door_0_plate_LOD0 same count 378, max move 0.007071 m trs d=0
+CHANGED engine_door_0_plate_LOD1 same count 130, max move 0.007071 m trs d=0
+CHANGED engine_door_1_plate_LOD0 same count 378, max move 0.007071 m trs d=0
+CHANGED engine_door_1_plate_LOD1 same count 130, max move 0.007071 m trs d=0
+CHANGED side_plate_L_0_plate_LOD0 same count 266, max move 0.01131 m trs d=0
+CHANGED side_plate_L_0_plate_LOD1 same count 96, max move 0.01131 m trs d=0
+CHANGED side_plate_L_1_plate_LOD0 same count 266, max move 0.01131 m trs d=0
+CHANGED side_plate_L_1_plate_LOD1 same count 96, max move 0.01131 m trs d=0
+CHANGED side_plate_R_0_plate_LOD0 same count 266, max move 0.01131 m trs d=0
+CHANGED side_plate_R_0_plate_LOD1 same count 96, max move 0.01131 m trs d=0
+CHANGED side_plate_R_1_plate_LOD0 same count 266, max move 0.01131 m trs d=0
+CHANGED side_plate_R_1_plate_LOD1 same count 96, max move 0.01131 m trs d=0
+identical nodes: 1207 of 1219
