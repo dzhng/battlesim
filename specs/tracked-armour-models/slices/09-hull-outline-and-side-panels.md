@@ -93,3 +93,138 @@ That includes the seven tank families that have their own
 
 The clip algorithm. Sutherland–Hodgman against the convex outline is
 suggested.
+
+## Result (2026-11-11)
+
+Lane 09+11 (decision C16), branched from `e598a571c`. Evidence is in
+`assets/after/09/`.
+
+**The seam as built.** Three calls changed from the plan; each is recorded
+in `decisions.md`.
+
+```python
+# hull_shape.py
+class Outline:
+    def __init__(self, *profiles, envelope=False)
+    @classmethod
+    def from_rings(cls, rings, envelope=False)
+    def top(self, x) / front(self, z) / rear(self, z)  # None off the outline
+    def clip(self, polygon, inset)                     # never above top - inset, ahead of front - inset,
+                                                       # behind rear + inset; the belly doesn't cut
+def clip_half_plane(polygon, nx, nz, c)               # Sutherland-Hodgman, one half-plane
+def span(polygon, at, axis)
+
+# armour_parts.py
+MIN_PANEL_M = 0.12
+def side_skirt(name, outline, side, y, x0, x1, foot, mats, parent, top=None, panels=1, rows=1,
+               depth=0.06, gap=0.02, inset=0.03, bolts=(2, 1), lods=ALL)
+def track_fender(name, outline, side, y_in, y_out, x0, x1, z, mats, parent, slope=0.0, depth=0.04)
+```
+
+- `side_skirt` gained `rows`, so it can carry the CV90's two-row tile grid.
+  Its panels are then named `{name}_{k}_{j}`, so the CV90 wreck's column
+  selectors (`side_armour_R_1_`) still work.
+- `foot` and `top` are each a height or a line of (x, z) points. A foot
+  must be convex (it may rise toward a sprocket) and a top concave.
+  Otherwise the call raises `ValueError`.
+- `track_fender` gained `depth`: z is the fender top at x0, and `slope`
+  is dz/dx toward the front.
+
+**Probe.** `outline_probe.py` built an `Outline` from the `hull*` prisms
+and lofts of all 37 tracked appearances; the results are in
+`outline-probe.json`. Each entry gives the notch depth: how far the
+offending point sits inside its convex hull.
+
+- **Five are non-convex**, and in each case `hull_upper` is the notched
+  profile:
+  - **BRM-3K:** 14 cm. The point is the roof step at x = -1.10, where the
+    raised fighting compartment drops to the engine deck. A panel run
+    reaching above the engine deck would need its own `top`.
+  - **T-72B3 and T-90M:** 5.1 cm. **T-80BVM:** 3.4 cm. **Type 99A:**
+    10.5 cm. In all four, the upper box's underside breaks upward at
+    `lower_foot_x` toward the nose. The notch is on the underside, which
+    no side panel reaches, and the lower hull fills it in the union. Those
+    families pass `envelope=True` or include `hull_lower`.
+- **Every other hull is convex.** That includes the Armata's lofted rings
+  (T-14, T-15) and the Abrams family, which the risk table expected to
+  fail.
+- The T-72 family and the Type 99 also extrude `hull_upper_fender_L/R`
+  strips. Their family slices decide whether those strips bound the
+  panels.
+
+**CV90 identity** (`glb-diff.txt`). Replacing `follow_tiles` with
+`side_skirt`:
+
+- **CV9040C and Mk IV:** byte-identical (`6bcb7d48…`, `fa50151d…`). They
+  never called `follow_tiles`.
+- **CV90120:** a named difference. 1,107 of its 1,139 nodes are identical,
+  and the rest differ in three ways:
+  - Tile `side_armour_{L,R}_4_1` straddles the glacis head. Its top now
+    follows the outline exactly: level to x = 1.62, then down the glacis.
+    The prototype cut a chord from the glacis head at x = 1.30 to the
+    tile's front corner, up to 3 cm under the outline.
+  - Tile `side_armour_{L,R}_4_0` loses a redundant collinear vertex at
+    x = 1.30, which the prototype added to every tile spanning the glacis
+    head. Its shape is the same.
+  - Ten bolts per side, on tiles 4_1, 5_0 and 5_1, move 0.4–8.4 cm. Bolts
+    now sit across each tile's own clipped span. Before, they sat on the
+    full cell and were clamped 6 cm under the top.
+  - Triangles at tiers 0–3 go from 53,031 / 17,243 / 5,329 / 1,792 to
+    53,055 / 17,243 / 5,321 / 1,784.
+
+**Fenders.** The CV90 and Bradley front fenders are now `track_fender`
+shelves with the old box's top line. They are bounded by the envelope of
+the upper and lower hull.
+
+- **Bradley:** the front end comes back up to 4 cm, to the hull's side
+  outline. The rest of each Bradley is identical, node for node.
+- **CV9040C:** loses its front-bottom corner, so the shelf has five sides
+  at tiers 0–2.
+- **CV90120:** its fender is not clipped.
+
+**Test.** `hull_shape_test.py` runs in the pinned Blender, and `asset
+check` finds it on its own. It checks four things:
+
+- a notched profile or stepped rings raise;
+- a skirt run carried past a sloped glacis never leaves the outline less
+  its inset, drops its last panel, and cuts its front panels down;
+- a two-row grid with a rising foot stays inside;
+- a fender ends at the nose.
+
+On its first run it caught a real defect. The clip had skipped every
+downward-facing edge, so a fender passed under a shallow lower nose. Now
+only the belly is skipped.
+
+**Closeups and comparison** (`compare-metrics.txt`, `bradley-fender-pair.png`).
+The front-corner shot is `corner:6.8m,4.6m,1.2m:3.0m,1.45m,1.0m:50`. Before
+and after differ only at the fenders, and on the CV90120 at its glacis
+tile. The parity distance is under 0.004 on every pair. Verdict: the
+candidate is less wrong, with every fender inside the side outline, but the
+change is small on screen. What visibly "sticks out" on the Bradley and the
+CV9040C is their side armour standing above the glacis: the applique tiles
+on the Bradley, and `armour_tiles` on the CV9040C and Mk IV. Those are
+family geometry, left to slices 25 and 26, which now only need to call
+`side_skirt`.
+
+**Critique** (unprimed, on the final geometry):
+
+| Vehicle | Silhouette | Surface | Fittings | Materials | Cohesion |
+|---|---|---|---|---|---|
+| M2A4 Bradley | 5 | 6 | 6 | 5 | 5 |
+| CV9040C | 5 | 5 | 4 | 5 | 5 |
+| CV90120 | 6 | 5 | 4 | 5 | 6 |
+
+The critic's first finding was the Bradley's and CV9040C's side armour
+standing above the glacis as a square wall, a fin on the far side. It noted
+that the CV90120, on `side_skirt`, has no such fin. Its other findings are
+family work, carried to slices 25 and 26:
+
+- fender shape: no lip or downturn on the Bradley, a narrow strip on the
+  CV90;
+- the CV90 skirt-lip rail poking past the skirt;
+- placeholder headlights;
+- tracks drawn as faceted drums;
+- smeared camo on the CV90's slopes.
+
+**Lint.** `vehicle_lint.py --variant` on the CV90120, CV9040C, Mk IV, M2A4
+and M3A3 reports 0 new issues each.

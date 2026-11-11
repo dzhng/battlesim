@@ -1,0 +1,52 @@
+# cv90120: before (HEAD e598a571c) vs after follow_tiles -> side_skirt
+CHANGED side_armour_L_4_0_LOD0 verts 306 -> 318 trs d=0
+CHANGED side_armour_L_4_0_LOD1 same count 112, max move 0.9885 m trs d=0
+CHANGED side_armour_L_4_0_LOD2 verts 28 -> 24 trs d=0
+CHANGED side_armour_L_4_0_LOD3 verts 28 -> 24 trs d=0
+CHANGED side_armour_L_4_1_LOD0 verts 312 -> 304 trs d=0
+CHANGED side_armour_L_4_1_LOD1 same count 118, max move 0.3237 m trs d=0
+CHANGED side_armour_L_4_1_LOD2 same count 30, max move 0.3237 m trs d=0
+CHANGED side_armour_L_4_1_LOD3 same count 30, max move 0.3237 m trs d=0
+CHANGED side_armour_L_4_1_bolt_1_LOD0 same count 32, max move 0 m trs d=0.003744
+CHANGED side_armour_L_4_1_bolt_3_LOD0 same count 32, max move 0 m trs d=0.01351
+CHANGED side_armour_L_5_0_bolt_1_LOD0 same count 32, max move 0 m trs d=0.08394
+CHANGED side_armour_L_5_0_bolt_3_LOD0 same count 32, max move 0 m trs d=0.01481
+CHANGED side_armour_L_5_1_bolt_0_LOD0 same count 32, max move 0 m trs d=0.01323
+CHANGED side_armour_L_5_1_bolt_1_LOD0 same count 32, max move 0 m trs d=0.03367
+CHANGED side_armour_L_5_1_bolt_2_LOD0 same count 32, max move 0 m trs d=0.00402
+CHANGED side_armour_L_5_1_bolt_3_LOD0 same count 32, max move 0 m trs d=0.01643
+CHANGED side_armour_R_4_0_LOD0 verts 306 -> 318 trs d=0
+CHANGED side_armour_R_4_0_LOD1 same count 112, max move 0.9885 m trs d=0
+CHANGED side_armour_R_4_0_LOD2 verts 28 -> 24 trs d=0
+CHANGED side_armour_R_4_0_LOD3 verts 28 -> 24 trs d=0
+CHANGED side_armour_R_4_1_LOD0 verts 312 -> 304 trs d=0
+CHANGED side_armour_R_4_1_LOD1 same count 118, max move 0.3237 m trs d=0
+CHANGED side_armour_R_4_1_LOD2 same count 30, max move 0.3237 m trs d=0
+CHANGED side_armour_R_4_1_LOD3 same count 30, max move 0.3237 m trs d=0
+CHANGED side_armour_R_4_1_bolt_1_LOD0 same count 32, max move 0 m trs d=0.003744
+CHANGED side_armour_R_4_1_bolt_3_LOD0 same count 32, max move 0 m trs d=0.01351
+CHANGED side_armour_R_5_0_bolt_1_LOD0 same count 32, max move 0 m trs d=0.08394
+CHANGED side_armour_R_5_0_bolt_3_LOD0 same count 32, max move 0 m trs d=0.01481
+CHANGED side_armour_R_5_1_bolt_0_LOD0 same count 32, max move 0 m trs d=0.01323
+CHANGED side_armour_R_5_1_bolt_1_LOD0 same count 32, max move 0 m trs d=0.03367
+CHANGED side_armour_R_5_1_bolt_2_LOD0 same count 32, max move 0 m trs d=0.00402
+CHANGED side_armour_R_5_1_bolt_3_LOD0 same count 32, max move 0 m trs d=0.01643
+identical nodes: 1107 of 1139
+
+# bradley m2a4: before vs after (fender on track_fender)
+CHANGED front_fender_L_LOD0 verts 240 -> 270 trs d=3.05
+CHANGED front_fender_L_LOD1 verts 96 -> 110 trs d=3.05
+CHANGED front_fender_L_LOD2 verts 24 -> 30 trs d=3.05
+CHANGED front_fender_R_LOD0 verts 240 -> 270 trs d=3.05
+CHANGED front_fender_R_LOD1 verts 96 -> 110 trs d=3.05
+CHANGED front_fender_R_LOD2 verts 24 -> 30 trs d=3.05
+identical nodes: 1125 of 1131
+
+# cv9040c: before vs after (fender on track_fender)
+CHANGED front_fender_L_LOD0 verts 240 -> 300 trs d=3.1
+CHANGED front_fender_L_LOD1 verts 96 -> 120 trs d=3.1
+CHANGED front_fender_L_LOD2 verts 24 -> 30 trs d=3.1
+CHANGED front_fender_R_LOD0 verts 240 -> 300 trs d=3.1
+CHANGED front_fender_R_LOD1 verts 96 -> 120 trs d=3.1
+CHANGED front_fender_R_LOD2 verts 24 -> 30 trs d=3.1
+identical nodes: 920 of 926
