@@ -82,15 +82,19 @@ def turret_body(v, turret):
                                  rot=(0, 0, side * 0.6))
         whip = empty(f"dressing_antenna_{s}", parent=turret)
         RF.antenna(f"antenna_{s}", (-1.95, side * 0.95, ROOF), m, whip, height=2.0)
-    RF.sight_housing("gunner_sight", (0.55, -0.55, ROOF - 0.04), m, turret, size=(0.40, 0.32, 0.24))
+    # The sight heads stand over the frame's top: dressing, the commander's
+    # ball at its measured 2.8 m on a post that reaches the frame's top.
+    gunner = empty("dressing_gunner_sight", parent=turret)
+    RF.sight_housing("gunner_sight", (0.55, -0.55, ROOF - 0.04), m, gunner, size=(0.40, 0.32, 0.24))
+    cyl("sight_post", 0.08, 0.12, (0.20, 0.62, ROOF + 0.06), "Z", m["dark"], turret, seg=14, lods=MID)
     ball = empty("dressing_commander_sight", parent=turret)
-    cyl("sight_post", 0.08, 0.22, (0.20, 0.62, ROOF + 0.11), "Z", m["dark"], ball, seg=14, lods=MID)
-    cyl("sight_ball", 0.20, 0.34, (0.20, 0.62, ROOF + 0.36), "Z", m["paint"], ball, seg=22, bevel=0.09)
-    box("sight_ball_window", (0.03, 0.18, 0.12), (0.39, 0.62, ROOF + 0.36), m["glass"], ball, lods=MID)
+    cyl("sight_ball", 0.20, 0.34, (0.20, 0.62, ROOF + 0.22), "Z", m["paint"], ball, seg=22, bevel=0.09)
+    box("sight_ball_window", (0.03, 0.18, 0.12), (0.39, 0.62, ROOF + 0.22), m["glass"], ball, lods=MID)
     RF.hatch("commander_hatch", (-0.55, 0.55, ROOF), m, turret, radius=0.28)
     RF.hatch("gunner_hatch", (-0.55, -0.55, ROOF), m, turret, radius=0.26)
     SW.stowage_box("bustle_box", (-1.95, 0, foot + 0.08), (0.45, 2.20, 0.42), m, turret)
-    SW.tarp_roll("bustle_tarp", (-1.60, 0.0, ROOF + 0.10), 1.70, 0.14, m, turret, straps=3)
+    tarp = empty("dressing_tarp", parent=turret)
+    SW.tarp_roll("bustle_tarp", (-1.60, 0.0, ROOF + 0.10), 1.70, 0.14, m, tarp, straps=3)
     # The photos' add-on armour and stowage: tile packs on the cheeks' faces
     # (lying on the leaning cheek, facing out along its normal) and the
     # flanks' rear, a basket round the bustle box.

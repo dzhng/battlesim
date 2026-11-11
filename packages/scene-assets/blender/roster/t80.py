@@ -17,7 +17,7 @@ machine gun on the right, and stowage boxes and a slat cage on the rear.
 Gun, machine gun and Soviet skirts are the T-72's (`roster/t72.py`); the hull
 and running gear are the T-80's own.
 
-Built to the catalog frame (hull 7.4 x 3.603 x 2.202 m, turret pivot 1.321 m,
+Built to the catalog frame (hull 7.01 x 3.603 x 2.202 m, turret pivot 1.321 m,
 cannon muzzle 6.2 m ahead): nothing here moves it.
 """
 import math
@@ -43,16 +43,16 @@ TRACK_W = 0.58
 ROAD_R = 0.335
 ROAD_Z = 0.415
 ROAD_X = [2.35 - 0.92 * k for k in range(6)]
-SPROCKET = (-3.20, 0.52, 0.32)
+SPROCKET = (-3.005, 0.52, 0.32)
 IDLER = (3.22, 0.50, 0.29)
 RETURNS = [(1.90, 0.82, 0.09), (1.00, 0.83, 0.09), (0.10, 0.83, 0.09), (-0.80, 0.83, 0.09), (-1.70, 0.82, 0.09)]
 DECK = 1.30
 # The front is two-tier (photos: three-quarter front): the fenders over the
-# tracks fall 0.27 m over 1.40 m, about 11 degrees side-on; the centre upper
-# glacis plate between them falls CENTRE_DROP over the same run, about 22
-# degrees (68 degrees from vertical, as the T-72's).
-GLACIS_X, GLACIS_RUN, GLACIS_DROP = 2.30, 1.40, 0.27
-CENTRE_DROP = 0.565
+# tracks fall 0.23 m over the 1.205 m to the nose, about 11 degrees side-on;
+# the centre upper glacis plate between them falls CENTRE_DROP over the same
+# run, about 22 degrees (68 degrees from vertical, as the T-72's).
+GLACIS_X, GLACIS_RUN, GLACIS_DROP = 2.30, 1.205, 0.232
+CENTRE_DROP = 0.486
 GLACIS = (GLACIS_X, GLACIS_RUN, GLACIS_DROP, DECK)
 CENTRE_Y = TRACK_Y - TRACK_W / 2
 
@@ -70,9 +70,9 @@ def glacis_z(x):
 def hull_body(v):
     m, hull = v.mats, v.hull
     half = v.length / 2
-    slope = two_tier_hull(v, half, DECK, GLACIS_X, GLACIS_RUN, GLACIS_DROP, CENTRE_DROP, -3.62, 1.22, -3.45, 3.15,
-                          centre_y=CENTRE_Y)
-    AR.armour_tiles("glacis_era", (3.02, 0, centre_z(3.02) + 0.005), (1.10, 2 * CENTRE_Y - 0.12), (2, 5), 0.09, m,
+    slope = two_tier_hull(v, half, DECK, GLACIS_X, GLACIS_RUN, GLACIS_DROP, CENTRE_DROP, -3.425, 1.22, -3.255,
+                          3.15, centre_y=CENTRE_Y)
+    AR.armour_tiles("glacis_era", (2.92, 0, centre_z(2.92) + 0.005), (1.10, 2 * CENTRE_Y - 0.12), (2, 5), 0.09, m,
                     hull, rot=(0, slope, 0))
     prism("splash_board", [(2.40, DECK - 0.02), (2.50, DECK - 0.02), (2.44, DECK + 0.12), (2.34, DECK + 0.12)],
           2 * CENTRE_Y - 0.04, mat=m["paint"], parent=hull, bevel=0.015)
@@ -80,9 +80,9 @@ def hull_body(v):
     RF.periscope("driver_periscope", (2.31, 0, DECK), m, hull, size=(0.12, 0.26, 0.09))
     for side, s in ((1, "L"), (-1, "R")):
         HF.light_with_guard(f"headlight_{s}", (2.25, side * 1.30, DECK + 0.10), 0.07, m, hull)
-        HF.tow_hook(f"front_tow_{s}", (3.62, side * 0.62, centre_z(3.62) - 0.06), m, hull, size=0.14)
-        HF.tow_hook(f"rear_tow_{s}", (-3.56, side * 0.80, 0.82), m, hull, size=0.13, rot=(0, 0, math.pi))
-        box(f"front_fender_{s}", (0.45, 0.60, 0.04), (3.45, side * TRACK_Y, 1.02), m["paint"], hull, bevel=0.012,
+        HF.tow_hook(f"front_tow_{s}", (3.425, side * 0.62, centre_z(3.425) - 0.06), m, hull, size=0.14)
+        HF.tow_hook(f"rear_tow_{s}", (-3.365, side * 0.80, 0.82), m, hull, size=0.13, rot=(0, 0, math.pi))
+        box(f"front_fender_{s}", (0.45, 0.60, 0.04), (3.255, side * TRACK_Y, 1.02), m["paint"], hull, bevel=0.012,
             rot=(0, 0.35, 0), lods=MID)
         HF.cable(f"tow_cable_{s}", [(-3.2, side * 1.52, DECK + 0.02), (-1.8, side * 1.54, DECK + 0.02),
                                     (0.0, side * 1.54, DECK + 0.02), (1.6, side * 1.52, DECK + 0.02)], m, hull,
@@ -97,8 +97,8 @@ def hull_body(v):
     AR.slat_armour("rear_cage", (-half - 0.05, 0, 0.62), (3.20, 0.46), m, hull, rot=(0, 0, math.pi / 2))
     drums = empty("dressing_fuel_drums", parent=hull)
     for side in (-1, 1):
-        cyl(f"fuel_drum_{side}", 0.26, 1.10, (-3.52, side * 0.80, 1.28), "Y", m["paint"], drums, seg=24, bevel=0.03)
-        cyl(f"drum_band_{side}", 0.27, 0.04, (-3.52, side * 0.80, 1.28), "Y", m["dark"], drums, seg=24, lods=NEAR)
+        cyl(f"fuel_drum_{side}", 0.26, 1.10, (-3.325, side * 0.80, 1.28), "Y", m["paint"], drums, seg=24, bevel=0.03)
+        cyl(f"drum_band_{side}", 0.27, 0.04, (-3.325, side * 0.80, 1.28), "Y", m["dark"], drums, seg=24, lods=NEAR)
 
 
 def turret_body(v, turret):
@@ -134,7 +134,7 @@ def build(variant, v):
     hull_body(v)
     RG.tracked_running_gear(v.mats, v.hull, TRACK_Y, TRACK_W, ROAD_X, ROAD_Z, ROAD_R, 0.22, SPROCKET, IDLER,
                             RETURNS, bolts=8, teeth=12, arm=(0.45, -0.35), pitch=0.15)
-    soviet_skirts(v, label="331", front=3.20, bars=(-2.45, 2.40), glacis=GLACIS)
+    soviet_skirts(v, label="331", front=3.005, bars=(-2.255, 2.40), glacis=GLACIS)
     mounts = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})
     turret, gun, _, _ = mounts["cannon"]
     hmg, hmg_gun, _, _ = mounts["HMG"]

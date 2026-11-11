@@ -168,9 +168,11 @@ def turret_body(v, turret):
     for k in (-0.70, 0.70):
         box(f"container_bracket_{k}", (0.40, 0.08, 0.10), (-2.72, k, 0.30), m["dark"], turret, lods=MID)
     RF.sight_housing("gunner_sight", (0.85, 0.75, ROOF - 0.04), m, turret, size=(0.44, 0.36, 0.26))
-    sight = empty("dressing_commander_sight", parent=turret)
-    cyl("commander_sight_post", 0.12, 0.22, (-1.40, -0.85, ROOF + 0.11), "Z", m["paint"], sight, seg=16,
+    # The commander's sight on its post: the post reaches the frame's top,
+    # the head over it is dressing.
+    cyl("commander_sight_post", 0.12, 0.26, (-1.40, -0.85, ROOF + 0.13), "Z", m["paint"], turret, seg=16,
         bevel=0.015, lods=MID)
+    sight = empty("dressing_commander_sight", parent=turret)
     RF.sight_housing("commander_sight", (-1.40, -0.85, ROOF + 0.18), m, sight, size=(0.36, 0.34, 0.26))
     RF.cupola("commander_cupola", (-0.80, -0.62, ROOF), m, turret, radius=0.34, periscopes=4)
     RF.hatch("gunner_hatch", (-0.60, 0.62, ROOF), m, turret, radius=0.30)

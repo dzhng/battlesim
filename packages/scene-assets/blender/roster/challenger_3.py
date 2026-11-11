@@ -232,9 +232,11 @@ def turret(v, t, gun, hmg, hmg_gun):
         RF.antenna(f"antenna_{s}", (-1.75, side * 0.95, top), m, whip, height=2.2)
     sight = empty("dressing_gunner_sight", parent=t)
     RF.sight_housing("gunner_sight", (0.55, 0.75, top - 0.02), m, sight, size=(0.45, 0.34, 0.24))
+    # The commander's panoramic sight on its mast: the mast reaches the
+    # frame's top, the head over it is dressing.
+    cyl("panorama_post", 0.10, 0.24, (-0.35, 0.55, top + 0.12), "Z", m["dark"], t, seg=12)
     mast = empty("dressing_commander_sight", parent=t)
-    cyl("panorama_post", 0.10, 0.04, (-0.35, 0.55, top + 0.02), "Z", m["dark"], mast, seg=12)
-    RF.sight_housing("panorama_head", (-0.35, 0.55, top + 0.02), m, mast, size=(0.36, 0.34, 0.26))
+    RF.sight_housing("panorama_head", (-0.35, 0.55, top + 0.22), m, mast, size=(0.36, 0.34, 0.26))
     RF.hatch("loader_hatch", (-0.60, -0.55, top), m, t, radius=0.28)
     AR.slat_armour("bustle_cage", (-2.35, 0, base + 0.15), (2.40, 0.62), m, t, rot=(0, 0, math.pi / 2))
     for side, s in ((1, "L"), (-1, "R")):

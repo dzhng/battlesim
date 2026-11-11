@@ -164,9 +164,12 @@ def turret_body(v, turret, mk4):
                             bolts=(4, 1), bevel=0.03, lods=VP.ALL)
         whip = empty(f"dressing_antenna_{s}", parent=turret)
         RF.antenna(f"antenna_{s}", (-1.10, side * 0.70, ROOF), m, whip, height=2.0)
-    RF.sight_housing("gunner_sight", (0.55, 0.55, ROOF - 0.04), m, turret, size=(0.40, 0.32, 0.22))
-    RF.hatch("commander_hatch", (-0.35, -0.45, ROOF), m, turret, radius=0.28)
-    RF.hatch("gunner_hatch", (-0.35, 0.45, ROOF), m, turret, radius=0.26)
+    # The C's frame tops out at its roof armour, so what stands on its roof
+    # is dressing; the Mk IV's frame stands at its sight.
+    fittings = turret if mk4 else empty("dressing_roof_fittings", parent=turret)
+    RF.sight_housing("gunner_sight", (0.55, 0.55, ROOF - 0.04), m, fittings, size=(0.40, 0.32, 0.22))
+    RF.hatch("commander_hatch", (-0.35, -0.45, ROOF), m, fittings, radius=0.28)
+    RF.hatch("gunner_hatch", (-0.35, 0.45, ROOF), m, fittings, radius=0.26)
     if mk4:
         mast = empty("dressing_commander_sight", parent=turret)
         cyl("sight_mast", 0.10, 0.28, (0.20, -0.55, ROOF + 0.14), "Z", m["dark"], mast, seg=16, lods=MID)
@@ -178,8 +181,8 @@ def turret_body(v, turret, mk4):
             cyl(f"spike_tube_{k}", 0.08, 0.90, (-0.25, 1.02, z), "X", m["paint"], turret, seg=16, bevel=0.01)
         RF.sight_housing("viewer", (0.30, -0.95, ROOF - 0.02), m, turret, size=(0.34, 0.26, 0.24))
     else:
-        RF.sight_housing("commander_sight", (0.20, -0.60, ROOF - 0.02), m, turret, size=(0.38, 0.30, 0.26))
-        SW.tarp_roll("bustle_tarp", (-1.20, 0.0, ROOF - 0.05), 1.60, 0.16, m, turret, straps=3)
+        RF.sight_housing("commander_sight", (0.20, -0.60, ROOF - 0.04), m, fittings, size=(0.38, 0.30, 0.26))
+        SW.tarp_roll("bustle_tarp", (-1.20, 0.0, ROOF - 0.05), 1.60, 0.16, m, fittings, straps=3)
         box("bustle_bag", (0.40, 0.70, 0.36), (-1.40, 0.55, 0.40), m["canvas"], turret, bevel=0.08, lods=MID)
 
 
