@@ -45,7 +45,7 @@ that defines it:
 | Module                              | Owns                                                                                                                                                     |
 | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`vehicle_parts`](vehicle_parts.py) | The kernel: the contracts every part keeps, and what every part module shares (tiers, placing a part in its parent's frame, spinning nodes, swept tubes) |
-| [`running_gear`](running_gear.py)   | What a vehicle rolls on: wheels, a tracked vehicle's running gear and its track belt                                                                     |
+| [`running_gear`](running_gear.py)   | What a vehicle rolls on: wheels, a tracked vehicle's running gear, and its track belt, which sags between the wheels carrying its top run                |
 | [`hull_shape`](hull_shape.py)       | A hull's shape: its plan rings, and where a part sits on a leaning face                                                                                  |
 | [`armour_parts`](armour_parts.py)   | Armour added to a hull or turret                                                                                                                         |
 | [`roof_parts`](roof_parts.py)       | What stands on a roof: hatches, cupolas, optics, dischargers, antennas                                                                                   |
