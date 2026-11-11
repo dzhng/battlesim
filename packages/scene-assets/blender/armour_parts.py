@@ -12,6 +12,10 @@ import hull_shape as HS  # noqa: E402
 from parts import box, cyl, prism  # noqa: E402
 from vehicle_parts import ALL, FINE, MID, NEAR, place, tube_part  # noqa: E402
 
+# The narrow bevel every armour plate's edge carries in tiers 0-1, so the
+# edge catches the light. A plate thinner than about twice this takes less
+# (`armour_tiles`, `track_fender`), so the bevel never eats the plate.
+PLATE_BEVEL = 0.02
 # A side panel the outline leaves lower than this is dropped, so a run of
 # skirts stops where the glacis takes over rather than ending in a sliver.
 MIN_PANEL_M = 0.12
@@ -21,8 +25,9 @@ def armour_tiles(name, loc, size, grid, depth, mats, parent, gap=0.025, bolts=Tr
     """A field of bolted armour tiles (explosive reactive armour, applique
     modules) lying in the local XY plane on a face at `loc`, standing `depth`
     proud along local +Z: `size` (x, y) of the whole field, `grid` (columns
-    along x, rows along y). Each tile is chunky and bevelled, with a bolt head
-    at each corner close up. Returns its meshes. Roles: paint, steel."""
+    along x, rows along y). Each tile is chunky, its edges bevelled at
+    PLATE_BEVEL, with a bolt head at each corner close up. Returns its
+    meshes. Roles: paint, steel."""
     cols, rows = grid
     tx, ty = size[0] / cols, size[1] / rows
     made = []
@@ -31,7 +36,7 @@ def armour_tiles(name, loc, size, grid, depth, mats, parent, gap=0.025, bolts=Tr
             cx = -size[0] / 2 + tx * (i + 0.5)
             cy = -size[1] / 2 + ty * (j + 0.5)
             made += box(f"{name}_{i}_{j}", (tx - gap, ty - gap, depth), (cx, cy, depth / 2), mats["paint"], parent,
-                        bevel=min(0.02, depth * 0.3), lods=lods)
+                        bevel=min(PLATE_BEVEL, depth * 0.45), lods=lods)
             if bolts:
                 for k in range(4):
                     bx = cx + (k % 2 - 0.5) * (tx - gap) * 0.7
@@ -61,16 +66,17 @@ def slat_armour(name, loc, size, mats, parent, spacing=0.11, bar=0.022, rot=(0, 
     return place(made, loc, rot)
 
 
-def bolted_panel(name, loc, size, mats, parent, bolts=(3, 2), rot=(0, 0, 0), bevel=0.02, lods=MID):
+def bolted_panel(name, loc, size, mats, parent, bolts=(3, 2), rot=(0, 0, 0), bevel=PLATE_BEVEL, lods=MID):
     """An applique armour plate bolted onto a face: a slab `size` (x, y, z
     thickness) lying in its local XY plane on the face at `loc` (its back on
-    the face, facing local +Z), with chunky bolt heads in a ring `bolts`
-    (along x, along y) round its border. Turn it onto a side or a glacis with
+    the face, facing local +Z), its edges bevelled `bevel` but never less
+    than PLATE_BEVEL, with chunky bolt heads in a ring `bolts` (along x,
+    along y) round its border. Turn it onto a side or a glacis with
     `rot`. Returns its meshes. Roles: paint, steel."""
     sx, sy, sz = size
     made = []
     made += box(name=f"{name}_plate", size=(sx, sy, sz), loc=(0, 0, sz / 2), mat=mats["paint"], parent=parent,
-                bevel=bevel, lods=lods)
+                bevel=max(bevel, PLATE_BEVEL), lods=lods)
     nx, ny = bolts
     spots = set()
     for i in range(nx):
@@ -131,7 +137,7 @@ def side_skirt(name, outline, side, y, x0, x1, foot, mats, parent, top=None, pan
             panel = panel[first:] + panel[:first]
             tag = f"{name}_{k}" if rows == 1 else f"{name}_{k}_{j}"
             made += prism(tag, panel, depth, loc=(0, side * (y - depth / 2), 0), mat=mats["paint"], parent=parent,
-                          bevel=0.02, lods=lods)
+                          bevel=PLATE_BEVEL, lods=lods)
             made += _panel_bolts(tag, panel, side, y, bolts, mats, parent)
     return made
 
@@ -148,7 +154,7 @@ def track_fender(name, outline, side, y_in, y_out, x0, x1, z, mats, parent, slop
         return []
     first = shelf.index(min(shelf))
     return prism(name, shelf[first:] + shelf[:first], y_out - y_in, loc=(0, side * (y_in + y_out) / 2, 0),
-                 mat=mats["paint"], parent=parent, bevel=0.012, lods=MID)
+                 mat=mats["paint"], parent=parent, bevel=min(PLATE_BEVEL, depth * 0.45), lods=MID)
 
 
 def _line(spec, x0, x1):
