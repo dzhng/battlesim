@@ -45,6 +45,8 @@ from truck_chassis import chassis  # noqa: E402
 from vehicle_export import run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
+TOW_SIZE = 0.13  # a tow hook's size (`hull_fittings.tow_hook`)
+TOW_REACH = TOW_SIZE * 1.15  # how far the hook, curl and all, stands out from its plate
 
 # Each appearance's family (its source folder and reference library) and scheme.
 CARDS = {
@@ -75,6 +77,10 @@ def tracked_hull(v, deck, wheels, road_r, rear_engine):
     front = (half - 0.40, road_r + 0.28, road_r * 0.85)
     rear = (-half + 0.40, road_r + 0.26, road_r * 0.85)
     sprocket, idler = (rear, front) if rear_engine else (front, rear)
+    # The tow hooks hang on the lower tub's nose and tail plates, set back so
+    # their reach ends inside the frame.
+    tow_front = (half - TOW_REACH, 0.44 + (0.75 - TOW_REACH) / 0.65 * 0.46)
+    tow_rear = (-half + TOW_REACH, 0.70 - TOW_REACH / 0.35 * 0.26)
     returns = [(road_x[1] - 0.2, 2 * road_r + 0.18, 0.09), (road_x[-2] + 0.2, 2 * road_r + 0.18, 0.09)]
     RG.tracked_running_gear(m, h, v.width / 2 - 0.40, 0.50, road_x, road_r + 0.08, road_r, 0.20, sprocket, idler,
                             returns, bolts=6, teeth=12, arm=(0.40, -0.30), pitch=0.15, dual=True)
@@ -82,8 +88,9 @@ def tracked_hull(v, deck, wheels, road_r, rear_engine):
         box(f"skirt_{s}", (v.length - 0.40, 0.05, 0.55), (0, side * (v.width / 2 - 0.03), 0.82), m["paint"], h,
             bevel=0.01)
         HF.light_with_guard(f"headlight_{s}", (top + 0.20, side * (v.width / 2 - 0.45), deck + 0.08), 0.07, m, h)
-        HF.tow_hook(f"front_tow_{s}", (half - 0.02, side * 0.70, 0.82), m, h, size=0.13)
-        HF.tow_hook(f"rear_tow_{s}", (-half + 0.02, side * 0.80, 0.82), m, h, size=0.13, rot=(0, 0, math.pi))
+        HF.tow_hook(f"front_tow_{s}", (tow_front[0], side * 0.70, tow_front[1]), m, h, size=TOW_SIZE)
+        HF.tow_hook(f"rear_tow_{s}", (tow_rear[0], side * 0.80, tow_rear[1]), m, h, size=TOW_SIZE,
+                    rot=(0, 0, math.pi))
         # Tow cable along the hull's top edge, a tool box and the jerrycan rack on the rear.
         HF.cable(f"tow_cable_{s}", [(-half + 0.5, side * (v.width / 2 - 0.30), deck + 0.02),
                                     (0.0, side * (v.width / 2 - 0.30), deck + 0.03),
@@ -133,12 +140,15 @@ def gepard(v):
     cyl("tracking_radar_face", 0.36, 0.02, (1.15, 0, z0 + 0.65), "X", m["paint"], h, seg=24, lods=MID)
     cyl("tracking_radar_feed", 0.05, 0.30, (1.30, 0, z0 + 0.65), "X", m["dark"], h, seg=10, lods=NEAR)
     box("tracking_radar_yoke", (0.25, 0.95, 0.12), (0.95, 0, z0 + 0.20), m["paint"], h, bevel=0.02, lods=MID)
-    # The search radar folded on its mast over the turret's rear: the top of
-    # the travelling height.
-    box("search_radar_mast", (0.25, 0.25, 0.45), (-1.05, 0, z1 + 0.22), m["dark"], h)
-    box("search_radar", (0.30, 1.90, 0.55), (-1.05, 0, z1 + 0.62), m["paint"], h, bevel=0.05,
+    # The search radar folded on its mast over the turret's rear: the top of the
+    # travelling height. The mast reaches the frame's top; the dish above it
+    # is dressing.
+    box("search_radar_mast", (0.25, 0.25, 0.60), (-1.05, 0, z1 + 0.30), m["dark"], h)
+    dish = empty("dressing_search_radar", parent=h)
+    box("search_radar", (0.30, 1.90, 0.55), (-1.05, 0, z1 + 0.62), m["paint"], dish, bevel=0.05,
         rot=(0, -1.25, 0))
-    box("search_radar_face", (0.02, 1.80, 0.48), (-0.92, 0, z1 + 0.66), m["dark"], h, rot=(0, -1.25, 0), lods=MID)
+    box("search_radar_face", (0.02, 1.80, 0.48), (-0.92, 0, z1 + 0.66), m["dark"], dish, rot=(0, -1.25, 0),
+        lods=MID)
     RF.sight_housing("periscope_sight", (0.40, -0.55, z1 - 0.02), m, h, size=(0.36, 0.30, 0.30))
     RF.hatch("commander_hatch", (-0.15, 0.50, z1), m, h, radius=0.27)
     RF.hatch("gunner_hatch", (-0.15, -0.55, z1), m, h, radius=0.25)
@@ -185,7 +195,7 @@ def buk(v):
     for side, s in ((1, "L"), (-1, "R")):
         AR.bolted_panel(f"cab_door_{s}", (top - 0.75, side * 1.305, deck + 0.05), (0.75, 0.60, 0.03), m, h,
                         bolts=(3, 2), rot=(-side * math.pi / 2, 0, 0), bevel=0.01)
-    tx = -0.9
+    tx = -half + 4.10  # the canisters' caps at the tail
     cyl("turntable", 1.20, 0.25, (tx, 0, deck + 0.12), "Z", m["dark"], h, seg=32)
     # The fire-control radar's housing at the turntable's front, its flat
     # antenna face forward, the TV/laser sight beside it.
@@ -224,7 +234,11 @@ def _round(x, y, rx, ry, n=16):
 
 def pantsir(v):
     m, h = v.mats, v.hull
-    deck = chassis(v, [3.55, 2.05, -1.55, -3.00], 0.62, 0.42, 1.00, 1.10, "cabover", 3.10, 1.95, 3.00)
+    rail_z = 1.10
+    deck = chassis(v, [3.55, 2.05, -1.55, -3.00], 0.62, 0.42, 1.00, rail_z, "cabover", 3.10, 1.95, 3.00, tow=False)
+    # The tow hook hangs under the rear bumper, its reach inside the frame.
+    HF.tow_hook("rear_tow", (-v.length / 2 + TOW_REACH, 0, rail_z - 0.12 - TOW_SIZE * 0.55), m, h,
+                size=TOW_SIZE, rot=(0, 0, math.pi))
     box("deck_plate", (6.5, 2.4, 0.10), (-1.75, 0, deck + 0.05), m["paint"], h, bevel=0.01)
     # The generator and crew compartment behind the cab: louvred, a door aft.
     SW.stowage_box("generator_box", (1.85, 0, deck), (1.40, 2.30, 1.20), m, h, rot=(0, 0, math.pi / 2))
