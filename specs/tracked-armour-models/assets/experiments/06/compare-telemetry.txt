@@ -1,0 +1,12 @@
+su35-top-matcap      dist 0.0701 mae 2.85 edgeRatio(code/skin) 0.835 edgeDiff32 0.0445
+su35-fq-shaded       dist 0.0663 mae 4.02 edgeRatio(code/skin) 1.157 edgeDiff32 0.0571
+f35-fq-shaded        dist 0.0603 mae 4.97 edgeRatio(code/skin) 1.132 edgeDiff32 0.0458
+f35-fq-matcap        dist 0.0594 mae 4.30 edgeRatio(code/skin) 1.057 edgeDiff32 0.0685
+su35-fq-matcap       dist 0.0547 mae 3.74 edgeRatio(code/skin) 1.030 edgeDiff32 0.0777
+f35-top-matcap       dist 0.0511 mae 2.76 edgeRatio(code/skin) 0.896 edgeDiff32 0.0393
+f35-side-matcap      dist 0.0471 mae 1.99 edgeRatio(code/skin) 0.896 edgeDiff32 0.0328
+su35-side-matcap     dist 0.0313 mae 1.79 edgeRatio(code/skin) 0.957 edgeDiff32 0.0321
+su35-top-shaded      dist 0.0284 mae 1.66 edgeRatio(code/skin) 1.049 edgeDiff32 0.0338
+f35-top-shaded       dist 0.0280 mae 2.16 edgeRatio(code/skin) 1.046 edgeDiff32 0.0276
+f35-side-shaded      dist 0.0226 mae 1.76 edgeRatio(code/skin) 1.037 edgeDiff32 0.0246
+su35-side-shaded     dist 0.0146 mae 1.27 edgeRatio(code/skin) 0.998 edgeDiff32 0.0264
