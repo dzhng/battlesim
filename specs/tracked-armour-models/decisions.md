@@ -217,3 +217,176 @@ Three drafts, each with a different lens: fewest slices (Opus), risk first
   not ignored (`.gitignore:6` ignores only `throwaway/`). The lineup record now
   lives in `assets/before/`. Everything else moved to
   `throwaway/tracked-lineup/` when the spec was written.
+
+## Slice 00 decisions (2026-11-11, coordinator's implementation agent, audited)
+
+Every entry landed in slice 00's commits. Each one gives the decision, the
+gap the plan left, its reach, a verdict and a confidence (how sure the audit
+is that the user would make the same call). They are ordered least confident
+first. Review these first: the track-against-wheel overlaps, `asset check`
+now needing Blender, and roster scripts run as `__main__`.
+
+- **Track-against-wheel overlaps stay issues, not fixed and not allowlisted.**
+  - *Scenario.* The overlap check now compares the track band (`track_L`)
+    with each wheel (`wheel_L_1` and the rest), because they are separate
+    bodies. On the T-72B3, about 36 of its 75 issues are the band against its
+    own wheels:
+    - road wheels 1 and 6 and the idler, up to 414 mm deep;
+    - the return rollers, about 200 mm;
+    - the sprocket teeth, about 36 mm.
+
+    A real track wraps those wheels and touches them; it doesn't swallow
+    them 40 cm deep. The depths probably come from how the check measures
+    "inside". It casts rays and counts how many surfaces each ray crosses,
+    and that goes wrong on a ring-shaped belt. Today these go into slice 01's
+    baseline as known issues. The alternative is an allowlist pattern
+    (`track_*` against `wheel_*`), which would also hide a real clash, such as
+    a road wheel poking through the belt.
+  - *Gap.* S1 decided the grouping, but not what to do with the running gear
+    it newly compares.
+  - *Reach.* Every tracked vehicle carries about 20–40 of these in the
+    baseline. Slice 10 (track sag) is where they can be judged in a low side
+    crop.
+  - *Verdict.* Sound for now: the slice forbids new lint checks, and the
+    baseline is a reversible holding place. Unverified: no one has looked at
+    a render of these pairs.
+  - *Confidence:* low.
+- **`asset check` now needs the pinned Blender to pass.**
+  - *Scenario.* Someone runs `bun run --cwd web asset -- check` on a machine
+    without Blender 5.2.1. Before, the check only baked and compared, so it
+    passed. Now it also runs `vehicle_lint_test.py` and `wreckage_test.py`
+    inside Blender. Those two report "Blender not found", and the check
+    fails.
+  - *Gap.* S11 put the Blender tests in `asset check`, but didn't say what
+    happens without Blender.
+  - *Reach.* No CI runs `asset check` today, and every milestone push runs
+    it on the coordinator's Mac, which has Blender. A CI job would need
+    Blender installed.
+  - *Verdict.* Sound. Skipping the Blender tests when Blender is missing
+    would let a check pass that didn't check. If that is ever wanted, make
+    the skip print loudly.
+  - *Confidence:* medium.
+- **The roster walk runs each roster script as `__main__`, with export
+  captured.**
+  - *Scenario.* `--roster` runs, for example, `roster/stryker_support.py` the
+    way an export would. When it calls `run(...)`, `vehicle_export._export`
+    sees that `vehicle_export.CAPTURE` is a list. It appends the variants,
+    their paint scheme, the family's `build` function and its `looks`, then
+    returns without building anything. The walk then builds each captured
+    variant alone and lints it.
+  - The plan's routes were reading the `appearances=` list or the catalog's
+    `family_variants`. The old code guessed both by parsing the script's
+    source text, about 180 lines. Capture gets exactly what the export would
+    build, including both of `stryker_support.py`'s two `run` calls.
+  - The cost: a script's whole `__main__` block executes during the lint. A
+    future script that, say, wrote a file before calling `run` would write
+    it during every lint.
+  - *Gap.* How to enumerate was delegated. This is the choice.
+  - *Reach.* A new roster script needs no lint registration. It must keep its
+    `__main__` block to "work out arguments, call `run`". A script is walked
+    when it imports `run` or `run_disabled` from `vehicle_export`.
+    `lint_render.py` shares the same walk.
+  - *Verdict.* Sound. Every one of the 79 scripts follows that shape today.
+  - *Confidence:* medium-high.
+- **`--variant=<id>` judges only that appearance.**
+  - *Scenario.* You lint the T-72B3 alone while `roster/a10.py` is broken.
+    The walk runs scripts in alphabetical order until one exports the T-72B3,
+    so it runs `a10.py` first, and that fails. The run prints the failure,
+    but the exit code reflects only the T-72B3: its new issues, or its own
+    build failing. `--roster` still fails on the broken A-10.
+  - *Gap.* "Exit non-zero … in both modes" named only `--roster` and
+    `--update-baseline`.
+  - *Reach.* Family lanes use `--variant` to reach zero issues, and an
+    unrelated broken family can't block them.
+  - *Verdict.* Sound.
+  - *Confidence:* medium-high.
+- **`asset check` finds the tests itself.**
+  - *Scenario.* `check` runs every `*_test.py` at the top of
+    `packages/scene-assets/blender/`. One whose source has a line starting
+    `import bpy` or `from bpy` runs in the pinned Blender; the others run
+    under `python3 -m unittest`. It prints one line per test after the bake
+    results, prints a test's output only when it fails, and fails the check
+    on any failure. A sixth test added there joins with no list to edit.
+  - `city/facade_test.py`, in a subfolder, is not run. City work is outside
+    this spec. Reverse it by making the search recursive.
+  - *Gap.* Discovery against a fixed list of five.
+  - *Reach.* Tests in that folder must exit non-zero when they fail; both
+    Blender tests already do.
+  - *Verdict.* Sound.
+  - *Confidence:* high.
+- **S1 is applied as the articulated grouping.**
+  - *Scenario.* With each hull child its own body, the T-72B3 gets 361
+    overlap issues. Most are a grille slat inside its frame, or a latch
+    through its lid: fittings built from overlapping boxes on purpose.
+  - With the articulated grouping it gets 75: turret against hull fittings,
+    hull against running gear, and track against wheels. Under it, the hull
+    and everything fixed to it is one body; each `wheel_*`, `track_*` or
+    `gear_*` node on the hull is its own; and each node hung off the root
+    (the node carrying `unit_id`, such as the turret) is its own, with all
+    it carries.
+  - A real clash between two hull fittings (a fender box sunk through a
+    fender) is no longer caught. Critique and closeups cover that.
+  - *Gap.* None: S1 gave the rule. Rule held: more than 30, mostly by design.
+  - *Reach.* `vehicle_lint._part_group`, with `RUNNING_GEAR` naming the hull
+    children that count as their own bodies. Family lanes reach "zero issues"
+    against this grouping.
+  - *Verdict.* Sound.
+  - *Confidence:* high.
+- **Disabled cards are linted in the roster walk.**
+  - *Scenario.* `run_disabled` exports, the 13 drone and MQ-9 cards, already
+    ran the lint when exported. The old walk never visited them, so the
+    baseline could never hold their issues, and an issue would have failed
+    their export. All 13 are clean today.
+  - *Gap.* "Every appearance a script exports" didn't mention disabled cards.
+  - *Reach.* A disabled card's model issues block its own export, as for any
+    vehicle.
+  - *Verdict.* Sound.
+  - *Confidence:* high.
+- **One owner builds a variant: `vehicle_export.build_variant`.**
+  - *Scenario.* An export, the roster walk and `lint_render.py` each need "a
+    fresh scene with this variant built in its paint". Before, the walk
+    rebuilt it by hand, with a scheme guessed from the source text.
+    `lint_render.py` had its own copy of that guess and also patched
+    `_export` away.
+  - Now all three call `build_variant(variant, scheme, build, looks)`. A fresh
+    T-72B3 export after the change is byte-identical to one from before it.
+  - *Gap.* Not named in the slice.
+  - *Reach.* Anything that builds a variant outside an export calls this.
+  - *Verdict.* Sound.
+  - *Confidence:* high.
+- **Two synthetic tests now put their second box on a turret.**
+  - *Scenario.* `test_no_issues_with_separate_boxes` and
+    `test_no_issues_with_touching_boxes` put both boxes on the hull. Under the
+    articulated grouping, two boxes on the hull are never compared. Those
+    tests would then pass even if touching boxes were wrongly flagged.
+    Putting the second box on a `turret` node makes the check compare them
+    again.
+  - The new test also puts a bolt sunk into its plate on the same hull, and
+    asserts that only the turret-against-hull pair is flagged.
+  - *Gap.* Forced by the grouping.
+  - *Reach.* None outside the test.
+  - *Verdict.* Sound.
+  - *Confidence:* high.
+- **The old `--variant` mode, three dead helpers and a duplicated baseline
+  loader were deleted.**
+  - *Scenario.* The old `--variant` mode guessed the scheme as `olive_drab`,
+    failed, swallowed the error, and printed nothing. The deleted code:
+    - `_is_running_gear`, which had no callers;
+    - `lint_current_scene`'s keyword ladder, which passed each check its own
+      defaults;
+    - `vehicle_lint.py`'s own `load_baseline`, `save_baseline`,
+      `load_allowlist` and `save_allowlist`, which repeated
+      `vehicle_lint_core`.
+  - `vehicle_lint.py` went from 42,691 B to about 23,700 B, under the
+    ratchet.
+  - *Gap.* Housekeeping.
+  - *Reach.* `vehicle_lint_core` is the only owner of baseline files.
+  - *Verdict.* Sound.
+  - *Confidence:* high.
+- **Trivial discretion (3).**
+  - The lint with no mode prints its usage and exits 2.
+  - Duplicate appearance ids keep the first script's capture.
+  - Summary lines read `Name [id, script]: <check> <n>, …; <n> new`.
+- **The committed T-72B3 art lags its sources.** Territory, not a decision.
+  Fresh exports repeat byte for byte, but don't match the committed GLB, so
+  the sources changed after the last export. Slice 01's re-export absorbs it.

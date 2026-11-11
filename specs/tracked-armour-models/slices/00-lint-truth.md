@@ -107,3 +107,70 @@ determinism and timing note.
 If the user doesn't want overlap issues lit up across the whole roster: keep
 the fix, and limit what it surfaces to tracked appearances through the
 baseline.
+
+## Result (2026-11-11)
+
+**Determinism.** The T-72B3 exported twice through the asset CLI, live and with
+`--wreck`, gives identical SHA-256 hashes for all five files: the live GLB
+(`c04345c4…`) and the wreck's whole, hull, turret and debris states. No trap to
+fix. Every identity proof can lean on this.
+
+**Timing.**
+
+| | Live | Wreck |
+|---|---|---|
+| First pair (load average rising past 40 on 18 cores) | 72 s | 86 s |
+| Second pair (load average 80–134, from other agents) | 215 s | 250 s |
+| After this slice's refactor, `--no-lint`, load average 4 | 21 s | — |
+
+The last export is byte-identical to the first pair's, so extracting
+`vehicle_export.build_variant` changed nothing. On a quiet machine an export
+takes about 20 s; the higher numbers measure the machine's load.
+
+The lint is not what costs. On the T-72B3, the interpenetration check takes
+about 1 s and the floating-part check about 2 s. The build takes about 5 s.
+The rest of an export is paint, occlusion, tiers and the GLB write. An A-10's
+build (a generated skin) took 206 s under load. The full `--roster` walk over
+130 appearances took 881 s of wall time under the same load.
+
+**Committed art lags its sources.** The committed T-72B3 GLB and wreck do not
+match a fresh export (`c2f63bdb…` committed against `c04345c4…` fresh). The
+fresh exports repeat, so this is source drift since the last export, not
+nondeterminism. Slice 01's re-export brings it current.
+
+**Grouping (S1).** The T-72B3's issues before and after the fix:
+
+| Rule | Issues | Interpenetration |
+|---|---|---|
+| Before (every mesh in the root's group) | 5 | 0 |
+| Each hull child its own group | 366 | 361 |
+| Articulated bodies: `hull`, each `wheel_*`/`track_*`/`gear_*` on it, each node off the root | 80 | 75 |
+
+The 286 pairs that the articulated rule drops are fittings fixed to the hull,
+overlapping by design: grille frames and slats, latches through lids, hinges
+and bolts. That is well over 30, so the articulated rule ships. The decision
+is in `decisions.md`.
+
+**Roster.** `--roster` lints 130 appearances from 79 scripts, with 0 failures.
+That is every roster-sourced appearance except the infantry kits, which don't
+export through `vehicle_export`. It also covers 13 disabled cards (drones and
+the MQ-9) that the old one-family-per-script walk skipped.
+- Issues by check: interpenetration 4,990, floating part 234.
+- New against today's baseline: 4,822.
+- The run exits 1 until slice 01 records the baseline.
+- The summary names Buk-M3 (82 interpenetration, 5 floating), MARS II (74, 4),
+  PzH 2000 (60, 5), 2S19M2 Msta-S (104, 6) and PLZ-05 (74, 6).
+
+A probe with a deliberately broken roster script gives these results:
+- `--roster` exits 1;
+- `--update-baseline` exits 1, prints `REFUSED`, and leaves the baseline byte
+  for byte as it was.
+
+**Tests.** The new `vehicle_lint_test.py` case fails on the old `_part_group`
+and passes after the fix. `asset check` passed and reports all five tests
+separately from the bake results: three under `python3`, two in Blender 5.2.1.
+No existing Python test was broken.
+
+**Until slice 01:** every export that lints fails on its new overlap issues.
+Re-export with `--no-lint`, or record the baseline first, which is slice 01's
+first step.
