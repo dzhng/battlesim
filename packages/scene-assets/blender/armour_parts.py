@@ -133,6 +133,8 @@ def side_skirt(name, outline, side, y, x0, x1, foot, mats, parent, top=None, pan
             panel = outline.clip(panel, inset)
             if len(panel) < 3 or max(z for _, z in panel) - min(z for _, z in panel) < MIN_PANEL_M:
                 continue
+            # Start at the rear foot, as the cell does, so a panel the clip
+            # leaves whole keeps the cell's own corners in order.
             first = panel.index(min(panel))
             panel = panel[first:] + panel[:first]
             tag = f"{name}_{k}" if rows == 1 else f"{name}_{k}_{j}"
@@ -150,11 +152,8 @@ def track_fender(name, outline, side, y_in, y_out, x0, x1, z, mats, parent, slop
     (`hull_shape.Outline`). Returns its meshes. Roles: paint."""
     z1 = z + slope * (x1 - x0)
     shelf = outline.clip([(x0, z - depth), (x1, z1 - depth), (x1, z1), (x0, z)], 0.0)
-    if len(shelf) < 3:
-        return []
-    first = shelf.index(min(shelf))
-    return prism(name, shelf[first:] + shelf[:first], y_out - y_in, loc=(0, side * (y_in + y_out) / 2, 0),
-                 mat=mats["paint"], parent=parent, bevel=min(PLATE_BEVEL, depth * 0.45), lods=MID)
+    return prism(name, shelf, y_out - y_in, loc=(0, side * (y_in + y_out) / 2, 0), mat=mats["paint"],
+                 parent=parent, bevel=min(PLATE_BEVEL, depth * 0.45), lods=MID)
 
 
 def _line(spec, x0, x1):

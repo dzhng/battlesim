@@ -78,8 +78,6 @@ class Outline:
             if not envelope and not _convex(profile):
                 raise ValueError(f"not a convex profile: {profile}")
         self.points = _hull([p for profile in profiles for p in profile])
-        if len(self.points) < 3:
-            raise ValueError("an outline needs a profile with area")
 
     @classmethod
     def from_rings(cls, rings, envelope=False):
@@ -131,7 +129,7 @@ def clip_half_plane(polygon, nx, nz, c):
     for k, (x1, z1) in enumerate(polygon):
         x0, z0 = polygon[k - 1]
         d0, d1 = nx * x0 + nz * z0 - c, nx * x1 + nz * z1 - c
-        if (d0 > 1e-9) != (d1 > 1e-9) and abs(d0 - d1) > 1e-12:
+        if (d0 > 1e-9) != (d1 > 1e-9):
             t = d0 / (d0 - d1)
             out.append((x0 + (x1 - x0) * t, z0 + (z1 - z0) * t))
         if d1 <= 1e-9:
