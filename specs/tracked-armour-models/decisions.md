@@ -3016,3 +3016,27 @@ critique, and the T-14's turret drop (above).
   review are fixed in the measured model before its views are rendered.
 - **G6 Pilot first:** the T-72B3 (Tripo) and the Abrams (Rodin, after its turret fix) taken all the
   way into the game, then the spec is rewritten from what it proves.
+
+## Argon pivot (2026-11-12, coordinator with the user)
+
+- **A1 Gemini 4 Argon builds every model, in a Bento session, as a Blender script.** (User:
+  "use argon from now on. both are HUGE improvements".) Supersedes G3 and G6. The pilot's Tripo
+  T-72B3 integration was stopped: the user rejected the generated surface as "very soft and lumpy".
+  The session installs Blender, reads the reference photos and our model, writes `build.py`, renders
+  five views and corrects itself. Round 1 cost $4.26 (T-72B3) and $3.88 (Abrams), and gave 59k and
+  49k triangles with crisp plates. The results are in `assets/source/skins/{t72,abrams}/argon-r1/` and
+  `assets/experiments/argon/`.
+- **A2 Argon's output already meets most of the integration contract.** Hull, turret, gun, each
+  wheel, the tracks and the roof gun come as separate named parts with origins at the turret ring and
+  trunnion. G2's restyled view inputs, G4's per-axis fit and the generator split questions are
+  retired.
+- **A3 Proportions stay the coordinator's job.** (User: "this is just my visual read, not sure about
+  proportions, that's your job".) Each round's GLB is measured against the frame (hull box, turret
+  extents, pivot, muzzle) and the measurements go back to the session as numbered fixes. In round 1
+  the T-72B3 hull sat 0.20 m forward, because the brief carried the pre-slice-15 muzzle (6.30, not
+  6.10). The Abrams turret ran about 1 m long at the back, and its roof was 0.06 m high.
+- **A4 Briefs use our material slot names** (armor_paint, steel, rubber, optics, fittings, lamps,
+  recesses), so nation paint applies without remapping.
+- **A5 Check the session's model.** Bento sessions created with `--tier google-recommended` once
+  ran another model, and the user had to switch it to Argon by hand. Read the first turn's
+  `usageByModel` before trusting a run.
