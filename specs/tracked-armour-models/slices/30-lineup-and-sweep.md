@@ -19,7 +19,8 @@ the lint baseline holds no tracked appearance.
    - `thermal_sleeve_` drawn with `cyl(`;
    - `head_out` in any tracked script;
    - `def skirt_top`, `def skirt_foot` or `def follow_tiles`;
-   - `lid_open` anywhere.
+   - `lid_open` in any tracked roster script. The test tank's `driver_lid_open`
+     (`tank.py:559`) is test art and outside this pass (C17).
 4. **Lint baseline.** Run `vehicle_lint.py -- --update-baseline`, then check
    that no tracked appearance id is left in it.
 5. **Lineup cohesion sheet.** Write `visualizations/lineup.html`: all 37 at

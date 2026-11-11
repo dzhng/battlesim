@@ -2317,3 +2317,13 @@ The six entries above stand as written. The trace found two more:
   - *Reach.* Families 21 and 29 own those lines.
   - *Verdict.* Sound under the wave's rules.
   - *Confidence:* medium.
+- **C17 Slice 30's `lid_open` grep covers only the tracked roster scripts**
+  (2026-11-11). The test tank's `driver_lid_open` part (`tank.py:559`) is test
+  art, outside this pass.
+- **C18 The shared cupola's vision blocks get fixed with slice 13**
+  (2026-11-11). Slice 12's critique found that the closed lid covers the inner
+  half of each vision block, so the blocks read as locking tabs with flecks of
+  glass. The cupolas that were already closed (T-90M, KF51, ZTZ-99A, the
+  howitzers) look the same, so this is a fault in `roof_parts.cupola`. It is a
+  coordinator fix to a shared part, done in slice 13's lane before slice 16's
+  re-export.
