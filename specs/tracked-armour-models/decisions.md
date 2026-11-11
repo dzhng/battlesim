@@ -410,3 +410,141 @@ now needing Blender, and roster scripts run as `__main__`.
   first and falls back to the admitted default, `tripo3d/h3.1/image-to-3d`.
   `tools/skin-generate.mjs`, which calls fal directly with a key, is not used in
   this pass.
+## Lane F-B decisions (2026-11-11, slice 07 frame survey)
+
+Lane F-B surveyed the Abrams, M1E3, M10, Leopards, Leclerc, KF51, Gepard,
+Buk-M3, M270A2 and MARS II. The numbers are in
+`assets/frames/<family>.json`. Who decided: the lane agent, under the slice's
+delegation ("which source to trust", "the threshold tuning").
+
+- **F-B1 Box top over a tall sight.** The convention puts the box at the roof
+  and the sights in the 0.3 m bulky dressing allowance. But the Leopard's PERI
+  (0.36–0.41 m over the roof), the M10's sight dome (about 0.4 m) and the
+  Gepard's stowed search radar (0.5 m) stand past it, and none is thin. So the
+  box top is the higher of the roof and the sight's top less 0.3 m. That puts
+  the box within 0.06–0.11 m of the real roof, near the fix threshold, and
+  each sight fits exactly.
+  - Alternative: the box at the roof, with `bulky_m` raised to about 0.5 m or
+    a sight clause in `unitArt.ts`. Rejected: that changes every unit's
+    allowance (coordinator-owned) to suit three vehicles.
+  - Reverse it by setting the box tops to the roofs in `leopard.json`,
+    `m10.json` and `gepard.json` and raising the allowance.
+- **F-B2 Which source wins.** Manufacturer data comes first, then a
+  dimensioned drawing, then an undimensioned profile, then a photo scaled on a
+  published length. Copyrighted drawings came from the-blueprints.com, the
+  only place any of these vehicles is drawn. They were measured in
+  `throwaway/fb/`, and only the numbers and links are committed. Commons holds
+  clipart only, so rung 1 of Q4 found nothing. No generated view was made: in
+  every family without a drawing, the open number was one a generated view
+  would have to guess (the M10's width, the KF51's barrel, the Buk's layout
+  and length).
+- **F-B3 Muzzle threshold.** The slice set thresholds for hull dimensions and
+  pivots only. A muzzle is fixed when its world point (pivot + muzzle) is off
+  by more than 0.15 m on any axis. Final thresholds:
+  - hull dimension: max(0.10 m, 3 %);
+  - pivot x: 0.15 m;
+  - muzzle point: 0.15 m per axis.
+- **F-B4 The unsubtracted pivot.** On the Abrams (5.805 = 9.77 − 3.965), the
+  Leopards (7.12 = 10.97 − 3.85) and the KF51 (6.1 = 10.0 − 3.9),
+  `muzzle_m.x` equals the world x that the published gun-forward length
+  implies. The pivot's x was never subtracted. The Abrams and Leopards are
+  fixed. The KF51 is kept: its "about 10 m" is rounded, and an L51 on the
+  Leopard 2 ring implies about 11 m, so the frame's 10.3 m sits between the
+  two. Slice 23 measures the barrel. Frames with pivot x = 0 are unaffected.
+  Lanes F-A and F-C may find the same pattern.
+- **F-B5 Leopard 2A7V hull and gun.** The 2A7V gets the 2A8's 8.05 m hull,
+  because the photos show the same bolt-on hull-front armour on both.
+  - The module only adds hull at the front, so the turret points move 0.175 m
+    aft in box coordinates.
+  - The gun-forward length is 10.97 m (KNDS's 2A7 page and an earlier 2A8
+    brochure). The 2A8 datasheet's 11.17 m is rejected: the same gun on the
+    same ring can't reach 0.2 m further.
+- **F-B6 Radars are sensors.** The Gepard's stowed search radar counts as
+  dressing, like a sight (F-B1). So the box drops from 3.29 m (KMW, "radar
+  retracted") to 3.0 m over a 2.75 m turret roof.
+- **F-B7 A fixed mount's pivot.** The M270's launcher mount does not turn
+  (`turret: false`), so only pivot + muzzle reaches the simulation. The pivot
+  moves to the rear hinge pin anyway (D3, Q7), so the frame says where the art
+  hinges the box. The muzzle moves to the pods' front face, which is the
+  digest change.
+- **F-B8 Leclerc drawing rejected.** By its own scale bar, the Leclerc
+  drawing measures the width (3.60 m) and the overall length (9.94 m) right,
+  but gives a hull of 7.21–7.43 m and a roof of 2.39 m. Published figures are
+  6.88 m and 2.53 m, and the frame keeps them. The XLR's 3.71 m width is
+  0.11 m over the frame, which is on the threshold, not past it, so it stays.
+- **F-B9 Buk named, not fixed.**
+  - The Buk-M3 extends `roster_profile_wheeled_ifv`, so the simulation drives
+    a tracked vehicle on wheels. Changing the profile is a gameplay change
+    beyond the frame survey.
+  - Once tracked, its 4.876 m half-length breaks the 4.8 m cap. 9.3 m is the
+    best-supported length.
+  - The pivot fix (from x −2.45 to about +2.0, ±0.5 m) comes from photos with
+    no scale. The real turret stands forward with the radar in front. The
+    model has a cab at the front and the launcher at the rear.
+- **F-B10 Overlay registration.** The committed `drawing_overlay.py` centres
+  the model on the drawing's bounding box. That box includes antennas, so the
+  vertical registration slips. The lane registered its overlays with a
+  scratch script instead. It scales the drawing by its hull length, anchors
+  it on the nose and the ground line, draws the frame box and prints 19
+  stations. Each frame file records the registration (`overlays.views[]`), so
+  F-A's committed vehicle mode can reproduce the stations. The lane's
+  uncommitted vehicle-mode copy of `drawing_overlay.py` agreed on the Abrams:
+  10.07 m model against 9.85 m drawing overall.
+
+### Lane F-B decision audit (2026-11-11)
+
+Verdicts on F-B1–F-B10, plus the calls the lane made without writing them
+down. Least confident first.
+
+- **F-B11 The frame-file schema (needs-user, low).** The slice listed what a
+  frame file holds but not its shape, so lane F-B invented one:
+  - `appearances.<id>` holds `published`, `frame`, `verdicts[]` and
+    `inherits`. Each verdict is `{field, old, new, verdict, source,
+    confidence, note}`.
+  - Alongside sit `sources[]`, `overlays.views[]` (registration plus 19
+    stations), `notes[]` (each with a `class`) and `answers`.
+
+  Scenario: the coordinator builds `visualizations/frames.html` and slice 15's
+  fix list from the three lanes' files. If F-A writes `"fix"` rows under
+  another key, the page and the fix list need two readers.
+  Provisional call: the coordinator adopts this shape, or maps the others
+  onto it, before slice 15. To reverse, regenerate with the lane's scratch
+  generator, which holds the data as plain Python.
+- **F-B9 Buk pivot from unscaled photos (sound, low).** The real turret
+  stands forward and the frame's stands aft: that much is certain, from two
+  photos and the layout. The number (+2.0 ± 0.5 m) is not. The rebuilt
+  `buk.py` (slice 24) draws its turret ring from the same photos, so slice 15
+  should take the pivot from that art, not from this estimate.
+- **F-B12 The M10's photo-scaled numbers (sound, medium).**
+  - Scenario: no M10 drawing exists, so the side photos were scaled by
+    assuming the 7.0 m hull is right (two sources say 6.85 m).
+  - From that scale, the roof (2.39 and 2.58 m) and the barrel (5.45 m to the
+    muzzle) were read.
+  - A 2 % scale error moves the muzzle about 0.1 m, inside the threshold.
+    The 0.8 m fix is far outside it.
+- **F-B13 The Abrams roof gun (sound, medium).** The drawing's remote-station
+  M2 sits 0.26 m higher and reaches 0.24 m further than the frame's HMG
+  muzzle, so it was fixed under F-B3. Reach: it moves where the roof gun's
+  rounds start, a named digest change.
+- **F-B14 Gap lines point at spec paths (sound, medium).** Each family's
+  `references.json` gap line names the numbers' home under
+  `specs/tracked-armour-models/`. When the spec closes into `specs/done/`,
+  those paths go stale. `close-spec` should rewrite them, or the gap lines
+  should drop the path.
+- **F-B15 How far the lane checked (sound, high).** The slice asks for
+  `asset check` to pass. That command re-bakes every asset (it needs the wasm
+  build and the whole runtime). The lane changed only gap strings, which
+  only the reference contract reads, so it ran `checkReferences` on its ten
+  libraries instead: all pass. The full check runs at the coordinator's next
+  bake.
+- **Verdicts on F-B1–F-B10:**
+  - F-B1: sound, medium. It is a rule the user did not state. The Q4
+    question shows they expected the PERI to fit or be named, and this does
+    both.
+  - F-B2, F-B3, F-B5, F-B7, F-B8, F-B10: sound, high. Each is within the
+    slice's delegation.
+  - F-B4: sound, high for the Abrams and Leopards, low for the KF51 keep.
+  - F-B6: sound, medium.
+  - F-B9: needs-user (the wheeled profile). Provisional call: leave it
+    wheeled this pass. Reverse it by moving the Buk to a tracked profile with
+    a 9.3 m hull.

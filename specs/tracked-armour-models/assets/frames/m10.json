@@ -1,0 +1,195 @@
+{
+  "family": "m10",
+  "lane": "F-B",
+  "slice": "07",
+  "surveyed": "2026-11-11",
+  "glbs": "assets/source/roster/<family>/ as committed at 2a68e25d7 (the spec commit); probed tier 0 in vehicle mode (wheels and tracks kept, dressing_* skipped)",
+  "convention": {
+    "hull_box": "reaches the hull and turret roof; where a bulky sight stands more than the 0.3 m bulky dressing allowance over the roof, the top is the sight's top less 0.3 m (decisions.md F-B1)",
+    "pivot": "centre of the turret ring; for a fixed mount, the point it is drawn hinged on (only pivot + muzzle reaches the simulation)",
+    "muzzle": "pivot_m + muzzle_m at rest, at the real barrel or launch point",
+    "frame": "hull box centred on x = 0 and y = 0, standing on z = 0; +x forward, +y left"
+  },
+  "thresholds": {
+    "hull_dimension": "fix when off by more than max(0.10 m, 3 %)",
+    "pivot_x": "fix when off by more than 0.15 m",
+    "muzzle_point": "fix when the world muzzle point is off by more than 0.15 m on any axis (added by lane F-B, decisions.md F-B3)",
+    "eye_m": "kept unless a source contradicts it; nothing measured here does"
+  },
+  "sources": [
+    {
+      "id": "edr",
+      "kind": "published",
+      "ref": "https://www.edrmagazine.eu/us-army-m10-booker-a-thorough-test-for-mta",
+      "note": "6.85 m long, 2.4 m wide, 3.65 m high (width and height disagree with every photo; likely overall to the sights with a misprinted width)"
+    },
+    {
+      "id": "overt",
+      "kind": "published",
+      "ref": "https://www.overtdefense.com/2025/02/18/u-s-armys-m10-booker-fire-support-vehicle-to-begin-full-scale-production-in-2025/",
+      "note": "about 9 m long (gun forward), 3.2 m wide, 2.5 m high"
+    },
+    {
+      "id": "photo-side",
+      "kind": "photo",
+      "ref": "assets/references/m10/us_m10_booker-side.jpg",
+      "note": "nose left, gun elevated. Scaled on the frame's 7.0 m hull (980 px): turret roof 2.39 m, commander's sight dome top 2.89 m, hull roof 1.71 m; the barrel reaches 4.03 m past the mantlet face at x 1.43 m, so 5.45 m level; turret front 0.296 of the hull length behind the nose"
+    },
+    {
+      "id": "photo-side-2",
+      "kind": "photo",
+      "ref": "assets/references/m10/us_m10_booker-side-2.jpg",
+      "note": "nose right, firing. Scaled on 7.0 m (747 px): turret roof 2.58 m, turret front 0.301 of the hull length behind the nose. The gun is foreshortened toward the camera, so its reach is not read here"
+    }
+  ],
+  "appearances": {
+    "us_m10_booker": {
+      "published": {
+        "length_m": 6.85,
+        "width_m": "3.2 to 3.5 (sources disagree)",
+        "height_m": 2.5,
+        "length_gun_forward_m": 9.0,
+        "source": "edr (length), overt (height, gun forward)"
+      },
+      "frame": {
+        "half_extents_m": [
+          3.5,
+          1.7,
+          1.49
+        ],
+        "eye_m": 2.75,
+        "mounts": [
+          {
+            "id": "cannon",
+            "pivot_m": [
+              -0.3,
+              0,
+              1.78
+            ],
+            "muzzle_m": [
+              4.95,
+              0,
+              0.32
+            ]
+          },
+          {
+            "id": "HMG",
+            "pivot_m": [
+              -0.4,
+              0.62,
+              2.8
+            ],
+            "muzzle_m": [
+              1.2,
+              0,
+              0.22
+            ],
+            "on": "cannon"
+          }
+        ]
+      },
+      "measured": {
+        "turret_roof_m": [
+          2.39,
+          2.58
+        ],
+        "sight_top_m": 2.89,
+        "model_turret_roof_m": 2.65,
+        "model_sight_top_m": 2.98
+      },
+      "verdicts": [
+        {
+          "field": "half_extents_m[0]",
+          "old": 3.5,
+          "verdict": "keep",
+          "source": "edr",
+          "note": "6.85 m published, within 3 %"
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 1.7,
+          "verdict": "keep",
+          "confidence": "low",
+          "note": "published widths run 2.4 to 3.5 m; 3.4 m sits in the plausible range and the front photo cannot be scaled"
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.49,
+          "new": 1.3,
+          "verdict": "fix",
+          "source": "photo-side, photo-side-2, overt",
+          "confidence": "medium",
+          "note": "the roof is about 2.5 m (photos 2.39 and 2.58 m, Overt 2.5 m); the 2.98 m box reaches the commander's sight dome. The sight's top (2.89 m) stands 0.4 m over the roof, past the 0.3 m bulky allowance, so the box top is 2.89 - 0.3 = 2.6 m (F-B1)"
+        },
+        {
+          "field": "eye_m",
+          "old": 2.75,
+          "verdict": "keep",
+          "note": "near the sight heads"
+        },
+        {
+          "field": "mounts.cannon.pivot_m",
+          "old": [
+            -0.3,
+            0,
+            1.78
+          ],
+          "verdict": "keep",
+          "confidence": "low",
+          "note": "the ring is not visible; in both photos the turret's front sits 0.3 m further forward than the model's while its rear agrees, which is the turret's length (art, Q8c), not the ring"
+        },
+        {
+          "field": "mounts.cannon.muzzle_m",
+          "old": [
+            4.95,
+            0,
+            0.32
+          ],
+          "new": [
+            5.75,
+            0,
+            0.32
+          ],
+          "verdict": "fix",
+          "source": "photo-side, overt",
+          "confidence": "medium",
+          "note": "world muzzle x 4.65 m (8.15 m overall) against 5.45 m from the photo and about 9 m overall from Overt"
+        },
+        {
+          "field": "mounts.HMG",
+          "old": {
+            "pivot_m": [
+              -0.4,
+              0.62,
+              2.8
+            ],
+            "muzzle_m": [
+              1.2,
+              0,
+              0.22
+            ]
+          },
+          "verdict": "keep",
+          "note": "roof gun, 0.5 m over the measured roof; a mount, so outside the box"
+        }
+      ]
+    }
+  },
+  "overlays": {
+    "note": "No drawing of the M10 exists, free or on the-blueprints.com; measured off the two side photos instead (sources). No generated view was made: the photos settle every number the frame needs except the width.",
+    "views": []
+  },
+  "notes": [
+    {
+      "note": "turret shape looks wrong",
+      "class": "art",
+      "frame_part": "the box top (2.98 to 2.6 m) and the muzzle (+0.8 m) are frame fixes; neither reshapes the turret",
+      "why": "The model's turret side runs from 1.6 to 2.65 m (1.05 m tall) and is 3.42 m long; the photos show it about 0.7 m tall over a 1.7 m hull roof and 3.7 m long, with its front 0.3 m further forward. Longer and lower is Q8c's call; slice 21 does it."
+    },
+    {
+      "note": "(known before the walk) M10 reads as a small Abrams",
+      "class": "art",
+      "why": "Same turret proportions as above; Q8c."
+    }
+  ]
+}

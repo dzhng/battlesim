@@ -1,0 +1,501 @@
+{
+  "family": "leopard",
+  "lane": "F-B",
+  "slice": "07",
+  "surveyed": "2026-11-11",
+  "glbs": "assets/source/roster/<family>/ as committed at 2a68e25d7 (the spec commit); probed tier 0 in vehicle mode (wheels and tracks kept, dressing_* skipped)",
+  "convention": {
+    "hull_box": "reaches the hull and turret roof; where a bulky sight stands more than the 0.3 m bulky dressing allowance over the roof, the top is the sight's top less 0.3 m (decisions.md F-B1)",
+    "pivot": "centre of the turret ring; for a fixed mount, the point it is drawn hinged on (only pivot + muzzle reaches the simulation)",
+    "muzzle": "pivot_m + muzzle_m at rest, at the real barrel or launch point",
+    "frame": "hull box centred on x = 0 and y = 0, standing on z = 0; +x forward, +y left"
+  },
+  "thresholds": {
+    "hull_dimension": "fix when off by more than max(0.10 m, 3 %)",
+    "pivot_x": "fix when off by more than 0.15 m",
+    "muzzle_point": "fix when the world muzzle point is off by more than 0.15 m on any axis (added by lane F-B, decisions.md F-B3)",
+    "eye_m": "kept unless a source contradicts it; nothing measured here does"
+  },
+  "sources": [
+    {
+      "id": "knds-2a6",
+      "kind": "published",
+      "ref": "https://knds.com/en/products/systems/leopard/leopard-2-a6",
+      "note": "up to 10.97 m with the turret at 12 o'clock, 3.77 to 4.00 m wide, 2.64 m to the turret roof"
+    },
+    {
+      "id": "knds-2a7",
+      "kind": "published",
+      "ref": "https://knds.com/en/products/systems/leopard/leopard-2-a7",
+      "note": "up to 10.97 m, 3.77 to 4.00 m wide, 2.64 m to the turret roof"
+    },
+    {
+      "id": "knds-2a8",
+      "kind": "published",
+      "ref": "https://knds.com/media/KNDS_25_068_Datasheet_LEOPARD_2_A8_2_S_EN_03_2fd7d256d4.pdf",
+      "note": "8.05 m long (11.17 m with gun), 3.80 m wide, 2.72 m turret roof, 3.13 m PERI"
+    },
+    {
+      "id": "wp-leopard-2",
+      "kind": "published",
+      "ref": "https://en.wikipedia.org/wiki/Leopard_2",
+      "note": "2A6: 3.75 m wide, 3 m high (overall, to the PERI); 2A4 hull 7.72 m"
+    },
+    {
+      "id": "bp-leo2a6",
+      "kind": "drawing (copyrighted)",
+      "ref": "https://www.the-blueprints.com/blueprints/tanks/tanks-k-l/62855/view/leopard_2a6/",
+      "note": "543 x 152 px colour side profile (Dr Dan Saranga); measured in throwaway (Q4 rung 2); only the numbers are committed. Registered on the 7.72 m hull: turret roof 2.58 m, PERI top 2.91 m, gun axis 2.04 m, muzzle 3.33 m past the nose (11.05 m overall)."
+    },
+    {
+      "id": "photo-2a6-side-2",
+      "kind": "photo",
+      "ref": "assets/references/leopard/europe_leopard_2_2a6-side-2.jpg",
+      "note": "turret reversed; gun axis 2.01 to 2.08 m depending on the scale (hull length or road wheel pitch)"
+    },
+    {
+      "id": "photos-2a7v-2a8",
+      "kind": "photo",
+      "ref": "assets/references/leopard/europe_leopard_2_2a7v-three_quarter_front.jpg, europe_leopard_2_2a7v-front.jpg, europe_leopard_2_2a8-three_quarter_front.jpg, europe_leopard_2_2a8-side-2.jpg",
+      "note": "both the 2A7V and the 2A8 carry the bolt-on hull-front armour module that the 2A6 lacks"
+    }
+  ],
+  "appearances": {
+    "europe_leopard_2_2a6": {
+      "published": {
+        "length_m": 7.72,
+        "length_gun_forward_m": 10.97,
+        "width_m": 3.77,
+        "height_roof_m": 2.64,
+        "height_peri_m": 3.0,
+        "source": "knds-2a6, wp-leopard-2"
+      },
+      "frame": {
+        "half_extents_m": [
+          3.85,
+          1.875,
+          1.5
+        ],
+        "eye_m": 2.82,
+        "mounts": [
+          {
+            "id": "cannon",
+            "pivot_m": [
+              0.3,
+              0,
+              1.8
+            ],
+            "muzzle_m": [
+              7.12,
+              0,
+              0.54
+            ]
+          },
+          {
+            "id": "HMG",
+            "pivot_m": [
+              0.05,
+              -0.58,
+              2.82
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ],
+            "on": "cannon"
+          }
+        ]
+      },
+      "measured": {
+        "model_turret_roof_m": 2.65,
+        "model_peri_top_m": 3.1,
+        "model_gun_axis_m": 2.34
+      },
+      "verdicts": [
+        {
+          "field": "half_extents_m[0]",
+          "old": 3.85,
+          "verdict": "keep",
+          "source": "wp-leopard-2, bp-leo2a6",
+          "note": "7.72 m hull"
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 1.875,
+          "verdict": "keep",
+          "source": "knds-2a6, wp-leopard-2",
+          "note": "3.75 to 3.77 m"
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.5,
+          "new": 1.35,
+          "verdict": "fix",
+          "source": "knds-2a6, wp-leopard-2, bp-leo2a6",
+          "confidence": "high",
+          "note": "roof 2.64 m (KNDS; the drawing 2.58 m). The PERI's top is about 3.0 m (Wikipedia's overall height; the drawing 2.91 m), 0.36 m over the roof, so the box top is 3.0 - 0.3 = 2.70 m (F-B1), 0.06 m over the roof"
+        },
+        {
+          "field": "eye_m",
+          "old": 2.82,
+          "verdict": "keep",
+          "note": "between the EMES and PERI windows; above the new box top, which the simulation allows"
+        },
+        {
+          "field": "mounts.cannon.pivot_m",
+          "old": [
+            0.3,
+            0,
+            1.8
+          ],
+          "verdict": "keep",
+          "confidence": "low",
+          "note": "the ring is not drawn; the drawn turret's mid-length lies within 0.1 m of the model's"
+        },
+        {
+          "field": "mounts.cannon.muzzle_m",
+          "old": [
+            7.12,
+            0,
+            0.54
+          ],
+          "new": [
+            6.82,
+            0,
+            0.25
+          ],
+          "verdict": "fix",
+          "source": "knds-2a6, bp-leo2a6, photo-2a6-side-2",
+          "confidence": "high",
+          "note": "world muzzle [7.42, 0, 2.34] m. 10.97 m gun forward on the 7.70 m box puts x at 7.12 m (the old offset is that world x, pivot not subtracted). The gun axis is 2.04 m in the drawing and 2.01 to 2.08 m in the photo, not 2.34 m, so z is 2.05 m"
+        },
+        {
+          "field": "mounts.HMG",
+          "old": {
+            "pivot_m": [
+              0.05,
+              -0.58,
+              2.82
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ]
+          },
+          "verdict": "keep",
+          "note": "loader's MG3 0.5 m over the 2.64 m roof"
+        }
+      ]
+    },
+    "europe_leopard_2_2a7v": {
+      "published": {
+        "length_m": 8.05,
+        "length_gun_forward_m": 10.97,
+        "width_m": 3.8,
+        "height_roof_m": 2.64,
+        "height_peri_m": 3.13,
+        "source": "knds-2a7, knds-2a8"
+      },
+      "frame": {
+        "half_extents_m": [
+          3.85,
+          1.875,
+          1.5
+        ],
+        "eye_m": 2.82,
+        "mounts": [
+          {
+            "id": "cannon",
+            "pivot_m": [
+              0.3,
+              0,
+              1.8
+            ],
+            "muzzle_m": [
+              7.12,
+              0,
+              0.54
+            ]
+          },
+          {
+            "id": "HMG",
+            "pivot_m": [
+              0.05,
+              -0.58,
+              2.82
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ],
+            "on": "cannon"
+          }
+        ]
+      },
+      "verdicts": [
+        {
+          "field": "half_extents_m[0]",
+          "old": 3.85,
+          "new": 4.025,
+          "verdict": "fix",
+          "source": "knds-2a8, photos-2a7v-2a8",
+          "confidence": "medium",
+          "note": "8.05 m with the hull-front armour module that both variants carry (0.35 m, 4.5 %). Within the 4.8 m cap. The module adds length at the front only, so the box centre moves 0.175 m forward and every turret point moves 0.175 m aft in box coordinates"
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 1.875,
+          "verdict": "keep",
+          "source": "knds-2a7, knds-2a8",
+          "note": "3.77 to 3.80 m"
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.5,
+          "new": 1.415,
+          "verdict": "fix",
+          "source": "knds-2a7, knds-2a8",
+          "confidence": "high",
+          "note": "roof 2.64 m (2A7) / 2.72 m (2A8); PERI 3.13 m, 0.41 m over the 2A8's roof, so the box top is 3.13 - 0.3 = 2.83 m (F-B1). The 2A8 inherits the 2A7V frame"
+        },
+        {
+          "field": "eye_m",
+          "old": 2.82,
+          "verdict": "keep"
+        },
+        {
+          "field": "mounts.cannon.pivot_m",
+          "old": [
+            0.3,
+            0,
+            1.8
+          ],
+          "new": [
+            0.125,
+            0,
+            1.8
+          ],
+          "verdict": "fix",
+          "source": "half_extents_m[0] fix",
+          "confidence": "medium",
+          "note": "the same ring as the 2A6's, 0.175 m aft of the lengthened box's centre"
+        },
+        {
+          "field": "mounts.cannon.muzzle_m",
+          "old": [
+            7.12,
+            0,
+            0.54
+          ],
+          "new": [
+            6.82,
+            0,
+            0.25
+          ],
+          "verdict": "fix",
+          "source": "knds-2a7, bp-leo2a6, photo-2a6-side-2",
+          "confidence": "high",
+          "note": "the same gun on the same turret as the 2A6, so the same offset; world [6.945, 0, 2.05] m, i.e. 10.97 m gun forward (KNDS's 2A7 page and an earlier 2A8 brochure). The 2A8 datasheet's 11.17 m is rejected: the same gun and ring with a module that only adds hull at the front cannot add 0.2 m of gun reach"
+        },
+        {
+          "field": "mounts.HMG.pivot_m",
+          "old": [
+            0.05,
+            -0.58,
+            2.82
+          ],
+          "new": [
+            -0.125,
+            -0.58,
+            2.82
+          ],
+          "verdict": "fix",
+          "source": "half_extents_m[0] fix",
+          "note": "moves with the turret"
+        }
+      ]
+    },
+    "europe_leopard_2_2a8": {
+      "inherits": "europe_leopard_2_2a7v (fixture extends): every 2A7V fix applies with no row of its own",
+      "published": {
+        "length_m": 8.05,
+        "length_gun_forward_m": "11.17 (rejected, see the 2A7V muzzle)",
+        "width_m": 3.8,
+        "height_roof_m": 2.72,
+        "height_peri_m": 3.13,
+        "source": "knds-2a8"
+      },
+      "frame": {
+        "half_extents_m": [
+          3.85,
+          1.875,
+          1.5
+        ],
+        "eye_m": 2.82,
+        "mounts": [
+          {
+            "id": "cannon",
+            "pivot_m": [
+              0.3,
+              0,
+              1.8
+            ],
+            "muzzle_m": [
+              7.12,
+              0,
+              0.54
+            ]
+          },
+          {
+            "id": "HMG",
+            "pivot_m": [
+              0.05,
+              -0.58,
+              2.82
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ],
+            "on": "cannon"
+          }
+        ]
+      },
+      "verdicts": [
+        {
+          "field": "*",
+          "verdict": "inherits",
+          "note": "the 2A7V's verdicts; the 2A8's 2.72 m roof sits 0.11 m under the shared 2.83 m top"
+        }
+      ]
+    }
+  },
+  "overlays": {
+    "note": "Registered overlay: the drawing is scaled by its hull length set to `registration.span_m` and anchored on the nose and ground line; the model silhouette (vehicle mode) and the frame box are laid over it. Stations sample 19 points along the span: the top (z) in side and front views, the full width in the top view, drawing against model. Drawing silhouettes include roof fittings, antennas, the gun and, where the crop catches them, dimension arrows. The overlay images contain the copyrighted drawing, so they are not committed. The profile is in colour, so its silhouette is the non-white area (threshold 0.93) and it has no separate line work.",
+    "views": [
+      {
+        "view": "side",
+        "drawing": "bp-leo2a6",
+        "registration": {
+          "model": "europe_leopard_2_2a6",
+          "span_m": 7.72,
+          "nose_px": 163,
+          "tail_px": 534,
+          "ground_px": 148
+        },
+        "measure": "top_z_m",
+        "stations": [
+          {
+            "x_m": 3.47,
+            "drawing": 2.12,
+            "model": 2.5
+          },
+          {
+            "x_m": 3.09,
+            "drawing": 2.41,
+            "model": 2.43
+          },
+          {
+            "x_m": 2.7,
+            "drawing": 2.5,
+            "model": 2.43
+          },
+          {
+            "x_m": 2.32,
+            "drawing": 2.48,
+            "model": 2.5
+          },
+          {
+            "x_m": 1.93,
+            "drawing": 2.46,
+            "model": 2.56
+          },
+          {
+            "x_m": 1.54,
+            "drawing": 2.54,
+            "model": 2.85
+          },
+          {
+            "x_m": 1.16,
+            "drawing": 2.54,
+            "model": 2.89
+          },
+          {
+            "x_m": 0.77,
+            "drawing": 2.5,
+            "model": 2.6
+          },
+          {
+            "x_m": 0.39,
+            "drawing": 2.89,
+            "model": 3.08
+          },
+          {
+            "x_m": 0.0,
+            "drawing": 2.83,
+            "model": 3.08
+          },
+          {
+            "x_m": -0.39,
+            "drawing": 3.06,
+            "model": 2.75
+          },
+          {
+            "x_m": -0.77,
+            "drawing": 2.56,
+            "model": 2.71
+          },
+          {
+            "x_m": -1.16,
+            "drawing": 2.56,
+            "model": 2.75
+          },
+          {
+            "x_m": -1.54,
+            "drawing": 2.43,
+            "model": 2.71
+          },
+          {
+            "x_m": -1.93,
+            "drawing": 2.81,
+            "model": 2.6
+          },
+          {
+            "x_m": -2.32,
+            "drawing": 2.37,
+            "model": 2.18
+          },
+          {
+            "x_m": -2.7,
+            "drawing": 2.31,
+            "model": 1.66
+          },
+          {
+            "x_m": -3.09,
+            "drawing": 2.08,
+            "model": 1.66
+          },
+          {
+            "x_m": -3.47,
+            "drawing": 1.77,
+            "model": 1.66
+          }
+        ]
+      }
+    ]
+  },
+  "notes": [
+    {
+      "note": "(known before the walk) the frame is 3.0 m tall against about 2.6 m in photos",
+      "class": "frame",
+      "why": "KNDS gives 2.64 m (2A6, 2A7) and 2.72 m (2A8) to the turret roof; the box top moves to 2.70 m (2A6) and 2.83 m (2A7V, 2A8) so the PERI stays within the dressing allowance."
+    }
+  ],
+  "answers": {
+    "Q4": "No: over the real roof the PERI's top stands 0.36 m (2A6: about 3.0 m over 2.64 m) and 0.41 m (2A8: 3.13 m over 2.72 m) up, past the 0.3 m bulky allowance; the PERI head is about 0.4 m across, so it is not thin. The fix sets each box top at the PERI's top less 0.3 m (2.70 m and 2.83 m), within 0.06 m and 0.11 m of the roofs, so the PERI fits exactly. The 2A8 inherits the 2A7V frame, including the 8.05 m hull with the armour module that both carry. The art must put the PERI under a dressing_* node."
+  }
+}
