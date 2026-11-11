@@ -23,6 +23,12 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import armour_parts as AR  # noqa: E402
+import hull_fittings as HF  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import running_gear as RG  # noqa: E402
+import stowage as SW  # noqa: E402
+import vehicle_guns as VG  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism, stencil  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
@@ -95,16 +101,16 @@ def hull(v):
                          (-half + 0.06, DECK), (-half, DECK - 0.10)], 3.50, mat=m["paint"], parent=h, bevel=0.05)
     prism("hull_lower", [(-half + 0.35, 0.44), (g(0.44), 0.44), (g(0.90), 0.90), (-half, 0.90),
                          (-half, 0.72)], 2.40, mat=m["paint"], parent=h, bevel=0.04)
-    VP.bolted_panel("glacis_plate", (half - 0.70, 0, glacis_z(half - 0.70, half)), (0.80, 3.0, 0.03), m, h,
+    AR.bolted_panel("glacis_plate", (half - 0.70, 0, glacis_z(half - 0.70, half)), (0.80, 3.0, 0.03), m, h,
                     bolts=(2, 5), bevel=0.01, rot=(0, slope, 0), lods=VP.ALL)
-    VP.hatch("driver_hatch", (half - 1.55, 0, glacis_z(half - 1.55, half)), m, h, radius=0.28, rot=(0, slope, 0))
-    VP.periscope("driver_periscope", (half - 1.25, 0, glacis_z(half - 1.25, half)), m, h, size=(0.12, 0.28, 0.09),
+    RF.hatch("driver_hatch", (half - 1.55, 0, glacis_z(half - 1.55, half)), m, h, radius=0.28, rot=(0, slope, 0))
+    RF.periscope("driver_periscope", (half - 1.25, 0, glacis_z(half - 1.25, half)), m, h, size=(0.12, 0.28, 0.09),
                  rot=(0, slope, 0))
     for side, s in ((1, "L"), (-1, "R")):
-        VP.light_with_guard(f"headlight_{s}", (half - 1.10, side * 1.45, glacis_z(half - 1.10, half) + 0.08), 0.07,
+        HF.light_with_guard(f"headlight_{s}", (half - 1.10, side * 1.45, glacis_z(half - 1.10, half) + 0.08), 0.07,
                             m, h)
-        VP.tow_hook(f"front_tow_{s}", (g(0.85) + 0.02, side * 0.75, 0.85), m, h, size=0.14)
-        VP.tow_hook(f"rear_tow_{s}", (-half + 0.02, side * 0.85, 0.85), m, h, size=0.08, rot=(0, 0, math.pi))
+        HF.tow_hook(f"front_tow_{s}", (g(0.85) + 0.02, side * 0.75, 0.85), m, h, size=0.14)
+        HF.tow_hook(f"rear_tow_{s}", (-half + 0.02, side * 0.85, 0.85), m, h, size=0.08, rot=(0, 0, math.pi))
         # The skirts: thin bolted panels, their outer face on the fender
         # line, their top flush with the fender plate that carries the deck
         # out to them, running the hull's length. The front section's top
@@ -114,7 +120,7 @@ def hull(v):
         length = (v.length - 0.5) / 6
         for k in range(1, 6):
             x = half - 0.30 - length * (k + 0.5)
-            VP.bolted_panel(f"skirt_{s}_{k}", (x, side * (SKIRT_Y - SKIRT_T / 2), 0.70),
+            AR.bolted_panel(f"skirt_{s}_{k}", (x, side * (SKIRT_Y - SKIRT_T / 2), 0.70),
                             (length - 0.04, SKIRT_T, SKIRT_TOP - 0.70), m, h, bolts=(2, 2), bevel=0.012,
                             lods=VP.ALL)
         back = half - 0.30 - length + 0.02
@@ -142,15 +148,15 @@ def hull(v):
         prism(f"skirt_top_{s}", [(-half + 0.06, SKIRT_TOP - 0.04), (knee, SKIRT_TOP - 0.04), (BOX_BACK, st - 0.04),
                                  (BOX_BACK, st), (knee, SKIRT_TOP), (-half + 0.06, SKIRT_TOP)], SKIRT_Y - inner,
               loc=(0, side * (SKIRT_Y + inner) / 2, 0), mat=m["paint"], parent=h, bevel=0.01, lods=MID)
-        VP.stowage_box(f"fender_box_{s}", (-2.6, side * 1.70, DECK), (1.20, 0.40, 0.35), m, h,
+        SW.stowage_box(f"fender_box_{s}", (-2.6, side * 1.70, DECK), (1.20, 0.40, 0.35), m, h,
                        rot=(0, 0, 0 if side > 0 else math.pi))
-        VP.cable(f"tow_cable_{s}", [(-half + 0.4, side * 1.62, DECK + 0.02), (-1.2, side * 1.66, DECK + 0.02),
+        HF.cable(f"tow_cable_{s}", [(-half + 0.4, side * 1.62, DECK + 0.02), (-1.2, side * 1.66, DECK + 0.02),
                                     (0.6, side * 1.62, DECK + 0.02)], m, h, radius=0.022)
         stencil(f"side_marking_{s}", "C3", 0.20, (half - 1.2, side * (SKIRT_Y + 0.004), 1.0),
                 (math.pi / 2, 0, math.pi if side > 0 else 0), m["marking"], h)
-    VP.grille("engine_grille", (-2.95, 0, DECK), (1.40, 2.20), m, h, slats=12)
-    VP.bolted_panel("engine_door", (-1.75, 0, DECK), (0.80, 2.20, 0.03), m, h, bolts=(2, 3), bevel=0.01, lods=MID)
-    VP.slat_armour("rear_bars", (-half + 0.03, 0, 0.75), (3.30, 0.75), m, h, rot=(0, 0, math.pi / 2))
+    HF.grille("engine_grille", (-2.95, 0, DECK), (1.40, 2.20), m, h, slats=12)
+    AR.bolted_panel("engine_door", (-1.75, 0, DECK), (0.80, 2.20, 0.03), m, h, bolts=(2, 3), bevel=0.01, lods=MID)
+    AR.slat_armour("rear_bars", (-half + 0.03, 0, 0.75), (3.30, 0.75), m, h, rot=(0, 0, math.pi / 2))
     # The photos' fittings beyond the hull: the fender boxes over the
     # tracks' front, spare track links across the nose, jerrycans in their
     # rack at the rear.
@@ -169,21 +175,21 @@ def hull(v):
                                  (BOX_FRONT - 0.10, 0.97)], hi - lo - 0.02,
               loc=(0, side * (lo + hi) / 2, 0), mat=m["black"], parent=h, bevel=0.015, lods=VP.ALL)
         for k in range(2):
-            VP.jerrycan(f"jerrycan_{s}_{k}", (-half + 0.40, side * (0.95 + k * 0.38), DECK), dict(m, paint=m["dark"]), h,
+            SW.jerrycan(f"jerrycan_{s}_{k}", (-half + 0.40, side * (0.95 + k * 0.38), DECK), dict(m, paint=m["dark"]), h,
                         rot=(0, 0, math.pi / 2))
     for k in range(4):
         cyl(f"spare_link_{k}", 0.05, 0.55, (lower_glacis_x(0.98, half) + 0.045, -0.90 + k * 0.60, 0.98), "Y",
             m["track"], h, seg=8, lods=NEAR)
     # The rear: its tail lights in their guards.
     for side, sd in ((1, "L"), (-1, "R")):
-        VP.light_with_guard(f"tail_light_{sd}", (-v.length / 2 - 0.02, side * (v.width / 2 - 0.7), DECK - 0.15), 0.05,
+        HF.light_with_guard(f"tail_light_{sd}", (-v.length / 2 - 0.02, side * (v.width / 2 - 0.7), DECK - 0.15), 0.05,
                             dict(v.mats, lamp=v.mats["tail"]), v.hull, rot=(0, 0, math.pi))
 
 def running_gear(v):
     road_x = [2.55 - 0.98 * k for k in range(6)]
     # The idler carries the belt's top run level from the return rollers to
     # the nose (its top at their 1.08 m), as the photos show it.
-    VP.tracked_running_gear(v.mats, v.hull, TRACK_Y, TRACK_W, road_x, ROAD_Z, ROAD_R, 0.24, (-3.55, 0.70, 0.33),
+    RG.tracked_running_gear(v.mats, v.hull, TRACK_Y, TRACK_W, road_x, ROAD_Z, ROAD_R, 0.24, (-3.55, 0.70, 0.33),
                             (3.55, 0.77, 0.31), [(1.6, 0.98, 0.10), (0.0, 1.0, 0.10), (-1.6, 0.98, 0.10)], bolts=8,
                             teeth=12, arm=(0.46, -0.32), pitch=0.16, dual=True)
 
@@ -201,14 +207,14 @@ def turret(v, t, gun, hmg, hmg_gun):
     cyl("turret_ring_guard", 1.15, 0.08, (0, 0, base + 0.02), "Z", m["dark"], t, seg=40, lods=MID)
     loft("turret_shell", [(base + 0.04, foot), (base + 0.55, [(x * 0.99, y) for x, y in foot]), (top, crown)],
          mat=m["paint"], parent=t, bevel=0.04)
-    VP.roof_fittings("roof", crown, top, m, t, periscopes=((0.10, -1.05, -0.4),))
-    VP.laser_warners("laser_warner", crown, top, m, t)
+    RF.roof_fittings("roof", crown, top, m, t, periscopes=((0.10, -1.05, -0.4),))
+    RF.laser_warners("laser_warner", crown, top, m, t)
     for side, s in ((1, "L"), (-1, "R")):
         # The cheeks' armour packs and the stowage bins down the flank's rear.
-        VP.armour_tiles(f"cheek_armour_{s}", (1.05, side * 1.10, base + 0.45), (0.50, 0.70), (1, 2), 0.07, m, t,
+        AR.armour_tiles(f"cheek_armour_{s}", (1.05, side * 1.10, base + 0.45), (0.50, 0.70), (1, 2), 0.07, m, t,
                         rot=(0, math.pi / 2 - 0.20, side * -0.45))
         for k in range(2):
-            VP.stowage_box(f"turret_bin_{s}_{k}", (-1.25 - k * 0.62, side * 1.56, base + 0.20), (0.58, 0.30, 0.48), m,
+            SW.stowage_box(f"turret_bin_{s}_{k}", (-1.25 - k * 0.62, side * 1.56, base + 0.20), (0.58, 0.30, 0.48), m,
                            t, rot=(0, 0, 0 if side > 0 else math.pi))
     for side, s in ((1, "L"), (-1, "R")):
         # Trophy: the radar panel and the launcher housing on each side. Their
@@ -218,22 +224,22 @@ def turret(v, t, gun, hmg, hmg_gun):
         holder = empty(f"dressing_trophy_{s}", parent=t)
         launcher = empty(f"trophy_launcher_{s}", (-0.70, side * 1.48, top + 0.05), holder)
         box(f"trophy_housing_{s}", (0.40, 0.36, 0.30), (0, 0, 0), m["paint"], launcher, bevel=0.04)
-        VP.bolted_panel(f"side_applique_{s}", (-0.60, side * 1.58, base + 0.15), (1.60, 0.10, 0.55), m, t,
+        AR.bolted_panel(f"side_applique_{s}", (-0.60, side * 1.58, base + 0.15), (1.60, 0.10, 0.55), m, t,
                         bolts=(4, 1), bevel=0.02, lods=VP.ALL)
-        VP.smoke_discharger_bank(f"smoke_{s}", (0.55, side * 1.30, top - 0.08), m, t, count=5, tube_radius=0.045,
+        RF.smoke_discharger_bank(f"smoke_{s}", (0.55, side * 1.30, top - 0.08), m, t, count=5, tube_radius=0.045,
                                  tube_length=0.20, elevation=0.35, spread=0.5, rot=(0, 0, side * 0.9))
         whip = empty(f"dressing_antenna_{s}", parent=t)
-        VP.antenna(f"antenna_{s}", (-1.75, side * 0.95, top), m, whip, height=2.2)
+        RF.antenna(f"antenna_{s}", (-1.75, side * 0.95, top), m, whip, height=2.2)
     sight = empty("dressing_gunner_sight", parent=t)
-    VP.sight_housing("gunner_sight", (0.55, 0.75, top - 0.02), m, sight, size=(0.45, 0.34, 0.24))
+    RF.sight_housing("gunner_sight", (0.55, 0.75, top - 0.02), m, sight, size=(0.45, 0.34, 0.24))
     mast = empty("dressing_commander_sight", parent=t)
     cyl("panorama_post", 0.10, 0.04, (-0.35, 0.55, top + 0.02), "Z", m["dark"], mast, seg=12)
-    VP.sight_housing("panorama_head", (-0.35, 0.55, top + 0.02), m, mast, size=(0.36, 0.34, 0.26))
-    VP.hatch("loader_hatch", (-0.60, -0.55, top), m, t, radius=0.28)
-    VP.slat_armour("bustle_cage", (-2.35, 0, base + 0.15), (2.40, 0.62), m, t, rot=(0, 0, math.pi / 2))
+    RF.sight_housing("panorama_head", (-0.35, 0.55, top + 0.02), m, mast, size=(0.36, 0.34, 0.26))
+    RF.hatch("loader_hatch", (-0.60, -0.55, top), m, t, radius=0.28)
+    AR.slat_armour("bustle_cage", (-2.35, 0, base + 0.15), (2.40, 0.62), m, t, rot=(0, 0, math.pi / 2))
     for side, s in ((1, "L"), (-1, "R")):
-        VP.slat_armour(f"bustle_cage_{s}", (-2.05, side * 1.20, base + 0.15), (0.60, 0.62), m, t)
-    VP.tarp_roll("bustle_roll", (-2.05, 0, top - 0.14), 1.6, 0.16, m, t, straps=3)
+        AR.slat_armour(f"bustle_cage_{s}", (-2.05, side * 1.20, base + 0.15), (0.60, 0.62), m, t)
+    SW.tarp_roll("bustle_roll", (-2.05, 0, top - 0.14), 1.6, 0.16, m, t, straps=3)
     # The L55A1: mantlet, plain sleeve with clamps, no fume extractor.
     reach = v.frame["mounts"][0]["muzzle_m"][0] - TRUNNION
     box("mantlet", (0.75, 0.62, 0.46), (0.35, 0, 0), m["paint"], gun, bevel=0.06)
@@ -249,8 +255,8 @@ def turret(v, t, gun, hmg, hmg_gun):
     lift = v.frame["mounts"][1]["muzzle_m"][2]
     cyl("rws_bearing", 0.20, 0.08, (0, 0, -0.04), "Z", m["dark"], hmg, seg=20)
     box("rws_body", (0.42, 0.32, lift), (-0.05, 0, lift / 2), m["paint"], hmg, bevel=0.03)
-    VP.sight_housing("rws_sight", (0.05, -0.24, -0.10), m, hmg_gun, size=(0.24, 0.14, 0.20))
-    VP.browning_m2(hmg_gun, v.frame["mounts"][1]["muzzle_m"][0], m)
+    RF.sight_housing("rws_sight", (0.05, -0.24, -0.10), m, hmg_gun, size=(0.24, 0.14, 0.20))
+    VG.browning_m2(hmg_gun, v.frame["mounts"][1]["muzzle_m"][0], m)
 
 
 def build(variant, v):

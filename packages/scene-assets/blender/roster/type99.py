@@ -23,6 +23,12 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import armour_parts as AR  # noqa: E402
+import hull_fittings as HF  # noqa: E402
+import hull_shape as HS  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import running_gear as RG  # noqa: E402
+import vehicle_guns as VG  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism, stencil  # noqa: E402
 from t72 import two_tier_hull  # noqa: E402
@@ -77,29 +83,29 @@ def hull_body(v):
     half = v.length / 2
     slope = two_tier_hull(v, half, DECK, GLACIS_X, GLACIS_RUN, GLACIS_DROP, CENTRE_DROP, -3.75, 1.30, -3.55, 3.25,
                           centre_y=CENTRE_Y, width=3.20, floor=0.94)
-    VP.armour_tiles("glacis_era", (3.05, 0, centre_z(3.05) + 0.005), (1.10, 1.70), (2, 4), 0.10, m, hull,
+    AR.armour_tiles("glacis_era", (3.05, 0, centre_z(3.05) + 0.005), (1.10, 1.70), (2, 4), 0.10, m, hull,
                     rot=(0, slope, 0))
-    VP.hatch("driver_hatch", (2.15, 0, DECK), m, hull, radius=0.30)
-    VP.periscope("driver_periscope", (2.42, 0, DECK), m, hull, size=(0.12, 0.26, 0.09))
+    RF.hatch("driver_hatch", (2.15, 0, DECK), m, hull, radius=0.30)
+    RF.periscope("driver_periscope", (2.42, 0, DECK), m, hull, size=(0.12, 0.26, 0.09))
     for side, s in ((1, "L"), (-1, "R")):
         # The rounded front fenders over the tracks, falling with the glacis,
         # their undersides clear of the track over the idler.
         prism(f"front_fender_{s}", [(2.30, DECK - 0.02), (3.40, glacis_z(3.40) - 0.03), (3.75, glacis_z(3.75) - 0.10),
                                     (3.75, 0.98), (2.30, 0.98)],
               1.78 - CENTRE_Y, loc=(0, side * (1.78 + CENTRE_Y) / 2, 0), mat=m["paint"], parent=hull, bevel=0.10)
-        VP.tow_hook(f"front_tow_{s}", (3.70, side * 0.55, centre_z(3.70) - 0.06), m, hull, size=0.14)
-        VP.tow_hook(f"rear_tow_{s}", (-3.72, side * 0.80, 0.84), m, hull, size=0.13, rot=(0, 0, math.pi))
-        VP.cable(f"tow_cable_{s}", [(-3.4, side * 1.48, DECK + 0.02), (-1.8, side * 1.50, DECK + 0.02),
+        HF.tow_hook(f"front_tow_{s}", (3.70, side * 0.55, centre_z(3.70) - 0.06), m, hull, size=0.14)
+        HF.tow_hook(f"rear_tow_{s}", (-3.72, side * 0.80, 0.84), m, hull, size=0.13, rot=(0, 0, math.pi))
+        HF.cable(f"tow_cable_{s}", [(-3.4, side * 1.48, DECK + 0.02), (-1.8, side * 1.50, DECK + 0.02),
                                     (-0.2, side * 1.50, DECK + 0.02), (1.6, side * 1.48, DECK + 0.02)], m, hull,
                  radius=0.022)
     lamp_z = centre_z(3.13) - 0.02
-    VP.bolted_panel("lamp_box", (3.00, 0.95, lamp_z), (0.26, 0.30, 0.22), m, hull, bolts=(1, 1), bevel=0.03,
+    AR.bolted_panel("lamp_box", (3.00, 0.95, lamp_z), (0.26, 0.30, 0.22), m, hull, bolts=(1, 1), bevel=0.03,
                     lods=VP.ALL)
     box("lamp", (0.012, 0.18, 0.12), (3.135, 0.95, lamp_z + 0.12), m["lamp"], hull, lods=MID)
-    VP.grille("engine_grille", (-2.70, 0, DECK), (1.50, 1.80), m, hull, slats=12)
-    VP.bolted_panel("engine_door", (-1.55, 0.0, DECK), (0.70, 1.90, 0.03), m, hull, bolts=(2, 3), bevel=0.01,
+    HF.grille("engine_grille", (-2.70, 0, DECK), (1.50, 1.80), m, hull, slats=12)
+    AR.bolted_panel("engine_door", (-1.55, 0.0, DECK), (0.70, 1.90, 0.03), m, hull, bolts=(2, 3), bevel=0.01,
                     lods=MID)
-    VP.grille("rear_louvre", (-half, 0, 1.10), (0.30, 2.30), m, hull, slats=7, rot=(0, -math.pi / 2, 0))
+    HF.grille("rear_louvre", (-half, 0, 1.10), (0.30, 2.30), m, hull, slats=7, rot=(0, -math.pi / 2, 0))
 
 
 def side_panels(v):
@@ -135,7 +141,7 @@ def turret_body(v, turret):
 
     def ring(pts, lean):
         left = [(x, y - lean) for x, y in pts]
-        return VP.mirror_plan(left)
+        return HS.mirror_plan(left)
 
     loft("turret_shell", [(FOOT, ring(half, 0.0)), (ROOF, ring(half, 0.06))], mat=m["paint"], parent=turret,
          bevel=0.05)
@@ -149,26 +155,26 @@ def turret_body(v, turret):
             p = [(x, side * y) for x, y in pts]
             rings.append((z, p if side > 0 else p[::-1]))
         loft(f"wedge_{s}", rings, mat=m["paint"], parent=turret, bevel=0.045)
-        VP.armour_tiles(f"wedge_tiles_{s}", (1.40, side * 0.95, ROOF - 0.02), (0.60, 0.90), (2, 3), 0.06, m, turret,
+        AR.armour_tiles(f"wedge_tiles_{s}", (1.40, side * 0.95, ROOF - 0.02), (0.60, 0.90), (2, 3), 0.06, m, turret,
                         rot=(0, 0.30, 0))
-        VP.smoke_discharger_bank(f"smoke_{s}", (0.05, side * 1.46, 0.40), m, turret, count=5, tube_radius=0.05,
+        RF.smoke_discharger_bank(f"smoke_{s}", (0.05, side * 1.46, 0.40), m, turret, count=5, tube_radius=0.05,
                                  tube_length=0.26, elevation=0.35, spread=0.4, rot=(0, 0, side * 0.6))
-        VP.bolted_panel(f"side_plate_{s}", (-0.90, side * 1.40, 0.30), (1.40, 0.56, 0.05), m, turret, bolts=(4, 2),
+        AR.bolted_panel(f"side_plate_{s}", (-0.90, side * 1.40, 0.30), (1.40, 0.56, 0.05), m, turret, bolts=(4, 2),
                         bevel=0.015, rot=(-side * math.pi / 2, 0, 0), lods=MID)
         whip = empty(f"dressing_antenna_{s}", parent=turret)
-        VP.antenna(f"antenna_{s}", (-2.20, side * 0.95, ROOF), m, whip, height=2.4)
+        RF.antenna(f"antenna_{s}", (-2.20, side * 0.95, ROOF), m, whip, height=2.4)
     # The cylindrical stowage container across the bustle's rear.
     cyl("rear_container", 0.26, 2.20, (-2.92, 0, 0.42), "Y", m["paint"], turret, seg=24, bevel=0.03)
     for k in (-0.70, 0.70):
         box(f"container_bracket_{k}", (0.40, 0.08, 0.10), (-2.72, k, 0.30), m["dark"], turret, lods=MID)
-    VP.sight_housing("gunner_sight", (0.85, 0.75, ROOF - 0.04), m, turret, size=(0.44, 0.36, 0.26))
+    RF.sight_housing("gunner_sight", (0.85, 0.75, ROOF - 0.04), m, turret, size=(0.44, 0.36, 0.26))
     sight = empty("dressing_commander_sight", parent=turret)
     cyl("commander_sight_post", 0.12, 0.22, (-1.40, -0.85, ROOF + 0.11), "Z", m["paint"], sight, seg=16,
         bevel=0.015, lods=MID)
-    VP.sight_housing("commander_sight", (-1.40, -0.85, ROOF + 0.18), m, sight, size=(0.36, 0.34, 0.26))
-    VP.cupola("commander_cupola", (-0.80, -0.62, ROOF), m, turret, radius=0.34, periscopes=4, lid_open=False)
-    VP.hatch("gunner_hatch", (-0.60, 0.62, ROOF), m, turret, radius=0.30)
-    VP.bolted_panel("roof_plate", (-1.70, 0.30, ROOF), (0.80, 0.70, 0.03), m, turret, bolts=(2, 2), bevel=0.01,
+    RF.sight_housing("commander_sight", (-1.40, -0.85, ROOF + 0.18), m, sight, size=(0.36, 0.34, 0.26))
+    RF.cupola("commander_cupola", (-0.80, -0.62, ROOF), m, turret, radius=0.34, periscopes=4, lid_open=False)
+    RF.hatch("gunner_hatch", (-0.60, 0.62, ROOF), m, turret, radius=0.30)
+    AR.bolted_panel("roof_plate", (-1.70, 0.30, ROOF), (0.80, 0.70, 0.03), m, turret, bolts=(2, 2), bevel=0.01,
                     lods=MID)
 
 
@@ -198,12 +204,12 @@ def roof_gun(v, hmg, hmg_gun):
     cyl("mg_post", 0.04, lift + 0.10, (0.10, 0, (lift + 0.10) / 2 - 0.10), "Z", m["steel"], hmg, seg=10)
     box("mg_cradle", (0.24, 0.12, 0.10), (0.08, 0, lift - 0.07), m["dark"], hmg, lods=MID)
     box("mg_shield", (0.04, 0.34, 0.24), (0.34, 0, -0.04), m["paint"], hmg_gun, bevel=0.01, lods=MID)
-    VP.kord(hmg_gun, muzzle[0], m)
+    VG.kord(hmg_gun, muzzle[0], m)
 
 
 def build(variant, v):
     hull_body(v)
-    VP.tracked_running_gear(v.mats, v.hull, TRACK_Y, TRACK_W, ROAD_X, ROAD_Z, ROAD_R, 0.24, SPROCKET, IDLER,
+    RG.tracked_running_gear(v.mats, v.hull, TRACK_Y, TRACK_W, ROAD_X, ROAD_Z, ROAD_R, 0.24, SPROCKET, IDLER,
                             RETURNS, bolts=8, teeth=12, arm=(0.48, -0.35), pitch=0.16)
     side_panels(v)
     mounts = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})

@@ -20,6 +20,10 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import armour_parts as AR  # noqa: E402
+import hull_shape as HS  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import vehicle_guns as VG  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from armata import (DECK, Shape, armour_kit, engine_deck, hull, running_gear, skirts, turret_kit,  # noqa: E402
                     wreck)
@@ -56,8 +60,8 @@ def build(variant, v):
     # The crew capsule's three hatches across the deck ahead of the turret,
     # each with its periscope block.
     for k, y in enumerate((0.75, 0.0, -0.75)):
-        VP.hatch(f"crew_hatch_{k}", (top - 0.45, y, DECK), m, h, radius=0.26)
-        VP.periscope(f"crew_periscope_{k}", (top - 0.12, y, DECK), m, h, size=(0.12, 0.30, 0.10))
+        RF.hatch(f"crew_hatch_{k}", (top - 0.45, y, DECK), m, h, radius=0.26)
+        RF.periscope(f"crew_periscope_{k}", (top - 0.12, y, DECK), m, h, size=(0.12, 0.30, 0.10))
     mounts = rig(v.frame, v.root, trunnion={"cannon": 1.05})
     turret, gun, _, _ = mounts["cannon"]
     hmg, hmg_gun, _, _ = mounts["HMG"]
@@ -81,7 +85,7 @@ def t14_turret(v, turret, base):
     z0, neck, waist, z1 = base + 0.04, base + 0.26, base + 0.32, base + HEIGHT
 
     def ring(*left):
-        return VP.mirror_plan(left)
+        return HS.mirror_plan(left)
 
     # The neck stops short of the bustle, which overhangs the deck behind it
     # with daylight under it.
@@ -92,7 +96,7 @@ def t14_turret(v, turret, base):
     cyl("turret_ring_guard", 1.15, 0.08, (0, 0, base + 0.02), "Z", m["dark"], turret, seg=40, lods=MID)
     loft("turret_shell", [(z0, foot), (neck, foot), (waist, wall), (nose, point), (z1, crown)], mat=m["paint"],
          parent=turret, bevel=0.04)
-    VP.roof_fittings("roof", crown, z1, m, turret)
+    RF.roof_fittings("roof", crown, z1, m, turret)
     turret_kit(v, turret, crown, (1.62, waist), (1.58, z1), -1.10, 0.95, waist + 0.05, z1 - 0.05)
     # The soft-kill launcher's rotating box on the roof's rear.
     cyl("softkill_base", 0.30, 0.04, (-1.40, 0, z1 + 0.02), "Z", m["dark"], turret, seg=20, lods=MID)
@@ -103,7 +107,7 @@ def t14_turret(v, turret, base):
     # The gun's slot at the arrowhead's point; the gunner's sight box on the
     # roof's right front edge.
     box("gun_slot", (0.12, 0.50, 0.44), (1.70, 0, nose + 0.08), m["black"], turret, lods=MID)
-    VP.sight_housing("gunner_sight", (0.55, -1.00, z1 - 0.02), m, turret, size=(0.55, 0.40, 0.22))
+    RF.sight_housing("gunner_sight", (0.55, -1.00, z1 - 0.02), m, turret, size=(0.55, 0.40, 0.22))
     for side, s in ((1, "L"), (-1, "R")):
         # Radar panels on the arrowhead's flanks and the bustle's sides.
         box(f"radar_panel_{s}", (0.06, 0.36, 0.28), (1.40, side * 1.02, waist + 0.15), m["dark"], turret,
@@ -125,19 +129,19 @@ def t14_turret(v, turret, base):
             bore_z = launcher_z + bore_offset_z
             cyl(f"afganit_bore_{s}_{j}", 0.045, 0.04, (-0.15 - j * 0.15, bore_y, bore_z), "Y", m["black"],
                 turret, seg=10, rot=(side * -0.35, 0, 0), lods=FINE)
-        VP.smoke_discharger_bank(f"smoke_{s}", (0.40, side * 1.40, z1 - 0.08), m, turret, count=4, tube_radius=0.045,
+        RF.smoke_discharger_bank(f"smoke_{s}", (0.40, side * 1.40, z1 - 0.08), m, turret, count=4, tube_radius=0.045,
                                  tube_length=0.20, elevation=0.35, spread=0.4, rot=(0, 0, side * 0.9))
         whip = empty(f"dressing_antenna_{s}", parent=turret)
-        VP.antenna(f"antenna_{s}", (-2.10, side * 0.95, z1), m, whip, height=2.0)
+        RF.antenna(f"antenna_{s}", (-2.10, side * 0.95, z1), m, whip, height=2.0)
     # The commander's panoramic sight on its mast over the left, standing
     # over the frame's top: dressing.
     sight = empty("dressing_panorama", parent=turret)
     cyl("panorama_mast", 0.11, 0.08, (-0.30, 0.60, z1 + 0.04), "Z", m["dark"], sight, seg=12)
-    VP.sight_housing("panorama_head", (-0.30, 0.60, z1 + 0.06), m, sight, size=(0.52, 0.46, 0.34))
+    RF.sight_housing("panorama_head", (-0.30, 0.60, z1 + 0.06), m, sight, size=(0.52, 0.46, 0.34))
     # The slatted cage round the bustle's rear, on the bustle's walls.
-    VP.slat_armour("bustle_cage", (-2.50, 0, waist), (2.40, 0.60), m, turret, rot=(0, 0, math.pi / 2))
+    AR.slat_armour("bustle_cage", (-2.50, 0, waist), (2.40, 0.60), m, turret, rot=(0, 0, math.pi / 2))
     for side, s in ((1, "L"), (-1, "R")):
-        VP.slat_armour(f"bustle_cage_{s}", (-2.05, side * 1.46, waist), (0.75, 0.60), m, turret)
+        AR.slat_armour(f"bustle_cage_{s}", (-2.05, side * 1.46, waist), (0.75, 0.60), m, turret)
 
 
 def gun_2a82(v, gun):
@@ -166,8 +170,8 @@ def kord_station(v, hmg, hmg_gun):
     cyl("rws_bearing", 0.22, 0.08, (0, 0, roof + 0.04), "Z", m["dark"], hmg, seg=20, bevel=0.01)
     foot = roof + 0.08
     box("rws_body", (0.46, 0.36, lift - foot), (-0.05, 0, (lift + foot) / 2), m["paint"], hmg, bevel=0.03)
-    VP.sight_housing("rws_sight", (0.05, -0.26, -0.10), m, hmg_gun, size=(0.26, 0.14, 0.20))
-    VP.kord(hmg_gun, mount["muzzle_m"][0], m)
+    RF.sight_housing("rws_sight", (0.05, -0.26, -0.10), m, hmg_gun, size=(0.26, 0.14, 0.20))
+    VG.kord(hmg_gun, mount["muzzle_m"][0], m)
 
 
 run("t14", "russian_green", build, partial(wreck, SHAPE), chip=1.0)

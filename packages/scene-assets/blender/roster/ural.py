@@ -22,6 +22,11 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import armour_parts as AR  # noqa: E402
+import hull_fittings as HF  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import running_gear as RG  # noqa: E402
+import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, prism  # noqa: E402
 from vehicle_export import run  # noqa: E402
@@ -51,14 +56,14 @@ def chassis(v):
     m, hull = v.mats, v.hull
     for side, s in ((1, "L"), (-1, "R")):
         for k, x in enumerate(AXLES):
-            VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,
+            RG.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,
                           rim_radius=0.30, tread="bar", hub_bolts=8)
             cyl(f"hub_{s}_{k}", 0.12, 0.10, (x, side * (WHEEL_Y + WHEEL_W / 2 + 0.05), WHEEL_R), "Y", m["dark"],
                 hull, seg=12, bevel=0.015, lods=MID)
             box(f"axle_{s}_{k}", (0.18, 0.55, 0.18), (x, side * 0.55, WHEEL_R), m["dark"], hull, lods=NEAR)
         box(f"chassis_rail_{s}", (6.90, 0.14, 0.24), (0.0, side * 0.45, RAIL_Z), m["dark"], hull, bevel=0.01,
             lods=MID)
-        VP.mudflap(f"mudflap_{s}", (-3.00, side * WHEEL_Y, BED_FLOOR - 0.10), (0.40, 0.50), m, hull)
+        HF.mudflap(f"mudflap_{s}", (-3.00, side * WHEEL_Y, BED_FLOOR - 0.10), (0.40, 0.50), m, hull)
 
 
 def cab(v):
@@ -88,10 +93,10 @@ def cab(v):
         cyl(f"headlight_{s}", 0.09, 0.05, (NOSE - 0.10, side * 0.95, 1.35), "X", m["lamp"], hull, seg=16, lods=MID)
         cyl(f"headlight_rim_{s}", 0.11, 0.04, (NOSE - 0.13, side * 0.95, 1.35), "X", m["dark"], hull, seg=16,
             lods=MID)
-        VP.tow_hook(f"front_tow_{s}", (NOSE - 0.02, side * 0.55, 0.92), m, hull, size=0.10)
+        HF.tow_hook(f"front_tow_{s}", (NOSE - 0.02, side * 0.55, 0.92), m, hull, size=0.10)
         # Door, window, handle; the step; the mirror on its arm.
         y = side * (width / 2 + 0.005)
-        VP.weld_line(f"door_seam_{s}", [(2.00, y, 0.95), (2.00, y, ROOF - 0.15), (1.05, y, ROOF - 0.15),
+        AR.weld_line(f"door_seam_{s}", [(2.00, y, 0.95), (2.00, y, ROOF - 0.15), (1.05, y, ROOF - 0.15),
                                        (1.05, y, 0.95)], m, hull, radius=0.012)
         box(f"door_window_{s}", (0.68, 0.03, 0.46), (1.55, y, 2.28), m["glass"], hull, lods=MID)
         box(f"door_handle_{s}", (0.14, 0.04, 0.04), (1.20, y + side * 0.02, 1.80), m["steel"], hull, lods=FINE)
@@ -119,22 +124,22 @@ def cab(v):
     cyl("spare_tyre", WHEEL_R * 0.97, WHEEL_W, (0.62, 0.35, 1.92), "X", m["rubber"], hull, seg=28)
     cyl("spare_rim", 0.30, 0.06, (0.82, 0.35, 1.92), "X", m["paint"], hull, seg=18, lods=MID)
     # Under the cab's side: the fuel tank, the battery box.
-    VP.fuel_tank("fuel_tank", (0.55, -0.95, 0.85), 0.90, 0.26, m, hull)
-    VP.stowage_box("battery_box", (0.55, 0.95, 0.60), (0.70, 0.40, 0.40), dict(m, paint=m["dark"]), hull)
+    HF.fuel_tank("fuel_tank", (0.55, -0.95, 0.85), 0.90, 0.26, m, hull)
+    SW.stowage_box("battery_box", (0.55, 0.95, 0.60), (0.70, 0.40, 0.40), dict(m, paint=m["dark"]), hull)
 
 
 def body(v):
     m, hull = v.mats, v.hull
     length = 4.10
     centre = 0.42 - length / 2
-    VP.cargo_bed("cargo_body", (centre, 0, BED_FLOOR), (length, 2.46, 0.40), m, hull, stakes=5, tarp=1.30)
+    SW.cargo_bed("cargo_body", (centre, 0, BED_FLOOR), (length, 2.46, 0.40), m, hull, stakes=5, tarp=1.30)
     for side, s in ((1, "L"), (-1, "R")):
-        VP.light_with_guard(f"tail_light_{s}", (-3.65, side * 1.00, 1.05), 0.05, dict(m, lamp=m["tail"]), hull,
+        HF.light_with_guard(f"tail_light_{s}", (-3.65, side * 1.00, 1.05), 0.05, dict(m, lamp=m["tail"]), hull,
                             rot=(0, 0, math.pi))
         whip = empty(f"dressing_antenna_{s}", parent=hull)
-        VP.antenna(f"antenna_{s}", (CAB_REAR + 0.05, side * 0.90, ROOF - 0.05), m, whip, height=1.8)
+        RF.antenna(f"antenna_{s}", (CAB_REAR + 0.05, side * 0.90, ROOF - 0.05), m, whip, height=1.8)
     box("rear_bumper", (0.12, 2.00, 0.14), (-3.55, 0, 0.88), m["dark"], hull, bevel=0.012)
-    VP.tow_hook("hitch", (-3.55, 0, 0.88), m, hull, size=0.10, rot=(0, 0, math.pi))
+    HF.tow_hook("hitch", (-3.55, 0, 0.88), m, hull, size=0.10, rot=(0, 0, math.pi))
 
 
 def wreck(variant, v):

@@ -27,6 +27,10 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import armour_parts as AR  # noqa: E402
+import hull_fittings as HF  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, stencil, textured  # noqa: E402
 from truck_chassis import on  # noqa: E402
@@ -70,9 +74,9 @@ def intake(v, cab_rear):
     box("intake_housing", (front - rear, 2.30, roof - DECK), ((front + rear) / 2, 0, (roof + DECK) / 2), m["paint"], h,
         bevel=0.04)
     for side, s in ((1, "L"), (-1, "R")):
-        VP.grille(f"intake_grille_{s}", ((front + rear) / 2, side * 1.155, 2.25), (1.10, 1.10), m, h, slats=10,
+        HF.grille(f"intake_grille_{s}", ((front + rear) / 2, side * 1.155, 2.25), (1.10, 1.10), m, h, slats=10,
                   rot=(-side * math.pi / 2, 0, 0))
-    VP.exhaust("exhaust", (front - 0.15, -1.05, roof), 0.07, 0.40, m, h)
+    HF.exhaust("exhaust", (front - 0.15, -1.05, roof), 0.07, 0.40, m, h)
 
 
 def shelter(v):
@@ -87,11 +91,11 @@ def shelter(v):
     box("shelter_roof", (length - 0.20, 2.20, 0.10), (mid, 0, top + 0.05), m["paint"], h, bevel=0.02)
     for side, s in ((1, "L"), (-1, "R")):
         for k, x in enumerate((mid - 0.62, mid + 0.62)):
-            VP.bolted_panel(f"shelter_door_{s}_{k}", (x, side * 1.20, 2.58), (1.10, 1.10, 0.03), m, h, bolts=(3, 3),
+            AR.bolted_panel(f"shelter_door_{s}_{k}", (x, side * 1.20, 2.58), (1.10, 1.10, 0.03), m, h, bolts=(3, 3),
                             rot=(-side * math.pi / 2, 0, 0), bevel=0.01)
             box(f"shelter_handle_{s}_{k}", (0.14, 0.04, 0.04), (x + 0.40, side * 1.235, 2.55), m["steel"], h,
                 lods=FINE)
-        VP.grille(f"shelter_vent_{s}", (rear + 0.30, side * 1.205, 2.10), (0.40, 0.40), m, h, slats=5,
+        HF.grille(f"shelter_vent_{s}", (rear + 0.30, side * 1.205, 2.10), (0.40, 0.40), m, h, slats=5,
                   rot=(-side * math.pi / 2, 0, 0))
     # The masts, retracted: the nested tubes standing on each rear corner,
     # the drum cap on top, the tallest thing on the truck.
@@ -100,7 +104,7 @@ def shelter(v):
         cyl(f"mast_{s}", 0.10, 0.42, (x, y, top + 0.21), "Z", m["dark"], h, seg=16)
         cyl(f"mast_cap_{s}", 0.24, 0.17, (x, y, top + 0.505), "Z", m["dark"], h, seg=24, bevel=0.02)
         cyl(f"mast_collar_{s}", 0.13, 0.06, (x, y, top + 0.03), "Z", m["steel"], h, seg=16, lods=MID)
-    VP.stowage_box("roof_box", (mid + 0.45, 0, top + 0.10), (0.70, 1.20, 0.22), m, h)
+    SW.stowage_box("roof_box", (mid + 0.45, 0, top + 0.10), (0.70, 1.20, 0.22), m, h)
 
 
 def launcher(v):
@@ -173,26 +177,26 @@ def underside(v):
     m, h = v.mats, v.hull
     half = v.length / 2
     for side, s in ((1, "L"), (-1, "R")):
-        VP.stowage_box(f"locker_{s}", (-1.20, side * 0.95, 0.72), (1.30, 0.42, 0.58), m, h,
+        SW.stowage_box(f"locker_{s}", (-1.20, side * 0.95, 0.72), (1.30, 0.42, 0.58), m, h,
                        rot=(0, 0, 0 if side > 0 else math.pi))
         for k, x in enumerate((-2.30, -half + 0.40)):
             cyl(f"jack_{s}_{k}", 0.07, 1.10, (x, side * 1.15, DECK - 0.40), "Z", m["dark"], h, seg=14)
             cyl(f"jack_pad_{s}_{k}", 0.16, 0.05, (x, side * 1.15, DECK - 0.98), "Z", m["dark"], h, seg=16, lods=MID)
             box(f"jack_bracket_{s}_{k}", (0.22, 0.20, 0.24), (x, side * 1.08, DECK - 0.05), m["paint"], h, bevel=0.01,
                 lods=MID)
-        VP.light_with_guard(f"tail_light_{s}", (-half + 0.08, side * 0.85, 1.10), 0.05, dict(m, lamp=m["tail"]), h,
+        HF.light_with_guard(f"tail_light_{s}", (-half + 0.08, side * 0.85, 1.10), 0.05, dict(m, lamp=m["tail"]), h,
                             rot=(0, 0, math.pi))
-        VP.mudflap(f"rear_mudflap_{s}", (-half + 0.70, side * 1.03, 0.95), (0.42, 0.50), m, h)
-    VP.fuel_tank("fuel_tank", (0.40, 0.95, 1.00), 1.30, 0.30, m, h)
+        HF.mudflap(f"rear_mudflap_{s}", (-half + 0.70, side * 1.03, 0.95), (0.42, 0.50), m, h)
+    HF.fuel_tank("fuel_tank", (0.40, 0.95, 1.00), 1.30, 0.30, m, h)
     box("battery_box", (1.10, 0.40, 0.50), (0.40, -0.98, 0.95), m["paint"], h, bevel=0.02)
     box("battery_bracket", (0.10, 0.50, 0.08), (0.40, -0.72, 1.18), m["dark"], h, lods=MID)
     box("rear_underrun", (0.12, 2.20, 0.14), (-half + 0.10, 0, 0.70), m["dark"], h, bevel=0.012)
     for side, s in ((1, "L"), (-1, "R")):
         box(f"underrun_bracket_{s}", (0.08, 0.10, 0.40), (-half + 0.10, side * 0.45, 0.90), m["dark"], h, lods=MID)
-    VP.tow_hook("pintle", (-half + 0.18, 0, 0.92), m, h, size=0.10, rot=(0, 0, math.pi))
+    HF.tow_hook("pintle", (-half + 0.18, 0, 0.92), m, h, size=0.10, rot=(0, 0, math.pi))
     for side, s in ((1, "L"), (-1, "R")):
         whip = empty(f"dressing_antenna_{s}", parent=h)
-        VP.antenna(f"antenna_{s}", (half - 2.10, side * 1.05, hx.ROOF), m, whip, height=2.0)
+        RF.antenna(f"antenna_{s}", (half - 2.10, side * 1.05, hx.ROOF), m, whip, height=2.0)
 
 
 def wreck(variant, v):

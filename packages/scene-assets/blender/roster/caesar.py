@@ -22,6 +22,8 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import armour_parts as AR  # noqa: E402
+import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, prism  # noqa: E402
 from truck_chassis import chassis  # noqa: E402
@@ -40,7 +42,7 @@ def build(variant, v):
     # the ammunition racks' louvres; a walkway between them.
     for side, s in ((1, "L"), (-1, "R")):
         for k in range(3):
-            VP.stowage_box(f"locker_{s}_{k}", (1.25 - k * 1.05, side * 0.95, deck), (0.95, 0.55, 0.95), m, h,
+            SW.stowage_box(f"locker_{s}_{k}", (1.25 - k * 1.05, side * 0.95, deck), (0.95, 0.55, 0.95), m, h,
                            rot=(0, 0, 0 if side > 0 else math.pi))
             for j in range(4):
                 box(f"locker_louvre_{s}_{k}_{j}", (0.70, 0.02, 0.03), (1.25 - k * 1.05, side * 1.235,
@@ -92,7 +94,7 @@ def build(variant, v):
     box("travel_rest", (0.16, 0.40, gz - 3.10), (2.4, 0, (gz + 3.10) / 2 - 0.08), m["dark"], h, lods=MID)
     box("gun_travel_clamp", (0.14, 0.30, 0.10), (2.4, 0, gz + 0.12), m["dark"], h, bevel=0.02, lods=MID)
     # The recoil spade folded up under the tail.
-    VP.bolted_panel("recoil_spade", (-half + 0.25, 0, 0.55), (0.12, 1.60, 0.60), m, h, bolts=(1, 4), bevel=0.02,
+    AR.bolted_panel("recoil_spade", (-half + 0.25, 0, 0.55), (0.12, 1.60, 0.60), m, h, bolts=(1, 4), bevel=0.02,
                     rot=(0, -0.35, 0), lods=VP.ALL)
     for side in (-1, 1):
         cyl(f"spade_ram_{side}", 0.06, 0.70, (-half + 0.55, side * 0.55, 0.85), "X", m["steel"], h, seg=10,

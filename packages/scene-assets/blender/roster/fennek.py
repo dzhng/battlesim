@@ -22,6 +22,13 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import armour_parts as AR  # noqa: E402
+import hull_fittings as HF  # noqa: E402
+import hull_shape as HS  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import running_gear as RG  # noqa: E402
+import stowage as SW  # noqa: E402
+import vehicle_guns as VG  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
@@ -37,7 +44,7 @@ WAIST = 1.20
 ROOF = 1.84
 NOSE = 2.79
 # The upper sides, leaning in from over the waist to the roof, as (y, z) at
-# their foot and top (`vehicle_parts.on_side`).
+# their foot and top (`hull_shape.on_side`).
 UPPER_SIDE = ((1.17, 1.40), (0.98, ROOF))
 
 
@@ -46,14 +53,14 @@ def build(variant, v):
     # A low body: the narrow belly, the waist at its widest, the leaning
     # upper sides to the roof; the nose blunt, the windscreen raked, the
     # tail long.
-    loft("fennek_body", [(BELLY, VP.hull_plan(-2.60, 2.55, 0.85, 0.30)),
-                         (WAIST, VP.hull_plan(-2.79, NOSE, 1.20, 0.40)),
-                         (1.40, VP.hull_plan(-2.75, 2.70, UPPER_SIDE[0][0], 0.40)),
-                         (ROOF, VP.hull_plan(-1.60, 1.25, UPPER_SIDE[1][0], 0.25))], mat=m["paint"], parent=hull, bevel=0.05)
+    loft("fennek_body", [(BELLY, HS.hull_plan(-2.60, 2.55, 0.85, 0.30)),
+                         (WAIST, HS.hull_plan(-2.79, NOSE, 1.20, 0.40)),
+                         (1.40, HS.hull_plan(-2.75, 2.70, UPPER_SIDE[0][0], 0.40)),
+                         (ROOF, HS.hull_plan(-1.60, 1.25, UPPER_SIDE[1][0], 0.25))], mat=m["paint"], parent=hull, bevel=0.05)
     box("rear_deck", (1.20, 1.90, 0.10), (-2.15, 0, 1.55), m["paint"], hull, rot=(0, 0.20, 0), bevel=0.03)
     for side, s in ((1, "L"), (-1, "R")):
         for k, x in enumerate(AXLES):
-            VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,
+            RG.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,
                           rim_radius=0.30, ctis=True, hub_bolts=10)
             box(f"a_arm_{s}_{k}", (0.24, 0.40, 0.08), (x, side * (WHEEL_Y - 0.36), WHEEL_R - 0.05), m["dark"], hull,
                 lods=NEAR)
@@ -77,39 +84,39 @@ def fittings(v):
         box(f"lamp_box_{s}", (0.18, 0.30, 0.22), (NOSE - 0.12, side * 0.85, 1.05), m["dark"], hull, bevel=0.02,
             lods=MID)
         cyl(f"headlight_{s}", 0.07, 0.02, (NOSE - 0.02, side * 0.85, 1.05), "X", m["lamp"], hull, seg=14, lods=MID)
-        VP.tow_hook(f"front_tow_{s}", (NOSE - 0.12, side * 0.50, 0.68), m, hull, size=0.10)
-        VP.tow_hook(f"rear_tow_{s}", (-2.70, side * 0.55, 0.70), m, hull, size=0.10, rot=(0, 0, math.pi))
+        HF.tow_hook(f"front_tow_{s}", (NOSE - 0.12, side * 0.50, 0.68), m, hull, size=0.10)
+        HF.tow_hook(f"rear_tow_{s}", (-2.70, side * 0.55, 0.70), m, hull, size=0.10, rot=(0, 0, math.pi))
         mirror = empty(f"dressing_mirror_{s}", parent=hull)
         box(f"mirror_frame_{s}", (0.04, 0.28, 0.04), (1.95, side * 1.25, 1.55), m["black"], mirror, lods=NEAR)
         box(f"mirror_{s}", (0.06, 0.14, 0.26), (1.95, side * 1.38, 1.55), m["black"], mirror, bevel=0.01, lods=MID)
         # The door on the leaning upper side, the window strip over it.
-        loc, rot = VP.on_side(0.45, 1.52, side, *UPPER_SIDE)
-        VP.bolted_panel(f"side_door_{s}", loc, (1.10, 0.62, 0.025), m, hull, bolts=(4, 3), rot=rot, bevel=0.012)
-        loc, rot = VP.on_side(0.30, 1.70, side, *UPPER_SIDE, proud=0.035, standing=True)
+        loc, rot = HS.on_side(0.45, 1.52, side, *UPPER_SIDE)
+        AR.bolted_panel(f"side_door_{s}", loc, (1.10, 0.62, 0.025), m, hull, bolts=(4, 3), rot=rot, bevel=0.012)
+        loc, rot = HS.on_side(0.30, 1.70, side, *UPPER_SIDE, proud=0.035, standing=True)
         box(f"side_window_{s}", (1.25, 0.02, 0.10), loc, m["glass"], hull, rot=rot, lods=MID)
-        loc, rot = VP.on_side(0.10, 1.36, side, *UPPER_SIDE, proud=0.045, standing=True)
+        loc, rot = HS.on_side(0.10, 1.36, side, *UPPER_SIDE, proud=0.045, standing=True)
         box(f"door_handle_{s}", (0.14, 0.04, 0.04), loc, m["steel"], hull, rot=rot, lods=FINE)
         for k in range(10):
             x = 2.30 - k * 0.48
             cyl(f"waist_bolt_{s}_{k}", 0.024, 0.03, (x, side * 1.19, 1.30), "Y", m["steel"], hull, seg=6, lods=FINE)
-        VP.light_with_guard(f"tail_light_{s}", (-2.78, side * 0.95, 1.10), 0.05, dict(m, lamp=m["tail"]), hull,
+        HF.light_with_guard(f"tail_light_{s}", (-2.78, side * 0.95, 1.10), 0.05, dict(m, lamp=m["tail"]), hull,
                             rot=(0, 0, math.pi))
         whip = empty(f"dressing_antenna_{s}", parent=hull)
-        VP.antenna(f"antenna_{s}", (-2.30, side * 0.75, 1.62), m, whip, height=2.4)
+        RF.antenna(f"antenna_{s}", (-2.30, side * 0.75, 1.62), m, whip, height=2.4)
     box("front_plate", (0.02, 0.50, 0.12), (NOSE + 0.005, 0.30, 0.82), m["marking"], hull, lods=MID)
     # The crew's roof hatches just behind the station's ring, clear of what
     # it swings round, and the folded BAA sensor mast on the rear roof.
     ring = v.frame["mounts"][0]["pivot_m"][0]
-    VP.hatch("commander_hatch", (ring - 0.50, 0.55, ROOF), m, hull, radius=0.28)
-    VP.hatch("driver_hatch", (ring - 0.60, -0.60, ROOF), m, hull, size=(0.55, 0.50))
+    RF.hatch("commander_hatch", (ring - 0.50, 0.55, ROOF), m, hull, radius=0.28)
+    RF.hatch("driver_hatch", (ring - 0.60, -0.60, ROOF), m, hull, size=(0.55, 0.50))
     cyl("mast_foot", 0.12, 0.20, (-1.05, -0.45, ROOF + 0.10), "Z", m["dark"], hull, seg=14, lods=MID)
     cyl("mast_column", 0.07, 0.95, (-1.05, -0.45, ROOF + 0.24), "X", m["dark"], hull, seg=12)
     box("sensor_head", (0.36, 0.34, 0.28), (-0.62, -0.45, ROOF + 0.30), m["paint"], hull, bevel=0.03)
     box("sensor_window", (0.01, 0.22, 0.14), (-0.435, -0.45, ROOF + 0.32), m["glass"], hull, lods=MID)
     tarp = empty("dressing_rear_stowage", parent=hull)
-    VP.stowage_box("rear_box", (-2.25, 0.45, 1.60), (0.55, 0.60, 0.30), dict(m, paint=m["dark"]), tarp,
+    SW.stowage_box("rear_box", (-2.25, 0.45, 1.60), (0.55, 0.60, 0.30), dict(m, paint=m["dark"]), tarp,
                    rot=(0, 0.20, 0))
-    VP.jerrycan("rear_jerrycan", (-2.25, -0.45, 1.60), dict(m, paint=m["dark"]), tarp, size=(0.47, 0.165, 0.345),
+    SW.jerrycan("rear_jerrycan", (-2.25, -0.45, 1.60), dict(m, paint=m["dark"]), tarp, size=(0.47, 0.165, 0.345),
                 rot=(0, 0.20, 0))
 
 
@@ -123,9 +130,9 @@ def flw100(v, station, pitch, pivot):
     for side in (-1, 1):
         box(f"station_cradle_{side}", (0.36, 0.05, 0.28), (0.02, side * 0.16, 0.0), m["paint"], station,
             bevel=0.012)
-    VP.sight_housing("station_sight", (0.08, 0.30, -0.10), m, pitch, size=(0.30, 0.18, 0.22))
+    RF.sight_housing("station_sight", (0.08, 0.30, -0.10), m, pitch, size=(0.30, 0.18, 0.22))
     box("station_ammo", (0.30, 0.14, 0.24), (-0.02, -0.28, -0.08), m["paint"], pitch, bevel=0.012, lods=MID)
-    VP.browning_m2(pitch, v.frame["mounts"][0]["muzzle_m"][0], m)
+    VG.browning_m2(pitch, v.frame["mounts"][0]["muzzle_m"][0], m)
 
 
 def wreck(variant, v):

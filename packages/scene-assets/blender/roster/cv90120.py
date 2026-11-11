@@ -27,6 +27,12 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import cv90 as C  # noqa: E402
+import armour_parts as AR  # noqa: E402
+import hull_shape as HS  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import running_gear as RG  # noqa: E402
+import stowage as SW  # noqa: E402
+import vehicle_guns as VG  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
@@ -55,37 +61,37 @@ def turret_body(v, turret):
     # front is broad and low, not a narrow box set back.
     def plan(cheek, side, nose, back):
         left = [(nose, 0.36), *cheek, (-1.25, side), (back, side - 0.20)]
-        return VP.mirror_plan(left)
+        return HS.mirror_plan(left)
 
     base = plan(CHEEK_WAIST, SIDE_WAIST, 1.15, -2.20)
     crown = plan(CHEEK_ROOF, SIDE_ROOF, 0.95, -2.15)
     cyl("turret_ring_guard", 1.05, 0.08, (0, 0, foot - 0.03), "Z", m["dark"], turret, seg=36, lods=MID)
     loft("turret_shell", [(foot, base), (waist, base), (ROOF, crown)], mat=m["paint"], parent=turret,
          bevel=0.05)
-    VP.roof_fittings("roof", crown, ROOF, m, turret, periscopes=((-0.10, 0.95, 0.5),))
-    VP.laser_warners("laser_warner", crown, ROOF, m, turret)
+    RF.roof_fittings("roof", crown, ROOF, m, turret, periscopes=((-0.10, 0.95, 0.5),))
+    RF.laser_warners("laser_warner", crown, ROOF, m, turret)
     for side, s in ((1, "L"), (-1, "R")):
-        VP.weld_line(f"cheek_weld_{s}", [(x, side * y, waist) for x, y in CHEEK_WAIST], m,
+        AR.weld_line(f"cheek_weld_{s}", [(x, side * y, waist) for x, y in CHEEK_WAIST], m,
                      turret)
         # On the turret's leaning flank: the shell's side at x -0.55, from
         # the top of its upright foot to its crown.
-        loc, rot = VP.on_side(-0.55, foot + 0.32, side, (SIDE_WAIST, waist), (SIDE_ROOF, ROOF))
-        VP.bolted_panel(f"turret_side_{s}", loc, (1.30, 0.36, 0.05), m, turret, bolts=(4, 2), bevel=0.02,
+        loc, rot = HS.on_side(-0.55, foot + 0.32, side, (SIDE_WAIST, waist), (SIDE_ROOF, ROOF))
+        AR.bolted_panel(f"turret_side_{s}", loc, (1.30, 0.36, 0.05), m, turret, bolts=(4, 2), bevel=0.02,
                         lods=VP.ALL, rot=rot)
-        VP.smoke_discharger_bank(f"smoke_{s}", (0.30, side * 1.20, ROOF - 0.08), m, turret, count=4,
+        RF.smoke_discharger_bank(f"smoke_{s}", (0.30, side * 1.20, ROOF - 0.08), m, turret, count=4,
                                  tube_radius=0.045, tube_length=0.20, elevation=0.3, spread=0.3,
                                  rot=(0, 0, side * 0.6))
         whip = empty(f"dressing_antenna_{s}", parent=turret)
-        VP.antenna(f"antenna_{s}", (-1.95, side * 0.95, ROOF), m, whip, height=2.0)
-    VP.sight_housing("gunner_sight", (0.55, -0.55, ROOF - 0.04), m, turret, size=(0.40, 0.32, 0.24))
+        RF.antenna(f"antenna_{s}", (-1.95, side * 0.95, ROOF), m, whip, height=2.0)
+    RF.sight_housing("gunner_sight", (0.55, -0.55, ROOF - 0.04), m, turret, size=(0.40, 0.32, 0.24))
     ball = empty("dressing_commander_sight", parent=turret)
     cyl("sight_post", 0.08, 0.22, (0.20, 0.62, ROOF + 0.11), "Z", m["dark"], ball, seg=14, lods=MID)
     cyl("sight_ball", 0.20, 0.34, (0.20, 0.62, ROOF + 0.36), "Z", m["paint"], ball, seg=22, bevel=0.09)
     box("sight_ball_window", (0.03, 0.18, 0.12), (0.39, 0.62, ROOF + 0.36), m["glass"], ball, lods=MID)
-    VP.hatch("commander_hatch", (-0.55, 0.55, ROOF), m, turret, radius=0.28)
-    VP.hatch("gunner_hatch", (-0.55, -0.55, ROOF), m, turret, radius=0.26)
-    VP.stowage_box("bustle_box", (-1.95, 0, foot + 0.08), (0.45, 2.20, 0.42), m, turret)
-    VP.tarp_roll("bustle_tarp", (-1.60, 0.0, ROOF + 0.10), 1.70, 0.14, m, turret, straps=3)
+    RF.hatch("commander_hatch", (-0.55, 0.55, ROOF), m, turret, radius=0.28)
+    RF.hatch("gunner_hatch", (-0.55, -0.55, ROOF), m, turret, radius=0.26)
+    SW.stowage_box("bustle_box", (-1.95, 0, foot + 0.08), (0.45, 2.20, 0.42), m, turret)
+    SW.tarp_roll("bustle_tarp", (-1.60, 0.0, ROOF + 0.10), 1.70, 0.14, m, turret, straps=3)
     # The photos' add-on armour and stowage: tile packs on the cheeks' faces
     # (lying on the leaning cheek, facing out along its normal) and the
     # flanks' rear, a basket round the bustle box.
@@ -99,11 +105,11 @@ def turret_body(v, turret):
     t = 0.12 / (ROOF - waist)
     cheek = [w + (c - w) * t for w, c in zip(mid_waist, mid_roof)]
     for side, s in ((1, "L"), (-1, "R")):
-        VP.armour_tiles(f"cheek_armour_{s}", (cheek[0], side * cheek[1], waist + 0.12), (0.62, 0.26), (2, 1), 0.06, m,
+        AR.armour_tiles(f"cheek_armour_{s}", (cheek[0], side * cheek[1], waist + 0.12), (0.62, 0.26), (2, 1), 0.06, m,
                         turret, rot=(0, math.pi / 2 - lean, side * facing))
-        loc, rot = VP.on_side(-1.65, foot + 0.32, side, (SIDE_WAIST, waist), (SIDE_ROOF, ROOF))
-        VP.armour_tiles(f"flank_armour_{s}", loc, (0.80, 0.36), (2, 1), 0.06, m, turret, rot=rot)
-    VP.slat_armour("bustle_basket", (-2.28, 0, foot + 0.05), (2.30, 0.50), m, turret, spacing=0.10, bar=0.014,
+        loc, rot = HS.on_side(-1.65, foot + 0.32, side, (SIDE_WAIST, waist), (SIDE_ROOF, ROOF))
+        AR.armour_tiles(f"flank_armour_{s}", loc, (0.80, 0.36), (2, 1), 0.06, m, turret, rot=rot)
+    AR.slat_armour("bustle_basket", (-2.28, 0, foot + 0.05), (2.30, 0.50), m, turret, spacing=0.10, bar=0.014,
                    rot=(0, 0, math.pi / 2))
 
 
@@ -128,7 +134,7 @@ def gun_120(v, gun):
 
 def build(variant, v):
     C.hull_body(v, nose_z=NOSE_Z)
-    VP.tracked_running_gear(v.mats, v.hull, C.TRACK_Y, C.TRACK_W, C.ROAD_X, C.ROAD_Z, C.ROAD_R, 0.20, C.SPROCKET,
+    RG.tracked_running_gear(v.mats, v.hull, C.TRACK_Y, C.TRACK_W, C.ROAD_X, C.ROAD_Z, C.ROAD_R, 0.20, C.SPROCKET,
                             C.IDLER, (), bolts=6, teeth=11, arm=(0.40, 0.40), pitch=0.15)
     C.hull_sides(v, mk4=False, nose_z=NOSE_Z)
     mounts = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})
@@ -137,7 +143,7 @@ def build(variant, v):
     turret_body(v, turret)
     gun_120(v, gun)
     cyl("pintle", 0.04, 0.20, (0, 0, -0.08), "Z", v.mats["dark"], hmg, seg=10)
-    VP.browning_m2(hmg_gun, v.frame["mounts"][1]["muzzle_m"][0], v.mats, grips=True)
+    VG.browning_m2(hmg_gun, v.frame["mounts"][1]["muzzle_m"][0], v.mats, grips=True)
     pivot = v.frame["mounts"][0]["pivot_m"]
     v.head_out("commander", turret, pivot[0] - 0.55, 0.55, pivot[2] + ROOF)
 

@@ -30,6 +30,11 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import armour_parts as AR  # noqa: E402
+import hull_fittings as HF  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import running_gear as RG  # noqa: E402
+import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism, stencil  # noqa: E402
 import ural as U  # noqa: E402
@@ -106,7 +111,7 @@ def launcher_box(v, name, x0, x1, z0, z1, width, parent):
         m["paint"], parent, bevel=0.02, lods=MID)
     box(f"{name}_hoist", (0.30, 0.22, 0.20), (x0 + 0.30, width / 2 - 0.18, z1 + 0.10), m["dark"], parent,
         bevel=0.02, lods=NEAR)
-    VP.cable(f"{name}_cable_run", [(x1 - 0.30, -(width / 2 + 0.05), z1 - 0.25), ((x0 + x1) / 2, -(width / 2 + 0.05), z1 - 0.25),
+    HF.cable(f"{name}_cable_run", [(x1 - 0.30, -(width / 2 + 0.05), z1 - 0.25), ((x0 + x1) / 2, -(width / 2 + 0.05), z1 - 0.25),
                                    (x0 + 0.40, -(width / 2 + 0.05), z1 - 0.35)], m, parent, radius=0.025, eyes=False)
 
 
@@ -120,7 +125,7 @@ def m270(v):
     prism("hull_lower", [(-half + 0.30, 0.42), (half - 0.55, 0.42), (half - 0.05, 0.82), (-half, 0.82),
                          (-half, 0.65)], v.width - 1.30, mat=m["paint"], parent=h, bevel=0.04)
     road_x = [2.25 - 0.90 * k for k in range(6)]
-    VP.tracked_running_gear(m, h, v.width / 2 - 0.33, 0.53, road_x, 0.39, 0.31, 0.18, (3.05, 0.62, 0.27),
+    RG.tracked_running_gear(m, h, v.width / 2 - 0.33, 0.53, road_x, 0.39, 0.31, 0.18, (3.05, 0.62, 0.27),
                             (-3.20, 0.58, 0.25), [(1.8, 0.86, 0.08), (0.45, 0.88, 0.08), (-0.9, 0.88, 0.08),
                                                   (-2.25, 0.86, 0.08)], bolts=6, teeth=11, arm=(0.38, -0.30),
                             pitch=0.15, dual=True)
@@ -141,26 +146,26 @@ def m270(v):
         box(f"wiper_{k}", (0.02, 0.03, 0.34), (cab_front - 0.19, y - 0.15, 2.12), m["black"], h,
             rot=(-0.5, -0.55, 0), lods=FINE)
     nose = math.atan2(0.25, 0.40)  # the upper glacis, from (half, 1.05) back to (half - 0.40, 1.30)
-    VP.grille("engine_grille", (half - 0.20, 0.55, 1.18), (0.36, 0.95), m, h, slats=6, rot=(0, nose, 0))
-    VP.bolted_panel("transmission_plate", (half - 0.20, -0.55, 1.18), (0.36, 0.95, 0.03), m, h, bolts=(2, 4),
+    HF.grille("engine_grille", (half - 0.20, 0.55, 1.18), (0.36, 0.95), m, h, slats=6, rot=(0, nose, 0))
+    AR.bolted_panel("transmission_plate", (half - 0.20, -0.55, 1.18), (0.36, 0.95, 0.03), m, h, bolts=(2, 4),
                     rot=(0, nose, 0), bevel=0.01)
-    VP.hatch("cab_hatch", (cab_rear + 0.40, -0.70, 2.52), m, h, radius=0.26)
-    VP.hatch("cab_hatch_2", (cab_rear + 0.40, 0.70, 2.52), m, h, radius=0.26)
+    RF.hatch("cab_hatch", (cab_rear + 0.40, -0.70, 2.52), m, h, radius=0.26)
+    RF.hatch("cab_hatch_2", (cab_rear + 0.40, 0.70, 2.52), m, h, radius=0.26)
     for side, s in ((1, "L"), (-1, "R")):
-        VP.light_with_guard(f"headlight_{s}", (half - 0.05, side * 1.10, 1.30), 0.07, m, h)
-        VP.tow_hook(f"front_tow_{s}", (half - 0.02, side * 0.70, 0.85), m, h, size=0.12)
+        HF.light_with_guard(f"headlight_{s}", (half - 0.05, side * 1.10, 1.30), 0.07, m, h)
+        HF.tow_hook(f"front_tow_{s}", (half - 0.02, side * 0.70, 0.85), m, h, size=0.12)
         box(f"side_skirt_{s}", (v.length - 0.40, 0.05, 0.40), (0, side * (v.width / 2 - 0.03), 1.05), m["paint"], h,
             bevel=0.01, lods=MID)
-        VP.bolted_panel(f"cab_door_{s}", (cab_rear + 0.75, side * 1.405, deck + 0.10), (0.80, 0.95, 0.03), m, h,
+        AR.bolted_panel(f"cab_door_{s}", (cab_rear + 0.75, side * 1.405, deck + 0.10), (0.80, 0.95, 0.03), m, h,
                         bolts=(3, 3), rot=(-side * math.pi / 2, 0, 0), bevel=0.01)
-        VP.periscope(f"door_vision_{s}", (cab_rear + 0.75, side * 1.36, 2.40), m, h, size=(0.12, 0.30, 0.12),
+        RF.periscope(f"door_vision_{s}", (cab_rear + 0.75, side * 1.36, 2.40), m, h, size=(0.12, 0.30, 0.12),
                      rot=(0, 0, side * math.pi / 2))
         box(f"door_handle_{s}", (0.14, 0.04, 0.04), (cab_rear + 0.40, side * 1.45, 1.75), m["steel"], h, lods=FINE)
-        VP.cable(f"tow_cable_{s}", [(-1.8, side * (v.width / 2 - 0.01), 1.20), (0.0, side * (v.width / 2 - 0.01), 1.22),
+        HF.cable(f"tow_cable_{s}", [(-1.8, side * (v.width / 2 - 0.01), 1.20), (0.0, side * (v.width / 2 - 0.01), 1.22),
                                     (1.2, side * (v.width / 2 - 0.01), 1.20)], m, h, radius=0.018)
         whip = empty(f"dressing_antenna_{s}", parent=h)
-        VP.antenna(f"antenna_{s}", (cab_rear + 0.15, side * 1.20, 2.52), m, whip, height=2.2)
-    VP.exhaust("exhaust", (half - 0.55, -1.30, 1.95), 0.07, 0.40, m, h, rot=(0, 0, -math.pi / 2))
+        RF.antenna(f"antenna_{s}", (cab_rear + 0.15, side * 1.20, 2.52), m, whip, height=2.2)
+    HF.exhaust("exhaust", (half - 0.55, -1.30, 1.95), 0.07, 0.40, m, h, rot=(0, 0, -math.pi / 2))
     # The launcher-loader module over the rear: two pods in its box.
     x0, x1 = -half + 0.05, cab_rear - 0.10
     box("launcher_base", (1.40, 1.80, 0.20), (x1 - 1.0, 0, deck + 0.10), m["dark"], h, bevel=0.02)
@@ -168,7 +173,7 @@ def m270(v):
     launcher_box(v, "launcher", x0, x1, deck + 0.29, 2.55, 2.60, h)
     for k, y in enumerate((-0.62, 0.62)):
         pod(v, f"pod_{k}", (x0 + (x1 - x0 - 0.20) / 2, y, deck + 0.80), (x1 - x0 - 0.20, 1.18, 0.85), (3, 2), h)
-    VP.stowage_box("rear_box", (-half + 0.20, 0, 0.90), (0.30, 1.60, 0.35), m, h)
+    SW.stowage_box("rear_box", (-half + 0.20, 0, 0.90), (0.30, 1.60, 0.35), m, h)
     stencil("rear_number", "A2", 0.20, (cab_front - 1.0, 1.405, 1.8), (math.pi / 2, 0, math.pi), m["marking"], h)
 
 
@@ -186,9 +191,9 @@ def himars(v, prsm):
     pod(v, "pod", (x0 + (x1 - x0 - 0.25) / 2, 0, deck + 1.20), (x1 - x0 - 0.25, 1.95, 1.30), (3, 2), h,
         caps=2 if prsm else None)
     for side, s in ((1, "L"), (-1, "R")):
-        VP.stowage_box(f"side_box_{s}", (-1.75, side * 1.02, deck - 0.45), (1.20, 0.30, 0.42), m, h,
+        SW.stowage_box(f"side_box_{s}", (-1.75, side * 1.02, deck - 0.45), (1.20, 0.30, 0.42), m, h,
                        rot=(0, 0, 0 if side > 0 else math.pi))
-    VP.jerrycan("jerrycan", (0.55, -0.98, deck), dict(m, paint=m["dark"]), h, rot=(0, 0, math.pi / 2))
+    SW.jerrycan("jerrycan", (0.55, -0.98, deck), dict(m, paint=m["dark"]), h, rot=(0, 0, math.pi / 2))
     # Behind the cab: the air intake on its stalk and the exhaust stack.
     cyl("air_intake", 0.16, 0.90, (1.05, 0.90, deck + 1.05), "Z", m["paint"], h, seg=16, bevel=0.02)
     cyl("air_intake_cap", 0.20, 0.12, (1.05, 0.90, deck + 1.55), "Z", m["dark"], h, seg=16, lods=MID)
@@ -208,12 +213,12 @@ def bm21(v):
         # The flat fenders over the rear bogie, a stowage box on each.
         box(f"rear_fender_{s}", (2.45, 0.52, 0.05), (-1.62, side * U.WHEEL_Y, 1.35), m["paint"], h, bevel=0.012)
         box(f"fender_stay_{s}", (0.06, 0.40, 0.18), (-1.62, side * 0.80, 1.26), m["dark"], h, lods=NEAR)
-        VP.stowage_box(f"fender_box_{s}", (-2.35, side * 1.0, 1.375), (0.80, 0.40, 0.32), m, h,
+        SW.stowage_box(f"fender_box_{s}", (-2.35, side * 1.0, 1.375), (0.80, 0.40, 0.32), m, h,
                        rot=(0, 0, 0 if side > 0 else math.pi))
-        VP.light_with_guard(f"tail_light_{s}", (-3.62, side * 1.00, 1.10), 0.05, dict(m, lamp=m["tail"]), h,
+        HF.light_with_guard(f"tail_light_{s}", (-3.62, side * 1.00, 1.10), 0.05, dict(m, lamp=m["tail"]), h,
                             rot=(0, 0, math.pi))
     box("rear_bumper", (0.12, 2.00, 0.14), (-3.55, 0, 0.88), m["dark"], h, bevel=0.012)
-    VP.tow_hook("hitch", (-3.55, 0, 0.88), m, h, size=0.10, rot=(0, 0, math.pi))
+    HF.tow_hook("hitch", (-3.55, 0, 0.88), m, h, size=0.10, rot=(0, 0, math.pi))
     # The turntable and the cradle's side plates with their sector gears.
     tx = -2.30
     cyl("launcher_turntable", 0.70, 0.18, (tx, 0, rail + 0.23), "Z", m["dark"], h, seg=28)
@@ -273,11 +278,11 @@ def tornado_s(v):
     half = v.length / 2
     deck = maz_543m(v)
     box("deck_plate", (7.0, 2.6, 0.10), (-1.6, 0, deck + 0.05), m["paint"], h, bevel=0.01)
-    VP.stowage_box("crane_box", (2.6, 0, deck), (0.70, 1.80, 0.65), m, h, rot=(0, 0, math.pi / 2))
+    SW.stowage_box("crane_box", (2.6, 0, deck), (0.70, 1.80, 0.65), m, h, rot=(0, 0, math.pi / 2))
     for side, s in ((1, "L"), (-1, "R")):
         # Stowage along the deck's edges, the rear stabiliser jacks, a ladder.
         for k, x in enumerate((0.9, -0.4)):
-            VP.stowage_box(f"deck_box_{s}_{k}", (x, side * 1.18, deck + 0.10), (1.10, 0.24, 0.38), m, h,
+            SW.stowage_box(f"deck_box_{s}_{k}", (x, side * 1.18, deck + 0.10), (1.10, 0.24, 0.38), m, h,
                            rot=(0, 0, 0 if side > 0 else math.pi))
         box(f"jack_leg_{s}", (0.16, 0.16, deck - 0.25), (-half + 0.45, side * 1.15, (deck + 0.25) / 2 + 0.05), m["dark"],
             h, bevel=0.01)
@@ -302,7 +307,7 @@ def tornado_s(v):
     for k, x in enumerate((-3.0, -0.8, 1.4)):
         box(f"tube_band_{k}", (0.10, cols * (2 * r + 0.03) + 0.08, rows * (2 * r + 0.03) + 0.08),
             (cx + x, 0, cz + (rows - 1) * (r + 0.015)), m["dark"], h, lods=MID)
-    VP.cable("firing_cable", [(-3.6, 0.95, deck + 0.40), (-1.0, 0.95, deck + 0.42), (1.6, 0.95, deck + 0.40)], m, h,
+    HF.cable("firing_cable", [(-3.6, 0.95, deck + 0.40), (-1.0, 0.95, deck + 0.42), (1.6, 0.95, deck + 0.40)], m, h,
              radius=0.025, eyes=False)
     box("travel_rest", (0.20, 1.20, deck + 0.35 - 1.25), (2.0, 0, (deck + 0.35 + 1.25) / 2), m["dark"], h, lods=MID)
 

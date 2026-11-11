@@ -1,0 +1,260 @@
+"""Running gear: tyred wheels, a tracked vehicle's road wheels, sprocket,
+idler and return rollers, and the track belt wrapped round them.
+
+Every part keeps the contracts the kernel documents (`vehicle_parts`). The
+nodes this module makes are the renderer's: each wheel is a spinning `wheel_*`
+node (`vehicle_parts.wheel_node`), and `track_loop` makes the empty `track_L`
+or `track_R` carrying `track_length_m` and `link_pitch_m`; every vertex under a
+track node scrolls its UVs with the links, so its belt is the only thing under
+it.
+"""
+import math
+import os
+import sys
+
+import bmesh
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from parts import box, cyl, empty, mesh_part  # noqa: E402
+from vehicle_parts import FINE, MID, NEAR, tube_part, wheel_node  # noqa: E402
+
+
+def tyre_wheel(name, loc, radius, width, side, mats, parent, rim_radius=None, ctis=False, tread="road",
+               hub_bolts=0):
+    """A wheeled vehicle's wheel: a black treaded tyre, a rim on its outer face
+    (`side` +1 for the left, -1 for the right) and a hub, with a CTIS air line
+    from hub to rim where fitted. `rim_radius` defaults to the lifted 0.56 of the
+    tyre. `tread` is "road" (an armoured carrier's run-flat road tread: blocks
+    across the face) or "bar" (a truck's military bar tread: two staggered rows
+    of deep chevron bars). `hub_bolts` rings the hub with that many wheel nuts.
+    Node: `wheel_*` empty, returned. Roles: rubber, paint, dark, steel."""
+    node = wheel_node(name, loc, radius, parent)
+    rim_r = radius * 0.56 if rim_radius is None else rim_radius
+    face = side * width / 2
+    cyl(name=f"{name}_tyre", r=radius, depth=width, axis="Y", mat=mats["rubber"], parent=node, seg=28)
+    cyl(name=f"{name}_rim", r=rim_r, depth=0.06, loc=(0, face + side * 0.005, 0), axis="Y",
+        mat=mats["paint"], parent=node, seg=20, bevel=0.01)
+    cyl(name=f"{name}_hub", r=radius * 0.21, depth=0.09, loc=(0, face + side * 0.035, 0), axis="Y",
+        mat=mats["dark"], parent=node, seg=12, lods=MID)
+    for j in range(hub_bolts):
+        angle = j * math.tau / hub_bolts
+        at = (radius * 0.21 + rim_r) / 2
+        cyl(name=f"{name}_nut_{j}", r=0.018, depth=0.03, loc=(at * math.cos(angle), face + side * 0.045,
+                                                             at * math.sin(angle)), axis="Y",
+            mat=mats["steel"], parent=node, seg=6, lods=FINE)
+    if tread == "bar":
+        treads = max(12, round(math.tau * radius / 0.17))
+        for j in range(treads):
+            for k, y in enumerate((-0.25, 0.25)):
+                angle = (j + 0.5 * k) * math.tau / treads
+                at = radius - 0.02
+                box(name=f"{name}_tread_{j}_{k}", size=(0.07, width * 0.46, 0.04),
+                    loc=(at * math.sin(angle), y * width, at * math.cos(angle)),
+                    rot=(0, angle, (0.45 if k else -0.45) * side), mat=mats["rubber"], parent=node, lods=NEAR)
+        return node
+    treads = max(12, round(math.tau * radius / 0.21))
+    for j in range(treads):
+        angle = j * math.tau / treads
+        at = radius - 0.012
+        box(name=f"{name}_tread_{j}", size=(0.15, width * 0.88, 0.025),
+            loc=(at * math.sin(angle), 0, at * math.cos(angle)), rot=(0, angle, 0.18 * side),
+            mat=mats["rubber"], parent=node, lods=NEAR)
+    if ctis:
+        hub_face = face + side * 0.08
+        rim_face = face + side * 0.035
+
+        def air_line(lod):
+            return [(0, hub_face, radius * 0.12), (0, rim_face, rim_r * 0.85)]
+
+        tube_part(name=f"{name}_ctis", path_for=air_line, radius=0.008, mat=mats["steel"], parent=node, lods=FINE)
+    return node
+
+
+def road_wheel(name, loc, radius, width, side, mats, parent, bolts=6, ribs=0, inner=None):
+    """A tracked vehicle's road wheel: a rubber tyre on a painted steel disc,
+    a hub and hub bolts on the outer face (`side` +1 left, -1 right), and
+    `ribs` radial stiffening ribs pressed into the disc (the Soviet pattern).
+    `inner` = (width, offset) makes it a dual wheel: the inner half's tyre,
+    that wide and that far inboard, on the same spinning node.
+    Node: `wheel_*` empty, returned. Roles: rubber, paint, dark, steel."""
+    node = wheel_node(name, loc, radius, parent)
+    disc_width = width + 0.03
+    cyl(name=f"{name}_tyre", r=radius, depth=width, axis="Y", mat=mats["rubber"], parent=node, seg=28)
+    cyl(name=f"{name}_disc", r=radius * 0.82, depth=disc_width, axis="Y", mat=mats["paint"], parent=node, seg=24)
+    cyl(name=f"{name}_hub", r=radius * 0.26, depth=width + 0.09, axis="Y", mat=mats["dark"], parent=node,
+        seg=16, lods=MID)
+    for j in range(ribs):
+        angle = (j + 0.5) * math.tau / ribs
+        at = radius * 0.54
+        box(name=f"{name}_rib_{j}", size=(radius * 0.46, 0.03, 0.035),
+            loc=(at * math.cos(angle), side * (disc_width / 2 + 0.008), at * math.sin(angle)), rot=(0, -angle, 0),
+            mat=mats["paint"], parent=node, lods=NEAR)
+    for j in range(bolts):
+        angle = j * math.tau / bolts
+        at = radius * 0.47
+        cyl(name=f"{name}_bolt_{j}", r=0.022, depth=0.045,
+            loc=(at * math.cos(angle), side * (disc_width / 2 + 0.015), at * math.sin(angle)), axis="Y",
+            mat=mats["steel"], parent=node, seg=6, lods=FINE)
+    if inner is not None:
+        inner_width, offset = inner
+        cyl(f"{name}_inner", radius, inner_width, (0, -side * offset, 0), "Y", mats["rubber"], node, seg=24, lods=MID)
+    return node
+
+
+def sprocket(name, loc, radius, width, mats, parent, teeth=12):
+    """The toothed drive sprocket: a dark wheel, a painted hub and steel teeth
+    round its rim. Node: `wheel_*` empty, returned. Roles: dark, paint, steel."""
+    node = wheel_node(name, loc, radius, parent)
+    cyl(name=f"{name}_body", r=radius, depth=width, axis="Y", mat=mats["dark"], parent=node, seg=24)
+    cyl(name=f"{name}_hub", r=radius * 0.54, depth=width + 0.05, axis="Y", mat=mats["paint"], parent=node,
+        seg=16, lods=MID)
+    tooth_length = 0.47 * math.tau * radius / teeth
+    tooth_at = radius + 0.015
+    for j in range(teeth):
+        angle = j * math.tau / teeth
+        box(name=f"{name}_tooth_{j}", size=(tooth_length, width + 0.02, radius * 0.16),
+            loc=(tooth_at * math.sin(angle), 0, tooth_at * math.cos(angle)), rot=(0, angle, 0),
+            mat=mats["steel"], parent=node, lods=NEAR)
+    return node
+
+
+def idler(name, loc, radius, width, mats, parent):
+    """The idler wheel at the track's far end: a dark wheel and a painted hub.
+    Node: `wheel_*` empty, returned. Roles: dark, paint."""
+    node = wheel_node(name, loc, radius, parent)
+    cyl(name=f"{name}_body", r=radius, depth=width, axis="Y", mat=mats["dark"], parent=node, seg=24)
+    cyl(name=f"{name}_hub", r=radius * 0.54, depth=width + 0.05, axis="Y", mat=mats["paint"], parent=node,
+        seg=16, lods=MID)
+    return node
+
+
+def return_roller(name, loc, radius, width, mats, parent):
+    """A small roller carrying the track's upper run. Node: `wheel_*` empty,
+    returned. Roles: dark."""
+    node = wheel_node(name, loc, radius, parent)
+    cyl(name=f"{name}_roller", r=radius, depth=width, axis="Y", mat=mats["dark"], parent=node, seg=16, lods=NEAR)
+    return node
+
+
+def _convex_hull_2d(points):
+    """The convex hull of 2D points, counter-clockwise (monotone chain)."""
+    pts = sorted(set(points))
+
+    def cross(o, a, b):
+        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+    lower, upper = [], []
+    for p in pts:
+        while len(lower) >= 2 and cross(lower[-2], lower[-1], p) <= 0:
+            lower.pop()
+        lower.append(p)
+    for p in reversed(pts):
+        while len(upper) >= 2 and cross(upper[-2], upper[-1], p) <= 0:
+            upper.pop()
+        upper.append(p)
+    return lower[:-1] + upper[:-1]
+
+
+def track_loop(name, wheels, y, width, pitch, mats, parent, thickness=0.08):
+    """A closed track belt wrapped round every wheel it touches, as a real run
+    is: `wheels` are (x, z, radius) circles in the side plane (road wheels,
+    sprocket, idler, return rollers), and the belt's centre line is their
+    convex hull grown by half its `thickness`, so the lower run lies under the
+    road wheels, the ends wrap the sprocket and idler and the upper run rests
+    on the rollers. Centred across on `y`, `width` wide. Links are the 'track'
+    texture only: u runs along the belt in links, v across it. Node: the empty
+    `name` (`track_L` or `track_R`) at the parent's origin, carrying
+    `track_length_m` and `link_pitch_m`, returned; its belt is its only mesh.
+    Roles: track."""
+    if name not in ("track_L", "track_R"):
+        raise ValueError(f"a track node is named track_L or track_R: {name}")
+    grown = []
+    for x, z, r in wheels:
+        for k in range(96):
+            a = k * math.tau / 96
+            grown.append((round(x + (r + thickness / 2) * math.cos(a), 5), round(z + (r + thickness / 2) * math.sin(a), 5)))
+    loop = _convex_hull_2d(grown)
+    segments = []
+    length = 0.0
+    for i, a in enumerate(loop):
+        b = loop[(i + 1) % len(loop)]
+        step = math.hypot(b[0] - a[0], b[1] - a[1])
+        segments.append((a, b, length, step))
+        length += step
+    node = empty(name, parent=parent, props={"track_length_m": length, "link_pitch_m": pitch})
+    spacing = (0.06, 0.14, 0.32, 0.7)
+
+    def at(d):
+        for a, b, start, step in segments:
+            if d <= start + step or (a, b) == segments[-1][:2]:
+                t = 0.0 if step == 0 else min(1.0, (d - start) / step)
+                return (a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)
+        return segments[-1][1]
+
+    def belt(bm, lod):
+        n = max(12, int(length / spacing[lod]))
+        centre = [at(k * length / n) for k in range(n)]
+        uv = bm.loops.layers.uv.new("UVMap")
+        half = thickness / 2
+        # across the belt (w 0..1) and out from its centre line (r)
+        profile = ((0, -half), (0, half), (1, half), (1, -half))
+        rings = []
+        for i, p in enumerate(centre):
+            ahead = centre[(i + 1) % n]
+            behind = centre[i - 1]
+            tx, tz = ahead[0] - behind[0], ahead[1] - behind[1]
+            norm = math.hypot(tx, tz) or 1.0
+            nx, nz = tz / norm, -tx / norm  # outward for a counter-clockwise loop
+            rings.append([bm.verts.new((p[0] + nx * r, y - width / 2 + w * width, p[1] + nz * r)) for w, r in profile])
+        for i in range(n):
+            j = (i + 1) % n
+            u0 = i * length / n / pitch
+            u1 = (i + 1) * length / n / pitch
+            for k in range(4):
+                k2 = (k + 1) % 4
+                face = bm.faces.new((rings[i][k], rings[i][k2], rings[j][k2], rings[j][k]))
+                v0, v1 = profile[k][0], profile[k2][0]
+                if k in (0, 2):  # the belt's edge faces: v across its thickness
+                    v0, v1 = (0.0, thickness / pitch) if k == 0 else (thickness / pitch, 0.0)
+                for loop_, (uu, vv) in zip(face.loops, ((u0, v0), (u0, v1), (u1, v1), (u1, v0))):
+                    loop_[uv].uv = (uu, vv)
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+
+    mesh_part(f"{name}_band", belt, mat=mats["track"], parent=node)
+    return node
+
+
+def tracked_running_gear(mats, parent, track_y, track_w, road_x, road_z, road_r, road_w, sprocket_at,
+                         idler_at, returns=(), dual=True, bolts=8, ribs=0, teeth=12, arm=(0.48, 0.42), pitch=0.17,
+                         thickness=0.08):
+    """Both sides' running gear of a tracked vehicle, placed as the photos
+    show it: road wheels at `road_x` (centres at `road_z`, radius `road_r`,
+    `road_w` wide; `dual` adds the inner tyre on the same spinning node), each
+    on a trailing arm (`arm` = (length, droop in radians), or None), the drive
+    sprocket (`sprocket_at`) and the idler (`idler_at`) as (x, z, radius), the `returns` rollers as
+    (x, z, radius), and the belt wrapped round all of them (`track_loop`),
+    centred `track_y` out from the centre line and `track_w` wide. Nodes:
+    `wheel_{L,R}_{1..n}`, `wheel_{L,R}_sprocket`, `wheel_{L,R}_idler`,
+    `wheel_{L,R}_return_{k}` and `track_{L,R}`. Roles: rubber, paint, dark,
+    steel, track."""
+    for side, s in ((1, "L"), (-1, "R")):
+        wheels = []
+        out = side * (track_y + (road_w * 0.6 if dual else 0.0))
+        for k, x in enumerate(road_x):
+            road_wheel(f"wheel_{s}_{k + 1}", (x, out, road_z), road_r, road_w, side, mats, parent, bolts=bolts,
+                       ribs=ribs, inner=(road_w * 0.92, road_w * 1.2) if dual else None)
+            if arm is not None:
+                length, droop = arm
+                box(f"road_arm_{s}_{k}", (length, 0.10, 0.12),
+                    (x - length * 0.45, side * (track_y - track_w * 0.55), road_z + length * 0.25),
+                    mats["dark"], parent, rot=(0, droop, 0), lods=NEAR)
+            wheels.append((x, road_z, road_r))
+        x, z, r = sprocket_at
+        sprocket(f"wheel_{s}_sprocket", (x, side * track_y, z), r, track_w * 0.8, mats, parent, teeth=teeth)
+        x, z, r = idler_at
+        idler(f"wheel_{s}_idler", (x, side * track_y, z), r, track_w * 0.8, mats, parent)
+        wheels += [sprocket_at, idler_at]
+        for k, (x, z, r) in enumerate(returns):
+            return_roller(f"wheel_{s}_return_{k + 1}", (x, side * track_y, z), r, track_w * 0.6, mats, parent)
+            wheels.append((x, z, r))
+        track_loop(f"track_{s}", wheels, side * track_y, track_w, pitch, mats, parent, thickness=thickness)

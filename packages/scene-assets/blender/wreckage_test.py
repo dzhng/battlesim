@@ -13,8 +13,8 @@ import bpy
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from parts import box, empty, reset, tier_of  # noqa: E402
+from running_gear import tyre_wheel  # noqa: E402
 from vehicle_export import materials  # noqa: E402
-from vehicle_parts import tyre_wheel  # noqa: E402
 import wreckage  # noqa: E402
 from wreckage import DEBRIS, burn, cut_to, scatter  # noqa: E402
 

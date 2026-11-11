@@ -24,6 +24,10 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import armour_parts as AR  # noqa: E402
+import hull_fittings as HF  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import running_gear as RG  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, prism  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
@@ -46,13 +50,13 @@ def build(variant, v):
     dark = dict(m, paint=m["dark"])
     for side, s in ((1, "L"), (-1, "R")):
         for k, x in enumerate(AXLES):
-            VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, dark, hull,
+            RG.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, dark, hull,
                           rim_radius=0.26, tread="bar", hub_bolts=8)
             cyl(f"hub_{s}_{k}", 0.11, 0.10, (x, side * (WHEEL_Y + WHEEL_W / 2 + 0.06), WHEEL_R), "Y", m["dark"], hull,
                 seg=12, bevel=0.015, lods=MID)
             box(f"a_arm_{s}_{k}", (0.26, 0.45, 0.08), (x, side * (WHEEL_Y - 0.38), WHEEL_R - 0.06), m["dark"], hull,
                 lods=NEAR)
-        VP.mudflap(f"mudflap_{s}", (-2.55, side * WHEEL_Y, SILL + 0.45), (0.34, 0.40), m, hull)
+        HF.mudflap(f"mudflap_{s}", (-2.55, side * WHEEL_Y, SILL + 0.45), (0.34, 0.40), m, hull)
     station, pitch, _, pivot = rig(v.frame, v.root)["HMG"]
     kord(v, station, pitch, pivot)
 
@@ -94,7 +98,7 @@ def body(v):
     box("bull_top", (0.06, 1.20, 0.06), (half - 0.06, 0, 1.03), m["black"], bar, lods=MID)
     box("bull_mid", (0.06, 1.20, 0.05), (half - 0.06, 0, 0.75), m["black"], bar, lods=NEAR)
     box("front_bumper", (0.14, 1.80, 0.16), (NOSE - 0.05, 0, 0.55), m["black"], hull, bevel=0.015)
-    VP.tow_hook("front_tow", (NOSE + 0.02, 0, 0.50), m, hull, size=0.10)
+    HF.tow_hook("front_tow", (NOSE + 0.02, 0, 0.50), m, hull, size=0.10)
     # Windscreen, windows with their port covers, doors and handles.
     lean = math.atan((COWL[0] - 1.05) / (ROOF - 0.03 - COWL[1]))
     for side, s in ((1, "L"), (-1, "R")):
@@ -108,7 +112,7 @@ def body(v):
             cyl(f"port_cover_{s}_{k}", 0.08, 0.03, (x + 0.10, y + side * 0.02, 1.66), "Y", m["paint"], hull, seg=14,
                 bevel=0.01, lods=MID)
         for k, (front, rear) in enumerate(((1.30, 0.20), (0.10, -0.95))):
-            VP.weld_line(f"door_seam_{s}_{k}", [(front, y, SILL + 0.15), (front, y, ROOF - 0.12),
+            AR.weld_line(f"door_seam_{s}_{k}", [(front, y, SILL + 0.15), (front, y, ROOF - 0.12),
                                                 (rear, y, ROOF - 0.12), (rear, y, SILL + 0.15)], m, hull,
                          radius=0.012)
             box(f"door_handle_{s}_{k}", (0.14, 0.04, 0.05), (rear + 0.15, y, 1.25), m["steel"], hull,
@@ -118,11 +122,11 @@ def body(v):
         mirror = empty(f"dressing_mirror_{s}", parent=hull)
         box(f"mirror_arm_{s}", (0.04, 0.20, 0.03), (1.20, side * 1.12, 1.55), m["dark"], mirror, lods=NEAR)
         box(f"mirror_{s}", (0.05, 0.12, 0.26), (1.20, side * 1.18, 1.62), m["black"], mirror, bevel=0.01, lods=MID)
-        VP.light_with_guard(f"tail_light_{s}", (-half + 0.02, side * 0.88, 1.10), 0.05, dict(m, lamp=m["tail"]),
+        HF.light_with_guard(f"tail_light_{s}", (-half + 0.02, side * 0.88, 1.10), 0.05, dict(m, lamp=m["tail"]),
                             hull, rot=(0, 0, math.pi))
         box(f"roof_rail_{s}", (2.60, 0.04, 0.06), (-1.10, side * 0.90, ROOF + 0.03), m["steel"], hull, lods=NEAR)
         whip = empty(f"dressing_antenna_{s}", parent=hull)
-        VP.antenna(f"antenna_{s}", (-2.50, side * 0.85, ROOF), m, whip, height=2.4)
+        RF.antenna(f"antenna_{s}", (-2.50, side * 0.85, ROOF), m, whip, height=2.4)
     # Amber beacons over the windscreen, the rear door and its spare wheel.
     for k, y in enumerate((-0.30, 0.30)):
         cyl(f"beacon_{k}", 0.04, 0.05, (0.95, y, ROOF + 0.025), "Z", m["tail"], hull, seg=10, lods=MID)

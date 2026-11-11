@@ -29,6 +29,13 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import armour_parts as AR  # noqa: E402
+import hull_fittings as HF  # noqa: E402
+import hull_shape as HS  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import running_gear as RG  # noqa: E402
+import stowage as SW  # noqa: E402
+import vehicle_guns as VG  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism, stencil  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
@@ -74,7 +81,7 @@ def build(variant, v):
     a7v = variant["variant"] in ("2A7V", "2A8")
     a8 = variant["variant"] == "2A8"
     hull_body(v, a7v)
-    VP.tracked_running_gear(v.mats, v.hull, TRACK_Y, TRACK_W, ROAD_X, ROAD_Z, ROAD_R, 0.22, SPROCKET, IDLER,
+    RG.tracked_running_gear(v.mats, v.hull, TRACK_Y, TRACK_W, ROAD_X, ROAD_Z, ROAD_R, 0.22, SPROCKET, IDLER,
                             RETURNS, bolts=8, teeth=12, arm=(0.50, 0.40), pitch=0.18)
     skirts(v)
     mounts = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})
@@ -99,22 +106,22 @@ def hull_body(v, a7v):
           mat=m["paint"], parent=hull, bevel=0.04)
     # The driver's hatch on the right of the glacis head, periscopes ahead of it.
     slope = math.atan(GLACIS_DROP / GLACIS_RUN)
-    VP.hatch("driver_hatch", (2.30, -0.62, glacis_z(2.30)), m, hull, size=(0.62, 0.52), rot=(0, slope, 0))
+    RF.hatch("driver_hatch", (2.30, -0.62, glacis_z(2.30)), m, hull, size=(0.62, 0.52), rot=(0, slope, 0))
     for k, y in enumerate((-0.40, -0.62, -0.84)):
-        VP.periscope(f"driver_periscope_{k}", (2.72, y, glacis_z(2.72) - 0.01), m, hull, size=(0.14, 0.16, 0.08),
+        RF.periscope(f"driver_periscope_{k}", (2.72, y, glacis_z(2.72) - 0.01), m, hull, size=(0.14, 0.16, 0.08),
                      rot=(0, slope, 0))
-    VP.weld_line("glacis_weld", [(3.80, -1.70, glacis_z(3.80)), (3.80, 1.70, glacis_z(3.80))], m, hull)
-    VP.weld_line("deck_weld", [(2.10, -1.70, DECK + 0.004), (2.10, 1.70, DECK + 0.004)], m, hull)
+    AR.weld_line("glacis_weld", [(3.80, -1.70, glacis_z(3.80)), (3.80, 1.70, glacis_z(3.80))], m, hull)
+    AR.weld_line("deck_weld", [(2.10, -1.70, DECK + 0.004), (2.10, 1.70, DECK + 0.004)], m, hull)
     for side, s in ((1, "L"), (-1, "R")):
         if not a7v:
-            VP.light_with_guard(f"headlight_{s}", (3.40, side * 1.30, glacis_z(3.40) + 0.10), 0.07, m, hull)
-        VP.tow_hook(f"front_tow_{s}", (3.70, side * 0.80, 0.94), m, hull, size=0.15)
-        VP.shackle(f"front_shackle_{s}", (3.80, side * 0.52, 0.94), m, hull, size=0.13, rot=(0, 0, math.pi / 2))
-        VP.tow_hook(f"rear_tow_{s}", (-3.70, side * 0.85, 0.92), m, hull, size=0.14, rot=(0, 0, math.pi))
-        VP.light_with_guard(f"tail_light_{s}", (-3.80, side * 1.55, 1.38), 0.05, dict(m, lamp=m["tail"]), hull,
+            HF.light_with_guard(f"headlight_{s}", (3.40, side * 1.30, glacis_z(3.40) + 0.10), 0.07, m, hull)
+        HF.tow_hook(f"front_tow_{s}", (3.70, side * 0.80, 0.94), m, hull, size=0.15)
+        HF.shackle(f"front_shackle_{s}", (3.80, side * 0.52, 0.94), m, hull, size=0.13, rot=(0, 0, math.pi / 2))
+        HF.tow_hook(f"rear_tow_{s}", (-3.70, side * 0.85, 0.92), m, hull, size=0.14, rot=(0, 0, math.pi))
+        HF.light_with_guard(f"tail_light_{s}", (-3.80, side * 1.55, 1.38), 0.05, dict(m, lamp=m["tail"]), hull,
                             rot=(0, 0, math.pi))
-        VP.mudflap(f"rear_mudflap_{s}", (-3.90, side * TRACK_Y, 0.95), (0.56, 0.42), m, hull)
-        VP.cable(f"tow_cable_{s}", [(-3.55, side * 1.66, DECK + 0.025), (-2.2, side * 1.68, DECK + 0.025),
+        HF.mudflap(f"rear_mudflap_{s}", (-3.90, side * TRACK_Y, 0.95), (0.56, 0.42), m, hull)
+        HF.cable(f"tow_cable_{s}", [(-3.55, side * 1.66, DECK + 0.025), (-2.2, side * 1.68, DECK + 0.025),
                                     (-0.8, side * 1.68, DECK + 0.02), (0.9, side * 1.66, DECK + 0.02)], m, hull,
                  radius=0.024)
         cyl(f"fuel_cap_{s}", 0.10, 0.04, (-1.60, side * 1.42, DECK + 0.02), "Z", m["steel"], hull, seg=12, lods=NEAR)
@@ -123,12 +130,12 @@ def hull_body(v, a7v):
             rot=(0, 0.30, 0), lods=MID)
     # Engine deck: grilles over the radiators, access doors ahead of them.
     for k, y in enumerate((0.80, -0.80)):
-        VP.grille(f"engine_grille_{k}", (-2.95, y, DECK), (1.35, 1.25), m, hull, slats=11)
-        VP.bolted_panel(f"engine_door_{k}", (-1.65, y, DECK), (0.95, 1.20, 0.03), m, hull, bolts=(3, 2),
+        HF.grille(f"engine_grille_{k}", (-2.95, y, DECK), (1.35, 1.25), m, hull, slats=11)
+        AR.bolted_panel(f"engine_door_{k}", (-1.65, y, DECK), (0.95, 1.20, 0.03), m, hull, bolts=(3, 2),
                         bevel=0.01, lods=MID)
     # The rear plate is one full-width louvre, two lamps under it.
     face = (0, -math.pi / 2, 0)
-    VP.grille("rear_louvre", (-half, 0, 1.28), (0.48, 2.90), m, hull, slats=10, rot=face)
+    HF.grille("rear_louvre", (-half, 0, 1.28), (0.48, 2.90), m, hull, slats=10, rot=face)
     stencil("rear_number", "Y-123 456", 0.11, (-half - 0.003, 0.0, 1.06), (math.pi / 2, 0, -math.pi / 2),
             m["marking"], hull)
     if a7v:
@@ -193,7 +200,7 @@ def skirts(v):
 
 # ---------------------------------------------------------------- turret
 def core_rings():
-    outline = VP.mirror_plan(CORE)
+    outline = HS.mirror_plan(CORE)
 
     def ring(lean):
         return [(x, math.copysign(max(0.0, abs(y) - lean), y) if y else 0.0) for x, y in outline]
@@ -227,44 +234,44 @@ def turret_body(v, turret, a7v, a8):
         wedge(v, turret, side, s, a8)
         # Bolted side plates along the turret flank.
         for k, x in enumerate((-0.05, -0.95)):
-            VP.bolted_panel(f"side_plate_{s}_{k}", (x, side * 1.42, 0.30), (0.82, 0.60, 0.04), m, turret,
+            AR.bolted_panel(f"side_plate_{s}_{k}", (x, side * 1.42, 0.30), (0.82, 0.60, 0.04), m, turret,
                             bolts=(3, 2), bevel=0.012, rot=(-side * math.pi / 2, 0, 0), lods=MID)
         # Eight smoke tubes a side behind the wedge, two rows of four.
         for row in range(2):
-            VP.smoke_discharger_bank(f"smoke_{s}_{row}", (0.10 - row * 0.02, side * 1.50, 0.46 + row * 0.15), m,
+            RF.smoke_discharger_bank(f"smoke_{s}_{row}", (0.10 - row * 0.02, side * 1.50, 0.46 + row * 0.15), m,
                                      turret, count=4, tube_radius=0.05, tube_length=0.30, elevation=0.30,
                                      spread=0.25, rot=(0, 0, side * 0.45))
         # Stowage boxes along the bustle sides.
-        VP.stowage_box(f"side_bin_{s}", (-1.55, side * 1.58, 0.0), (1.25, 0.36, 0.68), m, turret,
+        SW.stowage_box(f"side_bin_{s}", (-1.55, side * 1.58, 0.0), (1.25, 0.36, 0.68), m, turret,
                        rot=(0, 0, 0 if side > 0 else math.pi))
         whip = empty(f"dressing_antenna_{s}", parent=turret)
-        VP.antenna(f"antenna_{s}", (-2.05, side * 1.10, ROOF), m, whip, height=2.4)
+        RF.antenna(f"antenna_{s}", (-2.05, side * 1.10, ROOF), m, whip, height=2.4)
         if a8:
             trophy_station(v, turret, side, s)
         elif a7v:
-            VP.bolted_panel(f"side_module_{s}", (0.70, side * 1.48, 0.30), (0.62, 0.62, 0.10), m, turret,
+            AR.bolted_panel(f"side_module_{s}", (0.70, side * 1.48, 0.30), (0.62, 0.62, 0.10), m, turret,
                             bolts=(2, 2), bevel=0.03, rot=(-side * math.pi / 2, 0, 0), lods=VP.ALL)
     # Roof: the gunner's sight box at the front right, the PERI behind it,
     # the commander's and loader's hatches.
-    VP.sight_housing("emes_sight", (1.00, -0.82, ROOF - 0.04), m, turret, size=(0.52, 0.48, 0.30))
+    RF.sight_housing("emes_sight", (1.00, -0.82, ROOF - 0.04), m, turret, size=(0.52, 0.48, 0.30))
     for k, y in enumerate((-0.64, -1.00)):
         box(f"emes_door_{k}", (0.04, 0.17, 0.22), (1.28, y, ROOF + 0.13), m["paint"], turret, bevel=0.01,
             lods=NEAR)
     cyl("peri_pedestal", 0.18, 0.22, (0.18, -1.00, ROOF + 0.11), "Z", m["paint"], turret, seg=20, bevel=0.02,
         lods=MID)
-    VP.sight_housing("peri_head", (0.18, -1.00, ROOF + 0.20), m, turret, size=(0.36, 0.32, 0.26))
-    VP.hatch("loader_hatch", (-0.55, 0.72, ROOF), m, turret, radius=0.34)
+    RF.sight_housing("peri_head", (0.18, -1.00, ROOF + 0.20), m, turret, size=(0.36, 0.32, 0.26))
+    RF.hatch("loader_hatch", (-0.55, 0.72, ROOF), m, turret, radius=0.34)
     commander_hatch(v, turret)
     for k in range(4):
-        VP.periscope(f"loader_periscope_{k}", (-0.05, 0.40 + k * 0.20, ROOF), m, turret, size=(0.10, 0.14, 0.07))
+        RF.periscope(f"loader_periscope_{k}", (-0.05, 0.40 + k * 0.20, ROOF), m, turret, size=(0.10, 0.14, 0.07))
     if a7v:
         for k, (x, y) in enumerate(((0.55, 0.62), (-1.45, 0.50), (-1.45, -0.55))):
-            VP.bolted_panel(f"roof_armour_{k}", (x, y, ROOF), (0.80, 0.62, 0.05), m, turret, bolts=(2, 2),
+            AR.bolted_panel(f"roof_armour_{k}", (x, y, ROOF), (0.80, 0.62, 0.05), m, turret, bolts=(2, 2),
                             bevel=0.015, lods=VP.ALL)
         # The bustle's auxiliary power and cooling unit.
-        VP.bolted_panel("bustle_unit", (-2.55, 0, 0.12), (0.46, 1.50, 0.50), m, turret, bolts=(1, 3),
+        AR.bolted_panel("bustle_unit", (-2.55, 0, 0.12), (0.46, 1.50, 0.50), m, turret, bolts=(1, 3),
             bevel=0.04, lods=VP.ALL)
-        VP.grille("bustle_unit_grille", (-2.785, 0, 0.40), (0.30, 1.10), m, turret, slats=5, rot=(0, -math.pi / 2, 0))
+        HF.grille("bustle_unit_grille", (-2.785, 0, 0.40), (0.30, 1.10), m, turret, slats=5, rot=(0, -math.pi / 2, 0))
     else:
         bustle_basket(v, turret)
 
@@ -276,7 +283,7 @@ def commander_hatch(v, turret):
     cyl("commander_ring", 0.40, 0.09, (x, y, ROOF + 0.045), "Z", m["paint"], turret, seg=28, bevel=0.015, lods=MID)
     for k in range(6):
         a = -1.6 + k * 0.62
-        VP.periscope(f"commander_periscope_{k}", (x + 0.36 * math.cos(a), y + 0.36 * math.sin(a), ROOF + 0.08), m,
+        RF.periscope(f"commander_periscope_{k}", (x + 0.36 * math.cos(a), y + 0.36 * math.sin(a), ROOF + 0.08), m,
                      turret, size=(0.10, 0.12, 0.06), rot=(0, 0, a))
     cyl("commander_lid", 0.34, 0.06, (x - 0.70, y, ROOF + 0.09), "Z", m["paint"], turret, seg=28, bevel=0.015,
         rot=(0, -0.10, 0), lods=MID)
@@ -291,7 +298,7 @@ def bustle_basket(v, turret):
     for k in range(7):
         y = -wy + k * 2 * wy / 6
         box(f"basket_post_{k}", (0.035, 0.035, top - foot), (x1, y, (top + foot) / 2), m["steel"], turret, lods=NEAR)
-    VP.tarp_roll("basket_tarp", (-2.48, 0.45, foot + 0.17), 1.20, 0.17, m, turret, straps=3)
+    SW.tarp_roll("basket_tarp", (-2.48, 0.45, foot + 0.17), 1.20, 0.17, m, turret, straps=3)
     box("basket_bag", (0.32, 0.70, 0.30), (-2.48, -0.70, foot + 0.17), m["canvas"], turret, bevel=0.08, lods=MID)
 
 
@@ -361,10 +368,10 @@ def weapon_station(v, hmg, hmg_gun, a7v, a8):
     for side in (-1, 1):
         box(f"rws_cradle_{side}", (0.30, 0.06, lift + 0.05), (0.02, side * 0.17, (lift + 0.05) / 2 + 0.03),
             m["paint"], hmg, bevel=0.015)
-    VP.sight_housing("rws_sight", (0.10, -0.30, -0.12), m, hmg_gun, size=(0.30, 0.18, 0.24))
+    RF.sight_housing("rws_sight", (0.10, -0.30, -0.12), m, hmg_gun, size=(0.30, 0.18, 0.24))
     box("rws_ammo", (0.30, 0.16, 0.26), (-0.05, 0.28, -0.08), m["paint"], hmg_gun, bevel=0.02, lods=MID)
     if a8:
-        VP.browning_m2(hmg_gun, muzzle[0], m)
+        VG.browning_m2(hmg_gun, muzzle[0], m)
     else:
         mg3(hmg_gun, muzzle[0], m)
 

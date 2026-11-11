@@ -23,6 +23,8 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import roof_parts as RF  # noqa: E402
+import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from armata import (DECK, TROOP_FRONT, TROOP_ROOF, Shape, armour_kit, engine_deck, hull,  # noqa: E402
                     running_gear, side_face, skirts, turret_kit, wreck)
@@ -62,14 +64,14 @@ def build(variant, v):
     prism("troop_compartment", [(-half, DECK - 0.02), (top, DECK - 0.02), (TROOP_FRONT, TROOP_ROOF),
                                 (-half, TROOP_ROOF)], 2 * edge, mat=m["paint"], parent=h, bevel=0.04)
     for name, y in (("driver", 0.65), ("commander", -0.65)):
-        VP.hatch(f"{name}_hatch", (TROOP_FRONT - 0.32, y, TROOP_ROOF), m, h, radius=0.28)
-        VP.periscope(f"{name}_periscope", (TROOP_FRONT - 0.10, y * 0.3, TROOP_ROOF), m, h, size=(0.12, 0.30, 0.10))
+        RF.hatch(f"{name}_hatch", (TROOP_FRONT - 0.32, y, TROOP_ROOF), m, h, radius=0.28)
+        RF.periscope(f"{name}_periscope", (TROOP_FRONT - 0.10, y * 0.3, TROOP_ROOF), m, h, size=(0.12, 0.30, 0.10))
     for k, y in enumerate((0.62, -0.62)):
-        VP.hatch(f"troop_hatch_{k}", (-3.70, y, TROOP_ROOF), m, h, size=(0.90, 0.62))
+        RF.hatch(f"troop_hatch_{k}", (-3.70, y, TROOP_ROOF), m, h, size=(0.90, 0.62))
     box("rear_door", (0.08, 1.00, 1.30), (-half - 0.03, 0, 1.00), m["paint"], h, bevel=0.02)
     stowage = empty("dressing_rear_stowage", parent=h)
     for side in (-1, 1):
-        VP.stowage_box(f"rear_box_{side}", (-half - 0.14, side * 0.95, 1.45), (0.26, 0.62, 0.70), m, stowage)
+        SW.stowage_box(f"rear_box_{side}", (-half - 0.14, side * 0.95, 1.45), (0.26, 0.62, 0.70), m, stowage)
     mounts = rig(v.frame, v.root)
     turret, gun, _, _ = mounts["autocannon"]
     launcher, launcher_pitch, _, _ = mounts["launcher"]
@@ -90,21 +92,21 @@ def bumerang_module(v, turret, gun, base):
              (0.85, -0.45)]
     cyl("module_ring", 0.95, 0.14, (0, 0, base + 0.06), "Z", m["dark"], turret, seg=40, lods=MID)
     loft("module_shell", [(z0, foot), (z1, crown)], mat=m["paint"], parent=turret, bevel=0.035)
-    VP.roof_fittings("roof", crown, z1, m, turret, periscopes=((-0.60, 0.55, 0.4),))
+    RF.roof_fittings("roof", crown, z1, m, turret, periscopes=((-0.60, 0.55, 0.4),))
     turret_kit(v, turret, crown, (1.20, z0), (1.05, z1), -1.05, 0.90, z0 + 0.05, z1 - 0.05)
     # The gunner's sight box and the commander's panoramic sight on its
     # pedestal stand over the frame's top (the module's roof): dressing.
     sights = empty("dressing_sights", parent=turret)
-    VP.sight_housing("gunner_sight", (0.20, -0.55, z1 - 0.02), m, sights, size=(0.42, 0.32, 0.30))
+    RF.sight_housing("gunner_sight", (0.20, -0.55, z1 - 0.02), m, sights, size=(0.42, 0.32, 0.30))
     cyl("panorama_post", 0.08, 0.10, (-0.55, -0.30, z1 + 0.05), "Z", m["dark"], sights, seg=12)
-    VP.sight_housing("panorama_head", (-0.55, -0.30, z1 + 0.08), m, sights, size=(0.34, 0.32, 0.30))
+    RF.sight_housing("panorama_head", (-0.55, -0.30, z1 + 0.08), m, sights, size=(0.34, 0.32, 0.30))
     for side, s in ((1, "L"), (-1, "R")):
-        VP.smoke_discharger_bank(f"smoke_{s}", (-0.60, side * 1.15, z0 + 0.32), m, turret, count=3,
+        RF.smoke_discharger_bank(f"smoke_{s}", (-0.60, side * 1.15, z0 + 0.32), m, turret, count=3,
                                  tube_radius=0.045, tube_length=0.20, elevation=0.4, spread=0.3,
                                  rot=(0, 0, side * 1.4))
         whip = empty(f"dressing_antenna_{s}", parent=turret)
-        VP.antenna(f"antenna_{s}", (-1.10, side * 0.60, z1), m, whip, height=2.0)
-    VP.stowage_box("module_box", (-1.48, 0, z0), (0.30, 1.30, 0.40), m, turret, rot=(0, 0, math.pi / 2))
+        RF.antenna(f"antenna_{s}", (-1.10, side * 0.60, z1), m, whip, height=2.0)
+    SW.stowage_box("module_box", (-1.48, 0, z0), (0.30, 1.30, 0.40), m, turret, rot=(0, 0, math.pi / 2))
     reach = v.frame["mounts"][0]["muzzle_m"][0]
     box("cannon_cradle", (0.80, 0.42, 0.36), (0.80, 0, 0), m["paint"], gun, bevel=0.04)
     cyl("cannon_sleeve", 0.085, 0.65, (1.40, 0, 0), "X", m["dark"], gun, seg=16)

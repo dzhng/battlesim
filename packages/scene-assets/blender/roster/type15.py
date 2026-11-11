@@ -20,6 +20,12 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import armour_parts as AR  # noqa: E402
+import hull_fittings as HF  # noqa: E402
+import hull_shape as HS  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import running_gear as RG  # noqa: E402
+import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
@@ -93,39 +99,39 @@ def hull(v):
     prism("hull_lower", [(-half + 0.35, 0.40), (half - 0.70, 0.40), (half - 0.05, 0.88), (-half, 0.88),
                          (-half, 0.70)], 2.10, mat=m["paint"], parent=h, bevel=0.04)
     slope = math.atan(GLACIS_DROP / GLACIS_RUN)
-    VP.armour_tiles("glacis_armour", (half - 0.55, 0, glacis_z(v, half - 0.55)), (0.95, 2.60), (2, 5), 0.06, m, h,
+    AR.armour_tiles("glacis_armour", (half - 0.55, 0, glacis_z(v, half - 0.55)), (0.95, 2.60), (2, 5), 0.06, m, h,
                     rot=(0, slope, 0))
-    VP.hatch("driver_hatch", (half - 1.45, 0.55, DECK), m, h, radius=0.27)
+    RF.hatch("driver_hatch", (half - 1.45, 0.55, DECK), m, h, radius=0.27)
     for k in range(3):
-        VP.periscope(f"driver_periscope_{k}", (half - 1.12, 0.35 + k * 0.20, DECK), m, h, size=(0.11, 0.16, 0.08))
+        RF.periscope(f"driver_periscope_{k}", (half - 1.12, 0.35 + k * 0.20, DECK), m, h, size=(0.11, 0.16, 0.08))
     for side, s in ((1, "L"), (-1, "R")):
-        VP.light_with_guard(f"headlight_{s}", (half - 0.95, side * 1.30, glacis_z(v, half - 0.95) + 0.08), 0.06, m, h)
-        VP.tow_hook(f"front_tow_{s}", (half - 0.14, side * 0.65, 0.82), m, h, size=0.12)
-        VP.tow_hook(f"rear_tow_{s}", (-half + 0.14, side * 0.75, 0.80), m, h, size=0.12, rot=(0, 0, math.pi))
-        VP.stowage_box(f"fender_box_{s}", (-1.6, side * 1.40, DECK), (0.90, 0.32, 0.30), m, h,
+        HF.light_with_guard(f"headlight_{s}", (half - 0.95, side * 1.30, glacis_z(v, half - 0.95) + 0.08), 0.06, m, h)
+        HF.tow_hook(f"front_tow_{s}", (half - 0.14, side * 0.65, 0.82), m, h, size=0.12)
+        HF.tow_hook(f"rear_tow_{s}", (-half + 0.14, side * 0.75, 0.80), m, h, size=0.12, rot=(0, 0, math.pi))
+        SW.stowage_box(f"fender_box_{s}", (-1.6, side * 1.40, DECK), (0.90, 0.32, 0.30), m, h,
                        rot=(0, 0, 0 if side > 0 else math.pi))
-        VP.cable(f"tow_cable_{s}", [(-half + 0.3, side * 1.42, DECK + 0.02), (-0.6, side * 1.45, DECK + 0.02),
+        HF.cable(f"tow_cable_{s}", [(-half + 0.3, side * 1.42, DECK + 0.02), (-0.6, side * 1.45, DECK + 0.02),
                                     (0.8, side * 1.42, DECK + 0.02)], m, h, radius=0.02)
-    VP.grille("engine_grille", (-2.65, 0, DECK), (1.10, 1.90), m, h, slats=10)
-    VP.exhaust("exhaust", (-half - 0.02, -1.05, 1.25), 0.09, 0.25, m, h, rot=(0, 0, math.pi))
+    HF.grille("engine_grille", (-2.65, 0, DECK), (1.10, 1.90), m, h, slats=10)
+    HF.exhaust("exhaust", (-half - 0.02, -1.05, 1.25), 0.09, 0.25, m, h, rot=(0, 0, math.pi))
     # The photos' skirts with their add-on modules, spare track links across
     # the nose, jerrycans lying on the deck aft and a deck box.
     skirts(v)
     for side, s in ((1, "L"), (-1, "R")):
-        VP.jerrycan(f"jerrycan_{s}", (-half + 0.15, side * 1.15, DECK + 0.09), dict(m, paint=m["dark"]), h,
+        SW.jerrycan(f"jerrycan_{s}", (-half + 0.15, side * 1.15, DECK + 0.09), dict(m, paint=m["dark"]), h,
                     rot=(0, math.pi / 2, 0))
     for k in range(4):
         cyl(f"spare_link_{k}", 0.045, 0.55, (half - 0.18, -0.85 + k * 0.57, 0.98), "Y", m["track"], h, seg=8,
             lods=NEAR)
-    VP.stowage_box("deck_box", (-half + 0.40, 0, DECK), (0.35, 1.30, 0.20), m, h)
+    SW.stowage_box("deck_box", (-half + 0.40, 0, DECK), (0.35, 1.30, 0.20), m, h)
     # The rear: its tail lights in their guards.
     for side, sd in ((1, "L"), (-1, "R")):
-        VP.light_with_guard(f"tail_light_{sd}", (-v.length / 2 - 0.02, side * (v.width / 2 - 0.5), DECK - 0.20), 0.05,
+        HF.light_with_guard(f"tail_light_{sd}", (-v.length / 2 - 0.02, side * (v.width / 2 - 0.5), DECK - 0.20), 0.05,
                             dict(v.mats, lamp=v.mats["tail"]), v.hull, rot=(0, 0, math.pi))
 
 def running_gear(v):
     road_x = [2.25 - 0.86 * k for k in range(6)]
-    VP.tracked_running_gear(v.mats, v.hull, TRACK_Y, TRACK_W, road_x, ROAD_Z, ROAD_R, 0.20, (-3.20, 0.58, 0.28),
+    RG.tracked_running_gear(v.mats, v.hull, TRACK_Y, TRACK_W, road_x, ROAD_Z, ROAD_R, 0.20, (-3.20, 0.58, 0.28),
                             (3.15, 0.56, 0.26), [(1.0, 0.82, 0.08), (-1.0, 0.82, 0.08)], bolts=6, teeth=12,
                             arm=(0.40, -0.30), pitch=0.15, dual=True)
 
@@ -145,32 +151,32 @@ def turret(v, turret, gun, hmg, hmg_gun):
     cyl("turret_ring_guard", 1.02, 0.14, (0, 0, base + 0.05), "Z", m["dark"], turret, seg=36, lods=MID)
     loft("turret_shell", [(base + 0.10, foot), (base + 0.40, belt), (top, crown)], mat=m["paint"], parent=turret,
          bevel=0.035)
-    VP.roof_fittings("roof", crown, top, m, turret, periscopes=((-0.10, 0.80, 0.6),))
-    VP.laser_warners("laser_warner", crown, top, m, turret)
+    RF.roof_fittings("roof", crown, top, m, turret, periscopes=((-0.10, 0.80, 0.6),))
+    RF.laser_warners("laser_warner", crown, top, m, turret)
     for side, s in ((1, "L"), (-1, "R")):
         # Tiles on the turret's leaning flank: the shell's side at x -0.30,
         # from its belt ring to its crown ring.
-        loc, rot = VP.on_side(-0.30, base + 0.70, side, (1.30, base + 0.40), (1.115, top))
-        VP.armour_tiles(f"side_tiles_{s}", loc, (1.60, 0.52), (4, 1), 0.06, m, turret, rot=rot)
+        loc, rot = HS.on_side(-0.30, base + 0.70, side, (1.30, base + 0.40), (1.115, top))
+        AR.armour_tiles(f"side_tiles_{s}", loc, (1.60, 0.52), (4, 1), 0.06, m, turret, rot=rot)
         # A stowage basket on each flank's rear, the arrowhead's faces tiled.
-        VP.slat_armour(f"side_basket_{s}", (-0.95, side * 1.36, base + 0.40), (0.80, 0.52), m, turret, spacing=0.10,
+        AR.slat_armour(f"side_basket_{s}", (-0.95, side * 1.36, base + 0.40), (0.80, 0.52), m, turret, spacing=0.10,
                        bar=0.014)
         # Halfway up the arrowhead's face: its outward normal and lean.
         out = math.atan2(1.75 - 1.10, 1.28 - 0.35)
-        VP.armour_tiles(f"cheek_face_{s}", (1.24, side * 0.76, base + 0.70), (0.70, 0.98), (1, 3), 0.05, m, turret,
+        AR.armour_tiles(f"cheek_face_{s}", (1.24, side * 0.76, base + 0.70), (0.70, 0.98), (1, 3), 0.05, m, turret,
                         rot=(0, math.pi / 2 - 0.59, side * out))
-        VP.smoke_discharger_bank(f"smoke_{s}", (0.10, side * 1.10, top - 0.05), m, turret, count=4, tube_radius=0.045,
+        RF.smoke_discharger_bank(f"smoke_{s}", (0.10, side * 1.10, top - 0.05), m, turret, count=4, tube_radius=0.045,
                                  tube_length=0.20, elevation=0.4, spread=0.4, rot=(0, 0, side * 1.1))
         whip = empty(f"dressing_antenna_{s}", parent=turret)
-        VP.antenna(f"antenna_{s}", (-1.35, side * 0.80, top), m, whip, height=2.0)
-    VP.stowage_box("bustle_box", (-1.85, 0, base + 0.12), (0.50, 2.00, 0.74), m, turret)
-    VP.slat_armour("bustle_rack", (-2.12, 0, base + 0.12), (1.90, 0.76), m, turret, rot=(0, 0, math.pi / 2))
+        RF.antenna(f"antenna_{s}", (-1.35, side * 0.80, top), m, whip, height=2.0)
+    SW.stowage_box("bustle_box", (-1.85, 0, base + 0.12), (0.50, 2.00, 0.74), m, turret)
+    AR.slat_armour("bustle_rack", (-2.12, 0, base + 0.12), (1.90, 0.76), m, turret, rot=(0, 0, math.pi / 2))
     sight = empty("dressing_gunner_sight", parent=turret)
-    VP.sight_housing("gunner_sight", (0.45, 0.55, top - 0.02), m, sight, size=(0.42, 0.30, 0.24))
+    RF.sight_housing("gunner_sight", (0.45, 0.55, top - 0.02), m, sight, size=(0.42, 0.30, 0.24))
     mast = empty("dressing_commander_sight", parent=turret)
     cyl("panorama_post", 0.09, 0.04, (-0.55, -0.55, top + 0.02), "Z", m["dark"], mast, seg=12)
-    VP.sight_housing("panorama_head", (-0.55, -0.55, top + 0.02), m, mast, size=(0.32, 0.30, 0.26))
-    VP.hatch("loader_hatch", (-0.45, 0.50, top), m, turret, radius=0.26)
+    RF.sight_housing("panorama_head", (-0.55, -0.55, top + 0.02), m, mast, size=(0.32, 0.30, 0.26))
+    RF.hatch("loader_hatch", (-0.45, 0.50, top), m, turret, radius=0.26)
     # The 105 mm: mantlet, sleeve, fume extractor, muzzle.
     reach = v.frame["mounts"][0]["muzzle_m"][0] - TRUNNION
     box("mantlet", (0.55, 0.55, 0.42), (0.20, 0, 0), m["paint"], gun, bevel=0.05)
@@ -185,7 +191,7 @@ def turret(v, turret, gun, hmg, hmg_gun):
     lift = v.frame["mounts"][1]["muzzle_m"][2]
     cyl("rws_bearing", 0.20, 0.08, (0, 0, -0.04), "Z", m["dark"], hmg, seg=20)
     box("rws_body", (0.42, 0.32, lift), (-0.05, 0, lift / 2), m["paint"], hmg, bevel=0.03)
-    VP.sight_housing("rws_sight", (0.05, -0.24, -0.10), m, hmg_gun, size=(0.24, 0.14, 0.20))
+    RF.sight_housing("rws_sight", (0.05, -0.24, -0.10), m, hmg_gun, size=(0.24, 0.14, 0.20))
     reach = v.frame["mounts"][1]["muzzle_m"][0]
     box("qjc88_receiver", (0.60, 0.11, 0.15), (0.02, 0, 0), m["dark"], hmg_gun, bevel=0.012)
     cyl("qjc88_barrel", 0.030, reach - 0.40, ((reach + 0.30) / 2, 0, 0), "X", m["dark"], hmg_gun, seg=10)
