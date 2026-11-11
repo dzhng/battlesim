@@ -38,14 +38,26 @@ hierarchy, rather than adding simulation soldiers. Re-export their vehicles
 after changing the infantry source; the crew exporter preserves that source's
 exact textures and material masks on the crew's own materials only.
 
-Reusable vehicle detail (wheels and their treads, whole tracked running gear, a
-lofted hull's plan rings, bolted applique and armour tiles, slat armour,
-hatches, cupolas, sights, lights, tow points, stowage, cargo beds, grilles,
-exhausts, machine guns) has [one owner](vehicle_parts.py); a family script
-places those parts rather than redefining them. A part hung on a hull or
+Reusable vehicle detail has one owner per concept. A family script places
+those parts rather than redefining them, and imports each part from the module
+that defines it:
+
+| Module                              | Owns                                                                                                                                                     |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`vehicle_parts`](vehicle_parts.py) | The kernel: the contracts every part keeps, and what every part module shares (tiers, placing a part in its parent's frame, spinning nodes, swept tubes) |
+| [`running_gear`](running_gear.py)   | What a vehicle rolls on: wheels, a tracked vehicle's running gear and its track belt                                                                     |
+| [`hull_shape`](hull_shape.py)       | A hull's shape: its plan rings, and where a part sits on a leaning face                                                                                  |
+| [`armour_parts`](armour_parts.py)   | Armour added to a hull or turret                                                                                                                         |
+| [`roof_parts`](roof_parts.py)       | What stands on a roof: hatches, cupolas, optics, dischargers, antennas                                                                                   |
+| [`hull_fittings`](hull_fittings.py) | What hangs on a hull: lights, towing gear, grilles, exhausts, tanks                                                                                      |
+| [`stowage`](stowage.py)             | What a vehicle carries                                                                                                                                   |
+| [`vehicle_guns`](vehicle_guns.py)   | Machine guns on vehicle and aircraft mounts                                                                                                              |
+
+A new part joins the module of its concept, or a new module beside them; the
+kernel holds only what every part module shares. A part hung on a hull or
 turret side that leans takes its position and tilt from that face
-(`on_side`), so plates, tiles, skirts and racks lie on the slope the photos
-show instead of standing upright beside it. A family derived from another
+(`hull_shape.on_side`), so plates, tiles, skirts and racks lie on the slope
+the photos show instead of standing upright beside it. A family derived from another
 (the T-90M, T-80BVM and Type 99 from the T-72) imports that family's script
 for what they share.
 

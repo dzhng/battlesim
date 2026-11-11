@@ -32,6 +32,11 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import armour_parts as AR  # noqa: E402
+import hull_fittings as HF  # noqa: E402
+import hull_shape as HS  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft  # noqa: E402
 from truck_chassis import chassis, on, spare_wheel  # noqa: E402
@@ -64,7 +69,7 @@ def build(variant, v):
         for k, x in enumerate((2.70, -4.72)):
             jack(v, f"jack_{s}_{k}", x, side * 1.24, deck)
         # Side lockers between the axle pairs, a cable drum on the left.
-        VP.stowage_box(f"side_locker_{s}", (-0.15, side * 1.02, deck - 0.62), (1.70, 0.40, 0.55), m, h,
+        SW.stowage_box(f"side_locker_{s}", (-0.15, side * 1.02, deck - 0.62), (1.70, 0.40, 0.55), m, h,
                        rot=(0, 0, 0 if side > 0 else math.pi))
     cyl("cable_drum", 0.30, 0.34, (0.95, 1.05, deck - 0.30), "Y", m["dark"], h, seg=20, lods=MID)
     # Ladders folded up at the rear, the warning panels on the bumper.
@@ -83,9 +88,9 @@ def kat1_cab(v, x0, front, floor, top):
     steps low on the front."""
     m, h = v.mats, v.hull
     half_w = 1.22
-    plan = VP.hull_plan(x0, front, half_w, 0.08)
+    plan = HS.hull_plan(x0, front, half_w, 0.08)
     loft("cab_body", [(floor, plan), (top - 0.20, plan),
-                      (top, VP.hull_plan(x0 + 0.04, front - 0.10, half_w - 0.08, 0.10))],
+                      (top, HS.hull_plan(x0 + 0.04, front - 0.10, half_w - 0.08, 0.10))],
          mat=m["paint"], parent=h, bevel=0.05)
     # The windscreens stand proud of the upright front, in their frames.
     for k, y in enumerate((0.55, -0.55)):
@@ -94,7 +99,7 @@ def kat1_cab(v, x0, front, floor, top):
         box(f"windscreen_{k}", (0.03, 1.00, 0.80), (front + 0.03, y, top - 0.62), m["glass"], h, lods=MID)
     for side, s in ((1, "L"), (-1, "R")):
         y = side * (half_w + 0.005)
-        VP.weld_line(f"door_seam_{s}", [(front - 0.15, y, floor + 0.25), (front - 0.15, y, top - 0.15),
+        AR.weld_line(f"door_seam_{s}", [(front - 0.15, y, floor + 0.25), (front - 0.15, y, top - 0.15),
                                         (front - 1.10, y, top - 0.15), (front - 1.10, y, floor + 0.25)], m, h,
                      radius=0.012)
         box(f"door_window_{s}", (0.80, 0.03, 0.62), (front - 0.62, y, top - 0.55), m["glass"], h, lods=MID)
@@ -104,17 +109,17 @@ def kat1_cab(v, x0, front, floor, top):
         for k, z in enumerate((0.55, 0.95)):
             box(f"step_{s}_{k}", (0.45, 0.24, 0.04), (front - 0.62, side * (half_w - 0.08), z), m["steel"], h,
                 lods=MID)
-        VP.light_with_guard(f"headlight_{s}", (front + 0.04, side * (half_w - 0.25), floor + 0.25), 0.08, m, h)
+        HF.light_with_guard(f"headlight_{s}", (front + 0.04, side * (half_w - 0.25), floor + 0.25), 0.08, m, h)
         mirror = empty(f"dressing_mirror_{s}", parent=h)
         box(f"mirror_arm_{s}", (0.04, 0.30, 0.04), (front - 0.15, side * (half_w + 0.12), top - 0.35), m["dark"],
             mirror, lods=MID)
         box(f"mirror_{s}", (0.04, 0.12, 0.30), (front - 0.15, side * (half_w + 0.28), top - 0.50), m["dark"],
             mirror, lods=MID)
-    VP.grille("radiator_grille", (front + 0.02, 0, floor + 0.45), (0.35, 1.40), m, h, slats=7,
+    HF.grille("radiator_grille", (front + 0.02, 0, floor + 0.45), (0.35, 1.40), m, h, slats=7,
               rot=(0, -math.pi / 2, 0))
     box("front_bumper", (0.16, 2 * half_w + 0.10, 0.24), (front + 0.07, 0, floor - 0.05), m["dark"], h,
         bevel=0.015)
-    VP.hatch("cab_roof_hatch", (x0 + 0.65, 0.40, top), m, h, radius=0.32)
+    RF.hatch("cab_roof_hatch", (x0 + 0.65, 0.40, top), m, h, radius=0.32)
     seat_z = top - 1.05
     seat_base_height = seat_z - floor - 0.25
     box("dash", (0.35, 2 * half_w - 0.3, 0.20), (front - 0.45, 0, seat_z), m["black"], h, lods=NEAR)
@@ -126,7 +131,7 @@ def kat1_cab(v, x0, front, floor, top):
         box(f"seat_base_{side}", (0.40, 0.50, seat_base_height), (x0 + 0.35, side * 0.55, floor + seat_base_height / 2 + 0.05),
             m["black"], h, lods=NEAR)
     whip = empty("dressing_antenna_cab", parent=h)
-    VP.antenna("antenna_cab", (x0 + 0.20, -(half_w - 0.15), top), m, whip, height=2.2)
+    RF.antenna("antenna_cab", (x0 + 0.20, -(half_w - 0.15), top), m, whip, height=2.2)
 
 
 def module(v, deck):
@@ -137,21 +142,21 @@ def module(v, deck):
     box("module_body", (x1 - x0, 2.36, top - deck), ((x0 + x1) / 2, 0, (deck + top) / 2), m["paint"], h,
         bevel=0.04)
     for side, s in ((1, "L"), (-1, "R")):
-        VP.grille(f"module_louvre_{s}", ((x0 + x1) / 2 + 0.15, side * 1.185, deck + 1.20), (0.80, 0.70), m, h,
+        HF.grille(f"module_louvre_{s}", ((x0 + x1) / 2 + 0.15, side * 1.185, deck + 1.20), (0.80, 0.70), m, h,
                   slats=9, rot=(-side * math.pi / 2, 0, 0))
-        VP.bolted_panel(f"module_door_{s}", ((x0 + x1) / 2 - 0.30, side * 1.185, deck + 0.35), (0.55, 1.10, 0.03),
+        AR.bolted_panel(f"module_door_{s}", ((x0 + x1) / 2 - 0.30, side * 1.185, deck + 0.35), (0.55, 1.10, 0.03),
                         m, h, bolts=(2, 3), rot=(-side * math.pi / 2, 0, 0), bevel=0.01)
         box(f"module_rail_{s}", (x1 - x0, 0.04, 0.04), ((x0 + x1) / 2, side * 1.10, top + 0.42), m["dark"], h,
             lods=MID)
         for k, x in enumerate((x0 + 0.08, x1 - 0.08)):
             box(f"module_post_{s}_{k}", (0.04, 0.04, 0.42), (x, side * 1.10, top + 0.21), m["dark"], h, lods=MID)
-    VP.exhaust("exhaust", (x1 - 0.20, -1.05, top + 0.05), 0.07, 0.40, m, h)
+    HF.exhaust("exhaust", (x1 - 0.20, -1.05, top + 0.05), 0.07, 0.40, m, h)
     box("module_vent", (0.60, 0.80, 0.10), ((x0 + x1) / 2, 0.30, top + 0.05), m["dark"], h, bevel=0.01, lods=MID)
     # The spare wheel lies flat on the roof.
     spare_wheel(v, ((x0 + x1) / 2 - 0.05, -0.40, top + WHEEL_W / 2 + 0.02), WHEEL_R * 0.95, WHEEL_W,
                 rot=(math.pi / 2, 0, 0))
     whip = empty("dressing_antenna_module", parent=h)
-    VP.antenna("antenna_module", (x0 + 0.15, 0.95, top), m, whip, height=2.2)
+    RF.antenna("antenna_module", (x0 + 0.15, 0.95, top), m, whip, height=2.2)
 
 
 def launcher(v, deck):
@@ -218,7 +223,7 @@ def launcher(v, deck):
     mast = empty("dressing_mast", parent=h)
     cyl("mast_tube", 0.07, 2.60, (PACK_FRONT + 0.55, -1.02, deck + 1.30), "Z", m["paint"], mast, seg=12)
     cyl("mast_head", 0.05, 0.60, (PACK_FRONT + 0.55, -1.02, deck + 2.90), "Z", m["steel"], mast, seg=10, lods=MID)
-    VP.cable("pack_cable", [(PACK_FRONT + 0.40, 0.55, deck + 0.40), (PACK_FRONT + 0.20, 0.40, PACK_FLOOR - 0.20),
+    HF.cable("pack_cable", [(PACK_FRONT + 0.40, 0.55, deck + 0.40), (PACK_FRONT + 0.20, 0.40, PACK_FLOOR - 0.20),
                             (PACK_FRONT - 0.10, 0.35, PACK_FLOOR + 0.20)], m, h, radius=0.03)
 
 

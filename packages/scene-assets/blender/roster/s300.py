@@ -32,6 +32,10 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import armour_parts as AR  # noqa: E402
+import hull_fittings as HF  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, textured  # noqa: E402
 import rocket_artillery as RA  # noqa: E402
@@ -69,18 +73,18 @@ def enclosures(v, cab_rear, roof, deck):
     x = x0 - length / 2
     box("power_unit", (length, 1.15, 1.75), (x, -0.78, deck + 0.875), m["paint"], h, bevel=0.04)
     for k in range(2):
-        VP.grille(f"power_louvre_{k}", (x - 0.40 + k * 0.80, -1.36, deck + 0.85), (0.60, 0.70), m, h, slats=7,
+        HF.grille(f"power_louvre_{k}", (x - 0.40 + k * 0.80, -1.36, deck + 0.85), (0.60, 0.70), m, h, slats=7,
                   rot=(math.pi / 2, 0, 0))
-    VP.exhaust("power_exhaust", (x + 0.45, -0.55, deck + 1.75), 0.09, 0.30, m, h, rot=(0, -math.pi / 2, 0))
+    HF.exhaust("power_exhaust", (x + 0.45, -0.55, deck + 1.75), 0.09, 0.30, m, h, rot=(0, -math.pi / 2, 0))
     box("electronics_box", (length, 1.15, 1.70), (x, 0.78, deck + 0.85), m["paint"], h, bevel=0.04)
     box("electronics_top", (length - 0.40, 0.80, 0.25), (x + 0.10, 0.70, deck + 1.82), m["paint"], h, bevel=0.03)
     for k in range(2):
-        VP.bolted_panel(f"electronics_door_{k}", (x - 0.40 + k * 0.80, 1.36, deck + 0.75), (0.70, 1.05, 0.03), m, h,
+        AR.bolted_panel(f"electronics_door_{k}", (x - 0.40 + k * 0.80, 1.36, deck + 0.75), (0.70, 1.05, 0.03), m, h,
                         bolts=(2, 3), rot=(-math.pi / 2, 0, 0), bevel=0.01)
     box("enclosure_step", (0.30, 0.50, 0.05), (x0 - length - 0.10, 0.85, deck + 0.40), m["steel"], h, lods=MID)
     box("enclosure_step_leg", (0.08, 0.08, 0.38), (x0 - length - 0.10, 0.90, deck + 0.20), m["steel"], h, lods=FINE)
     whip = empty("dressing_antenna", parent=h)
-    VP.antenna("antenna", (x - 0.55, 1.20, deck + 1.95), m, whip, height=2.4)
+    RF.antenna("antenna", (x - 0.55, 1.20, deck + 1.95), m, whip, height=2.4)
     # The guard rails: a bent pipe rising off each cab's roof to the
     # enclosures' top, as the photos show over both cabs.
     for side, s in ((1, "L"), (-1, "R")):
@@ -95,7 +99,7 @@ def enclosures(v, cab_rear, roof, deck):
                                                   (cab_rear + 0.20, -1.05, roof + 0.62)], 0.03, m["paint"], h,
                  NEAR)
     cyl("beacon", 0.07, 0.14, (cab_rear + 1.0, 0.65, roof + 0.09), "Z", m["tail"], h, seg=12, lods=MID)
-    VP.light_with_guard("searchlight", (cab_rear + 1.4, 1.00, roof + 0.12), 0.10, m, h)
+    HF.light_with_guard("searchlight", (cab_rear + 1.4, 1.00, roof + 0.12), 0.10, m, h)
 
 
 def container(v, name, y, z, x0, x1):
@@ -186,9 +190,9 @@ def deck_fittings(v, dx, deck):
     mid = (axles[1] + axles[2]) / 2
     for side, s in ((1, "L"), (-1, "R")):
         # Lockers hung under the deck's edge between the axle pairs.
-        VP.stowage_box(f"locker_{s}", (mid, side * 1.15, 0.70), (1.70, 0.40, 0.70), m, h,
+        SW.stowage_box(f"locker_{s}", (mid, side * 1.15, 0.70), (1.70, 0.40, 0.70), m, h,
                        rot=(0, 0, 0 if side > 0 else math.pi))
-        VP.stowage_box(f"rear_locker_{s}", ((axles[3] + rear) / 2 - 0.25, side * 1.15, 0.80), (0.80, 0.40, 0.50), m, h,
+        SW.stowage_box(f"rear_locker_{s}", ((axles[3] + rear) / 2 - 0.25, side * 1.15, 0.80), (0.80, 0.40, 0.50), m, h,
                        rot=(0, 0, 0 if side > 0 else math.pi))
         # Outriggers: a jack between each axle pair and at the rear corners,
         # stowed up, their pads clear of the ground.
@@ -200,7 +204,7 @@ def deck_fittings(v, dx, deck):
             cyl(f"outrigger_rod_{s}_{k}", 0.06, 0.12, (x, y, deck - 0.56), "Z", m["steel"], h, seg=10, lods=MID)
             cyl(f"outrigger_pad_{s}_{k}", 0.24, 0.06, (x, y, deck - 0.64), "Z", m["dark"], h, seg=16, lods=MID)
     cyl("cable_reel", 0.20, 0.30, (rear + 1.20, -0.90, deck + 0.30), "Y", m["dark"], h, seg=16, lods=MID)
-    VP.stowage_box("deck_box", (axles[2] - 0.30, 0.95, deck + 0.10), (1.10, 0.36, 0.40), m, h)
+    SW.stowage_box("deck_box", (axles[2] - 0.30, 0.95, deck + 0.10), (1.10, 0.36, 0.40), m, h)
 
 
 def build(variant, v):

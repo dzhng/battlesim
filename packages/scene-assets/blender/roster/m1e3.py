@@ -30,6 +30,11 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import abrams as A  # noqa: E402
+import armour_parts as AR  # noqa: E402
+import hull_fittings as HF  # noqa: E402
+import hull_shape as HS  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import vehicle_guns as VG  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism, stencil  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
@@ -43,7 +48,7 @@ TURRET_PLAN = [(1.40, 0.0), (1.40, 0.42), (2.05, 0.50), (1.05, 1.58), (-1.60, 1.
 
 
 def turret_shell():
-    outline = VP.mirror_plan(TURRET_PLAN)
+    outline = HS.mirror_plan(TURRET_PLAN)
 
     def ring(z):
         out = []
@@ -68,13 +73,13 @@ def turret_body(v, turret):
     cyl("turret_ring_guard", 1.05, 0.10, (0, 0, -0.02), "Z", m["dark"], turret, seg=40, lods=MID)
     for side, s in ((1, "L"), (-1, "R")):
         # The cheek's facet lines and the flat side's bolted plates.
-        VP.weld_line(f"cheek_weld_{s}", [(1.70, side * 0.50, ROOF + 0.002), (0.95, side * 1.44, ROOF + 0.002)], m,
+        AR.weld_line(f"cheek_weld_{s}", [(1.70, side * 0.50, ROOF + 0.002), (0.95, side * 1.44, ROOF + 0.002)], m,
                      turret)
-        loc, rot = VP.on_side(-0.35, 0.45, side, (1.588, 0.18), (1.468, ROOF))
-        VP.bolted_panel(f"side_plate_{s}", loc, (1.90, 0.46, 0.05), m, turret, bolts=(4, 2), bevel=0.02, rot=rot,
+        loc, rot = HS.on_side(-0.35, 0.45, side, (1.588, 0.18), (1.468, ROOF))
+        AR.bolted_panel(f"side_plate_{s}", loc, (1.90, 0.46, 0.05), m, turret, bolts=(4, 2), bevel=0.02, rot=rot,
                         lods=VP.ALL)
         # Four-tube smoke banks at the cheek's rear corner, fanned forward.
-        VP.smoke_discharger_bank(f"smoke_{s}", (0.70, side * 1.50, ROOF - 0.10), m, turret, count=4,
+        RF.smoke_discharger_bank(f"smoke_{s}", (0.70, side * 1.50, ROOF - 0.10), m, turret, count=4,
                                  tube_radius=0.05, tube_length=0.26, elevation=0.35, spread=0.3,
                                  rot=(0, 0, side * 0.6))
         # Trophy: the radar housing against the flat side, its top just
@@ -82,13 +87,13 @@ def turret_body(v, turret):
         A.trophy_station(v, turret, side, s, at=(-1.10, 1.70, ROOF + 0.11), size=(1.05, 0.30, 0.46),
                          launcher_back=0.20)
         whip = empty(f"dressing_antenna_{s}", parent=turret)
-        VP.antenna(f"antenna_{s}", (-1.75, side * 1.05, ROOF), m, whip, height=2.2)
+        RF.antenna(f"antenna_{s}", (-1.75, side * 1.05, ROOF), m, whip, height=2.2)
     # Roof: the gunner's sight ahead on the right, the independent sight box
     # behind the station on the left, access plates and lifting eyes.
-    VP.sight_housing("gunner_sight", (1.05, -0.62, ROOF - 0.05), m, turret, size=(0.52, 0.42, 0.26))
+    RF.sight_housing("gunner_sight", (1.05, -0.62, ROOF - 0.05), m, turret, size=(0.52, 0.42, 0.26))
     mast = empty("dressing_sight_box", parent=turret)
     box("sight_box_post", (0.20, 0.20, 0.12), (-1.05, 0.62, ROOF + 0.06), m["dark"], mast, lods=MID)
-    VP.sight_housing("sight_box", (-1.05, 0.62, ROOF + 0.12), m, mast, size=(0.40, 0.38, 0.30))
+    RF.sight_housing("sight_box", (-1.05, 0.62, ROOF + 0.12), m, mast, size=(0.40, 0.38, 0.30))
     # The cheeks' sensor windows (the protection system's and the
     # situational-awareness cameras), and the gun shield's bolt rows.
     for side, s in ((1, "L"), (-1, "R")):
@@ -123,7 +128,7 @@ def remote_station(v, rws, rws_gun, mount):
         a = k * math.tau / 6
         cyl(f"rws_flange_bolt_{k}", 0.022, 0.03, (0.21 * math.cos(a), 0.21 * math.sin(a), -drop + 0.05), "Z",
             m["steel"], rws, seg=6, lods=FINE)
-    VP.cable("rws_harness", [(-0.17, 0.0, -0.10), (-0.19, 0.02, -drop / 2), (-0.24, 0.05, -drop + 0.06)], m, rws,
+    HF.cable("rws_harness", [(-0.17, 0.0, -0.10), (-0.19, 0.02, -drop / 2), (-0.24, 0.05, -drop + 0.06)], m, rws,
              radius=0.022, eyes=False)
     cyl("rws_bearing", 0.26, 0.08, (0, 0, 0.02), "Z", m["dark"], rws, seg=24, bevel=0.01)
     box("rws_base", (0.46, 0.40, 0.10), (-0.02, 0, 0.10), m["paint"], rws, bevel=0.02)
@@ -135,18 +140,18 @@ def remote_station(v, rws, rws_gun, mount):
     # The sensor block: three windows, the thermal's the largest, under a hood.
     # The photo's station is a big block beside the gun, so the sensor block
     # and the can are drawn at a CROWS's size, not the M2's.
-    VP.sight_housing("rws_sight", (0.12, -0.33, -0.16), m, rws_gun, size=(0.40, 0.24, 0.30))
+    RF.sight_housing("rws_sight", (0.12, -0.33, -0.16), m, rws_gun, size=(0.40, 0.24, 0.30))
     for k, (y, z, r) in enumerate(((-0.37, 0.07, 0.045), (-0.28, 0.07, 0.032), (-0.33, -0.01, 0.022))):
         cyl(f"rws_window_{k}", r, 0.006, (0.325, y, z - 0.16 + 0.12), "X", m["glass"], rws_gun, seg=12, lods=NEAR)
     box("rws_ammo", (0.42, 0.20, 0.34), (-0.08, 0.33, -0.10), m["paint"], rws_gun, bevel=0.02, lods=MID)
     for k, x in enumerate((-0.22, 0.06)):
         box(f"rws_ammo_latch_{k}", (0.04, 0.012, 0.05), (x, 0.435, -0.02), m["steel"], rws_gun, lods=FINE)
     box("rws_ammo_lid", (0.44, 0.22, 0.03), (-0.08, 0.33, 0.085), m["paint"], rws_gun, bevel=0.008, lods=NEAR)
-    VP.cable("rws_feed", [(-0.08, 0.30, 0.08), (-0.05, 0.22, 0.20), (0.0, 0.08, 0.10)], m, rws_gun, radius=0.03,
+    HF.cable("rws_feed", [(-0.08, 0.30, 0.08), (-0.05, 0.22, 0.20), (0.0, 0.08, 0.10)], m, rws_gun, radius=0.03,
              eyes=False)
     box("rws_feed_tray", (0.14, 0.10, 0.03), (0.06, 0.07, 0.085), m["dark"], rws_gun, lods=NEAR)
     box("rws_charger", (0.12, 0.05, 0.05), (-0.18, -0.08, 0.02), m["dark"], rws_gun, bevel=0.01, lods=NEAR)
-    VP.browning_m2(rws_gun, mount["muzzle_m"][0], m)
+    VG.browning_m2(rws_gun, mount["muzzle_m"][0], m)
 
 
 def skirts(v):

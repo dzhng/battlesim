@@ -21,6 +21,10 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import hull_fittings as HF  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import running_gear as RG  # noqa: E402
+import vehicle_guns as VG  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, prism  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
@@ -42,7 +46,7 @@ def build(variant, v):
     body(v)
     for side, s in ((1, "L"), (-1, "R")):
         for k, x in enumerate(AXLES):
-            VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,
+            RG.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,
                           rim_radius=0.24)
             # The double wishbone and the hub reduction behind the wheel.
             for j, z in enumerate((WHEEL_R - 0.10, WHEEL_R + 0.16)):
@@ -50,7 +54,7 @@ def build(variant, v):
                     lods=NEAR)
             cyl(f"coil_{s}_{k}", 0.08, 0.36, (x - 0.12, side * (WHEEL_Y - 0.48), WHEEL_R + 0.30), "Z", m["dark"],
                 hull, seg=10, lods=FINE)
-        VP.mudflap(f"mudflap_{s}", (-2.20, side * WHEEL_Y, FENDER_FOOT - 0.02), (0.36, 0.42), m, hull)
+        HF.mudflap(f"mudflap_{s}", (-2.20, side * WHEEL_Y, FENDER_FOOT - 0.02), (0.36, 0.42), m, hull)
     mounts = rig(v.frame, v.root)
     turret, pitch, _, pivot = mounts["HMG"]
     ogpk(v, turret, pitch, pivot)
@@ -102,15 +106,15 @@ def body(v):
         cyl(f"headlight_{s}", 0.085, 0.02, (half + 0.03, side * 0.66, 1.00), "X", m["lamp"], hull, seg=16, lods=MID)
         cyl(f"marker_{s}", 0.05, 0.03, (half - 0.10, side * 0.95, 1.20), "X", m["lamp"], hull, seg=10,
             lods=FINE)
-        VP.shackle(f"front_shackle_{s}", (half + 0.04, side * 0.45, 0.66), m, hull, size=0.10, rot=(0, 0, math.pi / 2))
-        VP.light_with_guard(f"tail_light_{s}", (-half + 0.04, side * 0.95, 1.10), 0.045, dict(m, lamp=m["tail"]),
+        HF.shackle(f"front_shackle_{s}", (half + 0.04, side * 0.45, 0.66), m, hull, size=0.10, rot=(0, 0, math.pi / 2))
+        HF.light_with_guard(f"tail_light_{s}", (-half + 0.04, side * 0.95, 1.10), 0.045, dict(m, lamp=m["tail"]),
                             hull, rot=(0, 0, math.pi))
     box("front_bumper", (0.10, 2.00, 0.18), (half - 0.02, 0, 0.68), m["dark"], hull, bevel=0.012)
     box("rear_bumper", (0.10, 1.90, 0.16), (-half + 0.03, 0, 0.74), m["dark"], hull, bevel=0.012)
-    VP.tow_hook("pintle", (-half + 0.06, 0, 0.74), m, hull, size=0.12, rot=(0, 0, math.pi))
+    HF.tow_hook("pintle", (-half + 0.06, 0, 0.74), m, hull, size=0.12, rot=(0, 0, math.pi))
     slope = math.atan((COWL[1] - 1.25) / (half - 0.15 - COWL[0]))
-    VP.grille("hood_louvre", (1.55, 0, 1.31), (0.40, 0.90), m, hull, slats=8, rot=(0, slope, 0))
-    VP.grille("rear_side_louvre", (-1.70, 1.065, 1.28), (0.75, 0.16), m, hull, slats=10, rot=(-math.pi / 2, 0, 0))
+    HF.grille("hood_louvre", (1.55, 0, 1.31), (0.40, 0.90), m, hull, slats=8, rot=(0, slope, 0))
+    HF.grille("rear_side_louvre", (-1.70, 1.065, 1.28), (0.75, 0.16), m, hull, slats=10, rot=(-math.pi / 2, 0, 0))
     # Windscreen: two panes in a frame on the near-upright front.
     lean = math.atan((COWL[0] - 0.78) / (ROOF - 0.04 - COWL[1]))
     for side, s in ((1, "L"), (-1, "R")):
@@ -135,7 +139,7 @@ def body(v):
         box(f"mirror_arm_{s}", (0.04, 0.22, 0.03), (0.86, side * 1.16, 1.50), m["dark"], mirror, lods=NEAR)
         box(f"mirror_{s}", (0.04, 0.14, 0.24), (0.86, side * 1.26, 1.55), m["dark"], mirror, bevel=0.01, lods=MID)
         whip = empty(f"dressing_antenna_{s}", parent=hull)
-        VP.antenna(f"antenna_{s}", (-2.30, side * 0.80, 1.46), m, whip, height=2.6)
+        RF.antenna(f"antenna_{s}", (-2.30, side * 0.80, 1.46), m, whip, height=2.6)
     # The air intake snorkel up the right windscreen pillar.
     cyl("snorkel", 0.07, 0.95, (0.98, -1.02, 1.42), "Z", m["paint"], hull, seg=12, lods=MID)
     cyl("snorkel_cap", 0.09, 0.10, (0.98, -1.02, 1.93), "Z", m["dark"], hull, seg=12, lods=MID)
@@ -185,7 +189,7 @@ def ogpk(v, turret, pitch, pivot):
     cyl("pintle_post", 0.04, lift - 0.05 - foot, (0.10, 0, (foot + lift - 0.05) / 2), "Z", m["dark"], turret, seg=10)
     box("pintle_cradle", (0.20, 0.14, 0.06), (0.10, 0, lift - 0.06), m["dark"], turret, lods=MID)
     reach = v.frame["mounts"][0]["muzzle_m"][0]
-    VP.browning_m2(pitch, reach, m, receiver_x=0.10, grips=True)
+    VG.browning_m2(pitch, reach, m, receiver_x=0.10, grips=True)
     box("m2_ammo_can", (0.28, 0.12, 0.20), (0.10, 0.17, -0.06), m["dark"], pitch, bevel=0.01, lods=MID)
 
 

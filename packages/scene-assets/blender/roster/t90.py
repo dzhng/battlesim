@@ -25,6 +25,10 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import armour_parts as AR  # noqa: E402
+import hull_shape as HS  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft  # noqa: E402
 from t72 import TRUNNION, cupola_mg, gun_2a46, soviet_gear, soviet_hull, soviet_skirts, soviet_wreck  # noqa: E402
@@ -51,7 +55,7 @@ def turret_rings():
     the hull."""
     def ring(inset, lean=0.0):
         left = [(x - inset if x > 0 else x + inset, y - inset - lean) for x, y in TURRET_HALF]
-        return VP.mirror_plan(left)
+        return HS.mirror_plan(left)
 
     return [(FOOT, ring(0.30)), (WALL - 0.03, ring(0.30)), (WALL, ring(0.0)), (ROOF, ring(0.02, 0.04))]
 
@@ -78,34 +82,34 @@ def turret_body(v, turret):
         loft(f"cheek_wedge_{s}", rings, mat=m["paint"], parent=turret, bevel=0.04)
         slope = math.atan2(ROOF - 0.02 - WEDGE_TIP, nose - head)
         face_x = head + 0.32
-        VP.armour_tiles(f"cheek_face_{s}", (face_x, side * 0.85, ROOF - 0.02 - (face_x - head) * math.tan(slope)),
+        AR.armour_tiles(f"cheek_face_{s}", (face_x, side * 0.85, ROOF - 0.02 - (face_x - head) * math.tan(slope)),
                         (0.56, 0.70), (2, 3), 0.06, m, turret, rot=(0, slope, 0))
-        VP.armour_tiles(f"cheek_tiles_{s}", (1.10, side * 0.92, ROOF - 0.02), (0.44, 0.88), (1, 3), 0.06, m, turret)
+        AR.armour_tiles(f"cheek_tiles_{s}", (1.10, side * 0.92, ROOF - 0.02), (0.44, 0.88), (1, 3), 0.06, m, turret)
         # Net screens hung along the turret's flank, the cage round the bustle.
         # Both stand clear of the undercut, so the turret sits apart from the hull.
-        VP.slat_armour(f"net_screen_{s}", (-0.15, side * 1.38, WALL + 0.02), (1.30, 0.50), m, turret,
+        AR.slat_armour(f"net_screen_{s}", (-0.15, side * 1.38, WALL + 0.02), (1.30, 0.50), m, turret,
                        spacing=0.10, bar=0.012, rot=(0, 0, side * side_yaw))
-        VP.slat_armour(f"bustle_cage_{s}", (-1.12, side * 1.06, FOOT + 0.16), (0.50, 0.58), m, turret, spacing=0.10,
+        AR.slat_armour(f"bustle_cage_{s}", (-1.12, side * 1.06, FOOT + 0.16), (0.50, 0.58), m, turret, spacing=0.10,
                        bar=0.014)
-        VP.smoke_discharger_bank(f"smoke_{s}", (0.90, side * 1.16, ROOF - 0.08), m, turret, count=6, tube_radius=0.045,
+        RF.smoke_discharger_bank(f"smoke_{s}", (0.90, side * 1.16, ROOF - 0.08), m, turret, count=6, tube_radius=0.045,
                                  tube_length=0.22, elevation=0.30, spread=0.6, rot=(0, 0, side * 0.60))
-        VP.stowage_box(f"bustle_bin_{s}", (-0.95, side * 0.62, ROOF - 0.06), (0.55, 0.28, 0.12), m, turret,
+        SW.stowage_box(f"bustle_bin_{s}", (-0.95, side * 0.62, ROOF - 0.06), (0.55, 0.28, 0.12), m, turret,
                        rot=(0, 0, 0 if side > 0 else math.pi))
         whip = empty(f"dressing_antenna_{s}", parent=turret)
-        VP.antenna(f"antenna_{s}", (-1.00, side * 0.85, ROOF), m, whip, height=2.2)
-    VP.slat_armour("bustle_cage_rear", (-1.45, 0, FOOT + 0.16), (2.00, 0.58), m, turret, spacing=0.10, bar=0.014,
+        RF.antenna(f"antenna_{s}", (-1.00, side * 0.85, ROOF), m, whip, height=2.2)
+    AR.slat_armour("bustle_cage_rear", (-1.45, 0, FOOT + 0.16), (2.00, 0.58), m, turret, spacing=0.10, bar=0.014,
                    rot=(0, 0, math.pi / 2))
     # Roof: the gunner's sight box on the left, the commander's tall
     # panoramic sight drum on the right (both stand over the frame's top, so
     # they are dressing), his hatch behind the remote gun, the loader-less
     # gunner's hatch.
     sights = empty("dressing_sights", parent=turret)
-    VP.sight_housing("sosna_sight", (0.62, 0.62, ROOF - 0.02), m, sights, size=(0.44, 0.36, 0.24))
+    RF.sight_housing("sosna_sight", (0.62, 0.62, ROOF - 0.02), m, sights, size=(0.44, 0.36, 0.24))
     cyl("commander_sight_drum", 0.24, 0.20, (0.25, -0.88, ROOF + 0.08), "Z", m["paint"], sights, seg=20,
         bevel=0.02, lods=MID)
-    VP.sight_housing("commander_sight", (0.25, -0.88, ROOF + 0.18), m, sights, size=(0.40, 0.40, 0.10))
-    VP.cupola("commander_cupola", (-0.75, -0.58, ROOF - 0.06), m, turret, radius=0.30, periscopes=4, lid_open=False)
-    VP.hatch("gunner_hatch", (-0.45, 0.58, ROOF - 0.04), m, turret, radius=0.30)
+    RF.sight_housing("commander_sight", (0.25, -0.88, ROOF + 0.18), m, sights, size=(0.40, 0.40, 0.10))
+    RF.cupola("commander_cupola", (-0.75, -0.58, ROOF - 0.06), m, turret, radius=0.30, periscopes=4, lid_open=False)
+    RF.hatch("gunner_hatch", (-0.45, 0.58, ROOF - 0.04), m, turret, radius=0.30)
 
 
 def rear_drums(v):
@@ -119,7 +123,7 @@ def rear_drums(v):
             cyl(f"drum_band_{side}_{k}", 0.30, 0.04, (-3.42, side * 0.80 + k, 1.22), "Y", m["dark"], drums, seg=24,
                 lods=NEAR)
     box("drum_bracket", (0.30, 3.00, 0.06), (-3.36, 0, 0.92), m["dark"], hull, lods=MID)
-    VP.slat_armour("rear_bars", (-3.48, 0, 0.50), (3.20, 0.40), m, hull, rot=(0, 0, math.pi / 2))
+    AR.slat_armour("rear_bars", (-3.48, 0, 0.50), (3.20, 0.40), m, hull, rot=(0, 0, math.pi / 2))
 
 
 def build(variant, v):

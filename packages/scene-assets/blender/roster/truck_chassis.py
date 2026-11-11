@@ -20,6 +20,12 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import armour_parts as AR  # noqa: E402
+import hull_fittings as HF  # noqa: E402
+import hull_shape as HS  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import running_gear as RG  # noqa: E402
+import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft  # noqa: E402
 
@@ -51,7 +57,7 @@ def chassis(v, axles, wheel_r, wheel_w, track, rail_z, cab, cab_x, cab_len, cab_
     half = v.length / 2
     for side, s in ((1, "L"), (-1, "R")):
         for k, x in enumerate(axles):
-            VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * track, wheel_r), wheel_r, wheel_w, side, m, h,
+            RG.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * track, wheel_r), wheel_r, wheel_w, side, m, h,
                           rim_radius=wheel_r * 0.55, ctis=True)
         box(f"frame_rail_{s}", (v.length - 0.6, 0.12, 0.30), (-0.2, side * 0.50, rail_z), m["dark"], h, bevel=0.01)
         for k, x in enumerate(axles):
@@ -71,17 +77,17 @@ def chassis(v, axles, wheel_r, wheel_w, track, rail_z, cab, cab_x, cab_len, cab_
                 (x, side * track, fender_z), m["paint"], h, bevel=0.01, lods=MID)
             box(f"fender_bracket_{s}_{k}", (0.08, 0.10, bracket_height),
                 (x, fender_inner_y, rail_z + bracket_height / 2 - 0.02), m["dark"], h, lods=FINE)
-        VP.mudflap(f"mudflap_{s}", (axles[-1] - wheel_r - 0.15, side * track, wheel_r + 0.55), (wheel_w + 0.05, 0.5),
+        HF.mudflap(f"mudflap_{s}", (axles[-1] - wheel_r - 0.15, side * track, wheel_r + 0.55), (wheel_w + 0.05, 0.5),
                    m, h)
-        VP.light_with_guard(f"tail_light_{s}", (-half + 0.05, side * (track - 0.05), rail_z + 0.05), 0.05,
+        HF.light_with_guard(f"tail_light_{s}", (-half + 0.05, side * (track - 0.05), rail_z + 0.05), 0.05,
                             dict(m, lamp=m["tail"]), h, rot=(0, 0, math.pi))
     box("rear_bumper", (0.12, track * 2 - 0.2, 0.14), (-half + 0.06, 0, rail_z - 0.05), m["dark"], h, bevel=0.01)
     if tow:
-        VP.tow_hook("rear_tow", (-half + 0.02, 0, rail_z - 0.05), m, h, size=0.13, rot=(0, 0, math.pi))
+        HF.tow_hook("rear_tow", (-half + 0.02, 0, rail_z - 0.05), m, h, size=0.13, rot=(0, 0, math.pi))
     # Fuel tank and battery box between the cab and the first rear axle.
     gap = (cab_x + axles[1]) / 2 if len(axles) > 1 else cab_x - 0.6
-    VP.fuel_tank("fuel_tank", (gap, 0.85, rail_z - 0.05), 0.95, 0.24, m, h)
-    VP.stowage_box("battery_box", (gap, -0.85, rail_z - 0.30), (0.60, 0.30, 0.40), m, h, rot=(0, 0, math.pi))
+    HF.fuel_tank("fuel_tank", (gap, 0.85, rail_z - 0.05), 0.95, 0.24, m, h)
+    SW.stowage_box("battery_box", (gap, -0.85, rail_z - 0.30), (0.60, 0.30, 0.40), m, h, rot=(0, 0, math.pi))
     if cab is not None:
         cab_shape(v, cab, cab_x, cab_len, cab_h, track, rail_z, wheel_r, doors)
     return deck_z if deck_z is not None else rail_z + 0.15
@@ -102,10 +108,10 @@ def cab_shape(v, cab, x0, length, height, track, rail_z, wheel_r, doors=1):
                  mat=m["paint"], parent=h, bevel=0.04)
             box(f"windscreen_{s}", (0.02, 0.95, 0.45), (front - 0.18, side * (half_w - 0.62), height - 0.40),
                 m["glass"], h, rot=(0, -0.45, 0), lods=MID)
-            VP.light_with_guard(f"headlight_{s}", (front + 0.02, side * (half_w - 0.35), floor + 0.30), 0.08, m, h)
+            HF.light_with_guard(f"headlight_{s}", (front + 0.02, side * (half_w - 0.35), floor + 0.30), 0.08, m, h)
         box("engine_hood", (length, 0.80, height - floor - 0.25), (x0 + length / 2, 0, floor + (height - floor - 0.25)
                                                                     / 2), m["paint"], h, bevel=0.04)
-        VP.grille("radiator_grille", (front + 0.01, 0, floor + 0.55), (0.75, 0.70), m, h, slats=9,
+        HF.grille("radiator_grille", (front + 0.01, 0, floor + 0.55), (0.75, 0.70), m, h, slats=9,
                   rot=(0, -math.pi / 2, 0))
         box("front_bumper", (0.14, half_w * 2, 0.20), (front + 0.05, 0, floor - 0.05), m["dark"], h, bevel=0.01)
     else:  # a cab-over, armoured or soft
@@ -120,10 +126,10 @@ def cab_shape(v, cab, x0, length, height, track, rail_z, wheel_r, doors=1):
             mirror, lods=MID)
     if cab == "maz_split":
         for side, s in ((1, "L"), (-1, "R")):
-            VP.tow_hook(f"front_tow_{s}", (front + 0.12, side * 0.60, floor - 0.10), m, h, size=0.12)
+            HF.tow_hook(f"front_tow_{s}", (front + 0.12, side * 0.60, floor - 0.10), m, h, size=0.12)
         cab_fittings(v, x0, front, height, half_w, floor, wheel_r)
     whip = empty("dressing_antenna_cab", parent=h)
-    VP.antenna("antenna_cab", (x0 + 0.20, -(half_w - 0.15), height), m, whip, height=2.2)
+    RF.antenna("antenna_cab", (x0 + 0.20, -(half_w - 0.15), height), m, whip, height=2.2)
 
 
 def armoured_cab(v, x0, length, height, floor, wheel_r, doors=1, soft=False):
@@ -162,16 +168,16 @@ def armoured_cab(v, x0, length, height, floor, wheel_r, doors=1, soft=False):
         m["paint"], h, rot=(0, -pitch, 0), bevel=0.01, lods=MID)
     # Under the windscreens: the armoured front's bolted plate, grille, lights and bumper.
     if not soft:
-        VP.bolted_panel("front_plate", (front + 0.005, 0, waist - 0.25), (0.45, half_w * 1.7, 0.03), m, h,
+        AR.bolted_panel("front_plate", (front + 0.005, 0, waist - 0.25), (0.45, half_w * 1.7, 0.03), m, h,
                         bolts=(2, 6), rot=(0, math.pi / 2, 0), bevel=0.01)
-    VP.grille("radiator_grille", (front + 0.04, 0, floor + 0.32), (0.42, half_w * 1.1), m, h, slats=7,
+    HF.grille("radiator_grille", (front + 0.04, 0, floor + 0.32), (0.42, half_w * 1.1), m, h, slats=7,
               rot=(0, -math.pi / 2, 0))
     box("front_bumper", (0.18, half_w * 2 + 0.06, 0.22), (front + 0.07, 0, floor - 0.06), m["dark"], h, bevel=0.015)
     for side, s in ((1, "L"), (-1, "R")):
-        VP.light_with_guard(f"headlight_{s}", (front + 0.06, side * (half_w - 0.22), floor + 0.30), 0.07, m, h)
+        HF.light_with_guard(f"headlight_{s}", (front + 0.06, side * (half_w - 0.22), floor + 0.30), 0.07, m, h)
         box(f"marker_{s}", (0.03, 0.08, 0.06), (front + 0.02, side * (half_w - 0.06), waist - 0.05), m["lamp"], h,
             lods=FINE)
-        VP.shackle(f"front_shackle_{s}", (front + 0.17, side * 0.55, floor - 0.06), m, h, size=0.13,
+        HF.shackle(f"front_shackle_{s}", (front + 0.17, side * 0.55, floor - 0.06), m, h, size=0.13,
                    rot=(0, 0, math.pi / 2))
         # Each door: its armour, a small thick window, handle, hinges, steps under it.
         y = side * (half_w + 0.005)
@@ -179,16 +185,16 @@ def armoured_cab(v, x0, length, height, floor, wheel_r, doors=1, soft=False):
             door_x = front - 0.70 - d * 1.05
             n = f"{s}_{d}" if d else s
             if soft:
-                VP.weld_line(f"door_seam_{n}", [(door_x + 0.48, y, floor + 0.10), (door_x + 0.48, y, waist),
+                AR.weld_line(f"door_seam_{n}", [(door_x + 0.48, y, floor + 0.10), (door_x + 0.48, y, waist),
                                                 (door_x - 0.48, y, waist), (door_x - 0.48, y, floor + 0.10)], m, h,
                              radius=0.012)
             else:
-                VP.bolted_panel(f"door_{n}", (door_x, y, floor + 0.15), (0.95, waist - floor - 0.25, 0.035), m, h,
+                AR.bolted_panel(f"door_{n}", (door_x, y, floor + 0.15), (0.95, waist - floor - 0.25, 0.035), m, h,
                                 bolts=(3, 3), rot=(-side * math.pi / 2, 0, 0), bevel=0.012)
-            loc, rot = VP.on_side(door_x - 0.05, waist + 0.30, side, *face, proud=0.015)
+            loc, rot = HS.on_side(door_x - 0.05, waist + 0.30, side, *face, proud=0.015)
             window = (0.80, 0.55, 0.03) if soft else (0.48, 0.34, 0.03)
             box(f"door_window_{n}", window, loc, m["glass"], h, rot=rot, lods=MID)
-            loc, rot = VP.on_side(door_x - 0.05, waist + 0.30, side, *face, proud=0.005)
+            loc, rot = HS.on_side(door_x - 0.05, waist + 0.30, side, *face, proud=0.005)
             box(f"door_window_frame_{n}", (window[0] + 0.10, window[1] + 0.10, 0.03), loc, m["paint"], h, rot=rot,
                 bevel=0.01, lods=NEAR)
             box(f"door_handle_{n}", (0.16, 0.04, 0.04), (door_x - 0.36, side * (half_w + 0.04), waist - 0.20),
@@ -207,10 +213,10 @@ def armoured_cab(v, x0, length, height, floor, wheel_r, doors=1, soft=False):
                 box(f"grab_rail_bracket_{n}_{rb}", (0.04, 0.06, 0.06),
                     (door_x - 0.55, side * (half_w + 0.01), rbz), m["steel"], h, lods=FINE)
         # The rear quarter window behind the door.
-        loc, rot = VP.on_side(x0 + 0.30, waist + 0.30, side, *face, proud=0.012)
+        loc, rot = HS.on_side(x0 + 0.30, waist + 0.30, side, *face, proud=0.012)
         box(f"rear_window_{s}", (0.30, 0.30, 0.03), loc, m["glass"], h, rot=rot, lods=MID)
     # The roof: hatch, marker lamps along its front edge; inside, the dash and seats.
-    VP.hatch("cab_roof_hatch", (x0 + 0.75, 0.35, height), m, h, radius=0.30)
+    RF.hatch("cab_roof_hatch", (x0 + 0.75, 0.35, height), m, h, radius=0.30)
     for k in range(3):
         cyl(f"roof_marker_{k}", 0.03, 0.04, (front - rake - 0.06, -0.35 + k * 0.35, height + 0.02), "Z", m["tail"], h,
             seg=8, lods=FINE)
@@ -235,7 +241,7 @@ def cab_fittings(v, x0, front, height, half_w, floor, wheel_r):
     for side in (1, -1):
         y = side * (half_w + 0.005)
         d0, d1 = x0 + 0.12, cab_front - 0.25
-        VP.weld_line(f"door_seam_{side}", [(d1, y, floor + 0.08), (d1, y, height - 0.12), (d0, y, height - 0.12),
+        AR.weld_line(f"door_seam_{side}", [(d1, y, floor + 0.08), (d1, y, height - 0.12), (d0, y, height - 0.12),
                                            (d0, y, floor + 0.08)], m, h, radius=0.012)
         box(f"door_window_{side}", ((d1 - d0) * 0.70, 0.03, 0.40), ((d0 + d1) / 2, y, height - 0.40), m["glass"], h,
             lods=MID)
@@ -257,8 +263,8 @@ def cab_fittings(v, x0, front, height, half_w, floor, wheel_r):
 
 
 def _plan(rear, front, half, chamfer, y=0.0):
-    """`vehicle_parts.hull_plan`, centred `y` off the centre line (a split cab's half)."""
-    return [(x, py + y) for x, py in VP.hull_plan(rear, front, half, chamfer)]
+    """`hull_shape.hull_plan`, centred `y` off the centre line (a split cab's half)."""
+    return [(x, py + y) for x, py in HS.hull_plan(rear, front, half, chamfer)]
 
 
 def spare_wheel(v, loc, radius, width, rot=(0, 0, 0)):

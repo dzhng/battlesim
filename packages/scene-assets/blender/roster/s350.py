@@ -25,6 +25,10 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import armour_parts as AR  # noqa: E402
+import hull_fittings as HF  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, textured  # noqa: E402
 from truck_chassis import chassis  # noqa: E402
@@ -65,15 +69,15 @@ def baz(v):
     # The tall housing right behind the cab: louvred sides, a ladder up its back.
     box("housing_front", (1.10, 2.50, 1.62), (2.95, 0, deck + 0.81), m["paint"], h, bevel=0.04)
     for side in (-1, 1):
-        VP.grille(f"housing_louvre_{side}", (3.00, side * 1.255, deck + 1.05), (0.70, 0.55), m, h, slats=7,
+        HF.grille(f"housing_louvre_{side}", (3.00, side * 1.255, deck + 1.05), (0.70, 0.55), m, h, slats=7,
                   rot=(-side * math.pi / 2, 0, 0))
     # The lower housing with the raised compartment on its right, a door each side.
     box("housing_rear", (1.75, 2.40, 1.00), (1.45, 0, deck + 0.50), m["paint"], h, bevel=0.03)
     box("housing_raised", (1.25, 1.05, 0.72), (1.40, -0.62, deck + 1.36), m["paint"], h, bevel=0.04)
     for side, s in ((1, "L"), (-1, "R")):
-        VP.bolted_panel(f"housing_door_{s}", (1.45, side * 1.205, deck + 0.50), (0.90, 0.70, 0.03), m, h,
+        AR.bolted_panel(f"housing_door_{s}", (1.45, side * 1.205, deck + 0.50), (0.90, 0.70, 0.03), m, h,
                         bolts=(3, 2), rot=(-side * math.pi / 2, 0, 0), bevel=0.01)
-        VP.stowage_box(f"step_box_{s}", (0.0, side * 1.10, deck - 0.45), (1.10, 0.30, 0.40), m, h,
+        SW.stowage_box(f"step_box_{s}", (0.0, side * 1.10, deck - 0.45), (1.10, 0.30, 0.40), m, h,
                        rot=(0, 0, 0 if side > 0 else math.pi))
         # The side outrigger stowed upright behind the housings, its pad clear of the ground.
         box(f"outrigger_{s}", (0.18, 0.18, 1.15), (2.30, side * 1.20, deck - 0.30), m["dark"], h, bevel=0.01)
@@ -89,7 +93,7 @@ def baz(v):
             lods=MID)
     for k in range(4):
         box(f"ladder_rung_{k}", (0.04, 0.50, 0.04), (2.38, 0.55, deck + 0.30 + k * 0.32), m["steel"], h, lods=FINE)
-    VP.fuel_tank("housing_extinguisher", (2.90, 0.90, deck + 1.80), 0.45, 0.08, m, h, rot=(0, 0, math.pi / 2))
+    HF.fuel_tank("housing_extinguisher", (2.90, 0.90, deck + 1.80), 0.45, 0.08, m, h, rot=(0, 0, math.pi / 2))
     # The amber beacon on the cab roof.
     cyl("roof_beacon", 0.09, 0.16, (5.20, 0.70, 2.93), "Z", m["lamp"], h, seg=12, lods=MID)
     return deck
@@ -161,9 +165,9 @@ def launcher(v, deck):
     # boxes on it and the cable runs between them.
     box("tail_plate", (0.04, 2.56, hi - lo), (BOX_TAIL + 0.02, 0, (lo + hi) / 2), m["paint"], h)
     for k, (y, z) in enumerate(((-0.62, TIERS[0]), (0.62, TIERS[0]), (-0.62, TIERS[1]), (0.62, TIERS[1]))):
-        VP.stowage_box(f"tail_junction_{k}", (BOX_TAIL - 0.06, y, z - 0.18), (0.12, 0.70, 0.36), m, h)
+        SW.stowage_box(f"tail_junction_{k}", (BOX_TAIL - 0.06, y, z - 0.18), (0.12, 0.70, 0.36), m, h)
     for k, y in enumerate((-0.25, 0.25)):
-        VP.cable(f"tail_cable_{k}", [(BOX_TAIL - 0.05, y, hi - 0.10), (BOX_TAIL - 0.08, y * 1.4, (lo + hi) / 2),
+        HF.cable(f"tail_cable_{k}", [(BOX_TAIL - 0.05, y, hi - 0.10), (BOX_TAIL - 0.08, y * 1.4, (lo + hi) / 2),
                                      (BOX_TAIL - 0.05, y, lo + 0.10)], m, h, radius=0.025, eyes=False)
 
 
@@ -178,7 +182,7 @@ def build(variant, v):
     deck = baz(v)
     launcher(v, deck)
     whip = empty("dressing_antenna_cab_rear", parent=v.hull)
-    VP.antenna("antenna_housing", (2.45, 1.05, 2.87), v.mats, whip, height=1.2)
+    RF.antenna("antenna_housing", (2.45, 1.05, 2.87), v.mats, whip, height=1.2)
 
 
 def wreck(variant, v):

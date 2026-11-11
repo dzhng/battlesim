@@ -26,6 +26,12 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import armour_parts as AR  # noqa: E402
+import hull_fittings as HF  # noqa: E402
+import hull_shape as HS  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import running_gear as RG  # noqa: E402
+import vehicle_guns as VG  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism, stencil  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
@@ -66,7 +72,7 @@ def panel_top(x):
 
 def build(variant, v):
     hull_body(v)
-    VP.tracked_running_gear(v.mats, v.hull, TRACK_Y, TRACK_W, ROAD_X, ROAD_Z, ROAD_R, 0.22, SPROCKET, IDLER,
+    RG.tracked_running_gear(v.mats, v.hull, TRACK_Y, TRACK_W, ROAD_X, ROAD_Z, ROAD_R, 0.22, SPROCKET, IDLER,
                             RETURNS, bolts=8, teeth=12, arm=(0.50, 0.40), pitch=0.18)
     side_panels(v)
     mounts = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})
@@ -87,9 +93,9 @@ def hull_body(v):
           mat=m["paint"], parent=hull, bevel=0.04)
     slope = math.atan(GLACIS_DROP / GLACIS_RUN)
     # The hatch straddles the glacis' head, so it leans half the slope.
-    VP.hatch("driver_hatch", (2.40, -0.58, DECK + 0.02), m, hull, size=(0.60, 0.50), rot=(0, slope / 2, 0))
+    RF.hatch("driver_hatch", (2.40, -0.58, DECK + 0.02), m, hull, size=(0.60, 0.50), rot=(0, slope / 2, 0))
     for k, y in enumerate((-0.36, -0.58, -0.80)):
-        VP.periscope(f"driver_periscope_{k}", (2.80, y, glacis_z(2.80)), m, hull, size=(0.14, 0.16, 0.08),
+        RF.periscope(f"driver_periscope_{k}", (2.80, y, glacis_z(2.80)), m, hull, size=(0.14, 0.16, 0.08),
                      rot=(0, slope, 0))
     for side, s in ((1, "L"), (-1, "R")):
         # The lamp band at the nose plate's top corners.
@@ -97,19 +103,19 @@ def hull_body(v):
         for k in range(3):
             box(f"lamp_{s}_{k}", (0.012, 0.12, 0.06), (half + 0.016, side * (0.98 + k * 0.18), 1.09), m["lamp"], hull,
                 lods=NEAR)
-        VP.shackle(f"front_shackle_{s}", (half - 0.02, side * 0.56, 0.98), m, hull, size=0.16,
+        HF.shackle(f"front_shackle_{s}", (half - 0.02, side * 0.56, 0.98), m, hull, size=0.16,
                    rot=(0, 0, math.pi / 2))
-        VP.tow_hook(f"rear_tow_{s}", (-3.72, side * 0.85, 0.92), m, hull, size=0.14, rot=(0, 0, math.pi))
-        VP.light_with_guard(f"tail_light_{s}", (-3.82, side * 1.50, 1.30), 0.05, dict(m, lamp=m["tail"]), hull,
+        HF.tow_hook(f"rear_tow_{s}", (-3.72, side * 0.85, 0.92), m, hull, size=0.14, rot=(0, 0, math.pi))
+        HF.light_with_guard(f"tail_light_{s}", (-3.82, side * 1.50, 1.30), 0.05, dict(m, lamp=m["tail"]), hull,
                             rot=(0, 0, math.pi))
-        VP.cable(f"tow_cable_{s}", [(-3.55, side * 1.58, DECK + 0.025), (-2.0, side * 1.60, DECK + 0.025),
+        HF.cable(f"tow_cable_{s}", [(-3.55, side * 1.58, DECK + 0.025), (-2.0, side * 1.60, DECK + 0.025),
                                     (-0.4, side * 1.60, DECK + 0.02), (1.2, side * 1.58, DECK + 0.02)], m, hull,
                  radius=0.024)
     stencil("nose_name", "RHEINMETALL", 0.08, (half + 0.002, 0.0, 1.09), (math.pi / 2, 0, math.pi / 2), m["marking"],
             hull)
     for k, y in enumerate((0.78, -0.78)):
-        VP.grille(f"engine_grille_{k}", (-2.95, y, DECK), (1.35, 1.20), m, hull, slats=11)
-    VP.grille("rear_louvre", (-half, 0, 1.22), (0.42, 2.80), m, hull, slats=9, rot=(0, -math.pi / 2, 0))
+        HF.grille(f"engine_grille_{k}", (-2.95, y, DECK), (1.35, 1.20), m, hull, slats=11)
+    HF.grille("rear_louvre", (-half, 0, 1.22), (0.42, 2.80), m, hull, slats=9, rot=(0, -math.pi / 2, 0))
 
 
 def side_panels(v):
@@ -149,7 +155,7 @@ def turret_rings():
     edge = [(2.62, 0.48), (1.85, 1.66), (-2.75, 1.66), (-3.00, 1.25)]
     roof = [(1.70, 0.42), (1.20, 1.32), (-2.60, 1.34), (-2.85, 1.00)]
 
-    ring = VP.mirror_plan
+    ring = HS.mirror_plan
     return [(FOOT, ring(foot)), (EDGE, ring(edge)), (EDGE + 0.12, ring([(x - 0.06, y) for x, y in edge])),
             (ROOF, ring(roof))]
 
@@ -169,22 +175,22 @@ def turret_body(v, turret):
                 seg=12, rot=(side * 0.6, 0, 0), lods=FINE)
         # The hatch on the flank's upper face, over the chine band (the
         # shell's side at x -0.70, from the band's top to the roof ring).
-        loc, rot = VP.on_side(-0.70, EDGE + 0.34, side, (1.66, EDGE + 0.12), (1.33, ROOF))
-        VP.bolted_panel(f"side_hatch_{s}", loc, (0.70, 0.46, 0.02), m, turret, bolts=(2, 2), bevel=0.008, rot=rot,
+        loc, rot = HS.on_side(-0.70, EDGE + 0.34, side, (1.66, EDGE + 0.12), (1.33, ROOF))
+        AR.bolted_panel(f"side_hatch_{s}", loc, (0.70, 0.46, 0.02), m, turret, bolts=(2, 2), bevel=0.008, rot=rot,
                         lods=MID)
         for k in range(2):
             cyl(f"warning_sensor_{s}_{k}", 0.04, 0.03, (1.40, side * (1.70 + 0.0), EDGE + 0.08 - k * 0.10), "Y",
                 m["glass"], turret, seg=12, lods=NEAR)
         whip = empty(f"dressing_antenna_{s}", parent=turret)
-        VP.antenna(f"antenna_{s}", (-2.30, side * 0.95, ROOF), m, whip, height=2.4)
+        RF.antenna(f"antenna_{s}", (-2.30, side * 0.95, ROOF), m, whip, height=2.4)
     # Roof: the commander's tall sight box on the left, the gunner's at the
     # right front, a cupola, the HERO launcher box on the bustle.
     sight = empty("dressing_commander_sight", parent=turret)
-    VP.sight_housing("commander_sight", (0.55, 0.72, ROOF - 0.02), m, sight, size=(0.42, 0.36, 0.38))
-    VP.sight_housing("gunner_sight", (1.05, -0.80, ROOF - 0.10), m, turret, size=(0.50, 0.40, 0.22))
-    VP.cupola("commander_cupola", (-0.30, 0.62, ROOF), m, turret, radius=0.34, lid_open=False)
-    VP.hatch("loader_hatch", (-0.90, -0.70, ROOF), m, turret, radius=0.30)
-    VP.bolted_panel("hero_launcher", (-2.10, 0.30, ROOF - 0.02), (0.90, 0.80, 0.12), m, turret, bolts=(3, 2),
+    RF.sight_housing("commander_sight", (0.55, 0.72, ROOF - 0.02), m, sight, size=(0.42, 0.36, 0.38))
+    RF.sight_housing("gunner_sight", (1.05, -0.80, ROOF - 0.10), m, turret, size=(0.50, 0.40, 0.22))
+    RF.cupola("commander_cupola", (-0.30, 0.62, ROOF), m, turret, radius=0.34, lid_open=False)
+    RF.hatch("loader_hatch", (-0.90, -0.70, ROOF), m, turret, radius=0.30)
+    AR.bolted_panel("hero_launcher", (-2.10, 0.30, ROOF - 0.02), (0.90, 0.80, 0.12), m, turret, bolts=(3, 2),
                     bevel=0.03, lods=VP.ALL)
     for k in range(4):
         cyl(f"hero_cell_{k}", 0.08, 0.02, (-2.30 + (k % 2) * 0.40, 0.12 + (k // 2) * 0.36, ROOF + 0.11), "Z",
@@ -215,8 +221,8 @@ def weapon_station(v, hmg, hmg_gun):
     cyl("rws_bearing", 0.24, 0.10, (0, 0, -0.03), "Z", m["dark"], hmg, seg=24, bevel=0.012)
     box("rws_body", (0.52, 0.40, lift - 0.04), (-0.04, 0, (lift - 0.04) / 2 + 0.02), m["paint"], hmg, bevel=0.04,
         taper=(0.8, 0.85))
-    VP.sight_housing("rws_sight", (0.06, -0.28, -0.12), m, hmg_gun, size=(0.30, 0.16, 0.24))
-    VP.browning_m2(hmg_gun, muzzle[0], m)
+    RF.sight_housing("rws_sight", (0.06, -0.28, -0.12), m, hmg_gun, size=(0.30, 0.16, 0.24))
+    VG.browning_m2(hmg_gun, muzzle[0], m)
 
 
 # ---------------------------------------------------------------- wreck

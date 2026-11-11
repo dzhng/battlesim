@@ -23,6 +23,11 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import armour_parts as AR  # noqa: E402
+import hull_fittings as HF  # noqa: E402
+import hull_shape as HS  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import running_gear as RG  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
@@ -38,7 +43,7 @@ ROOF = 2.20  # the photos put it near 2.3 m; lowered so the frame's 2.35 m gun a
 NOSE = 4.0
 NOSE_Z = 1.72
 # The slab sides over the bow's edge, leaning in a little to the roof, as
-# (y, z) at their foot and top (`vehicle_parts.on_side`).
+# (y, z) at their foot and top (`hull_shape.on_side`).
 UPPER_SIDE = ((1.48, NOSE_Z + 0.06), (1.45, ROOF))
 GLACIS_TOP = 1.75
 
@@ -49,15 +54,15 @@ def glacis_z(x):
 
 def build(variant, v):
     m, hull = v.mats, v.hull
-    loft("zbl_lower", [(0.60, VP.hull_plan(-3.75, 3.15, 0.92, 0.35)), (SKIRT, VP.hull_plan(-3.95, 3.55, 1.00, 0.50))],
+    loft("zbl_lower", [(0.60, HS.hull_plan(-3.75, 3.15, 0.92, 0.35)), (SKIRT, HS.hull_plan(-3.95, 3.55, 1.00, 0.50))],
          mat=m["dark"], parent=hull, bevel=0.04)
-    loft("zbl_upper", [(SKIRT, VP.hull_plan(-3.98, 3.60, 1.48, 0.60)),
-                       (NOSE_Z, VP.hull_plan(-4.0, NOSE, 1.48, 0.70)),
-                       (NOSE_Z + 0.06, VP.hull_plan(-4.0, NOSE - 0.10, UPPER_SIDE[0][0], 0.70)),
-                       (ROOF, VP.hull_plan(-3.98, GLACIS_TOP, UPPER_SIDE[1][0], 0.30))], mat=m["paint"], parent=hull, bevel=0.05)
+    loft("zbl_upper", [(SKIRT, HS.hull_plan(-3.98, 3.60, 1.48, 0.60)),
+                       (NOSE_Z, HS.hull_plan(-4.0, NOSE, 1.48, 0.70)),
+                       (NOSE_Z + 0.06, HS.hull_plan(-4.0, NOSE - 0.10, UPPER_SIDE[0][0], 0.70)),
+                       (ROOF, HS.hull_plan(-3.98, GLACIS_TOP, UPPER_SIDE[1][0], 0.30))], mat=m["paint"], parent=hull, bevel=0.05)
     for side, s in ((1, "L"), (-1, "R")):
         for k, x in enumerate(WHEEL_X):
-            VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,
+            RG.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,
                           rim_radius=0.33, ctis=True, hub_bolts=8)
             cyl(f"hub_cap_{s}_{k}", 0.15, 0.06, (x, side * (WHEEL_Y + WHEEL_W / 2 + 0.05), WHEEL_R), "Y", m["paint"],
                 hull, seg=14, bevel=0.015, lods=MID)
@@ -71,7 +76,7 @@ def build(variant, v):
                                      (x + half - 0.05, SKIRT - 0.28), (x - half + 0.05, SKIRT - 0.28)], 0.06,
                   loc=(0, side * 1.45, 0),
                   mat=m["paint"], parent=hull, bevel=0.015, lods=MID)
-        VP.mudflap(f"mudflap_{s}", (-3.35, side * WHEEL_Y, SKIRT - 0.02), (0.40, 0.55), m, hull)
+        HF.mudflap(f"mudflap_{s}", (-3.35, side * WHEEL_Y, SKIRT - 0.02), (0.40, 0.55), m, hull)
     fittings(v)
     turret, gun, _, _ = rig(v.frame, v.root)["autocannon"]
     zbl_turret(v, turret, gun)
@@ -80,13 +85,13 @@ def build(variant, v):
 def fittings(v):
     m, hull = v.mats, v.hull
     slope = math.atan((ROOF - NOSE_Z - 0.06) / (NOSE - 0.10 - GLACIS_TOP))
-    VP.grille("glacis_louvre", (2.90, -0.65, glacis_z(2.90) + 0.01), (0.90, 0.80), m, hull, slats=8,
+    HF.grille("glacis_louvre", (2.90, -0.65, glacis_z(2.90) + 0.01), (0.90, 0.80), m, hull, slats=8,
               rot=(0, slope, 0))
-    VP.hatch("driver_hatch", (2.20, 0.65, glacis_z(2.20)), m, hull, size=(0.60, 0.55), rot=(0, slope, 0))
+    RF.hatch("driver_hatch", (2.20, 0.65, glacis_z(2.20)), m, hull, size=(0.60, 0.55), rot=(0, slope, 0))
     for k, y in enumerate((0.40, 0.65, 0.90)):
-        VP.periscope(f"driver_periscope_{k}", (2.62, y, glacis_z(2.62)), m, hull, size=(0.12, 0.16, 0.09),
+        RF.periscope(f"driver_periscope_{k}", (2.62, y, glacis_z(2.62)), m, hull, size=(0.12, 0.16, 0.09),
                      rot=(0, slope, 0))
-    VP.bolted_panel("glacis_plate", (3.40, 0.40, glacis_z(3.40)), (0.60, 1.10, 0.035), m, hull, bolts=(3, 4),
+    AR.bolted_panel("glacis_plate", (3.40, 0.40, glacis_z(3.40)), (0.60, 1.10, 0.035), m, hull, bolts=(3, 4),
                     rot=(0, slope, 0))
     for side, s in ((1, "L"), (-1, "R")):
         box(f"light_box_{s}", (0.06, 0.30, 0.14), (NOSE - 0.02, side * 1.10, NOSE_Z - 0.05), m["dark"], hull,
@@ -94,14 +99,14 @@ def fittings(v):
         for k, y in enumerate((1.02, 1.18)):
             cyl(f"headlight_{s}_{k}", 0.05, 0.02, (NOSE + 0.01, side * y, NOSE_Z - 0.05), "X", m["lamp"], hull, seg=12,
                 lods=MID)
-        VP.shackle(f"nose_shackle_{s}", (NOSE - 0.15, side * 0.60, NOSE_Z - 0.40), m, hull, size=0.13,
+        HF.shackle(f"nose_shackle_{s}", (NOSE - 0.15, side * 0.60, NOSE_Z - 0.40), m, hull, size=0.13,
                    rot=(0, 0, math.pi / 2))
         mirror = empty(f"dressing_mirror_{s}", parent=hull)
         box(f"mirror_stalk_{s}", (0.04, 0.04, 0.45), (NOSE - 0.25, side * 1.40, NOSE_Z + 0.22), m["dark"], mirror,
             lods=NEAR)
         box(f"mirror_{s}", (0.05, 0.16, 0.30), (NOSE - 0.25, side * 1.40, NOSE_Z + 0.55), m["dark"], mirror,
             bevel=0.012, lods=MID)
-        VP.light_with_guard(f"tail_light_{s}", (-4.0, side * 1.25, 1.90), 0.05, dict(m, lamp=m["tail"]), hull,
+        HF.light_with_guard(f"tail_light_{s}", (-4.0, side * 1.25, 1.90), 0.05, dict(m, lamp=m["tail"]), hull,
                             rot=(0, 0, math.pi))
         # Water-jet housings low on the rear.
         cyl(f"waterjet_{s}", 0.22, 0.35, (-3.85, side * 0.85, 0.95), "X", m["dark"], hull, seg=18, bevel=0.02,
@@ -109,21 +114,21 @@ def fittings(v):
         cyl(f"waterjet_mouth_{s}", 0.16, 0.01, (-4.03, side * 0.85, 0.95), "X", m["black"], hull, seg=18, lods=MID)
         # The slab side: bolted panels and a grab rail.
         for k, x in enumerate((2.30, 0.95, -0.40, -1.75, -3.10)):
-            loc, rot = VP.on_side(x, 1.85, side, *UPPER_SIDE)
-            VP.bolted_panel(f"side_panel_{s}_{k}", loc, (1.25, 0.72, 0.025), m, hull, bolts=(4, 3), rot=rot,
+            loc, rot = HS.on_side(x, 1.85, side, *UPPER_SIDE)
+            AR.bolted_panel(f"side_panel_{s}_{k}", loc, (1.25, 0.72, 0.025), m, hull, bolts=(4, 3), rot=rot,
                             bevel=0.012)
         box(f"grab_rail_{s}", (2.40, 0.04, 0.04), (-1.60, side * 1.38, ROOF + 0.10), m["steel"], hull, lods=NEAR)
         for k in range(5):
             box(f"rail_bracket_{s}_{k}", (0.04, 0.06, 0.10), (-2.80 + k * 0.60, side * 1.38, ROOF + 0.05),
                 m["steel"], hull, lods=FINE)
-    VP.exhaust("exhaust", (2.10, -1.52, 2.00), 0.07, 0.35, m, hull, rot=(0, 0, -math.pi / 2))
+    HF.exhaust("exhaust", (2.10, -1.52, 2.00), 0.07, 0.35, m, hull, rot=(0, 0, -math.pi / 2))
     for k, (x, y) in enumerate(((-2.85, 0.60), (-2.85, -0.60), (-3.55, 0.60), (-3.55, -0.60))):
-        VP.hatch(f"troop_hatch_{k}", (x, y, ROOF), m, hull, size=(0.66, 0.62))
+        RF.hatch(f"troop_hatch_{k}", (x, y, ROOF), m, hull, size=(0.66, 0.62))
     box("rear_door", (0.05, 1.10, 1.10), (-3.99, 0, 1.70), m["paint"], hull, bevel=0.02)
     box("rear_door_glass", (0.02, 0.16, 0.08), (-4.01, 0, 2.05), m["glass"], hull, lods=NEAR)
     for side, s in ((1, "L"), (-1, "R")):
         whip = empty(f"dressing_antenna_{s}", parent=hull)
-        VP.antenna(f"antenna_{s}", (-3.60, side * 1.25, ROOF), m, whip, height=2.8)
+        RF.antenna(f"antenna_{s}", (-3.60, side * 1.25, ROOF), m, whip, height=2.8)
 
 
 def zbl_turret(v, turret, gun):
@@ -141,11 +146,11 @@ def zbl_turret(v, turret, gun):
              (0.10, -0.72), (0.30, -0.25)]
     loft("turret_shell", [(base + 0.05, foot), (base + 0.22, foot), (top, crown)], mat=m["paint"], parent=turret,
          bevel=0.045)
-    VP.sight_housing("gunner_sight", (-0.05, -0.45, top), m, turret, size=(0.34, 0.24, 0.12))
+    RF.sight_housing("gunner_sight", (-0.05, -0.45, top), m, turret, size=(0.34, 0.24, 0.12))
     for k, y in enumerate((0.40, -0.10)):
-        VP.hatch(f"turret_hatch_{k}", (-0.65, y, top), m, turret, radius=0.25)
+        RF.hatch(f"turret_hatch_{k}", (-0.65, y, top), m, turret, radius=0.25)
     for side, s in ((1, "L"), (-1, "R")):
-        VP.smoke_discharger_bank(f"smoke_{s}", (0.35, side * 0.88, base + 0.18), m, turret, count=4,
+        RF.smoke_discharger_bank(f"smoke_{s}", (0.35, side * 0.88, base + 0.18), m, turret, count=4,
                                  tube_radius=0.05, tube_length=0.26, elevation=0.45, spread=0.3,
                                  rot=(0, 0, side * 0.7))
     box("bustle_rack", (0.30, 1.50, 0.22), (-1.38, 0, base + 0.20), m["steel"], turret, lods=MID)

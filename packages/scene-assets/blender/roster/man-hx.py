@@ -22,6 +22,11 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import armour_parts as AR  # noqa: E402
+import hull_fittings as HF  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import running_gear as RG  # noqa: E402
+import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, prism  # noqa: E402
 from vehicle_export import run  # noqa: E402
@@ -51,13 +56,13 @@ def running_gear(v):
     m, hull = v.mats, v.hull
     for side, s in ((1, "L"), (-1, "R")):
         for k, x in enumerate(AXLES):
-            VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,
+            RG.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,
                           rim_radius=0.30, tread="bar", hub_bolts=10)
             box(f"axle_{s}_{k}", (0.18, 0.55, 0.18), (x, side * 0.55, WHEEL_R), m["dark"], hull, lods=NEAR)
             box(f"spring_{s}_{k}", (0.70, 0.10, 0.30), (x, side * 0.50, 0.83), m["dark"], hull, lods=NEAR)
         box(f"chassis_rail_{s}", (9.60, 0.14, 0.26), (-0.10, side * 0.45, RAIL_Z), m["dark"], hull, bevel=0.01,
             lods=MID)
-        VP.mudflap(f"mudflap_{s}", (-4.80, side * WHEEL_Y, BED_FLOOR - 0.15), (0.42, 0.55), m, hull)
+        HF.mudflap(f"mudflap_{s}", (-4.80, side * WHEEL_Y, BED_FLOOR - 0.15), (0.42, 0.55), m, hull)
 
 
 def cab(v):
@@ -67,7 +72,7 @@ def cab(v):
                (NOSE - 0.40, ROOF), (CAB_REAR, ROOF)]
     prism("cab", profile, width, mat=m["paint"], parent=hull, bevel=0.06)
     box("roof_box", (1.40, width - 0.30, 0.16), (CAB_REAR + 0.85, 0, ROOF + 0.07), m["paint"], hull, bevel=0.04)
-    VP.grille("roof_vent", (CAB_REAR + 1.45, 0, ROOF + 0.15), (0.20, 0.80), m, hull, slats=4)
+    HF.grille("roof_vent", (CAB_REAR + 1.45, 0, ROOF + 0.15), (0.20, 0.80), m, hull, slats=4)
     cyl("beacon", 0.08, 0.12, (CAB_REAR + 0.20, -0.95, ROOF + 0.06), "Z", m["tail"], hull, seg=12, lods=MID)
     # The bumper with its lights in grilled recesses, the tow jaw, steps;
     # the engine block down between the wheels.
@@ -83,14 +88,14 @@ def cab(v):
         box(f"step_{s}", (0.30, 0.20, 0.04), (NOSE - 0.55, side * 1.10, 0.70), m["steel"], hull, lods=MID)
         # Door, window, handle, ladder; the big mirror on its arm.
         y = side * (width / 2 + 0.005)
-        VP.weld_line(f"door_seam_{s}", [(4.75, y, CAB_FLOOR + 0.05), (4.75, y, ROOF - 0.15), (3.65, y, ROOF - 0.15),
+        AR.weld_line(f"door_seam_{s}", [(4.75, y, CAB_FLOOR + 0.05), (4.75, y, ROOF - 0.15), (3.65, y, ROOF - 0.15),
                                        (3.65, y, CAB_FLOOR + 0.05)], m, hull, radius=0.012)
         box(f"door_window_{s}", (0.80, 0.03, 0.60), (4.20, y, 2.50), m["glass"], hull, lods=MID)
         box(f"door_handle_{s}", (0.14, 0.04, 0.04), (3.80, y + side * 0.02, 2.05), m["steel"], hull, lods=FINE)
         for k in range(4):
             box(f"ladder_rung_{s}_{k}", (0.30, 0.04, 0.03), (3.45, side * (width / 2 + 0.03), 1.45 + k * 0.30),
                 m["steel"], hull, lods=FINE)
-        VP.grille(f"intake_{s}", (CAB_REAR + 0.20, side * (width / 2 + 0.01), 2.20), (0.40, 0.80), m, hull, slats=8,
+        HF.grille(f"intake_{s}", (CAB_REAR + 0.20, side * (width / 2 + 0.01), 2.20), (0.40, 0.80), m, hull, slats=8,
                   rot=(-side * math.pi / 2, 0, 0))
         mirror = empty(f"dressing_mirror_{s}", parent=hull)
         box(f"mirror_arm_{s}", (0.04, 0.26, 0.04), (4.95, side * 1.32, 2.55), m["black"], mirror, lods=NEAR)
@@ -113,20 +118,20 @@ def body(v):
     m, hull = v.mats, v.hull
     length = 7.10
     centre = 2.75 - length / 2
-    VP.cargo_bed("cargo_body", (centre, 0, BED_FLOOR), (length, 2.46, 0.62), m, hull, stakes=6, tarp=1.22)
+    SW.cargo_bed("cargo_body", (centre, 0, BED_FLOOR), (length, 2.46, 0.62), m, hull, stakes=6, tarp=1.22)
     for side, s in ((1, "L"), (-1, "R")):
-        VP.stowage_box(f"locker_{s}", (0.10, side * 0.95, 0.75), (1.20, 0.45, 0.55), m, hull,
+        SW.stowage_box(f"locker_{s}", (0.10, side * 0.95, 0.75), (1.20, 0.45, 0.55), m, hull,
                        rot=(0, 0, 0 if side > 0 else math.pi))
-        VP.light_with_guard(f"tail_light_{s}", (-5.15, side * 1.00, 1.20), 0.05, dict(m, lamp=m["tail"]), hull,
+        HF.light_with_guard(f"tail_light_{s}", (-5.15, side * 1.00, 1.20), 0.05, dict(m, lamp=m["tail"]), hull,
                             rot=(0, 0, math.pi))
-    VP.fuel_tank("fuel_tank", (-1.20, 0.95, 1.00), 1.30, 0.30, m, hull)
+    HF.fuel_tank("fuel_tank", (-1.20, 0.95, 1.00), 1.30, 0.30, m, hull)
     box("rear_underrun", (0.12, 2.20, 0.14), (-5.05, 0, 0.70), m["dark"], hull, bevel=0.012)
     for side, s in ((1, "L"), (-1, "R")):
         box(f"underrun_bracket_{s}", (0.08, 0.10, 0.35), (-5.05, side * 0.45, 0.875), m["dark"], hull, lods=MID)
-    VP.tow_hook("pintle", (-5.00, 0, 0.92), m, hull, size=0.10, rot=(0, 0, math.pi))
+    HF.tow_hook("pintle", (-5.00, 0, 0.92), m, hull, size=0.10, rot=(0, 0, math.pi))
     for side, s in ((1, "L"), (-1, "R")):
         whip = empty(f"dressing_antenna_{s}", parent=hull)
-        VP.antenna(f"antenna_{s}", (CAB_REAR + 0.15, side * 1.05, ROOF), m, whip, height=2.0)
+        RF.antenna(f"antenna_{s}", (CAB_REAR + 0.15, side * 1.05, ROOF), m, whip, height=2.0)
 
 
 def wreck(variant, v):
@@ -139,7 +144,7 @@ def wreck(variant, v):
     m = v.mats
     remove("wheel_R_1_", "cargo_body_canvas", "cargo_body_tie_", "locker_R", "dressing_mirror_R", "mirror_arm_R",
            "mirror_R")
-    VP.stowage_box("spilled_locker", (-1.0, -0.4, BED_FLOOR), (1.20, 0.45, 0.55), dict(m, paint=m["dark"]), v.hull,
+    SW.stowage_box("spilled_locker", (-1.0, -0.4, BED_FLOOR), (1.20, 0.45, 0.55), dict(m, paint=m["dark"]), v.hull,
                    rot=(0.05, 0.03, 0.25))
     shell = parts("cab", "cargo_body_side", "cargo_body_end", "bumper")
     densify(shell, scale=1.5)

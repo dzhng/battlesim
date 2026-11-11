@@ -26,6 +26,12 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import armour_parts as AR  # noqa: E402
+import hull_fittings as HF  # noqa: E402
+import hull_shape as HS  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import running_gear as RG  # noqa: E402
+import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
@@ -64,29 +70,29 @@ def hull_body(v, nose_z=NOSE_Z):
     prism("hull_lower", [(-3.10, 0.44), (2.85, 0.44), (3.30, 0.92), (-half, 0.92), (-half, 0.72)], 2.24,
           mat=m["paint"], parent=hull, bevel=0.04)
     slope = math.atan((ROOF_Z - nose_z) / (half - GLACIS_X))
-    VP.hatch("driver_hatch", (2.20, 0.60, nose_z + (half - 2.20) * math.tan(slope)), m, hull, radius=0.28,
+    RF.hatch("driver_hatch", (2.20, 0.60, nose_z + (half - 2.20) * math.tan(slope)), m, hull, radius=0.28,
              rot=(0, slope, 0))
     for k, y in enumerate((0.40, 0.60, 0.80)):
-        VP.periscope(f"driver_periscope_{k}", (2.55, y, nose_z + (half - 2.55) * math.tan(slope)), m, hull,
+        RF.periscope(f"driver_periscope_{k}", (2.55, y, nose_z + (half - 2.55) * math.tan(slope)), m, hull,
                      size=(0.12, 0.14, 0.08), rot=(0, slope, 0))
     for side, s in ((1, "L"), (-1, "R")):
         for k, dy in enumerate((0.0, -0.22)):
             box(f"nose_lamp_{s}_{k}", (0.03, 0.16, 0.10), (half + 0.005, side * (1.30 + dy), 1.18), m["lamp"], hull,
                 lods=MID)
         box(f"nose_lamp_hood_{s}", (0.08, 0.50, 0.03), (half - 0.02, side * 1.20, 1.25), m["paint"], hull, lods=NEAR)
-        VP.shackle(f"front_shackle_{s}", (half - 0.02, side * 0.62, 0.86), m, hull, size=0.15, rot=(0, 0, math.pi / 2))
-        VP.light_with_guard(f"tail_light_{s}", (-half + 0.10, side * 1.35, 1.55), 0.05, dict(m, lamp=m["tail"]), hull,
+        HF.shackle(f"front_shackle_{s}", (half - 0.02, side * 0.62, 0.86), m, hull, size=0.15, rot=(0, 0, math.pi / 2))
+        HF.light_with_guard(f"tail_light_{s}", (-half + 0.10, side * 1.35, 1.55), 0.05, dict(m, lamp=m["tail"]), hull,
                             rot=(0, 0, math.pi))
-        VP.tow_hook(f"rear_tow_{s}", (-half + 0.12, side * 0.95, 0.80), m, hull, size=0.12, rot=(0, 0, math.pi))
+        HF.tow_hook(f"rear_tow_{s}", (-half + 0.12, side * 0.95, 0.80), m, hull, size=0.12, rot=(0, 0, math.pi))
         box(f"front_fender_{s}", (0.40, 0.52, 0.04), (3.10, side * TRACK_Y, 0.98), m["paint"], hull, bevel=0.012,
             rot=(0, 0.30, 0), lods=MID)
-    VP.bolted_panel("rear_door", (-half - 0.01, 0, 0.80), (0.04, 1.10, 0.90), m, hull, bolts=(0, 0),
+    AR.bolted_panel("rear_door", (-half - 0.01, 0, 0.80), (0.04, 1.10, 0.90), m, hull, bolts=(0, 0),
         bevel=0.02, lods=VP.ALL)
     box("rear_door_handle", (0.04, 0.20, 0.04), (-half - 0.04, 0.30, 1.30), m["steel"], hull, lods=NEAR)
-    VP.grille("engine_grille", (2.00, -0.75, nose_z + (half - 2.00) * math.tan(slope) - 0.01), (0.70, 0.90), m, hull,
+    HF.grille("engine_grille", (2.00, -0.75, nose_z + (half - 2.00) * math.tan(slope) - 0.01), (0.70, 0.90), m, hull,
               slats=7, rot=(0, slope, 0))
-    VP.hatch("roof_hatch_L", (-2.20, 0.55, ROOF_Z), m, hull, size=(0.80, 0.70))
-    VP.hatch("roof_hatch_R", (-2.20, -0.55, ROOF_Z), m, hull, size=(0.80, 0.70))
+    RF.hatch("roof_hatch_L", (-2.20, 0.55, ROOF_Z), m, hull, size=(0.80, 0.70))
+    RF.hatch("roof_hatch_R", (-2.20, -0.55, ROOF_Z), m, hull, size=(0.80, 0.70))
 
 
 def follow_tiles(v, s, side, cols, top):
@@ -124,7 +130,7 @@ def hull_sides(v, mk4, nose_z=None):
     cols = 4 if mk4 else 6
     for side, s in ((1, "L"), (-1, "R")):
         if nose_z is None:
-            VP.armour_tiles(f"side_armour_{s}", (-0.15, side * (SIDE_Y - 0.08), 1.18), (6.20, 1.08), (cols, 2), 0.08,
+            AR.armour_tiles(f"side_armour_{s}", (-0.15, side * (SIDE_Y - 0.08), 1.18), (6.20, 1.08), (cols, 2), 0.08,
                             m, hull, rot=(-side * math.pi / 2, 0, 0))
             box(f"tool_rail_{s}", (5.8, 0.04, 0.04), (-0.20, side * (SIDE_Y - 0.02), 1.76), m["steel"], hull,
                 lods=MID)
@@ -158,25 +164,25 @@ def turret_body(v, turret, mk4):
 
     def ring(pts, lean, nose):
         left = [(x - (nose if x > 0.9 else 0.0), y - lean) for x, y in pts]
-        return VP.mirror_plan(left)
+        return HS.mirror_plan(left)
 
     rings = [(FOOT, ring(half, 0.0, 0.0)), (0.36, ring(half, -0.08 if mk4 else 0.0, 0.0)),
              (ROOF, ring(half, 0.12, 0.30))]
     loft("turret_shell", rings, mat=m["paint"], parent=turret, bevel=0.05)
     cyl("turret_ring_guard", 1.00, 0.08, (0, 0, FOOT - 0.03), "Z", m["dark"], turret, seg=36, lods=MID)
-    VP.smoke_discharger_bank("smoke_L", (0.75, 0.62, 0.42), m, turret, count=4, tube_radius=0.045,
+    RF.smoke_discharger_bank("smoke_L", (0.75, 0.62, 0.42), m, turret, count=4, tube_radius=0.045,
                              tube_length=0.18, elevation=0.25, spread=0.3, rot=(0, 0, 0.35))
-    VP.smoke_discharger_bank("smoke_R", (0.75, -0.62, 0.42), m, turret, count=4, tube_radius=0.045,
+    RF.smoke_discharger_bank("smoke_R", (0.75, -0.62, 0.42), m, turret, count=4, tube_radius=0.045,
                              tube_length=0.18, elevation=0.25, spread=0.3, rot=(0, 0, -0.35))
     for side, s in ((1, "L"), (-1, "R")):
         if not mk4:
-            VP.bolted_panel(f"turret_addon_{s}", (-0.10, side * 1.02, 0.08), (1.40, 0.10, 0.56), m, turret,
+            AR.bolted_panel(f"turret_addon_{s}", (-0.10, side * 1.02, 0.08), (1.40, 0.10, 0.56), m, turret,
                             bolts=(4, 1), bevel=0.03, lods=VP.ALL)
         whip = empty(f"dressing_antenna_{s}", parent=turret)
-        VP.antenna(f"antenna_{s}", (-1.10, side * 0.70, ROOF), m, whip, height=2.0)
-    VP.sight_housing("gunner_sight", (0.55, 0.55, ROOF - 0.04), m, turret, size=(0.40, 0.32, 0.22))
-    VP.hatch("commander_hatch", (-0.35, -0.45, ROOF), m, turret, radius=0.28)
-    VP.hatch("gunner_hatch", (-0.35, 0.45, ROOF), m, turret, radius=0.26)
+        RF.antenna(f"antenna_{s}", (-1.10, side * 0.70, ROOF), m, whip, height=2.0)
+    RF.sight_housing("gunner_sight", (0.55, 0.55, ROOF - 0.04), m, turret, size=(0.40, 0.32, 0.22))
+    RF.hatch("commander_hatch", (-0.35, -0.45, ROOF), m, turret, radius=0.28)
+    RF.hatch("gunner_hatch", (-0.35, 0.45, ROOF), m, turret, radius=0.26)
     if mk4:
         mast = empty("dressing_commander_sight", parent=turret)
         cyl("sight_mast", 0.10, 0.28, (0.20, -0.55, ROOF + 0.14), "Z", m["dark"], mast, seg=16, lods=MID)
@@ -186,10 +192,10 @@ def turret_body(v, turret, mk4):
         box("spike_arm", (0.20, 0.14, 0.24), (-0.30, 1.00, ROOF + 0.06), m["dark"], turret, bevel=0.02)
         for k, z in enumerate((ROOF + 0.09, ROOF + 0.26)):
             cyl(f"spike_tube_{k}", 0.08, 0.90, (-0.25, 1.02, z), "X", m["paint"], turret, seg=16, bevel=0.01)
-        VP.sight_housing("viewer", (0.30, -0.95, ROOF - 0.02), m, turret, size=(0.34, 0.26, 0.24))
+        RF.sight_housing("viewer", (0.30, -0.95, ROOF - 0.02), m, turret, size=(0.34, 0.26, 0.24))
     else:
-        VP.sight_housing("commander_sight", (0.20, -0.60, ROOF - 0.02), m, turret, size=(0.38, 0.30, 0.26))
-        VP.tarp_roll("bustle_tarp", (-1.20, 0.0, ROOF - 0.05), 1.60, 0.16, m, turret, straps=3)
+        RF.sight_housing("commander_sight", (0.20, -0.60, ROOF - 0.02), m, turret, size=(0.38, 0.30, 0.26))
+        SW.tarp_roll("bustle_tarp", (-1.20, 0.0, ROOF - 0.05), 1.60, 0.16, m, turret, straps=3)
         box("bustle_bag", (0.40, 0.70, 0.36), (-1.40, 0.55, 0.40), m["canvas"], turret, bevel=0.08, lods=MID)
 
 
@@ -212,7 +218,7 @@ def bofors(v, gun):
 def build(variant, v):
     mk4 = "mk_iv" in variant["id"]
     hull_body(v)
-    VP.tracked_running_gear(v.mats, v.hull, TRACK_Y, TRACK_W, ROAD_X, ROAD_Z, ROAD_R, 0.20, SPROCKET, IDLER, (),
+    RG.tracked_running_gear(v.mats, v.hull, TRACK_Y, TRACK_W, ROAD_X, ROAD_Z, ROAD_R, 0.20, SPROCKET, IDLER, (),
                             bolts=6, teeth=11, arm=(0.40, 0.40), pitch=0.15)
     hull_sides(v, mk4)
     mounts = rig(v.frame, v.root)

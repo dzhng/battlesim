@@ -29,6 +29,13 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import armour_parts as AR  # noqa: E402
+import hull_fittings as HF  # noqa: E402
+import hull_shape as HS  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import running_gear as RG  # noqa: E402
+import stowage as SW  # noqa: E402
+import vehicle_guns as VG  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
@@ -50,50 +57,50 @@ def hull(v):
     half = v.length / 2 - 0.06  # the length counts the rear tow hooks and lights
     dark = dict(m, paint=m["dark"])
     # The narrow lower hull between the wheels, its boat nose rising forward.
-    loft("hull_lower", [(0.50, VP.hull_plan(-half + 0.40, half - 0.70, 0.78, 0.30)),
-                        (SKIRT, VP.hull_plan(-half + 0.05, half - 0.05, 0.92, 0.45))],
+    loft("hull_lower", [(0.50, HS.hull_plan(-half + 0.40, half - 0.70, 0.78, 0.30)),
+                        (SKIRT, HS.hull_plan(-half + 0.05, half - 0.05, 0.92, 0.45))],
          mat=m["dark"], parent=h, bevel=0.04)
     # The upper hull flaring out over the wheels, the nose sloping to the deck.
-    loft("hull_upper", [(SKIRT, VP.hull_plan(-half, half, 1.45, 0.55)),
-                        (SKIRT + 0.30, VP.hull_plan(-half, half - 0.15, 1.56, 0.62)),
-                        (DECK, VP.hull_plan(-half + 0.04, half - 1.25, 1.42, 0.40))],
+    loft("hull_upper", [(SKIRT, HS.hull_plan(-half, half, 1.45, 0.55)),
+                        (SKIRT + 0.30, HS.hull_plan(-half, half - 0.15, 1.56, 0.62)),
+                        (DECK, HS.hull_plan(-half + 0.04, half - 1.25, 1.42, 0.40))],
          mat=m["paint"], parent=h, bevel=0.05)
     for side, s in ((1, "L"), (-1, "R")):
         for k, x in enumerate(WHEEL_X):
-            VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, dark, h,
+            RG.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, dark, h,
                           rim_radius=0.34, hub_bolts=10, ctis=True)
             arm_y = side * (WHEEL_Y - 0.42)  # Center arm to span hull (Y~0.78) to wheel (Y=1.00)
             box(f"suspension_arm_{s}_{k}", (0.26, 0.46, 0.12), (x, arm_y, WHEEL_R), m["dark"], h,
                 lods=NEAR)
-        VP.mudflap(f"mudflap_{s}", (-half + 0.35, side * WHEEL_Y, SKIRT - 0.02), (0.40, 0.55), m, h)
+        HF.mudflap(f"mudflap_{s}", (-half + 0.35, side * WHEEL_Y, SKIRT - 0.02), (0.40, 0.55), m, h)
         # Lights and tow points; jerrycans hung on the rear plate, the deck
         # behind the engine being the turret's.
         can = empty(f"dressing_jerrycan_{s}", parent=h)
-        VP.jerrycan(f"jerrycan_{s}", (-half - 0.09, side * 0.85, SKIRT + 0.04), dict(m, paint=m["dark"]), can)
-        VP.light_with_guard(f"headlight_{s}", (half - 0.42, side * 1.25, SKIRT + 0.40), 0.065, m, h)
-        VP.light_with_guard(f"tail_light_{s}", (-half - 0.01, side * 1.30, SKIRT + 0.30), 0.05,
+        SW.jerrycan(f"jerrycan_{s}", (-half - 0.09, side * 0.85, SKIRT + 0.04), dict(m, paint=m["dark"]), can)
+        HF.light_with_guard(f"headlight_{s}", (half - 0.42, side * 1.25, SKIRT + 0.40), 0.065, m, h)
+        HF.light_with_guard(f"tail_light_{s}", (-half - 0.01, side * 1.30, SKIRT + 0.30), 0.05,
                             dict(m, lamp=m["tail"]), h, rot=(0, 0, math.pi))
-        VP.tow_hook(f"front_tow_{s}", (half - 0.30, side * 0.55, 0.90), m, h, size=0.13)
-        VP.tow_hook(f"rear_tow_{s}", (-half + 0.02, side * 0.70, 0.95), m, h, size=0.13, rot=(0, 0, math.pi))
+        HF.tow_hook(f"front_tow_{s}", (half - 0.30, side * 0.55, 0.90), m, h, size=0.13)
+        HF.tow_hook(f"rear_tow_{s}", (-half + 0.02, side * 0.70, 0.95), m, h, size=0.13, rot=(0, 0, math.pi))
     # The trim vane folded across the nose, the driver's hatch on the left.
     slope = math.atan((DECK - SKIRT - 0.30) / 1.10)
-    VP.bolted_panel("trim_vane", (half - 0.45, 0, SKIRT + 0.52), (0.55, 2.40, 0.05), m, h, bolts=(2, 5),
+    AR.bolted_panel("trim_vane", (half - 0.45, 0, SKIRT + 0.52), (0.55, 2.40, 0.05), m, h, bolts=(2, 5),
                     rot=(0, slope, 0), bevel=0.02, lods=VP.ALL)
-    VP.hatch("driver_hatch", (half - 1.45, 0.62, DECK), m, h, radius=0.27)
+    RF.hatch("driver_hatch", (half - 1.45, 0.62, DECK), m, h, radius=0.27)
     for k in range(3):
-        VP.periscope(f"driver_periscope_{k}", (half - 1.12, 0.42 + k * 0.20, DECK), m, h, size=(0.11, 0.16, 0.08))
+        RF.periscope(f"driver_periscope_{k}", (half - 1.12, 0.42 + k * 0.20, DECK), m, h, size=(0.11, 0.16, 0.08))
     # The engine at the front right under its grilles; exhaust out the side.
-    VP.grille("engine_grille", (half - 1.75, -0.65, DECK), (1.10, 1.00), m, h, slats=9)
-    VP.exhaust("exhaust", (half - 1.70, -1.57, SKIRT + 0.35), 0.08, 0.20, m, h, rot=(0, 0, -math.pi / 2))
-    VP.bolted_panel("rear_door", (-half - 0.005, 0, 1.25), (0.85, 1.00, 0.05), m, h, bolts=(2, 3),
+    HF.grille("engine_grille", (half - 1.75, -0.65, DECK), (1.10, 1.00), m, h, slats=9)
+    HF.exhaust("exhaust", (half - 1.70, -1.57, SKIRT + 0.35), 0.08, 0.20, m, h, rot=(0, 0, -math.pi / 2))
+    AR.bolted_panel("rear_door", (-half - 0.005, 0, 1.25), (0.85, 1.00, 0.05), m, h, bolts=(2, 3),
                     rot=(0, -math.pi / 2, 0), bevel=0.02, lods=VP.ALL)
     # The photos' add-on armour: bolted plates along the upper hull's band
     # leaning in from the wheel arches' flare to the deck.
     band = ((1.56, SKIRT + 0.30), (1.42, DECK))
     for side, s in ((1, "L"), (-1, "R")):
         for k, x in enumerate((2.55, 1.30, 0.05, -1.20, -2.45)):
-            loc, rot = VP.on_side(x, (SKIRT + 0.30 + DECK) / 2, side, *band)
-            VP.bolted_panel(f"band_plate_{s}_{k}", loc, (1.15, 0.30, 0.04), m, h, bolts=(3, 2), rot=rot, bevel=0.012,
+            loc, rot = HS.on_side(x, (SKIRT + 0.30 + DECK) / 2, side, *band)
+            AR.bolted_panel(f"band_plate_{s}_{k}", loc, (1.15, 0.30, 0.04), m, h, bolts=(3, 2), rot=rot, bevel=0.012,
                             lods=VP.ALL)
 
 
@@ -105,7 +112,7 @@ def turret_body(v, turret):
         """A plan ring from the gun's slot round the left side to the rear
         and back down the right: (x, y) of the slot's edge, the nose, the
         cheek's outer corner, the flank's rear end and the bustle's corner."""
-        return VP.mirror_plan([notch, nose, cheek, flank, rear])
+        return HS.mirror_plan([notch, nose, cheek, flank, rear])
 
     # Undercut foot, the nose's edge just under the gun, the brow over the
     # mantlet, and the roof; the flanks lean in from the edge to the roof.
@@ -117,32 +124,32 @@ def turret_body(v, turret):
     cyl("turret_ring_guard", 1.00, 0.08, (0, 0, base + 0.02), "Z", m["dark"], turret, seg=36, lods=MID)
     loft("turret_shell", [(base + 0.03, foot), (0.28, edge), (0.60, brow), (ROOF, crown)], mat=m["paint"],
          parent=turret, bevel=0.05)
-    VP.roof_fittings("roof", crown, ROOF, m, turret, periscopes=((0.20, -0.95, -0.5), (0.20, 0.95, 0.5)))
-    VP.laser_warners("laser_warner", crown, ROOF, m, turret)
+    RF.roof_fittings("roof", crown, ROOF, m, turret, periscopes=((0.20, -0.95, -0.5), (0.20, 0.95, 0.5)))
+    RF.laser_warners("laser_warner", crown, ROOF, m, turret)
     # Big armour modules down each flank, stowage under the bustle's
     # overhang, a box and a basket behind it.
     for side, s in ((1, "L"), (-1, "R")):
-        loc, rot = VP.on_side(-0.45, 0.60, side, (1.52, 0.28), (1.30, ROOF))
-        VP.armour_tiles(f"flank_armour_{s}", loc, (2.30, 0.54), (3, 1), 0.08, m, turret, rot=rot)
-        VP.weld_line(f"cheek_weld_{s}", [(1.92, side * 0.50, 0.28), (0.88, side * 1.48, 0.28)], m, turret)
-        VP.smoke_discharger_bank(f"smoke_{s}", (0.55, side * 1.02, ROOF - 0.02), m, turret, count=4,
+        loc, rot = HS.on_side(-0.45, 0.60, side, (1.52, 0.28), (1.30, ROOF))
+        AR.armour_tiles(f"flank_armour_{s}", loc, (2.30, 0.54), (3, 1), 0.08, m, turret, rot=rot)
+        AR.weld_line(f"cheek_weld_{s}", [(1.92, side * 0.50, 0.28), (0.88, side * 1.48, 0.28)], m, turret)
+        RF.smoke_discharger_bank(f"smoke_{s}", (0.55, side * 1.02, ROOF - 0.02), m, turret, count=4,
                                  tube_radius=0.045, tube_length=0.20, elevation=0.3, spread=0.3,
                                  rot=(0, 0, side * 0.8))
-        VP.stowage_box(f"turret_box_{s}", (-2.00, side * 1.30, base + 0.03), (1.00, 0.20, 0.24), m, turret,
+        SW.stowage_box(f"turret_box_{s}", (-2.00, side * 1.30, base + 0.03), (1.00, 0.20, 0.24), m, turret,
                        rot=(0, 0, 0 if side > 0 else math.pi))
         whip = empty(f"dressing_antenna_{s}", parent=turret)
-        VP.antenna(f"antenna_{s}", (-2.20, side * 0.95, ROOF), m, whip, height=2.2)
-    VP.stowage_box("bustle_box", (-2.78, 0, 0.18), (0.36, 2.30, 0.48), m, turret)
-    VP.slat_armour("bustle_basket", (-3.00, 0, 0.18), (2.40, 0.48), m, turret, spacing=0.10, bar=0.014,
+        RF.antenna(f"antenna_{s}", (-2.20, side * 0.95, ROOF), m, whip, height=2.2)
+    SW.stowage_box("bustle_box", (-2.78, 0, 0.18), (0.36, 2.30, 0.48), m, turret)
+    AR.slat_armour("bustle_basket", (-3.00, 0, 0.18), (2.40, 0.48), m, turret, spacing=0.10, bar=0.014,
                    rot=(0, 0, math.pi / 2))
-    VP.sight_housing("gunner_sight", (0.70, 0.62, ROOF - 0.02), m, turret, size=(0.40, 0.30, 0.20))
+    RF.sight_housing("gunner_sight", (0.70, 0.62, ROOF - 0.02), m, turret, size=(0.40, 0.30, 0.20))
     # The commander's panoramic sight: a tall drum on a short post.
     mast = empty("dressing_commander_sight", parent=turret)
     cyl("panorama_post", 0.09, 0.10, (-0.80, -0.62, ROOF + 0.05), "Z", m["dark"], mast, seg=14, lods=MID)
     cyl("panorama_head", 0.19, 0.36, (-0.80, -0.62, ROOF + 0.28), "Z", m["dark"], mast, seg=20, bevel=0.02)
-    VP.sight_housing("panorama_window", (-0.70, -0.62, ROOF + 0.18), m, mast, size=(0.16, 0.24, 0.18))
-    VP.hatch("commander_hatch", (-0.25, -0.55, ROOF), m, turret, radius=0.28)
-    VP.hatch("loader_hatch", (-0.10, 0.55, ROOF), m, turret, radius=0.26)
+    RF.sight_housing("panorama_window", (-0.70, -0.62, ROOF + 0.18), m, mast, size=(0.16, 0.24, 0.18))
+    RF.hatch("commander_hatch", (-0.25, -0.55, ROOF), m, turret, radius=0.28)
+    RF.hatch("loader_hatch", (-0.10, 0.55, ROOF), m, turret, radius=0.26)
 
 
 def gun_120(v, gun):
@@ -174,9 +181,9 @@ def remote_station(v, rws, rws_gun):
     cyl("rws_bearing", 0.20, 0.08, (0, 0, roof + 0.04), "Z", m["dark"], rws, seg=20)
     foot, top = roof + 0.08, 0.27
     box("rws_body", (0.55, 0.45, top - foot), (-0.08, 0, (top + foot) / 2), m["paint"], rws, bevel=0.03)
-    VP.sight_housing("rws_sight", (0.06, -0.30, -0.12), m, rws_gun, size=(0.30, 0.18, 0.26))
+    RF.sight_housing("rws_sight", (0.06, -0.30, -0.12), m, rws_gun, size=(0.30, 0.18, 0.26))
     box("rws_ammo", (0.36, 0.16, 0.28), (-0.08, 0.32, -0.08), m["paint"], rws_gun, bevel=0.02, lods=MID)
-    VP.browning_m2(rws_gun, mount["muzzle_m"][0], m)
+    VG.browning_m2(rws_gun, mount["muzzle_m"][0], m)
 
 
 def build(variant, v):
