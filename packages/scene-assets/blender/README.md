@@ -179,9 +179,10 @@ bun run --cwd web asset -- blender ../packages/scene-assets/blender/vehicle_lint
 ```
 
 Tests use synthetic fixtures; the geometry checks run inside Blender
-([`vehicle_lint_test.py`](vehicle_lint_test.py) through the `asset` command),
-while the baseline filtering logic has non-Blender tests
-(`python3 -m unittest discover -s packages/scene-assets/blender -p 'vehicle_lint_logic_test.py'`).
+([`vehicle_lint_test.py`](vehicle_lint_test.py)), while the baseline filtering
+logic has non-Blender tests ([`vehicle_lint_logic_test.py`](vehicle_lint_logic_test.py)).
+`asset check` runs every `*_test.py` in this folder: one that imports `bpy`
+in the pinned Blender, the rest under plain Python.
 
 The checks are extensible: add new checks to `LINT_CHECKS` in `vehicle_lint.py`.
 Planned checks include flat or missing materials, texture setup, and hull side
