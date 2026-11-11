@@ -410,3 +410,223 @@ now needing Blender, and roster scripts run as `__main__`.
   first and falls back to the admitted default, `tripo3d/h3.1/image-to-3d`.
   `tools/skin-generate.mjs`, which calls fal directly with a key, is not used in
   this pass.
+
+## Slice 05 decisions (2026-11-11, lane J, audited)
+
+Each entry gives the decision and its scenario, the gap the plan left, its
+reach, a verdict and a confidence (how sure the audit is that the user would
+have made the same call). Least confident first. **Review these first:**
+J05-1 (the shipped finish is still below the critique bar), J05-2 (how "is a
+jet" is read) and J05-3 (where the roughness lives).
+
+- **J05-1 Ship `JET_ROUGH = 0.38`, below the critique bar, and name the gap.**
+  - *Scenario.* A player zooms the battle camera onto an F-15EX flying past
+    the sun.
+    - With the old satin paint (roughness 0.55), its top surfaces are an even,
+      chalky light grey.
+    - At 0.38, the wings and spine catch a cool sky sheen and a sharper
+      highlight on the curves.
+    - The side views barely change. The shaded sides stay the dark,
+      teal-tinted slate they already were. Into the sun there is still no
+      broad glow like the reference's.
+  - *The three critique rounds* (unprimed; sheen, grey at the silhouette,
+    artifacts, overall):
+    - 0.35 scored 5/4/4/4. It read as chrome from above, and the Su-35S
+      skin's lumps showed as crumpled foil.
+    - 0.42 scored 4/4/5/4: "no different" from satin.
+    - 0.38 scored 5/4/5/5: "marginally better than the previous finish on
+      sheen".
+
+    Round 1 had no satin captures to compare against. Rounds 2 and 3 had them
+    and quoted the owner's words ("glossy, metallic-looking sheen").
+  - *Measurements.* The luma ladder (`assets/experiments/05/compare-telemetry.txt`)
+    shows the trade:
+    - below about 0.3, the highlight narrows and the grey *darkens* (the
+      sun-facing wing's mean goes from 160 at satin to 143 at 0.15);
+    - from 0.35 to 0.42, the wing keeps or gains brightness (161–164) and the
+      spine highlight sharpens (p99 215 → 236–246).
+
+    0.38 has the best critique scores, near the brightest broad sheen.
+  - *What paint can't fix.* Every round named the same three gaps, and none
+    of them is a roughness:
+    - **The shaded sides go dark teal.** That was already there at satin and
+      is unchanged within one luma level. It is the scene's sky and ground
+      light, not the paint.
+    - **There is no sun glow into the sun.** The low-orbit crops measure the
+      same at 0.35, 0.38 and 0.42.
+    - **The Su-35S's foil streaks.** These are the generated skin's ripples,
+      which gloss reveals. Slice 06 found code reads cleaner.
+
+    The rest of the gap to the reference is its brighter scene and grading:
+    the reference's 95th-percentile luma is 201, ours 177.
+  - *Gap.* The slice delegated the value, and the three-round cap ended the
+    tuning.
+  - *Reach.* Every fixed-wing jet. The value is one constant to retune when
+    the lighting or grading pass, or "jets off the generator", lands.
+  - *Verdict.* **Needs-user, provisionally shipped.** The user asked for a
+    visible sheen, and 0.38 is the strongest that didn't read as chrome or
+    foil to an unprimed eye. *Provisional call:* keep 0.38. *To reverse:*
+    change `textures_air.JET_ROUGH` (0.42 is indistinguishable from satin;
+    0.30 is glossier with more foil) and re-export the 18 fixed-wing scripts.
+  - *Confidence:* low-medium.
+- **J05-2 "Is a jet" is the unit's catalog flight model.**
+  - *Scenario.* An Apache and an F-16 are both built through `A.jet`, and
+    their schemes can be shared (S5). At export, `aircraft_jet.fixed_wing`
+    looks up the unit type the appearance belongs to in
+    `fixtures/catalog.json` and asks whether `mobility.air.flight` is
+    `"fixed_wing"`. That's the same field the simulation flies it by. The
+    F-16 gets the jet finish and the Apache keeps the satin.
+  - A disabled card has no unit type, so it reads as not fixed-wing. The
+    MQ-9, a turboprop drone, keeps the satin, and its GLB is unchanged.
+  - *Gap.* The variant that `catalog_frames` hands an exporter carries only
+    its frame. `fixed_wing` reaches the catalog through the private
+    `catalog_frames._catalogs`.
+  - *Shared-part request.* The cleaner owner is `catalog_frames._variant`,
+    which is coordinator-owned: it should carry `flight`. Then
+    `fixed_wing(v)` becomes `v.variant.get("flight") == "fixed_wing"` and the
+    private import goes.
+  - *Rejected keys.* "Has a skin" breaks when the jets leave the generator.
+    "Has nozzles" fails because the A-10 and F-22 specs build their own. A
+    flag in each fixed-wing script would repeat a label 18 times.
+  - *Reach.* Any future fixed-wing unit gets the jet finish with no script
+    change, an enabled MQ-9 included.
+  - *Verdict.* Sound key. The private import is a bridge, removed with the
+    request above.
+  - *Confidence:* medium.
+- **J05-3 The roughness rides a jet twin of each recipe, not the material
+  factor.**
+  - *Scenario.* The slice planned to set the paint material's roughness
+    factor. On export, `textures.attach` writes the recipe's images and
+    resets `roughnessFactor` to 1 on every worn material, so that factor
+    would have been silently dropped. Reading the code caught it before any
+    bake.
+  - *Decision.* `textures_air.jet_finish(name)` registers `<name>_jet`, the
+    same colours, relief and wear, with its ORM roughness scaled from
+    `AIR_ROUGH` (0.55) to `JET_ROUGH`. `aircraft_jet.jet` points the
+    airframe paint's material at the twin, by rewriting its entry in
+    `parts.TEXTURED`, the material-to-recipe table `attach` reads.
+    `aircraft_parts.py` doesn't grow (37,191 B).
+  - *Scope.* Only the airframe paint is glossy. Stores, fittings, gear and
+    the chipped edges (wear roughness 0.8) keep their finish.
+  - *Cost.* Each jet scheme adds one ORM texture layer, nine in all
+    (`us_gunship_grey`, `us_compass_grey`, `russian_air_blue`,
+    `russian_air_grey`, `russian_helicopter_camo`, `chinese_air_grey`,
+    `chinese_air_light_grey`, `nato_air_grey`, `french_air_camo`). The floor
+    is 2,048. The twins' albedo and normal images are byte-identical, so they
+    share layers. This is unverified by a full bake (J05-5).
+  - *Alternative.* Teach `attach` to keep a non-default factor. That changes
+    `textures.py` (coordinator-owned) for every worn material.
+  - *Verdict.* Sound.
+  - *Confidence:* medium-high.
+- **J05-4 The bake check is a bundle read, not a full bake.**
+  - *Scenario.* A full `asset bake` reads every source GLB, about 4 GB of
+    LFS.
+  - Instead, `asset validate` ran on the F-16C. It builds the bundle with
+    the bake's own material code (`material.ts`, `drawnSurface`), with a
+    local, uncommitted line that prints what the paint role draws. At the
+    0.30 trial, `armor_paint` drew roughness 0.302 (0.553 before) at the
+    same luminance, 0.178. The Apache drew 0.553.
+  - Every final GLB's paint ORM image averages 0.379–0.380.
+  - For the battle shots, a throwaway `asset bake-only` ran
+    `bakeCatalog(…, only)` on three jets and spliced them into a local
+    runtime. The baked bundle hashes changed, and the shots showed the
+    change.
+  - *Verdict.* Sound. The coordinator's milestone bake is the full proof, and
+    it also counts the texture layers.
+  - *Confidence:* high.
+- **J05-5 Exports run with `--no-lint` until slice 01 lands.**
+  - *Scenario.* This branch starts before slice 01's baseline. Slice 00's
+    truthful lint flags existing overlaps, such as the F-16C's bay doors
+    against its fuselage and the Apache's, as "new". So every export fails.
+  - The lint only reads the scene, so the GLB bytes don't change. Its modules
+    drop out of the receipts' `source_sha256`.
+  - The coordinator's slice 16 re-export, with lint, rewrites those
+    receipts.
+  - *Verdict.* Sound.
+  - *Confidence:* high.
+- **J05-6 Only the live jets and their receipts are committed.**
+  - The diff to each committed GLB is one buffer view, the paint's ORM image;
+    the geometry and everything else are byte-identical. That covers 25
+    appearances from 18 scripts.
+  - Wrecks burn every material (`wreckage.burn`). All 50 jet wreck and debris
+    GLBs re-export byte-identical, so they aren't touched.
+  - The Apache's live, wreck and debris GLBs re-export byte-identical
+    against the final code. Its receipt changed only in script hashes, so it
+    isn't committed. Other helicopter receipts now lag the script hashes in
+    the same way, and slice 16 absorbs that.
+  - *Verdict.* Sound.
+  - *Confidence:* high.
+- **J05-7 The Su-35S was judged in `russian_air_blue`.** The slice's crop
+  named `russian_air_grey`, but `flanker.py` paints the family
+  `russian_air_blue`. *Verdict:* sound. *Confidence:* high.
+- **J05-8 The battle-camera harness is throwaway.**
+  - It is a local `jet-sheen` scene over `/labs/air-high`, at the high
+    graphics profile. Its encounter is swapped for an F-15EX, a Su-35S, an
+    F-16C, an Apache and three T-72s for sight of the fields.
+  - It ran with a local `asset bake-only` command and a luma-crop script.
+  - None of it is committed, because `web/**`, `fixtures/**` and `apps/**`
+    are coordinator-owned. The patches are in the lane worktree's
+    `throwaway/` (`harness.patch`, `bake-only.patch`, `jet-sheen.mjs`).
+  - *Verdict.* Sound.
+  - *Confidence:* high.
+
+## Slice 06 decisions (2026-11-11, lane J)
+
+- **J06-1 The verdict is that code wins on the surface for both airframes,
+  so the follow-up is queued** (for the coordinator to add to the README).
+  - *Scenario.* Each airframe was shown in closeups beside its shipped
+    generated skin, labelled only A and B, swapped between the aircraft.
+  - *Result.* One unprimed critique round:
+    - the code's surface scores 6 on both, and the skins' score 4 (F-35A) and
+      3 (Su-35S);
+    - the means are 5.6 for code and 4.6 for skin, on both aircraft.
+  - *What the critique said.* The skins have crinkled wing-root blends and
+    rippled spines and leading-edge extensions ("crumpled fabric"). The
+    code's fault is faceting along its bodies.
+  - The sheet and scores are in `assets/experiments/06/README.md`.
+  - *Gap.* None: Q1b set the rule.
+  - *Reach.* "Jets off the generator" becomes a real follow-up spec. It would
+    also retire the guide-to-skin pipeline: `skin_views`, `skin_register`,
+    `tools/skin-generate.mjs`, the pins, and `aircraft_skin` with its
+    `Probe` seating. That is the one-owner gain.
+  - *Verdict.* Sound on the slice's terms. The bar was relative, and
+    neither side reaches the make-3d-models bar yet.
+  - *Confidence:* medium. That's one round and two airframes, in Blender
+    closeups rather than the battle camera.
+- **J06-2 The technique is a voxel union of the lofted bodies; the flying
+  surfaces stay lofted.**
+  - *How it works.* The guide's near-tier painted bodies are joined into one
+    mesh: fuselage, belly, intakes, nacelles, booms and the gun bulge. The
+    mesh is remeshed on a 25 mm voxel grid, which fuses overlapping bodies
+    into one closed shell with filleted junctions, like the skin's blends.
+    The shell is smoothed (factor 0.6, 12 passes) and decimated to 20,000
+    triangles.
+  - *What stayed out.* Gear doors, pylons, intake lips and canopy sills are
+    left out of the union; the first try included them and they fused into
+    blobs. Wings, strakes, stabilators and fins stay as their lofted
+    aerofoils, since a voxel grid eats thin trailing edges.
+  - *Alternatives.* The slice named two: subdivision, or a denser loft.
+    Neither blends one body into another; they only smooth each body
+    alone. The skin's whole advantage is the blend, so they would have
+    tested the wrong thing.
+  - *Gap.* The technique was delegated.
+  - *Reach.* The follow-up spec inherits this as its starting point, with
+    its known cost: faceting along the bodies, which a finer voxel or more
+    smoothing addresses. `assets/experiments/06/smoothing.py` keeps the
+    script.
+  - *Verdict.* Sound.
+  - *Confidence:* medium-high.
+- **J06-3 The candidate gets the skin's triangle budget, not the loft's.**
+  - *Scenario.* The first run decimated the merged bodies back to the
+    loft's own count of about 5,000 triangles, far coarser than the skin.
+    The run that was judged gives the bodies 20,000 triangles. That's the
+    skin's near-tier 26,000 (`aircraft_skin.TRIS`), less what the lofted
+    surfaces keep.
+  - The near tiers that were judged:
+    - F-35A: 38,204 for code against 50,165 for the skin;
+    - Su-35S: 66,332 against 80,349.
+
+    The code side has fewer triangles, so the result doesn't come from
+    spending more.
+  - *Verdict.* Sound.
+  - *Confidence:* high.
