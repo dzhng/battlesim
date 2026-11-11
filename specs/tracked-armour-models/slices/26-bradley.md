@@ -15,6 +15,8 @@ Every note must visibly read as fixed in a before/after beside the reference (`a
 
 ## Calls specific to this family
 
+- **The "front side panels stick out" note is this slice's to fix (C20).** Slice 09 found the cause is the Bradley applique tiles standing above the glacis as a square wall, not the fender. Move them onto `AR.side_skirt` with the hull `Outline`, so they stop where the glacis takes over. The CV90120 already does this, and the critique found no fin on it.
+
 - The front fender is already on `track_fender` (slice 09). The lower skirt panels (`bradley.py:102`) and applique tiles also stay inside the outline at the nose.
 - Wreck selectors (`bradley.py:209`) keep addressing the panels by name.
 

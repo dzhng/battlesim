@@ -22,7 +22,9 @@ Every note must visibly read as fixed in a before/after beside the reference (`a
 - Siblings (re-exported and checked, never reworked):
   - Pantsir, Skyranger 30 and NASAMS ×2 come from `air_defence.py`;
   - HIMARS ×2, BM-21 and Tornado-S come from `rocket_artillery.py`;
-  - `s300` is re-exported to prove it unchanged;
+  - `s300` is re-exported and checked. Slice 11's bevel floor changes its
+    thin plates, so "unchanged" no longer holds; slice 16 already re-exported
+    it (C19);
   - `boxer.py`, `truck_chassis.py` and `ural.py` are read-only.
 - Clear the Gepard's baseline entries.
 

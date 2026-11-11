@@ -16,7 +16,12 @@ The family lanes branch from this commit.
 1. Merge the experiment, jet and survey lanes that have finished, following the
    merge rules in `../parallel.md`.
 2. **Re-export** every tracked script, live and `--wreck`, plus `s300`, in the
-   background.
+   background. Also re-export every wheeled script that calls `bolted_panel`
+   or `armour_tiles`, because slice 11's bevel floor reaches them (C19).
+   Today that's `acv`, `boxer`, `btr`, `caesar`, `centauro`, `fennek`,
+   `iris_t_slm`, `jaguar`, `lav`, `patriot`, `s300`, `s350`, `stryker`,
+   `stryker_support`, `truck_chassis`, `vbci` and `zbl08`. Grep again at the
+   time.
 3. **Lint:** `--roster` must be clean against the baseline. Changed frames may
    leave fit edits for their family slices only if `asset validate` passes.
 4. **Bake:** `bun run --cwd web asset -- bake`, then

@@ -2588,3 +2588,24 @@ Review these first:
   leaning face". It should add "the side outline its skirts and fenders
   keep inside". That README is outside this lane's files, and lane 08 may
   edit the same table, so it is the coordinator's one-line fix at merge.
+- **C19 The bevel floor applies to every caller, wheeled ones included**
+  (2026-11-11). Slice 11 put `PLATE_BEVEL` inside `bolted_panel` and
+  `armour_tiles`, so about 20 wheeled scripts re-bevel their thin plates.
+  That's one rule for every armoured plate rather than a tracked-only special
+  case. It costs no triangles: bevel width moves vertices but adds no
+  segments. Slice 16 re-exports those wheeled scripts too, `s300` included,
+  and lane B's "prove `s300` unchanged" rule is retired.
+- **C20 The "front side panels stick out" note belongs to the family
+  slices** (2026-11-11). Slice 09 found the cause is side armour standing above
+  the glacis: the Bradley's applique tiles, and `armour_tiles` on the CV9040C
+  and Mk IV. The fender isn't the cause. Slices 25 and 26 move that armour onto
+  `side_skirt`. The CV90120, already on it, shows no fin.
+- **C21 Two more shared-part fixes join slice 13's lane** (2026-11-11), each
+  judged on its own crop and committed on its own, before slice 16:
+  - **Edge wear.** The shared wear recipe (`parts.textured`'s convex-edge
+    wear and `finish`'s per-vertex bake) spreads wear across whole faces and
+    across road-wheel discs. That contradicts "clean factory paint" and the
+    light-catching edge (slice 11 critique).
+  - **Faceted running gear.** Road wheels and belts read as faceted drums at
+    tier 0 (critiques of slices 10 and 11). Fix it in `running_gear`'s tier-0
+    segment counts, within the triangle caps.
