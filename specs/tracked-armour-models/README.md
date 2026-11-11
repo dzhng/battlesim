@@ -14,7 +14,11 @@ rest is at the end of this file.
 
 ## Next Agent Prompt
 
-**Status (2026-11-11):** planned. Nothing is implemented.
+**Status (2026-11-11):** slices 00, 01, 03, 04 and 07 (with the 07b
+reconciliation) are merged. Slice 14 is not needed, because slice 03's smoothed
+dome won. Pickup: slice 02, the split, then the shared slices 08–12. Lane J
+(slices 05 and 06) is running in its own worktree. `air_defence.py` is held
+back until slice 15 (decision C12).
 
 You are the **coordinator**. Start at
 [`slices/00-lint-truth.md`](slices/00-lint-truth.md) on a branch off `staging`.
@@ -60,21 +64,21 @@ Warnings:
 
 TODO:
 
-- [ ] 00 lint truth ([slice](slices/00-lint-truth.md))
-- [ ] 01 baseline re-export ([slice](slices/01-baseline-reexport.md)), then push
+- [x] 00 lint truth ([slice](slices/00-lint-truth.md))
+- [x] 01 baseline re-export ([slice](slices/01-baseline-reexport.md)), then push
 - [ ] 02 split `vehicle_parts.py` ([slice](slices/02-split-vehicle-parts.md)), then push
-- [ ] 03 cast-turret experiment ([slice](slices/03-cast-turret-experiment.md)), lane E1
-- [ ] 04 seam experiment ([slice](slices/04-seam-experiment.md)), lane E2
+- [x] 03 cast-turret experiment ([slice](slices/03-cast-turret-experiment.md)), lane E1
+- [x] 04 seam experiment ([slice](slices/04-seam-experiment.md)), lane E2
 - [ ] 05 jet paint sheen ([slice](slices/05-jet-sheen.md)), lane J, then push
 - [ ] 06 jet guide experiment ([slice](slices/06-jet-guide-experiment.md)), lane J
-- [ ] 07 frame survey ([slice](slices/07-frame-survey.md)), lanes F-A/F-B/F-C
+- [x] 07 frame survey ([slice](slices/07-frame-survey.md)), lanes F-A/F-B/F-C
 - [ ] 08 gun tube ([slice](slices/08-gun-tube.md))
 - [ ] 09 hull outline and side panels ([slice](slices/09-hull-outline-and-side-panels.md))
 - [ ] 10 track sag ([slice](slices/10-track-sag.md))
 - [ ] 11 plate edges ([slice](slices/11-plate-edges.md))
 - [ ] 12 closed hatches, no crew ([slice](slices/12-closed-hatches-no-crew.md))
 - [ ] 13 panel seams ([slice](slices/13-panel-seams.md)), after 04
-- [ ] 14 turret skin, only if 03 picks the skin ([slice](slices/14-turret-skin.md))
+- [x] ~~14 turret skin~~: not needed, the smoothed dome won (slice 03) ([slice](slices/14-turret-skin.md))
 - [ ] 15 frame fixes ([slice](slices/15-frame-fixes.md)), after 07
 - [ ] 16 integration re-export and bake ([slice](slices/16-integration-reexport.md)), then push
 - [ ] Lane A: 17 T-72 family, 18 Armata, 19 ZTQ-15, 20 Challengers
