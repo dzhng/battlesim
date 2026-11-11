@@ -157,16 +157,20 @@ The lint runs automatically during export; pass `--no-lint` to skip it. New issu
 not in the [baseline](vehicle_lint_baseline.json) fail the export. Known issues in
 the baseline pass, giving a path to fix them incrementally.
 
-Standalone commands:
+Standalone, [the roster walk](vehicle_lint_roster.py) lints every appearance a
+roster script exports, whichever folders they come from: each script runs as
+its export would, but its `run` reports the variants it would build instead
+of building them. A script or build that fails fails the walk, and the
+baseline is only rewritten after a walk with no failures:
 
 ```bash
-# Lint the whole roster
+# Lint every appearance the roster exports
 bun run --cwd web asset -- blender ../packages/scene-assets/blender/vehicle_lint.py -- --roster
 
-# Lint one variant
-bun run --cwd web asset -- blender ../packages/scene-assets/blender/vehicle_lint.py -- --variant=t72
+# Lint one appearance, by its unit id
+bun run --cwd web asset -- blender ../packages/scene-assets/blender/vehicle_lint.py -- --variant=eastern_t_72_t_72b3_2016
 
-# Update the baseline to accept current issues
+# Rebuild the baseline from the current issues
 bun run --cwd web asset -- blender ../packages/scene-assets/blender/vehicle_lint.py -- --update-baseline
 ```
 

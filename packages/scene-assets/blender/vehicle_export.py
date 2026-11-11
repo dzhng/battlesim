@@ -53,11 +53,15 @@ REPO = Path(__file__).resolve().parents[3]
 RIG_NODES = {"gun": ("turret", "gun", "muzzle"), "hmg": ("hmg", "hmg_gun", "hmg_muzzle")}
 
 
+# The roster lint walk (`vehicle_lint_roster`) sets this to a list: each
+# `run` or `run_disabled` then appends what it would build, and builds and
+# exports nothing.
+CAPTURE = None
+
+
 def _run_lint(vehicle_id):
     """Run geometry lint checks on the current scene; fail on new issues."""
     import vehicle_lint
-    if getattr(vehicle_lint, '_SUPPRESS_EXPORT_LINT', False):
-        return
     all_issues, new_issues = vehicle_lint.lint_and_report(vehicle_id)
     if all_issues.issues:
         print(f"LINT {vehicle_id}: {len(all_issues.issues)} issue(s), {len(new_issues.issues)} new", flush=True)
@@ -148,19 +152,27 @@ class Vehicle:
                           (at(0.14, 0.11, roof - 1.25), at(0.14, -0.11, roof - 1.25))))
 
 
+def build_variant(variant, scheme, build, looks=None, wreck=False):
+    """A fresh scene holding `variant` as its family's `build` places it,
+    painted in `scheme` (one, or one per variant id) with `looks` (`materials`
+    keywords), live or ready to be wrecked; returns its `Vehicle`."""
+    reset()
+    P.SCORCH.clear()
+    own = scheme[variant["id"]] if isinstance(scheme, dict) else scheme
+    v = Vehicle(variant, materials(own, **(looks or {})), own)
+    v.wreck = wreck
+    build(variant, v)
+    return v
+
+
 def _export(variants, scheme, build, wreck, ao_distance, ao_rays, check=None, looks=None):
     """Build and export each of `variants` (or the one `--variant=<id>` names),
     live or with `--wreck`; returns the receipt rows, or None for a partial run.
     `scheme` is one scheme or a scheme per variant id; `looks` are `materials`
     keywords (a family's fittings, canvas or chip)."""
-    # Check if export is suppressed (during roster lint scanning)
-    try:
-        import vehicle_lint
-        if getattr(vehicle_lint, '_SUPPRESS_EXPORT', False):
-            return None
-    except ImportError:
-        pass
-    
+    if CAPTURE is not None:
+        CAPTURE.append(dict(variants=variants, scheme=scheme, build=build, looks=looks or {}))
+        return None
     args = script_args()
     selected = next((a.split("=", 1)[1] for a in args if a.startswith("--variant=")), None)
     elsewhere = next((a.split("=", 1)[1] for a in args if a.startswith("--out=")), None)
@@ -177,12 +189,7 @@ def _export(variants, scheme, build, wreck, ao_distance, ao_rays, check=None, lo
     for variant in variants:
         if selected and variant["id"] != selected:
             continue
-        reset()
-        P.SCORCH.clear()
-        own = scheme[variant["id"]] if isinstance(scheme, dict) else scheme
-        v = Vehicle(variant, materials(own, **(looks or {})), own)
-        v.wreck = wrecking
-        build(variant, v)
+        v = build_variant(variant, scheme, build, looks, wrecking)
         if check is not None and not wrecking:
             check(variant)
         if not wrecking and not skip_lint:

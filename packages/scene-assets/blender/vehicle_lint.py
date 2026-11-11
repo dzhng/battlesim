@@ -1,15 +1,14 @@
 """Headless geometry lint for vehicle models.
 
 Catches modeling mistakes before export: interpenetrating parts, floating
-parts, and ground contact issues. Runs headless as part of the export or
-standalone over the whole roster.
+parts, and ground contact issues. Runs headless as part of the export, or
+standalone over every appearance the roster exports (`vehicle_lint_roster`).
 
 Standalone entry points:
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/vehicle_lint.py -- --roster
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/vehicle_lint.py -- --variant=<id>
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/vehicle_lint.py -- --update-baseline
 """
-import json
 import math
 import os
 import sys
@@ -26,21 +25,16 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from vehicle_lint_core import (
     LintIssue,
     LintResult,
-    load_baseline as _load_baseline_core,
-    save_baseline as _save_baseline_core,
-    load_allowlist as _load_allowlist_core,
-    filter_by_baseline,
     filter_by_allowlist,
+    filter_by_baseline,
     format_issues,
+    load_allowlist,
+    load_baseline,
 )
 
-REPO = Path(__file__).resolve().parents[3]
-BASELINE_PATH = REPO / "packages/scene-assets/blender/vehicle_lint_baseline.json"
-ALLOWLIST_PATH = REPO / "packages/scene-assets/blender/vehicle_lint_allowlist.json"
-
-# Flags to suppress lint and export during roster scans (when modules are imported)
-_SUPPRESS_EXPORT_LINT = False
-_SUPPRESS_EXPORT = False
+HERE = Path(__file__).resolve().parent
+BASELINE_PATH = HERE / "vehicle_lint_baseline.json"
+ALLOWLIST_PATH = HERE / "vehicle_lint_allowlist.json"
 
 # --------------------------------------------------------------------- config
 # Tolerances for vehicle geometry checks.
@@ -68,41 +62,6 @@ def _base_part_name(obj_name):
     """Strip LOD suffix to get the base part name."""
     i = obj_name.rfind("_LOD")
     return obj_name[:i] if i >= 0 else obj_name
-
-
-def _is_running_gear(obj):
-    """Check if object is running gear (wheel, track, or landing gear).
-    
-    Uses both naming convention AND object properties for robust detection:
-    - wheel_* nodes with radius_m property
-    - track_* nodes with track_length_m property  
-    - gear_* nodes (landing gear)
-    - Children of the above
-    """
-    name = obj.name.lower()
-    base = _base_part_name(name)
-    
-    # Check object properties (most reliable)
-    if obj.get("radius_m") is not None:
-        return True
-    if obj.get("track_length_m") is not None:
-        return True
-    
-    # Check name patterns
-    if any(p in base for p in ("wheel_", "track_", "_tyre", "gear_")):
-        return True
-    
-    # Check if any ancestor is running gear
-    parent = obj.parent
-    while parent is not None:
-        parent_name = parent.name.lower()
-        if any(p in parent_name for p in ("wheel_", "track_", "gear_")):
-            return True
-        if parent.get("radius_m") is not None or parent.get("track_length_m") is not None:
-            return True
-        parent = parent.parent
-    
-    return False
 
 
 def _is_dressing(obj):
@@ -662,16 +621,8 @@ def lint_current_scene(vehicle_id: str) -> LintResult:
     result = LintResult(vehicle_id=vehicle_id)
     
     for check_name, check_fn in LINT_CHECKS.items():
-        kwargs = {}
-        if check_name == "interpenetration":
-            kwargs["tolerance"] = INTERPENETRATION_TOLERANCE
-        elif check_name == "floating_part":
-            kwargs["threshold"] = FLOATING_PART_THRESHOLD
-        elif check_name == "ground_contact":
-            kwargs["tolerance"] = GROUND_CONTACT_TOLERANCE
-        
         try:
-            check_fn(result, **kwargs)
+            check_fn(result)
         except Exception as e:
             result.add(LintIssue(
                 check=check_name,
@@ -682,418 +633,18 @@ def lint_current_scene(vehicle_id: str) -> LintResult:
     return result
 
 
-# --------------------------------------------------------------------- baseline/allowlist
+# --------------------------------------------------------------------- baseline
 
-def load_baseline() -> dict[str, list[dict]]:
-    """Load the baseline file of known issues."""
-    if not BASELINE_PATH.exists():
-        return {}
-    try:
-        return json.loads(BASELINE_PATH.read_text())
-    except (json.JSONDecodeError, IOError):
-        return {}
-
-
-def save_baseline(baseline: dict[str, list[dict]]):
-    """Save the baseline file."""
-    BASELINE_PATH.write_text(json.dumps(baseline, indent=2, sort_keys=True) + "\n")
-
-
-def load_allowlist() -> dict[str, list[dict]]:
-    """Load the allowlist file of intentionally accepted issues."""
-    if not ALLOWLIST_PATH.exists():
-        return {}
-    try:
-        return json.loads(ALLOWLIST_PATH.read_text())
-    except (json.JSONDecodeError, IOError):
-        return {}
-
-
-def save_allowlist(allowlist: dict[str, list[dict]]):
-    """Save the allowlist file."""
-    ALLOWLIST_PATH.write_text(json.dumps(allowlist, indent=2, sort_keys=True) + "\n")
-
-
-def lint_and_report(vehicle_id: str, fail_on_new=True) -> tuple[LintResult, LintResult]:
+def lint_and_report(vehicle_id: str) -> tuple[LintResult, LintResult]:
     """Lint the current scene, returning (all issues, new issues not in baseline/allowlist)."""
     result = lint_current_scene(vehicle_id)
-    baseline = load_baseline()
-    allowlist = load_allowlist()
-    
-    # Filter out both baselined and allowlisted issues
-    remaining = filter_by_baseline(result, baseline)
-    remaining = filter_by_allowlist(remaining, allowlist)
-    
-    return result, remaining
-
-
-# --------------------------------------------------------------------- roster scanning
-
-def _roster_families():
-    """List all roster family scripts."""
-    roster_dir = Path(__file__).parent / "roster"
-    for p in sorted(roster_dir.glob("*.py")):
-        if p.name.startswith("_"):
-            continue
-        yield p
-
-
-def _get_family_variants(family_name):
-    """Get all variants for a family by parsing catalog."""
-    from catalog_frames import family_variants
-    try:
-        return family_variants(family_name, repo=REPO)
-    except Exception:
-        return []
-
-
-def _ast_to_value(node, var_context=None):
-    """Convert an AST node to a Python value (for constants, tuples, dicts).
-    
-    var_context is a dict of variable_name -> value for resolving variable references.
-    """
-    import ast
-    if var_context is None:
-        var_context = {}
-    
-    if isinstance(node, ast.Constant):
-        return node.value
-    elif isinstance(node, ast.Tuple):
-        return tuple(_ast_to_value(e, var_context) for e in node.elts)
-    elif isinstance(node, ast.List):
-        return [_ast_to_value(e, var_context) for e in node.elts]
-    elif isinstance(node, ast.Dict):
-        result = {}
-        for k, v in zip(node.keys, node.values):
-            key = _ast_to_value(k, var_context)
-            val = _ast_to_value(v, var_context)
-            if key is not None:
-                result[key] = val
-        return result
-    elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "dict":
-        # Handle dict(key=value, ...) syntax
-        result = {}
-        for kw in node.keywords:
-            if kw.arg is not None:
-                result[kw.arg] = _ast_to_value(kw.value, var_context)
-        return result
-    elif isinstance(node, ast.Name):
-        # Variable reference - try to resolve from context
-        if node.id in var_context:
-            return var_context[node.id]
-        return None
-    return None
-
-
-def _extract_scheme_from_script(script_path):
-    """Extract the scheme(s) from a roster script by parsing its run() call.
-    
-    Handles several patterns:
-    - String constant: run("family", "scheme", ...)
-    - Dict literal: run("family", {"card": "scheme"}, ...)
-    - Variable reference: run("family", SCHEME, ...) where SCHEME is defined earlier
-    - Dict comprehension: run("family", {c: s for c, s in X.items()}, ...)
-    """
-    import ast
-    try:
-        source = script_path.read_text()
-        tree = ast.parse(source)
-        
-        # First pass: collect simple variable assignments (strings and tuples)
-        # These are needed to resolve variable references in dict keys
-        # e.g., F, HC6 = "us_ch_47...", "europe_ch_47..."
-        simple_vars = {}
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Assign):
-                # Handle tuple unpacking: F, HC6 = "val1", "val2"
-                if isinstance(node.targets[0], ast.Tuple) and isinstance(node.value, ast.Tuple):
-                    for t, v in zip(node.targets[0].elts, node.value.elts):
-                        if isinstance(t, ast.Name) and isinstance(v, ast.Constant):
-                            simple_vars[t.id] = v.value
-                # Handle simple assignment: F = "value"
-                elif len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
-                    if isinstance(node.value, ast.Constant):
-                        simple_vars[node.targets[0].id] = node.value.value
-        
-        # Second pass: collect dict assignments, now with variable context for resolving keys
-        var_defs = {}
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Assign):
-                for target in node.targets:
-                    if isinstance(target, ast.Name):
-                        val = _ast_to_value(node.value, simple_vars)
-                        if val is not None:
-                            var_defs[target.id] = val
-        
-        # Second pass: find run() or run_disabled() call
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Call):
-                func = node.func
-                if isinstance(func, ast.Name) and func.id in ("run", "run_disabled"):
-                    if len(node.args) >= 2:
-                        scheme_arg = node.args[1]
-                        
-                        # Case 1: String constant
-                        if isinstance(scheme_arg, ast.Constant):
-                            return scheme_arg.value
-                        
-                        # Case 2: Dict literal
-                        elif isinstance(scheme_arg, ast.Dict):
-                            result = _ast_to_value(scheme_arg)
-                            if result:
-                                return result
-                        
-                        # Case 3: Variable reference (SCHEME, CARDS, etc.)
-                        elif isinstance(scheme_arg, ast.Name):
-                            if scheme_arg.id in var_defs:
-                                return var_defs[scheme_arg.id]
-                        
-                        # Case 4: Dict comprehension like {c: s for c, (_, s) in CARDS.items()}
-                        # or {card: s["scheme"] for card, s in SPECS.items()}
-                        elif isinstance(scheme_arg, ast.DictComp):
-                            # Try to evaluate by looking up the source dict
-                            if scheme_arg.generators and isinstance(scheme_arg.generators[0].iter, ast.Call):
-                                call = scheme_arg.generators[0].iter
-                                if isinstance(call.func, ast.Attribute) and call.func.attr == "items":
-                                    if isinstance(call.func.value, ast.Name):
-                                        source_var = call.func.value.id
-                                        if source_var in var_defs and isinstance(var_defs[source_var], dict):
-                                            source_dict = var_defs[source_var]
-                                            value_node = scheme_arg.value
-                                            
-                                            # Analyze the comprehension to determine how to extract the scheme
-                                            # Pattern: {c: scheme for c, (_, scheme) in CARDS.items()}
-                                            # Pattern: {c: s["scheme"] for c, s in SPECS.items()}
-                                            # Pattern: {c: scheme for c, (_, scheme, _) in CARDS.items()}
-                                            result = {}
-                                            
-                                            # Check if value_node is a Subscript (like s["scheme"])
-                                            if isinstance(value_node, ast.Subscript):
-                                                # s["scheme"] pattern
-                                                for k, v in source_dict.items():
-                                                    if isinstance(v, dict) and "scheme" in v:
-                                                        result[k] = v["scheme"]
-                                            elif isinstance(value_node, ast.Name):
-                                                # Direct variable from tuple unpacking
-                                                # Need to figure out which index the scheme is at
-                                                target = scheme_arg.generators[0].target
-                                                if isinstance(target, ast.Tuple):
-                                                    # Find which element is the scheme variable
-                                                    for idx, elt in enumerate(target.elts):
-                                                        if isinstance(elt, ast.Name) and elt.id == value_node.id:
-                                                            # Found: scheme is at index idx of the outer tuple
-                                                            for k, v in source_dict.items():
-                                                                if isinstance(v, tuple) and len(v) > idx:
-                                                                    result[k] = v[idx]
-                                                            break
-                                                        elif isinstance(elt, ast.Tuple):
-                                                            # Nested tuple: (key, (_, scheme)) or (key, (_, scheme, _))
-                                                            for sub_idx, sub_elt in enumerate(elt.elts):
-                                                                if isinstance(sub_elt, ast.Name) and sub_elt.id == value_node.id:
-                                                                    for k, v in source_dict.items():
-                                                                        if isinstance(v, tuple) and len(v) > sub_idx:
-                                                                            result[k] = v[sub_idx]
-                                                                    break
-                                            
-                                            if result:
-                                                return result
-    except Exception:
-        pass
-    return None
-
-
-def _get_family_name_from_script(script_path):
-    """Extract the family name from a roster script's run() call.
-    
-    Some scripts (sp_howitzers, rocket_artillery, etc.) use a family name
-    different from the script name.
-    """
-    import ast
-    try:
-        source = script_path.read_text()
-        tree = ast.parse(source)
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Call):
-                fn = node.func
-                if isinstance(fn, ast.Name) and fn.id == "run" and node.args:
-                    first_arg = node.args[0]
-                    if isinstance(first_arg, ast.Constant) and isinstance(first_arg.value, str):
-                        return first_arg.value
-        return None
-    except Exception:
-        return None
-
-
-def run_roster_lint(update_baseline=False):
-    """Run lint over all roster vehicles.
-    
-    Returns (all_results dict, total_new_issues count).
-    """
-    global _SUPPRESS_EXPORT_LINT, _SUPPRESS_EXPORT
-    import sys
-    
-    _SUPPRESS_EXPORT_LINT = True
-    _SUPPRESS_EXPORT = True
-    if 'vehicle_lint' not in sys.modules:
-        sys.modules['vehicle_lint'] = sys.modules['__main__']
-    
-    from parts import reset
-    from catalog_frames import family_variants
-    
-    all_results = {}
-    baseline = load_baseline() if not update_baseline else {}
-    allowlist = load_allowlist()
-    new_baseline = {} if update_baseline else None
-    failed_builds = []
-    total_new_issues = 0
-    variants_linted = 0
-    
-    families = list(_roster_families())
-    print(f"Scanning {len(families)} roster families...", flush=True)
-    
-    for family_path in families:
-        script_name = family_path.stem
-        
-        # Try to get family name from run() call, fallback to script name
-        family_name = _get_family_name_from_script(family_path) or script_name
-        
-        try:
-            variants = family_variants(family_name, repo=REPO)
-        except Exception:
-            # Also try script name if family name didn't work
-            if family_name != script_name:
-                try:
-                    variants = family_variants(script_name, repo=REPO)
-                    family_name = script_name
-                except Exception as e:
-                    print(f"  {script_name}: skipped (no variants for {family_name} or {script_name})")
-                    continue
-            else:
-                print(f"  {script_name}: skipped (no variants)")
-                continue
-        
-        if not variants:
-            continue
-        
-        scheme = _extract_scheme_from_script(family_path)
-        if scheme is None:
-            print(f"  {script_name}: skipped (could not extract scheme)")
-            continue
-            
-        try:
-            spec = __import__(f"roster.{script_name}", fromlist=["build"])
-            build_fn = getattr(spec, "build", None)
-            if build_fn is None:
-                continue
-        except Exception as e:
-            print(f"  {script_name}: import failed: {e}")
-            continue
-        
-        from vehicle_export import Vehicle, materials
-        
-        for variant in variants:
-            vid = variant["id"]
-            try:
-                reset()
-                own_scheme = scheme[vid] if isinstance(scheme, dict) else scheme
-                mats = materials(own_scheme)
-                v = Vehicle(variant, mats, own_scheme)
-                build_fn(variant, v)
-                
-                result = lint_current_scene(vid)
-                all_results[vid] = result
-                variants_linted += 1
-                
-                if update_baseline and result.issues:
-                    # Only baseline issues not in allowlist
-                    remaining = filter_by_allowlist(result, allowlist)
-                    if remaining.issues:
-                        new_baseline[vid] = [i.to_dict() for i in remaining.issues]
-                
-                new_issues = filter_by_baseline(result, baseline)
-                new_issues = filter_by_allowlist(new_issues, allowlist)
-                status = "PASS" if new_issues.passed else "FAIL"
-                n_total = len(result.issues)
-                n_new = len(new_issues.issues)
-                total_new_issues += n_new
-                print(f"LINT {vid}: {n_total} issue(s), {n_new} new")
-                if new_issues.issues:
-                    print(format_issues(new_issues.issues))
-                    
-            except Exception as e:
-                failed_builds.append((vid, str(e)))
-                print(f"  {vid}: build failed: {e}")
-    
-    print(f"\n=== Roster lint summary ===")
-    print(f"Variants linted: {variants_linted}")
-    print(f"New issues: {total_new_issues}")
-    
-    if update_baseline:
-        save_baseline(new_baseline)
-        print(f"Updated baseline: {BASELINE_PATH}")
-        print(f"Total vehicles with issues: {len(new_baseline)}")
-        total_issues = sum(len(v) for v in new_baseline.values())
-        print(f"Total baseline issues: {total_issues}")
-    else:
-        baseline_size = sum(len(v) for v in baseline.values())
-        print(f"Baseline size: {baseline_size}")
-    
-    if failed_builds:
-        print(f"Failed to build {len(failed_builds)} variant(s)")
-    
-    return all_results, total_new_issues
-
-
-# --------------------------------------------------------------------- CLI
-
-def main():
-    """CLI entry point for standalone lint."""
-    from parts import script_args
-    args = script_args()
-    
-    if "--roster" in args:
-        _, new_issues = run_roster_lint()
-        if new_issues > 0:
-            print(f"\nFAIL: {new_issues} new issue(s)")
-            sys.exit(1)
-        print("\nPASS: no new issues")
-        sys.exit(0)
-    elif "--update-baseline" in args:
-        run_roster_lint(update_baseline=True)
-        sys.exit(0)
-    elif any(a.startswith("--variant=") for a in args):
-        vid = next(a.split("=", 1)[1] for a in args if a.startswith("--variant="))
-        from catalog_frames import roster_variant
-        from parts import reset
-        variant = roster_variant(vid, repo=REPO)
-        
-        for family_path in _roster_families():
-            family_name = family_path.stem
-            try:
-                variants = _get_family_variants(family_name)
-                if any(v["id"] == vid for v in variants):
-                    spec = __import__(f"roster.{family_name}", fromlist=["build"])
-                    from vehicle_export import Vehicle, materials
-                    reset()
-                    scheme = getattr(spec, "SCHEME", None) or "olive_drab"
-                    mats = materials(scheme)
-                    v = Vehicle(variant, mats, scheme)
-                    spec.build(variant, v)
-                    
-                    result, new_issues = lint_and_report(vid)
-                    print(f"{vid}: {'PASS' if new_issues.passed else 'FAIL'}")
-                    if result.issues:
-                        print("All issues:")
-                        print(format_issues(result.issues))
-                    if new_issues.issues and new_issues.issues != result.issues:
-                        print("\nNew issues (not in baseline):")
-                        print(format_issues(new_issues.issues))
-                    break
-            except Exception:
-                continue
-    else:
-        print(__doc__)
+    remaining = filter_by_baseline(result, load_baseline(BASELINE_PATH))
+    return result, filter_by_allowlist(remaining, load_allowlist(ALLOWLIST_PATH))
 
 
 if __name__ == "__main__":
-    main()
+    # The roster walk imports this module by name: let it find this run.
+    sys.modules["vehicle_lint"] = sys.modules[__name__]
+    from parts import script_args
+    from vehicle_lint_roster import main
+    main(script_args())
