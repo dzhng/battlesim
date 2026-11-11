@@ -64,3 +64,13 @@ The verdict and the scores go in `decisions.md`.
 ## Feedback that would change it
 
 The user prefers a candidate the critique ranked lower.
+
+## Outcome (2026-11-11)
+
+Done. The smoothed dome wins, and the skin ranks last, so slice 14 is not
+needed. The verdict, scores and fit probe are in `decisions.md`, entries
+E1-1 to E1-10; the evidence is in `assets/experiments/03/`.
+
+The proxy refused Hunyuan, so the skin came from Tripo H3.1 through Bento's
+fal proxy, from one view (E1-1). Slice 17 applies `smoothed_dome.py` to
+`dome_rings` and steepens its lower band (E1-9).
