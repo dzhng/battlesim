@@ -27,6 +27,7 @@ import math
 import os
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import armour_parts as AR  # noqa: E402
 import hull_fittings as HF  # noqa: E402
@@ -37,6 +38,7 @@ import stowage as SW  # noqa: E402
 import vehicle_guns as VG  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism, stencil  # noqa: E402
+from truck_chassis import on  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
@@ -53,6 +55,9 @@ RETURNS = [(1.98, 0.88, 0.10), (0.38, 0.89, 0.10), (-1.02, 0.89, 0.10), (-2.24, 
 SKIRT_Y = 1.88  # the skirt's outer face, the panels clear of the track band (1.81)
 SKIRT_TOP, SKIRT_FOOT = 1.52, 0.80
 DECK = 1.62
+# Every Leopard's body is the 2A6's hull; the 2A7V's frame is that hull
+# lengthened at the front only, by its armour module.
+BODY_HALF = 3.85
 # The glacis: from the deck's front edge it falls 0.34 m over 1.75 m to the
 # nose, about 11 degrees side-on (photos: side).
 GLACIS_X, GLACIS_RUN, GLACIS_DROP = 2.10, 1.75, 0.34
@@ -79,10 +84,14 @@ def skirt_top(x):
 def build(variant, v):
     a7v = variant["variant"] in ("2A7V", "2A8")
     a8 = variant["variant"] == "2A8"
-    hull_body(v, a7v)
-    RG.tracked_running_gear(v.mats, v.hull, TRACK_Y, TRACK_W, ROAD_X, ROAD_Z, ROAD_R, 0.22, SPROCKET, IDLER,
+    # The body sits as far behind the frame's centre as the front module
+    # lengthens the frame.
+    ahead = v.length / 2 - BODY_HALF
+    body = on(v, -ahead, 2 * BODY_HALF, name="body")
+    hull_body(body, a7v, 2 * ahead)
+    RG.tracked_running_gear(body.mats, body.hull, TRACK_Y, TRACK_W, ROAD_X, ROAD_Z, ROAD_R, 0.22, SPROCKET, IDLER,
                             RETURNS, bolts=8, teeth=12, arm=(0.50, 0.40), pitch=0.18)
-    skirts(v)
+    skirts(body)
     mounts = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})
     turret, gun, _, _ = mounts["cannon"]
     hmg, hmg_gun, _, _ = mounts["HMG"]
@@ -92,7 +101,8 @@ def build(variant, v):
 
 
 # ---------------------------------------------------------------- hull
-def hull_body(v, a7v):
+def hull_body(v, a7v, module=0.0):
+    """The hull; `module` is how far the 2A7V's front module stands past it."""
     m, hull = v.mats, v.hull
     half = v.length / 2
     prism("hull_upper", [(-half, 1.00), (3.78, 1.00), (half, DECK - GLACIS_DROP), (GLACIS_X, DECK), (-3.78, DECK),
@@ -136,13 +146,15 @@ def hull_body(v, a7v):
             m["marking"], hull)
     if a7v:
         # The armour module across the hull front, its lamps let into it.
-        prism("front_module", [(3.30, 1.02), (3.88, 1.06), (3.88, 1.32), (2.95, 1.50)], 3.20, mat=m["paint"],
+        front = 3.88 + module
+        prism("front_module", [(3.30, 1.02), (front, 1.06), (front, 1.32), (2.95, 1.50)], 3.20, mat=m["paint"],
               parent=hull, bevel=0.05)
         for side, s in ((1, "L"), (-1, "R")):
             for k, y in enumerate((1.30, 0.55)):
-                box(f"module_lamp_box_{s}_{k}", (0.10, 0.24, 0.16), (3.88, side * y, 1.22), m["dark"], hull,
+                box(f"module_lamp_box_{s}_{k}", (0.10, 0.24, 0.16), (front, side * y, 1.22), m["dark"], hull,
                     bevel=0.015, lods=MID)
-                box(f"module_lamp_{s}_{k}", (0.012, 0.16, 0.10), (3.935, side * y, 1.22), m["lamp"], hull, lods=NEAR)
+                box(f"module_lamp_{s}_{k}", (0.012, 0.16, 0.10), (front + 0.055, side * y, 1.22), m["lamp"], hull,
+                    lods=NEAR)
             for k in range(3):
                 cyl(f"module_bolt_{s}_{k}", 0.025, 0.02, (3.60 - k * 0.22, side * 1.40, 1.30 + k * 0.07), "Z",
                     m["steel"], hull, seg=6, lods=FINE)
@@ -248,14 +260,17 @@ def turret_body(v, turret, a7v, a8):
             AR.bolted_panel(f"side_module_{s}", (0.70, side * 1.48, 0.30), (0.62, 0.62, 0.10), m, turret,
                             bolts=(2, 2), bevel=0.03, rot=(-side * math.pi / 2, 0, 0), lods=VP.ALL)
     # Roof: the gunner's sight box at the front right, the PERI behind it,
-    # the commander's and loader's hatches.
-    RF.sight_housing("emes_sight", (1.00, -0.82, ROOF - 0.04), m, turret, size=(0.52, 0.48, 0.30))
+    # the commander's and loader's hatches. The sight heads stand over the
+    # frame's top: dressing, the PERI's head at its measured 3.0 m.
+    emes = empty("dressing_emes_sight", parent=turret)
+    RF.sight_housing("emes_sight", (1.00, -0.82, ROOF - 0.04), m, emes, size=(0.52, 0.48, 0.30))
     for k, y in enumerate((-0.64, -1.00)):
-        box(f"emes_door_{k}", (0.04, 0.17, 0.22), (1.28, y, ROOF + 0.13), m["paint"], turret, bevel=0.01,
+        box(f"emes_door_{k}", (0.04, 0.17, 0.22), (1.28, y, ROOF + 0.13), m["paint"], emes, bevel=0.01,
             lods=NEAR)
-    cyl("peri_pedestal", 0.18, 0.22, (0.18, -1.00, ROOF + 0.11), "Z", m["paint"], turret, seg=20, bevel=0.02,
+    cyl("peri_pedestal", 0.18, 0.14, (0.18, -1.00, ROOF + 0.07), "Z", m["paint"], turret, seg=20, bevel=0.02,
         lods=MID)
-    RF.sight_housing("peri_head", (0.18, -1.00, ROOF + 0.20), m, turret, size=(0.36, 0.32, 0.26))
+    peri = empty("dressing_peri", parent=turret)
+    RF.sight_housing("peri_head", (0.18, -1.00, ROOF + 0.10), m, peri, size=(0.36, 0.32, 0.26))
     RF.hatch("loader_hatch", (-0.55, 0.72, ROOF), m, turret, radius=0.34)
     RF.cupola("commander_cupola", (-0.95, -0.78, ROOF), m, turret, radius=0.36)
     for k in range(4):

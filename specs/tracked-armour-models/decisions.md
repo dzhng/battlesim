@@ -2759,3 +2759,233 @@ adds three:
   as contact. Each family slice clears its own entry when its gun moves onto
   `gun_tube`, under the template's adoption checklist. The floating check
   itself stays as it is: `gun_tube`'s closed collar removes the case.
+## Slice 15 decisions (2026-11-11, coordinator's implementation agent)
+
+The frame chain landed as planned: all 64 rows of `fix-rows.json` applied,
+none refused. Each entry gives the decision, the gap the plan left, its
+reach, a verdict and a confidence, least confident first.
+
+Review these first: the Buk's lint entry needs the coordinator, and the
+Ajax's weapon station is dressing until slice 27.
+
+- **The Buk's re-export is committed with one lint issue the baseline
+  doesn't hold.**
+  - *Scenario.* The upper hull of `air_defence.tracked_hull` sits on both
+    track belts' top runs along the whole hull: the belts ride at 1.07 m
+    under an underside at 0.88 m. That is hidden seating, and the baseline
+    holds it at 110 mm on the left and 190 mm on the right. The geometry is
+    symmetric, so the lint's depth measure is noise on a coplanar overlap.
+    The 9.3 m hull moved the left side's reading to 166 mm, and the export
+    fails on it. Lint for the other five appearances is clean.
+  - *Gap.* The brief keeps the baseline out of this slice; the C11 rule
+    lets hidden seating stay in it.
+  - *Reach.* The script was exported with `--no-lint` so its receipt could
+    be written. Slice 16's lint-on re-export fails on the Buk until the
+    coordinator refreshes that one entry, or slice 24 lifts the upper hull
+    off the belts.
+  - *Verdict.* Sound. Tuning the geometry until the noise reads under
+    115 mm would hide the issue, not fix it.
+  - *Confidence:* medium.
+- **The Ajax's weapon station is dressing until slice 27.**
+  - *Scenario.* The new HMG mount gets its rig nodes from the frame, but
+    the station's art (`rws_*`) stays fixed to the turret, as the slice
+    plans. Its body stands 0.21 m over the 2.70 m box, so it goes under
+    `dressing_rws`. The HMG fires from the rig's muzzle, which is where the
+    drawn barrel ends at rest (the survey placed the mount on it).
+  - *Gap.* The slice gives the parenting to slice 27 and the fit to this
+    one.
+  - *Reach.* Until slice 27, the drawn station doesn't turn with the HMG.
+    The lint skips dressing.
+  - *Verdict.* Sound. Parenting it now would be a five-line change. It was
+    left to slice 27 because the slice gives it to that lane.
+  - *Confidence:* medium.
+- **The T-14's turret is drawn 0.41 m lower.** `t14.HEIGHT` goes from 1.24
+  to 0.83, which puts the roof at the measured 2.75 m. The loft's neck and
+  waist come down from 0.26/0.32 to 0.15/0.19 over its base. With the new
+  pivot (1.8 m) and gun axis (2.26 m), the old levels would have put the
+  waist above the arrowhead's point. The sight heads and the soft-kill box
+  are dressing, and the panorama head sits at its measured 3.1 m.
+  - *Gap.* The survey found the turret 0.5–0.7 m tall, but no slice before
+    18 redraws it, and the box fix forces a fit now.
+  - *Reach.* The lower half of the turret is squeezed, because the shared
+    Armata deck (`armata.DECK`, 1.92 m) is 0.11 m above the measured
+    1.81 m. The deck is shared with the T-15, so it was left for slice 18.
+  - *Verdict.* Sound for a fit. It reads as a lower, flatter Armata
+    turret.
+  - *Confidence:* medium.
+- **The T-80BVM's nose is shortened by its glacis run, not moved back.**
+  The 7.01 m hull loses 0.195 m at each end.
+  - At the front, the glacis keeps its head at 2.30 m and its angles (11
+    and 22 degrees) over a 1.205 m run, so the driver's hatch, periscope,
+    splash board and headlights stay put. Moving the head back instead put
+    the hatch under the turret's front.
+  - The nose fittings and the rear stations move 0.195 m.
+  - The sprocket moves forward. The idler and the upper hull's foot keep
+    their old places, so the belt wraps 6 cm past the nose, inside the
+    0.1 m tolerance.
+  - *Why the idler stays.* The belt's inner face is coplanar with the
+    centre hull's side by construction (`CENTRE_Y = TRACK_Y - TRACK_W / 2`).
+    Every idler move flipped the lint's reading of that contact, from
+    7.8 mm to 116 mm, with no vertex inside. That is the same noise as the
+    Buk's.
+  - *Reach.* Slice 17 should pull the idler back under the nose.
+  - *Confidence:* medium.
+- **The CV9040C, M10 and BMP-2M keep their roof fittings as dressing.**
+  - *Scenario.* On these three, the art's roof is the box top, so the
+    hatches stand over the 0.1 m tolerance along with the sights. C4 named
+    only sight heads.
+    - CV9040C: hatches, sights and the bustle tarp, in
+      `dressing_roof_fittings`, on the C only.
+    - M10: the gunner's sight, the cupola and the loader's hatch. The
+      commander's dome gets its own node.
+    - BMP-2M: both sights and the turret hatch.
+  - *Gap.* C4 assumed every lowered box sits over a roof drawn lower.
+  - *Reach.* Hatches under dressing aren't linted. The family slices may
+    lower the roof instead.
+  - *Confidence:* medium.
+- **Wreck tolerances widened for guns that grew past them.**
+  - The T-80BVM goes from 1.9 to 2.0 m: the hull is shorter and the gun the
+    same length.
+  - The Challenger 3 goes from 1.7 to 2.2 m (its own 6.95 m muzzle) and the
+    Challenger 2 TES from 0.8 to 2.1 m (7.2 m). Both wrecks lie with the
+    gun reaching past the box.
+  - The Buk-M3 gains 0.2 m. Its stripped right side stands 0.11 m inside
+    the box, the failure slice 01 found.
+  - The alternatives were trimming wreck guns or keeping the Buk's right
+    skirt. Wreck trimming is out of scope, and the skirt's loss is the
+    wreck's look.
+  - *Confidence:* medium-high.
+- **The Leopard 2A7V's body is the 2A6's, drawn 0.175 m behind the frame's
+  centre.**
+  - *Scenario.* The 2A7V frame is the 2A6's lengthened at the front only.
+    The art built a symmetric hull to the new half-length around fixed
+    stations. So the turret (pivot 0.125 m) sat over the engine doors, the
+    tail lights and hooks were buried in a longer rear, and the glacis weld
+    floated over a changed slope (three new lint issues).
+  - The body now builds through `truck_chassis.on`, the existing owner of
+    "this chassis is part of a longer frame". It is drawn at 7.7 m
+    (`leopard.BODY_HALF`) and offset back. The front module stands 0.35 m
+    further out to meet the frame.
+  - *Reach.* `leopard.py` imports `truck_chassis`. The 2A6 builds as
+    before, since an offset of zero adds no node.
+  - *Confidence:* medium-high.
+- **The Challenger 3's panoramic sight stands on a mast.** The mast reaches
+  2.69 m and is not dressing. The head is dressing and tops out at 2.93 m,
+  toward the "over 3 m" that set the 2.70 m box (A2). *Confidence:* medium.
+- **Sight heads come down to their measured tops where the bulky allowance
+  needs it.** Above the box top plus 0.3 m, only parts up to 0.15 m across
+  may stand.
+  - Leopard PERI: −0.10 m, to 3.0 m.
+  - Ajax ORION: −0.05 m, to 2.99 m.
+  - Puma PERI and its mast: −0.11 m, to 3.59 m.
+  - CV90120 sight ball: −0.14 m, to 2.79 m.
+  - M10 dome: −0.09 m, to 2.89 m.
+  - T-14 panorama: −0.08 m.
+  - BMP-2M and CV9040C commander's sights: −0.02 m.
+
+  *Confidence:* high: every one comes from the survey's own heights.
+- **The Pantsir draws its own tow hook.** It passes `tow=False` to the
+  shared chassis and hangs its hook under the rear bumper, inside the
+  frame. `truck_chassis.py` is untouched. *Confidence:* medium-high.
+- **The tracked air-defence hull's hooks sit on its sloped nose and tail
+  plates**, set back by their reach so they end inside the frame (C12).
+  Its upper-hull overhang leaves nowhere else to seat them.
+  *Confidence:* high.
+- **The Buk's launcher is laid off the tail** (`tx = -half + 4.10`), so its
+  canisters end inside the 9.3 m hull. The turntable stays behind the cab.
+  The frame's pivot at +2.0 m is slice 24's rebuild, because this mount is
+  drawn by the hull. *Confidence:* high.
+- **The BMP-2M's hatches are placed from the turret ring.** The troop
+  hatches were at fixed stations and now follow the ring, as the
+  commander's already did. The driver's hatch keeps its hull place
+  (ring + 1.15). At ring + 0.95, the ring's 0.2 m move put it up the glacis
+  and into the turret's underside. Five new lint issues are cleared.
+  *Confidence:* high.
+- **Track gauges come from the art's track centres.** CV9040C:
+  1.27 / 1.69 = 0.75. Its tracks don't move with the C kit's armour. 2S19M2:
+  1.29 / 1.69 = 0.76. *Confidence:* high.
+- **The Type 99's commander's sight post reaches the box top.** It is no
+  longer dressing and is 4 cm taller, per C4's mast rule. *Confidence:* high.
+- **Wreck footprints: 21, not 20.** The 2A8 inherits the 2A7V frame, so its
+  wreck takes the same footprint. *Confidence:* high.
+- **The off-centre-turrets record** now gives the 2A7V/2A8 ring as +0.125 m
+  and the BMP-2M's as +0.1 m. *Confidence:* high.
+- **One parity rewrite was reverted.** `BLESS_PARITY` rewrote
+  `fixtures/parity/scenario-overrides.json` with one weapon's keys in a
+  different order. The content is identical, so it is not a change.
+  *Confidence:* high.
+
+### Slice 15 digest record (step 9)
+
+No recorded digest changed. With the new frames, these all pass unblessed:
+- sim's 1,162 tests, which include the menu reel's exact shots and every
+  `fixtures/parity/` record;
+- presentation's 360 tests;
+- mapgen's paired records (`compiler`, `layout_cli`).
+
+`BLESS_PARITY=1` on every suite that writes a record rewrote nothing.
+
+Why: no recorded battle fields a fix-rows unit. Mechanic tests run on
+`test_*` units, and the reel's capture units extend test units. The
+digests that change are those of roster battles fielding these units, each
+for its row's cause in `fix-rows.json`:
+- hull box: 20 appearances, plus the 2A8;
+- shell origin: 41 rows, plus the 2A8 and the M1E3's cannon, through
+  `extends`;
+- mobility: the Buk-M3, now `tracked_medium`, which changes its sounds and
+  its triangle caps;
+- eye: the T-14;
+- one new mount: the Ajax's HMG `on: autocannon` (Q9b).
+
+The balance sample is slice 31's (Q9).
+
+### Slice 15 decision audit (the implementation agent auditing its own trace)
+
+This audit covers the calls the entries above don't. Each gives a verdict,
+and a confidence that the user would have made the same call. Least
+confident first.
+
+**Review these first:** the Buk's lint entry (above), the skipped visual
+critique, and the T-14's turret drop (above).
+
+- **No unprimed critique or Preview checkpoint was run on the fit edits.**
+  - *Scenario.* Several fit edits change what the player sees:
+    - the T-14's turret is 0.41 m lower;
+    - the T-80BVM's nose is shorter;
+    - the 2A7V's front module is longer;
+    - sight heads were lowered or put on masts.
+
+    AGENTS.md asks for `screenshot-critique`, `compare-screenshots` and
+    `preview-shots` on any visual change. Instead, the agent rendered
+    before/after side and front-quarter shots of eight models and judged
+    them by eye (`throwaway/s15/shots/*-ba.png`). It found no breakage.
+  - *Gap.* The brief scoped this slice to data and minimal fits, and gave
+    the re-export and showing to slice 16.
+  - *Reach.* Slice 16 re-exports every family. Its critique round should
+    include the T-14, T-80BVM and 2A7V, the fit edits that moved geometry
+    most.
+  - *Verdict.* Sound for a fit-only slice that lands together with 16, but
+    it is a deferral the user should know about.
+  - *Confidence:* medium.
+- **The Gepard's folded radar is dressing on a taller mast.** The 3.0 m box
+  sits 0.23 m under the radar. The mast that holds it goes from 0.45 to
+  0.60 m, so a non-dressing part reaches the box top, as C4 asks. The
+  added mast length is hidden inside the radar. *Verdict:* sound.
+  *Confidence:* high.
+- **The spec README's handoff and ticks were left alone.** The coordinator
+  owns the README, and slice 15 lands only with slice 16. *Verdict:* sound.
+  *Confidence:* high.
+- **Validation ran on exports written over the tracked source paths, and
+  every non-`air_defence` GLB and receipt was then restored.** That way the
+  validator matches each file to its catalog entry, including the wreck
+  footprints and tolerances. Nothing but `air_defence` is committed.
+  *Verdict:* sound. *Confidence:* high.
+- **The whole `assets/runtime` folder was pulled (0.83 GB).** The web
+  `unitFit` and `icons` tests read every baked bundle. The data came from
+  the shared LFS store, in eight seconds. `icons` is green; `unitFit` is red
+  only because of the stale bake. *Verdict:* sound. *Confidence:* high.
+- Trivial discretion (3 calls):
+  - the dressing node names;
+  - two-decimal track gauges;
+  - the throwaway row applier, which works by text surgery so each fixture
+    keeps its formatting and isn't committed.

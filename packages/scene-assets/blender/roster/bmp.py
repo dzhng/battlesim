@@ -86,9 +86,10 @@ def bmp2_hull(v):
         box(f"glacis_rib_{k}", (0.05, 2.40, 0.04), (x, 0, glacis(x) + 0.03), m["paint"], hull, rot=(0, slope, 0),
             bevel=0.01, lods=MID)
     HF.grille("engine_grille", (1.55, -0.75, glacis(1.55)), (0.90, 1.00), m, hull, slats=7, rot=(0, slope, 0))
-    # The driver's and commander's hatches on the left, placed from the turret ring.
+    # The hatches are placed from the turret ring: the driver's and
+    # commander's on the left ahead of it, the troop hatches behind it.
     ring = v.frame["mounts"][0]["pivot_m"][0]
-    RF.hatch("driver_hatch", (ring + 0.95, 0.75, glacis(ring + 0.95)), m, hull, radius=0.28, rot=(0, slope, 0))
+    RF.hatch("driver_hatch", (ring + 1.15, 0.75, glacis(ring + 1.15)), m, hull, radius=0.28, rot=(0, slope, 0))
     RF.hatch("commander_hatch", (ring + 0.30, 0.75, g.ROOF_Z), m, hull, radius=0.28)
     for side, s in ((1, "L"), (-1, "R")):
         HF.light_with_guard(f"headlight_{s}", (1.95, side * 1.20, glacis(1.95) + 0.10), 0.07, m, hull)
@@ -103,7 +104,7 @@ def bmp2_hull(v):
         HF.light_with_guard(f"tail_light_{s}", (-half + 0.08, side * 1.30, 1.30), 0.05, dict(m, lamp=m["tail"]),
                             hull, rot=(0, 0, math.pi))
     for k in range(4):
-        RF.hatch(f"troop_hatch_{k}", (-1.00 - (k // 2) * 1.10, (k % 2 - 0.5) * 0.90, g.ROOF_Z), m, hull,
+        RF.hatch(f"troop_hatch_{k}", (ring - 1.30 - (k // 2) * 1.10, (k % 2 - 0.5) * 0.90, g.ROOF_Z), m, hull,
                  size=(0.80, 0.70))
 
 
@@ -123,9 +124,12 @@ def bmp2_turret(v, turret, gun, launcher, tube):
                                  tube_length=0.24, elevation=0.4, spread=0.3, rot=(0, 0, side * 0.9))
         whip = empty(f"dressing_antenna_{s}", parent=turret)
         RF.antenna(f"antenna_{s}", (-0.70, side * 0.50, 0.62), m, whip, height=2.0)
-    RF.sight_housing("gunner_sight", (0.20, 0.35, 0.58), m, turret, size=(0.34, 0.26, 0.24))
-    RF.sight_housing("commander_sight", (-0.15, -0.40, 0.58), m, turret, size=(0.32, 0.26, 0.26))
-    RF.hatch("turret_hatch", (-0.40, 0.30, 0.62), m, turret, radius=0.25)
+    # The frame tops out at the roof, so the sights and the hatch on it are
+    # dressing, the commander's sight at its measured 2.45 m.
+    fittings = empty("dressing_roof_fittings", parent=turret)
+    RF.sight_housing("gunner_sight", (0.20, 0.35, 0.58), m, fittings, size=(0.34, 0.26, 0.24))
+    RF.sight_housing("commander_sight", (-0.15, -0.40, 0.56), m, fittings, size=(0.32, 0.26, 0.26))
+    RF.hatch("turret_hatch", (-0.40, 0.30, 0.62), m, fittings, radius=0.25)
     # The AG-30 on the right side.
     box("ag30_body", (0.50, 0.14, 0.16), (0.40, -0.92, 0.20), m["dark"], turret, bevel=0.015)
     cyl("ag30_barrel", 0.035, 0.40, (0.85, -0.92, 0.20), "X", m["dark"], turret, seg=10, lods=MID)

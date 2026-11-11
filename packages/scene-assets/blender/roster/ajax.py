@@ -122,14 +122,19 @@ def turret_body(v, turret):
                         bevel=0.03, lods=VP.ALL)
         whip = empty(f"dressing_antenna_{s}", parent=turret)
         RF.antenna(f"antenna_{s}", (-1.05, side * 0.70, ROOF), m, whip, height=2.2)
-    # The remote weapon station on the right front, fixed to the turret.
-    cyl("rws_bearing", 0.18, 0.08, (0.55, -0.72, ROOF + 0.04), "Z", m["dark"], turret, seg=20, lods=MID)
-    box("rws_body", (0.40, 0.30, 0.26), (0.55, -0.72, ROOF + 0.21), m["paint"], turret, bevel=0.03)
-    RF.sight_housing("rws_sight", (0.62, -0.92, ROOF + 0.10), m, turret, size=(0.24, 0.12, 0.20))
-    cyl("rws_gun", 0.025, 0.80, (1.10, -0.72, ROOF + 0.26), "X", m["dark"], turret, seg=10)
-    # The commander's ORION sight box on the right rear, the hatches.
+    # The remote weapon station on the right front, fixed to the turret and
+    # standing over the frame's top: dressing until it is drawn on the HMG
+    # mount's nodes.
+    rws = empty("dressing_rws", parent=turret)
+    cyl("rws_bearing", 0.18, 0.08, (0.55, -0.72, ROOF + 0.04), "Z", m["dark"], rws, seg=20, lods=MID)
+    box("rws_body", (0.40, 0.30, 0.26), (0.55, -0.72, ROOF + 0.21), m["paint"], rws, bevel=0.03)
+    RF.sight_housing("rws_sight", (0.62, -0.92, ROOF + 0.10), m, rws, size=(0.24, 0.12, 0.20))
+    cyl("rws_gun", 0.025, 0.80, (1.10, -0.72, ROOF + 0.26), "X", m["dark"], rws, seg=10)
+    # The commander's ORION sight box on the right rear, its head at the
+    # measured 3.0 m over its base: dressing. The hatches.
     cyl("orion_base", 0.18, 0.12, (-0.55, -0.70, ROOF + 0.06), "Z", m["paint"], turret, seg=20, lods=MID)
-    RF.sight_housing("orion_sight", (-0.55, -0.70, ROOF + 0.12), m, turret, size=(0.42, 0.40, 0.32))
+    orion = empty("dressing_orion_sight", parent=turret)
+    RF.sight_housing("orion_sight", (-0.55, -0.70, ROOF + 0.07), m, orion, size=(0.42, 0.40, 0.32))
     RF.cupola("commander_cupola", (-0.25, 0.55, ROOF), m, turret, radius=0.30, periscopes=4)
     RF.cupola("gunner_cupola", (0.15, -0.15, ROOF), m, turret, radius=0.28, periscopes=3, rot=(0, 0, -0.3))
 

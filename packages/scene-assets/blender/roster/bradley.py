@@ -153,8 +153,10 @@ def turret_body(v, turret):
     # independent viewer on its pedestal at the rear, the hatches.
     RF.sight_housing("gunner_sight", (0.55, -0.55, ROOF - 0.04), m, turret, size=(0.42, 0.34, 0.24))
     cyl("civ_pedestal", 0.17, 0.16, (-0.70, -0.40, ROOF + 0.08), "Z", m["paint"], turret, seg=20, bevel=0.02)
-    cyl("civ_head", 0.22, 0.30, (-0.70, -0.40, ROOF + 0.30), "Y", m["paint"], turret, seg=24, bevel=0.03)
-    box("civ_window", (0.02, 0.24, 0.16), (-0.48, -0.40, ROOF + 0.30), m["glass"], turret, lods=MID)
+    # The viewer's head stands over the frame's top: dressing on its pedestal.
+    civ = empty("dressing_civ", parent=turret)
+    cyl("civ_head", 0.22, 0.30, (-0.70, -0.40, ROOF + 0.30), "Y", m["paint"], civ, seg=24, bevel=0.03)
+    box("civ_window", (0.02, 0.24, 0.16), (-0.48, -0.40, ROOF + 0.30), m["glass"], civ, lods=MID)
     RF.hatch("commander_hatch", (-0.30, -0.40, ROOF), m, turret, radius=0.28)
     RF.hatch("gunner_hatch", (-0.30, 0.45, ROOF), m, turret, radius=0.26)
 

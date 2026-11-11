@@ -126,12 +126,15 @@ def turret_body(v, turret):
             lods=NEAR)
     whip = empty("dressing_antenna", parent=turret)
     RF.antenna("antenna", (-1.10, -0.65, ROOF), m, whip, height=2.0)
-    # The PERI on its mast at the left rear: the tallest thing aboard.
-    cyl("peri_mast", 0.10, 0.36, (-0.80, 0.55, ROOF + 0.18), "Z", m["dark"], turret, seg=16)
+    # The PERI on its mast at the left rear: the tallest thing aboard. The
+    # mast reaches the frame's top; the head, at its measured 3.6 m, is
+    # dressing.
+    cyl("peri_mast", 0.10, 0.25, (-0.80, 0.55, ROOF + 0.125), "Z", m["dark"], turret, seg=16)
     for side in (-1, 1):
-        box(f"peri_frame_{side}", (0.04, 0.04, 0.34), (-0.80, 0.55 + side * 0.20, ROOF + 0.17), m["paint"], turret,
-            lods=MID)
-    RF.sight_housing("peri_head", (-0.80, 0.55, ROOF + 0.36), m, turret, size=(0.34, 0.34, 0.20))
+        box(f"peri_frame_{side}", (0.04, 0.04, 0.23), (-0.80, 0.55 + side * 0.20, ROOF + 0.115), m["paint"],
+            turret, lods=MID)
+    head = empty("dressing_peri", parent=turret)
+    RF.sight_housing("peri_head", (-0.80, 0.55, ROOF + 0.25), m, head, size=(0.34, 0.34, 0.20))
 
 
 def autocannon(v, gun):

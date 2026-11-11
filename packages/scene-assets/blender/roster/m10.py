@@ -183,15 +183,18 @@ def turret_body(v, turret):
         whip = empty(f"dressing_antenna_{s}", parent=turret)
         RF.antenna(f"antenna_{s}", (BACK + 0.22, side * 0.95, ROOF), m, whip, height=2.2)
     # Roof: the gunner's sight behind the chamfer on the right, the
-    # commander's dome on a short collar at the right, top of the frame
-    # (fixed armour, not dressing), the loader's hatch and the mast.
-    RF.sight_housing("gunner_sight", (UPPER_FRONT - 0.10, -0.62, ROOF - 0.04), m, turret, size=(0.46, 0.38, 0.26))
-    dome = empty("commander_sight", parent=turret)
-    cyl("dome_post", 0.14, 0.08, (-0.25, -0.70, ROOF + 0.04), "Z", m["dark"], dome, seg=16, lods=MID)
-    cyl("dome_head", 0.24, 0.30, (-0.25, -0.70, ROOF + 0.23), "Z", m["paint"], dome, seg=24, bevel=0.07)
-    box("dome_window", (0.03, 0.22, 0.12), (-0.01, -0.70, ROOF + 0.23), m["glass"], dome, lods=MID)
-    RF.cupola("commander_cupola", (*CUPOLA, ROOF), m, turret, radius=0.34, periscopes=5)
-    RF.hatch("loader_hatch", (-0.95, -0.15, ROOF), m, turret, radius=0.26)
+    # commander's dome on a short collar at the right, the loader's hatch and
+    # the mast. The roof is the frame's top, so what stands on it is
+    # dressing, the dome at its measured 2.89 m.
+    fittings = empty("dressing_roof_fittings", parent=turret)
+    RF.sight_housing("gunner_sight", (UPPER_FRONT - 0.10, -0.62, ROOF - 0.04), m, fittings,
+                     size=(0.46, 0.38, 0.26))
+    cyl("dome_post", 0.14, 0.08, (-0.25, -0.70, ROOF + 0.04), "Z", m["dark"], turret, seg=16, lods=MID)
+    dome = empty("dressing_commander_sight", parent=turret)
+    cyl("dome_head", 0.24, 0.30, (-0.25, -0.70, ROOF + 0.14), "Z", m["paint"], dome, seg=24, bevel=0.07)
+    box("dome_window", (0.03, 0.22, 0.12), (-0.01, -0.70, ROOF + 0.14), m["glass"], dome, lods=MID)
+    RF.cupola("commander_cupola", (*CUPOLA, ROOF), m, fittings, radius=0.34, periscopes=5)
+    RF.hatch("loader_hatch", (-0.95, -0.15, ROOF), m, fittings, radius=0.26)
     mast = empty("dressing_mast", parent=turret)
     cyl("mast_pole", 0.03, 0.90, (BACK + 0.25, 0.30, ROOF + 0.45), "Z", m["dark"], mast, seg=8, lods=NEAR)
     box("mast_head", (0.14, 0.14, 0.12), (BACK + 0.25, 0.30, ROOF + 0.92), m["dark"], mast, bevel=0.02, lods=NEAR)

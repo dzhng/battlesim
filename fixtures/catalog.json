@@ -7085,8 +7085,8 @@
               "eye_m": 2.6910000000000003,
               "half_extents_m": [
                 3.575,
-                1.79,
-                1.495
+                1.69,
+                1.41
               ],
               "hp": 150.0,
               "push_class": "heavy",
@@ -7112,16 +7112,16 @@
             {
               "id": "gun",
               "muzzle_m": [
-                7.15,
+                6.99,
                 0.0,
                 0.0
               ],
               "name": "Howitzer",
               "on": null,
               "pivot_m": [
-                -2.1,
+                1.35,
                 0.0,
-                3.0
+                2.19
               ],
               "special": false,
               "squad": false,
@@ -7516,7 +7516,7 @@
               "half_extents_m": [
                 3.3675,
                 1.575,
-                1.225
+                1.075
               ],
               "hp": 70.0,
               "push_class": "medium",
@@ -7546,14 +7546,14 @@
             {
               "id": "autocannon",
               "muzzle_m": [
-                2.829,
+                2.39,
                 0.0,
                 0.441
               ],
               "name": "Autocannon",
               "on": null,
               "pivot_m": [
-                0.3,
+                0.1,
                 0.0,
                 1.593
               ],
@@ -7574,7 +7574,7 @@
               "name": "Kornet",
               "on": "autocannon",
               "pivot_m": [
-                0.3,
+                0.1,
                 0.851,
                 2.009
               ],
@@ -7664,7 +7664,7 @@
             {
               "id": "main_gun",
               "muzzle_m": [
-                3.8,
+                3.35,
                 0.0,
                 0.35
               ],
@@ -7947,7 +7947,7 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                4.876,
+                4.65,
                 1.6,
                 1.78
               ],
@@ -7966,26 +7966,25 @@
           "faction": "eastern",
           "family": "buk",
           "mobility": {
-            "wheeled": {
-              "offroad_kmh": 35.0,
-              "reverse_speed_factor": 0.3,
-              "road_kmh": 80.0,
-              "turn_deg_s": 35.0,
-              "turning_radius_m": 8.0
+            "tracked": {
+              "offroad_kmh": 28.0,
+              "reverse_speed_factor": 0.4,
+              "road_kmh": 65.0,
+              "turn_deg_s": 45.0
             }
           },
           "mounts": [
             {
               "id": "launcher",
               "muzzle_m": [
-                2.5,
+                0.3,
                 0.0,
-                0.59
+                0.93
               ],
               "name": "Buk-M3",
               "on": null,
               "pivot_m": [
-                -2.45,
+                2.0,
                 0.0,
                 2.37
               ],
@@ -9306,7 +9305,7 @@
               "half_extents_m": [
                 3.65,
                 1.7,
-                1.55
+                1.625
               ],
               "hp": 150.0,
               "push_class": "heavy",
@@ -9332,16 +9331,16 @@
             {
               "id": "gun",
               "muzzle_m": [
-                8.06,
+                7.45,
                 0.0,
                 0.0
               ],
               "name": "Howitzer",
               "on": null,
               "pivot_m": [
-                -3.0,
+                0.5,
                 0.0,
-                2.9
+                2.32
               ],
               "special": false,
               "squad": false,
@@ -10729,11 +10728,11 @@
                 "roof": 45.0,
                 "side": 130.0
               },
-              "eye_m": 3.162,
+              "eye_m": 3.0,
               "half_extents_m": [
                 4.35,
                 1.75,
-                1.65
+                1.4
               ],
               "hp": 135.0,
               "push_class": "heavy",
@@ -10761,14 +10760,14 @@
               "muzzle_m": [
                 6.75,
                 0.0,
-                0.594
+                0.46
               ],
               "name": "Main Gun",
               "on": null,
               "pivot_m": [
                 -0.3,
                 0.0,
-                1.98
+                1.8
               ],
               "special": false,
               "squad": false,
@@ -10790,7 +10789,7 @@
               "pivot_m": [
                 -0.55,
                 -0.58,
-                3.162
+                2.8
               ],
               "special": false,
               "squad": false,
@@ -10879,7 +10878,7 @@
             {
               "id": "autocannon",
               "muzzle_m": [
-                2.94,
+                3.4,
                 0.0,
                 0.504
               ],
@@ -10993,7 +10992,7 @@
             {
               "id": "cannon",
               "muzzle_m": [
-                6.3,
+                6.1,
                 0.0,
                 0.401
               ],
@@ -11081,7 +11080,7 @@
               },
               "eye_m": 2.07,
               "half_extents_m": [
-                3.7,
+                3.505,
                 1.8015,
                 1.101
               ],
@@ -11528,7 +11527,7 @@
               "half_extents_m": [
                 3.8,
                 1.85,
-                1.175
+                1.25
               ],
               "hp": 120.0,
               "push_class": "heavy",
@@ -12069,7 +12068,7 @@
               "half_extents_m": [
                 3.81,
                 1.675,
-                1.5
+                1.35
               ],
               "hp": 80.0,
               "push_class": "medium",
@@ -12111,6 +12110,27 @@
               "turret": true,
               "weapons": [
                 "autocannon"
+              ]
+            },
+            {
+              "id": "HMG",
+              "muzzle_m": [
+                0.95,
+                0.0,
+                0.05
+              ],
+              "name": "HMG",
+              "on": "autocannon",
+              "pivot_m": [
+                0.15,
+                -0.72,
+                2.78
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
               ]
             }
           ],
@@ -13098,7 +13118,7 @@
             {
               "id": "cannon",
               "muzzle_m": [
-                5.561,
+                7.2,
                 0.0,
                 0.448
               ],
@@ -13188,7 +13208,7 @@
               "half_extents_m": [
                 4.15,
                 2.1,
-                1.245
+                1.35
               ],
               "hp": 135.0,
               "push_class": "heavy",
@@ -13224,7 +13244,7 @@
             {
               "id": "cannon",
               "muzzle_m": [
-                5.561,
+                6.95,
                 0.0,
                 0.448
               ],
@@ -13317,7 +13337,7 @@
               "half_extents_m": [
                 3.475,
                 1.65,
-                1.325
+                1.25
               ],
               "hp": 90.0,
               "push_class": "medium",
@@ -13431,8 +13451,8 @@
               "eye_m": 2.632,
               "half_extents_m": [
                 3.4,
-                1.6,
-                1.4
+                1.69,
+                1.25
               ],
               "hp": 90.0,
               "push_class": "medium",
@@ -13462,7 +13482,7 @@
             {
               "id": "autocannon",
               "muzzle_m": [
-                3.9,
+                3.6,
                 0.0,
                 0.504
               ],
@@ -13559,7 +13579,7 @@
             {
               "id": "autocannon",
               "muzzle_m": [
-                3.9,
+                3.7,
                 0.0,
                 0.504
               ],
@@ -14213,7 +14233,7 @@
               "half_extents_m": [
                 3.556,
                 1.685,
-                1.645
+                1.5
               ],
               "hp": 110.0,
               "push_class": "heavy",
@@ -14241,9 +14261,9 @@
             {
               "id": "gun",
               "muzzle_m": [
-                3.56,
-                1.28,
-                0.0
+                4.1,
+                0.88,
+                0.26
               ],
               "name": "Twin 35 mm",
               "on": null,
@@ -14845,7 +14865,7 @@
               "half_extents_m": [
                 3.85,
                 1.875,
-                1.5
+                1.35
               ],
               "hp": 110.0,
               "push_class": "heavy",
@@ -14871,9 +14891,9 @@
             {
               "id": "cannon",
               "muzzle_m": [
-                7.12,
+                6.82,
                 0.0,
-                0.54
+                0.25
               ],
               "name": "Main Gun",
               "on": null,
@@ -14959,9 +14979,9 @@
               },
               "eye_m": 2.82,
               "half_extents_m": [
-                3.85,
+                4.025,
                 1.875,
-                1.5
+                1.415
               ],
               "hp": 120.0,
               "push_class": "heavy",
@@ -14987,14 +15007,14 @@
             {
               "id": "cannon",
               "muzzle_m": [
-                7.12,
+                6.82,
                 0.0,
-                0.54
+                0.25
               ],
               "name": "Main Gun",
               "on": null,
               "pivot_m": [
-                0.3,
+                0.125,
                 0.0,
                 1.8
               ],
@@ -15016,7 +15036,7 @@
               "name": "HMG",
               "on": "cannon",
               "pivot_m": [
-                0.05,
+                -0.125,
                 -0.58,
                 2.82
               ],
@@ -15075,9 +15095,9 @@
               },
               "eye_m": 2.82,
               "half_extents_m": [
-                3.85,
+                4.025,
                 1.875,
-                1.5
+                1.415
               ],
               "hp": 120.0,
               "push_class": "heavy",
@@ -15113,14 +15133,14 @@
             {
               "id": "cannon",
               "muzzle_m": [
-                7.12,
+                6.82,
                 0.0,
-                0.54
+                0.25
               ],
               "name": "Main Gun",
               "on": null,
               "pivot_m": [
-                0.3,
+                0.125,
                 0.0,
                 1.8
               ],
@@ -15142,7 +15162,7 @@
               "name": "HMG",
               "on": "cannon",
               "pivot_m": [
-                0.05,
+                -0.125,
                 -0.58,
                 2.82
               ],
@@ -15362,16 +15382,16 @@
             {
               "id": "gun",
               "muzzle_m": [
-                1.0,
+                3.7,
                 0.0,
-                0.0
+                0.8
               ],
               "name": "Rockets",
               "on": null,
               "pivot_m": [
-                -1.6,
+                -3.2,
                 0.0,
-                2.2
+                1.2
               ],
               "special": false,
               "squad": false,
@@ -15791,7 +15811,7 @@
               "half_extents_m": [
                 3.7,
                 2.0,
-                1.8
+                1.65
               ],
               "hp": 120.0,
               "push_class": "heavy",
@@ -15907,7 +15927,7 @@
               },
               "eye_m": 2.754,
               "half_extents_m": [
-                3.935,
+                4.165,
                 1.79,
                 1.53
               ],
@@ -15935,16 +15955,16 @@
             {
               "id": "gun",
               "muzzle_m": [
-                8.06,
+                7.1,
                 0.0,
                 0.0
               ],
               "name": "Howitzer",
               "on": null,
               "pivot_m": [
-                -3.0,
+                0.6,
                 0.0,
-                2.9
+                2.7
               ],
               "special": false,
               "squad": false,
@@ -19223,7 +19243,7 @@
               "half_extents_m": [
                 3.4,
                 1.95,
-                1.625
+                1.48
               ],
               "hp": 150.0,
               "push_class": "heavy",
@@ -19256,9 +19276,9 @@
               "name": "Howitzer",
               "on": null,
               "pivot_m": [
-                -2.3,
+                0.7,
                 0.0,
-                3.0
+                2.27
               ],
               "special": false,
               "squad": false,
@@ -19315,7 +19335,7 @@
               "half_extents_m": [
                 3.5,
                 1.7,
-                1.49
+                1.3
               ],
               "hp": 95.0,
               "push_class": "medium",
@@ -19341,7 +19361,7 @@
             {
               "id": "cannon",
               "muzzle_m": [
-                4.95,
+                5.75,
                 0.0,
                 0.32
               ],
@@ -19932,7 +19952,7 @@
             {
               "id": "cannon",
               "muzzle_m": [
-                5.805,
+                5.555,
                 0.0,
                 0.439
               ],
@@ -19954,9 +19974,9 @@
             {
               "id": "HMG",
               "muzzle_m": [
-                1.43,
+                1.67,
                 0.0,
-                0.32
+                0.58
               ],
               "name": "HMG",
               "on": "cannon",
@@ -20058,7 +20078,7 @@
             {
               "id": "cannon",
               "muzzle_m": [
-                5.805,
+                5.555,
                 0.0,
                 0.439
               ],
@@ -20080,9 +20100,9 @@
             {
               "id": "HMG",
               "muzzle_m": [
-                1.43,
+                1.67,
                 0.0,
-                0.32
+                0.58
               ],
               "name": "HMG",
               "on": "cannon",
@@ -20187,7 +20207,7 @@
             {
               "id": "cannon",
               "muzzle_m": [
-                5.805,
+                5.555,
                 0.0,
                 0.439
               ],
@@ -20209,9 +20229,9 @@
             {
               "id": "HMG",
               "muzzle_m": [
-                1.43,
+                1.67,
                 0.0,
-                0.32
+                0.58
               ],
               "name": "HMG",
               "on": "cannon",
@@ -20316,7 +20336,7 @@
             {
               "id": "cannon",
               "muzzle_m": [
-                5.805,
+                5.555,
                 0.0,
                 0.439
               ],
@@ -20435,16 +20455,16 @@
             {
               "id": "gun",
               "muzzle_m": [
-                1.0,
+                3.7,
                 0.0,
-                0.0
+                0.8
               ],
               "name": "Rockets",
               "on": null,
               "pivot_m": [
-                -1.6,
+                -3.2,
                 0.0,
-                2.2
+                1.2
               ],
               "special": false,
               "squad": false,
@@ -20501,7 +20521,7 @@
               "half_extents_m": [
                 3.275,
                 1.8,
-                1.49
+                1.38
               ],
               "hp": 90.0,
               "push_class": "medium",
@@ -20531,7 +20551,7 @@
             {
               "id": "autocannon",
               "muzzle_m": [
-                3.6,
+                2.5,
                 0.0,
                 0.536
               ],
@@ -20619,7 +20639,7 @@
               "half_extents_m": [
                 3.275,
                 1.8,
-                1.49
+                1.38
               ],
               "hp": 80.0,
               "push_class": "medium",
@@ -20649,7 +20669,7 @@
             {
               "id": "autocannon",
               "muzzle_m": [
-                3.6,
+                2.5,
                 0.0,
                 0.536
               ],
@@ -26451,8 +26471,8 @@
           "eye_m": 2.6910000000000003,
           "half_extents_m": [
             3.575,
-            1.79,
-            1.495
+            1.69,
+            1.41
           ],
           "hp": 150.0,
           "push_class": "heavy",
@@ -26480,16 +26500,16 @@
           "carriers": [],
           "id": "gun",
           "muzzle_m": [
-            7.15,
+            6.99,
             0.0,
             0.0
           ],
           "name": "Howitzer",
           "on": null,
           "pivot_m": [
-            -2.1,
+            1.35,
             0.0,
-            3.0
+            2.19
           ],
           "special": false,
           "squad": false,
@@ -27081,7 +27101,7 @@
           "half_extents_m": [
             3.3675,
             1.575,
-            1.225
+            1.075
           ],
           "hp": 70.0,
           "push_class": "medium",
@@ -27113,14 +27133,14 @@
           "carriers": [],
           "id": "autocannon",
           "muzzle_m": [
-            2.829,
+            2.39,
             0.0,
             0.441
           ],
           "name": "Autocannon",
           "on": null,
           "pivot_m": [
-            0.3,
+            0.1,
             0.0,
             1.593
           ],
@@ -27142,7 +27162,7 @@
           "name": "Kornet",
           "on": "autocannon",
           "pivot_m": [
-            0.3,
+            0.1,
             0.851,
             2.009
           ],
@@ -27235,7 +27255,7 @@
           "carriers": [],
           "id": "main_gun",
           "muzzle_m": [
-            3.8,
+            3.35,
             0.0,
             0.35
           ],
@@ -27526,7 +27546,7 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            4.876,
+            4.65,
             1.6,
             1.78
           ],
@@ -27546,12 +27566,11 @@
       "family": "buk",
       "id": "eastern_buk_buk_m3_medium_range_air_defense",
       "mobility": {
-        "wheeled": {
-          "offroad_kmh": 35.0,
-          "reverse_speed_factor": 0.3,
-          "road_kmh": 80.0,
-          "turn_deg_s": 35.0,
-          "turning_radius_m": 8.0
+        "tracked": {
+          "offroad_kmh": 28.0,
+          "reverse_speed_factor": 0.4,
+          "road_kmh": 65.0,
+          "turn_deg_s": 45.0
         }
       },
       "mounts": [
@@ -27559,14 +27578,14 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            2.5,
+            0.3,
             0.0,
-            0.59
+            0.93
           ],
           "name": "Buk-M3",
           "on": null,
           "pivot_m": [
-            -2.45,
+            2.0,
             0.0,
             2.37
           ],
@@ -27604,7 +27623,7 @@
         "loudness_m": 650.0,
         "profile": "vehicle"
       },
-      "vehicle_class": "wheeled_medium"
+      "vehicle_class": "tracked_medium"
     },
     {
       "appearance": "eastern_j_10_vigorous_dragon_j_10c",
@@ -28995,7 +29014,7 @@
           "half_extents_m": [
             3.65,
             1.7,
-            1.55
+            1.625
           ],
           "hp": 150.0,
           "push_class": "heavy",
@@ -29023,16 +29042,16 @@
           "carriers": [],
           "id": "gun",
           "muzzle_m": [
-            8.06,
+            7.45,
             0.0,
             0.0
           ],
           "name": "Howitzer",
           "on": null,
           "pivot_m": [
-            -3.0,
+            0.5,
             0.0,
-            2.9
+            2.32
           ],
           "special": false,
           "squad": false,
@@ -30786,11 +30805,11 @@
             "roof": 45.0,
             "side": 130.0
           },
-          "eye_m": 3.162,
+          "eye_m": 3.0,
           "half_extents_m": [
             4.35,
             1.75,
-            1.65
+            1.4
           ],
           "hp": 135.0,
           "push_class": "heavy",
@@ -30820,14 +30839,14 @@
           "muzzle_m": [
             6.75,
             0.0,
-            0.594
+            0.46
           ],
           "name": "Main Gun",
           "on": null,
           "pivot_m": [
             -0.3,
             0.0,
-            1.98
+            1.8
           ],
           "special": false,
           "squad": false,
@@ -30850,7 +30869,7 @@
           "pivot_m": [
             -0.55,
             -0.58,
-            3.162
+            2.8
           ],
           "special": false,
           "squad": false,
@@ -30942,7 +30961,7 @@
           "carriers": [],
           "id": "autocannon",
           "muzzle_m": [
-            2.94,
+            3.4,
             0.0,
             0.504
           ],
@@ -31060,7 +31079,7 @@
           "carriers": [],
           "id": "cannon",
           "muzzle_m": [
-            6.3,
+            6.1,
             0.0,
             0.401
           ],
@@ -31150,7 +31169,7 @@
           },
           "eye_m": 2.07,
           "half_extents_m": [
-            3.7,
+            3.505,
             1.8015,
             1.101
           ],
@@ -31612,7 +31631,7 @@
           "half_extents_m": [
             3.8,
             1.85,
-            1.175
+            1.25
           ],
           "hp": 120.0,
           "push_class": "heavy",
@@ -32171,7 +32190,7 @@
           "half_extents_m": [
             3.81,
             1.675,
-            1.5
+            1.35
           ],
           "hp": 80.0,
           "push_class": "medium",
@@ -32215,6 +32234,28 @@
           "turret": true,
           "weapons": [
             "autocannon"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "HMG",
+          "muzzle_m": [
+            0.95,
+            0.0,
+            0.05
+          ],
+          "name": "HMG",
+          "on": "autocannon",
+          "pivot_m": [
+            0.15,
+            -0.72,
+            2.78
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
           ]
         }
       ],
@@ -33294,7 +33335,7 @@
           "carriers": [],
           "id": "cannon",
           "muzzle_m": [
-            5.561,
+            7.2,
             0.0,
             0.448
           ],
@@ -33386,7 +33427,7 @@
           "half_extents_m": [
             4.15,
             2.1,
-            1.245
+            1.35
           ],
           "hp": 135.0,
           "push_class": "heavy",
@@ -33424,7 +33465,7 @@
           "carriers": [],
           "id": "cannon",
           "muzzle_m": [
-            5.561,
+            6.95,
             0.0,
             0.448
           ],
@@ -33519,7 +33560,7 @@
           "half_extents_m": [
             3.475,
             1.65,
-            1.325
+            1.25
           ],
           "hp": 90.0,
           "push_class": "medium",
@@ -33637,8 +33678,8 @@
           "eye_m": 2.632,
           "half_extents_m": [
             3.4,
-            1.6,
-            1.4
+            1.69,
+            1.25
           ],
           "hp": 90.0,
           "push_class": "medium",
@@ -33670,7 +33711,7 @@
           "carriers": [],
           "id": "autocannon",
           "muzzle_m": [
-            3.9,
+            3.6,
             0.0,
             0.504
           ],
@@ -33770,7 +33811,7 @@
           "carriers": [],
           "id": "autocannon",
           "muzzle_m": [
-            3.9,
+            3.7,
             0.0,
             0.504
           ],
@@ -34444,7 +34485,7 @@
           "half_extents_m": [
             3.556,
             1.685,
-            1.645
+            1.5
           ],
           "hp": 110.0,
           "push_class": "heavy",
@@ -34474,9 +34515,9 @@
           "carriers": [],
           "id": "gun",
           "muzzle_m": [
-            3.56,
-            1.28,
-            0.0
+            4.1,
+            0.88,
+            0.26
           ],
           "name": "Twin 35 mm",
           "on": null,
@@ -35043,7 +35084,7 @@
           "half_extents_m": [
             3.85,
             1.875,
-            1.5
+            1.35
           ],
           "hp": 110.0,
           "push_class": "heavy",
@@ -35071,9 +35112,9 @@
           "carriers": [],
           "id": "cannon",
           "muzzle_m": [
-            7.12,
+            6.82,
             0.0,
-            0.54
+            0.25
           ],
           "name": "Main Gun",
           "on": null,
@@ -35161,9 +35202,9 @@
           },
           "eye_m": 2.82,
           "half_extents_m": [
-            3.85,
+            4.025,
             1.875,
-            1.5
+            1.415
           ],
           "hp": 120.0,
           "push_class": "heavy",
@@ -35191,14 +35232,14 @@
           "carriers": [],
           "id": "cannon",
           "muzzle_m": [
-            7.12,
+            6.82,
             0.0,
-            0.54
+            0.25
           ],
           "name": "Main Gun",
           "on": null,
           "pivot_m": [
-            0.3,
+            0.125,
             0.0,
             1.8
           ],
@@ -35221,7 +35262,7 @@
           "name": "HMG",
           "on": "cannon",
           "pivot_m": [
-            0.05,
+            -0.125,
             -0.58,
             2.82
           ],
@@ -35281,9 +35322,9 @@
           },
           "eye_m": 2.82,
           "half_extents_m": [
-            3.85,
+            4.025,
             1.875,
-            1.5
+            1.415
           ],
           "hp": 120.0,
           "push_class": "heavy",
@@ -35321,14 +35362,14 @@
           "carriers": [],
           "id": "cannon",
           "muzzle_m": [
-            7.12,
+            6.82,
             0.0,
-            0.54
+            0.25
           ],
           "name": "Main Gun",
           "on": null,
           "pivot_m": [
-            0.3,
+            0.125,
             0.0,
             1.8
           ],
@@ -35351,7 +35392,7 @@
           "name": "HMG",
           "on": "cannon",
           "pivot_m": [
-            0.05,
+            -0.125,
             -0.58,
             2.82
           ],
@@ -35722,16 +35763,16 @@
           "carriers": [],
           "id": "gun",
           "muzzle_m": [
-            1.0,
+            3.7,
             0.0,
-            0.0
+            0.8
           ],
           "name": "Rockets",
           "on": null,
           "pivot_m": [
-            -1.6,
+            -3.2,
             0.0,
-            2.2
+            1.2
           ],
           "special": false,
           "squad": false,
@@ -36163,7 +36204,7 @@
           "half_extents_m": [
             3.7,
             2.0,
-            1.8
+            1.65
           ],
           "hp": 120.0,
           "push_class": "heavy",
@@ -36283,7 +36324,7 @@
           },
           "eye_m": 2.754,
           "half_extents_m": [
-            3.935,
+            4.165,
             1.79,
             1.53
           ],
@@ -36313,16 +36354,16 @@
           "carriers": [],
           "id": "gun",
           "muzzle_m": [
-            8.06,
+            7.1,
             0.0,
             0.0
           ],
           "name": "Howitzer",
           "on": null,
           "pivot_m": [
-            -3.0,
+            0.6,
             0.0,
-            2.9
+            2.7
           ],
           "special": false,
           "squad": false,
@@ -40092,7 +40133,7 @@
           "half_extents_m": [
             3.4,
             1.95,
-            1.625
+            1.48
           ],
           "hp": 150.0,
           "push_class": "heavy",
@@ -40127,9 +40168,9 @@
           "name": "Howitzer",
           "on": null,
           "pivot_m": [
-            -2.3,
+            0.7,
             0.0,
-            3.0
+            2.27
           ],
           "special": false,
           "squad": false,
@@ -40187,7 +40228,7 @@
           "half_extents_m": [
             3.5,
             1.7,
-            1.49
+            1.3
           ],
           "hp": 95.0,
           "push_class": "medium",
@@ -40215,7 +40256,7 @@
           "carriers": [],
           "id": "cannon",
           "muzzle_m": [
-            4.95,
+            5.75,
             0.0,
             0.32
           ],
@@ -40825,7 +40866,7 @@
           "carriers": [],
           "id": "cannon",
           "muzzle_m": [
-            5.805,
+            5.555,
             0.0,
             0.439
           ],
@@ -40848,9 +40889,9 @@
           "carriers": [],
           "id": "HMG",
           "muzzle_m": [
-            1.43,
+            1.67,
             0.0,
-            0.32
+            0.58
           ],
           "name": "HMG",
           "on": "cannon",
@@ -40955,7 +40996,7 @@
           "carriers": [],
           "id": "cannon",
           "muzzle_m": [
-            5.805,
+            5.555,
             0.0,
             0.439
           ],
@@ -40978,9 +41019,9 @@
           "carriers": [],
           "id": "HMG",
           "muzzle_m": [
-            1.43,
+            1.67,
             0.0,
-            0.32
+            0.58
           ],
           "name": "HMG",
           "on": "cannon",
@@ -41088,7 +41129,7 @@
           "carriers": [],
           "id": "cannon",
           "muzzle_m": [
-            5.805,
+            5.555,
             0.0,
             0.439
           ],
@@ -41111,9 +41152,9 @@
           "carriers": [],
           "id": "HMG",
           "muzzle_m": [
-            1.43,
+            1.67,
             0.0,
-            0.32
+            0.58
           ],
           "name": "HMG",
           "on": "cannon",
@@ -41221,7 +41262,7 @@
           "carriers": [],
           "id": "cannon",
           "muzzle_m": [
-            5.805,
+            5.555,
             0.0,
             0.439
           ],
@@ -41344,16 +41385,16 @@
           "carriers": [],
           "id": "gun",
           "muzzle_m": [
-            1.0,
+            3.7,
             0.0,
-            0.0
+            0.8
           ],
           "name": "Rockets",
           "on": null,
           "pivot_m": [
-            -1.6,
+            -3.2,
             0.0,
-            2.2
+            1.2
           ],
           "special": false,
           "squad": false,
@@ -41411,7 +41452,7 @@
           "half_extents_m": [
             3.275,
             1.8,
-            1.49
+            1.38
           ],
           "hp": 90.0,
           "push_class": "medium",
@@ -41443,7 +41484,7 @@
           "carriers": [],
           "id": "autocannon",
           "muzzle_m": [
-            3.6,
+            2.5,
             0.0,
             0.536
           ],
@@ -41533,7 +41574,7 @@
           "half_extents_m": [
             3.275,
             1.8,
-            1.49
+            1.38
           ],
           "hp": 80.0,
           "push_class": "medium",
@@ -41565,7 +41606,7 @@
           "carriers": [],
           "id": "autocannon",
           "muzzle_m": [
-            3.6,
+            2.5,
             0.0,
             0.536
           ],

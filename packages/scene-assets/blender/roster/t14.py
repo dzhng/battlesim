@@ -11,7 +11,7 @@ racks low on each flank, a slatted cage round the bustle. The long 125 mm
 2A82-1M, its muzzle about 2.1 m past the bow, has a thermal sleeve and no
 fume extractor.
 
-Built to the catalog frame (hull 8.7 x 3.5 x 3.3 m, gun pivot 1.98 m).
+Built to the catalog frame (hull 8.7 x 3.5 x 2.8 m, gun pivot 1.8 m).
 """
 from functools import partial
 import math
@@ -32,7 +32,7 @@ from vehicle_export import rig, run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
-HEIGHT = 1.24  # the turret's roof over the deck
+HEIGHT = 0.83  # the turret's roof over the deck: 2.75 m up (t14_line)
 
 # The T-14 on the Armata platform (photos: side, three-quarter front, front):
 # the upper glacis falling about 11 degrees over the 2.10 m back to the deck,
@@ -82,7 +82,7 @@ def t14_turret(v, turret, base):
     m = v.mats
     # The arrowhead's point runs just under the gun's axis.
     nose = v.frame["mounts"][0]["muzzle_m"][2] - 0.094
-    z0, neck, waist, z1 = base + 0.04, base + 0.26, base + 0.32, base + HEIGHT
+    z0, neck, waist, z1 = base + 0.04, base + 0.15, base + 0.19, base + HEIGHT
 
     def ring(*left):
         return HS.mirror_plan(left)
@@ -98,16 +98,19 @@ def t14_turret(v, turret, base):
          parent=turret, bevel=0.04)
     RF.roof_fittings("roof", crown, z1, m, turret)
     turret_kit(v, turret, crown, (1.62, waist), (1.58, z1), -1.10, 0.95, waist + 0.05, z1 - 0.05)
-    # The soft-kill launcher's rotating box on the roof's rear.
-    cyl("softkill_base", 0.30, 0.04, (-1.40, 0, z1 + 0.02), "Z", m["dark"], turret, seg=20, lods=MID)
-    box("softkill_box", (0.45, 0.70, 0.22), (-1.40, 0, z1 + 0.12), m["paint"], turret, bevel=0.03)
+    # The soft-kill launcher's rotating box on the roof's rear, over the
+    # frame's top: dressing.
+    softkill = empty("dressing_softkill", parent=turret)
+    cyl("softkill_base", 0.30, 0.04, (-1.40, 0, z1 + 0.02), "Z", m["dark"], softkill, seg=20, lods=MID)
+    box("softkill_box", (0.45, 0.70, 0.22), (-1.40, 0, z1 + 0.12), m["paint"], softkill, bevel=0.03)
     for k in range(4):
-        cyl(f"softkill_tube_{k}", 0.05, 0.02, (-1.17, -0.24 + k * 0.16, z1 + 0.12), "X", m["black"], turret, seg=10,
-            lods=NEAR)
+        cyl(f"softkill_tube_{k}", 0.05, 0.02, (-1.17, -0.24 + k * 0.16, z1 + 0.12), "X", m["black"], softkill,
+            seg=10, lods=NEAR)
     # The gun's slot at the arrowhead's point; the gunner's sight box on the
-    # roof's right front edge.
+    # roof's right front edge, over the frame's top: dressing.
     box("gun_slot", (0.12, 0.50, 0.44), (1.70, 0, nose + 0.08), m["black"], turret, lods=MID)
-    RF.sight_housing("gunner_sight", (0.55, -1.00, z1 - 0.02), m, turret, size=(0.55, 0.40, 0.22))
+    gunner = empty("dressing_gunner_sight", parent=turret)
+    RF.sight_housing("gunner_sight", (0.55, -1.00, z1 - 0.02), m, gunner, size=(0.55, 0.40, 0.22))
     for side, s in ((1, "L"), (-1, "R")):
         # Radar panels on the arrowhead's flanks and the bustle's sides.
         box(f"radar_panel_{s}", (0.06, 0.36, 0.28), (1.40, side * 1.02, waist + 0.15), m["dark"], turret,
@@ -134,10 +137,10 @@ def t14_turret(v, turret, base):
         whip = empty(f"dressing_antenna_{s}", parent=turret)
         RF.antenna(f"antenna_{s}", (-2.10, side * 0.95, z1), m, whip, height=2.0)
     # The commander's panoramic sight on its mast over the left, standing
-    # over the frame's top: dressing.
+    # over the frame's top: dressing, its head at the measured 3.1 m.
     sight = empty("dressing_panorama", parent=turret)
     cyl("panorama_mast", 0.11, 0.08, (-0.30, 0.60, z1 + 0.04), "Z", m["dark"], sight, seg=12)
-    RF.sight_housing("panorama_head", (-0.30, 0.60, z1 + 0.06), m, sight, size=(0.52, 0.46, 0.34))
+    RF.sight_housing("panorama_head", (-0.30, 0.60, z1 - 0.02), m, sight, size=(0.52, 0.46, 0.32))
     # The slatted cage round the bustle's rear, on the bustle's walls.
     AR.slat_armour("bustle_cage", (-2.50, 0, waist), (2.40, 0.60), m, turret, rot=(0, 0, math.pi / 2))
     for side, s in ((1, "L"), (-1, "R")):
