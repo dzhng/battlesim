@@ -111,3 +111,28 @@ which the game's side view shows. What it docked was what earlier rounds
 named: lumpy side modules and grimy, pale paint (the shared look, LC12), a
 squat turret and short sight (frame-bound, LC9), and the dark rear cages.
 Still below the bar.
+
+### The Ajax and the coordinator's floor (2026-11-13)
+
+The coordinator set a floor of 0.5 m back per metre outboard, measured
+from the cheek's peak beside the mantlet to the turret's edge (decisions
+F4). The Ajax measured 0.15: its nose was flat across ±0.46, and its smoke
+banks stood forward at the outer corners. Local edit 2
+(`ajax/argon-r2/README.md`) makes the front a wedge (~32° then ~42°) and
+moves the banks inboard along the cheeks: 0.15 → 0.67. The Puma measures
+0.83 → 0.86.
+
+- **Export:** lint 0, `asset validate` clean live and wreck, two exports
+  byte-identical. Tiers 54,102 / 25,062 / 7,338 / 2,266.
+- **Sheet:** [`assets/after/ajax/ajax-compare.png`](../assets/after/ajax/ajax-compare.png).
+
+| Critique (silhouette, surface, fittings, materials, cohesion) | after edit 2 |
+|---|---|
+| Ajax | 5 6 5 5 6 |
+
+The critic read the front as a wedge from above with a blunt nose at the
+mantlet, and as a soft chevron from the three-quarter front. It named the
+bearing ring showing past the cheeks, which the narrower nose had uncovered.
+The ring is now 1.00 m across, under the front, a change made after the
+score. What is left is the low turret, the missing tall roof sight and the
+thin gun (frame-bound, LC9). Still below the bar.
