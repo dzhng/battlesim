@@ -250,6 +250,8 @@ def turret_fittings(v, rear, front, half_w, deck, top, gun_z, start, bore_r):
 BODIES = {
     "us_m109_paladin_m109a7": ("assets/source/skins/m109_paladin/argon-r2/build.py", 0.15,
                                ((-2.95, 1.35, 2.80), (-2.95, -1.35, 2.80))),
+    "europe_pzh_2000_tracked_155_mm_howitzer": ("assets/source/skins/pzh_2000/argon-r2/build.py", 0.16,
+                                                ((-3.70, 1.20, 3.06), (-3.70, -1.20, 3.06))),
 }
 
 

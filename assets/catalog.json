@@ -6091,6 +6091,9 @@
       "unit": "vehicle",
       "source": "assets/source/roster/pzh_2000/europe_pzh_2000_tracked_155_mm_howitzer.glb",
       "basis_yaw_deg": 0,
+      "mounts": {
+        "gun": "gun"
+      },
       "wreck": "europe_pzh_2000_tracked_155_mm_howitzer_wreck",
       "tolerances": {
         "hull_extent_m": 5.5
