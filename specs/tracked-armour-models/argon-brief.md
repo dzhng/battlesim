@@ -80,6 +80,11 @@ CLEARANCES (the game's geometry lint fails on these):
   over. (On our last tank a skirt panel stood 8 cm outboard of a narrower
   fender and read as a fin sticking out at the front corner.)
 
+SHAPE RULES:
+- The turret's front is swept back. Seen from above, it runs back from the
+  mantlet to each side, like an arrowhead or a wedge. It is never flat across
+  and never angled in toward the gun. Cheek armour blocks follow that line.
+
 INPUTS (in this Drive folder):
 - `refs/*.jpg`: reference photos of the real vehicle. Study all of them first.
   Each file name says the view.

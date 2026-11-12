@@ -3234,6 +3234,86 @@ made the same call.
 - **B5 Briefs paint US vehicles tan.** (Agent; high.) The M10 and M1E3 photos
   are green, but the game paints them in the `us_desert_tan` scheme; Argon's
   flat colour is only for its own renders.
+## Lane D decisions (2026-11-12, air defence, rockets and howitzers)
+
+Slices 24 and 29. Each entry gives the decision, why, and a confidence that
+the user would have made the same call.
+
+- **D1 Nothing on the lane's tracked vehicles turns, so their bodies name no
+  rig part.** (Agent; high.) The Gepard's and Buk's mounts are drawn by the
+  hull (`assets/catalog.json` `mounts: hull`) and the M270's and the four
+  howitzers' have no role (fixed in the hull), so `vehicle_export.rig` makes
+  no node for them and `scripted_body.wear` would refuse a part named
+  `turret` or `gun`. The briefs name the turret or launcher base
+  `turret_body` (origin on its ring or pivot) and the weapon `gun_body`
+  (origin on its trunnion or hinge), both under `hull`, so a later pass that
+  gives them a rig renames two objects; sights, radars and roof guns over the
+  roof line are `dressing_*`.
+- **D2 The M270's rockets leave through the box's front wall; its rear face
+  shows the pods' aft caps.** (Agent; medium-high.) The A2's three-quarter
+  rear photo shows the box raised on a hinge at the bottom of its rear end,
+  its front end lifted over the cab, and the capped cells in the rear face,
+  which therefore are the rounds' aft ends. That agrees with the frame
+  (pivot at the hinge, x -3.2; muzzle at the box's front face, x +0.5). Our
+  current model showed the caps at the rear too, but hinged the box at its
+  front (the user's note).
+- **D3 The PLZ-05's generated side view goes to Argon labelled "layout only".**
+  (Agent; medium.) It is the only square-on side the library has; the survey
+  (C7) found its gun too short. The brief tells Argon to trust the three
+  photos where they disagree.
+- **D4 The M109A7 keeps its frame's 3.90 m width at the turret's racks.**
+  (Agent; medium.) The frame's width is unresolved (3.15 m family figure
+  against 3.9 m for the A7). Frames never move (P9), so the brief puts the
+  3.90 m at the turret's side racks and asks for the hull over its fenders
+  as the front photos show it (about 3.4-3.6 m), rather than a fat hull.
+- **D5 A turn the provider kills is not an Argon round.** (Agent; medium.)
+  The Buk's round 1 ended on "Provider finish_reason: other" after $0.26
+  with a half-built script; one message asked it to finish round 1, then
+  round 2 ran as usual. The M270's round 2 died the same way, but only after
+  it had rewritten `build.py` and both GLBs, which lint and validate clean,
+  so that output was taken as round 2 without a resend. A6 counts the
+  rounds the work took, not Bento's failures.
+- **D6 The four howitzers and the Gepard draw their gun mount with the gun
+  rig.** (Coordinator grant; high.) `assets/catalog.json` `"mounts":
+  {"gun": "gun"}` for the M109A7, PzH 2000, 2S19M2 and PLZ-05, and the
+  Gepard's from `hull` to `gun`, each landed in its vehicle's own commit,
+  nothing else in the catalog touched. The barrel rides the frame's pitch
+  node, so it leaves the hull-box check; the Gepard's turret now turns in
+  the game, and the howitzers' never does (their mounts are fixed in the
+  hull, `turret: false`). The bodies' `turret_body`/`gun_body` (D1) were
+  renamed `turret`/`gun` in each `build.py`, and the Gepard's round 2 built
+  them so. My request had cited the committed M109A7 failing `validate
+  --type`; that was a probe on a copy outside the repo, which loses the
+  artillery's `hull_extent_m: 5.5` allowance, and I said so to the
+  coordinator. The 5.5 m allowances are probably stale now; slice 30's call.
+- **D7 The Gepard's wreck takes a 1.2 m footprint allowance.** (Coordinator
+  grant; high.) `wreckage.burn` heaves and yaws the turret, which now carries
+  the 4.1 m guns, so a barrel lies 0.09 m past the 1 m floor (R10).
+- **D8 Painted hardware leaves `steel` in bulk where Argon's helpers default
+  to it.** (Agent; high.) The PLZ-05's, M270's and Gepard's scripts (and many
+  lines of the M109A7's) used `steel` for hooks, rails, hinges, hubs, rings
+  and even wheel discs, which our recipe paints bright (P6): every such use
+  became `fittings`, wheel and idler discs and painted barrels
+  `armor_paint`, and `steel` kept only tracks, sprocket teeth, MG barrels,
+  muzzle crowns, tow cables and piston rods. Each is a numbered README edit.
+- **D9 Stale sibling GLBs are re-exported, not left.** (Agent; medium-high.)
+  The rocket family's full run (for its receipt) rewrote the HIMARS x2 and
+  S-300 GLBs; the committed `rocket_artillery.py` exports the same bytes, so
+  they were stale against shared modules, not changed by this lane. They
+  carry 0 new lint issues and validate clean; committed in their own commit.
+- **D10 `air_defence.py` is not split into `buk.py`.** (Agent; medium-high.)
+  Wearing the two bodies removes `gepard()`, `buk()` and `tracked_hull()`
+  (about 170 lines), which is the shrink S14 asked for.
+- **D11 The M270's rear hinge is shown by swinging its box.** (Agent;
+  medium-high.) The launcher stays stowed in the game (out of scope to raise
+  it), where the hinge's place can't be seen; a Blender render of the
+  script with the box turned 35 degrees on its own origin
+  (`assets/after/rocket_artillery/m270a2-hinge.png`) shows the box hinged at
+  its rear-bottom and its front end lifting over the cab, the user's note.
+- **D12 The before sheets are `asset sheet <appearance>`; the after sheets
+  `asset sheet <the roster GLB>`.** (Agent; high.) By name the sheet renders
+  the baked runtime, which is the committed art; the new art is only in the
+  source GLB, which keeps its reference panel when given by its roster path.
 - **R5 The catalog-load tripwire goes to 768 MiB.** (Agent, under Q3; high.)
   The pilot's two bodies grew their four bundles from 11.8 to 17.8 MiB on
   the wire, most of it in the wrecks (the T-72B3's wreck 4.5 to 8.0 MiB),
@@ -3270,6 +3350,58 @@ have made the same call.
   All lane-C appearances but the Puma are `tracked_medium` (90k tier 0);
   the shared belt and the paint's edge splits add to Argon's count, so the
   brief leaves room under the cap.
+- **LC5 A turn that dies on a provider error is continued, not counted as a
+  round.** (Agent; high; the coordinator agreed.) The BMP-3/BRM-3K and
+  Bradley round 1, and the Bradley's round 2, ended on "finish_reason:
+  other" or "Stream error"; one short message asked the same session to
+  continue from what was already in `out/`. The CV90's round 2 died after
+  writing every output, so it was taken as done. The Bradley's round-2 GLBs
+  predated its last script, so its archive holds that script rebuilt
+  standalone.
+- **LC6 The A5 check: Argon plus Bento's helper passes.** (Agent; medium-high.)
+  Every turn reported `google/gemini-4-argon` with 1-5 cents of
+  `openai/gpt-6-luna`, the same split as the pilot's sessions: Bento's own
+  titling or summarising, not a second builder. One turn listed
+  `typesafe-ai/jev` at $0, a tool.
+- **LC7 A build script must never fetch or remove an existing material.**
+  (Agent; high.) Argon's `materials.get(name) or new(name)` repainted the
+  export's own `armor_paint` with its flat colour as a base-colour factor,
+  and the CV90120's splinter print went near-black in the game. Reported to
+  the coordinator, who fixed it in `scripted_body` (R9); the round-2 brief
+  forbids fetching or removing materials either way.
+- **LC8 Wreck footprints: answered by the coordinator.** (Shared-part
+  request.) `scripted_body.wreck` throws litter and a track past the
+  BMP-2M's, BMP-3's and BRM-3K's footprint tolerances. Answered by R10's 1 m
+  rubble floor; no lane edit remains.
+- **LC9 Fit outranks a critic's "taller turret".** (Agent; high.) Every IFV
+  critique asked for taller turrets or sight masts that the frame forbids
+  (P9): roofs, dressing allowances and pivots stayed. Edits went into shape
+  and fittings inside them.
+  - The Puma's PERI and the CV9040C's sight became drums.
+  - The BMP-2M's right Kornet pair is fixed dressing, since the frame gives
+    one launcher mount.
+- **LC10 Local fixes for lint go where they read least.** (Agent; medium.)
+  The Puma's sprocket axle came down 0.065 m rather than raising the
+  sponson: the belt wrapping it cut 86 mm into the sponson's underside, and
+  the sponson line is the prow chine of the user's note.
+- **LC11 Critique rounds stopped at two for most vehicles.** (Agent; medium;
+  the user may want all three spent.)
+  - Three rounds: the CV90120 and the BMP family.
+  - Two rounds: the CV90 pair, Puma, Ajax and Bradleys.
+  - What the critics kept naming was structural (turret mass and clutter, the
+    Ajax's and Puma's nose shapes) or the shared look (tan `fittings`, a
+    washed-out glacis, the paint's mottle, the plain belt). Neither moves with
+    a local edit per round. Every vehicle is named below the bar in its
+    slice.
+- **LC12 The shared look is the biggest lever left.** (Agent; medium-high.)
+  - Across all ten models the critics docked materials for three things:
+    `fittings` painting tan in the Russian, Swedish and British schemes;
+    pale top faces; and the paint's mottle reading as smudges.
+  - Argon uses `fittings` for large parts (stowage lids, deck panels, grille
+    slats).
+  - Either the lane sweep moves large flat fittings to `armor_paint`, or the
+    `dark` role's colour per scheme is revisited. This is a slice 30
+    question.
 - **R6 A scripted body exports byte-identically, and its script never
   iterates a set of Blender objects.** (Agent; high.) Lane B found two
   re-exports of the Abrams SEP v2 differing in triangle order and in one
@@ -3476,3 +3608,31 @@ have made the same call.
   now 33.5k / 8.4k / 2.0k) were quietly over too; tier 0 is untouched. It
   is general (`make_tiers` shares it, so an infantry kit's tier 3 may shed
   pieces when next exported); slice 30's freshness pass re-exports all.
+  - *Then:* the Buk's tier 1 still came out 36.3k against 34k (tiers 2–3
+    fit): the paint's edge splits and the collapse's overshoot on small
+    pieces take a 22k target to about 1.65 times it. Tier 1's target is
+    now 19k for every scripted body, the general number, not a Buk
+    exception or a heavier class for it (20k left the Buk 64 triangles
+    over: the floors keep part of the tier whatever the target).
+- **R12 Every tank turret's front is swept back.** (User, on the Leclerc:
+  "every tank's turret have a front that's swept back, it's never flat".)
+  Seen from above, the turret front runs back from the mantlet to each side,
+  an arrowhead or wedge, never flat across and never angled in toward the gun
+  (the Leclerc's cheeks were yawed the wrong way, a concave V). It goes into
+  the brief's shape rules for every round still to run, the lanes check it on
+  every turret they own, and slice 30 measures every turret's plan outline
+  and fixes each that fails.
+
+- **R13 Scheme paint is lusterless.** (Agent, from lane B's "pale patch" and
+  a delegated diagnosis; high.) The pale faces on the Leclerc's, Challenger
+  2's and KF51's cheeks were the sun's specular highlight, not edge wear or
+  AO: the paint was a dielectric at roughness 0.53, and a large flat plate
+  near the sun-camera half-vector (N·H 0.93) lit its 7 %-albedo paint about
+  three times over. With the sun's specular removed the patch goes, while
+  removing the sky reflection, the AO or the albedo texture leaves it. Every
+  scheme's clean roughness (`textures._sprayed`, and `nato_camo` alike) is now 0.8, as military
+  paint is (CARC, NATO IRR). Colours and schemes are unchanged. Bright tops
+  and dark flanks are a separate matter, the workbench sun behind the flank
+  in the standard views (N·L 0.13), not the AO bake, which is no brighter on
+  top than the old bodies'. Paint textures ride in each GLB, so every ground
+  vehicle takes it at slice 30's re-export.

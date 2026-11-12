@@ -76,7 +76,7 @@ OWN = ("wheel_", "track_", "dressing_")
 # the far tiers shed the pieces too small to see from them, and then the
 # smallest left while the pieces alone overrun the tier. Tier 0 is the
 # script's own.
-TIERS = (None, (22000, 0.02, 8), (6500, 0.12, 4), (1500, 0.5, 4))
+TIERS = (None, (19000, 0.02, 8), (6500, 0.12, 4), (1500, 0.5, 4))
 # A belt is never thinner than this, however low the road wheels sit.
 MIN_BELT = 0.03
 # Renamed on arrival, so the script's names never take the export's own.
