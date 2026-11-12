@@ -132,6 +132,21 @@ family's spec gives `skin`, and check it on its sheet. A rotorcraft's frame leav
 its blades out (`blade_*`): length nose to tail, width over the widest fixed
 part, height to the top of the rotor head.
 
+A tracked vehicle's body can instead be built by its own script
+([`scripted_body.py`](scripted_body.py)): a standalone Blender program,
+`build.py`, written by Gemini Argon from the references and our
+measurements and kept with its rounds under `assets/source/skins/<family>/`.
+After its two rounds it is edited there like any source; that folder's
+README lists the edits. The family's exporter makes the rig from the frame,
+then `scripted_body.wear` runs the script's `build()` and fits what it built
+to the contract above: each part moves under the node of what moves it
+(named in the script: `hull`, `turret`, `gun`, `hmg`, `hmg_gun`, `wheel_*`,
+`dressing_*`), keeping its world place, one object per material slot in the
+family's paint; the script's track runs give way to the shared belt; tiers
+come from `mesh_lods`. Its receipt hashes the script, and `scripted_body.wreck`
+is a worn body's damage. The recipe for a new one is in
+[the Argon pilot](../../../specs/tracked-armour-models/slices/argon-pilot.md).
+
 Every vehicle has its own wreck. A roster exporter given `--wreck` writes its
 vehicle's wreck beside the live one (`<appearance>_wreck.glb`, and
 `_hull`/`_turret` pieces where it has a turret to throw), burnt through

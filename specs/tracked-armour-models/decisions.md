@@ -3043,3 +3043,134 @@ critique, and the T-14's turret drop (above).
 - **A6 At most two Argon rounds per model.** (User, to save money.) Round 1 builds and round 2
   takes the measured fixes. Anything left after round 2 is fixed by the coordinator or a lane, by
   editing the committed `build.py` and rebuilding in the pinned local Blender.
+
+## Argon pilot decisions (2026-11-12, implementation agent)
+
+The pilot's slice is [`slices/argon-pilot.md`](slices/argon-pilot.md), which
+also holds the recipe for every other unit. Each entry gives the decision, why,
+and a confidence that the user would have made the same call.
+
+- **P1 The export runs the build script, not its GLB.** (Agent; high.) The
+  family script imports `build.py` and calls its `build()`
+  (`scripted_body.run_script`).
+  - One step leaves no intermediate file to drift from its source. An edit
+    to `build.py` reaches the game on the next export, and the receipt
+    hashes the script.
+  - `model.glb` in the Argon folder is a review render, not an input.
+  - Importing the GLB would have kept Argon's script untouched. But every
+    fix would then need a second, manual rebuild step, and a stale GLB would
+    pass unnoticed.
+- **P2 The script contract.** (Agent; high.)
+  - `build()` builds into the current scene. `main()` resets, renders and
+    exports to `OUT_DIR`.
+  - Parts are named by what moves them, from a closed list, and materials
+    from the seven slots.
+  - Both pilot scripts were patched to this contract, and the rollout brief
+    asks for it.
+  - Classification is by name only, the nearest rig part up the parent
+    chain. A part under nothing the game moves fails the export.
+- **P3 The rig is the frame's; parts keep their world place.** (Agent;
+  high.)
+  - `vehicle_export.rig` makes the mount nodes from the frame, as for every
+    procedural family, with the same trunnions (T-72 0.95 m, Abrams 1.55 m).
+  - Each script part moves under its node with its world transform unchanged,
+    and the script's own empties are dropped.
+  - Pivots therefore come from the frame whatever the script used. No frame
+    changed.
+- **P4 Track runs are the shared belt, not Argon's links.** (Agent; medium.)
+  - `running_gear.track_loop` wraps that side's `wheel_*` circles at the
+    script's run width and place. The belt is as thick as the gap under the
+    road wheels, so it stands on the ground.
+  - The renderer scrolls a belt's link UVs; modelled links would stand
+    still under a sliding texture. The shared belt also owns the sag
+    between the rollers (a taste given), which Argon's runs lacked.
+  - The cost: the belt reads as a plain band up close (critique).
+- **P5 Every turning wheel is its own node, with its measured radius.**
+  (Agent; high.) The T-72's idler, sprocket and return rollers were fused
+  into its track object; `build.py` now builds them as `wheel_*` objects.
+  `radius_m` is the farthest vertex from the axle side-on.
+- **P6 `steel` means bare metal.** (Agent; medium-high.)
+  - Argon used `steel` for bolts, hinges, grille bars, skirt strips and gun
+    bands. Our recipe paints `steel` bare and bright, so on the T-72 they
+    read as white pinstripes and silver grates.
+  - Painted hardware moved to `fittings`, or to `armor_paint` for the
+    Abrams' gun bands. `steel` keeps tow cables, sprocket teeth, MG
+    barrels, muzzles and track parts.
+  - The rollout brief states this rule.
+- **P7 Tiers come from `mesh_lods.reduced_copy` with larger island
+  cutoffs.** (Agent; medium.)
+  - Tier 0 is the script's mesh, split into one object per material.
+  - Tiers 1-3 take each object's share of 22k / 6.5k / 1.5k triangles,
+    dropping loose pieces under 2 cm, 12 cm and 50 cm.
+  - Argon builds from hundreds of small closed pieces that the collapse
+    leaves whole, so only the cutoff brings the far tiers under the
+    `tracked_heavy` caps. With `mesh_lods`' own cutoffs, tier 2 was 15.7k
+    against a 13k cap.
+- **P8 A scripted body's paint chips at `chip × (2/3)²`.** (Agent; medium.)
+  - `parts.finish` reads edge wear from the angle at each vertex.
+  - Argon's sharp or single-segment bevels read as full edges (1.0), where
+    the procedural parts' two-segment bevels read 0.67. With the family's
+    `chip=1.0`, whole ERA blocks and plate rims came out chipped pale in the
+    game renderer.
+  - The scale makes a scripted body wear as a procedural one does. With it,
+    worn paint vertices fall from 18 % to 0.5 % (procedural Abrams: 0.2 %).
+  - The README's one-value rule (`chip=1.0` on every tracked `run`) holds,
+    and `scripted_body` owns the geometry correction.
+- **P9 Fit is fixed in `build.py`, never in the frame.** (Agent; high.)
+  - T-72: the Sosna-U head and crosswind mast went under `dressing_sights`
+    (2.39 m against a 2.23 m box). The cupola moved onto the HMG pivot
+    (y = -0.58), and the Kord's barrel reaches the frame's muzzle.
+  - Abrams: the M240 and the CITV were lowered into the 0.3 m dressing
+    allowance, and the wind vane narrowed to a thin part.
+- **P10 Lint is fixed in `build.py`.** (Agent; high.) The edits are in each
+  folder's README:
+  - T-72: return rollers moved off the road wheels; sprocket and idler
+    cleared; fender boxes moved out of the turret's sweep; rear screen, log,
+    arms and bustle cage cleared.
+  - Abrams: track width, hull side skin, axle stubs.
+  - Neither model has a baseline entry now (P13).
+- **P11 A worn body's wreck is shared.** (Agent; medium.)
+  `scripted_body.wreck` throws one side's belt run flat beside the hull,
+  tears off named road wheels, warps and dents the body and drops torn
+  plate. `wreckage.scatter` and `burn` then run as for every family. The
+  Abrams keeps its gun droop.
+- **P12 The Abrams Trophy and SEPv3 keep the procedural body for now.**
+  (Agent; medium-low: the user may prefer the family consistent sooner.)
+  - Their differences are Trophy housings that replace the bustle's side
+    stowage and rails, and the SEPv3's UAPU box, CROWS-LP and data link.
+    These belong in the same script as `build(variant)`, not as procedural
+    parts glued onto Argon's turret sides.
+  - One Argon round on the family script that adds the variants is cheaper
+    than a round per sibling.
+  - Until then the three Abrams don't match in the game.
+  - Their GLBs were re-exported with the family: its receipt covers all
+    three. That brought in slices 09–15's merged source changes, which
+    their committed GLBs lacked. They lint with no new issues and bake.
+- **P13 Only the two models' lint baseline entries were removed.** (Agent;
+  high.)
+  - The roster walk's `--update-baseline` rewrote about 1,000 lines across
+    40 appearances, drifting counts and depths this pilot didn't cause.
+  - The committed baseline was kept, minus the T-72B3's and SEPv2's 53
+    entries. Both lint clean on their own.
+  - The full refresh is slice 16/30's call.
+- **P14 The families slice 15's frames left stale were re-exported.**
+  (Agent; medium: slice 16 is the coordinator's.)
+  - `asset bake` failed at HEAD on 18 appearances whose frames changed in
+    slice 15 without a re-export: BMP-2M and BMP-3, T-14, T-15, the three
+    Leopards, M10, CV9040C and CV90 Mk IV, Ajax, M2/M3 Bradley, Challenger 2
+    and 3, M1E3, CV90120, Puma, Type 99 and T-80BVM.
+  - The bake is all or nothing, so the pilot's art could not reach the
+    runtime or be checked by `unitFit` otherwise.
+  - Each family was re-exported, live and wreck, with no new lint issues
+    and no source edits. The bake then passed. This is slice 16's step 2
+    for those families only; the wheeled re-exports and the montage remain.
+  - Stale icons were regenerated, including the Buk's, Pantsir's,
+    Skyranger's, Gepard's and NASAMS's, which `asset check` flagged.
+  - The T-90M was left at its committed GLB: it bakes, and re-exporting it
+    would bring in slices 09–12's art unreviewed.
+- **P15 The game's whip antennas, not Argon's.** (Agent; high.) The
+  Abrams' antennas were removed from `build.py`. Both families place
+  `RF.antenna` under `dressing_antenna_*` at the script's base positions.
+- **P16 No markings.** (Agent; medium.) The procedural models' stencilled
+  side numbers ("21", "32 >") are gone with their bodies. The brief keeps
+  Argon's models clean, and markings are a later, roster-wide decision.
