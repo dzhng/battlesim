@@ -5899,6 +5899,9 @@
       "unit": "vehicle",
       "source": "assets/source/roster/m109_paladin/us_m109_paladin_m109a7.glb",
       "basis_yaw_deg": 0,
+      "mounts": {
+        "gun": "gun"
+      },
       "wreck": "us_m109_paladin_m109a7_wreck",
       "tolerances": {
         "hull_extent_m": 5.5

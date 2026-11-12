@@ -36,11 +36,12 @@ import armour_parts as AR  # noqa: E402
 import hull_fittings as HF  # noqa: E402
 import roof_parts as RF  # noqa: E402
 import running_gear as RG  # noqa: E402
+import scripted_body as SB  # noqa: E402
 import stowage as SW  # noqa: E402
 import vehicle_guns as VG  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism, stencil  # noqa: E402
-from vehicle_export import run  # noqa: E402
+from vehicle_export import rig, run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
@@ -243,7 +244,27 @@ def turret_fittings(v, rear, front, half_w, deck, top, gun_z, start, bore_r):
     box("door_handle", (0.05, 0.16, 0.04), (rear - 0.06, -0.30, deck + 0.70), m["steel"], h, lods=FINE)
 
 
+# The cards that wear a scripted body (`scripted_body`): each its own
+# Argon build under its family's skins folder, its track's link pitch, and
+# the whips' feet on its turret roof (hull frame).
+BODIES = {
+    "us_m109_paladin_m109a7": ("assets/source/skins/m109_paladin/argon-r2/build.py", 0.15,
+                               ((-2.95, 1.35, 2.80), (-2.95, -1.35, 2.80))),
+}
+
+
+def scripted(variant, v):
+    path, pitch, whips = BODIES[variant["id"]]
+    rig(v.frame, v.root)
+    SB.wear(v, path, pitch)
+    for k, at in enumerate(whips):
+        whip = empty(f"dressing_antenna_{k}", parent=v.hull)
+        RF.antenna(f"antenna_{k}", at, v.mats, whip, height=2.2)
+
+
 def build(variant, v):
+    if variant["id"] in BODIES:
+        return scripted(variant, v)
     hull(v)
     running_gear(v)
     turret(v)
@@ -256,6 +277,8 @@ def wreck(variant, v):
     plates warped, the propellant's debris round it."""
     from parts import box as solid, rest_on_ground
     from wreckage import bend, densify, dent, heat, parts, remove, warp
+    if variant["id"] in BODIES:
+        return SB.wreck(v, "L", (2, 3))
     s = spec(v)
     m = v.mats
     half = v.length / 2
