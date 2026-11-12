@@ -4,10 +4,10 @@ Boxer Skyranger 30 and NASAMS 3, from assets/references/<family>/.
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/air_defence.py -- [--variant=<card id>] [--wreck]
 
 What the photos settle:
-- Gepard 1A2 (German three-tone): the Leopard 1 hull, seven road wheels with
-  the sprocket at the rear; a box turret with a 35 mm Oerlikon gun outside
-  each flank in its armoured cradle, the round tracking radar on the
-  turret's front, the search radar dish folded flat on the rear roof.
+- Gepard 1A2 (German three-tone) wears a scripted body (`scripted_body`):
+  Gemini Argon's build script after its second round, edited since
+  (`assets/source/skins/gepard/argon-r2/`, whose README lists the edits).
+  Its turret is the gun rig's, the two 35 mm guns one pitching `gun`.
 - Buk-M3 TELAR (9A317M, Russian green): the GM-569 tracked chassis with six
   road wheels and the driver's cab at the front; the turntable behind with
   the fire-control radar's rounded housing at its front and six missile
@@ -38,11 +38,12 @@ import armour_parts as AR  # noqa: E402
 import hull_fittings as HF  # noqa: E402
 import roof_parts as RF  # noqa: E402
 import running_gear as RG  # noqa: E402
+import scripted_body as SB  # noqa: E402
 import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism  # noqa: E402
 from truck_chassis import chassis  # noqa: E402
-from vehicle_export import run  # noqa: E402
+from vehicle_export import rig, run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 TOW_SIZE = 0.13  # a tow hook's size (`hull_fittings.tow_hook`)
@@ -113,65 +114,6 @@ def tracked_hull(v, deck, wheels, road_r, rear_engine):
         HF.exhaust("exhaust", (top - 0.6, -(v.width / 2 - 0.35), deck - 0.15), 0.08, 0.35, m, h,
                    rot=(0, 0, -math.pi / 2))
     return top
-
-
-def gepard(v):
-    m, h = v.mats, v.hull
-    deck = 1.45
-    top = tracked_hull(v, deck, 7, 0.34, rear_engine=True)
-    RF.hatch("driver_hatch", (top - 0.35, 0.80, deck), m, h, radius=0.26)
-    z0, z1 = deck, deck + 0.95
-    foot = [(1.15, 1.05), (-1.45, 1.05), (-1.45, -1.05), (1.15, -1.05)]
-    crown = [(0.95, 0.95), (-1.35, 0.95), (-1.35, -0.95), (0.95, -0.95)]
-    cyl("turret_ring", 1.10, 0.08, (0, 0, deck + 0.04), "Z", m["dark"], h, seg=36, lods=MID)
-    loft("turret_shell", [(z0, foot), (z1, crown)], mat=m["paint"], parent=h, bevel=0.05)
-    # The 35 mm guns outside each flank, in their cradles.
-    for side, s in ((1, "L"), (-1, "R")):
-        box(f"gun_cradle_{s}", (1.20, 0.38, 0.45), (0.20, side * 1.28, z0 + 0.62), m["paint"], h, bevel=0.04)
-        cyl(f"gun_barrel_{s}", 0.040, 2.75, (2.15, side * 1.28, z0 + 0.66), "X", m["steel"], h, seg=12)
-        cyl(f"gun_sleeve_{s}", 0.075, 0.55, (1.05, side * 1.28, z0 + 0.66), "X", m["dark"], h, seg=14)
-        cyl(f"gun_brake_{s}", 0.060, 0.22, (3.45, side * 1.28, z0 + 0.66), "X", m["dark"], h, seg=12, lods=MID)
-        SW.stowage_box(f"ammo_box_{s}", (-0.70, side * 1.22, z0 + 0.10), (0.90, 0.30, 0.55), m, h,
-                       rot=(0, 0, 0 if side > 0 else math.pi))
-        RF.smoke_discharger_bank(f"smoke_{s}", (-0.30, side * 0.95, z1 - 0.05), m, h, count=4, tube_radius=0.045,
-                                 tube_length=0.20, elevation=0.4, spread=0.3, rot=(0, 0, side * 1.4))
-    # The tracking radar dish on the front, the search radar folded on the rear.
-    cyl("tracking_radar", 0.42, 0.18, (1.05, 0, z0 + 0.65), "X", m["dark"], h, seg=24, bevel=0.03)
-    cyl("tracking_radar_face", 0.36, 0.02, (1.15, 0, z0 + 0.65), "X", m["paint"], h, seg=24, lods=MID)
-    cyl("tracking_radar_feed", 0.05, 0.30, (1.30, 0, z0 + 0.65), "X", m["dark"], h, seg=10, lods=NEAR)
-    box("tracking_radar_yoke", (0.25, 0.95, 0.12), (0.95, 0, z0 + 0.20), m["paint"], h, bevel=0.02, lods=MID)
-    # The search radar folded on its mast over the turret's rear: the top of the
-    # travelling height. The mast reaches the frame's top; the dish above it
-    # is dressing.
-    box("search_radar_mast", (0.25, 0.25, 0.60), (-1.05, 0, z1 + 0.30), m["dark"], h)
-    dish = empty("dressing_search_radar", parent=h)
-    box("search_radar", (0.30, 1.90, 0.55), (-1.05, 0, z1 + 0.62), m["paint"], dish, bevel=0.05,
-        rot=(0, -1.25, 0))
-    box("search_radar_face", (0.02, 1.80, 0.48), (-0.92, 0, z1 + 0.66), m["dark"], dish, rot=(0, -1.25, 0),
-        lods=MID)
-    RF.sight_housing("periscope_sight", (0.40, -0.55, z1 - 0.02), m, h, size=(0.36, 0.30, 0.30))
-    RF.hatch("commander_hatch", (-0.15, 0.50, z1), m, h, radius=0.27)
-    RF.hatch("gunner_hatch", (-0.15, -0.55, z1), m, h, radius=0.25)
-    for k in range(3):
-        RF.periscope(f"turret_periscope_{k}", (0.55, 0.20 + k * 0.22, z1), m, h)
-    # The guns' ammunition feeds into the turret, the laser rangefinder, the
-    # turret's rear stowage basket and the hull's driver periscopes.
-    for side, s in ((1, "L"), (-1, "R")):
-        box(f"ammo_feed_{s}", (0.50, 0.25, 0.30), (-0.30, side * 1.12, z0 + 0.62), m["dark"], h, bevel=0.02,
-            lods=MID)
-        box(f"gun_yoke_{s}", (0.20, 0.30, 0.60), (0.55, side * 1.15, z0 + 0.45), m["paint"], h, bevel=0.03)
-        cyl(f"gun_v0_radar_{s}", 0.07, 0.18, (3.15, side * 1.28, z0 + 0.66), "X", m["dark"], h, seg=12, lods=NEAR)
-    box("rangefinder", (0.30, 0.22, 0.22), (0.90, -0.60, z1 - 0.15), m["dark"], h, bevel=0.02, lods=MID)
-    box("rangefinder_glass", (0.01, 0.16, 0.12), (1.055, -0.60, z1 - 0.15), m["glass"], h, lods=MID)
-    for k, y in enumerate((-0.9, 0.9)):
-        box(f"basket_rail_{k}", (0.04, 0.04, 0.35), (-1.50, y, z0 + 0.65), m["dark"], h, lods=NEAR)
-    box("basket", (0.30, 1.85, 0.35), (-1.55, 0, z0 + 0.55), m["dark"], h, bevel=0.01, lods=MID)
-    tarp = dict(m)
-    SW.tarp_roll("basket_tarp", (-1.55, 0, z0 + 0.82), 1.6, 0.13, tarp, h)
-    for k in range(3):
-        RF.periscope(f"driver_periscope_{k}", (top - 0.10, 0.55 + (k - 1) * 0.22, deck), m, h)
-    whip = empty("dressing_antenna_turret", parent=h)
-    RF.antenna("antenna_turret", (-1.20, -0.80, z1), m, whip, height=2.0)
 
 
 def buk(v):
@@ -390,8 +332,26 @@ def nasams(v):
                             h, rot=(0, 0, math.pi))
 
 
+# The tracked cards' bodies (`scripted_body`): each its own Argon build,
+# its track's link pitch.
+BODIES = {
+    "europe_gepard_1a2": ("assets/source/skins/gepard/argon-r2/build.py", 0.16),
+}
+
+
 def build(variant, v):
-    {"europe_gepard_1a2": gepard, "eastern_buk_buk_m3_medium_range_air_defense": buk,
+    if variant["id"] == "europe_gepard_1a2":
+        turret = rig(v.frame, v.root)["gun"][0]
+        SB.wear(v, BODIES["europe_gepard_1a2"][0], BODIES["europe_gepard_1a2"][1])
+        # The whips on the turret roof's rear corners (turret frame).
+        for side, s in ((1, "L"), (-1, "R")):
+            whip = empty(f"dressing_antenna_{s}", parent=turret)
+            RF.antenna(f"antenna_{s}", (-1.40, side * 0.75, 0.89), v.mats, whip, height=2.0)
+        return
+    if variant["id"] in BODIES:
+        path, pitch = BODIES[variant["id"]]
+        return SB.wear(v, path, pitch)
+    {"eastern_buk_buk_m3_medium_range_air_defense": buk,
      "eastern_pantsir_pantsir_sm": pantsir, "europe_boxer_skyranger_30_gun_and_missile_air_defense": skyranger,
      "europe_nasams_nasams_3": nasams, "us_nasams_medium": nasams}[variant["id"]](v)
 
@@ -403,6 +363,8 @@ def wreck(variant, v):
     throws is `wreckage.scatter`'s."""
     from parts import rest_on_ground
     from wreckage import densify, dent, heat, parts, remove, warp
+    if variant["id"] in BODIES:
+        return SB.wreck(v, "R", (2, 3))
     remove("track_R_band", "wheel_R_1_", "wheel_R_2_", "skirt_R", "search_radar", "canister_cap_", "missile_cap_",
            "missile_tube_R_1_2", "missile_tube_R_0_2", "canister_1_2", "canister_rib_1_2", "radar_dome", "side_bin_R_",
            "mudflap_R", "windscreen", "door_window_", "rear_window_", "dressing_mirror_R", "mirror_R", "mirror_arm_R",
