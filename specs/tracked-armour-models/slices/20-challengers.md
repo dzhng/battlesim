@@ -40,3 +40,38 @@ the packs); turret roof 2.49 (the Challenger 3's box top 2.70, its sight to
 x -2.22..+1.98, so its front stops 2.2 m behind the nose (the real turret's
 front is about +3.0); Challenger 3 turret x -2.17..+2.05. Both boxes run
 0.09–0.11 m long.
+
+## Lane B result (2026-11-13)
+
+Both wear one Argon script, `assets/source/skins/challenger/argon-r2/build.py`
+(`build(variant)`), through `roster/challenger.py` and `roster/challenger_3.py`.
+Two Argon rounds: $3.27 + $0.47 = **$3.74** (Argon $3.67, Bento's helper model
+$0.07; A5 passed, decision B6). Eight local edits (folder README), among them the user's
+rear-deck columns removed, the Challenger 3's sight mast in the turret so its
+body reaches the 2.70 m box (B9), broad `fittings` plates painted as armour
+(B8), and the turret fronts swept back (R12, B10). Lint 0 issues, validate
+clean, tiers inside `tracked_heavy` (61k/31k/8.6k/3.7k).
+
+| Critique round | silhouette | surface | fittings | materials | cohesion | mean |
+|---|---|---|---|---|---|---|
+| CR2 r1 | 6 | 7 | 4 | 5 | 6 | 5.6 |
+| CR2 r2 | 6 | 7 | 5 | 6 | 6 | 6.0 |
+| CR2 r3 | 6 | 7 | 5 | 6 | 6 | 6.0 |
+| CR3 r1 | 4 | 7 | 3 | 5 | 5 | 4.8 |
+| CR3 r2 | 4 | 7 | 4 | 6 | 5 | 5.2 |
+| CR3 r3 | 4 | 7 | 4 | 6 | 5 | 5.2 |
+
+**Below the bar, named:**
+- **Challenger 3:** the turret is still the Challenger 2's box with a new sight
+  and Trophy panels, not the faceted, chamfered turret of the generated views.
+  That needs a rebuild of its turret function, which local edits can't do. A
+  third Argon round, or a lane-local rebuild, is the user's call.
+- **Challenger 2:** the commander's sight reads small within the 0.3 m roof
+  allowance; the TES turret-side packs and the bustle cage are thinner than
+  the photos.
+- **Both:** a pale cheek face in the sun, the shared occlusion and paint
+  contrast (the coordinator's, R13 in progress).
+- **The user's note** ("turret shape wrong"): the Challenger 2's turret now runs
+  x -2.30..+2.99 against the old -2.22..+1.98, about 5.2 m long, reaching
+  over the glacis. It reads as fixed in `assets/after/challenger/challenger_2_tes-compare.png`.
+  On the Challenger 3 it is only partly fixed (above).

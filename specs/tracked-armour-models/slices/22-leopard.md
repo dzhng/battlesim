@@ -35,3 +35,30 @@ PERI to 3.00 / 3.13 as `dressing_peri`.
 
 **Before (measured):** both current boxes top out at 2.76 m (2A6 0.06 over
 its 2.70 box), widths 3.84 against 3.75, the 2A7V 0.15 m long.
+
+## Lane B result (2026-11-13)
+
+One script for all three, `assets/source/skins/leopard/argon-r2/build.py`
+(`build(variant)`), two Argon rounds, $1.10 + $2.78 = **$3.88**. Round 2 put
+the PERI's mast in the turret, so the 2A7V and 2A8 bodies reach their 2.83 m
+box (B9), and added the arrowhead wedge armour. Local edit 1 sweeps the turret
+front back (R12, B10), with the meshes cut on every piece boundary so no face
+twists. The family places the 2A8's `trophy_aps` nodes. All three lint 0 and
+validate clean. The known note is fixed: the art stands at its real roof
+(2.64 m 2A6, 2.80 m 2A7V/2A8 against the 2.83 m box), not the old 3.0 m.
+
+| | silhouette | surface | fittings | materials | cohesion | mean |
+|---|---|---|---|---|---|---|
+| 2A6 r1 | 7 | 7 | 5 | 6 | 7 | 6.4 |
+| 2A7V r1 | 6 | 7 | 5 | 6 | 6 | 6.0 |
+| 2A8 r1 | 7 | 7 | 6 | 6 | 7 | 6.6 |
+| 2A6 r2 | 6 | 5 | 5 | 6 | 6 | 5.6 |
+| 2A7V r2 | 6 | 5 | 6 | 6 | 6 | 5.8 |
+| 2A8 r2 | 6 | 4 | 6 | 6 | 6 | 5.6 |
+
+Round 2 saw the sweep's first version, which twisted faces across its kink
+("crumpled sheet"). The shipped sweep cuts on every boundary and adds no bent
+face (probe in `decisions.md` B10). Below the bar, named: the roof weapons
+read as boxes on posts, the 2A7V's front module reads thin, the wedge tops
+are pale (shared paint), and thin rails at the hull's front corners read as
+stray rods.

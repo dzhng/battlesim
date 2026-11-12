@@ -3636,3 +3636,55 @@ have made the same call.
   in the standard views (N·L 0.13), not the AO bake, which is no brighter on
   top than the old bodies'. Paint textures ride in each GLB, so every ground
   vehicle takes it at slice 30's re-export.
+- **B6 A5 passes with Bento's helper model present.** (Agent; high.) Every
+  lane B turn's `usageByModel` lists `google/gemini-4-argon` plus
+  `openai/gpt-6-luna` at about 1 % of the cost. The pilot's turns show the
+  same pair (t72-result, abrams-r2-result), so Luna is Bento's own helper
+  (titles, summaries), not a builder. Argon did every build.
+- **B7 The Abrams variants and the Leclerc skipped their second round.**
+  (Agent; medium-high.) Both matched every frame number and linted clean
+  after round 1; what was left (the Trophy launchers 7 cm over the roof
+  allowance, `main()`, paint slots, a notch) was a handful of lines. The
+  rule is at most two rounds (A6), not at least two. That saved about $1–3
+  each.
+- **B8 A broad `fittings` box is armour.** (Agent; medium.) Argon used
+  `fittings`, the export's dark hardware tone, for whole cheek plates, glacis
+  plates and deck panels, which read tan or as patchwork on green schemes.
+  The Challenger script repaints any `fittings` box broader than 25 cm both
+  ways (`PLATE`), and the Leclerc's blocks were repainted by hand. It's the
+  brief's own rule (fittings are small hardware), applied after the fact.
+- **B9 Where a sight sets the box top, its mast is the turret's.** (Agent;
+  medium.) The Challenger 3's and the Leopard 2A7V/2A8's frame boxes are
+  set by their sight heads (C4: box top = sight top - 0.3 m), but
+  `fit.hull_extents` wants the body (everything but gun, roof gun and
+  dressing) within 0.10 m of the box top. So the sight's mast is part of
+  `turret` up to the box top's reach and only the head is dressing. The
+  frames stay (P9). The coordinator may want the convention and the check
+  reconciled.
+- **B10 Rule R12's sweep is a per-script edit, `sweep_turret_front`.**
+  (Agent; medium. A shared-part candidate.) The M10, KF51, both Challengers
+  and the three Leopards had turret fronts flat across or angled in. Each
+  script gets the same small function, called at the end of `build()` with
+  its own turret object (the rig owns the name `turret` in an export). It
+  cuts the turret meshes on every boundary of a piecewise-affine push
+  (|y| = ym, x = x0, and the planes where the push reaches x0), then moves
+  each vertex ahead of x0 and outboard of ym back k per metre outboard. A
+  probe of every swept quad's corner-to-plane distance shows the sweep adds
+  no bent face; the remaining ones over 1 mm were Argon's before it. The
+  same function is in four `build.py` files: it belongs in `scripted_body`
+  as an option if more lanes need it (shared-part request).
+- **B11 The family places the Trophy part's nodes.** (Agent; high.)
+  `trophy_aps` needs nodes named exactly `trophy_radar_L/R` and
+  `trophy_launcher_L/R`; `scripted_body` drops a script's empties and
+  renames its meshes by material, and a dressing node sits at its parent's
+  origin. So the Abrams, Challenger 3, Leopard 2A8 and M1E3 scripts add the
+  four empties under their `dressing_trophy_*` nodes, at world positions
+  read off the script (the M1E3's at its housings' middles).
+- **B12 Critique budget.** (Agent; medium.) The Challengers and the Leclerc
+  had all three rounds; the KF51 three; the Abrams, M10 and Leopards two;
+  the M1E3 one. Further gains were either shared (the paint, R13) or need
+  Argon or a turret rebuild (the Challenger 3).
+- **B13 The M10's turret stays at the frame's roof.** (Agent;
+  medium-low.) Two critics asked for a taller turret, but the frame survey
+  measured a 2.5 m roof off two photos and the user's note asked for a
+  lower one (Q8c). The frame and the user's note win.

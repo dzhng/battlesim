@@ -42,3 +42,56 @@ hull 7.00 × 3.40, box top 2.60 (sight dome to 2.89 as dressing), ring
 **Before (measured):** M1E3 hull top 1.70 m only at the rear, and a wedge nose
 (the note); the M10 turret runs x -2.34..+1.09 and z 1.60..2.68 (1.08 m tall
 sides, 3.42 m long) against the photos' 0.7 m and 3.7 m.
+
+## Lane B result (2026-11-13)
+
+**Abrams SEPv2, SEPv2 Trophy, SEPv3 Trophy:** one script for all three,
+`assets/source/skins/abrams/argon-variants-r1/build.py`, from one Argon
+round on the pilot's SEPv2 script, **$1.52**. Round 2 wasn't needed (B7). `build("sep_v2")` was
+proved unchanged against the pilot by a per-object geometry hash. Ten local edits (folder README): Trophy within the
+roof allowance, a deterministic script, belt and stub clearances the
+corrected lint found, a readable SEPv3 APU box and data link. The family
+places the `trophy_aps` nodes. `abrams.py` lost its procedural body once the
+M1E3 stopped importing it. Lint 0, validate clean, byte-identical twice.
+
+| | silhouette | surface | fittings | materials | cohesion | mean |
+|---|---|---|---|---|---|---|
+| SEPv2 (r1) | 7 | 6 | 6 | 5 | 7 | 6.2 |
+| SEPv2 Trophy (r1) | 7 | 6 | 7 | 5 | 7 | 6.4 |
+| SEPv3 Trophy r1 | 6 | 6 | 5 | 5 | 7 | 5.8 |
+| SEPv3 Trophy r2 | 6 | 7 | 7 | 6 | 6 | 6.4 |
+
+Below the bar, named: the paint mottling (the shared scheme recipe; R13's
+matte paint lands on re-export), and the pilot's turret cheeks, which
+read as a forward wedge rather than the Abrams' steep blunt faces.
+
+**M1E3:** `assets/source/skins/m1e3/argon-r2/`, two rounds, $3.85 + $4.78 =
+**$8.63** (round 2 after the user's review and two replaced reference
+photos). The turret runs x -2.25..+2.35, 3.5 m across, up to the 2.44 m roof.
+The engine deck stands above the front deck and the nose is blunt. Both user
+notes ("back needs to shift up, front too pointy"; "turret a lot longer")
+read as fixed in `assets/after/m1e3/m1e3-compare.png`. Lint 0, validate clean.
+
+| | silhouette | surface | fittings | materials | cohesion | mean |
+|---|---|---|---|---|---|---|
+| M1E3 (r2 body) | 7 | 7 | 6 | 5 | 7 | 6.4 |
+
+Below the bar, named: the paint (shared), dark strips on the front deck, and
+the cheeks squarer than the photos'.
+
+**M10 Booker:** `assets/source/skins/m10/argon-r2/`, two rounds, $2.31 + $0.91
+= **$3.22**. The turret is set back, long and low, with a blunt front and
+bustle bulk; the front is swept back from the mantlet (R12 edit). Lint 0,
+validate clean, tiers inside `tracked_medium`.
+
+| | silhouette | surface | fittings | materials | cohesion | mean |
+|---|---|---|---|---|---|---|
+| M10 r1 | 6 | 6 | 6 | 5 | 6.5 | 5.9 |
+| M10 r2 (R12 sweep) | 6 | 6 | 5 | 6 | 6 | 5.8 |
+
+Below the bar, named. The critics want a taller turret, which contradicts the
+frame's 2.5 m roof (from the photo survey) and the user's own note asking for
+a lower turret, so it was kept (B13). Also named: the smoke dischargers are
+flush, and there's a dark pit on the roof front. The user's note ("turret
+shape looks wrong", "a small Abrams") is partly fixed: the critics now read
+the turret as one blunt M10-like piece, but still say "generic".
