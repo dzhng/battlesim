@@ -1,90 +1,104 @@
 # Tracked armour models
 
 Rebuild every tracked armoured unit's 3D model so it reads as its real vehicle
-at the zoomed battle camera and in cinematics. That means 37 appearances from 25
-export scripts, plus the shared `armata.py` library.
+at the zoomed battle camera and in cinematics: 37 appearances from 25 export
+scripts.
 
-The order of priority is silhouette and proportions first, then a crisp, clean
-factory finish. All of it is built procedurally with
-[`make-3d-models`](../../.agents/skills/make-3d-models/SKILL.md). The pass also
-ships the jets' paint sheen and runs three code-versus-generator experiments.
+Silhouette and proportions come first, then a crisp, clean factory finish.
+Each vehicle's body is a Blender script that Gemini 4 Argon writes in a Bento
+session from the reference photos and our measurements (decisions A1–A6). The
+coordinator measures it against the battle frame, and the family script wears
+it through `scripted_body` (the [Argon pilot](slices/argon-pilot.md)). The pass
+also shipped the jets' paint sheen and ran the code-versus-generator
+experiments.
 
 This is the first of several passes, one per group of units. The queue for the
 rest is at the end of this file.
 
 ## Next Agent Prompt
 
-**Status (2026-11-11):** slices 00, 01, 03, 04 and 07 (with the 07b
-reconciliation) are merged. Slice 14 is not needed, because slice 03's smoothed
-dome won. Pickup: slice 02, the split, then the shared slices 08–12. Lane J
-(slices 05 and 06) is merged. Jets ship at roughness 0.38, but they sit below
-the critique bar for reasons outside the paint (J05-1). `air_defence.py` is held
-back until slice 15 (decision C12).
+**Status (2026-11-12):**
+- The shared slices are merged: 00–12 and 15; 13 was cancelled (G1) and 14 was
+  not needed.
+- The Argon pilot is merged. The T-72B3 and Abrams SEP v2 wear Argon bodies,
+  and the T-72's front corner was fixed after the user's note (edit 14).
+- The slices 17–29 now follow the Argon recipe ([family
+  template](slices/family-template.md)), in four parallel lanes A–D
+  ([`parallel.md`](parallel.md)).
 
-You are the **coordinator**. Start at
-[`slices/00-lint-truth.md`](slices/00-lint-truth.md) on a branch off `staging`.
+**Pickup:** slice 16 (coordinator), alongside the four lanes. Merge each lane's
+vehicles as they land, bake, and push a milestone every three families.
 
-Before you touch anything, read:
+You are the **coordinator**. Before you touch anything, read:
 - `AGENTS.md`;
 - `development.md`;
 - `packages/scene-assets/blender/README.md`;
-- the `make-3d-models` skill;
 - this README;
 - [`parallel.md`](parallel.md);
-- [`decisions.md`](decisions.md).
+- [`slices/argon-pilot.md`](slices/argon-pilot.md);
+- the newest sections of [`decisions.md`](decisions.md) (G, A, P, R).
 
-Work the slices in the order of the graph below. Run the lanes it marks
-parallel as Opus subagents in their own worktrees, briefed with their slice
-file, `parallel.md` and the family template. Only you edit the
-coordinator-owned files, write the lint baseline, edit `assets/catalog.json`
-or `fixtures/**`, bake, push, or edit this README.
+The lanes are Opus subagents in their own worktrees. Brief each with:
+- its slice files;
+- the family template;
+- the pilot's recipe;
+- `parallel.md`.
 
-Never print or commit `FAL_KEY`. Scratch output goes in `throwaway/`, which is
-ignored. The repo's `scratch/` folder is not ignored, so don't write there.
+Only you edit:
+- the coordinator-owned files;
+- `assets/catalog.json` and `fixtures/**`;
+- the lint baseline;
+- the runtime.
 
-There are no approval stops. Each review checkpoint works the same way: open
-the shots with `preview-shots`, wait about 5 minutes, then decide on the
-evidence, record the decision in `decisions.md`, close the shots and carry on.
-Anything still below the bar when its slice ends is named to the user in your
-end-of-pass report.
+Only you bake and push.
+
+Rules:
+- **Argon:** at most two rounds per vehicle (A6). Check every session's model
+  (A5).
+- **Secrets:** never print or commit `FAL_KEY`.
+- **Scratch:** scratch output goes in `throwaway/`, which is ignored. The
+  repo's `scratch/` folder is not ignored.
+- **Review checkpoints never block.** Open the shots with `preview-shots`,
+  wait about 5 minutes, then decide on the evidence. Record the decision in
+  `decisions.md`, close the shots and carry on.
+- **The bar:** anything still below the bar when its slice ends is named to
+  the user in your end-of-pass report.
 
 **Before you end every pass,** update this section: the status, the date, the
 exact pickup point, any blockers, and the ticks below.
 
 Warnings:
 - `bun run check` reads the baked runtime against the current frames
-  (`web/tests/sceneAssets/unitFit.test.ts:91-110`). A frame change is red until
-  it is re-exported and baked, so slices 15 and 16 land and push together.
-- Between slices 08 and 16, shared-helper changes land in source while only
-  representative models are re-exported, so the committed GLBs lag the
-  sources. Nothing pushes in that window. Slice 16 closes it by re-exporting
-  everything.
-- Exports fail on any new lint issue (`vehicle_export.py:56-67`). Slice 00
-  makes the lint actually compare parts, and that will surface old issues.
-  Slice 01 baselines them.
+  (`web/tests/sceneAssets/unitFit.test.ts`). Never push art without the bake.
+- Exports fail on any new lint issue. A vehicle on a scripted body must lint
+  clean (P10), and its fixes go in its `build.py`.
+- The art load is near its limit (636.7 of 640 MiB). Slice 16 raises it
+  before the lanes' bodies land.
 
 TODO:
 
 - [x] 00 lint truth ([slice](slices/00-lint-truth.md))
-- [x] 01 baseline re-export ([slice](slices/01-baseline-reexport.md)), then push
-- [ ] 02 split `vehicle_parts.py` ([slice](slices/02-split-vehicle-parts.md)), then push
-- [x] 03 cast-turret experiment ([slice](slices/03-cast-turret-experiment.md)), lane E1
-- [x] 04 seam experiment ([slice](slices/04-seam-experiment.md)), lane E2
-- [x] 05 jet paint sheen ([slice](slices/05-jet-sheen.md)), lane J, then push
-- [x] 06 jet guide experiment ([slice](slices/06-jet-guide-experiment.md)), lane J
-- [x] 07 frame survey ([slice](slices/07-frame-survey.md)), lanes F-A/F-B/F-C
-- [ ] 08 gun tube ([slice](slices/08-gun-tube.md))
-- [ ] 09 hull outline and side panels ([slice](slices/09-hull-outline-and-side-panels.md))
-- [ ] 10 track sag ([slice](slices/10-track-sag.md))
-- [ ] 11 plate edges ([slice](slices/11-plate-edges.md))
-- [ ] 12 closed hatches, no crew ([slice](slices/12-closed-hatches-no-crew.md))
-- [ ] 13 panel seams ([slice](slices/13-panel-seams.md)), after 04
+- [x] 01 baseline re-export ([slice](slices/01-baseline-reexport.md))
+- [x] 02 split `vehicle_parts.py` ([slice](slices/02-split-vehicle-parts.md))
+- [x] 03 cast-turret experiment ([slice](slices/03-cast-turret-experiment.md))
+- [x] 04 seam experiment ([slice](slices/04-seam-experiment.md))
+- [x] 05 jet paint sheen ([slice](slices/05-jet-sheen.md))
+- [x] 06 jet guide experiment ([slice](slices/06-jet-guide-experiment.md))
+- [x] 07 frame survey ([slice](slices/07-frame-survey.md))
+- [x] 08 gun tube ([slice](slices/08-gun-tube.md))
+- [x] 09 hull outline and side panels ([slice](slices/09-hull-outline-and-side-panels.md))
+- [x] 10 track sag ([slice](slices/10-track-sag.md))
+- [x] 11 plate edges ([slice](slices/11-plate-edges.md))
+- [x] 12 closed hatches, no crew ([slice](slices/12-closed-hatches-no-crew.md))
+- [x] ~~13 panel seams~~: cancelled by the generator pivot (G1) ([slice](slices/13-panel-seams.md))
 - [x] ~~14 turret skin~~: not needed, the smoothed dome won (slice 03) ([slice](slices/14-turret-skin.md))
-- [ ] 15 frame fixes ([slice](slices/15-frame-fixes.md)), after 07
-- [ ] 16 integration re-export and bake ([slice](slices/16-integration-reexport.md)), then push
-- [ ] Lane A: 17 T-72 family, 18 Armata, 19 ZTQ-15, 20 Challengers
-- [ ] Lane B: 21 Abrams and M10, 22 Leopard, 23 Leclerc and KF51, 24 air defence and rockets
-- [ ] Lane C: 25 CV90 family, 26 Bradley, 27 Puma and Ajax, 28 BMP and BRM, 29 howitzers
+- [x] 15 frame fixes ([slice](slices/15-frame-fixes.md))
+- [x] Argon pilot: T-72B3 and Abrams SEP v2 ([slice](slices/argon-pilot.md))
+- [ ] 16 integration milestone ([slice](slices/16-integration-reexport.md)), then push
+- [ ] Lane A: 17 T-72 family, 18 Armata, 19 ZTQ-15
+- [ ] Lane B: 20 Challengers, 21 Abrams variants, M1E3 and M10, 22 Leopard, 23 Leclerc and KF51
+- [ ] Lane C: 25 CV90 family, 26 Bradley, 27 Puma and Ajax, 28 BMP and BRM
+- [ ] Lane D: 24 air defence and rockets, 29 howitzers
 - [ ] 30 lineup and sweep ([slice](slices/30-lineup-and-sweep.md))
 - [ ] 31 ship ([slice](slices/31-ship.md)), then push and promote
 
@@ -92,25 +106,22 @@ TODO:
 
 Read these first. Each one crosses a component boundary.
 
-- **Battle frames** (the hull box, eye height, mount pivots and muzzles in
-  `fixtures/units/roster/*.json`). Frames that measure wrong are fixed in one
-  chain (slice 15), and so is the Ajax's new roof machine gun mount
-  `on: autocannon`. These changes alter battle digests on purpose, and each is
-  named. Every other slice leaves frames, digests and replays alone.
-- **Blender module layout.** `vehicle_parts.py` splits into eight modules by
-  concept (slice 02). Callers import the owner directly; there is no facade.
-- **The geometry lint's contract.** Slice 00 makes its overlap check compare
-  parts at all. Today it never does on a real vehicle
-  (`vehicle_lint.py:243-259`: every mesh resolves to the root, so every pair
-  is skipped, `:400-401`). It also makes it walk every appearance a script
-  exports, and fail when a build fails.
-- **`asset check`** runs the five Blender-side Python tests (slice 00). It is
-  not part of `bun run check`.
-- **Aircraft paint.** Jets gain their own lower roughness, keyed on the
-  aircraft being a jet (slice 05). Helicopters are unchanged.
-- **Nothing else.** The renderer, the GLB node contract (`track_L/R`,
-  `wheel_*`, `track_length_m`, `link_pitch_m`), bundle formats and the
-  simulation are unchanged.
+- **A vehicle's body is a build script** (`assets/source/skins/<family>/argon-r2/build.py`).
+  Its `build()` names parts by what moves them and paints with seven slots.
+  `scripted_body.wear` fits it to the export contract (the pilot's
+  "Contracts").
+- **Battle frames** (`fixtures/units/roster/*.json`) changed once, in slice
+  15, with named digest changes. Everything since leaves frames, digests and
+  replays alone: fit is fixed in `build.py` (P9).
+- **Blender module layout.** `vehicle_parts.py` split into eight modules by
+  concept (slice 02); `scripted_body.py` joined them (the pilot).
+- **The geometry lint** compares parts, walks every appearance, and fails
+  when a build fails (slice 00).
+- **`asset check`** runs the Blender-side Python tests (slice 00).
+- **Aircraft paint.** Jets have their own lower roughness (slice 05).
+- **Unchanged:** the renderer, the GLB node contract (`track_L/R`, `wheel_*`,
+  `track_length_m`, `link_pitch_m`, mount nodes, `dressing_*`, `_LOD0..3`),
+  bundle formats and the simulation.
 
 ## Goal and taste
 
@@ -192,6 +203,7 @@ start, not with the pass bolted on. Slice 30 greps for the "never" column.
 | Roof fittings: hatches (closed only), cupolas, vision blocks, sensors | `roof_parts.py` | an open lid, or `head_out` in a tracked script |
 | Gun barrels (core, sleeves, evacuator, muzzle) and machine-gun models | `vehicle_guns.py` (`gun_tube`, `browning_m2`, `kord`) | a barrel made of sections with no core |
 | Hull fittings and stowage | `hull_fittings.py`, `stowage.py` | — |
+| A vehicle's body | its `build.py` under `assets/source/skins/<family>/`, worn through `scripted_body.wear` | body geometry drawn in the family script beside a worn body |
 | Frames | `fixtures/units/roster/*.json`, then the blessed `fixtures/catalog.json` | art moving a frame silently |
 | Wreck footprint, `track_gauge`, appearance mounts | `assets/catalog.json` (coordinator only) | an edit from a lane |
 | Edge wear | `chip=1.0` on every tracked `run(...)` | a tracked family on another value |
@@ -202,38 +214,22 @@ start, not with the pass bolted on. Slice 30 greps for the "never" column.
 ## Slice graph
 
 ```
-00 lint truth ─ 01 baseline re-export ─ 02 split vehicle_parts      (coordinator, serial; push after 01 and 02)
-                                          │
-        ┌─────────────────────────────────┼──────────────────────────────────────────┐
-  lanes from 02 (parallel)                │ coordinator, alongside the lanes          │
-  03 cast turret (E1) ──────────────┐     │ 08 gun tube                               │
-  04 seams (E2) ─────────────────┐  │     │ 09 hull outline + side panels             │
-  05 jet sheen → 06 jet guides (J)  │     │ 10 track sag                              │
-  07 frame survey (F-A, F-B, F-C) ─┼──┼──┐  │ 11 plate edges                            │
-                                 │  │  │  │ 12 closed hatches, no crew                │
-                                 └──┼──┼──┤ 13 panel seams      (needs 04)            │
-                                    └──┼──┤ 14 turret skin      (only if 03 picks it) │
-                                       └──┤ 15 frame fixes      (needs 07)            │
-                                          │ 16 integration re-export + bake, push     │
-                                          └─────────────┬─────────────────────────────┘
-                     ┌──────────────────────────────────┼────────────────────────────────┐
-           lane A (17→20)                         lane B (21→24)                    lane C (25→29)
-     T-72 family, Armata, ZTQ-15,        Abrams+M10, Leopard, Leclerc+KF51,    CV90 family, Bradley, Puma+Ajax,
-     Challengers                         air defence + rockets                 BMP+BRM, howitzers
-                     └──────────────────────────────────┼────────────────────────────────┘
-                                   30 lineup and sweep ─ 31 ship (bake, pictures, balance, full checks, push, promote)
+00–15 shared slices (merged) ─ Argon pilot (merged)
+                                      │
+   ┌──────────────────────┬───────────┴──────────┬───────────────────────┬──────────────────────┐
+16 integration      lane A (17→19)          lane B (20→23)          lane C (25→28)          lane D (24, 29)
+milestone, push     T-80, T-90, Type 99,    Challengers, Abrams     CV90s, Bradley,         Gepard, Buk,
+(coordinator)       T-14, T-15, ZTQ-15      variants, M1E3, M10,    Puma, Ajax, BMP-2M,     M270/MARS II,
+                                            Leopards, Leclerc, KF51 BMP-3/BRM-3K            four howitzers
+   └──────────────────────┴───────────┬──────────┴───────────────────────┴──────────────────────┘
+                     30 lineup and sweep ─ 31 ship (bake, pictures, full checks, push, promote)
 ```
 
-The lanes follow import clusters, so each lane's files are disjoint from the
-others':
-- `t80`, `t90` and `type99` import `t72`;
-- `t14` and `t15` import `armata`;
-- `cv90120` imports `cv90` (`cv90120.py:29`);
-- `m1e3` imports `abrams`.
-
-Within each lane, the order follows the planned family order. Ownership,
-merging and baking rules are in [`parallel.md`](parallel.md). Every family
-slice follows [`slices/family-template.md`](slices/family-template.md).
+Within a lane, every vehicle's round 1 starts at once (the sessions run
+remotely), and integration runs one vehicle at a time. Lanes own disjoint
+roster scripts; no lane deletes procedural code another family imports
+(`parallel.md`). Every family slice follows
+[`slices/family-template.md`](slices/family-template.md).
 
 ## Standing gates
 
@@ -283,21 +279,12 @@ answers the question while you work. Run everything once, at slice 31.
 
 | Risk | Cheapest early check | Where |
 |---|---|---|
-| Exports aren't byte-repeatable, so identity proofs mean nothing | Export the T-72B3 twice and compare hashes | 00 |
-| Lint grouping fix floods the baseline | Lint the T-72B3 alone first; apply the 30-issue rule | 00 |
-| The split changes geometry | Roster lint output identical, and T-72B3+wreck, Boxer and Apache GLBs byte-identical | 02 |
-| Turret skin needs aircraft fitting machinery | Fit by hand, and check bounds and pivot before judging looks; slice 14 is conditional | 03 |
-| Jet roughness is lost in the bake | Bake one jet in the lane worktree and read its material roughness | 05 |
-| Lineup notes are really frame problems | The survey classifies every note before any geometry work | 07 |
-| Sag cuts into a wheel, which the lint can't see | Clearance clamp built into `track_path`, plus a low side crop of the T-72B3 | 10 |
-| Non-convex hulls break `Outline` | Build an `Outline` for every tracked hull in a probe | 09 |
-| Bevels exceed the triangle caps | Re-export the T-80BVM (largest: 72,845 of 120k) first | 11 |
-| A Leopard frame fix pushes its sight past the dressing allowance | Measure the sight top against the new box before blessing | 15 |
-| `bun run check` is red after the frame chain | 15 and 16 land and push together, with a bake | 15–16 |
-| Ratchet blocks family growth (`abrams.py` 29 KB, `air_defence.py` 26 KB) | Split the family file by concept as the slice's first step | 21, 24 |
-| A shared amendment lands after a family merged | Receipt freshness probe | 30 |
-| Lanes collide | Lanes follow import clusters, plus a path-ownership diff at each merge | `parallel.md` |
-| A model never reaches the bar | Three-round cap, then name it to the user | template |
+| A session runs another model than Argon | Read the first turn's `usageByModel` | every session (A5) |
+| Argon's proportions drift from the frame | Measure round 1's GLB against the frame before round 2 | template |
+| A lint or fit problem needs a third Argon round | Run the integration once after round 1 and send its findings with round 2 | template |
+| Denser bodies overflow the art load | Raise the limit in slice 16; read the bake's load line at every milestone | 16 |
+| Lanes collide on an imported family script | Lanes never edit `t72`, `armata` or another lane's script; slice 30 sweeps dead code | `parallel.md` |
+| A model never reaches the bar | Three critique rounds, then name it to the user | template |
 
 ## Queue of later passes
 

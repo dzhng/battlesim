@@ -2,7 +2,7 @@
 
 Follow [the family template](family-template.md). Its contract, passes, verification, delegated calls and what stays green all apply. This file adds only this family's models, the user's notes (quoted exactly) and the calls specific to this family.
 
-**Lane:** Lane C, after 26.
+**Lane:** Lane C, after 26. Branches from the rollout plan commit.
 
 **Models:** Puma (`puma.py`), Ajax (`ajax.py`).
 
@@ -15,9 +15,9 @@ Every note must visibly read as fixed in a before/after beside the reference (`a
 
 ## Calls specific to this family
 
-- Puma: rebuild the body to the survey overlay, including the MELLS as slice 15 settled it. Side modules (`puma.py:85-101`) go through `side_skirt`.
-- Ajax: the side modules (`ajax.py:81-98`) go through `side_skirt`. Parent the existing RWS parts (`ajax.py:119-123`) under the new `HMG` mount's yaw and pitch nodes from slice 15, so the gun turns with its mount.
-- Check the RWS on the turret roof clears the autocannon's elevation.
+- Two sessions, one per vehicle.
+- Puma: the body from the survey overlay, the MELLS as slice 15 settled it. The side modules follow the flush-skirt rule.
+- Ajax: the RWS is the `hmg` / `hmg_gun` pair on slice 15's `HMG` mount (`on: autocannon`), and it clears the autocannon's elevation.
 
 ## Feedback that would change it
 

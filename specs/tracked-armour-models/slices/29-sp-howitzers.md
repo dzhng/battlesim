@@ -2,7 +2,7 @@
 
 Follow [the family template](family-template.md). Its contract, passes, verification, delegated calls and what stays green all apply. This file adds only this family's models, the user's notes (quoted exactly) and the calls specific to this family.
 
-**Lane:** Lane C, after 28.
+**Lane:** Lane D, after 24. Branches from the rollout plan commit.
 
 **Models:** M109A7, PzH 2000, 2S19M2, PLZ-05 (`sp_howitzers.py`, one script with `appearances=list(SPECS)`).
 
@@ -14,10 +14,8 @@ Every note must visibly read as fixed in a before/after beside the reference (`a
 
 ## Calls specific to this family
 
-- Fix the turret-to-hull ratio by the survey's answer to its question 3, for each card: a hull (frame) fix, already done in slice 15, or a turret redraw.
-- Skirts (`sp_howitzers.py:101-105`) go through `side_skirt` on each card's outline. Wreck selectors (`:253-262`) keep working.
-- Clear the M109's baseline entries.
-- If the four `SPECS` outgrow the ratchet, split the turret builder out by concept.
+- Four sessions, one per vehicle.
+- The note, for the brief: the turret-to-hull ratio from the frame and the survey (question 3 for each card), as numbers, and the template's flush-skirt rule.
 
 ## Feedback that would change it
 

@@ -9,7 +9,7 @@ file, this page, and `slices/family-template.md` (for family lanes).
 
 - **Blender modules:** the eight vehicle modules from slice 02 (`vehicle_parts`,
   `running_gear`, `hull_shape`, `armour_parts`, `roof_parts`, `hull_fittings`,
-  `stowage`, `vehicle_guns`), plus `parts.py`, `vehicle_export.py`,
+  `stowage`, `vehicle_guns`), plus `scripted_body.py`, `mesh_lods.py`, `parts.py`, `vehicle_export.py`,
   `vehicle_lint*.py`, `vehicle_lint_allowlist.json`,
   `vehicle_lint_baseline.json`, `catalog_frames.py`, `wreckage.py`,
   `textures.py` and `vehicle_crew.py`.
@@ -22,18 +22,28 @@ file, this page, and `slices/family-template.md` (for family lanes).
 
 Every lane also owns:
 - its own slice files;
+- `throwaway/argon/<vehicle>/` for its briefs and session results;
 - `specs/tracked-armour-models/assets/{after,experiments,frames}/<its family or experiment>/`;
 - the right to append to `decisions.md`.
 
 | Lane | Branches from | Owns |
 |---|---|---|
-| E1, cast turret (03) | 02 | `throwaway/`, `assets/experiments/03/`; the generated skin and its pin (`packages/scene-assets/blender/skins/`, `assets/source/skins/` if that is where pins put the mesh) |
-| E2, seams (04) | 02 | `throwaway/`, `assets/experiments/04/` |
-| J, jets (05, 06) | 02 | `textures_air.py`, `aircraft_*.py` except `aircraft_skin.py`, every fixed-wing roster script, `guides/`, the jet source folders under `assets/source/roster/`, `assets/experiments/05/` and `06/` |
-| F-A / F-B / F-C, frame survey (07) | 02 | `assets/references/<family>/**` for its lane's families, `assets/frames/<family>.*`, `throwaway/`. F-A also owns the vehicle mode added to `.agents/skills/make-3d-models/scripts/drawing_overlay.py` |
-| A (17–20) | 16 | `t72`, `t80`, `t90`, `type99`, `armata`, `t14`, `t15`, `type15`, `challenger`, `challenger_3`, and their `assets/source/roster/<folder>/` and `assets/references/<family>/` |
-| B (21–24) | 16 | `abrams`, `m1e3`, `m10`, `leopard`, `leclerc`, `kf51`, `air_defence` (plus the new `buk.py` and any `abrams_*` concept split), `rocket_artillery`, and their source and reference folders. That includes the sibling folders `gepard`, `buk`, `pantsir`, `boxer_skyranger_30`, `nasams`, `m270_mlrs`, `mars_ii`, `m142_himars`, `bm_21_grad` and `9k515_tornado_s`. `s300` may only be re-exported to prove it unchanged. `boxer.py`, `truck_chassis.py` and `ural.py` are read-only. |
-| C (25–29) | 16 | `cv90`, `cv90120`, `bradley`, `puma`, `ajax`, `bmp`, `brm`, `sp_howitzers`, and their source and reference folders, including `pzh_2000`, `2s19_msta_s` and `plz_05` |
+| A, Eastern tanks (17–19) | the rollout plan commit | `t80`, `t90`, `type99`, `t14`, `t15`, `type15` roster scripts (not `t72` or `armata`, which they import), and their `assets/source/roster/<folder>/`, `assets/source/skins/<family>/` and `assets/references/<family>/` |
+| B, Western tanks (20–23) | the rollout plan commit | `challenger`, `challenger_3`, `abrams`, `m1e3`, `m10`, `leopard`, `leclerc`, `kf51`, and their source, skin and reference folders |
+| C, IFVs and recon (25–28) | the rollout plan commit | `cv90`, `cv90120`, `bradley`, `puma`, `ajax`, `bmp`, `brm`, and their source, skin and reference folders |
+| D, artillery and air defence (24, 29) | the rollout plan commit | `air_defence` (plus a new `buk.py` if it splits), `rocket_artillery`, `sp_howitzers`, and their source, skin and reference folders, including the wheeled siblings' source folders it re-exports (`pantsir`, `boxer_skyranger_30`, `nasams`, `m142_himars`, `bm_21_grad`, `9k515_tornado_s`) and `s300`'s, which it only re-exports. `boxer.py`, `truck_chassis.py` and `ural.py` are read-only. |
+
+Earlier lanes (E1, E2, J, F-A/B/C, and the old A/B/C of the procedural plan)
+are merged; their rows are in git history.
+
+**Shared procedural code stays.** A family script that wears its body stops
+calling its procedural parts, but a lane never deletes a function another
+family still imports (the T-72's for the T-80, T-90 and Type 99, Armata's
+for the T-14 and T-15, the CV90's for the CV90120, the Abrams' for the M1E3).
+Slice 30 deletes what nothing calls any more.
+
+**Argon spend.** Each lane keeps a running cost per session (the turn's
+`usageByModel` cost) in its slice files; at most two rounds per vehicle (A6).
 
 Use the real folder names under `assets/source/roster/`. Check them with `ls`
 before the lane starts.

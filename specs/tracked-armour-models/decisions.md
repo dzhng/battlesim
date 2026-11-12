@@ -3174,3 +3174,31 @@ and a confidence that the user would have made the same call.
 - **P16 No markings.** (Agent; medium.) The procedural models' stencilled
   side numbers ("21", "32 >") are gone with their bodies. The brief keeps
   Argon's models clean, and markings are a later, roster-wide decision.
+
+## Rollout plan (2026-11-12, coordinator)
+
+- **R1 Four lanes by vehicle group, every round 1 at once.** (Agent; high.)
+  Lanes A (Eastern tanks), B (Western tanks), C (IFVs and recon) and D
+  (artillery and air defence) own disjoint roster scripts. Bento sessions run
+  remotely, so a lane starts all its vehicles' first rounds together and
+  integrates them one at a time; the slowest part is local integration, not
+  Argon.
+- **R2 Vehicles that share a hull are variants of one script, in one
+  session.** (Agent; medium-high.) The Abrams Trophy/SEP v3 (P12), the three
+  Leopards, the CV9040C and Mk IV, the two Bradleys, the Challenger 2 and 3,
+  the BMP-3 and BRM-3K (S13), and the M270A2 and MARS II. That is 27 sessions
+  for 35 appearances, about $150–200 at the pilot's rate. A lane splits a set
+  when round 1 shows the hulls differ more than the brief assumed, and still
+  stops at two rounds per vehicle.
+- **R3 The "front side panels stick out" note is a brief rule, not a code
+  helper.** (Agent; high.) The user saw it on the pilot's T-72B3 too: its
+  skirt's front shield stood 8 cm outboard of a narrower, lower mudguard.
+  Fixed there as `build.py` edit 14 (the mudguard became a housing flush with
+  the skirt), and every brief now states the flush-skirt rule (the pilot's
+  clearances, the family template). The procedural `side_skirt` fix (C20) is
+  moot for vehicles that wear a body.
+- **R4 Lanes leave shared procedural code in place.** (Agent; high.) A family
+  that wears a body stops calling its procedural parts, but `t72`, `armata`,
+  `cv90` and `abrams` keep what their importers use until slice 30 deletes
+  whatever nothing calls. It keeps lanes disjoint, at the cost of dead code
+  for a few days.

@@ -143,6 +143,10 @@ Check the first turn's `usageByModel` (A5). The brief carries:
   - axle stubs end at the hull's side;
   - road wheels, return rollers, sprocket and idler don't overlap side-on;
   - the run's top stays under the sponsons.
+  - the skirt's front panel is flush with the front fender: one outer plane
+    and a continuous top edge, nothing of the skirt outboard of, above or
+    ahead of the fender, and appliqué stopping where the glacis takes over
+    (the user's "front side panels stick out" note; the T-72B3's edit 14).
 - **The limits:**
   - under 80k triangles;
   - edges as two-segment bevels or sharp, not single-segment bevels, which

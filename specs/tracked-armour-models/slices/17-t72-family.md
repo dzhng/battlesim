@@ -2,9 +2,9 @@
 
 Follow [the family template](family-template.md). Its contract, passes, verification, delegated calls and what stays green all apply. This file adds only this family's models, the user's notes (quoted exactly) and the calls specific to this family.
 
-**Lane:** Lane A, first. Branches from slice 16.
+**Lane:** Lane A, first. Branches from the rollout plan commit.
 
-**Models:** T-72B3, T-80BVM, T-90M, ZTZ-99A (`t72.py`; `t80.py`, `t90.py` and `type99.py` import it, so re-export all four every time `t72.py` changes).
+**Models:** T-80BVM (`t80.py`), T-90M (`t90.py`), ZTZ-99A (`type99.py`). The T-72B3 is done (the Argon pilot). All three import `t72.py`'s procedural parts; leave them there until slice 30.
 
 ## The user's notes (the done list)
 
@@ -15,14 +15,11 @@ Every note must visibly read as fixed in a before/after beside the reference (`a
 
 ## Calls specific to this family
 
-- The gun gap is already fixed by slice 08. Confirm it in this family's closeups.
-- Slice 03's dome verdict applies:
-  - if code won, apply it to `t72.dome_rings` (the T-80 imports it, `t80.py:32`);
-  - if the skin won, slice 14 already fitted it.
-- T-80BVM: rescale the turret to the survey's measured size, within the frame.
-- T-90M: if the survey said the pivot was wrong, slice 15 already moved it, and the art follows. If the turret was drawn ahead of its pivot, redraw it centred on the pivot.
-- `soviet_skirts` (`t72.py:146`) migrates to `side_skirt`. It may stay as a family-local function that only forwards the family's data.
-- The ZTZ-99A keeps its own turret and adopts the shared helpers.
+- Three sessions, one per vehicle: the T-80BVM, T-90M and ZTZ-99A share little hull with the T-72B3 beyond its layout.
+- Give each brief the T-72B3's `argon-r2/build.py` as an example of the contract, and say its corner fix (edit 14) applies.
+- T-80BVM: the turret's size from the survey (`assets/frames/t72.json`, the T-80BVM entry), stated in the brief as numbers.
+- T-90M: the turret centred on the frame's pivot, stated in the brief with the pivot's x.
+- The ZTZ-99A's arrowhead turret is its own; brief from its photos.
 
 ## Feedback that would change it
 
