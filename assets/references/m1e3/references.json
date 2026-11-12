@@ -46,26 +46,26 @@
    "seed": 2002
   },
   {
-   "file": "us_m1e3_abrams-front.jpg",
+   "file": "us_m1e3_abrams-side.jpg",
    "variant": "us_m1e3_abrams",
-   "view": "front",
+   "view": "side",
    "source": "photo",
-   "page": "https://commons.wikimedia.org/wiki/File:U.S._Army_Units_Host_Abrams_Logistical_Summit_in_Drawsko_Pomorskie_-_221026-Z-OV580-1015.jpg",
-   "author": "Kevin Brown",
+   "page": "https://www.army.mil/article/290052",
+   "author": "U.S. Army",
    "licence": "public-domain",
-   "sha256": "0a0446a8803f2388aea6b8a87355712342ac8fbcc3b0bd26e44ca6928958f53e",
-   "note": "M1A2 SEPv3 head-on: the M1 hull front and glacis the M1E3 keeps (same bytes as assets/references/abrams/us_m1_abrams_sep_v3_trophy-front.jpg); its turret is not the M1E3's."
+   "sha256": "0a91d1368032e8ba8c9925a828c168e0fa171f0d849497563a4be235a06faaf4",
+   "note": "The Detroit prototype, January 2026, near-true left side (original https://api.army.mil/e2/c/images/2026/01/16/9cb90bd2/original.jpg): the turret's length (mantlet face to bustle rear about half the hull), its tall flat slab sides and the bustle over the engine deck, the raised rear deck and the blunt nose. Replaces a three-quarter rear photo of an older M1A2 with its turret traversed rearward, which misled the round-1 build (the user's note)."
   },
   {
-   "file": "us_m1e3_abrams-three_quarter_rear.jpg",
+   "file": "us_m1e3_abrams-detail.jpg",
    "variant": "us_m1e3_abrams",
-   "view": "three_quarter_rear",
+   "view": "detail",
    "source": "photo",
-   "page": "https://commons.wikimedia.org/wiki/File:Combined_Resolve_V_151119-A-BS310-038.jpg",
-   "author": "Visual Information Specialist Markus Rauchenberger, U.S. Army",
+   "page": "https://www.army.mil/article/290052",
+   "author": "U.S. Army",
    "licence": "public-domain",
-   "sha256": "de6f51d87c92fbeb2170701b3db5ebbd2472900bb6b6d8f20f9c53a110c56630",
-   "note": "M1A2 SEPv2 left rear: the M1 hull's engine deck and rear plate with its grilles, which the M1E3 prototype keeps (same bytes as assets/references/abrams/us_m1_abrams_sep_v2-three_quarter_rear.jpg); its turret and bustle are not the M1E3's."
+   "sha256": "d22e93b8def9a58ca26746023e68f3a30eaa835bd8052979abafe85001e7eb52",
+   "note": "The Detroit prototype's turret and gun from the front left, close (original https://api.army.mil/e2/c/images/2026/01/16/236f4fd9/original.jpg). Replaces a front photo of an older tan Abrams, not the M1E3."
   }
  ],
  "gaps": [
