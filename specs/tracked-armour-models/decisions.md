@@ -3246,8 +3246,15 @@ have made the same call.
   by memory address, so each run bevels the edges in a different order. The
   T-72B3's script has no such set and re-exports byte-identically. The fix is
   in the script (`dict.fromkeys` keeps first-seen order), and the brief and
-  template now ask for it and for a two-export check. `scripted_body` can't
-  repair the order after the fact.
+  template now ask for it and for a two-export check.
+  - *Amended:* ordered bevel input wasn't enough. Lane B found the meshes
+    still varied in face order and in each n-gon's loop start (which moves
+    the GLB's triangle fan). `scripted_body._split` now puts every scripted
+    mesh in one canonical order (vertices by place, loops from the lowest
+    vertex, faces by material and vertices), so a script's build order
+    can't reach the bytes, and no script carries its own canonicalizer.
+    The T-72B3 exports byte-identically twice under it; its tier 0 lost four
+    zero-area triangles, which the rotated fans no longer make.
 - **R7 The four SP howitzers and the Gepard draw their guns on the `gun`
   rig.** (Agent, at lane D's request; medium-high.) In `assets/catalog.json`
   they declare `"mounts": {"gun": "gun"}`, so the gun pitches on its node,
