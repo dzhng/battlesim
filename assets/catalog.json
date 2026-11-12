@@ -5899,6 +5899,9 @@
       "unit": "vehicle",
       "source": "assets/source/roster/m109_paladin/us_m109_paladin_m109a7.glb",
       "basis_yaw_deg": 0,
+      "mounts": {
+        "gun": "gun"
+      },
       "wreck": "us_m109_paladin_m109a7_wreck",
       "tolerances": {
         "hull_extent_m": 5.5
@@ -6088,6 +6091,9 @@
       "unit": "vehicle",
       "source": "assets/source/roster/pzh_2000/europe_pzh_2000_tracked_155_mm_howitzer.glb",
       "basis_yaw_deg": 0,
+      "mounts": {
+        "gun": "gun"
+      },
       "wreck": "europe_pzh_2000_tracked_155_mm_howitzer_wreck",
       "tolerances": {
         "hull_extent_m": 5.5
@@ -6115,6 +6121,9 @@
       "unit": "vehicle",
       "source": "assets/source/roster/2s19_msta_s/eastern_2s19_msta_s_2s19m2.glb",
       "basis_yaw_deg": 0,
+      "mounts": {
+        "gun": "gun"
+      },
       "wreck": "eastern_2s19_msta_s_2s19m2_wreck",
       "tolerances": {
         "hull_extent_m": 5.5
@@ -6142,6 +6151,9 @@
       "unit": "vehicle",
       "source": "assets/source/roster/plz_05/eastern_plz_05_chinese_tracked_155_mm_howitzer.glb",
       "basis_yaw_deg": 0,
+      "mounts": {
+        "gun": "gun"
+      },
       "wreck": "eastern_plz_05_chinese_tracked_155_mm_howitzer_wreck",
       "tolerances": {
         "hull_extent_m": 5.5
@@ -6326,7 +6338,7 @@
       "source": "assets/source/roster/gepard/europe_gepard_1a2.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "gun": "hull"
+        "gun": "gun"
       },
       "wreck": "europe_gepard_1a2_wreck"
     },
@@ -6344,7 +6356,7 @@
         1.5
       ],
       "tolerances": {
-        "footprint_m": 0.7
+        "footprint_m": 1.2
       }
     },
     "europe_nasams_nasams_3": {

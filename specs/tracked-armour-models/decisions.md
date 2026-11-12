@@ -3202,6 +3202,87 @@ and a confidence that the user would have made the same call.
   `cv90` and `abrams` keep what their importers use until slice 30 deletes
   whatever nothing calls. It keeps lanes disjoint, at the cost of dead code
   for a few days.
+
+## Lane D decisions (2026-11-12, air defence, rockets and howitzers)
+
+Slices 24 and 29. Each entry gives the decision, why, and a confidence that
+the user would have made the same call.
+
+- **D1 Nothing on the lane's tracked vehicles turns, so their bodies name no
+  rig part.** (Agent; high.) The Gepard's and Buk's mounts are drawn by the
+  hull (`assets/catalog.json` `mounts: hull`) and the M270's and the four
+  howitzers' have no role (fixed in the hull), so `vehicle_export.rig` makes
+  no node for them and `scripted_body.wear` would refuse a part named
+  `turret` or `gun`. The briefs name the turret or launcher base
+  `turret_body` (origin on its ring or pivot) and the weapon `gun_body`
+  (origin on its trunnion or hinge), both under `hull`, so a later pass that
+  gives them a rig renames two objects; sights, radars and roof guns over the
+  roof line are `dressing_*`.
+- **D2 The M270's rockets leave through the box's front wall; its rear face
+  shows the pods' aft caps.** (Agent; medium-high.) The A2's three-quarter
+  rear photo shows the box raised on a hinge at the bottom of its rear end,
+  its front end lifted over the cab, and the capped cells in the rear face,
+  which therefore are the rounds' aft ends. That agrees with the frame
+  (pivot at the hinge, x -3.2; muzzle at the box's front face, x +0.5). Our
+  current model showed the caps at the rear too, but hinged the box at its
+  front (the user's note).
+- **D3 The PLZ-05's generated side view goes to Argon labelled "layout only".**
+  (Agent; medium.) It is the only square-on side the library has; the survey
+  (C7) found its gun too short. The brief tells Argon to trust the three
+  photos where they disagree.
+- **D4 The M109A7 keeps its frame's 3.90 m width at the turret's racks.**
+  (Agent; medium.) The frame's width is unresolved (3.15 m family figure
+  against 3.9 m for the A7). Frames never move (P9), so the brief puts the
+  3.90 m at the turret's side racks and asks for the hull over its fenders
+  as the front photos show it (about 3.4-3.6 m), rather than a fat hull.
+- **D5 A turn the provider kills is not an Argon round.** (Agent; medium.)
+  The Buk's round 1 ended on "Provider finish_reason: other" after $0.26
+  with a half-built script; one message asked it to finish round 1, then
+  round 2 ran as usual. The M270's round 2 died the same way, but only after
+  it had rewritten `build.py` and both GLBs, which lint and validate clean,
+  so that output was taken as round 2 without a resend. A6 counts the
+  rounds the work took, not Bento's failures.
+- **D6 The four howitzers and the Gepard draw their gun mount with the gun
+  rig.** (Coordinator grant; high.) `assets/catalog.json` `"mounts":
+  {"gun": "gun"}` for the M109A7, PzH 2000, 2S19M2 and PLZ-05, and the
+  Gepard's from `hull` to `gun`, each landed in its vehicle's own commit,
+  nothing else in the catalog touched. The barrel rides the frame's pitch
+  node, so it leaves the hull-box check; the Gepard's turret now turns in
+  the game, and the howitzers' never does (their mounts are fixed in the
+  hull, `turret: false`). The bodies' `turret_body`/`gun_body` (D1) were
+  renamed `turret`/`gun` in each `build.py`, and the Gepard's round 2 built
+  them so. My request had cited the committed M109A7 failing `validate
+  --type`; that was a probe on a copy outside the repo, which loses the
+  artillery's `hull_extent_m: 5.5` allowance, and I said so to the
+  coordinator. The 5.5 m allowances are probably stale now; slice 30's call.
+- **D7 The Gepard's wreck takes a 1.2 m footprint allowance.** (Coordinator
+  grant; high.) `wreckage.burn` heaves and yaws the turret, which now carries
+  the 4.1 m guns, so a barrel lies 0.09 m past the 1 m floor (R10).
+- **D8 Painted hardware leaves `steel` in bulk where Argon's helpers default
+  to it.** (Agent; high.) The PLZ-05's, M270's and Gepard's scripts (and many
+  lines of the M109A7's) used `steel` for hooks, rails, hinges, hubs, rings
+  and even wheel discs, which our recipe paints bright (P6): every such use
+  became `fittings`, wheel and idler discs and painted barrels
+  `armor_paint`, and `steel` kept only tracks, sprocket teeth, MG barrels,
+  muzzle crowns, tow cables and piston rods. Each is a numbered README edit.
+- **D9 Stale sibling GLBs are re-exported, not left.** (Agent; medium-high.)
+  The rocket family's full run (for its receipt) rewrote the HIMARS x2 and
+  S-300 GLBs; the committed `rocket_artillery.py` exports the same bytes, so
+  they were stale against shared modules, not changed by this lane. They
+  carry 0 new lint issues and validate clean; committed in their own commit.
+- **D10 `air_defence.py` is not split into `buk.py`.** (Agent; medium-high.)
+  Wearing the two bodies removes `gepard()`, `buk()` and `tracked_hull()`
+  (about 170 lines), which is the shrink S14 asked for.
+- **D11 The M270's rear hinge is shown by swinging its box.** (Agent;
+  medium-high.) The launcher stays stowed in the game (out of scope to raise
+  it), where the hinge's place can't be seen; a Blender render of the
+  script with the box turned 35 degrees on its own origin
+  (`assets/after/rocket_artillery/m270a2-hinge.png`) shows the box hinged at
+  its rear-bottom and its front end lifting over the cab, the user's note.
+- **D12 The before sheets are `asset sheet <appearance>`; the after sheets
+  `asset sheet <the roster GLB>`.** (Agent; high.) By name the sheet renders
+  the baked runtime, which is the committed art; the new art is only in the
+  source GLB, which keeps its reference panel when given by its roster path.
 - **R5 The catalog-load tripwire goes to 768 MiB.** (Agent, under Q3; high.)
   The pilot's two bodies grew their four bundles from 11.8 to 17.8 MiB on
   the wire, most of it in the wrecks (the T-72B3's wreck 4.5 to 8.0 MiB),
