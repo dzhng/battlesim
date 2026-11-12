@@ -28,36 +28,55 @@ The user re-ranks or adds notes for these models after seeing the checkpoint sho
 
 ## Lane D record
 
-**Round 1 briefed (2026-11-12, 12:58 local).** One Bento session each, tier
-`google-recommended`, the common brief verbatim plus the vehicle part
-(`throwaway/argon/briefs/<unit>.txt` in the lane's worktree):
+**Sessions and Argon cost** (tier `google-recommended`; every turn's
+`usageByModel` was `google/gemini-4-argon`, plus a cent or less of
+`openai/gpt-6-luna` for the session title, as in the pilot; A5 holds).
+Bento's dispatch was down for three hours after the creates; the sessions
+were delivered at 15:57 local.
 
-| Vehicle | Session | Round 1 | Round 2 | Model check (A5) |
+| Vehicle | Session | Round 1 | Round 2 | Total |
 |---|---|---|---|---|
-| Gepard 1A2 | `jn74m5sakaab67mvd77fh41b5h8j343w` | not delivered | — | — |
-| Buk-M3 | `jn76e3qxg3xxxm399wgbt10y858j3t1q` | not delivered | — | — |
-| M270A2 + MARS II (`build(variant)`) | `jn73fbacmdh3f2p0p1vft94f5d8j234z` | not delivered | — | — |
+| Gepard 1A2 | `jn74m5sakaab67mvd77fh41b5h8j343w` | $3.74 | $1.23 | $4.97 |
+| Buk-M3 | `jn76e3qxg3xxxm399wgbt10y858j3t1q` | $0.26 (provider error) + $1.99 (finished, D5) | $0.90 | $3.15 |
+| M270A2 + MARS II | `jn73fbacmdh3f2p0p1vft94f5d8j234z` | $1.65 | $2.73 (provider error after writing its outputs, D5) | $4.38 |
 
-Every create first returned 503 `integration_unavailable`; retried with the
-same client request ids, each was accepted but sits undelivered
-(`lastDeliveredInputSeq` 0): Bento's dispatch is down workspace-wide (the
-coordinator's note). No further sessions are created until it recovers.
+**State** (each folder's README numbers its local edits):
 
-**What the briefs settle beyond the template** (lane D decisions D1-D4):
-- Nothing on these four turns in the game: the Gepard's and Buk's mounts are
-  drawn by the hull, the M270's has no role. So the bodies name no `turret`,
-  `gun` or `hmg`: the turret or launcher base is `turret_body`, the weapon
-  `gun_body` (the Gepard's two guns `gun_L_body`, `gun_R_body`), both under
-  `hull`; the Gepard's folded search radar is `dressing_search_radar`.
-- M270A2/MARS II: the turntable and the elevation hinge at the rear of the
-  launcher box (hinge pin x -3.21, z 1.19, the frame's pivot), the rams
-  forward of them; the box's rear face shows the pods' aft caps (the
-  three-quarter-rear photo shows the box raised on that rear hinge), and the
-  rockets leave through the box's front wall at x +0.50 (the frame's muzzle).
-- Buk-M3: the layout is rebuilt first (no cab; the turret forward with the
-  radar at its front and the six canisters lying behind it; the raised engine
-  compartment at the rear; seven road wheels, rear sprocket), then the detail
-  the note asks for.
-
-**Before sheets** (game renderer, committed GLBs):
-`throwaway/sheets/before/<appearance>/` in the lane's worktree.
+- **M270A2 and MARS II: done to the export bar, below the critique bar.**
+  One script, a variant each (`scripted_body.wear(..., variant=)`). The
+  user's note is fixed: the launcher box hinges at the rear of the box (pin
+  at x -3.21, z 1.19, the frame's pivot), its turntable under the rear;
+  [`m270a2-hinge.png`](../assets/after/rocket_artillery/m270a2-hinge.png)
+  swings the box 35 degrees on that origin, front end over the cab. Lint 0,
+  validate clean, byte-identical; compare sheets
+  [`m270a2`](../assets/after/rocket_artillery/m270a2-compare.png),
+  [`mars_ii`](../assets/after/rocket_artillery/mars_ii-compare.png).
+  Critique round 1 / 2: M270A2 7/7/6/6/5, 7/7/5/7/7; MARS II
+  7/6.5/6.5/6/6.5, 7/7/6/6/6. Still below: the bare hull nose (no tow
+  hooks, guarded lights or fender lips), the plain cab roof and sides, and
+  the box's side panels (edit 4 after round 2 paints them).
+- **Gepard 1A2: done to the export bar, below the critique bar.** Its gun
+  mount is now drawn by the gun rig (D6): the turret turns, both guns
+  pitch as one `gun`, the folded search radar rides the turret. Its wreck
+  takes a 1.2 m footprint allowance (D7). Lint 0, validate clean,
+  byte-identical; [`gepard-compare.png`](../assets/after/air_defence/gepard-compare.png).
+  Critique 5/7/6/6/6, then 6/7/6/6/6. Still below: the turret reads low and
+  flat (its roof is the frame's 2.76 m), the tracking radar small, the
+  folded search radar box-like.
+- **Buk-M3: integrated, not committed; blocked on its tier-1 budget.** The
+  layout is rebuilt (no cab; the turret forward with the 9S36M "pillow"
+  radar at its front and six canisters behind; the raised engine
+  compartment at the rear; seven road wheels, rear sprocket) and the note
+  "needs more detail" reads as fixed:
+  [`buk-compare.png`](../assets/after/air_defence/buk-compare.png). Lint 0,
+  byte-identical, wreck validates; the live GLB's tiers are 67.4k / 36.3k /
+  9.7k / 2.5k against `tracked_medium`'s 90k / 34k / 10k / 3k (after R11),
+  so tier 1 is 2.3k over. The coordinator holds the call. Critique round 1
+  (before edit 1 painted the radar): 6/6/6/5/5.5.
+- `air_defence.py` was not split (S14): wearing the bodies removes
+  `gepard()` now and `tracked_hull()`/`buk()` with the Buk, about 170
+  lines. Pantsir, Skyranger 30 and NASAMS are untouched.
+- Siblings: HIMARS x2 and the S-300 were re-exported with the rocket
+  family; their committed GLBs were stale against the shared modules (the
+  committed script exports the same bytes), 0 new lint issues, validate
+  clean. BM-21 and Tornado-S came out byte-identical.

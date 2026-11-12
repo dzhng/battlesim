@@ -23,19 +23,16 @@ The user re-ranks or adds notes for these models after seeing the checkpoint sho
 
 ## Lane D record
 
-**Round 1 briefed (2026-11-12, 12:58 local).** One Bento session each, tier
-`google-recommended` (`throwaway/argon/briefs/<unit>.txt` in the lane's
-worktree):
+**Sessions and Argon cost** (tier `google-recommended`; every turn ran
+`google/gemini-4-argon`, plus a cent or less of `openai/gpt-6-luna` for the
+title; A5 holds):
 
-| Vehicle | Session | Round 1 | Round 2 | Model check (A5) |
+| Vehicle | Session | Round 1 | Round 2 | Total |
 |---|---|---|---|---|
-| M109A7 | `jn7689cr9ja542wdqp81ff712h8j2nd9` | not delivered | — | — |
-| PzH 2000 | `jn75evf0d314g4damq9m6z75es8j3e3v` | not delivered | — | — |
-| 2S19M2 | `jn7073hv5r3ywdqdm1yh6m0s4h8j295s` | not delivered | — | — |
-| PLZ-05 | `jn790akgaj0cn20b010s9hvp798j3z2e` | not delivered | — | — |
-
-Bento's dispatch is down workspace-wide: the sessions were accepted but sit
-undelivered (see slice 24's record).
+| M109A7 | `jn7689cr9ja542wdqp81ff712h8j2nd9` | $2.43 | $2.17 | $4.61 |
+| PzH 2000 | `jn75evf0d314g4damq9m6z75es8j3e3v` | $3.82 (stopped before its reply) | $1.73 | $5.56 |
+| 2S19M2 | `jn7073hv5r3ywdqdm1yh6m0s4h8j295s` | $2.11 | $1.51 | $3.63 |
+| PLZ-05 | `jn790akgaj0cn20b010s9hvp798j3z2e` | $0.59 | $0.07 | $0.67 |
 
 **The note, as numbers in each brief** (frame and survey, question 3):
 
@@ -51,5 +48,20 @@ the hull to be checked in the side render against the side photos. The guns
 and turrets are hull art (no mount role): `turret_body` and `gun_body` under
 `hull`, the roof machine guns `dressing_*`.
 
-**Before sheets** (game renderer, committed GLBs):
-`throwaway/sheets/before/<appearance>/` in the lane's worktree.
+**State.** Every gun is drawn by the gun rig (D6): the turret never turns
+(the mount is fixed in the hull) and the barrel pitches on the frame's pitch
+node. All four: lint 0, validate clean (live and wreck), byte-identical,
+tiers inside the caps, the note visibly fixed in the compare sheet (the
+hull's deck and the turret's length and height now follow the numbers
+above; the front skirt runs flush into the fender). `sp_howitzers.py` lost
+its procedural bodies. Each folder's README numbers its local edits.
+
+| Vehicle | Critique rounds (silhouette / surface / fittings / materials / cohesion) | Bar | Still below |
+|---|---|---|---|
+| [M109A7](../assets/after/sp_howitzers/m109a7-compare.png) | 6.5/7/6/5/6; 6/7/5/6/6; 7/7/6/6/6 | below (avg 6.4) | the travel lock reads as sticks, a plain brake, flat roof hatches; the paint was fixed after round 3 (8a3995b96) |
+| [PzH 2000](../assets/after/sp_howitzers/pzh2000-compare.png) | 7/7/5/5/6; 7/8/6/7/7 | **meets** | the turret's angled front cheeks, a bare rear |
+| [2S19M2](../assets/after/sp_howitzers/2s19m2-compare.png) | 4/6/5/5/5; 6/7/5/6/6; 5/7/5/6/5 | below | the turret's inward-leaning sides and rear overhang with the conveyor arm, the bow's upturn, the brake |
+| [PLZ-05](../assets/after/sp_howitzers/plz05-compare.png) | 7/7/7/6/7; 7/7/6/6/7 | below (avg 6.6) | the turret front reads as a tank's wedge, a box-shaped brake |
+
+The paler front decks the critics flagged on the M109A7 and PzH 2000 are
+the shared paint's dust film on low upward faces, not these bodies.
