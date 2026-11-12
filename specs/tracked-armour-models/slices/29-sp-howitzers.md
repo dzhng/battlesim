@@ -65,3 +65,12 @@ its procedural bodies. Each folder's README numbers its local edits.
 
 The paler front decks the critics flagged on the M109A7 and PzH 2000 are
 the shared paint's dust film on low upward faces, not these bodies.
+
+**R12, swept turret fronts (2026-11-12).** Measured from above on each
+turret's armour shell (gun excluded), the foremost x per |y| band:
+- **M109A7: changed** (its edit 9). It was flat across ±0.82 m (x 1.01); now
+  a ±0.35 m mantlet band, then faces back to x 0.76-0.86 at |y| 0.8.
+- **PzH 2000:** already swept: 0.47 at the mantlet, 0.06 at |y| 0.8, -0.17 at 1.0.
+- **2S19M2:** already swept: 1.28 at the mantlet, 0.88 at |y| 1.0, 0.49 at 1.6.
+- **PLZ-05:** already swept: 0.71 at the mantlet, 0.28 at |y| 0.8, -0.04 at 1.0.
+- The Gepard (slice 24) is already swept too: 1.41 at the tracking radar, 1.09 at |y| 0.6.
