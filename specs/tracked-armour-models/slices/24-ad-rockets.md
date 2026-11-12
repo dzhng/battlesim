@@ -82,3 +82,14 @@ were delivered at 15:57 local.
   family; their committed GLBs were stale against the shared modules (the
   committed script exports the same bytes), 0 new lint issues, validate
   clean. BM-21 and Tornado-S came out byte-identical.
+
+**Gepard R12 check (2026-11-13): no change.** The whole-turret probe scores
+it negative, but that's a probe fault: the gun pods flank the turret at |y| 0.88,
+so the mantlet half-width the probe reads off the guns hits its 0.8 m cap,
+and it scores from there. Read band by band, the front isn't flat and doesn't
+come forward. The tracking radar stands foremost (x 1.59–1.67 to |y| 0.4).
+Each cheek wedge beside the radar pocket sweeps back about 0.3 m per metre
+on its own face (x 1.27 at |y| 0.53 to 1.20 at 0.68). The outline from that
+wedge to the turret's side falls back about 1.1 per metre (x 0.88 at |y|
+0.88). Only a 3 cm lip comes forward at |y| 0.75. R12's rule is to change it only if the
+front is flat or comes forward, so it stays.
