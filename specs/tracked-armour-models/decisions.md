@@ -3270,3 +3270,14 @@ have made the same call.
   edits). `vehicle_export.rig` stays as it is, since no caller passes a
   `hull` role once the Gepard is `gun`. Slice 30 removes the 5.5 m tolerances
   that only the barrels needed.
+- **R8 The lint's vertex sample depends on vertex order; the canonical
+  order stays.** (Agent; medium.) `vehicle_lint._measure_penetration`
+  tests every (n//50)-th vertex of each part, so R6's canonical vertex order
+  tests different vertices than a script's build order did. On the Abrams
+  SEP v2 it found contacts the pilot's sample had skipped: skirt inner faces
+  coplanar with the shared belt's outer edge (y = ±1.755), a recess piece in
+  the belt's path at the nose, and the wheel discs touching the hull side by
+  6 mm. These are clearances the brief already asks for, so they are fixed
+  in `build.py` (lane B), not by giving up the canonical order. The lint's
+  sampling stays as it is in this pass ("no new lint checks"); a lint that
+  tests every vertex, or a spatially fixed sample, is a follow-up.
