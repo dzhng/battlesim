@@ -72,8 +72,8 @@ Warnings:
   (`web/tests/sceneAssets/unitFit.test.ts`). Never push art without the bake.
 - Exports fail on any new lint issue. A vehicle on a scripted body must lint
   clean (P10), and its fixes go in its `build.py`.
-- The art load is near its limit (636.7 of 640 MiB). Slice 16 raises it
-  before the lanes' bodies land.
+- The art load grows about 3 MiB a vehicle (R5); the tripwire is 768 MiB.
+  Read the bake's load line at every milestone.
 
 TODO:
 

@@ -3202,3 +3202,9 @@ and a confidence that the user would have made the same call.
   `cv90` and `abrams` keep what their importers use until slice 30 deletes
   whatever nothing calls. It keeps lanes disjoint, at the cost of dead code
   for a few days.
+- **R5 The catalog-load tripwire goes to 768 MiB.** (Agent, under Q3; high.)
+  The pilot's two bodies grew their four bundles from 11.8 to 17.8 MiB on
+  the wire, most of it in the wrecks (the T-72B3's wreck 4.5 to 8.0 MiB),
+  leaving every unit's art at 636.7 of 640 MiB. At about 3 MiB a vehicle,
+  the other 33 add about 100 MiB. Wreck trimming stays out of scope (Q3);
+  if the user wants the load back down, the wreck's tier 0 is where it is.
