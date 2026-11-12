@@ -3688,3 +3688,14 @@ have made the same call.
   medium-low.) Two critics asked for a taller turret, but the frame survey
   measured a 2.5 m roof off two photos and the user's note asked for a
   lower one (Q8c). The frame and the user's note win.
+  - *Measured floor:* on the M1E3 the user judged a plan sweep of 0.29 m
+    back per metre outboard too flat ("swept back more, like the before",
+    which measured about 0.85). The floor is 0.5 (about 27 degrees), from
+    the cheek's foremost point beside the mantlet to the turret's edge.
+    Every turret was measured (`throwaway/turret-sweep/probe.py`, one
+    Blender per GLB). Below it among the tracked units: Ajax 0.12, T-15
+    0.17, BMP-3 0.25, the Bradleys 0.26, the Abrams variants 0.29-0.30,
+    PzH 2000 0.39, BRM-3K 0.40, Leclerc 0.42, M109A7 0.46; the M1E3 went
+    from 0.29 to 0.71. Wheeled turrets (VBCI, Boxer RCT30, EBRC Jaguar)
+    are outside this spec and were left as they are.
+

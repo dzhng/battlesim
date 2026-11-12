@@ -32,8 +32,9 @@ the lint baseline holds no tracked appearance.
    x -4.03), harmless to validate but they inflate bounds; drop them.
 5. **Swept turret fronts (R12).** Measure every turret's plan outline (its
    foremost x across |y|, mantlet and gun excluded). From the mantlet's edge
-   outward the front must run back: never level, never coming forward. Fix
-   each that fails in its `build.py`.
+   outward the front must run back at least 0.5 m per metre outboard,
+   from the cheek's foremost point to the turret's edge (a mantlet set back
+   between the cheeks is fine). Fix each that fails in its `build.py`.
 6. **Lint baseline.** Run `vehicle_lint.py -- --update-baseline`, then check
    that no tracked appearance id is left in it.
 7. **Lineup cohesion sheet.** Write `visualizations/lineup.html`: all 37 at
