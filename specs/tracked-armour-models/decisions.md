@@ -3431,3 +3431,16 @@ have made the same call.
     scheme's paint), or confirmation that lanes should paint hardware
     `armor_paint` (LA7).
   - Lane A did the latter in its scripts.
+- **R11 A far tier sheds its smallest pieces until it fits.** (Agent, from
+  lane D's Buk-M3; high.) `mesh_lods.reduced_copy` gives each loose piece a
+  floor it never decimates below (a piece of 32 triangles or fewer keeps
+  all of them), so a script's body of hundreds of small closed pieces kept
+  them all and overran the tier: the Buk's tiers 1–3 came out 37.2k / 13.2k
+  / 4.7k against `tracked_medium`'s 34k / 10k / 3k, and cutting its
+  cylinders' segments made it worse. Now, smallest first, a piece also drops
+  out past the tier's extent cutoff while the pieces' floors alone overrun
+  the budget. Where they fit, nothing changes. The T-72B3 (78.0k / 31.5k /
+  7.7k / 3.0k, now 27.4k / 7.3k / 2.1k) and the T-14 (33.8k / 9.0k / 3.7k,
+  now 33.5k / 8.4k / 2.0k) were quietly over too; tier 0 is untouched. It
+  is general (`make_tiers` shares it, so an infantry kit's tier 3 may shed
+  pieces when next exported); slice 30's freshness pass re-exports all.
