@@ -245,8 +245,8 @@ def _is_point_inside_mesh(point, bvh, bounds_lo, bounds_hi):
         hits = 0
         origin = point.copy()
         for _ in range(20):
-            hit, loc, normal, dist = bvh.ray_cast(origin, d, 1000.0)
-            if not hit:
+            loc, _normal, _index, _dist = bvh.ray_cast(origin, d, 1000.0)
+            if loc is None:
                 break
             hits += 1
             origin = loc + d * 0.0001
