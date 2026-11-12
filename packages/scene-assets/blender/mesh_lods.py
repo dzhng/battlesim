@@ -2,7 +2,8 @@
 
 Technique from ~/dev/game packages/soldier-assets/bake/blender-mesh-lods.py:
 split the mesh into its loose islands, drop
-islands smaller than the tier's extent cutoff, share the triangle budget over
+islands smaller than the tier's extent cutoff (and, smallest first, any more
+whose floors alone would overrun the budget), share the triangle budget over
 the rest with a per-island floor, decimate each in bind space (before the
 armature modifier), and join. Blender interpolates UVs during the
 collapse; materials travel with each surface. Deform weights and corner
@@ -55,14 +56,24 @@ def reduced_copy(source, name, target, min_extent, floor):
     for obj in pieces:
         canonical(obj)
     pieces.sort(key=lambda o: (len(o.data.vertices), tuple(o.data.vertices[0].co)))
-    for obj in list(pieces):
+    extents = {}
+    for obj in pieces:
         pts = [obj.matrix_world @ v.co for v in obj.data.vertices]
-        extent = max(max(p[i] for p in pts) - min(p[i] for p in pts) for i in range(3))
-        if extent < min_extent and len(pieces) > 1:
-            pieces.remove(obj)
-            bpy.data.objects.remove(obj, do_unlink=True)
+        extents[obj] = max(max(p[i] for p in pts) - min(p[i] for p in pts) for i in range(3))
     counts = {o: triangle_count(o) for o in pieces}
     floors = {o: n if n <= 32 else floor for o, n in counts.items()}
+    # Smallest first, a piece drops out under the tier's extent, and past it
+    # while the pieces' floors alone overrun the budget: a body built from
+    # hundreds of small closed pieces (bolts, slats) sheds the smallest it
+    # cannot reduce, not keep them all.
+    kept = sum(floors.values())
+    for obj in sorted(pieces, key=lambda o: extents[o]):
+        if len(pieces) == 1 or (extents[obj] >= min_extent and kept <= target):
+            break
+        kept -= floors.pop(obj)
+        counts.pop(obj)
+        pieces.remove(obj)
+        bpy.data.objects.remove(obj, do_unlink=True)
     available = max(0, target - sum(floors.values()))
     reducible = sum(counts[o] - floors[o] for o in pieces)
     ratio = min(1.0, available / max(1, reducible))
