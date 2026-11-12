@@ -3477,3 +3477,9 @@ have made the same call.
   now 33.5k / 8.4k / 2.0k) were quietly over too; tier 0 is untouched. It
   is general (`make_tiers` shares it, so an infantry kit's tier 3 may shed
   pieces when next exported); slice 30's freshness pass re-exports all.
+  - *Then:* the Buk's tier 1 still came out 36.3k against 34k (tiers 2–3
+    fit): the paint's edge splits and the collapse's overshoot on small
+    pieces take a 22k target to about 1.65 times it. Tier 1's target is
+    now 20k for every scripted body, the general number, not a Buk
+    exception or a heavier class for it.
+
