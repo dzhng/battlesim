@@ -2,229 +2,42 @@
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/type15.py -- [--wreck]
 
-What the photos settle (display and VT-5 export photos): six road wheels a
-side on hydropneumatic arms, the sprocket at the rear and the idler at the
-front, no return rollers showing under the skirts; a short sharp glacis to a
-flat deck, the driver's hatch on the left of it; side skirts in sections. The
-welded turret is boxed in modular armour, a wedge of blocks on each cheek
-and a deep bustle box behind, a slatted rack round its rear; the 105 mm gun
-has a thermal sleeve and a fume extractor; the commander's panoramic sight
-on the right rear roof, the remote heavy machine gun station beside it, four
-smoke tubes a side. Its paint is the PLA's digital desert pattern.
+The ZTQ-15 wears a scripted body (`BODY`, `scripted_body`): Gemini Argon's
+build script after its second round, edited since (its folder's README lists
+the edits). This script adds the rig, the whip antennas and the wreck.
 
-Built to the catalog frame (hull 7.3 x 3.35 x 2.5 m, gun pivot 1.68 m, the
-remote HMG on the turret roof at 2.44 m).
+Built to the catalog frame (hull 7.3 x 3.35 x 2.5 m, gun pivot 1.68 m, the remote HMG on the turret roof at 2.44 m): nothing here moves it.
 """
-import math
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import armour_parts as AR  # noqa: E402
-import hull_fittings as HF  # noqa: E402
-import hull_shape as HS  # noqa: E402
 import roof_parts as RF  # noqa: E402
-import running_gear as RG  # noqa: E402
-import stowage as SW  # noqa: E402
-import vehicle_guns as VG  # noqa: E402
-import vehicle_parts as VP  # noqa: E402
-from parts import box, cyl, empty, loft, prism  # noqa: E402
+import scripted_body as SB  # noqa: E402
+from parts import empty  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
 
-FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
-
-TRACK_Y = 1.30
-TRACK_W = 0.48
-ROAD_R = 0.33
-ROAD_Z = 0.40
-DECK = 1.42
+# The ZTQ-15's body (`scripted_body`) and its track's link pitch.
+BODY = "assets/source/skins/type15/argon-r2/build.py"
+LINK_PITCH = 0.15
+# The 105 mm gun's trunnions, this far ahead of the turret ring along the bore.
 TRUNNION = 0.85
-# The upper glacis: from 1.10 m back of the nose it falls 0.21 m to the nose's
-# edge, about 11 degrees side-on.
-GLACIS_RUN, GLACIS_DROP = 1.10, 0.21
-NOSE_Z = DECK - GLACIS_DROP
-# The skirts: their outer face, thickness and foot; the add-on modules on the
-# front sections stand this much proud of them. All clear of the track band
-# (1.54) and the road wheels (1.57).
-SKIRT_FACE, SKIRT_T, SKIRT_FOOT, BLOCK_T = 1.635, 0.05, 0.80, 0.03
-
-
-def glacis_z(v, x):
-    head = v.length / 2 - GLACIS_RUN
-    return DECK - max(0.0, x - head) / GLACIS_RUN * GLACIS_DROP
-
-
-def skirt_top(v, x):
-    """The skirts' top at x: just under the deck's edge, then falling with the
-    glacis toward the nose."""
-    return glacis_z(v, x) - 0.03
-
-
-def skirts(v):
-    """Six thin skirt sections a side, their tops under the deck's edge and
-    falling with the glacis over the front one, whose leading edge climbs
-    toward the idler; flat bolted add-on modules on the front three, cut to
-    the same outline (photos: three-quarter front)."""
-    m, h = v.mats, v.hull
-    half = v.length / 2
-    head = half - GLACIS_RUN
-    sections = 6
-    front = half - 0.20
-    length = (front - (-half + 0.25)) / sections
-    for side, s in ((1, "L"), (-1, "R")):
-        for k in range(sections):
-            x1, x0 = front - length * k - 0.015, front - length * (k + 1) + 0.015
-            tops = [(x, skirt_top(v, x)) for x in [x1] + ([head] if x0 < head < x1 else []) + [x0]]
-            if k == 0:
-                foot = [(x0, SKIRT_FOOT), (x1 - 0.45, SKIRT_FOOT), (x1, skirt_top(v, x1) - 0.12)]
-            else:
-                foot = [(x0, SKIRT_FOOT), (x1, SKIRT_FOOT)]
-            outline = foot + tops
-            prism(f"skirt_{s}_{k}_plate", outline, SKIRT_T, loc=(0, side * (SKIRT_FACE - SKIRT_T / 2), 0),
-                  mat=m["paint"], parent=h, bevel=0.015, lods=VP.ALL)
-            for j, x in enumerate((x0 + 0.08, x1 - 0.08 - (0.40 if k == 0 else 0.0))):
-                cyl(f"skirt_{s}_{k}_bolt_{j}_0", 0.022, 0.02, (x, side * (SKIRT_FACE + 0.008), skirt_top(v, x) - 0.06),
-                    "Y", m["steel"], h, seg=6, lods=FINE)
-            if k < 3:
-                inset = [(x + (0.04 if x < (x0 + x1) / 2 else -0.04), z + (0.05 if z < 1.0 else -0.05))
-                         for x, z in outline]
-                prism(f"skirt_armour_{s}_{k}", inset, BLOCK_T, loc=(0, side * (SKIRT_FACE + BLOCK_T / 2), 0),
-                      mat=m["paint"], parent=h, bevel=0.012, lods=VP.ALL)
-
-
-def hull(v):
-    m, h = v.mats, v.hull
-    half = v.length / 2
-    prism("hull_upper", [(-half, 0.86), (half - 0.30, 0.86), (half, 1.06), (half, NOSE_Z), (half - GLACIS_RUN, DECK),
-                         (-half + 0.08, DECK), (-half, DECK - 0.10)], 3.05, mat=m["paint"], parent=h, bevel=0.05)
-    prism("hull_lower", [(-half + 0.35, 0.40), (half - 0.70, 0.40), (half - 0.05, 0.88), (-half, 0.88),
-                         (-half, 0.70)], 2.10, mat=m["paint"], parent=h, bevel=0.04)
-    slope = math.atan(GLACIS_DROP / GLACIS_RUN)
-    AR.armour_tiles("glacis_armour", (half - 0.55, 0, glacis_z(v, half - 0.55)), (0.95, 2.60), (2, 5), 0.06, m, h,
-                    rot=(0, slope, 0))
-    RF.hatch("driver_hatch", (half - 1.45, 0.55, DECK), m, h, radius=0.27)
-    for k in range(3):
-        RF.periscope(f"driver_periscope_{k}", (half - 1.12, 0.35 + k * 0.20, DECK), m, h, size=(0.11, 0.16, 0.08))
-    for side, s in ((1, "L"), (-1, "R")):
-        HF.light_with_guard(f"headlight_{s}", (half - 0.95, side * 1.30, glacis_z(v, half - 0.95) + 0.08), 0.06, m, h)
-        HF.tow_hook(f"front_tow_{s}", (half - 0.14, side * 0.65, 0.82), m, h, size=0.12)
-        HF.tow_hook(f"rear_tow_{s}", (-half + 0.14, side * 0.75, 0.80), m, h, size=0.12, rot=(0, 0, math.pi))
-        SW.stowage_box(f"fender_box_{s}", (-1.6, side * 1.40, DECK), (0.90, 0.32, 0.30), m, h,
-                       rot=(0, 0, 0 if side > 0 else math.pi))
-        HF.cable(f"tow_cable_{s}", [(-half + 0.3, side * 1.42, DECK + 0.02), (-0.6, side * 1.45, DECK + 0.02),
-                                    (0.8, side * 1.42, DECK + 0.02)], m, h, radius=0.02)
-    HF.grille("engine_grille", (-2.65, 0, DECK), (1.10, 1.90), m, h, slats=10)
-    HF.exhaust("exhaust", (-half - 0.02, -1.05, 1.25), 0.09, 0.25, m, h, rot=(0, 0, math.pi))
-    # The photos' skirts with their add-on modules, spare track links across
-    # the nose, jerrycans lying on the deck aft and a deck box.
-    skirts(v)
-    for side, s in ((1, "L"), (-1, "R")):
-        SW.jerrycan(f"jerrycan_{s}", (-half + 0.15, side * 1.15, DECK + 0.09), dict(m, paint=m["dark"]), h,
-                    rot=(0, math.pi / 2, 0))
-    for k in range(4):
-        cyl(f"spare_link_{k}", 0.045, 0.55, (half - 0.18, -0.85 + k * 0.57, 0.98), "Y", m["track"], h, seg=8,
-            lods=NEAR)
-    SW.stowage_box("deck_box", (-half + 0.40, 0, DECK), (0.35, 1.30, 0.20), m, h)
-    # The rear: its tail lights in their guards.
-    for side, sd in ((1, "L"), (-1, "R")):
-        HF.light_with_guard(f"tail_light_{sd}", (-v.length / 2 - 0.02, side * (v.width / 2 - 0.5), DECK - 0.20), 0.05,
-                            dict(v.mats, lamp=v.mats["tail"]), v.hull, rot=(0, 0, math.pi))
-
-def running_gear(v):
-    road_x = [2.25 - 0.86 * k for k in range(6)]
-    RG.tracked_running_gear(v.mats, v.hull, TRACK_Y, TRACK_W, road_x, ROAD_Z, ROAD_R, 0.20, (-3.20, 0.58, 0.28),
-                            (3.15, 0.56, 0.26), [(1.0, 0.82, 0.08), (-1.0, 0.82, 0.08)], bolts=6, teeth=12,
-                            arm=(0.40, -0.30), pitch=0.15, dual=True)
-
-
-def turret(v, turret, gun, hmg, hmg_gun):
-    m = v.mats
-    base = DECK - v.frame["mounts"][0]["pivot_m"][2]
-    top = base + 1.00
-    # The turret stands apart from the flat deck: an undercut foot on a dark
-    # ring, then the widest belt, its modular armour swept into an arrowhead
-    # ahead of the mantlet, and a crown leaning in.
-    belt = [(1.75, 0.35), (1.10, 1.28), (-1.30, 1.30), (-1.55, 1.00), (-1.55, -1.00), (-1.30, -1.30), (1.10, -1.28),
-            (1.75, -0.35)]
-    foot = [(x * 0.80, y * 0.80) for x, y in belt]
-    crown = [(1.25, 0.32), (0.85, 1.08), (-1.25, 1.12), (-1.45, 0.88), (-1.45, -0.88), (-1.25, -1.12), (0.85, -1.08),
-             (1.25, -0.32)]
-    cyl("turret_ring_guard", 1.02, 0.14, (0, 0, base + 0.05), "Z", m["dark"], turret, seg=36, lods=MID)
-    loft("turret_shell", [(base + 0.10, foot), (base + 0.40, belt), (top, crown)], mat=m["paint"], parent=turret,
-         bevel=0.035)
-    RF.roof_fittings("roof", crown, top, m, turret, periscopes=((-0.10, 0.80, 0.6),))
-    RF.laser_warners("laser_warner", crown, top, m, turret)
-    for side, s in ((1, "L"), (-1, "R")):
-        # Tiles on the turret's leaning flank: the shell's side at x -0.30,
-        # from its belt ring to its crown ring.
-        loc, rot = HS.on_side(-0.30, base + 0.70, side, (1.30, base + 0.40), (1.115, top))
-        AR.armour_tiles(f"side_tiles_{s}", loc, (1.60, 0.52), (4, 1), 0.06, m, turret, rot=rot)
-        # A stowage basket on each flank's rear, the arrowhead's faces tiled.
-        AR.slat_armour(f"side_basket_{s}", (-0.95, side * 1.36, base + 0.40), (0.80, 0.52), m, turret, spacing=0.10,
-                       bar=0.014)
-        # Halfway up the arrowhead's face: its outward normal and lean.
-        out = math.atan2(1.75 - 1.10, 1.28 - 0.35)
-        AR.armour_tiles(f"cheek_face_{s}", (1.24, side * 0.76, base + 0.70), (0.70, 0.98), (1, 3), 0.05, m, turret,
-                        rot=(0, math.pi / 2 - 0.59, side * out))
-        RF.smoke_discharger_bank(f"smoke_{s}", (0.10, side * 1.10, top - 0.05), m, turret, count=4, tube_radius=0.045,
-                                 tube_length=0.20, elevation=0.4, spread=0.4, rot=(0, 0, side * 1.1))
-        whip = empty(f"dressing_antenna_{s}", parent=turret)
-        RF.antenna(f"antenna_{s}", (-1.35, side * 0.80, top), m, whip, height=2.0)
-    SW.stowage_box("bustle_box", (-1.85, 0, base + 0.12), (0.50, 2.00, 0.74), m, turret)
-    AR.slat_armour("bustle_rack", (-2.12, 0, base + 0.12), (1.90, 0.76), m, turret, rot=(0, 0, math.pi / 2))
-    sight = empty("dressing_gunner_sight", parent=turret)
-    RF.sight_housing("gunner_sight", (0.45, 0.55, top - 0.02), m, sight, size=(0.42, 0.30, 0.24))
-    mast = empty("dressing_commander_sight", parent=turret)
-    cyl("panorama_post", 0.09, 0.04, (-0.55, -0.55, top + 0.02), "Z", m["dark"], mast, seg=12)
-    RF.sight_housing("panorama_head", (-0.55, -0.55, top + 0.02), m, mast, size=(0.32, 0.30, 0.26))
-    RF.hatch("loader_hatch", (-0.45, 0.50, top), m, turret, radius=0.26)
-    # The 105 mm: mantlet, barrel root, and the barrel with its sleeve, fume
-    # extractor and muzzle.
-    reach = v.frame["mounts"][0]["muzzle_m"][0] - TRUNNION
-    box("mantlet", (0.55, 0.55, 0.42), (0.20, 0, 0), m["paint"], gun, bevel=0.05)
-    cyl("barrel_root", 0.12, 0.50, (0.70, 0, 0), "X", m["paint"], gun, seg=24)
-    evac, collar = 2.2, 0.50
-    VG.gun_tube("main_gun", gun, m, 0.45, reach, 0.070,
-                sleeve=(0.080, [(0.95, evac - collar / 2), (evac + collar / 2, reach - 0.16)]),
-                evacuator=(evac, 0.125, collar, 0), muzzle=(0.080, 0.16), bore=0.055)
-    # The remote heavy machine gun station.
-    lift = v.frame["mounts"][1]["muzzle_m"][2]
-    cyl("rws_bearing", 0.20, 0.08, (0, 0, -0.04), "Z", m["dark"], hmg, seg=20)
-    box("rws_body", (0.42, 0.32, lift), (-0.05, 0, lift / 2), m["paint"], hmg, bevel=0.03)
-    RF.sight_housing("rws_sight", (0.05, -0.24, -0.10), m, hmg_gun, size=(0.24, 0.14, 0.20))
-    reach = v.frame["mounts"][1]["muzzle_m"][0]
-    box("qjc88_receiver", (0.60, 0.11, 0.15), (0.02, 0, 0), m["dark"], hmg_gun, bevel=0.012)
-    cyl("qjc88_barrel", 0.030, reach - 0.40, ((reach + 0.30) / 2, 0, 0), "X", m["dark"], hmg_gun, seg=10)
-    cyl("qjc88_brake", 0.042, 0.10, (reach - 0.05, 0, 0), "X", m["steel"], hmg_gun, seg=10, lods=NEAR)
+# The whips' bases on the turret's rear roof, either side (turret frame).
+ANTENNA = (-1.60, 0.85, 0.80)
 
 
 def build(variant, v):
-    hull(v)
-    running_gear(v)
-    mounts = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})
-    t, gun, _, _ = mounts["cannon"]
-    hmg, hmg_gun, _, _ = mounts["HMG"]
-    turret(v, t, gun, hmg, hmg_gun)
+    turret = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})["cannon"][0]
+    SB.wear(v, BODY, LINK_PITCH)
+    x, y, z = ANTENNA
+    for side, s in ((1, "L"), (-1, "R")):
+        whip = empty(f"dressing_antenna_{s}", parent=turret)
+        RF.antenna(f"antenna_{s}", (x, side * y, z), v.mats, whip, height=2.0)
 
 
 def wreck(variant, v):
-    """The Type 15 after its fire: the right track off with two road
-    wheels gone, skirt sections blown away, the bustle box burst open and its
-    rack bent, plates warped; the turret is thrown (`wreckage.burn`)."""
-    from parts import box as solid, rest_on_ground
-    from wreckage import bend, densify, dent, heat, parts, remove, warp
-    m = v.mats
-    remove("track_R_band", "wheel_R_2_", "wheel_R_3_", "skirt_R_1_", "skirt_R_2_", "skirt_armour_R_1",
-           "skirt_armour_R_2", "fender_box_R", "loader_hatch",
-           "bustle_box_lid")
-    thrown = solid("thrown_track", (3.4, TRACK_W, 0.05), (0.2, -2.05, 0.03), m["track"], v.hull, rot=(0, 0, 0.08))
-    densify(thrown)
-    warp(thrown, heat(0.03, 0.6, seed=2.0))
-    bend(parts("bustle_rack"), (-2.12, 0, 1.0), (0, 1, 0), (1, 0, 0), 0.4)
-    shell = parts("hull_upper", "hull_lower", "skirt_", "turret_shell", "bustle_box")
-    densify(shell, scale=2.0)
-    warp(shell, heat(0.02, 0.8, seed=21.0), dent((2.9, -0.5, 1.2), 0.45, 0.10, (-0.6, 0, -1)))
-    rest_on_ground(0.004)
+    SB.wreck(v, "L", (3, 4))
 
 
-run("type15", "chinese_digital", build, wreck, chip=1.0)
+if __name__ == "__main__":
+    run("type15", "chinese_digital", build, wreck, chip=1.0)

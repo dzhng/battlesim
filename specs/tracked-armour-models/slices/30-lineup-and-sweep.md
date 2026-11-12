@@ -27,6 +27,9 @@ the lint baseline holds no tracked appearance.
    needs; `asset validate --type` decides.
    Drop each wreck's `tolerances.footprint_m` of 1.0 or less too (R10:
    the wreck kind's `rubble_m` floor covers it); `asset validate` decides.
+   And `mesh_lods` (coordinator-only): tiers 2–3 keep stray degenerate
+   vertices past the hull (lane D: the M270's `hull_armor_paint_LOD3` at
+   x -4.03), harmless to validate but they inflate bounds; drop them.
 5. **Lint baseline.** Run `vehicle_lint.py -- --update-baseline`, then check
    that no tracked appearance id is left in it.
 6. **Lineup cohesion sheet.** Write `visualizations/lineup.html`: all 37 at
