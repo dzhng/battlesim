@@ -3208,3 +3208,33 @@ and a confidence that the user would have made the same call.
   leaving every unit's art at 636.7 of 640 MiB. At about 3 MiB a vehicle,
   the other 33 add about 100 MiB. Wreck trimming stays out of scope (Q3);
   if the user wants the load back down, the wreck's tier 0 is where it is.
+
+## Lane C decisions (2026-11-12, IFVs and recon: slices 25-28)
+
+Each entry gives the decision, why, and a confidence that the user would
+have made the same call.
+
+- **LC1 Seven sessions for ten appearances.** (Agent; high.) The CV9040C and
+  Mk IV, the M2A4 and M3A3, and the BMP-3 and BRM-3K are variants of one
+  script each (R2, slice files); the CV90120, Puma, Ajax and BMP-2M have
+  their own. The BRM-3K's body lives with the BMP-3's
+  (`assets/source/skins/bmp/bmp3-argon-r{1,2}/`), and `brm.py` wears it with
+  `variant="brm_3k"` (`scripted_body.wear`'s variant, 5c97d4aa9): the hull
+  is one source, as S13 has it.
+- **LC2 The autocannon pitches at its mantlet, not at the ring.**
+  (Agent; medium-high.) The IFV scripts made their rig with no trunnion, so
+  the gun pitched about the turret's centre and a raised barrel swung its
+  mantlet out of the turret face. Each brief gives the trunnion at the
+  real mantlet (0.5-0.9 m ahead of the ring; the CV90120 keeps its 0.95 m),
+  and the family script passes the same distance to `rig` (`trunnion=`).
+  Pivots and muzzles, which the simulation reads, do not move.
+- **LC3 A second mount that is not a machine gun is still the `hmg` pair.**
+  (Agent; high.) The frame gives the Bradley's TOW, the Puma's MELLS and the
+  BMP-2M's Kornet the `hmg` role on the turret, and the BMP-3's 30 mm the
+  `hmg` role on its 100 mm; the brief names the turning arm `hmg` and the
+  pitching box or gun `hmg_gun`, its origin on the frame's pivot. Fixed
+  launchers on the turret (the Mk IV's Spike) are `turret`.
+- **LC4 Medium bodies are briefed under 70k triangles.** (Agent; medium.)
+  All lane-C appearances but the Puma are `tracked_medium` (90k tier 0);
+  the shared belt and the paint's edge splits add to Argon's count, so the
+  brief leaves room under the cap.
