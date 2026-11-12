@@ -3293,6 +3293,18 @@ have made the same call.
     17.5 mm, the same seating the J-20's entry accepts at 108 mm. That one
     baseline entry is updated. Receipts hash the lint module, so every
     receipt is stale until slice 30's freshness pass re-exports them.
+  - *Amended again:* the fix left a second fault, which `vehicle_lint_test`
+    caught (I had not run it). Each ray stepped 0.1 mm past its hit, and
+    the BVH (epsilon 0.1 mm) reports a hit that far short of the face, so
+    the next cast met the same face: a thin plate counted twice and a point
+    inside a 10 cm skirt read as outside. Rays now step 1 mm past. Under it
+    the roster walk drops 267 baseline entries (false contacts) and adds
+    12: the pilot Abrams SEP v2's 9 (hull skin against the belts and the
+    left wheel discs, which lane B's script replaces), the old Ajax's hull
+    and turret seated 10 mm (lane C replaces it), and the BTR-82A's gun
+    housing and mantlet seated 9–10 mm; the F/A-18E's gear strut entry
+    reads 28 mm. The baseline is regenerated; slice 30 regenerates it once
+    more after the last body lands.
 - **R9 A build script can't repaint the export's materials.** (Agent, from
   lane C's finding; high.) The export makes its materials under the slot
   names before the script runs, so a script that looks its slots up by

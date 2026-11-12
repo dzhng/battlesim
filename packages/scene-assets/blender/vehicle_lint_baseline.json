@@ -24,48 +24,8 @@
   "eastern_2s19_msta_s_2s19m2": [
     {
       "check": "interpenetration",
-      "distance_m": 0.0309,
-      "message": "Parts 'headlight_L_base' and 'track_L_band' interpenetrate by 30.9mm",
-      "parts": [
-        "headlight_L_base",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0253,
-      "message": "Parts 'headlight_L_guard_0' and 'track_L_band' interpenetrate by 25.3mm",
-      "parts": [
-        "headlight_L_guard_0",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0309,
-      "message": "Parts 'headlight_R_base' and 'track_R_band' interpenetrate by 30.9mm",
-      "parts": [
-        "headlight_R_base",
-        "track_R_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0253,
-      "message": "Parts 'headlight_R_guard_0' and 'track_R_band' interpenetrate by 25.3mm",
-      "parts": [
-        "headlight_R_guard_0",
-        "track_R_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.2159,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 215.9mm",
+      "distance_m": 0.1302,
+      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 130.2mm",
       "parts": [
         "hull_upper",
         "track_L_band"
@@ -74,8 +34,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.2192,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 219.2mm",
+      "distance_m": 0.034,
+      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 34.0mm",
       "parts": [
         "hull_upper",
         "track_R_band"
@@ -524,19 +484,19 @@
     },
     {
       "check": "floating_part",
-      "distance_m": 0.0251,
-      "message": "Part 'mg_barrel' is 2.5cm from nearest part (threshold: 2cm)",
+      "distance_m": 0.0394,
+      "message": "Part 'fume_extractor' is 3.9cm from nearest part (threshold: 2cm)",
       "parts": [
-        "mg_barrel"
+        "fume_extractor"
       ],
       "severity": "error"
     },
     {
       "check": "floating_part",
-      "distance_m": 0.0394,
-      "message": "Part 'fume_extractor' is 3.9cm from nearest part (threshold: 2cm)",
+      "distance_m": 0.0251,
+      "message": "Part 'mg_barrel' is 2.5cm from nearest part (threshold: 2cm)",
       "parts": [
-        "fume_extractor"
+        "mg_barrel"
       ],
       "severity": "error"
     }
@@ -624,8 +584,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0326,
-      "message": "Parts 'battery_box_body' and 'wheel_R_2_tread_3' interpenetrate by 32.6mm",
+      "distance_m": 0.0306,
+      "message": "Parts 'battery_box_body' and 'wheel_R_2_tread_3' interpenetrate by 30.6mm",
       "parts": [
         "battery_box_body",
         "wheel_R_2_tread_3"
@@ -1154,8 +1114,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0167,
-      "message": "Parts 'fuel_tank_strap_0' and 'wheel_L_2_tread_3' interpenetrate by 16.7mm",
+      "distance_m": 0.0094,
+      "message": "Parts 'fuel_tank_strap_0' and 'wheel_L_2_tread_3' interpenetrate by 9.4mm",
       "parts": [
         "fuel_tank_strap_0",
         "wheel_L_2_tread_3"
@@ -1394,8 +1354,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.031,
-      "message": "Parts 'cab' and 'wheel_R_1_tread_18_1' interpenetrate by 31.0mm",
+      "distance_m": 0.0226,
+      "message": "Parts 'cab' and 'wheel_R_1_tread_18_1' interpenetrate by 22.6mm",
       "parts": [
         "cab",
         "wheel_R_1_tread_18_1"
@@ -1613,78 +1573,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0269,
-      "message": "Parts 'driver_hatch_coaming' and 'turret_ring_guard' interpenetrate by 26.9mm",
-      "parts": [
-        "driver_hatch_coaming",
-        "turret_ring_guard"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0224,
-      "message": "Parts 'driver_hatch_coaming' and 'turret_shell' interpenetrate by 22.4mm",
-      "parts": [
-        "driver_hatch_coaming",
-        "turret_shell"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0184,
-      "message": "Parts 'driver_hatch_hinge' and 'turret_shell' interpenetrate by 18.4mm",
-      "parts": [
-        "driver_hatch_hinge",
-        "turret_shell"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0281,
-      "message": "Parts 'engine_grille_frame_0' and 'turret_ring_guard' interpenetrate by 28.1mm",
-      "parts": [
-        "engine_grille_frame_0",
-        "turret_ring_guard"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0281,
-      "message": "Parts 'engine_grille_frame_3' and 'turret_ring_guard' interpenetrate by 28.1mm",
-      "parts": [
-        "engine_grille_frame_3",
-        "turret_ring_guard"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0125,
-      "message": "Parts 'engine_grille_opening' and 'turret_ring_guard' interpenetrate by 12.5mm",
-      "parts": [
-        "engine_grille_opening",
-        "turret_ring_guard"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0239,
-      "message": "Parts 'engine_grille_slat_0' and 'turret_ring_guard' interpenetrate by 23.9mm",
-      "parts": [
-        "engine_grille_slat_0",
-        "turret_ring_guard"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.212,
-      "message": "Parts 'hull_lower' and 'track_L_band' interpenetrate by 212.0mm",
+      "distance_m": 0.01,
+      "message": "Parts 'hull_lower' and 'track_L_band' interpenetrate by 10.0mm",
       "parts": [
         "hull_lower",
         "track_L_band"
@@ -1693,8 +1583,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.212,
-      "message": "Parts 'hull_lower' and 'track_R_band' interpenetrate by 212.0mm",
+      "distance_m": 0.01,
+      "message": "Parts 'hull_lower' and 'track_R_band' interpenetrate by 10.0mm",
       "parts": [
         "hull_lower",
         "track_R_band"
@@ -1823,8 +1713,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.1663,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 166.3mm",
+      "distance_m": 0.1356,
+      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 135.6mm",
       "parts": [
         "hull_upper",
         "track_L_band"
@@ -1833,8 +1723,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.1684,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 168.4mm",
+      "distance_m": 0.1515,
+      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 151.5mm",
       "parts": [
         "hull_upper",
         "track_R_band"
@@ -2223,8 +2113,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0159,
-      "message": "Parts 'track_guard_L' and 'track_L_band' interpenetrate by 15.9mm",
+      "distance_m": 0.0133,
+      "message": "Parts 'track_guard_L' and 'track_L_band' interpenetrate by 13.3mm",
       "parts": [
         "track_guard_L",
         "track_L_band"
@@ -2243,8 +2133,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0141,
-      "message": "Parts 'track_guard_R' and 'track_R_band' interpenetrate by 14.1mm",
+      "distance_m": 0.0133,
+      "message": "Parts 'track_guard_R' and 'track_R_band' interpenetrate by 13.3mm",
       "parts": [
         "track_guard_R",
         "track_R_band"
@@ -2345,8 +2235,8 @@
   "eastern_bmp_ifv_family_bmp_3": [
     {
       "check": "interpenetration",
-      "distance_m": 0.2237,
-      "message": "Parts 'hull_lower' and 'track_L_band' interpenetrate by 223.7mm",
+      "distance_m": 0.01,
+      "message": "Parts 'hull_lower' and 'track_L_band' interpenetrate by 10.0mm",
       "parts": [
         "hull_lower",
         "track_L_band"
@@ -2355,8 +2245,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.2237,
-      "message": "Parts 'hull_lower' and 'track_R_band' interpenetrate by 223.7mm",
+      "distance_m": 0.01,
+      "message": "Parts 'hull_lower' and 'track_R_band' interpenetrate by 10.0mm",
       "parts": [
         "hull_lower",
         "track_R_band"
@@ -2365,8 +2255,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.05,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 50.0mm",
+      "distance_m": 0.0327,
+      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 32.7mm",
       "parts": [
         "hull_upper",
         "track_L_band"
@@ -2375,8 +2265,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.13,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 130.0mm",
+      "distance_m": 0.129,
+      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 129.0mm",
       "parts": [
         "hull_upper",
         "track_R_band"
@@ -2615,8 +2505,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.1058,
-      "message": "Parts 'skirt_L_plate' and 'track_L_band' interpenetrate by 105.8mm",
+      "distance_m": 0.01,
+      "message": "Parts 'skirt_L_plate' and 'track_L_band' interpenetrate by 10.0mm",
       "parts": [
         "skirt_L_plate",
         "track_L_band"
@@ -2625,8 +2515,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.1058,
-      "message": "Parts 'skirt_R_plate' and 'track_R_band' interpenetrate by 105.8mm",
+      "distance_m": 0.01,
+      "message": "Parts 'skirt_R_plate' and 'track_R_band' interpenetrate by 10.0mm",
       "parts": [
         "skirt_R_plate",
         "track_R_band"
@@ -2637,8 +2527,8 @@
   "eastern_brm_brm_3k": [
     {
       "check": "interpenetration",
-      "distance_m": 0.04,
-      "message": "Parts 'fender_bin_L_0_body' and 'track_L_band' interpenetrate by 40.0mm",
+      "distance_m": 0.0102,
+      "message": "Parts 'fender_bin_L_0_body' and 'track_L_band' interpenetrate by 10.2mm",
       "parts": [
         "fender_bin_L_0_body",
         "track_L_band"
@@ -2647,8 +2537,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.04,
-      "message": "Parts 'fender_bin_L_1_body' and 'track_L_band' interpenetrate by 40.0mm",
+      "distance_m": 0.0132,
+      "message": "Parts 'fender_bin_L_1_body' and 'track_L_band' interpenetrate by 13.2mm",
       "parts": [
         "fender_bin_L_1_body",
         "track_L_band"
@@ -2657,8 +2547,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0332,
-      "message": "Parts 'fender_bin_L_2_body' and 'track_L_band' interpenetrate by 33.2mm",
+      "distance_m": 0.0116,
+      "message": "Parts 'fender_bin_L_2_body' and 'track_L_band' interpenetrate by 11.6mm",
       "parts": [
         "fender_bin_L_2_body",
         "track_L_band"
@@ -2667,8 +2557,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.04,
-      "message": "Parts 'fender_bin_R_0_body' and 'track_R_band' interpenetrate by 40.0mm",
+      "distance_m": 0.0102,
+      "message": "Parts 'fender_bin_R_0_body' and 'track_R_band' interpenetrate by 10.2mm",
       "parts": [
         "fender_bin_R_0_body",
         "track_R_band"
@@ -2677,8 +2567,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.04,
-      "message": "Parts 'fender_bin_R_1_body' and 'track_R_band' interpenetrate by 40.0mm",
+      "distance_m": 0.0132,
+      "message": "Parts 'fender_bin_R_1_body' and 'track_R_band' interpenetrate by 13.2mm",
       "parts": [
         "fender_bin_R_1_body",
         "track_R_band"
@@ -2687,8 +2577,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0332,
-      "message": "Parts 'fender_bin_R_2_body' and 'track_R_band' interpenetrate by 33.2mm",
+      "distance_m": 0.0116,
+      "message": "Parts 'fender_bin_R_2_body' and 'track_R_band' interpenetrate by 11.6mm",
       "parts": [
         "fender_bin_R_2_body",
         "track_R_band"
@@ -2697,8 +2587,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0176,
-      "message": "Parts 'fender_L' and 'track_L_band' interpenetrate by 17.6mm",
+      "distance_m": 0.0133,
+      "message": "Parts 'fender_L' and 'track_L_band' interpenetrate by 13.3mm",
       "parts": [
         "fender_L",
         "track_L_band"
@@ -2707,8 +2597,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0133,
-      "message": "Parts 'fender_R' and 'track_R_band' interpenetrate by 13.3mm",
+      "distance_m": 0.0169,
+      "message": "Parts 'fender_R' and 'track_R_band' interpenetrate by 16.9mm",
       "parts": [
         "fender_R",
         "track_R_band"
@@ -2717,8 +2607,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.1873,
-      "message": "Parts 'hull_lower' and 'track_L_band' interpenetrate by 187.3mm",
+      "distance_m": 0.1581,
+      "message": "Parts 'hull_lower' and 'track_L_band' interpenetrate by 158.1mm",
       "parts": [
         "hull_lower",
         "track_L_band"
@@ -2727,8 +2617,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.1873,
-      "message": "Parts 'hull_lower' and 'track_R_band' interpenetrate by 187.3mm",
+      "distance_m": 0.1581,
+      "message": "Parts 'hull_lower' and 'track_R_band' interpenetrate by 158.1mm",
       "parts": [
         "hull_lower",
         "track_R_band"
@@ -2957,8 +2847,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.25,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 250.0mm",
+      "distance_m": 0.2121,
+      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 212.1mm",
       "parts": [
         "hull_upper",
         "track_L_band"
@@ -2967,8 +2857,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.25,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 250.0mm",
+      "distance_m": 0.2178,
+      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 217.8mm",
       "parts": [
         "hull_upper",
         "track_R_band"
@@ -3224,69 +3114,29 @@
         "wheel_R_6_inner"
       ],
       "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.019,
-      "message": "Parts 'tow_cable_L_clip_0' and 'track_L_band' interpenetrate by 19.0mm",
-      "parts": [
-        "tow_cable_L_clip_0",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0105,
-      "message": "Parts 'tow_cable_L_eye_1' and 'track_L_band' interpenetrate by 10.5mm",
-      "parts": [
-        "tow_cable_L_eye_1",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0142,
-      "message": "Parts 'tow_cable_L_rope' and 'track_L_band' interpenetrate by 14.2mm",
-      "parts": [
-        "tow_cable_L_rope",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.019,
-      "message": "Parts 'tow_cable_R_clip_0' and 'track_R_band' interpenetrate by 19.0mm",
-      "parts": [
-        "tow_cable_R_clip_0",
-        "track_R_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0105,
-      "message": "Parts 'tow_cable_R_eye_1' and 'track_R_band' interpenetrate by 10.5mm",
-      "parts": [
-        "tow_cable_R_eye_1",
-        "track_R_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0142,
-      "message": "Parts 'tow_cable_R_rope' and 'track_R_band' interpenetrate by 14.2mm",
-      "parts": [
-        "tow_cable_R_rope",
-        "track_R_band"
-      ],
-      "severity": "error"
     }
   ],
   "eastern_btr_btr_82a": [
+    {
+      "check": "interpenetration",
+      "distance_m": 0.01,
+      "message": "Parts 'btr_hull' and 'gun_housing' interpenetrate by 10.0mm",
+      "parts": [
+        "btr_hull",
+        "gun_housing"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "interpenetration",
+      "distance_m": 0.009,
+      "message": "Parts 'btr_hull' and 'mantlet' interpenetrate by 9.0mm",
+      "parts": [
+        "btr_hull",
+        "mantlet"
+      ],
+      "severity": "error"
+    },
     {
       "check": "interpenetration",
       "distance_m": 0.1606,
@@ -4011,8 +3861,8 @@
   "eastern_buk_buk_m3_medium_range_air_defense": [
     {
       "check": "interpenetration",
-      "distance_m": 0.166,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 166.0mm",
+      "distance_m": 0.1659,
+      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 165.9mm",
       "parts": [
         "hull_upper",
         "track_L_band"
@@ -4021,8 +3871,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.19,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 190.0mm",
+      "distance_m": 0.1698,
+      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 169.8mm",
       "parts": [
         "hull_upper",
         "track_R_band"
@@ -4681,21 +4531,11 @@
   "eastern_mig_31_foxhound_mig_31bm": [
     {
       "check": "interpenetration",
-      "distance_m": 0.0213,
-      "message": "Parts 'fuselage' and 'gear_main_L_strut' interpenetrate by 21.3mm",
+      "distance_m": 0.0187,
+      "message": "Parts 'fuselage' and 'gear_main_L_strut' interpenetrate by 18.7mm",
       "parts": [
         "fuselage",
         "gear_main_L_strut"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.1328,
-      "message": "Parts 'fuselage' and 'gear_main_R_strut' interpenetrate by 132.8mm",
-      "parts": [
-        "fuselage",
-        "gear_main_R_strut"
       ],
       "severity": "error"
     },
@@ -4731,8 +4571,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0291,
-      "message": "Parts 'gear_main_R_door' and 'wing_R' interpenetrate by 29.1mm",
+      "distance_m": 0.0271,
+      "message": "Parts 'gear_main_R_door' and 'wing_R' interpenetrate by 27.1mm",
       "parts": [
         "gear_main_R_door",
         "wing_R"
@@ -4741,8 +4581,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0227,
-      "message": "Parts 'gear_main_R_strut' and 'wing_R' interpenetrate by 22.7mm",
+      "distance_m": 0.0221,
+      "message": "Parts 'gear_main_R_strut' and 'wing_R' interpenetrate by 22.1mm",
       "parts": [
         "gear_main_R_strut",
         "wing_R"
@@ -4828,16 +4668,6 @@
       "parts": [
         "axle_R_3",
         "wheel_R_4_tyre"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0079,
-      "message": "Parts 'battery_box_body' and 'wheel_R_2_tread_1' interpenetrate by 7.9mm",
-      "parts": [
-        "battery_box_body",
-        "wheel_R_2_tread_1"
       ],
       "severity": "error"
     },
@@ -5063,8 +4893,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0164,
-      "message": "Parts 'fuel_tank_strap_0' and 'wheel_L_2_tread_1' interpenetrate by 16.4mm",
+      "distance_m": 0.0121,
+      "message": "Parts 'fuel_tank_strap_0' and 'wheel_L_2_tread_1' interpenetrate by 12.1mm",
       "parts": [
         "fuel_tank_strap_0",
         "wheel_L_2_tread_1"
@@ -5093,8 +4923,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0309,
-      "message": "Parts 'fuel_tank_tank' and 'wheel_L_1_tread_16' interpenetrate by 30.9mm",
+      "distance_m": 0.0266,
+      "message": "Parts 'fuel_tank_tank' and 'wheel_L_1_tread_16' interpenetrate by 26.6mm",
       "parts": [
         "fuel_tank_tank",
         "wheel_L_1_tread_16"
@@ -5235,8 +5065,8 @@
   "eastern_plz_05_chinese_tracked_155_mm_howitzer": [
     {
       "check": "interpenetration",
-      "distance_m": 0.0598,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 59.8mm",
+      "distance_m": 0.0564,
+      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 56.4mm",
       "parts": [
         "hull_upper",
         "track_L_band"
@@ -5245,8 +5075,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0399,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 39.9mm",
+      "distance_m": 0.0379,
+      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 37.9mm",
       "parts": [
         "hull_upper",
         "track_R_band"
@@ -5435,19 +5265,19 @@
     },
     {
       "check": "floating_part",
-      "distance_m": 0.0251,
-      "message": "Part 'mg_barrel' is 2.5cm from nearest part (threshold: 2cm)",
+      "distance_m": 0.0394,
+      "message": "Part 'fume_extractor' is 3.9cm from nearest part (threshold: 2cm)",
       "parts": [
-        "mg_barrel"
+        "fume_extractor"
       ],
       "severity": "error"
     },
     {
       "check": "floating_part",
-      "distance_m": 0.0394,
-      "message": "Part 'fume_extractor' is 3.9cm from nearest part (threshold: 2cm)",
+      "distance_m": 0.0251,
+      "message": "Part 'mg_barrel' is 2.5cm from nearest part (threshold: 2cm)",
       "parts": [
-        "fume_extractor"
+        "mg_barrel"
       ],
       "severity": "error"
     }
@@ -5842,41 +5672,11 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0201,
-      "message": "Parts 'fuselage' and 'gear_main_L_door' interpenetrate by 20.1mm",
-      "parts": [
-        "fuselage",
-        "gear_main_L_door"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
       "distance_m": 0.0284,
       "message": "Parts 'fuselage' and 'gear_main_L_strut' interpenetrate by 28.4mm",
       "parts": [
         "fuselage",
         "gear_main_L_strut"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0059,
-      "message": "Parts 'fuselage' and 'gear_main_R_door_hinge' interpenetrate by 5.9mm",
-      "parts": [
-        "fuselage",
-        "gear_main_R_door_hinge"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0209,
-      "message": "Parts 'fuselage' and 'gear_main_R_door' interpenetrate by 20.9mm",
-      "parts": [
-        "fuselage",
-        "gear_main_R_door"
       ],
       "severity": "error"
     },
@@ -5946,8 +5746,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.023,
-      "message": "Parts 'fuselage' and 'gear_main_R_door_hinge' interpenetrate by 23.0mm",
+      "distance_m": 0.02,
+      "message": "Parts 'fuselage' and 'gear_main_R_door_hinge' interpenetrate by 20.0mm",
       "parts": [
         "fuselage",
         "gear_main_R_door_hinge"
@@ -5956,8 +5756,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0176,
-      "message": "Parts 'fuselage' and 'gear_main_R_door' interpenetrate by 17.6mm",
+      "distance_m": 0.0075,
+      "message": "Parts 'fuselage' and 'gear_main_R_door' interpenetrate by 7.5mm",
       "parts": [
         "fuselage",
         "gear_main_R_door"
@@ -5966,8 +5766,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0276,
-      "message": "Parts 'fuselage' and 'gear_main_R_strut' interpenetrate by 27.6mm",
+      "distance_m": 0.0271,
+      "message": "Parts 'fuselage' and 'gear_main_R_strut' interpenetrate by 27.1mm",
       "parts": [
         "fuselage",
         "gear_main_R_strut"
@@ -5975,1839 +5775,11 @@
       "severity": "error"
     }
   ],
-  "eastern_t_14_armata_main_battle_tank": [
-    {
-      "check": "interpenetration",
-      "distance_m": 0.1957,
-      "message": "Parts 'hull_lower' and 'track_L_band' interpenetrate by 195.7mm",
-      "parts": [
-        "hull_lower",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.1957,
-      "message": "Parts 'hull_lower' and 'track_R_band' interpenetrate by 195.7mm",
-      "parts": [
-        "hull_lower",
-        "track_R_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.2972,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 297.2mm",
-      "parts": [
-        "hull_upper",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.2994,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 299.4mm",
-      "parts": [
-        "hull_upper",
-        "track_R_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.02,
-      "message": "Parts 'hull_upper' and 'turret_ring_guard' interpenetrate by 20.0mm",
-      "parts": [
-        "hull_upper",
-        "turret_ring_guard"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.2,
-      "message": "Parts 'hull_upper' and 'wheel_L_return_1_roller' interpenetrate by 200.0mm",
-      "parts": [
-        "hull_upper",
-        "wheel_L_return_1_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.2,
-      "message": "Parts 'hull_upper' and 'wheel_L_return_3_roller' interpenetrate by 200.0mm",
-      "parts": [
-        "hull_upper",
-        "wheel_L_return_3_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.2,
-      "message": "Parts 'hull_upper' and 'wheel_R_return_1_roller' interpenetrate by 200.0mm",
-      "parts": [
-        "hull_upper",
-        "wheel_R_return_1_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.2,
-      "message": "Parts 'hull_upper' and 'wheel_R_return_3_roller' interpenetrate by 200.0mm",
-      "parts": [
-        "hull_upper",
-        "wheel_R_return_3_roller"
-      ],
-      "severity": "error"
-    }
-  ],
-  "eastern_t_15_armata_heavy_ifv": [
-    {
-      "check": "interpenetration",
-      "distance_m": 0.1951,
-      "message": "Parts 'hull_lower' and 'track_L_band' interpenetrate by 195.1mm",
-      "parts": [
-        "hull_lower",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.1951,
-      "message": "Parts 'hull_lower' and 'track_R_band' interpenetrate by 195.1mm",
-      "parts": [
-        "hull_lower",
-        "track_R_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.2197,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 219.7mm",
-      "parts": [
-        "hull_upper",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0999,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 99.9mm",
-      "parts": [
-        "hull_upper",
-        "track_R_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0099,
-      "message": "Parts 'hull_upper' and 'wheel_L_sprocket_tooth_0' interpenetrate by 9.9mm",
-      "parts": [
-        "hull_upper",
-        "wheel_L_sprocket_tooth_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.2,
-      "message": "Parts 'hull_upper' and 'wheel_R_return_1_roller' interpenetrate by 200.0mm",
-      "parts": [
-        "hull_upper",
-        "wheel_R_return_1_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.2,
-      "message": "Parts 'hull_upper' and 'wheel_R_return_3_roller' interpenetrate by 200.0mm",
-      "parts": [
-        "hull_upper",
-        "wheel_R_return_3_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0098,
-      "message": "Parts 'hull_upper' and 'wheel_R_sprocket_tooth_0' interpenetrate by 9.8mm",
-      "parts": [
-        "hull_upper",
-        "wheel_R_sprocket_tooth_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.01,
-      "message": "Parts 'module_ring' and 'troop_compartment' interpenetrate by 10.0mm",
-      "parts": [
-        "module_ring",
-        "troop_compartment"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.2307,
-      "message": "Parts 'skirt_L_0' and 'track_L_band' interpenetrate by 230.7mm",
-      "parts": [
-        "skirt_L_0",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.365,
-      "message": "Parts 'skirt_L_1' and 'track_L_band' interpenetrate by 365.0mm",
-      "parts": [
-        "skirt_L_1",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_L_1' and 'wheel_L_1_bolt_0' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_L_1",
-        "wheel_L_1_bolt_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_L_1' and 'wheel_L_1_bolt_4' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_L_1",
-        "wheel_L_1_bolt_4"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.009,
-      "message": "Parts 'skirt_L_1' and 'wheel_L_1_disc' interpenetrate by 9.0mm",
-      "parts": [
-        "skirt_L_1",
-        "wheel_L_1_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.039,
-      "message": "Parts 'skirt_L_1' and 'wheel_L_1_hub' interpenetrate by 39.0mm",
-      "parts": [
-        "skirt_L_1",
-        "wheel_L_1_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.365,
-      "message": "Parts 'skirt_L_2' and 'track_L_band' interpenetrate by 365.0mm",
-      "parts": [
-        "skirt_L_2",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_L_2' and 'wheel_L_2_bolt_0' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_L_2",
-        "wheel_L_2_bolt_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_L_2' and 'wheel_L_2_bolt_4' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_L_2",
-        "wheel_L_2_bolt_4"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.009,
-      "message": "Parts 'skirt_L_2' and 'wheel_L_2_disc' interpenetrate by 9.0mm",
-      "parts": [
-        "skirt_L_2",
-        "wheel_L_2_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.039,
-      "message": "Parts 'skirt_L_2' and 'wheel_L_2_hub' interpenetrate by 39.0mm",
-      "parts": [
-        "skirt_L_2",
-        "wheel_L_2_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_L_2' and 'wheel_L_3_bolt_0' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_L_2",
-        "wheel_L_3_bolt_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.009,
-      "message": "Parts 'skirt_L_2' and 'wheel_L_3_disc' interpenetrate by 9.0mm",
-      "parts": [
-        "skirt_L_2",
-        "wheel_L_3_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.039,
-      "message": "Parts 'skirt_L_2' and 'wheel_L_3_hub' interpenetrate by 39.0mm",
-      "parts": [
-        "skirt_L_2",
-        "wheel_L_3_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.365,
-      "message": "Parts 'skirt_L_3' and 'track_L_band' interpenetrate by 365.0mm",
-      "parts": [
-        "skirt_L_3",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0064,
-      "message": "Parts 'skirt_L_3' and 'wheel_L_3_bolt_2' interpenetrate by 6.4mm",
-      "parts": [
-        "skirt_L_3",
-        "wheel_L_3_bolt_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_L_3' and 'wheel_L_3_bolt_4' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_L_3",
-        "wheel_L_3_bolt_4"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.009,
-      "message": "Parts 'skirt_L_3' and 'wheel_L_3_disc' interpenetrate by 9.0mm",
-      "parts": [
-        "skirt_L_3",
-        "wheel_L_3_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.039,
-      "message": "Parts 'skirt_L_3' and 'wheel_L_3_hub' interpenetrate by 39.0mm",
-      "parts": [
-        "skirt_L_3",
-        "wheel_L_3_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_L_3' and 'wheel_L_4_bolt_0' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_L_3",
-        "wheel_L_4_bolt_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_L_3' and 'wheel_L_4_bolt_4' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_L_3",
-        "wheel_L_4_bolt_4"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.009,
-      "message": "Parts 'skirt_L_3' and 'wheel_L_4_disc' interpenetrate by 9.0mm",
-      "parts": [
-        "skirt_L_3",
-        "wheel_L_4_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.039,
-      "message": "Parts 'skirt_L_3' and 'wheel_L_4_hub' interpenetrate by 39.0mm",
-      "parts": [
-        "skirt_L_3",
-        "wheel_L_4_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.365,
-      "message": "Parts 'skirt_L_4' and 'track_L_band' interpenetrate by 365.0mm",
-      "parts": [
-        "skirt_L_4",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_L_4' and 'wheel_L_5_bolt_0' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_L_4",
-        "wheel_L_5_bolt_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_L_4' and 'wheel_L_5_bolt_4' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_L_4",
-        "wheel_L_5_bolt_4"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.009,
-      "message": "Parts 'skirt_L_4' and 'wheel_L_5_disc' interpenetrate by 9.0mm",
-      "parts": [
-        "skirt_L_4",
-        "wheel_L_5_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.039,
-      "message": "Parts 'skirt_L_4' and 'wheel_L_5_hub' interpenetrate by 39.0mm",
-      "parts": [
-        "skirt_L_4",
-        "wheel_L_5_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.365,
-      "message": "Parts 'skirt_L_5' and 'track_L_band' interpenetrate by 365.0mm",
-      "parts": [
-        "skirt_L_5",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_L_5' and 'wheel_L_6_bolt_0' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_L_5",
-        "wheel_L_6_bolt_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_L_5' and 'wheel_L_6_bolt_4' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_L_5",
-        "wheel_L_6_bolt_4"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.009,
-      "message": "Parts 'skirt_L_5' and 'wheel_L_6_disc' interpenetrate by 9.0mm",
-      "parts": [
-        "skirt_L_5",
-        "wheel_L_6_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.039,
-      "message": "Parts 'skirt_L_5' and 'wheel_L_6_hub' interpenetrate by 39.0mm",
-      "parts": [
-        "skirt_L_5",
-        "wheel_L_6_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0165,
-      "message": "Parts 'skirt_L_5' and 'wheel_L_7_bolt_0' interpenetrate by 16.5mm",
-      "parts": [
-        "skirt_L_5",
-        "wheel_L_7_bolt_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.009,
-      "message": "Parts 'skirt_L_5' and 'wheel_L_7_disc' interpenetrate by 9.0mm",
-      "parts": [
-        "skirt_L_5",
-        "wheel_L_7_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.365,
-      "message": "Parts 'skirt_L_6' and 'track_L_band' interpenetrate by 365.0mm",
-      "parts": [
-        "skirt_L_6",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_L_6' and 'wheel_L_7_bolt_1' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_L_6",
-        "wheel_L_7_bolt_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_L_6' and 'wheel_L_7_bolt_4' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_L_6",
-        "wheel_L_7_bolt_4"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.009,
-      "message": "Parts 'skirt_L_6' and 'wheel_L_7_disc' interpenetrate by 9.0mm",
-      "parts": [
-        "skirt_L_6",
-        "wheel_L_7_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.039,
-      "message": "Parts 'skirt_L_6' and 'wheel_L_7_hub' interpenetrate by 39.0mm",
-      "parts": [
-        "skirt_L_6",
-        "wheel_L_7_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0134,
-      "message": "Parts 'skirt_lip_L_1' and 'wheel_L_1_disc' interpenetrate by 13.4mm",
-      "parts": [
-        "skirt_lip_L_1",
-        "wheel_L_1_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0134,
-      "message": "Parts 'skirt_lip_L_2' and 'wheel_L_2_disc' interpenetrate by 13.4mm",
-      "parts": [
-        "skirt_lip_L_2",
-        "wheel_L_2_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0097,
-      "message": "Parts 'skirt_lip_L_2' and 'wheel_L_3_disc' interpenetrate by 9.7mm",
-      "parts": [
-        "skirt_lip_L_2",
-        "wheel_L_3_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0103,
-      "message": "Parts 'skirt_lip_L_3' and 'wheel_L_3_disc' interpenetrate by 10.3mm",
-      "parts": [
-        "skirt_lip_L_3",
-        "wheel_L_3_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0134,
-      "message": "Parts 'skirt_lip_L_3' and 'wheel_L_4_disc' interpenetrate by 13.4mm",
-      "parts": [
-        "skirt_lip_L_3",
-        "wheel_L_4_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0134,
-      "message": "Parts 'skirt_lip_L_4' and 'wheel_L_5_disc' interpenetrate by 13.4mm",
-      "parts": [
-        "skirt_lip_L_4",
-        "wheel_L_5_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0134,
-      "message": "Parts 'skirt_lip_L_5' and 'wheel_L_6_disc' interpenetrate by 13.4mm",
-      "parts": [
-        "skirt_lip_L_5",
-        "wheel_L_6_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0134,
-      "message": "Parts 'skirt_lip_L_6' and 'wheel_L_7_disc' interpenetrate by 13.4mm",
-      "parts": [
-        "skirt_lip_L_6",
-        "wheel_L_7_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0134,
-      "message": "Parts 'skirt_lip_R_1' and 'wheel_R_1_disc' interpenetrate by 13.4mm",
-      "parts": [
-        "skirt_lip_R_1",
-        "wheel_R_1_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0134,
-      "message": "Parts 'skirt_lip_R_2' and 'wheel_R_2_disc' interpenetrate by 13.4mm",
-      "parts": [
-        "skirt_lip_R_2",
-        "wheel_R_2_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0097,
-      "message": "Parts 'skirt_lip_R_2' and 'wheel_R_3_disc' interpenetrate by 9.7mm",
-      "parts": [
-        "skirt_lip_R_2",
-        "wheel_R_3_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0103,
-      "message": "Parts 'skirt_lip_R_3' and 'wheel_R_3_disc' interpenetrate by 10.3mm",
-      "parts": [
-        "skirt_lip_R_3",
-        "wheel_R_3_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0134,
-      "message": "Parts 'skirt_lip_R_3' and 'wheel_R_4_disc' interpenetrate by 13.4mm",
-      "parts": [
-        "skirt_lip_R_3",
-        "wheel_R_4_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0134,
-      "message": "Parts 'skirt_lip_R_4' and 'wheel_R_5_disc' interpenetrate by 13.4mm",
-      "parts": [
-        "skirt_lip_R_4",
-        "wheel_R_5_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0134,
-      "message": "Parts 'skirt_lip_R_5' and 'wheel_R_6_disc' interpenetrate by 13.4mm",
-      "parts": [
-        "skirt_lip_R_5",
-        "wheel_R_6_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0134,
-      "message": "Parts 'skirt_lip_R_6' and 'wheel_R_7_disc' interpenetrate by 13.4mm",
-      "parts": [
-        "skirt_lip_R_6",
-        "wheel_R_7_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.2307,
-      "message": "Parts 'skirt_R_0' and 'track_R_band' interpenetrate by 230.7mm",
-      "parts": [
-        "skirt_R_0",
-        "track_R_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.365,
-      "message": "Parts 'skirt_R_1' and 'track_R_band' interpenetrate by 365.0mm",
-      "parts": [
-        "skirt_R_1",
-        "track_R_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_R_1' and 'wheel_R_1_bolt_0' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_R_1",
-        "wheel_R_1_bolt_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_R_1' and 'wheel_R_1_bolt_4' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_R_1",
-        "wheel_R_1_bolt_4"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.009,
-      "message": "Parts 'skirt_R_1' and 'wheel_R_1_disc' interpenetrate by 9.0mm",
-      "parts": [
-        "skirt_R_1",
-        "wheel_R_1_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.039,
-      "message": "Parts 'skirt_R_1' and 'wheel_R_1_hub' interpenetrate by 39.0mm",
-      "parts": [
-        "skirt_R_1",
-        "wheel_R_1_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.365,
-      "message": "Parts 'skirt_R_2' and 'track_R_band' interpenetrate by 365.0mm",
-      "parts": [
-        "skirt_R_2",
-        "track_R_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_R_2' and 'wheel_R_2_bolt_0' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_R_2",
-        "wheel_R_2_bolt_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_R_2' and 'wheel_R_2_bolt_4' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_R_2",
-        "wheel_R_2_bolt_4"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.009,
-      "message": "Parts 'skirt_R_2' and 'wheel_R_2_disc' interpenetrate by 9.0mm",
-      "parts": [
-        "skirt_R_2",
-        "wheel_R_2_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.039,
-      "message": "Parts 'skirt_R_2' and 'wheel_R_2_hub' interpenetrate by 39.0mm",
-      "parts": [
-        "skirt_R_2",
-        "wheel_R_2_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_R_2' and 'wheel_R_3_bolt_0' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_R_2",
-        "wheel_R_3_bolt_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.009,
-      "message": "Parts 'skirt_R_2' and 'wheel_R_3_disc' interpenetrate by 9.0mm",
-      "parts": [
-        "skirt_R_2",
-        "wheel_R_3_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.039,
-      "message": "Parts 'skirt_R_2' and 'wheel_R_3_hub' interpenetrate by 39.0mm",
-      "parts": [
-        "skirt_R_2",
-        "wheel_R_3_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.365,
-      "message": "Parts 'skirt_R_3' and 'track_R_band' interpenetrate by 365.0mm",
-      "parts": [
-        "skirt_R_3",
-        "track_R_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0064,
-      "message": "Parts 'skirt_R_3' and 'wheel_R_3_bolt_2' interpenetrate by 6.4mm",
-      "parts": [
-        "skirt_R_3",
-        "wheel_R_3_bolt_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_R_3' and 'wheel_R_3_bolt_4' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_R_3",
-        "wheel_R_3_bolt_4"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.009,
-      "message": "Parts 'skirt_R_3' and 'wheel_R_3_disc' interpenetrate by 9.0mm",
-      "parts": [
-        "skirt_R_3",
-        "wheel_R_3_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.039,
-      "message": "Parts 'skirt_R_3' and 'wheel_R_3_hub' interpenetrate by 39.0mm",
-      "parts": [
-        "skirt_R_3",
-        "wheel_R_3_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_R_3' and 'wheel_R_4_bolt_0' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_R_3",
-        "wheel_R_4_bolt_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_R_3' and 'wheel_R_4_bolt_4' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_R_3",
-        "wheel_R_4_bolt_4"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.009,
-      "message": "Parts 'skirt_R_3' and 'wheel_R_4_disc' interpenetrate by 9.0mm",
-      "parts": [
-        "skirt_R_3",
-        "wheel_R_4_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.039,
-      "message": "Parts 'skirt_R_3' and 'wheel_R_4_hub' interpenetrate by 39.0mm",
-      "parts": [
-        "skirt_R_3",
-        "wheel_R_4_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.365,
-      "message": "Parts 'skirt_R_4' and 'track_R_band' interpenetrate by 365.0mm",
-      "parts": [
-        "skirt_R_4",
-        "track_R_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_R_4' and 'wheel_R_5_bolt_0' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_R_4",
-        "wheel_R_5_bolt_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_R_4' and 'wheel_R_5_bolt_4' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_R_4",
-        "wheel_R_5_bolt_4"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.009,
-      "message": "Parts 'skirt_R_4' and 'wheel_R_5_disc' interpenetrate by 9.0mm",
-      "parts": [
-        "skirt_R_4",
-        "wheel_R_5_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.039,
-      "message": "Parts 'skirt_R_4' and 'wheel_R_5_hub' interpenetrate by 39.0mm",
-      "parts": [
-        "skirt_R_4",
-        "wheel_R_5_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.365,
-      "message": "Parts 'skirt_R_5' and 'track_R_band' interpenetrate by 365.0mm",
-      "parts": [
-        "skirt_R_5",
-        "track_R_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_R_5' and 'wheel_R_6_bolt_0' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_R_5",
-        "wheel_R_6_bolt_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_R_5' and 'wheel_R_6_bolt_4' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_R_5",
-        "wheel_R_6_bolt_4"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.009,
-      "message": "Parts 'skirt_R_5' and 'wheel_R_6_disc' interpenetrate by 9.0mm",
-      "parts": [
-        "skirt_R_5",
-        "wheel_R_6_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.039,
-      "message": "Parts 'skirt_R_5' and 'wheel_R_6_hub' interpenetrate by 39.0mm",
-      "parts": [
-        "skirt_R_5",
-        "wheel_R_6_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0165,
-      "message": "Parts 'skirt_R_5' and 'wheel_R_7_bolt_0' interpenetrate by 16.5mm",
-      "parts": [
-        "skirt_R_5",
-        "wheel_R_7_bolt_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.009,
-      "message": "Parts 'skirt_R_5' and 'wheel_R_7_disc' interpenetrate by 9.0mm",
-      "parts": [
-        "skirt_R_5",
-        "wheel_R_7_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.365,
-      "message": "Parts 'skirt_R_6' and 'track_R_band' interpenetrate by 365.0mm",
-      "parts": [
-        "skirt_R_6",
-        "track_R_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_R_6' and 'wheel_R_7_bolt_1' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_R_6",
-        "wheel_R_7_bolt_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0335,
-      "message": "Parts 'skirt_R_6' and 'wheel_R_7_bolt_4' interpenetrate by 33.5mm",
-      "parts": [
-        "skirt_R_6",
-        "wheel_R_7_bolt_4"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.009,
-      "message": "Parts 'skirt_R_6' and 'wheel_R_7_disc' interpenetrate by 9.0mm",
-      "parts": [
-        "skirt_R_6",
-        "wheel_R_7_disc"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.039,
-      "message": "Parts 'skirt_R_6' and 'wheel_R_7_hub' interpenetrate by 39.0mm",
-      "parts": [
-        "skirt_R_6",
-        "wheel_R_7_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0053,
-      "message": "Parts 'slab_module_L_2_plate' and 'track_L_band' interpenetrate by 5.3mm",
-      "parts": [
-        "slab_module_L_2_plate",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0595,
-      "message": "Parts 'slab_module_L_3_plate' and 'track_L_band' interpenetrate by 59.5mm",
-      "parts": [
-        "slab_module_L_3_plate",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0332,
-      "message": "Parts 'slab_module_L_3_plate' and 'wheel_L_sprocket_body' interpenetrate by 33.2mm",
-      "parts": [
-        "slab_module_L_3_plate",
-        "wheel_L_sprocket_body"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0555,
-      "message": "Parts 'slab_module_L_3_plate' and 'wheel_L_sprocket_tooth_0' interpenetrate by 55.5mm",
-      "parts": [
-        "slab_module_L_3_plate",
-        "wheel_L_sprocket_tooth_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0574,
-      "message": "Parts 'slab_module_L_3_plate' and 'wheel_L_sprocket_tooth_1' interpenetrate by 57.4mm",
-      "parts": [
-        "slab_module_L_3_plate",
-        "wheel_L_sprocket_tooth_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0292,
-      "message": "Parts 'slab_module_L_3_plate' and 'wheel_L_sprocket_tooth_2' interpenetrate by 29.2mm",
-      "parts": [
-        "slab_module_L_3_plate",
-        "wheel_L_sprocket_tooth_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0446,
-      "message": "Parts 'slab_module_R_2_plate' and 'track_R_band' interpenetrate by 44.6mm",
-      "parts": [
-        "slab_module_R_2_plate",
-        "track_R_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0595,
-      "message": "Parts 'slab_module_R_3_plate' and 'track_R_band' interpenetrate by 59.5mm",
-      "parts": [
-        "slab_module_R_3_plate",
-        "track_R_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0332,
-      "message": "Parts 'slab_module_R_3_plate' and 'wheel_R_sprocket_body' interpenetrate by 33.2mm",
-      "parts": [
-        "slab_module_R_3_plate",
-        "wheel_R_sprocket_body"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0555,
-      "message": "Parts 'slab_module_R_3_plate' and 'wheel_R_sprocket_tooth_0' interpenetrate by 55.5mm",
-      "parts": [
-        "slab_module_R_3_plate",
-        "wheel_R_sprocket_tooth_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0574,
-      "message": "Parts 'slab_module_R_3_plate' and 'wheel_R_sprocket_tooth_1' interpenetrate by 57.4mm",
-      "parts": [
-        "slab_module_R_3_plate",
-        "wheel_R_sprocket_tooth_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0292,
-      "message": "Parts 'slab_module_R_3_plate' and 'wheel_R_sprocket_tooth_2' interpenetrate by 29.2mm",
-      "parts": [
-        "slab_module_R_3_plate",
-        "wheel_R_sprocket_tooth_2"
-      ],
-      "severity": "error"
-    }
-  ],
-  "eastern_t_80_t_80bvm": [
-    {
-      "check": "interpenetration",
-      "distance_m": 0.009,
-      "message": "Parts 'bustle_bars_rail_0' and 'engine_door_plate' interpenetrate by 9.0mm",
-      "parts": [
-        "bustle_bars_rail_0",
-        "engine_door_plate"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.081,
-      "message": "Parts 'cheek_panel_L_3_plate' and 'fender_box_L_body' interpenetrate by 81.0mm",
-      "parts": [
-        "cheek_panel_L_3_plate",
-        "fender_box_L_body"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0618,
-      "message": "Parts 'cheek_panel_L_3_plate' and 'fender_box_L_hinge' interpenetrate by 61.8mm",
-      "parts": [
-        "cheek_panel_L_3_plate",
-        "fender_box_L_hinge"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0269,
-      "message": "Parts 'cheek_panel_L_3_plate' and 'fender_box_L_lid' interpenetrate by 26.9mm",
-      "parts": [
-        "cheek_panel_L_3_plate",
-        "fender_box_L_lid"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.081,
-      "message": "Parts 'cheek_panel_R_3_plate' and 'fender_box_R_body' interpenetrate by 81.0mm",
-      "parts": [
-        "cheek_panel_R_3_plate",
-        "fender_box_R_body"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0618,
-      "message": "Parts 'cheek_panel_R_3_plate' and 'fender_box_R_hinge' interpenetrate by 61.8mm",
-      "parts": [
-        "cheek_panel_R_3_plate",
-        "fender_box_R_hinge"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0269,
-      "message": "Parts 'cheek_panel_R_3_plate' and 'fender_box_R_lid' interpenetrate by 26.9mm",
-      "parts": [
-        "cheek_panel_R_3_plate",
-        "fender_box_R_lid"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.011,
-      "message": "Parts 'engine_door_plate' and 'turret_shell' interpenetrate by 11.0mm",
-      "parts": [
-        "engine_door_plate",
-        "turret_shell"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.1264,
-      "message": "Parts 'fender_box_L_body' and 'side_module_L_0_plate' interpenetrate by 126.4mm",
-      "parts": [
-        "fender_box_L_body",
-        "side_module_L_0_plate"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0059,
-      "message": "Parts 'fender_box_L_hinge' and 'side_module_L_0_plate' interpenetrate by 5.9mm",
-      "parts": [
-        "fender_box_L_hinge",
-        "side_module_L_0_plate"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.01,
-      "message": "Parts 'fender_box_L_lid' and 'side_module_L_0_plate' interpenetrate by 10.0mm",
-      "parts": [
-        "fender_box_L_lid",
-        "side_module_L_0_plate"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.1264,
-      "message": "Parts 'fender_box_R_body' and 'side_module_R_0_plate' interpenetrate by 126.4mm",
-      "parts": [
-        "fender_box_R_body",
-        "side_module_R_0_plate"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0059,
-      "message": "Parts 'fender_box_R_hinge' and 'side_module_R_0_plate' interpenetrate by 5.9mm",
-      "parts": [
-        "fender_box_R_hinge",
-        "side_module_R_0_plate"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.01,
-      "message": "Parts 'fender_box_R_lid' and 'side_module_R_0_plate' interpenetrate by 10.0mm",
-      "parts": [
-        "fender_box_R_lid",
-        "side_module_R_0_plate"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0267,
-      "message": "Parts 'hull_upper_fender_L' and 'track_L_band' interpenetrate by 26.7mm",
-      "parts": [
-        "hull_upper_fender_L",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0063,
-      "message": "Parts 'hull_upper_fender_L' and 'turret_shell' interpenetrate by 6.3mm",
-      "parts": [
-        "hull_upper_fender_L",
-        "turret_shell"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0267,
-      "message": "Parts 'hull_upper_fender_R' and 'track_R_band' interpenetrate by 26.7mm",
-      "parts": [
-        "hull_upper_fender_R",
-        "track_R_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0063,
-      "message": "Parts 'hull_upper_fender_R' and 'turret_shell' interpenetrate by 6.3mm",
-      "parts": [
-        "hull_upper_fender_R",
-        "turret_shell"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.099,
-      "message": "Parts 'hull_upper' and 'turret_ring_guard' interpenetrate by 99.0mm",
-      "parts": [
-        "hull_upper",
-        "turret_ring_guard"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.019,
-      "message": "Parts 'hull_upper' and 'turret_shell' interpenetrate by 19.0mm",
-      "parts": [
-        "hull_upper",
-        "turret_shell"
-      ],
-      "severity": "error"
-    }
-  ],
-  "eastern_t_90_t_90m_proryv": [
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0066,
-      "message": "Parts 'engine_door_plate' and 'turret_shell' interpenetrate by 6.6mm",
-      "parts": [
-        "engine_door_plate",
-        "turret_shell"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0064,
-      "message": "Parts 'exhaust_L_bore' and 'track_L_band' interpenetrate by 6.4mm",
-      "parts": [
-        "exhaust_L_bore",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0283,
-      "message": "Parts 'exhaust_L_pipe' and 'track_L_band' interpenetrate by 28.3mm",
-      "parts": [
-        "exhaust_L_pipe",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.058,
-      "message": "Parts 'fender_box_L_body' and 'net_screen_L_post_1' interpenetrate by 58.0mm",
-      "parts": [
-        "fender_box_L_body",
-        "net_screen_L_post_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.058,
-      "message": "Parts 'fender_box_L_body' and 'net_screen_L_rail_0' interpenetrate by 58.0mm",
-      "parts": [
-        "fender_box_L_body",
-        "net_screen_L_rail_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.04,
-      "message": "Parts 'fender_box_L_body' and 'net_screen_L_slat_10' interpenetrate by 40.0mm",
-      "parts": [
-        "fender_box_L_body",
-        "net_screen_L_slat_10"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.04,
-      "message": "Parts 'fender_box_L_body' and 'net_screen_L_slat_11' interpenetrate by 40.0mm",
-      "parts": [
-        "fender_box_L_body",
-        "net_screen_L_slat_11"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.04,
-      "message": "Parts 'fender_box_L_body' and 'net_screen_L_slat_7' interpenetrate by 40.0mm",
-      "parts": [
-        "fender_box_L_body",
-        "net_screen_L_slat_7"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.04,
-      "message": "Parts 'fender_box_L_body' and 'net_screen_L_slat_8' interpenetrate by 40.0mm",
-      "parts": [
-        "fender_box_L_body",
-        "net_screen_L_slat_8"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.04,
-      "message": "Parts 'fender_box_L_body' and 'net_screen_L_slat_9' interpenetrate by 40.0mm",
-      "parts": [
-        "fender_box_L_body",
-        "net_screen_L_slat_9"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0083,
-      "message": "Parts 'fender_box_L_hinge' and 'turret_shell' interpenetrate by 8.3mm",
-      "parts": [
-        "fender_box_L_hinge",
-        "turret_shell"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0075,
-      "message": "Parts 'fender_box_L_lid' and 'net_screen_L_post_1' interpenetrate by 7.5mm",
-      "parts": [
-        "fender_box_L_lid",
-        "net_screen_L_post_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0062,
-      "message": "Parts 'fender_box_L_lid' and 'turret_shell' interpenetrate by 6.2mm",
-      "parts": [
-        "fender_box_L_lid",
-        "turret_shell"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.058,
-      "message": "Parts 'fender_box_R_body' and 'net_screen_R_post_1' interpenetrate by 58.0mm",
-      "parts": [
-        "fender_box_R_body",
-        "net_screen_R_post_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.058,
-      "message": "Parts 'fender_box_R_body' and 'net_screen_R_rail_0' interpenetrate by 58.0mm",
-      "parts": [
-        "fender_box_R_body",
-        "net_screen_R_rail_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.04,
-      "message": "Parts 'fender_box_R_body' and 'net_screen_R_slat_10' interpenetrate by 40.0mm",
-      "parts": [
-        "fender_box_R_body",
-        "net_screen_R_slat_10"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.04,
-      "message": "Parts 'fender_box_R_body' and 'net_screen_R_slat_11' interpenetrate by 40.0mm",
-      "parts": [
-        "fender_box_R_body",
-        "net_screen_R_slat_11"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.04,
-      "message": "Parts 'fender_box_R_body' and 'net_screen_R_slat_7' interpenetrate by 40.0mm",
-      "parts": [
-        "fender_box_R_body",
-        "net_screen_R_slat_7"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.04,
-      "message": "Parts 'fender_box_R_body' and 'net_screen_R_slat_8' interpenetrate by 40.0mm",
-      "parts": [
-        "fender_box_R_body",
-        "net_screen_R_slat_8"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.04,
-      "message": "Parts 'fender_box_R_body' and 'net_screen_R_slat_9' interpenetrate by 40.0mm",
-      "parts": [
-        "fender_box_R_body",
-        "net_screen_R_slat_9"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0157,
-      "message": "Parts 'fender_box_R_body' and 'turret_shell' interpenetrate by 15.7mm",
-      "parts": [
-        "fender_box_R_body",
-        "turret_shell"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0084,
-      "message": "Parts 'fender_box_R_hinge' and 'turret_shell' interpenetrate by 8.4mm",
-      "parts": [
-        "fender_box_R_hinge",
-        "turret_shell"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0075,
-      "message": "Parts 'fender_box_R_lid' and 'net_screen_R_post_1' interpenetrate by 7.5mm",
-      "parts": [
-        "fender_box_R_lid",
-        "net_screen_R_post_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0063,
-      "message": "Parts 'fender_box_R_lid' and 'turret_shell' interpenetrate by 6.3mm",
-      "parts": [
-        "fender_box_R_lid",
-        "turret_shell"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0366,
-      "message": "Parts 'hull_upper_fender_L' and 'track_L_band' interpenetrate by 36.6mm",
-      "parts": [
-        "hull_upper_fender_L",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.01,
-      "message": "Parts 'hull_upper_fender_L' and 'turret_ring_guard' interpenetrate by 10.0mm",
-      "parts": [
-        "hull_upper_fender_L",
-        "turret_ring_guard"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.04,
-      "message": "Parts 'hull_upper_fender_L' and 'wheel_L_return_1_roller' interpenetrate by 40.0mm",
-      "parts": [
-        "hull_upper_fender_L",
-        "wheel_L_return_1_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.05,
-      "message": "Parts 'hull_upper_fender_L' and 'wheel_L_return_2_roller' interpenetrate by 50.0mm",
-      "parts": [
-        "hull_upper_fender_L",
-        "wheel_L_return_2_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.04,
-      "message": "Parts 'hull_upper_fender_L' and 'wheel_L_return_3_roller' interpenetrate by 40.0mm",
-      "parts": [
-        "hull_upper_fender_L",
-        "wheel_L_return_3_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0366,
-      "message": "Parts 'hull_upper_fender_R' and 'track_R_band' interpenetrate by 36.6mm",
-      "parts": [
-        "hull_upper_fender_R",
-        "track_R_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.01,
-      "message": "Parts 'hull_upper_fender_R' and 'turret_ring_guard' interpenetrate by 10.0mm",
-      "parts": [
-        "hull_upper_fender_R",
-        "turret_ring_guard"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.04,
-      "message": "Parts 'hull_upper_fender_R' and 'wheel_R_return_1_roller' interpenetrate by 40.0mm",
-      "parts": [
-        "hull_upper_fender_R",
-        "wheel_R_return_1_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.05,
-      "message": "Parts 'hull_upper_fender_R' and 'wheel_R_return_2_roller' interpenetrate by 50.0mm",
-      "parts": [
-        "hull_upper_fender_R",
-        "wheel_R_return_2_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.04,
-      "message": "Parts 'hull_upper_fender_R' and 'wheel_R_return_3_roller' interpenetrate by 40.0mm",
-      "parts": [
-        "hull_upper_fender_R",
-        "wheel_R_return_3_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.108,
-      "message": "Parts 'hull_upper' and 'turret_ring_guard' interpenetrate by 108.0mm",
-      "parts": [
-        "hull_upper",
-        "turret_ring_guard"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.008,
-      "message": "Parts 'hull_upper' and 'turret_shell' interpenetrate by 8.0mm",
-      "parts": [
-        "hull_upper",
-        "turret_shell"
-      ],
-      "severity": "error"
-    }
-  ],
   "eastern_tigr_tigr_m": [
     {
       "check": "interpenetration",
-      "distance_m": 0.1286,
-      "message": "Parts 'arch_L_0' and 'wheel_L_1_tyre' interpenetrate by 128.6mm",
+      "distance_m": 0.05,
+      "message": "Parts 'arch_L_0' and 'wheel_L_1_tyre' interpenetrate by 50.0mm",
       "parts": [
         "arch_L_0",
         "wheel_L_1_tyre"
@@ -7816,8 +5788,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.1286,
-      "message": "Parts 'arch_L_1' and 'wheel_L_2_tyre' interpenetrate by 128.6mm",
+      "distance_m": 0.05,
+      "message": "Parts 'arch_L_1' and 'wheel_L_2_tyre' interpenetrate by 50.0mm",
       "parts": [
         "arch_L_1",
         "wheel_L_2_tyre"
@@ -7826,8 +5798,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.04,
-      "message": "Parts 'arch_R_0' and 'wheel_R_1_tread_0_0' interpenetrate by 40.0mm",
+      "distance_m": 0.0133,
+      "message": "Parts 'arch_R_0' and 'wheel_R_1_tread_0_0' interpenetrate by 13.3mm",
       "parts": [
         "arch_R_0",
         "wheel_R_1_tread_0_0"
@@ -7836,8 +5808,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.1286,
-      "message": "Parts 'arch_R_0' and 'wheel_R_1_tyre' interpenetrate by 128.6mm",
+      "distance_m": 0.05,
+      "message": "Parts 'arch_R_0' and 'wheel_R_1_tyre' interpenetrate by 50.0mm",
       "parts": [
         "arch_R_0",
         "wheel_R_1_tyre"
@@ -7846,8 +5818,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.04,
-      "message": "Parts 'arch_R_1' and 'wheel_R_2_tread_0_0' interpenetrate by 40.0mm",
+      "distance_m": 0.0133,
+      "message": "Parts 'arch_R_1' and 'wheel_R_2_tread_0_0' interpenetrate by 13.3mm",
       "parts": [
         "arch_R_1",
         "wheel_R_2_tread_0_0"
@@ -7856,8 +5828,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.1286,
-      "message": "Parts 'arch_R_1' and 'wheel_R_2_tyre' interpenetrate by 128.6mm",
+      "distance_m": 0.05,
+      "message": "Parts 'arch_R_1' and 'wheel_R_2_tyre' interpenetrate by 50.0mm",
       "parts": [
         "arch_R_1",
         "wheel_R_2_tyre"
@@ -7896,8 +5868,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0088,
-      "message": "Parts 'body' and 'wheel_L_1_tread_16_1' interpenetrate by 8.8mm",
+      "distance_m": 0.0058,
+      "message": "Parts 'body' and 'wheel_L_1_tread_16_1' interpenetrate by 5.8mm",
       "parts": [
         "body",
         "wheel_L_1_tread_16_1"
@@ -8575,420 +6547,6 @@
       "severity": "error"
     }
   ],
-  "eastern_type_15_ztq_15_light_tank": [
-    {
-      "check": "interpenetration",
-      "distance_m": 0.12,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 120.0mm",
-      "parts": [
-        "hull_upper",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.12,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 120.0mm",
-      "parts": [
-        "hull_upper",
-        "track_R_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.02,
-      "message": "Parts 'hull_upper' and 'turret_ring_guard' interpenetrate by 20.0mm",
-      "parts": [
-        "hull_upper",
-        "turret_ring_guard"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.04,
-      "message": "Parts 'hull_upper' and 'wheel_L_return_1_roller' interpenetrate by 40.0mm",
-      "parts": [
-        "hull_upper",
-        "wheel_L_return_1_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.04,
-      "message": "Parts 'hull_upper' and 'wheel_L_return_2_roller' interpenetrate by 40.0mm",
-      "parts": [
-        "hull_upper",
-        "wheel_L_return_2_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0374,
-      "message": "Parts 'hull_upper' and 'wheel_L_sprocket_tooth_0' interpenetrate by 37.4mm",
-      "parts": [
-        "hull_upper",
-        "wheel_L_sprocket_tooth_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0121,
-      "message": "Parts 'hull_upper' and 'wheel_L_sprocket_tooth_11' interpenetrate by 12.1mm",
-      "parts": [
-        "hull_upper",
-        "wheel_L_sprocket_tooth_11"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0121,
-      "message": "Parts 'hull_upper' and 'wheel_L_sprocket_tooth_1' interpenetrate by 12.1mm",
-      "parts": [
-        "hull_upper",
-        "wheel_L_sprocket_tooth_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.04,
-      "message": "Parts 'hull_upper' and 'wheel_R_return_1_roller' interpenetrate by 40.0mm",
-      "parts": [
-        "hull_upper",
-        "wheel_R_return_1_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.04,
-      "message": "Parts 'hull_upper' and 'wheel_R_return_2_roller' interpenetrate by 40.0mm",
-      "parts": [
-        "hull_upper",
-        "wheel_R_return_2_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0374,
-      "message": "Parts 'hull_upper' and 'wheel_R_sprocket_tooth_0' interpenetrate by 37.4mm",
-      "parts": [
-        "hull_upper",
-        "wheel_R_sprocket_tooth_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0121,
-      "message": "Parts 'hull_upper' and 'wheel_R_sprocket_tooth_11' interpenetrate by 12.1mm",
-      "parts": [
-        "hull_upper",
-        "wheel_R_sprocket_tooth_11"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0121,
-      "message": "Parts 'hull_upper' and 'wheel_R_sprocket_tooth_1' interpenetrate by 12.1mm",
-      "parts": [
-        "hull_upper",
-        "wheel_R_sprocket_tooth_1"
-      ],
-      "severity": "error"
-    }
-  ],
-  "eastern_type_99_ztz_99a": [
-    {
-      "check": "interpenetration",
-      "distance_m": 0.01,
-      "message": "Parts 'engine_door_plate' and 'turret_ring_guard' interpenetrate by 10.0mm",
-      "parts": [
-        "engine_door_plate",
-        "turret_ring_guard"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.045,
-      "message": "Parts 'engine_grille_frame_0' and 'turret_shell' interpenetrate by 45.0mm",
-      "parts": [
-        "engine_grille_frame_0",
-        "turret_shell"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.045,
-      "message": "Parts 'engine_grille_frame_1' and 'turret_shell' interpenetrate by 45.0mm",
-      "parts": [
-        "engine_grille_frame_1",
-        "turret_shell"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.03,
-      "message": "Parts 'engine_grille_opening' and 'turret_shell' interpenetrate by 30.0mm",
-      "parts": [
-        "engine_grille_opening",
-        "turret_shell"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0326,
-      "message": "Parts 'hull_upper_fender_L' and 'track_L_band' interpenetrate by 32.6mm",
-      "parts": [
-        "hull_upper_fender_L",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.01,
-      "message": "Parts 'hull_upper_fender_L' and 'turret_shell' interpenetrate by 10.0mm",
-      "parts": [
-        "hull_upper_fender_L",
-        "turret_shell"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.02,
-      "message": "Parts 'hull_upper_fender_L' and 'wheel_L_return_1_roller' interpenetrate by 20.0mm",
-      "parts": [
-        "hull_upper_fender_L",
-        "wheel_L_return_1_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.03,
-      "message": "Parts 'hull_upper_fender_L' and 'wheel_L_return_2_roller' interpenetrate by 30.0mm",
-      "parts": [
-        "hull_upper_fender_L",
-        "wheel_L_return_2_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.02,
-      "message": "Parts 'hull_upper_fender_L' and 'wheel_L_return_3_roller' interpenetrate by 20.0mm",
-      "parts": [
-        "hull_upper_fender_L",
-        "wheel_L_return_3_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0326,
-      "message": "Parts 'hull_upper_fender_R' and 'track_R_band' interpenetrate by 32.6mm",
-      "parts": [
-        "hull_upper_fender_R",
-        "track_R_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.01,
-      "message": "Parts 'hull_upper_fender_R' and 'turret_shell' interpenetrate by 10.0mm",
-      "parts": [
-        "hull_upper_fender_R",
-        "turret_shell"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.02,
-      "message": "Parts 'hull_upper_fender_R' and 'wheel_R_return_1_roller' interpenetrate by 20.0mm",
-      "parts": [
-        "hull_upper_fender_R",
-        "wheel_R_return_1_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.03,
-      "message": "Parts 'hull_upper_fender_R' and 'wheel_R_return_2_roller' interpenetrate by 30.0mm",
-      "parts": [
-        "hull_upper_fender_R",
-        "wheel_R_return_2_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.02,
-      "message": "Parts 'hull_upper_fender_R' and 'wheel_R_return_3_roller' interpenetrate by 20.0mm",
-      "parts": [
-        "hull_upper_fender_R",
-        "wheel_R_return_3_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.09,
-      "message": "Parts 'hull_upper' and 'turret_ring_guard' interpenetrate by 90.0mm",
-      "parts": [
-        "hull_upper",
-        "turret_ring_guard"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.01,
-      "message": "Parts 'hull_upper' and 'turret_shell' interpenetrate by 10.0mm",
-      "parts": [
-        "hull_upper",
-        "turret_shell"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0397,
-      "message": "Parts 'wheel_L_2_inner' and 'wheel_L_return_1_roller' interpenetrate by 39.7mm",
-      "parts": [
-        "wheel_L_2_inner",
-        "wheel_L_return_1_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0397,
-      "message": "Parts 'wheel_L_2_tyre' and 'wheel_L_return_1_roller' interpenetrate by 39.7mm",
-      "parts": [
-        "wheel_L_2_tyre",
-        "wheel_L_return_1_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0297,
-      "message": "Parts 'wheel_L_4_inner' and 'wheel_L_return_2_roller' interpenetrate by 29.7mm",
-      "parts": [
-        "wheel_L_4_inner",
-        "wheel_L_return_2_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0298,
-      "message": "Parts 'wheel_L_4_tyre' and 'wheel_L_return_2_roller' interpenetrate by 29.8mm",
-      "parts": [
-        "wheel_L_4_tyre",
-        "wheel_L_return_2_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0397,
-      "message": "Parts 'wheel_L_6_inner' and 'wheel_L_return_3_roller' interpenetrate by 39.7mm",
-      "parts": [
-        "wheel_L_6_inner",
-        "wheel_L_return_3_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0397,
-      "message": "Parts 'wheel_L_6_tyre' and 'wheel_L_return_3_roller' interpenetrate by 39.7mm",
-      "parts": [
-        "wheel_L_6_tyre",
-        "wheel_L_return_3_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0397,
-      "message": "Parts 'wheel_R_2_inner' and 'wheel_R_return_1_roller' interpenetrate by 39.7mm",
-      "parts": [
-        "wheel_R_2_inner",
-        "wheel_R_return_1_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0397,
-      "message": "Parts 'wheel_R_2_tyre' and 'wheel_R_return_1_roller' interpenetrate by 39.7mm",
-      "parts": [
-        "wheel_R_2_tyre",
-        "wheel_R_return_1_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0297,
-      "message": "Parts 'wheel_R_4_inner' and 'wheel_R_return_2_roller' interpenetrate by 29.7mm",
-      "parts": [
-        "wheel_R_4_inner",
-        "wheel_R_return_2_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0298,
-      "message": "Parts 'wheel_R_4_tyre' and 'wheel_R_return_2_roller' interpenetrate by 29.8mm",
-      "parts": [
-        "wheel_R_4_tyre",
-        "wheel_R_return_2_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0397,
-      "message": "Parts 'wheel_R_6_inner' and 'wheel_R_return_3_roller' interpenetrate by 39.7mm",
-      "parts": [
-        "wheel_R_6_inner",
-        "wheel_R_return_3_roller"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0397,
-      "message": "Parts 'wheel_R_6_tyre' and 'wheel_R_return_3_roller' interpenetrate by 39.7mm",
-      "parts": [
-        "wheel_R_6_tyre",
-        "wheel_R_return_3_roller"
-      ],
-      "severity": "error"
-    }
-  ],
   "eastern_ural_4320_general_resupply": [
     {
       "check": "interpenetration",
@@ -9012,8 +6570,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.031,
-      "message": "Parts 'cab' and 'wheel_R_1_tread_18_1' interpenetrate by 31.0mm",
+      "distance_m": 0.0226,
+      "message": "Parts 'cab' and 'wheel_R_1_tread_18_1' interpenetrate by 22.6mm",
       "parts": [
         "cab",
         "wheel_R_1_tread_18_1"
@@ -10077,8 +7635,8 @@
   "europe_ajax_tracked_reconnaissance_vehicle": [
     {
       "check": "interpenetration",
-      "distance_m": 0.1163,
-      "message": "Parts 'hull_lower' and 'track_L_band' interpenetrate by 116.3mm",
+      "distance_m": 0.115,
+      "message": "Parts 'hull_lower' and 'track_L_band' interpenetrate by 115.0mm",
       "parts": [
         "hull_lower",
         "track_L_band"
@@ -10087,8 +7645,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.1163,
-      "message": "Parts 'hull_lower' and 'track_R_band' interpenetrate by 116.3mm",
+      "distance_m": 0.115,
+      "message": "Parts 'hull_lower' and 'track_R_band' interpenetrate by 115.0mm",
       "parts": [
         "hull_lower",
         "track_R_band"
@@ -10457,8 +8015,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0676,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 67.6mm",
+      "distance_m": 0.0665,
+      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 66.5mm",
       "parts": [
         "hull_upper",
         "track_L_band"
@@ -10467,8 +8025,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0312,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 31.2mm",
+      "distance_m": 0.0313,
+      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 31.3mm",
       "parts": [
         "hull_upper",
         "track_R_band"
@@ -10482,6 +8040,16 @@
       "parts": [
         "hull_upper",
         "turret_ring_guard"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "interpenetration",
+      "distance_m": 0.01,
+      "message": "Parts 'hull_upper' and 'turret_shell' interpenetrate by 10.0mm",
+      "parts": [
+        "hull_upper",
+        "turret_shell"
       ],
       "severity": "error"
     },
@@ -12031,8 +9599,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0167,
-      "message": "Parts 'fuel_tank_strap_0' and 'wheel_L_2_tread_15' interpenetrate by 16.7mm",
+      "distance_m": 0.0115,
+      "message": "Parts 'fuel_tank_strap_0' and 'wheel_L_2_tread_15' interpenetrate by 11.5mm",
       "parts": [
         "fuel_tank_strap_0",
         "wheel_L_2_tread_15"
@@ -12051,8 +9619,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0167,
-      "message": "Parts 'fuel_tank_strap_1' and 'wheel_L_2_tread_1' interpenetrate by 16.7mm",
+      "distance_m": 0.0118,
+      "message": "Parts 'fuel_tank_strap_1' and 'wheel_L_2_tread_1' interpenetrate by 11.8mm",
       "parts": [
         "fuel_tank_strap_1",
         "wheel_L_2_tread_1"
@@ -12141,8 +9709,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0126,
-      "message": "Parts 'step_L_0' and 'wheel_L_1_tread_5' interpenetrate by 12.6mm",
+      "distance_m": 0.0099,
+      "message": "Parts 'step_L_0' and 'wheel_L_1_tread_5' interpenetrate by 9.9mm",
       "parts": [
         "step_L_0",
         "wheel_L_1_tread_5"
@@ -12171,8 +9739,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0133,
-      "message": "Parts 'step_L_1_0' and 'wheel_L_1_tread_12' interpenetrate by 13.3mm",
+      "distance_m": 0.0121,
+      "message": "Parts 'step_L_1_0' and 'wheel_L_1_tread_12' interpenetrate by 12.1mm",
       "parts": [
         "step_L_1_0",
         "wheel_L_1_tread_12"
@@ -12241,8 +9809,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0126,
-      "message": "Parts 'step_R_0' and 'wheel_R_1_tread_5' interpenetrate by 12.6mm",
+      "distance_m": 0.0099,
+      "message": "Parts 'step_R_0' and 'wheel_R_1_tread_5' interpenetrate by 9.9mm",
       "parts": [
         "step_R_0",
         "wheel_R_1_tread_5"
@@ -12271,8 +9839,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0133,
-      "message": "Parts 'step_R_1_0' and 'wheel_R_1_tread_12' interpenetrate by 13.3mm",
+      "distance_m": 0.0121,
+      "message": "Parts 'step_R_1_0' and 'wheel_R_1_tread_12' interpenetrate by 12.1mm",
       "parts": [
         "step_R_1_0",
         "wheel_R_1_tread_12"
@@ -12944,8 +10512,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.2176,
-      "message": "Parts 'hull_lower' and 'track_L_band' interpenetrate by 217.6mm",
+      "distance_m": 0.02,
+      "message": "Parts 'hull_lower' and 'track_L_band' interpenetrate by 20.0mm",
       "parts": [
         "hull_lower",
         "track_L_band"
@@ -12954,8 +10522,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.2176,
-      "message": "Parts 'hull_lower' and 'track_R_band' interpenetrate by 217.6mm",
+      "distance_m": 0.02,
+      "message": "Parts 'hull_lower' and 'track_R_band' interpenetrate by 20.0mm",
       "parts": [
         "hull_lower",
         "track_R_band"
@@ -12964,8 +10532,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.127,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 127.0mm",
+      "distance_m": 0.1198,
+      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 119.8mm",
       "parts": [
         "hull_upper",
         "track_L_band"
@@ -12974,8 +10542,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.1286,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 128.6mm",
+      "distance_m": 0.0971,
+      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 97.1mm",
       "parts": [
         "hull_upper",
         "track_R_band"
@@ -13106,8 +10674,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.2386,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 238.6mm",
+      "distance_m": 0.2364,
+      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 236.4mm",
       "parts": [
         "hull_upper",
         "track_L_band"
@@ -13116,8 +10684,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.3034,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 303.4mm",
+      "distance_m": 0.3035,
+      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 303.5mm",
       "parts": [
         "hull_upper",
         "track_R_band"
@@ -13458,8 +11026,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.1619,
-      "message": "Parts 'hull_lower' and 'track_L_band' interpenetrate by 161.9mm",
+      "distance_m": 0.115,
+      "message": "Parts 'hull_lower' and 'track_L_band' interpenetrate by 115.0mm",
       "parts": [
         "hull_lower",
         "track_L_band"
@@ -13468,8 +11036,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.1619,
-      "message": "Parts 'hull_lower' and 'track_R_band' interpenetrate by 161.9mm",
+      "distance_m": 0.115,
+      "message": "Parts 'hull_lower' and 'track_R_band' interpenetrate by 115.0mm",
       "parts": [
         "hull_lower",
         "track_R_band"
@@ -13798,18 +11366,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0097,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 9.7mm",
-      "parts": [
-        "hull_upper",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0695,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 69.5mm",
+      "distance_m": 0.0614,
+      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 61.4mm",
       "parts": [
         "hull_upper",
         "track_R_band"
@@ -13930,8 +11488,8 @@
   "europe_cv90_cv9040c": [
     {
       "check": "interpenetration",
-      "distance_m": 0.1619,
-      "message": "Parts 'hull_lower' and 'track_L_band' interpenetrate by 161.9mm",
+      "distance_m": 0.115,
+      "message": "Parts 'hull_lower' and 'track_L_band' interpenetrate by 115.0mm",
       "parts": [
         "hull_lower",
         "track_L_band"
@@ -13940,8 +11498,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.1619,
-      "message": "Parts 'hull_lower' and 'track_R_band' interpenetrate by 161.9mm",
+      "distance_m": 0.115,
+      "message": "Parts 'hull_lower' and 'track_R_band' interpenetrate by 115.0mm",
       "parts": [
         "hull_lower",
         "track_R_band"
@@ -14270,18 +11828,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0097,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 9.7mm",
-      "parts": [
-        "hull_upper",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0695,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 69.5mm",
+      "distance_m": 0.0614,
+      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 61.4mm",
       "parts": [
         "hull_upper",
         "track_R_band"
@@ -14360,8 +11908,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0789,
-      "message": "Parts 'skirt_lip_L' and 'track_L_band' interpenetrate by 78.9mm",
+      "distance_m": 0.02,
+      "message": "Parts 'skirt_lip_L' and 'track_L_band' interpenetrate by 20.0mm",
       "parts": [
         "skirt_lip_L",
         "track_L_band"
@@ -14370,8 +11918,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0789,
-      "message": "Parts 'skirt_lip_R' and 'track_R_band' interpenetrate by 78.9mm",
+      "distance_m": 0.0203,
+      "message": "Parts 'skirt_lip_R' and 'track_R_band' interpenetrate by 20.3mm",
       "parts": [
         "skirt_lip_R",
         "track_R_band"
@@ -14382,8 +11930,8 @@
   "europe_cv90_mk_iv": [
     {
       "check": "interpenetration",
-      "distance_m": 0.1619,
-      "message": "Parts 'hull_lower' and 'track_L_band' interpenetrate by 161.9mm",
+      "distance_m": 0.115,
+      "message": "Parts 'hull_lower' and 'track_L_band' interpenetrate by 115.0mm",
       "parts": [
         "hull_lower",
         "track_L_band"
@@ -14392,8 +11940,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.1619,
-      "message": "Parts 'hull_lower' and 'track_R_band' interpenetrate by 161.9mm",
+      "distance_m": 0.115,
+      "message": "Parts 'hull_lower' and 'track_R_band' interpenetrate by 115.0mm",
       "parts": [
         "hull_lower",
         "track_R_band"
@@ -14722,18 +12270,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0097,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 9.7mm",
-      "parts": [
-        "hull_upper",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0695,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 69.5mm",
+      "distance_m": 0.0614,
+      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 61.4mm",
       "parts": [
         "hull_upper",
         "track_R_band"
@@ -14812,8 +12350,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0789,
-      "message": "Parts 'skirt_lip_L' and 'track_L_band' interpenetrate by 78.9mm",
+      "distance_m": 0.02,
+      "message": "Parts 'skirt_lip_L' and 'track_L_band' interpenetrate by 20.0mm",
       "parts": [
         "skirt_lip_L",
         "track_L_band"
@@ -14822,8 +12360,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0789,
-      "message": "Parts 'skirt_lip_R' and 'track_R_band' interpenetrate by 78.9mm",
+      "distance_m": 0.0203,
+      "message": "Parts 'skirt_lip_R' and 'track_R_band' interpenetrate by 20.3mm",
       "parts": [
         "skirt_lip_R",
         "track_R_band"
@@ -15554,8 +13092,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0144,
-      "message": "Parts 'lower_plate_L_0_plate' and 'wheel_L_1_tread_18' interpenetrate by 14.4mm",
+      "distance_m": 0.0113,
+      "message": "Parts 'lower_plate_L_0_plate' and 'wheel_L_1_tread_18' interpenetrate by 11.3mm",
       "parts": [
         "lower_plate_L_0_plate",
         "wheel_L_1_tread_18"
@@ -15574,8 +13112,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.066,
-      "message": "Parts 'lower_plate_L_0_plate' and 'wheel_L_1_tyre' interpenetrate by 66.0mm",
+      "distance_m": 0.0653,
+      "message": "Parts 'lower_plate_L_0_plate' and 'wheel_L_1_tyre' interpenetrate by 65.3mm",
       "parts": [
         "lower_plate_L_0_plate",
         "wheel_L_1_tyre"
@@ -15594,8 +13132,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0144,
-      "message": "Parts 'lower_plate_L_1_plate' and 'wheel_L_2_tread_18' interpenetrate by 14.4mm",
+      "distance_m": 0.0113,
+      "message": "Parts 'lower_plate_L_1_plate' and 'wheel_L_2_tread_18' interpenetrate by 11.3mm",
       "parts": [
         "lower_plate_L_1_plate",
         "wheel_L_2_tread_18"
@@ -15604,8 +13142,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0122,
-      "message": "Parts 'lower_plate_L_1_plate' and 'wheel_L_2_tread_19' interpenetrate by 12.2mm",
+      "distance_m": 0.0096,
+      "message": "Parts 'lower_plate_L_1_plate' and 'wheel_L_2_tread_19' interpenetrate by 9.6mm",
       "parts": [
         "lower_plate_L_1_plate",
         "wheel_L_2_tread_19"
@@ -15614,8 +13152,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.066,
-      "message": "Parts 'lower_plate_L_1_plate' and 'wheel_L_2_tyre' interpenetrate by 66.0mm",
+      "distance_m": 0.0653,
+      "message": "Parts 'lower_plate_L_1_plate' and 'wheel_L_2_tyre' interpenetrate by 65.3mm",
       "parts": [
         "lower_plate_L_1_plate",
         "wheel_L_2_tyre"
@@ -15624,8 +13162,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0103,
-      "message": "Parts 'lower_plate_L_1_plate' and 'wheel_L_3_tread_2' interpenetrate by 10.3mm",
+      "distance_m": 0.0093,
+      "message": "Parts 'lower_plate_L_1_plate' and 'wheel_L_3_tread_2' interpenetrate by 9.3mm",
       "parts": [
         "lower_plate_L_1_plate",
         "wheel_L_3_tread_2"
@@ -15634,8 +13172,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.066,
-      "message": "Parts 'lower_plate_L_1_plate' and 'wheel_L_3_tyre' interpenetrate by 66.0mm",
+      "distance_m": 0.0653,
+      "message": "Parts 'lower_plate_L_1_plate' and 'wheel_L_3_tyre' interpenetrate by 65.3mm",
       "parts": [
         "lower_plate_L_1_plate",
         "wheel_L_3_tyre"
@@ -15654,8 +13192,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0144,
-      "message": "Parts 'lower_plate_R_0_plate' and 'wheel_R_1_tread_18' interpenetrate by 14.4mm",
+      "distance_m": 0.0113,
+      "message": "Parts 'lower_plate_R_0_plate' and 'wheel_R_1_tread_18' interpenetrate by 11.3mm",
       "parts": [
         "lower_plate_R_0_plate",
         "wheel_R_1_tread_18"
@@ -15674,8 +13212,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.066,
-      "message": "Parts 'lower_plate_R_0_plate' and 'wheel_R_1_tyre' interpenetrate by 66.0mm",
+      "distance_m": 0.0653,
+      "message": "Parts 'lower_plate_R_0_plate' and 'wheel_R_1_tyre' interpenetrate by 65.3mm",
       "parts": [
         "lower_plate_R_0_plate",
         "wheel_R_1_tyre"
@@ -15704,8 +13242,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0144,
-      "message": "Parts 'lower_plate_R_1_plate' and 'wheel_R_2_tread_18' interpenetrate by 14.4mm",
+      "distance_m": 0.0113,
+      "message": "Parts 'lower_plate_R_1_plate' and 'wheel_R_2_tread_18' interpenetrate by 11.3mm",
       "parts": [
         "lower_plate_R_1_plate",
         "wheel_R_2_tread_18"
@@ -15714,8 +13252,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0122,
-      "message": "Parts 'lower_plate_R_1_plate' and 'wheel_R_2_tread_19' interpenetrate by 12.2mm",
+      "distance_m": 0.0096,
+      "message": "Parts 'lower_plate_R_1_plate' and 'wheel_R_2_tread_19' interpenetrate by 9.6mm",
       "parts": [
         "lower_plate_R_1_plate",
         "wheel_R_2_tread_19"
@@ -15724,8 +13262,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.066,
-      "message": "Parts 'lower_plate_R_1_plate' and 'wheel_R_2_tyre' interpenetrate by 66.0mm",
+      "distance_m": 0.0653,
+      "message": "Parts 'lower_plate_R_1_plate' and 'wheel_R_2_tyre' interpenetrate by 65.3mm",
       "parts": [
         "lower_plate_R_1_plate",
         "wheel_R_2_tyre"
@@ -15734,8 +13272,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0103,
-      "message": "Parts 'lower_plate_R_1_plate' and 'wheel_R_3_tread_2' interpenetrate by 10.3mm",
+      "distance_m": 0.0093,
+      "message": "Parts 'lower_plate_R_1_plate' and 'wheel_R_3_tread_2' interpenetrate by 9.3mm",
       "parts": [
         "lower_plate_R_1_plate",
         "wheel_R_3_tread_2"
@@ -15744,8 +13282,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.066,
-      "message": "Parts 'lower_plate_R_1_plate' and 'wheel_R_3_tyre' interpenetrate by 66.0mm",
+      "distance_m": 0.0653,
+      "message": "Parts 'lower_plate_R_1_plate' and 'wheel_R_3_tyre' interpenetrate by 65.3mm",
       "parts": [
         "lower_plate_R_1_plate",
         "wheel_R_3_tyre"
@@ -15900,8 +13438,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0287,
-      "message": "Parts 'gear_main_R_strut' and 'wing_R' interpenetrate by 28.7mm",
+      "distance_m": 0.028,
+      "message": "Parts 'gear_main_R_strut' and 'wing_R' interpenetrate by 28.0mm",
       "parts": [
         "gear_main_R_strut",
         "wing_R"
@@ -15962,8 +13500,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0255,
-      "message": "Parts 'arch_L_0' and 'wheel_L_1_tread_13' interpenetrate by 25.5mm",
+      "distance_m": 0.0054,
+      "message": "Parts 'arch_L_0' and 'wheel_L_1_tread_13' interpenetrate by 5.4mm",
       "parts": [
         "arch_L_0",
         "wheel_L_1_tread_13"
@@ -15972,8 +13510,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0424,
-      "message": "Parts 'arch_L_0' and 'wheel_L_1_tread_15' interpenetrate by 42.4mm",
+      "distance_m": 0.0226,
+      "message": "Parts 'arch_L_0' and 'wheel_L_1_tread_15' interpenetrate by 22.6mm",
       "parts": [
         "arch_L_0",
         "wheel_L_1_tread_15"
@@ -15982,8 +13520,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0424,
-      "message": "Parts 'arch_L_0' and 'wheel_L_1_tread_1' interpenetrate by 42.4mm",
+      "distance_m": 0.0343,
+      "message": "Parts 'arch_L_0' and 'wheel_L_1_tread_1' interpenetrate by 34.3mm",
       "parts": [
         "arch_L_0",
         "wheel_L_1_tread_1"
@@ -16012,18 +13550,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0255,
-      "message": "Parts 'arch_L_1' and 'wheel_L_2_tread_13' interpenetrate by 25.5mm",
-      "parts": [
-        "arch_L_1",
-        "wheel_L_2_tread_13"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0424,
-      "message": "Parts 'arch_L_1' and 'wheel_L_2_tread_15' interpenetrate by 42.4mm",
+      "distance_m": 0.0226,
+      "message": "Parts 'arch_L_1' and 'wheel_L_2_tread_15' interpenetrate by 22.6mm",
       "parts": [
         "arch_L_1",
         "wheel_L_2_tread_15"
@@ -16032,8 +13560,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0424,
-      "message": "Parts 'arch_L_1' and 'wheel_L_2_tread_1' interpenetrate by 42.4mm",
+      "distance_m": 0.0343,
+      "message": "Parts 'arch_L_1' and 'wheel_L_2_tread_1' interpenetrate by 34.3mm",
       "parts": [
         "arch_L_1",
         "wheel_L_2_tread_1"
@@ -16062,8 +13590,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0255,
-      "message": "Parts 'arch_R_0' and 'wheel_R_1_tread_13' interpenetrate by 25.5mm",
+      "distance_m": 0.0054,
+      "message": "Parts 'arch_R_0' and 'wheel_R_1_tread_13' interpenetrate by 5.4mm",
       "parts": [
         "arch_R_0",
         "wheel_R_1_tread_13"
@@ -16072,8 +13600,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0424,
-      "message": "Parts 'arch_R_0' and 'wheel_R_1_tread_15' interpenetrate by 42.4mm",
+      "distance_m": 0.0226,
+      "message": "Parts 'arch_R_0' and 'wheel_R_1_tread_15' interpenetrate by 22.6mm",
       "parts": [
         "arch_R_0",
         "wheel_R_1_tread_15"
@@ -16082,8 +13610,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0424,
-      "message": "Parts 'arch_R_0' and 'wheel_R_1_tread_1' interpenetrate by 42.4mm",
+      "distance_m": 0.0343,
+      "message": "Parts 'arch_R_0' and 'wheel_R_1_tread_1' interpenetrate by 34.3mm",
       "parts": [
         "arch_R_0",
         "wheel_R_1_tread_1"
@@ -16112,8 +13640,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0255,
-      "message": "Parts 'arch_R_1' and 'wheel_R_2_tread_13' interpenetrate by 25.5mm",
+      "distance_m": 0.0054,
+      "message": "Parts 'arch_R_1' and 'wheel_R_2_tread_13' interpenetrate by 5.4mm",
       "parts": [
         "arch_R_1",
         "wheel_R_2_tread_13"
@@ -16122,8 +13650,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0424,
-      "message": "Parts 'arch_R_1' and 'wheel_R_2_tread_15' interpenetrate by 42.4mm",
+      "distance_m": 0.0226,
+      "message": "Parts 'arch_R_1' and 'wheel_R_2_tread_15' interpenetrate by 22.6mm",
       "parts": [
         "arch_R_1",
         "wheel_R_2_tread_15"
@@ -16132,8 +13660,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0424,
-      "message": "Parts 'arch_R_1' and 'wheel_R_2_tread_1' interpenetrate by 42.4mm",
+      "distance_m": 0.0343,
+      "message": "Parts 'arch_R_1' and 'wheel_R_2_tread_1' interpenetrate by 34.3mm",
       "parts": [
         "arch_R_1",
         "wheel_R_2_tread_1"
@@ -16552,8 +14080,8 @@
   "europe_gepard_1a2": [
     {
       "check": "interpenetration",
-      "distance_m": 0.15,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 150.0mm",
+      "distance_m": 0.117,
+      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 117.0mm",
       "parts": [
         "hull_upper",
         "track_L_band"
@@ -16562,8 +14090,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.15,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 150.0mm",
+      "distance_m": 0.1495,
+      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 149.5mm",
       "parts": [
         "hull_upper",
         "track_R_band"
@@ -16990,8 +14518,8 @@
   "europe_jas_39_gripen_e": [
     {
       "check": "interpenetration",
-      "distance_m": 0.021,
-      "message": "Parts 'fuselage' and 'gear_main_L_strut' interpenetrate by 21.0mm",
+      "distance_m": 0.0186,
+      "message": "Parts 'fuselage' and 'gear_main_L_strut' interpenetrate by 18.6mm",
       "parts": [
         "fuselage",
         "gear_main_L_strut"
@@ -17000,8 +14528,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0192,
-      "message": "Parts 'fuselage' and 'gear_main_R_strut' interpenetrate by 19.2mm",
+      "distance_m": 0.0186,
+      "message": "Parts 'fuselage' and 'gear_main_R_strut' interpenetrate by 18.6mm",
       "parts": [
         "fuselage",
         "gear_main_R_strut"
@@ -17030,8 +14558,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0234,
-      "message": "Parts 'gear_main_L_strut' and 'wing_L' interpenetrate by 23.4mm",
+      "distance_m": 0.0205,
+      "message": "Parts 'gear_main_L_strut' and 'wing_L' interpenetrate by 20.5mm",
       "parts": [
         "gear_main_L_strut",
         "wing_L"
@@ -17242,8 +14770,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0291,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 29.1mm",
+      "distance_m": 0.0172,
+      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 17.2mm",
       "parts": [
         "hull_upper",
         "track_L_band"
@@ -17252,8 +14780,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0291,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 29.1mm",
+      "distance_m": 0.0172,
+      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 17.2mm",
       "parts": [
         "hull_upper",
         "track_R_band"
@@ -17486,8 +15014,8 @@
   "europe_leopard_2_2a6": [
     {
       "check": "interpenetration",
-      "distance_m": 0.1634,
-      "message": "Parts 'driver_hatch_hinge' and 'wedge_R' interpenetrate by 163.4mm",
+      "distance_m": 0.0141,
+      "message": "Parts 'driver_hatch_hinge' and 'wedge_R' interpenetrate by 14.1mm",
       "parts": [
         "driver_hatch_hinge",
         "wedge_R"
@@ -17496,8 +15024,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.1719,
-      "message": "Parts 'driver_hatch_lid' and 'wedge_R' interpenetrate by 171.9mm",
+      "distance_m": 0.0162,
+      "message": "Parts 'driver_hatch_lid' and 'wedge_R' interpenetrate by 16.2mm",
       "parts": [
         "driver_hatch_lid",
         "wedge_R"
@@ -17586,8 +15114,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0233,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 23.3mm",
+      "distance_m": 0.0225,
+      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 22.5mm",
       "parts": [
         "hull_upper",
         "track_L_band"
@@ -17596,8 +15124,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0233,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 23.3mm",
+      "distance_m": 0.0225,
+      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 22.5mm",
       "parts": [
         "hull_upper",
         "track_R_band"
@@ -17618,8 +15146,8 @@
   "europe_leopard_2_2a7v": [
     {
       "check": "interpenetration",
-      "distance_m": 0.1634,
-      "message": "Parts 'driver_hatch_hinge' and 'wedge_R' interpenetrate by 163.4mm",
+      "distance_m": 0.0141,
+      "message": "Parts 'driver_hatch_hinge' and 'wedge_R' interpenetrate by 14.1mm",
       "parts": [
         "driver_hatch_hinge",
         "wedge_R"
@@ -17628,8 +15156,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.1719,
-      "message": "Parts 'driver_hatch_lid' and 'wedge_R' interpenetrate by 171.9mm",
+      "distance_m": 0.0162,
+      "message": "Parts 'driver_hatch_lid' and 'wedge_R' interpenetrate by 16.2mm",
       "parts": [
         "driver_hatch_lid",
         "wedge_R"
@@ -17713,26 +15241,6 @@
       "parts": [
         "engine_door_1_bolt_2_1",
         "turret_shell"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0233,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 23.3mm",
-      "parts": [
-        "hull_upper",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0233,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 23.3mm",
-      "parts": [
-        "hull_upper",
-        "track_R_band"
       ],
       "severity": "error"
     },
@@ -17750,8 +15258,8 @@
   "europe_leopard_2_2a8": [
     {
       "check": "interpenetration",
-      "distance_m": 0.1634,
-      "message": "Parts 'driver_hatch_hinge' and 'wedge_R' interpenetrate by 163.4mm",
+      "distance_m": 0.0141,
+      "message": "Parts 'driver_hatch_hinge' and 'wedge_R' interpenetrate by 14.1mm",
       "parts": [
         "driver_hatch_hinge",
         "wedge_R"
@@ -17760,8 +15268,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.1719,
-      "message": "Parts 'driver_hatch_lid' and 'wedge_R' interpenetrate by 171.9mm",
+      "distance_m": 0.0162,
+      "message": "Parts 'driver_hatch_lid' and 'wedge_R' interpenetrate by 16.2mm",
       "parts": [
         "driver_hatch_lid",
         "wedge_R"
@@ -17845,26 +15353,6 @@
       "parts": [
         "engine_door_1_bolt_2_1",
         "turret_shell"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0233,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 23.3mm",
-      "parts": [
-        "hull_upper",
-        "track_L_band"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0233,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 23.3mm",
-      "parts": [
-        "hull_upper",
-        "track_R_band"
       ],
       "severity": "error"
     },
@@ -17944,8 +15432,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.24,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 240.0mm",
+      "distance_m": 0.2012,
+      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 201.2mm",
       "parts": [
         "hull_upper",
         "track_L_band"
@@ -17954,8 +15442,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.24,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 240.0mm",
+      "distance_m": 0.2151,
+      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 215.1mm",
       "parts": [
         "hull_upper",
         "track_R_band"
@@ -18681,8 +16169,8 @@
   "europe_puma_level_c": [
     {
       "check": "interpenetration",
-      "distance_m": 0.1747,
-      "message": "Parts 'hull_lower' and 'track_L_band' interpenetrate by 174.7mm",
+      "distance_m": 0.08,
+      "message": "Parts 'hull_lower' and 'track_L_band' interpenetrate by 80.0mm",
       "parts": [
         "hull_lower",
         "track_L_band"
@@ -18691,8 +16179,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.1747,
-      "message": "Parts 'hull_lower' and 'track_R_band' interpenetrate by 174.7mm",
+      "distance_m": 0.08,
+      "message": "Parts 'hull_lower' and 'track_R_band' interpenetrate by 80.0mm",
       "parts": [
         "hull_lower",
         "track_R_band"
@@ -18981,8 +16469,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.1967,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 196.7mm",
+      "distance_m": 0.192,
+      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 192.0mm",
       "parts": [
         "hull_upper",
         "track_L_band"
@@ -18991,8 +16479,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.2018,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 201.8mm",
+      "distance_m": 0.1988,
+      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 198.8mm",
       "parts": [
         "hull_upper",
         "track_R_band"
@@ -19123,8 +16611,8 @@
   "europe_pzh_2000_tracked_155_mm_howitzer": [
     {
       "check": "interpenetration",
-      "distance_m": 0.1771,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 177.1mm",
+      "distance_m": 0.0831,
+      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 83.1mm",
       "parts": [
         "hull_upper",
         "track_L_band"
@@ -19133,8 +16621,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.1775,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 177.5mm",
+      "distance_m": 0.1562,
+      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 156.2mm",
       "parts": [
         "hull_upper",
         "track_R_band"
@@ -19414,8 +16902,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.058,
-      "message": "Parts 'gear_main_R_strut' and 'wing_R' interpenetrate by 58.0mm",
+      "distance_m": 0.0547,
+      "message": "Parts 'gear_main_R_strut' and 'wing_R' interpenetrate by 54.7mm",
       "parts": [
         "gear_main_R_strut",
         "wing_R"
@@ -20022,8 +17510,8 @@
   "f_16c_block_50": [
     {
       "check": "interpenetration",
-      "distance_m": 0.0226,
-      "message": "Parts 'fuselage' and 'gear_bay_door_L' interpenetrate by 22.6mm",
+      "distance_m": 0.0194,
+      "message": "Parts 'fuselage' and 'gear_bay_door_L' interpenetrate by 19.4mm",
       "parts": [
         "fuselage",
         "gear_bay_door_L"
@@ -20032,8 +17520,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0207,
-      "message": "Parts 'fuselage' and 'gear_bay_door_R' interpenetrate by 20.7mm",
+      "distance_m": 0.0186,
+      "message": "Parts 'fuselage' and 'gear_bay_door_R' interpenetrate by 18.6mm",
       "parts": [
         "fuselage",
         "gear_bay_door_R"
@@ -20074,8 +17562,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.028,
-      "message": "Parts 'gear_main_L_strut' and 'wing_L' interpenetrate by 28.0mm",
+      "distance_m": 0.0276,
+      "message": "Parts 'gear_main_L_strut' and 'wing_L' interpenetrate by 27.6mm",
       "parts": [
         "gear_main_L_strut",
         "wing_L"
@@ -20882,16 +18370,6 @@
   "us_f_35_lightning_ii_f_35b": [
     {
       "check": "interpenetration",
-      "distance_m": 0.0233,
-      "message": "Parts 'fuselage' and 'gear_main_L_strut' interpenetrate by 23.3mm",
-      "parts": [
-        "fuselage",
-        "gear_main_L_strut"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
       "distance_m": 0.0232,
       "message": "Parts 'fuselage' and 'gear_main_R_strut' interpenetrate by 23.2mm",
       "parts": [
@@ -20902,8 +18380,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0225,
-      "message": "Parts 'gear_main_L_door_hinge' and 'wing_L' interpenetrate by 22.5mm",
+      "distance_m": 0.0167,
+      "message": "Parts 'gear_main_L_door_hinge' and 'wing_L' interpenetrate by 16.7mm",
       "parts": [
         "gear_main_L_door_hinge",
         "wing_L"
@@ -20922,8 +18400,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0452,
-      "message": "Parts 'gear_main_L_strut' and 'wing_L' interpenetrate by 45.2mm",
+      "distance_m": 0.0164,
+      "message": "Parts 'gear_main_L_strut' and 'wing_L' interpenetrate by 16.4mm",
       "parts": [
         "gear_main_L_strut",
         "wing_L"
@@ -20942,8 +18420,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0162,
-      "message": "Parts 'gear_main_R_door' and 'wing_R' interpenetrate by 16.2mm",
+      "distance_m": 0.0063,
+      "message": "Parts 'gear_main_R_door' and 'wing_R' interpenetrate by 6.3mm",
       "parts": [
         "gear_main_R_door",
         "wing_R"
@@ -20952,8 +18430,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0849,
-      "message": "Parts 'gear_main_R_strut' and 'wing_R' interpenetrate by 84.9mm",
+      "distance_m": 0.0159,
+      "message": "Parts 'gear_main_R_strut' and 'wing_R' interpenetrate by 15.9mm",
       "parts": [
         "gear_main_R_strut",
         "wing_R"
@@ -20964,51 +18442,11 @@
   "us_f_a_18_super_hornet_f_a_18e": [
     {
       "check": "interpenetration",
-      "distance_m": 0.2847,
-      "message": "Parts 'fuselage' and 'gear_main_L_door_hinge' interpenetrate by 284.7mm",
-      "parts": [
-        "fuselage",
-        "gear_main_L_door_hinge"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0222,
-      "message": "Parts 'fuselage' and 'gear_main_L_strut' interpenetrate by 22.2mm",
-      "parts": [
-        "fuselage",
-        "gear_main_L_strut"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.3816,
-      "message": "Parts 'fuselage' and 'gear_main_R_door_hinge' interpenetrate by 381.6mm",
-      "parts": [
-        "fuselage",
-        "gear_main_R_door_hinge"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0219,
-      "message": "Parts 'fuselage' and 'gear_main_R_strut' interpenetrate by 21.9mm",
+      "distance_m": 0.028,
+      "message": "Parts 'fuselage' and 'gear_main_R_strut' interpenetrate by 28.0mm",
       "parts": [
         "fuselage",
         "gear_main_R_strut"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0292,
-      "message": "Parts 'gear_main_L_door_hinge' and 'wing_L' interpenetrate by 29.2mm",
-      "parts": [
-        "gear_main_L_door_hinge",
-        "wing_L"
       ],
       "severity": "error"
     },
@@ -21034,8 +18472,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0285,
-      "message": "Parts 'gear_main_R_door_hinge' and 'wing_R' interpenetrate by 28.5mm",
+      "distance_m": 0.0113,
+      "message": "Parts 'gear_main_R_door_hinge' and 'wing_R' interpenetrate by 11.3mm",
       "parts": [
         "gear_main_R_door_hinge",
         "wing_R"
@@ -21054,8 +18492,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.2038,
-      "message": "Parts 'gear_main_R_strut' and 'wing_R' interpenetrate by 203.8mm",
+      "distance_m": 0.0093,
+      "message": "Parts 'gear_main_R_strut' and 'wing_R' interpenetrate by 9.3mm",
       "parts": [
         "gear_main_R_strut",
         "wing_R"
@@ -21706,16 +19144,6 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0145,
-      "message": "Parts 'wheel_L_1_tread_11' and 'wheel_L_2_tread_4' interpenetrate by 14.5mm",
-      "parts": [
-        "wheel_L_1_tread_11",
-        "wheel_L_2_tread_4"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
       "distance_m": 0.0162,
       "message": "Parts 'wheel_L_1_tread_11' and 'wheel_L_2_tyre' interpenetrate by 16.2mm",
       "parts": [
@@ -21731,16 +19159,6 @@
       "parts": [
         "wheel_L_1_tyre",
         "wheel_L_2_tread_4"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0082,
-      "message": "Parts 'wheel_L_3_tread_11' and 'wheel_L_4_tread_4' interpenetrate by 8.2mm",
-      "parts": [
-        "wheel_L_3_tread_11",
-        "wheel_L_4_tread_4"
       ],
       "severity": "error"
     },
@@ -21786,16 +19204,6 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0145,
-      "message": "Parts 'wheel_R_1_tread_11' and 'wheel_R_2_tread_4' interpenetrate by 14.5mm",
-      "parts": [
-        "wheel_R_1_tread_11",
-        "wheel_R_2_tread_4"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
       "distance_m": 0.0162,
       "message": "Parts 'wheel_R_1_tread_11' and 'wheel_R_2_tyre' interpenetrate by 16.2mm",
       "parts": [
@@ -21811,16 +19219,6 @@
       "parts": [
         "wheel_R_1_tyre",
         "wheel_R_2_tread_4"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0082,
-      "message": "Parts 'wheel_R_3_tread_11' and 'wheel_R_4_tread_4' interpenetrate by 8.2mm",
-      "parts": [
-        "wheel_R_3_tread_11",
-        "wheel_R_4_tread_4"
       ],
       "severity": "error"
     },
@@ -22508,16 +19906,6 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0145,
-      "message": "Parts 'wheel_L_1_tread_11' and 'wheel_L_2_tread_4' interpenetrate by 14.5mm",
-      "parts": [
-        "wheel_L_1_tread_11",
-        "wheel_L_2_tread_4"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
       "distance_m": 0.0162,
       "message": "Parts 'wheel_L_1_tread_11' and 'wheel_L_2_tyre' interpenetrate by 16.2mm",
       "parts": [
@@ -22533,16 +19921,6 @@
       "parts": [
         "wheel_L_1_tyre",
         "wheel_L_2_tread_4"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0082,
-      "message": "Parts 'wheel_L_3_tread_11' and 'wheel_L_4_tread_4' interpenetrate by 8.2mm",
-      "parts": [
-        "wheel_L_3_tread_11",
-        "wheel_L_4_tread_4"
       ],
       "severity": "error"
     },
@@ -22588,16 +19966,6 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0145,
-      "message": "Parts 'wheel_R_1_tread_11' and 'wheel_R_2_tread_4' interpenetrate by 14.5mm",
-      "parts": [
-        "wheel_R_1_tread_11",
-        "wheel_R_2_tread_4"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
       "distance_m": 0.0162,
       "message": "Parts 'wheel_R_1_tread_11' and 'wheel_R_2_tyre' interpenetrate by 16.2mm",
       "parts": [
@@ -22613,16 +19981,6 @@
       "parts": [
         "wheel_R_1_tyre",
         "wheel_R_2_tread_4"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.0082,
-      "message": "Parts 'wheel_R_3_tread_11' and 'wheel_R_4_tread_4' interpenetrate by 8.2mm",
-      "parts": [
-        "wheel_R_3_tread_11",
-        "wheel_R_4_tread_4"
       ],
       "severity": "error"
     },
@@ -22670,8 +20028,8 @@
   "us_m109_paladin_m109a7": [
     {
       "check": "interpenetration",
-      "distance_m": 0.058,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 58.0mm",
+      "distance_m": 0.0448,
+      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 44.8mm",
       "parts": [
         "hull_upper",
         "track_L_band"
@@ -22680,8 +20038,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.1393,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 139.3mm",
+      "distance_m": 0.1274,
+      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 127.4mm",
       "parts": [
         "hull_upper",
         "track_R_band"
@@ -22881,8 +20239,8 @@
   "us_m10_booker": [
     {
       "check": "interpenetration",
-      "distance_m": 0.0265,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 26.5mm",
+      "distance_m": 0.026,
+      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 26.0mm",
       "parts": [
         "hull_upper",
         "track_L_band"
@@ -22891,8 +20249,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0897,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 89.7mm",
+      "distance_m": 0.0884,
+      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 88.4mm",
       "parts": [
         "hull_upper",
         "track_R_band"
@@ -24818,8 +22176,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.027,
-      "message": "Parts 'door_L_plate' and 'wheel_L_1_rim' interpenetrate by 27.0mm",
+      "distance_m": 0.0275,
+      "message": "Parts 'door_L_plate' and 'wheel_L_1_rim' interpenetrate by 27.5mm",
       "parts": [
         "door_L_plate",
         "wheel_L_1_rim"
@@ -24848,8 +22206,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.027,
-      "message": "Parts 'door_R_plate' and 'wheel_R_1_rim' interpenetrate by 27.0mm",
+      "distance_m": 0.0275,
+      "message": "Parts 'door_R_plate' and 'wheel_R_1_rim' interpenetrate by 27.5mm",
       "parts": [
         "door_R_plate",
         "wheel_R_1_rim"
@@ -25048,8 +22406,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0135,
-      "message": "Parts 'side_box_L_hinge' and 'wheel_L_3_tread_1' interpenetrate by 13.5mm",
+      "distance_m": 0.0059,
+      "message": "Parts 'side_box_L_hinge' and 'wheel_L_3_tread_1' interpenetrate by 5.9mm",
       "parts": [
         "side_box_L_hinge",
         "wheel_L_3_tread_1"
@@ -25068,8 +22426,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0111,
-      "message": "Parts 'side_box_L_lid' and 'wheel_L_2_tread_15' interpenetrate by 11.1mm",
+      "distance_m": 0.0103,
+      "message": "Parts 'side_box_L_lid' and 'wheel_L_2_tread_15' interpenetrate by 10.3mm",
       "parts": [
         "side_box_L_lid",
         "wheel_L_2_tread_15"
@@ -25088,8 +22446,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.014,
-      "message": "Parts 'side_box_L_lid' and 'wheel_L_3_tread_1' interpenetrate by 14.0mm",
+      "distance_m": 0.0111,
+      "message": "Parts 'side_box_L_lid' and 'wheel_L_3_tread_1' interpenetrate by 11.1mm",
       "parts": [
         "side_box_L_lid",
         "wheel_L_3_tread_1"
@@ -25228,8 +22586,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0135,
-      "message": "Parts 'side_box_R_hinge' and 'wheel_R_3_tread_1' interpenetrate by 13.5mm",
+      "distance_m": 0.0059,
+      "message": "Parts 'side_box_R_hinge' and 'wheel_R_3_tread_1' interpenetrate by 5.9mm",
       "parts": [
         "side_box_R_hinge",
         "wheel_R_3_tread_1"
@@ -25248,8 +22606,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0111,
-      "message": "Parts 'side_box_R_lid' and 'wheel_R_2_tread_15' interpenetrate by 11.1mm",
+      "distance_m": 0.0103,
+      "message": "Parts 'side_box_R_lid' and 'wheel_R_2_tread_15' interpenetrate by 10.3mm",
       "parts": [
         "side_box_R_lid",
         "wheel_R_2_tread_15"
@@ -25268,8 +22626,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.014,
-      "message": "Parts 'side_box_R_lid' and 'wheel_R_3_tread_1' interpenetrate by 14.0mm",
+      "distance_m": 0.0111,
+      "message": "Parts 'side_box_R_lid' and 'wheel_R_3_tread_1' interpenetrate by 11.1mm",
       "parts": [
         "side_box_R_lid",
         "wheel_R_3_tread_1"
@@ -25529,8 +22887,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.027,
-      "message": "Parts 'door_L_plate' and 'wheel_L_1_rim' interpenetrate by 27.0mm",
+      "distance_m": 0.0275,
+      "message": "Parts 'door_L_plate' and 'wheel_L_1_rim' interpenetrate by 27.5mm",
       "parts": [
         "door_L_plate",
         "wheel_L_1_rim"
@@ -25559,8 +22917,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.027,
-      "message": "Parts 'door_R_plate' and 'wheel_R_1_rim' interpenetrate by 27.0mm",
+      "distance_m": 0.0275,
+      "message": "Parts 'door_R_plate' and 'wheel_R_1_rim' interpenetrate by 27.5mm",
       "parts": [
         "door_R_plate",
         "wheel_R_1_rim"
@@ -25759,8 +23117,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0135,
-      "message": "Parts 'side_box_L_hinge' and 'wheel_L_3_tread_1' interpenetrate by 13.5mm",
+      "distance_m": 0.0059,
+      "message": "Parts 'side_box_L_hinge' and 'wheel_L_3_tread_1' interpenetrate by 5.9mm",
       "parts": [
         "side_box_L_hinge",
         "wheel_L_3_tread_1"
@@ -25779,8 +23137,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0111,
-      "message": "Parts 'side_box_L_lid' and 'wheel_L_2_tread_15' interpenetrate by 11.1mm",
+      "distance_m": 0.0103,
+      "message": "Parts 'side_box_L_lid' and 'wheel_L_2_tread_15' interpenetrate by 10.3mm",
       "parts": [
         "side_box_L_lid",
         "wheel_L_2_tread_15"
@@ -25799,8 +23157,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.014,
-      "message": "Parts 'side_box_L_lid' and 'wheel_L_3_tread_1' interpenetrate by 14.0mm",
+      "distance_m": 0.0111,
+      "message": "Parts 'side_box_L_lid' and 'wheel_L_3_tread_1' interpenetrate by 11.1mm",
       "parts": [
         "side_box_L_lid",
         "wheel_L_3_tread_1"
@@ -25939,8 +23297,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0135,
-      "message": "Parts 'side_box_R_hinge' and 'wheel_R_3_tread_1' interpenetrate by 13.5mm",
+      "distance_m": 0.0059,
+      "message": "Parts 'side_box_R_hinge' and 'wheel_R_3_tread_1' interpenetrate by 5.9mm",
       "parts": [
         "side_box_R_hinge",
         "wheel_R_3_tread_1"
@@ -25959,8 +23317,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0111,
-      "message": "Parts 'side_box_R_lid' and 'wheel_R_2_tread_15' interpenetrate by 11.1mm",
+      "distance_m": 0.0103,
+      "message": "Parts 'side_box_R_lid' and 'wheel_R_2_tread_15' interpenetrate by 10.3mm",
       "parts": [
         "side_box_R_lid",
         "wheel_R_2_tread_15"
@@ -25979,8 +23337,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.014,
-      "message": "Parts 'side_box_R_lid' and 'wheel_R_3_tread_1' interpenetrate by 14.0mm",
+      "distance_m": 0.0111,
+      "message": "Parts 'side_box_R_lid' and 'wheel_R_3_tread_1' interpenetrate by 11.1mm",
       "parts": [
         "side_box_R_lid",
         "wheel_R_3_tread_1"
@@ -26087,6 +23445,98 @@
       "severity": "error"
     }
   ],
+  "us_m1_abrams_sep_v2": [
+    {
+      "check": "interpenetration",
+      "distance_m": 0.4128,
+      "message": "Parts 'skin_hull_armor_paint' and 'track_L_band' interpenetrate by 412.8mm",
+      "parts": [
+        "skin_hull_armor_paint",
+        "track_L_band"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "interpenetration",
+      "distance_m": 0.3998,
+      "message": "Parts 'skin_hull_armor_paint' and 'track_R_band' interpenetrate by 399.8mm",
+      "parts": [
+        "skin_hull_armor_paint",
+        "track_R_band"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "interpenetration",
+      "distance_m": 0.0062,
+      "message": "Parts 'skin_hull_armor_paint' and 'wheel_L_1_disc_steel' interpenetrate by 6.2mm",
+      "parts": [
+        "skin_hull_armor_paint",
+        "wheel_L_1_disc_steel"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "interpenetration",
+      "distance_m": 0.0062,
+      "message": "Parts 'skin_hull_armor_paint' and 'wheel_L_2_disc_steel' interpenetrate by 6.2mm",
+      "parts": [
+        "skin_hull_armor_paint",
+        "wheel_L_2_disc_steel"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "interpenetration",
+      "distance_m": 0.0062,
+      "message": "Parts 'skin_hull_armor_paint' and 'wheel_L_3_disc_steel' interpenetrate by 6.2mm",
+      "parts": [
+        "skin_hull_armor_paint",
+        "wheel_L_3_disc_steel"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "interpenetration",
+      "distance_m": 0.0062,
+      "message": "Parts 'skin_hull_armor_paint' and 'wheel_L_4_disc_steel' interpenetrate by 6.2mm",
+      "parts": [
+        "skin_hull_armor_paint",
+        "wheel_L_4_disc_steel"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "interpenetration",
+      "distance_m": 0.0062,
+      "message": "Parts 'skin_hull_armor_paint' and 'wheel_L_5_disc_steel' interpenetrate by 6.2mm",
+      "parts": [
+        "skin_hull_armor_paint",
+        "wheel_L_5_disc_steel"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "interpenetration",
+      "distance_m": 0.0062,
+      "message": "Parts 'skin_hull_armor_paint' and 'wheel_L_6_disc_steel' interpenetrate by 6.2mm",
+      "parts": [
+        "skin_hull_armor_paint",
+        "wheel_L_6_disc_steel"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "interpenetration",
+      "distance_m": 0.0062,
+      "message": "Parts 'skin_hull_armor_paint' and 'wheel_L_7_disc_steel' interpenetrate by 6.2mm",
+      "parts": [
+        "skin_hull_armor_paint",
+        "wheel_L_7_disc_steel"
+      ],
+      "severity": "error"
+    }
+  ],
   "us_m1_abrams_sep_v2_trophy": [
     {
       "check": "interpenetration",
@@ -26130,8 +23580,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0266,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 26.6mm",
+      "distance_m": 0.0262,
+      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 26.2mm",
       "parts": [
         "hull_upper",
         "track_L_band"
@@ -26140,8 +23590,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0266,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 26.6mm",
+      "distance_m": 0.0262,
+      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 26.2mm",
       "parts": [
         "hull_upper",
         "track_R_band"
@@ -26362,8 +23812,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0266,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 26.6mm",
+      "distance_m": 0.0262,
+      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 26.2mm",
       "parts": [
         "hull_upper",
         "track_L_band"
@@ -26372,8 +23822,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0266,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 26.6mm",
+      "distance_m": 0.0262,
+      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 26.2mm",
       "parts": [
         "hull_upper",
         "track_R_band"
@@ -26434,8 +23884,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0266,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 26.6mm",
+      "distance_m": 0.0262,
+      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 26.2mm",
       "parts": [
         "hull_upper",
         "track_L_band"
@@ -26444,8 +23894,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0266,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 26.6mm",
+      "distance_m": 0.0262,
+      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 26.2mm",
       "parts": [
         "hull_upper",
         "track_R_band"
@@ -26536,8 +23986,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.24,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 240.0mm",
+      "distance_m": 0.2012,
+      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 201.2mm",
       "parts": [
         "hull_upper",
         "track_L_band"
@@ -26546,8 +23996,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.24,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 240.0mm",
+      "distance_m": 0.2151,
+      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 215.1mm",
       "parts": [
         "hull_upper",
         "track_R_band"
@@ -26738,8 +24188,8 @@
   "us_m2_bradley_ifv_m2a4": [
     {
       "check": "interpenetration",
-      "distance_m": 0.1833,
-      "message": "Parts 'hull_lower' and 'track_L_band' interpenetrate by 183.3mm",
+      "distance_m": 0.115,
+      "message": "Parts 'hull_lower' and 'track_L_band' interpenetrate by 115.0mm",
       "parts": [
         "hull_lower",
         "track_L_band"
@@ -26748,8 +24198,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.1833,
-      "message": "Parts 'hull_lower' and 'track_R_band' interpenetrate by 183.3mm",
+      "distance_m": 0.115,
+      "message": "Parts 'hull_lower' and 'track_R_band' interpenetrate by 115.0mm",
       "parts": [
         "hull_lower",
         "track_R_band"
@@ -27098,8 +24548,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0781,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 78.1mm",
+      "distance_m": 0.035,
+      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 35.0mm",
       "parts": [
         "hull_upper",
         "track_L_band"
@@ -27108,8 +24558,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0748,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 74.8mm",
+      "distance_m": 0.0793,
+      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 79.3mm",
       "parts": [
         "hull_upper",
         "track_R_band"
@@ -27199,8 +24649,8 @@
   "us_m3_bradley_cfv_m3a3": [
     {
       "check": "interpenetration",
-      "distance_m": 0.1833,
-      "message": "Parts 'hull_lower' and 'track_L_band' interpenetrate by 183.3mm",
+      "distance_m": 0.115,
+      "message": "Parts 'hull_lower' and 'track_L_band' interpenetrate by 115.0mm",
       "parts": [
         "hull_lower",
         "track_L_band"
@@ -27209,8 +24659,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.1833,
-      "message": "Parts 'hull_lower' and 'track_R_band' interpenetrate by 183.3mm",
+      "distance_m": 0.115,
+      "message": "Parts 'hull_lower' and 'track_R_band' interpenetrate by 115.0mm",
       "parts": [
         "hull_lower",
         "track_R_band"
@@ -27559,8 +25009,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0781,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 78.1mm",
+      "distance_m": 0.035,
+      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 35.0mm",
       "parts": [
         "hull_upper",
         "track_L_band"
@@ -27569,8 +25019,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0748,
-      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 74.8mm",
+      "distance_m": 0.0793,
+      "message": "Parts 'hull_upper' and 'track_R_band' interpenetrate by 79.3mm",
       "parts": [
         "hull_upper",
         "track_R_band"
@@ -27770,8 +25220,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0078,
-      "message": "Parts 'cargo_bed_member_1' and 'wheel_R_4_tread_22_0' interpenetrate by 7.8mm",
+      "distance_m": 0.0055,
+      "message": "Parts 'cargo_bed_member_1' and 'wheel_R_4_tread_22_0' interpenetrate by 5.5mm",
       "parts": [
         "cargo_bed_member_1",
         "wheel_R_4_tread_22_0"
@@ -28139,16 +25589,6 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0111,
-      "message": "Parts 'fuel_tank_strap_0' and 'wheel_L_2_tread_2' interpenetrate by 11.1mm",
-      "parts": [
-        "fuel_tank_strap_0",
-        "wheel_L_2_tread_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
       "distance_m": 0.0474,
       "message": "Parts 'fuel_tank_strap_0' and 'wheel_L_2_tyre' interpenetrate by 47.4mm",
       "parts": [
@@ -28199,8 +25639,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0097,
-      "message": "Parts 'jack_L_0_pad' and 'wheel_L_1_tread_13' interpenetrate by 9.7mm",
+      "distance_m": 0.0063,
+      "message": "Parts 'jack_L_0_pad' and 'wheel_L_1_tread_13' interpenetrate by 6.3mm",
       "parts": [
         "jack_L_0_pad",
         "wheel_L_1_tread_13"
@@ -28209,8 +25649,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0097,
-      "message": "Parts 'jack_R_0_pad' and 'wheel_R_1_tread_13' interpenetrate by 9.7mm",
+      "distance_m": 0.0063,
+      "message": "Parts 'jack_R_0_pad' and 'wheel_R_1_tread_13' interpenetrate by 6.3mm",
       "parts": [
         "jack_R_0_pad",
         "wheel_R_1_tread_13"
@@ -28239,8 +25679,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0099,
-      "message": "Parts 'module_door_L_plate' and 'wheel_L_2_tread_2' interpenetrate by 9.9mm",
+      "distance_m": 0.0091,
+      "message": "Parts 'module_door_L_plate' and 'wheel_L_2_tread_2' interpenetrate by 9.1mm",
       "parts": [
         "module_door_L_plate",
         "wheel_L_2_tread_2"
@@ -28249,8 +25689,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.1219,
-      "message": "Parts 'module_door_L_plate' and 'wheel_L_2_tyre' interpenetrate by 121.9mm",
+      "distance_m": 0.1225,
+      "message": "Parts 'module_door_L_plate' and 'wheel_L_2_tyre' interpenetrate by 122.5mm",
       "parts": [
         "module_door_L_plate",
         "wheel_L_2_tyre"
@@ -28279,8 +25719,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0099,
-      "message": "Parts 'module_door_R_plate' and 'wheel_R_2_tread_2' interpenetrate by 9.9mm",
+      "distance_m": 0.0091,
+      "message": "Parts 'module_door_R_plate' and 'wheel_R_2_tread_2' interpenetrate by 9.1mm",
       "parts": [
         "module_door_R_plate",
         "wheel_R_2_tread_2"
@@ -28289,8 +25729,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.1219,
-      "message": "Parts 'module_door_R_plate' and 'wheel_R_2_tyre' interpenetrate by 121.9mm",
+      "distance_m": 0.1225,
+      "message": "Parts 'module_door_R_plate' and 'wheel_R_2_tyre' interpenetrate by 122.5mm",
       "parts": [
         "module_door_R_plate",
         "wheel_R_2_tyre"
