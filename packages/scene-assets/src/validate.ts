@@ -28,7 +28,7 @@ import {
   type UnitCatalog,
   type UnitType,
 } from "./units.ts";
-import { DEBRIS_NODE, SCENERY_KINDS, type DebrisAllowance, type SceneryRule } from "./scenery.ts";
+import { SCENERY_KINDS } from "./scenery.ts";
 import {
   DEPLOY_EXTRAS,
   REST_ARTICULATION,
@@ -51,6 +51,9 @@ import { SOLDIER_CLASS, tierFindings, unitArtRule, type DressingAllowance } from
 import { materialFindings } from "./material.ts";
 import { textureFindings } from "./texture.ts";
 import { grassStripFindings } from "./grass.ts";
+import { canopyFindings, sizeFindings } from "./treeFit.ts";
+import { debrisFindings, pieceFindings } from "./wreckFit.ts";
+import { extentFindings, footprintFindings } from "./boxFit.ts";
 import {
   INFANTRY_CLIPS,
   INFANTRY_CORPSES,
@@ -1235,106 +1238,6 @@ function deployFindings(
   return out;
 }
 
-/** A tree, unscaled, stands inside the simulation's forest canopy on every
- *  tier, so the drawn crown never rises above or reaches past the foliage
- *  that attenuates sight. */
-function canopyFindings(
-  label: string,
-  tiers: MeshData[],
-  authority: Authority,
-  tolerances: Tolerances,
-): Finding[] {
-  let top = 0;
-  let reach = 0;
-  for (const { positions: p } of tiers)
-    for (let i = 0; i < p.length; i += 3) {
-      top = Math.max(top, p[i + 2]);
-      reach = Math.max(reach, Math.hypot(p[i], p[i + 1]));
-    }
-  const out: Finding[] = [];
-  if (top > authority.canopy_height_m + tolerances.ground_m)
-    out.push(
-      finding(
-        "fit.canopy",
-        `${label}: crown top at ${fmt(top)} m, above the forests' canopy of ${authority.canopy_height_m} m (forests.rule.canopy_height_m)`,
-        "lower the crown under the canopy height",
-      ),
-    );
-  if (reach > authority.canopy_radius_m + tolerances.ground_m)
-    out.push(
-      finding(
-        "fit.canopy",
-        `${label}: crown reaches ${fmt(reach)} m from the trunk's axis, past the forests' canopy radius of ${authority.canopy_radius_m} m (forests.rule.canopy_radius_m)`,
-        "narrow the crown inside the canopy radius",
-      ),
-    );
-  return out;
-}
-
-/** The area a mesh's surface encloses where the level plane `z` cuts it:
- *  each triangle the plane crosses gives one edge of the outline, taken
- *  round the way its face looks out, so a closed surface's outline sums to
- *  its area wherever it stands. */
-function sectionArea({ positions: p, indices }: MeshData, z: number): number {
-  let twice = 0;
-  const cut: number[] = [];
-  for (let i = 0; i < indices.length; i += 3) {
-    const [a, b, c] = [indices[i] * 3, indices[i + 1] * 3, indices[i + 2] * 3];
-    cut.length = 0;
-    for (const [from, to] of [
-      [a, b],
-      [b, c],
-      [c, a],
-    ]) {
-      if (p[from + 2] < z === p[to + 2] < z) continue;
-      const s = (z - p[from + 2]) / (p[to + 2] - p[from + 2]);
-      cut.push(p[from] + s * (p[to] - p[from]), p[from + 1] + s * (p[to + 1] - p[from + 1]));
-    }
-    if (cut.length !== 4) continue;
-    // The face's normal, level: the outline runs with it on its right.
-    const nx =
-      (p[b + 1] - p[a + 1]) * (p[c + 2] - p[a + 2]) - (p[b + 2] - p[a + 2]) * (p[c + 1] - p[a + 1]);
-    const ny = (p[b + 2] - p[a + 2]) * (p[c] - p[a]) - (p[b] - p[a]) * (p[c + 2] - p[a + 2]);
-    const along = (cut[2] - cut[0]) * -ny + (cut[3] - cut[1]) * nx;
-    twice += Math.sign(along) * (cut[0] * cut[3] - cut[2] * cut[1]);
-  }
-  return Math.abs(twice) / 2;
-}
-
-/** Every tree is one size: its finest tier's top, and its bole's girth at
- *  breast height, stand within the kind's band (`SCENERY_KINDS`), so species
- *  differ in shape alone. */
-function sizeFindings(
-  label: string,
-  finest: MeshData,
-  size: NonNullable<SceneryRule["size"]>,
-): Finding[] {
-  let top = 0;
-  for (let i = 2; i < finest.positions.length; i += 3) top = Math.max(top, finest.positions[i]);
-  const bole = Math.sqrt(sectionArea(finest, size.breast_m) / Math.PI);
-  const out: Finding[] = [];
-  const outside = (value: number, nominal: number) => Math.abs(value / nominal - 1) > size.within;
-  const band = (nominal: number) =>
-    `${fmt(nominal * (1 - size.within))} to ${fmt(nominal * (1 + size.within))} m`;
-  if (outside(top, size.top_m))
-    out.push(
-      finding(
-        "fit.tree_size",
-        `${label}: top at ${fmt(top)} m, outside every tree's ${band(size.top_m)}`,
-        "build the kind to the one tree height (SCENERY_KINDS.tree.size)",
-      ),
-    );
-  if (outside(bole, size.bole_radius_m))
-    out.push(
-      finding(
-        "fit.tree_size",
-        `${label}: the bole is ${fmt(bole)} m in radius at ${size.breast_m} m up, outside every tree's ${band(size.bole_radius_m)}`,
-        "build the kind's trunk to the one girth (SCENERY_KINDS.tree.size), clear of its crown at breast height",
-      ),
-    );
-  return out;
-}
-
 /** Each tier's triangles, and the bundle they are built into when its
  *  bytes and textures are budgeted too, against a budget; `owner` names where the budget lives,
  *  for the fix. */
@@ -1377,160 +1280,6 @@ export function budgetFindings(
       ),
     );
   return out;
-}
-
-interface ExtentRule {
-  code: "fit.hull_extents" | "fit.footprint";
-  /** What the box is, for the message: `units.tank.body.hull.half_extents_m [..]`. */
-  rule: string;
-  tolerance: number;
-  fix: string;
-}
-
-/** The five faces (±x, ±y, top) of `positions` against a box of half extents
- *  `half` standing on the ground, in both directions. */
-function extentFindings(
-  label: string,
-  positions: Float32Array,
-  half: Vec3,
-  { code, rule, tolerance, fix }: ExtentRule,
-): Finding[] {
-  const b = positionsBounds(positions);
-  const faces: [string, number, number][] = [
-    ["-x", b.min[0], -half[0]],
-    ["+x", b.max[0], half[0]],
-    ["-y", b.min[1], -half[1]],
-    ["+y", b.max[1], half[1]],
-    ["+z", b.max[2], 2 * half[2]],
-  ];
-  const off = faces.filter(([, model, box]) => Math.abs(model - box) > tolerance);
-  return off.length
-    ? [
-        finding(
-          code,
-          `${label}: ${off.map(([face, model, box]) => `${face} face at ${fmt(model)} m vs ${fmt(box)} m`).join("; ")} (${rule}, tolerance ${tolerance})`,
-          fix,
-        ),
-      ]
-    : [];
-}
-
-/** The `debris_*` node scene node `i` is or lies under, or null. */
-function debrisNode(scene: Scene, i: number): string | null {
-  for (let n = i; n >= 0; n = scene.nodes[n].parent)
-    if (scene.nodes[n].name.startsWith(DEBRIS_NODE)) return scene.nodes[n].name;
-  return null;
-}
-
-/** A wreck's debris state (`SceneryRule.debris`): every mesh under a
- *  `debris_*` node, and every point of its finest tier within `reach_m`
- *  across the ground of the box of half extents `half`, and no higher than
- *  `top_m`. */
-function debrisFindings(
-  label: string,
-  scene: Scene,
-  finest: MeshData,
-  half: AppearanceEntry["footprint_half_m"],
-  allowance: DebrisAllowance,
-): Finding[] {
-  const out: Finding[] = [];
-  const meshes = scene.nodes.filter((n) => n.live && n.mesh !== null);
-  const loose = meshes.filter((n) => debrisNode(scene, n.index) === null);
-  if (loose.length)
-    out.push(
-      finding(
-        "fit.debris",
-        `${label}: mesh ${loose
-          .slice(0, 3)
-          .map((n) => `"${n.name}"`)
-          .join(", ")} lies under no ${DEBRIS_NODE}* node; the debris state carries only debris`,
-        `put each thrown piece under a ${DEBRIS_NODE}* node (wreckage.scatter), and leave the wreck's own parts in its other states`,
-      ),
-    );
-  if (!half) return out;
-  const p = finest.positions;
-  let reach = 0;
-  let top = -Infinity;
-  for (let k = 0; k < p.length; k += 3) {
-    const dx = Math.max(0, Math.abs(p[k]) - half[0]);
-    const dy = Math.max(0, Math.abs(p[k + 1]) - half[1]);
-    reach = Math.max(reach, Math.hypot(dx, dy));
-    top = Math.max(top, p[k + 2]);
-  }
-  const over = [
-    ...(reach > allowance.reach_m
-      ? [`${fmt(reach)} m past the box, over its ${allowance.reach_m} m`]
-      : []),
-    ...(top > allowance.top_m ? [`${fmt(top)} m tall, over its ${allowance.top_m} m`] : []),
-  ];
-  const names = [...new Set(meshes.map((n) => debrisNode(scene, n.index) ?? n.name))];
-  if (over.length)
-    out.push(
-      finding(
-        "fit.debris",
-        `${label}: debris (${names.slice(0, 5).join(", ")}) lies ${over.join(" and ")}`,
-        "throw the debris nearer and lay it flat; the allowance is SCENERY_KINDS.wreck.debris (packages/scene-assets/src/scenery.ts)",
-      ),
-    );
-  return out;
-}
-
-/** Each of a scenery appearance's pieces (`SceneryRule.pieces`) against the
- *  whole it was cut from, its `whole` state: inside it on every face. */
-function pieceFindings(
-  label: string,
-  states: readonly { name: string; bounds: Bounds }[],
-  whole: string,
-  pieces: readonly string[],
-): Finding[] {
-  const of = states.find((s) => s.name === whole)?.bounds;
-  if (!of) return [];
-  // A millimetre: a piece is cut from the same export as its whole.
-  const slack = 0.001;
-  return states
-    .filter((s) => pieces.includes(s.name))
-    .flatMap(({ name, bounds: b }) => {
-      const out = [0, 1, 2].flatMap((k) => [
-        ...(b.min[k] < of.min[k] - slack ? [`-${"xyz"[k]}`] : []),
-        ...(b.max[k] > of.max[k] + slack ? [`+${"xyz"[k]}`] : []),
-      ]);
-      return out.length
-        ? [
-            finding(
-              "fit.piece",
-              `${label} (${name}): reaches past its ${whole} state on ${out.join(", ")}`,
-              `export the piece from the same build as ${whole}, where it lies in it`,
-            ),
-          ]
-        : [];
-    });
-}
-
-/** A scenery appearance that stands for a simulation prop, against its box. */
-function footprintFindings(
-  entry: AppearanceEntry,
-  states: { name: string; tiers: MeshData[] }[],
-  tolerances: Tolerances,
-  label: string,
-): Finding[] {
-  if (SCENERY_KINDS[entry.scenery ?? ""]?.footprint.kind !== "prop") return [];
-  const half = entry.footprint_half_m;
-  if (!half)
-    return [
-      finding(
-        "fit.footprint",
-        `${label}: no footprint_half_m; a ${entry.scenery} prop is fitted to the simulation's box`,
-        "set footprint_half_m in the catalog entry to the half extents of the box the simulation places (a map placement, or a wreck's hull)",
-      ),
-    ];
-  return states.flatMap((state) =>
-    extentFindings(`${label} (${state.name})`, state.tiers[0].positions, half, {
-      code: "fit.footprint",
-      rule: `footprint_half_m [${half.join(", ")}]`,
-      tolerance: tolerances.footprint_m,
-      fix: "fit the art to the simulation's box, or widen footprint_m for this appearance in the catalog (overhangs, rubble)",
-    }),
-  );
 }
 
 /** A regional look is scenery, of one of the presets' `families`: a body
