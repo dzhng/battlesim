@@ -3202,3 +3202,35 @@ and a confidence that the user would have made the same call.
   `cv90` and `abrams` keep what their importers use until slice 30 deletes
   whatever nothing calls. It keeps lanes disjoint, at the cost of dead code
   for a few days.
+
+## Lane B decisions (2026-11-12, Western tanks: slices 20–23)
+
+Each entry gives the decision, why, and a confidence that the user would have
+made the same call.
+
+- **B1 Shared-part request: `scripted_body.wear` passes a variant.** (Agent;
+  high.) The template asks for one `build.py` per variant set with
+  `build(variant)`, but `scripted_body.run_script` calls `module.build()` with
+  no argument, so a family can wear only one variant of a script. The call
+  wanted: `SB.wear(v, path, link_pitch, variant=None)`, passing `variant` on to
+  `module.build(variant)` when it is given. Sent to the coordinator; every lane
+  with a variant set needs it. Until it lands, lane B's scripts take
+  `build(variant=<default>)` and their families wear the default variant only.
+- **B2 Seven sessions, not eight.** (Agent; high.) The lane brief counted eight;
+  the slices name seven: Challenger 2/3, the Abrams variants, M1E3, M10, the
+  three Leopards, Leclerc, KF51. A set splits only if round 1 shows its hulls
+  differ (R2).
+- **B3 The M1E3's example script is the SEP v2's `build.py`, not the T-72's.**
+  (Agent; medium-high.) The prototype keeps the Abrams' layout and running
+  gear, and the SEP v2 script is finished to the contract. The brief tells
+  Argon to reshape the hull to the user's note (front deck 1.43 m, engine deck
+  1.78 m, blunt glacis, from `frames/m1e3.json`), so it does not inherit the
+  SEP v2's hull unchanged.
+- **B4 The KF51's muzzle stays the frame's 6.40 m world.** (Agent; medium.)
+  The survey left the 130 mm's reach open (6.1 against about 7.2 m from the
+  pivot). Frames never move (P9), so the brief asks for a thick barrel and a
+  heavy muzzle at the frame's muzzle; the user's "barrel shape wrong" is read
+  as its thickness and muzzle, not its length.
+- **B5 Briefs paint US vehicles tan.** (Agent; high.) The M10 and M1E3 photos
+  are green, but the game paints them in the `us_desert_tan` scheme; Argon's
+  flat colour is only for its own renders.
