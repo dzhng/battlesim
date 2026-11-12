@@ -3313,6 +3313,18 @@ have made the same call.
   in `build.py` (lane B), not by giving up the canonical order. The lint's
   sampling stays as it is in this pass ("no new lint checks"); a lint that
   tests every vertex, or a spatially fixed sample, is a follow-up.
+  - *Amended:* most of the order dependence was a lint bug, which lane B
+    found. `_is_point_inside_mesh` unpacked `BVHTree.ray_cast` as
+    (hit, location, ...), but it returns (location, normal, index,
+    distance), so every ray after its first hit restarted from the normal
+    vector, near the world origin, and the parity votes were noise. Fixed
+    (slice 00's "make the lint do what its docstrings say"). The roster walk
+    under the fix gives 9 new issues in 130 appearances: the Abrams SEP v2's
+    8 (the contacts above, which lane B fixes in its script) and the
+    MiG-31BM's right main gear strut, measured at 132.8 mm in place of
+    17.5 mm, the same seating the J-20's entry accepts at 108 mm. That one
+    baseline entry is updated. Receipts hash the lint module, so every
+    receipt is stale until slice 30's freshness pass re-exports them.
 - **R9 A build script can't repaint the export's materials.** (Agent, from
   lane C's finding; high.) The export makes its materials under the slot
   names before the script runs, so a script that looks its slots up by
