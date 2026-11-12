@@ -249,7 +249,9 @@ def _is_point_inside_mesh(point, bvh, bounds_lo, bounds_hi):
             if loc is None:
                 break
             hits += 1
-            origin = loc + d * 0.0001
+            # Past the face: the BVH's epsilon (0.1 mm) reports a hit that
+            # far short of it, so a smaller step meets the same face again.
+            origin = loc + d * 0.001
         if hits % 2 == 1:
             inside_votes += 1
     
