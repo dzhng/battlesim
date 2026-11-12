@@ -73,7 +73,8 @@ OWN = ("wheel_", "track_", "dressing_")
 # before the paint's edge splits (`parts.finish`), and the size under which a
 # loose piece drops out. A script builds its parts from hundreds of small
 # closed pieces (bolts, slats, blocks), which the collapse leaves whole, so
-# the far tiers shed the pieces too small to see from them. Tier 0 is the
+# the far tiers shed the pieces too small to see from them, and then the
+# smallest left while the pieces alone overrun the tier. Tier 0 is the
 # script's own.
 TIERS = (None, (22000, 0.02, 8), (6500, 0.12, 4), (1500, 0.5, 4))
 # A belt is never thinner than this, however low the road wheels sit.
