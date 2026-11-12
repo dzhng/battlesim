@@ -3,7 +3,8 @@
 The script (`build.py`, kept with its source rounds under
 `assets/source/skins/<family>/`) is a standalone Blender program: run alone
 (`OUT_DIR=<dir> blender -b -P build.py`) it builds the vehicle, renders its
-views and writes a GLB; imported, its `build()` builds the vehicle into the
+views and writes a GLB; imported, its `build()` (`build(variant)` for a
+script that builds several variants) builds the vehicle into the
 caller's scene and returns. Gemini Argon writes it in a Bento session from
 the references and our measurements (at most two rounds); after that it is
 edited here like any source. It names each part by what the game moves, and
@@ -111,15 +112,16 @@ def part_of(o):
     raise SystemExit(f"{_base(o.name)}: under no part the game moves ({', '.join(RIG)})")
 
 
-def run_script(path):
+def run_script(path, variant=None):
     """Import the script at `path` (repository-relative) and call its
-    `build()` in this scene; returns the objects it made, renamed `PREFIX`."""
+    `build()` in this scene, or `build(variant)` for a script that builds
+    several variants; returns the objects it made, renamed `PREFIX`."""
     before = set(bpy.data.objects)
     spec = importlib.util.spec_from_file_location(f"scripted_body_{Path(path).parent.parent.name}", REPO / path)
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module  # the receipt hashes what the export loaded
     spec.loader.exec_module(module)
-    module.build()
+    module.build() if variant is None else module.build(variant)
     made = sorted((o for o in bpy.data.objects if o not in before), key=lambda o: o.name)
     for o in made:
         o.name = PREFIX + o.name
@@ -176,12 +178,13 @@ def _tiers(objects):
             mesh_lods.reduced_copy(o, f"{base}_LOD{t}", max(1, round(target * counts[o] / total)), extent, floor)
 
 
-def wear(v, path, link_pitch):
+def wear(v, path, link_pitch, variant=None):
     """Build the script at `path` into `v` (see the module doc), its tracks'
-    links `link_pitch` long. The family has made its rig already."""
+    links `link_pitch` long; `variant` is the variant id a script building
+    several takes. The family has made its rig already."""
     from vehicle_export import CHIP, materials
     v.mats["paint"] = materials(v.scheme, **{**v.looks, "chip": v.looks.get("chip", CHIP) * EDGE_CHIP})["paint"]
-    made = run_script(path)
+    made = run_script(path, variant)
     meshes = [o for o in made if o.type == "MESH"]
     by_part = {}
     for o in meshes:

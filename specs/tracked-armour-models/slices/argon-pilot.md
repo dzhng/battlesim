@@ -14,7 +14,8 @@ follow. Its decisions are P1 to P16 in [`decisions.md`](../decisions.md)
   part by what moves it: `hull`, `turret`, `gun`, `hmg`, `hmg_gun`, `wheel_*`,
   `track_L`/`track_R` and `dressing_*`. It paints with the seven slots: `armor_paint`,
   `steel`, `rubber`, `optics`, `fittings`, `lamps` and `recesses`.
-- **`scripted_body.wear(v, path, link_pitch)`** (new,
+- **`scripted_body.wear(v, path, link_pitch, variant=None)`** (new; `variant`, the id a
+  several-variant script's `build(variant)` takes, added for the rollout,
   `packages/scene-assets/blender/scripted_body.py`) runs the script and fits
   it to the export contract every procedural build keeps. `scripted_body.wreck`
   is a worn body's damage.
