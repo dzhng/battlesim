@@ -117,11 +117,21 @@ def run_script(path, variant=None):
     `build()` in this scene, or `build(variant)` for a script that builds
     several variants; returns the objects it made, renamed `PREFIX`."""
     before = set(bpy.data.objects)
+    # The export's materials carry the slot names too: hidden while the
+    # script builds, so a script that looks its slots up by name makes its
+    # own rather than repainting the export's.
+    held = {m: m.name for m in bpy.data.materials}
+    for m in held:
+        m.name = "export:" + m.name
     spec = importlib.util.spec_from_file_location(f"scripted_body_{Path(path).parent.parent.name}", REPO / path)
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module  # the receipt hashes what the export loaded
     spec.loader.exec_module(module)
     module.build() if variant is None else module.build(variant)
+    for m in [m for m in bpy.data.materials if m not in held]:
+        m.name = PREFIX + m.name
+    for m, name in held.items():
+        m.name = name
     made = sorted((o for o in bpy.data.objects if o not in before), key=lambda o: o.name)
     for o in made:
         o.name = PREFIX + o.name
