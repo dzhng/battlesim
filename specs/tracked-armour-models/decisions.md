@@ -3203,6 +3203,37 @@ and a confidence that the user would have made the same call.
   whatever nothing calls. It keeps lanes disjoint, at the cost of dead code
   for a few days.
 
+## Lane B decisions (2026-11-12, Western tanks: slices 20–23)
+
+Each entry gives the decision, why, and a confidence that the user would have
+made the same call.
+
+- **B1 Shared-part request: `scripted_body.wear` passes a variant.** (Agent;
+  high.) The template asks for one `build.py` per variant set with
+  `build(variant)`, but `scripted_body.run_script` calls `module.build()` with
+  no argument, so a family can wear only one variant of a script. The call
+  wanted: `SB.wear(v, path, link_pitch, variant=None)`, passing `variant` on to
+  `module.build(variant)` when it is given. Sent to the coordinator; every lane
+  with a variant set needs it. It landed as 5c97d4aa9 (`wear(..., variant=)`),
+  merged into lane B; each family wears `variant=variant["id"]`-keyed bodies.
+- **B2 Seven sessions, not eight.** (Agent; high.) The lane brief counted eight;
+  the slices name seven: Challenger 2/3, the Abrams variants, M1E3, M10, the
+  three Leopards, Leclerc, KF51. A set splits only if round 1 shows its hulls
+  differ (R2).
+- **B3 The M1E3's example script is the SEP v2's `build.py`, not the T-72's.**
+  (Agent; medium-high.) The prototype keeps the Abrams' layout and running
+  gear, and the SEP v2 script is finished to the contract. The brief tells
+  Argon to reshape the hull to the user's note (front deck 1.43 m, engine deck
+  1.78 m, blunt glacis, from `frames/m1e3.json`), so it does not inherit the
+  SEP v2's hull unchanged.
+- **B4 The KF51's muzzle stays the frame's 6.40 m world.** (Agent; medium.)
+  The survey left the 130 mm's reach open (6.1 against about 7.2 m from the
+  pivot). Frames never move (P9), so the brief asks for a thick barrel and a
+  heavy muzzle at the frame's muzzle; the user's "barrel shape wrong" is read
+  as its thickness and muzzle, not its length.
+- **B5 Briefs paint US vehicles tan.** (Agent; high.) The M10 and M1E3 photos
+  are green, but the game paints them in the `us_desert_tan` scheme; Argon's
+  flat colour is only for its own renders.
 ## Lane D decisions (2026-11-12, air defence, rockets and howitzers)
 
 Slices 24 and 29. Each entry gives the decision, why, and a confidence that
@@ -3605,3 +3636,55 @@ have made the same call.
   in the standard views (N·L 0.13), not the AO bake, which is no brighter on
   top than the old bodies'. Paint textures ride in each GLB, so every ground
   vehicle takes it at slice 30's re-export.
+- **B6 A5 passes with Bento's helper model present.** (Agent; high.) Every
+  lane B turn's `usageByModel` lists `google/gemini-4-argon` plus
+  `openai/gpt-6-luna` at about 1 % of the cost. The pilot's turns show the
+  same pair (t72-result, abrams-r2-result), so Luna is Bento's own helper
+  (titles, summaries), not a builder. Argon did every build.
+- **B7 The Abrams variants and the Leclerc skipped their second round.**
+  (Agent; medium-high.) Both matched every frame number and linted clean
+  after round 1; what was left (the Trophy launchers 7 cm over the roof
+  allowance, `main()`, paint slots, a notch) was a handful of lines. The
+  rule is at most two rounds (A6), not at least two. That saved about $1–3
+  each.
+- **B8 A broad `fittings` box is armour.** (Agent; medium.) Argon used
+  `fittings`, the export's dark hardware tone, for whole cheek plates, glacis
+  plates and deck panels, which read tan or as patchwork on green schemes.
+  The Challenger script repaints any `fittings` box broader than 25 cm both
+  ways (`PLATE`), and the Leclerc's blocks were repainted by hand. It's the
+  brief's own rule (fittings are small hardware), applied after the fact.
+- **B9 Where a sight sets the box top, its mast is the turret's.** (Agent;
+  medium.) The Challenger 3's and the Leopard 2A7V/2A8's frame boxes are
+  set by their sight heads (C4: box top = sight top - 0.3 m), but
+  `fit.hull_extents` wants the body (everything but gun, roof gun and
+  dressing) within 0.10 m of the box top. So the sight's mast is part of
+  `turret` up to the box top's reach and only the head is dressing. The
+  frames stay (P9). The coordinator may want the convention and the check
+  reconciled.
+- **B10 Rule R12's sweep is a per-script edit, `sweep_turret_front`.**
+  (Agent; medium. A shared-part candidate.) The M10, KF51, both Challengers
+  and the three Leopards had turret fronts flat across or angled in. Each
+  script gets the same small function, called at the end of `build()` with
+  its own turret object (the rig owns the name `turret` in an export). It
+  cuts the turret meshes on every boundary of a piecewise-affine push
+  (|y| = ym, x = x0, and the planes where the push reaches x0), then moves
+  each vertex ahead of x0 and outboard of ym back k per metre outboard. A
+  probe of every swept quad's corner-to-plane distance shows the sweep adds
+  no bent face; the remaining ones over 1 mm were Argon's before it. The
+  same function is in four `build.py` files: it belongs in `scripted_body`
+  as an option if more lanes need it (shared-part request).
+- **B11 The family places the Trophy part's nodes.** (Agent; high.)
+  `trophy_aps` needs nodes named exactly `trophy_radar_L/R` and
+  `trophy_launcher_L/R`; `scripted_body` drops a script's empties and
+  renames its meshes by material, and a dressing node sits at its parent's
+  origin. So the Abrams, Challenger 3, Leopard 2A8 and M1E3 scripts add the
+  four empties under their `dressing_trophy_*` nodes, at world positions
+  read off the script (the M1E3's at its housings' middles).
+- **B12 Critique budget.** (Agent; medium.) The Challengers and the Leclerc
+  had all three rounds; the KF51 three; the Abrams, M10 and Leopards two;
+  the M1E3 one. Further gains were either shared (the paint, R13) or need
+  Argon or a turret rebuild (the Challenger 3).
+- **B13 The M10's turret stays at the frame's roof.** (Agent;
+  medium-low.) Two critics asked for a taller turret, but the frame survey
+  measured a 2.5 m roof off two photos and the user's note asked for a
+  lower one (Q8c). The frame and the user's note win.

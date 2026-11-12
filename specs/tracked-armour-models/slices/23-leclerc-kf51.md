@@ -21,3 +21,55 @@ Every note must visibly read as fixed in a before/after beside the reference (`a
 ## Feedback that would change it
 
 The user re-ranks or adds notes for these models after seeing the checkpoint shots.
+
+## Lane B log (2026-11-12)
+
+**Sessions:** Leclerc `jn75q527pbvjyparz5n555s2rs8j2j25`, KF51
+`jn7cfznahkd0tpse99trrgqxth8j27mx`. Created 12:52; Bento's dispatch was down
+workspace-wide (`lastDeliveredInputSeq` 0), so round 1 had not started.
+Cost so far: $0.
+
+**Frame targets:** Leclerc hull 6.88 × 3.60 × 2.53, ring (0, 0), muzzle
+(6.43, 0, 1.97), roof gun (-0.25, -0.58, 2.38). KF51 hull 7.80 × 3.70 × 2.50,
+ring (0.30, 0), muzzle (6.40, 0, 1.95) (B4), roof gun (0.05, -0.58, 2.35).
+
+**Before (measured):** the KF51 turret runs x -2.76..+2.92; the user's
+"turret barrel shape wrong" is its wedge profile and the thin generic tube,
+not its length. The Leclerc's model is 3.80 m wide against the 3.60 m frame
+and 0.08 m over its roof.
+
+## Lane B result (2026-11-13)
+
+**KF51:** `assets/source/skins/kf51/argon-r2/`, two rounds, $1.70 + $1.42 =
+**$3.12**. Four local edits: the arrowhead's prow blunted round a proud
+mantlet, a raised launcher box, a larger commander's sight, and the front swept
+back (R12). The 130 mm is a thick sleeve with a heavy muzzle, and the turret
+a long flat faceted wedge over the glacis, so the user's note ("turret
+barrel shape wrong") reads as fixed in `assets/after/kf51/kf51-compare.png`.
+Lint 0, validate clean.
+
+| | silhouette | surface | fittings | materials | cohesion | mean |
+|---|---|---|---|---|---|---|
+| KF51 r1 | 6 | 7 | 7 | 6 | 7 | 6.6 |
+| KF51 r2 | 7 | 7 | 6 | 6 | 7 | 6.6 |
+| KF51 r3 | 7 | 7 | 6 | 6 | 7 | 6.6 |
+
+Below the bar, named: the commander's sight can't grow taller within the
+0.3 m roof allowance; there's a pale glare on one cheek (shared); the turret
+reads a little tall-sided.
+
+**Leclerc XLR:** `assets/source/skins/leclerc/argon-r1/`, one round,
+**$2.46**. Round 2 wasn't needed (B7). Three local edits: the armour blocks painted as
+armour, the cheek corners filled, and the cheek fronts swept back instead of
+caving in (the user's note: "why does the side cave outwards?"). Lint 0,
+validate clean, byte-identical twice.
+
+| | silhouette | surface | fittings | materials | cohesion | mean |
+|---|---|---|---|---|---|---|
+| Leclerc r1 | 7 | 7 | 6.5 | 6 | 6.5 | 6.6 |
+| Leclerc r2 | 6 | 6 | 6.5 | 6 | 6 | 6.1 |
+| Leclerc r3 (cheeks swept) | 6 | 7 | 6 | 6 | 6 | 6.2 |
+
+Below the bar, named: the right cheek's appliqué reads as a flat slab, the
+road wheels read brassy, and the turret and engine deck merge into one long
+box from the side.
