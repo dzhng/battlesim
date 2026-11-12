@@ -28,7 +28,7 @@ integrate. This page holds what every family lane adds to it.
    since they run remotely. Check each session's first turn
    `usageByModel` is `google/gemini-4-argon` (A5); if not, stop that
    session and report it, never let another model build.
-2. **The brief** is the recipe's step 1, plus:
+2. **The brief** is [`../argon-brief.md`](../argon-brief.md) (the recipe's step 1 in words Argon reads), plus:
    - the user's notes for the vehicle, quoted, as must-fix items;
    - the variants it must build, if any, as `build(variant)` with one id
      per appearance;
