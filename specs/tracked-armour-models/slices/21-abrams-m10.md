@@ -65,6 +65,26 @@ Below the bar, named: the paint mottling (the shared scheme recipe; R13's
 matte paint lands on re-export), and the pilot's turret cheeks, which
 read as a forward wedge rather than the Abrams' steep blunt faces.
 
+**Abrams R12 sweep (2026-11-13):** the three variants' turret fronts measured
+0.29–0.30 m back per metre outboard, under rule R12's floor of 0.5. The front
+cheek stations sweep back about 0.75 (edit 11 in the folder README, the M1E3's
+method), and the plan sweep now measures 0.64 (SEPv2) and 0.61 (both Trophy variants).
+See `assets/after/abrams/<variant>-compare.png`. Lint 0, validate clean live
+and wreck, byte-identical twice. Unprimed critique of the after shots:
+
+| | silhouette | surface | fittings | materials | cohesion | mean |
+|---|---|---|---|---|---|---|
+| SEPv2 (R12) | 7 | 6 | 7 | 5 | 7 | 6.4 |
+| SEPv2 Trophy (R12) | 7 | 6 | 6 | 5 | 6 | 6.0 |
+| SEPv3 Trophy (R12) | 7 | 6 | 7 | 5 | 6 | 6.2 |
+
+The critic read "swept front cheeks" as correct. Its findings were the
+shared look (olive-tinted shaded sides, which persist with textures off, so
+the lighting; grey mottling on the tops; grainy shadow edges), the cheek
+smoke launchers reading as flat marks at battle-near, and, at low
+confidence, cheeks sharper in plan than the real turret (no top-view photo
+settles it).
+
 **M1E3:** `assets/source/skins/m1e3/argon-r2/`, two rounds, $3.85 + $4.78 =
 **$8.63** (round 2 after the user's review and two replaced reference
 photos). The turret runs x -2.25..+2.35, 3.5 m across, up to the 2.44 m roof.

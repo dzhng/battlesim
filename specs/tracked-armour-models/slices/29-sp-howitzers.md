@@ -74,3 +74,32 @@ turret's armour shell (gun excluded), the foremost x per |y| band:
 - **2S19M2:** already swept: 1.28 at the mantlet, 0.88 at |y| 1.0, 0.49 at 1.6.
 - **PLZ-05:** already swept: 0.71 at the mantlet, 0.28 at |y| 0.8, -0.04 at 1.0.
 - The Gepard (slice 24) is already swept too: 1.41 at the tracking radar, 1.09 at |y| 0.6.
+
+**R12 floor, measured (2026-11-13).** Rule R12's floor is 0.5 m back per metre
+outboard, scored in plan from the cheek's foremost point beside the mantlet to the
+turret's edge (whole-turret probe, gun and dressing excluded).
+- **M109A7: 0.45 to 0.58** (edit 10): the cheek corner moves back to x 0.30
+  (base) and 0.20 (roof), its edges parallel; the smoke launchers, periscope
+  hoods and lower trim follow. Lint 0, validate clean live and wreck,
+  byte-identical twice. Critique of the after shots: 7/6/6/6/7 (6.4), below the bar. The critic
+  named painted-on roof and glacis hatches, a small gun cradle and olive-tinted
+  shaded sides (the shared lighting). It also called the front narrow and pointed
+  from above, against the front three-quarter photo's broader face.
+
+- **PzH 2000: front plates swept** (edit 4): the nose plates beside the
+  mantlet ran flat across ±0.64 m. They now sweep back 0.6 per metre, and
+  the front's plan line falls from x 0.58 at the mantlet to 0.18 at the
+  cheek corner (|y| 1.04), 0.57 per metre. The whole-turret probe reads
+  **0.38 before, 0.27 after**, because the smoke dischargers (Argon's,
+  unchanged) stand about 0.15 m proud of the cheek's outer corner at |y|
+  0.93–1.32, so they are the foremost thing outboard once the plates sweep.
+  The photos put the dischargers on the front plates beside the mantlet;
+  moving them is outside this edit and is named here. Lint 0, validate
+  clean live and wreck, byte-identical twice. Critique, one unprimed critic
+  each with the same prompt: after 7/6/6/5/6 (6.0), before (the committed
+  model) 6/5/5/5/6 (5.4). So the drop from lane D's last 7/8/6/7/7 is critic variance and the
+  shared changes since, not the sweep. Neither critic flagged the plates. The
+  findings both named were camouflage that stops at panel seams, a near-black
+  shaded flank and rear, a roof tile grid that reads as painted, and a small
+  mantlet. The after critic also called the front upright in the side view,
+  and the before critic called it tapered in plan.
