@@ -74,3 +74,15 @@ turret's armour shell (gun excluded), the foremost x per |y| band:
 - **2S19M2:** already swept: 1.28 at the mantlet, 0.88 at |y| 1.0, 0.49 at 1.6.
 - **PLZ-05:** already swept: 0.71 at the mantlet, 0.28 at |y| 0.8, -0.04 at 1.0.
 - The Gepard (slice 24) is already swept too: 1.41 at the tracking radar, 1.09 at |y| 0.6.
+
+**R12 floor, measured (2026-11-13).** Rule R12's floor is 0.5 m back per metre
+outboard, scored in plan from the cheek's foremost point beside the mantlet to the
+turret's edge (whole-turret probe, gun and dressing excluded).
+- **M109A7: 0.45 to 0.58** (edit 10): the cheek corner moves back to x 0.30
+  (base) and 0.20 (roof), its edges parallel; the smoke launchers, periscope
+  hoods and lower trim follow. Lint 0, validate clean live and wreck,
+  byte-identical twice. Critique of the after shots: 7/6/6/6/7 (6.4), below the bar. The critic
+  named painted-on roof and glacis hatches, a small gun cradle and olive-tinted
+  shaded sides (the shared lighting). It also called the front narrow and pointed
+  from above, against the front three-quarter photo's broader face.
+
