@@ -3248,3 +3248,18 @@ have made the same call.
   in the script (`dict.fromkeys` keeps first-seen order), and the brief and
   template now ask for it and for a two-export check. `scripted_body` can't
   repair the order after the fact.
+- **R7 The four SP howitzers and the Gepard draw their guns on the `gun`
+  rig.** (Agent, at lane D's request; medium-high.) With no art rig, a
+  hull-fixed mount's barrel is hull art, so `fit.hull_extents` fails on any
+  barrel that reaches the frame's own muzzle. The committed M109A7 already
+  failed `asset validate --type` (x 6.975 against the 3.40 box), unseen,
+  because validating by its in-repo path skips the type checks. In
+  `assets/catalog.json` they declare `"mounts": {"gun": "gun"}`. The
+  simulation is unchanged: the howitzers' guns stay hull-fixed
+  (`turret: false`), so their turrets don't yaw on screen, but their barrels
+  pitch on the gun node. The Gepard's turret already turns in the
+  simulation (`turret: true`); its `"gun": "hull"` dated from a model with no
+  turret rig. Lane D makes exactly these catalog edits on its branch, so each
+  lands with the body that has the nodes (a named exception to
+  coordinator-only catalog edits). `vehicle_export.rig` stays as it is, since
+  no caller passes a `hull` role once the Gepard is `gun`.
