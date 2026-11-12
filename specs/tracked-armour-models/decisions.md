@@ -3202,3 +3202,36 @@ and a confidence that the user would have made the same call.
   `cv90` and `abrams` keep what their importers use until slice 30 deletes
   whatever nothing calls. It keeps lanes disjoint, at the cost of dead code
   for a few days.
+
+## Lane D decisions (2026-11-12, air defence, rockets and howitzers)
+
+Slices 24 and 29. Each entry gives the decision, why, and a confidence that
+the user would have made the same call.
+
+- **D1 Nothing on the lane's tracked vehicles turns, so their bodies name no
+  rig part.** (Agent; high.) The Gepard's and Buk's mounts are drawn by the
+  hull (`assets/catalog.json` `mounts: hull`) and the M270's and the four
+  howitzers' have no role (fixed in the hull), so `vehicle_export.rig` makes
+  no node for them and `scripted_body.wear` would refuse a part named
+  `turret` or `gun`. The briefs name the turret or launcher base
+  `turret_body` (origin on its ring or pivot) and the weapon `gun_body`
+  (origin on its trunnion or hinge), both under `hull`, so a later pass that
+  gives them a rig renames two objects; sights, radars and roof guns over the
+  roof line are `dressing_*`.
+- **D2 The M270's rockets leave through the box's front wall; its rear face
+  shows the pods' aft caps.** (Agent; medium-high.) The A2's three-quarter
+  rear photo shows the box raised on a hinge at the bottom of its rear end,
+  its front end lifted over the cab, and the capped cells in the rear face,
+  which therefore are the rounds' aft ends. That agrees with the frame
+  (pivot at the hinge, x -3.2; muzzle at the box's front face, x +0.5). Our
+  current model showed the caps at the rear too, but hinged the box at its
+  front (the user's note).
+- **D3 The PLZ-05's generated side view goes to Argon labelled "layout only".**
+  (Agent; medium.) It is the only square-on side the library has; the survey
+  (C7) found its gun too short. The brief tells Argon to trust the three
+  photos where they disagree.
+- **D4 The M109A7 keeps its frame's 3.90 m width at the turret's racks.**
+  (Agent; medium.) The frame's width is unresolved (3.15 m family figure
+  against 3.9 m for the A7). Frames never move (P9), so the brief puts the
+  3.90 m at the turret's side racks and asks for the hull over its fenders
+  as the front photos show it (about 3.4-3.6 m), rather than a fat hull.
