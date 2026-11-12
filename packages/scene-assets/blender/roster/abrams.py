@@ -23,11 +23,11 @@ ahead of the hull's middle, 1.464 m up, as the side photos show; cannon muzzle
 5.555 m ahead of it): nothing here moves it. The wreck is cut into
 hull and turret pieces (wreckage.export_wreck).
 
-The SEPv2 wears a scripted body (`BODIES`, `scripted_body`): Gemini Argon's
-build script after its second round, edited since (its folder's README
-lists the edits). This script adds its rig, whip antennas and wreck. The
-Trophy and SEPv3 siblings keep the procedural build below until the family's
-script builds them too, and the M1E3 (`m1e3.py`) builds on it.
+All three wear one scripted body (`BODY`, `scripted_body`): Gemini Argon's
+SEPv2 build script after its second round, with the Trophy and SEPv3 added
+as its variants in a third session, edited since (its folder's README lists
+the edits). This script adds its rig, Trophy nodes, whip antennas and wreck.
+The procedural build below is the M1E3's (`m1e3.py`) until it wears its own.
 """
 import math
 import os
@@ -137,14 +137,27 @@ def front_skirt(rear):
             (rear, skirt_top(rear))]
 
 
-# The variants wearing a scripted body (`scripted_body`), and its track's link pitch.
-BODIES = {"us_m1_abrams_sep_v2": "assets/source/skins/abrams/argon-r2/build.py"}
+# The scripted body (`scripted_body`) every variant wears, each variant's id
+# in it, and its track's link pitch.
+BODY = "assets/source/skins/abrams/argon-variants-r1/build.py"
+BODIES = {"us_m1_abrams_sep_v2": "sep_v2", "us_m1_abrams_sep_v2_trophy": "sep_v2_trophy",
+          "us_m1_abrams_sep_v3_trophy": "sep_v3_trophy"}
 LINK_PITCH = 0.19
+# The Trophy part's nodes (`trophy_aps`), on the script's housings (world,
+# left side): each forward radar panel's centre and each launcher head's.
+TROPHY_NODES = {"radar": (-0.62, 1.925, 2.30), "launcher": (-0.70, 1.72, 2.645)}
 
 
 def scripted(variant, v):
+    import bpy
+    from mathutils import Vector
     turret = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})["cannon"][0]
-    SB.wear(v, BODIES[variant["id"]], LINK_PITCH)
+    SB.wear(v, BODY, LINK_PITCH, variant=BODIES[variant["id"]])
+    bpy.context.view_layer.update()
+    for side, s in ((1, "L"), (-1, "R")):
+        holder = bpy.data.objects.get(f"dressing_trophy_{s}")
+        for part, (x, y, z) in TROPHY_NODES.items() if holder else ():
+            empty(f"trophy_{part}_{s}", tuple(holder.matrix_world.inverted() @ Vector((x, side * y, z))), holder)
     # The whips on the bustle roof's rear corners (turret frame).
     for side, s in ((1, "L"), (-1, "R")):
         whip = empty(f"dressing_antenna_{s}", parent=turret)
