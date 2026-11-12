@@ -29,9 +29,6 @@ THE SCRIPT (hard requirements; the game imports it):
 - If the brief names variants, `build(variant)` takes the variant id and
   builds that one; `main()` renders and exports each.
 - No randomness without a fixed seed.
-- Deterministic order: never iterate a set of Blender or bmesh objects (it
-  orders by memory address, so two runs bevel and triangulate differently).
-  Deduplicate with `list(dict.fromkeys(...))` or sort by `.index`.
 
 CONVENTIONS:
 - Metres. X forward (the main weapon points +X), Y left, Z up. The hull is
