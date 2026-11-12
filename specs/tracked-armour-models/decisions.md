@@ -3319,6 +3319,58 @@ have made the same call.
   All lane-C appearances but the Puma are `tracked_medium` (90k tier 0);
   the shared belt and the paint's edge splits add to Argon's count, so the
   brief leaves room under the cap.
+- **LC5 A turn that dies on a provider error is continued, not counted as a
+  round.** (Agent; high; the coordinator agreed.) The BMP-3/BRM-3K and
+  Bradley round 1, and the Bradley's round 2, ended on "finish_reason:
+  other" or "Stream error"; one short message asked the same session to
+  continue from what was already in `out/`. The CV90's round 2 died after
+  writing every output, so it was taken as done. The Bradley's round-2 GLBs
+  predated its last script, so its archive holds that script rebuilt
+  standalone.
+- **LC6 The A5 check: Argon plus Bento's helper passes.** (Agent; medium-high.)
+  Every turn reported `google/gemini-4-argon` with 1-5 cents of
+  `openai/gpt-6-luna`, the same split as the pilot's sessions: Bento's own
+  titling or summarising, not a second builder. One turn listed
+  `typesafe-ai/jev` at $0, a tool.
+- **LC7 A build script must never fetch or remove an existing material.**
+  (Agent; high.) Argon's `materials.get(name) or new(name)` repainted the
+  export's own `armor_paint` with its flat colour as a base-colour factor,
+  and the CV90120's splinter print went near-black in the game. Reported to
+  the coordinator, who fixed it in `scripted_body` (R9); the round-2 brief
+  forbids fetching or removing materials either way.
+- **LC8 Wreck footprints: answered by the coordinator.** (Shared-part
+  request.) `scripted_body.wreck` throws litter and a track past the
+  BMP-2M's, BMP-3's and BRM-3K's footprint tolerances. Answered by R10's 1 m
+  rubble floor; no lane edit remains.
+- **LC9 Fit outranks a critic's "taller turret".** (Agent; high.) Every IFV
+  critique asked for taller turrets or sight masts that the frame forbids
+  (P9): roofs, dressing allowances and pivots stayed. Edits went into shape
+  and fittings inside them.
+  - The Puma's PERI and the CV9040C's sight became drums.
+  - The BMP-2M's right Kornet pair is fixed dressing, since the frame gives
+    one launcher mount.
+- **LC10 Local fixes for lint go where they read least.** (Agent; medium.)
+  The Puma's sprocket axle came down 0.065 m rather than raising the
+  sponson: the belt wrapping it cut 86 mm into the sponson's underside, and
+  the sponson line is the prow chine of the user's note.
+- **LC11 Critique rounds stopped at two for most vehicles.** (Agent; medium;
+  the user may want all three spent.)
+  - Three rounds: the CV90120 and the BMP family.
+  - Two rounds: the CV90 pair, Puma, Ajax and Bradleys.
+  - What the critics kept naming was structural (turret mass and clutter, the
+    Ajax's and Puma's nose shapes) or the shared look (tan `fittings`, a
+    washed-out glacis, the paint's mottle, the plain belt). Neither moves with
+    a local edit per round. Every vehicle is named below the bar in its
+    slice.
+- **LC12 The shared look is the biggest lever left.** (Agent; medium-high.)
+  - Across all ten models the critics docked materials for three things:
+    `fittings` painting tan in the Russian, Swedish and British schemes;
+    pale top faces; and the paint's mottle reading as smudges.
+  - Argon uses `fittings` for large parts (stowage lids, deck panels, grille
+    slats).
+  - Either the lane sweep moves large flat fittings to `armor_paint`, or the
+    `dark` role's colour per scheme is revisited. This is a slice 30
+    question.
 - **R6 A scripted body exports byte-identically, and its script never
   iterates a set of Blender objects.** (Agent; high.) Lane B found two
   re-exports of the Abrams SEP v2 differing in triangle order and in one
@@ -3531,4 +3583,12 @@ have made the same call.
     now 19k for every scripted body, the general number, not a Buk
     exception or a heavier class for it (20k left the Buk 64 triangles
     over: the floors keep part of the tier whatever the target).
+- **R12 Every tank turret's front is swept back.** (User, on the Leclerc:
+  "every tank's turret have a front that's swept back, it's never flat".)
+  Seen from above, the turret front runs back from the mantlet to each side,
+  an arrowhead or wedge, never flat across and never angled in toward the gun
+  (the Leclerc's cheeks were yawed the wrong way, a concave V). It goes into
+  the brief's shape rules for every round still to run, the lanes check it on
+  every turret they own, and slice 30 measures every turret's plan outline
+  and fixes each that fails.
 
