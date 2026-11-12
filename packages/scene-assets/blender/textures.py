@@ -262,7 +262,7 @@ def nato_camo():
     col = mix(col, (0.13, 0.12, 0.1), scratches(81) * 0.6)
     peel = fbm(96, 51, 2)
     h = peel * 0.2 - scratches(81) * 0.6
-    rough = 0.44 + 0.3 * dust + 0.08 * (mottle - 0.5)
+    rough = 0.74 + 0.3 * dust + 0.08 * (mottle - 0.5)
     return Baked(col, chips(71, 14), normals_from_height(blur(h), 1.0), 0.86 - 0.1 * dust, rough)
 
 
@@ -321,8 +321,8 @@ SCHEMES = {
 }
 
 
-def _sprayed(col, seed, rough=0.5):
-    """Finish a scheme's colours as sprayed enamel: mottled and sun-faded, dust in
+def _sprayed(col, seed, rough=0.8):
+    """Finish a scheme's colours as matte paint: mottled and sun-faded, dust in
     patches, fine scratches over an orange peel, `rough` where it is clean. -> Baked."""
     mottle = fbm(24, seed, 4)
     col = col * (0.92 + 0.16 * mottle)[..., None]

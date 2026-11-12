@@ -3592,3 +3592,16 @@ have made the same call.
   every turret they own, and slice 30 measures every turret's plan outline
   and fixes each that fails.
 
+- **R13 Scheme paint is lusterless.** (Agent, from lane B's "pale patch" and
+  a delegated diagnosis; high.) The pale faces on the Leclerc's, Challenger
+  2's and KF51's cheeks were the sun's specular highlight, not edge wear or
+  AO: the paint was a dielectric at roughness 0.53, and a large flat plate
+  near the sun-camera half-vector (N·H 0.93) lit its 7 %-albedo paint about
+  three times over. With the sun's specular removed the patch goes, while
+  removing the sky reflection, the AO or the albedo texture leaves it. Every
+  scheme's clean roughness (`textures._sprayed`, and `nato_camo` alike) is now 0.8, as military
+  paint is (CARC, NATO IRR). Colours and schemes are unchanged. Bright tops
+  and dark flanks are a separate matter, the workbench sun behind the flank
+  in the standard views (N·L 0.13), not the AO bake, which is no brighter on
+  top than the old bodies'. Paint textures ride in each GLB, so every ground
+  vehicle takes it at slice 30's re-export.
