@@ -40,12 +40,18 @@ GUN_DROOP_DEG = 10.0
 
 def build(variant, v):
     import bpy
+    from mathutils import Vector
     turret = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})["cannon"][0]
     SB.wear(v, BODY, LINK_PITCH)
-    # The Trophy part's nodes (`trophy_aps`): each at its housing's origin.
+    # The Trophy part's nodes (`trophy_aps`): each at the middle of its housing.
+    bpy.context.view_layer.update()
     for part in ("radar", "launcher"):
         for s in ("L", "R"):
-            empty(f"trophy_{part}_{s}", parent=bpy.data.objects[f"dressing_trophy_{part}_{s}"])
+            holder = bpy.data.objects[f"dressing_trophy_{part}_{s}"]
+            points = [o.matrix_world @ p.co for o in holder.children_recursive
+                      if o.type == "MESH" and o.name.endswith("_LOD0") for p in o.data.vertices]
+            mid = sum(points, Vector()) / len(points)
+            empty(f"trophy_{part}_{s}", tuple(holder.matrix_world.inverted() @ mid), holder)
     # The whips on the bustle roof's rear corners (turret frame).
     for side, s in ((1, "L"), (-1, "R")):
         whip = empty(f"dressing_antenna_{s}", parent=turret)
