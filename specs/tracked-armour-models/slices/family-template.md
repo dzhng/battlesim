@@ -48,7 +48,9 @@ integrate. This page holds what every family lane adds to it.
 ## Verification, per vehicle
 
 1. Export live and `--wreck` through the asset CLI: zero lint issues for
-   the vehicle's appearances (not just zero new ones). Re-export each script
+   the vehicle's appearances (not just zero new ones). Export it twice: the GLBs
+   must be byte-identical (a set of bmesh elements iterated in `build.py` is
+   the usual cause when they aren't; R6). Re-export each script
    that imports this one and changed.
 2. `asset validate <glb>` clean; tiers inside the caps (`tracked_heavy`
    120k/45k/13k/4k, `tracked_medium` 90k/34k/10k/3k).

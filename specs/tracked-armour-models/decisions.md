@@ -3238,3 +3238,13 @@ have made the same call.
   All lane-C appearances but the Puma are `tracked_medium` (90k tier 0);
   the shared belt and the paint's edge splits add to Argon's count, so the
   brief leaves room under the cap.
+- **R6 A scripted body exports byte-identically, and its script never
+  iterates a set of Blender objects.** (Agent; high.) Lane B found two
+  re-exports of the Abrams SEP v2 differing in triangle order and in one
+  reduced-tier piece (about 3 mm). Its `build.py` bevels
+  `list({e for f in faces for e in f.edges})`: a set of bmesh edges, ordered
+  by memory address, so each run bevels the edges in a different order. The
+  T-72B3's script has no such set and re-exports byte-identically. The fix is
+  in the script (`dict.fromkeys` keeps first-seen order), and the brief and
+  template now ask for it and for a two-export check. `scripted_body` can't
+  repair the order after the fact.
