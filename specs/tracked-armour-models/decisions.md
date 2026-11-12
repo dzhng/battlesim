@@ -3314,3 +3314,108 @@ have made the same call.
   entry may still ask for more. `wreck()` is unchanged, so no wreck moves.
   The 29 wreck entries at 1.0 or less are now redundant; slice 30 drops
   them, not now, while four lanes edit the catalog.
+
+## Lane A decisions (2026-11-12, Eastern tanks: slices 17-19)
+
+Each entry gives the decision, why, and a confidence that the user would
+have made the same call.
+
+- **LA1 Six sessions, one per vehicle, all started at once.** (Agent; high.)
+  - Bento's dispatch was down workspace-wide from 08:51 to about 11:57 UTC.
+    Every lane's sessions were created (each create returned 503) but sat
+    undelivered.
+  - Nothing was re-created. When dispatch recovered, the sessions ran as
+    briefed.
+- **LA2 A few cents of `openai/gpt-6-luna` in a turn's `usageByModel` passes
+  A5.** (Agent; medium-high.)
+  - Every turn reported Argon plus $0.00-0.10 of `gpt-6-luna`.
+  - Argon did all the building: the helper's share is under 3 % of every
+    turn, and the tool-call ids are Argon's.
+  - A5's point is that no other model builds, so I read the helper as the
+    session's own overhead and did not stop the sessions.
+- **LA3 A round that fails on a provider error is resumed once, as the same
+  round.** (Agent; medium.)
+  - The ZTQ-15's round 2 ended `failed` (`finish_reason: other`) after
+    $1.54, having written nothing.
+  - One message asked it to finish the same eight fixes. No new asks: that
+    is round 2 completed, not a third round (A6).
+  - It cost $4.74 more, making the ZTQ-15 $10.27 in all. The user may
+    prefer local edits over paying for a resumed round.
+- **LA4 The family scripts were rewritten whole.** (Agent; high.)
+  - `t80`, `t90`, `type99`, `t14`, `t15` and `type15` now hold only the
+    body's path, the link pitch, the trunnion, the whips' base and the
+    shared wreck.
+  - Nothing imports these six, so their procedural code went with them.
+  - `t72.py` and `armata.py` keep everything (R4); slice 30 sweeps what
+    nothing calls now: all of `armata.py`, and the T-72 procedural parts
+    once nothing imports them.
+- **LA5 The whips stand on the roof the body actually has.** (Agent; high.)
+  - Each `ANTENNA` base was probed against the built turret (a ray down the
+    turret mesh at the chosen x, y).
+  - Taking the frame's roof height had left the ZTZ-99A's whips floating
+    over its lower bustle.
+- **LA6 "Too dark" is the shared look, not the bodies.** (Agent; medium-high.)
+  - Every critique called the new bodies darker than the procedural ones.
+  - Measured on the close front view (pixels darker than the ground), the
+    mean grey is unchanged: T-15 58.6 against 56.8, ZTZ-99A 52.8 against
+    54.7, T-90M 54.7 against 56.9.
+  - The bleached glacis tops and black flanks are the scheme's mottle and
+    the workbench light, as the pilot found. No body was brightened to
+    please the critic.
+  - (A real darkening, Argon's flat colour multiplying the scheme, was the
+    coordinator's 8a3995b96, merged before any lane-A integration.)
+- **LA7 Painted hardware moves from `fittings` to `armor_paint` in the
+  script.** (Agent; medium-high.)
+  - The export paints `fittings` a brownish olive (`vehicle_export.materials`,
+    `fittings=(0.11, 0.095, 0.068)`). Against Russian green or PLA camouflage
+    it read as tan flecks, tan panel grids or blank tan tiles, which every
+    critique flagged.
+  - The brief's own slot rule says painted bolts and hinges are
+    `armor_paint`.
+  - Applied to the hull and turret of the T-15, T-90M, T-14 and ZTQ-15 (a
+    local edit, `paint_hardware`); gun, wheels and roof guns keep theirs.
+  - Shared-part request LA-S2 asks whether the shared fittings tone should
+    change instead.
+- **LA8 Frame-bound shape faults are fixed inside the frame, or named.**
+  (Agent; medium.)
+  - The ZTZ-99A's turret body was stretched from a 2.19 m to a 2.28 m roof,
+    as high as the frame's 2.5 m top and its 0.1 m tolerance allow, given
+    roof fittings 0.31 m tall.
+  - The T-14's panorama was cut to 3.10 m to pass the dressing allowance.
+  - The critics' "taller turret" asks for the T-90M, T-14 and ZTQ-15 are
+    left: the frames set those heights (P9).
+- **LA9 The T-15's right-hand Kornet pair is fixed turret art.** (Agent;
+  medium-high.)
+  - The real Bumerang-BM module carries a pair each side; the frame has one
+    `launcher` mount.
+  - The second pair is drawn in `turret`, so it turns but does not pitch.
+    The battle is unchanged.
+- **LA10 The T-90M keeps the drawing's turret placement against the
+  critic.** (Agent; high.) Both critique rounds asked for the turret
+  further forward, which is the user's own complaint reversed. The drawing
+  puts the bustle at x = -3.0.
+- **LA11 Two critique rounds, not three, where the third had nothing to act
+  on.** (Agent; medium.)
+  - The T-80BVM, T-90M, T-14 and ZTQ-15 stopped after two.
+  - Their remaining findings were the shared paint look, frame-bound
+    heights, or a turret rebuild beyond local edits: a T-80BVM front of flat
+    Relikt blocks, a slab-sided T-14 turret.
+  - The T-15 and ZTZ-99A ran three.
+
+### Shared-part requests
+
+- **LA-S1 Edge wear on thin bars (`parts.finish` / `scripted_body`).**
+  - The T-14's slat cages, now `armor_paint`, still read tan or brass. A
+    rod a few centimetres thick is all edge, so the paint's chip tone covers
+    it whole.
+  - Wanted: a scripted body's chip scaled down on thin parts, or a
+    slat-cage slot without edge wear. Call: `scripted_body.wear` passes a
+    thickness-aware chip.
+  - Lane A carries on without it.
+- **LA-S2 The `fittings` tone.**
+  - `vehicle_export.materials(fittings=(0.11, 0.095, 0.068))` reads tan
+    beside Russian green and PLA camouflage on every Argon body.
+  - Wanted: either a fittings tone per scheme (a darker shade of the
+    scheme's paint), or confirmation that lanes should paint hardware
+    `armor_paint` (LA7).
+  - Lane A did the latter in its scripts.
