@@ -63,19 +63,21 @@ were delivered at 15:57 local.
   Critique 5/7/6/6/6, then 6/7/6/6/6. Still below: the turret reads low and
   flat (its roof is the frame's 2.76 m), the tracking radar small, the
   folded search radar box-like.
-- **Buk-M3: integrated, not committed; blocked on its tier-1 budget.** The
-  layout is rebuilt (no cab; the turret forward with the 9S36M "pillow"
-  radar at its front and six canisters behind; the raised engine
-  compartment at the rear; seven road wheels, rear sprocket) and the note
-  "needs more detail" reads as fixed:
-  [`buk-compare.png`](../assets/after/air_defence/buk-compare.png). Lint 0,
-  byte-identical, wreck validates; the live GLB's tiers are 67.4k / 36.3k /
-  9.7k / 2.5k against `tracked_medium`'s 90k / 34k / 10k / 3k (after R11),
-  so tier 1 is 2.3k over. The coordinator holds the call. Critique round 1
-  (before edit 1 painted the radar): 6/6/6/5/5.5.
+- **Buk-M3: done to the export bar, below the critique bar.** The layout
+  is rebuilt (no cab; the turret forward with the 9S36M radar at its front
+  and six canisters lying behind; the raised engine compartment at the
+  rear; seven road wheels, rear sprocket) and the note "needs more detail"
+  reads as fixed: [`buk-compare.png`](../assets/after/air_defence/buk-compare.png).
+  Lint 0, validate clean, byte-identical; tiers 67.4k / 32.6k / 9.7k / 2.5k
+  inside `tracked_medium`'s caps after the coordinator's reducer change
+  (R11, tier-1 target 19k). Critique 6/6/6/5/5.5, then 5/5/5/6/6. Still
+  below: the radar's "pillow" rounding (the brief asked for it; the critic
+  reads the photos as a chamfered box), canisters too fat with domed ends,
+  the turret's stepped tiers, and the running gear's sprocket, idler and
+  upper run.
 - `air_defence.py` was not split (S14): wearing the bodies removes
-  `gepard()` now and `tracked_hull()`/`buk()` with the Buk, about 170
-  lines. Pantsir, Skyranger 30 and NASAMS are untouched.
+  `gepard()`, `buk()` and `tracked_hull()`, about 170 lines; the file is
+  now 16.8 KB. Pantsir, Skyranger 30 and NASAMS are untouched.
 - Siblings: HIMARS x2 and the S-300 were re-exported with the rocket
   family; their committed GLBs were stale against the shared modules (the
   committed script exports the same bytes), 0 new lint issues, validate
