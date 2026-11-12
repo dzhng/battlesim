@@ -34,7 +34,7 @@ session dispatch was down workspace-wide. No Argon cost has been spent.
 
 | Session | Bento id | State |
 |---|---|---|
-| CV9040C and CV90 Mk IV (`cv90 argon r1`) | `jn7eent2jvymp2dvxk3b0bwxvs8j30rk` | undelivered; model check (A5) pending |
+| CV9040C and CV90 Mk IV (`cv90 argon r1`) | `jn7eent2jvymp2dvxk3b0bwxvs8j30rk` | integrated; Argon only (A5) |
 | CV90120 (`cv90120 argon r1`) | `jn77678qa4hz4dmmja62gk8bfd8j2hbs` | integrated; Argon only (A5) |
 
 Each brief's vehicle part is archived as `brief.md` in its round-1 folder
@@ -70,3 +70,33 @@ Still below the bar (average 5.4). What the critics kept naming:
   backlit. A `build.py` detail pass for the lane's sweep.
 - After round 3 the canvas cover and bumper moved from `fittings` (which
   paints tan in the Swedish scheme) to `rubber`; not re-critiqued.
+
+### CV9040C and CV90 Mk IV: integrated, below the bar
+
+- **Argon:** $2.06 + $0.24 = $2.30 for both variants. Round 2's turn ended
+  on a provider error after writing all its outputs.
+- **The user's note, fixed for both:** the side armour stops where the
+  glacis takes over, its top following the glacis line down, flush with the
+  fender. See the three-quarter and side rows of the sheets.
+- **Export:** lint 0 for both, from round 1 on; `asset validate` clean, live
+  and wreck; two exports byte-identical.
+- **Tiers:** CV9040C 53,190 / 29,980 / 7,530 / 2,770; Mk IV 45,738 / 27,096 /
+  6,732 / 2,346 (`tracked_medium`).
+- **Sheets:** [`assets/after/cv90/cv9040c-compare.png`](../assets/after/cv90/cv9040c-compare.png),
+  [`assets/after/cv90/mk_iv-compare.png`](../assets/after/cv90/mk_iv-compare.png).
+- **Local edits:** 2 (`assets/source/skins/cv90/argon-r2/README.md`).
+
+| Critique (silhouette, surface, fittings, materials, cohesion) | round 1 | round 2 (after the lamps and the drum sight) |
+|---|---|---|
+| CV9040C | 6 6 5 5 6 | 5 6 5 5 6 |
+| CV90 Mk IV | 6 5 5 5 6 | 6 5 5 5 6 |
+
+Stopped at two rounds; still below the bar. What the critics named:
+
+- **The Mk IV's sight mast and Spike pod read short and flat:** both already
+  stand at the frame's limits (the sight at the 0.3 m dressing allowance
+  over its 2.8 m box, the pod at the box's top).
+- **The CV9040C's drum sight reads small.**
+- **The nose reads boxy with no front cheeks or mudguards.**
+- **The shared look:** the splinter print's stair-stepped edges at 2x, a
+  washed-out glacis, tan `fittings`, and the plain belt.
