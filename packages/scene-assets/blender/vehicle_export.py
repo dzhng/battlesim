@@ -71,7 +71,10 @@ def _run_lint(vehicle_id):
                          "fix them or run `vehicle_lint.py --update-baseline` to accept them")
 
 
-def materials(scheme, fittings=(0.11, 0.095, 0.068), canvas=(0.105, 0.098, 0.062), chip=0.35):
+CHIP = 0.35  # the paint's edge wear unless a family sets its own (`materials`)
+
+
+def materials(scheme, fittings=(0.11, 0.095, 0.068), canvas=(0.105, 0.098, 0.062), chip=CHIP):
     """One material per role `vehicle_parts` reads, in `scheme`. `fittings` is
     the darker painted tone of hubs, brackets and running gear fittings;
     `canvas` the stowage's cloth; `chip` how much of the paint's convex edges
@@ -118,13 +121,14 @@ def rig(frame, root, trunnion=None):
 
 class Vehicle:
     """What a family's build places its parts on: `root`, `hull` (the static
-    body), `mats`, the `scheme` they are painted in, the frame and its sizes,
-    and `crew`, the crewmen to pose (`vehicle_crew.crew` arguments after the
+    body), `mats`, the `scheme` they are painted in and the `looks` they were
+    made with (`materials` keywords), the frame and its sizes, and `crew`, the crewmen to pose (`vehicle_crew.crew` arguments after the
     source)."""
 
-    def __init__(self, variant, mats, scheme=None):
+    def __init__(self, variant, mats, scheme=None, looks=None):
         self.variant = variant
         self.scheme = scheme
+        self.looks = looks or {}
         self.frame = variant["frame"]
         self.length, self.width, self.height = self.frame["body_dimensions_m"]
         self.mats = mats
@@ -159,7 +163,7 @@ def build_variant(variant, scheme, build, looks=None, wreck=False):
     reset()
     P.SCORCH.clear()
     own = scheme[variant["id"]] if isinstance(scheme, dict) else scheme
-    v = Vehicle(variant, materials(own, **(looks or {})), own)
+    v = Vehicle(variant, materials(own, **(looks or {})), own, looks)
     v.wreck = wreck
     build(variant, v)
     return v
@@ -227,19 +231,23 @@ def _export(variants, scheme, build, wreck, ao_distance, ao_rays, check=None, lo
 
 def _receipt(path, script, variants, frames, references=None):
     here = Path(__file__).resolve().parent
-    # Every script of this directory the export ran: the family's own, any
-    # family script it builds on (the T-90 on the T-72's), and the shared code.
+    # Every script of the repository the export ran: the family's own, any
+    # family script it builds on (the T-90 on the T-72's), the shared code and
+    # a scripted body's build script (`scripted_body`).
     loaded = (Path(m.__file__).resolve() for m in list(sys.modules.values()) if getattr(m, "__file__", None))
-    sources = sorted({p for p in loaded if p.is_relative_to(here)} | {here / "roster" / script})
+    sources = sorted({p for p in loaded if p.is_relative_to(REPO) and p.is_file()} | {here / "roster" / script})
     family = script.removesuffix(".py")
     # The generated skins an airframe wore (`aircraft_skin`), their pinned hashes.
     worn = dict(getattr(sys.modules.get("aircraft_skin"), "WORN", {}))
+    scripted = any(p.name == "build.py" for p in sources)
     (REPO / path).write_text(json.dumps({
         "blender_version": bpy.app.version_string,
         "source_sha256": {str(p.relative_to(REPO)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources},
         "references": references or f"assets/references/{family}/references.json",
         "authoring": ("A generated skin (`skins`, pinned in blender/skins/) carrying procedural parts built from the "
                       "committed references; photos are visual reference only." if worn else
+                      "Original geometry built from the committed references: procedural parts, and bodies built "
+                      "by their own scripts (`scripted_body`); photos are visual reference only." if scripted else
                       "Original procedural geometry built from the committed references; photos are visual reference only."),
         **({"skins": worn} if worn else {}),
         "frames": frames,

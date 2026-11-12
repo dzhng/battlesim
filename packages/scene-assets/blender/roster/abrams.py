@@ -20,8 +20,14 @@ no licensable photo shows a SEPv3 with it).
 
 Built to the catalog frame (hull 7.93 x 3.66 x 2.44 m; turret pivot 0.25 m
 ahead of the hull's middle, 1.464 m up, as the side photos show; cannon muzzle
-5.805 m ahead of it): nothing here moves it. The wreck is cut into
+5.555 m ahead of it): nothing here moves it. The wreck is cut into
 hull and turret pieces (wreckage.export_wreck).
+
+The SEPv2 wears a scripted body (`BODIES`, `scripted_body`): Gemini Argon's
+build script after its second round, edited since (its folder's README
+lists the edits). This script adds its rig, whip antennas and wreck. The
+Trophy and SEPv3 siblings keep the procedural build below until the family's
+script builds them too, and the M1E3 (`m1e3.py`) builds on it.
 """
 import math
 import os
@@ -33,6 +39,7 @@ import hull_fittings as HF  # noqa: E402
 import hull_shape as HS  # noqa: E402
 import roof_parts as RF  # noqa: E402
 import running_gear as RG  # noqa: E402
+import scripted_body as SB  # noqa: E402
 import stowage as SW  # noqa: E402
 import vehicle_guns as VG  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
@@ -130,7 +137,23 @@ def front_skirt(rear):
             (rear, skirt_top(rear))]
 
 
+# The variants wearing a scripted body (`scripted_body`), and its track's link pitch.
+BODIES = {"us_m1_abrams_sep_v2": "assets/source/skins/abrams/argon-r2/build.py"}
+LINK_PITCH = 0.19
+
+
+def scripted(variant, v):
+    turret = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})["cannon"][0]
+    SB.wear(v, BODIES[variant["id"]], LINK_PITCH)
+    # The whips on the bustle roof's rear corners (turret frame).
+    for side, s in ((1, "L"), (-1, "R")):
+        whip = empty(f"dressing_antenna_{s}", parent=turret)
+        RF.antenna(f"antenna_{s}", (-2.47, side * 1.20, 0.956), v.mats, whip, height=2.2)
+
+
 def build(variant, v):
+    if variant["id"] in BODIES:
+        return scripted(variant, v)
     m, hull = v.mats, v.hull
     ident = variant["id"]
     sep_v3 = "sep_v3" in ident
@@ -476,6 +499,8 @@ def wreck(variant, v):
     # The long 120 mm droops further than the burn's sag, down towards the
     # glacis, so the heaved turret's gun stays over the wreck's ground.
     bpy.data.objects["gun"].rotation_euler.y += math.radians(GUN_DROOP_DEG)
+    if variant["id"] in BODIES:
+        return SB.wreck(v, "R", (2, 3, 6), seed=5)
     remove("track_R_band", "wheel_R_2_", "wheel_R_3_", "wheel_R_6_", "skirt_R_3", "skirt_R_4",
            "skirt_handle_R_3", "skirt_handle_R_4", "skirt_bolt_R_3", "skirt_bolt_R_4", "loader_hatch",
            "bustle_tarp", "bustle_bag", "bustle_jerrycan_", "skirt_number_R")

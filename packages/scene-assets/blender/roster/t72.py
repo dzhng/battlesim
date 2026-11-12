@@ -2,7 +2,12 @@
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/t72.py -- [--variant=<id>] [--wreck]
 
-What the photos settle (Alabino 2017, Moscow 2018): six large road wheels a
+The T-72B3 wears a scripted body (`BODY`, `scripted_body`): Gemini Argon's
+build script after its second round, edited since (its folder's README
+lists the edits). This script adds the rig, the whip antennas and the wreck.
+
+The procedural T-72 below is the T-90M's, T-80BVM's and Type 99's until they
+wear their own bodies. What the photos settle (Alabino 2017, Moscow 2018): six large road wheels a
 side with ribbed discs, three small return rollers mostly hidden, the
 sprocket at the rear and the idler at the front; a steep glacis in rows of
 explosive reactive armour under a V splash board; the hull sides in two rows
@@ -19,7 +24,7 @@ The T-72 hull, running gear, skirts, gun and cupola are the T-90M's too
 (`roster/t90.py` imports them): the T-90 is a T-72 derivative.
 
 Built to the catalog frame (hull 6.86 x 3.59 x 2.23 m, turret pivot 1.338 m,
-cannon muzzle 6.3 m ahead): nothing here moves it.
+cannon muzzle 6.1 m ahead): nothing here moves it.
 """
 import math
 import os
@@ -30,10 +35,11 @@ import armour_parts as AR  # noqa: E402
 import hull_fittings as HF  # noqa: E402
 import roof_parts as RF  # noqa: E402
 import running_gear as RG  # noqa: E402
+import scripted_body as SB  # noqa: E402
 import stowage as SW  # noqa: E402
 import vehicle_guns as VG  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
-from parts import box, cyl, empty, loft, prism, stencil  # noqa: E402
+from parts import box, cyl, empty, prism, stencil  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
@@ -260,21 +266,6 @@ def dome_rings():
             (0.76, ring(0.95, 0.95, 0.88)), (0.82, ring(0.60, 0.60, 0.56))]
 
 
-def relikt_fan(v, turret, side, s, blocks=5, radius=1.28, z=0.50):
-    """A fan of sloped Relikt blocks round one front cheek, each a chunky
-    bolted box leaning out and down from the dome."""
-    m = v.mats
-    for k in range(blocks):
-        a = side * (0.30 + k * 0.24)
-        x, y = 0.05 + radius * math.cos(a), radius * math.sin(a)
-        era_list = box(f"cheek_era_{s}_{k}", (0.60, 0.25, 0.20), (x, y, z), m["paint"], turret, bevel=0.035,
-                       rot=(0, 0.55, a))
-        era = era_list[0] if era_list else turret
-        for j in range(2):
-            cyl(f"cheek_era_bolt_{s}_{k}_{j}", 0.018, 0.02, (0.18, 0.128, 0.06 - j * 0.12), "Y",
-                m["steel"], era, seg=6, lods=FINE)
-
-
 def side_modules(v, turret, side, s, count=5, start=1.20, radius=1.36):
     """Rounded Relikt modules wrapping the turret's flank behind the cheek."""
     m = v.mats
@@ -283,36 +274,6 @@ def side_modules(v, turret, side, s, count=5, start=1.20, radius=1.36):
         x, y = 0.05 + radius * math.cos(a), radius * math.sin(a)
         AR.bolted_panel(f"side_module_{s}_{k}", (x, y, 0.08), (0.34, 0.24, 0.42), m, turret, bolts=(1, 2),
                         bevel=0.06, rot=(0, 0, a), lods=VP.ALL)
-
-
-def turret_body(v, turret):
-    m = v.mats
-    loft("turret_shell", dome_rings(), mat=m["paint"], parent=turret, bevel=0.03)
-    cyl("turret_ring_guard", 1.12, 0.10, (0, 0, -0.07), "Z", m["dark"], turret, seg=40, lods=MID)
-    for side, s in ((1, "L"), (-1, "R")):
-        relikt_fan(v, turret, side, s)
-        side_modules(v, turret, side, s)
-        RF.smoke_discharger_bank(f"smoke_{s}", (0.70, side * 1.02, 0.62), m, turret, count=4, tube_radius=0.05,
-                                 tube_length=0.22, elevation=0.30, spread=0.5, rot=(0, 0, side * 0.80))
-        whip = empty(f"dressing_antenna_{s}", parent=turret)
-        RF.antenna(f"antenna_{s}", (-1.05, side * 0.70, 0.72), m, whip, height=2.2)
-    # Roof ERA: two rows of small blocks across the front.
-    for row in range(2):
-        for k in range(4):
-            y = (k - 1.5) * 0.36
-            if abs(y) < 0.2:
-                continue
-            box(f"roof_era_{row}_{k}", (0.30, 0.30, 0.10), (0.88 - row * 0.32, y, 0.76 + row * 0.05), m["paint"],
-                turret, bevel=0.02, rot=(0, 0.18, 0))
-    # The gunner's Sosna-U sight box on the left, the commander's cupola on
-    # the right, a loader-less roof hatch on the left rear.
-    RF.sight_housing("sosna_sight", (0.55, 0.58, 0.66), m, turret, size=(0.42, 0.34, 0.30))
-    RF.cupola("commander_cupola", (-0.25, -0.58, 0.72), m, turret, radius=0.36, periscopes=4)
-    RF.hatch("gunner_hatch", (-0.25, 0.58, 0.74), m, turret, radius=0.30)
-    # The rear: stowage box, snorkel tube, a slat frame round the bustle.
-    SW.stowage_box("rear_box", (-1.58, 0, 0.12), (0.40, 1.20, 0.38), m, turret, rot=(0, 0, math.pi / 2))
-    cyl("snorkel", 0.11, 1.30, (-1.30, -0.78, 0.48), "Y", m["paint"], turret, seg=16, rot=(0.2, 0, 0.45), lods=MID)
-    AR.slat_armour("bustle_bars", (-1.86, 0, 0.0), (1.90, 0.46), m, turret, rot=(0, 0, math.pi / 2))
 
 
 # ---------------------------------------------------------------- wreck
@@ -345,20 +306,22 @@ def soviet_wreck(v, extra_remove=(), seed=0):
     rest_on_ground(0.004)
 
 
+# The T-72B3's body (`scripted_body`) and its track's link pitch.
+BODY = "assets/source/skins/t72/argon-r2/build.py"
+LINK_PITCH = 0.15
+
+
 def build(variant, v):
-    soviet_hull(v)
-    soviet_gear(v)
-    soviet_skirts(v)
-    mounts = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})
-    turret, gun, _, _ = mounts["cannon"]
-    hmg, hmg_gun, _, _ = mounts["HMG"]
-    turret_body(v, turret)
-    gun_2a46(v, gun)
-    cupola_mg(v, hmg, hmg_gun)
+    turret = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})["cannon"][0]
+    SB.wear(v, BODY, LINK_PITCH)
+    # The whips on the turret's rear roof, either side (turret frame).
+    for side, s in ((1, "L"), (-1, "R")):
+        whip = empty(f"dressing_antenna_{s}", parent=turret)
+        RF.antenna(f"antenna_{s}", (-1.05, side * 0.70, 0.72), v.mats, whip, height=2.2)
 
 
 def wreck(variant, v):
-    soviet_wreck(v, ("gunner_hatch", "rear_box", "snorkel"))
+    SB.wreck(v, "L", (3, 4))
 
 
 if __name__ == "__main__":
