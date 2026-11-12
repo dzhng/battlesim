@@ -3281,3 +3281,13 @@ have made the same call.
   in `build.py` (lane B), not by giving up the canonical order. The lint's
   sampling stays as it is in this pass ("no new lint checks"); a lint that
   tests every vertex, or a spatially fixed sample, is a follow-up.
+- **R9 A build script can't repaint the export's materials.** (Agent, from
+  lane C's finding; high.) The export makes its materials under the slot
+  names before the script runs, so a script that looks its slots up by
+  name (`materials.get("armor_paint") or new(...)`) took the export's own
+  and set its colour. The CV90120's GLB then multiplied the scheme's albedo
+  by Argon's dark flat green, near black in the game. `scripted_body.run_script`
+  now hides the export's materials under other names while the script
+  builds, and restores them after; the script's own come in as
+  `script:<slot>`, which `_split` maps by role as before. The T-72B3
+  re-exports byte-identically.
