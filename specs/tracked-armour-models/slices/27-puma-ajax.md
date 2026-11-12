@@ -25,12 +25,13 @@ The user re-ranks or adds notes for these models after seeing the checkpoint sho
 
 ## Lane C progress (2026-11-12)
 
-**Blocked on Bento.** Round 1 was briefed and created for every vehicle at
+**Delayed by Bento, then run.** Round 1 was briefed and created for every vehicle at
 08:53 UTC (`--tier google-recommended`, the common brief plus a vehicle
 part; LC1-LC4 in `decisions.md`). Every create returned HTTP 503
 `integration_unavailable`, the sessions exist but were never delivered
 (`lastDeliveredInputSeq` 0), and new creates still failed the same way: Bento's
-session dispatch was down workspace-wide. No Argon cost has been spent.
+session dispatch was down workspace-wide. It recovered at about 16:00 UTC
+and the sessions then ran as briefed (results below).
 
 | Session | Bento id | State |
 |---|---|---|
