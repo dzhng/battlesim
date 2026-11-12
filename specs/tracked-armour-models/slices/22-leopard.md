@@ -62,3 +62,7 @@ face (probe in `decisions.md` B10). Below the bar, named: the roof weapons
 read as boxes on posts, the 2A7V's front module reads thin, the wedge tops
 are pale (shared paint), and thin rails at the hull's front corners read as
 stray rods.
+
+Argon's lofts carry a few quads up to 9.7 cm out of plane, measured before the
+sweep (the sweep adds none). In the re-exported three-quarter-front and top
+sheets they don't read as a crease at the battle camera, so they were left.
