@@ -3249,17 +3249,17 @@ have made the same call.
   template now ask for it and for a two-export check. `scripted_body` can't
   repair the order after the fact.
 - **R7 The four SP howitzers and the Gepard draw their guns on the `gun`
-  rig.** (Agent, at lane D's request; medium-high.) With no art rig, a
-  hull-fixed mount's barrel is hull art, so `fit.hull_extents` fails on any
-  barrel that reaches the frame's own muzzle. The committed M109A7 already
-  failed `asset validate --type` (x 6.975 against the 3.40 box), unseen,
-  because validating by its in-repo path skips the type checks. In
-  `assets/catalog.json` they declare `"mounts": {"gun": "gun"}`. The
-  simulation is unchanged: the howitzers' guns stay hull-fixed
-  (`turret: false`), so their turrets don't yaw on screen, but their barrels
-  pitch on the gun node. The Gepard's turret already turns in the
-  simulation (`turret: true`); its `"gun": "hull"` dated from a model with no
-  turret rig. Lane D makes exactly these catalog edits on its branch, so each
-  lands with the body that has the nodes (a named exception to
-  coordinator-only catalog edits). `vehicle_export.rig` stays as it is, since
-  no caller passes a `hull` role once the Gepard is `gun`.
+  rig.** (Agent, at lane D's request; medium-high.) In `assets/catalog.json`
+  they declare `"mounts": {"gun": "gun"}`, so the gun pitches on its node,
+  the barrel stops counting as hull art, and the Gepard's turret, which
+  already turns in the simulation (`turret: true`), turns on screen; its
+  `"gun": "hull"` dated from a model with no turret rig. The simulation is
+  unchanged: the howitzers' guns stay hull-fixed (`turret: false`), so their
+  turrets don't yaw on screen. (Lane D first thought the committed M109A7
+  failed the hull-box check; it passes, because the artillery entries carry
+  `"tolerances": {"hull_extent_m": 5.5}`. Its probe had validated a copy
+  outside the repository, under the global 0.1 m.) Lane D lands each entry
+  in its own vehicle's commit (a named exception to coordinator-only catalog
+  edits). `vehicle_export.rig` stays as it is, since no caller passes a
+  `hull` role once the Gepard is `gun`. Slice 30 removes the 5.5 m tolerances
+  that only the barrels needed.

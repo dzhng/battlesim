@@ -21,17 +21,21 @@ the lint baseline holds no tracked appearance.
    - `def skirt_top`, `def skirt_foot` or `def follow_tiles`;
    - `lid_open` in any tracked roster script. The test tank's `driver_lid_open`
      (`tank.py:559`) is test art and outside this pass (C17).
-4. **Lint baseline.** Run `vehicle_lint.py -- --update-baseline`, then check
+4. **Stale tolerances (R7).** Drop each `tolerances.hull_extent_m` in
+   `assets/catalog.json` that only a hull-drawn barrel needed (the SP
+   howitzers now ride the `gun` rig), keeping any the body itself still
+   needs; `asset validate --type` decides.
+5. **Lint baseline.** Run `vehicle_lint.py -- --update-baseline`, then check
    that no tracked appearance id is left in it.
-5. **Lineup cohesion sheet.** Write `visualizations/lineup.html`: all 37 at
+6. **Lineup cohesion sheet.** Write `visualizations/lineup.html`: all 37 at
    `battle_zoom` and `cinematic`, beside their references, plus a montage PNG
    in `assets/after/`.
-6. **`compare-screenshots`** of the lineup against `assets/before/`.
-7. **Last check: an unprimed `screenshot-critique`** of the montage, for
+7. **`compare-screenshots`** of the lineup against `assets/before/`.
+8. **Last check: an unprimed `screenshot-critique`** of the montage, for
    cohesion. That means consistent scale, finish, edge treatment and level of
    detail across nations.
    - Fix a cohesion outlier in its family script. Up to three rounds.
-8. **Below the bar.** Collect every model still below the bar, from each
+9. **Below the bar.** Collect every model still below the bar, from each
    slice's scores, into the README for the user.
 
 ## Delegated
