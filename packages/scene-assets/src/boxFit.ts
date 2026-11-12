@@ -57,7 +57,9 @@ export function footprintFindings(
   tolerances: Tolerances,
   label: string,
 ): Finding[] {
-  if (SCENERY_KINDS[entry.scenery ?? ""]?.footprint.kind !== "prop") return [];
+  const footprint = SCENERY_KINDS[entry.scenery ?? ""]?.footprint;
+  if (footprint?.kind !== "prop") return [];
+  const tolerance = Math.max(tolerances.footprint_m, footprint.rubble_m ?? 0);
   const half = entry.footprint_half_m;
   if (!half)
     return [
@@ -71,7 +73,7 @@ export function footprintFindings(
     extentFindings(`${label} (${state.name})`, state.tiers[0].positions, half, {
       code: "fit.footprint",
       rule: `footprint_half_m [${half.join(", ")}]`,
-      tolerance: tolerances.footprint_m,
+      tolerance,
       fix: "fit the art to the simulation's box, or widen footprint_m for this appearance in the catalog (overhangs, rubble)",
     }),
   );

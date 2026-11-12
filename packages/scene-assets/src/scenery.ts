@@ -12,8 +12,11 @@
 /** What the simulation knows of a scenery kind, for the workbench's overlay. */
 export type SceneryFootprint =
   /** It draws prop types: those whose `appearance.drawn_by` names the kind
-   *  (`propsDrawnBy`), each a box and blocking and sight classes. */
-  | { kind: "prop" }
+   *  (`propsDrawnBy`), each a box and blocking and sight classes.
+   *  `rubble_m` is the least footprint tolerance an appearance of the kind
+   *  gets: what lies flat round it (a wreck's thrown track, torn plate)
+   *  blocks nothing, so the art may spread that far past the box. */
+  | { kind: "prop"; rubble_m?: number }
   /** A forest's tree: trunk radius and height, canopy height and spacing
    *  (from the fixture map's forests). */
   | { kind: "tree" }
@@ -81,6 +84,7 @@ export const SCENERY_KINDS: Record<string, SceneryRule> = {
    *  of the hull before it lands where the wreck has it. */
   wreck: {
     ...prop,
+    footprint: { kind: "prop", rubble_m: 1 },
     pieces: [WRECK_PIECES.hull, WRECK_PIECES.turret],
     debris: { state: "debris", reach_m: 8, top_m: 1 },
   },

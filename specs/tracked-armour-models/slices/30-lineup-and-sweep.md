@@ -25,6 +25,8 @@ the lint baseline holds no tracked appearance.
    `assets/catalog.json` that only a hull-drawn barrel needed (the SP
    howitzers now ride the `gun` rig), keeping any the body itself still
    needs; `asset validate --type` decides.
+   Drop each wreck's `tolerances.footprint_m` of 1.0 or less too (R10:
+   the wreck kind's `rubble_m` floor covers it); `asset validate` decides.
 5. **Lint baseline.** Run `vehicle_lint.py -- --update-baseline`, then check
    that no tracked appearance id is left in it.
 6. **Lineup cohesion sheet.** Write `visualizations/lineup.html`: all 37 at
