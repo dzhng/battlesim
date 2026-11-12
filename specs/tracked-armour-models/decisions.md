@@ -3447,6 +3447,7 @@ have made the same call.
   - *Then:* the Buk's tier 1 still came out 36.3k against 34k (tiers 2–3
     fit): the paint's edge splits and the collapse's overshoot on small
     pieces take a 22k target to about 1.65 times it. Tier 1's target is
-    now 20k for every scripted body, the general number, not a Buk
-    exception or a heavier class for it.
+    now 19k for every scripted body, the general number, not a Buk
+    exception or a heavier class for it (20k left the Buk 64 triangles
+    over: the floors keep part of the tier whatever the target).
 
