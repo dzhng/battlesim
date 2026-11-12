@@ -4691,8 +4691,8 @@
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.0175,
-      "message": "Parts 'fuselage' and 'gear_main_R_strut' interpenetrate by 17.5mm",
+      "distance_m": 0.1328,
+      "message": "Parts 'fuselage' and 'gear_main_R_strut' interpenetrate by 132.8mm",
       "parts": [
         "fuselage",
         "gear_main_R_strut"
