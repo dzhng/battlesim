@@ -3511,3 +3511,60 @@ have made the same call.
   every turret they own, and slice 30 measures every turret's plan outline
   and fixes each that fails.
 
+
+## Post-merge fixes: the Puma's nose and the R12 sweep (2026-11-13, implementation agent)
+
+Each entry gives the decision, why, and a confidence that the user would
+have made the same call.
+
+- **F1 The Puma's prow stands at 1.62 m, the glacis breaks at x 1.70.**
+  (Agent, from the user's "it slopes down too much"; medium-high.) Measured
+  on `side-2.jpg` (near side-on): at the road wheels' scale (a 0.70 m wheel
+  is about 128 px) the top of the "48" front plate stands about 1.6–1.7 m
+  over the ground under the nose, and the deck falls about 0.8 m from the
+  roof to it. The glacis keeps the merged model's ~23° (the deck reads as
+  one plane from the turret's front to the prow), which puts the break at
+  x 1.70, as the user read it. The lower plate keeps its belly point
+  (2.985, 0.42), so it now runs ~59° from the prow: the undercut nose over
+  the sprocket that the three-quarter photos show. The side modules' top
+  line follows the deck (level to the break). I trusted `side-2.jpg` over
+  the three-quarter shots, whose perspective puts the nose lower.
+- **F2 How the R12 probe reads a turret.** (Agent; medium.) The probe
+  (`throwaway/r12/probe.py`) imports each committed GLB, takes the
+  turret's own LOD0 meshes (the gun, roof gun and dressing hang under their
+  own nodes and drop out), and ray-casts the plan outline: per 5 cm bin of
+  \|y\| on each side, the foremost x over the turret's height. The mantlet's
+  edge is the gun meshes' half-width near the trunnion. Fittings (smoke
+  banks, sights, launchers) make the outline noisy, so it also reads the
+  `armor_paint` shell alone, and each verdict was read beside a plan view.
+  - *Swept*: from the mantlet's edge (or a tip within about 0.15 m of it)
+    the face falls back to each side.
+  - *Flat*: a run of 0.3 m or more that holds level.
+  - *Coming forward*: the face or its corners stand ahead of the part
+    nearer the gun.
+- **F3 The verdicts, as merged** (turret frame, x forward of the ring;
+  `L` = left):
+
+| Turret | mantlet ± (m) | shell's foremost x at \|y\| 0.33 0.42 0.53 0.62 0.72 0.82 0.93 1.02 1.12 (side) | verdict | reading |
+|---|---|---|---|---|
+| T-72B3 | 0.26 | 1.36 1.50 1.46 1.42 1.35 1.28 1.19 1.08 0.96 (L) | swept | apex by the mantlet, then 25-45° back |
+| T-80BVM | 0.24 | 1.74 1.72 1.70 1.69 1.67 1.59 1.55 1.48 1.41 (L) | swept | L ~17° over the first 0.5 m, R the same past the sight's notch |
+| T-90M | 0.26 | 1.41 1.46 1.41 1.34 1.26 1.17 1.09 1.01 0.93 (L) | swept | ~35° |
+| T-14 | 0.17 | 2.00 1.90 1.79 1.67 1.56 1.45 1.33 1.22 1.11 (L) | swept | ~45° |
+| ZTZ-99A | 0.25 | 1.95 1.97 1.99 1.95 1.88 1.80 1.73 1.64 1.55 (L) | swept, blunt tip | wedge tips at \|y\| 0.53, 4 cm ahead of the face at the mantlet; ~35° outboard |
+| ZTQ-15 | 0.24 | 1.66 1.67 1.59 1.51 1.43 1.35 1.27 1.07 1.11 (L) | swept | ~40° |
+| T-15 | 0.18 | 1.20 1.18 1.21 1.21 1.21 1.21 0.91 0.70 0.49 (R) | flat | L 11° to 0.82 m; R level at 1.21 from 0.53 to 0.82 (sight box) |
+| CV90120 | 0.33 | 0.86 1.60 1.60 1.60 1.54 1.44 1.36 1.29 1.07 (L) | swept | level 0.25 m beside the mantlet (its surround), then 33° |
+| CV9040C | 0.21 | 1.28 1.28 1.28 1.28 1.28 1.28 1.16 0.97 0.78 (L) | flat | level at 1.28 from 0.33 to 0.82, then a corner chamfer |
+| CV90MkIV | 0.21 | 1.27 1.27 1.27 1.27 1.27 1.27 1.11 0.93 0.74 (L) | flat | level at 1.27 from the gun to 0.82 |
+| M2A4 | 0.14 | 0.90 0.94 0.98 0.87 0.87 – – – – (L) | flat / forward | level at 0.87; the sight bump stands 0.1 ahead at 0.53 |
+| M3A3 | 0.14 | 0.90 0.94 0.98 0.87 0.87 – – – – (L) | flat / forward | as the M2A4 |
+| Puma | 0.23 | 1.50 1.50 1.50 1.50 1.40 1.22 0.95 0.69 – (R, all turret meshes: the GLB as merged) | flat | R level at 1.50 from 0.33 to 0.62 (the gunner's sight standing square across an 8° cheek); L 12° |
+| Ajax | 0.25 | 1.06 1.06 1.03 0.98 0.94 0.89 0.95 0.94 0.95 (L) | flat / forward | level at 1.06 to 0.42, 20° to 0.82, then the corners come 6 cm forward |
+| BMP-2M | 0.14 | 0.88 0.84 0.78 0.70 0.67 0.45 0.18 – – (L) | swept | shell ~25°; the right-hand Kornet pair (fixed launcher) stands forward, not armour |
+| BMP-3 | 0.17 | 1.07 1.05 0.99 0.95 0.94 0.93 0.96 0.79 0.06 (L) | swept, shallow | ~16° over 0.5 m; the corner smoke banks hold level |
+| BRM-3K | 0.21 | 1.12 1.12 1.12 1.06 0.98 0.90 0.81 0.73 0.54 (L) | flat | level at 1.12 from 0.28 to 0.57, then 30° |
+
+  Fixed in their scripts: the T-15, the CV9040C and CV90 Mk IV, the M2A4
+  and M3A3, the Puma, the Ajax and the BRM-3K. Lanes B and D's turrets are
+  theirs to probe.

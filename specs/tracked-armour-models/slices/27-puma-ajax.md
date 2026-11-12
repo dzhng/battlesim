@@ -82,3 +82,32 @@ banks. Stopped at two rounds; well below the bar. What every round named:
   between the tracks in the photos, where Argon built a long glacis.
 - **The shared look:** a washed-out glacis, tan `fittings` (the Ajax's deck
   panels), dark shaded sides, and the plain belt.
+
+## The user's fixes after merge (2026-11-13)
+
+- **Puma, "the shape is wrong, it slopes down too much":** local edit 3
+  (`puma/argon-r2/README.md`). The glacis break moved from x 0.55 to 1.70,
+  the prow from 1.135 m to 1.62 m, and one straight ~59° lower plate runs
+  from it to the belly. The upper glacis is 2.0 m of the hull's 7.4 m (was
+  3.15 m).
+- **R12, every turret front swept back:** local edit 4. The Puma's cheeks
+  were 8° (right, with the gunner's sight standing square across it) and
+  12° (left); both are now about 25° from the mantlet's edge. The probe's
+  table is in `decisions.md` (F2, F3).
+- **Export:** lint 0; `asset validate` clean, live and wreck; two exports
+  byte-identical. Tiers 76,238 / 25,686 / 7,366 / 2,405 (`tracked_heavy`).
+- **Sheet:** [`assets/after/puma/puma-compare.png`](../assets/after/puma/puma-compare.png),
+  now the merged Argon body (before) against these edits (after).
+
+| Critique (silhouette, surface, fittings, materials, cohesion) | after edits 3–4 |
+|---|---|
+| Puma | 6 5 6 5 6 |
+
+The critic read the hull's front as matching the side photos and no longer
+over-sloped, and the turret as a mild wedge (swept back right of the gun,
+chamfered corners). It also put the nose "at about track-top height". The
+geometry says otherwise: the prow is at 1.62 m and the track top at 1.07 m,
+which the game's side view shows. What it docked was what earlier rounds
+named: lumpy side modules and grimy, pale paint (the shared look, LC12), a
+squat turret and short sight (frame-bound, LC9), and the dark rear cages.
+Still below the bar.
