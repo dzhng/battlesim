@@ -252,6 +252,8 @@ BODIES = {
                                ((-2.95, 1.35, 2.80), (-2.95, -1.35, 2.80))),
     "europe_pzh_2000_tracked_155_mm_howitzer": ("assets/source/skins/pzh_2000/argon-r2/build.py", 0.16,
                                                 ((-3.70, 1.20, 3.06), (-3.70, -1.20, 3.06))),
+    "eastern_2s19_msta_s_2s19m2": ("assets/source/skins/2s19_msta_s/argon-r2/build.py", 0.15,
+                                   ((-2.10, 1.30, 2.82), (-2.10, -1.30, 2.82))),
 }
 
 
