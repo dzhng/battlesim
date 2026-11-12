@@ -3214,8 +3214,8 @@ made the same call.
   no argument, so a family can wear only one variant of a script. The call
   wanted: `SB.wear(v, path, link_pitch, variant=None)`, passing `variant` on to
   `module.build(variant)` when it is given. Sent to the coordinator; every lane
-  with a variant set needs it. Until it lands, lane B's scripts take
-  `build(variant=<default>)` and their families wear the default variant only.
+  with a variant set needs it. It landed as 5c97d4aa9 (`wear(..., variant=)`),
+  merged into lane B; each family wears `variant=variant["id"]`-keyed bodies.
 - **B2 Seven sessions, not eight.** (Agent; high.) The lane brief counted eight;
   the slices name seven: Challenger 2/3, the Abrams variants, M1E3, M10, the
   three Leopards, Leclerc, KF51. A set splits only if round 1 shows its hulls
