@@ -3335,3 +3335,14 @@ have made the same call.
   builds, and restores them after; the script's own come in as
   `script:<slot>`, which `_split` maps by role as before. The T-72B3
   re-exports byte-identically.
+- **R10 A wreck may spread 1 m past its box.** (User: "the wreck validation
+  is too strict ... maybe go up to 1m?"; lane C's shared-part request.)
+  `scripted_body.wreck` throws a track run and torn plate to fixed spots
+  beside the hull, which on a narrow hull (BMP-2M, BMP-3, BRM-3K) lie
+  0.8–0.9 m past the wreck's `footprint_half_m`, over their 0.3–0.8 m
+  `footprint_m`. The litter lies flat and blocks nothing, so the wreck
+  scenery kind's footprint now carries `rubble_m: 1`, the least footprint
+  tolerance any wreck gets (`scenery.ts`, read by `footprintFindings`); an
+  entry may still ask for more. `wreck()` is unchanged, so no wreck moves.
+  The 29 wreck entries at 1.0 or less are now redundant; slice 30 drops
+  them, not now, while four lanes edit the catalog.
