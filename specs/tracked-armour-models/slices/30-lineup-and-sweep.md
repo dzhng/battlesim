@@ -30,17 +30,21 @@ the lint baseline holds no tracked appearance.
    And `mesh_lods` (coordinator-only): tiers 2–3 keep stray degenerate
    vertices past the hull (lane D: the M270's `hull_armor_paint_LOD3` at
    x -4.03), harmless to validate but they inflate bounds; drop them.
-5. **Lint baseline.** Run `vehicle_lint.py -- --update-baseline`, then check
+5. **Swept turret fronts (R12).** Measure every turret's plan outline (its
+   foremost x across |y|, mantlet and gun excluded). From the mantlet's edge
+   outward the front must run back: never level, never coming forward. Fix
+   each that fails in its `build.py`.
+6. **Lint baseline.** Run `vehicle_lint.py -- --update-baseline`, then check
    that no tracked appearance id is left in it.
-6. **Lineup cohesion sheet.** Write `visualizations/lineup.html`: all 37 at
+7. **Lineup cohesion sheet.** Write `visualizations/lineup.html`: all 37 at
    `battle_zoom` and `cinematic`, beside their references, plus a montage PNG
    in `assets/after/`.
-7. **`compare-screenshots`** of the lineup against `assets/before/`.
-8. **Last check: an unprimed `screenshot-critique`** of the montage, for
+8. **`compare-screenshots`** of the lineup against `assets/before/`.
+9. **Last check: an unprimed `screenshot-critique`** of the montage, for
    cohesion. That means consistent scale, finish, edge treatment and level of
    detail across nations.
    - Fix a cohesion outlier in its family script. Up to three rounds.
-9. **Below the bar.** Collect every model still below the bar, from each
+10. **Below the bar.** Collect every model still below the bar, from each
    slice's scores, into the README for the user.
 
 ## Delegated

@@ -3502,4 +3502,12 @@ have made the same call.
     now 19k for every scripted body, the general number, not a Buk
     exception or a heavier class for it (20k left the Buk 64 triangles
     over: the floors keep part of the tier whatever the target).
+- **R12 Every tank turret's front is swept back.** (User, on the Leclerc:
+  "every tank's turret have a front that's swept back, it's never flat".)
+  Seen from above, the turret front runs back from the mantlet to each side,
+  an arrowhead or wedge, never flat across and never angled in toward the gun
+  (the Leclerc's cheeks were yawed the wrong way, a concave V). It goes into
+  the brief's shape rules for every round still to run, the lanes check it on
+  every turret they own, and slice 30 measures every turret's plan outline
+  and fixes each that fails.
 
