@@ -133,6 +133,33 @@ def _world(meshes):
     return [o.matrix_world @ v.co for o in meshes for v in o.data.vertices]
 
 
+def _place(v):
+    return tuple(round(c, 6) for c in v.co)
+
+
+def _canonical(bm):
+    """Put `bm` in one order whatever order its script built it in: vertices by
+    place (coincident ones by their neighbours'), each face's loop from its
+    lowest vertex, faces by material and vertices. A script that makes the same
+    shapes in another order (bmesh operators, sets of elements) then exports
+    the same bytes, and its tiers reduce alike (R6)."""
+    key = {v: (_place(v), tuple(sorted(_place(e.other_vert(v)) for e in v.link_edges))) for v in bm.verts}
+    rank = {v: i for i, v in enumerate(sorted(bm.verts, key=key.get))}
+    bm.verts.sort(key=rank.get)
+    bm.verts.index_update()
+    for f in list(bm.faces):
+        loop = [l.vert for l in f.loops]
+        start = min(range(len(loop)), key=lambda i: loop[i].index)
+        if start:
+            material, smooth = f.material_index, f.smooth
+            bm.faces.remove(f)
+            f = bm.faces.new(loop[start:] + loop[:start])
+            f.material_index, f.smooth = material, smooth
+    order = sorted(bm.faces, key=lambda f: (f.material_index, tuple(l.vert.index for l in f.loops)))
+    rank = {f: i for i, f in enumerate(order)}
+    bm.faces.sort(key=rank.get)
+
+
 def _split(o, node, mats):
     """`o`'s faces as one object per material under `node`, at the same world
     place, each in its role's material; returns them."""
@@ -152,6 +179,7 @@ def _split(o, node, mats):
         for f in bm.faces:
             f.material_index = 0
         bm.transform(to_node)
+        _canonical(bm)
         me = bpy.data.meshes.new(f"{_base(o.name)}_{name}_LOD0")
         bm.to_mesh(me)
         bm.free()

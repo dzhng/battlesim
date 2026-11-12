@@ -3235,3 +3235,71 @@ the user would have made the same call.
   against 3.9 m for the A7). Frames never move (P9), so the brief puts the
   3.90 m at the turret's side racks and asks for the hull over its fenders
   as the front photos show it (about 3.4-3.6 m), rather than a fat hull.
+- **R5 The catalog-load tripwire goes to 768 MiB.** (Agent, under Q3; high.)
+  The pilot's two bodies grew their four bundles from 11.8 to 17.8 MiB on
+  the wire, most of it in the wrecks (the T-72B3's wreck 4.5 to 8.0 MiB),
+  leaving every unit's art at 636.7 of 640 MiB. At about 3 MiB a vehicle,
+  the other 33 add about 100 MiB. Wreck trimming stays out of scope (Q3);
+  if the user wants the load back down, the wreck's tier 0 is where it is.
+
+## Lane C decisions (2026-11-12, IFVs and recon: slices 25-28)
+
+Each entry gives the decision, why, and a confidence that the user would
+have made the same call.
+
+- **LC1 Seven sessions for ten appearances.** (Agent; high.) The CV9040C and
+  Mk IV, the M2A4 and M3A3, and the BMP-3 and BRM-3K are variants of one
+  script each (R2, slice files); the CV90120, Puma, Ajax and BMP-2M have
+  their own. The BRM-3K's body lives with the BMP-3's
+  (`assets/source/skins/bmp/bmp3-argon-r{1,2}/`), and `brm.py` wears it with
+  `variant="brm_3k"` (`scripted_body.wear`'s variant, 5c97d4aa9): the hull
+  is one source, as S13 has it.
+- **LC2 The autocannon pitches at its mantlet, not at the ring.**
+  (Agent; medium-high.) The IFV scripts made their rig with no trunnion, so
+  the gun pitched about the turret's centre and a raised barrel swung its
+  mantlet out of the turret face. Each brief gives the trunnion at the
+  real mantlet (0.5-0.9 m ahead of the ring; the CV90120 keeps its 0.95 m),
+  and the family script passes the same distance to `rig` (`trunnion=`).
+  Pivots and muzzles, which the simulation reads, do not move.
+- **LC3 A second mount that is not a machine gun is still the `hmg` pair.**
+  (Agent; high.) The frame gives the Bradley's TOW, the Puma's MELLS and the
+  BMP-2M's Kornet the `hmg` role on the turret, and the BMP-3's 30 mm the
+  `hmg` role on its 100 mm; the brief names the turning arm `hmg` and the
+  pitching box or gun `hmg_gun`, its origin on the frame's pivot. Fixed
+  launchers on the turret (the Mk IV's Spike) are `turret`.
+- **LC4 Medium bodies are briefed under 70k triangles.** (Agent; medium.)
+  All lane-C appearances but the Puma are `tracked_medium` (90k tier 0);
+  the shared belt and the paint's edge splits add to Argon's count, so the
+  brief leaves room under the cap.
+- **R6 A scripted body exports byte-identically, and its script never
+  iterates a set of Blender objects.** (Agent; high.) Lane B found two
+  re-exports of the Abrams SEP v2 differing in triangle order and in one
+  reduced-tier piece (about 3 mm). Its `build.py` bevels
+  `list({e for f in faces for e in f.edges})`: a set of bmesh edges, ordered
+  by memory address, so each run bevels the edges in a different order. The
+  T-72B3's script has no such set and re-exports byte-identically. The fix is
+  in the script (`dict.fromkeys` keeps first-seen order), and the brief and
+  template now ask for it and for a two-export check.
+  - *Amended:* ordered bevel input wasn't enough. Lane B found the meshes
+    still varied in face order and in each n-gon's loop start (which moves
+    the GLB's triangle fan). `scripted_body._split` now puts every scripted
+    mesh in one canonical order (vertices by place, loops from the lowest
+    vertex, faces by material and vertices), so a script's build order
+    can't reach the bytes, and no script carries its own canonicalizer.
+    The T-72B3 exports byte-identically twice under it; its tier 0 lost four
+    zero-area triangles, which the rotated fans no longer make.
+- **R7 The four SP howitzers and the Gepard draw their guns on the `gun`
+  rig.** (Agent, at lane D's request; medium-high.) In `assets/catalog.json`
+  they declare `"mounts": {"gun": "gun"}`, so the gun pitches on its node,
+  the barrel stops counting as hull art, and the Gepard's turret, which
+  already turns in the simulation (`turret: true`), turns on screen; its
+  `"gun": "hull"` dated from a model with no turret rig. The simulation is
+  unchanged: the howitzers' guns stay hull-fixed (`turret: false`), so their
+  turrets don't yaw on screen. (Lane D first thought the committed M109A7
+  failed the hull-box check; it passes, because the artillery entries carry
+  `"tolerances": {"hull_extent_m": 5.5}`. Its probe had validated a copy
+  outside the repository, under the global 0.1 m.) Lane D lands each entry
+  in its own vehicle's commit (a named exception to coordinator-only catalog
+  edits). `vehicle_export.rig` stays as it is, since no caller passes a
+  `hull` role once the Gepard is `gun`. Slice 30 removes the 5.5 m tolerances
+  that only the barrels needed.
