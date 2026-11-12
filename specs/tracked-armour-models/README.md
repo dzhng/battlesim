@@ -26,8 +26,11 @@ rest is at the end of this file.
   template](slices/family-template.md)), in four parallel lanes A–D
   ([`parallel.md`](parallel.md)).
 
-**Pickup:** slice 16 (coordinator), alongside the four lanes. Merge each lane's
-vehicles as they land, bake, and push a milestone every three families.
+**Pickup:** the four lanes are briefed and running, but blocked on Bento:
+since about 08:50 UTC on 2026-11-12 its session dispatch returns 503
+`integration_unavailable`, and no round-1 session has delivered. When it
+recovers, the lanes run as briefed. Merge each lane's vehicles as they land,
+bake, and push a milestone every three families.
 
 You are the **coordinator**. Before you touch anything, read:
 - `AGENTS.md`;
@@ -72,8 +75,8 @@ Warnings:
   (`web/tests/sceneAssets/unitFit.test.ts`). Never push art without the bake.
 - Exports fail on any new lint issue. A vehicle on a scripted body must lint
   clean (P10), and its fixes go in its `build.py`.
-- The art load is near its limit (636.7 of 640 MiB). Slice 16 raises it
-  before the lanes' bodies land.
+- The art load grows about 3 MiB a vehicle (R5); the tripwire is 768 MiB.
+  Read the bake's load line at every milestone.
 
 TODO:
 
@@ -94,7 +97,7 @@ TODO:
 - [x] ~~14 turret skin~~: not needed, the smoothed dome won (slice 03) ([slice](slices/14-turret-skin.md))
 - [x] 15 frame fixes ([slice](slices/15-frame-fixes.md))
 - [x] Argon pilot: T-72B3 and Abrams SEP v2 ([slice](slices/argon-pilot.md))
-- [ ] 16 integration milestone ([slice](slices/16-integration-reexport.md)), then push
+- [x] 16 integration milestone ([slice](slices/16-integration-reexport.md)), pushed and promoted as 561be1e7d
 - [ ] Lane A: 17 T-72 family, 18 Armata, 19 ZTQ-15
 - [ ] Lane B: 20 Challengers, 21 Abrams variants, M1E3 and M10, 22 Leopard, 23 Leclerc and KF51
 - [ ] Lane C: 25 CV90 family, 26 Bradley, 27 Puma and Ajax, 28 BMP and BRM
