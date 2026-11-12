@@ -73,3 +73,24 @@ validate clean, byte-identical twice.
 Below the bar, named: the right cheek's appliqué reads as a flat slab, the
 road wheels read brassy, and the turret and engine deck merge into one long
 box from the side.
+
+**Leclerc R12 sweep (2026-11-13):** the turret front measured 0.42 m back per
+metre outboard, under rule R12's floor of 0.5. The cheek yaw alone couldn't
+reach it: the shell's nose corner stood forward at the turret's edge. Edit 4
+(folder README) ends the build with lane B's `sweep_turret_front` (B10),
+0.25 per metre more on the cheeks, shell nose and corner blocks together. It
+now measures 0.62. See `assets/after/leclerc/leclerc-compare.png`. Lint 0, validate clean
+live and wreck, byte-identical twice. Unprimed critique of the after shots:
+
+| | silhouette | surface | fittings | materials | cohesion | mean |
+|---|---|---|---|---|---|---|
+| Leclerc XLR (R12) | 6 | 6 | 6 | 5 | 6 | 5.8 |
+
+Below the bar, named. The critic's first finding is that the front is
+"swept too far back; the Leclerc's is a broad, nearly flat face". That is
+the user's R12 note reversed, and the note was made on this tank, so it
+stands. Also named, all present before the edit: hard-edged dark facets on
+the far cheek block (Argon's tapered block, in the before shot too), the
+camouflage breaking at each skirt panel, the roof weapon station's gun not
+reading, the appliqué reading as a stuck-on slab, and the dark shadow side
+(the shared lighting).
