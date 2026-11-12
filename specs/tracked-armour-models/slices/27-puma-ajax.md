@@ -59,8 +59,8 @@ Every turn ran on `google/gemini-4-argon` (plus 1-5 cents of
   - See the compare sheets' three-quarter and side rows.
 - **Export:** lint 0 for both (under 7e6877829's corrected inside test);
   `asset validate` clean, live and wreck; two exports byte-identical.
-- **Tiers:** Puma 77,110 / 31,597 / 8,407 / 3,515 (`tracked_heavy`); Ajax
-  54,100 / 29,588 / 7,512 / 2,442 (`tracked_medium`).
+- **Tiers:** Puma 77,110 / 29,705 / 7,411 / 2,403 (`tracked_heavy`); Ajax
+  54,100 / 28,332 / 7,320 / 2,266 (`tracked_medium`).
 - **Sheets:** [`assets/after/puma/puma-compare.png`](../assets/after/puma/puma-compare.png),
   [`assets/after/ajax/ajax-compare.png`](../assets/after/ajax/ajax-compare.png).
 - **Local edits:** Puma 2, Ajax 1 (each `argon-r2/README.md`).

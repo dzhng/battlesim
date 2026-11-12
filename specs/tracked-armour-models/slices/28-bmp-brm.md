@@ -59,9 +59,9 @@ helper, per turn).
 - **Export:** lint 0 for all three; `asset validate` clean, live and wreck
   (the wrecks under R10's 1 m rubble floor); two exports byte-identical.
 - **Tiers:** all inside `tracked_medium`.
-  - BMP-2M 79,694 / 31,138 / 7,935 / 2,140.
-  - BMP-3 60,962 / 29,164 / 7,692 / 1,764.
-  - BRM-3K 59,392 / 28,848 / 7,514 / 1,780.
+  - BMP-2M 79,694 / 30,770 / 7,845 / 2,038.
+  - BMP-3 60,962 / 28,796 / 7,664 / 1,752.
+  - BRM-3K 59,392 / 28,520 / 7,482 / 1,770.
 - **Sheets:**
   - [`assets/after/bmp/bmp2m-compare.png`](../assets/after/bmp/bmp2m-compare.png)
   - [`assets/after/bmp/bmp3-compare.png`](../assets/after/bmp/bmp3-compare.png)

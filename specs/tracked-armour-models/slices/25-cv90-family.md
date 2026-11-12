@@ -48,7 +48,7 @@ measuring script (lane worktree `throwaway/argon/tools/`).
 - **Argon:** round 1 $1.34, round 2 $1.88 (`google/gemini-4-argon`, plus
   1-2 cents of `openai/gpt-6-luna`, Bento's own helper, on every turn).
 - **Export:** lint 0 issues; `asset validate` clean, live and wreck; tiers
-  52,232 / 28,068 / 7,904 / 2,686 (`tracked_medium` caps 90k / 34k / 10k /
+  52,232 / 26,682 / 7,510 / 2,334 (`tracked_medium` caps 90k / 34k / 10k /
   3k); two exports byte-identical.
 - **Sheet:** [`assets/after/cv90/cv90120-compare.png`](../assets/after/cv90/cv90120-compare.png).
 - **Local edits:** 2 (`assets/source/skins/cv90120/argon-r2/README.md`).
@@ -80,8 +80,8 @@ Still below the bar (average 5.4). What the critics kept naming:
   fender. See the three-quarter and side rows of the sheets.
 - **Export:** lint 0 for both, from round 1 on; `asset validate` clean, live
   and wreck; two exports byte-identical.
-- **Tiers:** CV9040C 53,190 / 29,980 / 7,530 / 2,770; Mk IV 45,738 / 27,096 /
-  6,732 / 2,346 (`tracked_medium`).
+- **Tiers:** CV9040C 53,190 / 26,428 / 6,702 / 2,074; Mk IV 45,738 / 25,656 /
+  6,550 / 2,006 (`tracked_medium`).
 - **Sheets:** [`assets/after/cv90/cv9040c-compare.png`](../assets/after/cv90/cv9040c-compare.png),
   [`assets/after/cv90/mk_iv-compare.png`](../assets/after/cv90/mk_iv-compare.png).
 - **Local edits:** 2 (`assets/source/skins/cv90/argon-r2/README.md`).
