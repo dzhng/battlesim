@@ -1,7 +1,7 @@
 {
   "units": [
     {"side":"blue","kind":"test_smoke_tank","position":[140,130],"engagement":"return_fire_only"},
-    {"side":"blue","kind":"test_smoke_tank","position":[125,90],"engagement":"return_fire_only"},
+    {"side":"blue","kind":"test_smoke_tank","position":[130,110],"engagement":"return_fire_only"},
     {"side":"blue","kind":"test_smoke_squad","position":[128,166],"engagement":"return_fire_only"},
     {"side":"red","kind":"test_tank","position":[300,125],"yaw":3.141592653589793,"engagement":"return_fire_only"},
     {"side":"red","kind":"test_at","position":[285,182],"yaw":3.141592653589793,"engagement":"return_fire_only"},

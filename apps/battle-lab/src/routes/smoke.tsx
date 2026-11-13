@@ -1,6 +1,6 @@
 // /labs/smoke: smoke screens on the smoke test map's encounter
 // (`fixtures/maps/smoke/encounters/smoke.json`), through the production
-// controls and readouts. Two blue smoke tanks (one on the road, one on grass)
+// controls and readouts. Two blue smoke tanks (one on the road, one on the grass beside it)
 // and a smoke squad at the wood's edge face a red tank and AT team, who see
 // the tanks across open ground. Blue's second tank shells a red jeep into a
 // burning wreck, and the road tank pops smoke at four seconds. The side

@@ -3,12 +3,16 @@
 // close over the ground behind the cloud once it blooms and open again once it
 // has faded, while the ground on its near side stays lit; red keeps a
 // last-contact marker where the tank vanished, and sees the cloud itself.
-// Blue's own cloud is always its own to see. Every number is read from the
-// encounter and the published cloud. SMOKE_COST=1 also measures fog's GPU
-// cost at a hundred eyes, with and without twelve clouds (run it alone, under
-// the GPU lock).
+// Blue's own cloud is always its own to see. Then the drawn cloud, from a
+// fresh battle: blue pops its grass tank's and its squad's smoke beside the
+// scripted one, and the look tour shoots them blooming, full, overlapping,
+// over road, grass and wood, beside the burning wreck, at far zoom and in
+// their fade. Every number is read from the encounter and the published
+// cloud. SMOKE_COST=1 also measures fog's GPU cost at a hundred eyes, with and
+// without twelve clouds (run it alone, under the GPU lock).
 import { readFile } from "node:fs/promises";
 import { advance, aim, lab, obs, openBattle, snapshot } from "./_lab.mjs";
+import { decode, pixel } from "./_png.mjs";
 
 const fixture = async (path) =>
   JSON.parse(await readFile(new URL(`../../fixtures/${path}`, import.meta.url), "utf8"));
@@ -20,12 +24,14 @@ async function scriptedPop() {
   return { tick: pop.tick, carrier: pop.order.units[0] };
 }
 
-/** The cloud close up, from red's side of it, then the lab's own framing. */
-async function closeShot(ctx, page, centre, file) {
+/** A shot of `centre` framed by `view` (close up by default), then the
+ *  lab's own framing again. */
+async function closeShot(ctx, page, centre, file, view = { distance: 90, pitch: 0.85 }) {
   const opening = await lab(page, () => window.__lab.camera());
-  await aim(page, centre, { distance: 90, pitch: 0.85 });
-  await snapshot(ctx, page, file);
+  await aim(page, centre, view);
+  const shot = await snapshot(ctx, page, file);
   await lab(page, (c) => window.__lab.setCamera(c), opening);
+  return shot;
 }
 
 /** Whether the GPU fog sees each ground point, for the side now viewed. */
@@ -166,7 +172,88 @@ export async function run(ctx) {
   );
   await snapshot(ctx, page, "red-gone.png");
   await page.close();
+  await lookTour(ctx, pop);
   if (process.env.SMOKE_COST === "1") await measureCost(ctx);
+}
+
+/** Rec. 709 luminance and the spread of a pixel's channels (its colour). */
+const luma = ([r, g, b]) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
+const spread = (p) => Math.max(...p.slice(0, 3)) - Math.min(...p.slice(0, 3));
+
+/** The drawn cloud's look, shot by shot: blooming, full, overlapping, over
+ *  road, grass and wood, beside the wreck, far off and fading. */
+async function lookTour(ctx, pop) {
+  const encounter = await fixture("maps/smoke/encounters/smoke.json");
+  const blue = encounter.units.map((u, id) => ({ ...u, id })).filter((u) => u.side === "blue");
+  const grass = blue.find((u) => u.kind === "test_smoke_tank" && u.id !== pop.carrier);
+  const squad = blue.find((u) => u.kind === "test_smoke_squad");
+  const road = blue.find((u) => u.id === pop.carrier);
+  const wreck = encounter.units.find((u) => u.kind === "test_jeep").position;
+  const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
+  const popAt = (unit) =>
+    lab(page, (id) => window.__lab.route.command({ kind: "pop_smoke", units: [id] }), unit.id);
+  const first = pop.tick - 60;
+  await advanceTo(page, first - 2);
+  const before = decode(await closeShot(ctx, page, grass.position, "look-grass-before.png"));
+  await popAt(grass);
+  await advanceTo(page, first + 2);
+  await closeShot(ctx, page, grass.position, "look-grass-bloom.png");
+  const cloud = (await obs(page)).smokeClouds.find(
+    (c) => Math.hypot(c.centre[0] - grass.position[0], c.centre[1] - grass.position[1]) < 1,
+  );
+  const hz = (await fixture("rules.json")).tick_hz;
+  await advanceTo(page, cloud.popped + Math.ceil(cloud.spec.bloomS * hz) + 30);
+  const full = decode(await closeShot(ctx, page, grass.position, "look-grass-full.png"));
+  // Round the cloud's middle, half its height up, as both close shots frame
+  // it: brighter and greyer than the grass was there before the pop.
+  const opening = await lab(page, () => window.__lab.camera());
+  await aim(page, grass.position, { distance: 90, pitch: 0.85 });
+  const ring = await lab(
+    page,
+    async ({ c, r, h }) => {
+      await window.__lab.frame();
+      return Array.from({ length: 12 }, (_, k) => {
+        const a = (k / 12) * 2 * Math.PI;
+        const [x, y] = [c[0] + Math.cos(a) * r, c[1] + Math.sin(a) * r];
+        return window.__lab.projectToCss(x, y, c[2] + h);
+      });
+    },
+    { c: cloud.centre, r: cloud.spec.radiusM * 0.5, h: cloud.spec.heightM * 0.5 },
+  );
+  await lab(page, (c) => window.__lab.setCamera(c), opening);
+  const mean = (img, f) => ring.reduce((s, p) => s + f(pixel(img, ...p)), 0) / ring.length;
+  const look = {
+    luma: [mean(before, luma), mean(full, luma)],
+    spread: [mean(before, spread), mean(full, spread)],
+  };
+  ctx.check(
+    "a full cloud draws brighter and greyer than the grass it stands on",
+    look.luma[1] > look.luma[0] && look.spread[1] < look.spread[0],
+    JSON.stringify(look),
+  );
+  await snapshot(ctx, page, "look-default.png");
+  await closeShot(ctx, page, grass.position, "look-far.png", { distance: 600, pitch: 0.95 });
+  await advanceTo(page, pop.tick + 5);
+  await closeShot(ctx, page, road.position, "look-road-bloom.png");
+  await popAt(squad);
+  await advanceTo(page, pop.tick + 50);
+  const between = [
+    (road.position[0] + grass.position[0]) / 2,
+    (road.position[1] + grass.position[1]) / 2,
+  ];
+  await closeShot(ctx, page, between, "look-overlap.png", { distance: 110, pitch: 0.85 });
+  await closeShot(ctx, page, road.position, "look-bubble.png", { distance: 40, pitch: 0.55 });
+  await closeShot(ctx, page, squad.position, "look-forest.png");
+  const nearWreck = [(grass.position[0] + wreck[0]) / 2, (grass.position[1] + wreck[1]) / 2];
+  await closeShot(ctx, page, nearWreck, "look-wreck.png", { distance: 140, pitch: 0.8 });
+  await setSide(page, "red");
+  await closeShot(ctx, page, between, "look-red.png", { distance: 110, pitch: 0.85 });
+  await setSide(page, "blue");
+  // Half way through the grass cloud's fade.
+  const fade = cloud.popped + Math.round((cloud.spec.lifeS - cloud.spec.fadeS / 2) * hz);
+  await advanceTo(page, fade);
+  await closeShot(ctx, page, grass.position, "look-grass-fade.png");
+  await page.close();
 }
 
 /** Fog's GPU time at a hundred eyes (`?cost`): frames drawn with fog, without
