@@ -32,10 +32,7 @@ so slices 14–17 may start. Run them one lane at a time while disk is tight.
 1. The `armory/mil` lane is running slices 14 and 17. Merge it when it lands.
 2. Then **15** (military art) and **16** (the yard swapped to it). Slice 16
    also owns the flat sand ground and its tan-on-tan contrast.
-3. Re-shoot the tutorial's `buy.jpg` on the merged tree. Both sides re-shot it
-   before the staging merge; ours kept the nine-group picker over an older
-   battle.
-4. Then **18**. Add these to its run:
+3. Then **18**. Add these to its run:
    - the `street` app-flow tour, which now includes an Armory round trip;
    - the first open of `/armory`, which takes 15–19 s while the menu's
      background prefetch downloads every runtime file. Judge it against the
