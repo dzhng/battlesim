@@ -1,5 +1,8 @@
 # 06 · Nine unit groups, in the picker first
 
+Status: done 2026-11-12, commit: the one that sets this line
+(`git log -1 -- specs/armory/slices/06-unit-groups.md`).
+
 Map rows: U9, L12. No dependencies. The Armory (08) imports an owner that this
 slice has already proven in the Reinforcements picker.
 

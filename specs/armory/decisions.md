@@ -73,4 +73,11 @@ each one as a decision, the reason for it, and who made it.
 
 ## Recorded during implementation
 
-None yet.
+- **06. The search stays a field at every width;** the nine tabs fit beside it
+  at 1280 px (the `ui` scene's tab-row and containment checks), so no
+  collapse to an icon. *Agent, under the delegation.*
+- **06. The nine-tab strip is accepted on the evidence:** it fits with room to
+  spare, every label reads whole at 2×, and the unprimed critique found no
+  defect in its fit. Its notes on the selected tab's contrast and the
+  search's margins describe the existing style, unchanged here and left to 08.
+  No human reply came in the checkpoint window. *Agent.*

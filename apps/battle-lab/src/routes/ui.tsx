@@ -78,6 +78,9 @@ const card = (
   planned_weapons: [],
 });
 
+/** Each picker group the scene opens holds what its checks need: a family
+ *  with an unsold variant (MBT), and beside a two-variant family one of a
+ *  single variant, dearer than the short wallet (IFV·APC). */
 const CARDS: UnitCard[] = [
   card("test_recon", "rec", "Recon Team", "Base", 120),
   card("test_rifle", "inf", "Rifle Section", "Base", 100),
@@ -85,8 +88,9 @@ const CARDS: UnitCard[] = [
   card("test_tank", "veh", "Tank", "Base", 400),
   card("test_tank_trophy", "veh", "Tank", "Trophy", 520, "Protection deferred"),
   card("test_jeep", "veh", "Jeep", "Base", 80),
-  card("test_jeep_hmg", "veh", "Jeep", "HMG", 95),
-  card("test_supply", "veh", "Supply Truck", "Base", 90),
+  card("test_gun_jeep", "veh", "Jeep", "HMG", 95),
+  card("test_apc", "veh", "APC", "Base", 130),
+  card("test_supply", "sup", "Supply Truck", "Base", 90),
 ];
 
 /** World metres to the screen: a flat map seen from straight above. */

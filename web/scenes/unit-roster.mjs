@@ -76,8 +76,8 @@ export async function run(ctx) {
   await page.keyboard.press("Escape");
   check(ctx, own(await obs(page)).credits === 1000, "Escape cancels the searched purchase free");
   await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
-  await page.getByRole("tab", { name: "VEH", exact: true }).click();
-  await snapshot(ctx, page, "vehicle-families.png");
+  await page.getByRole("tab", { name: "MBT", exact: true }).click();
+  await snapshot(ctx, page, "mbt-families.png");
   // Hovering a family opens its variants' info cards over the picker;
   // clicking the card would buy at once.
   const abrams = page.getByRole("button", { name: "M1 Abrams", exact: true });
@@ -113,7 +113,7 @@ export async function run(ctx) {
   check(ctx, own(await obs(page)).credits === 1000, "free placement and Escape spend no credits");
   await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
   // The picker reopens on its first tab; pointing at a tab switches to it.
-  await page.getByRole("tab", { name: "VEH", exact: true }).hover();
+  await page.getByRole("tab", { name: "MBT", exact: true }).hover();
   await page.getByRole("button", { name: "M1 Abrams", exact: true }).hover();
   await page.getByRole("button", { name: /^SEP v2 — \d+ credits$/ }).click();
   await page.mouse.move(640, 340);
@@ -147,7 +147,7 @@ export async function run(ctx) {
   // A held left drag places at its press and turns the unit toward its
   // release. This is the second gesture the player uses in the same journey.
   await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
-  await page.getByRole("tab", { name: "VEH", exact: true }).hover();
+  await page.getByRole("tab", { name: "MBT", exact: true }).hover();
   await page.getByRole("button", { name: "M1 Abrams", exact: true }).hover();
   await page.getByRole("button", { name: /^SEP v2 — \d+ credits$/ }).click();
   const dragFrom = [560, 360];

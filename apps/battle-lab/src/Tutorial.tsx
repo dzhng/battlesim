@@ -150,9 +150,11 @@ export function Tutorial() {
           <li>
             Click <strong>Reinforcements</strong> (or press <kbd>V</kbd>) at the bottom left. Your
             faction&apos;s shop opens with tabs by role under the cards; point at a tab to switch to
-            it: <strong>REC</strong> (reconnaissance), <strong>INF</strong> (infantry),{" "}
-            <strong>VEH</strong> (fighting vehicles and tanks), <strong>SUP</strong> (supply
-            trucks), <strong>HEL</strong> (helicopters) and <strong>AIR</strong> (jets).
+            it: <strong>REC</strong> (reconnaissance), <strong>INF</strong> (infantry, with its
+            anti-tank and anti-air teams), <strong>MBT</strong> (tanks), <strong>IFV·APC</strong>{" "}
+            (fighting vehicles and carriers), <strong>ARTY</strong> (artillery), <strong>AA</strong>{" "}
+            (air defence), <strong>LOG</strong> (supply trucks), <strong>HELI</strong> (helicopters)
+            and <strong>JETS</strong>.
           </li>
           <li>
             Each card is a family of units and shows its cheapest price, which warns you when you
@@ -175,8 +177,8 @@ export function Tutorial() {
           </li>
         </ul>
         <Shot name="buy">
-          The vehicles tab, the M1 Abrams family fanned out above its card: each variant&apos;s
-          weapons, ammunition and price.
+          The MBT tab, the M1 Abrams family fanned out above its card: each variant&apos;s weapons,
+          ammunition and price.
         </Shot>
         <Shot name="place" loop>
           Placing a rifle squad: its ghost shows where each soldier will stand. Over a building the

@@ -1,12 +1,16 @@
-// The picker's filter core: which cards a query matches, whether a card can be
-// bought now, and which card Enter chooses. Pure, so it is tested without a
-// page. Fakes only, never the roster.
+// The picker's filter core: which group a card browses under, which cards a
+// query matches, whether a card can be bought now, and which card Enter
+// chooses. Pure, so it is tested without a page. Fakes, or every game card
+// read through the group table, never one roster entry.
 import { expect, test } from "vitest";
-import type { UnitCard } from "@packages/scene-assets/src/units";
+import type { UnitCard, UnitCategory } from "@packages/scene-assets/src/units";
+import { catalogSet } from "@web/battle/catalog/sets";
 import {
   cardPurchasable,
   enterChoice,
   filterCards,
+  UNIT_GROUPS,
+  unitGroup,
   type BuyFacts,
 } from "@web/battle/present/purchaseFilter";
 
@@ -95,4 +99,48 @@ test("Enter does nothing with more than one family, no purchasable card, or no m
   expect(enterChoice(filterCards(CARDS, "trophy"), facts())).toBeNull();
   expect(enterChoice(filterCards(CARDS, "zzz"), facts())).toBeNull();
   expect(enterChoice([], facts())).toBeNull();
+});
+
+/** Every game card with its group, as the picker browses them. */
+async function gameGroups() {
+  const { units } = await catalogSet("game");
+  return units.cards.map((c) => ({
+    card: c,
+    group: unitGroup(c, units.has(c.id) ? units.type(c.id) : null),
+  }));
+}
+
+const inCategory = (category: UnitCategory) => UNIT_GROUPS.filter((g) => g.category === category);
+
+test("every game card lands in exactly one group", async () => {
+  const cards = await gameGroups();
+  expect(cards.length).toBeGreaterThan(0);
+  for (const { card, group } of cards)
+    expect(
+      UNIT_GROUPS.filter((g) => g.id === group),
+      card.id,
+    ).toHaveLength(1);
+});
+
+test("every group holds one category's cards", async () => {
+  for (const { card, group } of await gameGroups())
+    expect(UNIT_GROUPS.find((g) => g.id === group)?.category, card.id).toBe(card.roster.category);
+});
+
+test("a card with no type lands in its category's first group", () => {
+  for (const { category } of UNIT_GROUPS) {
+    const planned = { ...TANK_BASE, roster: { ...TANK_BASE.roster, category } };
+    expect(unitGroup(planned, null), category).toBe(inCategory(category)[0].id);
+  }
+});
+
+test("a type lands in the group that claims its role, and the rest in its category's catch-all", () => {
+  for (const group of UNIT_GROUPS) {
+    const card = { ...TANK_BASE, roster: { ...TANK_BASE.roster, category: group.category } };
+    for (const role of group.roles ?? []) expect(unitGroup(card, { roles: [role] })).toBe(group.id);
+    // A role no group of the category claims: its catch-all, else its first.
+    const rest =
+      inCategory(group.category).find((g) => g.roles === null) ?? inCategory(group.category)[0];
+    expect(unitGroup(card, { roles: ["unclaimed"] })).toBe(rest.id);
+  }
 });
