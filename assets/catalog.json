@@ -5827,10 +5827,7 @@
       "mounts": {
         "gun": "gun"
       },
-      "wreck": "us_m109_paladin_m109a7_wreck",
-      "tolerances": {
-        "hull_extent_m": 5.5
-      }
+      "wreck": "us_m109_paladin_m109a7_wreck"
     },
     "us_m109_paladin_m109a7_wreck": {
       "unit": "scenery",
@@ -5935,10 +5932,7 @@
       "unit": "vehicle",
       "source": "assets/source/roster/m270_mlrs/us_m270_mlrs_m270a2.glb",
       "basis_yaw_deg": 0,
-      "wreck": "us_m270_mlrs_m270a2_wreck",
-      "tolerances": {
-        "hull_extent_m": 5.5
-      }
+      "wreck": "us_m270_mlrs_m270a2_wreck"
     },
     "us_m270_mlrs_m270a2_wreck": {
       "unit": "scenery",
@@ -5962,10 +5956,7 @@
       "unit": "vehicle",
       "source": "assets/source/roster/mars_ii/europe_mars_ii_multiple_launch_rocket_system.glb",
       "basis_yaw_deg": 0,
-      "wreck": "europe_mars_ii_multiple_launch_rocket_system_wreck",
-      "tolerances": {
-        "hull_extent_m": 5.5
-      }
+      "wreck": "europe_mars_ii_multiple_launch_rocket_system_wreck"
     },
     "europe_mars_ii_multiple_launch_rocket_system_wreck": {
       "unit": "scenery",
@@ -6019,10 +6010,7 @@
       "mounts": {
         "gun": "gun"
       },
-      "wreck": "europe_pzh_2000_tracked_155_mm_howitzer_wreck",
-      "tolerances": {
-        "hull_extent_m": 5.5
-      }
+      "wreck": "europe_pzh_2000_tracked_155_mm_howitzer_wreck"
     },
     "europe_pzh_2000_tracked_155_mm_howitzer_wreck": {
       "unit": "scenery",
@@ -6049,10 +6037,7 @@
       "mounts": {
         "gun": "gun"
       },
-      "wreck": "eastern_2s19_msta_s_2s19m2_wreck",
-      "tolerances": {
-        "hull_extent_m": 5.5
-      }
+      "wreck": "eastern_2s19_msta_s_2s19m2_wreck"
     },
     "eastern_2s19_msta_s_2s19m2_wreck": {
       "unit": "scenery",
@@ -6079,10 +6064,7 @@
       "mounts": {
         "gun": "gun"
       },
-      "wreck": "eastern_plz_05_chinese_tracked_155_mm_howitzer_wreck",
-      "tolerances": {
-        "hull_extent_m": 5.5
-      }
+      "wreck": "eastern_plz_05_chinese_tracked_155_mm_howitzer_wreck"
     },
     "eastern_plz_05_chinese_tracked_155_mm_howitzer_wreck": {
       "unit": "scenery",
