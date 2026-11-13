@@ -97,6 +97,12 @@ anything the page needs is downloading, the screen counts the megabytes
 visibly moves. The menu's build line names the app's commit and a fingerprint
 of the simulation module the page actually loaded ([build identity](src/buildIdentity.ts)),
 so a stale deploy or cache shows on screen.
+[The Armory page](src/armory/ArmoryPage.tsx) browses the game's roster by
+faction, group and family, and shows the open card's sheet, which
+[`unitSheet`](../../web/src/battle/present/unitSheet.ts) reads from the catalog
+and its published weapon facts, never recomputing them. Its selection is the
+page's own state, mirrored to `?unit=` with a raw `replaceState`, so a pick
+neither remounts the page nor adds a history entry.
 Art uses [scene-assets](../../packages/scene-assets/README.md),
 and sound uses [battle-audio](../../packages/battle-audio/README.md). [Model review](src/workbench/)
 installs previews through the same appearance loader used by battles. The

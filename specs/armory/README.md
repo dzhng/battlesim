@@ -16,7 +16,7 @@ and the map disagree, this README wins. The disagreements are listed in
 
 ## Next Agent Prompt
 
-**Status (2026-11-13):** slices 01–07, 09, 10 and 13 are merged into
+**Status (2026-11-13):** slices 01–10 and 13 are merged into
 `t3/unit-explorer-armory`, and staging is merged in (`736eff7d8`). The
 integrated tree is green on the cross-lane checks:
 - contract weapons, showground, showcase;
@@ -29,8 +29,8 @@ integrated tree is green on the cross-lane checks:
 so slices 14–17 may start. Run them one lane at a time while disk is tight.
 
 **Pickup:**
-1. The `armory-page` lane is running slice 08. Merge it when it lands.
-2. Then **11**: read its "Art per selection" note first, because
+1. The `armory/mil` lane is running slices 14 and 17. Merge it when it lands.
+2. Now **11**: read its "Art per selection" note first, because
    `ShowcaseStage.show` takes each selection's art.
 3. Then **12**, and **14 → 15 → 16**, with **17** after 14.
 4. Re-shoot the tutorial's `buy.jpg` on the merged tree. Both sides re-shot it
@@ -118,7 +118,7 @@ battle-wide decision for the user.
 - [x] [06](slices/06-unit-groups.md) Nine unit groups in the Reinforcements
   picker and the tutorial.
 - [x] [07](slices/07-show-loops.md) `AppAudio.showLoops` and quiet tiles.
-- [ ] [08](slices/08-armory-page.md) Armory page: the sheet model, layout A,
+- [x] [08](slices/08-armory-page.md) Armory page: the sheet model, layout A,
   the tile and its key art.
 - [x] [09](slices/09-armory-appearances.md) The Armory's own appearance
   library.

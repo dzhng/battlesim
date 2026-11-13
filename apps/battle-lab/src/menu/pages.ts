@@ -15,6 +15,7 @@ export interface MenuPageRow {
 export const MENU_PAGES = [
   { id: "skirmish", path: "/skirmish", title: "Skirmish", tile: true },
   { id: "tutorial", path: "/tutorial", title: "Tutorial", tile: true },
+  { id: "armory", path: "/armory", title: "Armory", tile: true },
   { id: "settings", path: "/settings", title: "Settings", tile: true },
   // Opened by home's quiet developer link, not by a tile.
   { id: "developer", path: "/developer", title: "Developer", tile: false },

@@ -189,6 +189,11 @@ const HUD_ICONS = {
   must_stop: '<path d="M8.5 3h7L21 8.5v7L15.5 21h-7L3 15.5v-7z"/><path d="M8 12h8"/>',
   no_ammo: '<rect x="8" y="3" width="8" height="18"/><path d="M4 20L20 4"/>',
   no_sight: CLOSED_EYE,
+  // A weapon that fires at whatever it sees, even what it can't hurt: a
+  // gunsight's ring and ticks round a round, unlike fire at will's bare
+  // ticks.
+  fires_regardless:
+    '<circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="1.5"/><path d="M12 1.5v5M12 17.5v5M1.5 12h5M17.5 12h5"/>',
 } as const;
 
 export type HudIcon = keyof typeof HUD_ICONS;

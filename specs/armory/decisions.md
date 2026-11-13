@@ -99,3 +99,17 @@ each one as a decision, the reason for it, and who made it.
   into `specs/done/tracked-armour-models/` on staging, and staging was merged
   into the Armory branch (`736eff7d8`). Its coordinator no longer owns
   `fixtures/props/**`, the catalog or the runtime bundles, so slices 14–17 run.
+- **08. Layout A is accepted on the evidence** (`ui` baselines `armory`,
+  `armory-1920`, and the real roster in the `armory` scene's evidence). Three
+  unprimed critiques drove the fixes recorded in `choices.md`; the last found
+  no clipping or overlap. Left to the user: bars are magnitudes, each scaled
+  per figure against the same body's roster (U9), so a slow reload has the
+  long bar; a tile shows its family's cheapest price. No human reply came in
+  the checkpoint window. *Agent.*
+- **08. The menu changes only inside the Armory tile's band:** above it and
+  below it (shifted by the tile's 104 px), the new `menu` baseline matches the
+  old one with 0 px differing under the scene's own matcher (`comparePngs`).
+  *Agent.*
+- **08. Key art from the Duet CLI, same model, second prompt:** the first
+  prompt's wide shot read as the odd tile out; the tight three-quarter view
+  matches the set's close framing. *Agent.*

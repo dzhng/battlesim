@@ -365,6 +365,12 @@
     "timeout_s": 300
   },
   {
+    "id": "armory",
+    "route": "/armory",
+    "describe": "The Armory at /armory: the menu's tile opens it, a pick of a tile, a group and a faction rewrites the address in place without a new history entry or a remount, a refresh reopens the same unit, an unknown unit opens the first tile, and Back returns to the menu on the Armory's tile.",
+    "map": null
+  },
+  {
     "id": "lobby",
     "route": "/skirmish",
     "describe": "The skirmish lobby at /skirmish: an order of battle over real admitted map previews. Its scene covers the 1v1 default, the 3v3 and 5v5 presets, 3v4 and 2v3 by Add and Delete, taking another Blue seat, the size floor, a preview on opening and on each map change, Reroll, a hidden retry, a map that cannot be made, and Deploy starting the previewed map, and shoots each state at 1280\u00d7720 and 1920\u00d71080.",

@@ -37,6 +37,9 @@ import { MenuButton, PauseMenu } from "../PauseMenu";
 import { specimenUnit } from "../panelSpecimens";
 import { MatchResultOverlay } from "../MatchResultOverlay";
 import { reportSpecimen } from "../reportSpecimens";
+import { ArmoryPage } from "../armory/ArmoryPage";
+import { PageHead } from "../menu/MenuVisit";
+import { menuPage } from "../menu/pages";
 
 const MATCH: SkirmishView = {
   phase: "active",
@@ -92,6 +95,54 @@ const CARDS: UnitCard[] = [
   card("test_apc", "veh", "APC", "Base", 130),
   card("test_supply", "sup", "Supply Truck", "Base", 90),
 ];
+
+/** The Armory's fixed content: test units in every group but two, a family
+ *  of two variants (Jeep), a card Europe fields too (Scout Car), and a
+ *  planned card. The planned card borrows the first planned card's id for
+ *  its silhouette, the one thing it cannot fabricate. */
+const armoryCards = (planned: string): UnitCard[] => [
+  card("test_recon", "rec", "Recon Team", "Base", 80),
+  {
+    ...card("test_scout_car", "rec", "Scout Car", "Base", 110),
+    roster: {
+      factions: ["us", "europe"],
+      family_name: "Scout Car",
+      category: "rec",
+      variant: "Base",
+    },
+  },
+  {
+    ...card(planned, "rec", "Recon Drone", "Strike", 60, "Planned"),
+    planned_weapons: [{ name: "AT Warhead", icon: "ap_shell" }],
+  },
+  card("test_rifle", "inf", "Rifle Section", "Base", 100),
+  card("test_at", "inf", "AT Team", "Base", 150),
+  card("test_aa", "inf", "AA Team", "Base", 160),
+  card("test_tank", "veh", "Tank", "Base", 400),
+  card("test_jeep", "veh", "Jeep", "Base", 80),
+  card("test_gun_jeep", "veh", "Jeep", "Gun", 95),
+  card("test_apc", "veh", "APC", "Base", 130),
+  card("test_supply", "sup", "Supply Truck", "Base", 90),
+  card("test_heli", "hel", "Helicopter", "Base", 300),
+  card("test_jet", "air", "Jet", "Base", 450),
+];
+
+/** The Armory page on the menu's ground, as its shell lays it out, on the
+ *  fixed content (`?unit=` opens a card, as on the page). */
+function Armory() {
+  const { units } = useSessionCatalog();
+  const [cards] = useState(() => armoryCards(units.cards.find((c) => !units.has(c.id))!.id));
+  return (
+    <div className="menu" data-open="armory">
+      <div className="menu-slot">
+        <div className="hud-panel menu-body">
+          <PageHead title={menuPage("armory").title} onBack={() => {}} />
+          <ArmoryPage cards={cards} />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /** World metres to the screen: a flat map seen from straight above. */
 const project: Project = (x, y) => [640 + x * 3, 330 + y * 3];
@@ -352,6 +403,7 @@ const SHOTS: { id: string; draw: () => ReactNode }[] = [
       />
     ),
   },
+  { id: "armory", draw: () => <Armory /> },
   { id: "objectives", draw: () => <Objectives /> },
   { id: "range-ruler", draw: () => <Ruler /> },
   { id: "refused-order", draw: () => <Refusal /> },

@@ -350,6 +350,7 @@ export interface WeaponDefinition {
   aim_s: number;
   reload_s: number;
   ammo: number | "unlimited";
+  damage: number;
   penetration: number;
   /** Each layer it engages owns its range and launch spread. */
   targets?: Partial<Record<AltitudeLayer, { range_m: number; scatter_mrad: number }>>;
