@@ -17,7 +17,7 @@ where the spec was silent go in [`choices.md`](choices.md).
 ## Next Agent Prompt
 
 **Status (2026-11-12):**
-- **Done:** slices 01–09.
+- **Done:** slices 01–11.
   - Slice 02's kill gate said **KEEP**.
   - The smoke lab route (`smoke`) plays the moment with real input: press H,
     watch the charges count down, see HIDDEN, see the cloud and the fog.
@@ -30,7 +30,7 @@ where the spec was silent go in [`choices.md`](choices.md).
   and the visual follow-up (seen clouds draw over the fog veil, starting at
   their first bloom step).
 
-**Pickup:** [slice 11](slices/11-skirmish-ai.md), then [slice 10](slices/10-sound.md). Disk is tight (about 4 GB free). Before you touch
+**Pickup:** [slice 12](slices/12-closeout.md). Also fix the `team_3v3` and `team_5v5` skirmishes, which map generation refuses in the AI tournament corpus; it isn't caused by smoke, so fix it in its own commit. The sound takes for slice 10 were chosen from waveforms and spectrograms; nobody has listened to them yet. Disk is tight. Before you touch
 anything, read:
 - `AGENTS.md`;
 - `development.md`;
@@ -63,8 +63,8 @@ anything, read:
 - [x] 07: the drawn cloud ([slice](slices/07-drawn-cloud.md))
 - [x] 08: player controls and panel ([slice](slices/08-controls.md))
 - [x] 09: roster switch-on, the first playable skirmish ([slice](slices/09-roster.md))
-- [ ] 10: sound ([slice](slices/10-sound.md))
-- [ ] 11: skirmish AI ([slice](slices/11-skirmish-ai.md))
+- [x] 10: sound ([slice](slices/10-sound.md))
+- [x] 11: skirmish AI ([slice](slices/11-skirmish-ai.md))
 - [ ] 12: closeout ([slice](slices/12-closeout.md))
 
 **Before you end a pass,** update this section: status, pickup, warnings and
