@@ -1,6 +1,6 @@
 # 14 · Military prop rows and their mechanics, on stand-ins
 
-Status: done 2026-11-13.
+Status: done 2026-11-13, commit e4ea0688a.
 
 Map rows: Q2, L2, L3. Depends on L1 lifting.
 
