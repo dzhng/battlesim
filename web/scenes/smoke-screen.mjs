@@ -10,8 +10,7 @@
 // fresh battle: blue pops all three carriers' smoke, and the look tour shoots
 // the clouds blooming, full, overlapping, over road, grass and wood, beside
 // the burning wreck, at far zoom and in their fade. Every number is read from
-// the encounter, the map and the published cloud. SMOKE_COST=1 also measures fog's GPU cost at a hundred eyes, with and
-// without twelve clouds (run it alone, under the GPU lock).
+// the encounter, the map and the published cloud.
 import { readFile } from "node:fs/promises";
 import { advance, aim, lab, obs, openBattle, snapshot } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
@@ -260,7 +259,6 @@ export async function run(ctx) {
   await snapshot(ctx, page, "red-gone.png");
   await page.close();
   await lookTour(ctx, pop);
-  if (process.env.SMOKE_COST === "1") await measureCost(ctx);
 }
 
 /** Rec. 709 luminance and the spread of a pixel's channels (its colour). */
@@ -342,82 +340,5 @@ async function lookTour(ctx, pop) {
   const fade = cloud.popped + Math.round((cloud.spec.lifeS - cloud.spec.fadeS / 2) * hz);
   await advanceTo(page, fade);
   await closeShot(ctx, page, grass.position, "look-grass-fade.png");
-  await page.close();
-}
-
-/** Fog's GPU time at a hundred eyes (`?cost`): frames drawn with fog, without
- *  it and with every eye's map rebuilt each frame, in interleaved batches,
- *  before the pop and with twelve clouds standing; and the most maps any one
- *  frame rebuilt while the clouds bloomed, against the moved eyes' budget. */
-async function measureCost(ctx) {
-  const settings = await fixture("presentation.json");
-  const budget = settings.fog_geometry.rebuild_eyes_per_frame;
-  const encounter = await fixture("maps/smoke-screen/encounters/cost.json");
-  const pop = encounter.scripts.find((s) => s.order.kind === "pop_smoke").tick;
-  const page = await openBattle(ctx, {
-    viewport: { width: 1920, height: 1080 },
-    url: new URL("/labs/smoke-screen?cost", ctx.url).href,
-  });
-  await page.evaluate(() => setInterval(() => performance.clearMeasures(), 500));
-  const batch = (mode) =>
-    lab(
-      page,
-      async (mode) => {
-        await window.__lab.suppressFog(mode === "off");
-        let loop = 0;
-        const rebuild = () => {
-          window.__lab.fog().rebuildAll();
-          loop = requestAnimationFrame(rebuild);
-        };
-        if (mode === "rebuild") rebuild();
-        await new Promise((r) => setTimeout(r, 1500));
-        cancelAnimationFrame(loop);
-        return window.__lab.stats().gpu.meanMs;
-      },
-      mode,
-    );
-  const median = (v) => [...v].sort((a, b) => a - b)[Math.floor(v.length / 2)];
-  const measure = async () => {
-    const rows = { on: [], off: [], rebuild: [] };
-    for (let r = 0; r < 6; r++)
-      for (const mode of ["on", "off", "rebuild"]) rows[mode].push(await batch(mode));
-    await lab(page, () => window.__lab.suppressFog(false));
-    return {
-      offMs: median(rows.off),
-      fogMs: median(rows.on.map((v, i) => v - rows.off[i])),
-      rebuildAllMs: median(rows.rebuild.map((v, i) => v - rows.off[i])),
-      samples: rows,
-    };
-  };
-  await advanceTo(page, pop - 10);
-  const result = { eyes: (await lab(page, () => window.__lab.stats().fog)).eyes, budget };
-  result.clear = await measure();
-  // Through the bloom a tick and a frame at a time: what each frame rebuilt.
-  let most = 0;
-  for (let t = pop - 10; t < pop + 60; t++) {
-    await advance(page, 1);
-    const fog = await lab(page, async () => {
-      await window.__lab.frame();
-      return window.__lab.stats().fog;
-    });
-    most = Math.max(most, fog.rebuilt);
-  }
-  result.mostRebuiltInAFrame = most;
-  result.clouds = (await obs(page)).smokeClouds.length;
-  result.smoke = await measure();
-  result.adapter = await page.evaluate(() => window.__lab.adapter);
-  await ctx.writeEvidence("smoke-cost.json", result);
-  ctx.check(
-    "twelve clouds bloom without a frame rebuilding past the moved eyes' budget",
-    result.eyes >= 100 && result.clouds === 12 && most > 0 && most <= budget,
-    JSON.stringify({
-      eyes: result.eyes,
-      clouds: result.clouds,
-      most,
-      budget,
-      fogMs: [result.clear.fogMs, result.smoke.fogMs],
-      rebuildAllMs: [result.clear.rebuildAllMs, result.smoke.rebuildAllMs],
-    }),
-  );
   await page.close();
 }

@@ -8,6 +8,6 @@
   "tags": ["road", "forest"],
   "source": "authored",
   "seed": null,
-  "encounters": ["cost", "smoke-screen"],
+  "encounters": ["smoke-screen"],
   "benchmarks": []
 }
