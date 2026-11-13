@@ -3145,6 +3145,35 @@
           },
           "destroyed": "removed"
         },
+        "flagpole": {
+          "appearance": {
+            "drawn_by": "flagpole",
+            "map_only": true,
+            "stand_in_tint": [
+              0.78,
+              0.78,
+              0.76
+            ],
+            "status": "systems_only"
+          },
+          "body": {
+            "armor": 1.0,
+            "blocks": {
+              "infantry": true,
+              "vehicle": true
+            },
+            "conceals": 0.0,
+            "cover_tier": null,
+            "garrison": false,
+            "hp": 20.0,
+            "metal": true,
+            "occludes": false,
+            "stops_rounds": false,
+            "topples": true,
+            "weight_class": "light"
+          },
+          "destroyed": "removed"
+        },
         "garage_row": {
           "appearance": {
             "drawn_by": "garage_row",
@@ -3291,6 +3320,67 @@
             "weight_class": "immovable"
           }
         },
+        "hangar": {
+          "appearance": {
+            "drawn_by": "hangar",
+            "map_only": true,
+            "stand_in_tint": [
+              0.46,
+              0.5,
+              0.44
+            ],
+            "status": "systems_only"
+          },
+          "body": {
+            "armor": 0.5,
+            "blocks": {
+              "infantry": true,
+              "vehicle": true
+            },
+            "conceals": 0.0,
+            "cover_tier": "heavy",
+            "garrison": false,
+            "hp": 800.0,
+            "metal": true,
+            "occludes": true,
+            "stops_rounds": true,
+            "topples": false,
+            "weight_class": "immovable"
+          },
+          "destroyed": {
+            "into": {
+              "height_m": 1.5,
+              "prop": "hangar_ruin"
+            }
+          }
+        },
+        "hangar_ruin": {
+          "appearance": {
+            "drawn_by": "hangar_ruin",
+            "stand_in_tint": [
+              0.3,
+              0.29,
+              0.27
+            ],
+            "status": "systems_only"
+          },
+          "body": {
+            "armor": 1.0,
+            "blocks": {
+              "infantry": false,
+              "vehicle": true
+            },
+            "conceals": 0.0,
+            "cover_tier": "light",
+            "garrison": false,
+            "hp": null,
+            "metal": true,
+            "occludes": false,
+            "stops_rounds": false,
+            "topples": false,
+            "weight_class": "immovable"
+          }
+        },
         "heavy_wreck": {
           "appearance": {
             "drawn_by": "wreck",
@@ -3381,6 +3471,41 @@
             "weight_class": "light"
           },
           "destroyed": "removed"
+        },
+        "hesco": {
+          "appearance": {
+            "drawn_by": "hesco",
+            "map_only": true,
+            "modular": true,
+            "stand_in_tint": [
+              0.68,
+              0.6,
+              0.43
+            ],
+            "status": "systems_only"
+          },
+          "body": {
+            "armor": 1.0,
+            "blocks": {
+              "infantry": true,
+              "vehicle": true
+            },
+            "conceals": 0.0,
+            "cover_tier": "heavy",
+            "garrison": false,
+            "hp": 300.0,
+            "metal": false,
+            "occludes": false,
+            "stops_rounds": true,
+            "topples": false,
+            "weight_class": "heavy"
+          },
+          "destroyed": {
+            "into": {
+              "height_m": 0.4,
+              "prop": "rubble"
+            }
+          }
         },
         "hydrant": {
           "appearance": {
@@ -3875,6 +4000,34 @@
             }
           }
         },
+        "revetment": {
+          "appearance": {
+            "drawn_by": "revetment",
+            "map_only": true,
+            "stand_in_tint": [
+              0.55,
+              0.47,
+              0.33
+            ],
+            "status": "systems_only"
+          },
+          "body": {
+            "armor": 1.0,
+            "blocks": {
+              "infantry": true,
+              "vehicle": true
+            },
+            "conceals": 0.0,
+            "cover_tier": "heavy",
+            "garrison": false,
+            "hp": null,
+            "metal": false,
+            "occludes": true,
+            "stops_rounds": true,
+            "topples": false,
+            "weight_class": "immovable"
+          }
+        },
         "road_barrier": {
           "appearance": {
             "drawn_by": "road_barrier",
@@ -4129,6 +4282,35 @@
           },
           "destroyed": "cleared"
         },
+        "supply_net": {
+          "appearance": {
+            "drawn_by": "supply_net",
+            "map_only": true,
+            "stand_in_tint": [
+              0.36,
+              0.41,
+              0.26
+            ],
+            "status": "systems_only"
+          },
+          "body": {
+            "armor": 1.0,
+            "blocks": {
+              "infantry": false,
+              "vehicle": false
+            },
+            "conceals": 0.0,
+            "cover_tier": null,
+            "garrison": false,
+            "hp": 30.0,
+            "metal": false,
+            "occludes": false,
+            "stops_rounds": false,
+            "topples": false,
+            "weight_class": "light"
+          },
+          "destroyed": "removed"
+        },
         "swing": {
           "appearance": {
             "drawn_by": "swing",
@@ -4153,6 +4335,35 @@
             "occludes": false,
             "stops_rounds": false,
             "topples": false,
+            "weight_class": "light"
+          },
+          "destroyed": "removed"
+        },
+        "tent": {
+          "appearance": {
+            "drawn_by": "tent",
+            "map_only": true,
+            "stand_in_tint": [
+              0.42,
+              0.45,
+              0.3
+            ],
+            "status": "systems_only"
+          },
+          "body": {
+            "armor": 1.0,
+            "blocks": {
+              "infantry": true,
+              "vehicle": true
+            },
+            "conceals": 0.0,
+            "cover_tier": null,
+            "garrison": false,
+            "hp": 30.0,
+            "metal": false,
+            "occludes": true,
+            "stops_rounds": false,
+            "topples": true,
             "weight_class": "light"
           },
           "destroyed": "removed"
@@ -22792,6 +23003,35 @@
       },
       "destroyed": "removed"
     },
+    "flagpole": {
+      "appearance": {
+        "drawn_by": "flagpole",
+        "map_only": true,
+        "stand_in_tint": [
+          0.78,
+          0.78,
+          0.76
+        ],
+        "status": "systems_only"
+      },
+      "body": {
+        "armor": 1.0,
+        "blocks": {
+          "infantry": true,
+          "vehicle": true
+        },
+        "conceals": 0.0,
+        "cover_tier": null,
+        "garrison": false,
+        "hp": 20.0,
+        "metal": true,
+        "occludes": false,
+        "stops_rounds": false,
+        "topples": true,
+        "weight_class": "light"
+      },
+      "destroyed": "removed"
+    },
     "garage_row": {
       "appearance": {
         "drawn_by": "garage_row",
@@ -22938,6 +23178,67 @@
         "weight_class": "immovable"
       }
     },
+    "hangar": {
+      "appearance": {
+        "drawn_by": "hangar",
+        "map_only": true,
+        "stand_in_tint": [
+          0.46,
+          0.5,
+          0.44
+        ],
+        "status": "systems_only"
+      },
+      "body": {
+        "armor": 0.5,
+        "blocks": {
+          "infantry": true,
+          "vehicle": true
+        },
+        "conceals": 0.0,
+        "cover_tier": "heavy",
+        "garrison": false,
+        "hp": 800.0,
+        "metal": true,
+        "occludes": true,
+        "stops_rounds": true,
+        "topples": false,
+        "weight_class": "immovable"
+      },
+      "destroyed": {
+        "into": {
+          "height_m": 1.5,
+          "prop": "hangar_ruin"
+        }
+      }
+    },
+    "hangar_ruin": {
+      "appearance": {
+        "drawn_by": "hangar_ruin",
+        "stand_in_tint": [
+          0.3,
+          0.29,
+          0.27
+        ],
+        "status": "systems_only"
+      },
+      "body": {
+        "armor": 1.0,
+        "blocks": {
+          "infantry": false,
+          "vehicle": true
+        },
+        "conceals": 0.0,
+        "cover_tier": "light",
+        "garrison": false,
+        "hp": null,
+        "metal": true,
+        "occludes": false,
+        "stops_rounds": false,
+        "topples": false,
+        "weight_class": "immovable"
+      }
+    },
     "heavy_wreck": {
       "appearance": {
         "drawn_by": "wreck",
@@ -23028,6 +23329,41 @@
         "weight_class": "light"
       },
       "destroyed": "removed"
+    },
+    "hesco": {
+      "appearance": {
+        "drawn_by": "hesco",
+        "map_only": true,
+        "modular": true,
+        "stand_in_tint": [
+          0.68,
+          0.6,
+          0.43
+        ],
+        "status": "systems_only"
+      },
+      "body": {
+        "armor": 1.0,
+        "blocks": {
+          "infantry": true,
+          "vehicle": true
+        },
+        "conceals": 0.0,
+        "cover_tier": "heavy",
+        "garrison": false,
+        "hp": 300.0,
+        "metal": false,
+        "occludes": false,
+        "stops_rounds": true,
+        "topples": false,
+        "weight_class": "heavy"
+      },
+      "destroyed": {
+        "into": {
+          "height_m": 0.4,
+          "prop": "rubble"
+        }
+      }
     },
     "hydrant": {
       "appearance": {
@@ -23522,6 +23858,34 @@
         }
       }
     },
+    "revetment": {
+      "appearance": {
+        "drawn_by": "revetment",
+        "map_only": true,
+        "stand_in_tint": [
+          0.55,
+          0.47,
+          0.33
+        ],
+        "status": "systems_only"
+      },
+      "body": {
+        "armor": 1.0,
+        "blocks": {
+          "infantry": true,
+          "vehicle": true
+        },
+        "conceals": 0.0,
+        "cover_tier": "heavy",
+        "garrison": false,
+        "hp": null,
+        "metal": false,
+        "occludes": true,
+        "stops_rounds": true,
+        "topples": false,
+        "weight_class": "immovable"
+      }
+    },
     "road_barrier": {
       "appearance": {
         "drawn_by": "road_barrier",
@@ -23776,6 +24140,35 @@
       },
       "destroyed": "cleared"
     },
+    "supply_net": {
+      "appearance": {
+        "drawn_by": "supply_net",
+        "map_only": true,
+        "stand_in_tint": [
+          0.36,
+          0.41,
+          0.26
+        ],
+        "status": "systems_only"
+      },
+      "body": {
+        "armor": 1.0,
+        "blocks": {
+          "infantry": false,
+          "vehicle": false
+        },
+        "conceals": 0.0,
+        "cover_tier": null,
+        "garrison": false,
+        "hp": 30.0,
+        "metal": false,
+        "occludes": false,
+        "stops_rounds": false,
+        "topples": false,
+        "weight_class": "light"
+      },
+      "destroyed": "removed"
+    },
     "swing": {
       "appearance": {
         "drawn_by": "swing",
@@ -23800,6 +24193,35 @@
         "occludes": false,
         "stops_rounds": false,
         "topples": false,
+        "weight_class": "light"
+      },
+      "destroyed": "removed"
+    },
+    "tent": {
+      "appearance": {
+        "drawn_by": "tent",
+        "map_only": true,
+        "stand_in_tint": [
+          0.42,
+          0.45,
+          0.3
+        ],
+        "status": "systems_only"
+      },
+      "body": {
+        "armor": 1.0,
+        "blocks": {
+          "infantry": true,
+          "vehicle": true
+        },
+        "conceals": 0.0,
+        "cover_tier": null,
+        "garrison": false,
+        "hp": 30.0,
+        "metal": false,
+        "occludes": true,
+        "stops_rounds": false,
+        "topples": true,
         "weight_class": "light"
       },
       "destroyed": "removed"

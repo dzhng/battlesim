@@ -469,3 +469,57 @@ needs-user).
 - **The scene's dressing check covers each spot's own props** (within its
   clear disc plus 10 m). The other spots' props lie outside the camera's view
   and are culled. *Sound.*
+
+## Slice 14
+
+- **The rows' bodies** (`fixtures/props/military/{works,camp}.json`), from
+  `tweak-mechanics`. Every row is ordinary (no garrison, fixed `hp`) and
+  `systems_only` with a stand-in tint until slice 15's art. *Provisional:*
+  balance is the closeout's.
+  - `hangar`: immovable, blocks everyone, stops rounds, occludes, heavy cover
+    (like `garage_row` and buildings), metal; `hp` 800 at `armor` 0.5, so a
+    tank's HE takes about sixteen direct hits and an artillery barrage brings
+    it down, while machine guns barely mark it. It falls into `hangar_ruin`
+    1.5 m high.
+  - `hangar_ruin`: a twisted steel pile. It still **blocks infantry and
+    vehicles** and gives **light** cover from behind, stops no rounds and hides
+    nothing; terminal. Why blocking: the soldiers sheltering at the hangar's
+    wall keep their cover where they stand, and a viewer would not walk a
+    squad or drive a jeep across a collapsed hangar's girders. Alternative: a
+    ground body like `rubble` that covers who stands in it; it lost because
+    every soldier at the wall would have to re-cover into the wreck.
+  - `revetment`: an earth berm. Immovable, blocks, stops rounds, occludes,
+    heavy cover, and **no `hp`**: earthworks soak shelling, like dragon's
+    teeth. Alternative: `hp` into rubble, rejected as a berm vanishing under
+    tank fire.
+  - `hesco`: earth-filled baskets, chest-high. Heavy (no tank shoves it),
+    blocks, stops rounds, heavy cover, does not occlude (like sandbags, a
+    fighting position soldiers fire over); `hp` 300 into `rubble` 0.4 m, so
+    HE bursts a basket open. Modular, like sandbags.
+  - `tent`: light canvas. Blocks movers, so a vehicle flattens it (`topples`);
+    occludes (no one sees through canvas), stops no rounds, gives no cover;
+    `hp` 30, removed when shot apart.
+  - `flagpole`: light, topples, blocks movers, metal, no cover, no stop, no
+    occlusion; `hp` 20, removed.
+  - `supply_net`: per L3, it blocks no one, stops nothing, hides nothing and
+    conceals nothing (`conceals` 0). It has `hp` 30, removed, so a burst on the
+    stack it covers tears it away rather than leaving a net over nothing.
+- **The tests carry their own `test_*` rows** (`crates/sim/tests/shelter.rs`
+  pushes a props document onto the test catalog, as `with_units_at_limits`
+  does for hulls). No test row ships in `fixtures/`, and no test reads a
+  military row. *Sound.*
+- **`a_body_with_no_cover_and_no_stop_never_shields` compares whole
+  firefights:** the blue soldiers' health, tick by tick, is the same with the
+  screen in front of them as without it. `bodies.rs`'s street-lamp test pins
+  the same columns on a geometry query; this one proves it through the
+  battle. *Sound.*
+- **The visual gate ran through the scenario builder's play mode** with a
+  package written by a throwaway script
+  (`throwaway/armory/14/hangar-shot.mjs`), the map placing the rows, blue
+  squads watching and HE bursts on the hangar. No lab or test map was added
+  for a stand-in check that slice 15's art replaces. *Sound.*
+- **The parity moves.** Only `fixtures/parity/exact-numbers.json` moved: its
+  record embeds the catalog's documents, which gained the two military files.
+  Its three state digests are unchanged, and the browser's paired test passes.
+  The publication-reader parity, the `ConfigMismatch` tests and the replay
+  tests pass with no bless, so the state digest is unchanged (S3). *Sound.*

@@ -1,0 +1,22 @@
+{
+  "props": {
+    "hangar": {
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": true, "weight_class": "immovable", "cover_tier": "heavy", "hp": 800, "armor": 0.5, "metal": true},
+      "destroyed": {"into": {"prop": "hangar_ruin", "height_m": 1.5}},
+      "appearance": {"status": "systems_only", "stand_in_tint": [0.46, 0.5, 0.44], "drawn_by": "hangar", "map_only": true}
+    },
+    "hangar_ruin": {
+      "body": {"blocks": {"infantry": false, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "immovable", "cover_tier": "light", "metal": true},
+      "appearance": {"status": "systems_only", "stand_in_tint": [0.3, 0.29, 0.27], "drawn_by": "hangar_ruin"}
+    },
+    "revetment": {
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": true, "weight_class": "immovable", "cover_tier": "heavy"},
+      "appearance": {"status": "systems_only", "stand_in_tint": [0.55, 0.47, 0.33], "drawn_by": "revetment", "map_only": true}
+    },
+    "hesco": {
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "weight_class": "heavy", "cover_tier": "heavy", "hp": 300},
+      "destroyed": {"into": {"prop": "rubble", "height_m": 0.4}},
+      "appearance": {"status": "systems_only", "stand_in_tint": [0.68, 0.6, 0.43], "drawn_by": "hesco", "modular": true, "map_only": true}
+    }
+  }
+}
