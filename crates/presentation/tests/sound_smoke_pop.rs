@@ -125,12 +125,10 @@ fn a_side_that_sees_a_cloud_at_its_pop_hears_the_pop_once_at_the_cloud() {
     assert_eq!(pops[0].position, Some(c.centre), "heard at the cloud");
 }
 
-#[test]
-fn a_side_that_first_sees_a_cloud_after_its_bloom_never_hears_the_pop() {
-    let hz = tick_hz();
+/// The pops a side hears of `c` when it first sees it at `first_seen` and
+/// keeps seeing it for two seconds.
+fn heard_from(c: &SmokeCloud, first_seen: u64, hz: f64) -> Vec<Voice> {
     let mut s = sound();
-    let c = cloud(4, [40.0, 10.0, 0.0], 30);
-    let first_seen = past(&c, 1.0, hz);
     let mut voices = Vec::new();
     for tick in 1..first_seen + 2 * hz as u64 {
         let seen = if tick >= first_seen {
@@ -140,10 +138,38 @@ fn a_side_that_first_sees_a_cloud_after_its_bloom_never_hears_the_pop() {
         };
         voices.extend(hear(&mut s, &publication(tick, &seen), hz, [0.0; 3]));
     }
+    voices
+}
+
+#[test]
+fn a_side_that_first_sees_a_cloud_after_its_bloom_never_hears_the_pop() {
+    let hz = tick_hz();
+    let c = cloud(4, [40.0, 10.0, 0.0], 30);
+    let voices = heard_from(&c, past(&c, 1.0, hz), hz);
     assert!(
         voices.is_empty(),
         "a cloud seen only after its bloom is silent: {voices:?}"
     );
+}
+
+#[test]
+fn a_cloud_first_seen_on_the_tick_it_reaches_full_size_is_silent() {
+    let hz = tick_hz();
+    let c = cloud(4, [40.0, 10.0, 0.0], 30);
+    let full = (c.popped..)
+        .find(|&t| {
+            let s = contract::smoke::state(&c, t, hz as u32).unwrap();
+            s.phase == c.spec.bloom_steps
+        })
+        .unwrap();
+    let sound = pop_sound(&c);
+    let pops = |first_seen| {
+        (heard_from(&c, first_seen, hz).into_iter())
+            .filter(|v| v.sound == sound)
+            .count()
+    };
+    assert_eq!(pops(full - 1), 1, "seen on its last blooming tick, it pops");
+    assert_eq!(pops(full), 0, "seen first at full size, it is silent");
 }
 
 #[test]

@@ -1,8 +1,10 @@
 //! A smoke screen: a stationary circular cloud a unit pops (`specs/smoke-screen`).
 //!
 //! This is the one definition of a cloud's state over time and of the smoke
-//! a sight line crosses. The simulation's sensing and fog sweep, the GPU fog,
-//! the drawn cloud and its sound all read it; none keeps a copy.
+//! a sight line crosses. The simulation's sensing and fog sweep, the fog's
+//! upload, the drawn cloud and its sound all read it. The one deliberate copy
+//! is the GPU fog's WGSL `fogSmokeStep`, which can't call Rust; the
+//! renderer-core probe parity test (`tests/probes.rs`) holds it to this law.
 //!
 //! A cloud blooms to its full radius in `bloom_steps` equal steps, holds, then
 //! thins in `fade_steps` steps over its last `fade_s`, scaling its depth per
