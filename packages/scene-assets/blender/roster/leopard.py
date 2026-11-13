@@ -23,7 +23,7 @@ pivot 0.3 m ahead of the hull's middle and 1.8 m up; 2A7V and 2A8: hull
 0.125 m ahead): nothing here moves it.
 
 All three wear one scripted body (`BODY`, `scripted_body`): Gemini Argon's
-build script after its second round, `build(variant)` for each (its folder's
+build script after its third round (the turret front), `build(variant)` for each (its folder's
 README lists its rounds and edits). This script adds the rig, the 2A8's
 Trophy nodes, whip antennas and wreck.
 """
@@ -38,7 +38,7 @@ from vehicle_export import rig, run  # noqa: E402
 
 # The scripted body every variant wears, each variant's id in it, its
 # track's link pitch, and the gun's trunnion ahead of the ring along the bore.
-BODY = "assets/source/skins/leopard/argon-r2/build.py"
+BODY = "assets/source/skins/leopard/argon-r3/build.py"
 BODIES = {"europe_leopard_2_2a6": "2a6", "europe_leopard_2_2a7v": "2a7v", "europe_leopard_2_2a8": "2a8"}
 LINK_PITCH = 0.18
 TRUNNION = 1.10
