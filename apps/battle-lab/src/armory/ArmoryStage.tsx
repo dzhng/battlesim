@@ -2,7 +2,7 @@
 // with the battle's idle life and idle sound, seen from the spot's camera.
 // It is one `ShowcaseStage` for the page's life; each pick asks
 // `ArmoryAppearances` for that unit's art and shows it. A planned card asks
-// for nothing: the sheet carries it, and the yard stands empty. A failure
+// for no unit: the sheet carries it, and the yard stands empty. A failure
 // stays on the stage, drawn by its own boundary, and never reaches the
 // page's resources, so the list, the sheet and the menu stay usable.
 import {
@@ -172,12 +172,17 @@ function LiveStage({ card, faction, drawn }: StageProps & { drawn: () => void })
     }
     const switching = (on: boolean) => cell.toggleAttribute("data-switching", on);
     void (async () => {
+      switching(true);
+      scenery.current ??= yardScenery(yard, units.view.props, await appearances.catalog());
       if (!unit) {
-        // A planned card: the yard alone, from the art already on show.
+        // A planned card: the yard alone, from the art already on show, or
+        // the yard's own art on a first open, seen from the motor pool.
         audio.showLoops([]);
-        const on = shown.current;
-        if (!on) return drawn();
-        switching(true);
+        const on = shown.current ?? {
+          art: await appearances.show({ kind: null, faction, scenery: scenery.current }),
+          spot: { id: yard.bodies.ground, ...yard.spots[yard.bodies.ground] },
+        };
+        if (!live) return;
         await stage.show(null, SQUAD_SEED, on.art);
         if (!live) return;
         shown.current = { ...on, kind: null };
@@ -185,8 +190,6 @@ function LiveStage({ card, faction, drawn }: StageProps & { drawn: () => void })
         switching(false);
         return;
       }
-      switching(true);
-      scenery.current ??= yardScenery(yard, units.view.props, await appearances.catalog());
       const art = await appearances.show({ kind: unit.id, faction, scenery: scenery.current });
       if (!live) return;
       const spot = spotFor(yard, unit)!;
@@ -257,10 +260,11 @@ class ArmoryStageBoundary extends Component<BoundaryProps, BoundaryState> {
     return (
       <div className="armory-stage-error" role="alert">
         <p className="armory-stage-error-title">This unit can't be shown</p>
-        <p className="armory-stage-error-detail">
-          {error instanceof Error ? error.message : String(error)}
-        </p>
         <p>Its sheet is still here. Pick another unit, or reload to try again.</p>
+        <details className="armory-stage-error-detail">
+          <summary>Details</summary>
+          {error instanceof Error ? error.message : String(error)}
+        </details>
       </div>
     );
   }

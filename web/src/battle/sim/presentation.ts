@@ -392,11 +392,6 @@ export class ScenePresentation {
     return (this.loaded = this.readWorld(this.rust.set_showcase(sections, JSON.stringify(input))));
   }
 
-  /** Stops showing a unit; returns the rows, as `setShowcase` does. */
-  clearShowcase(): PresentedAppearance[] {
-    return (this.loaded = this.readWorld(this.rust.clear_showcase()));
-  }
-
   /** Battle/static source names exclude the replaceable tooling suffix. */
   canonicalAppearanceRows(): readonly PresentedAppearance[] {
     return this.rows.slice(0, this.rust.canonical_appearance_rows());

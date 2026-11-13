@@ -11,6 +11,7 @@ import { spoken } from "@apps/battle-lab/src/battleLinks";
 import { UNIT_GROUPS, unitGroup } from "@web/battle/present/purchaseFilter";
 import { UNITS, WithTestCatalog } from "./catalog";
 import { visitApp } from "./support/router";
+import { menuPage } from "@apps/battle-lab/src/menu/pages";
 
 beforeEach(() => graphicsSettings.set({ detectedMode: "medium" }, { persist: false }));
 afterEach(() => {
@@ -26,7 +27,7 @@ const tiles = () =>
 const families = () => [...tiles()].map((t) => t.dataset.family!);
 
 test("a pick replaces the address and never remounts the page", async () => {
-  await visitApp("/armory");
+  await visitApp(menuPage("armory").path);
   const page = await screen.findByRole("region", { name: "Units" });
   const length = history.length;
   const opened = unit();
@@ -43,7 +44,7 @@ test("a pick replaces the address and never remounts the page", async () => {
   expect(next.getAttribute("aria-selected")).toBe("true");
   expect(screen.getByRole("region", { name: "Units" })).toBe(page);
   expect(history.length).toBe(length);
-  expect(location.pathname).toBe("/armory");
+  expect(location.pathname).toBe(menuPage("armory").path);
 });
 
 test("an unknown unit falls back to the first tile and rewrites the address", async () => {

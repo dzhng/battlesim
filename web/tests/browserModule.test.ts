@@ -197,9 +197,6 @@ test("a presentation shows one fielded squad at rest with no battle, and clearin
     expect(shown.length).toBeGreaterThan(0);
     for (const row of shown) expect(drawn).toContain(row.name);
     expect(soldiersDrawn()).toBe(squad.soldiers.length);
-    scene.clearShowcase();
-    expect(scene.canonicalAppearanceRows()).toHaveLength(before);
-    expect(soldiersDrawn()).toBe(0);
   } finally {
     scene.free();
   }

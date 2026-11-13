@@ -84,8 +84,10 @@ interface Panel {
 }
 
 /** A failure no panel can recover from: logged, then the page's resources
- *  are refused, as a battle's are. */
+ *  are refused, as a battle's are. A panel torn down mid-load cancels its art
+ *  (an AbortError); that is a normal leave, never a refusal. */
 function refuse(error: unknown) {
+  if (error instanceof DOMException && error.name === "AbortError") return;
   console.error("showcase:", error);
   appResources.refuse(error);
 }

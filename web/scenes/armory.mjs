@@ -9,7 +9,7 @@
 // real page, and crops of each unit on its spot, in its evidence. It also
 // measures, once, the frame time with both scenes live, each switch's time
 // (S7) and the files each selection's art is read from (S5), into
-// throwaway/armory/11/.
+// throwaway/armory-measures/.
 import { mkdir, writeFile } from "node:fs/promises";
 import { menuPage } from "../../apps/battle-lab/src/menu/pages.ts";
 import presentation from "../../fixtures/presentation.json" with { type: "json" };
@@ -20,7 +20,7 @@ const MENU = "main.menu:not(.loading):not([inert])";
 const GROUNDED_M = 0.02;
 /** How far a unit's crop reaches past its bounds. */
 const CROP_MARGIN = 0.2;
-const MEASURES = new URL("../../throwaway/armory/11/", import.meta.url);
+const MEASURES = new URL("../../throwaway/armory-measures/", import.meta.url);
 /** Radians a drag of one viewport height turns the Armory's orbit. */
 const ORBIT_SPEED = presentation.camera_armory.orbit_speed;
 /** How long the camera's clearance takes to come to rest, ms. */

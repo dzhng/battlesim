@@ -337,7 +337,7 @@
   {
     "id": "showcase",
     "route": "/labs/showcase",
-    "describe": "Units at rest with no battle, side by side on flat ground, as the Armory shows them: the first tracked hull, the first rotorcraft and the first squad with a special mount, each with the battle's idle life (each soldier's own tempo and gaze, the launcher operator carrying his kit, the rotors turning and blurred though it stands on the ground). ?unit=<kind> shows that kind alone; ?faction=<us|europe|eastern> the look it wears; ?yard=1 stands each unit (a jet besides) on its spot in the Armory's yard, seen from the spot's camera. Drag to turn the view.",
+    "describe": "Units at rest with no battle, side by side on flat ground, as the Armory shows them: the first tracked hull, the first rotorcraft and the first squad with a special mount, each with the battle's idle life (each soldier's own tempo and gaze, the launcher operator carrying his kit); an aircraft stands parked, its rotors still and its engines silent. ?unit=<kind> shows that kind alone; ?faction=<us|europe|eastern> the look it wears; ?yard=1 stands each unit (a jet besides) on its spot in the Armory's yard, seen from the spot's camera. Drag to turn the view.",
     "map": null,
     "catalog": "game",
     "loading": false

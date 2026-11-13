@@ -8,7 +8,7 @@ import { Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
 import { FACTIONS, type Faction, type UnitCard } from "@packages/scene-assets/src/units";
 import type { SessionCatalog } from "@web/battle/catalog/compose";
 import { SessionCatalogScope, useSessionCatalog } from "@web/battle/catalog/context";
-import { UNIT_GROUPS, unitGroup, type UnitGroup } from "@web/battle/present/purchaseFilter";
+import { UNIT_GROUPS, familyGroups, type UnitGroup } from "@web/battle/present/purchaseFilter";
 import { UnitFace } from "@web/battle/present/unitFace";
 import { spoken } from "../battleLinks";
 import { ArmorySheet } from "./ArmorySheet";
@@ -28,15 +28,10 @@ export interface ArmoryRoster {
   groupOf(card: UnitCard): UnitGroup;
 }
 
-/** A family sits under the group of its first variant with a type, so its
- *  tile never splits across two tabs; a family with no typed variant takes
- *  its category's first group, as `unitGroup` places a planned card. */
+/** The roster, each card under its family's group (`familyGroups`). */
 export function armoryRoster(catalog: SessionCatalog, cards: readonly UnitCard[]): ArmoryRoster {
-  const families = new Map<string, UnitGroup>();
-  for (const card of cards)
-    if (catalog.units.has(card.id) && !families.has(card.family))
-      families.set(card.family, unitGroup(card, catalog.units.type(card.id)));
-  return { cards, groupOf: (card) => families.get(card.family) ?? unitGroup(card, null) };
+  const typeOf = (id: string) => (catalog.units.has(id) ? catalog.units.type(id) : null);
+  return { cards, groupOf: familyGroups(cards, typeOf) };
 }
 
 /** The cards one faction fields under one group, in catalog order. */

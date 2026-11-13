@@ -177,7 +177,7 @@ you in [`decisions.md`](decisions.md).
 | K1 | Menu addresses | `/`, `/skirmish[?…]`, `/tutorial`, `/settings`, `/developer`, `/armory[?unit=<card id>]`. `menuHref` emits `/skirmish?…`. `/?type=…` opens the bare menu (hard cutover, no redirect). Unknown paths show the menu. | 01, 08 |
 | K2 | Tutorial media URL | `/tutorial-media/<name>`. The folder `assets/runtime/tutorial/` is renamed so `/tutorial` is a route only. | 01 |
 | K3 | game-wasm `Showground` | `new Showground(rules_json)`. `.squad(kind, seed)` returns `SquadAtRest` JSON (soldier slots and positions, the original carrier of each mount). | 02 |
-| K4 | Presentation showcase | `Presentation::set_showcase(fielded, input)` and `clear_showcase()`. The free fn `idle_loops(tables, vehicle_class, flies)` returns loops with the battle's replacements applied; a flying type parked on the ground makes none. All of these go through presentation-wasm. | 03 |
+| K4 | Presentation showcase | `Presentation::set_showcase(fielded, input)`; showing the next unit replaces the last. The free fn `idle_loops(tables, vehicle_class, flies)` returns loops with the battle's replacements applied; a flying type parked on the ground makes none. All of these go through presentation-wasm. | 03 |
 | K5 | Catalog-view weapon rows | The serde fields are unchanged. A new `derived: { fires_regardless, reach[] }` comes from contract methods. The rules identity, `config_digest` and battle digests don't move. | 05 |
 | K6 | Unit groups | `UNIT_GROUPS` and `unitGroup()` in `purchaseFilter.ts`, read by the picker and the Armory. `Category` stays the game rule. | 06 |
 | K7 | `AppAudio` non-battle loops | `appAudio.showLoops(loops)` on the one audio context. `[data-cue-hover="off"]` silences the hover cue. | 07 |

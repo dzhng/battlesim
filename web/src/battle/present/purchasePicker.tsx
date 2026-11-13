@@ -11,7 +11,7 @@ import {
   enterChoice,
   filterCards,
   UNIT_GROUPS,
-  unitGroup,
+  familyGroups,
   type BuyFacts,
   type UnitGroup,
 } from "./purchaseFilter";
@@ -149,13 +149,13 @@ function PurchaseMenu({ cards, faction, match, player, onChoose, rules, onClose 
     if (menuOpen && id !== family) pendingHover.current = setTimeout(show, HOVER_INTENT_MS);
     else show();
   };
-  // A search spans the roster; browsing shows the group, read from each
-  // card's type where it has one. Both feed the same family grouping.
+  // A search spans the roster; browsing shows the group each family sits
+  // under (`familyGroups`). Both feed the same family grouping.
+  const typeOf = (id: string) => (catalog.units.has(id) ? catalog.units.type(id) : null);
+  const groupOf = familyGroups(available, typeOf);
   const pool = searching
     ? filterCards(available, query)
-    : available.filter(
-        (c) => unitGroup(c, catalog.units.has(c.id) ? catalog.units.type(c.id) : null) === group,
-      );
+    : available.filter((c) => groupOf(c) === group);
   const families = new Map<string, UnitCard[]>();
   for (const card of pool) {
     const variants = families.get(card.family) ?? [];

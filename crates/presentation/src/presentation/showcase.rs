@@ -201,14 +201,6 @@ impl Presentation {
         Ok(())
     }
 
-    /// Stops showing a unit: its rows go, and the lab's move back.
-    pub fn clear_showcase(&mut self) {
-        if self.showcase.take().is_some() {
-            self.catalog_revision = catalog::next_revision();
-            self.register_shown_rows();
-        }
-    }
-
     /// The rows after the world's own: the shown unit's, then the lab's.
     pub(super) fn register_shown_rows(&mut self) {
         self.clear_lab_rows();

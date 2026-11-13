@@ -36,6 +36,22 @@ export function unitGroup(card: UnitCard, unit: Pick<UnitType, "roles"> | null):
   return (held || own[0]).id;
 }
 
+/** The group each of `cards` sits under. A family sits under the group of its
+ *  first variant with a type (`typeOf`), so its tile never splits across two
+ *  tabs; a family with no typed variant takes its category's first group, as
+ *  `unitGroup` places a planned card. */
+export function familyGroups(
+  cards: readonly UnitCard[],
+  typeOf: (id: string) => Pick<UnitType, "roles"> | null,
+): (card: UnitCard) => UnitGroup {
+  const families = new Map<string, UnitGroup>();
+  for (const card of cards) {
+    const unit = families.has(card.family) ? null : typeOf(card.id);
+    if (unit) families.set(card.family, unitGroup(card, unit));
+  }
+  return (card) => families.get(card.family) ?? unitGroup(card, null);
+}
+
 /** What the battle observes about buying right now. */
 export interface BuyFacts {
   credits: number;

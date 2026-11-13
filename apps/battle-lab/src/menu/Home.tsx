@@ -1,6 +1,6 @@
 // The game's front door at `/`, in the HUD's look: a tile for each of the
-// menu's pages (`pages.ts`): set up a skirmish, read how to play, and the
-// settings. The benchmark and the labs are developer tools, behind the
+// menu's pages (`pages.ts`): set up a skirmish, read how to play, browse
+// the roster in the Armory, and the settings. The benchmark and the labs are developer tools, behind the
 // developer link (kept in production builds: its audience is technical).
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";

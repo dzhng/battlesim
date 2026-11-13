@@ -32,6 +32,8 @@ const stand = vi.hoisted(() => ({
   stages: 0,
   shown: [] as (string | null)[],
   asked: 0,
+  /** Each art load's unit, null for the yard alone. */
+  kinds: [] as (string | null)[],
   failure: null as Error | null,
 }));
 
@@ -77,8 +79,9 @@ vi.mock("@apps/battle-lab/src/armory/armoryAppearances", () => ({
       stand.asked += 1;
       return { appearances: {} };
     }
-    async show() {
+    async show(selection: { kind: string | null }) {
       stand.asked += 1;
+      stand.kinds.push(selection.kind);
       if (stand.failure) throw stand.failure;
       return { appearances: { appearances: new Map() }, runtime: {} };
     }
@@ -113,7 +116,7 @@ const typed = GAME.units.cards.filter((c) => GAME.units.has(c.id));
 const planned = GAME.units.cards.find((c) => !GAME.units.has(c.id))!;
 
 beforeEach(() => {
-  Object.assign(stand, { stages: 0, shown: [], asked: 0, failure: null });
+  Object.assign(stand, { stages: 0, shown: [], asked: 0, kinds: [], failure: null });
   graphicsSettings.set({ detectedMode: "medium" }, { persist: false });
   vi.stubGlobal("Worker", PreviewWorker);
   vi.stubGlobal("requestAnimationFrame", (f: FrameRequestCallback) =>
@@ -195,22 +198,27 @@ test("opening the Armory mid-detection waits and saves the measured tier", async
   expect(stand.stages).toBe(1);
 });
 
-test("a planned card never asks for appearances", async () => {
+test("a planned card never asks for a unit's art", async () => {
+  // Opened on a planned card, the yard stands empty: only the yard's art is
+  // asked for, never the planned unit's.
   await visitShell(armoryAt(planned.id));
   await uncovered();
   expect(unit()).toBe(planned.id);
+  await waitFor(() => expect(stand.shown).toEqual([null]));
+  expect(stand.kinds).toEqual([null]);
   // A typed tile in the planned card's tab: its art is asked for.
   const typedTile = [...tiles()].find((t) => !t.classList.contains("unavailable"));
   expect(typedTile, "a typed family beside the planned one").toBeDefined();
   await act(async () => fireEvent.click(typedTile!));
-  await waitFor(() => expect(stand.shown).toHaveLength(1));
+  await waitFor(() => expect(stand.shown).toHaveLength(2));
+  expect(stand.kinds.at(-1)).toBe(stand.shown.at(-1));
   const asked = stand.asked;
-  expect(asked).toBeGreaterThan(0);
   // Back to the planned card: the yard stands empty, and nothing is asked.
   const plannedTile = [...tiles()].find((t) => t.dataset.family === planned.family)!;
   await act(async () => fireEvent.click(plannedTile));
   await waitFor(() => expect(stand.shown.at(-1)).toBeNull());
   expect(stand.asked).toBe(asked);
+  expect(stand.kinds).not.toContain(planned.id);
 });
 
 test("leaving the Armory stops its loops and keeps the bed", async () => {

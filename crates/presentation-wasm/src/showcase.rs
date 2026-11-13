@@ -34,13 +34,6 @@ impl Presentation {
             .map_err(error)?;
         Ok(self.refresh_world_header())
     }
-
-    /// Stops showing a unit; returns the `WorldHeader`'s address, its rows
-    /// changed.
-    pub fn clear_showcase(&mut self) -> u32 {
-        self.inner.clear_showcase();
-        self.refresh_world_header()
-    }
 }
 
 /// The loops unit type `kind` idles with, JSON `IdleLoop`s, from a battle's

@@ -140,8 +140,14 @@ export class ShowcaseStage {
       operators: squad.operators,
     };
     const presentation = new ScenePresentation();
-    presentation.setShowcase(fielded, this.input);
-    await this.rebuild(asked, art.appearances, presentation);
+    try {
+      presentation.setShowcase(fielded, this.input);
+      await this.rebuild(asked, art.appearances, presentation);
+    } catch (error) {
+      // A show that never stands frees the presentation it made.
+      if (presentation !== this.presentation) presentation.free();
+      throw error;
+    }
     return asked === this.asked ? idleLoops(sound, unit.kind) : [];
   }
 

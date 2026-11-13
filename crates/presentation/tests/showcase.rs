@@ -303,7 +303,7 @@ fn study() -> Asset {
 }
 
 #[test]
-fn a_shown_unit_s_rows_are_the_presentation_s_own_and_clearing_it_restores_the_lab_s() {
+fn a_shown_unit_s_rows_are_the_presentation_s_own_and_the_next_unit_replaces_them() {
     let mut p = Presentation::new(None, 30.0).unwrap();
     p.install_lab_assets(
         [("study".into(), study())].into(),
@@ -348,11 +348,21 @@ fn a_shown_unit_s_rows_are_the_presentation_s_own_and_clearing_it_restores_the_l
         lab.1.placement,
         "the lab model is drawn as it was"
     );
-    p.clear_showcase();
-    assert_eq!(rows(&p), before, "the shown unit's rows are gone");
+    p.set_showcase(plain("test_heli"), hull("test_heli", [3.0, 0.0, 0.0]))
+        .unwrap();
+    let next = rows(&p);
+    assert!(!next.contains(&tank), "the last unit's rows are gone");
+    assert!(
+        next.len() > before.len(),
+        "the next unit's rows stand in their place"
+    );
     let after = shown(&mut p, 0.0);
-    assert_eq!(after.models, vec![lab], "only the lab model is left");
-    assert!(p.effects().is_empty());
+    assert_eq!(after.models.len(), 2, "the next unit and the lab model");
+    assert_eq!(
+        after.at(-6.0, 0.0).1.placement,
+        lab.1.placement,
+        "the lab model is drawn as it was"
+    );
 }
 
 #[test]
