@@ -1134,3 +1134,67 @@ needs-user).
   the scene then checks no disc, no pixel moving on the stage between frames,
   and no loops. The rotor-disc emission stays for the battle, its one caller
   now. *Sound.*
+
+## Relief beyond the yard
+
+- **One height owner: the backdrop's relief, `BackdropRelief`
+  (`crates/presentation/src/static_world/ground/relief.rs`).** It is the
+  battle's own relief features (`contract::map::Relief`, the ridges and mesas
+  a saved map authors), sampled every `cell_m` and triangulated by the
+  simulation's south-west to north-east rule (`tables::cell_height`, now
+  shared with the map's height grid). Four readers, one surface:
+  - the backdrop's ground (`mesh::backdrop`): the relief's cells,
+    smooth-shaded, level runs merged into one quad a row, and the level frame
+    past the relief's box;
+  - the backdrop's trees and hedgerows, each standing on the relief's height
+    there (`scenery/backdrop.rs`);
+  - the Armory camera's clearance, through `Framing.ground`
+    (`yardGround()`, a wasm `BackdropRelief` over the yard's document);
+  - the camera tour's ground check, through the probe's `ground` under the
+    eye.
+
+  *Why:* a battle draws relief only inside its map. Past a map's edge its
+  backdrop is a flat frame at the lowest ground, its trees seated there, so a
+  battle's horizon is flat too. Relief past the yard is therefore relief past
+  a map's edge, and the backdrop is its one owner. *Sound.*
+- **Rejected: the yard as a real height grid** (`MapDefinition::flat` plus
+  `relief`, compiled to a `WorldGeometry` and drawn by the battle's terrain
+  path). The battle's terrain path draws and seats relief only inside the
+  map, and the treelines stand only past a map's edge. To hold the hills, the
+  yard's map would reach 3–4 km, which pushes every treeline out past the
+  hills (the yard has no forests of its own), and compiles a million-sample
+  world on every Armory open. *Sound.*
+- **The relief lies wholly past the map and the cells beside it**, refused
+  otherwise where it is admitted (`BackdropRelief::check`, in `Ground::new`
+  and the wasm constructor). So the map's own ground meets a level backdrop
+  with no seam, and the yard and every spot's clear disc stand at exactly 0.
+  The yard's own ground (`plainWorld`, out to `ground.half_m`) stays the flat
+  mesh. It hands the relief to the presentation as the land past it; it never
+  reads a height itself. *Sound.*
+- **The yard's schema gains `ground.relief: { cell_m, features }`**, the
+  features in the battle's own form (`{"kind": "ridge", "center", "peak_m",
+  "radius_m"}`). `admitYard` checks the block's shape; Rust admits the
+  features, where they are read. *Sound.*
+- **Contracts:**
+  - `Presentation.set_ground(…, tuning, relief?)` takes the relief as JSON;
+    without it the backdrop is level, as for every battle;
+  - a new wasm class, `BackdropRelief(json, map)` with `.height(x, y)`;
+  - `GroundInput.relief`, `bareTerrain(…, streams, relief?)`,
+    `flatTerrain(…, relief?)`, `plainWorld(…, pads, relief?)`;
+  - `WorldGeometry::set_backdrop(terrain, reach, relief)` in renderer-core;
+  - `Relief::footprint()` in the contract crate, now the one owner of a
+    feature's box (the simulation's height grid reads it too);
+  - `Framing.ground` in the Armory camera.
+
+  Battle frames are unchanged: a battle's ground passes no relief, and the
+  level backdrop is byte-identical (the recorded `ground_meshes` digests).
+  *Sound.*
+- **The hills (data, provisional):** rolling hills 20–40 m high, 280–420 m
+  round, 600–1400 m out, most to the north-west, which every spot's opening
+  camera faces; a ridge line 160–270 m high, about 3 km out, from the north
+  round to the south-west. They come from a scratch generator,
+  `throwaway/relief/hills.py`, which places each hill by distance and bearing
+  and pushes it out until its box clears the yard and a cell. `cell_m` is
+  32 m: about 22,000 relief cells, roughly 130,000 vertices (5 MB) per
+  stage. A full ring of ridges at 24 m cells measured 366,000 vertices.
+  *Provisional:* the human judges the look.

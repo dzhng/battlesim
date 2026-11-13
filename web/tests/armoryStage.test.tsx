@@ -98,6 +98,7 @@ vi.mock("@apps/battle-lab/src/armory/stageFraming", () => ({
     bounds: null,
     pose: spot.camera,
     boxes: [],
+    ground: () => 0,
   }),
 }));
 

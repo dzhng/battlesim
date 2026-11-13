@@ -20,6 +20,27 @@ import type { FogSource } from "../fog";
  *  window's and the scenery's few numbers. */
 export type Biome = typeof summer;
 
+/** One of the battle's relief features (`contract::map::Relief`): a hill
+ *  `peak · (1 − (d / radius)²)²` high within `radius_m` of its centre, or a
+ *  flat-topped plateau over `rect` (`[x, y, width, height]`) whose sides
+ *  fall at `side_degrees`. */
+export type ReliefFeature =
+  | { kind: "ridge"; center: [number, number]; peak_m: number; radius_m: number }
+  | {
+      kind: "mesa";
+      rect: [number, number, number, number];
+      height_m: number;
+      side_degrees: number;
+    };
+
+/** The land past a map's edge (`ground::relief::BackdropRelief`): relief
+ *  features sampled every `cell_m`, lying wholly past the map and the cells
+ *  beside it. The backdrop draws it and stands its trees on it. */
+export interface BackdropReliefInput {
+  cell_m: number;
+  features: ReliefFeature[];
+}
+
 /** What a presentation resolves a map's ground from (`Presentation.set_ground`). */
 export interface GroundInput {
   exports: Partial<WorldExports> & Pick<WorldExports, "extents" | "terrain">;
@@ -28,6 +49,9 @@ export interface GroundInput {
   family: string | null;
   /** Whether the map's props draw as their appearances (the surface view). */
   props?: boolean;
+  /** The land past the map's edge; level without it, as past every battle
+   *  map. */
+  relief?: BackdropReliefInput;
 }
 
 /** Ground queries and lab controls used by browser scene composition. */
@@ -90,6 +114,7 @@ export function setGround(presentation: Presentation, input: GroundInput): void 
       terrain: presentationSettings.terrain,
       fog_geometry: presentationSettings.fog_geometry,
     }),
+    input.relief && JSON.stringify(input.relief),
   );
 }
 
@@ -102,13 +127,15 @@ export function presentGround(input: GroundInput): Presentation {
 }
 
 /** A ground of `map`, its triangles `gridM` wide, holding only `streams`
- *  (none: nothing on it), drawn as `mesh`'s tints: no grass grows on it. */
+ *  (none: nothing on it), drawn as `mesh`'s tints: no grass grows on it.
+ *  Past it lies `relief`, or level land. */
 export function bareTerrain(
   mesh: Mesh,
   map: readonly [number, number, number, number],
   gridM: number,
   biome: Biome,
   streams: Partial<WorldExports> = {},
+  relief?: BackdropReliefInput,
 ): TerrainSurface {
   const terrain = {
     nx: 2,
@@ -123,7 +150,7 @@ export function bareTerrain(
   const playable = [map[0], map[1], map[2] - map[0], map[3] - map[1]] as const;
   const extents = { physical: map, rendered: [0, 0, 0, 0] as const, playable };
   const layout = JSON.stringify({ propKinds: [], propAppearance: {} });
-  const input = { exports: { ...streams, extents, terrain }, layout, biome, family: null };
+  const input = { exports: { ...streams, extents, terrain }, layout, biome, family: null, relief };
   return { mesh, input, biome, grid: null, water: true };
 }
 

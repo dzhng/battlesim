@@ -113,7 +113,8 @@ never refuse the page. [The yard](src/armory/yard.ts) is presentation data
 the simulation never admits. A unit's body picks its spot, and each prop is
 drawn by its catalog art. Past the yard's own ground the scene's presentation
 draws the battle's backdrop, its fields and the biome's trees, as it does past a
-battle map's edge.
+battle map's edge, over hills the yard authors (`ground.relief`). The camera
+and its checks read the same ground (`yardGround`).
 [The Armory's stage](src/armory/ArmoryStage.tsx) is one `ShowcaseStage` for
 the page's life: each pick hands it that selection's art, so the stage and
 the [showcase lab](src/routes/showcase.tsx) load art the same way. Each pick

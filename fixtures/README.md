@@ -30,7 +30,8 @@ belong to the isolated camera experiment, not a second gameplay camera policy.
 [The Armory's yard](armory/yard.json) is presentation data the simulation never
 admits: the spots a unit on show stands on, the spot each body takes, its
 ground and the paved pads on it (past it, the battle's own backdrop of
-fields and trees), and the catalog props that dress the yard ([its reader](../apps/battle-lab/src/armory/yard.ts)).
+fields and trees, rising over the yard's relief: the battle's relief
+features, kept clear of the yard), and the catalog props that dress the yard ([its reader](../apps/battle-lab/src/armory/yard.ts)).
 [Captures](captures/) say how saved encounters are filmed, camera and scenes only:
 each scene a saved battle (an ordinary saved encounter, scripted orders and all, on
 a `capture` map) and its reel of camera shots. The

@@ -1,5 +1,29 @@
 {
-  "ground": {"half_m": 180, "tint": [0.42, 0.4, 0.33, 0], "pads": [
+  "ground": {"half_m": 180, "tint": [0.42, 0.4, 0.33, 0],
+    "relief": {"cell_m": 32, "features": [
+      {"kind": "ridge", "center": [-107.7, 610.6], "peak_m": 30, "radius_m": 300},
+      {"kind": "ridge", "center": [-425.0, 630.1], "peak_m": 40, "radius_m": 340},
+      {"kind": "ridge", "center": [-497.4, 335.5], "peak_m": 26, "radius_m": 280},
+      {"kind": "ridge", "center": [-834.5, 208.1], "peak_m": 36, "radius_m": 360},
+      {"kind": "ridge", "center": [-672.9, -192.9], "peak_m": 24, "radius_m": 300},
+      {"kind": "ridge", "center": [237.1, 950.9], "peak_m": 30, "radius_m": 380},
+      {"kind": "ridge", "center": [517.9, 500.2], "peak_m": 20, "radius_m": 300},
+      {"kind": "ridge", "center": [802.1, 170.5], "peak_m": 26, "radius_m": 320},
+      {"kind": "ridge", "center": [567.4, -443.3], "peak_m": 20, "radius_m": 300},
+      {"kind": "ridge", "center": [187.1, -880.3], "peak_m": 28, "radius_m": 360},
+      {"kind": "ridge", "center": [-380.0, -658.2], "peak_m": 22, "radius_m": 300},
+      {"kind": "ridge", "center": [-995.9, 835.6], "peak_m": 34, "radius_m": 420},
+      {"kind": "ridge", "center": [-386.3, 1188.8], "peak_m": 30, "radius_m": 400},
+      {"kind": "ridge", "center": [-1349.2, 47.1], "peak_m": 32, "radius_m": 420},
+      {"kind": "ridge", "center": [-104.7, 2998.2], "peak_m": 190, "radius_m": 900},
+      {"kind": "ridge", "center": [-1380.9, 2831.2], "peak_m": 260, "radius_m": 1000},
+      {"kind": "ridge", "center": [-2155.1, 1940.5], "peak_m": 230, "radius_m": 950},
+      {"kind": "ridge", "center": [-3054.0, 1111.6], "peak_m": 270, "radius_m": 1050},
+      {"kind": "ridge", "center": [-2992.7, -209.3], "peak_m": 200, "radius_m": 900},
+      {"kind": "ridge", "center": [1775.2, 2841.0], "peak_m": 160, "radius_m": 950},
+      {"kind": "ridge", "center": [-2713.8, -1695.7], "peak_m": 180, "radius_m": 1000}
+    ]},
+    "pads": [
     {"at": [-17, 9], "half_m": [10, 9], "yaw": 0.821, "tint": [0.41, 0.41, 0.39, 1]},
     {"at": [-13.08, 9.43], "half_m": [13, 6], "yaw": 1.071, "tint": [0.41, 0.41, 0.39, 1]},
     {"at": [55.19, 0.68], "half_m": [31, 28], "yaw": 0.471, "tint": [0.368, 0.368, 0.359, 1]},

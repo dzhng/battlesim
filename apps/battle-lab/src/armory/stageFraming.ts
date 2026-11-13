@@ -1,8 +1,8 @@
 // What the Armory's camera frames once a unit stands on its spot: the unit's
 // bounds at rest (a hull's model as it stands; a squad's soldiers where the
 // simulation scattered them, each a soldier tall), the angle its spot looks
-// from, and the boxes the eye keeps clear of (the unit and the yard's props,
-// each as its art is authored).
+// from, and what the eye keeps clear of: the boxes of the unit and the yard's
+// props, each as its art is authored, and the yard's ground.
 import type { ObstacleBox } from "@packages/renderer-core/src/cameraObstacles";
 import type { Bounds } from "@packages/scene-assets/src/schema";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
@@ -10,7 +10,7 @@ import type { ResolvedRules } from "@web/battle/catalog/compose";
 import type { ShowcaseStage, StageArt } from "@web/battle/render/showcaseStage";
 import { boundsBox, type Framing } from "./armoryCamera";
 import { restBounds, worldBox } from "./stageProbes";
-import { yard, yardModels, type Spot } from "./yard";
+import { yard, yardGround, yardModels, type Spot } from "./yard";
 
 /** How far a standing soldier reaches round his feet, metres. */
 const SOLDIER_REACH_M = 0.5;
@@ -58,5 +58,6 @@ export function framingOf(
     bounds,
     pose: spot.camera,
     boxes: bounds ? [...props, boundsBox(bounds)] : props,
+    ground: yardGround(),
   };
 }

@@ -362,7 +362,7 @@ async function cameraTour(ctx, page, list) {
           const c = await camera();
           poses++;
           const bad =
-            c.eye[2] <= 0 ||
+            c.eye[2] <= c.ground ||
             (c.bounds &&
               insideBox(c.eye, {
                 center: [

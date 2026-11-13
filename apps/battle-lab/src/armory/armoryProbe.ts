@@ -46,18 +46,20 @@ export function publishProbe(live: {
     drawnModels(stage).filter(
       (m) => Math.hypot(m.at[0] - on.spot.at[0], m.at[1] - on.spot.at[1]) < on.spot.clear_m,
     );
-  /** Where the eye is, what it orbits, and what it keeps clear of. */
+  /** Where the eye is, what it orbits, and what it keeps clear of: the
+   *  boxes, and the ground's height under the eye. */
   const cameraReadout = () => {
     const orbit = camera.drawn();
     const framed = camera.framed();
-    return orbit && framed
-      ? {
-          orbit,
-          eye: Array.from(eyePosition(vec3.create(), orbit)),
-          bounds: framed.bounds,
-          boxes: framed.boxes,
-        }
-      : null;
+    if (!orbit || !framed) return null;
+    const eye = Array.from(eyePosition(vec3.create(), orbit));
+    return {
+      orbit,
+      eye,
+      bounds: framed.bounds,
+      boxes: framed.boxes,
+      ground: framed.ground(eye[0], eye[1]),
+    };
   };
   const probe = {
     ...lasting,

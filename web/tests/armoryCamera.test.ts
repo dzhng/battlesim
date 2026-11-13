@@ -1,7 +1,8 @@
 // The Armory's orbit, driven by drag and wheel to every extreme round a unit
 // with yard props beside it: the eye never enters the unit, a prop or the
-// ground, the lowest pitch dips below the battle's floor, and the closest
-// zoom keeps the whole unit in the stage's cell. The browser tour in
+// ground (level, or rising into a hill under the orbit), the lowest pitch dips
+// below the battle's floor, and the closest zoom keeps the whole unit in the
+// stage's cell. The browser tour in
 // `web/scenes/armory.mjs` runs the same extremes on the drawn page.
 import { expect, test } from "vitest";
 import { vec3, type Vec3 } from "math";
@@ -29,13 +30,15 @@ const PROPS: ObstacleBox[] = [
   { center: [2, 8], yaw: 0, half: [1, 1, 0.5], baseZ: 0 },
 ];
 const BOXES = [...PROPS, boundsBox(BOUNDS)];
+const LEVEL = () => 0;
 
-function opened() {
+function opened(ground: (x: number, y: number) => number = LEVEL) {
   const camera = new ArmoryCamera();
   camera.frame({
     bounds: BOUNDS,
     pose: { target: [0, 0, 1], distance: 16, pitch: 0.18, yaw: -0.5 },
     boxes: BOXES,
+    ground,
   });
   settle(camera);
   return camera;
@@ -61,9 +64,10 @@ function inside(p: Vec3, box: ObstacleBox) {
 
 const eye = (camera: ArmoryCamera) => eyePosition(vec3.create(), camera.drawn()!) as Vec3;
 
-test("at every extreme of drag and wheel the eye stays out of the unit, the props and the ground", () => {
-  const camera = opened();
-  const seen: string[] = [];
+/** Every extreme of drag and wheel: 8 yaws, 3 pitches, the nearest and the
+ *  farthest zoom. `check` judges the eye at each, named by where it is. */
+function tour(camera: ArmoryCamera, check: (eye: Vec3, where: string) => void) {
+  let poses = 0;
   for (let yaw = 0; yaw < 8; yaw++) {
     camera.dragBy(Math.PI / 4 / ORBIT_SPEED, 0);
     for (const tilt of [-10, 0.3, 10]) {
@@ -72,14 +76,35 @@ test("at every extreme of drag and wheel the eye stays out of the unit, the prop
         camera.wheelBy(wheel);
         settle(camera);
         const p = eye(camera);
-        const where = `yaw ${yaw} tilt ${tilt} wheel ${wheel}: ${p.map((v) => v.toFixed(2))}`;
-        expect(p[2], where).toBeGreaterThan(0);
-        for (const box of BOXES) expect(inside(p, box), where).toBe(false);
-        seen.push(where);
+        check(p, `yaw ${yaw} tilt ${tilt} wheel ${wheel}: ${p.map((v) => v.toFixed(2))}`);
+        poses++;
       }
     }
   }
-  expect(seen).toHaveLength(48);
+  return poses;
+}
+
+test("at every extreme of drag and wheel the eye stays out of the unit, the props and the ground", () => {
+  const poses = tour(opened(), (p, where) => {
+    expect(p[2], where).toBeGreaterThan(0);
+    for (const box of BOXES) expect(inside(p, box), where).toBe(false);
+  });
+  expect(poses).toBe(48);
+});
+
+test("where the ground rises under the orbit, the eye stays above it", () => {
+  // A hill whose flank climbs from the unit's spot: past 6 m the ground rises
+  // a metre for every two, and the farthest eye stands well beyond it.
+  const hill = (x: number, y: number) => Math.max(0, (Math.hypot(x, y) - 6) / 2);
+  let highest = 0;
+  const poses = tour(opened(hill), (p, where) => {
+    const under = hill(p[0], p[1]);
+    highest = Math.max(highest, under);
+    expect(p[2], where).toBeGreaterThan(under);
+  });
+  expect(poses).toBe(48);
+  // The tour reached ground the level case never meets.
+  expect(highest).toBeGreaterThan(2);
 });
 
 test("the lowest pitch dips below the battle camera's floor", () => {
