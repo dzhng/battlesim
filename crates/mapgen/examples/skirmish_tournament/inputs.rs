@@ -128,8 +128,20 @@ pub(crate) fn prepare_row(
                 &inputs.templates,
                 &inputs.rules_json,
             );
-            let mapgen::CompileOutcome::Ok { result } = generated else {
-                return Err("map generation refused the pinned request".into());
+            let result = match generated {
+                mapgen::CompileOutcome::Ok { result } => result,
+                mapgen::CompileOutcome::Error { diagnostics } => {
+                    let reasons: Vec<_> = diagnostics
+                        .iter()
+                        .map(|diagnostic| {
+                            format!("{}: {}", diagnostic.location, diagnostic.message)
+                        })
+                        .collect();
+                    return Err(format!(
+                        "map generation refused the pinned request: {}",
+                        reasons.join("; ")
+                    ));
+                }
             };
             let prepared = sim::encounter::PreparedMap::new(&result.map, &inputs.rules);
             let admitted = sim::map_analysis::admit_skirmish(

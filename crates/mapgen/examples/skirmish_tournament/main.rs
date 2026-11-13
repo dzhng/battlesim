@@ -237,6 +237,25 @@ mod tests {
     }
 
     #[test]
+    fn every_corpus_row_seats_its_players_on_its_map() {
+        // A corpus row that cannot be set up is no evidence about the AI.
+        let corpus: Corpus =
+            serde_json::from_str(include_str!("../../../../fixtures/skirmish-corpus.json"))
+                .unwrap();
+        let inputs = Inputs::load().unwrap();
+        let refused: Vec<_> = corpus
+            .rows
+            .iter()
+            .filter_map(|row| {
+                inputs::prepare_row(&inputs, row)
+                    .err()
+                    .map(|error| format!("{}: {error}", row.id))
+            })
+            .collect();
+        assert!(refused.is_empty(), "{refused:#?}");
+    }
+
+    #[test]
     fn scripted_buy_owns_the_player_purchase_stream() {
         let mut inputs = Inputs::load().unwrap();
         let card = "us_m1129_stryker_mortar_120_mm_mortar_carrier".to_owned();
