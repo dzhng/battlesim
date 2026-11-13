@@ -96,7 +96,9 @@ reinforcement takes and where a unit leaves the map; the roads are the side's,
 shared by its players.
 
 [The skirmish AI](src/skirmish_ai/) plays one player from its side's
-observation, and everything it decides is an ordinary command.
+observation, and everything it decides is an ordinary command. A unit of its
+own that is losing a fight pops its smoke and reverses out of the cloud
+([smoke](src/skirmish_ai/smoke.rs)); a player's units only pop when ordered.
 [Team planning](src/skirmish_ai/team/) is the side's level of it: it spreads
 the side's AI players over lanes and objectives and sends help between them.
 
