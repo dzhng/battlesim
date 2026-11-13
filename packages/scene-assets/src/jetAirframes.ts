@@ -22,6 +22,7 @@
 //   and the top of its upper surface.
 
 import type { Vec3 } from "math";
+import { quickhull2 } from "math/geometry";
 import { importScene, type Scene, type SceneNode } from "./scene.ts";
 import { pointAt } from "./trs.ts";
 
@@ -96,21 +97,9 @@ function triangles(scene: Scene, node: SceneNode): [Vec3, Vec3, Vec3][] {
   return out;
 }
 
-/** The convex hull of points in a plane, counter-clockwise (monotone chain). */
+/** The convex hull of points in a plane, counter-clockwise (`quickhull2`). */
 function convexHull(points: [number, number][]): [number, number][] {
-  const p = [...points].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-  if (p.length < 3) return p;
-  const cross = (o: number[], a: number[], b: number[]) =>
-    (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
-  const half = (list: [number, number][]) => {
-    const h: [number, number][] = [];
-    for (const q of list) {
-      while (h.length >= 2 && cross(h[h.length - 2], h[h.length - 1], q) <= 0) h.pop();
-      h.push(q);
-    }
-    return h.slice(0, -1);
-  };
-  return [...half(p), ...half([...p].reverse())];
+  return quickhull2(points.flat()).map((i) => points[i]);
 }
 
 /** A convex polygon's area. */
