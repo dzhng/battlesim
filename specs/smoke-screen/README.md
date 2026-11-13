@@ -17,17 +17,22 @@ where the spec was silent go in [`choices.md`](choices.md).
 ## Next Agent Prompt
 
 **Status (2026-11-12):**
-- **Done:** slices 01–04. Slice 02's kill gate said **KEEP** (see `choices.md`).
-  The sim now has clouds, the pop order, resupply, and smoke in sight,
-  concealment and the fog sweep.
-- **Two pin moves from slice 03, named in `choices.md`:**
-  - the new `test_smoke_*` rows shift test-type indices, which moves
-    `scenario-overrides.json`;
-  - the hard cutover deleted dead `lifetime_s` keys from the frozen
-    `physical-rules.json`, which re-hashes 7 compiled-map records.
+- **Done:** slices 01–08.
+  - Slice 02's kill gate said **KEEP**.
+  - The smoke lab route (`smoke`) plays the moment with real input: press H,
+    watch the charges count down, see HIDDEN, see the cloud and the fog.
+- **Pin moves named in `choices.md`:**
+  - slice 03: the `test_smoke_*` rows shift test-type indices;
+  - slice 03: dead keys were deleted from the frozen `physical-rules.json`;
+  - slice 05: the layout change re-published the captures natively (the
+    precedent of earlier layout changes).
+- **Visual follow-up, owned by the coordinator, before slice 10:**
+  - A side's own cloud sits under the fog veil, so it draws hatched and split.
+    D12 says a side sees the cloud, so a seen cloud draws **above** the veil.
+  - The drawn bloom starts from nothing while concealment steps in at once.
+    Start the drawn cloud at its first bloom step.
 
-**Pickup:** [slice 05](slices/05-publication.md). Its web parity tests must also cover
-slice 03's re-recorded records, whose Wasm halves weren't run. Before you touch
+**Pickup:** [slice 09](slices/09-roster.md), then the visual follow-up above, then slices 10 and 11. Before you touch
 anything, read:
 - `AGENTS.md`;
 - `development.md`;
@@ -55,10 +60,10 @@ anything, read:
 - [x] 02: GPU fog kill gate ([slice](slices/02-gpu-fog-gate.md))
 - [x] 03: capability, order, cloud collection and the cutover, dormant ([slice](slices/03-sim-clouds.md))
 - [x] 04: sight, concealment, fog sweep and cloud visibility ([slice](slices/04-sim-sight.md))
-- [ ] 05: observation and publication contract ([slice](slices/05-publication.md))
-- [ ] 06: GPU fog and the smoke lab ([slice](slices/06-gpu-fog.md))
-- [ ] 07: the drawn cloud ([slice](slices/07-drawn-cloud.md))
-- [ ] 08: player controls and panel ([slice](slices/08-controls.md))
+- [x] 05: observation and publication contract ([slice](slices/05-publication.md))
+- [x] 06: GPU fog and the smoke lab ([slice](slices/06-gpu-fog.md))
+- [x] 07: the drawn cloud ([slice](slices/07-drawn-cloud.md))
+- [x] 08: player controls and panel ([slice](slices/08-controls.md))
 - [ ] 09: roster switch-on, the first playable skirmish ([slice](slices/09-roster.md))
 - [ ] 10: sound ([slice](slices/10-sound.md))
 - [ ] 11: skirmish AI ([slice](slices/11-skirmish-ai.md))
