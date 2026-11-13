@@ -93,6 +93,12 @@
     "map": "river"
   },
   {
+    "id": "smoke",
+    "route": "/labs/smoke",
+    "describe": "Smoke screens on the smoke test map, through the production controls: two blue smoke tanks and a smoke squad face a red tank and AT team across open ground, and the road tank pops smoke at four seconds. Red's fog closes over the cloud behind it and opens again after the fade, red's last-contact marker stays where the tank vanished, and blue still sees past it from its other units; a labelled side-view switch.",
+    "map": "smoke"
+  },
+  {
     "id": "sensors",
     "route": "/labs/sensors",
     "describe": "Own sensors and shared identification: a scripted red tank tours thin forest, deep forest, the ridge's far side and a building's shadow; ground fog; per-unit own-sensor lists; labelled side-view switch. Includes contact UNKNOWN labels, red glow, overlay isolation and captions.",
