@@ -1,4 +1,6 @@
-# 17 · Depots in open country [held: L1]
+# 17 · Depots in open country
+
+Status: done 2026-11-13, commit 784802c66.
 
 Map row: L4, plus P3. Depends on 13 and 14. Art from slice 15 is preferred but
 not required, because stand-ins draw.

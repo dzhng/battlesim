@@ -17,7 +17,7 @@
     "pin_rounds": 4,
     "shortest_run_m": 1.0
   },
-  "revision": "layout-presets-20",
+  "revision": "layout-presets-21",
   "terrain": { "render_margin_m": 1500, "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
   "approach": {
     "depth_m": { "small": 1000, "medium": 1800, "large": 1800, "xl": 1800 },
@@ -263,7 +263,13 @@
       "petanque_pitch": { "half_extents_m": [7.5, 2, 0.02], "clear_m": 0 },
       "courtyard_wall": { "half_extents_m": [6, 0.125, 1], "clear_m": 0.5, "cut_to_fit": true },
       "iron_railing": { "half_extents_m": [6, 0.05, 0.75], "clear_m": 0.5, "cut_to_fit": true },
-      "plinth_railing": { "half_extents_m": [6, 0.2, 0.9], "clear_m": 0.5, "cut_to_fit": true }
+      "plinth_railing": { "half_extents_m": [6, 0.2, 0.9], "clear_m": 0.5, "cut_to_fit": true },
+      "hangar": { "half_extents_m": [12, 8, 4], "clear_m": 2 },
+      "revetment": { "half_extents_m": [8, 1.5, 1.6], "clear_m": 1 },
+      "hesco": { "half_extents_m": [3.2, 0.55, 0.7], "clear_m": 1 },
+      "tent": { "half_extents_m": [3, 2.5, 1.4], "clear_m": 1 },
+      "flagpole": { "half_extents_m": [0.08, 0.08, 4], "clear_m": 1 },
+      "supply_net": { "half_extents_m": [2.4, 1.2, 1.1], "clear_m": 0.5 }
     },
     "groups": {
       "car_bays_2": {
@@ -875,7 +881,7 @@
     "placed_max": 4096,
     "sight": { "cell_m": 100, "fill": ["copse", "tree_line"] },
     "clear": { "edge_m": 12, "settlement_m": 60, "forest_m": 40, "road_m": 3, "water_m": 12, "yard_m": 6, "approach_m": 25 },
-    "fairness": { "rel": 0.25, "homes": 3, "tree_line_m": 250, "copses": 2, "trees": 3, "cover": 6 },
+    "fairness": { "rel": 0.25, "homes": 3, "tree_line_m": 250, "copses": 2, "trees": 3, "cover": 6, "depots": 1 },
     "homesteads": {
       "per_road_km": 0.5,
       "apart_m": 260,
@@ -896,6 +902,34 @@
         { "kind": "crate", "half_extents_m": [0.6, 0.6, 0.6], "weight": 2 }
       ],
       "attempts": 40
+    },
+    "depots": {
+      "per_road_km": 0.3,
+      "apart_m": 1500,
+      "lane_chance": 0.4,
+      "lane_m": [90, 150],
+      "spread_m": 0.5,
+      "yard": { "front_m": 3, "side_m": 2, "rear_m": 3 },
+      "groups": [
+        { "weight": 2, "pieces": [
+          { "kind": "hangar" },
+          { "kind": "revetment" },
+          { "kind": "pallet_stack", "count": [2, 3], "net": "supply_net" }
+        ] },
+        { "weight": 2, "pieces": [
+          { "kind": "tent" },
+          { "kind": "tent" },
+          { "kind": "flagpole" },
+          { "kind": "pallet_stack", "count": [2, 3], "net": "supply_net" }
+        ] },
+        { "weight": 1, "pieces": [
+          { "kind": "hesco" },
+          { "kind": "tent" },
+          { "kind": "revetment" },
+          { "kind": "pallet_stack", "count": [2, 3], "net": "supply_net" }
+        ] }
+      ],
+      "attempts": 30
     },
     "tree_lines": {
       "per_km2": 0.1,

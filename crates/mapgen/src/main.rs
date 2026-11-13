@@ -25,7 +25,8 @@ SOURCES.json naming <catalogue.json>'s file as the map's library, and sites.json
 (small, medium, large, xl) and seed, pinned to this generator, the presets' revision and
 the catalogue's hash, under the limits of <generated-battle.json> (fixtures/generated-battle.json):
 the request the game makes for the same choice. [crop] is a settlement or district id of
-the plan, bridge-<n> for its nth bridge from 0, or x,y,width,height in metres.";
+the plan, bridge-<n> for its nth bridge from 0, depot-<n> for a depot, or
+x,y,width,height in metres.";
 
 /// Print the compiler's outcome and, on success, save the map in the saved
 /// form (each building as its template and frame) beside receipts for

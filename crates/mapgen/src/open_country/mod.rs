@@ -4,11 +4,12 @@
 //! at every playable location, with most bearings open. Authored-outline
 //! proximity is a construction heuristic, not a physical sight certificate.
 //!
-//! The pass runs on a plan whose districts are built. It adds lanes to
-//! `surfaces`, parcels to `lots`, homes to `buildings`, tree lines, copses
-//! and trees to `forests` (a tree line is a stroke, a single tree a plot one
-//! trunk stands on) and low cover to `props`, then measures the open
-//! approaches again, because a home or a tree ends one.
+//! The pass runs on a plan whose districts are built. It adds lanes and
+//! depots' paved yards to `surfaces`, parcels to `lots`, homes to
+//! `buildings`, tree lines, copses and trees to `forests` (a tree line is a
+//! stroke, a single tree a plot one trunk stands on) and low cover and
+//! depots' bodies to `props`, then measures the open approaches again,
+//! because a home or a tree ends one.
 //!
 //! - **Everything goes through one question** ([`Country::open`]): is this
 //!   much ground clear of the map's edge, the settlements, the woods, every
@@ -54,132 +55,16 @@ use std::collections::BTreeMap;
 /// centrelines cross whatever a centimetre of rounding did to either.
 const JOIN_OVERSHOOT_M: f64 = 0.5;
 
+mod bodies;
 mod completion;
 mod country;
 pub(crate) use completion::cover;
 mod coverage;
+mod measure;
 mod rules;
 mod steads;
+pub use measure::*;
 pub use rules::*;
-
-/// One thing's amount in each half.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize)]
-pub struct Split {
-    pub top: f64,
-    pub bottom: f64,
-    pub fair: bool,
-}
-
-/// What the open country holds, read from the plan's geometry alone.
-#[derive(Clone, Debug, Default, Serialize)]
-pub struct CountryMetrics {
-    /// Buildings outside every settlement's outline.
-    pub homes: Split,
-    /// Metres of tree line.
-    pub tree_line_m: Split,
-    /// Small woods: larger than a tree's plot, smaller than any wood.
-    pub copses: Split,
-    /// Single trees and the clumps beside yards.
-    pub trees: Split,
-    /// Bodies outside every settlement's outline.
-    pub cover: Split,
-}
-
-/// Whether `p` lies in no settlement's outline.
-fn outside(plan: &MapPlan, limits: &[[f64; 4]], p: Point) -> bool {
-    !plan
-        .settlements
-        .iter()
-        .zip(limits)
-        .any(|(settlement, [x0, y0, x1, y1])| {
-            p[0] >= *x0
-                && p[0] <= *x1
-                && p[1] >= *y0
-                && p[1] <= *y1
-                && polygon_contains(&settlement.outline, p)
-        })
-}
-
-fn outline_limits(plan: &MapPlan) -> Vec<[f64; 4]> {
-    plan.settlements
-        .iter()
-        .map(|settlement| contract::ground::limits(&settlement.outline, 0.0))
-        .collect()
-}
-
-/// The parcels outside every settlement's outline: the yards of the homes
-/// in open country.
-pub fn country_lots(plan: &MapPlan) -> impl Iterator<Item = &LotPlan> {
-    let limits = outline_limits(plan);
-    plan.lots
-        .iter()
-        .filter(move |lot| outside(plan, &limits, lot.ring[0]))
-}
-
-/// The open country of a plan, by half, held to the presets' evenness.
-pub fn measure(plan: &MapPlan, presets: &PresetDefinitions) -> CountryMetrics {
-    let rules = &presets.open_country;
-    let middle = plan.size[1] / 2.0;
-    let limits = outline_limits(plan);
-    let wood_floor = presets.wood_floor_m2();
-    let mut tally = [[0.0; 2]; 5];
-    let mut count = |row: usize, p: Point, amount: f64| {
-        tally[row][usize::from(p[1] < middle)] += amount;
-    };
-    for building in &plan.buildings {
-        let [x, y, _] = building.frame.translation;
-        if outside(plan, &limits, [x, y]) {
-            count(0, [x, y], 1.0);
-        }
-    }
-    for forest in &plan.forests {
-        match &forest.shape {
-            GroundShape::Stroke { centerline, .. } => {
-                for pair in centerline.samples().windows(2) {
-                    count(
-                        1,
-                        scale(add(pair[0], pair[1]), 0.5),
-                        distance(pair[0], pair[1]),
-                    );
-                }
-            }
-            GroundShape::Polygon { ring } => {
-                let size = crate::layout::geometry::area(ring);
-                let middle = crate::layout::geometry::centroid(ring);
-                if size < rules.copses.area_m2[0] {
-                    count(3, middle, 1.0);
-                } else if size < wood_floor {
-                    count(2, middle, 1.0);
-                }
-            }
-        }
-    }
-    for prop in &plan.props {
-        if outside(plan, &limits, prop.center) {
-            count(4, prop.center, 1.0);
-        }
-    }
-    let e = &rules.fairness;
-    let split = |row: usize, least: f64| {
-        let [top, bottom] = tally[row];
-        Split {
-            top,
-            bottom,
-            fair: even(e.rel, least, top, bottom),
-        }
-    };
-    CountryMetrics {
-        homes: split(0, e.homes),
-        tree_line_m: split(1, e.tree_line_m),
-        copses: split(2, e.copses),
-        trees: split(3, e.trees),
-        cover: split(4, e.cover),
-    }
-}
-
-fn even(rel: f64, least: f64, top: f64, bottom: f64) -> bool {
-    (top - bottom).abs() <= (rel * (top + bottom)).max(least)
-}
 
 /// A ring with its box, asked how near a point is.
 struct Ground<'a> {
@@ -233,6 +118,7 @@ struct Tally {
     copses: [f64; 2],
     trees: [f64; 2],
     cover: [f64; 2],
+    depots: [f64; 2],
 }
 
 /// A stretch of country road or track.
@@ -271,10 +157,11 @@ struct Country<'a> {
     /// Copses, trees and tree lines placed, as discs.
     groves: Vec<(Point, f64)>,
     bodies: Vec<(Point, f64)>,
-    steads: Vec<Point>,
+    /// Each group's station, by what its pieces are.
+    steads: Vec<(&'static str, Point)>,
     tally: Tally,
     next_prop: u32,
-    lanes: Vec<SurfaceArea>,
+    surfaces: Vec<SurfaceArea>,
     lots: Vec<LotPlan>,
     buildings: Vec<BuildingPlacement>,
     forests: Vec<Forest>,
@@ -289,8 +176,8 @@ struct Ask {
     /// approach corridors.
     blocks_sight: bool,
     road_gap: f64,
-    /// A yard it may touch: its own.
-    own_yard: Option<usize>,
+    /// The yards it may touch, its own: those from this index on.
+    own_from: usize,
 }
 
 impl<'a> Country<'a> {
@@ -369,8 +256,7 @@ impl<'a> Country<'a> {
                 .iter()
                 .all(|deck| self.charge(1) && beyond(rect_gap(deck, p), road))
             && self.yards.iter().enumerate().all(|(index, yard)| {
-                self.charge(1)
-                    && (ask.own_yard == Some(index) || beyond(rect_gap(yard, p), r + c.yard_m))
+                self.charge(1) && (index >= ask.own_from || beyond(rect_gap(yard, p), r + c.yard_m))
             })
             && self
                 .bodies
@@ -396,7 +282,7 @@ impl<'a> Country<'a> {
             radius,
             blocks_sight: true,
             road_gap: self.rules.clear.road_m,
-            own_yard: None,
+            own_from: usize::MAX,
         }
     }
 
@@ -666,78 +552,6 @@ impl<'a> Country<'a> {
         coverage.check()?;
         Ok(false)
     }
-
-    // ----- Bodies ------------------------------------------------------
-
-    fn body(&mut self, row: &Body, at: Point, yaw: f64, radius: f64) {
-        let at = round_cm(at);
-        self.props.push(AuthoredPropDefinition {
-            id: None,
-            geometry: PropDefinition {
-                kind: row.kind.clone(),
-                center: at,
-                yaw: libm::round(yaw * 1e6) / 1e6,
-                half_extents: row.half_extents_m,
-                base_z: None,
-                wreck_of: None,
-            },
-        });
-        self.bodies.push((at, radius));
-        self.tally.cover[self.half(at)] += 1.0;
-    }
-
-    /// A few bodies of one kind about `p`.
-    fn cover(&mut self, p: Point, rng: &mut Stream) -> bool {
-        let rules = self.rules;
-        let f = &rules.field_cover;
-        let row = rng
-            .pick(f.bodies.iter().map(|row| (row, row.weight)))
-            .expect("field cover has bodies");
-        let radius = libm::hypot(row.half_extents_m[0], row.half_extents_m[1]);
-        let ask = Ask {
-            radius: radius + f.gap_m,
-            blocks_sight: false,
-            road_gap: rules.clear.road_m,
-            own_yard: None,
-        };
-        let heading = rng.range([0.0, TAU]);
-        // The cluster is found whole before any of it stands, so its own
-        // bodies are judged against each other here and not as strangers.
-        let mut cluster: Vec<(Point, f64)> = Vec::new();
-        for index in 0..rng.count(row.count) {
-            let (at, yaw) = if row.stacked {
-                // Side by side across the heading.
-                let step = 2.0 * row.half_extents_m[1] + 0.1;
-                let across = direction(heading + TAU / 4.0);
-                (add(p, scale(across, step * f64::from(index))), heading)
-            } else if index == 0 {
-                (p, heading)
-            } else {
-                let away = rng.range([0.0, f.spread_m]);
-                (
-                    add(p, scale(direction(rng.range([0.0, TAU])), away)),
-                    rng.range([0.0, TAU]),
-                )
-            };
-            let apart = row.stacked
-                || cluster
-                    .iter()
-                    .all(|(other, _)| distance(*other, at) >= 2.0 * radius + f.gap_m);
-            let free = self
-                .groves
-                .iter()
-                .all(|(grove, reach)| distance(*grove, at) >= radius + reach);
-            if apart && free && self.open(at, ask) {
-                cluster.push((at, yaw));
-            } else if index == 0 {
-                return false;
-            }
-        }
-        for (at, yaw) in cluster {
-            self.body(row, at, yaw, radius);
-        }
-        true
-    }
 }
 
 /// Furnish the open country of a plan whose districts are built
@@ -757,7 +571,9 @@ pub(crate) fn furnish(
         let family = crate::parcels::family(request, presets);
         let (preset, _) = presets.cell(request.map_type, request.size);
         let h = &rules.homesteads;
-        let Pieces::Homes(homes) = &h.steading.pieces;
+        let Pieces::Homes(homes) = &h.steading.pieces else {
+            unreachable!("homesteads are read as homes")
+        };
         let eligible = homes.choices(&fits, preset, family);
         let open_km2 = country.estimated_open_km2();
         let e = rules.fairness;
@@ -781,6 +597,17 @@ pub(crate) fn furnish(
             &mut rng,
             |country| country.tally.homes,
             |country, half, rng| country.stead(half, &h.steading, &eligible, rng),
+        );
+
+        let d = &rules.depots;
+        let mut rng = country.stream("depots");
+        country.spread(
+            libm::round(d.per_road_km * country.road_m / 1000.0),
+            e.depots,
+            d.attempts,
+            &mut rng,
+            |country| country.tally.depots,
+            |country, half, rng| country.stead(half, &d.steading, &[], rng),
         );
 
         let t = rules.tree_lines;
@@ -848,7 +675,7 @@ pub(crate) fn furnish(
             },
         );
         (
-            country.lanes,
+            country.surfaces,
             country.lots,
             country.buildings,
             country.forests,
@@ -856,8 +683,8 @@ pub(crate) fn furnish(
             country.kept,
         )
     };
-    let (lanes, lots, buildings, forests, props, kept) = placed;
-    plan.surfaces.extend(lanes);
+    let (surfaces, lots, buildings, forests, props, kept) = placed;
+    plan.surfaces.extend(surfaces);
     plan.lots.extend(lots);
     plan.buildings.extend(buildings);
     plan.forests.extend(forests);

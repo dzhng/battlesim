@@ -16,7 +16,7 @@ and the map disagree, this README wins. The disagreements are listed in
 
 ## Next Agent Prompt
 
-**Status (2026-11-13):** slices 01–13 are merged; the Armory is playable on the placeholder yard into
+**Status (2026-11-13):** slices 01–14 and 17 are merged; the Armory is playable on the placeholder yard, and military depots stand on generated maps (stand-in art) into
 `t3/unit-explorer-armory`, and staging is merged in (`736eff7d8`). The
 integrated tree is green on the cross-lane checks:
 - contract weapons, showground, showcase;
@@ -29,9 +29,12 @@ integrated tree is green on the cross-lane checks:
 so slices 14–17 may start. Run them one lane at a time while disk is tight.
 
 **Pickup:**
-1. The `armory/mil` lane is running slices 14 and 17. Merge it when it lands.
-2. Then **15** (military art) and **16** (the yard swapped to it). Slice 16
-   also owns the flat sand ground and its tan-on-tan contrast.
+1. The `armory/art` lane is running **15** (military art), then **16** (the
+   yard swapped to it). Merge it when it lands. Slice 16 also owns the flat
+   sand ground and its tan-on-tan contrast.
+2. Raised to the user, with provisional answers in force: the depot density
+   (`open_country.depots.per_road_km` 0.3, about one per skirmish map), and
+   whether the lobby's map picture should draw props.
 3. Then **18**. Add these to its run:
    - the `street` app-flow tour, which now includes an Armory round trip;
    - the first open of `/armory`, which takes 15–19 s while the menu's
@@ -42,6 +45,9 @@ so slices 14–17 may start. Run them one lane at a time while disk is tight.
      (`contract/src/catalog.rs` `check` on sensors), so the air-war profile
      writes 1 m for "blind to the ground". Allowing 0 is a contract change for
      the user. Until then, the sheet shows the true number.
+   - re-record the distant-impostors receipt in the browser. The benchmark's
+     standard-profile maps now hold depots. Also run the native counts test
+     and the street lab's pinned digest; slice 14 couldn't run either.
 
 The lanes worked from
 [`throwaway/armory/LANE-BRIEF.md`](../../throwaway/armory/LANE-BRIEF.md), an
@@ -137,13 +143,13 @@ battle-wide decision for the user.
 - [x] [12](slices/12-armory-camera.md) The Armory camera.
 - [x] [13](slices/13-steading-refactor.md) Steading refactor: zero output
   change.
-- [ ] [14](slices/14-military-rows.md) Military prop rows and
+- [x] [14](slices/14-military-rows.md) Military prop rows and
   mechanics, on stand-ins.
 - [ ] [15](slices/15-military-art.md) Military art: one prop per
   gate, bake.
 - [ ] [16](slices/16-military-yard.md) The yard swapped to the
   military set.
-- [ ] [17](slices/17-depots.md) Depots in open country.
+- [x] [17](slices/17-depots.md) Depots in open country.
 - [ ] [18](slices/18-closeout.md) Closeout: full run, balance, shots,
   `close-spec`.
 

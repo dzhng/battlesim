@@ -200,13 +200,25 @@ fn help(document: &str, path: &[String], key: &str, group: &str) -> String {
             match parts.get(1).copied() {
                 Some("clear") => "Clearances",
                 Some("sight") => "SightRule",
-                Some("homesteads") => {
+                // A steading's presets row is flat: each key is documented
+                // on the type that holds it.
+                Some(row @ ("homesteads" | "depots")) => {
                     if parts.contains(&"yard") {
                         "Yard"
+                    } else if parts.contains(&"pieces") {
+                        "Piece"
                     } else if parts.contains(&"groups") {
-                        "Group"
+                        if row == "depots" {
+                            "BodyGroup"
+                        } else {
+                            "Group"
+                        }
+                    } else if ["per_road_km", "attempts"].contains(&key) {
+                        "Steads"
+                    } else if ["apart_m", "lane_chance", "lane_m", "spread_m"].contains(&key) {
+                        "Steading"
                     } else {
-                        "Homesteads"
+                        "Homes"
                     }
                 }
                 Some("tree_lines") => "TreeLines",

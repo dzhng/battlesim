@@ -4,6 +4,8 @@
 //! own world. The arithmetic here is this file's own, not the generator's.
 #[path = "common/admitted.rs"]
 mod admitted;
+#[path = "open_country/depots.rs"]
+mod depots;
 #[path = "common/halves.rs"]
 mod halves;
 #[path = "open_country/homes.rs"]
@@ -544,6 +546,9 @@ fn the_halves_hold_about_the_same_of_each_thing() {
                 country.name, split.top, split.bottom
             );
         }
+        // Depots are rare: a map may hold none, but never all on one side.
+        let split = held.depots;
+        assert!(split.fair, "{}: depots {split:?}", country.name);
         // The pass keeps the layout's own fairness.
         let metrics = measure(&country.plan, &presets);
         assert!(metrics.forest.fair && metrics.town.fair, "{}", country.name);
