@@ -14,6 +14,14 @@ pub const SHAPE_NAMES: [&str; 5] = ["streak", "glow", "flipbook", "rotor", "shad
 const STREAK: f64 = 0.0;
 const GLOW: f64 = 1.0;
 const FLIPBOOK: f64 = 2.0;
+/// misc.w of a sheet sprite drawn as a billow instead of its sheet.
+const BILLOW: f64 = 1.0;
+/// misc.w of a ribbon drawn as an engine plume: this plus its density
+/// (a wisp's is its breakup, at most 1).
+const PLUME: f64 = 2.0;
+/// misc.w of a mixed (black and white) plume: this plus its density; its
+/// colour's red and green are its darkest and lightest greys.
+const MIXED_PLUME: f64 = 1000.0;
 pub(super) const ROTOR: f64 = 3.0;
 const SHADOW: f64 = 4.0;
 /// Flipbook layers in the effect atlas, and each one's frames.
@@ -122,6 +130,71 @@ impl EffectBatch {
     ) {
         let shape = [STREAK, 1.0, 1.0, 0.0];
         self.put([v4(a, width), v4(b, min_px), v4(albedo, opacity), shape]);
+    }
+
+    /// As `ribbon`, broken into wisps by `amount` (0 to 1): `along` is how
+    /// far along its trail each end lies, in wisps, so the gaps stay where
+    /// it was laid.
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn wisp(
+        &mut self,
+        a: Vec3,
+        b: Vec3,
+        width: f64,
+        min_px: f64,
+        albedo: Vec3,
+        opacity: f64,
+        along: [f64; 2],
+        amount: f64,
+    ) {
+        let shape = [STREAK, along[0], along[1], amount];
+        self.put([v4(a, width), v4(b, min_px), v4(albedo, opacity), shape]);
+    }
+
+    /// An engine's plume from a to b, `width` wide at each end: a lit ribbon
+    /// (misc.w 2 + `density`; b.w its far end's width, not a least size)
+    /// whose edges wander and inside breaks up by noise at `along` (in
+    /// plume lengths, fixed where it was laid), hiding by optical depth.
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn plume(
+        &mut self,
+        a: Vec3,
+        b: Vec3,
+        width: [f64; 2],
+        albedo: Vec3,
+        opacity: f64,
+        along: [f64; 2],
+        density: f64,
+        mixed: bool,
+    ) {
+        let flag = if mixed { MIXED_PLUME } else { PLUME };
+        let shape = [STREAK, along[0], along[1], flag + density];
+        self.put([v4(a, width[0]), v4(b, width[1]), v4(albedo, opacity), shape]);
+    }
+
+    /// A soft billow of lit smoke at p, `radius` across, turned by `turn`,
+    /// its noise at `phase`: a sheet sprite flagged (misc.w 1) to draw no
+    /// sheet but a noise-broken silhouette, hiding by optical depth
+    /// `density` × `opacity`.
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn billow(
+        &mut self,
+        p: Vec3,
+        radius: f64,
+        turn: f64,
+        phase: f64,
+        albedo: Vec3,
+        opacity: f64,
+        density: f64,
+        soft_m: f64,
+    ) {
+        let shape = [FLIPBOOK, density, 1.0, BILLOW];
+        self.put([
+            v4(p, radius),
+            [turn, phase, DUST, soft_m],
+            v4(albedo, opacity),
+            shape,
+        ]);
     }
 
     /// A flipbook sprite at p: `layer`'s (fractional) `frame` times `tint`,

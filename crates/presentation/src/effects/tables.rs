@@ -7,6 +7,7 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use super::cook_off::CookOffFeel;
+use super::exhaust::{JetExhaustStyle, SIGNED};
 use super::high_air_shadow::HighAirShadowStyle;
 use crate::world::Vec3;
 
@@ -59,6 +60,10 @@ pub struct EffectPresentation {
     pub rotor_blur: RotorBlurStyle,
     /// The shadow beneath a high-air aircraft.
     pub high_air_shadow: HighAirShadowStyle,
+    /// Jets' engine glow and flame, and their engine and wingtip trails;
+    /// none where absent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub jet_exhaust: Option<JetExhaustStyle>,
     /// Smoke sources' looks by kind; a kind without one draws nothing.
     pub smoke: HashMap<String, Arc<SmokeSourceStyle>>,
     /// Instances every smoke source together may hold; past it each thins alike.
@@ -403,11 +408,28 @@ impl EffectPresentation {
     }
 
     pub fn check(&self) -> Result<(), String> {
-        crate::settings::validate::numbers(
-            self,
-            "presentation.effects",
-            &[".forward_m", ".spin_turns", ".up_m"],
-        )?;
+        // The jets' sheet rule may reach just past a wing's root and leading
+        // edge (its own check bounds how far): each of its shares is signed.
+        let rule: Vec<String> = self
+            .jet_exhaust
+            .iter()
+            .flat_map(|j| {
+                let rows = (0..j.wing_sheet_rule.rows.len())
+                    .flat_map(|i| (0..2).map(move |k| format!(".wing_sheet_rule.rows[{i}][{k}]")));
+                (0..2)
+                    .map(|k| format!(".wing_sheet_rule.span[{k}]"))
+                    .chain(rows)
+            })
+            .collect();
+        let signed: Vec<&str> = [".forward_m", ".spin_turns", ".up_m"]
+            .into_iter()
+            .chain(SIGNED)
+            .chain(rule.iter().map(String::as_str))
+            .collect();
+        crate::settings::validate::numbers(self, "presentation.effects", &signed)?;
+        if let Some(jets) = &self.jet_exhaust {
+            jets.check()?;
+        }
         ensure(self.capacity > 0, || "capacity must be positive".into())?;
         for (name, spacing) in [("dust", self.dust.spacing_m), ("wake", self.wake.spacing_m)] {
             ensure(spacing > 0.0, || {

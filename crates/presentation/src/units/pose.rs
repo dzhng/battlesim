@@ -26,6 +26,9 @@ pub struct Articulation {
     pub rotor: f64,
     /// 1: rotors drawn by their blur; 0: by their geometry.
     pub rotor_blur: f64,
+    /// How far its landing gear is stowed: 0 down (at rest, on the ground),
+    /// 1 up (a fixed-wing aircraft in flight).
+    pub gear_up: f64,
 }
 
 /// A clip being faded out under the main one.
@@ -76,6 +79,8 @@ pub struct VehiclePose {
     pub yaw: f64,
     /// It flies: its rotors turn, and nothing it has rolls.
     pub airborne: bool,
+    /// A downed airframe falling: its engines are out.
+    pub downed: bool,
     pub articulation: Articulation,
     /// Its rigid motion in its own frame about its foot, column-major: an
     /// aircraft's lean (`FeedUnit::attitude`, or into its flight), or a hull

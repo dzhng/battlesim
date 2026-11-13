@@ -255,34 +255,40 @@ impl EffectsResources {
 
     /// Draw effects over lit colour and the fog mask using shared attachments.
     pub fn encode(&self, encoder: &mut CommandEncoder, targets: &Targets) {
+        self.encode_over(encoder, &self.pipeline, &targets.lit, &targets.fog_mask);
+    }
+
+    /// Draw the same effects with `pipeline` (an `effects` variant) over
+    /// `color` and `fog`, soft against whatever `targets.depth` holds then:
+    /// the separate high-air plane draws them again over its own models, so
+    /// a nozzle's glow in front of its jet is not covered by the jet.
+    pub fn encode_over(
+        &self,
+        encoder: &mut CommandEncoder,
+        pipeline: &RenderPipeline,
+        color: &TextureView,
+        fog: &TextureView,
+    ) {
         if self.count == 0 {
             return;
         }
+        let attachment = |view| {
+            Some(RenderPassColorAttachment {
+                view,
+                depth_slice: None,
+                resolve_target: None,
+                ops: Operations {
+                    load: LoadOp::Load,
+                    store: StoreOp::Store,
+                },
+            })
+        };
         let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
             label: Some("effects"),
-            color_attachments: &[
-                Some(RenderPassColorAttachment {
-                    view: &targets.lit,
-                    depth_slice: None,
-                    resolve_target: None,
-                    ops: Operations {
-                        load: LoadOp::Load,
-                        store: StoreOp::Store,
-                    },
-                }),
-                Some(RenderPassColorAttachment {
-                    view: &targets.fog_mask,
-                    depth_slice: None,
-                    resolve_target: None,
-                    ops: Operations {
-                        load: LoadOp::Load,
-                        store: StoreOp::Store,
-                    },
-                }),
-            ],
+            color_attachments: &[attachment(color), attachment(fog)],
             ..Default::default()
         });
-        pass.set_pipeline(&self.pipeline);
+        pass.set_pipeline(pipeline);
         pass.set_bind_group(0, &self.group, &[]);
         pass.set_vertex_buffer(0, self.instances.slice(..));
         pass.draw(0..6, 0..self.count);

@@ -11,6 +11,7 @@
     "build:wasm": "RUSTFLAGS='-C target-feature=+simd128' wasm-pack build ../crates/game-wasm --target web --release --out-dir ../../web/src/wasm && bun run build:renderer-browser",
     "scene": "node scene.mjs",
     "asset": "node asset.mjs",
+    "jet-airframes": "node ../packages/scene-assets/tools/jet-airframes.mjs",
     "capture": "node capture.mjs",
     "hdr-capture": "node capture/hdr-capture.mjs",
     "tutorial-shots": "node tutorial-shots.mjs",

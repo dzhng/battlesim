@@ -12,6 +12,35 @@ import subprocess
 import sys
 import wave
 
+# Freesound 239135's cannon, bassier and drier (the post 34 take D chosen for the
+# tank main guns). A +4 dB bell at 110 Hz; a bass exciter that saturates the 50-150 Hz
+# band (tanh for the 3rd harmonic, a squared term for the 2nd) and adds back only its
+# 200-450 Hz harmonics, so a small speaker hears the weight; then a decay that holds
+# 0.2 s past the attack and fades at 16.1 dB/s, cutting the echo's -30 dB tail by about
+# a third. The band filters are Butterworth zeros and poles (2nd-order 50-150 Hz band,
+# 2nd-order 20 Hz high-pass, 4th-order 200-450 Hz band) so the tool needs no extra
+# package. The band's 1/peak and the harmonic gain are set for that recording's level,
+# and the hold for its crop, which starts 2 ms before the attack.
+_LOW_BAND = ("aiir=z=1+0i 1+0i -1+0i -1+0i"
+             ":p=0.99721662815459-0.00684152709890362i 0.99721662815459+0.00684152709890362i"
+             " 0.993399710217201+0.0160117965125344i 0.993399710217201-0.0160117965125344i"
+             ":k=4.2443368140217e-05:f=zp:r=d:n=0")
+_DC_CUT = ("aiir=z=1+0i 1+0i"
+           ":p=0.998148800884561-0.00184777850365718i 0.998148800884561+0.00184777850365718i"
+           ":k=0.998150511190452:f=zp:r=d:n=0")
+_HARMONIC_BAND = ("aiir=z=1+0i 1+0i 1+0i 1+0i -1+0i -1+0i -1+0i -1+0i"
+                  ":p=0.995665991435161-0.0264467253987621i 0.987063919871798-0.030222707156484i"
+                  " 0.987063919871798+0.030222707156484i 0.995665991435161+0.0264467253987621i"
+                  " 0.989906881462045+0.056278385454804i 0.981555795835379+0.0423670002817819i"
+                  " 0.981555795835379-0.0423670002817819i 0.989906881462045-0.056278385454804i"
+                  ":k=6.87035917521764e-08:f=zp:r=d:n=0")
+_SATURATE = "aeval=exprs='tanh(3*val(0))/tanh(3)+0.35*pow(tanh(3*val(0))/tanh(3)\\,2)'"
+_DECAY = ("asetnsamples=n=48,volume=eval=frame:volume='if(lte(t\\,0.202)\\,1\\,pow(10\\,max(-3\\,"
+          "if(lt(t-0.202\\,0.12)\\,-16.1*pow(t-0.202\\,2)/0.24\\,-16.1*(t-0.202-0.06))/20)))'")
+BASSY_CANNON = (f"equalizer=f=110:t=q:w=0.7:g=4,asplit[dry][wet];"
+                f"[wet]{_LOW_BAND},volume=0.5518,{_SATURATE},{_DC_CUT},{_HARMONIC_BAND},volume=2.994[harm];"
+                f"[dry][harm]amix=inputs=2:normalize=0,{_DECAY}")
+
 FILTERS = {
     "weighted-shot": "highpass=f=45,equalizer=f=140:t=o:w=1.2:g=4,equalizer=f=3000:t=o:w=1:g=1.5,acompressor=threshold=0.18:ratio=2.2:attack=5:release=90",
     "heavy-report": "highpass=f=35,equalizer=f=100:t=o:w=1.2:g=4,acompressor=threshold=0.18:ratio=2.2:attack=5:release=90",
@@ -26,6 +55,7 @@ FILTERS = {
     "motor-loop": "highpass=f=80,lowpass=f=6000",
     "running-gear": "highpass=f=50,lowpass=f=5000",
     "blast": "highpass=f=30,acompressor=threshold=0.18:ratio=2.2:attack=5:release=90",
+    "bassy-cannon": BASSY_CANNON,
 }
 
 # Generated voice takes: where the speaker sits decides the treatment (choices.md T2).
