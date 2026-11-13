@@ -16,20 +16,53 @@ and the map disagree, this README wins. The disagreements are listed in
 
 ## Next Agent Prompt
 
-**Status (2026-11-12):** planned; nothing implemented. Four independent drafts
-were merged into this plan: fewest slices, risk first, seam quality, and the
-visual and asset pipeline.
+**Status (2026-11-13):** wave 1 is partly merged into `t3/unit-explorer-armory`.
+- **Merged:** 01, 06, 07 and 09.
+- **Still in their lanes:**
+  - 05 and 13 are written, in `armory-cat`;
+  - 02 and 03 are in progress, in `armory-pres`.
+- **The kill switch did not trip.** The presentation pose driver runs from its
+  own feed frame, with no publication.
 
-**Pickup:** start three lanes in parallel. Each is its own branch off `staging`.
-- **Menu lane:** [01 menu routes](slices/01-menu-routes.md).
-- **Presentation lane:** [02 showground](slices/02-showground.md), then
-  [03 showcase entry](slices/03-showcase-entry.md), then
-  [04 showcase lab](slices/04-showcase-lab.md).
-- **Catalog lane:** [05 fires regardless](slices/05-fires-regardless.md).
+**Pickup:**
+1. Merge `armory/cat` (05 and 13) and `armory/pres` (02–04) when they land.
+2. Then start **08** (needs 01, 05, 06) and **10** (needs 04) in parallel.
+3. Then **11**, then **12**.
 
-Slice 03 is the plan's kill switch. If presentation can't drive idle life
-without a simulation publication, stop and report to the user. Never fall back
-to posing in TypeScript.
+The lanes worked from
+[`throwaway/armory/LANE-BRIEF.md`](../../throwaway/armory/LANE-BRIEF.md), an
+ignored scratch file. Its rules are restated here: one worktree per lane, and
+the orchestrator merges.
+
+**Integration notes for the next slices:**
+- **08:**
+  - Add the `armory` row to `MENU_PAGES` (plain data) and to `CONTENTS` in
+    `menu/MenuVisit.tsx`.
+  - Import `menuPageOf` from `router.tsx`.
+  - Read `catalog.weapons[id].derived` (`WeaponRow`/`Reach` in
+    `packages/scene-assets/src/units.ts`).
+  - The group is decided per card. Decide whether a family takes its group from
+    its first typed variant.
+- **11:**
+  - `MenuShell`'s `<LoadingTasks>` must wrap the plate's children before the
+    stage can report `renderer`.
+  - Construct `new ArmoryAppearances(units)`, and pass `art.runtime`, not
+    `gameRuntime`, to `fieldedBattle`.
+  - An `AbortError` from `show` is a normal switch.
+  - Call `showLoops([])` on leave.
+  - The showcase needs a presentation with no battle loaded, and the renderer's
+    tables must be reinstalled after `setShowcase`.
+- **10:** yard props go to `ArmoryAppearances` as scenery appearance names,
+  through `propsDrawnBy`.
+
+**Known failures found along the way**, each to fix in its own commit:
+- **Four `unit-roster` baselines** (`journey-zoom`, `purchase-ghost`,
+  `journey-placed-facing`, `journey-space-orders`) differ only in tree foliage.
+  The leaves were reworked after those pictures were approved on 2026-10-29.
+  Re-approve them after looking.
+- **The `street` app-flow tour couldn't run in a lane checkout** without full
+  LFS content (the menu never showed). The closeout run, with LFS pulled, covers
+  its one-context, running and music probes.
 
 **Blockers and warnings:**
 - **L1:** slices 14–17 write `fixtures/props/**`, `assets/catalog.json`,
@@ -42,11 +75,15 @@ to posing in TypeScript.
 - **Stale branch state:** other sessions merge and delete checkouts, and
   `staging` can be force-pushed. After pushing, verify with
   `git merge-base --is-ancestor`.
+- **Disk:** the machine ran out on 2026-11-12, with five lanes building.
+  Run at most two Rust-building lanes at once, with `CARGO_INCREMENTAL=0`.
+  TypeScript-only lanes copy the base wasm (same sources) instead of building
+  it. Remove each lane's worktree as soon as it is merged.
 - **Before you ask the user:** read the map. Most questions are already
   answered there.
 
 **TODO:**
-- [ ] [01](slices/01-menu-routes.md) Menu routes: shell above `PageVisit`,
+- [x] [01](slices/01-menu-routes.md) Menu routes: shell above `PageVisit`,
   paths, hard cutover.
 - [ ] [02](slices/02-showground.md) Showground: the squad at rest and its
   original carriers, exported from the simulation.
@@ -56,12 +93,12 @@ to posing in TypeScript.
   `/labs/showcase`. The spike is verdict-visible here.
 - [ ] [05](slices/05-fires-regardless.md) `fires_regardless` and `reach`
   published, W09 amended.
-- [ ] [06](slices/06-unit-groups.md) Nine unit groups in the Reinforcements
+- [x] [06](slices/06-unit-groups.md) Nine unit groups in the Reinforcements
   picker and the tutorial.
-- [ ] [07](slices/07-show-loops.md) `AppAudio.showLoops` and quiet tiles.
+- [x] [07](slices/07-show-loops.md) `AppAudio.showLoops` and quiet tiles.
 - [ ] [08](slices/08-armory-page.md) Armory page: the sheet model, layout A,
   the tile and its key art.
-- [ ] [09](slices/09-armory-appearances.md) The Armory's own appearance
+- [x] [09](slices/09-armory-appearances.md) The Armory's own appearance
   library.
 - [ ] [10](slices/10-yard-document.md) The yard document and spots, with a
   placeholder yard.
