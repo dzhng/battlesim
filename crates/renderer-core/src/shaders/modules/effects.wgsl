@@ -164,6 +164,16 @@ fn grassPaintGlow(paint: vec4f, height: f32) -> vec3f {
 // @block effects_PI
 const PI = 3.14159265;
 
+// @block effects_PLUME_MIN_PX
+/** The least width an engine's plume is drawn, pixels: thinner, it covers
+ *  that much less rather than vanishing. */
+const PLUME_MIN_PX = 1.5;
+
+// @block effects_MIXED_PLUME
+/** misc.w of a mixed (black and white) engine plume: this plus its
+ *  optical depth; a plain plume's is 2 plus it. */
+const MIXED_PLUME = 1000.0;
+
 // @block effects_ROTOR_SOFT_M
 /** How deep a rotor fades into what it meets, metres: a roof just under it
  *  still takes it. */

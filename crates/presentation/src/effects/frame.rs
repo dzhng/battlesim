@@ -23,6 +23,8 @@
 //!   dust where its thrown turret lands;
 //! - sparks and dust off a building where a downed airframe strikes it;
 //! - every drawn rotor as a film camera's shutter sees it turn;
+//! - every running jet's engine glow and afterburner flame, and the trails
+//!   its engines and wingtips leave ([`exhaust`](super::exhaust));
 //! - a high-air aircraft's shadow on the ground beneath it
 //!   ([`high_air_shadow`](super::high_air_shadow)), under everything else.
 //!
@@ -37,6 +39,7 @@ use std::sync::Arc;
 
 use super::batch::{v4, DUST, DUST_FRAMES, FIRE, FIRE_FRAMES, ROTOR};
 pub use super::batch::{EffectBatch, EFFECT_FLOATS, SHAPE_NAMES};
+use super::exhaust::{DrawnJet, JetTrails};
 use super::high_air_shadow::GroundShadow;
 use super::launches::{Launch, LaunchTracker};
 use super::publication::{CookOff, EffectPublication, Segment, Shooter, Strike};
@@ -329,6 +332,8 @@ pub struct EffectFrame {
     screens: smoke_screen::Screens,
     last_tick: f64,
     launches: LaunchTracker,
+    /// Every jet's trails, from the frames drawn (`observe_jets`).
+    jets: JetTrails,
     instances: usize,
     dropped: usize,
 }
@@ -352,6 +357,7 @@ impl EffectFrame {
             screens: smoke_screen::Screens::default(),
             last_tick: -1.0,
             launches: LaunchTracker::default(),
+            jets: JetTrails::default(),
             instances: 0,
             dropped: 0,
         }
@@ -373,6 +379,7 @@ impl EffectFrame {
         self.smokers.clear();
         self.screens.clear();
         self.launches.reset();
+        self.jets.reset();
         self.last_tick = -1.0;
         self.noted = 0.0;
         self.keep = 1.0;
@@ -480,6 +487,9 @@ impl EffectFrame {
                 self.pool
                     .sparks(&p.sparks, t1, g.point, UP, dir, n, &mut rng, 1.0);
             }
+        }
+        if let Some(style) = &self.p.jet_exhaust {
+            self.jets.note(style, t1, dt, gap, &publication.shooters);
         }
         self.note_movers(publication, gap, t0);
         self.note_smokers(publication, gap, t0, t1);
@@ -697,6 +707,21 @@ impl EffectFrame {
         }
     }
 
+    /// Take the jets drawn at presentation time `clock`: where their
+    /// emitters are on their models, for the trails publications lay and the
+    /// glows the next `build` at `clock` draws. Without an exhaust style
+    /// nothing is kept.
+    pub fn observe_jets(&mut self, clock: f64, jets: &[DrawnJet]) {
+        if let Some(style) = &self.p.jet_exhaust {
+            self.jets.observe(style, clock, jets);
+        }
+    }
+
+    /// Samples every aircraft's trails and published history hold now.
+    pub fn jet_samples(&self) -> usize {
+        self.jets.samples()
+    }
+
     /// Every running effect at presentation time `clock` (seconds) into
     /// `batch`, the rotors' blurs under them; effects that have run their
     /// course are dropped. `muzzles` says where the models are drawn at
@@ -723,8 +748,12 @@ impl EffectFrame {
         draw_rotors(&p.rotor_blur, rotors, batch);
         let dt = self.pool.dt;
         let drift = wind.map_or([0.0; 2], |w| w.record().drift());
-        // Trails' ribbons next, under every puff: drawn in their turn, a
-        // later stretch's ribbon would cover an earlier stretch's puffs.
+        // Jets' trails, glows and flames, then rounds' trails' ribbons, under
+        // every puff: drawn in their turn, a later stretch's ribbon would
+        // cover an earlier stretch's puffs.
+        if let Some(style) = &p.jet_exhaust {
+            self.jets.draw(style, clock, drift, p.min_px, batch);
+        }
         for e in &self.pool.live {
             if let (Look::Trail(s), true) = (&e.look, e.start <= clock && clock < e.end) {
                 draw_trail(p, &drift, e, s, clock - e.start, dt, batch);

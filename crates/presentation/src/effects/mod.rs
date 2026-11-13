@@ -4,6 +4,7 @@
 mod batch;
 pub mod cook_off;
 pub mod cook_offs;
+pub mod exhaust;
 pub mod frame;
 pub mod high_air_shadow;
 pub mod launches;

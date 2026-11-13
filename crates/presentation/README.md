@@ -74,11 +74,13 @@ calls the same reader for workbench drafts.
   the cast lights it chooses for the view, cook-offs, and the sparks a hull
   throws where it grinds a metal body it shoves (the simulation publishes
   where they meet), the sparks and dust a downed airframe throws off a
-  building it strikes (the simulation publishes each strike once), and the
+  building it strikes (the simulation publishes each strike once), the
   [smoke screens](src/effects/frame/smoke_screen.rs) the side sees: a billow
   that swirls inside each cloud's stepped circle, below its top, with no
   wind, from the law's first step on, drawn over the fog veil as every effect
-  the side sees is.
+  the side sees is, and [jets' exhaust](src/effects/exhaust.rs): engine glow,
+  afterburner flame and engine trails and wingtip vapour, from the drawn
+  models and their published flight.
 - [The view](src/view.rs): what the camera means for culling and detail, the one
   tier rule every drawn model takes and the tier it casts with, and the
   frame's `View` record (with the sky's corner rays) and camera uniform,
@@ -194,6 +196,40 @@ carries the drawn muzzle. A flying aircraft's rotor is drawn by the effects from
 same drawn pose, as a film camera's shutter sees it: each blade smeared over the
 angle it turned while the shutter was open, so a fast rotor blurs at any frame
 rate and a paused one shows its blades.
+
+A running jet glows in every nozzle and leaves its engines' and wingtips'
+trails, as a war film shows a jet: visual only, so it never touches the
+simulation. Where its nozzles and wingtips are is data on its appearance
+(`presentation.effects.jet_exhaust.airframes`), in its model's own frame,
+because the baked art keeps no node for them; its engine kind names a look, and
+only a look with a `flame` ever burns, so a high-bypass turbofan like the
+A-10's only glows. Its throttle is its published speed against its type's
+cruise: brighter the faster, with the afterburner's flame and shock diamonds
+past cruise (the simulation's afterburner is the only thing that flies it
+there). Its wingtips leave vapour only while its wings pull hard: the load is
+read from how its published flight bends (a tight turn, a pull-up), so level
+flight never vapours however fast it flies, and the vapour forms with
+hysteresis and thins over a second or two once the pull ends. It is drawn as
+short wisps: thin at the tip, tapering fast, broken by noise fixed where the
+vapour formed, so the wisps hang in the air rather than slide. How the
+engines trail is a choice in the data, `jet_exhaust.engine_style`, naming one
+of `jet_exhaust.engine_styles`: each a list of layers laid from the same points
+behind each nozzle and drawn in order. The shipped looks are `realistic` (the
+default: a short grey-brown haze off the nozzle fading into a white
+condensation trail), `white_core` (a white trail round a darker smoky core
+that thickens with throttle and afterburner) and `dramatic` (dense black and
+white smoke, an artistic look modern fighters do not make). A layer may be a
+continuous `plume`: one ribbon whose middle wanders and width swells, broken
+by noise fixed where it was laid, that hides by optical depth so dark smoke
+darkens even a bright sky; with `mix` its colour runs between a dark and a
+light grey by noise, black and white smoke in one. A layer may instead be
+`puffs`, soft noise-broken billows. The haze is drawn smoke, not refraction:
+nothing bends the picture behind a jet. Glows sit
+on the drawn model; trails are laid tick by tick where the publications put
+it, from emitters placed as its model was last drawn, so they are the same at
+any frame rate and a replay framed mid-flight shows them whole. A gap or a jump
+breaks them, a downed or vanished jet's fade out, and they hold at most
+`max_aircraft` tracks of one trail life each.
 
 An aircraft's shadow follows its altitude layer, never what kind of aircraft
 it is. A low-air one casts its real shadow along the sun. From the high-air

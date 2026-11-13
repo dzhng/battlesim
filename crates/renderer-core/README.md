@@ -72,7 +72,10 @@ scar budget requires them. It completes post, the fog rim and optional player
 overlays into one display texture. Shells own surface admission, presentation
 of that texture and requests for readback; the core owns the shared copy and
 mapping protocol. With `separate_high_air` enabled, high-air
-models render to their own output for composition between UI planes.
+models render to their own output for composition between UI planes. The
+world's effects draw again over that output, soft against the models' depth
+and only where they cover it, so what sits in front of a jet (its own nozzle
+glow and flame, smoke) is not hidden by the plane.
 
 Ground paint and display marks share geometry inputs but have separate depth
 contracts. [Paint](src/paint.rs) sees world-only depth before units and grass;

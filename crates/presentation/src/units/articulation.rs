@@ -8,7 +8,9 @@
 //! - tracks scroll their links by travel over link pitch (a material offset);
 //! - rotors turn about +Z by the distance their tips swept over their reach,
 //!   so every rotor's tips run at one speed;
-//! - deploying parts move and turn over their own window of progress.
+//! - deploying parts move and turn over their own window of progress;
+//! - landing-gear legs fold up into the airframe about their tops as the
+//!   gear stows, gone once it is up.
 use super::pose::Articulation;
 use crate::world::{Node, Quat, Rig, TrackSide, Trs, Vec3};
 
@@ -141,6 +143,18 @@ pub fn articulate(out: &mut [Trs], nodes: &[Node], rig: &Rig, input: &Articulati
             from_degrees_xyz(m.turn[0] * s, m.turn[1] * s, m.turn[2] * s),
         );
     }
+    if input.gear_up > 0.0 {
+        let k = gear_showing(input.gear_up);
+        for &leg in &rig.gear {
+            out[leg].s = out[leg].s.map(|s| s * k);
+        }
+    }
+}
+
+/// How much of a gear leg still shows at `gear_up` (eased, 0 once stowed).
+fn gear_showing(gear_up: f64) -> f64 {
+    let u = gear_up.clamp(0.0, 1.0);
+    1.0 - u * u * (3.0 - 2.0 * u)
 }
 
 /// Each track's link offset, in links, for the material's scroll: `[left, right]`.

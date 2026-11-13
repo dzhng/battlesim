@@ -10,8 +10,9 @@ use serde::{Deserialize, Serialize};
 use sim::publication::reader::{FallenBody, KnownProp, Observation, Reader, Shared};
 
 use crate::effects::cook_offs::{CookOffs, PlacedModel};
+use crate::effects::exhaust::DrawnJet;
 use crate::effects::frame::{EffectBatch, EffectFrame, EFFECT_FLOATS};
-use crate::effects::high_air_shadow::{high_air_ground_shadow, GroundShadow};
+use crate::effects::high_air_shadow::GroundShadow;
 use crate::effects::launches::Launch;
 use crate::effects::lights::CastLights;
 use crate::effects::publication::{EffectFeed, EffectPublication};
@@ -54,6 +55,7 @@ use crate::world::{
     bounds_size, Appearance, BattleInput, Bounds, Trs, UnitsSection, Vec3, WorldInput,
 };
 
+mod aircraft;
 mod cameras;
 mod picks;
 mod probe;
@@ -165,6 +167,8 @@ struct Loaded {
     transits: TransitHistory,
     pieces: Vec<PlacedModel>,
     shadows: Vec<GroundShadow>,
+    /// This frame's running jets, for their exhaust.
+    jets: Vec<DrawnJet>,
     indoor: Vec<f64>,
     allied: Vec<f64>,
     sound: Option<(EffectPublication, Vec<Launch>)>,
@@ -502,6 +506,7 @@ impl Presentation {
             transits: TransitHistory::default(),
             pieces: Vec::new(),
             shadows: Vec::new(),
+            jets: Vec::new(),
             indoor: Vec::new(),
             allied: Vec::new(),
             sound: None,
@@ -1003,6 +1008,7 @@ impl Loaded {
             transits,
             pieces,
             shadows,
+            jets,
             indoor,
             allied,
             shadow_fall,
@@ -1016,33 +1022,9 @@ impl Loaded {
         let rotors = drawn.rotors();
         let side: &str = &input.side;
         let height = |x: f64, y: f64| ground.map_or(0.0, |g| g.source.grid.height(x, y));
-        // Edge transits are own-side aircraft records reconstructed from the
-        // publication, drawn as a live aircraft of their kind is.
         let transit_poses = transits.tracks(time * input.tick_hz, input.tick_hz, &units.transit);
-        let flying = poses
-            .vehicles
-            .iter()
-            .filter(|v| v.airborne)
-            .map(|v| (&*v.kind, &*v.side, v.unit, v.position, v.yaw))
-            .chain(
-                transit_poses
-                    .iter()
-                    .map(|t| (&*t.kind, side, 0.0, t.position, t.heading)),
-            );
-        let style = effects.presentation().high_air_shadow;
-        shadows.clear();
-        shadows.extend(
-            flying
-                .filter(|(kind, ..)| units.types.get(*kind).is_some_and(|t| t.high_air()))
-                .filter_map(|(kind, on, unit, at, yaw)| {
-                    let name = units.resolve(kind, on, unit, 0, None, None)?;
-                    let Some(Appearance::Articulated { plan, .. }) = units.appearances.get(name)
-                    else {
-                        return None;
-                    };
-                    Some(high_air_ground_shadow(at, yaw, *plan, height, &style))
-                }),
-        );
+        aircraft::high_air_shadows(effects, poses, &transit_poses, units, side, ground, shadows);
+        aircraft::observe_jets(effects, drawn, time, jets);
         let wind = ground.map(|g| &g.biome.wind);
         effects.build(time, batch, Some(drawn), &rotors, shadows, wind);
         let counts = effects.counts(time, batch);

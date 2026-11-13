@@ -6,13 +6,16 @@
 //!   clip and kick, found only for the muzzles asked after (a frame's live
 //!   flashes) and kept for the frame;
 //! - its rotors: each one's hub, axis, blades and the angle it turned since
-//!   the last drawn frame, from which the effects draw its blur.
+//!   the last drawn frame, from which the effects draw its blur;
+//! - a running jet's nozzles, wingtips and wing-top sheet points, and its
+//!   tail's way, from which the effects draw its glow, flame and trails.
 use std::collections::HashMap;
 use std::sync::Arc;
 
 use super::articulation::articulate;
 use super::pose::{Articulation, PoseFrame, SoldierPose, VehiclePose};
 use super::skin::{drawn_worlds, mul, node_worlds, trs, Mat4};
+use crate::effects::exhaust::{DrawnJet, Emitter, JetExhaustStyle};
 use crate::effects::{DrawnRotor, Mast, MuzzleSource};
 use crate::seed::side_key;
 use crate::world::{Appearance, Trs, UnitsSection, Vec3};
@@ -263,6 +266,65 @@ impl DrawnModels {
             }
         }
         out
+    }
+
+    /// Each running jet of this frame whose appearance has an airframe in
+    /// `style`, into `out`: its nozzles, wingtips and sheet points (by the
+    /// shared `wing_sheet_rule`) where its model draws them, its whole-model
+    /// lean included. A downed airframe's engines are out.
+    pub fn jets(&mut self, style: &JetExhaustStyle, out: &mut Vec<DrawnJet>) {
+        out.clear();
+        for v in self.vehicles.iter().filter(|v| v.airborne && !v.downed) {
+            let Some(name) = self.units.resolve(&v.kind, &v.side, v.unit, 0, None, None) else {
+                continue;
+            };
+            let (Some(frame), Some(cruise_mps)) = (
+                style.airframes.get(name),
+                self.units.types.get(&*v.kind).and_then(|t| t.cruise_mps),
+            ) else {
+                continue;
+            };
+            let Some(Appearance::Articulated { nodes, .. }) = self.units.appearances.get(name)
+            else {
+                continue;
+            };
+            self.locals.clear();
+            self.locals.extend(nodes.iter().map(|n| n.bind));
+            node_worlds(nodes, &self.locals, v.motion.as_ref(), &mut self.worlds);
+            let m = self.worlds[0];
+            let world = |p: Vec3| {
+                let [x, y, z] = p;
+                placed(
+                    v.position,
+                    v.yaw,
+                    m[0] * x + m[4] * y + m[8] * z + m[12],
+                    m[1] * x + m[5] * y + m[9] * z + m[13],
+                    m[2] * x + m[6] * y + m[10] * z + m[14],
+                )
+            };
+            let nozzles = frame.nozzles.iter().map(|n| {
+                let kind = Emitter::Nozzle { radius: n.radius_m };
+                (kind, world(n.at))
+            });
+            let tips = frame
+                .wingtips
+                .iter()
+                .map(|t| (Emitter::Wingtip, world(t.at)));
+            let sheet = frame
+                .sheet(&style.wing_sheet_rule)
+                .into_iter()
+                .map(|p| (Emitter::Sheet, world(p)));
+            out.push(DrawnJet {
+                // As the effect publication keys it: the presented side's ids even.
+                key: side_key(v.unit, v.side == self.side).to_bits(),
+                engine: frame.engine.clone(),
+                at: v.position,
+                yaw: v.yaw,
+                aft: normalized(placed([0.0; 3], v.yaw, -m[0], -m[1], -m[2])),
+                cruise_mps,
+                emitters: nozzles.chain(tips).chain(sheet).collect(),
+            });
+        }
     }
 }
 

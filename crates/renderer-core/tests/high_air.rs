@@ -1,22 +1,23 @@
 //! Separate high air preserves model lighting, premultiplied coverage and its
-//! own depth while the single-output client still draws it with the world.
+//! own depth while the single-output client still draws it with the world,
+//! and keeps the world's effects in front of its models over them.
+#[path = "support/effects.rs"]
+mod effects;
 mod support;
 
-use presentation::light::LightSettings;
 use presentation::records::{
     Appearance, Batch, Camera, Instance as ModelInstance, Joint, View, FOG_UNITS, HIGH_PASS, NONE,
     VIEW_PASS,
 };
-use presentation::shadow::SunShadowFrame;
+use presentation::view::{Camera as Eye, View as Framed};
 use renderer_core::bundle::{Bundle, BundleSource, Coverage, Draw, Material, Mesh, Node, Shape};
+use renderer_core::effects::EffectsResources;
 use renderer_core::environment::Environment;
 use renderer_core::fog::Fog;
 use renderer_core::high_air::HighAir;
 use renderer_core::models::{Models, Surface};
 use renderer_core::pipelines;
 use renderer_core::post;
-use renderer_core::shadow::ShadowResources;
-use renderer_core::sky::Sky;
 use renderer_core::Targets;
 use std::sync::Arc;
 use wgpu::*;
@@ -199,48 +200,19 @@ fn world_pixels(gpu: &support::Gpu, targets: &Targets, models: &Models) -> Vec<[
     read(&gpu.device, &gpu.queue, &targets.display_texture, encoder)
 }
 
-#[test]
-fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
-    let gpu = support::gpu().expect("real GPU");
-    let pipelines = pipelines::build_builtin(&gpu.device).unwrap();
-    let targets = Targets::new(&gpu.device, SIZE);
-    let game: serde_json::Value =
-        serde_json::from_str(include_str!("../../../fixtures/presentation.json")).unwrap();
-    let mut light: LightSettings = serde_json::from_value(game["light"].clone()).unwrap();
-    light.bloom.strength = 0.;
-    let cold = SunShadowFrame::cold(&light);
-    let shadow = ShadowResources::new(
-        &gpu.device,
-        &gpu.queue,
-        &pipelines,
-        16,
-        bytemuck::bytes_of(&cold.receiver),
-    );
-    let sky = Sky::new(&gpu.device, &gpu.queue, &pipelines, &light.sky());
-    let mut environment = Environment::new(
-        &gpu.device,
-        &gpu.queue,
-        &pipelines,
-        &sky.lut,
-        &light.sun(),
-        &light.aerial(),
-        &shadow,
-    );
-    environment.prepare(
-        &gpu.queue,
-        &View {
-            view: IDENTITY,
-            projection: IDENTITY,
-            eye: [0., 0., 1., 0.],
-            ..Default::default()
-        },
-        &Camera {
-            view_proj: IDENTITY,
-            width: SIZE[0] as f32,
-            height: SIZE[1] as f32,
-            ..Default::default()
-        },
-    );
+/// What a high-air frame draws with, seen as `view` and `camera`.
+struct Stage {
+    pipelines: pipelines::Pipelines,
+    targets: Targets,
+    environment: Environment,
+    fog: Fog,
+    post: post::PostResources,
+    models: Models,
+    effects: EffectsResources,
+}
+
+fn stage(gpu: &support::Gpu, view: &View, camera: &Camera) -> Stage {
+    let (pipelines, targets, environment, effects, light) = effects::stage(gpu, SIZE, view, camera);
     let fog = Fog::new(&gpu.device, &gpu.queue, &pipelines, &targets);
     let post = post::new(
         &gpu.device,
@@ -256,7 +228,7 @@ fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
         lies: NONE,
         ..Default::default()
     }];
-    let mut models = Models::from_world(
+    let models = Models::from_world(
         &gpu.device,
         &gpu.queue,
         &pipelines,
@@ -267,6 +239,43 @@ fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
         |_, _| None,
     )
     .unwrap();
+    Stage {
+        pipelines,
+        targets,
+        environment,
+        fog,
+        post,
+        models,
+        effects,
+    }
+}
+
+#[test]
+fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
+    let gpu = support::gpu().expect("real GPU");
+    let Stage {
+        pipelines,
+        targets,
+        environment,
+        fog,
+        post,
+        mut models,
+        effects,
+    } = stage(
+        &gpu,
+        &View {
+            view: IDENTITY,
+            projection: IDENTITY,
+            eye: [0., 0., 1., 0.],
+            ..Default::default()
+        },
+        &Camera {
+            view_proj: IDENTITY,
+            width: SIZE[0] as f32,
+            height: SIZE[1] as f32,
+            ..Default::default()
+        },
+    );
     models.set_high_apart(true);
     prepare(&mut models, &gpu, true);
     assert_eq!(
@@ -312,7 +321,7 @@ fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
         models.draw(&mut pass, Surface::Solid);
     }
     post.encode(&mut encoder, post::PostMode::Look);
-    high.encode(&mut encoder, &targets, &environment, &models, &fog, &post);
+    high.encode(&mut encoder, &environment, &models, &fog, &effects, &post);
     let pixels = read(&gpu.device, &gpu.queue, high.texture(), encoder);
     let submitted = models.submissions.snapshot();
     assert_eq!(submitted.depth.models_including_props.triangles, 1);
@@ -351,7 +360,7 @@ fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
     );
     prepare(&mut models, &gpu, false);
     let mut encoder = gpu.device.create_command_encoder(&Default::default());
-    high.encode(&mut encoder, &targets, &environment, &models, &fog, &post);
+    high.encode(&mut encoder, &environment, &models, &fog, &effects, &post);
     let pixels = read(&gpu.device, &gpu.queue, high.texture(), encoder);
     assert!(
         pixels.iter().all(|pixel| *pixel == [0; 4]),
@@ -479,5 +488,140 @@ fn model_suppression_preserves_static_props_and_buildings() {
             .models_including_props
             .triangles,
         2
+    );
+}
+
+/// A jet's nozzle glow in front of the jet stays over it in the separate
+/// high-air output, as it does when one output draws both; a glow behind the
+/// jet stays hidden, and none shows where the plane has no model.
+#[test]
+fn effects_in_front_of_high_air_stay_over_it() {
+    let gpu = support::gpu().expect("real GPU");
+    // Looking straight down on the high-air model (+x of the world one).
+    let eye = Eye {
+        eye: [0.5, 0., 4.],
+        target: [0.5, 0., 0.],
+        up: [0., 1., 0.],
+        fov_y: 0.6,
+        near: 0.1,
+        size: SIZE,
+    };
+    let framed = Framed::new(&eye);
+    let Stage {
+        pipelines,
+        targets,
+        environment,
+        fog,
+        post,
+        mut models,
+        mut effects,
+    } = stage(&gpu, &framed.record(&eye), &framed.camera(&eye, 0.));
+    models.set_high_apart(true);
+    prepare(&mut models, &gpu, true);
+    let high = HighAir::new(&gpu.device, &pipelines, &targets);
+    // Glows (shape 1): middle and radius, turn and least size, light.
+    let glow = |at: [f32; 3]| {
+        [
+            at[0], at[1], at[2], 0.15, 0., 0., 0., 0., 6., 3., 1., 0., 1., 0., 0., 0.,
+        ]
+    };
+    let mut frame = |glows: &[[f32; 3]]| {
+        let records: Vec<f32> = glows.iter().flat_map(|&at| glow(at)).collect();
+        effects.prepare(&gpu.device, &gpu.queue, bytemuck::cast_slice(&records));
+        let mut encoder = gpu.device.create_command_encoder(&Default::default());
+        post.encode(&mut encoder, post::PostMode::Look);
+        high.encode(&mut encoder, &environment, &models, &fog, &effects, &post);
+        read(&gpu.device, &gpu.queue, high.texture(), encoder)
+    };
+    let middle = (SIZE[1] / 2 * SIZE[0] + SIZE[0] / 2) as usize;
+    // 0.8 m to the side at the front glow's distance: off every model.
+    let aside = (SIZE[1] / 2 * SIZE[0] + SIZE[0] / 2 + 27) as usize;
+    let bare = frame(&[]);
+    assert_eq!(bare[middle][3], 255, "the high-air model is in the middle");
+    assert_eq!(bare[aside], [0; 4], "nothing beside it");
+    let front = frame(&[[0.5, 0., 1.], [1.3, 0., 1.]]);
+    let light = |p: [u8; 4]| p[..3].iter().map(|&v| u32::from(v)).sum::<u32>();
+    assert!(
+        light(front[middle]) > light(bare[middle]) + 60,
+        "a glow in front of the model is covered by it: {:?} vs {:?}",
+        front[middle],
+        bare[middle]
+    );
+    assert_eq!(front[middle][3], 255);
+    assert_eq!(
+        front[aside], [0; 4],
+        "a glow off the model drew into the plane"
+    );
+    let behind = frame(&[[0.5, 0., -0.5]]);
+    assert!(
+        behind[middle]
+            .iter()
+            .zip(&bare[middle])
+            .all(|(a, b)| a.abs_diff(*b) <= 1),
+        "a glow behind the model shows through it: {:?} vs {:?}",
+        behind[middle],
+        bare[middle]
+    );
+}
+
+/// An engine's black smoke in front of a jet in the separate high-air plane
+/// darkens the jet there, as it would in one output; behind it, it does not.
+#[test]
+fn black_smoke_in_front_of_high_air_darkens_it() {
+    let gpu = support::gpu().expect("real GPU");
+    let eye = Eye {
+        eye: [0.5, 0., 4.],
+        target: [0.5, 0., 0.],
+        up: [0., 1., 0.],
+        fov_y: 0.6,
+        near: 0.1,
+        size: SIZE,
+    };
+    let framed = Framed::new(&eye);
+    let Stage {
+        pipelines,
+        targets,
+        environment,
+        fog,
+        post,
+        mut models,
+        mut effects,
+    } = stage(&gpu, &framed.record(&eye), &framed.camera(&eye, 0.));
+    models.set_high_apart(true);
+    prepare(&mut models, &gpu, true);
+    let high = HighAir::new(&gpu.device, &pipelines, &targets);
+    // An engine's billow (shape 2, misc.w 1), near black and dense,
+    // softening into what it meets over 5 cm (it is 70 cm in front).
+    let puff = |z: f32| {
+        [
+            0.5f32, 0., z, 0.15, 0., 3., 1., 0.05, 0.035, 0.035, 0.035, 1.0, 2., 10., 1., 1.,
+        ]
+    };
+    let mut frame = |puffs: &[f32]| {
+        effects.prepare(&gpu.device, &gpu.queue, bytemuck::cast_slice(puffs));
+        let mut encoder = gpu.device.create_command_encoder(&Default::default());
+        post.encode(&mut encoder, post::PostMode::Look);
+        high.encode(&mut encoder, &environment, &models, &fog, &effects, &post);
+        read(&gpu.device, &gpu.queue, high.texture(), encoder)
+    };
+    let middle = (SIZE[1] / 2 * SIZE[0] + SIZE[0] / 2) as usize;
+    let light = |p: [u8; 4]| p[..3].iter().map(|&v| u32::from(v)).sum::<u32>();
+    let bare = frame(&[]);
+    assert_eq!(bare[middle][3], 255, "the high-air model is in the middle");
+    let front = frame(&puff(1.0));
+    assert!(
+        light(front[middle]) < light(bare[middle]) / 2,
+        "black smoke in front darkens the jet: {:?} vs {:?}",
+        front[middle],
+        bare[middle]
+    );
+    assert_eq!(front[middle][3], 255, "and leaves its coverage");
+    let behind = frame(&puff(-0.5));
+    assert!(
+        behind[middle]
+            .iter()
+            .zip(&bare[middle])
+            .all(|(a, b)| a.abs_diff(*b) <= 1),
+        "smoke behind the jet does not show through it"
     );
 }
