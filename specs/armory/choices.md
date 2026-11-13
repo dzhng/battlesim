@@ -415,3 +415,57 @@ needs-user).
   non-gear part lies on the ground. Four skid helicopters (AH-1Z, AH-6M,
   MH-6M, UH-1Y) rest on their `hull` node, because their skids are modelled
   in it, which is the rule this slice set for skids. *Sound.*
+
+## Slice 10
+
+- **The yard names prop kinds, and the art load gets scenery appearance names
+  from the runtime catalog** (`yardScenery(doc, props, catalog)`). It keeps
+  every scenery appearance whose kind draws a yard prop, through
+  `propsDrawnBy`. Why: a prop kind and its art's name differ
+  (`crate` → `crate_stack`, `tooth` → `dragon_tooth`), and only the art
+  catalog knows the names. Alternative: author appearance names in
+  `yard.json`, a second copy of the catalog's mapping. *Sound.*
+- **The lab reads `/catalog.json` once before its art load** to get those
+  names. *Provisional:* slice 11 can read the catalog through
+  `ArmoryAppearances`' own fetch, so `library.load` reuses the bytes.
+- **`yardModels(doc, props, installed)` takes the prop catalog** (the sketch
+  had `(doc, installed)`), because mapping a kind to its scenery is the prop
+  catalog's job. Each prop is drawn by the first installed static appearance
+  of no region whose kind draws it, at its authored size. Catalog props carry
+  no size, and the art's footprint is the box it is authored to. A modular
+  prop (sandbags, barriers, fence) is one module per entry. *Sound.*
+- **`Spot` is `SpotPlace` plus its `id`. `CameraPose` is an orbit (target,
+  distance, pitch, yaw); the lens is the game camera's.** *Sound.*
+- **`ground.half_m` is how far the ground reaches** (250 m, as far as the
+  bench's). **`plainWorld(tint?, reach?)` is the one plain flat world**, used
+  by the facade lab, the showcase and the yard. `benchGround` lost its
+  `marked` flag, because `plainGround` now draws the unmarked ground.
+  *Sound.*
+- **`admitYard` checks the document's shape and that every body names a
+  spot**, as `fixtures/README.md` asks of authored data. The layout rules
+  (the props' kinds, the clear discs, the fit) are the tests'. *Sound.*
+- **`ShowcaseStage` takes `models`**: static models standing round the unit,
+  drawn from the stage's appearances. Slice 11 moves `appearances` to
+  `show`, and the yard's art is in every selection, so the models still
+  resolve. *Sound.*
+- **In yard mode the lab still loads art through the shared game library**
+  (`useGameAppearances`), not `ArmoryAppearances`; slice 11 moves it. Its
+  default picks add the first fixed-wing type, so the jet is checked too.
+  *Provisional.*
+- **Layout.**
+  - Three spots on one ground: the motor pool at the origin, the apron 48 m
+    east, the tents 34 m west.
+  - The clear radii are 8, 15 and 9 m, sized by the largest body each takes:
+    6.4 m (S-300), 13.8 m (Su-34), and about 6 m for a squad's scatter.
+  - Each spot's dressing stands on a ring behind and beside its camera's
+    line of sight, kept inside the middle three fifths of the frame, which
+    the Armory's panels leave visible.
+  - The ground is a dusty khaki.
+
+  *Provisional:* the human judges the composition.
+- **References are real photos only.** WARNO and Broken Arrow armory screens
+  are not stored, because they are not freely licensed; the chosen mock
+  (`assets/mock/a-tank.png`) stands in for the genre's framing. *Sound.*
+- **The scene's dressing check covers each spot's own props** (within its
+  clear disc plus 10 m). The other spots' props lie outside the camera's view
+  and are culled. *Sound.*

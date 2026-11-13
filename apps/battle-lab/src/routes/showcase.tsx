@@ -3,12 +3,15 @@
 // idle life is judged as the Armory will show it. The three are chosen by
 // property, never by id: the first tracked hull, the first rotorcraft and the
 // first squad with a special mount. `?unit=` shows one kind alone,
-// `?faction=` the look it wears. Probes for `web/scenes/showcase.mjs` hang on
-// `window.__showcase`.
+// `?faction=` the look it wears, and `?yard=1` stands each unit on its spot in
+// the Armory's yard (`armory/yard.ts`), seen from the spot's camera. Probes
+// for `web/scenes/showcase.mjs` hang on `window.__showcase`.
 import { useEffect, useMemo, useRef, useState } from "react";
+import { countedFetch } from "@web/downloads";
 import { mat4, vec3, type Vec3 } from "math";
 import { FACTIONS, type Faction, type UnitCatalog } from "@packages/scene-assets/src/units";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
+import type { RuntimeCatalog } from "@packages/scene-assets/src/schema";
 import {
   createProjectedPoint,
   projectPoint,
@@ -27,6 +30,7 @@ import {
 import { gameSounds } from "@packages/battle-audio/src/shippedSounds";
 import type { IdleLoop } from "@packages/battle-audio/src/soundFrame";
 import type { WorldLayers } from "@packages/battle-renderer/src/scene";
+import type { LabModel } from "@web/battle/sim/presentationModels";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import {
   ShowcaseStage,
@@ -44,8 +48,9 @@ import { gameFogStyle } from "../gameFog";
 import { gameOverlayGlow, gamePaint, gameXrayMinHiddenFragmentFraction } from "../gameOverlay";
 import { gameModelDetail } from "../gameModels";
 import { presentedCamera } from "../presentedFrame";
-import { benchGround, benchWorld, flatTerrain } from "../workbench/benchWorld";
+import { plainWorld } from "../workbench/benchWorld";
 import { parkedAircraft } from "../showcaseAircraft";
+import { spotFor, yard, yardModels, yardScenery, type Spot } from "../armory/yard";
 import type { Showground } from "@wasm/game_wasm.js";
 
 /** The battle seed squads stand as. */
@@ -62,25 +67,30 @@ const LOOK: StageLook = {
   overlayGlow: gameOverlayGlow,
 };
 
-/** Plain level ground, one colour, shadows read on it. */
-const WORLD: WorldLayers = { ...benchWorld(null), terrain: flatTerrain(benchGround(false)) };
+/** Plain level ground, one colour, shadows read on it; or the yard's. */
+const WORLD = plainWorld();
+const YARD_WORLD = plainWorld(yard.ground.tint, yard.ground.half_m);
 
 /** The kinds the lab shows by default, each the first of the catalog's
- *  types with a property. */
-function propertyPicks(units: UnitCatalog): string[] {
+ *  types with a property; in the yard, a fixed-wing aircraft besides. */
+function propertyPicks(units: UnitCatalog, inYard: boolean): string[] {
   const types = units.view.units;
+  const flies = (t: (typeof types)[number], flight: string) =>
+    "air" in t.mobility && t.mobility.air.flight === flight;
   const picks = [
     types.find((t) => "tracked" in t.mobility && "hull" in t.body),
-    types.find((t) => "air" in t.mobility && t.mobility.air.flight === "rotor"),
+    types.find((t) => flies(t, "rotor")),
+    inYard ? types.find((t) => flies(t, "fixed_wing")) : undefined,
     types.find((t) => "squad" in t.body && t.mounts.some((m) => m.special)),
   ];
   return picks.filter((t) => t !== undefined).map((t) => t.id);
 }
 
-/** Where a panel's camera starts: a little above an aircraft's side, its
- *  rotors in frame; 30° above a squad, its spread in frame; a
- *  three-quarter view of a hull. */
-function opening(units: UnitCatalog, kind: string): Camera3DParams {
+/** Where a panel's camera starts: in the yard, its spot's camera; else a
+ *  little above an aircraft's side, its rotors in frame; 30° above a squad,
+ *  its spread in frame; a three-quarter view of a hull. */
+function opening(units: UnitCatalog, kind: string, spot: Spot | null): Camera3DParams {
+  if (spot) return { ...gameCamera.lens, ...spot.camera };
   const hull = units.hull(kind);
   const air = "air" in units.type(kind).mobility;
   // A squad stands scattered over about twelve metres; a hull's gun can
@@ -122,12 +132,28 @@ export default function Showcase() {
   const search = new URLSearchParams(window.location.search);
   const asked = search.get("unit");
   const faction: Faction = FACTIONS.find((f) => f === search.get("faction")) ?? FACTIONS[0];
+  const inYard = search.get("yard") === "1";
   const kinds = useMemo(
-    () => (asked && units.has(asked) ? [asked] : propertyPicks(units)),
-    [asked, units],
+    () => (asked && units.has(asked) ? [asked] : propertyPicks(units, inYard)),
+    [asked, units, inYard],
   );
   const factions = useMemo(() => new Set<string>([faction]), [faction]);
-  const installed = useGameAppearances(undefined, kinds, factions, null);
+  const scenery = useYardScenery(inYard, units.view.props);
+  // In the yard, the art waits for the yard's scenery names.
+  const installed = useGameAppearances(
+    scenery === undefined ? null : undefined,
+    kinds,
+    factions,
+    scenery ?? null,
+  );
+  const models = useMemo(
+    () => (inYard && installed ? yardModels(yard, units.view.props, installed) : []),
+    [inYard, installed, units],
+  );
+  const spots = useMemo(
+    () => new Map(kinds.map((k) => [k, inYard ? spotFor(yard, units.type(k)) : null])),
+    [inYard, kinds, units],
+  );
   const [showground, setShowground] = useState<Showground | null>(null);
   const rules = useMemo(() => JSON.stringify(catalog.rules), [catalog]);
   useEffect(() => {
@@ -175,36 +201,71 @@ export default function Showcase() {
       carried: (kind: string) =>
         units.type(kind).mounts.map((m) => [...(m.operator_appearance?.carried ?? [])]),
       parkedAircraft: () => parkedAircraft(units, factions),
+      spot: (kind: string) => spots.get(kind) ?? null,
+      yardModels: () => models.map((m) => ({ name: m.appearance, at: [m.x, m.y] })),
     };
-  }, [kinds, installed, units, factions]);
+  }, [kinds, installed, units, factions, spots, models]);
 
   if (!installed || !showground) return <div className="lab-panel">Loading units…</div>;
   return (
     <div className="showcase-lab" data-testid="showcase-lab">
-      {kinds.map((kind) => (
-        <ShowcasePanel
-          key={`${kind}:${faction}`}
-          kind={kind}
-          faction={faction}
-          camera={opening(units, kind)}
-          installed={installed}
-          fielding={fielding}
-          showground={showground}
-        />
-      ))}
+      {kinds.map((kind) => {
+        const spot = spots.get(kind) ?? null;
+        return (
+          <ShowcasePanel
+            key={`${kind}:${faction}`}
+            kind={kind}
+            faction={faction}
+            spot={spot}
+            camera={opening(units, kind, spot)}
+            world={inYard ? YARD_WORLD : WORLD}
+            models={models}
+            installed={installed}
+            fielding={fielding}
+            showground={showground}
+          />
+        );
+      })}
     </div>
   );
+}
+
+/** The yard's scenery appearance names, read from the runtime catalog: null
+ *  outside the yard, undefined until read. */
+function useYardScenery(
+  inYard: boolean,
+  props: UnitCatalog["view"]["props"],
+): ReadonlySet<string> | null | undefined {
+  const [names, setNames] = useState<ReadonlySet<string> | undefined>();
+  useEffect(() => {
+    if (!inYard) return;
+    let live = true;
+    void countedFetch("/catalog.json")
+      .then((response) => {
+        if (!response.ok) throw new Error(`runtime catalog: HTTP ${response.status}`);
+        return response.json() as Promise<RuntimeCatalog>;
+      })
+      .then((catalog) => live && setNames(yardScenery(yard, props, catalog)), refuse);
+    return () => {
+      live = false;
+    };
+  }, [inYard, props]);
+  return inYard ? names : null;
 }
 
 function ShowcasePanel(props: {
   kind: string;
   faction: Faction;
+  /** Where it stands in the yard; null: at the origin, on plain ground. */
+  spot: Spot | null;
   camera: Camera3DParams;
+  world: WorldLayers;
+  models: readonly LabModel[];
   installed: InstalledAppearances;
   fielding: StageFielding;
   showground: Showground;
 }) {
-  const { kind, faction, installed, fielding, showground } = props;
+  const { kind, faction, spot, world, models, installed, fielding, showground } = props;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const orbit = useRef(props.camera);
   useEffect(() => {
@@ -225,8 +286,9 @@ function ShowcasePanel(props: {
       const made = await ShowcaseStage.create({
         gpu,
         canvas,
-        world: WORLD,
+        world,
         appearances: installed,
+        models,
         fielding,
         showground,
         look: LOOK,
@@ -234,7 +296,8 @@ function ShowcasePanel(props: {
       });
       if (!live) return made.dispose();
       stage = made;
-      const loops = await made.show({ kind, faction, at: [0, 0, 0], yaw: 0 }, SEED);
+      const [x, y] = spot?.at ?? [0, 0];
+      const loops = await made.show({ kind, faction, at: [x, y, 0], yaw: spot?.yaw ?? 0 }, SEED);
       if (!live) return;
       panels.set(kind, { kind, stage: made, canvas, camera, orbit: () => orbit.current, loops });
       const start = performance.now();
@@ -251,7 +314,7 @@ function ShowcasePanel(props: {
       panels.delete(kind);
       stage?.dispose();
     };
-  }, [kind, faction, installed, fielding, showground]);
+  }, [kind, faction, spot, world, models, installed, fielding, showground]);
 
   const drag = useRef<[number, number] | null>(null);
   return (

@@ -103,7 +103,9 @@ installs previews through the same appearance loader used by battles. The
 Armory keeps [its own residency](src/armory/armoryAppearances.ts): a library per
 selection, holding the yard and the one unit on show, so browsing every unit
 never fills the page's shared library. Its failures stay with the caller and
-never refuse the page.
+never refuse the page. [The yard](src/armory/yard.ts) is presentation data
+the simulation never admits. A unit's body picks its spot, and each prop is
+drawn by its catalog art.
 
 ## Observation feeds
 
