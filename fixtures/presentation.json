@@ -307,8 +307,8 @@
       "return_s": 0.28
     },
     "hull_kick": {
-      "rock_deg": 4.5,
-      "slide_m": 0.06,
+      "rock_deg": 2.25,
+      "slide_m": 0.03,
       "hz": 1.4,
       "damping": 0.28
     },
