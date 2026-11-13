@@ -93,9 +93,8 @@ pub struct SmokeLook {
     pub height: [f64; 2],
     /// How far a puff fades into what it meets, metres.
     pub soft_m: f64,
-    /// The library sound its pop plays (`sound::tables::SoundTables::smoke_pops`);
-    /// none pops silently.
-    pub sound: Option<String>,
+    /// The library sound its pop plays (`sound::tables::SoundTables::smoke_pops`).
+    pub sound: String,
 }
 
 impl SmokeLook {

@@ -41,9 +41,7 @@ impl SmokePops {
             }
             self.voiced.insert(c.id, c.clone());
             let key = Key::new().text("smoke").num(f64::from(c.id));
-            if let Some(sound) = tables.smoke_pops.get(&c.spec.look) {
-                pops.push((sound.clone(), c.centre, key));
-            }
+            pops.push((tables.smoke_pops[&c.spec.look].clone(), c.centre, key));
         }
         pops
     }

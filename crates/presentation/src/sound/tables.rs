@@ -289,7 +289,7 @@ pub struct SoundTables {
     pub catalog: SoundCatalog,
     pub looks: crate::looks::WeaponLooks,
     /// Each smoke screen look's pop (`presentation.smoke_looks.<look>.sound`),
-    /// by look; a look without one pops silently.
+    /// by look.
     pub smoke_pops: BTreeMap<String, String>,
 }
 
@@ -333,8 +333,7 @@ impl SoundTables {
         let smoke_looks: BTreeMap<String, crate::effects::tables::SmokeLook> =
             crate::settings::read(&presentation["smoke_looks"], "presentation.smoke_looks")?;
         let mut smoke_pops = BTreeMap::new();
-        for (look, row) in smoke_looks {
-            let Some(sound) = row.sound else { continue };
+        for (look, crate::effects::tables::SmokeLook { sound, .. }) in smoke_looks {
             let at = format!("presentation.smoke_looks.{look}.sound");
             match catalog.sounds.get(&sound) {
                 None => return Err(format!("{at}: unknown sound {sound}")),

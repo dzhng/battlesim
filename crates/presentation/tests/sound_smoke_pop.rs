@@ -1,8 +1,9 @@
 //! A smoke screen's pop, as a side hears it (`specs/smoke-screen`, slice 10):
 //! a side that sees a cloud while it blooms hears its pop once, at the cloud;
 //! a side that first sees it later never hears it; and a side always hears
-//! its own unit's pop. A pop naming a sound the library lacks is refused
-//! before a battle. Every number is the test catalog's and the shipped mix's.
+//! its own unit's pop. A look naming no pop sound, or one the library lacks,
+//! is refused before a battle. Every number is the test catalog's and the
+//! shipped mix's.
 use contract::smoke::SmokeCloud;
 use presentation::effects::publication::{EffectFeed, EffectPublication};
 use presentation::sound::frame::{Command, Heard, Listener, Motion, Sound, Voice};
@@ -40,10 +41,7 @@ fn sound() -> Sound {
 /// The sound a cloud's look pops with.
 fn pop_sound(cloud: &SmokeCloud) -> String {
     let look = &fixture("presentation.json")["smoke_looks"][&cloud.spec.look];
-    look["sound"]
-        .as_str()
-        .expect("a shipped look has a pop")
-        .into()
+    look["sound"].as_str().unwrap().into()
 }
 
 /// The cloud the test smoke tank pops: cloud `id`, at `centre`, on `tick`.
@@ -237,22 +235,37 @@ fn a_side_always_hears_its_own_units_pop() {
     assert_eq!(pops[0].position, Some(own.centre), "heard at its cloud");
 }
 
-#[test]
-fn a_pop_naming_a_sound_the_library_lacks_is_refused_before_a_battle() {
+/// The sound tables' refusal of the shipped presentation with its first
+/// smoke look's row changed by `edit`, and that look's name.
+fn refusal(edit: impl Fn(&mut Value)) -> (String, String) {
     let game = fixture("rules.json");
     let mut presentation = fixture("presentation.json");
     let looks = presentation["smoke_looks"].as_object_mut().unwrap();
     let look = looks.keys().next().unwrap().clone();
-    looks[&look]["sound"] = json!("no-such-sound");
+    edit(&mut looks[&look]);
     let error = presentation::sound::tables::SoundTables::from_parts(
         fixture("audio.json"),
         fixture("sounds.json"),
         &presentation,
         &game["weapons"],
     )
-    .expect_err("an unknown pop sound is refused");
+    .expect_err("the look's pop is refused");
+    (error, look)
+}
+
+#[test]
+fn a_pop_naming_a_sound_the_library_lacks_is_refused_before_a_battle() {
+    let (error, look) = refusal(|row| row["sound"] = json!("no-such-sound"));
     assert!(
         error.contains(&format!("smoke_looks.{look}.sound")),
         "{error}"
     );
+}
+
+#[test]
+fn a_look_without_a_pop_sound_is_refused_before_a_battle() {
+    let (error, _) = refusal(|row| {
+        row.as_object_mut().unwrap().remove("sound");
+    });
+    assert!(error.contains("sound"), "{error}");
 }
