@@ -354,7 +354,11 @@ function ownWeaponRow(mounts: readonly MountRow[], m: MountView, rules: PanelRul
 /** Distinguish physical guns by their authored labels. A lone gun uses its
  *  weapon's label; twins use their mounts' labels, or stable ordinals when
  *  those repeat. */
-function equipmentName(mounts: readonly MountRow[], index: number, rules: PanelRules): string {
+export function equipmentName(
+  mounts: readonly MountRow[],
+  index: number,
+  rules: Pick<PanelRules, "weapons">,
+): string {
   const mount = mounts[index];
   const short =
     mount.weapons.length === 1
