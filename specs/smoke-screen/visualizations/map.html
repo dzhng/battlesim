@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Smoke screen: the four-quadrant map</title>
+<style>
+  body{margin:0;font:13px/1.5 var(--font-sans,system-ui)}
+  h1{font-size:16px;margin:0 0 4px}
+  h2{font-size:13px;margin:18px 0 6px;text-transform:uppercase;letter-spacing:.06em}
+  p{margin:4px 0}
+  .muted{opacity:.7}
+  table{width:100%;border-collapse:collapse;font-size:12px;margin:4px 0}
+  th,td{text-align:left;vertical-align:top;padding:4px 6px;border-bottom:1px solid var(--border,#333)}
+  th{font-weight:600;opacity:.8}
+  code{font-family:var(--font-mono,monospace);font-size:11px}
+  .tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:999px;border:1px solid var(--border,#444);white-space:nowrap}
+  .you{background:var(--success-surface,transparent)}
+  .agent{background:var(--warning-surface,transparent)}
+  .open{background:var(--destructive-surface,transparent)}
+  .card{border:1px solid var(--border,#333);border-radius:var(--radius,6px);padding:8px 12px;margin:6px 0;background:var(--card,transparent)}
+  .card b{display:block;margin-bottom:2px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:8px}
+  ul{margin:4px 0;padding-left:18px}
+</style>
+</head>
+<body>
+<h1>Smoke screen: the four-quadrant map</h1>
+<p class="muted">Explore-unknowns walk, 2026-11-12. The spec in <code>specs/smoke-screen/</code> carries every decision below verbatim.</p>
+
+<h2>1 · Known knowns: settled ground</h2>
+<ul>
+  <li>A transient sight-blocking prop exists (<code>catalog/props.rs:27</code>, expiry <code>battle.rs:1845-1879</code>), but nothing creates one, no shipped row has a lifetime, and it blocks like a solid box. The smoke cloud <b>replaces</b> it.</li>
+  <li>Last contact already behaves as wanted: a fixed <code>LastSeen</code> area on the first unseen tick (<code>knowledge.rs:213</code>), 30 s, refreshed by every shot. General-purpose rounds (tank HE, HMG) keep shelling it; AP and guided rounds don't (<code>weapons.rs:296, 869</code>).</li>
+  <li>Rounds are physical (<code>flight/mod.rs:1</code>), so a unit that sits in its smoke can still be hit.</li>
+  <li>Flares are the charge template: capability, sim state, digest, resupply, publication, panel row (<code>catalog.rs:253</code>, <code>units.rs:362</code>, <code>supply.rs:84</code>, <code>panelRows.ts:94</code>).</li>
+  <li>Forest sight: reach = range × concealment × e<sup>−depth</sup>, blocked at depth 1.0 (<code>sensing.rs:99-125</code>). Forest ground concealment is 0.25 (<code>rules.json:1006</code>). In practice, forest hides a unit through that 0.25, not foliage depth.</li>
+  <li>Reverse is a player order (<code>command.rs:21</code>). Nothing reverses on its own today.</li>
+</ul>
+
+<h2>2 · Known unknowns: decision ledger</h2>
+<p class="muted">Preference summary (confirmed): realism decides trade-offs · the player decides, reflexes don't · share forest's logic unless the screen would lie · my suggested numbers are fine starting values · label each item as existing or new. Delegation scope: data-value and engineering calls in quadrants 2–4, not new mechanics, changes to who gets smoke, or anything that adds work.</p>
+<table>
+<tr><th>#</th><th>Decision</th><th>Why</th><th>Closed by</th></tr>
+<tr><td>1</td><td>Sight through smoke uses forest's reach formula: 0.2 depth per metre of the sight line inside the cloud, blocked outright after 5 m. A unit standing in smoke cuts the observer's range to 0.1×, through the same "strongest concealment wins" rule as forest ground and garrison shelter.</td><td>Shares forest's formula. A soldier right next to you still sees you.</td><td><span class="tag you">you</span></td></tr>
+<tr><td>2</td><td>Who carries smoke, authored per unit row:<br>
+- Tanks, by cost: ≤300 gets 1 charge, 301–399 gets 2, ≥400 gets 3.<br>
+- High-end IFVs get 1: T-15, Puma, CV90 Mk IV, M2A4.<br>
+- Infantry get 1: the assault squad (Europe and Eastern), US Marines and US Force Recon.</td><td>The roster has no elite field, so this is a one-time authoring pick.</td><td><span class="tag you">you</span> (IFV pick: agent)</td></tr>
+<tr><td>3</td><td>Popping smoke is a player order only. Player units never pop it on their own.</td><td>Smoke blinds you too, so a reflex would wreck an attack.</td><td><span class="tag you">you</span></td></tr>
+<tr><td>4</td><td>The AI pops smoke on a unit that is losing a fight, then reverses it out.</td><td>It plays the way you would.</td><td><span class="tag you">you</span></td></tr>
+<tr><td>5</td><td>Clouds are exact circles, never forest's 8 m grid.</td><td>The drawn cloud and the sight-blocking agree, with no second grid to keep up to date.</td><td><span class="tag agent">agent (delegated)</span></td></tr>
+<tr><td>6</td><td>The cloud is centred on the unit.<br>
+- Tank or IFV: radius 15 m, 6 m high, lasts 40 s.<br>
+- Infantry: radius 12 m, 5 m high, lasts 30 s.<br>
+- It reaches full size within 1 s and thins out over its last 10 s.<br>
+- Every number is data on the unit row.</td><td>Your picture of popping smoke and sitting in the middle of it.</td><td><span class="tag you">you</span></td></tr>
+<tr><td>7</td><td>Resupply refills charges one at a time.</td><td>The same as flares.</td><td><span class="tag you">you</span></td></tr>
+<tr><td>8</td><td>The cloud never moves. The drawn smoke swirls inside the circle.</td><td>The simulation has no wind, and drawn drift would make the screen lie.</td><td><span class="tag agent">agent</span></td></tr>
+<tr><td>9</td><td>A tank inside smoke may still fire at targets its friends have spotted, as fire already works today.</td><td>This is the existing shared-spotting rule. Every shot refreshes its last contact, so firing from smoke keeps drawing return fire.</td><td><span class="tag open">default, you may overturn</span></td></tr>
+</table>
+
+<h2>3 · Unknown knowns: taste and context</h2>
+<table>
+<tr><th>Item</th><th>Decision</th><th>Closed by</th></tr>
+<tr><td>Look</td><td>A dense white-grey billow, distinct from the grey-black smoke of wrecks.</td><td><span class="tag you">you</span></td></tr>
+<tr><td>Cloud visibility</td><td>Any side that can see where the cloud stands sees the cloud, even when it can't see the unit inside.</td><td><span class="tag you">you</span></td></tr>
+<tr><td>Charges</td><td>A "SMOKE n" row in the unit's floating panel, the same row flares use, in the warning colour at 0.</td><td><span class="tag you">you</span></td></tr>
+<tr><td>Own panel</td><td>The existing HIDDEN row lights up while the unit is in smoke.</td><td><span class="tag you">you</span></td></tr>
+<tr><td>Button</td><td>POP SMOKE next to REVERSE. Every selected unit with a charge pops one. <b>Key H</b>, not X: X already tilts the camera (<code>cameraController.ts:78</code>).</td><td><span class="tag you">you</span> + <span class="tag agent">agent (key)</span></td></tr>
+<tr><td>Sound</td><td>Tanks: discharger thump-thump, then hiss. Infantry: grenade pop and hiss. A side hears it, at the cloud, when it can see the cloud; it never creates a contact. The sound is generated with ElevenLabs through Bento (as the flare burst was), with no synthesized fallback (none is required, <code>sound/catalog/check.rs:198</code>). YouTube clips are for audition only.</td><td><span class="tag you">you</span> + <span class="tag agent">agent (source, hearing)</span></td></tr>
+<tr><td>AI's smoke</td><td>Looks and sounds exactly like yours.</td><td><span class="tag you">you</span></td></tr>
+<tr><td>Done</td><td>In the game and playable wherever units fight.</td><td><span class="tag you">you</span></td></tr>
+</table>
+
+<h2>4 · Unknown unknowns: traps found by the sweep</h2>
+<div class="grid">
+<div class="card"><b>Smoke can't be foliage cells <span class="tag agent">decided</span></b><code>foliage_depth</code> returns 0 when a map has no forest, and it only measures inside forest bounds (<code>forest.rs:302-339</code>). Artillery and SAM launch checks refuse to fire when any foliage lies on the launch path (<code>weapons.rs:532</code>).<br>→ Smoke gets its own term, the length of the sight line inside each circle, added to foliage depth in the sight paths only. Launch checks keep reading tree crowns only.</div>
+<div class="card"><b>The cloud is not a prop <span class="tag agent">decided</span></b>A prop is a box, sides remember props forever (so expired clouds would linger as ghosts), it has no birth tick, and adding one forces navigation replans and makes helicopters climb over it (<code>movement/mod.rs:206</code>, <code>air.rs:321</code>).<br>→ Smoke clouds get their own collection in the world, with a pop tick. The old transient-prop machinery (<code>lifetime_s</code>, expiries, Q28 tests) is deleted, not kept alongside.</div>
+<div class="card"><b>Fog caches miss a growing or fading cloud <span class="tag agent">decided</span></b>The simulation's fog cache only notices obstacle changes (<code>visibility.rs:55-62</code>). The GPU fog rebuilds every eye whenever foliage changes (<code>sight.rs:876</code>).<br>→ Each fog sweep is keyed on the clouds within that observer's reach. The renderer receives clouds as a list of circles and rebuilds only the eyes near a change. Fading moves in a few steps to cap rebuilds.</div>
+<div class="card"><b>Publication layout changes <span class="tag">sharp edge</span></b>Adding cloud records, a smoke-charges field and the hearing change alters a closed layout (<code>reader.rs:170</code>). That forces new browser capture runs (paris-corner, market-town) and new codec, fog and effects vectors (<code>fixtures/README.md:293</code>).<br>→ This is unavoidable. Plan the re-capture, and pull LFS first.</div>
+<div class="card"><b>Pop must not cancel the current order <span class="tag agent">decided</span></b>Settings-style orders replace the current order (<code>battle.rs:3283</code>), and queued orders get wiped.<br>→ Popping smoke is an instant state change outside the replacing path; <code>UpgradeMove</code> is the precedent. A unit without a charge ignores it silently. The AI pops smoke before ordering the reverse, because of the order rate limit.</div>
+<div class="card"><b>The AI can't tell it's losing <span class="tag agent">decided</span></b>The AI reads no hit points, and attacker memory isn't published (<code>mod.rs:889-935</code>). It also re-orders an attack 5 s later, overwriting its own reverse.<br>→ Keep an hp baseline per unit in the doctrine (friendly fire counts, which is accepted). Skip units that are reversing toward a goal. No extra random draws, so existing skirmishes don't reshuffle.</div>
+<div class="card"><b>Digests <span class="tag agent">decided</span></b>Copying flares would fold a word into every unit's digest and shift every pinned digest (<code>digest.rs:62</code>).<br>→ Fold smoke state only when the unit has smoke or clouds exist. Test units get no smoke, so pinned fixtures stay put. The digest changes for roster battles are a named decision in <code>choices.md</code>.</div>
+<div class="card"><b>Roster profiles mix in other units <span class="tag agent">decided</span></b>The light-tank profile also covers artillery, and the IFV profile also covers SAMs. Rows inherit from each other (Abrams v2 → v3 → M1E3).<br>→ Smoke is authored on each unit row, not on a profile or part, and inheritance is checked so each row ends with the intended charge count. The assault squad is Europe and Eastern only; US Marines fill that role.</div>
+<div class="card"><b>Drawn smoke won't fit a dense cloud <span class="tag agent">decided</span></b>Smoke puffs always drift downwind, share a 4096-puff budget with wreck smoke, are unsorted, and use a soft fade that may open a clear bubble around a tank (<code>smoke.rs:13</code>, <code>frame.rs:655</code>).<br>→ Add a new screen look with its own law that stays inside the circle and a budget kept apart from wreck smoke. Judge the bubble and the popping on screenshots.</div>
+<div class="card"><b>Guided missiles <span class="tag">sharp edge</span></b>Wire- and laser-guided missiles can't launch into or out of smoke, and one in flight loses guidance for good when its operator loses sight. Fire-and-forget seekers ignore smoke, and interceptors lose rounds inside it (<code>fire.rs:98-160</code>).<br>→ This emerges from existing rules with no new work. Smoke beats wire-guided missiles; a Javelin still hits.</div>
+<div class="card"><b>Squads and edges <span class="tag">sharp edge</span></b>A squad can spread wider than the 12 m cloud, and a squad is identified once 20% of its soldiers are seen (<code>sensing.rs:54</code>). A helicopter looking almost straight down may see in.<br>→ Acceptable. These are tuning, not rules.</div>
+<div class="card"><b>Resupply and refund <span class="tag agent">decided</span></b>Resupply serves smoke after replacement soldiers. Price and service time are authored on the capability, which keeps the frozen physical-rules file untouched. Refund value ignores smoke, as it ignores flares.</div>
+</div>
+
+<h2>Builder must confirm before coding</h2>
+<ul>
+  <li>Height rule: a sight line counts as inside the cloud while it is below the ground plus the cloud's height at each sample, the same rule as forest canopy.</li>
+  <li>The 8 m simulation fog sweep adds each step's exact chord through the circle, so cloud edges don't snap to cells.</li>
+  <li>Every exhaustive match the compiler forces: <code>battle.rs:1289, 1425, 1545, 3288</code>, <code>protocol.ts</code>, the <code>useUnitControl</code> describe, and <code>orderReveal</code> no-flash.</li>
+</ul>
+</body>
+</html>
