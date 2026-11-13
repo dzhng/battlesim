@@ -207,6 +207,11 @@ pub enum Order {
         gesture: u64,
         route: RoutePolicy,
     },
+    /// Each unit with a smoke charge spends one and pops a cloud where it
+    /// stands; the rest ignore it. No unit's current order changes.
+    PopSmoke {
+        units: Vec<UnitId>,
+    },
     /// Double right-click: switch the orders issued by `gesture` to `route`.
     /// A gesture whose orders have all completed is an acknowledged no-op.
     UpgradeMove {

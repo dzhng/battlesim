@@ -37,7 +37,7 @@ pub use mobility::{Arrival, FlightModel, Mobility, MAX_SPEED_KMH};
 mod sensors;
 pub use sensors::Sensors;
 mod charges;
-pub use charges::{ActiveProtection, FlareCapability};
+pub use charges::{ActiveProtection, FlareCapability, SmokeCapability};
 
 mod props;
 pub use props::{
@@ -232,6 +232,8 @@ pub struct Capabilities {
     /// bearing and range, never identifying them.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub radar_receiver: Option<RadarReceiver>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub smoke: Option<SmokeCapability>,
 }
 
 /// A hull's passenger capacity. Only the authored capacities are admitted so
@@ -1260,20 +1262,9 @@ fn check(
             return rule("body.hull.armor.ricochet needs probabilities in [0, 1] on every face");
         }
     }
-    if let Some(p) = &t.capabilities.active_protection {
-        if t.hull().is_none() {
-            return rule("active protection requires a hull");
-        }
-        if p.capacity == 0
-            || p.stock_per_charge == 0
-            || ![p.cooldown_s, p.standoff_m, p.service_s]
-                .into_iter()
-                .all(positive)
-        {
-            return rule(
-                "active protection needs finite positive timings, reach, capacity and stock price",
-            );
-        }
+    let c = &t.capabilities;
+    if let Some(Err(e)) = c.active_protection.as_ref().map(|p| p.validate(t.hull())) {
+        return rule(e);
     }
     if let Some(air) = &t.capabilities.air {
         if !matches!(t.mobility, Mobility::Air { .. }) {
@@ -1309,19 +1300,17 @@ fn check(
             );
         }
     }
-    if let Some(flares) = t.capabilities.flares {
-        if t.hull().is_none() {
-            return rule("capabilities.flares needs a hull: flares are dispensed from a vehicle or an airframe");
-        }
-        if flares.capacity == 0 || !positive(flares.reload_s) {
-            return rule("capabilities.flares needs positive capacity and reload_s");
-        }
+    if let Some(Err(e)) = c.flares.map(|f| f.validate(t.hull())) {
+        return rule(e);
     }
     if t.capabilities
         .radar_receiver
         .is_some_and(|receiver| !positive(receiver.range_m))
     {
         return rule("capabilities.radar_receiver range_m must be positive");
+    }
+    if let Some(Err(e)) = c.smoke.as_ref().map(SmokeCapability::validate) {
+        return rule(&format!("capabilities.{e}"));
     }
     ranges(t).map_or(Ok(()), rule)
 }
@@ -1476,11 +1465,10 @@ fn check_soldier(id: &str, s: &SoldierKind) -> Result<(), CatalogError> {
     Ok(())
 }
 
-/// The rules one prop type must keep: a transient body lives a positive
-/// time; `hp` and `destroyed` go together, `hp` positive and `armor` in
-/// [0, 1]; only a toppling body's destroyed state is cleared ground; and a
-/// destroyed state ends: each `into` names a prop type, at a positive
-/// height, never back up its chain.
+/// The rules one prop type must keep: `hp` and `destroyed` go together,
+/// `hp` positive and `armor` in [0, 1]; only a toppling body's destroyed
+/// state is cleared ground; and a destroyed state ends: each `into` names a
+/// prop type, at a positive height, never back up its chain.
 fn check_prop(props: &PropCatalog, k: PropKind) -> Result<(), CatalogError> {
     let id = props.id(k);
     let t = props.get(k);
@@ -1491,9 +1479,6 @@ fn check_prop(props: &PropCatalog, k: PropKind) -> Result<(), CatalogError> {
         })
     };
     let b = &t.body;
-    if b.lifetime_s.is_some_and(|s| s <= 0.0) {
-        return rule("lifetime_s must be positive");
-    }
     if b.hp.is_some() != t.destroyed.is_some() {
         return rule("hp and destroyed go together");
     }

@@ -301,6 +301,8 @@ pub struct Unit {
     pub protection: Option<crate::protection::State>,
     /// Its flares, for a unit whose type carries them.
     pub flares: Option<Flares>,
+    /// Its smoke charges, for a unit whose type carries smoke.
+    pub smoke: Option<SmokeCharges>,
     /// Service received: progress toward the next item, and why or why not.
     pub progress_service: crate::supply::Progress,
     pub service: contract::observation::ServiceStatus,
@@ -362,6 +364,12 @@ pub struct AirState {
 pub struct Flares {
     pub charges: u32,
     pub ready_tick: u64,
+}
+
+/// A unit's smoke charges left (`crate::smoke`).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SmokeCharges {
+    pub charges: u32,
 }
 
 /// How an aircraft arrives: it aims a little past its goal, then, stopped

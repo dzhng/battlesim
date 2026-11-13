@@ -1,8 +1,8 @@
 //! Recovery with finite stock. A fully deployed supply vehicle
 //! serves its side's living units within its radius that stand still and did
 //! not fire this tick (L03, L04): finite ammunition first, defensive charges
-//! (active protection, then flares), then vehicle health,
-//! then replacement soldiers, each at its configured rate and paid from the
+//! (active protection, then flares), then vehicle health, then replacement
+//! soldiers, then smoke charges, each at its configured rate and paid from the
 //! vehicle's stock. Stock is debited whole and in ascending unit order, never
 //! below zero, and never refilled (L05). Readiness is the deployment module's.
 use std::collections::BTreeSet;
@@ -31,6 +31,7 @@ pub struct Progress {
     pub flare_s: f64,
     pub hp_s: f64,
     pub soldier_s: f64,
+    pub smoke_s: f64,
 }
 
 /// An item a recipient can be served.
@@ -51,6 +52,12 @@ enum Need {
     },
     Health,
     Soldier,
+    /// A smoke charge, up to its capacity, at the capability's rate and price.
+    Smoke {
+        capacity: u32,
+        service_s: f64,
+        stock_per_charge: u32,
+    },
 }
 
 /// What the recipient needs next, in service order. `room`: a replacement
@@ -95,6 +102,15 @@ fn need(unit: &Unit, room: bool, arsenal: &Arsenal, rules: &Rules) -> Option<Nee
     if unit.hull.is_none() && room && living < unit.unit_type(rules).squad_size() {
         return Some(Need::Soldier);
     }
+    if let (Some(state), Some(cap)) = (unit.smoke, &unit.unit_type(rules).capabilities.smoke) {
+        if state.charges < cap.capacity {
+            return Some(Need::Smoke {
+                capacity: cap.capacity,
+                service_s: cap.service_s,
+                stock_per_charge: cap.stock_per_charge,
+            });
+        }
+    }
     None
 }
 
@@ -112,6 +128,9 @@ fn price(need: Need, arsenal: &Arsenal, rules: &Rules) -> u32 {
         Need::Flare { .. } => s.stock_per_flare,
         Need::Health => s.stock_per_hp,
         Need::Soldier => s.stock_per_soldier,
+        Need::Smoke {
+            stock_per_charge, ..
+        } => stock_per_charge,
     }
 }
 
@@ -215,6 +234,7 @@ fn serve(
         Need::Flare { .. } => (&mut progress.flare_s, s.flare_service_s),
         Need::Health => (&mut progress.hp_s, 1.0 / s.vehicle_hp_per_s),
         Need::Soldier => (&mut progress.soldier_s, s.soldier_replacement_s),
+        Need::Smoke { service_s, .. } => (&mut progress.smoke_s, service_s),
     };
     *clock += dt;
     if *clock + 1e-9 < period {
@@ -239,6 +259,10 @@ fn serve(
             state.charges = (state.charges + 1).min(capacity);
         }
         Need::Health => unit.hp = (unit.hp + 1.0).min(unit.max_hp(rules)),
+        Need::Smoke { capacity, .. } => {
+            let state = unit.smoke.as_mut().expect("a smoke recipient");
+            state.charges = (state.charges + 1).min(capacity);
+        }
         Need::Soldier => {
             // A new soldier (new id) joins his squad where it fights: at a
             // free facade slot while it holds a building
