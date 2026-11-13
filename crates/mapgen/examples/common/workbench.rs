@@ -197,7 +197,7 @@ fn inspection(artifact: &Artifact, checked: &Checked, crop: Option<&str>) -> Res
         .plan
         .lots
         .iter()
-        .filter_map(|lot| mapgen::inspect::depot_of(&lot.id))
+        .filter_map(|lot| mapgen::open_country::Pieces::depot_of(&lot.id))
         .collect();
     for depot in depots {
         features.push(json!({"id":depot,"group":"open_country.depots","label":"Depot placement","crop":depot}));

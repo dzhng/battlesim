@@ -101,11 +101,10 @@ pub fn measure(plan: &MapPlan, presets: &PresetDefinitions) -> CountryMetrics {
             count(4, prop.center, 1.0);
         }
     }
-    let depot = format!("country/{}-", Pieces::DEPOT);
     let mut depots = std::collections::BTreeSet::new();
     for lot in &plan.lots {
-        if let Some((number, _)) = lot.id.strip_prefix(&depot).and_then(|n| n.split_once('/')) {
-            if depots.insert(number) {
+        if let Some(depot) = Pieces::depot_of(&lot.id) {
+            if depots.insert(depot) {
                 count(5, ring_middle(&lot.ring), 1.0);
             }
         }

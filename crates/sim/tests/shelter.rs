@@ -5,6 +5,7 @@
 //! one and slows no one (L2, L3).
 use contract::command::{MoveDirection, Order, RoutePolicy};
 use contract::ids::{Side, UnitId};
+use contract::map::{BuildingDefinition, MapDefinition};
 use contract::scenario::{Rules, ScenarioDefinition};
 use serde_json::{json, Value};
 use sim::battle::Battle;
@@ -54,7 +55,8 @@ fn prop(kind: &str, center: [f64; 2], half: [f64; 3]) -> Value {
 }
 
 fn setup(props: Value, units: Value, events: Value) -> ScenarioDefinition {
-    let map = json!({ "size": [400, 200], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props });
+    let mut map = json!(MapDefinition::<BuildingDefinition>::flat([400.0, 200.0]));
+    map["props"] = props;
     serde_json::from_value(json!({
         "map": map, "rules": rules_json(), "units": units, "events": events, "scripts": []
     }))

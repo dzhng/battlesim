@@ -160,11 +160,12 @@ calls the same reader for workbench drafts.
 - [Showcase](src/presentation/showcase.rs): one unit at rest with no battle,
   posed by the battle's own driver from a unit standing still instead of a
   publication, so its idle life (each soldier's tempo and gaze, the watcher,
-  each operator's carried kit, turning rotors) is the battle's. Posing is
+  each operator's carried kit) is the battle's. A flying type stands parked
+  (`FeedUnit::grounded`): rotors still, gear down, no idle loops. Posing is
   [one owner](src/presentation/posing.rs) for both. A presentation shows a
   battle or a showcase, never both; the unit's rows are the
   presentation's own, as a battle's are, with the lab's after them. [Idle loops](src/sound/idle.rs) are what a stationary battle vehicle
-  starts, replacements applied.
+  starts, replacements applied; a flying type on the ground makes none.
 - [Sound](src/sound/): what a battle hears, when, where and how loud, from the
   same publication the effects read, the frame's emitters and the side's
   hearing cues, as commands a player carries out (start, glide, stop a voice;
@@ -209,9 +210,11 @@ rate and a paused one shows its blades.
 
 A running jet glows in every nozzle and leaves its engines' and wingtips'
 trails, as a war film shows a jet: visual only, so it never touches the
-simulation. Where its nozzles and wingtips are is data on its appearance
-(`presentation.effects.jet_exhaust.airframes`), in its model's own frame,
-because the baked art keeps no node for them; its engine kind names a look, and
+simulation. Where its nozzles, wingtips and wings are is data on its appearance
+(`presentation.effects.jet_exhaust.airframes`), in its model's own frame, read
+from its source art by the [airframe tool](../../packages/scene-assets/src/jetAirframes.ts)
+because the baked art keeps no node for them (a test fails while the two
+disagree); only its engine kind is authored, and it names a look, and
 only a look with a `flame` ever burns, so a high-bypass turbofan like the
 A-10's only glows. Its throttle is its published speed against its type's
 cruise: brighter the faster, with the afterburner's flame and shock diamonds
@@ -221,20 +224,13 @@ read from how its published flight bends (a tight turn, a pull-up), so level
 flight never vapours however fast it flies, and the vapour forms with
 hysteresis and thins over a second or two once the pull ends. It is drawn as
 short wisps: thin at the tip, tapering fast, broken by noise fixed where the
-vapour formed, so the wisps hang in the air rather than slide. How the
-engines trail is a choice in the data, `jet_exhaust.engine_style`, naming one
-of `jet_exhaust.engine_styles`: each a list of layers laid from the same points
-behind each nozzle and drawn in order. The shipped looks are `realistic` (the
-default: a short grey-brown haze off the nozzle fading into a white
-condensation trail), `white_core` (a white trail round a darker smoky core
-that thickens with throttle and afterburner) and `dramatic` (dense black and
-white smoke, an artistic look modern fighters do not make). A layer may be a
-continuous `plume`: one ribbon whose middle wanders and width swells, broken
-by noise fixed where it was laid, that hides by optical depth so dark smoke
-darkens even a bright sky; with `mix` its colour runs between a dark and a
-light grey by noise, black and white smoke in one. A layer may instead be
-`puffs`, soft noise-broken billows. The haze is drawn smoke, not refraction:
-nothing bends the picture behind a jet. Glows sit
+vapour formed, so the wisps hang in the air rather than slide. The engines'
+trail is data, `jet_exhaust.engine_trail`: layers laid from the same points
+behind each nozzle and drawn in order. A layer may be a continuous `plume`:
+one ribbon whose middle wanders and width swells, broken by noise fixed where
+it was laid, that hides by optical depth so dark smoke darkens even a bright
+sky. A layer may instead be `puffs`, soft noise-broken billows. The haze is
+drawn smoke, not refraction: nothing bends the picture behind a jet. Glows sit
 on the drawn model; trails are laid tick by tick where the publications put
 it, from emitters placed as its model was last drawn, so they are the same at
 any frame rate and a replay framed mid-flight shows them whole. A gap or a jump

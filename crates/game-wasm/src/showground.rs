@@ -1,6 +1,6 @@
 //! A squad standing at rest, for pages that show a unit outside a battle. The
 //! scatter (`sim::arrangement`) and the first claim on each weapon
-//! (`sim::weapons::original_carriers`) stay the simulation's; this only asks
+//! (`sim::weapons::operators::original_carriers`) stay the simulation's; this only asks
 //! them about flat ground.
 use contract::map::MoverClass;
 use contract::scenario::Rules;

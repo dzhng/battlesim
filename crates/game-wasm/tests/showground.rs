@@ -1,12 +1,13 @@
 //! The showground stands a squad as a fresh battle squad stands: the
 //! simulation's own scatter on flat ground, and each special weapon with the
 //! soldier who first carries it.
-use contract::scenario::Rules;
+use contract::ids::UnitId;
+use contract::map::MapDefinition;
+use contract::scenario::{Rules, ScenarioDefinition};
 use game_wasm::{Showground, SquadAtRest};
-use sim::arrangement;
-use sim::math::v2;
+use serde_json::json;
+use sim::battle::Battle;
 use sim::weapons::Arsenal;
-use sim::world::WorldGeometry;
 
 fn rules() -> Rules {
     serde_json::from_value(sim::fixtures::rules()).unwrap()
@@ -31,41 +32,54 @@ fn at_rest(ground: &Showground, kind: &str, seed: u32) -> SquadAtRest {
     serde_json::from_str(&ground.squad(kind, seed).unwrap()).unwrap()
 }
 
+/// A fresh battle of `seed` fielding one squad of `kind` on flat ground.
+fn fielded(rules: &Rules, kind: &str, seed: u32) -> (Battle, [f64; 2]) {
+    let centre = [200.0, 200.0];
+    let setup: ScenarioDefinition = serde_json::from_value(json!({
+        "map": MapDefinition::<contract::map::BuildingDefinition>::flat([400.0, 400.0]),
+        "rules": rules,
+        "units": [{ "side": "blue", "kind": kind, "position": centre }],
+    }))
+    .unwrap();
+    (Battle::new(&setup, u64::from(seed)), centre)
+}
+
 #[test]
-fn a_squad_at_rest_stands_as_the_battle_scatters_it() {
+fn a_squad_at_rest_stands_as_a_fresh_battle_squad_stands() {
     let rules = rules();
     let ground = showground(&rules);
-    // The battle's scatter, on flat ground of its own and about its own
-    // centre: flat ground scatters the same anywhere.
-    let world = WorldGeometry::flat([400.0, 400.0], &rules);
-    let centre = v2(200.0, 200.0);
-    let solid = |p: &sim::world::Prop| p.blocks(contract::map::MoverClass::Infantry);
     let kinds = squads(&rules);
     assert!(!kinds.is_empty(), "the game fields squads");
     for kind in &kinds {
-        let count = rules.catalog.by_id(kind).slots().unwrap().len();
-        for seed in 0..40 {
+        for seed in 0..20 {
             let squad = at_rest(&ground, kind, seed);
-            let battle = arrangement::squad_spots(
-                &world,
-                centre,
-                count,
-                &rules.infantry_movement,
-                rules.physics.soldier_radius_m,
-                &solid,
-                &mut arrangement::rng(u64::from(seed), 0, 0),
+            let (battle, centre) = fielded(&rules, kind, seed);
+            let unit = battle.unit(UnitId(0)).expect("the squad is fielded");
+            assert_eq!(
+                squad.soldiers.len(),
+                unit.members.len(),
+                "{kind}: one soldier a member"
             );
-            assert_eq!(squad.soldiers.len(), count, "{kind}: one soldier a slot");
-            for (soldier, spot) in squad.soldiers.iter().zip(&battle) {
-                let offset = *spot - centre;
+            for (soldier, member) in squad.soldiers.iter().zip(&unit.members) {
+                assert_eq!(
+                    (soldier.id, soldier.slot),
+                    (member.id, member.slot),
+                    "{kind}"
+                );
+                let offset = [member.position.x - centre[0], member.position.y - centre[1]];
                 assert!(
-                    (soldier.at[0] - offset.x).abs() < 1e-9
-                        && (soldier.at[1] - offset.y).abs() < 1e-9,
+                    (soldier.at[0] - offset[0]).abs() < 1e-9
+                        && (soldier.at[1] - offset[1]).abs() < 1e-9,
                     "{kind} seed {seed}: slot {} stands at {:?}, the battle puts it at {offset:?}",
                     soldier.slot,
                     soldier.at,
                 );
             }
+            let operators: Vec<_> = unit.mounts.iter().map(|m| m.operator).collect();
+            assert_eq!(
+                squad.operators, operators,
+                "{kind} seed {seed}: each weapon's operator"
+            );
         }
     }
 }

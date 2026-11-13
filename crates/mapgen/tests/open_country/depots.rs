@@ -5,10 +5,11 @@ use super::*;
 /// The plan's depots, by their lots' shared id: each one's lots, and the
 /// bodies standing in them.
 fn depots(plan: &MapPlan) -> BTreeMap<String, (usize, Vec<Box2>)> {
-    let prefix = format!("country/{}-", mapgen::open_country::Pieces::DEPOT);
     let mut out: BTreeMap<String, (usize, Vec<Box2>)> = BTreeMap::new();
-    for lot in plan.lots.iter().filter(|lot| lot.id.starts_with(&prefix)) {
-        let depot = lot.id.rsplit_once('/').unwrap().0.to_string();
+    for lot in &plan.lots {
+        let Some(depot) = mapgen::open_country::Pieces::depot_of(&lot.id) else {
+            continue;
+        };
         let entry = out.entry(depot).or_default();
         entry.0 += 1;
         entry.1.extend(

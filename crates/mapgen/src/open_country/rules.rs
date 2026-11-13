@@ -117,6 +117,13 @@ impl Pieces {
     /// What a group of bodies is called: its lots are `country/depot-<n>/…`.
     pub const DEPOT: &'static str = "depot";
 
+    /// The depot a lot is a yard of (`depot-3`), or none for any other lot.
+    pub fn depot_of(lot: &str) -> Option<String> {
+        let prefix = format!("country/{}-", Self::DEPOT);
+        let number = lot.strip_prefix(&prefix)?.split_once('/')?.0;
+        Some(format!("{}-{number}", Self::DEPOT))
+    }
+
     /// The name a group's lots are numbered under: `country/<name>-<n>`.
     pub fn name(&self) -> &'static str {
         match self {

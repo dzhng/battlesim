@@ -149,7 +149,16 @@ impl Arsenal {
         yaw: f64,
         members: &[crate::units::Soldier],
     ) -> Vec<Mount> {
-        self.specs(kind)
+        let specs = self.specs(kind);
+        // Each single gun's operator is its original carrier, the one owner of
+        // that first claim (`operators::original_carriers`).
+        let guns: Vec<_> = specs.iter().map(Some).collect();
+        let slots: Vec<_> = members
+            .iter()
+            .map(|s| s.alive().then_some(s.slot))
+            .collect();
+        let operators = super::operators::original_carriers(&guns, &slots);
+        specs
             .iter()
             .enumerate()
             .map(|(i, spec)| Mount {
@@ -171,14 +180,7 @@ impl Arsenal {
                 } else {
                     vec![Cycle::new(None, spec, &self.weapons)]
                 },
-                operator: (!spec.squad)
-                    .then(|| {
-                        members
-                            .iter()
-                            .find(|s| s.alive() && spec.carriers.contains(&s.slot))
-                            .map(|s| s.id)
-                    })
-                    .flatten(),
+                operator: operators[i].map(|k| members[k].id),
                 lock: None,
                 support: None,
                 bearing: yaw,

@@ -5,6 +5,7 @@
 use crate::layout::corridor_start;
 use crate::layout::geometry::{add, direction, scale, sub, Point};
 use crate::layout::LayoutMetrics;
+use crate::open_country::Pieces;
 use crate::MapPlan;
 use contract::ground::GroundShape;
 use contract::map::SurfaceKind;
@@ -79,13 +80,6 @@ fn furniture(kind: &str) -> usize {
 /// whole map they are below a pixel.
 const DETAIL_VIEW_M: f64 = 2_600.0;
 
-/// The depot a lot is a yard of (`depot-3`), named as a picture crops it.
-pub fn depot_of(lot: &str) -> Option<String> {
-    let prefix = format!("country/{}-", crate::open_country::Pieces::DEPOT);
-    let number = lot.strip_prefix(&prefix)?.split_once('/')?.0;
-    Some(format!("{}-{number}", crate::open_country::Pieces::DEPOT))
-}
-
 /// The part of the map a picture shows, `[min_x, min_y, width, height]`: the
 /// ground about the settlement, district, bridge or depot `crop` names
 /// (`bridge-2` is the plan's third), the rectangle it spells
@@ -106,7 +100,7 @@ fn view(plan: &MapPlan, crop: Option<&str>) -> Result<[f64; 4], String> {
     let depot: Vec<Point> = plan
         .lots
         .iter()
-        .filter(|lot| depot_of(&lot.id).as_deref() == Some(crop))
+        .filter(|lot| Pieces::depot_of(&lot.id).as_deref() == Some(crop))
         .flat_map(|lot| lot.ring.iter().copied())
         .collect();
     if !depot.is_empty() {
@@ -371,7 +365,7 @@ fn render(
     // bridge is, so it can be found.
     let mut depots: BTreeMap<String, Vec<Point>> = BTreeMap::new();
     for lot in crate::open_country::country_lots(plan) {
-        if let Some(depot) = depot_of(&lot.id) {
+        if let Some(depot) = Pieces::depot_of(&lot.id) {
             depots.entry(depot).or_default().extend(&lot.ring);
         }
     }
@@ -387,7 +381,7 @@ fn render(
         );
     }
     for lot in crate::open_country::country_lots(plan) {
-        let (group, feature, fill) = match depot_of(&lot.id) {
+        let (group, feature, fill) = match Pieces::depot_of(&lot.id) {
             Some(depot) => ("open_country.depots", depot, DEPOT),
             None => ("open_country", "open_country".into(), YARD),
         };
@@ -634,7 +628,7 @@ fn render(
         .chain(
             plan.lots
                 .iter()
-                .any(|lot| depot_of(&lot.id).is_some())
+                .any(|lot| Pieces::depot_of(&lot.id).is_some())
                 .then_some((DEPOT, 0.45, "depot")),
         )
     {
