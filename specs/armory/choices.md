@@ -1198,3 +1198,27 @@ needs-user).
   32 m: about 22,000 relief cells, roughly 130,000 vertices (5 MB) per
   stage. A full ring of ridges at 24 m cells measured 366,000 vertices.
   *Provisional:* the human judges the look.
+
+## Fog at eye height
+
+- **The roof rule gates on the face test's own probe point, not the
+  surface.** `fogSeenSurface` (`fog.wgsl`) first asks whether a face is turned
+  to an eye from its probe point (the surface plus `face_probe_m` along its
+  normal), then lets the roof rule (`roof_reach_m`) rescue an up face. The
+  rule ran only for a surface above the eye, so an up face less than
+  `face_probe_m` below an eye (a 1.5 m hangar-ruin top against 1.6 m
+  infantry eyes) failed the face test and missed the rule, and read unseen
+  in plain sight. The rule now runs for an up face whose probe point stands
+  level with or above the eye (`p.z >= eye.z`), exactly the up faces the face
+  test turns away, so the two split up faces at one height with no gap.
+  Nothing else moves: a top below the band passes the face test as before, a
+  top above the eye takes the rule as before, and the rule is unchanged
+  (sight from the eye to the air over the top, pulled toward the eye, within
+  range). *Why:* geometry decides, with no height constant or named prop; an
+  eye 1.6 m up sees a 1.5 m top at a grazing angle, and a war-film viewer
+  expects it drawn as seen. *Alternative:* testing the face against the
+  surface point rather than the probe, which moves every face's reference
+  point and every surface's fog near a sight-shadow edge. *Proof:* a GPU probe
+  test (`renderer-core/tests/probes.rs`) reads tops below, in and above the
+  band as seen in plain sight and tops past the reach behind a wall as
+  unseen, and fails on the old condition. *Sound.*
