@@ -123,6 +123,11 @@ def main(args):
     if not (only or update or "--roster" in args):
         print(__doc__)
         sys.exit(2)
+    if only and update:
+        # The baseline is the whole roster's: one variant's walk would drop
+        # every other appearance's accepted issues.
+        print("--update-baseline walks the whole roster; drop --variant")
+        sys.exit(2)
     rows, failures = walk(only)
     if only is not None:
         # One appearance's verdict is its own: scripts that failed before it
