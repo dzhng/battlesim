@@ -55,8 +55,9 @@ required tools and prepares the browser or [native](native/client/README.md)
 client.
 
 A battle's address is shareable: it names the admitted map and the player's
-choices, so a seeded battle opens the same fight again. The developer menu
-holds the battle lab, tutorial, and development tools.
+choices, so a seeded battle opens the same fight again. The main menu teaches
+the game and browses the roster; its developer page holds the battle lab and
+the development tools.
 
 ## Find your way around
 
