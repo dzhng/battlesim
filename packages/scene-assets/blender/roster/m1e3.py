@@ -53,9 +53,7 @@ def build(variant, v):
             mid = sum(points, Vector()) / len(points)
             empty(f"trophy_{part}_{s}", tuple(holder.matrix_world.inverted() @ mid), holder)
     # The whips on the bustle roof's rear corners (turret frame).
-    for side, s in ((1, "L"), (-1, "R")):
-        whip = empty(f"dressing_antenna_{s}", parent=turret)
-        RF.antenna(f"antenna_{s}", (-2.2, side * 1.2, 0.98), v.mats, whip, height=2.2)
+    RF.whip_pair(turret, (-2.2, 1.2, 0.98), v.mats, height=2.2)
 
 
 def wreck(variant, v):

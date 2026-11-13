@@ -126,9 +126,7 @@ def fittings(v):
         RF.hatch(f"troop_hatch_{k}", (x, y, ROOF), m, hull, size=(0.66, 0.62))
     box("rear_door", (0.05, 1.10, 1.10), (-3.99, 0, 1.70), m["paint"], hull, bevel=0.02)
     box("rear_door_glass", (0.02, 0.16, 0.08), (-4.01, 0, 2.05), m["glass"], hull, lods=NEAR)
-    for side, s in ((1, "L"), (-1, "R")):
-        whip = empty(f"dressing_antenna_{s}", parent=hull)
-        RF.antenna(f"antenna_{s}", (-3.60, side * 1.25, ROOF), m, whip, height=2.8)
+    RF.whip_pair(hull, (-3.60, 1.25, ROOF), m, height=2.8)
 
 
 def zbl_turret(v, turret, gun):

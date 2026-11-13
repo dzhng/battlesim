@@ -31,6 +31,7 @@ import {
   type TemplateState,
   type TemplateStatus,
 } from "./templateLibrary.ts";
+import { fmt } from "./finding.ts";
 
 /** One oriented box of a physical template (`contract::templates::TemplatePart`). */
 export interface TemplatePart {
@@ -417,8 +418,6 @@ export interface PackedTemplates {
   library: Omit<TemplateArtLibrary, "art_hash"> | null;
   stats: TemplateLibraryStats | null;
 }
-
-const fmt = (n: number) => n.toFixed(3);
 
 /** A destroyed template is known in exactly one damage state: the one its
  *  floors call for (`damageState`). */

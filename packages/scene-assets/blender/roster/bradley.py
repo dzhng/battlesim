@@ -30,7 +30,6 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import roof_parts as RF  # noqa: E402
 import scripted_body as SB  # noqa: E402
-from parts import empty  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
 
 # The body (`scripted_body`) and the variant it builds for each appearance;
@@ -47,14 +46,12 @@ ANTENNA = (-1.15, 0.70, 0.62)
 def build(variant, v):
     turret = rig(v.frame, v.root, trunnion={"autocannon": TRUNNION})["autocannon"][0]
     SB.wear(v, BODY, LINK_PITCH, variant=VARIANTS[variant["id"]])
-    x, y, z = ANTENNA
-    for side, s in ((1, "L"), (-1, "R")):
-        whip = empty(f"dressing_antenna_{s}", parent=turret)
-        RF.antenna(f"antenna_{s}", (x, side * y, z), v.mats, whip, height=2.0)
+    RF.whip_pair(turret, ANTENNA, v.mats, height=2.0)
 
 
 def wreck(variant, v):
     SB.wreck(v, "L", (2, 5))
 
 
-run("bradley", "us_desert_tan", build, wreck, chip=1.0)
+if __name__ == "__main__":
+    run("bradley", "us_desert_tan", build, wreck, chip=1.0)

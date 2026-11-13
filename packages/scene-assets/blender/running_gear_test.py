@@ -28,17 +28,16 @@ TOUCH = 0.005
 
 
 def build(returns, sag=RG.TRACK_SAG):
-    """One tracked hull's running gear; the left belt's tier-0 mesh, its node
-    and the left wheels as (x, z, radius) circles."""
+    """One side's belt wrapped round its road wheels, sprocket, idler and
+    `returns` rollers; the belt's tier-0 points as (x, z), its node and the
+    wheels as (x, z, radius) circles."""
     reset()
     hull = empty("hull", parent=empty("vehicle"))
-    RG.tracked_running_gear(materials("us_desert_tan"), hull, 1.3, 0.5, ROAD_X, ROAD_Z, ROAD_R, 0.2,
-                            (-2.9, 0.5, 0.3), (2.9, 0.5, 0.3), returns, sag=sag)
+    wheels = [(x, ROAD_Z, ROAD_R) for x in ROAD_X] + [(-2.9, 0.5, 0.3), (2.9, 0.5, 0.3)] + list(returns)
+    RG.track_loop("track_L", wheels, 1.3, 0.5, 0.17, materials("us_desert_tan"), hull, sag=sag)
     bpy.context.view_layer.update()
     node = bpy.data.objects["track_L"]
     belt = next(o for o in node.children if o.name.endswith("LOD0"))
-    wheels = [(o.matrix_world.translation.x, o.matrix_world.translation.z, o["radius_m"])
-              for o in bpy.data.objects if o.name.startswith("wheel_L_") and "radius_m" in o]
     points = [(belt.matrix_world @ v.co) for v in belt.data.vertices]
     return [(p.x, p.z) for p in points], node, wheels
 

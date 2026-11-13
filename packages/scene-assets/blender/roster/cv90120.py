@@ -28,7 +28,6 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import roof_parts as RF  # noqa: E402
 import scripted_body as SB  # noqa: E402
-from parts import empty  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
 
 # The body (`scripted_body`), its track's link pitch, and the gun's trunnion
@@ -43,14 +42,12 @@ ANTENNA = (-2.14, 0.88, 0.51)
 def build(variant, v):
     turret = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})["cannon"][0]
     SB.wear(v, BODY, LINK_PITCH)
-    x, y, z = ANTENNA
-    for side, s in ((1, "L"), (-1, "R")):
-        whip = empty(f"dressing_antenna_{s}", parent=turret)
-        RF.antenna(f"antenna_{s}", (x, side * y, z), v.mats, whip, height=2.0)
+    RF.whip_pair(turret, ANTENNA, v.mats, height=2.0)
 
 
 def wreck(variant, v):
     SB.wreck(v, "R", (3, 5))
 
 
-run("cv90120", "swedish_splinter", build, wreck, chip=1.0)
+if __name__ == "__main__":
+    run("cv90120", "swedish_splinter", build, wreck, chip=1.0)

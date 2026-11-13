@@ -49,4 +49,5 @@ def wreck(variant, v):
     SB.wreck(v, "L", (2, 5))
 
 
-run("puma", "german_three_tone", build, wreck, chip=1.0)
+if __name__ == "__main__":
+    run("puma", "german_three_tone", build, wreck, chip=1.0)

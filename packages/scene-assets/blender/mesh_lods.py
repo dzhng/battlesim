@@ -56,10 +56,12 @@ def reduced_copy(source, name, target, min_extent, floor):
     for obj in pieces:
         canonical(obj)
     pieces.sort(key=lambda o: (len(o.data.vertices), tuple(o.data.vertices[0].co)))
-    extents = {}
+    extents, boxes = {}, {}
     for obj in pieces:
         pts = [obj.matrix_world @ v.co for v in obj.data.vertices]
         extents[obj] = max(max(p[i] for p in pts) - min(p[i] for p in pts) for i in range(3))
+        local = [v.co for v in obj.data.vertices]
+        boxes[obj] = ([min(p[i] for p in local) for i in range(3)], [max(p[i] for p in local) for i in range(3)])
     counts = {o: triangle_count(o) for o in pieces}
     floors = {o: n if n <= 32 else floor for o, n in counts.items()}
     # Smallest first, a piece drops out under the tier's extent, and past it
@@ -88,6 +90,11 @@ def reduced_copy(source, name, target, min_extent, floor):
         while obj.modifiers.find("lod") > 0:
             bpy.ops.object.modifier_move_up(modifier="lod")
         bpy.ops.object.modifier_apply(modifier="lod")
+        # A collapse may place a merged vertex outside its island: keep each
+        # inside its source box, so a far tier never reaches past the near.
+        lo, hi = boxes[obj]
+        for v in obj.data.vertices:
+            v.co = Vector([min(max(v.co[i], lo[i]), hi[i]) for i in range(3)])
         _take_attributes(obj, source)
     for obj in pieces:
         canonical(obj)

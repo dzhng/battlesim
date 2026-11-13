@@ -9,6 +9,6 @@
     "inputs": {
       "assets/source/skins/t72/eastern_t_72_t_72b3_2016_turret-three_quarter.png": "5941a4242acbb421cba87978f243af16583f04eeb2e7e3d4837cffc4f01ade08"
     },
-    "note": "Slice 03 of specs/tracked-armour-models: the T-72B3's cast turret dome alone, an experiment candidate, not shipped. The input is our own render of the smoothed dome (specs/tracked-armour-models/assets/experiments/03/smoothed_dome.py, tier 0, t72.dome_rings' five stations), without ERA, fittings or gun. Hunyuan3D 3.1 Pro was refused by the proxy (HTTP 404), so this single-image generator stands in."
+    "note": "Slice 03 of specs/done/tracked-armour-models: the T-72B3's cast turret dome alone, an experiment candidate, not shipped. The input is our own render of the smoothed dome (specs/done/tracked-armour-models/assets/experiments/03/smoothed_dome.py, tier 0, t72.dome_rings' five stations), without ERA, fittings or gun. Hunyuan3D 3.1 Pro was refused by the proxy (HTTP 404), so this single-image generator stands in."
   }
 ]
