@@ -21,8 +21,9 @@ of the hull's middle and 1.494 m up, cannon muzzle 7.2 m ahead): nothing
 here moves it.
 
 It wears a scripted body (`BODY`, `scripted_body`): Gemini Argon's build
-script after its second round, which builds the Challenger 3 too
-(`challenger_3.py`), edited since (its folder's README lists the edits).
+script after its second round, and a third that rebuilt the Challenger 3's
+turret; it builds the Challenger 3 too (`challenger_3.py`). Its folders'
+READMEs list the rounds and edits.
 This script adds its rig, whip antennas and wreck.
 """
 import math
@@ -37,7 +38,7 @@ from vehicle_export import rig, run  # noqa: E402
 
 # The Challengers' body, which builds both (`build(variant)`), its tracks' link
 # pitch and the gun's trunnion ahead of the ring along the bore: the script's.
-BODY = "assets/source/skins/challenger/argon-r2/build.py"
+BODY = "assets/source/skins/challenger/argon-r3/build.py"
 LINK_PITCH = 0.17
 TRUNNION = 1.90
 # The whips stand on the script's antenna bases at the rear of the roof (turret frame).
