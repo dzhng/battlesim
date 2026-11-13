@@ -33,11 +33,13 @@ fn a_hull_past_its_drives_limits_is_refused_at_load() {
         ),
     ] {
         let mut fixture = fixtures::test_rules();
+        let family = crate::common::extended_from(&fixture, "units", unit);
         fixtures::patch_catalog(&mut fixture, "units", unit, patch);
         let rules: Rules = serde_json::from_value(fixture).unwrap();
         let error = sim::admit(&rules).expect_err(limit).to_string();
+        // Every type extending the patched one inherits it: the first is named.
         assert!(
-            error.contains(unit) && error.contains(limit),
+            family.iter().any(|t| error.contains(t.as_str())) && error.contains(limit),
             "{limit}: {error}"
         );
     }

@@ -33,6 +33,23 @@
       "concealment": 2.4,
       "sound": { "profile": "vehicle", "loudness_m": 650 },
       "appearance": "test_tank"
+    },
+    "test_smoke_tank": {
+      "extends": "test_tank",
+      "name": "Smoke Tank",
+      "description": "The test tank with smoke dischargers: two charges, each a cloud round the hull.",
+      "roster": null,
+      "capabilities": {
+        "smoke": {
+          "capacity": 2,
+          "service_s": 5,
+          "stock_per_charge": 5,
+          "cloud": {
+            "radius_m": 15, "height_m": 6, "life_s": 40, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "discharger"
+          }
+        }
+      }
     }
   }
 }

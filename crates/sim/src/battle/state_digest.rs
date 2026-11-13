@@ -52,10 +52,7 @@ impl Battle {
         }
         self.world.digest_cleared(&mut d);
         self.world.digest_buildings(&mut d);
-        d.u64(self.expiries.len() as u64);
-        for (id, t) in &self.expiries {
-            d.u64(*id as u64).u64(*t);
-        }
+        self.world.smoke().digest(&mut d);
         self.structures.digest(&mut d);
         // Only a battle with an aircraft going down folds crashes in, so
         // ground battles keep their digests.

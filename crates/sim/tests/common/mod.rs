@@ -516,6 +516,39 @@ impl Commander {
     }
 }
 
+/// `id` and every authored entry of `section` that extends it, at any
+/// depth: the types a patch to `id` reaches, any of which a refusal may
+/// name first.
+pub fn extended_from(fixture: &Value, section: &str, id: &str) -> Vec<String> {
+    let parents: Vec<(String, String)> = fixture["catalog"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|doc| doc[section].as_object())
+        .flatten()
+        .filter_map(|(k, v)| Some((k.clone(), v["extends"].as_str()?.to_string())))
+        .collect();
+    let mut family = vec![id.to_string()];
+    let mut k = 0;
+    while k < family.len() {
+        for (child, parent) in &parents {
+            if *parent == family[k] && !family.contains(child) {
+                family.push(child.clone());
+            }
+        }
+        k += 1;
+    }
+    family
+}
+
+/// Whether a load `error` names `section`'s `id` or a test type extending
+/// it: each inherits a patch to `id`, and the first in order is named.
+pub fn names(error: &str, section: &str, id: &str) -> bool {
+    extended_from(&game(), section, id)
+        .iter()
+        .any(|t| error.contains(&format!("{section}.{t}:")))
+}
+
 /// `BLESS_PARITY=1` re-records the native half of a `fixtures/parity/` paired
 /// record from this build instead of asserting it; the web test then holds
 /// Wasm to it. Only for a named behaviour change.

@@ -42,15 +42,19 @@ uses the observed center and declared offset, never a hidden operator position.
 ## Sensing
 
 [Optical sensing](src/sensing.rs) identifies visibility samples through clear
-lines of sight and foliage. A sample's target concealment is **ground × unit ×
-moving**: ground takes the stronger of forest and garrison shelter, the unit
-supplies its own concealment even in the open, and an in-progress move applies
-the authored movement multiplier. Airborne units bypass all three factors.
+lines of sight, tree crowns and smoke (`WorldGeometry::sight_depth`; a launch
+path and map analysis read the crowns alone). A sample's target concealment is
+**ground × unit × moving**: ground takes the strongest of forest, garrison
+shelter and a smoke cloud it stands in, the unit supplies its own concealment
+even in the open, and an in-progress move applies the authored movement
+multiplier. Airborne units bypass all three factors. A smoke cloud is not a
+body: it blocks no mover and stops no round, and a side sees one where its fog
+shows the ground at the cloud's rim ([smoke](src/smoke.rs)).
 
 Spotting adjusts that product, capped at full directional sight. At or above
 one it multiplies the product, so good eyes can cancel concealment completely;
 below one it raises the capped product to the reciprocal power, deepening
-concealment without changing an unconcealed target. Geometry and foliage still
+concealment without changing an unconcealed target. Geometry, foliage and smoke still
 limit identification. The published **HIDDEN** flag instead describes the
 target's situation: enough visibility samples must have both concealing ground
 and net target concealment below one. Known exposure to a visible enemy's eyes
