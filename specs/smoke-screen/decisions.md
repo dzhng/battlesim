@@ -6,6 +6,13 @@ walk, and the [mock](visualizations/mock.html) holds the moment the user reacted
 to. Where an answer was given by the agent, the reason it rests on is
 recorded alongside.
 
+**Status (2026-11-13):** every decision below is built, checked against the
+shipped code at closeout. D9 needed no new code: it is the existing
+shared-spotting rule, and a simulation test pins it for a unit in smoke. D18 is
+the roster switch-on, the command bar in every battle, and the tutorial's smoke
+item. Choices the build made where these were silent are in
+[`choices.md`](choices.md).
+
 **Preferences the user confirmed, used for every delegated answer:**
 1. Realism decides trade-offs.
 2. The player decides; there are no reflexes for player units.
@@ -76,7 +83,8 @@ mechanics, changes to who gets smoke, and anything that adds work.
     would be a new mechanic.
 - **D9: firing from inside smoke (agent default; the user may overturn).**
   - A unit in smoke may fire at targets its side has spotted. This is the
-    existing shared-spotting rule (`weapons.rs:311-327`).
+    existing shared-spotting rule: a weapon aims at its side's shared track
+    of the target (`weapons.rs`, `resolve`).
   - Each shot refreshes that unit's firing contact, so firing from smoke keeps
     drawing return fire.
 - **D10: contacts (user, given at the start).**
@@ -100,7 +108,7 @@ mechanics, changes to who gets smoke, and anything that adds work.
   - POP SMOKE goes next to REVERSE.
   - With several units selected, every selected unit with a charge pops one.
   - The key is **H**. X, the mock's key, is the camera pitch key
-    (`packages/renderer-core/src/cameraController.ts:78`), and
+    (`packages/renderer-core/src/cameraController.ts`), and
     `web/tests/commandBindings.test.ts` asserts that X is no command.
 - **D16: sound (user; how it is heard and where it comes from, by the agent).**
   - **Tanks:** a discharger thump-thump, then a hiss. **Infantry:** a grenade
@@ -108,12 +116,13 @@ mechanics, changes to who gets smoke, and anything that adds work.
   - A side hears the pop at the cloud when it sees the cloud within the bloom
     time of the pop tick. A pop never creates a contact.
   - **Why the hearing rule:** unseen enemies are heard only through hearing
-    cues (`specs/done/battle-look/decisions.md:203`). A new cue category would
+    cues (`specs/done/battle-look/decisions.md`, the user's 2026-09-26 sound
+    entry). A new cue category would
     change the closed publication layout a second time.
   - **Where the sound comes from:**
     - It is generated with ElevenLabs through Bento, as the flare burst was.
     - There is no synthesized fallback; none is required
-      (`crates/presentation/src/sound/catalog/check.rs:198`).
+      (`crates/presentation/src/sound/catalog/check.rs`).
     - Downloaded YouTube clips are for audition only, because the catalog
       keeps All-Rights-Reserved sources unassigned.
 - **D17: the AI's smoke (user).** It looks and sounds exactly like a player's.
@@ -127,7 +136,7 @@ mechanics, changes to who gets smoke, and anything that adds work.
     navigation and air replans, and makes helicopters climb over it.
   - Clouds get their own collection.
   - The Q28 transient-prop machinery is **deleted**: `PropBody.lifetime_s`,
-    expiries, the tests at `crates/sim/tests/bodies.rs:468-560`, and the
+    expiries, the Q28 tests in `crates/sim/tests/bodies.rs`, and the
     `PropBody` doc sentence. It is not kept alongside.
 - **D20: smoke has its own depth term.** `foliage_depth` returns 0 without a
   forest, and `launch_clear` refuses fire through any foliage. So smoke depth

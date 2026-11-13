@@ -1,115 +1,926 @@
-# Smoke screen: choices
+# Smoke screen: final choices ledger
 
-Choices made where the spec was silent, appended each pass (`audit-choices`). The
-user's decisions are in [`decisions.md`](decisions.md). The **Pass** column names
-the slice or pass that made the choice.
+These are the choices the build made where the plan was silent, or where it
+departed from the plan. The user's own decisions are in
+[`decisions.md`](decisions.md) and are not repeated here. Choices marked
+"coordinator" were made by the session that ran the build, not by a slice's
+implementer.
 
-| Pass | Choice | Verdict | Why |
-|---|---|---|---|
-| write-spec | A cloud's law moves in steps in **both** the simulation and the GPU fog. Bloom is 4 steps over `bloom_s`. Fade is 5 steps over `fade_s`, scaling depth per metre and the concealment shortfall `1 − concealment` together. | Settled | One stepped law that the simulation and the screen share, so they never disagree. It also caps GPU eye rebuilds. Proposed by the seam draft. |
-| write-spec | Overlapping clouds add their chords together, so the overlap is denser. | Settled | D1 taken literally; a viewer would expect it. |
-| write-spec | A side sees a cloud when its simulation fog field marks any cell whose centre lies within `radius + fog_cell_m` of the cloud's centre. Its own clouds are always seen. | Settled | A cloud hides its own centre, so only its near rim can be seen. This reuses the sweep as the single owner. The rule came from the fewest-slices and seam drafts. |
-| write-spec | Smoke reaches the GPU fog through the publication, inside the presentation crate (`presentation/side_fog.rs`), not through the TS or native foliage builders. | Confirmed in slice 02 | Per the seam draft, eyes already arrive this way, and slice 02 confirmed it: `Presentation::push_publication` decodes each publication into the `Observation` it keeps as `latest` (`crates/presentation/src/presentation.rs:325-334`); `prepare_fog` takes the eyes from `latest.own[].sight` on each new publication (`presentation/side_fog.rs:108-131`) and sets them (`side_fog.rs:141-142`). The TS and native builders only hand over the side's cleared foliage through `set_fog` (`apps/battle-lab/src/useBattleSession.ts:397-404`, `native/client/src/capture.rs:584-588`). Slice 06 reads `latest.smoke_clouds` through `contract::smoke::state` in the same branch and calls `FogSight::set_smoke`; neither builder changes. |
-| write-spec | Wire- and laser-guided missiles losing guidance needs wiring: `guidance_clear` (`weapons.rs:914`) and the guided return-fire check (`weapons.rs:1008`) move to `sight_depth`. | Settled | The map called this free; two drafts found both read `foliage_depth` directly. |
-| write-spec | The observation field is `OwnUnit.smoke`, never `smoking`. | Settled | `smoking` is already damage smoke (D34, `observation.rs:540`). |
-| write-spec | The smoke-capable test rows (`test_smoke_tank`, `test_smoke_squad`) are new rows extending `test_tank` and the test squad. Existing test units stay without smoke. | Settled | Keeps pinned digests unchanged (D23) and gives the lab and tests their carriers. If a catalog identity pin moves, name it here. |
-| write-spec | The AI's starting tuning: a unit is "losing" when its hp (or squad `member_hp` sum) has dropped by at least `smoke_loss_share` = 0.2 of its maximum within `smoke_window_s` = 10. It reverses `smoke_reverse_m` = 40. | Settled as starting data | 40 m clears a 15 m cloud with room to spare. The numbers are data, tuned in the balance pass, not targets. |
-| write-spec | Three drafts were made (fewest-slices, Claude; risk-first, Codex gpt-6.1-sol; seam-quality, Claude). The ladder takes the risk-first draft's kill gate (02), the seam draft's owners and parity probe, and the fewest-slices draft's dormant-first proof (03–08 keep digests). | Settled | All three agreed on reusing the digest slot, keying the pop sound on its tick (no new cue), and the single layout change. |
-| 02 | **Kill gate: KEEP.** Native wgpu on Metal (M5 Pro), the endurance field's real ground, foliage and buildings, 1920×1080, under the GPU lock. 100 eyes (80 in a fighting block, 20 far off; ranges the roster's `ground_m`), 0, 4 and 12 tank clouds popped together and stepped through bloom, hold and fade at 30 Hz, one frame a tick, three interleaved runs (`throwaway/smoke-screen/gate/`).<br>clouds 0 · 4 · 12<br>most eyes rebuilt in a frame: 0 · 48 · 48 (budget 48)<br>rebuilds of the 20 eyes no cloud reaches: 0 · 0 · 0<br>fog GPU per frame, median: 0.36 · 0.36 · 0.36 ms<br>worst rebuild frame: none · 4.27 · 5.54 ms<br>a 48-eye rebuild frame (busy GPU): 3.22 · 3.91 · 5.17 ms<br>every eye rebuilt (frame-cost.md's worst case): 6.26 · 7.57 · 9.87 ms | Settled | Parity is green; no frame rebuilds past the budget; eyes out of every changed circle's reach never rebuild. The 30 FPS floor holds with room: the worst fog frame plus frame-cost.md's worst-window p95 for the whole frame (5.90 ms) is about 11.5 ms, against 33.3. This harness reads the no-smoke all-eyes rebuild at 6.26 ms where frame-cost.md's paired browser measure reads 1.55, so only ratios compare: 12 clouds add 58 % to an all-eyes rebuild (about 2.4 ms on that scale, past the 1.55 tripwire, a case only a new world or a lost device reaches) and 61 % to a 48-eye budget frame (about 1.3 ms on that scale, under it). One frame of 11.97 ms with nothing rebuilt was outside load. |
-| 02 | `FogSight::set_smoke(&[(id, CloudState)])` takes `contract::smoke::state`'s state whole (its phase and circle included) and diffs whole states by id. | Settled | One definition of a cloud's state; no second circle type for slice 06 to fill. A state changes only when its phase does. |
-| 02 | A change reaches an eye when the cloud's circle before or after comes within the eye's reach, plus its own radius, of where the eye's map was built. Reached eyes join the moved eyes' queue, oldest first, if not queued already; no map is dropped. | Settled | The `set_occluders` precedent, minus its trap: a dropped map rebuilds at once, past the budget. |
-| 02 | The GPU takes the circles as `FogSmoke` records (centre, radius, height, depth per metre; 32 bytes) at binding 8 of the build layout, and their count as `FogParams.smoke_count`, which took a pad word. The upload sends them only when they change. | Settled | A count in a pad word leaves every upload without clouds byte for byte as it was, so the fog-sight vectors hold unchanged. The build layout is now at the WebGPU default of 8 storage buffers. |
-| 02 | `fogSmokeStep` measures each chord along and across the step rather than by the quadratic's discriminant. The parity tolerance is 1e-5 × (1 + depth). | Settled | The same chord in exact arithmetic; f32 keeps its digits at map-scale coordinates. |
-| 02 | The march counts smoke on the same sight line its canopy test uses: the end of each step, raised to the terrain horizon. | Settled | Smoke shares forest's rule (preference 3); a map is built for ground targets, so a line clears a cloud's top only where terrain lifts it. |
-| 02 | Fog's `Eye` moved to `fog/eye.rs`, and smoke's input is `fog/smoke.rs`. | Settled | `fog/sight.rs` is over the size budget; an eye is its own concept, and sight re-exports it. |
-| 02 | The gate is timed by wall clock from submission to completion, and by 20 copies of a frame's passes in one submission. `FrameTimer`'s markers read about 0.006 ms here, as Metal does not bracket compute passes between render-pass markers. | Settled | Both methods agree to within 0.3 ms; the copies remove submission latency and idle clocks. |
-| 02 | No per-ray cull of the circles in the march. | Open for slice 06 | The margin to the floor says it is not needed. If the lab's frame-cost check reads too high, the first lever is to skip `fogSmokeStep` on steps outside every circle's span along the ray, which leaves parity untouched. |
-| 03 | `SmokeCapability.stock_per_charge` is a `u32`, not the slice's `f64`. | Settled | A supply truck's stock is whole units everywhere (`Unit.stock`, `ActiveProtection.stock_per_charge`); a fractional price has nowhere to be paid from. |
-| 03 | The smoke capability sits in a new `catalog/charges.rs` beside flares and active protection, which moved there first in their own commit; each of the three validates itself there. | Settled | `catalog.rs` is over the size budget. "Finite charges a unit carries apart from its mounts, restored by supply" is one concept; moving the other two's validation is what made room for the smoke field without growing `catalog.rs`. |
-| 03 | `SmokeClouds` keeps each cloud's state as of the last `advance` (or its pop), so its readers take no tick: `live()`, `states()`, `near(centre, reach)`, `key_near(centre, reach)`. Each cloud also records the side that popped it (`Popped { cloud, side }`), for slice 04's own-cloud rule. | Settled | Sight reads the clouds many times a tick; the law is evaluated once per cloud per tick. The side is battle state, so it is folded into the digest. |
-| 03 | A cloud folds its id, popping side, centre, pop tick and every number of its spec; after the clouds, the next cloud id folds only once a cloud was ever popped. | Settled | Keeps a battle with no smoke bit-identical to the old empty expiry slot, while equal digests still mean equal clouds. |
-| 03 | A planning snapshot of the world (`WorldGeometry::planning_snapshot`) holds no clouds. | Settled | Snapshots plan movement, which smoke never touches; carrying the clouds would hand side planners state they may not see. |
-| 03 | `sim::smoke::pop` takes the rules (`pop(unit, clouds, tick, rules)`), and pops nothing for a unit off the field. | Settled | The cloud's spec and the tick rate live on the rules; a rider or a fallen unit can't throw smoke. |
-| 03 | `Battle::add_prop` is deleted: with the expiry gone it only forwarded to `WorldGeometry::add_prop`, which its three callers now call. | Settled | No pass-through wrapper left behind by the cutover. |
-| 03 | `test_smoke_tank` carries 2 charges and `test_smoke_squad` (four riflemen, extending the abstract `test_squad`) 1; both take D6's cloud numbers, a 5 s, 5-stock charge, and the `discharger` / `grenade` looks slice 07 names. The tank sets `"roster": null`, as `test_apc` does, so a test deck that patches `test_tank` into a roster doesn't offer it too. | Settled | Without the null, the AI test deck inherits the patched roster and buys the smoke tank, the cheaper id on a tie, in place of `test_tank`. |
-| 03 | **Catalog identity pin moved (named): one pinned digest record moves.** The two new test rows sort before `test_supply`, `test_tank` and `test_transport_heli`, so those types' indices move by two. The battle digest folds a type index (through what a side identifies), so `scenario-overrides.json`, the one pinned test-unit battle whose units identify each other, changes its digests from tick 200 on; `stream` and `contact-lifecycle` change only their `publication_sha256` (the published kind), and `exact-numbers` only its embedded test documents. Every other digest and fog hash is unchanged. All four are re-recorded natively; the Wasm halves (`web/tests`) were not run here. | Settled (whole-spec review): slice 05 ran the web parity suites against a fresh Wasm build, 14 files and 94 tests (among them `scenarioOverrides`, `mapLayout`, `rulesAdmission`, `fogDelivery` and `captureObservations`), and all passed. Re-run after the review's renames against a fresh Wasm build: those five and the suites the renames touch (13 files, 115 tests) passed, as did the whole web suite but one test that reads an unpulled LFS model (`fim_92_stinger_team/active_a.glb`). | Proven to be catalog order alone: with the rows renamed to sort last (`test_zsmoke_*`), all three moved records matched the committed ones exactly. Keeping the spec's names costs this one re-record; the alternative is names that sort after every test id. A pin on a type index is a pin on catalog order, which every new test row moves. |
-| 03 | Three catalog refusal tests (`a_mount_naming_no_weapon_row_fails_at_load`, `only_a_winged_aircraft_carries_a_bomb`, `a_hull_past_its_drives_limits_is_refused_at_load`) now accept the refusal naming the patched type or any type extending it (`common::names`), as the soldier half already did in a looser form. | Settled | A patch to `test_tank` reaches `test_smoke_tank` too, and the first type in order is named; the tests pinned catalog order, not the refusal. |
-| 03 | **Hard cutover of saved scenarios:** the saved skirmish records (`skirmish-objectives.json`, `skirmish-purchases.json`) drop their 58 `"lifetime_s": null` prop-body keys, which no longer parse. Their digests are unchanged. | Settled | D25: no compatibility decoding. |
-| 03 | **The frozen generation rules get a schema edit, by hand:** `fixtures/parity/map-layout/physical-rules.json` loses its 58 `"lifetime_s": null` prop-body lines and nothing else, as `fixtures/README.md` asks of a schema change. The seven `generate-map` records in `map-layout/paired-records.json` change their output hash; the ten plan-only (`generate`) records are unchanged. All are re-recorded natively. | Settled (whole-spec review): slice 05 ran the web parity suites against a fresh Wasm build, 14 files and 94 tests (among them `scenarioOverrides`, `mapLayout`, `rulesAdmission`, `fogDelivery` and `captureObservations`), and all passed. Re-run after the review's renames against a fresh Wasm build: those five and the suites the renames touch (13 files, 115 tests) passed, as did the whole web suite but one test that reads an unpulled LFS model (`fim_92_stinger_team/active_a.glb`). | Generation identity pins the whole serialized physical catalog (`GenerationPhysics`), which lost the deleted column, so every compiled map's identity hash moves; the plans themselves, the generator's actual output, hash as before. The Wasm half was not run here. |
-| 04 | The fog sweep adds each step's smoke (the chord from the previous step to this one, at the step's `sight_z`) *before* the step's reach check, while foliage keeps its after-the-check order. | Settled | Then the depth a step is judged by is the exact chord from the eye to it, the same as `sensing::sees_point` counts; a test holds a ray's last visible cell to the last one sensing sees. With no clouds the sum is `foliage + 0.0`, bit for bit the old value. |
-| 04 | The sweep cache key is one `SmokeClouds::key_near(eye, sight.max_range())` per eye: a hash of the ids and phases of the clouds whose current circle comes within reach. | Settled | Any cloud a ray could cross is in the key, and the sweep reads exactly those clouds (`near` with the same reach). An observer out of every cloud's reach keeps its cache. |
-| 04 | `sim::smoke::seen_by(field, cloud)` reads the field's own cell size and the cloud's *current* radius; `sim::smoke::seen(clouds, side, field)` yields the side's own clouds and every other one `seen_by` admits. | Settled | One fewer argument to get wrong; a cloud still blooming is only as wide as it has grown. |
-| 04 | A target's smoke concealment reads the cloud's plan circle only (`contract::smoke::concealment_at`), whatever the sample's height. Airborne units still skip ground concealment altogether. | Settled | Every ground sample (a hull's centre and top, a soldier's chest) stands below every cloud's top. |
-| 04 | The fire-and-forget case is a test-defined variant of the team's missile with an infrared seeker; the shipped Javelin is not fire-and-forget here (its gunner keeps sight, its row says so), and a seeker SAM duel against a hovering helicopter proved unreliable (the authored Stinger's first missile ground in short even unhindered). | Settled | The seeker is the property that makes a missile fire-and-forget in this sim; a fake whose numbers the test defines proves it. The Stinger's short first shot is existing behaviour, outside this slice; worth a look. |
-| 04 | Under fire, the carrier fires back, so red's marker where it vanished is a **firing** contact; the reverse-out test, where the carrier never fires, pins the **last-seen** contact. | Settled | Both are "the existing last-contact marker" (D10); the side keeps whichever evidence it had. |
-| 04 | **Cost (tripwire, not a target):** one sample battle, 4 blue smoke tanks and 4 smoke squads against 4 red tanks and 4 rifle sections on open ground, 60 s at 30 Hz, instructions retired natively. Eight more blue carriers pop twice (16 clouds) out of the fighting: **7.51 G without, 8.76 G with (+17 %)**: fog sweep 0.46 → 1.23 G (phase changes re-sweep every observer in reach), sensing 3.41 → 4.12 G. When the fighters themselves pop (16 clouds over them), the battle runs 3.14 G → 8.51 G, but it is a different battle (12 units alive at the end, not 3). | Recorded | Measured with `step_profiled` phase brackets and the native instruction counter (`examples/common/instructions.rs`), in a scratch probe. |
-| 05 | `ObservationFrame.smoke_clouds` is a `Vec<contract::smoke::SmokeCloud>`, not a new `ObservedSmoke`. | Settled | The slice's `ObservedSmoke { id, centre, popped, spec }` is `SmokeCloud` field for field; the popping side lives beside it in the world (`Popped`), never in it. One definition of a popped cloud, the one `contract::smoke::state` reads. |
-| 05 | The packer takes the battle's look table: `pack_logical(frame, looks, …)`, and `Publisher::publish` passes `publication::smoke_looks(rules)`. Every other `pack_logical` caller passes `&[]`; a cloud whose look is not in the table is refused. | Settled | A cloud names its look (`spec.look`) where every other rules-table field of the frame is already a rank, so the packer needs the table to write the index. Keeping the frame as the slice gave it beats a second, rank-carrying cloud type. |
-| 05 | `smokeLooks` is every look the catalog's smoke capabilities name, deduplicated, in name order. | Settled | Built like `roundKinds` (every weapon row, fielded or not), so the layout depends on the rules alone. |
-| 05 | `smokeClouds` row: `id, x, y, z, popped, radiusM, heightM, lifeS, bloomS, fadeS, bloomSteps, fadeSteps, depthPerM, concealment, look` (look indexes `smokeLooks`). The id and pop tick are plain floats; `smokeCharges` sits after the protection fields. | Settled | Delegated by the slice. Plain floats are exact below 2²⁴, as for a contact's id and the header's tick; a cloud id counts pops. |
-| 05 | A cloud's id is the world's pop counter, so a side can count the pops before a cloud it sees, its enemy's unseen ones included. | Accepted (coordinator): matches existing known-prop and soldier ids, which leak counts the same way; a per-side key would add per-side id state across the observation, presentation-wasm and publication for a minor gain. The user may overturn. | It names no unit, kind or place; global known-prop and soldier ids expose counts the same way. A per-side numbering would be new state for the publisher to keep. |
-| 05 | **Captures refreshed natively, not by a new browser run.** `BLESS_PARITY=1` re-publishes `run/paris-corner`, the market-town window and the paris-corner count run from each capture's own battle (`tests/common/capture_publication.rs`), asserting every sample's browser-recorded digest, and rewrites the manifests' capture hashes; the observation fixtures are re-read by the Rust reader and the Wasm decoder holds them. | Settled (whole-spec review): slice 05 ran the web parity suites against a fresh Wasm build, 14 files and 94 tests (among them `scenarioOverrides`, `mapLayout`, `rulesAdmission`, `fogDelivery` and `captureObservations`), and all passed. Re-run after the review's renames against a fresh Wasm build: those five and the suites the renames touch (13 files, 115 tests) passed, as did the whole web suite but one test that reads an unpulled LFS model (`fim_92_stinger_team/active_a.glb`). | The repository's existing path for a layout change (558db3389, 1a8123141). No capture battle smokes, so the browser-only parts of a run (poses, unit clips, cards, indicators) cannot move; `fixtures/README.md` still says a layout change means a new run. A fresh `native-parity-capture` run needs the GPU, the full runtime assets and the web build, which this pass's disk could not hold. |
-| 05 | The codec vectors' input frames gain `smoke_clouds` (one cloud in `base`, and a charge count on its own unit), and the vector layout copies `smokeLooks`. | Settled | `smoke_clouds` has no serde default (D25: no compatibility decoding), so the frozen frames needed the field; one cloud makes the vectors carry the new group through both decoders. |
-| 05 | Room for the new lines is made in the same commit: report-event rows moved to `publication/report_row.rs` and `reader/report.rs`, flare and protection readiness to `units::Flares::readiness` and `protection::State::readiness`, and the publication's paired-record tests to `tests/publication/paired_records.rs`. | Settled | `battle.rs`, `publication.rs`, `reader.rs` and `tests/publication.rs` are over the size budget and may not grow; each move is a concept its new owner already holds. The ratchet measures a commit against its parent, so a split committed alone, leaving the file still over budget, frees no room for the next commit. |
-| 05 | **Digests: the layout is outside the battle digest.** `state_digest.rs` reads no observation; every paired stream record kept its `digest` and `fog_sha256` and moved only `publication_sha256`; the capture refresh asserted every sample's digest; the sim suite passed apart from the records it re-blesses. Effect vectors needed no re-bless (they carry decoded effect publications, not the layout); fog-sight vectors moved only `streetLayout` and the street stream. | Recorded | The firewall says pinned digests stay put through slice 08. |
-| 06 | The fog takes the side's clouds in `prepare_fog`'s new-publication branch, right after the eyes: each published cloud through `contract::smoke::state` at the publication's tick, keyed by its id. The reader's row gives back the contract's cloud (`reader::SmokeCloud::cloud`). | Settled | Clouds change only with a publication, as the eyes do; one law, read where the eyes are read. The published spec's numbers have passed through f32 (depth 0.2 reads 0.20000000298); the GPU takes f32 anyway, and the fog compares states only with its own earlier ones. |
-| 06 | "Eyes near a cloud rebuild, eyes away don't" is held by a presentation test through the real publication (`fog_ground.rs`: a smoke tank pops, a tank 800 m off never rebuilds, every step is sent at once and rebuilds only the carrier's eye), not by new fog-sight vectors. | Settled | The vectors pin byte hashes of recorded streams that have no smoke; a smoke run would be a second pinned recording. The behaviour test reads the law's own step count. |
-| 06 | No per-ray cull of the circles in the march (open from slice 02). | Settled | The lab's 100-eye check (`?cost`, SMOKE_COST=1, browser on this Mac, interleaved): no frame rebuilt past the 48-eye budget while twelve clouds bloomed; an all-eyes rebuild costs 0.47 ms clear and 0.76 ms with twelve clouds standing (+60 %, slice 02's native +58 %), under frame-cost.md's 1.55 ms tripwire. The steady fog cost read 0.30 vs 1.00 ms, but its paired samples ranged −0.13 to 1.11 ms while the whole frame drifted from 8.6 to 11.8 ms over the run, and steady frames read only the built maps, so that difference is the machine's, not smoke's (`throwaway/evidence/smoke-screen/smoke-cost.json`). |
-| 06 | The smoke lab is `BattleView` (the production controls, panels and overlay) with a labelled side switch in its top bar, which observes the same battle as the other side (`observeAs`). Its map is a new 400 × 260 m `smoke-screen` test map with a road and a wood; the encounter mirrors the mock (blue west, red's tank and AT team about 160 m east), every unit holds fire, and the road tank's pop is the encounter's script at tick 120. Blue's grass tank shells a doomed red jeep (1 hp) into a burning wreck in the first seconds, then holds fire, for slice 07's shot beside a wreck. | Settled (delegated) | The scripted pop is deterministic for the scene; slice 08 replaces it with the button. |
-| 06 | `ContactPresentation.update` takes the observation and forgets its memory when the report is another side's. | Settled | The first lab that switches sides under the battle view drew red's last-contact marker over blue's own tank. Fixed in its own commit, with a scene check and a unit case. |
-| 06 | The smoke test carriers' unit icons, missing since slice 03, were generated (`asset icons`, after pulling the 13 small disabled-card source models it needs). | Settled | Every page fielding them logged a missing icon; its own commit. |
-| 06 | **User checkpoint:** the shots were open in Preview for five minutes (20:26–20:31) with no reply; accepted on the evidence: the before/after diff is zero before the pop and after the fade and moves only while the cloud stands, the mock tells the same story, and the unprimed critique's findings are triaged in `assets/06/critique.md` (none in the fog). | Decided on evidence | Seen on screen and left: the existing last-contact marker's red hatch over the fog's grey hatch reads busy inside the cloud. |
-| 07 | A look row (`smoke_screen_looks.<name>`) carries `albedo`, `opacity`, `puffs`, `size_m`, `swirl_rad_s`, `height` (centre heights as shares of the cloud's) and `soft_m`, with `sound: null` until slice 10. Discharger and grenade share all but `size_m`. `effects.smoke_screen_budget` is 1024 instances. Fielding injects every row into the effects, so an enemy's cloud always has its look, and refuses a fielded type whose cloud names no row before any bundle is read. | Settled (delegated) | The weapon-look pattern, one row per name. The budget is about sixteen full tank clouds before each thins alike. |
-| 07 | The law's internal shape lives in `effects/frame/smoke_screen.rs` as constants: the flipbook frames a puff stands at (10–40), how far it wanders round its orbit (0.12), its lowest centre (0.4 of its radius) and a rim taper of 0.25. Puffs grow smoothly inside the stepped circle, never past it: `min(stepped share, age / bloom_s)`. | Settled (delegated) | The swirl law's internal shape was delegated; the containment test holds every puff inside the stepped circle and below the top over a whole life, in any wind. |
-| 07 | A puff's opacity follows the stepped density optically: `1 − (1 − opacity)^density`, not `opacity × density`. | Settled | With dozens of overlapping puffs, a linear scale left the half-way fade looking full. Optical depth linear in density is what sight's depth is. |
-| 07 | The screens draw after every other effect in the batch, in cloud and puff order (unsorted, premultiplied). The flipbook's unused `misc.w` marks a screen puff, and the effect shader writes it no fog strength, as it already did for high-air shadows. | Settled | No new record or shape. The effect vectors gain only the budget row, and every recorded instance holds unchanged (no re-bless). |
-| 07 | **Open for the user: should a side's own (or seen) cloud take the fog veil?** As the slice specifies, puffs don't lower the fog mask, so a cloud over unseen ground draws hatched like that ground. Because a unit in smoke is nearly blind, most of a side's own cloud draws hatched lavender, split at the fog rim, round a flat cream patch (the unit's own sight). The alternative is to draw a seen cloud over the veil: it is published only when the side sees it (D12), so it reveals nothing, but the ground behind its thin edges would read as seen. | Open | Both critiques' main findings. The fog is frozen in slice 07, so the contract was kept. |
-| 07 | Known on screen: a faint rectangle of thinner smoke round a hull inside its cloud, and its barrel crisp over the smoke. This is depth occlusion of camera-facing puffs by the hull's top. | Recorded | A billboard can't wrap a hull; the dense final look mutes it, and it reads as "the tank is in there" (the silhouette question: no x-ray needed). |
-| 07 | **User checkpoint:** the shots were open in Preview from 20:56 to 20:59 (closed early by mistake) and again from 20:59 to 21:03, about seven minutes in all, with no reply. The look is accepted on the evidence: the pre-pop shot is identical before and after, every changed shot only gains light, and both critiques are triaged in `assets/07/critique.md`. | Decided on evidence | |
-| 08 | POP SMOKE and the panel's SMOKE row share one mark, `states/smoke`: a banded grenade with its puffs rising from the mouth, apart and growing. No `pop_smoke` HUD icon. | Settled (delegated drawing; departs from the seam's "a `pop_smoke` HUD icon") | One concept, one icon: the bar already draws Deploy and Afterburner with state marks. The first critique found a separate cloud-over-arrow glyph read as "upload to cloud", a lone billow as a bun, and two shapes for one concept. A cloud over a canister read as cloud storage, and touching puffs merged into a club. |
-| 08 | POP SMOKE is a plain command right after REVERSE, never armed, and enabled when any selected unit still has a charge. H and the button share `useUnitControl.popSmoke`, which sends one `pop_smoke` naming those units and nothing else; its log line is "pop smoke: …". | Settled | D15. The key's code and label come from `CommandBindings`, so the tooltip reads "Pop smoke (H)". |
-| 08 | A unit as it arrives (`arrivingUnit`, a purchase card's panel) carries its smoke capacity, as it already carried its active protection's charges. | Settled | A reinforcement card shows SMOKE n for a type that has it. Flares are still not shown there; that is an existing gap, left alone. |
-| 08 | The smoke lab's scripted pop is gone: its scene selects the road tank from its army card and presses H at tick 120 (`POP_TICK`, the scene's own choice), and finds the carrier as the smoke tank standing on the map's road. The look tour pops every carrier by command. | Settled | Slice 08's "real player input". The scene checks that the charge counts down on the panel, and that HIDDEN lights in the cloud. |
-| 08 | The panels workbench's battle deck gains two cases, "Smoke ready" and "Smoke spent" (a test tank with 2 or 0 charges beside a rifle squad); the panel specimens gain smoke 2 and smoke out, each in the open and in smoke, riding the test tank. | Settled | Stand-ins carry the published count, as flares ride the jeep. |
-| 08 | **Re-blessed pictures:** the panels scene's army shots, at both widths (the bar gains a button), plus `panels-own-states` (four more specimens) and `panels-over-grass` (its top row of pixels moved with the taller section above). New pictures: `army-{1600,1024}-smoke-{ready,spent}` and their hovers. Reviewed in the diff and by two unprimed critiques before blessing. | Recorded | `unit-roster`'s journey pictures also show the command bar and will move by the same disabled button. That scene needs the game's runtime models, which this checkout's disk can't hold; it is left for the closeout's full run (slice 12). |
-| 08 | Seen on screen and left: the panel shows HIDDEN the tick after the pop, before the drawn cloud has grown enough to see. That is the law's first step (concealment from the centre) against the drawn cloud's smooth growth from nothing. | Recorded | The cloud is frozen in this slice. If it should change, the lever is slice 07's growth, e.g. starting the drawn cloud at part of its first step. |
-| 08 | **User checkpoint:** the shots were open in Preview from 21:16 to 21:18 with no reply; the coordinator closed the window on silence. Accepted on the evidence: two unprimed critiques are triaged in `assets/08/critique.md`, real input (the army card then H) passes the smoke scene, and the panels scene's moved pictures were reviewed before blessing. | Decided on evidence | |
-| 09 | **Resolved charges** (`python3 throwaway/smoke-screen/print_roster_smoke.py`, from the regenerated `fixtures/catalog.json`; review printout, not a test):<br>`assault_squad` 110: D2 infantry, wants 1, resolves 1 (grenade, 12m/5m/30s)<br>`eastern_t_14_armata_main_battle_tank` 440: tank, cost 440, wants 3, resolves 3 (discharger, 15m/6m/40s)<br>`eastern_t_15_armata_heavy_ifv` 300: D2 IFV, wants 1, resolves 1 (discharger, 15m/6m/40s)<br>`eastern_t_72_t_72b3_2016` 280: tank, cost 280, wants 1, resolves 1 (discharger, 15m/6m/40s)<br>`eastern_t_80_t_80bvm` 310: tank, cost 310, wants 2, resolves 2 (discharger, 15m/6m/40s)<br>`eastern_t_90_t_90m_proryv` 360: tank, cost 360, wants 2, resolves 2 (discharger, 15m/6m/40s)<br>`eastern_type_15_ztq_15_light_tank` 230: tank, cost 230, wants 1, resolves 1 (discharger, 15m/6m/40s)<br>`eastern_type_99_ztz_99a` 360: tank, cost 360, wants 2, resolves 2 (discharger, 15m/6m/40s)<br>`europe_challenger_challenger_2_tes` 390: tank, cost 390, wants 2, resolves 2 (discharger, 15m/6m/40s)<br>`europe_challenger_challenger_3` 450: tank, cost 450, wants 3, resolves 3 (discharger, 15m/6m/40s)<br>`europe_cv90120_light_tank` 250: tank, cost 250, wants 1, resolves 1 (discharger, 15m/6m/40s)<br>`europe_cv90_mk_iv` 260: D2 IFV, wants 1, resolves 1 (discharger, 15m/6m/40s)<br>`europe_kf51_panther_prototype_main_battle_tank` 460: tank, cost 460, wants 3, resolves 3 (discharger, 15m/6m/40s)<br>`europe_leclerc_xlr` 390: tank, cost 390, wants 2, resolves 2 (discharger, 15m/6m/40s)<br>`europe_leopard_2_2a6` 340: tank, cost 340, wants 2, resolves 2 (discharger, 15m/6m/40s)<br>`europe_leopard_2_2a7v` 390: tank, cost 390, wants 2, resolves 2 (discharger, 15m/6m/40s)<br>`europe_leopard_2_2a8` 450: tank, cost 450, wants 3, resolves 3 (discharger, 15m/6m/40s)<br>`europe_puma_level_c` 260: D2 IFV, wants 1, resolves 1 (discharger, 15m/6m/40s)<br>`us_force_recon_recon_patrol` 100: D2 infantry, wants 1, resolves 1 (grenade, 12m/5m/30s)<br>`us_m10_booker` 240: tank, cost 240, wants 1, resolves 1 (discharger, 15m/6m/40s)<br>`us_m1_abrams_sep_v2` 350: tank, cost 350, wants 2, resolves 2 (discharger, 15m/6m/40s)<br>`us_m1_abrams_sep_v2_trophy` 410: tank, cost 410, wants 3, resolves 3 (discharger, 15m/6m/40s)<br>`us_m1_abrams_sep_v3_trophy` 450: tank, cost 450, wants 3, resolves 3 (discharger, 15m/6m/40s)<br>`us_m1e3_abrams` 460: tank, cost 460, wants 3, resolves 3 (discharger, 15m/6m/40s)<br>`us_m2_bradley_ifv_m2a4` 230: D2 IFV, wants 1, resolves 1 (discharger, 15m/6m/40s)<br>`us_marine_squad_close_quarters_infantry` 110: D2 infantry, wants 1, resolves 1 (grenade, 12m/5m/30s)<br>26 carriers (19 tanks); every other roster row: 0. no mismatches | For review | D2's bands and lists, read off each row's resolved capability. The Centauro II resolves no smoke (README, Still open). |
-| 09 | Each carrier authors `capabilities.smoke` on its own row. A child row that inherits a parent's smoke overrides only `capacity` (`{ "capacity": 3 }`): the Abrams SEP v2 Trophy and SEP v3 Trophy over the SEP v2's 2, the Challenger 3 over the Challenger 2's 2, the Leopard 2A8 over the 2A7V's 2; the M1E3 inherits the SEP v3 Trophy's 3 unchanged. | Settled (delegated) | Inheritance carries the rest of the capability (the cloud, price and service), so a child restates only what differs. The rows were edited by a scratch script (`throwaway/smoke-screen/author_roster_smoke.py`) that keeps each file's hand formatting. |
-| 09 | A smoke charge's **price and service time follow the flares exactly**: `service_s` 2 and `stock_per_charge` 2 (`rules.json` `service.flare_service_s` and `stock_per_flare`), for tanks, IFVs and infantry alike. | Settled (delegated) | The slice said to follow the flare rows; one refill rule for both kinds of countermeasure charge. The test carriers keep slice 03's 5 s and 5 stock. |
-| 09 | **Named digest shift: no pinned record moved.** Every battle on the live game catalog that fields a carrier now folds its smoke state (D23), so skirmish and balance-report battles shift from here on. The pinned roster records (`skirmish-objectives.json`, `skirmish-purchases.json`) each carry their own rules snapshot (`scenario.rules.catalog`), so they replay as recorded; no `BLESS_PARITY` was needed. Test-unit and capture-unit digests are unchanged, and the menu reel's event-log judge (`menu_reel::*_plays_as_recorded`) passes. | Recorded | `cargo test -p sim --tests`: 1184 + 167 + the small binaries, all green, including `catalog::the_browsers_catalog_view_is_current`. `bun run --cwd web test`: 1400 passed; two failures read files this checkout has not pulled from LFS (`airwar-air-alarm.webm`, the Stinger team's source model), not the change. |
-| 09 | **Sample:** a roster Leopard 2A7V, fire at will, trades fire with a roster T-90M 350 m off on open ground, pops smoke at 4 s (75 of 120 hp left), then reverses. Its charges go 2 → 1; red loses its identification the tick after the pop, keeps one contact, and lands no further hit in 12 s while the Leopard backs 36 m out. | Recorded | A scratch module in the sim test binary, not committed (`throwaway/smoke-screen/scratch_roster_smoke.rs`, output in `roster-sample.txt`). |
-| 07 follow-up | **A seen cloud draws over the fog veil, by one rule: every effect lifts the veil by what it covers, and only a ground shadow leaves the mask alone.** The smoke-screen puff's `misc.w` marker and its `screen_puff` builder are deleted; a puff is the ordinary lit dust flipbook. The ground and units under thin smoke stay veiled in proportion. | Settled (answers slice 07's open question) | D12: a side is published only the clouds it sees, so lifting the veil over them reveals nothing. Treating smoke like every other effect leaves no per-side or per-kind case. The cost is that thin edge puffs over unseen ground keep a faint hatch, which is the veiled ground showing through. |
-| 07 follow-up | The drawn cloud's growth is floored at the law's first step: `grown = min(stepped, max(1 / bloom_steps, age / bloom_s))`. On its pop tick it stands at the first step's circle, then grows smoothly inside the stepped circle as before. | Settled | `contract::smoke::state` conceals out to `radius / bloom_steps` from the pop tick (slice 08 saw HIDDEN before any drawn smoke). The first puffs now read as a dense ball on the hull for a few ticks. |
-| 07 follow-up | The smoke scene checks the veil end to end: in the fog-mask view, a ring half way out and half way up each side's view of the cloud must not read unseen. It failed on the old rule from both sides and passes on the new one. | Settled | A behaviour check through the real renderer; a GPU unit test of the effect pass would test its shape, not what the player sees. |
-| 07 follow-up | **User checkpoint:** the before/after pairs were open in Preview from 21:39 to 21:44 with no reply. Accepted on the evidence: shots before the pop and after the fade are identical, the new veil check passes from both sides, and the unprimed critique's findings are triaged in `assets/07-followup/critique.md` (none against the change). | Decided on evidence | |
-| 11 | **`HpWatch` keeps each unit's strength at every decision inside the window** (one sample per 5 s decision), and a unit is losing when the window's peak minus its strength now is at least `smoke_loss_share` of its full strength. Full strength is the hull's `hp`, or the sum of its slots' soldier `hp`. A unit's samples are dropped when it leaves `own`, and reset to its current strength when it pops, so the loss that spent one charge never spends a second. | Settled (delegated) | The seam's single `(hp, tick)` baseline, reset each window, misses a loss that straddles a reset; two or three samples a unit cost nothing. |
-| 11 | **"Straight back" is along the unit's own `yaw`** (a hull's facing, a squad's facing), `smoke_reverse_m` from where it stands, and is not clamped: when `route_time` finds no route there (off the map, or blocked), the unit pops but gets no reverse and goes on fighting from inside its cloud. | Settled (delegated) | The AI cannot see the map's edge except through `route_time`, which already refuses a goal off the map. In the sample, tanks still at their map-edge entry popped without reversing. |
-| 11 | **Every losing unit pops in one `PopSmoke`, placed first in the decision's orders** (before even a purchase), then each unit's reverse `Move`. | Settled | D21: the rate limit can drop a reverse but never a pop. |
-| 11 | **A unit backing out (ordered back at this decision, or `direction == Reverse` with a live goal) is skipped at the top of the per-unit loop, beside passengers,** not at the relocation step. A loaded carrier or one collecting a squad stays on its reverse too, and resumes its errand after. A passenger never pops; a garrisoned squad may. | Settled | At the relocation step a loaded carrier's unload move, issued in the same decision, would overwrite its reverse. The AI orders no other reverse, so `Reverse` with a live goal names a smoke reverse alone. |
-| 11 | **The relocation rule moved to `skirmish_ai/relocation.rs` and the artillery tests to `tests/artillery.rs` in the same commit as the smoke rule,** not in a split commit before it. | Settled | The size ratchet measures a staged file against `HEAD`, so a split committed first gave the next commit no room: `mod.rs` and `tests.rs` both still shrink against the slice's base. |
-| 11 | The friendly-fire test is frame level: a loss with no enemy in sight still pops. | Settled | The rule reads only the unit's own strength, so who dealt the loss cannot matter; a real friendly-fire battle would test the combat model, not the AI. |
-| 11 | **Named digest shift: one corpus row moved, no pinned record.** `skirmish_tournament --corpus` (debug), before (`smoke_loss_share` set to 99, which never fires) and after: `air_reinforcement`'s battle digest moved (57 → 60 accepted AI orders); `flat_opening`, `town_contact`, `wooded_contact`, `blocked_entry`, `contested_center` and `casualty_fallback` are unchanged; every played row's replay check matches. `team_3v3` and `team_5v5` are refused at map admission and generation both before and after. No `BLESS_PARITY` was needed. | Recorded | `cargo test -p sim --tests`: 172 + 1184 + the small binaries, all green. |
-| 11 | **Sample:** two skirmish AIs, scripted to buy M1 Abrams SEP v2 (blue) against T-90M (red), on an open 800 × 600 map, seed 3, 300 s: 6 pop orders spent 8 charges, and 5 of those pops had a reverse. A T-90M popped at 35 s (86 hp) and backed 24 m in the next 8 s; another popped at 30 s with no route behind it at its map edge, and its second charge at 40 s. The replay digest matches. | Recorded | `throwaway/smoke-screen/s11_ai_smoke_sample.rs`, run as a temporary `sim` example and removed; output in `s11-sample.txt`. |
-| 11 | Seen in the sample and left: tanks bought at the map edge are shot at from the far entry across open ground and pop at once, many with nowhere to reverse. That is the test map's open ground, not the rule; whether the AI pops too eagerly is the slice's named feedback, answered by retuning the three numbers. | Recorded | |
-| 10 | **The trigger lives in the sound frame, not as a new effects-publication field.** `sound::smoke_pops` reads the effects publication's existing `smoke_clouds` at the frame's tick, keeps the ids it has voiced until each cloud's bloom is over, and queues the look's sound at the cloud's centre, keyed by cloud id. | Settled | The sound frame already owns tick time (`dt`), the "already heard" state of every other one-shot and its reset on a new battle; the effect feed knows no tick rate. So the publication layout, the native and browser publication types and `soundFrame.ts` are unchanged; the browser sound frame has no copy of the trigger to mirror. |
-| 10 | **The recording belongs to the look, the level to the mix:** `smoke_screen_looks.<look>.sound` names a library recipe, and `audio.json` gains `smoke_pop: { gain }` (the existing `Level` row, as the ricochet's), mirrored in `audioMix.ts`. Sound admission reads the looks, refuses an unknown or looping pop sound, and adds each pop to the battle's sounds (`SoundTables::smoke_pops`). A look with `sound: null` pops silently. | Settled | A `OneShot` in the mix would name the recording a second time. Gain 0.8, between the flare (0.75) and the cues. |
-| 10 | **Takes: `smoke-discharger-3` and `smoke-grenade-1`** (`assets/source/audio/effects/`, three takes each; every take is a clip, so the workbench can swap them). Judged by envelope and spectrum (10 ms RMS, onsets, a high-passed hiss band, spectrograms), since no ears were available: **discharger-3** has two launch thumps at full level (0.08 s and 0.41 s, a low-frequency body), then a broadband hiss at full level from 1.4 s, 2.6 s within 20 dB of its peak, fading to 5 s. **discharger-1** has a faster pair (90 ms apart) but they sit 18 dB under its hiss; **discharger-2** is one boom with no hiss. **grenade-1** has the pin's ping and a sharp pop (0.07 s, 0.25 s), then a steady high hiss from 1.0 s to the end, 3 s within 20 dB of its peak. **grenade-2** is a boom with a reverberant tail rather than a hiss; **grenade-3** hisses only from 2.9 s. No take shows a voice's harmonic stack or a musical line. | Recorded | The user hasn't listened yet. Both chosen takes keep a gap of about a second between launch and hiss (the cloud blooms over 1 s); recropping that gap needs a two-layer design, and is the first thing to try if the user dislikes it. |
-| 10 | Whole takes, no crops; the `launch` processing profile, as the flare burst. | Settled | The generator's length is already the sound's length; the asset tool fades the ends. |
-| 10 | **The scripted publication moved from `sound/frame.rs` to `sound/scripted.rs` in the same commit** as the pop. | Settled | `frame.rs` is over the size budget, and the ratchet measures a staged file against `HEAD`, so a split committed first leaves the next commit no room (as in slice 11). |
-| 10 | The own-pop case of the stream test runs a real battle (a test smoke tank pops; the side's own publication, through the effect feed, into the sound frame); the other two are scripted publications of the test catalog's cloud. | Settled | Whether a side sees its own cloud at its pop is the simulation's rule, so only a battle proves "always"; when another side first sees a cloud is the sound frame's question. |
-| 10 | Generated through `bun run generate effects`, which reaches ElevenLabs through the same Duet/Bento service proxy (`ctl.duet.so/v1/services/elevenlabs`, the address `bento service get --service-id elevenlabs` reports) with this machine's login; no key was copied. | Recorded | The README's route; the Bento CLI's proxy is the same endpoint. |
-| review | The pop sound keeps each heard cloud whole (`SmokePops.voiced: id → SmokeCloud`) and forgets it once `contract::smoke::state` says its bloom is over, rather than a precomputed end tick. `heard` still takes the frame's tick and `dt`, and reads the tick rate as `round(1 / dt)`. | Settled | One law, asked the same question twice a frame. A cloud lost from sight and seen again while still blooming is not heard twice. Keeping the caller's arguments leaves `sound/frame.rs`, which is over the size budget, unchanged. |
-| review | A look's `sound` is required at every reader of the look (serde refuses a row without one, in effects as in sound admission), and the pop frame indexes `SoundTables::smoke_pops` by the cloud's look without a guard. | Settled | Reverses slice 10's "a look with `sound: null` pops silently". Fielding refuses a cloud whose look has no row, and sound admission admits every row's sound, so every published cloud's look has a pop. |
-| review | **Renames (hard cutover, D25):** presentation `smoke_looks` → `smoke_screen_looks`, its row type `SmokeLook` → `SmokeScreenLook`, `check_smoke_looks` → `check_smoke_screen_looks`; lab fixture and route `smoke` (`/labs/smoke`, `routes/smoke.tsx`) → `smoke-screen` (`/labs/smoke-screen`, `routes/smokeScreen.tsx`); test map `fixtures/maps/smoke` → `fixtures/maps/smoke-screen` (label "Smoke screen lab"), its encounter `smoke` → `smoke-screen`; scene `web/scenes/smoke.mjs` → `smoke-screen.mjs`. Scratch evidence moved from `throwaway/evidence/smoke/` to `throwaway/evidence/smoke-screen/`; evidence under `assets/` stays. | Settled | Route ids and map folders are kebab-case and route files camelCase, as `ally-help` / `allyHelp.tsx`. The map's content and hash don't name its folder, so its identity is unchanged. |
-| review | The publication layout's `smokeLooks`, `smokeClouds` and `smokeCharges`, and `sim::publication::smoke_looks` (the catalog's look names the layout lists), keep their names. | Settled | They are the closed publication contract, where wreck smoke is `smokes` and damage smoke `smoking`, so nothing collides. Renaming them would re-publish every capture and vector for no change in meaning. |
-| review | The kill-gate cost workload (`?cost`, `SMOKE_COST`, `encounters/cost.json`) is deleted; the lab plays its one encounter. The shared lab probes it used (`suppressFog`, `fog().rebuildAll()`) stay, as the fog scene uses them. | Settled | Its verdicts are recorded (slices 02 and 06). |
-| review | Smoke validation messages name a field path: `capabilities.smoke.<field>` for the capability and `capabilities.smoke.cloud.<field>` for its cloud. `SmokeCloudSpec::validate` now says only the field (`radius_m must be positive`), and the capability prefixes it. | Settled | Like the flare and protection refusals beside it; the spec's validator has no idea where the spec sits. |
-| review | **"Player units never pop on their own" has a system test** (`sim/tests/smoke/players.rs`): a team skirmish where blue's human and AI players each buy a smoke tank (a skirmish admits no authored forces) and a red human buys four test tanks that shoot both. The AI's carrier pops through its own order; the human's, losing more than `smoke_loss_share`, keeps every charge. The test raises the smoke tank's hull to 500 hp in its own rules, so both carriers lose a fight for a while before they die. | Settled | The sim smoke tests reach the seam (the AI turn's own-unit filter in `battle/skirmish_turn.rs`) with less setup than the AI's frame-level tests, which can't reach it. Removing the filter fails the test. The 500 hp is the test's own, not a roster value. |
-| review | The tutorial teaches smoke as its own short item after the reverse advice ("pop smoke, then reverse out"), and names the panel's *Smoke* row as the cue for who can. The supply item says trucks refill ammunition and smoke. | Settled | The tutorial's voice: one idea per item, the key from `CommandBindings`, and no roster list, since who carries smoke is data. |
-| review | `crates/sim/README.md` states supply's whole service order in one sentence (ammunition, a protection charge, flares, vehicle health, replacement soldiers, smoke), replacing the protection paragraph's partial order. | Settled | The order was half there; adding smoke to it made the whole list shorter than a second sentence. |
-| 12 | **Balance report, paired (no retune).** `skirmish_tournament --corpus` (release), before (`smoke_loss_share` set to 99 by a temporary edit, never committed) and as shipped. Per row, before → after: `flat_opening` timeout, no winner, 53 → 53 accepted orders; `town_contact` timeout, none, 50 → 50; `wooded_contact` timeout, none, 52 → 52; `blocked_entry` no progress at 15.9 s, none, 22 → 22, credits spent less living value 660 / 720 both; `contested_center` timeout, none, 47 → 47; `casualty_fallback` no progress at 20.9 s, none, 24 → 24, 660 / 720 both; `air_reinforcement` timeout, none, **57 → 60**, 0 / 300 both, battle digest moved (4039135253081449698 → 5398818307355909485); `team_3v3` timeout, none, 156 → 156; `team_5v5` timeout, none, 185 → 185, 1260 / 570 both. Every row's replay check matches in both runs; no order was refused. Only `air_reinforcement` moved, as in slice 11, and the team rows now play and are unchanged. | Recorded | No row reaches a result inside its 60 s horizon, so the corpus can't show a smoke effect on who wins; it shows the AI's pops reach one battle and replay. `battle_sweep` can't shift: its battles seat no players and no skirmish, so no skirmish AI runs, and its one order is the attacker's scripted `Move` (`crates/mapgen/examples/battle_sweep.rs`). Read, not run. |
-| 12 | **No baseline blessed.** The panels scene's smoke pictures (blessed in slice 08) pass. Every picture that fails also fails, by the same pixel count, at the branch's base `ba6cb2482` (origin/staging's line): `frame` (`foundation`, `geometry`, `river`) and `unit-roster`'s four journey shots. Putting back the light block from before the reference colour grade (`78cc56196`, `0fc595e7b`, 9 Nov) makes `foundation` match exactly; `geometry` and `river` are left with a few hundred pixels on the trees. The `unit-roster` pictures also predate the grade and the tank-model passes. | Recorded | Pictures are approved by a person, and these changes aren't this feature's. They're left for the grade's owner. |
-| 12 | **Pre-existing scene failures, not fixed here.** Each was reproduced at `ba6cb2482`. `geometry`'s "traversal overlay marks the steep ramp" reads rgb 44,13,6, and 105,32,28 with the pre-grade light: the deeper shadows darken the overlay's shaded face. `fog-look`'s "units standing in fog are never fogged" reads a soldier's darkest pixel at 25,29,2, and 61,51,18 with the pre-grade light. `air-audio` never sees the J-10 again within 60 s of losing it; light can't explain that, and its cause is unknown. | Recorded | Each needs a decision outside smoke: whether the overlay is lit, how fog-look tells fog from shadow, and why the jet's legs no longer bring it back into view. |
-| 12 | `unit-roster` waits for the battle's first observation before reading its tick (its own commit). The viewport reports ready while the loading screen still says "Starting the battle"; on this branch the scene read `null.tick` every time, while at the base it read a tick. | Settled | It was a race in the scene. Its tick-60 capture requirement is unchanged, and all 23 of its functional checks now run and pass. |
-| 12 | **Re-verified after merging `origin/staging` (`612bb4bd8`); `unit-roster`'s four journey pictures re-blessed.** Staging re-blessed them for the tracked-armour models (`96a94ad37`), which left only this branch's difference: 4,479 (`journey-zoom`), 4,468 (`purchase-ghost`), 7,075 (`journey-placed-facing`) and 8,648 (`journey-space-orders`) pixels. Each differing region is the army deck, which gains the Pop smoke button and widens by one button. `journey-space-orders` also differs in its M1A2 SEP V2 panel, which gains the *Smoke 2* row. Nothing else in any of the four differs. Re-run after blessing: 0 pixels, all 27 checks pass. `frame` passes against staging's re-blessed pictures. This replaces the "No baseline blessed" row for these four pictures. | Settled | These are the same button and row the panels scene's pictures approved in slice 08, and they're shown in the shots the roster journey already takes. `geometry` (rgb 44,13,6), `fog-look` (25,29,2) and `air-audio` (the J-10 never re-seen) still fail with the same readings as at `ba6cb2482`. Staging's own full run at `612bb4bd8` records the same three failures (`specs/done/tracked-armour-models/decisions.md`, T4), so they're staging's, not this branch's. |
+This ledger replaces the per-pass one. Every entry was re-checked against the
+shipped code on 2026-11-13. Some choices were superseded and are dropped here:
+- the sound's "a look with no sound pops silently";
+- slice 07's "puffs never lift the fog veil";
+- the drawn cloud's growth from nothing;
+- the scripted pop in the smoke lab;
+- the lab's frame-cost workload;
+- the unit-roster scene's own wait for the first observation, which staging
+  already had;
+- the closeout's "no picture re-blessed".
+
+**Review these first:**
+1. **N1:** the pop and hiss sounds were picked from waveforms; nobody has
+   listened to them.
+2. **U1:** three browser scenes that fail on staging too were left failing.
+3. **S1:** a cloud's id counts every pop in the battle, including ones a side
+   never saw.
+
+**Counts:** 1 needs your call, 1 unsound, 41 sound (9 at medium confidence,
+32 at high). Seven small housekeeping calls are listed in one line at the end.
+
+---
+
+## Needs your call
+
+### N1. The pop sounds were chosen by reading waveforms, not by listening
+
+- **When:** slice 10 (`bbbd7beeb`).
+- **The choice:** A tank pops smoke. You hear its smoke dischargers fire, two
+  thumps, then the hiss of the cloud. A squad's smoke is a grenade pop, then a
+  hiss. Both sounds were generated with ElevenLabs, three takes each. No one
+  could listen during the build, so the takes were judged by their shape: a
+  loudness curve every 10 ms, where each sharp onset falls, a spectrum and a
+  spectrogram.
+  - **`smoke-discharger-3`** was kept. Its two launch thumps are at full level
+    (0.08 s and 0.41 s), with low-frequency body. A broadband hiss follows at
+    1.4 s and fades out by 5 s. Of the other takes, take 1's thumps sit 18 dB
+    under its hiss, and take 2 is one boom with no hiss.
+  - **`smoke-grenade-1`** was kept. It has a pin ping and a sharp pop (0.07 s,
+    0.25 s), then a steady high hiss from 1.0 s. Of the other takes, take 2 is
+    a boom with a reverberant tail, and take 3 only starts hissing at 2.9 s.
+  - No take shows a voice or a musical line.
+  - Each sound is a whole take, uncropped, through the flare burst's `launch`
+    processing.
+  - Both kept takes leave about a second between the launch and the hiss. The
+    cloud also takes a second to bloom, so the gap may read as natural, or as
+    a pause.
+- **The gap:** slice 10 asked for listening in the sound workbench and the lab
+  before choosing.
+- **The reach:** every smoke pop in every battle plays these two sounds. All six
+  takes are clips in `fixtures/sounds.json`, so swapping one is a one-word edit
+  to the `smoke-discharger` or `smoke-grenade` recipe's `clips`.
+- **Verdict:** needs your call: only a person can judge a sound.
+  **Provisional call: keep the takes.** To reverse, audition the six clips in
+  the sound workbench and name another in the recipe. If the gap before the
+  hiss bothers you, the first thing to try is a two-layer design: a launch clip
+  and a hiss clip, with the hiss started earlier.
+- **Confidence:** low.
+
+---
+
+## Unsound
+
+### U1. Three browser scenes that also fail on staging were left failing
+
+- **When:** the closeout run (`d76357684`), re-checked after merging staging.
+- **The choice:** The closeout ran every browser scene. Three failed, and each
+  fails the same way, with the same reading, at the branch's base on staging:
+  - **`geometry`:** the traversal overlay's "steep ramp" pixel reads
+    rgb 44,13,6. The reference colour grade's deeper shadows darken the
+    overlay's shaded face.
+  - **`fog-look`:** "units standing in fog are never fogged" reads a soldier's
+    darkest pixel at 25,29,2. The grade again: the check can't tell fog from
+    shadow.
+  - **`air-audio`:** the J-10 is never seen again within 60 s of losing it.
+    Light can't explain this; its cause is unknown.
+
+  None of them involves smoke. The build recorded them and left them for the
+  grade's owner. Staging's own full run records the same three
+  (`specs/done/tracked-armour-models/decisions.md`, T4).
+- **The gap:** the spec said only "everything stays green".
+- **The reach:** `bun run verify` stays red on three scenes. The next spec's
+  closeout will hit the same three and have to tell them apart from its own
+  failures.
+- **Verdict:** unsound. AGENTS.md says a failure you see is yours to fix,
+  whatever caused it, in its own commit. Two of the three are checks that fail
+  on how the light looks, not on what they test.
+  **Corrected decision:** fix each one on staging in its own commit, because
+  all three reproduce there. Repair the `fog-look` and `geometry` checks so
+  they no longer depend on the grade's light. Debug `air-audio`'s lost jet as
+  its own task.
+- **Confidence:** low.
+
+---
+
+## Sound, medium confidence
+
+### S1. A cloud's id is the battle's pop counter, so a side can count pops it never saw
+
+- **When:** slice 05 (`87f12cb51`); accepted by the coordinator in the review
+  (`6175847bf`).
+- **The choice:** Every cloud gets the next number from one counter the whole
+  world shares: 0, 1, 2 and so on. Each published cloud carries its id. Say red
+  sees blue's cloud 0, and next sees a blue cloud numbered 3. Red knows it
+  popped none itself, so it can work out that two pops happened that it never
+  saw. Who popped them, where, and what kind of unit stays hidden: a cloud row
+  names no unit and no kind. The alternative is to number clouds per watching
+  side. The publisher would then keep a table mapping each world id to each
+  side's own number.
+- **The gap:** slice 05 required that a cloud row never names its unit or kind.
+  It was silent on ids.
+- **The reach:** the firewall says the observation never leaks hidden state.
+  This is a small, known exception, of the same kind that soldier ids and
+  known-prop ids already make: they too count across the whole battle.
+- **Verdict:** sound (coordinator): it matches the existing ids, and per-side
+  numbering would add per-side id state across the observation, the
+  presentation's Wasm module and the publication, for little gain. You may
+  overturn it. To reverse, give the publisher a per-side id map and publish
+  those ids.
+- **Confidence:** medium.
+
+### S2. The four unit-roster journey pictures were re-blessed without a fresh unprimed critique
+
+- **When:** after merging staging (`77510e609`).
+- **The choice:** The `unit-roster` browser scene photographs a player's
+  first steps: zooming in, a purchase ghost, a placed tank, orders. Four of
+  its pictures show the army deck. Smoke adds a Pop smoke button to that deck,
+  so the deck is one button wider. One picture also shows an M1A2 SEP V2
+  panel, which now has a *Smoke 2* row. The pictures differed from their
+  approved versions by 4,468 to 8,648 pixels, and every differing pixel lay in
+  the deck or that panel. The build blessed the new pictures after reading the
+  diff alone. The usual rule asks for an unprimed critique of any visual change
+  first.
+- **The gap:** the spec named only the panels scene's pictures; it left the
+  roster journey for the closeout's full run.
+- **The reach:** these four pictures are now the approved standard for the
+  roster journey.
+- **Verdict:** sound (coordinator). Slice 08's two unprimed critiques already
+  approved this exact button and row in the panels scene, at both widths, and
+  nothing else in the four pictures changed.
+- **Confidence:** medium.
+
+### S3. The menu-reel captures were re-published natively, not re-recorded in a browser
+
+- **When:** slice 05 (`87f12cb51`).
+- **The choice:** The parity captures are recordings of the menu reel's
+  battle, as published to the browser. Native tests replay them to prove the
+  desktop client reads the same bytes. Smoke changed the publication layout,
+  which adds a cloud group, a charges field and a list of look names, so every
+  capture's bytes moved. `fixtures/README.md` says a layout change means a new
+  browser run (`native-parity-capture`). That run needs the GPU, the full
+  runtime assets and the web build, and the pass's disk couldn't hold them.
+  Instead, `BLESS_PARITY=1` re-published each capture from its own battle,
+  natively, and asserted that every sample's battle digest still matched the
+  browser's recording.
+- **The gap:** slice 05 said to re-record the captures in this slice. It
+  didn't foresee the disk.
+- **The reach:** the captures' poses, unit clips, cards and indicators are
+  still the old browser run's. No capture battle pops smoke, so none of those
+  can differ. Two earlier layout changes took the same route (`558db3389`,
+  `1a8123141`), so `fixtures/README.md` now describes a rule the repository has
+  stopped following.
+- **Verdict:** sound (coordinator): it follows the precedent, and it proves the
+  battle unchanged. The web parity suites then passed against a fresh Wasm
+  build. To reverse, run `native-parity-capture` with LFS pulled. Then either
+  bring the README in line with the native route, or keep using the browser
+  run.
+- **Confidence:** medium.
+
+### S4. A losing AI unit with nowhere to back up still pops, and fights on from inside its cloud
+
+- **When:** slice 11 (`2d1a32016`).
+- **The choice:** The skirmish AI sees one of its tanks lose a fifth of its
+  strength within 10 seconds. It pops the tank's smoke and orders a reverse
+  40 m straight back, along the way the hull faces. The AI can't see the map's
+  edge directly; it asks the route planner whether a route reaches that point.
+  If none does (off the map, or blocked), the tank still pops but gets no
+  reverse. It stays in its cloud: hidden, but still drawing fire at its last
+  contact. In the sample battle, tanks hit at their map-edge entry often popped
+  with nowhere to go. There were two alternatives:
+  - try other bearings, as the AI's relocation rule already does when a unit's
+    own cover blocks its fire;
+  - don't pop at all when there is no way out.
+- **The gap:** slice 11 delegated "straight back", suggesting it be clamped to
+  the map.
+- **The reach:** AI tanks can spend charges standing still. Clamping or
+  searching bearings is a change local to `skirmish_ai/smoke.rs`.
+- **Verdict:** sound. Popping in place still breaks the enemy's identification,
+  which is realistic and better than nothing. Whether the AI pops too eagerly
+  is slice 11's named feedback, and the answer is to retune its three numbers.
+- **Confidence:** medium.
+
+### S5. A cloud the side sees draws over the fog veil, reversing slice 07's written rule
+
+- **When:** the slice 07 follow-up (`9e13f1b81`).
+- **The choice:** The fog of war draws unseen ground under a hatched veil.
+  Every drawn effect (a muzzle flash, dust, wreck smoke) lifts that veil by
+  how much it covers. Only ground shadows leave the veil alone. Slice 07 said
+  smoke-screen puffs must not lift it, so a cloud on unseen ground would stay
+  hatched. On screen that broke the cloud apart. A unit in smoke is nearly
+  blind, so most of its own cloud lies on ground its side can't see. It drew
+  as a hatched lavender blob, split at the fog's edge, round a flat cream patch
+  where the unit's own short sight reached. The change made smoke an ordinary
+  effect and deleted the special puff marker. A side is published only the
+  clouds it sees (D12), so drawing them reveals nothing. The ground and units
+  under a cloud's thin edges stay veiled in proportion.
+- **The gap:** slice 07 fixed the rule, but its unprimed critiques found the
+  result misleading. The user was silent at the checkpoint.
+- **The reach:** no effect has a per-kind fog case. Thin edge puffs over
+  unseen ground keep a faint hatch, which is the veiled ground showing
+  through.
+- **Verdict:** sound: one rule for every effect, and no information leaks. The
+  smoke scene checks both sides' fog-mask view through the cloud. Decided on
+  the evidence while the user was silent.
+- **Confidence:** medium.
+
+### S6. Every visual checkpoint was decided on the evidence while the user was silent, with three known imperfections left
+
+- **When:** slices 06, 07, 08 and the 07 follow-up.
+- **The choice:** At each visual slice the shots were opened for the user for
+  about five minutes. There was no reply each time, so the look was accepted
+  on before/after diffs and unprimed critiques. The triage is in each
+  `assets/<slice>/critique.md`. Three things the critiques saw were left as
+  they are:
+  - **Inside the cloud,** the existing last-contact marker's red hatch over
+    the fog's grey hatch reads busy.
+  - **Round a hull inside its cloud,** a faint rectangle of thinner smoke
+    shows, and the barrel stays crisp over the smoke. The cause is that the
+    hull's top hides the camera-facing puffs behind it. A flat puff can't
+    wrap a hull. It reads as "the tank is in there", and the panel's HIDDEN
+    row is the authoritative signal anyway.
+  - **The smoke mark** (bar and panel) is filled and heavier than its
+    line-drawn neighbours. Outline puffs at that size read as rings.
+- **The gap:** the checkpoints were non-blocking by design.
+- **The reach:** the white-grey billow (64 puffs at opacity 0.6, albedo
+  0.82/0.84/0.87) and the smoke mark are now the game's look for smoke.
+- **Verdict:** sound: the critiques found the cloud clean, distinct from wreck
+  smoke, and readable at far zoom. Retuning the look is data in
+  `smoke_screen_looks`.
+- **Confidence:** medium.
+
+### S7. The AI's smoke shipped at its starting tuning; the balance report can't show its effect on who wins
+
+- **When:** slice 11, and the closeout's paired balance report (`d76357684`).
+- **The choice:** The AI counts a unit as losing when it drops 20 % of its full
+  strength within 10 s (`smoke_loss_share` 0.2, `smoke_window_s` 10). It then
+  backs it out 40 m (`smoke_reverse_m`): far enough to clear a 15 m cloud with
+  room to spare. These are the plan's starting guesses. The closeout ran the
+  tournament corpus twice, with smoke switched off and on. Only
+  `air_reinforcement` changed (57 to 60 accepted AI orders). No corpus battle
+  reaches a result inside its 60 s horizon, so the report shows that pops
+  happen and replay, not whether they help.
+- **The gap:** the closeout said not to retune, and none was done.
+- **The reach:** smoke's effect on balance is unmeasured. A retune is a
+  separate pass: three numbers in `fixtures/skirmish-ai.json`.
+- **Verdict:** sound: the values are data and the plan delegated them.
+- **Confidence:** medium.
+
+### S8. The frozen generation rules were edited by hand to drop the deleted field
+
+- **When:** slice 03 (`59b7c0608`); settled by the coordinator.
+- **The choice:** The map-generation parity corpus keeps a frozen copy of the
+  physical rules it was recorded with:
+  `fixtures/parity/map-layout/physical-rules.json`. The spec's firewall listed
+  it as frozen. Smoke deleted `PropBody.lifetime_s` (D19). The repo doesn't
+  decode old fields (D25), so the copy's 58 `"lifetime_s": null` lines no
+  longer parsed. Those 58 lines were removed by hand, and nothing else. A
+  map's generation identity hashes the whole physical catalog, so the seven
+  `generate-map` records' identity hashes moved. The ten plan-only records,
+  and the generated maps themselves, are unchanged. The two saved skirmish
+  records (`skirmish-objectives.json`, `skirmish-purchases.json`) lost the
+  same 58 keys each, and their digests didn't move.
+- **The gap:** the firewall didn't foresee a schema deletion reaching a frozen
+  file.
+- **The reach:** `fixtures/README.md` asks for exactly this: a frozen file
+  gets a deliberate hand edit for a schema change, never a regeneration.
+- **Verdict:** sound (coordinator).
+- **Confidence:** medium.
+
+### S9. Two new test units moved one pinned battle's digest by shifting catalog order
+
+- **When:** slice 03 (`59b7c0608`); settled by the coordinator.
+- **The choice:** The lab and the tests need smoke carriers, so two new test
+  rows were added: `test_smoke_tank` and `test_smoke_squad`. Existing test
+  units stay without smoke, so their digests hold (D23). Catalog rows are
+  numbered in name order, though. The new rows sort before `test_supply`,
+  `test_tank` and `test_transport_heli`, so those three types' numbers rose by
+  two. The battle digest folds a type's number when a side identifies a unit,
+  which affects four pinned records:
+  - in `scenario-overrides.json`, the one pinned test-unit battle whose units
+    identify each other, the digests changed from tick 200;
+  - `stream` and `contact-lifecycle` changed only the published kind;
+  - `exact-numbers` changed only its embedded test documents.
+
+  All four were re-recorded. Renaming the rows to sort last (`test_zsmoke_*`)
+  reproduced every committed record exactly, which proves catalog order was
+  the only cause.
+- **The gap:** the firewall promised unchanged test-unit digests. It didn't
+  foresee that a digest pins catalog order.
+- **The reach:** any new test row that sorts early moves the same records.
+- **Verdict:** sound (coordinator): the spec's names beat names chosen to
+  dodge a pin, and a pin on catalog order is fragile anyway.
+- **Confidence:** medium.
+
+---
+
+## Sound, high confidence
+
+### The cloud and sight
+
+#### S10. A cloud changes in steps, not smoothly, everywhere that reads it
+
+- **When:** the plan (write-spec), built in slice 01 (`e7ef55eba`).
+- **The choice:** A cloud grows to full size in `bloom_steps` (4) equal steps
+  over `bloom_s` (1 s). It holds, then thins in `fade_steps` (5) steps over its
+  last `fade_s` (10 s), and is gone at `life_s`. Thinning scales its density
+  and its concealment shortfall (`1 − concealment`) together. Sight, the fog
+  sweep, the GPU fog, the drawn cloud and the sound all ask
+  `contract::smoke::state` for the same step. A smooth fade would change
+  every tick, and the GPU fog would then rebuild the eye maps near it every
+  tick.
+- **The gap:** D6 gave the times but not their shape.
+- **The reach:** the GPU fog's rebuild budget assumes a handful of changes per
+  cloud. A smooth fade would mean measuring that budget again.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+#### S11. Overlapping clouds add their smoke
+
+- **When:** the plan; slice 01.
+- **The choice:** A sight line through two overlapping clouds crosses both
+  chords, and their depths add, so the overlap is denser. Concealment differs:
+  a target standing in two clouds takes the stronger one, not the product
+  (`sensing::ground`'s "strongest wins").
+- **The gap:** D1 gave one cloud's density.
+- **The reach:** stacked pops thicken the screen, which a viewer expects.
+- **Verdict:** sound: D1 taken literally.
+- **Confidence:** high.
+
+#### S12. A side sees a cloud when it sees the ground at the cloud's rim
+
+- **When:** the plan; slice 04 (`235a44a86`).
+- **The choice:** Red sees blue's cloud when red's fog map marks as seen any
+  fog cell whose centre lies within the cloud's current radius plus one cell
+  of its centre (`sim::smoke::seen_by`). A side always sees its own clouds. A
+  cloud hides its own middle, so only its near rim can be seen. The rule uses
+  the cloud's current radius, so a cloud still blooming is only as wide as it
+  has grown.
+- **The gap:** D12 said "can see where the cloud stands" without saying how.
+- **The reach:** this is the one test that decides which clouds are
+  published, drawn and heard.
+- **Verdict:** sound: one owner, the fog sweep the side already runs.
+- **Confidence:** high.
+
+#### S13. Smoke enters sight as its own depth term, and only sight reads it
+
+- **When:** the plan; slices 01 and 04.
+- **The choice:** `WorldGeometry::sight_depth` is the depth of tree crowns
+  (`foliage_depth`) plus smoke, sampled along the line every 1 m like foliage,
+  with each piece's chord exact. Three things read it:
+  - sensing;
+  - wire- and laser-guided missiles' guidance;
+  - the guided return-fire check.
+
+  Three things keep reading tree crowns only:
+  - the launch-path check (`launch_clear`), so artillery and SAMs still launch
+    from inside smoke;
+  - map analysis;
+  - map generation.
+
+  A target's concealment reads only whether it stands inside the cloud's
+  circle, at any height. Every ground sample stands below every cloud's top,
+  and airborne units skip ground concealment anyway.
+- **The gap:** the plan found that the two guided-missile checks read foliage
+  directly. That needed wiring the walk had called free.
+- **The reach:** a guided missile drops for good when smoke cuts its line. A
+  fire-and-forget missile (one with a seeker) flies on.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+#### S14. The fog sweep counts smoke before deciding a cell is visible, and re-sweeps only observers near a change
+
+- **When:** slice 04.
+- **The choice:** The sweep walks each ray outward 8 m at a time. At each
+  step it adds the smoke chord from the previous step, at the height the line
+  passes, before asking whether the cell is still within reach. Foliage is
+  added after that check, as before. So a cell is judged by the exact smoke
+  between the eye and it, which is what `sensing::sees_point` counts. A test
+  holds a ray's last visible cell to the last one sensing sees. Each
+  observer's cached field is keyed by a hash of the ids and steps of the
+  clouds within its reach (`SmokeClouds::key_near`), so an observer away from
+  every cloud keeps its cache. With no clouds the sum is bit-identical to
+  before.
+- **The gap:** the plan didn't say where in the step smoke counts.
+- **The reach:** a cloud changing step re-sweeps every observer in reach. One
+  sample battle, with 16 clouds popped out of the fight, ran 17 % more
+  instructions. That is a tripwire, not a budget.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+#### S15. The world keeps each cloud's current state, and the side that popped it
+
+- **When:** slice 03 (`59b7c0608`).
+- **The choice:** `SmokeClouds` works out each cloud's step once per tick, in
+  `advance`, and its readers (`live`, `states`, `near`, `key_near`) take no
+  tick. Sight reads the clouds many times a tick. Each cloud also records its
+  popping side, for the "own clouds are always seen" rule. A cloud is not a
+  body: popping one or losing one bumps no obstacle or navigation revision. A
+  planning snapshot of the world, used to plan movement, holds no clouds.
+- **The gap:** the plan left storage to the slice.
+- **The reach:** movement and air planning never see smoke, and side planners
+  never get clouds they may not see.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+#### S16. A battle that never pops smoke keeps its old digest exactly
+
+- **When:** slice 03.
+- **The choice:** The clouds fold into the slot the deleted prop expiries
+  used. That is their count, then each cloud's id, side, centre, pop tick and
+  every number of its spec. The next cloud id folds only once a cloud has been
+  popped, so a smoke-free battle folds just the zero count, as the empty
+  expiry list did. A unit's charges and its smoke resupply clock fold only
+  when it carries smoke.
+- **The gap:** D23 asked for this outcome; the encoding was the slice's.
+- **The reach:** smoke-free records never move. Equal digests still mean
+  equal clouds.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+#### S17. Popping is an instant change beside the unit's orders, and a rider or a fallen unit can't pop
+
+- **When:** slice 03.
+- **The choice:** `Battle::apply` handles `Order::PopSmoke` before the unit's
+  ordinary orders and leaves them alone, so a moving tank pops and keeps
+  driving its queued route. `sim::smoke::pop` takes the rules, which hold the
+  cloud's spec and the tick rate. A unit off the field (a rider, or one
+  destroyed) pops nothing. A unit with no charge left is skipped silently,
+  with no refusal.
+- **The gap:** D21 set the shape; the signature and the off-field case were
+  the slice's.
+- **The reach:** smoke never cancels an order. The AI must still send its
+  reverse as a second order.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### The GPU fog
+
+#### S18. The fog-of-war cost gate said keep exact circles
+
+- **When:** slice 02 (`7edeb52ca`), confirmed in the slice 06 lab.
+- **The choice:** Slice 02 was a kill gate. If the GPU fog couldn't take a
+  live list of circles within the frame budget, the plan would stop. Native
+  measurement on the endurance field (100 eyes, up to 12 clouds stepping
+  through their lives) passed:
+  - the parity test was green;
+  - no frame rebuilt more than the 48-eye budget;
+  - eyes out of every cloud's reach never rebuilt;
+  - the worst fog frame (5.5 ms) sat far inside the 33 ms a frame gets at the
+    30 FPS floor.
+
+  In the lab, an all-eyes rebuild went from 0.47 to 0.76 ms with twelve
+  clouds standing, under the 1.55 ms tripwire. So the march has no per-ray
+  cull of circles.
+- **The gap:** the plan delegated the verdict to the measurement.
+- **The reach:** if the frame cost ever reads high, the first lever is to skip
+  `fogSmokeStep` on steps outside every circle's span. That leaves parity
+  untouched.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+#### S19. Clouds reach the GPU fog through the publication, and change it only near them
+
+- **When:** the plan, confirmed in slice 02; built in slices 02 and 06
+  (`eb7768ea5`).
+- **The choice:** The presentation crate already decodes each publication
+  into the observation it keeps, and takes the side's eyes from it. The clouds
+  take the same path. On each new publication, `prepare_fog` turns each
+  published cloud into its state at the publication's tick and hands the list
+  to `FogSight::set_smoke`. That compares whole states by id. When a cloud
+  comes, steps or goes, the eyes whose map reach meets its old or new circle
+  join the moved eyes' rebuild queue, oldest first. No map is dropped, because
+  a dropped map rebuilds at once, past the budget. Neither the browser's nor
+  the native client's foliage builder changed.
+- **The gap:** the plan had to confirm the data path, and left the dirty-eye
+  rule to the slice.
+- **The reach:** the fog has one input for clouds, the published observation,
+  as for eyes.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+#### S20. The GPU takes the circles in a new storage buffer and their count in a spare word
+
+- **When:** slice 02 (`a0f5f9568`).
+- **The choice:**
+  - **The records.** Each cloud reaches the GPU as a 32-byte `FogSmoke`
+    record (centre, radius, height, depth per metre) at binding 8 of the
+    fog's build layout. Their count sits in what was a padding word of
+    `FogParams`, so every upload without clouds is byte-for-byte unchanged,
+    and the fog-sight vectors held.
+  - **The maths.** The WGSL `fogSmokeStep` measures each chord along and
+    across the step, not through the quadratic's discriminant. It is the same
+    chord in exact arithmetic, but f32 keeps its digits at map-scale
+    coordinates. The parity tolerance is 1e-5 × (1 + depth).
+  - **The height.** The march counts smoke at the same point its canopy test
+    uses: the end of each step, raised to the terrain horizon.
+- **The gap:** the plan delegated the layout, the binding and the packing.
+- **The reach:** the build layout now uses all 8 storage buffers WebGPU allows
+  by default. The next fog input needs a merged buffer or a raised limit.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Publication
+
+#### S21. The observation reuses the contract's cloud type, and the publication indexes looks by name
+
+- **When:** slice 05 (`87f12cb51`).
+- **The choice:**
+  - **The type.** `ObservationFrame.smoke_clouds` is a list of
+    `contract::smoke::SmokeCloud`, the type the law reads. The slice's planned
+    `ObservedSmoke` was the same type field for field. The popping side lives
+    beside it in the world, never in it.
+  - **The charges field** is `OwnUnit.smoke`, never `smoking`: that already
+    means damage smoke.
+  - **The row.** A published cloud row is `id, x, y, z, popped, radiusM,
+    heightM, lifeS, bloomS, fadeS, bloomSteps, fadeSteps, depthPerM,
+    concealment, look`, in plain floats, which are exact below 2²⁴.
+  - **The looks.** `look` indexes the layout's `smokeLooks`: every look the
+    catalog's smoke capabilities name, deduplicated, in name order. So the
+    layout depends on the rules alone, like `roundKinds`.
+  - **The packer.** It takes that look table, refuses a cloud whose look isn't
+    in it, and every other caller passes an empty table.
+  - **Vectors.** The codec vectors' input frames carry one cloud and a charge
+    count, so both decoders exercise the new group.
+- **The gap:** the slice delegated field order and packing.
+- **The reach:** this is the closed publication contract for smoke. A second
+  layout change for smoke (unseen pops heard, say) would re-publish every
+  capture again.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Drawing
+
+#### S22. A cloud's look is a presentation row its capability names, with its own budget
+
+- **When:** slice 07 (`d3a613c7a`).
+- **The choice:** The simulation's cloud names a look (`discharger` for
+  vehicles, `grenade` for infantry). Each look is a `smoke_screen_looks` row in
+  `fixtures/presentation.json`, holding:
+  - albedo and opacity;
+  - puff count and puff size range;
+  - swirl rate and height band;
+  - softness;
+  - the pop sound.
+
+  The two rows differ only in puff size. All smoke screens together keep to
+  `smoke_screen_budget` (1024 puffs, about sixteen full tank clouds), apart
+  from the wrecks' 4096. Past the budget, every cloud thins alike. Fielding
+  sends every look row to the effects, so an enemy's cloud always has its
+  look, and it refuses a fielded unit whose cloud names no row.
+- **The gap:** the slice delegated sizes and counts.
+- **The reach:** this is the weapon-look pattern. A new smoke kind is a row,
+  not code.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+#### S23. The drawn cloud thins optically, and stands at the law's first step from its pop
+
+- **When:** slice 07, and the 07 follow-up.
+- **The choice:**
+  - **Thinning.** Each puff's opacity follows the cloud's density optically,
+    `1 − (1 − opacity)^density`, not `opacity × density`. With dozens of
+    overlapping puffs the linear form left the half-faded cloud looking full.
+    Optical depth linear in density is also what sight uses.
+  - **Growth.** The drawn cloud's size is
+    `min(stepped size, max(first step, age / bloom_s))`. It stands at the
+    first step's circle on its pop tick, as concealment does, then grows
+    smoothly inside the stepped circle. Before this, HIDDEN lit a tick before
+    any smoke showed.
+  - **Shape.** The swirl's internal shape is four constants in
+    `effects/frame/smoke_screen.rs`: the flipbook frames a puff stands at, how
+    far it wanders, its lowest centre, and a rim taper.
+  - **Draw order.** Screens draw after every other effect, unsorted and
+    premultiplied.
+  - **Bounds.** A test holds every puff inside the circle and below the top
+    for the cloud's whole life.
+- **The gap:** the slice delegated the swirl law's shape.
+- **The reach:** the drawn cloud can never show smoke where sight has none.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Controls and the lab
+
+#### S24. One smoke mark for the button and the panel row; the button is a plain command after Reverse
+
+- **When:** slice 08 (`5c6910967`).
+- **The choice:** POP SMOKE sits right after REVERSE. It is never armed, and
+  it is enabled when any selected unit has a charge. H and the button share
+  `useUnitControl.popSmoke`, which sends one `pop_smoke` naming only the
+  selected units that have a charge. The tooltip reads "Pop smoke (H)". The
+  button and the panel's *Smoke n* row share one icon, `states/smoke`: a
+  banded grenade with puffs rising from its mouth. The plan had a separate
+  `pop_smoke` HUD icon. Critiques read a cloud over an arrow as "upload", a
+  cloud over a canister as "cloud storage", and two shapes for one concept as
+  two concepts. A reinforcement card (`arrivingUnit`) shows its type's smoke
+  capacity, as it shows active protection's.
+- **The gap:** the slice delegated the drawing and the tooltip.
+- **The reach:** the bar already draws Deploy and Afterburner with state marks,
+  so this is that pattern.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+#### S25. The smoke lab is the real battle view on a small test map
+
+- **When:** slice 06; the scripted pop replaced in slice 08.
+- **The choice:** `/labs/smoke-screen` is the production `BattleView`, with a
+  labelled side switch that watches the same battle as red. Its map is a new
+  400 × 260 m `smoke-screen` test map with a road and a wood. The layout
+  mirrors the mock: blue west with two smoke tanks and a smoke squad, red's
+  tank and AT team about 160 m east. Blue's grass tank shells a red jeep into
+  a burning wreck, for a shot of the cloud beside wreck smoke. The browser
+  scene selects the road tank from its army card and presses H at tick 120.
+- **The gap:** the slice delegated the layout and how the pop is triggered.
+- **The reach:** the lab is the one place to see the whole moment, from both
+  sides, with real input.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+#### S26. A side's contact memory belongs to that side across a view switch
+
+- **When:** slice 06 (`3840ddb56`), in its own commit.
+- **The choice:** The first lab that switched sides drew red's last-contact
+  marker over blue's own tank, because the contact presentation kept red's
+  memory. `ContactPresentation.update` now takes the observation and forgets
+  its memory when the report belongs to another side.
+- **The gap:** a bug no earlier page could reach.
+- **The reach:** any page that switches sides is safe.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Roster and supply
+
+#### S27. Each carrier authors its smoke on its own row; a child row restates only its capacity
+
+- **When:** slice 09 (`6a0813ead`).
+- **The choice:** The 26 roster carriers each author `capabilities.smoke` on
+  their row, never on a shared profile. Profiles mix in units that shouldn't
+  carry smoke: the IFV profile also covers SAM launchers. A child row that
+  inherits a parent's smoke overrides only `capacity`: the Abrams SEP v2
+  Trophy and SEP v3 Trophy, the Challenger 3 and the Leopard 2A8. The M1E3
+  inherits the SEP v3 Trophy's 3 unchanged. The resolved charges match D2's
+  bands and lists exactly: 19 tanks, 4 IFVs and 3 infantry rows. The assault
+  squad is one row serving Europe and Eastern.
+- **The gap:** the slice delegated key order.
+- **The reach:** the cloud's numbers repeat on every parent row. A retune of
+  the cloud itself is a script over rows, not one edit.
+- **Verdict:** sound: it follows the repo's "values live on the unit".
+- **Confidence:** high.
+
+#### S28. A smoke charge's price and refill time follow the flares'
+
+- **When:** slice 09.
+- **The choice:** Every roster carrier refills one charge in 2 s of service
+  for 2 stock, the same as a flare (`rules.json` `flare_service_s`,
+  `stock_per_flare`). The values live on the capability. `stock_per_charge`
+  is a whole number (`u32`), not the plan's float, like every other stock
+  price. Smoke is served after replacement soldiers (D24). The test carriers
+  keep 5 s and 5 stock, so tests can tell the two apart.
+- **The gap:** the slice said to follow the flares, and to choose and record
+  the values.
+- **The reach:** one refill rule for both countermeasure charges.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+#### S29. The test carriers: D6's clouds, and a smoke tank no roster deck offers
+
+- **When:** slice 03.
+- **The choice:**
+  - **`test_smoke_tank`** has 2 charges and **`test_smoke_squad`** (four
+    riflemen) has 1. Both use D6's cloud numbers.
+  - **`roster: null`.** The tank sets it, as `test_apc` does. Without it, a
+    test deck that patches `test_tank` into a roster also offers the smoke
+    tank. The AI test deck then bought the smoke tank in place of
+    `test_tank`, because the cheaper id wins a tie.
+  - **Refusal tests.** Three catalog refusal tests now accept a refusal that
+    names the patched type or any type extending it. A patch to `test_tank`
+    also reaches `test_smoke_tank`, and the first type in order is the one
+    named.
+- **The gap:** the plan named the rows, not their values.
+- **The reach:** tests that patch `test_tank` reach the smoke tank too.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+#### S30. Smoke moves the game's battle digests: named, and only one corpus row
+
+- **When:** slices 09 and 11.
+- **The choice:**
+  - **Live battles.** Every battle on the live catalog that fields a carrier
+    folds its smoke state, so skirmish and balance battles hash differently
+    from slice 09 on.
+  - **Pinned records.** The pinned roster records carry their own rules
+    snapshot, so they replay as recorded, and no pinned record moved.
+  - **The corpus.** The AI's smoke moved one tournament row,
+    `air_reinforcement`, and every row's replay check matches.
+  - **Unchanged.** Test-unit and capture-unit digests, and the menu reel's
+    event log.
+- **The gap:** D23 required the shift to be named.
+- **The reach:** anyone comparing a skirmish digest across this change sees
+  it move.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### The AI
+
+#### S31. The AI watches each unit's strength over a sliding window
+
+- **When:** slice 11 (`2d1a32016`).
+- **The choice:** At each AI decision (every 5 s), `HpWatch` records each own
+  unit's strength: hull health, or the sum of its soldiers'. A unit is losing
+  when the window's peak minus its strength now is at least
+  `smoke_loss_share` of its full strength. When a unit pops, its samples
+  reset, so the loss that spent one charge never spends a second. A unit's
+  samples go when it leaves the frame. The plan had a single
+  `(hp, tick)` baseline reset each window, which misses a loss that straddles
+  a reset. The rule reads only how much was lost, so friendly fire counts
+  (D22). A frame-level test documents that. No random draw is made.
+- **The gap:** the slice delegated when samples are dropped.
+- **The reach:** one or two samples per unit; the rule is AI-only.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+#### S32. The AI's pops go first in one order, and a unit backing out gets no other order
+
+- **When:** slice 11.
+- **The choice:** Every losing unit pops in one `PopSmoke`, placed first in the
+  decision's orders, before even a purchase. Each unit's reverse follows. The
+  order rate limit can drop a reverse but never the pop (D21). A unit is
+  "backing out" when it was ordered back at this decision, or is reversing
+  toward a goal it can still reach. The AI orders no other reverse. Such a
+  unit is skipped at the top of the per-unit loop, beside passengers, not
+  later at the relocation step. Otherwise a loaded carrier's unload move,
+  issued in the same decision, would overwrite its reverse. A passenger never
+  pops; a garrisoned squad may.
+- **The gap:** the plan said where precedence must hold, not how.
+- **The reach:** a carrier on its errand resumes it after backing out.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+#### S33. A system test holds that a human player's units never pop on their own
+
+- **When:** the whole-spec review (`ee0b7cdcb`).
+- **The choice:** In a team skirmish, blue's human and AI players each buy a
+  smoke tank. A red human's four test tanks shoot both. The AI's carrier pops
+  through its own order. The human's carrier loses more than the AI's
+  threshold and keeps every charge. The seam under test is the skirmish turn's
+  filter that runs the AI only on its own player's units. Removing the filter
+  fails the test. The test raises the smoke tank to 500 hp in its own rules,
+  so both carriers survive long enough to lose a fight.
+- **The gap:** D3's firewall had no test.
+- **The reach:** a regression here means a player's units act alone.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Sound
+
+#### S34. The pop's trigger lives in the sound frame, reading the clouds already published
+
+- **When:** slice 10 (`bbbd7beeb`); the review (`ece2665db`).
+- **The choice:** The plan had the effects publication emit a pop event. The
+  sound frame (`sound::smoke_pops`) instead reads the clouds the side was
+  published. A cloud the side sees while the law says it is still blooming,
+  and hasn't been heard, plays its look's sound at its centre, keyed by its
+  id. The frame keeps each heard cloud whole and forgets it once its bloom is
+  over, asking the same law. A cloud first seen after its bloom is silent. The
+  sound frame already owns tick time, the "already heard" state of every other
+  one-shot, and its reset on a new battle.
+- **The gap:** the slice placed the trigger in the effects publication.
+- **The reach:** the publication layout, both clients' publication types and
+  the browser's `soundFrame.ts` are unchanged. There is no second copy of the
+  trigger to mirror.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+#### S35. The recording belongs to the look and the level to the mix, and every look must have a sound
+
+- **When:** slice 10; the review (`65712615b`).
+- **The choice:** `smoke_screen_looks.<look>.sound` names a library recipe.
+  `audio.json` gains `smoke_pop: { gain: 0.8 }`, between the flare (0.75) and
+  the cues, mirrored in `audioMix.ts`. Sound admission refuses an unknown or
+  looping pop sound. The review made `sound` required, reversing slice 10's
+  "no sound pops silently". Fielding already refuses a cloud with no look row,
+  and admission admits every row's sound, so every published cloud has a pop
+  and the frame looks it up without a guard. The clips were generated through
+  `bun run generate effects`, which reaches ElevenLabs through the Bento
+  service proxy with this machine's login. No key was copied.
+- **The gap:** the slice listed the mirrors, not the level row's shape.
+- **The reach:** a new smoke look must name a sound.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Closeout and names
+
+#### S36. One name per smoke: renames as a hard cutover, and the publication keeps its names
+
+- **When:** the review (`af2630a03`); coordinator.
+- **The choice:** Renamed:
+  - presentation `smoke_looks` → `smoke_screen_looks`, `SmokeLook` →
+    `SmokeScreenLook`;
+  - the lab route `/labs/smoke` → `/labs/smoke-screen`
+    (`routes/smokeScreen.tsx`);
+  - the test map and its encounter `smoke` → `smoke-screen`;
+  - the browser scene `smoke.mjs` → `smoke-screen.mjs`.
+
+  These follow the repo's casing: kebab-case ids and folders, camelCase route
+  files. The map's identity doesn't name its folder, so its hash held. The
+  publication's `smokeLooks`, `smokeClouds` and `smokeCharges`, and
+  `sim::publication::smoke_looks`, keep their names. They are the closed
+  publication contract, where wreck smoke is `smokes` and damage smoke
+  `smoking`, so nothing collides. Renaming them would re-publish every capture
+  for no change in meaning.
+- **The gap:** the build had used "smoke" alone for things that sit beside
+  wreck smoke.
+- **The reach:** "smoke screen" is the concept's name in presentation and the
+  lab. "Smoke" is its name in the simulation and the publication.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+#### S37. The kill gate's cost workload was deleted once its verdict was recorded
+
+- **When:** the review (`a24a43524`); coordinator.
+- **The choice:** The smoke lab had a 100-eye frame-cost mode (`?cost`,
+  `SMOKE_COST`, `encounters/cost.json`) that only slices 02 and 06 needed. It
+  is gone, and the lab plays its one encounter. The shared lab probes it used
+  stay, because the fog scene uses them.
+- **The gap:** the plan didn't say what happens to gate scaffolding.
+- **The reach:** re-measuring needs a new workload, or the fog scene's own.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+#### S38. Two tournament corpus seeds the generator now refuses were repinned
+
+- **When:** the review (`b76ec885c`), its own commit; coordinator.
+- **The choice:** The balance report's corpus pinned `team_3v3` (mixed large,
+  seed 8) and `team_5v5` (mixed xl, seed 9). Both had drifted into seeds the
+  map generator legitimately refuses: one fails a fairness check, the other
+  fits no mirrored entry pair. They failed the same way on staging. They were
+  repinned to the nearest admitted seeds, 11 and 10. A test now checks that
+  every corpus row seats its players, and the tournament's refusal carries the
+  generator's diagnostics.
+- **The gap:** a pre-existing failure the closeout's report needed fixed.
+- **The reach:** the team rows now play in the balance report.
+- **Verdict:** sound: a failure seen was fixed in its own commit.
+- **Confidence:** high.
+
+#### S39. The tutorial teaches "pop smoke, then reverse out"
+
+- **When:** the review (`eda5837cc`).
+- **The choice:** One short item after the reverse advice. It says a unit
+  whose panel shows *Smoke* pops a thick cloud with the key from
+  `CommandBindings`, that the enemy loses sight of it while it sees almost
+  nothing out, and to pop smoke, then reverse out. The supply item says trucks
+  refill ammunition and smoke. It gives no list of carriers, because who
+  carries smoke is data.
+- **The gap:** D18 asked for smoke wherever units fight. It said nothing of
+  teaching.
+- **The reach:** the tutorial stays right when the roster changes.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+#### S40. A smoke refusal names its field path
+
+- **When:** the review (`8c4a24ef4`).
+- **The choice:** A bad capability reads `capabilities.smoke.<field> …`, and
+  a bad cloud reads `capabilities.smoke.cloud.<field> …`. The cloud's own
+  validator names only the field, because it doesn't know where it sits, and
+  the capability adds the prefix.
+- **The gap:** the slice delegated message order.
+- **The reach:** this matches the flare and protection refusals beside it.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+#### S41. The tests prove behaviour through fakes the tests define
+
+- **When:** slices 04, 06 and 10.
+- **The choice:**
+  - **Fire-and-forget.** The case uses a test-defined variant of the team's
+    missile with an infrared seeker. The shipped Javelin keeps its gunner's
+    sight here, and a SAM duel against a helicopter proved unreliable.
+  - **Contacts.** The under-fire test pins a firing contact (the carrier
+    shoots back) and the reverse-out test pins a last-seen contact. Both are
+    D10's "existing last-contact marker".
+  - **Fog rebuilds.** "Eyes near a cloud rebuild, eyes away don't" is held by
+    a presentation test through a real publication, not by new fog-sight
+    vectors, which would be a second pinned recording.
+  - **The own-pop sound.** That case runs a real battle, because whether a
+    side sees its own cloud is the simulation's rule.
+- **The gap:** the slices named what to prove, not how.
+- **The reach:** none pins a roster value.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+---
+
+**Housekeeping (7), all sound:**
+1. Files over the size budget were split by concept in the same commit as the
+   change that needed the room: `fog/eye.rs`, `catalog/charges.rs`,
+   `publication/report_row.rs`, `reader/report.rs`, the flare and protection
+   readiness, `tests/publication/paired_records.rs`,
+   `skirmish_ai/relocation.rs`, `tests/artillery.rs` and `sound/scripted.rs`.
+   The ratchet measures a commit against its parent, so a split committed
+   first frees no room.
+2. `Battle::add_prop` was deleted with the prop expiries.
+3. The smoke test carriers' unit icons were generated.
+4. The panels workbench gained "Smoke ready" and "Smoke spent" cases.
+5. `crates/sim/README.md` states supply's whole service order in one
+   sentence.
+6. Lab scratch evidence moved under `throwaway/evidence/smoke-screen/`.
+7. The scene's `POP_TICK` is 120.
