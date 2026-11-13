@@ -6,8 +6,10 @@
 import type { RefObject } from "react";
 import type { AppAudio } from "@packages/battle-audio/src/appAudio";
 import type { ShowcaseStage, StageArt } from "@web/battle/render/showcaseStage";
-import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
+import { eyePosition } from "@packages/renderer-core/src/camera3d";
+import { vec3 } from "math";
 import type { ArmoryAppearances } from "./armoryAppearances";
+import type { ArmoryCamera } from "./armoryCamera";
 import { drawnModels, grounded, screenBox, worldBox } from "./stageProbes";
 import type { Spot } from "./yard";
 
@@ -31,22 +33,35 @@ export interface Switch {
 export function publishProbe(live: {
   stage: ShowcaseStage;
   canvas: HTMLCanvasElement;
-  /** The orbit the stage draws a spot from. */
-  orbit: (spot: Spot) => Camera3DParams;
+  camera: ArmoryCamera;
   audio: AppAudio;
   switches: readonly Switch[];
   shown: RefObject<Shown | null>;
   appearances: ArmoryAppearances;
 }): () => void {
-  const { stage, canvas, orbit, audio, switches, shown, appearances } = live;
+  const { stage, canvas, camera, audio, switches, shown, appearances } = live;
   const lasting = { switches, voices: () => audio.stats().showVoices };
   /** The drawn models standing in the spot's clear disc: the unit. */
   const unitModels = (on: Shown) =>
     drawnModels(stage).filter(
       (m) => Math.hypot(m.at[0] - on.spot.at[0], m.at[1] - on.spot.at[1]) < on.spot.clear_m,
     );
+  /** Where the eye is, what it orbits, and what it keeps clear of. */
+  const cameraReadout = () => {
+    const orbit = camera.drawn();
+    const framed = camera.framed();
+    return orbit && framed
+      ? {
+          orbit,
+          eye: Array.from(eyePosition(vec3.create(), orbit)),
+          bounds: framed.bounds,
+          boxes: framed.boxes,
+        }
+      : null;
+  };
   const probe = {
     ...lasting,
+    camera: cameraReadout,
     /** The stage's cell, where the unit stands framed. */
     stage: () => {
       const r = canvas.parentElement!.getBoundingClientRect();
@@ -58,7 +73,8 @@ export function publishProbe(live: {
       const models = unitModels(on);
       const box = worldBox(models, on.art.appearances);
       const r = canvas.getBoundingClientRect();
-      const rect = box && screenBox(orbit(on.spot), r.width, r.height, box);
+      const orbit = camera.drawn();
+      const rect = box && orbit && screenBox(orbit, r.width, r.height, box);
       return {
         kind: on.kind,
         spot: on.spot.id,

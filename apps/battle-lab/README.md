@@ -116,7 +116,10 @@ drawn by its catalog art.
 the page's life: each pick hands it that selection's art, so the stage and
 the [showcase lab](src/routes/showcase.tsx) load art the same way. The yard
 fills the screen behind the glass panels, with the unit framed in the centre
-cell. The stage reports to the menu shell's loading cover, mounts only once
+cell. [Its camera](src/armory/armoryCamera.ts) is the battle's rig on the
+Armory's own config (`presentation.camera_armory`): left-drag orbits and the
+wheel zooms between framings fitted to the unit's bounds. Input comes from the
+stage's canvas alone, and the eye keeps clear of the unit and the yard's props. The stage reports to the menu shell's loading cover, mounts only once
 the graphics tier is settled, and keeps its failures on its own boundary.
 
 ## Observation feeds

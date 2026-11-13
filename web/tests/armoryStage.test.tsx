@@ -86,6 +86,21 @@ vi.mock("@apps/battle-lab/src/armory/armoryAppearances", () => ({
   },
 }));
 
+// The camera frames the yard alone: the stand-in art draws no yard to frame.
+vi.mock("@apps/battle-lab/src/armory/stageFraming", () => ({
+  framingOf: (
+    _stage: unknown,
+    _art: unknown,
+    _units: unknown,
+    _rules: unknown,
+    spot: { camera: unknown },
+  ) => ({
+    bounds: null,
+    pose: spot.camera,
+    boxes: [],
+  }),
+}));
+
 vi.mock("@apps/battle-lab/src/armory/stageInputs", async (importOriginal) => {
   const real = await importOriginal<typeof import("@apps/battle-lab/src/armory/stageInputs")>();
   const showground = {};

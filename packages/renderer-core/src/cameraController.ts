@@ -1,5 +1,5 @@
 // The player camera: a Total War style rig (battle-look I5, I6). Held keys,
-// the wheel, middle-drag and the screen edge become one CameraIntent; one
+// the wheel, a drag and the screen edge become one CameraIntent; one
 // step turns it, with elapsed time and the fixture's `presentation.camera`,
 // into the next camera3d parameter set. Pure and GPU-free.
 //
@@ -33,8 +33,10 @@ export interface CameraPresentation {
   rotate_speed: number;
   /** Log-distance change per wheel pixel (deltaY). */
   zoom_speed: number;
-  /** Middle-drag turn, radians per viewport height dragged. */
+  /** Drag turn, radians per viewport height dragged. */
   orbit_speed: number;
+  /** Orbit pitch limits, radians: lowest and highest. */
+  pitch_limits: readonly [number, number];
   /** How the drawn pose keeps clear of buildings and the ground. */
   clearance: ClearanceTuning;
 }
@@ -47,7 +49,7 @@ export interface CameraIntent {
   edge?: readonly [number, number];
   /** Wheel `deltaY` pixels; positive zooms out. */
   wheel?: number;
-  /** Middle-drag in viewport heights: right and down. */
+  /** A drag in viewport heights: right and down. */
   drag?: readonly [number, number];
 }
 
@@ -78,7 +80,8 @@ export const CAMERA_KEYS: Readonly<Record<string, readonly [CameraAxis, number]>
   KeyX: ["pitch", 1],
 };
 
-/** Orbit pitch limits: just above the horizon to just short of top-down. */
+/** The battle camera's pitch limits: just above the horizon to just short
+ *  of top-down. */
 export const PITCH_LIMITS: readonly [number, number] = [0.12, Math.PI / 2 - 0.02];
 
 export class CameraController {
@@ -115,7 +118,7 @@ export class CameraController {
       ...camera,
       target: [x, y, this.groundAt ? this.groundAt(x, y) : camera.target[2]],
       distance: clamp(pose.distance, this.config.zoom_min, this.config.zoom_max),
-      pitch: clamp(pose.pitch, PITCH_LIMITS[0], PITCH_LIMITS[1]),
+      pitch: clamp(pose.pitch, ...this.config.pitch_limits),
       yaw: pose.yaw,
     };
   }
@@ -129,7 +132,8 @@ export class CameraController {
     dt: number,
     obstacles: CameraObstacles,
   ): Camera3DParams {
-    return resolveClearance(state, desired, dt, obstacles, this.config.clearance, PITCH_LIMITS[1]);
+    const maxPitch = this.config.pitch_limits[1];
+    return resolveClearance(state, desired, dt, obstacles, this.config.clearance, maxPitch);
   }
 
   /** The next camera after `dt` seconds of `intent`; the same object when
@@ -157,23 +161,20 @@ export class CameraController {
     if (!right && !forward && !turn && !pitchTurn && !wheel && !dragX && !dragY) return camera;
 
     let { distance, pitch, yaw } = camera;
+    const [low, high] = c.pitch_limits;
     let [x, y, z] = camera.target;
     if (wheel) {
       const next = clamp(distance * Math.exp(wheel * c.zoom_speed), c.zoom_min, c.zoom_max);
       // The wheel carries pitch along the curve, keeping any tilt the player dragged in.
-      pitch = clamp(
-        pitch + this.pitchAt(next) - this.pitchAt(distance),
-        PITCH_LIMITS[0],
-        PITCH_LIMITS[1],
-      );
+      pitch = clamp(pitch + this.pitchAt(next) - this.pitchAt(distance), low, high);
       distance = next;
     }
     if (dragX || dragY) {
       yaw -= dragX * c.orbit_speed;
-      pitch = clamp(pitch + dragY * c.orbit_speed, PITCH_LIMITS[0], PITCH_LIMITS[1]);
+      pitch = clamp(pitch + dragY * c.orbit_speed, low, high);
     }
     yaw += turn * c.rotate_speed * dt;
-    pitch = clamp(pitch + pitchTurn * c.rotate_speed * dt, PITCH_LIMITS[0], PITCH_LIMITS[1]);
+    pitch = clamp(pitch + pitchTurn * c.rotate_speed * dt, low, high);
     const length = Math.hypot(right, forward);
     if (length > 0) {
       // Diagonals are no faster than straight lines.

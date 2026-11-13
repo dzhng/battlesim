@@ -21,12 +21,12 @@ import { appResources } from "../appResources";
 import { useAppAudio } from "../AppAudio";
 import { useLabLoading } from "../LabLoading";
 import { useMenuShell } from "../menu/MenuShell";
-import { presentedCamera } from "../presentedFrame";
 import { ArmoryAppearances } from "./armoryAppearances";
-import { framedOrbit } from "./armoryCamera";
+import { ArmoryCamera, useArmoryCamera } from "./armoryCamera";
+import { framingOf } from "./stageFraming";
 import { publishProbe, type Shown, type Switch } from "./armoryProbe";
 import { STAGE_LOOK, SQUAD_SEED, useShowground, useStageFielding } from "./stageInputs";
-import { spotFor, yard, yardModels, yardScenery, yardWorld, type Spot } from "./yard";
+import { spotFor, yard, yardModels, yardScenery, yardWorld } from "./yard";
 
 interface StageProps {
   card: UnitCard;
@@ -57,15 +57,6 @@ function ReportedStage({ card, faction }: StageProps) {
 /** Every unit switch this page made, for the scene's measure (S7). */
 const switches: Switch[] = [];
 
-/** The orbit `spot`'s camera draws `canvas` from: the whole screen, its
- *  centre in the stage's cell (the canvas's parent). */
-const stageOrbit = (canvas: HTMLCanvasElement, spot: Spot) =>
-  framedOrbit(
-    spot.camera,
-    canvas.getBoundingClientRect(),
-    canvas.parentElement!.getBoundingClientRect(),
-  );
-
 const isAbort = (error: unknown) => error instanceof DOMException && error.name === "AbortError";
 
 function LiveStage({ card, faction, drawn }: StageProps & { drawn: () => void }) {
@@ -84,6 +75,8 @@ function LiveStage({ card, faction, drawn }: StageProps & { drawn: () => void })
   const appearances = useMemo(() => new ArmoryAppearances(units), [units]);
   const shown = useRef<Shown | null>(null);
   const scenery = useRef<ReadonlySet<string> | null>(null);
+  const camera = useMemo(() => new ArmoryCamera(), []);
+  useArmoryCamera(canvasRef, camera);
 
   // The stage, built once the page's GPU is up, and drawn every frame from
   // the camera of the spot on show.
@@ -94,13 +87,19 @@ function LiveStage({ card, faction, drawn }: StageProps & { drawn: () => void })
     let raf = 0;
     let made: ShowcaseStage | null = null;
     let first = true;
-    const camera = (spot: Spot) => {
+    let last = performance.now();
+    /** The camera for this frame: the whole canvas, the unit in the cell. */
+    const presented = (now: number) => {
       const dpr = window.devicePixelRatio || 1;
       const width = Math.max(1, Math.round(canvas.clientWidth * dpr));
       const height = Math.max(1, Math.round(canvas.clientHeight * dpr));
       if (canvas.width !== width || canvas.height !== height)
         [canvas.width, canvas.height] = [width, height];
-      return presentedCamera({ camera3d: stageOrbit(canvas, spot), width, height });
+      const view = canvas.getBoundingClientRect();
+      const cell = canvas.parentElement!.getBoundingClientRect();
+      const dt = Math.min(0.1, (now - last) / 1000);
+      last = now;
+      return camera.presented(view, cell, width, height, dt);
     };
     void appResources
       .gpu()
@@ -120,8 +119,8 @@ function LiveStage({ card, faction, drawn }: StageProps & { drawn: () => void })
         const start = performance.now();
         const loop = (now: number) => {
           if (!live) return;
-          const on = shown.current;
-          if (on && made!.frame((now - start) / 1000, camera(on.spot)) && first) {
+          const drawnCamera = shown.current && presented(now);
+          if (drawnCamera && made!.frame((now - start) / 1000, drawnCamera) && first) {
             first = false;
             drawn();
           }
@@ -136,15 +135,14 @@ function LiveStage({ card, faction, drawn }: StageProps & { drawn: () => void })
       made?.dispose();
       setStage(null);
     };
-  }, [showground, fielding, units, fail, drawn]);
+  }, [showground, fielding, units, fail, drawn, camera]);
 
   // What the stage shows, for the browser scene.
   useEffect(() => {
     if (!stage) return;
     const canvas = canvasRef.current!;
-    const orbit = (spot: Spot) => stageOrbit(canvas, spot);
-    return publishProbe({ stage, canvas, orbit, audio, switches, shown, appearances });
-  }, [stage, audio, appearances]);
+    return publishProbe({ stage, canvas, camera, audio, switches, shown, appearances });
+  }, [stage, audio, appearances, camera]);
 
   // The page's loops end with the stage, and its art with the page.
   useEffect(
@@ -182,6 +180,7 @@ function LiveStage({ card, faction, drawn }: StageProps & { drawn: () => void })
         await stage.show(null, SQUAD_SEED, on.art);
         if (!live) return;
         shown.current = { ...on, kind: null };
+        camera.frame(framingOf(stage, on.art, units, catalog.rules, on.spot));
         switching(false);
         return;
       }
@@ -198,6 +197,7 @@ function LiveStage({ card, faction, drawn }: StageProps & { drawn: () => void })
       );
       if (!live) return;
       shown.current = { kind: unit.id, art, spot };
+      camera.frame(framingOf(stage, art, units, catalog.rules, spot));
       switching(false);
       switches.push({ kind: unit.id, ms: performance.now() - asked });
       audio.showLoops(loops);
@@ -208,7 +208,7 @@ function LiveStage({ card, faction, drawn }: StageProps & { drawn: () => void })
     return () => {
       live = false;
     };
-  }, [stage, unit, faction, units, appearances, audio, fail, drawn]);
+  }, [stage, unit, faction, units, catalog, appearances, audio, fail, drawn, camera]);
 
   return (
     <>

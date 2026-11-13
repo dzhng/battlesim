@@ -676,3 +676,75 @@ needs-user).
   `tests/support/router.tsx`), because the stage needs the app's audio. The
   3D stage, its art and the squad scatter are stand-ins there; the scene
   judges the drawn page. *Sound.*
+
+## Slice 12
+
+- **`camera_armory` is a section of `fixtures/presentation.json`, admitted in
+  Rust** (`ArmoryCamera` in `crates/presentation/src/settings/ui.rs`).
+  Validation checks:
+  - the lens;
+  - a pitch range that rises within (−π/2, π/2);
+  - framing with `0 < far < open <= near <= 1`;
+  - positive speeds;
+  - the same clearance checks as the battle camera, now one shared
+    function (`clearance`).
+
+  *Why:* the document refuses unknown fields, and the slice names it as
+  the config's home. This lane therefore changes Rust and built its own
+  wasm. *Sound.*
+- **`CameraPresentation` carries `pitch_limits`, and `CameraController`
+  reads them from config.** The battle's config sets them to
+  `PITCH_LIMITS`, its unchanged values, in `gameCamera.ts`; every other
+  battle rig spreads that config. *Why:* one controller with each camera's
+  own range, as the slice asks, and no second clamp path. *Alternative:* add
+  `pitch_limits` to the battle's fixture `camera` too, which would move a
+  battle constant into data without being asked. *Sound.*
+- **The seam is a class and a hook, not one hook returning a camera.**
+  - `ArmoryCamera` holds the orbit, framing and clearance state, and gives
+    the camera for a frame (`presented(view, cell, width, height, dt)`).
+  - `useArmoryCamera(canvasRef, camera)` wires left-drag and the wheel on
+    the canvas alone.
+
+  *Why:* the stage draws from its own frame loop, outside React, and a
+  unit's bounds arrive when its show resolves, not as a prop.
+  *Alternative:* the slice's `useArmoryCamera(canvas, bounds, spot):
+  PresentedCamera`, which would re-render React on every frame. *Sound.*
+- **Framing is fitted per unit and per view angle.**
+  - At a given orbit angle, each framing is the distance at which the
+    unit's rest-pose box spans that fraction of the centre cell across and
+    up: every corner, from its own depth along the view.
+  - The wheel reaches from `near` (1.0: the box fills the cell, nothing
+    clipped) to `far` (0.4); a unit opens at `open` (0.85).
+  - Turning keeps the zoom, and turns that would clip the box push the eye
+    back.
+
+  *Why:* a fixed spot camera is sized for the largest body. A bounding
+  sphere, the first try, framed a helicopter loosely, because its rotor
+  sweep's diagonal sized it. *Provisional:* the rotor sweep still makes a
+  helicopter's box square round its disc, so its nearest zoom is less
+  tight than a tank's.
+- **A unit's bounds come from data, not from a drawn frame.**
+  - A hull: its model at rest, from the art, as it stands on its spot.
+  - A squad: the scatter the simulation gave, each soldier a soldier tall
+    (`rules.physics.soldier_height_m`), half a metre round his feet.
+
+  *Why:* the presentation culls by the camera, so a frame drawn from the
+  previous spot's camera may miss the new unit. *Sound.*
+- **The camera opens at the spot's yaw and pitch (`yard.json`), aimed at
+  the unit's centre**; the spot's own target and distance remain the yard's
+  view for a planned card. *Sound.*
+- **The eye keeps clear through renderer-core's clearance** (`resolve`)
+  over the unit's box and each yard prop's authored box, on flat ground at
+  height 0. The lowest pitch, −0.15 rad, is held above the ground by the
+  clearance, so at the nearest zoom the unit stands against the sky with the
+  horizon under it. *Sound.*
+- **Speeds and limits (data, provisional):** a drag turns 2.5 rad per
+  viewport height, as the battle's middle-drag does. Zoom speed 0.0012 per
+  wheel pixel. Pitch from −0.15 to 1.1 rad: the unprimed critique read the
+  first ceiling, 1.25, as a flat map view. Near plane 0.2 m. Clearance
+  margin 0.3 m. *Provisional:* the feel is the user's to tune.
+- **No inertia.** The clearance spring already eases the eye. *Provisional.*
+- **The camera tour drives real input** (mouse drag and wheel on the stage)
+  through 8 yaws × 3 pitches × the nearest and farthest zoom, for one unit
+  on each spot. It checks the eye against the unit's bounds, every prop box
+  and the ground, from the probe's camera readout. *Sound.*

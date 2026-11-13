@@ -56,7 +56,7 @@ export function drawnModels(stage: ShowcaseStage): DrawnModel[] {
 
 /** `name`'s bounds at rest in its own frame, from `installed`; null when it
  *  is not installed. */
-function restBounds(installed: InstalledAppearances, name: string) {
+export function restBounds(installed: InstalledAppearances, name: string) {
   const a = installed.appearances.get(name);
   if (!a) return null;
   const skeleton =

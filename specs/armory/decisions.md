@@ -142,3 +142,18 @@ each one as a decision, the reason for it, and who made it.
     - the sheet's cut-off at 1280 and its empty space are slice 08's page;
     - the jet's "Sight · ground 1 m" is roster data.
   - No human reply came in the checkpoint window. *Agent.*
+- **12. The camera's visual gate passes on the evidence.**
+  - All `armory` scene probes pass: 48 extremes for a unit on each spot
+    with the eye clear of the unit, the props and the ground. Keys, the
+    screen's edges and drags on the list or the sheet never move the
+    camera. The lowest pitch dips below the horizon.
+  - The unprimed critique found no clipping at any extreme, and nothing of
+    the helicopter cut off at the nearest zoom. It read the first pitch
+    ceiling as a flat map view, so the ceiling dropped to 1.1 rad.
+  - Its other notes are left as data or later work:
+    - the nearest zoom is as tight as the unit's box allows (a helicopter's
+      box is square round its rotor sweep);
+    - the far framing (0.4) and the opening angles per spot (`yard.json`)
+      are the user's to tune;
+    - the 1280 sheet cut-off is slice 08's page.
+  - No human reply came in the checkpoint window. *Agent.*

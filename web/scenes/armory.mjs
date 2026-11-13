@@ -12,6 +12,7 @@
 // throwaway/armory/11/.
 import { mkdir, writeFile } from "node:fs/promises";
 import { menuPage } from "../../apps/battle-lab/src/menu/pages.ts";
+import presentation from "../../fixtures/presentation.json" with { type: "json" };
 import { decode, writeCrop } from "./_png.mjs";
 
 const MENU = "main.menu:not(.loading):not([inert])";
@@ -20,6 +21,10 @@ const GROUNDED_M = 0.02;
 /** How far a unit's crop reaches past its bounds. */
 const CROP_MARGIN = 0.2;
 const MEASURES = new URL("../../throwaway/armory/11/", import.meta.url);
+/** Radians a drag of one viewport height turns the Armory's orbit. */
+const ORBIT_SPEED = presentation.camera_armory.orbit_speed;
+/** How long the camera's clearance takes to come to rest, ms. */
+const SETTLE_MS = 700;
 
 function seedGraphics() {
   localStorage.setItem(
@@ -128,10 +133,11 @@ export async function run(ctx) {
   );
 
   await stageTour(ctx, page, list);
+  await cameraTour(ctx, page, list);
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.screenshot({ path: ctx.evidencePath("armory-1920.png") });
   // Each spot at full HD, for the composition against the yard's shots.
-  for (const group of ["HELI", "MBT", "REC"]) {
+  for (const group of ["MBT", "HELI", "REC"]) {
     await list.getByRole("tab", { name: group, exact: true }).click();
     const kind = unit(page);
     await page.waitForFunction((k) => window.__armory?.shown()?.kind === k, kind, {
@@ -286,4 +292,159 @@ async function roundTrip(ctx, origin) {
     JSON.stringify({ alone, both }),
   );
   await page.close();
+}
+
+/** Whether `p` stands inside `box` (an obstacle box: centre, yaw, half
+ *  extents, base height). */
+function insideBox(p, box) {
+  const [dx, dy] = [p[0] - box.center[0], p[1] - box.center[1]];
+  const [c, s] = [Math.cos(box.yaw), Math.sin(box.yaw)];
+  const [lx, ly] = [dx * c + dy * s, dy * c - dx * s];
+  return (
+    Math.abs(lx) <= box.half[0] &&
+    Math.abs(ly) <= box.half[1] &&
+    p[2] >= box.baseZ &&
+    p[2] <= box.baseZ + 2 * box.half[2]
+  );
+}
+
+/** For one unit on each spot, drag and wheel to every extreme (8 yaws, 3
+ *  pitches, the nearest and farthest zoom): the eye is never inside the
+ *  unit's bounds or a prop's box and never below the ground. Keys, the
+ *  screen's edges and drags begun on the list or the sheet never move it.
+ *  The four extremes of the helicopter are kept as crops of the cell. */
+async function cameraTour(ctx, page, list) {
+  const viewport = page.viewportSize();
+  const stage = await armoryProbe(page, () => window.__armory.stage());
+  const centre = [stage.x + stage.width / 2, stage.y + stage.height / 2];
+  const camera = () => armoryProbe(page, () => window.__armory.camera());
+  const drag = async (dx, dy) => {
+    await page.mouse.move(centre[0], centre[1]);
+    await page.mouse.down();
+    await page.mouse.move(centre[0] + dx, centre[1] + dy, { steps: 8 });
+    await page.mouse.up();
+  };
+  const wheel = async (dy) => {
+    await page.mouse.move(centre[0], centre[1]);
+    for (let k = 0; k < 6; k++) await page.mouse.wheel(0, dy);
+  };
+  const settled = () => page.waitForTimeout(SETTLE_MS);
+  /** One viewport height of drag, in pixels. */
+  const height = viewport.height;
+  const crop = async (name) => {
+    const png = decode(await page.screenshot());
+    await writeCrop(
+      png,
+      ctx.evidencePath(`armory-camera-${name}.png`),
+      centre[0],
+      centre[1],
+      stage.width / 2,
+      stage.height / 2,
+      1,
+    );
+  };
+  for (const group of ["REC", "MBT", "HELI"]) {
+    await list.getByRole("tab", { name: group, exact: true }).click();
+    const kind = unit(page);
+    await page.waitForFunction((k) => window.__armory?.shown()?.kind === k, kind, {
+      timeout: 120_000,
+    });
+    await settled();
+    const misses = [];
+    let poses = 0;
+    for (let yaw = 0; yaw < 8; yaw++) {
+      await drag((Math.PI / 4 / ORBIT_SPEED) * height, 0);
+      for (const tilt of [-1.5, 0.3, 1.5]) {
+        await drag(0, tilt * height);
+        for (const zoom of [-2000, 2000]) {
+          await wheel(zoom);
+          await settled();
+          const c = await camera();
+          poses++;
+          const bad =
+            c.eye[2] <= 0 ||
+            (c.bounds &&
+              insideBox(c.eye, {
+                center: [
+                  (c.bounds.min[0] + c.bounds.max[0]) / 2,
+                  (c.bounds.min[1] + c.bounds.max[1]) / 2,
+                ],
+                yaw: 0,
+                half: [0, 1, 2].map((i) => (c.bounds.max[i] - c.bounds.min[i]) / 2),
+                baseZ: c.bounds.min[2],
+              })) ||
+            c.boxes.some((b) => insideBox(c.eye, b));
+          if (bad) misses.push({ yaw, tilt, zoom, eye: c.eye });
+        }
+      }
+    }
+    ctx.check(
+      `${group}: at every extreme the eye is clear of ${kind}, the props and the ground`,
+      poses === 48 && misses.length === 0,
+      JSON.stringify({ poses, misses: misses.slice(0, 4) }),
+    );
+  }
+
+  // The helicopter's four extremes, for the eye.
+  await wheel(-2000);
+  await drag(0, -1.5 * height);
+  await settled();
+  await crop("closest-lowest");
+  await drag(0, 1.5 * height);
+  await settled();
+  await crop("closest-highest");
+  await wheel(2000);
+  await settled();
+  await crop("farthest-highest");
+  await drag(0, -1.5 * height);
+  await settled();
+  await crop("farthest-lowest");
+  const low = await camera();
+  ctx.check(
+    "the lowest pitch dips below the horizon",
+    low.orbit.pitch < 0,
+    JSON.stringify({ pitch: low.orbit.pitch, distance: low.orbit.distance, bounds: low.bounds }),
+  );
+
+  // Nothing but a drag or the wheel on the stage moves it.
+  const before = JSON.stringify((await camera()).orbit);
+  for (const key of [
+    "KeyW",
+    "KeyA",
+    "KeyS",
+    "KeyD",
+    "ArrowUp",
+    "ArrowLeft",
+    "KeyQ",
+    "KeyE",
+    "KeyZ",
+    "KeyX",
+  ])
+    await page.keyboard.press(key);
+  for (const [x, y] of [
+    [1, viewport.height / 2],
+    [viewport.width - 2, viewport.height / 2],
+    [viewport.width / 2, 1],
+    [viewport.width / 2, viewport.height - 2],
+  ]) {
+    await page.mouse.move(x, y);
+    await page.waitForTimeout(150);
+  }
+  for (const panel of [list, page.locator(".armory-sheet")]) {
+    const box = await panel.boundingBox();
+    const [x, y] = [box.x + box.width / 2, box.y + box.height - 20];
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + 200, y - 150, { steps: 8 });
+    await page.mouse.up();
+    await page.mouse.move(x, y);
+    await page.mouse.wheel(0, 600);
+  }
+  await settled();
+  const after = JSON.stringify((await camera()).orbit);
+  ctx.check(
+    "keys, the screen's edges and drags on the list or the sheet never move the camera",
+    after === before,
+    `${before} → ${after}`,
+  );
 }
