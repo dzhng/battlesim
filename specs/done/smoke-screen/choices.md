@@ -19,12 +19,12 @@ shipped code on 2026-11-13. Some choices were superseded and are dropped here:
 
 **Review these first:**
 1. **N1:** the pop and hiss sounds were picked from waveforms; nobody has
-   listened to them.
-2. **U1:** three browser scenes that fail on staging too were left failing.
-3. **S1:** a cloud's id counts every pop in the battle, including ones a side
+   listened to them yet. The user will audition them later, and that doesn't
+   block the feature.
+2. **S1:** a cloud's id counts every pop in the battle, including ones a side
    never saw.
 
-**Counts:** 1 needs your call, 1 unsound, 41 sound (9 at medium confidence,
+**Counts:** 1 needs your call, 1 unsound and since redone, 41 sound (9 at medium confidence,
 32 at high). Seven small housekeeping calls are listed in one line at the end.
 
 ---
@@ -67,7 +67,7 @@ shipped code on 2026-11-13. Some choices were superseded and are dropped here:
 
 ---
 
-## Unsound
+## Unsound, redone
 
 ### U1. Three browser scenes that also fail on staging were left failing
 
@@ -98,6 +98,16 @@ shipped code on 2026-11-13. Some choices were superseded and are dropped here:
   they no longer depend on the grade's light. Debug `air-audio`'s lost jet as
   its own task.
 - **Confidence:** low.
+- **Redone:** the user asked for the fix, and each landed in its own commit.
+  - `air-audio` was a flight bug. The map-edge guard kept a jet breaking at
+    its max rate for as long as it pressed, and the break itself kept it
+    pressing. The J-10 circled its north-east goal for good. The guard now
+    rolls a jet out once its nose points into the map (`b59349201`, with a
+    test that fails without it).
+  - `geometry` now judges the overlay mark by red hue, and `fog-look` judges
+    "never fogged" against the style's graded black (`92b08ac3e`).
+
+  All three scenes pass.
 
 ---
 
