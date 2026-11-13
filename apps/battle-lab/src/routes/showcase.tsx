@@ -83,12 +83,13 @@ function propertyPicks(units: UnitCatalog): string[] {
 function opening(units: UnitCatalog, kind: string): Camera3DParams {
   const hull = units.hull(kind);
   const air = "air" in units.type(kind).mobility;
-  // A squad stands scattered over about twelve metres.
+  // A squad stands scattered over about twelve metres; a hull's gun can
+  // reach well past its box.
   const [hx, hy, hz] = hull?.half_extents_m ?? [6, 6, 0.9];
   return {
     ...gameCamera.lens,
     target: [0, 0, hz],
-    distance: (hull ? (air ? 3.6 : 5) : 2.9) * Math.max(hx, hy) + 3,
+    distance: (hull ? (air ? 3.6 : 6.5) : 2.9) * Math.max(hx, hy) + 3,
     pitch: hull ? (air ? 0.16 : 0.32) : Math.PI / 6,
     yaw: air ? -Math.PI / 2 : -0.75,
   };
@@ -152,7 +153,7 @@ export default function Showcase() {
         tickHz: catalog.rules.tick_hz,
         presentation: audioMix,
         catalog: gameSounds,
-        weapons: catalog.weapons,
+        weapons: catalog.rules.weapons,
         unitCatalog: units.view,
         looks: presentationSettings,
       },

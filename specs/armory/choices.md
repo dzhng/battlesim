@@ -402,3 +402,16 @@ needs-user).
   *Sound.*
 - **Reference photo:** `assets/references/ah_64_apache/ah_64d_apache-parked_rotors_turning.jpg`,
   a public-domain US Army hot-refuel photo (AH-64D, rotors turning). *Sound.*
+- **The lab's sound setup takes the battle's weapon rules**
+  (`catalog.rules.weapons`), not the published rows (`catalog.weapons`).
+  Why: after slice 05 merged, the published rows carry `derived`, which the
+  sound admission refuses; the lab came up with no stage at all. The battle
+  (`soundFeed.ts`) already passes the rules, as `SoundFrameOptions.weapons`
+  documents. *Sound.*
+- **A hull's opening view stands back 6.5 times its larger half extent**
+  (was 5). Why: a gun reaches past the hull box, and the self-propelled gun's
+  muzzle ran off its panel. *Sound.*
+- **Parked aircraft report (2026-11-13, 44 appearances):** no store or
+  non-gear part lies on the ground. Four skid helicopters (AH-1Z, AH-6M,
+  MH-6M, UH-1Y) rest on their `hull` node, because their skids are modelled
+  in it, which is the rule this slice set for skids. *Sound.*
