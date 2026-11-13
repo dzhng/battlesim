@@ -12,7 +12,7 @@ import {
   type InstalledAppearances,
 } from "@packages/scene-assets/src/loader";
 import type { Faction, UnitCatalog } from "@packages/scene-assets/src/units";
-import type { RuntimeFiles } from "../presentedFrame";
+import type { RuntimeFiles } from "@web/battle/sim/fielding";
 
 /** The runtime files, served at the site root (Vite's publicDir). */
 const BASE_URL = "/";

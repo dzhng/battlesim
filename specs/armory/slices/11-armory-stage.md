@@ -19,6 +19,19 @@ and zoom.
 - `Showground.squad` (02);
 - `appAudio.showLoops(stage.show(...))` (07).
 
+**Art per selection (L6 against slice 04's API).**
+- Slice 04's `ShowcaseStage` takes `appearances` once, at `create`. That would
+  force the Armory to install every unit's art up front, which L6 rules out.
+- Each `show` already rebuilds the stage's scene, so `show` takes the
+  selection's art too: `show(unit, seed, art: ArmoryArt)`, with
+  `appearances` and `runtime` from `ArmoryAppearances.show`. `create` no
+  longer takes `appearances`.
+- Update the showcase lab to match. There is one owner, and no second
+  constructor path.
+- Pass `art.runtime` to fielding, never `gameRuntime`.
+- **Show is async.** A superseded `show` resolves `[]`, and an `AbortError`
+  from `ArmoryAppearances.show` is a normal switch, not a stage error.
+
 **Mounting and loading (L8).**
 - It mounts only when `useMenuShell().detected` is true.
 - It reports `useLabLoading("renderer", ready)` inside the shell's
