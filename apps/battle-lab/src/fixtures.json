@@ -352,8 +352,8 @@
   },
   {
     "id": "lobby",
-    "route": "/",
-    "describe": "The skirmish lobby at /: an order of battle over real admitted map previews. Its scene covers the 1v1 default, the 3v3 and 5v5 presets, 3v4 and 2v3 by Add and Delete, taking another Blue seat, the size floor, a preview on opening and on each map change, Reroll, a hidden retry, a map that cannot be made, and Deploy starting the previewed map, and shoots each state at 1280\u00d7720 and 1920\u00d71080.",
+    "route": "/skirmish",
+    "describe": "The skirmish lobby at /skirmish: an order of battle over real admitted map previews. Its scene covers the 1v1 default, the 3v3 and 5v5 presets, 3v4 and 2v3 by Add and Delete, taking another Blue seat, the size floor, a preview on opening and on each map change, Reroll, a hidden retry, a map that cannot be made, and Deploy starting the previewed map, and shoots each state at 1280\u00d7720 and 1920\u00d71080.",
     "map": null,
     "timeout_s": 600
   },

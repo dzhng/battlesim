@@ -4,6 +4,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { LabRouter } from "@apps/battle-lab/src/router";
 import type { PreparedSession } from "../src/battle/prepare/client";
 import type { PreparationMessage } from "../src/battle/prepare/protocol";
+import { menuPage } from "@apps/battle-lab/src/menu/pages";
 import { renderSettled } from "./support/router";
 
 const pending = vi.hoisted(() => ({
@@ -65,7 +66,7 @@ test("Cancel discards preparation even when its resolved continuation is already
   });
   expect(pending.cancelled).toBe(true);
   // Back on the menu, on the page that asks for the cancelled battle.
-  expect(screen.getByRole("heading", { name: "Skirmish" })).toBeDefined();
-  expect(window.location.pathname).toBe("/");
+  expect(screen.getByRole("heading", { name: menuPage("skirmish").title })).toBeDefined();
+  expect(window.location.pathname).toBe(menuPage("skirmish").path);
   expect(window.location.search).toBe("?type=mixed&size=small&seed=42");
 });

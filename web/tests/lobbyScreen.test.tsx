@@ -1,16 +1,15 @@
 // @vitest-environment jsdom
-// The skirmish lobby on the menu's New Battle page: what it shows for the
+// The skirmish lobby on the menu's Skirmish page: what it shows for the
 // match being set up, which changes draw a new map, and that Deploy waits for
 // the admitted map and then names exactly it. Preparation workers are fakes
 // the test answers; everything above them is the real lobby.
-import { createElement } from "react";
 import { cleanup, fireEvent, waitFor, within, type RenderResult } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { MainMenu } from "@apps/battle-lab/src/MainMenu";
+import { menuPage } from "@apps/battle-lab/src/menu/pages";
 import { graphicsSettings } from "@apps/battle-lab/src/graphicsSettings";
 import { askedBattle } from "@apps/battle-lab/src/battleLinks";
 import { PreviewWorker } from "./support/previewWorker";
-import { visitInRouter as visit } from "./support/router";
+import { visitApp } from "./support/router";
 
 beforeEach(() => {
   PreviewWorker.all = [];
@@ -28,13 +27,8 @@ afterEach(() => {
   window.history.replaceState(null, "", "/");
 });
 
-/** The lobby, opened from the menu at `address`. */
-async function openLobby(address = "/") {
-  window.history.replaceState(null, "", address);
-  const menu = await visit(createElement(MainMenu));
-  if (address === "/") fireEvent.click(menu.getByRole("button", { name: "Skirmish" }));
-  return menu;
-}
+/** The lobby, opened at the Skirmish address asking `search`. */
+const openLobby = (search = "") => visitApp(`${menuPage("skirmish").path}${search}`);
 
 /** The preparation started since `count` were. */
 async function started(count: number): Promise<PreviewWorker> {
@@ -63,7 +57,7 @@ const deployed = (menu: RenderResult) => {
 };
 
 test("the lobby opens on a 1v1 of the asked map, and Deploy waits for that map", async () => {
-  const menu = await openLobby("/?type=open&seed=77");
+  const menu = await openLobby("?type=open&seed=77");
   expect(banners(menu, "Blue")).toEqual(["1You"]);
   expect(banners(menu, "Red")).toEqual(["1AI"]);
   expect(menu.getByTestId("lobby-vs").textContent).toBe("1 VS 1");
@@ -167,7 +161,7 @@ test("only a change to the map's inputs draws a new map", async () => {
 });
 
 test("a refused map is redrawn quietly, and Deploy names the seed that was admitted", async () => {
-  const menu = await openLobby("/?seed=19");
+  const menu = await openLobby("?seed=19");
   const refused = await started(0);
   expect(refused.seed).toBe("19");
   await refused.refuse();

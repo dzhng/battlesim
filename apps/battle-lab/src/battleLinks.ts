@@ -13,6 +13,7 @@
 import { DEFAULT_BATTLE_SEED } from "@apps/battle-lab/src/lobby/defaults";
 import { FACTIONS, type Faction } from "@packages/scene-assets/src/units";
 import type { Player } from "@web/battle/prepare/protocol";
+import { menuPage } from "./menu/pages";
 import {
   MAX_PLAYERS_PER_SIDE,
   sizeTier,
@@ -68,8 +69,9 @@ export const spoken = (name: string) => SAID[name] ?? name.replaceAll("_", " ");
 const one = <T extends string>(value: string | null, of: readonly T[]): value is T =>
   value !== null && (of as readonly string[]).includes(value);
 
-/** The map a menu address names (`/?type=&size=&seed=&region=`), field by
- *  field: what the menu opens on after a battle is cancelled or refused. */
+/** The map a Skirmish address names (`/skirmish?type=&size=&seed=&region=`),
+ *  field by field: what the lobby opens on after a battle is cancelled or
+ *  refused. */
 export function askedChoice(search: string): AskedLobby {
   const params = new URLSearchParams(search);
   const [type, size, region] = [params.get("type"), params.get("size"), params.get("region")];
@@ -122,8 +124,9 @@ export const battleHref = (choice: MapChoice, players: readonly Player[], battle
   ]
     .filter(Boolean)
     .join("&")}`;
-/** The main menu, opened on `choice`. */
-export const menuHref = (choice: MapChoice | null) => (choice ? `/?${query(choice)}` : "/");
+/** The menu's Skirmish page opened on `choice`, or home without one. */
+export const menuHref = (choice: MapChoice | null) =>
+  choice ? `${menuPage("skirmish").path}?${query(choice)}` : "/";
 
 /** The battle `search` asks for, or which parameter it gets wrong. Missing
  *  players, a wrong value and a parameter the battle does not read are

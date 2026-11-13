@@ -73,4 +73,12 @@ each one as a decision, the reason for it, and who made it.
 
 ## Recorded during implementation
 
-None yet.
+- **Slice 01's visual gate passed on identity,** so there was no human
+  checkpoint. *Agent.*
+  - On the final tree, `menu`, `menu-skirmish`, `menu-tutorial` and
+    `menu-settings` are byte-identical to the pre-slice run on the same
+    machine.
+  - One intermediate run's `menu-skirmish` differed by 277 px in the status
+    line. The lobby draws a fresh random seed each run, and the seed's hidden
+    width moves the right-aligned "Ready". That run still matched the approved
+    baseline pixel for pixel.

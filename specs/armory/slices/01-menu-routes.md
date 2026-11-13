@@ -1,5 +1,7 @@
 # 01 · Menu routes
 
+Status: done 2026-11-12, commit 223994a2a.
+
 Map rows: Q4, L13, plus P1 (the hard cutover). No dependencies.
 
 ## Contract

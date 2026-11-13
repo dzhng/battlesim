@@ -4,7 +4,7 @@ import { BrowserRouter, Link, useLocation, useNavigate } from "react-router";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { graphicsSettings } from "@apps/battle-lab/src/graphicsSettings";
 import { LabRouter, screenForPath } from "@apps/battle-lab/src/router";
-import { GAME_NAME } from "@apps/battle-lab/src/gameName";
+import { MENU_PAGES, menuPage } from "@apps/battle-lab/src/menu/pages";
 import { PreviewWorker } from "./support/previewWorker";
 import { renderSettled } from "./support/router";
 
@@ -84,7 +84,7 @@ test("Deploy changes the actual route without replacing the document", async () 
   ).toBeDefined();
   expect(window.location.pathname + window.location.search).toBe(link);
   expect(document.documentElement).toBe(documentElement);
-  expect(view.queryByRole("heading", { name: GAME_NAME })).toBeNull();
+  expect(view.queryByRole("heading", { name: menuPage("skirmish").title })).toBeNull();
 });
 
 test("same-path navigation and Back/Forward prepare fresh requested visits", async () => {
@@ -105,10 +105,12 @@ test("same-path navigation and Back/Forward prepare fresh requested visits", asy
   });
   await screen.findByText(asked);
   expect(screen.getByText("Progress: 0")).toBeDefined();
+  // The Skirmish page Deploy left, at its own address.
   await act(async () => {
     window.history.back();
   });
-  await screen.findByRole("heading", { name: GAME_NAME });
+  await screen.findByRole("heading", { name: menuPage("skirmish").title });
+  expect(window.location.pathname).toBe(menuPage("skirmish").path);
   await act(async () => {
     window.history.forward();
   });
@@ -119,7 +121,9 @@ test("same-path navigation and Back/Forward prepare fresh requested visits", asy
 });
 
 test("menu sound policy follows real page resolution, including fallback and player replay", () => {
-  for (const path of ["/", "/unknown", "/battle/unknown"])
+  // Every menu page plays the menu bed and keeps its warm-up, and so does
+  // home, wherever an address that names nothing falls back to it.
+  for (const path of ["/", ...MENU_PAGES.map((row) => row.path), "/unknown", "/battle/unknown"])
     expect(screenForPath(path), path).toBe("menu");
   for (const path of ["/battle", "/battle/"]) expect(screenForPath(path), path).toBe("loading");
   for (const path of [

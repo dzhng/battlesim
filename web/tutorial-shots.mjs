@@ -11,7 +11,7 @@
 // assets fetched (assets/runtime, assets/third-party). It starts its own
 // server unless VERIFY_URL names one, and shares the GPU like a scene
 // (`lockf -k <main checkout>/throwaway/gpu.lock …`). Shots go to
-// assets/runtime/tutorial/, served at /tutorial/; frames and working files
+// assets/runtime/tutorial-media/, served at /tutorial-media/; frames and working files
 // to throwaway/tutorial-shots/.
 //
 // Moments are found by what the observation shows (a capture under way, a
@@ -31,7 +31,7 @@ import { advance, lab, until } from "./scenes/_lab.mjs";
 import { unitType } from "./scenes/_units.mjs";
 
 const HERE = new URL(".", import.meta.url);
-const OUT = new URL("../assets/runtime/tutorial/", HERE).pathname;
+const OUT = new URL("../assets/runtime/tutorial-media/", HERE).pathname;
 const WORK = new URL("../throwaway/tutorial-shots/", HERE).pathname;
 const BATTLE = "/battle?type=mixed&size=small&seed=1&blue=h&blue_faction=us&red=a&red_faction=eastern";
 const VIEWPORT = { width: 1600, height: 900 };

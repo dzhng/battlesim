@@ -1,8 +1,10 @@
-// The skirmish lobby at `/`, through its real previews: what it shows for
+// The skirmish lobby on the menu's Skirmish page, through its real previews: what it shows for
 // each match, which changes draw a new map, the quiet retry and the failure,
 // and that Deploy starts the map it showed. Each state is shot at 1280×720
 // and 1920×1080 into the evidence folder; an XL 5v5 preview's preparation
 // time is printed.
+import { menuPage } from "../../apps/battle-lab/src/menu/pages.ts";
+
 const VIEWPORTS = [
   { width: 1280, height: 720 },
   { width: 1920, height: 1080 },
@@ -116,11 +118,14 @@ export async function run(ctx) {
     await page.setViewportSize(VIEWPORTS[0]);
   };
   const open = async (search = "") => {
-    await page.goto(`${origin}/${search}`);
+    // Home, then its tile, so the lobby mounts after the cover lifts and its
+    // map is seen coming; an address with a search opens Skirmish directly.
+    await page.goto(search ? `${origin}${menuPage("skirmish").path}${search}` : `${origin}/`);
     await page.locator("main.menu:not(.loading):not([inert])").waitFor({ timeout: 120_000 });
     await page.getByTestId("loading").waitFor({ state: "hidden", timeout: 120_000 });
     await page.evaluate(() => document.fonts.ready);
-    if (!search) await page.getByRole("button", { name: "Skirmish", exact: true }).click();
+    if (!search)
+      await page.getByRole("button", { name: menuPage("skirmish").title, exact: true }).click();
   };
 
   // The default: a 1v1 whose map is coming from its first frame.
