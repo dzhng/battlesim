@@ -1,23 +1,22 @@
-//! How jets' engines trail, by the look the data chooses: each layer of the
-//! chosen style drawn and no other, thicker on the afterburner by its
-//! reheat, every shipped look loadable, smooth from the nozzle, and the
-//! continuous plumes, mixed black and white plumes and billows, each fixed
-//! where it was laid and refusing malformed fields.
+//! How jets' engines trail, by the layers the data gives: each layer of the
+//! engine trail drawn and nothing else changed, thicker on the afterburner
+//! by its reheat, smooth from the nozzle, and the continuous plumes and
+//! billows, each fixed where it was laid and refusing malformed fields.
 mod jets;
 use jets::*;
 
 use presentation::effects::tables::EffectPresentation;
 use serde_json::{json, Value};
 
-/// The test style drawing the engines in `engine_style`.
-fn styled(engine_style: &str) -> Value {
+/// The test style trailing its engines in the test look `name` (`looks`).
+fn styled(name: &str) -> Value {
     let mut s = style();
-    s["engine_style"] = json!(engine_style);
+    s["engine_trail"] = looks()[name].clone();
     s
 }
 
 #[test]
-fn the_engine_style_chosen_in_the_data_alone_sets_how_the_engines_trail() {
+fn every_layer_of_the_engine_trail_draws_and_nothing_else_changes() {
     let flight = circling;
     let plain = fly(&mut frame_with(styled("plain")), 60.0, 1.5, flight, flight);
     let layered = fly(
@@ -31,7 +30,7 @@ fn the_engine_style_chosen_in_the_data_alone_sets_how_the_engines_trail() {
     assert!(ribbons(&plain, HAZE_ALBEDO).is_empty() && ribbons(&plain, SMOKE_ALBEDO).is_empty());
     assert!(
         ribbons(&layered, ENGINE_ALBEDO).is_empty(),
-        "the other style's trail is gone"
+        "the other trail's layers are gone"
     );
     let (haze, smoke) = (
         ribbons(&layered, HAZE_ALBEDO),
@@ -39,7 +38,7 @@ fn the_engine_style_chosen_in_the_data_alone_sets_how_the_engines_trail() {
     );
     assert!(
         !haze.is_empty() && !smoke.is_empty(),
-        "every layer of the chosen style trails"
+        "every layer of the trail draws"
     );
     assert!(
         smoke.len() > haze.len(),
@@ -49,18 +48,18 @@ fn the_engine_style_chosen_in_the_data_alone_sets_how_the_engines_trail() {
     assert_eq!(glows(&plain), glows(&layered));
     assert_eq!(flames(&plain), flames(&layered));
     assert_eq!(ribbons(&plain, TIP_ALBEDO), ribbons(&layered, TIP_ALBEDO));
-    let mut unknown = style();
-    unknown["engine_style"] = json!("missing");
+    let mut empty = style();
+    empty["engine_trail"] = json!([]);
     let at = concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/tests/fixtures/effect-vectors.json"
     );
     let v: Value = serde_json::from_str(&std::fs::read_to_string(at).unwrap()).unwrap();
     let mut p = v["presentation"].clone();
-    p["jet_exhaust"] = unknown;
+    p["jet_exhaust"] = empty;
     assert!(
         EffectPresentation::from_value(&p).is_err(),
-        "an engine style that names no look is refused"
+        "an engine trail with no layer is refused"
     );
 }
 
@@ -97,25 +96,6 @@ fn a_layer_thickens_on_the_afterburner_by_its_reheat() {
         (haze_burning - haze_cruise).abs() < 1e-4,
         "a layer without reheat does not: {haze_cruise} {haze_burning}"
     );
-}
-
-#[test]
-fn every_shipped_engine_style_loads_when_chosen() {
-    let shipped: Value =
-        serde_json::from_str(include_str!("../../../fixtures/presentation.json")).unwrap();
-    let base = shipped["effects"].clone();
-    let names: Vec<String> = base["jet_exhaust"]["engine_styles"]
-        .as_object()
-        .expect("shipped engine styles")
-        .keys()
-        .cloned()
-        .collect();
-    assert!(names.len() > 1, "a choice of looks");
-    for name in names {
-        let mut p = base.clone();
-        p["jet_exhaust"]["engine_style"] = json!(name);
-        EffectPresentation::from_value(&p).unwrap_or_else(|e| panic!("{name}: {e}"));
-    }
 }
 
 #[test]
@@ -188,7 +168,7 @@ fn a_puff_layer_draws_engine_billows_fixed_where_laid_and_nothing_else_does() {
     );
     // A billow layer without optical depth is refused.
     let mut bad = styled("billowed");
-    bad["engine_styles"]["billowed"][0]["puffs"]["density"] = json!(0);
+    bad["engine_trail"][0]["puffs"]["density"] = json!(0);
     let at = concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/tests/fixtures/effect-vectors.json"
@@ -200,7 +180,7 @@ fn a_puff_layer_draws_engine_billows_fixed_where_laid_and_nothing_else_does() {
 }
 
 #[test]
-fn a_plume_layer_draws_one_continuous_dense_ribbon_and_rejects_a_mixed_look() {
+fn a_plume_layer_draws_one_continuous_dense_ribbon_and_is_never_also_a_wisp() {
     let flight = circling;
     let d = fly(&mut frame_with(styled("plumed")), 60.0, 1.2, flight, flight);
     // Plume ribbons: shape 0, an opacity, misc.w 2 + its density.
@@ -248,45 +228,17 @@ fn a_plume_layer_draws_one_continuous_dense_ribbon_and_rejects_a_mixed_look() {
         json!({"density": 5, "length_m": 0}),
     ] {
         let mut s = styled("plumed");
-        s["engine_styles"]["plumed"][0]["plume"] = bad;
+        s["engine_trail"][0]["plume"] = bad;
         let mut p = v["presentation"].clone();
         p["jet_exhaust"] = s;
         assert!(EffectPresentation::from_value(&p).is_err());
     }
     let mut s = styled("plumed");
-    s["engine_styles"]["plumed"][0]["breakup"] = json!({"amount": 0.5, "length_m": 4});
+    s["engine_trail"][0]["breakup"] = json!({"amount": 0.5, "length_m": 4});
     let mut p = v["presentation"].clone();
     p["jet_exhaust"] = s;
     assert!(
         EffectPresentation::from_value(&p).is_err(),
         "a plume is not also a wisp"
-    );
-}
-
-#[test]
-fn a_mixed_plume_carries_its_darkest_and_lightest_greys_and_rejects_bad_ones() {
-    let flight = circling;
-    let d = fly(&mut frame_with(styled("mixed")), 60.0, 1.2, flight, flight);
-    let mixed: Vec<&Vec<f32>> = d
-        .iter()
-        .filter(|i| i[12] == 0.0 && i[11] > 0.0 && i[15] > 500.0)
-        .collect();
-    assert!(mixed.len() > 20, "a mixed plume trail: {}", mixed.len());
-    for r in &mixed {
-        assert_eq!(r[15], 1005.0, "mixed flag + its optical depth");
-        assert_eq!((r[8], r[9]), (0.02, 0.95), "its darkest and lightest greys");
-    }
-    let at = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/tests/fixtures/effect-vectors.json"
-    );
-    let v: Value = serde_json::from_str(&std::fs::read_to_string(at).unwrap()).unwrap();
-    let mut s = styled("mixed");
-    s["engine_styles"]["mixed"][0]["plume"]["mix"] = json!([0.02, 1.5]);
-    let mut p = v["presentation"].clone();
-    p["jet_exhaust"] = s;
-    assert!(
-        EffectPresentation::from_value(&p).is_err(),
-        "greys outside 0..1 are refused"
     );
 }

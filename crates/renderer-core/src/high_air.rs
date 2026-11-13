@@ -1,6 +1,6 @@
 //! High air over the finished world and page overlays. Spent world colour,
 //! fog mask and depth targets serve again; only the transparent output is new.
-//! The plane is made with the frame's targets and made again with them.
+//! It holds views of the frame's targets, so it is rebuilt whenever they are.
 use wgpu::*;
 
 use crate::effects::EffectsResources;

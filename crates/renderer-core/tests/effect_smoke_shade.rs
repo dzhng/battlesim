@@ -88,13 +88,7 @@ fn middle(gpu: &support::Gpu, ground: f64, records: &[[f32; 16]]) -> f32 {
     let y = SIZE[1] / 2 * row / 2;
     let at = |x: u32| (y + x * 4) as usize;
     let luma = |x: u32| (0..3).map(|c| half_to_f32(halves[at(x) + c])).sum::<f32>() / 3.0;
-    ROW.with(|r| *r.borrow_mut() = (0..SIZE[0]).map(luma).collect());
     luma(SIZE[0] / 2)
-}
-
-thread_local! {
-    /// The middle row the last `middle` call read.
-    static ROW: std::cell::RefCell<Vec<f32>> = const { std::cell::RefCell::new(Vec::new()) };
 }
 
 #[test]
@@ -214,27 +208,5 @@ fn a_dark_plume_thinner_than_a_pixel_hides_less_and_never_glows() {
     assert!(
         seen > full,
         "and hides less than a whole one: {seen} vs {full}"
-    );
-}
-
-#[test]
-fn a_mixed_plume_holds_both_black_and_white_smoke_inside_it() {
-    let gpu = support::gpu().expect("real GPU");
-    let grey = middle(&gpu, 1.0, &[]);
-    // A mixed plume (misc.w 1000 + depth; red and green its greys) along x.
-    let mut mixed = plume(0.5, 6.0, [0., 6.]);
-    (mixed[8], mixed[9], mixed[10], mixed[15]) = (0.02, 0.95, 0.0, 1006.0);
-    middle(&gpu, 1.0, &[mixed]);
-    let row = ROW.with(|r| r.borrow().clone());
-    let inside = &row[24..104];
-    let darkest = inside.iter().copied().fold(f32::MAX, f32::min);
-    let lightest = inside.iter().copied().fold(0.0f32, f32::max);
-    assert!(
-        darkest < 0.5 * grey,
-        "black smoke within it: {darkest} on {grey}"
-    );
-    assert!(
-        lightest > 1.3 * grey,
-        "and white smoke: {lightest} on {grey}"
     );
 }

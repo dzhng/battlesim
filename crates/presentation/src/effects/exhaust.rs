@@ -50,12 +50,9 @@ pub struct JetExhaustStyle {
     pub vapour: VapourLook,
     /// Each engine kind's look.
     pub engines: BTreeMap<String, EngineLook>,
-    /// The engine trails drawn: one of `engine_styles`.
-    pub engine_style: String,
-    /// Looks the engines' trails can take, each one or more layers laid
-    /// from the same points behind each nozzle (a haze, a condensation
-    /// trail, a smoky core), drawn in their order.
-    pub engine_styles: BTreeMap<String, Vec<TrailLook>>,
+    /// The engines' trail: one or more layers laid from the same points
+    /// behind each nozzle (a haze, a condensation trail), drawn in order.
+    pub engine_trail: Vec<TrailLook>,
     pub wingtip_trail: TrailLook,
     /// Where the wing-top sheet's strength starts, a share of the wingtip
     /// vapour: it forms only as the vapour nears its thickest, and leaves
@@ -194,10 +191,6 @@ pub struct Puffs {
 pub struct Plume {
     pub density: f64,
     pub length_m: f64,
-    /// Black and white smoke in one: its albedo runs between these two
-    /// greys by noise fixed where it was laid (`albedo` then unused).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub mix: Option<[f64; 2]>,
 }
 
 fn square() -> f64 {
@@ -232,26 +225,13 @@ impl JetExhaustStyle {
             return fail("sheet_from must be in [0, 1)".into());
         }
         self.wing_sheet_rule.check().or_else(fail)?;
-        let Some(layers) = self.engine_styles.get(&self.engine_style) else {
-            return fail(format!(
-                "engine_style: no engine_styles.{}",
-                self.engine_style
-            ));
-        };
-        if layers.is_empty() {
-            return fail(format!(
-                "engine_styles.{}: needs a layer",
-                self.engine_style
-            ));
+        if self.engine_trail.is_empty() {
+            return fail("engine_trail: needs a layer".into());
         }
         let looks = self
-            .engine_styles
+            .engine_trail
             .iter()
-            .flat_map(|(name, layers)| {
-                layers
-                    .iter()
-                    .map(move |t| (format!("engine_styles.{name}"), t))
-            })
+            .map(|t| ("engine_trail".to_string(), t))
             .chain([("wingtip_trail".to_string(), &self.wingtip_trail)])
             .chain(
                 self.wing_sheet
@@ -272,12 +252,8 @@ impl JetExhaustStyle {
                 || !(0.0..=1.0).contains(&t.reheat)
                 || t.puffs
                     .is_some_and(|p| p.spacing_m <= 0.0 || p.density <= 0.0)
-                || t.plume.is_some_and(|p| {
-                    p.density <= 0.0
-                        || p.length_m <= 0.0
-                        || p.mix
-                            .is_some_and(|m| !m.iter().all(|g| (0.0..=1.0).contains(g)))
-                })
+                || t.plume
+                    .is_some_and(|p| p.density <= 0.0 || p.length_m <= 0.0)
                 || (t.plume.is_some() && (t.puffs.is_some() || t.breakup.is_some()))
             {
                 return fail(format!(
@@ -308,10 +284,7 @@ impl JetExhaustStyle {
     /// The layers an emitter's trail is drawn in.
     fn layers(&self, kind: Emitter) -> &[TrailLook] {
         match kind {
-            Emitter::Nozzle { .. } => self
-                .engine_styles
-                .get(&self.engine_style)
-                .map_or(&[], Vec::as_slice),
+            Emitter::Nozzle { .. } => &self.engine_trail,
             Emitter::Wingtip => std::slice::from_ref(&self.wingtip_trail),
             Emitter::Sheet => &self.wing_sheet,
         }
@@ -539,12 +512,10 @@ fn draw_ring(
                 a_at,
                 b_at,
                 [wide(age_a), wide(age_b)],
-                pl.mix
-                    .map_or(look.albedo, |[dark, light]| [dark, light, 0.0]),
+                look.albedo,
                 opacity,
                 [a.along / pl.length_m + phase, b.along / pl.length_m + phase],
                 pl.density,
-                pl.mix.is_some(),
             );
             return;
         }

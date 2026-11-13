@@ -19,9 +19,6 @@ const BILLOW: f64 = 1.0;
 /// misc.w of a ribbon drawn as an engine plume: this plus its density
 /// (a wisp's is its breakup, at most 1).
 const PLUME: f64 = 2.0;
-/// misc.w of a mixed (black and white) plume: this plus its density; its
-/// colour's red and green are its darkest and lightest greys.
-const MIXED_PLUME: f64 = 1000.0;
 pub(super) const ROTOR: f64 = 3.0;
 const SHADOW: f64 = 4.0;
 /// Flipbook layers in the effect atlas, and each one's frames.
@@ -165,10 +162,8 @@ impl EffectBatch {
         opacity: f64,
         along: [f64; 2],
         density: f64,
-        mixed: bool,
     ) {
-        let flag = if mixed { MIXED_PLUME } else { PLUME };
-        let shape = [STREAK, along[0], along[1], flag + density];
+        let shape = [STREAK, along[0], along[1], PLUME + density];
         self.put([v4(a, width[0]), v4(b, width[1]), v4(albedo, opacity), shape]);
     }
 

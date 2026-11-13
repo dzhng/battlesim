@@ -38,22 +38,25 @@ pub fn style() -> Value {
             },
             "fan": {"glow": {"color": [1, 0.3, 0.1], "intensity": [0.2, 1], "reheat_intensity": 0, "radius": 1.5, "min_px": 0}, "trail": 1}
         },
-        "engine_style": "plain",
-        "engine_styles": {
-            "plain": [{"albedo": [ENGINE_ALBEDO, ENGINE_ALBEDO, ENGINE_ALBEDO], "opacity": [0.05, 0.2], "life_s": LIFE, "width_m": [0.5, 4], "fade_in_s": 0.1}],
-            "plumed": [{"albedo": [SMOKE_ALBEDO, SMOKE_ALBEDO, SMOKE_ALBEDO], "opacity": [0.0, 0.8], "life_s": LIFE, "width_m": [1, 6], "fade_in_s": 0.02, "plume": {"density": 5, "length_m": 10}}],
-            "mixed": [{"albedo": [0.5, 0.5, 0.5], "opacity": [0.0, 0.8], "life_s": LIFE, "width_m": [1, 6], "fade_in_s": 0.02, "plume": {"density": 5, "length_m": 10, "mix": [0.02, 0.95]}}],
-            "billowed": [{"albedo": [SMOKE_ALBEDO, SMOKE_ALBEDO, SMOKE_ALBEDO], "opacity": [0.0, 0.8], "life_s": LIFE, "width_m": [1, 6], "fade_in_s": 0.02, "puffs": {"spacing_m": 2, "density": 6}}],
-            "layered": [
-                {"albedo": [HAZE_ALBEDO, HAZE_ALBEDO, HAZE_ALBEDO], "opacity": [0.0, 0.3], "life_s": 0.5, "width_m": [0.5, 1.5], "fade_in_s": 0.02},
-                {"albedo": [SMOKE_ALBEDO, SMOKE_ALBEDO, SMOKE_ALBEDO], "opacity": [0.0, 0.2], "reheat": 0.6, "life_s": LIFE, "width_m": [0.5, 3], "fade_in_s": 0.02}
-            ]
-        },
+        "engine_trail": looks()["plain"],
         "wingtip_trail": {"albedo": [TIP_ALBEDO, TIP_ALBEDO, TIP_ALBEDO], "opacity": [0.0, 0.4], "life_s": LIFE, "width_m": [0.2, 2], "fade_in_s": 0.05},
         "sheet_from": SHEET_FROM,
         "wing_sheet": [],
         "wing_sheet_rule": {"span": [0, 0.5], "rows": [[0.2, 0.2]], "spacing_m": 1, "lift_m": 0.2},
         "airframes": {}
+    })
+}
+
+/// Engine trails the tests draw, by name: `plain` is the test style's.
+pub fn looks() -> Value {
+    json!({
+        "plain": [{"albedo": [ENGINE_ALBEDO, ENGINE_ALBEDO, ENGINE_ALBEDO], "opacity": [0.05, 0.2], "life_s": LIFE, "width_m": [0.5, 4], "fade_in_s": 0.1}],
+        "plumed": [{"albedo": [SMOKE_ALBEDO, SMOKE_ALBEDO, SMOKE_ALBEDO], "opacity": [0.0, 0.8], "life_s": LIFE, "width_m": [1, 6], "fade_in_s": 0.02, "plume": {"density": 5, "length_m": 10}}],
+        "billowed": [{"albedo": [SMOKE_ALBEDO, SMOKE_ALBEDO, SMOKE_ALBEDO], "opacity": [0.0, 0.8], "life_s": LIFE, "width_m": [1, 6], "fade_in_s": 0.02, "puffs": {"spacing_m": 2, "density": 6}}],
+        "layered": [
+            {"albedo": [HAZE_ALBEDO, HAZE_ALBEDO, HAZE_ALBEDO], "opacity": [0.0, 0.3], "life_s": 0.5, "width_m": [0.5, 1.5], "fade_in_s": 0.02},
+            {"albedo": [SMOKE_ALBEDO, SMOKE_ALBEDO, SMOKE_ALBEDO], "opacity": [0.0, 0.2], "reheat": 0.6, "life_s": LIFE, "width_m": [0.5, 3], "fade_in_s": 0.02}
+        ]
     })
 }
 

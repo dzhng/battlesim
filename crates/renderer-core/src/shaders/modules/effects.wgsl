@@ -169,11 +169,6 @@ const PI = 3.14159265;
  *  that much less rather than vanishing. */
 const PLUME_MIN_PX = 1.5;
 
-// @block effects_MIXED_PLUME
-/** misc.w of a mixed (black and white) engine plume: this plus its
- *  optical depth; a plain plume's is 2 plus it. */
-const MIXED_PLUME = 1000.0;
-
 // @block effects_ROTOR_SOFT_M
 /** How deep a rotor fades into what it meets, metres: a roof just under it
  *  still takes it. */
