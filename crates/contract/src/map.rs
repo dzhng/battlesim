@@ -130,6 +130,28 @@ pub struct MapDefinition<B = BuildingDefinition> {
 pub type SavedMap = MapDefinition<SavedBuilding>;
 
 impl<B> MapDefinition<B> {
+    /// Bare level ground `size` metres across: nothing stands on it,
+    /// nothing grows and no water lies.
+    pub fn flat(size: [f64; 2]) -> Self {
+        Self {
+            size,
+            render_margin_m: 0.0,
+            fog_cell_m: 8.0,
+            height_grid_m: 4.0,
+            slope_cutoff_deg: 35.0,
+            relief: Vec::new(),
+            rivers: Vec::new(),
+            surfaces: Vec::new(),
+            bridges: Vec::new(),
+            forests: Vec::new(),
+            swamps: Vec::new(),
+            props: Vec::new(),
+            buildings: Vec::new(),
+            template_catalog_hash: None,
+            regional_family: None,
+        }
+    }
+
     /// Samples per axis, preserving the physical height field's cell rounding.
     pub fn height_grid_size(&self) -> [usize; 2] {
         self.size

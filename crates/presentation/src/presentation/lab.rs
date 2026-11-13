@@ -264,16 +264,16 @@ impl Presentation {
     }
 
     pub(super) fn clear_lab_rows(&mut self) {
-        if let Some((rows, strings)) = self.lab.frontier.take() {
-            self.world.appearances.truncate(rows);
-            self.world.strings.truncate(strings);
-            self.world.rows.retain(|_, row| (*row as usize) < rows);
+        if let Some(frontier) = self.lab.frontier.take() {
+            truncate_rows(&mut self.world, frontier);
         }
     }
 
+    /// The replaceable tooling rows, the lab's assets, after the canonical
+    /// ones.
     pub(super) fn register_lab_rows(&mut self) {
         self.clear_lab_rows();
-        self.lab.frontier = Some((self.world.appearances.len(), self.world.strings.len()));
+        self.lab.frontier = Some(frontier(&self.world));
         register_rows(&mut self.world, &self.lab.assets);
     }
 
@@ -399,55 +399,21 @@ impl Lab {
 }
 
 impl Presentation {
-    pub fn rest_palette(&self, row: u32) -> Option<Vec<Joint>> {
-        self.battle_rest_palette(row)
-            .or_else(|| self.lab_rest_palette(row))
-    }
     /// A skinned row's body as it holds still (`World.appearances`): a
     /// corpse row as it lies (its `corpse_poses` entry), a body row in its
     /// far pose (what its impostor card shows). Each joint's bind-to-model
     /// motion: a renderer skins the body's mesh by it once, when it loads
     /// the row (`posedMesh`), and draws that mesh where the frame's
-    /// instance takes the identity. None for a rigid row, or before a world
-    /// loads.
-    fn battle_rest_palette(&self, row: u32) -> Option<Vec<Joint>> {
-        let loaded = self.loaded.as_ref()?;
+    /// instance takes the identity. None for a rigid row, or a row nothing
+    /// loaded draws.
+    pub fn rest_palette(&self, row: u32) -> Option<Vec<Joint>> {
         let r = self.world.appearances.get(row as usize)?;
         let name = self.world.name(r);
-        let Some(Appearance::Skinned {
-            joints,
-            clips,
-            table,
-            far_pose,
-            corpse_poses,
-            ..
-        }) = loaded.units.appearances.get(name)
-        else {
-            return None;
-        };
-        let pose = match r.lies {
-            NONE => far_pose,
-            lies => corpse_poses.get(lies as usize)?,
-        };
-        let mut worlds = Vec::new();
-        let table = loaded.tables.get(table)?;
-        skin::joint_worlds(
-            joints,
-            clips,
-            table,
-            &pose.clip,
-            pose.phase,
-            None,
-            &mut worlds,
-        );
-        let ibs = &loaded.inverse_binds[name];
-        Some(
-            worlds
-                .iter()
-                .zip(ibs)
-                .map(|(w, ib)| joint(&skin::affine(&skin::mul(w, ib))))
-                .collect(),
-        )
+        self.loaded
+            .as_ref()
+            .and_then(|l| posing::rest_palette(&l.units, &l.tables, &l.inverse_binds, name, r.lies))
+            .or_else(|| self.showcase.as_ref()?.rest_palette(name, r.lies))
+            .or_else(|| self.lab_rest_palette(row))
     }
 }
 
@@ -465,6 +431,19 @@ pub(super) fn validate_models(models: &[ModelInput]) -> Result<(), String> {
     Ok(())
 }
 
+/// Where the world's rows and strings end: the rows a later registration
+/// can be truncated back to.
+pub(super) fn frontier(world: &World) -> (usize, usize) {
+    (world.appearances.len(), world.strings.len())
+}
+
+/// Drops every row registered after `frontier`.
+pub(super) fn truncate_rows(world: &mut World, (rows, strings): (usize, usize)) {
+    world.appearances.truncate(rows);
+    world.strings.truncate(strings);
+    world.rows.retain(|_, row| (*row as usize) < rows);
+}
+
 pub(super) fn register_rows(world: &mut World, assets: &BTreeMap<String, Asset>) {
     for (name, asset) in assets {
         match asset {
@@ -475,21 +454,9 @@ pub(super) fn register_rows(world: &mut World, assets: &BTreeMap<String, Asset>)
                     }
                 }
             }
-            Asset::Animated { appearance, .. } => match appearance.as_ref() {
-                Appearance::Skinned {
-                    joints,
-                    corpse_poses,
-                    ..
-                } => {
-                    world.row(name, "", NONE, joints.len() as u32, false);
-                    for lies in 0..corpse_poses.len() {
-                        world.row(name, "", lies as u32, 0, false);
-                    }
-                }
-                Appearance::Articulated { nodes, .. } => {
-                    world.row(name, "", NONE, nodes.len() as u32, false);
-                }
-            },
+            Asset::Animated { appearance, .. } => {
+                super::posing::register_appearance(world, name, appearance);
+            }
         }
     }
 }

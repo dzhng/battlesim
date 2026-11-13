@@ -13,4 +13,4 @@ contract = { path = "../contract" }
 mapgen = { path = "../mapgen" }
 serde_json.workspace = true
 
-serde = "1"
+serde = { version = "1", features = ["derive"] }

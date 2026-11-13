@@ -88,7 +88,7 @@ impl Battle {
             .map(|(side, round)| (side, round.id))
             .collect();
         for (i, unit) in self.units.iter_mut().enumerate() {
-            weapons::assign_operators(&self.arsenal, unit);
+            weapons::operators::assign_operators(&self.arsenal, unit);
             let knowledge = &self.knowledge[unit.side.index()];
             for m in 0..unit.mounts.len() {
                 let mount = &unit.mounts[m];
@@ -182,7 +182,7 @@ impl Battle {
     pub(super) fn fire(&mut self, moved: &weapons::tick::Moved) -> BTreeSet<UnitId> {
         // Flight may have killed an operator after this tick's guidance.
         for unit in &mut self.units {
-            weapons::assign_operators(&self.arsenal, unit);
+            weapons::operators::assign_operators(&self.arsenal, unit);
         }
         let rounds: Vec<weapons::IncomingRound> = self
             .projectiles

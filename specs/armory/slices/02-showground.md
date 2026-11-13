@@ -1,5 +1,7 @@
 # 02 · Showground: the squad at rest, from the simulation
 
+Status: done 2026-11-13, commit bd5420dd0.
+
 Map rows: Q1′, D1. No dependencies.
 
 ## Contract

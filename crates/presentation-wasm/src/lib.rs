@@ -6,6 +6,7 @@ mod fog;
 mod ground;
 mod lab;
 mod shadow;
+mod showcase;
 mod world;
 
 #[cfg(test)]

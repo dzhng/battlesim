@@ -10,6 +10,7 @@ import {
   SoundFrame as RustSoundFrame,
   sector_pan,
   vehicle_loops,
+  idle_loops,
   type Presentation,
 } from "@wasm/renderer_browser";
 import type { AudioMix, Bus, VehicleSound } from "./audioMix";
@@ -234,17 +235,34 @@ export function vehicleLoops(
   return JSON.parse(vehicle_loops(JSON.stringify(row), load, traverse, reversing)) as VehicleLoop[];
 }
 
-const rustFrame = (o: SoundFrameOptions) =>
-  new RustSoundFrame(
-    JSON.stringify({
-      audio: o.presentation,
-      catalog: o.catalog,
-      weapons: o.weapons,
-      unit_catalog: o.unitCatalog,
-      presentation: o.looks,
-      tick_hz: o.tickHz,
-    }),
-  );
+/** The setup the Rust sound reads (`presentation::sound::setup`). */
+const setupJson = (o: SoundFrameOptions) =>
+  JSON.stringify({
+    audio: o.presentation,
+    catalog: o.catalog,
+    weapons: o.weapons,
+    unit_catalog: o.unitCatalog,
+    presentation: o.looks,
+    tick_hz: o.tickHz,
+  });
+
+const rustFrame = (o: SoundFrameOptions) => new RustSoundFrame(setupJson(o));
+
+/** One loop a vehicle standing idle plays, as a stationary battle vehicle
+ *  starts it beside the listener (`presentation::sound::idle`). */
+export interface IdleLoop {
+  slot: VehicleLoop["slot"];
+  sound: string;
+  gain: number;
+  rate: number;
+}
+
+/** The loops unit type `kind` idles with under `options`: a vehicle's
+ *  engine at idle, each sound replaced as the battle replaces it; none for
+ *  a squad. The module must be loaded. */
+export function idleLoops(options: SoundFrameOptions, kind: string): IdleLoop[] {
+  return JSON.parse(idle_loops(setupJson(options), kind)) as IdleLoop[];
+}
 
 /** Every recipe a battle with `options` can play, as the Rust frame names
  *  them: the synthesized baselines, each assigned or replacing recipe and

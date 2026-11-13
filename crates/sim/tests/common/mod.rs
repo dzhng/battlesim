@@ -145,11 +145,14 @@ pub fn physics(key: &str) -> f64 {
 /// A flat map `size` metres, plus extra map JSON fields (leading comma), its
 /// buildings in their saved form ([`building`]).
 pub fn flat(size: [f64; 2], extra: &str) -> WorldGeometry {
-    let map = format!(
-        r#"{{"size":[{},{}],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35{extra}}}"#,
-        size[0], size[1]
-    );
-    WorldGeometry::new(&physical_map(&map), &rules())
+    let map: MapDefinition = MapDefinition::flat(size);
+    let mut map = serde_json::to_value(map).unwrap();
+    let fields = extra.strip_prefix(',').unwrap_or(extra);
+    let extra: Value = serde_json::from_str(&format!("{{{fields}}}")).unwrap();
+    map.as_object_mut()
+        .unwrap()
+        .extend(extra.as_object().unwrap().clone());
+    WorldGeometry::new(&physical_map(&map.to_string()), &rules())
 }
 
 /// The map generator's physical template `id`. Its library

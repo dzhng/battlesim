@@ -13,6 +13,7 @@ use presentation::sound::frame::{
     sector_pan, Command, Cue, Heard, Listener, Motion, Scripted, Shout, ShoutTake, Sound,
     SoundSoldier, SoundVehicle, Voice,
 };
+use presentation::sound::idle::idle_loops;
 use presentation::sound::synth;
 use presentation::sound::tables::{Bus, SoundTables};
 use presentation::sound::voices::{Chatter, Request, SetVoice, Speakers, Speaks, Tier};
@@ -829,5 +830,58 @@ fn each_launch_plays_at_its_own_look_s_level() {
             "the RPG and the grenade play their own looks' levels: {ratio} against {}",
             rpg / grenade
         );
+    }
+}
+
+#[test]
+fn an_idle_vehicle_sounds_as_a_stationary_battle_vehicle_does() {
+    let tables = tables();
+    assert!(
+        idle_loops(&tables, None).is_empty(),
+        "a squad has no engine"
+    );
+    for class in tables.audio.vehicles.keys() {
+        // A vehicle standing still where the listener is, so distance takes nothing.
+        let parked = Motion {
+            vehicles: vec![SoundVehicle {
+                key: 1.0,
+                vehicle_class: class.clone(),
+                position: HERE.position,
+                travel_l: 0.0,
+                travel_r: 0.0,
+                turret: 0.0,
+                reverse: false,
+            }],
+            soldiers: Vec::new(),
+        };
+        let mut s = sound();
+        let mut battle: Vec<(String, f64, f64)> = s
+            .update(0.0, 0.0, 0.0, &parked, HERE)
+            .iter()
+            .filter_map(|c| match c {
+                Command::Start { voice, .. } if voice.looping && voice.position.is_some() => {
+                    Some((voice.sound.clone(), voice.gain, voice.rate))
+                }
+                _ => None,
+            })
+            .collect();
+        let mut idle: Vec<(String, f64, f64)> = idle_loops(&tables, Some(class))
+            .into_iter()
+            .map(|l| (l.sound, l.gain, l.rate))
+            .collect();
+        battle.sort_by(|a, b| a.0.cmp(&b.0));
+        idle.sort_by(|a, b| a.0.cmp(&b.0));
+        assert_eq!(
+            idle.len(),
+            battle.len(),
+            "{class}: {idle:?} against {battle:?}"
+        );
+        for (i, b) in idle.iter().zip(&battle) {
+            assert_eq!(i.0, b.0, "{class}");
+            assert!(
+                (i.1 - b.1).abs() < 1e-12 && (i.2 - b.2).abs() < 1e-12,
+                "{class}: {i:?} against {b:?}"
+            );
+        }
     }
 }

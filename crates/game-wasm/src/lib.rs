@@ -24,6 +24,8 @@ use admission::admit_bundle;
 pub use admission::{author_scenario_bundle, canonical_scenario_bundle, check_scenario_bundle};
 mod prepared_world;
 pub use prepared_world::PreparedWorld;
+mod showground;
+pub use showground::{Showground, SoldierAtRest, SquadAtRest};
 mod skirmish;
 mod world_view;
 pub use skirmish::synthetic_skirmish_setup;

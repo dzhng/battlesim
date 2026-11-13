@@ -1,5 +1,7 @@
 # 03 · Showcase entry point: idle life in the presentation crate
 
+Status: done 2026-11-13, commit 139018f3a.
+
 Map rows: Q1′, Q6, D1, L11, and the sound half of L9 (P5). Depends on 02 for
 the shape of the squad input; the code can start in parallel.
 

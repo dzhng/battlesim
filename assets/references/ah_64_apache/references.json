@@ -54,6 +54,17 @@
    "licence": "CC-BY-SA-3.0",
    "sha256": "98291ea435eb7b59392c2491af77076ae3c59abe1bbeebf1534352585333451c",
    "note": "AH-64E nose close-up: TADS/PNVS, canopy, chin gun"
+  },
+  {
+   "file": "ah_64d_apache-parked_rotors_turning.jpg",
+   "variant": "ah_64d_apache",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Apache_refuel_140114-A-XD704-001.jpg",
+   "author": "Spc. Joseph Green, 159th Combat Aviation Brigade Public Affairs (US Army)",
+   "licence": "public-domain",
+   "sha256": "3fa62039b5654f4db696b2dacd882bc4fd712d9ec8d5de0ec16b0e32610e0945",
+   "note": "AH-64D on the ground during a hot refuel, rotors turning: the main rotor's blades smeared to a faint disc about a sharp hub, the tail rotor a translucent disc"
   }
  ],
  "gaps": [

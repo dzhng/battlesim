@@ -56,7 +56,10 @@ use crate::world::{
 
 mod cameras;
 mod picks;
+mod posing;
+use posing::{pose_body, pose_vehicle, Scratch, UnitArt};
 mod probe;
+pub mod showcase;
 mod side_fog;
 mod taken;
 use side_fog::Fog;
@@ -169,8 +172,7 @@ struct Loaded {
     allied: Vec<f64>,
     sound: Option<(EffectPublication, Vec<Launch>)>,
     shadow_fall: [f64; 2],
-    locals: Vec<Trs>,
-    worlds: Vec<Mat4>,
+    scratch: Scratch,
 }
 
 pub struct Presentation {
@@ -207,6 +209,9 @@ pub struct Presentation {
     world: World,
     catalog_revision: u32,
     lab: lab::Lab,
+    showcase: Option<showcase::Showcase>,
+    /// Where the shown unit's rows begin, after the world's own.
+    showcase_frontier: Option<(usize, usize)>,
     models: Vec<Model>,
     frame: Frame,
     /// The camera the last frame was asked for.
@@ -287,6 +292,8 @@ impl Presentation {
             world: World::default(),
             catalog_revision: catalog::next_revision(),
             lab: lab::Lab::default(),
+            showcase: None,
+            showcase_frontier: None,
             models: Vec::new(),
             frame: Frame::default(),
             camera: None,
@@ -394,12 +401,16 @@ impl Presentation {
         tables: ClipTables,
         buildings: Option<PlacedBuildings>,
     ) -> Result<(), String> {
+        if input.battle.is_some() && self.showcase.is_some() {
+            return Err("a showcase is shown: clear it before loading a battle".into());
+        }
         if let Some(fit) = &mut self.shadow {
             fit.invalidate();
         }
         self.catalog_revision = catalog::next_revision();
         self.world = World::default();
         self.lab.frontier = None;
+        self.showcase_frontier = None;
         self.fallen.clear();
         self.known_from = KnownFrom::Unread;
         self.knowledge = Knowledge::default();
@@ -446,7 +457,7 @@ impl Presentation {
         self.loaded = None;
         let (azimuth, elevation) = (input.sun_azimuth, input.sun_elevation);
         let Some(input) = input.battle else {
-            self.register_lab_rows();
+            self.register_shown_rows();
             return Ok(());
         };
         let units = Arc::new(input.units.clone());
@@ -454,33 +465,9 @@ impl Presentation {
         let presentation = EffectPresentation::from_value(&input.effects.presentation)?;
         let capacity = presentation.capacity;
         let side = input.side.clone();
-        let mut inverse_binds = HashMap::new();
+        let inverse_binds = posing::inverse_binds(&units);
         for (name, a) in &units.appearances {
-            if let Appearance::Skinned {
-                joints,
-                inverse_binds: given,
-                ..
-            } = a
-            {
-                inverse_binds.insert(name.clone(), skin::inverse_binds(joints, given));
-            }
-        }
-        for (name, a) in &units.appearances {
-            match a {
-                Appearance::Skinned {
-                    joints,
-                    corpse_poses,
-                    ..
-                } => {
-                    self.world.row(name, "", NONE, joints.len() as u32, false);
-                    for lies in 0..corpse_poses.len() {
-                        self.world.row(name, "", lies as u32, 0, false);
-                    }
-                }
-                Appearance::Articulated { nodes, .. } => {
-                    self.world.row(name, "", NONE, nodes.len() as u32, false);
-                }
-            }
+            posing::register_appearance(&mut self.world, name, a);
         }
         // A cook-off draws its wreck's pieces: whole, hull, turret, debris.
         for look in input.effects.wreck_looks.values() {
@@ -506,8 +493,7 @@ impl Presentation {
             allied: Vec::new(),
             sound: None,
             shadow_fall,
-            locals: Vec::new(),
-            worlds: Vec::new(),
+            scratch: Scratch::default(),
             inverse_binds,
             units,
             tables,
@@ -526,7 +512,7 @@ impl Presentation {
             loaded.note(&o, self.ground.as_ref());
         }
         self.loaded = Some(loaded);
-        self.register_lab_rows();
+        self.register_shown_rows();
         Ok(())
     }
 
@@ -633,9 +619,12 @@ impl Presentation {
 
     /// This frame's effect instances, in draw order.
     pub fn effects(&self) -> &[Effect] {
-        self.loaded.as_ref().map_or(&[], |l| {
-            bytemuck::cast_slice(&l.batch.data[..l.batch.count * EFFECT_FLOATS])
-        })
+        let batch = match (&self.loaded, &self.showcase) {
+            (Some(l), _) => &l.batch,
+            (None, Some(s)) => &s.batch,
+            (None, None) => return &[],
+        };
+        bytemuck::cast_slice(&batch.data[..batch.count * EFFECT_FLOATS])
     }
 
     /// This frame's cast lights, chosen for the view.
@@ -970,6 +959,16 @@ impl Presentation {
         }
         self.lab
             .append(&view, &self.world, &mut self.frame, &mut self.models);
+        if let Some(showcase) = &mut self.showcase {
+            showcase.pose(time, self.ground.as_ref());
+            showcase.draw(
+                &view,
+                &self.world,
+                self.detail_scale[0],
+                &mut self.frame,
+                &mut self.models,
+            );
+        }
         batches(&mut self.models, &mut self.frame);
         Ok(&self.frame)
     }
@@ -1006,8 +1005,7 @@ impl Loaded {
             indoor,
             allied,
             shadow_fall,
-            worlds,
-            locals,
+            scratch,
             ..
         } = self;
         let time = sample.time;
@@ -1083,82 +1081,16 @@ impl Loaded {
                 xray.own
             }
         };
-        let tint = |s: &str| units.tints.get(s).map_or([1.0; 3], |t| t.map(|v| v as f32));
-        let row = |name: &str, state: &str, lies: u32| {
-            world.rows[&(name.to_owned(), state.to_owned(), lies, 0, false)]
+        let art = UnitArt {
+            units,
+            tables,
+            inverse_binds,
+            world,
+            view,
+            detail,
         };
         // Soldiers off screen, as the gates count bodies drawn, carded or culled.
-        let mut culled = 0;
-        let model = |row: u32,
-                     tier: i32,
-                     pass: u32,
-                     at: Vec3,
-                     yaw: f64,
-                     tint: [f32; 3],
-                     colour: [f64; 4],
-                     palette: u32,
-                     scroll: [f64; 2]| Model {
-            row,
-            tier: tier as u32,
-            pass,
-            at,
-            yaw,
-            tint,
-            highlight: false,
-            scale: [1.0; 3],
-            colour,
-            palette,
-            scroll,
-            fog: model_fog(false, false, false),
-        };
-
-        // Soldiers, living and dying: a body's far bounds tier him.
-        for s in &poses.soldiers {
-            let Some(name) = units.resolve(
-                &s.kind,
-                &s.side,
-                s.soldier,
-                s.slot,
-                s.operator_mount,
-                s.active_mount,
-            ) else {
-                continue;
-            };
-            f.counts.soldiers += 1;
-            let far = bounds(units, name, 0);
-            let tier = model_detail(&detail, view, s.position, far.size, far.radius, true, None);
-            if tier == CULLED {
-                culled += 1;
-                continue;
-            }
-            let palette = if tier == IMPOSTOR {
-                0
-            } else {
-                pose_body(
-                    units,
-                    tables,
-                    inverse_binds,
-                    worlds,
-                    &mut f.palettes,
-                    name,
-                    &s.clip,
-                    s.phase,
-                    s.blend.as_ref(),
-                    s.kick,
-                )
-            };
-            models.push(model(
-                row(name, "", NONE),
-                tier,
-                0,
-                s.position,
-                s.facing,
-                tint(&s.side),
-                colour_of(&s.side, s.unit),
-                palette,
-                [0.0; 2],
-            ));
-        }
+        let culled = art.soldiers(&poses.soldiers, colour_of, &mut scratch.worlds, f, models);
         // Where an aircraft's shadow lies, and the pass that draws it: a
         // low-air airframe's shadow lands its height along the sun's fall; a
         // high-air one, drawn in its own pass, casts none, and its shadow
@@ -1174,49 +1106,21 @@ impl Loaded {
         };
         // Vehicles and aircraft; an aircraft draws while it or its shadow
         // is in view.
-        for v in &poses.vehicles {
-            let Some(name) = units.resolve(&v.kind, &v.side, v.unit, 0, None, None) else {
-                continue;
-            };
-            if v.airborne {
-                f.counts.aircraft += 1;
-            } else {
-                f.counts.vehicles += 1;
-            }
-            let far = bounds(units, name, 0);
-            let (shadow, pass) = if v.airborne {
-                let (at, pass) = aircraft_shadow_at(&v.kind, v.position);
-                (Some(at), pass)
-            } else {
-                (None, VIEW_PASS)
-            };
-            let tier = model_detail(
-                &detail, view, v.position, far.size, far.radius, false, shadow,
-            );
-            if tier == CULLED {
-                continue;
-            }
-            let (palette, scroll) = pose_vehicle(
-                units,
-                locals,
-                worlds,
-                &mut f.palettes,
-                name,
-                &v.articulation,
-                v.motion.as_ref(),
-            );
-            models.push(model(
-                row(name, "", NONE),
-                tier,
-                pass,
-                v.position,
-                v.yaw,
-                tint(&v.side),
-                colour_of(&v.side, v.unit),
-                palette,
-                scroll,
-            ));
-        }
+        art.vehicles(
+            &poses.vehicles,
+            |v| {
+                if v.airborne {
+                    let (at, pass) = aircraft_shadow_at(&v.kind, v.position);
+                    (Some(at), pass)
+                } else {
+                    (None, VIEW_PASS)
+                }
+            },
+            colour_of,
+            scratch,
+            f,
+            models,
+        );
         // Edge transits use the same appearance, articulation and shadow as a
         // live aircraft, but have no unit identity for selection or cards.
         for t in &transit_poses {
@@ -1240,24 +1144,18 @@ impl Loaded {
             }
             let (palette, scroll) = pose_vehicle(
                 units,
-                locals,
-                worlds,
+                scratch,
                 &mut f.palettes,
                 name,
                 &Articulation::default(),
                 None,
             );
-            models.push(model(
-                row(name, "", NONE),
-                tier,
-                pass,
-                t.position,
-                t.heading,
-                tint(side),
-                [0.0; 4],
+            models.push(Model {
+                tint: art.tint(side),
                 palette,
                 scroll,
-            ));
+                ..Model::unit(art.row(name, "", NONE), tier, pass, t.position, t.heading)
+            });
         }
         // Corpses lying, and those the cap pushed out sinking away.
         let lying = poses
@@ -1285,17 +1183,8 @@ impl Loaded {
             // Remains are seen or unseen whole, as the ground under them.
             models.push(Model {
                 fog: model_fog(true, false, false),
-                ..model(
-                    row(name, "", c.lies as u32),
-                    tier,
-                    0,
-                    at,
-                    c.yaw,
-                    tint(&c.side),
-                    [0.0; 4],
-                    0,
-                    [0.0; 2],
-                )
+                tint: art.tint(&c.side),
+                ..Model::unit(art.row(name, "", c.lies as u32), tier, 0, at, c.yaw)
             });
         }
         // A cook-off's moving wreck and its thrown debris; a piece in
@@ -1337,8 +1226,7 @@ impl Loaded {
             let (palette, scroll) = match (&piece.articulation, &piece.motion) {
                 (Some(a), motion) => pose_vehicle(
                     units,
-                    locals,
-                    worlds,
+                    scratch,
                     &mut f.palettes,
                     &piece.appearance,
                     a,
@@ -1350,23 +1238,17 @@ impl Loaded {
                 }
                 (None, None) => (0, [0.0; 2]),
             };
-            let tint = piece.tint.map_or([1.0; 3], |t| t.map(|v| v as f32));
-            let mut m = model(
-                row(&piece.appearance, piece.state.unwrap_or(""), NONE),
-                tier,
-                0,
-                piece.position,
-                piece.yaw,
-                tint,
-                [0.0; 4],
+            let row = art.row(&piece.appearance, piece.state.unwrap_or(""), NONE);
+            models.push(Model {
+                tint: piece.tint.map_or([1.0; 3], |t| t.map(|v| v as f32)),
                 palette,
                 scroll,
-            );
-            m.scale = piece.scale.map(|v| v as f32);
-            // A thrown piece is the world's; the whole wreck still moving is
-            // posed as a unit is.
-            m.fog = model_fog(false, piece.state.is_some(), false);
-            models.push(m);
+                scale: piece.scale.map(|v| v as f32),
+                // A thrown piece is the world's; the whole wreck still moving
+                // is posed as a unit is.
+                fog: model_fog(false, piece.state.is_some(), false),
+                ..Model::unit(row, tier, 0, piece.position, piece.yaw)
+            });
         }
         // Ghosts: where the UI's units will stand, at rest, in their colour.
         for g in ui.ghosts {
@@ -1388,7 +1270,7 @@ impl Loaded {
                         units,
                         tables,
                         inverse_binds,
-                        worlds,
+                        &mut scratch.worlds,
                         &mut f.palettes,
                         name,
                         &far_pose.clip,
@@ -1400,8 +1282,7 @@ impl Loaded {
                 ),
                 _ => pose_vehicle(
                     units,
-                    locals,
-                    worlds,
+                    scratch,
                     &mut f.palettes,
                     name,
                     &Articulation::default(),
@@ -1413,17 +1294,12 @@ impl Loaded {
                 2 => input.blocked,
                 _ => xray.own,
             };
-            models.push(model(
-                row(name, "", NONE),
-                tier,
-                GHOST_PASS,
-                at,
-                g.yaw,
-                [1.0; 3],
+            models.push(Model {
                 colour,
                 palette,
                 scroll,
-            ));
+                ..Model::unit(art.row(name, "", NONE), tier, GHOST_PASS, at, g.yaw)
+            });
         }
         f.counts.culled = culled;
         picks::picks(sample, units, input, f);
@@ -1476,66 +1352,6 @@ fn batches(models: &mut [Model], f: &mut Frame) {
             scale: [m.scale[0], m.scale[1], m.scale[2], m.colour[3] as f32],
         }));
     }
-}
-
-/// A body in a clip at a phase, crossfaded and kicked: its palette's first joint.
-#[allow(clippy::too_many_arguments)]
-fn pose_body(
-    units: &UnitsSection,
-    tables: &ClipTables,
-    inverse_binds: &HashMap<String, Vec<Mat4>>,
-    worlds: &mut Vec<Mat4>,
-    palettes: &mut Vec<Joint>,
-    name: &str,
-    clip: &str,
-    phase: f64,
-    blend: Option<&ClipBlend>,
-    kick: Kick,
-) -> u32 {
-    let Some(Appearance::Skinned {
-        joints,
-        clips,
-        table,
-        ..
-    }) = units.appearances.get(name)
-    else {
-        return 0;
-    };
-    let Some(table) = tables.get(table) else {
-        return 0;
-    };
-    skin::drawn_worlds(joints, clips, table, clip, phase, blend, kick, worlds);
-    let first = palettes.len() as u32;
-    let ibs = &inverse_binds[name];
-    palettes.extend(
-        worlds
-            .iter()
-            .zip(ibs)
-            .map(|(w, ib)| joint(&skin::affine(&skin::mul(w, ib)))),
-    );
-    first
-}
-
-/// A vehicle articulated, its whole model moved by `motion` (an aircraft's
-/// lean, a hull's kick): its palette's first joint and its track scrolls.
-fn pose_vehicle(
-    units: &UnitsSection,
-    locals: &mut Vec<Trs>,
-    worlds: &mut Vec<Mat4>,
-    palettes: &mut Vec<Joint>,
-    name: &str,
-    articulation: &Articulation,
-    motion: Option<&Mat4>,
-) -> (u32, [f64; 2]) {
-    let Some(Appearance::Articulated { nodes, rig, .. }) = units.appearances.get(name) else {
-        return (0, [0.0; 2]);
-    };
-    *locals = rest_locals(nodes);
-    articulate(locals, nodes, rig, articulation);
-    skin::node_worlds(nodes, locals, motion, worlds);
-    let first = palettes.len() as u32;
-    palettes.extend(worlds.iter().map(|w| joint(&skin::affine(w))));
-    (first, track_scroll(rig, articulation))
 }
 
 /// What audio hears move this frame: each drawn vehicle's tracks and
