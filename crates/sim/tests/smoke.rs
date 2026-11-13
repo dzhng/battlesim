@@ -310,3 +310,5 @@ fn a_battle_with_pops_replays_to_the_same_digests() {
         );
     }
 }
+
+mod sight;

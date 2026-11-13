@@ -1,7 +1,9 @@
 //! The live smoke clouds, whose law over time `contract::smoke` owns. A
 //! cloud is not a body: it blocks no mover, stops no round and gives no
 //! cover, so popping one or losing one bumps no obstacle or navigation
-//! revision, and no side remembers it once it is gone.
+//! revision, and no side remembers it once it is gone. Only sight reads it:
+//! [`WorldGeometry::sight_depth`], a target's ground concealment
+//! ([`WorldGeometry::smoke_concealment`]) and the fog sweep.
 use contract::ids::{Side, Tick};
 use contract::smoke::{CloudState, SmokeCloud, SmokeCloudSpec};
 
@@ -144,5 +146,27 @@ impl WorldGeometry {
 
     pub fn smoke_mut(&mut self) -> &mut SmokeClouds {
         &mut self.smoke
+    }
+
+    /// What the sight line a→b looks through: tree crowns
+    /// ([`Self::foliage_depth`]) plus the smoke of every live cloud.
+    pub fn sight_depth(&self, a: V3, b: V3) -> f64 {
+        let crowns = self.foliage_depth(a, b);
+        if self.smoke.is_empty() {
+            return crowns;
+        }
+        crowns
+            + contract::smoke::segment_depth(
+                self.smoke.states(),
+                [a.x, a.y, a.z],
+                [b.x, b.y, b.z],
+                |x, y| self.height_at(x, y),
+            )
+    }
+
+    /// The concealment smoke gives a target standing at (x, y): the
+    /// strongest cloud over it, or 1 outside every cloud.
+    pub fn smoke_concealment(&self, x: f64, y: f64) -> f64 {
+        contract::smoke::concealment_at(self.smoke.states(), x, y)
     }
 }

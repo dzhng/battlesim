@@ -297,8 +297,10 @@ impl WorldGeometry {
         }
     }
 
-    /// The foliage depth of the segment `a`→`b` (Q21): each metre below the
-    /// canopy of uncleared foliage adds its cell's depth per metre.
+    /// The foliage depth of the segment `a`→`b` (Q21), tree crowns only:
+    /// each metre below the canopy of uncleared foliage adds its cell's depth
+    /// per metre. Sight adds smoke to it ([`Self::sight_depth`]); a launch
+    /// path and map analysis read the crowns alone.
     pub fn foliage_depth(&self, a: V3, b: V3) -> f64 {
         if self.forest.bounds.is_empty() {
             return 0.0;
