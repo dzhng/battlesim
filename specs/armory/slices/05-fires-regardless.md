@@ -1,5 +1,7 @@
 # 05 · Fires regardless and reach, published; W09 amended
 
+Status: done 2026-11-13.
+
 Map rows: U7, U8, W09, plus P4. No dependencies.
 
 ## Contract

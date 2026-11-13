@@ -47,6 +47,13 @@ apart from its id, and every weapon a card shows names its generated icon.
 refuses a label that reads as an identifier or a sentence, or an icon that is not
 an icon id, naming the entry. No reader derives a label from an id.
 
+What the rules derive from a weapon row, such as whether it fires regardless or
+what it reaches at each height, is a method of the [weapon row](src/weapons.rs).
+The simulation calls those methods. Every catalog reader gets the results
+published beside the row's authored fields, under `derived` (`weapons::published`),
+so no reader recomputes them, and resolution refuses `derived` as an authored
+field.
+
 [Identity](src/identity.rs) defines canonical content and exact generation seeds.
 Its decimal-text seed contract must survive JSON without JavaScript number
 rounding. Typed serialization order and meaningful authored sequence order can

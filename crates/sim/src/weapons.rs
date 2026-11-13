@@ -283,13 +283,6 @@ fn hurts(ctx: &FireContext, spec: &MountSpec, k: usize, target: Target, units: &
     }
 }
 
-/// The unit's always-available gun with rounds to spare (a squad's rifles, a
-/// roof HMG): it fires at an identified enemy it cannot hurt, to keep heads
-/// down (W09). A weapon with a finite supply keeps it for what it can hurt.
-fn fires_regardless(def: &WeaponDefinition) -> bool {
-    def.default && matches!(def.ammo, AmmoCapacity::Unlimited(_))
-}
-
 /// General-purpose ammunition, made for men on the ground: may fire at an
 /// area or a ground point (never AP, nor a row whose classes leave infantry
 /// out, W10).
@@ -389,7 +382,7 @@ fn preferred_kind(
             && want_ap.is_none_or(|ap| def.armor_piercing == ap)
             && (resolved.worth(def, ctx.rules)
                 || (resolved.emits && def.anti_radiation)
-                || (resolved.armor.is_some() && fires_regardless(def)))
+                || (resolved.armor.is_some() && def.fires_regardless()))
     };
     let n = spec.kinds.len();
     let first = |want_ap: Option<bool>| (0..n).find(|&k| usable(k, want_ap));
@@ -1110,7 +1103,7 @@ fn select(
                 // The middle stage is only the unlimited default gun against
                 // what it cannot hurt.
                 let harms = hurts(ctx, spec, k, target, units);
-                if harms == must_damage && (harms || fires_regardless(&weapons[spec.kinds[k]].def))
+                if harms == must_damage && (harms || weapons[spec.kinds[k]].def.fires_regardless())
                 {
                     return (Some(target), ActionReason::Aiming);
                 }

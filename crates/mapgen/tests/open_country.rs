@@ -6,12 +6,16 @@
 mod admitted;
 #[path = "common/halves.rs"]
 mod halves;
+#[path = "open_country/homes.rs"]
+mod homes;
 #[path = "common/limits.rs"]
 mod limits;
 #[path = "common/memo.rs"]
 mod memo;
 #[path = "common/parallel.rs"]
 mod parallel;
+#[path = "open_country/refusals.rs"]
+mod refusals;
 use contract::encounter::EncounterRecipes;
 use contract::ground::{polygon_contains, GroundShape};
 use contract::map::MapDefinition;
@@ -359,125 +363,6 @@ mod erased {
             serde_json::to_string(self).unwrap()
         }
     }
-}
-
-/// Homes stand out in the country on every map: in ones and small groups,
-/// outside every settlement, on dry open ground off every road and wood.
-#[test]
-fn homes_stand_in_open_country_on_legal_ground() {
-    let largest = presets()
-        .open_country
-        .homesteads
-        .groups
-        .iter()
-        .map(|group| group.homes[1])
-        .max()
-        .unwrap() as usize;
-    every_cell(|country| {
-        let (plan, map, name) = (&country.plan, &country.map, &country.name);
-        let homes = country.bare.buildings.len()..plan.buildings.len();
-        assert!(!homes.is_empty(), "{name}: no home stands in open country");
-        let mut groups: BTreeMap<&str, usize> = BTreeMap::new();
-        for building in &plan.buildings[homes] {
-            let [x, y, _] = building.frame.translation;
-            assert!(
-                outside_settlements(plan, [x, y]),
-                "{name}: {} stands inside a settlement",
-                building.id
-            );
-            let group = building.id.rsplit_once('/').unwrap().0;
-            *groups.entry(group).or_default() += 1;
-        }
-        for (group, count) in groups {
-            assert!(
-                (1..=largest).contains(&count),
-                "{name}: {group} has {count} homes"
-            );
-        }
-        let roads: Vec<&GroundShape> = map
-            .surfaces
-            .iter()
-            .filter(|area| area.kind.is_road() && matches!(area.shape, GroundShape::Stroke { .. }))
-            .map(|area| &area.shape)
-            .collect();
-        for (index, part) in home_parts(country) {
-            let id = &plan.buildings[index].id;
-            for corner in part.corners().into_iter().chain([part.center]) {
-                assert!(
-                    corner
-                        .iter()
-                        .zip(plan.size)
-                        .all(|(v, size)| *v > 0.0 && *v < size),
-                    "{name}: {id} leaves the map"
-                );
-                assert!(
-                    !roads.iter().any(|road| road.contains(corner, 0.0)),
-                    "{name}: {id} stands on a carriageway"
-                );
-                assert!(
-                    !map.forests
-                        .iter()
-                        .any(|forest| forest.shape.contains(corner, 0.0)),
-                    "{name}: {id} stands among trees"
-                );
-                assert!(
-                    map.rivers.iter().all(|river| river.inside(corner) < 0.0),
-                    "{name}: {id} stands in the water"
-                );
-            }
-        }
-    });
-}
-
-/// A home's street door opens onto a road, a track or its own lane a short
-/// walk away, with no building and no loose body in the way.
-#[test]
-fn every_home_has_a_way_from_its_door_to_a_road() {
-    const WALK_M: f64 = 40.0;
-    every_cell(|country| {
-        let (plan, map, name) = (&country.plan, &country.map, &country.name);
-        let walls: Vec<Box2> = home_parts(country)
-            .into_iter()
-            .map(|(_, part)| part)
-            .collect();
-        let bodies = loose_bodies(plan);
-        let roads: Vec<&GroundShape> = map
-            .surfaces
-            .iter()
-            .filter(|area| area.kind.is_road() && matches!(area.shape, GroundShape::Stroke { .. }))
-            .map(|area| &area.shape)
-            .collect();
-        for index in country.bare.buildings.len()..plan.buildings.len() {
-            let id = &plan.buildings[index].id;
-            let door = &map.buildings[index].geometry.entrances[0];
-            let at = |reach: f64| {
-                [
-                    door.position[0] + door.normal[0] * reach,
-                    door.position[1] + door.normal[1] * reach,
-                ]
-            };
-            let reached = (1..=(WALK_M as u32) * 2)
-                .map(|step| 0.5 * f64::from(step))
-                .find(|reach| roads.iter().any(|road| road.contains(at(*reach), 0.0)))
-                .unwrap_or_else(|| {
-                    panic!("{name}: {id} has no road within {WALK_M} m of its door")
-                });
-            // From just outside the door's own wall to the road's edge.
-            let mut reach = 0.25;
-            while reach < reached {
-                let p = at(reach);
-                assert!(
-                    !walls.iter().any(|wall| wall.contains(p, 0.0)),
-                    "{name}: {id} opens onto a building"
-                );
-                assert!(
-                    !bodies.iter().any(|body| body.contains(p, 0.4)),
-                    "{name}: a body stands in the way out of {id}"
-                );
-                reach += 0.25;
-            }
-        }
-    });
 }
 
 /// Tree lines stand on every map, and none runs on unbroken: a stretch is
@@ -881,99 +766,6 @@ fn no_sight_circle_is_unbroken_and_the_country_stays_open() {
     // The control: the same maps before the pass do show unbroken circles,
     // so the measure can see what it rules out.
     assert!(bare_unbroken > 0, "no bare map has an unbroken circle");
-}
-
-/// A row the pass cannot place from is refused when the presets load.
-#[test]
-fn rows_that_cannot_describe_a_country_are_refused() {
-    let refused = |pointer: &str, value: serde_json::Value| {
-        let mut source: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
-        *source.pointer_mut(pointer).unwrap() = value;
-        PresetDefinitions::from_json(&source.to_string())
-            .err()
-            .map(|errors| errors[0].location.clone())
-    };
-    // A copse as large as a wood could not be told from one.
-    assert_eq!(
-        refused(
-            "/open_country/copses/area_m2",
-            serde_json::json!([300, 50_000])
-        )
-        .as_deref(),
-        Some("$.presets.open_country.copses")
-    );
-    // A gap no wider than nothing is no gap.
-    assert_eq!(
-        refused("/open_country/tree_lines/gap_m", serde_json::json!(0)).as_deref(),
-        Some("$.presets.open_country.tree_lines")
-    );
-    // A home of no building category is refused as a district's would be.
-    let mut source: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
-    source["open_country"]["homesteads"]["groups"][0]["mix"] = serde_json::json!({ "castle": 1 });
-    let errors = PresetDefinitions::from_json(&source.to_string()).unwrap_err();
-    assert!(errors[0].message.contains("castle"), "{errors:?}");
-}
-
-fn coverage_refusal(presets: &str, rules: &serde_json::Value, reason: &str) {
-    let request = serde_json::to_string(&request(MapType::Open, MapSize::Medium, 1)).unwrap();
-    match mapgen::generate_map(&request, presets, TEMPLATES, &rules.to_string()) {
-        mapgen::CompileOutcome::Error { diagnostics } => assert!(
-            diagnostics
-                .iter()
-                .any(|d| d.code == mapgen::DiagnosticCode::GenerationFailed
-                    && d.feature.as_deref() == Some("ground_sight")),
-            "{reason} needs a named physical coverage refusal: {diagnostics:?}"
-        ),
-        mapgen::CompileOutcome::Ok { .. } => panic!("generation silently admitted {reason}"),
-    }
-}
-
-#[test]
-fn generation_refuses_foliage_below_every_ground_eye() {
-    let mut rules = test_rules();
-    rules["forests"]["rule"]["canopy_height_m"] = serde_json::json!(0.5);
-    coverage_refusal(PRESETS, &rules, "foliage below every ground eye");
-}
-
-#[test]
-fn generation_refuses_when_no_patch_has_legal_ground() {
-    let mut presets: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
-    // A legal physical input can leave no place inside the playable
-    // rectangle where the country placement rule permits a patch.
-    presets["open_country"]["clear"]["edge_m"] = serde_json::json!(3100.0);
-    coverage_refusal(
-        &presets.to_string(),
-        &test_rules(),
-        "no legal patch placement",
-    );
-}
-
-#[test]
-fn generation_refuses_an_unbounded_fallback_tree_line() {
-    let mut presets: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
-    // Reach the coverage fallback without any initial rural furnishing.
-    for kind in ["tree_lines", "copses", "lone_trees", "field_cover"] {
-        presets["open_country"][kind]["per_km2"] = serde_json::json!(0.);
-    }
-    presets["open_country"]["homesteads"]["per_road_km"] = serde_json::json!(0.);
-    presets["open_country"]["tree_lines"]["width_m"] = serde_json::json!(1e-9);
-    presets["open_country"]["sight"]["fill"] = serde_json::json!(["tree_line"]);
-    coverage_refusal(
-        &presets.to_string(),
-        &test_rules(),
-        "unbounded fallback tree-line sampling and grove allocation",
-    );
-}
-
-#[test]
-fn generation_refuses_an_unbounded_coverage_resolution() {
-    let mut presets: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
-    presets["open_country"]["sight"]["cell_m"] = serde_json::json!(1e-9);
-    coverage_refusal(
-        &presets.to_string(),
-        &test_rules(),
-        "unbounded coverage grid and placement lattice",
-    );
 }
 
 /// A jeep anywhere a jeep fits sees no unbroken circle, by the world's own

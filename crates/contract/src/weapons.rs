@@ -39,7 +39,8 @@ pub struct WeaponDefinition {
     /// Zero leaves close fire unrestricted; this is not an arming fuse.
     #[serde(default)]
     pub min_range_m: f64,
-    /// The unit's always-available gun (W09).
+    /// The unit's always-available gun; with unlimited rounds it fires
+    /// regardless ([`WeaponDefinition::fires_regardless`], W09).
     #[serde(default)]
     pub default: bool,
     /// Aims, reloads and fires only while the unit is stationary (W03).
@@ -154,6 +155,14 @@ pub enum TargetClass {
 }
 
 impl TargetClass {
+    pub const ALL: [TargetClass; 5] = [
+        TargetClass::Infantry,
+        TargetClass::Vehicle,
+        TargetClass::AirRotor,
+        TargetClass::AirFixedWing,
+        TargetClass::Missile,
+    ];
+
     /// The classes found in `layer`: aircraft fly, soldiers and hulls stand
     /// on the ground, and a round may be fired from any layer.
     pub fn found_in(self, layer: crate::catalog::AltitudeLayer) -> bool {
@@ -171,6 +180,29 @@ impl TargetClass {
 pub struct Fire {
     pub range_m: f64,
     pub scatter_mrad: f64,
+}
+
+/// What a weapon reaches at one altitude layer it engages, as a player reads
+/// it ([`WeaponDefinition::reach`]).
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct Reach {
+    pub layer: crate::catalog::AltitudeLayer,
+    pub range_m: f64,
+    /// The only kinds of unit it fires at here, when they leave out some
+    /// kind this layer holds (an anti-tank row: vehicles); absent when it
+    /// takes every kind found here.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub only: Option<Vec<TargetClass>>,
+    /// It shoots down rounds fired from this layer (`missile`).
+    pub intercepts: bool,
+}
+
+/// The facts the rules derive from a weapon row, published beside its
+/// authored fields (`derived` on the catalog view's rows) and never authored.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct Derived {
+    pub fires_regardless: bool,
+    pub reach: Vec<Reach>,
 }
 
 impl WeaponDefinition {
@@ -203,6 +235,45 @@ impl WeaponDefinition {
         self.targets
             .keys()
             .any(|&layer| self.engages(layer, Some(TargetClass::Missile)).is_some())
+    }
+
+    /// The unit's always-available gun with rounds to spare (a squad's
+    /// rifles, a roof HMG): it fires at an identified enemy it cannot hurt,
+    /// to keep heads down (W09). A weapon with a finite supply keeps it for
+    /// what it can hurt.
+    pub fn fires_regardless(&self) -> bool {
+        self.default && matches!(self.ammo, AmmoCapacity::Unlimited(_))
+    }
+
+    /// Per layer it engages: its range, the kinds of unit it is limited to
+    /// only where they narrow what that layer holds
+    /// ([`TargetClass::found_in`]), and whether it intercepts rounds there.
+    pub fn reach(&self) -> Vec<Reach> {
+        self.targets
+            .keys()
+            .filter_map(|&layer| {
+                let fire = self.against(layer)?;
+                let held = TargetClass::ALL
+                    .into_iter()
+                    .filter(|&c| c != TargetClass::Missile && c.found_in(layer));
+                let (taken, left): (Vec<_>, Vec<_>) =
+                    held.partition(|&c| self.engages(layer, Some(c)).is_some());
+                Some(Reach {
+                    layer,
+                    range_m: fire.range_m,
+                    only: (!left.is_empty()).then_some(taken),
+                    intercepts: self.engages(layer, Some(TargetClass::Missile)).is_some(),
+                })
+            })
+            .collect()
+    }
+
+    /// [`Self::fires_regardless`] and [`Self::reach`], as published.
+    pub fn derived(&self) -> Derived {
+        Derived {
+            fires_regardless: self.fires_regardless(),
+            reach: self.reach(),
+        }
     }
 }
 
@@ -301,6 +372,21 @@ pub struct MountDefinition {
 }
 
 pub type WeaponRules = BTreeMap<String, WeaponDefinition>;
+
+/// The weapon rows as a reader of the catalog sees them: each row's authored
+/// fields, resolved, with what the rules derive from them under `derived`.
+/// The rows' own serialization, which the rules identity hashes, is untouched.
+pub fn published(weapons: &WeaponRules) -> serde_json::Value {
+    weapons
+        .iter()
+        .map(|(id, def)| {
+            let mut row = serde_json::to_value(def).expect("a weapon row serializes");
+            row["derived"] = serde_json::to_value(def.derived()).expect("its facts serialize");
+            (id.clone(), row)
+        })
+        .collect::<serde_json::Map<_, _>>()
+        .into()
+}
 
 /// The fixture's `weapons`, with `extends` resolved and abstract rows dropped.
 pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponRules, D::Error> {

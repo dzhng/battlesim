@@ -15,6 +15,7 @@
 import {
   UnitCatalog,
   type CatalogView,
+  type WeaponDefinition,
   type WeaponRow,
 } from "../../../../packages/scene-assets/src/units.ts";
 
@@ -46,7 +47,8 @@ export interface SessionCatalog {
   readonly set: CatalogSetName;
   /** The resolved unit, soldier, card and prop types. */
   readonly units: UnitCatalog;
-  /** `rules.json`'s weapon rows, `extends` resolved, by the names mounts give them. */
+  /** `rules.json`'s weapon rows, `extends` resolved, by the names mounts
+   *  give them, as the catalog publishes them (with `derived`). */
   readonly weapons: Record<string, WeaponRow>;
   /** The rules a scenario on this catalog carries: `rules.json` with this
    *  set's documents as `catalog`, so the authority runs what the page draws. */
@@ -58,9 +60,25 @@ export type ResolvedRules = Omit<
   typeof import("../../../../fixtures/rules.json"),
   "default" | "weapons"
 > & {
-  weapons: Record<string, WeaponRow>;
+  weapons: Record<string, WeaponDefinition>;
   catalog: unknown[];
 };
+
+/** The simulation's resolvers a session catalog is composed with (game-wasm). */
+export interface CatalogResolver {
+  /** A catalog's documents resolved to its view (`resolve_catalog`). */
+  resolve_catalog(documentsJson: string): string;
+  /** Rules parsed, resolved and admitted (`resolve_rules`). */
+  resolve_rules(rulesJson: string): string;
+  /** Resolved weapon rows as the catalog publishes them (`publish_weapons`). */
+  publish_weapons(weaponsJson: string): string;
+}
+
+const published = (
+  rules: ResolvedRules,
+  resolver: Pick<CatalogResolver, "publish_weapons">,
+): Record<string, WeaponRow> =>
+  JSON.parse(resolver.publish_weapons(JSON.stringify(rules.weapons))) as Record<string, WeaponRow>;
 
 /** The catalog of `set`: the game's documents plus `added` (the set's own
  *  documents' source text) resolved by `resolve` (`resolve_catalog`), or
@@ -71,20 +89,19 @@ export function composeCatalog(
   rules: Omit<ResolvedRules, "catalog" | "weapons"> & { weapons: object },
   gameView: GameView,
   added: readonly string[],
-  resolve: (documentsJson: string) => string,
-  resolveRules: (rulesJson: string) => string,
+  resolver: CatalogResolver,
 ): SessionCatalog {
   const documents = [...gameView.documents.map((d) => JSON.stringify(d)), ...added];
   const view: CatalogView = added.length
-    ? (JSON.parse(resolve(`[${documents.join(",")}]`)) as CatalogView)
+    ? (JSON.parse(resolver.resolve_catalog(`[${documents.join(",")}]`)) as CatalogView)
     : gameView;
   const admitted = JSON.parse(
-    resolveRules(JSON.stringify({ ...rules, catalog: view.documents })),
+    resolver.resolve_rules(JSON.stringify({ ...rules, catalog: view.documents })),
   ) as ResolvedRules;
   return {
     set,
     units: new UnitCatalog(view),
-    weapons: admitted.weapons,
+    weapons: published(admitted, resolver),
     rules: admitted,
   };
 }
@@ -112,13 +129,13 @@ export function admitScenario(
  * repository fixture units for admission or presentation. */
 export function composeScenarioCatalog(
   rules: ResolvedRules,
-  resolve: (documentsJson: string) => string,
+  resolver: Pick<CatalogResolver, "resolve_catalog" | "publish_weapons">,
 ): SessionCatalog {
-  const view = JSON.parse(resolve(JSON.stringify(rules.catalog))) as CatalogView;
+  const view = JSON.parse(resolver.resolve_catalog(JSON.stringify(rules.catalog))) as CatalogView;
   return {
     set: "game",
     units: new UnitCatalog(view),
-    weapons: rules.weapons as unknown as Record<string, WeaponRow>,
+    weapons: published(rules, resolver),
     rules,
   };
 }

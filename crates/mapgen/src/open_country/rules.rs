@@ -16,7 +16,7 @@ pub struct Rules {
     pub sight: SightRule,
     pub clear: Clearances,
     pub fairness: Evenness,
-    pub homesteads: Homesteads,
+    pub homesteads: Steads,
     pub tree_lines: TreeLines,
     pub copses: Copses,
     pub lone_trees: LoneTrees,
@@ -70,23 +70,45 @@ pub struct Evenness {
     pub cover: f64,
 }
 
-/// Homes outside the settlements, along the country roads and tracks.
+/// Groups of pieces outside the settlements, each at a station on a country
+/// road or track: how many a map holds, and how each one stands.
 #[derive(Clone, Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct Homesteads {
+#[serde(from = "HomesteadRow")]
+pub struct Steads {
     /// Groups for each kilometre of country road and track outside the
     /// settlements.
     pub per_road_km: f64,
+    /// Places tried for each group.
+    pub attempts: u32,
+    pub steading: Steading,
+}
+
+/// How one group stands: its station on the road, its yards and its pieces.
+#[derive(Clone, Debug)]
+pub struct Steading {
     /// Two groups stand at least this far apart.
     pub apart_m: f64,
     /// The share of groups that stand back from the road at the end of a
     /// lane, and how long the lane is.
     pub lane_chance: f64,
     pub lane_m: [f64; 2],
-    /// Between two homes of a group along their road, at most.
+    /// Between two yards of a group along their road, at most.
     pub spread_m: f64,
-    /// A home's yard: its template's footprint plus these setbacks.
+    /// A piece's yard: its footprint plus these setbacks.
     pub yard: Yard,
+    pub pieces: Pieces,
+}
+
+/// What a group's yards hold.
+#[derive(Clone, Debug)]
+pub enum Pieces {
+    /// A building lot each, furnished with trees and a body.
+    Homes(Homes),
+}
+
+/// Homes, each on its own lot.
+#[derive(Clone, Debug)]
+pub struct Homes {
     /// What a group is, by weight.
     pub groups: Vec<Group>,
     /// The chance a home has a clump of trees behind its yard, and the
@@ -96,8 +118,47 @@ pub struct Homesteads {
     /// The chance a home has one of `bodies` beside it.
     pub body_chance: f64,
     pub bodies: Vec<Body>,
-    /// Places tried for each group.
-    pub attempts: u32,
+}
+
+/// `homesteads` as the presets write it: one flat row of homes.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct HomesteadRow {
+    per_road_km: f64,
+    apart_m: f64,
+    lane_chance: f64,
+    lane_m: [f64; 2],
+    spread_m: f64,
+    yard: Yard,
+    groups: Vec<Group>,
+    tree_chance: f64,
+    tree_plot_m: [f64; 2],
+    body_chance: f64,
+    bodies: Vec<Body>,
+    attempts: u32,
+}
+
+impl From<HomesteadRow> for Steads {
+    fn from(row: HomesteadRow) -> Self {
+        Steads {
+            per_road_km: row.per_road_km,
+            attempts: row.attempts,
+            steading: Steading {
+                apart_m: row.apart_m,
+                lane_chance: row.lane_chance,
+                lane_m: row.lane_m,
+                spread_m: row.spread_m,
+                yard: row.yard,
+                pieces: Pieces::Homes(Homes {
+                    groups: row.groups,
+                    tree_chance: row.tree_chance,
+                    tree_plot_m: row.tree_plot_m,
+                    body_chance: row.body_chance,
+                    bodies: row.bodies,
+                }),
+            },
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]
@@ -273,31 +334,33 @@ impl Rules {
             "evenness is a share and nonnegative allowances",
         );
         let h = &self.homesteads;
+        let steading = &h.steading;
+        let Pieces::Homes(homes) = &steading.pieces;
         check(
             length(h.per_road_km)
-                && length(h.apart_m)
-                && chance(h.lane_chance)
-                && range(h.lane_m)
-                && length(h.spread_m)
+                && length(steading.apart_m)
+                && chance(steading.lane_chance)
+                && range(steading.lane_m)
+                && length(steading.spread_m)
                 && [
-                    h.yard.front_m,
-                    h.yard.side_m,
-                    h.yard.rear_m,
-                    h.yard.door_clear_m,
+                    steading.yard.front_m,
+                    steading.yard.side_m,
+                    steading.yard.rear_m,
+                    steading.yard.door_clear_m,
                 ]
                 .iter()
                 .all(|v| length(*v))
-                && chance(h.tree_chance)
-                && range(h.tree_plot_m)
-                && chance(h.body_chance)
-                && bodies(&h.bodies)
+                && chance(homes.tree_chance)
+                && range(homes.tree_plot_m)
+                && chance(homes.body_chance)
+                && bodies(&homes.bodies)
                 && h.attempts > 0,
             "homesteads",
             "homesteads need a density, a lane, a yard, chances and bodies with positive boxes",
         );
         check(
-            !h.groups.is_empty()
-                && h.groups.iter().all(|group| {
+            !homes.groups.is_empty()
+                && homes.groups.iter().all(|group| {
                     positive(group.weight)
                         && group.homes[0] >= 1
                         && group.homes[0] <= group.homes[1]
@@ -340,7 +403,7 @@ impl Rules {
             length(l.per_km2)
                 && positive(l.plot_m)
                 // Smaller than any copse, so a tree is told from one by size.
-                && h.tree_plot_m[1] * h.tree_plot_m[1] < k.area_m2[0]
+                && homes.tree_plot_m[1] * homes.tree_plot_m[1] < k.area_m2[0]
                 && l.plot_m * l.plot_m < k.area_m2[0]
                 && l.attempts > 0,
             "lone_trees",

@@ -112,3 +112,42 @@ it("offers restore for optional absence without inventing defaults for abstract 
     parentValue: undefined,
   });
 });
+
+it("derived weapon facts are shown and never drafted", async () => {
+  const { derivedFacts } = await import("../../apps/mechanics-editor/src/DerivedFacts");
+  const { entryFields, gameplayField, validateGameplayValue } =
+    await import("../../apps/mechanics-editor/src/fields");
+  const row = {
+    ammo: "unlimited",
+    default: true,
+    targets: {
+      ground: { range_m: 300, scatter_mrad: 5, classes: ["vehicle"] },
+      high_air: { range_m: 800, scatter_mrad: 9, classes: ["air_rotor", "missile"] },
+    },
+    derived: {
+      fires_regardless: true,
+      reach: [
+        { layer: "ground", range_m: 300, only: ["vehicle"], intercepts: false },
+        { layer: "high_air", range_m: 800, only: ["air_rotor"], intercepts: true },
+      ],
+    },
+  };
+  // Shown: whether it fires regardless, then each layer, its reach where it
+  // engages and the layer it leaves alone still named.
+  const facts = derivedFacts(row);
+  const values = facts.map((fact) => fact.value);
+  expect(new Set(facts.map((fact) => fact.label)).size).toBe(facts.length);
+  expect(values.filter((value) => value.includes("300"))).toHaveLength(1);
+  expect(values.filter((value) => value.includes("800"))).toHaveLength(1);
+  expect(facts).toHaveLength(4);
+  expect(
+    derivedFacts({ ...row, derived: { ...row.derived, fires_regardless: false } }),
+  ).not.toEqual(facts);
+  // Never drafted: no editable field reaches it, so the editor and its
+  // server both refuse an edit there.
+  expect(entryFields("weapons", row).some((f) => f.path[0] === "derived")).toBe(false);
+  for (const path of [["derived"], ["derived", "fires_regardless"], ["derived", "reach"]]) {
+    expect(gameplayField("weapons", path)).toBeNull();
+    expect(validateGameplayValue("weapons", path, false)).toBeDefined();
+  }
+});

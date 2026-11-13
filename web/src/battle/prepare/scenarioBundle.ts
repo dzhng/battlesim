@@ -12,6 +12,7 @@ import type { SideName } from "../sim/protocol";
 
 export interface ScenarioBundlePreparationModule extends ScenarioBundleWasm {
   resolve_catalog(documents: string): string;
+  publish_weapons(weapons: string): string;
   scenario_bundle_details(bundle: string): string;
   scenario_bundle_controllers(bundle: string, active_human?: string): string;
   PreparedWorld: {
@@ -21,10 +22,10 @@ export interface ScenarioBundlePreparationModule extends ScenarioBundleWasm {
 
 export function scenarioBundleCatalog(
   scenario: string,
-  wasm: Pick<ScenarioBundlePreparationModule, "resolve_catalog">,
+  wasm: Pick<ScenarioBundlePreparationModule, "resolve_catalog" | "publish_weapons">,
 ): SessionCatalog {
   const parsed = JSON.parse(scenario) as { rules: import("../catalog/compose").ResolvedRules };
-  return composeScenarioCatalog(parsed.rules, wasm.resolve_catalog);
+  return composeScenarioCatalog(parsed.rules, wasm);
 }
 
 export interface ScenarioBundlePreparationReport {

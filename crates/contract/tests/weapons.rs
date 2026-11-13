@@ -298,6 +298,8 @@ fn a_removed_or_unknown_weapon_field_is_refused_by_name() {
         ("aa_tier", json!("short")),
         ("fov_deg", json!(60)),
         ("scatter_mrad", json!(8)),
+        // What the rules derive is published beside a row, never authored.
+        ("derived", json!({ "fires_regardless": true })),
     ] {
         let mut rows = test_rows(json!({ "ground": { "classes": ["vehicle"] } }));
         rows["test_gun"][field] = value;
@@ -452,4 +454,65 @@ fn an_authored_range_must_match_the_largest_target_layer() {
         error.contains("weapons.test_gun") && error.contains("range_m"),
         "{error}"
     );
+}
+
+/// Only the unit's always-available gun with rounds to spare fires at an
+/// identified enemy it cannot hurt, to keep heads down (W09): a finite gun
+/// keeps its rounds, and an unlimited row that is no default stays quiet.
+#[test]
+fn only_an_unlimited_default_gun_fires_regardless() {
+    for default in [false, true] {
+        for unlimited in [false, true] {
+            let mut rows = test_rows(json!({ "ground": { "classes": ["infantry", "vehicle"] } }));
+            rows["test_gun"]["default"] = json!(default);
+            rows["test_gun"]["ammo"] = if unlimited {
+                json!("unlimited")
+            } else {
+                json!(240)
+            };
+            let rows = contract::weapons::resolve_weapons(rows).unwrap();
+            assert_eq!(
+                rows["test_gun"].fires_regardless(),
+                default && unlimited,
+                "default {default}, unlimited {unlimited}"
+            );
+        }
+    }
+}
+
+/// Reach is told per layer it engages, with its range there. A class limit is
+/// told only where it leaves out a kind of target that layer holds; shooting
+/// down rounds is told apart, as interception, never as a class.
+#[test]
+fn a_class_limit_shows_only_where_it_narrows_its_layer() {
+    use contract::catalog::AltitudeLayer::{Ground, HighAir, LowAir};
+    use contract::weapons::TargetClass::{AirRotor, Vehicle};
+    let reach = |targets: Value| {
+        let mut rows = test_rows(targets);
+        rows["test_gun"]["proximity_fuse_m"] = json!(3);
+        contract::weapons::resolve_weapons(rows).unwrap()["test_gun"].reach()
+    };
+    let narrowed = reach(json!({ "ground": { "classes": ["vehicle"] } }));
+    assert_eq!(narrowed.len(), 1);
+    assert_eq!((narrowed[0].layer, narrowed[0].range_m), (Ground, 300.0));
+    assert_eq!(narrowed[0].only, Some(vec![Vehicle]), "vehicles only");
+    let whole = reach(json!({ "ground": { "classes": ["infantry", "vehicle"] } }));
+    assert_eq!(whole[0].only, None, "everything the ground holds");
+
+    let air = reach(json!({
+        "low_air": { "classes": ["air_rotor"], "range_m": 100 },
+        "high_air": { "classes": ["air_fixed_wing", "air_rotor", "missile"] }
+    }));
+    let at = |layer| air.iter().find(|r| r.layer == layer).unwrap();
+    assert!(
+        air.iter().all(|r| r.layer != Ground),
+        "a layer it never engages"
+    );
+    assert_eq!(
+        (at(LowAir).range_m, at(LowAir).only.clone()),
+        (100.0, Some(vec![AirRotor]))
+    );
+    assert!(!at(LowAir).intercepts);
+    assert_eq!(at(HighAir).only, None, "missile is no class limit");
+    assert!(at(HighAir).intercepts);
 }

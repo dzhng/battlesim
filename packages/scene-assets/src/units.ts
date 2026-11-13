@@ -54,7 +54,7 @@ export type Mobility =
         cruise_kmh: number;
         turn_deg_s: number;
         climb_mps: number;
-        layer?: "low_air" | "high_air";
+        layer?: Exclude<AltitudeLayer, "ground">;
         flight: "rotor" | "fixed_wing";
         /** A bought one's wait off the map, seconds (D38). */
         arrival?: { delay_s: [number, number] };
@@ -73,7 +73,7 @@ export const highAir = (type: Pick<UnitType, "mobility">): boolean =>
   "air" in type.mobility && type.mobility.air.layer === "high_air";
 
 /** A type's altitude layer, as the simulation names it. */
-export const layerOf = (type: Pick<UnitType, "mobility">): "ground" | "low_air" | "high_air" =>
+export const layerOf = (type: Pick<UnitType, "mobility">): AltitudeLayer =>
   "air" in type.mobility ? (highAir(type) ? "high_air" : "low_air") : "ground";
 
 /** It flies on wings (`contract::catalog::FlightModel`): it never stops,
@@ -291,9 +291,37 @@ export interface PropType {
   };
 }
 
-/** One resolved weapon row (`contract::weapons::WeaponDefinition`), as the
- *  shipped view carries it; the fields presentation reads are typed. */
-export interface WeaponRow {
+/** An altitude layer (`contract::catalog::AltitudeLayer`). */
+export type AltitudeLayer = "ground" | "low_air" | "high_air";
+
+/** What a target is, for what may be fired at it (`contract::weapons::TargetClass`). */
+export type TargetClass = "infantry" | "vehicle" | "air_rotor" | "air_fixed_wing" | "missile";
+
+/** What a weapon reaches at one layer it engages (`contract::weapons::Reach`). */
+export interface Reach {
+  layer: AltitudeLayer;
+  range_m: number;
+  /** The only kinds of unit it fires at here, present only where they leave
+   *  out a kind this layer holds (an anti-tank row: vehicles). */
+  only?: Exclude<TargetClass, "missile">[];
+  /** It shoots down rounds fired from this layer. */
+  intercepts: boolean;
+}
+
+/** What the rules derive from a weapon row (`contract::weapons::Derived`):
+ *  published beside its authored fields, never authored. */
+export interface WeaponDerived {
+  /** A default gun with unlimited rounds: it fires at an identified enemy it
+   *  cannot hurt (W09). */
+  fires_regardless: boolean;
+  /** Per layer it engages, in the simulation's layer order. */
+  reach: Reach[];
+}
+
+/** One resolved weapon row as the rules carry it
+ *  (`contract::weapons::WeaponDefinition`); the fields presentation reads
+ *  are typed. */
+export interface WeaponDefinition {
   /** The admitted presentation look, inherited by the contract resolver. */
   appearance: string;
   name: string;
@@ -306,10 +334,15 @@ export interface WeaponRow {
   ammo: number | "unlimited";
   penetration: number;
   /** Each layer it engages owns its range and launch spread. */
-  targets?: Partial<
-    Record<"ground" | "low_air" | "high_air", { range_m: number; scatter_mrad: number }>
-  >;
+  targets?: Partial<Record<AltitudeLayer, { range_m: number; scatter_mrad: number }>>;
   [field: string]: unknown;
+}
+
+/** A weapon row as the catalog publishes it (`contract::weapons::published`):
+ *  its rule, with what the rules derive from it. A reader's row; the rules a
+ *  battle runs carry `WeaponDefinition`s. */
+export interface WeaponRow extends WeaponDefinition {
+  derived: WeaponDerived;
 }
 
 /** `Catalog::view`: the resolved catalog. */

@@ -10,7 +10,7 @@ The [sound catalog](../../fixtures/sounds.json) separates provenance, clean clip
 reusable recipes. Its [Rust reader](../../crates/presentation/src/sound/catalog.rs)
 admits both player loads and workbench drafts, including source metadata and
 burst/loop compatibility. The [audio mix](../../fixtures/audio.json), [weapon looks](../../fixtures/presentation.json)
-and resolved weapon rows are admitted together before a bank prepares voices
+and the battle's resolved weapon rules are admitted together before a bank prepares voices
 or the workbench previews or saves a library draft. Each recording in a recipe is an alternative,
 not another shot. Optional synthesis supplies restrained body inside that same
 buffer, under each of its shots, so one cause still costs one voice.

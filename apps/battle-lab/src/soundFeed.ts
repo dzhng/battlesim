@@ -22,7 +22,7 @@ export function createBattleAudio(
     {
       tickHz: catalog.rules.tick_hz,
       presentation: audioMix,
-      weapons: catalog.weapons,
+      weapons: catalog.rules.weapons,
       unitCatalog: catalog.units.view,
       looks: presentationSettings,
     },

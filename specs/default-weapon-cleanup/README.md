@@ -32,7 +32,8 @@ change. Update this section before you end each pass.
    sorts each row for a ground-attack pass: an unpowered row is a bomb, a
    `default` row is the strafing gun, and any other row that reaches the ground
    is fired on a missile pass.
-3. **Cinematic plinking.** `fires_regardless` (`crates/sim/src/weapons.rs`) is
+3. **Cinematic plinking.** `WeaponDefinition::fires_regardless`
+   (`crates/contract/src/weapons.rs`) is
    `default` and unlimited ammo together. A gun like that fires at an identified
    enemy it cannot hurt, to keep heads down. A weapon with finite ammo,
    including a finite `default` gun like the autocannon, fires only at what it
@@ -54,12 +55,10 @@ From `fixtures/catalog.json`, recomputed 2026-11-12:
   gun), for example the AH-64E, BMP-2M, BMP-3, Ka-52M, Mi-28NM, Bradleys and
   the Gepard. Another 24 have no `default` gun at all: the artillery, the SAMs,
   the ATGM carriers, the J-20 and the Tiger UHT.
-- Requirement W09 (`specs/done/battle-foundation/requirements.md`) still says
+- Requirement W09 (`specs/done/battle-foundation/requirements.md`) said
   "Every armed unit has an unlimited-ammo default gun", and the data above says
-  otherwise. **Decided (user):** the wording is out of date and the data stands.
-  W09's text gets amended to describe what the game does now. The Armory spec
-  owns that amendment for now. If this cleanup ships first, the amendment moves
-  here.
+  otherwise. **Decided (user):** the wording was out of date and the data
+  stands. Armory slice 05 amended W09 to what the game does now.
 - A "useful shot" counts reserve ammo, not only a loaded round:
   `Mount::has_rounds` checks the rounds left. So a launcher left unloaded
   during a rifle fight still takes rank 2 when a vehicle appears: the soldier
@@ -73,10 +72,10 @@ From `fixtures/catalog.json`, recomputed 2026-11-12:
 
 ## Cross-spec dependency
 
-The Armory work, which is being planned now (decision U8), moves
-`fires_regardless` from a private sim function to a method on the contract's
-`WeaponDefinition`. It also publishes the result on the resolved catalog weapon
-rows, so the UI reads a flag instead of working it out. This cleanup changes what
+Armory slice 05 (decision U8) moved `fires_regardless` from a private sim
+function to a method on the contract's `WeaponDefinition`. The catalog publishes
+the result on its weapon rows under `derived`, so the UI reads a flag instead of
+working it out. This cleanup changes what
 that method reads. It does not add a second owner for it.
 
 ## Scenarios that must stay true

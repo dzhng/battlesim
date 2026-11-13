@@ -15,7 +15,7 @@ export const REVIEW_LANES = [
 ] as const;
 
 export function reviewLanePositions(
-  weapons: SessionCatalog["weapons"],
+  weapons: ResolvedRules["weapons"],
   index: number,
 ): {
   from: [number, number];

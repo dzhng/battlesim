@@ -49,7 +49,6 @@ export async function nodeCatalogSet(set: CatalogSetName, root = ROOT): Promise<
     JSON.parse(read(join(root, "fixtures/rules.json"))),
     gameView,
     added,
-    wasm.resolve_catalog,
-    wasm.resolve_rules,
+    wasm,
   );
 }

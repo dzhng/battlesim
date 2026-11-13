@@ -45,14 +45,7 @@ export async function resolveCatalogSet(
         .map((path) => files[path]()),
     ));
   const wasm = await loadWasm();
-  return composeCatalog(
-    set,
-    shippedRules,
-    view as unknown as GameView,
-    texts,
-    wasm.resolve_catalog,
-    wasm.resolve_rules,
-  );
+  return composeCatalog(set, shippedRules, view as unknown as GameView, texts, wasm);
 }
 
 /** The catalog of `set` for this page, resolved on first request. */

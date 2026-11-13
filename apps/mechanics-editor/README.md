@@ -16,7 +16,9 @@ Prerequisites are in the root [Try it](../../README.md#try-it) section.
 1. Search for the exact unit, then edit its spreadsheet cells or expand its row.
    Each field explains its effect and units. Shared weapon edits affect every
    listed user; unit and soldier overrides apply to the selected authored type
-   and descendants that inherit it.
+   and descendants that inherit it. A shared weapon also shows what the rules
+   derive from its saved row: whether it fires at what it cannot hurt, and its
+   reach at each height. Those facts are read-only and change once you save.
 2. Edit either the battlefield value or its raw stored value; its partner updates
    automatically. Use **Undo edit** to cancel a draft change, or **Restore inherited
    value** where offered to remove an authored override.

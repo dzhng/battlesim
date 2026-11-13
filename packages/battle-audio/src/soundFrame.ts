@@ -195,7 +195,9 @@ export interface SoundFrameOptions {
   tickHz: number;
   presentation: AudioMix;
   catalog: SoundCatalog;
-  /** The battle's weapon rows, whose appearances name admitted looks. */
+  /** The battle's weapon rules (`ResolvedRules.weapons`), whose appearances
+   *  name admitted looks; never the catalog's published rows, whose
+   *  `derived` the resolver refuses. */
   weapons: Record<string, object>;
   looks: object;
   /** The resolved unit and soldier mounts admitted with these weapon rows. */

@@ -1,5 +1,7 @@
 # 13 · Steading refactor: no output change
 
+Status: done 2026-11-13.
+
 Map row: L4, plus P3. No dependencies. It can start now: it is a code change
 to map generation with byte-identical output, so L1 doesn't hold it.
 
