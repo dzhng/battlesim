@@ -600,10 +600,7 @@
         2.2,
         1.0,
         0.95
-      ],
-      "tolerances": {
-        "footprint_m": 1.0
-      }
+      ]
     },
     "ruin": {
       "unit": "scenery",
@@ -2163,10 +2160,7 @@
         4.0,
         1.5,
         1.4
-      ],
-      "tolerances": {
-        "footprint_m": 0.7
-      }
+      ]
     },
     "us_lav_lav_25a2": {
       "track_gauge": 0.75,
@@ -2192,10 +2186,7 @@
         3.195,
         1.25,
         1.345
-      ],
-      "tolerances": {
-        "footprint_m": 0.8
-      }
+      ]
     },
     "us_lav_lav_at": {
       "track_gauge": 0.75,
@@ -2249,10 +2240,7 @@
         3.275,
         1.8,
         1.38
-      ],
-      "tolerances": {
-        "footprint_m": 0.4
-      }
+      ]
     },
     "us_m3_bradley_cfv_m3a3": {
       "track_gauge": 0.8,
@@ -2279,10 +2267,7 @@
         3.275,
         1.8,
         1.38
-      ],
-      "tolerances": {
-        "footprint_m": 0.4
-      }
+      ]
     },
     "europe_leclerc_xlr": {
       "track_gauge": 0.8,
@@ -2366,10 +2351,7 @@
         2.79,
         1.275,
         1.145
-      ],
-      "tolerances": {
-        "footprint_m": 0.3
-      }
+      ]
     },
     "europe_ajax_tracked_reconnaissance_vehicle": {
       "track_gauge": 0.8,
@@ -2396,10 +2378,7 @@
         3.81,
         1.675,
         1.35
-      ],
-      "tolerances": {
-        "footprint_m": 0.3
-      }
+      ]
     },
     "eastern_ural_4320_general_resupply": {
       "track_gauge": 0.75,
@@ -2445,10 +2424,7 @@
         2.45,
         1.1,
         1.0
-      ],
-      "tolerances": {
-        "footprint_m": 0.8
-      }
+      ]
     },
     "europe_leopard_2_2a6": {
       "track_gauge": 0.8,
@@ -2744,10 +2720,7 @@
         3.4,
         1.69,
         1.25
-      ],
-      "tolerances": {
-        "footprint_m": 0.5
-      }
+      ]
     },
     "europe_cv90_mk_iv": {
       "track_gauge": 0.8,
@@ -2773,10 +2746,7 @@
         3.4,
         1.6,
         1.4
-      ],
-      "tolerances": {
-        "footprint_m": 0.5
-      }
+      ]
     },
     "eastern_btr_btr_82a": {
       "track_gauge": 0.75,
@@ -2802,10 +2772,7 @@
         3.85,
         1.45,
         1.205
-      ],
-      "tolerances": {
-        "footprint_m": 0.7
-      }
+      ]
     },
     "eastern_tigr_tigr_m": {
       "track_gauge": 0.75,
@@ -2829,10 +2796,7 @@
         2.835,
         1.1,
         1.0
-      ],
-      "tolerances": {
-        "footprint_m": 0.4
-      }
+      ]
     },
     "eastern_t_80_t_80bvm": {
       "track_gauge": 0.8,
@@ -2941,10 +2905,7 @@
         3.65,
         1.675,
         1.25
-      ],
-      "tolerances": {
-        "footprint_m": 1.0
-      }
+      ]
     },
     "us_m1127_stryker_rv_reconnaissance_vehicle": {
       "track_gauge": 0.75,
@@ -2968,10 +2929,7 @@
         3.475,
         1.36,
         1.32
-      ],
-      "tolerances": {
-        "footprint_m": 0.9
-      }
+      ]
     },
     "us_stryker_m1126_icv": {
       "track_gauge": 0.75,
@@ -2995,10 +2953,7 @@
         3.475,
         1.36,
         1.32
-      ],
-      "tolerances": {
-        "footprint_m": 0.9
-      }
+      ]
     },
     "us_stryker_m1134_atgm": {
       "track_gauge": 0.75,
@@ -3022,10 +2977,7 @@
         3.475,
         1.36,
         1.32
-      ],
-      "tolerances": {
-        "footprint_m": 0.9
-      }
+      ]
     },
     "us_stryker_m1296_dragoon": {
       "track_gauge": 0.75,
@@ -3051,10 +3003,7 @@
         3.475,
         1.36,
         1.32
-      ],
-      "tolerances": {
-        "footprint_m": 0.7
-      }
+      ]
     },
     "europe_puma_level_c": {
       "track_gauge": 0.8,
@@ -3081,10 +3030,7 @@
         3.7,
         2.0,
         1.65
-      ],
-      "tolerances": {
-        "footprint_m": 0.3
-      }
+      ]
     },
     "us_acv_acv_p": {
       "track_gauge": 0.75,
@@ -3108,10 +3054,7 @@
         4.6,
         1.55,
         1.45
-      ],
-      "tolerances": {
-        "footprint_m": 0.8
-      }
+      ]
     },
     "us_m10_booker": {
       "track_gauge": 0.8,
@@ -3165,10 +3108,7 @@
         1.9,
         1.01,
         0.85
-      ],
-      "tolerances": {
-        "footprint_m": 0.4
-      }
+      ]
     },
     "eastern_bmp_ifv_family_bmp_2m_berezhok": {
       "track_gauge": 0.8,
@@ -3195,10 +3135,7 @@
         3.3675,
         1.575,
         1.075
-      ],
-      "tolerances": {
-        "footprint_m": 0.3
-      }
+      ]
     },
     "eastern_bmp_ifv_family_bmp_3": {
       "track_gauge": 0.8,
@@ -3225,10 +3162,7 @@
         3.57,
         1.6,
         1.2
-      ],
-      "tolerances": {
-        "footprint_m": 0.5
-      }
+      ]
     },
     "eastern_brm_brm_3k": {
       "track_gauge": 0.8,
@@ -3254,10 +3188,7 @@
         3.57,
         1.6,
         1.2
-      ],
-      "tolerances": {
-        "footprint_m": 0.8
-      }
+      ]
     },
     "europe_vbci_infantry_fighting_vehicle": {
       "track_gauge": 0.75,
@@ -3419,10 +3350,7 @@
         3.965,
         1.495,
         1.19
-      ],
-      "tolerances": {
-        "footprint_m": 0.8
-      }
+      ]
     },
     "europe_boxer_rct30": {
       "track_gauge": 0.75,
@@ -3448,10 +3376,7 @@
         3.965,
         1.495,
         1.815
-      ],
-      "tolerances": {
-        "footprint_m": 0.4
-      }
+      ]
     },
     "europe_kf51_panther_prototype_main_battle_tank": {
       "track_gauge": 0.8,
@@ -6252,10 +6177,7 @@
         4.65,
         1.6,
         1.78
-      ],
-      "tolerances": {
-        "footprint_m": 0.2
-      }
+      ]
     },
     "eastern_pantsir_pantsir_sm": {
       "track_gauge": 0.75,
@@ -6279,10 +6201,7 @@
         5.33,
         1.32,
         2.05
-      ],
-      "tolerances": {
-        "footprint_m": 0.8
-      }
+      ]
     },
     "eastern_s350_long": {
       "track_gauge": 0.75,
@@ -6501,10 +6420,7 @@
         3.57,
         1.43,
         1.65
-      ],
-      "tolerances": {
-        "footprint_m": 0.6
-      }
+      ]
     },
     "eastern_j_10_vigorous_dragon_j_10c": {
       "unit": "vehicle",
