@@ -228,7 +228,7 @@ export function useBattleSession({
     [sim.client, rules.tick_hz],
   );
   const contacts = useMemo(
-    () => contactPresentation?.update(observation?.contacts ?? [], observation?.tick ?? 0) ?? [],
+    () => (observation && contactPresentation?.update(observation)) || [],
     [contactPresentation, observation],
   );
   // The last drawn frame's presentation clock: the callouts' nudges ease on

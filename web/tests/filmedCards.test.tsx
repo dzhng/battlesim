@@ -143,7 +143,7 @@ async function filmed() {
   const readoutsAt = ({ tick, contacts }: (typeof FRAMES)[number]) => {
     const session = {
       sim: { observation: { own, identified, tick } },
-      contacts: presented.update(contacts, tick),
+      contacts: presented.update({ contacts, tick, groundPatch: { side: "blue" } }),
       rules: RULES,
       control: { selected: [] },
       readouts: handle,
