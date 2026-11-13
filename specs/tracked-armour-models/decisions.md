@@ -3699,3 +3699,87 @@ have made the same call.
     from 0.29 to 0.71. Wheeled turrets (VBCI, Boxer RCT30, EBRC Jaguar)
     are outside this spec and were left as they are.
 
+
+## Post-merge fixes: the Puma's nose and the R12 sweep (2026-11-13, implementation agent)
+
+Each entry gives the decision, why, and a confidence that the user would
+have made the same call.
+
+- **F1 The Puma's prow stands at 1.62 m, the glacis breaks at x 1.70.**
+  (Agent, from the user's "it slopes down too much"; medium-high.) Measured
+  on `side-2.jpg` (near side-on): at the road wheels' scale (a 0.70 m wheel
+  is about 128 px) the top of the "48" front plate stands about 1.6–1.7 m
+  over the ground under the nose, and the deck falls about 0.8 m from the
+  roof to it. The glacis keeps the merged model's ~23° (the deck reads as
+  one plane from the turret's front to the prow), which puts the break at
+  x 1.70, as the user read it. The lower plate keeps its belly point
+  (2.985, 0.42), so it now runs ~59° from the prow: the undercut nose over
+  the sprocket that the three-quarter photos show. The side modules' top
+  line follows the deck (level to the break). I trusted `side-2.jpg` over
+  the three-quarter shots, whose perspective puts the nose lower.
+- **F2 How a turret's sweep is measured.** (Coordinator's measure;
+  agent's second probe; high.)
+  - **The number** is the coordinator's probe
+    (`throwaway/turret-sweep/probe.py` in the coordinator's worktree):
+    - it samples the turret's own LOD0 surfaces (the gun, the roof gun
+      and dressing drop out) and takes the foremost x per 5 cm band of
+      \|y\|;
+    - the sweep is metres back per metre outboard, from the cheek's peak
+      beside the mantlet (bands up to 0.2 m outboard of the gun's
+      half-width) to the turret's edge (its outer 0.25 m).
+  - **The floor** is 0.5, about 0.6 where the photos allow. The user judged
+    the M1E3's 0.29 too flat and its old 0.85 right.
+  - **My second probe** (`throwaway/r12/probe.py` here) ray-casts the plan
+    outline per side, in the turret's own frame, for the whole turret and
+    for its `armor_paint` shell alone. I read each verdict beside a plan
+    view and a three-quarter-front view of the turret.
+- **F3 Every merged turreted vehicle in lanes A and C, before and after**
+  (the coordinator's probe, run here; "body" is the same formula on the
+  `armor_paint` shell, weapons out):
+
+| Turret | merged | after | reading, and what changed |
+|---|---|---|---|
+| T-72B3 | 0.60 | — | swept; the K-5 wedges' apex is by the mantlet |
+| T-80BVM | 0.59 | — | swept; round, a sight notch beside the gun |
+| T-90M | 0.68 | — | swept |
+| T-14 | 0.77 | — | swept |
+| ZTZ-99A | 0.50 | — | at the floor; its wedge tips stand 0.28 m outboard of the mantlet, 4 cm ahead of the face beside it (F4) |
+| ZTQ-15 | 0.69 | — | swept |
+| T-15 | 0.13 (body 0.41) | 0.13 (body 0.66) | cheeks flat 13° then a steep corner; now one ~37° line. The whole number is the fixed right Kornet pair at the edge |
+| CV90120 | 0.70 | — | swept; a 0.25 m level shoulder is the mantlet's surround |
+| CV9040C | 0.70 | 0.79 | flat across to \|y\| 0.90, then a chamfer; now swept ~25° |
+| CV90 Mk IV | 0.54 | 0.54 | flat across to \|y\| 0.84; now swept ~24° (the Spike pod sets the edge) |
+| M2A4 | 0.18 | 0.56 | flat box front; now 0.70 back per metre about the turret's axis |
+| M3A3 | 0.17 | 0.64 | as the M2A4 |
+| Puma | 0.83 | 0.86 | cheeks 8° and 12°, the gunner's sight square across one; now ~25° |
+| Ajax | 0.15 | 0.67 | nose flat ±0.46, smoke banks forward at the corners; now a wedge |
+| BMP-2M | −0.21 (body 0.44) | −0.21 (body 0.56) | cheek plates yawed in toward the gun; the whole number is the AG-30's barrel at the edge |
+| BMP-3 | 0.16 | 0.66 | dome sweeps; its smoke clusters stood forward at the corners, pointing in |
+| BRM-3K | 0.45 | 0.61 | octagon flat across ±0.56; now ~32° |
+
+- **F4 The calls under the floor.** (Agent; medium.)
+  - **Weapons at the edge are not the armour front.** The T-15's fixed
+    right Kornet pair and the BMP-2M's AG-30 are weapons at the turret's
+    edge. They stand where the frame and the photos put them, so those two
+    are judged by their body, as the coordinator asked for the BMP-2M.
+  - **Smoke dischargers are fittings, but they set the edge.** Where they
+    stood forward at the corners (the Ajax and BMP-3) they moved inboard
+    onto the cheeks, as the photos allow. Every cluster that pointed in
+    toward the gun now points ahead or out.
+  - **The Bradley is held to the coordinator's yardstick.** That probe folds
+    \|y\| about the hull's axis, and the turret sits 0.2 m right of it, so
+    the Bradley needed 0.70 about its own axis to read 0.56. A turret-frame
+    probe would read it at 0.70.
+  - **The CV90 pair kept their edits.** Both passed the floor through their
+    corner chamfers, but each had a front flat across 0.5 m or more, which
+    R12's "never flat" forbids. Each sits in its own commit, so either can
+    be dropped.
+  - **The ZTZ-99A is left at 0.50.** It is at the floor, the coordinator
+    measured 0.54, and its arrowhead tips match the photos. If the floor is
+    strict, it is the next to fix.
+  - **Planar facets.** A swept cheek's levels keep parallel edges, so each
+    facet is planar. Non-planar quads showed as triangle shading, which one
+    critic caught on the Mk IV.
+
+  Lanes B and D's turrets (the Abrams, Leclerc, PzH 2000 and M109A7) are
+  the coordinator's.

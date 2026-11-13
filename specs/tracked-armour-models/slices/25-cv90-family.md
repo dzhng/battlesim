@@ -101,3 +101,35 @@ Stopped at two rounds; still below the bar. What the critics named:
 - **The nose reads boxy with no front cheeks or mudguards.**
 - **The shared look:** the splinter print's stair-stepped edges at 2x, a
   washed-out glacis, tan `fittings`, and the plain belt.
+
+## R12 sweep (2026-11-13)
+
+The user's rule: every turret's front sweeps back from the mantlet, never
+flat across (R12; decisions F2–F4). Local edit 3 (`cv90/argon-r2/README.md`).
+
+- **CV9040C:** the front-cheek C-kit was flat across from the gun to |y|
+  0.90 and is now swept ~25°. The coordinator's sweep (m back per m
+  outboard, cheek peak to edge) went 0.70 → 0.79. It already passed the
+  0.5 floor through its corner chamfer; the edit removes the flat run.
+- **CV90 Mk IV:** the shell was flat across to |y| 0.84 and is now swept
+  ~24° from the mantlet's edge. Sweep 0.54 → 0.54: the Spike pod at the
+  outer edge sets the edge either way.
+- **Export:** lint 0, `asset validate` clean live and wreck, two exports
+  byte-identical. Tiers: CV9040C 53,042 / 23,554 / 6,690 / 2,062; Mk IV
+  45,722 / 22,462 / 6,560 / 2,010 (`tracked_medium`).
+- **Sheets:** [`cv9040c-compare.png`](../assets/after/cv90/cv9040c-compare.png),
+  [`mk_iv-compare.png`](../assets/after/cv90/mk_iv-compare.png).
+
+| Critique (silhouette, surface, fittings, materials, cohesion) | after edit 3 |
+|---|---|
+| CV9040C | 6 6 5 6 6 |
+| CV90 Mk IV | 6 6 5 5 6 (after its facets were made planar) |
+
+Both critics read the turret front as a wedge from above. Other notes:
+- the Mk IV's first critic found triangle shading on the new cheek
+  facets (non-planar quads), which is fixed;
+- the CV9040C's dark notch behind the gun was already there before;
+- the turrets read low, the sights small and the rear black (frame-bound
+  or the shared look, LC9 and LC12).
+
+Still below the bar.

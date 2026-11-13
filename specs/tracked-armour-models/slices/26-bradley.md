@@ -77,3 +77,32 @@ Stopped at two rounds; below the bar. What every round named:
   brake) and the smoke banks.
 - **The glacis tiles read as planks,** and the headlights sit low.
 - **The shared look:** the shaded sides cast olive, and the belt is plain.
+
+## R12 sweep (2026-11-13)
+
+The user's rule: every turret's front sweeps back from the mantlet (R12),
+with the coordinator's floor of 0.5 m back per metre outboard (decisions
+F2–F4). Local edit 3 (`bradley/argon-r2/README.md`): the box turret's
+front plates angle back 0.70 m per metre (~35°) from the mantlet's edge.
+
+- **Sweep** (coordinator's probe, cheek peak to edge): M2A4 0.18 → 0.56,
+  M3A3 0.17 → 0.64. The probe folds |y| about the hull's axis and this
+  turret sits 0.2 m right of it, so its right cheek decides the edge;
+  measured about the turret's own axis the cheeks run back 0.70.
+- **Export:** lint 0, `asset validate` clean live and wreck, two exports
+  byte-identical. Tiers: M2A4 39,776 / 23,632 / 7,342 / 1,792; M3A3
+  42,024 / 24,070 / 7,590 / 1,826 (`tracked_medium`).
+- **Sheets:** [`m2a4-compare.png`](../assets/after/bradley/m2a4-compare.png),
+  [`m3a3-compare.png`](../assets/after/bradley/m3a3-compare.png).
+
+| Critique (silhouette, surface, fittings, materials, cohesion) | after edit 3 |
+|---|---|
+| M2A4 | 6 6 5 6 6 |
+| M3A3 | 6 6 5 6 6 |
+
+Both critics read the front clearly as a wedge from above, and mostly from
+the three-quarter front. Both named the pale disc round the turret base.
+That is the hull's ring coaming, which the swept cheeks had uncovered; it
+is now 0.86 m across and under the turret, a change made after these
+scores. What is left is the turret's small, low mass and the plain sights
+(frame-bound, LC9). Still below the bar.

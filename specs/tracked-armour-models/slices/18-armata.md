@@ -59,3 +59,29 @@ The T-15's second Kornet pair is fixed turret art. The frame aims one
     request LA-S1).
   - The panoramic sight is short, held to the frame's dressing allowance
     (2.8 m + 0.3 m).
+
+## R12 sweep (2026-11-13, lane C's post-merge pass)
+
+The user's rule: every turret's front sweeps back from the mantlet (R12),
+with the coordinator's floor of 0.5 m back per metre outboard (decisions
+F2–F4). T-15, local edit 4 (`t15/argon-r2/README.md`): each cheek now runs
+back in one straight line at 0.75 m per metre (~37°). It used to run back
+13° from the gun slot and then turn steeply to the side.
+
+- **Sweep:** the coordinator's whole-turret number stays 0.13: the
+  right-hand Kornet pair (fixed turret art, LA9) stands at the outer edge.
+  The turret body (`armor_paint` shell, the same formula) went 0.41 → 0.66.
+- **Export:** lint 0, `asset validate` clean live and wreck, two exports
+  byte-identical. Tiers 91,978 / 27,476 / 8,512 / 2,744.
+- **Sheet:** [`t15-compare.png`](../assets/after/t15/t15-compare.png).
+
+| Critique (silhouette, surface, fittings, materials, cohesion) | after edit 4 |
+|---|---|
+| T-15 | 6 5 5 4 6 |
+
+The critic read the front as a wedge from above, and partly from the
+three-quarter front. It named small grey squares floating beside the
+turret's sides. Those were the flank bolts, which floated off the core
+before this pass; they and the panel now sit on its surface, a change made
+after the score. The rest is what lane A named: the low turret, the stubby
+Kornets and the mottled paint (LA6, LA8). Still below the bar.

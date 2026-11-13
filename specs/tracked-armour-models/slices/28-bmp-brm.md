@@ -97,3 +97,43 @@ Still below the bar. What every round kept naming:
   `build.py` detail passes for slice 30's sweep.
 - **Faceted shading** on the BMP-2M's bow sides; and the idlers and
   sprockets hidden under the nose and deck (BMP-3/BRM-3K).
+
+## R12 sweep (2026-11-13)
+
+The user's rule: every turret's front sweeps back from the mantlet (R12),
+with the coordinator's floor of 0.5 m back per metre outboard (decisions
+F2–F4).
+
+- **BRM-3K**, BMP-3 edit 6 (`bmp/bmp3-argon-r2/README.md`): the octagon's
+  front was flat across ±0.56 and now runs back ~32° from the mantlet.
+  Sweep 0.45 → 0.61.
+- **BMP-3**, edit 6: the dome already swept. Its two smoke clusters stood
+  forward at the outer corners, pointing in toward the gun. They now sit on
+  the dome's curve, pointing 5° out. Sweep 0.16 → 0.66.
+- **BMP-2M**, edit 3 (`bmp/bmp2m-argon-r2/README.md`): the cheek plates were
+  yawed with their outer ends forward and now yaw back. The cone draws back
+  toward its sides, and the smoke clusters moved inboard.
+  - The whole-turret number stays −0.21: the AG-30 grenade launcher's barrel
+    (turret art) reaches forward at the right edge.
+  - The body (`armor_paint` shell, the same formula) went 0.44 → 0.56.
+- **Export:** lint 0 for all three, `asset validate` clean live and wreck,
+  two exports byte-identical. Tiers:
+  - BMP-2M 79,682 / 26,788 / 7,843 / 2,038;
+  - BMP-3 60,962 / 25,174 / 7,664 / 1,752;
+  - BRM-3K 59,450 / 25,062 / 7,448 / 1,770.
+- **Sheets:** [`bmp2m-compare.png`](../assets/after/bmp/bmp2m-compare.png),
+  [`bmp3-compare.png`](../assets/after/bmp/bmp3-compare.png),
+  [`brm3k-compare.png`](../assets/after/brm/brm3k-compare.png).
+
+| Critique (silhouette, surface, fittings, materials, cohesion) | after the R12 edits |
+|---|---|
+| BMP-2M | 6 4 5 5 6 |
+| BMP-3 | 6 5 5 5 6 |
+| BRM-3K | 6 5 6 5 6 |
+
+Every critic read the front as passing the rule from above. The BMP-2M and
+BMP-3 still read as round turrets (they are cone and dome castings), with a
+blunt nose at the mantlet. The bright facet on the BMP-3's front-left was
+there before. What is left is the shared look (mottled, grimy paint and tan
+fittings, LC12) and turrets lower and plainer than the photos (LC9). Still
+below the bar.
