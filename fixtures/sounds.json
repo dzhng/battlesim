@@ -809,6 +809,15 @@
       "plan": "Duet ElevenLabs",
       "path": "assets/source/audio/effects/smoke-grenade-3.070dbd6c.mp3",
       "sha256": "070dbd6c646faf0504ba1145fb134f96ccdcee8170b0b17cb55fb70a577f161b"
+    },
+    "freesound-239135": {
+      "label": "Tank Shots",
+      "author": "Iwan \u201cqubodup\u201d Gabovitch",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/qubodup/sounds/239135/",
+      "path": "assets/third-party/audio/freesound-239135-tank-shots-qubodup-hq.ogg",
+      "sha256": "6e374214bdb42e58b0fc8acbba6b3fa134cbc2a21375b910db32fb0358bbbf89",
+      "notes": "Freesound HQ OGG Vorbis preview (192 kb/s, 48 kHz stereo), retained as downloaded; the original 48 kHz 16-bit FLAC requires login. A US Army recording of tank main-gun shots."
     }
   },
   "clips": {
@@ -5166,6 +5175,21 @@
       "frames": 192000,
       "loop": false,
       "notes": "Generated with ElevenLabs sound effects through Duet; the prompt rules out voices and crowd noise."
+    },
+    "cannon-qubodup-239135": {
+      "label": "Tank Shots (qubodup) \u00b7 bassy, shorter echo",
+      "category": "cannon",
+      "role": "shot",
+      "source": "freesound-239135",
+      "source_rate": 48000,
+      "source_frames": [412153, 525501],
+      "processing": "bassy-cannon",
+      "url": "/audio/clips/cannon-qubodup-239135.wav",
+      "sha256": "aa990be601493c0ac7bea029838e7614588b32a24bcec0a9d036d50a74c5081f",
+      "sample_rate": 48000,
+      "frames": 113376,
+      "loop": false,
+      "notes": "The shot at 8.59 s through its echo to the end of the recording, from 2 ms before the attack. Processed with more bass and about a third less echo (post 34 take D)."
     }
   },
   "sounds": {
@@ -6641,6 +6665,22 @@
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
+      "loop": false
+    },
+    "qubodup-cannon": {
+      "label": "Tank cannon \u00b7 Tank Shots (qubodup)",
+      "clips": ["cannon-qubodup-239135"],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.9,
+      "loop": false
+    },
+    "qubodup-cannon-distant": {
+      "label": "Tank cannon \u00b7 Tank Shots (qubodup) \u00b7 distant",
+      "clips": ["cannon-qubodup-239135"],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1.395,
       "loop": false
     }
   },

@@ -1,7 +1,7 @@
 {
   "buses": {
     "master": 2.8,
-    "units": 0.8,
+    "units": 0.36,
     "effects": 1.0,
     "ambience": 0.6,
     "music": 1.0,
