@@ -6,9 +6,10 @@ use super::*;
 /// outside every settlement, on dry open ground off every road and wood.
 #[test]
 fn homes_stand_in_open_country_on_legal_ground() {
-    let largest = presets()
-        .open_country
-        .homesteads
+    let presets = presets();
+    let mapgen::open_country::Pieces::Homes(homes) =
+        &presets.open_country.homesteads.steading.pieces;
+    let largest = homes
         .groups
         .iter()
         .map(|group| group.homes[1])

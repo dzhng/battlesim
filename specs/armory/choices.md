@@ -50,6 +50,9 @@
   names stay the contract's ids, as the editor's own `classes` field shows
   them. Three unprimed critiques drove the layout: a dashed, fixed-width,
   read-only panel apart from the amber "Used by" note. *Sound.*
+- **`useBattleSession.ts` imports game-wasm as a namespace (`gameWasm`)** and
+  hands it to `composeScenarioCatalog` as the resolver. The file is over the
+  size budget; naming three exports grew it past the ratchet. *Sound.*
 - **The editor's dev-API client moved to `api.ts`.** `MechanicsEditor.tsx` was
   over the size budget, and the ratchet refuses growth. The client is its own
   concept. *Sound.*
@@ -66,3 +69,29 @@
 - **W09's amendment is dated 2026-11-12 and credited to the user** (map row
   W09), and `specs/default-weapon-cleanup/README.md` no longer says the
   amendment is pending. *Sound.*
+
+## Slice 13
+
+- **The preset JSON is read through a private flat row, `HomesteadRow`, then
+  converted (`serde(from)`) into `Steads { per_road_km, attempts, steading }`.**
+  serde can't combine `deny_unknown_fields` with `flatten`, and presets must
+  keep refusing unknown keys. *Sound.*
+- **`spread_m` belongs to `Steading`, not to the homes.** It spaces a group's
+  yards along their road, which depots need too. *Sound.*
+- **`Pieces` has only `Homes` for now.** `Bodies` lands in slice 17 with its
+  first reader and its tests. An unconstructed variant is dead code (clippy
+  `-D warnings`), and a placement arm with no caller would be untested.
+  Slice 17 adds the variant and its arm in `stead`. *Sound.*
+- **`furnish_yard` takes the `Yard` and the `Homes` it furnishes from,** not
+  the preset block. *Sound.*
+- **The steading owner is its own module, `open_country/steads.rs`.**
+  `open_country/mod.rs` was over the file-size budget, and the ratchet refuses
+  its growth. Its homes section (`stead`, `yard_fits`, `furnish_yard`) moved
+  there unchanged, in a commit of its own, before the refactor. Slice 17's
+  depots extend this module. *Sound.*
+- **Each group's eligible templates are `Homes::choices`,** not inline in
+  `furnish`. Which templates a group may build is the homes' rule. Bodies
+  will have no templates. *Sound.*
+- **`tests/open_country.rs` lost its homes and refusal tests to
+  `tests/open_country/{homes,refusals}.rs`,** submodules of the same test
+  binary, for the same ratchet. *Sound.*

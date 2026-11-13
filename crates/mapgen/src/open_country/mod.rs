@@ -756,21 +756,9 @@ pub(crate) fn furnish(
         let fits: Vec<Fit> = catalogue.templates().iter().map(Fit::new).collect();
         let family = crate::parcels::family(request, presets);
         let (preset, _) = presets.cell(request.map_type, request.size);
-        // Each group's templates: its categories, of the map's one family,
-        // within the type's floors and categories.
-        let eligible: Vec<Choices> = rules
-            .homesteads
-            .groups
-            .iter()
-            .map(|group| {
-                let mix = group
-                    .mix
-                    .iter()
-                    .copied()
-                    .filter(|(category, _)| preset.categories.contains(category));
-                Choices::available(&fits, mix, family, preset.max_floors)
-            })
-            .collect();
+        let h = &rules.homesteads;
+        let Pieces::Homes(homes) = &h.steading.pieces;
+        let eligible = homes.choices(&fits, preset, family);
         let open_km2 = country.estimated_open_km2();
         let e = rules.fairness;
 
@@ -783,17 +771,16 @@ pub(crate) fn furnish(
             }
             sum / weights
         };
-        let h = &rules.homesteads;
         let mut rng = country.stream("homesteads");
         let groups = libm::round(h.per_road_km * country.road_m / 1000.0);
-        let homes = mean(&mut h.groups.iter().map(|group| (group.weight, group.homes)));
+        let per_group = mean(&mut homes.groups.iter().map(|group| (group.weight, group.homes)));
         country.spread(
-            groups * homes,
+            groups * per_group,
             e.homes,
             h.attempts,
             &mut rng,
             |country| country.tally.homes,
-            |country, half, rng| country.stead(half, &eligible, rng),
+            |country, half, rng| country.stead(half, &h.steading, &eligible, rng),
         );
 
         let t = rules.tree_lines;

@@ -3,10 +3,17 @@
 use super::*;
 
 impl<'a> Country<'a> {
-    /// One group of homes at a place on a road in `half`.
-    pub(super) fn stead(&mut self, half: usize, fits: &[Choices], rng: &mut Stream) -> bool {
-        let (rules, presets) = (self.rules, self.presets);
-        let h = &rules.homesteads;
+    /// One group of `kind`'s pieces at a place on a road in `half`; `fits`
+    /// are the templates each of its groups may build.
+    pub(super) fn stead(
+        &mut self,
+        half: usize,
+        kind: &Steading,
+        fits: &[Choices],
+        rng: &mut Stream,
+    ) -> bool {
+        let presets = self.presets;
+        let Pieces::Homes(homes) = &kind.pieces;
         let Some((road, s)) = self.station(rng) else {
             return false;
         };
@@ -20,21 +27,27 @@ impl<'a> Country<'a> {
             || self
                 .steads
                 .iter()
-                .any(|other| distance(*other, at) < h.apart_m)
+                .any(|other| distance(*other, at) < kind.apart_m)
         {
             return false;
         }
         let along = scale(sub(ahead, at), 1.0 / distance(at, ahead));
         let (group, choices) = rng
-            .pick(h.groups.iter().zip(fits).map(|pair| (pair, pair.0.weight)))
+            .pick(
+                homes
+                    .groups
+                    .iter()
+                    .zip(fits)
+                    .map(|pair| (pair, pair.0.weight)),
+            )
             .expect("the open country has homestead groups");
         if choices.is_empty() {
             return false;
         }
-        let homes = rng.count(group.homes);
+        let count = rng.count(group.homes);
         let side = if rng.chance(0.5) { 1.0 } else { -1.0 };
-        let lane = rng.chance(h.lane_chance);
-        let lane_m = rng.range(h.lane_m);
+        let lane = rng.chance(kind.lane_chance);
+        let lane_m = rng.range(kind.lane_m);
         let verge = presets.parcels.verge_m;
         // The line the yards front, and how far from its middle they start.
         let (front, offset, lane) = if lane {
@@ -73,7 +86,7 @@ impl<'a> Country<'a> {
             )
         } else {
             let run = &self.roads[road].run;
-            let reach = f64::from(homes) * 60.0 + h.spread_m;
+            let reach = f64::from(count) * 60.0 + kind.spread_m;
             let mut line: Vec<Point> = Vec::new();
             for step in 0..=8 {
                 let p = run.at((s + reach * f64::from(step) / 8.0).min(run.length()));
@@ -87,20 +100,20 @@ impl<'a> Country<'a> {
             (Run::new(line), half_width + verge, None)
         };
         let rule = LotRule {
-            front_m: h.yard.front_m,
-            side_m: h.yard.side_m,
-            rear_m: h.yard.rear_m,
+            front_m: kind.yard.front_m,
+            side_m: kind.yard.side_m,
+            rear_m: kind.yard.rear_m,
             coverage: 1.0,
             apron_m: 0.0,
         };
         let stead = self.steads.len();
         let lots_before = self.lots.len();
         let mut cursor = [0.0_f64; 2];
-        for _ in 0..homes {
+        for _ in 0..count {
             // A category by its weight, then one of its templates.
             let eligible = choices.category(rng);
             let fit = eligible[rng.below(eligible.len() as u64) as usize];
-            let across = if lane.is_some() || homes > 2 {
+            let across = if lane.is_some() || count > 2 {
                 usize::from(rng.chance(0.5))
             } else {
                 usize::from(side < 0.0)
@@ -110,7 +123,7 @@ impl<'a> Country<'a> {
                 side: if across == 0 { 1.0 } else { -1.0 },
                 offset,
             };
-            let gap = rng.range([0.0, h.spread_m]);
+            let gap = rng.range([0.0, kind.spread_m]);
             let Some(lot) = frontage.lot(cursor[across], fit, &rule) else {
                 continue;
             };
@@ -140,7 +153,7 @@ impl<'a> Country<'a> {
                 &presets.parcels.prop_kind,
                 &mut self.next_prop,
             );
-            self.furnish_yard(&lot, fit, &building.frame, rng);
+            self.furnish_yard(&lot, fit, &building.frame, &kind.yard, homes, rng);
             let [x, y, _] = building.frame.translation;
             self.tally.homes[self.half([x, y])] += 1.0;
             self.buildings.push(building);
@@ -191,14 +204,21 @@ impl<'a> Country<'a> {
             && !self.woods.iter().any(|wood| rect.touches(wood.ring))
     }
 
-    /// The clump of trees behind a yard and the body beside its house.
-    fn furnish_yard(&mut self, lot: &Lot, fit: &Fit, frame: &PlacementFrame, rng: &mut Stream) {
+    /// The clump of trees behind a home's yard and the body beside its house.
+    fn furnish_yard(
+        &mut self,
+        lot: &Lot,
+        fit: &Fit,
+        frame: &PlacementFrame,
+        yard: &Yard,
+        homes: &Homes,
+        rng: &mut Stream,
+    ) {
         let rules = self.rules;
-        let h = &rules.homesteads;
         let own = self.yards.len() - 1;
         let depth = 2.0 * lot.rect.half[1];
-        if rng.chance(h.tree_chance) {
-            let sides = [rng.range(h.tree_plot_m), rng.range(h.tree_plot_m)];
+        if rng.chance(homes.tree_chance) {
+            let sides = [rng.range(homes.tree_plot_m), rng.range(homes.tree_plot_m)];
             let reach = (lot.rect.half[0] - sides[0] / 2.0).max(0.0);
             let plot = Rect {
                 center: lot.point(rng.range([-reach, reach]), depth + sides[1] / 2.0 + 0.5),
@@ -215,16 +235,16 @@ impl<'a> Country<'a> {
                 self.tally.trees[self.half(plot.center)] += 1.0;
             }
         }
-        if rng.chance(h.body_chance) {
+        if rng.chance(homes.body_chance) {
             let row = rng
-                .pick(h.bodies.iter().map(|row| (row, row.weight)))
+                .pick(homes.bodies.iter().map(|row| (row, row.weight)))
                 .expect("a yard has bodies");
             // Beside the house, in the side setback, nose to the road.
             let side = if rng.chance(0.5) { 1.0 } else { -1.0 };
             let box_half = (fit.max[0] - fit.min[0]) / 2.0;
             let at = lot.point(
-                side * (box_half + h.yard.side_m / 2.0),
-                h.yard.front_m + row.half_extents_m[0] + rng.range([0.0, 3.0]),
+                side * (box_half + yard.side_m / 2.0),
+                yard.front_m + row.half_extents_m[0] + rng.range([0.0, 3.0]),
             );
             let radius = libm::hypot(row.half_extents_m[0], row.half_extents_m[1]);
             let doors = fit
@@ -234,9 +254,9 @@ impl<'a> Country<'a> {
                 .unwrap_or_default();
             let clear = doors.iter().all(|door| {
                 let from = [door.position[0], door.position[1]];
-                let to = add(from, scale(door.normal, h.yard.front_m));
+                let to = add(from, scale(door.normal, yard.front_m));
                 crate::layout::geometry::segment_distance(from, to, at)
-                    >= radius + h.yard.door_clear_m
+                    >= radius + yard.door_clear_m
             });
             let ask = Ask {
                 radius,
@@ -249,5 +269,28 @@ impl<'a> Country<'a> {
                 self.body(row, at, yaw, radius);
             }
         }
+    }
+}
+
+impl Homes {
+    /// Each group's templates: its categories, of the map's one family,
+    /// within the type's floors and categories.
+    pub(super) fn choices<'f>(
+        &self,
+        fits: &'f [Fit<'f>],
+        preset: &crate::layout::TypePreset,
+        family: &str,
+    ) -> Vec<Choices<'f>> {
+        self.groups
+            .iter()
+            .map(|group| {
+                let mix = group
+                    .mix
+                    .iter()
+                    .copied()
+                    .filter(|(category, _)| preset.categories.contains(category));
+                Choices::available(fits, mix, family, preset.max_floors)
+            })
+            .collect()
     }
 }
