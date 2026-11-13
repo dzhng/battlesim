@@ -170,5 +170,11 @@ result as it lands, polling briefly, and keep test renders small.
   weather differently. The tell is dirt on one model and none on its plainer
   neighbour.
 
+- **A face built from a corner list faces the way its corners turn.** A wall
+  listed by hand rather than made by a primitive can face inward. It still
+  draws, but lit from behind, so it reads near-black in every light. The tell
+  is one wall dark from every side: count the faces whose normals point at
+  the model's middle.
+
 Blender scripting traps live in [references/blender.md](references/blender.md).
 Read it when a script runs but its result looks wrong.

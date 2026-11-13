@@ -138,12 +138,16 @@ export const SCENERY_KINDS: Record<string, SceneryRule> = {
   basketball_hoop: prop,
   basketball_court: prop,
   garage_row: prop,
+  // The military bodies (fixtures/props/military/works.json, camp.json).
   dumpster: prop,
   kiosk: prop,
   petanque_pitch: prop,
+  hangar: prop,
   /** The cover a forest floor holds: a fallen trunk, and a boulder. */
   log: prop,
   boulder: prop,
+  /** The hangar's remains: sheet that slid off it lies flat round its plan. */
+  hangar_ruin: { ...prop, footprint: { kind: "prop", rubble_m: 1.5 } },
   // Trees and hedgerows carry one state per biome season (summer; winter is
   // the next biome spec). A tree also stands inside the forests' canopy
   // (`fit.canopy`); hedgerows stand past the map, and under the trees of a

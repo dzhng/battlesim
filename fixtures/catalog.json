@@ -3328,8 +3328,7 @@
               0.46,
               0.5,
               0.44
-            ],
-            "status": "systems_only"
+            ]
           },
           "body": {
             "armor": 0.5,
@@ -3361,8 +3360,7 @@
               0.3,
               0.29,
               0.27
-            ],
-            "status": "systems_only"
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -23186,8 +23184,7 @@
           0.46,
           0.5,
           0.44
-        ],
-        "status": "systems_only"
+        ]
       },
       "body": {
         "armor": 0.5,
@@ -23219,8 +23216,7 @@
           0.3,
           0.29,
           0.27
-        ],
-        "status": "systems_only"
+        ]
       },
       "body": {
         "armor": 1.0,

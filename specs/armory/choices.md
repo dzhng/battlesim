@@ -908,3 +908,51 @@ needs-user).
   `93e60b342dbfed4a`. An unproven digest is worse than a stale one.
   *Needs-user / closeout:* re-record it with the browser benchmark at slice
   18's full run.
+
+## Slice 15
+
+- **One concept-named script, `military.py`, for the seven bodies** (the
+  courts precedent: one exporter per prop family, a function per kind
+  returning its box). Its shared helpers (`grid`, `bar`, `tube`, `body`) stay
+  in it; nothing in `parts.py` changed. *Sound.*
+- **Each military prop lints itself (`--lint`)** with `vehicle_lint`'s floating
+  and ground checks, and its overlap check between the model's bodies (the
+  root's children: canvas and rigging, flag and pole, net and poles). The
+  lint caught real defects on the way (pegs and scraps floating, the net
+  cutting its spreaders, door rails off their leaves). *Why:* the slice asks
+  for "not floating, grounded, no intersections", and the vehicle lint
+  already owns those checks. *Alternative:* a prop lint of its own, a second
+  owner. *Sound.*
+- **15a and 15b land in one commit.** `catalogFootprints.test.ts` holds a
+  destroyed body's art to its remains' art: once the hangar draws, its ruin
+  must too. Each keeps its own verdict (`decisions.md`). *Sound.*
+- **15a, the hangar: an arch hangar with fine (75 mm) corrugation in the
+  texture, not the geometry.** The vault runs its own UVs so the `roof_sheet`
+  corrugations go over it from curb to curb; seam bands every 4 m, skylight
+  sheets down each side, end walls recessed 0.5 m under the vault's edge,
+  braced sliding leaves on the front with a wicket door and a plain "3", a
+  door and two windows at the back. *Why:* two critiques read geometric ribs
+  (0.75 m, then 0.5 m) as "a ribbed barrel", and the Quonset references show
+  fine corrugation that reads as one shell. Olive paint, not galvanised, so
+  it stands off a khaki yard. *Provisional:* the human judges it.
+- **15b, the ruin: what survives says which hangar it was.** The vault's
+  feet still stand on their cracked curbs, torn off at uneven heights and
+  peeled in or out; bent rib stubs rise from them; the rest lies crushed into
+  creased folds of the same olive sheet, torn open over a burnt bed with
+  broken concrete; the back wall is a jagged stub; the front's leaves lie
+  thrown over the wreck under the fallen track beam. Local scorch, not soot
+  everywhere: a first pass's low dust film turned the whole ruin tan.
+  *Provisional.*
+- **The ruin's kind takes a rubble allowance (`hangar_ruin` in
+  `scenery.ts`, `rubble_m` 1.5):** sheets that slid off over the curbs lie
+  flat round its plan, as a wreck's thrown plate does (`wreck`, 1 m). They
+  block nothing, so the body's box is unchanged. *Sound.*
+- **`fixtures/catalog.json` was not re-blessed through Rust.** Building the
+  sim test crate costs several GiB, and the disk stood under 8 GiB free. The
+  bless only drops each drawn row's `"status": "systems_only"` from its
+  appearance (keys sort, so the line and its comma go). I made that edit and
+  proved it with the simulation's own resolver through the base wasm:
+  `throwaway/armory/15/verify-catalog.mjs` checks that the file's merged
+  document carries the prop files' appearances and that resolving it gives
+  the file's props exactly. *Closeout:* the full run's
+  `catalog::view::the_browsers_catalog_view_is_current` is the byte check.

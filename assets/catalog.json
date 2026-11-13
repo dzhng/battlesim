@@ -1382,6 +1382,32 @@
         0.9
       ]
     },
+    "hangar": {
+      "unit": "scenery",
+      "scenery": "hangar",
+      "states": {
+        "default": "assets/source/military/hangar.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        12.0,
+        8.0,
+        4.0
+      ]
+    },
+    "hangar_ruin": {
+      "unit": "scenery",
+      "scenery": "hangar_ruin",
+      "states": {
+        "default": "assets/source/military/hangar_ruin.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        12.0,
+        8.0,
+        0.75
+      ]
+    },
     "grass_meadow": {
       "unit": "scenery",
       "scenery": "grass",

@@ -1,5 +1,5 @@
 {
- "about": "The yard's references (slice 10): real flight-line, motor-pool and field-camp photos, judged for composition: what stands behind and beside a parked unit. WARNO and Broken Arrow armory screens are not stored here, because they are not freely licensed.",
+ "about": "The yard's references (slice 10): real flight-line, motor-pool and field-camp photos, judged for composition: what stands behind and beside a parked unit. The military props' references (slice 15, `prop`): real photos of each prop's subject, judged for its silhouette and fittings. WARNO and Broken Arrow armory screens are not stored here, because they are not freely licensed.",
  "entries": [
   {
    "file": "apron-apache_parked_by_hangar.jpg",
@@ -60,6 +60,56 @@
    "licence": "public-domain",
    "sha256": "183d25ae81d5f96160761683771feb80ef574a1da803660ccc491cd646c6f4e2",
    "note": "A field camp: a row of olive tents, with pallets laid as walkways, a generator, and timber on bare ground."
+  },
+  {
+   "file": "hangar-quonset_emplacement_japan.jpg",
+   "prop": "hangar",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Quonset_hut_emplacement_in_Japan.jpg",
+   "author": "US Army Corps of Engineers, photographer not specified.",
+   "licence": "public-domain",
+   "sha256": "a679129445df6e6a6997f16f6b91e3efba90f82f7640999a1b8248ea3464b1f4",
+   "note": "A Quonset hut lifted into place: the front quarter of a corrugated barrel vault with a flat end wall, its door and windows. The corrugations run over the vault from foot to foot."
+  },
+  {
+   "file": "hangar-anchorage_lake_hood.jpg",
+   "prop": "hangar",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Anchorage_airplane_hangar_at_lake_hood.jpg",
+   "author": "Day Albert M, U.S. Fish and Wildlife Service",
+   "licence": "public-domain",
+   "sha256": "7a51b24343e7f3540fb24c62edc2e0cc283a4df26264711a5bbbe6fa3b737f68",
+   "note": "A hangar's end with large sliding leaves braced corner to corner under a track beam: the door the hangar's front borrows."
+  },
+  {
+   "file": "hangar_ruin-clark_collapsed_hangars.jpg",
+   "prop": "hangar_ruin",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Collapsed_hangars_at_Clark_Air_Base.jpg",
+   "author": "not named on Commons (a U.S. government work)",
+   "licence": "public-domain",
+   "sha256": "0d3c110f699bcc7b56dc74bec52789d33f425113b6b4fef0ab288debefb26d9f",
+   "note": "Collapsed arch hangars: the vaults crushed down between their ends, sheet lying in folds with frames showing."
+  },
+  {
+   "file": "hangar_ruin-midway_seaplane_hangar.jpg",
+   "prop": "hangar_ruin",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Midway_seaplane_hangar_collapse_(51840796056).jpg",
+   "author": "USFWS Pacific",
+   "licence": "public-domain",
+   "sha256": "8a27124254ae39408f6dd6bf06c787ca9d0f35a0a09e8cfcae99b959b567754b",
+   "note": "A collapsed hangar: roof sections down at angles over twisted framing, debris round its foot."
+  },
+  {
+   "file": "hangar_ruin-omura_bombed_hangar.jpg",
+   "prop": "hangar_ruin",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Bombed_hangar_at_%C5%8Cmura_1945.jpg",
+   "author": "U.S. Navy",
+   "licence": "public-domain",
+   "sha256": "6f8d697e913770698de9f1f9ff0f47e04fe0f7705c2d0f7e9bae53ed49392669",
+   "note": "A bombed hangar: a burnt-out frame and the sheet it shed, low and scattered."
   }
  ]
 }
