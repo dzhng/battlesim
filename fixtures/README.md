@@ -138,6 +138,15 @@ else does. The rules' `carriage` row sets the boarding timer and reach, and thei
 `bail_out` rows, one per kind of host (building, ground, air), set how a garrison
 or riders come out of a destroyed host: death odds, the health lost and how far
 to search for a place to stand.
+A unit's `capabilities.smoke` makes it a smoke carrier: its `capacity` in
+charges, the `cloud` each charge pops (the [cloud law](../crates/contract/src/smoke.rs)
+reads its numbers; its `look` names a [look row](#weapon-looks)), and what
+resupply costs: `service_s` and `stock_per_charge` live on the capability, not
+in the service rules. Author the whole capability, cloud included, on each
+carrier's row; a child row that inherits a carrier's smoke overrides only what
+differs, usually just `capacity`. The battle digest folds smoke state only for
+units that carry it, so giving an existing test or capture unit smoke moves
+its pinned digests; add a new row that extends it instead.
 
 - **Soldier kinds** are a catalog of their own: `hp`, the `appearance` set a soldier of the kind wears (one picked per soldier), and the `mounts` he carries. A `special` mount passes to the next living soldier when its carrier falls; any other is lost with him. Every soldier carries an unlimited `squad` gun, and every finite weapon is a `special` extra, so no squad runs dry: a sniper whose rifle is empty still has his carbine or rifle ([squad weapons](../specs/done/squad-weapons/README.md)). A single-operator mount may name `operator_appearance` with paired active and carried appearance sets: the equipment worn by its current living carrier while using that weapon or his rifle, including after a handoff. Variant identity stays the same across both sets. The observation publishes the carrier and each soldier’s active weapon only when visible. A squad's slots name soldier kinds, so hundreds of squads reuse a few kinds.
 - **A variant is `extends` plus overrides.** `"m1a1": { "extends": "m1", "body": { "hull": { "armor": { "front": 180 } } } }` inherits everything else. An `abstract` entry only exists to be extended. Weapon rows in `rules.json` extend the same way. The merge:

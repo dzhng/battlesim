@@ -1,4 +1,4 @@
-//! A smoke screen's pop, as a side hears it (`specs/smoke-screen`, slice 10):
+//! A smoke screen's pop, as a side hears it (`specs/done/smoke-screen`):
 //! a side that sees a cloud while it blooms hears its pop once, at the cloud;
 //! a side that first sees it later never hears it; and a side always hears
 //! its own unit's pop. A look naming no pop sound, or one the library lacks,

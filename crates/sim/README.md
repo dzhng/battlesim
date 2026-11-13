@@ -104,11 +104,14 @@ the side's AI players over lanes and objectives and sends help between them.
 
 [Active protection](src/protection.rs) owns finite defensive charges and cooldowns.
 Flight offers it only an imminent swept hull collision at the authored standoff;
-ordinary projectiles, passes and cover remain ordinary flight events. Supply
-service restores one charge from finite stock after offensive ammunition and
-before vehicle health or soldiers, then flares, at the service rules' flare
-rate and price (`service.flare_service_s`, `service.stock_per_flare`). A jet
-never stands still in reach, so it rearms flares only by withdrawing.
+ordinary projectiles, passes and cover remain ordinary flight events.
+[Supply service](src/supply.rs) works through a unit's needs in one order, each
+paid from the truck's finite stock: offensive ammunition, a protection charge,
+flares (at the service rules' `service.flare_service_s` and
+`service.stock_per_flare`), vehicle health, replacement soldiers, then smoke
+charges, one per delivery at the price and service time their capability
+authors. A jet never stands still in reach, so it rearms flares only by
+withdrawing.
 Protection state is part of the battle digest and never becomes an offensive
 weapon row.
 

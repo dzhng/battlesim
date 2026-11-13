@@ -1,5 +1,5 @@
 //! The smoke cloud law and its depth along a sight line
-//! (`specs/smoke-screen`, slice 01). Every number comes from the spec built
+//! (`specs/done/smoke-screen`). Every number comes from the spec built
 //! here, never from authored content.
 use contract::smoke::{
     circle_chord, concealment_at, piece_depth, segment_depth, state, CloudState, SmokeCloud,

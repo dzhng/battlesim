@@ -1,4 +1,4 @@
-//! Smoke screens (`specs/smoke-screen`): a carrier pops a charge into a
+//! Smoke screens (`specs/done/smoke-screen`): a carrier pops a charge into a
 //! stationary cloud. Every number is read from the carrier's own row.
 use contract::catalog::SmokeCapability;
 use contract::command::{CommandEnvelope, MoveDirection, Order, RoutePolicy};

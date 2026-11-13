@@ -1,4 +1,4 @@
-//! How a smoke screen draws (`specs/smoke-screen`): the clouds the side
+//! How a smoke screen draws (`specs/done/smoke-screen`): the clouds the side
 //! sees, each a billow of puffs seeded by its id that swirl round its
 //! centre inside the circle `contract::smoke` grows in steps, and stay below
 //! its top. Its optical depth follows its stepped density, as sight's does:

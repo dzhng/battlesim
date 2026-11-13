@@ -1,4 +1,4 @@
-// Popping smoke (`specs/smoke-screen`, D15): H, or POP SMOKE on the command
+// Popping smoke (`specs/done/smoke-screen`, D15): H, or POP SMOKE on the command
 // bar, sends one `pop_smoke` naming exactly the selected units that still
 // have a charge, and nothing else, so no unit's current order changes; with
 // no charge among them the bar's button is off and the key sends nothing.

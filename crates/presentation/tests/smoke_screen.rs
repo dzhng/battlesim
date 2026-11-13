@@ -1,4 +1,4 @@
-//! A smoke screen as it is drawn (`specs/smoke-screen`, slice 07): its puffs
+//! A smoke screen as it is drawn (`specs/done/smoke-screen`): its puffs
 //! stay inside the circle `contract::smoke` grows and fades in steps and
 //! below the cloud's top for its whole life, whatever the wind; the drawn
 //! cloud stands at the law's first step from its pop; they cost wreck smoke

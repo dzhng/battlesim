@@ -1,4 +1,4 @@
-//! A smoke screen: a stationary circular cloud a unit pops (`specs/smoke-screen`).
+//! A smoke screen: a stationary circular cloud a unit pops (`specs/done/smoke-screen`).
 //!
 //! This is the one definition of a cloud's state over time and of the smoke
 //! a sight line crosses. The simulation's sensing and fog sweep, the fog's
