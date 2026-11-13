@@ -1382,8 +1382,7 @@ html {
 .hud-army-deck .hud-purchase-controls .hud-credits {
   margin-left: 12px;
 }
-.hud-purchase-controls,
-.hud-purchase-categories {
+.hud-purchase-controls {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1398,7 +1397,7 @@ html {
   bottom: calc(100% + 10px);
   left: 50%;
   transform: translateX(-50%);
-  width: min(720px, calc(100vw - 44px));
+  width: min(840px, calc(100vw - 44px));
   padding: 12px;
   background: rgb(var(--hud-glass) / 0.96);
 }
@@ -1413,8 +1412,12 @@ html {
   gap: 12px;
   margin-top: 12px;
 }
-.hud-purchase-categories {
-  margin-top: 0;
+/* Nine group tabs beside the search at 1280 px: the tabs sit closer than the
+   controls do, each still padded clear of its neighbour's diamond. */
+.hud-purchase-groups {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .hud-purchase-search {
   display: inline-flex;
@@ -1458,7 +1461,7 @@ html {
   text-align: center;
   color: rgb(var(--hud-text) / 0.6);
 }
-.hud-purchase-categories [aria-selected="true"] {
+.hud-purchase-groups [aria-selected="true"] {
   color: rgb(var(--hud-accent));
   border-color: rgb(var(--hud-accent) / 0.7);
   background: rgb(var(--hud-accent) / 0.16);

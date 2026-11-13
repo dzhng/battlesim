@@ -1,6 +1,6 @@
 // The UI gallery, scripted: every shot the gallery lists, drawn alone at
 // 1280×800 and matched against its approved picture, with no panel's
-// content outside the panel; the reinforcements picker on each category and
+// content outside the panel; the reinforcements picker on its groups and
 // with a family's variants open; then every main-menu page. The panel
 // workbench (`panels.mjs`) pins the info panels and the deck, and the cursor
 // lab (`cursor.mjs`) the cursor.
@@ -103,11 +103,45 @@ async function report(ctx, page, shot) {
   );
 }
 
+/** The tabs a picture is pinned on: a family of several variants, two
+ *  families, one family, and none. A baseline names its tab without the
+ *  label's dot. */
+const PINNED_TABS = ["REC", "INF", "MBT", "IFV·APC", "HELI"];
+const tabFile = (tab) => tab.toLowerCase().replace("·", "-");
+
+/** The tab row holds every group and the search, at the gallery's 1280 px:
+ *  one row, no label clipped or wrapped, and the search beside the tabs.
+ *  The containment check beside it proves the row stays inside the picker. */
+async function tabRow(ctx, page, shot) {
+  const row = await page.evaluate(() => {
+    const box = (e) => e.getBoundingClientRect();
+    const tabs = [...document.querySelectorAll(".hud-purchase-groups [role=tab]")].map((t) => ({
+      label: t.textContent,
+      top: box(t).top,
+      right: box(t).right,
+      height: box(t).height,
+      clipped: t.scrollWidth > t.clientWidth + 0.5,
+    }));
+    return { tabs, search: box(document.querySelector(".hud-purchase-search")).left };
+  });
+  const [first] = row.tabs;
+  ctx.check(
+    `${shot}: every group's tab and the search share one row, each label whole`,
+    row.tabs.length === 9 &&
+      row.tabs.every(
+        (t) => Math.abs(t.top - first.top) < 0.5 && t.height === first.height && !t.clipped,
+      ) &&
+      row.tabs.at(-1).right <= row.search,
+    JSON.stringify(row),
+  );
+}
+
 /** The picker's states on one gallery shot, each pinned. */
 async function picker(ctx, page, shot) {
   await page.getByRole("button", { name: "Reinforcements" }).click();
+  await tabRow(ctx, page, shot);
   const sizes = [];
-  for (const tab of ["REC", "INF", "VEH", "HEL"]) {
+  for (const tab of PINNED_TABS) {
     await page.getByRole("tab", { name: tab, exact: true }).click();
     await pointerAway(page);
     await contained(ctx, page, `${shot} ${tab}`);
@@ -118,7 +152,7 @@ async function picker(ctx, page, shot) {
           cards.map((c) => [Math.round(c.offsetWidth), Math.round(c.offsetHeight)]),
         )),
     );
-    await ctx.matchBaseline(page, `${shot}-${tab.toLowerCase()}`);
+    await ctx.matchBaseline(page, `${shot}-${tabFile(tab)}`);
   }
   // A unit for sale is the army's own vertical card: the deck's card size,
   // whether its tab holds one family or many.
@@ -131,47 +165,110 @@ async function picker(ctx, page, shot) {
     sizes.length > 2 && sizes.every(([w, h]) => w === deckCard[0] && h === deckCard[1]),
     JSON.stringify({ deckCard, sizes }),
   );
-  // Hovering a family shows its info cards, one per variant, in a menu
-  // standing on its card; the picker itself never changes.
-  await page.getByRole("tab", { name: "VEH", exact: true }).click();
+  const short = shot === "purchase-short-of-credits";
+  // What can't be bought now is dimmed, as its variants are; the rest is not.
+  const opacity = (family) =>
+    page
+      .getByRole("button", { name: family, exact: true })
+      .evaluate((b) => Number(getComputedStyle(b).opacity));
+  // A price the player can't pay is the "can't" red that says why, on the
+  // family and on its variant alike; one they can pay is the credits gold;
+  // what is never sold is plain text.
+  const priced = (locator, role) =>
+    locator.locator(".hud-purchase-price").evaluate((price, role) => {
+      const probe = document.createElement("span");
+      probe.style.color = `rgb(var(--hud-${role}))`;
+      price.parentElement.append(probe);
+      const colour = getComputedStyle(probe).color;
+      probe.remove();
+      return getComputedStyle(price).color === colour;
+    }, role);
+
+  // Two families on one tab. Hovering a family shows its info cards, one per
+  // variant, in a menu standing on its card; the picker itself never changes.
+  await page.getByRole("tab", { name: "IFV·APC", exact: true }).click();
   const picker = page.locator(".hud-purchase-picker");
-  const tank = page.getByRole("button", { name: "Tank", exact: true });
-  const before = { picker: await picker.boundingBox(), tank: await tank.boundingBox() };
-  await page.getByRole("button", { name: "Supply Truck", exact: true }).hover();
+  const jeep = page.getByRole("button", { name: "Jeep", exact: true });
+  const apc = page.getByRole("button", { name: "APC", exact: true });
+  const before = { picker: await picker.boundingBox(), jeep: await jeep.boundingBox() };
+  await apc.hover();
   ctx.check(
     `${shot}: a family of one variant shows its one info card`,
     (await page
-      .getByRole("group", { name: "Supply Truck variants" })
+      .getByRole("group", { name: "APC variants" })
       .locator(".hud-purchase-info")
       .count()) === 1,
   );
-  // A menu is open (the supply truck's), so the hover moves after a rest.
-  await tank.hover();
+  // A menu is open (the APC's), so the hover moves after a rest.
+  await jeep.hover();
   await page.waitForTimeout(400);
-  const after = { picker: await picker.boundingBox(), tank: await tank.boundingBox() };
+  const after = { picker: await picker.boundingBox(), jeep: await jeep.boundingBox() };
   const menu = await page.locator(".hud-purchase-stack").boundingBox();
   ctx.check(
     `${shot}: hovering a family leaves the picker and its card where they were`,
     ["x", "y", "width", "height"].every(
       (k) =>
         Math.abs(after.picker[k] - before.picker[k]) < 0.5 &&
-        Math.abs(after.tank[k] - before.tank[k]) < 0.5,
+        Math.abs(after.jeep[k] - before.jeep[k]) < 0.5,
     ),
     JSON.stringify({ before, after }),
   );
   // Like a web hover menu: it stands right on top of its card, over the
   // picker's own header if it must, never off at the picker's edge.
-  const gap = after.tank.y - (menu?.y ?? 0) - (menu?.height ?? 0);
+  const gap = after.jeep.y - (menu?.y ?? 0) - (menu?.height ?? 0);
   ctx.check(
     `${shot}: the variants open right above the hovered card`,
     menu !== null &&
       gap >= 0 &&
       gap <= 6 &&
-      menu.x < after.tank.x + after.tank.width &&
-      menu.x + menu.width > after.tank.x,
-    JSON.stringify({ gap, menu, tank: after.tank }),
+      menu.x < after.jeep.x + after.jeep.width &&
+      menu.x + menu.width > after.jeep.x,
+    JSON.stringify({ gap, menu, jeep: after.jeep }),
+  );
+  // However the menu moves to another family, by resting on it or by
+  // clicking it at once, it stands on that family's own card.
+  const standsOn = async (family) => {
+    const card = await page.getByRole("button", { name: family, exact: true }).boundingBox();
+    const menu = await page.locator(".hud-purchase-stack").boundingBox();
+    const named = (await page.locator(".hud-purchase-stack").getAttribute("aria-label")).replace(
+      / variants$/,
+      "",
+    );
+    const gap = card.y - (menu?.y ?? 0) - (menu?.height ?? 0);
+    return {
+      ok:
+        menu !== null &&
+        named.toLowerCase() === family.toLowerCase() &&
+        gap >= 0 &&
+        gap <= 6 &&
+        Math.abs(menu.x - card.x) < 0.5,
+      detail: JSON.stringify({ named, gap, menu, card }),
+    };
+  };
+  let at = await standsOn("Jeep");
+  ctx.check(`${shot}: resting on another family moves its menu onto that card`, at.ok, at.detail);
+  // A click that buys nothing (the APC is beyond the credits) keeps the
+  // picker open; its menu still stands on the clicked card.
+  if (short) {
+    await apc.click();
+    at = await standsOn("APC");
+    ctx.check(`${shot}: clicking another family moves its menu onto that card`, at.ok, at.detail);
+  }
+  const jeepPrice = {
+    opacity: await opacity("Jeep"),
+    refused: await priced(jeep, "bad"),
+    gold: await priced(jeep, "credits"),
+  };
+  await pointerAway(page);
+  ctx.check(
+    `${shot}: leaving the picker closes the variants`,
+    (await page.locator(".hud-purchase-flyout").count()) === 0,
   );
 
+  // A family of two variants, one never sold: its info cards stacked.
+  await page.getByRole("tab", { name: "MBT", exact: true }).click();
+  const tank = page.getByRole("button", { name: "Tank", exact: true });
+  await tank.hover();
   // One info card per variant, stacked at one left edge and one width,
   // each plate opaque (a dimmed one dims its words, not what's behind it).
   const stacked = await page
@@ -223,38 +320,20 @@ async function picker(ctx, page, shot) {
       ),
     JSON.stringify(stacked),
   );
-  // What can't be bought now is dimmed, as its variants are; the rest is not.
-  const opacity = (family) =>
-    page
-      .getByRole("button", { name: family, exact: true })
-      .evaluate((b) => Number(getComputedStyle(b).opacity));
-  const short = shot === "purchase-short-of-credits";
+  const tankOpacity = await opacity("Tank");
   ctx.check(
     `${shot}: a family is dimmed exactly when it can't be bought now`,
-    (await opacity("Tank")) < 1 === short && (await opacity("Jeep")) === 1,
-    JSON.stringify({ tank: await opacity("Tank"), jeep: await opacity("Jeep") }),
+    tankOpacity < 1 === short && jeepPrice.opacity === 1,
+    JSON.stringify({ tank: tankOpacity, jeep: jeepPrice.opacity }),
   );
-  // A price the player can't pay is the "can't" red that says why, on the
-  // family and on its variant alike; one they can pay is the credits gold;
-  // what is never sold is plain text.
-  const priced = (locator, role) =>
-    locator.locator(".hud-purchase-price").evaluate((price, role) => {
-      const probe = document.createElement("span");
-      probe.style.color = `rgb(var(--hud-${role}))`;
-      price.parentElement.append(probe);
-      const colour = getComputedStyle(probe).color;
-      probe.remove();
-      return getComputedStyle(price).color === colour;
-    }, role);
   {
     const base = page.getByRole("button", { name: /^Base — / });
-    const jeep = page.getByRole("button", { name: "Jeep", exact: true });
     const refused = {
       tank: await priced(tank, "bad"),
       base: await priced(base, "bad"),
-      jeep: await priced(jeep, "bad"),
+      jeep: jeepPrice.refused,
     };
-    const gold = { tank: await priced(tank, "credits"), jeep: await priced(jeep, "credits") };
+    const gold = { tank: await priced(tank, "credits"), jeep: jeepPrice.gold };
     const unsold = page.getByRole("button", { name: / — Unavailable$/ }).first();
     const plain =
       (await unsold.count()) === 0 ||
@@ -271,7 +350,7 @@ async function picker(ctx, page, shot) {
     );
   }
   await contained(ctx, page, `${shot} variants`);
-  await ctx.matchBaseline(page, `${shot}-veh-variants`);
+  await ctx.matchBaseline(page, `${shot}-mbt-variants`);
   // The pointer travels up from the card into the menu without closing it,
   // and leaving the picker closes it.
   const variant = page.getByRole("button", { name: /^Trophy — / });
@@ -281,45 +360,12 @@ async function picker(ctx, page, shot) {
     `${shot}: the pointer reaches a variant with its menu still open`,
     await variant.isVisible(),
   );
-  // However the menu moves to another family, by resting on it or by
-  // clicking it at once, it stands on that family's own card.
-  const standsOn = async (family) => {
-    const card = await page.getByRole("button", { name: family, exact: true }).boundingBox();
-    const menu = await page.locator(".hud-purchase-stack").boundingBox();
-    const named = (await page.locator(".hud-purchase-stack").getAttribute("aria-label")).replace(
-      / variants$/,
-      "",
-    );
-    const gap = card.y - (menu?.y ?? 0) - (menu?.height ?? 0);
-    return {
-      ok:
-        menu !== null &&
-        named.toLowerCase() === family.toLowerCase() &&
-        gap >= 0 &&
-        gap <= 6 &&
-        Math.abs(menu.x - card.x) < 0.5,
-      detail: JSON.stringify({ named, gap, menu, card }),
-    };
-  };
-  const jeep = page.getByRole("button", { name: "Jeep", exact: true });
-  await tank.hover();
-  await jeep.hover();
-  await page.waitForTimeout(400);
-  let at = await standsOn("Jeep");
-  ctx.check(`${shot}: resting on another family moves its menu onto that card`, at.ok, at.detail);
-  // A click that buys nothing (the tank is beyond the credits) keeps the
-  // picker open; its menu still stands on the clicked card.
-  if (short) {
-    await tank.click();
-    at = await standsOn("Tank");
-    ctx.check(`${shot}: clicking another family moves its menu onto that card`, at.ok, at.detail);
-  }
   await pointerAway(page);
   ctx.check(
     `${shot}: leaving the picker closes the variants`,
     (await page.locator(".hud-purchase-flyout").count()) === 0,
   );
-  // The filter narrows the grid across categories; the picture pins the field
+  // The filter narrows the grid across groups; the picture pins the field
   // in the tab row. Captured once, on the full-wallet shot.
   if (!short) {
     const field = page.getByRole("textbox", { name: "Search units" });

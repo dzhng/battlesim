@@ -1,12 +1,20 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { Faction, UnitCard, UnitCategory } from "@packages/scene-assets/src/units";
+import type { Faction, UnitCard } from "@packages/scene-assets/src/units";
 import { hudIcon } from "@packages/scene-assets/src/icons";
 import { isGameKey } from "../input/keyGuard";
 import { useSessionCatalog } from "../catalog/context";
 import { Icon } from "./icons";
 import { InfoPanel } from "./infoPanel";
 import { purchasePanel, type PanelRules } from "./panelRows";
-import { cardPurchasable, enterChoice, filterCards, type BuyFacts } from "./purchaseFilter";
+import {
+  cardPurchasable,
+  enterChoice,
+  filterCards,
+  UNIT_GROUPS,
+  unitGroup,
+  type BuyFacts,
+  type UnitGroup,
+} from "./purchaseFilter";
 import { UnitFace } from "./unitFace";
 import type { PlayerView, SkirmishView } from "../sim/observationView";
 interface PickerProps {
@@ -31,11 +39,10 @@ function Price({ cost, credits, unsold }: { cost: number; credits: number; unsol
  *  before the hover moves to it. */
 const HOVER_INTENT_MS = 250;
 
-const CATEGORIES: readonly UnitCategory[] = ["rec", "inf", "veh", "sup", "hel", "air"];
 /** The shop's key. V sits beside the command cluster and names nothing else. */
 const REINFORCEMENTS_KEY = { code: "KeyV", label: "V" } as const;
 /** The Reinforcements button, its key and the credits. The menu exists only
- *  while open, so every opening starts fresh: first category, empty filter. */
+ *  while open, so every opening starts fresh: first group, empty filter. */
 export function PurchasePicker({ match, player, enabled = true, ...menu }: PickerProps) {
   const viewingPlayer = player ?? match.players[0];
   if (!viewingPlayer) return null;
@@ -100,7 +107,7 @@ interface MenuProps extends Omit<PickerProps, "player"> {
 /** Catalog families organize browsing; only a concrete available variant starts placement. */
 function PurchaseMenu({ cards, faction, match, player, onChoose, rules, onClose }: MenuProps) {
   const catalog = useSessionCatalog();
-  const [category, setCategory] = useState<UnitCategory>("rec");
+  const [group, setGroup] = useState<UnitGroup>(UNIT_GROUPS[0].id);
   const [family, setFamily] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const search = useRef<HTMLInputElement>(null);
@@ -142,16 +149,18 @@ function PurchaseMenu({ cards, faction, match, player, onChoose, rules, onClose 
     if (menuOpen && id !== family) pendingHover.current = setTimeout(show, HOVER_INTENT_MS);
     else show();
   };
-  // A search spans the roster; browsing shows the category. Both feed the
-  // same family grouping.
+  // A search spans the roster; browsing shows the group, read from each
+  // card's type where it has one. Both feed the same family grouping.
   const pool = searching
     ? filterCards(available, query)
-    : available.filter((c) => c.roster.category === category);
+    : available.filter(
+        (c) => unitGroup(c, catalog.units.has(c.id) ? catalog.units.type(c.id) : null) === group,
+      );
   const families = new Map<string, UnitCard[]>();
   for (const card of pool) {
-    const group = families.get(card.family) ?? [];
-    group.push(card);
-    families.set(card.family, group);
+    const variants = families.get(card.family) ?? [];
+    variants.push(card);
+    families.set(card.family, variants);
   }
   const chosen = families.get(family ?? "") ?? [];
   // Enter buys the sole family's first available variant; with several
@@ -159,9 +168,9 @@ function PurchaseMenu({ cards, faction, match, player, onChoose, rules, onClose 
   const enter = searching ? enterChoice(pool, facts) : null;
   // A tab is shown as soon as the pointer or focus reaches it; a click does
   // the same, for touch. Passing back over the shown tab changes nothing.
-  const showCategory = (c: UnitCategory) => {
-    if (searching || c === category) return;
-    setCategory(c);
+  const showGroup = (g: UnitGroup) => {
+    if (searching || g === group) return;
+    setGroup(g);
     cancelHover();
     setFamily(null);
   };
@@ -174,7 +183,7 @@ function PurchaseMenu({ cards, faction, match, player, onChoose, rules, onClose 
       <div
         className="hud-purchase-families"
         role="tabpanel"
-        aria-label={searching ? "Search results" : category.toUpperCase()}
+        aria-label={searching ? "Search results" : UNIT_GROUPS.find((g) => g.id === group)?.label}
       >
         {[...families].map(([id, variants]) => {
           // Every card has its generated silhouette, keyed by card id: a
@@ -216,21 +225,21 @@ function PurchaseMenu({ cards, faction, match, player, onChoose, rules, onClose 
           on its card, never cover them. The filter stands at the row's right,
           beside the tabs, and dims them while it owns the search. */}
       <div className="hud-purchase-filter">
-        <div className="hud-purchase-categories" role="tablist" aria-label="Unit categories">
-          {CATEGORIES.map((c) => (
+        <div className="hud-purchase-groups" role="tablist" aria-label="Unit groups">
+          {UNIT_GROUPS.map(({ id, label }) => (
             <button
-              key={c}
+              key={id}
               type="button"
               role="tab"
               className="hud-menu-choice"
               disabled={searching}
-              aria-selected={!searching && c === category}
+              aria-selected={!searching && id === group}
               onMouseDown={(event) => event.preventDefault()}
-              onMouseEnter={() => showCategory(c)}
-              onFocus={() => showCategory(c)}
-              onClick={() => showCategory(c)}
+              onMouseEnter={() => showGroup(id)}
+              onFocus={() => showGroup(id)}
+              onClick={() => showGroup(id)}
             >
-              {c.toUpperCase()}
+              {label}
             </button>
           ))}
         </div>

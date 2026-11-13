@@ -1,6 +1,40 @@
-/** The reinforcements picker's filter: matching, buyability and the Enter
- *  choice, as pure data. */
-import type { UnitCard } from "@packages/scene-assets/src/units";
+/** The reinforcements picker's filter: the groups it browses by, matching,
+ *  buyability and the Enter choice, as pure data. */
+import type { UnitCard, UnitCategory, UnitType } from "@packages/scene-assets/src/units";
+
+/** A browsing group: one category's cards, narrowed by role. */
+export type UnitGroup = "rec" | "inf" | "mbt" | "ifv_apc" | "arty" | "aa" | "log" | "hel" | "air";
+
+/** The groups the picker and the Armory browse by, in their tab order, each
+ *  with its tab label. Presentation only: the card's category stays the game
+ *  rule (who holds objectives, what the AI buys), and each group holds one
+ *  category's cards. A group holds its category's types with one of its
+ *  `roles`; `null` holds the rest of its category. */
+export const UNIT_GROUPS: readonly {
+  id: UnitGroup;
+  label: string;
+  category: UnitCategory;
+  roles: readonly string[] | null;
+}[] = [
+  { id: "rec", label: "REC", category: "rec", roles: null },
+  { id: "inf", label: "INF", category: "inf", roles: null },
+  { id: "mbt", label: "MBT", category: "veh", roles: ["mbt"] },
+  { id: "ifv_apc", label: "IFV·APC", category: "veh", roles: null },
+  { id: "arty", label: "ARTY", category: "sup", roles: ["artillery"] },
+  { id: "aa", label: "AA", category: "sup", roles: ["air_defense"] },
+  { id: "log", label: "LOG", category: "sup", roles: ["logistics"] },
+  { id: "hel", label: "HELI", category: "hel", roles: null },
+  { id: "air", label: "JETS", category: "air", roles: null },
+];
+
+/** The group a card browses under: the first of its category's groups that
+ *  holds its type's roles. A card with no type yet (a planned one), or a
+ *  role none holds, lands in its category's first group. */
+export function unitGroup(card: UnitCard, unit: Pick<UnitType, "roles"> | null): UnitGroup {
+  const own = UNIT_GROUPS.filter((g) => g.category === card.roster.category);
+  const held = unit && own.find((g) => g.roles?.some((r) => unit.roles.includes(r)) ?? true);
+  return (held || own[0]).id;
+}
 
 /** What the battle observes about buying right now. */
 export interface BuyFacts {
