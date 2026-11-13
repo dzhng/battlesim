@@ -1,7 +1,7 @@
 /* The Armory, layout A: the list's panel on the left with the page's head on
    top of it, the open card's sheet on the right, and the stage between them,
-   clear to whatever stands behind (the menu's backdrop, until the stage is
-   built). Every colour is a `--hud-*` property. */
+   its yard drawn across the whole screen behind both (the menu's backdrop
+   shows where none is drawn). Every colour is a `--hud-*` property. */
 
 .menu[data-open="armory"] {
   grid-template-columns: minmax(0, 1fr);
@@ -31,11 +31,12 @@
 .menu[data-open="armory"] .hud-panel.menu-body::after {
   content: none;
 }
-/* The head stands at the top of the list's panel, inside its frame. */
+/* The head stands at the top of the list's panel, inside its frame, above
+   the panel (which stands above the stage's canvas). */
 .menu[data-open="armory"] .menu-page-head {
   grid-column: 1;
   grid-row: 1;
-  z-index: 1;
+  z-index: 2;
   margin: 14px 16px 0;
 }
 
@@ -137,10 +138,64 @@
 
 /* ---- The stage ------------------------------------------------------- */
 .armory-stage {
+  position: relative;
   grid-column: 2;
   grid-row: 1 / -1;
   min-width: 0;
   min-height: 0;
+}
+/* The yard fills the whole screen behind the panels, as in the mock: the
+   canvas is fixed under the plate, and the unit is framed in this cell. */
+.armory-stage-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+}
+/* While a switch is under way the unit just left is blurred and dimmed, and
+   so is the frame held while the next is built, so the pause reads as a
+   change, never as the wrong unit. */
+.armory-stage-canvas {
+  transition:
+    filter 120ms,
+    transform 120ms;
+}
+/* Scaled a little, so the blur's soft rim falls off screen. */
+.armory-stage[data-switching] .armory-stage-canvas {
+  filter: blur(8px) brightness(0.6) saturate(0.7);
+  transform: scale(1.04);
+}
+.armory-list,
+.armory-sheet,
+.armory-stage-error {
+  z-index: 1;
+}
+/* A stage that failed says so where the unit would stand, as the loading
+   screen words a failure. */
+.armory-stage-error {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 8px;
+  padding: 0 12%;
+  text-align: center;
+  color: rgb(var(--hud-text));
+  text-shadow: var(--hud-text-halo);
+}
+.armory-stage-error p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.armory-stage-error-title {
+  font: 700 18px/1.2 var(--hud-font);
+  text-transform: uppercase;
+  color: rgb(var(--hud-bad));
+}
+.armory-stage-error-detail {
+  font-size: 13px;
+  color: rgb(var(--hud-dim));
 }
 
 /* ---- The sheet ------------------------------------------------------- */

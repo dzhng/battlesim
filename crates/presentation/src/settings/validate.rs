@@ -1,6 +1,6 @@
 //! Value constraints for the typed view sections. Bounds protect geometry,
 //! fades and GPU records, rather than pinning any authored tuning.
-use super::PresentationSettings;
+use super::{CameraClearance, PresentationSettings};
 use serde::Serialize;
 use serde_json::Value;
 
@@ -56,6 +56,11 @@ pub(super) fn presentation(s: &PresentationSettings) -> Result<(), String> {
     ground(&s.terrain)?;
     s.overlay.check()?;
     numbers(&s.camera, "presentation.camera", &[".yaw"])?;
+    numbers(
+        &s.camera_armory,
+        "presentation.camera_armory",
+        &[".pitch_limits[0]", ".pitch_limits[1]"],
+    )?;
     numbers(&s.overlay, "presentation.overlay", &[])?;
     numbers(&s.hud, "presentation.hud", &[])?;
     numbers(&s.contacts, "presentation.contacts", &[".hatch_angle_deg"])?;
@@ -70,13 +75,7 @@ pub(super) fn presentation(s: &PresentationSettings) -> Result<(), String> {
     )?;
     let positive = |p: &str, v| range(&format!("presentation.{p}"), v, f64::MIN_POSITIVE, f64::MAX);
     let c = &s.camera;
-    range(
-        "presentation.camera.fov_y",
-        c.fov_y,
-        0.01,
-        std::f64::consts::PI - 0.01,
-    )?;
-    positive("camera.near_m", c.near_m)?;
+    lens("presentation.camera", c.fov_y, c.near_m)?;
     positive("camera.zoom_min", c.zoom_min)?;
     if c.zoom_max <= c.zoom_min {
         return Err("presentation.camera.zoom_max: must exceed zoom_min".into());
@@ -102,26 +101,8 @@ pub(super) fn presentation(s: &PresentationSettings) -> Result<(), String> {
     if c.pitch_curve[0][0] > c.zoom_min || c.pitch_curve.last().unwrap()[0] < c.zoom_max {
         return Err("presentation.camera.pitch_curve: must cover the zoom range".into());
     }
-    let clearance = &c.clearance;
-    for (key, v) in [
-        ("lift_steps", clearance.lift_steps),
-        ("slide_steps", clearance.slide_steps),
-        ("sweep_max_steps", clearance.sweep_max_steps),
-    ] {
-        if v.fract() != 0.0 {
-            return Err(format!(
-                "presentation.camera.clearance.{key}: must be an integer"
-            ));
-        }
-        range(
-            &format!("presentation.camera.clearance.{key}"),
-            v,
-            1.0,
-            64.0,
-        )?;
-    }
-    positive("camera.clearance.smoothing_s", clearance.smoothing_s)?;
-    positive("camera.clearance.sweep_step_m", clearance.sweep_step_m)?;
+    clearance("presentation.camera.clearance", &c.clearance)?;
+    armory_camera(s)?;
     for (key, value) in [
         ("hud", serde_json::to_value(&s.hud)),
         ("overlay", serde_json::to_value(&s.overlay)),
@@ -132,23 +113,6 @@ pub(super) fn presentation(s: &PresentationSettings) -> Result<(), String> {
             &value.map_err(|e| e.to_string())?,
             &format!("presentation.{key}"),
         )?;
-    }
-    range(
-        "presentation.camera.clearance.refine_steps",
-        clearance.refine_steps,
-        0.0,
-        16.0,
-    )?;
-    if clearance.refine_steps.fract() != 0.0 {
-        return Err("presentation.camera.clearance.refine_steps: must be an integer".into());
-    }
-    for (key, v) in [
-        ("release_m", clearance.release_m),
-        ("lift_max_m", clearance.lift_max_m),
-        ("slide_max_m", clearance.slide_max_m),
-        ("slide_max_rad", clearance.slide_max_rad),
-    ] {
-        positive(&format!("camera.clearance.{key}"), v)?;
     }
     range(
         "presentation.buildings.chunk_m",
@@ -289,4 +253,75 @@ fn display(value: &Value, path: &str) -> Result<(), String> {
         _ => {}
     }
     Ok(())
+}
+
+/// A camera's lens: a field of view short of a half turn, and a near plane in
+/// front of the eye.
+fn lens(path: &str, fov_y: f64, near_m: f64) -> Result<(), String> {
+    range(
+        &format!("{path}.fov_y"),
+        fov_y,
+        0.01,
+        std::f64::consts::PI - 0.01,
+    )?;
+    range(
+        &format!("{path}.near_m"),
+        near_m,
+        f64::MIN_POSITIVE,
+        f64::MAX,
+    )
+}
+
+/// How a camera keeps clear: whole step counts the resolver can run, and
+/// reaches and times it can move by.
+fn clearance(path: &str, c: &CameraClearance) -> Result<(), String> {
+    let whole = |key: &str, v: f64, lo, hi| {
+        if v.fract() != 0.0 {
+            return Err(format!("{path}.{key}: must be an integer"));
+        }
+        range(&format!("{path}.{key}"), v, lo, hi)
+    };
+    whole("lift_steps", c.lift_steps, 1.0, 64.0)?;
+    whole("slide_steps", c.slide_steps, 1.0, 64.0)?;
+    whole("sweep_max_steps", c.sweep_max_steps, 1.0, 64.0)?;
+    whole("refine_steps", c.refine_steps, 0.0, 16.0)?;
+    for (key, v) in [
+        ("smoothing_s", c.smoothing_s),
+        ("sweep_step_m", c.sweep_step_m),
+        ("release_m", c.release_m),
+        ("lift_max_m", c.lift_max_m),
+        ("slide_max_m", c.slide_max_m),
+        ("slide_max_rad", c.slide_max_rad),
+    ] {
+        range(&format!("{path}.{key}"), v, f64::MIN_POSITIVE, f64::MAX)?;
+    }
+    Ok(())
+}
+
+/// The Armory's orbit: a lens, a pitch range that opens upward within
+/// straight down and straight up, framing that shrinks from the nearest zoom
+/// (at most filling the cell) through the opening to the farthest, and the
+/// clearance every camera has.
+fn armory_camera(s: &PresentationSettings) -> Result<(), String> {
+    let c = &s.camera_armory;
+    let path = "presentation.camera_armory";
+    lens(path, c.fov_y, c.near_m)?;
+    let half = std::f64::consts::FRAC_PI_2;
+    let [low, high] = c.pitch_limits;
+    if !(-half < low && low < high && high < half) {
+        return Err(format!(
+            "{path}.pitch_limits: must rise within (-pi/2, pi/2), got [{low}, {high}]"
+        ));
+    }
+    let f = &c.framing;
+    if !(0.0 < f.far && f.far < f.open && f.open <= f.near && f.near <= 1.0) {
+        return Err(format!(
+            "{path}.framing: must satisfy 0 < far < open <= near <= 1, got far {} open {} near {}",
+            f.far, f.open, f.near
+        ));
+    }
+    for (key, v) in [("zoom_speed", c.zoom_speed), ("orbit_speed", c.orbit_speed)] {
+        range(&format!("{path}.{key}"), v, f64::MIN_POSITIVE, f64::MAX)?;
+    }
+    clearance(&format!("{path}.clearance"), &c.clearance)
 }

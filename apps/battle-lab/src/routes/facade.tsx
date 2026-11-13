@@ -26,7 +26,7 @@ import { gameCamera } from "../gameCamera";
 import { gameLight } from "../gameLight";
 import { LabViewport } from "../LabViewport";
 import type { ViewportPilot } from "../viewportRender";
-import { plainWorld } from "../workbench/benchWorld";
+import { plainWorld } from "../plainWorld";
 
 const KIT = "city_kit_facade_lab";
 /** What this page asks the loader for: no map places this kit. */

@@ -40,6 +40,7 @@ pub struct PresentationSettings {
     pub terrain: TerrainTuning,
     pub ground: Ground,
     pub camera: Camera,
+    pub camera_armory: ArmoryCamera,
     pub light: LightSettings,
     pub fog_geometry: Geometry,
     pub fog: FogPresentation,

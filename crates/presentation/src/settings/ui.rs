@@ -41,6 +41,32 @@ pub struct Camera {
     pub clearance: CameraClearance,
 }
 
+/// How large the Armory frames its unit: the fraction of the stage's cell
+/// (its narrower side) the unit's bounding sphere spans at the opening, the
+/// nearest and the farthest zoom.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ArmoryFraming {
+    pub open: f64,
+    pub near: f64,
+    pub far: f64,
+}
+
+/// The Armory's orbit round the one unit on show (`camera_armory`): its
+/// lens, its pitch range (which may dip below the horizon, unlike the
+/// battle's), drag and wheel speeds, framing and clearance.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ArmoryCamera {
+    pub fov_y: f64,
+    pub near_m: f64,
+    pub pitch_limits: [f64; 2],
+    pub zoom_speed: f64,
+    pub orbit_speed: f64,
+    pub framing: ArmoryFraming,
+    pub clearance: CameraClearance,
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct OverlayGlow {

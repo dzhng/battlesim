@@ -16,7 +16,7 @@ and the map disagree, this README wins. The disagreements are listed in
 
 ## Next Agent Prompt
 
-**Status (2026-11-13):** slices 01–10 and 13 are merged into
+**Status (2026-11-13):** slices 01–13 are merged; the Armory is playable on the placeholder yard into
 `t3/unit-explorer-armory`, and staging is merged in (`736eff7d8`). The
 integrated tree is green on the cross-lane checks:
 - contract weapons, showground, showcase;
@@ -30,12 +30,19 @@ so slices 14–17 may start. Run them one lane at a time while disk is tight.
 
 **Pickup:**
 1. The `armory/mil` lane is running slices 14 and 17. Merge it when it lands.
-2. Now **11**: read its "Art per selection" note first, because
-   `ShowcaseStage.show` takes each selection's art.
-3. Then **12**, and **14 → 15 → 16**, with **17** after 14.
-4. Re-shoot the tutorial's `buy.jpg` on the merged tree. Both sides re-shot it
+2. Then **15** (military art) and **16** (the yard swapped to it). Slice 16
+   also owns the flat sand ground and its tan-on-tan contrast.
+3. Re-shoot the tutorial's `buy.jpg` on the merged tree. Both sides re-shot it
    before the staging merge; ours kept the nine-group picker over an older
    battle.
+4. Then **18**. Add these to its run:
+   - the `street` app-flow tour, which now includes an Armory round trip;
+   - the first open of `/armory`, which takes 15–19 s while the menu's
+     background prefetch downloads every runtime file. Judge it against the
+     load line;
+   - slice 08's sheet at 1280, cut off with no scroll cue;
+   - a jet's "Sight · ground 1 m", which comes from the roster data. Decide
+     how the sheet shows a sense the unit doesn't have.
 
 The lanes worked from
 [`throwaway/armory/LANE-BRIEF.md`](../../throwaway/armory/LANE-BRIEF.md), an
@@ -126,9 +133,9 @@ battle-wide decision for the user.
   library.
 - [x] [10](slices/10-yard-document.md) The yard document and spots, with a
   placeholder yard.
-- [ ] [11](slices/11-armory-stage.md) The Armory stage: composition, loading,
+- [x] [11](slices/11-armory-stage.md) The Armory stage: composition, loading,
   detection, errors, backdrop.
-- [ ] [12](slices/12-armory-camera.md) The Armory camera.
+- [x] [12](slices/12-armory-camera.md) The Armory camera.
 - [x] [13](slices/13-steading-refactor.md) Steading refactor: zero output
   change.
 - [ ] [14](slices/14-military-rows.md) Military prop rows and

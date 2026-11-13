@@ -66,6 +66,28 @@
       "sweep_max_steps": 32
     }
   },
+  "camera_armory": {
+    "fov_y": 0.8,
+    "near_m": 0.2,
+    "pitch_limits": [-0.15, 1.1],
+    "zoom_speed": 0.0012,
+    "orbit_speed": 2.5,
+    "framing": {"open": 0.85, "near": 1.0, "far": 0.4},
+    "clearance": {
+      "margin_m": 0.3,
+      "release_m": 0.4,
+      "lift_max_m": 8,
+      "lift_steps": 4,
+      "slide_max_m": 8,
+      "slide_max_rad": 0.6,
+      "slide_steps": 4,
+      "refine_steps": 6,
+      "smoothing_s": 0.25,
+      "lookahead_s": 0.5,
+      "sweep_step_m": 0.5,
+      "sweep_max_steps": 32
+    }
+  },
   "light": {
     "sun_azimuth": -0.35,
     "sun_elevation": 0.7,

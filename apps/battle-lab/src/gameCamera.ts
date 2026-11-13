@@ -4,6 +4,7 @@ import generated from "@fixtures/generated-battle.json";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import {
   CameraController,
+  PITCH_LIMITS,
   type CameraPresentation,
 } from "@packages/renderer-core/src/cameraController";
 
@@ -11,6 +12,7 @@ const presentation = presentationSettings.camera;
 const config: CameraPresentation = {
   ...presentation,
   pitch_curve: presentation.pitch_curve as [number, number][],
+  pitch_limits: PITCH_LIMITS,
 };
 const rig = new CameraController(config);
 

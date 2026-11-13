@@ -582,3 +582,169 @@ needs-user).
   start and end on the sheet's one bar column. Its notes on per-figure bar
   scales are the given (U9); its note on bar direction is the magnitudes
   choice above, left to the user. *Sound.*
+
+## Slice 11
+
+- **`ShowcaseStage.show(unit, seed, art)` takes a `StageArt`
+  (`{ appearances, runtime }`), and `create` is synchronous and takes no art.**
+  `ArmoryAppearances.show` returns that same type; slice 09's `ArmoryArt` is
+  gone, so there is one type for one concept. The stage builds no scene
+  until its first show. *Why:* `create` had no art to draw before the first
+  pick, so building a ground-only scene there only to rebuild it at once
+  would be a wasted admission. *Alternative:* keep `ArmoryArt` as a second
+  name for the same shape. *Sound.*
+- **`StageOptions.models` is a function of each show's appearances**
+  (`(installed) => readonly LabModel[]`). *Why:* the yard's props are
+  resolved against installed art (`yardModels`), and the art now arrives per
+  show. *Alternative:* load the first selection's art before `create`, which
+  ties the stage's construction to a pick. *Sound.*
+- **A superseded rebuild is dropped by its show's number**, not by whether a
+  scene is already installed. The old guard could keep an older scene and
+  drop the newer one when two shows' rebuilds finished out of order. *Sound.*
+- **The showcase lab is on `ArmoryAppearances`, one per panel, in both
+  modes.** `useGameAppearances` and `gameRuntime` left the lab, and the yard's
+  scenery names come from `ArmoryAppearances.catalog()`, so the art load
+  reuses the catalog bytes. The aircraft probe (`parkedAircraft`) keeps the
+  shared library, because it loads every aircraft at once. *Sound.*
+- **One owner for what both pages build a stage from:** `armory/stageInputs.ts`
+  (`STAGE_LOOK`, `useStageFielding`, `useShowground`, `SQUAD_SEED`), and
+  `armory/stageProbes.ts` (drawn models, grounding, world and screen boxes)
+  for both pages' scenes. *Sound.*
+- **`plainWorld` moved to `apps/battle-lab/src/plainWorld.ts`,** with no
+  top-level await. It never needed the presentation module (`bareTerrain` is
+  plain data), and the Armory is in the menu's bundle, so importing
+  `benchWorld` would have made the menu's module graph wait on the
+  presentation load and pulled the bench's posing code into Armory code.
+  *Sound.*
+- **The yard's ground reaches 2 km (`yard.json` `ground.half_m`), and a plain
+  ground's cells scale so the mesh stays a hundred cells a side.** At 250 m
+  the ground's edge read as a band under the horizon. At 2 km it meets the
+  sky in the haze, and the shadows are unchanged on the screenshots. *Why
+  here:* the slice was asked to settle the band with the backdrop.
+  *Provisional:* slice 16's military ground may set its own reach.
+- **The stage draws the whole screen behind the glass panels**, with the
+  unit framed in the centre cell (`armoryCamera.ts` `framedOrbit` slides the
+  target so the orbit's centre falls in that cell). *Why:* the mock's layout
+  A has the yard filling the screen behind the panels, and the first
+  unprimed critique read a canvas confined to the cell as "two scenes stuck
+  side by side": a midday yard beside the amber backdrop. The backdrop shows
+  only where no stage is drawn (a planned card first opened, a failure).
+  *Alternative:* a framed viewport in the cell. *Provisional:* the human
+  judges the composition.
+- **A switch holds the last frame drawn and blurs the stage while it is
+  under way.** Each show rebuilds the scene, and a freed renderer leaves the
+  canvas clear, so the amber backdrop flashed through on every pick. A 2D
+  canvas behind the live one holds the last frame. A `data-switching` mark
+  on the cell blurs, dims and slightly scales both canvases until the next
+  unit stands, so the pause reads as a change, not as the unit just left.
+  *Alternative:* an in-place row swap in `BrowserScene` (slice 04's open
+  note), a renderer change for every caller. *Provisional.*
+- **A planned card asks for nothing:** the stage shows the yard alone from
+  the art already on show, or nothing if no unit was shown yet. *Sound.*
+- **Failures throw into `ArmoryStageBoundary`,** a React error boundary that
+  draws the error in the cell and clears itself on the next pick, which
+  builds the stage again. Asynchronous failures (art, fielding, scene
+  admission) are thrown from render into the same boundary. One surface, and
+  the shell's cover lifts on a failure. Copy: "This unit can't be shown",
+  the error, then "Its sheet is still here. Pick another unit, or reload to
+  try again." *Provisional:* wording.
+- **`MenuShell`'s `LoadingTasks` wraps the plate too**, so the stage's
+  `renderer` task holds the first cover until it draws. No other menu page
+  reports a task. *Sound.*
+- **`AppAudio.stats()` reports `showVoices`,** the show loops sounding, for
+  the scene's "voices on /armory, none after Back" check. *Sound.*
+- **The scene's probe is `window.__armory`** (`armoryProbe.ts`): the unit on
+  show, its spot, its ground gaps and screen bounds, the files its art holds,
+  the switches, and the voices. The voices and switches outlive the stage, so
+  the count can be read after Back. It follows the battle's `window.__lab`,
+  which also lives on player pages. *Sound.*
+- **The load line (S5) is what `ArmoryAppearances` holds for a selection**
+  (`held()`: the files the newest selection read, with the yard and the
+  catalog), not resource-timing bytes. Resource timing also counts the
+  menu's background prefetch of every runtime file, which showed 200–300 MB
+  per switch that the Armory never asked for. *Sound.*
+- **The app journey's Armory round trip compares with the menu alone:** the
+  allocations a visit leaves alive must be no more than the backdrop leaves
+  over as long a stretch on its own, because the backdrop's battle keeps
+  allocating behind the stage. *Sound.*
+- **The `armory` and `armory-1920` UI baselines are not re-recorded.** The
+  gallery pins the page without a stage (slice 08), and the live stage
+  animates, so it can't be a pixel baseline. Every `ui` baseline still
+  matches on this tree. The stage's pictures are the `armory` scene's
+  evidence. *Sound.*
+- **The unit tests drive the real menu under `AppShell`** (`visitShell` in
+  `tests/support/router.tsx`), because the stage needs the app's audio. The
+  3D stage, its art and the squad scatter are stand-ins there; the scene
+  judges the drawn page. *Sound.*
+
+## Slice 12
+
+- **`camera_armory` is a section of `fixtures/presentation.json`, admitted in
+  Rust** (`ArmoryCamera` in `crates/presentation/src/settings/ui.rs`).
+  Validation checks:
+  - the lens;
+  - a pitch range that rises within (−π/2, π/2);
+  - framing with `0 < far < open <= near <= 1`;
+  - positive speeds;
+  - the same clearance checks as the battle camera, now one shared
+    function (`clearance`).
+
+  *Why:* the document refuses unknown fields, and the slice names it as
+  the config's home. This lane therefore changes Rust and built its own
+  wasm. *Sound.*
+- **`CameraPresentation` carries `pitch_limits`, and `CameraController`
+  reads them from config.** The battle's config sets them to
+  `PITCH_LIMITS`, its unchanged values, in `gameCamera.ts`; every other
+  battle rig spreads that config. *Why:* one controller with each camera's
+  own range, as the slice asks, and no second clamp path. *Alternative:* add
+  `pitch_limits` to the battle's fixture `camera` too, which would move a
+  battle constant into data without being asked. *Sound.*
+- **The seam is a class and a hook, not one hook returning a camera.**
+  - `ArmoryCamera` holds the orbit, framing and clearance state, and gives
+    the camera for a frame (`presented(view, cell, width, height, dt)`).
+  - `useArmoryCamera(canvasRef, camera)` wires left-drag and the wheel on
+    the canvas alone.
+
+  *Why:* the stage draws from its own frame loop, outside React, and a
+  unit's bounds arrive when its show resolves, not as a prop.
+  *Alternative:* the slice's `useArmoryCamera(canvas, bounds, spot):
+  PresentedCamera`, which would re-render React on every frame. *Sound.*
+- **Framing is fitted per unit and per view angle.**
+  - At a given orbit angle, each framing is the distance at which the
+    unit's rest-pose box spans that fraction of the centre cell across and
+    up: every corner, from its own depth along the view.
+  - The wheel reaches from `near` (1.0: the box fills the cell, nothing
+    clipped) to `far` (0.4); a unit opens at `open` (0.85).
+  - Turning keeps the zoom, and turns that would clip the box push the eye
+    back.
+
+  *Why:* a fixed spot camera is sized for the largest body. A bounding
+  sphere, the first try, framed a helicopter loosely, because its rotor
+  sweep's diagonal sized it. *Provisional:* the rotor sweep still makes a
+  helicopter's box square round its disc, so its nearest zoom is less
+  tight than a tank's.
+- **A unit's bounds come from data, not from a drawn frame.**
+  - A hull: its model at rest, from the art, as it stands on its spot.
+  - A squad: the scatter the simulation gave, each soldier a soldier tall
+    (`rules.physics.soldier_height_m`), half a metre round his feet.
+
+  *Why:* the presentation culls by the camera, so a frame drawn from the
+  previous spot's camera may miss the new unit. *Sound.*
+- **The camera opens at the spot's yaw and pitch (`yard.json`), aimed at
+  the unit's centre**; the spot's own target and distance remain the yard's
+  view for a planned card. *Sound.*
+- **The eye keeps clear through renderer-core's clearance** (`resolve`)
+  over the unit's box and each yard prop's authored box, on flat ground at
+  height 0. The lowest pitch, −0.15 rad, is held above the ground by the
+  clearance, so at the nearest zoom the unit stands against the sky with the
+  horizon under it. *Sound.*
+- **Speeds and limits (data, provisional):** a drag turns 2.5 rad per
+  viewport height, as the battle's middle-drag does. Zoom speed 0.0012 per
+  wheel pixel. Pitch from −0.15 to 1.1 rad: the unprimed critique read the
+  first ceiling, 1.25, as a flat map view. Near plane 0.2 m. Clearance
+  margin 0.3 m. *Provisional:* the feel is the user's to tune.
+- **No inertia.** The clearance spring already eases the eye. *Provisional.*
+- **The camera tour drives real input** (mouse drag and wheel on the stage)
+  through 8 yaws × 3 pitches × the nearest and farthest zoom, for one unit
+  on each spot. It checks the eye against the unit's bounds, every prop box
+  and the ground, from the probe's camera readout. *Sound.*

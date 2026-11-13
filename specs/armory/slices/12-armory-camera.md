@@ -1,5 +1,7 @@
 # 12 · The Armory camera
 
+Status: done 2026-11-13, commit: the one that sets this line
+
 Map row: L7. Depends on 11.
 
 ## Contract

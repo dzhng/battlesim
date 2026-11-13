@@ -602,6 +602,45 @@ fn camera_clearance_and_curve_are_admitted_before_control() {
 }
 
 #[test]
+fn armory_camera_is_admitted_before_control() {
+    // Its pitch range may dip below the horizon, never past straight up or
+    // down, and must open upward.
+    for limits in [
+        json!([0.5, 0.5]),
+        json!([0.6, 0.5]),
+        json!([-1.6, 0.5]),
+        json!([0.1, 1.6]),
+    ] {
+        reject_presentation(
+            "/camera_armory/pitch_limits",
+            limits,
+            "camera_armory.pitch_limits",
+        );
+    }
+    // Framing: the unit's sphere fills the cell at most at the nearest zoom,
+    // and less at the opening and less again at the farthest.
+    for (key, value) in [("near", 1.01), ("near", 0.0), ("far", 0.0), ("open", 2.0)] {
+        reject_presentation(
+            &format!("/camera_armory/framing/{key}"),
+            json!(value),
+            "camera_armory.framing",
+        );
+    }
+    reject_presentation("/camera_armory/fov_y", json!(0), "camera_armory.fov_y");
+    reject_presentation("/camera_armory/near_m", json!(0), "camera_armory.near_m");
+    reject_presentation(
+        "/camera_armory/clearance/lift_steps",
+        json!(1.5),
+        "camera_armory.clearance.lift_steps",
+    );
+    reject_presentation(
+        "/camera_armory/clearance/smoothing_s",
+        json!(0),
+        "camera_armory.clearance.smoothing_s",
+    );
+}
+
+#[test]
 fn weapon_look_lights_and_impact_scales_are_refused_at_document_admission() {
     for (pointer, value) in [
         ("/weapon_looks/tank_sabot/flash/cast/radius_m", json!(0)),

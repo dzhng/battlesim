@@ -9,7 +9,9 @@ import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import type { RuntimeCatalog } from "@packages/scene-assets/src/schema";
 import { propsDrawnBy } from "@packages/scene-assets/src/scenery";
 import type { CatalogView, UnitType } from "@packages/scene-assets/src/units";
+import type { WorldLayers } from "@packages/battle-renderer/src/scene";
 import type { LabModel } from "@web/battle/sim/presentationModels";
+import { plainWorld } from "../plainWorld";
 
 export type SpotId = "apron" | "motor_pool" | "tents";
 /** What a unit stands as, for the spot it takes. */
@@ -81,6 +83,13 @@ export function admitYard(raw: unknown): YardDocument {
 
 /** The yard the Armory stands its units in. */
 export const yard = admitYard(yardJson);
+
+let world: WorldLayers | null = null;
+/** The yard's flat ground as a stage's world, built once. */
+export function yardWorld(): WorldLayers {
+  world ??= plainWorld(yard.ground.tint, yard.ground.half_m);
+  return world;
+}
 
 /** What `unit` stands as: a squad, a hull with a flight model, or any other
  *  hull. */

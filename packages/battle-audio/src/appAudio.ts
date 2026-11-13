@@ -430,6 +430,8 @@ export class AppAudio {
       menuReady: this.menuPreparation.status === "ready",
       menuPlaying: this.menuPlaying,
       menuVoices: this.graph?.menu.live ?? 0,
+      /** Show loops sounding now (`showLoops`). */
+      showVoices: this.showVoices.size,
       error:
         this.contextError ??
         (this.menuPreparation.status === "failed" ? this.menuPreparation.error : null),

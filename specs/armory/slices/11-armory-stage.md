@@ -1,5 +1,7 @@
 # 11 · The Armory stage
 
+Status: done 2026-11-13, commit: the one that sets this line
+
 Map rows: Q1′, Q6, D1, L5, L8, L9, L10, L11. Depends on 07, 08, 09 and 10.
 
 ## Contract

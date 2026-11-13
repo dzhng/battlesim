@@ -1,5 +1,5 @@
 {
-  "ground": {"half_m": 250, "tint": [0.47, 0.45, 0.38, 1]},
+  "ground": {"half_m": 2000, "tint": [0.47, 0.45, 0.38, 1]},
   "spots": {
     "apron": {"at": [48, 6], "yaw": 0.0, "clear_m": 15, "camera": {"target": [48, 6, 2.0], "distance": 23, "pitch": 0.16, "yaw": -1.1}},
     "motor_pool": {"at": [0, 0], "yaw": 0.0, "clear_m": 8, "camera": {"target": [1.5, 0, 1.4], "distance": 16, "pitch": 0.18, "yaw": -0.5}},
