@@ -1,4 +1,6 @@
 // @vitest-environment node
+import { readFileSync } from "node:fs";
+import { gunzipSync } from "node:zlib";
 import { expect, test } from "vitest";
 import { Presentation } from "@wasm/renderer_browser";
 import {
@@ -6,6 +8,10 @@ import {
   loadPresentation,
   type PresentedFrame,
 } from "@web/battle/sim/presentation";
+import { fieldUnits, type RuntimeFiles } from "@web/battle/sim/fielding";
+import { loadWasm } from "@web/battle/sim/module";
+import { resolveCatalogSet } from "@web/battle/catalog/sets";
+import { Counts } from "@packages/battle-renderer/src/records.gen";
 
 function words(frame: PresentedFrame) {
   const { header, ...sections } = frame;
@@ -125,6 +131,75 @@ test("external model admission publishes canonical joints and keeps the prior ca
     expect(Array.from(after.instances.f32)).toEqual(expectedInstances);
     scene.setLabModels([]);
     expect(scene.frame(1, camera, ui, 0).instances.count).toBe(0);
+  } finally {
+    scene.free();
+  }
+});
+
+const runtime = new URL("../../assets/runtime/", import.meta.url);
+
+/** The page's runtime files, read from disk as the page fetches them. */
+function diskRuntime(): RuntimeFiles {
+  const catalog = JSON.parse(readFileSync(new URL("catalog.json", runtime), "utf8"));
+  return {
+    catalog,
+    contents: async (hashes: readonly string[]) =>
+      hashes.map((hash) =>
+        gunzipSync(readFileSync(new URL(`${catalog.gzip[hash].hash}/bundle.bin`, runtime))),
+      ),
+  } as unknown as RuntimeFiles;
+}
+
+test("a presentation shows one fielded squad at rest with no battle, and clearing it takes its rows away", async () => {
+  await loadPresentation();
+  const wasm = await loadWasm();
+  const set = await resolveCatalogSet("test");
+  const rules = JSON.stringify(set.rules);
+  const kind = "test_rifle";
+  const fielded = await fieldUnits({
+    rules,
+    catalog: set.units.view,
+    kinds: [kind],
+    runtime: diskRuntime(),
+  });
+  const showground = new wasm.Showground(rules);
+  const squad = JSON.parse(showground.squad(kind, 7)) as {
+    soldiers: { id: number; slot: number; at: [number, number] }[];
+    operators: (number | null)[];
+  };
+  showground.free();
+  const scene = new ScenePresentation();
+  const camera = {
+    eye: [-8, -12, 6],
+    target: [0, 0, 1],
+    up: [0, 0, 1],
+    fovY: 1,
+    near: 0.1,
+    width: 320,
+    height: 180,
+  };
+  const ui = { selected: [], xray: false, ghosts: [] };
+  const soldiersDrawn = () => scene.frame(1, camera, ui, 0).counts.u32[Counts.soldiers];
+  try {
+    const before = scene.canonicalAppearanceRows().length;
+    scene.setShowcase(fielded, {
+      kind,
+      side: "blue",
+      at: [0, 0, 0],
+      yaw: 0,
+      soldiers: squad.soldiers,
+      operators: squad.operators,
+    });
+    // The unit's art is among the presentation's own rows: a scene built
+    // on it loads that art.
+    const drawn = Object.keys((fielded.units as { appearances: object }).appearances);
+    const shown = scene.canonicalAppearanceRows().slice(before);
+    expect(shown.length).toBeGreaterThan(0);
+    for (const row of shown) expect(drawn).toContain(row.name);
+    expect(soldiersDrawn()).toBe(squad.soldiers.length);
+    scene.clearShowcase();
+    expect(scene.canonicalAppearanceRows()).toHaveLength(before);
+    expect(soldiersDrawn()).toBe(0);
   } finally {
     scene.free();
   }

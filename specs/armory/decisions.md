@@ -73,4 +73,5 @@ each one as a decision, the reason for it, and who made it.
 
 ## Recorded during implementation
 
-None yet.
+- 2026-11-13, slice 04: the parked AH-64's rotor blur is the battle's own look (same blade smear and ghosting as `air-hover`); an unprimed critique read it as "frozen blades over a glass plate" and the tail rotor as wedge sectors. Not retuned (one owner: `presentation.json` `rotor_blur`/`rotor.tip_mps`); raised to the user.
+- 2026-11-13, slice 04: the showcase squad's idle reads combat-ready (crouched, weapons up) to a fresh eye; that is the battle's idle clip and watchers. Not changed (the slice's rule: tune `pose.rest` data); raised to the user.

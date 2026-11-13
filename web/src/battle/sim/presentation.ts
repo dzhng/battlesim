@@ -54,6 +54,8 @@ import {
 } from "./presentationModels";
 
 import type { ObservationLayout, ObservationView } from "./observationView";
+import type { FieldedUnits } from "./fielding";
+import type { SideName } from "./protocol";
 
 /** Receiver traversal work, separate from terrain draw selection. */
 export interface ReceiverFitStats {
@@ -156,11 +158,24 @@ export interface PresentedBuildings {
 }
 
 /** What a battle loads into its presentation (`WorldInput`'s battle, as
- *  Rust resolves it from the files the page reads: `fieldedBattle`), with
+ *  Rust resolves it from the files the page reads: `fieldUnits`), with
  *  each clip table's floats. */
 export interface PresentedBattle {
   world: object;
   tables: ReadonlyMap<string, Float32Array>;
+}
+
+/** One unit a presentation shows at rest (`presentation::presentation::showcase::ShowcaseInput`):
+ *  its kind, the side whose look it wears, where it stands and faces
+ *  (radians counter-clockwise from +X), and for a squad each soldier where
+ *  he stands and the soldier id working each mount. */
+export interface ShowcaseInput {
+  kind: string;
+  side: Exclude<SideName, "neutral">;
+  at: readonly [number, number, number];
+  yaw: number;
+  soldiers: readonly { id: number; slot: number; at: readonly [number, number] }[];
+  operators: readonly (number | null)[];
 }
 
 /** The sun the static world casts under: azimuth and elevation (rad), and
@@ -366,6 +381,20 @@ export class ScenePresentation {
   /** Tooling models supplement the battle and static world on the next frame. */
   setLabModels(models: readonly LabModel[]): void {
     this.rust.set_lab_models(labModelsJson(models));
+  }
+
+  /** Shows one unit at rest with no battle (`ShowcaseInput`), drawn from
+   *  `fielded`; returns the rows, the unit's now among the canonical ones, so
+   *  a scene built on this presentation reloads (`BrowserScene.worldCurrent`). */
+  setShowcase(fielded: FieldedUnits, input: ShowcaseInput): PresentedAppearance[] {
+    for (const [name, floats] of fielded.tables) this.rust.add_clip_table(name, floats);
+    const sections = JSON.stringify({ units: fielded.units, effects: fielded.effects });
+    return (this.loaded = this.readWorld(this.rust.set_showcase(sections, JSON.stringify(input))));
+  }
+
+  /** Stops showing a unit; returns the rows, as `setShowcase` does. */
+  clearShowcase(): PresentedAppearance[] {
+    return (this.loaded = this.readWorld(this.rust.clear_showcase()));
   }
 
   /** Battle/static source names exclude the replaceable tooling suffix. */

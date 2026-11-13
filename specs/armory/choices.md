@@ -85,3 +85,37 @@ needs-user).
   with no aircraft shadow, in the view pass, as a grounded vehicle is drawn.
   Alternative: the planned feed property, which would add a second switch for
   one behaviour. *Sound.*
+
+## Slice 04
+
+- **`ShowcaseStage.show` is async** (`Promise<IdleLoop[]>`), not the sketch's
+  synchronous `IdleLoop[]`. Why: a shown kind is fielded from runtime files
+  the page fetches. A show another supersedes resolves with none. *Sound.*
+- **Showing a unit rebuilds the stage's `BrowserScene`.** The shown unit's
+  rows are canonical (slice 03), so the scene's `worldCurrent()` turns false
+  and the stage builds a new scene, the one rule a battle reload follows.
+  Alternative: an in-place row reinstall, a second admission path.
+  *Provisional:* slice 11 should time unit switches; if a rebuild is slow,
+  the fix belongs to `BrowserScene` for every caller.
+- **`StageOptions` adds `look` (scene settings, detail, overlay glow) and
+  `failed`.** Why: `web/src` does not import the lab's `game*` settings from
+  `apps/`; the page that mounts the stage owns its look. *Sound.*
+- **Fielding has one owner, `web/src/battle/sim/fielding.ts` (`fieldUnits`,
+  `RuntimeFiles`)**; the lab's `fieldedBattle` builds on it. *Sound.*
+- **`idleLoops(options, kind)` lives in `battle-audio/soundFrame.ts`** beside
+  `vehicleLoops`, reading the one `setupJson` the battle's `SoundFrame` reads.
+  *Sound.*
+- **The lab shows one `ShowcaseStage` per unit, three canvases side by side.**
+  Why: a presentation shows one unit; three panels also give each unit its
+  own framing for the gate's crops. It drives its own orbit camera (drag,
+  wheel) rather than `LabViewport`, which builds its own scene. Fixture
+  `showcase` uses the `game` catalog, `loading: false`. *Sound.*
+- **The page loads unit art with no scenery** (`scenery: null`); the probe's
+  aircraft load asks only for the aircraft's art. *Sound.*
+- **Grounded is judged from each drawn model's placement plus its far-pose
+  bounds** (`farPoseBounds`), not the idle clip's frame. *Provisional.*
+- **Parked aircraft: gear is the `wheel_*`/`track_*` subtree,** the
+  validator's own rule; a skid or belly rests on the node that carries it.
+  *Sound.*
+- **Reference photo:** `assets/references/ah_64_apache/ah_64d_apache-parked_rotors_turning.jpg`,
+  a public-domain US Army hot-refuel photo (AH-64D, rotors turning). *Sound.*

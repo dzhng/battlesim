@@ -57,6 +57,7 @@ const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   fog: lazy(() => import("./routes/fog")),
   projectiles: lazy(() => import("./routes/projectiles")),
   workbench: lazy(() => import("./routes/workbench")),
+  showcase: lazy(() => import("./routes/showcase")),
   "fog-look": lazy(() => import("./routes/fogLook")),
   sound: lazy(() => import("./routes/sound")),
   scenario: lazy(() => import("./routes/scenario")),

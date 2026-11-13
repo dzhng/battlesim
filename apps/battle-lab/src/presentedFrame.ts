@@ -3,7 +3,6 @@
 // capture's plates record. And what the page hands the presentation once
 // per battle (`load_world`'s battle), which Rust resolves from the files the
 // page reads.
-import { presentationSettings } from "@web/presentationSettings";
 import {
   Counts,
   EFFECT_KINDS,
@@ -11,9 +10,8 @@ import {
   SHAPE_NAMES,
   MIN_TARGET_PX,
 } from "@packages/battle-renderer/src/records.gen";
-import type { AppearanceLibrary } from "@packages/scene-assets/src/loader";
 import type { CatalogView } from "@packages/scene-assets/src/units";
-import { Fielding } from "@wasm/renderer_browser";
+import { fieldUnits, type RuntimeFiles } from "@web/battle/sim/fielding";
 import type {
   PresentedBattle,
   PresentedCamera,
@@ -98,19 +96,10 @@ export function frameCounts(frame: PresentedFrame): { models: ModelCounts; effec
   };
 }
 
-/** The runtime files a battle's art is read from: the runtime catalog the
- *  page's appearances were loaded from, and its bundle contents by hash
- *  (`AppearanceLibrary`). */
-export type RuntimeFiles = Pick<AppearanceLibrary, "catalog" | "contents">;
-
 /** `load_world`'s battle for a battle fielding `kinds` of the session's unit
  *  `catalog` under `rules` (its scenario's rules, JSON), each side fighting
- *  for `factions` (blue, red).
- *  Rust resolves what its units and effects draw from
- *  (`presentation::fielded`); the page only reads the files it names
- *  (`fixtures/presentation.json`, authored weapon rows, the runtime catalog, its bundles and skeleton
- *  clips) and adds the facts the presentation reads of the battle and the
- *  page. */
+ *  for `factions` (blue, red), with the facts the presentation reads of the
+ *  battle and the page. */
 export async function fieldedBattle(input: {
   rules: string;
   catalog: CatalogView;
@@ -124,52 +113,26 @@ export async function fieldedBattle(input: {
   xray: { own: readonly number[]; selected: readonly number[]; ally: readonly number[] };
   blocked: readonly number[];
 }): Promise<PresentedBattle> {
-  const catalog = input.runtime.catalog;
-  if (!catalog) throw new Error("a battle was fielded before the runtime catalog was loaded");
-  const fielding = new Fielding(
-    JSON.stringify(presentationSettings),
-    input.rules,
-    JSON.stringify(input.catalog),
-    JSON.stringify(catalog),
-    JSON.stringify(input.kinds),
-    input.factions && JSON.stringify(input.factions),
-  );
-  try {
-    const files = await input.runtime.contents(fielding.contents());
-    const lengths = Uint32Array.from(files, (f) => f.length);
-    const bytes = new Uint8Array(lengths.reduce((n, l) => n + l, 0));
-    let at = 0;
-    for (const f of files) {
-      bytes.set(f, at);
-      at += f.length;
-    }
-    const { units, effects, tables } = JSON.parse(fielding.resolve(bytes, lengths)) as {
-      units: object;
-      effects: object;
-      tables: string[];
-    };
-    return {
-      world: {
-        battle: {
-          units,
-          effects,
-          side: input.side,
-          tick_hz: input.tickHz,
-          soldier: {
-            radius_m: input.soldier.soldier_radius_m,
-            height_m: input.soldier.soldier_height_m,
-          },
-          xray: input.xray,
-          blocked: input.blocked,
+  const { units, effects, tables } = await fieldUnits(input);
+  return {
+    world: {
+      battle: {
+        units,
+        effects,
+        side: input.side,
+        tick_hz: input.tickHz,
+        soldier: {
+          radius_m: input.soldier.soldier_radius_m,
+          height_m: input.soldier.soldier_height_m,
         },
-        sun_azimuth: input.sun.azimuth,
-        sun_elevation: input.sun.elevation,
+        xray: input.xray,
+        blocked: input.blocked,
       },
-      tables: new Map(tables.map((name, i) => [name, fielding.table(i)])),
-    };
-  } finally {
-    fielding.free();
-  }
+      sun_azimuth: input.sun.azimuth,
+      sun_elevation: input.sun.elevation,
+    },
+    tables,
+  };
 }
 
 /** One animation frame's drawn units. Anything omitted keeps its last value. */
