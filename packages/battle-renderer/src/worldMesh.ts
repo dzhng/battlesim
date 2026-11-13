@@ -249,23 +249,30 @@ export function buildWorldLayers(
   };
 }
 
-/** The trees and hedgerows of `biome.trees` and the forest floor's dressing:
- *  the installed appearances the scenery's rows name. Where they stand is
- *  the scene's presentation's. */
-function worldScenery(biome: Biome, installed: InstalledAppearances): WorldScenery {
+/** The appearances the scenery's rows name under `biome`: its trees and
+ *  hedgerows, and its forest floor's dressing. */
+export function worldSceneryNames(biome: Biome): { trees: string[]; dressing: string[] } {
   const { trees, forest_floor } = biome;
-  const dressed = forest_floor.dressing.kinds.map((k) => k.appearance);
+  const dressing = forest_floor.dressing.kinds.map((k) => k.appearance);
   const named = [
     ...new Set([
       ...trees.species.map((s) => s.appearance),
       trees.hedgerows.appearance,
       trees.understorey.appearance,
     ]),
-  ].filter((name) => !dressed.includes(name));
+  ].filter((name) => !dressing.includes(name));
+  return { trees: named, dressing };
+}
+
+/** The trees and hedgerows of `biome.trees` and the forest floor's dressing:
+ *  the installed appearances the scenery's rows name. Where they stand is
+ *  the scene's presentation's. */
+export function worldScenery(biome: Biome, installed: InstalledAppearances): WorldScenery {
+  const { trees, dressing } = worldSceneryNames(biome);
   return {
     appearances: new Map([
-      ...sceneryAppearances(installed, named, ["tree", "hedgerow"]),
-      ...sceneryAppearances(installed, dressed, ["dressing"]),
+      ...sceneryAppearances(installed, trees, ["tree", "hedgerow"]),
+      ...sceneryAppearances(installed, dressing, ["dressing"]),
     ]),
   };
 }

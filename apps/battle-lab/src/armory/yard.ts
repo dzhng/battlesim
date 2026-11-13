@@ -9,9 +9,11 @@ import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import type { RuntimeCatalog } from "@packages/scene-assets/src/schema";
 import { propsDrawnBy } from "@packages/scene-assets/src/scenery";
 import type { CatalogView, UnitType } from "@packages/scene-assets/src/units";
-import type { WorldLayers } from "@packages/battle-renderer/src/scene";
+import type { WorldLayers, WorldScenery } from "@packages/battle-renderer/src/scene";
+import { worldScenery, worldSceneryNames } from "@packages/battle-renderer/src/worldMesh";
 import type { LabModel } from "@web/battle/sim/presentationModels";
-import { plainWorld } from "../plainWorld";
+import { gameBiome } from "../gameBiome";
+import { plainWorld, type GroundPad } from "../plainWorld";
 
 export type SpotId = "apron" | "motor_pool" | "tents";
 /** What a unit stands as, for the spot it takes. */
@@ -50,8 +52,9 @@ export interface YardProp {
 }
 
 export interface YardDocument {
-  /** The yard's flat ground: how far it reaches each way, and its colour. */
-  ground: { half_m: number; tint: Rgba };
+  /** The yard's flat ground: how far it reaches each way, its colour, and
+   *  the hard standing paved over it, a later pad over an earlier one. */
+  ground: { half_m: number; tint: Rgba; pads: GroundPad[] };
   spots: Record<SpotId, SpotPlace>;
   /** The spot each body takes. */
   bodies: Record<Body, SpotId>;
@@ -66,8 +69,13 @@ const finite = (v: unknown, n: number) =>
 export function admitYard(raw: unknown): YardDocument {
   const doc = raw as YardDocument;
   const wrong: string[] = [];
-  if (!(doc.ground?.half_m > 0) || !finite(doc.ground.tint, 4))
-    wrong.push("ground: a positive half_m and an rgba tint");
+  if (!(doc.ground?.half_m > 0) || !finite(doc.ground.tint, 4) || !Array.isArray(doc.ground.pads))
+    wrong.push("ground: a positive half_m, an rgba tint and a list of pads");
+  (doc.ground?.pads ?? []).forEach((p, i) => {
+    const sides = finite(p.half_m, 2) && p.half_m.every((h) => h > 0);
+    if (!finite(p.at, 2) || !sides || !Number.isFinite(p.yaw) || !finite(p.tint, 4))
+      wrong.push(`ground.pads[${i}]: an [x, y] at, positive half_m, a yaw and an rgba tint`);
+  });
   for (const [id, s] of Object.entries(doc.spots ?? {}))
     if (!finite(s.at, 2) || !(s.clear_m > 0) || !finite(s.camera?.target, 3))
       wrong.push(`spots.${id}: an [x, y] at, a positive clear_m and a camera target`);
@@ -85,9 +93,11 @@ export function admitYard(raw: unknown): YardDocument {
 export const yard = admitYard(yardJson);
 
 let world: WorldLayers | null = null;
-/** The yard's flat ground as a stage's world, built once. */
+/** The yard's flat ground and its pads as a stage's world, built once.
+ *  Past it, the scene's presentation draws the battle's backdrop: the
+ *  biome's patchwork and its trees (`yardWorldScenery`). */
 export function yardWorld(): WorldLayers {
-  world ??= plainWorld(yard.ground.tint, yard.ground.half_m);
+  world ??= plainWorld(yard.ground.tint, yard.ground.half_m, yard.ground.pads);
   return world;
 }
 
@@ -109,8 +119,10 @@ export function spotFor(doc: YardDocument, unit: UnitType | null): Spot | null {
 const draws = (props: CatalogView["props"], scenery: string | null | undefined, kind: string) =>
   scenery != null && propsDrawnBy(props, scenery).includes(kind);
 
-/** The scenery appearances that draw the yard's props, by name: what an art
- *  load takes for the yard. Regional looks are left to the loader, which
+/** The scenery appearances the yard draws, by name: what an art load takes
+ *  for the yard. Those that draw its props, and the battle biome's trees,
+ *  hedgerows and dressing, which the presentation stands past the yard's
+ *  ground (`yardWorldScenery`). Regional looks are left to the loader, which
  *  fetches them only on request. */
 export function yardScenery(
   doc: YardDocument,
@@ -118,11 +130,21 @@ export function yardScenery(
   catalog: Pick<RuntimeCatalog, "appearances">,
 ): Set<string> {
   const kinds = new Set(doc.props.map((p) => p.kind));
-  return new Set(
-    Object.entries(catalog.appearances)
+  const { trees, dressing } = worldSceneryNames(gameBiome);
+  return new Set([
+    ...Object.entries(catalog.appearances)
       .filter(([, e]) => e.unit === "scenery" && [...kinds].some((k) => draws(props, e.scenery, k)))
       .map(([name]) => name),
-  );
+    ...trees,
+    ...dressing,
+  ]);
+}
+
+/** The yard's trees: the battle biome's scenery art, which the scene's
+ *  presentation stands past the yard's ground as it stands a battle's
+ *  backdrop past the map's edge. */
+export function yardWorldScenery(installed: InstalledAppearances): WorldScenery {
+  return worldScenery(gameBiome, installed);
 }
 
 /** The yard's props as static models, each drawn by the first installed

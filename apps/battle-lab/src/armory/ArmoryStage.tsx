@@ -26,7 +26,7 @@ import { ArmoryCamera, useArmoryCamera } from "./armoryCamera";
 import { framingOf } from "./stageFraming";
 import { publishProbe, type Shown, type Switch } from "./armoryProbe";
 import { STAGE_LOOK, SQUAD_SEED, useShowground, useStageFielding } from "./stageInputs";
-import { spotFor, yard, yardModels, yardScenery, yardWorld } from "./yard";
+import { spotFor, yard, yardModels, yardScenery, yardWorld, yardWorldScenery } from "./yard";
 
 interface StageProps {
   card: UnitCard;
@@ -110,6 +110,7 @@ function LiveStage({ card, faction, drawn }: StageProps & { drawn: () => void })
           canvas,
           world: yardWorld(),
           models: (installed) => yardModels(yard, units.view.props, installed),
+          scenery: yardWorldScenery,
           fielding,
           showground,
           look: STAGE_LOOK,

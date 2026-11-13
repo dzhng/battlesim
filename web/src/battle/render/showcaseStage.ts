@@ -2,14 +2,14 @@
  *  presentation poses it with the battle's own driver
  *  (`presentation::presentation::showcase`), a squad stands as the simulation
  *  scatters it (`Showground`), and its idle loops are those a stationary
- *  battle vehicle starts. A shown unit's rows are the presentation's own, so
- *  showing another rebuilds the scene, as a battle's reload does. */
+ *  battle vehicle starts. Each show stands on a presentation and a scene of
+ *  its own, as a battle's do: no presentation outlives the scene it fed. */
 import type { Vec3 } from "math";
 import type { BrowserGpu } from "@wasm/renderer_browser";
 import type { Showground } from "@wasm/game_wasm.js";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import type { CatalogView, Faction } from "@packages/scene-assets/src/units";
-import type { WorldLayers } from "@packages/battle-renderer/src/scene";
+import type { WorldLayers, WorldScenery } from "@packages/battle-renderer/src/scene";
 import {
   idleLoops,
   type IdleLoop,
@@ -60,6 +60,9 @@ export interface StageOptions {
   /** Static models standing round the unit (a yard's props), as each
    *  show's art draws them. */
   models: (appearances: InstalledAppearances) => readonly LabModel[];
+  /** The world's trees, hedgerows and dressing, as each show's art draws
+   *  them; null draws none. */
+  scenery: (appearances: InstalledAppearances) => WorldScenery | null;
   fielding: StageFielding;
   showground: Showground;
   look: StageLook;
@@ -78,10 +81,11 @@ export class ShowcaseStage {
   private disposed = false;
   private input: ShowcaseInput | null = null;
 
-  private constructor(
-    private readonly o: StageOptions,
-    private readonly presentation: ScenePresentation,
-  ) {
+  /** The presentation the stage's scene draws from: the last show's to
+   *  stand, kept until a newer show stands. */
+  private presentation = new ScenePresentation();
+
+  private constructor(private readonly o: StageOptions) {
     const { width, height } = o.canvas;
     this.camera = {
       eye: [-10, -10, 6],
@@ -97,9 +101,7 @@ export class ShowcaseStage {
   /** A stage with nothing on it yet: it draws once the first `show` is
    *  on stage. */
   static create(o: StageOptions): ShowcaseStage {
-    const presentation = new ScenePresentation();
-    presentation.setGround(o.world.terrain.input, false);
-    return new ShowcaseStage(o, presentation);
+    return new ShowcaseStage(o);
   }
 
   /** Shows `unit` in place of the one before (null: the ground and models
@@ -110,9 +112,8 @@ export class ShowcaseStage {
     this.assertLive("show");
     const asked = ++this.asked;
     if (!unit) {
-      this.presentation.clearShowcase();
       this.input = null;
-      await this.rebuild(asked, art.appearances);
+      await this.rebuild(asked, art.appearances, new ScenePresentation());
       return [];
     }
     const { rules, catalog, sound } = this.o.fielding;
@@ -137,8 +138,9 @@ export class ShowcaseStage {
       soldiers: squad.soldiers.map((s) => ({ ...s, at: [x + s.at[0], y + s.at[1]] })),
       operators: squad.operators,
     };
-    this.presentation.setShowcase(fielded, this.input);
-    await this.rebuild(asked, art.appearances);
+    const presentation = new ScenePresentation();
+    presentation.setShowcase(fielded, this.input);
+    await this.rebuild(asked, art.appearances, presentation);
     return asked === this.asked ? idleLoops(sound, unit.kind) : [];
   }
 
@@ -180,19 +182,26 @@ export class ShowcaseStage {
     this.presentation.free();
   }
 
-  /** A scene built for show `asked` on the presentation's rows as they are
-   *  now, drawing `appearances`. */
-  private async rebuild(asked: number, appearances: InstalledAppearances): Promise<void> {
-    const { gpu, canvas, world, models, look, failed } = this.o;
+  /** A scene built for show `asked` on `presentation`, drawing
+   *  `appearances`; it replaces the stage's scene and presentation once it
+   *  stands, and is dropped with its presentation if a newer show came. */
+  private async rebuild(
+    asked: number,
+    appearances: InstalledAppearances,
+    presentation: ScenePresentation,
+  ): Promise<void> {
+    const { gpu, canvas, world, models, scenery, look, failed } = this.o;
     this.scene?.dispose();
     this.scene = null;
-    this.presentation.setShadow(look.settings.light, world.terrain.mesh);
-    this.presentation.frame(0, this.camera, NO_UI, 0);
+    const trees = scenery(appearances);
+    presentation.setGround(world.terrain.input, trees !== null);
+    presentation.setShadow(look.settings.light, world.terrain.mesh);
+    presentation.frame(0, this.camera, NO_UI, 0);
     const scene = await BrowserScene.create({
       gpu,
       canvas,
-      presentation: this.presentation,
-      world,
+      presentation,
+      world: { ...world, scenery: trees },
       ...look,
       appearances,
       models: models(appearances),
@@ -203,8 +212,11 @@ export class ShowcaseStage {
     // A later show, or the stage's end, may have come while it was built.
     if (this.disposed || asked !== this.asked || !scene.worldCurrent()) {
       scene.dispose();
+      presentation.free();
       return;
     }
+    this.presentation.free();
+    this.presentation = presentation;
     this.scene = scene;
     this.size = [0, 0];
   }

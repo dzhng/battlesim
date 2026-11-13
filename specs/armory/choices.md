@@ -1010,3 +1010,98 @@ needs-user).
   tent or a hedge with the supplies hidden; the lifted edges show what it
   covers. A new recipe, `camo_net` (garnish over a cord net, a cutout), in
   `textures_military.py`. *Provisional.*
+
+## Slice 16
+
+- **The yard's ground gains `pads`** (`ground.pads: [{ at, half_m, yaw, tint }]`),
+  drawn by `plainWorld` as tinted quads just above the ground. *Why:* the
+  props alone left every unit on one khaki plane, a tan vehicle on tan ground,
+  and an apron or a hardstand is paved in every reference. A pad is a paved
+  rectangle, as a depot's yard is a `Paving` surface. The yard's ground has no
+  map surfaces, so a pad is the vertex tint the flat world already draws, not
+  a second surface encoder in TypeScript. *Alternative:* no schema change: one
+  greyer tint everywhere (a 360 m car park) or the props alone. *Sound.*
+- **A pad stands 5 mm above the ground or the pads it lies over
+  (`padLevels`, separating axes through `math/shapes` `obb3`),** so pads may
+  turn freely and overlap (slabs over their joints, taxi lines over slabs),
+  and pads side by side stay level. The yard's pads stand at most three high
+  (1.5 cm). A test holds every pad under the 2 cm a unit may be off its
+  ground; the ground's height query stays 0. A first cut lifted each pad
+  above the one before, which stood the camp's gravel 27 cm up and buried
+  the soldiers' feet. The test now catches that. *Alternative:* re-cut the
+  ground's cells along each pad's edges, which only works for pads square to
+  the world. *Sound.*
+- **`ground.half_m` is now how far the yard's own ground reaches, 180 m; past
+  it, the scene's presentation draws the battle's backdrop.** That is the
+  biome's patchwork out to the horizon, with hedgerows, trees and copses
+  (`static_world/ground/scenery.rs` `backdrop`), exactly as past a battle
+  map's edge. The yard's tint has weight 0, so the yard is the battle's ground
+  material too (fields, grass, dirt), and it meets the backdrop with no seam.
+  180 m holds the camera's farthest eye (about 100 m from the apron spot at
+  the far framing), so no tree stands in its orbit. *Why:* the user asked for
+  trees and livelier ground. The battle already owns both, with its own trees
+  (the biome's `trees.species`) and its own placement, so the yard authors no
+  tree and adds no tree list. *Alternative:* a `trees` list in `yard.json`
+  drawn as static models, a second placement of the battle's trees.
+  *Sound.*
+- **One owner for the scenery's art: `worldSceneryNames(biome)` and
+  `worldScenery(biome, installed)`, exported from `worldMesh.ts`.** The
+  battle's world layers and the yard both read them; `yardScenery` adds those
+  names to the yard's art load, and `yardWorldScenery` builds the stage's
+  scenery from them. *Sound.*
+- **`ShowcaseStage` takes `scenery: (appearances) => WorldScenery | null`**
+  beside `models`, and sets the presentation's ground with scenery on when it
+  returns some. The stage had passed `false`, so no presentation scenery was
+  ever placed. *Sound.*
+- **Each show stands on a presentation of its own.** A show builds a fresh
+  `ScenePresentation` and scene. The old pair is freed once the new one
+  stands; a superseded show frees its own. *Why:* with scenery placed, the
+  second show's scene drew a batch whose instances the presentation treated
+  as unchanged since the last scene (`first` = `NONE`), and the GPU refused
+  the frame. That is a presentation cache that outlived its scene. A battle
+  never rebuilds a scene on one presentation, and now the stage doesn't
+  either. The cost is the ground and the scenery placed again per switch:
+  switches measured 0.4–1.4 s after the first (0.2–1.0 s before). The first
+  open measured 20.8 s (15–19 s before), while the menu's prefetch is still
+  downloading. *Alternative:* find and reset the stale cache in the
+  presentation, a Rust and wasm change. *Sound.*
+- **The showcase lab's grounding probe judges what the stage stands.** The
+  unit and the yard's props are judged; the world's trees are left out,
+  because the presentation sinks them 5 cm by its own rule (`SINK_M`) so that
+  no trunk floats. The Armory's probe already keeps to the spot's clear disc.
+  *Sound.*
+- **No relief beyond the yard.** The presentation's backdrop ground is a flat
+  frame (`mesh.rs` `backdrop`) and seats its trees at the lowest ground. The
+  Armory camera's clearance and the camera tour's ground check both take the
+  ground at height 0. Rolling ground needs a height owner that all of them
+  read. That is a renderer and Rust change, so it was left out (follow-up in
+  the slice-16 report). *Needs-user:* whether the treelines and patchwork are
+  enough, or relief is worth that change.
+- **Layout, authored in each spot's own frame** (u to the right of the
+  opening camera, v away from it) by a scratch generator,
+  `throwaway/armory/16/layout.py` and `plan.py`; `yard.json` holds world
+  coordinates as before.
+  - *Apron:* 7 × 6 concrete slabs, each a shade lighter or darker, over
+    darker joints. Yellow taxi lines run along the hangar fronts and lead into
+    each door. Behind the helicopter, a line of three hangars with their doors
+    onto the apron. Between them, a netted supply stack and crates; a site
+    cabin as the line office; jersey barriers along the apron's left edge.
+  - *Motor pool:* 3 × 3 hardstand slabs in a bay between two steel-bin
+    revetments, open to the camera. The bay's supplies (a netted stack and two
+    crate stacks) stand at its back, so a tan hull stands against dark green,
+    never against a pale wall: a HESCO back wall matched the tan hull's
+    brightness, as a measured critique showed.
+  - *Tents:* a gravel pad; three tents behind the squad, turned and spaced a
+    little apart; the flagpole behind them at the camp's centre; a sandbagged
+    run to the right, a HESCO wall to the left, a netted stack of three pallets
+    and crates.
+  - A gravel lane joins the motor pool's hardstand to the camp's gravel, so
+    the yard is one ground and not patches.
+  - A HESCO perimeter runs along the north and west, the sides every opening
+    camera faces.
+
+  The heras fence, the dragon's teeth and the hangar ruin left the yard: the
+  first two read as a building site, and the ruin read as a derelict airfield
+  (unprimed critique). Nets cover only pallet stacks, as a depot's supply piece
+  does (L3), and no prop stands in a spot's clear disc. *Provisional:* the
+  human judges the composition.

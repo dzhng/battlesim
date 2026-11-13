@@ -24,7 +24,15 @@ import { parkedAircraft } from "../showcaseAircraft";
 import { ArmoryAppearances } from "../armory/armoryAppearances";
 import { STAGE_LOOK, SQUAD_SEED, useShowground, useStageFielding } from "../armory/stageInputs";
 import { drawnModels, grounded, project } from "../armory/stageProbes";
-import { spotFor, yard, yardModels, yardScenery, yardWorld, type Spot } from "../armory/yard";
+import {
+  spotFor,
+  yard,
+  yardModels,
+  yardScenery,
+  yardWorld,
+  yardWorldScenery,
+  type Spot,
+} from "../armory/yard";
 import type { Showground } from "@wasm/game_wasm.js";
 
 /** Plain level ground, one colour, shadows read on it. */
@@ -117,7 +125,11 @@ export default function Showcase() {
       standing: (kind: string) => panels.get(kind)?.stage.standing() ?? null,
       grounded: (kind: string) => {
         const p = panels.get(kind)!;
-        return grounded(drawnModels(p.stage), p.art.appearances);
+        // What the stage stands: the world's trees are the presentation's,
+        // sunk by its own rule so no trunk floats.
+        const trees = inYard ? yardWorldScenery(p.art.appearances).appearances : new Map();
+        const stood = drawnModels(p.stage).filter((m) => !trees.has(m.name));
+        return grounded(stood, p.art.appearances);
       },
       carried: (kind: string) =>
         units.type(kind).mounts.map((m) => [...(m.operator_appearance?.carried ?? [])]),
@@ -202,6 +214,7 @@ function ShowcasePanel(props: {
         canvas,
         world,
         models: (installed) => (inYard ? yardModels(yard, props, installed) : []),
+        scenery: (installed) => (inYard ? yardWorldScenery(installed) : null),
         fielding,
         showground,
         look: STAGE_LOOK,

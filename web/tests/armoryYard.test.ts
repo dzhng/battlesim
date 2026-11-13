@@ -1,7 +1,8 @@
 // @vitest-environment node
 // The Armory's yard (`fixtures/armory/yard.json`): its dressing is catalog
-// props drawn by their own art, standing clear of every spot, and each unit
-// takes the spot its body asks for and fits it.
+// props drawn by their own art, standing clear of every spot, its ground is
+// paved where its pads lie, and each unit takes the spot its body asks for and
+// fits it.
 import { readFile } from "node:fs/promises";
 import { expect, test } from "vitest";
 import { AppearanceLibrary, type Fetch } from "@packages/scene-assets/src/loader";
@@ -9,7 +10,17 @@ import type { RuntimeCatalog } from "@packages/scene-assets/src/schema";
 import type { UnitType } from "@packages/scene-assets/src/units";
 import { resolveCatalogSet } from "@web/battle/catalog/sets";
 import { loadWasm } from "@web/battle/sim/module";
-import { bodyOf, spotFor, yard, yardModels, yardScenery } from "@apps/battle-lab/src/armory/yard";
+import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh";
+import {
+  bodyOf,
+  spotFor,
+  yard,
+  yardModels,
+  yardScenery,
+  yardWorld,
+  yardWorldScenery,
+} from "@apps/battle-lab/src/armory/yard";
+import { gameBiome } from "@apps/battle-lab/src/gameBiome";
 
 const runtime = new URL("../../assets/runtime/", import.meta.url);
 const catalog = await resolveCatalogSet("game");
@@ -46,6 +57,26 @@ function outside(p: [number, number], at: [number, number], yaw: number, half: [
   return Math.hypot(...local.map((v, i) => Math.max(0, Math.abs(v) - half[i])));
 }
 
+/** The colour of the topmost ground triangle over `p`, or null for none. */
+function groundTint(mesh: Float32Array, p: [number, number]): number[] | null {
+  let top: { z: number; tint: number[] } | null = null;
+  for (let v = 0; v < mesh.length; v += 3 * VERTEX_FLOATS) {
+    const at = (k: number) => mesh.subarray(v + k * VERTEX_FLOATS, v + k * VERTEX_FLOATS + 3);
+    const [a, b, c] = [at(0), at(1), at(2)];
+    const side = (u: Float32Array, w: Float32Array) =>
+      (w[0] - u[0]) * (p[1] - u[1]) - (w[1] - u[1]) * (p[0] - u[0]);
+    const s = [side(a, b), side(b, c), side(c, a)];
+    if (!(s.every((x) => x >= 0) || s.every((x) => x <= 0))) continue;
+    if (!top || a[2] > top.z) top = { z: a[2], tint: Array.from(mesh.subarray(v + 6, v + 10)) };
+  }
+  return top?.tint ?? null;
+}
+
+const expectTint = (got: number[] | null, want: readonly number[], what: string) => {
+  expect(got, what).not.toBeNull();
+  got!.forEach((x, i) => expect(x, `${what}[${i}]`).toBeCloseTo(want[i], 5));
+};
+
 /** A fabricated unit type: a body and a mobility, nothing the yard reads besides. */
 const card = (body: UnitType["body"], mobility: UnitType["mobility"]): UnitType =>
   ({ ...units.type(units.ids[0]), id: "fabricated", roles: ["recon"], body, mobility }) as UnitType;
@@ -62,6 +93,13 @@ test("every yard prop is a catalog prop kind with an appearance", async () => {
   });
 });
 
+test("the yard's art draws the trees the battle's biome grows past its ground", async () => {
+  const scenery = yardWorldScenery(await yardArt());
+  for (const s of gameBiome.trees.species)
+    expect(scenery.appearances.has(s.appearance), s.appearance).toBe(true);
+  expect(scenery.appearances.has(gameBiome.trees.hedgerows.appearance)).toBe(true);
+});
+
 test("no yard prop stands inside any spot's clear disc", async () => {
   const installed = await yardArt();
   const models = yardModels(yard, props, installed);
@@ -71,6 +109,41 @@ test("no yard prop stands inside any spot's clear disc", async () => {
       const gap = outside(spot.at, [m.x, m.y], m.yaw, [hx, hy]);
       expect(gap, `${yard.props[i].kind} #${i} against ${id}`).toBeGreaterThan(spot.clear_m);
     });
+});
+
+test("the yard's ground is paved where its pads lie, and plain beyond them", () => {
+  const ground = yardWorld().terrain.mesh;
+  expect(yard.ground.pads.length).toBeGreaterThan(0);
+  for (const [i, pad] of yard.ground.pads.entries()) {
+    const [c, s] = [Math.cos(pad.yaw), Math.sin(pad.yaw)];
+    // The centre and just inside each corner, turned with the pad.
+    for (const [u, v] of [
+      [0, 0],
+      [0.95, 0.95],
+      [-0.95, 0.95],
+      [0.95, -0.95],
+      [-0.95, -0.95],
+    ]) {
+      const [lx, ly] = [u * pad.half_m[0], v * pad.half_m[1]];
+      const p: [number, number] = [pad.at[0] + c * lx - s * ly, pad.at[1] + s * lx + c * ly];
+      const over = yard.ground.pads
+        .slice(i + 1)
+        .some((q) => outside(p, q.at, q.yaw, q.half_m) === 0);
+      if (!over) expectTint(groundTint(ground, p), pad.tint, `pad ${i} at ${p}`);
+    }
+  }
+  const edge = yard.ground.half_m - 1;
+  expectTint(groundTint(ground, [-edge, -edge]), yard.ground.tint, "the ground beyond the pads");
+});
+
+test("a unit stands on the yard's pads, not sunk into them", () => {
+  // The scenes hold a unit to within 2 cm of its ground, and the ground's
+  // height is 0 under the pads as well.
+  const ground = yardWorld().terrain.mesh;
+  let top = 0;
+  for (let v = 0; v < ground.length; v += VERTEX_FLOATS) top = Math.max(top, ground[v + 2]);
+  expect(top).toBeGreaterThan(0);
+  expect(top).toBeLessThan(0.02);
 });
 
 test("every body has a spot", () => {

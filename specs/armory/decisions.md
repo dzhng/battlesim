@@ -168,3 +168,22 @@ each one as a decision, the reason for it, and who made it.
   - **15f net:** 4/6/3/5/4. The lifted edges show the stacks, but it still reads as a mound; a net that rests on its stacks needs the art to know how many stand under it.
   - Critiques that judged the shaded faces as near-black were reading the sheet's low-ambient sun; real inward faces were found and fixed (both hangar end walls, HESCO's ends, the tent's gables, the flag's two layers).
 - 2026-11-13, slice 15: **the fog's "unseen" hatching on the hangar ruin's top is a general renderer gap, not fixed here.** In `fog.wgsl` `fogSeenSurface`, a face first counts as seen only if it faces the eye from its probe point (the surface plus `face_probe_m`, 0.1 m along its normal), and the roof rescue runs only for a surface above the eye (`world.z <= e.position.z` returns false). An up-facing top between 1.5 and 1.6 m, seen by 1.6 m infantry eyes, fails both: its probe point stands level with or above the eye, so it "faces away", and the surface is below the eye, so no rescue. The stand-in ruin's top sat at exactly 1.5 m. Crates (2 m) get the rescue, and lower tops pass the facing test. The likely fix is one condition: test the probe point (`p.z < e.position.z`), not the surface, before the rescue. Not applied: it is a WGSL change needing a Rust and wasm build, and the disk stood under 7 GiB. The ruin's art keeps its tops at or below 1.5 m, mostly under the band; that is reasoned from the code, not seen in a battle. *Agent; for the closeout or the user.*
+- 2026-11-13, slice 16: **the visual gate passes on its one variable, "a lived-in military yard", as far as the yard's data and the battle's backdrop reach.**
+  - Masked against slice 11's placeholder shots (the panels and the unit grey), each spot's default camera now holds 2.3–3.2× the edge energy (compare-screenshots, `throwaway/armory/16/cmp/`).
+  - Each spot now has its own setting:
+    - the apron: a line of three hangars behind the helicopter on a concrete apron with taxi lines;
+    - the motor pool: a hardstand between steel-bin revetments, with its supplies stacked behind the vehicle;
+    - the tents: a camp on gravel with a flag;
+    - all of it inside a HESCO perimeter, with the battle's fields and treelines to the horizon.
+  - Against the references, it matches the apron photo (the hangar behind a parked aircraft), Camp Baldwin (a tent row) and the tank line (vehicles on concrete). The chosen mock A has a hangar and nets behind the unit.
+  - Six unprimed critiques drove the fixes in `choices.md`. The last found nothing floating, sinking or z-fighting and no seam through a unit, and called it "recognisably a military yard … tidy, empty, staged".
+  - **Left open:**
+    - "lived-in" also wants people, parked vehicles and clutter, which no catalog prop is;
+    - the art: two hangars share their "3", the right hangar's roof reads teal, the net's spreader pole juts out, revetments read as containers and sit under the panels at the per-unit framing, and the HESCO is pale;
+    - the battle's looks: rotor blur and dithered shadow edges;
+    - slice 12's framing: the bare slab in the frame's lower half.
+  - No human reply came in the checkpoint window (shots opened 11:37). *Agent.*
+- 2026-11-13, slice 16 (user feedback, via the orchestrator: trees and livelier terrain): **trees and ground variety shipped; relief deferred.**
+  - Past the yard's own 180 m ground, the presentation draws the battle's backdrop: the biome's field patchwork, hedgerows, trees and copses. The yard's ground is the battle's ground material too. No new tree art or tree list.
+  - Relief needs a height source shared by the ground mesh, the presentation's flat backdrop frame and its tree seating, the Armory camera's clearance and the camera tour's check. That is a Rust and renderer change, not small, so it is a follow-up for the user (report of slice 16). *Agent.*
+- 2026-11-13, slice 16: **one `armory` run's page crash** (WebGPU, mid camera tour, before the backdrop change) did not repeat on an unchanged rerun. It was treated as transient. *Agent.*

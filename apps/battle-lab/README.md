@@ -111,10 +111,13 @@ selection, holding the yard and the one unit on show, so browsing every unit
 never fills the page's shared library. Its failures stay with the caller and
 never refuse the page. [The yard](src/armory/yard.ts) is presentation data
 the simulation never admits. A unit's body picks its spot, and each prop is
-drawn by its catalog art.
+drawn by its catalog art. Past the yard's own ground the scene's presentation
+draws the battle's backdrop, its fields and the biome's trees, as it does past a
+battle map's edge.
 [The Armory's stage](src/armory/ArmoryStage.tsx) is one `ShowcaseStage` for
 the page's life: each pick hands it that selection's art, so the stage and
-the [showcase lab](src/routes/showcase.tsx) load art the same way. The yard
+the [showcase lab](src/routes/showcase.tsx) load art the same way. Each pick
+stands on a presentation and a scene of its own, as a battle's do. The yard
 fills the screen behind the glass panels, with the unit framed in the centre
 cell. [Its camera](src/armory/armoryCamera.ts) is the battle's rig on the
 Armory's own config (`presentation.camera_armory`): left-drag orbits and the
