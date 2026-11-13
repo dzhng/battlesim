@@ -51,6 +51,8 @@ export interface ObservationLayout {
   limbBits: number;
   /** This battle's round kinds (weapon rows, in name order). */
   roundKinds: string[];
+  /** The looks the battle's smoke capabilities name, in name order. */
+  smokeLooks: string[];
   /** What a round struck: none, ground, hull, prop, soldier or metal_prop. */
   hitKinds: string[];
   unitKinds: string[];
@@ -146,6 +148,8 @@ export interface OwnUnitView {
   hp: number;
   /** It trails smoke, by the rule an enemy's is published (`IdentifiedView`). */
   smoking: boolean;
+  /** Its smoke charges left; null for a unit that carries no smoke. */
+  smoke: number | null;
   /** Health of each living soldier, in `members` order. */
   memberHp: number[];
   /** How suppressed the squad is, by the rules' thresholds (the sim owns
@@ -626,6 +630,33 @@ export interface ObservationView {
   /** Where hulls grind the metal bodies shoved this tick that this side sees:
    *  halfway up the lower of hull and body, with the pusher's travel. */
   grinds: { point: Point3; heading: Point2 }[];
+  /** The smoke clouds this side sees: its own, and any whose rim its fog
+   *  shows. A cloud never says who popped it. */
+  smokeClouds: SmokeCloudView[];
+}
+
+/** A popped smoke cloud: its centre on the ground, its pop tick and the
+ *  cloud its carrier's capability authors (`contract::smoke`, which owns how
+ *  it blooms and fades). */
+export interface SmokeCloudView {
+  id: number;
+  centre: Point3;
+  popped: number;
+  spec: {
+    radiusM: number;
+    heightM: number;
+    lifeS: number;
+    bloomS: number;
+    fadeS: number;
+    bloomSteps: number;
+    fadeSteps: number;
+    /** Sight depth a metre of sight line inside the full cloud adds. */
+    depthPerM: number;
+    /** The range factor against a target standing in the full cloud. */
+    concealment: number;
+    /** The presentation look (and sound) the cloud is drawn with. */
+    look: string;
+  };
 }
 
 export interface AirTransitView {

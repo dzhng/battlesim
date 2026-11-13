@@ -1,11 +1,13 @@
 //! Units as the authority holds them: bodies, squads, orders and movement state.
 use std::collections::{BTreeSet, VecDeque};
 
-use contract::catalog::{AltitudeLayer, FlightModel, Mobility as Moves, TypeIndex, UnitType};
+use contract::catalog::{
+    AltitudeLayer, FlareCapability, FlightModel, Mobility as Moves, TypeIndex, UnitType,
+};
 use contract::command::{Engagement, MoveDirection, RoutePolicy};
 use contract::ids::{Side, UnitId};
 use contract::map::MoverClass;
-use contract::observation::MoveState;
+use contract::observation::{FlareReadiness, MoveState};
 use contract::scenario::{Armor, Rules};
 
 use crate::hold::{Hold, Phase};
@@ -364,6 +366,19 @@ pub struct AirState {
 pub struct Flares {
     pub charges: u32,
     pub ready_tick: u64,
+}
+
+impl Flares {
+    /// What its owner sees at `tick`: the charges left, and how far the
+    /// reload has run while one runs.
+    pub fn readiness(&self, capability: &FlareCapability, tick: u64, hz: u32) -> FlareReadiness {
+        let remaining = (self.ready_tick as f64 - tick as f64).max(0.0);
+        FlareReadiness {
+            charges: self.charges,
+            cooldown: (remaining > 0.0)
+                .then(|| (1.0 - remaining / (capability.reload_s * f64::from(hz))).clamp(0.0, 1.0)),
+        }
+    }
 }
 
 /// A unit's smoke charges left (`crate::smoke`).

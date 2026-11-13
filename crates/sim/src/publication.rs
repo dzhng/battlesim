@@ -32,11 +32,16 @@ use crate::ground::GroundRunPatch;
 mod crash_row;
 mod layout;
 pub mod reader;
+mod report_row;
+mod smoke;
 mod tags;
 
 use crash_row::{crash_row, CRASH_FIELDS};
 pub use layout::layout_json;
 use layout::pose;
+use report_row::{report_event_row, REPORT_EVENT_FIELDS};
+pub use smoke::smoke_looks;
+use smoke::{smoke_cloud_row, SMOKE_CLOUD_FIELDS};
 use tags::*;
 
 /// Atomic publication allowance; uniform Large ground plus finest fog is about
@@ -86,7 +91,7 @@ const POSE_FIELDS: [&str; 8] = [
 
 /// Header words; the non-map groups' delivery metadata starts here.
 pub const HEADER_WORDS: usize = HEADER.len();
-const HEADER: [&str; 44] = [
+const HEADER: [&str; 45] = [
     "tick",
     "ownCount",
     "identifiedCount",
@@ -131,6 +136,7 @@ const HEADER: [&str; 44] = [
     "shoutCount",
     "propDisplayPoseCount",
     "grindCount",
+    "smokeCloudCount",
 ];
 const OBJECTIVE_FIELDS: [&str; 8] = [
     "id",
@@ -219,23 +225,6 @@ const SHOUT_FIELDS: [&str; 9] = [
 const PROP_DISPLAY_POSE_FIELDS: [&str; 5] = ["propId", "x", "y", "yaw", "baseZ"];
 const GRIND_FIELDS: [&str; 5] = ["x", "y", "z", "headingX", "headingY"];
 const REPORT_TOTAL_FIELDS: [&str; 4] = ["spawned", "spent", "killed", "refunded"];
-const REPORT_EVENT_FIELDS: [&str; 15] = [
-    "tickLo",
-    "tickHi",
-    "kind",
-    "side",
-    "unitIdLo",
-    "unitIdHi",
-    "unitKind",
-    "owner",
-    "otherSide",
-    "otherIdLo",
-    "otherIdHi",
-    "otherKind",
-    "otherOwner",
-    "amount",
-    "otherAmount",
-];
 const PLAYER_FIELDS: [&str; 7] = [
     "index",
     "id",
@@ -267,7 +256,7 @@ const KNOWN_PROP_FIELDS: [&str; 20] = [
     "authoredPropHi",
     "wreckOf",
 ];
-const OWN_FIELDS: [&str; 56] = [
+const OWN_FIELDS: [&str; 57] = [
     "id",
     "owner",
     "kind",
@@ -322,6 +311,7 @@ const OWN_FIELDS: [&str; 56] = [
     "flareCooldown",
     "protectionCharges",
     "protectionCooldownProgress",
+    "smokeCharges",
     "smoking",
     "goalUnloads",
 ];
@@ -455,6 +445,7 @@ const GROUP_LAYOUTS: [GroupLayout; GROUPS] = [
         &PROP_DISPLAY_POSE_FIELDS,
     ),
     rows("grinds", "grindCount", &GRIND_FIELDS),
+    rows("smokeClouds", "smokeCloudCount", &SMOKE_CLOUD_FIELDS),
 ];
 
 /// An integer as its two exact 16-bit limbs.
@@ -597,6 +588,7 @@ impl Publisher {
         let mut ends = Vec::with_capacity(GROUPS);
         pack_record(
             frame,
+            &smoke_looks(battle.rules()),
             &ground,
             &fog,
             known.change_runs_since(baseline).take(count),
@@ -672,20 +664,23 @@ pub struct FogPatch<'a> {
 
 /// Canonical complete logical record, before group and ground delivery encoding. This is
 /// the reconstruction oracle; [`Publisher::publish`] owns the transport record.
-/// Fog/ground payloads still follow their supplied cursor headers.
+/// Fog/ground payloads still follow their supplied cursor headers; a smoke
+/// cloud's look is indexed in `looks`, the battle's [`smoke_looks`].
 /// Admission precedes output allocation.
 pub fn pack_logical(
     frame: &ObservationFrame,
+    looks: &[&str],
     ground: &GroundHeader,
     patch: &FogPatch<'_>,
     runs: impl Iterator<Item = GroundRunPatch>,
     out: &mut Vec<f32>,
 ) -> Result<(), String> {
-    pack_record(frame, ground, patch, runs, out, None)
+    pack_record(frame, looks, ground, patch, runs, out, None)
 }
 
 fn pack_record(
     frame: &ObservationFrame,
+    looks: &[&str],
     ground: &GroundHeader,
     patch: &FogPatch<'_>,
     runs: impl Iterator<Item = GroundRunPatch>,
@@ -791,6 +786,7 @@ fn pack_record(
         frame.shouts.len() as f32,
         frame.prop_display_poses.len() as f32,
         frame.grinds.len() as f32,
+        frame.smoke_clouds.len() as f32,
     ]);
     for u in &frame.own {
         let (host_kind, host_id, host_center, host_half) = match u.hold.map(|h| h.host) {
@@ -864,6 +860,7 @@ fn pack_record(
             u.protection
                 .and_then(|p| p.cooldown)
                 .map_or(-1.0, |p| p as f32),
+            u.smoke.map_or(-1.0, |n| n as f32),
             u.smoking as u8 as f32,
             u.goal_unloads as u8 as f32,
         ]);
@@ -1214,65 +1211,7 @@ fn pack_record(
             ends.push(out.len());
         }
         for event in &report.events {
-            let (tick, kind, side, unit, other, amount, other_amount) = match event {
-                contract::skirmish::MatchEvent::Spawn { tick, unit, cost } => {
-                    (*tick, 0.0, unit.side, *unit, None, *cost as f32, 0.0)
-                }
-                contract::skirmish::MatchEvent::Refund {
-                    tick,
-                    unit,
-                    credits,
-                } => (*tick, 1.0, unit.side, *unit, None, *credits as f32, 0.0),
-                contract::skirmish::MatchEvent::Kill {
-                    tick,
-                    victim,
-                    victim_cost,
-                    killer,
-                    killer_cost,
-                } => (
-                    *tick,
-                    2.0,
-                    victim.side,
-                    *victim,
-                    *killer,
-                    *victim_cost as f32,
-                    killer_cost.unwrap_or_default() as f32,
-                ),
-            };
-            let [tick_lo, tick_hi] = limbs(
-                tick.try_into()
-                    .map_err(|_| "report tick exceeds publication range")?,
-            );
-            let [id_lo, id_hi] = limbs(unit.id.0);
-            let owner = unit.owner.map_or(-1.0, |p| f32::from(p.0));
-            let (other_side, other_id_lo, other_id_hi, other_kind, other_owner) =
-                other.map_or((-1.0, -1.0, -1.0, -1.0, -1.0), |u| {
-                    let [lo, hi] = limbs(u.id.0);
-                    (
-                        u.side.index() as f32,
-                        lo,
-                        hi,
-                        u.kind.0 as f32,
-                        u.owner.map_or(-1.0, |p| f32::from(p.0)),
-                    )
-                });
-            out.extend([
-                tick_lo,
-                tick_hi,
-                kind,
-                side.index() as f32,
-                id_lo,
-                id_hi,
-                unit.kind.0 as f32,
-                owner,
-                other_side,
-                other_id_lo,
-                other_id_hi,
-                other_kind,
-                other_owner,
-                amount,
-                other_amount,
-            ]);
+            out.extend(report_event_row(event)?);
         }
     } else if let Some(ends) = ends.as_mut() {
         ends.push(out.len());
@@ -1368,6 +1307,12 @@ fn pack_record(
             g.heading[0] as f32,
             g.heading[1] as f32,
         ]);
+    }
+    if let Some(ends) = ends.as_mut() {
+        ends.push(out.len());
+    }
+    for c in &frame.smoke_clouds {
+        out.extend(smoke_cloud_row(c, looks)?);
     }
     if let Some(ends) = ends.as_mut() {
         ends.push(out.len());
@@ -1512,6 +1457,7 @@ fn packed_len(frame: &ObservationFrame, fog: usize, runs: usize) -> Result<usize
         PROP_DISPLAY_POSE_FIELDS.len(),
     )?;
     add(frame.grinds.len(), GRIND_FIELDS.len())?;
+    add(frame.smoke_clouds.len(), SMOKE_CLOUD_FIELDS.len())?;
     add(fog, 1)?;
     add(runs, GROUND_FIELDS.len())?;
     Ok(length)
@@ -1832,7 +1778,7 @@ fn write_group_operations(
 const VARIABLE_ANCHOR_WORDS: usize = 3;
 
 /// Non-map groups, in record order.
-pub const GROUPS: usize = 21;
+pub const GROUPS: usize = 22;
 
 /// A non-map group's fixed row width; 0 where variable sections leave no one
 /// width to address complete rows by.

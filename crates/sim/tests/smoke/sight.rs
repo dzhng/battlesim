@@ -8,7 +8,7 @@ use sim::flight::FlightEvent;
 use super::*;
 
 /// The test rules with `patches` (`(section, id, patch)`) applied.
-fn rules_with(patches: &[(&str, &str, Value)]) -> Value {
+pub(super) fn rules_with(patches: &[(&str, &str, Value)]) -> Value {
     let mut rules = common::game();
     for (section, id, patch) in patches {
         sim::fixtures::patch_catalog(&mut rules, section, id, patch.clone());
@@ -16,7 +16,7 @@ fn rules_with(patches: &[(&str, &str, Value)]) -> Value {
     rules
 }
 
-fn battle_on(rules: Value, map: Value, units: Value, seed: u64) -> Battle {
+pub(super) fn battle_on(rules: Value, map: Value, units: Value, seed: u64) -> Battle {
     let setup: ScenarioDefinition = serde_json::from_value(json!({
         "map": map, "rules": rules, "units": units, "events": [], "scripts": [],
     }))
@@ -24,12 +24,12 @@ fn battle_on(rules: Value, map: Value, units: Value, seed: u64) -> Battle {
     Battle::new(&setup, seed)
 }
 
-fn open_map() -> Value {
+pub(super) fn open_map() -> Value {
     serde_json::from_str(&open_ground()).unwrap()
 }
 
 /// Tanks too tough to die in these scenes: a test of sight, not of killing.
-fn tough() -> Vec<(&'static str, &'static str, Value)> {
+pub(super) fn tough() -> Vec<(&'static str, &'static str, Value)> {
     vec![
         (
             "units",
@@ -44,7 +44,7 @@ fn tough() -> Vec<(&'static str, &'static str, Value)> {
     ]
 }
 
-fn facing(side: &str, kind: &str, at: [f64; 2], yaw: f64, engagement: &str) -> Value {
+pub(super) fn facing(side: &str, kind: &str, at: [f64; 2], yaw: f64, engagement: &str) -> Value {
     json!({ "side": side, "kind": kind, "position": at, "yaw": yaw, "engagement": engagement })
 }
 
@@ -56,7 +56,7 @@ fn identifies(o: &ObservationFrame, kind: &str) -> bool {
 /// Ticks from a pop until the cloud is full and the enemy's last sight of
 /// what it hides has lapsed (`sensors.acquisition_grace_s`), with a margin
 /// of a sensing round.
-fn bloomed(kind: &str) -> u64 {
+pub(super) fn bloomed(kind: &str) -> u64 {
     seconds(smoke(kind).cloud.bloom_s + common::rules().sensors.acquisition_grace_s) + 4
 }
 

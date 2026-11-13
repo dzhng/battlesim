@@ -3906,6 +3906,11 @@ impl Battle {
                 .identified
                 .extend(knowledge.identified(self.tick, &self.units, &self.rules));
             frame.ground_visibility.clone_from(fog);
+            frame.smoke_clouds.clear();
+            let seen = crate::smoke::seen(self.world.smoke(), side, fog);
+            frame
+                .smoke_clouds
+                .extend(seen.map(|(p, _)| p.cloud.clone()));
             frame.contacts.clear();
             // An area hangs in the air when its cause flew higher over the
             // ground than the low hover (D33).
@@ -4037,40 +4042,14 @@ impl Battle {
                             .air
                             .as_ref()
                             .is_some_and(|air| air.dogfight_target.is_some()),
-                        flares: u.flares.and_then(|state| {
-                            u.unit_type(&self.rules)
-                                .capabilities
-                                .flares
-                                .map(|definition| {
-                                    let remaining =
-                                        (state.ready_tick as f64 - self.tick as f64).max(0.0);
-                                    contract::observation::FlareReadiness {
-                                        charges: state.charges,
-                                        cooldown: (remaining > 0.0).then(|| {
-                                            (1.0 - remaining
-                                                / (definition.reload_s
-                                                    * f64::from(self.rules.tick_hz)))
-                                            .clamp(0.0, 1.0)
-                                        }),
-                                    }
-                                })
+                        flares: u.flares.and_then(|f| {
+                            let capability = u.unit_type(&self.rules).capabilities.flares?;
+                            Some(f.readiness(&capability, self.tick, self.rules.tick_hz))
                         }),
                         protection: u.protection.as_ref().map(|p| {
-                            let definition = u
-                                .unit_type(&self.rules)
-                                .capabilities
-                                .active_protection
-                                .as_ref()
-                                .unwrap();
-                            let remaining = (p.ready_at_tick - self.tick as f64).max(0.0);
-                            contract::observation::ProtectionReadiness {
-                                charges: p.charges,
-                                cooldown: (remaining > 0.0).then(|| {
-                                    (1.0 - remaining
-                                        / (definition.cooldown_s * f64::from(self.rules.tick_hz)))
-                                    .clamp(0.0, 1.0)
-                                }),
-                            }
+                            let capabilities = &u.unit_type(&self.rules).capabilities;
+                            let capability = capabilities.active_protection.as_ref().unwrap();
+                            p.readiness(capability, self.tick as f64, self.rules.tick_hz)
                         }),
                         id: u.id,
                         owner: state_digest::owner_index(&player_ids, u)
@@ -4165,6 +4144,7 @@ impl Battle {
                         deployment: deployment::state(u),
                         hp: u.hp,
                         smoking: u.smoking(&self.rules),
+                        smoke: u.smoke.map(|s| s.charges),
                         member_hp: u
                             .members
                             .iter()

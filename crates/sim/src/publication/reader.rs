@@ -30,8 +30,7 @@ use super::{
     GROUP_ENCODINGS, GROUP_LAYOUTS, GUIDED_FIELDS, HEADER, HEARD_WORD_BITS, IDENTIFIED_FIELDS,
     KNOWN_PROP_FIELDS, LEAN_FIELDS, LIMB_BITS, MEMBER_ID_FIELDS, MEMBER_ORDER_FIELDS, MOUNT_FIELDS,
     OBJECTIVE_FIELDS, OWN_FIELDS, PENDING_FIELDS, PLAYER_FIELDS, PROJECTILE_FIELDS,
-    PROP_DISPLAY_POSE_FIELDS, QUEUE_FIELDS, RANGE_FIELDS, REFUSAL_FIELDS, REPORT_EVENT_FIELDS,
-    REPORT_TOTAL_FIELDS, SHOUT_FIELDS,
+    PROP_DISPLAY_POSE_FIELDS, QUEUE_FIELDS, RANGE_FIELDS, REFUSAL_FIELDS, SHOUT_FIELDS,
 };
 
 pub use view::*;
@@ -116,7 +115,10 @@ macro_rules! v {
 
 mod crash;
 mod poses;
+mod report;
+mod smoke;
 use poses::weapon_poses;
+use report::totals;
 
 const LIMB: f64 = (1u32 << LIMB_BITS) as f64;
 
@@ -672,6 +674,7 @@ impl Reader {
                 Ok(prop_display_pose(r))
             })?,
             grinds: map(&rows[group("grinds")], |r| Ok(grind(r)))?,
+            smoke_clouds: map(&rows[group("smokeClouds")], |r| self.smoke_cloud(r))?,
         })
     }
 
@@ -770,6 +773,7 @@ impl Reader {
             weapon_poses: weapon_poses(poses),
             hp: v!(f, "hp"),
             smoking: v!(f, "smoking") == 1.0,
+            smoke: present(v!(f, "smokeCharges")),
             member_hp: column(member_hp),
             suppression: self.name("suppressionTiers", v!(f, "suppression"))?,
             concealed: v!(f, "concealed") == 1.0,
@@ -1049,34 +1053,6 @@ impl Reader {
         })
     }
 
-    fn event(&self, r: &Row) -> Result<ReportEvent> {
-        const FIELDS: &[&str] = &REPORT_EVENT_FIELDS;
-        let f = r.fields;
-        let killer = if v!(f, "otherSide") < 0.0 {
-            None
-        } else {
-            Some(Killer {
-                side: self.name("sides", v!(f, "otherSide"))?,
-                unit_id: limbs(v!(f, "otherIdLo"), v!(f, "otherIdHi")),
-                unit_kind: self.name("unitKinds", v!(f, "otherKind"))?,
-                owner: present(v!(f, "otherOwner")),
-                cost: v!(f, "otherAmount"),
-            })
-        };
-        let kill = v!(f, "kind") != 0.0 && v!(f, "kind") != 1.0;
-        Ok(ReportEvent {
-            kind: fixed(&["spawn", "refund"], v!(f, "kind")).unwrap_or("kill"),
-            tick: limbs(v!(f, "tickLo"), v!(f, "tickHi")),
-            side: self.name("sides", v!(f, "side"))?,
-            unit_id: limbs(v!(f, "unitIdLo"), v!(f, "unitIdHi")),
-            unit_kind: self.name("unitKinds", v!(f, "unitKind"))?,
-            owner: present(v!(f, "owner")),
-            amount: (!kill).then(|| v!(f, "amount")),
-            victim_cost: kill.then(|| v!(f, "amount")),
-            killer: kill.then_some(killer),
-        })
-    }
-
     /// The ground's run tail, admitted and checked against the grid.
     fn ground_runs(&self, tail: &[u32], n: usize) -> Result<Vec<f32>> {
         check(
@@ -1343,16 +1319,5 @@ fn grind(r: &Row) -> Grind {
     Grind {
         point: [v!(f, "x"), v!(f, "y"), v!(f, "z")],
         heading: [v!(f, "headingX"), v!(f, "headingY")],
-    }
-}
-
-fn totals(r: &Row) -> ReportTotals {
-    const FIELDS: &[&str] = &REPORT_TOTAL_FIELDS;
-    let f = r.fields;
-    ReportTotals {
-        spawned: v!(f, "spawned"),
-        spent: v!(f, "spent"),
-        killed: v!(f, "killed"),
-        refunded: v!(f, "refunded"),
     }
 }
