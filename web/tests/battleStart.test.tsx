@@ -1,15 +1,15 @@
-import { renderInRouter as render, visitInRouter as visit } from "./support/router";
+import { renderInRouter as render, visitApp } from "./support/router";
 // @vitest-environment jsdom
 // Starting a battle from the menu: the seed stays exact text from the address
 // to the address and back, the address says what it gets wrong, and a
 // preparation that is cancelled or replaced never delivers its battle.
 import { createElement } from "react";
+import { menuPage } from "@apps/battle-lab/src/menu/pages";
 import { cleanup, fireEvent } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { askedBattle, battleHref } from "@apps/battle-lab/src/battleLinks";
 import { skirmishPlayers } from "@apps/battle-lab/src/skirmishSetup";
 import type { Faction } from "@packages/scene-assets/src/units";
-import { MainMenu } from "@apps/battle-lab/src/MainMenu";
 import { admitBattle } from "../src/battle/prepare/admission";
 import { PreparationFailed, prepareBattle } from "../src/battle/prepare/client";
 import type {
@@ -262,8 +262,7 @@ test("admission closes refused workers and keeps the admitted worker connected",
 });
 
 test("skirmish controls and Deploy stand alone without explanatory subtitles", async () => {
-  const menu = await visit(createElement(MainMenu));
-  fireEvent.click(menu.getByRole("button", { name: "Skirmish" }));
+  const menu = await visitApp(menuPage("skirmish").path);
   expect(menu.container.textContent).not.toMatch(/fields and woods|defended town|as blue/i);
   expect(menu.getByRole("link", { name: "Deploy" }).textContent).toBe("Deploy");
 });

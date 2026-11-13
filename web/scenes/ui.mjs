@@ -6,6 +6,7 @@
 // lab (`cursor.mjs`) the cursor.
 import { pointerAway } from "./_baseline.mjs";
 import { spills } from "./_spills.mjs";
+import { menuPage } from "../../apps/battle-lab/src/menu/pages.ts";
 
 /** The panels whose content must stay inside them. */
 const PANELS = ".hud-panel, .hud-card, .hud-rejected, .frame-rate";
@@ -380,6 +381,11 @@ export async function run(ctx) {
   // first-launch graphics detector has replaced the plate.
   for (const entry of ["skirmish", "settings", "developer"]) {
     await page.locator(`main.menu:not(.loading):not([inert]) [data-page="${entry}"]`).click();
+    ctx.check(
+      `menu ${entry}: its tile opens it at its own address`,
+      new URL(page.url()).pathname === menuPage(entry).path,
+      page.url(),
+    );
     const box = await body.boundingBox();
     const viewportHeight = await page.evaluate(() => innerHeight);
     ctx.check(

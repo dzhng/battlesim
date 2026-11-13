@@ -40,9 +40,9 @@ function Shot({
     <figure>
       <div className="hud-panel menu-shot">
         {loop ? (
-          <video src={`/tutorial/${name}.mp4`} autoPlay loop muted playsInline />
+          <video src={`/tutorial-media/${name}.mp4`} autoPlay loop muted playsInline />
         ) : (
-          <img src={`/tutorial/${name}.jpg`} alt="" />
+          <img src={`/tutorial-media/${name}.jpg`} alt="" />
         )}
       </div>
       <figcaption>{children}</figcaption>

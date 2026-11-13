@@ -15,6 +15,7 @@ import { advance, buildingsSettled, hideHud, lab, menuShown, obs, openMenu } fro
 import { decode, pixel } from "./_png.mjs";
 import { cameraKeepsOut } from "./_cameraClearance.mjs";
 import { bareClassMask, classAt } from "./_groundStations.mjs";
+import { menuPage } from "../../apps/battle-lab/src/menu/pages.ts";
 
 const MAP = { type: "mixed", size: "medium", seed: "1" };
 /** The ground mask's two values: a pixel that is mostly ground, and one that is not. */
@@ -72,7 +73,7 @@ async function preparedBattle(page) {
 async function deployFromMenu(ctx, page, map, shots = false, beforeDeploy = async () => {}) {
   await page.goto(new URL("/", ctx.url).href);
   await menuShown(page);
-  await page.goto(new URL(`/?seed=${map.seed}`, ctx.url).href);
+  await page.goto(new URL(`${menuPage("skirmish").path}?seed=${map.seed}`, ctx.url).href);
   await page.getByTestId("menu-deploy").waitFor();
   if (shots) await writeFile(ctx.evidencePath("menu-1920x1080.png"), await page.screenshot());
   await page.getByTestId(`menu-map-${map.type}`).click();
@@ -299,7 +300,7 @@ export async function run(ctx) {
     "a loading screen names the map and the stage while it is prepared, and can be cancelled back to the menu's choice",
     loading.subject === "MIXED · MEDIUM" &&
       !!loading.stage &&
-      new URL(loading.cancel, ctx.url).pathname === "/" &&
+      new URL(loading.cancel, ctx.url).pathname === menuPage("skirmish").path &&
       ["type", "size", "seed"]
         .map((k) => new URL(loading.cancel, ctx.url).searchParams.get(k))
         .join() === `${MAP.type},${MAP.size},${MAP.seed}`,

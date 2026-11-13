@@ -14,7 +14,12 @@ const PINNED_PAGES = [
   "apps/battle-lab/src/routes/panels.tsx", // scenes/panels.mjs
   "apps/battle-lab/src/routes/ui.tsx", // scenes/ui.mjs
   "apps/battle-lab/src/routes/cursor.tsx", // scenes/cursor.mjs
-  "apps/battle-lab/src/MainMenu.tsx", // scenes/ui.mjs, its every page
+  // scenes/ui.mjs: the menu's home and its pictured pages.
+  "apps/battle-lab/src/menu/Home.tsx",
+  "apps/battle-lab/src/menu/MenuVisit.tsx",
+  "apps/battle-lab/src/menu/SkirmishPage.tsx",
+  "apps/battle-lab/src/Tutorial.tsx",
+  "apps/battle-lab/src/menu/SettingsPage.tsx",
 ];
 
 /** What the player sees: the battle's presentation and the app's screens. */

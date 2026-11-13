@@ -4,7 +4,9 @@ import { PageVisit } from "./navigation";
 import { LAB_FIXTURES } from "./fixtures";
 import { listMaps } from "@web/maps/catalogue";
 import { LabLoading } from "./LabLoading";
-import { MainMenu } from "./MainMenu";
+import { MenuVisit } from "./menu/MenuVisit";
+import { MenuShell } from "./menu/MenuShell";
+import { MENU_PAGES, type MenuPageId } from "./menu/pages";
 import { SessionCatalogScope } from "@web/battle/catalog/context";
 
 const MechanicsEditor = lazy(() => import("../../mechanics-editor/src/MechanicsEditor"));
@@ -79,12 +81,23 @@ export function canonicalLabPath(path: string): string {
   return legacy.includes(path) ? `/labs${path}` : path;
 }
 
-/** `/` is the main menu, `/labs` the index of every fixture route. */
+/** `/` is the main menu, `/labs` the index of every fixture route. Every
+ *  menu page is a visit inside the one menu shell, which stays mounted while
+ *  the player moves between them. */
 export function LabRouter() {
   const location = useLocation();
   const path = canonicalLabPath(location.pathname);
   if (path !== location.pathname)
     return <Navigate replace to={`${path}${location.search}${location.hash}`} />;
+  const menu = menuPageOf(path);
+  if (menu !== null)
+    return (
+      <MenuShell page={menu}>
+        <PageVisit>
+          <MenuVisit page={menu} />
+        </PageVisit>
+      </MenuShell>
+    );
   return (
     <PageVisit>
       <LabPage path={path} />
@@ -108,14 +121,20 @@ function resolvePage(path: string) {
   return { path: normalized, editor, fixture, Route };
 }
 
+/** The menu page an address shows: one of the menu's pages, or home for an
+ *  address that nothing else owns. Null for the lab and battle routes. */
+export function menuPageOf(pathname: string): MenuPageId | "home" | null {
+  const page = resolvePage(pathname);
+  if (page.editor || page.Route || page.path === "/labs") return null;
+  return MENU_PAGES.find((row) => row.path === page.path)?.id ?? "home";
+}
+
 /** Policy for menu warm-up and the menu bed, derived from the rendered page.
  * The player battle route (replays included) keeps the bed while its loading
  * cover is visible. */
 export function screenForPath(path: string): "menu" | "loading" | "other" {
-  const page = resolvePage(path);
-  if (page.editor || page.path === "/labs") return "other";
-  if (!page.Route) return "menu";
-  return /^\/battle(\/|$)/.test(page.path) ? "loading" : "other";
+  if (menuPageOf(path) !== null) return "menu";
+  return /^\/battle(\/|$)/.test(resolvePage(path).path) ? "loading" : "other";
 }
 
 export function labIndexSections() {
@@ -133,7 +152,6 @@ function LabPage({ path: requestedPath }: { path: string }) {
         <Editor />
       </Suspense>
     );
-  if (!Route && path !== "/labs") return <MainMenu />;
   if (!fixture || !Route) {
     const { scenes, tools } = labIndexSections();
     return (

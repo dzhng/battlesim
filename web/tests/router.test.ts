@@ -1,10 +1,10 @@
-import { visitInRouter as visit } from "./support/router";
+import { visitApp } from "./support/router";
 // @vitest-environment jsdom
 import { LAB_FIXTURES } from "@apps/battle-lab/src/fixtures";
-import { createElement } from "react";
 import { cleanup, fireEvent } from "@testing-library/react";
+import { MENU_PAGES, menuPage } from "@apps/battle-lab/src/menu/pages";
 import { afterEach, expect, test, vi } from "vitest";
-import { canonicalLabPath, LabRouter, labIndexSections } from "@apps/battle-lab/src/router";
+import { canonicalLabPath, labIndexSections } from "@apps/battle-lab/src/router";
 import { SOURCE_REPO } from "@apps/battle-lab/src/buildIdentity";
 
 afterEach(() => {
@@ -17,10 +17,9 @@ afterEach(() => {
 test("the main menu at / opens each of its pages inside its plate, and Back returns to the list; the lab index is /labs", async () => {
   vi.stubEnv("DEV", true);
   vi.resetModules();
-  const { LabRouter: DevelopmentRouter } = await import("@apps/battle-lab/src/router");
-  const menu = await visit(createElement(DevelopmentRouter));
+  const menu = await visitApp("/");
   const links = () => menu.queryAllByRole("link").map((a) => a.getAttribute("href"));
-  const pages = ["Skirmish", "Tutorial", "Settings", "Developer"];
+  const pages = MENU_PAGES.map((row) => row.title);
   // Every entry opens in the plate; the one link leaves the game, in a new
   // tab, for its source.
   expect(links()).toEqual([SOURCE_REPO]);
@@ -35,12 +34,14 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
     expect(menu.getByRole("heading", { name: page })).toBeTruthy();
     for (const other of pages) expect(menu.queryByRole("button", { name: other })).toBeNull();
   };
+  /** Back is a step back through history, which lands a task later. */
+  const listed = (page: string) => menu.findByRole("button", { name: page });
   const entries: Record<string, Record<string, string | null>> = {
     // Deploy waits for the lobby's map (its own tests).
-    Skirmish: { Deploy: null },
-    Tutorial: {},
-    Settings: {},
-    Developer: {
+    [menuPage("skirmish").title]: { Deploy: null },
+    [menuPage("tutorial").title]: {},
+    [menuPage("settings").title]: {},
+    [menuPage("developer").title]: {
       "Mechanics editor": "/labs/mechanics",
       "Map workbench": "/labs/map-workbench",
       "Scenario builder": "/labs/scenario",
@@ -52,7 +53,7 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
   };
   for (const [page, expected] of Object.entries(entries)) {
     open(page);
-    if (page === "Skirmish") {
+    if (page === menuPage("skirmish").title) {
       for (const label of ["S", "M", "L", "XL"]) {
         expect(menu.getByRole("radio", { name: label })).toBeTruthy();
       }
@@ -62,17 +63,16 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
       expect(menu.getByRole("link", { name }).getAttribute("href")).toBe(href);
     }
     fireEvent.click(menu.getByRole("button", { name: "Back" }));
-    expect(menu.getByRole("button", { name: page })).toBeTruthy();
+    await listed(page);
   }
-  open("Settings");
+  open(menuPage("settings").title);
   expect(menu.getByTestId("sound-controls")).toBeTruthy();
   expect(menu.queryByRole("link", { name: "Graphics test" })).toBeNull();
   // Escape is Back, as in a game's menus.
   fireEvent.keyDown(window, { key: "Escape" });
-  expect(menu.getByRole("button", { name: "Settings" })).toBeTruthy();
+  await listed(menuPage("settings").title);
   menu.unmount();
-  window.history.replaceState(null, "", "/labs");
-  const index = await visit(createElement(LabRouter));
+  const index = await visitApp("/labs");
   expect(index.getByRole("heading", { name: "Scenes" })).toBeTruthy();
   expect(index.getByRole("heading", { name: "Tools" })).toBeTruthy();
   const hrefs = index.getAllByRole("link").map((a) => a.getAttribute("href"));
@@ -88,9 +88,7 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
 test("the production menu does not offer source editing", async () => {
   vi.stubEnv("DEV", false);
   vi.resetModules();
-  const { MainMenu } = await import("@apps/battle-lab/src/MainMenu");
-  const menu = await visit(createElement(MainMenu));
-  fireEvent.click(menu.getByRole("button", { name: "Developer" }));
+  const menu = await visitApp(menuPage("developer").path);
   expect(menu.queryByRole("link", { name: "Mechanics editor" })).toBeNull();
   expect(menu.queryByRole("link", { name: "Map workbench" })).toBeNull();
   expect(menu.queryByRole("link", { name: "Sound workbench" })).toBeNull();

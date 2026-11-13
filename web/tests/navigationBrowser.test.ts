@@ -2,7 +2,10 @@
 import { expect, test } from "vitest";
 import type { Browser, Page } from "playwright";
 import { launchBrowser } from "../browser.mjs";
+import { menuPage } from "@apps/battle-lab/src/menu/pages";
 import { browserTestServer } from "./support/browserServer";
+
+const skirmish = menuPage("skirmish");
 
 // The shipped entry, links, loading cover and preparation worker. Menu warm-up
 // admits the page GPU, but this history proof cancels before drawing a battle.
@@ -31,7 +34,7 @@ test("client exit and history keep the document while discarding preparation vis
     );
     await page.goto(server.url);
     await coverLifted(page);
-    await page.getByRole("button", { name: "Skirmish", exact: true }).click();
+    await page.getByRole("button", { name: skirmish.title, exact: true }).click();
     // Finish the lobby's preview worker before listening for the battle worker.
     await page.locator('[data-testid="lobby-map"][data-status="ready"]').waitFor();
     const origin = await page.evaluate(() => performance.timeOrigin);
@@ -41,7 +44,8 @@ test("client exit and history keep the document while discarding preparation vis
     const closed = worker.waitForEvent("close");
     await page.getByRole("link", { name: "Cancel", exact: true }).click();
     await closed;
-    await page.getByRole("heading", { name: "Skirmish", exact: true }).waitFor();
+    await page.getByRole("heading", { name: skirmish.title, exact: true }).waitFor();
+    expect(new URL(page.url()).pathname).toBe(skirmish.path);
     expect(await page.evaluate(() => performance.timeOrigin)).toBe(origin);
     const freshWorkerOpened = page.waitForEvent("worker");
     await page.goBack();
@@ -49,14 +53,16 @@ test("client exit and history keep the document while discarding preparation vis
     expect(freshWorker).not.toBe(worker);
     expect(new URL(page.url()).pathname).toBe("/battle");
     const freshClosed = freshWorker.waitForEvent("close");
+    // Back past the battle: the Skirmish page that deployed it.
     await page.goBack();
     await freshClosed;
-    await page.getByRole("button", { name: "Skirmish", exact: true }).waitFor();
+    await page.getByRole("heading", { name: skirmish.title, exact: true }).waitFor();
+    expect(new URL(page.url()).pathname).toBe(skirmish.path);
     const forwardOpened = page.waitForEvent("worker");
     await page.goForward();
     await forwardOpened;
     await page.getByRole("link", { name: "Cancel", exact: true }).click();
-    await page.getByRole("heading", { name: "Skirmish", exact: true }).waitFor();
+    await page.getByRole("heading", { name: skirmish.title, exact: true }).waitFor();
     expect(await page.evaluate(() => performance.timeOrigin)).toBe(origin);
   } finally {
     await browser?.close();

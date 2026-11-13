@@ -5,6 +5,7 @@ import {
   type RenderOptions,
   type RenderResult,
 } from "@testing-library/react";
+import { BrowserRouter } from "react-router";
 import { BrowserVisit } from "./browserVisit";
 
 export function renderInRouter(ui: ReactNode) {
@@ -32,4 +33,18 @@ export async function renderSettled(ui: ReactNode, options?: RenderOptions): Pro
 /** `renderInRouter`, settled (`renderSettled`). */
 export function visitInRouter(ui: ReactNode): Promise<RenderResult> {
   return renderSettled(ui, { wrapper: BrowserVisit });
+}
+
+/** The app's router at `address`, settled (`renderSettled`), the way the entry
+ *  mounts it: menu pages share one shell, and lab pages are visits of their
+ *  own. Imported when called, so a test that resets modules gets the fresh
+ *  router. */
+export async function visitApp(address: string): Promise<RenderResult> {
+  const { LabRouter } = await import("@apps/battle-lab/src/router");
+  window.history.replaceState(null, "", address);
+  return renderSettled(
+    <BrowserRouter unstable_useTransitions={false}>
+      <LabRouter />
+    </BrowserRouter>,
+  );
 }

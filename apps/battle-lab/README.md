@@ -33,16 +33,22 @@ rules when they change. Its pictures are not hand-shot: [the tutorial shots
 tool](../../web/tutorial-shots.mjs) plays one seeded skirmish with the faction roster
 through the ordinary picker, cursor and orders, finds each moment by what the
 observation shows, and writes stills and gesture loops to the served
-`assets/runtime/tutorial/`. They show the game as it was drawn, so a change to
+`assets/runtime/tutorial-media/`. They show the game as it was drawn, so a change to
 the look, the HUD, the generator or the rules is followed by rerunning it and
 reviewing the pictures; the tool's header says how. A moment the battle no
 longer reaches fails by name rather than shooting something else. It is
 one plate over its backdrop, with title-only entries over generated military art.
 The same tutorial is available from a live battle's pause menu; it opens as a
 modal over the paused battle and closes back to that menu.
-Opening a page replaces the plate's contents under a
-Back button, and Escape is Back, so the film behind never changes. A menu address asking for a battle opens on the
-skirmish page. That page is [the lobby](src/lobby/Lobby.tsx), an order of
+Every menu page is an address, and [the menu's pages](src/menu/pages.ts) own
+their paths, titles and tiles. Every menu address is a visit inside [one menu
+shell](src/menu/MenuShell.tsx), which owns the backdrop, graphics detection and
+the loading cover, so moving between pages replaces only the plate's contents,
+and the film behind never changes. A page opens under a Back button, and Escape
+is Back: a page opened from home goes back through history onto the tile it
+left, and one opened by its address replaces itself with home. An address that
+names no page opens home. A Skirmish address (`/skirmish?type=…`) opens the
+lobby on that map; the menu at `/` never reads one. The Skirmish page is [the lobby](src/lobby/Lobby.tsx), an order of
 battle: [the lobby model](src/lobby/model.ts) owns its rules, and the page only
 shows them. Its map is a real admitted preparation, started again only when a
 map input changes, and Deploy opens only on a ready map and names the seed that
