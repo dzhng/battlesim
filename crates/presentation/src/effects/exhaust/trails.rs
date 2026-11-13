@@ -18,8 +18,11 @@
 //! thicker the harder the pull; so a load hovering there does not flicker,
 //! it holds until the load falls below `off_load`. It thickens over
 //! `attack_s` and thins over `release_s`, tick by tick, and what was laid
-//! ages out as any trail does. At most `max_aircraft` aircraft are tracked, each holding no
-//! more than its longest trail's life; spent tracks keep their room.
+//! ages out as any trail does. The wing-top sheet is the same vapour past
+//! `sheet_from`, rescaled to its full strength at the vapour's thickest, so
+//! it is off whenever the tips are only wisping. At most `max_aircraft`
+//! aircraft are tracked, each holding no more than its longest trail's life;
+//! spent tracks keep their room.
 use std::collections::VecDeque;
 
 use super::{distance, DrawnJet, Emitter, JetExhaustStyle};
@@ -194,10 +197,12 @@ impl Track {
                 strength: match kind {
                     Emitter::Nozzle { .. } => heat,
                     Emitter::Wingtip => body.vapour,
+                    Emitter::Sheet => ((body.vapour - style.sheet_from) / (1.0 - style.sheet_from))
+                        .clamp(0.0, 1.0),
                 },
                 reheat: match kind {
                     Emitter::Nozzle { .. } => reheat,
-                    Emitter::Wingtip => 0.0,
+                    Emitter::Wingtip | Emitter::Sheet => 0.0,
                 },
                 joined,
             });
@@ -286,7 +291,10 @@ impl JetTrails {
             }
         }
         let nozzle = Emitter::Nozzle { radius: 0.0 };
-        let life = style.life(nozzle).max(style.life(Emitter::Wingtip));
+        let life = [nozzle, Emitter::Wingtip, Emitter::Sheet]
+            .map(|kind| style.life(kind))
+            .into_iter()
+            .fold(0.0, f64::max);
         let mut kept = 0;
         for i in 0..self.tracks.len() {
             let track = &mut self.tracks[i];

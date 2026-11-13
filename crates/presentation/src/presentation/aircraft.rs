@@ -1,6 +1,7 @@
 //! What the effects read off this frame's aircraft as they are drawn: the
 //! shadow beneath each high-air one, its own and the side's edge transits
-//! alike, and each running jet's nozzles and wingtips for its exhaust.
+//! alike, and each running jet's nozzles, wingtips and sheet points for its
+//! exhaust.
 use crate::effects::exhaust::DrawnJet;
 use crate::effects::frame::EffectFrame;
 use crate::effects::high_air_shadow::{high_air_ground_shadow, GroundShadow};
@@ -57,7 +58,7 @@ pub(super) fn observe_jets(
     jets: &mut Vec<DrawnJet>,
 ) {
     if let Some(style) = &effects.presentation().jet_exhaust {
-        drawn.jets(&style.airframes, jets);
+        drawn.jets(style, jets);
     }
     effects.observe_jets(time, jets);
 }

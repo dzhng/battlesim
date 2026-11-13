@@ -9,6 +9,7 @@ use serde_json::{json, Value};
 
 pub const ENGINE_ALBEDO: f32 = 0.5;
 pub const TIP_ALBEDO: f32 = 0.9;
+pub const SHEET_ALBEDO: f32 = 0.7;
 pub const HAZE_ALBEDO: f32 = 0.4;
 pub const SMOKE_ALBEDO: f32 = 0.1;
 pub const CRUISE: f64 = 200.0;
@@ -20,6 +21,8 @@ pub const ON_LOAD: f64 = 1.8;
 pub const OFF_LOAD: f64 = 1.5;
 pub const RELEASE_S: f64 = 1.5;
 pub const G: f64 = 9.81;
+/// The share of the wingtip vapour the wing-top sheet starts at.
+pub const SHEET_FROM: f64 = 0.7;
 
 pub fn style() -> Value {
     json!({
@@ -47,6 +50,9 @@ pub fn style() -> Value {
             ]
         },
         "wingtip_trail": {"albedo": [TIP_ALBEDO, TIP_ALBEDO, TIP_ALBEDO], "opacity": [0.0, 0.4], "life_s": LIFE, "width_m": [0.2, 2], "fade_in_s": 0.05},
+        "sheet_from": SHEET_FROM,
+        "wing_sheet": [],
+        "wing_sheet_rule": {"span": [0, 0.5], "rows": [[0.2, 0.2]], "spacing_m": 1, "lift_m": 0.2},
         "airframes": {}
     })
 }
@@ -121,7 +127,12 @@ pub fn publ(tick: u32, crafts: &[Craft]) -> EffectPublication {
 
 /// What `f` draws at `clock` with `drawn` jets drawn.
 pub fn draw(f: &mut EffectFrame, clock: f64, drawn: &[Craft]) -> Vec<Vec<f32>> {
-    f.observe_jets(clock, &drawn.iter().map(drawn_jet).collect::<Vec<_>>());
+    draw_jets(f, clock, &drawn.iter().map(drawn_jet).collect::<Vec<_>>())
+}
+
+/// What `f` draws at `clock` with `jets` drawn as they are given.
+pub fn draw_jets(f: &mut EffectFrame, clock: f64, jets: &[DrawnJet]) -> Vec<Vec<f32>> {
+    f.observe_jets(clock, jets);
     let mut batch = EffectBatch::new(f.presentation().capacity);
     f.build(clock, &mut batch, None, &[], &[], None);
     assert_eq!(batch.dropped, 0);
@@ -141,6 +152,19 @@ pub fn fly(
     flight: impl Fn(f64) -> Vec<Craft>,
     drawn: impl Fn(f64) -> Vec<Craft>,
 ) -> Vec<Vec<f32>> {
+    fly_jets(f, fps, until, flight, |t| {
+        drawn(t).iter().map(drawn_jet).collect()
+    })
+}
+
+/// [`fly`], with the jets drawn at `t` given whole.
+pub fn fly_jets(
+    f: &mut EffectFrame,
+    fps: f64,
+    until: f64,
+    flight: impl Fn(f64) -> Vec<Craft>,
+    drawn: impl Fn(f64) -> Vec<DrawnJet>,
+) -> Vec<Vec<f32>> {
     let mut noted = 0u32;
     let mut out = Vec::new();
     for i in 0..=(until * fps).round() as u32 {
@@ -149,7 +173,7 @@ pub fn fly(
             f.note(&publ(noted, &flight(f64::from(noted) / TICK_HZ)));
             noted += 1;
         }
-        out = draw(f, t, &drawn(t));
+        out = draw_jets(f, t, &drawn(t));
     }
     out
 }
@@ -166,6 +190,14 @@ pub fn craft(key: f64, engine: &'static str, at: [f64; 3], yaw: f64) -> Craft {
 /// A jet flying straight along +X at `speed`.
 pub fn straight(key: f64, engine: &'static str, speed: f64) -> impl Fn(f64) -> Vec<Craft> {
     move |t| vec![craft(key, engine, [speed * t, 0.0, 900.0], 0.0)]
+}
+
+/// Billows of `albedo`: sheet sprites (shape 2) flagged (misc.w 1) to draw
+/// noise, as a trail with `puffs` draws.
+pub fn billows(d: &[Vec<f32>], albedo: f32) -> Vec<&Vec<f32>> {
+    d.iter()
+        .filter(|i| i[12] == 2.0 && i[15] == 1.0 && i[8] == albedo)
+        .collect()
 }
 
 /// Lit ribbons (blended: an opacity in the colour's alpha) of `albedo`.

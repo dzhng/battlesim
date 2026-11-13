@@ -408,18 +408,25 @@ impl EffectPresentation {
     }
 
     pub fn check(&self) -> Result<(), String> {
-        crate::settings::validate::numbers(
-            self,
-            "presentation.effects",
-            &[
-                ".forward_m",
-                ".spin_turns",
-                ".up_m",
-                SIGNED[0],
-                SIGNED[1],
-                SIGNED[2],
-            ],
-        )?;
+        // The jets' sheet rule may reach just past a wing's root and leading
+        // edge (its own check bounds how far): each of its shares is signed.
+        let rule: Vec<String> = self
+            .jet_exhaust
+            .iter()
+            .flat_map(|j| {
+                let rows = (0..j.wing_sheet_rule.rows.len())
+                    .flat_map(|i| (0..2).map(move |k| format!(".wing_sheet_rule.rows[{i}][{k}]")));
+                (0..2)
+                    .map(|k| format!(".wing_sheet_rule.span[{k}]"))
+                    .chain(rows)
+            })
+            .collect();
+        let signed: Vec<&str> = [".forward_m", ".spin_turns", ".up_m"]
+            .into_iter()
+            .chain(SIGNED)
+            .chain(rule.iter().map(String::as_str))
+            .collect();
+        crate::settings::validate::numbers(self, "presentation.effects", &signed)?;
         if let Some(jets) = &self.jet_exhaust {
             jets.check()?;
         }

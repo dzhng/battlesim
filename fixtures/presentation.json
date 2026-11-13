@@ -447,7 +447,7 @@
       "max_gap_s": 0.5,
       "speed_window_s": 0.5,
       "reheat_share": [1.08, 1.4],
-      "vapour": { "load": [1.8, 4.0], "off_load": 1.5, "onset": 0.45, "attack_s": 0.25, "release_s": 1.0 },
+      "vapour": { "load": [2.0, 6.5], "off_load": 1.6, "onset": 0.25, "attack_s": 0.25, "release_s": 1.0 },
       "engines": {
         "afterburning_turbofan": {
           "glow": { "color": [1.0, 0.42, 0.12], "intensity": [2, 10], "reheat_intensity": 4, "radius": 1.6, "min_px": 1.5 },
@@ -467,14 +467,18 @@
         "high_bypass_turbofan": {
           "glow": { "color": [1.0, 0.22, 0.06], "intensity": [0.1, 0.45], "reheat_intensity": 0, "radius": 1.0, "min_px": 0 },
           "trail": 0.7
+        },
+        "turbojet": {
+          "glow": { "color": [1.0, 0.42, 0.12], "intensity": [2, 10], "reheat_intensity": 0, "radius": 1.6, "min_px": 1.5 },
+          "trail": 1
         }
       },
       "engine_style": "realistic",
       "engine_styles": {
         "realistic": [
-          { "albedo": [0.5, 0.42, 0.33], "opacity": [0, 0.6], "reheat": 0.1, "life_s": 0.6, "width_m": [0.6, 2.2], "fade_in_s": 0.02, "breakup": { "amount": 0.35, "length_m": 3 } },
-          { "albedo": [1, 1, 1], "opacity": [0, 1], "reheat": 0, "life_s": 3, "width_m": [0.8, 7], "fade_in_s": 0.05, "taper": 1.5, "plume": { "density": 2.6, "length_m": 8 } },
-          { "albedo": [1, 1, 1], "opacity": [0, 1], "reheat": 0, "life_s": 3, "width_m": [1, 5.5], "fade_in_s": 0.08, "taper": 1.6, "puffs": { "spacing_m": 3, "density": 0.7 } }
+          { "albedo": [0.5, 0.42, 0.33], "opacity": [0, 0.3], "reheat": 0.1, "life_s": 0.35, "width_m": [0.6, 2.2], "fade_in_s": 0.02, "breakup": { "amount": 0.35, "length_m": 3 } },
+          { "albedo": [1, 1, 1], "opacity": [0, 0.4], "reheat": 0, "life_s": 1.2, "width_m": [0.8, 7], "fade_in_s": 0.05, "taper": 1.5, "plume": { "density": 2.6, "length_m": 8 } },
+          { "albedo": [1, 1, 1], "opacity": [0, 0.35], "reheat": 0, "life_s": 1.2, "width_m": [1, 5.5], "fade_in_s": 0.08, "taper": 1.6, "puffs": { "spacing_m": 3, "density": 0.7 } }
         ],
         "white_core": [
           { "albedo": [1, 1, 1], "opacity": [0, 1], "reheat": 0, "life_s": 3, "width_m": [1.6, 10], "fade_in_s": 0.05, "taper": 1.5, "plume": { "density": 2.6, "length_m": 8 } },
@@ -485,62 +489,688 @@
           { "albedo": [0.5, 0.5, 0.5], "opacity": [0.6, 0.75], "reheat": 0.1, "life_s": 2.6, "width_m": [1.2, 7], "fade_in_s": 0.02, "taper": 1.5, "plume": { "density": 5, "length_m": 4, "mix": [0.02, 0.95] } }
         ]
       },
-      "wingtip_trail": { "albedo": [0.95, 0.95, 0.95], "opacity": [0, 0.8], "life_s": 0.3, "width_m": [0.25, 1.2], "fade_in_s": 0.03, "taper": 3.5, "breakup": { "amount": 1, "length_m": 6 } },
+      "wingtip_trail": { "albedo": [1, 1, 1], "opacity": [0, 0.95], "life_s": 0.55, "width_m": [0.12, 0.45], "fade_in_s": 0.03, "taper": 2.0, "breakup": { "amount": 0.2, "length_m": 12 } },
+      "sheet_from": 0.55,
+      "wing_sheet": [
+        { "albedo": [1, 1, 1], "opacity": [0, 0.75], "life_s": 0.12, "width_m": [2.2, 4.2], "fade_in_s": 0.03, "taper": 1.2, "puffs": { "spacing_m": 1.0, "density": 0.55 } }
+      ],
+      "wing_sheet_rule": { "span": [-0.1, 0.4], "rows": [[-0.1, 0.15], [0.3, 0.2]], "spacing_m": 1.2, "lift_m": 0.2 },
       "airframes": {
-      "us_f_22_raptor_f_22a": {
-        "engine": "afterburning_turbofan",
-        "nozzles": [
-          { "at": [-8.85, 0.6, 1.8], "radius_m": 0.3 },
-          { "at": [-8.85, -0.6, 1.8], "radius_m": 0.3 }
-        ],
-        "wingtips": [{ "at": [-3.2, 6.75, 2.05] }, { "at": [-3.2, -6.75, 2.05] }]
-      },
-      "us_f_35_lightning_ii_f_35b": {
-        "engine": "afterburning_turbofan",
-        "nozzles": [
-          { "at": [-7.25, 0, 2.0], "radius_m": 0.55 }
-        ],
-        "wingtips": [{ "at": [-2.85, 5.33, 1.95] }, { "at": [-2.85, -5.33, 1.95] }]
-      },
-      "f_35a": {
-        "engine": "afterburning_turbofan",
-        "nozzles": [
-          { "at": [-7.15, 0, 2.0], "radius_m": 0.55 }
-        ],
-        "wingtips": [{ "at": [-2.9, 5.33, 1.98] }, { "at": [-2.9, -5.33, 1.98] }]
-      },
-      "us_f_a_18_super_hornet_f_a_18e": {
-        "engine": "afterburning_turbofan",
-        "nozzles": [
-          { "at": [-8.63, 0.45, 1.96], "radius_m": 0.46 },
-          { "at": [-8.63, -0.45, 1.96], "radius_m": 0.46 }
-        ],
-        "wingtips": [{ "at": [-4.34, 6.84, 2.08] }, { "at": [-4.34, -6.84, 2.08] }]
-      },
-      "europe_eurofighter_typhoon_tranche_3": {
-        "engine": "afterburning_turbofan",
-        "nozzles": [
-          { "at": [-6.85, 0.43, 1.65], "radius_m": 0.42 },
-          { "at": [-6.85, -0.43, 1.65], "radius_m": 0.42 }
-        ],
-        "wingtips": [{ "at": [-3.04, 5.5, 1.36] }, { "at": [-3.04, -5.5, 1.36] }]
-      },
-      "eastern_su_57_felon_stealth_multirole_fighter": {
-        "engine": "afterburning_turbofan",
-        "nozzles": [
-          { "at": [-8.9, 1.27, 1.96], "radius_m": 0.38 },
-          { "at": [-8.9, -1.27, 1.96], "radius_m": 0.38 }
-        ],
-        "wingtips": [{ "at": [-4.53, 7.04, 2.06] }, { "at": [-4.53, -7.04, 2.06] }]
-      },
-      "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed": {
-        "engine": "high_bypass_turbofan",
-        "nozzles": [
-          { "at": [-4.87, 1.5, 3.28], "radius_m": 0.44 },
-          { "at": [-4.87, -1.5, 3.28], "radius_m": 0.44 }
-        ],
-        "wingtips": [{ "at": [-1.15, 8.75, 1.72] }, { "at": [-1.15, -8.75, 1.72] }]
-      }
+        "eastern_j_10_vigorous_dragon_j_10c": {
+          "engine": "afterburning_turbofan",
+          "nozzles": [{ "at": [-8.36, 0, 2.05], "radius_m": 0.49 }],
+          "wingtips": [{ "at": [-4.6, 4.87, 1.61] }, { "at": [-4.6, -4.87, 1.62] }],
+          "wings": [
+            {
+              "stations": [
+                { "span_y": 1.02, "leading_x": 0.14, "trailing_x": -4.82, "top_z": 1.83 },
+                { "span_y": 1.77, "leading_x": -0.87, "trailing_x": -4.83, "top_z": 1.79 },
+                { "span_y": 2.51, "leading_x": -1.79, "trailing_x": -4.87, "top_z": 1.76 },
+                { "span_y": 3.26, "leading_x": -2.66, "trailing_x": -4.9, "top_z": 1.73 },
+                { "span_y": 4.01, "leading_x": -3.48, "trailing_x": -4.92, "top_z": 1.7 },
+                { "span_y": 4.75, "leading_x": -4.25, "trailing_x": -4.96, "top_z": 1.67 }
+              ]
+            },
+            {
+              "stations": [
+                { "span_y": -1.02, "leading_x": 0.15, "trailing_x": -4.82, "top_z": 1.83 },
+                { "span_y": -1.77, "leading_x": -0.87, "trailing_x": -4.83, "top_z": 1.79 },
+                { "span_y": -2.51, "leading_x": -1.79, "trailing_x": -4.87, "top_z": 1.75 },
+                { "span_y": -3.26, "leading_x": -2.66, "trailing_x": -4.9, "top_z": 1.72 },
+                { "span_y": -4.01, "leading_x": -3.48, "trailing_x": -4.92, "top_z": 1.69 },
+                { "span_y": -4.75, "leading_x": -4.25, "trailing_x": -4.96, "top_z": 1.67 }
+              ]
+            }
+          ]
+        },
+        "eastern_j_20_mighty_dragon_stealth_fighter": {
+          "engine": "afterburning_turbofan",
+          "nozzles": [{ "at": [-9.58, 0.72, 1.95], "radius_m": 0.44 }, { "at": [-9.58, -0.72, 1.95], "radius_m": 0.44 }],
+          "wingtips": [{ "at": [-6.83, 6.51, 1.87] }, { "at": [-6.84, -6.51, 1.87] }],
+          "wings": [
+            {
+              "stations": [
+                { "span_y": 2.42, "leading_x": -1.49, "trailing_x": -9.08, "top_z": 2.17 },
+                { "span_y": 3.22, "leading_x": -2.49, "trailing_x": -8.85, "top_z": 2.12 },
+                { "span_y": 4.01, "leading_x": -3.35, "trailing_x": -8.61, "top_z": 2.11 },
+                { "span_y": 4.8, "leading_x": -4.21, "trailing_x": -8.38, "top_z": 2.1 },
+                { "span_y": 5.59, "leading_x": -5.06, "trailing_x": -8.12, "top_z": 2.08 },
+                { "span_y": 6.38, "leading_x": -5.91, "trailing_x": -7.76, "top_z": 1.97 }
+              ]
+            },
+            {
+              "stations": [
+                { "span_y": -2.42, "leading_x": -1.45, "trailing_x": -9.07, "top_z": 2.17 },
+                { "span_y": -3.22, "leading_x": -2.5, "trailing_x": -8.84, "top_z": 2.12 },
+                { "span_y": -4.01, "leading_x": -3.36, "trailing_x": -8.6, "top_z": 2.11 },
+                { "span_y": -4.8, "leading_x": -4.21, "trailing_x": -8.37, "top_z": 2.1 },
+                { "span_y": -5.59, "leading_x": -5.06, "trailing_x": -8.12, "top_z": 2.08 },
+                { "span_y": -6.38, "leading_x": -5.91, "trailing_x": -7.76, "top_z": 1.97 }
+              ]
+            }
+          ]
+        },
+        "eastern_mig_29_fulcrum_mig_29smt": {
+          "engine": "afterburning_turbofan",
+          "nozzles": [{ "at": [-7.43, 1, 1.33], "radius_m": 0.34 }, { "at": [-7.43, -1, 1.33], "radius_m": 0.34 }],
+          "wingtips": [{ "at": [-3.42, 5.67, 1.82] }, { "at": [-3.42, -5.67, 1.82] }],
+          "wings": [
+            {
+              "stations": [
+                { "span_y": 2.09, "leading_x": -0.08, "trailing_x": -3.67, "top_z": 2.03 },
+                { "span_y": 2.78, "leading_x": -0.68, "trailing_x": -3.71, "top_z": 2 },
+                { "span_y": 3.48, "leading_x": -1.27, "trailing_x": -3.76, "top_z": 1.97 },
+                { "span_y": 4.17, "leading_x": -1.83, "trailing_x": -3.81, "top_z": 1.94 },
+                { "span_y": 4.87, "leading_x": -2.38, "trailing_x": -3.87, "top_z": 1.91 },
+                { "span_y": 5.56, "leading_x": -2.93, "trailing_x": -3.91, "top_z": 1.87 }
+              ]
+            },
+            {
+              "stations": [
+                { "span_y": -2.09, "leading_x": -0.07, "trailing_x": -3.66, "top_z": 2.03 },
+                { "span_y": -2.78, "leading_x": -0.67, "trailing_x": -3.71, "top_z": 2 },
+                { "span_y": -3.48, "leading_x": -1.26, "trailing_x": -3.76, "top_z": 1.97 },
+                { "span_y": -4.17, "leading_x": -1.83, "trailing_x": -3.81, "top_z": 1.94 },
+                { "span_y": -4.87, "leading_x": -2.37, "trailing_x": -3.86, "top_z": 1.91 },
+                { "span_y": -5.56, "leading_x": -2.93, "trailing_x": -3.91, "top_z": 1.87 }
+              ]
+            }
+          ]
+        },
+        "eastern_mig_31_foxhound_mig_31bm": {
+          "engine": "afterburning_turbofan",
+          "nozzles": [{ "at": [-11.35, 0.72, 2.66], "radius_m": 0.6 }, { "at": [-11.35, -0.72, 2.66], "radius_m": 0.6 }],
+          "wingtips": [{ "at": [-5.92, 6.73, 2.99] }, { "at": [-5.92, -6.73, 2.99] }],
+          "wings": [
+            {
+              "stations": [
+                { "span_y": 2.07, "leading_x": -0.84, "trailing_x": -6.61, "top_z": 3.29 },
+                { "span_y": 2.97, "leading_x": -2.02, "trailing_x": -6.73, "top_z": 3.23 },
+                { "span_y": 3.88, "leading_x": -2.75, "trailing_x": -6.83, "top_z": 3.22 },
+                { "span_y": 4.78, "leading_x": -3.48, "trailing_x": -6.9, "top_z": 3.22 },
+                { "span_y": 5.68, "leading_x": -4.21, "trailing_x": -6.98, "top_z": 3.21 },
+                { "span_y": 6.58, "leading_x": -4.96, "trailing_x": -6.88, "top_z": 3.07 }
+              ]
+            },
+            {
+              "stations": [
+                { "span_y": -2.07, "leading_x": -0.84, "trailing_x": -6.61, "top_z": 3.29 },
+                { "span_y": -2.97, "leading_x": -2.02, "trailing_x": -6.73, "top_z": 3.23 },
+                { "span_y": -3.88, "leading_x": -2.74, "trailing_x": -6.83, "top_z": 3.22 },
+                { "span_y": -4.78, "leading_x": -3.47, "trailing_x": -6.89, "top_z": 3.21 },
+                { "span_y": -5.68, "leading_x": -4.21, "trailing_x": -6.98, "top_z": 3.21 },
+                { "span_y": -6.59, "leading_x": -4.96, "trailing_x": -6.87, "top_z": 3.07 }
+              ]
+            }
+          ]
+        },
+        "eastern_su_25_frogfoot_su_25sm3": {
+          "engine": "turbojet",
+          "nozzles": [{ "at": [-5.27, 1.12, 1.94], "radius_m": 0.34 }, { "at": [-5.27, -1.12, 1.94], "radius_m": 0.34 }],
+          "wingtips": [{ "at": [-1.72, 7, 2.27] }, { "at": [-1.72, -7, 2.27] }],
+          "wings": [
+            {
+              "stations": [
+                { "span_y": 2.09, "leading_x": 0.77, "trailing_x": -3.18, "top_z": 2.51 },
+                { "span_y": 3.04, "leading_x": 0.38, "trailing_x": -3.18, "top_z": 2.45 },
+                { "span_y": 3.99, "leading_x": 0.01, "trailing_x": -2.99, "top_z": 2.41 },
+                { "span_y": 4.94, "leading_x": -0.36, "trailing_x": -2.8, "top_z": 2.4 },
+                { "span_y": 5.9, "leading_x": -0.69, "trailing_x": -2.63, "top_z": 2.39 },
+                { "span_y": 6.85, "leading_x": -0.94, "trailing_x": -2.5, "top_z": 2.38 }
+              ]
+            },
+            {
+              "stations": [
+                { "span_y": -2.09, "leading_x": 0.77, "trailing_x": -3.18, "top_z": 2.51 },
+                { "span_y": -3.04, "leading_x": 0.38, "trailing_x": -3.18, "top_z": 2.45 },
+                { "span_y": -3.99, "leading_x": 0.01, "trailing_x": -2.98, "top_z": 2.41 },
+                { "span_y": -4.94, "leading_x": -0.36, "trailing_x": -2.8, "top_z": 2.4 },
+                { "span_y": -5.89, "leading_x": -0.69, "trailing_x": -2.63, "top_z": 2.39 },
+                { "span_y": -6.85, "leading_x": -0.94, "trailing_x": -2.5, "top_z": 2.38 }
+              ]
+            }
+          ]
+        },
+        "eastern_su_57_felon_stealth_multirole_fighter": {
+          "engine": "afterburning_turbofan",
+          "nozzles": [{ "at": [-8.88, 1.27, 1.96], "radius_m": 0.34 }, { "at": [-8.88, -1.27, 1.96], "radius_m": 0.34 }],
+          "wingtips": [{ "at": [-4.98, 7.06, 1.98] }, { "at": [-5, -7.06, 1.98] }],
+          "wings": [
+            {
+              "stations": [
+                { "span_y": 2.89, "leading_x": 0.72, "trailing_x": -5.54, "top_z": 2.31 },
+                { "span_y": 3.69, "leading_x": -0.78, "trailing_x": -5.28, "top_z": 2.29 },
+                { "span_y": 4.5, "leading_x": -1.72, "trailing_x": -5.35, "top_z": 2.27 },
+                { "span_y": 5.31, "leading_x": -2.65, "trailing_x": -5.43, "top_z": 2.24 },
+                { "span_y": 6.12, "leading_x": -3.55, "trailing_x": -5.31, "top_z": 2.2 },
+                { "span_y": 6.93, "leading_x": -4.39, "trailing_x": -5.58, "top_z": 2.14 }
+              ]
+            },
+            {
+              "stations": [
+                { "span_y": -2.89, "leading_x": 0.69, "trailing_x": -5.16, "top_z": 2.31 },
+                { "span_y": -3.7, "leading_x": -0.79, "trailing_x": -5.34, "top_z": 2.29 },
+                { "span_y": -4.5, "leading_x": -1.74, "trailing_x": -5.45, "top_z": 2.27 },
+                { "span_y": -5.31, "leading_x": -2.65, "trailing_x": -5.24, "top_z": 2.24 },
+                { "span_y": -6.12, "leading_x": -3.55, "trailing_x": -5.3, "top_z": 2.2 },
+                { "span_y": -6.93, "leading_x": -4.4, "trailing_x": -5.6, "top_z": 2.14 }
+              ]
+            }
+          ]
+        },
+        "eastern_sukhoi_flanker_family_su_27sm3": {
+          "engine": "afterburning_turbofan",
+          "nozzles": [{ "at": [-9.46, 1.2, 1.62], "radius_m": 0.37 }, { "at": [-9.46, -1.2, 1.62], "radius_m": 0.37 }],
+          "wingtips": [{ "at": [-5.08, 7.28, 2.22] }, { "at": [-5.09, -7.28, 2.21] }],
+          "wings": [
+            {
+              "stations": [
+                { "span_y": 2.86, "leading_x": -0.2, "trailing_x": -6.14, "top_z": 2.43 },
+                { "span_y": 3.71, "leading_x": -0.95, "trailing_x": -6.14, "top_z": 2.4 },
+                { "span_y": 4.57, "leading_x": -1.71, "trailing_x": -6.14, "top_z": 2.37 },
+                { "span_y": 5.43, "leading_x": -2.48, "trailing_x": -6.14, "top_z": 2.34 },
+                { "span_y": 6.29, "leading_x": -3.25, "trailing_x": -6.14, "top_z": 2.32 },
+                { "span_y": 7.15, "leading_x": -4.01, "trailing_x": -6.14, "top_z": 2.3 }
+              ]
+            },
+            {
+              "stations": [
+                { "span_y": -2.86, "leading_x": -0.24, "trailing_x": -6.14, "top_z": 2.43 },
+                { "span_y": -3.71, "leading_x": -0.99, "trailing_x": -6.14, "top_z": 2.4 },
+                { "span_y": -4.57, "leading_x": -1.75, "trailing_x": -6.14, "top_z": 2.37 },
+                { "span_y": -5.43, "leading_x": -2.52, "trailing_x": -6.14, "top_z": 2.34 },
+                { "span_y": -6.29, "leading_x": -3.29, "trailing_x": -6.14, "top_z": 2.31 },
+                { "span_y": -7.15, "leading_x": -4.04, "trailing_x": -6.14, "top_z": 2.3 }
+              ]
+            }
+          ]
+        },
+        "eastern_sukhoi_flanker_family_su_30sm2": {
+          "engine": "afterburning_turbofan",
+          "nozzles": [{ "at": [-9.45, 1.27, 1.7], "radius_m": 0.39 }, { "at": [-9.45, -1.27, 1.7], "radius_m": 0.39 }],
+          "wingtips": [{ "at": [-4.79, 7.27, 2.32] }, { "at": [-4.79, -7.27, 2.32] }],
+          "wings": [
+            {
+              "stations": [
+                { "span_y": 3.03, "leading_x": -0.3, "trailing_x": -6.17, "top_z": 2.5 },
+                { "span_y": 3.86, "leading_x": -0.95, "trailing_x": -6.17, "top_z": 2.49 },
+                { "span_y": 4.68, "leading_x": -1.58, "trailing_x": -6.17, "top_z": 2.47 },
+                { "span_y": 5.5, "leading_x": -2.22, "trailing_x": -6.17, "top_z": 2.45 },
+                { "span_y": 6.32, "leading_x": -2.86, "trailing_x": -6.17, "top_z": 2.44 },
+                { "span_y": 7.14, "leading_x": -3.41, "trailing_x": -6.17, "top_z": 2.43 }
+              ]
+            },
+            {
+              "stations": [
+                { "span_y": -3.03, "leading_x": -0.3, "trailing_x": -6.17, "top_z": 2.5 },
+                { "span_y": -3.86, "leading_x": -0.94, "trailing_x": -6.17, "top_z": 2.49 },
+                { "span_y": -4.68, "leading_x": -1.59, "trailing_x": -6.17, "top_z": 2.47 },
+                { "span_y": -5.5, "leading_x": -2.21, "trailing_x": -6.17, "top_z": 2.45 },
+                { "span_y": -6.32, "leading_x": -2.85, "trailing_x": -6.17, "top_z": 2.44 },
+                { "span_y": -7.14, "leading_x": -3.42, "trailing_x": -6.17, "top_z": 2.43 }
+              ]
+            }
+          ]
+        },
+        "eastern_sukhoi_flanker_family_su_34": {
+          "engine": "afterburning_turbofan",
+          "nozzles": [{ "at": [-9.6, 1.35, 1.78], "radius_m": 0.36 }, { "at": [-9.6, -1.35, 1.78], "radius_m": 0.36 }],
+          "wingtips": [{ "at": [-5.24, 7.27, 2.31] }, { "at": [-5.24, -7.27, 2.31] }],
+          "wings": [
+            {
+              "stations": [
+                { "span_y": 2.95, "leading_x": -0.92, "trailing_x": -6.32, "top_z": 2.49 },
+                { "span_y": 3.79, "leading_x": -1.62, "trailing_x": -6.31, "top_z": 2.49 },
+                { "span_y": 4.63, "leading_x": -2.33, "trailing_x": -6.3, "top_z": 2.51 },
+                { "span_y": 5.46, "leading_x": -2.95, "trailing_x": -6.27, "top_z": 2.47 },
+                { "span_y": 6.3, "leading_x": -3.64, "trailing_x": -6.23, "top_z": 2.46 },
+                { "span_y": 7.14, "leading_x": -4.3, "trailing_x": -6.18, "top_z": 2.45 }
+              ]
+            },
+            {
+              "stations": [
+                { "span_y": -2.95, "leading_x": -1.05, "trailing_x": -6.14, "top_z": 2.49 },
+                { "span_y": -3.79, "leading_x": -1.73, "trailing_x": -6.31, "top_z": 2.49 },
+                { "span_y": -4.63, "leading_x": -2.38, "trailing_x": -6.3, "top_z": 2.51 },
+                { "span_y": -5.46, "leading_x": -2.96, "trailing_x": -6.27, "top_z": 2.47 },
+                { "span_y": -6.3, "leading_x": -3.64, "trailing_x": -6.23, "top_z": 2.46 },
+                { "span_y": -7.14, "leading_x": -4.3, "trailing_x": -6.18, "top_z": 2.45 }
+              ]
+            }
+          ]
+        },
+        "eastern_sukhoi_flanker_family_su_35s": {
+          "engine": "afterburning_turbofan",
+          "nozzles": [{ "at": [-9.42, 1.2, 1.62], "radius_m": 0.37 }, { "at": [-9.42, -1.2, 1.62], "radius_m": 0.37 }],
+          "wingtips": [{ "at": [-5.08, 7.57, 2.22] }, { "at": [-5.08, -7.57, 2.22] }],
+          "wings": [
+            {
+              "stations": [
+                { "span_y": 2.99, "leading_x": -0.38, "trailing_x": -6.15, "top_z": 2.45 },
+                { "span_y": 3.88, "leading_x": -1.14, "trailing_x": -6.15, "top_z": 2.4 },
+                { "span_y": 4.76, "leading_x": -1.88, "trailing_x": -6.15, "top_z": 2.35 },
+                { "span_y": 5.65, "leading_x": -2.57, "trailing_x": -6.15, "top_z": 2.33 },
+                { "span_y": 6.54, "leading_x": -3.3, "trailing_x": -6.15, "top_z": 2.33 },
+                { "span_y": 7.43, "leading_x": -4.01, "trailing_x": -6.15, "top_z": 2.32 }
+              ]
+            },
+            {
+              "stations": [
+                { "span_y": -2.99, "leading_x": -0.37, "trailing_x": -6.15, "top_z": 2.45 },
+                { "span_y": -3.88, "leading_x": -1.13, "trailing_x": -6.15, "top_z": 2.4 },
+                { "span_y": -4.76, "leading_x": -1.87, "trailing_x": -6.15, "top_z": 2.35 },
+                { "span_y": -5.65, "leading_x": -2.58, "trailing_x": -6.15, "top_z": 2.33 },
+                { "span_y": -6.54, "leading_x": -3.3, "trailing_x": -6.15, "top_z": 2.32 },
+                { "span_y": -7.43, "leading_x": -4.01, "trailing_x": -6.15, "top_z": 2.32 }
+              ]
+            }
+          ]
+        },
+        "europe_eurofighter_typhoon_tranche_3": {
+          "engine": "afterburning_turbofan",
+          "nozzles": [{ "at": [-6.83, 0.44, 1.65], "radius_m": 0.37 }, { "at": [-6.83, -0.44, 1.65], "radius_m": 0.37 }],
+          "wingtips": [{ "at": [-4.59, 5.32, 1.36] }, { "at": [-4.59, -5.32, 1.36] }],
+          "wings": [
+            {
+              "stations": [
+                { "span_y": 1.14, "leading_x": 1.13, "trailing_x": -5.32, "top_z": 1.52 },
+                { "span_y": 1.95, "leading_x": 0.07, "trailing_x": -5.31, "top_z": 1.51 },
+                { "span_y": 2.76, "leading_x": -0.96, "trailing_x": -5.31, "top_z": 1.49 },
+                { "span_y": 3.57, "leading_x": -1.94, "trailing_x": -5.31, "top_z": 1.47 },
+                { "span_y": 4.38, "leading_x": -2.91, "trailing_x": -5.31, "top_z": 1.45 },
+                { "span_y": 5.19, "leading_x": -3.88, "trailing_x": -5.31, "top_z": 1.49 }
+              ]
+            },
+            {
+              "stations": [
+                { "span_y": -1.14, "leading_x": 1.13, "trailing_x": -5.31, "top_z": 1.52 },
+                { "span_y": -1.95, "leading_x": 0.07, "trailing_x": -5.31, "top_z": 1.51 },
+                { "span_y": -2.76, "leading_x": -0.96, "trailing_x": -5.31, "top_z": 1.49 },
+                { "span_y": -3.57, "leading_x": -1.93, "trailing_x": -5.31, "top_z": 1.47 },
+                { "span_y": -4.38, "leading_x": -2.9, "trailing_x": -5.31, "top_z": 1.45 },
+                { "span_y": -5.19, "leading_x": -3.87, "trailing_x": -5.31, "top_z": 1.49 }
+              ]
+            }
+          ]
+        },
+        "europe_jas_39_gripen_e": {
+          "engine": "afterburning_turbofan",
+          "nozzles": [{ "at": [-7.58, 0, 1.66], "radius_m": 0.36 }],
+          "wingtips": [{ "at": [-4.02, 4.17, 1.36] }, { "at": [-4.02, -4.17, 1.36] }],
+          "wings": [
+            {
+              "stations": [
+                { "span_y": 1.23, "leading_x": 0.39, "trailing_x": -5.19, "top_z": 1.54 },
+                { "span_y": 1.8, "leading_x": 0.42, "trailing_x": -5.06, "top_z": 1.57 },
+                { "span_y": 2.37, "leading_x": -1.74, "trailing_x": -4.92, "top_z": 1.48 },
+                { "span_y": 2.94, "leading_x": -2.55, "trailing_x": -4.79, "top_z": 1.47 },
+                { "span_y": 3.51, "leading_x": -3.3, "trailing_x": -4.66, "top_z": 1.45 },
+                { "span_y": 4.08, "leading_x": -3.52, "trailing_x": -4.53, "top_z": 1.43 }
+              ]
+            },
+            {
+              "stations": [
+                { "span_y": -1.23, "leading_x": 0.42, "trailing_x": -5.19, "top_z": 1.55 },
+                { "span_y": -1.8, "leading_x": 0.39, "trailing_x": -5.06, "top_z": 1.57 },
+                { "span_y": -2.37, "leading_x": -1.74, "trailing_x": -4.92, "top_z": 1.48 },
+                { "span_y": -2.94, "leading_x": -2.55, "trailing_x": -4.78, "top_z": 1.47 },
+                { "span_y": -3.51, "leading_x": -3.3, "trailing_x": -4.66, "top_z": 1.45 },
+                { "span_y": -4.08, "leading_x": -3.52, "trailing_x": -4.53, "top_z": 1.43 }
+              ]
+            }
+          ]
+        },
+        "europe_mirage_2000_2000d_rmv": {
+          "engine": "afterburning_turbofan",
+          "nozzles": [{ "at": [-7.18, 0, 2.06], "radius_m": 0.44 }],
+          "wingtips": [{ "at": [-5.35, 4.57, 1.53] }, { "at": [-5.35, -4.57, 1.53] }],
+          "wings": [
+            {
+              "stations": [
+                { "span_y": 1.41, "leading_x": 0.56, "trailing_x": -6.22, "top_z": 1.74 },
+                { "span_y": 2.02, "leading_x": -0.48, "trailing_x": -6.22, "top_z": 1.72 },
+                { "span_y": 2.64, "leading_x": -1.52, "trailing_x": -6.22, "top_z": 1.7 },
+                { "span_y": 3.25, "leading_x": -2.55, "trailing_x": -6.22, "top_z": 1.68 },
+                { "span_y": 3.86, "leading_x": -3.53, "trailing_x": -6.22, "top_z": 1.65 },
+                { "span_y": 4.47, "leading_x": -4.48, "trailing_x": -6.22, "top_z": 1.62 }
+              ]
+            },
+            {
+              "stations": [
+                { "span_y": -1.41, "leading_x": 0.56, "trailing_x": -6.22, "top_z": 1.74 },
+                { "span_y": -2.02, "leading_x": -0.47, "trailing_x": -6.22, "top_z": 1.72 },
+                { "span_y": -2.64, "leading_x": -1.53, "trailing_x": -6.22, "top_z": 1.7 },
+                { "span_y": -3.25, "leading_x": -2.55, "trailing_x": -6.22, "top_z": 1.68 },
+                { "span_y": -3.86, "leading_x": -3.53, "trailing_x": -6.22, "top_z": 1.65 },
+                { "span_y": -4.47, "leading_x": -4.49, "trailing_x": -6.22, "top_z": 1.62 }
+              ]
+            }
+          ]
+        },
+        "europe_rafale_c_f4": {
+          "engine": "afterburning_turbofan",
+          "nozzles": [{ "at": [-6.73, 0.42, 2.02], "radius_m": 0.36 }, { "at": [-6.73, -0.42, 2.02], "radius_m": 0.36 }],
+          "wingtips": [{ "at": [-3.93, 5.25, 1.76] }, { "at": [-3.93, -5.25, 1.76] }],
+          "wings": [
+            {
+              "stations": [
+                { "span_y": 1.34, "leading_x": 0.19, "trailing_x": -4.43, "top_z": 1.92 },
+                { "span_y": 2.1, "leading_x": -0.66, "trailing_x": -4.43, "top_z": 1.92 },
+                { "span_y": 2.86, "leading_x": -1.44, "trailing_x": -4.44, "top_z": 1.91 },
+                { "span_y": 3.61, "leading_x": -2.18, "trailing_x": -4.46, "top_z": 1.9 },
+                { "span_y": 4.37, "leading_x": -2.88, "trailing_x": -4.46, "top_z": 1.87 },
+                { "span_y": 5.13, "leading_x": -3.41, "trailing_x": -4.46, "top_z": 1.81 }
+              ]
+            },
+            {
+              "stations": [
+                { "span_y": -1.34, "leading_x": 0.22, "trailing_x": -4.43, "top_z": 1.91 },
+                { "span_y": -2.1, "leading_x": -0.67, "trailing_x": -4.44, "top_z": 1.91 },
+                { "span_y": -2.86, "leading_x": -1.42, "trailing_x": -4.45, "top_z": 1.91 },
+                { "span_y": -3.61, "leading_x": -2.15, "trailing_x": -4.46, "top_z": 1.9 },
+                { "span_y": -4.37, "leading_x": -2.85, "trailing_x": -4.46, "top_z": 1.87 },
+                { "span_y": -5.13, "leading_x": -3.39, "trailing_x": -4.46, "top_z": 1.81 }
+              ]
+            }
+          ]
+        },
+        "europe_tornado_ecr": {
+          "engine": "afterburning_turbofan",
+          "nozzles": [{ "at": [-7.23, 0.48, 2.1], "radius_m": 0.37 }, { "at": [-7.23, -0.48, 2.1], "radius_m": 0.37 }],
+          "wingtips": [{ "at": [-2.16, 6.89, 1.93] }, { "at": [-2.18, -6.89, 1.94] }],
+          "wings": [
+            {
+              "stations": [
+                { "span_y": 2.63, "leading_x": 0.1, "trailing_x": -2.18, "top_z": 2.31 },
+                { "span_y": 3.46, "leading_x": -0.22, "trailing_x": -2.31, "top_z": 2.27 },
+                { "span_y": 4.28, "leading_x": -0.53, "trailing_x": -2.44, "top_z": 2.21 },
+                { "span_y": 5.11, "leading_x": -0.86, "trailing_x": -2.56, "top_z": 2.14 },
+                { "span_y": 5.93, "leading_x": -1.19, "trailing_x": -2.69, "top_z": 2.06 },
+                { "span_y": 6.76, "leading_x": -1.5, "trailing_x": -2.82, "top_z": 1.97 }
+              ]
+            },
+            {
+              "stations": [
+                { "span_y": -2.63, "leading_x": 0.07, "trailing_x": -2.19, "top_z": 2.3 },
+                { "span_y": -3.46, "leading_x": -0.27, "trailing_x": -2.31, "top_z": 2.26 },
+                { "span_y": -4.28, "leading_x": -0.59, "trailing_x": -2.45, "top_z": 2.2 },
+                { "span_y": -5.11, "leading_x": -0.91, "trailing_x": -2.57, "top_z": 2.13 },
+                { "span_y": -5.93, "leading_x": -1.23, "trailing_x": -2.7, "top_z": 2.06 },
+                { "span_y": -6.76, "leading_x": -1.54, "trailing_x": -2.82, "top_z": 1.97 }
+              ]
+            }
+          ]
+        },
+        "europe_tornado_ids": {
+          "engine": "afterburning_turbofan",
+          "nozzles": [{ "at": [-7.23, 0.48, 2.1], "radius_m": 0.37 }, { "at": [-7.23, -0.48, 2.1], "radius_m": 0.37 }],
+          "wingtips": [{ "at": [-2.25, 6.89, 2.24] }, { "at": [-2.25, -6.89, 2.24] }],
+          "wings": [
+            {
+              "stations": [
+                { "span_y": 2.7, "leading_x": 0.04, "trailing_x": -2.28, "top_z": 2.57 },
+                { "span_y": 3.51, "leading_x": -0.33, "trailing_x": -2.39, "top_z": 2.54 },
+                { "span_y": 4.32, "leading_x": -0.69, "trailing_x": -2.49, "top_z": 2.49 },
+                { "span_y": 5.14, "leading_x": -1.04, "trailing_x": -2.59, "top_z": 2.43 },
+                { "span_y": 5.95, "leading_x": -1.4, "trailing_x": -2.67, "top_z": 2.36 },
+                { "span_y": 6.76, "leading_x": -1.76, "trailing_x": -2.74, "top_z": 2.27 }
+              ]
+            },
+            {
+              "stations": [
+                { "span_y": -2.7, "leading_x": 0.04, "trailing_x": -2.28, "top_z": 2.57 },
+                { "span_y": -3.51, "leading_x": -0.33, "trailing_x": -2.39, "top_z": 2.54 },
+                { "span_y": -4.32, "leading_x": -0.68, "trailing_x": -2.5, "top_z": 2.49 },
+                { "span_y": -5.14, "leading_x": -1.04, "trailing_x": -2.59, "top_z": 2.43 },
+                { "span_y": -5.95, "leading_x": -1.4, "trailing_x": -2.67, "top_z": 2.36 },
+                { "span_y": -6.76, "leading_x": -1.76, "trailing_x": -2.74, "top_z": 2.27 }
+              ]
+            }
+          ]
+        },
+        "f_16c_block_50": {
+          "engine": "afterburning_turbofan",
+          "nozzles": [{ "at": [-7.01, 0, 1.73], "radius_m": 0.38 }],
+          "wingtips": [{ "at": [-2.25, 4.9, 1.71] }, { "at": [-2.24, -4.9, 1.71] }],
+          "wings": [
+            {
+              "stations": [
+                { "span_y": 1.42, "leading_x": 0.66, "trailing_x": -3.45, "top_z": 1.88 },
+                { "span_y": 2.1, "leading_x": -0.04, "trailing_x": -3.45, "top_z": 1.84 },
+                { "span_y": 2.77, "leading_x": -0.75, "trailing_x": -3.42, "top_z": 1.82 },
+                { "span_y": 3.44, "leading_x": -1.38, "trailing_x": -3.42, "top_z": 1.8 },
+                { "span_y": 4.12, "leading_x": -1.94, "trailing_x": -3.43, "top_z": 1.78 },
+                { "span_y": 4.79, "leading_x": -1, "trailing_x": -3.49, "top_z": 1.76 }
+              ]
+            },
+            {
+              "stations": [
+                { "span_y": -1.42, "leading_x": 0.66, "trailing_x": -3.45, "top_z": 1.88 },
+                { "span_y": -2.1, "leading_x": -0.05, "trailing_x": -3.45, "top_z": 1.84 },
+                { "span_y": -2.77, "leading_x": -0.76, "trailing_x": -3.42, "top_z": 1.82 },
+                { "span_y": -3.44, "leading_x": -1.38, "trailing_x": -3.42, "top_z": 1.8 },
+                { "span_y": -4.12, "leading_x": -1.94, "trailing_x": -3.43, "top_z": 1.77 },
+                { "span_y": -4.79, "leading_x": -0.99, "trailing_x": -3.49, "top_z": 1.76 }
+              ]
+            }
+          ]
+        },
+        "f_35a": {
+          "engine": "afterburning_turbofan",
+          "nozzles": [{ "at": [-7.13, 0, 2], "radius_m": 0.51 }],
+          "wingtips": [{ "at": [-3.19, 5.36, 2] }, { "at": [-3.18, -5.36, 2] }],
+          "wings": [
+            {
+              "stations": [
+                { "span_y": 2.13, "leading_x": 0.21, "trailing_x": -4.73, "top_z": 2.21 },
+                { "span_y": 2.76, "leading_x": -0.44, "trailing_x": -4.58, "top_z": 2.19 },
+                { "span_y": 3.38, "leading_x": -0.99, "trailing_x": -4.45, "top_z": 2.16 },
+                { "span_y": 4.01, "leading_x": -1.52, "trailing_x": -4.32, "top_z": 2.15 },
+                { "span_y": 4.63, "leading_x": -2.04, "trailing_x": -4.18, "top_z": 2.13 },
+                { "span_y": 5.26, "leading_x": -2.59, "trailing_x": -3.78, "top_z": 2.06 }
+              ]
+            },
+            {
+              "stations": [
+                { "span_y": -2.13, "leading_x": 0.21, "trailing_x": -4.73, "top_z": 2.21 },
+                { "span_y": -2.76, "leading_x": -0.44, "trailing_x": -4.58, "top_z": 2.18 },
+                { "span_y": -3.38, "leading_x": -0.99, "trailing_x": -4.45, "top_z": 2.16 },
+                { "span_y": -4.01, "leading_x": -1.52, "trailing_x": -4.32, "top_z": 2.15 },
+                { "span_y": -4.63, "leading_x": -2.03, "trailing_x": -4.19, "top_z": 2.13 },
+                { "span_y": -5.26, "leading_x": -2.59, "trailing_x": -3.78, "top_z": 2.06 }
+              ]
+            }
+          ]
+        },
+        "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed": {
+          "engine": "high_bypass_turbofan",
+          "nozzles": [{ "at": [-5, 1.5, 3.28], "radius_m": 0.43 }, { "at": [-5, -1.5, 3.28], "radius_m": 0.43 }],
+          "wingtips": [{ "at": [-0.73, 8.77, 1.71] }, { "at": [-0.74, -8.77, 1.72] }],
+          "wings": [
+            {
+              "stations": [
+                { "span_y": 2.97, "leading_x": 1.52, "trailing_x": -2.14, "top_z": 1.98 },
+                { "span_y": 4.1, "leading_x": 0.52, "trailing_x": -1.97, "top_z": 1.98 },
+                { "span_y": 5.22, "leading_x": 0.36, "trailing_x": -1.84, "top_z": 1.96 },
+                { "span_y": 6.34, "leading_x": 0.23, "trailing_x": -1.69, "top_z": 1.93 },
+                { "span_y": 7.47, "leading_x": 0.1, "trailing_x": -1.57, "top_z": 1.88 },
+                { "span_y": 8.59, "leading_x": -0.02, "trailing_x": -1.44, "top_z": 1.85 }
+              ]
+            },
+            {
+              "stations": [
+                { "span_y": -2.97, "leading_x": 1.52, "trailing_x": -2.11, "top_z": 1.98 },
+                { "span_y": -4.1, "leading_x": 0.53, "trailing_x": -1.96, "top_z": 1.98 },
+                { "span_y": -5.22, "leading_x": 0.37, "trailing_x": -1.84, "top_z": 1.97 },
+                { "span_y": -6.34, "leading_x": 0.23, "trailing_x": -1.69, "top_z": 1.93 },
+                { "span_y": -7.47, "leading_x": 0.1, "trailing_x": -1.57, "top_z": 1.88 },
+                { "span_y": -8.59, "leading_x": -0.02, "trailing_x": -1.45, "top_z": 1.85 }
+              ]
+            }
+          ]
+        },
+        "us_ea_18g_growler_electronic_warfare_aircraft": {
+          "engine": "afterburning_turbofan",
+          "nozzles": [{ "at": [-8.8, 0.5, 1.96], "radius_m": 0.41 }, { "at": [-8.8, -0.5, 1.96], "radius_m": 0.41 }],
+          "wingtips": [{ "at": [-2.68, 6.65, 2.36] }, { "at": [-2.69, -6.65, 2.36] }],
+          "wings": [
+            {
+              "stations": [
+                { "span_y": 1.8, "leading_x": 0.06, "trailing_x": -3.4, "top_z": 2.61 },
+                { "span_y": 2.74, "leading_x": -0.41, "trailing_x": -3.36, "top_z": 2.59 },
+                { "span_y": 3.68, "leading_x": -0.85, "trailing_x": -3.3, "top_z": 2.57 },
+                { "span_y": 4.62, "leading_x": -0.95, "trailing_x": -3.29, "top_z": 2.54 },
+                { "span_y": 5.56, "leading_x": -1.45, "trailing_x": -3.29, "top_z": 2.49 },
+                { "span_y": 6.5, "leading_x": -2.02, "trailing_x": -3.34, "top_z": 2.41 }
+              ]
+            },
+            {
+              "stations": [
+                { "span_y": -1.8, "leading_x": 0.06, "trailing_x": -3.4, "top_z": 2.61 },
+                { "span_y": -2.74, "leading_x": -0.41, "trailing_x": -3.36, "top_z": 2.59 },
+                { "span_y": -3.68, "leading_x": -0.86, "trailing_x": -3.3, "top_z": 2.57 },
+                { "span_y": -4.62, "leading_x": -0.96, "trailing_x": -3.3, "top_z": 2.54 },
+                { "span_y": -5.56, "leading_x": -1.46, "trailing_x": -3.29, "top_z": 2.49 },
+                { "span_y": -6.5, "leading_x": -2.04, "trailing_x": -3.34, "top_z": 2.41 }
+              ]
+            }
+          ]
+        },
+        "us_f_15_eagle_f_15e_strike_eagle": {
+          "engine": "afterburning_turbofan",
+          "nozzles": [{ "at": [-9.33, 0.64, 1.95], "radius_m": 0.46 }, { "at": [-9.28, -0.64, 1.95], "radius_m": 0.46 }],
+          "wingtips": [{ "at": [-4.17, 6.52, 2.34] }, { "at": [-4.17, -6.52, 2.34] }],
+          "wings": [
+            {
+              "stations": [
+                { "span_y": 2.33, "leading_x": 0.52, "trailing_x": -5.04, "top_z": 2.5 },
+                { "span_y": 3.14, "leading_x": -0.25, "trailing_x": -5.04, "top_z": 2.5 },
+                { "span_y": 3.95, "leading_x": -1.03, "trailing_x": -5.04, "top_z": 2.48 },
+                { "span_y": 4.77, "leading_x": -1.79, "trailing_x": -5.04, "top_z": 2.45 },
+                { "span_y": 5.58, "leading_x": -2.54, "trailing_x": -5.04, "top_z": 2.42 },
+                { "span_y": 6.39, "leading_x": -3.3, "trailing_x": -5.04, "top_z": 2.39 }
+              ]
+            },
+            {
+              "stations": [
+                { "span_y": -2.33, "leading_x": 0.53, "trailing_x": -5.04, "top_z": 2.5 },
+                { "span_y": -3.14, "leading_x": -0.24, "trailing_x": -5.05, "top_z": 2.49 },
+                { "span_y": -3.95, "leading_x": -1.01, "trailing_x": -5.05, "top_z": 2.48 },
+                { "span_y": -4.77, "leading_x": -1.77, "trailing_x": -5.05, "top_z": 2.45 },
+                { "span_y": -5.58, "leading_x": -2.53, "trailing_x": -5.04, "top_z": 2.42 },
+                { "span_y": -6.39, "leading_x": -3.29, "trailing_x": -5.04, "top_z": 2.39 }
+              ]
+            }
+          ]
+        },
+        "us_f_15_eagle_f_15ex_eagle_ii": {
+          "engine": "afterburning_turbofan",
+          "nozzles": [{ "at": [-9.2, 0.64, 1.95], "radius_m": 0.46 }, { "at": [-9.2, -0.64, 1.95], "radius_m": 0.46 }],
+          "wingtips": [{ "at": [-4.18, 6.52, 2.36] }, { "at": [-4.18, -6.52, 2.27] }],
+          "wings": [
+            {
+              "stations": [
+                { "span_y": 2.29, "leading_x": 0.57, "trailing_x": -5.07, "top_z": 2.56 },
+                { "span_y": 3.11, "leading_x": -0.17, "trailing_x": -5.07, "top_z": 2.53 },
+                { "span_y": 3.93, "leading_x": -0.92, "trailing_x": -5.06, "top_z": 2.49 },
+                { "span_y": 4.75, "leading_x": -1.69, "trailing_x": -5.05, "top_z": 2.46 },
+                { "span_y": 5.57, "leading_x": -2.47, "trailing_x": -5.05, "top_z": 2.43 },
+                { "span_y": 6.39, "leading_x": -3.31, "trailing_x": -5.04, "top_z": 2.39 }
+              ]
+            },
+            {
+              "stations": [
+                { "span_y": -2.29, "leading_x": 0.55, "trailing_x": -5.07, "top_z": 2.53 },
+                { "span_y": -3.11, "leading_x": -0.2, "trailing_x": -5.06, "top_z": 2.48 },
+                { "span_y": -3.93, "leading_x": -0.95, "trailing_x": -5.05, "top_z": 2.43 },
+                { "span_y": -4.75, "leading_x": -1.71, "trailing_x": -5.05, "top_z": 2.39 },
+                { "span_y": -5.57, "leading_x": -2.48, "trailing_x": -5.04, "top_z": 2.35 },
+                { "span_y": -6.39, "leading_x": -3.32, "trailing_x": -5.04, "top_z": 2.3 }
+              ]
+            }
+          ]
+        },
+        "us_f_22_raptor_f_22a": {
+          "engine": "afterburning_turbofan",
+          "nozzles": [{ "at": [-8.91, 0.6, 1.8], "radius_m": 0.27 }, { "at": [-8.91, -0.6, 1.8], "radius_m": 0.27 }],
+          "wingtips": [{ "at": [-3.77, 6.78, 2.05] }, { "at": [-3.77, -6.78, 2.05] }],
+          "wings": [
+            {
+              "stations": [
+                { "span_y": 2.43, "leading_x": 0.76, "trailing_x": -5.32, "top_z": 2.25 },
+                { "span_y": 3.27, "leading_x": 0.06, "trailing_x": -5.59, "top_z": 2.22 },
+                { "span_y": 4.12, "leading_x": -0.64, "trailing_x": -5.42, "top_z": 2.19 },
+                { "span_y": 4.96, "leading_x": -1.34, "trailing_x": -5.24, "top_z": 2.16 },
+                { "span_y": 5.8, "leading_x": -2.02, "trailing_x": -5.04, "top_z": 2.13 },
+                { "span_y": 6.65, "leading_x": -2.7, "trailing_x": -4.84, "top_z": 2.11 }
+              ]
+            },
+            {
+              "stations": [
+                { "span_y": -2.43, "leading_x": 0.77, "trailing_x": -5.74, "top_z": 2.25 },
+                { "span_y": -3.27, "leading_x": 0.06, "trailing_x": -5.57, "top_z": 2.22 },
+                { "span_y": -4.12, "leading_x": -0.64, "trailing_x": -5.42, "top_z": 2.19 },
+                { "span_y": -4.96, "leading_x": -1.34, "trailing_x": -5.24, "top_z": 2.16 },
+                { "span_y": -5.8, "leading_x": -2.02, "trailing_x": -5.04, "top_z": 2.13 },
+                { "span_y": -6.65, "leading_x": -2.7, "trailing_x": -4.84, "top_z": 2.11 }
+              ]
+            }
+          ]
+        },
+        "us_f_35_lightning_ii_f_35b": {
+          "engine": "afterburning_turbofan",
+          "nozzles": [{ "at": [-7.27, 0, 2], "radius_m": 0.55 }],
+          "wingtips": [{ "at": [-3.27, 5.36, 1.94] }, { "at": [-3.27, -5.36, 1.94] }],
+          "wings": [
+            {
+              "stations": [
+                { "span_y": 2.15, "leading_x": 0.48, "trailing_x": -4.65, "top_z": 2.16 },
+                { "span_y": 2.77, "leading_x": -0.17, "trailing_x": -4.54, "top_z": 2.15 },
+                { "span_y": 3.39, "leading_x": -0.78, "trailing_x": -4.43, "top_z": 2.13 },
+                { "span_y": 4.02, "leading_x": -1.36, "trailing_x": -4.32, "top_z": 2.09 },
+                { "span_y": 4.64, "leading_x": -1.93, "trailing_x": -4.2, "top_z": 2.03 },
+                { "span_y": 5.26, "leading_x": -2.46, "trailing_x": -4.08, "top_z": 1.97 }
+              ]
+            },
+            {
+              "stations": [
+                { "span_y": -2.15, "leading_x": 0.48, "trailing_x": -4.65, "top_z": 2.17 },
+                { "span_y": -2.77, "leading_x": -0.16, "trailing_x": -4.54, "top_z": 2.15 },
+                { "span_y": -3.39, "leading_x": -0.77, "trailing_x": -4.43, "top_z": 2.13 },
+                { "span_y": -4.02, "leading_x": -1.36, "trailing_x": -4.32, "top_z": 2.09 },
+                { "span_y": -4.64, "leading_x": -1.92, "trailing_x": -4.2, "top_z": 2.03 },
+                { "span_y": -5.26, "leading_x": -2.45, "trailing_x": -4.08, "top_z": 1.97 }
+              ]
+            }
+          ]
+        },
+        "us_f_a_18_super_hornet_f_a_18e": {
+          "engine": "afterburning_turbofan",
+          "nozzles": [{ "at": [-8.8, 0.5, 1.96], "radius_m": 0.41 }, { "at": [-8.8, -0.5, 1.96], "radius_m": 0.41 }],
+          "wingtips": [{ "at": [-3.09, 6.74, 2.07] }, { "at": [-3.11, -6.74, 2.07] }],
+          "wings": [
+            {
+              "stations": [
+                { "span_y": 1.67, "leading_x": 0.16, "trailing_x": -3.76, "top_z": 2.51 },
+                { "span_y": 2.65, "leading_x": -0.34, "trailing_x": -3.81, "top_z": 2.46 },
+                { "span_y": 3.63, "leading_x": -0.8, "trailing_x": -3.85, "top_z": 2.39 },
+                { "span_y": 4.62, "leading_x": -1.25, "trailing_x": -3.9, "top_z": 2.3 },
+                { "span_y": 5.6, "leading_x": -1.7, "trailing_x": -3.85, "top_z": 2.2 },
+                { "span_y": 6.58, "leading_x": -2.45, "trailing_x": -3.73, "top_z": 2.18 }
+              ]
+            },
+            {
+              "stations": [
+                { "span_y": -1.67, "leading_x": 0.15, "trailing_x": -3.76, "top_z": 2.51 },
+                { "span_y": -2.65, "leading_x": -0.34, "trailing_x": -3.81, "top_z": 2.46 },
+                { "span_y": -3.63, "leading_x": -0.8, "trailing_x": -3.85, "top_z": 2.39 },
+                { "span_y": -4.62, "leading_x": -1.25, "trailing_x": -3.9, "top_z": 2.3 },
+                { "span_y": -5.6, "leading_x": -1.7, "trailing_x": -3.84, "top_z": 2.19 },
+                { "span_y": -6.58, "leading_x": -2.48, "trailing_x": -3.73, "top_z": 2.18 }
+              ]
+            }
+          ]
+        }
       }
     },
     "damage_smoke": {

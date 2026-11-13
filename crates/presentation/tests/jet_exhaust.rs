@@ -441,3 +441,49 @@ fn wisps_hang_where_they_were_laid_without_seams_and_engines_stay_smooth() {
         assert_eq!(r[15], 0.0, "an engine's trail is not broken into wisps");
     }
 }
+
+/// `c` drawn with two wing-top sheet points besides its nozzles and tips.
+fn sheeted(c: &Craft) -> presentation::effects::exhaust::DrawnJet {
+    let mut jet = drawn_jet(c);
+    let (s, k) = (c.yaw.sin(), c.yaw.cos());
+    for y in [3.0, -3.0] {
+        let at = [
+            c.at[0] - 2.0 * k - y * s,
+            c.at[1] - 2.0 * s + y * k,
+            c.at[2] + 0.5,
+        ];
+        jet.emitters.push((Emitter::Sheet, at));
+    }
+    jet
+}
+
+#[test]
+fn the_wing_sheet_rises_only_in_the_hardest_pulls_past_where_the_tips_vapour() {
+    let mut style = style();
+    style["wing_sheet"] = serde_json::json!([{"albedo": [SHEET_ALBEDO, SHEET_ALBEDO, SHEET_ALBEDO],
+        "opacity": [0.0, 0.6], "life_s": LIFE, "width_m": [1, 2], "fade_in_s": 0.05}]);
+    let fly_at = |flight: &dyn Fn(f64) -> Vec<Craft>| {
+        let drawn = |t: f64| flight(t).iter().map(sheeted).collect();
+        fly_jets(&mut frame_with(style.clone()), 60.0, 2.0, flight, drawn)
+    };
+    let level = fly_at(&straight(2.0, "burner", 1.3 * CRUISE));
+    assert!(vapour(&level).is_empty(), "level flight: no tip vapour");
+    assert!(ribbons(&level, SHEET_ALBEDO).is_empty(), "and no sheet");
+    // Its tips' vapour forms below `SHEET_FROM` of its thickest here…
+    let moderate = fly_at(&along(turning(CRUISE, |_| rate_for(CRUISE, 2.2))));
+    assert!(
+        !vapour(&moderate).is_empty(),
+        "a firm turn wisps at the tips"
+    );
+    assert!(
+        ribbons(&moderate, SHEET_ALBEDO).is_empty(),
+        "but raises no sheet until the vapour passes sheet_from"
+    );
+    // …and at its thickest here.
+    let hard = fly_at(&along(turning(CRUISE, |_| rate_for(CRUISE, 4.5))));
+    assert!(!vapour(&hard).is_empty(), "a hard pull vapours at the tips");
+    assert!(
+        !ribbons(&hard, SHEET_ALBEDO).is_empty(),
+        "and raises the sheet over the wings"
+    );
+}

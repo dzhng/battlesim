@@ -7,15 +7,15 @@
 //!   flashes) and kept for the frame;
 //! - its rotors: each one's hub, axis, blades and the angle it turned since
 //!   the last drawn frame, from which the effects draw its blur;
-//! - a running jet's nozzles and wingtips, its tail's way and its load,
-//!   from which the effects draw its glow, flame and trails.
-use std::collections::{BTreeMap, HashMap};
+//! - a running jet's nozzles, wingtips and wing-top sheet points, and its
+//!   tail's way, from which the effects draw its glow, flame and trails.
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use super::articulation::articulate;
 use super::pose::{Articulation, PoseFrame, SoldierPose, VehiclePose};
 use super::skin::{drawn_worlds, mul, node_worlds, trs, Mat4};
-use crate::effects::exhaust::{Airframe, DrawnJet, Emitter};
+use crate::effects::exhaust::{DrawnJet, Emitter, JetExhaustStyle};
 use crate::effects::{DrawnRotor, Mast, MuzzleSource};
 use crate::seed::side_key;
 use crate::world::{Appearance, Trs, UnitsSection, Vec3};
@@ -268,17 +268,18 @@ impl DrawnModels {
         out
     }
 
-    /// Each running jet of this frame whose appearance `airframes` authors,
-    /// into `out`: its nozzles and wingtips where its model draws them, its
-    /// whole-model lean included. A downed airframe's engines are out.
-    pub fn jets(&mut self, airframes: &BTreeMap<String, Airframe>, out: &mut Vec<DrawnJet>) {
+    /// Each running jet of this frame whose appearance has an airframe in
+    /// `style`, into `out`: its nozzles, wingtips and sheet points (by the
+    /// shared `wing_sheet_rule`) where its model draws them, its whole-model
+    /// lean included. A downed airframe's engines are out.
+    pub fn jets(&mut self, style: &JetExhaustStyle, out: &mut Vec<DrawnJet>) {
         out.clear();
         for v in self.vehicles.iter().filter(|v| v.airborne && !v.downed) {
             let Some(name) = self.units.resolve(&v.kind, &v.side, v.unit, 0, None, None) else {
                 continue;
             };
             let (Some(frame), Some(cruise_mps)) = (
-                airframes.get(name),
+                style.airframes.get(name),
                 self.units.types.get(&*v.kind).and_then(|t| t.cruise_mps),
             ) else {
                 continue;
@@ -309,6 +310,10 @@ impl DrawnModels {
                 .wingtips
                 .iter()
                 .map(|t| (Emitter::Wingtip, world(t.at)));
+            let sheet = frame
+                .sheet(&style.wing_sheet_rule)
+                .into_iter()
+                .map(|p| (Emitter::Sheet, world(p)));
             out.push(DrawnJet {
                 // As the effect publication keys it: the presented side's ids even.
                 key: side_key(v.unit, v.side == self.side).to_bits(),
@@ -317,7 +322,7 @@ impl DrawnModels {
                 yaw: v.yaw,
                 aft: normalized(placed([0.0; 3], v.yaw, -m[0], -m[1], -m[2])),
                 cruise_mps,
-                emitters: nozzles.chain(tips).collect(),
+                emitters: nozzles.chain(tips).chain(sheet).collect(),
             });
         }
     }

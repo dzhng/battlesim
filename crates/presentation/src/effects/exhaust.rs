@@ -3,18 +3,24 @@
 //! diamonds once it flies faster than its cruise; and the trails its engines
 //! leave, widening and fading behind it over a few seconds. Its wingtips
 //! leave vapour only while its wings pull hard: in a tight turn or a pull-up,
-//! never in level flight however fast.
+//! never in level flight however fast; in the hardest pulls a condensation
+//! sheet rises off the tops of its wings too.
 //!
-//! What it draws from is data. Each airframe's nozzles and wingtips are
-//! authored on its appearance (`airframes`), in its model's own frame, and
-//! its engine kind names a look (`engines`): a look without a `flame` (a
-//! high-bypass turbofan's) only ever glows. Its throttle is how fast it is
-//! published flying against its type's cruise, and its wings' load how its
-//! published flight bends ([`trails`]); a downed airframe's engines are out. Glows and flames sit on the drawn model; trails are laid tick by
-//! tick ([`trails`]).
+//! What it draws from is data, the same for every jet. Each airframe's
+//! nozzles, wingtips and wing planforms are read from its art
+//! ([`airframe`]), and the sheet's points are laid over its planform by one
+//! shared rule (`wing_sheet_rule`). Its engine kind names a look
+//! (`engines`): a look without a `flame` (a jet with no afterburner) only
+//! ever glows. Its throttle is how fast it is published flying against its
+//! type's cruise, and its wings' load how its published flight bends
+//! ([`trails`]); a downed airframe's engines are out. Glows and flames sit
+//! on the drawn model; trails are laid tick by tick ([`trails`]).
 use std::collections::{BTreeMap, VecDeque};
 
+mod airframe;
 mod trails;
+pub(super) use airframe::SIGNED;
+pub use airframe::{Airframe, Nozzle, Point, SheetRule, Wing, WingStation};
 pub use trails::JetTrails;
 use trails::Sample;
 
@@ -51,7 +57,15 @@ pub struct JetExhaustStyle {
     /// trail, a smoky core), drawn in their order.
     pub engine_styles: BTreeMap<String, Vec<TrailLook>>,
     pub wingtip_trail: TrailLook,
-    /// Each jet appearance's engines and wingtips.
+    /// Where the wing-top sheet's strength starts, a share of the wingtip
+    /// vapour: it forms only as the vapour nears its thickest, and leaves
+    /// first as the vapour thins.
+    pub sheet_from: f64,
+    /// The condensation sheet over the wings in the hardest pulls, laid
+    /// from each airframe's sheet points (`wing_sheet_rule`).
+    pub wing_sheet: Vec<TrailLook>,
+    pub wing_sheet_rule: SheetRule,
+    /// Each jet appearance's engine kind and geometry.
     pub airframes: BTreeMap<String, Airframe>,
 }
 
@@ -190,34 +204,6 @@ fn square() -> f64 {
     2.0
 }
 
-/// One jet appearance: its engine kind, and where its nozzles and wingtips
-/// are in its model's frame (+X its nose, +Z up).
-#[derive(Clone, Debug, Deserialize, serde::Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct Airframe {
-    pub engine: String,
-    pub nozzles: Vec<Nozzle>,
-    #[serde(default)]
-    pub wingtips: Vec<Point>,
-}
-
-/// A nozzle's exit: its middle and radius.
-#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct Nozzle {
-    pub at: Vec3,
-    pub radius_m: f64,
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct Point {
-    pub at: Vec3,
-}
-
-/// The paths of signed numbers under this section: model-frame points.
-pub(super) const SIGNED: [&str; 3] = [".at[0]", ".at[1]", ".at[2]"];
-
 impl JetExhaustStyle {
     pub(super) fn check(&self) -> Result<(), String> {
         let fail = |what: String| Err(format!("jet_exhaust: {what}"));
@@ -242,6 +228,10 @@ impl JetExhaustStyle {
                     .into(),
             );
         }
+        if !(0.0..1.0).contains(&self.sheet_from) {
+            return fail("sheet_from must be in [0, 1)".into());
+        }
+        self.wing_sheet_rule.check().or_else(fail)?;
         let Some(layers) = self.engine_styles.get(&self.engine_style) else {
             return fail(format!(
                 "engine_style: no engine_styles.{}",
@@ -262,7 +252,12 @@ impl JetExhaustStyle {
                     .iter()
                     .map(move |t| (format!("engine_styles.{name}"), t))
             })
-            .chain([("wingtip_trail".to_string(), &self.wingtip_trail)]);
+            .chain([("wingtip_trail".to_string(), &self.wingtip_trail)])
+            .chain(
+                self.wing_sheet
+                    .iter()
+                    .map(|t| ("wing_sheet".to_string(), t)),
+            );
         for (name, t) in looks {
             let opaque = t.opacity.iter().all(|o| (0.0..=1.0).contains(o));
             let broken = t
@@ -305,11 +300,7 @@ impl JetExhaustStyle {
             if !self.engines.contains_key(&a.engine) {
                 return fail(format!("airframes.{name}: no engine look {}", a.engine));
             }
-            if a.nozzles.is_empty() || a.nozzles.iter().any(|n| n.radius_m <= 0.0) {
-                return fail(format!(
-                    "airframes.{name}: needs nozzles of positive radius"
-                ));
-            }
+            a.check(name).or_else(fail)?;
         }
         Ok(())
     }
@@ -322,6 +313,7 @@ impl JetExhaustStyle {
                 .get(&self.engine_style)
                 .map_or(&[], Vec::as_slice),
             Emitter::Wingtip => std::slice::from_ref(&self.wingtip_trail),
+            Emitter::Sheet => &self.wing_sheet,
         }
     }
 
@@ -342,6 +334,8 @@ pub enum Emitter {
         radius: f64,
     },
     Wingtip,
+    /// A point the wing-top condensation sheet rises from.
+    Sheet,
 }
 
 /// One running jet as its model is drawn this frame
@@ -389,7 +383,7 @@ impl JetTrails {
             for (i, (ring, &kind)) in t.rings.iter().zip(&t.kinds).enumerate() {
                 let scale = match kind {
                     Emitter::Nozzle { .. } => style.engines.get(&t.engine).map_or(0.0, |e| e.trail),
-                    Emitter::Wingtip => 1.0,
+                    Emitter::Wingtip | Emitter::Sheet => 1.0,
                 };
                 let head = t.heads.get(i).copied().filter(|_| seen);
                 for (n, layer) in style.layers(kind).iter().enumerate() {
