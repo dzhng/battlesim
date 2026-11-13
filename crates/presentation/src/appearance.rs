@@ -352,9 +352,16 @@ pub(crate) fn articulated(bundle: &Container<Value>) -> Result<Value, String> {
     let find = |name: &str| list.iter().position(|n| n["name"] == name);
     let index = |i: Option<usize>| i.map_or(-1, |i| i as i64);
     let (gun, hmg_gun) = (find("gun"), find("hmg_gun"));
-    let (mut wheels, mut rotors, mut deploy) = (vec![], vec![], vec![]);
+    let (mut wheels, mut rotors, mut deploy, mut gear) = (vec![], vec![], vec![], vec![]);
+    let is_gear = |n: &Value| n["name"].as_str().is_some_and(|n| n.starts_with("gear_"));
     for (i, node) in list.iter().enumerate() {
         let name = node["name"].as_str().unwrap_or("");
+        // The top of each landing-gear leg (`gear_*` under no other leg),
+        // which carries the rest of the leg, its wheels and its door.
+        let parent = node["parent"].as_u64().and_then(|p| list.get(p as usize));
+        if is_gear(node) && !parent.is_some_and(is_gear) {
+            gear.push(i);
+        }
         if name.starts_with("wheel_") {
             let radius = match extra(node, "radius_m") {
                 Some(r) => r,
@@ -407,6 +414,7 @@ pub(crate) fn articulated(bundle: &Container<Value>) -> Result<Value, String> {
         "tracks": tracks(list),
         "rotors": rotors,
         "deploy": deploy,
+        "gear": gear,
         "muzzles": muzzles,
     });
     let nodes: Vec<Value> = list

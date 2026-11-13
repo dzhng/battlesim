@@ -289,6 +289,10 @@ pub struct Rig {
     pub tracks: Vec<Track>,
     pub rotors: Vec<Rotor>,
     pub deploy: Vec<Deploy>,
+    /// The top node of each landing-gear leg (`gear_*`): an aircraft in
+    /// flight stows them (`Articulation::gear_up`).
+    #[serde(default)]
+    pub gear: Vec<usize>,
     pub muzzles: BTreeMap<String, usize>,
 }
 

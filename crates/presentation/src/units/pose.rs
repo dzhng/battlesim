@@ -26,6 +26,9 @@ pub struct Articulation {
     pub rotor: f64,
     /// 1: rotors drawn by their blur; 0: by their geometry.
     pub rotor_blur: f64,
+    /// How far its landing gear is stowed: 0 down (at rest, on the ground),
+    /// 1 up (a fixed-wing aircraft in flight).
+    pub gear_up: f64,
 }
 
 /// A clip being faded out under the main one.

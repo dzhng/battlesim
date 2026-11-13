@@ -401,6 +401,7 @@ fn the_tank_articulates_as_the_browser_s() {
             deploy: f("deploy"),
             rotor: f("rotor"),
             rotor_blur: f("rotor_blur"),
+            gear_up: 0.0,
         };
         articulate(&mut locals, nodes, rig, &input);
         for ((l, w), node) in locals

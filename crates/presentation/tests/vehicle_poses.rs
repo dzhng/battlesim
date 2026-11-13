@@ -404,6 +404,52 @@ fn an_aircraft_s_rotors_turn_and_blur_while_nothing_it_has_rolls() {
     assert!(flown.motion.is_some(), "speeding up, it leans into it");
 }
 
+#[test]
+fn a_jet_flies_gear_up_while_a_helicopter_and_a_tank_keep_theirs_down() {
+    let units = units_with(|v| {
+        let mut jet = v["types"]["capture_us_tank"].clone();
+        jet["airborne"] = true.into();
+        jet["flight"] = "fixed_wing".into();
+        v["types"]["test_jet"] = jet;
+        let mut heli = v["types"]["capture_us_tank"].clone();
+        heli["airborne"] = true.into();
+        v["types"]["capture_heli"] = heli;
+    });
+    let none = fallen(&[]);
+    let mut driver = PoseDriver::new(&units).unwrap();
+    let unit = |id: f64, kind: &str, x: f64, z: f64| {
+        let mut u = tank(x, 0.0, (0.0, 0.0, 0.0), 0.0);
+        u.id = id;
+        u.position[1] = id * 50.0;
+        u.kind = kind.into();
+        u.position[2] = z;
+        u
+    };
+    let mut downed = unit(4.0, "test_jet", 0.0, 60.0);
+    downed.attitude = Some((-0.4, 0.3));
+    for time in [0.0, 0.25, 3.0] {
+        let x = time * 150.0;
+        let units_now = vec![
+            unit(1.0, "test_jet", x, 100.0),
+            unit(2.0, "capture_heli", 0.0, 20.0),
+            unit(3.0, "capture_us_tank", 0.0, 0.0),
+            downed.clone(),
+        ];
+        let gear: Vec<f64> = driver
+            .update(&frame(time, units_now, &none), &units, None)
+            .vehicles
+            .iter()
+            .map(|v| v.articulation.gear_up)
+            .collect();
+        assert_eq!(
+            gear,
+            [1.0, 0.0, 0.0, 1.0],
+            "at {time} s: the jet flies gear up from the first frame, a falling \
+             jet keeps it up, the helicopter and the tank stand on theirs"
+        );
+    }
+}
+
 /// The fixture's units with a hull kick of the test's own: a main-gun round
 /// kicks fully, an HMG's not at all.
 fn kicking_units() -> UnitsSection {

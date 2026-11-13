@@ -476,9 +476,9 @@
       "engine_style": "realistic",
       "engine_styles": {
         "realistic": [
-          { "albedo": [0.5, 0.42, 0.33], "opacity": [0, 0.3], "reheat": 0.1, "life_s": 0.35, "width_m": [0.6, 2.2], "fade_in_s": 0.02, "breakup": { "amount": 0.35, "length_m": 3 } },
-          { "albedo": [1, 1, 1], "opacity": [0, 0.4], "reheat": 0, "life_s": 1.2, "width_m": [0.8, 7], "fade_in_s": 0.05, "taper": 1.5, "plume": { "density": 2.6, "length_m": 8 } },
-          { "albedo": [1, 1, 1], "opacity": [0, 0.35], "reheat": 0, "life_s": 1.2, "width_m": [1, 5.5], "fade_in_s": 0.08, "taper": 1.6, "puffs": { "spacing_m": 3, "density": 0.7 } }
+          { "albedo": [0.5, 0.42, 0.33], "opacity": [0, 0.15], "reheat": 0.1, "life_s": 0.3, "width_m": [0.5, 1.6], "fade_in_s": 0.02, "breakup": { "amount": 0.35, "length_m": 3 } },
+          { "albedo": [1, 1, 1], "opacity": [0, 0.1], "reheat": 0.15, "life_s": 0.6, "width_m": [0.6, 3.5], "fade_in_s": 0.05, "taper": 1.5, "plume": { "density": 1.2, "length_m": 6 } },
+          { "albedo": [1, 1, 1], "opacity": [0, 0.08], "reheat": 0.12, "life_s": 0.6, "width_m": [0.8, 3.5], "fade_in_s": 0.08, "taper": 1.6, "puffs": { "spacing_m": 3, "density": 0.35 } }
         ],
         "white_core": [
           { "albedo": [1, 1, 1], "opacity": [0, 1], "reheat": 0, "life_s": 3, "width_m": [1.6, 10], "fade_in_s": 0.05, "taper": 1.5, "plume": { "density": 2.6, "length_m": 8 } },
@@ -492,7 +492,7 @@
       "wingtip_trail": { "albedo": [1, 1, 1], "opacity": [0, 0.95], "life_s": 0.55, "width_m": [0.12, 0.45], "fade_in_s": 0.03, "taper": 2.0, "breakup": { "amount": 0.2, "length_m": 12 } },
       "sheet_from": 0.55,
       "wing_sheet": [
-        { "albedo": [1, 1, 1], "opacity": [0, 0.75], "life_s": 0.12, "width_m": [2.2, 4.2], "fade_in_s": 0.03, "taper": 1.2, "puffs": { "spacing_m": 1.0, "density": 0.55 } }
+        { "albedo": [1, 1, 1], "opacity": [0, 0.65], "life_s": 0.11, "width_m": [2.1, 4.0], "fade_in_s": 0.03, "taper": 1.2, "puffs": { "spacing_m": 1.0, "density": 0.5 } }
       ],
       "wing_sheet_rule": { "span": [-0.1, 0.4], "rows": [[-0.1, 0.15], [0.3, 0.2]], "spacing_m": 1.2, "lift_m": 0.2 },
       "airframes": {
