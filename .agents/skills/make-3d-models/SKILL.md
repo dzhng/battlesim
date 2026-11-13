@@ -1,6 +1,6 @@
 ---
 name: make-3d-models
-description: Make or improve a unit's 3D model (a jet, vehicle, helicopter, prop) from its references, procedurally and optionally under a generated image-to-3D skin. Use when a model looks wrong, plain or lumpy against its photos or a target game's quality; when a new unit needs a model; or when choosing, feeding or cleaning up a 3D generator (Hunyuan3D, Meshy, Tripo, Rodin).
+description: Make or improve a unit's 3D model (a tank or other tracked vehicle, a jet, vehicle, helicopter, prop) from its references, procedurally, as a body script written by a model (Gemini Argon), or under a generated image-to-3D skin. Use when a model looks wrong, plain or lumpy against its photos or a target game's quality; when a new unit needs a model; or when choosing, feeding or cleaning up a 3D generator (Hunyuan3D, Meshy, Tripo, Rodin).
 ---
 
 # Make 3D Models
@@ -21,6 +21,13 @@ has already got right. It is never the source of proportions.
   - On a skinned unit the body comes from the skin, not the roster script.
   - A shape fix there goes into the guide, then a new skin, then a refit of
     the roster script around it.
+- A **body script** is a standalone Blender `build.py` that a model (Gemini
+  Argon, in Bento) writes from the references and our measurements, kept
+  with its rounds under `assets/source/skins/<family>/`. Every tracked
+  vehicle wears one (`scripted_body`). After its rounds (two, unless the user
+  grants another) it is edited in place; the README of the round the family
+  wears lists those edits. A turret or hull that local edits can't fix is
+  another round's work, not a patch over the script.
 - A family's **reference library** holds its photos and drawings with their
   licences. Record a drawing's crop and measured scale in its note so the
   next measurement reuses them.
