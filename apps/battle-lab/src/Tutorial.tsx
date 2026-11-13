@@ -360,13 +360,18 @@ export function Tutorial() {
             few seconds after the fire stops. Suppress a position before you assault it.
           </li>
           <li>
-            <strong>Supply:</strong> a deployed supply truck refills ammunition, repairs vehicles
-            and replaces fallen soldiers for friendly units that stop nearby and hold their fire.
-            Its stock does not refill, so a truck that runs dry is best refunded.
+            <strong>Supply:</strong> a deployed supply truck refills ammunition and smoke, repairs
+            vehicles and replaces fallen soldiers for friendly units that stop nearby and hold their
+            fire. Its stock does not refill, so a truck that runs dry is best refunded.
           </li>
           <li>
             Turn your tanks&apos; fronts to the threat: reverse out of trouble rather than turning
             your back.
+          </li>
+          <li>
+            <strong>Smoke:</strong> a unit whose panel shows <em>Smoke</em> pops a thick cloud round
+            itself with <kbd>{keyOf(CommandBindings.pop_smoke)}</kbd>. The enemy loses sight of it,
+            but it sees almost nothing out: pop smoke, then reverse out.
           </li>
         </ul>
       </Section>
