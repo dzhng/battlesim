@@ -1,0 +1,400 @@
+/* The Armory, layout A: the list's panel on the left with the page's head on
+   top of it, the open card's sheet on the right, and the stage between them,
+   clear to whatever stands behind (the menu's backdrop, until the stage is
+   built). Every colour is a `--hud-*` property. */
+
+.menu[data-open="armory"] {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: stretch;
+  overflow: hidden;
+  padding: 12px 20px;
+}
+.menu[data-open="armory"] .menu-slot {
+  grid-template-columns: minmax(0, 1fr);
+}
+/* The plate is the whole screen and clear: its panels are the list and the
+   sheet, and the stage between them shows what stands behind. */
+.menu[data-open="armory"] .hud-panel.menu-body {
+  width: 100%;
+  height: calc(100dvh - 24px);
+  padding: 0;
+  gap: 0 20px;
+  grid-template-columns: clamp(300px, 22vw, 400px) minmax(0, 1fr) clamp(360px, 26vw, 480px);
+  grid-template-rows: auto minmax(0, 1fr);
+  background: none;
+  border: 0;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.menu[data-open="armory"] .hud-panel.menu-body::before,
+.menu[data-open="armory"] .hud-panel.menu-body::after {
+  content: none;
+}
+/* The head stands at the top of the list's panel, inside its frame. */
+.menu[data-open="armory"] .menu-page-head {
+  grid-column: 1;
+  grid-row: 1;
+  z-index: 1;
+  margin: 14px 16px 0;
+}
+
+/* ---- The list: faction tabs, group tabs, one tile per family ---------- */
+.armory-list {
+  position: relative;
+  grid-column: 1;
+  grid-row: 1 / -1;
+  display: grid;
+  grid-template-rows: subgrid;
+  min-height: 0;
+}
+.armory-browse {
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  padding: 12px 16px 16px;
+}
+.armory-tabs {
+  display: grid;
+  gap: 4px 6px;
+}
+/* The faction above the groups: three boxed tabs, larger, the level the
+   groups sit under. */
+.armory-factions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.hud-panel .armory-factions button.hud-menu-choice {
+  padding: 6px 2px 6px 25px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: rgb(var(--hud-text) / 0.7);
+  border-color: rgb(var(--hud-accent) / 0.22);
+}
+.hud-panel .armory-factions button.hud-menu-choice[aria-selected="true"] {
+  color: rgb(var(--hud-accent));
+}
+/* The nine groups in even columns, each with its count of tiles. */
+.armory-groups {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.hud-panel .armory-groups button.hud-menu-choice {
+  padding-inline: 25px 2px;
+}
+.armory-count {
+  margin-left: 5px;
+  font-size: 9.5px;
+  color: rgb(var(--hud-dim));
+}
+.armory-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  align-content: start;
+  gap: 4px;
+  min-height: 0;
+  overflow-y: auto;
+}
+/* The picker's family card, with its name above the price; its marks stand
+   on the name, so every tile's art sits on one line. */
+.hud-panel button.armory-tile {
+  justify-content: flex-end;
+  height: 128px;
+  padding-bottom: 56px;
+}
+.hud-panel button.armory-tile[aria-pressed="true"] {
+  padding-bottom: 55px;
+}
+.armory-tile-tag {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  font-size: 8.5px;
+  letter-spacing: 0.12em;
+  color: rgb(var(--hud-dim));
+}
+/* A long name takes two lines over the price rather than an ellipsis. */
+.armory-tile-name {
+  position: absolute;
+  bottom: 20px;
+  inset-inline: 4px;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 9.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-transform: uppercase;
+  color: rgb(var(--hud-text));
+}
+.armory-tile.unavailable .armory-tile-name {
+  color: inherit;
+}
+
+/* ---- The stage ------------------------------------------------------- */
+.armory-stage {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ---- The sheet ------------------------------------------------------- */
+.armory-sheet {
+  position: relative;
+  grid-column: 3;
+  grid-row: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  padding: 16px 18px 18px;
+  overflow-y: auto;
+}
+.armory-sheet-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+}
+.armory-kicker {
+  grid-column: 1 / -1;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgb(var(--hud-accent));
+}
+.armory-sheet-head h3 {
+  margin: 0;
+  font: 700 20px/1.2 var(--hud-font);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(var(--hud-text));
+  text-shadow: var(--hud-text-halo);
+}
+.armory-sheet-head .hud-purchase-price {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.armory-variant {
+  color: rgb(var(--hud-dim));
+}
+/* A boxed stamp, as the menu stamps the game's stage of development. */
+.armory-tag {
+  justify-self: end;
+  padding: 1px 6px 0;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgb(var(--hud-dim));
+  border: 1px solid rgb(var(--hud-dim) / 0.6);
+}
+.armory-variants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.armory-description,
+.armory-planned {
+  margin: 0;
+  color: rgb(var(--hud-text) / 0.82);
+}
+.armory-planned {
+  color: rgb(var(--hud-dim));
+}
+.armory-section h4 {
+  margin: 0 0 8px;
+  padding-bottom: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgb(var(--hud-accent));
+  border-bottom: 1px solid rgb(var(--hud-accent) / 0.22);
+}
+/* A figure: its name, its bar against the best of its body, its value. */
+.armory-stats {
+  display: grid;
+  grid-template-columns: 11em minmax(48px, 1fr) 6em;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 0;
+}
+/* A kind's figures sit on its mount's rail: its label column gives back the
+   rail's indent, so every bar on the sheet starts and ends on one line. */
+.armory-ammo .armory-stats {
+  grid-template-columns: calc(11em - 21px) minmax(48px, 1fr) 6em;
+}
+.armory-stat {
+  display: contents;
+}
+.armory-stats dt,
+.armory-stats dd,
+.armory-facts dt,
+.armory-facts dd,
+.armory-armor dt,
+.armory-armor dd {
+  margin: 0;
+}
+.armory-stats dt {
+  color: rgb(var(--hud-text) / 0.82);
+}
+.armory-stats dd:last-child,
+.armory-facts dd {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--hud-text));
+}
+.armory-bar {
+  height: 4px;
+  background: rgb(var(--hud-accent) / 0.14);
+}
+.armory-bar > span {
+  display: block;
+  height: 100%;
+  background: rgb(var(--hud-accent) / 0.85);
+  box-shadow: 0 0 4px rgb(var(--hud-accent) / 0.5);
+}
+.armory-facts {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+.armory-facts > div {
+  display: flex;
+  justify-content: space-between;
+}
+.armory-facts dt {
+  color: rgb(var(--hud-text) / 0.82);
+}
+/* Armour, face by face: four readings side by side, the face beneath. */
+.armory-armor {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  margin: 8px 0 0;
+}
+.armory-armor > div {
+  display: grid;
+  justify-items: center;
+  padding: 5px 0 4px;
+  border: 1px solid rgb(var(--hud-accent) / 0.25);
+  background: rgb(var(--hud-accent) / 0.04);
+}
+.armory-armor dd {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--hud-text));
+}
+.armory-armor dt {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgb(var(--hud-dim));
+}
+.armory-sheet :is(.armory-capabilities, .armory-reach, .armory-mounts) {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.armory-sheet :is(.armory-capabilities, .armory-reach) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.armory-capabilities li,
+.armory-reach li {
+  padding: 1px 6px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: rgb(var(--hud-text) / 0.85);
+  border: 1px solid rgb(var(--hud-accent) / 0.28);
+  background: rgb(var(--hud-accent) / 0.05);
+}
+.armory-reach em {
+  margin-left: 6px;
+  font-style: normal;
+  color: rgb(var(--hud-dim));
+}
+.armory-sheet .armory-mounts {
+  display: grid;
+  gap: 12px;
+}
+.armory-mount-head .ro-icon {
+  margin: 0;
+}
+.armory-mount-head strong {
+  letter-spacing: 0.1em;
+  color: rgb(var(--hud-text));
+}
+/* Each ammunition kind beneath its mount, on the mount's rail. */
+.armory-ammo {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0 0 8px;
+  padding-left: 12px;
+  border-left: 1px solid rgb(var(--hud-accent) / 0.3);
+}
+.armory-mount-head,
+.armory-ammo-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 18px;
+}
+.armory-mount-head {
+  color: rgb(var(--hud-accent));
+}
+.armory-ammo-name {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.armory-ammo-count {
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--hud-text));
+}
+.armory-ammo-count .ro-icon {
+  margin: 0;
+}
+.armory-ammo-count small {
+  margin-left: 4px;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgb(var(--hud-dim));
+}
+.armory-ammo-count .ro-icon svg {
+  width: 16px;
+  height: 8px;
+}
+/* The fires-regardless mark, its sentence on hover or focus. */
+.armory-mark {
+  position: relative;
+  display: inline-grid;
+  color: rgb(var(--hud-accent));
+  outline: none;
+}
+.armory-mark .ro-icon {
+  margin: 0;
+}
+.armory-mark .ro-cmd-tooltip {
+  display: none;
+  left: 0;
+  right: auto;
+  bottom: calc(100% + 6px);
+}
+.armory-mark:is(:hover, :focus-visible) .ro-cmd-tooltip {
+  display: block;
+}

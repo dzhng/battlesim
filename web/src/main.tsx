@@ -6,6 +6,7 @@ import { startWithMechanics } from "./mechanicsStartup";
 import "./lab.css";
 import "./menu.css";
 import "./hud.css";
+import "./armory.css";
 
 /** Whether this is a Vercel build (`vite.config.ts`). */
 declare const __ON_VERCEL__: boolean;

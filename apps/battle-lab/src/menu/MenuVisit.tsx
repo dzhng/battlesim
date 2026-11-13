@@ -1,8 +1,9 @@
 // One visit inside the menu shell: home, or a page under its title and a Back
 // button. Escape is Back, as in a game's menus.
-import { useEffect, useRef, type ComponentType } from "react";
+import { useEffect, useRef, type ComponentType, type Ref } from "react";
 import { hudIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "@web/battle/present/icons";
+import { ArmoryVisit } from "../armory/ArmoryPage";
 import { Tutorial } from "../Tutorial";
 import { DeveloperPage } from "./DeveloperPage";
 import { Home } from "./Home";
@@ -15,6 +16,7 @@ import { SkirmishPage } from "./SkirmishPage";
 const CONTENTS: Record<MenuPageId, ComponentType> = {
   skirmish: SkirmishPage,
   tutorial: Tutorial,
+  armory: ArmoryVisit,
   settings: SettingsPage,
   developer: DeveloperPage,
 };
@@ -38,19 +40,28 @@ function PageView({ page }: { page: MenuPageId }) {
   const Contents = CONTENTS[page];
   return (
     <>
-      <header className="menu-page-head">
-        <button
-          ref={backButton}
-          type="button"
-          className="menu-back"
-          aria-label="Back"
-          onClick={back}
-        >
-          <Icon path={hudIcon("back")} />
-        </button>
-        <h2>{menuPage(page).title}</h2>
-      </header>
+      <PageHead title={menuPage(page).title} onBack={back} backRef={backButton} />
       <Contents />
     </>
+  );
+}
+
+/** A page's head: Back at its top left and the page's name beside it. */
+export function PageHead({
+  title,
+  onBack,
+  backRef,
+}: {
+  title: string;
+  onBack: () => void;
+  backRef?: Ref<HTMLButtonElement>;
+}) {
+  return (
+    <header className="menu-page-head">
+      <button ref={backRef} type="button" className="menu-back" aria-label="Back" onClick={onBack}>
+        <Icon path={hudIcon("back")} />
+      </button>
+      <h2>{title}</h2>
+    </header>
   );
 }

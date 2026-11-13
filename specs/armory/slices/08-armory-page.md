@@ -1,5 +1,7 @@
 # 08 · Armory page: the sheet and layout A
 
+Status: done 2026-11-13, commits aff50015a (the sheet model) and the one that sets this line (the page).
+
 Map rows: U1–U7, U9, D2, L10, L11, L13. Depends on 01 (paths), 05 (`derived`)
 and 06 (groups).
 

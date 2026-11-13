@@ -1,9 +1,9 @@
 // The UI gallery, scripted: every shot the gallery lists, drawn alone at
 // 1280×800 and matched against its approved picture, with no panel's
 // content outside the panel; the reinforcements picker on its groups and
-// with a family's variants open; then every main-menu page. The panel
-// workbench (`panels.mjs`) pins the info panels and the deck, and the cursor
-// lab (`cursor.mjs`) the cursor.
+// with a family's variants open; the Armory on fixed content; then every
+// main-menu page. The panel workbench (`panels.mjs`) pins the info panels and
+// the deck, and the cursor lab (`cursor.mjs`) the cursor.
 import { pointerAway } from "./_baseline.mjs";
 import { spills } from "./_spills.mjs";
 import { menuPage } from "../../apps/battle-lab/src/menu/pages.ts";
@@ -411,6 +411,18 @@ export async function run(ctx) {
     await ctx.matchBaseline(page, shot);
   }
 
+  // The Armory on its fixed content at full HD: a hull's sheet, with a
+  // family's variants (the gallery's 1280 shot holds a squad's sheet and a
+  // planned tile).
+  const wide = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
+  await wide.goto(ctx.urlFor({ shot: "armory", unit: "test_gun_jeep" }));
+  await wide.locator('[data-shot="armory"] .armory-sheet').waitFor();
+  await wide.evaluate(() => document.fonts.ready);
+  await pointerAway(wide);
+  await contained(ctx, wide, "armory 1920");
+  await ctx.matchBaseline(wide, "armory-1920");
+  await wide.close();
+
   // The main menu, each page of it, over its plain ground.
   const origin = new URL(ctx.url).origin;
   await page.goto(`${origin}/`);
@@ -425,7 +437,7 @@ export async function run(ctx) {
   const home = await body.boundingBox();
   // Every page is centred by its own measured height, including after the
   // first-launch graphics detector has replaced the plate.
-  for (const entry of ["skirmish", "settings", "developer"]) {
+  for (const entry of ["skirmish", "armory", "settings", "developer"]) {
     await page.locator(`main.menu:not(.loading):not([inert]) [data-page="${entry}"]`).click();
     ctx.check(
       `menu ${entry}: its tile opens it at its own address`,

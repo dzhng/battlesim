@@ -32,12 +32,16 @@ const PLAYER_FACING = [
   "apps/battle-lab/src/Wordmark.tsx",
   "apps/battle-lab/src/battleStatus.tsx",
   "apps/battle-lab/src/SoundControls.tsx",
+  "apps/battle-lab/src/armory/ArmoryPage.tsx",
+  "apps/battle-lab/src/armory/ArmorySheet.tsx",
 ];
 
 /** Drawn by the game but not pinned by a picture, each with why. */
 const UNPINNED: Record<string, string> = {
   ReadoutLayer:
     "callouts placed over the live 3D battlefield; their panels are pinned by the panel workbench, their placement pinned by tests/readoutLayout.test.ts, their riders stacked under carriers by tests/passengerCards.test.tsx, and checked by scenes/readouts.mjs and scenes/transport.mjs",
+  ArmoryVisit:
+    "the menu's Armory on the game's roster, which grows; the page it draws (ArmoryPage) is pinned on fixed content by the UI gallery's armory shots, and scenes/armory.mjs drives the menu's own",
   AppCursor:
     "the app shell's pointer: the system draws it, so no screenshot shows it; the cursor lab pins each action's image",
 };

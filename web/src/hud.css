@@ -1461,7 +1461,8 @@ html {
   text-align: center;
   color: rgb(var(--hud-text) / 0.6);
 }
-.hud-purchase-groups [aria-selected="true"] {
+.hud-purchase-groups [aria-selected="true"],
+.armory-tabs [aria-selected="true"] {
   color: rgb(var(--hud-accent));
   border-color: rgb(var(--hud-accent) / 0.7);
   background: rgb(var(--hud-accent) / 0.16);

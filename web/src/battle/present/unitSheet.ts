@@ -103,7 +103,7 @@ const sensesOf = (t: UnitType): Figures => ({
 });
 
 const ammoOf = (row: WeaponRow): Figures => ({
-  damage: row.damage as number,
+  damage: row.damage,
   penetration: row.penetration,
   aim_s: row.aim_s,
   reload_s: row.reload_s,

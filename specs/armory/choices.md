@@ -283,3 +283,116 @@ and a verdict.
 - **`tests/open_country.rs` lost its homes and refusal tests to
   `tests/open_country/{homes,refusals}.rs`,** submodules of the same test
   binary, for the same ratchet. *Sound.*
+
+## Slice 08
+
+- **Resliced into two commits,** as the slice allows: the sheet model with its
+  tests, then the page with its visuals. *Sound.*
+- **A family's group is its first typed variant's (`armoryRoster`).** A family
+  with no typed variant takes its category's first group, as `unitGroup`
+  places a planned card. *Why:* one tile per family must sit under one tab;
+  the per-card rule (slice 06) would split a future family that mixes a
+  planned variant with a typed one in a split category. The picker keeps the
+  per-card rule; no shipped family differs between the two. *Alternative:*
+  group per card and show such a family under two tabs. *Sound.*
+- **The page API slice 11 mounts into is `ArmoryPage({ cards, stage })`.**
+  `stage(card, faction)` renders the centre for the open card under the open
+  faction (L11); absent, the backdrop shows through. `cards` is the game's
+  roster on the menu (`ArmoryVisit`, under `SessionCatalogScope set="game"`)
+  and a fixed set in the UI gallery. *Why:* the page stays free of 3D
+  imports, and the gallery pins it without a stage. *Alternative:* slice 11
+  edits the page to mount its stage directly. *Provisional:* slice 11 may
+  prefer to pass the whole selection.
+- **`useArmorySelection(roster)` takes the roster** (the spec's seam took
+  nothing), since the fallback and the group of a card are roster facts. A
+  faction tab keeps the open card where that faction fields it, else opens
+  its group's first tile (or its first non-empty group's). A card opened by
+  address opens under its first faction. *Sound.*
+- **Bars are magnitudes:** every figure's bar is its value over the largest
+  of that figure in the same body's roster, times included (a slow reload has
+  the long bar). *Why:* one rule, and the number beside it says what the bar
+  means; "the best fills its bar" holds where more is better. *Alternative:*
+  invert time bars so a full bar always means better, which makes a 5 s bar
+  shorter than a 1 s one. *Provisional:* the user judges the look.
+- **Which figures get bars:** road and off-road speed (cruise for a flier),
+  sight per band, visibility, and each ammunition kind's damage,
+  penetration, aim and reload. Hull HP and armour are plain numbers; reach
+  is per band beneath each kind, so a range bar would say it twice. *Sound.*
+- **`concealment` reads as "Visibility ×n".** The catalog's figure multiplies
+  how far the unit is seen (infantry 0.5, a helicopter 2.8), so "Concealment
+  2.8" would read backwards. *Alternative:* the mock's "Concealment".
+  *Provisional.*
+- **Stat names and units are one table, `SHEET_STATS` in `unitSheet.ts`.**
+  `SheetStat.key` is its key; the page reads the label from it. *Sound.*
+- **`SheetMount` carries `icon`** (its first kind's weapon icon id), and a
+  planned card's planned weapons are mounts with no kinds, named in caps as
+  `equipmentName` names real ones. *Sound.*
+- **`equipmentName`'s `rules` parameter narrowed to `Pick<PanelRules,
+  "weapons">`** so the session catalog passes as it is. Its body is unchanged.
+  *Sound.*
+- **Capabilities are short phrases** ("Carries 8 men", "Deploys in 10 s",
+  "Supply 500", "Trophy: 4 charges", "Flares ×6", "Radar", "Finds radars
+  within N m", "Afterburner"), written by `unitSheet`. *Provisional:* wording.
+- **The tile is the picker's family card (`hud-army-card hud-purchase-family`
+  and `UnitFace`), wider, with the family's name above its price.** A family
+  with no typed variant is the picker's `unavailable` card, greyed and
+  dashed, its price plain. *Why:* one concept, one look; the Armory browses by
+  name where the picker browses by silhouette. *Sound.*
+- **Prices stay in the credits gold** on typed cards and plain on planned
+  ones, as the picker colours what can and can't be bought. *Provisional.*
+- **The tabs are the picker's (`hud-menu-choice` with `role="tab"`)**, and
+  the selected-tab rule in `hud.css` now names `.armory-tabs` beside
+  `.hud-purchase-groups`. Empty groups and factions are disabled, not hidden,
+  so the nine tabs never move. Variant chips are the menu's variant choice
+  (`hud-menu-choice`, `role="radio"`, a diamond filled when chosen). *Sound.*
+- **The fires-regardless mark is a new generated HUD icon,
+  `fires_regardless`** (a gunsight ring and ticks round a round), with U7's
+  sentence as a focusable `ro-cmd-tooltip`, the command bar's tooltip look.
+  On a mount with one kind, the mark and the rounds stand on the mount's
+  head; with several, on each kind's. *Sound.*
+- **A typed card that isn't sold reads "Not yet on sale"; a planned card
+  "Planned"**, with "Not yet in battle: these are its planned weapons." The
+  card's `disabled_reason` is developer text and is never shown (U3).
+  *Provisional:* wording.
+- **The page's plate is the whole screen and clear.** The list is a panel in
+  the plate's left column with the page head on top of it (a subgrid), the
+  sheet a panel in the right column, the stage between. Columns scale:
+  `clamp(300px, 22vw, 400px)` and `clamp(360px, 26vw, 480px)`. *Why:* the
+  head stays the shell's (`PageHead`), and a fixed-position panel can't
+  escape the plate's `backdrop-filter` containing block. *Sound.*
+- **`PageHead` is exported from `MenuVisit.tsx`** so the UI gallery draws the
+  Armory under the same head as the menu. `PageView` keeps focus and Escape.
+  *Sound.*
+- **The gallery's planned card borrows the first planned card's id** for its
+  silhouette; its name and planned weapons are fabricated. Every other
+  gallery card is a test unit. *Why:* a silhouette is keyed by card id and no
+  test unit is planned. *Alternative:* a fabricated id with no silhouette.
+  *Provisional:* a new first planned card changes the picture.
+- **`ArmoryVisit` is named in `uiCoverage`'s exemptions:** it draws the
+  game's roster, which grows; `ArmoryPage` and `ArmorySheet` are pinned by
+  the gallery's `armory` (1280 × 800, a squad and a planned tile) and
+  `armory-1920` (a hull with two variants). *Sound.*
+- **The `armory` scene drives the real menu without pictures:** tile,
+  picks, refresh, unknown unit, Escape. *Sound.*
+- **The Armory tile stands third, after Tutorial and before Settings,** so
+  Settings stays the small last tile. *Sound.*
+- **Key art: Duet CLI through `bunx @duetso/agent model`,** the same model
+  (`openai/gpt-image-2.5-flare`) at 1536 × 512. The first prompt's wide shot
+  stood out of the set (the unprimed critique picked it as the new tile by its
+  small subjects), so a second prompt asked for a tight, low three-quarter
+  view with the vehicles filling the banner's height; of its two candidates,
+  the one with the whole tank in frame was chosen. Processed as the others
+  (`ffmpeg -vf scale=1120:-2 -q:v 3`, which reproduces `skirmish.jpg` to
+  within a byte). *Sound.*
+- **The card's description shows only when it adds to the head.** 119 of the
+  game's 152 cards carry their variant's name as their description, which the
+  head already shows. *Alternative:* the type's description, which matches the
+  card's for every shipped card. *Sound.*
+- **After the unprimed critique:** group tabs sit in even columns with their
+  count of tiles (the mock's "REC 7"), faction tabs are boxed and larger, so
+  the two levels read apart; a tile says "PLANNED" or "N VAR" in its top
+  corner, with its art on one line across tiles; a kind's rounds carry a dim
+  "RDS"; reach chips are caps, as the sheet's other labels; and a kind's bars
+  start and end on the sheet's one bar column. Its notes on per-figure bar
+  scales are the given (U9); its note on bar direction is the magnitudes
+  choice above, left to the user. *Sound.*

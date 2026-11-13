@@ -1032,6 +1032,9 @@
 .menu-card[data-art="settings"] {
   --menu-art: url("/menu/settings.jpg");
 }
+.menu-card[data-art="armory"] {
+  --menu-art: url("/menu/armory.jpg");
+}
 .hud-panel :is(a, button).menu-card[data-art="settings"] {
   min-height: 64px;
   padding-block: 12px;
