@@ -979,3 +979,23 @@ needs-user).
   and two surface texture layers.
   *Provisional:* the critique still finds the module boxy and its coils
   faint at a distance.
+- **15e, the tent: a ridge-roofed wall tent** in olive cloth (the `nylon`
+  recipe, tinted; the shared `canvas` recipe's folds read as bark at this
+  size, and it belongs to the vehicles' tarps), slack between its eave poles,
+  a scalloped valance, guys out to pegs inside its box, pole pins through the
+  ridge, and the front door open: the dark inside between flaps folded back
+  and tied. The walls stand in from the box (1.72 m of its 2.5) so the guys
+  fan out. *Provisional:* the reference camp's tents are square with pyramid
+  roofs; a ridge tent is as military and fits the 6 x 5 m body better.
+- **15e, the flagpole: the flag stands past the pole's box, by the catalog's
+  footprint tolerance (`tolerances.footprint_m` 1.6 on its appearance).** The
+  body is the pole (16 cm); the flag flies 1.5 m out at 7 m, over everyone's
+  heads, so it blocks and hides nothing, as a wreck's thrown plate doesn't.
+  The flag is one cloth coloured by height (olive, a sand band): generic, no
+  nation. Halyard runs, cleat, snap hooks, ball truck, sleeve and a small
+  pad. *Alternative:* a wider body in `street_props.bodies`, which would move
+  generated maps for a cloth. *Sound.*
+- **No idle cloth motion.** A static scenery bundle carries no motion, and
+  waving flags or canvas would be a new renderer feature, battle-wide. The
+  flag is caught mid-ripple instead. *Provisional:* for the user, if a still
+  flag reads wrong.

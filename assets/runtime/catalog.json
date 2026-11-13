@@ -2573,6 +2573,17 @@
       "skeleton": "quaternius-ubc-rifle",
       "unit": "soldier"
     },
+    "flagpole": {
+      "bundle": "614e665ae546d5c7e99e900778866239b5fcfc8eb40be169989be45112629deb",
+      "footprint_half_m": [
+        0.08,
+        0.08,
+        4
+      ],
+      "kind": "static",
+      "scenery": "flagpole",
+      "unit": "scenery"
+    },
     "floor_bush": {
       "bundle": "95c6325753d94bf98602fe66f4f85a23f04f3c06ebeb4fc7e72e0f2466070271",
       "kind": "static",
@@ -3265,6 +3276,17 @@
       ],
       "kind": "static",
       "scenery": "swing",
+      "unit": "scenery"
+    },
+    "tent": {
+      "bundle": "c5bbd43624b3e39160e3ae463357ab9da9c9064ccdbe446ee97b1c80d9761eca",
+      "footprint_half_m": [
+        3,
+        2.5,
+        1.4
+      ],
+      "kind": "static",
+      "scenery": "tent",
       "unit": "scenery"
     },
     "test_at": {
@@ -6121,6 +6143,11 @@
       "hash": "db0987f74fb942eaf2ce9f3e868ee10fa09058bdd0a558c2484b916e2aa52f04",
       "raw_bytes": 349543
     },
+    "614e665ae546d5c7e99e900778866239b5fcfc8eb40be169989be45112629deb": {
+      "bytes": 45449,
+      "hash": "d6744010b4fb293b7ae40c964a482c4b163cd2b63d3d400a646b157135d3a86c",
+      "raw_bytes": 136988
+    },
     "6168e87a4a1e63ef0680361a3d22318f2acabbdb8e84321c72d9701b2d7c5a58": {
       "bytes": 32239,
       "hash": "9f9c80bd4c628d962b225f68af561987266f3e1213be272185fe6a77745598b5",
@@ -7995,6 +8022,11 @@
       "bytes": 80884,
       "hash": "3789058ea49aba10f19d7a1ab245a96f35aa4669968451a59b3259991c336d90",
       "raw_bytes": 311848
+    },
+    "c5bbd43624b3e39160e3ae463357ab9da9c9064ccdbe446ee97b1c80d9761eca": {
+      "bytes": 97893,
+      "hash": "533ea1137b0cf50b1e9e7099435842bae1026593820d0d42deaab801517270ba",
+      "raw_bytes": 254896
     },
     "c5be972e0497982f1301ab732bb8a33ab34a460e563f93f627d3c819272360fd": {
       "bytes": 200867,
@@ -12008,6 +12040,14 @@
       "0c279e94c4ae0cc36cf18601598f9c19ffc6fd12ba03b548fdd6ef480517c8fc",
       "6c87299d612ba7208dca985a8ea85de5bcc8758f875dcf530a7f48b495b51f67"
     ],
+    "614e665ae546d5c7e99e900778866239b5fcfc8eb40be169989be45112629deb": [
+      "9bf4cafd5562e7c3bc5c62bac66bdb224d27f407d0c20baeeb0a5bdd943c1c31",
+      "f374fbd8a357d29205e0c62b543466198f97b7a3a2798c3f589a93cf07992e9c",
+      "d7915c060441c34d5ffd3e094cd5945893d4ad403b6df6470f7e4c6a36f1682a",
+      "2f94509756d8d8b4b447b67bda7f7262a1f55af65e9a2fe36b08bc8d65930e52",
+      "3956647ecf1a2ac5ba6707ac185f88c9a2c4c0831b9106369e6c16351d50a4b2",
+      "a16dd1d22d5c0169f6cce6072f43b1c33b13e54abbe08b5edaaafc60fe19da11"
+    ],
     "6168e87a4a1e63ef0680361a3d22318f2acabbdb8e84321c72d9701b2d7c5a58": [
       "4ad9c172f2f0c8aad916682eeb6ebc6ac7a2257e9b1a652957d535564937e877",
       "1c5e8e39f675ea07268a0cffb4ca0a4eba653f5fd1c44a3bd75b12981e6b5baf",
@@ -14753,6 +14793,14 @@
       "b8ff9c3839be3e6c72cac8a708853f2473dfe48b55124f7c8535564202a17c44",
       "2bf81a7b5c534a65ff19f55775199836e35cf689ad3d5ddb88b65d6f94bfa580",
       "bab5563e19ba931edb88fc4da73237d9270e469f5161276ed4ede771f85093a0"
+    ],
+    "c5bbd43624b3e39160e3ae463357ab9da9c9064ccdbe446ee97b1c80d9761eca": [
+      "28ee91ece5dadac8cef7de69fea7a702a8f817e6af4256def01ce89db150fdec",
+      "2ab786cc004244504d89dc2e72d37d21d3014cfa1b53b5890bfb4a5151bef2db",
+      "5ef1fa0b23d626d89c4f5240e96872463aa72499b6c55fb5d3e23f77c4b1afb6",
+      "799ce39ab400d445b07ef461ef1fc867af6ac8196d0ad627a069f0f205918ad6",
+      "1a2de2977c3e137f92aa05de1eedb7963b085df652d4f96f1cdd16edb9d0f17a",
+      "8d0c56a841d1bf6b5d0e17be28f8aea6d37aa8a277b96197065e4cf203aa2817"
     ],
     "c6474de2bfe76c191419acac66364c8446ec03d7a4ecdbb2bba663c4b93d96bd": [
       "3e7541badb88d4024f735ede729a604b0e354a6f55becb300f78259c0fe7fa32",

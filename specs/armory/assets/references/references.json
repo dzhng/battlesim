@@ -160,6 +160,26 @@
    "licence": "public-domain",
    "sha256": "7a60ba8e1b328d6bf11c65799701072e0d7cf3e631c954b10fcf775b9a534ae3",
    "note": "A HESCO unit lifted into line: one module's cells, mesh and liner beside the soldiers for scale."
+  },
+  {
+   "file": "tent-jgsdf_camp_okubo.jpg",
+   "prop": "tent",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:JGSDF_Military_tents_and_boats_at_the_Camp_Okubo.jpg",
+   "author": "Brakeet",
+   "licence": "CC0-1.0",
+   "sha256": "3b82c03502c2fbf011d48c3f17aed40ca664e78d9053a06648e92d6396daf005",
+   "note": "Field tents in a camp: olive canvas, guy ropes out to pegs, open doors."
+  },
+  {
+   "file": "flagpole-danish_contingent_flag_lowering.jpg",
+   "prop": "flagpole",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Danish_Contingent_Flag_Lowering_Ceremony_140721-M-OM358-056.jpg",
+   "author": "Sgt. James Pauly",
+   "licence": "public-domain",
+   "sha256": "c7bac15697e264a7fe26f74bf2451234f28b7c70b1f32daa5e00f6df7b971103",
+   "note": "Camp flagpoles: the halyard's two runs down to their cleat, the flag on the halyard clear of the pole, a sleeve and pad at the foot."
   }
  ]
 }
