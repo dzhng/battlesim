@@ -54,6 +54,7 @@ fn cannon(mut a: Audio, at: Option<[f64; 3]>, seconds: f64) -> (Vec<f32>, Audio)
         flare_deploys: Vec::new(),
         grinds: Vec::new(),
         strikes: Vec::new(),
+        smoke_clouds: Vec::new(),
     };
     let launches: Vec<Launch> = at
         .into_iter()
@@ -261,6 +262,7 @@ fn scored(music: bool, shout: bool, voices: f64) -> (Vec<f32>, Audio) {
         flare_deploys: Vec::new(),
         grinds: Vec::new(),
         strikes: Vec::new(),
+        smoke_clouds: Vec::new(),
     };
     let hz = read("rules.json")["tick_hz"].as_f64().unwrap();
     let dt = 1.0 / 60.0;

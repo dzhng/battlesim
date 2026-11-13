@@ -8,8 +8,9 @@ use crate::world::Vec3;
 pub const EFFECT_FLOATS: usize = 16;
 /// Instance shapes (misc.x): a streak from a to b (a lit smoke ribbon when
 /// its colour carries an opacity), a glow at a (a solid disc when its colour
-/// carries an opacity), a flipbook sprite at a, a rotor's blur, a high-air
-/// aircraft's shadow on the ground beneath it.
+/// carries an opacity), a flipbook sprite at a (a smoke screen's puff, which
+/// leaves the fog mask as the ground behind it has it, when misc.w is 1), a
+/// rotor's blur, a high-air aircraft's shadow on the ground beneath it.
 pub const SHAPE_NAMES: [&str; 5] = ["streak", "glow", "flipbook", "rotor", "shadow"];
 const STREAK: f64 = 0.0;
 const GLOW: f64 = 1.0;
@@ -147,6 +148,28 @@ impl EffectBatch {
             [turn, frame, layer, soft_m],
             v4(tint, opacity),
             shape,
+        ]);
+    }
+
+    /// A smoke screen's puff: a lit dust flipbook that, unlike every other
+    /// effect, lowers no fog, so a cloud over ground the side doesn't see
+    /// is veiled like that ground.
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn screen_puff(
+        &mut self,
+        p: Vec3,
+        radius: f64,
+        turn: f64,
+        frame: f64,
+        albedo: Vec3,
+        opacity: f64,
+        soft_m: f64,
+    ) {
+        self.put([
+            v4(p, radius),
+            [turn, frame, DUST, soft_m],
+            v4(albedo, opacity),
+            [FLIPBOOK, 0.0, 1.0, 1.0],
         ]);
     }
 }

@@ -63,8 +63,60 @@ pub struct EffectPresentation {
     pub smoke: HashMap<String, Arc<SmokeSourceStyle>>,
     /// Instances every smoke source together may hold; past it each thins alike.
     pub smoke_budget: f64,
+    /// The battle's smoke screens' looks, by the name a smoke capability
+    /// gives its cloud (`presentation.smoke_looks`, as fielded).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub smoke_looks: BTreeMap<String, Arc<SmokeLook>>,
+    /// Instances every smoke screen together may hold, apart from
+    /// `smoke_budget`; past it each thins alike.
+    pub smoke_screen_budget: f64,
     /// How far round a surface a cast light reaches past facing it, 0..1.
     pub cast_wrap: f64,
+}
+
+/// How a smoke screen draws (`presentation.smoke_looks.<name>`): a billow
+/// of `puffs` puffs that swirl round the cloud's centre inside its circle,
+/// below its top.
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct SmokeLook {
+    pub albedo: Vec3,
+    /// A puff's opacity in the full cloud; it thins as the cloud does.
+    pub opacity: f64,
+    pub puffs: u32,
+    /// A puff's radius in the full cloud, smallest to largest, metres.
+    pub size_m: [f64; 2],
+    /// How fast the puffs turn round the cloud's centre, radians a second.
+    pub swirl_rad_s: f64,
+    /// Where the puffs' centres stand, as shares of the cloud's height,
+    /// lowest to highest (each kept low enough to stay below its top).
+    pub height: [f64; 2],
+    /// How far a puff fades into what it meets, metres.
+    pub soft_m: f64,
+    /// The clip its pop plays; none until the smoke sounds exist.
+    pub sound: Option<String>,
+}
+
+impl SmokeLook {
+    pub fn check(&self, name: &str) -> Result<(), String> {
+        let path = format!("presentation.smoke_looks.{name}");
+        crate::settings::validate::numbers(self, &path, &[])?;
+        let [lo, hi] = self.size_m;
+        let [low, high] = self.height;
+        let fine = (0.0..=1.0).contains(&self.opacity)
+            && self.puffs > 0
+            && 0.0 < lo
+            && lo <= hi
+            && (0.0..=1.0).contains(&low)
+            && low <= high
+            && high <= 1.0
+            && self.soft_m >= 0.0;
+        if fine {
+            Ok(())
+        } else {
+            Err(format!("{path}: opacity in [0, 1], puffs > 0, 0 < size_m ordered, height ordered in [0, 1], soft_m ≥ 0"))
+        }
+    }
 }
 
 /// A light an effect casts: colour, irradiance at its centre and reach; a
@@ -374,6 +426,12 @@ impl EffectPresentation {
             })
         };
         self.check_looks(&self.looks.looks)?;
+        ensure(self.smoke_screen_budget > 0.0, || {
+            "smoke_screen_budget must be positive".into()
+        })?;
+        for (name, look) in &self.smoke_looks {
+            look.check(name)?;
+        }
         for (k, s) in &self.smoke {
             cast(format!("smoke.{k}.flame"), &s.flame.cast, false)?;
         }

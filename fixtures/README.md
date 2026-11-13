@@ -326,6 +326,12 @@ parts may use [the mix's](audio.json) default recording. Unknown looks fail at
 fielding, and unused looks fail the shipped-fixture check. Changing which look a
 weapon names changes battle identity; tuning that look does not.
 
+A smoke capability's cloud names its look the same way: one
+`smoke_looks.<name>` row in [presentation](presentation.json), which says how
+its billow draws (and, once there is one, which clip its pop plays). A fielded
+unit whose cloud names no row fails at fielding. Every smoke screen together
+keeps to `effects.smoke_screen_budget`, apart from the wrecks' `smoke_budget`.
+
 ## Sound catalog
 
 [The sound catalog](sounds.json) owns source receipts, exact clip crops, reusable

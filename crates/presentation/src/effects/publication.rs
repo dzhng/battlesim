@@ -3,8 +3,9 @@
 //! the shot counters and hulls of every unit the side sees (own units and
 //! identified enemies, apart by side key) and where each wades, the
 //! downed airframes still falling (which smoke, and throw sparks and dust
-//! where they strike a building), and every wreck and part of
-//! a destroyed building it knows (which smoke, each with its kind's look).
+//! where they strike a building), every wreck and part of a destroyed
+//! building it knows (which smoke, each with its kind's look), and the smoke
+//! screens it sees.
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
@@ -123,6 +124,9 @@ pub struct EffectPublication {
     pub grinds: Vec<Grind>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub strikes: Vec<Strike>,
+    /// The smoke clouds the side sees (`ObservationFrame.smoke_clouds`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub smoke_clouds: Vec<contract::smoke::SmokeCloud>,
 }
 
 /// Where a downed airframe the side watches fall struck a building this
@@ -332,6 +336,7 @@ impl EffectFeed {
                     speed_mps: s.speed_mps,
                 })
                 .collect(),
+            smoke_clouds: o.smoke_clouds.iter().map(|c| c.cloud()).collect(),
         }
     }
 
