@@ -740,7 +740,7 @@
     }
   },
   "smoke_looks": {
-    "discharger": {"albedo": [0.82, 0.84, 0.87], "opacity": 0.6, "puffs": 64, "size_m": [2.8, 5.2], "swirl_rad_s": 0.08, "height": [0.25, 0.6], "soft_m": 1.0, "sound": null},
-    "grenade": {"albedo": [0.82, 0.84, 0.87], "opacity": 0.6, "puffs": 64, "size_m": [2.3, 4.3], "swirl_rad_s": 0.08, "height": [0.25, 0.6], "soft_m": 1.0, "sound": null}
+    "discharger": {"albedo": [0.82, 0.84, 0.87], "opacity": 0.6, "puffs": 64, "size_m": [2.8, 5.2], "swirl_rad_s": 0.08, "height": [0.25, 0.6], "soft_m": 1.0, "sound": "smoke-discharger"},
+    "grenade": {"albedo": [0.82, 0.84, 0.87], "opacity": 0.6, "puffs": 64, "size_m": [2.3, 4.3], "swirl_rad_s": 0.08, "height": [0.25, 0.6], "soft_m": 1.0, "sound": "smoke-grenade"}
   }
 }

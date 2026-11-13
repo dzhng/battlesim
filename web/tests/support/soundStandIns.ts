@@ -40,6 +40,7 @@ export function standInPresentationRecordings(catalog: SoundCatalog, presentatio
       presentation.flare_deploy,
       presentation.footsteps,
     ].map((row) => row.sound),
+    ...Object.values(presentationSettings.smoke_looks).map(({ sound }) => sound),
     presentation.cook_off.blast.near,
     presentation.cook_off.blast.far,
     ...Object.values(presentation.cues.sounds),

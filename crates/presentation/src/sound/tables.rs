@@ -1,6 +1,6 @@
 //! The audio mix and library admitted with the battle's weapon looks.
 //! Sound names are recipes; synthesis is a recipe of the same name as its slot.
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use serde::Deserialize;
 use serde_json::Value;
@@ -39,7 +39,7 @@ pub struct OneShot {
     pub gain: f64,
 }
 
-/// A shared contact level; recordings belong to weapon looks.
+/// A shared level; its recordings belong to looks (weapon or smoke).
 #[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Level {
@@ -252,6 +252,8 @@ pub struct AudioMix {
     pub missile_warning: OneShot,
     /// A positional burst when an aircraft releases a flare.
     pub flare_deploy: OneShot,
+    /// A smoke screen's pop at its cloud; each look names its recording.
+    pub smoke_pop: Level,
     pub cues: Cues,
 }
 
@@ -286,6 +288,9 @@ pub struct SoundTables {
     pub audio: AudioMix,
     pub catalog: SoundCatalog,
     pub looks: crate::looks::WeaponLooks,
+    /// Each smoke screen look's pop (`presentation.smoke_looks.<look>.sound`),
+    /// by look; a look without one pops silently.
+    pub smoke_pops: BTreeMap<String, String>,
 }
 
 impl SoundTables {
@@ -325,6 +330,18 @@ impl SoundTables {
                 ));
             }
         }
+        let smoke_looks: BTreeMap<String, crate::effects::tables::SmokeLook> =
+            crate::settings::read(&presentation["smoke_looks"], "presentation.smoke_looks")?;
+        let mut smoke_pops = BTreeMap::new();
+        for (look, row) in smoke_looks {
+            let Some(sound) = row.sound else { continue };
+            let at = format!("presentation.smoke_looks.{look}.sound");
+            match catalog.sounds.get(&sound) {
+                None => return Err(format!("{at}: unknown sound {sound}")),
+                Some(r) if r.looping => return Err(format!("{at}: {sound} loops")),
+                Some(_) => smoke_pops.insert(look, sound),
+            };
+        }
         let landing = &audio.cook_off.landing;
         let look = looks
             .looks
@@ -342,6 +359,7 @@ impl SoundTables {
             audio,
             catalog,
             looks,
+            smoke_pops,
         })
     }
 
@@ -389,6 +407,7 @@ impl SoundTables {
         names.insert(self.audio.air_alarm.sound.as_str());
         names.insert(self.audio.missile_warning.sound.as_str());
         names.insert(self.audio.flare_deploy.sound.as_str());
+        names.extend(self.smoke_pops.values().map(String::as_str));
         names.into_iter().map(str::to_owned).collect()
     }
 
