@@ -29,12 +29,6 @@ export async function run(ctx) {
   await page.evaluate(() => window.__lab.route.pause());
   // Pin GPU animation phase as well as simulation state before the journey.
   const captureTick = 60;
-  // The viewport is ready before the battle publishes its first observation
-  // (the loading screen still says "Starting the battle"); paused, that first
-  // observation still arrives.
-  await page.waitForFunction(() => window.__lab.route.observation() != null, undefined, {
-    timeout: 60000,
-  });
   const arrivedTick = (await obs(page)).tick;
   if (arrivedTick > captureTick)
     throw new Error(`roster capture started late at tick ${arrivedTick}`);
