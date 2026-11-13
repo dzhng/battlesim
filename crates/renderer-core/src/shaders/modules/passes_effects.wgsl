@@ -34,15 +34,8 @@
       + valueNoise(vec2f(s * 5.1 + 2.0, across * 3.4 + 1.0)) * 0.4;
     // Thick and thin by noise, down to clear gaps.
     let cover = body * smoothstep(0.2, 0.7, n) * 1.6 * clamp(gap / max(f.extra.z, 1e-3), 0.0, 1.0);
-    // A mixed plume (misc.w MIXED_PLUME + density) is black and white
-    // smoke in one: its albedo runs from color.r to color.g by noise.
-    let mixed = f.misc.w > MIXED_PLUME - 0.5;
-    let depth = select(f.misc.w - 2.0, f.misc.w - MIXED_PLUME, mixed);
-    let k = smoothstep(0.35, 0.65, valueNoise(vec2f(s * 1.9 + 7.0, across * 1.3 + 4.0)) * 0.7
-      + valueNoise(vec2f(s * 4.3 + 1.0, across * 2.9)) * 0.3);
-    let albedo = select(f.color.rgb, vec3f(mix(f.color.r, f.color.g, k)), mixed);
-    alpha = clamp(1.0 - exp(-depth * f.color.a * cover), 0.0, 1.0);
-    rgb = albedo * smokeLight(f, f.offset) * alpha;
+    alpha = clamp(1.0 - exp(-(f.misc.w - 2.0) * f.color.a * cover), 0.0, 1.0);
+    rgb = f.color.rgb * smokeLight(f, f.offset) * alpha;
   } else if (shape == 0u && f.color.a > 0.0) {
     // A smoke ribbon: thick through its middle, thinning to its edges.
     let across = f.uv.y * f.uv.y;

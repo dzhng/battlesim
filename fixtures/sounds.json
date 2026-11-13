@@ -5289,14 +5289,6 @@
       "gain": 1,
       "loop": false
     },
-    "impact_hull": {
-      "label": "Synth \u00b7 impact hull",
-      "clips": [],
-      "synth": "impact_hull",
-      "synth_gain": 1,
-      "gain": 1,
-      "loop": false
-    },
     "impact_prop": {
       "label": "Synth \u00b7 impact prop",
       "clips": [],

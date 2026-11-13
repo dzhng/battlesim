@@ -213,17 +213,13 @@ read from how its published flight bends (a tight turn, a pull-up), so level
 flight never vapours however fast it flies, and the vapour forms with
 hysteresis and thins over a second or two once the pull ends. It is drawn as
 short wisps: thin at the tip, tapering fast, broken by noise fixed where the
-vapour formed, so the wisps hang in the air rather than slide. How the
-engines trail is a choice in the data, `jet_exhaust.engine_style`, naming one
-of `jet_exhaust.engine_styles`: each a list of layers laid from the same points
-behind each nozzle and drawn in order, so a different look is a data change.
-A layer may be a
-continuous `plume`: one ribbon whose middle wanders and width swells, broken
-by noise fixed where it was laid, that hides by optical depth so dark smoke
-darkens even a bright sky; with `mix` its colour runs between a dark and a
-light grey by noise, black and white smoke in one. A layer may instead be
-`puffs`, soft noise-broken billows. The haze is drawn smoke, not refraction:
-nothing bends the picture behind a jet. Glows sit
+vapour formed, so the wisps hang in the air rather than slide. The engines'
+trail is data, `jet_exhaust.engine_trail`: layers laid from the same points
+behind each nozzle and drawn in order. A layer may be a continuous `plume`:
+one ribbon whose middle wanders and width swells, broken by noise fixed where
+it was laid, that hides by optical depth so dark smoke darkens even a bright
+sky. A layer may instead be `puffs`, soft noise-broken billows. The haze is
+drawn smoke, not refraction: nothing bends the picture behind a jet. Glows sit
 on the drawn model; trails are laid tick by tick where the publications put
 it, from emitters placed as its model was last drawn, so they are the same at
 any frame rate and a replay framed mid-flight shows them whole. A gap or a jump
