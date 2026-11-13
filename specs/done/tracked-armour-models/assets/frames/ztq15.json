@@ -1,0 +1,233 @@
+{
+  "family": "ztq15",
+  "lane": "F-A",
+  "slice": "07",
+  "surveyed": "2026-11-11",
+  "reconciled": {
+    "slice": "07b",
+    "date": "2026-11-11",
+    "decisions": "decisions.md C4-C10"
+  },
+  "convention": {
+    "frame": "x forward, y left, z up, metres; the hull box is centred on x = 0, y = 0 and stands on z = 0",
+    "hull_box": "the top is max(the real hull or turret roof, the top of the tallest bulky dressing - 0.3 m) (decisions.md C4, after F-B1). Sights, sensors, radars and roof guns that are not a roster mount are dressing, held to unitArt.ts's 0.3 m bulky / 0.15 m thin allowance. The box covers the body, including an armoured turret overhang (FC8)",
+    "pivot": "the centre of the turret ring; for a fixed mount, the trunnion or hinge it is drawn on (only pivot + muzzle reaches the simulation)",
+    "muzzle": "muzzle_m is measured from the mount's pivot: the simulation fires from pivot + muzzle (crates/sim/src/weapons/muzzle.rs:12-22; decisions.md C5)",
+    "eye": "the sight's height over the ground (catalog.rs:181); kept unless a source contradicts it (FA-6)"
+  },
+  "thresholds": {
+    "hull_dimension": "fix when off by more than max(0.10 m, 3 %)",
+    "pivot": "fix when off by more than 0.15 m on any axis",
+    "muzzle_point": "fix when the world muzzle point (pivot + muzzle) is off by more than 0.15 m on any axis; a value written in another convention is fixed whatever its size (C5)",
+    "eye_m": "kept unless a source contradicts it",
+    "note": "One set for every lane (decisions.md C10). The lanes' own variants (F-A's max(0.10 m, 3 %) for muzzles, F-C's 0.30 m muzzle reach) are retired."
+  },
+  "verdicts": {
+    "keep": "the frame number agrees with the references within the thresholds",
+    "fix": "slice 15 changes it to `new`: a row in fix-rows.json, or the parent's row where the fixture takes the field through extends",
+    "unresolved": "kept at today's value: nothing measures it well enough to move it; named",
+    "art-only": "not a frame number: the family slice fixes the art",
+    "inherits": "the fixture extends another unit and this appearance takes its rows"
+  },
+  "sources": [],
+  "appearances": {
+    "eastern_type_15_ztq_15_light_tank": {
+      "unit": "eastern_type_15_ztq_15_light_tank",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "published": {
+        "hull_length_m": 7.5,
+        "gun_forward_m": 9.2,
+        "width_m": 3.3,
+        "height_m": 2.5,
+        "source": "weaponsystems.net ZTQ15 and Chinese press figures: 7.5 hull, 9.2 gun forward, 3.3 wide with appliqué, 2.5 to the turret roof"
+      },
+      "current": {
+        "extends": "roster_profile_light_tank",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 30.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 70.0,
+            "turn_deg_s": 50.0
+          }
+        },
+        "half_extents_m": [
+          3.65,
+          1.675,
+          1.25
+        ],
+        "eye_m": 2.44,
+        "mounts": [
+          {
+            "id": "cannon",
+            "pivot_m": [
+              0.0,
+              0.0,
+              1.68
+            ],
+            "muzzle_m": [
+              5.36,
+              0.0,
+              0.504
+            ],
+            "turret": true
+          },
+          {
+            "id": "HMG",
+            "pivot_m": [
+              -0.25,
+              -0.58,
+              2.44
+            ],
+            "muzzle_m": [
+              1.43,
+              0.0,
+              0.32
+            ],
+            "turret": true,
+            "on": "cannon"
+          }
+        ]
+      },
+      "measured": {
+        "measured": {
+          "from_side_photo": "assets/references/type15/eastern_type_15_ztq_15_light_tank-side.jpg (low resolution, gun raised): the turret is about 55 % of the hull's length (about 4.0 m) and its centre sits about 0.15 m behind the hull's middle",
+          "model": {
+            "turret_body_x_m": [
+              -2.144,
+              1.735
+            ],
+            "turret_centre_x_m": -0.2
+          }
+        }
+      },
+      "heights": {
+        "roof_m": 2.5,
+        "roof_source": "published",
+        "sight_top_m": 2.73,
+        "sight_part": "commander's sight",
+        "sight_source": "art",
+        "rule_top_m": 2.5,
+        "box_top_m": 2.5,
+        "art": {
+          "hull_top_m": 2.559,
+          "tallest_dressing": "dressing_commander_sight",
+          "tallest_dressing_top_m": 2.727,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
+        {
+          "field": "half_extents_m[0]",
+          "old": 3.65,
+          "new": null,
+          "verdict": "keep",
+          "source": "published 7.5",
+          "confidence": null,
+          "note": "0.2 m short, inside 3 % (0.225 m) (measured 3.75)"
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 1.675,
+          "new": null,
+          "verdict": "keep",
+          "source": "published 3.3",
+          "confidence": null,
+          "note": "(measured 1.65)"
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.25,
+          "new": null,
+          "verdict": "keep",
+          "source": "published 2.5",
+          "confidence": null,
+          "note": "(measured 1.25)"
+        },
+        {
+          "field": "eye_m",
+          "old": 2.44,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.cannon.pivot_m",
+          "old": [
+            0.0,
+            0.0,
+            1.68
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": "side photo; the model's turret centre agrees",
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.cannon.muzzle_m",
+          "old": [
+            5.36,
+            0.0,
+            0.504
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": "9.2 - 7.5 = 1.7 past the front: 3.65 + 1.7",
+          "confidence": null,
+          "note": "(measured 5.35)"
+        },
+        {
+          "field": "mounts.HMG.pivot_m",
+          "old": [
+            -0.25,
+            -0.58,
+            2.44
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.HMG.muzzle_m",
+          "old": [
+            1.43,
+            0.0,
+            0.32
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        }
+      ]
+    }
+  },
+  "overlays": {
+    "note": "Station readouts from copyrighted drawings, measured in the lane's throwaway/ (FA3); no image is committed.",
+    "by_appearance": {
+      "eastern_type_15_ztq_15_light_tank": []
+    }
+  },
+  "notes": [
+    {
+      "appearances": [
+        "eastern_type_15_ztq_15_light_tank"
+      ],
+      "note": "turret shape seems wrong",
+      "class": "art",
+      "why": "the frame's size and pivot agree with the published figures and the side photo. The shape is the art's: a flat wedge front, flat slab sides of modular armour and a tall, square bustle box (the display photo and the VT-5 quarters)"
+    }
+  ],
+  "answers": {
+    "9": "ZTQ-15 'turret shape seems wrong' is art."
+  },
+  "gaps": [
+    "No drawing exists (Commons, the-blueprints.com and the open web searched 2026-11-11), so there is no overlay. The Q4 ladder's third step (a generated orthographic view) is left to slice 19, which rebuilds the turret anyway."
+  ]
+}

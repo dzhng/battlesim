@@ -123,6 +123,7 @@ fn main() {
     let snapshot_bytes = stage("pack_blue_snapshot", || {
         publication::pack_logical(
             &frame,
+            &[],
             &full,
             &FogPatch {
                 full: true,
@@ -141,6 +142,7 @@ fn main() {
     stage("pack_blue_resync", || {
         publication::pack_logical(
             &frame,
+            &[],
             &GroundHeader { epoch: 2, ..full },
             &FogPatch {
                 full: true,
@@ -223,6 +225,7 @@ fn main() {
     stage("pack_corner_delta", || {
         publication::pack_logical(
             &frame,
+            &[],
             &GroundHeader {
                 epoch: 2,
                 side: Side::Blue,

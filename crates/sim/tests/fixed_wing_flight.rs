@@ -673,3 +673,55 @@ fn a_circling_jet_never_leaves_the_square() {
         }
     }
 }
+
+/// The edge guard hands a jet back once it has turned away: a jet by a
+/// corner, whatever its heading and turn, sent across the map breaks off
+/// the edges and flies to its new circle. (The air-audio lab's J-10, sent
+/// back from its north-east goal, broke round and round there at its max
+/// rate and never came back.)
+#[test]
+fn a_jet_sent_out_of_a_corner_flies_out_of_it() {
+    // The roster jet's turns at the lab's speed: 30 deg/s by choice, a
+    // 72 deg/s reserve, rolling in over 1.5 s.
+    let mut l = wing_limits();
+    l.cruise_mps = 180.0;
+    l.turn_rad_s = 30_f64.to_radians();
+    l.max_turn_rad_s = 72_f64.to_radians();
+    l.roll_in_s = 1.5;
+    let side = 3_000.0;
+    let bounds = Bounds::new(v2(0.0, 0.0), v2(side, side));
+    let dt = 1.0 / 30.0;
+    let radius = l.cruise_mps / l.turn_rad_s;
+    // The north-east corner; the guard treats every edge alike.
+    let away = v2(1_500.0, 1_500.0);
+    for dx in (2..=6).map(|i| f64::from(i) * 100.0) {
+        for dy in (2..=6).map(|i| f64::from(i) * 100.0) {
+            for heading in (0..24).map(|i| f64::from(i) * 15.0) {
+                for rate in [
+                    -l.max_turn_rad_s,
+                    -l.turn_rad_s,
+                    0.0,
+                    l.turn_rad_s,
+                    l.max_turn_rad_s,
+                ] {
+                    let mut s = state();
+                    s.speed_mps = l.cruise_mps;
+                    s.pos = v3(side - dx, side - dy, 250.0);
+                    s.heading = heading.to_radians();
+                    s.turn_rate_rad_s = rate;
+                    let crossing = (away - s.pos.xy()).length() / l.cruise_mps;
+                    let mut nearest = f64::INFINITY;
+                    for _ in 0..(30.0 * (crossing + 20.0)) as usize {
+                        let command = steer(&Intent::Orbit { centre: away }, &s, &l, &bounds, dt);
+                        s = fly(s, command, &l, &|_| 0.0, dt);
+                        nearest = nearest.min((s.pos.xy() - away).length());
+                    }
+                    assert!(
+                        nearest < 2.0 * radius,
+                        "from {dx} m, {dy} m off the corner, heading {heading} deg, turning {rate:.2} rad/s: nearest {nearest:.0} m (turn radius {radius:.0} m)"
+                    );
+                }
+            }
+        }
+    }
+}

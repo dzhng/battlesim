@@ -214,6 +214,7 @@
     "2A6: no true rear or top view; three_quarter_rear covered by Finnish 2A6 photos.",
     "2A6 side-2 is a 2A6M (mine-protected belly plate); hull side and turret match the 2A6.",
     "2A7V: no licensable side, rear or three_quarter_rear view found (unported CC/PD); side is a distant PD shot. Several Boevaya mashina 2A7V photos are CC BY-SA 3.0 DE, a ported licence outside the allowed list, and were skipped.",
-    "2A8: series 2A8 only side-on (Zagreb 2025, on a trailer); three-quarter and details are the Eurosatory 2022 KMW demonstrator. No rear, top or three_quarter_rear."
+    "2A8: series 2A8 only side-on (Zagreb 2025, on a trailer); three-quarter and details are the Eurosatory 2022 KMW demonstrator. No rear, top or three_quarter_rear.",
+    "no free drawing; the frame survey measured a copyrighted 2A6 side profile in throwaway and took heights and lengths from KNDS data sheets (specs/done/tracked-armour-models/assets/frames/leopard.json); no drawing of the 2A7V or 2A8"
   ]
 }

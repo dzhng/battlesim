@@ -25,39 +25,16 @@ A = dict(a[2:].split("=", 1) for a in argv if a.startswith("--") and "=" in a)
 OUT = Path(A["out"]); OUT.mkdir(parents=True, exist_ok=True)
 
 import vehicle_lint as VL
-VL._SUPPRESS_EXPORT_LINT = True; VL._SUPPRESS_EXPORT = True
-sys.modules.setdefault("vehicle_lint", VL)
-from parts import reset
-from catalog_frames import family_variants
+from vehicle_export import build_variant
+from vehicle_lint_roster import appearances
 
-def families():
-    for p in sorted((BL / "roster").glob("*.py")):
-        if p.name.startswith("_"): continue
-        fam = VL._get_family_name_from_script(p) or p.stem
-        try: vs = family_variants(fam, repo=REPO)
-        except Exception:
-            if fam != p.stem:
-                try: vs = family_variants(p.stem, repo=REPO)
-                except Exception: continue
-            else: continue
-        sch = VL._extract_scheme_from_script(p)
-        if not vs or sch is None: continue
-        yield p.stem, vs, sch
-
-FAM = {}
-for fam, vs, sch in families():
-    for v in vs: FAM[v["id"]] = (fam, v, sch)
+FAILED = []
+FAM = {variant["id"]: (variant, scheme, make, looks)
+       for _, variant, scheme, make, looks in appearances(FAILED)}
+for what, why in FAILED: print("roster fail", what, why)
 
 def build(vid):
-    from vehicle_export import Vehicle, materials
-    fam, variant, sch = FAM[vid]
-    import vehicle_export as VE
-    VE._export = lambda *a, **k: None
-    spec = __import__(f"roster.{fam}", fromlist=["build"])
-    reset()
-    own = sch[vid] if isinstance(sch, dict) else sch
-    v = Vehicle(variant, materials(own), own)
-    spec.build(variant, v)
+    build_variant(*FAM[vid])
     bpy.context.view_layer.update()
 
 def tier0():

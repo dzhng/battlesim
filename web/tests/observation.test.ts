@@ -532,6 +532,28 @@ test("every frozen animation field and ground value decodes, integers exact past
   expect(o.audible).toEqual([
     { listener: 0, category: "shout", sector: 5, band: "near", moving: false },
   ]);
+  // A smoke cloud keeps where and when it was popped and what it is, and
+  // its carrier's charges ride on the carrier's own row.
+  expect(o.smokeClouds).toEqual([
+    {
+      id: 3,
+      centre: [120.5, 64.25, 1.5],
+      popped: 4,
+      spec: {
+        radiusM: 12,
+        heightM: 5,
+        lifeS: 30,
+        bloomS: 1,
+        fadeS: 10,
+        bloomSteps: 4,
+        fadeSteps: 5,
+        depthPerM: 0.25,
+        concealment: 0.125,
+        look: "grenade",
+      },
+    },
+  ]);
+  expect(o.own[0].smoke).toBe(1);
   // The presentation learned the patch: each marked cell as drawn, a byte a mark.
   const ground = decoder!.ground!;
   const marked = new Map<number, number[]>();

@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tracked armour model pass: the map</title>
+<style>
+:root{
+  --bg:var(--background,#0f1113);--fg:var(--foreground,#e6e6e3);--mu:var(--muted-foreground,#9a9d98);
+  --cd:var(--card,#181b1e);--bd:var(--border,#2b3034);--pr:var(--primary,#8fb36b);
+  --ok:var(--success,#6fbf73);--wa:var(--warning,#e0b35a);--de:var(--destructive,#e06a5a);--in:var(--info,#6aa8e0);
+  --mono:var(--font-mono,ui-monospace,SFMono-Regular,Menlo,monospace);--r:var(--radius,8px);
+}
+*{box-sizing:border-box}
+body{margin:0;font:13.5px/1.5 var(--font-sans,system-ui,sans-serif);color:var(--fg)}
+.wrap{max-width:1100px;margin:0 auto}
+h1{font-size:19px;margin:4px 0 2px}
+h2{font-size:15.5px;margin:22px 0 8px;display:flex;gap:8px;align-items:center}
+h3{font-size:13.5px;margin:14px 0 6px}
+p{margin:6px 0}
+.sub{color:var(--mu);font-size:12.5px}
+code{font-family:var(--mono);font-size:11.5px;background:var(--code-background,rgba(127,127,127,.12));padding:1px 4px;border-radius:4px}
+nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+nav button{font:inherit;font-size:12.5px;color:var(--fg);background:var(--cd);border:1px solid var(--bd);border-radius:999px;padding:4px 12px;cursor:pointer}
+nav button.on{border-color:var(--pr);color:var(--pr)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:700px){.grid{grid-template-columns:1fr}}
+.q{border:1px solid var(--bd);border-radius:var(--r);padding:12px 14px;background:var(--cd)}
+.q h3{margin-top:0}
+.q ul{margin:4px 0;padding-left:18px}
+.q li{margin:2px 0}
+.tag{font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;border-radius:4px;padding:1px 6px;border:1px solid currentColor;white-space:nowrap}
+.t-user{color:var(--ok)}.t-agent{color:var(--in)}.t-terr{color:var(--mu)}.t-open{color:var(--de)}.t-edge{color:var(--wa)}.t-dec{color:var(--ok)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{border-bottom:1px solid var(--bd);padding:6px 8px;text-align:left;vertical-align:top}
+th{color:var(--mu);font-weight:600;font-size:11.5px}
+td.n{font-family:var(--mono);color:var(--mu);white-space:nowrap}
+.card{border:1px solid var(--bd);border-left:3px solid var(--wa);border-radius:var(--r);padding:10px 12px;margin:8px 0;background:var(--cd)}
+.card.dec{border-left-color:var(--ok)}.card.open{border-left-color:var(--de)}
+.card .hd{display:flex;gap:8px;align-items:baseline;justify-content:space-between}
+.card b.t{font-size:13.5px}
+.card dl{display:grid;grid-template-columns:96px 1fr;gap:3px 10px;margin:6px 0 0}
+.card dt{color:var(--mu);font-size:12px}.card dd{margin:0}
+.opt{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.opt label{border:1px solid var(--bd);border-radius:6px;padding:4px 9px;cursor:pointer;font-size:12.5px}
+.opt input{margin:0 5px 0 0;vertical-align:-1px}
+.opt label:has(input:checked){border-color:var(--pr);color:var(--pr)}
+details{border:1px solid var(--bd);border-radius:var(--r);padding:8px 12px;margin:8px 0;background:var(--cd)}
+summary{cursor:pointer;font-weight:600}
+textarea{width:100%;min-height:340px;font:12px/1.45 var(--mono);color:var(--fg);background:var(--code-background,#0b0c0d);border:1px solid var(--bd);border-radius:var(--r);padding:10px}
+.btn{font:inherit;font-size:12.5px;background:var(--pr);color:var(--primary-foreground,#111);border:0;border-radius:6px;padding:6px 14px;cursor:pointer;font-weight:600}
+.slice{display:grid;grid-template-columns:34px 1fr;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd)}
+.slice .k{font-family:var(--mono);color:var(--pr);font-weight:700}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--mu)}
+section{display:none}section.on{display:block}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Tracked armour model pass: the four-quadrant map</h1>
+<p class="sub">37 models across 26 scripts, improved with <code>make-3d-models</code>. This is the first of the per-unit passes. Planning only: the build starts from this page.</p>
+<div class="legend"><span><span class="tag t-user">user</span> you decided</span><span><span class="tag t-agent">agent</span> answered on your behalf</span><span><span class="tag t-terr">territory</span> the code settled it</span><span><span class="tag t-edge">sharp edge</span> awareness only</span><span><span class="tag t-open">open</span> unresolved</span></div>
+<nav id="nav"></nav>
+
+<!-- ================================================================ OVERVIEW -->
+<section id="s-map" class="on">
+<div class="grid">
+ <div class="q"><h3>1 · Known knowns</h3><ul>
+  <li>Each family is a procedural Blender script that calls <code>vehicle_export.run</code> with shared parts.</li>
+  <li>The battle frame is gameplay: hull box, mount pivot and muzzle, and eye. Changing it changes digests.</li>
+  <li>Every tracked model is under its triangle cap, the largest at 61% (T-80BVM, 73k of 120k).</li>
+  <li>The catalog-load limit is a loose tripwire, not a target. 635 of 640 MiB is used, and half of it is wrecks.</li>
+  <li>Gun spread is statistical, so a shorter hull changes the hit rate only slightly.</li><li>The renderer already does sun highlights and sky reflections. Jet paint is matte on purpose.</li></ul></div>
+ <div class="q"><h3>2 · Known unknowns: the ledger</h3><ul>
+  <li>25 decisions: 14 yours, 13 answered by the agent on your behalf (Q1b and J1 are both), and Q3 also backed by the territory.</li>
+  <li>Route: procedural first. Generated skins are kept only if they clearly win.</li>
+  <li>Wrong frames are fixed, as a named change to the digests.</li>
+  <li>The Ajax gets its roof machine gun.</li><li>Jets get a metallic paint sheen (J1).</li>
+  <li>0 decisions are open.</li></ul></div>
+ <div class="q"><h3>3 · Unknown knowns: your taste</h3><ul>
+  <li>Proportions and silhouette first; this is cinematic realism, not a museum.</li>
+  <li>Clean factory paint, with one clean scheme per nation.</li>
+  <li>Crisp plates, edges that catch the light, and seams painted on.</li>
+  <li>Track sag between the return rollers. Hatches closed, no crew.</li>
+  <li>The closest look is the zoomed battle camera and cinematics.</li>
+  <li>From your notes, three patterns repeat across families: side panels that jut forward (11 vehicles), howitzer turrets out of scale with the hull (4), and the BMP/BRM noses (2).</li></ul></div>
+ <div class="q"><h3>4 · Unknown unknowns: 15 landmines</h3><ul>
+  <li>Changing a frame takes a chain of manual steps.</li>
+  <li>All 25 receipts are stale.</li>
+  <li><code>vehicle_parts.py</code> is frozen by the file-size limit.</li>
+  <li>The lint allowlist hid the T-72's barrel gap.</li>
+  <li>15 families were never linted.</li>
+  <li>Several sets of pictures must be regenerated.</li>
+  <li>Worktrees conflict when two of them bake.</li>
+  <li>Edge wear differs from lane to lane.</li>
+  <li>The Python tests never run in any check.</li></ul></div>
+</div>
+<p class="sub" style="margin-top:12px">The tabs above open each quadrant in full. The plan tab holds the tweakable build plan and the prompt you copy to start the build.</p>
+</section>
+
+<!-- ================================================================ Q1 -->
+<section id="s-q1">
+<h2>1 · Known knowns <span class="tag t-terr">settled ground</span></h2>
+<table><tr><th>Fact</th><th>Evidence</th></tr>
+<tbody id="kk"></tbody></table>
+</section>
+
+<!-- ================================================================ Q2 -->
+<section id="s-q2">
+<h2>2 · Known unknowns: the decision ledger</h2>
+<details open><summary>Confirmed preferences and what the agent may decide</summary>
+<p>You opted in to the agent answering questions that follow from these preferences. The permission lasts for this walk only and does not authorise implementation.</p>
+<ol>
+<li>The wider scope wins.</li>
+<li>Limits that aren't gameplay bend to quality. Gameplay contracts hold, except the frame fixes named here.</li>
+<li>Practical fallbacks beat purity.</li>
+<li>Cheap experiments are welcome when they might remove machinery.</li>
+<li>Ask every question up front, then finish without approval stops. Numbers are guesses. Fix easy issues. Run expensive checks once, at the end. Use Opus subagents. Push milestones.</li>
+<li>Get the proportions right; aim for cinematic realism, not every detail.</li>
+</ol></details>
+<table><tr><th>#</th><th>Question</th><th>Decision</th><th>Why</th><th>By</th></tr>
+<tbody id="ledger"></tbody></table>
+</section>
+
+<!-- ================================================================ Q3 -->
+<section id="s-q3">
+<h2>3 · Unknown knowns: what was extracted</h2>
+<table><tr><th>Extracted</th><th>Your answer</th><th>What it reshaped</th></tr>
+<tbody id="uk"></tbody></table>
+<h3>Your lineup notes, by family (each family's done-list)</h3>
+<table><tr><th>Family</th><th>Models</th><th>Your notes</th><th>Already known</th></tr>
+<tbody id="notes"></tbody></table>
+</section>
+
+<!-- ================================================================ Q4 -->
+<section id="s-q4">
+<h2>4 · Unknown unknowns: landmine cards</h2>
+<p class="sub">The sweep covered every file the pass touches: the 26 family scripts, <code>vehicle_export.py</code>, <code>vehicle_parts.py</code>, <code>parts.py</code>, <code>textures.py</code>, the <code>vehicle_lint*</code> files, <code>vehicle_crew.py</code>, <code>catalog_frames.py</code>, <code>wreckage.py</code>, <code>unitArt.ts</code>, <code>validate.ts</code>, <code>limits.rs</code>, <code>web/asset.mjs</code>, the file-size hook, the baselines and the fixtures. Worst first.</p>
+<div id="cards"></div>
+<h3>Facts to confirm before coding</h3>
+<table><tr><th>#</th><th>Confirm</th><th>How</th><th>If it's true</th></tr>
+<tbody id="confirm"></tbody></table>
+</section>
+
+<!-- ================================================================ PLAN -->
+<section id="s-plan">
+<h2>Build plan <span class="tag t-agent">tweakable</span></h2>
+<div class="card open"><b>Superseded.</b> The planning-walk plan and prompt below are replaced by <code>specs/tracked-armour-models/README.md</code>, its slices and <code>decisions.md</code>. The S-entries there correct this tab in several places: the lint fixes, the full split, baking at every milestone, the lanes, the jet gloss keyed on the airframe, and the four barrel copies. Don't build from this tab.</div>
+<p class="sub">The calls you're most likely to change come first, each with its alternatives. Change any of them and the prompt at the bottom rewrites itself. The mechanical slices are collapsed at the end.</p>
+<div id="tweaks"></div>
+<h3>Slices, in order</h3>
+<div id="slices"></div>
+<details><summary>Mechanical work, run once at closeout (trust me on this part)</summary><ul id="mech"></ul></details>
+<details><summary>Queue of later passes (goes in the spec README)</summary><ol id="queue"></ol></details>
+<h2>Implementation prompt</h2>
+<p class="sub">Paste this as your next message to start the build.</p>
+<textarea id="prompt" readonly></textarea>
+<p><button class="btn" id="copy">Copy prompt</button> <span id="copied" class="sub"></span></p>
+</section>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const tag=(k)=>({user:'<span class="tag t-user">user</span>',agent:'<span class="tag t-agent">agent</span>',terr:'<span class="tag t-terr">territory</span>',ua:'<span class="tag t-user">user</span> <span class="tag t-agent">agent</span>',ut:'<span class="tag t-user">user</span> <span class="tag t-terr">territory</span>'}[k]);
+
+const tabs=[['map','Overview'],['q1','1 Known knowns'],['q2','2 Ledger'],['q3','3 Taste & notes'],['q4','4 Landmines'],['plan','Plan + prompt']];
+$('#nav').innerHTML=tabs.map(([k,l],i)=>`<button data-k="${k}" class="${i?'':'on'}">${l}</button>`).join('');
+$('#nav').onclick=e=>{const k=e.target.dataset.k;if(!k)return;document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.k===k));document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id==='s-'+k));};
+
+/* ---------- Q1 known knowns */
+const KK=[
+['Each family script calls <code>vehicle_export.run(family, scheme, build, wreck, chip=…)</code> and builds from the shared parts in <code>vehicle_parts.py</code> and <code>parts.py</code>. The export bakes paint and vertex ambient occlusion, rigs the mounts, lints, and writes a receipt.','<code>vehicle_export.py:1-31, 70-90, 243</code>'],
+['The battle frame is a gameplay contract. It holds the hull box (<code>half_extents_m</code>), each mount\'s <code>pivot_m</code> and <code>muzzle_m</code>, and the eye height; these decide sight lines, hits and cover. Blender reads frames from the generated <code>fixtures/catalog.json</code>.','<code>catalog_frames.py:23</code>, <code>fixtures/catalog.json</code>'],
+['A mount can ride on another mount\'s turret with <code>on:</code>. The Leopard\'s machine gun already does this (<code>"on": "cannon"</code>).','<code>crates/contract/src/weapons.rs:286-289</code>'],
+['Ground vehicles are aimed at 75% of hull height. Gun spread is a normal distribution cut off at 3σ, with 3.43 mrad for every tank gun. Taking the Leopard from 3.0 m to 2.6 m drops its vertical hit rate from 75% to 71% at 300 m, 58% to 52% at 500 m, and 38% to 34% at 850 m.','<code>units.rs:406-416</code>, <code>flight/solve.rs:544-562</code>, <code>rules.json:998</code>'],
+['Triangle caps per tier: heavy tracked 120k/45k/13k/4k, medium tracked 90k/34k/10k/3k. The largest tracked model is the T-80BVM at 72,845 triangles in its finest tier, so there is room for bevels. Bevels exist only in tiers 0–1.','<code>unitArt.ts:53-62</code>, receipts, <code>parts.py:327-330</code>'],
+['The catalog load is 635.3 of 640 MiB on the wire. Wrecks take 318, soldiers 152, live vehicles 146, scenery 19, and textures under 15. The limit is described as "a loose tripwire … not a target".','<code>schema.ts:756-773</code>, <code>gzip.ts:158,182</code>'],
+['Textures tile per paint scheme and are shared, not painted per model. Edge wear comes from the vertex colour\'s alpha, which <code>chip=</code> scales.','<code>textures.py:1-20, 238-246</code>, <code>vehicle_export.py:70-74</code>'],
+['Tracks are the convex hull of the wheels, so the top run is dead straight with no sag.','<code>vehicle_parts.py:257-323</code>'],
+['16 tracked scripts pose crew heads out of hatches (<code>head_out</code>, <code>lid_open</code>). The crew are added after the lint and import the rifleman model from LFS.','<code>vehicle_export.py:133-149, 196-210</code>'],
+['The skill loop: references, then shape in code against an overlay, then an optional skin, then fit, then review, then ship. The bar is no score below 6 and an average of at least 7 from an unprimed critique, with <code>closeups.py</code> for renders.','<code>.agents/skills/make-3d-models/SKILL.md</code>'],
+['Jet skins come from Hunyuan3D 3.1 Pro on fal.ai at about $0.30–0.80 a call. They are fitted by <code>aircraft_skin.py</code>, which orients a skin by its highest point (the fin). <code>FAL_KEY</code> is never printed or committed.','<code>aircraft_skin.py:111-120,151</code>, <code>references/generators.md</code>'],
+['Model shading is physically based, with roughness, metalness, sun highlights and sky reflections. Jet and helicopter paint share <code>AIR_ROUGH = 0.55</code>, "satin, not gloss", chosen with the skins in <code>f5a8a2b59</code> so a curved skin keeps its grey to the silhouette.','<code>lighting.wgsl:150-169</code>, <code>models_material.wgsl:61-85</code>, <code>textures_air.py:15-18,53</code>'],
+['The T-72 gun (<code>gun_2a46</code>) draws the barrel from sleeve sections with gaps between them and no core. The same gun is used on the T-80, T-90 and Type 99.','<code>roster/t72.py:208-222</code>'],
+['Skirts and fenders are drawn separately in each family, as boxes squared to the hull length. They ignore the slope of the nose.','<code>bradley.py:73</code>, <code>cv90.py:81</code>, <code>sp_howitzers.py:101-105</code>'],
+['The rocket launchers are fixed, stowed mounts. The M270\'s turntable is drawn at the front end of the launcher box.','<code>rocket_artillery.py:25, 164-168</code>'],
+];
+$('#kk').innerHTML=KK.map(([a,b])=>`<tr><td>${a}</td><td>${b}</td></tr>`).join('');
+
+/* ---------- Q2 ledger */
+const L=[
+['Q1','Route','Procedural pass first. Test the T-72B3 cast turret three ways: as it is now, smoothed in code, and as a generated skin of the turret alone. Adopt a skin only if it clearly wins.','You want models that read well, and skins are new machinery to maintain.','user'],
+['Q1b','Jet skins','Smooth the F-35 and Su-35 guides in code and compare them with their skins. If code ties or wins, moving every jet off the generator becomes its own follow-up spec.','A cheap experiment that might remove machinery.','ua'],
+['Q2','Scope','All tracked armour: 37 models in 26 scripts. Wheeled siblings in shared scripts are re-exported and checked, not reworked.','The wider scope wins.','user'],
+['Q3','Budget','Raise the catalog-load tripwire freely. There is no startup requirement, and trimming wrecks is out of scope.','The limit is a tripwire, and startup time depends on the player\'s connection.','ut'],
+['Q4','Measurements','Use free drawings and add them to the library. Otherwise, measure copyrighted drawings in scratch and commit only the numbers with a source note. Otherwise, use generated orthographic views tagged <code>generated</code>, scaled to published dimensions and checked against photos.','Practical fallbacks beat purity.','user'],
+['Q5','Order','Re-export everything as a baseline, then split <code>vehicle_parts.py</code>, then run the experiments, then the shared parts, then the frame fixes. After that the families: T-72 family, Armata, Abrams, Leopard, the other tanks, infantry fighting vehicles, howitzers, then air defence and rockets. Opus subagents work in parallel worktrees, and only the coordinator edits shared parts. One commit per family; push milestones.','Shared code first, so the families build on finished parts. The baseline and split slices were added after the landmine sweep.','agent'],
+['Q6','Bar','Each family must pass the critique bar (no score below 6, average at least 7), with the scores recorded. Finish with a lineup cohesion sheet. No approval stops; anything still below the bar is named to you.','Questions up front, then finish.','agent'],
+['Q6b','Done, for whoever inherits this','A family is done when it passes the critique bar <em>and</em> every note on it from your lineup visibly reads as fixed in a before/after beside its reference.','You shrugged. Your lineup notes are the most direct definition of done available.','agent'],
+['Q7','Experiments','Run the experiments first, in parallel, with one critique round each.','Cheap experiments are welcome.','agent'],
+['Q8','Reuse','A spec at <code>specs/tracked-armour-models/</code> via write-spec, one slice per batch. The README ends with the queue of later passes. The skill learns only lasting lessons.','Skills hold timeless lessons only.','agent'],
+['Q8b','Edge wear value','<code>chip=1.0</code> on every tracked model. The Abrams family moves up from 0.35.','"Clean factory paint (as now)": 33 of the 37 models you looked at use 1.0, and the edge highlights help bevels catch the light.','agent'],
+['Q8c','M10','Exaggerate its nose and its turret\'s length-to-height ratio, within the frame, so it doesn\'t read as a small Abrams.','Cinematic realism: what a viewer recognises.','agent'],
+['Q9','Wrong frames','Fix frames found wrong, as a named change to the digests, through one blessing chain, and run one balance sample at the end.','You want correct proportions; the change in hit rate is small.','user'],
+['Q9b','Ajax roof machine gun','Add a roof machine gun mount <code>on: autocannon</code>, as the Leopard\'s works. It is a named balance change.','The mount mechanism already exists, and a viewer expects the gun.','user'],
+['J1','Jet paint sheen','Jets get the glossy, metallic sheen of real jet paint in the sun: lower roughness on the jet schemes only (helicopters stay satin), tuned in the battle camera against your screenshot (<code>specs/tracked-armour-models/assets/references/jet-sheen-reference.png</code>). It ships with the jet experiment (slice 2b). Metalness stays at zero unless gloss alone can\'t give the sheen.','You asked for it. The renderer already reflects the sun and sky (<code>lighting.wgsl:150-169</code>); the paint was set matte on purpose (<code>AIR_ROUGH = 0.55</code>), so it is a tuning change.','ua'],
+['T1','Finish','Clean factory paint. No weathering or mud work.','From the lineup.','user'],
+['T2','Edges and surfaces','Crisp armour plates with a narrow bevel that catches light, and panel lines and weld seams painted on.','From the lineup. You picked all three, and they combine.','user'],
+['T3','Detail priority','Silhouette and proportions first. Small fittings only where they read at the zoomed-in battle camera or in cinematics.','From the lineup.','user'],
+['T4','Running gear','The track sags between the return rollers.','From the lineup.','user'],
+['T5','Crew','Hatches closed, no crew, on every tracked model.','From the lineup.','user'],
+['T6','Camouflage','One clean scheme per nation, as now.','From the lineup.','user'],
+['D1','How seams are painted','An experiment on the T-72B3 and Leopard 2A6: shallow grooves in the geometry, darkened by the existing vertex occlusion bake, against a per-model baked detail map. Adopt the bake only if it clearly wins at the zoomed camera.','Textures tile per scheme, so painted-per-model seams would be new machinery (a per-model map and its bytes). An experiment before machinery.','agent'],
+['D2','Side panels that jut forward (11 vehicles)','One shared skirt and fender helper whose panels end where the glacis starts or follow its slope, never jutting ahead of the hull outline. The families stop drawing their own.','One owner per concept. It is the same defect in three separately written places.','agent'],
+['D3','M270 / MARS II launcher pivot','Draw the turntable and the elevation hinge at the rear of the launcher box. The launcher stays stowed: raising it to fire would need a moving mount, which is out of scope.','Gameplay contracts hold, and the launcher is a fixed mount.','agent'],
+['D4','T-15 gun','Keep the 30 mm cannon and draw it at its real barrel length and shroud thickness. If that moves <code>muzzle_m</code>, it joins the frame fixes. Swapping to the 57 mm turret is a roster change and out of scope.','Fix proportions, not loadouts.','agent'],
+];
+$('#ledger').innerHTML=L.map(([n,q,d,w,b])=>`<tr><td class="n">${n}</td><td>${q}</td><td>${d}</td><td class="sub">${w}</td><td>${tag(b)}</td></tr>`).join('');
+
+/* ---------- Q3 */
+const UK=[
+['Finish','Clean factory paint (as now)','Nothing to weather. It settles the edge-wear value at 1.0 (Q8b).'],
+['Edge and surface read','Crisp plates, edges that catch the light, seams painted on','A bevel floor on armour plates in tiers 0–1, and the seam experiment (D1). Triangle headroom covers it.'],
+['Detail priority','Silhouette and proportions first','Overlays against drawings lead each family, and fittings come after. The critique is asked about proportion first.'],
+['Running gear','Track sag between the return rollers','<code>track_loop</code> changes in the shared-parts slice, so every tracked belt changes once. The lint must catch any sag that cuts into a wheel.'],
+['Crew','Hatches closed, no crew','Delete the <code>head_out</code> calls in 16 scripts and close every hatch. The tracked pass no longer needs the crew import or the LFS rifleman pull. Later passes: <em>OPEN for each pass to confirm</em>, because the wheeled scripts have their own crews.'],
+['Camouflage','One clean scheme per nation','No camouflage work.'],
+['Closest view','The zoomed battle camera and cinematics','The finest tier is what you judge by. Closeups are shot at cinematic distances.'],
+['Target look','No single game; WARNO for its grading','Colour grading is out of scope. Our references are photos, not another game.'],
+['Done, for whoever inherits this','(shrug)','The agent defined it (Q6b): the critique bar plus every lineup note visibly fixed.'],
+['Lineup notes, as patterns','Front side panels jut out on 11; howitzer turret and hull out of scale on 4; BMP and BRM noses on 2','A shared skirt helper (D2). An overlay of all four howitzers against their published sizes before any turret is redrawn.'],
+];
+$('#uk').innerHTML=UK.map(([a,b,c])=>`<tr><td>${a}</td><td>${b}</td><td>${c}</td></tr>`).join('');
+
+const N=[
+['T-72 (+T-80, T-90, Type 99)','T-72B3, T-80BVM, T-90M, ZTZ-99A','T-80BVM turret too small. T-90M turret too far forward.','Barrel gaps in <code>gun_2a46</code>; cast-turret test (Q1)'],
+['Armata','T-14, T-15','T-15 gun barrel too small','D4'],
+['Abrams','SEP v2, SEP v2 Trophy, SEP v3 Trophy, M1E3','M1E3: raise the back; the front is too pointy','Abrams family edge wear 0.35 → 1.0'],
+['M10','M10 Booker','Turret shape wrong','Reads as a small Abrams (Q8c)'],
+['Leopard','2A6, 2A7V, 2A8','none','Frame 3.0 m tall against 2.6 m in photos'],
+['Challenger','Challenger 2 TES, Challenger 3','Turret shape wrong on both','Already at the 2.1 m half-width cap'],
+['Other tanks','Leclerc XLR, KF51, CV90120, ZTQ-15','KF51 turret and barrel shape wrong. ZTQ-15 turret shape wrong.','none'],
+['Bradley','M2A4, M3A3','Front side panels jut out','<code>front_fender</code> at <code>bradley.py:73</code>'],
+['CV90','CV9040C, Mk IV','Front side panels jut out','<code>cv90.py:81</code>'],
+['Puma','Puma','Body shape wrong; front side panels jut out','MELLS overhang (<code>choices.md</code>)'],
+['Ajax','Ajax','Front side panels jut out','Roof machine gun added (Q9b)'],
+['BMP / BRM','BMP-2M, BMP-3, BRM-3K','BMP-2M, BRM-3K: the upper front slopes down too much; the lower front should slope up more','none'],
+['Howitzers','M109A7, PzH 2000, 2S19M2, PLZ-05','Turret too big or body too small; front side panel juts out (all four)','Skirts at <code>sp_howitzers.py:101-105</code>'],
+['Air defence','Gepard, Buk-M3','Buk-M3 needs more detail','none'],
+['Rockets','M270A2, MARS II','The launcher pivot belongs at the rear','D3'],
+];
+$('#notes').innerHTML=N.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('');
+
+/* ---------- Q4 cards */
+const C=[
+['dec','A frame change goes through several hand steps',
+ '<code>catalog_frames.py:23</code> reads <code>fixtures/catalog.json</code>, which is regenerated only by <code>BLESS_CATALOG=1 cargo test -p sim --test sim catalog::</code>. A wreck\'s <code>footprint_half_m</code> must equal its hull (<code>validate.ts:1658-1667</code>). <code>track_gauge</code> is a fraction of half-width (<code>fielded.rs:440</code>, <code>battle.rs:2139</code>). Hull caps: half-width ≤ 2.1 and half-length ≤ 4.8 (<code>limits.rs:21-24</code>).',
+ 'Exporting before blessing builds the model to the old frame. A changed width shifts the drawn tracks. The Challengers can\'t grow wider, and a shorter Leopard pushes its sight into the <code>dressing_*</code> allowance (0.3 m / 0.15 m).',
+ 'Decided: measure every frame first, then one frame-fix slice runs the chain (bless the catalog → copy the wreck footprints → retune <code>track_gauge</code> → re-export the live model and the wreck → re-check hatches against moved pivots). The 2A8 inherits the 2A7V\'s frame.'],
+['dec','Every tracked receipt is stale, and nothing checks them',
+ 'All 25 tracked receipts hash differently from their current sources. No check reads <code>source_sha256</code>. Runs with <code>--variant</code> or <code>--wreck</code> write no receipt (<code>vehicle_export.py:218</code>). Receipts are in LFS.',
+ 'The first re-export of any family brings in old helper changes, so diffs show changes we didn\'t make.',
+ 'Decided: slice 0 re-exports every tracked script as it is, siblings included (Pantsir, Skyranger, NASAMS, HIMARS, Grad, Tornado-S). Later diffs then show only our work. Only full-family runs count as done.'],
+['dec','The file-size ratchet freezes the shared files',
+ 'Limit 32,000 bytes. Files over the limit may not grow (<code>check-file-size.mjs:190-192</code>): <code>vehicle_parts.py</code> 51,243, <code>textures.py</code> 86,279, <code>vehicle_lint.py</code> 42,691. Nearly full: <code>parts.py</code> (~890 bytes left), <code>abrams.py</code> 29,056.',
+ 'Track sag and the skirt helper both live in <code>vehicle_parts.py</code>, so every shared-part edit is refused.',
+ 'Decided: slice 1 splits <code>vehicle_parts.py</code> by concept (running gear, armour and skirts, fittings, weapons), proven by byte-identical exports. Painted seams avoid <code>textures.py</code> unless the bake wins D1, and then they get their own module.'],
+['dec','The lint allowlist hid the T-72\'s barrel gap',
+ 'Global patterns such as <code>*_sleeve</code>, <code>fume_extractor</code> and <code>bore_evacuator</code> silence <em>every</em> check on matching parts (<code>vehicle_lint_allowlist.json:29,61,66</code>; <code>vehicle_lint_core.py:136-142</code>).',
+ 'A barrel built from floating sleeve sections passes the lint. The defect you would see in a cinematic is invisible to the check.',
+ 'Decided: give each family\'s barrel a solid core tube, then narrow those patterns to the mantlet clearance they were meant for (interpenetration only, never floating).'],
+['edge','Lint has gaps',
+ 'Only tier 0 is checked. <code>dressing_*</code> is skipped. Parts under the same top-level node aren\'t checked against each other. Crew are added after the lint, and wrecks are never linted (<code>vehicle_lint.py:243-258,376,441</code>).',
+ 'Parts can float or cut into each other unseen.',
+ 'Sharp edge. The closeups and the critique are the check. No new lint machinery (simplicity over coverage).'],
+['dec','Lint tooling skips shared-script families and drops entries silently',
+ '<code>--roster</code> and <code>--update-baseline</code> see only each shared script\'s first family folder, which skips Buk, MARS II, PzH 2000, 2S19 and PLZ-05. <code>--update-baseline</code> drops failing families and still exits 0 (<code>vehicle_lint.py:944-1032</code>).',
+ 'Five in-scope models can\'t be baselined, and the baseline can silently lose entries.',
+ 'Decided (easy fix): make both walk every family a script writes, and fail loudly when a family fails to build. Done in slice 0.'],
+['edge','15 of 25 tracked families were never export-linted',
+ 'abrams, m1e3, ajax, bmp, bradley, brm, challenger, challenger_3, leclerc, puma, t15, t90, gepard, sp_howitzers and rocket_artillery list no <code>vehicle_lint.py</code> in their receipts.',
+ 'Their first linted export brings up old issues.',
+ 'Sharp edge. Slice 0 fixes them or baselines them, so family slices start clean.'],
+['dec','Edge wear differs by lane',
+ 'The Abrams uses the default 0.35 (<code>abrams.py:502</code>), while the M1E3 (<code>m1e3.py:202</code>) and every other tracked family use 1.0.',
+ 'The M1E3 reads brighter than the SEP v2 it is built from.',
+ 'Decided: 1.0 everywhere (Q8b), set in the shared-parts slice.'],
+['dec','Worktrees collide when baking',
+ 'Each worktree needs its own <code>build:wasm</code> (<code>node.ts:41</code>). <code>asset bake</code> deletes runtime folders it didn\'t produce (<code>web/asset.mjs:288-291</code>). <code>asset sheet</code> needs the GPU lock.',
+ 'Two lanes baking wipe each other\'s output.',
+ 'Decided: lanes export source GLBs and receipts only. The coordinator bakes once on the merged tree. Every GPU step runs under <code>lockf -k &lt;main&gt;/throwaway/gpu.lock</code>. Removing the crew drops the LFS rifleman pull from this pass.'],
+['edge','Pictures that must be regenerated',
+ 'Unit-roster baselines (<code>web/scenes/unit-roster.mjs:111,182</code>), tutorial shots (<code>web/tutorial-shots.mjs:43,53</code>), the menu reel tanks (SEP v2, T-72B3), and icons (<code>web/tests/icons.test.ts:56-63</code>).',
+ 'Stale pictures fail the checks or show the old models.',
+ 'Sharp edge. Regenerate once at closeout, inspect, then bless (re-approval after checking is allowed).'],
+['edge','Parity fixtures and balance',
+ 'Few fixtures pin roster frames. <code>paris-corner-*.json</code> hold frozen copies of the Abrams data. Re-record with <code>BLESS_PARITY=1</code>.',
+ 'The frame fixes and the Ajax machine gun change the digests.',
+ 'Sharp edge. Bless once after the frame slice. One balance sample at closeout: <code>battle_sweep --seeds 10 --seconds 30</code> plus <code>skirmish_tournament</code>.'],
+['edge','Blender traps',
+ 'The asset CLI pins Blender 5.2.1 and runs it on one thread (<code>web/asset.mjs:101-102,509-517</code>). Known traps: <code>rotation_euler</code> on imports, the magenta repack, relative paths, and <code>noise_vector</code> varying per process.',
+ 'Running Blender directly gives exports that aren\'t byte-identical.',
+ 'Sharp edge. Always export through the asset CLI.'],
+['dec','The Python tests never run',
+ '<code>catalog_frames_test.py</code>, <code>vehicle_lint_logic_test.py</code>, <code>wreckage_test.py</code> and <code>vehicle_lint_test.py</code> aren\'t in any script, and there is no CI.',
+ 'The lint and frame changes in this pass could break them unseen.',
+ 'Decided (easy fix): wire them into <code>asset check</code> in slice 0, under the asset CLI\'s Blender if they need it.'],
+['dec','Jet paint was made matte on purpose',
+ '<code>textures_air.py:15-18</code>: "satin, not gloss: it sheens toward the sun at a grazing angle without mirroring the sky and the ground". This came in with the skins (<code>f5a8a2b59</code>). Helicopters share the constant.',
+ 'Lowering it everywhere would also make the army helicopters glossy, and could bring back the problem it fixed: jets mirroring the ground until the grey is lost at the silhouette.',
+ 'Decided (J1): a separate, lower roughness for jets only. The sun highlight and sky sheen are judged in the battle camera, and the grey must still read at the silhouette.'],
+['edge','The 12.2 MiB test tank wreck',
+ '<code>test_tank_wreck</code> counts in the "every unit\'s art" load.',
+ 'It takes up tripwire room and is unrelated to this pass.',
+ 'Sharp edge. Out of scope (wreck trimming is excluded, Q3).'],
+];
+const st={dec:'<span class="tag t-dec">decided</span>',edge:'<span class="tag t-edge">sharp edge</span>',open:'<span class="tag t-open">open</span>'};
+$('#cards').innerHTML=C.map(([s,t,e,w,c],i)=>`<div class="card ${s}"><div class="hd"><b class="t">${i+1}. ${t}</b>${st[s]}</div><dl><dt>Evidence</dt><dd>${e}</dd><dt>Why it bites</dt><dd>${w}</dd><dt>What it changes</dt><dd>${c}</dd></dl></div>`).join('');
+
+const CF=[
+['Is the T-90M turret too far forward because of <code>pivot_m</code>, or because the turret is drawn ahead of its pivot?','Overlay the side view on a drawing','A pivot move is a frame fix. A drawing fix is family work.'],
+['Is the T-80BVM turret small against its drawing?','Overlay','Rescale the turret within the frame.'],
+['Howitzers: is the turret too big, or the hull too small? The hull boxes (2.99–3.25 m) include the turret.','Overlay all four against published hull and turret dimensions','Frame fix if the box is wrong; otherwise redraw the turret.'],
+['Is the Leopard 2A6 roof at 2.6 m, and does its sight fit the <code>dressing_*</code> allowance?','Overlay and allowance check','Frame fix (Q9). The 2A7V and 2A8 follow.'],
+['Is the Puma\'s MELLS overhang beyond its hull box?','Overlay','Frame fix or dressing.'],
+['Does the 30 mm barrel\'s real length move the T-15\'s <code>muzzle_m</code> (2.94 m)?','Drawing','It joins the frame fixes.'],
+['Do the M270\'s photos show the hinge at the rear when the launcher is raised?','References already in the library','Settles D3\'s drawing.'],
+['Do the Python tests need Blender?','Run them once','Decides which runner <code>asset check</code> calls.'],
+['Does the Ajax\'s 40 mm turret leave roof room for a machine gun mount pivot?','<code>ajax.py:119-123</code> already draws the remote weapon station','Its pivot and muzzle come from the existing remote weapon station drawing.'],
+];
+$('#confirm').innerHTML=CF.map((r,i)=>`<tr><td class="n">${i+1}</td>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('');
+
+/* ---------- PLAN */
+const T=[
+ {id:'order',q:'Family order',o:[['tanks','Tanks first: T-72 family, Armata, Abrams, Leopard, other tanks, then infantry fighting vehicles, howitzers, air defence and rockets (current plan, Q5)'],['worst','Worst first: the families with the most notes from you (howitzers, Bradley, CV90, Puma, Ajax), then tanks']]},
+ {id:'lanes',q:'Parallel lanes after the shared parts',o:[['3','3 Opus lanes in worktrees'],['2','2 lanes'],['1','One lane, sequential']]},
+ {id:'seams',q:'Painted seams (D1)',o:[['exp','Experiment: geometry grooves + vertex occlusion against a per-model detail bake'],['geo','Geometry grooves only, no experiment'],['bake','Per-model detail bake on every model']]},
+ {id:'sheen',q:'Jet paint sheen (J1)',o:[['gloss','Glossier paint: roughness about 0.3, with sun highlights and sky sheen; grey kept at the silhouette'],['strong','Strong: roughness about 0.2 with a slight metalness, for a polished cinematic look'],['subtle','Subtle: roughness about 0.42']]},
+ {id:'bevel',q:'Bevel floor on armour plates (tiers 0–1)',o:[['2','2 cm'],['1','1 cm'],['3','3 cm']]},
+ {id:'sag',q:'Track sag between return rollers',o:[['mid','Gentle: about 3 cm per metre of span'],['deep','Pronounced: about 6 cm per metre (a Soviet look on the T-72 family)']]},
+ {id:'frames',q:'When frame fixes land',o:[['batch','Measure all 37, then one frame slice and one blessing chain'],['fam','Per family, as found']]},
+ {id:'m10',q:'M10 (Q8c)',o:[['ex','Exaggerate the nose and turret ratio within the frame'],['faith','Faithful to the drawing']]},
+ {id:'launch',q:'Rocket launcher (D3)',o:[['stow','Hinge at the rear, launcher stowed'],['raise','Also queue a follow-up that raises the launcher to fire (a moving mount)']]},
+];
+const sel={};T.forEach(t=>sel[t.id]=t.o[0][0]);
+$('#tweaks').innerHTML=T.map(t=>`<div class="q" style="margin:8px 0"><b>${t.q}</b><div class="opt">${t.o.map(([v,l],i)=>`<label><input type="radio" name="${t.id}" value="${v}" ${i?'':'checked'}>${l}${i?'':' <span class="sub">(recommended)</span>'}</label>`).join('')}</div></div>`).join('');
+$('#tweaks').onchange=e=>{sel[e.target.name]=e.target.value;render();};
+
+const label=id=>T.find(t=>t.id===id).o.find(o=>o[0]===sel[id])[1];
+function slices(){
+ const fam = sel.order==='tanks'
+  ? ['T-72 family (T-72B3, T-80BVM, T-90M, ZTZ-99A)','Armata (T-14, T-15)','Abrams (SEP v2 ×3, M1E3) + M10','Leopard (2A6, 2A7V, 2A8)','Other tanks (Challenger 2 TES & 3, Leclerc, KF51, CV90120, ZTQ-15)','Infantry fighting vehicles (Bradley ×2, CV90 ×2, Puma, Ajax, BMP-2M, BMP-3, BRM-3K)','Howitzers (M109A7, PzH 2000, 2S19M2, PLZ-05)','Air defence and rockets (Gepard, Buk-M3, M270A2, MARS II)']
+  : ['Howitzers (M109A7, PzH 2000, 2S19M2, PLZ-05)','Infantry fighting vehicles (Bradley ×2, CV90 ×2, Puma, Ajax, BMP-2M, BMP-3, BRM-3K)','T-72 family (T-72B3, T-80BVM, T-90M, ZTZ-99A)','Other tanks (Challenger 2 TES & 3, Leclerc, KF51, CV90120, ZTQ-15)','Abrams (SEP v2 ×3, M1E3) + M10','Armata (T-14, T-15)','Leopard (2A6, 2A7V, 2A8)','Air defence and rockets (Gepard, Buk-M3, M270A2, MARS II)'];
+ const s=[
+  ['0','<b>Baseline.</b> Re-export every tracked script as it is (wheeled siblings included). Fix the lint tooling\'s shared-script blind spot and its silent drops. Wire the Python tests into <code>asset check</code>. Fix or baseline the old lint issues. Commit the fresh receipts.'],
+  ['1','<b>Split <code>vehicle_parts.py</code></b> by concept: running gear, armour and skirts, fittings, weapons. Prove it with byte-identical exports. Runs in parallel with slice 2.'],
+  ['2','<b>Experiments</b>, in parallel, one critique round each: (a) T-72B3 cast turret: now / smoothed in code / generated skin; (b) F-35 and Su-35 guides smoothed against their skins, plus the jet paint sheen ('+label('sheen').split(':')[0].toLowerCase()+'), judged in the battle camera'+(sel.seams==='exp'?'; (c) painted seams: geometry grooves against a per-model detail bake, on the T-72B3 and Leopard 2A6':'')+'. Record which wins and why.'],
+  ['3','<b>Measure.</b> Overlay all 37 models on drawings (Q4 fallbacks). List each frame that differs beyond tolerance, with the facts to confirm settled.'],
+  ['4','<b>Shared parts</b> (coordinator only): track sag ('+label('sag').split(':')[0].toLowerCase()+'), one skirt and fender helper bounded by the hull outline, a '+sel.bevel+' cm bevel floor on armour plates, <code>chip=1.0</code> everywhere, no crew with hatches closed, solid barrel cores with the allowlist narrowed'+(sel.seams==='geo'?', geometry seam grooves':sel.seams==='bake'?', the per-model detail bake':', and the seam winner from slice 2')+'.'],
+  ['5', sel.frames==='batch'?'<b>Frame fixes</b> in one chain: the Leopard height, the Ajax roof machine gun <code>on: autocannon</code>, and every delta from slice 3. Bless the catalog → copy wreck footprints → retune <code>track_gauge</code> → re-export → bless parity.':'<b>Frame fixes per family</b>, as each family finds them, each running the full blessing chain. The Ajax roof machine gun lands with the infantry fighting vehicles.'],
+ ];
+ fam.forEach((f,i)=>s.push([String(6+i),`<b>${f}.</b> Overlay, then fix every one of your notes for these models, then closeups, then the critique bar. One commit per family.`]));
+ s.push([String(6+fam.length),'<b>Closeout.</b> Lineup cohesion sheet beside the references. Bake once on the merged tree, then the mechanical list below. One balance sample. Raise the tripwire to the measured load plus room. Close the spec.']);
+ return s;
+}
+const MECH=['<code>bun run --cwd web asset bake</code> once on the merged tree; <code>asset icons</code>','<code>UPDATE_BASELINES=unit-roster</code> and <code>UPDATE_BASELINES=ui</code> (tutorial), each inspected before blessing','Menu reel footage re-recorded (SEP v2, T-72B3), inspected before blessing','<code>BLESS_PARITY=1</code> after the frame slice; check the digests change only where the frame fixes named','Balance: <code>cargo run -p mapgen --release --example battle_sweep -- --seeds 10 --seconds 30</code> + <code>skirmish_tournament</code>','Catalog-load tripwire in <code>schema.ts</code> raised to the measured load with room','Full check ladder once, when the spec\'s implementation is finished','Remove the worktrees and their build output after merging'];
+$('#mech').innerHTML=MECH.map(m=>`<li>${m}</li>`).join('');
+const Q=['Wheeled armour (Stryker, LAV, Boxer, VBCI, BTR, ZBL-08, Centauro, Jaguar, ACV, Fennek, VBL, Tigr, Humvee); confirm whether "no crew" carries over','Helicopters','Wheeled artillery and air defence (Caesar, HIMARS, Patriot, S-300/350, IRIS-T, Pantsir, Skyranger, NASAMS)','Trucks (HEMTT, MAN HX, Ural)','Infantry','Drones','Jets, only if Q1b says code beats skins: move them off the generator'];
+$('#queue').innerHTML=Q.map(q=>`<li>${q}</li>`).join('');
+
+function render(){
+ const s=slices();
+ $('#slices').innerHTML=s.map(([k,t])=>`<div class="slice"><span class="k">${k}</span><span>${t}</span></div>`).join('');
+ const strip=h=>h.replace(/<[^>]+>/g,'');
+ $('#prompt').value=
+`Build the tracked-armour model pass from the map we just walked (specs/tracked-armour-models/visualizations/map.html).
+
+1. Write the spec specs/tracked-armour-models/ with write-spec: one slice per step below. Carry the decision ledger, my taste answers and the landmine cards verbatim as givens. End the README with the queue of later passes.
+2. Implement it to 100% with implement-spec, using the make-3d-models skill. Opus subagents in parallel worktrees (${label('lanes')}). Only the coordinator edits shared parts and bakes, once, on the merged tree. One commit per family; push milestones to staging and promote.
+
+Slices:
+${s.map(([k,t])=>`${k}. ${strip(t)}`).join('\n')}
+
+Givens:
+- Taste: clean factory paint; one scheme per nation; crisp plates with a narrow light-catching bevel; seams painted on; silhouette and proportions first; track sag; hatches closed, no crew. Judge at the zoomed battle camera and cinematic distance.
+- Route: procedural. A generated skin is adopted only if it clearly wins its experiment.
+- Frames found wrong get fixed as a named change to the digests (${strip(label('frames'))}). The Ajax gains a roof machine gun mount on: autocannon. One balance sample at closeout.
+- M10: ${label('m10')}. Rocket launchers: ${label('launch')}. T-15: keep the 30 mm at its real barrel length.
+- Done per family = critique bar (no score < 6, average ≥ 7) AND each of my lineup notes for that family visibly fixed in a before/after beside its reference. Name anything still below the bar; no approval stops.
+- Jets: ${label('sheen')}. Jets only; helicopters stay satin.
+- Budget: raise the catalog-load tripwire as needed; no startup requirement. Never print or commit FAL_KEY.`;
+}
+render();
+$('#copy').onclick=()=>{const t=$('#prompt');t.select();(navigator.clipboard?navigator.clipboard.writeText(t.value):Promise.reject()).then(()=>$('#copied').textContent='Copied.',()=>{document.execCommand('copy');$('#copied').textContent='Copied.'});};
+</script>
+</body>
+</html>

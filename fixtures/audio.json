@@ -307,6 +307,9 @@
     "sound": "airwar-flare-burst",
     "gain": 0.75
   },
+  "smoke_pop": {
+    "gain": 0.8
+  },
   "music": {
     "duck": {
       "depth": 0.35,

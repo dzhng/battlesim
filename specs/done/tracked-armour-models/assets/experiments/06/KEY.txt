@@ -1,0 +1,1 @@
+f35: A=smoothed guide, B=shipped skin; su35: A=shipped skin, B=smoothed guide

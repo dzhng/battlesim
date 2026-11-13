@@ -1000,6 +1000,17 @@
             "us_force_recon_recon_patrol__scout"
           ]
         }
+      },
+      "capabilities": {
+        "smoke": {
+          "capacity": 1,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 12, "height_m": 5, "life_s": 30, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "grenade"
+          }
+        }
       }
     },
     "us_kamikaze_drone_anti_armor": {
@@ -1249,7 +1260,7 @@
           "half_extents_m": [
             3.4,
             1.95,
-            1.625
+            1.48
           ],
           "eye_m": 2.9250000000000003,
           "hp": 150,
@@ -1287,9 +1298,9 @@
           ],
           "turret": false,
           "pivot_m": [
-            -2.3,
+            0.7,
             0,
-            3.0
+            2.27
           ],
           "muzzle_m": [
             6.0,
@@ -1333,7 +1344,7 @@
           "half_extents_m": [
             3.5,
             1.7,
-            1.49
+            1.3
           ],
           "eye_m": 2.75,
           "hp": 95,
@@ -1377,7 +1388,7 @@
             1.78
           ],
           "muzzle_m": [
-            4.95,
+            5.75,
             0,
             0.32
           ]
@@ -1406,6 +1417,17 @@
       "sensors": {
         "high_air_m": 0,
         "on": "cannon"
+      },
+      "capabilities": {
+        "smoke": {
+          "capacity": 1,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 15, "height_m": 6, "life_s": 40, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "discharger"
+          }
+        }
       }
     },
     "us_m1127_stryker_rv_reconnaissance_vehicle": {
@@ -1904,7 +1926,7 @@
             1.464
           ],
           "muzzle_m": [
-            5.805,
+            5.555,
             0,
             0.439
           ]
@@ -1922,9 +1944,9 @@
             2.294
           ],
           "muzzle_m": [
-            1.43,
+            1.67,
             0,
-            0.32
+            0.58
           ],
           "on": "cannon"
         }
@@ -1938,6 +1960,17 @@
           "rear": 0.3
         },
         "on": "cannon"
+      },
+      "capabilities": {
+        "smoke": {
+          "capacity": 2,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 15, "height_m": 6, "life_s": 40, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "discharger"
+          }
+        }
       }
     },
     "us_m1_abrams_sep_v2_trophy": {
@@ -1988,7 +2021,7 @@
             1.464
           ],
           "muzzle_m": [
-            5.805,
+            5.555,
             0,
             0.439
           ]
@@ -2006,13 +2039,16 @@
             2.294
           ],
           "muzzle_m": [
-            1.43,
+            1.67,
             0,
-            0.32
+            0.58
           ],
           "on": "cannon"
         }
-      ]
+      ],
+      "capabilities": {
+        "smoke": { "capacity": 3 }
+      }
     },
     "us_m1_abrams_sep_v3_trophy": {
       "name": "M1A2 SEP v3 Trophy",
@@ -2061,7 +2097,7 @@
             1.464
           ],
           "muzzle_m": [
-            5.805,
+            5.555,
             0,
             0.439
           ]
@@ -2079,9 +2115,9 @@
             2.294
           ],
           "muzzle_m": [
-            1.43,
+            1.67,
             0,
-            0.32
+            0.58
           ],
           "on": "cannon"
         }
@@ -2090,6 +2126,9 @@
       "sensors": {
         "ground_m": 600,
         "low_air_m": 600
+      },
+      "capabilities": {
+        "smoke": { "capacity": 3 }
       }
     },
     "us_m1e3_abrams": {
@@ -2195,14 +2234,14 @@
           ],
           "turret": false,
           "pivot_m": [
-            -1.6,
+            -3.2,
             0,
-            2.2
+            1.2
           ],
           "muzzle_m": [
-            1.0,
+            3.7,
             0,
-            0
+            0.8
           ]
         }
       ],
@@ -2221,7 +2260,18 @@
       "concealment": 2.8,
       "name": "M2A4 Bradley",
       "description": "M2A4; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
-      "capabilities": { "carriage": { "seats": 8 } },
+      "capabilities": {
+        "carriage": { "seats": 8 },
+        "smoke": {
+          "capacity": 1,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 15, "height_m": 6, "life_s": 40, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "discharger"
+          }
+        }
+      },
       "faction": "us",
       "family": "m2_bradley_ifv",
       "roles": [
@@ -2242,7 +2292,7 @@
           "half_extents_m": [
             3.275,
             1.8,
-            1.49
+            1.38
           ],
           "eye_m": 2.801,
           "hp": 90,
@@ -2285,7 +2335,7 @@
             1.937
           ],
           "muzzle_m": [
-            3.6,
+            2.5,
             0,
             0.536
           ]
@@ -2346,7 +2396,7 @@
           "half_extents_m": [
             3.275,
             1.8,
-            1.49
+            1.38
           ],
           "eye_m": 2.801,
           "hp": 80,
@@ -2389,7 +2439,7 @@
             1.937
           ],
           "muzzle_m": [
-            3.6,
+            2.5,
             0,
             0.536
           ]
@@ -2522,6 +2572,17 @@
             "us_marine_squad_close_quarters_infantry__rifleman",
             "us_marine_squad_close_quarters_infantry__rifleman"
           ]
+        }
+      },
+      "capabilities": {
+        "smoke": {
+          "capacity": 1,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 12, "height_m": 5, "life_s": 30, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "grenade"
+          }
         }
       }
     },

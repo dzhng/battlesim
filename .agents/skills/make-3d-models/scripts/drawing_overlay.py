@@ -2,18 +2,29 @@
 drawing's own scale, and print both outlines' widths along the length.
 
     blender -b --factory-startup --python drawing_overlay.py -- <model.glb> <drawing.png> <x0,y0,x1,y1>
-        <view top|side|front> <nose up|down|left|right> <long axis in metres> <out.png>
+        <view top|side|front> <nose up|down|left|right> <long axis in metres> <out.png> [aircraft|vehicle]
 
 The box crops one view out of the drawing (pixels, top-left origin). The
 long axis is the length for top and side views, the span for front. Out:
 green where only the model is, pink where only the drawing is, grey where
-both agree, the drawing's lines over them. Gear, stores and pylons are left
-out of the model; a drawing's own gear or ground line will show as pink."""
+both agree, the drawing's lines over them.
+
+The last argument picks which of the model's parts are compared:
+- aircraft (default): gear, stores and pylons are left out of the model; a
+  drawing's own gear or ground line will show as pink.
+- vehicle: the running gear stays in (`wheel_*` and the `track_*` belts are
+  the hull's lower outline in a drawing), and every `dressing_*` subtree
+  (antennas, crew, masts) is left out, so the silhouette is the one the
+  battle frame holds. Side and front views stand both outlines on the ground
+  line rather than centring them. A drawing's own antennas will show as
+  pink."""
 import sys, math
 import bpy, numpy as np
 from mathutils import Vector
 a = [v for v in sys.argv[sys.argv.index("--") + 1:] if v != "--"]  # the asset CLI adds its own separator
 glb, drw, box, view, nose, real, out = a[0], a[1], [int(v) for v in a[2].split(",")], a[3], a[4], float(a[5]), a[6]
+mode = a[7] if len(a) > 7 else "aircraft"
+assert mode in ("aircraft", "vehicle"), f"mode is aircraft or vehicle, not {mode}"
 bpy.ops.wm.read_factory_settings(use_empty=True)
 img = bpy.data.images.load(drw)
 W, H = img.size
@@ -38,9 +49,18 @@ def fill(m):
 dfill = fill(dmask)
 # Model silhouette, ortho, engine basis.
 bpy.ops.import_scene.gltf(filepath=glb)
+def ancestors(o):
+    while o.parent:
+        o = o.parent
+        yield o
+def left_out(o):
+    if not o.name.endswith("LOD0"):
+        return True
+    if mode == "vehicle":
+        return any(p.name.startswith("dressing_") for p in (o, *ancestors(o)))
+    return o.name.startswith(("gear_", "wheel_", "store_", "pylon_", "litter")) or bool(o.parent and o.parent.name.startswith("gear_"))
 for o in bpy.data.objects:
-    if o.type == "MESH" and (not o.name.endswith("LOD0") or o.name.startswith(("gear_", "wheel_", "store_", "pylon_", "litter"))
-                             or (o.parent and o.parent.name.startswith("gear_"))):
+    if o.type == "MESH" and left_out(o):
         o.hide_render = True
 vs = [o.matrix_world @ v.co for o in bpy.data.objects if o.type == "MESH" and not o.hide_render for v in o.data.vertices]
 lo = Vector([min(v[i] for v in vs) for i in range(3)]); hi = Vector([max(v[i] for v in vs) for i in range(3)])
@@ -78,12 +98,15 @@ k = dpm / mpm
 th, tw = max(1, int(round(mm.shape[0] * k))), max(1, int(round(mm.shape[1] * k)))
 iy = (np.arange(th) / k).astype(int).clip(0, mm.shape[0] - 1); ix = (np.arange(tw) / k).astype(int).clip(0, mm.shape[1] - 1)
 ms = mm[iy][:, ix]
-# Composite, centred on each other's bbox centre.
+# Composite, centred on each other's bbox centre. A vehicle's side and front
+# views stand on the ground line instead: a drawing's antennas would otherwise
+# lift its centre and float the model off the tracks.
 Hh, Ww = max(dfill.shape[0], ms.shape[0]) + 20, max(dfill.shape[1], ms.shape[1]) + 20
 D = np.zeros((Hh, Ww), bool); Df = np.zeros((Hh, Ww), bool); M = np.zeros((Hh, Ww), bool)
-oy, ox = (Hh - dfill.shape[0]) // 2, (Ww - dfill.shape[1]) // 2
+grounded = mode == "vehicle" and view != "top"
+oy, ox = (Hh - 10 - dfill.shape[0] if grounded else (Hh - dfill.shape[0]) // 2), (Ww - dfill.shape[1]) // 2
 D[oy:oy + dmask.shape[0], ox:ox + dmask.shape[1]] = dmask; Df[oy:oy + dfill.shape[0], ox:ox + dfill.shape[1]] = dfill
-my, mx = (Hh - ms.shape[0]) // 2, (Ww - ms.shape[1]) // 2
+my, mx = (Hh - 10 - ms.shape[0] if grounded else (Hh - ms.shape[0]) // 2), (Ww - ms.shape[1]) // 2
 M[my:my + ms.shape[0], mx:mx + ms.shape[1]] = ms
 rgb = np.ones((Hh, Ww, 4))
 rgb[M & ~Df] = (0.2, 0.85, 0.3, 1)      # model only: green

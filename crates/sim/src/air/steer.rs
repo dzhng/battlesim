@@ -215,10 +215,15 @@ fn edge_guard(
         limits.edge_margin_m + 2.0 * radius + state.speed_mps * (dt_s + level_roll_lag_s(limits));
     let inward = inward_from(state.pos.xy(), reach, bounds).unwrap_or(-pressing);
     let side = forward.x * inward.y - forward.y * inward.x;
-    // Only the guard turns harder than the rate it turns at by choice: a
-    // jet turning harder is still in the break the guard started, and keeps
-    // breaking that way rather than rolling all the way through to reverse.
-    Some(if state.turn_rate_rad_s.abs() > limits.turn_rad_s {
+    // Once its nose points into the map it rolls out onto that way in, so
+    // the guard lets go of it rather than breaking on round the circle.
+    // Until then, only the guard turns harder than the rate it turns at by
+    // choice: a jet turning harder is still in the break the guard started,
+    // and keeps breaking that way rather than rolling all the way through to
+    // reverse.
+    Some(if forward.dot(inward) > 0.0 {
+        turn_toward(state.heading, libm::atan2(inward.y, inward.x), limits, dt_s) * reserve(limits)
+    } else if state.turn_rate_rad_s.abs() > limits.turn_rad_s {
         state.turn_rate_rad_s.signum() * reserve(limits)
     } else if side != 0.0 {
         side.signum() * reserve(limits)

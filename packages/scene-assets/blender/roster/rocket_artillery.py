@@ -4,11 +4,11 @@ PrSM), BM-21 Grad and 9K515 Tornado-S, from assets/references/<family>/.
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/rocket_artillery.py -- [--variant=<card id>] [--wreck]
 
 What the photos settle:
-- M270A2 and MARS II: the Bradley-family tracked carrier (six road wheels,
-  the sprocket at the front), the armoured three-man cab across the front
-  with its shuttered windscreens, the launcher box over the rear holding
-  two pods, stowed flat with their capped faces to the rear. The MARS II is the German upgrade of the same
-  vehicle (German three-tone; its cab armour kit is the A2's twin).
+- M270A2 and MARS II wear one scripted body (`scripted_body`), a variant
+  each: Gemini Argon's build script after its second round, edited since
+  (`assets/source/skins/m270_mlrs/argon-r2/`, whose README lists the
+  edits). The launcher box lies stowed on its turntable and hinge at the
+  rear of the hull, the pods' aft caps in its rear face.
 - HIMARS: the FMTV 6x6, its flat-fronted armoured cab, the launcher module
   on a turntable behind: a ribbed box filling the rear deck, one pod in it
   whose capped face shows at the rear: six GMLRS rounds, or (PrSM) two
@@ -30,8 +30,12 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import hull_fittings as HF  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import scripted_body as SB  # noqa: E402
+import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
-from parts import box, cyl, empty, loft, prism, stencil  # noqa: E402
+from parts import box, cyl, prism  # noqa: E402
 import ural as U  # noqa: E402
 from truck_chassis import chassis  # noqa: E402
 from vehicle_export import run  # noqa: E402
@@ -39,12 +43,12 @@ from vehicle_export import run  # noqa: E402
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
 CARDS = {
-    "us_m270_mlrs_m270a2": ("m270_mlrs", "us_desert_tan", (6.97, 2.97, 2.62)),
-    "europe_mars_ii_multiple_launch_rocket_system": ("mars_ii", "german_three_tone", (6.97, 2.97, 2.62)),
-    "us_m142_himars_gmlrs": ("m142_himars", "us_desert_tan", (7.00, 2.40, 3.20)),
-    "us_m142_himars_prsm": ("m142_himars", "us_desert_tan", (7.00, 2.40, 3.20)),
-    "eastern_bm_21_grad_bm_21_rocket_artillery": ("bm_21_grad", "russian_green", (7.35, 2.69, 3.09)),
-    "eastern_9k515_tornado_s_heavy_rocket_artillery": ("9k515_tornado_s", "russian_green", (12.10, 3.05, 3.05)),
+    "us_m270_mlrs_m270a2": ("m270_mlrs", "us_desert_tan"),
+    "europe_mars_ii_multiple_launch_rocket_system": ("mars_ii", "german_three_tone"),
+    "us_m142_himars_gmlrs": ("m142_himars", "us_desert_tan"),
+    "us_m142_himars_prsm": ("m142_himars", "us_desert_tan"),
+    "eastern_bm_21_grad_bm_21_rocket_artillery": ("bm_21_grad", "russian_green"),
+    "eastern_9k515_tornado_s_heavy_rocket_artillery": ("9k515_tornado_s", "russian_green"),
 }
 
 
@@ -84,8 +88,8 @@ REAR_LIP = 0.12
 
 
 def launcher_box(v, name, x0, x1, z0, z1, width, parent):
-    """The armoured launcher box a pod rides in (the M270's and HIMARS's
-    launcher-loader module): upright ribbed sides, its top chamfered down at
+    """The armoured launcher box a pod rides in (the HIMARS's launcher-loader
+    module): upright ribbed sides, its top chamfered down at
     the front, the loader boom's rail along its top and the cable run down
     its right side. Open at the rear (-X): its shell starts `REAR_LIP` ahead
     of `x0`, where the pod's face shows."""
@@ -106,70 +110,8 @@ def launcher_box(v, name, x0, x1, z0, z1, width, parent):
         m["paint"], parent, bevel=0.02, lods=MID)
     box(f"{name}_hoist", (0.30, 0.22, 0.20), (x0 + 0.30, width / 2 - 0.18, z1 + 0.10), m["dark"], parent,
         bevel=0.02, lods=NEAR)
-    VP.cable(f"{name}_cable_run", [(x1 - 0.30, -(width / 2 + 0.05), z1 - 0.25), ((x0 + x1) / 2, -(width / 2 + 0.05), z1 - 0.25),
+    HF.cable(f"{name}_cable_run", [(x1 - 0.30, -(width / 2 + 0.05), z1 - 0.25), ((x0 + x1) / 2, -(width / 2 + 0.05), z1 - 0.25),
                                    (x0 + 0.40, -(width / 2 + 0.05), z1 - 0.35)], m, parent, radius=0.025, eyes=False)
-
-
-# ---------------------------------------------------------------- tracked carriers
-def m270(v):
-    m, h = v.mats, v.hull
-    half = v.length / 2
-    deck = 1.30
-    prism("hull_upper", [(-half, 0.80), (half - 0.30, 0.80), (half, 1.05), (half - 0.40, deck), (-half, deck)],
-          v.width - 0.60, mat=m["paint"], parent=h, bevel=0.04)
-    prism("hull_lower", [(-half + 0.30, 0.42), (half - 0.55, 0.42), (half - 0.05, 0.82), (-half, 0.82),
-                         (-half, 0.65)], v.width - 1.30, mat=m["paint"], parent=h, bevel=0.04)
-    road_x = [2.25 - 0.90 * k for k in range(6)]
-    VP.tracked_running_gear(m, h, v.width / 2 - 0.33, 0.53, road_x, 0.39, 0.31, 0.18, (3.05, 0.62, 0.27),
-                            (-3.20, 0.58, 0.25), [(1.8, 0.86, 0.08), (0.45, 0.88, 0.08), (-0.9, 0.88, 0.08),
-                                                  (-2.25, 0.86, 0.08)], bolts=6, teeth=11, arm=(0.38, -0.30),
-                            pitch=0.15, dual=True)
-    # The armoured cab across the front: three windscreens behind their
-    # shutters, a door each side with its vision block, the engine's grille
-    # on the nose beside the transmission access plate.
-    cab_rear, cab_front = 1.55, half - 0.10
-    loft("cab_body", [(deck, [(cab_rear, -1.40), (cab_front, -1.40), (cab_front, 1.40), (cab_rear, 1.40)]),
-                      (2.52, [(cab_rear + 0.05, -1.30), (cab_front - 0.45, -1.30), (cab_front - 0.45, 1.30),
-                              (cab_rear + 0.05, 1.30)])], mat=m["paint"], parent=h, bevel=0.04)
-    for k, y in enumerate((-0.85, 0.0, 0.85)):
-        box(f"windscreen_{k}", (0.03, 0.62, 0.42), (cab_front - 0.22, y, 2.15), m["glass"], h, rot=(0, -0.55, 0),
-            lods=MID)
-        box(f"windscreen_frame_{k}", (0.04, 0.72, 0.52), (cab_front - 0.235, y, 2.145), m["paint"], h,
-            rot=(0, -0.55, 0), bevel=0.01, lods=NEAR)
-        box(f"windscreen_shutter_{k}", (0.04, 0.66, 0.10), (cab_front - 0.38, y, 2.42), m["paint"], h,
-            rot=(0, -0.55, 0), bevel=0.01, lods=NEAR)
-        box(f"wiper_{k}", (0.02, 0.03, 0.34), (cab_front - 0.19, y - 0.15, 2.12), m["black"], h,
-            rot=(-0.5, -0.55, 0), lods=FINE)
-    nose = math.atan2(0.25, 0.40)  # the upper glacis, from (half, 1.05) back to (half - 0.40, 1.30)
-    VP.grille("engine_grille", (half - 0.20, 0.55, 1.18), (0.36, 0.95), m, h, slats=6, rot=(0, nose, 0))
-    VP.bolted_panel("transmission_plate", (half - 0.20, -0.55, 1.18), (0.36, 0.95, 0.03), m, h, bolts=(2, 4),
-                    rot=(0, nose, 0), bevel=0.01)
-    VP.hatch("cab_hatch", (cab_rear + 0.40, -0.70, 2.52), m, h, radius=0.26)
-    VP.hatch("cab_hatch_2", (cab_rear + 0.40, 0.70, 2.52), m, h, radius=0.26)
-    for side, s in ((1, "L"), (-1, "R")):
-        VP.light_with_guard(f"headlight_{s}", (half - 0.05, side * 1.10, 1.30), 0.07, m, h)
-        VP.tow_hook(f"front_tow_{s}", (half - 0.02, side * 0.70, 0.85), m, h, size=0.12)
-        box(f"side_skirt_{s}", (v.length - 0.40, 0.05, 0.40), (0, side * (v.width / 2 - 0.03), 1.05), m["paint"], h,
-            bevel=0.01, lods=MID)
-        VP.bolted_panel(f"cab_door_{s}", (cab_rear + 0.75, side * 1.405, deck + 0.10), (0.80, 0.95, 0.03), m, h,
-                        bolts=(3, 3), rot=(-side * math.pi / 2, 0, 0), bevel=0.01)
-        VP.periscope(f"door_vision_{s}", (cab_rear + 0.75, side * 1.36, 2.40), m, h, size=(0.12, 0.30, 0.12),
-                     rot=(0, 0, side * math.pi / 2))
-        box(f"door_handle_{s}", (0.14, 0.04, 0.04), (cab_rear + 0.40, side * 1.45, 1.75), m["steel"], h, lods=FINE)
-        VP.cable(f"tow_cable_{s}", [(-1.8, side * (v.width / 2 - 0.01), 1.20), (0.0, side * (v.width / 2 - 0.01), 1.22),
-                                    (1.2, side * (v.width / 2 - 0.01), 1.20)], m, h, radius=0.018)
-        whip = empty(f"dressing_antenna_{s}", parent=h)
-        VP.antenna(f"antenna_{s}", (cab_rear + 0.15, side * 1.20, 2.52), m, whip, height=2.2)
-    VP.exhaust("exhaust", (half - 0.55, -1.30, 1.95), 0.07, 0.40, m, h, rot=(0, 0, -math.pi / 2))
-    # The launcher-loader module over the rear: two pods in its box.
-    x0, x1 = -half + 0.05, cab_rear - 0.10
-    box("launcher_base", (1.40, 1.80, 0.20), (x1 - 1.0, 0, deck + 0.10), m["dark"], h, bevel=0.02)
-    cyl("launcher_turntable", 0.75, 0.10, (x1 - 1.0, 0, deck + 0.24), "Z", m["dark"], h, seg=28, lods=MID)
-    launcher_box(v, "launcher", x0, x1, deck + 0.29, 2.55, 2.60, h)
-    for k, y in enumerate((-0.62, 0.62)):
-        pod(v, f"pod_{k}", (x0 + (x1 - x0 - 0.20) / 2, y, deck + 0.80), (x1 - x0 - 0.20, 1.18, 0.85), (3, 2), h)
-    VP.stowage_box("rear_box", (-half + 0.20, 0, 0.90), (0.30, 1.60, 0.35), m, h)
-    stencil("rear_number", "A2", 0.20, (cab_front - 1.0, 1.405, 1.8), (math.pi / 2, 0, math.pi), m["marking"], h)
 
 
 # ---------------------------------------------------------------- trucks
@@ -186,9 +128,9 @@ def himars(v, prsm):
     pod(v, "pod", (x0 + (x1 - x0 - 0.25) / 2, 0, deck + 1.20), (x1 - x0 - 0.25, 1.95, 1.30), (3, 2), h,
         caps=2 if prsm else None)
     for side, s in ((1, "L"), (-1, "R")):
-        VP.stowage_box(f"side_box_{s}", (-1.75, side * 1.02, deck - 0.45), (1.20, 0.30, 0.42), m, h,
+        SW.stowage_box(f"side_box_{s}", (-1.75, side * 1.02, deck - 0.45), (1.20, 0.30, 0.42), m, h,
                        rot=(0, 0, 0 if side > 0 else math.pi))
-    VP.jerrycan("jerrycan", (0.55, -0.98, deck), dict(m, paint=m["dark"]), h, rot=(0, 0, math.pi / 2))
+    SW.jerrycan("jerrycan", (0.55, -0.98, deck), dict(m, paint=m["dark"]), h, rot=(0, 0, math.pi / 2))
     # Behind the cab: the air intake on its stalk and the exhaust stack.
     cyl("air_intake", 0.16, 0.90, (1.05, 0.90, deck + 1.05), "Z", m["paint"], h, seg=16, bevel=0.02)
     cyl("air_intake_cap", 0.20, 0.12, (1.05, 0.90, deck + 1.55), "Z", m["dark"], h, seg=16, lods=MID)
@@ -208,12 +150,12 @@ def bm21(v):
         # The flat fenders over the rear bogie, a stowage box on each.
         box(f"rear_fender_{s}", (2.45, 0.52, 0.05), (-1.62, side * U.WHEEL_Y, 1.35), m["paint"], h, bevel=0.012)
         box(f"fender_stay_{s}", (0.06, 0.40, 0.18), (-1.62, side * 0.80, 1.26), m["dark"], h, lods=NEAR)
-        VP.stowage_box(f"fender_box_{s}", (-2.35, side * 1.0, 1.375), (0.80, 0.40, 0.32), m, h,
+        SW.stowage_box(f"fender_box_{s}", (-2.35, side * 1.0, 1.375), (0.80, 0.40, 0.32), m, h,
                        rot=(0, 0, 0 if side > 0 else math.pi))
-        VP.light_with_guard(f"tail_light_{s}", (-3.62, side * 1.00, 1.10), 0.05, dict(m, lamp=m["tail"]), h,
+        HF.light_with_guard(f"tail_light_{s}", (-3.62, side * 1.00, 1.10), 0.05, dict(m, lamp=m["tail"]), h,
                             rot=(0, 0, math.pi))
     box("rear_bumper", (0.12, 2.00, 0.14), (-3.55, 0, 0.88), m["dark"], h, bevel=0.012)
-    VP.tow_hook("hitch", (-3.55, 0, 0.88), m, h, size=0.10, rot=(0, 0, math.pi))
+    HF.tow_hook("hitch", (-3.55, 0, 0.88), m, h, size=0.10, rot=(0, 0, math.pi))
     # The turntable and the cradle's side plates with their sector gears.
     tx = -2.30
     cyl("launcher_turntable", 0.70, 0.18, (tx, 0, rail + 0.23), "Z", m["dark"], h, seg=28)
@@ -273,11 +215,11 @@ def tornado_s(v):
     half = v.length / 2
     deck = maz_543m(v)
     box("deck_plate", (7.0, 2.6, 0.10), (-1.6, 0, deck + 0.05), m["paint"], h, bevel=0.01)
-    VP.stowage_box("crane_box", (2.6, 0, deck), (0.70, 1.80, 0.65), m, h, rot=(0, 0, math.pi / 2))
+    SW.stowage_box("crane_box", (2.6, 0, deck), (0.70, 1.80, 0.65), m, h, rot=(0, 0, math.pi / 2))
     for side, s in ((1, "L"), (-1, "R")):
         # Stowage along the deck's edges, the rear stabiliser jacks, a ladder.
         for k, x in enumerate((0.9, -0.4)):
-            VP.stowage_box(f"deck_box_{s}_{k}", (x, side * 1.18, deck + 0.10), (1.10, 0.24, 0.38), m, h,
+            SW.stowage_box(f"deck_box_{s}_{k}", (x, side * 1.18, deck + 0.10), (1.10, 0.24, 0.38), m, h,
                            rot=(0, 0, 0 if side > 0 else math.pi))
         box(f"jack_leg_{s}", (0.16, 0.16, deck - 0.25), (-half + 0.45, side * 1.15, (deck + 0.25) / 2 + 0.05), m["dark"],
             h, bevel=0.01)
@@ -302,15 +244,24 @@ def tornado_s(v):
     for k, x in enumerate((-3.0, -0.8, 1.4)):
         box(f"tube_band_{k}", (0.10, cols * (2 * r + 0.03) + 0.08, rows * (2 * r + 0.03) + 0.08),
             (cx + x, 0, cz + (rows - 1) * (r + 0.015)), m["dark"], h, lods=MID)
-    VP.cable("firing_cable", [(-3.6, 0.95, deck + 0.40), (-1.0, 0.95, deck + 0.42), (1.6, 0.95, deck + 0.40)], m, h,
+    HF.cable("firing_cable", [(-3.6, 0.95, deck + 0.40), (-1.0, 0.95, deck + 0.42), (1.6, 0.95, deck + 0.40)], m, h,
              radius=0.025, eyes=False)
     box("travel_rest", (0.20, 1.20, deck + 0.35 - 1.25), (2.0, 0, (deck + 0.35 + 1.25) / 2), m["dark"], h, lods=MID)
 
 
+# The M270A2's and MARS II's body (`scripted_body`): one script, a variant
+# each, and its track's link pitch.
+M270_BODY = "assets/source/skins/m270_mlrs/argon-r2/build.py"
+M270_LINK_PITCH = 0.15
+M270 = ("us_m270_mlrs_m270a2", "europe_mars_ii_multiple_launch_rocket_system")
+
+
 def build(variant, v):
     ident = variant["id"]
-    if ident in ("us_m270_mlrs_m270a2", "europe_mars_ii_multiple_launch_rocket_system"):
-        m270(v)
+    if ident in M270:
+        SB.wear(v, M270_BODY, M270_LINK_PITCH, variant=ident)
+        # The whips on the cab roof's rear corners.
+        RF.whip_pair(v.hull, (0.95, 1.20, 2.60), v.mats, height=2.2)
     elif ident.startswith("us_m142"):
         himars(v, prsm=ident.endswith("prsm"))
     elif ident.startswith("eastern_bm_21"):
@@ -326,25 +277,22 @@ def wreck(variant, v):
     from parts import rest_on_ground
     from wreckage import densify, dent, heat, parts, remove, warp
     ident = variant["id"]
-    if ident in ("us_m270_mlrs_m270a2", "europe_mars_ii_multiple_launch_rocket_system"):
-        remove("track_R_band", "wheel_R_2_", "side_skirt_R", "pod_1_cap_", "cab_hatch")
-        v.root.rotation_euler = (-0.02, 0.0, 0)
-    else:
-        remove("wheel_R_1_", "wheel_R_2_", "windscreen", "mudflap_R", "pod_cap_", "grad_tube_3_", "grad_bore_",
-               "smerch_tube_2_0", "smerch_tube_2_1", "smerch_ring_2_0", "smerch_ring_2_1", "smerch_bore_", "spare_",
-               "dressing_mirror_R", "mirror_R", "mirror_arm_R")
-        v.root.rotation_euler = (0.035, 0.03, 0)
-        v.root.location.z -= 0.08
-    shell = parts("cab_body", "cab_L", "cab_R", "cab", "bonnet", "wing_", "hull_upper", "pod_body", "pod_0_body",
-                  "pod_1_body", "launcher_shell", "deck_plate")
+    if ident in M270:
+        return SB.wreck(v, "R", (2, 3))
+    remove("wheel_R_1_", "wheel_R_2_", "windscreen", "mudflap_R", "pod_cap_", "grad_tube_3_", "grad_bore_",
+           "smerch_tube_2_0", "smerch_tube_2_1", "smerch_ring_2_0", "smerch_ring_2_1", "smerch_bore_", "spare_",
+           "dressing_mirror_R", "mirror_R", "mirror_arm_R")
+    v.root.rotation_euler = (0.035, 0.03, 0)
+    v.root.location.z -= 0.08
+    shell = parts("cab", "bonnet", "wing_", "pod_body", "launcher_shell", "deck_plate")
     densify(shell, scale=2.0)
     warp(shell, heat(0.025, 0.8, seed=71.0), dent((v.length / 2 - 0.6, -0.8, 2.3), 0.6, 0.12, (0, 0, -1)))
     rest_on_ground(0.004)
 
 
 if __name__ == "__main__":
-    run("m270_mlrs", {card: scheme for card, (_, scheme, _) in CARDS.items()}, build, wreck,
+    run("m270_mlrs", {card: scheme for card, (_, scheme) in CARDS.items()}, build, wreck,
         appearances=list(CARDS), script="rocket_artillery.py",
         receipt_file="assets/source/roster/m270_mlrs/rocket_artillery.source-receipt.json",
-        references=[f"assets/references/{family}/references.json" for family in sorted({f for f, _, _ in CARDS.values()})],
+        references=[f"assets/references/{family}/references.json" for family in sorted({f for f, _ in CARDS.values()})],
         chip=1.0)

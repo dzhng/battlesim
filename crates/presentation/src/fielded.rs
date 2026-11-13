@@ -98,6 +98,7 @@ impl Fielding<'_> {
             &self.rules["weapons"],
         )?;
         looks.check_mounts(self.catalog)?;
+        effects::check_smoke_screen_looks(&presentation, &catalog, self.kinds)?;
         let art = Art {
             read,
             ..Art::new(self.runtime, &catalog, self.kinds, self.factions)?

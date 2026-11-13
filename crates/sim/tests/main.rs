@@ -78,6 +78,7 @@ mod skirmish_ai_orders;
 mod skirmish_dispatch;
 mod skirmish_ownership;
 mod skirmish_team;
+mod smoke;
 mod soldier_bodies;
 mod supply;
 mod suppression;

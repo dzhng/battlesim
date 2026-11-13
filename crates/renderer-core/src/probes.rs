@@ -5,6 +5,7 @@ use crate::pipelines::{BoundCompute, Pipelines};
 use crate::readback::Readback;
 use crate::records::FogProbe;
 use crate::{bind, buffer};
+use presentation::records::{FogParams, FogSmoke};
 use wgpu::*;
 
 pub mod grass;
@@ -49,8 +50,10 @@ impl ProbeReadback {
 pub struct FogProbes {
     probe: BoundCompute,
     shape: BoundCompute,
+    smoke: BoundCompute,
     probe_layout: BindGroupLayout,
     shape_layout: BindGroupLayout,
+    smoke_layout: BindGroupLayout,
 }
 
 fn check_storage(device: &Device, label: &str, bytes: u64) -> Result<(), String> {
@@ -93,8 +96,10 @@ impl FogProbes {
         Self {
             probe: pipelines.bound_compute("fogProbe"),
             shape: pipelines.bound_compute("fogShape"),
+            smoke: pipelines.bound_compute("fogSmoke"),
             probe_layout: pipelines.layout("probeLayout").clone(),
             shape_layout: pipelines.layout("shapeLayout").clone(),
+            smoke_layout: pipelines.layout("smokeLayout").clone(),
         }
     }
 
@@ -218,6 +223,84 @@ impl FogProbes {
             pass.dispatch_workgroups(groups, 1, 1);
         }
         let read = Readback::buffer(device, &mut encoder, &output, 0..rows.len() as u64 * 4)?;
+        queue.submit([encoder.finish()]);
+        Ok(ProbeReadback::Copied(read))
+    }
+
+    /// The smoke depth `fogSmokeStep` adds for each sight-line piece
+    /// `[ax, ay, bx, by, sight_z, ground_z]` through `clouds`, in order.
+    pub fn smoke(
+        &self,
+        device: &Device,
+        queue: &Queue,
+        clouds: &[FogSmoke],
+        lines: &[[f32; 6]],
+    ) -> Result<ProbeReadback, String> {
+        if lines.is_empty() {
+            return Ok(ProbeReadback::Values(Vec::new()));
+        }
+        let groups = workgroups(
+            device,
+            lines.len(),
+            presentation::fog::sight::BUILD_WORKGROUP,
+        )?;
+        check_storage(device, "fog-smoke-lines", lines.len() as u64 * 32)?;
+        let rows: Vec<[f32; 8]> = lines
+            .iter()
+            .map(|&[ax, ay, bx, by, z, g]| [ax, ay, bx, by, z, g, 0.0, 0.0])
+            .collect();
+        let params = FogParams {
+            smoke_count: clouds.len() as u32,
+            ..FogParams::default()
+        };
+        let uniform = buffer(
+            device,
+            queue,
+            "fog-smoke-params",
+            BufferUsages::UNIFORM,
+            bytemuck::bytes_of(&params),
+        );
+        let input = buffer(
+            device,
+            queue,
+            "fog-smoke-lines",
+            BufferUsages::STORAGE,
+            bytemuck::cast_slice(&rows),
+        );
+        // A binding holds at least one record; the count says none is read.
+        let none = [FogSmoke::default()];
+        let circles = buffer(
+            device,
+            queue,
+            "fog-smoke-circles",
+            BufferUsages::STORAGE,
+            bytemuck::cast_slice(if clouds.is_empty() { &none } else { clouds }),
+        );
+        let output = storage(device, "fog-smoke-output", lines.len() as u64 * 4)?;
+        // The circles keep the build's binding (`fog_smoke`), past the gap.
+        let group = device.create_bind_group(&BindGroupDescriptor {
+            label: Some("fog-smoke-probe"),
+            layout: &self.smoke_layout,
+            entries: &[
+                (0, uniform.as_entire_binding()),
+                (1, output.as_entire_binding()),
+                (2, input.as_entire_binding()),
+                (8, circles.as_entire_binding()),
+            ]
+            .map(|(binding, resource)| BindGroupEntry { binding, resource }),
+        });
+        let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {
+            label: Some("fog-smoke-probe"),
+        });
+        {
+            let mut pass = encoder.begin_compute_pass(&ComputePassDescriptor {
+                label: Some("fog-smoke-probe"),
+                timestamp_writes: None,
+            });
+            self.smoke.set(&mut pass, &[("smokeLayout", &group)]);
+            pass.dispatch_workgroups(groups, 1, 1);
+        }
+        let read = Readback::buffer(device, &mut encoder, &output, 0..lines.len() as u64 * 4)?;
         queue.submit([encoder.finish()]);
         Ok(ProbeReadback::Copied(read))
     }

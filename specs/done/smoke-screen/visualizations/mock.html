@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Smoke screen — mock (quadrant 3)</title>
+<style>
+  :root{
+    --accent:rgb(115,219,255); --ally:rgb(185,240,255); --enemy:rgb(255,97,82);
+    --text:rgb(230,245,255); --dim:rgb(143,173,194); --warn:rgb(255,204,102);
+    --good:rgb(140,242,158); --glass:rgba(5,15,23,.62);
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#05090c;color:var(--text);font:13px/1.45 var(--mono)}
+  header{padding:14px 20px 4px}
+  header h1{font-size:15px;margin:0;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+  header p{margin:4px 0 0;color:var(--dim);max-width:1100px}
+  .wrap{display:grid;grid-template-columns:minmax(640px,1fr) 340px;gap:16px;padding:12px 20px}
+  .stage{position:relative}
+  canvas{display:block;width:100%;border:1px solid rgba(115,219,255,.25);border-radius:4px;background:#1b2a1c;cursor:grab}
+  .views{display:flex;gap:6px;margin:8px 0}
+  .views button,.bar button,.small{font:inherit;color:var(--text);background:var(--glass);border:1px solid rgba(115,219,255,.35);
+    padding:6px 10px;border-radius:3px;cursor:pointer;letter-spacing:.05em}
+  .views button[aria-pressed=true]{border-color:var(--accent);box-shadow:0 0 8px rgba(115,219,255,.5);color:var(--accent)}
+  .bar{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);display:flex;gap:4px;padding:6px;background:var(--glass);
+    border:1px solid rgba(115,219,255,.25);border-radius:4px;backdrop-filter:blur(3px)}
+  .bar button{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:62px;font-size:10px;padding:5px 6px}
+  .bar button svg{width:22px;height:22px}
+  .bar button.new{border-color:var(--warn);box-shadow:0 0 8px rgba(255,204,102,.45)}
+  .bar button:disabled{opacity:.35;cursor:default}
+  .bar kbd{font:inherit;color:var(--dim)}
+  .panel{position:absolute;top:10px;left:10px;width:200px;padding:8px 10px;background:var(--glass);border-left:2px solid var(--ally);
+    border-radius:2px;backdrop-filter:blur(3px);pointer-events:none}
+  .panel .name{color:var(--ally);letter-spacing:.06em}
+  .panel .row{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:11px}
+  .panel .row svg{width:14px;height:14px}
+  .panel .row.new{color:var(--warn)}
+  .panel .row.out{color:var(--bad,rgb(255,115,102))}
+  .clock{position:absolute;top:10px;right:10px;padding:4px 8px;background:var(--glass);color:var(--dim);border-radius:2px}
+  aside{display:flex;flex-direction:column;gap:12px}
+  .card{background:#0a1218;border:1px solid rgba(115,219,255,.18);border-radius:4px;padding:10px 12px}
+  .card h2{margin:0 0 6px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+  .card p{margin:4px 0;color:var(--dim)}
+  table{width:100%;border-collapse:collapse;font-size:11px}
+  td{padding:2px 4px;border-bottom:1px solid rgba(255,255,255,.05)}
+  td.seen{color:var(--good)} td.hid{color:var(--enemy)}
+  .steps button{display:block;width:100%;text-align:left;margin:4px 0}
+  .q{margin:10px 0 0;padding-top:8px;border-top:1px solid rgba(255,255,255,.06)}
+  .q b{color:var(--text)}
+  .q label{display:block;color:var(--dim);margin:3px 0;cursor:pointer}
+  .q label:hover{color:var(--text)}
+  .q .rec{color:var(--warn);font-size:10px}
+  .reply{grid-column:1/-1}
+  textarea{width:100%;min-height:150px;background:#05090c;color:var(--text);border:1px solid rgba(115,219,255,.3);font:12px/1.5 var(--mono);padding:8px}
+  .note{color:var(--dim);font-size:11px}
+  .swatch{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-2px;margin-right:4px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Pop smoke — clickable mock</h1>
+  <p style="color:var(--warn)">Superseded in part: the shipped key is <b>H</b>, not X (X is camera pitch); the sound plays only for a side that sees the cloud. See <code>specs/done/smoke-screen/decisions.md</code> D15–D16. Sight ranges here are shrunk; the agreed values are D1.</p>
+  <p>Top-down, 200 m × 120 m. Sight uses the agreed rule: reach = range × concealment × e<sup>−0.2 · metres of smoke on the line</sup>,
+  blocked at 5 m of smoke; a target standing in smoke has concealment 0.1. Sight ranges are shrunk to 140 m so the field fits; spotting,
+  forest and hearing are left out. <b>Drag any unit.</b> Click a blue unit to select it. Placeholder art; the real look comes from the renderer.</p>
+</header>
+
+<div class="wrap">
+  <div>
+    <div class="views" role="group" aria-label="Whose view">
+      <button data-view="blue" aria-pressed="true">BLUE'S VIEW</button>
+      <button data-view="red" aria-pressed="false">RED'S VIEW</button>
+      <button data-view="all" aria-pressed="false">EVERYTHING (DEBUG)</button>
+      <span style="flex:1"></span>
+      <button class="small" id="pause">PAUSE</button>
+      <button class="small" id="reset">RESET</button>
+    </div>
+    <div class="stage">
+      <canvas id="c" width="1200" height="720"></canvas>
+      <div class="panel" id="panel"></div>
+      <div class="clock" id="clock"></div>
+      <div class="bar" id="bar"></div>
+    </div>
+  </div>
+
+  <aside>
+    <div class="card steps">
+      <h2>Play the moment</h2>
+      <p>Red's tank and ATGM team are shooting at blue's tank. Try:</p>
+      <button class="small" data-step="pop">1 · Pop smoke on blue's tank (X)</button>
+      <button class="small" data-step="sit">2a · Sit in it: red shells the last contact</button>
+      <button class="small" data-step="rev">2b · Or reverse out 25 m (R)</button>
+      <button class="small" data-step="squad">3 · Pop the squad's grenade too</button>
+      <p class="note">Switch to RED'S VIEW to see what red knows: the eye glyph and dashed circle are the existing last-contact marker (fixed, 30 s, scatter radius 3× footprint).</p>
+    </div>
+    <div class="card">
+      <h2>Live sight lines</h2>
+      <table id="lines"></table>
+    </div>
+  </aside>
+
+  <div class="card reply">
+    <h2>React — your reply builds itself below</h2>
+    <div id="questions"></div>
+    <div class="q">
+      <b>Context probes</b> <span class="note">(type a few words or leave blank)</span>
+      <label>Where should smoke first be playable? <input id="p1" placeholder="e.g. skirmish only / also the street encounter / menu reel" style="width:60%;font:inherit;background:#05090c;color:var(--text);border:1px solid rgba(115,219,255,.3);padding:3px"></label>
+      <label>What does "done" look like to you? <input id="p2" placeholder="e.g. I can pop & reverse in skirmish and the AI does it too" style="width:60%;font:inherit;background:#05090c;color:var(--text);border:1px solid rgba(115,219,255,.3);padding:3px"></label>
+      <label>Anything about smoke you'd expect that isn't here? <input id="p3" placeholder="e.g. infantry throw it toward the enemy" style="width:60%;font:inherit;background:#05090c;color:var(--text);border:1px solid rgba(115,219,255,.3);padding:3px"></label>
+    </div>
+    <p class="note" style="margin-top:10px">Copy this into the chat:</p>
+    <textarea id="out" readonly></textarea>
+    <button class="small" id="copy">COPY REPLY</button>
+  </div>
+</div>
+
+<script>
+// ---------- world ----------
+const W = 200, H = 120, PX = 6;            // metres; px per metre on the 1200×720 canvas
+const RANGE = 140;                          // shrunk sight range (m) so the field fits
+const DENSITY = 0.2, FULL_BLOCK = 1.0, SMOKE_CONC = 0.1;
+const CONTACT_LIFE = 30, GRACE = 1.5;
+const LOOKS = {
+  billow: {name:"Dense white-grey billow", core:[232,234,236], edge:[170,176,182], alpha:.92},
+  dusty:  {name:"Grey-brown, dusty",       core:[196,186,170], edge:[132,122,108], alpha:.88},
+  thin:   {name:"Thin, bluish-white",      core:[214,226,238], edge:[150,170,190], alpha:.62},
+};
+const KINDS = {
+  tank:  {half:[4.6,1.9], foot:5.0, smoke:{r:15, life:40}, charges:2, name:"M1 ABRAMS SEP V2"},
+  squad: {half:[3,3],     foot:4.2, smoke:{r:12, life:30}, charges:1, name:"ASSAULT SQUAD"},
+  atgm:  {half:[1.5,1.5], foot:2.1, smoke:null, charges:0, name:"ATGM TEAM"},
+};
+let state, view = "blue", paused = false, look = "billow", selected = 0, rng = 1;
+const rand = () => (rng = (rng * 16807) % 2147483647) / 2147483647;
+
+function reset(){
+  rng = 7;
+  state = {
+    t: 0,
+    units: [
+      {id:0, side:"blue", kind:"tank",  x:62,  y:58, face:0,   charges:2, hp:100, target:null, path:null, cool:2},
+      {id:1, side:"blue", kind:"squad", x:58,  y:72, face:0,   charges:1, hp:100, cool:3},
+      {id:2, side:"red",  kind:"tank",  x:150, y:52, face:Math.PI, hp:100, cool:1},
+      {id:3, side:"red",  kind:"atgm",  x:140, y:88, face:Math.PI, hp:100, cool:4},
+    ],
+    clouds: [],                 // {x,y,r,born,life}
+    tracks: {blue:{}, red:{}},  // unitId -> lastSeenTime
+    contacts: {blue:[], red:[]},// {unit,x,y,r,expires}
+    shots: [],                  // {from:{x,y}, to:{x,y}, t0, kind, hit}
+    log: [],
+  };
+}
+reset();
+
+// ---------- the agreed sight rule ----------
+function fade(c){ const left = c.born + c.life - state.t; return Math.max(0, Math.min(1, left / 10)); }
+function chord(ax,ay,bx,by,c){              // metres of segment a→b inside circle c
+  const dx=bx-ax, dy=by-ay, L=Math.hypot(dx,dy); if (L<1e-9) return 0;
+  const fx=ax-c.x, fy=ay-c.y, A=dx*dx+dy*dy, B=2*(fx*dx+fy*dy), C=fx*fx+fy*fy-c.r*c.r;
+  const disc=B*B-4*A*C; if (disc<=0) return 0;
+  const s=Math.sqrt(disc); let t0=(-B-s)/(2*A), t1=(-B+s)/(2*A);
+  t0=Math.max(0,t0); t1=Math.min(1,t1); return t1>t0 ? (t1-t0)*L : 0;
+}
+function bloom(c){ return Math.min(1, (state.t - c.born) / 1.0); }
+function liveClouds(){ return state.clouds.filter(c => state.t < c.born + c.life); }
+function smokeDepth(a,b){ let d=0; for (const c of liveClouds()) d += DENSITY * fade(c) * chord(a.x,a.y,b.x,b.y,{x:c.x,y:c.y,r:c.r*bloom(c)}); return d; }
+function concealment(u){            // strongest concealment wins (smoke vs nothing here)
+  let k = 1;
+  for (const c of liveClouds()) if (Math.hypot(u.x-c.x,u.y-c.y) <= c.r*bloom(c)) k = Math.min(k, 1 - (1-SMOKE_CONC)*fade(c));
+  return k;
+}
+function sees(o,t){
+  const depth = smokeDepth(o,t), dist = Math.hypot(t.x-o.x,t.y-o.y), k = concealment(t);
+  if (depth >= FULL_BLOCK) return {seen:false, depth, reach:0, dist};
+  const reach = RANGE * k * Math.exp(-depth);
+  return {seen: dist <= reach, depth, reach, dist};
+}
+const alive = u => u.hp > 0;
+function sideSees(side, t){ return state.units.some(o => o.side===side && alive(o) && sees(o,t).seen); }
+
+// ---------- simulation step ----------
+function step(dt){
+  state.t += dt;
+  const S = state;
+  // knowledge: tracks and last-seen contacts
+  for (const side of ["blue","red"]){
+    for (const t of S.units){
+      if (t.side===side || !alive(t)) continue;
+      if (sideSees(side,t)){
+        S.tracks[side][t.id] = {t:S.t, x:t.x, y:t.y};
+        S.contacts[side] = S.contacts[side].filter(c => c.unit!==t.id);
+      } else if (S.tracks[side][t.id] && S.t - S.tracks[side][t.id].t > GRACE){
+        const tr = S.tracks[side][t.id]; delete S.tracks[side][t.id];
+        S.contacts[side].push({unit:t.id, x:tr.x, y:tr.y, r:3*KINDS[t.kind].foot, expires:S.t+CONTACT_LIFE, kind:t.kind});
+      }
+    }
+    S.contacts[side] = S.contacts[side].filter(c => c.expires > S.t);
+  }
+  // movement (reverse)
+  for (const u of S.units){
+    if (!u.path || !alive(u)) continue;
+    const dx=u.path.x-u.x, dy=u.path.y-u.y, d=Math.hypot(dx,dy), v=3.5*dt;
+    if (d<=v){ u.x=u.path.x; u.y=u.path.y; u.path=null; } else { u.x+=dx/d*v; u.y+=dy/d*v; }
+  }
+  // firing: red tank HE + red ATGM; blue tank at red tank
+  for (const u of S.units){
+    if (!alive(u)) continue;
+    u.cool -= dt; if (u.cool > 0) continue;
+    const foes = S.units.filter(t => t.side!==u.side && alive(t));
+    const seen = foes.filter(t => sees(u,t).seen);
+    const own = S.units.filter(o=>o.side===u.side);
+    let aim=null, label="";
+    if (seen.length){ const t = seen.find(t=>t.kind==="tank") || seen[0]; aim={x:t.x,y:t.y}; label="seen"; }
+    else if (u.kind!=="atgm"){            // general-purpose rounds may fire at a contact; guided may not
+      const c = S.contacts[u.side][0];
+      if (c && (u.kind==="tank")){ const a=rand()*Math.PI*2, r=Math.sqrt(rand())*c.r; aim={x:c.x+Math.cos(a)*r, y:c.y+Math.sin(a)*r}; label="contact"; }
+    }
+    if (u.kind==="squad" && !seen.some(t=>t.kind!=="tank")) aim = null; // rifles: keep it quiet in the mock
+    if (!aim){ u.cool = 0.5; continue; }
+    u.cool = u.kind==="atgm" ? 9 : 6;
+    // resolve: rounds are physical — whatever stands at the impact point is hit
+    const scatter = label==="seen" ? 1.2 : 0;
+    const ix = aim.x + (rand()-.5)*scatter, iy = aim.y + (rand()-.5)*scatter;
+    let hit = null;
+    for (const t of foes){ const k=KINDS[t.kind]; if (Math.abs(ix-t.x) <= k.half[0]+.6 && Math.abs(iy-t.y) <= k.half[1]+.6) hit = t; }
+    if (hit){ hit.hp -= (u.kind==="atgm"?45:25); }
+    S.shots.push({from:{x:u.x,y:u.y}, to:{x:ix,y:iy}, t0:S.t, side:u.side, hit:!!hit, kind:u.kind});
+    // firing reveals the shooter: refresh or create a contact around it
+    const other = u.side==="blue"?"red":"blue";
+    if (!sideSees(other,u)){
+      const c = S.contacts[other].find(c=>c.unit===u.id);
+      if (c && Math.hypot(c.x-u.x,c.y-u.y) <= c.r) c.expires = S.t + CONTACT_LIFE;
+      else { S.contacts[other] = S.contacts[other].filter(c=>c.unit!==u.id);
+        const a=rand()*Math.PI*2, r=rand()*3*KINDS[u.kind].foot;
+        S.contacts[other].push({unit:u.id, x:u.x+Math.cos(a)*r, y:u.y+Math.sin(a)*r, r:3*KINDS[u.kind].foot, expires:S.t+CONTACT_LIFE, kind:u.kind}); }
+    }
+  }
+  S.shots = S.shots.filter(s => S.t - s.t0 < 1.2);
+}
+
+// ---------- actions ----------
+function popSmoke(id){
+  const u = state.units[id]; const k = KINDS[u.kind];
+  if (!k.smoke || u.charges<=0 || !alive(u)) return;
+  u.charges--; state.clouds.push({x:u.x, y:u.y, r:k.smoke.r, born:state.t, life:k.smoke.life, seed:Math.random()*1000});
+}
+function reverse(id, m){ const u=state.units[id]; u.path={x:u.x-Math.cos(u.face)*m, y:u.y-Math.sin(u.face)*m}; }
+
+// ---------- drawing ----------
+const cv = document.getElementById("c"), g = cv.getContext("2d");
+const P = (x,y) => [x*PX, y*PX];
+function drawGround(){
+  g.fillStyle="#26381f"; g.fillRect(0,0,cv.width,cv.height);
+  // a few grass patches and a track, purely decorative
+  g.fillStyle="#2d4224"; for (let i=0;i<40;i++){ const x=(i*97%200), y=(i*53%120); g.beginPath(); g.ellipse(x*PX,y*PX,60,26,i,0,7); g.fill(); }
+  g.strokeStyle="#5a5340"; g.lineWidth=26; g.beginPath(); g.moveTo(0,64*PX); g.bezierCurveTo(400,380,800,300,1200,330); g.stroke();
+  g.strokeStyle="rgba(255,255,255,.05)"; g.lineWidth=1;
+  for (let x=0;x<=W;x+=10){ g.beginPath(); g.moveTo(x*PX,0); g.lineTo(x*PX,cv.height); g.stroke(); }
+  for (let y=0;y<=H;y+=10){ g.beginPath(); g.moveTo(0,y*PX); g.lineTo(cv.width,y*PX); g.stroke(); }
+  g.fillStyle="rgba(255,255,255,.35)"; g.font="11px ui-monospace"; g.fillText("10 m grid", 8, cv.height-8);
+}
+function visibleMask(side){            // per-pixel fog for one side, at 2 m resolution
+  const step=2, cols=W/step, rows=H/step;
+  const eyes = state.units.filter(u=>u.side===side && alive(u));
+  g.save();
+  for (let j=0;j<rows;j++) for (let i=0;i<cols;i++){
+    const p={x:(i+.5)*step, y:(j+.5)*step};
+    const ok = eyes.some(o => sees(o,p).seen);
+    if (!ok){ g.fillStyle="rgba(8,14,26,.62)"; g.fillRect(i*step*PX, j*step*PX, step*PX+1, step*PX+1); }
+  }
+  g.restore();
+}
+function drawCloud(c, alpha){
+  const L = LOOKS[look], b = bloom(c), f = fade(c), r = c.r*b;
+  if (r<=0) return;
+  const n = 26;
+  for (let i=0;i<n;i++){
+    // puffs swirl inside the circle; they never leave it (no drift)
+    const a = c.seed + i*2.39996 + state.t*0.12*(i%2?1:-1);
+    const rr = r * Math.sqrt((i+.5)/n) * 0.82;
+    const x = c.x + Math.cos(a)*rr, y = c.y + Math.sin(a)*rr;
+    const pr = (r*0.42 + (i%5)) * PX;
+    const grd = g.createRadialGradient(x*PX,y*PX,0,x*PX,y*PX,pr);
+    const A = L.alpha * f * alpha;
+    grd.addColorStop(0, `rgba(${L.core},${A*0.55})`);
+    grd.addColorStop(.6, `rgba(${L.edge},${A*0.30})`);
+    grd.addColorStop(1, `rgba(${L.edge},0)`);
+    g.fillStyle = grd; g.beginPath(); g.arc(x*PX,y*PX,pr,0,7); g.fill();
+  }
+}
+function drawUnit(u, ghost){
+  const k = KINDS[u.kind], [x,y]=P(u.x,u.y), col = u.side==="blue" ? "rgb(185,240,255)" : "rgb(255,97,82)";
+  g.save(); g.translate(x,y); g.rotate(u.face);
+  g.globalAlpha = alive(u) ? (ghost?0.35:1) : 0.3;
+  if (u.kind==="squad"){ for (let i=0;i<6;i++){ g.fillStyle=col; g.beginPath(); g.arc((i%3-1)*12,(Math.floor(i/3)-.5)*14,3.2,0,7); g.fill(); } }
+  else if (u.kind==="atgm"){ for (let i=0;i<3;i++){ g.fillStyle=col; g.beginPath(); g.arc((i-1)*8,0,3.2,0,7); g.fill(); } }
+  else { g.fillStyle="#3e4a36"; g.strokeStyle=col; g.lineWidth=2; g.fillRect(-k.half[0]*PX,-k.half[1]*PX,k.half[0]*2*PX,k.half[1]*2*PX);
+         g.strokeRect(-k.half[0]*PX,-k.half[1]*PX,k.half[0]*2*PX,k.half[1]*2*PX);
+         g.fillStyle="#56634b"; g.beginPath(); g.arc(0,0,9,0,7); g.fill(); g.strokeStyle="#56634b"; g.lineWidth=4; g.beginPath(); g.moveTo(0,0); g.lineTo(42,0); g.stroke(); }
+  g.restore();
+  if (u.side==="blue" && u.id===selected && view!=="red"){
+    g.strokeStyle="rgba(115,219,255,.9)"; g.lineWidth=1.5; g.beginPath(); g.arc(x,y,Math.max(...k.half)*PX+10,0,7); g.stroke();
+  }
+}
+const EYE = new Path2D("M2 12c3-5 7-7 10-7s7 2 10 7c-3 5-7 7-10 7s-7-2-10-7z");
+function drawContact(c, side){
+  const [x,y]=P(c.x,c.y), col = side==="red" ? "rgb(185,240,255)" : "rgb(255,97,82)";
+  const left = (c.expires-state.t)/CONTACT_LIFE;
+  g.save(); g.setLineDash([6,6]); g.strokeStyle=col; g.globalAlpha=.75; g.lineWidth=1.5;
+  g.beginPath(); g.arc(x,y,c.r*PX,0,7); g.stroke(); g.setLineDash([]);
+  g.globalAlpha=1; g.translate(x-12,y-12); g.lineWidth=2; g.stroke(EYE); g.beginPath(); g.arc(12,12,3,0,7); g.stroke();
+  g.restore();
+  g.fillStyle=col; g.font="11px ui-monospace"; g.fillText(`LAST SEEN ${Math.ceil(c.expires-state.t)}s`, x+16, y+4);
+}
+function drawShots(){
+  for (const s of state.shots){
+    const k = (state.t-s.t0)/1.2;
+    const vis = view==="all" || s.side===view || sideSees(view, state.units.find(u=>u.x===s.from.x&&u.y===s.from.y)||{x:s.from.x,y:s.from.y});
+    g.strokeStyle = s.kind==="atgm" ? `rgba(255,220,140,${1-k})` : `rgba(255,190,90,${1-k})`; g.lineWidth=2;
+    g.beginPath(); g.moveTo(...P(s.from.x,s.from.y)); g.lineTo(...P(s.to.x,s.to.y)); g.stroke();
+    g.fillStyle=`rgba(255,140,60,${1-k})`; g.beginPath(); g.arc(...P(s.to.x,s.to.y), 6+16*k, 0, 7); g.fill();
+    if (s.hit){ g.fillStyle=`rgba(255,255,255,${1-k})`; g.font="bold 12px ui-monospace"; g.fillText("HIT", P(s.to.x,s.to.y)[0]+10, P(s.to.x,s.to.y)[1]-10); }
+  }
+}
+function render(){
+  drawGround();
+  // clouds are visible to a side only where its units could see the cloud's position
+  for (const c of liveClouds()){
+    const seenBy = view==="all" || state.units.some(o=>o.side===view && alive(o) && Math.hypot(o.x-c.x,o.y-c.y) < RANGE+c.r);
+    drawCloud(c, seenBy?1:0);
+  }
+  if (view!=="all") visibleMask(view);
+  for (const u of state.units){
+    if (view==="all" || u.side===view) drawUnit(u, false);
+    else if (sideSees(view,u)) drawUnit(u, false);
+  }
+  if (view!=="all") for (const c of state.contacts[view]) drawContact(c, view);
+  else for (const s of ["blue","red"]) for (const c of state.contacts[s]) drawContact(c, s);
+  drawShots();
+  document.getElementById("clock").textContent = `T+${state.t.toFixed(1)} s${paused?"  ·  PAUSED":""}`;
+  drawPanel(); drawLines();
+}
+
+// ---------- HUD: panel row + command bar ----------
+const ICONS = {
+  smoke: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 17a4 4 0 0 1 1-7.9A5 5 0 0 1 16.5 8 3.5 3.5 0 0 1 18 15"/><path d="M4 20h16"/><circle cx="9" cy="20" r=".5"/></svg>',
+  reverse:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg>',
+  stop:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12"/></svg>',
+  attack:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/></svg>',
+  fire:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3c3 4 5 6 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-9z"/></svg>',
+  hidden:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12c3-5 7-7 10-7s7 2 10 7c-3 5-7 7-10 7s-7-2-10-7z"/><path d="M4 20 20 4"/></svg>',
+  hp:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16"/></svg>',
+};
+function drawPanel(){
+  const u = state.units[selected], k = KINDS[u.kind], el = document.getElementById("panel");
+  if (view==="red"){ el.style.display="none"; return; } el.style.display="block";
+  const inSmoke = concealment(u) < 1;
+  el.innerHTML = `<div class="name">${k.name}</div>
+    <div class="row">${ICONS.hp} HULL ${Math.max(0,u.hp)}</div>
+    <div class="row">${ICONS.attack} ${u.kind==="tank"?"120MM · AP / HE":"RIFLES · RPG"}</div>
+    ${k.smoke ? `<div class="row new ${u.charges===0?"out":""}">${ICONS.smoke} SMOKE ${u.charges}</div>` : ""}
+    ${inSmoke ? `<div class="row new">${ICONS.hidden} HIDDEN</div>` : ""}`;
+}
+function drawBar(){
+  const u = state.units[selected], k = KINDS[u.kind];
+  const btn = (icon,label,key,cls,dis,fn) => { const b=document.createElement("button"); b.innerHTML=`${icon}<span>${label}</span><kbd>${key}</kbd>`; if(cls) b.className=cls; b.disabled=dis; b.onclick=fn; return b; };
+  const bar = document.getElementById("bar"); bar.innerHTML="";
+  bar.append(btn(ICONS.attack,"ATTACK-MV","C","",false,()=>{}),
+             btn(ICONS.reverse,"REVERSE","R","",false,()=>reverse(selected,25)),
+             btn(ICONS.smoke,"POP SMOKE","X","new",!k.smoke||u.charges<=0,()=>{popSmoke(selected);drawBar();}),
+             btn(ICONS.stop,"STOP","⌫","",false,()=>{u.path=null}),
+             btn(ICONS.fire,"FIRE AT WILL","F","",false,()=>{}));
+}
+function drawLines(){
+  const rows=[]; const U=state.units;
+  const pairs=[[2,0],[3,0],[0,2],[1,0],[2,1]];
+  for (const [a,b] of pairs){ const o=U[a], t=U[b]; if(!alive(o)||!alive(t)) continue; const s=sees(o,t);
+    rows.push(`<tr><td>${o.side} ${o.kind} → ${t.side} ${t.kind}</td><td>${s.depth>=1?"≥5":(s.depth/DENSITY).toFixed(1)} m smoke</td><td>reach ${s.reach.toFixed(0)} / ${s.dist.toFixed(0)} m</td><td class="${s.seen?"seen":"hid"}">${s.seen?"SEEN":"HIDDEN"}</td></tr>`); }
+  document.getElementById("lines").innerHTML = rows.join("");
+}
+
+// ---------- input ----------
+let drag=null;
+function toWorld(e){ const r=cv.getBoundingClientRect(); return {x:(e.clientX-r.left)/r.width*W, y:(e.clientY-r.top)/r.height*H}; }
+cv.addEventListener("pointerdown", e=>{ const p=toWorld(e);
+  const hit = state.units.find(u => (view==="all"||u.side===view||sideSees(view,u)) && Math.hypot(u.x-p.x,u.y-p.y) < 6);
+  if (hit){ drag=hit; if (hit.side==="blue"){ selected=hit.id; drawBar(); } cv.setPointerCapture(e.pointerId); } });
+cv.addEventListener("pointermove", e=>{ if(!drag) return; const p=toWorld(e); drag.x=Math.max(2,Math.min(W-2,p.x)); drag.y=Math.max(2,Math.min(H-2,p.y)); drag.path=null; });
+cv.addEventListener("pointerup", ()=>drag=null);
+document.addEventListener("keydown", e=>{ if (e.target.tagName==="INPUT") return;
+  if (e.code==="KeyX"){ popSmoke(selected); drawBar(); } if (e.code==="KeyR") reverse(selected,25); if (e.code==="Space"){ paused=!paused; e.preventDefault(); } });
+document.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>{ view=b.dataset.view; document.querySelectorAll("[data-view]").forEach(x=>x.setAttribute("aria-pressed", x===b)); });
+document.getElementById("pause").onclick=()=>paused=!paused;
+document.getElementById("reset").onclick=()=>{ reset(); selected=0; drawBar(); };
+document.querySelectorAll("[data-step]").forEach(b=>b.onclick=()=>{
+  const s=b.dataset.step;
+  if (s==="pop"){ selected=0; popSmoke(0); }
+  if (s==="sit"){ state.units[0].path=null; view="red"; document.querySelector('[data-view=red]').click(); }
+  if (s==="rev"){ selected=0; reverse(0,25); }
+  if (s==="squad"){ selected=1; popSmoke(1); }
+  drawBar();
+});
+
+// ---------- the reply assembler ----------
+const QUESTIONS = [
+  {id:"look", q:"Cloud look", opts:[
+    ["billow","Dense white-grey billow, film-style (recommended: reads instantly as 'smoke screen', distinct from grey-black wreck smoke)"],
+    ["dusty","Grey-brown, dusty"], ["thin","Thin, bluish-white"]], rec:"billow", live:true},
+  {id:"seecloud", q:"Can the enemy see the cloud itself when it can't see the unit?", opts:[
+    ["yes","Yes — anyone who can see where the cloud stands sees the cloud (recommended: a 6 m wall of smoke is the most visible thing on the field; it tells you something is in there, and it pairs with the last contact)"],
+    ["no","No — the cloud is hidden like any prop until a unit gets close"]], rec:"yes"},
+  {id:"row", q:"Charges readout", opts:[
+    ["row","A 'SMOKE n' row in the unit's floating panel, the same row component flares use, warning colour at 0 (recommended: one concept, one component)"],
+    ["pips","Pips on the command-bar button instead"]], rec:"row"},
+  {id:"button", q:"Command bar button", opts:[
+    ["x","POP SMOKE next to REVERSE, key X; with several units selected, every selected unit that has a charge pops one (recommended)"],
+    ["one","Same button, but only the first selected unit pops"]], rec:"x"},
+  {id:"hidden", q:"Own panel while in smoke", opts:[
+    ["hidden","Shows the existing HIDDEN row (recommended: smoke joins the same concealment rule, so HIDDEN lights up for free)"],
+    ["smoked","A new 'IN SMOKE' row"]], rec:"hidden"},
+  {id:"sound", q:"Sound", opts:[
+    ["pop","Tanks: discharger thump-thump then hiss; infantry: grenade pop and hiss — heard by both sides like a shot, but it does NOT create a contact (recommended)"],
+    ["own","Only your own side hears it"], ["none","No sound in this spec"]], rec:"pop"},
+  {id:"ai", q:"How the AI's smoke reads to you", opts:[
+    ["same","Exactly like yours: same cloud, same sound, its tank backs out (recommended)"],
+    ["tell","Plus a callout when an enemy pops smoke ('Smoke! They're pulling back')"]], rec:"same"},
+];
+const qdiv = document.getElementById("questions");
+for (const Q of QUESTIONS){
+  const d=document.createElement("div"); d.className="q";
+  d.innerHTML = `<b>${Q.q}</b>` + Q.opts.map(([v,l])=>`<label><input type="radio" name="${Q.id}" value="${v}" ${v===Q.rec?"checked":""}> ${Q.id==="look"?`<span class="swatch" style="background:rgb(${LOOKS[v].core})"></span>`:""}${l}</label>`).join("");
+  qdiv.append(d);
+}
+qdiv.addEventListener("change", e=>{ if (e.target.name==="look") look=e.target.value; buildReply(); });
+["p1","p2","p3"].forEach(id=>document.getElementById(id).addEventListener("input", buildReply));
+function buildReply(){
+  const lines=["Quadrant 3 reactions (smoke mock):"];
+  for (const Q of QUESTIONS){ const v=document.querySelector(`input[name=${Q.id}]:checked`).value; const lab=Q.opts.find(o=>o[0]===v)[1].replace(/ \(recommended.*\)$/,"");
+    lines.push(`- ${Q.q}: ${v===Q.rec?"✓ recommended":"CHANGED"} — ${lab}`); }
+  const p=[["Where first",document.getElementById("p1").value],["Done looks like",document.getElementById("p2").value],["Missing",document.getElementById("p3").value]];
+  for (const [k,v] of p) if (v.trim()) lines.push(`- ${k}: ${v.trim()}`);
+  document.getElementById("out").value = lines.join("\n");
+}
+document.getElementById("copy").onclick=()=>{ const t=document.getElementById("out"); t.select(); navigator.clipboard?.writeText(t.value); };
+buildReply();
+
+// ---------- loop ----------
+drawBar();
+let last=performance.now();
+function frame(now){ const dt=Math.min(.05,(now-last)/1000); last=now; if(!paused) step(dt); render(); requestAnimationFrame(frame); }
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

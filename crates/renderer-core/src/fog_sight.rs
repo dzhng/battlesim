@@ -3,13 +3,14 @@
 //! over it, after the depth prepass and before the lit world: the rebuilt
 //! eyes' horizon maps (`fogTerrain`, `fogMerge`), the structures that take
 //! fog whole (`fogWhole`), and the per-tile eye lists over the prepass's
-//! depth (`fogCull`). Every fogged material binds one of the five fragment
+//! depth (`fogCull`). The terrain march reads the side's smoke circles
+//! beside its foliage. Every fogged material binds one of the five fragment
 //! groups, by what it is (`Layer`): the ground paint lies on the painted
 //! layers, and units are never fogged.
 use presentation::fog::sight::WHOLE_TEXTURE_WIDTH;
 pub use presentation::fog::upload::FogUpload;
 use presentation::presentation::Presentation;
-use presentation::records::{Camera as CameraRecord, FogBox, FogEye, FogParams};
+use presentation::records::{Camera as CameraRecord, FogBox, FogEye, FogParams, FogSmoke};
 use wgpu::*;
 
 use crate::pipelines::Pipelines;
@@ -126,6 +127,7 @@ pub struct FogSightResources {
     eyes: Grown,
     foliage: Grown,
     occluders: Grown,
+    smoke: Grown,
     rebuild: Grown,
     items: Grown,
     maps: Buffer,
@@ -295,6 +297,13 @@ impl FogSightResources {
                 BufferUsages::STORAGE,
                 size_of::<FogBox>(),
             ),
+            smoke: Grown::new(
+                device,
+                queue,
+                "fog-smoke",
+                BufferUsages::STORAGE,
+                size_of::<FogSmoke>(),
+            ),
             rebuild: Grown::new(device, queue, "fog-rebuild", BufferUsages::STORAGE, 16),
             items: Grown::new(device, queue, "fog-whole-items", BufferUsages::STORAGE, 16),
             maps: storage(device, "fog-maps", 16, BufferUsages::empty()),
@@ -379,6 +388,7 @@ impl FogSightResources {
                 self.rebuild.buffer.as_entire_binding(),
                 self.terrain_maps.as_entire_binding(),
                 self.maps.as_entire_binding(),
+                self.smoke.buffer.as_entire_binding(),
             ],
         ));
         self.cull = Some(bind(
@@ -521,6 +531,12 @@ impl FogSightResources {
             rebind |= self
                 .occluders
                 .write(device, queue, bytemuck::cast_slice(occluders), false);
+        }
+        if let Some(smoke) = &up.smoke {
+            // The march reads `FogParams.smoke_count` of them.
+            rebind |= self
+                .smoke
+                .write(device, queue, bytemuck::cast_slice(smoke), false);
         }
         if let Some(words) = &up.wholes {
             let rows = (words.len() / WHOLE_TEXTURE_WIDTH) as u32;
@@ -674,6 +690,7 @@ impl FogSightResources {
             &self.eyes.buffer,
             &self.foliage.buffer,
             &self.occluders.buffer,
+            &self.smoke.buffer,
             &self.rebuild.buffer,
             &self.items.buffer,
             &self.maps,

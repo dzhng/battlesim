@@ -69,6 +69,7 @@ test("live army publications refresh cards and command availability without repl
       toggleDeployment: vi.fn(),
       exitBuilding: vi.fn(),
       pressUnload: vi.fn(),
+      popSmoke: vi.fn(),
     },
   });
   const view = render(
@@ -269,6 +270,7 @@ test("the army remains in replay and empty selection while commands follow only 
       toggleDeployment: vi.fn(),
       exitBuilding: vi.fn(),
       pressUnload: vi.fn(),
+      popSmoke: vi.fn(),
     };
     return (
       <ArmyDeck
@@ -419,6 +421,7 @@ test("the command row exposes refund for a selected skirmish unit", () => {
     toggleDeployment: vi.fn(),
     exitBuilding: vi.fn(),
     pressUnload: vi.fn(),
+    popSmoke: vi.fn(),
     refund,
   };
   const view = render(

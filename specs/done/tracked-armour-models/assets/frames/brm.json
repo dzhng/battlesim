@@ -1,0 +1,307 @@
+{
+  "family": "brm",
+  "lane": "F-C",
+  "slice": "07",
+  "surveyed": "2026-11-11",
+  "reconciled": {
+    "slice": "07b",
+    "date": "2026-11-11",
+    "decisions": "decisions.md C4-C10"
+  },
+  "convention": {
+    "frame": "x forward, y left, z up, metres; the hull box is centred on x = 0, y = 0 and stands on z = 0",
+    "hull_box": "the top is max(the real hull or turret roof, the top of the tallest bulky dressing - 0.3 m) (decisions.md C4, after F-B1). Sights, sensors, radars and roof guns that are not a roster mount are dressing, held to unitArt.ts's 0.3 m bulky / 0.15 m thin allowance. The box covers the body, including an armoured turret overhang (FC8)",
+    "pivot": "the centre of the turret ring; for a fixed mount, the trunnion or hinge it is drawn on (only pivot + muzzle reaches the simulation)",
+    "muzzle": "muzzle_m is measured from the mount's pivot: the simulation fires from pivot + muzzle (crates/sim/src/weapons/muzzle.rs:12-22; decisions.md C5)",
+    "eye": "the sight's height over the ground (catalog.rs:181); kept unless a source contradicts it (FA-6)"
+  },
+  "thresholds": {
+    "hull_dimension": "fix when off by more than max(0.10 m, 3 %)",
+    "pivot": "fix when off by more than 0.15 m on any axis",
+    "muzzle_point": "fix when the world muzzle point (pivot + muzzle) is off by more than 0.15 m on any axis; a value written in another convention is fixed whatever its size (C5)",
+    "eye_m": "kept unless a source contradicts it",
+    "note": "One set for every lane (decisions.md C10). The lanes' own variants (F-A's max(0.10 m, 3 %) for muzzles, F-C's 0.30 m muzzle reach) are retired."
+  },
+  "verdicts": {
+    "keep": "the frame number agrees with the references within the thresholds",
+    "fix": "slice 15 changes it to `new`: a row in fix-rows.json, or the parent's row where the fixture takes the field through extends",
+    "unresolved": "kept at today's value: nothing measures it well enough to move it; named",
+    "art-only": "not a frame number: the family slice fixes the art",
+    "inherits": "the fixture extends another unit and this appearance takes its rows"
+  },
+  "sources": [
+    {
+      "id": "eastern_brm_brm_3k:0",
+      "kind": "drawing",
+      "ref": "assets/references/brm/eastern_brm_brm_3k-side-2.png",
+      "note": "assets/references/brm/eastern_brm_brm_3k-side-2.png (the BMP-3 drawing: the hull the BRM is built on)"
+    }
+  ],
+  "appearances": {
+    "eastern_brm_brm_3k": {
+      "unit": "eastern_brm_brm_3k",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "published": {
+        "length_m": 7.02,
+        "width_m": 3.28,
+        "height_m": 2.57,
+        "source": "length_m: topwar.ru BRM-3K 'Lynx'; weaponsystems.net; armedconflicts.com; width_m: same (over the fenders); height_m: same: 'on non-removable parts of the tower'"
+      },
+      "current": {
+        "extends": "roster_profile_tracked_recon",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 28.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 65.0,
+            "turn_deg_s": 45.0
+          }
+        },
+        "half_extents_m": [
+          3.57,
+          1.6,
+          1.2
+        ],
+        "eye_m": 2.3,
+        "mounts": [
+          {
+            "id": "autocannon",
+            "pivot_m": [
+              0.3,
+              0.0,
+              1.56
+            ],
+            "muzzle_m": [
+              2.999,
+              0.0,
+              0.432
+            ],
+            "turret": true
+          }
+        ]
+      },
+      "measured": {
+        "measured": {
+          "sources": [
+            "assets/references/brm/eastern_brm_brm_3k-side-2.png (the BMP-3 drawing: the hull the BRM is built on)"
+          ],
+          "glacis": {
+            "nose_tip_m": {
+              "real": [
+                1.39,
+                1.44
+              ],
+              "model": 0.95
+            },
+            "upper_glacis_deg_above_horizontal": {
+              "real": [
+                8,
+                15
+              ],
+              "model": 17.8
+            },
+            "lower_glacis_deg_above_horizontal": {
+              "real": [
+                55,
+                65
+              ],
+              "model": [
+                31,
+                34
+              ]
+            },
+            "reading": "The BMP-3 hull's nose is high and blunt: a short, steep lower plate (about 60 deg) under a long, shallow upper glacis carrying the trim vane. The model's nose is 0.45 m low, which makes its upper glacis dive and its lower plate lie nearly flat: the user's note."
+          }
+        },
+        "model_glb": {
+          "bounds_no_dressing_m": [
+            [
+              -3.644,
+              3.565
+            ],
+            [
+              -1.58,
+              1.58
+            ],
+            [
+              0.0,
+              2.435
+            ]
+          ],
+          "turret_roof_m": 2.3,
+          "hull_roof_m": [
+            1.56,
+            1.7
+          ]
+        }
+      },
+      "heights": {
+        "roof_m": 2.37,
+        "roof_source": "the BMP-3 drawing (art 2.30 m)",
+        "sight_top_m": 2.57,
+        "sight_part": "the tower's fixed fittings",
+        "sight_source": "topwar.ru",
+        "rule_top_m": 2.37,
+        "box_top_m": 2.4,
+        "art": {
+          "hull_top_m": 2.435,
+          "tallest_dressing": "dressing_radar",
+          "tallest_dressing_top_m": 2.4,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
+        {
+          "field": "half_extents_m[0]",
+          "old": 3.57,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "7.14 m on the BMP-3 hull (S13); 7.02 m published is 1.7 % off."
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 1.6,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "3.2 m against 3.28 m over the fenders: 0.08 m, inside 0.10 m."
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.2,
+          "new": null,
+          "verdict": "keep",
+          "source": "topwar.ru 2.57 m to the tower's fixed fittings; the BMP-3 drawing's roof 2.37 m",
+          "confidence": null,
+          "note": "C4: box top = max(roof, tallest bulky dressing - 0.3 m). max(2.37 m roof, 2.57 - 0.3 = 2.27 m) = 2.37 m, 0.03 m under today's 2.4 m. Lane: 2.57 m is to the turret's fixed fittings; the art's roof is 2.30 m and the BMP-3's 2.37 m. 2.4 m sits between them."
+        },
+        {
+          "field": "eye_m",
+          "old": 2.3,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.autocannon.pivot_m",
+          "old": [
+            0.3,
+            0.0,
+            1.56
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "Same ring position as the BMP-3 (+0.27 m on the drawing)."
+        },
+        {
+          "field": "mounts.autocannon.muzzle_m",
+          "old": [
+            2.999,
+            0.0,
+            0.432
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "Same ring position as the BMP-3 (+0.27 m on the drawing)."
+        }
+      ]
+    }
+  },
+  "overlays": {
+    "note": "Each committed image overlays our model on a free drawing; its attribution and licence are recorded with it (decisions.md C8).",
+    "by_appearance": {
+      "eastern_brm_brm_3k": [
+        {
+          "view": "side",
+          "image": "brm.brm_3k-side.png",
+          "drawing": "the BMP-3 drawing (hull only applies)",
+          "drawing_m": [
+            1.09,
+            1.8,
+            1.8,
+            1.81,
+            1.9,
+            1.87,
+            1.9,
+            1.9,
+            1.9,
+            1.9,
+            1.92,
+            1.9,
+            2.22,
+            2.63,
+            2.37,
+            2.38,
+            2.44,
+            2.42,
+            2.19,
+            2.24,
+            2.24,
+            2.06,
+            2.05,
+            2.05,
+            2.05,
+            2.03,
+            2.01,
+            2.01,
+            2.01
+          ],
+          "model_m": [
+            1.37,
+            1.9,
+            1.85,
+            1.87,
+            1.73,
+            1.73,
+            1.73,
+            1.8,
+            1.8,
+            1.8,
+            1.71,
+            1.55,
+            2.38,
+            2.38,
+            2.38,
+            2.38,
+            2.3,
+            2.38,
+            2.3,
+            2.3,
+            2.06,
+            2.06,
+            2.03,
+            2.03,
+            2.03,
+            2.03,
+            2.03,
+            2.03,
+            1.1
+          ],
+          "attribution": "U.S. Army FMSO (Red Thrust Star, January 1996), via Wikimedia Commons File:BMP-3_line_drawing.gif",
+          "licence": "public-domain (PD-USGov-Military-Army)"
+        }
+      ]
+    }
+  },
+  "notes": [
+    {
+      "appearances": [
+        "eastern_brm_brm_3k"
+      ],
+      "note": "front slopes down too much, bottom should actually slope up more",
+      "class": "art",
+      "why": "Glacis geometry: brm.py's nose (0.95 m) and plates. S13 rebuilds the BRM on bmp.py's BMP-3 hull, which needs the same correction (see bmp.json). No frame change."
+    }
+  ],
+  "answers": null,
+  "gaps": null
+}

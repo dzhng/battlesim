@@ -43,6 +43,17 @@
    "licence": "public-domain",
    "sha256": "18f54a4155be4cee690590b36e436f719ebed0272daf9a6c4a3c56ba0eceecf0",
    "note": "Firing, rear quarter: the turret's rear doors and racks, the spade-less hull rear."
+  },
+  {
+   "file": "us_m109_paladin_m109a7-side-2.png",
+   "variant": "us_m109_paladin_m109a7",
+   "view": "side",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:M109_A6.png",
+   "author": "A proietti",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "3de771990b23dc650bd1aa974b4799e9b817ace3b950a3c1c57b0f6fe7bc74c4",
+   "note": "M109A6 side drawing after a U.S. Army Illustrated Equipment Data sheet, nose left. Same turret as the A7; the A7 hull runs on six Bradley road wheels, not seven. 65.6 px/m when the hull (209-615 px) is scaled to the published 6.19 m. Measured: hull deck 1.64 m, turret roof 2.77-2.80 m, cupola with MG mount 3.26 m, turret 4.8 m long from the mantlet face (0.87 m ahead of hull centre) to the bustle, which overhangs the hull rear by 0.8 m; trunnion about 0.35 m ahead of hull centre at 2.27 m."
   }
  ],
  "gaps": [

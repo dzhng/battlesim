@@ -46,6 +46,25 @@
       "roles": ["air_defense"],
       "cost": 100,
       "body": { "squad": { "slots": ["test_aa_gunner", "test_at_rifleman", "test_at_rifleman"] } }
+    },
+    "test_smoke_squad": {
+      "extends": "test_squad",
+      "name": "Smoke Squad",
+      "description": "Four riflemen with one smoke grenade between them.",
+      "roles": ["infantry"],
+      "cost": 100,
+      "body": { "squad": { "slots": ["test_rifleman", "test_rifleman", "test_rifleman", "test_rifleman"] } },
+      "capabilities": {
+        "smoke": {
+          "capacity": 1,
+          "service_s": 5,
+          "stock_per_charge": 5,
+          "cloud": {
+            "radius_m": 12, "height_m": 5, "life_s": 30, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "grenade"
+          }
+        }
+      }
     }
   }
 }

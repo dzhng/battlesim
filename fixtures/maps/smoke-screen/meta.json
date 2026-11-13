@@ -1,0 +1,13 @@
+{
+  "category": "test",
+  "status": "released",
+  "label": "Smoke screen lab",
+  "character": "arena",
+  "biome": "summer",
+  "size_m": [400, 260],
+  "tags": ["road", "forest"],
+  "source": "authored",
+  "seed": null,
+  "encounters": ["smoke-screen"],
+  "benchmarks": []
+}

@@ -3,6 +3,9 @@
 Sound observes the same side-visible causes as effects. It never changes firing
 cadence, physical impacts or simulation hearing. Anonymous hearing cues stay anonymous;
 an exact unit assignment applies only to an observed launch.
+A smoke screen's pop is heard at its cloud, once, by a side that sees the cloud
+while it blooms ([`sound::smoke_pops`](../../crates/presentation/src/sound/smoke_pops.rs));
+a cloud first seen later, or never seen, is silent, so a pop never acts as a cue.
 The [combat audio rationale](../../specs/done/combat-audio/README.md) records the
 constraints behind the library and workbench.
 

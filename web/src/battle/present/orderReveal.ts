@@ -30,14 +30,16 @@ const NONE_AWAITING: ReadonlySet<number> = new Set();
 export const NOTHING_REVEALED: RevealedOrders = new Map();
 
 /** The units whose order marks an order flashes: those it sends somewhere or
- *  sets on something. A fire-policy or deployment toggle changes no order
- *  mark; its answer is the unit's panel. A fast-route upgrade names no
- *  units: it follows the move it upgrades, whose flash is still running. */
+ *  sets on something. A fire-policy or deployment toggle, or a pop of smoke,
+ *  changes no order mark; its answer is the unit's panel (and the cloud). A
+ *  fast-route upgrade names no units: it follows the move it upgrades, whose
+ *  flash is still running. */
 function flashedUnits(order: Order): readonly number[] {
   switch (order.kind) {
     case "set_engagement":
     case "set_afterburner":
     case "set_deployment":
+    case "pop_smoke":
     case "ready":
     case "confirm_purchase":
     case "cancel_pending":

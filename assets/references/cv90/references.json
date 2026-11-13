@@ -98,13 +98,75 @@
       "licence": "CC0-1.0",
       "sha256": "6b5622e18e2b77bd61f3ec2953095869e205b297702771f81af2a5f58f7861c1",
       "note": "CV90 Mk IV (Czech), IDET 2025, left side from the front quarter"
+    },
+    {
+      "file": "europe_cv90_cv9040c-side-3.png",
+      "variant": "europe_cv90_cv9040c",
+      "view": "side",
+      "source": "drawing",
+      "page": "https://commons.wikimedia.org/wiki/File:CV90,_Stridsfordon_90,_Mechanised_Infantry_Light_Combat_Vehicle.png",
+      "author": "Mick Bell",
+      "licence": "CC-BY-4.0",
+      "sha256": "57d85e6ba9a1a2094820e7e7fb76a163f31e52207c06d0e8a561893f77bf99a1",
+      "note": "Mick Bell 1/76 plan of the Swedish Strf 9040 (1990, before the C upgrade's add-on armour), side view cropped at the sheet's full resolution, nose left; 236.6 px/m from the sheet's 3 m scale bar. Measured: hull 6.54 m over the tracks, hull roof 1.78-1.83 m, turret roof 2.37 m, cupola 2.53 m."
+    },
+    {
+      "file": "europe_cv90_cv9040c-top.png",
+      "variant": "europe_cv90_cv9040c",
+      "view": "top",
+      "source": "drawing",
+      "page": "https://commons.wikimedia.org/wiki/File:CV90,_Stridsfordon_90,_Mechanised_Infantry_Light_Combat_Vehicle.png",
+      "author": "Mick Bell",
+      "licence": "CC-BY-4.0",
+      "sha256": "1d06f67c601d91b2c2c8c549d44ce1dde3fd0040084ca9970bd8737778ab28a9",
+      "note": "Mick Bell 1/76 Strf 9040 plan, top view, nose left; 236.6 px/m. Width over the tracks 3.11 m; the C upgrade's side armour adds to it."
+    },
+    {
+      "file": "europe_cv90_cv9040c-front.png",
+      "variant": "europe_cv90_cv9040c",
+      "view": "front",
+      "source": "drawing",
+      "page": "https://commons.wikimedia.org/wiki/File:CV90,_Stridsfordon_90,_Mechanised_Infantry_Light_Combat_Vehicle.png",
+      "author": "Mick Bell",
+      "licence": "CC-BY-4.0",
+      "sha256": "fcda23e1b6aa0291e945a2471d45050c0ac9ac7b66cd251e15becdeea0b45326",
+      "note": "Mick Bell 1/76 Strf 9040 plan, front view; 236.6 px/m. 3.34 m across the smoke dischargers, turret roof 2.29-2.44 m."
+    },
+    {
+      "file": "europe_cv90_cv9040c-rear-2.png",
+      "variant": "europe_cv90_cv9040c",
+      "view": "rear",
+      "source": "drawing",
+      "page": "https://commons.wikimedia.org/wiki/File:CV90,_Stridsfordon_90,_Mechanised_Infantry_Light_Combat_Vehicle.png",
+      "author": "Mick Bell",
+      "licence": "CC-BY-4.0",
+      "sha256": "8e49dfaedaf3eba0ec220ec333c0042f625d7e8b6b0f2b02cbecdde3da37911d",
+      "note": "Mick Bell 1/76 Strf 9040 plan, rear view; 236.6 px/m."
+    },
+    {
+      "file": "europe_cv90_mk_iv-side-2-generated.jpg",
+      "variant": "europe_cv90_mk_iv",
+      "view": "side",
+      "source": "generated",
+      "page": "",
+      "author": "generated",
+      "licence": "ours",
+      "sha256": "1cb1edb08c4995785dbcf83257b1e60a06b0ed506fc6b3e75978071dbe4fa312",
+      "note": "Generated orthographic left side (Q4 rung 3, slice 07b C7). Scaled to the official 6.8 m length it gives 223 px/m and a road-wheel pitch (length / 10.0) that agrees with the Mick Bell Strf 9040 plan. Against the CC0 side photo (-side.jpg) its hull stands about 7 % taller in road-wheel diameters, so heights read high by about that much: turret roof about 2.6 m (2.72 m raw), commander's sight head about 3.25 m (3.50 m raw). Its muzzle sits at the nose line, as in the photo. Layout and proportions only; the gateway takes no seed, so 0 records none.",
+      "model": "openai/gpt-image-2.6-flare",
+      "prompt": "Museum catalogue profile of the CV90 Mk IV tracked vehicle shown in the input photo: a pure 90-degree left side profile, flat elevation like a technical side drawing. The camera looks exactly at the left flank, so the front face and the top of the hull are NOT visible and both tracks overlap into one. Nose to the left. All seven road wheels on the near side appear as perfect circles in a row. Orthographic, no perspective, no foreshortening, level with the vehicle. The turret's cannon points straight forward, level. Whole vehicle in frame with margin, plain light grey background, flat ground line. Plain green paint, hatches closed, no people, no text.",
+      "inputs": [
+        "europe_cv90_mk_iv-side.jpg"
+      ],
+      "seed": 0
     }
   ],
   "gaps": [
     "CV9040C: Gotland Strf 9040 photos are assumed to be C standard from their add-on armour; their file pages do not say so.",
     "CV9040C: no three_quarter_rear photo.",
-    "CV9040C: no top view or close running-gear detail.",
+    "CV9040C: no close running-gear detail; the top, front and rear views are the base Strf 9040 plan, without the C kit.",
     "CV90 Mk IV: only three-quarter front and side photos (Slovak and Czech vehicles); no rear, three_quarter_rear, top or detail.",
-    "Ukrainian CV9040C command vehicles (Stripbv 90) were left out: different turret."
+    "Ukrainian CV9040C command vehicles (Stripbv 90) were left out: different turret.",
+    "CV90 Mk IV: no drawing or square-on photo; the side view is generated (-side-2-generated) and checked against the quarter photo -side.jpg, so its heights carry about +-0.15 m."
   ]
 }

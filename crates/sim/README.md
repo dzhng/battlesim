@@ -42,15 +42,19 @@ uses the observed center and declared offset, never a hidden operator position.
 ## Sensing
 
 [Optical sensing](src/sensing.rs) identifies visibility samples through clear
-lines of sight and foliage. A sample's target concealment is **ground × unit ×
-moving**: ground takes the stronger of forest and garrison shelter, the unit
-supplies its own concealment even in the open, and an in-progress move applies
-the authored movement multiplier. Airborne units bypass all three factors.
+lines of sight, tree crowns and smoke (`WorldGeometry::sight_depth`; a launch
+path and map analysis read the crowns alone). A sample's target concealment is
+**ground × unit × moving**: ground takes the strongest of forest, garrison
+shelter and a smoke cloud it stands in, the unit supplies its own concealment
+even in the open, and an in-progress move applies the authored movement
+multiplier. Airborne units bypass all three factors. A smoke cloud is not a
+body: it blocks no mover and stops no round, and a side sees one where its fog
+shows the ground at the cloud's rim ([smoke](src/smoke.rs)).
 
 Spotting adjusts that product, capped at full directional sight. At or above
 one it multiplies the product, so good eyes can cancel concealment completely;
 below one it raises the capped product to the reciprocal power, deepening
-concealment without changing an unconcealed target. Geometry and foliage still
+concealment without changing an unconcealed target. Geometry, foliage and smoke still
 limit identification. The published **HIDDEN** flag instead describes the
 target's situation: enough visibility samples must have both concealing ground
 and net target concealment below one. Known exposure to a visible enemy's eyes
@@ -92,17 +96,22 @@ reinforcement takes and where a unit leaves the map; the roads are the side's,
 shared by its players.
 
 [The skirmish AI](src/skirmish_ai/) plays one player from its side's
-observation, and everything it decides is an ordinary command.
+observation, and everything it decides is an ordinary command. A unit of its
+own that is losing a fight pops its smoke and reverses out of the cloud
+([smoke](src/skirmish_ai/smoke.rs)); a player's units only pop when ordered.
 [Team planning](src/skirmish_ai/team/) is the side's level of it: it spreads
 the side's AI players over lanes and objectives and sends help between them.
 
 [Active protection](src/protection.rs) owns finite defensive charges and cooldowns.
 Flight offers it only an imminent swept hull collision at the authored standoff;
-ordinary projectiles, passes and cover remain ordinary flight events. Supply
-service restores one charge from finite stock after offensive ammunition and
-before vehicle health or soldiers, then flares, at the service rules' flare
-rate and price (`service.flare_service_s`, `service.stock_per_flare`). A jet
-never stands still in reach, so it rearms flares only by withdrawing.
+ordinary projectiles, passes and cover remain ordinary flight events.
+[Supply service](src/supply.rs) works through a unit's needs in one order, each
+paid from the truck's finite stock: offensive ammunition, a protection charge,
+flares (at the service rules' `service.flare_service_s` and
+`service.stock_per_flare`), vehicle health, replacement soldiers, then smoke
+charges, one per delivery at the price and service time their capability
+authors. A jet never stands still in reach, so it rearms flares only by
+withdrawing.
 Protection state is part of the battle digest and never becomes an offensive
 weapon row.
 

@@ -54,6 +54,14 @@ change identity even when an unordered JSON comparison looks equal. [Generation
 compilation](../mapgen/README.md#compilation) explains how physical identity,
 execution allowance and source receipts differ.
 
+[Smoke](src/smoke.rs) is the one law of a smoke screen: how a popped cloud
+grows, holds and thins in steps over its life, and how much smoke a sight line
+crosses. Simulation sight, the fog's upload, the drawn cloud and its pop sound
+all ask it for a cloud's state rather than computing a phase themselves. The
+GPU fog can't call Rust, so its WGSL `fogSmokeStep` is the one deliberate copy,
+held to this law by [the renderer-core probe parity test](../renderer-core/tests/probes.rs);
+change them together.
+
 [Tests](tests/) pin admission, materialization and deterministic shared arithmetic.
 [The template report](examples/template_report.rs) inspects a supplied descriptor
 and placement frame without constructing a battle or loading art. Its source

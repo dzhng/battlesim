@@ -20,6 +20,12 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import hull_fittings as HF  # noqa: E402
+import hull_shape as HS  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import running_gear as RG  # noqa: E402
+import stowage as SW  # noqa: E402
+import vehicle_guns as VG  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
@@ -35,21 +41,21 @@ WAIST = 0.98
 ROOF = 1.60
 NOSE = 1.90
 # The flank above the waist, leaning in to the roof, as (y, z) at its foot
-# and top (`vehicle_parts.on_side`).
+# and top (`hull_shape.on_side`).
 FLANK = ((0.98, 1.05), (0.80, ROOF))
 
 
 def build(variant, v):
     m, hull = v.mats, v.hull
     black = dict(m, paint=m["black"])
-    loft("vbl_body", [(BELLY, VP.hull_plan(-1.75, 1.75, 0.70, 0.25)),
-                      (WAIST, VP.hull_plan(-1.90, NOSE, 0.98, 0.35)),
-                      (1.05, VP.hull_plan(-1.88, NOSE - 0.05, 0.98, 0.35)),
-                      (1.25, VP.hull_plan(-1.82, 1.20, 0.92, 0.20)),
-                      (ROOF, VP.hull_plan(-1.55, 0.55, 0.80, 0.15))], mat=m["paint"], parent=hull, bevel=0.045)
+    loft("vbl_body", [(BELLY, HS.hull_plan(-1.75, 1.75, 0.70, 0.25)),
+                      (WAIST, HS.hull_plan(-1.90, NOSE, 0.98, 0.35)),
+                      (1.05, HS.hull_plan(-1.88, NOSE - 0.05, 0.98, 0.35)),
+                      (1.25, HS.hull_plan(-1.82, 1.20, 0.92, 0.20)),
+                      (ROOF, HS.hull_plan(-1.55, 0.55, 0.80, 0.15))], mat=m["paint"], parent=hull, bevel=0.045)
     for side, s in ((1, "L"), (-1, "R")):
         for k, x in enumerate(AXLES):
-            VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, black, hull,
+            RG.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, black, hull,
                           rim_radius=0.24, tread="bar", hub_bolts=6)
             box(f"a_arm_{s}_{k}", (0.22, 0.30, 0.07), (x, side * (WHEEL_Y - 0.30), WHEEL_R - 0.04), m["dark"], hull,
                 lods=NEAR)
@@ -68,26 +74,26 @@ def fittings(v):
     for side, s in ((1, "L"), (-1, "R")):
         cyl(f"headlight_{s}", 0.065, 0.03, (NOSE - 0.02, side * 0.48, 0.90), "X", m["lamp"], hull, seg=14, lods=MID)
         box(f"marker_{s}", (0.02, 0.10, 0.12), (NOSE - 0.02, side * 0.66, 0.90), m["tail"], hull, lods=MID)
-        VP.tow_hook(f"front_tow_{s}", (NOSE - 0.10, side * 0.45, 0.62), m, hull, size=0.09)
+        HF.tow_hook(f"front_tow_{s}", (NOSE - 0.10, side * 0.45, 0.62), m, hull, size=0.09)
         # Engine louvres on the side ahead of the door.
-        loc, rot = VP.on_side(1.05, 1.12, side, *FLANK)
-        VP.grille(f"side_louvre_{s}", loc, (0.45, 0.22), m, hull, slats=7, rot=rot)
+        loc, rot = HS.on_side(1.05, 1.12, side, *FLANK)
+        HF.grille(f"side_louvre_{s}", loc, (0.45, 0.22), m, hull, slats=7, rot=rot)
         # The door on the leaning flank, its window and handle on it.
-        loc, rot = VP.on_side(0.10, 1.30, side, *FLANK, proud=0.015, standing=True)
+        loc, rot = HS.on_side(0.10, 1.30, side, *FLANK, proud=0.015, standing=True)
         box(f"door_{s}", (0.70, 0.03, 0.55), loc, m["paint"], hull, rot=rot, bevel=0.012, lods=MID)
-        loc, rot = VP.on_side(0.15, 1.48, side, *FLANK, proud=0.035, standing=True)
+        loc, rot = HS.on_side(0.15, 1.48, side, *FLANK, proud=0.035, standing=True)
         box(f"door_window_{s}", (0.40, 0.02, 0.14), loc, m["glass"], hull, rot=rot, lods=MID)
-        loc, rot = VP.on_side(-0.15, 1.20, side, *FLANK, proud=0.05, standing=True)
+        loc, rot = HS.on_side(-0.15, 1.20, side, *FLANK, proud=0.05, standing=True)
         box(f"door_handle_{s}", (0.12, 0.04, 0.04), loc, m["steel"], hull, rot=rot, lods=FINE)
         mirror = empty(f"dressing_mirror_{s}", parent=hull)
         box(f"mirror_arm_{s}", (0.03, 0.03, 0.30), (0.55, side * 1.02, 1.40), m["black"], mirror, lods=NEAR)
         box(f"mirror_{s}", (0.04, 0.14, 0.22), (0.55, side * 1.05, 1.62), m["black"], mirror, bevel=0.01, lods=MID)
-        VP.light_with_guard(f"tail_light_{s}", (-1.90, side * 0.80, 1.00), 0.04, dict(m, lamp=m["tail"]), hull,
+        HF.light_with_guard(f"tail_light_{s}", (-1.90, side * 0.80, 1.00), 0.04, dict(m, lamp=m["tail"]), hull,
                             rot=(0, 0, math.pi))
         whip = empty(f"dressing_antenna_{s}", parent=hull)
-        VP.antenna(f"antenna_{s}", (-1.40, side * 0.70, ROOF), m, whip, height=2.4)
+        RF.antenna(f"antenna_{s}", (-1.40, side * 0.70, ROOF), m, whip, height=2.4)
     slope = math.atan((1.25 - 1.05) / (NOSE - 0.05 - 1.20))
-    VP.grille("hood_grille", (1.55, 0.25, 1.15), (0.30, 0.40), m, hull, slats=5, rot=(0, slope, 0))
+    HF.grille("hood_grille", (1.55, 0.25, 1.15), (0.30, 0.40), m, hull, slats=5, rot=(0, slope, 0))
     rake = math.atan((1.20 - 0.55) / (ROOF - 1.25))
     for k, y in enumerate((0.38, -0.38)):
         box(f"windscreen_{k}", (0.02, 0.62, 0.34), (0.87, y, 1.43), m["glass"], hull, rot=(0, -rake, 0),
@@ -100,9 +106,9 @@ def fittings(v):
             lods=NEAR)
     box("shovel_handle", (0.80, 0.03, 0.04), (-1.30, 0.97, 1.32), m["dark"], kit, lods=NEAR)
     box("shovel_blade", (0.20, 0.02, 0.16), (-0.85, 0.97, 1.32), m["steel"], kit, lods=NEAR)
-    VP.stowage_box("flank_box", (-1.25, -0.98, 1.05), (0.50, 0.18, 0.36), dict(m, paint=m["dark"]), kit)
+    SW.stowage_box("flank_box", (-1.25, -0.98, 1.05), (0.50, 0.18, 0.36), dict(m, paint=m["dark"]), kit)
     for k, y in enumerate((0.35, 0.65)):
-        VP.jerrycan(f"rear_jerrycan_{k}", (-1.98, y, 0.95), dict(m, paint=m["dark"]), kit)
+        SW.jerrycan(f"rear_jerrycan_{k}", (-1.98, y, 0.95), dict(m, paint=m["dark"]), kit)
     box("rear_door", (0.03, 0.55, 0.55), (-1.88, -0.25, 1.25), m["paint"], hull, rot=(0, -0.3, 0), bevel=0.012,
         lods=MID)
 
@@ -116,7 +122,7 @@ def ring_mount(v, station, pitch, pivot):
     cyl("ring_rail", 0.44, 0.03, (0, 0, foot + 0.14), "Z", m["black"], station, seg=24, lods=NEAR)
     box("shield", (0.03, 0.42, 0.24), (0.32, 0, 0.02), m["paint"], station, bevel=0.01)
     box("pintle", (0.08, 0.08, 0.20), (0.15, 0, foot + 0.12), m["dark"], station, lods=MID)
-    VP.browning_m2(pitch, v.frame["mounts"][0]["muzzle_m"][0], m, grips=True)
+    VG.browning_m2(pitch, v.frame["mounts"][0]["muzzle_m"][0], m, grips=True)
     box("ammo_box", (0.26, 0.10, 0.18), (0.06, -0.13, -0.06), m["dark"], pitch, bevel=0.01, lods=MID)
     if not v.wreck:
         v.crew.append(("gunner", station, (-0.30, 0.0, ROOF - 0.18),

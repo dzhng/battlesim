@@ -27,7 +27,7 @@ import { execFileSync } from "node:child_process";
 import { mkdir, rm } from "node:fs/promises";
 import { startServer } from "./scene.mjs";
 import { launchBrowser } from "./browser.mjs";
-import { advance, lab, until } from "./scenes/_lab.mjs";
+import { advance, lab, own, until } from "./scenes/_lab.mjs";
 import { unitType } from "./scenes/_units.mjs";
 
 const HERE = new URL(".", import.meta.url);
@@ -314,6 +314,20 @@ async function rightDrag(browser, url) {
 
 async function battle(page) {
   await deploy(page, FORCE);
+  // Once the force has arrived, it moves onto the objective nearest it, found
+  // in the observation: a human's units hold where they were bought.
+  const arrived = await moment(page, "the opening force arrived", (o) => o.own.length >= FORCE.length, 1800);
+  const [cx, cy] = [0, 1].map((i) => arrived.own.reduce((a, u) => a + u.position[i], 0) / arrived.own.length);
+  const [goal] = arrived.skirmish.objectives
+    .map((x) => ({ x, d: Math.hypot(x.center[0] - cx, x.center[1] - cy) }))
+    .sort((a, b) => a.d - b.d);
+  await command(page, {
+    kind: "move",
+    units: arrived.own.map((u) => u.id),
+    gesture: 1,
+    goal: goal.x.center,
+    route: "fastest",
+  });
 
   // Capturing: a unit of ours in a ring, its flag counting up.
   const capture = await moment(
@@ -389,14 +403,14 @@ async function air(browser, url) {
   const page = await openBattle(browser, url);
   await deploy(page, FORCE);
   const [kind, destination] = JET;
-  await moment(page, "credits for a jet", (o) => o.skirmish.credits >= unitType(kind).cost, 6000);
+  await moment(page, "credits for a jet", (o) => own(o).credits >= unitType(kind).cost, 6000);
   const ack = await command(page, { kind: "confirm_purchase", variant: kind, destination });
   if (ack?.error) throw new Error(`buying ${kind}: ${JSON.stringify(ack.error)}`);
   // Its card counting down, a few seconds into the wait.
   await moment(
     page,
     "the jet waiting off the map",
-    (o) => o.skirmish.pending.some((p) => p.kind === kind && p.arrivalTick > o.tick + 150),
+    (o) => own(o).pending.some((p) => p.kind === kind && p.arrivalTick > o.tick + 150),
     600,
   );
   await page.mouse.move(VIEWPORT.width / 2, VIEWPORT.height / 3);

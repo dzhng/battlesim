@@ -172,6 +172,7 @@
     "us_m1_abrams_sep_v3_trophy: no top view; turret roof from the detail (CROWS-LP) and the front view.",
     "us_m1_abrams_sep_v2: no top view; turret roof from the detail and the three-quarter rear.",
     "us_m1_abrams_sep_v2_trophy: no front, rear or top view; hull matches us_m1_abrams_sep_v2.",
-    "all variants: no running-gear close-up; road wheels, sprocket and idler read from the side views."
+    "all variants: no running-gear close-up; road wheels, sprocket and idler read from the side views.",
+    "no free three-view drawing (Commons holds clipart only); the frame survey measured a copyrighted M1A2 SEP three-view in throwaway, numbers and source in specs/done/tracked-armour-models/assets/frames/abrams.json"
   ]
 }

@@ -125,6 +125,13 @@ const STATE_ICONS = {
   // fall, each ending in its burning head.
   flares:
     '<path d="M10 3c0 5-1 9-2.5 12M14 3c0 5 1 9 2.5 12"/><circle cx="7" cy="18" r="2.3" fill="currentColor"/><circle cx="17" cy="18" r="2.3" fill="currentColor"/>',
+  // Smoke: a banded grenade with its puffs rising from the mouth, apart and
+  // growing as they rise, solid so they read as smoke at panel size (touching
+  // puffs merged into a club). One mark for the charges a panel
+  // counts and the command that spends one. A lone billow read as a bun,
+  // and a cloud over a canister as cloud storage.
+  smoke:
+    '<rect x="4" y="14" width="6" height="8" rx="1"/><path d="M4 17h6"/><circle cx="9.6" cy="10.8" r="1.5" fill="currentColor"/><circle cx="13.6" cy="7.6" r="2.2" fill="currentColor"/><circle cx="19" cy="4.4" r="3" fill="currentColor"/>',
 } as const;
 
 export type StateIcon = keyof typeof STATE_ICONS;

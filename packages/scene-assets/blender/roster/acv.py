@@ -22,6 +22,12 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import armour_parts as AR  # noqa: E402
+import hull_fittings as HF  # noqa: E402
+import hull_shape as HS  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import running_gear as RG  # noqa: E402
+import vehicle_guns as VG  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
@@ -39,7 +45,7 @@ ROOF = 2.70
 BOW = 4.60
 EDGE_Z = 1.55
 # The flared upper side leaning back in to the roof, as (y, z) at its foot
-# and top (`vehicle_parts.on_side`).
+# and top (`hull_shape.on_side`).
 UPPER_SIDE = ((1.55, FLARE), (1.32, ROOF))
 GLACIS_TOP = 3.00
 
@@ -50,15 +56,15 @@ def glacis_z(x):
 
 def build(variant, v):
     m, hull = v.mats, v.hull
-    loft("acv_lower", [(BELLY, VP.hull_plan(-4.35, 3.40, 0.95, 0.35)), (SHELF, VP.hull_plan(-4.50, 3.90, 1.00, 0.45))],
+    loft("acv_lower", [(BELLY, HS.hull_plan(-4.35, 3.40, 0.95, 0.35)), (SHELF, HS.hull_plan(-4.50, 3.90, 1.00, 0.45))],
          mat=m["dark"], parent=hull, bevel=0.04)
-    loft("acv_upper", [(SHELF, VP.hull_plan(-4.55, 4.05, 1.30, 0.70)),
-                       (EDGE_Z, VP.hull_plan(-4.60, BOW, 1.50, 0.85)),
-                       (FLARE, VP.hull_plan(-4.60, 4.35, UPPER_SIDE[0][0], 0.80)),
-                       (ROOF, VP.hull_plan(-4.50, GLACIS_TOP, UPPER_SIDE[1][0], 0.45))], mat=m["paint"], parent=hull, bevel=0.05)
+    loft("acv_upper", [(SHELF, HS.hull_plan(-4.55, 4.05, 1.30, 0.70)),
+                       (EDGE_Z, HS.hull_plan(-4.60, BOW, 1.50, 0.85)),
+                       (FLARE, HS.hull_plan(-4.60, 4.35, UPPER_SIDE[0][0], 0.80)),
+                       (ROOF, HS.hull_plan(-4.50, GLACIS_TOP, UPPER_SIDE[1][0], 0.45))], mat=m["paint"], parent=hull, bevel=0.05)
     for side, s in ((1, "L"), (-1, "R")):
         for k, x in enumerate(WHEEL_X):
-            VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,
+            RG.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,
                           rim_radius=0.33, ctis=True, hub_bolts=10)
             arm_y = side * (WHEEL_Y - 0.44)  # Center arm to span hull (Y~0.95) to wheel (Y=1.09)
             arm_z = WHEEL_R + 0.02  # Slightly above wheel center
@@ -79,19 +85,19 @@ def fittings(v):
     # The prow: bolted plates on its upper face, lights in its corners, tow
     # shackles under the edge.
     for k, y in enumerate((0.65, -0.65)):
-        VP.bolted_panel(f"prow_plate_{k}", (3.85, y, glacis_z(3.85)), (0.95, 1.15, 0.035), m, hull, bolts=(3, 4),
+        AR.bolted_panel(f"prow_plate_{k}", (3.85, y, glacis_z(3.85)), (0.95, 1.15, 0.035), m, hull, bolts=(3, 4),
                         rot=(0, slope, 0))
     for side, s in ((1, "L"), (-1, "R")):
         box(f"light_recess_{s}", (0.30, 0.30, 0.20), (4.12, side * 1.18, EDGE_Z + 0.12), m["black"], hull, lods=MID)
         for k, y in enumerate((1.10, 1.26)):
             cyl(f"headlight_{s}_{k}", 0.055, 0.03, (4.26, side * y, EDGE_Z + 0.12), "X", m["lamp"], hull, seg=12,
                 lods=MID)
-        VP.shackle(f"prow_shackle_{s}", (4.30, side * 0.50, EDGE_Z - 0.12), m, hull, size=0.14,
+        HF.shackle(f"prow_shackle_{s}", (4.30, side * 0.50, EDGE_Z - 0.12), m, hull, size=0.14,
                    rot=(0, 0, math.pi / 2))
         # Bolted panels along the flared upper side.
         for k, x in enumerate((2.70, 1.20, -0.30, -1.80, -3.30)):
-            loc, rot = VP.on_side(x, 2.15, side, *UPPER_SIDE)
-            VP.bolted_panel(f"side_panel_{s}_{k}", loc, (1.35, 0.62, 0.025), m, hull, bolts=(4, 3), rot=rot,
+            loc, rot = HS.on_side(x, 2.15, side, *UPPER_SIDE)
+            AR.bolted_panel(f"side_panel_{s}_{k}", loc, (1.35, 0.62, 0.025), m, hull, bolts=(4, 3), rot=rot,
                             bevel=0.012)
         # The rear: a flared corner housing with its tail light, and under it
         # the propeller in its shroud.
@@ -113,21 +119,19 @@ def fittings(v):
     # Roof: hatches outboard of the remote station, the vents, the stowage
     # tubes, antennas.
     for k, (x, y) in enumerate(((-1.20, 0.74), (-1.20, -0.74), (-2.40, 0.74))):
-        VP.hatch(f"roof_hatch_{k}", (x, y, ROOF), m, hull, size=(0.85, 0.66))
-    VP.hatch("driver_hatch", (2.55, 0.70, ROOF), m, hull, radius=0.30)
+        RF.hatch(f"roof_hatch_{k}", (x, y, ROOF), m, hull, size=(0.85, 0.66))
+    RF.hatch("driver_hatch", (2.55, 0.70, ROOF), m, hull, radius=0.30)
     for k, y in enumerate((0.45, 0.70, 0.95)):
-        VP.periscope(f"driver_periscope_{k}", (2.95, y, ROOF), m, hull, size=(0.12, 0.17, 0.09))
-    VP.grille("engine_grille", (2.30, -0.65, ROOF), (0.90, 0.70), m, hull, slats=8)
+        RF.periscope(f"driver_periscope_{k}", (2.95, y, ROOF), m, hull, size=(0.12, 0.17, 0.09))
+    HF.grille("engine_grille", (2.30, -0.65, ROOF), (0.90, 0.70), m, hull, slats=8)
     rack = empty("dressing_stowage_tubes", parent=hull)
     for k, y in enumerate((-0.80, -1.12)):
         cyl(f"stowage_tube_{k}", 0.15, 1.60, (-3.10, y, ROOF + 0.15), "X", dict(m, paint=m["dark"])["paint"], rack,
             seg=16, bevel=0.02)
     for k, x in enumerate((-3.70, -2.50)):
         box(f"tube_rack_{k}", (0.06, 0.70, 0.18), (x, -0.96, ROOF + 0.09), m["steel"], rack, lods=NEAR)
-    for side, s in ((1, "L"), (-1, "R")):
-        whip = empty(f"dressing_antenna_{s}", parent=hull)
-        VP.antenna(f"antenna_{s}", (-4.20, side * 1.15, ROOF), m, whip, height=2.8)
-    VP.exhaust("exhaust", (1.20, -1.58, 2.05), 0.08, 0.40, m, hull, rot=(0, 0, -math.pi / 2))
+    RF.whip_pair(hull, (-4.20, 1.15, ROOF), m, height=2.8)
+    HF.exhaust("exhaust", (1.20, -1.58, 2.05), 0.08, 0.40, m, hull, rot=(0, 0, -math.pi / 2))
 
 
 def protector(v, station, pitch, pivot):
@@ -142,9 +146,9 @@ def protector(v, station, pitch, pivot):
     for side in (-1, 1):
         box(f"station_cradle_{side}", (0.38, 0.05, 0.30), (0.0, side * 0.17, -0.02), m["paint"], station,
             bevel=0.012)
-    VP.sight_housing("station_sight", (0.08, 0.32, -0.10), m, pitch, size=(0.32, 0.20, 0.24))
+    RF.sight_housing("station_sight", (0.08, 0.32, -0.10), m, pitch, size=(0.32, 0.20, 0.24))
     box("station_ammo", (0.32, 0.15, 0.26), (-0.02, -0.30, -0.08), m["paint"], pitch, bevel=0.012, lods=MID)
-    VP.browning_m2(pitch, v.frame["mounts"][0]["muzzle_m"][0], m)
+    VG.browning_m2(pitch, v.frame["mounts"][0]["muzzle_m"][0], m)
 
 
 def wreck(variant, v):

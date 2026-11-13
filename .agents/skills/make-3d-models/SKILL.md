@@ -1,6 +1,6 @@
 ---
 name: make-3d-models
-description: Make or improve a unit's 3D model (a jet, vehicle, helicopter, prop) from its references, procedurally and optionally under a generated image-to-3D skin. Use when a model looks wrong, plain or lumpy against its photos or a target game's quality; when a new unit needs a model; or when choosing, feeding or cleaning up a 3D generator (Hunyuan3D, Meshy, Tripo, Rodin).
+description: Make or improve a unit's 3D model (a tank or other tracked vehicle, a jet, vehicle, helicopter, prop) from its references, procedurally, as a body script written by a model (Gemini Argon), or under a generated image-to-3D skin. Use when a model looks wrong, plain or lumpy against its photos or a target game's quality; when a new unit needs a model; or when choosing, feeding or cleaning up a 3D generator (Hunyuan3D, Meshy, Tripo, Rodin).
 ---
 
 # Make 3D Models
@@ -21,6 +21,13 @@ has already got right. It is never the source of proportions.
   - On a skinned unit the body comes from the skin, not the roster script.
   - A shape fix there goes into the guide, then a new skin, then a refit of
     the roster script around it.
+- A **body script** is a standalone Blender `build.py` that a model (Gemini
+  Argon, in Bento) writes from the references and our measurements, kept
+  with its rounds under `assets/source/skins/<family>/`. Every tracked
+  vehicle wears one (`scripted_body`). After its rounds (two, unless the user
+  grants another) it is edited in place; the README of the round the family
+  wears lists those edits. A turret or hull that local edits can't fix is
+  another round's work, not a patch over the script.
 - A family's **reference library** holds its photos and drawings with their
   licences. Record a drawing's crop and measured scale in its note so the
   next measurement reuses them.
@@ -106,11 +113,16 @@ gives its arguments.
   length.
   - Read the stations to size a fix in metres.
   - Read the image to see where the fix goes.
-  - Gear, stores and pylons are left out of the model; the drawing's own are
-    not, so expect them in pink.
+  - Its last argument picks the parts compared. `aircraft` (the default)
+    leaves gear, stores and pylons out of the model. `vehicle` keeps the
+    running gear (wheels and track belts) and leaves every `dressing_*`
+    subtree out, so the outline is the one the battle frame holds, and it
+    stands side and front views on the ground line. Either way the
+    drawing's own gear or antennas show in pink.
 - **`scripts/closeups.py`** renders tier 0 of each model from six framed
   close views, or your own (`--shot`, given as fractions of the bounds so one
-  list fits every model). Each view comes out shaded and as a matcap.
+  list fits every model, or in metres for a camera that keeps its distance).
+  Each view comes out shaded and as a matcap.
   - The matcap shows the surface alone: wrinkles, dents and undulation that
     paint hides.
   - The shaded view shows seams, floating parts and paint.
@@ -143,6 +155,20 @@ result as it lands, polling briefly, and keep test renders small.
   user agent, and serves its SVG drawings as PNG renders on request.
 - **Silent budgets.** Triangles add up against the catalog's load limit. A
   failed commit hook can leave LFS files as pointers.
+- **A shape pushed after the build reads as an add-on.** A post-step that
+  moves vertices toward a target (sweeping a front back to a line) flattens
+  what it clamps, and the result reads as a box with something stuck on it.
+  Build the shape into the parts.
+- **The wrong part gets blamed for proportions.** A turret reads too tall
+  when the deck is low or the skirts hang over the wheels. Measure the deck,
+  the skirts' foot, the gun's axis and the roof against a side photo before
+  resizing anything.
+- **A barrel built from sections floats** when one section moves. Give it one
+  core tube and sleeve the rest onto it.
+- **Weathering painted per vertex follows the mesh, not the surface.** It
+  shows on densely built panels and vanishes on plain ones, so siblings
+  weather differently. The tell is dirt on one model and none on its plainer
+  neighbour.
 
 Blender scripting traps live in [references/blender.md](references/blender.md).
 Read it when a script runs but its result looks wrong.

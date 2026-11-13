@@ -87,6 +87,7 @@ test("learned and fallen unit art stays until the battle or observing side chang
     fallenBodies: [],
     propDisplayPoses: [],
     grinds: [],
+    smokeClouds: [],
     crashes: [],
     shouts: [],
     guided: [],

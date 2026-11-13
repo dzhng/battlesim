@@ -20,6 +20,34 @@ fn fogFoliage(q: vec2f) -> vec2f {
   return vec2f(0.0);
 }
 
+// @block fog_fogSmokeStep
+fn fogSmokeStep(a: vec2f, b: vec2f, sightZ: f32, groundZ: f32) -> f32 {
+  // `contract::smoke::piece_depth`: each cloud whose top over the ground
+  // stands above the sight line adds its chord of a→b times its depth per
+  // metre; overlapping clouds add. Measured along and across the step, not
+  // by the quadratic's discriminant, so f32 keeps its precision at map scale.
+  let P = fogParams;
+  if (P.smokeCount == 0u) { return 0.0; }
+  let d = b - a;
+  let len = length(d);
+  if (len <= 0.0) { return 0.0; }
+  let u = d / len;
+  var depth = 0.0;
+  for (var i = 0u; i < P.smokeCount; i++) {
+    let c = smoke[i];
+    if (sightZ >= groundZ + c.height) { continue; }
+    let f = c.center - a;
+    let along = dot(f, u);
+    let across = f.x * u.y - f.y * u.x;
+    let half2 = c.radius * c.radius - across * across;
+    if (half2 <= 0.0) { continue; }
+    let half = sqrt(half2);
+    let chord = min(along + half, len) - max(along - half, 0.0);
+    if (chord > 0.0) { depth = depth + chord * c.depthPerM; }
+  }
+  return depth;
+}
+
 // @block fog_fogSeenBy
 fn fogSeenBy(ei: u32, p: vec3f, n: vec3f) -> bool {
   let e = eyes[ei];
@@ -120,6 +148,16 @@ struct FogBox {
   base: f32,
 }
 
+// @block fog_FogSmoke
+struct FogSmoke {
+  center: vec2f,
+  radius: f32,
+  height: f32,
+  depthPerM: f32,
+  pad0: f32,
+  pad1: vec2f,
+}
+
 // @block fog_FogEye
 struct FogEye {
   position: vec3f,
@@ -162,6 +200,7 @@ struct FogParams {
   foliageCellM: f32,
   foliageFullBlock: f32,
   minSightGapM: f32,
+  smokeCount: u32,
   playable: vec4f,
   heightSpacing: f32,
   faceProbeM: f32,
@@ -304,6 +343,12 @@ fn modelSeen(world: vec3f, normal: vec3f, anchor: vec3f, pixel: vec2f) -> f32 {
 
 // @block fog_params
 @group(GROUP) @binding(0) var<uniform> fogParams: FogParams;
+
+// @block fog_smoke
+@group(0) @binding(8) var<storage, read> smoke: array<FogSmoke>;
+
+// @block fog_lines_smokeLayout
+@group(0) @binding(2) var<storage, read> lines: array<vec4f>;
 
 // @block fog_points
 @group(1) @binding(0) var<storage, read> points: array<FogProbe>;

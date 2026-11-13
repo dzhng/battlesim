@@ -743,6 +743,72 @@
       "path": "assets/third-party/audio/aa-gun-Zj4xZlU-1wM.webm",
       "sha256": "12c64328874fdef786f117a102753095d60035069a9499dec32efe2a1b45577a",
       "notes": "Slice 03 yt-dlp source, admitted for this private project by the user on 2026-10-29."
+    },
+    "smoke-discharger-1": {
+      "kind": "Generated",
+      "generator": "ElevenLabs sound effects",
+      "model": "eleven_text_to_sound_v2",
+      "prompt": "A tank fires its smoke grenade dischargers, heard close by outdoors: two fast heavy hollow thumps, thump-thump, a fraction of a second apart, then a long rushing hiss of smoke pouring out that slowly fades away. Only the machine: no voices, no people, no crowd, no talking, no shouting, no cheering, no radio chatter, no music.",
+      "length_s": 5,
+      "date": "2026-11-13",
+      "plan": "Duet ElevenLabs",
+      "path": "assets/source/audio/effects/smoke-discharger-1.c4fb9023.mp3",
+      "sha256": "c4fb9023188af29135c4413129768211f6b1f7ff5ce67a5548de074f4bdc1257"
+    },
+    "smoke-discharger-2": {
+      "kind": "Generated",
+      "generator": "ElevenLabs sound effects",
+      "model": "eleven_text_to_sound_v2",
+      "prompt": "A tank fires its smoke grenade dischargers, heard close by outdoors: two fast heavy hollow thumps, thump-thump, a fraction of a second apart, then a long rushing hiss of smoke pouring out that slowly fades away. Only the machine: no voices, no people, no crowd, no talking, no shouting, no cheering, no radio chatter, no music.",
+      "length_s": 5,
+      "date": "2026-11-13",
+      "plan": "Duet ElevenLabs",
+      "path": "assets/source/audio/effects/smoke-discharger-2.2f865cde.mp3",
+      "sha256": "2f865cde91f50ae5414544f88b535b2b99d76adebb43e8c96f0cdabbc360b629"
+    },
+    "smoke-discharger-3": {
+      "kind": "Generated",
+      "generator": "ElevenLabs sound effects",
+      "model": "eleven_text_to_sound_v2",
+      "prompt": "A tank fires its smoke grenade dischargers, heard close by outdoors: two fast heavy hollow thumps, thump-thump, a fraction of a second apart, then a long rushing hiss of smoke pouring out that slowly fades away. Only the machine: no voices, no people, no crowd, no talking, no shouting, no cheering, no radio chatter, no music.",
+      "length_s": 5,
+      "date": "2026-11-13",
+      "plan": "Duet ElevenLabs",
+      "path": "assets/source/audio/effects/smoke-discharger-3.559fe89e.mp3",
+      "sha256": "559fe89e3c874bd4c188f516c4d3fc62ef0b67a0e7a3029ed2a9fb1e27eec6d0"
+    },
+    "smoke-grenade-1": {
+      "kind": "Generated",
+      "generator": "ElevenLabs sound effects",
+      "model": "eleven_text_to_sound_v2",
+      "prompt": "A soldier throws a hand smoke grenade, heard close by outdoors: the metallic ping of the spoon flying off, a short dull pop as it ignites, then a steady hissing spew of smoke that slowly fades away. Only the machine: no voices, no people, no crowd, no talking, no shouting, no cheering, no radio chatter, no music.",
+      "length_s": 4,
+      "date": "2026-11-13",
+      "plan": "Duet ElevenLabs",
+      "path": "assets/source/audio/effects/smoke-grenade-1.3a52d423.mp3",
+      "sha256": "3a52d423e9792c16a06134dc5182a1663cb1ebc1db6d5a543b130e5be58ab9c0"
+    },
+    "smoke-grenade-2": {
+      "kind": "Generated",
+      "generator": "ElevenLabs sound effects",
+      "model": "eleven_text_to_sound_v2",
+      "prompt": "A soldier throws a hand smoke grenade, heard close by outdoors: the metallic ping of the spoon flying off, a short dull pop as it ignites, then a steady hissing spew of smoke that slowly fades away. Only the machine: no voices, no people, no crowd, no talking, no shouting, no cheering, no radio chatter, no music.",
+      "length_s": 4,
+      "date": "2026-11-13",
+      "plan": "Duet ElevenLabs",
+      "path": "assets/source/audio/effects/smoke-grenade-2.93ca0058.mp3",
+      "sha256": "93ca0058179240e2bd01b307f4a44797186bb82b626e461b7614c0b18657e187"
+    },
+    "smoke-grenade-3": {
+      "kind": "Generated",
+      "generator": "ElevenLabs sound effects",
+      "model": "eleven_text_to_sound_v2",
+      "prompt": "A soldier throws a hand smoke grenade, heard close by outdoors: the metallic ping of the spoon flying off, a short dull pop as it ignites, then a steady hissing spew of smoke that slowly fades away. Only the machine: no voices, no people, no crowd, no talking, no shouting, no cheering, no radio chatter, no music.",
+      "length_s": 4,
+      "date": "2026-11-13",
+      "plan": "Duet ElevenLabs",
+      "path": "assets/source/audio/effects/smoke-grenade-3.070dbd6c.mp3",
+      "sha256": "070dbd6c646faf0504ba1145fb134f96ccdcee8170b0b17cb55fb70a577f161b"
     }
   },
   "clips": {
@@ -5010,6 +5076,96 @@
         454416,
         484800
       ]
+    },
+    "smoke-discharger-1": {
+      "label": "Smoke screen \u00b7 generated discharger 1",
+      "category": "smoke-screen",
+      "role": "launch",
+      "source": "smoke-discharger-1",
+      "source_rate": 44100,
+      "source_frames": [0, 220500],
+      "processing": "launch",
+      "url": "/audio/clips/smoke-discharger-1.wav",
+      "sha256": "7c58c6fbb059b45bb6f246353ce0cc946ef65d58156f63503e80cafd9c41b947",
+      "sample_rate": 48000,
+      "frames": 240000,
+      "loop": false,
+      "notes": "Generated with ElevenLabs sound effects through Duet; the prompt rules out voices and crowd noise."
+    },
+    "smoke-discharger-2": {
+      "label": "Smoke screen \u00b7 generated discharger 2",
+      "category": "smoke-screen",
+      "role": "launch",
+      "source": "smoke-discharger-2",
+      "source_rate": 44100,
+      "source_frames": [0, 220500],
+      "processing": "launch",
+      "url": "/audio/clips/smoke-discharger-2.wav",
+      "sha256": "85da5ab7e1567220e23d9d0a41026f46e57899d51e5a18a5a3b9d2c67efed231",
+      "sample_rate": 48000,
+      "frames": 240000,
+      "loop": false,
+      "notes": "Generated with ElevenLabs sound effects through Duet; the prompt rules out voices and crowd noise."
+    },
+    "smoke-discharger-3": {
+      "label": "Smoke screen \u00b7 generated discharger 3",
+      "category": "smoke-screen",
+      "role": "launch",
+      "source": "smoke-discharger-3",
+      "source_rate": 44100,
+      "source_frames": [0, 220500],
+      "processing": "launch",
+      "url": "/audio/clips/smoke-discharger-3.wav",
+      "sha256": "61eb20517006084b90ee085e8d0a6d8ddfcb576162c7a4e50280d12791c0c951",
+      "sample_rate": 48000,
+      "frames": 240000,
+      "loop": false,
+      "notes": "Generated with ElevenLabs sound effects through Duet; the prompt rules out voices and crowd noise."
+    },
+    "smoke-grenade-1": {
+      "label": "Smoke screen \u00b7 generated grenade 1",
+      "category": "smoke-screen",
+      "role": "launch",
+      "source": "smoke-grenade-1",
+      "source_rate": 44100,
+      "source_frames": [0, 176400],
+      "processing": "launch",
+      "url": "/audio/clips/smoke-grenade-1.wav",
+      "sha256": "b679f4d8013e6662836c92ea71d1818bd96decbb53a62869f16e73b662c709df",
+      "sample_rate": 48000,
+      "frames": 192000,
+      "loop": false,
+      "notes": "Generated with ElevenLabs sound effects through Duet; the prompt rules out voices and crowd noise."
+    },
+    "smoke-grenade-2": {
+      "label": "Smoke screen \u00b7 generated grenade 2",
+      "category": "smoke-screen",
+      "role": "launch",
+      "source": "smoke-grenade-2",
+      "source_rate": 44100,
+      "source_frames": [0, 176400],
+      "processing": "launch",
+      "url": "/audio/clips/smoke-grenade-2.wav",
+      "sha256": "0e21eeaa9dc9d54e7bc891e899c39abd6bbeb98739201120be94afd0825663d2",
+      "sample_rate": 48000,
+      "frames": 192000,
+      "loop": false,
+      "notes": "Generated with ElevenLabs sound effects through Duet; the prompt rules out voices and crowd noise."
+    },
+    "smoke-grenade-3": {
+      "label": "Smoke screen \u00b7 generated grenade 3",
+      "category": "smoke-screen",
+      "role": "launch",
+      "source": "smoke-grenade-3",
+      "source_rate": 44100,
+      "source_frames": [0, 176400],
+      "processing": "launch",
+      "url": "/audio/clips/smoke-grenade-3.wav",
+      "sha256": "4413e5ab8b1c821675f23de5b3a8bb90a963e39497536349ec829ecd85173b80",
+      "sample_rate": 48000,
+      "frames": 192000,
+      "loop": false,
+      "notes": "Generated with ElevenLabs sound effects through Duet; the prompt rules out voices and crowd noise."
     }
   },
   "sounds": {
@@ -6350,6 +6506,22 @@
     "airwar-flare-burst": {
       "label": "Flare burst \u00b7 generated",
       "clips": ["airwar-flare-burst-3"],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": false
+    },
+    "smoke-discharger": {
+      "label": "Smoke discharger \u00b7 generated",
+      "clips": ["smoke-discharger-3"],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": false
+    },
+    "smoke-grenade": {
+      "label": "Smoke grenade \u00b7 generated",
+      "clips": ["smoke-grenade-1"],
       "synth": null,
       "synth_gain": 0,
       "gain": 1,

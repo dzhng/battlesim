@@ -24,7 +24,7 @@
           "half_extents_m": [
             3.81,
             1.675,
-            1.5
+            1.35
           ],
           "eye_m": 2.82,
           "hp": 80,
@@ -70,6 +70,25 @@
             2.65,
             0,
             0.54
+          ]
+        },
+        {
+          "id": "HMG",
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "on": "autocannon",
+          "pivot_m": [
+            0.15,
+            -0.72,
+            2.78
+          ],
+          "muzzle_m": [
+            0.95,
+            0,
+            0.05
           ]
         }
       ],
@@ -828,7 +847,7 @@
             1.494
           ],
           "muzzle_m": [
-            5.561,
+            7.2,
             0,
             0.448
           ]
@@ -862,6 +881,17 @@
           "rear": 0.3
         },
         "on": "cannon"
+      },
+      "capabilities": {
+        "smoke": {
+          "capacity": 2,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 15, "height_m": 6, "life_s": 40, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "discharger"
+          }
+        }
       }
     },
     "europe_challenger_challenger_3": {
@@ -893,7 +923,12 @@
             "front": 250,
             "side": 125,
             "roof": 45
-          }
+          },
+          "half_extents_m": [
+            4.15,
+            2.1,
+            1.35
+          ]
         }
       },
       "mounts": [
@@ -902,6 +937,11 @@
           "weapons": [
             "advanced_tank_ap",
             "advanced_tank_he"
+          ],
+          "muzzle_m": [
+            6.95,
+            0,
+            0.448
           ]
         }
       ],
@@ -909,6 +949,9 @@
       "sensors": {
         "ground_m": 600,
         "low_air_m": 600
+      },
+      "capabilities": {
+        "smoke": { "capacity": 3 }
       }
     },
     "europe_cv90120_light_tank": {
@@ -935,7 +978,7 @@
           "half_extents_m": [
             3.475,
             1.65,
-            1.325
+            1.25
           ],
           "eye_m": 2.52,
           "hp": 90,
@@ -1008,6 +1051,17 @@
       "sensors": {
         "high_air_m": 0,
         "on": "cannon"
+      },
+      "capabilities": {
+        "smoke": {
+          "capacity": 1,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 15, "height_m": 6, "life_s": 40, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "discharger"
+          }
+        }
       }
     },
     "europe_cv90_cv9040c": {
@@ -1034,8 +1088,8 @@
         "hull": {
           "half_extents_m": [
             3.4,
-            1.6,
-            1.4
+            1.69,
+            1.25
           ],
           "eye_m": 2.632,
           "hp": 90,
@@ -1078,7 +1132,7 @@
             1.82
           ],
           "muzzle_m": [
-            3.9,
+            3.6,
             0,
             0.504
           ]
@@ -1099,7 +1153,18 @@
       "concealment": 2.4,
       "name": "CV90 Mk IV",
       "description": "Mk IV; infantry carrier",
-      "capabilities": { "carriage": { "seats": 8 } },
+      "capabilities": {
+        "carriage": { "seats": 8 },
+        "smoke": {
+          "capacity": 1,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 15, "height_m": 6, "life_s": 40, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "discharger"
+          }
+        }
+      },
       "faction": "europe",
       "family": "cv90",
       "roles": [
@@ -1163,7 +1228,7 @@
             1.82
           ],
           "muzzle_m": [
-            3.9,
+            3.7,
             0,
             0.504
           ]
@@ -1591,7 +1656,7 @@
           "half_extents_m": [
             3.556,
             1.685,
-            1.645
+            1.5
           ],
           "eye_m": 2.5,
           "hp": 110,
@@ -1641,9 +1706,9 @@
             2.11
           ],
           "muzzle_m": [
-            3.56,
-            1.28,
-            0
+            4.1,
+            0.88,
+            0.26
           ]
         }
       ],
@@ -1886,6 +1951,17 @@
           "rear": 0.3
         },
         "on": "cannon"
+      },
+      "capabilities": {
+        "smoke": {
+          "capacity": 3,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 15, "height_m": 6, "life_s": 40, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "discharger"
+          }
+        }
       }
     },
     "europe_leclerc_xlr": {
@@ -1990,6 +2066,17 @@
           "rear": 0.3
         },
         "on": "cannon"
+      },
+      "capabilities": {
+        "smoke": {
+          "capacity": 2,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 15, "height_m": 6, "life_s": 40, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "discharger"
+          }
+        }
       }
     },
     "europe_leopard_2_2a6": {
@@ -2016,7 +2103,7 @@
           "half_extents_m": [
             3.85,
             1.875,
-            1.5
+            1.35
           ],
           "eye_m": 2.82,
           "hp": 110,
@@ -2060,9 +2147,9 @@
             1.8
           ],
           "muzzle_m": [
-            7.12,
+            6.82,
             0,
-            0.54
+            0.25
           ]
         },
         {
@@ -2094,6 +2181,17 @@
           "rear": 0.3
         },
         "on": "cannon"
+      },
+      "capabilities": {
+        "smoke": {
+          "capacity": 2,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 15, "height_m": 6, "life_s": 40, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "discharger"
+          }
+        }
       }
     },
     "europe_leopard_2_2a7v": {
@@ -2118,9 +2216,9 @@
       "body": {
         "hull": {
           "half_extents_m": [
-            3.85,
+            4.025,
             1.875,
-            1.5
+            1.415
           ],
           "eye_m": 2.82,
           "hp": 120,
@@ -2159,14 +2257,14 @@
           ],
           "turret": true,
           "pivot_m": [
-            0.3,
+            0.125,
             0,
             1.8
           ],
           "muzzle_m": [
-            7.12,
+            6.82,
             0,
-            0.54
+            0.25
           ]
         },
         {
@@ -2177,7 +2275,7 @@
           ],
           "turret": true,
           "pivot_m": [
-            0.05,
+            -0.125,
             -0.58,
             2.82
           ],
@@ -2198,6 +2296,17 @@
           "rear": 0.3
         },
         "on": "cannon"
+      },
+      "capabilities": {
+        "smoke": {
+          "capacity": 2,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 15, "height_m": 6, "life_s": 40, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "discharger"
+          }
+        }
       }
     },
     "europe_leopard_2_2a8": {
@@ -2235,6 +2344,9 @@
       "sensors": {
         "ground_m": 600,
         "low_air_m": 600
+      },
+      "capabilities": {
+        "smoke": { "capacity": 3 }
       }
     },
     "europe_man_hx_general_resupply": {
@@ -2396,14 +2508,14 @@
           ],
           "turret": false,
           "pivot_m": [
-            -1.6,
+            -3.2,
             0,
-            2.2
+            1.2
           ],
           "muzzle_m": [
-            1.0,
+            3.7,
             0,
-            0
+            0.8
           ]
         }
       ],
@@ -2648,7 +2760,18 @@
       "concealment": 2.8,
       "name": "Puma Level C",
       "description": "Level C; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
-      "capabilities": { "carriage": { "seats": 8 } },
+      "capabilities": {
+        "carriage": { "seats": 8 },
+        "smoke": {
+          "capacity": 1,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 15, "height_m": 6, "life_s": 40, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "discharger"
+          }
+        }
+      },
       "faction": "europe",
       "family": "puma",
       "roles": [
@@ -2669,7 +2792,7 @@
           "half_extents_m": [
             3.7,
             2.0,
-            1.8
+            1.65
           ],
           "eye_m": 3.45,
           "hp": 120,
@@ -2770,7 +2893,7 @@
       "body": {
         "hull": {
           "half_extents_m": [
-            3.935,
+            4.165,
             1.79,
             1.53
           ],
@@ -2810,12 +2933,12 @@
           ],
           "turret": false,
           "pivot_m": [
-            -3.0,
+            0.6,
             0,
-            2.9
+            2.7
           ],
           "muzzle_m": [
-            8.06,
+            7.1,
             0,
             0
           ]

@@ -1,0 +1,933 @@
+{
+  "family": "abrams",
+  "lane": "F-B",
+  "slice": "07",
+  "surveyed": "2026-11-11",
+  "reconciled": {
+    "slice": "07b",
+    "date": "2026-11-11",
+    "decisions": "decisions.md C4-C10"
+  },
+  "convention": {
+    "frame": "x forward, y left, z up, metres; the hull box is centred on x = 0, y = 0 and stands on z = 0",
+    "hull_box": "the top is max(the real hull or turret roof, the top of the tallest bulky dressing - 0.3 m) (decisions.md C4, after F-B1). Sights, sensors, radars and roof guns that are not a roster mount are dressing, held to unitArt.ts's 0.3 m bulky / 0.15 m thin allowance. The box covers the body, including an armoured turret overhang (FC8)",
+    "pivot": "the centre of the turret ring; for a fixed mount, the trunnion or hinge it is drawn on (only pivot + muzzle reaches the simulation)",
+    "muzzle": "muzzle_m is measured from the mount's pivot: the simulation fires from pivot + muzzle (crates/sim/src/weapons/muzzle.rs:12-22; decisions.md C5)",
+    "eye": "the sight's height over the ground (catalog.rs:181); kept unless a source contradicts it (FA-6)"
+  },
+  "thresholds": {
+    "hull_dimension": "fix when off by more than max(0.10 m, 3 %)",
+    "pivot": "fix when off by more than 0.15 m on any axis",
+    "muzzle_point": "fix when the world muzzle point (pivot + muzzle) is off by more than 0.15 m on any axis; a value written in another convention is fixed whatever its size (C5)",
+    "eye_m": "kept unless a source contradicts it",
+    "note": "One set for every lane (decisions.md C10). The lanes' own variants (F-A's max(0.10 m, 3 %) for muzzles, F-C's 0.30 m muzzle reach) are retired."
+  },
+  "verdicts": {
+    "keep": "the frame number agrees with the references within the thresholds",
+    "fix": "slice 15 changes it to `new`: a row in fix-rows.json, or the parent's row where the fixture takes the field through extends",
+    "unresolved": "kept at today's value: nothing measures it well enough to move it; named",
+    "art-only": "not a frame number: the family slice fixes the art",
+    "inherits": "the fixture extends another unit and this appearance takes its rows"
+  },
+  "sources": [
+    {
+      "id": "army-fact-file",
+      "kind": "published",
+      "ref": "https://en.wikipedia.org/wiki/M1_Abrams",
+      "note": "M1A2: 9.77 m gun forward, 7.93 m hull, 3.66 m wide, 2.44 m to the turret roof"
+    },
+    {
+      "id": "bp-m1a2-sep",
+      "kind": "drawing (copyrighted)",
+      "ref": "https://www.the-blueprints.com/blueprints/tanks/tanks-m/72169/view/m1a2_sep_abrams/",
+      "note": "1005 x 1080 px three-view, M1A2 SEP; measured in throwaway (Q4 rung 2); only the numbers are committed. Registered on the 7.93 m hull: turret roof 2.40 m, gun axis 1.95 m, remote-station M2 muzzle at x 1.67 m z 2.87 m, muzzle 1.92 m past the nose (9.85 m overall), turret front at x 2.39 m (model 2.389). The turret ring is not drawn; the commander's cupola centre sits at x -0.35 m."
+    }
+  ],
+  "appearances": {
+    "us_m1_abrams_sep_v2": {
+      "unit": "us_m1_abrams_sep_v2",
+      "fixture": "fixtures/units/roster/us.json",
+      "published": {
+        "length_m": 7.93,
+        "length_gun_forward_m": 9.77,
+        "width_m": 3.66,
+        "height_m": 2.44,
+        "source": "army-fact-file"
+      },
+      "current": {
+        "extends": "roster_profile_mbt",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 27.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 60.0,
+            "turn_deg_s": 45.0
+          }
+        },
+        "half_extents_m": [
+          3.965,
+          1.83,
+          1.22
+        ],
+        "eye_m": 2.294,
+        "mounts": [
+          {
+            "id": "cannon",
+            "pivot_m": [
+              0.25,
+              0.0,
+              1.464
+            ],
+            "muzzle_m": [
+              5.805,
+              0.0,
+              0.439
+            ],
+            "turret": true
+          },
+          {
+            "id": "HMG",
+            "pivot_m": [
+              0.0,
+              -0.58,
+              2.294
+            ],
+            "muzzle_m": [
+              1.43,
+              0.0,
+              0.32
+            ],
+            "turret": true,
+            "on": "cannon"
+          }
+        ]
+      },
+      "measured": null,
+      "heights": {
+        "roof_m": 2.42,
+        "roof_source": "published 2.44 m; drawing 2.40 m",
+        "sight_top_m": 2.73,
+        "sight_part": "commander's independent thermal viewer",
+        "sight_source": "art (dressing_citv)",
+        "rule_top_m": 2.43,
+        "box_top_m": 2.44,
+        "art": {
+          "hull_top_m": 2.521,
+          "tallest_dressing": "dressing_wind_sensor",
+          "tallest_dressing_top_m": 2.809,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
+        {
+          "field": "half_extents_m[0]",
+          "old": 3.965,
+          "new": null,
+          "verdict": "keep",
+          "source": "army-fact-file, bp-m1a2-sep",
+          "confidence": null,
+          "note": "7.93 x 3.66 x 2.44 m published; the drawing's roof measures 2.40 m and its front view 3.66 m wide"
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 1.83,
+          "new": null,
+          "verdict": "keep",
+          "source": "army-fact-file, bp-m1a2-sep",
+          "confidence": null,
+          "note": "7.93 x 3.66 x 2.44 m published; the drawing's roof measures 2.40 m and its front view 3.66 m wide"
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.22,
+          "new": null,
+          "verdict": "keep",
+          "source": "army-fact-file, bp-m1a2-sep",
+          "confidence": null,
+          "note": "7.93 x 3.66 x 2.44 m published; the drawing's roof measures 2.40 m and its front view 3.66 m wide"
+        },
+        {
+          "field": "eye_m",
+          "old": 2.294,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.cannon.pivot_m",
+          "old": [
+            0.25,
+            0.0,
+            1.464
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": "bp-m1a2-sep",
+          "confidence": "medium",
+          "note": "the ring is not drawn; the drawn turret front agrees with the model's within 0.01 m, and x 0.25 puts the cupola over the ring's rear quarter as on the real tank"
+        },
+        {
+          "field": "mounts.cannon.muzzle_m",
+          "old": [
+            5.805,
+            0.0,
+            0.439
+          ],
+          "new": [
+            5.555,
+            0,
+            0.439
+          ],
+          "verdict": "fix",
+          "source": "army-fact-file, bp-m1a2-sep",
+          "confidence": "high",
+          "note": "the world muzzle sits at x 6.055 m (10.02 m overall); 9.77 m gun forward puts it at 5.805 m (the drawing: 5.88 m). The old offset equals the intended world x, so the pivot's 0.25 m was never subtracted. z 1.903 m agrees with the drawing's 1.95 m axis."
+        },
+        {
+          "field": "mounts.HMG.pivot_m",
+          "old": [
+            0.0,
+            -0.58,
+            2.294
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "the commander's remote station over the cupola (drawn at x -0.35 m)"
+        },
+        {
+          "field": "mounts.HMG.muzzle_m",
+          "old": [
+            1.43,
+            0.0,
+            0.32
+          ],
+          "new": [
+            1.67,
+            0,
+            0.58
+          ],
+          "verdict": "fix",
+          "source": "bp-m1a2-sep",
+          "confidence": "medium",
+          "note": "the drawing's remote-station M2 has its muzzle at x 1.67 m, z 2.87 m (0.43 m over the roof); the frame puts it at [1.43, -0.58, 2.614] m, 0.24 m short and 0.26 m low"
+        }
+      ]
+    },
+    "us_m1_abrams_sep_v2_trophy": {
+      "unit": "us_m1_abrams_sep_v2_trophy",
+      "fixture": "fixtures/units/roster/us.json",
+      "inherits": "us_m1_abrams_sep_v2 (fixture extends), but restates its mount rows",
+      "published": {
+        "length_m": 7.93,
+        "length_gun_forward_m": 9.77,
+        "width_m": 3.66,
+        "height_m": 2.44,
+        "source": "army-fact-file"
+      },
+      "current": {
+        "extends": "us_m1_abrams_sep_v2",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 27.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 60.0,
+            "turn_deg_s": 45.0
+          }
+        },
+        "half_extents_m": [
+          3.965,
+          1.83,
+          1.22
+        ],
+        "eye_m": 2.294,
+        "mounts": [
+          {
+            "id": "cannon",
+            "pivot_m": [
+              0.25,
+              0.0,
+              1.464
+            ],
+            "muzzle_m": [
+              5.805,
+              0.0,
+              0.439
+            ],
+            "turret": true
+          },
+          {
+            "id": "HMG",
+            "pivot_m": [
+              0.0,
+              -0.58,
+              2.294
+            ],
+            "muzzle_m": [
+              1.43,
+              0.0,
+              0.32
+            ],
+            "turret": true,
+            "on": "cannon"
+          }
+        ]
+      },
+      "measured": null,
+      "heights": {
+        "roof_m": 2.42,
+        "roof_source": "published 2.44 m; drawing 2.40 m",
+        "sight_top_m": 2.73,
+        "sight_part": "commander's independent thermal viewer",
+        "sight_source": "art (dressing_citv)",
+        "rule_top_m": 2.43,
+        "box_top_m": 2.44,
+        "art": {
+          "hull_top_m": 2.521,
+          "tallest_dressing": "dressing_wind_sensor",
+          "tallest_dressing_top_m": 2.809,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
+        {
+          "field": "half_extents_m[0]",
+          "old": 3.965,
+          "new": null,
+          "verdict": "inherits",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 1.83,
+          "new": null,
+          "verdict": "inherits",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.22,
+          "new": null,
+          "verdict": "inherits",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "eye_m",
+          "old": 2.294,
+          "new": null,
+          "verdict": "inherits",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.cannon.pivot_m",
+          "old": [
+            0.25,
+            0.0,
+            1.464
+          ],
+          "new": null,
+          "verdict": "inherits",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.cannon.muzzle_m",
+          "old": [
+            5.805,
+            0.0,
+            0.439
+          ],
+          "new": [
+            5.555,
+            0,
+            0.439
+          ],
+          "verdict": "fix",
+          "source": "army-fact-file, bp-m1a2-sep",
+          "confidence": "high",
+          "note": "As us_m1_abrams_sep_v2: this fixture restates the field, so it has its own row in fix-rows.json. the world muzzle sits at x 6.055 m (10.02 m overall); 9.77 m gun forward puts it at 5.805 m (the drawing: 5.88 m). The old offset equals the intended world x, so the pivot's 0.25 m was never subtracted. z 1.903 m agrees with the drawing's 1.95 m axis."
+        },
+        {
+          "field": "mounts.HMG.pivot_m",
+          "old": [
+            0.0,
+            -0.58,
+            2.294
+          ],
+          "new": null,
+          "verdict": "inherits",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.HMG.muzzle_m",
+          "old": [
+            1.43,
+            0.0,
+            0.32
+          ],
+          "new": [
+            1.67,
+            0,
+            0.58
+          ],
+          "verdict": "fix",
+          "source": "bp-m1a2-sep",
+          "confidence": "medium",
+          "note": "As us_m1_abrams_sep_v2: this fixture restates the field, so it has its own row in fix-rows.json. the drawing's remote-station M2 has its muzzle at x 1.67 m, z 2.87 m (0.43 m over the roof); the frame puts it at [1.43, -0.58, 2.614] m, 0.24 m short and 0.26 m low"
+        },
+        {
+          "field": "*",
+          "old": null,
+          "new": null,
+          "verdict": "inherits",
+          "source": null,
+          "confidence": null,
+          "note": "the same fixes land on this variant's own mount rows"
+        }
+      ]
+    },
+    "us_m1_abrams_sep_v3_trophy": {
+      "unit": "us_m1_abrams_sep_v3_trophy",
+      "fixture": "fixtures/units/roster/us.json",
+      "inherits": "us_m1_abrams_sep_v2 (fixture extends), but restates its mount rows",
+      "published": {
+        "length_m": 7.93,
+        "length_gun_forward_m": 9.77,
+        "width_m": 3.66,
+        "height_m": 2.44,
+        "source": "army-fact-file"
+      },
+      "current": {
+        "extends": "us_m1_abrams_sep_v2",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 27.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 60.0,
+            "turn_deg_s": 45.0
+          }
+        },
+        "half_extents_m": [
+          3.965,
+          1.83,
+          1.22
+        ],
+        "eye_m": 2.294,
+        "mounts": [
+          {
+            "id": "cannon",
+            "pivot_m": [
+              0.25,
+              0.0,
+              1.464
+            ],
+            "muzzle_m": [
+              5.805,
+              0.0,
+              0.439
+            ],
+            "turret": true
+          },
+          {
+            "id": "HMG",
+            "pivot_m": [
+              0.0,
+              -0.58,
+              2.294
+            ],
+            "muzzle_m": [
+              1.43,
+              0.0,
+              0.32
+            ],
+            "turret": true,
+            "on": "cannon"
+          }
+        ]
+      },
+      "measured": null,
+      "heights": {
+        "roof_m": 2.42,
+        "roof_source": "published 2.44 m; drawing 2.40 m",
+        "sight_top_m": 2.73,
+        "sight_part": "commander's independent thermal viewer",
+        "sight_source": "art (dressing_citv)",
+        "rule_top_m": 2.43,
+        "box_top_m": 2.44,
+        "art": {
+          "hull_top_m": 2.521,
+          "tallest_dressing": "dressing_wind_sensor",
+          "tallest_dressing_top_m": 2.809,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
+        {
+          "field": "half_extents_m[0]",
+          "old": 3.965,
+          "new": null,
+          "verdict": "inherits",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 1.83,
+          "new": null,
+          "verdict": "inherits",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.22,
+          "new": null,
+          "verdict": "inherits",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "eye_m",
+          "old": 2.294,
+          "new": null,
+          "verdict": "inherits",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.cannon.pivot_m",
+          "old": [
+            0.25,
+            0.0,
+            1.464
+          ],
+          "new": null,
+          "verdict": "inherits",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.cannon.muzzle_m",
+          "old": [
+            5.805,
+            0.0,
+            0.439
+          ],
+          "new": [
+            5.555,
+            0,
+            0.439
+          ],
+          "verdict": "fix",
+          "source": "army-fact-file, bp-m1a2-sep",
+          "confidence": "high",
+          "note": "As us_m1_abrams_sep_v2: this fixture restates the field, so it has its own row in fix-rows.json. the world muzzle sits at x 6.055 m (10.02 m overall); 9.77 m gun forward puts it at 5.805 m (the drawing: 5.88 m). The old offset equals the intended world x, so the pivot's 0.25 m was never subtracted. z 1.903 m agrees with the drawing's 1.95 m axis."
+        },
+        {
+          "field": "mounts.HMG.pivot_m",
+          "old": [
+            0.0,
+            -0.58,
+            2.294
+          ],
+          "new": null,
+          "verdict": "inherits",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.HMG.muzzle_m",
+          "old": [
+            1.43,
+            0.0,
+            0.32
+          ],
+          "new": [
+            1.67,
+            0,
+            0.58
+          ],
+          "verdict": "fix",
+          "source": "bp-m1a2-sep",
+          "confidence": "medium",
+          "note": "As us_m1_abrams_sep_v2: this fixture restates the field, so it has its own row in fix-rows.json. the drawing's remote-station M2 has its muzzle at x 1.67 m, z 2.87 m (0.43 m over the roof); the frame puts it at [1.43, -0.58, 2.614] m, 0.24 m short and 0.26 m low"
+        },
+        {
+          "field": "*",
+          "old": null,
+          "new": null,
+          "verdict": "inherits",
+          "source": null,
+          "confidence": null,
+          "note": "the same fixes land on this variant's own mount rows"
+        }
+      ]
+    }
+  },
+  "overlays": {
+    "note": "Registered overlay: the drawing is scaled by its hull length set to `registration.span_m` and anchored on the nose and ground line; the model silhouette (vehicle mode) and the frame box are laid over it. Stations sample 19 points along the span: the top (z) in side and front views, the full width in the top view, drawing against model. Drawing silhouettes include roof fittings, antennas, the gun and, where the crop catches them, dimension arrows. The overlay images contain the copyrighted drawing, so they are not committed.",
+    "views": [
+      {
+        "view": "side",
+        "drawing": "bp-m1a2-sep",
+        "registration": {
+          "model": "us_m1_abrams_sep_v2",
+          "span_m": 7.93,
+          "nose_px": 195,
+          "tail_px": 973,
+          "ground_px": 333
+        },
+        "measure": "top_z_m",
+        "stations": [
+          {
+            "x_m": 3.57,
+            "drawing": 2.15,
+            "model": 2.06
+          },
+          {
+            "x_m": 3.17,
+            "drawing": 2.05,
+            "model": 2.0
+          },
+          {
+            "x_m": 2.78,
+            "drawing": 2.09,
+            "model": 2.0
+          },
+          {
+            "x_m": 2.38,
+            "drawing": 2.1,
+            "model": 2.03
+          },
+          {
+            "x_m": 1.98,
+            "drawing": 2.27,
+            "model": 2.35
+          },
+          {
+            "x_m": 1.59,
+            "drawing": 2.84,
+            "model": 2.53
+          },
+          {
+            "x_m": 1.19,
+            "drawing": 2.85,
+            "model": 2.64
+          },
+          {
+            "x_m": 0.79,
+            "drawing": 2.88,
+            "model": 2.64
+          },
+          {
+            "x_m": 0.4,
+            "drawing": 2.87,
+            "model": 2.65
+          },
+          {
+            "x_m": 0.0,
+            "drawing": 2.81,
+            "model": 2.77
+          },
+          {
+            "x_m": -0.4,
+            "drawing": 2.74,
+            "model": 2.48
+          },
+          {
+            "x_m": -0.79,
+            "drawing": 2.64,
+            "model": 2.43
+          },
+          {
+            "x_m": -1.19,
+            "drawing": 2.48,
+            "model": 2.46
+          },
+          {
+            "x_m": -1.59,
+            "drawing": 2.47,
+            "model": 2.42
+          },
+          {
+            "x_m": -1.98,
+            "drawing": 2.46,
+            "model": 2.35
+          },
+          {
+            "x_m": -2.38,
+            "drawing": 2.5,
+            "model": 2.33
+          },
+          {
+            "x_m": -2.78,
+            "drawing": 2.65,
+            "model": 2.39
+          },
+          {
+            "x_m": -3.17,
+            "drawing": 2.31,
+            "model": 2.39
+          },
+          {
+            "x_m": -3.57,
+            "drawing": 1.75,
+            "model": 1.65
+          }
+        ]
+      },
+      {
+        "view": "top",
+        "drawing": "bp-m1a2-sep",
+        "registration": {
+          "model": "us_m1_abrams_sep_v2",
+          "span_m": 7.93,
+          "nose_px": 195,
+          "tail_px": 985,
+          "centreline_px": 886
+        },
+        "measure": "width_m",
+        "stations": [
+          {
+            "x_m": 3.57,
+            "drawing": 3.53,
+            "model": 3.6
+          },
+          {
+            "x_m": 3.17,
+            "drawing": 3.67,
+            "model": 3.6
+          },
+          {
+            "x_m": 2.78,
+            "drawing": 3.67,
+            "model": 3.6
+          },
+          {
+            "x_m": 2.38,
+            "drawing": 3.67,
+            "model": 3.6
+          },
+          {
+            "x_m": 1.98,
+            "drawing": 3.68,
+            "model": 3.6
+          },
+          {
+            "x_m": 1.59,
+            "drawing": 3.63,
+            "model": 3.6
+          },
+          {
+            "x_m": 1.19,
+            "drawing": 3.63,
+            "model": 3.61
+          },
+          {
+            "x_m": 0.79,
+            "drawing": 3.68,
+            "model": 3.63
+          },
+          {
+            "x_m": 0.4,
+            "drawing": 3.64,
+            "model": 3.6
+          },
+          {
+            "x_m": 0.0,
+            "drawing": 3.68,
+            "model": 3.6
+          },
+          {
+            "x_m": -0.4,
+            "drawing": 3.68,
+            "model": 3.6
+          },
+          {
+            "x_m": -0.79,
+            "drawing": 3.57,
+            "model": 3.6
+          },
+          {
+            "x_m": -1.19,
+            "drawing": 3.69,
+            "model": 3.63
+          },
+          {
+            "x_m": -1.59,
+            "drawing": 3.66,
+            "model": 3.6
+          },
+          {
+            "x_m": -1.98,
+            "drawing": 3.64,
+            "model": 3.6
+          },
+          {
+            "x_m": -2.38,
+            "drawing": 3.68,
+            "model": 3.6
+          },
+          {
+            "x_m": -2.78,
+            "drawing": 3.7,
+            "model": 3.6
+          },
+          {
+            "x_m": -3.17,
+            "drawing": 3.7,
+            "model": 3.65
+          },
+          {
+            "x_m": -3.57,
+            "drawing": 3.65,
+            "model": 3.6
+          }
+        ]
+      },
+      {
+        "view": "front",
+        "drawing": "bp-m1a2-sep",
+        "registration": {
+          "model": "us_m1_abrams_sep_v2",
+          "span_m": 3.66,
+          "left_px": 157,
+          "right_px": 519,
+          "ground_px": 685
+        },
+        "measure": "top_z_m",
+        "stations": [
+          {
+            "y_m": -1.65,
+            "drawing": 2.49,
+            "model": 2.25
+          },
+          {
+            "y_m": -1.46,
+            "drawing": 2.53,
+            "model": 2.35
+          },
+          {
+            "y_m": -1.28,
+            "drawing": 2.49,
+            "model": 2.39
+          },
+          {
+            "y_m": -1.1,
+            "drawing": 2.64,
+            "model": 2.39
+          },
+          {
+            "y_m": -0.92,
+            "drawing": 2.64,
+            "model": 2.72
+          },
+          {
+            "y_m": -0.73,
+            "drawing": 2.64,
+            "model": 2.77
+          },
+          {
+            "y_m": -0.55,
+            "drawing": 3.0,
+            "model": 2.75
+          },
+          {
+            "y_m": -0.37,
+            "drawing": 2.96,
+            "model": 2.75
+          },
+          {
+            "y_m": -0.18,
+            "drawing": 2.96,
+            "model": 2.39
+          },
+          {
+            "y_m": 0.0,
+            "drawing": 3.1,
+            "model": 2.39
+          },
+          {
+            "y_m": 0.18,
+            "drawing": 2.59,
+            "model": 2.39
+          },
+          {
+            "y_m": 0.37,
+            "drawing": 2.92,
+            "model": 2.44
+          },
+          {
+            "y_m": 0.55,
+            "drawing": 2.93,
+            "model": 2.46
+          },
+          {
+            "y_m": 0.73,
+            "drawing": 2.93,
+            "model": 2.48
+          },
+          {
+            "y_m": 0.92,
+            "drawing": 2.66,
+            "model": 2.44
+          },
+          {
+            "y_m": 1.1,
+            "drawing": 2.51,
+            "model": 2.39
+          },
+          {
+            "y_m": 1.28,
+            "drawing": 2.5,
+            "model": 2.39
+          },
+          {
+            "y_m": 1.46,
+            "drawing": 2.46,
+            "model": 2.35
+          },
+          {
+            "y_m": 1.65,
+            "drawing": 2.44,
+            "model": 2.25
+          }
+        ]
+      }
+    ]
+  },
+  "notes": [
+    {
+      "appearances": [
+        "us_m1_abrams_sep_v2",
+        "us_m1_abrams_sep_v2_trophy",
+        "us_m1_abrams_sep_v3_trophy"
+      ],
+      "note": "(no note for the SEP v2, SEP v2 Trophy or SEP v3 Trophy)",
+      "class": null,
+      "why": ""
+    }
+  ],
+  "answers": null,
+  "gaps": null
+}

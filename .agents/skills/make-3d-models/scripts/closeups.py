@@ -7,7 +7,9 @@
 Without --shot it frames six views from the visible model's bounds: both
 three-quarters from above, a low side, the belly, a close top of the front
 third, and the tail from behind. Eye and target in a --shot are fractions of
-the bounds (0 = min, 1 = max per axis), so one shot list fits every model.
+the bounds (0 = min, 1 = max per axis), so one shot list fits every model; a
+value ending in `m` is metres in the model's own frame instead, for a camera
+that keeps its real distance (the battle camera's).
 Only tier 0 (objects named *LOD0, or a file without tiers) is drawn.
 Writes <out_dir>/<model>-<shot>-<shaded|matcap>.png."""
 import math
@@ -47,9 +49,9 @@ if not plan:
     plan = [(k, *v) for k, v in AUTO.items()]
 
 
-def frac(spec, lo, hi):
-    f = [float(v) for v in spec.split(",")]
-    return Vector([lo[k] + (hi[k] - lo[k]) * f[k] for k in range(3)])
+def point(spec, lo, hi):
+    f = spec.split(",")
+    return Vector([float(v[:-1]) if v.endswith("m") else lo[k] + (hi[k] - lo[k]) * float(v) for k, v in enumerate(f)])
 
 
 sc = bpy.context.scene
@@ -86,7 +88,7 @@ for glb in models:
     cam.data.clip_start, cam.data.clip_end = size * 0.005, size * 20
     name = os.path.splitext(os.path.basename(glb))[0]
     for shot, eye, tgt, lens in plan:
-        e, t = frac(eye, lo2, hi2), frac(tgt, lo, hi)
+        e, t = point(eye, lo2, hi2), point(tgt, lo, hi)
         cam.location = e
         cam.rotation_euler = (t - e).to_track_quat("-Z", "Y").to_euler()
         cam.data.lens = lens

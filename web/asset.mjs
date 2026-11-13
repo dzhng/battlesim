@@ -8,6 +8,7 @@
 //   check                  re-bake in memory; fail if anything on disk is stale, missing or orphaned,
 //                          or a reference library (assets/references/<family>/) breaks its contract;
 //                          print the catalog load's wire bytes and each texture array's layers
+//                          then run the Blender source scripts' Python tests (packages/scene-assets/blender/*_test.py)
 //   pull [name...] [--sources]
 //                          git lfs pull exactly the runtime bundles (and sources) of the named entries
 //   blender <script.py> [args...]
@@ -100,6 +101,8 @@ const TEMPLATES = "fixtures/prototype-building-templates.json";
 const GENERATED = join(ROOT, TEMPLATES);
 const BLENDER_VERSION = "5.2.1";
 const BLENDER = process.env.BLENDER ?? "/Applications/Blender.app/Contents/MacOS/Blender";
+/** The source scripts Blender runs, and their Python tests. */
+const BLENDER_SOURCES = join(ROOT, "packages/scene-assets/blender");
 
 const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 const catalog = () => readJson(CATALOG);
@@ -377,6 +380,7 @@ async function check() {
       else console.log(`warn ${f.code}: ${f.message}`);
   }
   if (!(await reportTransport(result))) problems.push("the catalog load is over its limit");
+  for (const file of pythonTests()) problems.push(`python test ${file} failed`);
   for (const p of problems) console.log(p);
   console.log(
     problems.length
@@ -490,22 +494,22 @@ function pull(args) {
   return run.status ?? 1;
 }
 
-function blender(args) {
+/** Run a Blender script headless on the pinned Blender: its exit status and,
+ *  when `quiet`, what it printed, instead of printing it. */
+function runBlender(args, quiet = false) {
   if (!args.length) throw new Error("blender <script.py> [args...]");
-  if (!existsSync(BLENDER)) {
-    console.log(
-      `Blender not found at ${BLENDER}; install Blender ${BLENDER_VERSION} or set BLENDER`,
-    );
-    return 1;
-  }
+  if (!existsSync(BLENDER))
+    return {
+      status: 1,
+      output: `Blender not found at ${BLENDER}; install Blender ${BLENDER_VERSION} or set BLENDER`,
+    };
   const version =
     spawnSync(BLENDER, ["--version"], { encoding: "utf8" }).stdout?.split("\n")[0] ?? "";
-  if (!version.includes(`Blender ${BLENDER_VERSION}`)) {
-    console.log(
-      `found "${version.trim()}"; asset scripts are pinned to Blender ${BLENDER_VERSION}`,
-    );
-    return 1;
-  }
+  if (!version.includes(`Blender ${BLENDER_VERSION}`))
+    return {
+      status: 1,
+      output: `found "${version.trim()}"; asset scripts are pinned to Blender ${BLENDER_VERSION}`,
+    };
   const [script, ...rest] = args;
   // One thread: Blender's threaded evaluation (tangents among it) differs in the
   // last float bit between runs, and a source must export byte for byte the same.
@@ -523,9 +527,46 @@ function blender(args) {
       "--",
       ...rest,
     ],
-    { stdio: "inherit" },
+    quiet ? { encoding: "utf8" } : { stdio: "inherit" },
   );
-  return run.status ?? 1;
+  return { status: run.status ?? 1, output: quiet ? `${run.stdout}${run.stderr}` : "" };
+}
+
+function blender(args) {
+  const { status, output } = runBlender(args);
+  if (output) console.log(output);
+  return status;
+}
+
+/** Run the source scripts' Python tests (`*_test.py` beside them), printing
+ *  one line each and a failure's output; returns the files that failed. A
+ *  test that imports `bpy` builds scenes, so it runs in the pinned Blender;
+ *  the rest run under plain Python. */
+function pythonTests() {
+  const failed = [];
+  const files = readdirSync(BLENDER_SOURCES).filter((f) => f.endsWith("_test.py"));
+  for (const file of files.sort()) {
+    const path = join(BLENDER_SOURCES, file);
+    const inBlender = /^(import|from) bpy\b/m.test(readFileSync(path, "utf8"));
+    let status, output;
+    if (inBlender) ({ status, output } = runBlender([path], true));
+    else {
+      const run = spawnSync(
+        "python3",
+        ["-m", "unittest", "discover", "-s", BLENDER_SOURCES, "-p", file],
+        { encoding: "utf8" },
+      );
+      status = run.status ?? 1;
+      output = `${run.stdout ?? ""}${run.stderr ?? ""}${run.error?.message ?? ""}`;
+    }
+    const runner = inBlender ? `Blender ${BLENDER_VERSION}` : "python3";
+    console.log(`python test ${file} (${runner}): ${status === 0 ? "passed" : "FAILED"}`);
+    if (status !== 0) {
+      console.log(output);
+      failed.push(file);
+    }
+  }
+  return failed;
 }
 
 /** Generated grass kinds: each catalog entry with a `grass` spec gets its

@@ -107,6 +107,9 @@ pub(super) fn spawn_unit(
             charges: f.capacity,
             ready_tick: 0,
         }),
+        smoke: t.capabilities.smoke.as_ref().map(|s| units::SmokeCharges {
+            charges: s.capacity,
+        }),
         progress_service: Default::default(),
         service: ServiceStatus::OutOfRange,
         sight_forward: u.yaw,

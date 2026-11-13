@@ -1,0 +1,526 @@
+{
+  "family": "gepard",
+  "lane": "F-B",
+  "slice": "07",
+  "surveyed": "2026-11-11",
+  "reconciled": {
+    "slice": "07b",
+    "date": "2026-11-11",
+    "decisions": "decisions.md C4-C10"
+  },
+  "convention": {
+    "frame": "x forward, y left, z up, metres; the hull box is centred on x = 0, y = 0 and stands on z = 0",
+    "hull_box": "the top is max(the real hull or turret roof, the top of the tallest bulky dressing - 0.3 m) (decisions.md C4, after F-B1). Sights, sensors, radars and roof guns that are not a roster mount are dressing, held to unitArt.ts's 0.3 m bulky / 0.15 m thin allowance. The box covers the body, including an armoured turret overhang (FC8)",
+    "pivot": "the centre of the turret ring; for a fixed mount, the trunnion or hinge it is drawn on (only pivot + muzzle reaches the simulation)",
+    "muzzle": "muzzle_m is measured from the mount's pivot: the simulation fires from pivot + muzzle (crates/sim/src/weapons/muzzle.rs:12-22; decisions.md C5)",
+    "eye": "the sight's height over the ground (catalog.rs:181); kept unless a source contradicts it (FA-6)"
+  },
+  "thresholds": {
+    "hull_dimension": "fix when off by more than max(0.10 m, 3 %)",
+    "pivot": "fix when off by more than 0.15 m on any axis",
+    "muzzle_point": "fix when the world muzzle point (pivot + muzzle) is off by more than 0.15 m on any axis; a value written in another convention is fixed whatever its size (C5)",
+    "eye_m": "kept unless a source contradicts it",
+    "note": "One set for every lane (decisions.md C10). The lanes' own variants (F-A's max(0.10 m, 3 %) for muzzles, F-C's 0.30 m muzzle reach) are retired."
+  },
+  "verdicts": {
+    "keep": "the frame number agrees with the references within the thresholds",
+    "fix": "slice 15 changes it to `new`: a row in fix-rows.json, or the parent's row where the fixture takes the field through extends",
+    "unresolved": "kept at today's value: nothing measures it well enough to move it; named",
+    "art-only": "not a frame number: the family slice fixes the art",
+    "inherits": "the fixture extends another unit and this appearance takes its rows"
+  },
+  "sources": [
+    {
+      "id": "kmw",
+      "kind": "published",
+      "ref": "https://de.wikipedia.org/wiki/Flugabwehrkanonenpanzer_Gepard",
+      "note": "KMW figures: 7.68 m long, 3.27 m wide, 3.29 m high with the radar retracted; Leopard 1 hull lengthened 8 cm between road wheels 3 and 4"
+    },
+    {
+      "id": "wp-gepard",
+      "kind": "published",
+      "ref": "https://en.wikipedia.org/wiki/Flakpanzer_Gepard",
+      "note": "7.68 m overall, 3.71 m wide, 3.29 m radar retracted; 35 mm guns 90 calibres (3.15 m)"
+    },
+    {
+      "id": "bp-gepard",
+      "kind": "drawing (copyrighted)",
+      "ref": "https://www.the-blueprints.com/blueprints/tanks/ww2-tanks-germany-1/2978/view/flankpanzer_gepard/",
+      "note": "544 x 788 px side, front, rear and top; measured in throwaway (Q4 rung 2); only the numbers are committed. Registered on the frame's 7.11 m hull (67 px/m; the front view gives 3.27 m wide at the same scale): guns 0.48 m past the nose, gun axes at 2.33 to 2.37 m and +/-0.86 to 0.90 m off the centreline, turret roof 2.74 to 2.78 m, turret mid-length at x +0.09 m."
+    }
+  ],
+  "appearances": {
+    "europe_gepard_1a2": {
+      "unit": "europe_gepard_1a2",
+      "fixture": "fixtures/units/roster/europe.json",
+      "published": {
+        "length_m": "7.11 hull (frame); 7.68 overall with the guns forward",
+        "width_m": 3.27,
+        "height_m": 3.29,
+        "height_note": "with the search radar retracted",
+        "source": "kmw"
+      },
+      "current": {
+        "extends": "roster_profile_ifv",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 28.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 65.0,
+            "turn_deg_s": 45.0
+          }
+        },
+        "half_extents_m": [
+          3.556,
+          1.685,
+          1.645
+        ],
+        "eye_m": 2.5,
+        "mounts": [
+          {
+            "id": "gun",
+            "pivot_m": [
+              0.0,
+              0.0,
+              2.11
+            ],
+            "muzzle_m": [
+              3.56,
+              1.28,
+              0.0
+            ],
+            "turret": true
+          }
+        ]
+      },
+      "measured": null,
+      "heights": {
+        "roof_m": 2.76,
+        "roof_source": "drawing 2.74-2.78 m",
+        "sight_top_m": 3.29,
+        "sight_part": "search radar, retracted",
+        "sight_source": "KMW",
+        "rule_top_m": 2.99,
+        "box_top_m": 3.0,
+        "art": {
+          "hull_top_m": 3.233,
+          "tallest_dressing": null,
+          "tallest_dressing_top_m": null,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
+        {
+          "field": "half_extents_m[0]",
+          "old": 3.556,
+          "new": null,
+          "verdict": "keep",
+          "source": "bp-gepard, kmw",
+          "confidence": null,
+          "note": "the KMW 7.68 m is with the guns forward: the drawing puts their muzzles 0.48 m past a 7.11 m hull"
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 1.685,
+          "new": null,
+          "verdict": "keep",
+          "source": "kmw",
+          "confidence": null,
+          "note": "3.37 m against 3.27 m: 0.10 m, not past max(0.10, 3 %). Wikipedia's 3.71 m is not the hull's"
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.645,
+          "new": 1.5,
+          "verdict": "fix",
+          "source": "bp-gepard, kmw",
+          "confidence": "medium",
+          "note": "the turret roof is 2.74 to 2.78 m; the 3.29 m box reaches the retracted search radar, 0.5 m over the roof. Radars are sensors, so dressing (F-B6): the box top is 3.29 - 0.3 = 3.0 m. The art must put the stowed search radar under a dressing_* node"
+        },
+        {
+          "field": "eye_m",
+          "old": 2.5,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.gun.pivot_m",
+          "old": [
+            0.0,
+            0.0,
+            2.11
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": "bp-gepard",
+          "confidence": null,
+          "note": "the drawn turret's mid-length is x +0.09 m"
+        },
+        {
+          "field": "mounts.gun.muzzle_m",
+          "old": [
+            3.56,
+            1.28,
+            0.0
+          ],
+          "new": [
+            4.1,
+            0.88,
+            0.26
+          ],
+          "verdict": "fix",
+          "source": "bp-gepard, kmw",
+          "confidence": "medium",
+          "note": "world [3.56, 1.28, 2.11] m against [4.04 to 4.12, 0.86 to 0.90, 2.33 to 2.37] m: the guns reach 0.5 m past the nose (7.68 m overall), sit 0.4 m closer to the centreline and 0.26 m higher. One mount stands for both guns; this is the left one"
+        }
+      ]
+    }
+  },
+  "overlays": {
+    "note": "Registered overlay: the drawing is scaled by its hull length set to `registration.span_m` and anchored on the nose and ground line; the model silhouette (vehicle mode) and the frame box are laid over it. Stations sample 19 points along the span: the top (z) in side and front views, the full width in the top view, drawing against model. Drawing silhouettes include roof fittings, antennas, the gun and, where the crop catches them, dimension arrows. The overlay images contain the copyrighted drawing, so they are not committed. The side and front views show the search radar raised, so their tops over the turret are the radar's.",
+    "views": [
+      {
+        "view": "side",
+        "drawing": "bp-gepard",
+        "registration": {
+          "model": "europe_gepard_1a2",
+          "span_m": 7.11,
+          "nose_px": 47,
+          "tail_px": 528,
+          "ground_px": 277
+        },
+        "measure": "top_z_m",
+        "stations": [
+          {
+            "x_m": 3.2,
+            "drawing": 4.09,
+            "model": 2.19
+          },
+          {
+            "x_m": 2.84,
+            "drawing": 2.38,
+            "model": 2.16
+          },
+          {
+            "x_m": 2.49,
+            "drawing": 2.54,
+            "model": 2.16
+          },
+          {
+            "x_m": 2.13,
+            "drawing": 2.66,
+            "model": 2.16
+          },
+          {
+            "x_m": 1.78,
+            "drawing": 2.66,
+            "model": 2.16
+          },
+          {
+            "x_m": 1.42,
+            "drawing": 2.81,
+            "model": 2.16
+          },
+          {
+            "x_m": 1.07,
+            "drawing": 2.84,
+            "model": 2.53
+          },
+          {
+            "x_m": 0.71,
+            "drawing": 2.84,
+            "model": 2.41
+          },
+          {
+            "x_m": 0.36,
+            "drawing": 2.73,
+            "model": 2.71
+          },
+          {
+            "x_m": 0.0,
+            "drawing": 2.75,
+            "model": 2.53
+          },
+          {
+            "x_m": -0.36,
+            "drawing": 2.82,
+            "model": 2.53
+          },
+          {
+            "x_m": -0.71,
+            "drawing": 2.73,
+            "model": 3.0
+          },
+          {
+            "x_m": -1.07,
+            "drawing": 2.79,
+            "model": 3.18
+          },
+          {
+            "x_m": -1.42,
+            "drawing": 3.92,
+            "model": 2.31
+          },
+          {
+            "x_m": -1.78,
+            "drawing": 3.58,
+            "model": 1.76
+          },
+          {
+            "x_m": -2.13,
+            "drawing": 1.76,
+            "model": 1.76
+          },
+          {
+            "x_m": -2.49,
+            "drawing": 1.76,
+            "model": 1.48
+          },
+          {
+            "x_m": -2.84,
+            "drawing": 1.76,
+            "model": 1.48
+          },
+          {
+            "x_m": -3.2,
+            "drawing": 1.73,
+            "model": 1.45
+          }
+        ]
+      },
+      {
+        "view": "top",
+        "drawing": "bp-gepard",
+        "registration": {
+          "model": "europe_gepard_1a2",
+          "span_m": 7.11,
+          "nose_px": 43,
+          "tail_px": 520,
+          "centreline_px": 665
+        },
+        "measure": "width_m",
+        "stations": [
+          {
+            "x_m": 3.2,
+            "drawing": 3.25,
+            "model": 3.35
+          },
+          {
+            "x_m": 2.84,
+            "drawing": 3.23,
+            "model": 3.35
+          },
+          {
+            "x_m": 2.49,
+            "drawing": 3.25,
+            "model": 3.35
+          },
+          {
+            "x_m": 2.13,
+            "drawing": 3.23,
+            "model": 3.35
+          },
+          {
+            "x_m": 1.78,
+            "drawing": 3.23,
+            "model": 3.35
+          },
+          {
+            "x_m": 1.42,
+            "drawing": 3.23,
+            "model": 3.35
+          },
+          {
+            "x_m": 1.07,
+            "drawing": 3.4,
+            "model": 3.35
+          },
+          {
+            "x_m": 0.71,
+            "drawing": 3.25,
+            "model": 3.35
+          },
+          {
+            "x_m": 0.36,
+            "drawing": 3.25,
+            "model": 3.35
+          },
+          {
+            "x_m": 0.0,
+            "drawing": 3.25,
+            "model": 3.35
+          },
+          {
+            "x_m": -0.36,
+            "drawing": 3.23,
+            "model": 3.35
+          },
+          {
+            "x_m": -0.71,
+            "drawing": 3.4,
+            "model": 3.35
+          },
+          {
+            "x_m": -1.07,
+            "drawing": 3.23,
+            "model": 3.35
+          },
+          {
+            "x_m": -1.42,
+            "drawing": 3.23,
+            "model": 3.35
+          },
+          {
+            "x_m": -1.78,
+            "drawing": 3.25,
+            "model": 3.35
+          },
+          {
+            "x_m": -2.13,
+            "drawing": 3.25,
+            "model": 3.35
+          },
+          {
+            "x_m": -2.49,
+            "drawing": 3.25,
+            "model": 3.35
+          },
+          {
+            "x_m": -2.84,
+            "drawing": 3.25,
+            "model": 3.35
+          },
+          {
+            "x_m": -3.2,
+            "drawing": 3.35,
+            "model": 3.35
+          }
+        ]
+      },
+      {
+        "view": "front",
+        "drawing": "bp-gepard",
+        "registration": {
+          "model": "europe_gepard_1a2",
+          "span_m": 3.27,
+          "left_px": 12,
+          "right_px": 229,
+          "ground_px": 552
+        },
+        "measure": "top_z_m",
+        "stations": [
+          {
+            "y_m": -1.47,
+            "drawing": 1.66,
+            "model": 2.28
+          },
+          {
+            "y_m": -1.31,
+            "drawing": 3.42,
+            "model": 2.29
+          },
+          {
+            "y_m": -1.14,
+            "drawing": 2.94,
+            "model": 2.49
+          },
+          {
+            "y_m": -0.98,
+            "drawing": 2.71,
+            "model": 2.52
+          },
+          {
+            "y_m": -0.82,
+            "drawing": 2.76,
+            "model": 3.24
+          },
+          {
+            "y_m": -0.65,
+            "drawing": 3.95,
+            "model": 3.24
+          },
+          {
+            "y_m": -0.49,
+            "drawing": 3.95,
+            "model": 3.24
+          },
+          {
+            "y_m": -0.33,
+            "drawing": 3.95,
+            "model": 3.24
+          },
+          {
+            "y_m": -0.16,
+            "drawing": 3.95,
+            "model": 3.24
+          },
+          {
+            "y_m": 0.0,
+            "drawing": 3.99,
+            "model": 3.24
+          },
+          {
+            "y_m": 0.16,
+            "drawing": 3.95,
+            "model": 3.24
+          },
+          {
+            "y_m": 0.33,
+            "drawing": 3.95,
+            "model": 3.24
+          },
+          {
+            "y_m": 0.49,
+            "drawing": 3.95,
+            "model": 3.24
+          },
+          {
+            "y_m": 0.65,
+            "drawing": 3.95,
+            "model": 3.24
+          },
+          {
+            "y_m": 0.82,
+            "drawing": 2.76,
+            "model": 3.24
+          },
+          {
+            "y_m": 0.98,
+            "drawing": 2.71,
+            "model": 2.52
+          },
+          {
+            "y_m": 1.14,
+            "drawing": 2.94,
+            "model": 2.49
+          },
+          {
+            "y_m": 1.31,
+            "drawing": 3.45,
+            "model": 2.29
+          },
+          {
+            "y_m": 1.47,
+            "drawing": 1.66,
+            "model": 2.26
+          }
+        ]
+      }
+    ]
+  },
+  "notes": [
+    {
+      "appearances": [
+        "europe_gepard_1a2"
+      ],
+      "note": "(no note for the Gepard)",
+      "class": null,
+      "why": ""
+    }
+  ],
+  "answers": null,
+  "gaps": null
+}

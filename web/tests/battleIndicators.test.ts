@@ -83,11 +83,12 @@ const observation = (tick: number, contacts: ContactView[]) =>
     skirmish: null,
     projectiles: [],
     guided: [],
+    groundPatch: { side: "blue" },
   }) as unknown as ObservationView;
 
 /** The overlay the battle view draws for `o` with its presented contacts. */
 function indicators(o: ObservationView, presentation: ContactPresentation) {
-  const contacts = presentation.update(o.contacts, o.tick);
+  const contacts = presentation.update(o);
   return buildBattleOverlay(
     units,
     rules,

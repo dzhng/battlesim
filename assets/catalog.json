@@ -600,10 +600,7 @@
         2.2,
         1.0,
         0.95
-      ],
-      "tolerances": {
-        "footprint_m": 1.0
-      }
+      ]
     },
     "ruin": {
       "unit": "scenery",
@@ -2163,10 +2160,7 @@
         4.0,
         1.5,
         1.4
-      ],
-      "tolerances": {
-        "footprint_m": 0.7
-      }
+      ]
     },
     "us_lav_lav_25a2": {
       "track_gauge": 0.75,
@@ -2192,10 +2186,7 @@
         3.195,
         1.25,
         1.345
-      ],
-      "tolerances": {
-        "footprint_m": 0.8
-      }
+      ]
     },
     "us_lav_lav_at": {
       "track_gauge": 0.75,
@@ -2248,11 +2239,8 @@
       "footprint_half_m": [
         3.275,
         1.8,
-        1.49
-      ],
-      "tolerances": {
-        "footprint_m": 0.4
-      }
+        1.38
+      ]
     },
     "us_m3_bradley_cfv_m3a3": {
       "track_gauge": 0.8,
@@ -2278,11 +2266,8 @@
       "footprint_half_m": [
         3.275,
         1.8,
-        1.49
-      ],
-      "tolerances": {
-        "footprint_m": 0.4
-      }
+        1.38
+      ]
     },
     "europe_leclerc_xlr": {
       "track_gauge": 0.8,
@@ -2366,10 +2351,7 @@
         2.79,
         1.275,
         1.145
-      ],
-      "tolerances": {
-        "footprint_m": 0.3
-      }
+      ]
     },
     "europe_ajax_tracked_reconnaissance_vehicle": {
       "track_gauge": 0.8,
@@ -2377,7 +2359,8 @@
       "source": "assets/source/roster/ajax/europe_ajax_tracked_reconnaissance_vehicle.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "autocannon": "gun"
+        "autocannon": "gun",
+        "HMG": "hmg"
       },
       "wreck": "europe_ajax_tracked_reconnaissance_vehicle_wreck"
     },
@@ -2394,11 +2377,8 @@
       "footprint_half_m": [
         3.81,
         1.675,
-        1.5
-      ],
-      "tolerances": {
-        "footprint_m": 0.3
-      }
+        1.35
+      ]
     },
     "eastern_ural_4320_general_resupply": {
       "track_gauge": 0.75,
@@ -2444,10 +2424,7 @@
         2.45,
         1.1,
         1.0
-      ],
-      "tolerances": {
-        "footprint_m": 0.8
-      }
+      ]
     },
     "europe_leopard_2_2a6": {
       "track_gauge": 0.8,
@@ -2473,7 +2450,7 @@
       "footprint_half_m": [
         3.85,
         1.875,
-        1.5
+        1.35
       ],
       "tolerances": {
         "footprint_m": 2.5
@@ -2501,9 +2478,9 @@
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
-        3.85,
+        4.025,
         1.875,
-        1.5
+        1.415
       ],
       "tolerances": {
         "footprint_m": 2.5
@@ -2531,9 +2508,9 @@
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
-        3.85,
+        4.025,
         1.875,
-        1.5
+        1.415
       ],
       "tolerances": {
         "footprint_m": 2.5
@@ -2566,7 +2543,7 @@
         1.245
       ],
       "tolerances": {
-        "footprint_m": 0.8
+        "footprint_m": 2.1
       }
     },
     "europe_challenger_challenger_3": {
@@ -2593,10 +2570,10 @@
       "footprint_half_m": [
         4.15,
         2.1,
-        1.245
+        1.35
       ],
       "tolerances": {
-        "footprint_m": 1.7
+        "footprint_m": 2.2
       }
     },
     "us_m1_abrams_sep_v2": {
@@ -2720,7 +2697,7 @@
       }
     },
     "europe_cv90_cv9040c": {
-      "track_gauge": 0.8,
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/cv90/europe_cv90_cv9040c.glb",
       "basis_yaw_deg": 0,
@@ -2741,12 +2718,9 @@
       "basis_yaw_deg": 0,
       "footprint_half_m": [
         3.4,
-        1.6,
-        1.4
-      ],
-      "tolerances": {
-        "footprint_m": 0.5
-      }
+        1.69,
+        1.25
+      ]
     },
     "europe_cv90_mk_iv": {
       "track_gauge": 0.8,
@@ -2772,10 +2746,7 @@
         3.4,
         1.6,
         1.4
-      ],
-      "tolerances": {
-        "footprint_m": 0.5
-      }
+      ]
     },
     "eastern_btr_btr_82a": {
       "track_gauge": 0.75,
@@ -2801,10 +2772,7 @@
         3.85,
         1.45,
         1.205
-      ],
-      "tolerances": {
-        "footprint_m": 0.7
-      }
+      ]
     },
     "eastern_tigr_tigr_m": {
       "track_gauge": 0.75,
@@ -2828,10 +2796,7 @@
         2.835,
         1.1,
         1.0
-      ],
-      "tolerances": {
-        "footprint_m": 0.4
-      }
+      ]
     },
     "eastern_t_80_t_80bvm": {
       "track_gauge": 0.8,
@@ -2855,12 +2820,12 @@
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
-        3.7,
+        3.505,
         1.8015,
         1.101
       ],
       "tolerances": {
-        "footprint_m": 1.9
+        "footprint_m": 2.0
       }
     },
     "us_m977_hemtt_general_resupply": {
@@ -2909,7 +2874,7 @@
       "footprint_half_m": [
         3.8,
         1.85,
-        1.175
+        1.25
       ],
       "tolerances": {
         "footprint_m": 2.7
@@ -2940,10 +2905,7 @@
         3.65,
         1.675,
         1.25
-      ],
-      "tolerances": {
-        "footprint_m": 1.0
-      }
+      ]
     },
     "us_m1127_stryker_rv_reconnaissance_vehicle": {
       "track_gauge": 0.75,
@@ -2967,10 +2929,7 @@
         3.475,
         1.36,
         1.32
-      ],
-      "tolerances": {
-        "footprint_m": 0.9
-      }
+      ]
     },
     "us_stryker_m1126_icv": {
       "track_gauge": 0.75,
@@ -2994,10 +2953,7 @@
         3.475,
         1.36,
         1.32
-      ],
-      "tolerances": {
-        "footprint_m": 0.9
-      }
+      ]
     },
     "us_stryker_m1134_atgm": {
       "track_gauge": 0.75,
@@ -3021,10 +2977,7 @@
         3.475,
         1.36,
         1.32
-      ],
-      "tolerances": {
-        "footprint_m": 0.9
-      }
+      ]
     },
     "us_stryker_m1296_dragoon": {
       "track_gauge": 0.75,
@@ -3050,10 +3003,7 @@
         3.475,
         1.36,
         1.32
-      ],
-      "tolerances": {
-        "footprint_m": 0.7
-      }
+      ]
     },
     "europe_puma_level_c": {
       "track_gauge": 0.8,
@@ -3079,11 +3029,8 @@
       "footprint_half_m": [
         3.7,
         2.0,
-        1.8
-      ],
-      "tolerances": {
-        "footprint_m": 0.3
-      }
+        1.65
+      ]
     },
     "us_acv_acv_p": {
       "track_gauge": 0.75,
@@ -3107,10 +3054,7 @@
         4.6,
         1.55,
         1.45
-      ],
-      "tolerances": {
-        "footprint_m": 0.8
-      }
+      ]
     },
     "us_m10_booker": {
       "track_gauge": 0.8,
@@ -3136,7 +3080,7 @@
       "footprint_half_m": [
         3.5,
         1.7,
-        1.49
+        1.3
       ],
       "tolerances": {
         "footprint_m": 1.2
@@ -3164,10 +3108,7 @@
         1.9,
         1.01,
         0.85
-      ],
-      "tolerances": {
-        "footprint_m": 0.4
-      }
+      ]
     },
     "eastern_bmp_ifv_family_bmp_2m_berezhok": {
       "track_gauge": 0.8,
@@ -3193,11 +3134,8 @@
       "footprint_half_m": [
         3.3675,
         1.575,
-        1.225
-      ],
-      "tolerances": {
-        "footprint_m": 0.3
-      }
+        1.075
+      ]
     },
     "eastern_bmp_ifv_family_bmp_3": {
       "track_gauge": 0.8,
@@ -3224,10 +3162,7 @@
         3.57,
         1.6,
         1.2
-      ],
-      "tolerances": {
-        "footprint_m": 0.5
-      }
+      ]
     },
     "eastern_brm_brm_3k": {
       "track_gauge": 0.8,
@@ -3253,10 +3188,7 @@
         3.57,
         1.6,
         1.2
-      ],
-      "tolerances": {
-        "footprint_m": 0.8
-      }
+      ]
     },
     "europe_vbci_infantry_fighting_vehicle": {
       "track_gauge": 0.75,
@@ -3360,7 +3292,7 @@
       "footprint_half_m": [
         4.35,
         1.75,
-        1.65
+        1.4
       ],
       "tolerances": {
         "footprint_m": 1.9
@@ -3418,10 +3350,7 @@
         3.965,
         1.495,
         1.19
-      ],
-      "tolerances": {
-        "footprint_m": 0.8
-      }
+      ]
     },
     "europe_boxer_rct30": {
       "track_gauge": 0.75,
@@ -3447,10 +3376,7 @@
         3.965,
         1.495,
         1.815
-      ],
-      "tolerances": {
-        "footprint_m": 0.4
-      }
+      ]
     },
     "europe_kf51_panther_prototype_main_battle_tank": {
       "track_gauge": 0.8,
@@ -3506,7 +3432,7 @@
       "footprint_half_m": [
         3.475,
         1.65,
-        1.325
+        1.25
       ],
       "tolerances": {
         "footprint_m": 1.6
@@ -5898,10 +5824,10 @@
       "unit": "vehicle",
       "source": "assets/source/roster/m109_paladin/us_m109_paladin_m109a7.glb",
       "basis_yaw_deg": 0,
-      "wreck": "us_m109_paladin_m109a7_wreck",
-      "tolerances": {
-        "hull_extent_m": 5.5
-      }
+      "mounts": {
+        "gun": "gun"
+      },
+      "wreck": "us_m109_paladin_m109a7_wreck"
     },
     "us_m109_paladin_m109a7_wreck": {
       "unit": "scenery",
@@ -5914,7 +5840,7 @@
       "footprint_half_m": [
         3.4,
         1.95,
-        1.625
+        1.48
       ],
       "tolerances": {
         "footprint_m": 6.0
@@ -6006,10 +5932,7 @@
       "unit": "vehicle",
       "source": "assets/source/roster/m270_mlrs/us_m270_mlrs_m270a2.glb",
       "basis_yaw_deg": 0,
-      "wreck": "us_m270_mlrs_m270a2_wreck",
-      "tolerances": {
-        "hull_extent_m": 5.5
-      }
+      "wreck": "us_m270_mlrs_m270a2_wreck"
     },
     "us_m270_mlrs_m270a2_wreck": {
       "unit": "scenery",
@@ -6033,10 +5956,7 @@
       "unit": "vehicle",
       "source": "assets/source/roster/mars_ii/europe_mars_ii_multiple_launch_rocket_system.glb",
       "basis_yaw_deg": 0,
-      "wreck": "europe_mars_ii_multiple_launch_rocket_system_wreck",
-      "tolerances": {
-        "hull_extent_m": 5.5
-      }
+      "wreck": "europe_mars_ii_multiple_launch_rocket_system_wreck"
     },
     "europe_mars_ii_multiple_launch_rocket_system_wreck": {
       "unit": "scenery",
@@ -6087,10 +6007,10 @@
       "unit": "vehicle",
       "source": "assets/source/roster/pzh_2000/europe_pzh_2000_tracked_155_mm_howitzer.glb",
       "basis_yaw_deg": 0,
-      "wreck": "europe_pzh_2000_tracked_155_mm_howitzer_wreck",
-      "tolerances": {
-        "hull_extent_m": 5.5
-      }
+      "mounts": {
+        "gun": "gun"
+      },
+      "wreck": "europe_pzh_2000_tracked_155_mm_howitzer_wreck"
     },
     "europe_pzh_2000_tracked_155_mm_howitzer_wreck": {
       "unit": "scenery",
@@ -6101,7 +6021,7 @@
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
-        3.935,
+        4.165,
         1.79,
         1.53
       ],
@@ -6110,14 +6030,14 @@
       }
     },
     "eastern_2s19_msta_s_2s19m2": {
-      "track_gauge": 0.8,
+      "track_gauge": 0.76,
       "unit": "vehicle",
       "source": "assets/source/roster/2s19_msta_s/eastern_2s19_msta_s_2s19m2.glb",
       "basis_yaw_deg": 0,
-      "wreck": "eastern_2s19_msta_s_2s19m2_wreck",
-      "tolerances": {
-        "hull_extent_m": 5.5
-      }
+      "mounts": {
+        "gun": "gun"
+      },
+      "wreck": "eastern_2s19_msta_s_2s19m2_wreck"
     },
     "eastern_2s19_msta_s_2s19m2_wreck": {
       "unit": "scenery",
@@ -6129,8 +6049,8 @@
       "basis_yaw_deg": 0,
       "footprint_half_m": [
         3.575,
-        1.79,
-        1.495
+        1.69,
+        1.41
       ],
       "tolerances": {
         "footprint_m": 6.0
@@ -6141,10 +6061,10 @@
       "unit": "vehicle",
       "source": "assets/source/roster/plz_05/eastern_plz_05_chinese_tracked_155_mm_howitzer.glb",
       "basis_yaw_deg": 0,
-      "wreck": "eastern_plz_05_chinese_tracked_155_mm_howitzer_wreck",
-      "tolerances": {
-        "hull_extent_m": 5.5
-      }
+      "mounts": {
+        "gun": "gun"
+      },
+      "wreck": "eastern_plz_05_chinese_tracked_155_mm_howitzer_wreck"
     },
     "eastern_plz_05_chinese_tracked_155_mm_howitzer_wreck": {
       "unit": "scenery",
@@ -6157,7 +6077,7 @@
       "footprint_half_m": [
         3.65,
         1.7,
-        1.55
+        1.625
       ],
       "tolerances": {
         "footprint_m": 6.0
@@ -6236,7 +6156,7 @@
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
-        4.876,
+        4.65,
         1.6,
         1.78
       ]
@@ -6263,10 +6183,7 @@
         5.33,
         1.32,
         2.05
-      ],
-      "tolerances": {
-        "footprint_m": 0.8
-      }
+      ]
     },
     "eastern_s350_long": {
       "track_gauge": 0.75,
@@ -6322,7 +6239,7 @@
       "source": "assets/source/roster/gepard/europe_gepard_1a2.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "gun": "hull"
+        "gun": "gun"
       },
       "wreck": "europe_gepard_1a2_wreck"
     },
@@ -6337,10 +6254,10 @@
       "footprint_half_m": [
         3.556,
         1.685,
-        1.645
+        1.5
       ],
       "tolerances": {
-        "footprint_m": 0.7
+        "footprint_m": 1.2
       }
     },
     "europe_nasams_nasams_3": {
@@ -6485,10 +6402,7 @@
         3.57,
         1.43,
         1.65
-      ],
-      "tolerances": {
-        "footprint_m": 0.6
-      }
+      ]
     },
     "eastern_j_10_vigorous_dragon_j_10c": {
       "unit": "vehicle",

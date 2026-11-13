@@ -22,6 +22,11 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import armour_parts as AR  # noqa: E402
+import hull_fittings as HF  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import running_gear as RG  # noqa: E402
+import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, prism  # noqa: E402
 from vehicle_export import run  # noqa: E402
@@ -44,7 +49,7 @@ def build(variant, v):
     m, hull = v.mats, v.hull
     for side, s in ((1, "L"), (-1, "R")):
         for k, x in enumerate(AXLES):
-            VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,
+            RG.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,
                           rim_radius=0.32, tread="bar", hub_bolts=10)
             # Axle extends from frame rail (0.45 - 0.07 inner) to wheel hub (inside tyre)
             axle_inner = 0.38
@@ -54,8 +59,8 @@ def build(variant, v):
                 m["dark"], hull, lods=NEAR)
         box(f"chassis_rail_{s}", (9.80, 0.14, 0.26), (-0.20, side * 0.45, RAIL_Z), m["dark"], hull, bevel=0.01,
             lods=MID)
-        VP.mudflap(f"mudflap_{s}", (-4.65, side * WHEEL_Y, BED_FLOOR - 0.15), (0.42, 0.55), m, hull)
-        VP.mudflap(f"front_mudflap_{s}", (1.20, side * WHEEL_Y, BED_FLOOR - 0.10), (0.42, 0.50), m, hull)
+        HF.mudflap(f"mudflap_{s}", (-4.65, side * WHEEL_Y, BED_FLOOR - 0.15), (0.42, 0.55), m, hull)
+        HF.mudflap(f"front_mudflap_{s}", (1.20, side * WHEEL_Y, BED_FLOOR - 0.10), (0.42, 0.50), m, hull)
     cab(v)
     bed(v)
 
@@ -72,17 +77,17 @@ def cab(v):
                            (CAB_REAR + 0.20, CAB_FLOOR)], 1.20, mat=m["paint"], parent=hull, bevel=0.03)
     slope = math.atan(0.16 / (1.92 - CAB_FLOOR))
     # The grille's mesh panel, bumper, D-shackles, headlights in the shelf.
-    VP.grille("grille", (NOSE - 0.11, 0, 1.62), (0.56, 1.30), m, hull, slats=9, rot=(0, math.pi / 2 - slope, 0))
+    HF.grille("grille", (NOSE - 0.11, 0, 1.62), (0.56, 1.30), m, hull, slats=9, rot=(0, math.pi / 2 - slope, 0))
     box("front_bumper", (0.20, 2.30, 0.24), (NOSE - 0.02, 0, 0.90), m["paint"], hull, bevel=0.03)
     for side, s in ((1, "L"), (-1, "R")):
-        VP.shackle(f"d_shackle_{s}", (NOSE + 0.06, side * 0.55, 0.90), m, hull, size=0.16, rot=(0, 0, math.pi / 2))
+        HF.shackle(f"d_shackle_{s}", (NOSE + 0.06, side * 0.55, 0.90), m, hull, size=0.16, rot=(0, 0, math.pi / 2))
         cyl(f"headlight_{s}", 0.09, 0.04, (NOSE - 0.18, side * 0.95, 1.85), "X", m["lamp"], hull, seg=16, lods=MID)
         cyl(f"headlight_bezel_{s}", 0.11, 0.05, (NOSE - 0.20, side * 0.95, 1.85), "X", m["dark"], hull, seg=16,
             lods=MID)
         box(f"marker_{s}", (0.03, 0.08, 0.08), (NOSE - 0.17, side * 0.72, 1.85), m["tail"], hull, lods=FINE)
         # Door, its window and handle; the steps under it; the mirror.
         y = side * (width / 2 + 0.005)
-        VP.weld_line(f"door_seam_{s}", [(4.30, y, CAB_FLOOR + 0.05), (4.30, y, ROOF - 0.10), (3.30, y, ROOF - 0.10),
+        AR.weld_line(f"door_seam_{s}", [(4.30, y, CAB_FLOOR + 0.05), (4.30, y, ROOF - 0.10), (3.30, y, ROOF - 0.10),
                                        (3.30, y, CAB_FLOOR + 0.05)], m, hull, radius=0.012)
         box(f"door_window_{s}", (0.70, 0.03, 0.50), (3.85, y, 2.40), m["glass"], hull, lods=MID)
         box(f"door_handle_{s}", (0.14, 0.04, 0.04), (3.45, y + side * 0.02, 1.90), m["steel"], hull, lods=FINE)
@@ -120,16 +125,14 @@ def cab(v):
     box("spare_carrier", (0.20, 0.90, 0.10), (2.75, -0.15, BED_FLOOR + 0.05), m["dark"], hull, lods=MID)
     cyl("spare_tyre", WHEEL_R * 0.97, WHEEL_W, (2.75, -0.15, BED_FLOOR + 0.70), "X", m["rubber"], hull, seg=28)
     cyl("spare_rim", 0.32, 0.06, (2.95, -0.15, BED_FLOOR + 0.70), "X", m["paint"], hull, seg=18, lods=MID)
-    for side, s in ((1, "L"), (-1, "R")):
-        whip = empty(f"dressing_antenna_{s}", parent=hull)
-        VP.antenna(f"antenna_{s}", (CAB_REAR + 0.15, side * 1.05, ROOF), m, whip, height=2.2)
+    RF.whip_pair(hull, (CAB_REAR + 0.15, 1.05, ROOF), m, height=2.2)
 
 
 def bed(v):
     m, hull = v.mats, v.hull
     length = 7.80
     centre = 2.62 - length / 2
-    VP.cargo_bed("cargo_bed", (centre, 0, BED_FLOOR), (length, 2.36, 0.62), m, hull, stakes=7)
+    SW.cargo_bed("cargo_bed", (centre, 0, BED_FLOOR), (length, 2.36, 0.62), m, hull, stakes=7)
     # The load: pallets of crates under a lashed tarp.
     for k, x in enumerate((centre + 2.0, centre - 0.4)):
         box(f"load_pallet_{k}", (2.00, 1.90, 0.12), (x, 0, BED_FLOOR + 0.06), m["dark"], hull, lods=MID)
@@ -138,7 +141,7 @@ def bed(v):
             box(f"load_strap_{k}_{j}", (0.04, 1.90, 1.36), (x + y, 0, BED_FLOOR + 0.12 + 0.62), m["dark"], hull,
                 lods=NEAR)
     for k, y in enumerate((-0.55, 0.0, 0.55)):
-        VP.stowage_box(f"ammo_crate_{k}", (centre - 2.3, y, BED_FLOOR), (0.90, 0.50, 0.45), dict(m, paint=m["dark"]),
+        SW.stowage_box(f"ammo_crate_{k}", (centre - 2.3, y, BED_FLOOR), (0.90, 0.50, 0.45), dict(m, paint=m["dark"]),
                        hull)
     # The folded crane at the rear: its column on the bed's end, the boom
     # folded forward over the load.
@@ -149,15 +152,15 @@ def bed(v):
     box("crane_jib", (1.50, 0.18, 0.18), (cx + 0.80, 0.75, BED_FLOOR + 1.22), m["paint"], hull, bevel=0.02)
     cyl("crane_ram", 0.06, 0.95, (cx + 0.45, 0.75, BED_FLOOR + 1.05), "X", m["steel"], hull, seg=10,
         rot=(0, -0.55, 0), lods=MID)
-    VP.tow_hook("crane_hook", (cx + 2.15, 0.75, BED_FLOOR + 1.25), m, hull, size=0.10, rot=(0, math.pi / 2, 0))
+    HF.tow_hook("crane_hook", (cx + 2.15, 0.75, BED_FLOOR + 1.25), m, hull, size=0.10, rot=(0, math.pi / 2, 0))
     # Under the bed: the fuel tank, tool boxes; the rear lights and pintle.
-    VP.fuel_tank("fuel_tank", (0.10, 0.92, 1.05), 1.40, 0.30, m, hull)
-    VP.stowage_box("tool_box", (-0.20, -0.95, 0.80), (1.10, 0.40, 0.45), dict(m, paint=m["dark"]), hull)
+    HF.fuel_tank("fuel_tank", (0.10, 0.92, 1.05), 1.40, 0.30, m, hull)
+    SW.stowage_box("tool_box", (-0.20, -0.95, 0.80), (1.10, 0.40, 0.45), dict(m, paint=m["dark"]), hull)
     for side, s in ((1, "L"), (-1, "R")):
-        VP.light_with_guard(f"tail_light_{s}", (-5.17, side * 0.95, 1.20), 0.05, dict(m, lamp=m["tail"]), hull,
+        HF.light_with_guard(f"tail_light_{s}", (-5.17, side * 0.95, 1.20), 0.05, dict(m, lamp=m["tail"]), hull,
                             rot=(0, 0, math.pi))
     box("rear_bumper", (0.14, 2.20, 0.16), (-5.12, 0, 0.95), m["dark"], hull, bevel=0.012)
-    VP.tow_hook("pintle", (-5.08, 0, 0.92), m, hull, size=0.10, rot=(0, 0, math.pi))
+    HF.tow_hook("pintle", (-5.08, 0, 0.92), m, hull, size=0.10, rot=(0, 0, math.pi))
 
 
 def wreck(variant, v):
@@ -171,7 +174,7 @@ def wreck(variant, v):
     remove("wheel_L_1_", "spare_", "load_strap_", "ammo_crate_1", "ammo_crate_2", "dressing_mirror_L",
            "mirror_frame_L", "mirror_L")
     for k, (x, y, yaw) in enumerate(((-3.3, 0.45, 0.4), (-2.4, -0.55, -0.3))):
-        VP.stowage_box(f"spilled_crate_{k}", (x, y, BED_FLOOR), (0.90, 0.50, 0.45), dict(m, paint=m["dark"]),
+        SW.stowage_box(f"spilled_crate_{k}", (x, y, BED_FLOOR), (0.90, 0.50, 0.45), dict(m, paint=m["dark"]),
                        v.hull, rot=(0.05, 0.02, yaw))
     bend(parts("crane_boom", "crane_jib", "crane_hook"), (-4.85, 0.75, BED_FLOOR + 1.45), (0, 1, 0), (0, 0, 1), 0.35)
     shell = parts("cab", "cargo_bed_side", "load_")

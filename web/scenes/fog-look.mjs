@@ -571,7 +571,7 @@ export async function run(ctx) {
     JSON.stringify({ graded, ...paths, canopy: canopy.join(" ") }),
   );
   // Own soldiers standing on unseen ground (outside the recon's sight) are
-  // drawn by identification: never fogged, even under the black style.
+  // drawn by identification: never the black style's graded black.
   await setCamera(page, FRAMINGS["ground-street"]);
   await page.evaluate(() => window.__lab.frame());
   const street = decode(await snapshot(ctx, page, "black-style-units-1920x1080.png"));
@@ -589,7 +589,7 @@ export async function run(ctx) {
   const unitRgb = units.filter(onScreen).map((p) => rgb(street, p[0], p[1]));
   ctx.check(
     "units standing in fog are never fogged",
-    unitRgb.length >= 3 && unitRgb.every((c) => Math.max(...c) > 40),
+    unitRgb.length >= 3 && unitRgb.every((c) => !near(c, graded)),
     JSON.stringify({ members: members.length, inFog: standing.length, unitRgb }),
   );
   await lab(page, (s) => window.__lab.route.setStyle(s), fixtureStyle);

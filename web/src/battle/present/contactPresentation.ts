@@ -1,4 +1,9 @@
-import type { ContactView } from "../sim/observationView";
+import type { ContactView, ObservationView } from "../sim/observationView";
+
+/** What an observation reports of its side's contacts, and whose they are. */
+export type ContactReport = Pick<ObservationView, "contacts" | "tick"> & {
+  groundPatch: Pick<ObservationView["groundPatch"], "side">;
+};
 
 /** Visual memory only. Retired reports cannot be selected or commanded. */
 export interface PresentedContact extends ContactView {
@@ -10,14 +15,18 @@ export interface PresentedContact extends ContactView {
 export class ContactPresentation {
   private held = new Map<number, { contact: ContactView; removedAt: number | null }>();
   private tick = -1;
+  private side: string | null = null;
   constructor(
     private readonly tickHz: number,
     private readonly fadeSeconds: number,
   ) {}
 
-  update(contacts: readonly ContactView[], tick: number): PresentedContact[] {
-    if (tick < this.tick) this.held.clear();
+  /** The contacts `report` shows. A rewound battle, or another side's
+   *  report (a lab switching sides), forgets what was remembered. */
+  update({ contacts, tick, groundPatch: { side } }: ContactReport): PresentedContact[] {
+    if (tick < this.tick || side !== this.side) this.held.clear();
     this.tick = tick;
+    this.side = side;
     const live = new Set(contacts.map((c) => c.id));
     for (const contact of contacts) this.held.set(contact.id, { contact, removedAt: null });
     const out: PresentedContact[] = [];

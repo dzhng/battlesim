@@ -41,8 +41,8 @@ centre). x is forward from the hull's middle; error is about ±0.15 m on clean p
 | US wheeled | LAV-25A2 −1.0, LAV-AT −1.3, Stryker M1134 −1.4 (y +0.73), Dragoon −1.05, Stryker ICV / RV +0.5, ACV-P −0.9 |
 | US tracked | Bradley M2A4 / M3A3 −0.5 and y −0.2 (offset right), M10 −0.3, Abrams SEP v2 / v2 Trophy / v3 Trophy / M1E3 +0.25 |
 | Europe wheeled | Centauro II −0.95, VBCI −0.4, Boxer APC +0.3, Fennek +0.55, VBL −0.2, Jaguar +0.2 |
-| Europe tracked | Puma −0.45, CV9040C / Mk IV −0.35, CV90120 −0.3, Ajax −0.4, Leopard 2A6 / 2A7V / 2A8 +0.3, KF51 +0.3, Challenger 2 TES / 3 +0.2 |
-| Eastern | T-15 −1.2, ZBL-08 −0.9, BTR-82A +0.85, T-14 −0.3, BMP-3 / BRM-3K / BMP-2M +0.3, Tigr −0.15, Type 99A −0.15 |
+| Europe tracked | Puma −0.45, CV9040C / Mk IV −0.35, CV90120 −0.3, Ajax −0.4, Leopard 2A6 +0.3, Leopard 2A7V / 2A8 +0.125, KF51 +0.3, Challenger 2 TES / 3 +0.2 |
+| Eastern | T-15 −1.2, ZBL-08 −0.9, BTR-82A +0.85, T-14 −0.3, BMP-3 / BRM-3K +0.3, BMP-2M +0.1, Tigr −0.15, Type 99A −0.15 |
 | On the middle | T-72B3, T-90M, T-80BVM, Type 15, Leclerc, HMMWV, Boxer RCT30 |
 
 Before/after crops against the reference photos are in

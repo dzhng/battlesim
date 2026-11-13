@@ -30,6 +30,13 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import armour_parts as AR  # noqa: E402
+import hull_fittings as HF  # noqa: E402
+import hull_shape as HS  # noqa: E402
+import roof_parts as RF  # noqa: E402
+import running_gear as RG  # noqa: E402
+import stowage as SW  # noqa: E402
+import vehicle_guns as VG  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
@@ -61,7 +68,7 @@ MCT30_REACH = 1.27
 
 def side_face(roof):
     """The upper side face, as (y, z) at the knuckle and at the roof
-    (`vehicle_parts.on_side`)."""
+    (`hull_shape.on_side`)."""
     z, y = KNUCKLE
     return (y, z), (y - (roof - z) * math.tan(SIDE_LEAN), roof)
 
@@ -122,7 +129,7 @@ def build(variant, v):
     if "m1127" in ident:
         for k, (x, y) in enumerate(((-3.0, 0.95), (-3.0, -0.95), (-2.6, 1.05), (0.9, -1.0))):
             whip = empty(f"dressing_radio_antenna_{k}", parent=hull)
-            VP.antenna(f"radio_antenna_{k}", (x, y, roof), m, whip, height=2.6)
+            RF.antenna(f"radio_antenna_{k}", (x, y, roof), m, whip, height=2.6)
     # Crew stand in the hatches (M1126 front, M1134 three-quarter front).
     if not v.wreck and not dragoon:
         seat = empty("dressing_commander", parent=hull)
@@ -136,7 +143,7 @@ def wheels(v):
     m, hull = v.mats, v.hull
     for side, s in ((1, "L"), (-1, "R")):
         for k, x in enumerate(WHEEL_X):
-            VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,
+            RG.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,
                           rim_radius=0.29, ctis=True)
             # Suspension arms reaching in from the hub to the belly, with coil
             # spring mounted on a bracket behind the arm.
@@ -156,7 +163,7 @@ def wheels(v):
             cyl(f"spring_{s}_{k}", 0.07, 0.38, (spring_x, spring_y, WHEEL_R + 0.30), "Z", m["dark"],
                 hull, seg=10, lods=FINE)
         # Mudflaps hang behind the rear wheels from under the lower hull.
-        VP.mudflap(f"mudflap_{s}", (-2.75, side * WHEEL_Y, 0.95), (0.40, 0.50), m, hull)
+        HF.mudflap(f"mudflap_{s}", (-2.75, side * WHEEL_Y, 0.95), (0.40, 0.50), m, hull)
 
 
 def side_top(x, roof):
@@ -188,8 +195,8 @@ def side_tiles(v, roof, side, s):
             if high - low < 0.24:
                 continue
             tall = (high - low) / cos
-            loc, rot = VP.on_side(x, (low + high) / 2, side, *face)
-            VP.bolted_panel(f"armour_tile_{s}_{r}_{k}", loc, (0.68, tall, 0.04), m, v.hull,
+            loc, rot = HS.on_side(x, (low + high) / 2, side, *face)
+            AR.bolted_panel(f"armour_tile_{s}_{r}_{k}", loc, (0.68, tall, 0.04), m, v.hull,
                             bolts=(3, 3 if tall > 0.5 else 2), rot=rot, bevel=0.015)
 
 
@@ -208,11 +215,11 @@ def fittings(v, roof, dragoon, base=None):
     # The engine's grille on the right of the glacis, the driver's hatch and
     # periscopes on its left, the hatch outboard, clear of the remote
     # station behind it.
-    VP.grille("engine_grille", (2.30, -0.55, glacis(2.30)), (0.80, 0.85), m, hull, slats=8, rot=(0, slope, 0))
-    VP.hatch("driver_hatch", (top - 0.35, 0.66, roof), m, hull, radius=0.30)
+    HF.grille("engine_grille", (2.30, -0.55, glacis(2.30)), (0.80, 0.85), m, hull, slats=8, rot=(0, slope, 0))
+    RF.hatch("driver_hatch", (top - 0.35, 0.66, roof), m, hull, radius=0.30)
     for k, y in enumerate((0.38, 0.60, 0.82)):
         x = top + 0.12
-        VP.periscope(f"driver_periscope_{k}", (x, y, glacis(x) - 0.01), m, hull, size=(0.12, 0.17, 0.08),
+        RF.periscope(f"driver_periscope_{k}", (x, y, glacis(x) - 0.01), m, hull, size=(0.12, 0.17, 0.08),
                      rot=(0, slope, 0))
     # The bolted applique: the lower nose covered in two rows of plates, each
     # row as wide as the nose is where it starts (photos: front,
@@ -224,39 +231,39 @@ def fittings(v, roof, dragoon, base=None):
         z = z0 + t * (z1 - z0)
         half = (half0 - 0.15) + (half1 - 0.40 - half0 + 0.15) * (t - 0.25)
         for k, side in enumerate((1, -1)):
-            VP.bolted_panel(f"nose_applique_{r}_{k}", (nose_x(z), side * (half / 2 + 0.01), z),
+            AR.bolted_panel(f"nose_applique_{r}_{k}", (nose_x(z), side * (half / 2 + 0.01), z),
                             (run / 2 - 0.04, half - 0.05, 0.045), m, hull, bolts=(3, 4), rot=(0, lower, 0))
-    VP.bolted_panel("glacis_applique", (2.45, 0.55, glacis(2.45)), (0.95, 0.80, 0.04), m, hull, bolts=(4, 3),
+    AR.bolted_panel("glacis_applique", (2.45, 0.55, glacis(2.45)), (0.95, 0.80, 0.04), m, hull, bolts=(4, 3),
                     rot=(0, slope, 0))
     # Headlights in guards at the glacis corners, tow eyes on the nose.
     rear_half = face[0][0] - 0.45 * math.tan(SIDE_LEAN)
     for side, s in ((1, "L"), (-1, "R")):
         x = 3.05
-        VP.light_with_guard(f"headlight_{s}", (x, side * 1.00, glacis(x) + 0.10), 0.07, m, hull,
+        HF.light_with_guard(f"headlight_{s}", (x, side * 1.00, glacis(x) + 0.10), 0.07, m, hull,
                             rot=(0, 0, side * 0.15))
         z = knuckle - 0.08
-        VP.tow_hook(f"front_tow_{s}", (nose_x(z) - 0.02, side * 0.80, z), m, hull, size=0.13)
-        VP.shackle(f"front_shackle_{s}", (nose_x(z) + 0.08, side * 0.80, z - 0.04), m, hull, size=0.11,
+        HF.tow_hook(f"front_tow_{s}", (nose_x(z) - 0.02, side * 0.80, z), m, hull, size=0.13)
+        HF.shackle(f"front_shackle_{s}", (nose_x(z) + 0.08, side * 0.80, z - 0.04), m, hull, size=0.11,
                    rot=(0, 0, math.pi / 2))
-        VP.light_with_guard(f"tail_light_{s}", (-3.41, side * (rear_half - 0.18), knuckle + 0.45), 0.05,
+        HF.light_with_guard(f"tail_light_{s}", (-3.41, side * (rear_half - 0.18), knuckle + 0.45), 0.05,
                             dict(m, lamp=m["tail"]), hull, rot=(0, 0, math.pi))
-        VP.tow_hook(f"rear_tow_{s}", (-3.40, side * 0.80, knuckle - 0.10), m, hull, size=0.12, rot=(0, 0, math.pi))
+        HF.tow_hook(f"rear_tow_{s}", (-3.40, side * 0.80, knuckle - 0.10), m, hull, size=0.12, rot=(0, 0, math.pi))
         # Armour tiles on the side's front half and stowage bins on its rear
         # half: both lean with the side.
         side_tiles(v, roof, side, s)
         for k in range(4):
-            loc, rot = VP.on_side(-0.55 - k * 0.72, knuckle + 0.16, side, *face, proud=0.05, standing=True)
-            VP.stowage_box(f"side_bin_{s}_{k}", loc, (0.68, 0.10, 0.48), m, hull, rot=rot)
+            loc, rot = HS.on_side(-0.55 - k * 0.72, knuckle + 0.16, side, *face, proud=0.05, standing=True)
+            SW.stowage_box(f"side_bin_{s}_{k}", loc, (0.68, 0.10, 0.48), m, hull, rot=rot)
     # The exhaust on the right, between the tiles and the bins, out of the side.
-    loc, _ = VP.on_side(-0.08, knuckle + 0.30, -1, *face, proud=0.08)
-    VP.exhaust("exhaust", loc, 0.07, 0.40, m, hull, rot=(0, 0, -math.pi / 2))
+    loc, _ = HS.on_side(-0.08, knuckle + 0.30, -1, *face, proud=0.08)
+    HF.exhaust("exhaust", loc, 0.07, 0.40, m, hull, rot=(0, 0, -math.pi / 2))
     # The commander's hatch and vision blocks, beside the remote station.
     if not dragoon:
         cyl("commander_ring", 0.40, 0.10, (0.25, COMMANDER_Y, roof + 0.05), "Z", m["paint"], hull, seg=24, bevel=0.01,
             lods=MID)
         for k in range(6):
             a = -0.9 + k * 0.6
-            VP.periscope(f"commander_vision_{k}", (0.25 + 0.36 * math.cos(a), COMMANDER_Y + 0.36 * math.sin(a),
+            RF.periscope(f"commander_vision_{k}", (0.25 + 0.36 * math.cos(a), COMMANDER_Y + 0.36 * math.sin(a),
                                                    roof + 0.09),
                          m, hull, size=(0.10, 0.13, 0.07), rot=(0, 0, a))
         cyl("commander_lid", 0.32, 0.05, (-0.42, COMMANDER_Y, roof + 0.06), "Z", m["paint"], hull, seg=24, bevel=0.01,
@@ -271,11 +278,11 @@ def fittings(v, roof, dragoon, base=None):
                     min(max(by, y - size[1] / 2 - 0.04), y + size[1] / 2 + 0.04))
             if math.dist(near, (bx, by)) < reach:
                 continue
-        VP.hatch(f"squad_hatch_{k}", (x, y, roof), m, hull, size=size)
+        RF.hatch(f"squad_hatch_{k}", (x, y, roof), m, hull, size=size)
     # The rear plate: the ramp with its door, hinged along its foot, and
     # jerrycans in racks either side of it.
     foot, head = knuckle - 0.12, roof - 0.15
-    VP.weld_line("ramp_seam", [(-3.475, -0.80, foot), (-3.475, -0.80, head - 0.15),
+    AR.weld_line("ramp_seam", [(-3.475, -0.80, foot), (-3.475, -0.80, head - 0.15),
                                (-3.475, 0.80, head - 0.15), (-3.475, 0.80, foot)], m, hull, radius=0.012)
     box("rear_ramp", (0.06, 1.56, head - foot), (-3.475, 0, (head + foot) / 2), m["paint"], hull, bevel=0.012)
     door = min(0.95, head - foot - 0.20)
@@ -283,14 +290,12 @@ def fittings(v, roof, dragoon, base=None):
         lods=NEAR)
     cyl("ramp_hinge", 0.04, 1.50, (-3.50, 0, foot - 0.03), "Y", m["steel"], hull, seg=10, lods=NEAR)
     for side in (-1, 1):
-        VP.jerrycan(f"rear_jerrycan_{side}", (-3.39, side * 1.07, knuckle + 0.15), dict(m, paint=m["dark"]), hull,
+        SW.jerrycan(f"rear_jerrycan_{side}", (-3.39, side * 1.07, knuckle + 0.15), dict(m, paint=m["dark"]), hull,
                     rot=(0, 0, math.pi / 2))
     # The squad's rolled tarp across the rear roof.
-    VP.tarp_roll("roof_tarp", (-3.10, 0, roof + 0.13), 1.60, 0.13, m, hull, straps=3)
+    SW.tarp_roll("roof_tarp", (-3.10, 0, roof + 0.13), 1.60, 0.13, m, hull, straps=3)
     edge = face[1][0]
-    for side, s in ((1, "L"), (-1, "R")):
-        whip = empty(f"dressing_antenna_{s}", parent=hull)
-        VP.antenna(f"antenna_{s}", (-3.25, side * (edge - 0.08), roof), m, whip, height=2.8)
+    RF.whip_pair(hull, (-3.25, (edge - 0.08), roof), m, height=2.8)
 
 
 # ---------------------------------------------------------------- weapons
@@ -317,12 +322,12 @@ def protector(v, station, pitch, pivot):
     for side in (-1, 1):
         box(f"protector_cradle_{side}", (0.36, 0.05, 0.34), (0.0, side * 0.17, -0.08), m["paint"], station,
             bevel=0.012)
-        VP.smoke_discharger_bank(f"protector_smoke_{side}", (-0.18, side * 0.34, -0.20), m, station, count=4,
+        RF.smoke_discharger_bank(f"protector_smoke_{side}", (-0.18, side * 0.34, -0.20), m, station, count=4,
                                  tube_radius=0.04, tube_length=0.22, elevation=0.45, spread=0.4,
                                  rot=(0, 0, side * 0.6))
-    VP.sight_housing("protector_sight", (0.08, 0.30, -0.10), m, pitch, size=(0.30, 0.18, 0.24))
+    RF.sight_housing("protector_sight", (0.08, 0.30, -0.10), m, pitch, size=(0.30, 0.18, 0.24))
     box("protector_ammo", (0.30, 0.14, 0.26), (-0.02, -0.28, -0.08), m["paint"], pitch, bevel=0.012, lods=MID)
-    VP.browning_m2(pitch, v.frame["mounts"][0]["muzzle_m"][0], m)
+    VG.browning_m2(pitch, v.frame["mounts"][0]["muzzle_m"][0], m)
 
 
 def tow_launcher(v, station, pitch, pivot):
@@ -342,7 +347,7 @@ def tow_launcher(v, station, pitch, pivot):
             lods=MID)
         cyl(f"tow_tube_rim_{side}", 0.17, 0.05, (reach - 0.06, side * 0.20, 0.05), "X", m["dark"], pitch, seg=16,
             lods=NEAR)
-    VP.sight_housing("itas_sight", (reach - 0.35, 0.53, -0.20), m, pitch, size=(0.42, 0.26, 0.50))
+    RF.sight_housing("itas_sight", (reach - 0.35, 0.53, -0.20), m, pitch, size=(0.42, 0.26, 0.50))
     box("tow_box_lid", (reach * 0.9, 0.82, 0.03), (reach / 2 - 0.05, 0, 0.31), m["dark"], pitch, lods=NEAR)
 
 
@@ -358,15 +363,15 @@ def mct30(v, turret, gun):
     crown = [(x * 0.86 - 0.08, y * 0.84) for x, y in foot]
     cyl("turret_ring", 0.92, 0.06, (0, 0, base + 0.03), "Z", m["dark"], turret, seg=32, lods=MID)
     loft("mct30_shell", [(base + 0.04, foot), (top, crown)], mat=m["paint"], parent=turret, bevel=0.03)
-    VP.sight_housing("gunner_sight", (0.50, -0.42, top - 0.12), m, turret, size=(0.34, 0.26, 0.20))
+    RF.sight_housing("gunner_sight", (0.50, -0.42, top - 0.12), m, turret, size=(0.34, 0.26, 0.20))
     sight = empty("dressing_commander_sight", parent=turret)
     cyl("cits_pedestal", 0.10, 0.12, (-0.55, 0.40, top + 0.04), "Z", m["dark"], sight, seg=12, lods=MID)
-    VP.sight_housing("cits_head", (-0.55, 0.40, top + 0.08), m, sight, size=(0.30, 0.28, 0.20))
+    RF.sight_housing("cits_head", (-0.55, 0.40, top + 0.08), m, sight, size=(0.30, 0.28, 0.20))
     for side, s in ((1, "L"), (-1, "R")):
-        VP.smoke_discharger_bank(f"turret_smoke_{s}", (0.30, side * 0.82, base + 0.30), m, turret, count=4,
+        RF.smoke_discharger_bank(f"turret_smoke_{s}", (0.30, side * 0.82, base + 0.30), m, turret, count=4,
                                  tube_radius=0.04, tube_length=0.22, elevation=0.4, spread=0.35,
                                  rot=(0, 0, side * 0.9))
-        VP.tarp_roll(f"bustle_roll_{s}", (-1.00, side * 0.45, base + 0.22), 0.50, 0.14, m, turret, straps=2,
+        SW.tarp_roll(f"bustle_roll_{s}", (-1.00, side * 0.45, base + 0.22), 0.50, 0.14, m, turret, straps=2,
                      rot=(0, 0, 0))
     box("bustle_rack", (0.30, 1.50, 0.04), (-1.12, 0, base + 0.08), m["steel"], turret, lods=MID)
     reach = v.frame["mounts"][0]["muzzle_m"][0]
@@ -391,11 +396,11 @@ def wreck(variant, v):
     remove("wheel_L_1_", "wheel_L_2_", "side_bin_R_1", "side_bin_R_2", "squad_hatch_", "roof_tarp",
            "rear_jerrycan_", "ramp_door")
     face = side_face(v.roof)
-    hinge, _ = VP.on_side(0, KNUCKLE[0] + 0.64, 1, *face, proud=0.08)
+    hinge, _ = HS.on_side(0, KNUCKLE[0] + 0.64, 1, *face, proud=0.08)
     bend(parts("side_bin_L_2"), hinge, (1, 0, 0), (0, 0, -1), 0.5)
     shell = parts("stryker_hull", "armour_tile_", "nose_applique_", "glacis_applique")
     densify(shell, scale=2.0)
-    warp(shell, heat(0.02, 0.8, seed=6.0), dent(VP.on_side(1.1, KNUCKLE[0] + 0.50, 1, *face)[0], 0.5, 0.12, (0, -1, -0.2)))
+    warp(shell, heat(0.02, 0.8, seed=6.0), dent(HS.on_side(1.1, KNUCKLE[0] + 0.50, 1, *face)[0], 0.5, 0.12, (0, -1, -0.2)))
     for k, (loc, rot, size) in enumerate((((1.4, 1.62, 0.03), (0.03, 0.04, 0.9), 0.30),
                                           ((1.0, -1.62, 0.03), (-0.04, 0.02, 2.2), 0.28),
                                           ((-2.5, -0.45, v.roof + 0.04), (0.02, 0.04, 0.3), 0.36))):

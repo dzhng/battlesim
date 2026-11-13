@@ -120,6 +120,17 @@
             "assault_squad__rifleman"
           ]
         }
+      },
+      "capabilities": {
+        "smoke": {
+          "capacity": 1,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 12, "height_m": 5, "life_s": 30, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "grenade"
+          }
+        }
       }
     },
     "f_16c_block_50": {

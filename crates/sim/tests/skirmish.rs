@@ -599,13 +599,9 @@ fn packed_match_header_exposes_players_and_pending_counts() {
         };
         sim::publication::pack_logical(
             battle.observe(side),
+            &[],
             &patch,
-            &sim::publication::FogPatch {
-                full: true,
-                base: 0,
-                revision: 0,
-                changed: &[],
-            },
+            &crate::publication::full_fog(),
             std::iter::empty(),
             &mut values,
         )

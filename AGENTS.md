@@ -111,7 +111,7 @@ something replaces an old mechanism, delete the old one.
 Before writing TypeScript vectors, matrices, shapes, noise, or seeded
 randomness, load [`math`](.agents/skills/math/SKILL.md). When a change exposes a
 duplicate or stale owner, use
-[`refactor-clean`](.agents/skills/refactor-clean/SKILL.md).
+[`refactor-change`](.agents/skills/refactor-change/SKILL.md).
 
 ## Parallel work stays cheap
 

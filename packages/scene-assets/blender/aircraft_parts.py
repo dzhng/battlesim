@@ -521,7 +521,7 @@ def door_gun(v, rigged, mats, pitch_deg, inboard, gun="m2", mount="door"):
     yawing on it, and the gun (`m2` or `kord`) pitching to the muzzle,
     within the model's own elevation `pitch_deg` (low, high) on the gun
     node."""
-    from vehicle_parts import browning_m2, kord
+    from vehicle_guns import browning_m2, kord
     (yaw, pitch, _muzzle, pivot), (reach, _, bore) = _rigged(v, rigged, mount)
     pitch["pitch_min_deg"], pitch["pitch_max_deg"] = pitch_deg
     # A machine gun on a pintle doesn't run back like a cannon: on a `gun`

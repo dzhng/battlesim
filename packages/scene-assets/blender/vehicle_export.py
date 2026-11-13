@@ -53,11 +53,15 @@ REPO = Path(__file__).resolve().parents[3]
 RIG_NODES = {"gun": ("turret", "gun", "muzzle"), "hmg": ("hmg", "hmg_gun", "hmg_muzzle")}
 
 
+# The roster lint walk (`vehicle_lint_roster`) sets this to a list: each
+# `run` or `run_disabled` then appends what it would build, and builds and
+# exports nothing.
+CAPTURE = None
+
+
 def _run_lint(vehicle_id):
     """Run geometry lint checks on the current scene; fail on new issues."""
     import vehicle_lint
-    if getattr(vehicle_lint, '_SUPPRESS_EXPORT_LINT', False):
-        return
     all_issues, new_issues = vehicle_lint.lint_and_report(vehicle_id)
     if all_issues.issues:
         print(f"LINT {vehicle_id}: {len(all_issues.issues)} issue(s), {len(new_issues.issues)} new", flush=True)
@@ -67,11 +71,22 @@ def _run_lint(vehicle_id):
                          "fix them or run `vehicle_lint.py --update-baseline` to accept them")
 
 
-def materials(scheme, fittings=(0.11, 0.095, 0.068), canvas=(0.105, 0.098, 0.062), chip=0.35):
+CHIP = 0.35  # the paint's edge wear unless a family sets its own (`materials`)
+
+
+FITTINGS_SHADE = 0.6  # hardware's paint against the scheme's mean: a darker shade of the same paint
+
+
+def materials(scheme, fittings=None, canvas=(0.105, 0.098, 0.062), chip=CHIP):
     """One material per role `vehicle_parts` reads, in `scheme`. `fittings` is
-    the darker painted tone of hubs, brackets and running gear fittings;
-    `canvas` the stowage's cloth; `chip` how much of the paint's convex edges
-    wear to its lighter tone (the look's painted edge highlights)."""
+    the darker painted tone of hubs, brackets and running gear fittings, by
+    default the scheme's mean paint at `FITTINGS_SHADE`, so hardware reads as
+    the same paint in shade on every scheme; `canvas` the stowage's
+    cloth; `chip` how much of the paint's convex edges wear to its lighter tone
+    (the look's painted edge highlights)."""
+    if fittings is None:
+        mean = P.textures.baked(P.textures.SCHEMES[scheme]).mean()
+        fittings = tuple(FITTINGS_SHADE * c for c in mean)
     return {
         "paint": P.paint(scheme, "armor_paint", chip=chip, dirt=0.5, rise=1.1),
         "dark": textured("fittings", "olive_paint", colour=fittings, chip=0.3, dirt=0.55, role="paint"),
@@ -114,13 +129,14 @@ def rig(frame, root, trunnion=None):
 
 class Vehicle:
     """What a family's build places its parts on: `root`, `hull` (the static
-    body), `mats`, the `scheme` they are painted in, the frame and its sizes,
-    and `crew`, the crewmen to pose (`vehicle_crew.crew` arguments after the
+    body), `mats`, the `scheme` they are painted in and the `looks` they were
+    made with (`materials` keywords), the frame and its sizes, and `crew`, the crewmen to pose (`vehicle_crew.crew` arguments after the
     source)."""
 
-    def __init__(self, variant, mats, scheme=None):
+    def __init__(self, variant, mats, scheme=None, looks=None):
         self.variant = variant
         self.scheme = scheme
+        self.looks = looks or {}
         self.frame = variant["frame"]
         self.length, self.width, self.height = self.frame["body_dimensions_m"]
         self.mats = mats
@@ -148,19 +164,27 @@ class Vehicle:
                           (at(0.14, 0.11, roof - 1.25), at(0.14, -0.11, roof - 1.25))))
 
 
+def build_variant(variant, scheme, build, looks=None, wreck=False):
+    """A fresh scene holding `variant` as its family's `build` places it,
+    painted in `scheme` (one, or one per variant id) with `looks` (`materials`
+    keywords), live or ready to be wrecked; returns its `Vehicle`."""
+    reset()
+    P.SCORCH.clear()
+    own = scheme[variant["id"]] if isinstance(scheme, dict) else scheme
+    v = Vehicle(variant, materials(own, **(looks or {})), own, looks)
+    v.wreck = wreck
+    build(variant, v)
+    return v
+
+
 def _export(variants, scheme, build, wreck, ao_distance, ao_rays, check=None, looks=None):
     """Build and export each of `variants` (or the one `--variant=<id>` names),
     live or with `--wreck`; returns the receipt rows, or None for a partial run.
     `scheme` is one scheme or a scheme per variant id; `looks` are `materials`
     keywords (a family's fittings, canvas or chip)."""
-    # Check if export is suppressed (during roster lint scanning)
-    try:
-        import vehicle_lint
-        if getattr(vehicle_lint, '_SUPPRESS_EXPORT', False):
-            return None
-    except ImportError:
-        pass
-    
+    if CAPTURE is not None:
+        CAPTURE.append(dict(variants=variants, scheme=scheme, build=build, looks=looks or {}))
+        return None
     args = script_args()
     selected = next((a.split("=", 1)[1] for a in args if a.startswith("--variant=")), None)
     elsewhere = next((a.split("=", 1)[1] for a in args if a.startswith("--out=")), None)
@@ -177,12 +201,7 @@ def _export(variants, scheme, build, wreck, ao_distance, ao_rays, check=None, lo
     for variant in variants:
         if selected and variant["id"] != selected:
             continue
-        reset()
-        P.SCORCH.clear()
-        own = scheme[variant["id"]] if isinstance(scheme, dict) else scheme
-        v = Vehicle(variant, materials(own, **(looks or {})), own)
-        v.wreck = wrecking
-        build(variant, v)
+        v = build_variant(variant, scheme, build, looks, wrecking)
         if check is not None and not wrecking:
             check(variant)
         if not wrecking and not skip_lint:
@@ -220,19 +239,23 @@ def _export(variants, scheme, build, wreck, ao_distance, ao_rays, check=None, lo
 
 def _receipt(path, script, variants, frames, references=None):
     here = Path(__file__).resolve().parent
-    # Every script of this directory the export ran: the family's own, any
-    # family script it builds on (the T-90 on the T-72's), and the shared code.
+    # Every script of the repository the export ran: the family's own, any
+    # family script it builds on (the Challenger 3 on the Challenger's), the shared code and
+    # a scripted body's build script (`scripted_body`).
     loaded = (Path(m.__file__).resolve() for m in list(sys.modules.values()) if getattr(m, "__file__", None))
-    sources = sorted({p for p in loaded if p.is_relative_to(here)} | {here / "roster" / script})
+    sources = sorted({p for p in loaded if p.is_relative_to(REPO) and p.is_file()} | {here / "roster" / script})
     family = script.removesuffix(".py")
     # The generated skins an airframe wore (`aircraft_skin`), their pinned hashes.
     worn = dict(getattr(sys.modules.get("aircraft_skin"), "WORN", {}))
+    scripted = any(p.name == "build.py" for p in sources)
     (REPO / path).write_text(json.dumps({
         "blender_version": bpy.app.version_string,
         "source_sha256": {str(p.relative_to(REPO)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources},
         "references": references or f"assets/references/{family}/references.json",
         "authoring": ("A generated skin (`skins`, pinned in blender/skins/) carrying procedural parts built from the "
                       "committed references; photos are visual reference only." if worn else
+                      "Original geometry built from the committed references: procedural parts, and bodies built "
+                      "by their own scripts (`scripted_body`); photos are visual reference only." if scripted else
                       "Original procedural geometry built from the committed references; photos are visual reference only."),
         **({"skins": worn} if worn else {}),
         "frames": frames,

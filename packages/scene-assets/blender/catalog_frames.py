@@ -57,6 +57,7 @@ def _variant(appearance_id, appearance, units):
         variant=unit["roster"]["variant"],
         faction=unit["faction"],
         export=appearance["source"],
+        flight=unit.get("mobility", {}).get("air", {}).get("flight"),
         frame=frame,
     )
 

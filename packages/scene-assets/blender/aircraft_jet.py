@@ -12,6 +12,8 @@ from aircraft_parts import (body, canopy, fin, fit, gear, intake, nav_lights, no
                             pitot, pylon, round_intake, store)
 from aircraft_canopy import bubble_canopy  # noqa: E402
 from aircraft_skin import skin  # noqa: E402
+from parts import TEXTURED  # noqa: E402
+from textures_air import jet_finish  # noqa: E402
 
 
 def _both(rows, at):
@@ -23,6 +25,14 @@ def _both(rows, at):
         if abs(loc[1]) > 1e-6:
             out.append(tuple((loc[0], -loc[1], loc[2]) if i == at else r for i, r in enumerate(row)))
     return out
+
+
+def fixed_wing(v):
+    """Whether `v`'s unit type flies on fixed wings (its catalog flight
+    model, carried on the variant); a disabled card has no unit type, so it
+    does not."""
+    return v.variant.get("flight") == "fixed_wing"
+
 
 def jet(v, spec):
     """A fixed-wing airframe from its family's `spec` (all optional but the
@@ -42,8 +52,12 @@ def jet(v, spec):
     `nose_probe` (`(loc, length)`), `wing_hinge`/`stab_hinge`/
     `canard_hinge` (their control surfaces' chord fractions, `hinges`) and
     `nav` (`nav_lights` keywords). Markings go on afterwards (`markings`):
-    they are painted onto the skin, so the skin must be built first."""
+    they are painted onto the skin, so the skin must be built first. A
+    fixed-wing airframe's paint is a jet's (`textures_air.jet_finish`),
+    whatever its scheme; a rotorcraft keeps the scheme's satin."""
     m, hull = fit(v), v.hull
+    if fixed_wing(v):
+        TEXTURED[m["paint"].name] = jet_finish(TEXTURED[m["paint"].name])
     if "skin" in spec:
         fitted = skin(mats=m, parent=hull, **spec["skin"])
         if fitted is not None:

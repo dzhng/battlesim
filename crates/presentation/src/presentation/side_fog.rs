@@ -34,8 +34,9 @@ pub(super) struct Fog {
 impl Presentation {
     /// Draws the side's fog of war over the ground (none: everything seen):
     /// its sight from its own units' eyes at each publication, cut by the
-    /// ground, the side's foliage and the occluders it knows. A lab may
-    /// stand eyes in for the publication's, or look through some units'.
+    /// ground, the side's foliage, the occluders it knows and the smoke
+    /// clouds it sees. A lab may stand eyes in for the publication's, or
+    /// look through some units'.
     pub fn set_fog(&mut self, setup: Option<FogSetup>) -> Result<(), String> {
         let Some(setup) = setup else {
             if let Some(fog) = &mut self.fog {
@@ -106,6 +107,7 @@ impl Presentation {
             return Ok(None);
         };
         let latest = self.latest.clone();
+        let tick_hz = self.tick_hz as u32;
         // The side sees from its stand-in eyes, else its latest publication's.
         let sighted = fog.shown && (fog.eyes.is_some() || latest.is_some());
         let new = match (&fog.from, &latest) {
@@ -140,6 +142,19 @@ impl Presentation {
             };
             fog.sight
                 .set_sight(&eyes, changed.then_some(known.as_slice()))?;
+            // The side's clouds at their step at the published tick.
+            if let Some(o) = &latest {
+                let clouds: Vec<_> = o
+                    .smoke_clouds
+                    .iter()
+                    .filter_map(|c| {
+                        let cloud = c.cloud();
+                        let state = contract::smoke::state(&cloud, o.tick as u64, tick_hz)?;
+                        Some((cloud.id, state))
+                    })
+                    .collect();
+                fog.sight.set_smoke(&clouds);
+            }
             fog.known_from = group;
             fog.from = latest;
             fog.dirty = false;

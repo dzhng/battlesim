@@ -143,6 +143,10 @@ impl Unit {
             .f64(p.hp_s)
             .f64(p.soldier_s)
             .u64(self.service as u64);
+        // Only a unit that carries smoke folds it in, so others keep their digests.
+        if let Some(smoke) = self.smoke {
+            d.u64(u64::from(smoke.charges)).f64(p.smoke_s);
+        }
         d.f64(self.sight_forward);
         self.cover.digest(d);
         match self.anchor {

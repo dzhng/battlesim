@@ -499,8 +499,12 @@ def _piece(kind, k, mats, rng, track, wheel):
     """Build one thrown piece of `kind` lying at the origin under its own
     `debris_<kind>_<k>` node; returns the node, how far the piece reaches from
     it across the ground, and whether its plates warp in the fire."""
+    from armour_parts import bolted_panel
     from parts import box, mesh_part
-    from vehicle_parts import ALL, bolted_panel, hatch, jerrycan, stowage_box, tyre_wheel
+    from roof_parts import hatch
+    from running_gear import tyre_wheel
+    from stowage import jerrycan, stowage_box
+    from vehicle_parts import ALL
     e = empty(f"{DEBRIS}{kind}_{k}")
     name = f"thrown_{kind}_{k}"
     if kind == "track":

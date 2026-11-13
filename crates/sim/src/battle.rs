@@ -320,8 +320,6 @@ pub struct Battle {
     shouted_unseen: [BTreeSet<UnitId>; 3],
     scenario_digest: u64,
     config_digest: u64,
-    /// Transient bodies (a row with a `lifetime_s`) and the tick each goes.
-    expiries: BTreeMap<PropId, Tick>,
     /// Every toppling body that went down: where, which way and when. Each
     /// side publishes those it knocked down or has seen where they stood.
     fallen: BTreeMap<PropId, FallenBody>,
@@ -778,7 +776,6 @@ impl Battle {
             shouted_unseen: Default::default(),
             scenario_digest: scenario_digest(setup),
             config_digest: config_digest(setup),
-            expiries: BTreeMap::new(),
             fallen: BTreeMap::new(),
             crashes: Vec::new(),
             air_transits: Default::default(),
@@ -797,10 +794,6 @@ impl Battle {
                 battle.apply_controller(&transition);
                 battle.controller_transitions.push(transition);
             }
-        }
-        let authored: Vec<PropId> = battle.world.props().map(|p| p.id).collect();
-        for id in authored {
-            battle.schedule_expiry(id);
         }
         sight::snapshot(&mut battle.units, &battle.arsenal);
         shouts::remember(&mut battle.shout_before, &battle.units, &battle.rules);
@@ -1425,6 +1418,7 @@ impl Battle {
             | Order::SetAfterburner { units, .. }
             | Order::SetEngagement { units, .. }
             | Order::SetDeployment { units, .. }
+            | Order::PopSmoke { units }
             | Order::ExitBuilding { units } => units,
             // Gesture tokens are scoped by side at application; nothing else to check.
             Order::UpgradeMove { .. } => return Ok(()),
@@ -1526,12 +1520,14 @@ impl Battle {
                 let _ = self.admit(command, tick);
             }
         }
-        self.expire_props();
+        self.world
+            .smoke_mut()
+            .advance(self.tick, self.rules.tick_hz);
         while self.events.front().is_some_and(|e| e.tick <= self.tick) {
             let event = self.events.pop_front().unwrap();
             match event.action {
                 EventAction::AddProp(prop) => {
-                    self.add_prop(&prop);
+                    self.world.add_prop(&prop);
                 }
                 EventAction::Fire { unit } => self.record_fire(unit, 0),
                 EventAction::Burst { point, weapon } => self.burst_event(point, &weapon),
@@ -1556,7 +1552,8 @@ impl Battle {
                 | Order::ExitBuilding { units }
                 | Order::Board { units, .. }
                 | Order::Collect { units, .. }
-                | Order::Unload { units, .. } => units.retain(|id| {
+                | Order::Unload { units, .. }
+                | Order::PopSmoke { units } => units.retain(|id| {
                     self.units
                         .get(id.0 as usize)
                         .is_none_or(|u| u.side != script.side || u.alive())
@@ -1841,43 +1838,6 @@ impl Battle {
         }
     }
 
-    /// Add a prop after setup, scheduling its end if its row is transient.
-    fn add_prop(&mut self, def: &PropDefinition) -> PropId {
-        let id = self.world.add_prop(def);
-        self.schedule_expiry(id);
-        id
-    }
-
-    /// A transient body (its row has a `lifetime_s`) goes that long after
-    /// it appears (Q28).
-    fn schedule_expiry(&mut self, id: PropId) {
-        let lifetime = self.world.prop(id).and_then(|p| p.body.lifetime_s);
-        if let Some(s) = lifetime {
-            let ticks = (s * self.rules.tick_hz as f64).round().max(1.0) as Tick;
-            self.expiries.insert(id, self.tick + ticks);
-        }
-    }
-
-    /// Transient bodies whose time is up go; every side sees them go, and
-    /// both revisions bump.
-    fn expire_props(&mut self) {
-        let due: Vec<PropId> = self
-            .expiries
-            .iter()
-            .filter(|(_, &t)| t <= self.tick)
-            .map(|(&id, _)| id)
-            .collect();
-        for id in due {
-            self.expiries.remove(&id);
-            let Some(prop) = self.world.remove_prop(id) else {
-                continue;
-            };
-            for side in &mut self.sides {
-                side.forget(&prop);
-            }
-        }
-    }
-
     /// Move the bodies vehicles shoved this tick (Q2). A side that has not
     /// seen an authored body move keeps it where it stood (L1); the soldiers
     /// a body now covers step out of it.
@@ -2050,7 +2010,6 @@ impl Battle {
                     },
                     id,
                 );
-                self.schedule_expiry(remains);
                 self.structures.note_replaced(remains, id);
                 // Remains that still close an authored body's footprint to
                 // every mover it stopped are planned with by every side, as
@@ -2414,7 +2373,7 @@ impl Battle {
             half.xy(),
             &hulls,
         );
-        let wreck = self.add_prop(&PropDefinition {
+        let wreck = self.world.add_prop(&PropDefinition {
             kind,
             center: [rest.x, rest.y],
             yaw: crash.yaw,
@@ -2516,7 +2475,7 @@ impl Battle {
             let wreck_of = self.rules.catalog.id(unit.kind).to_string();
             let unit_z = unit.position.z;
             let wreck = match (unit_hull, wreck) {
-                (Some(half), Some(kind)) => Some(self.add_prop(&PropDefinition {
+                (Some(half), Some(kind)) => Some(self.world.add_prop(&PropDefinition {
                     kind,
                     center: [rest.x, rest.y],
                     yaw: unit_yaw,
@@ -3270,6 +3229,12 @@ impl Battle {
     fn apply(&mut self, prepared: PreparedCommand) {
         let side = prepared.command.side.index();
         self.refusals[side].extend(prepared.refused.iter().cloned());
+        if let Order::PopSmoke { units } = &prepared.command.order {
+            for id in units {
+                let unit = &mut self.units[id.0 as usize];
+                crate::smoke::pop(unit, self.world.smoke_mut(), self.tick, &self.rules);
+            }
+        }
         let mut units = std::mem::take(&mut self.units);
         self.apply_units(prepared, &mut units);
         self.units = units;
@@ -3321,7 +3286,10 @@ impl Battle {
                     unit.withdrawing = true;
                 }
             }
-            Order::Ready | Order::ConfirmPurchase { .. } | Order::CancelPending { .. } => {}
+            Order::Ready
+            | Order::ConfirmPurchase { .. }
+            | Order::CancelPending { .. }
+            | Order::PopSmoke { .. } => {}
             Order::OccupyBuilding {
                 gesture, facing, ..
             } => {
@@ -3938,6 +3906,11 @@ impl Battle {
                 .identified
                 .extend(knowledge.identified(self.tick, &self.units, &self.rules));
             frame.ground_visibility.clone_from(fog);
+            frame.smoke_clouds.clear();
+            let seen = crate::smoke::seen(self.world.smoke(), side, fog);
+            frame
+                .smoke_clouds
+                .extend(seen.map(|(p, _)| p.cloud.clone()));
             frame.contacts.clear();
             // An area hangs in the air when its cause flew higher over the
             // ground than the low hover (D33).
@@ -4069,40 +4042,14 @@ impl Battle {
                             .air
                             .as_ref()
                             .is_some_and(|air| air.dogfight_target.is_some()),
-                        flares: u.flares.and_then(|state| {
-                            u.unit_type(&self.rules)
-                                .capabilities
-                                .flares
-                                .map(|definition| {
-                                    let remaining =
-                                        (state.ready_tick as f64 - self.tick as f64).max(0.0);
-                                    contract::observation::FlareReadiness {
-                                        charges: state.charges,
-                                        cooldown: (remaining > 0.0).then(|| {
-                                            (1.0 - remaining
-                                                / (definition.reload_s
-                                                    * f64::from(self.rules.tick_hz)))
-                                            .clamp(0.0, 1.0)
-                                        }),
-                                    }
-                                })
+                        flares: u.flares.and_then(|f| {
+                            let capability = u.unit_type(&self.rules).capabilities.flares?;
+                            Some(f.readiness(&capability, self.tick, self.rules.tick_hz))
                         }),
                         protection: u.protection.as_ref().map(|p| {
-                            let definition = u
-                                .unit_type(&self.rules)
-                                .capabilities
-                                .active_protection
-                                .as_ref()
-                                .unwrap();
-                            let remaining = (p.ready_at_tick - self.tick as f64).max(0.0);
-                            contract::observation::ProtectionReadiness {
-                                charges: p.charges,
-                                cooldown: (remaining > 0.0).then(|| {
-                                    (1.0 - remaining
-                                        / (definition.cooldown_s * f64::from(self.rules.tick_hz)))
-                                    .clamp(0.0, 1.0)
-                                }),
-                            }
+                            let capabilities = &u.unit_type(&self.rules).capabilities;
+                            let capability = capabilities.active_protection.as_ref().unwrap();
+                            p.readiness(capability, self.tick as f64, self.rules.tick_hz)
                         }),
                         id: u.id,
                         owner: state_digest::owner_index(&player_ids, u)
@@ -4197,6 +4144,7 @@ impl Battle {
                         deployment: deployment::state(u),
                         hp: u.hp,
                         smoking: u.smoking(&self.rules),
+                        smoke: u.smoke.map(|s| s.charges),
                         member_hp: u
                             .members
                             .iter()

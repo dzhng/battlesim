@@ -153,10 +153,43 @@
       "licence": "CC0-1.0",
       "sha256": "933147ed407969b294bea1f790412fdadc36344bd13981dfa08d3413a1e1cce3",
       "note": "BMP-3 with slat armour, Army-2020"
+    },
+    {
+      "file": "eastern_bmp_ifv_family_bmp_2m_berezhok-side-2.png",
+      "variant": "eastern_bmp_ifv_family_bmp_2m_berezhok",
+      "view": "side",
+      "source": "drawing",
+      "page": "https://commons.wikimedia.org/wiki/File:BMP21981graphic1.gif",
+      "author": "U.S. Army (National Defense University clip art, 1981)",
+      "licence": "public-domain",
+      "sha256": "0d1a92321ad8a60286c781f418b8fcc5051ade9a2eb08d2c7523aea54acd8c92",
+      "note": "BMP-2 (base vehicle, not the Berezhok) side, front and quarter views, converted from the GIF. Side view nose left, 46.2 px/m from the 6.735 m hull. Measured: nose tip 1.22 m, upper glacis about 10 deg above horizontal, lower glacis about 38 deg, hull roof 1.58 m, turret roof 2.14 m, muzzle 2.5 m ahead of hull centre. Low resolution: angles +-3 deg."
+    },
+    {
+      "file": "eastern_bmp_ifv_family_bmp_2m_berezhok-side-3.jpg",
+      "variant": "eastern_bmp_ifv_family_bmp_2m_berezhok",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:BMP-2_tank_at_the_Open_landmachtdagen_2010.jpg",
+      "author": "Alf van Beem",
+      "licence": "CC0-1.0",
+      "sha256": "3c03ca12d36dbaa8512df9d479e33ac432f6c43dbba2be53042d668259152b49",
+      "note": "BMP-2 (base vehicle) square-on left side, nose left. The upload is stretched about 1.17x horizontally (road wheels read wider than tall): scale lengths and heights separately. Corrected, it agrees with the 1981 drawing: nose 1.23 m, upper glacis 11-12 deg, hull roof 1.57 m, turret roof 2.07 m; turret ring 0.1 m ahead of hull centre, muzzle 2.48 m ahead."
+    },
+    {
+      "file": "eastern_bmp_ifv_family_bmp_3-side-3.png",
+      "variant": "eastern_bmp_ifv_family_bmp_3",
+      "view": "side",
+      "source": "drawing",
+      "page": "https://commons.wikimedia.org/wiki/File:BMP-3_line_drawing.gif",
+      "author": "U.S. Army (FMSO, Red Star, January 1996)",
+      "licence": "public-domain",
+      "sha256": "ad20fdd5c6ede8db4fd8bec83a8d71e9de9eb2f3bd7e8bfa3a1a6770cc77b8ee",
+      "note": "BMP-3 side line drawing, nose right, converted from the GIF; 56.2 px/m from the 7.14 m hull. Measured: nose tip 1.39 m, upper glacis about 15 deg above horizontal, lower glacis about 65 deg, hull roof 1.80-1.90 m, turret roof 2.37 m. Low resolution: angles +-5 deg."
     }
   ],
   "gaps": [
-    "BMP-2M Berezhok: no rear, three_quarter_rear or side-on photo; the side is a three-quarter view.",
+    "BMP-2M Berezhok: no rear or three_quarter_rear photo; the side-on photo and drawing are the base BMP-2 (same hull and turret shell, without the Berezhok module).",
     "BMP-3: no rear or three_quarter_rear photo; no top view.",
     "Neither variant has a close running-gear detail."
   ]

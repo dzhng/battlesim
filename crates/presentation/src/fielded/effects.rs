@@ -101,6 +101,8 @@ pub(super) fn section(
     let effect_settings = {
         let mut effects = serde_json::to_value(&presentation.effects).map_err(|e| e.to_string())?;
         effects["looks"] = serde_json::to_value(weapon_looks).map_err(|e| e.to_string())?;
+        effects["smoke_screen_looks"] =
+            serde_json::to_value(&presentation.smoke_screen_looks).map_err(|e| e.to_string())?;
         effects
     };
     Ok(json!({
@@ -110,4 +112,24 @@ pub(super) fn section(
         "wrecks": wrecks,
         "wreckLooks": looks,
     }))
+}
+
+/// Every fielded type that carries smoke names a `presentation.smoke_screen_looks`
+/// row for its cloud.
+pub(super) fn check_smoke_screen_looks(
+    presentation: &PresentationSettings,
+    catalog: &Catalog,
+    kinds: &[String],
+) -> Result<(), String> {
+    for kind in kinds {
+        let look = &catalog.get(kind)?["capabilities"]["smoke"]["cloud"]["look"];
+        if let Some(look) = look.as_str() {
+            if !presentation.smoke_screen_looks.contains_key(look) {
+                return Err(format!(
+                    "unit type {kind}: its smoke cloud's look {look:?} has no presentation.smoke_screen_looks row"
+                ));
+            }
+        }
+    }
+    Ok(())
 }

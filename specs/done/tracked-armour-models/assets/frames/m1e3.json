@@ -1,0 +1,232 @@
+{
+  "family": "m1e3",
+  "lane": "F-B",
+  "slice": "07",
+  "surveyed": "2026-11-11",
+  "reconciled": {
+    "slice": "07b",
+    "date": "2026-11-11",
+    "decisions": "decisions.md C4-C10"
+  },
+  "convention": {
+    "frame": "x forward, y left, z up, metres; the hull box is centred on x = 0, y = 0 and stands on z = 0",
+    "hull_box": "the top is max(the real hull or turret roof, the top of the tallest bulky dressing - 0.3 m) (decisions.md C4, after F-B1). Sights, sensors, radars and roof guns that are not a roster mount are dressing, held to unitArt.ts's 0.3 m bulky / 0.15 m thin allowance. The box covers the body, including an armoured turret overhang (FC8)",
+    "pivot": "the centre of the turret ring; for a fixed mount, the trunnion or hinge it is drawn on (only pivot + muzzle reaches the simulation)",
+    "muzzle": "muzzle_m is measured from the mount's pivot: the simulation fires from pivot + muzzle (crates/sim/src/weapons/muzzle.rs:12-22; decisions.md C5)",
+    "eye": "the sight's height over the ground (catalog.rs:181); kept unless a source contradicts it (FA-6)"
+  },
+  "thresholds": {
+    "hull_dimension": "fix when off by more than max(0.10 m, 3 %)",
+    "pivot": "fix when off by more than 0.15 m on any axis",
+    "muzzle_point": "fix when the world muzzle point (pivot + muzzle) is off by more than 0.15 m on any axis; a value written in another convention is fixed whatever its size (C5)",
+    "eye_m": "kept unless a source contradicts it",
+    "note": "One set for every lane (decisions.md C10). The lanes' own variants (F-A's max(0.10 m, 3 %) for muzzles, F-C's 0.30 m muzzle reach) are retired."
+  },
+  "verdicts": {
+    "keep": "the frame number agrees with the references within the thresholds",
+    "fix": "slice 15 changes it to `new`: a row in fix-rows.json, or the parent's row where the fixture takes the field through extends",
+    "unresolved": "kept at today's value: nothing measures it well enough to move it; named",
+    "art-only": "not a frame number: the family slice fixes the art",
+    "inherits": "the fixture extends another unit and this appearance takes its rows"
+  },
+  "sources": [
+    {
+      "id": "army-fact-file",
+      "kind": "published",
+      "ref": "https://en.wikipedia.org/wiki/M1_Abrams",
+      "note": "M1A2: 9.77 m gun forward, 7.93 m hull, 3.66 m wide, 2.44 m to the turret roof"
+    },
+    {
+      "id": "photo-detroit",
+      "kind": "photo",
+      "ref": "assets/references/m1e3/us_m1e3_abrams-three_quarter_front.jpg",
+      "note": "the one licensable photo: left front quarter; M1 hull, low unmanned turret"
+    }
+  ],
+  "appearances": {
+    "us_m1e3_abrams": {
+      "unit": "us_m1e3_abrams",
+      "fixture": "fixtures/units/roster/us.json",
+      "published": {
+        "length_m": null,
+        "width_m": null,
+        "height_m": null,
+        "source": "none: no published dimensions for the prototype (references.json gaps); it keeps the M1 hull and 120 mm gun"
+      },
+      "current": {
+        "extends": "us_m1_abrams_sep_v3_trophy",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 30.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 60.0,
+            "turn_deg_s": 45.0
+          }
+        },
+        "half_extents_m": [
+          3.965,
+          1.83,
+          1.22
+        ],
+        "eye_m": 2.294,
+        "mounts": [
+          {
+            "id": "cannon",
+            "pivot_m": [
+              0.25,
+              0.0,
+              1.464
+            ],
+            "muzzle_m": [
+              5.805,
+              0.0,
+              0.439
+            ],
+            "turret": true
+          },
+          {
+            "id": "HMG",
+            "pivot_m": [
+              -0.2,
+              0.3,
+              2.42
+            ],
+            "muzzle_m": [
+              1.3,
+              0.0,
+              0.3
+            ],
+            "turret": true,
+            "on": "cannon"
+          }
+        ]
+      },
+      "measured": null,
+      "heights": {
+        "roof_m": 2.44,
+        "roof_source": "SEP v3 box; no source contradicts it",
+        "sight_top_m": 2.71,
+        "sight_part": "sight box",
+        "sight_source": "art (dressing_sight_box)",
+        "rule_top_m": 2.44,
+        "box_top_m": 2.44,
+        "art": {
+          "hull_top_m": 2.501,
+          "tallest_dressing": "dressing_sight_box",
+          "tallest_dressing_top_m": 2.711,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
+        {
+          "field": "half_extents_m[0]",
+          "old": 3.965,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": "low",
+          "note": "M1 hull; the lower turret lies inside the SEP v3 box, which no source contradicts"
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 1.83,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": "low",
+          "note": "M1 hull; the lower turret lies inside the SEP v3 box, which no source contradicts"
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.22,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": "low",
+          "note": "M1 hull; the lower turret lies inside the SEP v3 box, which no source contradicts"
+        },
+        {
+          "field": "eye_m",
+          "old": 2.294,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.cannon.pivot_m",
+          "old": [
+            0.25,
+            0.0,
+            1.464
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.cannon.muzzle_m",
+          "old": [
+            5.805,
+            0.0,
+            0.439
+          ],
+          "new": [
+            5.555,
+            0,
+            0.439
+          ],
+          "verdict": "fix",
+          "source": "fixtures/units/roster/us.json",
+          "confidence": "high",
+          "note": "The M1E3's fixture restates only its HMG row, so its cannon takes the SEP v3 Trophy's fix through extends, with no row of its own in fix-rows.json. Lane: the M1E3 restates the SEP v3's cannon row, so it carries the same unsubtracted pivot"
+        },
+        {
+          "field": "mounts.HMG.pivot_m",
+          "old": [
+            -0.2,
+            0.3,
+            2.42
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "remote station high on the roof, as the photo shows"
+        },
+        {
+          "field": "mounts.HMG.muzzle_m",
+          "old": [
+            1.3,
+            0.0,
+            0.3
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "remote station high on the roof, as the photo shows"
+        }
+      ]
+    }
+  },
+  "overlays": {
+    "note": "No drawing of the M1E3 exists, free or copyrighted. The hull is the Abrams' (see abrams.json overlays); the prototype's photo is a three-quarter view and cannot be overlaid.",
+    "views": []
+  },
+  "notes": [
+    {
+      "appearances": [
+        "us_m1e3_abrams"
+      ],
+      "note": "back needs to shift up, front too pointy",
+      "class": "art",
+      "why": "Both are the hull's outline inside an unchanged box. The model draws a long low wedge nose and a rear deck below the M1's; the real M1 hull (which the prototype keeps) has a blunt upper glacis and an engine deck about 0.35 m above the front deck (abrams.json drawing: 1.43 m front deck, 1.78 m engine deck). Slice 21 redraws the hull to the Abrams drawing."
+    }
+  ],
+  "answers": null,
+  "gaps": null
+}
