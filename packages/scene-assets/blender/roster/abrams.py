@@ -34,7 +34,6 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import roof_parts as RF  # noqa: E402
 import scripted_body as SB  # noqa: E402
-from parts import empty  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
 
 # The scripted body every variant wears, each variant's id in it, its
@@ -53,19 +52,11 @@ GUN_DROOP_DEG = 10.0
 
 
 def build(variant, v):
-    import bpy
-    from mathutils import Vector
     turret = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})["cannon"][0]
     SB.wear(v, BODY, LINK_PITCH, variant=BODIES[variant["id"]])
-    bpy.context.view_layer.update()
-    for side, s in ((1, "L"), (-1, "R")):
-        holder = bpy.data.objects.get(f"dressing_trophy_{s}")
-        for part, (x, y, z) in TROPHY_NODES.items() if holder else ():
-            empty(f"trophy_{part}_{s}", tuple(holder.matrix_world.inverted() @ Vector((x, side * y, z))), holder)
+    SB.trophy_nodes(TROPHY_NODES)
     # The whips on the bustle roof's rear corners (turret frame).
-    for side, s in ((1, "L"), (-1, "R")):
-        whip = empty(f"dressing_antenna_{s}", parent=turret)
-        RF.antenna(f"antenna_{s}", (-2.47, side * 1.20, 0.956), v.mats, whip, height=2.2)
+    RF.whip_pair(turret, (-2.47, 1.20, 0.956), v.mats, height=2.2)
 
 
 def wreck(variant, v):
@@ -73,12 +64,6 @@ def wreck(variant, v):
     thrown flat beside it with three road wheels torn off, plates warped and
     the glacis dented; the gun droops and `wreckage.burn` heaves the turret."""
     import bpy
-    # Trophy's housings are dressing on the live tank, but they are steel
-    # boxes that survive the fire: they stay, so the Trophy tank's wreck is
-    # its own.
-    for o in bpy.data.objects:
-        if o.name.startswith("dressing_trophy_"):
-            o.name = o.name.replace("dressing_", "", 1)
     bpy.data.objects["gun"].rotation_euler.y += math.radians(GUN_DROOP_DEG)
     SB.wreck(v, "R", (2, 3, 6), seed=5)
 

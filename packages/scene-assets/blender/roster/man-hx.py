@@ -129,9 +129,7 @@ def body(v):
     for side, s in ((1, "L"), (-1, "R")):
         box(f"underrun_bracket_{s}", (0.08, 0.10, 0.35), (-5.05, side * 0.45, 0.875), m["dark"], hull, lods=MID)
     HF.tow_hook("pintle", (-5.00, 0, 0.92), m, hull, size=0.10, rot=(0, 0, math.pi))
-    for side, s in ((1, "L"), (-1, "R")):
-        whip = empty(f"dressing_antenna_{s}", parent=hull)
-        RF.antenna(f"antenna_{s}", (CAB_REAR + 0.15, side * 1.05, ROOF), m, whip, height=2.0)
+    RF.whip_pair(hull, (CAB_REAR + 0.15, 1.05, ROOF), m, height=2.0)
 
 
 def wreck(variant, v):

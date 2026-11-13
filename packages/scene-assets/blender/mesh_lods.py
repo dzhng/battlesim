@@ -90,8 +90,8 @@ def reduced_copy(source, name, target, min_extent, floor):
         while obj.modifiers.find("lod") > 0:
             bpy.ops.object.modifier_move_up(modifier="lod")
         bpy.ops.object.modifier_apply(modifier="lod")
-        # A collapse may place a merged vertex outside its island (the M270's
-        # tier 3 reached 0.5 m past its hull): keep each inside its source box.
+        # A collapse may place a merged vertex outside its island: keep each
+        # inside its source box, so a far tier never reaches past the near.
         lo, hi = boxes[obj]
         for v in obj.data.vertices:
             v.co = Vector([min(max(v.co[i], lo[i]), hi[i]) for i in range(3)])

@@ -124,7 +124,7 @@ def run_script(path, variant=None):
     held = {m: m.name for m in bpy.data.materials}
     for m in held:
         m.name = "export:" + m.name
-    spec = importlib.util.spec_from_file_location(f"scripted_body_{Path(path).parent.parent.name}", REPO / path)
+    spec = importlib.util.spec_from_file_location(f"scripted_body:{path}", REPO / path)
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module  # the receipt hashes what the export loaded
     spec.loader.exec_module(module)
@@ -299,6 +299,19 @@ def _top(objs, x, y):
     return max(hits)
 
 
+def trophy_nodes(nodes):
+    """The Trophy part's nodes (`trophy_<part>_L` / `_R`, `nodes` as
+    {part: (x, y, z)}, world, left side, mirrored on the right) on a worn
+    body's housings, `dressing_trophy_L` / `_R`; none where it has none."""
+    bpy.context.view_layer.update()
+    for side, s in ((1, "L"), (-1, "R")):
+        holder = bpy.data.objects.get(f"dressing_trophy_{s}")
+        if holder is None:
+            continue
+        for part, (x, y, z) in nodes.items():
+            empty(f"trophy_{part}_{s}", tuple(holder.matrix_world.inverted() @ Vector((x, side * y, z))), holder)
+
+
 def wreck(v, side, wheels, seed=0):
     """A worn body after its cook-off: the `side` ("L" or "R") belt run off
     and lying flat beside the hull, its road wheels `wheels` (numbers) torn
@@ -308,6 +321,12 @@ def wreck(v, side, wheels, seed=0):
     from wreckage import densify, dent, heat, plate, remove, warp
     m = v.mats
     s = 1 if side == "L" else -1
+    # Trophy's housings are dressing on the live tank, but they are steel
+    # boxes that survive the fire (`wreckage.burn` takes the dressing): they
+    # stay, so a Trophy tank's wreck is its own.
+    for o in bpy.data.objects:
+        if o.name.startswith("dressing_trophy_"):
+            o.name = o.name.replace("dressing_", "", 1)
     bpy.context.view_layer.update()
     band = bpy.data.objects[f"track_{side}_band_LOD0"]
     ys = [(band.matrix_world @ p.co).y for p in band.data.vertices]

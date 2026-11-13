@@ -32,7 +32,7 @@ import hull_fittings as HF  # noqa: E402
 import roof_parts as RF  # noqa: E402
 import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
-from parts import box, cyl, empty, stencil, textured  # noqa: E402
+from parts import box, cyl, stencil, textured  # noqa: E402
 from truck_chassis import on  # noqa: E402
 from vehicle_export import run  # noqa: E402
 
@@ -194,9 +194,7 @@ def underside(v):
     for side, s in ((1, "L"), (-1, "R")):
         box(f"underrun_bracket_{s}", (0.08, 0.10, 0.40), (-half + 0.10, side * 0.45, 0.90), m["dark"], h, lods=MID)
     HF.tow_hook("pintle", (-half + 0.18, 0, 0.92), m, h, size=0.10, rot=(0, 0, math.pi))
-    for side, s in ((1, "L"), (-1, "R")):
-        whip = empty(f"dressing_antenna_{s}", parent=h)
-        RF.antenna(f"antenna_{s}", (half - 2.10, side * 1.05, hx.ROOF), m, whip, height=2.0)
+    RF.whip_pair(h, (half - 2.10, 1.05, hx.ROOF), m, height=2.0)
 
 
 def wreck(variant, v):

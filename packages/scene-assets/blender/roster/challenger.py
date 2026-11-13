@@ -33,7 +33,6 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import roof_parts as RF  # noqa: E402
 import scripted_body as SB  # noqa: E402
-from parts import empty  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
 
 # The Challengers' body, which builds both (`build(variant)`), its tracks' link
@@ -47,14 +46,10 @@ WHIPS = (-2.04, 1.08, 1.286)
 
 def wear(v, variant, whips):
     """The Challenger `variant` of `BODY` worn on `v`, its whips at `whips`
-    (turret frame, left side); returns the turret's node."""
+    (turret frame, left side)."""
     turret = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})["cannon"][0]
     SB.wear(v, BODY, LINK_PITCH, variant=variant)
-    x, y, z = whips
-    for side, s in ((1, "L"), (-1, "R")):
-        whip = empty(f"dressing_antenna_{s}", parent=turret)
-        RF.antenna(f"antenna_{s}", (x, side * y, z), v.mats, whip, height=2.2)
-    return turret
+    RF.whip_pair(turret, whips, v.mats, height=2.2)
 
 
 def build(variant, v):

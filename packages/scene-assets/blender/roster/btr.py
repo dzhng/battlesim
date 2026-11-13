@@ -124,9 +124,7 @@ def fittings(v):
     for k, y in enumerate((0.42, -0.42)):
         RF.hatch(f"front_hatch_{k}", (GLACIS_TOP - 0.40, y, ROOF), m, hull, radius=0.24)
     HF.exhaust("exhaust", (-3.10, 1.30, 1.55), 0.07, 0.40, m, hull, rot=(0, 0, math.pi / 2))
-    for side, s in ((1, "L"), (-1, "R")):
-        whip = empty(f"dressing_antenna_{s}", parent=hull)
-        RF.antenna(f"antenna_{s}", (-3.30, side * 0.80, ROOF), m, whip, height=2.8)
+    RF.whip_pair(hull, (-3.30, 0.80, ROOF), m, height=2.8)
 
 
 def bppu(v, turret, gun):

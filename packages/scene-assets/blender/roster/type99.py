@@ -6,6 +6,18 @@ The ZTZ-99A wears a scripted body (`BODY`, `scripted_body`): Gemini Argon's
 build script after its second round, edited since (its folder's README lists
 the edits). This script adds the rig, the whip antennas and the wreck.
 
+What the photos settle (Military Museum Beijing 2017, the 2015 parade): six
+large road wheels a side, the sprocket at the rear and the idler at the
+front; heavy side armour panels from nose to tail, their lower edges cut in V
+scallops between the wheels; rounded front fenders either side of a glacis in
+reactive armour blocks, a lamp in a box on the left fender. The turret is the
+arrowhead: wedge armour either side of the gun, flat sides, a bank of five
+smoke tubes on each side behind the wedge, a long bustle with a cylindrical
+stowage container across its rear, the gunner's sight on the left front, the
+commander's independent sight on a pedestal at the right rear and the machine
+gun by his hatch. The rear is from the earlier Type 99 (gap); the hull rear
+is assumed the same.
+
 Built to the catalog frame (hull 7.6 x 3.7 x 2.5 m, turret pivot 1.41 m, cannon muzzle 7.2 m ahead): nothing here moves it.
 """
 import os
@@ -14,7 +26,6 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import roof_parts as RF  # noqa: E402
 import scripted_body as SB  # noqa: E402
-from parts import empty  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
 
 # The ZTZ-99A's body (`scripted_body`) and its track's link pitch.
@@ -29,10 +40,7 @@ ANTENNA = (-1.90, 1.00, 0.86)
 def build(variant, v):
     turret = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})["cannon"][0]
     SB.wear(v, BODY, LINK_PITCH)
-    x, y, z = ANTENNA
-    for side, s in ((1, "L"), (-1, "R")):
-        whip = empty(f"dressing_antenna_{s}", parent=turret)
-        RF.antenna(f"antenna_{s}", (x, side * y, z), v.mats, whip, height=2.4)
+    RF.whip_pair(turret, ANTENNA, v.mats, height=2.4)
 
 
 def wreck(variant, v):

@@ -80,8 +80,8 @@ FITTINGS_SHADE = 0.6  # hardware's paint against the scheme's mean: a darker sha
 def materials(scheme, fittings=None, canvas=(0.105, 0.098, 0.062), chip=CHIP):
     """One material per role `vehicle_parts` reads, in `scheme`. `fittings` is
     the darker painted tone of hubs, brackets and running gear fittings, by
-    default the scheme's mean paint at `FITTINGS_SHADE` (a fixed brown read tan
-    beside the green schemes, which are darker than it); `canvas` the stowage's
+    default the scheme's mean paint at `FITTINGS_SHADE`, so hardware reads as
+    the same paint in shade on every scheme; `canvas` the stowage's
     cloth; `chip` how much of the paint's convex edges wear to its lighter tone
     (the look's painted edge highlights)."""
     if fittings is None:
@@ -240,7 +240,7 @@ def _export(variants, scheme, build, wreck, ao_distance, ao_rays, check=None, lo
 def _receipt(path, script, variants, frames, references=None):
     here = Path(__file__).resolve().parent
     # Every script of the repository the export ran: the family's own, any
-    # family script it builds on (the T-90 on the T-72's), the shared code and
+    # family script it builds on (the Challenger 3 on the Challenger's), the shared code and
     # a scripted body's build script (`scripted_body`).
     loaded = (Path(m.__file__).resolve() for m in list(sys.modules.values()) if getattr(m, "__file__", None))
     sources = sorted({p for p in loaded if p.is_relative_to(REPO) and p.is_file()} | {here / "roster" / script})

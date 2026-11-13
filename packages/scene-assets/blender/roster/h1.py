@@ -30,7 +30,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box, cyl  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
-from vehicle_parts import MID, NEAR  # noqa: E402
+from vehicle_parts import MID  # noqa: E402
 
 AH1Z, UH1Y = "us_ah_1z_viper_attack_helicopter", "us_uh_1y_venom_utility_transport"
 # The M197's elevation in its turret, degrees, and its short stroke.

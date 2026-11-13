@@ -10,7 +10,7 @@ import sys
 from mathutils import Euler, Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from parts import box, cyl  # noqa: E402
+from parts import box, cyl, empty  # noqa: E402
 from vehicle_parts import FINE, MID, NEAR, place, tube_part  # noqa: E402
 
 
@@ -174,3 +174,13 @@ def antenna(name, loc, mats, parent, height=2.4, radius=0.008, rot=(0, 0, 0)):
     made += cyl(name=f"{name}_whip", r=radius, r2=radius * 0.5, depth=height, loc=(0, 0, 0.1 + height / 2),
                 mat=mats["dark"], parent=parent, seg=6, min_seg=4, lods=NEAR)
     return place(made, loc, rot)
+
+
+def whip_pair(parent, at, mats, height=2.4):
+    """A whip antenna either side of the centre line (`antenna`): at `at`
+    (x, y, z) on the left, mirrored on the right, each on its own
+    `dressing_antenna_L` / `_R` node under `parent`."""
+    x, y, z = at
+    for side, s in ((1, "L"), (-1, "R")):
+        whip = empty(f"dressing_antenna_{s}", parent=parent)
+        antenna(f"antenna_{s}", (x, side * y, z), mats, whip, height=height)
