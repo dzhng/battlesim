@@ -1,5 +1,7 @@
 # 09 · The Armory's own appearance library
 
+Status: done 2026-11-12, commit 1c0b03765.
+
 Map row: L6, plus the library half of L5. No dependencies.
 
 ## Contract

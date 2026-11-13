@@ -93,7 +93,11 @@ of the simulation module the page actually loaded ([build identity](src/buildIde
 so a stale deploy or cache shows on screen.
 Art uses [scene-assets](../../packages/scene-assets/README.md),
 and sound uses [battle-audio](../../packages/battle-audio/README.md). [Model review](src/workbench/)
-installs previews through the same appearance loader used by battles.
+installs previews through the same appearance loader used by battles. The
+Armory keeps [its own residency](src/armory/armoryAppearances.ts): a library per
+selection, holding the yard and the one unit on show, so browsing every unit
+never fills the page's shared library. Its failures stay with the caller and
+never refuse the page.
 
 ## Observation feeds
 

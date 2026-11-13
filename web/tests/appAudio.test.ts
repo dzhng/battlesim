@@ -84,13 +84,16 @@ class Source extends Node {
   declare loop: boolean;
   onended: (() => void) | null = null;
   stopped = false;
+  /** When the source was told to end; Infinity until it is. */
+  stopAt = Infinity;
   offset = -1;
   start(_at: number, offset: number) {
     this.offset = offset;
     sources.push(this);
   }
-  stop() {
+  stop(at = 0) {
     this.stopped = true;
+    this.stopAt = at;
     this.onended?.();
   }
 }
@@ -572,4 +575,141 @@ test("a battle's score shuffles by the battle's own seed", async () => {
     battle.dispose();
   }
   expect(scoreSeeds).toEqual([7, 7, 11]);
+});
+
+/** Looping sources still sounding, by their playback rate (each show loop
+ *  in these tests has its own rate; the countryside bed plays at 1). */
+const loopsAt = (rate: number) =>
+  sources.filter((s) => s.loop && !s.stopped && s.playbackRate.value === rate);
+const bedPlaying = () => loopsAt(1).length === 1;
+
+test("show loops play beside the menu bed and stop with the screen", async () => {
+  const app = setup();
+  app.setScreen("menu");
+  await vi.waitFor(() => expect(app.stats().menuPlaying).toBe(true));
+  app.showLoops([
+    { sound: "engine_diesel", gain: 0.06, rate: 0.8 },
+    { sound: "turret", gain: 0.02, rate: 0.9 },
+  ]);
+  await vi.waitFor(() => expect(loopsAt(0.8)).toHaveLength(1));
+  expect(loopsAt(0.9)).toHaveLength(1);
+  expect(bedPlaying()).toBe(true);
+  const engine = loopsAt(0.8)[0];
+  const speakers = contexts[0].destination;
+  expect(reach(engine, speakers)).toBeGreaterThan(0);
+  expect(contexts).toHaveLength(1);
+
+  // Loading keeps the bed under the load but ends the showcase.
+  app.setScreen("loading");
+  expect(loopsAt(0.8)).toHaveLength(0);
+  expect(loopsAt(0.9)).toHaveLength(0);
+  expect(bedPlaying()).toBe(true);
+  // A return to the menu does not bring back loops nobody asked for again.
+  app.setScreen("menu");
+  await vi.waitFor(() => expect(bedPlaying()).toBe(true));
+  expect(loopsAt(0.8)).toHaveLength(0);
+
+  app.showLoops([{ sound: "engine_diesel", gain: 0.06, rate: 0.8 }]);
+  await vi.waitFor(() => expect(loopsAt(0.8)).toHaveLength(1));
+  app.setScreen("other");
+  expect(loopsAt(0.8)).toHaveLength(0);
+});
+
+test("replacing the show loops keeps shared voices and fades the rest", async () => {
+  const app = setup();
+  app.setScreen("menu");
+  await vi.waitFor(() => expect(app.stats().menuPlaying).toBe(true));
+  app.showLoops([
+    { sound: "engine_diesel", gain: 0.06, rate: 0.8 },
+    { sound: "turret", gain: 0.02, rate: 0.9 },
+  ]);
+  await vi.waitFor(() => expect(loopsAt(0.9)).toHaveLength(1));
+  const engine = loopsAt(0.8)[0];
+  const turret = loopsAt(0.9)[0];
+  const speakers = contexts[0].destination;
+  const engineLevel = reach(engine, speakers);
+
+  app.showLoops([
+    { sound: "engine_diesel", gain: 0.12, rate: 0.7 },
+    { sound: "rotor", gain: 0.05, rate: 1.1 },
+  ]);
+  await vi.waitFor(() => expect(loopsAt(1.1)).toHaveLength(1));
+  // The engine is the same voice, retuned: louder and slower.
+  expect(engine.stopped).toBe(false);
+  expect(engine.playbackRate.value).toBe(0.7);
+  expect(reach(engine, speakers)).toBeCloseTo(engineLevel * 2);
+  // The turret fades out rather than cutting.
+  expect(turret.stopped).toBe(true);
+  expect(turret.stopAt).toBeGreaterThan(contexts[0].currentTime);
+
+  app.showLoops([]);
+  expect(engine.stopped).toBe(true);
+  expect(engine.stopAt).toBeGreaterThan(contexts[0].currentTime);
+  expect(loopsAt(1.1)).toHaveLength(0);
+  expect(bedPlaying()).toBe(true);
+});
+
+test("muted, show loops start nothing and resume on unmute", async () => {
+  const app = setup();
+  app.setScreen("menu");
+  await vi.waitFor(() => expect(app.stats().menuPlaying).toBe(true));
+  soundSettings.set({ muted: true });
+  app.showLoops([{ sound: "engine_diesel", gain: 0.06, rate: 0.8 }]);
+  // Give any preparation time to land: still nothing sounds.
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  expect(loopsAt(0.8)).toHaveLength(0);
+
+  soundSettings.set({ muted: false });
+  await vi.waitFor(() => expect(loopsAt(0.8)).toHaveLength(1));
+  soundSettings.set({ muted: true });
+  expect(loopsAt(0.8)).toHaveLength(0);
+  soundSettings.set({ muted: false });
+  await vi.waitFor(() => expect(loopsAt(0.8)).toHaveLength(1));
+});
+
+test("a bed restart leaves the show loops playing", async () => {
+  const app = setup();
+  // The menu's own sounds prepare slowly: the show loop is ready first, and
+  // the bed starts after it.
+  let releaseMenu!: () => void;
+  const menuHeld = new Promise<void>((resolve) => (releaseMenu = resolve));
+  const prepare = SoundBank.prototype.prepare;
+  vi.spyOn(SoundBank.prototype, "prepare").mockImplementation(
+    async function (this: SoundBank, names, signal) {
+      if (names.includes("countryside")) await menuHeld;
+      return prepare.call(this, names, signal);
+    },
+  );
+  app.setScreen("menu");
+  app.showLoops([{ sound: "engine_diesel", gain: 0.06, rate: 0.8 }]);
+  await vi.waitFor(() => expect(loopsAt(0.8)).toHaveLength(1));
+  const engine = loopsAt(0.8)[0];
+  expect(bedPlaying()).toBe(false);
+
+  releaseMenu();
+  await vi.waitFor(() => expect(bedPlaying()).toBe(true));
+  expect(engine.stopped).toBe(false);
+});
+
+test("a quiet tile clicks but never clacks on hover", async () => {
+  const app = setup();
+  app.setScreen("menu");
+  await vi.waitFor(() => expect(app.stats().menuReady).toBe(true));
+  const plate = document.createElement("main");
+  plate.className = "menu";
+  plate.innerHTML =
+    '<div data-cue-hover="off"><button><span>Leopard</span></button></div><button>Back</button>';
+  document.body.append(plate);
+  try {
+    const [quiet, loud] = plate.querySelectorAll("button");
+    const initial = sources.length;
+    quiet.querySelector("span")!.dispatchEvent(new MouseEvent("pointerover", { bubbles: true }));
+    expect(sources.length).toBe(initial);
+    quiet.click();
+    expect(sources.length).toBe(initial + 1);
+    loud.dispatchEvent(new MouseEvent("pointerover", { bubbles: true }));
+    expect(sources.length).toBe(initial + 2);
+  } finally {
+    plate.remove();
+  }
 });
