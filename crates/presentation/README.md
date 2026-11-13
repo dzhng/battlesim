@@ -101,10 +101,13 @@ calls the same reader for workbench drafts.
 - [Fog of war's sight](src/fog/sight.rs): each frame's eyes (the side's own
   units' at the published tick, or a lab's stand-ins), the occluders the side
   knows stand (the map's occluding props less those it saw fall, plus what it
-  learned), the eyes' map slots and rebuild schedule, the structures that
-  take fog whole, and the `FogParams` record, as one `FogUpload` a renderer
-  uploads as it is. A prop the side has not learned never reaches it. The
-  unseen look is [`fog`](src/fog/mod.rs)'s `FogLook`.
+  learned), the side's [smoke clouds](src/fog/smoke.rs) at their step of
+  `contract::smoke`'s law, the eyes' map slots and rebuild schedule, the
+  structures that take fog whole, and the `FogParams` record, as one
+  `FogUpload` a renderer uploads as it is. A prop the side has not learned
+  never reaches it. A cloud that comes, steps or goes rebuilds only the maps
+  it reaches, under the moved eyes' budget. The unseen look is
+  [`fog`](src/fog/mod.rs)'s `FogLook`.
 - [The sun's shadow](src/shadow.rs): each frame's cascades fitted over where the
   terrain is in view depth, as the receiver block and each cascade's caster camera
   (`Frame.shadow`, once `set_shadow` gives the light and immutable terrain).

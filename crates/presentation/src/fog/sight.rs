@@ -18,9 +18,10 @@
 //! Each eye keeps a horizon map, `azimuth_bins × radial_bins` words: a
 //! coarse terrain march, then a merge at full azimuth that meets only the
 //! known occluders within reach. New eyes, and eyes an occluder change
-//! touches, rebuild at once; moved eyes `rebuild_eyes_per_frame` at a time,
-//! oldest first. The structures that take fog whole are flagged after the
-//! maps or the eyes change. [`FogSight::prepare`] is one drawn frame's
+//! touches, rebuild at once; moved eyes, and eyes a smoke cloud's change
+//! reaches, `rebuild_eyes_per_frame` at a time, oldest first. The
+//! structures that take fog whole are flagged after the maps or the eyes
+//! change. [`FogSight::prepare`] is one drawn frame's
 //! uploads and dispatches ([`FogUpload`]).
 //!
 //! `tests/fog_sight.rs` holds every upload to the recorded vectors word for
@@ -28,10 +29,13 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
-use serde::{Deserialize, Serialize};
-use sim::publication::reader::{KnownProp, Sight};
+use contract::smoke::CloudState;
+use serde::Deserialize;
+use sim::publication::reader::KnownProp;
 use sim::world::export::PROP_STRIDE;
 
+pub use super::eye::{Eye, Shape};
+use super::smoke::{reaches, Smoke};
 pub use super::upload::{FogUpload, WholePass};
 use crate::records::{Camera, FogBox, FogEye, FogParams};
 use crate::static_world::ground::Source;
@@ -78,7 +82,8 @@ pub struct Geometry {
     pub face_probe_m: f64,
     /// A roof or canopy top above an eye looks this far toward it for seen air.
     pub roof_reach_m: f64,
-    /// Moved eyes rebuilt per frame; new eyes are always built at once.
+    /// Moved eyes, and eyes a cloud's change reaches, rebuilt per frame;
+    /// new eyes are always built at once.
     pub rebuild_eyes_per_frame: u32,
     /// A structure taking fog whole is sampled this far apart.
     pub whole_step_m: f64,
@@ -248,59 +253,6 @@ impl<'a> KnownBox<'a> {
             authored: k.authored_prop,
             destroyed: k.destroyed,
         }
-    }
-}
-
-/// A sight shape's reach multipliers ahead, abeam and behind.
-#[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
-pub struct Shape {
-    pub front: f64,
-    pub side: f64,
-    pub rear: f64,
-}
-
-/// One own eye at the published tick.
-#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
-pub struct Eye {
-    /// Stable per unit and eye index (`<unit>:<eye>`), so an eye that did
-    /// not move keeps its map.
-    pub key: String,
-    pub position: [f64; 3],
-    pub forward: f64,
-    pub shape: Shape,
-    pub range: f64,
-}
-
-impl Eye {
-    /// How far it reaches in any direction: its map's radius.
-    pub fn reach(&self) -> f64 {
-        let s = self.shape;
-        self.range * s.front.max(s.side).max(s.rear)
-    }
-
-    /// Every eye of the side's own units, each `(id, sight)` at the
-    /// published tick: a garrison gives one per facade it holds.
-    pub fn of_units<'a>(units: impl IntoIterator<Item = (f64, &'a Sight)>) -> Vec<Eye> {
-        units
-            .into_iter()
-            .flat_map(|(id, sight)| {
-                sight
-                    .eyes
-                    .iter()
-                    .enumerate()
-                    .map(move |(k, &position)| Eye {
-                        key: format!("{id}:{k}"),
-                        position,
-                        forward: sight.forward,
-                        shape: Shape {
-                            front: sight.shape.front,
-                            side: sight.shape.side,
-                            rear: sight.shape.rear,
-                        },
-                        range: sight.range,
-                    })
-            })
-            .collect()
     }
 }
 
@@ -813,8 +765,10 @@ pub struct FogSight {
     free: Vec<u32>,
     /// The latest sight's eyes, as indices into `slots`.
     order: Vec<usize>,
-    /// Moved eyes waiting for a rebuild, oldest first.
+    /// Moved eyes, and eyes a cloud's change reached, waiting for a
+    /// rebuild, oldest first.
     queue: Vec<String>,
+    smoke: Smoke,
     tiles_x: u32,
     pub rebuilt: u32,
     pub rebuilt_total: u64,
@@ -841,6 +795,7 @@ impl FogSight {
             free: Vec::new(),
             order: Vec::new(),
             queue: Vec::new(),
+            smoke: Smoke::default(),
             tiles_x: 0,
             rebuilt: 0,
             rebuilt_total: 0,
@@ -889,6 +844,7 @@ impl FogSight {
     pub fn resend(&mut self) {
         self.foliage_sent = false;
         self.occluders_sent = false;
+        self.smoke.resend();
         self.wholes_dirty = true;
         self.invalidate();
     }
@@ -998,6 +954,19 @@ impl FogSight {
         }
         self.order = order;
         Ok(())
+    }
+
+    /// The side's smoke clouds, each `(id, state)` at the published tick:
+    /// a built map a cloud that came, stepped or went reaches is queued
+    /// with the moved eyes (kept, never dropped, so the budget holds).
+    pub fn set_smoke(&mut self, clouds: &[(u32, CloudState)]) {
+        let changed = self.smoke.set(clouds);
+        for s in &self.slots {
+            let reached = s.built.is_some_and(|p| reaches(&changed, p, s.reach));
+            if reached && !self.queue.contains(&s.key) {
+                self.queue.push(s.key.clone());
+            }
+        }
     }
 
     /// No sight: fog is off and the world is drawn clear.
@@ -1141,6 +1110,7 @@ impl FogSight {
                 up.wholes = Some(self.wholes.words.clone());
             }
         }
+        up.smoke = self.smoke.upload();
         let picked = if active {
             self.pick_rebuilds()
         } else {
@@ -1259,7 +1229,8 @@ impl FogSight {
             foliage_cell_m: if foliage { f[2] } else { 1.0 },
             foliage_full_block: world.map_or(1.0, |w| w.sensors.foliage_full_block) as f32,
             min_sight_gap_m: world.map_or(0.0, |w| w.sensors.min_sight_gap_m) as f32,
-            pad0: [0.0; 3],
+            smoke_count: self.smoke.count(),
+            pad0: [0.0; 2],
             playable: world.map_or([0.0; 4], |w| w.playable.map(|v| v as f32)),
             height_spacing: world.map_or(1.0, |w| w.spacing) as f32,
             face_probe_m: g.face_probe_m as f32,
@@ -1334,7 +1305,6 @@ pub struct FogStats {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sim::publication::reader::SightShape;
 
     const WALL: &str = "wall";
 
@@ -1601,23 +1571,6 @@ mod tests {
                 }
             ]
         );
-    }
-
-    #[test]
-    fn a_garrison_gives_an_eye_per_facade_keyed_by_unit_and_eye() {
-        let sight = Sight {
-            eyes: vec![[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]],
-            forward: 0.5,
-            shape: SightShape {
-                front: 1.0,
-                side: 1.0,
-                rear: 1.0,
-            },
-            range: 600.0,
-        };
-        let eyes = Eye::of_units([(7.0, &sight)]);
-        let got: Vec<_> = eyes.iter().map(|e| (e.key.as_str(), e.position)).collect();
-        assert_eq!(got, [("7:0", [1.0, 2.0, 3.0]), ("7:1", [4.0, 5.0, 6.0])]);
     }
 
     #[test]

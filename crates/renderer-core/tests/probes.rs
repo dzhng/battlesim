@@ -40,6 +40,184 @@ fn fog_shape_probe_executes_the_shared_shader_and_preserves_request_order() {
     .is_empty());
 }
 
+/// A cloud's state as `contract::smoke::state` gives it at some step.
+fn cloud(
+    centre: [f64; 2],
+    radius_m: f64,
+    height_m: f64,
+    depth_per_m: f64,
+) -> contract::smoke::CloudState {
+    contract::smoke::CloudState {
+        phase: 0,
+        centre,
+        radius_m,
+        height_m,
+        depth_per_m,
+        concealment: 0.1,
+    }
+}
+
+/// The fog's smoke records for `clouds`, as the presentation uploads them.
+fn smoke_records(clouds: &[contract::smoke::CloudState]) -> Vec<presentation::records::FogSmoke> {
+    use presentation::fog::sight::{FogSight, Geometry};
+    let settings: serde_json::Value =
+        serde_json::from_str(include_str!("../../../fixtures/presentation.json")).unwrap();
+    let geometry: Geometry = serde_json::from_value(settings["fog_geometry"].clone()).unwrap();
+    let mut sight = FogSight::new(geometry).unwrap();
+    let ids: Vec<_> = clouds
+        .iter()
+        .cloned()
+        .enumerate()
+        .map(|(i, c)| (i as u32, c))
+        .collect();
+    sight.set_smoke(&ids);
+    sight.prepare(None, 0, 0, 0).unwrap().smoke.unwrap()
+}
+
+#[test]
+fn fog_smoke_step_adds_what_the_contract_adds_for_every_piece_of_a_sight_line() {
+    let gpu = support::gpu().unwrap();
+    let pipelines = pipelines::build_builtin(&gpu.device).unwrap();
+    let probes = FogProbes::new(&pipelines);
+    // Two overlapping clouds of different tops and densities, and one at
+    // map scale.
+    let clouds = [
+        cloud([100.0, 50.0], 10.0, 6.0, 0.2),
+        cloud([112.0, 50.0], 8.0, 4.0, 0.12),
+        cloud([1500.25, 2200.5], 15.0, 6.0, 0.2),
+    ];
+    // Each piece: its ends, the sight line's height and the ground's there.
+    let pieces: [(&str, [f32; 6]); 14] = [
+        ("a miss", [60.0, 80.0, 140.0, 80.0, 1.0, 0.0]),
+        ("a tangent", [80.0, 60.0, 120.0, 60.0, 1.0, 0.0]),
+        ("through both centres", [80.0, 50.0, 130.0, 50.0, 1.0, 0.0]),
+        ("back the other way", [130.0, 50.0, 80.0, 50.0, 1.0, 0.0]),
+        ("an end inside", [95.0, 50.0, 70.0, 50.0, 1.0, 0.0]),
+        ("both ends inside", [98.0, 52.0, 102.0, 48.0, 1.0, 0.0]),
+        (
+            "oblique, across the overlap",
+            [60.0, 41.0, 140.0, 59.0, 1.0, 0.0],
+        ),
+        ("above both tops", [80.0, 50.0, 130.0, 50.0, 7.0, 0.0]),
+        ("between the two tops", [80.0, 50.0, 130.0, 50.0, 5.0, 0.0]),
+        ("at the top exactly", [80.0, 50.0, 130.0, 50.0, 6.0, 0.0]),
+        (
+            "tops measured from raised ground",
+            [80.0, 50.0, 130.0, 50.0, 7.0, 2.0],
+        ),
+        ("no length", [100.0, 50.0, 100.0, 50.0, 1.0, 0.0]),
+        (
+            "through a map-scale centre",
+            [1480.25, 2200.5, 1530.25, 2200.5, 1.0, 0.0],
+        ),
+        (
+            "a map-scale oblique step",
+            [1490.0, 2190.0, 1512.0, 2215.0, 1.0, 0.0],
+        ),
+    ];
+    let lines: Vec<[f32; 6]> = pieces.iter().map(|(_, l)| *l).collect();
+    let gpu_depths = pollster::block_on(
+        probes
+            .smoke(&gpu.device, &gpu.queue, &smoke_records(&clouds), &lines)
+            .unwrap()
+            .read_f32(&gpu.device),
+    )
+    .unwrap();
+    assert_eq!(gpu_depths.len(), pieces.len());
+    let mut crossed = 0;
+    for ((name, l), gpu_depth) in pieces.iter().zip(gpu_depths) {
+        let l = l.map(f64::from);
+        let expected =
+            contract::smoke::piece_depth(&clouds, [l[0], l[1]], [l[2], l[3]], l[4], l[5]);
+        // f32 arithmetic over coordinates of a few thousand metres.
+        let tolerance = 1e-5 * (1.0 + expected);
+        assert!(
+            (f64::from(gpu_depth) - expected).abs() <= tolerance,
+            "{name}: the GPU adds {gpu_depth}, the contract {expected}"
+        );
+        crossed += usize::from(expected > 0.0);
+    }
+    assert!(crossed >= 8, "the table crosses smoke in most pieces");
+    let none = pollster::block_on(
+        probes
+            .smoke(&gpu.device, &gpu.queue, &[], &lines)
+            .unwrap()
+            .read_f32(&gpu.device),
+    )
+    .unwrap();
+    assert!(none.iter().all(|&d| d == 0.0), "no cloud adds nothing");
+}
+
+#[test]
+fn a_smoke_cloud_closes_the_fog_behind_it_until_it_is_gone() {
+    use presentation::fog::sight::{Eye, FogSight, Geometry, Sensors, Shape, SightWorld};
+    use renderer_core::{fog::Fog, probes::FogPoint, Targets};
+    let gpu = support::gpu().unwrap();
+    let pipelines = pipelines::build_builtin(&gpu.device).unwrap();
+    let settings: serde_json::Value =
+        serde_json::from_str(include_str!("../../../fixtures/presentation.json")).unwrap();
+    let geometry: Geometry = serde_json::from_value(settings["fog_geometry"].clone()).unwrap();
+    let mut sight = FogSight::new(geometry).unwrap();
+    sight
+        .set_world(
+            SightWorld {
+                nx: 2,
+                ny: 2,
+                spacing: 256.0,
+                playable: [0.0, 0.0, 256.0, 256.0],
+                sensors: Sensors {
+                    fog_target_height_m: 1.0,
+                    foliage_full_block: 1.0,
+                    min_sight_gap_m: 0.0,
+                },
+                map: vec![],
+                ids: vec![],
+                occluding: Default::default(),
+            },
+            vec![],
+        )
+        .unwrap();
+    let eye = Eye {
+        key: "test-eye".into(),
+        position: [32.0, 32.0, 2.0],
+        forward: 0.0,
+        shape: Shape {
+            front: 1.0,
+            side: 1.0,
+            rear: 1.0,
+        },
+        range: 100.0,
+    };
+    sight.set_sight(&[eye], Some(&[])).unwrap();
+    let targets = Targets::new(&gpu.device, [32, 32]);
+    let mut fog = Fog::new(&gpu.device, &gpu.queue, &pipelines, &targets);
+    let probes = FogProbes::new(&pipelines);
+    // Short of the cloud, behind it, and off to its side.
+    let points: Vec<_> = [[45.0, 32.0, 0.0], [100.0, 32.0, 0.0], [32.0, 90.0, 0.0]]
+        .into_iter()
+        .map(|position| FogPoint {
+            position,
+            normal: None,
+        })
+        .collect();
+    let mut seen = |sight: &mut FogSight| {
+        let upload = sight.prepare(None, 0, 0, points.len() as u32).unwrap();
+        pollster::block_on(
+            probes
+                .probe(&gpu.device, &gpu.queue, &mut fog, &upload, &points)
+                .unwrap()
+                .read_u8(&gpu.device),
+        )
+        .unwrap()
+    };
+    assert_eq!(seen(&mut sight), [1, 1, 1]);
+    // Twenty metres of smoke on the line: far past a full block.
+    sight.set_smoke(&[(1, cloud([65.0, 32.0], 10.0, 6.0, 0.2))]);
+    assert_eq!(seen(&mut sight), [1, 0, 1]);
+    sight.set_smoke(&[]);
+    assert_eq!(seen(&mut sight), [1, 1, 1]);
+}
+
 #[test]
 fn display_readback_removes_row_padding_swizzles_bgra_and_keeps_the_encoded_frame() {
     use renderer_core::readback::{Readback, RgbaReadback};

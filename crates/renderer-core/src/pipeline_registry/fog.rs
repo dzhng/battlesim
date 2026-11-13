@@ -11,6 +11,7 @@ pub fn all() -> Vec<PipelineSpec> {
             None,
         ),
         compute("fogShape", "fogShape.wgsl", vec!["shapeLayout"], None),
+        compute("fogSmoke", "fogSmoke.wgsl", vec!["smokeLayout"], None),
         compute(
             "fogWhole",
             "fogWhole.wgsl",

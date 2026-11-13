@@ -1,5 +1,5 @@
 //! Canonical per-frame fog uploads consumed unchanged by GPU renderer shells.
-use crate::records::{FogBox, FogEye, FogParams};
+use crate::records::{FogBox, FogEye, FogParams, FogSmoke};
 
 /// The structures pass of one frame (`fogWhole`): clear the flags, flag each
 /// row's structure seen or not, copy the flags into the `wholes` texture's
@@ -42,6 +42,9 @@ pub struct FogUpload {
     /// (`WHOLE_TEXTURE_WIDTH` a row), when the side's knowledge changed.
     pub occluders: Option<Vec<FogBox>>,
     pub wholes: Option<Vec<u32>>,
+    /// The side's smoke circles (`FogParams.smoke_count` of them), when
+    /// they changed.
+    pub smoke: Option<Vec<FogSmoke>>,
     pub whole: Option<WholePass>,
     /// The cull: tiles across and down, and each tile's list length.
     pub tiles: [u32; 3],

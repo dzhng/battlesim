@@ -408,6 +408,7 @@ pub fn all() -> Vec<LayoutSpec> {
         visibility::cull(),
         visibility::probe(),
         visibility::shape(),
+        visibility::smoke(),
         visibility::whole(),
         grass::draw(),
         grass::build(),
