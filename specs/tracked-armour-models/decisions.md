@@ -3783,3 +3783,60 @@ have made the same call.
 
   Lanes B and D's turrets (the Abrams, Leclerc, PzH 2000 and M109A7) are
   the coordinator's.
+
+## Slice 30 decisions (2026-11-13, coordinator)
+
+- **S1 The user's notes after the lanes merged.** (User; high.) The Leopard
+  2A8 "doesn't look right" side-on, then "literally looks like a block with
+  something sticking out of it ... maybe have argon rework this one". Local
+  edits raised the deck to 1.66 m and the skirts' foot to 0.78 m and gave the
+  wedge a high crest (the photos' side profile); a third Argon round, turret
+  front only, then rebuilt the wedges as the turret's front, swept in plan
+  and at final heights, replacing `sweep_turret_front` and the turret's
+  height remap ($2.61, all three Leopard rounds $6.49). The user also set the
+  paint: US ground units desert tan, Europe and the East green woodland,
+  which the schemes already were.
+- **S2 A third Argon round where a turret can't be fixed by local edits.**
+  (Agent, from the user's Leopard note; medium.) The Challenger 3's turret
+  was named below the bar as the Challenger 2's box (slice 20) and got one
+  turret-only third round. The T-14's and BMP-2M's were looked at again and
+  kept: the T-14's turret reads faceted, and the BMP-2M's drum is the real
+  BMP-2 turret's shape.
+- **S3 Swept-front outcomes (R12).** Every tracked turret measures 0.5 m
+  back per metre outboard or more; the T-15 and BMP-2M by their armour body
+  (F4). The PzH 2000's smoke dischargers moved behind its swept cheek's
+  corner, where the photo has them (0.27 to 0.69).
+- **S4 `sweep_turret_front` stays in each script that needs it.** (Agent;
+  medium.) The KF51, Challengers, Leclerc and M10 carry nearly identical
+  copies (B10). Each `build.py` is Argon's self-contained script, which must
+  run alone in Bento and is what a next round starts from; the Leopard showed
+  the better fix is a front built swept, not a shared post-step. So the
+  owner of each turret's shape is its own script.
+- **S5 Hardware is a darker shade of the scheme's paint (LA-S2).** (Agent;
+  high.) `vehicle_export.materials` defaulted `fittings` to a fixed brown
+  (0.11, 0.095, 0.068), brighter and warmer than every green scheme's paint
+  (means about 0.05–0.09), so hubs, rails and brackets read tan on green
+  tanks. The default is now the scheme's mean paint at 0.6; the desert tan
+  keeps a darker tan. No family set its own.
+- **S6 Thin bars keep the paint's chip (LA-S1 left).** (Agent; medium.) A
+  per-thickness chip needs a material per part, and the body has seven fixed
+  slots. The T-14's slat cages stay as they are; named below the bar.
+- **S7 A decimated piece stays inside its source box (`mesh_lods`).**
+  (Agent; high.) The far tiers' strays were not loose vertices: an edge
+  collapse placed a merged vertex 0.5 m past its island (the M270's tier 3,
+  sliver faces to x -4.02). Each decimated piece is clamped to its own
+  bounding box; the M270's tiers now end inside its hull.
+- **S8 Tolerances.** The 28 wreck `footprint_m` of 1.0 or less are gone
+  (R10's rubble floor is the larger on all of them). The `hull_extent_m`
+  allowances are decided by `asset validate --type` after the re-export.
+- **S9 Dead procedural code.** `roster/armata.py`, the T-72 family's
+  procedural parts and `running_gear`'s wheel builders and
+  `tracked_running_gear` are deleted: every tracked unit wears its body. The
+  belt's test wraps `track_loop` directly.
+- **S10 The box-top convention stands (B9).** Where a sight sets the box
+  top, its mast is the turret's; the convention and `fit.hull_extents` agree
+  that way, so neither changes.
+- **S11 The freshness pass re-exports every vehicle family, not the infantry
+  kits.** The kits use their own exporter (`infantry_equipment.py`, per kit
+  and look) and are stale on other work's files too; their next export picks
+  up R11 and S7.

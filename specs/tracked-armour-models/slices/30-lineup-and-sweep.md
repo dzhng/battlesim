@@ -51,3 +51,39 @@ the lint baseline holds no tracked appearance.
 ## Delegated
 
 The montage layout.
+
+## Result (2026-11-13)
+
+- **Merged:** lanes A–D, then the post-merge fixes (the Puma's nose, the
+  R12 sweep on every turret), the Leopard's side profile and its third
+  Argon round (the user's notes, S1), and the Challenger 3's third round
+  (S2).
+- **Receipts:** every vehicle and aircraft family re-exported in one pass
+  (77 + the two Challengers, all linted clean on export); only the eight
+  infantry kits' receipts stay stale (S11).
+- **End-state greps:** all empty. `roster/armata.py`, the T-72 family's
+  procedural parts and `running_gear`'s tracked wheel builders are deleted
+  (S9).
+- **Tolerances:** 28 wreck `footprint_m` ≤ 1.0 dropped; six
+  `hull_extent_m` dropped (the four tracked howitzers, M270, MARS II); the
+  wheeled launchers and mortar keep theirs. `mesh_lods` clamps decimated
+  pieces to their source (S7).
+- **R12:** every tracked turret measures 0.5 m back per metre outboard or
+  more (T-15 and BMP-2M by body, F4).
+- **Lint baseline:** no tracked appearance left (2,878 issues on 109
+  appearances to 1,958 on 79).
+- **Lineup:** [`visualizations/lineup.html`](../visualizations/lineup.html),
+  [`assets/after/lineup-battle-near.png`](../assets/after/lineup-battle-near.png)
+  (the game renderer, one scale) and
+  [`assets/after/lineup-montage.png`](../assets/after/lineup-montage.png)
+  (the same close-ups as `assets/before/closeups`).
+- **Cohesion critique (unprimed, one round):** one set in geometry, tan
+  against green reads at battle distance. Its findings, judged:
+  - the palettes per nation (Russian plain green, Swedish splinter, PLA
+    digital) are the schemes, kept;
+  - the three Abrams carry dark smudges the other tan vehicles don't: the
+    shared vertex-painted dirt and streaks show only on dense meshes. A
+    texture-space dirt is a shared change for a later pass; named below the
+    bar;
+  - the Gepard's radar "on a stalk" is its real folding mast; kept.
+  Nothing called for a family edit, so one round.

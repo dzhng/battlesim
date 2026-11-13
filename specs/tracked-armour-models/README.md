@@ -17,20 +17,15 @@ rest is at the end of this file.
 
 ## Next Agent Prompt
 
-**Status (2026-11-12):**
-- The shared slices are merged: 00–12 and 15; 13 was cancelled (G1) and 14 was
-  not needed.
-- The Argon pilot is merged. The T-72B3 and Abrams SEP v2 wear Argon bodies,
-  and the T-72's front corner was fixed after the user's note (edit 14).
-- The slices 17–29 now follow the Argon recipe ([family
-  template](slices/family-template.md)), in four parallel lanes A–D
-  ([`parallel.md`](parallel.md)).
+**Status (2026-11-13):**
+- Every slice through 30 is merged, pushed and promoted: all 37 tracked
+  models wear Argon bodies; the post-merge fixes, the Leopard's and the
+  Challenger 3's third rounds and slice 30's sweep are in (decisions S1–S11).
+- Slice 31 (ship) is next: pictures, the balance sample, the full ladder,
+  close-spec.
 
-**Pickup:** the four lanes are briefed and running, but blocked on Bento:
-since about 08:50 UTC on 2026-11-12 its session dispatch returns 503
-`integration_unavailable`, and no round-1 session has delivered. When it
-recovers, the lanes run as briefed. Merge each lane's vehicles as they land,
-bake, and push a milestone every three families.
+**Pickup:** run slice 31 from step 3; the bake (step 1) is done and the art
+load is 742.6 MiB under the 768 MiB tripwire, so step 2 needs no change.
 
 You are the **coordinator**. Before you touch anything, read:
 - `AGENTS.md`;
@@ -98,11 +93,11 @@ TODO:
 - [x] 15 frame fixes ([slice](slices/15-frame-fixes.md))
 - [x] Argon pilot: T-72B3 and Abrams SEP v2 ([slice](slices/argon-pilot.md))
 - [x] 16 integration milestone ([slice](slices/16-integration-reexport.md)), pushed and promoted as 561be1e7d
-- [ ] Lane A: 17 T-72 family, 18 Armata, 19 ZTQ-15
-- [ ] Lane B: 20 Challengers, 21 Abrams variants, M1E3 and M10, 22 Leopard, 23 Leclerc and KF51
-- [ ] Lane C: 25 CV90 family, 26 Bradley, 27 Puma and Ajax, 28 BMP and BRM
-- [ ] Lane D: 24 air defence and rockets, 29 howitzers
-- [ ] 30 lineup and sweep ([slice](slices/30-lineup-and-sweep.md))
+- [x] Lane A: 17 T-72 family, 18 Armata, 19 ZTQ-15
+- [x] Lane B: 20 Challengers, 21 Abrams variants, M1E3 and M10, 22 Leopard, 23 Leclerc and KF51
+- [x] Lane C: 25 CV90 family, 26 Bradley, 27 Puma and Ajax, 28 BMP and BRM
+- [x] Lane D: 24 air defence and rockets, 29 howitzers
+- [x] 30 lineup and sweep ([slice](slices/30-lineup-and-sweep.md))
 - [ ] 31 ship ([slice](slices/31-ship.md)), then push and promote
 
 ## Contracts this pass changes
@@ -312,3 +307,27 @@ Each later pass starts with an `explore-unknowns` walk and its own spec.
 8. **A per-model baked detail map,** only if slice 04 finds it clearly wins.
    It needs a second unique UV, bundle support and a shader change
    (`models_material.wgsl:35-43`).
+
+## Below the bar
+
+What the pass leaves short of the bar, for the user (each slice's log has
+the detail and scores):
+
+- **Shared:** the paint's low-down dirt and rain streaks are vertex-painted,
+  so they show on dense meshes (the three Abrams' smudges) and not on plain
+  ones; thin bars (the T-14's slat cages) take the full edge chip (LA-S1);
+  shaded sides read dark or olive under the workbench sun.
+- **Frame-bound heights:** several turrets read low to critics because the
+  frames hold their roofs: the ZTQ-15, ZTZ-99A, CV90120, Bradleys, Puma.
+- **T-80BVM:** the Relikt tiles round its cast dome read as an older Kontakt
+  turret.
+- **T-14 and T-15:** the T-14's slab sides and slat cages; the T-15's skirts
+  read as a tiled grid.
+- **Challenger 2 TES:** a small commander's sight and thin side packs.
+- **CV90 family:** small sights (the CV9040C's drum, the Mk IV's mast and
+  Spike pod), a boxy nose.
+- **Bradleys:** small TOW box and 25 mm, glacis tiles that read as planks.
+- **Ajax:** a tall near-vertical lower nose plate.
+- **BMP-2M, BMP-3, BRM-3K:** plain turret detail; faceted shading on the
+  BMP-2M's bow; the BMP-2M reads as a drum from the front quarter (the real
+  turret's shape).
