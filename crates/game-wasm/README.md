@@ -11,6 +11,11 @@ it is not a second running battle. [Browser preparation](../../web/README.md#aut
 keeps expensive construction in its owned worker and adopts that prepared world
 into the battle authority.
 
+A showground (`Showground`) answers how a squad stands outside any battle: the
+simulation's own scatter on bare flat ground, and the soldier who first carries
+each special weapon. It holds no battle; a page posing a unit on a stage asks it
+instead of copying either rule.
+
 Rare control messages cross as JSON. Tick publications use a reusable packed
 buffer and the layout declared by their Rust producer. Read a publication before
 another WebAssembly call can grow memory or replace the buffer; never retain a

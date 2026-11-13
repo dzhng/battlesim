@@ -169,6 +169,11 @@ impl WorldGeometry {
         snapshot
     }
 
+    /// Bare level ground `size` metres across ([`MapDefinition::flat`]).
+    pub fn flat(size: [f64; 2], rules: &Rules) -> Self {
+        Self::new(&MapDefinition::flat(size), rules)
+    }
+
     /// The map's ground and props, each prop with its type's body row from
     /// the rules' catalog (every type placed must be one), a bridge's deck
     /// as its `deck` type, and each forest's trees (`forests.tree`) where the

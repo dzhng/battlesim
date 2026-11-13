@@ -13,11 +13,7 @@ fn lab() -> WorldGeometry {
 }
 
 fn flat(json_extra: &str) -> WorldGeometry {
-    let map: MapDefinition = serde_json::from_str(&format!(
-        r#"{{"size":[200,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35{json_extra}}}"#
-    ))
-    .unwrap();
-    WorldGeometry::new(&map, &crate::common::rules())
+    crate::common::flat([200.0, 200.0], json_extra)
 }
 
 fn close(a: f64, b: f64, tol: f64) -> bool {
