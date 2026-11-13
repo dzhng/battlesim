@@ -123,9 +123,7 @@ def fittings(v):
         box(f"cage_post_{side}", (0.04, 0.04, 0.60), (-3.98, side * 1.05 + 0.25, 1.80), m["steel"], cage, lods=NEAR)
     box("cage_rail", (0.04, 0.90, 0.04), (-3.98, 1.00, 2.08), m["steel"], cage, lods=NEAR)
     SW.stowage_box("cage_box", (-3.95, 1.00, 1.52), (0.24, 0.80, 0.52), dict(m, paint=m["dark"]), cage)
-    for side, s in ((1, "L"), (-1, "R")):
-        whip = empty(f"dressing_antenna_{s}", parent=hull)
-        RF.antenna(f"antenna_{s}", (-3.50, side * 1.25, ROOF), m, whip, height=2.8)
+    RF.whip_pair(hull, (-3.50, 1.25, ROOF), m, height=2.8)
     # The commander's hatch beside the turret's ring, crewed in the parade
     # photo.
     x, y, z = v.frame["mounts"][0]["pivot_m"][0] + 0.10, -1.05, ROOF

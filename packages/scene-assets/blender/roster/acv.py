@@ -130,9 +130,7 @@ def fittings(v):
             seg=16, bevel=0.02)
     for k, x in enumerate((-3.70, -2.50)):
         box(f"tube_rack_{k}", (0.06, 0.70, 0.18), (x, -0.96, ROOF + 0.09), m["steel"], rack, lods=NEAR)
-    for side, s in ((1, "L"), (-1, "R")):
-        whip = empty(f"dressing_antenna_{s}", parent=hull)
-        RF.antenna(f"antenna_{s}", (-4.20, side * 1.15, ROOF), m, whip, height=2.8)
+    RF.whip_pair(hull, (-4.20, 1.15, ROOF), m, height=2.8)
     HF.exhaust("exhaust", (1.20, -1.58, 2.05), 0.08, 0.40, m, hull, rot=(0, 0, -math.pi / 2))
 
 

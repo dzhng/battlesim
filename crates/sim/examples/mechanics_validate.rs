@@ -131,13 +131,15 @@ mod tests {
         let mut documents = sim::fixtures::test_documents();
         let doc = documents
             .iter_mut()
-            .find(|doc| doc["units"].get("test_tank").is_some())
+            .find(|doc| doc["units"].get("test_gun_jeep").is_some())
             .unwrap();
-        doc["units"]["test_tank"]["mounts"][0]["weapons"] = json!(["tank_ap", "tank_he", "rifle"]);
+        // A type no other extends, so the refusal can only name it.
+        doc["units"]["test_gun_jeep"]["mounts"][0]["weapons"] =
+            json!(["tank_ap", "tank_he", "rifle"]);
         let error =
             sim::fixtures::admit(game, documents).expect_err("too many ammunition kinds must fail");
         assert!(
-            error.contains("units.test_tank") && error.contains("publication"),
+            error.contains("units.test_gun_jeep") && error.contains("publication"),
             "{error}"
         );
     }
@@ -209,12 +211,12 @@ mod tests {
         let mut documents = sim::fixtures::test_documents();
         let doc = documents
             .iter_mut()
-            .find(|doc| doc["units"].get("test_tank").is_some())
+            .find(|doc| doc["units"].get("test_gun_jeep").is_some())
             .unwrap();
-        doc["units"]["test_tank"]["mounts"][0]["weapons"] = json!(["missing_weapon"]);
+        doc["units"]["test_gun_jeep"]["mounts"][0]["weapons"] = json!(["missing_weapon"]);
         let error = sim::fixtures::admit(game(), documents).expect_err("unknown weapons must fail");
         assert!(
-            error.contains("test_tank") && error.contains("missing_weapon"),
+            error.contains("test_gun_jeep") && error.contains("missing_weapon"),
             "{error}"
         );
     }

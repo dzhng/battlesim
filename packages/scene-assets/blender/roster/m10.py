@@ -25,7 +25,6 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import roof_parts as RF  # noqa: E402
 import scripted_body as SB  # noqa: E402
-from parts import empty  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
 
 BODY = "assets/source/skins/m10/argon-r2/build.py"
@@ -38,9 +37,7 @@ def build(variant, v):
     turret = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})["cannon"][0]
     SB.wear(v, BODY, LINK_PITCH)
     # The whips on the bustle roof's rear corners (turret frame).
-    for side, s in ((1, "L"), (-1, "R")):
-        whip = empty(f"dressing_antenna_{s}", parent=turret)
-        RF.antenna(f"antenna_{s}", (-1.7, side * 1.1, 0.705), v.mats, whip, height=2.0)
+    RF.whip_pair(turret, (-1.7, 1.1, 0.705), v.mats, height=2.0)
 
 
 def wreck(variant, v):

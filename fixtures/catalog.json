@@ -2675,7 +2675,6 @@
             "cover_tier": null,
             "garrison": false,
             "hp": null,
-            "lifetime_s": null,
             "metal": false,
             "occludes": false,
             "stops_rounds": false,
@@ -2703,7 +2702,6 @@
             "cover_tier": null,
             "garrison": false,
             "hp": 60.0,
-            "lifetime_s": null,
             "metal": true,
             "occludes": false,
             "stops_rounds": false,
@@ -2732,7 +2730,6 @@
             "cover_tier": "light",
             "garrison": false,
             "hp": 40.0,
-            "lifetime_s": null,
             "metal": false,
             "occludes": false,
             "stops_rounds": false,
@@ -2761,7 +2758,6 @@
             "cover_tier": "light",
             "garrison": false,
             "hp": 20.0,
-            "lifetime_s": null,
             "metal": true,
             "occludes": false,
             "stops_rounds": false,
@@ -2790,7 +2786,6 @@
             "cover_tier": "light",
             "garrison": false,
             "hp": 80.0,
-            "lifetime_s": null,
             "metal": true,
             "occludes": true,
             "stops_rounds": false,
@@ -2819,7 +2814,6 @@
             "cover_tier": "light",
             "garrison": false,
             "hp": 20.0,
-            "lifetime_s": null,
             "metal": false,
             "occludes": false,
             "stops_rounds": false,
@@ -2848,7 +2842,6 @@
             "cover_tier": null,
             "garrison": false,
             "hp": 200.0,
-            "lifetime_s": null,
             "metal": true,
             "occludes": false,
             "stops_rounds": true,
@@ -2877,7 +2870,6 @@
             "cover_tier": "heavy",
             "garrison": false,
             "hp": null,
-            "lifetime_s": null,
             "metal": false,
             "occludes": false,
             "stops_rounds": true,
@@ -2905,7 +2897,6 @@
             "cover_tier": null,
             "garrison": false,
             "hp": null,
-            "lifetime_s": null,
             "metal": false,
             "occludes": false,
             "stops_rounds": true,
@@ -2934,7 +2925,6 @@
             "garrison": true,
             "hp": 1.0,
             "hp_scale": "building_floor_bands",
-            "lifetime_s": null,
             "metal": false,
             "occludes": true,
             "stops_rounds": true,
@@ -2974,7 +2964,6 @@
             "cover_tier": null,
             "garrison": false,
             "hp": 60.0,
-            "lifetime_s": null,
             "metal": true,
             "occludes": false,
             "stops_rounds": false,
@@ -3002,7 +2991,6 @@
             "cover_tier": "medium",
             "garrison": false,
             "hp": 80.0,
-            "lifetime_s": null,
             "metal": true,
             "occludes": false,
             "stops_rounds": true,
@@ -3032,7 +3020,6 @@
             "cover_tier": null,
             "garrison": false,
             "hp": 25.0,
-            "lifetime_s": null,
             "metal": true,
             "occludes": false,
             "stops_rounds": false,
@@ -3062,7 +3049,6 @@
             "cover_tier": "medium",
             "garrison": false,
             "hp": 250.0,
-            "lifetime_s": null,
             "metal": false,
             "occludes": true,
             "stops_rounds": true,
@@ -3095,7 +3081,6 @@
             "cover_tier": "light",
             "garrison": false,
             "hp": 20.0,
-            "lifetime_s": null,
             "metal": false,
             "occludes": false,
             "stops_rounds": false,
@@ -3124,7 +3109,6 @@
             "cover_tier": "medium",
             "garrison": false,
             "hp": 180.0,
-            "lifetime_s": null,
             "metal": true,
             "occludes": false,
             "stops_rounds": true,
@@ -3153,7 +3137,6 @@
             "cover_tier": "light",
             "garrison": false,
             "hp": 20.0,
-            "lifetime_s": null,
             "metal": false,
             "occludes": false,
             "stops_rounds": false,
@@ -3182,7 +3165,6 @@
             "cover_tier": "heavy",
             "garrison": false,
             "hp": 400.0,
-            "lifetime_s": null,
             "metal": false,
             "occludes": true,
             "stops_rounds": true,
@@ -3217,7 +3199,6 @@
             "cover_tier": "light",
             "garrison": false,
             "hp": 25.0,
-            "lifetime_s": null,
             "metal": false,
             "occludes": true,
             "stops_rounds": false,
@@ -3246,7 +3227,6 @@
             "cover_tier": "light",
             "garrison": false,
             "hp": 60.0,
-            "lifetime_s": null,
             "metal": false,
             "occludes": true,
             "stops_rounds": false,
@@ -3275,7 +3255,6 @@
             "cover_tier": "light",
             "garrison": false,
             "hp": 30.0,
-            "lifetime_s": null,
             "metal": false,
             "occludes": false,
             "stops_rounds": false,
@@ -3305,7 +3284,6 @@
             "cover_tier": "medium",
             "garrison": false,
             "hp": null,
-            "lifetime_s": null,
             "metal": false,
             "occludes": true,
             "stops_rounds": true,
@@ -3332,7 +3310,6 @@
             "cover_tier": "heavy",
             "garrison": false,
             "hp": 400.0,
-            "lifetime_s": null,
             "metal": true,
             "occludes": false,
             "stops_rounds": true,
@@ -3368,7 +3345,6 @@
             "cover_tier": null,
             "garrison": false,
             "hp": 40.0,
-            "lifetime_s": null,
             "metal": false,
             "occludes": true,
             "stops_rounds": false,
@@ -3398,7 +3374,6 @@
             "cover_tier": null,
             "garrison": false,
             "hp": 25.0,
-            "lifetime_s": null,
             "metal": true,
             "occludes": false,
             "stops_rounds": false,
@@ -3427,7 +3402,6 @@
             "cover_tier": null,
             "garrison": false,
             "hp": 150.0,
-            "lifetime_s": null,
             "metal": true,
             "occludes": false,
             "stops_rounds": true,
@@ -3457,7 +3431,6 @@
             "cover_tier": null,
             "garrison": false,
             "hp": 30.0,
-            "lifetime_s": null,
             "metal": true,
             "occludes": false,
             "stops_rounds": false,
@@ -3487,7 +3460,6 @@
             "cover_tier": "heavy",
             "garrison": false,
             "hp": 300.0,
-            "lifetime_s": null,
             "metal": false,
             "occludes": false,
             "stops_rounds": true,
@@ -3516,7 +3488,6 @@
             "cover_tier": "light",
             "garrison": false,
             "hp": 80.0,
-            "lifetime_s": null,
             "metal": true,
             "occludes": true,
             "stops_rounds": false,
@@ -3545,7 +3516,6 @@
             "cover_tier": null,
             "garrison": false,
             "hp": 30.0,
-            "lifetime_s": null,
             "metal": true,
             "occludes": false,
             "stops_rounds": false,
@@ -3574,7 +3544,6 @@
             "cover_tier": null,
             "garrison": false,
             "hp": 10.0,
-            "lifetime_s": null,
             "metal": true,
             "occludes": true,
             "stops_rounds": false,
@@ -3602,7 +3571,6 @@
             "cover_tier": "light",
             "garrison": false,
             "hp": 150.0,
-            "lifetime_s": null,
             "metal": true,
             "occludes": false,
             "stops_rounds": true,
@@ -3632,7 +3600,6 @@
             "cover_tier": "medium",
             "garrison": false,
             "hp": 120.0,
-            "lifetime_s": null,
             "metal": false,
             "occludes": false,
             "stops_rounds": true,
@@ -3660,7 +3627,6 @@
             "cover_tier": "medium",
             "garrison": false,
             "hp": 250.0,
-            "lifetime_s": null,
             "metal": true,
             "occludes": false,
             "stops_rounds": true,
@@ -3695,7 +3661,6 @@
             "cover_tier": null,
             "garrison": false,
             "hp": 60.0,
-            "lifetime_s": null,
             "metal": true,
             "occludes": false,
             "stops_rounds": false,
@@ -3724,7 +3689,6 @@
             "cover_tier": "light",
             "garrison": false,
             "hp": 35.0,
-            "lifetime_s": null,
             "metal": false,
             "occludes": false,
             "stops_rounds": false,
@@ -3753,7 +3717,6 @@
             "cover_tier": "medium",
             "garrison": false,
             "hp": 120.0,
-            "lifetime_s": null,
             "metal": true,
             "occludes": false,
             "stops_rounds": true,
@@ -3787,7 +3750,6 @@
             "cover_tier": null,
             "garrison": false,
             "hp": null,
-            "lifetime_s": null,
             "metal": false,
             "occludes": false,
             "stops_rounds": false,
@@ -3815,7 +3777,6 @@
             "cover_tier": "medium",
             "garrison": false,
             "hp": 250.0,
-            "lifetime_s": null,
             "metal": false,
             "occludes": false,
             "stops_rounds": true,
@@ -3844,7 +3805,6 @@
             "cover_tier": "medium",
             "garrison": false,
             "hp": 120.0,
-            "lifetime_s": null,
             "metal": false,
             "occludes": false,
             "stops_rounds": true,
@@ -3873,7 +3833,6 @@
             "cover_tier": null,
             "garrison": false,
             "hp": 80.0,
-            "lifetime_s": null,
             "metal": false,
             "occludes": false,
             "stops_rounds": false,
@@ -3903,7 +3862,6 @@
             "cover_tier": "light",
             "garrison": false,
             "hp": 150.0,
-            "lifetime_s": null,
             "metal": true,
             "occludes": false,
             "stops_rounds": false,
@@ -3937,7 +3895,6 @@
             "cover_tier": null,
             "garrison": false,
             "hp": 20.0,
-            "lifetime_s": null,
             "metal": false,
             "occludes": false,
             "stops_rounds": false,
@@ -3965,7 +3922,6 @@
             "cover_tier": "light",
             "garrison": false,
             "hp": null,
-            "lifetime_s": null,
             "metal": false,
             "occludes": false,
             "stops_rounds": false,
@@ -3992,7 +3948,6 @@
             "cover_tier": "heavy",
             "garrison": false,
             "hp": null,
-            "lifetime_s": null,
             "metal": false,
             "occludes": true,
             "stops_rounds": true,
@@ -4020,7 +3975,6 @@
             "cover_tier": "medium",
             "garrison": false,
             "hp": 150.0,
-            "lifetime_s": null,
             "metal": false,
             "occludes": false,
             "stops_rounds": true,
@@ -4055,7 +4009,6 @@
             "cover_tier": null,
             "garrison": false,
             "hp": 120.0,
-            "lifetime_s": null,
             "metal": true,
             "occludes": false,
             "stops_rounds": false,
@@ -4084,7 +4037,6 @@
             "cover_tier": null,
             "garrison": false,
             "hp": 30.0,
-            "lifetime_s": null,
             "metal": true,
             "occludes": false,
             "stops_rounds": false,
@@ -4113,7 +4065,6 @@
             "cover_tier": "heavy",
             "garrison": false,
             "hp": 180.0,
-            "lifetime_s": null,
             "metal": true,
             "occludes": true,
             "stops_rounds": true,
@@ -4142,7 +4093,6 @@
             "cover_tier": "medium",
             "garrison": false,
             "hp": 180.0,
-            "lifetime_s": null,
             "metal": true,
             "occludes": false,
             "stops_rounds": true,
@@ -4171,7 +4121,6 @@
             "cover_tier": "medium",
             "garrison": false,
             "hp": 100.0,
-            "lifetime_s": null,
             "metal": false,
             "occludes": false,
             "stops_rounds": true,
@@ -4200,7 +4149,6 @@
             "cover_tier": null,
             "garrison": false,
             "hp": 30.0,
-            "lifetime_s": null,
             "metal": true,
             "occludes": false,
             "stops_rounds": false,
@@ -4228,7 +4176,6 @@
             "cover_tier": "medium",
             "garrison": false,
             "hp": null,
-            "lifetime_s": null,
             "metal": false,
             "occludes": false,
             "stops_rounds": true,
@@ -4256,7 +4203,6 @@
             "cover_tier": null,
             "garrison": false,
             "hp": 5.0,
-            "lifetime_s": null,
             "metal": false,
             "occludes": false,
             "stops_rounds": false,
@@ -4284,7 +4230,6 @@
             "cover_tier": "medium",
             "garrison": false,
             "hp": 100.0,
-            "lifetime_s": null,
             "metal": false,
             "occludes": false,
             "stops_rounds": true,
@@ -4313,7 +4258,6 @@
             "cover_tier": "medium",
             "garrison": false,
             "hp": 100.0,
-            "lifetime_s": null,
             "metal": true,
             "occludes": false,
             "stops_rounds": true,
@@ -4342,7 +4286,6 @@
             "cover_tier": "heavy",
             "garrison": false,
             "hp": 300.0,
-            "lifetime_s": null,
             "metal": false,
             "occludes": true,
             "stops_rounds": true,
@@ -4376,7 +4319,6 @@
             "cover_tier": null,
             "garrison": false,
             "hp": 10.0,
-            "lifetime_s": null,
             "metal": true,
             "occludes": true,
             "stops_rounds": false,
@@ -7026,7 +6968,25 @@
               ]
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "smoke": {
+              "capacity": 1,
+              "cloud": {
+                "bloom_s": 1.0,
+                "bloom_steps": 4,
+                "concealment": 0.1,
+                "depth_per_m": 0.2,
+                "fade_s": 10.0,
+                "fade_steps": 5,
+                "height_m": 5.0,
+                "life_s": 30.0,
+                "look": "grenade",
+                "radius_m": 12.0
+              },
+              "service_s": 2.0,
+              "stock_per_charge": 2
+            }
+          },
           "concealment": 1.0,
           "cost": 110,
           "description": "Close-quarters infantry",
@@ -10740,7 +10700,25 @@
               "wreck": "heavy_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "smoke": {
+              "capacity": 3,
+              "cloud": {
+                "bloom_s": 1.0,
+                "bloom_steps": 4,
+                "concealment": 0.1,
+                "depth_per_m": 0.2,
+                "fade_s": 10.0,
+                "fade_steps": 5,
+                "height_m": 6.0,
+                "life_s": 40.0,
+                "look": "discharger",
+                "radius_m": 15.0
+              },
+              "service_s": 2.0,
+              "stock_per_charge": 2
+            }
+          },
           "concealment": 2.8,
           "cost": 440,
           "description": "Main battle tank",
@@ -10859,6 +10837,23 @@
           "capabilities": {
             "carriage": {
               "seats": 8
+            },
+            "smoke": {
+              "capacity": 1,
+              "cloud": {
+                "bloom_s": 1.0,
+                "bloom_steps": 4,
+                "concealment": 0.1,
+                "depth_per_m": 0.2,
+                "fade_s": 10.0,
+                "fade_steps": 5,
+                "height_m": 6.0,
+                "life_s": 40.0,
+                "look": "discharger",
+                "radius_m": 15.0
+              },
+              "service_s": 2.0,
+              "stock_per_charge": 2
             }
           },
           "concealment": 2.8,
@@ -10974,7 +10969,25 @@
               "wreck": "heavy_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "smoke": {
+              "capacity": 1,
+              "cloud": {
+                "bloom_s": 1.0,
+                "bloom_steps": 4,
+                "concealment": 0.1,
+                "depth_per_m": 0.2,
+                "fade_s": 10.0,
+                "fade_steps": 5,
+                "height_m": 6.0,
+                "life_s": 40.0,
+                "look": "discharger",
+                "radius_m": 15.0
+              },
+              "service_s": 2.0,
+              "stock_per_charge": 2
+            }
+          },
           "concealment": 2.4,
           "cost": 280,
           "description": "T-72B3 (2016)",
@@ -11090,7 +11103,25 @@
               "wreck": "heavy_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "smoke": {
+              "capacity": 2,
+              "cloud": {
+                "bloom_s": 1.0,
+                "bloom_steps": 4,
+                "concealment": 0.1,
+                "depth_per_m": 0.2,
+                "fade_s": 10.0,
+                "fade_steps": 5,
+                "height_m": 6.0,
+                "life_s": 40.0,
+                "look": "discharger",
+                "radius_m": 15.0
+              },
+              "service_s": 2.0,
+              "stock_per_charge": 2
+            }
+          },
           "concealment": 2.4,
           "cost": 310,
           "description": "T-80BVM",
@@ -11206,7 +11237,25 @@
               "wreck": "heavy_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "smoke": {
+              "capacity": 2,
+              "cloud": {
+                "bloom_s": 1.0,
+                "bloom_steps": 4,
+                "concealment": 0.1,
+                "depth_per_m": 0.2,
+                "fade_s": 10.0,
+                "fade_steps": 5,
+                "height_m": 6.0,
+                "life_s": 40.0,
+                "look": "discharger",
+                "radius_m": 15.0
+              },
+              "service_s": 2.0,
+              "stock_per_charge": 2
+            }
+          },
           "concealment": 2.4,
           "cost": 360,
           "description": "T-90M Proryv",
@@ -11420,7 +11469,25 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "smoke": {
+              "capacity": 1,
+              "cloud": {
+                "bloom_s": 1.0,
+                "bloom_steps": 4,
+                "concealment": 0.1,
+                "depth_per_m": 0.2,
+                "fade_s": 10.0,
+                "fade_steps": 5,
+                "height_m": 6.0,
+                "life_s": 40.0,
+                "look": "discharger",
+                "radius_m": 15.0
+              },
+              "service_s": 2.0,
+              "stock_per_charge": 2
+            }
+          },
           "concealment": 2.4,
           "cost": 230,
           "description": "ZTQ-15 light tank",
@@ -11535,7 +11602,25 @@
               "wreck": "heavy_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "smoke": {
+              "capacity": 2,
+              "cloud": {
+                "bloom_s": 1.0,
+                "bloom_steps": 4,
+                "concealment": 0.1,
+                "depth_per_m": 0.2,
+                "fade_s": 10.0,
+                "fade_steps": 5,
+                "height_m": 6.0,
+                "life_s": 40.0,
+                "look": "discharger",
+                "radius_m": 15.0
+              },
+              "service_s": 2.0,
+              "stock_per_charge": 2
+            }
+          },
           "concealment": 2.8,
           "cost": 360,
           "description": "ZTZ-99A",
@@ -13100,7 +13185,25 @@
               "wreck": "heavy_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "smoke": {
+              "capacity": 2,
+              "cloud": {
+                "bloom_s": 1.0,
+                "bloom_steps": 4,
+                "concealment": 0.1,
+                "depth_per_m": 0.2,
+                "fade_s": 10.0,
+                "fade_steps": 5,
+                "height_m": 6.0,
+                "life_s": 40.0,
+                "look": "discharger",
+                "radius_m": 15.0
+              },
+              "service_s": 2.0,
+              "stock_per_charge": 2
+            }
+          },
           "concealment": 2.8,
           "cost": 390,
           "description": "Challenger 2 TES",
@@ -13225,6 +13328,23 @@
               "service_s": 10.0,
               "standoff_m": 8.0,
               "stock_per_charge": 20
+            },
+            "smoke": {
+              "capacity": 3,
+              "cloud": {
+                "bloom_s": 1.0,
+                "bloom_steps": 4,
+                "concealment": 0.1,
+                "depth_per_m": 0.2,
+                "fade_s": 10.0,
+                "fade_steps": 5,
+                "height_m": 6.0,
+                "life_s": 40.0,
+                "look": "discharger",
+                "radius_m": 15.0
+              },
+              "service_s": 2.0,
+              "stock_per_charge": 2
             }
           },
           "concealment": 2.8,
@@ -13345,7 +13465,25 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "smoke": {
+              "capacity": 1,
+              "cloud": {
+                "bloom_s": 1.0,
+                "bloom_steps": 4,
+                "concealment": 0.1,
+                "depth_per_m": 0.2,
+                "fade_s": 10.0,
+                "fade_steps": 5,
+                "height_m": 6.0,
+                "life_s": 40.0,
+                "look": "discharger",
+                "radius_m": 15.0
+              },
+              "service_s": 2.0,
+              "stock_per_charge": 2
+            }
+          },
           "concealment": 2.4,
           "cost": 250,
           "description": "Light tank",
@@ -13560,6 +13698,23 @@
           "capabilities": {
             "carriage": {
               "seats": 8
+            },
+            "smoke": {
+              "capacity": 1,
+              "cloud": {
+                "bloom_s": 1.0,
+                "bloom_steps": 4,
+                "concealment": 0.1,
+                "depth_per_m": 0.2,
+                "fade_s": 10.0,
+                "fade_steps": 5,
+                "height_m": 6.0,
+                "life_s": 40.0,
+                "look": "discharger",
+                "radius_m": 15.0
+              },
+              "service_s": 2.0,
+              "stock_per_charge": 2
             }
           },
           "concealment": 2.4,
@@ -14641,7 +14796,25 @@
               "wreck": "heavy_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "smoke": {
+              "capacity": 3,
+              "cloud": {
+                "bloom_s": 1.0,
+                "bloom_steps": 4,
+                "concealment": 0.1,
+                "depth_per_m": 0.2,
+                "fade_s": 10.0,
+                "fade_steps": 5,
+                "height_m": 6.0,
+                "life_s": 40.0,
+                "look": "discharger",
+                "radius_m": 15.0
+              },
+              "service_s": 2.0,
+              "stock_per_charge": 2
+            }
+          },
           "concealment": 2.8,
           "cost": 460,
           "description": "Prototype main battle tank",
@@ -14757,7 +14930,25 @@
               "wreck": "heavy_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "smoke": {
+              "capacity": 2,
+              "cloud": {
+                "bloom_s": 1.0,
+                "bloom_steps": 4,
+                "concealment": 0.1,
+                "depth_per_m": 0.2,
+                "fade_s": 10.0,
+                "fade_steps": 5,
+                "height_m": 6.0,
+                "life_s": 40.0,
+                "look": "discharger",
+                "radius_m": 15.0
+              },
+              "service_s": 2.0,
+              "stock_per_charge": 2
+            }
+          },
           "concealment": 2.4,
           "cost": 390,
           "description": "XLR",
@@ -14873,7 +15064,25 @@
               "wreck": "heavy_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "smoke": {
+              "capacity": 2,
+              "cloud": {
+                "bloom_s": 1.0,
+                "bloom_steps": 4,
+                "concealment": 0.1,
+                "depth_per_m": 0.2,
+                "fade_s": 10.0,
+                "fade_steps": 5,
+                "height_m": 6.0,
+                "life_s": 40.0,
+                "look": "discharger",
+                "radius_m": 15.0
+              },
+              "service_s": 2.0,
+              "stock_per_charge": 2
+            }
+          },
           "concealment": 2.8,
           "cost": 340,
           "description": "2A6",
@@ -14989,7 +15198,25 @@
               "wreck": "heavy_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "smoke": {
+              "capacity": 2,
+              "cloud": {
+                "bloom_s": 1.0,
+                "bloom_steps": 4,
+                "concealment": 0.1,
+                "depth_per_m": 0.2,
+                "fade_s": 10.0,
+                "fade_steps": 5,
+                "height_m": 6.0,
+                "life_s": 40.0,
+                "look": "discharger",
+                "radius_m": 15.0
+              },
+              "service_s": 2.0,
+              "stock_per_charge": 2
+            }
+          },
           "concealment": 2.8,
           "cost": 390,
           "description": "2A7V",
@@ -15114,6 +15341,23 @@
               "service_s": 10.0,
               "standoff_m": 8.0,
               "stock_per_charge": 20
+            },
+            "smoke": {
+              "capacity": 3,
+              "cloud": {
+                "bloom_s": 1.0,
+                "bloom_steps": 4,
+                "concealment": 0.1,
+                "depth_per_m": 0.2,
+                "fade_s": 10.0,
+                "fade_steps": 5,
+                "height_m": 6.0,
+                "life_s": 40.0,
+                "look": "discharger",
+                "radius_m": 15.0
+              },
+              "service_s": 2.0,
+              "stock_per_charge": 2
             }
           },
           "concealment": 2.8,
@@ -15822,6 +16066,23 @@
           "capabilities": {
             "carriage": {
               "seats": 8
+            },
+            "smoke": {
+              "capacity": 1,
+              "cloud": {
+                "bloom_s": 1.0,
+                "bloom_steps": 4,
+                "concealment": 0.1,
+                "depth_per_m": 0.2,
+                "fade_s": 10.0,
+                "fade_steps": 5,
+                "height_m": 6.0,
+                "life_s": 40.0,
+                "look": "discharger",
+                "radius_m": 15.0
+              },
+              "service_s": 2.0,
+              "stock_per_charge": 2
             }
           },
           "concealment": 2.8,
@@ -18939,7 +19200,25 @@
               ]
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "smoke": {
+              "capacity": 1,
+              "cloud": {
+                "bloom_s": 1.0,
+                "bloom_steps": 4,
+                "concealment": 0.1,
+                "depth_per_m": 0.2,
+                "fade_s": 10.0,
+                "fade_steps": 5,
+                "height_m": 5.0,
+                "life_s": 30.0,
+                "look": "grenade",
+                "radius_m": 12.0
+              },
+              "service_s": 2.0,
+              "stock_per_charge": 2
+            }
+          },
           "concealment": 0.8,
           "cost": 100,
           "description": "Recon patrol",
@@ -19343,7 +19622,25 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "smoke": {
+              "capacity": 1,
+              "cloud": {
+                "bloom_s": 1.0,
+                "bloom_steps": 4,
+                "concealment": 0.1,
+                "depth_per_m": 0.2,
+                "fade_s": 10.0,
+                "fade_steps": 5,
+                "height_m": 6.0,
+                "life_s": 40.0,
+                "look": "discharger",
+                "radius_m": 15.0
+              },
+              "service_s": 2.0,
+              "stock_per_charge": 2
+            }
+          },
           "concealment": 2.8,
           "cost": 240,
           "description": "Light tank",
@@ -19934,7 +20231,25 @@
               "wreck": "heavy_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "smoke": {
+              "capacity": 2,
+              "cloud": {
+                "bloom_s": 1.0,
+                "bloom_steps": 4,
+                "concealment": 0.1,
+                "depth_per_m": 0.2,
+                "fade_s": 10.0,
+                "fade_steps": 5,
+                "height_m": 6.0,
+                "life_s": 40.0,
+                "look": "discharger",
+                "radius_m": 15.0
+              },
+              "service_s": 2.0,
+              "stock_per_charge": 2
+            }
+          },
           "concealment": 2.8,
           "cost": 350,
           "description": "SEP v2",
@@ -20059,6 +20374,23 @@
               "service_s": 10.0,
               "standoff_m": 8.0,
               "stock_per_charge": 20
+            },
+            "smoke": {
+              "capacity": 3,
+              "cloud": {
+                "bloom_s": 1.0,
+                "bloom_steps": 4,
+                "concealment": 0.1,
+                "depth_per_m": 0.2,
+                "fade_s": 10.0,
+                "fade_steps": 5,
+                "height_m": 6.0,
+                "life_s": 40.0,
+                "look": "discharger",
+                "radius_m": 15.0
+              },
+              "service_s": 2.0,
+              "stock_per_charge": 2
             }
           },
           "concealment": 2.8,
@@ -20188,6 +20520,23 @@
               "service_s": 10.0,
               "standoff_m": 8.0,
               "stock_per_charge": 20
+            },
+            "smoke": {
+              "capacity": 3,
+              "cloud": {
+                "bloom_s": 1.0,
+                "bloom_steps": 4,
+                "concealment": 0.1,
+                "depth_per_m": 0.2,
+                "fade_s": 10.0,
+                "fade_steps": 5,
+                "height_m": 6.0,
+                "life_s": 40.0,
+                "look": "discharger",
+                "radius_m": 15.0
+              },
+              "service_s": 2.0,
+              "stock_per_charge": 2
             }
           },
           "concealment": 2.8,
@@ -20317,6 +20666,23 @@
               "service_s": 10.0,
               "standoff_m": 8.0,
               "stock_per_charge": 20
+            },
+            "smoke": {
+              "capacity": 3,
+              "cloud": {
+                "bloom_s": 1.0,
+                "bloom_steps": 4,
+                "concealment": 0.1,
+                "depth_per_m": 0.2,
+                "fade_s": 10.0,
+                "fade_steps": 5,
+                "height_m": 6.0,
+                "life_s": 40.0,
+                "look": "discharger",
+                "radius_m": 15.0
+              },
+              "service_s": 2.0,
+              "stock_per_charge": 2
             }
           },
           "concealment": 2.8,
@@ -20532,6 +20898,23 @@
           "capabilities": {
             "carriage": {
               "seats": 8
+            },
+            "smoke": {
+              "capacity": 1,
+              "cloud": {
+                "bloom_s": 1.0,
+                "bloom_steps": 4,
+                "concealment": 0.1,
+                "depth_per_m": 0.2,
+                "fade_s": 10.0,
+                "fade_steps": 5,
+                "height_m": 6.0,
+                "life_s": 40.0,
+                "look": "discharger",
+                "radius_m": 15.0
+              },
+              "service_s": 2.0,
+              "stock_per_charge": 2
             }
           },
           "concealment": 2.8,
@@ -20831,7 +21214,25 @@
               ]
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "smoke": {
+              "capacity": 1,
+              "cloud": {
+                "bloom_s": 1.0,
+                "bloom_steps": 4,
+                "concealment": 0.1,
+                "depth_per_m": 0.2,
+                "fade_s": 10.0,
+                "fade_steps": 5,
+                "height_m": 5.0,
+                "life_s": 30.0,
+                "look": "grenade",
+                "radius_m": 12.0
+              },
+              "service_s": 2.0,
+              "stock_per_charge": 2
+            }
+          },
           "concealment": 1.0,
           "cost": 110,
           "description": "Close-quarters infantry",
@@ -21921,7 +22322,6 @@
         "cover_tier": null,
         "garrison": false,
         "hp": null,
-        "lifetime_s": null,
         "metal": false,
         "occludes": false,
         "stops_rounds": false,
@@ -21949,7 +22349,6 @@
         "cover_tier": null,
         "garrison": false,
         "hp": 60.0,
-        "lifetime_s": null,
         "metal": true,
         "occludes": false,
         "stops_rounds": false,
@@ -21978,7 +22377,6 @@
         "cover_tier": "light",
         "garrison": false,
         "hp": 40.0,
-        "lifetime_s": null,
         "metal": false,
         "occludes": false,
         "stops_rounds": false,
@@ -22007,7 +22405,6 @@
         "cover_tier": "light",
         "garrison": false,
         "hp": 20.0,
-        "lifetime_s": null,
         "metal": true,
         "occludes": false,
         "stops_rounds": false,
@@ -22036,7 +22433,6 @@
         "cover_tier": "light",
         "garrison": false,
         "hp": 80.0,
-        "lifetime_s": null,
         "metal": true,
         "occludes": true,
         "stops_rounds": false,
@@ -22065,7 +22461,6 @@
         "cover_tier": "light",
         "garrison": false,
         "hp": 20.0,
-        "lifetime_s": null,
         "metal": false,
         "occludes": false,
         "stops_rounds": false,
@@ -22094,7 +22489,6 @@
         "cover_tier": null,
         "garrison": false,
         "hp": 200.0,
-        "lifetime_s": null,
         "metal": true,
         "occludes": false,
         "stops_rounds": true,
@@ -22123,7 +22517,6 @@
         "cover_tier": "heavy",
         "garrison": false,
         "hp": null,
-        "lifetime_s": null,
         "metal": false,
         "occludes": false,
         "stops_rounds": true,
@@ -22151,7 +22544,6 @@
         "cover_tier": null,
         "garrison": false,
         "hp": null,
-        "lifetime_s": null,
         "metal": false,
         "occludes": false,
         "stops_rounds": true,
@@ -22180,7 +22572,6 @@
         "garrison": true,
         "hp": 1.0,
         "hp_scale": "building_floor_bands",
-        "lifetime_s": null,
         "metal": false,
         "occludes": true,
         "stops_rounds": true,
@@ -22220,7 +22611,6 @@
         "cover_tier": null,
         "garrison": false,
         "hp": 60.0,
-        "lifetime_s": null,
         "metal": true,
         "occludes": false,
         "stops_rounds": false,
@@ -22248,7 +22638,6 @@
         "cover_tier": "medium",
         "garrison": false,
         "hp": 80.0,
-        "lifetime_s": null,
         "metal": true,
         "occludes": false,
         "stops_rounds": true,
@@ -22278,7 +22667,6 @@
         "cover_tier": null,
         "garrison": false,
         "hp": 25.0,
-        "lifetime_s": null,
         "metal": true,
         "occludes": false,
         "stops_rounds": false,
@@ -22308,7 +22696,6 @@
         "cover_tier": "medium",
         "garrison": false,
         "hp": 250.0,
-        "lifetime_s": null,
         "metal": false,
         "occludes": true,
         "stops_rounds": true,
@@ -22341,7 +22728,6 @@
         "cover_tier": "light",
         "garrison": false,
         "hp": 20.0,
-        "lifetime_s": null,
         "metal": false,
         "occludes": false,
         "stops_rounds": false,
@@ -22370,7 +22756,6 @@
         "cover_tier": "medium",
         "garrison": false,
         "hp": 180.0,
-        "lifetime_s": null,
         "metal": true,
         "occludes": false,
         "stops_rounds": true,
@@ -22399,7 +22784,6 @@
         "cover_tier": "light",
         "garrison": false,
         "hp": 20.0,
-        "lifetime_s": null,
         "metal": false,
         "occludes": false,
         "stops_rounds": false,
@@ -22428,7 +22812,6 @@
         "cover_tier": "heavy",
         "garrison": false,
         "hp": 400.0,
-        "lifetime_s": null,
         "metal": false,
         "occludes": true,
         "stops_rounds": true,
@@ -22463,7 +22846,6 @@
         "cover_tier": "light",
         "garrison": false,
         "hp": 25.0,
-        "lifetime_s": null,
         "metal": false,
         "occludes": true,
         "stops_rounds": false,
@@ -22492,7 +22874,6 @@
         "cover_tier": "light",
         "garrison": false,
         "hp": 60.0,
-        "lifetime_s": null,
         "metal": false,
         "occludes": true,
         "stops_rounds": false,
@@ -22521,7 +22902,6 @@
         "cover_tier": "light",
         "garrison": false,
         "hp": 30.0,
-        "lifetime_s": null,
         "metal": false,
         "occludes": false,
         "stops_rounds": false,
@@ -22551,7 +22931,6 @@
         "cover_tier": "medium",
         "garrison": false,
         "hp": null,
-        "lifetime_s": null,
         "metal": false,
         "occludes": true,
         "stops_rounds": true,
@@ -22578,7 +22957,6 @@
         "cover_tier": "heavy",
         "garrison": false,
         "hp": 400.0,
-        "lifetime_s": null,
         "metal": true,
         "occludes": false,
         "stops_rounds": true,
@@ -22614,7 +22992,6 @@
         "cover_tier": null,
         "garrison": false,
         "hp": 40.0,
-        "lifetime_s": null,
         "metal": false,
         "occludes": true,
         "stops_rounds": false,
@@ -22644,7 +23021,6 @@
         "cover_tier": null,
         "garrison": false,
         "hp": 25.0,
-        "lifetime_s": null,
         "metal": true,
         "occludes": false,
         "stops_rounds": false,
@@ -22673,7 +23049,6 @@
         "cover_tier": null,
         "garrison": false,
         "hp": 150.0,
-        "lifetime_s": null,
         "metal": true,
         "occludes": false,
         "stops_rounds": true,
@@ -22703,7 +23078,6 @@
         "cover_tier": null,
         "garrison": false,
         "hp": 30.0,
-        "lifetime_s": null,
         "metal": true,
         "occludes": false,
         "stops_rounds": false,
@@ -22733,7 +23107,6 @@
         "cover_tier": "heavy",
         "garrison": false,
         "hp": 300.0,
-        "lifetime_s": null,
         "metal": false,
         "occludes": false,
         "stops_rounds": true,
@@ -22762,7 +23135,6 @@
         "cover_tier": "light",
         "garrison": false,
         "hp": 80.0,
-        "lifetime_s": null,
         "metal": true,
         "occludes": true,
         "stops_rounds": false,
@@ -22791,7 +23163,6 @@
         "cover_tier": null,
         "garrison": false,
         "hp": 30.0,
-        "lifetime_s": null,
         "metal": true,
         "occludes": false,
         "stops_rounds": false,
@@ -22820,7 +23191,6 @@
         "cover_tier": null,
         "garrison": false,
         "hp": 10.0,
-        "lifetime_s": null,
         "metal": true,
         "occludes": true,
         "stops_rounds": false,
@@ -22848,7 +23218,6 @@
         "cover_tier": "light",
         "garrison": false,
         "hp": 150.0,
-        "lifetime_s": null,
         "metal": true,
         "occludes": false,
         "stops_rounds": true,
@@ -22878,7 +23247,6 @@
         "cover_tier": "medium",
         "garrison": false,
         "hp": 120.0,
-        "lifetime_s": null,
         "metal": false,
         "occludes": false,
         "stops_rounds": true,
@@ -22906,7 +23274,6 @@
         "cover_tier": "medium",
         "garrison": false,
         "hp": 250.0,
-        "lifetime_s": null,
         "metal": true,
         "occludes": false,
         "stops_rounds": true,
@@ -22941,7 +23308,6 @@
         "cover_tier": null,
         "garrison": false,
         "hp": 60.0,
-        "lifetime_s": null,
         "metal": true,
         "occludes": false,
         "stops_rounds": false,
@@ -22970,7 +23336,6 @@
         "cover_tier": "light",
         "garrison": false,
         "hp": 35.0,
-        "lifetime_s": null,
         "metal": false,
         "occludes": false,
         "stops_rounds": false,
@@ -22999,7 +23364,6 @@
         "cover_tier": "medium",
         "garrison": false,
         "hp": 120.0,
-        "lifetime_s": null,
         "metal": true,
         "occludes": false,
         "stops_rounds": true,
@@ -23033,7 +23397,6 @@
         "cover_tier": null,
         "garrison": false,
         "hp": null,
-        "lifetime_s": null,
         "metal": false,
         "occludes": false,
         "stops_rounds": false,
@@ -23061,7 +23424,6 @@
         "cover_tier": "medium",
         "garrison": false,
         "hp": 250.0,
-        "lifetime_s": null,
         "metal": false,
         "occludes": false,
         "stops_rounds": true,
@@ -23090,7 +23452,6 @@
         "cover_tier": "medium",
         "garrison": false,
         "hp": 120.0,
-        "lifetime_s": null,
         "metal": false,
         "occludes": false,
         "stops_rounds": true,
@@ -23119,7 +23480,6 @@
         "cover_tier": null,
         "garrison": false,
         "hp": 80.0,
-        "lifetime_s": null,
         "metal": false,
         "occludes": false,
         "stops_rounds": false,
@@ -23149,7 +23509,6 @@
         "cover_tier": "light",
         "garrison": false,
         "hp": 150.0,
-        "lifetime_s": null,
         "metal": true,
         "occludes": false,
         "stops_rounds": false,
@@ -23183,7 +23542,6 @@
         "cover_tier": null,
         "garrison": false,
         "hp": 20.0,
-        "lifetime_s": null,
         "metal": false,
         "occludes": false,
         "stops_rounds": false,
@@ -23211,7 +23569,6 @@
         "cover_tier": "light",
         "garrison": false,
         "hp": null,
-        "lifetime_s": null,
         "metal": false,
         "occludes": false,
         "stops_rounds": false,
@@ -23238,7 +23595,6 @@
         "cover_tier": "heavy",
         "garrison": false,
         "hp": null,
-        "lifetime_s": null,
         "metal": false,
         "occludes": true,
         "stops_rounds": true,
@@ -23266,7 +23622,6 @@
         "cover_tier": "medium",
         "garrison": false,
         "hp": 150.0,
-        "lifetime_s": null,
         "metal": false,
         "occludes": false,
         "stops_rounds": true,
@@ -23301,7 +23656,6 @@
         "cover_tier": null,
         "garrison": false,
         "hp": 120.0,
-        "lifetime_s": null,
         "metal": true,
         "occludes": false,
         "stops_rounds": false,
@@ -23330,7 +23684,6 @@
         "cover_tier": null,
         "garrison": false,
         "hp": 30.0,
-        "lifetime_s": null,
         "metal": true,
         "occludes": false,
         "stops_rounds": false,
@@ -23359,7 +23712,6 @@
         "cover_tier": "heavy",
         "garrison": false,
         "hp": 180.0,
-        "lifetime_s": null,
         "metal": true,
         "occludes": true,
         "stops_rounds": true,
@@ -23388,7 +23740,6 @@
         "cover_tier": "medium",
         "garrison": false,
         "hp": 180.0,
-        "lifetime_s": null,
         "metal": true,
         "occludes": false,
         "stops_rounds": true,
@@ -23417,7 +23768,6 @@
         "cover_tier": "medium",
         "garrison": false,
         "hp": 100.0,
-        "lifetime_s": null,
         "metal": false,
         "occludes": false,
         "stops_rounds": true,
@@ -23446,7 +23796,6 @@
         "cover_tier": null,
         "garrison": false,
         "hp": 30.0,
-        "lifetime_s": null,
         "metal": true,
         "occludes": false,
         "stops_rounds": false,
@@ -23474,7 +23823,6 @@
         "cover_tier": "medium",
         "garrison": false,
         "hp": null,
-        "lifetime_s": null,
         "metal": false,
         "occludes": false,
         "stops_rounds": true,
@@ -23502,7 +23850,6 @@
         "cover_tier": null,
         "garrison": false,
         "hp": 5.0,
-        "lifetime_s": null,
         "metal": false,
         "occludes": false,
         "stops_rounds": false,
@@ -23530,7 +23877,6 @@
         "cover_tier": "medium",
         "garrison": false,
         "hp": 100.0,
-        "lifetime_s": null,
         "metal": false,
         "occludes": false,
         "stops_rounds": true,
@@ -23559,7 +23905,6 @@
         "cover_tier": "medium",
         "garrison": false,
         "hp": 100.0,
-        "lifetime_s": null,
         "metal": true,
         "occludes": false,
         "stops_rounds": true,
@@ -23588,7 +23933,6 @@
         "cover_tier": "heavy",
         "garrison": false,
         "hp": 300.0,
-        "lifetime_s": null,
         "metal": false,
         "occludes": true,
         "stops_rounds": true,
@@ -23622,7 +23966,6 @@
         "cover_tier": null,
         "garrison": false,
         "hp": 10.0,
-        "lifetime_s": null,
         "metal": true,
         "occludes": true,
         "stops_rounds": false,
@@ -26277,7 +26620,25 @@
           ]
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "smoke": {
+          "capacity": 1,
+          "cloud": {
+            "bloom_s": 1.0,
+            "bloom_steps": 4,
+            "concealment": 0.1,
+            "depth_per_m": 0.2,
+            "fade_s": 10.0,
+            "fade_steps": 5,
+            "height_m": 5.0,
+            "life_s": 30.0,
+            "look": "grenade",
+            "radius_m": 12.0
+          },
+          "service_s": 2.0,
+          "stock_per_charge": 2
+        }
+      },
       "concealment": 1.0,
       "cost": 110,
       "description": "Close-quarters infantry",
@@ -30817,7 +31178,25 @@
           "wreck": "heavy_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "smoke": {
+          "capacity": 3,
+          "cloud": {
+            "bloom_s": 1.0,
+            "bloom_steps": 4,
+            "concealment": 0.1,
+            "depth_per_m": 0.2,
+            "fade_s": 10.0,
+            "fade_steps": 5,
+            "height_m": 6.0,
+            "life_s": 40.0,
+            "look": "discharger",
+            "radius_m": 15.0
+          },
+          "service_s": 2.0,
+          "stock_per_charge": 2
+        }
+      },
       "concealment": 2.8,
       "cost": 440,
       "description": "Main battle tank",
@@ -30940,6 +31319,23 @@
       "capabilities": {
         "carriage": {
           "seats": 8
+        },
+        "smoke": {
+          "capacity": 1,
+          "cloud": {
+            "bloom_s": 1.0,
+            "bloom_steps": 4,
+            "concealment": 0.1,
+            "depth_per_m": 0.2,
+            "fade_s": 10.0,
+            "fade_steps": 5,
+            "height_m": 6.0,
+            "life_s": 40.0,
+            "look": "discharger",
+            "radius_m": 15.0
+          },
+          "service_s": 2.0,
+          "stock_per_charge": 2
         }
       },
       "concealment": 2.8,
@@ -31059,7 +31455,25 @@
           "wreck": "heavy_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "smoke": {
+          "capacity": 1,
+          "cloud": {
+            "bloom_s": 1.0,
+            "bloom_steps": 4,
+            "concealment": 0.1,
+            "depth_per_m": 0.2,
+            "fade_s": 10.0,
+            "fade_steps": 5,
+            "height_m": 6.0,
+            "life_s": 40.0,
+            "look": "discharger",
+            "radius_m": 15.0
+          },
+          "service_s": 2.0,
+          "stock_per_charge": 2
+        }
+      },
       "concealment": 2.4,
       "cost": 280,
       "description": "T-72B3 (2016)",
@@ -31179,7 +31593,25 @@
           "wreck": "heavy_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "smoke": {
+          "capacity": 2,
+          "cloud": {
+            "bloom_s": 1.0,
+            "bloom_steps": 4,
+            "concealment": 0.1,
+            "depth_per_m": 0.2,
+            "fade_s": 10.0,
+            "fade_steps": 5,
+            "height_m": 6.0,
+            "life_s": 40.0,
+            "look": "discharger",
+            "radius_m": 15.0
+          },
+          "service_s": 2.0,
+          "stock_per_charge": 2
+        }
+      },
       "concealment": 2.4,
       "cost": 310,
       "description": "T-80BVM",
@@ -31299,7 +31731,25 @@
           "wreck": "heavy_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "smoke": {
+          "capacity": 2,
+          "cloud": {
+            "bloom_s": 1.0,
+            "bloom_steps": 4,
+            "concealment": 0.1,
+            "depth_per_m": 0.2,
+            "fade_s": 10.0,
+            "fade_steps": 5,
+            "height_m": 6.0,
+            "life_s": 40.0,
+            "look": "discharger",
+            "radius_m": 15.0
+          },
+          "service_s": 2.0,
+          "stock_per_charge": 2
+        }
+      },
       "concealment": 2.4,
       "cost": 360,
       "description": "T-90M Proryv",
@@ -31520,7 +31970,25 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "smoke": {
+          "capacity": 1,
+          "cloud": {
+            "bloom_s": 1.0,
+            "bloom_steps": 4,
+            "concealment": 0.1,
+            "depth_per_m": 0.2,
+            "fade_s": 10.0,
+            "fade_steps": 5,
+            "height_m": 6.0,
+            "life_s": 40.0,
+            "look": "discharger",
+            "radius_m": 15.0
+          },
+          "service_s": 2.0,
+          "stock_per_charge": 2
+        }
+      },
       "concealment": 2.4,
       "cost": 230,
       "description": "ZTQ-15 light tank",
@@ -31639,7 +32107,25 @@
           "wreck": "heavy_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "smoke": {
+          "capacity": 2,
+          "cloud": {
+            "bloom_s": 1.0,
+            "bloom_steps": 4,
+            "concealment": 0.1,
+            "depth_per_m": 0.2,
+            "fade_s": 10.0,
+            "fade_steps": 5,
+            "height_m": 6.0,
+            "life_s": 40.0,
+            "look": "discharger",
+            "radius_m": 15.0
+          },
+          "service_s": 2.0,
+          "stock_per_charge": 2
+        }
+      },
       "concealment": 2.8,
       "cost": 360,
       "description": "ZTZ-99A",
@@ -33315,7 +33801,25 @@
           "wreck": "heavy_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "smoke": {
+          "capacity": 2,
+          "cloud": {
+            "bloom_s": 1.0,
+            "bloom_steps": 4,
+            "concealment": 0.1,
+            "depth_per_m": 0.2,
+            "fade_s": 10.0,
+            "fade_steps": 5,
+            "height_m": 6.0,
+            "life_s": 40.0,
+            "look": "discharger",
+            "radius_m": 15.0
+          },
+          "service_s": 2.0,
+          "stock_per_charge": 2
+        }
+      },
       "concealment": 2.8,
       "cost": 390,
       "description": "Challenger 2 TES",
@@ -33444,6 +33948,23 @@
           "service_s": 10.0,
           "standoff_m": 8.0,
           "stock_per_charge": 20
+        },
+        "smoke": {
+          "capacity": 3,
+          "cloud": {
+            "bloom_s": 1.0,
+            "bloom_steps": 4,
+            "concealment": 0.1,
+            "depth_per_m": 0.2,
+            "fade_s": 10.0,
+            "fade_steps": 5,
+            "height_m": 6.0,
+            "life_s": 40.0,
+            "look": "discharger",
+            "radius_m": 15.0
+          },
+          "service_s": 2.0,
+          "stock_per_charge": 2
         }
       },
       "concealment": 2.8,
@@ -33568,7 +34089,25 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "smoke": {
+          "capacity": 1,
+          "cloud": {
+            "bloom_s": 1.0,
+            "bloom_steps": 4,
+            "concealment": 0.1,
+            "depth_per_m": 0.2,
+            "fade_s": 10.0,
+            "fade_steps": 5,
+            "height_m": 6.0,
+            "life_s": 40.0,
+            "look": "discharger",
+            "radius_m": 15.0
+          },
+          "service_s": 2.0,
+          "stock_per_charge": 2
+        }
+      },
       "concealment": 2.4,
       "cost": 250,
       "description": "Light tank",
@@ -33790,6 +34329,23 @@
       "capabilities": {
         "carriage": {
           "seats": 8
+        },
+        "smoke": {
+          "capacity": 1,
+          "cloud": {
+            "bloom_s": 1.0,
+            "bloom_steps": 4,
+            "concealment": 0.1,
+            "depth_per_m": 0.2,
+            "fade_s": 10.0,
+            "fade_steps": 5,
+            "height_m": 6.0,
+            "life_s": 40.0,
+            "look": "discharger",
+            "radius_m": 15.0
+          },
+          "service_s": 2.0,
+          "stock_per_charge": 2
         }
       },
       "concealment": 2.4,
@@ -34852,7 +35408,25 @@
           "wreck": "heavy_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "smoke": {
+          "capacity": 3,
+          "cloud": {
+            "bloom_s": 1.0,
+            "bloom_steps": 4,
+            "concealment": 0.1,
+            "depth_per_m": 0.2,
+            "fade_s": 10.0,
+            "fade_steps": 5,
+            "height_m": 6.0,
+            "life_s": 40.0,
+            "look": "discharger",
+            "radius_m": 15.0
+          },
+          "service_s": 2.0,
+          "stock_per_charge": 2
+        }
+      },
       "concealment": 2.8,
       "cost": 460,
       "description": "Prototype main battle tank",
@@ -34972,7 +35546,25 @@
           "wreck": "heavy_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "smoke": {
+          "capacity": 2,
+          "cloud": {
+            "bloom_s": 1.0,
+            "bloom_steps": 4,
+            "concealment": 0.1,
+            "depth_per_m": 0.2,
+            "fade_s": 10.0,
+            "fade_steps": 5,
+            "height_m": 6.0,
+            "life_s": 40.0,
+            "look": "discharger",
+            "radius_m": 15.0
+          },
+          "service_s": 2.0,
+          "stock_per_charge": 2
+        }
+      },
       "concealment": 2.4,
       "cost": 390,
       "description": "XLR",
@@ -35092,7 +35684,25 @@
           "wreck": "heavy_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "smoke": {
+          "capacity": 2,
+          "cloud": {
+            "bloom_s": 1.0,
+            "bloom_steps": 4,
+            "concealment": 0.1,
+            "depth_per_m": 0.2,
+            "fade_s": 10.0,
+            "fade_steps": 5,
+            "height_m": 6.0,
+            "life_s": 40.0,
+            "look": "discharger",
+            "radius_m": 15.0
+          },
+          "service_s": 2.0,
+          "stock_per_charge": 2
+        }
+      },
       "concealment": 2.8,
       "cost": 340,
       "description": "2A6",
@@ -35212,7 +35822,25 @@
           "wreck": "heavy_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "smoke": {
+          "capacity": 2,
+          "cloud": {
+            "bloom_s": 1.0,
+            "bloom_steps": 4,
+            "concealment": 0.1,
+            "depth_per_m": 0.2,
+            "fade_s": 10.0,
+            "fade_steps": 5,
+            "height_m": 6.0,
+            "life_s": 40.0,
+            "look": "discharger",
+            "radius_m": 15.0
+          },
+          "service_s": 2.0,
+          "stock_per_charge": 2
+        }
+      },
       "concealment": 2.8,
       "cost": 390,
       "description": "2A7V",
@@ -35341,6 +35969,23 @@
           "service_s": 10.0,
           "standoff_m": 8.0,
           "stock_per_charge": 20
+        },
+        "smoke": {
+          "capacity": 3,
+          "cloud": {
+            "bloom_s": 1.0,
+            "bloom_steps": 4,
+            "concealment": 0.1,
+            "depth_per_m": 0.2,
+            "fade_s": 10.0,
+            "fade_steps": 5,
+            "height_m": 6.0,
+            "life_s": 40.0,
+            "look": "discharger",
+            "radius_m": 15.0
+          },
+          "service_s": 2.0,
+          "stock_per_charge": 2
         }
       },
       "concealment": 2.8,
@@ -36215,6 +36860,23 @@
       "capabilities": {
         "carriage": {
           "seats": 8
+        },
+        "smoke": {
+          "capacity": 1,
+          "cloud": {
+            "bloom_s": 1.0,
+            "bloom_steps": 4,
+            "concealment": 0.1,
+            "depth_per_m": 0.2,
+            "fade_s": 10.0,
+            "fade_steps": 5,
+            "height_m": 6.0,
+            "life_s": 40.0,
+            "look": "discharger",
+            "radius_m": 15.0
+          },
+          "service_s": 2.0,
+          "stock_per_charge": 2
         }
       },
       "concealment": 2.8,
@@ -39797,7 +40459,25 @@
           ]
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "smoke": {
+          "capacity": 1,
+          "cloud": {
+            "bloom_s": 1.0,
+            "bloom_steps": 4,
+            "concealment": 0.1,
+            "depth_per_m": 0.2,
+            "fade_s": 10.0,
+            "fade_steps": 5,
+            "height_m": 5.0,
+            "life_s": 30.0,
+            "look": "grenade",
+            "radius_m": 12.0
+          },
+          "service_s": 2.0,
+          "stock_per_charge": 2
+        }
+      },
       "concealment": 0.8,
       "cost": 100,
       "description": "Recon patrol",
@@ -40236,7 +40916,25 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "smoke": {
+          "capacity": 1,
+          "cloud": {
+            "bloom_s": 1.0,
+            "bloom_steps": 4,
+            "concealment": 0.1,
+            "depth_per_m": 0.2,
+            "fade_s": 10.0,
+            "fade_steps": 5,
+            "height_m": 6.0,
+            "life_s": 40.0,
+            "look": "discharger",
+            "radius_m": 15.0
+          },
+          "service_s": 2.0,
+          "stock_per_charge": 2
+        }
+      },
       "concealment": 2.8,
       "cost": 240,
       "description": "Light tank",
@@ -40846,7 +41544,25 @@
           "wreck": "heavy_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "smoke": {
+          "capacity": 2,
+          "cloud": {
+            "bloom_s": 1.0,
+            "bloom_steps": 4,
+            "concealment": 0.1,
+            "depth_per_m": 0.2,
+            "fade_s": 10.0,
+            "fade_steps": 5,
+            "height_m": 6.0,
+            "life_s": 40.0,
+            "look": "discharger",
+            "radius_m": 15.0
+          },
+          "service_s": 2.0,
+          "stock_per_charge": 2
+        }
+      },
       "concealment": 2.8,
       "cost": 350,
       "description": "SEP v2",
@@ -40975,6 +41691,23 @@
           "service_s": 10.0,
           "standoff_m": 8.0,
           "stock_per_charge": 20
+        },
+        "smoke": {
+          "capacity": 3,
+          "cloud": {
+            "bloom_s": 1.0,
+            "bloom_steps": 4,
+            "concealment": 0.1,
+            "depth_per_m": 0.2,
+            "fade_s": 10.0,
+            "fade_steps": 5,
+            "height_m": 6.0,
+            "life_s": 40.0,
+            "look": "discharger",
+            "radius_m": 15.0
+          },
+          "service_s": 2.0,
+          "stock_per_charge": 2
         }
       },
       "concealment": 2.8,
@@ -41108,6 +41841,23 @@
           "service_s": 10.0,
           "standoff_m": 8.0,
           "stock_per_charge": 20
+        },
+        "smoke": {
+          "capacity": 3,
+          "cloud": {
+            "bloom_s": 1.0,
+            "bloom_steps": 4,
+            "concealment": 0.1,
+            "depth_per_m": 0.2,
+            "fade_s": 10.0,
+            "fade_steps": 5,
+            "height_m": 6.0,
+            "life_s": 40.0,
+            "look": "discharger",
+            "radius_m": 15.0
+          },
+          "service_s": 2.0,
+          "stock_per_charge": 2
         }
       },
       "concealment": 2.8,
@@ -41241,6 +41991,23 @@
           "service_s": 10.0,
           "standoff_m": 8.0,
           "stock_per_charge": 20
+        },
+        "smoke": {
+          "capacity": 3,
+          "cloud": {
+            "bloom_s": 1.0,
+            "bloom_steps": 4,
+            "concealment": 0.1,
+            "depth_per_m": 0.2,
+            "fade_s": 10.0,
+            "fade_steps": 5,
+            "height_m": 6.0,
+            "life_s": 40.0,
+            "look": "discharger",
+            "radius_m": 15.0
+          },
+          "service_s": 2.0,
+          "stock_per_charge": 2
         }
       },
       "concealment": 2.8,
@@ -41463,6 +42230,23 @@
       "capabilities": {
         "carriage": {
           "seats": 8
+        },
+        "smoke": {
+          "capacity": 1,
+          "cloud": {
+            "bloom_s": 1.0,
+            "bloom_steps": 4,
+            "concealment": 0.1,
+            "depth_per_m": 0.2,
+            "fade_s": 10.0,
+            "fade_steps": 5,
+            "height_m": 6.0,
+            "life_s": 40.0,
+            "look": "discharger",
+            "radius_m": 15.0
+          },
+          "service_s": 2.0,
+          "stock_per_charge": 2
         }
       },
       "concealment": 2.8,
@@ -41773,7 +42557,25 @@
           ]
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "smoke": {
+          "capacity": 1,
+          "cloud": {
+            "bloom_s": 1.0,
+            "bloom_steps": 4,
+            "concealment": 0.1,
+            "depth_per_m": 0.2,
+            "fade_s": 10.0,
+            "fade_steps": 5,
+            "height_m": 5.0,
+            "life_s": 30.0,
+            "look": "grenade",
+            "radius_m": 12.0
+          },
+          "service_s": 2.0,
+          "stock_per_charge": 2
+        }
+      },
       "concealment": 1.0,
       "cost": 110,
       "description": "Close-quarters infantry",

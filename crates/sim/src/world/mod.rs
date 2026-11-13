@@ -1,12 +1,13 @@
 //! Authoritative world geometry: bounded ground triangles, water, roads,
-//! bridges, forest volumes and solid props. Collision, sight, routing and the
-//! renderer all read these same surfaces.
+//! bridges, forest volumes, solid props and smoke clouds. Collision, sight,
+//! routing and the renderer all read these same surfaces.
 mod buildings;
 mod carve;
 pub mod export;
 mod forest;
 mod props;
 mod rays;
+mod smoke;
 mod surfaces;
 mod terrain;
 
@@ -15,6 +16,7 @@ use props::PropStore;
 pub(crate) use props::{ray_box, PropIndex};
 pub use props::{Prop, PropId, Slot};
 pub use rays::{Collider, Hit};
+pub use smoke::{Popped, SmokeClouds};
 use terrain::HeightField;
 
 use crate::math::{v2, v3, Obb2, V2, V3};
@@ -128,6 +130,8 @@ pub struct WorldGeometry {
     /// The least room a line of sight needs between the bodies it squeezes
     /// past, on its two sides together (`sensors.min_sight_gap_m`).
     min_sight_gap_m: f64,
+    /// The live smoke clouds: sight reads them, movement never does.
+    smoke: SmokeClouds,
 }
 
 impl WorldGeometry {
@@ -164,6 +168,8 @@ impl WorldGeometry {
             moved: Default::default(),
             touched: Vec::new(),
             min_sight_gap_m: self.min_sight_gap_m,
+            // Smoke never changes where a body may go.
+            smoke: SmokeClouds::default(),
         };
         snapshot.forest.reset_cleared();
         snapshot
@@ -232,6 +238,7 @@ impl WorldGeometry {
             moved: Default::default(),
             touched: Vec::new(),
             min_sight_gap_m: rules.sensors.min_sight_gap_m,
+            smoke: SmokeClouds::default(),
             field,
         };
         for (id, def) in &authored {

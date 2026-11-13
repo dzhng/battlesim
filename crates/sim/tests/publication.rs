@@ -11,6 +11,7 @@ use crate::common;
 mod codec {
     include!("common/publication_codec.rs");
 }
+mod paired_records;
 
 #[test]
 fn publication_layout_exposes_player_rows_instead_of_side_economy() {
@@ -96,7 +97,15 @@ fn two_player_publication_keeps_player_rows_and_pending_owner() {
         count: 0,
     };
     let mut data = Vec::new();
-    publication::pack_logical(&frame, &patch, &full_fog(), std::iter::empty(), &mut data).unwrap();
+    publication::pack_logical(
+        &frame,
+        &[],
+        &patch,
+        &full_fog(),
+        std::iter::empty(),
+        &mut data,
+    )
+    .unwrap();
     let groups = decode(&layout, &data);
     assert_eq!(groups["players"].len(), 2);
     assert_eq!(groups["players"][1].fields["id"], 2.0);
@@ -262,8 +271,15 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
         len: 1,
         marks,
     };
-    publication::pack_logical(&frame, &patch, &full_fog(), std::iter::once(run), &mut data)
-        .unwrap();
+    publication::pack_logical(
+        &frame,
+        &[],
+        &patch,
+        &full_fog(),
+        std::iter::once(run),
+        &mut data,
+    )
+    .unwrap();
     let groups = decode(&layout, &data);
 
     let own = &groups["own"][0];
@@ -376,7 +392,15 @@ fn a_contact_publishes_its_height_and_layer() {
         count: 0,
     };
     let mut data = Vec::new();
-    publication::pack_logical(&frame, &patch, &full_fog(), std::iter::empty(), &mut data).unwrap();
+    publication::pack_logical(
+        &frame,
+        &[],
+        &patch,
+        &full_fog(),
+        std::iter::empty(),
+        &mut data,
+    )
+    .unwrap();
     let read: Vec<([f32; 3], &str, f32)> = decode(&layout, &data)["contacts"]
         .iter()
         .map(|c| {
@@ -520,162 +544,6 @@ fn a_detailed_learned_ground_burst_stays_within_the_delivery_budget() {
     assert_eq!(digest, battle.digest());
 }
 
-/// The native half of the publication stream record: each tick's battle
-/// digest, published words and delivered fog, as hashes.
-/// `web/tests/fogDelivery.test.ts` holds the Wasm build and the TypeScript
-/// decoder to the same values.
-#[test]
-fn the_publication_stream_matches_its_paired_record() {
-    let record: Value = serde_json::from_str(include_str!(
-        "../../../fixtures/parity/publication/stream.json"
-    ))
-    .unwrap();
-    publication_stream(record, "publication/stream.json", false);
-}
-
-#[test]
-fn the_combat_stream_matches_its_paired_record() {
-    let record: Value = serde_json::from_str(include_str!(
-        "../../../fixtures/parity/publication/combat.json"
-    ))
-    .unwrap();
-    publication_stream(record, "publication/combat.json", true);
-}
-
-#[test]
-fn a_large_coordinate_arrangement_matches_its_paired_state_record() {
-    let record: Value = serde_json::from_str(include_str!(
-        "../../../fixtures/parity/publication/arrangement.json"
-    ))
-    .unwrap();
-    publication_stream(record, "publication/arrangement.json", false);
-}
-
-#[test]
-fn cover_facing_matches_its_paired_state_record() {
-    let record: Value = serde_json::from_str(include_str!(
-        "../../../fixtures/parity/publication/cover-facing.json"
-    ))
-    .unwrap();
-    publication_stream(record, "publication/cover-facing.json", false);
-}
-
-#[test]
-fn contact_lifecycle_matches_its_paired_state_record() {
-    let record: Value = serde_json::from_str(include_str!(
-        "../../../fixtures/parity/publication/contact-lifecycle.json"
-    ))
-    .unwrap();
-    publication_stream(record, "publication/contact-lifecycle.json", false);
-}
-
-fn publication_stream(record: Value, path: &str, combat: bool) {
-    let map = match record["map"].as_str() {
-        Some(id) => sim::maps::load(id).unwrap().definition,
-        None => serde_json::from_value(record["map"].clone()).unwrap(),
-    };
-    let mut setup = common::scenario_with(
-        &serde_json::to_string(&map).unwrap(),
-        record["units"].clone(),
-        record["events"].clone(),
-        record["scripts"].clone(),
-    );
-    // The web half runs a lab's catalog, the test set (the game's units and
-    // the test units): the published type table must be the same one.
-    setup.rules.catalog = contract::catalog::resolve(&sim::fixtures::catalog_documents(
-        sim::fixtures::CatalogSet::Test,
-    ))
-    .unwrap();
-    let mut battle = Battle::new(&setup, record["seed"].as_u64().unwrap());
-    let layout: Value = serde_json::from_str(&publication::layout_json(&battle)).unwrap();
-    let header = names(&layout["header"]);
-    let mut publisher = publication::Publisher::new();
-    let mut bits: Vec<u32> = Vec::new();
-    let mut snapshots = 0;
-    let mut deltas = 0;
-    let mut blessed = record.clone();
-    blessed["initial_digest"] = json!(format!("{:016x}", battle.digest()));
-    let mut saw_shot = false;
-    let mut saw_impact = false;
-    for row in blessed["rows"].as_array_mut().unwrap() {
-        battle.step();
-        let side: Side = serde_json::from_value(row["side"].clone()).unwrap();
-        if row["resync"].as_bool().unwrap() {
-            publisher.resync();
-        }
-        let words = publisher.publish(&battle, side).unwrap();
-        let head = |name: &str| words[header.iter().position(|f| f == name).unwrap()];
-        let count = head("fogFloats") as usize;
-        let field_words = (head("fogNx") as usize * head("fogNy") as usize).div_ceil(32);
-        let mut at = header.len();
-        for _ in layout["groups"].as_array().unwrap() {
-            at += 3 + words[at + 2] as usize;
-        }
-        if head("fogFull") == 1.0 {
-            snapshots += 1;
-            bits = (0..field_words)
-                .map(|i| words[at + i * 2] as u32 | (words[at + i * 2 + 1] as u32) << 16)
-                .collect();
-        } else {
-            deltas += 1;
-            for change in words[at..at + count].as_chunks::<3>().0 {
-                bits[change[0] as usize] = change[1] as u32 | (change[2] as u32) << 16;
-            }
-        }
-        let observation = battle.observe(side);
-        // Snapshots and deltas alike deliver the side's authoritative field.
-        assert_eq!(
-            bits,
-            observation.ground_visibility.bits,
-            "tick {}",
-            battle.tick()
-        );
-        saw_shot |= observation
-            .own
-            .iter()
-            .flat_map(|unit| &unit.weapon_poses)
-            .any(|pose| pose.shots > 0);
-        saw_impact |= observation
-            .projectiles
-            .iter()
-            .any(|projectile| projectile.hit != contract::observation::SegmentHit::None);
-        let hash = |bytes: Vec<u8>| json!(contract::identity::bytes_hash(&bytes));
-        row["digest"] = json!(format!("{:016x}", battle.digest()));
-        row["publication_sha256"] = hash(
-            words
-                .iter()
-                .flat_map(|w| w.to_bits().to_le_bytes())
-                .collect(),
-        );
-        row["fog_sha256"] = hash(bits.iter().flat_map(|w| w.to_le_bytes()).collect());
-    }
-    assert!(
-        snapshots >= 4,
-        "initial, each side switch and resync replace the field"
-    );
-    assert!(deltas > 0, "the stream must exercise incremental fields");
-    if combat {
-        assert!(saw_shot, "the paired stream must observe combat firing");
-        assert!(
-            saw_impact,
-            "the paired stream must observe a projectile impact"
-        );
-    }
-    if common::bless_parity(path, &blessed) {
-        return;
-    }
-    assert_eq!(record["initial_digest"], blessed["initial_digest"]);
-    for (tick, (row, expected)) in blessed["rows"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .zip(record["rows"].as_array().unwrap())
-        .enumerate()
-    {
-        assert_eq!(row, expected, "tick {}", tick + 1);
-    }
-}
-
 #[test]
 fn fog_snapshots_fit_the_admitted_extents_and_preserve_padding() {
     use contract::observation::{ObservationFrame, VisibilityField};
@@ -704,8 +572,15 @@ fn fog_snapshots_fit_the_admitted_extents_and_preserve_padding() {
                 ..Default::default()
             };
             let mut out = Vec::new();
-            publication::pack_logical(&frame, &patch, &full_fog(), std::iter::empty(), &mut out)
-                .unwrap();
+            publication::pack_logical(
+                &frame,
+                &[],
+                &patch,
+                &full_fog(),
+                std::iter::empty(),
+                &mut out,
+            )
+            .unwrap();
             assert!(
                 out.len() * 4 <= 20_250_000 + publication::HEADER_WORDS * 4,
                 "18 km at 2 m is the snapshot bound"
@@ -781,9 +656,15 @@ fn an_over_budget_record_is_rejected_before_output_allocation() {
     };
     let mut out = vec![1.0, 2.0];
     let capacity = out.capacity();
-    let error =
-        publication::pack_logical(&frame, &ground, &full_fog(), std::iter::empty(), &mut out)
-            .unwrap_err();
+    let error = publication::pack_logical(
+        &frame,
+        &[],
+        &ground,
+        &full_fog(),
+        std::iter::empty(),
+        &mut out,
+    )
+    .unwrap_err();
     assert!(error.contains("allocation allowance"));
     assert_eq!(
         out,
@@ -817,11 +698,16 @@ fn oversized_fog_dimensions_cannot_wrap_past_the_delivery_bound() {
         count: 0,
     };
     let mut out = vec![3.0];
-    assert!(
-        publication::pack_logical(&frame, &ground, &full_fog(), std::iter::empty(), &mut out)
-            .unwrap_err()
-            .contains("admitted bound")
-    );
+    assert!(publication::pack_logical(
+        &frame,
+        &[],
+        &ground,
+        &full_fog(),
+        std::iter::empty(),
+        &mut out
+    )
+    .unwrap_err()
+    .contains("admitted bound"));
     assert_eq!(out, [3.0]);
 }
 
@@ -913,7 +799,15 @@ fn known_bodies_publish_exact_current_building_owner_and_authored_source_ids() {
         count: 0,
     };
     let mut data = Vec::new();
-    publication::pack_logical(&frame, &header, &full_fog(), std::iter::empty(), &mut data).unwrap();
+    publication::pack_logical(
+        &frame,
+        &[],
+        &header,
+        &full_fog(),
+        std::iter::empty(),
+        &mut data,
+    )
+    .unwrap();
     let groups = decode(&layout, &data);
     let bits = layout["limbBits"].as_u64().unwrap() as u32;
     let p = &groups["knownProps"][0].fields;
@@ -945,81 +839,6 @@ fn known_bodies_publish_exact_current_building_owner_and_authored_source_ids() {
         );
     }
     assert_eq!(integer(bits, &groups["own"][0].fields, "host"), u32::MAX);
-}
-
-/// The encoder's half of the codec vectors: every frame packs to exactly the
-/// words `web/tests/observation.test.ts` decodes. The vectors keep their own
-/// kind tables; the field order is this build's.
-#[test]
-fn the_encoder_packs_the_codec_vectors_the_web_decoder_reads() {
-    let record: Value = serde_json::from_str(include_str!(
-        "../../../fixtures/parity/publication/codec-vectors.json"
-    ))
-    .unwrap();
-    let probe = Battle::new(
-        &common::scenario(
-            r#"{"size":[32,32],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}"#,
-            json!([]),
-            json!([]),
-        ),
-        1,
-    );
-    let current: Value = serde_json::from_str(&publication::layout_json(&probe)).unwrap();
-    let mut blessed = record.clone();
-    for key in [
-        "header",
-        "groups",
-        "groupDelivery",
-        "objectiveIds",
-        "layers",
-        "soundCategories",
-        "shoutTriggers",
-        "intensities",
-        "hostKinds",
-        "holdPhases",
-        "orderErrors",
-    ] {
-        blessed["layout"][key] = current[key].clone();
-    }
-    blessed["layout"]["ground"]["packed"] = current["ground"]["packed"].clone();
-    for row in blessed["vectors"].as_object_mut().unwrap().values_mut() {
-        let frame: contract::observation::ObservationFrame =
-            serde_json::from_value(row["frame"].clone()).unwrap();
-        let runs = row["patch"]["cells"].as_array().unwrap().iter().map(|c| {
-            let cell = c["cell"].as_u64().unwrap() as u32;
-            let (x, y) = (cell % 18000, cell / 18000);
-            sim::ground::GroundRunPatch {
-                tile: y / 16 * 1125 + x / 16,
-                start: ((y % 16) * 16 + x % 16) as u16,
-                len: 1,
-                marks: sim::ground::GroundCell {
-                    crater: c["crater"].as_u64().unwrap() as u8,
-                    scorch: c["scorch"].as_u64().unwrap() as u8,
-                    tracks: c["tracks"].as_u64().unwrap() as u8,
-                    trampled: c["trampled"].as_u64().unwrap() as u8,
-                    cleared: c["cleared"].as_u64().unwrap() as u8,
-                },
-            }
-        });
-        let ground = publication::GroundHeader {
-            epoch: 4,
-            side: Side::Red,
-            base: 6,
-            revision: 9,
-            full: false,
-            count: 2,
-        };
-        let mut data = Vec::new();
-        publication::pack_logical(&frame, &ground, &full_fog(), runs, &mut data).unwrap();
-        row["bits"] = json!(data.iter().map(|v| v.to_bits()).collect::<Vec<_>>());
-    }
-    if common::bless_parity("publication/codec-vectors.json", &blessed) {
-        return;
-    }
-    assert_eq!(blessed["layout"], record["layout"], "field order");
-    for (phase, row) in blessed["vectors"].as_object().unwrap() {
-        assert_eq!(row["bits"], record["vectors"][phase]["bits"], "{phase}");
-    }
 }
 
 #[test]
@@ -1093,8 +912,15 @@ fn group_delivery_reconstructs_the_logical_oracle_across_side_and_epoch_changes(
             count: 0,
         };
         let frame = battle.observe(side);
-        publication::pack_logical(frame, &ground, &full_fog(), std::iter::empty(), &mut oracle)
-            .unwrap();
+        publication::pack_logical(
+            frame,
+            &[],
+            &ground,
+            &full_fog(),
+            std::iter::empty(),
+            &mut oracle,
+        )
+        .unwrap();
         let row_end = oracle.len() - frame.ground_visibility.bits.len() * 2;
         let actual: Vec<u32> = previous.iter().flatten().map(|f| f.to_bits()).collect();
         assert_eq!(
@@ -1216,6 +1042,7 @@ fn cold_own_delivery_compacts_sparse_values_without_losing_the_logical_words() {
     let mut logical = Vec::new();
     publication::pack_logical(
         frame,
+        &[],
         &ground,
         &full_fog(),
         std::iter::empty(),
@@ -1255,7 +1082,15 @@ fn a_launcher_held_for_its_launch_path_publishes_the_blocked_reason() {
         count: 0,
     };
     let mut data = Vec::new();
-    publication::pack_logical(&frame, &patch, &full_fog(), std::iter::empty(), &mut data).unwrap();
+    publication::pack_logical(
+        &frame,
+        &[],
+        &patch,
+        &full_fog(),
+        std::iter::empty(),
+        &mut data,
+    )
+    .unwrap();
     let own = &decode(&layout, &data)["own"];
     let mount = own[0].sections["mounts"]
         .iter()
@@ -1355,7 +1190,15 @@ fn a_shout_publishes_its_speaker_kind_place_trigger_and_intensity() {
         count: 0,
     };
     let mut data = Vec::new();
-    publication::pack_logical(&frame, &patch, &full_fog(), std::iter::empty(), &mut data).unwrap();
+    publication::pack_logical(
+        &frame,
+        &[],
+        &patch,
+        &full_fog(),
+        std::iter::empty(),
+        &mut data,
+    )
+    .unwrap();
     let groups = decode(&layout, &data);
     let tag = |table: &str, i: f32| layout[table][i as usize].as_str().unwrap().to_owned();
     let read: Vec<_> = groups["shouts"]

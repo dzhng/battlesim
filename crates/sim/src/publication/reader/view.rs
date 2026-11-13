@@ -23,7 +23,8 @@ view!(Observation { tick: f64, own: Vec<OwnUnit>, identified: Vec<Identified>, c
     audible: Vec<SoundCue>, #[serde(skip)] known_props: Shared<KnownProp>, projectiles: Vec<Projectile>,
     blasts: Vec<Blast>, air_transits: Vec<AirTransit>, #[serde(skip)] corpses: Shared<Corpse>, #[serde(skip)] fallen_bodies: Shared<FallenBody>,
     refusals: Vec<Refusal>, crashes: Vec<Crash>, shouts: Vec<Shout>, guided: Vec<Guided>, encounter: Option<Encounter>, skirmish: Option<Skirmish>,
-    fog: Arc<Fog>, ground_patch: GroundPatch, prop_display_poses: Vec<PropDisplayPose>, grinds: Vec<Grind> });
+    fog: Arc<Fog>, ground_patch: GroundPatch, prop_display_poses: Vec<PropDisplayPose>, grinds: Vec<Grind>,
+    smoke_clouds: Vec<SmokeCloud> });
 view!(PropDisplayPose {
     prop_id: f64,
     center: Point2,
@@ -34,6 +35,24 @@ view!(Grind {
     point: Point3,
     heading: Point2
 });
+view!(SmokeCloud {
+    id: f64,
+    centre: Point3,
+    popped: f64,
+    spec: SmokeCloudSpec
+});
+view!(SmokeCloudSpec {
+    radius_m: f64,
+    height_m: f64,
+    life_s: f64,
+    bloom_s: f64,
+    fade_s: f64,
+    bloom_steps: f64,
+    fade_steps: f64,
+    depth_per_m: f64,
+    concealment: f64,
+    look: Name
+});
 view!(OwnUnit { id: f64, #[serde(skip_serializing_if = "Option::is_none")] owner: Option<f64>, kind: Name, position: Point3, yaw: f64, goal: Option<Point2>, goal_unloads: bool, policy: Option<Name>,
     direction: Option<Name>, reversing: bool, withdrawing: bool, protection: Option<Protection>, state: Name,
     fuel_s: Option<f64>, afterburner: bool, in_dogfight: bool,
@@ -41,7 +60,7 @@ view!(OwnUnit { id: f64, #[serde(skip_serializing_if = "Option::is_none")] owner
     blocker: Option<f64>, route: Vec<Point2>, queue: Vec<Point2>, queue_unloads: Vec<bool>, members: Vec<Point3>, member_ids: Vec<Option<f64>>,
     member_slots: Vec<f64>, member_active_mounts: Vec<Option<f64>>, member_orders: Vec<MemberOrder>,
     member_leans: Vec<Option<MemberLean>>, area: Option<SquadArea>, final_facing: f64, sees: Vec<f64>,
-    engagement: Name, mounts: Vec<Mount>, weapon_poses: Vec<WeaponPose>, hp: f64, smoking: bool,
+    engagement: Name, mounts: Vec<Mount>, weapon_poses: Vec<WeaponPose>, hp: f64, smoking: bool, smoke: Option<f64>,
     member_hp: Vec<f64>, suppression: Name, concealed: bool, deployment: Option<Deployment>,
     hold: Option<Hold>, stock: Option<f64>, service: Name, sight: Sight });
 view!(Protection { charges: f64, cooldown: Option<f64> });

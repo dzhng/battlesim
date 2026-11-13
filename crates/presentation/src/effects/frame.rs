@@ -18,6 +18,7 @@
 //!   instead of dust, from a hull or a squad ([`WakeImpulse`]);
 //! - flames and a smoke column over every smoke source the side knows,
 //!   burning, then smouldering, then out, all thinned alike past `smoke_budget`;
+//! - a billow over every smoke screen the side sees ([`smoke_screen`]);
 //! - a watched hull's cook-off: fireballs out of its ring, then sparks and
 //!   dust where its thrown turret lands;
 //! - sparks and dust off a building where a downed airframe strikes it;
@@ -55,6 +56,7 @@ mod draw;
 pub(crate) use draw::draw_rotors;
 mod pool;
 mod smoke;
+mod smoke_screen;
 mod wake;
 use draw::*;
 use pool::Pool;
@@ -325,6 +327,7 @@ pub struct EffectFrame {
     waves: WaveClock,
     /// Where each smoking hull was last published.
     smokers: HashMap<u64, Mover>,
+    screens: smoke_screen::Screens,
     last_tick: f64,
     launches: LaunchTracker,
     instances: usize,
@@ -347,6 +350,7 @@ impl EffectFrame {
             wakes: Vec::new(),
             waves: WaveClock::new(),
             smokers: HashMap::new(),
+            screens: smoke_screen::Screens::default(),
             last_tick: -1.0,
             launches: LaunchTracker::default(),
             instances: 0,
@@ -368,6 +372,7 @@ impl EffectFrame {
         self.wakes.clear();
         self.waves.restart();
         self.smokers.clear();
+        self.screens.clear();
         self.launches.reset();
         self.last_tick = -1.0;
         self.noted = 0.0;
@@ -480,6 +485,7 @@ impl EffectFrame {
         self.note_movers(publication, gap, t0);
         self.note_smokers(publication, gap, t0, t1);
         self.note_sources(publication, t0, t1);
+        self.screens.note(&publication.smoke_clouds);
         launches
     }
 
@@ -764,6 +770,7 @@ impl EffectFrame {
             }
         }
         self.pool.spent.extend(live.drain(kept..));
+        self.screens.draw(&self.p, clock, dt, batch);
         for src in &self.sources {
             draw_fire_light(src, clock, self.noted, self.keep, batch);
         }

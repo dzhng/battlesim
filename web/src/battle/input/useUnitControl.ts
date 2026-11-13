@@ -7,8 +7,8 @@
  * selected vehicle reverses), right-click on a building to garrison it (Shift
  * queues), right-click on an own carrier or squad to board or collect (Shift
  * queues), Unload (U then a left-click, or U twice), leaving buildings, stop,
- * the fire-policy toggle, deploy/pack, and the acknowledgement log. Keys come
- * from `CommandBindings`. Building clicks send the complete selection for
+ * the fire-policy toggle, deploy/pack, popping smoke, and the acknowledgement
+ * log. Keys come from `CommandBindings`. Building clicks send the complete selection for
  * authoritative entry and outside gathering; deploy, boarding, unloading and
  * leaving a building reach only capable units (`commandReach.ts`). Labs and the
  * battle route share it; it sends only real commands. Its events (`UnitControlEvents`)
@@ -203,6 +203,8 @@ export function useUnitControl(
           return `purchase ${order.variant}`;
         case "cancel_pending":
           return `cancel pending purchase ${order.purchase}`;
+        case "pop_smoke":
+          return `pop smoke: ${order.units.map(unitName).join(", ")}`;
         case "upgrade_move":
           return `upgrade gesture ${order.gesture} to fast route`;
       }
@@ -404,6 +406,13 @@ export function useUnitControl(
     void issue({ kind: "unload", units, goal: null, gesture, route: "shortest" });
   }, [issue, catalog, setMode, ownUnits]);
 
+  /** Every selected unit with a smoke charge pops one; the rest, and
+   *  every unit's current order, are left as they are. */
+  const popSmoke = useCallback(() => {
+    const units = selectedUnitsRef.current.filter((u) => (u.smoke ?? 0) > 0).map((u) => u.id);
+    if (units.length) void issue({ kind: "pop_smoke", units });
+  }, [issue]);
+
   const refund = useCallback(() => {
     const units = selectedUnitsRef.current.map((unit) => unit.id);
     if (units.length) void issue({ kind: "refund", units });
@@ -425,6 +434,7 @@ export function useUnitControl(
       else if (command === "toggle_deployment") toggleDeployment();
       else if (command === "toggle_afterburner") toggleAfterburner();
       else if (command === "unload") pressUnload();
+      else if (command === "pop_smoke") popSmoke();
       else if (command === "attack_move" && any) setMode("attack_move");
       else if (command === "reverse_move" && any) setMode("reverse_move");
       else if (command === "attack_ground" && armed) setMode("attack_ground");
@@ -440,6 +450,7 @@ export function useUnitControl(
     toggleDeployment,
     toggleAfterburner,
     pressUnload,
+    popSmoke,
     setMode,
     catalog,
     ownUnits,
@@ -463,6 +474,7 @@ export function useUnitControl(
     toggleAfterburner,
     exitBuilding,
     pressUnload,
+    popSmoke,
     togglePolicy,
     mode,
     setMode,

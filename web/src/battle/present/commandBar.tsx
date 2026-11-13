@@ -93,6 +93,7 @@ export type CommandControl = Pick<
   | "toggleDeployment"
   | "exitBuilding"
   | "pressUnload"
+  | "popSmoke"
 > & { refund?: () => void; toggleAfterburner?: () => void };
 
 export interface ArmyCommandState {
@@ -143,6 +144,12 @@ export function CommandBar({
     <div className="ro-commands" role="toolbar" aria-label="Commands">
       {mode("attack_move", hudIcon("attack_move"), `Attack-move ${key("attack_move")}`)}
       {mode("reverse_move", hudIcon("reverse"), `Reverse ${key("reverse_move")}`)}
+      {command({
+        icon: stateIcon("smoke"),
+        label: `Pop smoke ${key("pop_smoke")}`,
+        disabled: !selected.some((u) => (u.smoke ?? 0) > 0),
+        onClick: control.popSmoke,
+      })}
       {mode(
         "attack_ground",
         hudIcon("attack_ground"),

@@ -76,9 +76,11 @@ export async function run(ctx) {
     const i = (Math.round(steepPx[1]) * png.width + Math.round(steepPx[0])) * 4;
     return [png.data[i], png.data[i + 1], png.data[i + 2]];
   })();
+  // The mark is a red hue, lit or in the ramp's shadow: red well over green
+  // and blue, by ratio, so the colour grade's brightness doesn't decide it.
   ctx.check(
     "traversal overlay marks the steep ramp",
-    r > g + 40 && r > b + 40,
+    r > 16 && r > 1.5 * Math.max(g, b),
     `rgb ${r},${g},${b}`,
   );
   await page.evaluate(() => window.__lab.route.setOverlay("surface"));

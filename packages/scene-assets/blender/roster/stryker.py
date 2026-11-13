@@ -295,9 +295,7 @@ def fittings(v, roof, dragoon, base=None):
     # The squad's rolled tarp across the rear roof.
     SW.tarp_roll("roof_tarp", (-3.10, 0, roof + 0.13), 1.60, 0.13, m, hull, straps=3)
     edge = face[1][0]
-    for side, s in ((1, "L"), (-1, "R")):
-        whip = empty(f"dressing_antenna_{s}", parent=hull)
-        RF.antenna(f"antenna_{s}", (-3.25, side * (edge - 0.08), roof), m, whip, height=2.8)
+    RF.whip_pair(hull, (-3.25, (edge - 0.08), roof), m, height=2.8)
 
 
 # ---------------------------------------------------------------- weapons

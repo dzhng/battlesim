@@ -1,7 +1,8 @@
 //! The ground visibility field ("fog"): which ground cells a side can see
 //! right now, by radial line-of-sight sweeps from each own unit's eye over the
-//! true terrain, solid props and foliage. Identification is decided per target
-//! by `sensing`; this field is what the player sees as clear versus fogged.
+//! true terrain, solid props, foliage and smoke. Identification is decided per
+//! target by `sensing`; this field is what the player sees as clear versus
+//! fogged.
 use contract::ids::UnitId;
 use contract::observation::VisibilityField;
 use contract::scenario::SensorRules;
@@ -29,6 +30,8 @@ struct ObserverField {
     sight: Sight,
     sensors: [f64; 2],
     geometry: (u64, u32),
+    /// Per eye, the clouds within its reach and their phases.
+    smoke: Vec<u64>,
     field: VisibilityField,
 }
 
@@ -54,11 +57,16 @@ impl OcclusionGrid {
     ) {
         let geometry = (world.obstacle_revision(), world.cleared_cells());
         let sensor_key = [sensors.fog_target_height_m, sensors.foliage_full_block];
+        let smoke: Vec<u64> = eyes
+            .iter()
+            .map(|eye| world.smoke().key_near(eye.xy(), sight.max_range()))
+            .collect();
         let reusable = self.observers.get(&observer).is_some_and(|old| {
             old.geometry == geometry
                 && old.eyes == eyes
                 && old.sight == *sight
                 && old.sensors == sensor_key
+                && old.smoke == smoke
         });
         if !reusable {
             let mut own = self.field();
@@ -72,6 +80,7 @@ impl OcclusionGrid {
                     sight: *sight,
                     sensors: sensor_key,
                     geometry,
+                    smoke,
                     field: own,
                 },
             );
@@ -176,6 +185,8 @@ pub fn sweep(
     // The most a cell's target can rise above the eye: from the highest
     // ground on the map, with a metre's margin over the surface's rounding.
     let rise = world.max_height() + 1.0 + s.fog_target_height_m - eye.z;
+    // The clouds a ray could cross: none, on a field without smoke.
+    let clouds = world.smoke().near(eye.xy(), sight.max_range());
     for r in 0..rays {
         let angle = r as f64 / rays as f64 * std::f64::consts::TAU;
         let dir = v2(libm::cos(angle), libm::sin(angle));
@@ -198,6 +209,7 @@ pub fn sweep(
         let far = steps as f64 * cell;
         let mut horizon = f64::NEG_INFINITY; // steepest occluding slope so far
         let mut foliage = 0.0;
+        let mut smoke = 0.0;
         for k in 1..=steps {
             let dist = k as f64 * cell;
             let p = eye.xy() + dir * dist;
@@ -211,10 +223,23 @@ pub fn sweep(
             }
             let target = ground + s.fog_target_height_m;
             let slope = (target - eye.z) / dist;
-            // Foliage only accumulates, so the reach only shrinks: once this
-            // cell is past it, or the foliage blocks fully, no later cell on
-            // the ray can be seen.
-            match crate::sensing::foliage_reach(range, foliage, s) {
+            let sight_z = eye.z + horizon.max(slope) * dist;
+            // Smoke on the step up to this cell, below each cloud's top: the
+            // exact chord, as `sensing::sees_point` counts it.
+            if !clouds.is_empty() {
+                let from = eye.xy() + dir * (dist - cell);
+                smoke += contract::smoke::piece_depth(
+                    &clouds,
+                    [from.x, from.y],
+                    [p.x, p.y],
+                    sight_z,
+                    ground,
+                );
+            }
+            // Foliage and smoke only accumulate, so the reach only shrinks:
+            // once this cell is past it, or they block fully, no later cell
+            // on the ray can be seen.
+            match crate::sensing::foliage_reach(range, foliage + smoke, s) {
                 Some(reach) if dist <= reach => {}
                 _ => break,
             }
@@ -224,7 +249,6 @@ pub fn sweep(
             }
             // Foliage between eye and later cells, below the canopy only;
             // cleared ground has none (Q16).
-            let sight_z = eye.z + horizon.max(slope) * dist;
             let f = world.foliage_at(p.x, p.y);
             if !f.is_open() && sight_z < ground + f.canopy_m {
                 foliage += f.depth_per_m * cell;
@@ -427,5 +451,98 @@ mod cache_tests {
             }
             assert_eq!(actual.bits, fresh.bits, "west eye {west:?}");
         }
+    }
+
+    /// The test smoke tank's cloud and the tick rate.
+    fn cloud() -> (contract::smoke::SmokeCloudSpec, u32) {
+        let rules: contract::scenario::Rules =
+            serde_json::from_value(crate::fixtures::test_rules()).unwrap();
+        let smoke = rules
+            .catalog
+            .by_id("test_smoke_tank")
+            .capabilities
+            .smoke
+            .clone();
+        (
+            smoke.expect("the test smoke tank carries smoke").cloud,
+            rules.tick_hz,
+        )
+    }
+
+    #[test]
+    fn cached_fields_match_cold_sweeps_through_a_clouds_whole_life() {
+        let (mut world, sensors) = world();
+        let (spec, hz) = cloud();
+        let mut grid = OcclusionGrid::new(&world, 8.0);
+        let sight = sight();
+        let near = [v3(120.0, 100.0, 2.0)];
+        // Out of every cloud's reach: its cache is never invalidated.
+        let far = [v3(520.0, 420.0, 2.0)];
+        let mut far_field = grid.field();
+        grid.sweep_observer(&world, &sensors, UnitId(1), &far, &sight, &mut far_field);
+        let far_key = grid.observers[&UnitId(1)].smoke.clone();
+        let centre = v3(150.0, 100.0, 0.0);
+        world
+            .smoke_mut()
+            .pop(contract::ids::Side::Blue, centre, &spec, 0, hz);
+        let mut changed = 0;
+        let mut last = Vec::new();
+        for tick in 0..=(spec.life_s * hz as f64) as u64 + 1 {
+            world.smoke_mut().advance(tick, hz);
+            let mut cached = grid.field();
+            grid.sweep_observer(&world, &sensors, UnitId(0), &near, &sight, &mut cached);
+            let mut cold_grid = OcclusionGrid::new(&world, 8.0);
+            let mut cold = cold_grid.field();
+            sweep(&world, &mut cold_grid, &sensors, near[0], &sight, &mut cold);
+            assert_eq!(cached.bits, cold.bits, "tick {tick}");
+            changed += usize::from(cached.bits != last);
+            last = cached.bits;
+            let mut again = grid.field();
+            grid.sweep_observer(&world, &sensors, UnitId(1), &far, &sight, &mut again);
+            assert_eq!(grid.observers[&UnitId(1)].smoke, far_key, "tick {tick}");
+            assert_eq!(again.bits, far_field.bits);
+        }
+        assert!(world.smoke().is_empty(), "the cloud's life ended");
+        assert!(
+            changed > 2,
+            "the near field changed with the cloud's phases"
+        );
+    }
+
+    #[test]
+    fn a_rays_last_visible_cell_is_the_last_one_sensing_sees() {
+        let (mut world, sensors) = world();
+        let (spec, hz) = cloud();
+        let eye = v3(100.0, 100.0, 2.0);
+        world.smoke_mut().pop(
+            contract::ids::Side::Blue,
+            v3(150.0, 100.0, 0.0),
+            &spec,
+            0,
+            hz,
+        );
+        world
+            .smoke_mut()
+            .advance((spec.bloom_s * hz as f64) as u64 + 1, hz);
+        let sight = sight();
+        let mut grid = OcclusionGrid::new(&world, 8.0);
+        let mut field = grid.field();
+        sweep(&world, &mut grid, &sensors, eye, &sight, &mut field);
+        // Along the ray due east, the points the sweep steps to.
+        let along = |k: usize| v2(eye.x + k as f64 * 8.0, eye.y);
+        let steps = (sight.range / 8.0) as usize;
+        let swept = (1..=steps)
+            .filter(|&k| field.visible(along(k).x, along(k).y))
+            .max();
+        let sensed = (1..=steps)
+            .filter(|&k| {
+                let p = along(k);
+                let target =
+                    p.with_z(world.height_at(p.x, p.y).unwrap() + sensors.fog_target_height_m);
+                crate::sensing::sees_point(&world, eye, target, &sight, 1.0, &sensors)
+            })
+            .max();
+        assert!(swept.unwrap() < steps, "the cloud cuts the ray short");
+        assert_eq!(swept, sensed);
     }
 }

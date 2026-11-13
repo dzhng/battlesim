@@ -1,8 +1,9 @@
 //! Optical sensing: which enemies each unit's own eyes identify this tick.
 //! Rays run from the observer's eye to the target's visibility samples (a
 //! vehicle's hull centre and top, each living soldier). Solid geometry blocks;
-//! foliage attenuates reach continuously and blocks outright past a full run;
-//! forest ground composes with authored unit concealment, independently of tree crowns.
+//! foliage and smoke attenuate reach continuously and block outright past a
+//! full run; forest ground, garrison shelter and smoke a target stands in
+//! compose with authored unit concealment, independently of tree crowns.
 use contract::catalog::AltitudeLayer;
 use contract::ids::{Side, UnitId};
 use contract::scenario::{Rules, SensorRules};
@@ -121,8 +122,8 @@ pub fn sees_point(
     if distance > range * concealment || !world.sight_clear(eye, target) {
         return false; // solid cover makes foliage integration irrelevant
     }
-    let foliage = world.foliage_depth(eye, target);
-    foliage_reach(range * concealment, foliage, s).is_some_and(|reach| distance <= reach)
+    let depth = world.sight_depth(eye, target);
+    foliage_reach(range * concealment, depth, s).is_some_and(|reach| distance <= reach)
 }
 
 /// Whether one of `side`'s living units sees a round in flight at
@@ -183,9 +184,11 @@ fn samples(unit: &Unit) -> Vec<(Option<usize>, V3)> {
     }
 }
 
-/// The strongest concealment of forest ground and garrison shelter.
-pub fn ground(forest: f64, shelter: f64, s: &SensorRules) -> f64 {
-    forest.min(1.0 + (s.building_range_multiplier - 1.0) * shelter)
+/// The strongest concealment of forest ground, garrison shelter and smoke.
+pub fn ground(forest: f64, shelter: f64, smoke: f64, s: &SensorRules) -> f64 {
+    forest
+        .min(1.0 + (s.building_range_multiplier - 1.0) * shelter)
+        .min(smoke)
 }
 
 /// Target concealment in evaluation order: unit × ground, then movement.
@@ -201,6 +204,7 @@ fn sample(world: &WorldGeometry, u: &Unit, at: V3, rules: &Rules) -> (f64, f64) 
     let ground = ground(
         world.forest_concealment(at.x, at.y),
         crate::garrison::shelter(u),
+        world.smoke_concealment(at.x, at.y),
         &rules.sensors,
     );
     (

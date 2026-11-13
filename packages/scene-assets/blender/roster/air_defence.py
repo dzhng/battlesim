@@ -27,7 +27,8 @@ What the photos settle:
   levelling legs at the corners. The US Army's is the same launcher in its
   own tan.
 
-Turrets, guns and launchers are drawn stowed and do not articulate yet.
+The Gepard's guns ride the gun rig; the wheeled cards' turrets, guns and
+launchers are drawn stowed and do not articulate yet.
 """
 import math
 import os
@@ -233,17 +234,14 @@ BODIES = {
 
 
 def build(variant, v):
-    if variant["id"] == "europe_gepard_1a2":
-        turret = rig(v.frame, v.root)["gun"][0]
-        SB.wear(v, BODIES["europe_gepard_1a2"][0], BODIES["europe_gepard_1a2"][1])
-        # The whips on the turret roof's rear corners (turret frame).
-        for side, s in ((1, "L"), (-1, "R")):
-            whip = empty(f"dressing_antenna_{s}", parent=turret)
-            RF.antenna(f"antenna_{s}", (-1.40, side * 0.75, 0.89), v.mats, whip, height=2.0)
-        return
     if variant["id"] in BODIES:
         path, pitch = BODIES[variant["id"]]
-        return SB.wear(v, path, pitch)
+        turret = rig(v.frame, v.root)["gun"][0] if variant["id"] == "europe_gepard_1a2" else None
+        SB.wear(v, path, pitch)
+        if turret is not None:
+            # The whips on the turret roof's rear corners (turret frame).
+            RF.whip_pair(turret, (-1.40, 0.75, 0.89), v.mats, height=2.0)
+        return
     {"eastern_pantsir_pantsir_sm": pantsir, "europe_boxer_skyranger_30_gun_and_missile_air_defense": skyranger,
      "europe_nasams_nasams_3": nasams, "us_nasams_medium": nasams}[variant["id"]](v)
 
@@ -257,12 +255,11 @@ def wreck(variant, v):
     from wreckage import densify, dent, heat, parts, remove, warp
     if variant["id"] in BODIES:
         return SB.wreck(v, "R", (2, 3))
-    remove("track_R_band", "wheel_R_1_", "wheel_R_2_", "skirt_R", "search_radar", "canister_cap_", "missile_cap_",
-           "missile_tube_R_1_2", "missile_tube_R_0_2", "canister_1_2", "canister_rib_1_2", "radar_dome", "side_bin_R_",
+    remove("wheel_R_1_", "wheel_R_2_", "skirt_R", "search_radar", "canister_cap_", "missile_cap_",
+           "missile_tube_R_1_2", "missile_tube_R_0_2", "canister_1_2", "canister_rib_1_2",
            "mudflap_R", "windscreen", "door_window_", "rear_window_", "dressing_mirror_R", "mirror_R", "mirror_arm_R",
-           "basket_tarp", "radar_panel_1", "radar_frame_1")
-    shell = parts("hull_upper", "hull_lower", "turret_shell", "boxer_upper", "boxer_lower", "module_body", "cab_body",
-                  "radar_housing", "canister_")
+           "radar_panel_1", "radar_frame_1")
+    shell = parts("turret_shell", "boxer_upper", "boxer_lower", "module_body", "cab_body", "canister_")
     densify(shell, scale=2.0)
     warp(shell, heat(0.025, 0.8, seed=81.0), dent((0.0, -1.2, 1.6), 0.6, 0.12, (0, 1, -0.2)))
     v.root.rotation_euler = (0.03, 0.0, 0)

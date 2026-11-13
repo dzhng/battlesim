@@ -27,9 +27,7 @@ pub struct PropType {
 /// A prop type's body row. Each column is independent and has its own
 /// readers: `blocks` navigation and collision; `stops_rounds` flight;
 /// `occludes` the fog sweep, sensing and the renderer's sight-light
-/// occluders; `weight_class` pushing; `cover_tier` cover. A row that blocks
-/// nobody, stops no rounds and gives no cover but occludes for a
-/// `lifetime_s` is a smoke screen.
+/// occluders; `weight_class` pushing; `cover_tier` cover.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PropBody {
@@ -42,9 +40,6 @@ pub struct PropBody {
     /// infantry, or from inside a ground body (rubble) that does not.
     #[serde(default)]
     pub cover_tier: Option<CoverTier>,
-    /// A transient body: it goes this long after it appears.
-    #[serde(default)]
-    pub lifetime_s: Option<f64>,
     /// How much of a fog cell one such body conceals, in [0, 1) (Q21): a
     /// cell's foliage is `1 − Π(1 − conceals)` over the concealing bodies
     /// whose canopy covers it.

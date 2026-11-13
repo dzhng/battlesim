@@ -40,9 +40,9 @@ export interface PanelRules {
  *    (something happening now or passing).
  *  - `tone`: warning states, including pinned, draw in the shared warning
  *    colour.
- *  - `amount`: `n` is something the unit spends (supply, fuel, flares); run
- *    out, the row draws in the warning colour, as a weapon out of rounds is
- *    marked.
+ *  - `amount`: `n` is something the unit spends (supply, fuel, flares,
+ *    smoke); run out, the row draws in the warning colour, as a weapon out
+ *    of rounds is marked.
  *  - `compact`: the row stays on a compact card, which otherwise shows only
  *    its name: what identifies the unit at a glance (a carrier's seats). */
 export const STATE_ROWS = {
@@ -94,6 +94,12 @@ export const STATE_ROWS = {
   flares: {
     icon: "flares",
     word: (n: number | string) => `FLARES ${n}`,
+    lasting: true,
+    amount: true,
+  },
+  smoke: {
+    icon: "smoke",
+    word: (n: number | string) => `SMOKE ${n}`,
     lasting: true,
     amount: true,
   },
@@ -231,6 +237,7 @@ export function ownStateRows(
   if (u.afterburner) rows.push(row("afterburner"));
   if (u.inDogfight) rows.push(row("dogfight"));
   if (u.flares) rows.push(row("flares", { n: u.flares.charges, progress: u.flares.cooldown }));
+  if (u.smoke != null) rows.push(row("smoke", { n: u.smoke }));
   if (u.withdrawing) rows.push(row("withdrawing"));
   rows.push(seatsRow(units, u, own));
   if (u.hold) rows.push(HOLD_ROWS[u.hold.host.kind]?.[u.hold.phase]?.(u.hold.progress) ?? null);
@@ -521,6 +528,7 @@ export function arrivingUnit(catalog: SessionCatalog, kind: string): OwnUnitView
       reloading: null,
     })),
     protection: protection ? { charges: protection.capacity, cooldown: null } : null,
+    smoke: t.capabilities.smoke?.capacity ?? null,
   } as OwnUnitView;
 }
 

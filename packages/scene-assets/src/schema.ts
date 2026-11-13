@@ -768,7 +768,7 @@ export const MAP_DOWNLOAD_MAX_BYTES = 256 * 1024 * 1024;
  * the skeleton clips, their textures once each, and the template library. A
  * loose tripwire against gross growth, set from the measured load with room
  * for the rebuilt models (specs/done/unit-models/choices.md), not a target.
- * Raised for the tracked armour's script-built bodies (specs/tracked-armour-models,
+ * Raised for the tracked armour's script-built bodies (specs/done/tracked-armour-models,
  * R5): about 637 MiB with every unit's art after the first two, and about
  * 3 MiB more for each of the other 33, most of it in the wreck. */
 export const CATALOG_LOAD_MAX_BYTES = 768 * 1024 * 1024;

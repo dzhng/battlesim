@@ -405,6 +405,15 @@ export function panelSpecimens(
     "route blocked",
     panelOf(specimenUnit(catalog, "test_supply", { state: "route_blocked" })),
   );
+  // Smoke charges come from the published count alone, so they ride the
+  // tank: some left and none, each in the open and hidden in a cloud.
+  for (const [label, smoke, concealed] of [
+    ["smoke 2", 2, false],
+    ["smoke 2, in smoke", 2, true],
+    ["smoke out", 0, false],
+    ["smoke out, in smoke", 0, true],
+  ] as const)
+    add(s, label, panelOf(specimenUnit(catalog, "test_tank", { smoke, concealed })));
 
   // Carriers: the test APC (8 seats), given 16 for the largest, and the
   // test scout car. The squads it holds are stand-ins of set sizes, so the

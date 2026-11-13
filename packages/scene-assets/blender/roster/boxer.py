@@ -164,9 +164,7 @@ def fittings(v):
     for side in (-1, 1):
         SW.jerrycan(f"rear_jerrycan_{side}", (-4.02, side * 1.15, SHELF + 0.10), dict(m, paint=m["dark"]), cans,
                     size=(0.165, 0.345, 0.47))
-    for side, s in ((1, "L"), (-1, "R")):
-        whip = empty(f"dressing_antenna_{s}", parent=hull)
-        RF.antenna(f"antenna_{s}", (-3.55, side * 1.20, ROOF), m, whip, height=2.8)
+    RF.whip_pair(hull, (-3.55, 1.20, ROOF), m, height=2.8)
     tarp = empty("dressing_roof_stowage", parent=hull)
     SW.tarp_roll("roof_tarp", (-3.45, 0, ROOF + 0.14), 1.80, 0.14, m, tarp, straps=3)
     SW.stowage_box("roof_box", (-2.95, 0.70, ROOF), (0.60, 0.45, 0.25), dict(m, paint=m["dark"]), tarp)

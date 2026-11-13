@@ -77,9 +77,7 @@ def hull(v):
                      rot=(0, 0.69, 0))
     HF.grille("engine_grille", (-2.60, 0.0, ROOF), (1.10, 1.40), m, h, slats=9)
     HF.exhaust("exhaust", (-1.90, -1.44, BELT + 0.20), 0.07, 0.30, m, h, rot=(0, 0, -math.pi / 2))
-    for side, s in ((1, "L"), (-1, "R")):
-        whip = empty(f"dressing_antenna_{s}", parent=h)
-        RF.antenna(f"antenna_{s}", (-3.20, side * 0.80, ROOF), m, whip, height=2.4)
+    RF.whip_pair(h, (-3.20, 0.80, ROOF), m, height=2.4)
     # The photos' bolted armour: plates down the upright upper band from the
     # belt to the roof, and on the lower band leaning out under it; a tow
     # cable along the belt, a basket and jerrycans on the rear plate.

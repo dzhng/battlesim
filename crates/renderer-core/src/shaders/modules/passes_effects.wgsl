@@ -107,7 +107,8 @@
     }
     alpha = tex.a * opacity;
   }
-  // A shadow is ground: it leaves the fog mask as it is.
+  // Every effect the side is shown lifts the fog veil by what it covers; a
+  // shadow is ground, so it leaves the fog mask as it is.
   let strength = select(clamp(alpha + max(rgb.r, max(rgb.g, rgb.b)) * 0.25, 0.0, 1.0), 0.0, shape == 4u);
   var out: ColorFog;
   out.color = vec4f(rgb, alpha);

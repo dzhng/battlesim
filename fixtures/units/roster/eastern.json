@@ -2276,13 +2276,35 @@
       "appearance": "eastern_t_14_armata_main_battle_tank",
       "sensors": {
         "on": "cannon"
+      },
+      "capabilities": {
+        "smoke": {
+          "capacity": 3,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 15, "height_m": 6, "life_s": 40, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "discharger"
+          }
+        }
       }
     },
     "eastern_t_15_armata_heavy_ifv": {
       "concealment": 2.8,
       "name": "T-15 Armata",
       "description": "Heavy IFV; infantry carrier",
-      "capabilities": { "carriage": { "seats": 8 } },
+      "capabilities": {
+        "carriage": { "seats": 8 },
+        "smoke": {
+          "capacity": 1,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 15, "height_m": 6, "life_s": 40, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "discharger"
+          }
+        }
+      },
       "faction": "eastern",
       "family": "t_15_armata",
       "roles": [
@@ -2478,6 +2500,17 @@
           "rear": 0.3
         },
         "on": "cannon"
+      },
+      "capabilities": {
+        "smoke": {
+          "capacity": 1,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 15, "height_m": 6, "life_s": 40, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "discharger"
+          }
+        }
       }
     },
     "eastern_t_80_t_80bvm": {
@@ -2582,6 +2615,17 @@
           "rear": 0.3
         },
         "on": "cannon"
+      },
+      "capabilities": {
+        "smoke": {
+          "capacity": 2,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 15, "height_m": 6, "life_s": 40, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "discharger"
+          }
+        }
       }
     },
     "eastern_t_90_t_90m_proryv": {
@@ -2686,6 +2730,17 @@
           "rear": 0.3
         },
         "on": "cannon"
+      },
+      "capabilities": {
+        "smoke": {
+          "capacity": 2,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 15, "height_m": 6, "life_s": 40, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "discharger"
+          }
+        }
       }
     },
     "eastern_tigr_tigr_m": {
@@ -2871,6 +2926,17 @@
       "sensors": {
         "high_air_m": 0,
         "on": "cannon"
+      },
+      "capabilities": {
+        "smoke": {
+          "capacity": 1,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 15, "height_m": 6, "life_s": 40, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "discharger"
+          }
+        }
       }
     },
     "eastern_type_99_ztz_99a": {
@@ -2975,6 +3041,17 @@
           "rear": 0.3
         },
         "on": "cannon"
+      },
+      "capabilities": {
+        "smoke": {
+          "capacity": 2,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 15, "height_m": 6, "life_s": 40, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "discharger"
+          }
+        }
       }
     },
     "eastern_ural_4320_general_resupply": {

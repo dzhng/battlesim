@@ -1,0 +1,15 @@
+{
+  "units": [
+    {"side":"blue","kind":"test_smoke_tank","position":[140,130],"engagement":"return_fire_only"},
+    {"side":"blue","kind":"test_smoke_tank","position":[130,110],"engagement":"return_fire_only"},
+    {"side":"blue","kind":"test_smoke_squad","position":[128,166],"engagement":"return_fire_only"},
+    {"side":"red","kind":"test_tank","position":[300,125],"yaw":3.141592653589793,"engagement":"return_fire_only"},
+    {"side":"red","kind":"test_at","position":[285,182],"yaw":3.141592653589793,"engagement":"return_fire_only"},
+    {"side":"red","kind":"test_jeep","position":[185,64],"yaw":3.141592653589793,"engagement":"return_fire_only","condition":{"hp":1}}
+  ],
+  "scripts": [
+    {"tick":15,"side":"blue","order":{"kind":"attack","units":[1],"target":{"kind":"ground","point":[185,64,0]}}},
+    {"tick":75,"side":"blue","order":{"kind":"stop","units":[1]}},
+    {"tick":76,"side":"blue","order":{"kind":"set_engagement","units":[1],"policy":"return_fire_only"}}
+  ]
+}

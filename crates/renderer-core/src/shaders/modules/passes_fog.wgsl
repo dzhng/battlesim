@@ -184,6 +184,14 @@
   out[gid.x] = fogShape(r.x, r.y, r.z, r.w);
 }
 
+// @block passes_fog_probeFogSmoke
+@compute @workgroup_size(FOG_BUILD_WORKGROUP) fn probeFogSmoke(@builtin(global_invocation_id) gid: vec3u) {
+  if (gid.x * 2u >= arrayLength(&lines)) { return; }
+  let ends = lines[gid.x * 2u];
+  let heights = lines[gid.x * 2u + 1u];
+  out[gid.x] = fogSmokeStep(ends.xy, ends.zw, heights.x, heights.y);
+}
+
 // @block passes_fog_terrainMarch
 @compute @workgroup_size(FOG_BUILD_WORKGROUP) fn terrainMarch(@builtin(global_invocation_id) gid: vec3u) {
   let P = fogParams;
@@ -231,7 +239,9 @@
     let gz = fogHeight(q);
     let can = fogFoliage(q);
     let ts = (gz + P.targetHeightM - e.position.z) / t;
-    if (can.x > 0.0 && e.position.z + max(hor, ts) * t < gz + can.x) { fol = fol + st * can.y; }
+    let sightZ = e.position.z + max(hor, ts) * t;
+    if (can.x > 0.0 && sightZ < gz + can.x) { fol = fol + st * can.y; }
+    fol = fol + fogSmokeStep(q - dir * st, q, sightZ, gz);
     let nh = max(hor, (gz - e.position.z) / t);
     if (nh - hor > jump) { jump = nh - hor; jt = t; }
     hor = nh;

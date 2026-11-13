@@ -28,36 +28,19 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import challenger as C  # noqa: E402
 import scripted_body as SB  # noqa: E402
-from parts import empty  # noqa: E402
 from vehicle_export import run  # noqa: E402
 
 # The whips on the script's antenna bases (turret frame, left side).
 WHIPS = (-2.08, 1.16, 1.486)
 # The Trophy part's nodes (`trophy_aps`) on the script's housings (world, left
 # side): the front radar panel's centre and the launcher head's.
-TROPHY_NODES = {"radar": (1.58, 1.52, 2.08), "launcher": (-0.62, 1.48, 2.58)}
+TROPHY_NODES = {"radar": (1.68, 1.62, 2.08), "launcher": (-0.62, 1.50, 2.58)}
 
 
 def build(variant, v):
-    import bpy
-    from mathutils import Vector
     C.wear(v, "challenger_3", WHIPS)
-    bpy.context.view_layer.update()
-    for side, s in ((1, "L"), (-1, "R")):
-        holder = bpy.data.objects[f"dressing_trophy_{s}"]
-        for part, (x, y, z) in TROPHY_NODES.items():
-            empty(f"trophy_{part}_{s}", tuple(holder.matrix_world.inverted() @ Vector((x, side * y, z))), holder)
-
-
-def wreck(variant, v):
-    import bpy
-    # Trophy's housings are dressing on the live tank, but they are steel
-    # boxes that survive the fire: they stay.
-    for o in bpy.data.objects:
-        if o.name.startswith("dressing_trophy_"):
-            o.name = o.name.replace("dressing_", "", 1)
-    C.wreck(variant, v)
+    SB.trophy_nodes(TROPHY_NODES)
 
 
 if __name__ == "__main__":
-    run("challenger_3", "british_green", build, wreck, chip=1.0)
+    run("challenger_3", "british_green", build, C.wreck, chip=1.0)

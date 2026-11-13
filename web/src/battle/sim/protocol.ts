@@ -68,6 +68,9 @@ export type Order =
       gesture: number;
       route: RoutePolicy;
     }
+  /** Each unit with a smoke charge spends one and pops a cloud where it
+   *  stands; the rest ignore it. No unit's current order changes. */
+  | { kind: "pop_smoke"; units: number[] }
   | { kind: "upgrade_move"; gesture: number; route: RoutePolicy };
 
 export interface CommandEnvelope {

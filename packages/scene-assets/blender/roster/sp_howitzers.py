@@ -11,6 +11,26 @@ hull that the gun rig draws (`assets/catalog.json`): its pivot is the
 trunnion, so the turret never turns and the barrel pitches on the frame's
 pitch node.
 
+What the photos settle, shared: a tracked hull with the engine and driver at
+the front (the 2S19's T-80 hull has its engine at the rear), a big slab-sided
+turret over the rear, its long gun travelling level over the glacis on a
+folding travel lock, a cupola with a machine gun, smoke banks, stowage boxes
+on the turret's flanks and a rear door into the turret.
+
+- M109A7 (desert tan, Bull Battery and PIM photos): six road wheels (the
+  Bradley's), the boxy turret almost the hull's width, the M284's bore
+  evacuator and double-baffle brake, the M2 on the commander's cupola.
+- PzH 2000 (German three-tone, Hungarian, Croatian and Munster photos):
+  seven road wheels (the Leopard's), the turret's angular front and flat
+  sides, the 52-calibre gun's pepperpot brake, no evacuator.
+- 2S19M2 (Russian green, Oboronexpo 2014): six road wheels, the T-80 hull
+  with its engine at the rear, the tall turret centred, the 2A64's fume
+  extractor and brake, the remote MG over the commander's hatch, the
+  dozer blade under the nose.
+- PLZ-05 (PLA digital, Beijing museum and parade): seven road wheels, the
+  turret long and low at the rear, the 52-calibre gun with fume extractor
+  and multi-baffle brake.
+
 Each card's frame is the hull's length, width and height stated from its
 published dimensions (the gun excluded), recorded in its receipt as
 `references`.

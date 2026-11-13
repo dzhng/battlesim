@@ -4,7 +4,9 @@
 //! desaturated, pulled toward a night tint and ruled with fine screen-space
 //! lines, and the boundary carries a rim on its seen side. Both clients
 //! upload the record as it is.
+pub mod eye;
 pub mod sight;
+mod smoke;
 pub mod upload;
 
 use std::collections::BTreeMap;

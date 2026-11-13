@@ -73,8 +73,12 @@ calls the same reader for workbench drafts.
   the flashes, the firing soldiers and the gunfire sounds read), the effect frame,
   the cast lights it chooses for the view, cook-offs, and the sparks a hull
   throws where it grinds a metal body it shoves (the simulation publishes
-  where they meet), and the sparks and dust a downed airframe throws off a
-  building it strikes (the simulation publishes each strike once).
+  where they meet), the sparks and dust a downed airframe throws off a
+  building it strikes (the simulation publishes each strike once), and the
+  [smoke screens](src/effects/frame/smoke_screen.rs) the side sees: a billow
+  that swirls inside each cloud's stepped circle, below its top, with no
+  wind, from the law's first step on, drawn over the fog veil as every effect
+  the side sees is.
 - [The view](src/view.rs): what the camera means for culling and detail, the one
   tier rule every drawn model takes and the tier it casts with, and the
   frame's `View` record (with the sky's corner rays) and camera uniform,
@@ -101,10 +105,13 @@ calls the same reader for workbench drafts.
 - [Fog of war's sight](src/fog/sight.rs): each frame's eyes (the side's own
   units' at the published tick, or a lab's stand-ins), the occluders the side
   knows stand (the map's occluding props less those it saw fall, plus what it
-  learned), the eyes' map slots and rebuild schedule, the structures that
-  take fog whole, and the `FogParams` record, as one `FogUpload` a renderer
-  uploads as it is. A prop the side has not learned never reaches it. The
-  unseen look is [`fog`](src/fog/mod.rs)'s `FogLook`.
+  learned), the side's [smoke clouds](src/fog/smoke.rs) at their step of
+  `contract::smoke`'s law, the eyes' map slots and rebuild schedule, the
+  structures that take fog whole, and the `FogParams` record, as one
+  `FogUpload` a renderer uploads as it is. A prop the side has not learned
+  never reaches it. A cloud that comes, steps or goes rebuilds only the maps
+  it reaches, under the moved eyes' budget. The unseen look is
+  [`fog`](src/fog/mod.rs)'s `FogLook`.
 - [The sun's shadow](src/shadow.rs): each frame's cascades fitted over where the
   terrain is in view depth, as the receiver block and each cascade's caster camera
   (`Frame.shadow`, once `set_shadow` gives the light and immutable terrain).

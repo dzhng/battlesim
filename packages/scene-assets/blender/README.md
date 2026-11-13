@@ -45,30 +45,21 @@ that defines it:
 | Module                              | Owns                                                                                                                                                     |
 | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`vehicle_parts`](vehicle_parts.py) | The kernel: the contracts every part keeps, and what every part module shares (tiers, placing a part in its parent's frame, spinning nodes, swept tubes) |
-| [`running_gear`](running_gear.py)   | What a vehicle rolls on: wheels, a tracked vehicle's running gear, and its track belt, which sags between the wheels carrying its top run                |
-| [`hull_shape`](hull_shape.py)       | A hull's shape: its plan rings, its side outline (`Outline`), and where a part sits on a leaning face                                                    |
+| [`running_gear`](running_gear.py)   | What a vehicle rolls on: tyred wheels, and the track belt every tracked body wears (`track_loop`), which sags between the wheels carrying its top run    |
+| [`hull_shape`](hull_shape.py)       | A hull's shape: its plan rings, and where a part sits on a leaning face (`on_side`)                                                                      |
 | [`armour_parts`](armour_parts.py)   | Armour added to a hull or turret                                                                                                                         |
-| [`roof_parts`](roof_parts.py)       | What stands on a roof: hatches, cupolas, optics, dischargers, antennas                                                                                   |
+| [`roof_parts`](roof_parts.py)       | What stands on a roof: hatches, cupolas, optics, dischargers, antennas (a mirrored pair of whips, `whip_pair`)                                           |
 | [`hull_fittings`](hull_fittings.py) | What hangs on a hull: lights, towing gear, grilles, exhausts, tanks                                                                                      |
 | [`stowage`](stowage.py)             | What a vehicle carries                                                                                                                                   |
-| [`vehicle_guns`](vehicle_guns.py)   | Tank gun barrels (`gun_tube`), and machine guns on vehicle and aircraft mounts                                                                           |
+| [`vehicle_guns`](vehicle_guns.py)   | Machine guns on vehicle and aircraft mounts                                                                                                              |
 
 A new part joins the module of its concept, or a new module beside them; the
 kernel holds only what every part module shares. A part hung on a hull or
 turret side that leans takes its position and tilt from that face
-(`hull_shape.on_side`), so plates, tiles, skirts and racks lie on the slope
-the photos show instead of standing upright beside it. A family derived from another
-(the T-90M, T-80BVM and Type 99 from the T-72) imports that family's script
-for what they share.
-
-No tank's hull is flat side-on: its top falls toward the nose over the
-glacis, about 11 degrees along the fenders, and skirts, side armour and
-fender boxes follow that line down. Where the photos show a centre upper
-glacis plate steeper than the fenders beside it (the T-72's family and the
-Type 99), it is its own plate between them, not one slope across the hull.
-Skirts are thin plates whose inner faces stand clear of the track belt and
-the road wheels; nothing in the bake or check catches a skirt cutting into a
-track, so judge it in renders, including from the high battle camera.
+(`hull_shape.on_side`), so plates, tiles and racks lie on the slope the photos
+show instead of standing upright beside it. A family derived from another (the
+Challenger 3 from the Challenger 2) imports that family's script for what they
+share.
 
 A vehicle's surfaces come from the named helpers in [`parts.py`](parts.py),
 each carrying its material role: `tyre()`, `glass()`, `track_steel()`,
@@ -118,7 +109,8 @@ and bottom views of a model measured against the references, so it keeps the
 measured proportions as one smooth, blended surface. Each is paid for once
 and pinned in [`skins/<family>.json`](skins/) with its hash, request and
 inputs (`assets/source/skins/<family>/`); the export refuses any other file
-and its receipt names the skins it wore. Its canopy is fitted to its own
+and its receipt names the skins it wore. A pin can also be an experiment's
+provenance that nothing exports (`skins/t72.json`, its note says so). Its canopy is fitted to its own
 hump; everything else (gear, stores, nozzles, markings) is still built here,
 seated on the skin. To make one: build the airframe's guide, a lofted model measured against
 its references and kept in `guides/<family>.py` (exported with `--out`
@@ -136,8 +128,9 @@ A tracked vehicle's body can instead be built by its own script
 ([`scripted_body.py`](scripted_body.py)): a standalone Blender program,
 `build.py`, written by Gemini Argon from the references and our
 measurements and kept with its rounds under `assets/source/skins/<family>/`.
-After its two rounds it is edited there like any source; that folder's
-README lists the edits. The family's exporter makes the rig from the frame,
+After its Argon rounds (two, unless the user grants another) it is edited
+there like any source; the README of the round the family wears lists the
+edits. The family's exporter makes the rig from the frame,
 then `scripted_body.wear` runs the script's `build()` and fits what it built
 to the contract above: each part moves under the node of what moves it
 (named in the script: `hull`, `turret`, `gun`, `hmg`, `hmg_gun`, `wheel_*`,
@@ -145,7 +138,7 @@ to the contract above: each part moves under the node of what moves it
 family's paint; the script's track runs give way to the shared belt; tiers
 come from `mesh_lods`. Its receipt hashes the script, and `scripted_body.wreck`
 is a worn body's damage. The recipe for a new one is in
-[the Argon pilot](../../../specs/tracked-armour-models/slices/argon-pilot.md).
+[the Argon pilot](../../../specs/done/tracked-armour-models/family-logs.md#the-argon-pilot-t-72b3-and-abrams-sep-v2).
 
 Every vehicle has its own wreck. A roster exporter given `--wreck` writes its
 vehicle's wreck beside the live one (`<appearance>_wreck.glb`, and

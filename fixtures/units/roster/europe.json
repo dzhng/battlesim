@@ -881,6 +881,17 @@
           "rear": 0.3
         },
         "on": "cannon"
+      },
+      "capabilities": {
+        "smoke": {
+          "capacity": 2,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 15, "height_m": 6, "life_s": 40, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "discharger"
+          }
+        }
       }
     },
     "europe_challenger_challenger_3": {
@@ -938,6 +949,9 @@
       "sensors": {
         "ground_m": 600,
         "low_air_m": 600
+      },
+      "capabilities": {
+        "smoke": { "capacity": 3 }
       }
     },
     "europe_cv90120_light_tank": {
@@ -1037,6 +1051,17 @@
       "sensors": {
         "high_air_m": 0,
         "on": "cannon"
+      },
+      "capabilities": {
+        "smoke": {
+          "capacity": 1,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 15, "height_m": 6, "life_s": 40, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "discharger"
+          }
+        }
       }
     },
     "europe_cv90_cv9040c": {
@@ -1128,7 +1153,18 @@
       "concealment": 2.4,
       "name": "CV90 Mk IV",
       "description": "Mk IV; infantry carrier",
-      "capabilities": { "carriage": { "seats": 8 } },
+      "capabilities": {
+        "carriage": { "seats": 8 },
+        "smoke": {
+          "capacity": 1,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 15, "height_m": 6, "life_s": 40, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "discharger"
+          }
+        }
+      },
       "faction": "europe",
       "family": "cv90",
       "roles": [
@@ -1915,6 +1951,17 @@
           "rear": 0.3
         },
         "on": "cannon"
+      },
+      "capabilities": {
+        "smoke": {
+          "capacity": 3,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 15, "height_m": 6, "life_s": 40, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "discharger"
+          }
+        }
       }
     },
     "europe_leclerc_xlr": {
@@ -2019,6 +2066,17 @@
           "rear": 0.3
         },
         "on": "cannon"
+      },
+      "capabilities": {
+        "smoke": {
+          "capacity": 2,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 15, "height_m": 6, "life_s": 40, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "discharger"
+          }
+        }
       }
     },
     "europe_leopard_2_2a6": {
@@ -2123,6 +2181,17 @@
           "rear": 0.3
         },
         "on": "cannon"
+      },
+      "capabilities": {
+        "smoke": {
+          "capacity": 2,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 15, "height_m": 6, "life_s": 40, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "discharger"
+          }
+        }
       }
     },
     "europe_leopard_2_2a7v": {
@@ -2227,6 +2296,17 @@
           "rear": 0.3
         },
         "on": "cannon"
+      },
+      "capabilities": {
+        "smoke": {
+          "capacity": 2,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 15, "height_m": 6, "life_s": 40, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "discharger"
+          }
+        }
       }
     },
     "europe_leopard_2_2a8": {
@@ -2264,6 +2344,9 @@
       "sensors": {
         "ground_m": 600,
         "low_air_m": 600
+      },
+      "capabilities": {
+        "smoke": { "capacity": 3 }
       }
     },
     "europe_man_hx_general_resupply": {
@@ -2677,7 +2760,18 @@
       "concealment": 2.8,
       "name": "Puma Level C",
       "description": "Level C; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
-      "capabilities": { "carriage": { "seats": 8 } },
+      "capabilities": {
+        "carriage": { "seats": 8 },
+        "smoke": {
+          "capacity": 1,
+          "service_s": 2,
+          "stock_per_charge": 2,
+          "cloud": {
+            "radius_m": 15, "height_m": 6, "life_s": 40, "bloom_s": 1, "fade_s": 10,
+            "bloom_steps": 4, "fade_steps": 5, "depth_per_m": 0.2, "concealment": 0.1, "look": "discharger"
+          }
+        }
+      },
       "faction": "europe",
       "family": "puma",
       "roles": [

@@ -617,8 +617,10 @@ crate::records! {
         foliage_cell_m: f32,
         foliage_full_block: f32,
         min_sight_gap_m: f32,
+        /// The smoke circles the terrain march reads (`FogSmoke`).
+        smoke_count: u32,
         /// WGSL aligns the following vec4 to 16 bytes.
-        pad0: [f32; 3],
+        pad0: [f32; 2],
         /// The playable rectangle as the map's extents give it; outside it
         /// is fogged.
         playable: [f32; 4],
@@ -670,6 +672,18 @@ crate::records! {
         top: f32,
         base: f32,
         pad1: f32,
+    }
+
+    /// A smoke cloud as a sight line crosses it (`contract::smoke::CloudState`):
+    /// below its top over the ground, each metre inside its circle adds
+    /// `depth_per_m` of foliage depth.
+    Struct FogSmoke {
+        center: [f32; 2],
+        radius: f32,
+        height: f32,
+        depth_per_m: f32,
+        pad0: f32,
+        pad1: [f32; 2],
     }
 
     /// What this frame poses and runs, for the gates.

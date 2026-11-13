@@ -15,6 +15,7 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use sim::publication::reader::{Shout as PublishedShout, SoundCue};
 
+pub use super::scripted::Scripted;
 pub use super::spatial::{distance_gain, sector_pan};
 use super::tables::{pick, Bus, SoundTables, VehicleSound};
 use super::voices::{Request, Speakers};
@@ -395,58 +396,6 @@ pub struct ShoutTake {
     pub duration: f64,
 }
 
-/// A publication as a script or a capture gives it (the browser's
-/// `SoundPublication`): what the effects read, the launches by where they
-/// leave, and the side's hearing cues.
-#[derive(Deserialize)]
-pub struct Scripted {
-    effects: EffectPublication,
-    launches: Vec<ScriptedShot>,
-    #[serde(default)]
-    audible: Vec<Cue>,
-    #[serde(default)]
-    shouts: Vec<Shout>,
-}
-
-#[derive(Deserialize)]
-struct ScriptedShot {
-    shooter: f64,
-    mount: usize,
-    soldier: Option<f64>,
-    x: f64,
-    y: f64,
-    z: f64,
-    kind: Arc<str>,
-}
-
-impl Scripted {
-    /// Its launches, as the effects derive them.
-    pub fn launches(&self) -> Vec<Launch> {
-        self.launches
-            .iter()
-            .map(|l| Launch {
-                shooter: l.shooter,
-                mount: l.mount,
-                soldier: l.soldier,
-                at: [l.x, l.y, l.z],
-                dir: [0.0; 3],
-                kind: l.kind.clone(),
-                hull: l.soldier.is_none(),
-            })
-            .collect()
-    }
-
-    /// The publication as sound hears it, with its `launches`.
-    pub fn heard<'a>(&'a self, launches: &'a [Launch]) -> Heard<'a> {
-        Heard {
-            effects: &self.effects,
-            launches,
-            audible: self.audible.clone(),
-            shouts: self.shouts.clone(),
-        }
-    }
-}
-
 /// An insertion-ordered map: the order loops and fires were first wanted
 /// is the order they are stopped and ranked in.
 struct Ordered<K, T>(Vec<(K, T)>);
@@ -511,6 +460,8 @@ pub struct Sound {
     high_air: BTreeSet<u64>,
     /// While the ambience is dipped: the player time its recovery starts.
     ambience_dipped: Option<f64>,
+    /// The smoke clouds the side has heard pop.
+    smoke_pops: super::smoke_pops::SmokePops,
 }
 
 /// Where a flying round's stretch ends, as a loop's key.
@@ -612,6 +563,7 @@ impl Sound {
             out: Vec::new(),
             high_air: BTreeSet::new(),
             ambience_dipped: None,
+            smoke_pops: Default::default(),
         }
     }
 
@@ -726,6 +678,7 @@ impl Sound {
         self.cue_heard.clear();
         self.barks.clear();
         self.high_air.clear();
+        self.smoke_pops.clear();
         self.last_tick = -1.0;
         self.clock = None;
         self.held = false;
@@ -798,6 +751,13 @@ impl Sound {
                 variety,
                 key,
             );
+        }
+        let pops = self
+            .smoke_pops
+            .heard(&fx.smoke_clouds, fx.tick, self.dt, &tables);
+        for (sound, at, key) in pops {
+            let gain = p.smoke_pop.gain;
+            self.queue(t0, sound, None, 0.0, Bus::Effects, gain, at, key, key);
         }
         for (i, point) in fx.flare_deploys.iter().enumerate() {
             let flare = &p.flare_deploy;

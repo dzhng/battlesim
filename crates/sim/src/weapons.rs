@@ -905,7 +905,7 @@ pub fn guidance_clear(
         unit.members[k].position + v3(0.0, 0.0, rules.physics.infantry_eye_m)
     };
     world.sight_clear(eye, target)
-        && world.foliage_depth(eye, target) < rules.sensors.foliage_full_block
+        && world.sight_depth(eye, target) < rules.sensors.foliage_full_block
 }
 
 /// Whether an identified enemy the unit may fire at stands within reach of
@@ -999,7 +999,7 @@ fn return_fire_threat(
                     .is_some_and(|fire| distance <= fire.range_m)
                 && (weapon.profile.turn_rad_s.is_none()
                     || (ctx.world.sight_clear(eye, target)
-                        && ctx.world.foliage_depth(eye, target)
+                        && ctx.world.sight_depth(eye, target)
                             < ctx.rules.sensors.foliage_full_block))
                 && crate::flight::solve_launch_past(
                     ctx.world,

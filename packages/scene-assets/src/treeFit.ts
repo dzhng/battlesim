@@ -3,14 +3,7 @@
 
 import type { Authority, Finding, MeshData, Tolerances } from "./schema.ts";
 import type { SceneryRule } from "./scenery.ts";
-
-const finding = (code: Finding["code"], message: string, fix: string): Finding => ({
-  code,
-  severity: "error",
-  message,
-  fix,
-});
-const fmt = (n: number) => n.toFixed(3);
+import { finding, fmt } from "./finding.ts";
 
 /** A tree, unscaled, stands inside the simulation's forest canopy on every
  *  tier, so the drawn crown never rises above or reaches past the foliage

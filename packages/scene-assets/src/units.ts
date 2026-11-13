@@ -220,6 +220,25 @@ export interface UnitType {
     radar_emitter?: boolean;
     /** It finds enemy radars that emit, within `range_m`. */
     radar_receiver?: { range_m: number };
+    /** Charges that each pop a stationary cloud (`contract::smoke`). */
+    smoke?: {
+      capacity: number;
+      service_s: number;
+      stock_per_charge: number;
+      cloud: {
+        radius_m: number;
+        height_m: number;
+        life_s: number;
+        bloom_s: number;
+        fade_s: number;
+        bloom_steps: number;
+        fade_steps: number;
+        depth_per_m: number;
+        concealment: number;
+        /** Its presentation look (and sound). */
+        look: string;
+      };
+    };
   };
   sound: { profile: "infantry" | "vehicle"; loudness_m: number };
   /** A hull's model; a squad draws its soldiers' appearance sets. */
@@ -259,7 +278,6 @@ export interface PropType {
     occludes: boolean;
     weight_class: WeightClass;
     cover_tier: "light" | "medium" | "heavy" | null;
-    lifetime_s: number | null;
     conceals: number;
     hp: number | null;
     hp_scale?: "fixed" | "building_floor_bands";

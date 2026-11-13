@@ -34,6 +34,18 @@ export const SOUND_EFFECTS: Record<
     loop: false,
     candidates: 3,
   },
+  "smoke-discharger": {
+    prompt: `A tank fires its smoke grenade dischargers, heard close by outdoors: two fast heavy hollow thumps, thump-thump, a fraction of a second apart, then a long rushing hiss of smoke pouring out that slowly fades away. ${NOTHING_HUMAN}`,
+    length_s: 5,
+    loop: false,
+    candidates: 3,
+  },
+  "smoke-grenade": {
+    prompt: `A soldier throws a hand smoke grenade, heard close by outdoors: the metallic ping of the spoon flying off, a short dull pop as it ignites, then a steady hissing spew of smoke that slowly fades away. ${NOTHING_HUMAN}`,
+    length_s: 4,
+    loop: false,
+    candidates: 3,
+  },
 };
 /** The source a candidate is kept as: `<effect>-<n>`, 1-based. */
 export const effectSource = (effect: string, n: number) => `${effect}-${n}`;

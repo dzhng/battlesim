@@ -125,9 +125,7 @@ def cab(v):
     box("spare_carrier", (0.20, 0.90, 0.10), (2.75, -0.15, BED_FLOOR + 0.05), m["dark"], hull, lods=MID)
     cyl("spare_tyre", WHEEL_R * 0.97, WHEEL_W, (2.75, -0.15, BED_FLOOR + 0.70), "X", m["rubber"], hull, seg=28)
     cyl("spare_rim", 0.32, 0.06, (2.95, -0.15, BED_FLOOR + 0.70), "X", m["paint"], hull, seg=18, lods=MID)
-    for side, s in ((1, "L"), (-1, "R")):
-        whip = empty(f"dressing_antenna_{s}", parent=hull)
-        RF.antenna(f"antenna_{s}", (CAB_REAR + 0.15, side * 1.05, ROOF), m, whip, height=2.2)
+    RF.whip_pair(hull, (CAB_REAR + 0.15, 1.05, ROOF), m, height=2.2)
 
 
 def bed(v):

@@ -25,14 +25,14 @@
       "name": "metro medium compiled into a map",
       "command": "generate-map",
       "request_json": "{\"generator_version\":\"layout-22\",\"preset_revision\":\"layout-presets-20\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "0f278e69b7c384da52ee8d6056d6cdf614c71b344469afc65ab6e6b0b2ea0e56",
+      "native_sha256": "fa069f1c8c4ea3cf52d912039235c9e523f40f3586f8f3d9f700c7291e0f6dab",
       "exit_code": 0
     },
     {
       "name": "mixed xl compiled into a map",
       "command": "generate-map",
       "request_json": "{\"generator_version\":\"layout-22\",\"preset_revision\":\"layout-presets-20\",\"seed\":\"5\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"xl\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "0ccc0d401138decf36b2c882994ffa9f8bcf2ee39779a92047e5ef93d2dd8146",
+      "native_sha256": "adcab292967d036412aaa5af92a75f982b44ef5558667cd7fb3dd98d894d72f3",
       "exit_code": 0
     },
     {
@@ -88,35 +88,35 @@
       "name": "mixed medium with a river, compiled into a map",
       "command": "generate-map",
       "request_json": "{\"generator_version\":\"layout-22\",\"preset_revision\":\"layout-presets-20\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "977f5fdc3189b000e9c7dbad9d4978d1ab6920295ca09de3430aceb966813ff0",
+      "native_sha256": "141b36402c365a3562ac91d2fa378244976f4f8e56ac6c7d00a48391ac263cf5",
       "exit_code": 0
     },
     {
       "name": "metro medium seed 10",
       "command": "generate-map",
       "request_json": "{\"generator_version\":\"layout-22\",\"preset_revision\":\"layout-presets-20\",\"seed\":\"10\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "188dd1233121397612d879134421da983cea07430c11afafa118874abc1f6eee",
+      "native_sha256": "c6bd2c9b9c319e28eb35d4df3fbebf6ead5665ca1417aaced23a394bc8edfa01",
       "exit_code": 0
     },
     {
       "name": "open small compiled into a map",
       "command": "generate-map",
       "request_json": "{\"generator_version\":\"layout-22\",\"preset_revision\":\"layout-presets-20\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"open\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "9788813fe096cbe01399e45d7a922cf9e78f07c97c262124ecd1f6173972e3b5",
+      "native_sha256": "ea9425e46d16905ef4b1c105dbeefa8cb9116477c0394644d6f932784df999ae",
       "exit_code": 0
     },
     {
       "name": "mixed small compiled into a map",
       "command": "generate-map",
       "request_json": "{\"generator_version\":\"layout-22\",\"preset_revision\":\"layout-presets-20\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "2d8756114530c2606479ff5586f1c0366d11589542c7e7a7bc58aba80762fa54",
+      "native_sha256": "e5f6fb63bd4a2600e0505f7573e745267d3cbdd0aec9f9af731689afcbf3b855",
       "exit_code": 0
     },
     {
       "name": "metro small compiled into a map",
       "command": "generate-map",
       "request_json": "{\"generator_version\":\"layout-22\",\"preset_revision\":\"layout-presets-20\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "2299999eabcab1fcf6e16e521ba270c64314a71dae08ec375c671170c92a4d94",
+      "native_sha256": "9984f3be2879a752a04afa3141a2d17ee37862b671c40e3cefb41bb8dc898828",
       "exit_code": 0
     }
   ]

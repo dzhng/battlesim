@@ -185,6 +185,59 @@ pub(super) fn horizon() -> LayoutSpec {
                     min_binding_size: None,
                 },
             ),
+            smoke_circles(),
+        ],
+    )
+}
+
+/// The smoke circles the terrain march reads (`fogSmokeStep`), at the
+/// same binding in the build and its probe.
+fn smoke_circles() -> BindGroupLayoutEntry {
+    entry(
+        8,
+        ShaderStages::COMPUTE,
+        BindingType::Buffer {
+            ty: BufferBindingType::Storage { read_only: true },
+            has_dynamic_offset: false,
+            min_binding_size: None,
+        },
+    )
+}
+
+/// `fogSmokeStep` over a table of sight-line pieces: the fog's params,
+/// each piece's depth out, the pieces, and the circles.
+pub(super) fn smoke() -> LayoutSpec {
+    layout(
+        "smokeLayout",
+        vec![
+            entry(
+                0,
+                ShaderStages::COMPUTE,
+                BindingType::Buffer {
+                    ty: BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+            ),
+            entry(
+                1,
+                ShaderStages::COMPUTE,
+                BindingType::Buffer {
+                    ty: BufferBindingType::Storage { read_only: false },
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+            ),
+            entry(
+                2,
+                ShaderStages::COMPUTE,
+                BindingType::Buffer {
+                    ty: BufferBindingType::Storage { read_only: true },
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+            ),
+            smoke_circles(),
         ],
     )
 }

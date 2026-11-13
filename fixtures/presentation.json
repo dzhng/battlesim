@@ -550,6 +550,7 @@
       }
     },
     "smoke_budget": 4096,
+    "smoke_screen_budget": 1024,
     "cast_wrap": 0.9
   },
   "weapon_looks": {
@@ -737,5 +738,9 @@
       "kick": {"hull": 0, "soldier": 1},
       "sound": {"shot": {"near": "recorded-cannon", "far": "recorded-cannon-distant", "gain": 1.5, "far_m": 700}, "blast": {"gain": 2.2, "far_m": 800}, "motor": null, "impacts": {"ground": "recorded-ground-heavy", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-shell-hit", "ricochet": "ricochet-shell"}, "impact_scale": 5.0}
     }
+  },
+  "smoke_screen_looks": {
+    "discharger": {"albedo": [0.82, 0.84, 0.87], "opacity": 0.6, "puffs": 64, "size_m": [2.8, 5.2], "swirl_rad_s": 0.08, "height": [0.25, 0.6], "soft_m": 1.0, "sound": "smoke-discharger"},
+    "grenade": {"albedo": [0.82, 0.84, 0.87], "opacity": 0.6, "puffs": 64, "size_m": [2.3, 4.3], "swirl_rad_s": 0.08, "height": [0.25, 0.6], "soft_m": 1.0, "sound": "smoke-grenade"}
   }
 }

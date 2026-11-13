@@ -615,7 +615,8 @@ fn a_mount_naming_no_weapon_row_fails_at_load() {
         json!({ "mounts": [{ "id": "HMG", "weapons": ["railgun"] }] }),
     );
     assert!(
-        e.contains("units.test_tank: mount \"HMG\" names weapon row \"railgun\""),
+        common::names(&e, "units", "test_tank")
+            && e.contains(": mount \"HMG\" names weapon row \"railgun\""),
         "{e}"
     );
     let e = load(
@@ -623,9 +624,9 @@ fn a_mount_naming_no_weapon_row_fails_at_load() {
         "test_rifleman",
         json!({ "mounts": [{ "id": "rifles", "weapons": ["musket"] }] }),
     );
-    // Every kind extending the rifleman inherits it: the first is named.
     assert!(
-        e.contains("soldiers.") && e.contains(": mount \"rifles\" names weapon row \"musket\""),
+        common::names(&e, "soldiers", "test_rifleman")
+            && e.contains(": mount \"rifles\" names weapon row \"musket\""),
         "{e}"
     );
 }
@@ -650,7 +651,7 @@ fn only_a_winged_aircraft_carries_a_bomb() {
     for id in ["test_heli", "test_tank"] {
         let e = load(id).unwrap_err().to_string();
         assert!(
-            e.contains(&format!("units.{id}")) && e.contains("air_bomb"),
+            common::names(&e, "units", id) && e.contains("air_bomb"),
             "{id}: {e}"
         );
     }

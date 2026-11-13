@@ -80,6 +80,7 @@ pub fn layout_json(battle: &Battle) -> String {
         },
         "limbBits": LIMB_BITS,
         "roundKinds": round_kinds,
+        "smokeLooks": smoke_looks(battle.rules()),
         "hitKinds": names(&SEGMENT_HITS),
         "unitKinds": battle.rules().catalog.ids(),
         "playerIds": player_ids,
@@ -108,6 +109,8 @@ pub fn layout_json(battle: &Battle) -> String {
         "suppressionTiers": names(&SUPPRESSION_TIERS),
         "encounterResults": names(&ENCOUNTER_RESULTS),
         "objectiveIds": battle.observe(Side::Blue).skirmish.as_ref().map_or_else(Vec::new, |s| s.objectives.iter().map(|o| o.id.clone()).collect()),
+        // A smoke cloud's look indexes smokeLooks and popped is its pop tick;
+        // an own unit's smokeCharges is -1 when it carries no smoke.
         // Mount ammo is rounds left per kind: -1 unlimited, -2 no such kind.
         // goalX/goalY are NaN without a movement order; policy, direction and blocker are -1 when absent.
         // reversing is 1 while the unit drives backwards this tick, else 0.

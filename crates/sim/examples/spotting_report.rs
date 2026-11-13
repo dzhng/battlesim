@@ -154,7 +154,7 @@ li{margin:4px 0;overflow-wrap:anywhere}tbody th:not([rowspan]){font-size:13px;fo
                 print!("{concealment:>11} | {terrain:<10} | {motion:<6}");
                 let net = target(
                     *concealment,
-                    ground(forest, shelter, &rules.sensors),
+                    ground(forest, shelter, 1.0, &rules.sensors),
                     moving,
                     &rules.sensors,
                 );

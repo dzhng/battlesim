@@ -35,7 +35,7 @@ import roof_parts as RF  # noqa: E402
 import scripted_body as SB  # noqa: E402
 import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
-from parts import box, cyl, empty, prism  # noqa: E402
+from parts import box, cyl, prism  # noqa: E402
 import ural as U  # noqa: E402
 from truck_chassis import chassis  # noqa: E402
 from vehicle_export import run  # noqa: E402
@@ -43,12 +43,12 @@ from vehicle_export import run  # noqa: E402
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
 CARDS = {
-    "us_m270_mlrs_m270a2": ("m270_mlrs", "us_desert_tan", (6.97, 2.97, 2.62)),
-    "europe_mars_ii_multiple_launch_rocket_system": ("mars_ii", "german_three_tone", (6.97, 2.97, 2.62)),
-    "us_m142_himars_gmlrs": ("m142_himars", "us_desert_tan", (7.00, 2.40, 3.20)),
-    "us_m142_himars_prsm": ("m142_himars", "us_desert_tan", (7.00, 2.40, 3.20)),
-    "eastern_bm_21_grad_bm_21_rocket_artillery": ("bm_21_grad", "russian_green", (7.35, 2.69, 3.09)),
-    "eastern_9k515_tornado_s_heavy_rocket_artillery": ("9k515_tornado_s", "russian_green", (12.10, 3.05, 3.05)),
+    "us_m270_mlrs_m270a2": ("m270_mlrs", "us_desert_tan"),
+    "europe_mars_ii_multiple_launch_rocket_system": ("mars_ii", "german_three_tone"),
+    "us_m142_himars_gmlrs": ("m142_himars", "us_desert_tan"),
+    "us_m142_himars_prsm": ("m142_himars", "us_desert_tan"),
+    "eastern_bm_21_grad_bm_21_rocket_artillery": ("bm_21_grad", "russian_green"),
+    "eastern_9k515_tornado_s_heavy_rocket_artillery": ("9k515_tornado_s", "russian_green"),
 }
 
 
@@ -88,8 +88,8 @@ REAR_LIP = 0.12
 
 
 def launcher_box(v, name, x0, x1, z0, z1, width, parent):
-    """The armoured launcher box a pod rides in (the M270's and HIMARS's
-    launcher-loader module): upright ribbed sides, its top chamfered down at
+    """The armoured launcher box a pod rides in (the HIMARS's launcher-loader
+    module): upright ribbed sides, its top chamfered down at
     the front, the loader boom's rail along its top and the cable run down
     its right side. Open at the rear (-X): its shell starts `REAR_LIP` ahead
     of `x0`, where the pod's face shows."""
@@ -114,7 +114,6 @@ def launcher_box(v, name, x0, x1, z0, z1, width, parent):
                                    (x0 + 0.40, -(width / 2 + 0.05), z1 - 0.35)], m, parent, radius=0.025, eyes=False)
 
 
-# ---------------------------------------------------------------- tracked carriers
 # ---------------------------------------------------------------- trucks
 def himars(v, prsm):
     m, h = v.mats, v.hull
@@ -262,9 +261,7 @@ def build(variant, v):
     if ident in M270:
         SB.wear(v, M270_BODY, M270_LINK_PITCH, variant=ident)
         # The whips on the cab roof's rear corners.
-        for side, s in ((1, "L"), (-1, "R")):
-            whip = empty(f"dressing_antenna_{s}", parent=v.hull)
-            RF.antenna(f"antenna_{s}", (0.95, side * 1.20, 2.60), v.mats, whip, height=2.2)
+        RF.whip_pair(v.hull, (0.95, 1.20, 2.60), v.mats, height=2.2)
     elif ident.startswith("us_m142"):
         himars(v, prsm=ident.endswith("prsm"))
     elif ident.startswith("eastern_bm_21"):
@@ -282,22 +279,20 @@ def wreck(variant, v):
     ident = variant["id"]
     if ident in M270:
         return SB.wreck(v, "R", (2, 3))
-    else:
-        remove("wheel_R_1_", "wheel_R_2_", "windscreen", "mudflap_R", "pod_cap_", "grad_tube_3_", "grad_bore_",
-               "smerch_tube_2_0", "smerch_tube_2_1", "smerch_ring_2_0", "smerch_ring_2_1", "smerch_bore_", "spare_",
-               "dressing_mirror_R", "mirror_R", "mirror_arm_R")
-        v.root.rotation_euler = (0.035, 0.03, 0)
-        v.root.location.z -= 0.08
-    shell = parts("cab_body", "cab_L", "cab_R", "cab", "bonnet", "wing_", "hull_upper", "pod_body", "pod_0_body",
-                  "pod_1_body", "launcher_shell", "deck_plate")
+    remove("wheel_R_1_", "wheel_R_2_", "windscreen", "mudflap_R", "pod_cap_", "grad_tube_3_", "grad_bore_",
+           "smerch_tube_2_0", "smerch_tube_2_1", "smerch_ring_2_0", "smerch_ring_2_1", "smerch_bore_", "spare_",
+           "dressing_mirror_R", "mirror_R", "mirror_arm_R")
+    v.root.rotation_euler = (0.035, 0.03, 0)
+    v.root.location.z -= 0.08
+    shell = parts("cab", "bonnet", "wing_", "pod_body", "launcher_shell", "deck_plate")
     densify(shell, scale=2.0)
     warp(shell, heat(0.025, 0.8, seed=71.0), dent((v.length / 2 - 0.6, -0.8, 2.3), 0.6, 0.12, (0, 0, -1)))
     rest_on_ground(0.004)
 
 
 if __name__ == "__main__":
-    run("m270_mlrs", {card: scheme for card, (_, scheme, _) in CARDS.items()}, build, wreck,
+    run("m270_mlrs", {card: scheme for card, (_, scheme) in CARDS.items()}, build, wreck,
         appearances=list(CARDS), script="rocket_artillery.py",
         receipt_file="assets/source/roster/m270_mlrs/rocket_artillery.source-receipt.json",
-        references=[f"assets/references/{family}/references.json" for family in sorted({f for f, _, _ in CARDS.values()})],
+        references=[f"assets/references/{family}/references.json" for family in sorted({f for f, _ in CARDS.values()})],
         chip=1.0)

@@ -162,9 +162,7 @@ def fittings(v):
             box(f"rear_hinge_{s}_{j}", (0.06, 0.08, 0.10), (-3.13 + (z - 1.35) * 0.29, side * 0.79, z), m["steel"],
                 hull, lods=FINE)
         box(f"rear_handle_{s}", (0.05, 0.04, 0.16), (-3.14, side * 0.10, 1.48), m["steel"], hull, lods=FINE)
-    for side, s in ((1, "L"), (-1, "R")):
-        whip = empty(f"dressing_antenna_{s}", parent=hull)
-        RF.antenna(f"antenna_{s}", (-2.85, side * 0.78, ROOF), m, whip, height=2.6)
+    RF.whip_pair(hull, (-2.85, 0.78, ROOF), m, height=2.6)
 
 
 def lav_turret(v, turret, gun):

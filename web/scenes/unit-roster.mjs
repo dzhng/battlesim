@@ -24,6 +24,8 @@ export async function run(ctx) {
   // The live FPS readout is diagnostic and changes with asset upload timing;
   // keep journey pictures focused on the player's view.
   await page.addStyleTag({ content: ".frame-rate { display: none !important; }" });
+  // The lab is ready before the simulation's first observation arrives.
+  await page.waitForFunction(() => window.__lab.route.observation() !== null);
   await page.evaluate(() => window.__lab.route.pause());
   // Pin GPU animation phase as well as simulation state before the journey.
   const captureTick = 60;

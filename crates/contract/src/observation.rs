@@ -538,6 +538,9 @@ pub struct OwnUnit {
     /// It trails smoke (D34), by the same rule an enemy's is published.
     #[serde(default)]
     pub smoking: bool,
+    /// Its smoke charges left, for a unit that carries smoke (never
+    /// `smoking`, which is damage).
+    pub smoke: Option<u32>,
     /// Health of each living soldier, in `members` order.
     pub member_hp: Vec<f64>,
     /// The squad's suppression tier (P14), from its hidden level by the
@@ -724,6 +727,10 @@ pub struct ObservationFrame {
     /// Where hulls grind the metal bodies shoved this tick that this side sees.
     #[serde(default)]
     pub grinds: Vec<Grind>,
+    /// The smoke clouds this side sees (its own, and any whose rim its fog
+    /// shows): where and when each was popped and what it is, never who
+    /// popped it.
+    pub smoke_clouds: Vec<crate::smoke::SmokeCloud>,
     /// Round flight this side may draw this tick (own rounds whole, enemy
     /// rounds only over ground it sees).
     pub projectiles: Vec<VisibleSegment>,

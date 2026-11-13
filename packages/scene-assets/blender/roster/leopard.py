@@ -33,7 +33,6 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import roof_parts as RF  # noqa: E402
 import scripted_body as SB  # noqa: E402
-from parts import empty  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
 
 # The scripted body every variant wears, each variant's id in it, its
@@ -51,20 +50,11 @@ TROPHY_NODES = {"radar": (-0.795, 1.75, 2.16), "launcher": (-1.125, 1.62, 2.72)}
 
 
 def build(variant, v):
-    import bpy
-    from mathutils import Vector
     body = BODIES[variant["id"]]
     turret = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})["cannon"][0]
     SB.wear(v, BODY, LINK_PITCH, variant=body)
-    bpy.context.view_layer.update()
-    for side, s in ((1, "L"), (-1, "R")):
-        holder = bpy.data.objects.get(f"dressing_trophy_{s}")
-        for part, (x, y, z) in TROPHY_NODES.items() if holder else ():
-            empty(f"trophy_{part}_{s}", tuple(holder.matrix_world.inverted() @ Vector((x, side * y, z))), holder)
-    x, y, z = WHIPS[body]
-    for side, s in ((1, "L"), (-1, "R")):
-        whip = empty(f"dressing_antenna_{s}", parent=turret)
-        RF.antenna(f"antenna_{s}", (x, side * y, z), v.mats, whip, height=2.2)
+    SB.trophy_nodes(TROPHY_NODES)
+    RF.whip_pair(turret, WHIPS[body], v.mats, height=2.2)
 
 
 def wreck(variant, v):

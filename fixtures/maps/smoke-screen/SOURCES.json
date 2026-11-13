@@ -1,0 +1,18 @@
+{
+  "identity": {
+    "kind": "authored",
+    "map_hash": "91e9f22556e891eea46c7ddd380f36fd9477d777d849f7246c8524045d549545",
+    "template_catalog_hash": null
+  },
+  "catalogue": {
+    "library": "prototype-building-templates.json",
+    "template_ids": []
+  },
+  "inputs": [
+    {
+      "kind": "supplied",
+      "label": "map.json, authored by hand for the smoke screen lab",
+      "sha256": "779c6cd49e20d716d7446398d1b1903936629f85738a87da279e76e743b4eaed"
+    }
+  ]
+}
