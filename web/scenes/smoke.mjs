@@ -1,14 +1,15 @@
-// Smoke screens on the smoke lab: the encounter's scripted pop raises a cloud
-// round blue's road tank. Red, watching from across open ground, has its fog
+// Smoke screens on the smoke lab, through the player's own input: blue selects
+// its road tank from the army deck and presses H. The tank's panel counts its
+// charge down and shows HIDDEN once the cloud is up. Red, watching from across
+// open ground, has its fog
 // close over the ground behind the cloud once it blooms and open again once it
 // has faded, while the ground on its near side stays lit; red keeps a
 // last-contact marker where the tank vanished, and sees the cloud itself.
 // Blue's own cloud is always its own to see. Then the drawn cloud, from a
-// fresh battle: blue pops its grass tank's and its squad's smoke beside the
-// scripted one, and the look tour shoots them blooming, full, overlapping,
-// over road, grass and wood, beside the burning wreck, at far zoom and in
-// their fade. Every number is read from the encounter and the published
-// cloud. SMOKE_COST=1 also measures fog's GPU cost at a hundred eyes, with and
+// fresh battle: blue pops all three carriers' smoke, and the look tour shoots
+// the clouds blooming, full, overlapping, over road, grass and wood, beside
+// the burning wreck, at far zoom and in their fade. Every number is read from
+// the encounter, the map and the published cloud. SMOKE_COST=1 also measures fog's GPU cost at a hundred eyes, with and
 // without twelve clouds (run it alone, under the GPU lock).
 import { readFile } from "node:fs/promises";
 import { advance, aim, lab, obs, openBattle, snapshot } from "./_lab.mjs";
@@ -17,12 +18,32 @@ import { decode, pixel } from "./_png.mjs";
 const fixture = async (path) =>
   JSON.parse(await readFile(new URL(`../../fixtures/${path}`, import.meta.url), "utf8"));
 
-/** The encounter's scripted pop: its tick and its carrier. */
-async function scriptedPop() {
+/** When the scene pops the road tank's smoke: after blue's grass tank has
+ *  shelled the jeep and held its fire again. */
+const POP_TICK = 120;
+
+/** The pop: its tick, and its carrier, the smoke tank on the map's road. */
+async function roadPop() {
   const encounter = await fixture("maps/smoke/encounters/smoke.json");
-  const pop = encounter.scripts.find((s) => s.order.kind === "pop_smoke");
-  return { tick: pop.tick, carrier: pop.order.units[0] };
+  const map = await fixture("maps/smoke/map.json");
+  const road = map.surfaces[0].shape.points[0][1];
+  const carrier = encounter.units.findIndex(
+    (u) => u.side === "blue" && u.kind === "test_smoke_tank" && u.position[1] === road,
+  );
+  return { tick: POP_TICK, carrier };
 }
+
+/** The floating panel's state rows of own unit `id`: each row's state and words. */
+const panelRows = (page, id) =>
+  lab(
+    page,
+    (id) =>
+      [...document.querySelectorAll(`.ro-unit[data-unit="${id}"] .ro-state`)].map((r) => ({
+        state: r.dataset.state,
+        word: r.textContent.trim(),
+      })),
+    id,
+  );
 
 /** A shot of `centre` framed by `view` (close up by default), then the
  *  lab's own framing again. */
@@ -62,7 +83,7 @@ const setSide = async (page, side) => {
 };
 
 export async function run(ctx) {
-  const pop = await scriptedPop();
+  const pop = await roadPop();
   const hz = (await fixture("rules.json")).tick_hz;
   const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
 
@@ -78,8 +99,17 @@ export async function run(ctx) {
   );
   await snapshot(ctx, page, "red-before-pop.png");
 
-  // Blue's view at the pop: the cloud, its centre and its law.
+  // Blue pops it by hand: the tank's card, then H.
   await setSide(page, "blue");
+  await advanceTo(page, pop.tick - 1);
+  await page.locator(`.hud-army-card[data-unit="${pop.carrier}"]`).click();
+  const charges = (await obs(page)).own.find((u) => u.id === pop.carrier).smoke;
+  const rowsBefore = await panelRows(page, pop.carrier);
+  await snapshot(ctx, page, "blue-before-pop-panel.png");
+  await page.keyboard.press("KeyH");
+  await page.waitForFunction(() =>
+    window.__lab.route.acks().some((a) => a.order.kind === "pop_smoke"),
+  );
   await advanceTo(page, pop.tick + 1);
   const blue = await obs(page);
   const cloud = blue.smokeClouds[0];
@@ -92,6 +122,17 @@ export async function run(ctx) {
       ) < 1,
     JSON.stringify(blue.smokeClouds),
   );
+  await page.evaluate(() => window.__lab.frame());
+  const rowsAfter = await panelRows(page, pop.carrier);
+  const word = (rows, state) => rows.find((r) => r.state === state)?.word ?? null;
+  ctx.check(
+    "H spends one charge, and the panel's SMOKE row counts it down",
+    blue.own.find((u) => u.id === pop.carrier).smoke === charges - 1 &&
+      word(rowsBefore, "smoke") !== word(rowsAfter, "smoke") &&
+      word(rowsAfter, "smoke")?.includes(String(charges - 1)),
+    JSON.stringify({ charges, rowsBefore, rowsAfter }),
+  );
+  await snapshot(ctx, page, "blue-pop-panel.png");
   const bloomed = cloud.popped + Math.ceil(cloud.spec.bloomS * hz) + 2;
   const gone = cloud.popped + Math.ceil(cloud.spec.lifeS * hz) + 2;
   // The ground behind the cloud along red's line, and in front of it.
@@ -115,6 +156,17 @@ export async function run(ctx) {
   // Bloomed: red's fog closes behind it, not before it.
   await advanceTo(page, bloomed);
   const [behindSmoked, nearSmoked] = await seen(page, [behind, before]);
+  await setSide(page, "blue");
+  await page.locator(`.hud-army-card[data-unit="${pop.carrier}"]`).click();
+  await page.evaluate(() => window.__lab.frame());
+  const hidden = await panelRows(page, pop.carrier);
+  ctx.check(
+    "in its cloud, the carrier's panel shows HIDDEN",
+    hidden.some((r) => r.state === "hidden"),
+    JSON.stringify(hidden),
+  );
+  await snapshot(ctx, page, "blue-hidden-panel.png");
+  await setSide(page, "red");
   const red = await obs(page);
   ctx.check(
     "a bloomed cloud closes red's fog behind it and leaves the near side seen",
@@ -233,6 +285,8 @@ async function lookTour(ctx, pop) {
   );
   await snapshot(ctx, page, "look-default.png");
   await closeShot(ctx, page, grass.position, "look-far.png", { distance: 600, pitch: 0.95 });
+  await advanceTo(page, pop.tick);
+  await popAt(road);
   await advanceTo(page, pop.tick + 5);
   await closeShot(ctx, page, road.position, "look-road-bloom.png");
   await popAt(squad);

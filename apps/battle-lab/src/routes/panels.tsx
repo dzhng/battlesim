@@ -125,6 +125,24 @@ function DeckReview({ onBack }: { onBack: () => void }) {
         specimenUnit(catalog, "test_supply", { id: 2 }),
       ],
     },
+    // Smoke charges come from the published count alone, so they ride the
+    // tank, beside a squad that carries none.
+    {
+      name: "Smoke ready",
+      units: [
+        specimenUnit(catalog, "test_tank", { id: 1, smoke: 2 }),
+        specimenUnit(catalog, "test_rifle", { id: 2 }),
+      ],
+      selected: [1, 2],
+    },
+    {
+      name: "Smoke spent",
+      units: [
+        specimenUnit(catalog, "test_tank", { id: 1, smoke: 0 }),
+        specimenUnit(catalog, "test_rifle", { id: 2 }),
+      ],
+      selected: [1, 2],
+    },
     {
       name: "Garrison exit",
       units: [
@@ -188,6 +206,7 @@ function DeckReview({ onBack }: { onBack: () => void }) {
     toggleDeployment: () => setAction("Deployment"),
     exitBuilding: () => setAction("Leave building"),
     pressUnload: () => setAction("Unload"),
+    popSmoke: () => setAction("Pop smoke"),
   };
   const armyState = useFeed({
     own: selection.units,

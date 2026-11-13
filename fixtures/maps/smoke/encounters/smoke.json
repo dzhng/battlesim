@@ -10,7 +10,6 @@
   "scripts": [
     {"tick":15,"side":"blue","order":{"kind":"attack","units":[1],"target":{"kind":"ground","point":[185,64,0]}}},
     {"tick":75,"side":"blue","order":{"kind":"stop","units":[1]}},
-    {"tick":76,"side":"blue","order":{"kind":"set_engagement","units":[1],"policy":"return_fire_only"}},
-    {"tick":120,"side":"blue","order":{"kind":"pop_smoke","units":[0]}}
+    {"tick":76,"side":"blue","order":{"kind":"set_engagement","units":[1],"policy":"return_fire_only"}}
   ]
 }
