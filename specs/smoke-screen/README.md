@@ -19,7 +19,7 @@ where the spec was silent go in [`choices.md`](choices.md).
 **Status (2026-11-12):**
 - **Done:** slices 01–11.
   - Slice 02's kill gate said **KEEP**.
-  - The smoke lab route (`smoke`) plays the moment with real input: press H,
+  - The smoke-screen lab route (`smoke-screen`) plays the moment with real input: press H,
     watch the charges count down, see HIDDEN, see the cloud and the fog.
 - **Pin moves named in `choices.md`:**
   - slice 03: the `test_smoke_*` rows shift test-type indices;
@@ -30,13 +30,14 @@ where the spec was silent go in [`choices.md`](choices.md).
   and the visual follow-up (seen clouds draw over the fog veil, starting at
   their first bloom step).
 
-**Pickup:** [slice 12](slices/12-closeout.md). Also fix the `team_3v3` and `team_5v5` skirmishes, which map generation refuses in the AI tournament corpus; it isn't caused by smoke, so fix it in its own commit. The sound takes for slice 10 were chosen from waveforms and spectrograms; nobody has listened to them yet. Disk is tight. Before you touch
-anything, read:
-- `AGENTS.md`;
-- `development.md`;
-- this README;
-- [`decisions.md`](decisions.md);
-- the slice file.
+**Pickup:** [slice 12](slices/12-closeout.md). The whole-spec review is done and its
+fixes have landed: the pop sound reads the cloud law, a look's sound is
+required, the `smoke_screen_looks` and `smoke-screen` renames, docs, the
+tutorial, and a system test that player units never pop on their own. The
+`team_3v3` and `team_5v5` corpus fix landed in its own commit. Still to do: the
+full check run, the paired balance report, consolidating `choices.md`, and
+`close-spec`. The sound takes were chosen from waveforms and spectrograms;
+nobody has listened to them yet.
 
 **Warnings:**
 - **Slice 02 is a kill gate.** If the GPU fog can't take a dynamic circle list
@@ -107,7 +108,7 @@ the slice didn't.
 | Which clouds a side sees | `sim::smoke::seen_by`, reading the side's simulation fog field |
 | Smoke in the observation | `ObservationFrame.smoke_clouds`, `OwnUnit.smoke` |
 | GPU smoke depth | A single WGSL `fogSmokeStep`, held to `contract::smoke` by a probe parity test |
-| The look and sound of a cloud | A `smoke_looks.<name>` row in `fixtures/presentation.json`, named by the capability (the weapon-look pattern), whose `sound` names the clip |
+| The look and sound of a cloud | A `smoke_screen_looks.<name>` row in `fixtures/presentation.json`, named by the capability (the weapon-look pattern), whose `sound` names the clip |
 
 When this is done, the code must read as if smoke had been designed in from
 the start:
@@ -126,7 +127,7 @@ the start:
 | Observation | `smoke_clouds` (no popping unit, no kind) and `OwnUnit.smoke` | 05 |
 | Publication layout | Group `smokeClouds`, own-unit field `smokeCharges`, look names list `smokeLooks`. Captures and vectors are redone once | 05 |
 | Fog upload | A smoke-circle buffer and `fogSmokeStep` | 02, 06 |
-| Presentation fixture | `smoke_looks`, `smoke_screen_budget` | 07 |
+| Presentation fixture | `smoke_screen_looks`, `smoke_screen_budget` | 07 |
 | `skirmish-ai.json` | `smoke_loss_share`, `smoke_window_s`, `smoke_reverse_m` | 11 |
 | `sounds.json` and `audio.json` | Smoke pop clips and the look's sound slot | 10 |
 
