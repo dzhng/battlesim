@@ -1382,6 +1382,100 @@
         0.9
       ]
     },
+    "hangar": {
+      "unit": "scenery",
+      "scenery": "hangar",
+      "states": {
+        "default": "assets/source/military/hangar.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        12.0,
+        8.0,
+        4.0
+      ]
+    },
+    "hangar_ruin": {
+      "unit": "scenery",
+      "scenery": "hangar_ruin",
+      "states": {
+        "default": "assets/source/military/hangar_ruin.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        12.0,
+        8.0,
+        0.75
+      ]
+    },
+    "revetment": {
+      "unit": "scenery",
+      "scenery": "revetment",
+      "states": {
+        "default": "assets/source/military/revetment.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        8.0,
+        1.5,
+        1.6
+      ]
+    },
+    "hesco": {
+      "unit": "scenery",
+      "scenery": "hesco",
+      "states": {
+        "default": "assets/source/military/hesco.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.2,
+        0.55,
+        0.7
+      ]
+    },
+    "tent": {
+      "unit": "scenery",
+      "scenery": "tent",
+      "states": {
+        "default": "assets/source/military/tent.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.0,
+        2.5,
+        1.4
+      ]
+    },
+    "flagpole": {
+      "unit": "scenery",
+      "scenery": "flagpole",
+      "states": {
+        "default": "assets/source/military/flagpole.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.08,
+        0.08,
+        4.0
+      ],
+      "tolerances": {
+        "footprint_m": 1.6
+      }
+    },
+    "supply_net": {
+      "unit": "scenery",
+      "scenery": "supply_net",
+      "states": {
+        "default": "assets/source/military/supply_net.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        2.4,
+        1.2,
+        1.1
+      ]
+    },
     "grass_meadow": {
       "unit": "scenery",
       "scenery": "grass",

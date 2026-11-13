@@ -16,7 +16,7 @@ and the map disagree, this README wins. The disagreements are listed in
 
 ## Next Agent Prompt
 
-**Status (2026-11-13):** slices 01–14 and 17 are merged; the Armory is playable on the placeholder yard, and military depots stand on generated maps (stand-in art) into
+**Status (2026-11-13):** slices 01–15 and 17 are merged; the Armory is playable on the placeholder yard, and military depots stand on generated maps with their own art into
 `t3/unit-explorer-armory`, and staging is merged in (`736eff7d8`). The
 integrated tree is green on the cross-lane checks:
 - contract weapons, showground, showcase;
@@ -29,9 +29,9 @@ integrated tree is green on the cross-lane checks:
 so slices 14–17 may start. Run them one lane at a time while disk is tight.
 
 **Pickup:**
-1. The `armory/art` lane is running **15** (military art), then **16** (the
-   yard swapped to it). Merge it when it lands. Slice 16 also owns the flat
-   sand ground and its tan-on-tan contrast.
+1. **16**: swap `yard.json` to the military set. It also owns the flat sand
+   ground, its tan-on-tan contrast, and the per-spot ground (a schema choice;
+   depots' `Paving` is the precedent).
 2. Raised to the user, with provisional answers in force: the depot density
    (`open_country.depots.per_road_km` 0.3, about one per skirmish map), and
    whether the lobby's map picture should draw props.
@@ -45,6 +45,14 @@ so slices 14–17 may start. Run them one lane at a time while disk is tight.
      (`contract/src/catalog.rs` `check` on sensors), so the air-war profile
      writes 1 m for "blind to the ground". Allowing 0 is a contract change for
      the user. Until then, the sheet shows the true number.
+   - **the fog's "unseen" top on bodies 1.5–1.6 m tall** (the hangar ruin):
+     in `fog.wgsl` `fogSeenSurface`, the probe point 0.1 m above an upward
+     face sits level with a 1.6 m eye, so `fogSeenBy`'s face test rejects it.
+     The roof rescue only runs above the eye. Fix it in its own renderer
+     commit, with the fog scenes as proof;
+   - the military art in a real battle and on the map-picture seeds. Six of the
+     seven props score 4–6/10 against their photos (`decisions.md`); better
+     art is a re-export, not code;
    - re-record the distant-impostors receipt in the browser. The benchmark's
      standard-profile maps now hold depots. Also run the native counts test
      and the street lab's pinned digest; slice 14 couldn't run either.
@@ -145,7 +153,7 @@ battle-wide decision for the user.
   change.
 - [x] [14](slices/14-military-rows.md) Military prop rows and
   mechanics, on stand-ins.
-- [ ] [15](slices/15-military-art.md) Military art: one prop per
+- [x] [15](slices/15-military-art.md) Military art: one prop per
   gate, bake.
 - [ ] [16](slices/16-military-yard.md) The yard swapped to the
   military set.

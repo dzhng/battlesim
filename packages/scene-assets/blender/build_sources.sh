@@ -64,3 +64,9 @@ done
 blender trees.py
 # the forest floor's bodies and dressing, one GLB per kind into assets/source/forest/
 blender forest_floor.py
+# the military bodies (fixtures/props/military/works.json, camp.json), one GLB per kind
+m="$root/assets/source/military"
+mkdir -p "$m"
+for kind in hangar hangar_ruin revetment hesco tent flagpole supply_net; do
+  blender military.py "$kind" "$m/$kind.glb" --lint
+done

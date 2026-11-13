@@ -3,17 +3,17 @@
     "tent": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": true, "weight_class": "light", "topples": true, "hp": 30},
       "destroyed": "removed",
-      "appearance": {"status": "systems_only", "stand_in_tint": [0.42, 0.45, 0.3], "drawn_by": "tent", "map_only": true}
+      "appearance": {"stand_in_tint": [0.42, 0.45, 0.3], "drawn_by": "tent", "map_only": true}
     },
     "flagpole": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "topples": true, "hp": 20, "metal": true},
       "destroyed": "removed",
-      "appearance": {"status": "systems_only", "stand_in_tint": [0.78, 0.78, 0.76], "drawn_by": "flagpole", "map_only": true}
+      "appearance": {"stand_in_tint": [0.78, 0.78, 0.76], "drawn_by": "flagpole", "map_only": true}
     },
     "supply_net": {
       "body": {"blocks": {"infantry": false, "vehicle": false}, "stops_rounds": false, "occludes": false, "weight_class": "light", "hp": 30},
       "destroyed": "removed",
-      "appearance": {"status": "systems_only", "stand_in_tint": [0.36, 0.41, 0.26], "drawn_by": "supply_net", "map_only": true}
+      "appearance": {"stand_in_tint": [0.36, 0.41, 0.26], "drawn_by": "supply_net", "map_only": true}
     }
   }
 }

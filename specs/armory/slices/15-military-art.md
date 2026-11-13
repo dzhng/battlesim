@@ -1,5 +1,7 @@
 # 15 · Military art: one prop per gate [held: L1]
 
+Status: done 2026-11-13, commits f41e1fb1b (15a, 15b), 3196df08b (split), 140dfef0e (15c), 573bf60be (15d), 10facb466 (15e), 7118e5c24 (15f).
+
 Map rows: Q2, L2, L3. Depends on 14.
 
 ## Contract

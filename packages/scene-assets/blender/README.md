@@ -178,6 +178,11 @@ headless as part of the vehicle export pipeline, checking:
 - **Ground contact:** tracks or wheels must touch the ground plane in rest pose
   within 1cm. Flags vehicles that hover above or sink below.
 
+The military bodies ([`military.py`](military.py)) take the floating and ground
+checks with `--lint`, and the overlap check between their bodies (the root's
+children: a tent's canvas and its rigging, a flag and its pole); [the batch
+script](build_sources.sh) passes it.
+
 The lint runs automatically during export; pass `--no-lint` to skip it. New issues
 not in the [baseline](vehicle_lint_baseline.json) fail the export. Known issues in
 the baseline pass, giving a path to fix them incrementally.
