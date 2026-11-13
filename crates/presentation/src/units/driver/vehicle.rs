@@ -5,9 +5,6 @@
 use super::attitude::{aircraft_attitude, tilt, Flight};
 use super::*;
 
-/// Seconds a fixed-wing aircraft's landing gear takes to stow or lower.
-const GEAR_TRAVEL_S: f64 = 4.0;
-
 /// Its landing gear stowed (1) or down (0) for its flight state: a live or
 /// falling fixed-wing aircraft flies gear up; everything else stands on it.
 fn gear_up_for(ty: &UnitType) -> f64 {
@@ -68,7 +65,7 @@ impl PoseDriver {
                             gun_pitch: gun_target,
                             hmg_pitch: hmg_target,
                             rotor_blur: if ty.airborne { 1.0 } else { 0.0 },
-                            // First seen in flight: already gear up.
+                            // A type flies gear up or stands on it for life.
                             gear_up: gear_up_for(ty),
                             ..Articulation::default()
                         },
@@ -106,7 +103,6 @@ impl PoseDriver {
         let attitude = unit.attitude.or(flying);
         let a = &mut pose.articulation;
         a.deploy = unit.deployment.unwrap_or(0.0);
-        a.gear_up = approach(a.gear_up, gear_up_for(ty), dt / GEAR_TRAVEL_S);
 
         // The turret on the cannon's bearing, the HMG relative to what it
         // rides (a mount, else the hull); elevations eased (they change

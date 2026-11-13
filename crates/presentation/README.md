@@ -199,9 +199,11 @@ rate and a paused one shows its blades.
 
 A running jet glows in every nozzle and leaves its engines' and wingtips'
 trails, as a war film shows a jet: visual only, so it never touches the
-simulation. Where its nozzles and wingtips are is data on its appearance
-(`presentation.effects.jet_exhaust.airframes`), in its model's own frame,
-because the baked art keeps no node for them; its engine kind names a look, and
+simulation. Where its nozzles, wingtips and wings are is data on its appearance
+(`presentation.effects.jet_exhaust.airframes`), in its model's own frame, read
+from its source art by the [airframe tool](../../packages/scene-assets/src/jetAirframes.ts)
+because the baked art keeps no node for them (a test fails while the two
+disagree); only its engine kind is authored, and it names a look, and
 only a look with a `flame` ever burns, so a high-bypass turbofan like the
 A-10's only glows. Its throttle is its published speed against its type's
 cruise: brighter the faster, with the afterburner's flame and shock diamonds
@@ -214,11 +216,8 @@ short wisps: thin at the tip, tapering fast, broken by noise fixed where the
 vapour formed, so the wisps hang in the air rather than slide. How the
 engines trail is a choice in the data, `jet_exhaust.engine_style`, naming one
 of `jet_exhaust.engine_styles`: each a list of layers laid from the same points
-behind each nozzle and drawn in order. The shipped looks are `realistic` (the
-default: a short grey-brown haze off the nozzle fading into a white
-condensation trail), `white_core` (a white trail round a darker smoky core
-that thickens with throttle and afterburner) and `dramatic` (dense black and
-white smoke, an artistic look modern fighters do not make). A layer may be a
+behind each nozzle and drawn in order, so a different look is a data change.
+A layer may be a
 continuous `plume`: one ribbon whose middle wanders and width swells, broken
 by noise fixed where it was laid, that hides by optical depth so dark smoke
 darkens even a bright sky; with `mix` its colour runs between a dark and a

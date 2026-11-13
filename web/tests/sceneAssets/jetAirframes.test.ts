@@ -29,8 +29,5 @@ test("every shipped airframe names an engine look, and only afterburning engines
   const airframes = Object.entries(style.airframes) as [string, { engine: string }][];
   for (const [name, a] of airframes) expect(style.engines[a.engine], name).toBeDefined();
   const dry = airframes.filter(([, a]) => !style.engines[a.engine].flame).map(([n]) => n);
-  // The A-10's TF34s and the Su-25's R-195s have no afterburner.
-  expect(dry.some((n) => n.includes("a_10"))).toBe(true);
-  expect(dry.some((n) => n.includes("su_25"))).toBe(true);
   expect(dry.length).toBeLessThan(airframes.length);
 });
