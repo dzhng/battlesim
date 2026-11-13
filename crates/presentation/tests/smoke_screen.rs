@@ -1,10 +1,10 @@
 //! A smoke screen as it is drawn (`specs/smoke-screen`, slice 07): its puffs
 //! stay inside the circle `contract::smoke` grows and fades in steps and
-//! below the cloud's top for its whole life, whatever the wind; they take
-//! the fog of the ground behind them; they cost wreck smoke nothing; and a
-//! capability naming a look the presentation lacks is refused when its
-//! unit is fielded. Every number is the shipped presentation's and the test
-//! catalog's.
+//! below the cloud's top for its whole life, whatever the wind; the drawn
+//! cloud stands at the law's first step from its pop; they cost wreck smoke
+//! nothing; and a capability naming a look the presentation lacks is refused
+//! when its unit is fielded. Every number is the shipped presentation's and
+//! the test catalog's.
 use contract::smoke::{state, SmokeCloud};
 use presentation::assets::Runtime;
 use presentation::effects::frame::{EffectBatch, EffectFrame, EFFECT_FLOATS};
@@ -69,11 +69,6 @@ fn drawn(f: &mut EffectFrame, clock: f64, wind: Option<&WindSettings>) -> Vec<Ve
         .collect()
 }
 
-/// A screen puff: a flipbook that leaves the fog as the ground behind it has it.
-fn screen(i: &[f32]) -> bool {
-    i[12] == FLIPBOOK && i[15] == 1.0
-}
-
 #[test]
 fn every_puff_stays_in_its_cloud_below_its_top_for_its_whole_life_in_any_wind() {
     let clouds = [
@@ -102,7 +97,6 @@ fn every_puff_stays_in_its_cloud_below_its_top_for_its_whole_life_in_any_wind() 
             let at = (clock / DT + 1e-6).floor() as u64;
             let states: Vec<_> = clouds.iter().map(|c| state(c, at, HZ)).collect();
             for i in still.iter().filter(|i| i[12] == FLIPBOOK) {
-                assert!(screen(i), "every puff leaves the fog alone: {i:?}");
                 let (x, y, z, r) = (
                     f64::from(i[0]),
                     f64::from(i[1]),
@@ -140,12 +134,34 @@ fn every_puff_stays_in_its_cloud_below_its_top_for_its_whole_life_in_any_wind() 
 }
 
 #[test]
+fn a_drawn_cloud_already_fills_its_first_bloom_step_on_the_tick_it_pops() {
+    // On its pop tick the law already conceals out to the first step's
+    // circle, so the drawn cloud stands there too rather than growing from
+    // a point.
+    let c = cloud("test_smoke_tank", 0, [100.0, 50.0, 0.0], 10);
+    let first = state(&c, c.popped, HZ).unwrap();
+    assert!(first.radius_m < c.spec.radius_m, "the law blooms in steps");
+    let mut f = EffectFrame::new(f64::from(HZ), presentation());
+    f.note(&publ(c.popped, std::slice::from_ref(&c), &json!([])));
+    let puffs = drawn(&mut f, c.popped as f64 * DT, None);
+    let reach = (puffs.iter())
+        .map(|i| f64::from(i[0] - 100.0).hypot(f64::from(i[1] - 50.0)) + f64::from(i[3]))
+        .fold(0.0, f64::max);
+    assert!(
+        reach > 0.75 * first.radius_m,
+        "on its pop tick the drawn cloud reaches {reach} m of its first step's {} m",
+        first.radius_m
+    );
+}
+
+#[test]
 fn smoke_screens_cost_the_wrecks_nothing_and_keep_to_their_own_budget() {
     let p = presentation();
     let wrecks = json!((0..40)
         .map(|k| json!({"key": format!("w{k}"), "kind": "wreck", "center": [k as f64 * 15.0, 0, 0], "yaw": 0, "half": [3, 1.6, 1.2]}))
         .collect::<Vec<_>>());
-    // Enough clouds to pass the screens' own budget.
+    // Enough clouds to pass the screens' own budget, in a row of their own
+    // north of the wrecks'.
     let per = f64::from(p.smoke_looks["discharger"].puffs);
     let n = (p.smoke_screen_budget / per).ceil() as u32 * 2;
     let clouds: Vec<_> = (0..n)
@@ -160,7 +176,8 @@ fn smoke_screens_cost_the_wrecks_nothing_and_keep_to_their_own_budget() {
     };
     let alone = run(&[]);
     let together = run(&clouds);
-    let (screens, rest): (Vec<_>, Vec<_>) = together.into_iter().partition(|i| screen(i));
+    let (screens, rest): (Vec<_>, Vec<_>) =
+        (together.into_iter()).partition(|i| i[12] == FLIPBOOK && f64::from(i[1]) > 100.0);
     assert_eq!(
         rest, alone,
         "the wrecks draw exactly as they do without screens"

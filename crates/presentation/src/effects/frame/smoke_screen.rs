@@ -5,8 +5,11 @@
 //! a puff passes `(1 − opacity)^density` of the light behind it, so the
 //! layered billow thins as the cloud does. Nothing blows it: the
 //! simulation's cloud stands still (D8), so the drawn one never leaves it.
-//! Its look is the `smoke_looks` row its capability names, and every screen
-//! together keeps to `smoke_screen_budget`, apart from the wrecks' smoke.
+//! A side is published only the clouds it sees (D12), so a puff lifts the
+//! fog veil by what it covers, as every effect does; the ground and units
+//! behind it stay veiled. Its look is the `smoke_looks` row its capability
+//! names, and every screen together keeps to `smoke_screen_budget`, apart
+//! from the wrecks' smoke.
 use contract::smoke::{state, SmokeCloud};
 
 use super::*;
@@ -65,7 +68,8 @@ impl Screens {
 }
 
 /// Cloud `c`, `age` seconds after its pop, at tick `tick`: the first `keep`
-/// share of its puffs. The drawn cloud grows smoothly inside the stepped
+/// share of its puffs. The drawn cloud stands at the law's first step from
+/// its pop tick, as concealment does, then grows smoothly inside the stepped
 /// circle (never past it), and each puff with it.
 fn draw_cloud(
     c: &SmokeCloud,
@@ -80,7 +84,8 @@ fn draw_cloud(
         return;
     };
     let s = &c.spec;
-    let grown = (now.radius_m / s.radius_m).min(age.max(0.0) / s.bloom_s);
+    let first = 1.0 / f64::from(s.bloom_steps);
+    let grown = (now.radius_m / s.radius_m).min((age / s.bloom_s).max(first));
     let density = now.depth_per_m / s.depth_per_m;
     let opacity = 1.0 - libm::pow(1.0 - look.opacity, density);
     let reach = s.radius_m * grown;
@@ -104,7 +109,7 @@ fn draw_cloud(
         let up = (share * s.height_m).max(SIT * r).min(top);
         let turn = rng.sample() * 2.0 * PI + age * rate * 0.5;
         let frame = FRAMES[0] + (FRAMES[1] - FRAMES[0]) * rng.sample();
-        batch.screen_puff(
+        batch.flipbook(
             [
                 c.centre[0] + out * cos,
                 c.centre[1] + out * sin,
@@ -112,10 +117,13 @@ fn draw_cloud(
             ],
             r,
             turn,
+            DUST,
             frame,
             look.albedo,
             opacity,
+            0.0,
             look.soft_m,
+            true,
         );
     }
 }

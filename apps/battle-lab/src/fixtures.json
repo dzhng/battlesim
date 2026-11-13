@@ -95,7 +95,7 @@
   {
     "id": "smoke",
     "route": "/labs/smoke",
-    "describe": "Smoke screens on the smoke test map, through the production controls: two blue smoke tanks and a smoke squad face a red tank and AT team across open ground. Blue selects its road tank and presses H: its panel counts the charge down and shows HIDDEN in the cloud. Red's fog closes over the cloud behind it and opens again after the fade, red's last-contact marker stays where the tank vanished, and blue still sees up to the cloud from its other units; a labelled side-view switch. Then the drawn cloud: every carrier pops, and the clouds are shot blooming, full, overlapping, over road, grass and wood, beside a burning wreck, far off and fading.",
+    "describe": "Smoke screens on the smoke test map, through the production controls: two blue smoke tanks and a smoke squad face a red tank and AT team across open ground. Blue selects its road tank and presses H: its panel counts the charge down and shows HIDDEN in the cloud. Red's fog closes over the cloud behind it and opens again after the fade, red's last-contact marker stays where the tank vanished, and blue still sees up to the cloud from its other units; from either side the cloud draws over the fog veil; a labelled side-view switch. Then the drawn cloud: every carrier pops, and the clouds are shot blooming, full, overlapping, over road, grass and wood, beside a burning wreck, far off and fading.",
     "map": "smoke"
   },
   {

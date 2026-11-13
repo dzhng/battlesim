@@ -107,10 +107,9 @@
     }
     alpha = tex.a * opacity;
   }
-  // A shadow is ground, and a smoke screen's puff (a flipbook marked in
-  // misc.w) is veiled as the ground behind it: both leave the fog mask as it is.
-  let keepsFog = shape == 4u || (shape == 2u && f.misc.w > 0.5);
-  let strength = select(clamp(alpha + max(rgb.r, max(rgb.g, rgb.b)) * 0.25, 0.0, 1.0), 0.0, keepsFog);
+  // Every effect the side is shown lifts the fog veil by what it covers; a
+  // shadow is ground, so it leaves the fog mask as it is.
+  let strength = select(clamp(alpha + max(rgb.r, max(rgb.g, rgb.b)) * 0.25, 0.0, 1.0), 0.0, shape == 4u);
   var out: ColorFog;
   out.color = vec4f(rgb, alpha);
   out.fog = vec4f(0.0, 0.0, 0.0, strength);

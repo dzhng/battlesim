@@ -5,7 +5,8 @@
 // close over the ground behind the cloud once it blooms and open again once it
 // has faded, while the ground on its near side stays lit; red keeps a
 // last-contact marker where the tank vanished, and sees the cloud itself.
-// Blue's own cloud is always its own to see. Then the drawn cloud, from a
+// Blue's own cloud is always its own to see, and each side's cloud draws over
+// its fog veil. Then the drawn cloud, from a
 // fresh battle: blue pops all three carriers' smoke, and the look tour shoots
 // the clouds blooming, full, overlapping, over road, grass and wood, beside
 // the burning wreck, at far zoom and in their fade. Every number is read from
@@ -53,6 +54,31 @@ async function closeShot(ctx, page, centre, file, view = { distance: 90, pitch: 
   const shot = await snapshot(ctx, page, file);
   await lab(page, (c) => window.__lab.setCamera(c), opening);
   return shot;
+}
+
+/** The fog mask over cloud `cloud`, framed as `closeShot` frames it: each
+ *  point of a ring half way out and half way up, and the middle, by whether
+ *  the mask reads it unseen (black in the mask view). */
+async function veiledOver(ctx, page, cloud, file) {
+  const opening = await lab(page, () => window.__lab.camera());
+  await aim(page, cloud.centre, { distance: 90, pitch: 0.85 });
+  const points = await lab(
+    page,
+    async ({ c, r, h }) => {
+      await window.__lab.frame();
+      const ring = Array.from({ length: 12 }, (_, k) => {
+        const a = (k / 12) * 2 * Math.PI;
+        return [c[0] + Math.cos(a) * r, c[1] + Math.sin(a) * r];
+      });
+      return [[c[0], c[1]], ...ring].map(([x, y]) => window.__lab.projectToCss(x, y, c[2] + h));
+    },
+    { c: cloud.centre, r: cloud.spec.radiusM * 0.5, h: cloud.spec.heightM * 0.5 },
+  );
+  await lab(page, () => window.__lab.setFrameView("fog-mask"));
+  const mask = decode(await snapshot(ctx, page, file));
+  await lab(page, () => window.__lab.setFrameView("final"));
+  await lab(page, (c) => window.__lab.setCamera(c), opening);
+  return points.map((p) => luma(pixel(mask, ...p)) < 8);
 }
 
 /** Whether the GPU fog sees each ground point, for the side now viewed. */
@@ -185,8 +211,17 @@ export async function run(ctx) {
   );
   await snapshot(ctx, page, "red-smoked.png");
   await closeShot(ctx, page, cloud.centre, "red-smoked-close.png");
+  // A side sees a cloud it sees whole, though not into it (D12): the cloud
+  // draws over the veil, from the enemy's side and from its own.
+  const redVeiled = await veiledOver(ctx, page, cloud, "red-smoked-mask.png");
   await setSide(page, "blue");
   await snapshot(ctx, page, "blue-smoked.png");
+  const blueVeiled = await veiledOver(ctx, page, cloud, "blue-smoked-mask.png");
+  ctx.check(
+    "a cloud a side sees draws over its fog veil, from either side",
+    !redVeiled.some(Boolean) && !blueVeiled.some(Boolean),
+    JSON.stringify({ redVeiled, blueVeiled }),
+  );
   // Blue's other units see up to the cloud's rim on their side of it.
   const watchers = (await obs(page)).own.filter((u) => u.id !== pop.carrier);
   const rims = watchers.map((u) => {

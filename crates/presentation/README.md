@@ -77,7 +77,8 @@ calls the same reader for workbench drafts.
   building it strikes (the simulation publishes each strike once), and the
   [smoke screens](src/effects/frame/smoke_screen.rs) the side sees: a billow
   that swirls inside each cloud's stepped circle, below its top, with no
-  wind, veiled by fog as the ground behind it is.
+  wind, from the law's first step on, drawn over the fog veil as every effect
+  the side sees is.
 - [The view](src/view.rs): what the camera means for culling and detail, the one
   tier rule every drawn model takes and the tier it casts with, and the
   frame's `View` record (with the sky's corner rays) and camera uniform,
