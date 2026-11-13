@@ -29,12 +29,7 @@ integrated tree is green on the cross-lane checks:
 so slices 14–17 may start. Run them one lane at a time while disk is tight.
 
 **Pickup:**
-1. **Relief beyond the yard** (the user asked for "more exciting terrain"):
-   one height source, read by the ground mesh past the pads, the backdrop's
-   ground and tree seating, the Armory camera's clearance, and the camera
-   tour's ground check. It comes from a `ground.relief` block in `yard.json`,
-   starting past the farthest camera eye. This is a Rust and wasm change; see
-   slice 16's choices.
+1. The build slices and the user's follow-ups (stopped rotors, trees, relief) are merged. **Next: 18, the closeout.**
 2. Raised to the user, with provisional answers in force: the depot density
    (`open_country.depots.per_road_km` 0.3, about one per skirmish map), and
    whether the lobby's map picture should draw props.

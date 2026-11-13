@@ -68,8 +68,9 @@ impl Renderer {
             &cells,
             backdrop_m,
         );
-        if let Some(terrain) = backdrop_terrain {
-            geometry.set_backdrop(Some(&terrain), backdrop_m);
+        let relief = &ground.source.relief;
+        if backdrop_terrain.is_some() || !relief.is_level() {
+            geometry.set_backdrop(backdrop_terrain.as_deref(), backdrop_m, relief);
         }
         self.geometry = Some(Arc::new(geometry));
         self.runtime = None;

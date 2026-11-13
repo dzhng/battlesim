@@ -6,6 +6,7 @@
 //! mesh's f32 bytes, with the map's box and its water cells).
 use presentation::shadow::map_box;
 use presentation::static_world::ground::mesh::{self, VERTEX_FLOATS};
+use presentation::static_world::ground::relief::BackdropRelief;
 use serde_json::Value;
 use sim::world::WorldGeometry;
 
@@ -79,7 +80,7 @@ fn every_ground_mesh_is_the_browsers() {
             .collect();
         assert_eq!(b.to_vec(), want_box, "{id} box");
         assert_eq!(
-            digest(&mesh::backdrop(&b, reach)),
+            digest(&mesh::backdrop(&b, reach, &BackdropRelief::default())),
             want["backdrop"],
             "{id} backdrop"
         );
@@ -139,7 +140,7 @@ fn water_and_the_backdrop_are_flat_squares_facing_up() {
     ]);
     assert_eq!(water.len(), 2 * 6 * VERTEX_FLOATS);
     let b = [0.0, 0.0, -2.0, 100.0, 50.0, 30.0];
-    let backdrop = mesh::backdrop(&b, 1000.0);
+    let backdrop = mesh::backdrop(&b, 1000.0, &BackdropRelief::default());
     assert_eq!(backdrop.len(), 4 * 6 * VERTEX_FLOATS);
     for v in water
         .chunks(VERTEX_FLOATS)
@@ -152,4 +153,67 @@ fn water_and_the_backdrop_are_flat_squares_facing_up() {
     assert_eq!(xs.clone().fold(f32::INFINITY, f32::min), -1000.0);
     assert_eq!(xs.fold(f32::NEG_INFINITY, f32::max), 1100.0);
     assert!(backdrop.chunks(VERTEX_FLOATS).all(|v| v[2] == -1.0));
+}
+
+/// A 100 × 50 map, and a hill 30 m high and 150 m round east of it, its top
+/// on a sample, sampled every 10 m.
+const MAP: [f64; 4] = [0.0, 0.0, 100.0, 50.0];
+
+fn hill(x: f64, radius: f64) -> String {
+    format!(
+        r#"{{"cell_m": 10, "features": [{{"kind": "ridge", "center": [{x}, 20], "peak_m": 30, "radius_m": {radius}}}]}}"#
+    )
+}
+
+#[test]
+fn the_backdrop_rises_with_its_relief_and_leaves_the_map_to_its_own_ground() {
+    let relief = BackdropRelief::admit(&hill(300.0, 150.0), MAP).unwrap();
+    // The map's lowest ground is at -1.
+    let (b, reach) = ([MAP[0], MAP[1], -2.0, MAP[2], MAP[3], 30.0], 1000.0);
+    let backdrop = mesh::backdrop(&b, reach, &relief);
+    let vertices: Vec<&[f32]> = backdrop.chunks(VERTEX_FLOATS).collect();
+    // Every corner stands on the relief, from the lowest ground, facing up.
+    for v in &vertices {
+        let want = -1.0 + relief.height(v[0] as f64, v[1] as f64);
+        assert!((v[2] as f64 - want).abs() < 1e-3, "{v:?} stands off {want}");
+        assert!(v[5] > 0.0, "faces down: {v:?}");
+    }
+    let top = vertices
+        .iter()
+        .map(|v| v[2])
+        .fold(f32::NEG_INFINITY, f32::max);
+    assert_eq!(top, -1.0 + 30.0, "it rises to the hill's top");
+    // Shaded smooth: a corner on the hill's west flank leans west.
+    let flank = vertices
+        .iter()
+        .find(|v| v[0] == 250.0 && v[1] == 20.0)
+        .unwrap();
+    assert!(flank[3] < 0.0, "{flank:?}");
+    // Its triangles cover the land round the map once, counter-clockwise:
+    // none lies over the map, and together they are the frame's area.
+    let mut area = 0.0;
+    for t in backdrop.chunks(3 * VERTEX_FLOATS) {
+        let p = |k: usize| [0, 1].map(|i| t[k * VERTEX_FLOATS + i] as f64);
+        let [a, q, c] = [p(0), p(1), p(2)];
+        let centre = [0, 1].map(|i| (a[i] + q[i] + c[i]) / 3.0);
+        let over =
+            centre[0] > MAP[0] && centre[0] < MAP[2] && centre[1] > MAP[1] && centre[1] < MAP[3];
+        assert!(!over, "a triangle over the map at {centre:?}");
+        area += ((q[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (q[1] - a[1])) / 2.0;
+    }
+    let frame = (MAP[2] + 2.0 * reach) * (MAP[3] + 2.0 * reach) - MAP[2] * MAP[3];
+    assert!((area - frame).abs() < 1.0, "{area} m² against {frame} m²");
+}
+
+#[test]
+fn relief_reaching_the_map_or_the_cells_beside_it_is_refused() {
+    // The hill's foot 10 m past the map's edge, then on the map, then within
+    // a cell of it.
+    assert!(BackdropRelief::admit(&hill(260.0, 150.0), MAP).is_ok());
+    assert!(BackdropRelief::admit(&hill(240.0, 150.0), MAP).is_err());
+    assert!(BackdropRelief::admit(&hill(255.0, 150.0), MAP).is_err());
+    let unsampled = r#"{"cell_m": 0, "features": [{"kind": "ridge", "center": [300, 20], "peak_m": 30, "radius_m": 150}]}"#;
+    assert!(BackdropRelief::admit(unsampled, MAP).is_err());
+    // Level land needs no samples.
+    assert!(BackdropRelief::admit(r#"{"cell_m": 0, "features": []}"#, MAP).is_ok());
 }

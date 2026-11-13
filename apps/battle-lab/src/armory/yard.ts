@@ -1,15 +1,17 @@
 // The Armory's yard: the static ground a unit on show stands on. It is a
 // presentation document (`fixtures/armory/yard.json`) that the simulation
 // never admits. It names the spots a unit can stand on, which spot each body
-// takes, and the props that dress the yard, each a catalog prop kind drawn
-// by its own scenery art.
+// takes, the props that dress the yard, each a catalog prop kind drawn by its
+// own scenery art, and the hills the land rises in past it.
 import yardJson from "@fixtures/armory/yard.json";
+import { BackdropRelief } from "@wasm/renderer_browser";
 import type { Rgba } from "@packages/battle-renderer/src/mesh";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import type { RuntimeCatalog } from "@packages/scene-assets/src/schema";
 import { propsDrawnBy } from "@packages/scene-assets/src/scenery";
 import type { CatalogView, UnitType } from "@packages/scene-assets/src/units";
 import type { WorldLayers, WorldScenery } from "@packages/battle-renderer/src/scene";
+import type { BackdropReliefInput } from "@packages/battle-renderer/src/terrain/terrainSurface";
 import { worldScenery, worldSceneryNames } from "@packages/battle-renderer/src/worldMesh";
 import type { LabModel } from "@web/battle/sim/presentationModels";
 import { gameBiome } from "../gameBiome";
@@ -52,9 +54,10 @@ export interface YardProp {
 }
 
 export interface YardDocument {
-  /** The yard's flat ground: how far it reaches each way, its colour, and
-   *  the hard standing paved over it, a later pad over an earlier one. */
-  ground: { half_m: number; tint: Rgba; pads: GroundPad[] };
+  /** The yard's flat ground: how far it reaches each way, its colour, the
+   *  hard standing paved over it (a later pad over an earlier one), and the
+   *  relief of the land past it, which keeps clear of it. */
+  ground: { half_m: number; tint: Rgba; pads: GroundPad[]; relief: BackdropReliefInput };
   spots: Record<SpotId, SpotPlace>;
   /** The spot each body takes. */
   bodies: Record<Body, SpotId>;
@@ -65,12 +68,17 @@ const finite = (v: unknown, n: number) =>
   Array.isArray(v) && v.length === n && v.every((x) => Number.isFinite(x));
 
 /** `raw` as a yard document, or an error naming each field it gets wrong:
- *  its shape and that every body names a spot. */
+ *  its shape and that every body names a spot. The relief's features are
+ *  the battle's own, admitted where they are read (`yardGround`, and the
+ *  stage's ground). */
 export function admitYard(raw: unknown): YardDocument {
   const doc = raw as YardDocument;
   const wrong: string[] = [];
   if (!(doc.ground?.half_m > 0) || !finite(doc.ground.tint, 4) || !Array.isArray(doc.ground.pads))
     wrong.push("ground: a positive half_m, an rgba tint and a list of pads");
+  const relief = doc.ground?.relief;
+  if (!(relief?.cell_m > 0) || !Array.isArray(relief.features))
+    wrong.push("ground.relief: a positive cell_m and a list of features");
   (doc.ground?.pads ?? []).forEach((p, i) => {
     const sides = finite(p.half_m, 2) && p.half_m.every((h) => h > 0);
     if (!finite(p.at, 2) || !sides || !Number.isFinite(p.yaw) || !finite(p.tint, 4))
@@ -94,11 +102,27 @@ export const yard = admitYard(yardJson);
 
 let world: WorldLayers | null = null;
 /** The yard's flat ground and its pads as a stage's world, built once.
- *  Past it, the scene's presentation draws the battle's backdrop: the
- *  biome's patchwork and its trees (`yardWorldScenery`). */
+ *  Past it, the scene's presentation draws the battle's backdrop over the
+ *  yard's relief: the biome's patchwork and its trees (`yardWorldScenery`). */
 export function yardWorld(): WorldLayers {
-  world ??= plainWorld(yard.ground.tint, yard.ground.half_m, yard.ground.pads);
+  const { tint, half_m, pads, relief } = yard.ground;
+  world ??= plainWorld(tint, half_m, pads, relief);
   return world;
+}
+
+let land: BackdropRelief | null = null;
+/** The ground's height at `(x, y)`, metres: level over the yard, and past
+ *  it the relief the backdrop draws and stands its trees on, read from the
+ *  same surface. The one height the Armory's camera and its checks read;
+ *  the presentation module must have loaded. */
+export function yardGround(): (x: number, y: number) => number {
+  const h = yard.ground.half_m;
+  land ??= new BackdropRelief(
+    JSON.stringify(yard.ground.relief),
+    Float64Array.from([-h, -h, h, h]),
+  );
+  const relief = land;
+  return (x, y) => relief.height(x, y);
 }
 
 /** What `unit` stands as: a squad, a hull with a flight model, or any other

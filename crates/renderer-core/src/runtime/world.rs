@@ -1,6 +1,7 @@
 //! Owned external world geometry, independent of its platform transport.
 use presentation::shadow::map_box;
 use presentation::static_world::ground::mesh;
+use presentation::static_world::ground::relief::BackdropRelief;
 
 /// World vertices use the canonical ten-float layout. Geometry is retained for
 /// device recreation; selection and GPU allocation belong to the runtime.
@@ -55,7 +56,7 @@ impl WorldGeometry {
             backdrop: Vec::new(),
             water: mesh::water(water_cells),
         };
-        geometry.set_backdrop(None, backdrop_m);
+        geometry.set_backdrop(None, backdrop_m, &BackdropRelief::default());
         geometry
     }
 
@@ -66,9 +67,11 @@ impl WorldGeometry {
         faces
     }
 
-    pub fn set_backdrop(&mut self, terrain: Option<&[f32]>, reach_m: f64) {
+    /// The land past the box of `terrain` (the world's own without it) out
+    /// to `reach_m`, rising where `relief` does (`mesh::backdrop`).
+    pub fn set_backdrop(&mut self, terrain: Option<&[f32]>, reach_m: f64, relief: &BackdropRelief) {
         self.backdrop = map_box(terrain.unwrap_or(&self.terrain))
-            .map_or_else(Vec::new, |b| mesh::backdrop(&b, reach_m));
+            .map_or_else(Vec::new, |b| mesh::backdrop(&b, reach_m, relief));
     }
 
     pub fn payload_bytes(&self) -> usize {

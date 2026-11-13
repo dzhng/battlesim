@@ -1,8 +1,9 @@
 // @vitest-environment node
 // The Armory's yard (`fixtures/armory/yard.json`): its dressing is catalog
 // props drawn by their own art, standing clear of every spot, its ground is
-// paved where its pads lie, and each unit takes the spot its body asks for and
-// fits it.
+// paved where its pads lie and level, the land past it rises into hills each
+// spot's camera sees, and each unit takes the spot its body asks for and fits
+// it.
 import { readFile } from "node:fs/promises";
 import { expect, test } from "vitest";
 import { AppearanceLibrary, type Fetch } from "@packages/scene-assets/src/loader";
@@ -10,11 +11,13 @@ import type { RuntimeCatalog } from "@packages/scene-assets/src/schema";
 import type { UnitType } from "@packages/scene-assets/src/units";
 import { resolveCatalogSet } from "@web/battle/catalog/sets";
 import { loadWasm } from "@web/battle/sim/module";
+import { loadPresentation } from "@web/battle/sim/presentation";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh";
 import {
   bodyOf,
   spotFor,
   yard,
+  yardGround,
   yardModels,
   yardScenery,
   yardWorld,
@@ -144,6 +147,61 @@ test("a unit stands on the yard's pads, not sunk into them", () => {
   for (let v = 0; v < ground.length; v += VERTEX_FLOATS) top = Math.max(top, ground[v + 2]);
   expect(top).toBeGreaterThan(0);
   expect(top).toBeLessThan(0.02);
+});
+
+test("the yard stands level: every spot's clear disc and every pad is at height 0", async () => {
+  await loadPresentation();
+  const ground = yardGround();
+  for (const [id, spot] of Object.entries(yard.spots))
+    for (const r of [0, spot.clear_m / 2, spot.clear_m])
+      for (let k = 0; k < 16; k++) {
+        const a = (k / 16) * 2 * Math.PI;
+        const [x, y] = [spot.at[0] + r * Math.cos(a), spot.at[1] + r * Math.sin(a)];
+        expect(ground(x, y), `${id} at ${x}, ${y}`).toBe(0);
+      }
+  for (const [i, pad] of yard.ground.pads.entries()) {
+    const [c, s] = [Math.cos(pad.yaw), Math.sin(pad.yaw)];
+    for (const [u, v] of [
+      [0, 0],
+      [1, 1],
+      [-1, 1],
+      [1, -1],
+      [-1, -1],
+    ]) {
+      const [lx, ly] = [u * pad.half_m[0], v * pad.half_m[1]];
+      const [x, y] = [pad.at[0] + c * lx - s * ly, pad.at[1] + s * lx + c * ly];
+      expect(ground(x, y), `pad ${i} at ${x}, ${y}`).toBe(0);
+    }
+  }
+});
+
+test("past the yard's ground the land rises into hills on each spot's skyline", async () => {
+  await loadPresentation();
+  const ground = yardGround();
+  const edge = yard.ground.half_m;
+  // Level out to the yard's edge, all round.
+  for (let x = -edge; x <= edge; x += edge / 8)
+    for (const y of [-edge, edge]) {
+      expect(ground(x, y), `${x}, ${y}`).toBe(0);
+      expect(ground(y, x), `${y}, ${x}`).toBe(0);
+    }
+  // Seen from each spot's opening eye, looking the way it looks, the land
+  // past the yard climbs above the eye somewhere: a hill on the skyline.
+  for (const [id, spot] of Object.entries(yard.spots)) {
+    const { target, distance, pitch, yaw } = spot.camera;
+    const eye = [
+      target[0] + distance * Math.cos(pitch) * Math.cos(yaw),
+      target[1] + distance * Math.cos(pitch) * Math.sin(yaw),
+      target[2] + distance * Math.sin(pitch),
+    ];
+    const look = [-Math.cos(yaw), -Math.sin(yaw)];
+    let above = -Infinity;
+    for (let d = edge; d < 20 * edge; d += 5) {
+      const [x, y] = [eye[0] + look[0] * d, eye[1] + look[1] * d];
+      above = Math.max(above, ground(x, y) - eye[2]);
+    }
+    expect(above, id).toBeGreaterThan(0);
+  }
 });
 
 test("every body has a spot", () => {

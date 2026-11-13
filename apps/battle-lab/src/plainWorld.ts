@@ -1,14 +1,15 @@
 // Plain flat worlds: level ground in 5 m cells with nothing on it but its
 // paved pads, a stage that shows only what is put on it (the showcase, the
-// Armory's yard, the facade lab and the workbench's measured ground). Plain
-// data, with no module to load: the scene's presentation resolves it when it
-// is set.
+// Armory's yard, the facade lab and the workbench's measured ground), with
+// the land past it level or rising in hills. Plain data, with no module to
+// load: the scene's presentation resolves it when it is set.
 import { quat } from "math";
 import { obb3, type OBB3 } from "math/shapes";
 import { MeshBuilder, type Mesh, type Rgba } from "@packages/battle-renderer/src/mesh";
 import type { WorldLayers } from "@packages/battle-renderer/src/scene";
 import {
   bareTerrain,
+  type BackdropReliefInput,
   type TerrainSurface,
 } from "@packages/battle-renderer/src/terrain/terrainSurface";
 import { gameBiome } from "./gameBiome";
@@ -75,18 +76,25 @@ export function flatCells(
 }
 
 /** A flat ground mesh reaching `reach` each way as terrain with nothing on
- *  it: its vertex tints are opaque, so it draws as tinted, not as the
- *  biome's patchwork. */
-export function flatTerrain(ground: Mesh, reach = GROUND_REACH_M): TerrainSurface {
-  return bareTerrain(ground, [-reach, -reach, reach, reach], 2 * reach, gameBiome);
+ *  it, and `relief` past it (level land without it): its vertex tints are
+ *  opaque, so it draws as tinted, not as the biome's patchwork. */
+export function flatTerrain(
+  ground: Mesh,
+  reach = GROUND_REACH_M,
+  relief?: BackdropReliefInput,
+): TerrainSurface {
+  const map = [-reach, -reach, reach, reach] as const;
+  return bareTerrain(ground, map, 2 * reach, gameBiome, {}, relief);
 }
 
 /** A world of plain ground in `tint` out to `reach` each way, paved with
- *  `pads`, and nothing else. */
+ *  `pads`, and nothing else; past it, the scene's presentation draws the
+ *  backdrop over `relief` (level without it). */
 export function plainWorld(
   tint: Rgba = PLAIN_GROUND,
   reach = GROUND_REACH_M,
   pads: readonly GroundPad[] = [],
+  relief?: BackdropReliefInput,
 ): WorldLayers {
   const mesh = new MeshBuilder();
   // One colour: the cells only keep the mesh to a hundred a side.
@@ -102,7 +110,7 @@ export function plainWorld(
     mesh.quad(corner(-1, -1), corner(1, -1), corner(1, 1), corner(-1, 1), pad.tint);
   });
   return {
-    terrain: flatTerrain(mesh.build(), reach),
+    terrain: flatTerrain(mesh.build(), reach, relief),
     extraFaces: NONE,
     scenery: null,
     grass: null,

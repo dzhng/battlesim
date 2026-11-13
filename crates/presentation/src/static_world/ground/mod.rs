@@ -13,6 +13,7 @@ pub mod mesh;
 pub mod partition;
 pub mod plots;
 pub mod puddles;
+pub mod relief;
 pub mod scenery;
 mod shapes;
 mod strokes;
@@ -115,14 +116,17 @@ pub fn prop_kinds(layout: &str) -> Result<PropKinds, String> {
 
 /// What the ground is resolved from: the physical map `[min x, min y, max x,
 /// max y]`, the playable rectangle as the map's extents give it, its own
-/// rendered surroundings where it has them, its height grid, its exported
-/// streams as `WorldView` names them, and its prop kinds.
+/// rendered surroundings where it has them, its height grid, the relief of
+/// the land past its edge, its exported streams as `WorldView` names them,
+/// and its prop kinds.
 #[derive(Default)]
 pub struct Source {
     pub map: [f64; 4],
     pub playable: [f64; 4],
     pub rendered: Option<[f64; 4]>,
     pub grid: Grid,
+    /// Level for every battle map.
+    pub relief: relief::BackdropRelief,
     pub props: Vec<f32>,
     pub kinds: PropKinds,
     pub foliage: Vec<f32>,
@@ -200,6 +204,7 @@ pub fn source(
             page_ids: world.export_terrain_page_ids(),
             heights: world.export_terrain_heights(),
         },
+        relief: relief::BackdropRelief::default(),
         props: world.export_props(),
         kinds: prop_kinds(layout)?,
         foliage: world.export_foliage(),
@@ -235,6 +240,7 @@ pub struct Ground {
 impl Ground {
     /// The ground of `source` under `biome` (in its map's regional finish).
     pub fn new(source: Source, biome: Biome, tuning: Tuning) -> Result<Ground, String> {
+        source.relief.check(source.map)?;
         let forests = forests::forests(&source)?;
         let plots = plots::plots(&source, &forests::strip_runs(&source, &forests), &biome)?;
         let built = |x, y| {

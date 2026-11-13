@@ -223,6 +223,42 @@ pub enum Relief {
 }
 
 impl Relief {
+    /// The rectangle `[min_x, min_y, width, height]` outside which this
+    /// feature adds nothing, and the most it adds; no rectangle for a mesa
+    /// whose sides never fall, which may reach anywhere.
+    pub fn footprint(&self) -> (Option<Rect>, f64) {
+        match *self {
+            Relief::Ridge {
+                center,
+                peak_m,
+                radius_m,
+            } => (
+                Some([
+                    center[0] - radius_m,
+                    center[1] - radius_m,
+                    2.0 * radius_m,
+                    2.0 * radius_m,
+                ]),
+                peak_m,
+            ),
+            Relief::Mesa {
+                rect,
+                height_m,
+                side_degrees,
+            } => {
+                let slope = libm::tan(side_degrees.to_radians());
+                let reach = height_m.max(0.0) / slope;
+                let rect = (slope > 0.0).then_some([
+                    rect[0] - reach,
+                    rect[1] - reach,
+                    rect[2] + 2.0 * reach,
+                    rect[3] + 2.0 * reach,
+                ]);
+                (rect, height_m)
+            }
+        }
+    }
+
     /// This feature's height at (x, y).
     pub fn height_at(&self, x: f64, y: f64) -> f64 {
         match *self {

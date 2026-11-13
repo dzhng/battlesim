@@ -259,6 +259,33 @@ fn the_backdrop_stands_clear_of_the_map_and_within_reach() {
 }
 
 #[test]
+fn the_backdrop_stands_its_trees_on_the_relief() {
+    let level = ground();
+    let mut source = world();
+    // A hill 40 m high east of the 200 m map, its foot well past the edge.
+    let hill = r#"{"cell_m": 16, "features": [{"kind": "ridge", "center": [520, 100], "peak_m": 40, "radius_m": 260}]}"#;
+    source.relief = super::relief::BackdropRelief::admit(hill, source.map).unwrap();
+    let hilly = Ground::new(source, Biome::load(SUMMER, None).unwrap(), tuning()).unwrap();
+    let (flat, risen) = (scenery(&level).backdrop, scenery(&hilly).backdrop);
+    assert_eq!(flat.len(), risen.len(), "the same trees stand");
+    let mut on_the_hill = 0;
+    for (f, r) in records(&flat).zip(records(&risen)) {
+        assert_eq!(
+            (&f[..2], &f[3..]),
+            (&r[..2], &r[3..]),
+            "only its height moves"
+        );
+        let rise = hilly.source.relief.height(f[0] as f64, f[1] as f64);
+        assert!(
+            ((r[2] - f[2]) as f64 - rise).abs() < 1e-3,
+            "{r:?} rises {rise} m"
+        );
+        on_the_hill += (rise > 1.0) as usize;
+    }
+    assert!(on_the_hill > 0, "some stand on the hill");
+}
+
+#[test]
 fn dressing_lies_on_forest_floor_off_paving_and_clear_of_trunks_and_bodies() {
     let g = ground();
     let s = scenery(&g);

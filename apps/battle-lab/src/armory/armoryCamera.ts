@@ -4,7 +4,8 @@
 // framings sized to the unit's bounds, and the pitch may dip below the
 // horizon to show the underside against the sky. There is no edge pan and no
 // key, and input comes from the stage's canvas alone. The eye keeps clear of
-// the unit and the yard's props through renderer-core's clearance.
+// the unit, the yard's props and the ground through renderer-core's
+// clearance.
 //
 // The stage draws the whole screen behind the glass panels, and the unit
 // stands in the centre cell between the list and the sheet, so the drawn
@@ -53,12 +54,14 @@ export interface Box {
 }
 
 /** What the camera frames: the unit's bounds at rest, the angle its spot
- *  looks from, and what the eye keeps clear of. Without bounds (the yard
- *  alone) the camera holds the spot's own pose. */
+ *  looks from, and what the eye keeps clear of: boxes, and the ground's
+ *  height under it. Without bounds (the yard alone) the camera holds the
+ *  spot's own pose. */
 export interface Framing {
   bounds: Bounds | null;
   pose: CameraPose;
   boxes: readonly ObstacleBox[];
+  ground: (x: number, y: number) => number;
 }
 
 /** The orbit distance at which a box of half extents `half` (axis-aligned,
@@ -132,7 +135,7 @@ export class ArmoryCamera {
   /** Frame `framing` afresh: the next frame opens on it. */
   frame(framing: Framing) {
     this.framing = framing;
-    this.obstacles = createCameraObstacles(framing.boxes, () => 0);
+    this.obstacles = createCameraObstacles(framing.boxes, framing.ground);
     this.clearance = createClearanceState();
     this.orbit = null;
     [this.wheel, this.drag] = [0, [0, 0]];
