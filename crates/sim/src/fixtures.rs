@@ -208,13 +208,14 @@ pub fn admit(mut game: Value, documents: Vec<Value>) -> Result<Value, String> {
         serde_json::from_value(game).map_err(|e| e.to_string())?;
     crate::admit(&rules).map_err(|e| e.to_string())?;
     let mut view = rules.catalog.view();
-    view["weapons"] = serde_json::to_value(rules.weapons).map_err(|e| e.to_string())?;
+    view["weapons"] = contract::weapons::published(&rules.weapons);
     Ok(view)
 }
 
 /// The resolved catalog's view (`Catalog::view`) as `fixtures/catalog.json`
 /// holds it, with `weapons`: `rules.json`'s weapon rows, `extends`
-/// resolved, as the mounts name them.
+/// resolved, as the mounts name them, each with its `derived` facts
+/// (`contract::weapons::published`).
 pub fn catalog_view() -> String {
     let view = admit(
         read(&dir().join("rules.json")),

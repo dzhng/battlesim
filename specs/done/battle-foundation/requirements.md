@@ -256,7 +256,7 @@ The original brief is retained in [assets/original-brief.txt](assets/original-br
 
 ## W09
 
-**Decision:** Every armed unit has an unlimited-ammo default gun, which still fires at an invulnerable identified enemy when no damageable target is available, before any approximate contact. Only that gun does: a weapon with finite ammunition fires automatically only at what it can damage. (Amended 2026-09-29, user.)
+**Decision:** A default gun with unlimited ammo fires regardless: it still fires at an invulnerable identified enemy when no damageable target is available, before any approximate contact. Some units have none. Only such a gun does: a weapon with finite ammunition, a finite default gun included, fires automatically only at what it can damage. The contract owns the rule (`WeaponDefinition::fires_regardless`), and the catalog publishes it on each weapon row. (Amended 2026-09-29, user; amended 2026-11-12, user: not every armed unit has such a gun.)
 
 **Why:** Keep depleted units active; ineffective fire can still reveal them.
 

@@ -43122,6 +43122,26 @@
       "damage": 100.0,
       "decoyable": false,
       "default": true,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 1500.0
+          },
+          {
+            "intercepts": true,
+            "layer": "low_air",
+            "range_m": 350.0
+          },
+          {
+            "intercepts": true,
+            "layer": "high_air",
+            "range_m": 1500.0
+          }
+        ]
+      },
       "description": "Ballistic short-range air defence.",
       "fires_on_its_own": false,
       "gravity_scale": 0.5,
@@ -43193,6 +43213,16 @@
       "damage": 260.0,
       "decoyable": true,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "high_air",
+            "range_m": 5200.0
+          }
+        ]
+      },
       "description": "Long-range aircraft-only missile.",
       "fires_on_its_own": false,
       "gravity_scale": 1.0,
@@ -43242,6 +43272,21 @@
       "damage": 120.0,
       "decoyable": true,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "low_air",
+            "range_m": 2600.0
+          },
+          {
+            "intercepts": false,
+            "layer": "high_air",
+            "range_m": 2600.0
+          }
+        ]
+      },
       "description": "Medium-range surface-to-air missile.",
       "fires_on_its_own": false,
       "gravity_scale": 1.0,
@@ -43299,6 +43344,16 @@
       "damage": 50.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 900.0
+          }
+        ]
+      },
       "description": "Armour-piercing sabot: the tank gun's answer to armour.",
       "fires_on_its_own": false,
       "gravity_scale": 1.7651,
@@ -43344,6 +43399,16 @@
       "damage": 80.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 900.0
+          }
+        ]
+      },
       "description": "High-explosive shell for troops, cover and buildings.",
       "fires_on_its_own": false,
       "gravity_scale": 1.7651,
@@ -43390,6 +43455,16 @@
       "decoyable": false,
       "default": false,
       "delivery": "unpowered",
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 0.0
+          }
+        ]
+      },
       "description": "Unguided iron bomb with a heavy single blast.",
       "fires_on_its_own": false,
       "gravity_scale": 4.5,
@@ -43436,6 +43511,16 @@
       "decoyable": false,
       "default": false,
       "delivery": "unpowered",
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 0.0
+          }
+        ]
+      },
       "description": "Wide-spread cluster bomb salvo for area attacks.",
       "fires_on_its_own": false,
       "gravity_scale": 4.5,
@@ -43485,6 +43570,19 @@
       "damage": 45.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "only": [
+              "vehicle"
+            ],
+            "range_m": 2000.0
+          }
+        ]
+      },
       "description": "A fast guided anti-armour missile for ground attack.",
       "fires_on_its_own": false,
       "gravity_scale": 1.0,
@@ -43530,6 +43628,26 @@
       "damage": 100.0,
       "decoyable": false,
       "default": true,
+      "derived": {
+        "fires_regardless": true,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 900.0
+          },
+          {
+            "intercepts": false,
+            "layer": "low_air",
+            "range_m": 700.0
+          },
+          {
+            "intercepts": false,
+            "layer": "high_air",
+            "range_m": 900.0
+          }
+        ]
+      },
       "description": "Unlimited aircraft gun.",
       "fires_on_its_own": false,
       "gravity_scale": 0.5,
@@ -43597,6 +43715,21 @@
       "damage": 150.0,
       "decoyable": true,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "low_air",
+            "range_m": 3000.0
+          },
+          {
+            "intercepts": false,
+            "layer": "high_air",
+            "range_m": 3000.0
+          }
+        ]
+      },
       "description": "Fire-and-forget air-to-air missile.",
       "fires_on_its_own": true,
       "gravity_scale": 1.0,
@@ -43654,6 +43787,19 @@
       "damage": 55.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "only": [
+              "vehicle"
+            ],
+            "range_m": 900.0
+          }
+        ]
+      },
       "description": "Top-attack anti-tank missile: it climbs, then dives onto the roof; the gunner must keep sight.",
       "fires_on_its_own": false,
       "gravity_scale": 1.0,
@@ -43703,6 +43849,16 @@
       "damage": 120.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 2500.0
+          }
+        ]
+      },
       "description": "Indirect-fire howitzer shell for long-range support.",
       "fires_on_its_own": false,
       "gravity_scale": 1.0,
@@ -43748,6 +43904,16 @@
       "damage": 90.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 1800.0
+          }
+        ]
+      },
       "description": "High-angle mortar bomb for close indirect support.",
       "fires_on_its_own": false,
       "gravity_scale": 1.0,
@@ -43793,6 +43959,16 @@
       "damage": 150.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 2500.0
+          }
+        ]
+      },
       "description": "Heavy rocket salvo for deep area fire.",
       "fires_on_its_own": false,
       "gravity_scale": 1.0,
@@ -43842,6 +44018,16 @@
       "damage": 100.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 2200.0
+          }
+        ]
+      },
       "description": "Unguided rocket salvo for deep area fire.",
       "fires_on_its_own": false,
       "gravity_scale": 1.0,
@@ -43891,6 +44077,16 @@
       "damage": 220.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 2500.0
+          }
+        ]
+      },
       "description": "Long-range unguided strike missile for deep area fire.",
       "fires_on_its_own": false,
       "gravity_scale": 1.0,
@@ -43936,6 +44132,19 @@
       "damage": 45.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "only": [
+              "vehicle"
+            ],
+            "range_m": 900.0
+          }
+        ]
+      },
       "description": "A wire-guided anti-tank missile, steered onto its target.",
       "fires_on_its_own": false,
       "gravity_scale": 1.0,
@@ -43981,6 +44190,21 @@
       "damage": 100.0,
       "decoyable": false,
       "default": true,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 650.0
+          },
+          {
+            "intercepts": false,
+            "layer": "low_air",
+            "range_m": 350.0
+          }
+        ]
+      },
       "description": "A slow-firing cannon whose small bursting shells tear up troops, cover and light armour.",
       "fires_on_its_own": false,
       "gravity_scale": 0.5,
@@ -44041,6 +44265,19 @@
       "damage": 55.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "only": [
+              "vehicle"
+            ],
+            "range_m": 650.0
+          }
+        ]
+      },
       "description": "Optically supported direct anti-tank missile; no top-attack or fire-and-forget behavior.",
       "fires_on_its_own": false,
       "gravity_scale": 1.0,
@@ -44086,6 +44323,21 @@
       "damage": 35.0,
       "decoyable": false,
       "default": true,
+      "derived": {
+        "fires_regardless": true,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 240.0
+          },
+          {
+            "intercepts": false,
+            "layer": "low_air",
+            "range_m": 100.0
+          }
+        ]
+      },
       "description": "A short rifle for close quarters: handier, less accurate at range.",
       "fires_on_its_own": false,
       "gravity_scale": 0.09,
@@ -44145,6 +44397,16 @@
       "damage": 260.0,
       "decoyable": true,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "low_air",
+            "range_m": 1500.0
+          }
+        ]
+      },
       "description": "A shoulder-fired missile that reaches only aircraft; the gunner keeps it in his sight.",
       "fires_on_its_own": false,
       "gravity_scale": 1.0,
@@ -44192,6 +44454,16 @@
       "damage": 20.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 150.0
+          }
+        ]
+      },
       "description": "Rifle grenades lobbed at troops behind cover.",
       "fires_on_its_own": false,
       "gravity_scale": 5.35103,
@@ -44237,6 +44509,16 @@
       "damage": 45.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 850.0
+          }
+        ]
+      },
       "description": "Armour-piercing sabot: the tank gun's answer to armour.",
       "fires_on_its_own": false,
       "gravity_scale": 1.7651,
@@ -44282,6 +44564,16 @@
       "damage": 80.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 850.0
+          }
+        ]
+      },
       "description": "High-explosive shell for troops, cover and buildings.",
       "fires_on_its_own": false,
       "gravity_scale": 1.7651,
@@ -44327,6 +44619,21 @@
       "damage": 100.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 700.0
+          },
+          {
+            "intercepts": false,
+            "layer": "low_air",
+            "range_m": 150.0
+          }
+        ]
+      },
       "description": "A .50-calibre rifle: few, heavy, long shots.",
       "fires_on_its_own": false,
       "gravity_scale": 0.09,
@@ -44380,6 +44687,19 @@
       "damage": 45.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "only": [
+              "vehicle"
+            ],
+            "range_m": 1200.0
+          }
+        ]
+      },
       "description": "A helicopter's anti-tank missile: fired and steered on the move.",
       "fires_on_its_own": false,
       "gravity_scale": 1.0,
@@ -44425,6 +44745,16 @@
       "damage": 50.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 800.0
+          }
+        ]
+      },
       "description": "A downed airframe striking the ground: no gun fires it. It fells the trees beneath and hurts what lies there, less than a shell.",
       "fires_on_its_own": false,
       "gravity_scale": 1.7651,
@@ -44470,6 +44800,21 @@
       "damage": 20.0,
       "decoyable": false,
       "default": true,
+      "derived": {
+        "fires_regardless": true,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 400.0
+          },
+          {
+            "intercepts": false,
+            "layer": "low_air",
+            "range_m": 200.0
+          }
+        ]
+      },
       "description": "A heavy machine gun for troops and light vehicles.",
       "fires_on_its_own": false,
       "gravity_scale": 0.09,
@@ -44529,6 +44874,16 @@
       "damage": 65.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 650.0
+          }
+        ]
+      },
       "description": "High-explosive shell for troops, cover and buildings.",
       "fires_on_its_own": false,
       "gravity_scale": 1.7651,
@@ -44574,6 +44929,16 @@
       "damage": 260.0,
       "decoyable": true,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "low_air",
+            "range_m": 1500.0
+          }
+        ]
+      },
       "description": "A shoulder-fired missile that reaches only aircraft; the gunner keeps it in his sight.",
       "fires_on_its_own": false,
       "gravity_scale": 1.0,
@@ -44621,6 +44986,19 @@
       "damage": 55.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "only": [
+              "vehicle"
+            ],
+            "range_m": 800.0
+          }
+        ]
+      },
       "description": "Top-attack anti-tank missile: it climbs, then dives onto the roof; the gunner must keep sight.",
       "fires_on_its_own": false,
       "gravity_scale": 1.0,
@@ -44670,6 +45048,19 @@
       "damage": 55.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "only": [
+              "vehicle"
+            ],
+            "range_m": 950.0
+          }
+        ]
+      },
       "description": "Optically supported direct anti-tank missile; no top-attack or fire-and-forget behavior.",
       "fires_on_its_own": false,
       "gravity_scale": 1.0,
@@ -44715,6 +45106,16 @@
       "damage": 40.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 750.0
+          }
+        ]
+      },
       "description": "Armour-piercing sabot: the tank gun's answer to armour.",
       "fires_on_its_own": false,
       "gravity_scale": 1.7651,
@@ -44760,6 +45161,16 @@
       "damage": 65.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 750.0
+          }
+        ]
+      },
       "description": "High-explosive shell for troops, cover and buildings.",
       "fires_on_its_own": false,
       "gravity_scale": 1.7651,
@@ -44805,6 +45216,21 @@
       "damage": 30.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 400.0
+          },
+          {
+            "intercepts": false,
+            "layer": "low_air",
+            "range_m": 150.0
+          }
+        ]
+      },
       "description": "A light machine gun: long belts of fire that keep heads down.",
       "fires_on_its_own": false,
       "gravity_scale": 0.09,
@@ -44865,6 +45291,21 @@
       "damage": 45.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 450.0
+          },
+          {
+            "intercepts": false,
+            "layer": "low_air",
+            "range_m": 100.0
+          }
+        ]
+      },
       "description": "A designated marksman's scoped rifle: aimed single shots past rifle range.",
       "fires_on_its_own": false,
       "gravity_scale": 0.09,
@@ -44922,6 +45363,21 @@
       "damage": 120.0,
       "decoyable": true,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": true,
+            "layer": "low_air",
+            "range_m": 2600.0
+          },
+          {
+            "intercepts": true,
+            "layer": "high_air",
+            "range_m": 2600.0
+          }
+        ]
+      },
       "description": "Medium-range missile that also shoots down missiles fired from aircraft.",
       "fires_on_its_own": false,
       "gravity_scale": 1.0,
@@ -44981,6 +45437,16 @@
       "damage": 260.0,
       "decoyable": true,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": true,
+            "layer": "high_air",
+            "range_m": 5200.0
+          }
+        ]
+      },
       "description": "Long-range missile that also shoots down missiles fired from aircraft.",
       "fires_on_its_own": false,
       "gravity_scale": 1.0,
@@ -45031,6 +45497,21 @@
       "damage": 35.0,
       "decoyable": false,
       "default": true,
+      "derived": {
+        "fires_regardless": true,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 300.0
+          },
+          {
+            "intercepts": false,
+            "layer": "low_air",
+            "range_m": 100.0
+          }
+        ]
+      },
       "description": "The standard rifle every soldier carries.",
       "fires_on_its_own": false,
       "gravity_scale": 0.09,
@@ -45090,6 +45571,16 @@
       "damage": 60.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 900.0
+          }
+        ]
+      },
       "description": "Unguided rockets in salvos, for troops, light vehicles and cover.",
       "fires_on_its_own": false,
       "gravity_scale": 1.0,
@@ -45139,6 +45630,19 @@
       "damage": 55.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "only": [
+              "vehicle"
+            ],
+            "range_m": 400.0
+          }
+        ]
+      },
       "description": "Unguided direct anti-tank rocket.",
       "fires_on_its_own": false,
       "gravity_scale": 1.7651,
@@ -45183,6 +45687,19 @@
       "damage": 45.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "only": [
+              "vehicle"
+            ],
+            "range_m": 300.0
+          }
+        ]
+      },
       "description": "Unguided direct anti-tank rocket.",
       "fires_on_its_own": false,
       "gravity_scale": 1.7651,
@@ -45227,6 +45744,16 @@
       "damage": 50.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 280.0
+          }
+        ]
+      },
       "description": "A general-purpose high-explosive rocket for infantry and light armour.",
       "fires_on_its_own": false,
       "gravity_scale": 1.7651,
@@ -45272,6 +45799,19 @@
       "damage": 130.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "only": [
+              "vehicle"
+            ],
+            "range_m": 6500.0
+          }
+        ]
+      },
       "description": "Long-range anti-radiation missile.",
       "fires_on_its_own": true,
       "gravity_scale": 1.0,
@@ -45319,6 +45859,19 @@
       "damage": 55.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "only": [
+              "vehicle"
+            ],
+            "range_m": 900.0
+          }
+        ]
+      },
       "description": "Optically supported direct anti-tank missile; no top-attack or fire-and-forget behavior.",
       "fires_on_its_own": false,
       "gravity_scale": 1.0,
@@ -45364,6 +45917,16 @@
       "damage": 260.0,
       "decoyable": true,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "low_air",
+            "range_m": 1500.0
+          }
+        ]
+      },
       "description": "A shoulder-fired missile that reaches only aircraft; the gunner keeps it in his sight.",
       "fires_on_its_own": false,
       "gravity_scale": 1.0,
@@ -45411,6 +45974,16 @@
       "damage": 40.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 800.0
+          }
+        ]
+      },
       "description": "Armour-piercing sabot: the tank gun's answer to armour.",
       "fires_on_its_own": false,
       "gravity_scale": 1.7651,
@@ -45456,6 +46029,16 @@
       "damage": 80.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "range_m": 800.0
+          }
+        ]
+      },
       "description": "High-explosive shell for troops, cover and buildings.",
       "fires_on_its_own": false,
       "gravity_scale": 1.7651,
@@ -45501,6 +46084,19 @@
       "damage": 45.0,
       "decoyable": false,
       "default": false,
+      "derived": {
+        "fires_regardless": false,
+        "reach": [
+          {
+            "intercepts": false,
+            "layer": "ground",
+            "only": [
+              "vehicle"
+            ],
+            "range_m": 900.0
+          }
+        ]
+      },
       "description": "Optically supported direct anti-tank missile; launcher line of sight is required.",
       "fires_on_its_own": false,
       "gravity_scale": 1.0,

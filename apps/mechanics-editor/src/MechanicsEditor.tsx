@@ -10,8 +10,9 @@ import {
   type ReactNode,
 } from "react";
 import { isGameDocument } from "../../../web/src/battle/catalog/compose";
+import { request, RequestError } from "./api";
+import { DerivedFacts } from "./DerivedFacts";
 import {
-  MECHANICS_API,
   targetKey,
   type Json,
   type JsonObject,
@@ -129,34 +130,6 @@ function ChangeSummary({
       </div>
     </li>
   );
-}
-
-class RequestError extends Error {
-  constructor(
-    message: string,
-    readonly conflict: boolean,
-  ) {
-    super(message);
-  }
-}
-async function request<T>(suffix = "", draft?: MechanicsDraft): Promise<T> {
-  const response = await fetch(
-    `${MECHANICS_API}${suffix}`,
-    draft
-      ? {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(draft),
-        }
-      : undefined,
-  );
-  const body = (await response.json()) as T & { error?: string };
-  if (!response.ok)
-    throw new RequestError(
-      body.error ?? `Request failed (${response.status}).`,
-      response.status === 409,
-    );
-  return body;
 }
 
 /** The editable mount object omits parser defaults forbidden on that body type. */
@@ -487,6 +460,7 @@ function ExpandedUnit({ id, unit }: { id: string; unit: JsonObject }) {
                     )
                     .join(", ")}
                 </div>
+                <DerivedFacts row={weapons[weapon]} />
                 <EntryForm target={{ section: "weapons", id: weapon }} original={weapons[weapon]} />
               </details>
             ),

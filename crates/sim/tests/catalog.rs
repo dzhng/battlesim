@@ -404,20 +404,6 @@ fn the_native_rules_fixture_carries_no_map() {
     assert_eq!(grounded["catalog"], test_rules()["catalog"]);
 }
 
-#[test]
-fn the_browsers_catalog_view_is_current() {
-    let path = fixtures::dir().join("catalog.json");
-    let view = fixtures::catalog_view();
-    if std::env::var_os("BLESS_CATALOG").is_some() {
-        std::fs::write(&path, &view).unwrap();
-    }
-    let on_disk = std::fs::read_to_string(&path).unwrap_or_default();
-    assert!(
-        on_disk == view,
-        "fixtures/catalog.json is stale: rerun with BLESS_CATALOG=1 (`cargo test -p sim --test sim catalog::`)"
-    );
-}
-
 /// What players get is the roster: every concrete unit type in the committed
 /// catalog is a roster card, every soldier kind fills a slot of one, and no
 /// test or menu unit ships.
@@ -917,3 +903,5 @@ fn vehicle_wrecks_cannot_require_missing_building_facts() {
 
 #[path = "catalog/limits.rs"]
 mod limits;
+#[path = "catalog/view.rs"]
+mod view;

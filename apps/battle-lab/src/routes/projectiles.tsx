@@ -1,7 +1,7 @@
 import { presentationSettings } from "@web/presentationSettings";
 import { useEffect, useRef, useState } from "react";
 import { vec2, type Vec2, type Vec3 } from "math";
-import type { SessionCatalog } from "@web/battle/catalog/compose";
+import type { ResolvedRules } from "@web/battle/catalog/compose";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { BattleView } from "../BattleView";
 import type { BattleSession } from "../useBattleSession";
@@ -59,7 +59,7 @@ function Review({ scenario }: { scenario: string }) {
   );
 }
 
-function showLane(weapons: SessionCatalog["weapons"], index: number) {
+function showLane(weapons: ResolvedRules["weapons"], index: number) {
   if (index < 0) window.__lab?.setCamera?.(STREET_CAMERA);
   else {
     const { from, to } = reviewLanePositions(weapons, index);

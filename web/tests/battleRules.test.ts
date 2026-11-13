@@ -131,7 +131,7 @@ test("consecutive wasm battles field and sound their own resolved encounter rule
         JSON.stringify(base.rules),
       ),
     );
-    const session = composeScenarioCatalog(scenario.rules, wasm.resolve_catalog);
+    const session = composeScenarioCatalog(scenario.rules, wasm);
     const hz = session.rules.tick_hz;
     const battle = sim.createBattle(JSON.stringify(scenario), 7);
     const presentation = new Presentation(battle.observation_layout(), hz);

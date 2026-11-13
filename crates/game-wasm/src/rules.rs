@@ -12,6 +12,17 @@ pub fn resolve_rules(json: &str) -> Result<String, JsError> {
     serde_json::to_string(&rules).map_err(js_error)
 }
 
+/// Resolved weapon rows (`resolve_rules`' `weapons`) as the catalog view
+/// publishes them, each with the facts its contract derives under `derived`
+/// (`contract::weapons::published`). A reader's rows, never rules: the
+/// simulation refuses `derived` as an authored field.
+#[wasm_bindgen]
+pub fn publish_weapons(weapons_json: &str) -> Result<String, JsError> {
+    let mut rows = serde_json::Deserializer::from_str(weapons_json);
+    let weapons = contract::weapons::resolve_weapons(&mut rows).map_err(js_error)?;
+    Ok(contract::weapons::published(&weapons).to_string())
+}
+
 /// A preview stands at the same authored cruise height as the simulation.
 #[wasm_bindgen]
 pub fn cruise_agl_m(air: &str, mobility: &str) -> Result<f64, JsError> {

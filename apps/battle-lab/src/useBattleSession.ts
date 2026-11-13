@@ -1,5 +1,5 @@
 import { useViewportGpu } from "./useViewportGpu";
-import { resolve_catalog, resolve_rules } from "@wasm/game_wasm";
+import * as gameWasm from "@wasm/game_wasm";
 import type { ViewportFrame } from "./presentedFrame";
 // One side's session owns the authority, commands and canonical presentation.
 // Picking and readouts observe its drawn state; routes add their own probes.
@@ -120,8 +120,8 @@ export function useBattleSession({
       skirmish?: object;
       units?: { kind: string }[];
     };
-    const rules = JSON.parse(resolve_rules(JSON.stringify(parsed.rules)));
-    const catalog = { ...composeScenarioCatalog(rules, resolve_catalog), set: sourceCatalog.set };
+    const rules = JSON.parse(gameWasm.resolve_rules(JSON.stringify(parsed.rules)));
+    const catalog = { ...composeScenarioCatalog(rules, gameWasm), set: sourceCatalog.set };
     return {
       ...parsed,
       catalog,
