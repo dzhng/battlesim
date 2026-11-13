@@ -13,7 +13,7 @@
     "supply_net": {
       "body": {"blocks": {"infantry": false, "vehicle": false}, "stops_rounds": false, "occludes": false, "weight_class": "light", "hp": 30},
       "destroyed": "removed",
-      "appearance": {"status": "systems_only", "stand_in_tint": [0.36, 0.41, 0.26], "drawn_by": "supply_net", "map_only": true}
+      "appearance": {"stand_in_tint": [0.36, 0.41, 0.26], "drawn_by": "supply_net", "map_only": true}
     }
   }
 }

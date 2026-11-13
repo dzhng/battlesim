@@ -180,6 +180,36 @@
    "licence": "public-domain",
    "sha256": "c7bac15697e264a7fe26f74bf2451234f28b7c70b1f32daa5e00f6df7b971103",
    "note": "Camp flagpoles: the halyard's two runs down to their cleat, the flag on the halyard clear of the pole, a sleeve and pad at the foot."
+  },
+  {
+   "file": "supply_net-camo_net_jeeps.jpg",
+   "prop": "supply_net",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Camouflage_netting_shelters_jeeps_deployed_for_exercise_Team_Spirit_%2788_DA-ST-90-06602.jpg",
+   "author": "Unknown author (U.S. Department of Defense photo)",
+   "licence": "public-domain",
+   "sha256": "e82c3d0f4674b71a6c9dfcc43ec8206ba4a556d973c866802f46832225eebf05",
+   "note": "Camouflage netting over vehicles: garnished net lifted on poles and spreaders, sagging between them and pegged down."
+  },
+  {
+   "file": "supply_net-camo_net_comms_vehicle.jpg",
+   "prop": "supply_net",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Camouflage_netting_covers_a_communications_vehicle_during_Operation_Sand_Eagle_%2788_-_DPLA_-_20b257f873581ebc5940ec9867f376a0.jpeg",
+   "author": "Department of Defense. American Forces Information Service. Defense Visual Information Center. 1994",
+   "licence": "public-domain",
+   "sha256": "db4da53bf5bfe830f52d30e5ffb800874c4745ca48f09fa0ca83a0935877bf68",
+   "note": "A vehicle under camouflage netting: the net draped to the ground round what it covers."
+  },
+  {
+   "file": "supply_net-cargo_net_pallets.jpg",
+   "prop": "supply_net",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:US_Navy_090716-N-9301D-120_Sailor_aboard_the_guided-missile_cruiser_USS_Anzio_(CG_68)_removes_a_cargo_net_from_pallets_of_stores_during_a_vertical_replenishment_with_USNS_San_Jose_(T-AFS_7).jpg",
+   "author": "U.S. Navy photo by Mass Communication Specialist 2nd Class Mathew J. Diendorf",
+   "licence": "public-domain",
+   "sha256": "3b7d7a1ec913d5feeb4792bb4acb81b61cdd8c9ec4d5db4c80f8642607058bb0",
+   "note": "Stores on pallets under a cargo net: what the net covers is stacked supplies."
   }
  ]
 }

@@ -3267,6 +3267,17 @@
       "scenery": "skip_bin",
       "unit": "scenery"
     },
+    "supply_net": {
+      "bundle": "faece3f259fca130064e7c7b7c65009ce9595b8cf8affac472e6004f9d38e013",
+      "footprint_half_m": [
+        2.4,
+        1.2,
+        1.1
+      ],
+      "kind": "static",
+      "scenery": "supply_net",
+      "unit": "scenery"
+    },
     "swing": {
       "bundle": "ccd7b9a0563c6ae534e24c9d6bb07370117727112c150a9aeecb2e1223eff82e",
       "footprint_half_m": [
@@ -4537,6 +4548,11 @@
       "bytes": 1690309,
       "hash": "7c33dc493ad96ffc74720697e87fa7eeb040733734ac6e2f65f2b58d3a449ea4",
       "raw_bytes": 3130660
+    },
+    "054faca6eb8e19a3a497ae9e8b4286659360ba34651bbdb7a36778b1a6f93f55": {
+      "bytes": 180973,
+      "hash": "9674480bd8ef0760cd14222a93989254cf9b8e53adc93b733fc136a1b264e3e5",
+      "raw_bytes": 349543
     },
     "05d10d0f36984159d9d65384e801c48536271e52eca73928761914cc948e5f54": {
       "bytes": 55325,
@@ -7488,6 +7504,11 @@
       "hash": "4bd2a2e9637b0afc220ebb74896ef209482284777700d78ce73ad0471f141972",
       "raw_bytes": 121916
     },
+    "a9e925847cce07d35205ad39af5edc4797e31ba2be528b2a1a8478ed97fdee3c": {
+      "bytes": 50868,
+      "hash": "86a88d77b5ed6bf872c225b754db6c51cdf7f368bdaa4a00bc428c63b8715450",
+      "raw_bytes": 349543
+    },
     "a9fdc1ee5c1d98d10173331297e318347874d670bcf7db8551a4ddb8a8896fa8": {
       "bytes": 18568,
       "hash": "5107a851cff2d546c2062cb2e654f19902ed750700000a87749ba7b93e5994d4",
@@ -8057,6 +8078,11 @@
       "bytes": 23859,
       "hash": "50b73da5d6bd774419b788f2a1d37e8750e7ebc0a6a6280e0a7effb8d76b1f37",
       "raw_bytes": 349543
+    },
+    "c7114d0ea12bab1b642ffee2f8275f4d5fc57f6db55b99906646d3f8993deda7": {
+      "bytes": 195787,
+      "hash": "f7f02ccbe918b5829a66e01a4beb0a4961f9e8b85cf0a7f3f5aaafa9c5b5e324",
+      "raw_bytes": 349548
     },
     "c732da419c2a600ae822a7ce930230e0f7304b28bdba9adfa38a8f9273124d27": {
       "bytes": 7244100,
@@ -9042,6 +9068,11 @@
       "bytes": 25566,
       "hash": "7c3d63ffa54a0143d52dbc1b58343cb69fc3012b0424cbb6e9d00a0ac617a95a",
       "raw_bytes": 123656
+    },
+    "faece3f259fca130064e7c7b7c65009ce9595b8cf8affac472e6004f9d38e013": {
+      "bytes": 67197,
+      "hash": "2e997cc6407df37de25de7817e44e2a2530c82f287ca1f4bcf95a68d7cd93e0b",
+      "raw_bytes": 148428
     },
     "faef97a532cdb5bc5d66f35fdc9dc4fe135e3f5a362c55292567322e2d1ea1e8": {
       "bytes": 5400326,
@@ -16290,6 +16321,14 @@
       "8ae8b2df11d758c2c8b3f359e4e657257f0cecea20003abf17e297f498488cff",
       "ee8923ec279a708d2e6f31fb65523fcaf8747891f5bb66ff5231102f603b0cf8",
       "58a463febfa2b5bfbf01fa9d0a5651046cb2b544c45a62c7941d69a382d160a8"
+    ],
+    "faece3f259fca130064e7c7b7c65009ce9595b8cf8affac472e6004f9d38e013": [
+      "c7114d0ea12bab1b642ffee2f8275f4d5fc57f6db55b99906646d3f8993deda7",
+      "054faca6eb8e19a3a497ae9e8b4286659360ba34651bbdb7a36778b1a6f93f55",
+      "a9e925847cce07d35205ad39af5edc4797e31ba2be528b2a1a8478ed97fdee3c",
+      "799ce39ab400d445b07ef461ef1fc867af6ac8196d0ad627a069f0f205918ad6",
+      "1a2de2977c3e137f92aa05de1eedb7963b085df652d4f96f1cdd16edb9d0f17a",
+      "8d0c56a841d1bf6b5d0e17be28f8aea6d37aa8a277b96197065e4cf203aa2817"
     ],
     "faef97a532cdb5bc5d66f35fdc9dc4fe135e3f5a362c55292567322e2d1ea1e8": [
       "3e7541badb88d4024f735ede729a604b0e354a6f55becb300f78259c0fe7fa32",

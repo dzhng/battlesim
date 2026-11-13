@@ -178,3 +178,76 @@ def flagpole():
     for k, z in enumerate((ftop - 0.03, ftop - fh + 0.03)):
         box(f"snap_{k}", (0.04, 0.016, 0.07), (hal_x + 0.01, 0, z), alu, flag, lods=(0, 1))
     return [hx, hy, hz]
+
+
+# ------------------------------------------------------------------ the supply net
+SPREADER_R = 0.2  # how far round each pole the net lies flat on its spreader disc (half that across)
+
+
+@kind
+def supply_net():
+    """A woodland camouflage net thrown over a supply stack: lifted on two poles under
+    spreader discs, one a little lower than the other, sagging between them, its long
+    edges held up on short poles so the stacks show under them and its ends falling to the
+    ground. It stays clear over the middle, where two or three pallet stacks (1.2 m) stand
+    under it in a row, and never touches them. The net alone: the stacks are their own
+    bodies."""
+    hx, hy, hz = 2.4, 1.2, 1.1
+    net_m = textured("camo_net", "camo_net", chip=0.0, dirt=0.0, streak=0.0, grain=0.0, coverage=("cutout", 0.5))
+    wood = textured("net_pole", "pallet_wood", colour=(0.07, 0.06, 0.04), chip=0.3, dirt=0.7, rise=0.4)
+    net = body("net")
+    rig = body("rigging")
+    pole_x, edge_y, foot = 2.0, hy - 0.03, 0.03
+    lifted_edge, props = 0.6, (-1.5, 0.0, 1.5)  # both long edges stand on short poles here, the stacks showing under them
+    peaks = (2 * hz - 0.06, 2 * hz - 0.3)  # the -X pole's top, and the +X one's
+    stack = (1.95, 0.56, 1.25)  # how far the stacks can reach along and across, and the least height over them
+
+    def ridge(x):
+        t = max(-1.0, min(1.0, x / pole_x))
+        level = peaks[0] + (peaks[1] - peaks[0]) * (t + 1) / 2
+        return level - 0.34 * (1 - t * t)  # the cord sags between the poles
+
+    def z_at(x, y):
+        a = abs(x)
+        top = ridge(x)
+        if a > pole_x + SPREADER_R:  # off the end: falls to the ground
+            k = (a - pole_x - SPREADER_R) / (hx - pole_x - SPREADER_R)
+            top = foot + (top - foot) * max(0.0, 1 - k ** 0.8)
+        edge = foot + (lifted_edge - foot) * max(0.0, 1 - max(0.0, a - pole_x) / (hx - pole_x))
+        z = edge + (top - edge) * (1 - min(1.0, abs(y) / edge_y) ** 1.7)
+        near = math.hypot(a - pole_x, y)
+        z += 0.06 * noise.noise(Vector((x * 1.6, y * 1.6, 0.7))) * min(1.0, near / 0.5) * (1 - min(1.0, abs(y) / edge_y))
+        if a < stack[0] and abs(y) < stack[1]:
+            z = max(z, stack[2])
+        lifted = peaks[0 if x < 0 else 1] + 0.004 - 10.0 * max(0.0, near - SPREADER_R)  # held up over each spreader
+        return max(foot, z, lifted)
+
+    def arc(along, y):
+        """The net's length from its middle to `y` across (or to `along` along it, on the
+        ridge): its texture coordinates follow the cloth down the steep sides and ends."""
+        s, last, n = 0.0, (0.0, z_at(0.0, 0.0)), 40
+        for i in range(1, n + 1):
+            t = (along if along is not None else y) * i / n
+            p = (t, z_at(t, 0.0) if along is not None else z_at(0.0, t))
+            s += math.hypot(p[0] - last[0], p[1] - last[1])
+            last = p
+        return s if (along if along is not None else y) >= 0 else -s
+
+    def build(bm, lod):
+        nu, nv = (48, 24, 12, 4)[lod], (24, 14, 6, 2)[lod]
+        xof = lambda u: hx * math.sin(math.pi * (u - 0.5))  # closer rows where the ends fall
+        grid(bm, nu, nv, lambda u, v: (xof(u), -edge_y + 2 * edge_y * v, z_at(xof(u), -edge_y + 2 * edge_y * v)),
+             uv=lambda u, v: (arc(xof(u), None) / 1.2, arc(None, -edge_y + 2 * edge_y * v) / 1.2))
+        return True
+
+    mesh_part("net", build, net_m, net, smooth=True)
+    for k, s in enumerate((-1, 1)):
+        x, peak = s * pole_x, peaks[k]
+        cyl(f"pole_{k}", 0.03, peak - 0.03, (x, 0, (peak - 0.03) / 2), "Z", wood, rig, seg=8)
+        cyl(f"spreader_{k}", SPREADER_R / 2, 0.03, (x, 0, peak - 0.015), "Z", wood, rig, seg=12, lods=(0, 1, 2))
+    # short poles under the lifted long edges
+    for k, x in enumerate(props):
+        for j, s in enumerate((-1, 1)):
+            cyl(f"prop_{k}_{j}", 0.025, lifted_edge - 0.01, (x, s * (edge_y - 0.02), (lifted_edge - 0.01) / 2), "Z", wood,
+                rig, seg=8, lods=(0, 1, 2))
+    return [hx, hy, hz]

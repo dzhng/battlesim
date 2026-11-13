@@ -999,3 +999,14 @@ needs-user).
   waving flags or canvas would be a new renderer feature, battle-wide. The
   flag is caught mid-ripple instead. *Provisional:* for the user, if a still
   flag reads wrong.
+- **15f, the net: a woodland camouflage net thrown over the supplies,** lifted
+  on two end poles under spreader discs (one lower than the other), sagging
+  between them, its long edges held up on short poles so the stacks show
+  under them, its ends falling to the ground. It never touches the stacks:
+  the art doesn't know whether two or three stand under it, so it keeps
+  clear of the most a depot row can hold (1.95 m along, 0.56 m across, 1.25 m
+  up). *Why:* L3 (a net over supplies only); the net's body is 2.2 m tall, so
+  it must stand that high somewhere. Two critiques read a closed net as a
+  tent or a hedge with the supplies hidden; the lifted edges show what it
+  covers. A new recipe, `camo_net` (garnish over a cord net, a cutout), in
+  `textures_military.py`. *Provisional.*
