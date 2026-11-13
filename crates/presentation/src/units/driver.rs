@@ -728,6 +728,7 @@ impl PoseDriver {
         // own pitch limits (`articulate`).
         let gun_target = gun_mount.map_or(0.0, |m| m.elevation);
         let hmg_target = hmg_mount.map_or(0.0, |m| m.elevation);
+        let airborne = ty.airborne && !unit.grounded;
         let state = self
             .vehicles
             .entry(side_key(unit.id, &*unit.side == "blue").to_bits())
@@ -743,12 +744,12 @@ impl PoseDriver {
                         side: unit.side.clone(),
                         position: unit.position,
                         yaw: unit.yaw,
-                        airborne: ty.airborne,
+                        airborne,
                         // Its rotors as a camera's shutter sees them turn.
                         articulation: Articulation {
                             gun_pitch: gun_target,
                             hmg_pitch: hmg_target,
-                            rotor_blur: if ty.airborne { 1.0 } else { 0.0 },
+                            rotor_blur: if airborne { 1.0 } else { 0.0 },
                             ..Articulation::default()
                         },
                         motion: None,

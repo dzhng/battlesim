@@ -67,7 +67,7 @@ playing.
 
 `/armory` with real 3D:
 - a tank idling;
-- a helicopter, its rotors turning on the ground;
+- a helicopter parked, its rotors stopped and silent;
 - a jet parked on its gear;
 - a squad in its scatter;
 - engine sound under the menu bed.

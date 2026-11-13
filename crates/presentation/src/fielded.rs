@@ -299,8 +299,8 @@ fn names(list: &Value) -> impl Iterator<Item = String> + '_ {
         .filter_map(|n| n.as_str().map(str::to_owned))
 }
 
-/// Whether `t` flies (`airborne`).
-fn airborne(t: &Value) -> bool {
+/// Whether catalog type `t` flies (`airborne`).
+pub(crate) fn airborne(t: &Value) -> bool {
     t["mobility"].get("air").is_some()
 }
 

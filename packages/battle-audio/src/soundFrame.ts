@@ -257,9 +257,10 @@ export interface IdleLoop {
   rate: number;
 }
 
-/** The loops unit type `kind` idles with under `options`: a vehicle's
- *  engine at idle, each sound replaced as the battle replaces it; none for
- *  a squad. The module must be loaded. */
+/** The loops unit type `kind` idles with on the ground under `options`: a
+ *  vehicle's engine at idle, each sound replaced as the battle replaces it;
+ *  none for a squad, or for an aircraft, parked with its engines off. The
+ *  module must be loaded. */
 export function idleLoops(options: SoundFrameOptions, kind: string): IdleLoop[] {
   return JSON.parse(idle_loops(setupJson(options), kind)) as IdleLoop[];
 }

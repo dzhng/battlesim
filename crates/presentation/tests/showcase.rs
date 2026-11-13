@@ -10,7 +10,7 @@ use presentation::presentation::showcase::ShowcaseInput;
 use presentation::presentation::{Presentation, Ui};
 use presentation::records::{Counts, Instance, Joint};
 use presentation::view::Camera;
-use presentation::world::{BattleInput, Detail, SoldierBody, WorldInput, Xray};
+use presentation::world::{Appearance, BattleInput, Detail, SoldierBody, WorldInput, Xray};
 use serde_json::{json, Value};
 
 fn root() -> PathBuf {
@@ -189,28 +189,48 @@ fn showcased_soldiers_idle_each_at_their_own_tempo() {
 }
 
 #[test]
-fn a_parked_rotorcraft_turns_and_blurs_its_rotors_on_the_ground() {
+fn a_parked_rotorcraft_draws_its_blades_at_rest_with_no_rotor_disc() {
     let rotor = SHAPE_NAMES.iter().position(|s| *s == "rotor").unwrap() as f32;
+    let fielded = plain("test_heli");
+    let appearances = fielded.units.appearances.clone();
     let mut p = Presentation::new(None, 30.0).unwrap();
-    p.set_showcase(plain("test_heli"), hull("test_heli", [0.0, 0.0, 0.0]))
+    p.set_showcase(fielded, hull("test_heli", [0.0, 0.0, 0.0]))
         .unwrap();
     let mut blades = Vec::new();
     for k in 0..3 {
         let f = shown(&mut p, f64::from(k) / 30.0);
-        assert_eq!(
-            f.at(0.0, 0.0).1.placement[2],
-            0.0,
-            "it stands on the ground"
+        let (name, heli) = f.at(0.0, 0.0);
+        assert_eq!(heli.placement[2], 0.0, "it stands on the ground");
+        assert!(
+            !p.effects().iter().any(|e| e.misc[0] == rotor),
+            "frame {k}: a parked rotorcraft draws no rotor disc"
         );
-        let discs: Vec<_> = p.effects().iter().filter(|e| e.misc[0] == rotor).collect();
-        assert!(!discs.is_empty(), "frame {k}: a rotor disc is drawn");
-        let sweep = discs.iter().map(|d| d.b[3]).fold(0.0f32, f32::max);
-        if k > 0 {
-            assert!(sweep > 0.0, "frame {k}: the shutter sees the blades sweep");
+        let Some(Appearance::Articulated { rig, .. }) = appearances.get(&name) else {
+            panic!("{name} is not articulated");
+        };
+        assert!(!rig.rotors.is_empty(), "{name} has rotors");
+        let first = heli.data[0] as usize;
+        let drawn: Vec<Joint> = rig
+            .rotors
+            .iter()
+            .map(|r| f.palettes[first + r.node])
+            .collect();
+        for j in &drawn {
+            // Each blade node keeps its full size: the blur would scale it to nothing.
+            let [a, b, c] = [j.x, j.y, j.z].map(|r| [r[0], r[1], r[2]]);
+            let det = a[0] * (b[1] * c[2] - b[2] * c[1]) - a[1] * (b[0] * c[2] - b[2] * c[0])
+                + a[2] * (b[0] * c[1] - b[1] * c[0]);
+            assert!(
+                det.abs() > 1e-3,
+                "frame {k}: a rotor's blades are drawn ({det})"
+            );
         }
-        blades.push(discs[0].colour);
+        blades.push(drawn);
     }
-    assert_ne!(blades[1], blades[2], "the blades turn between frames");
+    assert!(
+        blades.windows(2).all(|w| w[0] == w[1]),
+        "the blades stand still between frames"
+    );
 }
 
 #[test]

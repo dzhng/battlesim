@@ -15,12 +15,13 @@ map's "Confirm before coding" item 1.
 K4. The presentation crate poses one unit with its idle life and no
 publication:
 - each soldier's own tempo, phase and facing, plus the occasional watcher;
-- turning, blurred rotors on a grounded rotorcraft;
+- a grounded rotorcraft parked, its rotors stopped and drawn as blades,
+  with no blur (the user's decision, 2026-11-13);
 - the faction looks `Fielding` resolved;
 - operators carrying their weapon's **carried** kit.
 
 It also names the unit's idle loops, with the battle's sound replacements
-already applied.
+already applied. A parked aircraft has none: its engines are off.
 
 ## Seam
 
@@ -39,7 +40,7 @@ impl Presentation {
     pub fn clear_showcase(&mut self);
 }
 // presentation::sound
-pub fn idle_loops(tables: &SoundTables, vehicle_class: Option<&str>) -> Vec<IdleLoop>;
+pub fn idle_loops(tables: &SoundTables, vehicle_class: Option<&str>, flies: bool) -> Vec<IdleLoop>;
 pub struct IdleLoop { pub slot: &'static str, pub sound: String, pub gain: f64, pub rate: f64 }
 ```
 
@@ -49,14 +50,17 @@ pub struct IdleLoop { pub slot: &'static str, pub sound: String, pub gain: f64, 
   holding the one stationary unit, instead of reading an `ObservationFeed`.
   Soldiers enter on first sight with the driver's own `rest_manner` and
   `loop_start` (`driver.rs:147-160`), so their idle feel is the driver's.
-- **A parked rotorcraft turns its rotors with blur.** Today the driver sets
+- **A parked rotorcraft's rotors stand still.** The driver sets
   `rotor_blur = airborne ? 1 : 0` and advances `rotor` by `feel.rotor.tip_mps`
-  (`driver.rs:850-870`).
-  - The showcase states the unit **level at z = 0 with its rotors turning**.
-    "Rotors turning" is a property of the feed unit, not a role check.
-  - The driver blurs whenever rotors turn. Battle frames can't change, because
-    in battle the sim's rotors are always airborne, so the two conditions
-    coincide.
+  only in the air (`units/driver.rs`, `fn vehicle`).
+  - The showcase states the unit **level at z = 0, on the ground**
+    (`FeedUnit::grounded`). A grounded type that flies poses as a ground
+    vehicle does: no rotor travel, no blur, no rotor disc, its blades drawn at
+    rest. It is a property of the feed unit, not a role check.
+  - Battle frames can't change: battle never grounds a live aircraft.
+  - Its idle loops follow the same state: `idle_loops(tables, vehicle_class,
+    flies)` gives a type that flies nothing on the ground, and a ground
+    vehicle its engine at idle.
 - **Rotor discs have one owner.** Today `effects.build(…, &rotors, …)` draws
   them (`presentation.rs:1047`). Factor the rotor-disc emission into one
   function that `Loaded::frame` and `Showcase` both call. Never duplicate it.
@@ -64,7 +68,7 @@ pub struct IdleLoop { pub slot: &'static str, pub sound: String, pub gain: f64, 
   - `Fielded` is the same type the battle's `load_world` uses (`fielded.rs:30`).
     The browser resolves it with `Fielding` and `factions: [tab, tab]` (L11).
   - Rows are appended after `Lab::append` (`presentation.rs:969`).
-- **Idle loops.** `idle_loops` is `vehicle_loops(row, 0, 0, false)`
+- **Idle loops.** For a ground vehicle `idle_loops` is `vehicle_loops(row, 0, 0, false)`
   (`sound/frame.rs:543`) with `SoundTables::effect` (`sound/tables.rs:396`)
   applied, which is exactly what a stationary battle vehicle starts. Squads have
   no `vehicle_class` and return `[]`.
@@ -86,8 +90,9 @@ Write these first, in `crates/presentation/tests/showcase.rs`:
   call, and the models are in the frame.
 - `showcased_soldiers_idle_each_at_their_own_tempo`: palettes change over time
   and differ between soldiers. No values are pinned.
-- `a_parked_rotorcraft_turns_and_blurs_its_rotors_on_the_ground`: a drawn rotor
-  disc is emitted, the rotor travel grows, and the model's origin is at z = 0.
+- `a_parked_rotorcraft_draws_its_blades_at_rest_with_no_rotor_disc`: no rotor
+  disc is emitted, each rotor node is drawn full size and still between
+  frames, and the model's origin is at z = 0.
 - `an_operator_at_rest_carries_his_weapons_carried_kit`: resolves to
   `operated[m].carried`.
 - `a_showcase_wears_the_look_fielding_resolved_for_its_faction`.
@@ -96,6 +101,8 @@ Write these first, in `crates/presentation/tests/showcase.rs`:
 In `crates/presentation/tests/sound.rs`:
 `an_idle_vehicle_sounds_as_a_stationary_battle_vehicle_does`. It compares
 `idle_loops` with the start commands a `Sound` emits for a stopped vehicle.
+`a_parked_aircraft_stands_silent_where_a_ground_vehicle_idles` pins the
+parked rule through the catalog.
 
 ## Delegated to the implementer
 

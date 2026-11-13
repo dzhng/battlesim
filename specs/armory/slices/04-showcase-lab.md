@@ -46,8 +46,9 @@ never by an id:
 ## Verification
 
 Probes in `web/scenes/showcase.mjs`:
-- **Rotor:** the pixel delta between two frames inside the rotor-disc mask is
-  greater than 0.
+- **Rotor:** the parked rotorcraft draws no rotor disc, nothing on its stage
+  moves between two frames, and it idles with no loops (its rotors stopped,
+  the user's decision of 2026-11-13; this replaced "the rotor disc turns").
 - **Squad:**
   - the soldiers aren't collinear (the scatter);
   - poses differ between soldiers;
@@ -71,10 +72,8 @@ through the real wasm.
   - the squad from 30° above.
 - **Compare:**
   - `compare-screenshots` the helicopter against a reference photo of a parked
-    attack or utility helicopter with its rotors turning, stored in
-    `assets/references/`;
-  - compare the rotor disc against the battle's airborne blur (the `air-hover`
-    scene), the prior look.
+    attack or utility helicopter, its rotors stopped, stored in
+    `assets/references/`.
 - `screenshot-critique` is the last check on each crop.
 - Then the non-blocking `preview-shots` checkpoint.
 
@@ -92,10 +91,9 @@ through the real wasm.
 
 ## Feedback that would change it
 
-**"The rotors look wrong parked"** (for example, too fast).
-- That value is `presentation.json` `rotor.tip_mps`, which the battle shares.
-- Retuning it for the Armory alone would make a second owner. Raise it with the
-  user as a decision.
+**"The rotors look wrong parked."** They stand still since the user's
+decision of 2026-11-13; the blades are the model's art. The turning look,
+`presentation.json` `rotor.tip_mps` and `rotor_blur`, is the battle's alone.
 
 **"The soldiers look like statues."** Tune the driver's idle-feel data
 (`presentation.json` `pose.rest`). Never add page code.

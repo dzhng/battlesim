@@ -47,6 +47,10 @@ pub struct FeedUnit {
     /// A downed airframe's (pitch, roll) as it falls, radians: nose up and
     /// right side down. None: a live unit.
     pub attitude: Option<(f64, f64)>,
+    /// It stands on the ground though its type flies: a parked aircraft,
+    /// shut down, posed as a ground vehicle is, its rotors still. False in
+    /// battle, where a live aircraft always flies.
+    pub grounded: bool,
 }
 
 #[derive(Clone, Debug)]

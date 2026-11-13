@@ -113,6 +113,10 @@ export default function Showcase() {
       rect: (kind: string) => rectOf(panels.get(kind)!),
       loops: (kind: string) => panels.get(kind)?.loops ?? null,
       rotors: (kind: string) => rotorDiscs(panels.get(kind)!),
+      flight: (kind: string) => {
+        const mobility = units.type(kind).mobility;
+        return "air" in mobility ? mobility.air.flight : null;
+      },
       models: (kind: string) => drawnModels(panels.get(kind)!.stage),
       standing: (kind: string) => panels.get(kind)?.stage.standing() ?? null,
       grounded: (kind: string) => {
