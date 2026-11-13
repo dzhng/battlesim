@@ -369,7 +369,7 @@
       "default": "impact_ground",
       "ground": "impact_ground",
       "water": "impact_ground",
-      "hull": "impact_hull",
+      "hull": "armour-shell-hit",
       "prop": "impact_prop",
       "metal_prop": "impact_prop",
       "soldier": "impact_soldier",
