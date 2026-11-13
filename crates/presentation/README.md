@@ -146,6 +146,14 @@ calls the same reader for workbench drafts.
   still control standing detail; offscreen animation advances from presentation
   time. Full known-fall snapshots still cost linear reconciliation/equality work,
   distinct from local selection and one-time envelope setup.
+- [Showcase](src/presentation/showcase.rs): one unit at rest with no battle,
+  posed by the battle's own driver from a unit standing still instead of a
+  publication, so its idle life (each soldier's tempo and gaze, the watcher,
+  each operator's carried kit, turning rotors) is the battle's. Posing is
+  [one owner](src/presentation/posing.rs) for both. A presentation shows a
+  battle or a showcase, never both; the unit's rows are the
+  presentation's own, as a battle's are, with the lab's after them. [Idle loops](src/sound/idle.rs) are what a stationary battle vehicle
+  starts, replacements applied.
 - [Sound](src/sound/): what a battle hears, when, where and how loud, from the
   same publication the effects read, the frame's emitters and the side's
   hearing cues, as commands a player carries out (start, glide, stop a voice;

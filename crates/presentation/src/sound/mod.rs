@@ -6,6 +6,7 @@
 //! ([`music`]). A player only carries out their commands on its own mixer.
 pub mod bank;
 pub mod frame;
+pub mod idle;
 pub mod music;
 pub mod synth;
 pub mod tables;

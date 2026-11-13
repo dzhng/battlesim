@@ -27,27 +27,42 @@ struct Timings {
     cook_off: CookOffFeel,
 }
 
+/// A setup's documents admitted: the tables, the timings and the unit
+/// catalog they were checked against.
+pub(super) struct Admitted {
+    pub tables: SoundTables,
+    pub timing: Timing,
+    pub unit_catalog: serde_json::Value,
+}
+
+/// Admits setup JSON (`Setup`).
+pub(super) fn admit(json: &str) -> Result<Admitted, String> {
+    let setup: Setup = serde_json::from_str(json).map_err(|e| format!("sound: {e}"))?;
+    let tables = SoundTables::from_parts(
+        setup.audio,
+        setup.catalog,
+        &setup.presentation,
+        &setup.weapons,
+    )?;
+    tables.looks.check_mounts(&setup.unit_catalog)?;
+    let effects: Timings =
+        crate::settings::read(&setup.presentation["effects"], "presentation.effects")?;
+    effects.cook_off.validate()?;
+    Ok(Admitted {
+        tables,
+        timing: Timing {
+            tick_hz: setup.tick_hz,
+            smoke: effects.smoke,
+            cook_off: effects.cook_off,
+        },
+        unit_catalog: setup.unit_catalog,
+    })
+}
+
 impl Sound {
     /// A battle's sound from its setup JSON (`Setup`).
     pub fn from_json(json: &str) -> Result<Self, String> {
-        let setup: Setup = serde_json::from_str(json).map_err(|e| format!("sound: {e}"))?;
-        let tables = SoundTables::from_parts(
-            setup.audio,
-            setup.catalog,
-            &setup.presentation,
-            &setup.weapons,
-        )?;
-        tables.looks.check_mounts(&setup.unit_catalog)?;
-        let effects: Timings =
-            crate::settings::read(&setup.presentation["effects"], "presentation.effects")?;
-        effects.cook_off.validate()?;
-        Ok(Self::new(
-            Arc::new(tables),
-            Timing {
-                tick_hz: setup.tick_hz,
-                smoke: effects.smoke,
-                cook_off: effects.cook_off,
-            },
-        ))
+        let admitted = admit(json)?;
+        Ok(Self::new(Arc::new(admitted.tables), admitted.timing))
     }
 }

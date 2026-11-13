@@ -52,6 +52,7 @@ use crate::world::Vec3;
 use crate::GRAVITY;
 
 mod draw;
+pub(crate) use draw::draw_rotors;
 mod pool;
 mod smoke;
 mod wake;

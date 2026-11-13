@@ -35,3 +35,53 @@ needs-user).
 - **`Showground` keeps Rust-typed `admit` and `at_rest` beside the wasm
   `new` and `squad`.** Why: `JsError` cannot be built natively, so a native
   test of a refusal needs the `String` error. *Sound.*
+
+## Slice 03
+
+- **A presentation shows a battle or a showcase, never both.** `set_showcase`
+  errs while a battle is loaded and `load_world` with a battle errs while a
+  unit is shown. Why: the showcase's effect batch and the battle's are each
+  the frame's one `effects()`; holding both would need a merge nobody needs.
+  A world of statics alone (no battle) still loads beside a showcase.
+  Alternative: draw both and concatenate batches. *Sound.*
+- **The shown unit's rows are the presentation's own (canonical), after the
+  world's and before the lab's replaceable suffix.** Why: the browser loads
+  art for canonical rows (`BrowserScene`'s `sourceNames`), and when those
+  rows change it rebuilds its scene, the one rule a battle's reload already
+  follows; tooling rows would never have their bundles loaded. The world's
+  own rows never move; the lab's shift and are reinstalled with the
+  renderer's tables. Alternative (my first cut): rows in the tooling suffix,
+  which would need a second art path in the browser. *Sound.*
+- **Both wasm calls return the world header's address**
+  (`set_showcase(fielded, input) -> u32`, `clear_showcase() -> u32`), not
+  `()` as the slice sketched. Why: rows change, and `install_lab_assets`
+  already hands the renderer the new header this way. *Sound.*
+- **The wasm `set_showcase` reads `{units, effects}`** (what
+  `Fielding::resolve` returned, minus its table names) and takes the clip
+  tables staged with `add_clip_table`, as `load_world` does. *Sound.*
+- **The clearing test is two tests:** clearing leaves the lab's rows and
+  model as they were, and a showcase and a battle refuse to share a
+  presentation. Why: one asserts rows, the other an exclusion. *Sound.*
+- **The idle test allows a watcher to stand still.** The driver makes one
+  soldier in `rest.watch_every` a watcher, weapon up, holding; the test asserts
+  more than one soldier idles and no two share a pose, without naming which
+  soldier watches. *Sound.*
+- **`idle_loops_of(setup, kind)` parses the whole `SoundFrame` setup** (one
+  `Setup` struct, admitted by one `setup::admit` that `Sound::from_json` also
+  uses) and finds the kind's `vehicle_class` in its `unit_catalog`. Why: one
+  setup document, one admission; the browser already builds it. Alternative:
+  a smaller idle-only setup, a second parser of the same fields. *Sound.*
+- **Posing has one owner, `presentation/posing.rs`:** the battle's
+  `Loaded::frame` and the showcase draw soldiers and vehicles through
+  `UnitArt` (which now carries the frame's view and detail), share a
+  `Scratch` of node transforms, and build models with `Model::unit` plus
+  struct update. Why: removes the battle's nine-argument model closure
+  without adding lint exemptions. The showcase's rotor blur calls the
+  battle's own `draw_rotors`. *Sound.*
+- **No "rotors turning" feed field.** The slice planned one, but the driver
+  already turns and blurs rotors by the type's `airborne` (a property of the
+  type, not of where it stands), so a parked rotorcraft's rotors turn with no
+  driver change and battle frames are untouched. The showcase draws its unit
+  with no aircraft shadow, in the view pass, as a grounded vehicle is drawn.
+  Alternative: the planned feed property, which would add a second switch for
+  one behaviour. *Sound.*
