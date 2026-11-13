@@ -81,12 +81,17 @@ mechanics, changes to who gets smoke, and anything that adds work.
     swirls inside its circle.
   - **Why:** preference 3. Drawn drift would make the screen lie, and wind
     would be a new mechanic.
-- **D9: firing from inside smoke (agent default; the user may overturn).**
+- **D9: firing from inside smoke (agent default; the user confirmed it as
+  by design on 2026-11-13).**
   - A unit in smoke may fire at targets its side has spotted. This is the
     existing shared-spotting rule: a weapon aims at its side's shared track
     of the target (`weapons.rs`, `resolve`).
   - Each shot refreshes that unit's firing contact, so firing from smoke keeps
     drawing return fire.
+  - The enemy never sees the unit, only that contact. Return fire aims at a
+    random point inside the contact's circle, so it is much less accurate. The
+    circle is three times the unit's footprint, and its centre may be off by up
+    to its radius. Armour-piercing rounds never fire at a contact (W10).
 - **D10: contacts (user, given at the start).**
   - The last-contact marker appearing the moment smoke is popped is a feature.
   - A unit that stays in its smoke keeps getting hit, because that is still the
