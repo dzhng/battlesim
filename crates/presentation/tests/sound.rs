@@ -13,7 +13,7 @@ use presentation::sound::frame::{
     sector_pan, Command, Cue, Heard, Listener, Motion, Scripted, Shout, ShoutTake, Sound,
     SoundSoldier, SoundVehicle, Voice,
 };
-use presentation::sound::idle::idle_loops;
+use presentation::sound::idle::{idle_loops, idle_loops_of};
 use presentation::sound::synth;
 use presentation::sound::tables::{Bus, SoundTables};
 use presentation::sound::voices::{Chatter, Request, SetVoice, Speakers, Speaks, Tier};
@@ -841,7 +841,7 @@ fn each_launch_plays_at_its_own_look_s_level() {
 fn an_idle_vehicle_sounds_as_a_stationary_battle_vehicle_does() {
     let tables = tables();
     assert!(
-        idle_loops(&tables, None).is_empty(),
+        idle_loops(&tables, None, false).is_empty(),
         "a squad has no engine"
     );
     for class in tables.audio.vehicles.keys() {
@@ -869,7 +869,7 @@ fn an_idle_vehicle_sounds_as_a_stationary_battle_vehicle_does() {
                 _ => None,
             })
             .collect();
-        let mut idle: Vec<(String, f64, f64)> = idle_loops(&tables, Some(class))
+        let mut idle: Vec<(String, f64, f64)> = idle_loops(&tables, Some(class), false)
             .into_iter()
             .map(|l| (l.sound, l.gain, l.rate))
             .collect();
@@ -888,4 +888,38 @@ fn an_idle_vehicle_sounds_as_a_stationary_battle_vehicle_does() {
             );
         }
     }
+}
+
+#[test]
+fn a_parked_aircraft_stands_silent_where_a_ground_vehicle_idles() {
+    // Two types of one sound class, one of them flying: on the ground, the
+    // aircraft is shut down whatever its engine sounds like.
+    let class = fixture("audio.json")["vehicles"]
+        .as_object()
+        .unwrap()
+        .keys()
+        .find(|k| *k != "default")
+        .unwrap()
+        .clone();
+    let game = fixture("rules.json");
+    let setup = json!({
+        "audio": fixture("audio.json"),
+        "presentation": fixture("presentation.json"),
+        "catalog": fixture("sounds.json"),
+        "weapons": game["weapons"],
+        "unit_catalog": {"units": [
+            {"id": "rolls", "vehicle_class": class, "mobility": {"wheeled": {}}, "mounts": []},
+            {"id": "flies", "vehicle_class": class, "mobility": {"air": {}}, "mounts": []},
+        ], "soldiers": {}},
+        "tick_hz": game["tick_hz"],
+    })
+    .to_string();
+    assert!(
+        !idle_loops_of(&setup, "rolls").unwrap().is_empty(),
+        "{class}: a ground vehicle idles its engine"
+    );
+    assert!(
+        idle_loops_of(&setup, "flies").unwrap().is_empty(),
+        "{class}: a parked aircraft's engines are off"
+    );
 }

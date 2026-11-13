@@ -1105,3 +1105,32 @@ needs-user).
   (unprimed critique). Nets cover only pallet stacks, as a depot's supply piece
   does (L3), and no prop stands in a spot's clear disc. *Provisional:* the
   human judges the composition.
+## Parked aircraft
+
+- **"On the ground" is one feed field, `FeedUnit::grounded`, and the showcase
+  sets it for every unit.** The driver flies a unit only when its type flies
+  and it is not grounded (`airborne = ty.airborne && !unit.grounded`), so a
+  parked aircraft poses as a ground vehicle does: no rotor travel, no blur,
+  no rotor disc, no flight lean, its blades drawn at rest. The showcase reads
+  no type to set it; for a ground vehicle it changes nothing. *Why:* the rule
+  "rotors turn only in the air" is the battle's own, and battle never sets the
+  field, so its frames stay byte-identical. *Alternative:* a `rotors_stopped`
+  flag that only gates rotor travel and blur, which would keep the flight
+  lean and the aircraft count on a unit standing on the ground. *Sound.*
+- **The idle-loop rule: a type that flies is shut down on the ground; a
+  ground vehicle idles its engine.** `idle_loops(tables, vehicle_class,
+  flies)` returns nothing when `flies`; `idle_loops_of` reads `flies` from
+  the catalog row's mobility through `fielded::airborne`, the same reading
+  the presentation's `airborne` comes from. No class or label is matched: a
+  test gives one sound class to a wheeled and a flying type and only the
+  wheeled one idles. *Why:* Hollywood realism. A tank at rest rumbles; an
+  aircraft on an apron sits cold, and a turning rotor or a running jet would
+  read as about to take off. The wasm and TypeScript `idleLoops(setup, kind)`
+  signatures are unchanged. *Alternative:* the page passing the showcase's
+  grounded state into `idleLoops`, which adds plumbing for a state that is
+  always "on the ground" there. *Sound.*
+- **The `showcase` scene finds its rotorcraft by flight, not by rotor discs.**
+  A new `flight(kind)` probe on `/labs/showcase` reads the type's mobility;
+  the scene then checks no disc, no pixel moving on the stage between frames,
+  and no loops. The rotor-disc emission stays for the battle, its one caller
+  now. *Sound.*

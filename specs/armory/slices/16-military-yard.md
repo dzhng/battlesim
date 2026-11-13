@@ -1,6 +1,6 @@
 # 16 · The yard swaps to the military set [held: L1]
 
-Status: done 2026-11-13, commit (this one).
+Status: done 2026-11-13, commit b1429f076.
 
 Map rows: Q2, Q5, L3. Depends on 11 and 15.
 

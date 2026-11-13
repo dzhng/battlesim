@@ -12,9 +12,13 @@ mod kick;
 use kick::kick_hull;
 mod attitude;
 use attitude::{aircraft_attitude, tilt, Flight};
+mod feed;
+pub use feed::{FeedFallen, FeedFrame, FeedMount, FeedSoldier, FeedUnit};
+mod ways;
+use ways::{gait_of_clip, way_of, GAITS, MOVES};
 
 use std::collections::{BTreeMap, HashMap, HashSet};
-use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, PI};
+use std::f64::consts::PI;
 use std::sync::Arc;
 
 use contract::catalog::FlightModel;
@@ -33,115 +37,7 @@ use stance::{fall_of, lies_after, stance_manner, Posture, Stance};
 
 use crate::GRAVITY;
 
-#[derive(Clone, Debug, Default)]
-pub struct FeedSoldier {
-    pub id: f64,
-    /// His slot in his squad type: which soldier kind he is.
-    pub slot: usize,
-    /// The weapon he has in use, as published.
-    pub active_mount: Option<usize>,
-    pub position: Vec3,
-    /// The rounds he has launched with his selected weapon (the launches the
-    /// flashes and sounds read); a rise is his shot.
-    pub shots: f64,
-    /// Where his body stands while he leans out past his cover's edge to fire.
-    pub lean: Option<[f64; 2]>,
-}
-
-#[derive(Clone, Copy, Debug, Default)]
-pub struct FeedMount {
-    /// The soldier operating it, as published.
-    pub operator: Option<f64>,
-    /// World bearing, radians.
-    pub bearing: f64,
-    pub elevation: f64,
-    pub round: usize,
-    /// Rounds launched so far; a rise is a shot.
-    pub shots: f64,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct FeedUnit {
-    pub id: f64,
-    pub kind: Arc<str>,
-    pub side: Arc<str>,
-    pub position: Vec3,
-    /// Hull heading, radians counter-clockwise from +X.
-    pub yaw: f64,
-    pub soldiers: Vec<FeedSoldier>,
-    pub mounts: Vec<FeedMount>,
-    pub deployment: Option<f64>,
-    /// The squad is pinned, by the published tier (false where the side cannot know).
-    pub pinned: bool,
-    /// A downed airframe's (pitch, roll) as it falls, radians: nose up and
-    /// right side down. None: a live unit.
-    pub attitude: Option<(f64, f64)>,
-}
-
-#[derive(Clone, Debug)]
-pub struct FeedFallen {
-    pub soldier: f64,
-    pub position: Vec3,
-    /// His squad's heading when he fell.
-    pub yaw: f64,
-    pub kind: Arc<str>,
-    pub slot: usize,
-    pub side: Arc<str>,
-}
-
-/// One published moment, in simulation seconds.
-#[derive(Clone, Debug, Default)]
-pub struct FeedFrame {
-    pub time: f64,
-    pub units: Vec<FeedUnit>,
-    /// Everyone the side knows has fallen: the same list while unchanged,
-    /// so the driver reconciles corpses only when it changes.
-    pub fallen: Arc<Vec<FeedFallen>>,
-}
-
 use super::feel::*;
-
-/// Each posture's gait (`INFANTRY_MOVES`), and its clip for each way he
-/// goes relative to his facing (`INFANTRY_WAYS`: ahead, left, back, right).
-const GAITS: [&str; 3] = ["walk_aim", "crouch", "crawl"];
-const MOVES: [[&str; 4]; 3] = [
-    ["walk_aim_f", "walk_aim_l", "walk_aim_b", "walk_aim_r"],
-    ["crouch_f", "crouch_l", "crouch_b", "crouch_r"],
-    ["crawl_f", "crawl_l", "crawl_b", "crawl_r"],
-];
-/// The ways' bearings from his facing, counter-clockwise.
-const WAY_BEARINGS: [f64; 4] = [0.0, FRAC_PI_2, PI, -FRAC_PI_2];
-const WAY_NAMES: [&str; 4] = ["f", "l", "b", "r"];
-/// How far past the halfway bearing between two ways he keeps the way he is
-/// going, so a diagonal does not flicker between two clips, radians.
-const WAY_HOLD_RAD: f64 = 0.2;
-
-/// The way (an index of `WAY_BEARINGS`) he goes at bearing `rel` from his
-/// facing: the nearest, unless `current` is already a way of `gait` and
-/// still near enough.
-fn way_of(rel: f64, current: &str, gait: &str) -> usize {
-    let held = current.strip_prefix(gait).and_then(|w| w.strip_prefix('_'));
-    if let Some(k) = WAY_NAMES.iter().position(|&w| Some(w) == held) {
-        if delta_angle(WAY_BEARINGS[k], rel).abs() <= FRAC_PI_4 + WAY_HOLD_RAD {
-            return k;
-        }
-    }
-    let mut best = 0;
-    let mut off = f64::INFINITY;
-    for (k, &at) in WAY_BEARINGS.iter().enumerate() {
-        let d = delta_angle(at, rel).abs();
-        if d < off {
-            (best, off) = (k, d);
-        }
-    }
-    best
-}
-
-/// The gait a clip moves in, or None for any other clip.
-fn gait_of_clip(clip: &str) -> Option<&str> {
-    let gait = clip.rfind('_').map_or("", |cut| &clip[..cut]);
-    GAITS.contains(&gait).then_some(gait)
-}
 
 /// Where a soldier starts a looping clip: his own offset (the golden ratio
 /// over his id), so a squad never moves in lockstep.
@@ -832,6 +728,7 @@ impl PoseDriver {
         // own pitch limits (`articulate`).
         let gun_target = gun_mount.map_or(0.0, |m| m.elevation);
         let hmg_target = hmg_mount.map_or(0.0, |m| m.elevation);
+        let airborne = ty.airborne && !unit.grounded;
         let state = self
             .vehicles
             .entry(side_key(unit.id, &*unit.side == "blue").to_bits())
@@ -847,12 +744,12 @@ impl PoseDriver {
                         side: unit.side.clone(),
                         position: unit.position,
                         yaw: unit.yaw,
-                        airborne: ty.airborne,
+                        airborne,
                         // Its rotors as a camera's shutter sees them turn.
                         articulation: Articulation {
                             gun_pitch: gun_target,
                             hmg_pitch: hmg_target,
-                            rotor_blur: if ty.airborne { 1.0 } else { 0.0 },
+                            rotor_blur: if airborne { 1.0 } else { 0.0 },
                             ..Articulation::default()
                         },
                         motion: None,

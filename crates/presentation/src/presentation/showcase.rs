@@ -1,9 +1,10 @@
 //! One unit at rest on a stage of its own, with no battle behind it. It is
-//! posed by the battle's own driver, drawn models and rotor blur, fed a unit
+//! posed by the battle's own driver and drawn models, fed a unit
 //! standing still instead of a publication, so its idle life is the
 //! battle's: each soldier's own tempo and gaze, the occasional watcher, the
-//! kit each operator carries, and an aircraft's rotors turning (the driver
-//! turns them for every type with a flight model, wherever it stands).
+//! kit each operator carries. It stands on the ground (`FeedUnit::grounded`),
+//! so an aircraft is parked: its rotors stand still and draw as blades,
+//! with no blur.
 use super::*;
 use crate::effects::frame::draw_rotors;
 use crate::effects::tables::RotorBlurStyle;
@@ -102,6 +103,7 @@ impl Showcase {
                     ..FeedMount::default()
                 })
                 .collect(),
+            grounded: true,
             ..FeedUnit::default()
         };
         let presentation = EffectPresentation::from_value(&fielded.effects.presentation)?;

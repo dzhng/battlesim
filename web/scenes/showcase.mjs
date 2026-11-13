@@ -1,5 +1,5 @@
-// Units at rest with no battle, each on its own `ShowcaseStage`: the rotors
-// of a parked rotorcraft turn between frames, a squad stands scattered with
+// Units at rest with no battle, each on its own `ShowcaseStage`: a parked
+// rotorcraft stands still and silent, no rotor blur, a squad stands scattered with
 // each soldier in his own pose and the launcher's operator carrying his kit,
 // and every model stands on the ground. Also reports, for every aircraft
 // appearance, what of it rests on the ground at rest (throwaway/armory/04/).
@@ -25,15 +25,11 @@ const MOVED = 8;
 
 const sc = (page, fn, arg) => page.evaluate(fn, arg);
 
-/** The pixels of `png` within `r` of `at` (offset by `rect`) that moved
- *  past `MOVED` against `other`. */
-function movedWithin(png, other, rect, at, r) {
+/** The pixels of `png` within `rect` that moved past `MOVED` against `other`. */
+function movedIn(png, other, rect) {
   let n = 0;
-  const [cx, cy] = [rect.x + at[0], rect.y + at[1]];
-  for (let y = Math.floor(cy - r); y <= cy + r; y++)
-    for (let x = Math.floor(cx - r); x <= cx + r; x++) {
-      if (x < 0 || y < 0 || x >= png.width || y >= png.height) continue;
-      if ((x - cx) ** 2 + (y - cy) ** 2 > r * r) continue;
+  for (let y = Math.ceil(rect.y); y < rect.y + rect.height && y < png.height; y++)
+    for (let x = Math.ceil(rect.x); x < rect.x + rect.width && x < png.width; x++) {
       const i = (y * png.width + x) * 4;
       if ([0, 1, 2].some((c) => Math.abs(png.data[i + c] - other.data[i + c]) > MOVED)) n++;
     }
@@ -80,29 +76,30 @@ export async function run(ctx) {
   const b = await shot(2 + 1 / 30);
   ctx.check("every stage draws", a.drawn && b.drawn);
 
-  // ---- the rotorcraft: its rotors turn, drawn as blur, on the ground.
-  const rotors = await Promise.all(
-    kinds.map((k) => sc(page, (k) => window.__showcase.rotors(k), k)),
+  // ---- the rotorcraft: parked, its blades still and drawn, no blur, silent.
+  const flights = await Promise.all(
+    kinds.map((k) => sc(page, (k) => window.__showcase.flight(k), k)),
   );
-  const heli = kinds[rotors.findIndex((discs) => discs.length > 0)];
-  ctx.check("one unit is a rotorcraft whose rotor discs are drawn", heli !== undefined);
+  const heli = kinds[flights.indexOf("rotor")];
+  ctx.check("one unit is a rotorcraft", heli !== undefined, JSON.stringify(flights));
   if (heli) {
     const rect = await sc(page, (k) => window.__showcase.rect(k), heli);
-    const discs = rotors[kinds.indexOf(heli)];
-    const moved = discs.map((d) => movedWithin(a.png, b.png, rect, d.at, d.radius));
-    // The control: the same disc over a stage where nothing turns stays put.
-    const still = kinds.find((k, i) => k !== heli && rotors[i].length === 0);
-    const stillRect = await sc(page, (k) => window.__showcase.rect(k), still);
-    const control = movedWithin(a.png, b.png, stillRect, discs[0].at, discs[0].radius);
+    const discs = await sc(page, (k) => window.__showcase.rotors(k), heli);
     ctx.check(
-      "the parked rotorcraft's rotors turn between frames, and nothing else moves",
-      moved[0] > 0 && control === 0,
-      JSON.stringify({ moved, control, discs }),
+      "the parked rotorcraft draws no rotor disc",
+      discs.length === 0,
+      JSON.stringify(discs),
+    );
+    const moved = movedIn(a.png, b.png, rect);
+    ctx.check(
+      "the parked rotorcraft's blades stand still: nothing on its stage moves between frames",
+      moved === 0,
+      `${moved} px moved`,
     );
     const loops = await sc(page, (k) => window.__showcase.loops(k), heli);
     ctx.check(
-      "the rotorcraft idles with its engine heard",
-      loops.length > 0,
+      "the parked rotorcraft is silent, its engines off",
+      loops.length === 0,
       JSON.stringify(loops),
     );
     await writeCrop(

@@ -16,7 +16,7 @@ and the map disagree, this README wins. The disagreements are listed in
 
 ## Next Agent Prompt
 
-**Status (2026-11-13):** slices 01–15 and 17 are merged; the Armory is playable on the placeholder yard, and military depots stand on generated maps with their own art into
+**Status (2026-11-13):** slices 01–17 are merged; the Armory is playable in the military yard, and military depots stand on generated maps with their own art into
 `t3/unit-explorer-armory`, and staging is merged in (`736eff7d8`). The
 integrated tree is green on the cross-lane checks:
 - contract weapons, showground, showcase;
@@ -29,9 +29,12 @@ integrated tree is green on the cross-lane checks:
 so slices 14–17 may start. Run them one lane at a time while disk is tight.
 
 **Pickup:**
-1. **16**: swap `yard.json` to the military set. It also owns the flat sand
-   ground, its tan-on-tan contrast, and the per-spot ground (a schema choice;
-   depots' `Paving` is the precedent).
+1. **Relief beyond the yard** (the user asked for "more exciting terrain"):
+   one height source, read by the ground mesh past the pads, the backdrop's
+   ground and tree seating, the Armory camera's clearance, and the camera
+   tour's ground check. It comes from a `ground.relief` block in `yard.json`,
+   starting past the farthest camera eye. This is a Rust and wasm change; see
+   slice 16's choices.
 2. Raised to the user, with provisional answers in force: the depot density
    (`open_country.depots.per_road_km` 0.3, about one per skirmish map), and
    whether the lobby's map picture should draw props.
@@ -53,6 +56,13 @@ so slices 14–17 may start. Run them one lane at a time while disk is tight.
    - the military art in a real battle and on the map-picture seeds. Six of the
      seven props score 4–6/10 against their photos (`decisions.md`); better
      art is a re-export, not code;
+   - art notes: the Apache's aft blade crosses its tail fin at rest (needs a
+     different rest angle in the model); two hangars both read "3"; the right
+     hangar's roof reads teal; the revetments read as containers; the HESCO
+     is pale. "Lived-in" also wants people and parked vehicles, which no prop
+     provides;
+   - re-measure the first open (20.8 s with the prefetch) and switch times
+     (0.4–1.4 s);
    - re-record the distant-impostors receipt in the browser. The benchmark's
      standard-profile maps now hold depots. Also run the native counts test
      and the street lab's pinned digest; slice 14 couldn't run either.
@@ -155,7 +165,7 @@ battle-wide decision for the user.
   mechanics, on stand-ins.
 - [x] [15](slices/15-military-art.md) Military art: one prop per
   gate, bake.
-- [ ] [16](slices/16-military-yard.md) The yard swapped to the
+- [x] [16](slices/16-military-yard.md) The yard swapped to the
   military set.
 - [x] [17](slices/17-depots.md) Depots in open country.
 - [ ] [18](slices/18-closeout.md) Closeout: full run, balance, shots,

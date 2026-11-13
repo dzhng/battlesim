@@ -2,7 +2,8 @@
  *  presentation poses it with the battle's own driver
  *  (`presentation::presentation::showcase`), a squad stands as the simulation
  *  scatters it (`Showground`), and its idle loops are those a stationary
- *  battle vehicle starts. Each show stands on a presentation and a scene of
+ *  battle vehicle starts. An aircraft stands parked: its rotors still, its
+ *  engines off and silent. Each show stands on a presentation and a scene of
  *  its own, as a battle's do: no presentation outlives the scene it fed. */
 import type { Vec3 } from "math";
 import type { BrowserGpu } from "@wasm/renderer_browser";
