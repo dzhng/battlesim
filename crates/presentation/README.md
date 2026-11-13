@@ -127,10 +127,11 @@ calls the same reader for workbench drafts.
   the latest frame, with zero traversal and clipping on reuse. They remain
   separate from terrain draw selection and flow into viewport measurements.
 - [The static world](src/static_world/): the buildings resolved from their
-  template art, and the ground from the map's exports under the biome: its
-  tables, its meshes (terrain, skirt, water, backdrop, the last over the
-  relief of the land past the map: level past a battle map, the one height
-  its trees and the page's queries read), its standing water
+  template art, and the ground from the map's exports under the biome. The
+  backdrop stands on [the relief past the map](src/static_world/ground/relief.rs),
+  one surface its mesh, its trees and every height query read; a battle map
+  has none, so past its edge the land stays level. The ground's
+  tables, its meshes (terrain, skirt, water, backdrop), its standing water
   (`StandingWater`, the one owner of where rivers, swamps and puddles hold
   water, how deep, and which look each draws), the grass field's
   shapes, and its window and per-frame parameters for the last frame's

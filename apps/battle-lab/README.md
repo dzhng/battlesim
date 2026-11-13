@@ -26,8 +26,8 @@ address updates the current entry without restarting that visit. Queued async
 continuations stop when history leaves their visit, before React necessarily
 finishes unmounting the previous page.
 
-The main menu starts fresh generated skirmishes and teaches the
-game: [the tutorial](src/Tutorial.tsx) reads its economy and command keys from
+The main menu starts fresh generated skirmishes, browses the roster and
+teaches the game: [the tutorial](src/Tutorial.tsx) reads its economy and command keys from
 the skirmish rules and command bindings, and its prose must follow the simulation's
 rules when they change. Its pictures are not hand-shot: [the tutorial shots
 tool](../../web/tutorial-shots.mjs) plays one seeded skirmish with the faction roster
@@ -36,13 +36,13 @@ observation shows, and writes stills and gesture loops to the served
 `assets/runtime/tutorial-media/`. They show the game as it was drawn, so a change to
 the look, the HUD, the generator or the rules is followed by rerunning it and
 reviewing the pictures; the tool's header says how. A moment the battle no
-longer reaches fails by name rather than shooting something else. It is
-one plate over its backdrop, with title-only entries over generated military art.
+longer reaches fails by name rather than shooting something else.
 The same tutorial is available from a live battle's pause menu; it opens as a
 modal over the paused battle and closes back to that menu.
 Every menu page is an address, and [the menu's pages](src/menu/pages.ts) own
 their paths, titles and tiles. Every menu address is a visit inside [one menu
-shell](src/menu/MenuShell.tsx), which owns the backdrop, graphics detection and
+shell](src/menu/MenuShell.tsx): one plate over the backdrop, its tiles
+title-only over generated military art. The shell owns the backdrop, graphics detection and
 the loading cover, so moving between pages replaces only the plate's contents,
 and the film behind never changes. A page opens under a Back button, and Escape
 is Back: a page opened from home goes back through history onto the tile it
@@ -96,31 +96,29 @@ anything the page needs is downloading, the screen counts the megabytes
 ([download counting](../../web/src/downloads.ts)), so a first visit's long wait
 visibly moves. The menu's build line names the app's commit and a fingerprint
 of the simulation module the page actually loaded ([build identity](src/buildIdentity.ts)),
-so a stale deploy or cache shows on screen.
+so a stale deploy or cache shows on screen. Art uses
+[scene-assets](../../packages/scene-assets/README.md), and sound uses
+[battle-audio](../../packages/battle-audio/README.md). [Model review](src/workbench/)
+installs previews through the same appearance loader used by battles.
+
 [The Armory page](src/armory/ArmoryPage.tsx) browses the game's roster by
 faction, group and family, and shows the open card's sheet, which
 [`unitSheet`](../../web/src/battle/present/unitSheet.ts) reads from the catalog
 and its published weapon facts, never recomputing them. Its selection is the
 page's own state, mirrored to `?unit=` with a raw `replaceState`, so a pick
-neither remounts the page nor adds a history entry.
-Art uses [scene-assets](../../packages/scene-assets/README.md),
-and sound uses [battle-audio](../../packages/battle-audio/README.md). [Model review](src/workbench/)
-installs previews through the same appearance loader used by battles. The
-Armory keeps [its own residency](src/armory/armoryAppearances.ts): a library per
+neither remounts the page nor adds a history entry. It keeps [its own residency](src/armory/armoryAppearances.ts): a library per
 selection, holding the yard and the one unit on show, so browsing every unit
 never fills the page's shared library. Its failures stay with the caller and
-never refuse the page. [The yard](src/armory/yard.ts) is presentation data
-the simulation never admits. A unit's body picks its spot, and each prop is
-drawn by its catalog art. Past the yard's own ground the scene's presentation
-draws the battle's backdrop, its fields and the biome's trees, as it does past a
-battle map's edge, over hills the yard authors (`ground.relief`). The camera
-and its checks read the same ground (`yardGround`).
-[The Armory's stage](src/armory/ArmoryStage.tsx) is one `ShowcaseStage` for
+never refuse the page. [The yard](src/armory/yard.ts) reads [its
+document](../../fixtures/README.md): a unit's body picks its spot, and each
+prop is drawn by its catalog art. Past the yard's ground the presentation draws
+the battle's backdrop, as past a battle map's edge, and the camera and its
+checks read that same ground (`yardGround`).
+[The Armory's stage](src/armory/ArmoryStage.tsx) is one
+[`ShowcaseStage`](../../web/src/battle/render/showcaseStage.ts) for
 the page's life: each pick hands it that selection's art, so the stage and
 the [showcase lab](src/routes/showcase.tsx) load art the same way. Each pick
-stands on a presentation and a scene of its own, as a battle's do. The yard
-fills the screen behind the glass panels, with the unit framed in the centre
-cell. [Its camera](src/armory/armoryCamera.ts) is the battle's rig on the
+stands on a presentation and a scene of its own, as a battle's do. [Its camera](src/armory/armoryCamera.ts) is the battle's rig on the
 Armory's own config (`presentation.camera_armory`): left-drag orbits and the
 wheel zooms between framings fitted to the unit's bounds. Input comes from the
 stage's canvas alone, and the eye keeps clear of the unit and the yard's props. The stage reports to the menu shell's loading cover, mounts only once

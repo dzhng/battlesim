@@ -105,8 +105,9 @@ the one list of deliberate hard-coded rules:
   weapon: while it has charges, any interceptable missile that comes within its
   standoff is destroyed, with no sight, cone, or range of its own;
 - who can hold an objective follows the unit card's category (recon, infantry,
-  and vehicles), a game rule rather than a physical one; the shop's finer
-  browsing groups only present the categories, and no rule reads them;
+  and vehicles), a game rule rather than a physical one; the finer browsing
+  groups the picker and the Armory show (`UNIT_GROUPS`) only present the
+  categories, and no rule reads them;
 - the neutral side only returns fire, whatever its units author, and takes no
   commands;
 - in a skirmish a side's players are one team: they share the side's faction,

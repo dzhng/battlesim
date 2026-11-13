@@ -38,5 +38,6 @@ Requests describe installed appearances, transforms and authored or explicit
 poses; they supplement observed entities in the canonical frame. Texture
 transport and GPU installation belong to rendering. Replacing tooling art
 requires reinstalling renderer tables from the republished world header.
-Showing or clearing a showcase unit changes the presentation's own rows
-(the lab's move after them) and returns the header the same way.
+Showing a showcase unit rewrites the presentation's own rows (the lab's
+follow them) and returns the republished world header, as replacing tooling
+art does.
