@@ -48,3 +48,15 @@ export async function visitApp(address: string): Promise<RenderResult> {
     </BrowserRouter>,
   );
 }
+
+/** `visitApp` under the page owners the entry mounts above the router
+ *  (`AppShell`: the app's audio, cursor and resource boundary). */
+export async function visitShell(address: string): Promise<RenderResult> {
+  const { AppShell } = await import("@apps/battle-lab/src/AppShell");
+  window.history.replaceState(null, "", address);
+  return renderSettled(
+    <BrowserRouter unstable_useTransitions={false}>
+      <AppShell />
+    </BrowserRouter>,
+  );
+}

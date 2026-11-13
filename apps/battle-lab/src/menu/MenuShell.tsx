@@ -110,20 +110,22 @@ export function MenuShell({ page, children }: { page: MenuPageId | "home"; child
   return (
     <Shell value={{ revealed, detected, left, back }}>
       <main className="menu" data-open={page === "home" ? undefined : page} inert={displayLoading}>
+        {/* The backdrop and the page both report to the cover: a page with a
+            scene of its own (the Armory's stage) holds it until it draws. */}
         <LoadingTasks report={report}>
           <MenuBackdrop
             plate={plate}
             shown={shown.promise}
             onDetectionSceneReady={() => setShowDetection(false)}
           />
+          <div className="menu-slot">
+            <GraphicsDetectionHost runner={null} enabled={!loading}>
+              <div className="hud-panel menu-body" ref={plate}>
+                {children}
+              </div>
+            </GraphicsDetectionHost>
+          </div>
         </LoadingTasks>
-        <div className="menu-slot">
-          <GraphicsDetectionHost runner={null} enabled={!loading}>
-            <div className="hud-panel menu-body" ref={plate}>
-              {children}
-            </div>
-          </GraphicsDetectionHost>
-        </div>
       </main>
       {displayLoading && (
         <LoadingScreen

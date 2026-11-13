@@ -1,75 +1,34 @@
 // The showcase lab: units at rest with no battle, side by side on flat
-// ground, each on its own `ShowcaseStage` (the class the Armory mounts), so
-// idle life is judged as the Armory will show it. The three are chosen by
+// ground, each on its own `ShowcaseStage` with its art from its own
+// `ArmoryAppearances` (as the Armory mounts them), so idle life is judged as
+// the Armory shows it. The three are chosen by
 // property, never by id: the first tracked hull, the first rotorcraft and the
 // first squad with a special mount. `?unit=` shows one kind alone,
 // `?faction=` the look it wears, and `?yard=1` stands each unit on its spot in
 // the Armory's yard (`armory/yard.ts`), seen from the spot's camera. Probes
 // for `web/scenes/showcase.mjs` hang on `window.__showcase`.
-import { useEffect, useMemo, useRef, useState } from "react";
-import { countedFetch } from "@web/downloads";
-import { mat4, vec3, type Vec3 } from "math";
+import { useEffect, useMemo, useRef } from "react";
+import { vec3, type Vec3 } from "math";
 import { FACTIONS, type Faction, type UnitCatalog } from "@packages/scene-assets/src/units";
-import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
-import type { RuntimeCatalog } from "@packages/scene-assets/src/schema";
-import {
-  createProjectedPoint,
-  projectPoint,
-  viewProjMatrix,
-  type Camera3DParams,
-} from "@packages/renderer-core/src/camera3d";
-import { farPoseBounds } from "@packages/scene-assets/src/pose";
-import {
-  Batch,
-  BATCH_WORDS,
-  INSTANCE_WORDS,
-  EFFECT_WORDS,
-  JOINT_WORDS,
-  SHAPE_NAMES,
-} from "@packages/battle-renderer/src/records.gen";
-import { gameSounds } from "@packages/battle-audio/src/shippedSounds";
+import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
+import { EFFECT_WORDS, SHAPE_NAMES } from "@packages/battle-renderer/src/records.gen";
 import type { IdleLoop } from "@packages/battle-audio/src/soundFrame";
 import type { WorldLayers } from "@packages/battle-renderer/src/scene";
-import type { LabModel } from "@web/battle/sim/presentationModels";
 import { useSessionCatalog } from "@web/battle/catalog/context";
-import {
-  ShowcaseStage,
-  type StageFielding,
-  type StageLook,
-} from "@web/battle/render/showcaseStage";
-import { loadWasm } from "@web/battle/sim/module";
-import { audioMix } from "@web/audioMix";
-import { presentationSettings } from "@web/presentationSettings";
+import { ShowcaseStage, type StageArt, type StageFielding } from "@web/battle/render/showcaseStage";
 import { appResources } from "../appResources";
-import { gameRuntime, useGameAppearances } from "../gameAppearances";
 import { gameCamera } from "../gameCamera";
-import { gameLight } from "../gameLight";
-import { gameFogStyle } from "../gameFog";
-import { gameOverlayGlow, gamePaint, gameXrayMinHiddenFragmentFraction } from "../gameOverlay";
-import { gameModelDetail } from "../gameModels";
 import { presentedCamera } from "../presentedFrame";
-import { plainWorld } from "../workbench/benchWorld";
+import { plainWorld } from "../plainWorld";
 import { parkedAircraft } from "../showcaseAircraft";
-import { spotFor, yard, yardModels, yardScenery, type Spot } from "../armory/yard";
+import { ArmoryAppearances } from "../armory/armoryAppearances";
+import { STAGE_LOOK, SQUAD_SEED, useShowground, useStageFielding } from "../armory/stageInputs";
+import { drawnModels, grounded, project } from "../armory/stageProbes";
+import { spotFor, yard, yardModels, yardScenery, yardWorld, type Spot } from "../armory/yard";
 import type { Showground } from "@wasm/game_wasm.js";
 
-/** The battle seed squads stand as. */
-const SEED = 7;
-
-const LOOK: StageLook = {
-  settings: {
-    light: gameLight,
-    fog: gameFogStyle,
-    paint: gamePaint,
-    xrayMinHiddenFraction: gameXrayMinHiddenFragmentFraction,
-  },
-  detail: JSON.parse(gameModelDetail),
-  overlayGlow: gameOverlayGlow,
-};
-
-/** Plain level ground, one colour, shadows read on it; or the yard's. */
+/** Plain level ground, one colour, shadows read on it. */
 const WORLD = plainWorld();
-const YARD_WORLD = plainWorld(yard.ground.tint, yard.ground.half_m);
 
 /** The kinds the lab shows by default, each the first of the catalog's
  *  types with a property; in the yard, a fixed-wing aircraft besides. */
@@ -113,6 +72,7 @@ interface Panel {
   /** The orbit the camera looks from now. */
   orbit: () => Camera3DParams;
   loops: IdleLoop[];
+  art: StageArt;
 }
 
 /** A failure no panel can recover from: logged, then the page's resources
@@ -138,54 +98,12 @@ export default function Showcase() {
     [asked, units, inYard],
   );
   const factions = useMemo(() => new Set<string>([faction]), [faction]);
-  const scenery = useYardScenery(inYard, units.view.props);
-  // In the yard, the art waits for the yard's scenery names.
-  const installed = useGameAppearances(
-    scenery === undefined ? null : undefined,
-    kinds,
-    factions,
-    scenery ?? null,
-  );
-  const models = useMemo(
-    () => (inYard && installed ? yardModels(yard, units.view.props, installed) : []),
-    [inYard, installed, units],
-  );
   const spots = useMemo(
     () => new Map(kinds.map((k) => [k, inYard ? spotFor(yard, units.type(k)) : null])),
     [inYard, kinds, units],
   );
-  const [showground, setShowground] = useState<Showground | null>(null);
-  const rules = useMemo(() => JSON.stringify(catalog.rules), [catalog]);
-  useEffect(() => {
-    let live = true;
-    let made: { free(): void } | null = null;
-    void loadWasm().then((wasm) => {
-      if (!live) return;
-      const next = new wasm.Showground(rules);
-      made = next;
-      setShowground(next);
-    }, refuse);
-    return () => {
-      live = false;
-      made?.free();
-    };
-  }, [rules]);
-  const fielding = useMemo<StageFielding>(
-    () => ({
-      rules,
-      catalog: units.view,
-      runtime: gameRuntime,
-      sound: {
-        tickHz: catalog.rules.tick_hz,
-        presentation: audioMix,
-        catalog: gameSounds,
-        weapons: catalog.rules.weapons,
-        unitCatalog: units.view,
-        looks: presentationSettings,
-      },
-    }),
-    [rules, catalog, units],
-  );
+  const fielding = useStageFielding(catalog);
+  const showground = useShowground(fielding.rules, refuse);
   useEffect(() => {
     (window as unknown as { __showcase: unknown }).__showcase = {
       kinds: () => [...panels.keys()],
@@ -195,18 +113,29 @@ export default function Showcase() {
       rect: (kind: string) => rectOf(panels.get(kind)!),
       loops: (kind: string) => panels.get(kind)?.loops ?? null,
       rotors: (kind: string) => rotorDiscs(panels.get(kind)!),
-      models: (kind: string) => drawnModels(panels.get(kind)!),
+      models: (kind: string) => drawnModels(panels.get(kind)!.stage),
       standing: (kind: string) => panels.get(kind)?.stage.standing() ?? null,
-      grounded: (kind: string) => grounded(panels.get(kind)!, installed),
+      grounded: (kind: string) => {
+        const p = panels.get(kind)!;
+        return grounded(drawnModels(p.stage), p.art.appearances);
+      },
       carried: (kind: string) =>
         units.type(kind).mounts.map((m) => [...(m.operator_appearance?.carried ?? [])]),
       parkedAircraft: () => parkedAircraft(units, factions),
       spot: (kind: string) => spots.get(kind) ?? null,
-      yardModels: () => models.map((m) => ({ name: m.appearance, at: [m.x, m.y] })),
+      yardModels: () => {
+        const art = [...panels.values()][0]?.art;
+        return inYard && art
+          ? yardModels(yard, units.view.props, art.appearances).map((m) => ({
+              name: m.appearance,
+              at: [m.x, m.y],
+            }))
+          : [];
+      },
     };
-  }, [kinds, installed, units, factions, spots, models]);
+  }, [kinds, units, factions, spots, inYard]);
 
-  if (!installed || !showground) return <div className="lab-panel">Loading units…</div>;
+  if (!showground) return <div className="lab-panel">Loading units…</div>;
   return (
     <div className="showcase-lab" data-testid="showcase-lab">
       {kinds.map((kind) => {
@@ -218,9 +147,9 @@ export default function Showcase() {
             faction={faction}
             spot={spot}
             camera={opening(units, kind, spot)}
-            world={inYard ? YARD_WORLD : WORLD}
-            models={models}
-            installed={installed}
+            world={inYard ? yardWorld() : WORLD}
+            units={units}
+            inYard={inYard}
             fielding={fielding}
             showground={showground}
           />
@@ -230,29 +159,6 @@ export default function Showcase() {
   );
 }
 
-/** The yard's scenery appearance names, read from the runtime catalog: null
- *  outside the yard, undefined until read. */
-function useYardScenery(
-  inYard: boolean,
-  props: UnitCatalog["view"]["props"],
-): ReadonlySet<string> | null | undefined {
-  const [names, setNames] = useState<ReadonlySet<string> | undefined>();
-  useEffect(() => {
-    if (!inYard) return;
-    let live = true;
-    void countedFetch("/catalog.json")
-      .then((response) => {
-        if (!response.ok) throw new Error(`runtime catalog: HTTP ${response.status}`);
-        return response.json() as Promise<RuntimeCatalog>;
-      })
-      .then((catalog) => live && setNames(yardScenery(yard, props, catalog)), refuse);
-    return () => {
-      live = false;
-    };
-  }, [inYard, props]);
-  return inYard ? names : null;
-}
-
 function ShowcasePanel(props: {
   kind: string;
   faction: Faction;
@@ -260,12 +166,13 @@ function ShowcasePanel(props: {
   spot: Spot | null;
   camera: Camera3DParams;
   world: WorldLayers;
-  models: readonly LabModel[];
-  installed: InstalledAppearances;
+  units: UnitCatalog;
+  /** Dressed with the yard's props. */
+  inYard: boolean;
   fielding: StageFielding;
   showground: Showground;
 }) {
-  const { kind, faction, spot, world, models, installed, fielding, showground } = props;
+  const { kind, faction, spot, world, units, inYard, fielding, showground } = props;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const orbit = useRef(props.camera);
   useEffect(() => {
@@ -281,25 +188,32 @@ function ShowcasePanel(props: {
         [canvas.width, canvas.height] = [width, height];
       return presentedCamera({ camera3d: orbit.current, width, height });
     };
+    const appearances = new ArmoryAppearances(units);
     void (async () => {
       const gpu = await appResources.gpu();
-      const made = await ShowcaseStage.create({
+      const { props } = units.view;
+      const scenery = inYard
+        ? yardScenery(yard, props, await appearances.catalog())
+        : new Set<string>();
+      const art = await appearances.show({ kind, faction, scenery });
+      if (!live) return;
+      const made = ShowcaseStage.create({
         gpu,
         canvas,
         world,
-        appearances: installed,
-        models,
+        models: (installed) => (inYard ? yardModels(yard, props, installed) : []),
         fielding,
         showground,
-        look: LOOK,
+        look: STAGE_LOOK,
         failed: refuse,
       });
-      if (!live) return made.dispose();
       stage = made;
       const [x, y] = spot?.at ?? [0, 0];
-      const loops = await made.show({ kind, faction, at: [x, y, 0], yaw: spot?.yaw ?? 0 }, SEED);
+      const unit = { kind, faction, at: [x, y, 0] as Vec3, yaw: spot?.yaw ?? 0 };
+      const loops = await made.show(unit, SQUAD_SEED, art);
       if (!live) return;
-      panels.set(kind, { kind, stage: made, canvas, camera, orbit: () => orbit.current, loops });
+      const orbitNow = () => orbit.current;
+      panels.set(kind, { kind, stage: made, canvas, camera, orbit: orbitNow, loops, art });
       const start = performance.now();
       const loop = (now: number) => {
         if (!live) return;
@@ -313,8 +227,9 @@ function ShowcasePanel(props: {
       cancelAnimationFrame(raf);
       panels.delete(kind);
       stage?.dispose();
+      appearances.dispose();
     };
-  }, [kind, faction, spot, world, models, installed, fielding, showground]);
+  }, [kind, faction, spot, world, units, inYard, fielding, showground]);
 
   const drag = useRef<[number, number] | null>(null);
   return (
@@ -352,12 +267,9 @@ function rectOf(p: Panel) {
 }
 
 /** Screen position (CSS pixels within the panel) of world point `at`. */
-function project(p: Panel, at: Vec3): [number, number] | null {
+function projected(p: Panel, at: Vec3): [number, number] | null {
   const { width, height } = rectOf(p);
-  const viewProj = viewProjMatrix(mat4.create(), { ...p.orbit(), aspect: width / height });
-  const q = projectPoint(createProjectedPoint(), viewProj, at);
-  if (q.clipW <= 0) return null;
-  return [((q.ndc[0] + 1) / 2) * width, ((1 - q.ndc[1]) / 2) * height];
+  return project(p.orbit(), width, height, at);
 }
 
 /** Each rotor disc drawn last frame: its hub on screen and its radius in
@@ -373,57 +285,17 @@ function rotorDiscs(p: Panel) {
     if (f[w + 12] !== rotor || !(f[w + 13] > 0)) continue;
     const hub: Vec3 = [f[w], f[w + 1], f[w + 2]];
     const r = f[w + 3];
-    const at = project(p, hub);
+    const at = projected(p, hub);
     if (!at) continue;
     const reach = [
       [r, 0, 0],
       [0, r, 0],
       [0, 0, r],
     ].map((o) => {
-      const q = project(p, vec3.add(vec3.create(), hub, o as Vec3));
+      const q = projected(p, vec3.add(vec3.create(), hub, o as Vec3));
       return q ? Math.hypot(q[0] - at[0], q[1] - at[1]) : 0;
     });
     discs.push({ at, radius: Math.max(...reach) });
   }
   return discs;
-}
-
-/** Each unit model drawn last frame: its appearance, where it stands and
- *  faces, and its palette's first joints (its pose). */
-function drawnModels(p: Panel) {
-  const { frame, rows } = p.stage.records();
-  const b = frame.batches.u32;
-  const inst = frame.instances.f32;
-  const joints = frame.palettes.f32;
-  const out: { name: string; at: Vec3; yaw: number; pose: number[] }[] = [];
-  for (let i = 0; i < frame.batches.count; i++) {
-    const w = i * BATCH_WORDS;
-    const first = b[w + Batch.first];
-    if (first === 0xffffffff) continue;
-    const name = rows[b[w + Batch.appearance]]?.name;
-    if (!name) continue;
-    for (let k = first; k < first + b[w + Batch.count]; k++) {
-      const v = k * INSTANCE_WORDS;
-      const palette = inst[v + 4] * JOINT_WORDS;
-      out.push({
-        name,
-        at: [inst[v], inst[v + 1], inst[v + 2]],
-        yaw: inst[v + 3],
-        pose: Array.from(joints.slice(palette, palette + 8 * JOINT_WORDS)),
-      });
-    }
-  }
-  return out;
-}
-
-/** How far each drawn model's lowest point at rest is from the ground under
- *  it, metres: its placement's height plus its far pose's lowest point. */
-function grounded(p: Panel, installed: InstalledAppearances | null) {
-  return drawnModels(p).map(({ name, at }) => {
-    const a = installed?.appearances.get(name);
-    if (!a) return { name, gap: null };
-    const skeleton =
-      a.bundle.kind === "skinned" ? (installed!.skeletons.get(a.bundle.skeleton) ?? null) : null;
-    return { name, gap: at[2] + farPoseBounds(a.bundle, skeleton).min[2] };
-  });
 }

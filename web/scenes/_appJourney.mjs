@@ -288,6 +288,33 @@ export async function appJourney(ctx) {
   mark = await page.evaluate(() => window.__gpuResources.created());
   await page.getByRole("link", { name: "Main menu", exact: true }).click();
   const released = await releasedBefore(mark);
+  // An Armory round trip leaves nothing of its stage: what survives of the
+  // allocations made while it was open is no more than the menu's backdrop
+  // leaves over as long a stretch on its own (its battle keeps playing).
+  const created = () => page.evaluate(() => window.__gpuResources.created());
+  /** Live allocations made between marks `from` and `to`, after collection. */
+  const survivors = async (from, to) => {
+    const [before, after] = [await releasedBefore(from), await releasedBefore(to)];
+    return { buffers: after.buffers - before.buffers, textures: after.textures - before.textures };
+  };
+  const opened = await created();
+  const started = Date.now();
+  await page.locator('main.menu:not(.loading):not([inert]) [data-page="armory"]').click();
+  await page.waitForFunction(() => window.__armory?.shown(), null, { timeout: 120000 });
+  const left = await created();
+  await page.getByRole("button", { name: "Back" }).click();
+  const visit = Date.now() - started;
+  const armoryLeft = await survivors(opened, left);
+  const alone = await created();
+  await page.waitForTimeout(visit);
+  const menuLeft = await survivors(alone, await created());
+  ctx.check(
+    "an Armory round trip leaves no more allocations than the menu alone, and one battle worker",
+    armoryLeft.textures <= menuLeft.textures &&
+      armoryLeft.buffers <= menuLeft.buffers &&
+      page.workers().length === 1,
+    JSON.stringify({ armoryLeft, menuLeft, visit, workers: page.workers().length }),
+  );
   const owners = await page.evaluate((allocations) => {
     const p = window.__appJourney;
     return {

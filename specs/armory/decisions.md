@@ -113,3 +113,32 @@ each one as a decision, the reason for it, and who made it.
 - **08. Key art from the Duet CLI, same model, second prompt:** the first
   prompt's wide shot read as the odd tile out; the tight three-quarter view
   matches the set's close framing. *Agent.*
+- **11. The backdrop holds the frame budget with the stage live, so there
+  is no `holdBackdrop`.** Measured once by the `armory` scene at 1280 × 800
+  on this Mac, over 3 s of animation frames each: the menu alone p50 16.67 ms,
+  p95 16.67 ms; the Armory with its full-screen stage and the backdrop both
+  live p50 16.67 ms, p95 16.67 ms (`throwaway/armory/11/frame-time.json`).
+  *Agent, under the delegation.*
+- **11. Switch time (S7) and load line (S5), measured once, loose
+  tripwires:** after the first, a switch takes 0.2–1.0 s from pick to the unit
+  standing. The first after the menu shows takes 15–19 s, because the menu's
+  background prefetch of every runtime file is downloading at the same time.
+  A selection holds 7–18 MiB, the yard and the catalog included
+  (`throwaway/armory/11/switches.json`). *Agent.* The first open is worth a
+  user look: the prefetch competes with it.
+- **11. The visual gate passes on the evidence.**
+  - All `armory` scene probes pass on the final tree: a unit of each of the
+    nine groups stands on its spot with every model on the ground (2 cm).
+  - The AH-64 sits on its main and tail wheels with its rotors turning, as
+    in the parked-AH-64D photo and slice 10's apron shot.
+  - The second unprimed critique found no float or sink.
+  - Its notes not taken up here:
+    - the rotor blur and the squad shadows starting beside the boots are
+      the battle's shared looks, raised to the user and not retuned;
+    - the flat sand ground and tan vehicles on tan ground are slice 16's
+      military yard;
+    - per-unit framing (the squad small, empty ground under vehicles, the
+      helicopter's tail at 1280) is slice 12's;
+    - the sheet's cut-off at 1280 and its empty space are slice 08's page;
+    - the jet's "Sight · ground 1 m" is roster data.
+  - No human reply came in the checkpoint window. *Agent.*

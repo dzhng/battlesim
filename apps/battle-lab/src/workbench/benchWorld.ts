@@ -8,11 +8,8 @@ import { shippedRules } from "@web/shippedRules";
 import { vec3, type Mat4, type Vec3 } from "math";
 import { MeshBuilder, type Mesh, type Rgba } from "@packages/battle-renderer/src/mesh";
 import type { WorldLayers, WorldMeshes } from "@packages/battle-renderer/src/scene";
-import {
-  bareTerrain,
-  type TerrainSurface,
-} from "@packages/battle-renderer/src/terrain/terrainSurface";
-import { gameBiome } from "../gameBiome";
+import type { TerrainSurface } from "@packages/battle-renderer/src/terrain/terrainSurface";
+import { GROUND_REACH_M, PLAIN_GROUND, flatCells, flatTerrain } from "../plainWorld";
 import { loadPresentation } from "@web/battle/sim/presentation";
 import { SCENERY_KINDS, propsDrawnBy } from "@packages/scene-assets/src/scenery";
 import {
@@ -55,8 +52,6 @@ const FIGURE_HEIGHT_M = physics.soldier_height_m;
 /** The height the mannequin's proportions below are written at. */
 const MANNEQUIN_DRAWN_M = 1.8;
 const GROUND_HALF_M = 40;
-const GROUND_REACH_M = 250;
-const GROUND: Rgba = [0.46, 0.47, 0.44, 1];
 const GROUND_ALT: Rgba = [0.43, 0.44, 0.41, 1];
 const LINE_1M: Rgba = [0.36, 0.37, 0.35, 1];
 const LINE_5M: Rgba = [0.26, 0.27, 0.25, 1];
@@ -67,7 +62,7 @@ const FIGURE: Rgba = [0.5, 0.52, 0.56, 1];
 export function benchGround(): Mesh {
   const mesh = new MeshBuilder();
   const h = GROUND_HALF_M;
-  groundCells(mesh, GROUND_REACH_M, (x, y) => ((x / 5 + y / 5) & 1 ? GROUND_ALT : GROUND));
+  flatCells(mesh, GROUND_REACH_M, (x, y) => ((x / 5 + y / 5) & 1 ? GROUND_ALT : PLAIN_GROUND));
   // Grid lines sit a hair above the ground so depth keeps them on top.
   for (let k = -h; k <= h; k += 1) {
     const color = k % 5 === 0 ? LINE_5M : LINE_1M;
@@ -76,21 +71,6 @@ export function benchGround(): Mesh {
     mesh.quad([-h, k - w, 0.002], [h, k - w, 0.002], [h, k + w, 0.002], [-h, k + w, 0.002], color);
   }
   return mesh.build();
-}
-
-/** Flat ground of one colour, `tint`, out to `reach` each way: a ground
- *  shadows are read on. */
-export function plainGround(tint: Rgba = GROUND, reach = GROUND_REACH_M): Mesh {
-  const mesh = new MeshBuilder();
-  groundCells(mesh, reach, () => tint);
-  return mesh.build();
-}
-
-/** Ground in 5 m cells out to `reach` each way, each coloured by its corner. */
-function groundCells(mesh: MeshBuilder, reach: number, color: (x: number, y: number) => Rgba) {
-  for (let x = -reach; x < reach; x += 5)
-    for (let y = -reach; y < reach; y += 5)
-      mesh.quad([x, y, 0], [x + 5, y, 0], [x + 5, y + 5, 0], [x, y + 5, 0], color(x, y));
 }
 
 /** A plain soldier-height mannequin standing at (x, y), facing +X. */
@@ -108,22 +88,6 @@ function scaleFigure(x: number, y: number): Mesh {
 }
 
 const NONE = new Float32Array(0);
-/** A flat ground mesh reaching `reach` each way as terrain with nothing on
- *  it: its vertex tints are opaque, so it draws as tinted, not as the
- *  biome's patchwork. */
-export function flatTerrain(ground: Mesh, reach = GROUND_REACH_M): TerrainSurface {
-  return bareTerrain(ground, [-reach, -reach, reach, reach], 2 * reach, gameBiome);
-}
-/** A world of plain ground in `tint` out to `reach` each way, and nothing
- *  else: a stage that shows only what is put on it. */
-export function plainWorld(tint?: Rgba, reach = GROUND_REACH_M): WorldLayers {
-  return {
-    terrain: flatTerrain(plainGround(tint, reach), reach),
-    extraFaces: NONE,
-    scenery: null,
-    grass: null,
-  };
-}
 /** The measured ground, built once; only the figure moves. */
 let _bench_terrain: TerrainSurface | null = null;
 function benchTerrain(): TerrainSurface {

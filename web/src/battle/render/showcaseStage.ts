@@ -35,12 +35,18 @@ export interface StageUnit {
 }
 
 /** What a shown unit is fielded and heard from: the session's rules (JSON)
- *  and unit catalog, the page's runtime files, and the battle's sound setup. */
+ *  and unit catalog, and the battle's sound setup. */
 export interface StageFielding {
   rules: string;
   catalog: CatalogView;
-  runtime: RuntimeFiles;
   sound: SoundFrameOptions;
+}
+
+/** The art one `show` draws: the installed appearances, and the runtime
+ *  files they were loaded from, which the shown unit is fielded from. */
+export interface StageArt {
+  appearances: InstalledAppearances;
+  runtime: RuntimeFiles;
 }
 
 /** How the stage's scene looks: the page's light, fog and paint, model
@@ -51,10 +57,9 @@ export interface StageOptions {
   gpu: BrowserGpu;
   canvas: HTMLCanvasElement;
   world: WorldLayers;
-  appearances: InstalledAppearances;
-  /** Static models standing round the unit (a yard's props), drawn from
-   *  `appearances`. */
-  models: readonly LabModel[];
+  /** Static models standing round the unit (a yard's props), as each
+   *  show's art draws them. */
+  models: (appearances: InstalledAppearances) => readonly LabModel[];
   fielding: StageFielding;
   showground: Showground;
   look: StageLook;
@@ -89,40 +94,34 @@ export class ShowcaseStage {
     };
   }
 
-  /** A stage with nothing on it yet, drawing `world`'s ground. */
-  static async create(o: StageOptions): Promise<ShowcaseStage> {
+  /** A stage with nothing on it yet: it draws once the first `show` is
+   *  on stage. */
+  static create(o: StageOptions): ShowcaseStage {
     const presentation = new ScenePresentation();
     presentation.setGround(o.world.terrain.input, false);
-    const stage = new ShowcaseStage(o, presentation);
-    try {
-      await stage.rebuild();
-      return stage;
-    } catch (error) {
-      stage.dispose();
-      throw error;
-    }
+    return new ShowcaseStage(o, presentation);
   }
 
-  /** Shows `unit` in place of the one before (null: none), its squad
-   *  standing as a battle of seed `seed` fields it; resolves with the loops
-   *  it idles with, once it is on stage. A show another supersedes resolves
-   *  with none. */
-  async show(unit: StageUnit | null, seed: number): Promise<IdleLoop[]> {
+  /** Shows `unit` in place of the one before (null: the ground and models
+   *  alone), drawn from `art`, its squad standing as a battle of seed `seed`
+   *  fields it; resolves with the loops it idles with, once it is on stage.
+   *  A show another supersedes resolves with none. */
+  async show(unit: StageUnit | null, seed: number, art: StageArt): Promise<IdleLoop[]> {
     this.assertLive("show");
     const asked = ++this.asked;
     if (!unit) {
       this.presentation.clearShowcase();
       this.input = null;
-      await this.rebuild();
+      await this.rebuild(asked, art.appearances);
       return [];
     }
-    const { rules, catalog, runtime, sound } = this.o.fielding;
+    const { rules, catalog, sound } = this.o.fielding;
     const fielded = await fieldUnits({
       rules,
       catalog,
       kinds: [unit.kind],
       factions: [unit.faction, unit.faction],
-      runtime,
+      runtime: art.runtime,
     });
     if (asked !== this.asked || this.disposed) return [];
     const types = (fielded.units as { types: Record<string, { hull: boolean }> }).types;
@@ -139,7 +138,7 @@ export class ShowcaseStage {
       operators: squad.operators,
     };
     this.presentation.setShowcase(fielded, this.input);
-    await this.rebuild();
+    await this.rebuild(asked, art.appearances);
     return asked === this.asked ? idleLoops(sound, unit.kind) : [];
   }
 
@@ -181,9 +180,10 @@ export class ShowcaseStage {
     this.presentation.free();
   }
 
-  /** A scene built on the presentation's rows as they are now. */
-  private async rebuild(): Promise<void> {
-    const { gpu, canvas, world, appearances, models, look, failed } = this.o;
+  /** A scene built for show `asked` on the presentation's rows as they are
+   *  now, drawing `appearances`. */
+  private async rebuild(asked: number, appearances: InstalledAppearances): Promise<void> {
+    const { gpu, canvas, world, models, look, failed } = this.o;
     this.scene?.dispose();
     this.scene = null;
     this.presentation.setShadow(look.settings.light, world.terrain.mesh);
@@ -195,13 +195,13 @@ export class ShowcaseStage {
       world,
       ...look,
       appearances,
-      models,
+      models: models(appearances),
       instances: [],
       redraw: () => {},
       failed,
     });
     // A later show, or the stage's end, may have come while it was built.
-    if (this.disposed || this.scene || !scene.worldCurrent()) {
+    if (this.disposed || asked !== this.asked || !scene.worldCurrent()) {
       scene.dispose();
       return;
     }

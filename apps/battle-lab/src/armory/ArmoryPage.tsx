@@ -1,7 +1,7 @@
 // The Armory, layout A (U1): faction tabs, group tabs and one tile per family
 // on the left, the selected card's full sheet on the right, and the stage
-// between them. Until the stage arrives (slice 11) the menu's backdrop shows
-// through the centre. The selection is the page's own state, mirrored to the
+// between them (`ArmoryStage` on the menu; none in the UI gallery, where the
+// centre stays clear). The selection is the page's own state, mirrored to the
 // address (`/armory?unit=<card id>`) with a raw `history.replaceState`, which
 // the router never sees, so a pick never remounts the page (L13).
 import { Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
@@ -12,6 +12,7 @@ import { UNIT_GROUPS, unitGroup, type UnitGroup } from "@web/battle/present/purc
 import { UnitFace } from "@web/battle/present/unitFace";
 import { spoken } from "../battleLinks";
 import { ArmorySheet } from "./ArmorySheet";
+import { ArmoryStage } from "./ArmoryStage";
 
 /** What the Armory shows: the open faction tab, the open group tab and the
  *  card whose sheet is open. */
@@ -198,7 +199,7 @@ export function ArmoryPage({ cards, stage }: ArmoryPageProps) {
   );
 }
 
-/** The menu's Armory page: the game's roster. */
+/** The menu's Armory page: the game's roster, on its stage. */
 export function ArmoryVisit() {
   return (
     <Suspense fallback={null}>
@@ -211,5 +212,10 @@ export function ArmoryVisit() {
 
 function GameArmory() {
   const { units } = useSessionCatalog();
-  return <ArmoryPage cards={units.cards} />;
+  return (
+    <ArmoryPage
+      cards={units.cards}
+      stage={(card, faction) => <ArmoryStage card={card} faction={faction} />}
+    />
+  );
 }

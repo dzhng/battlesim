@@ -582,3 +582,97 @@ needs-user).
   start and end on the sheet's one bar column. Its notes on per-figure bar
   scales are the given (U9); its note on bar direction is the magnitudes
   choice above, left to the user. *Sound.*
+
+## Slice 11
+
+- **`ShowcaseStage.show(unit, seed, art)` takes a `StageArt`
+  (`{ appearances, runtime }`), and `create` is synchronous and takes no art.**
+  `ArmoryAppearances.show` returns that same type; slice 09's `ArmoryArt` is
+  gone, so there is one type for one concept. The stage builds no scene
+  until its first show. *Why:* `create` had no art to draw before the first
+  pick, so building a ground-only scene there only to rebuild it at once
+  would be a wasted admission. *Alternative:* keep `ArmoryArt` as a second
+  name for the same shape. *Sound.*
+- **`StageOptions.models` is a function of each show's appearances**
+  (`(installed) => readonly LabModel[]`). *Why:* the yard's props are
+  resolved against installed art (`yardModels`), and the art now arrives per
+  show. *Alternative:* load the first selection's art before `create`, which
+  ties the stage's construction to a pick. *Sound.*
+- **A superseded rebuild is dropped by its show's number**, not by whether a
+  scene is already installed. The old guard could keep an older scene and
+  drop the newer one when two shows' rebuilds finished out of order. *Sound.*
+- **The showcase lab is on `ArmoryAppearances`, one per panel, in both
+  modes.** `useGameAppearances` and `gameRuntime` left the lab, and the yard's
+  scenery names come from `ArmoryAppearances.catalog()`, so the art load
+  reuses the catalog bytes. The aircraft probe (`parkedAircraft`) keeps the
+  shared library, because it loads every aircraft at once. *Sound.*
+- **One owner for what both pages build a stage from:** `armory/stageInputs.ts`
+  (`STAGE_LOOK`, `useStageFielding`, `useShowground`, `SQUAD_SEED`), and
+  `armory/stageProbes.ts` (drawn models, grounding, world and screen boxes)
+  for both pages' scenes. *Sound.*
+- **`plainWorld` moved to `apps/battle-lab/src/plainWorld.ts`,** with no
+  top-level await. It never needed the presentation module (`bareTerrain` is
+  plain data), and the Armory is in the menu's bundle, so importing
+  `benchWorld` would have made the menu's module graph wait on the
+  presentation load and pulled the bench's posing code into Armory code.
+  *Sound.*
+- **The yard's ground reaches 2 km (`yard.json` `ground.half_m`), and a plain
+  ground's cells scale so the mesh stays a hundred cells a side.** At 250 m
+  the ground's edge read as a band under the horizon. At 2 km it meets the
+  sky in the haze, and the shadows are unchanged on the screenshots. *Why
+  here:* the slice was asked to settle the band with the backdrop.
+  *Provisional:* slice 16's military ground may set its own reach.
+- **The stage draws the whole screen behind the glass panels**, with the
+  unit framed in the centre cell (`armoryCamera.ts` `framedOrbit` slides the
+  target so the orbit's centre falls in that cell). *Why:* the mock's layout
+  A has the yard filling the screen behind the panels, and the first
+  unprimed critique read a canvas confined to the cell as "two scenes stuck
+  side by side": a midday yard beside the amber backdrop. The backdrop shows
+  only where no stage is drawn (a planned card first opened, a failure).
+  *Alternative:* a framed viewport in the cell. *Provisional:* the human
+  judges the composition.
+- **A switch holds the last frame drawn and blurs the stage while it is
+  under way.** Each show rebuilds the scene, and a freed renderer leaves the
+  canvas clear, so the amber backdrop flashed through on every pick. A 2D
+  canvas behind the live one holds the last frame. A `data-switching` mark
+  on the cell blurs, dims and slightly scales both canvases until the next
+  unit stands, so the pause reads as a change, not as the unit just left.
+  *Alternative:* an in-place row swap in `BrowserScene` (slice 04's open
+  note), a renderer change for every caller. *Provisional.*
+- **A planned card asks for nothing:** the stage shows the yard alone from
+  the art already on show, or nothing if no unit was shown yet. *Sound.*
+- **Failures throw into `ArmoryStageBoundary`,** a React error boundary that
+  draws the error in the cell and clears itself on the next pick, which
+  builds the stage again. Asynchronous failures (art, fielding, scene
+  admission) are thrown from render into the same boundary. One surface, and
+  the shell's cover lifts on a failure. Copy: "This unit can't be shown",
+  the error, then "Its sheet is still here. Pick another unit, or reload to
+  try again." *Provisional:* wording.
+- **`MenuShell`'s `LoadingTasks` wraps the plate too**, so the stage's
+  `renderer` task holds the first cover until it draws. No other menu page
+  reports a task. *Sound.*
+- **`AppAudio.stats()` reports `showVoices`,** the show loops sounding, for
+  the scene's "voices on /armory, none after Back" check. *Sound.*
+- **The scene's probe is `window.__armory`** (`armoryProbe.ts`): the unit on
+  show, its spot, its ground gaps and screen bounds, the files its art holds,
+  the switches, and the voices. The voices and switches outlive the stage, so
+  the count can be read after Back. It follows the battle's `window.__lab`,
+  which also lives on player pages. *Sound.*
+- **The load line (S5) is what `ArmoryAppearances` holds for a selection**
+  (`held()`: the files the newest selection read, with the yard and the
+  catalog), not resource-timing bytes. Resource timing also counts the
+  menu's background prefetch of every runtime file, which showed 200–300 MB
+  per switch that the Armory never asked for. *Sound.*
+- **The app journey's Armory round trip compares with the menu alone:** the
+  allocations a visit leaves alive must be no more than the backdrop leaves
+  over as long a stretch on its own, because the backdrop's battle keeps
+  allocating behind the stage. *Sound.*
+- **The `armory` and `armory-1920` UI baselines are not re-recorded.** The
+  gallery pins the page without a stage (slice 08), and the live stage
+  animates, so it can't be a pixel baseline. Every `ui` baseline still
+  matches on this tree. The stage's pictures are the `armory` scene's
+  evidence. *Sound.*
+- **The unit tests drive the real menu under `AppShell`** (`visitShell` in
+  `tests/support/router.tsx`), because the stage needs the app's audio. The
+  3D stage, its art and the squad scatter are stand-ins there; the scene
+  judges the drawn page. *Sound.*
