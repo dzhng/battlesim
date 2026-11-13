@@ -6,7 +6,7 @@
 use super::carve::Carve;
 use super::surfaces::SurfaceIndex;
 use crate::math::{v2, v3, V3};
-use contract::map::{MapDefinition, Relief};
+use contract::map::MapDefinition;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::OnceLock;
 
@@ -452,35 +452,9 @@ fn relief_bounds(map: &MapDefinition) -> Vec<([f64; 4], f64)> {
     map.relief
         .iter()
         .map(|r| {
-            let (rect, peak) = match *r {
-                Relief::Ridge {
-                    center,
-                    radius_m,
-                    peak_m,
-                } => (
-                    [
-                        center[0] - radius_m,
-                        center[1] - radius_m,
-                        2.0 * radius_m,
-                        2.0 * radius_m,
-                    ],
-                    peak_m,
-                ),
-                Relief::Mesa {
-                    rect,
-                    height_m,
-                    side_degrees,
-                } => {
-                    let slope = libm::tan(side_degrees.to_radians());
-                    let rect = if slope > 0.0 {
-                        grow(rect, height_m.max(0.0) / slope)
-                    } else {
-                        // A non-falling authored mesa may affect every sample.
-                        [0.0, 0.0, map.size[0], map.size[1]]
-                    };
-                    (rect, height_m)
-                }
-            };
+            let (rect, peak) = r.footprint();
+            // A non-falling authored mesa may affect every sample.
+            let rect = rect.unwrap_or([0.0, 0.0, map.size[0], map.size[1]]);
             // A sampled contribution affects the adjacent triangle cell too.
             (grow(rect, map.height_grid_m), peak)
         })
