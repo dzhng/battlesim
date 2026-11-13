@@ -27,6 +27,9 @@ places them on admitted geometry. Players never field a recipe: the map workbenc
 and native reports plan one on a generated map to judge it, and tests use them.
 [Generated-battle settings](generated-battle.json) own preparation policy. [Camera lab settings](camera-lab.json)
 belong to the isolated camera experiment, not a second gameplay camera policy.
+[The Armory's yard](armory/yard.json) is presentation data the simulation never
+admits: the spots a unit on show stands on, the spot each body takes, and the
+catalog props that dress the yard ([its reader](../apps/battle-lab/src/armory/yard.ts)).
 [Captures](captures/) say how saved encounters are filmed, camera and scenes only:
 each scene a saved battle (an ordinary saved encounter, scripted orders and all, on
 a `capture` map) and its reel of camera shots. The

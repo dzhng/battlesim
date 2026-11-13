@@ -1,0 +1,65 @@
+{
+ "about": "The yard's references (slice 10): real flight-line, motor-pool and field-camp photos, judged for composition: what stands behind and beside a parked unit. WARNO and Broken Arrow armory screens are not stored here, because they are not freely licensed.",
+ "entries": [
+  {
+   "file": "apron-apache_parked_by_hangar.jpg",
+   "spot": "apron",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Apache_helicopters_delivered_to_Australia_(9529770).jpg",
+   "author": "U.S. Army USASAC by Terri Stover",
+   "licence": "public-domain",
+   "sha256": "0603f8d7ef413c0b812da7ae5e65a7f971a447d9b5f54ef9ed86e3d1bda29338",
+   "note": "An AH-64D parked on a concrete apron, chocked, before a hangar wall: the hangar is the backdrop and the aircraft stands clear of it."
+  },
+  {
+   "file": "apron-chinook_flight_line.jpg",
+   "spot": "apron",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Task_Force_Iron_Knights,_the_wings_of_JFC-UA_141211-A-AG877-002.jpg",
+   "author": "Sgt. Jose Ramirez",
+   "licence": "public-domain",
+   "sha256": "4fe719c2a8bc130f98f9120cf0b8f1f22c5f4d2aeaa7dbfef1b07b0e663328cf",
+   "note": "A CH-47 on a flight line at dusk, with ground crew, a tug, and vehicles and containers in a low line far behind. An open apron with dressing kept to its edge."
+  },
+  {
+   "file": "motor_pool-abrams_t_wall_compound.jpg",
+   "spot": "motor_pool",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:31JAN07_1_77_Armor_Baghdad.JPG",
+   "author": "Joshuashearn",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "a1b78e12607dd064d3c39ffd2520e8defc52ddd0d16ae96bcddc4c44039b7355",
+   "note": "An M1 Abrams in a walled compound: T-wall blast barriers, concertina wire on top, and a shed behind. Barriers stand behind the vehicle, never in front of it."
+  },
+  {
+   "file": "motor_pool-tanks_in_line.jpg",
+   "spot": "motor_pool",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:From_railhead_to_motor_pool_140506-A-SJ786-008.jpg",
+   "author": "Capt. John Farmer",
+   "licence": "public-domain",
+   "sha256": "55cdf64ec671e4d5be60c1d9bf4a1b9334385e35f0792125099bca084d816145",
+   "note": "Tracked vehicles parked in a tight line, with crews loading bags and boxes on their decks. Kit and crates belong on and beside the vehicles."
+  },
+  {
+   "file": "tents-fob_tent_sandbags.jpg",
+   "spot": "tents",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:FOB_Shank_operations_120319-A-RR514-063.jpg",
+   "author": "Spc. Tia Sokimson",
+   "licence": "public-domain",
+   "sha256": "939a8ab2601884bef795be40e23420b6962a62268af93aef3e945a748e21e950",
+   "note": "A FOB tent on a timber base, its skirt weighted with sandbags, and gravel and a sandbag wall beyond: sandbags as the camp's dressing."
+  },
+  {
+   "file": "tents-tent_city_camp_baldwin.jpg",
+   "spot": "tents",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:A_U.S._Soldier_walks_through_a_tent_city_at_Camp_Baldwin,_South_Korea,_April_15,_2013,_during_the_Combined_Joint_Logistics_Over_the_Shore_(CJLOTS)_military_exercise_130415-N-LO372-015.jpg",
+   "author": "MC1 Elisandro Diaz",
+   "licence": "public-domain",
+   "sha256": "183d25ae81d5f96160761683771feb80ef574a1da803660ccc491cd646c6f4e2",
+   "note": "A field camp: a row of olive tents, with pallets laid as walkways, a generator, and timber on bare ground."
+  }
+ ]
+}

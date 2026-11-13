@@ -3,10 +3,13 @@
 // each soldier in his own pose and the launcher's operator carrying his kit,
 // and every model stands on the ground. Also reports, for every aircraft
 // appearance, what of it rests on the ground at rest (throwaway/armory/04/).
+// With `?yard=1` each body stands on its spot in the Armory's yard, dressed
+// with the yard's props, seen from the spot's camera (one shot per body).
 // The tests behind the posing:
 //   crates/presentation/tests/showcase.rs
 //   crates/presentation/tests/sound.rs::an_idle_vehicle_sounds_as_a_stationary_battle_vehicle_does
 //   crates/game-wasm/tests/showground.rs
+//   web/tests/armoryYard.test.ts (the yard's layout and spots)
 // This judges the drawn page.
 import { mkdir, writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
@@ -15,6 +18,8 @@ import { gpuWarnings } from "./_lab.mjs";
 const VIEWPORT = { width: 1800, height: 700 };
 /** How near the ground a model's lowest point must stand, metres. */
 const GROUNDED_M = 0.02;
+/** How far past a spot's clear disc its own dressing stands, metres. */
+const DRESSING_M = 10;
 /** A channel moving more than this is a changed pixel. */
 const MOVED = 8;
 
@@ -38,13 +43,9 @@ function movedWithin(png, other, rect, at, r) {
 /** Twice the area of the triangle a, b, c. */
 const area2 = (a, b, c) => Math.abs((b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1]));
 
-export async function run(ctx) {
-  const page = await ctx.newPage({ viewport: VIEWPORT });
-  const warnings = gpuWarnings(page);
-  await page.goto(ctx.url);
-  const logged = [];
-  page.on("console", (m) => m.type() === "error" && logged.push(m.text().slice(0, 300)));
-  page.on("pageerror", (e) => logged.push(String(e).slice(0, 300)));
+/** Opens `url` on `page` and waits until every stage is up, paused. */
+async function openStages(ctx, page, url, logged) {
+  await page.goto(url);
   try {
     await page.waitForFunction(() => window.__showcase?.ready(), undefined, { timeout: 120000 });
   } catch (error) {
@@ -59,6 +60,15 @@ export async function run(ctx) {
     });
   }
   await sc(page, () => window.__showcase.pause(true));
+}
+
+export async function run(ctx) {
+  const page = await ctx.newPage({ viewport: VIEWPORT });
+  const warnings = gpuWarnings(page);
+  const logged = [];
+  page.on("console", (m) => m.type() === "error" && logged.push(m.text().slice(0, 300)));
+  page.on("pageerror", (e) => logged.push(String(e).slice(0, 300)));
+  await openStages(ctx, page, ctx.url, logged);
   const kinds = await sc(page, () => window.__showcase.kinds());
   ctx.check("the lab shows three units side by side", kinds.length === 3, kinds.join(", "));
 
@@ -178,5 +188,52 @@ export async function run(ctx) {
     `${parked.length} reported`,
   );
 
+  await yardShots(ctx, page, logged);
   ctx.check("no WebGPU warnings", warnings.length === 0, warnings.join(" | "));
+}
+
+/** Each body on its spot in the yard: standing where the spot is, the
+ *  yard's props drawn round it, on the ground; one shot per spot camera. */
+async function yardShots(ctx, page, logged) {
+  await openStages(ctx, page, ctx.urlFor({ yard: "1" }), logged);
+  const kinds = await sc(page, () => window.__showcase.kinds());
+  for (const kind of kinds) {
+    await openStages(ctx, page, ctx.urlFor({ yard: "1", unit: kind }), logged);
+    const drawn = await sc(page, () => window.__showcase.draw(2));
+    const { spot, standing, props, models, gaps } = await sc(
+      page,
+      (k) => ({
+        spot: window.__showcase.spot(k),
+        standing: window.__showcase.standing(k),
+        props: window.__showcase.yardModels(),
+        models: window.__showcase.models(k),
+        gaps: window.__showcase.grounded(k),
+      }),
+      kind,
+    );
+    ctx.check(
+      `${kind} stands on its spot, ${spot?.id}`,
+      drawn && spot && standing.at[0] === spot.at[0] && standing.at[1] === spot.at[1],
+      JSON.stringify({ spot: spot?.at, at: standing?.at }),
+    );
+    // The spot's own dressing, drawn where the yard stands it; the other
+    // spots' lies out of this camera's view.
+    const near = props.filter(
+      (p) => Math.hypot(p.at[0] - spot.at[0], p.at[1] - spot.at[1]) < spot.clear_m + DRESSING_M,
+    );
+    const missing = near.filter(
+      (p) =>
+        !models.some(
+          (m) => m.name === p.name && Math.hypot(m.at[0] - p.at[0], m.at[1] - p.at[1]) < 1e-3,
+        ),
+    );
+    ctx.check(
+      `the ${near.length} props round ${spot.id} are drawn round ${kind}`,
+      near.length > 0 && missing.length === 0,
+      JSON.stringify(missing),
+    );
+    const off = gaps.filter((g) => g.gap === null || Math.abs(g.gap) > GROUNDED_M);
+    ctx.check(`${kind} stands on the yard's ground`, off.length === 0, JSON.stringify(off));
+    await writeFile(ctx.evidencePath(`yard-${spot?.id}-${kind}.png`), await page.screenshot());
+  }
 }

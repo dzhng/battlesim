@@ -16,23 +16,26 @@ and the map disagree, this README wins. The disagreements are listed in
 
 ## Next Agent Prompt
 
-**Status (2026-11-13):** slices 01, 02, 03, 05, 06, 07, 09 and 13 are merged
-into `t3/unit-explorer-armory`. Slice 04 is merged, but its final scene rerun
-and visual gate are still open. The integrated tree is green on the
-cross-lane checks:
+**Status (2026-11-13):** slices 01–07, 09, 10 and 13 are merged into
+`t3/unit-explorer-armory`, and staging is merged in (`736eff7d8`). The
+integrated tree is green on the cross-lane checks:
 - contract weapons, showground, showcase;
 - sim digest, replay, parity, operator and catalog;
 - typecheck and the focused vitest files.
 
 **The kill switch did not trip.** The pose driver runs from its own feed frame.
 
+**L1 has lifted:** `tracked-armour-models` closed into `specs/done/` on staging,
+so slices 14–17 may start. Run them one lane at a time while disk is tight.
+
 **Pickup:**
-1. The `armory-page` lane is running slice 08.
-2. The `armory-yard` lane is finishing slice 04's gate, then slice 10.
-3. Merge each as it lands.
-4. Then **11**: read its "Art per selection" note first, because
+1. The `armory-page` lane is running slice 08. Merge it when it lands.
+2. Then **11**: read its "Art per selection" note first, because
    `ShowcaseStage.show` takes each selection's art.
-5. Then **12**.
+3. Then **12**, and **14 → 15 → 16**, with **17** after 14.
+4. Re-shoot the tutorial's `buy.jpg` on the merged tree. Both sides re-shot it
+   before the staging merge; ours kept the nine-group picker over an older
+   battle.
 
 The lanes worked from
 [`throwaway/armory/LANE-BRIEF.md`](../../throwaway/armory/LANE-BRIEF.md), an
@@ -57,8 +60,20 @@ the orchestrator merges.
   - Call `showLoops([])` on leave.
   - The showcase needs a presentation with no battle loaded, and the renderer's
     tables must be reinstalled after `setShowcase`.
-- **10:** yard props go to `ArmoryAppearances` as scenery appearance names,
-  through `propsDrawnBy`.
+- **11 (from slice 10):**
+  - `ArmorySelection.scenery` is `yardScenery(yard, units.view.props,
+    runtimeCatalog)`. Fetch `/catalog.json` through `ArmoryAppearances`' own
+    fetch so `library.load` reuses the bytes.
+  - Move the showcase lab's yard mode onto `ArmoryAppearances`.
+  - A sound setup passes `catalog.rules.weapons`, never `catalog.weapons`.
+  - `plainWorld` lives in `workbench/benchWorld.ts`, which awaits
+    `loadPresentation()` at top level. Move it to a neutral module if the
+    Armory's bundle cares.
+  - The ground's edge shows as a band on the horizon; settle it with the
+    backdrop.
+- **12:** spot cameras are fixed per spot and sized for the largest body, so a
+  helicopter on the apron looks small. Framing per unit belongs to 12.
+- **16:** a concrete apron needs a per-spot ground in the yard schema.
 
 **Raised to the user, not retuned (one owner, the battle's data):**
 - The rotor-blur look reads as "frozen blades over a glass plate".
@@ -77,11 +92,6 @@ battle-wide decision for the user.
   its one-context, running and music probes.
 
 **Blockers and warnings:**
-- **L1:** slices 14–17 write `fixtures/props/**`, `assets/catalog.json`,
-  runtime bundles, `fixtures/map-presets.json` and `fixtures/parity/**`.
-  Before starting slice 14, read `specs/tracked-armour-models/README.md`. Its
-  coordinator owns those files until it closes. On 2026-11-12 its lanes were
-  blocked on a Bento outage.
 - **Generated files:** slice 05 re-blesses `fixtures/catalog.json`. If it
   conflicts on merge, re-bless it; never merge it by hand.
 - **Stale branch state:** other sessions merge and delete checkouts, and
@@ -101,7 +111,7 @@ battle-wide decision for the user.
   original carriers, exported from the simulation.
 - [x] [03](slices/03-showcase-entry.md) Showcase entry in the presentation
   crate, and `idle_loops`. **This is the kill switch.**
-- [ ] [04](slices/04-showcase-lab.md) Showcase lab: `ShowcaseStage` and
+- [x] [04](slices/04-showcase-lab.md) Showcase lab: `ShowcaseStage` and
   `/labs/showcase`. The spike is verdict-visible here.
 - [x] [05](slices/05-fires-regardless.md) `fires_regardless` and `reach`
   published, W09 amended.
@@ -112,20 +122,20 @@ battle-wide decision for the user.
   the tile and its key art.
 - [x] [09](slices/09-armory-appearances.md) The Armory's own appearance
   library.
-- [ ] [10](slices/10-yard-document.md) The yard document and spots, with a
+- [x] [10](slices/10-yard-document.md) The yard document and spots, with a
   placeholder yard.
 - [ ] [11](slices/11-armory-stage.md) The Armory stage: composition, loading,
   detection, errors, backdrop.
 - [ ] [12](slices/12-armory-camera.md) The Armory camera.
 - [x] [13](slices/13-steading-refactor.md) Steading refactor: zero output
   change.
-- [ ] [14](slices/14-military-rows.md) **[L1]** Military prop rows and
+- [ ] [14](slices/14-military-rows.md) Military prop rows and
   mechanics, on stand-ins.
-- [ ] [15](slices/15-military-art.md) **[L1]** Military art: one prop per
+- [ ] [15](slices/15-military-art.md) Military art: one prop per
   gate, bake.
-- [ ] [16](slices/16-military-yard.md) **[L1]** The yard swapped to the
+- [ ] [16](slices/16-military-yard.md) The yard swapped to the
   military set.
-- [ ] [17](slices/17-depots.md) **[L1]** Depots in open country.
+- [ ] [17](slices/17-depots.md) Depots in open country.
 - [ ] [18](slices/18-closeout.md) Closeout: full run, balance, shots,
   `close-spec`.
 
@@ -157,7 +167,7 @@ Every change above is a hard cutover (decided by the user,
 ## Slice graph
 
 ```
- can start now                                                  held behind L1
+ can start now                                                  after L1 (lifted)
  ────────────────────────────────────────────────────────────   ──────────────────────────
  01 menu routes ─────────────────────────────┐
  06 unit groups ─────────────────────────────┤
@@ -180,7 +190,7 @@ Every change above is a hard cutover (decided by the user,
 - **08** needs 01, 05 and 06. **10** needs 04. **11** joins 07, 08, 09 and
   10. **12** is last on the stage.
 - **The Armory ships to players at 12, on the placeholder yard.** Slices 14–17
-  upgrade it and wait on L1.
+  upgrade it; L1, their gate, lifted on 2026-11-13.
 
 ## Review map
 

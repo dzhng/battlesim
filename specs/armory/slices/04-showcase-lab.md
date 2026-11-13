@@ -1,5 +1,7 @@
 # 04 · Showcase lab: the spike, end to end
 
+Status: done 2026-11-13, commit: the one that sets this line
+
 Map rows: Q1′, Q6, D1. Depends on 02 and 03.
 
 ## Contract

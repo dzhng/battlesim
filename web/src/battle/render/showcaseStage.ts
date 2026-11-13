@@ -21,7 +21,7 @@ import {
   type PresentedFrame,
   type ShowcaseInput,
 } from "../sim/presentation";
-import type { PresentedAppearance } from "../sim/presentationModels";
+import type { LabModel, PresentedAppearance } from "../sim/presentationModels";
 import { fieldUnits, type RuntimeFiles } from "../sim/fielding";
 import { BrowserScene, type SceneOptions } from "./scene";
 
@@ -52,6 +52,9 @@ export interface StageOptions {
   canvas: HTMLCanvasElement;
   world: WorldLayers;
   appearances: InstalledAppearances;
+  /** Static models standing round the unit (a yard's props), drawn from
+   *  `appearances`. */
+  models: readonly LabModel[];
   fielding: StageFielding;
   showground: Showground;
   look: StageLook;
@@ -180,7 +183,7 @@ export class ShowcaseStage {
 
   /** A scene built on the presentation's rows as they are now. */
   private async rebuild(): Promise<void> {
-    const { gpu, canvas, world, appearances, look, failed } = this.o;
+    const { gpu, canvas, world, appearances, models, look, failed } = this.o;
     this.scene?.dispose();
     this.scene = null;
     this.presentation.setShadow(look.settings.light, world.terrain.mesh);
@@ -192,7 +195,7 @@ export class ShowcaseStage {
       world,
       ...look,
       appearances,
-      models: [],
+      models,
       instances: [],
       redraw: () => {},
       failed,

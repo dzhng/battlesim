@@ -1,5 +1,7 @@
 # 10 · Yard document and spots, with a placeholder yard
 
+Status: done 2026-11-13, commit: the one that sets this line
+
 Map rows: Q5, L14, plus P2. Depends on 04.
 
 ## Contract

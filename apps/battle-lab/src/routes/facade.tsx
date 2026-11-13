@@ -26,12 +26,11 @@ import { gameCamera } from "../gameCamera";
 import { gameLight } from "../gameLight";
 import { LabViewport } from "../LabViewport";
 import type { ViewportPilot } from "../viewportRender";
-import { benchGround, flatTerrain } from "../workbench/benchWorld";
+import { plainWorld } from "../workbench/benchWorld";
 
 const KIT = "city_kit_facade_lab";
 /** What this page asks the loader for: no map places this kit. */
 const KITS: ReadonlySet<string> = new Set([KIT]);
-const NONE = new Float32Array(0);
 /** A bay's width and a floor's height, as the kit's script has them. */
 const BAY_M = 3;
 const FLOOR_M = 3;
@@ -203,15 +202,7 @@ export default function Facade() {
       })),
     [placed],
   );
-  const world = useMemo<WorldLayers>(
-    () => ({
-      terrain: flatTerrain(benchGround(false)),
-      extraFaces: NONE,
-      scenery: null,
-      grass: null,
-    }),
-    [],
-  );
+  const world = useMemo(() => plainWorld(), []);
   const worldFeed = useFeed<WorldLayers | null>(world);
   const appearancesFeed = useFeed(appearances);
   const fog = useMemo(() => (query.get("fog") === "1" ? fogRequest() : null), [query]);
