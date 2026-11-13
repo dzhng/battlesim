@@ -4,6 +4,7 @@ import type { Browser } from "playwright";
 import { launchBrowser } from "../browser.mjs";
 import { fileURLToPath } from "node:url";
 import { browserTestServer } from "./support/browserServer";
+import { menuPage } from "@apps/battle-lab/src/menu/pages";
 
 // A battle that failed to start has nothing to play: its refusal is shown
 // with the menu, and no battlefield is drawn under it.
@@ -114,9 +115,11 @@ test("a rejected replay shows its refusal and draws no battlefield", async () =>
     );
     expect(await page.locator("canvas").count()).toBe(0);
     expect(await page.getByTestId("battle-panel").count()).toBe(0);
-    expect(
-      await page.getByRole("link", { name: "Back to the menu", exact: true }).getAttribute("href"),
-    ).toMatch(/^\/(\?|$)/);
+    // Back returns to the skirmish setup this battle came from (`menuHref`).
+    const back = await page
+      .getByRole("link", { name: "Back to the menu", exact: true })
+      .getAttribute("href");
+    expect(new URL(back!, "http://menu").pathname).toBe(menuPage("skirmish").path);
     await page.screenshot({
       path: fileURLToPath(new URL("../../throwaway/battle-failure.png", import.meta.url)),
     });

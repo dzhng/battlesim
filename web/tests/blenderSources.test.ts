@@ -54,6 +54,12 @@ test.each(["wrote complete-source", "export finished"])(
     const result = runBatch(0, output);
     expect(result.status).toBe(0);
     expect(result.calls[0]).toContain("infantry_kit.py at_carried a");
-    expect(result.calls.at(-1)).toContain("forest_floor.py");
+    // It runs to the batch's last export, whichever script that is.
+    const source = readFileSync(
+      resolve(import.meta.dirname, "../../packages/scene-assets/blender/build_sources.sh"),
+      "utf8",
+    );
+    const last = [...source.matchAll(/^\s*blender (\S+\.py)/gm)].at(-1)![1];
+    expect(result.calls.at(-1)).toContain(last);
   },
 );
