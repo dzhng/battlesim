@@ -87,9 +87,11 @@ battle-wide decision for the user.
   `journey-placed-facing`, `journey-space-orders`) differ only in tree foliage.
   The leaves were reworked after those pictures were approved on 2026-10-29.
   Re-approve them after looking.
-- **The `street` app-flow tour couldn't run in a lane checkout** without full
-  LFS content (the menu never showed). The closeout run, with LFS pulled, covers
-  its one-context, running and music probes.
+- **The `street` app-flow tour couldn't run in a lane checkout:** the menu
+  never showed. On the merged tree the cause was an unpulled effect flipbook
+  (`assets/third-party/effects/*.png`). Its refusal now names the pull
+  (`c0198f3dd`). Before any browser scene, pull `assets/third-party/**`,
+  `assets/runtime/**` and the menu art.
 
 **Blockers and warnings:**
 - **Generated files:** slice 05 re-blesses `fixtures/catalog.json`. If it
