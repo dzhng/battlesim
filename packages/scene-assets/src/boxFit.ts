@@ -5,14 +5,7 @@ import type { Vec3 } from "math";
 import { positionsBounds } from "./pose.ts";
 import { SCENERY_KINDS } from "./scenery.ts";
 import type { AppearanceEntry, Finding, MeshData, Tolerances } from "./schema.ts";
-
-const finding = (code: Finding["code"], message: string, fix: string): Finding => ({
-  code,
-  severity: "error",
-  message,
-  fix,
-});
-const fmt = (n: number) => n.toFixed(3);
+import { finding, fmt } from "./finding.ts";
 
 export interface ExtentRule {
   code: "fit.hull_extents" | "fit.footprint";

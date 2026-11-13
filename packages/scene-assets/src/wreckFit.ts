@@ -5,14 +5,7 @@
 import type { AppearanceEntry, Bounds, Finding, MeshData } from "./schema.ts";
 import { DEBRIS_NODE, type DebrisAllowance } from "./scenery.ts";
 import type { Scene } from "./scene.ts";
-
-const finding = (code: Finding["code"], message: string, fix: string): Finding => ({
-  code,
-  severity: "error",
-  message,
-  fix,
-});
-const fmt = (n: number) => n.toFixed(3);
+import { finding, fmt } from "./finding.ts";
 
 /** The `debris_*` node scene node `i` is or lies under, or null. */
 function debrisNode(scene: Scene, i: number): string | null {

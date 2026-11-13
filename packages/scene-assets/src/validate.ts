@@ -79,6 +79,7 @@ import {
   type StaticBundle,
   type Tolerances,
 } from "./schema.ts";
+import { finding, fmt } from "./finding.ts";
 
 export interface ValidationContext {
   authority: Authority;
@@ -109,15 +110,8 @@ export interface Validation<B extends Bundle> {
 
 export const hasErrors = (findings: Finding[]) => findings.some((f) => f.severity === "error");
 
-const finding = (code: Finding["code"], message: string, fix: string): Finding => ({
-  code,
-  severity: "error",
-  message,
-  fix,
-});
 const tierStats = (tiers: MeshData[]) =>
   tiers.map((m) => ({ triangles: triangleCount(m), vertices: m.positions.length / 3 }));
-const fmt = (n: number) => n.toFixed(3);
 /** What a built bundle's surfaces must be, whatever it draws: its textures
  *  and its materials. */
 const surfaceFindings = (label: string, bundle: Exclude<Bundle, SkeletonClips>) => [

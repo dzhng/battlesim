@@ -16,6 +16,7 @@ import {
   type TextureChannel,
   type TextureFormat,
 } from "./schema.ts";
+import { finding } from "./finding.ts";
 
 /** Decoded RGBA8 pixels, rows top to bottom. */
 export interface Rgba8 {
@@ -262,13 +263,6 @@ export async function bakeTexture(
 
 /** Bytes a texture takes on the GPU (every level). */
 export const textureBytes = (t: Texture) => t.levels.reduce((n, l) => n + l.byteLength, 0);
-
-const finding = (code: Finding["code"], message: string, fix: string): Finding => ({
-  code,
-  severity: "error",
-  message,
-  fix,
-});
 
 /** Every mesh of a (non-clips) bundle, labelled. */
 export function bundleMeshes(bundle: Exclude<Bundle, SkeletonClips>): [string, MeshData][] {
