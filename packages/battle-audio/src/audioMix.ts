@@ -137,7 +137,7 @@ export interface AudioMix {
   /** A positional burst when an aircraft releases a flare. */
   flare_deploy: OneShot;
   /** A smoke screen's pop at its cloud, heard by a side that sees the cloud
-   *  while it blooms; each `smoke_looks` row names its recording. */
+   *  while it blooms; each `smoke_screen_looks` row names its recording. */
   smoke_pop: { gain: number };
   /** Unseen enemies, from hearing cues: a sound by `category` or
    *  `category_moving` (a category with neither is silent), a shout from the

@@ -33,7 +33,7 @@ fn shipped() -> Value {
 fn presentation() -> EffectPresentation {
     let settings = PresentationSettings::from_value(&shipped()).unwrap();
     let mut p = settings.effects.clone();
-    p.smoke_looks = settings.smoke_looks.clone();
+    p.smoke_screen_looks = settings.smoke_screen_looks.clone();
     p
 }
 
@@ -162,7 +162,7 @@ fn smoke_screens_cost_the_wrecks_nothing_and_keep_to_their_own_budget() {
         .collect::<Vec<_>>());
     // Enough clouds to pass the screens' own budget, in a row of their own
     // north of the wrecks'.
-    let per = f64::from(p.smoke_looks["discharger"].puffs);
+    let per = f64::from(p.smoke_screen_looks["discharger"].puffs);
     let n = (p.smoke_screen_budget / per).ceil() as u32 * 2;
     let clouds: Vec<_> = (0..n)
         .map(|k| cloud("test_smoke_tank", k, [f64::from(k) * 40.0, 200.0, 0.0], 1))

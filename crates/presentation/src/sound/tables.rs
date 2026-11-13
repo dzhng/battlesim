@@ -288,7 +288,7 @@ pub struct SoundTables {
     pub audio: AudioMix,
     pub catalog: SoundCatalog,
     pub looks: crate::looks::WeaponLooks,
-    /// Each smoke screen look's pop (`presentation.smoke_looks.<look>.sound`),
+    /// Each smoke screen look's pop (`presentation.smoke_screen_looks.<look>.sound`),
     /// by look.
     pub smoke_pops: BTreeMap<String, String>,
 }
@@ -330,11 +330,14 @@ impl SoundTables {
                 ));
             }
         }
-        let smoke_looks: BTreeMap<String, crate::effects::tables::SmokeLook> =
-            crate::settings::read(&presentation["smoke_looks"], "presentation.smoke_looks")?;
+        let smoke_screen_looks: BTreeMap<String, crate::effects::tables::SmokeScreenLook> =
+            crate::settings::read(
+                &presentation["smoke_screen_looks"],
+                "presentation.smoke_screen_looks",
+            )?;
         let mut smoke_pops = BTreeMap::new();
-        for (look, crate::effects::tables::SmokeLook { sound, .. }) in smoke_looks {
-            let at = format!("presentation.smoke_looks.{look}.sound");
+        for (look, crate::effects::tables::SmokeScreenLook { sound, .. }) in smoke_screen_looks {
+            let at = format!("presentation.smoke_screen_looks.{look}.sound");
             match catalog.sounds.get(&sound) {
                 None => return Err(format!("{at}: unknown sound {sound}")),
                 Some(r) if r.looping => return Err(format!("{at}: {sound} loops")),

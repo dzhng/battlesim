@@ -327,7 +327,7 @@ fielding, and unused looks fail the shipped-fixture check. Changing which look a
 weapon names changes battle identity; tuning that look does not.
 
 A smoke capability's cloud names its look the same way: one
-`smoke_looks.<name>` row in [presentation](presentation.json), which says how
+`smoke_screen_looks.<name>` row in [presentation](presentation.json), which says how
 its billow draws and which library sound its pop plays; the mix's `smoke_pop`
 sets every pop's level. A fielded unit whose cloud names no row fails at
 fielding. Every smoke screen together

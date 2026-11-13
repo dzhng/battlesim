@@ -19,7 +19,7 @@ check ladder has passed once, and the spec is closed.
    - `crates/contract/README.md`: the smoke module and capability;
    - `crates/sim/README.md`: clouds and sight depth;
    - `crates/presentation/README.md`: the smoke-screen effect and fog smoke;
-   - `fixtures/README.md`: `smoke_looks` and sounds.
+   - `fixtures/README.md`: `smoke_screen_looks` and sounds.
 
    Make sure no doc still calls a transient prop a smoke screen.
 5. **Audit choices:** run `audit-choices` over `choices.md`, then `close-spec`

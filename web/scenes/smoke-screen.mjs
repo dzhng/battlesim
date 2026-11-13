@@ -1,4 +1,4 @@
-// Smoke screens on the smoke lab, through the player's own input: blue selects
+// Smoke screens on the smoke screen lab, through the player's own input: blue selects
 // its road tank from the army deck and presses H. The tank's panel counts its
 // charge down and shows HIDDEN once the cloud is up. Red, watching from across
 // open ground, has its fog
@@ -25,8 +25,8 @@ const POP_TICK = 120;
 
 /** The pop: its tick, and its carrier, the smoke tank on the map's road. */
 async function roadPop() {
-  const encounter = await fixture("maps/smoke/encounters/smoke.json");
-  const map = await fixture("maps/smoke/map.json");
+  const encounter = await fixture("maps/smoke-screen/encounters/smoke-screen.json");
+  const map = await fixture("maps/smoke-screen/map.json");
   const road = map.surfaces[0].shape.points[0][1];
   const carrier = encounter.units.findIndex(
     (u) => u.side === "blue" && u.kind === "test_smoke_tank" && u.position[1] === road,
@@ -270,7 +270,7 @@ const spread = (p) => Math.max(...p.slice(0, 3)) - Math.min(...p.slice(0, 3));
 /** The drawn cloud's look, shot by shot: blooming, full, overlapping, over
  *  road, grass and wood, beside the wreck, far off and fading. */
 async function lookTour(ctx, pop) {
-  const encounter = await fixture("maps/smoke/encounters/smoke.json");
+  const encounter = await fixture("maps/smoke-screen/encounters/smoke-screen.json");
   const blue = encounter.units.map((u, id) => ({ ...u, id })).filter((u) => u.side === "blue");
   const grass = blue.find((u) => u.kind === "test_smoke_tank" && u.id !== pop.carrier);
   const squad = blue.find((u) => u.kind === "test_smoke_squad");
@@ -352,11 +352,11 @@ async function lookTour(ctx, pop) {
 async function measureCost(ctx) {
   const settings = await fixture("presentation.json");
   const budget = settings.fog_geometry.rebuild_eyes_per_frame;
-  const encounter = await fixture("maps/smoke/encounters/cost.json");
+  const encounter = await fixture("maps/smoke-screen/encounters/cost.json");
   const pop = encounter.scripts.find((s) => s.order.kind === "pop_smoke").tick;
   const page = await openBattle(ctx, {
     viewport: { width: 1920, height: 1080 },
-    url: new URL("/labs/smoke?cost", ctx.url).href,
+    url: new URL("/labs/smoke-screen?cost", ctx.url).href,
   });
   await page.evaluate(() => setInterval(() => performance.clearMeasures(), 500));
   const batch = (mode) =>

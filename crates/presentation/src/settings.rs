@@ -54,7 +54,8 @@ pub struct PresentationSettings {
     pub effects: EffectPresentation,
     pub weapon_looks: BTreeMap<String, std::sync::Arc<crate::looks::WeaponLook>>,
     /// Smoke screens' looks, by the name a smoke capability gives its cloud.
-    pub smoke_looks: BTreeMap<String, std::sync::Arc<crate::effects::tables::SmokeLook>>,
+    pub smoke_screen_looks:
+        BTreeMap<String, std::sync::Arc<crate::effects::tables::SmokeScreenLook>>,
 }
 
 impl PresentationSettings {
@@ -66,7 +67,7 @@ impl PresentationSettings {
         settings.pose.check()?;
         settings.effects.check()?;
         settings.effects.check_looks(&settings.weapon_looks)?;
-        for (name, look) in &settings.smoke_looks {
+        for (name, look) in &settings.smoke_screen_looks {
             look.check(name)?;
         }
         validate::presentation(&settings)?;

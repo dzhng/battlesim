@@ -11,7 +11,7 @@ A smoke cloud is drawn as a dense white-grey billow (D11) that:
 ## Seam
 
 - **Look rows.** Add `fixtures/presentation.json` rows
-  `smoke_looks.{discharger, grenade}`:
+  `smoke_screen_looks.{discharger, grenade}`:
   - albedo, opacity, puff sizes, swirl rate and height profile;
   - a `sound` slot, used by slice 10.
 

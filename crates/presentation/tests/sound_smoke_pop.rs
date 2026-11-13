@@ -40,7 +40,7 @@ fn sound() -> Sound {
 
 /// The sound a cloud's look pops with.
 fn pop_sound(cloud: &SmokeCloud) -> String {
-    let look = &fixture("presentation.json")["smoke_looks"][&cloud.spec.look];
+    let look = &fixture("presentation.json")["smoke_screen_looks"][&cloud.spec.look];
     look["sound"].as_str().unwrap().into()
 }
 
@@ -240,7 +240,7 @@ fn a_side_always_hears_its_own_units_pop() {
 fn refusal(edit: impl Fn(&mut Value)) -> (String, String) {
     let game = fixture("rules.json");
     let mut presentation = fixture("presentation.json");
-    let looks = presentation["smoke_looks"].as_object_mut().unwrap();
+    let looks = presentation["smoke_screen_looks"].as_object_mut().unwrap();
     let look = looks.keys().next().unwrap().clone();
     edit(&mut looks[&look]);
     let error = presentation::sound::tables::SoundTables::from_parts(
@@ -257,7 +257,7 @@ fn refusal(edit: impl Fn(&mut Value)) -> (String, String) {
 fn a_pop_naming_a_sound_the_library_lacks_is_refused_before_a_battle() {
     let (error, look) = refusal(|row| row["sound"] = json!("no-such-sound"));
     assert!(
-        error.contains(&format!("smoke_looks.{look}.sound")),
+        error.contains(&format!("smoke_screen_looks.{look}.sound")),
         "{error}"
     );
 }

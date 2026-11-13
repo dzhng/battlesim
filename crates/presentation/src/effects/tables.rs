@@ -64,9 +64,9 @@ pub struct EffectPresentation {
     /// Instances every smoke source together may hold; past it each thins alike.
     pub smoke_budget: f64,
     /// The battle's smoke screens' looks, by the name a smoke capability
-    /// gives its cloud (`presentation.smoke_looks`, as fielded).
+    /// gives its cloud (`presentation.smoke_screen_looks`, as fielded).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-    pub smoke_looks: BTreeMap<String, Arc<SmokeLook>>,
+    pub smoke_screen_looks: BTreeMap<String, Arc<SmokeScreenLook>>,
     /// Instances every smoke screen together may hold, apart from
     /// `smoke_budget`; past it each thins alike.
     pub smoke_screen_budget: f64,
@@ -74,12 +74,12 @@ pub struct EffectPresentation {
     pub cast_wrap: f64,
 }
 
-/// How a smoke screen draws (`presentation.smoke_looks.<name>`): a billow
+/// How a smoke screen draws (`presentation.smoke_screen_looks.<name>`): a billow
 /// of `puffs` puffs that swirl round the cloud's centre inside its circle,
 /// below its top.
 #[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
-pub struct SmokeLook {
+pub struct SmokeScreenLook {
     pub albedo: Vec3,
     /// A puff's opacity in the full cloud; it thins as the cloud does.
     pub opacity: f64,
@@ -97,9 +97,9 @@ pub struct SmokeLook {
     pub sound: String,
 }
 
-impl SmokeLook {
+impl SmokeScreenLook {
     pub fn check(&self, name: &str) -> Result<(), String> {
-        let path = format!("presentation.smoke_looks.{name}");
+        let path = format!("presentation.smoke_screen_looks.{name}");
         crate::settings::validate::numbers(self, &path, &[])?;
         let [lo, hi] = self.size_m;
         let [low, high] = self.height;
@@ -429,7 +429,7 @@ impl EffectPresentation {
         ensure(self.smoke_screen_budget > 0.0, || {
             "smoke_screen_budget must be positive".into()
         })?;
-        for (name, look) in &self.smoke_looks {
+        for (name, look) in &self.smoke_screen_looks {
             look.check(name)?;
         }
         for (k, s) in &self.smoke {

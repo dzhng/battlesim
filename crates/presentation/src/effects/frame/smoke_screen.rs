@@ -7,13 +7,13 @@
 //! simulation's cloud stands still (D8), so the drawn one never leaves it.
 //! A side is published only the clouds it sees (D12), so a puff lifts the
 //! fog veil by what it covers, as every effect does; the ground and units
-//! behind it stay veiled. Its look is the `smoke_looks` row its capability
+//! behind it stay veiled. Its look is the `smoke_screen_looks` row its capability
 //! names, and every screen together keeps to `smoke_screen_budget`, apart
 //! from the wrecks' smoke.
 use contract::smoke::{state, SmokeCloud};
 
 use super::*;
-use crate::effects::tables::SmokeLook;
+use crate::effects::tables::SmokeScreenLook;
 
 /// Frames into the dust flipbook a puff may stand at: a full, round puff,
 /// neither the burst it starts as nor the wisps it ends as.
@@ -53,7 +53,7 @@ impl Screens {
         batch: &mut EffectBatch,
     ) {
         let looks: Vec<_> = (self.clouds.iter())
-            .map(|c| p.smoke_looks.get(&c.spec.look))
+            .map(|c| p.smoke_screen_looks.get(&c.spec.look))
             .collect();
         let demand: f64 = looks.iter().flatten().map(|l| f64::from(l.puffs)).sum();
         let keep = (p.smoke_screen_budget / demand.max(1.0)).min(1.0);
@@ -73,7 +73,7 @@ impl Screens {
 /// circle (never past it), and each puff with it.
 fn draw_cloud(
     c: &SmokeCloud,
-    look: &SmokeLook,
+    look: &SmokeScreenLook,
     age: f64,
     tick: u64,
     hz: u32,

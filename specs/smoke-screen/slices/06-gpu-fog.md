@@ -13,7 +13,7 @@ route lets anyone pop smoke and watch it from both sides.
   publication tick. The source is `presentation/side_fog.rs`, the same path
   eyes take. Promote slice 02's prototype into its owning module and delete any
   probe-only scaffolding.
-- **Lab route.** Add a `smoke` lab route in `apps/battle-lab/src/routes/`, with a
+- **Lab route.** Add a `smoke-screen` lab route in `apps/battle-lab/src/routes/`, with a
   fixture registered in `apps/battle-lab/src/fixtures.json` and a small `test`
   map:
   - two `test_smoke_tank`s and a `test_smoke_squad` against an enemy tank and a

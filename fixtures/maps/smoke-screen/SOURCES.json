@@ -11,7 +11,7 @@
   "inputs": [
     {
       "kind": "supplied",
-      "label": "map.json, authored by hand for the smoke lab",
+      "label": "map.json, authored by hand for the smoke screen lab",
       "sha256": "779c6cd49e20d716d7446398d1b1903936629f85738a87da279e76e743b4eaed"
     }
   ]

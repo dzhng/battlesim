@@ -25,7 +25,7 @@ pub struct SmokeCloudSpec {          // authored on the capability (slice 03)
     pub bloom_steps: u8, pub fade_steps: u8,
     pub depth_per_m: f64,            // 0.2 (D1)
     pub concealment: f64,            // 0.1 (D1)
-    pub look: String,                // names a presentation smoke_looks row (07)
+    pub look: String,                // names a presentation smoke_screen_looks row (07)
 }
 pub struct SmokeCloud { pub id: u32, pub centre: [f64; 3], pub popped: Tick, pub spec: SmokeCloudSpec }
 pub struct CloudState { pub phase: u8, pub radius_m: f64, pub depth_per_m: f64, pub concealment: f64 }

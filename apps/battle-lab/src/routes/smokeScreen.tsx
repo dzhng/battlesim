@@ -1,5 +1,5 @@
-// /labs/smoke: smoke screens on the smoke test map's encounter
-// (`fixtures/maps/smoke/encounters/smoke.json`), through the production
+// /labs/smoke-screen: smoke screens on the smoke screen test map's encounter
+// (`fixtures/maps/smoke-screen/encounters/smoke-screen.json`), through the production
 // controls and readouts. Two blue smoke tanks (one on the road, one on the
 // grass beside it) and a smoke squad at the wood's edge face a red tank and AT
 // team, who see the tanks across open ground. Blue's grass tank shells a red
@@ -29,9 +29,9 @@ const SMOKE_CAMERA: Camera3DParams = {
   ...gameCamera.lens,
 };
 
-export default function Smoke() {
+export default function SmokeScreen() {
   const [encounter] = useState(() =>
-    new URLSearchParams(window.location.search).has("cost") ? "cost" : "smoke",
+    new URLSearchParams(window.location.search).has("cost") ? "cost" : "smoke-screen",
   );
   const [side, setSide] = useState<SideName>("blue");
   // Sent now, so a following advance already publishes the new side.
@@ -40,10 +40,10 @@ export default function Smoke() {
     setSide(next);
   };
   return (
-    <SavedEncounter fixture="smoke" encounter={encounter}>
+    <SavedEncounter fixture="smoke-screen" encounter={encounter}>
       {(battle) => (
         <BattleView
-          fixture="smoke"
+          fixture="smoke-screen"
           scenario={battle.scenario}
           seed={SEED}
           side={side}

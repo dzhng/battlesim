@@ -22,7 +22,7 @@ contact, and the hearing cues are unchanged (D16).
     when the generator needs it. Credentials stay inside the CLI.
   - Make at least two takes per clip, then audition them in the sound
     workbench.
-- **Assignment.** The `smoke_looks.<name>.sound` slot (slice 07) names the
+- **Assignment.** The `smoke_screen_looks.<name>.sound` slot (slice 07) names the
   sound. Add the `audio.json` entry, plus every mirror the mix check requires:
   - `sound/tables.rs:253`;
   - the battle sounds list (`:391`);
