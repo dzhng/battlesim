@@ -16,11 +16,18 @@ where the spec was silent go in [`choices.md`](choices.md).
 
 ## Next Agent Prompt
 
-**Status (2026-11-12):** Slice 01 is done: `contract::smoke` holds the cloud
-law and the depth maths. Slices 02 (GPU fog gate) and 03 (sim clouds) are next,
-and can run in parallel.
+**Status (2026-11-12):**
+- **Done:** slices 01–04. Slice 02's kill gate said **KEEP** (see `choices.md`).
+  The sim now has clouds, the pop order, resupply, and smoke in sight,
+  concealment and the fog sweep.
+- **Two pin moves from slice 03, named in `choices.md`:**
+  - the new `test_smoke_*` rows shift test-type indices, which moves
+    `scenario-overrides.json`;
+  - the hard cutover deleted dead `lifetime_s` keys from the frozen
+    `physical-rules.json`, which re-hashes 7 compiled-map records.
 
-**Pickup:** start at [slice 02](slices/02-gpu-fog-gate.md) and [slice 03](slices/03-sim-clouds.md). Before you touch
+**Pickup:** [slice 05](slices/05-publication.md). Its web parity tests must also cover
+slice 03's re-recorded records, whose Wasm halves weren't run. Before you touch
 anything, read:
 - `AGENTS.md`;
 - `development.md`;
@@ -45,9 +52,9 @@ anything, read:
 
 **TODO:**
 - [x] 01: cloud law and depth math ([slice](slices/01-cloud-law.md))
-- [ ] 02: GPU fog kill gate ([slice](slices/02-gpu-fog-gate.md))
-- [ ] 03: capability, order, cloud collection and the cutover, dormant ([slice](slices/03-sim-clouds.md))
-- [ ] 04: sight, concealment, fog sweep and cloud visibility ([slice](slices/04-sim-sight.md))
+- [x] 02: GPU fog kill gate ([slice](slices/02-gpu-fog-gate.md))
+- [x] 03: capability, order, cloud collection and the cutover, dormant ([slice](slices/03-sim-clouds.md))
+- [x] 04: sight, concealment, fog sweep and cloud visibility ([slice](slices/04-sim-sight.md))
 - [ ] 05: observation and publication contract ([slice](slices/05-publication.md))
 - [ ] 06: GPU fog and the smoke lab ([slice](slices/06-gpu-fog.md))
 - [ ] 07: the drawn cloud ([slice](slices/07-drawn-cloud.md))
