@@ -38,8 +38,10 @@ so slices 14–17 may start. Run them one lane at a time while disk is tight.
      background prefetch downloads every runtime file. Judge it against the
      load line;
    - slice 08's sheet at 1280, cut off with no scroll cue;
-   - a jet's "Sight · ground 1 m", which comes from the roster data. Decide
-     how the sheet shows a sense the unit doesn't have.
+   - a jet's "Sight · ground 1 m". The contract requires `ground_m > 0`
+     (`contract/src/catalog.rs` `check` on sensors), so the air-war profile
+     writes 1 m for "blind to the ground". Allowing 0 is a contract change for
+     the user. Until then, the sheet shows the true number.
 
 The lanes worked from
 [`throwaway/armory/LANE-BRIEF.md`](../../throwaway/armory/LANE-BRIEF.md), an
