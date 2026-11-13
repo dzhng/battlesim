@@ -36,6 +36,8 @@ use mobility::air_problem;
 pub use mobility::{Arrival, FlightModel, Mobility, MAX_SPEED_KMH};
 mod sensors;
 pub use sensors::Sensors;
+mod charges;
+pub use charges::{ActiveProtection, FlareCapability};
 
 mod props;
 pub use props::{
@@ -247,14 +249,6 @@ pub struct RadarReceiver {
     pub range_m: f64,
 }
 
-/// Finite flare stores and their reload interval.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct FlareCapability {
-    pub capacity: u32,
-    pub reload_s: f64,
-}
-
 /// The explicit afterburner tradeoff. Both multipliers are authored.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -282,21 +276,6 @@ pub struct AirCapability {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub afterburner: Option<AfterburnerCapability>,
     pub refund: RefundWeights,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ActiveProtection {
-    /// What the card's protection row reads: a concise label
-    /// (`crate::labels`).
-    pub name: String,
-    /// Its generated icon, `assets/icons/weapons/<icon>.svg`.
-    pub icon: String,
-    pub capacity: u32,
-    pub cooldown_s: f64,
-    pub standoff_m: f64,
-    pub service_s: f64,
-    pub stock_per_charge: u32,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
