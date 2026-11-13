@@ -242,7 +242,15 @@ client navigation. Its menu bed attempts playback early; when browser permission
 blocks that attempt, a qualifying input resumes the same context. The bed stays
 through loading and fades only when prepared battle audio updates. Short mechanical actions give menu controls a quiet hover and a stronger activation.
 They share the prepared bank, keep one transient voice and respect the persisted
-sound settings. Source calibration governs both mixes.
+sound settings. Source calibration governs both mixes. A control inside
+`[data-cue-hover="off"]` (a list the pointer sweeps) keeps its click and drops
+its hover.
+
+Show loops are the menu's other voices: a menu page's idle machinery, playing
+beside the bed in the same mixer. The caller names sounds the presentation has
+already resolved, so the page owner never applies replacements. A sound that
+stays across calls keeps its voice; the rest fade. Mute silences them until
+unmute, a bed restart leaves them playing, and they end with the menu screen.
 
 Each [battle observer](src/battleAudio.ts) owns fresh side-visible evidence and
 a disposable mixer. Leaving a battle disconnects every voice and the whole

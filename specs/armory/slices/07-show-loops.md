@@ -1,5 +1,7 @@
 # 07 · Show loops on `AppAudio`, and quiet tiles
 
+Status: done 2026-11-12.
+
 Map row L9, plus P5. No dependencies.
 
 ## Contract

@@ -84,6 +84,11 @@ export class SoundBank {
     admitted.throwIfAborted();
   }
 
+  /** Whether `name` is prepared, so `get` returns it. */
+  prepared(name: string): boolean {
+    return this.buffers.has(name);
+  }
+
   /** A recipe's clip list is a variation pool, never a stack of simultaneous shots. */
   get(name: string, variant = 0): AudioBuffer {
     const choices = this.buffers.get(name);

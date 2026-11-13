@@ -20,6 +20,8 @@ import type { SoundCatalog } from "./catalog";
 const GLIDE_S = 0.06;
 
 interface LiveVoice {
+  /** The caller's voice id; null for a voice line. */
+  id: number | null;
   normalization: number;
   source: AudioBufferSourceNode;
   gain: GainNode;
@@ -181,6 +183,7 @@ export class WebAudioSink implements VoiceSink {
       v.offset ?? (v.loop && id !== null ? ((id * 0.6180339887) % 1) * buffer.duration : 0);
     source.start(v.at, offset);
     const voice: LiveVoice = {
+      id,
       source,
       gain,
       filter,
@@ -249,9 +252,11 @@ export class WebAudioSink implements VoiceSink {
     gain.setTargetAtTime(1 - d, at, Math.max(0.001, glide));
   }
 
-  /** Remove every voice, including sources still fading after a stop. */
-  clear() {
+  /** Remove every voice `which` admits by id (by default all), including
+   *  sources still fading after a stop. */
+  clear(which: (id: number | null) => boolean = () => true) {
     for (const voice of this.sounding) {
+      if (!which(voice.id)) continue;
       try {
         voice.source.stop();
       } catch {

@@ -17,6 +17,19 @@ export const MENU_CUES = {
 } as const;
 export const MENU_FADE_S = 1.2;
 
+/** A loop outside battle (the Armory's idle engine): a sound name already
+ *  resolved by the presentation, at its gain and playback rate. */
+export interface ShowLoop {
+  sound: string;
+  gain: number;
+  rate: number;
+}
+/** Seconds a show loop fades in and out over. */
+const SHOW_FADE_S = 0.5;
+/** Show loops take menu-sink voice ids from here up; the bed and the cue sit below. */
+const SHOW_VOICE_BASE = 16;
+const isShowVoice = (id: number | null) => id !== null && id >= SHOW_VOICE_BASE;
+
 export type AudioScreen = "menu" | "loading" | "other";
 
 interface AudioGraph {
@@ -45,6 +58,11 @@ export class AppAudio {
   private screen: AudioScreen = "other";
   private menuPreparation: MenuPreparation = { status: "unprepared" };
   private menuPlaying = false;
+  /** The show loops asked for; forgotten when the menu screen ends. */
+  private showWanted: readonly ShowLoop[] = [];
+  /** Each sounding show loop's menu-sink voice, by sound. */
+  private readonly showVoices = new Map<string, number>();
+  private nextShowVoice = SHOW_VOICE_BASE;
   private combatStarted = false;
   private readonly embeddedSources = new Set<AudioBufferSourceNode>();
   private contextError: string | null = null;
@@ -70,14 +88,19 @@ export class AppAudio {
       target.matches(":disabled")
     )
       return;
+    if (event.type === "click") {
+      this.playMenuCue("click");
+      return;
+    }
+    // A quiet region (a list the pointer sweeps) keeps its clicks only.
+    if (target.closest('[data-cue-hover="off"]')) return;
     if (
-      event.type === "pointerover" &&
       event instanceof MouseEvent &&
       event.relatedTarget instanceof Node &&
       target.contains(event.relatedTarget)
     )
       return;
-    this.playMenuCue(event.type === "click" ? "click" : "hover");
+    this.playMenuCue("hover");
   };
   private readonly onPageHide = () => this.dispose();
 
@@ -92,6 +115,7 @@ export class AppAudio {
 
   setScreen(screen: AudioScreen) {
     this.screen = screen;
+    if (screen !== "menu") this.showWanted = [];
     if (screen === "menu") {
       this.combatStarted = false;
       this.endScore(0);
@@ -182,6 +206,14 @@ export class AppAudio {
       pan: null,
       loop: false,
     });
+  }
+
+  /** The non-battle loops now playing, beside the menu bed; [] fades them
+   *  all out. A sound that stays keeps its voice and glides to its new gain
+   *  and rate. Leaving the menu screen ends them; mute holds them. */
+  showLoops(loops: readonly ShowLoop[]) {
+    this.showWanted = loops;
+    this.syncShow();
   }
 
   /** A battle's sound; its score shuffles by `seed`, the battle's own, so a
@@ -275,6 +307,11 @@ export class AppAudio {
   }
 
   private syncMenu() {
+    this.syncBed();
+    this.syncShow();
+  }
+
+  private syncBed() {
     const graph = this.graph;
     if (!graph) return;
     const wantsBed =
@@ -282,7 +319,10 @@ export class AppAudio {
       !soundSettings.get().muted &&
       this.menuPreparation.status === "ready" &&
       (this.screen === "menu" || (this.screen === "loading" && !this.combatStarted));
-    if (!wantsBed && (soundSettings.get().muted || this.screen === "other")) graph.menu.clear();
+    if (!wantsBed && (soundSettings.get().muted || this.screen === "other")) {
+      graph.menu.clear();
+      this.showVoices.clear();
+    }
     if (wantsBed === this.menuPlaying) return;
     this.menuPlaying = wantsBed;
     const at = graph.menu.now();
@@ -292,7 +332,7 @@ export class AppAudio {
       return;
     }
     // A quick return during the battle fade replaces it rather than stacking beds.
-    graph.menu.clear();
+    graph.menu.clear((id) => !isShowVoice(id));
     graph.music.stop();
     const bed = this.options.catalog.music.moods.menu[0];
     if (bed) graph.music.play(bed, { fade: 0.5 });
@@ -310,6 +350,53 @@ export class AppAudio {
       pan: null,
       loop: true,
     });
+  }
+
+  /** Start, retune or fade show voices toward the loops asked for, once
+   *  their sounds are prepared. */
+  private syncShow() {
+    const graph = this.graph;
+    if (!graph) return;
+    const wanted = this.closed || soundSettings.get().muted ? [] : this.showWanted;
+    const missing = wanted.map(({ sound }) => sound).filter((s) => !graph.bank.prepared(s));
+    if (missing.length > 0)
+      void graph.bank.prepare(missing).then(
+        () => this.syncShow(),
+        (error: unknown) => {
+          if (this.closed) return;
+          const message = error instanceof Error ? error.message : String(error);
+          console.error("Show sound could not be prepared:", message);
+        },
+      );
+    const ready = new Map(
+      wanted.filter(({ sound }) => graph.bank.prepared(sound)).map((l) => [l.sound, l]),
+    );
+    const at = graph.menu.now();
+    for (const [sound, id] of this.showVoices) {
+      if (ready.has(sound)) continue;
+      graph.menu.stop(id, at, SHOW_FADE_S);
+      this.showVoices.delete(sound);
+    }
+    for (const [sound, { gain, rate }] of ready) {
+      const params = { gain, rate, lowpass: 20000, wet: 0, position: null };
+      const id = this.showVoices.get(sound);
+      if (id !== undefined) {
+        graph.menu.set(id, params, at);
+        continue;
+      }
+      const voice = this.nextShowVoice++;
+      this.showVoices.set(sound, voice);
+      graph.menu.start(voice, {
+        ...params,
+        sound,
+        variant: 0,
+        bus: "units",
+        at,
+        attack: SHOW_FADE_S,
+        pan: null,
+        loop: true,
+      });
+    }
   }
 
   private setVolume() {
