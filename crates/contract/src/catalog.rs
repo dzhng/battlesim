@@ -1310,7 +1310,7 @@ fn check(
         return rule("capabilities.radar_receiver range_m must be positive");
     }
     if let Some(Err(e)) = c.smoke.as_ref().map(SmokeCapability::validate) {
-        return rule(&format!("capabilities.{e}"));
+        return rule(&e);
     }
     ranges(t).map_or(Ok(()), rule)
 }

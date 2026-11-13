@@ -38,6 +38,7 @@ pub struct SmokeCloudSpec {
 }
 
 impl SmokeCloudSpec {
+    /// Whether this can be a cloud; a refusal names the field at fault.
     pub fn validate(&self) -> Result<(), String> {
         let positive = [
             ("radius_m", self.radius_m),
@@ -48,19 +49,19 @@ impl SmokeCloudSpec {
             ("depth_per_m", self.depth_per_m),
         ];
         if let Some((name, _)) = positive.iter().find(|(_, v)| !(v.is_finite() && *v > 0.0)) {
-            return Err(format!("smoke {name} must be positive"));
+            return Err(format!("{name} must be positive"));
         }
         if self.bloom_steps == 0 || self.fade_steps == 0 {
-            return Err("smoke bloom_steps and fade_steps must be at least 1".into());
+            return Err("bloom_steps and fade_steps must be at least 1".into());
         }
         if self.bloom_s + self.fade_s > self.life_s {
-            return Err("smoke bloom_s and fade_s must fit within life_s".into());
+            return Err("bloom_s and fade_s must fit within life_s".into());
         }
         if !(self.concealment >= 0.0 && self.concealment < 1.0) {
-            return Err("smoke concealment must be in [0, 1)".into());
+            return Err("concealment must be in [0, 1)".into());
         }
         if self.look.is_empty() {
-            return Err("smoke look must name a look".into());
+            return Err("look must name a look".into());
         }
         Ok(())
     }

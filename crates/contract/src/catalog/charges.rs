@@ -80,15 +80,15 @@ pub struct SmokeCapability {
 impl SmokeCapability {
     pub fn validate(&self) -> Result<(), String> {
         if self.capacity == 0 {
-            return Err("smoke capacity must be at least 1".into());
+            return Err("capabilities.smoke.capacity must be at least 1".into());
         }
         if !positive(self.service_s) {
-            return Err("smoke service_s must be positive".into());
+            return Err("capabilities.smoke.service_s must be positive".into());
         }
         // A price of 0 would let a truck give smoke away.
         if self.stock_per_charge == 0 {
-            return Err("smoke stock_per_charge must be at least 1".into());
+            return Err("capabilities.smoke.stock_per_charge must be at least 1".into());
         }
-        self.cloud.validate()
+        (self.cloud.validate()).map_err(|e| format!("capabilities.smoke.cloud.{e}"))
     }
 }

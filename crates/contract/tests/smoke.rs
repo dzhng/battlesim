@@ -198,3 +198,28 @@ fn a_spec_refuses_what_cannot_be_a_cloud() {
     s.fade_steps = 0;
     assert!(s.validate().is_err());
 }
+
+/// A smoke capability's refusal names the field at fault by its path in the
+/// unit row, as the flare and protection refusals do.
+#[test]
+fn a_smoke_capabilitys_refusal_names_its_field() {
+    use contract::catalog::SmokeCapability;
+    let capability = || SmokeCapability {
+        capacity: 1,
+        service_s: 2.0,
+        stock_per_charge: 2,
+        cloud: spec(),
+    };
+    assert!(capability().validate().is_ok());
+    let mut c = capability();
+    c.capacity = 0;
+    let error = c.validate().unwrap_err();
+    assert!(error.starts_with("capabilities.smoke.capacity "), "{error}");
+    let mut c = capability();
+    c.cloud.radius_m = 0.0;
+    let error = c.validate().unwrap_err();
+    assert!(
+        error.starts_with("capabilities.smoke.cloud.radius_m "),
+        "{error}"
+    );
+}
