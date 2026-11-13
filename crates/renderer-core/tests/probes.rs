@@ -543,6 +543,133 @@ fn fog_point_probe_rebuilds_the_same_horizons_that_hide_a_wall_and_enforce_reach
     );
 }
 
+/// An up-facing top is seen from an eye in plain sight at every height near
+/// that eye: below it (the face test), level with it, or above it (the roof
+/// rule). The band just under the eye, where the top's probe point already
+/// stands at or above the eye, used to fall between the two and read unseen.
+/// A top hidden behind a wall by more than the roof rule's reach stays
+/// unseen, in the band as above the eye.
+#[test]
+fn an_up_facing_top_just_under_an_eye_in_plain_sight_is_seen() {
+    use presentation::fog::sight::{Eye, FogSight, Geometry, Occluder, Sensors, Shape, SightWorld};
+    use renderer_core::{fog::Fog, probes::FogPoint, Targets};
+    let gpu = support::gpu().unwrap();
+    let pipelines = pipelines::build_builtin(&gpu.device).unwrap();
+    let settings: serde_json::Value =
+        serde_json::from_str(include_str!("../../../fixtures/presentation.json")).unwrap();
+    let geometry: Geometry = serde_json::from_value(settings["fog_geometry"].clone()).unwrap();
+    let probe = geometry.face_probe_m;
+    let reach = geometry.roof_reach_m;
+    let eye_z = 1.6;
+    // A low body 8 m east of the eye whose top sits in the band, and a tall
+    // wall 20 m east with ground more than the roof rule's reach behind it.
+    let low_top = eye_z - 0.5 * probe;
+    let wall_x = 52.0;
+    let behind = wall_x + reach + 10.0;
+    let mut sight = FogSight::new(geometry).unwrap();
+    let side = 2.0 * behind;
+    sight
+        .set_world(
+            SightWorld {
+                nx: 2,
+                ny: 2,
+                spacing: side,
+                playable: [0.0, 0.0, side, side],
+                sensors: Sensors {
+                    fog_target_height_m: 0.0,
+                    foliage_full_block: 1.0,
+                    min_sight_gap_m: 0.0,
+                },
+                map: vec![
+                    Occluder {
+                        x: 40.0,
+                        y: 32.0,
+                        yaw: 0.0,
+                        hx: 2.0,
+                        hy: 2.0,
+                        base: 0.0,
+                        top: low_top,
+                    },
+                    Occluder {
+                        x: wall_x,
+                        y: 32.0,
+                        yaw: 0.0,
+                        hx: 1.0,
+                        hy: 20.0,
+                        base: 0.0,
+                        top: 10.0,
+                    },
+                ],
+                ids: vec![1.0, 2.0],
+                occluding: Default::default(),
+            },
+            vec![],
+        )
+        .unwrap();
+    sight
+        .set_sight(
+            &[Eye {
+                key: "rifleman".into(),
+                position: [32.0, 32.0, eye_z],
+                forward: 0.0,
+                shape: Shape {
+                    front: 1.0,
+                    side: 1.0,
+                    rear: 1.0,
+                },
+                range: behind + 20.0 - 32.0,
+            }],
+            None,
+        )
+        .unwrap();
+    let up = |x: f64, y: f64, z: f64| FogPoint {
+        position: [x as f32, y as f32, z as f32],
+        normal: Some([0.0, 0.0, 1.0]),
+    };
+    let cases = [
+        ("low body's top, in the band", up(40.0, 32.0, low_top), 1),
+        (
+            "top just under the eye",
+            up(36.0, 26.0, eye_z - 0.1 * probe),
+            1,
+        ),
+        (
+            "top just under the band",
+            up(36.0, 26.0, eye_z - 2.0 * probe),
+            1,
+        ),
+        ("top above the eye", up(36.0, 26.0, eye_z + 0.5), 1),
+        (
+            "band top behind the wall",
+            up(behind, 32.0, eye_z - 0.5 * probe),
+            0,
+        ),
+        (
+            "top above the eye behind the wall",
+            up(behind, 32.0, eye_z + 0.5),
+            0,
+        ),
+    ];
+    let points: Vec<_> = cases.iter().map(|(_, p, _)| *p).collect();
+    let targets = Targets::new(&gpu.device, [32, 32]);
+    let mut fog = Fog::new(&gpu.device, &gpu.queue, &pipelines, &targets);
+    let upload = sight.prepare(None, 0, 0, points.len() as u32).unwrap();
+    let seen = pollster::block_on(
+        FogProbes::new(&pipelines)
+            .probe(&gpu.device, &gpu.queue, &mut fog, &upload, &points)
+            .unwrap()
+            .read_u8(&gpu.device),
+    )
+    .unwrap();
+    let wrong: Vec<_> = cases
+        .iter()
+        .zip(&seen)
+        .filter(|((_, _, want), got)| *want != **got)
+        .map(|((name, _, want), got)| format!("{name}: want {want}, read {got}"))
+        .collect();
+    assert!(wrong.is_empty(), "{wrong:?}");
+}
+
 #[test]
 fn grass_probes_decode_actual_tier_buffers_and_snapshot_counts_before_a_later_frame() {
     use presentation::static_world::ground::grass::Window;

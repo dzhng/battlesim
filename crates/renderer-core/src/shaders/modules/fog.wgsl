@@ -119,7 +119,9 @@ fn fogSeenSurface(ei: u32, world: vec3f, normal: vec3f, ground: bool) -> bool {
   if (fogSeenBy(ei, p, n)) { return true; }
   let e = eyes[ei];
   let P = fogParams;
-  if (ground || P.roofReachM <= 0.0 || normal.z < 0.7 || world.z <= e.position.z) {
+  // The roof rule takes every top the face test turned away: one whose probe
+  // point stands level with or above the eye, even if the surface is under it.
+  if (ground || P.roofReachM <= 0.0 || normal.z < 0.7 || p.z < e.position.z) {
     return false;
   }
   let dxy = world.xy - e.position.xy;
