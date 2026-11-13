@@ -415,3 +415,43 @@ fn the_junction_square_keeps_its_town() {
         }
     }
 }
+
+/// Depots refuse no map: every skirmish corpus request the presets admit
+/// without depots, they admit with them. The corpus tests above pass over a
+/// refused request, so a refusal depots caused would otherwise hide there.
+#[test]
+fn the_corpus_refuses_no_more_requests_than_before() {
+    let catalogue =
+        contract::templates::TemplateGeometryCatalog::new(serde_json::from_str(TEMPLATES).unwrap())
+            .unwrap();
+    let mut without: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
+    without["open_country"]["depots"]["per_road_km"] = serde_json::json!(0);
+    let without = without.to_string();
+    let corpus: serde_json::Value =
+        serde_json::from_str(include_str!("../../../fixtures/skirmish-corpus.json")).unwrap();
+    let mut admitted = 0;
+    for row in corpus["rows"].as_array().unwrap() {
+        let Some(map) = row["map"].as_object() else {
+            continue;
+        };
+        let (map_type, seed) = (map["type"].as_str().unwrap(), row["seed"].as_u64().unwrap());
+        let mut request = request(map_type, seed, catalogue.hash());
+        request["size"] = map["size"].clone();
+        let made = |presets: &str| {
+            matches!(
+                mapgen::generate_map(
+                    &request.to_string(),
+                    presets,
+                    TEMPLATES,
+                    include_str!("../../../fixtures/parity/map-layout/physical-rules.json"),
+                ),
+                mapgen::CompileOutcome::Ok { .. }
+            )
+        };
+        if made(&without) {
+            admitted += 1;
+            assert!(made(PRESETS), "depots refuse {map_type} seed {seed}");
+        }
+    }
+    assert!(admitted > 0, "the corpus admits no request");
+}

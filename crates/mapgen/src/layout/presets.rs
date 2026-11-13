@@ -1385,7 +1385,7 @@ impl PresetDefinitions {
             "parcels".into(),
             "parcels need a regional family, a prop type, a street width, positive steps, a nonnegative run-on and a nonnegative least tail",
         );
-        for (field, message) in self.open_country.errors(self.wood_floor_m2()) {
+        for (field, message) in self.open_country.errors(self) {
             check(false, format!("open_country.{field}"), message);
         }
         let family = |family: &String| self.parcels.regional_families.contains(family);

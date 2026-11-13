@@ -49,6 +49,8 @@ const TRACK: &str = "#7a5a2e";
 const STREET: &str = "#4a4a4a";
 const PAVING: &str = "#a9a9a9";
 const YARD: &str = "#c2410c";
+/// A depot's yards: a hue no other layer uses.
+const DEPOT: &str = "#c026d3";
 const BODY: &str = "#57534e";
 const ENTRANCE: &str = "#ffd43b";
 /// Street furniture, by what a reviewer looks for: (label, colour, the prop
@@ -77,10 +79,17 @@ fn furniture(kind: &str) -> usize {
 /// whole map they are below a pixel.
 const DETAIL_VIEW_M: f64 = 2_600.0;
 
+/// The depot a lot is a yard of (`depot-3`), named as a picture crops it.
+pub fn depot_of(lot: &str) -> Option<String> {
+    let prefix = format!("country/{}-", crate::open_country::Pieces::DEPOT);
+    let number = lot.strip_prefix(&prefix)?.split_once('/')?.0;
+    Some(format!("{}-{number}", crate::open_country::Pieces::DEPOT))
+}
+
 /// The part of the map a picture shows, `[min_x, min_y, width, height]`: the
-/// ground about the settlement, district or bridge `crop` names (`bridge-2`
-/// is the plan's third), the rectangle it spells (`x,y,width,height`), or
-/// the whole map.
+/// ground about the settlement, district, bridge or depot `crop` names
+/// (`bridge-2` is the plan's third), the rectangle it spells
+/// (`x,y,width,height`), or the whole map.
 fn view(plan: &MapPlan, crop: Option<&str>) -> Result<[f64; 4], String> {
     let Some(crop) = crop else {
         return Ok([0.0, 0.0, plan.size[0], plan.size[1]]);
@@ -93,6 +102,18 @@ fn view(plan: &MapPlan, crop: Option<&str>) -> Result<[f64; 4], String> {
         let side = 20.0 * bridge.half_extents[0];
         let [x, y] = bridge.center;
         return Ok([x - side / 2.0, y - side / 2.0, side, side]);
+    }
+    let depot: Vec<Point> = plan
+        .lots
+        .iter()
+        .filter(|lot| depot_of(&lot.id).as_deref() == Some(crop))
+        .flat_map(|lot| lot.ring.iter().copied())
+        .collect();
+    if !depot.is_empty() {
+        // Its yards and the road they front.
+        let [x0, y0, x1, y1] = contract::ground::limits(&depot, 0.0);
+        let side = 3.0 * (x1 - x0).max(y1 - y0);
+        return Ok([(x0 + x1 - side) / 2.0, (y0 + y1 - side) / 2.0, side, side]);
     }
     let numbers: Vec<f64> = crop.split(',').filter_map(|v| v.parse().ok()).collect();
     if let [x, y, width, height] = numbers[..] {
@@ -111,7 +132,7 @@ fn view(plan: &MapPlan, crop: Option<&str>) -> Result<[f64; 4], String> {
             Some(&district.ring)
         })
         .ok_or_else(|| {
-            format!("{crop:?} is no settlement, district, bridge or x,y,width,height")
+            format!("{crop:?} is no settlement, district, bridge, depot or x,y,width,height")
         })?;
     let [x0, y0, x1, y1] = contract::ground::limits(ring, 0.0);
     // A square view with a margin, so the neighbours show.
@@ -345,12 +366,34 @@ fn render(
             );
         }
     }
-    // The yards of homes out in the country, at any scale: on a whole map
-    // they are the only sign of a house.
+    // The yards of homes and depots out in the country, at any scale: on a
+    // whole map they are the only sign of either, and a depot is ringed, as a
+    // bridge is, so it can be found.
+    let mut depots: BTreeMap<String, Vec<Point>> = BTreeMap::new();
     for lot in crate::open_country::country_lots(plan) {
+        if let Some(depot) = depot_of(&lot.id) {
+            depots.entry(depot).or_default().extend(&lot.ring);
+        }
+    }
+    for (depot, ring) in depots.iter().filter(|_| !detail) {
+        let [x0, y0, x1, y1] = contract::ground::limits(ring, 0.0);
         let _ = write!(
             out,
-            r##"<path data-layer="parcels" data-rule-group="open_country" data-feature-id="open_country" d="{}" fill="{YARD}" fill-opacity="0.45" stroke="{YARD}" stroke-width="{}"/>"##,
+            r##"<circle data-layer="parcels" data-rule-group="open_country.depots" data-feature-id="{depot}" cx="{}" cy="{}" r="{}" fill="none" stroke="{DEPOT}" stroke-width="{}"/>"##,
+            (x0 + x1) / 2.0 - left,
+            top - (y0 + y1) / 2.0,
+            unit * 0.9,
+            unit * 0.25
+        );
+    }
+    for lot in crate::open_country::country_lots(plan) {
+        let (group, feature, fill) = match depot_of(&lot.id) {
+            Some(depot) => ("open_country.depots", depot, DEPOT),
+            None => ("open_country", "open_country".into(), YARD),
+        };
+        let _ = write!(
+            out,
+            r##"<path data-layer="parcels" data-rule-group="{group}" data-feature-id="{feature}" d="{}" fill="{fill}" fill-opacity="0.45" stroke="{fill}" stroke-width="{}"/>"##,
             path(&lot.ring, true),
             unit * 0.12
         );
@@ -588,6 +631,12 @@ fn render(
         .chain(detail.then_some((PAVING, 1.0, "paving")))
         .chain(water.into_iter().filter(|_| !plan.rivers.is_empty()))
         .chain((!plan.swamps.is_empty()).then_some((SWAMP, 1.0, "swamp")))
+        .chain(
+            plan.lots
+                .iter()
+                .any(|lot| depot_of(&lot.id).is_some())
+                .then_some((DEPOT, 0.45, "depot")),
+        )
     {
         block(&mut out, x, 0.0, fill, opacity);
         label(&mut out, &mut x, 0.0, text, fill);

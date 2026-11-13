@@ -193,6 +193,15 @@ fn inspection(artifact: &Artifact, checked: &Checked, crop: Option<&str>) -> Res
         json!({"id":"open_country","group":"open_country","label":"Country furnishing"}),
         json!({"id":"street_props","group":"street_props","label":"Street furniture"}),
     ];
+    let depots: std::collections::BTreeSet<String> = artifact
+        .plan
+        .lots
+        .iter()
+        .filter_map(|lot| mapgen::inspect::depot_of(&lot.id))
+        .collect();
+    for depot in depots {
+        features.push(json!({"id":depot,"group":"open_country.depots","label":"Depot placement","crop":depot}));
+    }
     for (index, _) in artifact.plan.bridges.iter().enumerate() {
         features.push(json!({"id":format!("bridge-{index}"),"group":"crossings","label":"Bridge crossing rules","crop":format!("bridge-{index}")}));
     }

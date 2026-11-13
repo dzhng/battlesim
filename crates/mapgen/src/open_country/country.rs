@@ -162,7 +162,7 @@ impl<'a> Country<'a> {
                 .iter()
                 .map(|building| building.parts.len() as u32)
                 .sum(),
-            lanes: Vec::new(),
+            surfaces: Vec::new(),
             lots: Vec::new(),
             buildings: Vec::new(),
             forests: Vec::new(),

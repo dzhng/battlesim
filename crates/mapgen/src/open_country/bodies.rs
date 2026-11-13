@@ -3,15 +3,15 @@
 use super::*;
 
 impl<'a> Country<'a> {
-    pub(super) fn body(&mut self, row: &Body, at: Point, yaw: f64, radius: f64) {
+    pub(super) fn body(&mut self, kind: &str, half: [f64; 3], at: Point, yaw: f64, radius: f64) {
         let at = round_cm(at);
         self.props.push(AuthoredPropDefinition {
             id: None,
             geometry: PropDefinition {
-                kind: row.kind.clone(),
+                kind: kind.into(),
                 center: at,
                 yaw: libm::round(yaw * 1e6) / 1e6,
-                half_extents: row.half_extents_m,
+                half_extents: half,
                 base_z: None,
                 wreck_of: None,
             },
@@ -32,7 +32,7 @@ impl<'a> Country<'a> {
             radius: radius + f.gap_m,
             blocks_sight: false,
             road_gap: rules.clear.road_m,
-            own_yard: None,
+            own_from: usize::MAX,
         };
         let heading = rng.range([0.0, TAU]);
         // The cluster is found whole before any of it stands, so its own
@@ -68,7 +68,7 @@ impl<'a> Country<'a> {
             }
         }
         for (at, yaw) in cluster {
-            self.body(row, at, yaw, radius);
+            self.body(&row.kind, row.half_extents_m, at, yaw, radius);
         }
         true
     }

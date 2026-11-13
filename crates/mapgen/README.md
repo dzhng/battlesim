@@ -116,6 +116,14 @@ then proves physical sight interruption after authored bodies and street furnitu
 are final. Callers use the complete library sequence; an internal density pass is
 not an admitted map. Construction density is a heuristic and supplies no witness.
 
+Homesteads and military depots have one owner, the
+[steading](src/open_country/steads.rs): a group of pieces, each in its own yard,
+at a station on a country road or track, placed in the half that holds less of
+its kind. A home group keeps as many homes as find room. A depot is prop bodies
+sized by `street_props.bodies`: one compound on one side of its road, on paved
+yards that may touch. It stands whole or is left out; generation never refuses a
+map for one.
+
 [Coverage](src/open_country/coverage.rs) derives reach from resolved generation
 physics, using actual circular ground observers and native fog sampling. It has no
 independent sight-range knob. Elevated garrisons, aircraft, directional lobes,

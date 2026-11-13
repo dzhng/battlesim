@@ -4,11 +4,12 @@
 //! at every playable location, with most bearings open. Authored-outline
 //! proximity is a construction heuristic, not a physical sight certificate.
 //!
-//! The pass runs on a plan whose districts are built. It adds lanes to
-//! `surfaces`, parcels to `lots`, homes to `buildings`, tree lines, copses
-//! and trees to `forests` (a tree line is a stroke, a single tree a plot one
-//! trunk stands on) and low cover to `props`, then measures the open
-//! approaches again, because a home or a tree ends one.
+//! The pass runs on a plan whose districts are built. It adds lanes and
+//! depots' paved yards to `surfaces`, parcels to `lots`, homes to
+//! `buildings`, tree lines, copses and trees to `forests` (a tree line is a
+//! stroke, a single tree a plot one trunk stands on) and low cover and
+//! depots' bodies to `props`, then measures the open approaches again,
+//! because a home or a tree ends one.
 //!
 //! - **Everything goes through one question** ([`Country::open`]): is this
 //!   much ground clear of the map's edge, the settlements, the woods, every
@@ -117,6 +118,7 @@ struct Tally {
     copses: [f64; 2],
     trees: [f64; 2],
     cover: [f64; 2],
+    depots: [f64; 2],
 }
 
 /// A stretch of country road or track.
@@ -155,10 +157,11 @@ struct Country<'a> {
     /// Copses, trees and tree lines placed, as discs.
     groves: Vec<(Point, f64)>,
     bodies: Vec<(Point, f64)>,
-    steads: Vec<Point>,
+    /// Each group's station, by what its pieces are.
+    steads: Vec<(&'static str, Point)>,
     tally: Tally,
     next_prop: u32,
-    lanes: Vec<SurfaceArea>,
+    surfaces: Vec<SurfaceArea>,
     lots: Vec<LotPlan>,
     buildings: Vec<BuildingPlacement>,
     forests: Vec<Forest>,
@@ -173,8 +176,8 @@ struct Ask {
     /// approach corridors.
     blocks_sight: bool,
     road_gap: f64,
-    /// A yard it may touch: its own.
-    own_yard: Option<usize>,
+    /// The yards it may touch, its own: those from this index on.
+    own_from: usize,
 }
 
 impl<'a> Country<'a> {
@@ -253,8 +256,7 @@ impl<'a> Country<'a> {
                 .iter()
                 .all(|deck| self.charge(1) && beyond(rect_gap(deck, p), road))
             && self.yards.iter().enumerate().all(|(index, yard)| {
-                self.charge(1)
-                    && (ask.own_yard == Some(index) || beyond(rect_gap(yard, p), r + c.yard_m))
+                self.charge(1) && (index >= ask.own_from || beyond(rect_gap(yard, p), r + c.yard_m))
             })
             && self
                 .bodies
@@ -280,7 +282,7 @@ impl<'a> Country<'a> {
             radius,
             blocks_sight: true,
             road_gap: self.rules.clear.road_m,
-            own_yard: None,
+            own_from: usize::MAX,
         }
     }
 
@@ -569,7 +571,9 @@ pub(crate) fn furnish(
         let family = crate::parcels::family(request, presets);
         let (preset, _) = presets.cell(request.map_type, request.size);
         let h = &rules.homesteads;
-        let Pieces::Homes(homes) = &h.steading.pieces;
+        let Pieces::Homes(homes) = &h.steading.pieces else {
+            unreachable!("homesteads are read as homes")
+        };
         let eligible = homes.choices(&fits, preset, family);
         let open_km2 = country.estimated_open_km2();
         let e = rules.fairness;
@@ -593,6 +597,17 @@ pub(crate) fn furnish(
             &mut rng,
             |country| country.tally.homes,
             |country, half, rng| country.stead(half, &h.steading, &eligible, rng),
+        );
+
+        let d = &rules.depots;
+        let mut rng = country.stream("depots");
+        country.spread(
+            libm::round(d.per_road_km * country.road_m / 1000.0),
+            e.depots,
+            d.attempts,
+            &mut rng,
+            |country| country.tally.depots,
+            |country, half, rng| country.stead(half, &d.steading, &[], rng),
         );
 
         let t = rules.tree_lines;
@@ -660,7 +675,7 @@ pub(crate) fn furnish(
             },
         );
         (
-            country.lanes,
+            country.surfaces,
             country.lots,
             country.buildings,
             country.forests,
@@ -668,8 +683,8 @@ pub(crate) fn furnish(
             country.kept,
         )
     };
-    let (lanes, lots, buildings, forests, props, kept) = placed;
-    plan.surfaces.extend(lanes);
+    let (surfaces, lots, buildings, forests, props, kept) = placed;
+    plan.surfaces.extend(surfaces);
     plan.lots.extend(lots);
     plan.buildings.extend(buildings);
     plan.forests.extend(forests);

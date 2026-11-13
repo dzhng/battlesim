@@ -23,6 +23,8 @@ pub struct CountryMetrics {
     pub trees: Split,
     /// Bodies outside every settlement's outline.
     pub cover: Split,
+    /// Depots, each by the middle of its first lot.
+    pub depots: Split,
 }
 
 /// Whether `p` lies in no settlement's outline.
@@ -62,7 +64,7 @@ pub fn measure(plan: &MapPlan, presets: &PresetDefinitions) -> CountryMetrics {
     let middle = plan.size[1] / 2.0;
     let limits = outline_limits(plan);
     let wood_floor = presets.wood_floor_m2();
-    let mut tally = [[0.0; 2]; 5];
+    let mut tally = [[0.0; 2]; 6];
     let mut count = |row: usize, p: Point, amount: f64| {
         tally[row][usize::from(p[1] < middle)] += amount;
     };
@@ -99,6 +101,15 @@ pub fn measure(plan: &MapPlan, presets: &PresetDefinitions) -> CountryMetrics {
             count(4, prop.center, 1.0);
         }
     }
+    let depot = format!("country/{}-", Pieces::DEPOT);
+    let mut depots = std::collections::BTreeSet::new();
+    for lot in &plan.lots {
+        if let Some((number, _)) = lot.id.strip_prefix(&depot).and_then(|n| n.split_once('/')) {
+            if depots.insert(number) {
+                count(5, ring_middle(&lot.ring), 1.0);
+            }
+        }
+    }
     let e = &rules.fairness;
     let split = |row: usize, least: f64| {
         let [top, bottom] = tally[row];
@@ -114,9 +125,17 @@ pub fn measure(plan: &MapPlan, presets: &PresetDefinitions) -> CountryMetrics {
         copses: split(2, e.copses),
         trees: split(3, e.trees),
         cover: split(4, e.cover),
+        depots: split(5, e.depots),
     }
 }
 
 pub(super) fn even(rel: f64, least: f64, top: f64, bottom: f64) -> bool {
     (top - bottom).abs() <= (rel * (top + bottom)).max(least)
+}
+
+/// The middle of a lot's ring: the mean of its corners.
+pub(super) fn ring_middle(ring: &[Point]) -> Point {
+    let n = ring.len() as f64;
+    let sum = ring.iter().fold([0.0, 0.0], |sum, p| add(sum, *p));
+    scale(sum, 1.0 / n)
 }

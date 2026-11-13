@@ -523,3 +523,110 @@ needs-user).
   Its three state digests are unchanged, and the browser's paired test passes.
   The publication-reader parity, the `ConfigMismatch` tests and the replay
   tests pass with no bless, so the state digest is unchanged (S3). *Sound.*
+
+## Slice 17
+
+- **`tweak-mechanics`, in short.** A depot by a country road is a strongpoint
+  for whoever reaches it first: a hangar's walls and the berms give heavy cover
+  and hide what lies behind them. Three things keep it fair and sane. The
+  halves stay even, so each side has as many. Its yards keep off kept approach
+  corridors, as homes do (`yard_fits`), so it never closes the main approach.
+  And its yards keep off the carriageway, so it never blocks the road. Nothing
+  here is a new rule: the rows' bodies (slice 14) decide every effect. *Sound.*
+- **A depot piece is a body of `street_props.bodies`,** the presets' one table
+  of placed boxes, by kind. The depot rows name only kinds (and a count, and a
+  net), never extents. The homes' and field cover's own `half_extents_m`
+  copies predate this and are left alone. Alternative: extents in the prop
+  catalog, which has no box. *Sound.*
+- **A piece is `count` bodies side by side under an optional `net`.** The
+  supply piece is two or three pallet stacks under a `supply_net`, so a net
+  only ever covers supplies (L3) because only that piece names one. Admission
+  refuses a row wider, deeper or taller than its net. Alternative: a net placed
+  by a rule naming supply kinds, which would read a prop's id. *Sound.*
+- **The groups** (delegated): a hangar, a revetment and supplies (weight 2);
+  two tents, a flagpole and supplies (weight 2); HESCO, a tent, a revetment
+  and supplies (weight 1). The hangar group is weighted up because its big
+  yard fails more often; on 39 skirmish depots the three stood 10, 16 and 13
+  times. Yards are 3 m deep front and back and 2 m at the sides, at most
+  0.5 m apart, so the slabs join into one pad. Stations are 1500 m apart, and
+  40% of depots stand at the end of a 90–150 m lane, long enough for a
+  hangar group's row of yards. *Provisional:* the human judges them.
+- **The hangar body is 24 × 16 × 8 m** (Quonset size, in
+  `street_props.bodies`). A 30 × 20 m one rarely found a straight enough
+  stretch of road for its yard. *Provisional:* slice 15's art is fitted to
+  this box.
+- **A depot's yards are paved** (`SurfaceKind::Paving`, the map's hard ground
+  for yards and courts, no way through). The first battle-camera critique read
+  the bare bodies as boxes dropped in a crop field; on a shared slab they read
+  as one compound. Movers cross paving at its own speed factor. *Sound.*
+- **A depot piece that finds no room tries again further along** (up to four
+  tries per piece, moving on by `parcels.lot_step_m × 4`), where a home is
+  tried once. Without it, no hangar group ever stood whole. Homes are
+  unchanged. *Sound.*
+- **`per_road_km` 0.3, tuned on the maps players get** (delegated, a
+  tripwire). The lobby's maps are the skirmish profile (1.8–3.6 km), whose
+  country roads are short: at 0.08 only 1 of 36 skirmish maps held a depot.
+  At 0.3, on seeds 1–3 of each type, Small maps hold 0–1, Medium 1, Large 1–2
+  and XL 0–2. The larger standard-profile maps, which only the developer
+  tools, tests and benchmark use, hold 1–9; `apart_m` 1500 keeps them spread.
+  *Needs-user:* "about one per battle, two on some large maps" is the result;
+  "too many" or "too few" is this one preset value.
+- **A depot is one compound.** A home's yard keeps `clear.yard_m` from every
+  other yard, its own group's included. A depot's pieces' yards may touch each
+  other, and keep that distance only from everything else. `Ask.own_yard`
+  became `own_from`: the yards from that index on are the asker's own. Homes
+  pass the current yard count, so they are unchanged. Without it, almost no
+  depot found room for all its pieces. *Sound.*
+- **A depot stands on one side of its road.** Homes in a group of more than
+  two, or on a lane, pick a side each, and the first battle-camera shot showed
+  a depot copying that: a hangar on one side and its berm and supplies on the
+  other, which reads as things dropped along a road, not a compound. A depot's
+  pieces all take the group's side. *Sound.*
+- **A depot stands whole or is left out:** if any piece finds no room, its
+  lots, yards, bodies and tally are rolled back. A home group keeps as many
+  homes as fit. "3–4 props per depot" is the depot's identity. *Sound.*
+- **Depots are placed after homesteads, on their own stream
+  `country/depots`.** Homes are unchanged, and maps where no depot stands are
+  byte-identical (proved below). Their halves are tallied by the middle of the
+  depot's first lot, which `measure` reads back from the lot ids
+  (`country/depot-<n>/lot-<k>`); `fairness.depots` is 1. *Sound.*
+- **Stations are kept apart per kind,** so a depot's `apart_m` is measured
+  from other depots, not from homesteads. Their yards still keep apart. *Sound.*
+- **The parity proof.** A control run (this code, depots off, the previous
+  presets and frozen rules) reproduced all 17 frozen records byte for byte.
+  Then each request was re-pinned by hand to `layout-presets-21` (the
+  stale-revision record to `-20`) and generated again. Every record kept its
+  exit code. The successful records moved only by depots and what the open
+  country's later passes do round them: lots, props, forests, lanes, one
+  kept approach (metro XL) and the identity hashes. Every successful record
+  now holds one to seven depots. The refusals are byte-identical but for the
+  stale record's message, which names the revisions. Then `BLESS_PARITY=1`.
+  *Sound.*
+- **`open_country/mod.rs` split.** `measure` moved to
+  `open_country/measure.rs`, and the loose bodies (`body`, the field cover)
+  to `open_country/bodies.rs`, each in a commit of its own, to keep `mod.rs`
+  under its ratchet. `presets.rs`
+  passes itself to `open_country.errors`, which shrinks it, so the depot rows
+  can be checked against `street_props.bodies`. *Sound.*
+- **Map tools.** The plan picture draws a depot's yards in fuchsia, a hue
+  no other layer uses, rings each depot on a whole-map view as it rings a
+  bridge (a depot is a few pixels there), and adds a legend entry. Each depot is a workbench feature (`depot-<n>`, rule group
+  `open_country.depots`) with its own crop. The field help maps each key of a
+  flat steading row (homesteads and depots) to the type that documents it;
+  the homesteads' help had pointed at the removed `Homesteads` type. *Sound.*
+- **The lobby's map picture does not show depots.** It draws the compiled
+  map's buildings, roads, woods and water, and no props, so a depot (all
+  props) is absent, as field cover is. The developer plan picture shows them.
+  Drawing big bodies in the lobby would be a player-facing look of its own,
+  and it would move every lobby picture with a court or garage row in it.
+  *Needs-user:* whether a player should see depots on the lobby map.
+- **The distant-impostors receipt is not re-recorded.** Its digest
+  (`specs/distant-impostors/baseline.json`) is the benchmark's Metro XL
+  seed 4 stress battle at tick 90, recorded in the browser on 2026-10-21. A
+  native run of the same recipe (generate the map, `city_scenario` on the test
+  catalog, `Battle::new` with seed 4) gives `d04d85cb8dc310c4` before depots,
+  not the receipt's `60ede87ba60aab0b`. So either the native path differs from
+  the browser's or the receipt was already stale. With depots it gives
+  `93e60b342dbfed4a`. An unproven digest is worse than a stale one.
+  *Needs-user / closeout:* re-record it with the browser benchmark at slice
+  18's full run.

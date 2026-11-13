@@ -17,6 +17,9 @@ pub struct Rules {
     pub clear: Clearances,
     pub fairness: Evenness,
     pub homesteads: Steads,
+    /// Military depots: rarer than homes, a few prop bodies each.
+    #[serde(deserialize_with = "depots")]
+    pub depots: Steads,
     pub tree_lines: TreeLines,
     pub copses: Copses,
     pub lone_trees: LoneTrees,
@@ -68,6 +71,7 @@ pub struct Evenness {
     pub copses: f64,
     pub trees: f64,
     pub cover: f64,
+    pub depots: f64,
 }
 
 /// Groups of pieces outside the settlements, each at a station on a country
@@ -104,6 +108,53 @@ pub struct Steading {
 pub enum Pieces {
     /// A building lot each, furnished with trees and a body.
     Homes(Homes),
+    /// A prop body each (or a row of them), sized by its box in
+    /// `street_props.bodies`.
+    Bodies(Vec<BodyGroup>),
+}
+
+impl Pieces {
+    /// What a group of bodies is called: its lots are `country/depot-<n>/…`.
+    pub const DEPOT: &'static str = "depot";
+
+    /// The name a group's lots are numbered under: `country/<name>-<n>`.
+    pub fn name(&self) -> &'static str {
+        match self {
+            Pieces::Homes(_) => "stead",
+            Pieces::Bodies(_) => Self::DEPOT,
+        }
+    }
+}
+
+/// One kind of group of bodies, by weight: its pieces, placed in order.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BodyGroup {
+    pub weight: f64,
+    pub pieces: Vec<Piece>,
+}
+
+/// A piece of a group: `count` bodies of `kind` side by side in one yard,
+/// with `net` (a body kind) drawn over them when it names one.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Piece {
+    pub kind: String,
+    #[serde(default = "one")]
+    pub count: [u32; 2],
+    #[serde(default)]
+    pub net: Option<String>,
+}
+
+/// Bodies of a row lie this far apart, side by side.
+pub const ROW_GAP_M: f64 = 0.1;
+
+impl Piece {
+    /// The box `count` bodies of half extents `half` fill, side by side.
+    pub fn row(half: [f64; 3], count: u32) -> [f64; 3] {
+        let n = f64::from(count);
+        [n * half[0] + (n - 1.0) * ROW_GAP_M / 2.0, half[1], half[2]]
+    }
 }
 
 /// Homes, each on its own lot.
@@ -136,6 +187,50 @@ struct HomesteadRow {
     body_chance: f64,
     bodies: Vec<Body>,
     attempts: u32,
+}
+
+/// `depots` as the presets write it: one flat row of body groups. A body
+/// has no door, so its yard has no door clearance.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct DepotRow {
+    per_road_km: f64,
+    apart_m: f64,
+    lane_chance: f64,
+    lane_m: [f64; 2],
+    spread_m: f64,
+    yard: DepotYard,
+    groups: Vec<BodyGroup>,
+    attempts: u32,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct DepotYard {
+    front_m: f64,
+    side_m: f64,
+    rear_m: f64,
+}
+
+fn depots<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Steads, D::Error> {
+    let row = DepotRow::deserialize(deserializer)?;
+    Ok(Steads {
+        per_road_km: row.per_road_km,
+        attempts: row.attempts,
+        steading: Steading {
+            apart_m: row.apart_m,
+            lane_chance: row.lane_chance,
+            lane_m: row.lane_m,
+            spread_m: row.spread_m,
+            yard: Yard {
+                front_m: row.yard.front_m,
+                side_m: row.yard.side_m,
+                rear_m: row.yard.rear_m,
+                door_clear_m: 0.0,
+            },
+            pieces: Pieces::Bodies(row.groups),
+        },
+    })
 }
 
 impl From<HomesteadRow> for Steads {
@@ -258,7 +353,11 @@ pub struct FieldCover {
 
 impl Rules {
     /// What the rows cannot describe, as (field, message).
-    pub fn errors(&self, wood_floor_m2: f64) -> Vec<(String, &'static str)> {
+    pub fn errors(
+        &self,
+        presets: &crate::layout::PresetDefinitions,
+    ) -> Vec<(String, &'static str)> {
+        let wood_floor_m2 = presets.wood_floor_m2();
         let mut errors = Vec::new();
         if !self.line_step_m.is_finite() || self.line_step_m <= 0.0 {
             errors.push((
@@ -327,7 +426,7 @@ impl Rules {
         let e = &self.fairness;
         check(
             chance(e.rel)
-                && [e.homes, e.tree_line_m, e.copses, e.trees, e.cover]
+                && [e.homes, e.tree_line_m, e.copses, e.trees, e.cover, e.depots]
                     .iter()
                     .all(|v| length(*v)),
             "fairness",
@@ -335,7 +434,9 @@ impl Rules {
         );
         let h = &self.homesteads;
         let steading = &h.steading;
-        let Pieces::Homes(homes) = &steading.pieces;
+        let Pieces::Homes(homes) = &steading.pieces else {
+            unreachable!("homesteads are read as homes")
+        };
         check(
             length(h.per_road_km)
                 && length(steading.apart_m)
@@ -369,6 +470,48 @@ impl Rules {
                 }),
             "homesteads.groups",
             "a group is one or more homes of known building categories, by positive weight",
+        );
+        let d = &self.depots;
+        let s = &d.steading;
+        let Pieces::Bodies(groups) = &s.pieces else {
+            unreachable!("depots are read as bodies")
+        };
+        check(
+            length(d.per_road_km)
+                && length(s.apart_m)
+                && chance(s.lane_chance)
+                && range(s.lane_m)
+                && length(s.spread_m)
+                && [s.yard.front_m, s.yard.side_m, s.yard.rear_m]
+                    .iter()
+                    .all(|v| length(*v))
+                && d.attempts > 0,
+            "depots",
+            "depots need a density, a lane, a yard and attempts",
+        );
+        let boxes = &presets.street_props.bodies;
+        // A piece is a body the presets size, in a row that fits under its net.
+        let piece = |piece: &Piece| {
+            boxes.get(&piece.kind).is_some_and(|body| {
+                let row = Piece::row(body.half_extents_m, piece.count[1]);
+                piece.count[0] >= 1
+                    && piece.count[0] <= piece.count[1]
+                    && piece.net.as_ref().is_none_or(|net| {
+                        boxes
+                            .get(net)
+                            .is_some_and(|net| (0..3).all(|i| row[i] <= net.half_extents_m[i]))
+                    })
+            })
+        };
+        check(
+            !groups.is_empty()
+                && groups.iter().all(|group| {
+                    positive(group.weight)
+                        && !group.pieces.is_empty()
+                        && group.pieces.iter().all(piece)
+                }),
+            "depots.groups",
+            "a depot group is pieces of sized bodies, each row under its net, by positive weight",
         );
         let t = &self.tree_lines;
         check(

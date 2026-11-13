@@ -1,6 +1,31 @@
 //! Steadings outside the settlements: a group of pieces, each in its own
-//! yard, at a station on a country road or track.
+//! yard, at a station on a country road or track. Homes stand as many of a
+//! group as find room; a group of bodies (a depot) stands whole or not at all.
 use super::*;
+
+/// What a group places: homes of its templates, or bodies in order.
+#[derive(Clone, Copy)]
+enum Group<'g, 'f> {
+    Homes(&'g Homes, &'g Choices<'f>),
+    Bodies(&'g [Piece]),
+}
+
+/// One piece of a group as it will stand: a home of its template, furnished
+/// from its homes' rows, or a row of bodies.
+enum Stand<'g, 'f> {
+    Home(&'f Fit<'f>, &'g Homes),
+    Body(Row<'g>),
+}
+
+/// `count` bodies of `kind` side by side, the net over them if any, and the
+/// box the whole takes.
+struct Row<'g> {
+    kind: &'g str,
+    body: [f64; 3],
+    count: u32,
+    net: Option<(&'g str, [f64; 3])>,
+    half: [f64; 3],
+}
 
 impl<'a> Country<'a> {
     /// One group of `kind`'s pieces at a place on a road in `half`; `fits`
@@ -13,7 +38,7 @@ impl<'a> Country<'a> {
         rng: &mut Stream,
     ) -> bool {
         let presets = self.presets;
-        let Pieces::Homes(homes) = &kind.pieces;
+        let name = kind.pieces.name();
         let Some((road, s)) = self.station(rng) else {
             return false;
         };
@@ -27,24 +52,34 @@ impl<'a> Country<'a> {
             || self
                 .steads
                 .iter()
-                .any(|other| distance(*other, at) < kind.apart_m)
+                .any(|(of, other)| *of == name && distance(*other, at) < kind.apart_m)
         {
             return false;
         }
         let along = scale(sub(ahead, at), 1.0 / distance(at, ahead));
-        let (group, choices) = rng
-            .pick(
-                homes
-                    .groups
-                    .iter()
-                    .zip(fits)
-                    .map(|pair| (pair, pair.0.weight)),
-            )
-            .expect("the open country has homestead groups");
-        if choices.is_empty() {
-            return false;
-        }
-        let count = rng.count(group.homes);
+        let (group, count) = match &kind.pieces {
+            Pieces::Homes(homes) => {
+                let (group, choices) = rng
+                    .pick(
+                        homes
+                            .groups
+                            .iter()
+                            .zip(fits)
+                            .map(|pair| (pair, pair.0.weight)),
+                    )
+                    .expect("the open country has homestead groups");
+                if choices.is_empty() {
+                    return false;
+                }
+                (Group::Homes(homes, choices), rng.count(group.homes))
+            }
+            Pieces::Bodies(groups) => {
+                let group = rng
+                    .pick(groups.iter().map(|group| (group, group.weight)))
+                    .expect("depots have groups");
+                (Group::Bodies(&group.pieces), group.pieces.len() as u32)
+            }
+        };
         let side = if rng.chance(0.5) { 1.0 } else { -1.0 };
         let lane = rng.chance(kind.lane_chance);
         let lane_m = rng.range(kind.lane_m);
@@ -62,7 +97,7 @@ impl<'a> Country<'a> {
                 radius: width / 2.0,
                 blocks_sight: false,
                 road_gap: 0.0,
-                own_yard: None,
+                own_from: usize::MAX,
             };
             let first = half_width + width;
             let steps = libm::ceil((lane_m - first) / width).max(1.0) as usize;
@@ -106,17 +141,40 @@ impl<'a> Country<'a> {
             coverage: 1.0,
             apron_m: 0.0,
         };
-        let stead = self.steads.len();
+        let stead = self.steads.iter().filter(|(of, _)| *of == name).count();
         let lots_before = self.lots.len();
+        let before = (
+            self.yards.len(),
+            self.props.len(),
+            self.bodies.len(),
+            self.tally,
+        );
         let mut cursor = [0.0_f64; 2];
-        for _ in 0..count {
-            // A category by its weight, then one of its templates.
-            let eligible = choices.category(rng);
-            let fit = eligible[rng.below(eligible.len() as u64) as usize];
-            let across = if lane.is_some() || count > 2 {
-                usize::from(rng.chance(0.5))
-            } else {
-                usize::from(side < 0.0)
+        // A home is tried once. A depot's piece that finds no room is tried
+        // again further along, a few times over.
+        let retry = matches!(group, Group::Bodies(_));
+        let tries = if retry { 4 * count } else { count };
+        let mut index = 0;
+        for _ in 0..tries {
+            if index == count as usize {
+                break;
+            }
+            let piece = match group {
+                // A category by its weight, then one of its templates.
+                Group::Homes(homes, choices) => {
+                    let eligible = choices.category(rng);
+                    Stand::Home(eligible[rng.below(eligible.len() as u64) as usize], homes)
+                }
+                Group::Bodies(pieces) => Stand::Body(self.row(&pieces[index], rng)),
+            };
+            if !retry {
+                index += 1;
+            }
+            // A depot is one compound on one side of its road; larger
+            // groups of homes stand either side.
+            let across = match group {
+                Group::Homes(..) if lane.is_some() || count > 2 => usize::from(rng.chance(0.5)),
+                _ => usize::from(side < 0.0),
             };
             let frontage = Frontage {
                 run: &front,
@@ -124,20 +182,39 @@ impl<'a> Country<'a> {
                 offset,
             };
             let gap = rng.range([0.0, kind.spread_m]);
-            let Some(lot) = frontage.lot(cursor[across], fit, &rule) else {
+            let lot = match &piece {
+                Stand::Home(fit, _) => frontage.lot(cursor[across], fit, &rule),
+                Stand::Body(row) => frontage.place(
+                    cursor[across],
+                    2.0 * (row.half[0] + rule.side_m),
+                    rule.front_m + 2.0 * row.half[1] + rule.rear_m,
+                ),
+            };
+            let Some(lot) = lot else {
+                if retry {
+                    cursor[across] += presets.parcels.lot_step_m * 4.0;
+                }
                 continue;
             };
             // A lane is a carriageway its yards keep off, like any other.
             let on_lane = lane.as_ref().is_some_and(|(_, [from, to], half)| {
                 lot.rect.segment_gap(*from, *to) < half - 0.01
             });
-            if on_lane || !self.yard_fits(&lot.rect) {
+            // A depot is one compound: its pieces' yards may touch.
+            let kin = match group {
+                Group::Homes(..) => self.yards.len(),
+                Group::Bodies(_) => before.0,
+            };
+            if on_lane || !self.yard_fits(&lot.rect, kin) {
                 cursor[across] += presets.parcels.lot_step_m * 4.0;
                 continue;
             }
             cursor[across] += 2.0 * lot.rect.half[0] + gap;
+            if retry {
+                index += 1;
+            }
             let id = format!(
-                "country/stead-{stead}/lot-{}",
+                "country/{name}-{stead}/lot-{}",
                 self.lots.len() - lots_before
             );
             self.yards.push(lot.rect);
@@ -145,43 +222,109 @@ impl<'a> Country<'a> {
                 id: id.clone(),
                 ring: lot.rect.corners().map(round_cm).to_vec(),
             });
-            let building = placement(
-                id,
-                &lot,
-                fit,
-                &rule,
-                &presets.parcels.prop_kind,
-                &mut self.next_prop,
-            );
-            self.furnish_yard(&lot, fit, &building.frame, &kind.yard, homes, rng);
-            let [x, y, _] = building.frame.translation;
-            self.tally.homes[self.half([x, y])] += 1.0;
-            self.buildings.push(building);
+            match piece {
+                Stand::Home(fit, homes) => {
+                    let building = placement(
+                        id,
+                        &lot,
+                        fit,
+                        &rule,
+                        &presets.parcels.prop_kind,
+                        &mut self.next_prop,
+                    );
+                    self.furnish_yard(&lot, fit, &building.frame, &kind.yard, homes, rng);
+                    let [x, y, _] = building.frame.translation;
+                    self.tally.homes[self.half([x, y])] += 1.0;
+                    self.buildings.push(building);
+                }
+                Stand::Body(row) => self.stand(&lot, &row, &kind.yard),
+            }
         }
-        if self.lots.len() == lots_before {
+        let stood = self.lots.len() - lots_before;
+        if stood == 0 {
             // No yard found room: a lane would lead nowhere, so none is laid.
             return false;
         }
+        if let Group::Bodies(pieces) = group {
+            if stood < pieces.len() {
+                // A depot without all its pieces is left out.
+                let (yards, props, bodies, tally) = before;
+                self.yards.truncate(yards);
+                self.lots.truncate(lots_before);
+                self.props.truncate(props);
+                self.bodies.truncate(bodies);
+                self.tally = tally;
+                return false;
+            }
+            let middle = ring_middle(&self.lots[lots_before].ring);
+            self.tally.depots[self.half(middle)] += 1.0;
+            // A depot's yards are its hard standing.
+            for lot in &self.lots[lots_before..] {
+                if let Ok(shape) = GroundShape::polygon(lot.ring.clone()) {
+                    self.surfaces.push(SurfaceArea {
+                        kind: SurfaceKind::Paving,
+                        shape,
+                    });
+                }
+            }
+        }
         if let Some((shape, ..)) = lane {
             self.network.add(&shape);
-            self.lanes.push(SurfaceArea {
+            self.surfaces.push(SurfaceArea {
                 kind: SurfaceKind::DirtTrack,
                 shape,
             });
         }
-        self.steads.push(at);
+        self.steads.push((name, at));
         true
     }
 
+    /// `piece` as it will stand: its count drawn, its boxes from the
+    /// presets' bodies (admission proved each kind is there).
+    fn row<'g>(&self, piece: &'g Piece, rng: &mut Stream) -> Row<'g> {
+        let boxes = &self.presets.street_props.bodies;
+        let body = boxes[&piece.kind].half_extents_m;
+        let count = rng.count(piece.count);
+        let net = piece
+            .net
+            .as_deref()
+            .map(|net| (net, boxes[net].half_extents_m));
+        Row {
+            kind: &piece.kind,
+            body,
+            count,
+            net,
+            half: net.map_or(Piece::row(body, count), |(_, half)| half),
+        }
+    }
+
+    /// `row` stood in `lot`: its bodies side by side along the front, set
+    /// back by the yard's front, and its net over them.
+    fn stand(&mut self, lot: &Lot, row: &Row, yard: &Yard) {
+        let middle = lot.point(0.0, yard.front_m + row.half[1]);
+        let yaw = libm::atan2(lot.rect.axis[1], lot.rect.axis[0]);
+        let reach = |half: [f64; 3]| libm::hypot(half[0], half[1]);
+        let first = Piece::row(row.body, row.count)[0] - row.body[0];
+        for index in 0..row.count {
+            let x = f64::from(index) * (2.0 * row.body[0] + ROW_GAP_M) - first;
+            let at = add(middle, scale(lot.rect.axis, x));
+            self.body(row.kind, row.body, at, yaw, reach(row.body));
+        }
+        if let Some((net, half)) = row.net {
+            self.body(net, half, middle, yaw, reach(half));
+        }
+    }
+
     /// A yard may stand here: on open ground at every corner, off every
-    /// carriageway, yard and kept corridor.
-    fn yard_fits(&self, rect: &Rect) -> bool {
+    /// carriageway, yard and kept corridor; the yards from `kin` on are its
+    /// own group's, which it need only not overlap.
+    fn yard_fits(&self, rect: &Rect, kin: usize) -> bool {
         let c = &self.rules.clear;
         let corner = Ask {
             radius: 0.0,
             blocks_sight: false,
             road_gap: 0.0,
-            own_yard: None,
+            own_from: kin,
         };
         let grown = |by: f64| Rect {
             half: [rect.half[0] + by, rect.half[1] + by],
@@ -195,7 +338,8 @@ impl<'a> Country<'a> {
             && !self
                 .yards
                 .iter()
-                .any(|yard| grown(c.yard_m).overlaps(yard, 0.0))
+                .enumerate()
+                .any(|(i, yard)| grown(if i < kin { c.yard_m } else { 0.0 }).overlaps(yard, 0.0))
             && !self
                 .corridors
                 .iter()
@@ -227,7 +371,7 @@ impl<'a> Country<'a> {
             };
             let radius = libm::hypot(plot.half[0], plot.half[1]);
             let ask = Ask {
-                own_yard: Some(own),
+                own_from: own,
                 ..self.trees(radius)
             };
             if self.open(plot.center, ask) && self.apart(plot.center, radius) {
@@ -262,11 +406,11 @@ impl<'a> Country<'a> {
                 radius,
                 blocks_sight: false,
                 road_gap: rules.clear.road_m,
-                own_yard: Some(own),
+                own_from: own,
             };
             let yaw = libm::atan2(lot.inward[1], lot.inward[0]);
             if clear && self.open(at, ask) {
-                self.body(row, at, yaw, radius);
+                self.body(&row.kind, row.half_extents_m, at, yaw, radius);
             }
         }
     }
