@@ -16,18 +16,23 @@ and the map disagree, this README wins. The disagreements are listed in
 
 ## Next Agent Prompt
 
-**Status (2026-11-13):** wave 1 is partly merged into `t3/unit-explorer-armory`.
-- **Merged:** 01, 06, 07 and 09.
-- **Still in their lanes:**
-  - 05 and 13 are written, in `armory-cat`;
-  - 02 and 03 are in progress, in `armory-pres`.
-- **The kill switch did not trip.** The presentation pose driver runs from its
-  own feed frame, with no publication.
+**Status (2026-11-13):** slices 01, 02, 03, 05, 06, 07, 09 and 13 are merged
+into `t3/unit-explorer-armory`. Slice 04 is merged, but its final scene rerun
+and visual gate are still open. The integrated tree is green on the
+cross-lane checks:
+- contract weapons, showground, showcase;
+- sim digest, replay, parity, operator and catalog;
+- typecheck and the focused vitest files.
+
+**The kill switch did not trip.** The pose driver runs from its own feed frame.
 
 **Pickup:**
-1. Merge `armory/cat` (05 and 13) and `armory/pres` (02–04) when they land.
-2. Then start **08** (needs 01, 05, 06) and **10** (needs 04) in parallel.
-3. Then **11**, then **12**.
+1. The `armory-page` lane is running slice 08.
+2. The `armory-yard` lane is finishing slice 04's gate, then slice 10.
+3. Merge each as it lands.
+4. Then **11**: read its "Art per selection" note first, because
+   `ShowcaseStage.show` takes each selection's art.
+5. Then **12**.
 
 The lanes worked from
 [`throwaway/armory/LANE-BRIEF.md`](../../throwaway/armory/LANE-BRIEF.md), an
@@ -54,6 +59,13 @@ the orchestrator merges.
     tables must be reinstalled after `setShowcase`.
 - **10:** yard props go to `ArmoryAppearances` as scenery appearance names,
   through `propsDrawnBy`.
+
+**Raised to the user, not retuned (one owner, the battle's data):**
+- The rotor-blur look reads as "frozen blades over a glass plate".
+- The idle squad reads as combat-ready.
+
+Both are the battle's own looks (`presentation.json`), so changing either is a
+battle-wide decision for the user.
 
 **Known failures found along the way**, each to fix in its own commit:
 - **Four `unit-roster` baselines** (`journey-zoom`, `purchase-ghost`,
@@ -85,13 +97,13 @@ the orchestrator merges.
 **TODO:**
 - [x] [01](slices/01-menu-routes.md) Menu routes: shell above `PageVisit`,
   paths, hard cutover.
-- [ ] [02](slices/02-showground.md) Showground: the squad at rest and its
+- [x] [02](slices/02-showground.md) Showground: the squad at rest and its
   original carriers, exported from the simulation.
-- [ ] [03](slices/03-showcase-entry.md) Showcase entry in the presentation
+- [x] [03](slices/03-showcase-entry.md) Showcase entry in the presentation
   crate, and `idle_loops`. **This is the kill switch.**
 - [ ] [04](slices/04-showcase-lab.md) Showcase lab: `ShowcaseStage` and
   `/labs/showcase`. The spike is verdict-visible here.
-- [ ] [05](slices/05-fires-regardless.md) `fires_regardless` and `reach`
+- [x] [05](slices/05-fires-regardless.md) `fires_regardless` and `reach`
   published, W09 amended.
 - [x] [06](slices/06-unit-groups.md) Nine unit groups in the Reinforcements
   picker and the tutorial.
@@ -105,7 +117,7 @@ the orchestrator merges.
 - [ ] [11](slices/11-armory-stage.md) The Armory stage: composition, loading,
   detection, errors, backdrop.
 - [ ] [12](slices/12-armory-camera.md) The Armory camera.
-- [ ] [13](slices/13-steading-refactor.md) Steading refactor: zero output
+- [x] [13](slices/13-steading-refactor.md) Steading refactor: zero output
   change.
 - [ ] [14](slices/14-military-rows.md) **[L1]** Military prop rows and
   mechanics, on stand-ins.
