@@ -138,7 +138,7 @@ to the contract above: each part moves under the node of what moves it
 family's paint; the script's track runs give way to the shared belt; tiers
 come from `mesh_lods`. Its receipt hashes the script, and `scripted_body.wreck`
 is a worn body's damage. The recipe for a new one is in
-[the Argon pilot](../../../specs/tracked-armour-models/slices/argon-pilot.md).
+[the Argon pilot](../../../specs/done/tracked-armour-models/family-logs.md#the-argon-pilot-t-72b3-and-abrams-sep-v2).
 
 Every vehicle has its own wreck. A roster exporter given `--wreck` writes its
 vehicle's wreck beside the live one (`<appearance>_wreck.glb`, and

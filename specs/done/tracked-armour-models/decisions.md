@@ -3046,7 +3046,7 @@ critique, and the T-14's turret drop (above).
 
 ## Argon pilot decisions (2026-11-12, implementation agent)
 
-The pilot's slice is [`slices/argon-pilot.md`](slices/argon-pilot.md), which
+The pilot's slice is [`slices/argon-pilot.md`](family-logs.md#the-argon-pilot-t-72b3-and-abrams-sep-v2), which
 also holds the recipe for every other unit. Each entry gives the decision, why,
 and a confidence that the user would have made the same call.
 
@@ -3840,3 +3840,35 @@ have made the same call.
   kits.** The kits use their own exporter (`infantry_equipment.py`, per kit
   and look) and are stale on other work's files too; their next export picks
   up R11 and S7.
+
+## Slice 31 decisions (2026-11-13, coordinator)
+
+- **T1 The balance sample (Q9).** `battle_sweep --seeds 10 --seconds 30`:
+  120 battles, all complete, 387 rounds launched. `skirmish_tournament
+  --corpus`: seven of nine rows play and replay to the same digest; the
+  3v3 and 5v5 rows are refused before play by map generation for their
+  pinned seeds ("central objective candidates exhausted", "map generation
+  refused the pinned request"), which is map generation's, not this pass's.
+  The pass after slice 15 is art: it moves no frame, mount or rule, so no
+  shift beyond the frame fixes and the Ajax's machine gun (slice 15's
+  digest record) is possible from it.
+- **T2 Pictures.** The unit roster's journey was re-blessed after its scene
+  stopped throwing at startup (it read the observation before the first
+  one arrived); the tutorial pictures were redrawn, with the tool's
+  opening force sent onto its nearest objective and its economy read from
+  the player's row (both stale since October); the menu's tutorial page
+  re-blessed. The menu reel draws live from its recorded logs, which an
+  art pass doesn't move, so it was not re-filmed.
+- **T3 The review's calls.** Fixed: the BMP receipt, the Trophy wrecks,
+  the whip pair and Trophy nodes as one owner each, dead procedural code
+  and wreck names, the lint's one-variant baseline wipe, the validators'
+  copied helpers, stale docs. Kept, with reasons:
+  - **Rubble on every face (R10).** The review asked that `rubble_m` spread
+    only outward. Applied, 20 wrecks fail on their heaved turrets' tops (up
+    to 0.7 m over the box); the user's note asked for 1 m on the wreck
+    check in general, so R10 stands.
+  - **Three canonical mesh orders** (`mesh_lods`, `wreckage`,
+    `scripted_body`) differ on purpose (the body keeps its quads), and one
+    owner would move every export's bytes for no visible change.
+  - **The infantry kits' tiers** move with R11 and S7 at their next export
+    (S11).

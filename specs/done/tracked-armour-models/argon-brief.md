@@ -2,7 +2,7 @@
 
 The text every lane sends Gemini 4 Argon for round 1: the common part below
 verbatim, then a vehicle part filled in from the frame. It carries the pilot's
-lessons (the recipe in [`slices/argon-pilot.md`](slices/argon-pilot.md)), so
+lessons (the recipe in [the Argon pilot](family-logs.md#the-argon-pilot-t-72b3-and-abrams-sep-v2)), so
 the local edits after round 2 stay few. Round 2 is a numbered list of
 measured fixes (template at the end).
 
