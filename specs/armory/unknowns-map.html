@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Armory: unknowns map</title>
+<style>
+:root{--bg:#070c11;--panel:#0d151c;--line:#1f3442;--text:#e3f1fa;--dim:#8fa9ba;--accent:#73dbff;--good:#8cf29e;--warn:#ffcc66;--bad:#ff7366;--font:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:13px/1.5 var(--font)}
+main{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+h1{font-size:20px;letter-spacing:.06em;margin:0 0 4px}
+h2{font-size:15px;color:var(--accent);letter-spacing:.12em;text-transform:uppercase;margin:36px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px}
+h3{font-size:13px;margin:18px 0 6px;color:var(--text)}
+p,li{color:var(--text)}
+.dim{color:var(--dim)}
+code{color:var(--accent);font-size:12px}
+table{width:100%;border-collapse:collapse;margin:6px 0 14px}
+th,td{border:1px solid var(--line);padding:6px 8px;vertical-align:top;text-align:left}
+th{background:var(--panel);color:var(--dim);font-weight:normal;font-size:11px;text-transform:uppercase;letter-spacing:.1em}
+.who{white-space:nowrap;font-size:11px;padding:1px 6px;border:1px solid}
+.u{color:var(--good);border-color:var(--good)}
+.a{color:var(--warn);border-color:var(--warn)}
+.t{color:var(--accent);border-color:var(--accent)}
+.o{color:var(--bad);border-color:var(--bad)}
+.card{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);padding:10px 12px;margin:8px 0}
+.card.sharp{border-left-color:var(--warn)}
+.card.decided{border-left-color:var(--good)}
+.card b{color:var(--text)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.chips span{display:inline-block;border:1px solid var(--line);padding:1px 7px;margin:2px 3px 2px 0;font-size:11px;color:var(--dim)}
+.chips span.pick{border-color:var(--good);color:var(--good)}
+details{background:var(--panel);border:1px solid var(--line);padding:8px 12px;margin:8px 0}
+summary{cursor:pointer;color:var(--dim)}
+textarea{width:100%;height:330px;background:#03070a;color:var(--text);border:1px solid var(--line);font:12px/1.45 var(--font);padding:10px}
+button{background:#12303d;color:var(--text);border:1px solid var(--accent);padding:6px 12px;font:inherit;cursor:pointer;margin-top:6px}
+.legend{margin:8px 0 0}
+</style>
+</head>
+<body>
+<main>
+<h1>ARMORY: UNKNOWNS MAP</h1>
+<div class="dim">Quadrant walk, 2026-11-12. This is the input to <code>write-spec</code> for <code>specs/armory/</code>. Each decision is written so the spec can use it word for word.</div>
+<div class="legend"><span class="who u">user</span> you decided &nbsp; <span class="who a">agent</span> agent on your behalf (under the delegation below) &nbsp; <span class="who t">territory</span> settled by the code &nbsp; <span class="who o">open</span> deferred</div>
+
+<div class="card sharp" style="border-left-color:var(--bad)"><b>Superseded where the plan differs. Read <a href="README.md" style="color:var(--accent)">README.md</a> first.</b> This map is the historical record of the walk. Its ledger rows are the givens. These parts are superseded:
+<ul>
+<li>Q4's no-regression item (3): replaced by the hard cutover (P1). Old <code>/?type=…</code> addresses open the bare menu, with no redirect.</li>
+<li>Q5's "category picks the spot": replaced by body-based spots (P2).</li>
+<li>L4's lot: depots get their own lot rule (P3).</li>
+<li>The build plan and the implementation prompt at the end: replaced by the README's slice ladder and its Next Agent Prompt.</li>
+<li>The mock now lives in <code>assets/mock/</code>, not <code>throwaway/</code>.</li>
+</ul>
+Every P-decision is in <a href="decisions.md" style="color:var(--accent)">decisions.md</a>.</div>
+<h2>1 · Known knowns</h2>
+<h3>The request</h3>
+<p>A player-facing <b>Armory</b>, opened from a main-menu tile. It covers every playable unit of the three factions, grouped by type. Each unit shows cost, stats and weapons with weapon stats: everything the info card shows, and more. The unit appears in <b>3D</b> with a camera you can orbit and zoom, standing in a field with <b>armory buildings</b> around it, in the style of WARNO and Broken Arrow. It has idle life: engine sound, animation, rotors.</p>
+<h3>What the code already pins down</h3>
+<ul>
+<li><b>Roster:</b> <code>fixtures/catalog.json</code> holds 152 cards. 139 have unit types; the other 13 are planned drones with no type and no runtime art. There are three factions: <code>us</code>, <code>europe</code>, <code>eastern</code>. Seven cards are shared between factions. The browser reads the catalog with no battle running, through <code>web/src/battle/catalog/sets.ts</code>, which needs the game wasm.</li>
+<li><b>Grouping data:</b> <code>roster.category</code> has six values (<code>rec inf veh sup hel air</code>). It is a <b>game rule</b>: it decides who can hold objectives (<code>crates/sim/src/objectives.rs:222</code>) and what the AI buys. There are 9 roles. All 25 jets have role <code>recon</code>.</li>
+<li><b>The info card is thin:</b> name, strength pips, one row per weapon with ammo, and state rows (<code>web/src/battle/present/panelRows.ts</code>, <code>infoPanel.tsx</code>). Armour, speed, sensors, range, penetration and reload are shown nowhere in the game today.</li>
+<li><b>The menu:</b> <code>apps/battle-lab/src/MainMenu.tsx</code>. Pages are React state (<code>PAGES</code>, <code>:145</code>). The backdrop is a live capture battle (<code>MenuBackdrop.tsx</code>). <code>PageVisit</code> remounts on every navigation (<code>navigation.tsx:7</code>).</li>
+<li><b>The renderer:</b> Rust <code>wgpu</code> compiled to wasm, WebGPU only, with one shared device (<code>appResources.ts</code>). Camera primitives live in <code>packages/renderer-core</code> (<code>CameraController</code>).</li>
+<li><b>Aircraft models</b> stand on their modelled gear or skids at z = 0, as validation requires (<code>aircraft_parts.py:15</code>, <code>validate.ts:812</code>). In the sim, rotors always hover and jets never stop (<code>crates/sim/README.md:192</code>).</li>
+<li><b>Squads at rest</b> use a seeded random scatter over a disc sized to the squad (<code>crates/sim/src/arrangement.rs:1-5, 53-63</code>). There is no formation.</li>
+<li><b>Default weapon</b> (<code>default</code> in <code>contract/src/weapons.rs:42</code>) does three jobs. It is the soldier's fallback gun (<code>preferred_mount</code>; vehicles skip this, <code>weapons/tick.rs:18</code>). It is the jet's strafing gun (<code>air/pass.rs:37</code>). Together with unlimited ammo it sets <code>fires_regardless</code>, the cinematic plinking (<code>weapons.rs:286-291</code>). A useful shot counts reserve ammo, not the loaded round (<code>has_rounds</code>, <code>:128</code>), so a launcher is never starved.</li>
+<li><b>Destructible props</b> already exist through <code>destroyed.into</code> chains (<code>garage_row → rubble</code>). Garrisons and building-scaled integrity require a building template (<code>contract/src/catalog/props.rs:170</code>).</li>
+<li><b>Open-country homesteads</b> (<code>open_country/mod.rs:457</code> <code>stead</code>) place groups of yards at road stations. The halves are even by construction (<code>:31</code>). The pass places prop bodies with the catalog available.</li>
+<li><b>The native client</b> is a replay shell with no menu (<code>native/client/README.md:1-5</code>). The Armory is browser-only.</li>
+</ul>
+
+<h2>2 · Known unknowns → decision ledger</h2>
+<table>
+<tr><th>#</th><th>Decision</th><th>Why</th><th>Closed by</th></tr>
+<tr><td>Q1′</td><td><b>A static stage with no simulation running.</b> The yard, the buildings and one unit are loaded straight into a <code>BrowserScene</code>. All idle life comes from the <b>presentation crate</b>, through a new showcase entry point beside <code>presentation/lab.rs</code>. That covers the pose driver's idle feel (per-soldier tempo, phase, facing, the occasional watcher), rotor speed and blur (extended to a grounded, idling helicopter), faction looks (<code>fielded.rs</code>) and operator kits. The squad scatter calls the sim's <code>arrange</code> over a flat ground geometry exported through game-wasm. Nothing is reimplemented in TypeScript. <b>Slice 1 is a spike proving the entry point.</b></td><td>Simplest stage; lets aircraft park; one owner for idle life. The original basis (reuse existing TS pieces) was wrong. See landmine card M1.</td><td><span class="who a">agent</span> (Q1 delegated; corrected after the sweep)</td></tr>
+<tr><td>Q2</td><td><b>A new military set</b> (hangar or Quonset hut, revetments, HESCO, tents, flagpole, nets over supplies) builds the Armory yard, and <b>military depots</b> appear in generated maps. They are uncommon: a few on a large map.</td><td>Authentic, and the art pays off twice.</td><td><span class="who u">user</span></td></tr>
+<tr><td>Q3</td><td><b>One spec</b> covers the Armory, the military set with physical properties, and depots in map generation. Closeout includes the full balance report and the preset revision bump.</td><td>You chose to ship them together.</td><td><span class="who u">user</span></td></tr>
+<tr><td>Q4</td><td><b>Every menu page becomes a path:</b> <code>/skirmish</code>, <code>/tutorial</code>, <code>/settings</code>, <code>/developer</code>, <code>/armory</code>, plus <code>/armory?unit=&lt;card id&gt;</code>. The menu shell (backdrop, music, warm-up, loading cover, <code>revealed</code>) renders above <code>PageVisit</code>; each page is a visit inside it. Six no-regression items are tested first: (1) the backdrop never restarts or re-covers between menu pages; (2) Back and Escape return to the menu and focus the tile you left; (3) old <code>/?type=…</code> addresses open Skirmish, redirected to <code>/skirmish?…</code>, and <code>menuHref</code> emits the new form; (4) unknown paths still show the menu; (5) every menu path is "menu" for music and warm-up; (6) menu screenshots change only by the new tile.</td><td>Consistency, browser Back, refresh and links. You said: if routes are better, refactor every page.</td><td><span class="who a">agent</span> (per your conditional instruction)</td></tr>
+<tr><td>Q5</td><td><b>One yard with a spot per type:</b> aircraft on the apron in front of the hangar, vehicles in a motor-pool revetment, infantry by the tents and sandbags. One presentation document with named spots; the unit's category picks the spot.</td><td>Each unit gets a setting of its own scale; one scene to load.</td><td><span class="who u">user</span></td></tr>
+<tr><td>Q6</td><td><b>Everything sits on the ground.</b> Jets park on their gear. Helicopters sit on wheels or skids with rotors turning and blurred. Every unit runs its engine idle.</td><td>The classic hangar-line shot, with no new art.</td><td><span class="who u">user</span></td></tr>
+<tr><td>D1</td><td><b>The whole squad stands in the game's own scatter</b> (<code>spread</code> + <code>arrange</code>), not in a line. Each soldier wears his faction look and plays idle with the driver's per-soldier feel. Operators carry their weapon's <b>carried</b> kit, so a Javelin gunner shows his launcher.</td><td>Your correction matches the game exactly.</td><td><span class="who u">user</span></td></tr>
+<tr><td>D2</td><td><b>Weapons are grouped by mount</b> ("Main Gun", "Chain Gun"), as <code>equipmentName</code> does, with ammunition kinds underneath. Each kind carries full stats and its one-line description. No new names are invented.</td><td>Consistent with the battle card; simplest.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>Q7 → L3</td><td><b>Nets are cosmetic and drape only over stacked supplies and containers</b>, never over a space where units stand. A net body is <code>blocks.infantry: false</code>, has no <code>cover_tier</code>, and is <code>occludes: false</code>.</td><td>The presentation rule "nonphysical dressing must not look like concealment the simulation lacks" (<code>packages/scene-assets/README.md:62</code>).</td><td><span class="who u">user</span></td></tr>
+<tr><td>U1</td><td><b>Layout A, the side list:</b> faction tabs and group tabs over a tile grid on the left, the 3D yard filling the screen behind it, and the full sheet on the right.</td><td>Picked from the mock.</td><td><span class="who u">user</span></td></tr>
+<tr><td>U2</td><td><b>Squads show HP per man and a separate Men count.</b> If soldiers ever differ, show the range. (Today every soldier has 100 HP.)</td><td>Men decide which carriers (3/8/16 seats) and buildings a squad fits.</td><td><span class="who u">user</span></td></tr>
+<tr><td>U3–U6</td><td><b>Strictly player-facing</b>, with no internal-fields switch. <b>Reached only from the main menu.</b> <b>No compare mode.</b> <b>Done means "looks like a shipped game's armory"</b>, so screenshot critique, tile key art and polish are part of done.</td><td>Your answers.</td><td><span class="who u">user</span></td></tr>
+<tr><td>U7</td><td><b>An icon marks a weapon that fires regardless</b> (default plus unlimited ammo); its tooltip reads "fires at anything it sees, even what it can't hurt". Ammo shows as a count or ∞. Reach is shown per height band (ground, low air, high air) with ranges. A class restriction appears only when it narrows a band (Javelin: vehicles only). Raw class lists are never shown.</td><td>A finite default gun (autocannon, 240 rounds) does not plink, so the icon must not claim it does.</td><td><span class="who u">user</span></td></tr>
+<tr><td>U8</td><td><b>One owner for the predicate:</b> <code>fires_regardless</code> moves from a private sim fn to a <code>WeaponDefinition</code> method in the contract crate. The sim calls it, and the resolved catalog's weapon rows publish it.</td><td>Otherwise the TS copy <code>default &amp;&amp; unlimited</code> would be a second owner.</td><td><span class="who a">agent</span> (accepted in your "ok")</td></tr>
+<tr><td>U9</td><td><b>Nine groups</b> (REC, INF, MBT, IFV·APC, ARTY, AA, LOG, HELI, JETS) in the Armory <b>and the Reinforcements picker</b>. <b>Faction tabs</b>; shared units appear under each faction they belong to. <b>Numbers and bars</b>, with bars scaled to the best in the roster (squads against squads). <b>One tile per family</b>, with variant chips on the sheet.</td><td>Your "ok"; the grouping matches your request.</td><td><span class="who u">user</span></td></tr>
+<tr><td>W09</td><td><b>W09's wording is stale.</b> Amend its rationale (<code>specs/done/battle-foundation/requirements.md:259</code>) to the current behaviour: a default gun with unlimited ammo fires regardless, and some units have none. The data stands (26 units have a finite default only, 24 have no default). Docs only.</td><td>The data looks deliberate.</td><td><span class="who u">user</span></td></tr>
+<tr><td>W09b</td><td><b>Split <code>default</code>'s three jobs</b> into the properties each actually reads. Placeholder: <code>specs/default-weapon-cleanup/README.md</code>, with scenarios S1–S7 and digests unchanged.</td><td>Unblocks when you give the go for a rules-cleanup pass, after U8 lands.</td><td><span class="who o">open</span></td></tr>
+<tr><td>L1</td><td><b>Code slices start now:</b> menu routes, the Armory on existing art, the showcase spike, the 9 groups, U8, W09. <b>Hold every bake and catalog change</b> (the military set, <code>fixtures/props</code>, <code>assets/catalog.json</code>, runtime) until <code>tracked-armour-models</code> closes. Its coordinator owns those files (<code>parallel.md:15</code>).</td><td>Avoids colliding with a running spec.</td><td><span class="who u">user</span></td></tr>
+<tr><td>L2</td><td><b>Every depot piece is a prop, the hangar included.</b> Big, immovable, blocks movers and rounds, gives cover at its edges, the same in every region, and not garrisonable. <b>The hangar is destructible</b>, through the existing <code>destroyed.into</code> chain, into a low ruined-hangar prop (twisted frame over rubble) that still gives low cover, like <code>garage_row → rubble</code>.</td><td>A building template would need 3 regional designs, a category, fighting bays, and a library hash move on every map. A prop needs none of that. Destruction comes free.</td><td><span class="who u">user</span> + <span class="who t">territory</span></td></tr>
+<tr><td>L4</td><td><b>Depots are a new open-country kind using the homestead logic</b> (<code>stead</code>): a group of 3–4 pieces in a yard at a station on a country road, with its own named stream. The halves are even by construction (the half holding less gets the next one) until the map holds its share. The share is preset data scaled by map size: rare, a few on large maps. A depot that doesn't fit is left out, never refused.</td><td>Your instruction: reuse the small-group logic, consistent and simple. Open country also already places prop bodies with the catalog available.</td><td><span class="who u">user</span> + <span class="who t">territory</span></td></tr>
+<tr><td>L5</td><td><b>Armory failures stay on the Armory.</b> A bad unit, a missing bundle or a load error shows an error on the stage, never through <code>appResources.refuse</code> or <code>AppResourceBoundary</code>.</td><td>Today any viewport error replaces the whole app, menu included.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>L6</td><td><b>The Armory owns its appearance library</b>, holding the yard and the current unit only. Switching drops the previous unit, and stale downloads are abandoned (they don't install).</td><td>The shared library only grows (about 2.1 GiB decoded for all units) and thrashes when its selection changes.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>L7</td><td><b>Its own orbit camera</b> on <code>CameraController</code> with an Armory config. Left-drag orbits, the wheel zooms within the unit's bounds, there is no edge pan and no WASD, pitch goes below the battle floor, and the camera clears the unit's hull and the yard. It does not use <code>LabViewport</code>.</td><td><code>LabViewport</code> takes window input, edge-pans, and needs a middle button.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>L8</td><td><b>Loading and detection:</b> the stage reports the shell's <code>renderer</code> loading stage. If first-launch detection hasn't finished, <code>/armory</code> holds the backdrop and the cover until it does. Opening the Armory mid-detection waits; it never aborts the measurement.</td><td>Otherwise the cover hangs, or detection silently saves LOW.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>L9</td><td><b>Engine sound goes through <code>AppAudio</code></b> with a new non-battle loop API on its own voices. One context, the existing unlock, mute and volume. The menu bed keeps playing underneath. The battle's sound replacements and gains apply (recorded rotor, recorded tracks). Squads have no engine. Unit tiles click on select but don't clack on hover.</td><td>The battle path (<code>createBattle</code>) ends the menu music and starts combat music.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>L10</td><td><b>Planned drones show greyed</b>, with a silhouette and a "planned" sheet in place of the 3D model.</td><td>They have no type and no runtime art, and loading one throws.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>L11</td><td><b>Shared cards wear the open faction tab's look</b>, resolved the way the battle resolves it. A rifle squad under U.S. wears the base look, because none exists for U.S.</td><td>Consistency with the battle.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>L12</td><td><b>The 9 groups are category-first and presentation only</b> (in <code>purchaseFilter.ts</code>). INF keeps its AT and MANPADS teams; AA is <code>sup</code> plus air defence only. Cards with no type fall into their category's first group, and labels come from a table. Update the tutorial prose and shots, the picker tests and the baselines, and check that 9 tabs plus search fit at 1280.</td><td><code>Category</code> stays the game rule; derived groups must not leak into rules.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>L13</td><td><b>Tiles stay <code>&lt;button data-page&gt;</code></b> that navigate. Back and Escape go back in history when the page was entered from the menu, otherwise they replace with <code>/</code>. The Armory keeps the selected unit in its own state and mirrors it with the raw <code>replaceState</code> pattern (<code>routes/airWar.tsx:249</code>), so a pick never remounts the page. Rename <code>assets/runtime/tutorial/</code> so <code>/tutorial</code> is a route only.</td><td>Avoids remount and history traps and the clash with the static directory.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>L14</td><td><b>The yard is a presentation document, not a saved map.</b> The sim never admits it, so the test/capture map kinds and template-family rules don't apply.</td><td>Static stage (Q1′).</td><td><span class="who a">agent</span></td></tr>
+</table>
+<h3>Delegation</h3>
+<p><b>Confirmed preferences:</b> (1) structure and architecture are the agent's, guided by consistency and simplicity; (2) if a better architecture exists, move the whole system to it with no regressions; (3) the complete, authentic version over the cheap, staged one; (4) work should pay off across the game; (5) the cinematic war-film look wins.<br>
+<b>Scope:</b> non-visual questions only. Game rules always go back to you. This walk only; it doesn't authorize implementation.</p>
+
+<h2>3 · Unknown knowns → what was extracted</h2>
+<div class="grid2">
+<div class="card decided"><b>Taste:</b> WARNO and Broken Arrow. The unit stands in a lived-in military yard, not on a void or a turntable. The bar is a shipped game's armory.</div>
+<div class="card decided"><b>Consistency is the rule:</b> a better pattern is adopted everywhere (all menu pages become routes; the picker shares the 9 groups), never as a one-off.</div>
+<div class="card decided"><b>Squads:</b> the number of men is a first-class stat because it decides carriers and buildings. Squads stand the way the game scatters them, not in parade lines.</div>
+<div class="card decided"><b>Weapons:</b> plinking is intentional and cinematic. What a player needs is "fires at anything" and reach per band, not engine class lists.</div>
+<div class="card decided"><b>Consumers:</b> players only. Browser only. Reached from the main menu only. No compare mode.</div>
+<div class="card decided"><b>Reshaped earlier decisions:</b> D1 (scatter, not a line), Q1′ (presentation owns idle life), Q7 → L3 (nets over supplies), U7 (the icon marks "fires regardless", not <code>default</code>).</div>
+</div>
+
+<h2>4 · Unknown unknowns → landmine cards</h2>
+<p class="dim">The sweep covered the menu, routing and picker (25 findings), the 3D stage and assets (14), and map generation and props (14). Decided cards are listed in the ledger (L1–L14, Q1′). Sharp edges follow.</p>
+<div class="card decided"><b>M1 · Idle life is private to presentation.</b> Rotor blur is drawn only for airborne battle aircraft (<code>units/drawn.rs:205</code>); lab models with blur draw no rotor at all. Soldier idle feel is private to the driver (<code>driver.rs:147-160, 663</code>). <code>arrange</code> needs a <code>WorldGeometry</code>. → decided as Q1′.</div>
+<div class="card decided"><b>M2 · One failure bricks the app.</b> <code>AppResourceBoundary.tsx:25</code>, <code>appResources.ts:22-28</code>. → L5.</div>
+<div class="card decided"><b>M3 · First visit to /armory hangs on the cover; detection breaks.</b> <code>LabLoading.tsx:55</code>, <code>MainMenu.tsx:208-219</code>, <code>graphicsDetection.ts:177-200</code>. → L8.</div>
+<div class="card decided"><b>M4 · Battle audio kills the menu bed.</b> <code>appAudio.ts:189-211, 285</code>. → L9.</div>
+<div class="card decided"><b>M5 · The appearance library grows and thrashes.</b> <code>loader.ts:213-253</code>, <code>gameAppearances.ts:156</code>. Faction looks fall back silently (<code>appearanceCatalog.ts:135</code>). → L6, L11.</div>
+<div class="card decided"><b>M6 · Category is a rule.</b> <code>objectives.rs:222</code>, <code>skirmish_ai/purchase.rs:58</code>. → L12.</div>
+<div class="card decided"><b>M7 · The hangar as a building hits six contracts.</b> Regional family, fixed categories, industry scale test, fighting bays, no stand-in, library hash. → L2.</div>
+<div class="card decided"><b>M8 · Nets read as concealment.</b> <code>scene-assets/README.md:62</code>; <code>cover.rs:8</code>, <code>rays.rs:151</code> for safe body fields. → L3.</div>
+<div class="card sharp"><b>S1 · Parity re-pin trap.</b> A blind <code>BLESS_PARITY=1</code> records all 17 frozen requests as refusals and passes (<code>mapgen/tests/layout_cli.rs:109</code>). Re-pin every request by hand first, as in <code>33003a6bd</code>, then <code>9a50e0f9d</code>.</div>
+<div class="card sharp"><b>S2 · The frozen physical rules need the new prop rows by hand.</b> <code>fixtures/parity/map-layout/physical-rules.json</code> is hand-edited and never regenerated. Some skirmish tests swallow refusals (<code>mapgen/tests/skirmish.rs:216, 366</code>). Precedent: <code>342711dd2</code>.</div>
+<div class="card sharp"><b>S3 · Prop ids renumber <code>PropKind</code></b> in the publication (<code>props.rs:214</code>). Expect the native counts test, the replay <code>config_digest</code>, and the street lab's pinned digest (<code>_appJourney.mjs:366</code>) to move.</div>
+<div class="card sharp"><b>S4 · Swamps needed three fixes after landing</b> (<code>64756a760</code>, <code>6aacc0e55</code>, <code>6658d1850</code>): approaches running through them, vertex-only clearance, overlaps with roads and woods. Depots get those checks from day one. The keep-out list is <code>swamps.rs:145-162</code>.</div>
+<div class="card sharp"><b>S5 · Download headroom.</b> The every-unit load is 751 MiB against the 768 MiB tripwire (<code>schema.ts:774</code>), and tracked-armour adds about 3 MiB × 33. Non-regional scenery loads with every map. It's a loose tripwire, not a target, but the two specs share it.</div>
+<div class="card sharp"><b>S6 · The distant-impostors baseline</b> (Metro XL seed 4, pinned digest) regenerates once depots land on large maps.</div>
+<div class="card sharp"><b>S7 · Every unit switch re-prepares geometry and textures</b> (<code>renderer-core/src/models/admission.rs</code>, <code>modelAssets.ts:58</code>). Measure switch time once.</div>
+<div class="card sharp"><b>S8 · Tests that hard-code the menu and picker:</b> <code>web/tests/router.test.ts</code>, <code>navigation.test.tsx:109</code>, <code>navigationBrowser.test.ts:52</code>, <code>battleVisit.test.tsx:68</code>, <code>web/scenes/ui.mjs:109,135,380-431</code>, <code>unit-roster.mjs</code>, <code>_appJourney.mjs:185</code>, <code>tutorial-shots.mjs</code>, <code>purchasePicker.test.tsx</code>. The uiCoverage gate (<code>uiCoverage.test.ts:12-29</code>) must actually pin the Armory.</div>
+<div class="card sharp"><b>S9 · Without LFS,</b> every bundle fetch errors with a pointer message (<code>gzip.ts:97</code>). Run <code>git lfs pull</code> for the runtime before the full run.</div>
+
+<h3>Confirm before coding</h3>
+<ol>
+<li>The showcase entry point in the presentation crate works without a sim publication (slice 1 spike). If it doesn't, escalate; don't fall back to TypeScript copies.</li>
+<li>The rest pose of every parked aircraft model has no store or pod touching the ground. The validator only checks the lowest point, and the meshes are LFS.</li>
+<li>The battle's sound replacements (<code>audio.json:350-358</code>) are reachable from the new <code>AppAudio</code> loop path.</li>
+<li>Nine picker tabs plus the 120 px search fit at 1280 px under the containment check.</li>
+<li>Homestead lot sizes (<code>presets open_country.homesteads</code>) can hold a hangar footprint, or the depot needs its own lot rule.</li>
+<li>Check the status of <code>tracked-armour-models</code> before the first bake slice.</li>
+</ol>
+
+<h2>Build plan (tweakable): SUPERSEDED by README.md</h2>
+<p class="dim">Sorted by how likely you are to tweak it. The judgment calls come first; the mechanical work is collapsed at the bottom.</p>
+<div class="card"><b>Order of the code slices.</b> <span class="chips"><span class="pick">routes refactor first, alone</span><span>Armory first, routes after</span></span></div>
+<div class="card"><b>Yard before the military set lands</b> (L1 holds bakes). <span class="chips"><span class="pick">placeholder yard from existing props (sandbags, jersey barriers, crates, site cabin, Heras), swapped by data later</span><span>bare ground until the set lands</span></span></div>
+<div class="card"><b>Showcase spike scope.</b> <span class="chips"><span class="pick">one tank, one helicopter, one squad end-to-end</span><span>all unit kinds at once</span></span></div>
+<div class="card"><b>Hangar ruin.</b> <span class="chips"><span class="pick">twisted frame over rubble (low cover)</span><span>plain rubble like garage_row</span></span></div>
+<details><summary>Mechanical slices: "I trust you on that part"</summary>
+<ol>
+<li><b>Menu routes</b> (Q4, L13): no-regression tests first, then the shell above <code>PageVisit</code>, the paths, the <code>menuHref</code> redirect, the tutorial media rename, and history tests rewritten.</li>
+<li><b>Showcase spike</b> (Q1′): the presentation entry point, <code>arrange</code> exported, a grounded rotor blur.</li>
+<li><b>U8 and W09:</b> <code>fires_regardless</code> into the contract, published on catalog rows (catalog re-blessed), and W09 wording amended. Digests unchanged.</li>
+<li><b>Armory page</b> (U1–U7, U9, D2, L10, L11): layout A, the sheet, the 9 groups, faction tabs, family tiles, the weapon icon and bands, menu tile and key art.</li>
+<li><b>3D stage</b> (Q5, Q6, D1, L5–L9): own library, orbit camera, spots, placeholder yard, audio loops, error isolation, loading and detection.</li>
+<li><b>Picker 9 groups</b> (U9, L12), with tutorial shots and baselines.</li>
+<li><i>After tracked-armour-models closes:</i> <b>the military set</b> (Q2, L2, L3): art through the procedural pipeline, physical rows, destruction chains, bake, and the yard swapped to it.</li>
+<li><b>Depots in open country</b> (L4): homestead-kind stream, presets share, preset bump, parity re-pins (S1), frozen rules rows (S2), digest moves named (S3, S6).</li>
+<li><b>Closeout:</b> full run with LFS, balance report, screenshot critique and comparison, shots for you.</li>
+</ol></details>
+
+<h2>Implementation prompt: SUPERSEDED, already run</h2>
+<textarea id="prompt" readonly>Use write-spec to create specs/armory/ from specs/armory/unknowns-map.html. Every row in its decision ledger (Q1′–L14) is a given; carry each one word for word, and don't reopen anything marked user or agent. W09b stays out of scope (specs/default-weapon-cleanup/).
+
+Slice it as in the map's build plan, in that order:
+- the menu routes refactor alone, first, with its six no-regression tests written before the change;
+- the showcase spike in the presentation crate as the riskiest early slice;
+- U8 and W09;
+- the Armory page;
+- the 3D stage on a placeholder yard of existing props;
+- the picker's 9 groups;
+- then, held until tracked-armour-models closes (L1): the military set (props only, destructible hangar) and depots as an open-country homestead kind.
+
+Each slice gets a browser-playable checkpoint and a screenshot gate (screenshot-critique, compare-screenshots, preview-shots). Use game-ui before any player-facing work and renderer before the stage work. Use tweak-mechanics before the depot and prop rules. Watch the map's sharp edges S1–S9, and resolve its "confirm before coding" list inside the slices that own each item.
+
+The bar for done is "looks like a shipped game's armory". Run the full check ladder once, at closeout, with LFS pulled.</textarea>
+<button onclick="navigator.clipboard&&navigator.clipboard.writeText(document.getElementById('prompt').value)">COPY PROMPT</button>
+</main>
+</body>
+</html>
