@@ -148,6 +148,20 @@ result as it lands, polling briefly, and keep test renders small.
   user agent, and serves its SVG drawings as PNG renders on request.
 - **Silent budgets.** Triangles add up against the catalog's load limit. A
   failed commit hook can leave LFS files as pointers.
+- **A shape pushed after the build reads as an add-on.** A post-step that
+  moves vertices toward a target (sweeping a front back to a line) flattens
+  what it clamps, and the result reads as a box with something stuck on it.
+  Build the shape into the parts.
+- **The wrong part gets blamed for proportions.** A turret reads too tall
+  when the deck is low or the skirts hang over the wheels. Measure the deck,
+  the skirts' foot, the gun's axis and the roof against a side photo before
+  resizing anything.
+- **A barrel built from sections floats** when one section moves. Give it one
+  core tube and sleeve the rest onto it.
+- **Weathering painted per vertex follows the mesh, not the surface.** It
+  shows on densely built panels and vanishes on plain ones, so siblings
+  weather differently. The tell is dirt on one model and none on its plainer
+  neighbour.
 
 Blender scripting traps live in [references/blender.md](references/blender.md).
 Read it when a script runs but its result looks wrong.
