@@ -4,6 +4,7 @@ import bmesh, math
 from mathutils import Vector
 
 from parts import *
+import textures_military  # noqa: F401 (registers the military recipes)
 
 KINDS = {}
 ROOT = None  # the model's root node, which the exporter makes before it builds a kind

@@ -16,7 +16,7 @@
     "hesco": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "weight_class": "heavy", "cover_tier": "heavy", "hp": 300},
       "destroyed": {"into": {"prop": "rubble", "height_m": 0.4}},
-      "appearance": {"status": "systems_only", "stand_in_tint": [0.68, 0.6, 0.43], "drawn_by": "hesco", "modular": true, "map_only": true}
+      "appearance": {"stand_in_tint": [0.68, 0.6, 0.43], "drawn_by": "hesco", "modular": true, "map_only": true}
     }
   }
 }

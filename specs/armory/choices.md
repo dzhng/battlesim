@@ -967,3 +967,15 @@ needs-user).
   needs a box twice as wide (slice 14's row). *Provisional:* a critique
   still reads a container in it at a distance; the yard puts it beside
   vehicles in slice 16.
+- **15d, HESCO: one six-cell module, the battle's repeat unit** (the row is
+  `modular`, like sandbags). Each cell's liner pillows out between creased
+  joints with a stack of coil turns in each crease; the rim dips between
+  the joints, the liner folds in over it, a divider crosses at each joint,
+  and the earth lies below the rim, heaped differently per cell. The ends
+  are half joints and end faces 5 mm inside the box, so two modules meet
+  1 cm apart, never in one plane. A new recipe, `hesco_liner` (geotextile
+  under a 75 mm weld mesh), in `textures_military.py`, which `military_parts`
+  imports: `textures.py` is over its size budget and may not grow. One albedo
+  and two surface texture layers.
+  *Provisional:* the critique still finds the module boxy and its coils
+  faint at a distance.

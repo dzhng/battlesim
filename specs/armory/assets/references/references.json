@@ -140,6 +140,26 @@
    "licence": "public-domain",
    "sha256": "50085bdb060afc9829e1edae75c5e89353abfeda339a0ef63998840bf0676fe8",
    "note": "A revetment being built: the steel bin's faces and posts, earth going in between them."
+  },
+  {
+   "file": "hesco-cop_mushan.jpg",
+   "prop": "hesco",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:MPOTY_2014_Hesco_barrier_at_Combat_Outpost_Mushan.jpg",
+   "author": "Sgt. Harold Flynn",
+   "licence": "public-domain",
+   "sha256": "a0ce4ea536d8cf92a177cb500009ae472d150cf8d5c410aac281bbc3b239bd0e",
+   "note": "A HESCO wall at an outpost: tan geotextile pillowing out of weld-mesh baskets, coil joints between cells, fill showing on top."
+  },
+  {
+   "file": "hesco-camp_bastion_seabees.jpg",
+   "prop": "hesco",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:US_Navy_090411-N-8547M-025_Seabees_assigned_to_Naval_Mobile_Construction_Battalion_(NMCB)_5_lift_a_HESCO_barrier_into_alignment_during_a_project_at_Camp_Bastion.jpg",
+   "author": "U.S. Navy Photo by Mass Communication Specialist 2nd Class Patrick W. Mullen III",
+   "licence": "public-domain",
+   "sha256": "7a60ba8e1b328d6bf11c65799701072e0d7cf3e631c954b10fcf775b9a534ae3",
+   "note": "A HESCO unit lifted into line: one module's cells, mesh and liner beside the soldiers for scale."
   }
  ]
 }

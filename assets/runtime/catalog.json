@@ -2779,6 +2779,17 @@
       "scenery": "heras_fence",
       "unit": "scenery"
     },
+    "hesco": {
+      "bundle": "e5728e302e8865ca0805de922ac707dafe8ee07800447a1750906de8318a6144",
+      "footprint_half_m": [
+        3.2,
+        0.55,
+        0.7
+      ],
+      "kind": "static",
+      "scenery": "hesco",
+      "unit": "scenery"
+    },
     "hydrant": {
       "bundle": "71802f1bbbd7c1814249b014fba12f02a2a2bb9d5068173416834057c2c9e978",
       "footprint_half_m": [
@@ -4440,6 +4451,11 @@
       "hash": "4322dd8c3a1f634b6cc2198c43b165819f1619eb23a6020ce2fe3ef4652dda79",
       "raw_bytes": 87399
     },
+    "0204fe1a374482f254dd35bc41d04899c3e1e2159816e607bf2308bcd7c4efc7": {
+      "bytes": 208035,
+      "hash": "bc800da5475ec3a9cfda938feec7f60e9aa3e1dd5ce3a01cf516c24682ebc4e2",
+      "raw_bytes": 349548
+    },
     "02509ed2e2aa03b160e33a5a6f952078f117ff2115b9d2238d3adf82a584d611": {
       "bytes": 51954,
       "hash": "bfc6827c244629b06ab5a5201e8cd97ae83fbe2672ef95a71e0fdcca142ac8f7",
@@ -5500,6 +5516,11 @@
       "hash": "e2f1e98b1c7c47ab686835e7a29417ae017bbef77f380ec76cfe6f2785af902a",
       "raw_bytes": 349548
     },
+    "42ad0d390a6e6c11f530fd9bf13341e4d8d83eb217d2aab8aa5c8dab9d9c75f3": {
+      "bytes": 162073,
+      "hash": "cacbe649874a31430d3e4eee2aa863dc441474bc995c07d55cc1d5f952f7b1ec",
+      "raw_bytes": 349543
+    },
     "42d368777333dd804306d08a4a7329689b875fdad8538e313ca4175234d773b8": {
       "bytes": 15749,
       "hash": "88a00a16117fd8e56e1b5ba2a7c478065eeb606cdda50f1298c3cb1c656d1191",
@@ -6264,6 +6285,11 @@
       "bytes": 1162189,
       "hash": "a7e628d059930d022135ba1836ea049d21c03ab2f06bff2d2f16bbfae1852264",
       "raw_bytes": 3798936
+    },
+    "69214516daab5f8aa2faf2fd4c978647f18268198c8b041442a15378222cf1a1": {
+      "bytes": 3678,
+      "hash": "6963f98929d080ab401e0f21fd859aeba469a9d8f721e4d7eec8a7791509c8f1",
+      "raw_bytes": 349543
     },
     "69e26ef928bdfec360f013dc0db337fec377081ee97014c8c0bd0a7a04a5ede5": {
       "bytes": 1587123,
@@ -8599,6 +8625,11 @@
       "bytes": 149,
       "hash": "500fe0094bfb83483b15883d48fa0bb1e5ca0dfc53ac3cd327f4bbe3e942b607",
       "raw_bytes": 87399
+    },
+    "e5728e302e8865ca0805de922ac707dafe8ee07800447a1750906de8318a6144": {
+      "bytes": 178716,
+      "hash": "8fdaa4c0f7c943426f85c6930f398092a7637f8811955740828265ad9ea64a60",
+      "raw_bytes": 982932
     },
     "e59192a30caf80142cd4cd5dd069bcc9de0c0f4258925e1635b826422e6c75de": {
       "bytes": 7425917,
@@ -15701,6 +15732,17 @@
       "f2bccac564ae3d0e5bf998a78924a6321375b471ff4431a90c4824b49f5bf11a",
       "0c279e94c4ae0cc36cf18601598f9c19ffc6fd12ba03b548fdd6ef480517c8fc",
       "6c87299d612ba7208dca985a8ea85de5bcc8758f875dcf530a7f48b495b51f67"
+    ],
+    "e5728e302e8865ca0805de922ac707dafe8ee07800447a1750906de8318a6144": [
+      "9bf4cafd5562e7c3bc5c62bac66bdb224d27f407d0c20baeeb0a5bdd943c1c31",
+      "f374fbd8a357d29205e0c62b543466198f97b7a3a2798c3f589a93cf07992e9c",
+      "d7915c060441c34d5ffd3e094cd5945893d4ad403b6df6470f7e4c6a36f1682a",
+      "0204fe1a374482f254dd35bc41d04899c3e1e2159816e607bf2308bcd7c4efc7",
+      "42ad0d390a6e6c11f530fd9bf13341e4d8d83eb217d2aab8aa5c8dab9d9c75f3",
+      "69214516daab5f8aa2faf2fd4c978647f18268198c8b041442a15378222cf1a1",
+      "56e1adf3f0357d2eb23728e727054f981f8b45d8fa9df5f7a44eea900e432586",
+      "eb9584aa7d9c007ca1c78967efc5fa6d00b55328e73ce863d0a94ce8f2f3e2ba",
+      "7468ded1f6e85852f5e49d076bc9f889cd38b90b45ee341dee0ec5a926b1dbd9"
     ],
     "e59192a30caf80142cd4cd5dd069bcc9de0c0f4258925e1635b826422e6c75de": [
       "3e7541badb88d4024f735ede729a604b0e354a6f55becb300f78259c0fe7fa32",
