@@ -1,6 +1,6 @@
 # 07 · Show loops on `AppAudio`, and quiet tiles
 
-Status: done 2026-11-12.
+Status: done 2026-11-12, commit ded566bbd.
 
 Map row L9, plus P5. No dependencies.
 

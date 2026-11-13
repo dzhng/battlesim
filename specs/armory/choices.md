@@ -32,3 +32,42 @@
   heard at the camera, not placed in a world. *Sound.*
 - **Loops are keyed by sound name.** If a call names the same sound twice,
   the last entry wins. *Sound.*
+
+## Slice 09
+
+- **The constructor takes the unit catalog: `new ArmoryAppearances(units, fetcher?)`.**
+  The spec's seam was `constructor(fetcher?)`, but a kind's art comes from
+  `UnitCatalog.appearancesFor`. The catalog is the session's
+  (`useSessionCatalog`), and taking it once keeps `show` to the spec's
+  selection. Alternative: pass the worn appearance set into `show`, which
+  pushes the kind-to-art mapping onto every caller. *Sound.*
+- **`show` resolves `{ appearances, runtime }`, not the bare
+  `InstalledAppearances`.** `runtime` is the selection's library as
+  `RuntimeFiles` (its `catalog` and `contents`). `fieldedBattle` reads a
+  unit's bundle contents through these, and they must come from the library
+  that installed the art: the shared `gameRuntime` would answer from the
+  wrong library. Alternative: a `runtime` getter for the newest library,
+  which races a pending switch. *Sound*; slice 11 consumes it.
+- **A fresh `AppearanceLibrary` per call, no narrowing method.** The loader
+  is untouched, so it stays the one owner of loading, and an old selection's
+  decoded art goes when its library is dropped. A narrowing method would add
+  a second way to shrink a generation that only the Armory uses. *Sound.*
+- **The memo keeps the newest selection's files.** It holds every file that
+  the last selection to resolve read, as bytes, keyed by URL. After each
+  answered call it is replaced by that call's files. The yard, the catalog
+  and the template library are in every selection, so they download once,
+  while the previous unit's bytes leave on the next switch. A failed or
+  superseded call never replaces it, and no failed response is kept.
+  Alternative: memoize only the yard's own URLs, which means asking the
+  catalog which files belong to the yard. That duplicates
+  `catalogLoadNames`. *Sound.*
+- **A superseded call stops fetching.** Its next fetch rejects with
+  AbortError, so a quick list sweep doesn't keep downloading units nobody
+  will see. The call itself answers AbortError however its load ended.
+  Fetches already in flight are not cancelled, because `Fetch` takes no
+  signal. *Sound.*
+- **The default fetcher is `countedFetch`,** so the Armory's downloads move
+  the loading screen's counter as the battle's do. *Sound.*
+- **The yard is the scenery appearance set, the loader's own `scenery`
+  filter.** Slice 10 maps prop kinds to appearances (`propsDrawnBy`) before
+  calling. *Sound.*
