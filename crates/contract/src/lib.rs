@@ -30,6 +30,7 @@ pub mod river;
 pub mod scenario;
 pub mod skirmish;
 pub mod skirmish_sizes;
+pub mod smoke;
 pub mod swamp;
 pub mod templates;
 pub mod weapons;

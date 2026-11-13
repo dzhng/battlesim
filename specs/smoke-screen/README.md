@@ -16,10 +16,11 @@ where the spec was silent go in [`choices.md`](choices.md).
 
 ## Next Agent Prompt
 
-**Status (2026-11-12):** The plan is written and nothing is built. Slice 01 is
-next.
+**Status (2026-11-12):** Slice 01 is done: `contract::smoke` holds the cloud
+law and the depth maths. Slices 02 (GPU fog gate) and 03 (sim clouds) are next,
+and can run in parallel.
 
-**Pickup:** start at [slice 01](slices/01-cloud-law.md). Before you touch
+**Pickup:** start at [slice 02](slices/02-gpu-fog-gate.md) and [slice 03](slices/03-sim-clouds.md). Before you touch
 anything, read:
 - `AGENTS.md`;
 - `development.md`;
@@ -43,7 +44,7 @@ anything, read:
 - **Pinned digests stay put** until slice 09. Slices 03–08 prove it.
 
 **TODO:**
-- [ ] 01: cloud law and depth math ([slice](slices/01-cloud-law.md))
+- [x] 01: cloud law and depth math ([slice](slices/01-cloud-law.md))
 - [ ] 02: GPU fog kill gate ([slice](slices/02-gpu-fog-gate.md))
 - [ ] 03: capability, order, cloud collection and the cutover, dormant ([slice](slices/03-sim-clouds.md))
 - [ ] 04: sight, concealment, fog sweep and cloud visibility ([slice](slices/04-sim-sight.md))
