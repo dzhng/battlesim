@@ -3872,3 +3872,11 @@ have made the same call.
     owner would move every export's bytes for no visible change.
   - **The infantry kits' tiers** move with R11 and S7 at their next export
     (S11).
+- **T4 The full ladder.** `bun run check` passes (216 web test files, 1,397
+  tests; every Rust suite). `bun run verify` re-blessed the frame scene's
+  pictures after inspection (the new bodies; other work's trees) and leaves
+  three failures that run the same alone and sit outside this pass: the
+  geometry lab's traversal overlay reads its steep-ramp pixel in shadow
+  (rgb 44,13,6), the air-audio lab's J-10 never re-enters the squad's view
+  after leaving, and the fog-look lab's units-in-fog probe reads a dark
+  pixel on an infantry soldier. No tracked unit is in any of them.
