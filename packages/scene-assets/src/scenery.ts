@@ -148,6 +148,7 @@ export const SCENERY_KINDS: Record<string, SceneryRule> = {
   boulder: prop,
   /** The hangar's remains: sheet that slid off it lies flat round its plan. */
   hangar_ruin: { ...prop, footprint: { kind: "prop", rubble_m: 1.5 } },
+  revetment: prop,
   // Trees and hedgerows carry one state per biome season (summer; winter is
   // the next biome spec). A tree also stands inside the forests' canopy
   // (`fit.canopy`); hedgerows stand past the map, and under the trees of a

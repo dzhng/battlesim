@@ -19,7 +19,7 @@ import bpy, sys, os, json
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from parts import *
 import military_parts
-import military_hangar  # noqa: F401 (they register their kinds)
+import military_hangar, military_works  # noqa: F401 (they register their kinds)
 
 FLAGS = [a for a in script_args() if a.startswith("--")]
 ARGS = [a for a in script_args() if not a.startswith("--")]

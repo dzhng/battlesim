@@ -11,7 +11,7 @@
     },
     "revetment": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": true, "weight_class": "immovable", "cover_tier": "heavy"},
-      "appearance": {"status": "systems_only", "stand_in_tint": [0.55, 0.47, 0.33], "drawn_by": "revetment", "map_only": true}
+      "appearance": {"stand_in_tint": [0.55, 0.47, 0.33], "drawn_by": "revetment", "map_only": true}
     },
     "hesco": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "weight_class": "heavy", "cover_tier": "heavy", "hp": 300},

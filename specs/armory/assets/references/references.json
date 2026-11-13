@@ -110,6 +110,36 @@
    "licence": "public-domain",
    "sha256": "6f8d697e913770698de9f1f9ff0f47e04fe0f7705c2d0f7e9bae53ed49392669",
    "note": "A bombed hangar: a burnt-out frame and the sheet it shed, low and scattered."
+  },
+  {
+   "file": "revetment-f4_ubon.jpg",
+   "prop": "revetment",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:F-4s_in_revetments_at_Ubon_RTAFB.jpg",
+   "author": "USAF",
+   "licence": "public-domain",
+   "sha256": "5da5f353bfa6bb454ecdd25253ac001773e540f237e8a6d9c5029763621d11e3",
+   "note": "Steel-bin aircraft revetments from the air: pale corrugated walls with earth tops, standing in rows that form bays."
+  },
+  {
+   "file": "revetment-phu_hiep_helicopter.jpg",
+   "prop": "revetment",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Phu_Hiep_helicopter_revetment,_July_1968.png",
+   "author": "Office of History, Headquarters, U.S. Army Corps of Engineers USACE LNO trip slides Vietnam 12.164",
+   "licence": "public-domain",
+   "sha256": "321168aea9269c3917f56d43e487d69f2194098106f4850e528180d7ccab67f4",
+   "note": "Helicopter revetments: corrugated steel bins filled with earth, posts along their faces, numbered bays."
+  },
+  {
+   "file": "revetment-pleiku_constructing.jpg",
+   "prop": "revetment",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Constructing_aircraft_revetment_at_Pleiku_Air_Base.jpg",
+   "author": "US Air Force",
+   "licence": "public-domain",
+   "sha256": "50085bdb060afc9829e1edae75c5e89353abfeda339a0ef63998840bf0676fe8",
+   "note": "A revetment being built: the steel bin's faces and posts, earth going in between them."
   }
  ]
 }

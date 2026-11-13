@@ -956,3 +956,14 @@ needs-user).
   document carries the prop files' appearances and that resolving it gives
   the file's props exactly. *Closeout:* the full run's
   `catalog::view::the_browsers_catalog_view_is_current` is the byte check.
+- **15c, the revetment: a steel-bin revetment, not a bare earth berm.**
+  Galvanised corrugated faces 3 m apart in a frame of posts a metre apart,
+  a heavy sill and a top rail, tied across, the ends framed the same way,
+  earth to just under the rim, the bay number stencilled on the +X end.
+  *Why:* bare earth cannot stand 3.2 m on a 3 m foot (a first, bermed
+  version read as "a loaf"), and every revetment reference is this kind of
+  earth-filled steel bin. The row's body (immovable, no `hp`, earthworks
+  soaking shelling) still describes it. *Alternative:* sloped earth, which
+  needs a box twice as wide (slice 14's row). *Provisional:* a critique
+  still reads a container in it at a distance; the yard puts it beside
+  vehicles in slice 16.

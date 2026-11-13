@@ -3091,6 +3091,17 @@
       "scenery": "plinth_railing",
       "unit": "scenery"
     },
+    "revetment": {
+      "bundle": "bf3e1924efee4057e9423c2bb8b07a014c580b3f0f0f675631a75a6d92397f4a",
+      "footprint_half_m": [
+        8,
+        1.5,
+        1.6
+      ],
+      "kind": "static",
+      "scenery": "revetment",
+      "unit": "scenery"
+    },
     "rifle_squad_active_a": {
       "bundle": "e97bdf1e6efdba7f477d40701c5faf58a2a127dc3b386e35bb3e55c48d5b2f45",
       "factions": {
@@ -7813,6 +7824,11 @@
       "bytes": 149,
       "hash": "7b59cfa20f8a2d2ecbb1aeb60814df7840dc4e81faf73c2b35570fc9ee08353f",
       "raw_bytes": 87399
+    },
+    "bf3e1924efee4057e9423c2bb8b07a014c580b3f0f0f675631a75a6d92397f4a": {
+      "bytes": 193515,
+      "hash": "e7102d1b2f2a5ce9dcc1b4bd98ea978ed8435de1c246fcea28fd3a5cbb1f4285",
+      "raw_bytes": 743944
     },
     "bf4e2f55808fbc33b7160d0555a4fdb19b3244cebaf4228ed8c854da3be2943e": {
       "bytes": 105629,
@@ -14563,6 +14579,17 @@
       "3e7541badb88d4024f735ede729a604b0e354a6f55becb300f78259c0fe7fa32",
       "5d654d5b70f78056a9c0a0801decd296f43e0eecd2e2541a1894977562723ed0",
       "0342cd8bad2bc7b6010152d51d20dcd69ad42b48aad28ec93e99f1ef7a10984f"
+    ],
+    "bf3e1924efee4057e9423c2bb8b07a014c580b3f0f0f675631a75a6d92397f4a": [
+      "500f87778e1bc521ce0c2e21f5ac9d686e5819bfa7cc757c2e686e98bb3f8df0",
+      "2af1a0c437ff34a7e6b1d0edec588988ec1ded2b5b8c2bde09e3646a447611b2",
+      "906f70e008dd5b071be1c0eca8eef58e8c1006e95cc9782876711f93a13e8176",
+      "56e1adf3f0357d2eb23728e727054f981f8b45d8fa9df5f7a44eea900e432586",
+      "eb9584aa7d9c007ca1c78967efc5fa6d00b55328e73ce863d0a94ce8f2f3e2ba",
+      "7468ded1f6e85852f5e49d076bc9f889cd38b90b45ee341dee0ec5a926b1dbd9",
+      "e5c67c18b50e8c7620db2020de57c101342f3e3d4bd2e33ccf254814ea37827d",
+      "7ff523c30b5cc4255396e6660919c60c3bc03b2f67204d3859884aaf0a94174e",
+      "e65b114a93e55184c201091d98d751c3dbdf22a777b81763ee434e783d6371c7"
     ],
     "bf9598f69f831f06fc94bfa74af04af10e620bb4daffbeb90c3021764ae991c5": [
       "f3b90c0a45fe66e8735fdfb8d0f9c62d9c5034e3a74e5bf23f8ce1bc2dff8282",
