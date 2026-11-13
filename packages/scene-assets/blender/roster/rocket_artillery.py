@@ -35,7 +35,7 @@ import roof_parts as RF  # noqa: E402
 import scripted_body as SB  # noqa: E402
 import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
-from parts import box, cyl, empty, prism  # noqa: E402
+from parts import box, cyl, prism  # noqa: E402
 import ural as U  # noqa: E402
 from truck_chassis import chassis  # noqa: E402
 from vehicle_export import run  # noqa: E402
@@ -261,9 +261,7 @@ def build(variant, v):
     if ident in M270:
         SB.wear(v, M270_BODY, M270_LINK_PITCH, variant=ident)
         # The whips on the cab roof's rear corners.
-        for side, s in ((1, "L"), (-1, "R")):
-            whip = empty(f"dressing_antenna_{s}", parent=v.hull)
-            RF.antenna(f"antenna_{s}", (0.95, side * 1.20, 2.60), v.mats, whip, height=2.2)
+        RF.whip_pair(v.hull, (0.95, 1.20, 2.60), v.mats, height=2.2)
     elif ident.startswith("us_m142"):
         himars(v, prsm=ident.endswith("prsm"))
     elif ident.startswith("eastern_bm_21"):

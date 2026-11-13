@@ -6,8 +6,8 @@ The script (`build.py`, kept with its source rounds under
 views and writes a GLB; imported, its `build()` (`build(variant)` for a
 script that builds several variants) builds the vehicle into the
 caller's scene and returns. Gemini Argon writes it in a Bento session from
-the references and our measurements (at most two rounds); after that it is
-edited here like any source. It names each part by what the game moves, and
+the references and our measurements (two rounds, unless the user grants
+another); after that it is edited here like any source. It names each part by what the game moves, and
 paints each face with one of the material slots `ROLES` names:
 
 - `hull`: the hull and everything fixed to it;
