@@ -17,7 +17,7 @@ where the spec was silent go in [`choices.md`](choices.md).
 ## Next Agent Prompt
 
 **Status (2026-11-12):**
-- **Done:** slices 01–08.
+- **Done:** slices 01–09.
   - Slice 02's kill gate said **KEEP**.
   - The smoke lab route (`smoke`) plays the moment with real input: press H,
     watch the charges count down, see HIDDEN, see the cloud and the fog.
@@ -26,13 +26,11 @@ where the spec was silent go in [`choices.md`](choices.md).
   - slice 03: dead keys were deleted from the frozen `physical-rules.json`;
   - slice 05: the layout change re-published the captures natively (the
     precedent of earlier layout changes).
-- **Visual follow-up, owned by the coordinator, before slice 10:**
-  - A side's own cloud sits under the fog veil, so it draws hatched and split.
-    D12 says a side sees the cloud, so a seen cloud draws **above** the veil.
-  - The drawn bloom starts from nothing while concealment steps in at once.
-    Start the drawn cloud at its first bloom step.
+- **Done:** slice 09 (26 roster carriers, matching D2; no pinned record moved)
+  and the visual follow-up (seen clouds draw over the fog veil, starting at
+  their first bloom step).
 
-**Pickup:** [slice 09](slices/09-roster.md), then the visual follow-up above, then slices 10 and 11. Before you touch
+**Pickup:** [slice 11](slices/11-skirmish-ai.md), then [slice 10](slices/10-sound.md). Disk is tight (about 4 GB free). Before you touch
 anything, read:
 - `AGENTS.md`;
 - `development.md`;
@@ -64,7 +62,7 @@ anything, read:
 - [x] 06: GPU fog and the smoke lab ([slice](slices/06-gpu-fog.md))
 - [x] 07: the drawn cloud ([slice](slices/07-drawn-cloud.md))
 - [x] 08: player controls and panel ([slice](slices/08-controls.md))
-- [ ] 09: roster switch-on, the first playable skirmish ([slice](slices/09-roster.md))
+- [x] 09: roster switch-on, the first playable skirmish ([slice](slices/09-roster.md))
 - [ ] 10: sound ([slice](slices/10-sound.md))
 - [ ] 11: skirmish AI ([slice](slices/11-skirmish-ai.md))
 - [ ] 12: closeout ([slice](slices/12-closeout.md))
