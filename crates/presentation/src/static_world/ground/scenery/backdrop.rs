@@ -1,6 +1,7 @@
 //! The scenery past the map's edge, where nothing is simulated (the
 //! `backdrop` population): hedgerows along the patchwork's plot edges with
-//! trees in them, and copses, clear of the map and within the biome's reach.
+//! trees in them, and copses, clear of the map and within the biome's reach,
+//! each standing on the land's relief there (`relief::BackdropRelief`).
 use super::super::biome::Trees;
 use super::super::shapes::{centroid, polygon_contains};
 use super::{push, Site, Size, Species, OPEN, SINK_M};
@@ -19,7 +20,7 @@ pub(super) fn backdrop(
     let (clear_m, reach_m) = (trees.backdrop.clear_m, trees.backdrop.reach_m);
     let rules = &trees.hedgerows;
     let source = &site.ground.source;
-    let z = source.grid.min_height - SINK_M;
+    let z = |x: f64, y: f64| source.grid.min_height + source.relief.height(x, y) - SINK_M;
     let fits = |x: f64, y: f64, radius: f64| {
         let d = outside_box(source.map, x, y);
         d - radius >= clear_m
@@ -36,7 +37,7 @@ pub(super) fn backdrop(
             let yaw = rng.float(0.0, PI * 2.0);
             push(
                 out,
-                [x, y, z, yaw, sxy, sz, kind as f64],
+                [x, y, z(x, y), yaw, sxy, sz, kind as f64],
                 tint,
                 rng,
                 trees.colour_jitter,
@@ -84,7 +85,7 @@ pub(super) fn backdrop(
                     let sz = rng.float(0.9, 1.3);
                     push(
                         &mut out,
-                        [x, y, z, turn, sxy, sz, hedge as f64],
+                        [x, y, z(x, y), turn, sxy, sz, hedge as f64],
                         rules.tint,
                         &mut rng,
                         trees.colour_jitter,

@@ -1,4 +1,5 @@
 //! The shared world constructor preserves the shell's view inputs.
+use presentation::static_world::ground::relief::BackdropRelief;
 use renderer_core::runtime::WorldGeometry;
 
 #[test]
@@ -78,7 +79,7 @@ fn prebuilt_terrain_keeps_its_faces_while_backdrop_uses_the_local_patch() {
     }
     let mut world = WorldGeometry::from_mesh(remote.clone(), &[], &local, &[], 80.0);
     assert_eq!(world.backdrop[0], 920.0);
-    world.set_backdrop(Some(&local), 80.0);
+    world.set_backdrop(Some(&local), 80.0, &BackdropRelief::default());
     assert_eq!(world.terrain, remote);
     assert_eq!(world.skirt_and_props, local);
     assert_eq!(&world.backdrop[..3], &[-80.0, -80.0, 0.5]);

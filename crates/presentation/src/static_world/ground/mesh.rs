@@ -1,8 +1,10 @@
 //! The ground's meshes, in the renderer's one vertex format: ten floats a
-//! vertex (position, normal, rgba), flat-shaded triangle lists. The vertex
-//! colour is a tint over the biome's material, its alpha the tint's weight
-//! (0 draws the biome, 1 the tint alone). Computed in f64, so every
-//! float matches the recorded vectors (`tests/ground_meshes.rs`).
+//! vertex (position, normal, rgba), flat-shaded triangle lists (the
+//! backdrop's relief alone is smooth-shaded). The vertex colour is a tint
+//! over the biome's material, its alpha the tint's weight (0 draws the
+//! biome, 1 the tint alone). Computed in f64, so every float matches the
+//! recorded vectors (`tests/ground_meshes.rs`).
+use super::relief::BackdropRelief;
 
 /// Floats a vertex.
 pub const VERTEX_FLOATS: usize = 10;
@@ -130,27 +132,167 @@ pub fn water(cells: &[f32]) -> Vec<f32> {
     out
 }
 
-/// The land past the map's edge: a flat frame round the map's box
+/// The land past the map's edge: a frame round the map's box
 /// (`shadow::map_box`, which lies a metre below the lowest ground, so the
-/// frame sits at that ground's height) out to `reach_m`, untinted.
-pub fn backdrop(map_box: &[f64; 6], reach_m: f64) -> Vec<f32> {
+/// frame sits at that ground's height) out to `reach_m`, untinted. Where
+/// `relief` rises the frame is the relief's cells, each corner at its height
+/// and split as the relief's triangles are, smooth-shaded; level stretches
+/// of a row are one quad, and past the relief's box the frame is level.
+pub fn backdrop(map_box: &[f64; 6], reach_m: f64, relief: &BackdropRelief) -> Vec<f32> {
     let [min_x, min_y, min_z, max_x, max_y, _] = *map_box;
     let z = min_z + 1.0;
     let r = reach_m;
+    let map = [min_x, min_y, max_x, max_y];
+    let c = relief.cell_m;
+    // The relief's box, grown over the map and out to whole cells.
+    let cells = relief.bounds().map(|b| {
+        [
+            (b[0].min(min_x) / c).floor() * c,
+            (b[1].min(min_y) / c).floor() * c,
+            (b[2].max(max_x) / c).ceil() * c,
+            (b[3].max(max_y) / c).ceil() * c,
+        ]
+    });
     let mut out = vec![];
-    for [x0, y0, x1, y1] in [
-        [min_x - r, min_y - r, max_x + r, min_y], // south, full width
-        [min_x - r, max_y, max_x + r, max_y + r], // north, full width
-        [min_x - r, min_y, min_x, max_y],         // west
-        [max_x, min_y, max_x + r, max_y],         // east
-    ] {
+    let level = ring(
+        cells.unwrap_or(map),
+        [min_x - r, min_y - r, max_x + r, max_y + r],
+    );
+    for [x0, y0, x1, y1] in level {
         quad(
             &mut out,
             [[x0, y0, z], [x1, y0, z], [x1, y1, z], [x0, y1, z]],
             BIOME,
         );
     }
+    if let Some(outer) = cells {
+        let samples = Samples::new(relief, outer);
+        for strip in ring(map, outer) {
+            relief_strip(&mut out, strip, z, &samples);
+        }
+    }
     out
+}
+
+/// The strips between `hole` and `outer` (each `[min x, min y, max x, max
+/// y]`) that have an area: the south and north at full width, then the west
+/// and east.
+fn ring(h: [f64; 4], o: [f64; 4]) -> impl Iterator<Item = [f64; 4]> {
+    [
+        [o[0], o[1], o[2], h[1]],
+        [o[0], h[3], o[2], o[3]],
+        [o[0], h[1], h[0], h[3]],
+        [h[2], h[1], o[2], h[3]],
+    ]
+    .into_iter()
+    .filter(|s| s[2] > s[0] && s[3] > s[1])
+}
+
+/// The relief's samples over a box on its cell lines, read once.
+struct Samples<'a> {
+    relief: &'a BackdropRelief,
+    first: [i64; 2],
+    columns: i64,
+    rows: i64,
+    heights: Vec<f64>,
+}
+
+impl<'a> Samples<'a> {
+    fn new(relief: &'a BackdropRelief, b: [f64; 4]) -> Self {
+        let line = |v: f64| (v / relief.cell_m).round() as i64;
+        let (first, last) = ([line(b[0]), line(b[1])], [line(b[2]), line(b[3])]);
+        let (columns, rows) = (last[0] - first[0] + 1, last[1] - first[1] + 1);
+        let heights = (0..rows)
+            .flat_map(|j| (0..columns).map(move |i| (i, j)))
+            .map(|(i, j)| relief.sample(first[0] + i, first[1] + j))
+            .collect();
+        Samples {
+            relief,
+            first,
+            columns,
+            rows,
+            heights,
+        }
+    }
+
+    fn sample(&self, i: i64, j: i64) -> f64 {
+        let (u, v) = (i - self.first[0], j - self.first[1]);
+        if (0..self.columns).contains(&u) && (0..self.rows).contains(&v) {
+            self.heights[(v * self.columns + u) as usize]
+        } else {
+            self.relief.sample(i, j)
+        }
+    }
+
+    /// The relief's height at `(x, y)` and its normal there, averaged over
+    /// the cells about a sample; level off the cell lines, which happens
+    /// only on the map's edge, where the relief is level.
+    fn at(&self, x: f64, y: f64) -> (f64, V3) {
+        let c = self.relief.cell_m;
+        let (fi, fj) = (x / c, y / c);
+        if fi != fi.round() || fj != fj.round() {
+            return (self.relief.height(x, y), [0.0, 0.0, 1.0]);
+        }
+        let (i, j) = (fi.round() as i64, fj.round() as i64);
+        let dx = (self.sample(i + 1, j) - self.sample(i - 1, j)) / (2.0 * c);
+        let dy = (self.sample(i, j + 1) - self.sample(i, j - 1)) / (2.0 * c);
+        let n = (dx * dx + dy * dy + 1.0).sqrt();
+        (self.sample(i, j), [-dx / n, -dy / n, 1.0 / n])
+    }
+}
+
+/// `strip` (`[min x, min y, max x, max y]`) cut along the relief's cell
+/// lines, `z` up: each cell with a corner off the level its own pair of
+/// smooth triangles, each level run along a row one quad.
+fn relief_strip(out: &mut Vec<f32>, strip: [f64; 4], z: f64, samples: &Samples) {
+    let c = samples.relief.cell_m;
+    let lines = |a: f64, b: f64| {
+        let mut at = vec![a];
+        let mut k = (a / c).floor() + 1.0;
+        while k * c < b {
+            at.push(k * c);
+            k += 1.0;
+        }
+        at.push(b);
+        at
+    };
+    let (xs, ys) = (lines(strip[0], strip[2]), lines(strip[1], strip[3]));
+    for row in ys.windows(2) {
+        let (y0, y1) = (row[0], row[1]);
+        let mut run: Option<f64> = None;
+        let flush = |out: &mut Vec<f32>, run: &mut Option<f64>, x1: f64| {
+            if let Some(x0) = run.take() {
+                quad(
+                    out,
+                    [[x0, y0, z], [x1, y0, z], [x1, y1, z], [x0, y1, z]],
+                    BIOME,
+                );
+            }
+        };
+        for col in xs.windows(2) {
+            let (x0, x1) = (col[0], col[1]);
+            let corners = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(|[x, y]| {
+                let (h, n) = samples.at(x, y);
+                ([x, y, z + h], n, h)
+            });
+            if corners.iter().all(|k| k.2 == 0.0) {
+                run.get_or_insert(x0);
+                continue;
+            }
+            flush(out, &mut run, x0);
+            let [sw, se, ne, nw] = corners.map(|(p, n, _)| (p, n));
+            smooth_triangle(out, [sw, se, ne], BIOME);
+            smooth_triangle(out, [sw, ne, nw], BIOME);
+        }
+        flush(out, &mut run, strip[2]);
+    }
+}
+
+/// One triangle with a normal at each corner.
+fn smooth_triangle(out: &mut Vec<f32>, corners: [(V3, V3); 3], tint: Rgba) {
+    for (p, n) in corners {
+        out.extend(p.iter().chain(&n).chain(&tint).map(|&v| v as f32));
+    }
 }
 
 /// Two flat-shaded triangles, a b c and a c d.

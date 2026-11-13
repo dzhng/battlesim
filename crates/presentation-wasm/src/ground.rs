@@ -9,6 +9,7 @@ use crate::{error, Presentation};
 use presentation::presentation::Presentation as Inner;
 use presentation::static_world::ground::field::Field;
 use presentation::static_world::ground::mesh;
+use presentation::static_world::ground::relief::BackdropRelief;
 use presentation::static_world::ground::tables::Grid;
 use presentation::static_world::ground::walk::Quality as SceneryQuality;
 use presentation::static_world::ground::{self, biome::Biome, Ground, Source, Tuning};
@@ -32,6 +33,29 @@ fn ground(inner: &Inner) -> Result<&Ground, JsError> {
         .ok_or_else(|| JsError::new("no ground is set"))
 }
 
+/// The land past a map's edge (`BackdropRelief`), for the page's height
+/// queries: the surface the backdrop draws and stands its trees on.
+#[wasm_bindgen(js_name = BackdropRelief)]
+pub struct Relief(BackdropRelief);
+
+#[wasm_bindgen(js_class = BackdropRelief)]
+impl Relief {
+    /// `relief` (JSON) past the map `[min x, min y, max x, max y]`, refused
+    /// as the ground refuses it.
+    #[wasm_bindgen(constructor)]
+    pub fn new(relief: &str, map: &[f64]) -> Result<Relief, JsError> {
+        let map = map
+            .try_into()
+            .map_err(|_| JsError::new("a map is [min x, min y, max x, max y]"))?;
+        Ok(Relief(BackdropRelief::admit(relief, map).map_err(error)?))
+    }
+
+    /// The land's height at `(x, y)` over the backdrop's level.
+    pub fn height(&self, x: f64, y: f64) -> f64 {
+        self.0.height(x, y)
+    }
+}
+
 #[wasm_bindgen]
 impl Presentation {
     /// The packed height pages consumed by the renderer's fog and terrain
@@ -46,7 +70,9 @@ impl Presentation {
     /// `grid` is `WorldView.terrain_grid()` with its page ids and heights;
     /// the streams are `WorldView`'s exports of the same names; `layout` is
     /// `world_layout()`; `biome` the biome's file and `family` the map's
-    /// regional family (or none); `tuning` the fixture's `presentation` block.
+    /// regional family (or none); `tuning` the fixture's `presentation` block;
+    /// `relief` the land past the map's edge (`BackdropRelief`, JSON), level
+    /// without it.
     #[allow(clippy::too_many_arguments)]
     pub fn set_ground(
         &mut self,
@@ -74,8 +100,13 @@ impl Presentation {
         biome: &str,
         family: Option<String>,
         tuning: &str,
+        relief: Option<String>,
     ) -> Result<(), JsError> {
         let g: GridHeader = serde_json::from_str(grid).map_err(error)?;
+        let relief = match relief {
+            Some(text) => serde_json::from_str(&text).map_err(error)?,
+            None => BackdropRelief::default(),
+        };
         let source = Source {
             map: extents[..4].try_into().unwrap(),
             playable: extents[4..8].try_into().unwrap(),
@@ -89,6 +120,7 @@ impl Presentation {
                 page_ids,
                 heights,
             },
+            relief,
             props,
             kinds: ground::prop_kinds(layout).map_err(error)?,
             foliage,

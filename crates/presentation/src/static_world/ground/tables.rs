@@ -411,13 +411,21 @@ impl Grid {
         let i = fx.floor().min(nx - 1.0) as usize;
         let j = fy.floor().min(ny - 1.0) as usize;
         let (u, v) = (fx - i as f64, fy - j as f64);
-        let (h00, h11) = (self.sample(i, j), self.sample(i + 1, j + 1));
-        if u >= v {
-            let h10 = self.sample(i + 1, j);
-            h00 + u * (h10 - h00) + v * (h11 - h10)
-        } else {
-            let h01 = self.sample(i, j + 1);
-            h00 + v * (h01 - h00) + u * (h11 - h01)
-        }
+        cell_height(|di, dj| self.sample(i + di, j + dj), u, v)
+    }
+}
+
+/// The height at `(u, v)` (each 0 to 1) across a square cell whose corner
+/// `(di, dj)` stands `corner(di, dj)` high, by the simulation's south-west to
+/// north-east triangle rule (`sim::world::terrain`): only the three corners
+/// of the triangle `(u, v)` lies in are read.
+pub fn cell_height(corner: impl Fn(usize, usize) -> f64, u: f64, v: f64) -> f64 {
+    let (h00, h11) = (corner(0, 0), corner(1, 1));
+    if u >= v {
+        let h10 = corner(1, 0);
+        h00 + u * (h10 - h00) + v * (h11 - h10)
+    } else {
+        let h01 = corner(0, 1);
+        h00 + v * (h01 - h00) + u * (h11 - h01)
     }
 }
