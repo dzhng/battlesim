@@ -706,7 +706,7 @@
       "url": "https://www.youtube.com/watch?v=pujCGZMn_o4",
       "path": "assets/third-party/audio/mortar-pujCGZMn_o4.webm",
       "sha256": "63a4379ff1646f02d2649e8c41f9634e58a1a4b7a251aea9a3391392b9d04ce6",
-      "notes": "Slice 03 yt-dlp source, admitted for this private project by the user on 2026-10-29."
+      "notes": "Slice 03 yt-dlp source, admitted for this private project by the user on 2026-10-29. Needs a CC0 replacement before public release."
     },
     "strike-missile-live-fire": {
       "label": "ATACMS / Hyunmoo exercise",
@@ -772,10 +772,11 @@
       "model": "eleven_text_to_sound_v2",
       "prompt": "A tank fires its smoke grenade dischargers, heard close by outdoors: two fast heavy hollow thumps, thump-thump, a fraction of a second apart, then a long rushing hiss of smoke pouring out that slowly fades away. Only the machine: no voices, no people, no crowd, no talking, no shouting, no cheering, no radio chatter, no music.",
       "length_s": 5,
-      "date": "2026-11-13",
+      "date": "2026-11-14",
       "plan": "Duet ElevenLabs",
-      "path": "assets/source/audio/effects/smoke-discharger-3.559fe89e.mp3",
-      "sha256": "559fe89e3c874bd4c188f516c4d3fc62ef0b67a0e7a3029ed2a9fb1e27eec6d0"
+      "path": "assets/source/audio/effects/smoke-discharger-3.3dc4e331.mp3",
+      "sha256": "3dc4e33149b9800c664a41040ffa681fe545c5e93b6a19af9da1b13fa3abd8df",
+      "notes": "Composed 2026-11-14 by layering a real 82 mm mortar launch (sources.mortar-live-fire, YouTube pujCGZMn_o4, license All-Rights-Reserved; onset 2.164 s, soft-saturated, double-fired at 0.006 s and 0.40 s) and a real M1A1 smoke-grenade-launcher crack (YouTube TODr5NKNuCg, license All-Rights-Reserved, shot at 4.895 s, high-passed 350 Hz) on this row's original ElevenLabs hiss (hiss ducked). Both YouTube sources are admitted for this private project; needs a CC0 replacement before public release."
     },
     "smoke-grenade-1": {
       "kind": "Generated",
@@ -783,10 +784,11 @@
       "model": "eleven_text_to_sound_v2",
       "prompt": "A soldier throws a hand smoke grenade, heard close by outdoors: the metallic ping of the spoon flying off, a short dull pop as it ignites, then a steady hissing spew of smoke that slowly fades away. Only the machine: no voices, no people, no crowd, no talking, no shouting, no cheering, no radio chatter, no music.",
       "length_s": 4,
-      "date": "2026-11-13",
+      "date": "2026-11-14",
       "plan": "Duet ElevenLabs",
-      "path": "assets/source/audio/effects/smoke-grenade-1.3a52d423.mp3",
-      "sha256": "3a52d423e9792c16a06134dc5182a1663cb1ebc1db6d5a543b130e5be58ab9c0"
+      "path": "assets/source/audio/effects/smoke-grenade-1.9ad3e72a.mp3",
+      "sha256": "9ad3e72a4db64ada4c953a03ca18f2e3d876ea575ccf666d830d2dd0c6f3f285",
+      "notes": "Composed 2026-11-14 by layering a real M1A1 smoke-grenade-launcher crack (YouTube TODr5NKNuCg, license All-Rights-Reserved, at the original pop 0.074 s) and a low-passed (260 Hz) slice of the 82 mm mortar launch (sources.mortar-live-fire, YouTube pujCGZMn_o4, license All-Rights-Reserved) on this row's original ElevenLabs hiss (hiss ducked). Both YouTube sources are admitted for this private project; needs a CC0 replacement before public release."
     },
     "smoke-grenade-2": {
       "kind": "Generated",
@@ -5117,7 +5119,7 @@
       "notes": "Generated with ElevenLabs sound effects through Duet; the prompt rules out voices and crowd noise."
     },
     "smoke-discharger-3": {
-      "label": "Smoke screen \u00b7 generated discharger 3",
+      "label": "Smoke screen \u00b7 mortar and Abrams discharger, generated hiss",
       "category": "smoke-screen",
       "role": "launch",
       "source": "smoke-discharger-3",
@@ -5125,14 +5127,14 @@
       "source_frames": [0, 220500],
       "processing": "launch",
       "url": "/audio/clips/smoke-discharger-3.wav",
-      "sha256": "61eb20517006084b90ee085e8d0a6d8ddfcb576162c7a4e50280d12791c0c951",
+      "sha256": "53092558a22cfba4d18fc4b6e7027f69de88e3f9a80de6aae42cdc6b58d77dcf",
       "sample_rate": 48000,
       "frames": 240000,
       "loop": false,
-      "notes": "Generated with ElevenLabs sound effects through Duet; the prompt rules out voices and crowd noise."
+      "notes": "Composed 2026-11-14: real 82 mm mortar launch (YouTube pujCGZMn_o4, All-Rights-Reserved) and real M1A1 smoke-grenade-launcher crack (YouTube TODr5NKNuCg, All-Rights-Reserved) layered on the original ElevenLabs hiss. Admitted for this private project; needs a CC0 replacement before public release."
     },
     "smoke-grenade-1": {
-      "label": "Smoke screen \u00b7 generated grenade 1",
+      "label": "Smoke screen \u00b7 mortar and Abrams grenade pop, generated hiss",
       "category": "smoke-screen",
       "role": "launch",
       "source": "smoke-grenade-1",
@@ -5140,11 +5142,11 @@
       "source_frames": [0, 176400],
       "processing": "launch",
       "url": "/audio/clips/smoke-grenade-1.wav",
-      "sha256": "b679f4d8013e6662836c92ea71d1818bd96decbb53a62869f16e73b662c709df",
+      "sha256": "06edc388dd025fcca9cd389ae01bbbebc67992e3f5840fcc9ec1d2a9b4624bd4",
       "sample_rate": 48000,
       "frames": 192000,
       "loop": false,
-      "notes": "Generated with ElevenLabs sound effects through Duet; the prompt rules out voices and crowd noise."
+      "notes": "Composed 2026-11-14: real M1A1 smoke-grenade-launcher crack (YouTube TODr5NKNuCg, All-Rights-Reserved) and a low-passed mortar launch slice (YouTube pujCGZMn_o4, All-Rights-Reserved) layered on the original ElevenLabs hiss. Admitted for this private project; needs a CC0 replacement before public release."
     },
     "smoke-grenade-2": {
       "label": "Smoke screen \u00b7 generated grenade 2",
@@ -6528,7 +6530,7 @@
       "loop": false
     },
     "smoke-discharger": {
-      "label": "Smoke discharger \u00b7 generated",
+      "label": "Smoke discharger \u00b7 recorded pop, generated hiss",
       "clips": ["smoke-discharger-3"],
       "synth": null,
       "synth_gain": 0,
@@ -6536,7 +6538,7 @@
       "loop": false
     },
     "smoke-grenade": {
-      "label": "Smoke grenade \u00b7 generated",
+      "label": "Smoke grenade \u00b7 recorded pop, generated hiss",
       "clips": ["smoke-grenade-1"],
       "synth": null,
       "synth_gain": 0,
