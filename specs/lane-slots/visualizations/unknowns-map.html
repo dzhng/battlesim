@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lane Slots Map</title>
+<style>
+  body { margin: 0; font-family: var(--font-sans, system-ui, sans-serif); font-size: 13.5px; line-height: 1.5; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .sub { color: var(--muted-foreground, #8a96a0); margin: 0 0 14px; }
+  nav { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  nav button { font: inherit; font-size: 12px; padding: 6px 10px; border-radius: var(--radius, 6px); border: 1px solid var(--border, #2a3640); background: transparent; color: inherit; cursor: pointer; }
+  nav button[aria-pressed="true"] { background: var(--secondary, #1b2730); border-color: var(--ring, #4b9fd0); }
+  section { display: none; }
+  section.on { display: block; }
+  h2 { font-size: 14px; margin: 18px 0 8px; }
+  h2:first-child { margin-top: 0; }
+  .box { border: 1px solid var(--border, #2a3640); border-radius: var(--radius, 6px); padding: 16px; margin-bottom: 10px; background: var(--card, transparent); }
+  ul { margin: 6px 0; padding-left: 18px; }
+  li { margin: 3px 0; }
+  code { font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; background: var(--code-background, rgba(127,127,127,.12)); padding: 1px 4px; border-radius: 4px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th, td { text-align: left; vertical-align: top; padding: 7px 8px; border-bottom: 1px solid var(--border, #2a3640); }
+  th { font-weight: 600; color: var(--muted-foreground, #8a96a0); font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; }
+  td:first-child { white-space: nowrap; font-family: var(--font-mono, monospace); }
+  .who { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--border, #2a3640); white-space: nowrap; }
+  .who.user { border-color: var(--success, #3fb67a); color: var(--success, #3fb67a); }
+  .who.agent { border-color: var(--warning, #d6a23a); color: var(--warning, #d6a23a); }
+  .who.terr { border-color: var(--info, #4b9fd0); color: var(--info, #4b9fd0); }
+  .who.gone { opacity: .6; text-decoration: line-through; }
+  .card { border-left: 3px solid var(--destructive, #d0584b); }
+  .card.sharp { border-left-color: var(--warning, #d6a23a); }
+  .card h3 { margin: 0 0 6px; font-size: 13.5px; }
+  .tag { font-size: 11px; font-weight: 600; margin-left: 6px; color: var(--muted-foreground, #8a96a0); }
+  .k { color: var(--muted-foreground, #8a96a0); font-weight: 600; }
+  pre { white-space: pre-wrap; font-family: var(--font-mono, monospace); font-size: 12px; background: var(--code-background, rgba(127,127,127,.12)); padding: 12px; border-radius: var(--radius, 6px); margin: 8px 0; }
+  .copy { font: inherit; font-weight: 600; padding: 7px 14px; border-radius: var(--radius, 6px); border: 0; background: var(--primary, #4b9fd0); color: var(--primary-foreground, #04121a); cursor: pointer; }
+  details { margin: 6px 0; }
+  summary { cursor: pointer; font-weight: 600; }
+  label.t { display: block; margin: 4px 0; }
+</style>
+</head>
+<body>
+<h1>Lane slots in the skirmish lobby: map of unknowns</h1>
+<p class="sub">Your slot number is your lane: it's painted on the lobby triangles and on markers in battle, and the AI leans toward its own lane. Plus three lobby cleanups. Walk finished 2026-11-14.</p>
+
+<div class="box" style="border-color:var(--warning,#d6a23a)"><b>Superseded by the plan.</b> This is the explore-unknowns map as delivered on 2026-11-14, kept for its reasoning. The <a href="../README.md">spec README</a> is the source of truth. Changed since: A2 (HUD label) is replaced by D9, the digit painted on the ground behind the entry chevrons, which already exist (<code>buildDeploymentMarker</code>); the planner's distance is straight-line, not route length; lanes reach TypeScript through a Wasm function, not a new <code>EntrySite</code> field (A9); help requests' lane moves onto the rule (A8). The "Plan + prompt" tab is replaced by the slices; don't build from it.</div>
+<nav id="tabs">
+  <button data-s="kk" aria-pressed="true">1 · Known knowns</button>
+  <button data-s="ku" aria-pressed="false">2 · Decisions</button>
+  <button data-s="uk" aria-pressed="false">3 · Unknown knowns</button>
+  <button data-s="uu" aria-pressed="false">4 · Landmines</button>
+  <button data-s="plan" aria-pressed="false">Plan + prompt</button>
+</nav>
+
+<section id="kk" class="on">
+  <h2>Contracts first</h2>
+  <div class="box">
+    <ul>
+      <li><b>New lane rule</b>, owned by <code>sim::entries</code>: a side's lanes are numbered 1…n from the map's <b>high-x end</b>, which the lobby picture draws at the top. Slot <i>k</i> (the <i>k</i>-th player on its side) owns lane <i>k</i> when <i>k</i> ≤ n. Slots beyond n own no lane.</li>
+      <li><b>The entry list keeps its order</b> (centre, then the outer roads; I18). Jets coming in by the centre road (D15) and ties going to the centre keep using it. Lanes are a second ordering of the same entries, never a re-sort of the list.</li>
+      <li><b>Lobby picture markup</b> (<code>skirmish_picture</code>, <code>crates/mapgen/src/inspect/lobby.rs</code>): every entry becomes a style-D tag carrying its number and <code>data-lane="N"</code>. The signature stays the same, and the picture still knows nothing about players.</li>
+      <li><b>No new field on the player contract.</b> A slot's lane comes from where the player sits on their side, in the <code>side-index</code> ids that <code>skirmishPlayers</code> already assigns.</li>
+      <li><b>The client gets lane numbers from Rust</b>, served alongside the skirmish sites. TypeScript never works them out itself.</li>
+      <li><b>AI tuning</b> gets one new number in <code>fixtures/skirmish-ai.json</code> (the home-lane pull). This changes battle digests, with one named re-baseline.</li>
+    </ul>
+  </div>
+  <h2>Settled ground (from the territory)</h2>
+  <div class="box">
+    <ul>
+      <li>Entries are shared by the side. A bought unit uses the side's entry with the shortest route (D8, <code>specs/done/team-skirmish/choices.md:381</code>). <b>Unchanged.</b></li>
+      <li>Entry count per side is 1, 2 or 3, set by the larger side (<code>fixtures/skirmish-sizes.json</code>). 4v4 and 5v5 still have 3 roads.</li>
+      <li>The AI planner re-plans every 5 s. With up to 3 AI players, it gives each one a different lane (<code>crates/sim/src/skirmish_ai/team/mod.rs:329</code>). Cost is route length in metres minus bonuses (<code>mod.rs:315</code>). Help requests (I54) move forces between lanes separately.</li>
+      <li>A slot→entry rule already exists for the opening camera, in TypeScript: <code>(N−1) mod count</code> over the centre-first list (<code>web/src/battle/prepare/prepare.ts:194</code>, I17).</li>
+      <li>The preview restarts only on a map-input change (<code>isMapInputChange</code>, <code>apps/battle-lab/src/lobby/model.ts:204</code>). Who sits where is not a map input.</li>
+      <li>The lobby picture maps a world point (x, y) to (height − y, width − x) (<code>lobby.rs:82</code>), so Blue is on the left and the picture's top is the map's high-x end.</li>
+      <li>There is no in-battle entry marker today. The objectives' world-anchored HUD flags live in <code>web/src/battle/present/objectiveMarkers.tsx</code>.</li>
+      <li>Regions: Random, Taiwan, New York, Paris (<code>fixtures/map-presets.json</code> → <code>REGIONS</code>).</li>
+    </ul>
+  </div>
+</section>
+
+<section id="ku">
+  <h2>Decision ledger</h2>
+  <div class="box">
+  <table>
+    <tr><th>#</th><th>Decision · why</th><th>Closed by</th></tr>
+    <tr><td>D1</td><td>Each AI gets a <b>soft pull toward its slot's lane</b>. A lane in much greater need wins, and then the AI moves its whole force there. Applies to every AI on both sides. · Lanes help a team coordinate, and need still governs.</td><td><span class="who user">you</span></td></tr>
+    <tr><td><s>D2</s></td><td><s>The AI leans away from lanes held by humans.</s> Withdrawn: D1's relative pull already does this, and a special case would repeat it.</td><td><span class="who user">you</span></td></tr>
+    <tr><td>D3</td><td>Lanes are numbered <b>top to bottom</b> in the picture, matching the banners. In map terms: from the high-x end, for both sides. A 1v1's single road is 1. On a two-road map, top is 1 and bottom is 2. I17's camera rule follows the lane rule. · The banners and triangles read in the same order.</td><td><span class="who user">you</span></td></tr>
+    <tr><td>D4</td><td><b>Slots 4–5 own no lane</b>: no number, no home pull, and they plan freely. A road no slot holds (Blue's third road in a 2v3) shows no number. · Three roads, three owners.</td><td><span class="who user">you</span></td></tr>
+    <tr><td>D5</td><td>Look: <b>option D, "number is the arrow"</b>, a pointed side-coloured tag with a dark digit. Your own lane gets a <b>white outline and "YOU"</b>.</td><td><span class="who user">you</span></td></tr>
+    <tr><td>D6</td><td>Human-vs-human multiplayer is planned. Marks show <b>numbers only, never names</b>.</td><td><span class="who user">you</span></td></tr>
+    <tr><td>D7</td><td>Lane numbers appear in the lobby picture, the in-battle markers, and the future minimap (which will reuse the lobby picture).</td><td><span class="who user">you</span></td></tr>
+    <tr><td>D8</td><td>The home-lane pull is defined <b>by behaviour, not a number</b>: (a) at match start, every AI takes its home lane on admitted maps of every size, including when a human holds the centre road; (b) later, a lane with clearly more enemy pressure or open objectives pulls an AI off its home lane. The builder finds the value by probing seeds and sizes. · A bonus of 60 is worth only 60 m of route and loses to the centre road's distance advantage.</td><td><span class="who user">you</span> intent · <span class="who terr">territory</span> reshaped</td></tr>
+    <tr><td>D9</td><td>Add <b>numbered entry markers in battle</b> (new UI).</td><td><span class="who user">you</span></td></tr>
+    <tr><td>D10</td><td>Remove the seed from the status line. The status reads "Ready". The seed stays in the Deploy link.</td><td><span class="who user">you</span></td></tr>
+    <tr><td>D11</td><td>Remove the "S · M too small for N a side" line. The greyed-out sizes stay greyed out and can't be picked.</td><td><span class="who user">you</span></td></tr>
+    <tr><td>D12</td><td>Region becomes <b>tabs</b>, using the same control as Match, Map and Size.</td><td><span class="who user">you</span></td></tr>
+    <tr><td>A1</td><td>In-battle markers show <b>your own side's lanes only</b>. · Preferences: readable marks and no clutter. Coordination is within the team, and "each side sees only what its own units can see" argues against marking enemy entries in the world.</td><td><span class="who agent">agent on your behalf</span></td></tr>
+    <tr><td>A2</td><td>The in-battle marker is a <b>world-anchored HUD tag</b>, a sibling of the objective flags (<code>objectiveMarkers.tsx</code>), placed at each entry. It isn't GPU ground paint. · Readable digits at any zoom, and one owner for world-anchored HUD labels.</td><td><span class="who agent">agent on your behalf</span></td></tr>
+    <tr><td>A3</td><td>In-battle markers are <b>always on</b> while their entry is on screen, the same as the objective flags. · Callouts like "push 2" need the number visible mid-fight.</td><td><span class="who agent">agent on your behalf</span></td></tr>
+    <tr><td>A4</td><td>A road no slot holds, in battle, shows the <b>plain tag with no digit</b>, the same as in the lobby. · One rule for both screens.</td><td><span class="who agent">agent on your behalf</span></td></tr>
+    <tr><td>A5</td><td>Red's lobby triangles are numbered too. Red's AI gets the same home-lane pull. · One general rule, and multiplayer could put humans on Red later.</td><td><span class="who agent">agent on your behalf</span></td></tr>
+    <tr><td>A6</td><td>A human in slot 4 or 5 starts with the camera on the centre road, the same as a battle with no human. · Follows D4.</td><td><span class="who agent">agent on your behalf</span></td></tr>
+    <tr><td>A7</td><td>The lobby picture stays free of player data. The lobby hides the digits on roads nobody holds and outlines YOU, using <code>data-lane</code> selectors. · Seat changes don't redraw the map (landmine 2), and the minimap will reuse the picture.</td><td><span class="who agent">agent on your behalf</span></td></tr>
+  </table>
+  </div>
+  <div class="box">
+    <b>Delegation.</b> Scope: small questions that follow clearly from your preferences, with real trade-offs still coming to you. Your preferences: one general rule over special cases · what the player sees beats legacy consistency · bold, readable marks · the AI gets soft nudges and need wins · no implementation details on screen. Correct any A-row and I'll reopen whatever it affects.
+  </div>
+  <div class="box"><b>OPEN:</b> nothing. The home-pull value isn't a decision you need to make: D8 sets the behaviour, and the builder's probe settles the number.</div>
+</section>
+
+<section id="uk">
+  <h2>What surfaced along the way</h2>
+  <div class="box">
+    <ul>
+      <li><b>The purpose changed mid-walk.</b> The request started as "pick my starting location". Then you pointed out that spawning ignores it anyway. The real goal is <b>team coordination</b>: people owning lanes in human multiplayer. This led to D1, D6, D7 and D9.</li>
+      <li><b>Who reads the numbers:</b> teammates in human-vs-human matches, calling lanes by number. So there are no names, and the numbers have to stay readable in the middle of a battle.</li>
+      <li><b>Taste:</b> you went with the boldest option (D) over the subtler ones, and picked banner/triangle order over the existing camera order. Your own lane should stand out.</li>
+      <li><b>What you expect from the AI:</b> "at the start, everyone takes their assigned lane; as the battle goes on, it goes where the need is." That sentence is now D8's acceptance test.</li>
+      <li><b>Future:</b> the minimap will look like the lobby picture, so lane tags belong in the shared Rust picture, not in lobby-only code.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="uu">
+  <h2>Landmines (the sweep covered the lobby, picture, camera, planner, entry rules and the tests that pin them)</h2>
+  <div class="box card"><h3>1 · A small home bonus won't hold an AI on its lane <span class="tag">decided → D8</span></h3>
+    <span class="k">Evidence:</span> cost is in metres (<code>mod.rs:315</code>, distance_weight 1.0), with distinct lanes per AI (<code>mod.rs:329</code>), and incumbency 80 (<code>fixtures/skirmish-ai.json:28</code>).<br>
+    <span class="k">Why it bites:</span> with a human on the centre road, the 2 AI players still pick 2 of the 3 roads. If the centre is hundreds of metres closer, it beats a small bonus, and an AI takes your lane from the start. After moving, incumbency keeps it there.<br>
+    <span class="k">Changes:</span> the requirement is behavioural, and the number comes from a probe.</div>
+  <div class="box card"><h3>2 · Changing seats doesn't redraw the picture <span class="tag">decided → A7</span></h3>
+    <span class="k">Evidence:</span> <code>isMapInputChange</code> (<code>model.ts:204</code>). Going from 2v3 to 3v3 also keeps the entry count.<br>
+    <span class="k">Changes:</span> the picture labels every lane, and the lobby overlays who holds each one.</div>
+  <div class="box card"><h3>3 · "Top" is a screen word <span class="tag">decided → contract</span></h3>
+    <span class="k">Evidence:</span> <code>at = [height − y, width − x]</code> (<code>lobby.rs:82</code>).<br>
+    <span class="k">Changes:</span> the rule is stated as high-x first. A test checks that the picture's lane 1 is its topmost arrow on both sides.</div>
+  <div class="box card"><h3>4 · Two owners of slot→lane <span class="tag">decided → delete TS copy</span></h3>
+    <span class="k">Evidence:</span> <code>prepare.ts:194</code> works out the camera lane in TypeScript.<br>
+    <span class="k">Changes:</span> the camera, AI, picture and in-battle markers all read <code>sim::entries</code>.</div>
+  <div class="box card"><h3>5 · AI behaviour changes digests <span class="tag">decided → named re-baseline</span></h3>
+    <span class="k">Evidence:</span> pinned digests in <code>crates/sim/tests/skirmish.rs</code> and <code>fixtures/parity/*</code>.<br>
+    <span class="k">Changes:</span> one commit for the AI change and re-baseline, kept apart from the UI commits. The lobby cleanups and the picture must leave digests unchanged.</div>
+  <div class="box card sharp"><h3>6 · Earlier decisions reversed <span class="tag">sharp edge</span></h3>
+    I20 ("entries are unlabelled … no entry belongs to a player") and I17 (camera <code>(N−1) mod count</code>) get rewritten in <code>specs/done/team-skirmish/choices.md</code>. D8 itself (shared entries, quickest route) is still true.</div>
+  <div class="box card sharp"><h3>7 · Tests pin the removed text <span class="tag">sharp edge</span></h3>
+    <code>web/tests/lobbyScreen.test.tsx:77</code> expects "Ready seed 77", and there's the <code>lobby-size-reason</code> element. Rewrite them as behaviour checks: the status says Ready, and the closed sizes can't be picked.</div>
+  <div class="box card sharp"><h3>8 · Slots 4–5 can crowd a human's lane <span class="tag">sharp edge</span></h3>
+    With no home lane (D4) and no special rule (D2 withdrawn), they go wherever the need is, your lane included. That's intended.</div>
+  <div class="box card sharp"><h3>9 · Objectives already use numbers <span class="tag">sharp edge</span></h3>
+    The objectives' white circled 1–7 sit on the same map. Style D's side-coloured pointed tag is clearly different. Keep it that way in battle too: the objective flags show an icon plus a digit.</div>
+  <h2>Facts the builder confirms before coding</h2>
+  <div class="box"><ul>
+    <li>How the battle HUD gets skirmish sites today (prepared battle or observation), so lane numbers can ride along without a TypeScript rule.</li>
+    <li>Whether the native client draws the objective flags. If it does, the in-battle lane tags need the same parity there.</li>
+    <li>How a two-road map's entries sit along the edge (expected top and bottom, with no centre road), checked on an admitted Medium map.</li>
+    <li>The re-baseline procedure in <code>crates/sim/README.md</code>.</li>
+  </ul></div>
+</section>
+
+<section id="plan">
+  <h2>Tweakable plan (judgment calls first)</h2>
+  <div class="box">
+    <label class="t"><input type="checkbox" checked data-p="probe"> AI home-lane pull: probe seeds and sizes, pin D8(a) and D8(b) as sim tests, one named re-baseline</label>
+    <label class="t"><input type="checkbox" checked data-p="battle"> In-battle lane tags: HUD sibling of the objective flags, own side only, always on (A1–A3). Use the game-ui skill and screenshot critique.</label>
+    <label class="t"><input type="checkbox" checked data-p="you"> YOU outline in the lobby and in battle</label>
+    <label class="t"><input type="checkbox" checked data-p="red"> Number Red's lanes too (A5)</label>
+  </div>
+  <details class="box"><summary>Mechanical work (I trust you on that part)</summary>
+    <ul>
+      <li>Lane rule in <code>sim::entries</code> (high-x first), served to the client with the sites. Delete the camera's TS copy, and move I17 onto the rule.</li>
+      <li><code>skirmish_picture</code>: style-D tags with digits and <code>data-lane</code>. Update the picture test (lane 1 topmost on both sides).</li>
+      <li>Lobby: hide unheld digits and outline YOU through <code>data-lane</code>. Remove the seed from status and the size-reason line. Region becomes tabs (<code>Choice</code>).</li>
+      <li>Rewrite the lobby screen tests as behaviour checks. Rewrite I17 and I20.</li>
+      <li>Visual gate: before and after shots of the lobby (3v3, 2v3, 5v5) and of battle, unprimed critique, preview the shots.</li>
+    </ul>
+  </details>
+  <h2>Implementation prompt</h2>
+  <pre id="prompt"></pre>
+  <button class="copy" id="copy">Copy prompt</button>
+</section>
+
+<script>
+  const tabs = document.querySelectorAll("#tabs button");
+  tabs.forEach((b) => b.onclick = () => {
+    tabs.forEach((o) => o.setAttribute("aria-pressed", String(o === b)));
+    document.querySelectorAll("section").forEach((s) => s.classList.toggle("on", s.id === b.dataset.s));
+  });
+  const parts = {
+    probe: "- AI home-lane pull (D1, D8): add one tuning value to fixtures/skirmish-ai.json and a home-lane term to the planner score in crates/sim/src/skirmish_ai/team/mod.rs. Pin D8 as sim tests: (a) at match start every AI takes its home lane on admitted maps of every size, including when a human holds the centre road; (b) a lane with clearly more enemy pressure or open objectives pulls an AI away later. Find the value with a probe; it isn't a target. One named digest re-baseline commit, separate from the UI.",
+    battle: "- In-battle lane tags (D9, A1–A4): a world-anchored HUD tag per own-side entry, a sibling of web/src/battle/present/objectiveMarkers.tsx, style D, always on while its entry is on screen; a road no slot holds shows a tag with no digit. Use the game-ui skill first, then screenshot-critique.",
+    you: "- Your own lane gets a white outline and \"YOU\" in the lobby and in battle (D5).",
+    red: "- Red's lanes are numbered the same way, and Red's AI gets the same pull (A5).",
+  };
+  const base = `Implement the lane-slots map (throwaway/lane-numbers/map.html is the source of truth for decisions; don't re-decide them).
+
+Contract: sim::entries owns one lane rule. A side's lanes are numbered 1..n from the map's high-x end (the lobby picture's top), for both sides; slot k (k-th player on its side) owns lane k when k <= n; slots 4-5 own none (D3, D4). The centre-first entry list (I18, D15) is unchanged. No new player field. The client gets lane numbers from Rust with the sites; delete the TS camera rule at web/src/battle/prepare/prepare.ts:194 and move I17 onto the lane rule (a human in slot 4-5 starts on the centre road).
+
+- Lobby picture (crates/mapgen/src/inspect/lobby.rs skirmish_picture): style-D pointed tag with a dark digit per entry plus data-lane="N"; the picture stays player-free. Test: lane 1 is the topmost arrow on both sides.
+- Lobby (apps/battle-lab/src/lobby/Lobby.tsx): hide digits on lanes no slot holds, via data-lane; remove the seed from the status (just "Ready"); remove the size-reason line (closed sizes stay disabled); Region becomes tabs using Choice.
+`;
+  const tail = `
+- Rewrite lobbyScreen tests that pinned the removed text as behaviour checks. Rewrite I17/I20 in specs/done/team-skirmish/choices.md.
+- Before coding, confirm: how the HUD gets the sites; whether native draws the objective flags (then the tags need parity); how a two-road map's entries sit along the edge.
+- Visual gate: before/after lobby shots (3v3, 2v3, 5v5) and battle shots, compare-screenshots, screenshot-critique, preview-shots.`;
+  function write() {
+    const on = [...document.querySelectorAll("[data-p]")].filter((c) => c.checked).map((c) => parts[c.dataset.p]);
+    document.getElementById("prompt").textContent = base + on.join("\n") + tail;
+  }
+  document.querySelectorAll("[data-p]").forEach((c) => c.onchange = write);
+  document.getElementById("copy").onclick = () => { try { navigator.clipboard.writeText(document.getElementById("prompt").textContent); } catch (e) {} };
+  write();
+</script>
+</body>
+</html>
