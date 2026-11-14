@@ -258,3 +258,26 @@ test("a ghost stays placeable while the side's knowledge changes faster than pre
     destination: [12, 20],
   });
 });
+
+test("a placement confirmed to place another keeps the choice for the next one", async () => {
+  const client = {
+    previewPurchase: vi.fn(async (_variant: string, at: [number, number]) => ({
+      Ok: { kind: 1, destination: at, spots: [] },
+    })),
+  } as unknown as SimClient;
+  const control = new PurchasePlacementControl();
+  control.choose("test_scout");
+  control.at([10, 20], client, "1");
+  await settle();
+  const send = vi.fn(async () => ({ seq: 1, applied_tick: 2, error: null, refused: [] }));
+  expect(await control.confirm(send, true)).toBeTruthy();
+  expect(control.variant).toBe("test_scout");
+  control.at([30, 40], client, "2");
+  await settle();
+  expect(await control.confirm(send)).toBeTruthy();
+  expect(send.mock.calls).toEqual([
+    [{ kind: "confirm_purchase", variant: "test_scout", destination: [10, 20] }],
+    [{ kind: "confirm_purchase", variant: "test_scout", destination: [30, 40] }],
+  ]);
+  expect(control.variant).toBeNull();
+});

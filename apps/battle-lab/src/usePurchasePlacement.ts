@@ -30,11 +30,12 @@ export function usePurchasePlacement(client: SimClient | null) {
     },
     [placement],
   );
-  /** A click with a unit in hand: the left button places it, the right cancels. */
+  /** A click with a unit in hand: the left button places it (with Shift
+   *  held, keeping it in hand for another), the right cancels. */
   const click = useCallback(
     (pick: LabPick, send: Send) => {
       if (pick.button === "right") return cancel();
-      void placement.confirm(send).then((accepted) => {
+      void placement.confirm(send, pick.shift).then((accepted) => {
         if (!accepted) return;
         placed.current.push(accepted);
         if (!placement.variant) {

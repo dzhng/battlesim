@@ -192,8 +192,9 @@ export function Tutorial() {
             <kbd>Esc</kbd> cancels without spending anything.
           </li>
           <li>
-            The price is paid when you confirm. Each placement buys one unit; open the shop again
-            for the next.
+            The price is paid when you confirm, and each placement buys one unit. Hold{" "}
+            <kbd>Shift</kbd> as you click to keep the unit in hand and place another of the same; a
+            click without <kbd>Shift</kbd> places the last one.
           </li>
           <li>
             You can keep buying all battle: a unit bought mid-fight drives in from your entry point

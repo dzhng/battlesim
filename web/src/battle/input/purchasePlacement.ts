@@ -117,9 +117,11 @@ export class PurchasePlacementControl {
         this.resolve();
       });
   }
-  /** The ghost the authority accepted, or null when nothing was placed. */
+  /** The ghost the authority accepted, or null when nothing was placed.
+   *  `another` keeps the choice after an accepted placement, for the next. */
   async confirm(
     send: (order: Order) => Promise<CommandAck | null | undefined>,
+    another = false,
   ): Promise<PurchaseGhost | null> {
     const ghost = this.ghost;
     if (
@@ -139,7 +141,7 @@ export class PurchasePlacementControl {
         destination: ghost.destination,
       });
       if (!ack || ack.error) return null;
-      if (confirmation === this.generation) this.cancel();
+      if (confirmation === this.generation && !another) this.cancel();
       return { ...ghost, valid: true };
     } finally {
       if (this.confirmation === confirmation) this.confirmation = null;
