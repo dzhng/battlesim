@@ -16,6 +16,15 @@ html {
   user-select: text;
 }
 
+/* Nor does it ever show the browser's scrollbars: a panel that overflows
+   still scrolls by wheel, touch or keys, but no bar is drawn. */
+* {
+  scrollbar-width: none !important;
+}
+::-webkit-scrollbar {
+  display: none !important;
+}
+
 /* The black halo that keeps callout text legible over any ground. */
 :root {
   --hud-text-halo: 0 0 2px rgb(0 0 0 / 0.95), 0 0 5px rgb(0 0 0 / 0.7);
@@ -1805,8 +1814,6 @@ html {
   margin: 0;
   overflow-y: auto;
   list-style: none;
-  scrollbar-color: rgb(var(--hud-accent) / 0.58) rgb(255 255 255 / 0.06);
-  scrollbar-width: thin;
   padding: 6px 18px 14px;
 }
 /* Lines run on below the fold: the list fades out at its foot. */
@@ -1821,15 +1828,6 @@ html {
 .match-result-actor[data-destroyed] .match-result-unit {
   border-style: dashed;
   opacity: 0.55;
-}
-.match-result-timeline::-webkit-scrollbar {
-  width: 8px;
-}
-.match-result-timeline::-webkit-scrollbar-track {
-  background: rgb(255 255 255 / 0.06);
-}
-.match-result-timeline::-webkit-scrollbar-thumb {
-  background: rgb(var(--hud-accent) / 0.58);
 }
 .match-result-event {
   display: grid;

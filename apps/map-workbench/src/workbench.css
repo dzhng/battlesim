@@ -443,14 +443,8 @@
   color: #596751;
   padding: 5px 0;
 }
-.mw-fields {
-  scrollbar-gutter: stable;
-}
 .mw-file-diff section {
   min-width: 0;
-}
-.mw-file-diff pre {
-  scrollbar-gutter: stable;
 }
 .mw-review-changes {
   border-collapse: collapse;
