@@ -16,10 +16,11 @@ pub struct Rules {
     pub sight: SightRule,
     pub clear: Clearances,
     pub fairness: Evenness,
-    pub homesteads: Steads,
+    #[serde(deserialize_with = "homesteads")]
+    pub homesteads: Steads<Homes>,
     /// Military depots: rarer than homes, a few prop bodies each.
     #[serde(deserialize_with = "depots")]
-    pub depots: Steads,
+    pub depots: Steads<Vec<BodyGroup>>,
     pub tree_lines: TreeLines,
     pub copses: Copses,
     pub lone_trees: LoneTrees,
@@ -75,21 +76,21 @@ pub struct Evenness {
 }
 
 /// Groups of pieces outside the settlements, each at a station on a country
-/// road or track: how many a map holds, and how each one stands.
-#[derive(Clone, Debug, Deserialize)]
-#[serde(from = "HomesteadRow")]
-pub struct Steads {
+/// road or track: how many a map holds, and how each one stands. `P` is what
+/// a group's yards hold: `Homes`, or a depot's body groups.
+#[derive(Clone, Debug)]
+pub struct Steads<P> {
     /// Groups for each kilometre of country road and track outside the
     /// settlements.
     pub per_road_km: f64,
     /// Places tried for each group.
     pub attempts: u32,
-    pub steading: Steading,
+    pub steading: Steading<P>,
 }
 
 /// How one group stands: its station on the road, its yards and its pieces.
 #[derive(Clone, Debug)]
-pub struct Steading {
+pub struct Steading<P> {
     /// Two groups stand at least this far apart.
     pub apart_m: f64,
     /// The share of groups that stand back from the road at the end of a
@@ -100,20 +101,37 @@ pub struct Steading {
     pub spread_m: f64,
     /// A piece's yard: its footprint plus these setbacks.
     pub yard: Yard,
-    pub pieces: Pieces,
+    pub pieces: P,
 }
 
-/// What a group's yards hold.
-#[derive(Clone, Debug)]
-pub enum Pieces {
+/// What a group's yards hold, as the station walk reads it.
+#[derive(Clone, Copy, Debug)]
+pub enum Pieces<'a> {
     /// A building lot each, furnished with trees and a body.
-    Homes(Homes),
+    Homes(&'a Homes),
     /// A prop body each (or a row of them), sized by its box in
     /// `street_props.bodies`.
-    Bodies(Vec<BodyGroup>),
+    Bodies(&'a [BodyGroup]),
 }
 
-impl Pieces {
+/// A steading's pieces, as the station walk reads them.
+pub trait Pieced {
+    fn pieces(&self) -> Pieces<'_>;
+}
+
+impl Pieced for Homes {
+    fn pieces(&self) -> Pieces<'_> {
+        Pieces::Homes(self)
+    }
+}
+
+impl Pieced for Vec<BodyGroup> {
+    fn pieces(&self) -> Pieces<'_> {
+        Pieces::Bodies(self)
+    }
+}
+
+impl Pieces<'_> {
     /// What a group of bodies is called: its lots are `country/depot-<n>/…`.
     pub const DEPOT: &'static str = "depot";
 
@@ -219,7 +237,15 @@ struct DepotYard {
     rear_m: f64,
 }
 
-fn depots<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Steads, D::Error> {
+fn homesteads<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Steads<Homes>, D::Error> {
+    HomesteadRow::deserialize(deserializer).map(Steads::from)
+}
+
+fn depots<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Steads<Vec<BodyGroup>>, D::Error> {
     let row = DepotRow::deserialize(deserializer)?;
     Ok(Steads {
         per_road_km: row.per_road_km,
@@ -235,12 +261,12 @@ fn depots<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Steads, D
                 rear_m: row.yard.rear_m,
                 door_clear_m: 0.0,
             },
-            pieces: Pieces::Bodies(row.groups),
+            pieces: row.groups,
         },
     })
 }
 
-impl From<HomesteadRow> for Steads {
+impl From<HomesteadRow> for Steads<Homes> {
     fn from(row: HomesteadRow) -> Self {
         Steads {
             per_road_km: row.per_road_km,
@@ -251,13 +277,13 @@ impl From<HomesteadRow> for Steads {
                 lane_m: row.lane_m,
                 spread_m: row.spread_m,
                 yard: row.yard,
-                pieces: Pieces::Homes(Homes {
+                pieces: Homes {
                     groups: row.groups,
                     tree_chance: row.tree_chance,
                     tree_plot_m: row.tree_plot_m,
                     body_chance: row.body_chance,
                     bodies: row.bodies,
-                }),
+                },
             },
         }
     }
@@ -441,9 +467,7 @@ impl Rules {
         );
         let h = &self.homesteads;
         let steading = &h.steading;
-        let Pieces::Homes(homes) = &steading.pieces else {
-            unreachable!("homesteads are read as homes")
-        };
+        let homes = &steading.pieces;
         check(
             length(h.per_road_km)
                 && length(steading.apart_m)
@@ -480,9 +504,7 @@ impl Rules {
         );
         let d = &self.depots;
         let s = &d.steading;
-        let Pieces::Bodies(groups) = &s.pieces else {
-            unreachable!("depots are read as bodies")
-        };
+        let groups = &s.pieces;
         check(
             length(d.per_road_km)
                 && length(s.apart_m)

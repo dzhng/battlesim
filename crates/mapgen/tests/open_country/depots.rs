@@ -55,10 +55,7 @@ fn rings(shapes: impl IntoIterator<Item = GroundShape>) -> Vec<Vec<Point>> {
 #[test]
 fn depots_stand_in_open_country_on_legal_ground() {
     let presets = presets();
-    let mapgen::open_country::Pieces::Bodies(groups) = &presets.open_country.depots.steading.pieces
-    else {
-        unreachable!()
-    };
+    let groups = &presets.open_country.depots.steading.pieces;
     let approach = presets.rivers.bridge.approach_m;
     let mut seen = 0;
     every_cell(|country| {

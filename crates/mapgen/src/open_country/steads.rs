@@ -30,15 +30,16 @@ struct Row<'g> {
 impl<'a> Country<'a> {
     /// One group of `kind`'s pieces at a place on a road in `half`; `fits`
     /// are the templates each of its groups may build.
-    pub(super) fn stead(
+    pub(super) fn stead<P: Pieced>(
         &mut self,
         half: usize,
-        kind: &Steading,
+        kind: &Steading<P>,
         fits: &[Choices],
         rng: &mut Stream,
     ) -> bool {
         let presets = self.presets;
-        let name = kind.pieces.name();
+        let pieces = kind.pieces.pieces();
+        let name = pieces.name();
         let Some((road, s)) = self.station(rng) else {
             return false;
         };
@@ -57,7 +58,7 @@ impl<'a> Country<'a> {
             return false;
         }
         let along = scale(sub(ahead, at), 1.0 / distance(at, ahead));
-        let (group, count) = match &kind.pieces {
+        let (group, count) = match pieces {
             Pieces::Homes(homes) => {
                 let (group, choices) = rng
                     .pick(

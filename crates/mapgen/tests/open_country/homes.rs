@@ -7,11 +7,7 @@ use super::*;
 #[test]
 fn homes_stand_in_open_country_on_legal_ground() {
     let presets = presets();
-    let mapgen::open_country::Pieces::Homes(homes) =
-        &presets.open_country.homesteads.steading.pieces
-    else {
-        unreachable!()
-    };
+    let homes = &presets.open_country.homesteads.steading.pieces;
     let largest = homes
         .groups
         .iter()

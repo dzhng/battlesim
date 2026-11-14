@@ -571,9 +571,7 @@ pub(crate) fn furnish(
         let family = crate::parcels::family(request, presets);
         let (preset, _) = presets.cell(request.map_type, request.size);
         let h = &rules.homesteads;
-        let Pieces::Homes(homes) = &h.steading.pieces else {
-            unreachable!("homesteads are read as homes")
-        };
+        let homes = &h.steading.pieces;
         let eligible = homes.choices(&fits, preset, family);
         let open_km2 = country.estimated_open_km2();
         let e = rules.fairness;
