@@ -757,13 +757,13 @@ fn golden_hour_is_the_v4_look_with_the_day_azimuth() {
     assert_eq!(settings.light.cascades.softness_m, 0.16);
     assert_eq!(settings.light.cascades.map_size, 2048);
     // Glow is strongest at golden hour; bloom is a wide, low-threshold highpass.
-    assert_eq!(settings.light.glow.wrap, 0.40);
-    assert_eq!(settings.light.glow.rim, 0.22);
-    assert_eq!(settings.light.bloom.threshold, 0.92);
-    assert_eq!(settings.light.bloom.radius, 0.88);
-    assert_eq!(settings.light.bloom.strength, 0.30);
-    assert_eq!(settings.light.haze.sun_strength, 0.34);
-    assert_eq!(settings.light.haze.sun_power, 2.2);
+    assert_eq!(settings.light.glow.wrap, 0.80);
+    assert_eq!(settings.light.glow.rim, 0.45);
+    assert_eq!(settings.light.bloom.threshold, 0.88);
+    assert_eq!(settings.light.bloom.radius, 0.94);
+    assert_eq!(settings.light.bloom.strength, 0.60);
+    assert_eq!(settings.light.haze.sun_strength, 0.50);
+    assert_eq!(settings.light.haze.sun_power, 1.9);
     // Vegetation response is a no-op by day and a green lift at golden hour.
     assert_eq!(settings.light.vegetation_tint, [0.90, 1.18, 1.40]);
 }
@@ -798,10 +798,10 @@ fn sunlit_glow_is_packed_into_the_sun_record_and_day_is_gentler() {
     let settings =
         presentation::settings::PresentationSettings::from_value(&fixture("presentation")).unwrap();
     let day = settings.light.records().sun.settings;
-    assert_eq!(day[2], 0.16);
-    assert_eq!(day[3], 0.08);
-    assert_eq!(settings.light.bloom.threshold, 1.25);
-    assert_eq!(settings.light.haze.sun_strength, 0.22);
+    assert_eq!(day[2], 0.22);
+    assert_eq!(day[3], 0.11);
+    assert_eq!(settings.light.bloom.threshold, 1.15);
+    assert_eq!(settings.light.haze.sun_strength, 0.30);
     let golden = settings
         .with_light_preset("golden_hour")
         .unwrap()

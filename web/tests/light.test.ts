@@ -134,10 +134,10 @@ test("the fixture admits a day default and a selectable golden_hour look", () =>
   expect(golden.sky.saturation).toBe(1.32);
   expect(golden.grade.highlight_tint).toEqual([1.0, 1.04, 0.98]);
   expect(golden.grade.split_tone).toBe(0.5);
-  expect(golden.glow.wrap).toBe(0.4);
-  expect(golden.glow.rim).toBe(0.22);
-  expect(golden.bloom.threshold).toBe(0.92);
-  expect(golden.haze.sun_strength).toBe(0.34);
+  expect(golden.glow.wrap).toBe(0.8);
+  expect(golden.glow.rim).toBe(0.45);
+  expect(golden.bloom.threshold).toBe(0.88);
+  expect(golden.haze.sun_strength).toBe(0.5);
   expect(LIGHT.glow.wrap).toBeLessThan(golden.glow.wrap);
   expect(LIGHT.glow.rim).toBeLessThan(golden.glow.rim);
   expect(LIGHT.vegetation_tint).toEqual([1.0, 1.0, 1.0]);
