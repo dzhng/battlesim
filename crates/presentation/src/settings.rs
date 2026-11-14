@@ -16,6 +16,13 @@ use serde::{de::DeserializeOwned, Deserialize};
 use serde_json::Value;
 use std::collections::BTreeMap;
 
+/// The fixture's default lighting look: mid-morning sun, stored in `light`.
+pub const DAY_LIGHT_PRESET: &str = "day";
+
+fn day_light_preset() -> String {
+    DAY_LIGHT_PRESET.to_owned()
+}
+
 /// Deserialize without losing the path to a bad nested key or value.
 pub fn read<T: DeserializeOwned>(value: &Value, path: &str) -> Result<T, String> {
     serde_path_to_error::deserialize(value).map_err(|e| {
@@ -41,7 +48,16 @@ pub struct PresentationSettings {
     pub ground: Ground,
     pub camera: Camera,
     pub camera_armory: ArmoryCamera,
+    /// The selected lighting look, resolved from [`Self::light_preset`].
     pub light: LightSettings,
+    /// Named lighting looks other than [`DAY_LIGHT_PRESET`], which is the
+    /// authored `light` object. After admission the table also holds `day`.
+    #[serde(default)]
+    pub light_presets: BTreeMap<String, LightSettings>,
+    /// Which look `light` holds. `"day"` is the authored default; changing
+    /// this field is how golden hour becomes the shipped default.
+    #[serde(default = "day_light_preset")]
+    pub light_preset: String,
     pub fog_geometry: Geometry,
     pub fog: FogPresentation,
     pub map_border: MapBorder,
@@ -61,7 +77,8 @@ pub struct PresentationSettings {
 
 impl PresentationSettings {
     pub fn from_value(value: &Value) -> Result<Self, String> {
-        let settings: Self = read(value, "presentation")?;
+        let mut settings: Self = read(value, "presentation")?;
+        settings.install_light_presets()?;
         settings.light.check()?;
         settings.fog.selected()?;
         settings.fog_geometry.check()?;
@@ -73,6 +90,48 @@ impl PresentationSettings {
         }
         validate::presentation(&settings)?;
         Ok(settings)
+    }
+
+    /// Admit every named look and resolve [`Self::light`] to the selected one.
+    /// `day` is reserved in `light_presets`: the default look lives in `light`.
+    fn install_light_presets(&mut self) -> Result<(), String> {
+        if self.light_presets.contains_key(DAY_LIGHT_PRESET) {
+            return Err(
+                "presentation.light_presets.day: reserved; the default look is presentation.light"
+                    .into(),
+            );
+        }
+        self.light.check()?;
+        for (name, light) in &self.light_presets {
+            light.check().map_err(|e| {
+                e.replace(
+                    "presentation.light",
+                    &format!("presentation.light_presets.{name}"),
+                )
+            })?;
+        }
+        let mut table = std::mem::take(&mut self.light_presets);
+        table.insert(DAY_LIGHT_PRESET.to_owned(), self.light.clone());
+        let selected = self.light_preset.as_str();
+        self.light = table
+            .get(selected)
+            .ok_or_else(|| format!("presentation.light_preset: unknown preset `{selected}`"))?
+            .clone();
+        self.light_presets = table;
+        Ok(())
+    }
+
+    /// The same document under another named look.
+    pub fn with_light_preset(&self, name: &str) -> Result<Self, String> {
+        let light = self
+            .light_presets
+            .get(name)
+            .cloned()
+            .ok_or_else(|| format!("presentation.light_preset: unknown preset `{name}`"))?;
+        let mut out = self.clone();
+        out.light = light;
+        out.light_preset = name.to_owned();
+        Ok(out)
     }
 
     pub fn tuning(&self) -> Tuning {

@@ -5,7 +5,13 @@
 // resolved and tested in the presentation crate (`crates/presentation/tests/
 // light.rs` and `shadow.rs`); here, the page's binding hands the renderer the
 // words defined by the shared Rust record layouts.
-import { presentationSettings } from "@web/presentationSettings";
+import {
+  lightForPreset,
+  lightPreset,
+  lightPresets,
+  presentationSettings,
+} from "@web/presentationSettings";
+import presentation from "../../fixtures/presentation.json";
 import { expect, test } from "vitest";
 import { type LightPresentation } from "@packages/battle-renderer/src/light/sceneLight.ts";
 import { loadPresentation, ScenePresentation } from "@web/battle/sim/presentation";
@@ -16,7 +22,7 @@ import {
   CameraAt,
 } from "@packages/battle-renderer/src/records.gen.ts";
 
-import { light_records } from "@wasm/renderer_browser";
+import { check_presentation, light_records } from "@wasm/renderer_browser";
 await loadPresentation();
 const checkLight = (light: LightPresentation) => {
   light_records(JSON.stringify(light));
@@ -105,4 +111,33 @@ test("a cloud field past full is refused by name", () => {
 test("the grade's switch is a boolean the validation accepts either way", () => {
   expect(checkLight(withLight((l) => (l.grade.enabled = false)))).toBeTruthy();
   expect(checkLight(withLight((l) => (l.grade.enabled = true)))).toBeTruthy();
+});
+
+test("the fixture admits a day default and a selectable golden_hour look", () => {
+  expect(lightPreset).toBe("day");
+  expect(LIGHT.sun_elevation).toBe(0.7);
+  expect(LIGHT.sun_azimuth).toBe(-0.35);
+  expect(lightPresets.day.sun_elevation).toBe(0.7);
+  const golden = lightForPreset("golden_hour");
+  expect(golden.sun_azimuth).toBe(LIGHT.sun_azimuth);
+  expect(golden.sun_elevation).toBe(0.16);
+  expect(golden.exposure).toBe(1.78);
+  expect(golden.sky.fill).toEqual([0.62, 0.7, 0.84]);
+  expect(golden.sky.turbidity).toBe(3.2);
+  expect(golden.grade.split_tone).toBe(0.5);
+  expect(() => lightForPreset("dusk")).toThrow(/unknown light preset/);
+  expect(checkLight(golden)).toBe(golden);
+});
+
+test("selecting golden hour as the document default is a one-key change", () => {
+  const admitted = JSON.parse(
+    check_presentation(JSON.stringify({ ...presentation, light_preset: "golden_hour" })),
+  ) as {
+    light: LightPresentation;
+    light_preset: string;
+    light_presets: { day: LightPresentation };
+  };
+  expect(admitted.light_preset).toBe("golden_hour");
+  expect(admitted.light.sun_elevation).toBe(0.16);
+  expect(admitted.light_presets.day.sun_elevation).toBe(0.7);
 });

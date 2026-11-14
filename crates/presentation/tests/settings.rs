@@ -157,7 +157,10 @@ fn a_default_recording_cannot_invent_a_landing_material() {
 #[test]
 fn misspellings_in_every_document_section_name_their_path() {
     let doc = fixture("presentation");
-    for section in doc.as_object().unwrap().keys() {
+    for (section, value) in doc.as_object().unwrap() {
+        if !value.is_object() {
+            continue;
+        }
         let mut bad = doc.clone();
         bad[section]["misspelled_field"] = json!(false);
         let error = presentation::settings::PresentationSettings::from_value(&bad)
@@ -697,6 +700,94 @@ fn a_look_cannot_shorten_an_impact_past_its_cast_light_at_document_admission() {
         .expect("the scaled impact must last as long as its light");
     assert!(
         error.contains("tank_sabot") && error.contains("hull"),
+        "{error}"
+    );
+}
+
+#[test]
+fn the_shipped_default_light_is_the_day_preset() {
+    let settings =
+        presentation::settings::PresentationSettings::from_value(&fixture("presentation")).unwrap();
+    let authored: LightSettings =
+        serde_json::from_value(fixture("presentation")["light"].clone()).unwrap();
+    assert_eq!(settings.light_preset, "day");
+    assert_eq!(settings.light.sun_elevation, 0.7);
+    assert_eq!(settings.light.sun_azimuth, authored.sun_azimuth);
+    assert_eq!(settings.light.sun_elevation, authored.sun_elevation);
+    assert_eq!(settings.light.sun_intensity, authored.sun_intensity);
+    assert_eq!(settings.light.exposure, authored.exposure);
+    assert_eq!(
+        settings.light_presets.get("day").map(|l| l.sun_elevation),
+        Some(0.7)
+    );
+}
+
+#[test]
+fn golden_hour_is_the_v4_look_with_the_day_azimuth() {
+    let settings =
+        presentation::settings::PresentationSettings::from_value(&fixture("presentation"))
+            .unwrap()
+            .with_light_preset("golden_hour")
+            .unwrap();
+    let day: LightSettings =
+        serde_json::from_value(fixture("presentation")["light"].clone()).unwrap();
+    assert_eq!(settings.light_preset, "golden_hour");
+    // The film's azimuth 3.0 was a shot choice, not a global golden hour.
+    assert_eq!(settings.light.sun_azimuth, day.sun_azimuth);
+    assert_eq!(settings.light.sun_azimuth, -0.35);
+    assert_eq!(settings.light.sun_elevation, 0.16);
+    assert_eq!(settings.light.exposure, 1.78);
+    assert_eq!(settings.light.sun_intensity, day.sun_intensity);
+    assert_eq!(settings.light.sky.fill, [0.62, 0.7, 0.84]);
+    assert_eq!(settings.light.sky.tint, [0.95, 0.97, 1.12]);
+    assert_eq!(settings.light.sky.turbidity, 3.2);
+    assert_eq!(settings.light.grade.shadow_tint, [0.97, 1.0, 1.06]);
+    assert_eq!(settings.light.grade.highlight_tint, [1.05, 1.0, 0.92]);
+    assert_eq!(settings.light.grade.split_tone, 0.5);
+    assert_eq!(settings.light.haze.sun_tint, [1.04, 0.98, 0.9]);
+    assert_eq!(settings.light.haze.mist_color, [0.8, 0.85, 0.92]);
+    assert_eq!(settings.light.cascades.max_far_m, 4000.0);
+    assert_eq!(settings.light.cascades.split_lambda, 0.75);
+    assert_eq!(settings.light.cascades.normal_bias_texels, 1.8);
+    assert_eq!(settings.light.cascades.normal_bias_min_m, 0.04);
+    assert_eq!(settings.light.cascades.depth_bias, -0.000045);
+    assert_eq!(settings.light.cascades.softness_m, 0.16);
+    assert_eq!(settings.light.cascades.map_size, 2048);
+}
+
+#[test]
+fn switching_the_document_default_to_golden_hour_is_the_preset_key() {
+    let mut doc = fixture("presentation");
+    doc["light_preset"] = json!("golden_hour");
+    let settings = presentation::settings::PresentationSettings::from_value(&doc).unwrap();
+    assert_eq!(settings.light_preset, "golden_hour");
+    assert_eq!(settings.light.sun_elevation, 0.16);
+    assert_eq!(settings.light_presets["day"].sun_elevation, 0.7);
+}
+
+#[test]
+fn an_unknown_or_reserved_light_preset_is_refused_by_name() {
+    reject_presentation("/light_preset", json!("dusk"), "light_preset");
+    let mut doc = fixture("presentation");
+    doc["light_presets"]["day"] = doc["light"].clone();
+    let error = presentation::settings::PresentationSettings::from_value(&doc)
+        .err()
+        .expect("a reserved day preset must be refused");
+    assert!(
+        error.contains("light_presets.day"),
+        "reserved name: {error}"
+    );
+}
+
+#[test]
+fn a_broken_named_look_is_refused_under_its_preset_path() {
+    let mut doc = fixture("presentation");
+    doc["light_presets"]["golden_hour"]["sun_elevation"] = json!(-0.1);
+    let error = presentation::settings::PresentationSettings::from_value(&doc)
+        .err()
+        .expect("a broken golden hour must be refused");
+    assert!(
+        error.contains("light_presets.golden_hour.sun_elevation"),
         "{error}"
     );
 }

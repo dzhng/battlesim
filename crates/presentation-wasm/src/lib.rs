@@ -749,6 +749,9 @@ pub fn check_presentation(text: &str) -> Result<String, JsError> {
         "fog_style": settings.fog.selected().map_err(error)?,
         "ally_xray": settings.ally_xray(),
         "ruler_reach": [r,g,b,1.0],
+        "light": settings.light,
+        "light_preset": settings.light_preset,
+        "light_presets": settings.light_presets,
     }))
     .map_err(error)
 }

@@ -262,6 +262,18 @@ impl Replay {
         Self::open_played(dir, library, Path::new(ROOT), Playback::default())
     }
 
+    /// Loads scene `dir` under a named fixture lighting look. `None` keeps
+    /// the document's `light_preset` (the mid-morning `day` look).
+    pub fn open_with_light(
+        dir: &Path,
+        library: &Library,
+        root: &Path,
+        playback: Playback,
+        light_preset: Option<&str>,
+    ) -> Result<Self, String> {
+        Self::open_played_with(dir, library, root, playback, light_preset)
+    }
+
     /// Loads scene `dir` to play back as `playback` chooses: each layer the
     /// browser drew (`fog`, `overlays`, `cards`) is drawn unless it leaves
     /// it out. The manifest naming `overlays` requires the scene's recorded
@@ -274,6 +286,16 @@ impl Replay {
         library: &Library,
         root: &Path,
         playback: Playback,
+    ) -> Result<Self, String> {
+        Self::open_played_with(dir, library, root, playback, None)
+    }
+
+    fn open_played_with(
+        dir: &Path,
+        library: &Library,
+        root: &Path,
+        playback: Playback,
+        light_preset: Option<&str>,
     ) -> Result<Self, String> {
         let capture_path = dir.join("capture.json");
         let capture_bytes =
@@ -359,10 +381,13 @@ impl Replay {
             .map(|u| u.kind.clone())
             .collect::<Vec<_>>();
         let rules = scenario.rules;
-        let settings =
+        let mut settings =
             presentation::settings::PresentationSettings::from_value(&read_json::<Value>(
                 &root.join("fixtures/presentation.json"),
             )?)?;
+        if let Some(name) = light_preset {
+            settings = settings.with_light_preset(name)?;
+        }
         let light = settings.light;
         // The battle's units, effects and clip tables, as a page fielding
         // the encounter's units installs them.
