@@ -123,7 +123,9 @@ test("the fixture admits a day default and a selectable golden_hour look", () =>
   expect(golden.sun_elevation).toBe(0.16);
   expect(golden.exposure).toBe(1.78);
   expect(golden.sky.fill).toEqual([0.62, 0.7, 0.84]);
-  expect(golden.sky.turbidity).toBe(3.2);
+  expect(golden.sky.turbidity).toBe(2.8);
+  expect(golden.sky.saturation).toBe(1.32);
+  expect(golden.grade.highlight_tint).toEqual([1.0, 1.04, 0.98]);
   expect(golden.grade.split_tone).toBe(0.5);
   expect(() => lightForPreset("dusk")).toThrow(/unknown light preset/);
   expect(checkLight(golden)).toBe(golden);

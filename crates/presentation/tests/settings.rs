@@ -740,11 +740,14 @@ fn golden_hour_is_the_v4_look_with_the_day_azimuth() {
     assert_eq!(settings.light.sun_intensity, day.sun_intensity);
     assert_eq!(settings.light.sky.fill, [0.62, 0.7, 0.84]);
     assert_eq!(settings.light.sky.tint, [0.95, 0.97, 1.12]);
-    assert_eq!(settings.light.sky.turbidity, 3.2);
-    assert_eq!(settings.light.grade.shadow_tint, [0.97, 1.0, 1.06]);
-    assert_eq!(settings.light.grade.highlight_tint, [1.05, 1.0, 0.92]);
+    assert_eq!(settings.light.sky.saturation, 1.32);
+    assert_eq!(settings.light.sky.grade_mix, 0.12);
+    assert_eq!(settings.light.sky.turbidity, 2.8);
+    assert_eq!(settings.light.grade.shadow_tint, [0.98, 1.0, 1.08]);
+    assert_eq!(settings.light.grade.highlight_tint, [1.0, 1.04, 0.98]);
     assert_eq!(settings.light.grade.split_tone, 0.5);
-    assert_eq!(settings.light.haze.sun_tint, [1.04, 0.98, 0.9]);
+    assert_eq!(settings.light.grade.lift, [0.014, 0.020, 0.018]);
+    assert_eq!(settings.light.haze.sun_tint, [1.02, 1.0, 0.96]);
     assert_eq!(settings.light.haze.mist_color, [0.8, 0.85, 0.92]);
     assert_eq!(settings.light.cascades.max_far_m, 4000.0);
     assert_eq!(settings.light.cascades.split_lambda, 0.75);
