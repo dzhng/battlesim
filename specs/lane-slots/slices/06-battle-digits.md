@@ -18,8 +18,8 @@ edge and the first chevron, with the stack slid inward to make room (D9).
 - Only digits 1–3 ever occur (at most three lanes), so they are stroke glyphs
   in the mesh. No font, no text renderer.
 - Every lane paints its digit, held or not (revised A4).
-- The viewer's own lane is emphasised in a way that reads as the lobby's YOU
-  mark, without adding text to the ground.
+- The viewer's own lane is emphasised in a way that reads as the lobby's white
+  band, without adding text to the ground.
 - Only the viewer's side is marked (A1, already true).
 
 ## Seam
@@ -58,7 +58,7 @@ whose digit is emphasised; roads 1 and 3 show theirs.
 ## Delegated
 
 Digit stroke geometry and size; the spacing between the digit and the stack;
-how the own lane is emphasised (within "reads as the YOU mark, no ground text").
+how the own lane is emphasised (within "reads as the lobby's white band, no ground text").
 
 ## Out of scope (even if visibly wrong)
 

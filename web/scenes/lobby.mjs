@@ -200,6 +200,19 @@ export async function run(ctx) {
     (await previews()) === drawn && (await status()) === "ready",
     `${drawn} → ${await previews()} previews, ${await status()}`,
   );
+  // The picture marks who holds each lane: yours is Blue's second, and with
+  // two Blue players Blue's third lies open.
+  const held = (lane) =>
+    page
+      .locator(`[data-testid=lobby-map] [data-entry="blue"][data-lane="${lane}"]`)
+      .getAttribute("data-held");
+  const blue = [await held(1), await held(2), await held(3)];
+  ctx.check(
+    "the map marks your lane and the open one",
+    blue.join() === "player,you,none",
+    blue.join(),
+  );
+  await shoot("2v3");
 
   // 5v5: the size ratchets to XL; time its preview.
   await page.getByTestId("menu-match-5v5").click();

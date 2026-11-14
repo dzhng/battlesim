@@ -55,11 +55,8 @@ struct Weights {
     entry_body: f64,
     entry_tip: f64,
     entry_half_width: f64,
-    /// The own-lane mark: the band round the tag, outside its halo, and
-    /// the label's size and its gap above the band.
+    /// The own-lane mark: the band round the tag, outside its halo.
     own_band: f64,
-    own_label: f64,
-    own_gap: f64,
     halo: f64,
 }
 const WEIGHTS: Weights = Weights {
@@ -78,8 +75,6 @@ const WEIGHTS: Weights = Weights {
     entry_tip: 2.2,
     entry_half_width: 2.1,
     own_band: 0.5,
-    own_label: 2.0,
-    own_gap: 0.6,
     halo: 0.55,
 };
 /// Points closer than this share of the longer side to the last one kept are
@@ -282,26 +277,20 @@ pub fn skirmish_picture(map: &MapDefinition, sites: &SkirmishSites) -> String {
             "M{back:.1} {top:.1}L{shoulder:.1} {top:.1}L{tip:.1} 0L{shoulder:.1} {half:.1}L{back:.1} {half:.1}Z",
             top = -half
         );
-        // The digit and label stay upright whichever way the tag points:
-        // placed by the tag's turn, not turned themselves.
+        // The digit stays upright whichever way the tag points: placed by the
+        // tag's turn, not turned itself.
         let turn = degrees.to_radians();
         let (sin, cos) = (libm::sin(turn), libm::cos(turn));
         let along = |d: f64| [d * cos, d * sin];
         let digit = along((back + shoulder) / 2.0);
-        let centre = along((back + tip) / 2.0);
-        let label_y = centre[1] - half - unit * (WEIGHTS.own_band + WEIGHTS.own_gap);
         let _ = write!(
             out,
-            r##"<g data-entry="{side}" data-lane="{lane}" transform="translate({x:.1} {y:.1})" style="--side:var({accent})"><g data-own="" visibility="hidden"><path transform="rotate({degrees})" d="{outline}" fill="none" stroke-width="{band:.1}" stroke-linejoin="round" style="stroke:rgb(var(--hud-text))"/><text x="{cx:.1}" y="{ly:.1}" text-anchor="middle" font-size="{label:.1}" font-weight="800" letter-spacing="{spacing:.1}" font-family="ui-monospace, Menlo, monospace" stroke="{HALO}" stroke-width="{halo:.1}" stroke-linejoin="round" paint-order="stroke" style="fill:rgb(var(--hud-text))">YOU</text></g><path transform="rotate({degrees})" d="{outline}" stroke-linejoin="round" paint-order="stroke" style="fill:var(--lane-body, rgb(var(--side)));stroke:var(--lane-edge, {HALO});stroke-width:calc({halo:.1}px * var(--lane-edge-scale, 1))"/><text data-digit="" x="{dx:.1}" y="{dy:.1}" dy="0.35em" text-anchor="middle" font-size="{size:.1}" font-weight="800" font-family="ui-monospace, Menlo, monospace" style="fill:var(--lane-digit, {HALO})">{lane}</text></g>"##,
+            r##"<g data-entry="{side}" data-lane="{lane}" transform="translate({x:.1} {y:.1})" style="--side:var({accent})"><g data-own="" visibility="hidden"><path transform="rotate({degrees})" d="{outline}" fill="none" stroke-width="{band:.1}" stroke-linejoin="round" style="stroke:rgb(var(--hud-text))"/></g><path transform="rotate({degrees})" d="{outline}" stroke-linejoin="round" paint-order="stroke" style="fill:var(--lane-body, rgb(var(--side)));stroke:var(--lane-edge, {HALO});stroke-width:calc({halo:.1}px * var(--lane-edge-scale, 1))"/><text data-digit="" x="{dx:.1}" y="{dy:.1}" dy="0.35em" text-anchor="middle" font-size="{size:.1}" font-weight="800" font-family="ui-monospace, Menlo, monospace" style="fill:var(--lane-digit, {HALO})">{lane}</text></g>"##,
             halo = unit * WEIGHTS.halo,
             band = 2.0 * unit * (WEIGHTS.halo + WEIGHTS.own_band),
             size = unit * WEIGHTS.numeral,
-            label = unit * WEIGHTS.own_label,
-            spacing = unit * WEIGHTS.own_label * 0.15,
             dx = digit[0],
             dy = digit[1],
-            cx = centre[0],
-            ly = label_y,
         );
     }
     out.push_str("</svg>");

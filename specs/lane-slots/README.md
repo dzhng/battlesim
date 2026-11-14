@@ -1,6 +1,6 @@
 # Lane slots
 
-**Status:** planned. Nothing is implemented yet.
+**Status:** in progress. Slices 01, 03, 04 and 05 shipped; 02 and 06 in flight.
 **Updated:** 2026-11-14.
 
 A player's slot number on its side is its **lane**: slot k owns its side's k-th
@@ -19,11 +19,13 @@ no seed in the status line, no "too small" reason line, and Region as tabs.
 
 ## Next Agent Prompt
 
-You are starting the lane-slots feature. Read this README, then
-[slice 01](slices/01-lane-rule.md), and build the slices in order. Slices 03
-(lobby cleanups) and 06 (battle digits) only need slice 01, so they can go in
-any order after it. Slice 02 is the riskiest, so do it straight after 01: if no
-home-lane value meets both behaviours, stop and report before any UI work.
+You are resuming the lane-slots feature. Slices 01, 03, 04 and 05 are
+committed. Slice 02 (AI home lane) and slice 06 (battle digits) were handed to
+delegates in their own checkouts, branched from the slice 01 commit; integrate
+each by cherry-pick, rerun its focused checks on this branch, run an unprimed
+`screenshot-critique` on 06's shots, then do slice 07. If 02 reported that no
+single home-lane value meets both behaviours, stop and bring the user the
+probe table.
 
 Warnings:
 
@@ -44,11 +46,11 @@ Warnings:
 
 TODO:
 
-- [ ] 01 · Lane rule in `sim::entries`, served through Wasm; opening camera on it → [slice 01](slices/01-lane-rule.md)
+- [x] 01 · Lane rule in `sim::entries`, served through Wasm; opening camera on it → [slice 01](slices/01-lane-rule.md)
 - [ ] 02 · AI home-lane pull: wire at zero, probe, named re-baseline; help rule onto lanes → [slice 02](slices/02-ai-home-lane.md)
-- [ ] 03 · Lobby cleanups: status, size reason, Region tabs → [slice 03](slices/03-lobby-cleanups.md)
-- [ ] 04 · Lobby picture: numbered pointed tags, player-free → [slice 04](slices/04-picture-tags.md)
-- [ ] 05 · Lobby occupancy: unheld digits hidden, YOU outline → [slice 05](slices/05-lobby-occupancy.md)
+- [x] 03 · Lobby cleanups: status, size reason, Region tabs → [slice 03](slices/03-lobby-cleanups.md)
+- [x] 04 · Lobby picture: numbered pointed tags, player-free → [slice 04](slices/04-picture-tags.md)
+- [x] 05 · Lobby occupancy: open lanes hollow, your lane banded white → [slice 05](slices/05-lobby-occupancy.md)
 - [ ] 06 · Battle: lane digit painted behind the chevrons → [slice 06](slices/06-battle-digits.md)
 - [ ] 07 · Docs and the one full run → [slice 07](slices/07-closeout.md)
 
@@ -138,7 +140,7 @@ wins, no implementation detail on screen).
 | D2 | ~~AI leans away from human-held lanes.~~ Withdrawn. | D1's relative pull already does it; a special case would repeat it. | you |
 | D3 | Lanes are numbered top to bottom in the picture (high x first), matching the banners. I17's camera rule moves onto it. | The banners and the tags read in one order. Rejected: centre = 1 (today's camera order), because it reads 2/1/3 down the picture. | you |
 | D4 | Slots 4–5 hold no lane: no number, no pull, they plan freely. | Three roads, three holders. Rejected: wrapping 4→1, 5→2, and stacking extras on the centre. | you |
-| D5 | Lobby look: option D, "number is the arrow", a pointed side-coloured tag with a dark digit. Your own lane is outlined white with "YOU". | Bold and distinct from the objectives' white circles. Mock: [lane-tag-looks.html](visualizations/lane-tag-looks.html). | you |
+| D5 | Lobby look: option D, "number is the arrow", a pointed side-coloured tag with a dark digit. Your own lane wears a white band round its tag. (A "YOU" label was dropped on review: the band already says it.) | Bold and distinct from the objectives' white circles. Mock: [lane-tag-looks.html](visualizations/lane-tag-looks.html). | you |
 | D6 | Numbers only, never player names. | Human multiplayer is planned; names won't fit. | you |
 | D7 | Lane numbers show in the lobby, in battle, and in the future minimap (which reuses the lobby picture). | | you |
 | D8 | The home-lane pull is specified by behaviour, not a value: (a) at match start every AI takes its home lane on admitted maps of every size, including when a human holds the centre road; (b) later, a lane with clearly more enemy pressure or open objectives pulls an AI off home. A probe finds the value. | The planner's cost is straight-line metres (`team/mod.rs:537`); lanes on XL sit ~1 km apart, so a small bonus loses. | you (intent) |

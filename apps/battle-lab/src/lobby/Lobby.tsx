@@ -9,7 +9,15 @@
 // then opens the battle the lobby's link names: the admitted seed, so the
 // battle is the map the player saw.
 import { Link } from "react-router";
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 import config from "@fixtures/generated-battle.json";
 import presets from "@fixtures/map-presets.json?raw";
 import templates from "@fixtures/prototype-building-templates.json?raw";
@@ -17,6 +25,7 @@ import { FACTIONS } from "@packages/scene-assets/src/units";
 import { catalogSet } from "@web/battle/catalog/sets";
 import { mapPreviews, type MapPreviews, type PreviewState } from "@web/battle/prepare/preview";
 import type { Player } from "@web/battle/prepare/protocol";
+import { lanesOf, type LanesModule } from "@web/battle/prepare/lanes";
 import { loadWasm } from "@web/battle/sim/module";
 import { MAP_SIZES, MAP_TYPES, newSeed } from "@web/maps/source";
 import { REGIONS, spoken, type AskedLobby } from "../battleLinks";
@@ -64,6 +73,7 @@ function useLobby(asked: AskedLobby) {
   /** The lobby state the running preview shows. */
   const shown = useRef<LobbyState | null>(null);
   const previews = useRef<{ show(state: LobbyState): void } | null>(null);
+  const [lanes, setLanes] = useState<LanesModule | null>(null);
 
   const update = (next: LobbyState) => {
     current.current = next;
@@ -92,6 +102,7 @@ function useLobby(asked: AskedLobby) {
     void Promise.all([loadWasm(), catalogSet("game")]).then(
       ([wasm, catalog]) => {
         if (!live) return;
+        setLanes(wasm);
         controller = mapPreviews(
           {
             documents: { rules: JSON.stringify(catalog.rules), presets, templates },
@@ -132,14 +143,19 @@ function useLobby(asked: AskedLobby) {
     };
   }, []);
 
-  return { lobby, preview, update };
+  return { lobby, preview, update, lanes };
 }
 
 /** The skirmish page: set up any match and deploy it. */
 export function Lobby({ asked }: { asked: AskedLobby }) {
-  const { lobby, preview, update } = useLobby(asked);
+  const { lobby, preview, update, lanes } = useLobby(asked);
   const count = (side: LobbySide) => lobby.players.filter((p) => p.side === side).length;
   const ready = preview.status === "ready";
+  const sites = ready ? preview.preview.sites : null;
+  const held = useMemo(
+    () => (lanes && sites ? holders(lanes, sites, lobby.players) : null),
+    [lanes, sites, lobby.players],
+  );
   return (
     <section className="lobby" aria-label="New battle">
       <div className="lobby-field">
@@ -149,7 +165,7 @@ export function Lobby({ asked }: { asked: AskedLobby }) {
             <span data-side="blue">{count("blue")}</span> VS{" "}
             <span data-side="red">{count("red")}</span>
           </figcaption>
-          <MapFrame state={preview} />
+          <MapFrame state={preview} held={held} />
         </figure>
         <SideColumn side="red" lobby={lobby} update={update} />
       </div>
@@ -417,17 +433,44 @@ function Choice<T extends string>({
   );
 }
 
+/** Who holds each entry's lane, in the sites' list order: you, another
+ *  player, or nobody. */
+type Held = "you" | "player" | "none";
+
+function holders(lanes: LanesModule, sites: string, players: readonly Player[]): Held[] {
+  const you = players.find((player) => player.controller === "human")?.id;
+  return lanesOf(lanes, sites, players).entries.map(({ holder }) =>
+    holder === null ? "none" : holder === you ? "you" : "player",
+  );
+}
+
 /** The map frame: the admitted map once it is ready, and until then what its
- *  preparation is doing over the last map shown. */
-function MapFrame({ state }: { state: PreviewState }) {
+ *  preparation is doing over the last map shown. The picture holds no
+ *  players, so each entry tag is marked with who holds its lane (`held`, in
+ *  the picture's entry order), and the stylesheet draws an open lane and
+ *  yours. A seat change re-marks the tags without drawing a new map. */
+function MapFrame({ state, held }: { state: PreviewState; held: readonly Held[] | null }) {
   const [last, setLast] = useState<string | null>(null);
+  const picture = useRef<HTMLDivElement>(null);
   const svg = state.status === "ready" ? state.preview.svg : last;
+  // One markup object per picture: React sets the inner HTML again whenever
+  // this object is a new one, which would re-parse the picture and drop the
+  // tags' marks on every render.
+  const html = useMemo(() => (svg ? { __html: svg } : null), [svg]);
   useEffect(() => {
     if (state.status === "ready") setLast(state.preview.svg);
   }, [state]);
+  useLayoutEffect(() => {
+    const tags = picture.current?.querySelectorAll<SVGGElement>("[data-entry]") ?? [];
+    tags.forEach((tag, index) => {
+      const holder = held?.[index];
+      if (holder) tag.setAttribute("data-held", holder);
+      else tag.removeAttribute("data-held");
+    });
+  }, [svg, held]);
   return (
     <div className="lobby-frame" data-status={state.status} data-testid="lobby-map">
-      {svg && <div className="lobby-picture" dangerouslySetInnerHTML={{ __html: svg }} />}
+      {html && <div ref={picture} className="lobby-picture" dangerouslySetInnerHTML={html} />}
       {state.status !== "ready" && (
         <div className="lobby-frame-state">
           {state.status === "failed" ? (

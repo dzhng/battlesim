@@ -12,8 +12,8 @@ Over the player-free picture, the lobby shows who holds each lane:
   `--lane-body: color-mix(in srgb, rgb(var(--side)) 30%, #05090d)`,
   `--lane-edge: rgb(var(--side))`, `--lane-edge-scale: 1.8` and
   `--lane-digit: rgb(var(--side))` on its group (the look judged in slice 04,
-  [shot](../assets/slice-04-open-and-own.png));
-- the human's own lane shows the white outline and "YOU" (D5);
+  [shot](../assets/slice-05-2v3.png));
+- the human's own lane shows the white band (D5);
 - both sides follow the same rule (A5).
 
 Occupancy follows every seat change at once, without starting a new preview
@@ -31,7 +31,7 @@ TypeScript.
 
 ## What a human can see
 
-Lobby in a 3v3, moving yourself from Blue 1 to 2 to 3: the YOU mark moves down
+Lobby in a 3v3, moving yourself from Blue 1 to 2 to 3: the white band moves down
 the roads. Remove Blue 3 (now 2v3): Blue's bottom tag goes hollow, still numbered 3. 5v5:
 three numbered tags a side; Blue 4–5 mark none.
 

@@ -3,7 +3,7 @@
 **Depends on:** 01. **Changes digests:** no.
 
 **Slice variable:** the entry mark's shape and digit legibility at lobby size.
-Occupancy (hidden digits, YOU) is slice 05; map colours, roads and objectives
+Occupancy (open lanes, your lane) is slice 05; map colours, roads and objectives
 are out of scope.
 
 ## Contract
@@ -15,7 +15,7 @@ map and a dark digit in the body. Each entry's group carries
 The function's signature is unchanged and it reads no players.
 
 To keep all geometry in Rust, the group also carries the own-lane mark (the
-white outline and "YOU"), hidden by default; slice 05 only reveals it.
+white band), hidden by default; slice 05 only reveals it.
 
 ## What a human can see
 

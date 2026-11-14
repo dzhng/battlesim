@@ -1130,6 +1130,18 @@
   width: 100%;
   height: 100%;
 }
+/* An entry tag whose lane nobody holds keeps its number and goes hollow: a
+   dark tint of its side's colour (over the picture's halo), its edge and
+   digit in that colour. Yours wears the picture's own-lane mark. */
+.lobby-picture [data-held="none"] {
+  --lane-body: color-mix(in srgb, rgb(var(--side)) 30%, #05090d);
+  --lane-edge: rgb(var(--side));
+  --lane-edge-scale: 1.8;
+  --lane-digit: rgb(var(--side));
+}
+.lobby-picture [data-held="you"] [data-own] {
+  visibility: visible;
+}
 /* Until the map is ready: what its preparation is doing, over the last map
    shown, dimmed so it is not mistaken for the one Deploy would start. */
 .lobby-frame:not([data-status="ready"]) .lobby-picture {
