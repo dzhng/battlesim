@@ -102,6 +102,9 @@ impl LightSettings {
         within("bloom.strength", self.bloom.strength, 0.0, 8.0)?;
         within("glow.wrap", self.glow.wrap, 0.0, 2.0)?;
         within("glow.rim", self.glow.rim, 0.0, 2.0)?;
+        for (i, v) in self.vegetation_tint.into_iter().enumerate() {
+            within(&format!("vegetation_tint[{i}]"), v, 0.0, 4.0)?;
+        }
         Ok(())
     }
 }

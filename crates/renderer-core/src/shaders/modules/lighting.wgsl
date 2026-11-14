@@ -53,6 +53,7 @@ struct Sun {
   radiance: vec4f,
   settings: vec4f,
   fill: vec4f,
+  vegetationTint: vec4f,
 }
 
 struct Environment {
@@ -115,11 +116,14 @@ fn castLight(base: vec3f, surfaceNormal: vec3f, position: vec3f) -> vec3f {
 // @block lighting_surfaceLight
 fn surfaceLight(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normal: vec3f, position: vec3f, shadow: f32, eye: vec3f) -> vec3f {
   let sunlight = mix(environment.sun.settings.y, 1f, shadow);
-  let surfaceEmission = (emissive + castLight(base, normal, position));
+  // Meadow/pasture albedos are only ~0.02 greener than red.
+  let vegMask = smoothstep(-0.005, 0.018, base.g - base.r);
+  let albedo = mix(base, base * environment.sun.vegetationTint.xyz, vegMask);
+  let surfaceEmission = (emissive + castLight(albedo, normal, position));
   let n = normalize(normal);
   let v = normalize(eye-position);
   let l = environment.sun.direction.xyz;
-  var color = standardPbr(base,surfaceEmission,roughness,geomRoughness,metal,ao,n,v,l,environment.sun.radiance.xyz,sunlight,environment.sun.fill.xyz,pmrem,environmentSampler,environment.sun.settings.x,dfg,environmentSampler);
+  var color = standardPbr(albedo,surfaceEmission,roughness,geomRoughness,metal,ao,n,v,l,environment.sun.radiance.xyz,sunlight,environment.sun.fill.xyz,pmrem,environmentSampler,environment.sun.settings.x,dfg,environmentSampler);
   // settings.z wrap, settings.w rim: data-driven, 0 is a no-op.
   let wrap = environment.sun.settings.z;
   let rim = environment.sun.settings.w;
@@ -127,7 +131,7 @@ fn surfaceLight(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32
   let wrapped = clamp((ndotl + wrap) / (1.0 + wrap), 0.0, 1.0);
   let extra = max(wrapped - clamp(ndotl, 0.0, 1.0), 0.0);
   let graze = pow(clamp(1.0 - clamp(dot(n, v), 0.0, 1.0), 0.0, 1.0), 2.0) * clamp(ndotl, 0.0, 1.0);
-  let diffuse = base * (1.0 - metal);
+  let diffuse = albedo * (1.0 - metal);
   return color + diffuse * environment.sun.radiance.xyz * sunlight * (extra * 0.3183098861837907 + graze * rim);
 }
 

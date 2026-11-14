@@ -55,6 +55,9 @@ pub struct LightSettings {
     /// Missing on older test lights is a no-op (wrap and rim 0).
     #[serde(default)]
     pub glow: GlowSettings,
+    /// Multiplier on grass and foliage albedos (G≥R). White is a no-op.
+    #[serde(default = "white")]
+    pub vegetation_tint: [f64; 3],
     /// The sun's shadow cascades (`shadow.rs`).
     pub cascades: CascadeSettings,
 }
@@ -280,6 +283,12 @@ impl LightSettings {
                 self.glow.rim as f32,
             ],
             fill: f32s([fill[0], fill[1], fill[2], 0.0]),
+            vegetation_tint: f32s([
+                self.vegetation_tint[0],
+                self.vegetation_tint[1],
+                self.vegetation_tint[2],
+                0.0,
+            ]),
         }
     }
 

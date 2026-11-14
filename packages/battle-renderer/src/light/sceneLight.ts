@@ -115,6 +115,8 @@ export interface LightPresentation extends PostSettings {
   };
   haze: HazeSettings;
   glow: GlowSettings;
+  /** Linear rgb multiplier on grass and foliage (G≥R). White is a no-op. */
+  vegetation_tint: Rgb;
   cascades: CascadeSettings;
 }
 

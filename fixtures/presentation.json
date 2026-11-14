@@ -132,6 +132,7 @@
     },
     "bloom": { "strength": 0.22, "radius": 0.72, "threshold": 1.25, "smooth_width": 0.55 },
     "glow": { "wrap": 0.16, "rim": 0.08 },
+    "vegetation_tint": [1.0, 1.0, 1.0],
     "cascades": {
       "map_size": 2048,
       "max_far_m": 2600,
@@ -188,6 +189,7 @@
       },
       "bloom": { "strength": 0.30, "radius": 0.88, "threshold": 0.92, "smooth_width": 0.70 },
       "glow": { "wrap": 0.40, "rim": 0.22 },
+      "vegetation_tint": [0.90, 1.18, 1.40],
       "cascades": {
         "map_size": 2048,
         "max_far_m": 4000,

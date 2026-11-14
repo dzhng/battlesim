@@ -470,10 +470,12 @@ crate::records! {
         /// intensity, linear rgb; w 0.
         radiance: [f32; 4],
         /// x the renderer's environment map's top mip (0 here); y the share
-        /// of the sun a sun-shadowed surface keeps.
+        /// of the sun a sun-shadowed surface keeps; z wrap; w rim.
         settings: [f32; 4],
         /// Linear rgb multiplier on the sky's environment light; w 0.
         fill: [f32; 4],
+        /// Linear rgb multiplier on G≥R albedos (grass, foliage); w 0.
+        vegetation_tint: [f32; 4],
     }
 
     /// The bloom, as post's highpass and composite read it.

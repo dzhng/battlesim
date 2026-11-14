@@ -764,6 +764,33 @@ fn golden_hour_is_the_v4_look_with_the_day_azimuth() {
     assert_eq!(settings.light.bloom.strength, 0.30);
     assert_eq!(settings.light.haze.sun_strength, 0.34);
     assert_eq!(settings.light.haze.sun_power, 2.2);
+    // Vegetation response is a no-op by day and a green lift at golden hour.
+    assert_eq!(settings.light.vegetation_tint, [0.90, 1.18, 1.40]);
+}
+
+#[test]
+fn vegetation_tint_is_packed_on_the_sun_and_day_is_a_no_op() {
+    let settings =
+        presentation::settings::PresentationSettings::from_value(&fixture("presentation")).unwrap();
+    assert_eq!(settings.light.vegetation_tint, [1.0, 1.0, 1.0]);
+    assert_eq!(
+        settings.light.records().sun.vegetation_tint,
+        [1.0, 1.0, 1.0, 0.0]
+    );
+    let golden = settings.with_light_preset("golden_hour").unwrap();
+    assert_eq!(golden.light.vegetation_tint, [0.90, 1.18, 1.40]);
+    let tint = golden.light.records().sun.vegetation_tint;
+    assert_eq!(&tint[..3], &[0.90, 1.18, 1.40]);
+    assert!(tint[1] > tint[0], "green lift");
+}
+
+#[test]
+fn a_vegetation_tint_outside_range_is_refused_by_name() {
+    reject_presentation(
+        "/light/vegetation_tint",
+        json!([1.0, 1.0, 4.1]),
+        "vegetation_tint[2]",
+    );
 }
 
 #[test]
