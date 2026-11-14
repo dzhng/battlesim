@@ -27,7 +27,10 @@ export async function armedCursor(ctx) {
     ["c", "attack_move", (o) => o.kind === "attack_move"],
   ];
   for (const [key, badge, sent] of commands) {
-    const from = await project(page, [tank.position[0] + 25, tank.position[1], 0]);
+    // Open ground inside the map, clear of the tank's card (over a unit or
+    // its card the arrow is plain), stepping a metre at a time.
+    const ground = (k) => [tank.position[0] - 15, tank.position[1] - 30 - k, 0];
+    const from = await project(page, ground(0));
     await page.mouse.move(...from);
     await page.keyboard.press(key);
     await expects(page, badge);
@@ -41,7 +44,7 @@ export async function armedCursor(ctx) {
       requestAnimationFrame(sample);
     });
     for (let k = 1; k <= 24; k++) {
-      await page.mouse.move(from[0] + k * 6, from[1] + k * 3);
+      await page.mouse.move(...(await project(page, ground(k))));
       await page.evaluate(() => new Promise((r) => requestAnimationFrame(r)));
     }
     const seen = await page.evaluate(() => {
@@ -54,9 +57,10 @@ export async function armedCursor(ctx) {
       seen.length > 20 && seen.every((a) => a === badge),
       JSON.stringify([...new Set(seen)]),
     );
-    const before = (await lab(page, () => window.__lab.route.acks())).length;
-    await page.mouse.click(from[0] + 150, from[1] + 75);
-    await page.waitForFunction((n) => window.__lab.route.acks().length > n, before);
+    // The log keeps only the latest few: wait on the newest's sequence.
+    const before = await lab(page, () => window.__lab.route.acks()[0]?.seq ?? 0);
+    await page.mouse.click(...(await project(page, ground(24))));
+    await page.waitForFunction((n) => (window.__lab.route.acks()[0]?.seq ?? 0) > n, before);
     const { order } = (await lab(page, () => window.__lab.route.acks()))[0];
     ctx.check(
       `armed ${badge}: a left-click sends it and keeps the selection`,
