@@ -122,7 +122,8 @@ at a station on a country road or track, placed in the half that holds less of
 its kind. A home group keeps as many homes as find room. A depot is prop bodies
 sized by `street_props.bodies`: one compound on one side of its road, on paved
 yards that may touch. It stands whole or is left out; generation never refuses a
-map for one.
+map for one. Depots are placed after homes on their own random stream, so they
+never move a home.
 
 [Coverage](src/open_country/coverage.rs) derives reach from resolved generation
 physics, using actual circular ground observers and native fog sampling. It has no

@@ -572,7 +572,7 @@ pub(crate) fn furnish(
         let (preset, _) = presets.cell(request.map_type, request.size);
         let h = &rules.homesteads;
         let homes = &h.steading.pieces;
-        let eligible = homes.choices(&fits, preset, family);
+        let homesteads = h.steading.with(homes.eligible(&fits, preset, family));
         let open_km2 = country.estimated_open_km2();
         let e = rules.fairness;
 
@@ -594,7 +594,7 @@ pub(crate) fn furnish(
             h.attempts,
             &mut rng,
             |country| country.tally.homes,
-            |country, half, rng| country.stead(half, &h.steading, &eligible, rng),
+            |country, half, rng| country.stead(half, &homesteads, rng),
         );
 
         let d = &rules.depots;
@@ -605,7 +605,7 @@ pub(crate) fn furnish(
             d.attempts,
             &mut rng,
             |country| country.tally.depots,
-            |country, half, rng| country.stead(half, &d.steading, &[], rng),
+            |country, half, rng| country.stead(half, &d.steading, rng),
         );
 
         let t = rules.tree_lines;
@@ -714,8 +714,11 @@ pub(crate) fn furnish(
     if metrics.roads.unbridged > 0 {
         return Err(fail(
             "lanes",
-            "$.presets.open_country.homesteads",
-            format!("{} runs of lane enter the water", metrics.roads.unbridged),
+            "$.presets.open_country",
+            format!(
+                "{} runs of a homestead's or depot's lane enter the water",
+                metrics.roads.unbridged
+            ),
         ));
     }
     if metrics.ground_points > request.limits.max_ground_points {

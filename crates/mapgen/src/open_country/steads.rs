@@ -28,13 +28,11 @@ struct Row<'g> {
 }
 
 impl<'a> Country<'a> {
-    /// One group of `kind`'s pieces at a place on a road in `half`; `fits`
-    /// are the templates each of its groups may build.
+    /// One group of `kind`'s pieces at a place on a road in `half`.
     pub(super) fn stead<P: Pieced>(
         &mut self,
         half: usize,
         kind: &Steading<P>,
-        fits: &[Choices],
         rng: &mut Stream,
     ) -> bool {
         let presets = self.presets;
@@ -59,7 +57,7 @@ impl<'a> Country<'a> {
         }
         let along = scale(sub(ahead, at), 1.0 / distance(at, ahead));
         let (group, count) = match pieces {
-            Pieces::Homes(homes) => {
+            Pieces::Homes(homes, fits) => {
                 let (group, choices) = rng
                     .pick(
                         homes
@@ -214,10 +212,7 @@ impl<'a> Country<'a> {
             if retry {
                 index += 1;
             }
-            let id = format!(
-                "country/{name}-{stead}/lot-{}",
-                self.lots.len() - lots_before
-            );
+            let id = pieces.lot_id(stead, self.lots.len() - lots_before);
             self.yards.push(lot.rect);
             self.lots.push(LotPlan {
                 id: id.clone(),
@@ -401,7 +396,7 @@ impl<'a> Country<'a> {
                 let from = [door.position[0], door.position[1]];
                 let to = add(from, scale(door.normal, yard.front_m));
                 crate::layout::geometry::segment_distance(from, to, at)
-                    >= radius + yard.door_clear_m
+                    >= radius + homes.door_clear_m
             });
             let ask = Ask {
                 radius,
@@ -417,16 +412,29 @@ impl<'a> Country<'a> {
     }
 }
 
+/// Homes with the templates each of their groups may build on this map.
+pub(super) struct Eligible<'h, 'f> {
+    homes: &'h Homes,
+    choices: Vec<Choices<'f>>,
+}
+
+impl Pieced for Eligible<'_, '_> {
+    fn pieces(&self) -> Pieces<'_> {
+        Pieces::Homes(self.homes, &self.choices)
+    }
+}
+
 impl Homes {
-    /// Each group's templates: its categories, of the map's one family,
-    /// within the type's floors and categories.
-    pub(super) fn choices<'f>(
+    /// These homes with each group's templates: its categories, of the
+    /// map's one family, within the type's floors and categories.
+    pub(super) fn eligible<'f>(
         &self,
         fits: &'f [Fit<'f>],
         preset: &crate::layout::TypePreset,
         family: &str,
-    ) -> Vec<Choices<'f>> {
-        self.groups
+    ) -> Eligible<'_, 'f> {
+        let choices = self
+            .groups
             .iter()
             .map(|group| {
                 let mix = group
@@ -436,6 +444,10 @@ impl Homes {
                     .filter(|(category, _)| preset.categories.contains(category));
                 Choices::available(fits, mix, family, preset.max_floors)
             })
-            .collect()
+            .collect();
+        Eligible {
+            homes: self,
+            choices,
+        }
     }
 }

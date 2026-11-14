@@ -50,7 +50,7 @@ fn outline_limits(plan: &MapPlan) -> Vec<[f64; 4]> {
 }
 
 /// The parcels outside every settlement's outline: the yards of the homes
-/// in open country.
+/// and depots in open country.
 pub fn country_lots(plan: &MapPlan) -> impl Iterator<Item = &LotPlan> {
     let limits = outline_limits(plan);
     plan.lots

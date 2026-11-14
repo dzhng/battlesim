@@ -1,6 +1,7 @@
 //! The `open_country` rows of the presets: every density, size and
 //! clearance the pass places by, refused at load when it cannot describe a
 //! country.
+use crate::parcels::lots::Choices;
 use serde::Deserialize;
 
 /// The `open_country` block of the presets.
@@ -104,11 +105,26 @@ pub struct Steading<P> {
     pub pieces: P,
 }
 
+impl<P> Steading<P> {
+    /// This steading with `pieces` in its yards.
+    pub(crate) fn with<Q>(&self, pieces: Q) -> Steading<Q> {
+        Steading {
+            apart_m: self.apart_m,
+            lane_chance: self.lane_chance,
+            lane_m: self.lane_m,
+            spread_m: self.spread_m,
+            yard: self.yard,
+            pieces,
+        }
+    }
+}
+
 /// What a group's yards hold, as the station walk reads it.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub enum Pieces<'a> {
-    /// A building lot each, furnished with trees and a body.
-    Homes(&'a Homes),
+    /// A building lot each, furnished with trees and a body, of the
+    /// templates each of the homes' groups may build on this map.
+    Homes(&'a Homes, &'a [Choices<'a>]),
     /// A prop body each (or a row of them), sized by its box in
     /// `street_props.bodies`.
     Bodies(&'a [BodyGroup]),
@@ -117,12 +133,6 @@ pub enum Pieces<'a> {
 /// A steading's pieces, as the station walk reads them.
 pub trait Pieced {
     fn pieces(&self) -> Pieces<'_>;
-}
-
-impl Pieced for Homes {
-    fn pieces(&self) -> Pieces<'_> {
-        Pieces::Homes(self)
-    }
 }
 
 impl Pieced for Vec<BodyGroup> {
@@ -135,7 +145,13 @@ impl Pieces<'_> {
     /// What a group of bodies is called: its lots are `country/depot-<n>/…`.
     pub const DEPOT: &'static str = "depot";
 
-    /// The depot a lot is a yard of (`depot-3`), or none for any other lot.
+    /// The id of the `k`th lot of the `stead`th group of this kind.
+    pub fn lot_id(&self, stead: usize, k: usize) -> String {
+        format!("country/{}-{stead}/lot-{k}", self.name())
+    }
+
+    /// The depot a lot is a yard of (`depot-3`), or none for any other lot:
+    /// read from its [`Self::lot_id`].
     pub fn depot_of(lot: &str) -> Option<String> {
         let prefix = format!("country/{}-", Self::DEPOT);
         let number = lot.strip_prefix(&prefix)?.split_once('/')?.0;
@@ -145,7 +161,7 @@ impl Pieces<'_> {
     /// The name a group's lots are numbered under: `country/<name>-<n>`.
     pub fn name(&self) -> &'static str {
         match self {
-            Pieces::Homes(_) => "stead",
+            Pieces::Homes(..) => "stead",
             Pieces::Bodies(_) => Self::DEPOT,
         }
     }
@@ -194,6 +210,8 @@ pub struct Homes {
     /// The chance a home has one of `bodies` beside it.
     pub body_chance: f64,
     pub bodies: Vec<Body>,
+    /// A body in the yard keeps this far from a door and the way out of it.
+    pub door_clear_m: f64,
 }
 
 /// `homesteads` as the presets write it: one flat row of homes.
@@ -205,7 +223,7 @@ struct HomesteadRow {
     lane_chance: f64,
     lane_m: [f64; 2],
     spread_m: f64,
-    yard: Yard,
+    yard: HomeYard,
     groups: Vec<Group>,
     tree_chance: f64,
     tree_plot_m: [f64; 2],
@@ -214,8 +232,18 @@ struct HomesteadRow {
     attempts: u32,
 }
 
-/// `depots` as the presets write it: one flat row of body groups. A body
-/// has no door, so its yard has no door clearance.
+/// A home's yard as the presets write it: its setbacks and its doors'
+/// clearance.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct HomeYard {
+    front_m: f64,
+    side_m: f64,
+    rear_m: f64,
+    door_clear_m: f64,
+}
+
+/// `depots` as the presets write it: one flat row of body groups.
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct DepotRow {
@@ -224,17 +252,9 @@ struct DepotRow {
     lane_chance: f64,
     lane_m: [f64; 2],
     spread_m: f64,
-    yard: DepotYard,
+    yard: Yard,
     groups: Vec<BodyGroup>,
     attempts: u32,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct DepotYard {
-    front_m: f64,
-    side_m: f64,
-    rear_m: f64,
 }
 
 fn homesteads<'de, D: serde::Deserializer<'de>>(
@@ -255,12 +275,7 @@ fn depots<'de, D: serde::Deserializer<'de>>(
             lane_chance: row.lane_chance,
             lane_m: row.lane_m,
             spread_m: row.spread_m,
-            yard: Yard {
-                front_m: row.yard.front_m,
-                side_m: row.yard.side_m,
-                rear_m: row.yard.rear_m,
-                door_clear_m: 0.0,
-            },
+            yard: row.yard,
             pieces: row.groups,
         },
     })
@@ -276,13 +291,18 @@ impl From<HomesteadRow> for Steads<Homes> {
                 lane_chance: row.lane_chance,
                 lane_m: row.lane_m,
                 spread_m: row.spread_m,
-                yard: row.yard,
+                yard: Yard {
+                    front_m: row.yard.front_m,
+                    side_m: row.yard.side_m,
+                    rear_m: row.yard.rear_m,
+                },
                 pieces: Homes {
                     groups: row.groups,
                     tree_chance: row.tree_chance,
                     tree_plot_m: row.tree_plot_m,
                     body_chance: row.body_chance,
                     bodies: row.bodies,
+                    door_clear_m: row.yard.door_clear_m,
                 },
             },
         }
@@ -295,8 +315,6 @@ pub struct Yard {
     pub front_m: f64,
     pub side_m: f64,
     pub rear_m: f64,
-    /// A body in the yard keeps this far from a door and the way out of it.
-    pub door_clear_m: f64,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -420,6 +438,7 @@ impl Rules {
         let length = |v: f64| v.is_finite() && v >= 0.0;
         let chance = |v: f64| (0.0..=1.0).contains(&v);
         let range = |r: [f64; 2]| positive(r[0]) && r[1].is_finite() && r[0] <= r[1];
+        let yard = |y: &Yard| [y.front_m, y.side_m, y.rear_m].iter().all(|v| length(*v));
         let bodies = |rows: &[Body]| {
             rows.iter().all(|row| {
                 !row.kind.is_empty()
@@ -474,14 +493,8 @@ impl Rules {
                 && chance(steading.lane_chance)
                 && range(steading.lane_m)
                 && length(steading.spread_m)
-                && [
-                    steading.yard.front_m,
-                    steading.yard.side_m,
-                    steading.yard.rear_m,
-                    steading.yard.door_clear_m,
-                ]
-                .iter()
-                .all(|v| length(*v))
+                && yard(&steading.yard)
+                && length(homes.door_clear_m)
                 && chance(homes.tree_chance)
                 && range(homes.tree_plot_m)
                 && chance(homes.body_chance)
@@ -511,9 +524,7 @@ impl Rules {
                 && chance(s.lane_chance)
                 && range(s.lane_m)
                 && length(s.spread_m)
-                && [s.yard.front_m, s.yard.side_m, s.yard.rear_m]
-                    .iter()
-                    .all(|v| length(*v))
+                && yard(&s.yard)
                 && d.attempts > 0,
             "depots",
             "depots need a density, a lane, a yard and attempts",

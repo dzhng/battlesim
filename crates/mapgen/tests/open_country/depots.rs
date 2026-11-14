@@ -1,24 +1,61 @@
 //! Depots in the open country (L4, P3): a few military bodies, each in its
 //! own yard, at a station on a country road; rare, legal, whole or absent.
 use super::*;
+use mapgen::open_country::BodyGroup;
+use std::collections::BTreeSet;
 
-/// The plan's depots, by their lots' shared id: each one's lots, and the
-/// bodies standing in them.
-fn depots(plan: &MapPlan) -> BTreeMap<String, (usize, Vec<Box2>)> {
-    let mut out: BTreeMap<String, (usize, Vec<Box2>)> = BTreeMap::new();
+/// A depot as it stands: the kinds of body in each of its yards, and the
+/// bodies themselves.
+#[derive(Default)]
+struct Standing {
+    yards: Vec<BTreeSet<String>>,
+    bodies: Vec<Box2>,
+}
+
+/// The plan's depots, by their lots' shared id.
+fn depots(plan: &MapPlan) -> BTreeMap<String, Standing> {
+    let mut out: BTreeMap<String, Standing> = BTreeMap::new();
     for lot in &plan.lots {
         let Some(depot) = mapgen::open_country::Pieces::depot_of(&lot.id) else {
             continue;
         };
         let entry = out.entry(depot).or_default();
-        entry.0 += 1;
-        entry.1.extend(
+        let inside = |center: Point| polygon_contains(&lot.ring, center);
+        entry.yards.push(
+            plan.props
+                .iter()
+                .filter(|prop| inside(prop.center))
+                .map(|prop| prop.kind.clone())
+                .collect(),
+        );
+        entry.bodies.extend(
             loose_bodies(plan)
                 .into_iter()
-                .filter(|body| polygon_contains(&lot.ring, body.center)),
+                .filter(|body| inside(body.center)),
         );
     }
     out
+}
+
+/// The yards stand some group's pieces, each piece in a yard of its own:
+/// the kinds in each yard are its piece's body and net, and no piece is
+/// missing.
+fn whole(groups: &[BodyGroup], yards: &[BTreeSet<String>]) -> bool {
+    let mut stood = yards.to_vec();
+    stood.sort();
+    groups.iter().any(|group| {
+        let mut pieces: Vec<BTreeSet<String>> = group
+            .pieces
+            .iter()
+            .map(|piece| {
+                std::iter::once(piece.kind.clone())
+                    .chain(piece.net.clone())
+                    .collect()
+            })
+            .collect();
+        pieces.sort();
+        pieces == stood
+    })
 }
 
 /// Points round a box's outline every `step` metres, and its middle: what a
@@ -92,11 +129,11 @@ fn depots_stand_in_open_country_on_legal_ground() {
                 yaw: part.yaw,
             })
             .collect();
-        for (depot, (lots, bodies)) in depots(plan) {
+        for (depot, Standing { yards, bodies }) in depots(plan) {
             seen += 1;
             assert!(
-                groups.iter().any(|group| group.pieces.len() == lots),
-                "{name}: {depot} stands {lots} of a group's pieces"
+                whole(groups, &yards),
+                "{name}: {depot} stands {yards:?}, no group's pieces"
             );
             for body in &bodies {
                 for p in outline(body, 0.5) {
@@ -153,43 +190,82 @@ fn depots_stand_in_open_country_on_legal_ground() {
     assert!(seen > 0, "no depot stands on any map");
 }
 
+/// The plan of an Open Large map under the presets, with `edit` made to
+/// their depots.
+fn with_depots(seed: u64, edit: impl FnOnce(&mut serde_json::Value)) -> MapPlan {
+    let mut source: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
+    edit(&mut source["open_country"]["depots"]);
+    let request = serde_json::to_string(&request(MapType::Open, MapSize::Large, seed)).unwrap();
+    match mapgen::generate_plan(
+        &request,
+        &source.to_string(),
+        TEMPLATES,
+        &test_rules().to_string(),
+    ) {
+        mapgen::GenerateOutcome::Ok { plan } => *plan,
+        mapgen::GenerateOutcome::Error { diagnostics } => {
+            panic!("seed {seed}: the map was refused: {diagnostics:?}")
+        }
+    }
+}
+
+/// A depot left out leaves no trace: the map is the one it would be if no
+/// depot were ever tried, with no yard, paving or body of one.
+fn left_out(seed: u64, cramped: MapPlan) {
+    assert!(depots_of(&cramped).is_empty(), "a depot stood in no room");
+    let none = with_depots(seed, |depots| depots["per_road_km"] = 0.into());
+    assert!(
+        serde_json::to_value(&cramped).unwrap() == serde_json::to_value(&none).unwrap(),
+        "a depot left out left part of itself on the map"
+    );
+}
+
 /// A depot that finds no room is left out, and the map is still made.
 #[test]
 fn a_depot_that_does_not_fit_is_left_out() {
-    let mut source: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
-    let depots = &mut source["open_country"]["depots"];
-    depots["per_road_km"] = serde_json::json!(1.0);
-    // A yard far deeper than any road leaves room for.
-    depots["yard"]["rear_m"] = serde_json::json!(5000);
-    let cramped = source.to_string();
-    let request = serde_json::to_string(&request(MapType::Open, MapSize::Large, 1)).unwrap();
-    match mapgen::generate_plan(&request, &cramped, TEMPLATES, &test_rules().to_string()) {
-        mapgen::GenerateOutcome::Ok { plan } => {
-            assert!(depots_of(&plan).is_empty(), "a depot stood in no room")
-        }
-        mapgen::GenerateOutcome::Error { diagnostics } => {
-            panic!("a depot with no room refused the map: {diagnostics:?}")
-        }
-    }
+    let cramped = with_depots(1, |depots| {
+        depots["per_road_km"] = 1.0.into();
+        // A yard far deeper than any road leaves room for.
+        depots["yard"]["rear_m"] = 5000.into();
+    });
+    left_out(1, cramped);
+}
+
+/// A depot whose first pieces find room and whose last does not is left
+/// out whole: none of it stands.
+#[test]
+fn a_depot_missing_a_piece_is_left_out_whole() {
+    let cramped = with_depots(1, |depots| {
+        depots["per_road_km"] = 1.0.into();
+        // Two tents that fit, then a row of tents longer than any road.
+        depots["groups"] = serde_json::json!([{ "weight": 1, "pieces": [
+            { "kind": "tent" },
+            { "kind": "tent" },
+            { "kind": "tent", "count": [400, 400] }
+        ] }]);
+    });
+    left_out(1, cramped);
 }
 
 fn depots_of(plan: &MapPlan) -> Vec<String> {
     depots(plan).into_keys().collect()
 }
 
-/// The count follows the road: maps with more country road hold more depots.
+/// The count follows the road at the presets' rate: on one map, twice the
+/// depots for each kilometre of road holds some, and no fewer.
 #[test]
-fn more_road_holds_more_depots() {
-    let held = |size: MapSize| -> usize {
-        TYPES
-            .into_iter()
-            .flat_map(|map_type| countries(map_type, size))
-            .map(|country| depots_of(&country.plan).len())
-            .sum()
+fn a_higher_rate_holds_no_fewer_depots() {
+    let rate = presets().open_country.depots.per_road_km;
+    let held = |per_road_km: f64| {
+        depots_of(&with_depots(1, |depots| {
+            depots["per_road_km"] = per_road_km.into()
+        }))
+        .len()
     };
-    let (medium, xl) = (held(MapSize::Medium), held(MapSize::Xl));
+    let (at_rate, doubled) = (held(rate), held(2.0 * rate));
+    assert!(doubled > 0, "twice the rate stands no depot");
     assert!(
-        xl > medium,
-        "XL maps hold {xl} depots, Medium maps {medium}"
+        doubled >= at_rate,
+        "twice the rate holds {doubled} depots, the rate {at_rate}"
     );
 }
