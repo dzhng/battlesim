@@ -57,8 +57,8 @@ editors' local APIs and asset rebaking. Those APIs and editor routes are develop
 facilities; the production build does not provide fixture editing.
 
 [Vercel configuration](../vercel.json) owns deployed builds, SPA rewrites, isolation
-headers and immutable caching for content-addressed assets. It skips `main`, whose
-commits `staging` already built ([release order](../development.md#release-order)). Keep serving isolation
+headers and immutable caching for content-addressed assets. It never deploys `main`,
+whose commits `staging` already built ([release order](../development.md#release-order)). Keep serving isolation
 consistent with Vite so local, preview and deployed pages follow the same
 cross-origin isolation policy. Runtime assets must be materialized from Git LFS before a build can
 serve them; committed pointer files are not media.

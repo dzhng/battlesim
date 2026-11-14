@@ -172,14 +172,15 @@ Work lands on `staging` first; `main` (production) only ever fast-forwards to a
 commit `staging` already published, so `main` is always `staging` or behind it.
 Each commit builds once: Vercel builds every `staging` push as a staged
 production deployment, reachable at its own deployment URL (linked from the
-commit's GitHub status) but not the production domain, and skips `main`. Push
-`staging`, then run `bun run promote:main`: it lists the commits that would
-ship, and with `--yes` waits for that commit's staged deployment, promotes it to
-the production domain without a rebuild, and fast-forwards remote `main` to it
-without touching your checkout. Promotion ships every commit on `staging`,
-whoever pushed it, so read the list before passing `--yes`. If `main` ever gets
-a commit `staging` lacks (a merge made on GitHub), merge `main` into `staging`
-and push `staging` before promoting; the promotion refuses until then.
+commit's GitHub status) but not the production domain, and never deploys `main`,
+so pushing `main` by hand ships nothing. Push `staging`, then run `bun run
+promote:main`: it lists the commits production lacks, and with `--yes` waits for
+that commit's staged deployment, promotes it to the production domain without a
+rebuild, and fast-forwards remote `main` to it without touching your checkout.
+Promotion ships every commit on `staging`, whoever pushed it, so read the list
+before passing `--yes`. If `main` ever gets a commit `staging` lacks (a merge
+made on GitHub), merge `main` into `staging` and push `staging` before
+promoting; the promotion refuses until then.
 
 A pre-push hook holds the order: [the guard](tools/check-branch-order.mjs)
 refuses a push that would put a commit on `main` that remote `staging` lacks,
