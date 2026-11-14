@@ -228,7 +228,7 @@ Add one entry. A variant is an `extends` and what differs. Code learns nothing a
 
 ## The prop catalog
 
-A prop type (a house, a wall, a tree, a wreck, rubble) is **one entry** of a `props` section, in `props/<faction>/<family>.json`, addressed by its string id. No code lists prop types, and no rule asks which one a prop is. A map's props, a forest's trees (`forests.tree` in `rules.json`), a bridge's deck (`deck` on each map bridge) and a vehicle's wreck all name types by id; the world layout and the publication send the id list (`propKinds`) and each prop's index into it.
+A prop type (a house, a wall, a tree, a wreck, rubble) is **one entry** of a `props` section, in `props/<group>/<family>.json` (a group folder such as `city` or `military`), addressed by its string id. No code lists prop types, and no rule asks which one a prop is. A map's props, a forest's trees (`forests.tree` in `rules.json`), a bridge's deck (`deck` on each map bridge) and a vehicle's wreck all name types by id; the world layout and the publication send the id list (`propKinds`) and each prop's index into it.
 
 [The prop schema](../crates/contract/src/catalog.rs) separates body properties,
 destroyed-state transitions and appearance bindings. Each physical rule reads its

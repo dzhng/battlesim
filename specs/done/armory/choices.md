@@ -234,8 +234,8 @@ already eases the eye. All of it is `camera_armory` in
 
 **The sheet's words.** The sheet writes capabilities as short phrases
 ("Carries 8 men", "Deploys in 10 s", "Supply 500", "Trophy: 4 charges",
-"Flares ×6", "Radar", "Finds radars within N m", "Afterburner"). The catalog's
-`concealment` multiplies how far a unit is seen (infantry 0.5, a helicopter
+"Flares ×6", "Smoke ×3", "Radar", "Finds radars within N m",
+"Afterburner"). The catalog's `concealment` multiplies how far a unit is seen (infantry 0.5, a helicopter
 2.8), so the sheet labels it "Visibility ×n". "Concealment 2.8" would read
 backwards. A typed card that isn't sold reads "Not yet on sale". A planned
 card reads "Planned", with "Not yet in battle: these are its planned
@@ -402,8 +402,10 @@ ground the bodies read as boxes in a crop field.
 - **Verdict:** sound. **Confidence:** medium.
 
 **Depots are placed after homesteads, on their own random stream.** Placing
-depots last on `country/depots` leaves homes unchanged, so a map with no
-depot station is byte-identical to before. Depot stations keep 1.5 km from
+depots last on `country/depots` never moves a home. With depots off under
+the old presets and rules, every map parity record reproduced byte for byte
+(`784802c66`); generated maps still moved by name, through the presets
+revision and the prop ranks the military rows renumbered. Depot stations keep 1.5 km from
 other depots, not from homes, though their yards still keep apart. The
 map's even-halves rule counts a depot by the middle of its first lot.
 `fairness.depots` is 1.
@@ -869,8 +871,10 @@ no reader pulls a variant back out under `unreachable!`. `spread_m` belongs
 to `Steading`, because depots space their yards too. The preset rows stay two
 private serde structs (`HomesteadRow`, `DepotRow`), because
 `deny_unknown_fields` can't flatten a shared row. Which templates a home may
-build is `Homes::choices`, and `furnish_yard` takes the yard and the homes.
-The types and `Pieces::depot_of`, the one parser of a depot's lot id, are in
+build is `Homes::eligible`, which pairs the homes with their choices as the
+homes' `Pieced` (`Eligible`), and `furnish_yard` takes the yard and the homes.
+The types, `Pieces::lot_id` (the one writer of a lot id) and
+`Pieces::depot_of` (the one parser of a depot's) are in
 `open_country/rules.rs`. The station walk is `open_country/steads.rs`.
 - **When:** 13, 17, closeout. **Verdict:** sound. **Confidence:** high.
 

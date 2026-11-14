@@ -259,7 +259,7 @@
   {
     "id": "street",
     "route": "/labs/street",
-    "describe": "A battle on the street test map through the production controls, readouts and pause menu: blue starts west of the street, red holds it under the encounter's defender policy (its rifle squads garrison the three buildings). ?watch plays the encounter where blue's start is ordered onto the street at once, under a free camera; ?seed= sets the seed. The browser scenes judge the battle view here.",
+    "describe": "A battle on the street test map through the production controls, readouts and pause menu: blue starts west of the street, red holds it under the encounter's defender policy (its rifle squads garrison the three buildings). ?watch plays the encounter where blue's start is ordered onto the street at once, under a free camera; ?seed= sets the seed. The browser scenes judge the battle view here. Its app journey also makes an Armory round trip from the menu: nothing the Armory's stage allocated survives leaving it.",
     "map": "street"
   },
   {
@@ -367,7 +367,7 @@
   {
     "id": "armory",
     "route": "/armory",
-    "describe": "The Armory at /armory: the menu's tile opens it, a pick of a tile, a group and a faction rewrites the address in place without a new history entry or a remount, a refresh reopens the same unit, an unknown unit opens the first tile, and Back returns to the menu on the Armory's tile.",
+    "describe": "The Armory at /armory: the menu's tile opens it, a pick of a tile, a group and a faction rewrites the address in place without a new history entry or a remount, a refresh reopens the same unit, an unknown unit opens the first tile, and Back returns to the menu on the Armory's tile. On the stage, one unit of each group stands grounded on its spot and each switch is timed; its idle loops play while the Armory is open and stop after Back; at every orbit and zoom extreme the camera's eye stays clear of the unit, the yard's props and the ground.",
     "map": null
   },
   {

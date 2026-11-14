@@ -39,8 +39,8 @@ Content has three owners, and none reaches another's place. Game battles are
 generated and field the roster's units. Test units (`test_*`) and `test` maps
 belong to tests, labs, and benchmarks; capture units (`capture_*`) and `capture`
 maps belong to the capture tool and the menu backdrop it films. A saved map's metadata says which it is
-([saved maps](fixtures/README.md#saved-maps)). The developer menu's entries are
-tools, labelled as such, and stay in production builds;
+([saved maps](fixtures/README.md#saved-maps)). The main menu's Developer page lists
+tools, labelled as such, that stay in production builds;
 [browser checks](web/README.md#checks-and-evidence) say which lab pages are
 tests and which are tools.
 

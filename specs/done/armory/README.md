@@ -49,7 +49,7 @@ true. The code holds the how. Three records sit beside it:
   generated in the same model and framing as the other tiles.
 
 The art's scores against these references, and what still falls short of
-them, are in `decisions.md` and the art-quality entry of `choices.md`.
+them, are in the art-quality entry of `choices.md`.
 
 ## Why it works this way
 
@@ -87,9 +87,10 @@ biome's patchwork, hedgerows and trees, rising over the yard's relief.
 Relief past the yard is relief past a map's edge, so the backdrop owns it
 (`BackdropRelief`). The yard and every spot stay at height 0.
 
-**Each show stands on a presentation of its own.** A pick builds a fresh
-presentation and scene and frees the old pair once the new one stands, as a
-battle never reuses a presentation across scenes. Reusing one let a cache
+**Each show stands on a presentation of its own.** A pick frees the old
+presentation and scene together and builds a fresh pair, so the stage stands
+clear until the new one stands, as a battle never reuses a presentation
+across scenes. Reusing one let a cache
 outlive its scene, and the GPU refused the frame. Every switch therefore
 places the ground and scenery again, and a held, blurred last frame covers
 the wait.
@@ -122,44 +123,43 @@ even-halves rule as homesteads (`Steads<P>`, read through `Pieced`). Its
 lots are sized from its pieces' boxes, because a homestead lot can't hold a
 hangar. A depot is one compound: its yards may touch, all of it stands on
 one side of its road, and it stands whole or not at all. Depots are placed
-after homes on their own random stream, so a map with no depot station is
-byte-identical to one generated before depots existed. A paired balance
-report showed depots change the ground, not who wins.
+last, on their own random stream (`country/depots`), so they never move a
+home. With depots off under the old presets and rules, every map parity
+record reproduced byte for byte (`784802c66`). Generated maps still moved as
+a named change: the presets revision refuses older links, and the military
+rows renumbered the prop ranks. A paired balance report showed depots change
+the ground, not who wins.
 
 **Every contract change was a hard cutover** (the user's call). Old
 `/?type=…` addresses open the bare menu, and nothing is migrated.
 
 ## Contracts it set
 
-- **Menu addresses:** `/`, `/skirmish[?…]`, `/tutorial`, `/settings`,
-  `/developer`, `/armory[?unit=<card id>]`. `menuHref` emits `/skirmish?…`,
-  and unknown paths show the menu. Tutorial media moved to `/tutorial-media/`
-  so `/tutorial` is a route only.
-- **`Showground`** (game-wasm): `new Showground(rules_json)`, and
-  `.squad(kind, seed)` returns a squad at rest with its slots, offsets and
-  each mount's original carrier.
-- **The showcase** (presentation): `set_showcase(fielded, input)` shows a
-  unit in place of the last, and refuses while a battle is loaded. The wasm
-  `idle_loops(setup, kind)` returns the loops a stationary battle vehicle
-  starts, with replacements applied, and none for a type that flies.
-  `FeedUnit::grounded` is the driver's one "on the ground" field.
-- **Weapon rows:** a `derived: { fires_regardless, reach[] }` beside the
-  unchanged serde fields. An authored `derived` is refused.
-- **Unit groups:** `UNIT_GROUPS`, `unitGroup` and `familyGroups` in
-  `web/src/battle/present/purchaseFilter.ts`. They are presentation only:
-  `Category` stays the game rule.
-- **Non-battle audio:** `AppAudio.showLoops(loops)` on the one audio
-  context, and `[data-cue-hover="off"]` silences the hover cue.
-- **The yard document:** `fixtures/armory/yard.json`, admitted by `admitYard`
-  (`apps/battle-lab/src/armory/yard.ts`). Its one documented home is
-  `fixtures/README.md`.
+- **Menu addresses:** every menu page is a path, and `MENU_PAGES`
+  (`apps/battle-lab/src/menu/pages.ts`) is the one list of them. Home is
+  `/`. A page's state rides its query (`menuHref` writes Skirmish's choices,
+  the Armory keeps the open card), and an unknown path shows the menu. Static
+  media never sits under a page's path, so a page path is a route only.
+- **The showground** (game-wasm `Showground`): a squad at rest from the
+  battle's own scatter and first claims, with no battle loaded.
+- **The showcase** (presentation): shows one unit in place of the last, and
+  refuses while a battle is loaded. Its idle loops are the ones a stationary
+  battle vehicle starts, replacements applied, and none for a type that
+  flies. `FeedUnit::grounded` is the driver's one "on the ground" field.
+- **Weapon rows:** the catalog publishes `derived` facts beside the authored
+  fields. An authored `derived` is refused.
+- **Unit groups** (`UNIT_GROUPS` in `web/src/battle/present/purchaseFilter.ts`)
+  are presentation only: `Category` stays the game rule.
+- **Non-battle audio** plays on the one audio context (`AppAudio`), and
+  `data-cue-hover="off"` opts an element out of the hover cue.
+- **The yard document:** `fixtures/armory/yard.json`, admitted in
+  `apps/battle-lab/src/armory/yard.ts`. Its one documented home is
+  [the fixtures README](../../../fixtures/README.md).
 - **The Armory camera:** `camera_armory` in `fixtures/presentation.json`,
-  admitted in Rust (`settings/ui.rs` `ArmoryCamera`). In TypeScript,
-  `CameraPresentation` (renderer-core's `cameraController.ts`) carries each
-  camera's own `pitch_limits`.
-- **The backdrop relief:** `Presentation.set_ground(…, relief?)` and the wasm
-  `BackdropRelief(json, map)` with `.height(x, y)`. `Relief::footprint()` is
-  the contract's one owner of a feature's box.
+  admitted in Rust. Each camera carries its own pitch limits.
+- **The backdrop relief:** the presentation's ground takes an optional relief
+  past the map, and the wasm `BackdropRelief` answers its height. The contract
+  owns a relief feature's footprint.
 - **The prop catalog** gained the military rows. **Map presets** gained
   `open_country.depots`, at `layout-presets-21`. Both moved the generated
   maps, the prop ranks and the digests that embed them, as named moves.
@@ -175,7 +175,7 @@ report showed depots change the ground, not who wins.
 | Idle poses, rotors, faction looks, operator kits | `crates/presentation` showcase, on the battle's driver and `posing.rs` | TypeScript posing or a TypeScript rotor disc for a shown unit |
 | "On the ground" | `FeedUnit::grounded` | a rotor-only flag; a type check in the showcase |
 | Squad scatter, original carriers | `sim::arrangement::squad_spots`, `sim::weapons::operators::original_carriers` | a TypeScript scatter; a second first-claim search (spawn reads the same owner) |
-| Idle sound and its replacements | `presentation::sound` (`idle_loops`, `SoundTables::effect`) | `effects[name] ?? name` in TypeScript. (The sound workbench's `Movement.tsx` predates this and still keeps such a copy.) |
+| Idle sound and its replacements | `presentation::sound` (`idle_loops`, `SoundTables::effect`) | `effects[name] ?? name` in TypeScript |
 | Non-battle voices | `AppAudio.showLoops` | a second `AudioContext`; `createBattle` for the Armory |
 | Fires-regardless; reach per band | `contract::WeaponDefinition`, published under `derived` | `default && unlimited` anywhere; a recomputation in the sheet |
 | Unit groups, a family's group | `purchaseFilter.ts` `UNIT_GROUPS`, `unitGroup`, `familyGroups` | a group read by Rust, a rule or the AI; a second tab list |
@@ -188,33 +188,32 @@ report showed depots change the ground, not who wins.
 | Height past the yard | `BackdropRelief` | a height grid for the yard; a second relief reader |
 | The world's scenery art | `worldMesh.ts` `worldSceneryNames`, `worldScenery` | a tree list in the yard |
 | A flat map | `MapDefinition::flat`; `WorldGeometry::flat` builds on it | a test helper's own flat map |
-| Groups of pieces at road stations | `open_country/rules.rs` `Steads<P>` and `Pieced`; the station walk in `open_country/steads.rs` | a `depot()` that copies the station walk; a variant taken back out under `unreachable!` |
-| A depot's lot id | `open_country/rules.rs` `Pieces::depot_of` | a second parser |
+| Groups of pieces at road stations | `open_country/rules.rs` `Steads<P>` and `Pieced`; the station walk, and `Eligible` (the homes' `Pieced`: homes paired with their choices), in `open_country/steads.rs` | a `depot()` that copies the station walk; a variant taken back out under `unreachable!` |
+| A lot id | `open_country/rules.rs` `Pieces::lot_id` writes it, `Pieces::depot_of` reads a depot's back | a second format or parser |
 | Prop physics | the prop catalog's rows | any rule naming a hangar, net or tent |
 
-One known break: placed-prop boxes. Depots read them from
-`street_props.bodies`, but the homes' and field cover's rows still carry
-their own copies (`choices.md`, the unsound entry).
+Two known breaks:
+
+- **Placed-prop boxes.** Depots read them from `street_props.bodies`, but the
+  homes' and field cover's rows still carry their own copies (`choices.md`,
+  the unsound entry).
+- **Sound replacements.** The sound workbench's `Movement.tsx` predates the
+  Rust owner and still applies its own `effects[name] ?? name` lookup.
 
 ## Where to look
 
-- **Page and stage:** `apps/battle-lab/src/armory/` (`ArmoryPage`,
-  `ArmorySheet`, `ArmoryStage`, `armoryAppearances`, `armoryCamera`, `yard`).
-  The sheet model is `web/src/battle/present/unitSheet.ts`.
-- **Showcase:** `crates/presentation/src/presentation/showcase.rs`,
-  `crates/presentation-wasm/src/showcase.rs`, `crates/game-wasm/src/showground.rs`.
-  The lab is `/labs/showcase` (`apps/battle-lab/src/routes/showcase.tsx`).
-- **Military art:** `packages/scene-assets/blender/military.py` and its
-  family modules. The rows are in `fixtures/props/military/`.
-- **Depots:** `crates/mapgen/src/open_country/steads.rs` and `rules.rs`. The
-  numbers are in `fixtures/map-presets.json` `open_country.depots`.
-- **Fog on low tops:** `fog.wgsl` `fogSeenSurface`. A top just under an eye
-  takes the roof rule.
-- **Tests that pin it:** `web/tests/armory*.test.ts(x)`, `unitSheet.test.ts`,
-  `purchaseFilter.test.ts`, `appAudio.test.ts`;
-  `crates/game-wasm/tests/showground.rs`; `crates/sim/tests/shelter.rs`;
-  `crates/mapgen/tests/open_country/`; `renderer-core/tests/probes.rs`; the
-  browser scenes `armory`, `showcase` and the `street` tour's round trip.
+- **Page, stage and camera:** `apps/battle-lab/src/armory/`. The sheet model
+  is `web/src/battle/present/`, beside the picker's groups.
+- **Showcase:** the presentation crate's showcase, its wasm binding, and the
+  game-wasm showground. The lab is `/labs/showcase`.
+- **Military art:** the `military*` exporters in
+  `packages/scene-assets/blender/`. The rows are in `fixtures/props/military/`.
+- **Depots:** `crates/mapgen/src/open_country/`. The numbers are in
+  `fixtures/map-presets.json` `open_country.depots`.
+- **Fog on low tops:** `fog.wgsl` `fogSeenSurface`.
+- **Browser proof:** the scenes `armory`, `showcase`, and the `street` tour's
+  Armory round trip (`apps/battle-lab/src/fixtures.json` says what each
+  covers). Unit and crate tests sit in their owners' test folders.
 
 ## Dead ends
 

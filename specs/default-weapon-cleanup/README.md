@@ -1,14 +1,15 @@
 # Default weapon cleanup (placeholder)
 
 **Status:** placeholder. Nothing is sliced or implemented yet.
-**Updated:** 2026-11-12.
+**Updated:** 2026-11-14.
 
 ## Next Agent Prompt
 
 You are picking up a rules cleanup: one weapon-row flag, `default`, does three
 unrelated jobs in the simulation. Don't start until the user gives the go for a
-rules-cleanup pass, and build on the Armory spec's decision U8 (below), not
-around it. When the user starts this, walk the open decisions with them and run
+rules-cleanup pass, and build on the Armory's
+[decision U8](../done/armory/unknowns-map.html#u8), not around it. When the
+user starts this, walk the open decisions with them and run
 `tweak-mechanics`. Then land the scenarios as tests against today's code, and
 only then run `write-spec` to slice the split. The cleanup must not change
 outcomes: battle digests and replays stay the same, unless the user names a
@@ -58,7 +59,7 @@ From `fixtures/catalog.json`, recomputed 2026-11-12:
 - Requirement W09 (`specs/done/battle-foundation/requirements.md`) said
   "Every armed unit has an unlimited-ammo default gun", and the data above says
   otherwise. **Decided (user):** the wording was out of date and the data
-  stands. Armory slice 05 amended W09 to what the game does now.
+  stands. The Armory amended W09 to what the game does now.
 - A "useful shot" counts reserve ammo, not only a loaded round:
   `Mount::has_rounds` checks the rounds left. So a launcher left unloaded
   during a rifle fight still takes rank 2 when a vehicle appears: the soldier
@@ -72,11 +73,13 @@ From `fixtures/catalog.json`, recomputed 2026-11-12:
 
 ## Cross-spec dependency
 
-Armory slice 05 (decision U8) moved `fires_regardless` from a private sim
-function to a method on the contract's `WeaponDefinition`. The catalog publishes
-the result on its weapon rows under `derived`, so the UI reads a flag instead of
-working it out. This cleanup changes what
-that method reads. It does not add a second owner for it.
+The Armory ([decision U8](../done/armory/unknowns-map.html#u8)) moved
+`fires_regardless` from a private sim function to a method on the contract's
+`WeaponDefinition`. The catalog publishes the result on its weapon rows under
+`derived`, so the UI reads a flag instead of working it out
+([the published weapon facts](../done/armory/README.md#why-it-works-this-way)).
+This cleanup changes what that method reads. It does not add a second owner
+for it.
 
 ## Scenarios that must stay true
 
@@ -113,10 +116,10 @@ Rules read physical properties.
   Check that no squad has a `default` row on a non-`squad` mount, or the other
   way round, so that S1 and S2 keep their digests.
 - **Plinking.** (a) Keep it derived (`default` and unlimited ammo) inside the
-  U8 contract method. (b) Author an explicit property on each row (for example
-  `fires_regardless`, or a "keeps heads down" flag) so the data decides, not a
-  derivation. (b) fits "values live on the unit" better. (a) means no data
-  changes.
+  [U8](../done/armory/unknowns-map.html#u8) contract method. (b) Author an
+  explicit property on each row (for example `fires_regardless`, or a "keeps
+  heads down" flag) so the data decides, not a derivation. (b) fits "values
+  live on the unit" better. (a) means no data changes.
 - **Strafing gun.** Which physical property marks a jet's gun row: its
   delivery, guidance or projectile kind? Or keep a named, authored property?
   It must still sort every current jet row the same way (S6).
@@ -130,7 +133,6 @@ Rules read physical properties.
 2. Walk the open decisions with the user (`tweak-mechanics`), then
    `write-spec` the split: one job per slice, with the tests and digests
    unchanged after each slice.
-3. Amend W09's text, unless the Armory spec has already done it.
 
-**Unblocks when:** the user gives the go for a rules-cleanup pass, after the
-Armory's U8 has landed.
+**Unblocks when:** the user gives the go for a rules-cleanup pass. The
+Armory's U8, which this builds on, has landed.

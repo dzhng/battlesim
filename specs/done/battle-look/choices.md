@@ -960,6 +960,8 @@ Where the operator fires it from is the operator-muzzle entry.
 
 **The reach.** Walls facing away from every eye stay unseen under a seen roof, so buildings can look half-fogged; this is geometry, not a bug.
 
+**Amended (Armory closeout, `3a48f3df7`).** The rule now gates on the probe point standing level with or above an eye, not the surface, so a top just under eye height (a 1.5 m ruin under 1.6 m eyes) takes it too; see the [Armory's choices](../armory/choices.md).
+
 **Verdict.** sound — a general rule from the eye's own sight line, not a roof special case.
 
 ### Each side remembers where it last saw each moved body; planning and drawing use that, local steering uses the true box
@@ -3936,6 +3938,8 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 ***sound** · confidence **high** · How fog looks · from Spike 02*
 
 **The choice.** A pixel on open ground asks "can an eye see a target standing here?", so it tests the point 1 m up (the simulation's target height). A pixel on a wall, roof or unit tests the point `face_probe_m` (0.1 m) out along its surface normal, and only eyes in front of that face count (`fogProbePoint`, `fogSeenSurface` in `frame/fogTerm.ts`). The alternatives measured (testing the surface point itself, or testing faces at target height) lit up roof bands up to 6 m wide. A separate roof rule (`roof_reach_m`) handles roofs above every eye.
+
+**Amended (`3a48f3df7`).** The roof rule tests the probe point, not the surface: it takes every up face whose probe point stands level with or above an eye, exactly the faces the face test turns away.
 
 **The gap.** The slice didn't say what a fragment on a wall or roof tests.
 

@@ -14,9 +14,11 @@ check. The registry is the route inventory; docs do not maintain a parallel list
 
 A lab stands on a saved `test` map (its registry entry names it, and
 [`fixtureMap`](src/fixtures.ts) refuses any other category) or on a generated
-or synthetic world, and fields test units. The battle view itself is judged on
-the street test map's battle (`/labs/street`), a test's own encounter, so no
-lab plays on the game's content or a capture's. Player pages (`/battle`) only
+or synthetic world. It fields the unit set its registry entry names
+(`catalog`): test units unless the entry says otherwise, as a lab that shows
+or authors with the roster takes the game's. The battle view itself is judged
+on the street test map's battle (`/labs/street`), a test's own encounter,
+never on the game's content or a capture's. Player pages (`/battle`) only
 ever prepare generated maps.
 
 [Visit ownership](src/navigation.tsx) keeps client navigation separate from
@@ -86,8 +88,8 @@ framing, so a shot in a narrow street may stand nearer than a player may zoom.
 [The shared battle view](src/BattleView.tsx) composes page resources and observation
 feeds. [Session ownership](src/useBattleSession.ts) keeps worker preparation and
 cleanup tied to that page. A session also owns its unit catalog: [the router](src/router.tsx)
-gives player battles and replays the game's set and labs the test set (the menu
-backdrop and the capture route take the capture set), the session refuses a scenario fielding a unit its
+gives player battles and replays the game's set and each lab the set its
+registry entry names (the menu backdrop takes the capture set), the session refuses a scenario fielding a unit its
 catalog lacks, and views read the catalog from the session or its context, never
 from a module-level import. [Lab loading](src/LabLoading.tsx) uses the player
 loading screen across preparation, the first observation and the first drawn
@@ -110,7 +112,7 @@ neither remounts the page nor adds a history entry. It keeps [its own residency]
 selection, holding the yard and the one unit on show, so browsing every unit
 never fills the page's shared library. Its failures stay with the caller and
 never refuse the page. [The yard](src/armory/yard.ts) reads [its
-document](../../fixtures/README.md): a unit's body picks its spot, and each
+document](../../fixtures/armory/yard.json): a unit's body picks its spot, and each
 prop is drawn by its catalog art. Past the yard's ground the presentation draws
 the battle's backdrop, as past a battle map's edge, and the camera and its
 checks read that same ground (`yardGround`).

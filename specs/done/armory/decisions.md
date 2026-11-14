@@ -49,10 +49,11 @@ each one as a decision, the reason for it, and who made it.
   - The showcase spike (02–04) runs in its own lane from day one, as the kill
     switch.
 - **P8. Rotor blur reads "rotors turning",** a property of the unit the
-  showcase feeds in, not "airborne". *Agent.*
-  - Why: in battle the two always coincide, so battle frames can't change. A
-    parked helicopter with its rotors turning then blurs with no role check.
-  - The fewest-slices draft proposed the same rule as "rotor travel advanced".
+  showcase feeds in, not "airborne". *Agent.* **Superseded** by "Parked
+  rotors are stopped" (below): the showcase grounds every unit, and a
+  grounded type poses with still rotors and no blur.
+  - Why it was chosen: in battle the two always coincide, so battle frames
+    can't change.
 
 ## Alternatives the drafts proposed, and why each lost
 
@@ -73,123 +74,85 @@ each one as a decision, the reason for it, and who made it.
 
 ## Recorded during implementation
 
-- **Slice 01's visual gate passed on identity,** so there was no human
-  checkpoint. *Agent.*
-  - On the final tree, `menu`, `menu-skirmish`, `menu-tutorial` and
-    `menu-settings` are byte-identical to the pre-slice run on the same
-    machine.
-  - One intermediate run's `menu-skirmish` differed by 277 px in the status
-    line. The lobby draws a fresh random seed each run, and the seed's hidden
-    width moves the right-aligned "Ready". That run still matched the approved
-    baseline pixel for pixel.
-- **06. The search stays a field at every width;** the nine tabs fit beside it
-  at 1280 px (the `ui` scene's tab-row and containment checks), so no
-  collapse to an icon. *Agent, under the delegation.*
-- **06. The nine-tab strip is accepted on the evidence:** it fits with room to
-  spare, every label reads whole at 2×, and the unprimed critique found no
-  defect in its fit. Its notes on the selected tab's contrast and the
-  search's margins describe the existing style, unchanged here and left to 08.
-  No human reply came in the checkpoint window. *Agent.*
-- 2026-11-13, slice 04: the parked AH-64's rotor blur is the battle's own look (same blade smear and ghosting as `air-hover`); an unprimed critique read it as "frozen blades over a glass plate" and the tail rotor as wedge sectors. Not retuned (one owner: `presentation.json` `rotor_blur`/`rotor.tip_mps`); raised to the user.
-- 2026-11-13, slice 04: the showcase squad's idle reads combat-ready (crouched, weapons up) to a fresh eye; that is the battle's idle clip and watchers. Not changed (the slice's rule: tune `pose.rest` data); raised to the user.
-- 2026-11-13, slice 04: the visual gate passes on the evidence. All 15 `showcase` probes pass on the merged tree. The parked AH-64 sits on its wheels and tail wheel with its rotors turning, against the parked-AH-64D photo. The unprimed critique found no float or sink. Its other notes are model art for the AH-64's next pass (rotor head, gear struts, canopy glazing), the shared shadow and horizon look, or the two looks already raised above. No human reply came in the checkpoint window. *Agent.*
-- 2026-11-13, slice 10: the placeholder yard's composition is accepted on the evidence. On the final tree all 27 `showcase` probes pass, including each body on its spot with its own dressing drawn. The last unprimed critique found no prop between a unit and its camera, and nothing floating or sinking. Its remaining notes are open for the human or for slices 11 and 12: props whose outlines touch the unit's (the cabin behind the turret, the barrier line behind the apron fuselage), the apron's dressing weighted left, and units smaller in frame than in the 16:9 mock. The real stage aspect and camera come in 11 and 12. The missing tents, the sand ground and the absent hangar are slice 16's military set. No human reply came in the checkpoint window. *Agent.*
+Each visual checkpoint here passed on its evidence (the scene's probes,
+compare-screenshots and an unprimed critique). No human replied within any
+checkpoint window, so each was the agent's call under the delegation. What a
+critique raised and the slice left open is in [`choices.md`](choices.md).
 
-- **L1 lifted (slice 14's gate), 2026-11-13.** `tracked-armour-models` closed
-  into `specs/done/tracked-armour-models/` on staging, and staging was merged
-  into the Armory branch (`736eff7d8`). Its coordinator no longer owns
-  `fixtures/props/**`, the catalog or the runtime bundles, so slices 14–17 run.
-- **08. Layout A is accepted on the evidence** (`ui` baselines `armory`,
-  `armory-1920`, and the real roster in the `armory` scene's evidence). Three
-  unprimed critiques drove the fixes recorded in `choices.md`; the last found
-  no clipping or overlap. Left to the user: bars are magnitudes, each scaled
-  per figure against the same body's roster (U9), so a slow reload has the
-  long bar; a tile shows its family's cheapest price. No human reply came in
-  the checkpoint window. *Agent.*
-- **08. The menu changes only inside the Armory tile's band:** above it and
-  below it (shifted by the tile's 104 px), the new `menu` baseline matches the
-  old one with 0 px differing under the scene's own matcher (`comparePngs`).
+- **01. Menu pages became paths with no visual change.** The menu baselines
+  matched the pre-slice run. The lobby draws a fresh seed each run, which can
+  move its right-aligned "Ready"; that is not a regression. *Agent.*
+- **04. A parked helicopter stands on its wheels.** Against the parked-AH-64D
+  photo it sits on its main and tail wheels, with no float or sink. *Agent.*
+- **04. The battle's rotor blur and idle stance stay the battle's.** A fresh
+  eye read the blur as "frozen blades over a glass plate" and the squad's
+  idle as combat-ready. Both are `fixtures/presentation.json` data that every
+  battle reads, so neither was retuned; both went to the user. Since parked
+  rotors stopped (below), the Armory shows no blur at all. *Agent.*
+- **06. The search stays a field at every width,** and the nine-tab strip
+  ships as is: the tabs fit beside the search at 1280 px with room to spare,
+  and every label reads whole at 2×. *Agent.*
+- **08. Layout A is accepted.** Left to the user: each bar is a magnitude
+  scaled against the same figure across the roster (U9), so a slow reload has
+  the long bar; a tile shows its family's cheapest price. *Agent.*
+- **08. The menu changes only inside the Armory tile's band.** Above and below
+  it, the new menu baseline matches the old one with no pixel differing.
   *Agent.*
-- **08. Key art from the Duet CLI, same model, second prompt:** the first
-  prompt's wide shot read as the odd tile out; the tight three-quarter view
-  matches the set's close framing. *Agent.*
-- **11. The backdrop holds the frame budget with the stage live, so there
-  is no `holdBackdrop`.** Measured once by the `armory` scene at 1280 × 800
-  on this Mac, over 3 s of animation frames each: the menu alone p50 16.67 ms,
-  p95 16.67 ms; the Armory with its full-screen stage and the backdrop both
-  live p50 16.67 ms, p95 16.67 ms (`throwaway/armory/11/frame-time.json`).
-  *Agent, under the delegation.*
-- **11. Switch time (S7) and load line (S5), measured once, loose
-  tripwires:** after the first, a switch takes 0.2–1.0 s from pick to the unit
-  standing. The first after the menu shows takes 15–19 s, because the menu's
-  background prefetch of every runtime file is downloading at the same time.
-  A selection holds 7–18 MiB, the yard and the catalog included
-  (`throwaway/armory/11/switches.json`). *Agent.* The first open is worth a
-  user look: the prefetch competes with it.
-- **11. The visual gate passes on the evidence.**
-  - All `armory` scene probes pass on the final tree: a unit of each of the
-    nine groups stands on its spot with every model on the ground (2 cm).
-  - The AH-64 sits on its main and tail wheels with its rotors turning, as
-    in the parked-AH-64D photo and slice 10's apron shot.
-  - The second unprimed critique found no float or sink.
-  - Its notes not taken up here:
-    - the rotor blur and the squad shadows starting beside the boots are
-      the battle's shared looks, raised to the user and not retuned;
-    - the flat sand ground and tan vehicles on tan ground are slice 16's
-      military yard;
-    - per-unit framing (the squad small, empty ground under vehicles, the
-      helicopter's tail at 1280) is slice 12's;
-    - the sheet's cut-off at 1280 and its empty space are slice 08's page;
-    - the jet's "Sight · ground 1 m" is roster data.
-  - No human reply came in the checkpoint window. *Agent.*
-- **12. The camera's visual gate passes on the evidence.**
-  - All `armory` scene probes pass: 48 extremes for a unit on each spot
-    with the eye clear of the unit, the props and the ground. Keys, the
-    screen's edges and drags on the list or the sheet never move the
-    camera. The lowest pitch dips below the horizon.
-  - The unprimed critique found no clipping at any extreme, and nothing of
-    the helicopter cut off at the nearest zoom. It read the first pitch
-    ceiling as a flat map view, so the ceiling dropped to 1.1 rad.
-  - Its other notes are left as data or later work:
-    - the nearest zoom is as tight as the unit's box allows (a helicopter's
-      box is square round its rotor sweep);
-    - the far framing (0.4) and the opening angles per spot (`yard.json`)
-      are the user's to tune;
-    - the 1280 sheet cut-off is slice 08's page.
-  - No human reply came in the checkpoint window. *Agent.*
-- 2026-11-13, slice 14: the visual gate passes on its one variable. The standing hangar (a tall stand-in box) becomes a low slab of the same plan when HE brings it down, seen by the squads watching it, so the destruction state reads. The unprimed critique agreed it reads only weakly as "the same object, collapsed": the slab has no debris or broken silhouette, which is slice 15's art. **Open, for slice 15 and the user:** the ruin's top draws with the fog's unseen hatching, as does a ruin placed from the start, while the tops of crates, rubble and the tent nearby draw seen. The simulation's fog reads only occluding bodies, so this is the renderer's sight-light on the first body that is immovable, blocks movers and does not occlude, its top 1.5 m high under 1.6 m eyes. Not retuned here: the row is physical, and the look is the renderer's. No human reply came in the checkpoint window. *Agent.*
-- 2026-11-13, slice 17: the visual gate passes on its one variable. On three skirmish maps, a hangar depot, a HESCO depot and a camp each read as one compound on its paved yards beside a road or track. On the plan picture each depot is ringed and found at whole-map scale. The unprimed critique agreed on the last pass, which followed two failed ones: first the bodies stood in crop fields, split across the road, then on separate slabs. Its remaining notes are slice 15's placeholder art (tents and the net look alike, the flagpole has no flag), the plan picture's existing body circles and legend, and yards touching the road verge, which keeps the same 2 m verge a home's yard does. **Raised to the user:** skirmish maps hold about one depot each (one or two on Large, none or one on Small); "too many" or "too few" is `open_country.depots.per_road_km`. The lobby's map picture draws no props, so players don't see depots there. No human reply came in the checkpoint window. *Agent.*
-- 2026-11-13, slice 15: each prop's gate passed on its own evidence, judged against its real-photo references, after three unprimed critiques per prop. No human reply came in the checkpoint window (shots opened 08:13). Scores below are the last critique's, out of 10 (silhouette / surface / fittings / materials / cohesion); 6 is "a studio takes it as a base". The make-3d-models bar (none under 6, average 7) is met only by the hangar; the rest are named here for the user. *Agent.*
-  - **15a hangar:** 8/7/6/6/7. Open: the skylights read as flat panels; the far tier's corrugation dots.
-  - **15b hangar ruin:** 5/6/5/5/5. It reads as the olive hangar brought down (feet on the curbs, rib stubs, creased sheet), but the critique still sees "a rug over a bed" at a distance under the 1.5 m cap.
-  - **15c revetment:** 7/5/5/5/6. A steel-bin revetment like every reference; it can read as a container at a distance.
-  - **15d HESCO:** 7/6/5/6/6. Open: the fill's texture reads as slabs from above; the coil joints are faint.
-  - **15e tent** 6/5/6/5/6 and **flagpole** 5/5/4/5/5. Open: the 7 cm pole thins to nothing at battle-mid, leaving the flag alone in the air (the renderer's distance detail, battle-wide, not retuned); the halyard is too thin to read.
-  - **15f net:** 4/6/3/5/4. The lifted edges show the stacks, but it still reads as a mound; a net that rests on its stacks needs the art to know how many stand under it.
-  - Critiques that judged the shaded faces as near-black were reading the sheet's low-ambient sun; real inward faces were found and fixed (both hangar end walls, HESCO's ends, the tent's gables, the flag's two layers).
-- 2026-11-13, slice 15: **the fog's "unseen" hatching on the hangar ruin's top is a general renderer gap, not fixed here.** In `fog.wgsl` `fogSeenSurface`, a face first counts as seen only if it faces the eye from its probe point (the surface plus `face_probe_m`, 0.1 m along its normal), and the roof rescue runs only for a surface above the eye (`world.z <= e.position.z` returns false). An up-facing top between 1.5 and 1.6 m, seen by 1.6 m infantry eyes, fails both: its probe point stands level with or above the eye, so it "faces away", and the surface is below the eye, so no rescue. The stand-in ruin's top sat at exactly 1.5 m. Crates (2 m) get the rescue, and lower tops pass the facing test. The likely fix is one condition: test the probe point (`p.z < e.position.z`), not the surface, before the rescue. Not applied: it is a WGSL change needing a Rust and wasm build, and the disk stood under 7 GiB. The ruin's art keeps its tops at or below 1.5 m, mostly under the band; that is reasoned from the code, not seen in a battle. *Agent; for the closeout or the user.*
-- 2026-11-13, slice 16: **the visual gate passes on its one variable, "a lived-in military yard", as far as the yard's data and the battle's backdrop reach.**
-  - Masked against slice 11's placeholder shots (the panels and the unit grey), each spot's default camera now holds 2.3–3.2× the edge energy (compare-screenshots, `throwaway/armory/16/cmp/`).
-  - Each spot now has its own setting:
-    - the apron: a line of three hangars behind the helicopter on a concrete apron with taxi lines;
-    - the motor pool: a hardstand between steel-bin revetments, with its supplies stacked behind the vehicle;
-    - the tents: a camp on gravel with a flag;
-    - all of it inside a HESCO perimeter, with the battle's fields and treelines to the horizon.
-  - Against the references, it matches the apron photo (the hangar behind a parked aircraft), Camp Baldwin (a tent row) and the tank line (vehicles on concrete). The chosen mock A has a hangar and nets behind the unit.
-  - Six unprimed critiques drove the fixes in `choices.md`. The last found nothing floating, sinking or z-fighting and no seam through a unit, and called it "recognisably a military yard … tidy, empty, staged".
-  - **Left open:**
-    - "lived-in" also wants people, parked vehicles and clutter, which no catalog prop is;
-    - the art: two hangars share their "3", the right hangar's roof reads teal, the net's spreader pole juts out, revetments read as containers and sit under the panels at the per-unit framing, and the HESCO is pale;
-    - the battle's looks: rotor blur and dithered shadow edges;
-    - slice 12's framing: the bare slab in the frame's lower half.
-  - No human reply came in the checkpoint window (shots opened 11:37). *Agent.*
-- 2026-11-13, slice 16 (user feedback, via the orchestrator: trees and livelier terrain): **trees and ground variety shipped; relief deferred.**
-  - Past the yard's own 180 m ground, the presentation draws the battle's backdrop: the biome's field patchwork, hedgerows, trees and copses. The yard's ground is the battle's ground material too. No new tree art or tree list.
-  - Relief needs a height source shared by the ground mesh, the presentation's flat backdrop frame and its tree seating, the Armory camera's clearance and the camera tour's check. That is a Rust and renderer change, not small, so it is a follow-up for the user (report of slice 16). *Agent.*
-- 2026-11-13, slice 16: **one `armory` run's page crash** (WebGPU, mid camera tour, before the backdrop change) did not repeat on an unchanged rerun. It was treated as transient. *Agent.*
-- **Parked rotors are stopped.** In the Armory a parked helicopter's rotors stand still, its real blades drawn crisp with no blur disc, and a parked aircraft makes no rotor or engine sound. This replaces P8's "rotors turning" on the ground. *User, 2026-11-13.*
-- 2026-11-13, relief beyond the yard (Pickup 1, the user's "more exciting terrain"): **the visual gate passes on its one variable, hills behind the treelines from each spot's opening camera.**
-  - Against slice 16's shots (`armory-1920-{mbt,heli,rec}`), only the horizon band moved; the yard, the units, their shadows and the panels are pixel-identical (compare-screenshots absolute difference, `throwaway/relief/compare/`). Each view now holds rolling hills patched with fields, hedgerows and trees, and behind them a hazy ridge line.
-  - The first unprimed critique read the backdrop as "a set a few hundred metres away" with nothing behind the hills: the ridge, 95–160 m high, hid behind the nearer hills. It was raised to 160–270 m, data only. The second critique found no cracks, gaps or depth errors and read "the layers of hills overlap and give a sense of distance".
-  - **Left open, the battle's own looks (battle-wide, not retuned):** low-poly and leafy trees side by side, hedgerows that read as beads, weak haze in the middle distance, field edges that read as terrace steps, and the far ridge's even tone past the patchwork's reach. Slight kinks on hilltop silhouettes come from the relief's 32 m cells; finer cells cost vertices (choices). Foreground notes repeat slice 16's (the two "3" hangars, the teal roof, the bare slab).
-  - No human reply came in the checkpoint window (shots opened 12:32, closed 12:37). *Agent.*
+- **08. The tile's key art comes from the Duet CLI, same model, second
+  prompt.** The first prompt's wide shot was the odd tile out among the
+  set's close framings. *Agent.*
+- **10. The placeholder yard's composition is accepted:** each body stands on
+  its spot with its own dressing, and no prop stands between a unit and its
+  camera. *Agent.*
+- **11. No `holdBackdrop`.** With the stage live, the menu backdrop still
+  held the frame budget, measured once. *Agent.*
+- **11. Switch time (S7) and the load line (S5) are loose tripwires,**
+  measured once. A switch takes about a second at most; the first one after
+  the menu shows is far slower, because the menu's background prefetch
+  competes with it. That first open is worth a user look. *Agent.*
+- **11. Every group stands grounded.** A unit of each of the nine groups
+  stands on its spot with every model on the ground; a parked helicopter on
+  its main and tail wheels. *Agent.*
+- **12. The camera's extremes keep the eye clear** of the unit, the props and
+  the ground. Keys, the screen's edges and drags on the panels never move it.
+  The critique read the first pitch ceiling as a flat map view, so the
+  ceiling came down. The far framing and each spot's opening angle are data
+  for the user to tune. *Agent.*
+- **L1 lifted (slice 14's gate).** `tracked-armour-models` closed and gave up
+  `fixtures/props/**`, the catalog and the runtime bundles, so slices 14–17
+  ran. *Agent.*
+- **14. The hangar's destruction reads:** HE brings the standing hangar down
+  to a low slab of the same plan. The ruin's top then drew as unseen in plain
+  sight of infantry; that was a fog gap, fixed at closeout (below). *Agent.*
+- **15. Each military prop passed its own gate against its real photos,**
+  after three critiques each. Only the hangar meets the repo's model bar; the
+  scores and the open notes are in `choices.md`'s art-quality entry. *Agent.*
+- **16. The yard reads as a military yard.** Each spot has its own setting
+  (an apron before hangars, a motor pool between revetments, a tented camp),
+  all inside a HESCO perimeter and matched against the references.
+  "Lived-in" would also want people and parked vehicles, which no prop is;
+  that stays open. *Agent.*
+- **16. Trees and ground variety come from the battle's backdrop.** The user
+  asked for trees and livelier terrain. Past the yard's own ground the
+  presentation draws the battle's biome patchwork, hedgerows and trees, and
+  the yard's ground is the battle's ground material, so there is no new tree
+  art or tree list. *User asked; agent chose how.*
+- **16. One page crash during an `armory` run was treated as transient:** it
+  did not repeat on an unchanged rerun. *Agent.*
+- **17. Depots read as compounds.** On skirmish maps each depot reads as one
+  compound on paved yards beside a road or track, and the plan picture rings
+  each one. Raised to the user: the density (`open_country.depots.per_road_km`)
+  and the lobby's map picture, which draws no props. *Agent.*
+- **Parked rotors are stopped.** In the Armory a parked helicopter's rotors
+  stand still, its real blades drawn crisp with no blur disc, and a parked
+  aircraft makes no rotor or engine sound. This replaces P8's "rotors
+  turning" on the ground. *User.*
+- **Relief beyond the yard.** The user asked for more exciting terrain. Hills
+  rise behind the treelines from each spot's opening camera, through the
+  backdrop's relief past the map; the yard, units and panels did not move. A
+  critique saw nothing behind the nearer hills, so the far ridge was raised,
+  data only. *User asked; agent chose how.*
+- **A top just under an eye takes the fog's roof rule** (closeout,
+  `3a48f3df7`). The ruin's top failed both the face test and the roof rule,
+  which was gated on the surface standing above the eye. The rule now gates
+  on the probe point, so the two split up faces at one height. *Agent.*
