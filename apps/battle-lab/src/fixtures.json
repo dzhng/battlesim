@@ -296,7 +296,7 @@
   {
     "id": "allies",
     "route": "/battle?type=mixed&size=medium&seed=1&blue=h,a&blue_faction=us&red=a,a&red_faction=eastern",
-    "describe": "A 2v2 team battle from its link, you and one AI ally against two AI: allies drawn apart from your units (pale ice panels, a broken ring when selected, x-ray), at default and far zoom; selecting an ally opens its panel read-only with its owner line and offers no order; a box over both armies selects only yours.",
+    "describe": "A 2v2 team battle from its link, you and one AI ally against two AI: your tanks placed with a Shift-click that keeps the next in hand; allies drawn apart from your units (pale ice panels, a broken ring when selected, x-ray), at default and far zoom; selecting an ally opens its panel read-only with its owner line and offers no order; a box over both armies selects only yours.",
     "map": null,
     "catalog": "game",
     "loading": false
