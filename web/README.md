@@ -157,4 +157,4 @@ provenance and crops belong to the sound catalog rather than the appearance cata
 
 ## Deployed runtime assets
 
-The Vercel project keeps its **Git LFS** setting off: that setting fetches every LFS object in the repository, most of it art sources and evidence the site never serves. [The install step](../tools/vercel-install.sh) fetches only `assets/runtime`, and fails the build if a runtime file is still a pointer, so a deployment never serves pointer files instead of media.
+The Vercel project keeps its **Git LFS** setting off: that setting fetches every LFS object in the repository, most of it art sources and evidence the site never serves. [The install step](../tools/vercel-install.sh) fetches only what the site serves, the runtime assets and the effect flipbooks the bundle imports. [The build step](../tools/vercel-build.sh) refuses to deploy a site that still carries a pointer, as a file or inlined into a bundle, and names it; a new import of an LFS file belongs in the install step's list.
