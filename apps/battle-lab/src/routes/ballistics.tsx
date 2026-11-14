@@ -2,7 +2,7 @@ import { shippedRules } from "@web/shippedRules";
 import { fixtureMap } from "../fixtures";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
+import { buildWorldGround } from "@packages/battle-renderer/src/worldMesh";
 import {
   buildFlightOverlay,
   type FlightBody,
@@ -606,7 +606,7 @@ function BallisticsLab({ map }: { map: MapDefinition }) {
   const buildings = useStandingBuildings(world);
   const buildingsFeed = useFeed(buildings);
   const meshes = useMemo(
-    () => world && buildWorldLayers(world.exports, world.layout, gameBiome, "surface"),
+    () => world && buildWorldGround(world.exports, world.layout, gameBiome, "surface"),
     [world],
   );
   const worldFeed = useFeed(meshes);

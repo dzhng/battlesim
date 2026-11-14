@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
-import { buildWorldLayers, type WorldLayout } from "@packages/battle-renderer/src/worldMesh.ts";
+import { buildWorldGround, type WorldLayout } from "@packages/battle-renderer/src/worldMesh.ts";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh.ts";
 import summer from "@fixtures/biomes/summer.json";
 import { loadPresentation } from "@web/battle/sim/presentation";
@@ -108,7 +108,7 @@ const exports = {
 };
 
 test("the terrain layer is the exported triangles, in exported index order, and nothing else", () => {
-  const { terrain } = buildWorldLayers(exports, layout, biome, "surface");
+  const { terrain } = buildWorldGround(exports, layout, biome, "surface");
   expect(terrain.mesh.length / VERTEX_FLOATS).toBe(exports.indices.length);
   exports.indices.forEach((vertex, k) => {
     const drawn = Array.from(terrain.mesh.subarray(k * VERTEX_FLOATS, k * VERTEX_FLOATS + 3));
@@ -124,18 +124,18 @@ test("props are boxes only in the traversal view", () => {
   };
   // The surface view supplies no extra faces: its props are appearances,
   // the scene's presentation's to draw.
-  const surface = buildWorldLayers(exports, layout, biome, "surface");
+  const surface = buildWorldGround(exports, layout, biome, "surface");
   expect(surface.extraFaces).toEqual(new Float32Array(0));
   expect(surface.terrain.input.props).toBe(true);
   // The traversal view shows what blocks: the crate's box, its top at 6.
-  const traversal = buildWorldLayers(exports, layout, biome, "traversal");
+  const traversal = buildWorldGround(exports, layout, biome, "traversal");
   expect(Math.max(...heights(traversal.extraFaces))).toBeCloseTo(6);
   expect(traversal.terrain.input.props).toBe(false);
 });
 
 test("the traversal overlay tints each triangle by its exported blocked flag, over the biome", () => {
-  const surface = buildWorldLayers(exports, layout, biome, "surface").terrain.mesh;
-  const traversal = buildWorldLayers(exports, layout, biome, "traversal").terrain.mesh;
+  const surface = buildWorldGround(exports, layout, biome, "surface").terrain.mesh;
+  const traversal = buildWorldGround(exports, layout, biome, "traversal").terrain.mesh;
   const tint = (mesh: Float32Array, vertex: number) =>
     Array.from(mesh.subarray(vertex * VERTEX_FLOATS + 6, vertex * VERTEX_FLOATS + 10));
   // All three corners of a triangle share its tint; the blocked triangle differs.

@@ -81,7 +81,7 @@ export async function forestExportAgreement(ctx) {
     try {
       const exported = mesh.readWorldExports(view);
       const layout = JSON.parse(wasm.world_layout(JSON.stringify(rules.rules)));
-      const world = mesh.buildWorldLayers(exported, layout, biome.default, "surface");
+      const world = mesh.buildWorldGround(exported, layout, biome.default, "surface");
       // How far the play camera's widest exact pixel reads the forest rule.
       const ground = (
         await import(file("packages/battle-renderer/src/terrain/terrainSurface.ts"))
