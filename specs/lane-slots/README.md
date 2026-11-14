@@ -1,6 +1,6 @@
 # Lane slots
 
-**Status:** in progress. Slices 01, 03, 04 and 05 shipped; 02 and 06 in flight.
+**Status:** in progress. Slices 01, 03, 04, 05 and 06 shipped; 02 in flight.
 **Updated:** 2026-11-14.
 
 A player's slot number on its side is its **lane**: slot k owns its side's k-th
@@ -20,10 +20,13 @@ no seed in the status line, no "too small" reason line, and Region as tabs.
 ## Next Agent Prompt
 
 You are resuming the lane-slots feature. Slices 01, 03, 04 and 05 are
-committed. Slice 02 (AI home lane) and slice 06 (battle digits) were handed to
-delegates in their own checkouts, branched from the slice 01 commit; integrate
-each by cherry-pick, rerun its focused checks on this branch, run an unprimed
-`screenshot-critique` on 06's shots, then do slice 07. If 02 reported that no
+committed, and slice 06 too (taken over in this checkout when its delegate ran
+out of disk). Slice 02 (AI home lane) was handed to a delegate in its own
+checkout, branched from the slice 01 commit; integrate it by cherry-pick, rerun
+its focused checks on this branch, then do slice 07. Also open: the `allies`
+scene's "your units and your ally's are on the field" check fails (only your
+first tank arrives in its window); it predates slice 06, and no slice so far
+changes the simulation, so find its cause in its own commit. If 02 reported that no
 single home-lane value meets both behaviours, stop and bring the user the
 probe table.
 
@@ -51,7 +54,7 @@ TODO:
 - [x] 03 · Lobby cleanups: status, size reason, Region tabs → [slice 03](slices/03-lobby-cleanups.md)
 - [x] 04 · Lobby picture: numbered pointed tags, player-free → [slice 04](slices/04-picture-tags.md)
 - [x] 05 · Lobby occupancy: open lanes hollow, your lane banded white → [slice 05](slices/05-lobby-occupancy.md)
-- [ ] 06 · Battle: lane digit painted behind the chevrons → [slice 06](slices/06-battle-digits.md)
+- [x] 06 · Battle: lane digit painted behind the chevrons → [slice 06](slices/06-battle-digits.md)
 - [ ] 07 · Docs and the one full run → [slice 07](slices/07-closeout.md)
 
 Update this section (status, date, ticks, next pickup) before you end each pass.
@@ -186,3 +189,10 @@ wins, no implementation detail on screen).
 ## Notes from implementation
 
 (Record decisions made during the build here, one line each, with the slice.)
+
+- 03: four Region tabs overflowed 1280 px, so every option tab's side padding went from 10 to 8 px; the status word lost its fixed width and then takes the strip's free room from a fixed point after Region (an unprimed critique caught it sliding left as its text grew).
+- 04: the tag sits its halo and band in from the frame; its digit is placed by the tag's turn but never turned, so Red's tags read upright. Weights are the picture's (body 3.6, tip 2.2, half 2.1 hundredths of the longer side).
+- 04/05: the own-lane "YOU" label was dropped at the user's call; the white band alone marks your lane.
+- 05: the map frame keeps one markup object per picture (React 19 resets inner HTML on a new object, which re-parsed the picture every render and wiped the marks).
+- 06: the digit is a stroke glyph about 7 m tall, upright as seen from the edge looking in, growing with the route width at far zoom so it never blurs; the chevrons sit 3 m past it. It is still paint (`painted`); the chevrons stay marching paint, because the marching pass reads normals as pulse data. Your lane's digit is outlined in the HUD's white, wider.
+- 06 critique, not acted on: at far zoom the digit outgrows the chevrons (they were already specks); your outline is subtle at far zoom; the "1" reads a little like a font glyph. All reversible styling calls.

@@ -25,15 +25,19 @@ import { buildSupplyOverlay } from "@packages/battle-renderer/src/supplyOverlay"
 import {
   buildAircraftMarks,
   buildOrderOverlay,
-  buildDeploymentMarker,
   type AircraftView,
   type OrderView,
   type SurfaceHeight,
 } from "@packages/battle-renderer/src/orderOverlay";
+import {
+  buildDeploymentMarker,
+  type EntryMarker,
+} from "@packages/battle-renderer/src/deploymentMarker";
 import { combineWorldMeshes, type Mesh } from "@packages/battle-renderer/src/mesh";
 import { buildZoneRing } from "@packages/battle-renderer/src/playAreaOverlay";
 import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
 import type { PresentedContact } from "@web/battle/present/contactPresentation";
+import type { EntryLane } from "@web/battle/prepare/lanes";
 import {
   aboardCarrier,
   inBuilding,
@@ -64,32 +68,47 @@ export interface BattleOverlayScenario {
   supplyRadius: number;
   zone: { center: readonly [number, number]; radius: number } | null;
   /** The viewer's side's roads in, each pointing into the map. */
-  deployments: { center: readonly [number, number]; facing: number }[];
+  deployments: EntryMarker[];
+}
+
+/** The parts of the scenario the overlay reads (the view parses it once). */
+export interface OverlayScenarioSource {
+  map: { size: [number, number] };
+  rules: { service: { radius_m: number } };
+  /** Absent or null when the scenario has no completion rule. */
+  encounter?: { success_zone_center: [number, number]; success_zone_radius_m: number } | null;
+  skirmish?: { sites: { entries: { side: SideName; center: [number, number] }[] } } | null;
 }
 
 /** The scenario's own marks as `side` sees them. A side's players share
  *  its roads in, and a purchase may arrive by any of them, so each one
- *  carries the reinforcement cue. */
-export function battleOverlayScenario(scenario: string, side: SideName): BattleOverlayScenario {
-  const s = JSON.parse(scenario) as {
-    map: { size: [number, number] };
-    rules: { service: { radius_m: number } };
-    /** Absent or null when the scenario has no completion rule. */
-    encounter?: { success_zone_center: [number, number]; success_zone_radius_m: number } | null;
-    skirmish?: { sites: { entries: { side: SideName; center: [number, number] }[] } } | null;
-  };
+ *  carries the reinforcement cue, numbered by its lane (`lanes`, one per
+ *  entry in list order, empty with no skirmish); the one `viewer`'s slot
+ *  holds is its own. */
+export function battleOverlayScenario(
+  s: OverlayScenarioSource,
+  lanes: readonly EntryLane[],
+  side: SideName,
+  viewer: string | null,
+): BattleOverlayScenario {
   const [w, d] = s.map.size;
   return {
     supplyRadius: s.rules.service.radius_m,
     zone: s.encounter
       ? { center: s.encounter.success_zone_center, radius: s.encounter.success_zone_radius_m }
       : null,
-    deployments: (s.skirmish?.sites.entries ?? [])
-      .filter((entry) => entry.side === side)
-      .map(({ center }) => ({
-        center,
-        facing: Math.atan2(d / 2 - center[1], w / 2 - center[0]),
-      })),
+    deployments: (s.skirmish?.sites.entries ?? []).flatMap(({ side: entrySide, center }, i) =>
+      entrySide === side
+        ? [
+            {
+              center,
+              facing: Math.atan2(d / 2 - center[1], w / 2 - center[0]),
+              lane: lanes[i].lane,
+              own: viewer !== null && lanes[i].holder === viewer,
+            },
+          ]
+        : [],
+    ),
   };
 }
 
@@ -341,8 +360,14 @@ export function battleOverlayParts(
   const supply = supplyLayer(o, scenario.supplyRadius, z, selected, stroke, showOrders);
   const orders = orderLayer(units, rules.air, o, selected, reveal, z, stroke, showOrders, allies);
   const aircraft = aircraftLayer(units, o, z, stroke);
-  const deployments = scenario.deployments.map(({ center, facing }) =>
-    buildDeploymentMarker(center, facing, z, gameOrderStyle, gameHud.accent, { stroke }),
+  const deployments = scenario.deployments.map((marker) =>
+    buildDeploymentMarker(
+      marker,
+      z,
+      gameOrderStyle,
+      { markerColor: gameHud.accent, ownColor: gameHud.text },
+      { stroke },
+    ),
   );
   // The hold zone, a line of the orders' weight: dashed while blue is not
   // holding it. The zone and the border are paint, like the orders.
@@ -382,6 +407,6 @@ export function battleOverlayParts(
     supply,
     orders,
     aircraft,
-    ...deployments.map((paintedMarching) => ({ paintedMarching })),
+    ...deployments,
   ];
 }

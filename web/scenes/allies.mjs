@@ -49,6 +49,10 @@ export async function run(ctx) {
   // Buy at your entry through the picker's own keyboard path (a family
   // name, then Enter arms its first variant's ghost), then ready.
   const entry = await lab(page, () => window.__lab.route.prepared().start.at);
+  // Your road in paints its lane's number behind its chevrons, outlined as
+  // yours; pulled out, Blue's other road shows its own.
+  await shoot(ctx, page, "entry-lane", entry, 160);
+  await shoot(ctx, page, "entry-lanes-far", entry, 900);
   await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
   const search = page.getByRole("textbox", { name: "Search units" });
   await search.fill(FAMILY);
