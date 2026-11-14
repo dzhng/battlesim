@@ -12,6 +12,7 @@ import {
   validateSoundCatalog,
   type SoundCatalog,
 } from "../../../packages/battle-audio/src/catalog";
+import { menuPage } from "@apps/battle-lab/src/menu/pages";
 import { SoundAuditioner, type Auditioner, type LiveMix } from "./audition";
 import { AuditionSession, type AuditionSnapshot } from "./auditionSession";
 import {
@@ -256,7 +257,7 @@ export function SoundWorkbench({
     <main className="sound-workbench" data-sound-workbench>
       <header className="sw-header">
         <div>
-          <Link to="/">Developer menu</Link>
+          <Link to={menuPage("developer").path}>{menuPage("developer").title}</Link>
           <h1>Sound workbench</h1>
           <p>Audition the library and edit each weapon look’s sound.</p>
         </div>

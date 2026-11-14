@@ -1,17 +1,10 @@
 import { Link } from "react-router";
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useReducer,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
+import { menuPage } from "@apps/battle-lab/src/menu/pages";
 import { isGameDocument } from "../../../web/src/battle/catalog/compose";
 import { request, RequestError } from "./api";
 import { DerivedFacts } from "./DerivedFacts";
+import { EditorContext, useEditor, type EditorState } from "./editorContext";
 import {
   targetKey,
   type Json,
@@ -54,31 +47,9 @@ import {
   editorReducer,
   initialEditorState,
   needsReloadConfirmation,
-  type TextEdit,
 } from "./editorState";
 import "./mechanics.css";
 
-interface EditorState {
-  snapshot: MechanicsSnapshot;
-  draft: MechanicsDraft;
-  texts: Record<string, TextEdit>;
-  busy: boolean;
-  setText: (key: string, text: TextEdit | undefined) => void;
-  change: (
-    target: EditTarget,
-    field: GameplayField,
-    value: Json,
-    entry: JsonObject,
-    textKey?: string,
-  ) => void;
-  restore: (target: EditTarget, field: GameplayField, entry: JsonObject) => void;
-}
-const EditorContext = createContext<EditorState | null>(null);
-const useEditor = () => {
-  const editor = useContext(EditorContext);
-  if (!editor) throw new Error("Mechanics controls need their editor.");
-  return editor;
-};
 const rowName = (id: string, entry: JsonObject) =>
   typeof entry.name === "string" ? entry.name : id;
 function ChangeSummary({
@@ -672,8 +643,8 @@ export default function MechanicsEditor() {
     >
       <header className="me-header">
         <div>
-          <Link className="me-back" to="/">
-            ← Developer menu
+          <Link className="me-back" to={menuPage("developer").path}>
+            ← {menuPage("developer").title}
           </Link>
           <div className="me-title">
             <h1>Mechanics</h1>

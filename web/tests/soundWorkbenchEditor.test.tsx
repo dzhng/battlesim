@@ -1,9 +1,10 @@
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, Route, Routes } from "react-router";
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { SOUNDS } from "@packages/battle-audio/src/synthSounds.gen";
 import { SoundWorkbench } from "../../apps/sound-workbench/src/SoundWorkbench";
+import { menuPage } from "@apps/battle-lab/src/menu/pages";
 import type { WorkbenchAPI, Snapshot, Draft } from "../../apps/sound-workbench/src/protocol";
 import type { Auditioner, LiveMix } from "../../apps/sound-workbench/src/audition";
 
@@ -199,6 +200,25 @@ test("library selection, filtering and view changes stay usable when scrolling c
   } finally {
     scrolling.mockRestore();
   }
+});
+
+test("leaving the workbench opens the menu's Developer page", async () => {
+  const f = fixture();
+  const developer = menuPage("developer");
+  render(
+    <MemoryRouter initialEntries={["/sound-workbench"]}>
+      <Routes>
+        <Route
+          path="/sound-workbench"
+          element={<SoundWorkbench api={f.api} audition={f.audition} />}
+        />
+        <Route path={developer.path} element={<div>Developer page</div>} />
+        <Route path="/" element={<div>Home</div>} />
+      </Routes>
+    </MemoryRouter>,
+  );
+  fireEvent.click(await screen.findByRole("link", { name: new RegExp(developer.title) }));
+  expect(screen.getByText("Developer page")).toBeTruthy();
 });
 
 test("unused clips include stored recipes that no battle assignment selects", async () => {

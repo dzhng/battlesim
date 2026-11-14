@@ -4,13 +4,28 @@
 // guide says what the game does; the rest describes rules owned by the
 // simulation (objectives, preparation, purchases) and must follow them. Its
 // pictures are drawn from a real skirmish by `web/tutorial-shots.mjs`.
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import skirmish from "@fixtures/skirmish.json";
+import { UNIT_GROUPS, type UnitGroup } from "@web/battle/present/purchaseFilter";
 import {
   CommandBindings,
   ShowOrdersBinding,
   type CommandBinding,
 } from "@web/battle/input/commandBindings";
+
+/** What each shop tab holds, in the guide's words, where its label alone
+ *  doesn't say. The tabs and their labels are the shop's (`UNIT_GROUPS`). */
+const GROUP_WORDS: Record<UnitGroup, string | null> = {
+  rec: "reconnaissance",
+  inf: "infantry, with its anti-tank and anti-air teams",
+  mbt: "tanks",
+  ifv_apc: "fighting vehicles and carriers",
+  arty: "artillery",
+  aa: "air defence",
+  log: "supply trucks",
+  hel: "helicopters",
+  air: null,
+};
 
 /** A command's key alone, where its binding's label also names a mouse
  *  alternative the guide words itself. */
@@ -150,11 +165,15 @@ export function Tutorial() {
           <li>
             Click <strong>Reinforcements</strong> (or press <kbd>V</kbd>) at the bottom left. Your
             faction&apos;s shop opens with tabs by role under the cards; point at a tab to switch to
-            it: <strong>REC</strong> (reconnaissance), <strong>INF</strong> (infantry, with its
-            anti-tank and anti-air teams), <strong>MBT</strong> (tanks), <strong>IFV·APC</strong>{" "}
-            (fighting vehicles and carriers), <strong>ARTY</strong> (artillery), <strong>AA</strong>{" "}
-            (air defence), <strong>LOG</strong> (supply trucks), <strong>HELI</strong> (helicopters)
-            and <strong>JETS</strong>.
+            it:{" "}
+            {UNIT_GROUPS.map((group, k) => (
+              <Fragment key={group.id}>
+                {k === 0 ? "" : k === UNIT_GROUPS.length - 1 ? " and " : ", "}
+                <strong>{group.label}</strong>
+                {GROUP_WORDS[group.id] && ` (${GROUP_WORDS[group.id]})`}
+              </Fragment>
+            ))}
+            .
           </li>
           <li>
             Each card is a family of units and shows its cheapest price, which warns you when you

@@ -128,6 +128,46 @@ test("the fires-regardless mark follows the published fact, not default", () => 
       expect(kind.firesRegardless, kind.weapon).toBe(WEAPONS[kind.weapon].derived.fires_regardless);
 });
 
+test("a unit that carries smoke says so, with its charges, and one without does not", () => {
+  const hull = UNITS.type(hullId);
+  const { smoke: _, ...rest } = hull.capabilities;
+  const without: UnitType = { ...hull, id: "fabricated_no_smoke", capabilities: rest };
+  const capacity = 7;
+  const withSmoke: UnitType = {
+    ...hull,
+    id: "fabricated_smoke",
+    capabilities: {
+      ...rest,
+      smoke: {
+        capacity,
+        service_s: 2,
+        stock_per_charge: 1,
+        cloud: {
+          radius_m: 10,
+          height_m: 5,
+          life_s: 30,
+          bloom_s: 1,
+          fade_s: 5,
+          bloom_steps: 2,
+          fade_steps: 2,
+          depth_per_m: 0.2,
+          concealment: 0.1,
+          look: "discharger",
+        },
+      },
+    },
+  };
+  const catalog = fabricated({ units: [without, withSmoke] });
+  const plain = unitSheet(catalog, cardOf(without)).capabilities;
+  const smoked = unitSheet(catalog, cardOf(withSmoke)).capabilities;
+  // The same unit, smoke added: every other phrase stays, and one more names
+  // its charges.
+  expect(smoked.filter((phrase) => !plain.includes(phrase))).toEqual([
+    expect.stringContaining(String(capacity)),
+  ]);
+  expect(plain.every((phrase) => smoked.includes(phrase))).toBe(true);
+});
+
 test("squad HP per man is a range when soldiers differ", () => {
   const squad = UNITS.type(squadId);
   const [first, ...rest] = UNITS.slots(squadId);

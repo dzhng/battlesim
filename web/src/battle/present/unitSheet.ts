@@ -145,6 +145,7 @@ function capabilitiesOf(t: UnitType): string[] {
     c.supply && `Supply ${c.supply.stock}`,
     c.active_protection && `${c.active_protection.name}: ${c.active_protection.capacity} charges`,
     c.flares && `Flares ×${c.flares.capacity}`,
+    c.smoke && `Smoke ×${c.smoke.capacity}`,
     c.radar_emitter && "Radar",
     c.radar_receiver && `Finds radars within ${c.radar_receiver.range_m} m`,
     c.air?.afterburner && "Afterburner",

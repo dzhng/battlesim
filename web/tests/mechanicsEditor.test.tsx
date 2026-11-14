@@ -1,49 +1,11 @@
-import { shippedRules } from "@web/shippedRules";
 import { afterEach, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router";
 import MechanicsEditor from "../../apps/mechanics-editor/src/MechanicsEditor";
-import gameCatalog from "../../fixtures/catalog.json";
-import infantry from "../../fixtures/units/test/infantry.json";
-import soldiers from "../../fixtures/units/test/soldiers.json";
-import tanks from "../../fixtures/units/test/tanks.json";
-import type { JsonObject, MechanicsSnapshot } from "../../apps/mechanics-editor/src/protocol";
-import { UNITS, WEAPONS } from "./catalog";
+import { menuPage } from "@apps/battle-lab/src/menu/pages";
+import type { JsonObject } from "../../apps/mechanics-editor/src/protocol";
+import { catalog, respond, snapshot, structuralSnapshot } from "./support/mechanicsServer";
 
-/** Every editable unit, the test units included, as the editor resolves them. */
-const catalog = { ...UNITS.view, weapons: WEAPONS };
-
-const snapshot: MechanicsSnapshot = {
-  revision: "test-one",
-  catalog: catalog as unknown as JsonObject,
-  game: gameCatalog as unknown as JsonObject,
-  documents: [
-    { path: "fixtures/units/test/infantry.json", value: infantry },
-    { path: "fixtures/units/test/soldiers.json", value: soldiers },
-    { path: "fixtures/units/test/tanks.json", value: tanks as unknown as JsonObject },
-    { path: "fixtures/rules.json", value: shippedRules },
-  ],
-};
-const structuralSnapshot = (): MechanicsSnapshot => {
-  const fixture = structuredClone(snapshot);
-  delete fixture.catalog.documents;
-  const units = fixture.catalog.units as JsonObject[];
-  units.find((unit) => unit.id === "test_rifle")!.body = {
-    squad: { slots: ["test_rifleman", "test_grenadier"] },
-  };
-  fixture.catalog.soldiers = {
-    test_rifleman: { hp: 100, mounts: [{ id: "rifles", weapons: ["rifle"] }] },
-    test_grenadier: { hp: 100, mounts: [{ id: "launcher", weapons: ["grenade"] }] },
-  };
-  const weapons = fixture.catalog.weapons as Record<string, JsonObject>;
-  weapons.rifle.magazine = { rounds: 30, shot_interval_s: 0.1, burst: null };
-  return fixture;
-};
-const respond = (value: unknown) =>
-  new Response(JSON.stringify(value), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
@@ -654,18 +616,20 @@ it("summarizes a whole-mount restore after the accepted catalog removes its sold
   ]);
 });
 
-it("returning from authoring uses the app menu without replacing the document", async () => {
+it("returning from authoring opens the menu's Developer page without replacing the document", async () => {
   vi.stubGlobal("fetch", async () => respond(snapshot));
+  const developer = menuPage("developer");
   render(
     <MemoryRouter initialEntries={["/mechanics"]}>
       <Routes>
         <Route path="/mechanics" element={<MechanicsEditor />} />
-        <Route path="/" element={<div>Retained app menu</div>} />
+        <Route path={developer.path} element={<div>Retained developer page</div>} />
+        <Route path="/" element={<div>Home</div>} />
       </Routes>
     </MemoryRouter>,
   );
-  fireEvent.click(await screen.findByRole("link", { name: "← Developer menu" }));
-  expect(screen.getByText("Retained app menu")).toBeTruthy();
+  fireEvent.click(await screen.findByRole("link", { name: new RegExp(developer.title) }));
+  expect(screen.getByText("Retained developer page")).toBeTruthy();
   expect(screen.queryByRole("heading", { name: "Mechanics" })).toBeNull();
 });
 
