@@ -401,8 +401,13 @@ fn a_newly_fielded_kind_joins_the_loaded_battle_without_reloading_its_world() {
         .collect();
     p.push_publication(&words, 0.0).unwrap();
     let before = p.frame(0.0, &camera(), &Ui::default(), 0).unwrap();
-    let tank_at = before.instances[0].placement;
-    let batches = before.batches.clone();
+    let (batches, instances) = (before.batches.clone(), before.instances.clone());
+    let rows = &p.world().appearances;
+    let tank = batches
+        .iter()
+        .find(|b| rows[b.appearance as usize].placed == 0)
+        .unwrap();
+    let tank_at = instances[tank.first as usize].placement;
     let drawn = units_drawn(&p, &batches);
     let scenery = static_draws(&p, &batches);
     assert!(!scenery.is_empty(), "the frame draws the ground's scenery");

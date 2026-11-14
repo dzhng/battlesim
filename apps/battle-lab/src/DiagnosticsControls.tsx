@@ -5,8 +5,8 @@ import { useState, useSyncExternalStore } from "react";
 import { diagnostics, diagnosticsReport } from "@web/diagnostics";
 import { APP_COMMIT, simFingerprint } from "./buildIdentity";
 
-/** Copies the diagnostics report for a problem report: in the settings, the
- *  pause menu, and on a failure's plate. */
+/** Copies the diagnostics report, for the player to paste into a problem
+ *  report; says whether the copy took. */
 export function CopyDiagnostics({ className }: { className: string }) {
   const [copied, setCopied] = useState<"copied" | "failed" | null>(null);
   const copy = async () => {

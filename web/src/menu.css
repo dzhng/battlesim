@@ -594,21 +594,21 @@
   background-clip: text;
   animation: graphics-detection-shine 1.8s linear infinite;
 }
-/* A failure's way out, a link or a button alike, sized to its words. */
-.hud-panel :is(.loading-cancel, .loading-failure :is(a, button)).hud-menu-item {
+.hud-panel .loading-cancel.hud-menu-item {
   justify-self: start;
   width: auto;
   padding: 5px 14px;
 }
-/* The ways out share one width, the widest's, so they read as a set. */
+/* A failure's ways out, links or buttons alike, share one width, the
+   widest's, so they read as a set. */
 .loading-actions {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
   gap: 8px;
 }
-.hud-panel .loading-failure .loading-actions .hud-menu-item {
-  width: 100%;
+.hud-panel .loading-actions .hud-menu-item {
+  padding: 5px 14px;
 }
 .loading-dev {
   display: flex;
