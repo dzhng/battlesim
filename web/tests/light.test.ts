@@ -8,6 +8,7 @@
 import {
   lightForPreset,
   lightPreset,
+  lightPresetLabels,
   lightPresets,
   presentationSettings,
 } from "@web/presentationSettings";
@@ -115,6 +116,8 @@ test("the grade's switch is a boolean the validation accepts either way", () => 
 
 test("the fixture admits a day default and a selectable golden_hour look", () => {
   expect(lightPreset).toBe("day");
+  expect(lightPresetLabels.day).toBe("Daylight");
+  expect(lightPresetLabels.golden_hour).toBe("Golden hour");
   expect(LIGHT.sun_elevation).toBe(0.7);
   expect(LIGHT.sun_azimuth).toBe(-0.35);
   expect(lightPresets.day.sun_elevation).toBe(0.7);

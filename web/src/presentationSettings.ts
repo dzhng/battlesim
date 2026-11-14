@@ -13,6 +13,7 @@ const admitted = JSON.parse(check_presentation(JSON.stringify(presentation))) as
   light: LightPresentation;
   light_preset: string;
   light_presets: Record<string, LightPresentation>;
+  light_preset_labels: Record<string, string>;
 };
 export const selectedFogStyle = admitted.fog_style;
 
@@ -30,6 +31,9 @@ export const lightPresets = admitted.light_presets;
 
 /** The look `presentationSettings.light` currently holds. */
 export const lightPreset = admitted.light_preset;
+
+/** Lobby display names for each lighting look, from the fixture. */
+export const lightPresetLabels = admitted.light_preset_labels;
 
 /** A named lighting look from the fixture table. */
 export function lightForPreset(name: string): LightPresentation {

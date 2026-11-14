@@ -58,6 +58,11 @@ pub struct PresentationSettings {
     /// this field is how golden hour becomes the shipped default.
     #[serde(default = "day_light_preset")]
     pub light_preset: String,
+    /// Display names for the lobby Lighting control, keyed by preset
+    /// (`day` is shown as Daylight). Every look in `light_presets` (and `day`)
+    /// must have a non-empty label.
+    #[serde(default)]
+    pub light_preset_labels: BTreeMap<String, String>,
     pub fog_geometry: Geometry,
     pub fog: FogPresentation,
     pub map_border: MapBorder,
@@ -117,6 +122,23 @@ impl PresentationSettings {
             .get(selected)
             .ok_or_else(|| format!("presentation.light_preset: unknown preset `{selected}`"))?
             .clone();
+        if table.contains_key("random") {
+            return Err(
+                "presentation.light_presets.random: reserved for the lobby's random choice".into(),
+            );
+        }
+        for name in table.keys() {
+            let label = self
+                .light_preset_labels
+                .get(name)
+                .map(|s| s.trim())
+                .filter(|s| !s.is_empty());
+            if label.is_none() {
+                return Err(format!(
+                    "presentation.light_preset_labels.{name}: every lighting look needs a display name"
+                ));
+            }
+        }
         self.light_presets = table;
         Ok(())
     }

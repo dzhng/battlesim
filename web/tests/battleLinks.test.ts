@@ -100,3 +100,14 @@ test("a one-a-side link without a size is on the smallest map", () => {
     map: { size: MAP_SIZES[0] },
   });
 });
+
+test("a light= value is a match setting, and a bad one is refused by name", () => {
+  const ok =
+    "?type=mixed&size=small&seed=1&light=golden_hour&blue=h&red=a&blue_faction=us&red_faction=eastern";
+  expect(askedBattle(ok)).toMatchObject({ kind: "generated", lighting: "golden_hour" });
+  expect(
+    askedBattle(
+      "?type=mixed&size=small&seed=1&light=dusk&blue=h&red=a&blue_faction=us&red_faction=eastern",
+    ),
+  ).toMatchObject({ error: expect.stringMatching(/light must be/) });
+});

@@ -794,3 +794,46 @@ fn a_broken_named_look_is_refused_under_its_preset_path() {
         "{error}"
     );
 }
+
+#[test]
+fn every_light_preset_has_a_display_name_and_day_is_daylight() {
+    let settings =
+        presentation::settings::PresentationSettings::from_value(&fixture("presentation")).unwrap();
+    assert_eq!(
+        settings.light_preset_labels.get("day").map(String::as_str),
+        Some("Daylight")
+    );
+    assert_eq!(
+        settings
+            .light_preset_labels
+            .get("golden_hour")
+            .map(String::as_str),
+        Some("Golden hour")
+    );
+    for name in settings.light_presets.keys() {
+        let label = settings.light_preset_labels.get(name).map(|s| s.trim());
+        assert!(label.is_some_and(|s| !s.is_empty()), "{name} needs a label");
+    }
+}
+
+#[test]
+fn a_look_without_a_label_or_named_random_is_refused() {
+    let mut doc = fixture("presentation");
+    doc["light_preset_labels"]
+        .as_object_mut()
+        .unwrap()
+        .remove("golden_hour");
+    let error = presentation::settings::PresentationSettings::from_value(&doc)
+        .err()
+        .expect("a nameless look must be refused");
+    assert!(
+        error.contains("light_preset_labels.golden_hour"),
+        "missing label: {error}"
+    );
+    doc = fixture("presentation");
+    doc["light_presets"]["random"] = doc["light"].clone();
+    let error = presentation::settings::PresentationSettings::from_value(&doc)
+        .err()
+        .expect("random is reserved");
+    assert!(error.contains("light_presets.random"), "reserved: {error}");
+}

@@ -1,7 +1,7 @@
 // The skirmish lobby, laid out as an order of battle (D22): Blue's player
 // banners on the left, Red's on the right, the admitted map between them
 // under "N VS M", and a strip below of the match's presets, its map's type,
-// size and region, the preview's status, Reroll and Deploy.
+// size, region and lighting, the preview's status, Reroll and Deploy.
 //
 // The lobby's rules are the lobby model's (`model.ts`); this view only shows
 // them. The map is a real preparation (`mapPreviews`), started again only
@@ -30,6 +30,7 @@ import {
   reroll,
   seatHuman,
   setFaction,
+  setLighting,
   setRegion,
   setSize,
   setType,
@@ -39,6 +40,7 @@ import {
   type LobbySide,
   type LobbyState,
 } from "./model";
+import { lightingChoices, lightingLabel } from "./lighting";
 
 const RANDOM = "random";
 const PRESETS: readonly LobbyPreset[] = ["1v1", "3v3", "5v5"];
@@ -49,6 +51,7 @@ function opening(asked: AskedLobby): LobbyState {
   if (asked.faction) state = setFaction(state, "blue", asked.faction);
   if (asked.type) state = setType(state, asked.type);
   if (asked.size) state = setSize(state, asked.size);
+  if (asked.lighting) state = setLighting(state, asked.lighting);
   return reroll(setRegion(state, asked.region), asked.seed ?? newSeed());
 }
 
@@ -178,6 +181,20 @@ export function Lobby({ asked }: { asked: AskedLobby }) {
             onChange={(region) => update(setRegion(lobby, region === RANDOM ? undefined : region))}
           >
             {spoken(lobby.map.region ?? RANDOM)}
+          </Pick>
+        </div>
+        <div className="lobby-choice">
+          <span className="lobby-label">lighting</span>
+          <Pick
+            label="Lighting"
+            testId="menu-lighting"
+            className="lobby-region"
+            options={lightingChoices()}
+            value={lobby.lighting}
+            onChange={(lighting) => update(setLighting(lobby, lighting))}
+            say={lightingLabel}
+          >
+            {lightingLabel(lobby.lighting)}
           </Pick>
         </div>
         <PreviewStatus state={preview} />
@@ -320,6 +337,7 @@ function Pick<T extends string>({
   value,
   onChange,
   children,
+  say = spoken,
 }: {
   label: string;
   testId: string;
@@ -328,6 +346,7 @@ function Pick<T extends string>({
   value: T;
   onChange: (value: T) => void;
   children: ReactNode;
+  say?: (value: T) => string;
 }) {
   const [open, setOpen] = useState(false);
   const close = (event: KeyboardEvent) => {
@@ -369,7 +388,7 @@ function Pick<T extends string>({
                   if (option !== value) onChange(option);
                 }}
               >
-                {spoken(option)}
+                {say(option)}
               </button>
             </li>
           ))}

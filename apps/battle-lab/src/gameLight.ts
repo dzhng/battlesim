@@ -3,31 +3,57 @@ import { light_records } from "@wasm/renderer_browser";
 // lab route draws under it, as every lab reuses the game's numbers.
 import { lightForPreset, presentationSettings } from "@web/presentationSettings";
 import { type LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
+import { DEFAULT_LIGHTING, parseLighting, resolveLighting } from "./lobby/lighting";
 
 export const gameLight: LightPresentation = presentationSettings.light;
 
-/** The battle's light for a lab URL: `?preset=<name>` selects a fixture
- *  lighting look (`day`, `golden_hour`), and `?sun=<elevation, radians>`
- *  then lowers or raises the sun on top of that look. Lab only: the game
- *  draws the selected fixture preset. */
+/** A saved replay's resolved look, applied when the URL has no `?preset=`. */
+let matchLighting: string | null = null;
+
+/** Record the resolved lighting a saved battle should play under. */
+export function setMatchLighting(name: string | null): void {
+  matchLighting = name;
+}
+
+/**
+ * The battle's light for a lab or match URL.
+ * Precedence: `?preset=` (and optional `?sun=`) capture override, then the
+ * match setting (`?light=` or a saved replay's resolved look), then Daylight.
+ */
 export function gameLightFor(search: string): LightPresentation {
   const params = new URLSearchParams(search);
   const preset = params.get("preset");
   let light: LightPresentation = gameLight;
+  let selected: string | null = null;
   if (preset !== null) {
     light = lightForPreset(preset);
+    selected = preset;
+  } else {
+    const parsed = parseLighting(params.get("light"));
+    if (typeof parsed !== "string") throw new Error(parsed.error);
+    const seed = params.get("seed") ?? "1";
+    const choice = matchLighting ?? parsed;
+    const resolved = resolveLighting(choice, seed);
+    if (resolved !== DEFAULT_LIGHTING) {
+      light = lightForPreset(resolved);
+    }
+    selected = resolved;
   }
   const sun = params.get("sun");
   if (sun !== null && Number.isFinite(Number(sun))) {
     light = { ...light, sun_elevation: Number(sun) };
   }
-  if (preset !== null || (sun !== null && Number.isFinite(Number(sun)))) {
+  if (
+    preset !== null ||
+    selected !== DEFAULT_LIGHTING ||
+    (sun !== null && Number.isFinite(Number(sun)))
+  ) {
     light_records(JSON.stringify(light));
   }
   return light;
 }
 
-/** The selected look's sun for fielding a lab battle (`?preset=`, `?sun=`). */
+/** The selected look's sun for fielding a lab battle (`?preset=`, `?light=`, `?sun=`). */
 export function gameSun(): { azimuth: number; elevation: number } {
   const light = gameLightFor(typeof window === "undefined" ? "" : window.location.search);
   return { azimuth: light.sun_azimuth, elevation: light.sun_elevation };

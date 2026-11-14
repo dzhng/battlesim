@@ -197,6 +197,11 @@
       }
     }
   },
+
+  "light_preset_labels": {
+    "day": "Daylight",
+    "golden_hour": "Golden hour"
+  },
   "fog_geometry": {
     "azimuth_bins": 4096,
     "terrain_azimuth_bins": 512,
