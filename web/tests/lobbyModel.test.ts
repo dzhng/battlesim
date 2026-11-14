@@ -9,6 +9,7 @@ import {
   reroll,
   seatHuman,
   setFaction,
+  setLighting,
   setRegion,
   setSize,
   setType,
@@ -140,7 +141,26 @@ describe("lobby model", () => {
       players: state.players,
       map: { type: state.map.type, size: state.map.size, seed: "42" },
       battleSeed: state.battleSeed,
+      lighting: "day",
     });
+  });
+
+  test("the lighting choice travels on the battle link and defaults to Daylight", () => {
+    const state = reroll(preset("1v1"), "42");
+    expect(state.lighting).toBe("day");
+    expect(toUrl(state)).not.toMatch(/light=/);
+    const golden = setLighting(state, "golden_hour");
+    expect(toUrl(golden)).toMatch(/light=golden_hour/);
+    const asked = askedBattle(toUrl(golden));
+    expect(asked).toEqual({
+      kind: "generated",
+      players: state.players,
+      map: { type: state.map.type, size: state.map.size, seed: "42" },
+      battleSeed: state.battleSeed,
+      lighting: "golden_hour",
+    });
+    const random = setLighting(state, "random");
+    expect(askedBattle(toUrl(random))).toMatchObject({ lighting: "random" });
   });
 
   test("an added player fields its side's faction", () => {

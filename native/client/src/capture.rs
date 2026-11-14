@@ -250,6 +250,20 @@ fn read_json<T: for<'a> Deserialize<'a>>(path: &Path) -> Result<T, String> {
     serde_json::from_str(&text).map_err(|e| format!("{}: {e}", path.display()))
 }
 
+/// The map's generation seed, or `"1"` when the listing has none: the same
+/// fallback the web client uses for authored maps (`mapSeedOf`).
+fn map_light_seed(root: &Path, map: &str) -> String {
+    let path = root.join("fixtures/maps").join(map).join("meta.json");
+    let Ok(value) = read_json::<Value>(&path) else {
+        return "1".into();
+    };
+    match value.get("seed") {
+        Some(Value::String(s)) if !s.is_empty() => s.clone(),
+        Some(Value::Number(n)) => n.to_string(),
+        _ => "1".into(),
+    }
+}
+
 /// The repository a replay reads its world and rules from.
 pub const ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
 
@@ -260,6 +274,18 @@ impl Replay {
     /// rules (the soldier's body, the light).
     pub fn open(dir: &Path, library: &Library) -> Result<Self, String> {
         Self::open_played(dir, library, Path::new(ROOT), Playback::default())
+    }
+
+    /// Loads scene `dir` under a named fixture lighting look. `None` keeps
+    /// the document's `light_preset` (the mid-morning `day` look).
+    pub fn open_with_light(
+        dir: &Path,
+        library: &Library,
+        root: &Path,
+        playback: Playback,
+        light_preset: Option<&str>,
+    ) -> Result<Self, String> {
+        Self::open_played_with(dir, library, root, playback, light_preset)
     }
 
     /// Loads scene `dir` to play back as `playback` chooses: each layer the
@@ -274,6 +300,16 @@ impl Replay {
         library: &Library,
         root: &Path,
         playback: Playback,
+    ) -> Result<Self, String> {
+        Self::open_played_with(dir, library, root, playback, None)
+    }
+
+    fn open_played_with(
+        dir: &Path,
+        library: &Library,
+        root: &Path,
+        playback: Playback,
+        light_preset: Option<&str>,
     ) -> Result<Self, String> {
         let capture_path = dir.join("capture.json");
         let capture_bytes =
@@ -359,10 +395,18 @@ impl Replay {
             .map(|u| u.kind.clone())
             .collect::<Vec<_>>();
         let rules = scenario.rules;
-        let settings =
+        let mut settings =
             presentation::settings::PresentationSettings::from_value(&read_json::<Value>(
                 &root.join("fixtures/presentation.json"),
             )?)?;
+        if let Some(name) = light_preset {
+            settings = settings.with_light_preset(name)?;
+        }
+        // Presentation only: a look with `sun_azimuths` picks one from the
+        // map seed (`mapSeed % n`), the same rule as the web lobby. Day has
+        // no list, so its authored azimuth stands.
+        let map_seed = map_light_seed(root, &map);
+        settings.light = settings.light.with_map_seed(&map_seed)?;
         let light = settings.light;
         // The battle's units, effects and clip tables, as a page fielding
         // the encounter's units installs them.

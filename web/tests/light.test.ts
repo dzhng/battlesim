@@ -5,7 +5,14 @@
 // resolved and tested in the presentation crate (`crates/presentation/tests/
 // light.rs` and `shadow.rs`); here, the page's binding hands the renderer the
 // words defined by the shared Rust record layouts.
-import { presentationSettings } from "@web/presentationSettings";
+import {
+  lightForPreset,
+  lightPreset,
+  lightPresetLabels,
+  lightPresets,
+  presentationSettings,
+} from "@web/presentationSettings";
+import presentation from "../../fixtures/presentation.json";
 import { expect, test } from "vitest";
 import { type LightPresentation } from "@packages/battle-renderer/src/light/sceneLight.ts";
 import { loadPresentation, ScenePresentation } from "@web/battle/sim/presentation";
@@ -16,7 +23,7 @@ import {
   CameraAt,
 } from "@packages/battle-renderer/src/records.gen.ts";
 
-import { light_records } from "@wasm/renderer_browser";
+import { check_presentation, light_records } from "@wasm/renderer_browser";
 await loadPresentation();
 const checkLight = (light: LightPresentation) => {
   light_records(JSON.stringify(light));
@@ -42,6 +49,13 @@ test("the street test map's light is valid, and a broken one is refused by name"
   );
   expect(() => checkLight(withLight((l) => (l.shadow_floor = 0.8)))).toThrow(/shadow_floor/);
   expect(() => checkLight(withLight((l) => (l.shadow_floor = -0.1)))).toThrow(/shadow_floor/);
+  expect(() => checkLight(withLight((l) => (l.glow.wrap = -0.1)))).toThrow(/glow\.wrap/);
+  expect(() => checkLight(withLight((l) => (l.vegetation_tint = [1, 1, 4.1])))).toThrow(
+    /vegetation_tint/,
+  );
+  expect(() => checkLight(withLight((l) => (l.vegetation_lit_keep = 1.1)))).toThrow(
+    /vegetation_lit_keep/,
+  );
 });
 
 test("a frame's cascades are the structs the renderer binds: a receiver block and a camera per cascade", () => {
@@ -105,4 +119,49 @@ test("a cloud field past full is refused by name", () => {
 test("the grade's switch is a boolean the validation accepts either way", () => {
   expect(checkLight(withLight((l) => (l.grade.enabled = false)))).toBeTruthy();
   expect(checkLight(withLight((l) => (l.grade.enabled = true)))).toBeTruthy();
+});
+
+test("the fixture admits a day default and a selectable golden_hour look", () => {
+  expect(lightPreset).toBe("day");
+  expect(lightPresetLabels.day).toBe("Daylight");
+  expect(lightPresetLabels.golden_hour).toBe("Golden hour");
+  expect(LIGHT.sun_elevation).toBe(0.7);
+  expect(LIGHT.sun_azimuth).toBe(-0.35);
+  expect(lightPresets.day.sun_elevation).toBe(0.7);
+  const golden = lightForPreset("golden_hour");
+  expect(golden.sun_azimuth).toBe(0);
+  expect(golden.sun_azimuths).toEqual([0, Math.PI]);
+  expect(LIGHT.sun_azimuths === undefined || LIGHT.sun_azimuths.length === 0).toBe(true);
+  expect(golden.sun_elevation).toBe(0.16);
+  expect(golden.exposure).toBe(1.78);
+  expect(golden.sky.fill).toEqual([0.62, 0.7, 0.84]);
+  expect(golden.sky.turbidity).toBe(2.8);
+  expect(golden.sky.saturation).toBe(1.32);
+  expect(golden.grade.highlight_tint).toEqual([1.0, 1.04, 0.98]);
+  expect(golden.grade.split_tone).toBe(0.5);
+  expect(golden.glow.wrap).toBe(0.8);
+  expect(golden.glow.rim).toBe(0.45);
+  expect(golden.bloom.threshold).toBe(1.12);
+  expect(golden.haze.sun_strength).toBe(0.5);
+  expect(LIGHT.glow.wrap).toBeLessThan(golden.glow.wrap);
+  expect(LIGHT.glow.rim).toBeLessThan(golden.glow.rim);
+  expect(LIGHT.vegetation_tint).toEqual([1.0, 1.0, 1.0]);
+  expect(LIGHT.vegetation_lit_keep).toBe(0);
+  expect(golden.vegetation_tint).toEqual([0.9, 1.3, 1.08]);
+  expect(golden.vegetation_lit_keep).toBe(0.7);
+  expect(() => lightForPreset("dusk")).toThrow(/unknown light preset/);
+  expect(checkLight(golden)).toBe(golden);
+});
+
+test("selecting golden hour as the document default is a one-key change", () => {
+  const admitted = JSON.parse(
+    check_presentation(JSON.stringify({ ...presentation, light_preset: "golden_hour" })),
+  ) as {
+    light: LightPresentation;
+    light_preset: string;
+    light_presets: { day: LightPresentation };
+  };
+  expect(admitted.light_preset).toBe("golden_hour");
+  expect(admitted.light.sun_elevation).toBe(0.16);
+  expect(admitted.light_presets.day.sun_elevation).toBe(0.7);
 });

@@ -54,6 +54,14 @@ export interface BloomSettings {
   smooth_width: number;
 }
 
+/** Sunlit-surface wrap and rim, in the sun's colour. 0 is a no-op. */
+export interface GlowSettings {
+  /** Softens the sun's Lambertian terminator so raking faces stay lit. */
+  wrap: number;
+  /** A sun-coloured rim on sun-facing surfaces at grazing view angles. */
+  rim: number;
+}
+
 /** Post owns the display transform: exposure, grade, AgX and bloom. */
 export interface PostSettings {
   exposure: number;
@@ -78,8 +86,11 @@ export interface CascadeSettings {
 
 /** `light` in `fixtures/presentation.json`. */
 export interface LightPresentation extends PostSettings {
-  /** Radians counter-clockwise from world +X. */
+  /** Radians counter-clockwise from world +X (toward the sun). */
   sun_azimuth: number;
+  /** Candidate azimuths (rad). When present, match lighting picks one
+   *  with `mapSeed % n` over the values sorted numerically. */
+  sun_azimuths?: readonly number[];
   /** Radians above the horizon. */
   sun_elevation: number;
   sun_intensity: number;
@@ -106,6 +117,11 @@ export interface LightPresentation extends PostSettings {
     clouds: CloudSettings;
   };
   haze: HazeSettings;
+  glow: GlowSettings;
+  /** Linear rgb multiplier on grass and foliage (G≥R). White is a no-op. */
+  vegetation_tint: Rgb;
+  /** 0–1: how much a lit G≥R surface keeps its albedo hue after the sun. */
+  vegetation_lit_keep?: number;
   cascades: CascadeSettings;
 }
 

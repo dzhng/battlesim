@@ -195,3 +195,62 @@ fn sky_and_environment_share_one_unit_sun() {
         assert!((f64::from(sun[2]) - libm::sin(light.sun_elevation)).abs() < 1e-6);
     }
 }
+
+#[test]
+fn golden_hour_azimuths_are_due_east_and_west() {
+    let settings =
+        presentation::settings::PresentationSettings::from_value(&fixture_presentation()).unwrap();
+    let gh = settings.with_light_preset("golden_hour").unwrap().light;
+    let east = gh.with_map_seed("0").unwrap();
+    let west = gh.with_map_seed("1").unwrap();
+    assert_eq!(east.sun_azimuth, 0.0);
+    assert_eq!(west.sun_azimuth, std::f64::consts::PI);
+    // The same seeds again, and a few more: web tests share this table.
+    for (seed, want) in [
+        ("0", 0.0),
+        ("1", std::f64::consts::PI),
+        ("2", 0.0),
+        ("8", 0.0),
+        ("9", std::f64::consts::PI),
+        ("99", std::f64::consts::PI),
+    ] {
+        let picked = presentation::light::pick_sun_azimuth(&gh.sun_azimuths, seed).unwrap();
+        assert_eq!(picked, want, "seed {seed}");
+        assert_eq!(gh.with_map_seed(seed).unwrap().sun_azimuth, want);
+    }
+    // Day is unchanged by the seed.
+    let day = settings.light.with_map_seed("1").unwrap();
+    assert_eq!(day.sun_azimuth, settings.light.sun_azimuth);
+    assert!(day.sun_azimuths.is_empty());
+}
+
+#[test]
+fn golden_hour_shadows_fall_along_the_east_west_axis() {
+    let settings =
+        presentation::settings::PresentationSettings::from_value(&fixture_presentation()).unwrap();
+    let gh = settings.with_light_preset("golden_hour").unwrap().light;
+    for seed in ["0", "1"] {
+        let light = gh.with_map_seed(seed).unwrap();
+        let shadow = light.shadow_direction_xy();
+        let along_north = shadow[0] * 0.0 + shadow[1] * 1.0;
+        assert!(
+            along_north.abs() < 1e-9,
+            "seed {seed}: shadow {shadow:?} has a north-south component"
+        );
+        assert!(
+            shadow[0].abs() > 0.5,
+            "seed {seed}: shadow should run east-west, got {shadow:?}"
+        );
+    }
+    // Toward the sun at azimuth 0 is +X (east); shadows fall west.
+    let east = gh.with_map_seed("0").unwrap();
+    let s = east.sun_direction();
+    assert!((s[0] - east.sun_elevation.cos()).abs() < 1e-12);
+    assert!(s[1].abs() < 1e-12);
+}
+
+fn fixture_presentation() -> serde_json::Value {
+    let path =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/presentation.json");
+    serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap()
+}

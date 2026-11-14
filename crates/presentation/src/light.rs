@@ -40,8 +40,19 @@ const HORIZON_VISIBILITY_KM: [f64; 2] = [8.0, 32.0];
 #[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct LightSettings {
-    /// About +z from +x, and above the ground (rad).
+    /// About +z from +x, and above the ground (rad): the direction
+    /// *toward* the sun, measured counter-clockwise from world +X
+    /// (east) with +Z up. `sun_direction` is that unit vector; light
+    /// travels the other way, and shadows fall opposite it.
     pub sun_azimuth: f64,
+    /// Candidate azimuths (rad) when a look sits perpendicular to the
+    /// two sides' fixed north–south deploy axis. Empty (the default)
+    /// keeps `sun_azimuth` as authored — day's mid-morning direction.
+    /// When present, match lighting picks one with `mapSeed % n` over
+    /// the values sorted numerically, the same way Random picks a
+    /// preset. Presentation only; not part of the sim hash.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub sun_azimuths: Vec<f64>,
     pub sun_elevation: f64,
     pub sun_intensity: f64,
     /// The share of the sun a sun-shadowed surface keeps.
@@ -51,6 +62,18 @@ pub struct LightSettings {
     pub exposure: f64,
     pub grade: GradeSettings,
     pub bloom: BloomSettings,
+    /// Sunlit-surface glow: a wrap and a grazing rim, both in the sun's colour.
+    /// Missing on older test lights is a no-op (wrap and rim 0).
+    #[serde(default)]
+    pub glow: GlowSettings,
+    /// Multiplier on grass and foliage albedos (G≥R). White is a no-op.
+    #[serde(default = "white")]
+    pub vegetation_tint: [f64; 3],
+    /// How much a lit G≥R surface keeps its albedo hue after the sun
+    /// lights it (0 leaves the sun's colour, 1 restores the hue at the
+    /// lit luma). Day is 0.
+    #[serde(default)]
+    pub vegetation_lit_keep: f64,
     /// The sun's shadow cascades (`shadow.rs`).
     pub cascades: CascadeSettings,
 }
@@ -191,6 +214,16 @@ pub struct BloomSettings {
     pub smooth_width: f64,
 }
 
+/// Wrap and rim on sunlit faces. 0 is a no-op; golden hour is authored strongest.
+#[derive(Clone, Debug, Default, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct GlowSettings {
+    /// Softens the sun's Lambertian terminator so raking faces stay lit.
+    pub wrap: f64,
+    /// A sun-coloured rim on sun-facing surfaces at grazing view angles.
+    pub rim: f64,
+}
+
 fn smoothstep(edge0: f64, edge1: f64, x: f64) -> f64 {
     let t = ((x - edge0) / (edge1 - edge0)).clamp(0.0, 1.0);
     t * t * (3.0 - 2.0 * t)
@@ -259,8 +292,19 @@ impl LightSettings {
         Sun {
             direction: f32s([sun[0], sun[1], sun[2], 0.0]),
             radiance: f32s([r, g, b, 0.0]),
-            settings: [0.0, self.shadow_floor as f32, 0.0, 0.0],
+            settings: [
+                0.0,
+                self.shadow_floor as f32,
+                self.glow.wrap as f32,
+                self.glow.rim as f32,
+            ],
             fill: f32s([fill[0], fill[1], fill[2], 0.0]),
+            vegetation_tint: f32s([
+                self.vegetation_tint[0],
+                self.vegetation_tint[1],
+                self.vegetation_tint[2],
+                self.vegetation_lit_keep,
+            ]),
         }
     }
 
@@ -310,6 +354,24 @@ impl LightSettings {
             cos_el * libm::sin(az),
             libm::sin(el),
         ]
+    }
+
+    /// Horizontal direction shadows fall: the ground projection of
+    /// `-sun_direction` (light travels away from the sun).
+    pub fn shadow_direction_xy(&self) -> [f64; 2] {
+        let s = self.sun_direction();
+        [-s[0], -s[1]]
+    }
+
+    /// Pick `sun_azimuth` from `sun_azimuths` with the map seed, or
+    /// leave the authored value when the list is empty.
+    pub fn with_map_seed(&self, map_seed: &str) -> Result<Self, String> {
+        if self.sun_azimuths.is_empty() {
+            return Ok(self.clone());
+        }
+        let mut out = self.clone();
+        out.sun_azimuth = pick_sun_azimuth(&self.sun_azimuths, map_seed)?;
+        Ok(out)
     }
 
     /// The sky's uniform.
@@ -391,4 +453,42 @@ impl LightSettings {
             lift: rgb(g.lift, 0.0),
         }
     }
+}
+
+/// Index `BigInt(mapSeed) % n`, matching the lobby's Random lighting for a
+/// non-negative decimal seed (`Number(BigInt(mapSeed) % BigInt(n))`).
+pub fn map_seed_index(map_seed: &str, n: usize) -> Result<usize, String> {
+    if n == 0 {
+        return Err("map seed modulus is zero".into());
+    }
+    let s = map_seed.trim();
+    if s.is_empty() {
+        return Err("map seed is empty".into());
+    }
+    let s = s.strip_prefix('+').unwrap_or(s);
+    if s.is_empty() || !s.bytes().all(|b| b.is_ascii_digit()) {
+        return Err(format!(
+            "map seed `{map_seed}` is not a non-negative integer"
+        ));
+    }
+    let mut acc = 0usize;
+    for b in s.bytes() {
+        acc = (acc * 10 + (b - b'0') as usize) % n;
+    }
+    Ok(acc)
+}
+
+/// One candidate azimuth for `map_seed`: the values sorted numerically,
+/// then `mapSeed % n`. Empty input is an error.
+pub fn pick_sun_azimuth(candidates: &[f64], map_seed: &str) -> Result<f64, String> {
+    if candidates.is_empty() {
+        return Err("presentation.light.sun_azimuths: empty".into());
+    }
+    let mut sorted = candidates.to_vec();
+    sorted.sort_by(|a, b| a.total_cmp(b));
+    let i = map_seed_index(map_seed, sorted.len())?;
+    sorted
+        .get(i)
+        .copied()
+        .ok_or_else(|| "presentation.light.sun_azimuths: no candidate".into())
 }

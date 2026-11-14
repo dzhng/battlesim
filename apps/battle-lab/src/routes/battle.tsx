@@ -13,6 +13,8 @@ import type {
 } from "@web/battle/prepare/protocol";
 import type { MapChoice } from "@web/maps/source";
 import { askedBattle, menuHref, spoken, type AskedBattle } from "../battleLinks";
+import { setMatchLighting } from "../gameLight";
+import { DEFAULT_LIGHTING, resolveLighting } from "../lobby/lighting";
 import { BattleClock } from "../battleStatus";
 import { BattleView, type BattleLoadStage } from "../BattleView";
 import { LoadingScreen, type LoadingFailure, type LoadingStage } from "../LoadingScreen";
@@ -156,6 +158,24 @@ function SavedReplay() {
   );
 }
 
+function mapSeedOf(request: PrepareBattleRequest): string {
+  const source = request.map_source;
+  if (source.kind === "generated") return String(source.request.seed);
+  return "1";
+}
+
+function resolvedMatchLighting(
+  replay: ReplayFile | undefined,
+  search: string,
+  request: PrepareBattleRequest,
+): string {
+  if (replay?.light_preset) return replay.light_preset;
+  const params = new URLSearchParams(search);
+  // Capture override is not stored; the match setting (or Daylight) is.
+  const raw = params.get("light");
+  return resolveLighting(raw && raw.length > 0 ? raw : DEFAULT_LIGHTING, mapSeedOf(request));
+}
+
 function PreparedBattleView({
   request,
   replay,
@@ -172,6 +192,12 @@ function PreparedBattleView({
   const [prepared, setPrepared] = useState<PreparedSession | null>(null);
   const [failure, setFailure] = useState<LoadingFailure | null>(null);
   const marks = useRef<StartupMarks>({});
+
+  useEffect(() => {
+    const lighting = resolvedMatchLighting(replay, window.location.search, request);
+    setMatchLighting(replay ? lighting : null);
+    return () => setMatchLighting(null);
+  }, [replay, request]);
 
   // Preparation owns its worker, which the battle then runs in.
   useEffect(() => {
@@ -234,6 +260,7 @@ function PreparedBattleView({
     const file: ReplayFile = {
       battle: { scenario: prepared.scenario, report: prepared.report },
       replay: await sim.client.replay(),
+      light_preset: resolvedMatchLighting(replay, window.location.search, request),
     };
     const name = subject.toLowerCase().replaceAll(" · ", "-").replaceAll(" ", "");
     await saveReplay(file, `battle-${name}-tick${sim.latest.current?.tick ?? 0}.json`);

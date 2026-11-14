@@ -25,6 +25,9 @@ pub(super) struct Args {
     pub(super) clip: Option<Clip>,
     /// The layers the capture drew that the replay draws.
     pub(super) playback: Playback,
+    /// A named fixture lighting look (`day`, `golden_hour`). Absent, the
+    /// fixture's `light_preset`, or `ARMATA_LIGHT_PRESET` when that is set.
+    pub(super) light_preset: Option<String>,
 }
 
 /// Resolve native runtime files without relying on the build machine's path.
@@ -61,6 +64,9 @@ pub(super) fn args() -> Result<Args, String> {
     let (mut freeze_index, mut bench_frames) = (None, None);
     let (mut hdr, mut no_music, mut fps, mut from_ms, mut to_ms) = (false, false, None, None, None);
     let mut playback = Playback::default();
+    let mut light_preset = std::env::var("ARMATA_LIGHT_PRESET")
+        .ok()
+        .filter(|s| !s.is_empty());
     let mut it = std::env::args().skip(1);
     while let Some(flag) = it.next() {
         let mut value = || it.next().ok_or(format!("{flag} needs a value"));
@@ -94,6 +100,7 @@ pub(super) fn args() -> Result<Args, String> {
             "--fps" => fps = Some(value()?.parse().map_err(|e| format!("{flag}: {e}"))?),
             "--from-ms" => from_ms = Some(value()?.parse().map_err(|e| format!("{flag}: {e}"))?),
             "--to-ms" => to_ms = Some(value()?.parse().map_err(|e| format!("{flag}: {e}"))?),
+            "--light-preset" => light_preset = Some(value()?.to_owned()),
             other => return Err(format!("unknown argument {other}")),
         }
     }
@@ -133,5 +140,6 @@ pub(super) fn args() -> Result<Args, String> {
         no_music,
         clip,
         playback,
+        light_preset,
     })
 }
