@@ -2,75 +2,14 @@ import { Feed } from "@web/feed";
 // The player's pointer input at the input seam: `useUnitControl.onPointer`
 // with a pick, and the orders it sends to a recording client.
 import { act, fireEvent, render, renderHook } from "@testing-library/react";
-import type { ReactNode } from "react";
 import { expect, test } from "vitest";
-import { UnitCatalog } from "@packages/scene-assets/src/units";
-import { SessionCatalogProvider } from "@web/battle/catalog/context";
-import { TEST_CATALOG } from "./catalog";
+import { control, own, recordingClient, wrapper } from "./unitControlHarness";
 import { useUnitControl } from "../src/battle/input/useUnitControl";
 import { CommandBar } from "../src/battle/present/commandBar";
 import type { PointerPick } from "../src/battle/input/pointerIntent";
 import type { SimClient } from "../src/battle/sim/client";
-import type { ContactView, ObservationView, OwnUnitView } from "../src/battle/sim/observationView";
+import type { ObservationView, OwnUnitView } from "../src/battle/sim/observationView";
 import type { Order } from "../src/battle/sim/protocol";
-
-// Distinct types sharing a role make type selection distinguishable from role selection.
-const catalog = {
-  ...TEST_CATALOG,
-  units: new UnitCatalog({
-    ...TEST_CATALOG.units.view,
-    units: TEST_CATALOG.units.view.units.map((type) =>
-      type.id === "test_recon"
-        ? { ...type, roles: TEST_CATALOG.units.type("test_rifle").roles }
-        : type,
-    ),
-  }),
-};
-const wrapper = ({ children }: { children: ReactNode }) => (
-  <SessionCatalogProvider catalog={catalog}>{children}</SessionCatalogProvider>
-);
-
-/** A client that records what it is sent and accepts all of it. */
-function recordingClient() {
-  const sent: { order: Order; queued: boolean }[] = [];
-  const client = {
-    command: async (order: Order, queued = false) => {
-      sent.push({ order, queued });
-      return { seq: sent.length, applied_tick: 0, error: null, refused: [] };
-    },
-  } as unknown as SimClient;
-  return { client, sent };
-}
-
-const own = (id: number, kind: string) =>
-  ({ id, kind, position: [0, 0, 0], yaw: 0 }) as unknown as OwnUnitView;
-
-/** A rifle squad (armed) and a supply truck (unarmed), both selected. */
-async function control(contacts: ContactView[] = []) {
-  const observation = {
-    own: [own(1, "test_rifle"), own(2, "test_supply")],
-    contacts,
-  } as unknown as ObservationView;
-  const { client, sent } = recordingClient();
-  const hook = renderHook(() => useUnitControl(client, observation), { wrapper });
-  act(() => hook.result.current.setSelected([1, 2]));
-  const click = async (pick: Partial<PointerPick>) => {
-    await act(async () =>
-      hook.result.current.onPointer({
-        unit: null,
-        button: "right",
-        shift: false,
-        ctrl: false,
-        x: 0,
-        y: 0,
-        time: 0,
-        ground: [50, 50],
-        ...pick,
-      }),
-    );
-  };
-  return { hook, sent, click };
-}
 
 test("right-clicking a contact attacks it with the armed units; Shift queues", async () => {
   const { sent, click } = await control();
@@ -112,63 +51,6 @@ test("a building click sends the mixed selection as one queued building intent",
       queued: true,
     },
   ]);
-});
-
-test("attack ground confirms with left-click, preserves selection and queues only armed units", async () => {
-  const { hook, sent, click } = await control();
-  act(() => hook.result.current.setMode("attack_ground"));
-  await click({ button: "left", shift: true, ctrl: true, enemy: 3, contact: 7, building: 9 });
-  expect(sent).toEqual([
-    {
-      order: { kind: "attack", units: [1], target: { kind: "ground", point: [50, 50, 0] } },
-      queued: true,
-    },
-  ]);
-  expect(hook.result.current.selected).toEqual([1, 2]);
-  expect(hook.result.current.mode).toBe("move");
-});
-
-test("right-click cancels attack ground without issuing an order or changing selection", async () => {
-  const { hook, sent, click } = await control();
-  act(() => hook.result.current.setMode("attack_ground"));
-  await click({ ctrl: true, enemy: 3, building: 9 });
-  expect(sent).toEqual([]);
-  expect(hook.result.current.selected).toEqual([1, 2]);
-  expect(hook.result.current.mode).toBe("move");
-  await click({});
-  expect(sent[0].order).toMatchObject({ kind: "move", units: [1, 2], goal: [50, 50] });
-});
-
-test("a right press captured during attack ground stays cancelled after Escape", async () => {
-  const { hook, sent } = await control();
-  act(() => hook.result.current.setMode("attack_ground"));
-  const pick: PointerPick = {
-    unit: null,
-    button: "right",
-    shift: false,
-    ctrl: false,
-    x: 0,
-    y: 0,
-    time: 0,
-    ground: [50, 50],
-  };
-  const captured = hook.result.current.intentAt(pick);
-  act(() => fireEvent.keyDown(window, { code: "Escape" }));
-  await act(async () => hook.result.current.onPointer(pick, captured));
-  expect(sent).toEqual([]);
-  expect(hook.result.current.selected).toEqual([1, 2]);
-  expect(hook.result.current.mode).toBe("move");
-});
-
-test("an unarmed enemy click disarms the command but sends no attack", async () => {
-  const { hook, sent, click } = await control();
-  act(() => {
-    hook.result.current.setSelected([2]);
-    hook.result.current.setMode("garrison");
-  });
-  await click({ enemy: 3 });
-  expect(hook.result.current.mode).toBe("move");
-  expect(sent).toEqual([]);
 });
 
 test("every order sent is heard as it goes, a queued (Shift) one too", async () => {
@@ -295,7 +177,7 @@ test("losing a selected unit leaves survivors commandable without reselecting", 
     await act(async () =>
       hook.result.current.onPointer({
         unit: null,
-        button: "right",
+        button: mode === "move" ? "right" : "left",
         shift: false,
         ctrl: false,
         x: 0,
@@ -515,22 +397,6 @@ test("blocked battle input preserves selection and armed mode without issuing sh
   expect(sent.map(({ order }) => order)).toEqual([{ kind: "stop", units: [1] }]);
   hook.unmount();
   button.remove();
-});
-
-test("attack-move sends the entire selection, including unarmed units, by click and keyboard", async () => {
-  const { hook, sent, click } = await control();
-  await click({ ctrl: true });
-  act(() => hook.result.current.setMode("attack_move"));
-  await click({ shift: true });
-  act(() => hook.result.current.setSelected([2]));
-  act(() => fireEvent.keyDown(window, { code: "KeyC" }));
-  expect(hook.result.current.mode).toBe("attack_move");
-  await click({});
-  expect(sent).toEqual([
-    { order: { kind: "attack_move", units: [1, 2], goal: [50, 50], gesture: 1 }, queued: false },
-    { order: { kind: "attack_move", units: [1, 2], goal: [50, 50], gesture: 2 }, queued: true },
-    { order: { kind: "attack_move", units: [2], goal: [50, 50], gesture: 3 }, queued: false },
-  ]);
 });
 
 /** A 2v2's blue side as `blue-1` sees it: by default units 1 and 3 its

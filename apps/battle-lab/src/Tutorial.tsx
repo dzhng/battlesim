@@ -259,8 +259,8 @@ export function Tutorial() {
             instead of replacing them.
           </li>
           <li>
-            <kbd>{keyOf(CommandBindings.reverse_move)}</kbd>, or a right-click just behind a single
-            selected vehicle, backs it up without turning round.
+            <kbd>{keyOf(CommandBindings.reverse_move)}</kbd> then left-click, or a right-click just
+            behind a single selected vehicle, backs it up without turning round.
           </li>
           <li>
             <kbd>Right-click</kbd> a building with infantry selected to garrison it: one squad per
@@ -294,7 +294,7 @@ export function Tutorial() {
             <kbd>Right-click</kbd> an enemy to attack it, or a red contact area to fire into it.
           </li>
           <li>
-            <kbd>{keyOf(CommandBindings.attack_move)}</kbd> then right-click (or <kbd>Ctrl</kbd> +{" "}
+            <kbd>{keyOf(CommandBindings.attack_move)}</kbd> then left-click (or <kbd>Ctrl</kbd> +{" "}
             <kbd>Right-click</kbd>) for an <strong>attack-move</strong>: the units advance and halt
             to fight whenever a weapon has a target.
           </li>

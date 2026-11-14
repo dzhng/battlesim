@@ -1,9 +1,9 @@
 /** The one player command path: selection (double-click selects similar:
  * `selectSimilar.ts`), right-click moves (with the
  * double-click fast upgrade and Shift queueing), right-click on an identified
- * enemy or a contact's area to attack it, armed attack-move and reverse-move.
- * Attack-ground confirms with left-click and cancels with right-click
- * (Ctrl+right-click attack-moves at once; a right-click behind a single
+ * enemy or a contact's area to attack it. An armed command (attack-move,
+ * reverse, fast move, attack-ground, Unload) confirms with left-click and
+ * cancels with right-click (Ctrl+right-click attack-moves at once; a right-click behind a single
  * selected vehicle reverses), right-click on a building to garrison it (Shift
  * queues), right-click on an own carrier or squad to board or collect (Shift
  * queues), Unload (U then a left-click, or U twice), leaving buildings, stop,
@@ -25,7 +25,7 @@ import { commandForKey, ShowOrdersBinding } from "./commandBindings";
 import { useHeldKey } from "./heldKeys";
 import { MoveGestures } from "./moveGestures";
 import {
-  CONFIRMED_BY_LEFT_CLICK,
+  armedCommand,
   pointerIntent,
   reconcilePointerIntent,
   type PointerPick,
@@ -244,18 +244,7 @@ export function useUnitControl(
   const onPointer = useCallback(
     (pick: PointerPick, captured?: PointerIntent) => {
       if (!enabledRef.current) return;
-      // A right-click cancels a mode a left-click confirms, and a press
-      // captured in one.
-      if (
-        pick.button === "right" &&
-        (CONFIRMED_BY_LEFT_CLICK.has(modeRef.current) ||
-          captured?.kind === "unload" ||
-          (captured?.kind === "attack" && captured.target.kind === "ground"))
-      ) {
-        setMode("move");
-        return;
-      }
-      if (pick.button === "left" && !CONFIRMED_BY_LEFT_CLICK.has(modeRef.current)) {
+      if (pick.button === "left" && !armedCommand(modeRef.current)) {
         const unit = pick.unit;
         const own = yoursRef.current;
         if (unit !== null && !own.some((u) => u.id === unit)) {
@@ -294,6 +283,10 @@ export function useUnitControl(
         ? reconcilePointerIntent(captured, observationRef.current, player)
         : intentAt(pick);
       if (intent.kind === "none") return;
+      if (intent.kind === "cancel") {
+        setMode("move");
+        return;
+      }
       if (intent.kind === "blocked") {
         if (intent.disarm) setMode("move");
         return;

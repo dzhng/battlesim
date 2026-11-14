@@ -36,7 +36,8 @@ import { highAir } from "@packages/scene-assets/src/units";
 import { useUnitControl } from "@web/battle/input/useUnitControl";
 import { usePurchasePlacement } from "./usePurchasePlacement";
 import {
-  dragFacing,
+  armedCommand,
+  facedIntent,
   reconcilePointerIntent,
   type PointerIntent,
   type PointerPick,
@@ -552,15 +553,6 @@ export function useBattleSession({
     },
     [semanticPick, control, sim.client, releasedAction],
   );
-  const facedIntent = (
-    intent: PointerIntent,
-    pick: PointerPick,
-    release?: [number, number] | null,
-  ): PointerIntent => {
-    if (intent.kind !== "move" && intent.kind !== "occupy_building") return intent;
-    const facing = dragFacing({ ground: pick.ground, facingTo: release });
-    return { ...intent, facing };
-  };
   const onPick = useCallback(
     (pick: LabPick) => {
       if (purchasePlacement.variant) return clickPurchase(pick, control.issue);
@@ -663,7 +655,8 @@ export function useBattleSession({
           ...pointer.position!,
           ray: pointer.ray!,
           instance: pickBox(pointer.ray!, drawn.current.picks),
-          button: "right",
+          // The click hover previews.
+          button: armedCommand(control.mode) ? "left" : "right",
           ctrl: pointer.ctrl,
           shift: pointer.shift,
           time: 0,

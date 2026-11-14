@@ -4,14 +4,14 @@ import { decode, writeCrop } from "./_png.mjs";
 import { visuals } from "./_units.mjs";
 
 const base = (ctx) => new URL(ctx.url).origin;
-const select = async (page, ids) => {
+export const select = async (page, ids) => {
   await lab(page, (ids) => window.__lab.route.select(ids), ids);
   await page.waitForFunction(
     (ids) => JSON.stringify(window.__lab.route.selected()) === JSON.stringify(ids),
     ids,
   );
 };
-const project = (page, at) =>
+export const project = (page, at) =>
   lab(
     page,
     async (p) => {
@@ -33,7 +33,7 @@ const gameArrowOn = (locator) =>
     (element, source) => new Function(`return ${source}`)()(element),
     String(showsGameArrow),
   );
-async function expects(page, expected) {
+export async function expects(page, expected) {
   await page.waitForFunction(
     (expected) => document.documentElement.dataset.cursor === expected,
     expected,

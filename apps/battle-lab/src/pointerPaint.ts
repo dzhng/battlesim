@@ -369,7 +369,7 @@ export function cursorForIntent(
   intent: PointerIntent,
   paint: Pick<OrderPreviewSnapshot, "state" | "building" | "carried">,
 ): CursorAction {
-  if (intent.kind === "none") return "default";
+  if (intent.kind === "none" || intent.kind === "cancel") return "default";
   // A query in flight shows what the last one settled on.
   const state = paint.state === "pending" ? (paint.carried ?? "pending") : paint.state;
   if (intent.kind === "blocked") return "blocked";

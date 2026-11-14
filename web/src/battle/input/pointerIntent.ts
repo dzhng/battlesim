@@ -30,15 +30,12 @@ export type CommandMode =
   | "reverse_move"
   | "attack_ground"
   | "fast_move"
-  | "garrison"
   | "unload";
 
-/** Armed modes a left-click confirms and a right-click cancels; in any
- *  other a left-click selects. */
-export const CONFIRMED_BY_LEFT_CLICK: ReadonlySet<CommandMode> = new Set([
-  "attack_ground",
-  "unload",
-]);
+/** An armed command (any mode but plain move) is confirmed by a left-click
+ *  and cancelled by a right-click; in plain move a left-click selects and a
+ *  right-click orders. */
+export const armedCommand = (mode: CommandMode): boolean => mode !== "move";
 
 type PointerOrder = Extract<
   Order,
@@ -50,7 +47,10 @@ type WithoutGesture<O> = O extends unknown ? Omit<O, "gesture"> & { queued: bool
 export type PointerIntent =
   | WithoutGesture<PointerOrder>
   | { kind: "none" }
-  | { kind: "blocked"; disarm: boolean };
+  | { kind: "blocked"; disarm: boolean }
+  /** A right press while a command is armed: it disarms, whenever it is
+   *  released. */
+  | { kind: "cancel" };
 
 /** A held intent keeps its target and selection, while observed losses still
  *  apply; only units `player` orders (`controlled`) and no carrier holds
@@ -90,6 +90,17 @@ export function dragFacing(pick: Pick<PointerPick, "ground" | "facingTo">): numb
   return Math.hypot(dx, dy) < MIN_FACING_DRAG_M ? undefined : Math.atan2(dy, dx);
 }
 
+/** A move or building intent turned the way a drag from its press to
+ *  `release` points; any other intent as it is. */
+export function facedIntent(
+  intent: PointerIntent,
+  pick: Pick<PointerPick, "ground">,
+  release?: [number, number] | null,
+): PointerIntent {
+  if (intent.kind !== "move" && intent.kind !== "occupy_building") return intent;
+  return { ...intent, facing: dragFacing({ ground: pick.ground, facingTo: release }) };
+}
+
 /** Right-clicking a unit the player orders (D7): squads selected board the
  *  carrier under the pointer; carriers selected collect the squad under it.
  *  Null when neither applies (an ally's unit included), and the click falls
@@ -126,6 +137,7 @@ export function pointerIntent(
   own: readonly OwnUnitView[],
   yours: readonly OwnUnitView[],
 ): PointerIntent {
+  if (pick.button === "right" && armedCommand(mode)) return { kind: "cancel" };
   if (selected.length === 0) return { kind: "none" };
   const queued = pick.shift;
   const units = selected.map((u) => u.id);
@@ -164,7 +176,7 @@ export function pointerIntent(
     if (carriage) return carriage;
   }
   const facing = dragFacing(pick);
-  if (pick.building != null && (mode === "move" || mode === "garrison")) {
+  if (pick.building != null && mode === "move") {
     return {
       kind: "occupy_building",
       units,
@@ -173,7 +185,7 @@ export function pointerIntent(
       ...(facing === undefined ? {} : { facing }),
     };
   }
-  if (!pick.ground || mode === "garrison") return { kind: "blocked", disarm: false };
+  if (!pick.ground) return { kind: "blocked", disarm: false };
   if (mode === "attack_move") return { kind: "attack_move", units, goal: pick.ground, queued };
 
   return {
