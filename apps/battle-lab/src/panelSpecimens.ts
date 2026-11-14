@@ -183,13 +183,15 @@ export function panelSpecimens(
     ),
   );
   const alertPanel = panelOf(
-    specimenUnit(catalog, "test_rifle", { concealed: true, suppression: "pinned" }, [
-      {},
-      { ammo: [0], loaded: null, reason: "out_of_ammo" },
-    ]),
+    specimenUnit(
+      catalog,
+      "test_rifle",
+      { concealed: true, suppression: "pinned", engagement: "return_fire_only" },
+      [{}, { ammo: [0], loaded: null, reason: "out_of_ammo" }],
+    ),
   );
-  add(key, "hidden + pinned + out of ammo", alertPanel);
-  add(key, "hidden + pinned + out of ammo, compact", alertPanel, "own", {
+  add(key, "hidden + holding fire + pinned + out of ammo", alertPanel);
+  add(key, "hidden + holding fire + pinned + out of ammo, compact", alertPanel, "own", {
     zoom: "compressed",
   });
   add(
@@ -396,6 +398,11 @@ export function panelSpecimens(
     s,
     "leaving 70%",
     panelOf(specimenUnit(catalog, "test_rifle", inside("exiting", 0.7) as Partial<OwnUnitView>)),
+  );
+  add(
+    s,
+    "holding fire",
+    panelOf(specimenUnit(catalog, "test_rifle", { engagement: "return_fire_only" })),
   );
   add(s, "suppressed", panelOf(specimenUnit(catalog, "test_rifle", { suppression: "suppressed" })));
   add(s, "pinned", panelOf(specimenUnit(catalog, "test_rifle", { suppression: "pinned" })));

@@ -1,5 +1,5 @@
 /** One unit's info panel as drawn: NAME (an own unit's with its strength's
- *  pips), then a row per WEAPON, then its STATES (`panelRows.ts` says what
+ *  pips, and the marks of its unit-wide states), then a row per WEAPON, then its STATES (`panelRows.ts` says what
  *  each holds). Own and enemy panels are the same markup; the owner's tone
  *  (own cyan, enemy red) comes from the callout or card round it. Each row is its icon, bare and centred in a 16 px slot,
  *  its words, then a right-hand column of counts. A running timer is a ring
@@ -160,6 +160,14 @@ function WeaponRowView({ w }: { w: WeaponRow }) {
   );
 }
 
+/** The states a card also marks beside its name, and whether each is a
+ *  warning. */
+const STATUS_STATES: Partial<Record<StateRow["state"], boolean>> = {
+  hidden: false,
+  hold_fire: false,
+  pinned: true,
+};
+
 /** The compact card's one active progress track. When several things are
  * waiting, the largest fraction finishes first, so the bar moves straight to
  * the next item as each one completes. */
@@ -201,17 +209,17 @@ function StateRowView({ row }: { row: StateRow }) {
  *  `zoom` is the workbench's; the battle sets it on the layer round it. */
 export function InfoPanel({ panel, zoom }: { panel: Panel; zoom?: PanelZoom }) {
   const loading = zoom === "compressed" ? loadingProgress(panel) : null;
+  // The unit-wide states a compact card keeps beside the name, each in its
+  // own row's mark and in its rows' order, after running out of ammunition.
   const statusIcons = [
-    panel.weapons.some((weapon) => weapon.kinds.some((kind) => kind.count === 0))
-      ? { path: hudIcon("no_ammo"), title: "Out of ammo", negative: true }
-      : null,
-    panel.states.some((row) => row.state === "pinned")
-      ? { path: stateIcon("pinned"), title: "Pinned", negative: true }
-      : null,
-    panel.states.some((row) => row.state === "hidden")
-      ? { path: stateIcon("hidden"), title: "Hidden", negative: false }
-      : null,
-  ].filter((icon): icon is { path: string; title: string; negative: boolean } => icon !== null);
+    ...(panel.weapons.some((weapon) => weapon.kinds.some((kind) => kind.count === 0))
+      ? [{ path: hudIcon("no_ammo"), title: "Out of ammo", negative: true }]
+      : []),
+    ...panel.states.flatMap((r) => {
+      const negative = STATUS_STATES[r.state];
+      return negative === undefined ? [] : [{ path: r.icon, title: r.word, negative }];
+    }),
+  ];
   return (
     <div className="ro-body" data-zoom={zoom}>
       <span className="ro-name">
