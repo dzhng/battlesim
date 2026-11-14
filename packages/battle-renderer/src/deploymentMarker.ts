@@ -64,10 +64,14 @@ const DIGITS: Readonly<Record<number, readonly (readonly P2[])[]>> = {
   3: [[...arc(0, 0.765, 0.235, 150, -90), ...arc(0, 0.265, 0.265, 90, -150).slice(1)]],
 };
 
-/** The digit's height on the ground, and in route widths when the camera
- *  pulls out far enough that its strokes would otherwise fill it. */
+/** The digit's height on the ground. Pulled far out it grows only to this
+ *  many route widths, strokes and all: a small, whole digit, not a label
+ *  that reads at every zoom. */
 const DIGIT_M = 7;
-const DIGIT_LINES = 9;
+const DIGIT_LINES = 3.6;
+/** The digit's height, in route widths, that its stroke weights are drawn
+ *  for; a shorter digit thins its strokes in step. */
+const STROKED_LINES = 9;
 /** Its strokes, in route widths: the bright fill, the dark outline under it
  *  (the chevrons' outline weight), and the own lane's white outline. */
 const DIGIT_FILL_LINES = 1.6;
@@ -96,15 +100,16 @@ export function buildDeploymentMarker(
   const { center, facing } = marker;
   const color = glowing([...markerColor, 1], style.glow.selected);
   const outline: Rgba = [markerColor[0] * 0.45, markerColor[1] * 0.55, markerColor[2] * 0.6, 1];
-  const outlineWidth = pen.line * (marker.own ? OWN_OUTLINE_LINES : DIGIT_OUTLINE_LINES);
+  const height = Math.max(DIGIT_M, pen.line * DIGIT_LINES);
+  const weight = pen.line * Math.min(1, height / (pen.line * STROKED_LINES));
+  const outlineWidth = weight * (marker.own ? OWN_OUTLINE_LINES : DIGIT_OUTLINE_LINES);
   // The digit stands just inside the edge, as the chevrons used to: its
   // outline clear of the border and the HUD pane past it.
   const foot = pen.line * 2 + outlineWidth / 2;
-  const height = Math.max(DIGIT_M, pen.line * DIGIT_LINES);
   const painted = new MeshBuilder();
   const glyph = { origin: along(center, facing, foot), facing, height };
   digit(painted, pen, glyph, marker.lane, marker.own ? [...ownColor, 1] : outline, outlineWidth);
-  digit(painted, pen, glyph, marker.lane, color, pen.line * DIGIT_FILL_LINES);
+  digit(painted, pen, glyph, marker.lane, color, weight * DIGIT_FILL_LINES);
 
   const marching = new MeshBuilder();
   const { cycles_per_s, amplitude } = style.march;

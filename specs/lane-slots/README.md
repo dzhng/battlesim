@@ -23,10 +23,9 @@ You are resuming the lane-slots feature. Slices 01, 03, 04 and 05 are
 committed, and slice 06 too (taken over in this checkout when its delegate ran
 out of disk). Slice 02 (AI home lane) was handed to a delegate in its own
 checkout, branched from the slice 01 commit; integrate it by cherry-pick, rerun
-its focused checks on this branch, then do slice 07. Also open: the `allies`
-scene's "your units and your ally's are on the field" check fails (only your
-first tank arrives in its window); it predates slice 06, and no slice so far
-changes the simulation, so find its cause in its own commit. If 02 reported that no
+its focused checks on this branch, then do slice 07. The `allies` scene's
+failure is fixed (it bought on the road's edge, which blocked the ally that
+now shares Blue 1's lane). If 02 reported that no
 single home-lane value meets both behaviours, stop and bring the user the
 probe table.
 
@@ -194,5 +193,5 @@ wins, no implementation detail on screen).
 - 04: the tag sits its halo and band in from the frame; its digit is placed by the tag's turn but never turned, so Red's tags read upright. Weights are the picture's (body 3.6, tip 2.2, half 2.1 hundredths of the longer side).
 - 04/05: the own-lane "YOU" label was dropped at the user's call; the white band alone marks your lane.
 - 05: the map frame keeps one markup object per picture (React 19 resets inner HTML on a new object, which re-parsed the picture every render and wiped the marks).
-- 06: the digit is a stroke glyph about 7 m tall, upright as seen from the edge looking in, growing with the route width at far zoom so it never blurs; the chevrons sit 3 m past it. It is still paint (`painted`); the chevrons stay marching paint, because the marching pass reads normals as pulse data. Your lane's digit is outlined in the HUD's white, wider.
-- 06 critique, not acted on: at far zoom the digit outgrows the chevrons (they were already specks); your outline is subtle at far zoom; the "1" reads a little like a font glyph. All reversible styling calls.
+- 06: the digit is a stroke glyph about 7 m tall, upright as seen from the edge looking in; the chevrons sit 3 m past it. Pulled far out it grows only to 3.6 route widths, strokes scaled with it: the user cut it by 60% there, since it need not read at that zoom. It is still paint (`painted`); the chevrons stay marching paint, because the marching pass reads normals as pulse data. Your lane's digit is outlined in the HUD's white, wider.
+- 06 critique, not acted on: your outline is subtle at far zoom; the "1" reads a little like a font glyph. Reversible styling calls.
