@@ -16032,9 +16032,9 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                3.28,
-                1.21,
-                1.43
+                5.168,
+                1.25,
+                1.66
               ],
               "hp": 120.0,
               "push_class": "medium",
@@ -16070,9 +16070,9 @@
               "name": "NASAMS 3",
               "on": null,
               "pivot_m": [
-                -0.3,
+                -0.6,
                 0.0,
-                1.68
+                2.14
               ],
               "special": false,
               "squad": false,
@@ -21571,9 +21571,9 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                3.28,
-                1.21,
-                1.43
+                5.168,
+                1.25,
+                1.66
               ],
               "hp": 120.0,
               "push_class": "medium",
@@ -21609,9 +21609,9 @@
               "name": "NASAMS 3",
               "on": null,
               "pivot_m": [
-                -0.3,
+                -0.6,
                 0.0,
-                1.68
+                2.14
               ],
               "special": false,
               "squad": false,
@@ -37023,9 +37023,9 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            3.28,
-            1.21,
-            1.43
+            5.168,
+            1.25,
+            1.66
           ],
           "hp": 120.0,
           "push_class": "medium",
@@ -37063,9 +37063,9 @@
           "name": "NASAMS 3",
           "on": null,
           "pivot_m": [
-            -0.3,
+            -0.6,
             0.0,
-            1.68
+            2.14
           ],
           "special": false,
           "squad": false,
@@ -43372,9 +43372,9 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            3.28,
-            1.21,
-            1.43
+            5.168,
+            1.25,
+            1.66
           ],
           "hp": 120.0,
           "push_class": "medium",
@@ -43412,9 +43412,9 @@
           "name": "NASAMS 3",
           "on": null,
           "pivot_m": [
-            -0.3,
+            -0.6,
             0.0,
-            1.68
+            2.14
           ],
           "special": false,
           "squad": false,

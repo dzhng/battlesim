@@ -6373,9 +6373,9 @@
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
-        3.28,
-        1.21,
-        1.43
+        5.168,
+        1.25,
+        1.66
       ]
     },
     "us_patriot_long": {
@@ -6421,9 +6421,9 @@
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
-        3.28,
-        1.21,
-        1.43
+        5.168,
+        1.25,
+        1.66
       ]
     },
     "eastern_s300_long": {

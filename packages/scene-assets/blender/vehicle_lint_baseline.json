@@ -9279,114 +9279,41 @@
   "europe_nasams_nasams_3": [
     {
       "check": "interpenetration",
-      "distance_m": 0.025,
-      "message": "Parts 'axle_L_0' and 'wheel_L_1_tyre' interpenetrate by 25.0mm",
+      "distance_m": 0.0061,
+      "message": "Parts 'step_L' and 'wheel_L_1_tread_5_0' interpenetrate by 6.1mm",
       "parts": [
-        "axle_L_0",
+        "step_L",
+        "wheel_L_1_tread_5_0"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "interpenetration",
+      "distance_m": 0.0328,
+      "message": "Parts 'step_L' and 'wheel_L_1_tyre' interpenetrate by 32.8mm",
+      "parts": [
+        "step_L",
         "wheel_L_1_tyre"
       ],
       "severity": "error"
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.025,
-      "message": "Parts 'axle_L_1' and 'wheel_L_2_tyre' interpenetrate by 25.0mm",
-      "parts": [
-        "axle_L_1",
-        "wheel_L_2_tyre"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.025,
-      "message": "Parts 'axle_R_0' and 'wheel_R_1_tyre' interpenetrate by 25.0mm",
-      "parts": [
-        "axle_R_0",
-        "wheel_R_1_tyre"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.025,
-      "message": "Parts 'axle_R_1' and 'wheel_R_2_tyre' interpenetrate by 25.0mm",
-      "parts": [
-        "axle_R_1",
-        "wheel_R_2_tyre"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
       "distance_m": 0.0133,
-      "message": "Parts 'jockey_leg' and 'jockey_tyre' interpenetrate by 13.3mm",
+      "message": "Parts 'step_R' and 'wheel_R_1_tread_5_0' interpenetrate by 13.3mm",
       "parts": [
-        "jockey_leg",
-        "jockey_tyre"
+        "step_R",
+        "wheel_R_1_tread_5_0"
       ],
       "severity": "error"
     },
     {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'axle_L_0' is 2.5cm from nearest part (threshold: 2cm)",
+      "check": "interpenetration",
+      "distance_m": 0.0328,
+      "message": "Parts 'step_R' and 'wheel_R_1_tyre' interpenetrate by 32.8mm",
       "parts": [
-        "axle_L_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'axle_L_1' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_L_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'axle_R_0' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_R_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'axle_R_1' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_R_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0504,
-      "message": "Part 'drawbar_eye' is 5.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "drawbar_eye"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.06,
-      "message": "Part 'launcher_arm_-1' is 6.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "launcher_arm_-1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.06,
-      "message": "Part 'launcher_arm_1' is 6.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "launcher_arm_1"
+        "step_R",
+        "wheel_R_1_tyre"
       ],
       "severity": "error"
     }
@@ -16060,114 +15987,41 @@
   "us_nasams_medium": [
     {
       "check": "interpenetration",
-      "distance_m": 0.025,
-      "message": "Parts 'axle_L_0' and 'wheel_L_1_tyre' interpenetrate by 25.0mm",
+      "distance_m": 0.0061,
+      "message": "Parts 'step_L' and 'wheel_L_1_tread_5_0' interpenetrate by 6.1mm",
       "parts": [
-        "axle_L_0",
+        "step_L",
+        "wheel_L_1_tread_5_0"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "interpenetration",
+      "distance_m": 0.0328,
+      "message": "Parts 'step_L' and 'wheel_L_1_tyre' interpenetrate by 32.8mm",
+      "parts": [
+        "step_L",
         "wheel_L_1_tyre"
       ],
       "severity": "error"
     },
     {
       "check": "interpenetration",
-      "distance_m": 0.025,
-      "message": "Parts 'axle_L_1' and 'wheel_L_2_tyre' interpenetrate by 25.0mm",
-      "parts": [
-        "axle_L_1",
-        "wheel_L_2_tyre"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.025,
-      "message": "Parts 'axle_R_0' and 'wheel_R_1_tyre' interpenetrate by 25.0mm",
-      "parts": [
-        "axle_R_0",
-        "wheel_R_1_tyre"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
-      "distance_m": 0.025,
-      "message": "Parts 'axle_R_1' and 'wheel_R_2_tyre' interpenetrate by 25.0mm",
-      "parts": [
-        "axle_R_1",
-        "wheel_R_2_tyre"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "interpenetration",
       "distance_m": 0.0133,
-      "message": "Parts 'jockey_leg' and 'jockey_tyre' interpenetrate by 13.3mm",
+      "message": "Parts 'step_R' and 'wheel_R_1_tread_5_0' interpenetrate by 13.3mm",
       "parts": [
-        "jockey_leg",
-        "jockey_tyre"
+        "step_R",
+        "wheel_R_1_tread_5_0"
       ],
       "severity": "error"
     },
     {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'axle_L_0' is 2.5cm from nearest part (threshold: 2cm)",
+      "check": "interpenetration",
+      "distance_m": 0.0328,
+      "message": "Parts 'step_R' and 'wheel_R_1_tyre' interpenetrate by 32.8mm",
       "parts": [
-        "axle_L_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'axle_L_1' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_L_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'axle_R_0' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_R_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'axle_R_1' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_R_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0504,
-      "message": "Part 'drawbar_eye' is 5.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "drawbar_eye"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.06,
-      "message": "Part 'launcher_arm_-1' is 6.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "launcher_arm_-1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.06,
-      "message": "Part 'launcher_arm_1' is 6.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "launcher_arm_1"
+        "step_R",
+        "wheel_R_1_tyre"
       ],
       "severity": "error"
     }
