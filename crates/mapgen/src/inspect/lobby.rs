@@ -251,8 +251,8 @@ pub fn skirmish_picture(map: &MapDefinition, sites: &SkirmishSites) -> String {
     // stands at straight into the map, wholly inside the frame, its lane's
     // digit in its body (`sim::entries::lane_number`). The picture holds no
     // players: the page that seats them styles a lane by who holds it,
-    // through the tag's `--lane-*` custom properties (an unheld lane goes
-    // hollow), and reveals the own-lane mark each tag carries hidden.
+    // through the tag's `--lane-*` custom properties (an unheld lane takes a
+    // dark tint), and reveals the own-lane mark each tag carries hidden.
     for (index, entry) in sites.entries.iter().enumerate() {
         let [x, y] = at(entry.center);
         // The picture's edges, nearest first: the distance to each and the

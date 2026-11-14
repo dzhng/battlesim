@@ -1127,7 +1127,7 @@
   width: 100%;
   height: 100%;
 }
-/* An entry tag whose lane nobody holds keeps its number and goes hollow: a
+/* An entry tag whose lane nobody holds keeps its number on a
    dark tint of its side's colour (over the picture's halo), its edge and
    digit in that colour. Yours wears the picture's own-lane mark. */
 .lobby-picture [data-held="none"] {
