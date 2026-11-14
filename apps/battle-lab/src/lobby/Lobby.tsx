@@ -73,7 +73,7 @@ function useLobby(asked: AskedLobby) {
   /** The lobby state the running preview shows. */
   const shown = useRef<LobbyState | null>(null);
   const previews = useRef<{ show(state: LobbyState): void } | null>(null);
-  const [lanes, setLanes] = useState<LanesModule | null>(null);
+  const [wasm, setWasm] = useState<LanesModule | null>(null);
 
   const update = (next: LobbyState) => {
     current.current = next;
@@ -102,7 +102,7 @@ function useLobby(asked: AskedLobby) {
     void Promise.all([loadWasm(), catalogSet("game")]).then(
       ([wasm, catalog]) => {
         if (!live) return;
-        setLanes(wasm);
+        setWasm(wasm);
         controller = mapPreviews(
           {
             documents: { rules: JSON.stringify(catalog.rules), presets, templates },
@@ -143,18 +143,18 @@ function useLobby(asked: AskedLobby) {
     };
   }, []);
 
-  return { lobby, preview, update, lanes };
+  return { lobby, preview, update, wasm };
 }
 
 /** The skirmish page: set up any match and deploy it. */
 export function Lobby({ asked }: { asked: AskedLobby }) {
-  const { lobby, preview, update, lanes } = useLobby(asked);
+  const { lobby, preview, update, wasm } = useLobby(asked);
   const count = (side: LobbySide) => lobby.players.filter((p) => p.side === side).length;
   const ready = preview.status === "ready";
   const sites = ready ? preview.preview.sites : null;
   const held = useMemo(
-    () => (lanes && sites ? holders(lanes, sites, lobby.players) : null),
-    [lanes, sites, lobby.players],
+    () => (wasm && sites ? holders(wasm, sites, lobby.players) : null),
+    [wasm, sites, lobby.players],
   );
   return (
     <section className="lobby" aria-label="New battle">
@@ -433,23 +433,27 @@ function Choice<T extends string>({
   );
 }
 
-/** Who holds each entry's lane, in the sites' list order: you, another
- *  player, or nobody. */
-type Held = "you" | "player" | "none";
+/** Who holds a side's lane: you, another player, or nobody. */
+interface LaneHolder {
+  side: Player["side"];
+  lane: number;
+  held: "you" | "player" | "none";
+}
 
-function holders(lanes: LanesModule, sites: string, players: readonly Player[]): Held[] {
+function holders(wasm: LanesModule, sites: string, players: readonly Player[]): LaneHolder[] {
   const you = players.find((player) => player.controller === "human")?.id;
-  return lanesOf(lanes, sites, players).entries.map(({ holder }) =>
-    holder === null ? "none" : holder === you ? "you" : "player",
-  );
+  return lanesOf(wasm, sites, players).entries.map(({ side, lane, holder }) => ({
+    side,
+    lane,
+    held: holder === null ? "none" : holder === you ? "you" : "player",
+  }));
 }
 
 /** The map frame: the admitted map once it is ready, and until then what its
  *  preparation is doing over the last map shown. The picture holds no
- *  players, so each entry tag is marked with who holds its lane (`held`, in
- *  the picture's entry order), and the stylesheet draws an open lane and
- *  yours. A seat change re-marks the tags without drawing a new map. */
-function MapFrame({ state, held }: { state: PreviewState; held: readonly Held[] | null }) {
+ *  players, so each entry tag (found by its side and lane) is marked with who
+ *  holds that lane, and the stylesheet draws an open lane and yours. A seat change re-marks the tags without drawing a new map. */
+function MapFrame({ state, held }: { state: PreviewState; held: readonly LaneHolder[] | null }) {
   const [last, setLast] = useState<string | null>(null);
   const picture = useRef<HTMLDivElement>(null);
   const svg = state.status === "ready" ? state.preview.svg : last;
@@ -461,12 +465,13 @@ function MapFrame({ state, held }: { state: PreviewState; held: readonly Held[] 
     if (state.status === "ready") setLast(state.preview.svg);
   }, [state]);
   useLayoutEffect(() => {
-    const tags = picture.current?.querySelectorAll<SVGGElement>("[data-entry]") ?? [];
-    tags.forEach((tag, index) => {
-      const holder = held?.[index];
-      if (holder) tag.setAttribute("data-held", holder);
-      else tag.removeAttribute("data-held");
-    });
+    const frame = picture.current;
+    if (!frame) return;
+    for (const tag of frame.querySelectorAll("[data-held]")) tag.removeAttribute("data-held");
+    for (const { side, lane, held: who } of held ?? [])
+      frame
+        .querySelector(`[data-entry="${side}"][data-lane="${lane}"]`)
+        ?.setAttribute("data-held", who);
   }, [svg, held]);
   return (
     <div className="lobby-frame" data-status={state.status} data-testid="lobby-map">
