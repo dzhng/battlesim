@@ -147,7 +147,8 @@
   "light_preset": "day",
   "light_presets": {
     "golden_hour": {
-      "sun_azimuth": -0.35,
+      "sun_azimuth": 0.0,
+      "sun_azimuths": [0.0, 3.141592653589793],
       "sun_elevation": 0.16,
       "sun_intensity": 7.4,
       "shadow_floor": 0.18,

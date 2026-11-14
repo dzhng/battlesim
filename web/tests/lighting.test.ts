@@ -3,12 +3,15 @@ import { expect, test } from "vitest";
 import {
   DEFAULT_LIGHTING,
   LIGHTING_RANDOM,
+  lightWithMapSeed,
   lightingChoices,
   lightingLabel,
   lightingPresetNames,
   parseLighting,
+  pickSunAzimuth,
   resolveLighting,
 } from "../../apps/battle-lab/src/lobby/lighting";
+import { lightForPreset, presentationSettings } from "@web/presentationSettings";
 
 test("Daylight is the default match lighting, labelled from the fixture", () => {
   expect(DEFAULT_LIGHTING).toBe("day");
@@ -43,4 +46,25 @@ test("Random is a stable index of the sorted looks from the map seed, and every 
   expect(hits).toEqual(new Set(names));
   expect(first).toBe("day");
   expect(resolveLighting(LIGHTING_RANDOM, "1")).toBe("golden_hour");
+});
+
+test("golden hour picks due east or west from the map seed, agreeing with native", () => {
+  const golden = lightForPreset("golden_hour");
+  expect(golden.sun_azimuths).toEqual([0, Math.PI]);
+  const table: [string, number][] = [
+    ["0", 0],
+    ["1", Math.PI],
+    ["2", 0],
+    ["8", 0],
+    ["9", Math.PI],
+    ["99", Math.PI],
+  ];
+  for (const [seed, want] of table) {
+    expect(pickSunAzimuth(golden.sun_azimuths ?? [], seed)).toBe(want);
+    expect(lightWithMapSeed(golden, seed).sun_azimuth).toBe(want);
+  }
+  // Day is unchanged by the seed.
+  const day = presentationSettings.light;
+  expect(day.sun_azimuth).toBe(-0.35);
+  expect(lightWithMapSeed(day, "1").sun_azimuth).toBe(day.sun_azimuth);
 });

@@ -20,6 +20,14 @@ impl LightSettings {
             -std::f64::consts::TAU,
             std::f64::consts::TAU,
         )?;
+        for (i, v) in self.sun_azimuths.iter().copied().enumerate() {
+            within(
+                &format!("sun_azimuths[{i}]"),
+                v,
+                -std::f64::consts::TAU,
+                std::f64::consts::TAU,
+            )?;
+        }
         within(
             "sun_elevation",
             self.sun_elevation,

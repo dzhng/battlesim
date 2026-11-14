@@ -3,7 +3,12 @@ import { light_records } from "@wasm/renderer_browser";
 // lab route draws under it, as every lab reuses the game's numbers.
 import { lightForPreset, presentationSettings } from "@web/presentationSettings";
 import { type LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
-import { DEFAULT_LIGHTING, parseLighting, resolveLighting } from "./lobby/lighting";
+import {
+  DEFAULT_LIGHTING,
+  lightWithMapSeed,
+  parseLighting,
+  resolveLighting,
+} from "./lobby/lighting";
 
 export const gameLight: LightPresentation = presentationSettings.light;
 
@@ -25,13 +30,13 @@ export function gameLightFor(search: string): LightPresentation {
   const preset = params.get("preset");
   let light: LightPresentation = gameLight;
   let selected: string | null = null;
+  const seed = params.get("seed") ?? "1";
   if (preset !== null) {
     light = lightForPreset(preset);
     selected = preset;
   } else {
     const parsed = parseLighting(params.get("light"));
     if (typeof parsed !== "string") throw new Error(parsed.error);
-    const seed = params.get("seed") ?? "1";
     const choice = matchLighting ?? parsed;
     const resolved = resolveLighting(choice, seed);
     if (resolved !== DEFAULT_LIGHTING) {
@@ -39,6 +44,7 @@ export function gameLightFor(search: string): LightPresentation {
     }
     selected = resolved;
   }
+  light = lightWithMapSeed(light, seed);
   const sun = params.get("sun");
   if (sun !== null && Number.isFinite(Number(sun))) {
     light = { ...light, sun_elevation: Number(sun) };

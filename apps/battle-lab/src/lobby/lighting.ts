@@ -60,3 +60,27 @@ export function resolveLighting(choice: string, mapSeed: string): string {
   if (resolved === undefined) throw new Error("no lighting presets");
   return resolved;
 }
+
+/**
+ * Pick a candidate sun azimuth with the map seed: the values sorted
+ * numerically, then `mapSeed % n`, matching `presentation::light::pick_sun_azimuth`.
+ * Presentation only — nothing here enters the sim or its hashes. The side
+ * is derivable from the seed and the fixture list, so `ReplayFile.light_preset`
+ * does not need to store it.
+ */
+export function pickSunAzimuth(azimuths: readonly number[], mapSeed: string): number {
+  if (azimuths.length === 0) throw new Error("no sun azimuths");
+  const sorted = [...azimuths].sort((a, b) => a - b);
+  const index = Number(BigInt(mapSeed) % BigInt(sorted.length));
+  const picked = sorted[index];
+  if (picked === undefined) throw new Error("no sun azimuths");
+  return picked;
+}
+
+/** Apply a seed-picked azimuth when the look lists candidates; day is a no-op. */
+export function lightWithMapSeed<
+  T extends { sun_azimuth: number; sun_azimuths?: readonly number[] },
+>(light: T, mapSeed: string): T {
+  if (light.sun_azimuths === undefined || light.sun_azimuths.length === 0) return light;
+  return { ...light, sun_azimuth: pickSunAzimuth(light.sun_azimuths, mapSeed) };
+}

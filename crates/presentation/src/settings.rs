@@ -156,6 +156,13 @@ impl PresentationSettings {
         Ok(out)
     }
 
+    /// [`Self::with_light_preset`], then the look's seed-picked azimuth.
+    pub fn with_light_preset_for_seed(&self, name: &str, map_seed: &str) -> Result<Self, String> {
+        let mut out = self.with_light_preset(name)?;
+        out.light = out.light.with_map_seed(map_seed)?;
+        Ok(out)
+    }
+
     pub fn tuning(&self) -> Tuning {
         Tuning {
             terrain: self.terrain.clone(),

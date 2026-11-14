@@ -129,7 +129,9 @@ test("the fixture admits a day default and a selectable golden_hour look", () =>
   expect(LIGHT.sun_azimuth).toBe(-0.35);
   expect(lightPresets.day.sun_elevation).toBe(0.7);
   const golden = lightForPreset("golden_hour");
-  expect(golden.sun_azimuth).toBe(LIGHT.sun_azimuth);
+  expect(golden.sun_azimuth).toBe(0);
+  expect(golden.sun_azimuths).toEqual([0, Math.PI]);
+  expect(LIGHT.sun_azimuths === undefined || LIGHT.sun_azimuths.length === 0).toBe(true);
   expect(golden.sun_elevation).toBe(0.16);
   expect(golden.exposure).toBe(1.78);
   expect(golden.sky.fill).toEqual([0.62, 0.7, 0.84]);

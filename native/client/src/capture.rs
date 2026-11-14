@@ -250,6 +250,20 @@ fn read_json<T: for<'a> Deserialize<'a>>(path: &Path) -> Result<T, String> {
     serde_json::from_str(&text).map_err(|e| format!("{}: {e}", path.display()))
 }
 
+/// The map's generation seed, or `"1"` when the listing has none: the same
+/// fallback the web client uses for authored maps (`mapSeedOf`).
+fn map_light_seed(root: &Path, map: &str) -> String {
+    let path = root.join("fixtures/maps").join(map).join("meta.json");
+    let Ok(value) = read_json::<Value>(&path) else {
+        return "1".into();
+    };
+    match value.get("seed") {
+        Some(Value::String(s)) if !s.is_empty() => s.clone(),
+        Some(Value::Number(n)) => n.to_string(),
+        _ => "1".into(),
+    }
+}
+
 /// The repository a replay reads its world and rules from.
 pub const ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
 
@@ -388,6 +402,11 @@ impl Replay {
         if let Some(name) = light_preset {
             settings = settings.with_light_preset(name)?;
         }
+        // Presentation only: a look with `sun_azimuths` picks one from the
+        // map seed (`mapSeed % n`), the same rule as the web lobby. Day has
+        // no list, so its authored azimuth stands.
+        let map_seed = map_light_seed(root, &map);
+        settings.light = settings.light.with_map_seed(&map_seed)?;
         let light = settings.light;
         // The battle's units, effects and clip tables, as a page fielding
         // the encounter's units installs them.

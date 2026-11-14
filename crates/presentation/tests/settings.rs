@@ -723,7 +723,7 @@ fn the_shipped_default_light_is_the_day_preset() {
 }
 
 #[test]
-fn golden_hour_is_the_v4_look_with_the_day_azimuth() {
+fn golden_hour_sits_east_or_west_of_the_fixed_deploy_axis() {
     let settings =
         presentation::settings::PresentationSettings::from_value(&fixture("presentation"))
             .unwrap()
@@ -732,9 +732,12 @@ fn golden_hour_is_the_v4_look_with_the_day_azimuth() {
     let day: LightSettings =
         serde_json::from_value(fixture("presentation")["light"].clone()).unwrap();
     assert_eq!(settings.light_preset, "golden_hour");
-    // The film's azimuth 3.0 was a shot choice, not a global golden hour.
-    assert_eq!(settings.light.sun_azimuth, day.sun_azimuth);
-    assert_eq!(settings.light.sun_azimuth, -0.35);
+    // Authored default is due east; the seed picks east or west at match time.
+    // Day keeps its mid-morning azimuth, which is not this list.
+    assert_eq!(settings.light.sun_azimuth, 0.0);
+    assert_eq!(settings.light.sun_azimuths, vec![0.0, std::f64::consts::PI]);
+    assert!(day.sun_azimuths.is_empty());
+    assert_eq!(day.sun_azimuth, -0.35);
     assert_eq!(settings.light.sun_elevation, 0.16);
     assert_eq!(settings.light.exposure, 1.78);
     assert_eq!(settings.light.sun_intensity, day.sun_intensity);

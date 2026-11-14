@@ -86,8 +86,11 @@ export interface CascadeSettings {
 
 /** `light` in `fixtures/presentation.json`. */
 export interface LightPresentation extends PostSettings {
-  /** Radians counter-clockwise from world +X. */
+  /** Radians counter-clockwise from world +X (toward the sun). */
   sun_azimuth: number;
+  /** Candidate azimuths (rad). When present, match lighting picks one
+   *  with `mapSeed % n` over the values sorted numerically. */
+  sun_azimuths?: readonly number[];
   /** Radians above the horizon. */
   sun_elevation: number;
   sun_intensity: number;
