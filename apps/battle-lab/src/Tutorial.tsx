@@ -336,7 +336,8 @@ export function Tutorial() {
           </li>
           <li>
             <kbd>Q</kbd> and <kbd>E</kbd> rotate the view; <kbd>Z</kbd> and <kbd>X</kbd> tilt it.
-            <kbd>Middle-drag</kbd> also orbits and tilts.
+            Hold the <kbd>middle mouse button</kbd> and move the mouse to look round from where you
+            stand.
           </li>
           <li>The mouse wheel zooms, from close over a squad to the whole battlefield.</li>
           <li>

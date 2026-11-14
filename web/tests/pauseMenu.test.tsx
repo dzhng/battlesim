@@ -27,6 +27,25 @@ test("leaving for the main menu asks first, and staying keeps the battle", async
   view.unmount();
 });
 
+test("restart asks first, and only confirming restarts", async () => {
+  let restarts = 0;
+  const view = render(<PauseMenu onClose={() => {}} onRestart={() => restarts++} />);
+  await act(async () => view.getByRole("button", { name: "Restart" }).click());
+  expect(restarts).toBe(0);
+  expect(view.getByRole("dialog", { name: "Restart the battle?" })).toBeTruthy();
+  expect(view.queryByRole("button", { name: "Resume" })).toBeNull();
+  await act(async () => view.getByRole("button", { name: "Cancel" }).click());
+  expect(view.getByRole("button", { name: "Resume" })).toBeTruthy();
+  await act(async () => view.getByRole("button", { name: "Restart" }).click());
+  fireEvent.keyDown(window, { code: "Escape", cancelable: true });
+  expect(view.getByRole("button", { name: "Resume" })).toBeTruthy();
+  expect(restarts).toBe(0);
+  await act(async () => view.getByRole("button", { name: "Restart" }).click());
+  await act(async () => view.getByRole("button", { name: "Restart battle" }).click());
+  expect(restarts).toBe(1);
+  view.unmount();
+});
+
 test("the pause menu opens the tutorial above it and closes back to the menu", async () => {
   const view = render(<PauseMenu onClose={() => {}} />);
   await act(async () => view.getByRole("button", { name: "Tutorial" }).click());

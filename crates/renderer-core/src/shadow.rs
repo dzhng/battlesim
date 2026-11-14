@@ -23,6 +23,14 @@ pub struct ShadowResources {
     active: usize,
 }
 
+/// The depth array is destroyed with its owner, as the frame's targets are
+/// (`Targets`), rather than left for the browser's garbage collector.
+impl Drop for ShadowResources {
+    fn drop(&mut self) {
+        self.depth.texture().destroy();
+    }
+}
+
 impl ShadowResources {
     /// Allocate the shared shadow target and receiver/caster bindings.
     /// Camera storage follows the canonical presentation record layout.

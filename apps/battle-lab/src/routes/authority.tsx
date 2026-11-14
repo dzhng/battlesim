@@ -117,7 +117,7 @@ function AuthorityLab({ battle }: { battle: SavedBattle }) {
       <aside className="hud-panel lab-panel" data-testid="authority-panel">
         <strong>Authority</strong>
         <div className="lab-hint">
-          Click: select · Right-click: move · Shift+right-click: queue · Middle‑drag: orbit
+          Click: select · Right-click: move · Shift+right-click: queue · Middle‑drag: look
         </div>
         <div data-testid="authority-status">
           Tick {observation?.tick ?? "—"} · {status.status}

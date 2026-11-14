@@ -13,6 +13,9 @@ presentation crate's, made from that camera and uploaded as they are; the
 page's own math gives the same bits, so a clicked shape agrees with its drawn
 location.
 
-[Camera control](src/cameraController.ts) describes view movement. [Clearance](src/cameraClearance.ts)
+[Camera control](src/cameraController.ts) describes view movement. One rig serves
+the battle and the model viewers; they differ in what a drag turns about. The
+battle looks round from where its eye stands, while a viewer orbits the thing
+it shows. [Clearance](src/cameraClearance.ts)
 uses caller-supplied authoritative geometry; model silhouettes and depth pixels
 cannot substitute for physical picking or clearance.

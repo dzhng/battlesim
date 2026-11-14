@@ -55,7 +55,7 @@
   {
     "id": "frame",
     "route": "/labs/frame",
-    "describe": "Primitive 3D reproduction: asymmetric tank, facing-marked infantry, raised ground patch and box prop; pan/orbit/zoom, pick and reset. Includes player-low picture checks for the frame, geometry and river compositions.",
+    "describe": "Primitive 3D reproduction: asymmetric tank, facing-marked infantry, raised ground patch and box prop; pan/look/zoom, pick and reset. Includes player-low picture checks for the frame, geometry and river compositions.",
     "map": null
   },
   {

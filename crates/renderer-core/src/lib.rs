@@ -226,6 +226,61 @@ impl Targets {
     }
 }
 
+/// A browser's WebGPU frees a texture only on `destroy()` or when garbage
+/// collection finds it, so dropped targets would stay resident: a full set is
+/// over a gigabyte on a high-density screen, and each scene and resize makes
+/// one. The set destroys its textures when it is replaced or its renderer goes.
+impl Drop for Targets {
+    fn drop(&mut self) {
+        // Every field by name, so a new target cannot be missed here.
+        let Self {
+            size: _,
+            hdr_msaa,
+            lit,
+            lit_texture: _,
+            scene_colour,
+            scene_colour_texture: _,
+            hdr,
+            depth,
+            fog_mask_msaa,
+            fog_mask,
+            fog_mask_under,
+            fog_mask_under_texture: _,
+            fog_distance_rows,
+            fog_distance,
+            overlay_depth,
+            overlay_msaa,
+            overlay,
+            paint,
+            overlay_glow_rows,
+            overlay_glow,
+            display,
+            display_texture: _,
+        } = self;
+        for view in [
+            hdr_msaa,
+            lit,
+            scene_colour,
+            hdr,
+            depth,
+            fog_mask_msaa,
+            fog_mask,
+            fog_mask_under,
+            fog_distance_rows,
+            fog_distance,
+            overlay_depth,
+            overlay_msaa,
+            overlay,
+            paint,
+            overlay_glow_rows,
+            overlay_glow,
+            display,
+        ] {
+            view.texture().destroy();
+        }
+    }
+}
+
 impl Targets {
     /// Rebuild the complete target set when the pixel size changes. Returns
     /// whether a swap occurred; callers should invalidate size-bound groups

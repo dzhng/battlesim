@@ -23,6 +23,15 @@ pub(crate) struct Cards {
     instances: Buffer,
     runs: Vec<Run>,
 }
+/// The atlases are destroyed with their owner, as the frame's targets are
+/// (`Targets`), rather than left for the browser's garbage collector.
+impl Drop for Cards {
+    fn drop(&mut self) {
+        self.albedo.texture().destroy();
+        self.normal.texture().destroy();
+    }
+}
+
 impl Cards {
     pub fn new(
         device: &Device,

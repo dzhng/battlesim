@@ -1103,7 +1103,7 @@ export function LabViewport({
         // Input: left click selects, left drag box-selects (or, as an action,
         // places at the press and faces toward the release), right click
         // orders (on release: a right-drag also sets the facing); the camera (CameraController) takes held WASD/arrows and the
-        // screen edge to pan, Q/E to turn, Z/X to tilt, middle drag to orbit, the wheel to zoom.
+        // screen edge to pan, Q/E to turn, Z/X to tilt, middle drag to look, the wheel to zoom.
         const makePick = (e: PointerEvent, button: "left" | "right") => {
           const ray = handle.rayAt!(e.clientX, e.clientY);
           return {

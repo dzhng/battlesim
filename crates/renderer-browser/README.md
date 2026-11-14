@@ -7,7 +7,10 @@ audio bindings. The simulation worker remains a separate authority. The [web man
 The page retains one `BrowserGpu`, admitted asynchronously without a canvas.
 Each `Renderer` receives that owner and its canvas(es); detached workbench canvases
 share the same device. Dropping a renderer releases its scene, while page departure
-explicitly disposes the device. JavaScript receives owned diagnostics, pixels and
+explicitly disposes the device. Browser WebGPU frees an allocation only on
+`destroy()` or garbage collection, so the core's owners of large allocations
+destroy them when they drop: a rebuilt scene or a resize returns its memory at
+once, however often a page rebuilds. JavaScript receives owned diagnostics, pixels and
 query results rather than GPU handles. The owner's failure promise reports the
 first unexpected GPU error or loss; deliberate disposal resolves it without an
 error. Production treats unexpected failure as terminal until manual Reload.

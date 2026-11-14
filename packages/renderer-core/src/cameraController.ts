@@ -34,7 +34,10 @@ export interface CameraPresentation {
   /** Log-distance change per wheel pixel (deltaY). */
   zoom_speed: number;
   /** Drag turn, radians per viewport height dragged. */
-  orbit_speed: number;
+  drag_speed: number;
+  /** What a drag turns about: the eye (the player looks round from where
+   *  they stand) or the target (the eye swings round what it looks at). */
+  drag_pivot: "eye" | "target";
   /** Orbit pitch limits, radians: lowest and highest. */
   pitch_limits: readonly [number, number];
   /** How the drawn pose keeps clear of buildings and the ground. */
@@ -49,7 +52,8 @@ export interface CameraIntent {
   edge?: readonly [number, number];
   /** Wheel `deltaY` pixels; positive zooms out. */
   wheel?: number;
-  /** A drag in viewport heights: right and down. */
+  /** A drag in viewport heights: right and down. Right turns the view right
+   *  and down tilts it down, about `drag_pivot`. */
   drag?: readonly [number, number];
 }
 
@@ -63,6 +67,9 @@ export interface CameraPose {
 }
 
 type CameraAxis = "right" | "forward" | "turn" | "pitch";
+
+/** The parts of a camera a drag changes. */
+type OrbitPose = Pick<Camera3DParams, "target" | "distance" | "pitch" | "yaw">;
 
 /** The camera's keys: WASD and arrows pan, Q/E turn, Z/X tilt. */
 export const CAMERA_KEYS: Readonly<Record<string, readonly [CameraAxis, number]>> = {
@@ -164,14 +171,31 @@ export class CameraController {
     const [low, high] = c.pitch_limits;
     let [x, y, z] = camera.target;
     if (wheel) {
-      const next = clamp(distance * Math.exp(wheel * c.zoom_speed), c.zoom_min, c.zoom_max);
+      // A look can leave the target nearer than the wheel reaches; the wheel
+      // never snaps it back, only stops at whichever limit it starts past.
+      const next = clamp(
+        distance * Math.exp(wheel * c.zoom_speed),
+        Math.min(c.zoom_min, distance),
+        Math.max(c.zoom_max, distance),
+      );
       // The wheel carries pitch along the curve, keeping any tilt the player dragged in.
       pitch = clamp(pitch + this.pitchAt(next) - this.pitchAt(distance), low, high);
       distance = next;
     }
     if (dragX || dragY) {
-      yaw -= dragX * c.orbit_speed;
-      pitch = clamp(pitch + dragY * c.orbit_speed, low, high);
+      const [right, down] = [dragX * c.drag_speed, dragY * c.drag_speed];
+      if (c.drag_pivot === "target") {
+        yaw -= right;
+        pitch = clamp(pitch + down, low, high);
+      } else {
+        const pose = this.look({ target: [x, y, z], distance, pitch, yaw }, right, down);
+        ({
+          target: [x, y, z],
+          distance,
+          pitch,
+          yaw,
+        } = pose);
+      }
     }
     yaw += turn * c.rotate_speed * dt;
     pitch = clamp(pitch + pitchTurn * c.rotate_speed * dt, low, high);
@@ -189,5 +213,37 @@ export class CameraController {
     }
     if (this.groundAt) z = this.groundAt(x, y);
     return { ...camera, target: [x, y, z], distance, pitch, yaw };
+  }
+
+  /** `pose` turned `right` and tilted `down` radians about its eye: the eye
+   *  stays, and the target moves to where the new view meets the ground.
+   *  The tilt stops at the pitch limits, and where looking up would carry the
+   *  target past the farthest zoom. */
+  private look(pose: OrbitPose, right: number, down: number): OrbitPose {
+    const c = this.config;
+    const [tx, ty, tz] = pose.target;
+    const flat = pose.distance * Math.cos(pose.pitch);
+    const eye = [
+      tx + flat * Math.cos(pose.yaw),
+      ty + flat * Math.sin(pose.yaw),
+      tz + pose.distance * Math.sin(pose.pitch),
+    ];
+    const yaw = pose.yaw - right;
+    const [low, high] = c.pitch_limits;
+    // Like the wheel, a pose already past the farthest zoom is not snapped.
+    const farthest = Math.asin(Math.min(1, (eye[2] - tz) / c.zoom_max));
+    const lowest = Math.max(low, Math.min(pose.pitch, farthest));
+    const pitch = clamp(pose.pitch + down, Math.min(lowest, high), high);
+    // The view's ground point, refined as the ground under it rises or falls.
+    let [x, y, z] = [tx, ty, tz];
+    for (let k = 0; k < 3; k++) {
+      const reach = Math.max(0, eye[2] - z) / Math.tan(pitch);
+      x = eye[0] - reach * Math.cos(yaw);
+      y = eye[1] - reach * Math.sin(yaw);
+      if (!this.groundAt) break;
+      z = this.groundAt(x, y);
+    }
+    const distance = Math.max(c.near_m, eye[2] - z) / Math.sin(pitch);
+    return { target: [x, y, z], distance, pitch, yaw };
   }
 }

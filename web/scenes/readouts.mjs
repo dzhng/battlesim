@@ -251,6 +251,16 @@ export async function run(ctx) {
       "div:has(> canvas):not([data-high-plane]) { background: rgb(100,100,100) !important; } canvas { visibility: hidden !important; }",
   });
   const atPanel = await page.locator('.ro-unit[data-unit="1"]').boundingBox();
+  // The underline's light is in the channels its own ink lights (cyan's
+  // green and blue, a selected leader's amber red and green).
+  const lit = (
+    await page.locator('.ro-unit[data-unit="1"]').evaluate((card) =>
+      getComputedStyle(card.parentElement.querySelector("path.ro-leader"))
+        .stroke.match(/[\d.]+/g)
+        .slice(0, 3)
+        .map(Number),
+    )
+  ).flatMap((v, c) => (v > 150 ? [c] : []));
   const backed = decode(await snapshot(ctx, page, "backing-on.png"));
   const noBacking = await page.addStyleTag({
     content: '.ro-unit[data-unit="1"]::before { display: none !important; }',
@@ -268,7 +278,7 @@ export async function run(ctx) {
         0,
       );
     shadeAboveLine = Math.min(shadeAboveLine, light(bare) - light(backed));
-    for (const c of [1, 2]) {
+    for (const c of lit) {
       const peak = (png) => Math.max(...[-1, 0, 1].map((dy) => pixel(png, x, y + dy)[c]));
       lineLoss = Math.max(lineLoss, peak(bare) - peak(backed));
       spill = Math.max(spill, Math.abs(pixel(bare, x, y + 8)[c] - pixel(backed, x, y + 8)[c]));
@@ -276,8 +286,8 @@ export async function run(ctx) {
   }
   ctx.check(
     "the backing supports the bright underline without a heavy shadow below it",
-    lineLoss <= 8 && spill <= 8 && shadeAboveLine >= 15,
-    JSON.stringify({ lineLoss, spill, shadeAboveLine, atPanel }),
+    lit.length > 0 && lineLoss <= 8 && spill <= 8 && shadeAboveLine >= 15,
+    JSON.stringify({ lit, lineLoss, spill, shadeAboveLine, atPanel }),
   );
   await neutralField.evaluate((node) => node.remove());
   // Holding Space opens every card where it stands: each leader rises to
@@ -359,6 +369,26 @@ export async function run(ctx) {
           priority.filter((other) => !other.selected).every((other) => n.layer > other.layer),
       ),
     JSON.stringify(priority),
+  );
+  // A selected unit's leader is drawn in its selection ring's colour, and so
+  // links the ring to the card; the others keep their panel's colour.
+  const ringInk = `rgb(${visuals.overlay.orders.selected
+    .slice(0, 3)
+    .map((v) => Math.round(v * 255))
+    .join(", ")})`;
+  const leaderInks = await page.locator("[data-testid=readouts] .ro-callout").evaluateAll((nodes) =>
+    nodes.map((n) => ({
+      selected: n.classList.contains("ro-selected"),
+      ink: getComputedStyle(n.querySelector("path.ro-leader")).stroke,
+    })),
+  );
+  /** A computed colour without its alpha: `rgba(r, g, b, a)` as `rgb(r, g, b)`. */
+  const ink = (s) => s.replace(/^rgba?\(([^,]+), ([^,]+), ([^,)]+).*$/, "rgb($1, $2, $3)");
+  ctx.check(
+    "the selected unit's leader is its selection ring's colour; the others' are not",
+    leaderInks.filter((n) => n.selected).length === 1 &&
+      leaderInks.every((n) => (ink(n.ink) === ringInk) === n.selected),
+    JSON.stringify({ ringInk, leaderInks }),
   );
   await lab(page, () => window.__lab.setCamera({ ...window.__lab.camera(), distance: 900 }));
   await page.evaluate(() => window.__lab.frame());

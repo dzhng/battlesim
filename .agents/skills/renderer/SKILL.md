@@ -28,7 +28,10 @@ before changing renderer ownership or interfaces.
   path. A per-pass exception is a future visual bug.
 - **No GPU resource without a lifetime owner.** Scene and resource owners
   retain their allocations, rebuilds swap in whole, and repeated
-  resize/rebuild/reset returns to baseline.
+  resize/rebuild/reset returns to baseline. In a browser, dropping a handle
+  frees nothing until garbage collection, which never counts GPU memory: an
+  owner of large allocations (screen-sized targets, atlases, texture arrays)
+  destroys them when it drops.
 - **Pixels prove correctness, not counters.** An optimization is accepted
   only with an interleaved A/B on the real GPU and an image that shows the
   subject still drawn correctly.

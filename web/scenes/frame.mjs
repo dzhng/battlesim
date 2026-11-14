@@ -4,6 +4,7 @@ import { rendererLifecycle } from "./_rendererLifecycle.mjs";
 // crate and soldiers proxies; picking reads the simulation's boxes.
 import { writeFile } from "node:fs/promises";
 import { decode, pixel, writeCrop } from "./_png.mjs";
+import { eyeOf } from "./_cameraClearance.mjs";
 import {
   graphicsProfiles,
   sceneMinimumProfile,
@@ -108,13 +109,32 @@ export async function run(ctx) {
     zoomed > info.camera.distance,
     `${info.camera.distance} → ${zoomed}`,
   );
-  const yaw0 = await page.evaluate(() => window.__lab.camera().yaw);
-  await page.mouse.move(640, 400);
-  await page.mouse.down({ button: "middle" });
-  await page.mouse.move(760, 400, { steps: 4 });
-  await page.mouse.up({ button: "middle" });
-  const yaw1 = await page.evaluate(() => window.__lab.camera().yaw);
-  ctx.check("middle drag orbits", Math.abs(yaw1 - yaw0) > 0.1, `${yaw0} → ${yaw1}`);
+  // Middle drag looks round from where the eye stands, like turning a head:
+  // right looks right, up looks up, and the eye never moves.
+  const middleDrag = async (dx, dy) => {
+    const before = await page.evaluate(() => window.__lab.camera());
+    await page.mouse.move(640, 400);
+    await page.mouse.down({ button: "middle" });
+    await page.mouse.move(640 + dx, 400 + dy, { steps: 4 });
+    await page.mouse.up({ button: "middle" });
+    const after = await page.evaluate(() => window.__lab.camera());
+    const [a, b] = [eyeOf(before), eyeOf(after)];
+    return { before, after, moved: Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]) };
+  };
+  const turn = await middleDrag(120, 0);
+  ctx.check(
+    "middle drag right looks right",
+    turn.before.yaw - turn.after.yaw > 0.1,
+    `yaw ${turn.before.yaw} → ${turn.after.yaw}`,
+  );
+  ctx.check("looking right keeps the eye still", turn.moved < 0.5, `eye moved ${turn.moved} m`);
+  const tilt = await middleDrag(0, -60);
+  ctx.check(
+    "middle drag up looks up",
+    tilt.before.pitch - tilt.after.pitch > 0.05,
+    `pitch ${tilt.before.pitch} → ${tilt.after.pitch}`,
+  );
+  ctx.check("looking up keeps the eye still", tilt.moved < 0.5, `eye moved ${tilt.moved} m`);
   // Held keys (CameraController): D and the arrows pan, Q turns; letting go
   // or losing focus stops them.
   const camera = () => page.evaluate(() => window.__lab.camera());

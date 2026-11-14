@@ -424,7 +424,7 @@ function Rows({
           {query.set && ` of set ${query.set}`}
           {query.category && ` of category ${query.category}`}
           {missing.length > 0 && ` · ${missing.length} without art`}. WASD/arrows pan · Q/E turn ·
-          middle‑drag orbit · wheel zoom
+          middle‑drag look · wheel zoom
         </div>
         <div className="lab-row">
           {[null, 0, 1, 2, 3].map((t) => (
