@@ -476,6 +476,7 @@
     "max_unguided_lifetime_s": 30,
     "min_spread_at_max_range_m": 2.4,
     "infantry_eye_m": 1.6,
+    "vehicle_eye_m": 2.0,
     "infantry_muzzle_m": 1.4,
     "infantry_aim_m": 1,
     "vehicle_aim_height_fraction": 0.75,
@@ -2683,7 +2684,6 @@
                 "roof": 6,
                 "side": 7
               },
-              "eye_m": 2.1,
               "half_extents_m": [
                 2.2,
                 1,
@@ -2857,7 +2857,6 @@
                 "roof": 5,
                 "side": 10
               },
-              "eye_m": 2.5,
               "half_extents_m": [
                 3,
                 1.4,
@@ -2927,7 +2926,6 @@
                 "roof": 40,
                 "side": 100
               },
-              "eye_m": 2.3,
               "half_extents_m": [
                 3.5,
                 1.8,

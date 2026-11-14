@@ -12,32 +12,34 @@ import {
 
 export const gameLight: LightPresentation = presentationSettings.light;
 
-/** A saved replay's resolved look, applied when the URL has no `?preset=`. */
-let matchLighting: string | null = null;
+/** A prepared battle's resolved look and its map's seed, applied when the
+ *  URL has no `?preset=`. */
+let matchLighting: { preset: string; seed: string } | null = null;
 
-/** Record the resolved lighting a saved battle should play under. */
-export function setMatchLighting(name: string | null): void {
-  matchLighting = name;
+/** Record the lighting a prepared battle (live or replayed) plays under. */
+export function setMatchLighting(lighting: { preset: string; seed: string } | null): void {
+  matchLighting = lighting;
 }
 
 /**
  * The battle's light for a lab or match URL.
  * Precedence: `?preset=` (and optional `?sun=`) capture override, then the
- * match setting (`?light=` or a saved replay's resolved look), then Daylight.
+ * match's own look and map seed (`setMatchLighting`), then a lab's `?light=`
+ * and `?seed=`, then Daylight.
  */
 export function gameLightFor(search: string): LightPresentation {
   const params = new URLSearchParams(search);
   const preset = params.get("preset");
   let light: LightPresentation = gameLight;
   let selected: string | null = null;
-  const seed = params.get("seed") ?? "1";
+  const seed = matchLighting?.seed ?? params.get("seed") ?? "1";
   if (preset !== null) {
     light = lightForPreset(preset);
     selected = preset;
   } else {
     const parsed = parseLighting(params.get("light"));
     if (typeof parsed !== "string") throw new Error(parsed.error);
-    const choice = matchLighting ?? parsed;
+    const choice = matchLighting?.preset ?? parsed;
     const resolved = resolveLighting(choice, seed);
     if (resolved !== DEFAULT_LIGHTING) {
       light = lightForPreset(resolved);

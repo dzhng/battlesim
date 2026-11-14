@@ -22,7 +22,6 @@ export const hullType = (
   body: {
     hull: {
       half_extents_m: half,
-      eye_m: 2,
       hp: 1,
       armor: { ...armor, ricochet: armor },
       weight_class: "heavy",

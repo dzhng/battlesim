@@ -993,6 +993,7 @@
     "max_unguided_lifetime_s": 35,
     "min_spread_at_max_range_m": 2.4,
     "infantry_eye_m": 1.6,
+    "vehicle_eye_m": 2.0,
     "infantry_muzzle_m": 1.4,
     "infantry_aim_m": 1.0,
     "vehicle_aim_height_fraction": 0.75,

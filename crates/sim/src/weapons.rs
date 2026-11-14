@@ -955,11 +955,7 @@ fn return_fire_threat(
         + v3(
             0.0,
             0.0,
-            ctx.rules
-                .catalog
-                .get(kind)
-                .hull()
-                .map_or(ctx.rules.physics.infantry_eye_m, |h| h.eye_m),
+            ctx.rules.physics.eye_m(ctx.rules.catalog.get(kind)),
         );
     let carrier = if matches!(
         ctx.rules.catalog.get(kind).mobility,

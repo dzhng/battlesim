@@ -120,6 +120,7 @@ fn recorded_indicators_play_back_frame_by_frame_unless_left_out() {
         &library(),
         Path::new(native_client::capture::ROOT),
         clean,
+        None,
     )
     .unwrap();
     assert!(replay.indicators.is_none(), "--no-indicators draws none");

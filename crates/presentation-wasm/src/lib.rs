@@ -5,6 +5,7 @@ mod fielded;
 mod fog;
 mod ground;
 mod lab;
+mod light;
 mod shadow;
 mod showcase;
 mod world;

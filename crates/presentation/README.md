@@ -97,6 +97,13 @@ calls the same reader for workbench drafts.
   policies before becoming canonical frame records.
 - [The light](src/light.rs): the fixture's light resolved into the sky's,
   bloom's and grade's canonical uniform records for the shared renderer.
+  A match draws one named look ([settings](src/settings.rs)): `day` is the
+  authored `light`, and `light_presets` adds whole light blocks, each
+  labelled in `light_preset_labels`; `day` and `random` (the lobby's draw)
+  are reserved names. A look that lists `sun_azimuths` takes its sun from
+  them by the map seed (`with_map_seed`), so every client and a replay of
+  the match agree; the page asks the same rule through `presentation-wasm`
+  rather than restating it. None of it enters the simulation.
 - [The wind](src/wind.rs): the biome's one wind as the `Wind` record, which
   every camera carries on its clock (`Camera.wind`, the sun's cascades
   included), so grass, water and trees move in it in every pass, and which

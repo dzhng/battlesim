@@ -185,27 +185,21 @@ The closing 5v5 run (three AI-versus-AI matches under the default safety cap of 
 
 ## Match lighting
 
-The lobby Lighting control is a match setting, not a per-client preference: every
-player in a match, and a later replay of it, draws the same look.
+The lobby's Lighting control is a match setting, not a per-client preference:
+every player in a match, and a later replay of it, draws the same look. The
+looks and their seed rules belong to the presentation crate
+([the light](../../../crates/presentation/README.md)); the lobby offers Random
+and each of them, defaulting to the document's `light_preset`.
 
-- Options come from `fixtures/presentation.json` `light_presets` (plus `day`,
-  the authored `light` object). Display names come from `light_preset_labels`
-  (`day` is **Daylight**). Adding a look such as dusk or overcast, with a
-  label, makes it appear in the lobby automatically. **Random** is a lobby
-  choice, not a fixture look.
-- **Default: Daylight.** That is the shipped mid-morning look. Golden hour and
-  Random stay one click away; a new match should not silently change every
-  existing battle's light.
-- Random resolves deterministically as `mapSeed % n` over the sorted preset
-  names, so every client agrees. The map seed is used because the lobby's
-  battle seed is a fixed default unless set, and Reroll already changes the
-  map seed. The **resolved** name is stored on the saved replay
-  (`ReplayFile.light_preset`) so adding a look later cannot restage old
-  matches. The lobby link keeps the chosen value (`light=random` or a look).
-- This is presentation only. It is not a `PrepareBattleRequest` field and does
-  not enter the sim or its hashes.
-- Capture overrides still win: `?preset=` / `--light-preset` /
-  `ARMATA_LIGHT_PRESET`, then the match setting, then Daylight.
+- Random resolves by the map seed over the sorted look names, so every client
+  agrees without a message; the map seed, because Reroll changes it while the
+  battle seed is usually the default.
+- A saved replay stores the resolved look (`ReplayFile.light_preset`), so a
+  look added later cannot restage it, and plays under its map's seed, so a
+  seed-picked sun falls on the side the match had.
+- It is not a `PrepareBattleRequest` field and never enters the simulation.
+- Capture overrides win: `?preset=`, `--light-preset` or `ARMATA_LIGHT_PRESET`,
+  then the match's look.
 
 ## Out of scope and open
 

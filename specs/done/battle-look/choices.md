@@ -3933,6 +3933,8 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 **Verdict.** sound.
 
+**Later.** Matches now pick one of several such blocks by name (`light_presets`, the [team skirmish](../team-skirmish/README.md#match-lighting)'s Lighting setting); each is still a whole block in the fixture, never a switch in code.
+
 ### Fog probes ground at target height and faces just outside themselves
 
 ***sound** · confidence **high** · How fog looks · from Spike 02*

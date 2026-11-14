@@ -141,6 +141,7 @@ fn recorded_cards_play_back_frame_by_frame_unless_left_out() {
             &library(),
             Path::new(native_client::capture::ROOT),
             playback,
+            None,
         )
         .unwrap()
     };

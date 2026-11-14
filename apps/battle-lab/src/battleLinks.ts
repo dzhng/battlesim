@@ -7,8 +7,10 @@
 //   /battle?replay=saved                                 the saved replay of either
 // A battle must name its players: each side's ordered controller codes and
 // its faction. The map type, size, map seed and battle seed may be left out,
-// and then default (the size to the smallest that fits the players); `&region=<family>` is optional, and without it the seed
-// draws the region. A wrong value, or a parameter the battle does not read
+// and then default (the size to the smallest that fits the players);
+// `&region=<family>` is optional, and without it the seed draws the region;
+// `&light=<look>` (a fixture look or `random`) picks the match's lighting,
+// and without it the battle plays the default look. A wrong value, or a parameter the battle does not read
 // (an old link's `faction` or `enemy`), is refused by name, never ignored.
 import { DEFAULT_BATTLE_SEED } from "@apps/battle-lab/src/lobby/defaults";
 import { DEFAULT_LIGHTING, parseLighting } from "./lobby/lighting";

@@ -1,6 +1,7 @@
 // Match lighting: a lobby choice of Random or a fixture look, resolved
 // to one named preset so every client and a later replay draw the same sky.
 // Presentation only — nothing here enters the sim or its hashes.
+import { light_sun_azimuth, map_seed_index } from "@wasm/renderer_browser";
 import { lightPreset, lightPresetLabels, lightPresets } from "@web/presentationSettings";
 
 /** The lobby's Random choice, not a fixture look. */
@@ -55,32 +56,17 @@ export function resolveLighting(choice: string, mapSeed: string): string {
     if (!names.includes(choice)) throw new Error(`unknown lighting: ${choice}`);
     return choice;
   }
-  const index = Number(BigInt(mapSeed) % BigInt(names.length));
-  const resolved = names[index];
-  if (resolved === undefined) throw new Error("no lighting presets");
-  return resolved;
+  return names[map_seed_index(mapSeed, names.length)];
 }
 
 /**
- * Pick a candidate sun azimuth with the map seed: the values sorted
- * numerically, then `mapSeed % n`, matching `presentation::light::pick_sun_azimuth`.
- * Presentation only — nothing here enters the sim or its hashes. The side
- * is derivable from the seed and the fixture list, so `ReplayFile.light_preset`
- * does not need to store it.
+ * A look's light for the map seed: one of its `sun_azimuths`, picked by
+ * `presentation::light`'s rule (the native client's too), else as authored.
+ * Presentation only; nothing here enters the sim or its hashes.
  */
-export function pickSunAzimuth(azimuths: readonly number[], mapSeed: string): number {
-  if (azimuths.length === 0) throw new Error("no sun azimuths");
-  const sorted = [...azimuths].sort((a, b) => a - b);
-  const index = Number(BigInt(mapSeed) % BigInt(sorted.length));
-  const picked = sorted[index];
-  if (picked === undefined) throw new Error("no sun azimuths");
-  return picked;
-}
-
-/** Apply a seed-picked azimuth when the look lists candidates; day is a no-op. */
 export function lightWithMapSeed<
   T extends { sun_azimuth: number; sun_azimuths?: readonly number[] },
 >(light: T, mapSeed: string): T {
-  if (light.sun_azimuths === undefined || light.sun_azimuths.length === 0) return light;
-  return { ...light, sun_azimuth: pickSunAzimuth(light.sun_azimuths, mapSeed) };
+  if (!light.sun_azimuths?.length) return light;
+  return { ...light, sun_azimuth: light_sun_azimuth(JSON.stringify(light), mapSeed) };
 }

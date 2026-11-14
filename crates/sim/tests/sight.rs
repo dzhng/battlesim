@@ -237,7 +237,7 @@ fn a_garrison_sees_from_one_eye_per_facade_it_holds() {
         vec![[
             tank.position[0],
             tank.position[1],
-            tank.position[2] + common::hull("test_tank").eye_m
+            tank.position[2] + eye("vehicle_eye_m")
         ]]
     );
     let ack = b.accept(contract::command::CommandEnvelope {

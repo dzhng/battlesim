@@ -1,5 +1,14 @@
 // Player gestures through the shared session and real worker authority.
-import { lab, obs, advance, until, openBattle, snapshot, presented } from "./_lab.mjs";
+import {
+  lab,
+  obs,
+  advance,
+  until,
+  openBattle,
+  snapshot,
+  presented,
+  bareGroundCss,
+} from "./_lab.mjs";
 import { decode, writeCrop } from "./_png.mjs";
 import { visuals } from "./_units.mjs";
 
@@ -488,8 +497,18 @@ export async function battleCursor(ctx) {
       }),
     tank.position.slice(0, 2),
   );
-  const goal = [tank.position[0] + 24, tank.position[1] + 15, 0];
-  const p = await project(page, goal);
+  // Found afresh as cards open: a card under the pointer shows the arrow.
+  const near = [
+    [24, 15],
+    [-24, 15],
+    [24, -15],
+    [-24, -15],
+    [36, 0],
+    [0, 36],
+    [0, -36],
+  ];
+  const bareNear = () => bareGroundCss(page, tank.position, near);
+  const p = await bareNear();
   await page.mouse.move(...p);
   await expects(page, "default");
   await capture(ctx, page, "default", p);
@@ -504,9 +523,10 @@ export async function battleCursor(ctx) {
     ["Reverse", "reverse_move"],
   ]) {
     await page.getByRole("button", { name: new RegExp(`^${label} `) }).click();
-    await page.mouse.move(...p);
+    const at = await bareNear();
+    await page.mouse.move(...at);
     await expects(page, expected);
-    await capture(ctx, page, expected, p);
+    await capture(ctx, page, expected, at);
   }
   await page.keyboard.press("Escape");
   // Automatic reverse uses the same existing vehicle command resolver.

@@ -7,14 +7,14 @@ from pathlib import Path
 from catalog_frames import disabled_variant, family_variants, requested_variant, roster_variant
 
 
-def unit(type_id, appearance, half, eye, mounts):
+def unit(type_id, appearance, half, mounts):
     return dict(
         id=type_id,
         appearance=appearance,
         name=type_id.title(),
         faction="us",
         roster=dict(variant="Mk " + type_id[-1]),
-        body=dict(hull=dict(half_extents_m=half, eye_m=eye)),
+        body=dict(hull=dict(half_extents_m=half)),
         mounts=mounts,
     )
 
@@ -32,9 +32,9 @@ class CatalogFramesTest(unittest.TestCase):
         (self.repo / "fixtures").mkdir()
         (self.repo / "assets").mkdir()
         self.units = [
-            unit("tank_2", "look_2", [4.0, 1.8, 1.2], 2.3, [GUN, ROOF]),
-            unit("tank_1", "look_1", [3.5, 1.6, 1.1], 2.1, [GUN]),
-            unit("truck_1", "truck_look", [5.2, 1.2, 1.5], 2.8, []),
+            unit("tank_2", "look_2", [4.0, 1.8, 1.2], [GUN, ROOF]),
+            unit("tank_1", "look_1", [3.5, 1.6, 1.1], [GUN]),
+            unit("truck_1", "truck_look", [5.2, 1.2, 1.5], []),
         ]
         self.appearances = {
             "look_2": dict(unit="vehicle", source="assets/source/roster/tank/look_2.glb",
@@ -61,7 +61,6 @@ class CatalogFramesTest(unittest.TestCase):
         frame = variant["frame"]
         self.assertEqual(frame["half_extents_m"], [4.0, 1.8, 1.2])
         self.assertEqual(frame["body_dimensions_m"], [8.0, 3.6, 2.4])
-        self.assertEqual(frame["eye_m"], 2.3)
         self.assertEqual(frame["mounts"], [
             dict(name="cannon", role="gun", on=None, pivot_m=[0.0, 0.0, 1.5], muzzle_m=[5.0, 0.0, 0.4]),
             dict(name="HMG", role="hmg", on="cannon", pivot_m=[-0.2, 0.5, 2.3], muzzle_m=[1.4, 0.0, 0.3]),

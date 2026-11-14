@@ -8,6 +8,7 @@ import { menuPage } from "@apps/battle-lab/src/menu/pages";
 import { cleanup, fireEvent } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { askedBattle, battleHref } from "@apps/battle-lab/src/battleLinks";
+import { DEFAULT_LIGHTING } from "@apps/battle-lab/src/lobby/lighting";
 import { skirmishPlayers } from "@apps/battle-lab/src/skirmishSetup";
 import type { Faction } from "@packages/scene-assets/src/units";
 import { admitBattle } from "../src/battle/prepare/admission";
@@ -67,6 +68,7 @@ test("a battle address round-trips the menu's choice, and names a parameter it g
     ],
     map,
     battleSeed: expect.any(Number),
+    lighting: DEFAULT_LIGHTING,
   });
   // A chosen region rides along; without one the address names none.
   const paris = { ...map, region: "paris" };

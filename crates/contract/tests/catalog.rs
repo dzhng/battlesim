@@ -327,7 +327,7 @@ fn a_structurally_broken_type_fails_at_load_naming_it() {
     let hollow = json!({ "body": { "hull": { "hp": 0 } } });
     assert_eq!(
         tank(hollow),
-        rule("a hull needs finite positive extents, eye height and hp")
+        rule("a hull needs finite positive extents and hp")
     );
 }
 

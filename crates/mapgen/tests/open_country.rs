@@ -824,7 +824,7 @@ fn real_ground_sight_is_cut_between_cells_at_edges_and_inside_a_town() {
         let eye = sim::math::v3(
             at[0],
             at[1],
-            prepared.world.height_at(at[0], at[1]).unwrap() + jeep.hull().unwrap().eye_m,
+            prepared.world.height_at(at[0], at[1]).unwrap() + rules.physics.eye_m(jeep),
         );
         let mut field = grid.field();
         sim::visibility::sweep(

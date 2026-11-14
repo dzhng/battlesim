@@ -67,11 +67,7 @@ pub struct Sighting {
 }
 
 pub fn eye(unit: &Unit, rules: &Rules) -> V3 {
-    let h = match unit.unit_type(rules).hull() {
-        Some(hull) => hull.eye_m,
-        None => rules.physics.infantry_eye_m,
-    };
-    unit.position + crate::math::v3(0.0, 0.0, h)
+    unit.position + crate::math::v3(0.0, 0.0, rules.physics.eye_m(unit.unit_type(rules)))
 }
 
 /// Where a unit's sight starts: its eye, or in a building one eye per

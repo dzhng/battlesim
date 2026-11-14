@@ -87,7 +87,7 @@ than the display (see the [capture README](../../apps/battle-lab/src/capture/REA
 A clip frame draws the indicators and cards of the record whose camera it
 uses. `--no-indicators`, `--no-cards` and `--no-fog` leave out a layer the
 run drew, each independently. `--light-preset <name>` selects a fixture lighting
-look (`day`, `golden_hour`) in place of the document's `light_preset`. The
+look (`day` or a `light_presets` name) in place of the document's `light_preset`. The
 `ARMATA_LIGHT_PRESET` environment variable does the same when the flag is absent.
 
 The window opens borderless and off-screen by default, so nothing appears on

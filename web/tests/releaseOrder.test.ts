@@ -24,8 +24,10 @@ afterEach(() => {
 });
 
 /** A clone of a scratch remote with main and staging on one commit, Git LFS's
- *  stock pre-push installed the way `git lfs install` leaves it, and a
- *  stand-in `git-lfs` on the path that records what each push handed it. */
+ *  stock pre-push installed the way `git lfs install` leaves it, a stand-in
+ *  `git-lfs` on the path that records what each push handed it, and a
+ *  stand-in Vercel (`bun x vercel@…`) serving `vercel.json`'s deployments and
+ *  recording each promotion, so the test never reaches the real project. */
 function fixture() {
   const root = mkdtempSync(join(tmpdir(), "git-hooks-"));
   roots.push(root);
@@ -37,6 +39,23 @@ function fixture() {
     `#!/bin/sh\n[ "$1" = pre-push ] || exit 0\necho "push $2" >> "${lfsLog}"\ncat >> "${lfsLog}"\n`,
   );
   chmodSync(join(bin, "git-lfs"), 0o755);
+  const vercel = join(root, "vercel.json");
+  const realBun = spawnSync("which", ["bun"], { encoding: "utf8" }).stdout.trim();
+  writeFileSync(
+    join(root, "vercel.mjs"),
+    `import { readFileSync, writeFileSync } from "node:fs";
+const [command, target] = process.argv.slice(2);
+const state = JSON.parse(readFileSync(${JSON.stringify(vercel)}, "utf8"));
+if (command === "list") console.log(JSON.stringify({ deployments: state.deployments }));
+else if (command === "inspect" && target === "www.armata.game") console.log(JSON.stringify({ url: state.served }));
+else if (command === "promote") writeFileSync(${JSON.stringify(vercel)}, JSON.stringify({ ...state, served: target, promoted: [...state.promoted, target] }));
+`,
+  );
+  writeFileSync(
+    join(bin, "bun"),
+    `#!/bin/sh\ncase "$2" in vercel@*) [ "$1" = x ] && shift 2 && exec node "${join(root, "vercel.mjs")}" "$@";; esac\nexec "${realBun}" "$@"\n`,
+  );
+  chmodSync(join(bin, "bun"), 0o755);
   const env = {
     ...process.env,
     PATH: `${bin}:${process.env.PATH}`,
@@ -69,11 +88,26 @@ function fixture() {
   run(work, "git", "commit", "-q", "--allow-empty", "-m", "first");
   run(work, "git", "push", "-q", "origin", "main", "main:staging");
   const tip = (ref: string) => run(remote, "git", "rev-parse", ref).output.trim();
-  return { work, lfsLog, run, tip };
+  /** Vercel's staged production builds, one per staging commit, and the one served. */
+  const deploy = (served: string, shas: string[]) =>
+    writeFileSync(
+      vercel,
+      JSON.stringify({
+        served: `${served}.vercel.app`,
+        promoted: [],
+        deployments: shas.map((sha) => ({
+          url: `${sha}.vercel.app`,
+          state: "READY",
+          meta: { githubCommitSha: sha, githubCommitRef: "staging" },
+        })),
+      }),
+    );
+  const promoted = () => JSON.parse(readFileSync(vercel, "utf8")).promoted;
+  return { work, lfsLog, run, tip, deploy, promoted };
 }
 
 test("main is refused until staging holds it, promote fast-forwards it there, staging is refused behind main, and Git LFS still sees every allowed push", () => {
-  const { work, lfsLog, run, tip } = fixture();
+  const { work, lfsLog, run, tip, deploy, promoted } = fixture();
   expect(run(work, "node", "tools/install-git-hooks.mjs").status).toBe(0);
   writeFileSync(lfsLog, "");
 
@@ -87,17 +121,25 @@ test("main is refused until staging holds it, promote fast-forwards it there, st
   expect(tip("main")).toBe(before);
   expect(readFileSync(lfsLog, "utf8")).toBe("");
 
-  // Staging first, then the promotion: both land, the checkout's own work is
-  // untouched, and LFS saw each push's refs.
+  // Staging first, then the promotion: a first run only lists what would
+  // ship; with --yes Vercel promotes staging's own build, main records it,
+  // the checkout's own work is untouched, and LFS saw each push's refs.
   expect(run(work, "git", "push", "origin", "main:staging").status).toBe(0);
+  deploy(before, [before, second]);
   writeFileSync(join(work, "work-in-progress.txt"), "keep me\n");
   const status = run(work, "git", "status", "--porcelain").output;
-  const promoted = run(work, "bun", "tools/promote-main.mjs");
-  expect(promoted.status, promoted.output).toBe(0);
+  const listed = run(work, "bun", "tools/promote-main.mjs");
+  expect(listed.status, listed.output).toBe(0);
+  expect(listed.output).toMatch(/rerun with --yes/);
+  expect(tip("main")).toBe(before);
+  expect(promoted()).toEqual([]);
+  const shipped = run(work, "bun", "tools/promote-main.mjs", "--yes");
+  expect(shipped.status, shipped.output).toBe(0);
+  expect(promoted()).toEqual([`${second}.vercel.app`]);
   expect(tip("staging")).toBe(second);
   expect(tip("main")).toBe(second);
   expect(run(work, "git", "status", "--porcelain").output).toBe(status);
-  expect(run(work, "bun", "tools/promote-main.mjs").output).toMatch(/already equals staging/);
+  expect(run(work, "bun", "tools/promote-main.mjs").output).toMatch(/already serves staging/);
   const lfs = readFileSync(lfsLog, "utf8");
   expect(lfs).toMatch(new RegExp(`push origin\\n\\S+ ${second} refs/heads/staging`));
   expect(lfs).toMatch(new RegExp(`push origin\\n\\S+ ${second} refs/heads/main`));

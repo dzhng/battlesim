@@ -194,8 +194,10 @@ function PreparedBattleView({
   const marks = useRef<StartupMarks>({});
 
   useEffect(() => {
-    const lighting = resolvedMatchLighting(replay, window.location.search, request);
-    setMatchLighting(replay ? lighting : null);
+    setMatchLighting({
+      preset: resolvedMatchLighting(replay, window.location.search, request),
+      seed: mapSeedOf(request),
+    });
     return () => setMatchLighting(null);
   }, [replay, request]);
 

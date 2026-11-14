@@ -1,11 +1,26 @@
 // WGSL owner: fog.
 
 // @block fog_fogFoliage
+// The canopy at `q`, blended between the four nearest cell centres: as an eye
+// moves, a ray's depth through a crown then changes smoothly instead of a
+// whole cell at a time, so forest edges glide rather than flicker.
 fn fogFoliage(q: vec2f) -> vec2f {
   let P = fogParams;
-  if (P.foliageNx == 0u || q.x < 0.0 || q.y < 0.0) { return vec2f(0.0); }
-  let i = u32(q.x / P.foliageCellM);
-  let j = u32(q.y / P.foliageCellM);
+  if (P.foliageNx == 0u) { return vec2f(0.0); }
+  let c = q / P.foliageCellM - 0.5;
+  let base = floor(c);
+  let f = c - base;
+  let i = vec2i(base);
+  let a = mix(fogFoliageCell(i), fogFoliageCell(i + vec2i(1, 0)), f.x);
+  let b = mix(fogFoliageCell(i + vec2i(0, 1)), fogFoliageCell(i + vec2i(1, 1)), f.x);
+  return mix(a, b, f.y);
+}
+
+fn fogFoliageCell(cell: vec2i) -> vec2f {
+  let P = fogParams;
+  if (cell.x < 0 || cell.y < 0) { return vec2f(0.0); }
+  let i = u32(cell.x);
+  let j = u32(cell.y);
   if (i >= P.foliageNx || j >= P.foliageNy) { return vec2f(0.0); }
   let key=j*P.foliageNx+i;
   var lo=0u;

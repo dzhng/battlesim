@@ -18,7 +18,6 @@ export interface FaceValues {
 
 export interface Hull {
   half_extents_m: Vec3;
-  eye_m: number;
   hp: number;
   armor: FaceValues & { ricochet: FaceValues };
   weight_class: WeightClass;

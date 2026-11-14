@@ -502,7 +502,7 @@ export function LabViewport({
         syncSize();
         const high = plates ? undefined : highAirCanvas(canvas, signal);
         let clock = 0;
-        // A route's own light, else the fixture's (a lab URL's `?sun=` sets it lower).
+        // A route's own light, else the game's for this URL (`gameLightFor`).
         const light = () => lightRef.current ?? gameLightFor(window.location.search);
         /** Presentation for a scene without a battle. */
         let own: ScenePresentation | null = null;

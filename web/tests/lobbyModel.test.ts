@@ -17,6 +17,7 @@ import {
   type LobbyState,
 } from "../../apps/battle-lab/src/lobby/model";
 import { askedBattle } from "../../apps/battle-lab/src/battleLinks";
+import { DEFAULT_LIGHTING, lightingPresetNames } from "../../apps/battle-lab/src/lobby/lighting";
 import { skirmishRequest } from "../../apps/battle-lab/src/skirmishSetup";
 import { loadWasm } from "../src/battle/sim/module";
 
@@ -141,23 +142,24 @@ describe("lobby model", () => {
       players: state.players,
       map: { type: state.map.type, size: state.map.size, seed: "42" },
       battleSeed: state.battleSeed,
-      lighting: "day",
+      lighting: DEFAULT_LIGHTING,
     });
   });
 
-  test("the lighting choice travels on the battle link and defaults to Daylight", () => {
+  test("the lighting choice travels on the battle link and defaults to the fixture's look", () => {
     const state = reroll(preset("1v1"), "42");
-    expect(state.lighting).toBe("day");
+    expect(state.lighting).toBe(DEFAULT_LIGHTING);
     expect(toUrl(state)).not.toMatch(/light=/);
-    const golden = setLighting(state, "golden_hour");
-    expect(toUrl(golden)).toMatch(/light=golden_hour/);
+    const [other] = lightingPresetNames().filter((name) => name !== DEFAULT_LIGHTING);
+    const golden = setLighting(state, other);
+    expect(toUrl(golden)).toMatch(new RegExp(`light=${other}`));
     const asked = askedBattle(toUrl(golden));
     expect(asked).toEqual({
       kind: "generated",
       players: state.players,
       map: { type: state.map.type, size: state.map.size, seed: "42" },
       battleSeed: state.battleSeed,
-      lighting: "golden_hour",
+      lighting: other,
     });
     const random = setLighting(state, "random");
     expect(askedBattle(toUrl(random))).toMatchObject({ lighting: "random" });

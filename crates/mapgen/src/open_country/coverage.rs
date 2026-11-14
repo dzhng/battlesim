@@ -267,7 +267,7 @@ impl<'a> Coverage<'a> {
         let range = physics.circular_range_m()?;
         let eye = physics
             .circular_ground_observers()
-            .map(|u| u.hull().map_or(physics.infantry_eye_m, |h| h.eye_m))
+            .map(|u| u.eye_m(physics.infantry_eye_m, physics.vehicle_eye_m))
             .fold(physics.fog_target_height_m, f64::max);
         let high = map.bridges.iter().map(|b| b.deck_z).fold(0., f64::max);
         // Generated land has no relief. Each river and swamp can only lower
@@ -757,7 +757,7 @@ mod tests {
                 for phase in [0., 0.5] {
                     let angle = (r as f64 + phase) * delta;
                     let at = sub(c.points[0], scale(direction(angle), distance));
-                    let eye = sim::math::v3(at[0], at[1], jeep.hull().unwrap().eye_m);
+                    let eye = sim::math::v3(at[0], at[1], rules.physics.eye_m(jeep));
                     let mut field = grid.field();
                     sim::visibility::sweep(
                         &world,
