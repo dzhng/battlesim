@@ -18,7 +18,6 @@ import { BattleView, type BattleLoadStage } from "../BattleView";
 import { LoadingScreen, type LoadingFailure, type LoadingStage } from "../LoadingScreen";
 import {
   useSavedReplay,
-  REPLAY_ROUTE,
   ReplayImport,
   ReplayLoading,
   saveReplay,
@@ -269,26 +268,12 @@ function PreparedBattleView({
         if (loaded === "world") setStage("renderer");
       }}
       status={({ sim }) => <BattleClock tick={sim.observation?.tick ?? 0} />}
-      menu={(session) => (
+      menu={() => (
         <>
           <div className="hud-menu-note" data-testid="status">
             {subject}
             {replay && " · saved battle"}
           </div>
-          {!replay && (
-            <button
-              type="button"
-              className="hud-menu-item"
-              onClick={() => void exportReplay(session)}
-            >
-              Save replay
-            </button>
-          )}
-          {!replay && (
-            <Link className="hud-menu-item" to={REPLAY_ROUTE}>
-              Watch saved replay
-            </Link>
-          )}
           {replay && onLoadReplay && <ReplayImport onLoad={onLoadReplay} />}
         </>
       )}

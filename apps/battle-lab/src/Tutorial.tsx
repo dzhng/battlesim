@@ -513,7 +513,7 @@ export function Tutorial() {
       <Section title="Pausing">
         <p>
           <kbd>Esc</kbd> (or the menu button at the top) pauses the battle. From the pause menu you
-          can resume, restart, save a replay to watch later, change the sound, or return here.
+          can resume, restart, change the sound, or return here.
         </p>
       </Section>
     </article>

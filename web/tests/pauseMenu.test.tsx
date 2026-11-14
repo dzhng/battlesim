@@ -10,9 +10,20 @@ import type { Order } from "../src/battle/sim/protocol";
 import type { SimClient } from "../src/battle/sim/client";
 import { WithTestCatalog } from "./catalog";
 
-test("the paused battle offers a return to the game's main menu", () => {
+test("leaving for the main menu asks first, and staying keeps the battle", async () => {
   const view = render(<PauseMenu onClose={() => {}} />);
-  expect(view.getByRole("link", { name: "Main menu" }).getAttribute("href")).toBe("/");
+  // The first press only asks; the menu's other items step aside.
+  await act(async () => view.getByRole("button", { name: "Main menu" }).click());
+  expect(view.getByRole("dialog", { name: "Leave the battle?" })).toBeTruthy();
+  expect(view.queryByRole("button", { name: "Resume" })).toBeNull();
+  await act(async () => view.getByRole("button", { name: "Stay" }).click());
+  expect(view.getByRole("button", { name: "Resume" })).toBeTruthy();
+  // Escape backs out of the question, not out of the pause menu.
+  await act(async () => view.getByRole("button", { name: "Main menu" }).click());
+  fireEvent.keyDown(window, { code: "Escape", cancelable: true });
+  expect(view.getByRole("button", { name: "Resume" })).toBeTruthy();
+  await act(async () => view.getByRole("button", { name: "Main menu" }).click());
+  expect(view.getByRole("link", { name: "Leave battle" }).getAttribute("href")).toBe("/");
   view.unmount();
 });
 
