@@ -5,6 +5,8 @@ use presentation::{
     world::{Corners, Detail, WorldInput},
 };
 use serde_json::json;
+#[path = "common/ground.rs"]
+mod ground;
 fn detail() -> Detail {
     Detail {
         lod_px: [80.0, 40.0, 20.0],
@@ -256,57 +258,15 @@ fn scenery_admitted_after_world_and_tooling_art_stays_canonical_through_replacem
 }
 
 fn scenery_replacement(late: bool) {
-    use presentation::static_world::ground::{biome::Biome, tables::Grid, Source};
-    let game: serde_json::Value =
-        serde_json::from_str(include_str!("../../../fixtures/presentation.json")).unwrap();
-    let biome = Biome::load(include_str!("../../../fixtures/biomes/summer.json"), None).unwrap();
-    let tree_name = biome.trees.species[0].appearance.clone();
-    let mut p = Presentation::new(None, 30.0).unwrap();
-    p.set_ground(
-        Source {
-            map: [0.0, 0.0, 64.0, 64.0],
-            playable: [0.0, 0.0, 64.0, 64.0],
-            grid: Grid {
-                nx: 17,
-                ny: 17,
-                spacing: 4.0,
-                page_size: 16,
-                ..Default::default()
-            },
-            ..Default::default()
-        },
-        biome,
-        presentation::settings::PresentationSettings::from_value(&game)
-            .unwrap()
-            .tuning(),
+    let biome = presentation::static_world::ground::biome::Biome::load(
+        include_str!("../../../fixtures/biomes/summer.json"),
+        None,
     )
     .unwrap();
-    let mesh = |radius: f32, height: f32| {
-        [
-            (radius, 0.0, 0.0),
-            (-radius, 0.0, 0.0),
-            (radius, 0.0, 1.0),
-            (-radius, 0.0, 1.0),
-            (radius * 2.0, 0.0, height),
-            (-radius * 2.0, 0.0, height),
-        ]
-        .into_iter()
-        .flat_map(|(x, y, z)| {
-            [
-                x,
-                y,
-                z,
-                0.0,
-                0.0,
-                1.0,
-                0.2,
-                0.3,
-                0.1,
-                f32::from(z == height),
-            ]
-        })
-        .collect::<Vec<_>>()
-    };
+    let tree_name = biome.trees.species[0].appearance.clone();
+    let mut p = Presentation::new(None, 30.0).unwrap();
+    ground::set_summer_ground(&mut p);
+    let mesh = ground::scenery_mesh;
     let count = p.ground().unwrap().scenery_kinds().len();
     let original = mesh(0.25, 4.0);
     let original_refs = vec![original.as_slice(); count];
