@@ -116,8 +116,22 @@ fn highPlaneShader(uv: vec2f) -> vec4f {
 
 // @block post_highpass
 fn highpass(uv: vec2f) -> vec4f {
-  let c = textureSample(source,linearSampler,uv);
-  return mix(vec4f(0),c,smoothstep(bloom.threshold,bloom.knee,dot(c.rgb,LUMA)));
+  // Karis-weighted 4-tap on the half-res first downsample, then a luma cap, so a
+  // point specular cannot bloom into a white sparkle while broad facade glow stays.
+  let texel = 1.0 / vec2f(textureDimensions(source));
+  var acc = vec3f(0);
+  var wsum = 0.0;
+  for (var i = 0; i < 4; i++) {
+    let o = vec2f(select(-0.5, 0.5, (i & 1) == 1), select(-0.5, 0.5, i >= 2));
+    let s = textureSample(source, linearSampler, uv + o * texel).rgb;
+    let w = 1.0 / (1.0 + dot(s, LUMA));
+    acc += s * w;
+    wsum += w;
+  }
+  var c = acc / max(wsum, 1e-5);
+  let luma = max(dot(c, LUMA), 1e-5);
+  c *= min(1.0, 3.0 / luma);
+  return mix(vec4f(0), vec4f(c, 1), smoothstep(bloom.threshold, bloom.knee, dot(c, LUMA)));
 }
 
 // @block post_level0
