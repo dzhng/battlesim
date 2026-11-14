@@ -15,6 +15,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type KeyboardEvent,
   type ReactNode,
 } from "react";
@@ -195,12 +196,14 @@ export function Lobby({ asked }: { asked: AskedLobby }) {
         />
         <Choice
           label="region"
+          folds
           options={[RANDOM, ...REGIONS]}
           value={lobby.map.region ?? RANDOM}
           onChange={(region) => update(setRegion(lobby, region === RANDOM ? undefined : region))}
         />
         <Choice
           label="lighting"
+          folds
           options={lightingChoices()}
           value={lobby.lighting}
           onChange={(lighting) => update(setLighting(lobby, lighting))}
@@ -345,6 +348,7 @@ function Pick<T extends string>({
   options,
   value,
   onChange,
+  say = spoken,
   children,
 }: {
   label: string;
@@ -353,6 +357,7 @@ function Pick<T extends string>({
   options: readonly T[];
   value: T;
   onChange: (value: T) => void;
+  say?: (option: T) => string;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -395,7 +400,7 @@ function Pick<T extends string>({
                   if (option !== value) onChange(option);
                 }}
               >
-                {spoken(option)}
+                {say(option)}
               </button>
             </li>
           ))}
@@ -405,7 +410,19 @@ function Pick<T extends string>({
   );
 }
 
-/** One of a few named options, side by side. An option can be closed. */
+/** Windows narrower than this fold the strip's longest choices into
+ *  pickers, so the strip stays one row down to the smallest window the game
+ *  supports (1280 wide: web/README.md). */
+const FOLDED_STRIP = "(max-width: 1499px)";
+const narrow = () => globalThis.matchMedia?.(FOLDED_STRIP).matches ?? false;
+const onResize = (change: () => void) => {
+  const query = globalThis.matchMedia?.(FOLDED_STRIP);
+  query?.addEventListener("change", change);
+  return () => query?.removeEventListener("change", change);
+};
+
+/** One of a few named options, side by side. An option can be closed. One
+ *  that `folds` is a picker of its options in a narrow window. */
 function Choice<T extends string>({
   label,
   options,
@@ -413,6 +430,7 @@ function Choice<T extends string>({
   onChange,
   closed = () => false,
   say = spoken,
+  folds = false,
 }: {
   label: string;
   options: readonly T[];
@@ -420,27 +438,43 @@ function Choice<T extends string>({
   onChange: (value: T) => void;
   closed?: (option: T) => boolean;
   say?: (option: T) => string;
+  folds?: boolean;
 }) {
+  const folded = useSyncExternalStore(onResize, narrow) && folds && value !== null;
   return (
     <div className="lobby-choice">
       <span className="lobby-label" id={`menu-${label}`}>
         {label}
       </span>
-      <div role="radiogroup" aria-labelledby={`menu-${label}`} className="lobby-options">
-        {options.map((option) => (
-          <button
-            key={option}
-            type="button"
-            role="radio"
-            aria-checked={option === value}
-            disabled={closed(option)}
-            data-testid={`menu-${label}-${option}`}
-            onClick={() => option !== value && onChange(option)}
-          >
-            {say(option)}
-          </button>
-        ))}
-      </div>
+      {folded ? (
+        <Pick
+          label={label}
+          testId={`menu-${label}`}
+          className="lobby-folded"
+          options={options.filter((option) => !closed(option))}
+          value={value}
+          onChange={onChange}
+          say={say}
+        >
+          {say(value)}
+        </Pick>
+      ) : (
+        <div role="radiogroup" aria-labelledby={`menu-${label}`} className="lobby-options">
+          {options.map((option) => (
+            <button
+              key={option}
+              type="button"
+              role="radio"
+              aria-checked={option === value}
+              disabled={closed(option)}
+              data-testid={`menu-${label}-${option}`}
+              onClick={() => option !== value && onChange(option)}
+            >
+              {say(option)}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
