@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
   "installCommand": "sh tools/vercel-install.sh",
-  "buildCommand": "bun run build",
+  "buildCommand": "sh tools/vercel-build.sh",
   "git": { "deploymentEnabled": { "main": false } },
   "outputDirectory": "web/dist",
   "headers": [
