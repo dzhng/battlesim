@@ -9,6 +9,7 @@ pub struct GenerationPhysics {
     pub catalog: Catalog,
     pub forests: ForestRules,
     pub infantry_eye_m: f64,
+    pub vehicle_eye_m: f64,
     pub fog_target_height_m: f64,
 }
 
@@ -37,12 +38,15 @@ impl GenerationPhysics {
             catalog: fields.catalog,
             forests: fields.forests,
             infantry_eye_m: fields.physics.infantry_eye_m,
+            vehicle_eye_m: fields.physics.vehicle_eye_m,
             fog_target_height_m: fields.sensors.fog_target_height_m,
         };
         physics.forests.check()?;
         let rule = physics.forests.rule;
         if !(physics.infantry_eye_m.is_finite()
             && physics.infantry_eye_m > 0.
+            && physics.vehicle_eye_m.is_finite()
+            && physics.vehicle_eye_m > 0.
             && physics.fog_target_height_m.is_finite()
             && physics.fog_target_height_m >= 0.
             && rule.trunk_spacing_m.is_finite()

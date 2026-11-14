@@ -222,30 +222,8 @@ pub struct InfantryMovementRules {
     pub yield_margin_m: f64,
 }
 
-/// The one infantry body every soldier shares (navigation's clearance, cover,
-/// the fit authority) and round flight (the fixture's `physics` section).
-/// A vehicle's body is its type's hull.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct BodyRules {
-    pub soldier_radius_m: f64,
-    pub soldier_height_m: f64,
-    pub infantry_eye_m: f64,
-    pub infantry_muzzle_m: f64,
-    /// Where rounds aim on a soldier, above his feet.
-    pub infantry_aim_m: f64,
-    /// Nominal aim height as a fraction of a vehicle body's full height.
-    pub vehicle_aim_height_fraction: f64,
-    /// A soldier's middle, above his feet: where blast and near misses
-    /// reach him.
-    pub infantry_center_m: f64,
-    /// Angular spread multiplier while the firing unit moves (W04).
-    pub moving_scatter_multiplier: f64,
-    /// Extra room a round's predicted path must keep from friendly vehicles (P11).
-    pub friendly_prefire_margin_m: f64,
-    #[serde(flatten)]
-    pub flight: crate::ballistics::FlightRules,
-}
+mod body;
+pub use body::BodyRules;
 
 /// What a launcher needing a clear launch path (a weapon row's
 /// `requires_clear_launch_path`) holds for.

@@ -199,7 +199,7 @@ test("each own unit's sight decodes: eyes, forward, shape and range", () => {
   expect(tank.sight.eyes).toHaveLength(1);
   const [x, y, z] = tank.sight.eyes[0];
   expect([x, y]).toEqual([tank.position[0], tank.position[1]]);
-  expect(z).toBeCloseTo(tank.position[2] + UNITS.hull("test_tank")!.eye_m, 4);
+  expect(z).toBeCloseTo(tank.position[2] + shippedRules.physics.vehicle_eye_m, 4);
   expect(rifle.sight.shape).toEqual({ front: 1, side: 1, rear: 1 });
   expect(rifle.sight.range).toBe(UNITS.type("test_rifle").sensors.ground_m);
   // The published reach matches the shape's anchors.

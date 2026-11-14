@@ -961,10 +961,7 @@ impl<'a> Planner<'a> {
         ));
         let far = self.recipe.overwatch.sight_m.min(to_edge - 1.0);
         let physics = &self.rules.physics;
-        let eye = self
-            .unit_type(row)
-            .hull()
-            .map_or(physics.infantry_eye_m, |h| h.eye_m);
+        let eye = physics.eye_m(self.unit_type(row));
         let Some(here) = world.height_at(station.at.x, station.at.y) else {
             return 0;
         };

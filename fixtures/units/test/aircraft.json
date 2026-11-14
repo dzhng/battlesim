@@ -10,7 +10,6 @@
       "body": {
         "hull": {
           "half_extents_m": [7.54, 5.02, 2.44],
-          "eye_m": 2,
           "hp": 200,
           "armor": {
             "front": 15,
@@ -48,7 +47,6 @@
       "body": {
         "hull": {
           "half_extents_m": [7, 1.2, 1.6],
-          "eye_m": 2,
           "hp": 200,
           "armor": {
             "front": 15,

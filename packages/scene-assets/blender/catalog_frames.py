@@ -1,9 +1,9 @@
 """Each roster variant's physical frame, read from the resolved catalogs.
 
 The simulation is the authority on fit, so a roster exporter builds to the
-frame of the unit type that draws its appearance: hull extents, eye height
-and mounts from `fixtures/catalog.json`, each mount's articulation role from
-the appearance's `mounts` in `assets/catalog.json`. A family is every
+frame of the unit type that draws its appearance: hull extents and mounts
+from `fixtures/catalog.json`, each mount's articulation role from the
+appearance's `mounts` in `assets/catalog.json`. A family is every
 appearance whose source lies in `assets/source/roster/<family>/`.
 
 Plain Python, no Blender: exporters import it, and it is tested on its own.
@@ -48,7 +48,6 @@ def _variant(appearance_id, appearance, units):
     frame = dict(
         half_extents_m=hull["half_extents_m"],
         body_dimensions_m=[2 * h for h in hull["half_extents_m"]],
-        eye_m=hull["eye_m"],
         mounts=mounts,
     )
     return dict(
@@ -120,7 +119,6 @@ def disabled_variant(card_id, dimensions, repo=REPO):
     frame = dict(
         half_extents_m=[d / 2 for d in dimensions],
         body_dimensions_m=list(dimensions),
-        eye_m=None,
         mounts=[],
     )
     return dict(

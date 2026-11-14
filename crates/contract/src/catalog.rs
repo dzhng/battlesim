@@ -180,8 +180,6 @@ pub enum Body {
 pub struct Hull {
     /// Half length (along heading), half width, half height.
     pub half_extents_m: [f64; 3],
-    /// Sight height above the hull's base.
-    pub eye_m: f64,
     pub hp: f64,
     pub armor: Armor,
     pub weight_class: WeightClass,
@@ -1244,8 +1242,8 @@ fn check(
                 name(want)
             ));
         }
-        if !(h.half_extents_m.iter().all(|&e| positive(e)) && positive(h.eye_m) && positive(h.hp)) {
-            return rule("a hull needs finite positive extents, eye height and hp");
+        if !(h.half_extents_m.iter().all(|&e| positive(e)) && positive(h.hp)) {
+            return rule("a hull needs finite positive extents and hp");
         }
         let armor = h.armor;
         if ![armor.front, armor.side, armor.rear, armor.roof]

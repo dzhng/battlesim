@@ -45,13 +45,6 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       { kind: "vector", unit: "m", conversion: "dimensions" },
     ),
     field(
-      "body.hull.eye_m",
-      "Optics height",
-      "Body & protection",
-      "Sight height above the hull base; terrain and intervening bodies determine the resulting line of sight.",
-      { unit: "m" },
-    ),
-    field(
       "body.hull.hp",
       "Hull health",
       "Body & protection",

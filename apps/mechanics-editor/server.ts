@@ -481,7 +481,7 @@ export class MechanicsStore {
     if (generated !== state.generated)
       files.push({ path: "fixtures/catalog.json", before: state.generated, after: generated });
     const geometry = draft.changes.some((change) =>
-      ["half_extents_m", "eye_m", "pivot_m", "muzzle_m"].some((key) => change.path.includes(key)),
+      ["half_extents_m", "pivot_m", "muzzle_m"].some((key) => change.path.includes(key)),
     );
     return {
       revision: state.revision,
@@ -543,8 +543,8 @@ export function mechanicsPlugin(root: string): Plugin {
         const catalogText = await native(game, documents, texts);
         if (
           changes?.some((change) =>
-            ["half_extents_m", "eye_m", "pivot_m", "muzzle_m", "parts", "mounts", "deploy"].some(
-              (key) => change.path.includes(key),
+            ["half_extents_m", "pivot_m", "muzzle_m", "parts", "mounts", "deploy"].some((key) =>
+              change.path.includes(key),
             ),
           )
         ) {

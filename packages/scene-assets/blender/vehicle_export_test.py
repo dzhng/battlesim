@@ -35,7 +35,7 @@ class VehicleExportTest(unittest.TestCase):
             (repo / "fixtures").mkdir()
             (repo / "assets").mkdir()
             units = [dict(id=name, appearance=name, name=name, faction="us", roster=dict(variant=name),
-                          body=dict(hull=dict(half_extents_m=[2, 1, 1], eye_m=1.5)), mounts=[])
+                          body=dict(hull=dict(half_extents_m=[2, 1, 1])), mounts=[])
                      for name in ("first", "second")]
             (repo / "fixtures/catalog.json").write_text(json.dumps(dict(units=units)))
             (repo / "assets/catalog.json").write_text(json.dumps(dict(appearances={

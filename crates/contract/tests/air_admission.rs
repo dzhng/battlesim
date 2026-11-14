@@ -15,7 +15,7 @@ fn base_tank() -> Value {
         "name": "Tank", "description": "", "faction": "test", "family": "tanks",
         "roles": ["mbt"], "cost": 200,
         "body": { "hull": {
-            "half_extents_m": [3.5, 1.8, 1.2], "eye_m": 2.3, "hp": 100,
+            "half_extents_m": [3.5, 1.8, 1.2], "hp": 100,
             "armor": { "front": 140, "side": 100, "rear": 60, "roof": 40,
                 "ricochet": { "front": 0.5, "side": 0.3, "rear": 0.2, "roof": 0.6 } },
             "weight_class": "heavy", "push_class": "heavy", "wreck": "heavy_wreck"
