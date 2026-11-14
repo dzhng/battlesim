@@ -265,3 +265,40 @@ test("no query leaves the preview idle", () => {
   const preview = new OrderPreview();
   expect(preview.update(null, null, 1).destinations).toEqual([]);
 });
+
+test("moving the goal keeps the cursor's availability until the new goal is placed", async () => {
+  const here = deferred<MoveDestination[]>();
+  const there = deferred<MoveDestination[]>();
+  const sim = client();
+  sim.previewMove.mockReturnValueOnce(here.promise).mockReturnValueOnce(there.promise);
+  const preview = new OrderPreview();
+  const unload = (goal: [number, number]) => ({
+    kind: "unload" as const,
+    units: [1],
+    goal,
+    route: "shortest" as const,
+    queued: false,
+  });
+
+  preview.update(move([10, 10]), sim, 1, "goal-a");
+  here.resolve([destination([10, 10])]);
+  await here.promise;
+  await settled();
+  expect(cursorForIntent(unload([10, 10]), preview.update(move([10, 10]), sim, 1, "goal-a"))).toBe(
+    "unload",
+  );
+
+  // The pointer moves on: the old marks go, but the badge stays while the
+  // new goal is in flight.
+  const moving = preview.update(move([20, 20]), sim, 1, "goal-b");
+  expect(moving.destinations).toEqual([]);
+  expect(cursorForIntent(unload([20, 20]), moving)).toBe("unload");
+
+  // A goal nobody can reach settles to the plain arrow.
+  there.resolve([{ ...destination([20, 20]), placed: false }]);
+  await there.promise;
+  await settled();
+  expect(cursorForIntent(unload([20, 20]), preview.update(move([20, 20]), sim, 1, "goal-b"))).toBe(
+    "default",
+  );
+});

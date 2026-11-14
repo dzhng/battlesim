@@ -8,6 +8,11 @@ export interface OrderPreviewSnapshot {
   destinations: MoveDestination[];
   building: BuildingPlacement | null;
   state: PreviewAvailability;
+  /** While the current gesture's query is in flight, what the previous
+   *  gesture of the same kind settled on: the cursor keeps its badge
+   *  through the gap instead of flickering to the plain arrow. Its marks
+   *  never carry; a stale goal's destinations would sit in the wrong place. */
+  carried?: PreviewAvailability;
 }
 
 type PreviewClient = Pick<SimClient, "previewMove" | "previewBuilding">;
@@ -42,13 +47,17 @@ export class OrderPreview {
   private generation = 0;
   private active: number | null = null;
   private answer: Answer | null = null;
+  private kind: PointerPreview["kind"] | null = null;
+  private carried: PreviewAvailability | undefined;
 
   get snapshot(): OrderPreviewSnapshot {
     if (this.answer) {
       const { destinations, building } = this.answer;
       return { destinations, building, state: availability(destinations, building) };
     }
-    return this.gesture ? { destinations: [], building: null, state: "pending" } : IDLE;
+    return this.gesture
+      ? { destinations: [], building: null, state: "pending", carried: this.carried }
+      : IDLE;
   }
 
   /**
@@ -69,6 +78,14 @@ export class OrderPreview {
         ? JSON.stringify([intent.kind, { ...intent.request, facing: undefined }, identity])
         : "";
     if (gesture !== this.gesture || client !== this.client) {
+      const kind = gesture ? intent!.kind : null;
+      this.carried =
+        client === this.client && kind === this.kind
+          ? this.answer
+            ? availability(this.answer.destinations, this.answer.building)
+            : this.carried
+          : undefined;
+      this.kind = kind;
       this.generation += 1;
       this.gesture = gesture;
       this.client = client;

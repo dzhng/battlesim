@@ -367,15 +367,17 @@ export function previewForIntent(intent: PointerIntent): PointerPreview | null {
 /** Pending availability stays plain; an attack may validly pursue its target. */
 export function cursorForIntent(
   intent: PointerIntent,
-  paint: Pick<OrderPreviewSnapshot, "state" | "building">,
+  paint: Pick<OrderPreviewSnapshot, "state" | "building" | "carried">,
 ): CursorAction {
   if (intent.kind === "none") return "default";
+  // A query in flight shows what the last one settled on.
+  const state = paint.state === "pending" ? (paint.carried ?? "pending") : paint.state;
   if (intent.kind === "blocked") return "blocked";
   if (intent.kind === "attack") return intent.target.kind === "ground" ? "attack_ground" : "attack";
   // Boarding is the simulation's to admit; its refusal names the squads left out.
   if (intent.kind === "board" || intent.kind === "collect") return "board";
-  if (paint.state === "blocked") return "blocked";
-  if (paint.state !== "ready") return "default";
+  if (state === "blocked") return "blocked";
+  if (state !== "ready") return "default";
   if (intent.kind === "occupy_building") return paint.building?.entrant ? "garrison" : "default";
   if (intent.kind === "attack_move") return "attack_move";
   if (intent.kind === "unload") return "unload";
