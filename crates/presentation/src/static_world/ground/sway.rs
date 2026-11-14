@@ -31,13 +31,13 @@ pub struct Sway {
 }
 
 pub const SWAY: Sway = Sway {
-    bend: 0.18,
+    bend: 0.045,
     lean: 0.15,
     gust: 0.7,
     swing: 0.35,
     rate: 1.6,
     full_gust_mps: 6.0,
-    shiver_m: 0.15,
+    shiver_m: 0.0375,
     shiver_rate: 7.0,
 };
 
