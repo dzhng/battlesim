@@ -174,7 +174,7 @@
         "veil": 0,
         "lines": { "strength": 0.5, "floor": 0.015, "spacing_px": 5, "width_px": 1.5, "angle_deg": 45 },
         "edge_softness": 1,
-        "rim": { "width_px": 2, "color": [0.92, 0.95, 1.0], "alpha": 0.9 }
+        "rim": { "width_px": 2, "color": [0.92, 0.95, 1.0], "alpha": 0.55 }
       },
       "night": {
         "dim": 0.32,
