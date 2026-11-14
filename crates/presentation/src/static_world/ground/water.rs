@@ -1,8 +1,7 @@
-//! The standing water: where the exported rivers and swamps and the puddles
-//! hold it, how deep it stands and which look it draws ([`StandingWater`],
-//! the one owner), and the water surface's cells over it.
+//! The standing water: where the exported rivers and swamps hold it, how
+//! deep it stands and which look it draws ([`StandingWater`], the one
+//! owner), and the water surface's cells over it.
 use super::biome::{Biome, WaterLook};
-use super::puddles::{puddle_at, Puddle};
 use super::shapes::distance;
 use super::tables::Grid;
 use super::RIVER;
@@ -24,7 +23,7 @@ const SWAMP_SURFACE_Z: usize = 5;
 const LOOK_SALT: u32 = 0x10c4_a7e5;
 const SWAMP_LOOK_SALT: u32 = 0x5a3b_9e21;
 /// Floats a water cell (`cells`).
-pub const CELL_FLOATS: usize = 8;
+pub const CELL_FLOATS: usize = 5;
 
 /// A kind of standing water: each picks its looks from its own list.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -149,34 +148,20 @@ pub struct Wet {
 pub struct StandingWater<'a> {
     rivers: &'a [f32],
     swamps: Vec<Swamp>,
-    puddles: &'a [Puddle],
     grid: &'a Grid,
     biome: &'a Biome,
 }
 
 impl<'a> StandingWater<'a> {
-    /// The water of the exported `rivers` and `swamps`, and of `puddles`,
-    /// over the ground `grid`, dressed by `biome`.
-    pub fn new(
-        rivers: &'a [f32],
-        swamps: &[f32],
-        puddles: &'a [Puddle],
-        grid: &'a Grid,
-        biome: &'a Biome,
-    ) -> Self {
+    /// The water of the exported `rivers` and `swamps` over the ground
+    /// `grid`, dressed by `biome`.
+    pub fn new(rivers: &'a [f32], swamps: &[f32], grid: &'a Grid, biome: &'a Biome) -> Self {
         Self {
             rivers,
             swamps: Swamp::all(swamps),
-            puddles,
             grid,
             biome,
         }
-    }
-
-    /// The look row puddle `p` draws: after every river and swamp look.
-    fn puddle_look(&self, p: &Puddle) -> usize {
-        let w = &self.biome.water;
-        w.rivers.len() + w.swamps.len() + p.look
     }
 
     /// The look row river `river` draws.
@@ -197,8 +182,7 @@ impl<'a> StandingWater<'a> {
 
     /// The standing water at `(x, y)`, if any: a river's where the point is
     /// within its water (the first river's where two meet), else a swamp's
-    /// inside its outline, where its surface stands over the ground, else a
-    /// puddle's.
+    /// inside its outline, where its surface stands over the ground.
     pub fn at(&self, x: f64, y: f64) -> Option<Wet> {
         let wet = |surface_z: f64, look| {
             let depth_m = surface_z - self.grid.height(x, y);
@@ -220,22 +204,12 @@ impl<'a> StandingWater<'a> {
                 self.river_look(r[RIVER_INDEX] as usize),
             );
         }
-        if let Some((k, s)) = self
+        let (k, s) = self
             .swamps
             .iter()
             .enumerate()
-            .find(|(_, s)| s.inside(x, y) >= 0.0)
-        {
-            return wet(s.surface_z, self.swamp_look(k));
-        }
-        // A puddle carves nothing: its depth is its shape's.
-        let p = puddle_at(self.puddles, x, y)?;
-        let depth_m = p.depth_at(x, y);
-        (depth_m > 0.0).then_some(Wet {
-            surface_z: p.surface_z,
-            depth_m,
-            look: self.puddle_look(p),
-        })
+            .find(|(_, s)| s.inside(x, y) >= 0.0)?;
+        wet(s.surface_z, self.swamp_look(k))
     }
 
     /// The plot kind the standing water at `(x, y)` floods, by name: its
@@ -255,13 +229,10 @@ impl<'a> StandingWater<'a> {
     }
 
     /// The water surface's square cells (`CELL_FLOATS` each): the
-    /// south-west corner, the surface height and the side, in metres, the
-    /// look it draws, then a puddle's centre and radius (zeros for a river's
-    /// or a swamp's, whose depth is the ground's). A river's and a swamp's
-    /// cells never overlap, so the blended surface is drawn once however the
-    /// water bends; where two waters meet, the cell is the first one's
-    /// (rivers before swamps), its surface and its look. A puddle is one cell
-    /// over its disc; no puddle lies in other water.
+    /// south-west corner, the surface height and the side, in metres, then
+    /// the look it draws. Cells never overlap, so the blended surface is
+    /// drawn once however the water bends; where two waters meet, the cell
+    /// is the first one's (rivers before swamps), its surface and its look.
     pub fn cells(&self) -> Vec<f32> {
         let mut out = vec![];
         let mut laid = HashSet::new();
@@ -286,9 +257,6 @@ impl<'a> StandingWater<'a> {
                                 z as f32,
                                 cell as f32,
                                 look as f32,
-                                0.0,
-                                0.0,
-                                0.0,
                             ]);
                         }
                     }
@@ -315,25 +283,6 @@ impl<'a> StandingWater<'a> {
         for (k, s) in self.swamps.iter().enumerate() {
             let inside = |x, y| s.inside(x, y);
             lay(s.bounds(), &inside, s.surface_z, self.swamp_look(k));
-        }
-        // A puddle is one cell over its disc, which carries its centre and
-        // radius: its depth is its shape's (`Puddle::depth_at`), drawn so.
-        for p in self.puddles {
-            let [cx, cy] = p.centre;
-            let r = p.radius_m;
-            out.extend(
-                [
-                    cx - r,
-                    cy - r,
-                    p.surface_z,
-                    2.0 * r,
-                    self.puddle_look(p) as f64,
-                    cx,
-                    cy,
-                    r,
-                ]
-                .map(|v| v as f32),
-            );
         }
         out
     }

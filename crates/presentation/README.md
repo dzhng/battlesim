@@ -132,8 +132,8 @@ calls the same reader for workbench drafts.
   one surface its mesh, its trees and every height query read; a battle map
   has none, so past its edge the land stays level. The ground's
   tables, its meshes (terrain, skirt, water, backdrop), its standing water
-  (`StandingWater`, the one owner of where rivers, swamps and puddles hold
-  water, how deep, and which look each draws), the grass field's
+  (`StandingWater`, the one owner of where rivers and swamps hold water, how
+  deep, and which look each draws), the grass field's
   shapes, and its window and per-frame parameters for the last frame's
   camera, and the scenery; and the map's props fitted to their boxes from the
   installed art, less those the side knows replaced, with what it knows

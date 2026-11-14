@@ -12,7 +12,7 @@ fn traversal_carries_tint_and_extra_faces_while_surface_stays_bare() {
         1.0, 1.0, 7.0, 0.0, 0.0, 1.0, 0.2, 0.4, 0.6, 1.0, 2.0, 1.0, 7.0, 0.0, 0.0, 1.0, 0.2, 0.4,
         0.6, 1.0, 1.0, 2.0, 7.0, 0.0, 0.0, 1.0, 0.2, 0.4, 0.6, 1.0,
     ];
-    let cells = [0.0, 0.0, 2.0, 4.0, 0.0, 0.0, 0.0, 0.0];
+    let cells = [0.0, 0.0, 2.0, 4.0, 0.0];
     let surface = WorldGeometry::from_triangles(&positions, &indices, &cells, 80.0, None, &[]);
     let traversal =
         WorldGeometry::from_triangles(&positions, &indices, &[], 80.0, Some((&surfaces, 8)), &face);

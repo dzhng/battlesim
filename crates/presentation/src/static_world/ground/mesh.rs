@@ -104,10 +104,9 @@ pub fn skirt(positions: &[f32]) -> Vec<f32> {
 }
 
 /// The water's surface: each cell (`Ground::water_cells`: its south-west
-/// corner, surface height, side, look, and a puddle's centre and radius) a
-/// flat square. The water takes no tint, so its vertex colour carries the
-/// cell instead: red is its row of `TerrainParams.waterLooks`, then a
-/// puddle's centre and radius (zero radius for water as deep as its ground).
+/// corner, surface height, side and look) a flat square. The water takes no
+/// tint, so its vertex colour carries the cell's look instead: red is its
+/// row of `TerrainParams.waterLooks`.
 pub fn water(cells: &[f32]) -> Vec<f32> {
     let (cells, rest) = cells.as_chunks::<{ super::water::CELL_FLOATS }>();
     assert!(
@@ -117,7 +116,7 @@ pub fn water(cells: &[f32]) -> Vec<f32> {
     );
     let mut out = vec![];
     for c in cells {
-        let [x, y, z, side, look, cx, cy, radius] = c.map(f64::from);
+        let [x, y, z, side, look] = c.map(f64::from);
         quad(
             &mut out,
             [
@@ -126,7 +125,7 @@ pub fn water(cells: &[f32]) -> Vec<f32> {
                 [x + side, y + side, z],
                 [x, y + side, z],
             ],
-            [look, cx, cy, radius],
+            [look, 0.0, 0.0, 0.0],
         );
     }
     out

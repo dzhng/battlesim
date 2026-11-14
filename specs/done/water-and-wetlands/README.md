@@ -6,6 +6,11 @@ givens (1–35) from the 2026-10-27 unknowns walk, and [`choices.md`](choices.md
 holds the calls the build made where they were silent.
 [The unknowns map](visualizations/unknowns-map.html) is the walk's summary.
 
+**Later:** puddles were removed on 2026-11-14. On roads and tracks they read
+as stains, not water, so the user dropped them. The standing water is rivers
+and swamps alone, and a water cell is back to 5 floats. Where this record
+still describes puddles, it describes what shipped in October.
+
 ## What shipped and why
 
 On 2026-10-27 the user asked for three things:
@@ -188,7 +193,8 @@ stream's. At physical scale both are under a pixel at the close framing.
   pinned at `layout-16` as files and is not regenerated.
 - **One owner says where water stands, how deep and in which look.**
   `StandingWater` is built from the simulation's export (river and swamp
-  strides) and the ground's puddles; the water's cells, the plots, posture,
+  strides) alone, so no water stands where the simulation has none; the
+  water's cells, the plots, posture,
   wakes and splashes all ask it. One older lookup remains: the surface
   field's `water` distance (`Field::water`, `ground/field.rs`), which knows
   rivers only, shades the bank and keeps scenery clear of rivers (see
@@ -196,12 +202,7 @@ stream's. At physical scale both are under a pixel at the close framing.
 - **Variants are look only, and seeded per feature.** `water::look(seed,
   kind, feature, looks)` picks by the biome's seed, the kind and the
   feature's index, so no other feature moves it, and a look of no weight is
-  never drawn. A puddle's look follows the surface under its centre
-  (decision 28). Pinned by `crates/presentation/tests/water_looks.rs` and
-  `puddles.rs`.
-- **A puddle's place is a pure function of the seed and its cell**
-  (decision 34), so wakes, both clients and any camera agree
-  (`where_a_puddle_lies_is_its_cell_alone`).
+  never drawn. Pinned by `crates/presentation/tests/water_looks.rs`.
 - **A wading soldier is never drawn lying down** (decision 33). He takes the
   first posture, from his own upward, whose chest clears the water at his
   feet (`presentation.pose.stance.chest_m`). The dead still lie where they
@@ -210,8 +211,8 @@ stream's. At physical scale both are under a pixel at the close framing.
   identified. Squads riding a carrier wade nowhere (`units::riding`, the one
   test interpolation and the effects publication share). Only what stands below the water's
   surface wades (`StandingWater::under`). A V needs water at least
-  `wake.vee_depth_m` deep; a boot in a puddle only rings. Pinned by
-  `effect_behaviour.rs` and `wake_sources.rs`.
+  `wake.vee_depth_m` deep; shallower, a boot only rings. A dry road makes no
+  wake. Pinned by `effect_behaviour.rs` and `wake_sources.rs`.
 - **Wakes don't depend on frame rate.** Impulses are decided per tick, and
   `WaveClock` runs `floor(clock · hz)` steps, so any split into frames of at
   most 0.2 s runs the same steps; a longer frame drops the excess, capped at
@@ -285,7 +286,6 @@ stream's. At physical scale both are under a pixel at the close framing.
 
 - `crates/presentation/src/static_world/ground/water.rs`: `StandingWater`
   (`at`, `under`, `flooded`, `cells`) and the variant pick (`look`, `Kind`).
-- `static_world/ground/puddles.rs`: the puddle walk (`candidate`).
 - `static_world/ground/tables.rs` (`water_looks`): the look rows the shader
   reads; their data is `water` in `fixtures/biomes/summer.json` and
   `presentation.terrain.water` in `fixtures/game.json`.
@@ -299,7 +299,7 @@ stream's. At physical scale both are under a pixel at the close framing.
   cascade cameras' clock and wind).
 - `crates/presentation/src/units/driver/stance.rs`: the posture rule.
 - `static_world/ground/sway.rs`: tree sway's tuning (`SWAY`, `Sway::reach`).
-- Tests: `water_looks.rs`, `puddles.rs`, `wading.rs`, `wake_sources.rs`,
+- Tests: `water_looks.rs`, `wading.rs`, `wake_sources.rs`,
   `wave_field.rs` and the wind and wake cases in `effect_behaviour.rs`, all in
   `crates/presentation/tests/`.
 
@@ -542,13 +542,6 @@ These are the user's to decide. The native items are also on the
   cap, which is measured from the ground. The physical fix measures a
   grass's height from the water's surface where it stands in water, plus a
   reed grass kind.
-- **Puddles:**
-  - they read as wet mud, not reflective water: at the reel's sun the sky
-    they reflect is a pale haze near the track's colour;
-  - they lie only on paved kinds, with none in fields; field puddles need the
-    grass owner to read puddles;
-  - a dirt track's centre-strip grass stands through them;
-  - mirror puddles were never filmed: the wetlands map has no metalled road.
 - **Swamp depth (decision 30).** 0.6 m reads knee-deep on screen, where the
   decision also says thighs. The number is kept; thighs would need more.
 - **Tree sway amplitude.** Gusts barely read at the 80 m low shot, where the
@@ -583,7 +576,7 @@ These are the user's to decide. The native items are also on the
   rule decision: count attackers the side knows of and its lane's losses,
   or keep a lane a while after its last unit.
 - **Duplication left for a cleanup:**
-  - the look rows' order (rivers, swamps, puddles) is written twice, by the
+  - the look rows' order (rivers, then swamps) is written twice, by the
     table (`tables.rs`) and by `StandingWater`'s row picks;
   - two `Sway` types: grass's biome tuning and the trees' bend;
   - the scenes' water helper (`web/scenes/_water.mjs`) reads the first
