@@ -17,11 +17,11 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
 
 // @block passes_grass_GrassFragmentInput
 struct GrassFragmentInput {
-  @location(0) world: vec3f,
-  @location(1) root: vec3f,
-  @location(2) normal: vec3f,
-  @location(3) albedo: vec3f,
-  @location(4) ground: f32,
+  @location(0) @interpolate(perspective, centroid) world: vec3f,
+  @location(1) @interpolate(perspective, centroid) root: vec3f,
+  @location(2) @interpolate(perspective, centroid) normal: vec3f,
+  @location(3) @interpolate(perspective, centroid) albedo: vec3f,
+  @location(4) @interpolate(perspective, centroid) ground: f32,
 }
 
 // @block passes_grass_grassFinish
@@ -67,9 +67,9 @@ var<workgroup> laneCounts: array<vec2u, GRASS_BUILD_LANES>;
 // @block passes_grass_GrassVertexOutput
 struct GrassVertexOutput {
   @builtin(position) clip: vec4f,
-  @location(0) world: vec3f,
-  @location(1) root: vec3f,
-  @location(2) normal: vec3f,
-  @location(3) albedo: vec3f,
-  @location(4) ground: f32,
+  @location(0) @interpolate(perspective, centroid) world: vec3f,
+  @location(1) @interpolate(perspective, centroid) root: vec3f,
+  @location(2) @interpolate(perspective, centroid) normal: vec3f,
+  @location(3) @interpolate(perspective, centroid) albedo: vec3f,
+  @location(4) @interpolate(perspective, centroid) ground: f32,
 }

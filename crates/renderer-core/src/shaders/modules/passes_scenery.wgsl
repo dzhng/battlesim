@@ -23,22 +23,26 @@
 }
 
 // @block passes_scenery_FoliageVertexOutput
+// World stays at the pixel centre: its `fwidth` sizes the painted leaves, and
+// a centroid moves between the pixels of a quad, so its derivative jumps on
+// every partly covered pixel and the leaves sparkle. A position cannot
+// overshoot as a colour can: the centre lies on the triangle's own plane.
 struct FoliageVertexOutput {
   @invariant @builtin(position) clip: vec4f,
   @location(0) world: vec3f,
-  @location(1) normal: vec3f,
-  @location(2) color: vec4f,
-  @location(3) local: vec3f,
-  @location(4) heart: vec3f,
+  @location(1) @interpolate(perspective, centroid) normal: vec3f,
+  @location(2) @interpolate(perspective, centroid) color: vec4f,
+  @location(3) @interpolate(perspective, centroid) local: vec3f,
+  @location(4) @interpolate(perspective, centroid) heart: vec3f,
 }
 
 // @block passes_scenery_FoliageFragmentInput
 struct FoliageFragmentInput {
   @location(0) world: vec3f,
-  @location(1) normal: vec3f,
-  @location(2) color: vec4f,
-  @location(3) local: vec3f,
-  @location(4) heart: vec3f,
+  @location(1) @interpolate(perspective, centroid) normal: vec3f,
+  @location(2) @interpolate(perspective, centroid) color: vec4f,
+  @location(3) @interpolate(perspective, centroid) local: vec3f,
+  @location(4) @interpolate(perspective, centroid) heart: vec3f,
 }
 
 // @block passes_scenery_dressingVertex
