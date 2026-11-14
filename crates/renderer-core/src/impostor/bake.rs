@@ -159,6 +159,12 @@ impl BakeRequest {
             .map(|texture| RgbaReadback::encode(device, &mut encoder, texture))
             .collect::<Result<Vec<_>, _>>()?;
         queue.submit([encoder.finish()]);
+        // The bake's targets serve this one submission, already copied into
+        // the readbacks: freed when it completes, not when garbage is found.
+        for texture in &outputs {
+            texture.destroy();
+        }
+        depth.texture().destroy();
         let atlas = Atlas {
             appearance: input.appearance,
             spec: spec.clone(),

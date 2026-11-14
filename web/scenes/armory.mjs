@@ -11,7 +11,9 @@
 // real page, and crops of each unit on its spot, in its evidence. It also
 // measures, once, the frame time with both scenes live, each switch's time
 // (S7) and the files each selection's art is read from (S5), into
-// throwaway/armory-measures/.
+// throwaway/armory-measures/. Each switch builds a new scene, and a scene's
+// screen-sized targets are destroyed with it, never left for the browser's
+// garbage collector to find.
 import { mkdir, writeFile } from "node:fs/promises";
 import { menuPage } from "../../apps/battle-lab/src/menu/pages.ts";
 import presentation from "../../fixtures/presentation.json" with { type: "json" };
@@ -46,6 +48,34 @@ async function openMenu(page, path) {
   await page.getByTestId("loading").waitFor({ state: "hidden", timeout: 120_000 });
 }
 
+/** Every texture the page makes, its size and whether it was destroyed. */
+function countTextures() {
+  const made = (window.__textures = []);
+  const create = GPUDevice.prototype.createTexture;
+  GPUDevice.prototype.createTexture = function (descriptor) {
+    const texture = create.call(this, descriptor);
+    const size = descriptor.size;
+    const [w, h] = Array.isArray(size) ? [size[0], size[1] ?? 1] : [size.width, size.height ?? 1];
+    const entry = { w, h, alive: true };
+    made.push(entry);
+    const destroy = texture.destroy;
+    texture.destroy = function () {
+      entry.alive = false;
+      return destroy.call(this);
+    };
+    return texture;
+  };
+}
+
+/** The textures the size of the stage's canvas made so far, and how many of
+ *  them are still alive: its scene's screen-sized targets. */
+const screenTextures = (page) =>
+  page.evaluate(() => {
+    const canvas = document.querySelector("canvas.armory-stage-canvas:not([aria-hidden])");
+    const sized = window.__textures.filter((t) => t.w === canvas.width && t.h === canvas.height);
+    return { made: sized.length, alive: sized.filter((t) => t.alive).length };
+  });
+
 const unit = (page) => new URL(page.url()).searchParams.get("unit");
 const armoryProbe = (page, fn, arg) => page.evaluate(fn, arg);
 
@@ -77,6 +107,7 @@ export async function run(ctx) {
   const armory = menuPage("armory").path;
   const page = await ctx.newPage({ viewport: { width: 1280, height: 800 } });
   await page.addInitScript(seedGraphics);
+  await page.addInitScript(countTextures);
   await openMenu(page, `${origin}/`);
   await page.locator(`${MENU} [data-page="armory"]`).click();
   // The Armory loads under its own cover: the page is revealed only once its
@@ -183,6 +214,7 @@ async function stageTour(ctx, page, list) {
     .getByRole("tablist", { name: "Unit groups" })
     .locator('[role="tab"]:not([disabled])');
   const tours = [];
+  const before = await screenTextures(page);
   for (let g = 0; g < (await groups.count()); g++) {
     const tab = groups.nth(g);
     const group = await tab.getAttribute("aria-label");
@@ -248,6 +280,15 @@ async function stageTour(ctx, page, list) {
     tours.push({ group, kind, spot: shown.spot, rect: shown.rect, held: shown.held });
   }
   ctx.check("the stage shows a unit of every group", tours.length > 0, `${tours.length} groups`);
+  // Every switch made a new scene's targets; what is left alive is the stage
+  // on show and the backdrop, give or take one scene's set mid-rebuild.
+  const after = await screenTextures(page);
+  const made = after.made - before.made;
+  ctx.check(
+    "a switch destroys the scene it replaces: screen-sized targets never pile up",
+    tours.length > 1 && after.alive - before.alive <= made / tours.length,
+    JSON.stringify({ before, after, switches: tours.length }),
+  );
   ctx.check("a switch was caught mid-way", heldChecks > 0, `${heldChecks} switches`);
   const switches = await armoryProbe(page, () => window.__armory.switches);
   // Measured once and recorded: loose tripwires, never targets.

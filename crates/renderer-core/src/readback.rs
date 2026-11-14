@@ -105,6 +105,14 @@ impl Readback {
     }
 }
 
+/// A snapshot is read once: its buffer is destroyed when it goes, read or
+/// not, rather than left for the browser's garbage collector.
+impl Drop for Readback {
+    fn drop(&mut self) {
+        self.buffer.destroy();
+    }
+}
+
 /// Raw stored RGBA texels, top row first, independent of row-copy alignment or
 /// RGBA/BGRA storage: 4 bytes a pixel from an 8-bit texture, 8 (little-endian
 /// half floats) from `Rgba16Float`. The caller supplies a copyable texture.

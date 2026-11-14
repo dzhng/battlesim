@@ -191,6 +191,20 @@ pub fn new(
     }
 }
 
+/// Every texture post made is a stage's target (or the HDR output); the
+/// display is the frame's own (`Targets`). Destroyed with their owner, as the
+/// frame's targets are, rather than left for the browser's garbage collector.
+impl Drop for PostResources {
+    fn drop(&mut self) {
+        for stage in &self.stages {
+            stage.target.texture().destroy();
+        }
+        if let Some(hdr) = &self.hdr {
+            hdr.target.texture().destroy();
+        }
+    }
+}
+
 impl PostResources {
     /// Grade the straight high-air colour and premultiply by its coverage.
     /// World bloom and grading are shared; no second lighting policy is baked.
