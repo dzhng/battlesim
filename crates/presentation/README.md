@@ -52,7 +52,11 @@ calls the same reader for workbench drafts.
   descriptive poses independently of a battle roster. Its instances supplement
   the same frame, sharing pose math, detail, fog and batch identity with battle
   models. [Catalog admission](src/presentation/catalog.rs) stages prospective rows and
-  pose and placement facts without replacing the observer. Prop fitting, building
+  pose and placement facts without replacing the observer. A draft rebuilds the
+  battle's rows, which renumbers those after them, so every static population
+  resolves its rows by appearance in the draft's world and never carries a row
+  number over: the renderer holds a batch as the static world's by its row's
+  placed flag alone. Prop fitting, building
   extents and scenery trunks/stumps follow the new authored art while current
   learned, fallen and held movement state survives. Matching GPU assets and the latest
   model requests commit together; stale or failed work preserves the active

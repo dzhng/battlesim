@@ -429,12 +429,7 @@ impl Presentation {
                     .ok_or("buildings are drawn under presentation.buildings")?;
                 let buildings =
                     Buildings::new(placed.library, &placed.bounds, placed.placed, &style)?;
-                let rows = (0..buildings.modules.len())
-                    .map(|m| {
-                        let (kit, module) = buildings.module(m);
-                        self.world.row(kit, module, NONE, 0, true)
-                    })
-                    .collect();
+                let rows = catalog::building_rows(&mut self.world, &buildings);
                 let mut walk = BuildingWalk::new(
                     buildings,
                     style.lod_px_per_m,
