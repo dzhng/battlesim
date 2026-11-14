@@ -24,14 +24,17 @@ import {
  *  plain progress (its pips say it), guiding (its own mark), no target it
  *  can hurt (every idle weapon's reason), out of range (the player's to see,
  *  and the ruler's), and no facing slot (a garrison always has someone
- *  facing; not the player's to act on). One line per reason. */
+ *  facing; not the player's to act on). A reason the whole unit causes is
+ *  its state row, said once (`STATE_ROWS` `status`): holding fire is the
+ *  unit's fire order, and changing position its entering or leaving. One
+ *  line per reason. */
 export const REASON_MARK: Record<string, string | null> = {
   firing: null,
   aiming: null,
   reloading: null,
   guiding: null,
   no_compatible_target: null,
-  holding_fire: hudIcon("hold_fire"),
+  holding_fire: null,
   out_of_range: null,
   blocked_trajectory: hudIcon("blocked_shot"),
   friendly_in_line: hudIcon("friendly_in_line"),
@@ -41,7 +44,7 @@ export const REASON_MARK: Record<string, string | null> = {
   tracking_last_sighting: stateIcon("last_seen"),
   no_own_sight: hudIcon("no_sight"),
   no_facing_slot: null,
-  changing_position: stateIcon("building"),
+  changing_position: null,
 };
 
 /** Floating panels use compressed or default detail on their layer.
@@ -201,17 +204,17 @@ function StateRowView({ row }: { row: StateRow }) {
  *  `zoom` is the workbench's; the battle sets it on the layer round it. */
 export function InfoPanel({ panel, zoom }: { panel: Panel; zoom?: PanelZoom }) {
   const loading = zoom === "compressed" ? loadingProgress(panel) : null;
+  // Every unit-wide condition, and any weapon run dry, stand by the name.
   const statusIcons = [
-    panel.weapons.some((weapon) => weapon.kinds.some((kind) => kind.count === 0))
-      ? { path: hudIcon("no_ammo"), title: "Out of ammo", negative: true }
-      : null,
-    panel.states.some((row) => row.state === "pinned")
-      ? { path: stateIcon("pinned"), title: "Pinned", negative: true }
-      : null,
-    panel.states.some((row) => row.state === "hidden")
-      ? { path: stateIcon("hidden"), title: "Hidden", negative: false }
-      : null,
-  ].filter((icon): icon is { path: string; title: string; negative: boolean } => icon !== null);
+    ...(panel.weapons.some((weapon) => weapon.kinds.some((kind) => kind.count === 0))
+      ? [{ path: hudIcon("no_ammo"), title: "Out of ammo", negative: true }]
+      : []),
+    ...panel.states.flatMap((row) =>
+      row.status
+        ? [{ path: row.icon, title: row.word.toLowerCase(), negative: row.status === "debuff" }]
+        : [],
+    ),
+  ];
   return (
     <div className="ro-body" data-zoom={zoom}>
       <span className="ro-name">

@@ -399,6 +399,14 @@ export function panelSpecimens(
   );
   add(s, "suppressed", panelOf(specimenUnit(catalog, "test_rifle", { suppression: "suppressed" })));
   add(s, "pinned", panelOf(specimenUnit(catalog, "test_rifle", { suppression: "pinned" })));
+  const holding = panelOf(
+    specimenUnit(catalog, "test_rifle", { engagement: "return_fire_only" }, [
+      { reason: "holding_fire" },
+      { reason: "holding_fire" },
+    ]),
+  );
+  add(s, "return fire only", holding);
+  add(s, "return fire only, compressed", holding, "own", { zoom: "compressed" });
   add(s, "waiting", panelOf(specimenUnit(catalog, "test_tank", { state: "waiting" })));
   add(
     s,

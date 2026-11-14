@@ -5,13 +5,13 @@
  *  word; the ground keeps only selection and movement marks.
  *  - An own unit's panel (`ownPanel`): its type's name, each weapon with
  *    its rounds left and live timers, and its state rows: deployment, a
- *    building, concealment, suppression, waiting, a truck's stock and its supplying, a
+ *    building, concealment, its fire order, suppression, waiting, a truck's stock and its supplying, a
  *    unit's supply in a set-up truck's reach, and a carrier's seats.
  *  - An identified enemy's panel (`enemyPanel`): its type's name and weapon
  *    types, never a count, health or anything else the side can't know.
  *  - A contact's panel (`contactPanel`): its remembered type's name and weapons,
  *    or UNKNOWN and what was heard, and how long ago. */
-import { stateIcon, weaponIcon, type StateIcon } from "@packages/scene-assets/src/icons";
+import { hudIcon, stateIcon, weaponIcon } from "@packages/scene-assets/src/icons";
 import type { MountRow, UnitCard, UnitCatalog } from "@packages/scene-assets/src/units";
 import type { SessionCatalog } from "../catalog/compose";
 import {
@@ -44,61 +44,82 @@ export interface PanelRules {
  *    smoke); run out, the row draws in the warning colour, as a weapon out
  *    of rounds is marked.
  *  - `compact`: the row stays on a compact card, which otherwise shows only
- *    its name: what identifies the unit at a glance (a carrier's seats). */
+ *    its name: what identifies the unit at a glance (a carrier's seats).
+ *  - `status`: a condition on the whole unit's fighting, for better
+ *    (`buff`) or worse (`debuff`). Besides its row, its icon stands by the
+ *    name on every card, compact too, so it is said once for the unit and
+ *    never repeated on each weapon's row. */
 export const STATE_ROWS = {
-  deployed: { icon: "deployed", word: () => "DEPLOYED", lasting: true },
-  in_building: { icon: "building", word: () => "IN BUILDING", lasting: true },
-  hidden: { icon: "hidden", word: () => "HIDDEN", lasting: true },
+  deployed: { icon: stateIcon("deployed"), word: () => "DEPLOYED", lasting: true },
+  in_building: { icon: stateIcon("building"), word: () => "IN BUILDING", lasting: true },
+  hidden: { icon: stateIcon("hidden"), word: () => "HIDDEN", lasting: true, status: "buff" },
+  // The command bar's toggle and this row share one mark.
+  return_fire_only: {
+    icon: hudIcon("hold_fire"),
+    word: () => "RETURN FIRE ONLY",
+    lasting: true,
+    tone: "warn",
+    status: "debuff",
+  },
   stock: {
-    icon: "stock",
+    icon: stateIcon("stock"),
     word: (n: number | string) => `SUPPLY ${n}`,
     lasting: true,
     amount: true,
   },
-  withdrawing: { icon: "withdrawing", word: () => "RETURNING TO BASE" },
-  deploying: { icon: "deploy", word: () => "DEPLOYING" },
-  packing: { icon: "pack", word: () => "PACKING" },
-  entering: { icon: "building", word: () => "ENTERING" },
-  leaving: { icon: "building", word: () => "LEAVING" },
+  withdrawing: { icon: stateIcon("withdrawing"), word: () => "RETURNING TO BASE" },
+  deploying: { icon: stateIcon("deploy"), word: () => "DEPLOYING" },
+  packing: { icon: stateIcon("pack"), word: () => "PACKING" },
+  entering: { icon: stateIcon("building"), word: () => "ENTERING" },
+  leaving: { icon: stateIcon("building"), word: () => "LEAVING" },
   seats: {
-    icon: "seats",
+    icon: stateIcon("seats"),
     word: (n: number | string) => `SEATS ${n}`,
     lasting: true,
     compact: true,
   },
-  boarding: { icon: "seats", word: () => "BOARDING" },
-  dismounting: { icon: "seats", word: () => "DISMOUNTING" },
-  suppressed: { icon: "suppressed", word: () => "SUPPRESSED", tone: "warn" },
-  pinned: { icon: "pinned", word: () => "PINNED", tone: "warn" },
-  waiting: { icon: "waiting", word: () => "WAITING" },
-  route_blocked: { icon: "route_blocked", word: () => "ROUTE BLOCKED", tone: "warn" },
-  supplying: { icon: "resupply", word: () => "SUPPLYING" },
-  resupplying: { icon: "resupply", word: () => "RESUPPLYING" },
-  last_seen: { icon: "last_seen", word: (n: number | string) => `LAST SEEN ${n} s AGO` },
-  heard: { icon: "heard", word: (n: number | string) => `HEARD ${n} s AGO` },
+  boarding: { icon: stateIcon("seats"), word: () => "BOARDING" },
+  dismounting: { icon: stateIcon("seats"), word: () => "DISMOUNTING" },
+  suppressed: {
+    icon: stateIcon("suppressed"),
+    word: () => "SUPPRESSED",
+    tone: "warn",
+    status: "debuff",
+  },
+  pinned: { icon: stateIcon("pinned"), word: () => "PINNED", tone: "warn", status: "debuff" },
+  waiting: { icon: stateIcon("waiting"), word: () => "WAITING" },
+  route_blocked: { icon: stateIcon("route_blocked"), word: () => "ROUTE BLOCKED", tone: "warn" },
+  supplying: { icon: stateIcon("resupply"), word: () => "SUPPLYING" },
+  resupplying: { icon: stateIcon("resupply"), word: () => "RESUPPLYING" },
+  last_seen: { icon: stateIcon("last_seen"), word: (n: number | string) => `LAST SEEN ${n} s AGO` },
+  heard: { icon: stateIcon("heard"), word: (n: number | string) => `HEARD ${n} s AGO` },
   fuel: {
-    icon: "fuel",
+    icon: stateIcon("fuel"),
     word: (n: number | string) => `FUEL ${n} s`,
     lasting: true,
     amount: true,
   },
-  afterburner: { icon: "afterburner", word: () => "AFTERBURNERS ON", lasting: true },
-  dogfight: { icon: "dogfight", word: () => "DOGFIGHT", tone: "warn" },
+  afterburner: { icon: stateIcon("afterburner"), word: () => "AFTERBURNERS ON", lasting: true },
+  dogfight: { icon: stateIcon("dogfight"), word: () => "DOGFIGHT", tone: "warn" },
   radar_receiver: {
-    icon: "radar",
+    icon: stateIcon("radar"),
     word: (n: number | string) => `FINDS RADARS ${n} m`,
     lasting: true,
   },
-  radar_contact: { icon: "radar", word: () => "RADAR CONTACT", tone: "warn" },
-  radar_details: { icon: "radar", word: (n: number | string) => String(n), tone: "warn" },
+  radar_contact: { icon: stateIcon("radar"), word: () => "RADAR CONTACT", tone: "warn" },
+  radar_details: {
+    icon: stateIcon("radar"),
+    word: (n: number | string) => String(n),
+    tone: "warn",
+  },
   flares: {
-    icon: "flares",
+    icon: stateIcon("flares"),
     word: (n: number | string) => `FLARES ${n}`,
     lasting: true,
     amount: true,
   },
   smoke: {
-    icon: "smoke",
+    icon: stateIcon("smoke"),
     word: (n: number | string) => `SMOKE ${n}`,
     lasting: true,
     amount: true,
@@ -106,17 +127,21 @@ export const STATE_ROWS = {
 } satisfies Record<string, StateRowKind>;
 
 interface StateRowKind {
-  icon: StateIcon;
+  /** Under `assets/icons/`. */
+  icon: string;
   word: (n: number | string) => string;
   lasting?: boolean;
   tone?: StateTone;
   amount?: boolean;
   compact?: boolean;
+  status?: StateStatus;
 }
 
 type StateKind = keyof typeof STATE_ROWS;
 /** A warning row's shared HUD colour role. */
 type StateTone = "warn";
+/** Whether a unit-wide condition helps or hinders it. */
+type StateStatus = "buff" | "debuff";
 
 /** One state row: an icon and a short word, with its timer or amount. */
 export interface StateRow {
@@ -135,6 +160,8 @@ export interface StateRow {
   tone: StateTone | null;
   /** It stays on a compact card. */
   compact: boolean;
+  /** A unit-wide condition: its icon also stands by the name. */
+  status: StateStatus | null;
 }
 
 const row = (
@@ -148,13 +175,14 @@ const row = (
   const s: StateRowKind = STATE_ROWS[state];
   return {
     state,
-    icon: stateIcon(s.icon),
+    icon: s.icon,
     word: s.word(n),
     progress,
     fill,
     lasting: !!s.lasting,
     tone: s.tone ?? (s.amount && n === 0 ? "warn" : null),
     compact: !!s.compact,
+    status: s.status ?? null,
   };
 };
 
@@ -242,6 +270,7 @@ export function ownStateRows(
   rows.push(seatsRow(units, u, own));
   if (u.hold) rows.push(HOLD_ROWS[u.hold.host.kind]?.[u.hold.phase]?.(u.hold.progress) ?? null);
   if (u.concealed) rows.push(row("hidden"));
+  if (u.engagement === "return_fire_only") rows.push(row("return_fire_only"));
   if (u.suppression !== "none") rows.push(row(u.suppression));
   // The published move state: `waiting` yields to vehicle traffic in the
   // way; `route_blocked` has no known route (the order is kept and retried).
