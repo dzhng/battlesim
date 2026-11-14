@@ -105,6 +105,7 @@ impl LightSettings {
         for (i, v) in self.vegetation_tint.into_iter().enumerate() {
             within(&format!("vegetation_tint[{i}]"), v, 0.0, 4.0)?;
         }
+        within("vegetation_lit_keep", self.vegetation_lit_keep, 0.0, 1.0)?;
         Ok(())
     }
 }

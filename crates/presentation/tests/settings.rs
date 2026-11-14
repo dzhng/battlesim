@@ -759,13 +759,14 @@ fn golden_hour_is_the_v4_look_with_the_day_azimuth() {
     // Glow is strongest at golden hour; bloom is a wide, low-threshold highpass.
     assert_eq!(settings.light.glow.wrap, 0.80);
     assert_eq!(settings.light.glow.rim, 0.45);
-    assert_eq!(settings.light.bloom.threshold, 0.88);
-    assert_eq!(settings.light.bloom.radius, 0.94);
-    assert_eq!(settings.light.bloom.strength, 0.60);
+    assert_eq!(settings.light.bloom.threshold, 1.12);
+    assert_eq!(settings.light.bloom.radius, 0.92);
+    assert_eq!(settings.light.bloom.strength, 0.55);
     assert_eq!(settings.light.haze.sun_strength, 0.50);
     assert_eq!(settings.light.haze.sun_power, 1.9);
     // Vegetation response is a no-op by day and a green lift at golden hour.
     assert_eq!(settings.light.vegetation_tint, [0.90, 1.18, 1.40]);
+    assert_eq!(settings.light.vegetation_lit_keep, 0.70);
 }
 
 #[test]
@@ -773,6 +774,7 @@ fn vegetation_tint_is_packed_on_the_sun_and_day_is_a_no_op() {
     let settings =
         presentation::settings::PresentationSettings::from_value(&fixture("presentation")).unwrap();
     assert_eq!(settings.light.vegetation_tint, [1.0, 1.0, 1.0]);
+    assert_eq!(settings.light.vegetation_lit_keep, 0.0);
     assert_eq!(
         settings.light.records().sun.vegetation_tint,
         [1.0, 1.0, 1.0, 0.0]
@@ -781,6 +783,7 @@ fn vegetation_tint_is_packed_on_the_sun_and_day_is_a_no_op() {
     assert_eq!(golden.light.vegetation_tint, [0.90, 1.18, 1.40]);
     let tint = golden.light.records().sun.vegetation_tint;
     assert_eq!(&tint[..3], &[0.90, 1.18, 1.40]);
+    assert_eq!(tint[3], 0.70);
     assert!(tint[1] > tint[0], "green lift");
 }
 
@@ -790,6 +793,11 @@ fn a_vegetation_tint_outside_range_is_refused_by_name() {
         "/light/vegetation_tint",
         json!([1.0, 1.0, 4.1]),
         "vegetation_tint[2]",
+    );
+    reject_presentation(
+        "/light/vegetation_lit_keep",
+        json!(1.1),
+        "vegetation_lit_keep",
     );
 }
 

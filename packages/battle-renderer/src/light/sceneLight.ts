@@ -117,6 +117,8 @@ export interface LightPresentation extends PostSettings {
   glow: GlowSettings;
   /** Linear rgb multiplier on grass and foliage (G≥R). White is a no-op. */
   vegetation_tint: Rgb;
+  /** 0–1: how much a lit G≥R surface keeps its albedo hue after the sun. */
+  vegetation_lit_keep?: number;
   cascades: CascadeSettings;
 }
 

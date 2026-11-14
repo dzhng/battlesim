@@ -58,6 +58,11 @@ pub struct LightSettings {
     /// Multiplier on grass and foliage albedos (G≥R). White is a no-op.
     #[serde(default = "white")]
     pub vegetation_tint: [f64; 3],
+    /// How much a lit G≥R surface keeps its albedo hue after the sun
+    /// lights it (0 leaves the sun's colour, 1 restores the hue at the
+    /// lit luma). Day is 0.
+    #[serde(default)]
+    pub vegetation_lit_keep: f64,
     /// The sun's shadow cascades (`shadow.rs`).
     pub cascades: CascadeSettings,
 }
@@ -287,7 +292,7 @@ impl LightSettings {
                 self.vegetation_tint[0],
                 self.vegetation_tint[1],
                 self.vegetation_tint[2],
-                0.0,
+                self.vegetation_lit_keep,
             ]),
         }
     }
