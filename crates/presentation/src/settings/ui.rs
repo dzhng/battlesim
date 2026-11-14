@@ -42,8 +42,8 @@ pub struct Camera {
 }
 
 /// How large the Armory frames its unit: the fraction of the stage's cell
-/// (its narrower side) the unit's bounding sphere spans at the opening, the
-/// nearest and the farthest zoom.
+/// (its narrower side) the unit's box spans, seen from the view, at the
+/// opening, the nearest and the farthest zoom.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ArmoryFraming {

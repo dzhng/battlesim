@@ -39,8 +39,8 @@ const ARMORY = presentationSettings.camera_armory as {
   pitch_limits: [number, number];
   zoom_speed: number;
   orbit_speed: number;
-  /** The fraction of the cell's narrower side the unit's bounding sphere
-   *  spans at the opening, the nearest and the farthest zoom. */
+  /** The fraction of the cell's narrower side the unit's box spans, seen
+   *  from the view, at the opening, the nearest and the farthest zoom. */
   framing: { open: number; near: number; far: number };
   clearance: CameraPresentation["clearance"];
 };
