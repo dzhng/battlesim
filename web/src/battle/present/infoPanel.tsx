@@ -1,5 +1,5 @@
 /** One unit's info panel as drawn: NAME (an own unit's with its strength's
- *  pips), then a row per WEAPON, then its STATES (`panelRows.ts` says what
+ *  pips, and the marks of its unit-wide states), then a row per WEAPON, then its STATES (`panelRows.ts` says what
  *  each holds). Own and enemy panels are the same markup; the owner's tone
  *  (own cyan, enemy red) comes from the callout or card round it. Each row is its icon, bare and centred in a 16 px slot,
  *  its words, then a right-hand column of counts. A running timer is a ring
@@ -25,7 +25,7 @@ import {
  *  can hurt (every idle weapon's reason), out of range (the player's to see,
  *  and the ruler's), and no facing slot (a garrison always has someone
  *  facing; not the player's to act on). A reason the whole unit causes is
- *  its state row, said once (`STATE_ROWS` `status`): holding fire is the
+ *  its state row, said once (`STATE_ROWS` `byName`): holding fire is the
  *  unit's fire order, and changing position its entering or leaving. One
  *  line per reason. */
 export const REASON_MARK: Record<string, string | null> = {
@@ -204,15 +204,14 @@ function StateRowView({ row }: { row: StateRow }) {
  *  `zoom` is the workbench's; the battle sets it on the layer round it. */
 export function InfoPanel({ panel, zoom }: { panel: Panel; zoom?: PanelZoom }) {
   const loading = zoom === "compressed" ? loadingProgress(panel) : null;
-  // Every unit-wide condition, and any weapon run dry, stand by the name.
+  // Every unit-wide state (`byName`), in its rows' order and tone, stands by
+  // the name, after any weapon run dry.
   const statusIcons = [
     ...(panel.weapons.some((weapon) => weapon.kinds.some((kind) => kind.count === 0))
       ? [{ path: hudIcon("no_ammo"), title: "Out of ammo", negative: true }]
       : []),
-    ...panel.states.flatMap((row) =>
-      row.status
-        ? [{ path: row.icon, title: row.word.toLowerCase(), negative: row.status === "debuff" }]
-        : [],
+    ...panel.states.flatMap((r) =>
+      r.byName ? [{ path: r.icon, title: r.word, negative: r.tone === "warn" }] : [],
     ),
   ];
   return (

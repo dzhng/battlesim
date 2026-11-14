@@ -183,35 +183,17 @@ export function panelSpecimens(
     ),
   );
   const alertPanel = panelOf(
-    specimenUnit(catalog, "test_rifle", { concealed: true, suppression: "pinned" }, [
-      {},
-      { ammo: [0], loaded: null, reason: "out_of_ammo" },
-    ]),
-  );
-  add(key, "hidden + pinned + out of ammo", alertPanel);
-  add(key, "hidden + pinned + out of ammo, compact", alertPanel, "own", {
-    zoom: "compressed",
-  });
-  // Every name icon a squad can hold at once.
-  const besieged = panelOf(
     specimenUnit(
       catalog,
       "test_rifle",
-      {
-        concealed: true,
-        suppression: "pinned",
-        engagement: "return_fire_only",
-        hold: {
-          host: { kind: "building", id: 3, center: [0, 0], half: [10, 10] },
-          phase: "inside",
-          progress: 1,
-        },
-      } as Partial<OwnUnitView>,
+      { concealed: true, suppression: "pinned", engagement: "return_fire_only" },
       [{}, { ammo: [0], loaded: null, reason: "out_of_ammo" }],
     ),
   );
-  add(key, "every name icon", besieged);
-  add(key, "every name icon, compact", besieged, "own", { zoom: "compressed" });
+  add(key, "hidden + holding fire + pinned + out of ammo", alertPanel);
+  add(key, "hidden + holding fire + pinned + out of ammo, compact", alertPanel, "own", {
+    zoom: "compressed",
+  });
   const stuck = panelOf(
     specimenUnit(catalog, "test_tank", { state: "route_blocked", engagement: "return_fire_only" }),
   );
@@ -421,16 +403,19 @@ export function panelSpecimens(
     "leaving 70%",
     panelOf(specimenUnit(catalog, "test_rifle", inside("exiting", 0.7) as Partial<OwnUnitView>)),
   );
+  // Its weapons hold too, and say nothing: the order is the unit's row.
+  add(
+    s,
+    "holding fire",
+    panelOf(
+      specimenUnit(catalog, "test_rifle", { engagement: "return_fire_only" }, [
+        { reason: "holding_fire" },
+        { reason: "holding_fire" },
+      ]),
+    ),
+  );
   add(s, "suppressed", panelOf(specimenUnit(catalog, "test_rifle", { suppression: "suppressed" })));
   add(s, "pinned", panelOf(specimenUnit(catalog, "test_rifle", { suppression: "pinned" })));
-  const holding = panelOf(
-    specimenUnit(catalog, "test_rifle", { engagement: "return_fire_only" }, [
-      { reason: "holding_fire" },
-      { reason: "holding_fire" },
-    ]),
-  );
-  add(s, "return fire only", holding);
-  add(s, "return fire only, compressed", holding, "own", { zoom: "compressed" });
   add(
     s,
     "route blocked",

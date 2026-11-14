@@ -5,8 +5,9 @@
  *  word; the ground keeps only selection and movement marks.
  *  - An own unit's panel (`ownPanel`): its type's name, each weapon with
  *    its rounds left and live timers, and its state rows: deployment, a
- *    building, concealment, its fire order, suppression, a blocked route, a truck's stock and its supplying, a
- *    unit's supply in a set-up truck's reach, and a carrier's seats.
+ *    building, concealment, holding fire, suppression, a blocked route, a
+ *    truck's stock and its supplying, a unit's supply in a set-up truck's
+ *    reach, and a carrier's seats.
  *  - An identified enemy's panel (`enemyPanel`): its type's name and weapon
  *    types, never a count, health or anything else the side can't know.
  *  - A contact's panel (`contactPanel`): its remembered type's name and weapons,
@@ -45,26 +46,25 @@ export interface PanelRules {
  *    of rounds is marked.
  *  - `compact`: the row stays on a compact card, which otherwise shows only
  *    its name: what identifies the unit at a glance (a carrier's seats).
- *  - `status`: a condition on the whole unit worth seeing at a glance, for
- *    better (`buff`) or worse (`debuff`). Besides its row, its icon stands by the
- *    name on every card, compact too, so it is said once for the unit and
- *    never repeated on each weapon's row. */
+ *  - `byName`: a condition on the whole unit worth seeing at a glance.
+ *    Besides its row, its icon stands by the name on every card, compact
+ *    too, in its row's tone, so it is said once for the unit and never
+ *    repeated on each weapon's row. */
 export const STATE_ROWS = {
   deployed: { icon: stateIcon("deployed"), word: () => "DEPLOYED", lasting: true },
   in_building: {
     icon: stateIcon("building"),
     word: () => "IN BUILDING",
     lasting: true,
-    status: "buff",
+    byName: true,
   },
-  hidden: { icon: stateIcon("hidden"), word: () => "HIDDEN", lasting: true, status: "buff" },
-  // The command bar's toggle and this row share one mark.
-  return_fire_only: {
+  hidden: { icon: stateIcon("hidden"), word: () => "HIDDEN", lasting: true, byName: true },
+  // The unit's own order, in the mark of the command that gives it.
+  hold_fire: {
     icon: hudIcon("hold_fire"),
-    word: () => "RETURN FIRE ONLY",
+    word: () => "HOLDING FIRE",
     lasting: true,
-    tone: "warn",
-    status: "debuff",
+    byName: true,
   },
   stock: {
     icon: stateIcon("stock"),
@@ -89,14 +89,14 @@ export const STATE_ROWS = {
     icon: stateIcon("suppressed"),
     word: () => "SUPPRESSED",
     tone: "warn",
-    status: "debuff",
+    byName: true,
   },
-  pinned: { icon: stateIcon("pinned"), word: () => "PINNED", tone: "warn", status: "debuff" },
+  pinned: { icon: stateIcon("pinned"), word: () => "PINNED", tone: "warn", byName: true },
   route_blocked: {
     icon: stateIcon("route_blocked"),
     word: () => "ROUTE BLOCKED",
     tone: "warn",
-    status: "debuff",
+    byName: true,
   },
   supplying: { icon: stateIcon("resupply"), word: () => "SUPPLYING" },
   resupplying: { icon: stateIcon("resupply"), word: () => "RESUPPLYING" },
@@ -143,14 +143,12 @@ interface StateRowKind {
   tone?: StateTone;
   amount?: boolean;
   compact?: boolean;
-  status?: StateStatus;
+  byName?: boolean;
 }
 
 type StateKind = keyof typeof STATE_ROWS;
 /** A warning row's shared HUD colour role. */
 type StateTone = "warn";
-/** Whether a unit-wide condition helps or hinders it. */
-type StateStatus = "buff" | "debuff";
 
 /** One state row: an icon and a short word, with its timer or amount. */
 export interface StateRow {
@@ -170,7 +168,7 @@ export interface StateRow {
   /** It stays on a compact card. */
   compact: boolean;
   /** A unit-wide condition: its icon also stands by the name. */
-  status: StateStatus | null;
+  byName: boolean;
 }
 
 const row = (
@@ -191,7 +189,7 @@ const row = (
     lasting: !!s.lasting,
     tone: s.tone ?? (s.amount && n === 0 ? "warn" : null),
     compact: !!s.compact,
-    status: s.status ?? null,
+    byName: !!s.byName,
   };
 };
 
@@ -279,7 +277,7 @@ export function ownStateRows(
   rows.push(seatsRow(units, u, own));
   if (u.hold) rows.push(HOLD_ROWS[u.hold.host.kind]?.[u.hold.phase]?.(u.hold.progress) ?? null);
   if (u.concealed) rows.push(row("hidden"));
-  if (u.engagement === "return_fire_only") rows.push(row("return_fire_only"));
+  if (u.engagement === "return_fire_only") rows.push(row("hold_fire"));
   if (u.suppression !== "none") rows.push(row(u.suppression));
   // The published move state: `route_blocked` has no known route (the order
   // is kept and retried). Giving way to traffic (`waiting`) is the
@@ -548,6 +546,7 @@ export function arrivingUnit(catalog: SessionCatalog, kind: string): OwnUnitView
     position: [0, 0, 0],
     state: "idle",
     suppression: "none",
+    engagement: "fire_at_will",
     concealed: false,
     deployment: t.capabilities?.deploy ? { progress: 0, target: "packed" } : null,
     hold: null,

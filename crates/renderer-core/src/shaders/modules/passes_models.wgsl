@@ -81,16 +81,20 @@ struct ImpostorBuffers {
 }
 
 // @block passes_models_ModelVertexOutput
+// Every interpolated attribute is taken at the centroid: under MSAA a pixel a
+// thin triangle only partly covers shades once, and at the pixel's centre,
+// outside the triangle, its vertex colour or uv would extrapolate to a value
+// no vertex has (a lone white speck on a slat or grille bar once lit).
 struct ModelVertexOutput {
   @invariant @builtin(position) clip: vec4f,
-  @location(0) world: vec3f,
-  @location(1) normal: vec3f,
-  @location(2) tangent: vec4f,
-  @location(3) color: vec4f,
-  @location(4) uv: vec2f,
+  @location(0) @interpolate(perspective, centroid) world: vec3f,
+  @location(1) @interpolate(perspective, centroid) normal: vec3f,
+  @location(2) @interpolate(perspective, centroid) tangent: vec4f,
+  @location(3) @interpolate(perspective, centroid) color: vec4f,
+  @location(4) @interpolate(perspective, centroid) uv: vec2f,
   @location(5) @interpolate(flat) material: u32,
-  @location(6) track: f32,
-  @location(7) tint: vec3f,
+  @location(6) @interpolate(perspective, centroid) track: f32,
+  @location(7) @interpolate(perspective, centroid) tint: vec3f,
   @location(8) @interpolate(flat) highlight: f32,
   @location(9) @interpolate(flat) anchor: vec3f,
   @location(10) @interpolate(flat) xray: vec4f,
@@ -99,14 +103,14 @@ struct ModelVertexOutput {
 
 // @block passes_models_ModelFragmentInput
 struct ModelFragmentInput {
-  @location(0) world: vec3f,
-  @location(1) normal: vec3f,
-  @location(2) tangent: vec4f,
-  @location(3) color: vec4f,
-  @location(4) uv: vec2f,
+  @location(0) @interpolate(perspective, centroid) world: vec3f,
+  @location(1) @interpolate(perspective, centroid) normal: vec3f,
+  @location(2) @interpolate(perspective, centroid) tangent: vec4f,
+  @location(3) @interpolate(perspective, centroid) color: vec4f,
+  @location(4) @interpolate(perspective, centroid) uv: vec2f,
   @location(5) @interpolate(flat) material: u32,
-  @location(6) track: f32,
-  @location(7) tint: vec3f,
+  @location(6) @interpolate(perspective, centroid) track: f32,
+  @location(7) @interpolate(perspective, centroid) tint: vec3f,
   @location(8) @interpolate(flat) highlight: f32,
   @location(9) @interpolate(flat) anchor: vec3f,
   @location(10) @interpolate(flat) xray: vec4f,
@@ -115,7 +119,7 @@ struct ModelFragmentInput {
 
 // @block passes_models_CutoutFragmentInput
 struct CutoutFragmentInput {
-  @location(4) uv: vec2f,
+  @location(4) @interpolate(perspective, centroid) uv: vec2f,
   @location(5) @interpolate(flat) material: u32,
 }
 
