@@ -723,7 +723,8 @@ See **D8**, which holds the merged entry rules.
 
 ### I17 · The camera starts on your lane
 - **When:** slice 06. **Who:** agent. This fixes landmine L10's camera part.
-- **The choice:** You are Blue 2 in a 3v3. The camera opens on Blue's entry at index 2 (your position among Blue players, modulo the entry count). This is framing only: you can buy at any entry (D8). With no human, the camera opens on Blue's first entry, which is the centre on every map now that synthetic entries are ordered too (I18).
+- **The choice:** You are Blue 2 in a 3v3. The camera opens on your lane: lane 2, the second road from the top of the lobby picture. This is framing only: you can buy at any entry (D8). A slot with no lane (4 or 5) and a battle with no human open on the side's first entry, the centre (I18).
+- **Revised:** by [lane slots](../../lane-slots/README.md) (D3). The camera used to open on index `(slot − 1) mod count` of the centre-first list, worked out in TypeScript. It now reads `sim::entries::opening`, the one lane rule.
 - **The gap:** Where a team player's camera starts.
 - **The reach:** Framing only.
 - **Verdict:** sound.

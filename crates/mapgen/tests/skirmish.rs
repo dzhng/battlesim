@@ -455,3 +455,55 @@ fn the_corpus_refuses_no_more_requests_than_before() {
     }
     assert!(admitted > 0, "the corpus admits no request");
 }
+
+/// On a generated map each side numbers its roads from the high-x end. The
+/// flank arms are mirrored and the centre exits are not, so a side's lane k
+/// is the same road as the other side's lane k: both centres, or one arm.
+#[test]
+fn generated_lanes_number_the_same_road_on_both_sides() {
+    use contract::ids::Side;
+    use sim::entries::{self, LaneNumber};
+    let catalogue =
+        contract::templates::TemplateGeometryCatalog::new(serde_json::from_str(TEMPLATES).unwrap())
+            .unwrap();
+    for (size, roads) in [("medium", 2), ("large", 3)] {
+        let (seed, result) = admitted::admitted(1.., 1, |seed| {
+            let mut request = request_with_entries("mixed", seed, catalogue.hash(), roads);
+            request["size"] = serde_json::json!(size);
+            match mapgen::generate_map(
+                &request.to_string(),
+                PRESETS,
+                TEMPLATES,
+                include_str!("../../../fixtures/parity/map-layout/physical-rules.json"),
+            ) {
+                mapgen::CompileOutcome::Ok { result } => Ok(*result),
+                mapgen::CompileOutcome::Error { diagnostics } => Err(diagnostics),
+            }
+        })[0]
+            .clone();
+        let sites = result.sites.skirmish.as_ref().unwrap();
+        let entry = |side, lane| entries::lane_entry(sites, side, LaneNumber(lane)).expect("lane");
+        let x = |side, lane| entries::site(sites, entry(side, lane)).center[0];
+        for lane in 1..=roads as u8 {
+            let centre = |side| entry(side, lane) == entries::centre(sites, side);
+            assert_eq!(
+                centre(Side::Blue),
+                centre(Side::Red),
+                "{size} seed {seed} lane {lane}"
+            );
+            if !centre(Side::Blue) {
+                let (blue, red) = (x(Side::Blue, lane), x(Side::Red, lane));
+                assert!(
+                    (blue - red).abs() < 1e-6,
+                    "{size} seed {seed}: lane {lane} arm moved"
+                );
+            }
+            if lane > 1 {
+                assert!(
+                    x(Side::Blue, lane - 1) > x(Side::Blue, lane),
+                    "{size} seed {seed}"
+                );
+            }
+        }
+    }
+}

@@ -44,7 +44,9 @@ with no human, it opens on the centre.
 - Rust tests in `crates/sim/tests/entries.rs`:
   - on synthetic 1-, 2- and 3-road sites and on admitted maps of every size,
     each side's lanes are a permutation of 1..n and descend in x;
-  - Blue lane k and Red lane k sit at the same x on generated maps;
+  - on generated Medium and Large maps (a mapgen test, since sim can't
+    generate), lane k is the same road on both sides: both centres, or one
+    mirrored arm;
   - slot k ≤ n holds lane k; slots above n and empty slots hold nothing;
   - the opening is the human's home entry, or the centre for slot 4–5 and for
     no human;

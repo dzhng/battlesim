@@ -62,3 +62,42 @@ fn the_synthetic_setup_seats_its_players_on_their_tiers_roads() {
         assert!(!setup.sites.objectives.is_empty(), "{blue}v{red}");
     }
 }
+
+/// The page's lanes are `sim::entries`' own: every entry's number and holder
+/// in list order, and the opening on the human's lane.
+#[test]
+fn the_lane_answer_is_the_entry_owners() {
+    use sim::entries::{self, EntryIndex};
+    let sites = sim::skirmish::synthetic_sites([1200.0, 900.0], 3);
+    let mut players = players(2, 3);
+    players[1].controller = ControllerKind::Human;
+    players[1].human_capable = true;
+    let answer: serde_json::Value = serde_json::from_str(
+        &game_wasm::skirmish_lanes(
+            &serde_json::to_string(&sites).unwrap(),
+            &serde_json::to_string(&players).unwrap(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let sides: Vec<_> = players.iter().map(|player| player.side).collect();
+    let homes = entries::homes(&sites, &sides);
+    let rows = answer["entries"].as_array().unwrap();
+    assert_eq!(rows.len(), sites.entries.len());
+    for (index, row) in rows.iter().enumerate() {
+        let lane = entries::lane_number(&sites, EntryIndex(index)).0;
+        assert_eq!(row["lane"], lane);
+        let holder = homes
+            .iter()
+            .position(|home| *home == Some(EntryIndex(index)))
+            .map(|player| players[player].id.clone());
+        assert_eq!(row["holder"], serde_json::json!(holder));
+    }
+    // Blue fields two players on three roads: one road is unheld.
+    let blue_unheld = rows
+        .iter()
+        .filter(|row| row["side"] == "blue" && row["holder"].is_null())
+        .count();
+    assert_eq!(blue_unheld, 1);
+    assert_eq!(answer["opening"], homes[1].unwrap().0);
+}

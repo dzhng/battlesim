@@ -8,6 +8,7 @@ import { PreparationRefused, prepare, prepareReplay } from "../src/battle/prepar
 import { parseReplayFile } from "@apps/battle-lab/src/replayFile";
 import type { PrepareBattleRequest, PrepareDocuments } from "../src/battle/prepare/protocol";
 import { generationRequest, type MapChoice } from "../src/maps/source";
+import { lanesOf } from "../src/battle/prepare/lanes";
 
 const fixture = (path: string) =>
   readFileSync(new URL(`../../fixtures/${path}`, import.meta.url), "utf8");
@@ -159,6 +160,30 @@ test("a prepared battle fields both asked factions on the requested map, and it 
   for (let tick = 0; tick < 30; tick++) battle.step();
   expect(battle.tick()).toBe(30);
   battle.free();
+}, 60_000);
+
+test("the camera opens on the road the human's slot holds", async () => {
+  const seat = (id: string, side: "blue" | "red", human = false) => ({
+    id,
+    side,
+    faction: side === "blue" ? ("europe" as const) : ("eastern" as const),
+    controller: human ? ("human" as const) : ("active_ai" as const),
+    human_capable: human,
+  });
+  for (const human of ["blue-1", "blue-2"]) {
+    const players = ["blue-1", "blue-2", "red-1", "red-2"].map((id) =>
+      seat(id, id.startsWith("blue") ? "blue" : "red", id === human),
+    );
+    const { scenario, report } = await prepared(
+      request({ ...OPEN, entries_per_side: 2 }, { players }),
+    );
+    const sites = (JSON.parse(scenario) as Scenario).skirmish.sites;
+    const lanes = lanesOf(wasm, JSON.stringify(sites), players);
+    const held = lanes.entries.findIndex((entry) => entry.holder === human);
+    expect(held).toBeGreaterThanOrEqual(0);
+    const entry = sites.entries[held];
+    expect(report.start).toEqual({ at: entry.center, yaw: entry.yaw });
+  }
 }, 60_000);
 
 test("the same request prepares the same battle; another map seed another map", async () => {
