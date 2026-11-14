@@ -1430,9 +1430,15 @@ span.lobby-controller:not(.lobby-pick) {
   border-color: rgb(var(--hud-dim) / 0.25);
 }
 /* One line, level with the options' row, at the end beside Reroll. */
+/* The status takes the strip's free room, its dot at a fixed place a group's
+   gap after Region, so a longer word grows toward Reroll and never moves. */
 .lobby-status {
-  margin: 0 0 0 auto;
+  flex: 1;
+  min-width: 0;
+  margin: 0 0 0 16px;
   padding: 8px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 10.5px;
   letter-spacing: 0.16em;
