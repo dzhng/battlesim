@@ -22,6 +22,7 @@ import {
   type SkirmishSide,
 } from "../skirmishSetup";
 import { battleHref } from "../battleLinks";
+import { DEFAULT_LIGHTING } from "./lighting";
 
 export type LobbySide = SkirmishSide;
 export type LobbyPreset = "1v1" | "3v3" | "5v5";
@@ -33,6 +34,8 @@ export interface LobbyState {
   map: MapChoice;
   battleSeed: number;
   sizeFloor: MapSize;
+  /** Lobby lighting choice: `random` or a fixture look (`day`, `golden_hour`, …). */
+  lighting: string;
 }
 
 const DEFAULT_MAP: MapChoice = { type: "mixed", size: "small", profile: "skirmish", seed: "1" };
@@ -100,6 +103,7 @@ export function preset(kind: LobbyPreset, from?: LobbyState): LobbyState {
     map: { ...(from?.map ?? DEFAULT_MAP), size: floor },
     battleSeed: from?.battleSeed ?? Number(DEFAULT_BATTLE_SEED),
     sizeFloor: floor,
+    lighting: from?.lighting ?? DEFAULT_LIGHTING,
   };
 }
 
@@ -178,6 +182,10 @@ export function setRegion(state: LobbyState, region: string | undefined): LobbyS
   return { ...state, map: region === undefined ? map : { ...map, region } };
 }
 
+export function setLighting(state: LobbyState, lighting: string): LobbyState {
+  return { ...state, lighting };
+}
+
 export function reroll(state: LobbyState, seed?: string): LobbyState {
   const nextSeed = seed ?? newSeed();
   return { ...state, map: { ...state.map, seed: nextSeed } };
@@ -224,5 +232,8 @@ export function lobbyCandidate(generator: MapGenerator, state: LobbyState) {
 
 /** The address of the battle the lobby sets up, without its `/battle` path. */
 export function toUrl(state: LobbyState): string {
-  return battleHref(state.map, state.players, state.battleSeed).replace(/^\/battle/, "");
+  return battleHref(state.map, state.players, state.battleSeed, state.lighting).replace(
+    /^\/battle/,
+    "",
+  );
 }

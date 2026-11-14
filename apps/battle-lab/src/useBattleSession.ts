@@ -73,7 +73,7 @@ import { factionVoices } from "@packages/battle-audio/src/voices/voiceCatalog";
 import { frameCounts, presentedCamera } from "./presentedFrame";
 import { useBattleFielding } from "./useBattleFielding";
 import type { fieldedBattle } from "./presentedFrame";
-import { gameLight } from "./gameLight";
+import { gameSun } from "./gameLight";
 import type { FogRequest, ScenePresentation } from "@web/battle/sim/presentation";
 import type { ViewportCamera } from "@packages/renderer-core/src/viewportCamera";
 import { useAppAudio } from "./AppAudio";
@@ -318,7 +318,7 @@ export function useBattleSession({
       runtime: gameRuntime,
       side,
       tickHz: rules.tick_hz,
-      sun: { azimuth: gameLight.sun_azimuth, elevation: gameLight.sun_elevation },
+      sun: gameSun(),
       soldier: rules.physics,
       xray: gameXray,
       blocked: PURCHASE_BLOCKED,

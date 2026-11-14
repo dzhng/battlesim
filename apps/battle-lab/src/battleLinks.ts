@@ -11,6 +11,7 @@
 // draws the region. A wrong value, or a parameter the battle does not read
 // (an old link's `faction` or `enemy`), is refused by name, never ignored.
 import { DEFAULT_BATTLE_SEED } from "@apps/battle-lab/src/lobby/defaults";
+import { DEFAULT_LIGHTING, parseLighting } from "./lobby/lighting";
 import { FACTIONS, type Faction } from "@packages/scene-assets/src/units";
 import type { Player } from "@web/battle/prepare/protocol";
 import { menuPage } from "./menu/pages";
@@ -31,7 +32,9 @@ import {
 } from "@web/maps/source";
 
 /** What a battle address asks for, before it is pinned to this build. */
-export type AskedBattle = ({ kind: "generated" } & SkirmishBattle) | { kind: "replay" };
+export type AskedBattle =
+  | ({ kind: "generated" } & SkirmishBattle & { lighting: string })
+  | { kind: "replay" };
 
 /** Every parameter a battle address may hold. */
 const PARAMETERS = new Set([
@@ -39,6 +42,7 @@ const PARAMETERS = new Set([
   "size",
   "seed",
   "region",
+  "light",
   "blue",
   "red",
   "blue_faction",
@@ -61,7 +65,7 @@ const SAID: Readonly<Record<string, string>> = {
   eastern: "Eastern",
 };
 /** What a menu address asks the lobby to open on. */
-export type AskedLobby = Partial<MapChoice & { faction: Faction }>;
+export type AskedLobby = Partial<MapChoice & { faction: Faction; lighting: string }>;
 
 /** A data name as the player reads it: `new_york` is "new york", `china` "taiwan". */
 export const spoken = (name: string) => SAID[name] ?? name.replaceAll("_", " ");
@@ -76,12 +80,14 @@ export function askedChoice(search: string): AskedLobby {
   const params = new URLSearchParams(search);
   const [type, size, region] = [params.get("type"), params.get("size"), params.get("region")];
   const faction = params.get("blue_faction");
+  const lighting = parseLighting(params.get("light"));
   return {
     ...(one(faction, FACTIONS) && { faction: faction as Faction }),
     ...(one(type, MAP_TYPES) && { type }),
     ...(one(size, MAP_SIZES) && { size }),
     seed: canonicalSeed(params.get("seed") ?? "") ?? undefined,
     ...(one(region, REGIONS) && { region }),
+    ...(typeof lighting === "string" && lighting !== DEFAULT_LIGHTING && { lighting }),
   };
 }
 
@@ -116,10 +122,16 @@ function playerParams(players: readonly Player[]): string[] {
 }
 
 /** The battle `players` fight on the generated map `choice`. */
-export const battleHref = (choice: MapChoice, players: readonly Player[], battleSeed?: number) =>
+export const battleHref = (
+  choice: MapChoice,
+  players: readonly Player[],
+  battleSeed?: number,
+  lighting: string = DEFAULT_LIGHTING,
+) =>
   `/battle?${[
     query(choice),
     ...(battleSeed === undefined ? [] : [`battle=${battleSeed}`]),
+    ...(lighting !== DEFAULT_LIGHTING ? [`light=${lighting}`] : []),
     ...playerParams(players),
   ]
     .filter(Boolean)
@@ -180,5 +192,13 @@ export function askedBattle(search: string): AskedBattle | { error: string } {
   const chosen = region === null ? {} : { region };
   if (mapSeed === null)
     return { error: "seed must be a whole number from 0 to 18446744073709551615" };
-  return { kind: "generated", players, map: { type, size, seed: mapSeed, ...chosen }, battleSeed };
+  const lighting = parseLighting(params.get("light"));
+  if (typeof lighting !== "string") return { error: lighting.error };
+  return {
+    kind: "generated",
+    players,
+    map: { type, size, seed: mapSeed, ...chosen },
+    battleSeed,
+    lighting,
+  };
 }

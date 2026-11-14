@@ -157,7 +157,10 @@ fn a_default_recording_cannot_invent_a_landing_material() {
 #[test]
 fn misspellings_in_every_document_section_name_their_path() {
     let doc = fixture("presentation");
-    for section in doc.as_object().unwrap().keys() {
+    for (section, value) in doc.as_object().unwrap() {
+        if !value.is_object() {
+            continue;
+        }
         let mut bad = doc.clone();
         bad[section]["misspelled_field"] = json!(false);
         let error = presentation::settings::PresentationSettings::from_value(&bad)
@@ -699,4 +702,210 @@ fn a_look_cannot_shorten_an_impact_past_its_cast_light_at_document_admission() {
         error.contains("tank_sabot") && error.contains("hull"),
         "{error}"
     );
+}
+
+#[test]
+fn the_shipped_default_light_is_the_day_preset() {
+    let settings =
+        presentation::settings::PresentationSettings::from_value(&fixture("presentation")).unwrap();
+    let authored: LightSettings =
+        serde_json::from_value(fixture("presentation")["light"].clone()).unwrap();
+    assert_eq!(settings.light_preset, "day");
+    assert_eq!(settings.light.sun_elevation, 0.7);
+    assert_eq!(settings.light.sun_azimuth, authored.sun_azimuth);
+    assert_eq!(settings.light.sun_elevation, authored.sun_elevation);
+    assert_eq!(settings.light.sun_intensity, authored.sun_intensity);
+    assert_eq!(settings.light.exposure, authored.exposure);
+    assert_eq!(
+        settings.light_presets.get("day").map(|l| l.sun_elevation),
+        Some(0.7)
+    );
+}
+
+#[test]
+fn golden_hour_sits_east_or_west_of_the_fixed_deploy_axis() {
+    let settings =
+        presentation::settings::PresentationSettings::from_value(&fixture("presentation"))
+            .unwrap()
+            .with_light_preset("golden_hour")
+            .unwrap();
+    let day: LightSettings =
+        serde_json::from_value(fixture("presentation")["light"].clone()).unwrap();
+    assert_eq!(settings.light_preset, "golden_hour");
+    // Authored default is due east; the seed picks east or west at match time.
+    // Day keeps its mid-morning azimuth, which is not this list.
+    assert_eq!(settings.light.sun_azimuth, 0.0);
+    assert_eq!(settings.light.sun_azimuths, vec![0.0, std::f64::consts::PI]);
+    assert!(day.sun_azimuths.is_empty());
+    assert_eq!(day.sun_azimuth, -0.35);
+    assert_eq!(settings.light.sun_elevation, 0.16);
+    assert_eq!(settings.light.exposure, 1.78);
+    assert_eq!(settings.light.sun_intensity, day.sun_intensity);
+    assert_eq!(settings.light.sky.fill, [0.62, 0.7, 0.84]);
+    assert_eq!(settings.light.sky.tint, [0.95, 0.97, 1.12]);
+    assert_eq!(settings.light.sky.saturation, 1.32);
+    assert_eq!(settings.light.sky.grade_mix, 0.12);
+    assert_eq!(settings.light.sky.turbidity, 2.8);
+    assert_eq!(settings.light.grade.shadow_tint, [0.98, 1.0, 1.08]);
+    assert_eq!(settings.light.grade.highlight_tint, [1.0, 1.04, 0.98]);
+    assert_eq!(settings.light.grade.split_tone, 0.5);
+    assert_eq!(settings.light.grade.lift, [0.014, 0.020, 0.018]);
+    assert_eq!(settings.light.haze.sun_tint, [1.02, 1.0, 0.96]);
+    assert_eq!(settings.light.haze.mist_color, [0.8, 0.85, 0.92]);
+    assert_eq!(settings.light.cascades.max_far_m, 4000.0);
+    assert_eq!(settings.light.cascades.split_lambda, 0.75);
+    assert_eq!(settings.light.cascades.normal_bias_texels, 1.8);
+    assert_eq!(settings.light.cascades.normal_bias_min_m, 0.04);
+    assert_eq!(settings.light.cascades.depth_bias, -0.000045);
+    assert_eq!(settings.light.cascades.softness_m, 0.16);
+    assert_eq!(settings.light.cascades.map_size, 2048);
+    // Glow is strongest at golden hour; bloom is a wide, low-threshold highpass.
+    assert_eq!(settings.light.glow.wrap, 0.80);
+    assert_eq!(settings.light.glow.rim, 0.45);
+    assert_eq!(settings.light.bloom.threshold, 1.12);
+    assert_eq!(settings.light.bloom.radius, 0.92);
+    assert_eq!(settings.light.bloom.strength, 0.55);
+    assert_eq!(settings.light.haze.sun_strength, 0.50);
+    assert_eq!(settings.light.haze.sun_power, 1.9);
+    // Vegetation response is a no-op by day and a green lift at golden hour.
+    assert_eq!(settings.light.vegetation_tint, [0.90, 1.30, 1.08]);
+    assert_eq!(settings.light.vegetation_lit_keep, 0.70);
+}
+
+#[test]
+fn vegetation_tint_is_packed_on_the_sun_and_day_is_a_no_op() {
+    let settings =
+        presentation::settings::PresentationSettings::from_value(&fixture("presentation")).unwrap();
+    assert_eq!(settings.light.vegetation_tint, [1.0, 1.0, 1.0]);
+    assert_eq!(settings.light.vegetation_lit_keep, 0.0);
+    assert_eq!(
+        settings.light.records().sun.vegetation_tint,
+        [1.0, 1.0, 1.0, 0.0]
+    );
+    let golden = settings.with_light_preset("golden_hour").unwrap();
+    assert_eq!(golden.light.vegetation_tint, [0.90, 1.30, 1.08]);
+    let tint = golden.light.records().sun.vegetation_tint;
+    assert_eq!(&tint[..3], &[0.90, 1.30, 1.08]);
+    assert_eq!(tint[3], 0.70);
+    assert!(tint[1] > tint[0], "green lift");
+}
+
+#[test]
+fn a_vegetation_tint_outside_range_is_refused_by_name() {
+    reject_presentation(
+        "/light/vegetation_tint",
+        json!([1.0, 1.0, 4.1]),
+        "vegetation_tint[2]",
+    );
+    reject_presentation(
+        "/light/vegetation_lit_keep",
+        json!(1.1),
+        "vegetation_lit_keep",
+    );
+}
+
+#[test]
+fn sunlit_glow_is_packed_into_the_sun_record_and_day_is_gentler() {
+    let settings =
+        presentation::settings::PresentationSettings::from_value(&fixture("presentation")).unwrap();
+    let day = settings.light.records().sun.settings;
+    assert_eq!(day[2], 0.22);
+    assert_eq!(day[3], 0.11);
+    assert_eq!(settings.light.bloom.threshold, 1.15);
+    assert_eq!(settings.light.haze.sun_strength, 0.30);
+    let golden = settings
+        .with_light_preset("golden_hour")
+        .unwrap()
+        .light
+        .records()
+        .sun
+        .settings;
+    assert!(golden[2] > day[2], "wrap");
+    assert!(golden[3] > day[3], "rim");
+}
+
+#[test]
+fn a_glow_outside_range_is_refused_by_name() {
+    reject_presentation("/light/glow/wrap", json!(-0.1), "glow.wrap");
+    reject_presentation("/light/glow/rim", json!(2.1), "glow.rim");
+}
+
+#[test]
+fn switching_the_document_default_to_golden_hour_is_the_preset_key() {
+    let mut doc = fixture("presentation");
+    doc["light_preset"] = json!("golden_hour");
+    let settings = presentation::settings::PresentationSettings::from_value(&doc).unwrap();
+    assert_eq!(settings.light_preset, "golden_hour");
+    assert_eq!(settings.light.sun_elevation, 0.16);
+    assert_eq!(settings.light_presets["day"].sun_elevation, 0.7);
+}
+
+#[test]
+fn an_unknown_or_reserved_light_preset_is_refused_by_name() {
+    reject_presentation("/light_preset", json!("dusk"), "light_preset");
+    let mut doc = fixture("presentation");
+    doc["light_presets"]["day"] = doc["light"].clone();
+    let error = presentation::settings::PresentationSettings::from_value(&doc)
+        .err()
+        .expect("a reserved day preset must be refused");
+    assert!(
+        error.contains("light_presets.day"),
+        "reserved name: {error}"
+    );
+}
+
+#[test]
+fn a_broken_named_look_is_refused_under_its_preset_path() {
+    let mut doc = fixture("presentation");
+    doc["light_presets"]["golden_hour"]["sun_elevation"] = json!(-0.1);
+    let error = presentation::settings::PresentationSettings::from_value(&doc)
+        .err()
+        .expect("a broken golden hour must be refused");
+    assert!(
+        error.contains("light_presets.golden_hour.sun_elevation"),
+        "{error}"
+    );
+}
+
+#[test]
+fn every_light_preset_has_a_display_name_and_day_is_daylight() {
+    let settings =
+        presentation::settings::PresentationSettings::from_value(&fixture("presentation")).unwrap();
+    assert_eq!(
+        settings.light_preset_labels.get("day").map(String::as_str),
+        Some("Daylight")
+    );
+    assert_eq!(
+        settings
+            .light_preset_labels
+            .get("golden_hour")
+            .map(String::as_str),
+        Some("Golden hour")
+    );
+    for name in settings.light_presets.keys() {
+        let label = settings.light_preset_labels.get(name).map(|s| s.trim());
+        assert!(label.is_some_and(|s| !s.is_empty()), "{name} needs a label");
+    }
+}
+
+#[test]
+fn a_look_without_a_label_or_named_random_is_refused() {
+    let mut doc = fixture("presentation");
+    doc["light_preset_labels"]
+        .as_object_mut()
+        .unwrap()
+        .remove("golden_hour");
+    let error = presentation::settings::PresentationSettings::from_value(&doc)
+        .err()
+        .expect("a nameless look must be refused");
+    assert!(
+        error.contains("light_preset_labels.golden_hour"),
+        "missing label: {error}"
+    );
+    doc = fixture("presentation");
+    doc["light_presets"]["random"] = doc["light"].clone();
+    let error = presentation::settings::PresentationSettings::from_value(&doc)
+        .err()
+        .expect("random is reserved");
+    assert!(error.contains("light_presets.random"), "reserved: {error}");
 }

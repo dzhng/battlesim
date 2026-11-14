@@ -20,6 +20,14 @@ impl LightSettings {
             -std::f64::consts::TAU,
             std::f64::consts::TAU,
         )?;
+        for (i, v) in self.sun_azimuths.iter().copied().enumerate() {
+            within(
+                &format!("sun_azimuths[{i}]"),
+                v,
+                -std::f64::consts::TAU,
+                std::f64::consts::TAU,
+            )?;
+        }
         within(
             "sun_elevation",
             self.sun_elevation,
@@ -99,6 +107,13 @@ impl LightSettings {
             f64::MIN_POSITIVE,
             100.0,
         )?;
+        within("bloom.strength", self.bloom.strength, 0.0, 8.0)?;
+        within("glow.wrap", self.glow.wrap, 0.0, 2.0)?;
+        within("glow.rim", self.glow.rim, 0.0, 2.0)?;
+        for (i, v) in self.vegetation_tint.into_iter().enumerate() {
+            within(&format!("vegetation_tint[{i}]"), v, 0.0, 4.0)?;
+        }
+        within("vegetation_lit_keep", self.vegetation_lit_keep, 0.0, 1.0)?;
         Ok(())
     }
 }

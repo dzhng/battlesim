@@ -111,8 +111,8 @@
       "range_power": 1.2,
       "range_strength": 0.35,
       "sun_tint": [1.03, 1.01, 0.76],
-      "sun_strength": 0.18,
-      "sun_power": 3.2,
+      "sun_strength": 0.30,
+      "sun_power": 2.6,
       "mist_color": [0.78, 0.85, 0.72],
       "mist_height_m": [8, 50],
       "mist_distance_m": [1800, 5200],
@@ -130,7 +130,10 @@
       "highlight_tint": [1.05, 1.1, 0.85],
       "lift": [0.016, 0.024, 0.012]
     },
-    "bloom": { "strength": 0.24, "radius": 0.55, "threshold": 1.55, "smooth_width": 0.5 },
+    "bloom": { "strength": 0.31, "radius": 0.78, "threshold": 1.15, "smooth_width": 0.60 },
+    "glow": { "wrap": 0.22, "rim": 0.11 },
+    "vegetation_tint": [1.0, 1.0, 1.0],
+    "vegetation_lit_keep": 0.0,
     "cascades": {
       "map_size": 2048,
       "max_far_m": 2600,
@@ -140,6 +143,71 @@
       "depth_bias": -0.00003,
       "softness_m": 0.12
     }
+  },
+  "light_preset": "day",
+  "light_presets": {
+    "golden_hour": {
+      "sun_azimuth": 0.0,
+      "sun_azimuths": [0.0, 3.141592653589793],
+      "sun_elevation": 0.16,
+      "sun_intensity": 7.4,
+      "shadow_floor": 0.18,
+      "sky": {
+        "turbidity": 2.8,
+        "radiance": 9.6,
+        "fill": [0.62, 0.7, 0.84],
+        "saturation": 1.32,
+        "tint": [0.95, 0.97, 1.12],
+        "grade_mix": 0.12,
+        "clouds": { "coverage": 0.42, "height_m": 1600, "scale_m": 600, "softness": 0.05, "opacity": 0.95, "radiance": 1.6, "shade": [0.45, 0.43, 0.41] }
+      },
+      "haze": {
+        "distance_scale": 2.6,
+        "clear_radius_m": 450,
+        "overview_from_m": 2000,
+        "range_near_m": 1000,
+        "range_far_m": 5000,
+        "range_power": 1.2,
+        "range_strength": 0.35,
+        "sun_tint": [1.02, 1.0, 0.96],
+        "sun_strength": 0.50,
+        "sun_power": 1.9,
+        "mist_color": [0.8, 0.85, 0.92],
+        "mist_height_m": [8, 50],
+        "mist_distance_m": [1800, 5200],
+        "mist_color_strength": 0.18,
+        "mist_opacity": 0.05
+      },
+      "exposure": 1.78,
+      "grade": {
+        "enabled": true,
+        "saturation": 0.94,
+        "contrast": 0.86,
+        "split_tone": 0.5,
+        "shadow_lift": 0.18,
+        "shadow_tint": [0.98, 1.0, 1.08],
+        "highlight_tint": [1.0, 1.04, 0.98],
+        "lift": [0.014, 0.020, 0.018]
+      },
+      "bloom": { "strength": 0.55, "radius": 0.92, "threshold": 1.12, "smooth_width": 0.75 },
+      "glow": { "wrap": 0.80, "rim": 0.45 },
+      "vegetation_tint": [0.90, 1.30, 1.08],
+      "vegetation_lit_keep": 0.70,
+      "cascades": {
+        "map_size": 2048,
+        "max_far_m": 4000,
+        "split_lambda": 0.75,
+        "normal_bias_texels": 1.8,
+        "normal_bias_min_m": 0.04,
+        "depth_bias": -0.000045,
+        "softness_m": 0.16
+      }
+    }
+  },
+
+  "light_preset_labels": {
+    "day": "Daylight",
+    "golden_hour": "Golden hour"
   },
   "fog_geometry": {
     "azimuth_bins": 4096,

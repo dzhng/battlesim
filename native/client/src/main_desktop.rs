@@ -140,7 +140,13 @@ impl Run {
             .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../.."));
         std::env::set_var("BATTLEGAME_ROOT", &root);
         let opened = Instant::now();
-        let mut replay = Replay::open_played(&args.scene, &library, &root, args.playback)?;
+        let mut replay = Replay::open_with_light(
+            &args.scene,
+            &library,
+            &root,
+            args.playback,
+            args.light_preset.as_deref(),
+        )?;
         if let Some((index, _)) = args.frozen_bench {
             if index >= replay.records.len() {
                 return Err(format!(

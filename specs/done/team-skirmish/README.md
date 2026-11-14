@@ -128,7 +128,7 @@ with a map of where each old row went. [research.md](research.md) holds the team
 - Team AI: `crates/sim/src/skirmish_ai/team/` (`party.rs`, `help.rs`,
   `stance.rs`, `backline.rs`, `value.rs`'s `unit_value`), purchases in
   `skirmish_ai/purchase.rs`, tuning in `fixtures/skirmish-ai.json`.
-- Browser: `apps/battle-lab/src/lobby/` (pure model and `Lobby.tsx`);
+- Browser: `apps/battle-lab/src/lobby/` (pure model, `lighting.ts`, and `Lobby.tsx`);
   `skirmishSetup.ts`, the one browser setup owner; `battleLinks.ts`;
   `web/src/battle/prepare/preview.ts`; `controlled.ts`; `playerName.ts`;
   `MatchResultOverlay.tsx`; the allied colour `presentation.hud.ally` in
@@ -181,6 +181,31 @@ The closing 5v5 run (three AI-versus-AI matches under the default safety cap of 
   the shove clearance now touch without pressing (`ad809fdab`, on main).
 - **No armour.** The AI never bought an MBT; the recipe fields one, at a
   measured capture cost: one objective fewer in 900 s on 3v3 seed 4 (D2).
+
+
+## Match lighting
+
+The lobby Lighting control is a match setting, not a per-client preference: every
+player in a match, and a later replay of it, draws the same look.
+
+- Options come from `fixtures/presentation.json` `light_presets` (plus `day`,
+  the authored `light` object). Display names come from `light_preset_labels`
+  (`day` is **Daylight**). Adding a look such as dusk or overcast, with a
+  label, makes it appear in the lobby automatically. **Random** is a lobby
+  choice, not a fixture look.
+- **Default: Daylight.** That is the shipped mid-morning look. Golden hour and
+  Random stay one click away; a new match should not silently change every
+  existing battle's light.
+- Random resolves deterministically as `mapSeed % n` over the sorted preset
+  names, so every client agrees. The map seed is used because the lobby's
+  battle seed is a fixed default unless set, and Reroll already changes the
+  map seed. The **resolved** name is stored on the saved replay
+  (`ReplayFile.light_preset`) so adding a look later cannot restage old
+  matches. The lobby link keeps the chosen value (`light=random` or a look).
+- This is presentation only. It is not a `PrepareBattleRequest` field and does
+  not enter the sim or its hashes.
+- Capture overrides still win: `?preset=` / `--light-preset` /
+  `ARMATA_LIGHT_PRESET`, then the match setting, then Daylight.
 
 ## Out of scope and open
 

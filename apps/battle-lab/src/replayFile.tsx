@@ -12,6 +12,8 @@ import { LoadingScreen } from "./LoadingScreen";
 export interface ReplayFile {
   battle: PreparedBattle;
   replay: string;
+  /** Resolved fixture lighting look. Older files omit it and play as Daylight. */
+  light_preset?: string;
 }
 
 const LAST_REPLAY_KEY = "last-replay";
