@@ -100,6 +100,37 @@ function fitDistance(
   return distance;
 }
 
+/** The nearest and farthest orbit distances the wheel reaches round a box
+ *  of half extents `half`, seen from where `orbit` looks, in this view. */
+function zoomRange(orbit: Camera3DParams, half: readonly number[], view: Box, cell: Box) {
+  const fit = (fill: number) =>
+    fitDistance(half, orbit.yaw, orbit.pitch, fill, ARMORY.fov_y, view, cell);
+  return [fit(ARMORY.framing.near), fit(ARMORY.framing.far)] as const;
+}
+
+/** The battle's rig on the Armory's config, its wheel reaching from `near`
+ *  to `far`. */
+function rig(near: number, far: number) {
+  const config: CameraPresentation = {
+    fov_y: ARMORY.fov_y,
+    near_m: ARMORY.near_m,
+    zoom_min: near,
+    zoom_max: far,
+    // Flat: the wheel never carries the pitch along.
+    pitch_curve: [
+      [near, 0],
+      [far, 0],
+    ],
+    pan_speed: 0,
+    rotate_speed: 0,
+    zoom_speed: ARMORY.zoom_speed,
+    orbit_speed: ARMORY.orbit_speed,
+    pitch_limits: ARMORY.pitch_limits,
+    clearance: ARMORY.clearance,
+  };
+  return new CameraController(config);
+}
+
 /** `orbit` with its target where the middle of `cell` falls in `view`. */
 export function framedOrbit(orbit: Camera3DParams, view: Box, cell: Box): Camera3DParams {
   if (!(view.height > 0)) return orbit;
@@ -175,33 +206,6 @@ export class ArmoryCamera {
     return this.framing;
   }
 
-  /** The rig for `orbit` round a box of half extents `half`, in this view:
-   *  the wheel reaches between the nearest and the farthest framing from
-   *  where it looks now. */
-  private rig(orbit: Camera3DParams, half: readonly number[], view: Box, cell: Box) {
-    const fit = (fill: number) =>
-      fitDistance(half, orbit.yaw, orbit.pitch, fill, ARMORY.fov_y, view, cell);
-    const [near, far] = [fit(ARMORY.framing.near), fit(ARMORY.framing.far)];
-    const config: CameraPresentation = {
-      fov_y: ARMORY.fov_y,
-      near_m: ARMORY.near_m,
-      zoom_min: near,
-      zoom_max: far,
-      // Flat: the wheel never carries the pitch along.
-      pitch_curve: [
-        [near, 0],
-        [far, 0],
-      ],
-      pan_speed: 0,
-      rotate_speed: 0,
-      zoom_speed: ARMORY.zoom_speed,
-      orbit_speed: ARMORY.orbit_speed,
-      pitch_limits: ARMORY.pitch_limits,
-      clearance: ARMORY.clearance,
-    };
-    return { controller: new CameraController(config), near, far };
-  }
-
   private orbitFor(
     bounds: Bounds,
     pose: CameraPose,
@@ -222,7 +226,7 @@ export class ArmoryCamera {
       const open = fitDistance(half, angle.yaw, angle.pitch, framing.open, lens.fovY, view, cell);
       from = { ...lens, ...angle, target: center, distance: open };
     }
-    const { controller } = this.rig(from, half, view, cell);
+    const controller = rig(...zoomRange(from, half, view, cell));
     const stepped = controller.step(
       { ...from, ...lens },
       { wheel: this.wheel, drag: this.drag },
@@ -231,7 +235,7 @@ export class ArmoryCamera {
     [this.wheel, this.drag] = [0, [0, 0]];
     // From where it looks now, and in this view, the orbit stays between the
     // nearest and farthest framings.
-    const { near, far } = this.rig(stepped, half, view, cell);
+    const [near, far] = zoomRange(stepped, half, view, cell);
     this.orbit = { ...stepped, distance: clamp(stepped.distance, near, far) };
     return controller.resolve(
       this.clearance,

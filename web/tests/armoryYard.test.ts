@@ -14,6 +14,7 @@ import { loadWasm } from "@web/battle/sim/module";
 import { loadPresentation } from "@web/battle/sim/presentation";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh";
 import {
+  admitYard,
   bodyOf,
   spotFor,
   yard,
@@ -204,13 +205,9 @@ test("past the yard's ground the land rises into hills on each spot's skyline", 
   }
 });
 
-test("every body has a spot", () => {
-  for (const id of units.ids) {
-    const spot = spotFor(yard, units.type(id));
-    expect(spot, id).not.toBeNull();
-    expect(yard.spots[spot!.id]).toBeDefined();
-  }
-  expect(spotFor(yard, null)).toBeNull();
+test("a yard that leaves a body without a spot is refused", () => {
+  const { aircraft: _, ...bodies } = yard.bodies;
+  expect(() => admitYard({ ...yard, bodies })).toThrow(/bodies\.aircraft/);
 });
 
 test("every unit fits its spot's clear disc", async () => {
@@ -219,7 +216,7 @@ test("every unit fits its spot's clear disc", async () => {
   try {
     for (const id of units.ids) {
       const type = units.type(id);
-      const spot = spotFor(yard, type)!;
+      const spot = spotFor(yard, type);
       const hull = units.hull(id);
       const reach = hull
         ? Math.hypot(hull.half_extents_m[0], hull.half_extents_m[1])
@@ -245,8 +242,8 @@ test("a recon squad stands at the tents and a recon vehicle in the motor pool", 
   expect(bodyOf(squad)).toBe("squad");
   expect(bodyOf(vehicle)).toBe("ground");
   expect(bodyOf(rotorcraft)).toBe("aircraft");
-  expect(spotFor(yard, squad)!.id).toBe(yard.bodies.squad);
-  expect(spotFor(yard, vehicle)!.id).toBe(yard.bodies.ground);
-  expect(spotFor(yard, rotorcraft)!.id).toBe(yard.bodies.aircraft);
+  expect(spotFor(yard, squad).id).toBe(yard.bodies.squad);
+  expect(spotFor(yard, vehicle).id).toBe(yard.bodies.ground);
+  expect(spotFor(yard, rotorcraft).id).toBe(yard.bodies.aircraft);
   expect(new Set([yard.bodies.squad, yard.bodies.ground, yard.bodies.aircraft]).size).toBe(3);
 });

@@ -4,7 +4,9 @@
  *  scatters it (`Showground`), and its idle loops are those a stationary
  *  battle vehicle starts. An aircraft stands parked: its rotors still, its
  *  engines off and silent. Each show stands on a presentation and a scene of
- *  its own, as a battle's do: no presentation outlives the scene it fed. */
+ *  its own, as a battle's do, and both go together: a switch clears the
+ *  stage until the new show stands. The stage sizes its own canvas to its
+ *  box on the page at the display's density. */
 import type { Vec3 } from "math";
 import type { BrowserGpu } from "@wasm/renderer_browser";
 import type { Showground } from "@wasm/game_wasm.js";
@@ -73,8 +75,16 @@ export interface StageOptions {
 
 const NO_UI = { selected: [], xray: false, ghosts: [] };
 
+/** A show on stage: its scene, and the presentation that scene draws from. */
+interface Show {
+  scene: BrowserScene;
+  presentation: ScenePresentation;
+}
+
 export class ShowcaseStage {
-  private scene: BrowserScene | null = null;
+  /** The show on stage; null before the first stands, and while a switch
+   *  builds the next. */
+  private shown: Show | null = null;
   /** The last `show` asked for: an older one finishing late is dropped. */
   private asked = 0;
   private camera: PresentedCamera;
@@ -82,11 +92,9 @@ export class ShowcaseStage {
   private disposed = false;
   private input: ShowcaseInput | null = null;
 
-  /** The presentation the stage's scene draws from: the last show's to
-   *  stand, kept until a newer show stands. */
-  private presentation = new ScenePresentation();
-
-  private constructor(private readonly o: StageOptions) {
+  /** A stage with nothing on it yet: it draws once the first `show` is
+   *  on stage. */
+  constructor(private readonly o: StageOptions) {
     const { width, height } = o.canvas;
     this.camera = {
       eye: [-10, -10, 6],
@@ -99,12 +107,6 @@ export class ShowcaseStage {
     };
   }
 
-  /** A stage with nothing on it yet: it draws once the first `show` is
-   *  on stage. */
-  static create(o: StageOptions): ShowcaseStage {
-    return new ShowcaseStage(o);
-  }
-
   /** Shows `unit` in place of the one before (null: the ground and models
    *  alone), drawn from `art`, its squad standing as a battle of seed `seed`
    *  fields it; resolves with the loops it idles with, once it is on stage.
@@ -114,7 +116,7 @@ export class ShowcaseStage {
     const asked = ++this.asked;
     if (!unit) {
       this.input = null;
-      await this.rebuild(asked, art.appearances, new ScenePresentation());
+      await this.rebuild(asked, art.appearances, () => {});
       return [];
     }
     const { rules, catalog, sound } = this.o.fielding;
@@ -131,7 +133,7 @@ export class ShowcaseStage {
       ? { soldiers: [], operators: [] }
       : JSON.parse(this.o.showground.squad(unit.kind, seed));
     const [x, y, z] = unit.at;
-    this.input = {
+    const input: ShowcaseInput = {
       kind: unit.kind,
       side: "blue",
       at: [x, y, z],
@@ -139,41 +141,49 @@ export class ShowcaseStage {
       soldiers: squad.soldiers.map((s) => ({ ...s, at: [x + s.at[0], y + s.at[1]] })),
       operators: squad.operators,
     };
-    const presentation = new ScenePresentation();
-    try {
-      presentation.setShowcase(fielded, this.input);
-      await this.rebuild(asked, art.appearances, presentation);
-    } catch (error) {
-      // A show that never stands frees the presentation it made.
-      if (presentation !== this.presentation) presentation.free();
-      throw error;
-    }
+    this.input = input;
+    await this.rebuild(asked, art.appearances, (presentation) => {
+      presentation.setShowcase(fielded, input);
+    });
     return asked === this.asked ? idleLoops(sound, unit.kind) : [];
   }
 
-  /** Draws the stage at presentation time `time` (seconds) from `camera`;
-   *  false while the scene is still being built for the unit shown. */
-  frame(time: number, camera: PresentedCamera): boolean {
+  /** Draws the stage at presentation time `time` (seconds), its canvas
+   *  sized to its box on the page at the display's density, from `camera`
+   *  for that size in device pixels (null: none yet); false while nothing
+   *  stands to draw. */
+  frame(time: number, camera: (width: number, height: number) => PresentedCamera | null): boolean {
     this.assertLive("frame");
-    this.camera = camera;
-    const scene = this.scene;
-    if (!scene || !scene.worldCurrent()) return false;
-    const { width, height } = this.o.canvas;
+    const { canvas } = this.o;
+    const dpr = window.devicePixelRatio || 1;
+    const width = Math.max(1, Math.round(canvas.clientWidth * dpr));
+    const height = Math.max(1, Math.round(canvas.clientHeight * dpr));
+    if (canvas.width !== width || canvas.height !== height)
+      [canvas.width, canvas.height] = [width, height];
+    const presented = camera(width, height);
+    if (!presented) return false;
+    this.camera = presented;
+    const shown = this.shown;
+    if (!shown || !shown.scene.worldCurrent()) return false;
+    const { scene, presentation } = shown;
     if (width !== this.size[0] || height !== this.size[1]) {
       this.size = [width, height];
       scene.resize();
     }
     scene.flush();
-    this.presentation.setShadow(this.o.look.settings.light, this.o.world.terrain.mesh);
-    this.presentation.frame(time, camera, NO_UI, scene.staticGeneration);
+    presentation.setShadow(this.o.look.settings.light, this.o.world.terrain.mesh);
+    presentation.frame(time, presented, NO_UI, scene.staticGeneration);
     return scene.render();
   }
 
   /** The frame drawn last and the rows its batches name, for probes: valid
-   *  until the next call into the module. */
-  records(): { frame: PresentedFrame; rows: readonly PresentedAppearance[] } {
+   *  until the next call into the module; null while nothing stands. */
+  records(): { frame: PresentedFrame; rows: readonly PresentedAppearance[] } | null {
     this.assertLive("records");
-    return { frame: this.presentation.lastFrame(), rows: this.presentation.appearanceRows() };
+    const presentation = this.shown?.presentation;
+    return presentation
+      ? { frame: presentation.lastFrame(), rows: presentation.appearanceRows() }
+      : null;
   }
 
   /** The unit on stage as the presentation stands it; null for none. */
@@ -184,47 +194,59 @@ export class ShowcaseStage {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
-    this.scene?.dispose();
-    this.scene = null;
-    this.presentation.free();
+    this.clear();
   }
 
-  /** A scene built for show `asked` on `presentation`, drawing
-   *  `appearances`; it replaces the stage's scene and presentation once it
-   *  stands, and is dropped with its presentation if a newer show came. */
+  /** Takes the show on stage down: its scene, then its presentation. */
+  private clear(): void {
+    this.shown?.scene.dispose();
+    this.shown?.presentation.free();
+    this.shown = null;
+  }
+
+  /** Builds show `asked` on a presentation of its own, posed by `pose`,
+   *  drawing `appearances`. The show on stage goes first, so the stage
+   *  stands clear until this one stands; a newer show, or the stage's end,
+   *  drops it. Every path that leaves it off the stage frees its scene and
+   *  its presentation. */
   private async rebuild(
     asked: number,
     appearances: InstalledAppearances,
-    presentation: ScenePresentation,
+    pose: (presentation: ScenePresentation) => void,
   ): Promise<void> {
     const { gpu, canvas, world, models, scenery, look, failed } = this.o;
-    this.scene?.dispose();
-    this.scene = null;
-    const trees = scenery(appearances);
-    presentation.setGround(world.terrain.input, trees !== null);
-    presentation.setShadow(look.settings.light, world.terrain.mesh);
-    presentation.frame(0, this.camera, NO_UI, 0);
-    const scene = await BrowserScene.create({
-      gpu,
-      canvas,
-      presentation,
-      world: { ...world, scenery: trees },
-      ...look,
-      appearances,
-      models: models(appearances),
-      instances: [],
-      redraw: () => {},
-      failed,
-    });
+    this.clear();
+    const presentation = new ScenePresentation();
+    let scene: BrowserScene;
+    try {
+      pose(presentation);
+      const trees = scenery(appearances);
+      presentation.setGround(world.terrain.input, trees !== null);
+      presentation.setShadow(look.settings.light, world.terrain.mesh);
+      presentation.frame(0, this.camera, NO_UI, 0);
+      scene = await BrowserScene.create({
+        gpu,
+        canvas,
+        presentation,
+        world: { ...world, scenery: trees },
+        ...look,
+        appearances,
+        models: models(appearances),
+        instances: [],
+        redraw: () => {},
+        failed,
+      });
+    } catch (error) {
+      presentation.free();
+      throw error;
+    }
     // A later show, or the stage's end, may have come while it was built.
     if (this.disposed || asked !== this.asked || !scene.worldCurrent()) {
       scene.dispose();
       presentation.free();
       return;
     }
-    this.presentation.free();
-    this.presentation = presentation;
-    this.scene = scene;
+    this.shown = { scene, presentation };
     this.size = [0, 0];
   }
 

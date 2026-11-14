@@ -4,7 +4,7 @@
 // centre stays clear). The selection is the page's own state, mirrored to the
 // address (`/armory?unit=<card id>`) with a raw `history.replaceState`, which
 // the router never sees, so a pick never remounts the page (L13).
-import { Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { FACTIONS, type Faction, type UnitCard } from "@packages/scene-assets/src/units";
 import type { SessionCatalog } from "@web/battle/catalog/compose";
 import { SessionCatalogScope, useSessionCatalog } from "@web/battle/catalog/context";
@@ -194,14 +194,14 @@ export function ArmoryPage({ cards, stage }: ArmoryPageProps) {
   );
 }
 
-/** The menu's Armory page: the game's roster, on its stage. */
+/** The menu's Armory page: the game's roster, on its stage. While the
+ *  catalog loads it suspends to the menu page's boundary, which holds the
+ *  loading cover. */
 export function ArmoryVisit() {
   return (
-    <Suspense fallback={null}>
-      <SessionCatalogScope set="game">
-        <GameArmory />
-      </SessionCatalogScope>
-    </Suspense>
+    <SessionCatalogScope set="game">
+      <GameArmory />
+    </SessionCatalogScope>
   );
 }
 

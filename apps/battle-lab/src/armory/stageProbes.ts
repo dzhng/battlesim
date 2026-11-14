@@ -27,9 +27,11 @@ export interface DrawnModel {
 }
 
 /** Each model `stage` drew last frame: its appearance, where it stands and
- *  faces, and its pose. */
+ *  faces, and its pose; none while nothing stands. */
 export function drawnModels(stage: ShowcaseStage): DrawnModel[] {
-  const { frame, rows } = stage.records();
+  const records = stage.records();
+  if (!records) return [];
+  const { frame, rows } = records;
   const b = frame.batches.u32;
   const inst = frame.instances.f32;
   const joints = frame.palettes.f32;

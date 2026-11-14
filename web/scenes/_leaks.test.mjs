@@ -29,7 +29,7 @@ async function pageWithGpu() {
   return { page, adapter: new GPUAdapter(), gpu: window.__gpuResources };
 }
 
-test("one observer counts live GPU allocations across devices and before a departure mark", async () => {
+test("one observer counts live GPU allocations across devices and between marks", async () => {
   const { page, adapter, gpu } = await pageWithGpu();
   // Reinstalling observation must not wrap the device or allocation APIs twice.
   await trackPageResources(page);
@@ -43,6 +43,7 @@ test("one observer counts live GPU allocations across devices and before a depar
   expect((await pageResources(page)).devices).toBe(2);
   expect(gpu.counts()).toEqual({ buffers: 1, textures: 2 });
   expect(gpu.counts(mark)).toEqual({ buffers: 1, textures: 1 });
+  expect(gpu.counts(Infinity, mark)).toEqual({ buffers: 0, textures: 1 });
   buffer.destroy();
   buffer.destroy();
   texture.destroy();

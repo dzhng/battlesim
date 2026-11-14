@@ -48,7 +48,7 @@ test("a pick replaces the address and never remounts the page", async () => {
 });
 
 test("an unknown unit falls back to the first tile and rewrites the address", async () => {
-  await visitApp("/armory?unit=no_such_card");
+  await visitApp(`${menuPage("armory").path}?unit=no_such_card`);
   await screen.findByRole("region", { name: "Units" });
   const first = tiles()[0];
   expect(first.getAttribute("aria-pressed")).toBe("true");

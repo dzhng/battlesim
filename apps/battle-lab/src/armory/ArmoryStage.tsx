@@ -88,24 +88,11 @@ function LiveStage({ card, faction, drawn }: StageProps & { drawn: () => void })
     let made: ShowcaseStage | null = null;
     let first = true;
     let last = performance.now();
-    /** The camera for this frame: the whole canvas, the unit in the cell. */
-    const presented = (now: number) => {
-      const dpr = window.devicePixelRatio || 1;
-      const width = Math.max(1, Math.round(canvas.clientWidth * dpr));
-      const height = Math.max(1, Math.round(canvas.clientHeight * dpr));
-      if (canvas.width !== width || canvas.height !== height)
-        [canvas.width, canvas.height] = [width, height];
-      const view = canvas.getBoundingClientRect();
-      const cell = canvas.parentElement!.getBoundingClientRect();
-      const dt = Math.min(0.1, (now - last) / 1000);
-      last = now;
-      return camera.presented(view, cell, width, height, dt);
-    };
     void appResources
       .gpu()
       .then((gpu) => {
         if (!live) return;
-        made = ShowcaseStage.create({
+        made = new ShowcaseStage({
           gpu,
           canvas,
           world: yardWorld(),
@@ -120,8 +107,17 @@ function LiveStage({ card, faction, drawn }: StageProps & { drawn: () => void })
         const start = performance.now();
         const loop = (now: number) => {
           if (!live) return;
-          const drawnCamera = shown.current && presented(now);
-          if (drawnCamera && made!.frame((now - start) / 1000, drawnCamera) && first) {
+          const dt = Math.min(0.1, (now - last) / 1000);
+          last = now;
+          // The camera for this frame: the whole canvas, the unit in the cell
+          // (none once the canvas has left the page).
+          const presented = (width: number, height: number) => {
+            const cell = canvas.parentElement?.getBoundingClientRect();
+            return cell
+              ? camera.presented(canvas.getBoundingClientRect(), cell, width, height, dt)
+              : null;
+          };
+          if (made!.frame((now - start) / 1000, presented) && first) {
             first = false;
             drawn();
           }
@@ -192,7 +188,7 @@ function LiveStage({ card, faction, drawn }: StageProps & { drawn: () => void })
       }
       const art = await appearances.show({ kind: unit.id, faction, scenery: scenery.current });
       if (!live) return;
-      const spot = spotFor(yard, unit)!;
+      const spot = spotFor(yard, unit);
       const at: [number, number, number] = [spot.at[0], spot.at[1], 0];
       const loops = await stage.show(
         { kind: unit.id, faction, at, yaw: spot.yaw },
@@ -212,7 +208,7 @@ function LiveStage({ card, faction, drawn }: StageProps & { drawn: () => void })
     return () => {
       live = false;
     };
-  }, [stage, unit, faction, units, catalog, appearances, audio, fail, drawn, camera]);
+  }, [stage, unit, faction, units, catalog, appearances, audio, fail, camera]);
 
   return (
     <>

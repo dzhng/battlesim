@@ -16,6 +16,7 @@ import type { IdleLoop } from "@packages/battle-audio/src/soundFrame";
 import type { WorldLayers } from "@packages/battle-renderer/src/scene";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { ShowcaseStage, type StageArt, type StageFielding } from "@web/battle/render/showcaseStage";
+import type { PresentedCamera } from "@web/battle/sim/presentation";
 import { appResources } from "../appResources";
 import { gameCamera } from "../gameCamera";
 import { presentedCamera } from "../presentedFrame";
@@ -76,7 +77,8 @@ interface Panel {
   kind: string;
   stage: ShowcaseStage;
   canvas: HTMLCanvasElement;
-  camera: () => ReturnType<typeof presentedCamera>;
+  /** Its camera for a canvas of `width` × `height` device pixels. */
+  camera: (width: number, height: number) => PresentedCamera;
   /** The orbit the camera looks from now. */
   orbit: () => Camera3DParams;
   loops: IdleLoop[];
@@ -119,7 +121,7 @@ export default function Showcase() {
       kinds: () => [...panels.keys()],
       ready: () => kinds.every((k) => panels.has(k)),
       pause: (on: boolean) => (paused = on),
-      draw: (time: number) => [...panels.values()].every((p) => p.stage.frame(time, p.camera())),
+      draw: (time: number) => [...panels.values()].every((p) => p.stage.frame(time, p.camera)),
       rect: (kind: string) => rectOf(panels.get(kind)!),
       loops: (kind: string) => panels.get(kind)?.loops ?? null,
       rotors: (kind: string) => rotorDiscs(panels.get(kind)!),
@@ -198,14 +200,8 @@ function ShowcasePanel(props: {
     let live = true;
     let raf = 0;
     let stage: ShowcaseStage | null = null;
-    const camera = () => {
-      const dpr = window.devicePixelRatio || 1;
-      const width = Math.max(1, Math.round(canvas.clientWidth * dpr));
-      const height = Math.max(1, Math.round(canvas.clientHeight * dpr));
-      if (canvas.width !== width || canvas.height !== height)
-        [canvas.width, canvas.height] = [width, height];
-      return presentedCamera({ camera3d: orbit.current, width, height });
-    };
+    const camera = (width: number, height: number) =>
+      presentedCamera({ camera3d: orbit.current, width, height });
     const appearances = new ArmoryAppearances(units);
     void (async () => {
       const gpu = await appResources.gpu();
@@ -215,7 +211,7 @@ function ShowcasePanel(props: {
         : new Set<string>();
       const art = await appearances.show({ kind, faction, scenery });
       if (!live) return;
-      const made = ShowcaseStage.create({
+      const made = new ShowcaseStage({
         gpu,
         canvas,
         world,
@@ -236,7 +232,7 @@ function ShowcasePanel(props: {
       const start = performance.now();
       const loop = (now: number) => {
         if (!live) return;
-        if (!paused) made.frame((now - start) / 1000, camera());
+        if (!paused) made.frame((now - start) / 1000, camera);
         raf = requestAnimationFrame(loop);
       };
       raf = requestAnimationFrame(loop);
@@ -294,10 +290,11 @@ function projected(p: Panel, at: Vec3): [number, number] | null {
 /** Each rotor disc drawn last frame: its hub on screen and its radius in
  *  pixels (the larger of its reach across and along the view). */
 function rotorDiscs(p: Panel) {
-  const { frame } = p.stage.records();
+  const discs: { at: [number, number]; radius: number }[] = [];
+  const frame = p.stage.records()?.frame;
+  if (!frame) return discs;
   const f = frame.effects.f32;
   const rotor = SHAPE_NAMES.indexOf("rotor");
-  const discs: { at: [number, number]; radius: number }[] = [];
   for (let i = 0; i < frame.effects.count; i++) {
     const w = i * EFFECT_WORDS;
     // Each rotor's blades: the one record with a chord.

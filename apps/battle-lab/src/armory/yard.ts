@@ -18,8 +18,9 @@ import { gameBiome } from "../gameBiome";
 import { plainWorld, type GroundPad } from "../plainWorld";
 
 export type SpotId = "apron" | "motor_pool" | "tents";
+const BODIES = ["squad", "aircraft", "ground"] as const;
 /** What a unit stands as, for the spot it takes. */
-export type Body = "squad" | "aircraft" | "ground";
+export type Body = (typeof BODIES)[number];
 
 /** Where a spot's camera looks from at first: the orbit about `target`. */
 export interface CameraPose {
@@ -68,9 +69,9 @@ const finite = (v: unknown, n: number) =>
   Array.isArray(v) && v.length === n && v.every((x) => Number.isFinite(x));
 
 /** `raw` as a yard document, or an error naming each field it gets wrong:
- *  its shape and that every body names a spot. The relief's features are
- *  the battle's own, admitted where they are read (`yardGround`, and the
- *  stage's ground). */
+ *  its shape and that every body takes one of its spots. The relief's
+ *  features are the battle's own, admitted where they are read
+ *  (`yardGround`, and the stage's ground). */
 export function admitYard(raw: unknown): YardDocument {
   const doc = raw as YardDocument;
   const wrong: string[] = [];
@@ -87,8 +88,10 @@ export function admitYard(raw: unknown): YardDocument {
   for (const [id, s] of Object.entries(doc.spots ?? {}))
     if (!finite(s.at, 2) || !(s.clear_m > 0) || !finite(s.camera?.target, 3))
       wrong.push(`spots.${id}: an [x, y] at, a positive clear_m and a camera target`);
-  for (const [body, id] of Object.entries(doc.bodies ?? {}))
+  for (const body of BODIES) {
+    const id = doc.bodies?.[body];
     if (!doc.spots?.[id]) wrong.push(`bodies.${body}: no spot "${id}"`);
+  }
   (doc.props ?? []).forEach((p, i) => {
     if (typeof p.kind !== "string" || !finite(p.at, 2) || !Number.isFinite(p.yaw))
       wrong.push(`props[${i}]: a kind, an [x, y] at and a yaw`);
@@ -132,9 +135,8 @@ export function bodyOf(unit: UnitType): Body {
   return "air" in unit.mobility ? "aircraft" : "ground";
 }
 
-/** The spot `unit` stands on; null for none (a planned card). */
-export function spotFor(doc: YardDocument, unit: UnitType | null): Spot | null {
-  if (!unit) return null;
+/** The spot `unit` stands on. */
+export function spotFor(doc: YardDocument, unit: UnitType): Spot {
   const id = doc.bodies[bodyOf(unit)];
   return { id, ...doc.spots[id] };
 }
