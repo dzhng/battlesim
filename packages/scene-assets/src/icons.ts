@@ -96,7 +96,6 @@ const STATE_ICONS = {
   // seats, and a squad getting in or out.
   seats:
     '<path d="M5.5 2h4v3h-4z" fill="currentColor"/><path d="M5.5 7h4l1.5 7H5.5z" fill="currentColor"/><path d="M5.5 15.5H18a2.25 2.25 0 0 1 0 4.5H5.5z" fill="currentColor"/>',
-  waiting: '<path d="M9 6v12M15 6v12"/>',
   route_blocked: '<path d="M3 12h11"/><path d="M10 8l4 4-4 4"/><path d="M19 5v14"/>',
   hidden: CLOSED_EYE,
   last_seen: EYE,

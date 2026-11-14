@@ -192,6 +192,30 @@ export function panelSpecimens(
   add(key, "hidden + pinned + out of ammo, compact", alertPanel, "own", {
     zoom: "compressed",
   });
+  // Every name icon a squad can hold at once.
+  const besieged = panelOf(
+    specimenUnit(
+      catalog,
+      "test_rifle",
+      {
+        concealed: true,
+        suppression: "pinned",
+        engagement: "return_fire_only",
+        hold: {
+          host: { kind: "building", id: 3, center: [0, 0], half: [10, 10] },
+          phase: "inside",
+          progress: 1,
+        },
+      } as Partial<OwnUnitView>,
+      [{}, { ammo: [0], loaded: null, reason: "out_of_ammo" }],
+    ),
+  );
+  add(key, "every name icon", besieged);
+  add(key, "every name icon, compact", besieged, "own", { zoom: "compressed" });
+  const stuck = panelOf(
+    specimenUnit(catalog, "test_tank", { state: "route_blocked", engagement: "return_fire_only" }),
+  );
+  add(key, "route blocked, compact", stuck, "own", { zoom: "compressed" });
   add(
     key,
     "compact: deployment and reload",
@@ -407,7 +431,6 @@ export function panelSpecimens(
   );
   add(s, "return fire only", holding);
   add(s, "return fire only, compressed", holding, "own", { zoom: "compressed" });
-  add(s, "waiting", panelOf(specimenUnit(catalog, "test_tank", { state: "waiting" })));
   add(
     s,
     "route blocked",
@@ -555,19 +578,17 @@ export function panelSpecimens(
     c,
     "AT team pinned",
     panelOf(
-      specimenUnit(
-        catalog,
-        "test_at",
-        { suppression: "pinned", state: "waiting", service: "moving" },
-        [{}, { ammo: [1], reason: "no_own_sight" }],
-      ),
+      specimenUnit(catalog, "test_at", { suppression: "pinned", service: "moving" }, [
+        {},
+        { ammo: [1], reason: "no_own_sight" },
+      ]),
     ),
   );
   add(
     c,
-    "tank waiting, supply blocked",
+    "tank, supply blocked",
     panelOf(
-      specimenUnit(catalog, "test_tank", { state: "waiting", service: "firing" }, [
+      specimenUnit(catalog, "test_tank", { service: "firing" }, [
         { loaded: null, reloading: 0, reload: 0.8, ammo: [2, 0], reason: "reloading" },
         { reason: "friendly_in_line" },
       ]),

@@ -5,7 +5,7 @@
  *  word; the ground keeps only selection and movement marks.
  *  - An own unit's panel (`ownPanel`): its type's name, each weapon with
  *    its rounds left and live timers, and its state rows: deployment, a
- *    building, concealment, its fire order, suppression, waiting, a truck's stock and its supplying, a
+ *    building, concealment, its fire order, suppression, a blocked route, a truck's stock and its supplying, a
  *    unit's supply in a set-up truck's reach, and a carrier's seats.
  *  - An identified enemy's panel (`enemyPanel`): its type's name and weapon
  *    types, never a count, health or anything else the side can't know.
@@ -45,13 +45,18 @@ export interface PanelRules {
  *    of rounds is marked.
  *  - `compact`: the row stays on a compact card, which otherwise shows only
  *    its name: what identifies the unit at a glance (a carrier's seats).
- *  - `status`: a condition on the whole unit's fighting, for better
- *    (`buff`) or worse (`debuff`). Besides its row, its icon stands by the
+ *  - `status`: a condition on the whole unit worth seeing at a glance, for
+ *    better (`buff`) or worse (`debuff`). Besides its row, its icon stands by the
  *    name on every card, compact too, so it is said once for the unit and
  *    never repeated on each weapon's row. */
 export const STATE_ROWS = {
   deployed: { icon: stateIcon("deployed"), word: () => "DEPLOYED", lasting: true },
-  in_building: { icon: stateIcon("building"), word: () => "IN BUILDING", lasting: true },
+  in_building: {
+    icon: stateIcon("building"),
+    word: () => "IN BUILDING",
+    lasting: true,
+    status: "buff",
+  },
   hidden: { icon: stateIcon("hidden"), word: () => "HIDDEN", lasting: true, status: "buff" },
   // The command bar's toggle and this row share one mark.
   return_fire_only: {
@@ -87,8 +92,12 @@ export const STATE_ROWS = {
     status: "debuff",
   },
   pinned: { icon: stateIcon("pinned"), word: () => "PINNED", tone: "warn", status: "debuff" },
-  waiting: { icon: stateIcon("waiting"), word: () => "WAITING" },
-  route_blocked: { icon: stateIcon("route_blocked"), word: () => "ROUTE BLOCKED", tone: "warn" },
+  route_blocked: {
+    icon: stateIcon("route_blocked"),
+    word: () => "ROUTE BLOCKED",
+    tone: "warn",
+    status: "debuff",
+  },
   supplying: { icon: stateIcon("resupply"), word: () => "SUPPLYING" },
   resupplying: { icon: stateIcon("resupply"), word: () => "RESUPPLYING" },
   last_seen: { icon: stateIcon("last_seen"), word: (n: number | string) => `LAST SEEN ${n} s AGO` },
@@ -272,9 +281,9 @@ export function ownStateRows(
   if (u.concealed) rows.push(row("hidden"));
   if (u.engagement === "return_fire_only") rows.push(row("return_fire_only"));
   if (u.suppression !== "none") rows.push(row(u.suppression));
-  // The published move state: `waiting` yields to vehicle traffic in the
-  // way; `route_blocked` has no known route (the order is kept and retried).
-  if (u.state === "waiting") rows.push(row("waiting"));
+  // The published move state: `route_blocked` has no known route (the order
+  // is kept and retried). Giving way to traffic (`waiting`) is the
+  // pathfinder's detail, not the player's, and says nothing.
   if (u.state === "route_blocked") rows.push(row("route_blocked"));
   if (u.stock !== null) {
     const full = units.type(u.kind).capabilities?.supply?.stock;
