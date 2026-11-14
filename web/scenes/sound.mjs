@@ -453,11 +453,15 @@ async function auditionTour(ctx, page) {
         kind: "clip",
         duration: clip.frames / clip.sample_rate,
       })),
-      ...Object.keys(SOUNDS).map((id) => ({
-        id,
-        kind: "sound",
-        duration: synthesize(id, 48000).channels[0].length / 48000,
-      })),
+      // Each synthesis that stands as a sound of its own; one that only layers
+      // under another (impact_hull under the bullet's metal hit) is heard there.
+      ...Object.keys(SOUNDS)
+        .filter((id) => id in gameSounds.sounds)
+        .map((id) => ({
+          id,
+          kind: "sound",
+          duration: synthesize(id, 48000).channels[0].length / 48000,
+        })),
     ];
     const clips = [];
     try {
