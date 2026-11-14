@@ -5,10 +5,10 @@ edition = "2021"
 
 [dependencies]
 contract = { path = "../contract" }
-serde = { version = "1", features = ["derive"] }
+serde.workspace = true
 serde_json = { workspace = true, features = ["raw_value"] }
 sim = { path = "../sim" }
-libm = { version = "=0.2.16", default-features = false }
+libm.workspace = true
 
 [[example]]
 name = "battle_sweep"

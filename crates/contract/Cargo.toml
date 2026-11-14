@@ -4,10 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-serde = { version = "1", features = ["derive"] }
+serde.workspace = true
 serde_json = { workspace = true, features = ["raw_value"] }
 sha2 = "0.10"
-libm = { version = "=0.2.16", default-features = false }
+libm.workspace = true
 
 # Native-only tests and examples may use std math; the library denies it (crates/clippy.toml).
 [lints.clippy]

@@ -15,7 +15,7 @@ winit = "0.30"
 pollster = "0.4"
 bytemuck = "1.25"
 png = "0.17"
-serde = { version = "1", features = ["derive"] }
+serde.workspace = true
 serde_json.workspace = true
 sha2 = "0.10"
 half = "2"

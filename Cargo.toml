@@ -8,6 +8,16 @@ resolver = "2"
 [workspace.dependencies]
 serde_json = { version = "1", features = ["float_roundtrip"] }
 
+# One implementation of the transcendental functions for WebAssembly and
+# native, so every build places, culls, synthesizes and simulates alike.
+libm = { version = "=0.2.16", default-features = false }
+
+# The two WebAssembly builds (game-wasm, then renderer-browser) must resolve the
+# crates they share with identical features, or the second rebuilds sim and
+# contract instead of reusing the first's. Shared dependencies are declared here
+# once; serde carries `alloc` because wgpu's naga-types asks for it.
+serde = { version = "1", features = ["derive", "rc", "alloc"] }
+
 [profile.release]
 opt-level = 3
 lto = "thin"

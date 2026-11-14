@@ -13,4 +13,9 @@ contract = { path = "../contract" }
 mapgen = { path = "../mapgen" }
 serde_json.workspace = true
 
-serde = { version = "1", features = ["derive"] }
+serde.workspace = true
+
+# wasm-opt's -O1 ships a smaller download after compression than its default
+# -O, in a sixth of the time; Rust's own release build has already optimized.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-O1"]
