@@ -447,6 +447,23 @@ const SHOTS: { id: string; draw: () => ReactNode }[] = [
       />
     ),
   },
+  {
+    id: "resources-failed",
+    draw: () => (
+      <LoadingScreen
+        title="Deploying"
+        subject="Battle resources"
+        stages={[]}
+        current=""
+        failure={{
+          message: "The battle cannot continue.",
+          advice: "Return to the menu, or reload to prepare fresh resources.",
+          details: ["WebGPU error: the device was lost"],
+        }}
+        recovery={<button className="hud-menu-item">Reload</button>}
+      />
+    ),
+  },
 ];
 
 export default function UiGallery() {

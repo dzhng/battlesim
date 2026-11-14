@@ -7,7 +7,33 @@ pub(super) struct StaticDraft {
     pub(super) buildings: Option<BuildingPopulation>,
     pub(super) props: Option<PropPopulation>,
     pub(super) scenery: Option<SceneryWalk>,
+    /// The scenery's rows in the draft's world, once `scenery_required`.
+    scenery_rows: Vec<Vec<u32>>,
     scenery_required: bool,
+}
+
+/// Each building module's row: its kit, and the module as the state.
+pub(in crate::presentation) fn building_rows(world: &mut World, buildings: &Buildings) -> Vec<u32> {
+    (0..buildings.modules.len())
+        .map(|m| {
+            let (kit, module) = buildings.module(m);
+            world.row(kit, module, NONE, 0, true)
+        })
+        .collect()
+}
+
+/// Each scenery kind's row per way it draws. Scenery draws its appearances'
+/// summer state (winter will be the next biome's).
+fn scenery_rows(world: &mut World, kinds: &[String]) -> Vec<Vec<u32>> {
+    DRAWS
+        .iter()
+        .map(|&d| {
+            kinds
+                .iter()
+                .map(|name| world.drawn_row(name, "summer", NONE, 0, true, d as u32))
+                .collect()
+        })
+        .collect()
 }
 
 impl StaticDraft {
@@ -33,9 +59,10 @@ impl StaticDraft {
                             .map(|v| v as f32),
                     ))
                 })?;
+                let rows = building_rows(world, &buildings);
                 Ok::<_, String>(BuildingPopulation {
                     walk: active.walk.replace_buildings(buildings),
-                    rows: active.rows.clone(),
+                    rows,
                     changes: 0,
                 })
             })
@@ -53,10 +80,15 @@ impl StaticDraft {
                 .map(|(name, state, draws)| world.drawn_row(name, state, NONE, 0, true, *draws))
                 .collect();
         }
+        let scenery_rows = p
+            .scenery
+            .as_ref()
+            .map_or_else(Vec::new, |walk| scenery_rows(world, &walk.scenery.kinds));
         Ok(Self {
             buildings,
             props,
             scenery: None,
+            scenery_rows,
             scenery_required: p.scenery.is_some(),
         })
     }
@@ -74,12 +106,7 @@ impl StaticDraft {
         }
         let ground = p.ground().ok_or("scenery requires ground")?;
         let mut next = scenery_from_art(ground, finest, p.scenery_quality)?;
-        next.rows = p
-            .scenery
-            .as_ref()
-            .expect("scenery admission source")
-            .rows
-            .clone();
+        next.rows = self.scenery_rows.clone();
         self.scenery = Some(next);
         Ok(())
     }
@@ -237,18 +264,7 @@ impl Presentation {
 
     pub(in crate::presentation) fn register_scenery_rows(&mut self) {
         if let Some(walk) = &mut self.scenery {
-            let world = &mut self.world;
-            // Scenery draws its appearances' summer state (winter will be
-            // the next biome's).
-            walk.rows = DRAWS
-                .iter()
-                .map(|&d| {
-                    let names = walk.scenery.kinds.iter();
-                    names
-                        .map(|name| world.drawn_row(name, "summer", NONE, 0, true, d as u32))
-                        .collect()
-                })
-                .collect();
+            walk.rows = scenery_rows(&mut self.world, &walk.scenery.kinds);
         }
     }
 }

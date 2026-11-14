@@ -3,7 +3,13 @@ import { Link } from "react-router";
 // how far along it is, and, if it cannot be made, why. In the HUD's look.
 import { useEffect, useState, type ReactNode } from "react";
 import { diagnosticsFailure } from "@web/diagnostics";
-import { downloads, type DownloadProgress } from "@web/downloads";
+import { CopyDiagnostics } from "./DiagnosticsControls";
+import {
+  downloadRate,
+  downloads,
+  type DownloadProgress,
+  type DownloadSample,
+} from "@web/downloads";
 
 export interface LoadingStage {
   id: string;
@@ -19,29 +25,46 @@ export interface LoadingFailure {
   details: string[];
 }
 
+/** How far back the speed looks: long enough to smooth chunky arrivals,
+ *  short enough to show a stall within a few seconds. */
+const RATE_WINDOW_MS = 3000;
+
 /** The page's downloads, sampled a few times a second (a byte count per
- *  chunk would redraw the screen hundreds of times a second). */
-function useDownloads(): DownloadProgress {
-  const [d, setD] = useState(downloads.get);
+ *  chunk would redraw the screen hundreds of times a second), and how fast
+ *  their bytes are arriving. */
+function useDownloads(): { d: DownloadProgress; rate: number | null } {
+  const [state, setState] = useState(() => ({ d: downloads.get(), rate: null as number | null }));
   useEffect(() => {
-    const id = setInterval(() => setD(downloads.get()), 200);
+    let samples: DownloadSample[] = [];
+    const id = setInterval(() => {
+      const d = downloads.get();
+      const at = performance.now();
+      // A new burst counts from zero, so its samples start afresh.
+      const last = samples[samples.length - 1];
+      if (!d.active || (last && d.loaded < last.loaded)) samples = [];
+      if (d.active) samples.push({ at, loaded: d.loaded });
+      samples = samples.filter((s) => at - s.at <= RATE_WINDOW_MS);
+      setState({ d, rate: downloadRate(samples) });
+    }, 200);
     return () => clearInterval(id);
   }, []);
-  return d;
+  return state;
 }
 
 const mb = (bytes: number) => (bytes / 1e6).toFixed(1);
+const speed = (perSecond: number) =>
+  perSecond >= 1e6 ? `${mb(perSecond)} MB/s` : `${Math.round(perSecond / 1e3)} KB/s`;
 
 /** What is downloading: megabytes received, of the size announced when it
- *  is (a compressed download can outrun its announced size). */
+ *  is (a compressed download can outrun its announced size), and how fast. */
 function Downloading() {
-  const d = useDownloads();
+  const { d, rate } = useDownloads();
   if (!d.active) return null;
   const of = d.total >= d.loaded ? ` of ${mb(d.total)}` : "";
   return (
     <div className="loading-bytes" data-testid="loading-bytes">
       Downloading {mb(d.loaded)}
-      {of} MB
+      {of} MB{rate !== null && ` · ${speed(rate)}`}
     </div>
   );
 }
@@ -89,22 +112,27 @@ export function LoadingScreen({
           <div className="loading-failure" role="alert" data-testid="error">
             <p className="hud-error">{failure.message}</p>
             {failure.advice && <p className="loading-advice">{failure.advice}</p>}
-            {back !== null && (
-              <Link className="hud-menu-item" to={back}>
-                Back to the menu
-              </Link>
-            )}
-            {recovery}
-            {failure.details.length > 0 && (
-              <button
-                type="button"
-                className="menu-dev"
-                aria-expanded={details}
-                onClick={() => setDetails(!details)}
-              >
-                Details
-              </button>
-            )}
+            <div className="loading-actions">
+              {back !== null && (
+                <Link className="hud-menu-item" to={back}>
+                  Back to the menu
+                </Link>
+              )}
+              {recovery}
+            </div>
+            <div className="loading-dev">
+              {failure.details.length > 0 && (
+                <button
+                  type="button"
+                  className="menu-dev"
+                  aria-expanded={details}
+                  onClick={() => setDetails(!details)}
+                >
+                  Details
+                </button>
+              )}
+              <CopyDiagnostics className="menu-dev" />
+            </div>
             {details && (
               <ul className="loading-details" data-testid="error-details">
                 {[...new Set(failure.details)].map((line) => (

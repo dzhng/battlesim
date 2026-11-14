@@ -16,21 +16,15 @@ export interface DownloadProgress {
 
 const IDLE: DownloadProgress = { active: 0, loaded: 0, total: 0 };
 let now: DownloadProgress = IDLE;
-const listeners = new Set<() => void>();
 
 function set(next: DownloadProgress) {
   // A burst ends when its last download does; the next one counts afresh.
   now = next.active === 0 ? IDLE : next;
-  for (const l of listeners) l();
 }
 
-/** The download counter, for `useSyncExternalStore`. */
+/** The download counter. Readers poll it. */
 export const downloads = {
   get: (): DownloadProgress => now,
-  subscribe(listener: () => void): () => void {
-    listeners.add(listener);
-    return () => listeners.delete(listener);
-  },
 };
 
 /** `fetch`, its body counted into `downloads` as it arrives. */
@@ -87,4 +81,20 @@ export async function countedFetch(input: RequestInfo | URL, init?: RequestInit)
     statusText: response.statusText,
     headers: response.headers,
   });
+}
+
+/** A reading of `downloads.loaded` at a time in milliseconds. */
+export interface DownloadSample {
+  at: number;
+  loaded: number;
+}
+
+/** How fast bytes are arriving, in bytes per second, over `samples` (oldest
+ *  first, one burst): null until they span a second, so the first chunk does
+ *  not read as a spike. A stall reads as zero. */
+export function downloadRate(samples: readonly DownloadSample[]): number | null {
+  const first = samples[0];
+  const last = samples[samples.length - 1];
+  if (!first || !last || last.at - first.at < 1000) return null;
+  return ((last.loaded - first.loaded) * 1000) / (last.at - first.at);
 }
