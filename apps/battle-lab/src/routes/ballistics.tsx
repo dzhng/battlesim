@@ -732,7 +732,7 @@ function BallisticsLab({ map }: { map: MapDefinition }) {
       >
         <strong>{artilleryRoute ? "Artillery" : "Ballistics"}</strong>
         <div className="lab-hint">
-          Tick {run.tick} · {run.lab.subsegments_per_tick()} chord/tick · middle-drag orbit · WASD
+          Tick {run.tick} · {run.lab.subsegments_per_tick()} chord/tick · middle-drag look · WASD
           pan
         </div>
         <div className="lab-row">

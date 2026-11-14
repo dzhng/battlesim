@@ -67,9 +67,11 @@ const STUDIO_FOV = 0.6;
 const rig = new CameraController(gameCamera.config);
 
 /** The rig the workbench steers with: the game's feel, reaching in to a
- *  metre and holding whatever tilt the user drags in. */
+ *  metre, holding whatever tilt the user drags in, and turning round the
+ *  model rather than looking away from it. */
 export const WORKBENCH_CAMERA: CameraPresentation = {
   ...gameCamera.config,
+  drag_pivot: "target",
   zoom_min: 0.8,
   zoom_max: 600,
   pitch_curve: [

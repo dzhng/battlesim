@@ -124,7 +124,8 @@ function rig(near: number, far: number) {
     pan_speed: 0,
     rotate_speed: 0,
     zoom_speed: ARMORY.zoom_speed,
-    orbit_speed: ARMORY.orbit_speed,
+    drag_speed: ARMORY.orbit_speed,
+    drag_pivot: "target",
     pitch_limits: ARMORY.pitch_limits,
     clearance: ARMORY.clearance,
   };

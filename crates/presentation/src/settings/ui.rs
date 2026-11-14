@@ -36,7 +36,7 @@ pub struct Camera {
     pub pan_speed: f64,
     pub rotate_speed: f64,
     pub zoom_speed: f64,
-    pub orbit_speed: f64,
+    pub drag_speed: f64,
     pub r#default: CameraDefault,
     pub clearance: CameraClearance,
 }

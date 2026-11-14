@@ -309,16 +309,13 @@
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  margin-right: -12px;
-  padding: 10px 12px 28px 0;
+  padding: 10px 0 28px;
   /* Lines fade into the scroll's edges rather than being cut off. */
   mask-image: linear-gradient(transparent, #000 18px, #000 calc(100% - 36px), transparent);
   font-size: 13px;
   line-height: 1.55;
   /* Body a step under full brightness, so key terms and keys stand out. */
   color: rgb(var(--hud-text) / 0.82);
-  scrollbar-width: thin;
-  scrollbar-color: rgb(var(--hud-accent) / 0.5) transparent;
 }
 .menu-tutorial section {
   display: grid;
