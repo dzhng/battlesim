@@ -1,29 +1,13 @@
 #![allow(clippy::approx_constant)]
 
 use crate::common;
+use crate::common::command;
 use crate::common::Seat;
 use contract::command::{CommandEnvelope, Order, TargetRef};
 use contract::ids::{Side, UnitId};
 use serde_json::json;
 use sim::battle::Battle;
 use sim::fixtures::{self, test_rules};
-
-fn command(side: Side, seq: u64, order: Order) -> CommandEnvelope {
-    CommandEnvelope {
-        side,
-        player: Some(
-            match side {
-                Side::Blue => "blue-1",
-                Side::Red => "red-1",
-                Side::Neutral => "neutral",
-            }
-            .into(),
-        ),
-        seq,
-        order,
-        queued: false,
-    }
-}
 
 /// A match on the test units, with a U.S. deck of a tank and a supply truck.
 pub(crate) fn setup() -> contract::scenario::ScenarioDefinition {
