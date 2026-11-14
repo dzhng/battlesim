@@ -2543,8 +2543,8 @@ async function selectionTour(ctx) {
 }
 
 /** The info panels' layout: at a far, busy camera the closest units' panels
- *  get full detail and stay clear of each other, holding that layout steady,
- *  and hovering an unselected unit opens its full panel. */
+ *  get full detail where they stand, held steady, and hovering an unselected
+ *  unit opens its full panel. */
 async function panelLayoutTour(ctx) {
   const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
   const own = (await obs(page)).own;
@@ -2560,11 +2560,13 @@ async function panelLayoutTour(ctx) {
         .map((n) => {
           const id = n.dataset.unit ?? n.dataset.enemy ?? n.dataset.contact;
           const r = n.getBoundingClientRect();
+          const d = n.closest(".ro-callout").querySelector("path.ro-leader").getAttribute("d");
           return {
             id,
             owner: n.dataset.owner,
             key: `${n.dataset.owner}-${id}`,
             mode: n.dataset.zoom,
+            rise: d.slice(0, d.lastIndexOf(" L ")),
             x: r.x,
             y: r.y,
             w: r.width,
@@ -2601,21 +2603,16 @@ async function panelLayoutTour(ctx) {
     );
     await lab(page, () => window.__lab.frame());
     const full = await cards();
-    const moved = full.filter((c, i) => Math.hypot(c.x - small[i].x, c.y - small[i].y) > 0.5);
-    const overlap = full.some((a, i) =>
-      full
-        .slice(i + 1)
-        .some((b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h),
-    );
+    const moved = full.filter((c) => small.find((s) => s.key === c.key)?.rise !== c.rise);
     ctx.check(
       `${name}: the closest 30% receive full detail`,
       small.length > 0 && nearest.every((k) => full.find((c) => c.key === k)?.mode === "default"),
       JSON.stringify({ nearest, full }),
     );
     ctx.check(
-      `${name}: full cards stay clear with at most one shift per nearby card`,
-      !overlap && moved.length <= quota,
-      JSON.stringify({ moved: moved.map((c) => c.key), quota }),
+      `${name}: Space opens the full cards where they stand`,
+      full.length === small.length && moved.length === 0,
+      JSON.stringify({ moved: moved.map((c) => c.key) }),
     );
     await shot(ctx, page, `panels-${name}-full`);
     await lab(page, () => window.__lab.frame());

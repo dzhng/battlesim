@@ -12,6 +12,7 @@ import {
   pointerOffCanvas,
   menuShown,
   openMenuPage,
+  restart,
 } from "./_lab.mjs";
 import { readFileSync } from "node:fs";
 
@@ -232,9 +233,8 @@ export async function appJourney(ctx) {
   // A prepared battle's authority is the worker that prepared it.
   const old = page.workers().find((worker) => worker.url().includes("/prepare/worker.ts"));
   const closed = old.waitForEvent("close");
-  await openMenu(page);
   await page.evaluate(() => window.__pauseNextWorkerStart());
-  await page.getByRole("button", { name: "Restart", exact: true }).click();
+  await restart(page);
   await closed;
   await ready();
   await advance(page, 90 - (await obs(page)).tick);

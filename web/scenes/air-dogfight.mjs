@@ -4,9 +4,10 @@
 // a_third_jet_joins_by_targeting_an_engaged_one, the_link_breaks_past_the_rule_distance_in_3d,
 // pursuit_aims_where_the_target_was, and dogfight_height_stays_in_its_band.
 // The battle is directed: two blue jets start inside break range of two
-// J-10s and are each sent at one; the third, held back, is flown at the fight
-// and sent at the first J-10 once inside break range, since a jet sent at
-// another from beyond it circles where it is.
+// J-10s and are each sent at one; the third, held back close enough to reach
+// the fight before either pair is settled, is flown at it and sent at the
+// first J-10 once inside break range, since a jet sent at another from beyond
+// it circles where it is.
 // Browser-only evidence: on the real field the fight forms and grows to three
 // blue aircraft, the selected one carries the DOGFIGHT card, and an explicit
 // move takes it out of the fight while its wingman is still in it; the

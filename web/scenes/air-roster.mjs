@@ -227,7 +227,9 @@ async function planeOrder(ctx, page, o) {
       const card = document.querySelector(`[data-testid=readouts] .ro-unit[data-unit="${id}"]`);
       const twin = card.closest(".ro-callout").cloneNode(true);
       twin.dataset.twin = "";
-      twin.style.zIndex = "999";
+      // The top of the ground plane (`readoutPaintOrder`): over every other
+      // ground card, still under the high-air models' canvas at 0.
+      twin.style.zIndex = "-1";
       twin.querySelector("path")?.setAttribute("d", "");
       const node = twin.querySelector(".ro-unit");
       node.style.display = "flex";

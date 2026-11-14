@@ -2,7 +2,7 @@
   "units": [
     {"side":"blue","kind":"f_16c_block_50","position":[1500,1250],"yaw":0},
     {"side":"blue","kind":"f_16c_block_50","position":[1500,1750],"yaw":0},
-    {"side":"blue","kind":"f_16c_block_50","position":[520,2750],"yaw":0,"engagement":"return_fire_only"},
+    {"side":"blue","kind":"f_16c_block_50","position":[1100,900],"yaw":0,"engagement":"return_fire_only"},
     {"side":"red","kind":"eastern_j_10_vigorous_dragon_j_10c","position":[2350,1250],"yaw":3.14159,"engagement":"return_fire_only"},
     {"side":"red","kind":"eastern_j_10_vigorous_dragon_j_10c","position":[2350,1750],"yaw":3.14159,"engagement":"return_fire_only"}
   ]

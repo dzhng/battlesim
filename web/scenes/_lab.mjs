@@ -190,10 +190,11 @@ export async function closeMenu(page) {
   await page.getByRole("dialog", { name: "Paused" }).waitFor({ state: "detached" });
 }
 
-/** Restart a battle from its pause menu. */
+/** Restart a battle from its pause menu, answering the question it asks. */
 export async function restart(page) {
   await openMenu(page);
   await page.getByRole("button", { name: "Restart", exact: true }).click();
+  await page.getByRole("button", { name: "Restart battle", exact: true }).click();
 }
 
 /** Mount the battle view afresh (`/labs/street`'s `remount` probe); resolves
@@ -275,6 +276,22 @@ export const groundCss = (page, p) =>
     (q) => window.__lab.projectToCss(q[0], q[1], window.__lab.route.surfaceZ(q[0], q[1])),
     p,
   );
+
+/** The page point of bare ground near world point `p`: the first of
+ *  `offsets` (metres) where the pointer would meet the world, no card or
+ *  HUD over it, as the frame now lays them out. */
+export async function bareGroundCss(page, p, offsets) {
+  await lab(page, () => window.__lab.frame());
+  for (const [dx, dy] of offsets) {
+    const at = await groundCss(page, [p[0] + dx, p[1] + dy]);
+    const bare = await page.evaluate(
+      ([x, y]) => document.elementFromPoint(x, y)?.tagName === "CANVAS",
+      at,
+    );
+    if (bare) return at;
+  }
+  throw Error(`no bare ground near ${p}`);
+}
 
 /** The pointer onto the HUD's menu button: off the canvas (no range ruler,
  *  no edge pan), whatever the selection. */
