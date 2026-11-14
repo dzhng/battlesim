@@ -59,15 +59,29 @@ export async function countedFetch(input: RequestInfo | URL, init?: RequestInit)
     done = true;
     set({ ...now, active: now.active - 1 });
   };
-  const counted = response.body.pipeThrough(
-    new TransformStream<Uint8Array, Uint8Array>({
-      transform(chunk, controller) {
-        set({ ...now, loaded: now.loaded + chunk.byteLength });
-        controller.enqueue(chunk);
-      },
-      flush: finish,
-    }),
-  );
+  // A download ends however its body does: read whole, dropped by the
+  // network, or cancelled by its reader. Each one ends the count.
+  const source = response.body.getReader();
+  const counted = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      // A rejected pull errors this stream with the same error.
+      const chunk = await source.read().catch((error: unknown) => {
+        finish();
+        throw error;
+      });
+      if (chunk.done) {
+        finish();
+        controller.close();
+      } else {
+        set({ ...now, loaded: now.loaded + chunk.value.byteLength });
+        controller.enqueue(chunk.value);
+      }
+    },
+    cancel(reason) {
+      finish();
+      return source.cancel(reason);
+    },
+  });
   return new Response(counted, {
     status: response.status,
     statusText: response.statusText,

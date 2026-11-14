@@ -2,10 +2,11 @@
 // The one loader: installs a whole catalog generation at once, refuses a
 // file that does not decode to its declared lengths, and keeps what is
 // installed when anything fails. Content hashes are proved once, when the
-// runtime files are baked and checked (`asset check`), not on every load.
-import { expect, test } from "vitest";
+// runtime files are baked and checked (`asset check`), not on every load. A
+// read the network drops is tried again before it fails anything.
+import { afterEach, expect, test, vi } from "vitest";
 import { bakeCatalog, runtimeCatalogText } from "@packages/scene-assets/src/bake.ts";
-import { AppearanceLibrary, memoryFetch } from "@packages/scene-assets/src/loader.ts";
+import { AppearanceLibrary, memoryFetch, type Fetch } from "@packages/scene-assets/src/loader.ts";
 import {
   bundlePath,
   CATALOG_LOAD_MAX_BYTES,
@@ -84,6 +85,68 @@ test("a corrupted bundle fails the load and keeps the installed generation", asy
   await expect(library.load("/assets/")).rejects.toThrow(/does not inflate/);
   expect(library.installed).toBe(first);
   expect(library.installed?.appearances.size).toBe(6);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+/** `promise` settled, the retry waits elapsing in fake time while inflation
+ *  and decoding run on the real event loop. */
+async function elapsed<T>(promise: Promise<T>): Promise<T> {
+  let settled = false;
+  promise.then(
+    () => (settled = true),
+    () => (settled = true),
+  );
+  while (!settled) {
+    await new Promise((resolve) => setImmediate(resolve));
+    await vi.advanceTimersByTimeAsync(50);
+  }
+  return promise;
+}
+
+/** `files` with each one's first `drops` reads lost the way a browser reports
+ *  a dropped connection (a TypeError), from the request or from its body. */
+function dropping(
+  files: ReadonlyMap<string, Uint8Array>,
+  drops: number,
+  where: "request" | "body",
+): Fetch {
+  const served = memoryFetch(files, "/assets/");
+  const reads = new Map<string, number>();
+  return async (url) => {
+    const read = (reads.get(url) ?? 0) + 1;
+    reads.set(url, read);
+    const lost = read <= drops;
+    if (lost && where === "request") throw new TypeError("Load failed");
+    const response = await served(url);
+    return lost
+      ? { ...response, arrayBuffer: () => Promise.reject(new TypeError("Load failed")) }
+      : response;
+  };
+}
+
+test.each(["request", "body"] as const)(
+  "files whose connection drops in the %s are read again and the catalog installs",
+  async (where) => {
+    const { files } = await served();
+    vi.useFakeTimers({ toFake: ["setTimeout"] });
+    const library = new AppearanceLibrary(dropping(files, 2, where));
+    const installed = await elapsed(library.load("/assets/"));
+    expect(installed.appearances.size).toBe(6);
+  },
+);
+
+test("a file the network keeps dropping fails the load and keeps the installed generation", async () => {
+  const { files } = await served();
+  let network = memoryFetch(files, "/assets/");
+  const library = new AppearanceLibrary((url) => network(url));
+  const first = await library.load("/assets/");
+  vi.useFakeTimers({ toFake: ["setTimeout"] });
+  network = dropping(files, Infinity, "body");
+  await expect(elapsed(library.load("/assets/"))).rejects.toThrow("Load failed");
+  expect(library.installed).toBe(first);
 });
 
 test("an LFS pointer served in place of a bundle names the exact pull", async () => {

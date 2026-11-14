@@ -268,15 +268,7 @@ function PreparedBattleView({
         if (loaded === "world") setStage("renderer");
       }}
       status={({ sim }) => <BattleClock tick={sim.observation?.tick ?? 0} />}
-      menu={() => (
-        <>
-          <div className="hud-menu-note" data-testid="status">
-            {subject}
-            {replay && " · saved battle"}
-          </div>
-          {replay && onLoadReplay && <ReplayImport onLoad={onLoadReplay} />}
-        </>
-      )}
+      menu={() => replay && onLoadReplay && <ReplayImport onLoad={onLoadReplay} />}
       diagnostics={(session) => ({
         /** What the preparation worker made: the request, the map's identity
          *  and counts, where blue starts and what each stage cost. */
