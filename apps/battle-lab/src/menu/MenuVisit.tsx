@@ -1,16 +1,23 @@
 // One visit inside the menu shell: home, or a page under its title and a Back
 // button. Escape is Back, as in a game's menus.
-import { useEffect, useRef, type ComponentType, type Ref } from "react";
+import { lazy, Suspense, useEffect, useRef, type ComponentType, type Ref } from "react";
 import { hudIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "@web/battle/present/icons";
-import { ArmoryVisit } from "../armory/ArmoryPage";
 import { Tutorial } from "../Tutorial";
 import { DeveloperPage } from "./DeveloperPage";
 import { Home } from "./Home";
+import { useLabLoading } from "../LabLoading";
 import { useMenuShell } from "./MenuShell";
 import { menuPage, type MenuPageId } from "./pages";
 import { SettingsPage } from "./SettingsPage";
 import { SkirmishPage } from "./SkirmishPage";
+
+/** The Armory loads with its page: its stage, its yard document and its art
+ *  library stay out of the menu until a visit asks for them, so a fault in
+ *  them can only ever reach the Armory's own page. */
+const ArmoryVisit = lazy(() =>
+  import("../armory/ArmoryPage").then((page) => ({ default: page.ArmoryVisit })),
+);
 
 /** What each page draws under its title. */
 const CONTENTS: Record<MenuPageId, ComponentType> = {
@@ -41,9 +48,18 @@ function PageView({ page }: { page: MenuPageId }) {
   return (
     <>
       <PageHead title={menuPage(page).title} onBack={back} backRef={backButton} />
-      <Contents />
+      <Suspense fallback={<PageLoading />}>
+        <Contents />
+      </Suspense>
     </>
   );
+}
+
+/** A page whose code is still loading holds the shell's cover, so the cover
+ *  lifts once, on the page as it first draws. */
+function PageLoading() {
+  useLabLoading("preparation", false);
+  return null;
 }
 
 /** A page's head: Back at its top left and the page's name beside it. */
