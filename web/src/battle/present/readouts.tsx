@@ -129,7 +129,8 @@ export interface ReadoutLayerHandle {
   cardBox(unit: number): ReadoutRect | null;
   /** Re-anchor every panel; call once per animation frame. `clock` is that
    *  frame's presentation clock in seconds, which eases a panel's nudge
-   *  (null snaps it). */
+   *  (null snaps it). Returns the side's unit `hover` is over, by its card or
+   *  its model, or null. */
   place(
     project: Project,
     camera: Camera3DParams,
@@ -137,7 +138,7 @@ export interface ReadoutLayerHandle {
     clock?: number | null,
     expanded?: boolean,
     hover?: ReadoutHover | null,
-  ): void;
+  ): number | null;
 }
 
 /** One panel: whose, where its leader starts and what it says. */
@@ -304,8 +305,15 @@ export function ReadoutLayer({
    *  hovered last frame keeps hold while the pointer is in its compact or
    *  drawn box, so expanding it never moves it out from under the pointer. */
   const hoveredKey = (hover: ReadoutHover | null): string | null => {
+    // A card a close camera has faded out is not under the pointer.
     const contains = (r: ReadoutRect | null | undefined) =>
-      !!r && !!hover && hover.x >= r.x0 && hover.x <= r.x1 && hover.y >= r.y0 && hover.y <= r.y1;
+      zoomOpacity.current > 0 &&
+      !!r &&
+      !!hover &&
+      hover.x >= r.x0 &&
+      hover.x <= r.x1 &&
+      hover.y >= r.y0 &&
+      hover.y <= r.y1;
     const previous = hoveredCard.current;
     const held =
       previous &&
@@ -327,12 +335,11 @@ export function ReadoutLayer({
               : null))
       : null;
   };
-  /** The card shown open: the hovered one, else a selected ally's, held
-   *  open as a hovered one is, since selecting it is how the player reads it. */
-  const openKey = (hover: ReadoutHover | null): string | null =>
-    hoveredKey(hover) ??
-    calloutsRef.current.find((c) => c.owner === "ally" && c.selected)?.key ??
-    null;
+  /** The card shown open: the hovered one (`hovered`), else a selected
+   *  ally's, held open as a hovered one is, since selecting it is how the
+   *  player reads it. */
+  const openKey = (hovered: string | null): string | null =>
+    hovered ?? calloutsRef.current.find((c) => c.owner === "ally" && c.selected)?.key ?? null;
   /** A panel off the layout this frame: no leader, and no nudge to ease from. */
   const unplace = (key: string) => {
     leaders.current.get(key)?.setAttribute("d", "");
@@ -404,7 +411,8 @@ export function ReadoutLayer({
     },
     place(project, camera, drawn = {}, clock = null, expanded = false, hover = null) {
       zoomOpacity.current = cardZoomOpacity(camera.distance);
-      hoveredCard.current = openKey(hover);
+      const pointed = hoveredKey(hover);
+      hoveredCard.current = openKey(pointed);
       eyePosition(_readout_eye, camera);
       const overlap = camera.distance > 1000;
       // Each panel's anchor, in page pixels.
@@ -546,6 +554,7 @@ export function ReadoutLayer({
         drawnBoxes,
         overprint,
       );
+      return pointed?.startsWith("own-") ? Number(pointed.slice("own-".length)) : null;
     },
   }));
   const bind = useCallback(

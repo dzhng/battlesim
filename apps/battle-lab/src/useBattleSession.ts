@@ -60,7 +60,7 @@ import type { Player } from "@web/battle/prepare/protocol";
 import type { LabBox, LabPick, ViewportCursor } from "./LabViewport";
 import { drawnUnits, pickToPointer, sideInstances, type DrawnInstances } from "./sideInstances";
 import { surfaceHeights } from "./surfaceHeights";
-import { panelPlacer } from "./panelPlacement";
+import { usePanels } from "./panelPlacement";
 import { commandedEconomy, commandingPlayer, takesOrders } from "./commandingPlayer";
 import { allyOwners, controlled, playerIndex } from "@web/battle/input/controlled";
 import { useSimSession } from "./useSimSession";
@@ -654,6 +654,7 @@ export function useBattleSession({
         metresPerPxAt(camera.distance, camera.fovY, window.innerHeight),
         null,
         renderScale,
+        purchaseGhost.current,
       );
       return active ? (purchaseGhost.current?.valid === false ? "blocked" : "default") : null;
     }
@@ -1026,14 +1027,9 @@ export function useBattleSession({
     /** The battle's sound (null unless `sound`), and its per-frame listener. */
     audio,
     hear,
-    /** The info panels' layer, and its placing (`panelPlacer`). */
+    /** The info panels' layer, and its placing and hover (`usePanels`). */
     readouts,
-    placePanels: panelPlacer(
-      readouts,
-      { drawn, drawnAt, drawnEnemyAt, drawnClock },
-      surfaceZ,
-      control,
-    ),
+    ...usePanels(readouts, { drawn, drawnAt, drawnEnemyAt, drawnClock }, surfaceZ, control),
     refusals: {
       refusals: sim.refusals,
       cardBox: (unit: number) => readouts.current?.cardBox(unit) ?? null,

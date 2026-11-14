@@ -264,6 +264,7 @@ export function BattleView({
           selected={control.selected}
           onSelect={control.setSelected}
           onCenter={input ? focusUnit : undefined}
+          onHover={session.hoverFromDeck}
           rules={session.rules}
           pending={viewingPlayer?.pending}
           tick={observation?.tick}

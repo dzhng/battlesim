@@ -13,6 +13,7 @@ import type { ScenarioRules } from "./battleSessionOptions";
 // missile's flare and smoke trail, and a garrisoned squad's circle says where
 // it holds. Labs compose the layers their fixture exercises, the rest among
 // them as diagnostics.
+import type { StrokeWidth } from "@packages/battle-renderer/src/strokeWidth";
 import { gameHud } from "@web/battle/present/hudTheme";
 import type { SideName } from "@web/battle/sim/protocol";
 import { airborne, fixedWing, type UnitCatalog } from "@packages/scene-assets/src/units";
@@ -233,13 +234,14 @@ export function supplyLayer(
 }
 
 /** An own unit as the orders draw it: selected or not, its order marks
- *  shown at `reveal` (0: none), an ally's or the player's. */
+ *  shown at `reveal` (0: none), an ally's or the player's, hovered or not. */
 export function orderView(
   units: UnitCatalog,
   u: OwnUnitView,
   selected: boolean,
   reveal = 0,
   ally = false,
+  hovered = false,
 ): OrderView {
   const g = u.hold;
   return {
@@ -254,12 +256,14 @@ export function orderView(
         ? { center: g.host.center, half: g.host.half }
         : null,
     selected,
+    hovered,
     reveal,
     ally,
   };
 }
 
-/** The selection's markers under the units in `selected`, the order
+/** The selection's markers under the units in `selected` (and the hovered
+ *  unit's under `hovered`), the order
  *  marks (the Space view) of each unit `reveal` shows, at its opacity
  *  (`OrderReveal`), with an unload mark where a carrier's published
  *  order lets its passengers out, and every own aircraft's marker and drop
@@ -276,18 +280,39 @@ export function orderLayer(
   selected: readonly number[],
   reveal: RevealedOrders,
   z: SurfaceHeight,
-  stroke = gameStroke(OPENING_METRES_PER_PX),
-  ghosts = false,
-  allies: ReadonlyMap<number, unknown> = new Map(),
+  {
+    stroke = gameStroke(OPENING_METRES_PER_PX),
+    ghosts = false,
+    allies = new Map(),
+    hovered = null,
+  }: {
+    stroke?: StrokeWidth;
+    ghosts?: boolean;
+    allies?: ReadonlyMap<number, unknown>;
+    hovered?: number | null;
+  } = {},
 ): WorldMeshes {
   const aloft = ghostAloft(units, air);
   return buildOrderOverlay(
     o.own
       // A squad a carrier holds has no marks of its own: it is off the field.
       .filter((u) => !aboardCarrier(u))
-      .filter((u) => selected.includes(u.id) || reveal.has(u.id) || airborne(units.type(u.kind)))
+      .filter(
+        (u) =>
+          selected.includes(u.id) ||
+          u.id === hovered ||
+          reveal.has(u.id) ||
+          airborne(units.type(u.kind)),
+      )
       .map((u) => ({
-        ...orderView(units, u, selected.includes(u.id), reveal.get(u.id), allies.has(u.id)),
+        ...orderView(
+          units,
+          u,
+          selected.includes(u.id),
+          reveal.get(u.id),
+          allies.has(u.id),
+          u.id === hovered,
+        ),
         ghostAloft: ghosts && reveal.has(u.id) ? aloft(u.kind) : 0,
       })),
     z,
@@ -347,6 +372,7 @@ export function battleOverlayParts(
     contacts,
     facing,
     allies,
+    hovered = null,
   }: {
     showOrders: boolean;
     reveal: RevealedOrders;
@@ -354,13 +380,20 @@ export function battleOverlayParts(
     facing: ContactFacing;
     /** The side's units an ally owns (`allyOwners`). */
     allies?: ReadonlyMap<number, unknown>;
+    /** The own unit under the pointer, its model or its card (`ReadoutLayerHandle.place`). */
+    hovered?: number | null;
   },
   border: Mesh | null = null,
   stroke = gameStroke(OPENING_METRES_PER_PX),
 ): Partial<WorldMeshes>[] {
   const contactMarks = contactLayer(contacts, z, facing);
   const supply = supplyLayer(o, scenario.supplyRadius, z, selected, stroke, showOrders);
-  const orders = orderLayer(units, rules.air, o, selected, reveal, z, stroke, showOrders, allies);
+  const orders = orderLayer(units, rules.air, o, selected, reveal, z, {
+    stroke,
+    ghosts: showOrders,
+    allies,
+    hovered,
+  });
   const aircraft = aircraftLayer(units, o, z, stroke);
   const deployments = scenario.deployments.map((marker) =>
     buildDeploymentMarker(marker, z, gameOrderStyle, gameHud.accent, { stroke }),

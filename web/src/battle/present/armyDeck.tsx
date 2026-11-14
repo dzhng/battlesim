@@ -11,12 +11,14 @@ import { CommandBar, type ArmyCommandState } from "./commandBar";
 import { useFeedValue, type FeedSource } from "@web/feed";
 
 /** Own observations populate the army row; selection remains the input owner's,
- *  and a plain click on an already selected card asks the page to centre on it. */
+ *  and a plain click on an already selected card asks the page to centre on it.
+ *  Hovering a card hovers its unit, as the pointer over the unit would. */
 export function ArmyDeck({
   state,
   selected,
   onSelect,
   onCenter,
+  onHover,
   rules,
   captions,
   reinforcements,
@@ -28,6 +30,9 @@ export function ArmyDeck({
   onSelect: (ids: number[]) => void;
   /** A plain click on a card already in `selected`: show this unit on the map. */
   onCenter?: (unit: OwnUnitView) => void;
+  /** The unit the pointer is over by its card (a rider's, its carrier, as
+   *  its click picks), or null when it leaves the card. */
+  onHover?: (unit: number | null) => void;
   rules: PanelRules;
   captions: ReactNode;
   reinforcements?: ReactNode;
@@ -171,8 +176,12 @@ export function ArmyDeck({
                   onMouseEnter={(event) => {
                     alignDetail(event.currentTarget);
                     setHovered(unit.id);
+                    onHover?.(picks);
                   }}
-                  onMouseLeave={() => setHovered(null)}
+                  onMouseLeave={() => {
+                    setHovered(null);
+                    onHover?.(null);
+                  }}
                 >
                   <UnitFace kind={unit.kind}>
                     <StrengthMeter name={name} strength={strength} />

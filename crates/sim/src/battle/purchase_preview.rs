@@ -105,6 +105,7 @@ impl Battle {
             // A look while it is placed, not where its soldiers will stand: one
             // draw wherever it is put, so the ghost slides with the cursor.
             spots: self.arrival_spots(side, destination, soldiers, next, 0),
+            area_radius_m: (soldiers > 0).then(|| crate::cover::area_radius(&self.rules, t)),
         })
     }
 }

@@ -27,7 +27,15 @@
 // marching along them. Colour carries meaning only where a player needs it:
 // the cover tiers, a blocked route, and the selection.
 import { vec2, type Vec2 } from "math";
-import { concatMeshes, fadeAlpha, glowing, MeshBuilder, paintOnly, type Rgba } from "./mesh";
+import {
+  concatMeshes,
+  fadeAlpha,
+  glowing,
+  MeshBuilder,
+  paintOnly,
+  type Mesh,
+  type Rgba,
+} from "./mesh";
 import {
   SOLDIER_R,
   circleReach,
@@ -62,6 +70,8 @@ export interface OrderStyle {
   /** A selected unit's own marker (its circle and arrowhead) and its
    *  soldiers' markers. */
   selected: Rgba;
+  /** The marker of the unit under the pointer: the colour of its card. */
+  hovered: Rgba;
   /** An ally's unit's marker: the HUD's allied colour (D24). */
   ally: Rgba;
   /** How far each role's paint glows past its colour's full value (up to 2,
@@ -157,6 +167,10 @@ export interface OrderView {
   queueUnloads?: readonly boolean[];
   /** In the player's selection: the marker under it is `selected`'s. */
   selected?: boolean;
+  /** Under the pointer (its model or its card): its marker shows as a
+   *  selected one's does, in the style's `hovered` colour; selected, it keeps
+   *  the selection's. */
+  hovered?: boolean;
   /** Another player on the side owns it (an ally's): its marker is a
    *  broken ring with no facing, in the style's `ally` colour, and none of
    *  its orders show. */
@@ -435,6 +449,25 @@ export function buildDestinationPreview(
   return mesh.build();
 }
 
+/** The marker of what the pointer is over that is not yet a unit (a
+ *  purchase being placed): its circle in the hover's colour, as a hovered
+ *  unit's is drawn. */
+export function buildHoverMarker(
+  circle: UnitCircle,
+  z: SurfaceHeight,
+  style: OrderStyle,
+  { stroke }: OrderOverlayOptions,
+): Mesh {
+  const mesh = new MeshBuilder();
+  circleMarker(
+    mesh,
+    orderPen(z, style, stroke),
+    circle,
+    glowing(style.hovered, style.glow.selected),
+  );
+  return mesh.build();
+}
+
 /** An ally's unit's marker, selected (to read its panel) or aloft: form
  *  before colour, it is hollow where yours is whole. Its circle is a broken
  *  ring with no arrowhead, its soldiers' plain rings, an aircraft's drop
@@ -497,15 +530,18 @@ export function buildOrderOverlay(
   const selected = glowing(style.selected, style.glow.selected);
   const cannot = glowing(style.blocked, style.glow.order);
   const ally = glowing(style.ally, style.glow.selected);
+  const hovered = glowing(style.hovered, style.glow.selected);
   for (const u of units) {
     if (u.ally) {
+      // Hovered, an ally's unit shows its marker as selected: still an ally's.
+      const lit = !!u.selected || !!u.hovered;
       allyMarker(
         paint,
         soldiers,
         lines,
         pen,
-        u,
-        u.selected ? ally : fadeAlpha(ally, style.current_alpha),
+        { ...u, selected: lit },
+        lit ? ally : fadeAlpha(ally, style.current_alpha),
       );
       continue;
     }
@@ -513,7 +549,10 @@ export function buildOrderOverlay(
     // selection's own markers either way.
     const reveal = u.reveal ?? 0;
     const shown = reveal > 0;
-    if (!shown && !u.selected && !u.airborne) continue;
+    // Its own marker's colour while it is selected or hovered (selection
+    // first), drawn then as a selected unit's; null otherwise.
+    const highlight = u.selected ? selected : u.hovered ? hovered : null;
+    if (!shown && !highlight && !u.airborne) continue;
     const fade = (c: Rgba): Rgba => fadeAlpha(c, reveal);
     const color = fade(order);
     const current = fade(fadeAlpha(order, style.current_alpha));
@@ -525,14 +564,15 @@ export function buildOrderOverlay(
     const squad = u.members.length > 0;
     // The unit's marker: its circle and its soldiers' markers are one mark,
     // shown and hidden together (`unitCircle` decides when: moving, selected
-    // or revealed), in the selection's colours when selected. The circle is a
+    // or revealed), in the selection's colours when selected (the hover's
+    // when hovered). The circle is a
     // squad's area ring round its anchor while it holds, the ring round its
     // soldiers while it moves, the ring round its building while it holds
     // one, or a vehicle's marker under its hull.
     const circle = unitCircle(u, style);
     // A squad with no circle to draw (no area) still shows its soldiers'
     // markers when the unit's marker would.
-    if (circle || shown || u.selected) {
+    if (circle || shown || highlight) {
       if (circle && u.airborne)
         // An aircraft's marker shows whatever the reveal: at the current
         // markers' alpha, brighter only while a shown order moves it.
@@ -542,17 +582,12 @@ export function buildOrderOverlay(
           pen,
           u.position,
           circle,
-          u.selected
-            ? selected
-            : fadeAlpha(
-                order,
-                moving ? Math.max(reveal, style.current_alpha) : style.current_alpha,
-              ),
+          highlight ??
+            fadeAlpha(order, moving ? Math.max(reveal, style.current_alpha) : style.current_alpha),
         );
-      else if (circle)
-        circleMarker(paint, pen, circle, u.selected ? selected : moving ? color : current);
+      else if (circle) circleMarker(paint, pen, circle, highlight ?? (moving ? color : current));
       // Each soldier's marker, with his cover now when shown.
-      const mark = u.selected ? selected : current;
+      const mark = highlight ?? current;
       u.members.forEach((m, k) =>
         soldierMark(
           soldiers,
@@ -560,7 +595,7 @@ export function buildOrderOverlay(
           [m[0], m[1]],
           pipOf(u.memberOrders[k]?.coverNow),
           mark,
-          u.selected ? pen.soldierSelected : pen.soldier,
+          highlight ? pen.soldierSelected : pen.soldier,
         ),
       );
     }
@@ -573,7 +608,7 @@ export function buildOrderOverlay(
         circle.r,
         u.finalFacing,
         u.direction === "reverse",
-        u.selected ? selected : current,
+        highlight ?? current,
       );
     // The rest are order marks only.
     if (!shown) continue;

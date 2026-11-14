@@ -64,7 +64,7 @@ function SupplyLab({ battle }: { battle: SavedBattle }) {
       control.selected,
       session.revealed,
       surfaceZ,
-      gameStroke(OPENING_METRES_PER_PX, renderScale),
+      { stroke: gameStroke(OPENING_METRES_PER_PX, renderScale), hovered: session.hovered },
     );
     const tracers = tracerLayer(observation);
     return combineWorldMeshes([supply, orders, tracers]);
@@ -76,6 +76,7 @@ function SupplyLab({ battle }: { battle: SavedBattle }) {
     control.selected,
     control.showOrders,
     session.revealed,
+    session.hovered,
     rules,
     session.units,
     session.rules.air,

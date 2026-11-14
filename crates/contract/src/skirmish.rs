@@ -97,6 +97,9 @@ pub struct PurchasePreview {
     pub entry: usize,
     pub destination: [f64; 2],
     pub spots: Vec<[f64; 2]>,
+    /// The radius of the area a squad holds round `destination` once it
+    /// arrives, which its placement ghost's ring shows; none for a vehicle.
+    pub area_radius_m: Option<f64>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

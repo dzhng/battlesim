@@ -449,3 +449,30 @@ test("a rider's selected card centres on the carrier it selects", () => {
   expect(onCenter).toHaveBeenCalledOnce();
   expect(onCenter).toHaveBeenCalledWith(apc);
 });
+
+test("hovering a card hovers its unit, a rider's its carrier, until the pointer leaves", () => {
+  const apc = specimenUnit(TEST_CATALOG, "test_apc", { id: 4 });
+  const tank = specimenUnit(TEST_CATALOG, "test_tank", { id: 5 });
+  const rider = {
+    ...specimenUnit(TEST_CATALOG, "test_rifle", { id: 7 }),
+    hold: { host: { kind: "carrier" as const, id: 4 }, phase: "inside", progress: 1 },
+  };
+  const onHover = vi.fn();
+  const view = render(
+    <ArmyDeck
+      state={new Feed({ own: [apc, tank, rider] })}
+      selected={[]}
+      onSelect={vi.fn()}
+      onHover={onHover}
+      rules={shippedRules as unknown as PanelRules}
+      captions={null}
+    />,
+  );
+  const card = (name: RegExp) => view.getByRole("button", { name });
+  fireEvent.mouseEnter(card(/ #5$/));
+  expect(onHover).toHaveBeenLastCalledWith(5);
+  fireEvent.mouseLeave(card(/ #5$/));
+  expect(onHover).toHaveBeenLastCalledWith(null);
+  fireEvent.mouseEnter(card(/^Rifle Section #7/));
+  expect(onHover).toHaveBeenLastCalledWith(4);
+});

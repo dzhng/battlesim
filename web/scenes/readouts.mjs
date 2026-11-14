@@ -624,6 +624,44 @@ async function vehicleMarker(ctx) {
   const start = (await obs(page)).own.find((u) => u.id === TANK).position;
   await frameFrom(start, -Math.PI / 2);
   const open = await rimShown("open-ground");
+  // Unselected, the tank shows the same marker while the pointer is over its
+  // model or its army deck card, and none once the pointer leaves (its info
+  // card is the same hover: `hoveredCard.test.tsx`).
+  await lab(page, () => window.__lab.route.select([]));
+  await page.waitForFunction(() => window.__lab.route.selected().length === 0);
+  /** The rim once the pointer's hover has reached the overlay: the panels
+   *  read it on one frame, React rebuilds the overlay, and a later frame
+   *  draws it. */
+  const hoveredRim = async (name) => {
+    for (let k = 0; k < 4; k++) await page.evaluate(() => window.__lab.frame());
+    return rimShown(name);
+  };
+  // Away: open ground clear of the tank, far from the edges the camera pans at.
+  const away = () => page.mouse.move(250, 450);
+  await away();
+  const idle = await hoveredRim("idle");
+  const tankAt = (await obs(page)).own.find((u) => u.id === TANK).position;
+  const onHull = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2] + 1), tankAt);
+  await page.mouse.move(onHull[0], onHull[1]);
+  const byModel = await hoveredRim("hovered-model");
+  // Its card on the army deck is the same hover.
+  await page.locator(`.hud-army-card[data-unit="${TANK}"]`).hover();
+  const byDeck = await hoveredRim("hovered-deck");
+  // The same hover at a playing distance, for review.
+  const close = await lab(page, () => window.__lab.camera());
+  await lab(page, (c) => window.__lab.setCamera({ ...c, distance: 160 }), close);
+  for (let k = 0; k < 3; k++) await page.evaluate(() => window.__lab.frame());
+  await snapshot(ctx, page, "marker-hovered-deck-far.png");
+  await lab(page, (c) => window.__lab.setCamera(c), close);
+  await away();
+  const left = await hoveredRim("hover-left");
+  ctx.check(
+    "an unselected unit shows its marker while its model or its army deck card is hovered, and not after",
+    idle.shown < 0.1 && byModel.shown >= 0.5 && byDeck.shown >= 0.5 && left.shown < 0.1,
+    JSON.stringify({ idle, byModel, byDeck, left }),
+  );
+  await lab(page, (id) => window.__lab.route.select([id]), TANK);
+  await page.waitForFunction(() => window.__lab.route.selected().length === 1);
   // Parked hard against the building's north wall, framed across its corner.
   const park = [BUILDING.center[0], BUILDING.high[1] + radius + 1];
   await lab(

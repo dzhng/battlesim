@@ -103,7 +103,8 @@ test("Space and hover open cards in place, moving no card, the hovered one drawn
     expect([...before.values()].every((c) => c.shown)).toBe(true);
     if (!space) expect([...before.values()].every((c) => c.zoom === "compressed")).toBe(true);
     for (const hovered of [1, 2, 3, 4]) {
-      place(hovered, space);
+      // The hovered unit is reported, so its marker shows on the ground.
+      expect(place(hovered, space), `${hovered} hovered, space ${space}`).toBe(hovered);
       const open = read();
       for (const [id, was] of before) {
         const now = open.get(id)!;
@@ -125,7 +126,40 @@ test("Space and hover open cards in place, moving no card, the hovered one drawn
       }
     }
     // The pointer leaves: everything is as it was.
-    place(null, space);
+    expect(place(null, space), "nothing hovered once the pointer leaves").toBeNull();
     expect(read()).toEqual(before);
   }
+});
+
+test("the pointer over a card hovers its unit, unless a close camera has faded the card out", () => {
+  const own = [
+    specimenUnit(TEST_CATALOG, "test_tank", { id: 1 }),
+    specimenUnit(TEST_CATALOG, "test_apc", { id: 2 }),
+  ];
+  // jsdom lays nothing out: the APC's card is drawn in this box.
+  const CARD = { left: 1000, right: 1100, top: 1000, bottom: 1040 };
+  const had = HTMLElement.prototype.getBoundingClientRect;
+  HTMLElement.prototype.getBoundingClientRect = function (this: HTMLElement) {
+    const apc = this.dataset.unit === "2" || !!this.querySelector(':scope > [data-unit="2"]');
+    const r = apc ? CARD : { left: 0, right: 0, top: 0, bottom: 0 };
+    return {
+      ...r,
+      x: r.left,
+      y: r.top,
+      width: r.right - r.left,
+      height: r.bottom - r.top,
+    } as DOMRect;
+  };
+  restore.push(() => (HTMLElement.prototype.getBoundingClientRect = had));
+  const handle = createRef<ReadoutLayerHandle>();
+  renderView(<ReadoutLayer own={own} rules={RULES} selected={[]} handle={handle} />, {
+    wrapper: WithTestCatalog,
+  });
+  const drawn = { own: new Map(own.map((u) => [u.id, [u.id * 1000, 0, 0] as const])) };
+  const project = (x: number) => [500 + x / 100, 400] as [number, number];
+  const over = { x: 1050, y: 1020, unit: null, enemy: null };
+  const place = (distance: number) =>
+    handle.current!.place(project, { ...gameCamera.opening(), distance }, drawn, null, false, over);
+  expect(place(gameCamera.opening().distance), "over the APC's card").toBe(2);
+  expect(place(1), "the card faded out by a close camera").toBeNull();
 });

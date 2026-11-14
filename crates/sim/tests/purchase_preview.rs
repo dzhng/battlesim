@@ -1,6 +1,8 @@
 //! A purchase's placement preview: where its ghost stands, and how.
 
+use crate::common::command;
 use crate::skirmish::{deck, match_on};
+use contract::command::Order;
 use contract::ids::Side;
 use serde_json::json;
 use sim::battle::Battle;
@@ -73,4 +75,55 @@ fn a_purchase_ghost_keeps_its_shape_as_the_cursor_moves_over_open_ground() {
             "the ghost slides with the cursor at {at:?}"
         );
     }
+}
+
+/// The ring a placement ghost shows is the area its squad holds once bought:
+/// the preview names the radius the arrived squad publishes, round the
+/// destination it is sent to. A vehicle has no area.
+#[test]
+fn a_purchase_preview_names_the_area_its_squad_holds_once_it_arrives() {
+    let mut rules = deck();
+    fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_rifle",
+        json!({
+            "roster": { "factions": ["us"], "category": "inf", "family_name": "Test squad", "variant": "Test" }
+        }),
+    );
+    let mut battle = Battle::new(&match_on(rules), 1);
+    let preview = battle
+        .preview_purchase(Side::Blue, "test_rifle", [400.0, 300.0])
+        .unwrap();
+    let radius = preview.area_radius_m.expect("a squad's ghost has an area");
+    let tank = battle
+        .preview_purchase(Side::Blue, "test_tank", [400.0, 300.0])
+        .unwrap();
+    assert_eq!(tank.area_radius_m, None, "a vehicle has no area");
+    let ack = battle.accept(command(
+        Side::Blue,
+        1,
+        Order::ConfirmPurchase {
+            variant: "test_rifle".into(),
+            destination: preview.destination,
+        },
+    ));
+    assert_eq!(ack.error, None);
+    battle.accept(command(Side::Blue, 2, Order::Ready));
+    battle.accept(command(Side::Red, 1, Order::Ready));
+    let mut arrived = None;
+    for _ in 0..120 * battle.rules().tick_hz {
+        battle.step();
+        let frame = battle.observe(Side::Blue);
+        if frame.own.first().is_some_and(|u| u.goal.is_none()) {
+            arrived = Some(frame.own[0].clone());
+            break;
+        }
+    }
+    let area = arrived
+        .expect("the bought squad arrives")
+        .area
+        .expect("the bought squad holds an area");
+    assert_eq!(area.radius, radius);
+    assert_eq!(area.anchor, preview.destination);
 }

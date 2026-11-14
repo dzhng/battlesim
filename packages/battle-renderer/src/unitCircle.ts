@@ -79,8 +79,10 @@ export function circleContains(circle: UnitCircle, point: readonly [number, numb
  *  and, selected or revealed, a holding squad's area ring round its anchor,
  *  each with its arrowhead at the unit's facing (a moving squad's heading, a
  *  holding one's facing). A garrisoned squad's circle, moving (leaving on an
- *  order), selected or revealed, encloses its building, with no arrowhead. Lines to or from the unit (routes, the range ruler) meet this
- *  circle at its border (`circleReach`). */
+ *  order), selected or revealed, encloses its building, with no arrowhead.
+ *  A hovered unit's circle shows as a selected one's. Lines to or from the
+ *  unit (routes, the range ruler) meet this circle at its border
+ *  (`circleReach`). */
 export function unitCircle(
   u: Pick<
     OrderView,
@@ -93,6 +95,7 @@ export function unitCircle(
     | "building"
     | "yaw"
     | "selected"
+    | "hovered"
     | "reveal"
     | "fixedWing"
     | "airborne"
@@ -103,6 +106,7 @@ export function unitCircle(
   >,
 ): UnitCircle | null {
   const shown = (u.reveal ?? 0) > 0;
+  const lit = !!u.selected || !!u.hovered;
   const here: P2 = [u.position[0], u.position[1]];
   const moving = !!u.goal && u.state !== "route_blocked";
   // A winged aircraft never stops over a point: its card carries where it
@@ -111,17 +115,17 @@ export function unitCircle(
   if (u.building) {
     const { center, half } = u.building;
     const r = Math.hypot(half[0], half[1]) + style.building_marker_margin_m;
-    return moving || shown || u.selected ? { c: center, r, facing: null } : null;
+    return moving || shown || lit ? { c: center, r, facing: null } : null;
   }
   // A squad's rings are drawn at `area_draw_scale` of their radius (the
   // movement area itself is the simulation's).
   const drawn = (radius: number) => radius * style.area_draw_scale;
   if (u.members.length === 0)
-    return moving || shown || u.selected || u.airborne
+    return moving || shown || lit || u.airborne
       ? { c: here, r: u.hullHalfLength + style.vehicle_marker_margin_m, facing: u.yaw }
       : null;
   if (moving) return { c: here, r: drawn(squadNow(u, here)), facing: u.yaw };
-  return (shown || u.selected) && !u.goal && u.area
+  return (shown || lit) && !u.goal && u.area
     ? { c: u.area.anchor, r: drawn(u.area.radius), facing: u.yaw }
     : null;
 }

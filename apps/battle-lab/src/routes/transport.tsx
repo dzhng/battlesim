@@ -83,6 +83,7 @@ function TransportLab({ battles }: { battles: Record<Variant, SavedBattle> }) {
           state={armyState}
           selected={control.selected}
           onSelect={control.setSelected}
+          onHover={session.hoverFromDeck}
           rules={session.rules}
           captions={null}
         />
