@@ -452,7 +452,8 @@ function holders(wasm: LanesModule, sites: string, players: readonly Player[]): 
 /** The map frame: the admitted map once it is ready, and until then what its
  *  preparation is doing over the last map shown. The picture holds no
  *  players, so each entry tag (found by its side and lane) is marked with who
- *  holds that lane, and the stylesheet draws an open lane and yours. A seat change re-marks the tags without drawing a new map. */
+ *  holds that lane, and the stylesheet draws an open lane and yours. A seat
+ *  change re-marks the tags without drawing a new map. */
 function MapFrame({ state, held }: { state: PreviewState; held: readonly LaneHolder[] | null }) {
   const [last, setLast] = useState<string | null>(null);
   const picture = useRef<HTMLDivElement>(null);

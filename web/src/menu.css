@@ -1438,7 +1438,6 @@ span.lobby-controller:not(.lobby-pick) {
   border-style: dashed;
   border-color: rgb(var(--hud-dim) / 0.25);
 }
-/* One line, level with the options' row, at the end beside Reroll. */
 /* The status takes the strip's free room, its dot at a fixed place a group's
    gap after Region, so a longer word grows toward Reroll and never moves. */
 .lobby-status {

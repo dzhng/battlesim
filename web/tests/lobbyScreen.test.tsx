@@ -175,6 +175,8 @@ test("the map marks who holds each lane, and a seat change re-marks it without a
   // picture draws a tag per entry in that order, numbered from the top
   // (high x) down.
   const roads = [1500, 600, 2400];
+  // This fake picture numbers its tags as `sim::entries` would (the real
+  // picture asks it), so the test can name lanes.
   const lane = (x: number) => [...roads].sort((a, b) => b - a).indexOf(x) + 1;
   const entries = (["blue", "red"] as const).flatMap((side) =>
     roads.map((x) => ({ side, center: [x, side === "blue" ? 12 : 2988], yaw: 0 })),

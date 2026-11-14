@@ -67,7 +67,7 @@ fn the_synthetic_setup_seats_its_players_on_their_tiers_roads() {
 /// in list order, and the opening on the human's lane.
 #[test]
 fn the_lane_answer_is_the_entry_owners() {
-    use sim::entries::{self, EntryIndex};
+    use sim::entries;
     let sites = sim::skirmish::synthetic_sites([1200.0, 900.0], 3);
     let mut players = players(2, 3);
     players[1].controller = ControllerKind::Human;
@@ -80,24 +80,21 @@ fn the_lane_answer_is_the_entry_owners() {
         .unwrap(),
     )
     .unwrap();
-    let sides: Vec<_> = players.iter().map(|player| player.side).collect();
-    let homes = entries::homes(&sites, &sides);
     let rows = answer["entries"].as_array().unwrap();
     assert_eq!(rows.len(), sites.entries.len());
-    for (index, row) in rows.iter().enumerate() {
-        let lane = entries::lane_number(&sites, EntryIndex(index)).0;
-        assert_eq!(row["lane"], lane);
-        let holder = homes
-            .iter()
-            .position(|home| *home == Some(EntryIndex(index)))
-            .map(|player| players[player].id.clone());
-        assert_eq!(row["holder"], serde_json::json!(holder));
+    let row = |side: Side, lane: u8| {
+        let index = entries::lane_entry(&sites, side, entries::LaneNumber(lane)).unwrap();
+        assert_eq!(rows[index.0]["lane"], lane);
+        &rows[index.0]
+    };
+    // Slot k holds lane k; Blue's two players leave its third road open.
+    assert_eq!(row(Side::Blue, 1)["holder"], "blue-1");
+    assert_eq!(row(Side::Blue, 2)["holder"], "blue-2");
+    assert!(row(Side::Blue, 3)["holder"].is_null());
+    for lane in 1..=3 {
+        assert_eq!(row(Side::Red, lane)["holder"], format!("red-{lane}"));
     }
-    // Blue fields two players on three roads: one road is unheld.
-    let blue_unheld = rows
-        .iter()
-        .filter(|row| row["side"] == "blue" && row["holder"].is_null())
-        .count();
-    assert_eq!(blue_unheld, 1);
-    assert_eq!(answer["opening"], homes[1].unwrap().0);
+    // The human, Blue 2, opens on its own lane.
+    let blue_two = entries::lane_entry(&sites, Side::Blue, entries::LaneNumber(2)).unwrap();
+    assert_eq!(answer["opening"], blue_two.0);
 }

@@ -43,9 +43,9 @@ pub struct TeamTuning {
     pub grid_resolution: usize,
     pub distance_weight: f64,
     /// The pull toward a player's own lane (`entries::homes`) at the
-    /// battle's start, in metres of distance; it fades to nothing over
-    /// `home_lane_fade_s`, so every AI opens on its lane and need takes
-    /// over as the battle goes on.
+    /// match's first tick, in metres of distance; it fades to nothing over
+    /// `home_lane_fade_s` of match time, preparation included, so every AI
+    /// opens on its lane and need takes over as the battle goes on.
     pub home_lane_bonus: f64,
     pub home_lane_fade_s: f64,
     pub influence_weight: f64,
@@ -334,7 +334,7 @@ pub fn plan<'a>(
             } else {
                 0.0
             }
-            - if home_entries.get(player.0 as usize).copied().flatten() == Some(lane) {
+            - if home_entries[player.0 as usize] == Some(lane) {
                 home_pull
             } else {
                 0.0

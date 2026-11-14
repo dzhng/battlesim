@@ -64,10 +64,10 @@ const DIGITS: Readonly<Record<number, readonly (readonly P2[])[]>> = {
   3: [[...arc(0, 0.765, 0.235, 150, -90), ...arc(0, 0.265, 0.265, 90, -150).slice(1)]],
 };
 
-/** The digit's height on the ground. Pulled far out it grows only to this
- *  many route widths, strokes and all: a small, whole digit, not a label
- *  that reads at every zoom. */
+/** The digit's height on the ground, in metres. */
 const DIGIT_M = 7;
+/** Pulled far out, the digit grows only to this many route widths, strokes
+ *  and all: a small, whole digit, not a label that reads at every zoom. */
 const DIGIT_LINES = 3.6;
 /** The digit's height, in route widths, that its stroke weights are drawn
  *  for; a shorter digit thins its strokes in step. */
@@ -84,7 +84,6 @@ const DIGIT_GAP_M = 3;
 const CHEVRON_OUTLINE: readonly [number, number] = [7.8, 12.5];
 const CHEVRON_FILL: readonly [number, number] = [6.8, 10.8];
 const CHEVRON_STEP_M = 9;
-const STILL: readonly [number, number, number] = [0, 0, 0];
 
 /** The entry `marker`, in `markerColor` (the side's accent) with the dark
  *  outline the chevrons share; the own lane's digit outlined in `ownColor`.
@@ -103,7 +102,7 @@ export function buildDeploymentMarker(
   const height = Math.max(DIGIT_M, pen.line * DIGIT_LINES);
   const weight = pen.line * Math.min(1, height / (pen.line * STROKED_LINES));
   const outlineWidth = weight * (marker.own ? OWN_OUTLINE_LINES : DIGIT_OUTLINE_LINES);
-  // The digit stands just inside the edge, as the chevrons used to: its
+  // The digit stands just inside the edge, nearest the border: its
   // outline clear of the border and the HUD pane past it.
   const foot = pen.line * 2 + outlineWidth / 2;
   const painted = new MeshBuilder();
@@ -118,7 +117,7 @@ export function buildDeploymentMarker(
     const tip = along(center, facing, firstTip + i * CHEVRON_STEP_M);
     // A dark, slightly oversized underlay leaves the crisp outlined edge seen
     // in the reference around each painted chevron.
-    marchChevron(marching, pen, tip, facing, outline, STILL, CHEVRON_OUTLINE, pen.line * 2.6);
+    marchChevron(marching, pen, tip, facing, outline, [0, 0, 0], CHEVRON_OUTLINE, pen.line * 2.6);
     // The pulse advances from the outer chevron toward the spawn point and
     // back again. At any instant one chevron is visibly bright.
     marchChevron(
@@ -150,7 +149,7 @@ function digit(
     origin[0] + (fy * x + fx * y) * height,
     origin[1] + (-fx * x + fy * y) * height,
   ];
-  for (const line of DIGITS[lane] ?? []) {
+  for (const line of DIGITS[lane]) {
     const points = line.map(at);
     points.forEach((p, k) => {
       if (k > 0) groundStrip(mesh, points[k - 1], p, width, color, { z: pen.z });

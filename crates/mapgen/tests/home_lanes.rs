@@ -32,9 +32,10 @@ fn players(per_side: usize, human: usize) -> Vec<Player> {
         .collect()
 }
 
-/// The first `size` mixed skirmish map with `roads` a side that the
-/// simulation admits for `seated`, and its admitted sites.
-fn admitted(
+/// The first `size` mixed skirmish map with `roads` a side that generates
+/// and that the simulation admits for `seated`, and its admitted sites.
+/// Both may refuse a seed, so this draws seeds until both accept one.
+fn admitted_sites(
     size: &str,
     roads: usize,
     seated: &[Player],
@@ -75,7 +76,7 @@ fn at_the_start_every_ai_plans_on_its_own_lane() {
     let rules: contract::scenario::Rules =
         serde_json::from_value(sim::fixtures::test_rules()).unwrap();
     for (size, per_side) in [("medium", 2), ("large", 3), ("xl", 3)] {
-        let sites = admitted(size, per_side, &players(per_side, 0), &rules);
+        let sites = admitted_sites(size, per_side, &players(per_side, 0), &rules);
         for human in 0..=per_side {
             let seated = players(per_side, human);
             let states: Vec<_> = seated.iter().map(|p| PlayerState::new(p, 0)).collect();

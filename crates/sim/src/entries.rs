@@ -50,12 +50,16 @@ where
 
 /// Return the centre entry for aircraft that must cross the back edge there.
 pub fn centre(sites: &SkirmishSites, side: Side) -> EntryIndex {
+    centre_of(sites, side).expect("combatant entry site")
+}
+
+/// `side`'s centre entry, its first listed (I18), if it has any.
+fn centre_of(sites: &SkirmishSites, side: Side) -> Option<EntryIndex> {
     sites
         .entries
         .iter()
         .position(|entry| entry.side == side)
         .map(EntryIndex)
-        .expect("combatant entry site")
 }
 
 /// Look up an entry selected by [`select`].
@@ -133,10 +137,5 @@ pub fn opening(sites: &SkirmishSites, players: &[Player]) -> Option<EntryIndex> 
     if let Some(home) = human.and_then(|index| homes(sites, &sides)[index]) {
         return Some(home);
     }
-    let side = human.map_or(Side::Blue, |index| players[index].side);
-    sites
-        .entries
-        .iter()
-        .position(|entry| entry.side == side)
-        .map(EntryIndex)
+    centre_of(sites, human.map_or(Side::Blue, |index| players[index].side))
 }
