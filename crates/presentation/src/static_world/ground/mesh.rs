@@ -135,41 +135,51 @@ pub fn water(cells: &[f32]) -> Vec<f32> {
 /// The land past the map's edge: a frame round the map's box
 /// (`shadow::map_box`, which lies a metre below the lowest ground, so the
 /// frame sits at that ground's height) out to `reach_m`, untinted. Where
-/// `relief` rises the frame is the relief's cells, each corner at its height
-/// and split as the relief's triangles are, smooth-shaded; level stretches
-/// of a row are one quad, and past the relief's box the frame is level.
+/// `relief` rises the frame is the relief's whole cells, each corner at its
+/// height and split as the relief's triangles are, smooth-shaded, round the
+/// map's box rounded out to whole cells; level stretches of a row are one
+/// quad. Between the map and that box, and past the relief's box, the frame
+/// is level: admission keeps the relief level within a cell of the map.
 pub fn backdrop(map_box: &[f64; 6], reach_m: f64, relief: &BackdropRelief) -> Vec<f32> {
     let [min_x, min_y, min_z, max_x, max_y, _] = *map_box;
     let z = min_z + 1.0;
     let r = reach_m;
     let map = [min_x, min_y, max_x, max_y];
     let c = relief.cell_m;
-    // The relief's box, grown over the map and out to whole cells.
-    let cells = relief.bounds().map(|b| {
+    let whole = |b: [f64; 4]| {
         [
-            (b[0].min(min_x) / c).floor() * c,
-            (b[1].min(min_y) / c).floor() * c,
-            (b[2].max(max_x) / c).ceil() * c,
-            (b[3].max(max_y) / c).ceil() * c,
+            (b[0] / c).floor() * c,
+            (b[1] / c).floor() * c,
+            (b[2] / c).ceil() * c,
+            (b[3] / c).ceil() * c,
         ]
-    });
+    };
+    let level_strips = |hole, outer| {
+        ring(hole, outer)
+            .map(|[x0, y0, x1, y1]| [[x0, y0, z], [x1, y0, z], [x1, y1, z], [x0, y1, z]])
+    };
     let mut out = vec![];
-    let level = ring(
-        cells.unwrap_or(map),
-        [min_x - r, min_y - r, max_x + r, max_y + r],
-    );
-    for [x0, y0, x1, y1] in level {
-        quad(
-            &mut out,
-            [[x0, y0, z], [x1, y0, z], [x1, y1, z], [x0, y1, z]],
-            BIOME,
-        );
-    }
-    if let Some(outer) = cells {
-        let samples = Samples::new(relief, outer);
-        for strip in ring(map, outer) {
-            relief_strip(&mut out, strip, z, &samples);
+    let outer = [min_x - r, min_y - r, max_x + r, max_y + r];
+    let Some(bounds) = relief.bounds() else {
+        for corners in level_strips(map, outer) {
+            quad(&mut out, corners, BIOME);
         }
+        return out;
+    };
+    // The map's box out to whole cells, and the relief's box grown over it.
+    let inner = whole(map);
+    let cells = whole([
+        bounds[0].min(inner[0]),
+        bounds[1].min(inner[1]),
+        bounds[2].max(inner[2]),
+        bounds[3].max(inner[3]),
+    ]);
+    for corners in level_strips(cells, outer).chain(level_strips(map, inner)) {
+        quad(&mut out, corners, BIOME);
+    }
+    let samples = Samples::new(relief, cells);
+    for strip in ring(inner, cells) {
+        relief_strip(&mut out, strip, z, &samples);
     }
     out
 }
@@ -224,16 +234,11 @@ impl<'a> Samples<'a> {
         }
     }
 
-    /// The relief's height at `(x, y)` and its normal there, averaged over
-    /// the cells about a sample; level off the cell lines, which happens
-    /// only on the map's edge, where the relief is level.
+    /// The relief's height at the sample at `(x, y)`, on the cell lines, and
+    /// its normal there, averaged over the cells about it.
     fn at(&self, x: f64, y: f64) -> (f64, V3) {
         let c = self.relief.cell_m;
-        let (fi, fj) = (x / c, y / c);
-        if fi != fi.round() || fj != fj.round() {
-            return (self.relief.height(x, y), [0.0, 0.0, 1.0]);
-        }
-        let (i, j) = (fi.round() as i64, fj.round() as i64);
+        let (i, j) = ((x / c).round() as i64, (y / c).round() as i64);
         let dx = (self.sample(i + 1, j) - self.sample(i - 1, j)) / (2.0 * c);
         let dy = (self.sample(i, j + 1) - self.sample(i, j - 1)) / (2.0 * c);
         let n = (dx * dx + dy * dy + 1.0).sqrt();
@@ -241,14 +246,14 @@ impl<'a> Samples<'a> {
     }
 }
 
-/// `strip` (`[min x, min y, max x, max y]`) cut along the relief's cell
-/// lines, `z` up: each cell with a corner off the level its own pair of
-/// smooth triangles, each level run along a row one quad.
+/// `strip` (`[min x, min y, max x, max y]`, on the relief's cell lines) cut
+/// into its cells, `z` up: each cell with a corner off the level its own pair
+/// of smooth triangles, each level run along a row one quad.
 fn relief_strip(out: &mut Vec<f32>, strip: [f64; 4], z: f64, samples: &Samples) {
     let c = samples.relief.cell_m;
     let lines = |a: f64, b: f64| {
         let mut at = vec![a];
-        let mut k = (a / c).floor() + 1.0;
+        let mut k = (a / c).round() + 1.0;
         while k * c < b {
             at.push(k * c);
             k += 1.0;

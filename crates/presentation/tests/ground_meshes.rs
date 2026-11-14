@@ -189,20 +189,61 @@ fn the_backdrop_rises_with_its_relief_and_leaves_the_map_to_its_own_ground() {
         .find(|v| v[0] == 250.0 && v[1] == 20.0)
         .unwrap();
     assert!(flank[3] < 0.0, "{flank:?}");
-    // Its triangles cover the land round the map once, counter-clockwise:
-    // none lies over the map, and together they are the frame's area.
+    covers_the_frame_once(&backdrop, MAP, reach);
+}
+
+/// The backdrop's triangles cover the land round `map` out to `reach` once,
+/// counter-clockwise: none lies over the map, and together they are the
+/// frame's area.
+fn covers_the_frame_once(backdrop: &[f32], map: [f64; 4], reach: f64) {
     let mut area = 0.0;
     for t in backdrop.chunks(3 * VERTEX_FLOATS) {
         let p = |k: usize| [0, 1].map(|i| t[k * VERTEX_FLOATS + i] as f64);
         let [a, q, c] = [p(0), p(1), p(2)];
         let centre = [0, 1].map(|i| (a[i] + q[i] + c[i]) / 3.0);
         let over =
-            centre[0] > MAP[0] && centre[0] < MAP[2] && centre[1] > MAP[1] && centre[1] < MAP[3];
+            centre[0] > map[0] && centre[0] < map[2] && centre[1] > map[1] && centre[1] < map[3];
         assert!(!over, "a triangle over the map at {centre:?}");
         area += ((q[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (q[1] - a[1])) / 2.0;
     }
-    let frame = (MAP[2] + 2.0 * reach) * (MAP[3] + 2.0 * reach) - MAP[2] * MAP[3];
+    let [w, h] = [map[2] - map[0], map[3] - map[1]];
+    let frame = (w + 2.0 * reach) * (h + 2.0 * reach) - w * h;
     assert!((area - frame).abs() < 1.0, "{area} m² against {frame} m²");
+}
+
+#[test]
+fn hills_past_a_map_off_the_relief_grid_shade_smooth_and_stand_on_the_relief() {
+    // A 95 × 45 map, its north and east edges between the 10 m sample lines,
+    // and a hill east of it that runs across both edges' lines past its
+    // corners, its top off a sample.
+    let map = [0.0, 0.0, 95.0, 45.0];
+    let text = r#"{"cell_m": 10, "features": [{"kind": "ridge", "center": [191.3, 47.7], "peak_m": 30, "radius_m": 80}]}"#;
+    let relief = BackdropRelief::admit(text, map).unwrap();
+    let (b, reach) = ([map[0], map[1], -2.0, map[2], map[3], 30.0], 400.0);
+    let backdrop = mesh::backdrop(&b, reach, &relief);
+    // Every raised corner leans with the hill: none is shaded as if level.
+    let raised: Vec<&[f32]> = backdrop
+        .chunks(VERTEX_FLOATS)
+        .filter(|v| v[2] > -1.0 + 1e-3)
+        .collect();
+    assert!(!raised.is_empty(), "the hill rises");
+    for v in &raised {
+        assert!(
+            v[3] != 0.0 || v[4] != 0.0,
+            "a raised corner faces straight up: {v:?}"
+        );
+    }
+    // Inside every triangle the mesh is the relief's own surface.
+    for t in backdrop.chunks(3 * VERTEX_FLOATS) {
+        let mean = |i: usize| (0..3).map(|k| t[k * VERTEX_FLOATS + i] as f64).sum::<f64>() / 3.0;
+        let (x, y, z) = (mean(0), mean(1), mean(2));
+        let want = -1.0 + relief.height(x, y);
+        assert!(
+            (z - want).abs() < 1e-3,
+            "({x}, {y}) stands at {z}, not {want}"
+        );
+    }
+    covers_the_frame_once(&backdrop, map, reach);
 }
 
 #[test]
