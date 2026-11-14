@@ -19,11 +19,14 @@ export async function trackPageResources(page) {
       requestedDevices: 0,
       validation: [],
       created: () => created,
-      counts(before = Infinity) {
+      /** Live buffers and textures created before mark `before`; only those
+       *  whose creating call stack names `from`, when given (a module's file
+       *  name: an owner's own allocations, apart from a backdrop's churn). */
+      counts(before = Infinity, from = null) {
         const counts = { buffers: 0, textures: 0 };
-        for (const [order, { reference, kind }] of resources) {
+        for (const [order, { reference, kind, stack }] of resources) {
           if (!reference.deref()) resources.delete(order);
-          else if (order < before) counts[kind]++;
+          else if (order < before && (from === null || stack.includes(from))) counts[kind]++;
         }
         return counts;
       },
@@ -37,7 +40,12 @@ export async function trackPageResources(page) {
       };
     const observe = (resource, kind) => {
       const order = created++;
-      resources.set(order, { reference: new WeakRef(resource), kind });
+      // The whole stack: the renderer's own frames sit above its caller's.
+      const limit = Error.stackTraceLimit;
+      Error.stackTraceLimit = Infinity;
+      const stack = new Error().stack ?? "";
+      Error.stackTraceLimit = limit;
+      resources.set(order, { reference: new WeakRef(resource), kind, stack });
       resource.destroy = onDestroy(order, resource.destroy);
       return resource;
     };

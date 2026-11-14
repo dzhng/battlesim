@@ -288,32 +288,25 @@ export async function appJourney(ctx) {
   mark = await page.evaluate(() => window.__gpuResources.created());
   await page.getByRole("link", { name: "Main menu", exact: true }).click();
   const released = await releasedBefore(mark);
-  // An Armory round trip leaves nothing of its stage: what survives of the
-  // allocations made while it was open is no more than the menu's backdrop
-  // leaves over as long a stretch on its own (its battle keeps playing).
-  const created = () => page.evaluate(() => window.__gpuResources.created());
-  /** Live allocations made between marks `from` and `to`, after collection. */
-  const survivors = async (from, to) => {
-    const [before, after] = [await releasedBefore(from), await releasedBefore(to)];
-    return { buffers: after.buffers - before.buffers, textures: after.textures - before.textures };
-  };
-  const opened = await created();
-  const started = Date.now();
+  // An Armory round trip leaves nothing of its stage. The stage's own
+  // allocations are told from the backdrop's (whose battle keeps playing
+  // beneath) by the call stack that made them: the stage's module.
+  const STAGE = "showcaseStage";
+  const ofStage = () =>
+    page.evaluate((from) => window.__gpuResources.counts(Infinity, from), STAGE);
   await page.locator('main.menu:not(.loading):not([inert]) [data-page="armory"]').click();
   await page.waitForFunction(() => window.__armory?.shown(), null, { timeout: 120000 });
-  const left = await created();
+  const whileOpen = await ofStage();
   await page.getByRole("button", { name: "Back" }).click();
-  const visit = Date.now() - started;
-  const armoryLeft = await survivors(opened, left);
-  const alone = await created();
-  await page.waitForTimeout(visit);
-  const menuLeft = await survivors(alone, await created());
+  await releasedBefore(Infinity);
+  const armoryLeft = await ofStage();
   ctx.check(
-    "an Armory round trip leaves no more allocations than the menu alone, and one battle worker",
-    armoryLeft.textures <= menuLeft.textures &&
-      armoryLeft.buffers <= menuLeft.buffers &&
+    "an Armory round trip leaves none of its stage's allocations, and one battle worker",
+    whileOpen.buffers > 0 &&
+      armoryLeft.buffers === 0 &&
+      armoryLeft.textures === 0 &&
       page.workers().length === 1,
-    JSON.stringify({ armoryLeft, menuLeft, visit, workers: page.workers().length }),
+    JSON.stringify({ whileOpen, armoryLeft, workers: page.workers().length }),
   );
   const owners = await page.evaluate((allocations) => {
     const p = window.__appJourney;
