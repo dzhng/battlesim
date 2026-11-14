@@ -98,9 +98,9 @@ catalog lacks, and views read the catalog from the session or its context, never
 from a module-level import. [Lab loading](src/LabLoading.tsx) uses the player
 loading screen across preparation, the first observation and the first drawn
 frame; routes keep preparing beneath the cover so it never delays readiness. While
-anything the page needs is downloading, the screen counts the megabytes
+art is downloading, the screen counts the megabytes and how fast they arrive
 ([download counting](../../web/src/downloads.ts)), so a first visit's long wait
-visibly moves. The menu's build line names the app's commit and a fingerprint
+visibly moves, and a slow connection reads as slow and a stall as zero. The menu's build line names the app's commit and a fingerprint
 of the simulation module the page actually loaded ([build identity](src/buildIdentity.ts)),
 so a stale deploy or cache shows on screen. Art uses
 [scene-assets](../../packages/scene-assets/README.md), and sound uses

@@ -1,5 +1,6 @@
 // A 2v2 team battle from its link: you and one AI ally against two AI.
 // The browser-only evidence for allies in battle (team skirmish):
+// - your tanks are placed with a Shift-click that keeps the next in hand;
 // - the ally look at default and far zoom, over grass, road, fog and smoke;
 // - selecting an ally opens its panel read-only, with its owner line and no
 //   order controls, and an order given then carries none of its units;
@@ -46,41 +47,61 @@ export async function run(ctx) {
     JSON.stringify(players),
   );
 
-  // Buy at your entry through the picker's own keyboard path (a family
-  // name, then Enter arms its first variant's ghost), then ready.
   const { entry, size } = await lab(page, () => {
     const prepared = window.__lab.route.prepared();
     return { entry: prepared.start.at, size: prepared.size };
   });
-  // Buy a little way into the map from your road, not on it: a tank parked
-  // on the road's edge blocks every later arrival there, your ally's too,
-  // and your ally may share your road.
-  const inward = Math.atan2(size[1] / 2 - entry[1], size[0] / 2 - entry[0]);
-  const into = (d) => [entry[0] + Math.cos(inward) * d, entry[1] + Math.sin(inward) * d];
-  // Your road in paints its lane's number behind its chevrons, outlined as
-  // yours; pulled out, Blue's other road shows its own.
+  // Your road in paints its lane's number behind its chevrons; pulled out,
+  // Blue's other road shows its own.
   await shoot(ctx, page, "entry-lane", entry, 160);
   await shoot(ctx, page, "entry-lanes-far", entry, 900);
+  // Buy a little way into the map from your road, not on it: a tank parked
+  // on the road's edge blocks every later arrival there, your ally's too,
+  // and your ally may share your road. Aim there, so the mid-screen clicks
+  // below land inward.
+  const inward = Math.atan2(size[1] / 2 - entry[1], size[0] / 2 - entry[0]);
+  await aim(page, [entry[0] + Math.cos(inward) * 120, entry[1] + Math.sin(inward) * 120], {
+    distance: 160,
+  });
+  await presented(page);
+  // Buy through the picker's own keyboard path (a family name, then Enter
+  // arms its first variant's ghost), then ready.
   await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
   const search = page.getByRole("textbox", { name: "Search units" });
   await search.fill(FAMILY);
   await search.press("Enter");
-  // The ghost stays armed after a placement: each click places another.
+  // A Shift-click places a tank and keeps the ghost in hand for the next;
+  // the last, plain click places one more and puts the ghost away. Every
+  // click is mid-screen, clear of the army bar, where each placement adds a
+  // card.
+  const { width, height } = page.viewportSize();
   for (let k = 0; k < BUY; k++) {
-    const at = await groundCss(page, into(120 + 40 * k));
+    const at = [width / 2 + 40 * k, height / 2];
     await page.mouse.move(at[0], at[1]);
     await page
       .waitForFunction(() => window.__lab.route.purchaseGhost?.()?.valid === true, undefined, {
         timeout: 5000,
       })
       .catch(() => {});
+    const another = k < BUY - 1;
+    if (another) await page.keyboard.down("Shift");
     await page.mouse.click(at[0], at[1]);
+    if (another) await page.keyboard.up("Shift");
     await advance(page, 1);
   }
-  // A right-click puts the ghost away.
-  await page.mouse.click(40, 300, { button: "right" });
-  const bought = [(await obs(page)).skirmish.players[YOU].pending.length];
-  ctx.check("you placed reinforcements", bought.at(-1) > 0, JSON.stringify(bought));
+  const putAway = await page
+    .waitForFunction(() => !window.__lab.route.purchaseGhost?.(), undefined, { timeout: 5000 })
+    .then(
+      () => true,
+      () => false,
+    );
+  const bought = (await obs(page)).skirmish.players[YOU].pending.length;
+  ctx.check(
+    "each Shift-click placed a tank and kept the next in hand",
+    bought === BUY,
+    `${bought}`,
+  );
+  ctx.check("the last, plain click put the ghost away", putAway);
   await page.getByRole("button", { name: "START BATTLE", exact: true }).click();
 
   // Both blue players' units on the field, your ally's force growing.

@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, expect, test, vi } from "vitest";
-import { countedFetch, downloads } from "../src/downloads";
+import { countedFetch, downloadRate, downloads } from "../src/downloads";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -85,4 +85,27 @@ test("retries a cache write failure without using the browser cache", async () =
     new Uint8Array([1, 2, 3]),
   );
   expect(fetcher).toHaveBeenNthCalledWith(2, "/bundle.bin", { cache: "no-store" });
+});
+
+test("the download rate is the bytes received over the trailing window, withheld until the window is long enough, and zero when stalled", () => {
+  expect(downloadRate([])).toBeNull();
+  expect(
+    downloadRate([
+      { at: 0, loaded: 0 },
+      { at: 400, loaded: 4e6 },
+    ]),
+  ).toBeNull();
+  expect(
+    downloadRate([
+      { at: 0, loaded: 1e6 },
+      { at: 500, loaded: 1.5e6 },
+      { at: 2000, loaded: 3e6 },
+    ]),
+  ).toBe(1e6);
+  expect(
+    downloadRate([
+      { at: 0, loaded: 3e6 },
+      { at: 2000, loaded: 3e6 },
+    ]),
+  ).toBe(0);
 });

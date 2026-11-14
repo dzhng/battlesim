@@ -3,6 +3,8 @@ use presentation::presentation::{lab::Asset, Presentation, Ui};
 use presentation::view::Camera;
 use presentation::world::{Detail, WorldInput};
 use serde_json::json;
+#[path = "common/ground.rs"]
+mod ground;
 
 fn asset() -> Asset {
     let head = serde_json::to_vec(&json!({"content":{"kind":"prop","states":[{
@@ -37,6 +39,35 @@ fn camera() -> Camera {
         near: 0.1,
         size: [640, 480],
     }
+}
+/// What each static batch draws, by appearance rather than row number:
+/// name, state, draw kind, tier, pass and count.
+fn static_draws(
+    p: &Presentation,
+    batches: &[presentation::records::Batch],
+) -> Vec<(String, String, u32, u32, u32, u32)> {
+    let w = p.world();
+    let text = |at: u32, len: u32| w.strings[at as usize..(at + len) as usize].to_owned();
+    let mut draws: Vec<_> = batches
+        .iter()
+        .map(|b| (b, &w.appearances[b.appearance as usize]))
+        .filter(|(_, r)| r.placed != 0)
+        .map(|(b, r)| {
+            let (name, state) = (text(r.name, r.name_len), text(r.state, r.state_len));
+            (name, state, r.draws, b.tier, b.pass, b.count)
+        })
+        .collect();
+    draws.sort();
+    draws
+}
+/// How many unit models the batches draw: those of rows not placed.
+fn units_drawn(p: &Presentation, batches: &[presentation::records::Batch]) -> u32 {
+    let rows = &p.world().appearances;
+    batches
+        .iter()
+        .filter(|b| rows[b.appearance as usize].placed == 0)
+        .map(|b| b.count)
+        .sum()
 }
 fn names(p: &Presentation) -> Vec<String> {
     let w = p.world();
@@ -352,12 +383,16 @@ fn a_newly_fielded_kind_joins_the_loaded_battle_without_reloading_its_world() {
     let tank = fielded::fielded(&root, battle.rules(), &["test_tank".into()]).unwrap();
     let detail = tank.units.detail;
     let mut p = Presentation::new(Some(&publication::layout_json(&battle)), 30.0).unwrap();
+    ground::set_summer_ground(&mut p);
     p.load_world(
         battle_input(tank.units, tank.effects, "blue"),
         tank.tables,
         None,
     )
     .unwrap();
+    // As in a page, the scenery is placed once its art arrives, after the
+    // battle's rows.
+    ground::place_scenery(&mut p, &ground::scenery_mesh(0.25, 4.0));
     let words: Vec<u32> = Publisher::new()
         .publish(&battle, Side::Blue)
         .unwrap()
@@ -366,7 +401,16 @@ fn a_newly_fielded_kind_joins_the_loaded_battle_without_reloading_its_world() {
         .collect();
     p.push_publication(&words, 0.0).unwrap();
     let before = p.frame(0.0, &camera(), &Ui::default(), 0).unwrap();
-    let (drawn, tank_at) = (before.instances.len(), before.instances[0].placement);
+    let (batches, instances) = (before.batches.clone(), before.instances.clone());
+    let rows = &p.world().appearances;
+    let tank = batches
+        .iter()
+        .find(|b| rows[b.appearance as usize].placed == 0)
+        .unwrap();
+    let tank_at = instances[tank.first as usize].placement;
+    let drawn = units_drawn(&p, &batches);
+    let scenery = static_draws(&p, &batches);
+    assert!(!scenery.is_empty(), "the frame draws the ground's scenery");
 
     let both = || {
         fielded::fielded(
@@ -392,26 +436,51 @@ fn a_newly_fielded_kind_joins_the_loaded_battle_without_reloading_its_world() {
             grown.tables
         )
         .unwrap());
+    let staged = p
+        .frame(0.0, &camera(), &Ui::default(), 0)
+        .unwrap()
+        .batches
+        .clone();
     assert_eq!(
-        p.frame(0.0, &camera(), &Ui::default(), 0)
-            .unwrap()
-            .instances
-            .len(),
+        units_drawn(&p, &staged),
         drawn,
         "a staged catalog changes nothing drawn until it commits"
     );
-    let draft = p
+    let mut draft = p
         .stage_catalog(Default::default(), detail, Default::default())
+        .unwrap();
+    let mesh = ground::scenery_mesh(0.25, 4.0);
+    let kinds = p.ground().unwrap().scenery_kinds().len();
+    draft
+        .stage_scenery(&p, &vec![mesh.as_slice(); kinds])
         .unwrap();
     assert!(p.commit_catalog(draft, Vec::new()).unwrap());
     let after = p.frame(0.0, &camera(), &Ui::default(), 0).unwrap();
     assert!(
-        after.instances.len() > drawn,
-        "the newly fielded squad draws from the publication already taken"
-    );
-    assert!(
         after.instances.iter().any(|i| i.placement == tank_at),
         "the units already drawn stay where they were"
+    );
+    let batches = after.batches.clone();
+    assert!(
+        units_drawn(&p, &batches) > drawn,
+        "the newly fielded squad draws from the publication already taken"
+    );
+    assert_eq!(
+        static_draws(&p, &batches),
+        scenery,
+        "the static world draws the same appearances after the battle grows"
+    );
+    let held = p
+        .frame(0.0, &camera(), &Ui::default(), 0)
+        .unwrap()
+        .batches
+        .clone();
+    let rows = &p.world().appearances;
+    assert!(
+        held.iter()
+            .filter(|b| b.first == presentation::records::NONE)
+            .all(|b| rows[b.appearance as usize].placed != 0),
+        "only the static world's batches are held between frames"
     );
     assert!(
         p.observation().is_some(),

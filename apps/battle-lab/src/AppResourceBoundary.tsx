@@ -31,7 +31,7 @@ export function AppResourceBoundary({ menu, children }: { menu: boolean; childre
       current=""
       failure={{
         message: "The battle cannot continue.",
-        advice: "Return to the menu or reload the page to prepare fresh resources.",
+        advice: "Return to the menu, or reload to prepare fresh resources.",
         details: [error],
       }}
       recovery={
