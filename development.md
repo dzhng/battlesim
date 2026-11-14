@@ -115,8 +115,9 @@ the one list of deliberate hard-coded rules:
   units sees; each player owns its units, its credits (income and kill
   rewards), its own unit cap and its controller, and readies on its own. A
   player's slot on its side names a lane, one of the side's roads, for the
-  team to coordinate by; an AI leans toward its own lane, but every purchase
-  still arrives by the side's quickest road;
+  team to coordinate by; an AI opens on its own lane and lets the pull fade as
+  the battle goes on, and every purchase still arrives by the side's quickest
+  road;
 - the skirmish AI and the scripted encounter defender choose their behaviour by
   role tags (logistics, artillery, recon, AT, MBT). They are opponents'
   playbooks, not rules of the battle.

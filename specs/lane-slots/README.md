@@ -49,7 +49,7 @@ Warnings:
 TODO:
 
 - [x] 01 · Lane rule in `sim::entries`, served through Wasm; opening camera on it → [slice 01](slices/01-lane-rule.md)
-- [ ] 02 · AI home-lane pull: wire at zero, probe, named re-baseline; help rule onto lanes → [slice 02](slices/02-ai-home-lane.md)
+- [ ] 02 · AI home-lane pull: wire at zero, probe, fade, named re-baseline; help rule onto lanes → [slice 02](slices/02-ai-home-lane.md)
 - [x] 03 · Lobby cleanups: status, size reason, Region tabs → [slice 03](slices/03-lobby-cleanups.md)
 - [x] 04 · Lobby picture: numbered pointed tags, player-free → [slice 04](slices/04-picture-tags.md)
 - [x] 05 · Lobby occupancy: open lanes hollow, your lane banded white → [slice 05](slices/05-lobby-occupancy.md)
@@ -145,7 +145,7 @@ wins, no implementation detail on screen).
 | D5 | Lobby look: option D, "number is the arrow", a pointed side-coloured tag with a dark digit. Your own lane wears a white band round its tag. (A "YOU" label was dropped on review: the band already says it.) | Bold and distinct from the objectives' white circles. Mock: [lane-tag-looks.html](visualizations/lane-tag-looks.html). | you |
 | D6 | Numbers only, never player names. | Human multiplayer is planned; names won't fit. | you |
 | D7 | Lane numbers show in the lobby, in battle, and in the future minimap (which reuses the lobby picture). | | you |
-| D8 | The home-lane pull is specified by behaviour, not a value: (a) at match start every AI takes its home lane on admitted maps of every size, including when a human holds the centre road; (b) later, a lane with clearly more enemy pressure or open objectives pulls an AI off home. A probe finds the value. | The planner's cost is straight-line metres (`team/mod.rs:537`); lanes on XL sit ~1 km apart, so a small bonus loses. | you (intent) |
+| D8 | The home-lane pull is specified by behaviour, not a value: (a) at match start every AI takes its home lane on admitted maps of every size, including when a human holds the centre road; (b) later, a lane with clearly more enemy pressure or open objectives pulls an AI off home. **Revised after slice 02's probe: the pull fades over the battle** (full at the start, gone after `home_lane_fade_s`). Shipped: 1000 fading over 600 s, so it is still 800 (what Large needed) two minutes in. | The probe showed no constant value meets both: the planner's only lane-dependent cost is straight-line distance (`team/mod.rs:537`), so a pull that beats the opening's distance gaps also beats them later. A fade is literally "start on your lane, then go where you're needed". | you |
 | D9 | In battle, paint the lane digit as ground paint **behind** the existing entry chevrons: between the map edge and the first chevron, with the stack slid inward. | The chevrons are already ground paint; the digit joins them. Rejected: a HUD label (my earlier A2), digits under or past the chevrons. | you |
 | D10 | Remove the seed from the status line ("Ready"). The seed stays in the Deploy link. | Implementation detail. | you |
 | D11 | Remove the "S · M too small for N a side" line; closed sizes stay disabled. | Greyed-out already says it. | you |

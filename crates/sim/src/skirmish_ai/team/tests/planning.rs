@@ -1,51 +1,57 @@
 use super::*;
 
-#[test]
-fn clear_objective_pull_beats_home_lane_and_unassigned_slot_gets_no_pull() {
-    // Blue 1's home is the high-x road (entry 2, x 500); its one objective
-    // sits beside the x 100 road (entry 0), 140 m closer than from home, so
-    // a home pull of 50 loses and it takes the needier road.
-    let mut ai_players = players();
-    ai_players.truncate(3);
+/// Blue 1's home is the high-x road (entry 2, x 500); its one objective
+/// sits beside the x 100 road (entry 0), 140 m closer than from home.
+fn blue_one_lane(tick_s: f64, players: &[PlayerState]) -> (PlayerIndex, EntryIndex) {
     let mut sites = sites();
     sites.objectives.retain(|objective| objective.id == "west");
-    let mut memory = TeamMemory::default();
+    let rules = team_rules();
+    let frame = ObservationFrame {
+        tick: (tick_s * f64::from(rules.tick_hz)) as Tick,
+        ..ObservationFrame::default()
+    };
     let tuning = TeamTuning {
-        home_lane_bonus: 50.0,
+        home_lane_bonus: 400.0,
+        home_lane_fade_s: 300.0,
         ..TeamTuning::shipped()
     };
-    let first_plan = plan(
+    let mut memory = TeamMemory::default();
+    let plan = plan(
         Side::Blue,
-        &team_rules(),
-        &ObservationFrame::default(),
-        &ai_players,
+        &rules,
+        &frame,
+        players,
         &sites,
         &mut memory,
         tuning,
     );
-    assert_eq!(first_plan.players.len(), 1);
-    assert_eq!(first_plan.players[0].player, PlayerIndex(0));
-    assert_eq!(first_plan.players[0].lane, EntryIndex(0));
+    assert_eq!(plan.players.len(), 1);
+    (plan.players[0].player, plan.players[0].lane)
+}
 
-    let mut slot_four = players();
-    for player in slot_four.iter_mut().take(3) {
+#[test]
+fn an_ai_holds_its_own_lane_at_the_start_and_goes_where_needed_as_the_pull_fades() {
+    let mut blue = players();
+    blue.truncate(3);
+    // The pull starts well past the 140 m it costs, and is still past it
+    // halfway through its fade.
+    assert_eq!(blue_one_lane(0.0, &blue), (PlayerIndex(0), EntryIndex(2)));
+    assert_eq!(blue_one_lane(150.0, &blue), (PlayerIndex(0), EntryIndex(2)));
+    // Faded below it, the needier road wins.
+    assert_eq!(blue_one_lane(280.0, &blue), (PlayerIndex(0), EntryIndex(0)));
+    assert_eq!(blue_one_lane(600.0, &blue), (PlayerIndex(0), EntryIndex(0)));
+}
+
+#[test]
+fn a_slot_past_the_sides_lanes_feels_no_pull() {
+    // Three humans hold Blue's three lanes; the AI in slot 4 has no home
+    // and takes the nearest road at once.
+    let mut blue = players();
+    for player in blue.iter_mut().take(3) {
         player.controller = ControllerKind::Human;
     }
-    slot_four[3].side = Side::Blue;
-    slot_four[3].controller = ControllerKind::ActiveAi;
-    let mut memory = TeamMemory::default();
-    let slot_four_plan = plan(
-        Side::Blue,
-        &team_rules(),
-        &ObservationFrame::default(),
-        &slot_four,
-        &sites,
-        &mut memory,
-        tuning,
-    );
-    assert_eq!(slot_four_plan.players.len(), 1);
-    assert_eq!(slot_four_plan.players[0].player, PlayerIndex(3));
-    assert_eq!(slot_four_plan.players[0].lane, EntryIndex(0));
+    blue[3].side = Side::Blue;
+    assert_eq!(blue_one_lane(0.0, &blue), (PlayerIndex(3), EntryIndex(0)));
 }
 
 #[test]
@@ -65,6 +71,7 @@ fn three_ai_players_get_distinct_lanes_and_objectives() {
             grid_resolution: 4,
             distance_weight: 1.0,
             home_lane_bonus: 0.0,
+            home_lane_fade_s: 1.0,
             influence_weight: 1.0,
             incumbency_bonus: 80.0,
             group_radius_m: 90.0,
@@ -136,6 +143,7 @@ fn a_large_team_plan_uses_bounded_assignment_work() {
             grid_resolution: 4,
             distance_weight: 1.0,
             home_lane_bonus: 0.0,
+            home_lane_fade_s: 1.0,
             influence_weight: 1.0,
             incumbency_bonus: 80.0,
             group_radius_m: 90.0,
@@ -183,6 +191,7 @@ fn three_ai_players_reuse_two_lanes() {
             grid_resolution: 4,
             distance_weight: 1.0,
             home_lane_bonus: 0.0,
+            home_lane_fade_s: 1.0,
             influence_weight: 1.0,
             incumbency_bonus: 80.0,
             group_radius_m: 90.0,
@@ -228,6 +237,7 @@ fn a_lone_ai_takes_the_lane_nearest_its_objective_not_the_first() {
             grid_resolution: 4,
             distance_weight: 1.0,
             home_lane_bonus: 0.0,
+            home_lane_fade_s: 1.0,
             influence_weight: 1.0,
             incumbency_bonus: 80.0,
             group_radius_m: 90.0,
@@ -266,6 +276,7 @@ fn planning_is_repeatable_and_incumbency_survives_a_marginal_score_change() {
         grid_resolution: 4,
         distance_weight: 1.0,
         home_lane_bonus: 0.0,
+        home_lane_fade_s: 1.0,
         influence_weight: 1.0,
         incumbency_bonus: 80.0,
         group_radius_m: 90.0,
@@ -317,6 +328,7 @@ fn a_held_objective_replans_to_one_the_side_does_not_hold_immediately() {
         grid_resolution: 4,
         distance_weight: 1.0,
         home_lane_bonus: 0.0,
+        home_lane_fade_s: 1.0,
         influence_weight: 1.0,
         incumbency_bonus: 80.0,
         group_radius_m: 90.0,

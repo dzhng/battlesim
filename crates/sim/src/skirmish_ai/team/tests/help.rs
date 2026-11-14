@@ -103,6 +103,7 @@ fn help_uses_the_nearest_surplus_ally_and_holds_it_until_the_lane_is_relieved() 
             grid_resolution: 1,
             distance_weight: 1.0,
             home_lane_bonus: 0.0,
+            home_lane_fade_s: 1.0,
             influence_weight: 1.0,
             incumbency_bonus: 1.0,
             group_radius_m: 90.0,

@@ -104,6 +104,8 @@ own that is losing a fight pops its smoke and reverses out of the cloud
 ([smoke](src/skirmish_ai/smoke.rs)); a player's units only pop when ordered.
 [Team planning](src/skirmish_ai/team/) is the side's level of it: it spreads
 the side's AI players over lanes and objectives and sends help between them.
+Each AI opens on the lane its slot holds; that pull fades over the battle, so
+need decides later.
 
 [Active protection](src/protection.rs) owns finite defensive charges and cooldowns.
 Flight offers it only an imminent swept hull collision at the authored standoff;

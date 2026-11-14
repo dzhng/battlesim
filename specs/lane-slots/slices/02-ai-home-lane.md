@@ -66,6 +66,15 @@ literal helper.
 All digests through 2a; help-request, party and stance tests (their
 outcomes may change only in 2c, and only through A8 or the new term).
 
+## Outcome
+
+The probe found no constant value: every AI opened on its home lane on every
+size only from about 800 (Large), and at that value need almost never pulled
+an AI away. The user chose a fading pull (`home_lane_fade_s`): full at the
+battle's start, gone by the end of the fade. Shipped 1000 over 600 s. Probe at
+those values, five admitted maps a size, every human seat: no AI off its home
+lane through the first 200 s on any size; by 600 s need wins on every map.
+
 ## What would change this slice
 
 If no single value passes (a) on every size and (b), **stop and report**. Do
