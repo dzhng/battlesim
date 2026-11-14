@@ -93,7 +93,10 @@ a free preview. [Match contracts](../contract/src/skirmish.rs) carry setup and t
 side's observation through the existing publication owner.
 [Entries](src/entries.rs) is the one owner of which of a side's roads a
 reinforcement takes and where a unit leaves the map; the roads are the side's,
-shared by its players.
+shared by its players. It also owns lanes: a side's roads numbered from the
+map's high-x end, the slot each player holds, and where a seated player's view
+opens. The planner, the lobby picture and the page (through one Wasm call) all
+read lanes from it, and none numbers a road itself.
 
 [The skirmish AI](src/skirmish_ai/) plays one player from its side's
 observation, and everything it decides is an ordinary command. A unit of its

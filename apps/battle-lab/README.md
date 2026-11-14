@@ -57,7 +57,9 @@ map input changes, and Deploy opens only on a ready map and names the seed that
 was admitted, so the battle is the map the player saw. The preview may try
 bounded fresh seeds; when generation is exhausted the lobby shows no map and
 Deploy stays shut, and no fixed map is ever substituted. The lobby's players are
-always the battle's players, numbered by place on their side, and its preview
+always the battle's players, numbered by place on their side; that number is
+the lane the player holds, so the map's entry tags carry it and the lobby marks
+which lanes are open and which is yours. Its preview
 and its Deploy link build one request ([skirmish setup](src/skirmishSetup.ts)),
 so the battle is the one previewed. A battle address names exact preparation
 inputs on the same build. It must name both sides' players and factions; the
