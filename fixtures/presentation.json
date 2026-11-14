@@ -46,7 +46,7 @@
     "pan_speed": 0.6,
     "rotate_speed": 1.4,
     "zoom_speed": 0.0012,
-    "orbit_speed": 2.5,
+    "drag_speed": 2.5,
     "default": {
       "distance": 65,
       "yaw": -1.57

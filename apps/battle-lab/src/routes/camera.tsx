@@ -307,7 +307,7 @@ function Arena({ map }: { map: MapDefinition }) {
         <strong>Camera clearance</strong>
         <div className="lab-hint">
           The eye asked for is amber (red inside a building's clearance); the eye drawn is cyan
-          where it leaves it. WASD/arrows pan · Q/E turn · middle‑drag orbit · wheel zoom
+          where it leaves it. WASD/arrows pan · Q/E turn · middle‑drag look · wheel zoom
         </div>
         <fieldset className="lab-field">
           <legend>Trajectory</legend>

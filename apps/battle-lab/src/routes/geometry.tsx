@@ -172,7 +172,7 @@ function GeometryLab({ id, readMap }: { id: string; readMap: () => MapDefinition
       <aside className="hud-panel lab-panel" data-testid="geometry-panel">
         <strong>{label}</strong>
         <div className="lab-hint">
-          Click probes the authoritative surface · middle‑drag orbit · arrows pan
+          Click probes the authoritative surface · middle‑drag look · arrows pan
         </div>
         <fieldset className="lab-field">
           <legend>Ground overlay</legend>

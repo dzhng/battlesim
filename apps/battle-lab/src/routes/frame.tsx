@@ -202,7 +202,7 @@ export default function Frame() {
         <strong>Frame</strong>
         <div>Selected: {selected >= 0 ? `${FOUNDATION[selected].kind} #${selected}` : "none"}</div>
         <div className="lab-hint">
-          Click select · WASD/arrows/screen edge pan · Q/E turn · middle‑drag orbit · wheel zoom
+          Click select · WASD/arrows/screen edge pan · Q/E turn · middle‑drag look · wheel zoom
         </div>
         <button type="button" onClick={() => window.__lab?.reset?.()}>
           Reset camera
