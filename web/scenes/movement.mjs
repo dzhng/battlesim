@@ -1,5 +1,5 @@
 // Slice 04: predictable routes, group intent, gestures, traffic and blockage.
-import { armedCursor } from "./_armedCommands.mjs";
+import { armedCursor } from "./_movingCursor.mjs";
 import { movementCursor } from "./_cursorOrders.mjs";
 import { lab, groundCss, presented } from "./_lab.mjs";
 import { paintOnly } from "./_overlays.mjs";

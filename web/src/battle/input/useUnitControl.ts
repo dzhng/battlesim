@@ -451,6 +451,8 @@ export function useUnitControl(
 
   return {
     refund: observation?.skirmish ? refund : undefined,
+    /** Someone selected can enter a building. */
+    entersBuildings: reach("garrison", selectedUnits, catalog, ownUnits()).length > 0,
     /** The units the player orders (`controlled`): the army row's. */
     controlled: yours,
     selected,

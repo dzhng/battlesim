@@ -682,8 +682,7 @@ export function useBattleSession({
     const pending = releasedAction.released;
     const accepted = pending?.ack;
     const released = pending?.intent;
-    // Until admission answers, the released request retains its resolved marks,
-    // including facing. It uses the same coalesced preview owner as held/hover intent.
+    // Until admission answers, the released request keeps its marks and facing.
     const waiting = !held && pending && !accepted && released;
     const queryIntent = waiting ? reconcilePointerIntent(released, shown, commanding) : intent;
     const previewSnapshot = orderPreview.update(
@@ -779,6 +778,7 @@ export function useBattleSession({
       samePointerIntent(intent, queryIntent)
         ? previewSnapshot
         : { state: "pending", building: null },
+      control.entersBuildings,
     );
   };
   /** Drag-select own units whose drawn position falls in the rectangle. */

@@ -364,10 +364,13 @@ export function previewForIntent(intent: PointerIntent): PointerPreview | null {
   }
 }
 
-/** Pending availability stays plain; an attack may validly pursue its target. */
+/** Pending availability stays plain; an attack may validly pursue its target.
+ *  `entrants`: someone selected can enter a building, so its badge shows
+ *  before the simulation answers. */
 export function cursorForIntent(
   intent: PointerIntent,
   paint: Pick<OrderPreviewSnapshot, "state" | "building" | "carried">,
+  entrants = false,
 ): CursorAction {
   if (intent.kind === "none" || intent.kind === "cancel") return "default";
   // A query in flight shows what the last one settled on.
@@ -377,8 +380,12 @@ export function cursorForIntent(
   // Boarding is the simulation's to admit; its refusal names the squads left out.
   if (intent.kind === "board" || intent.kind === "collect") return "board";
   if (state === "blocked") return "blocked";
+  // Entering a building shows at once, as boarding does: proving every
+  // entrant's route can outlast the query's work, and only an answer that
+  // admits no entrant takes the badge away.
+  if (intent.kind === "occupy_building")
+    return paint.building?.entrant || (state !== "ready" && entrants) ? "garrison" : "default";
   if (state !== "ready") return "default";
-  if (intent.kind === "occupy_building") return paint.building?.entrant ? "garrison" : "default";
   if (intent.kind === "attack_move") return "attack_move";
   if (intent.kind === "unload") return "unload";
   return intent.route === "fastest"

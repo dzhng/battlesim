@@ -157,7 +157,7 @@ test("a failed query remains pending and does not become blocked", async () => {
   ).not.toBe("blocked");
 });
 
-test("building placement drives blocked, pending and garrison cursor outcomes", async () => {
+test("a building shows the garrison badge at once; only the simulation's answer takes it away", async () => {
   type BuildingAnswer = {
     building: number;
     entrant: { unit: number; approach: [number, number] } | null;
@@ -187,7 +187,12 @@ test("building placement drives blocked, pending and garrison cursor outcomes", 
     ...(unproven === undefined ? {} : { unproven }),
   });
 
-  preview.update(intent, sim, 1, "building");
+  // Asked, not yet answered: entering shows at once, as boarding does, for
+  // a selection with someone who can enter; one with no one waits.
+  const asked = preview.update(intent, sim, 1, "building");
+  const occupy = { kind: "occupy_building", units: [1], building: 4, queued: false } as const;
+  expect(cursorForIntent({ ...occupy, units: [1] }, asked, true)).toBe("garrison");
+  expect(cursorForIntent({ ...occupy, units: [1] }, asked, false)).toBe("default");
   blocked.resolve(building(null));
   await blocked.promise;
   await settled();
@@ -213,8 +218,9 @@ test("building placement drives blocked, pending and garrison cursor outcomes", 
     cursorForIntent(
       { kind: "occupy_building", units: [1], building: 4, queued: false },
       pendingSnapshot,
+      true,
     ),
-  ).toBe("default");
+  ).toBe("garrison");
 
   preview.update({ ...intent, request: { ...intent.request, facing: 2 } }, sim, 1, "building");
   admitted.resolve(building({ unit: 1, approach: [10, 10] }));
