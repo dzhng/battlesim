@@ -870,8 +870,8 @@ to `Steading`, because depots space their yards too. The preset rows stay two
 private serde structs (`HomesteadRow`, `DepotRow`), because
 `deny_unknown_fields` can't flatten a shared row. Which templates a home may
 build is `Homes::choices`, and `furnish_yard` takes the yard and the homes.
-The owner is `open_country/steads.rs`, and `Pieces::depot_of` is the one
-parser of a depot's lot id.
+The types and `Pieces::depot_of`, the one parser of a depot's lot id, are in
+`open_country/rules.rs`. The station walk is `open_country/steads.rs`.
 - **When:** 13, 17, closeout. **Verdict:** sound. **Confidence:** high.
 
 **A depot piece is `count` bodies under an optional `net`.** The supply piece
