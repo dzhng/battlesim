@@ -154,6 +154,6 @@ Its bare invocation prints available commands. Audio preparation has a separate
 [audio tool](../packages/battle-audio/README.md#recording-preparation), because audio
 provenance and crops belong to the sound catalog rather than the appearance catalog.
 
-## Runtime audio sharp edge
+## Deployed runtime assets
 
-The Vercel project must have **Git LFS** enabled in its dashboard. Runtime music and voice MP3s are tracked LFS assets; without that setting a deployment serves pointer files instead of media.
+The Vercel project keeps its **Git LFS** setting off: that setting fetches every LFS object in the repository, most of it art sources and evidence the site never serves. [The install step](../tools/vercel-install.sh) fetches only `assets/runtime`, and fails the build if a runtime file is still a pointer, so a deployment never serves pointer files instead of media.
