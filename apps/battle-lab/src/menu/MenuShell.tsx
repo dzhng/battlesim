@@ -1,8 +1,10 @@
 // The menu's one shell, above every menu page's visit: the backdrop battle,
-// first-launch graphics detection, the loading cover, and the plate that each
+// first-launch graphics detection, the loading covers, and the plate that each
 // page fills. Moving between menu pages changes only the plate's contents, so
-// the film behind never restarts and the cover never comes back. A loading
-// screen stands in the plate's place until the backdrop is first ready.
+// the film behind never restarts and the menu's own cover never comes back. A
+// loading screen stands in the plate's place until the backdrop is first
+// ready; after that, a page still loading (the Armory, until its stage draws)
+// stands under a cover of its own, so the film never stands in for it.
 import {
   createContext,
   useCallback,
@@ -22,7 +24,7 @@ import { GraphicsDetectionHost } from "../GraphicsDetectionHost";
 import { graphicsDetectionState, subscribeGraphicsDetection } from "../graphicsDetection";
 import { GRAPHICS_TIERS, graphicsSettings } from "../graphicsSettings";
 import { allowRuntimePrefetch } from "../gameAppearances";
-import type { MenuPageId } from "./pages";
+import { menuPage, type MenuPageId } from "./pages";
 
 /** What the shell tells the page it holds. */
 export interface MenuShellState {
@@ -45,6 +47,12 @@ export function useMenuShell(): MenuShellState {
   return shell;
 }
 
+/** The stages of a page's own cover: its contents, then its scene. */
+const PAGE_STAGES = [
+  { id: "preparation", label: "Preparing" },
+  { id: "renderer", label: "Setting the stage" },
+] as const;
+
 /** How a tile opens its page, so its Back can return through history. */
 export const FROM_MENU = { state: { fromMenu: true } } as const;
 
@@ -52,12 +60,15 @@ export const FROM_MENU = { state: { fromMenu: true } } as const;
 export function MenuShell({ page, children }: { page: MenuPageId | "home"; children: ReactNode }) {
   const plate = useRef<HTMLDivElement>(null);
   const { report, progress } = useLoadingTasks();
+  // What the page reports: it holds the first cover with the backdrop, and
+  // after that a cover of its own.
+  const pageTasks = useLoadingTasks();
   const detection = useSyncExternalStore(subscribeGraphicsDetection, graphicsDetectionState);
   const settings = useSyncExternalStore(graphicsSettings.subscribe, graphicsSettings.get);
   // Covered only until the backdrop is first ready: its restarts happen
   // behind its own veil. One that cannot be made leaves the plain ground.
   const [revealed, setRevealed] = useState(false);
-  const loading = !revealed && !progress.done && !progress.error;
+  const loading = !revealed && !progress.error && (!progress.done || pageTasks.progress.pending);
   const detectionNeeded = settings.mode === "auto" && !settings.detectedMode;
   const detected = !detectionNeeded || detection.status === "complete";
   const [showDetection, setShowDetection] = useState(false);
@@ -94,6 +105,7 @@ export function MenuShell({ page, children }: { page: MenuPageId | "home"; child
     setRevealed(true);
     shown.resolve();
   }, [loading, shown]);
+  const pageLoading = revealed && !displayLoading && page !== "home" && pageTasks.progress.pending;
   // The page just left, by Back, Escape or history alike.
   const [at, setAt] = useState(page);
   const [left, setLeft] = useState<MenuPageId | null>(null);
@@ -109,15 +121,21 @@ export function MenuShell({ page, children }: { page: MenuPageId | "home"; child
   );
   return (
     <Shell value={{ revealed, detected, left, back }}>
-      <main className="menu" data-open={page === "home" ? undefined : page} inert={displayLoading}>
-        {/* The backdrop and the page both report to the cover: a page with a
-            scene of its own (the Armory's stage) holds it until it draws. */}
+      <main
+        className="menu"
+        data-open={page === "home" ? undefined : page}
+        inert={displayLoading || pageLoading}
+      >
+        {/* A page with a scene of its own (the Armory's stage) reports it, so
+            its cover holds until the scene draws. */}
         <LoadingTasks report={report}>
           <MenuBackdrop
             plate={plate}
             shown={shown.promise}
             onDetectionSceneReady={() => setShowDetection(false)}
           />
+        </LoadingTasks>
+        <LoadingTasks report={pageTasks.report}>
           <div className="menu-slot">
             <GraphicsDetectionHost runner={null} enabled={!loading}>
               <div className="hud-panel menu-body" ref={plate}>
@@ -133,6 +151,14 @@ export function MenuShell({ page, children }: { page: MenuPageId | "home"; child
           stages={stages}
           current={detectionCurrent}
           stageDetail={detectionDetail}
+          back={null}
+        />
+      )}
+      {pageLoading && (
+        <LoadingScreen
+          title={menuPage(page).title}
+          stages={PAGE_STAGES}
+          current={pageTasks.progress.current}
           back={null}
         />
       )}

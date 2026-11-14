@@ -293,7 +293,9 @@ stretch of road for its yard. The art is fitted to this box.
 stage's scene (see "each show stands on a presentation of its own"), and a
 freed renderer leaves the canvas clear, so the menu's amber backdrop flashed
 through on every pick. A 2D canvas behind the live one now holds the last
-drawn frame. A `data-switching` mark on the stage blurs, dims and slightly
+drawn frame. The frame loop copies it right after drawing, because a WebGPU
+canvas reads back clear outside the task that drew it: a copy taken from the
+pick itself is always clear. A `data-switching` mark on the stage blurs, dims and slightly
 scales both canvases until the next unit stands. The pause reads as a change,
 not as the unit just leaving. The alternative is an in-place row swap inside
 `BrowserScene`, a renderer change for every caller.
