@@ -145,27 +145,10 @@ impl Ground {
     fn water_looks(&self) -> [WaterLook; WATER_LOOKS_MAX] {
         let (b, w) = (&self.biome, &self.tuning.terrain.water);
         let (r, lobes) = (&w.normals, &w.lobes);
-        // A puddle fades its water in over the first third of its depth.
-        let puddles = b
-            .water
-            .puddles
-            .iter()
-            .flat_map(|q| q.looks.iter().map(|l| (l, q.depth_m)));
-        let deep = b
-            .water
-            .rivers
-            .iter()
-            .chain(&b.water.swamps)
-            .map(|l| (l, 0.0));
         let mut looks = [WaterLook::default(); WATER_LOOKS_MAX];
-        for (tag, (look, puddle_m)) in deep.chain(puddles).enumerate() {
+        for (tag, look) in b.water.rivers.iter().chain(&b.water.swamps).enumerate() {
             let colours = b.palette(&look.palette);
             let [primary, macro_m, detail] = r.tiles_m;
-            let shore = if puddle_m > 0.0 {
-                puddle_m / 3.0
-            } else {
-                w.shore_fade_m
-            };
             let (f, c) = (&w.refraction, &w.caustics);
             looks[tag] = WaterLook {
                 channel: f4(rgb(linear(colours[0]), 0.0)),
@@ -173,7 +156,7 @@ impl Ground {
                 surface: f4(rgb(look.extinction_per_m, w.shadow)),
                 normals: f4([1.0 / primary, 1.0 / macro_m, 1.0 / detail, r.strength]),
                 drifts: f4([r.drifts[0], r.drifts[1], r.drifts[2], 0.0]),
-                fades: f4([shore, r.fade_m[0], r.fade_m[1], puddle_m]),
+                fades: f4([w.shore_fade_m, r.fade_m[0], r.fade_m[1], 0.0]),
                 roughness: f4(rgb(lobes.roughness, 0.0)),
                 lobes: f4(rgb(lobes.weights, 0.0)),
                 refraction: f4([f.share, f.depth_m, f.most, f.blur_m]),

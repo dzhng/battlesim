@@ -16,7 +16,7 @@ pub(super) const WAKE_KEEP_S: f64 = 1.0;
 /// each of its waders in water `vee_depth_m` deep or more, for every
 /// `spacing_m` it covers, when and where it passed (`carry`: how far it has
 /// come since its last); slower, and from waders in shallower water (a
-/// puddle splashes, it drags no V), rings round each every 1/`ring_hz` s of
+/// swamp's shoaling edge splashes, it drags no V), rings round each every 1/`ring_hz` s of
 /// the clock, each seeded by the unit, the wader and its count. A unit
 /// first seen, or seen again after a gap, starts clean.
 #[allow(clippy::too_many_arguments)]
