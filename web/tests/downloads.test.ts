@@ -46,6 +46,33 @@ test("the bytes of a download count up as its body arrives, against its announce
   expect(downloads.get()).toMatchObject({ active: 0, loaded: 0, total: 0 });
 });
 
+/** A response that sends 300 of an announced 1000 bytes, then loses its
+ *  connection the way a browser reports it (a TypeError). */
+function dropped() {
+  let sent = false;
+  const body = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      if (sent) controller.error(new TypeError("Load failed"));
+      else controller.enqueue(new Uint8Array(300));
+      sent = true;
+    },
+  });
+  return new Response(body, { headers: { "content-length": "1000" } });
+}
+
+test.each([
+  ["its connection drops mid-body", (r: Response) => r.arrayBuffer()],
+  ["its reader cancels the body", (r: Response) => r.body!.cancel()],
+])("a download ends, and the burst resets, when %s", async (_, end) => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => dropped()),
+  );
+  await end(await countedFetch("/bundle.bin")).catch(() => {});
+  await tick();
+  expect(downloads.get()).toMatchObject({ active: 0, loaded: 0, total: 0 });
+});
+
 test("retries a cache write failure without using the browser cache", async () => {
   const response = new Response(new Uint8Array([1, 2, 3]));
   const fetcher = vi
