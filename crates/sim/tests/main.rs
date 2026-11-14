@@ -63,6 +63,7 @@ mod order_markers;
 mod own_route;
 mod publication;
 mod publication_reader;
+mod purchase_preview;
 mod radar;
 mod ricochet;
 mod rivers;
