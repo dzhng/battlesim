@@ -1,0 +1,62 @@
+// The reinforcement in hand: the unit chosen from the shop, its ghost on the
+// cursor, and the placements the authority accepted, from choice to confirm
+// or cancel. A new battle drops all of it.
+import { useCallback, useEffect, useRef, useState } from "react";
+import { PurchasePlacementControl, type PurchaseGhost } from "@web/battle/input/purchasePlacement";
+import type { SimClient } from "@web/battle/sim/client";
+import type { LabPick } from "./LabViewport";
+
+type Send = Parameters<PurchasePlacementControl["confirm"]>[0];
+
+export function usePurchasePlacement(client: SimClient | null) {
+  const [placement] = useState(() => new PurchasePlacementControl());
+  /** The chosen reinforcement must be requested before the cursor asks the
+   *  presentation to draw its ghost.  Keep this in React state so the art
+   *  request advances on the same render as the picker choice. */
+  const [placing, setPlacing] = useState<string | null>(null);
+  const ghost = useRef<PurchaseGhost | null>(null);
+  /** The ghosts the authority accepted, for their facing: a pending purchase
+   *  carries only its kind and destination. */
+  const placed = useRef<PurchaseGhost[]>([]);
+  const cancel = useCallback(() => {
+    placement.cancel();
+    ghost.current = null;
+    setPlacing(null);
+  }, [placement]);
+  const choose = useCallback(
+    (variant: string) => {
+      placement.choose(variant);
+      setPlacing(variant);
+    },
+    [placement],
+  );
+  /** A click with a unit in hand: the left button places it, the right cancels. */
+  const click = useCallback(
+    (pick: LabPick, send: Send) => {
+      if (pick.button === "right") return cancel();
+      void placement.confirm(send).then((accepted) => {
+        if (!accepted) return;
+        placed.current.push(accepted);
+        if (!placement.variant) {
+          ghost.current = null;
+          setPlacing(null);
+        }
+      });
+    },
+    [placement, cancel],
+  );
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || !placement.variant) return;
+      event.preventDefault();
+      cancel();
+    };
+    window.addEventListener("keydown", onKey, { capture: true });
+    return () => window.removeEventListener("keydown", onKey, { capture: true });
+  }, [placement, cancel]);
+  useEffect(() => {
+    cancel();
+    placed.current = [];
+  }, [client, cancel]);
+  return { placement, placing, ghost, placed, choose, click };
+}
