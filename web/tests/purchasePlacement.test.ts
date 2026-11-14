@@ -18,11 +18,11 @@ test("a changed variant/destination cannot reuse an earlier valid preview", asyn
   expect(control.at([20, 30], client, "1")?.valid).toBeNull();
   control.choose("test_scout");
   expect(control.at([40, 50], client, "1")?.valid).toBeNull();
-  resolve[0]({ Ok: { kind: 0, destination: [20, 30], spots: [] } });
+  resolve[0]({ Ok: { kind: 0, destination: [20, 30], spots: [], area_radius_m: null } });
   await settle();
   expect(control.at([40, 50], client, "1")?.valid).toBeNull();
   expect(client.previewPurchase).toHaveBeenCalledTimes(2);
-  resolve[1]({ Ok: { kind: 1, destination: [40, 50], spots: [] } });
+  resolve[1]({ Ok: { kind: 1, destination: [40, 50], spots: [], area_radius_m: null } });
   await settle();
   expect(control.at([40, 50], client, "1")?.valid).toBe(true);
   const send = vi.fn(async () => ({ seq: 1, applied_tick: 2, error: null, refused: [] }));
@@ -46,7 +46,7 @@ test("cancelling during a preview keeps its late answer from reviving the choice
   control.cancel();
   control.choose("test_scout");
   control.at([10, 20], client, "1");
-  replies[0]({ Ok: { kind: 1, destination: [10, 20], spots: [] } });
+  replies[0]({ Ok: { kind: 1, destination: [10, 20], spots: [], area_radius_m: null } });
   await settle();
   expect(control.at([10, 20], client, "1")?.valid).toBeNull();
   expect(client.previewPurchase).toHaveBeenCalledTimes(2);
@@ -56,7 +56,7 @@ test("an accepted old confirmation cannot clear a newer choice", async () => {
   let resolve!: (ack: { seq: number; applied_tick: number; error: null; refused: [] }) => void;
   const client = {
     previewPurchase: vi.fn(async (_variant: string, at: [number, number]) => ({
-      Ok: { kind: 1, destination: at, spots: [] },
+      Ok: { kind: 1, destination: at, spots: [], area_radius_m: null },
     })),
   } as unknown as SimClient;
   const control = new PurchasePlacementControl();
@@ -73,7 +73,7 @@ test("an accepted old confirmation cannot clear a newer choice", async () => {
 test("a rejected confirmation releases ownership for a retry", async () => {
   const client = {
     previewPurchase: vi.fn(async (_variant: string, at: [number, number]) => ({
-      Ok: { kind: 1, destination: at, spots: [] },
+      Ok: { kind: 1, destination: at, spots: [], area_radius_m: null },
     })),
   } as unknown as SimClient;
   const control = new PurchasePlacementControl();
@@ -104,7 +104,7 @@ test("a replaced authority cannot inherit a valid preview", async () => {
   control.choose("test_scout");
   control.at([10, 20], first, "1");
   control.at([10, 20], second, "1");
-  resolvers[0]({ Ok: { kind: 1, destination: [10, 20], spots: [] } });
+  resolvers[0]({ Ok: { kind: 1, destination: [10, 20], spots: [], area_radius_m: null } });
   await settle();
   expect(control.at([10, 20], second, "1")?.valid).toBeNull();
   resolvers[1]({ Err: { reason: "wrong_faction" } });
@@ -124,7 +124,7 @@ test("a completed preview can confirm without another pointer movement", async (
   const control = new PurchasePlacementControl();
   control.choose("test_scout");
   control.at([10, 20], client, "1");
-  reply({ Ok: { kind: 1, destination: [10, 20], spots: [] } });
+  reply({ Ok: { kind: 1, destination: [10, 20], spots: [], area_radius_m: null } });
   await settle();
   const send = vi.fn(async () => ({ seq: 1, applied_tick: 2, error: null, refused: [] }));
   expect(await control.confirm(send)).toBeTruthy();
@@ -138,7 +138,7 @@ test("a completed preview can confirm without another pointer movement", async (
 test("deployment ghosts face the opposing edge by default and track a drag bearing", () => {
   const client = {
     previewPurchase: vi.fn(async (_variant: string, at: [number, number]) => ({
-      Ok: { kind: 1, destination: at, spots: [] },
+      Ok: { kind: 1, destination: at, spots: [], area_radius_m: null },
     })),
   } as unknown as SimClient;
   const control = new PurchasePlacementControl();
@@ -150,7 +150,7 @@ test("deployment ghosts face the opposing edge by default and track a drag beari
 test("turning a placed ghost keeps its preview, and confirming reports the ghost as placed", async () => {
   const client = {
     previewPurchase: vi.fn(async (_variant: string, at: [number, number]) => ({
-      Ok: { kind: 1, destination: at, spots: [] },
+      Ok: { kind: 1, destination: at, spots: [], area_radius_m: null },
     })),
   } as unknown as SimClient;
   const control = new PurchasePlacementControl();
@@ -167,6 +167,7 @@ test("turning a placed ghost keeps its preview, and confirming reports the ghost
     facing: 0.5,
     valid: true,
     spots: [],
+    areaRadius: null,
   });
 });
 
@@ -242,7 +243,7 @@ test("a ghost stays placeable while the side's knowledge changes faster than pre
   control.choose("test_scout");
   for (let revision = 1; revision <= 4; revision++) {
     control.at([10, 20], client, `${revision}`);
-    replies.at(-1)!({ Ok: { kind: 1, destination: [12, 20], spots: [] } });
+    replies.at(-1)!({ Ok: { kind: 1, destination: [12, 20], spots: [], area_radius_m: null } });
     await settle();
   }
   const ghost = control.at([10, 20], client, "5");
@@ -257,4 +258,27 @@ test("a ghost stays placeable while the side's knowledge changes faster than pre
     variant: "test_scout",
     destination: [12, 20],
   });
+});
+
+test("a placement confirmed to place another keeps the choice for the next one", async () => {
+  const client = {
+    previewPurchase: vi.fn(async (_variant: string, at: [number, number]) => ({
+      Ok: { kind: 1, destination: at, spots: [] },
+    })),
+  } as unknown as SimClient;
+  const control = new PurchasePlacementControl();
+  control.choose("test_scout");
+  control.at([10, 20], client, "1");
+  await settle();
+  const send = vi.fn(async () => ({ seq: 1, applied_tick: 2, error: null, refused: [] }));
+  expect(await control.confirm(send, true)).toBeTruthy();
+  expect(control.variant).toBe("test_scout");
+  control.at([30, 40], client, "2");
+  await settle();
+  expect(await control.confirm(send)).toBeTruthy();
+  expect(send.mock.calls).toEqual([
+    [{ kind: "confirm_purchase", variant: "test_scout", destination: [10, 20] }],
+    [{ kind: "confirm_purchase", variant: "test_scout", destination: [30, 40] }],
+  ]);
+  expect(control.variant).toBeNull();
 });

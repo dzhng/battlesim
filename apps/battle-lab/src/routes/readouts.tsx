@@ -51,7 +51,7 @@ function ReadoutsLab({ battle }: { battle: SavedBattle }) {
       control.selected,
       session.revealed,
       surfaceZ,
-      gameStroke(OPENING_METRES_PER_PX, renderScale),
+      { stroke: gameStroke(OPENING_METRES_PER_PX, renderScale), hovered: session.hovered },
     );
     const tracers = tracerLayer(observation);
     return combineWorldMeshes([orders, tracers]);
@@ -62,6 +62,7 @@ function ReadoutsLab({ battle }: { battle: SavedBattle }) {
     surfaceZ,
     control.selected,
     session.revealed,
+    session.hovered,
     session.units,
     session.rules.air,
   ]);
@@ -113,6 +114,7 @@ function ReadoutsLab({ battle }: { battle: SavedBattle }) {
           selected={control.selected}
           onSelect={control.setSelected}
           onCenter={focusUnit}
+          onHover={session.hoverFromDeck}
           rules={session.rules}
           captions={null}
         />

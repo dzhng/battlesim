@@ -1,5 +1,59 @@
 use super::*;
 
+/// Blue 1's home is the high-x road (entry 2, x 500); its one objective
+/// sits beside the x 100 road (entry 0), 140 m closer than from home.
+fn blue_one_lane(tick_s: f64, players: &[PlayerState]) -> (PlayerIndex, EntryIndex) {
+    let mut sites = sites();
+    sites.objectives.retain(|objective| objective.id == "west");
+    let rules = team_rules();
+    let frame = ObservationFrame {
+        tick: (tick_s * f64::from(rules.tick_hz)) as Tick,
+        ..ObservationFrame::default()
+    };
+    let tuning = TeamTuning {
+        home_lane_bonus: 400.0,
+        home_lane_fade_s: 300.0,
+        ..TeamTuning::shipped()
+    };
+    let mut memory = TeamMemory::default();
+    let plan = plan(
+        Side::Blue,
+        &rules,
+        &frame,
+        players,
+        &sites,
+        &mut memory,
+        tuning,
+    );
+    assert_eq!(plan.players.len(), 1);
+    (plan.players[0].player, plan.players[0].lane)
+}
+
+#[test]
+fn an_ai_holds_its_own_lane_at_the_start_and_goes_where_needed_as_the_pull_fades() {
+    let mut blue = players();
+    blue.truncate(3);
+    // The pull starts well past the 140 m it costs, and is still past it
+    // halfway through its fade.
+    assert_eq!(blue_one_lane(0.0, &blue), (PlayerIndex(0), EntryIndex(2)));
+    assert_eq!(blue_one_lane(150.0, &blue), (PlayerIndex(0), EntryIndex(2)));
+    // Faded below it, the needier road wins.
+    assert_eq!(blue_one_lane(280.0, &blue), (PlayerIndex(0), EntryIndex(0)));
+    assert_eq!(blue_one_lane(600.0, &blue), (PlayerIndex(0), EntryIndex(0)));
+}
+
+#[test]
+fn a_slot_past_the_sides_lanes_feels_no_pull() {
+    // Three humans hold Blue's three lanes; the AI in slot 4 has no home
+    // and takes the nearest road at once.
+    let mut blue = players();
+    for player in blue.iter_mut().take(3) {
+        player.controller = ControllerKind::Human;
+    }
+    blue[3].side = Side::Blue;
+    assert_eq!(blue_one_lane(0.0, &blue), (PlayerIndex(3), EntryIndex(0)));
+}
+
 #[test]
 fn three_ai_players_get_distinct_lanes_and_objectives() {
     let players = players();
@@ -16,6 +70,8 @@ fn three_ai_players_get_distinct_lanes_and_objectives() {
             planner_decision_s: 5.0,
             grid_resolution: 4,
             distance_weight: 1.0,
+            home_lane_bonus: 0.0,
+            home_lane_fade_s: 1.0,
             influence_weight: 1.0,
             incumbency_bonus: 80.0,
             group_radius_m: 90.0,
@@ -86,6 +142,8 @@ fn a_large_team_plan_uses_bounded_assignment_work() {
             planner_decision_s: 5.0,
             grid_resolution: 4,
             distance_weight: 1.0,
+            home_lane_bonus: 0.0,
+            home_lane_fade_s: 1.0,
             influence_weight: 1.0,
             incumbency_bonus: 80.0,
             group_radius_m: 90.0,
@@ -132,6 +190,8 @@ fn three_ai_players_reuse_two_lanes() {
             planner_decision_s: 5.0,
             grid_resolution: 4,
             distance_weight: 1.0,
+            home_lane_bonus: 0.0,
+            home_lane_fade_s: 1.0,
             influence_weight: 1.0,
             incumbency_bonus: 80.0,
             group_radius_m: 90.0,
@@ -176,6 +236,8 @@ fn a_lone_ai_takes_the_lane_nearest_its_objective_not_the_first() {
             planner_decision_s: 5.0,
             grid_resolution: 4,
             distance_weight: 1.0,
+            home_lane_bonus: 0.0,
+            home_lane_fade_s: 1.0,
             influence_weight: 1.0,
             incumbency_bonus: 80.0,
             group_radius_m: 90.0,
@@ -213,6 +275,8 @@ fn planning_is_repeatable_and_incumbency_survives_a_marginal_score_change() {
         planner_decision_s: 5.0,
         grid_resolution: 4,
         distance_weight: 1.0,
+        home_lane_bonus: 0.0,
+        home_lane_fade_s: 1.0,
         influence_weight: 1.0,
         incumbency_bonus: 80.0,
         group_radius_m: 90.0,
@@ -263,6 +327,8 @@ fn a_held_objective_replans_to_one_the_side_does_not_hold_immediately() {
         planner_decision_s: 5.0,
         grid_resolution: 4,
         distance_weight: 1.0,
+        home_lane_bonus: 0.0,
+        home_lane_fade_s: 1.0,
         influence_weight: 1.0,
         incumbency_bonus: 80.0,
         group_radius_m: 90.0,

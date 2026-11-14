@@ -13,6 +13,7 @@ import type { ScenarioRules } from "./battleSessionOptions";
 // missile's flare and smoke trail, and a garrisoned squad's circle says where
 // it holds. Labs compose the layers their fixture exercises, the rest among
 // them as diagnostics.
+import type { StrokeWidth } from "@packages/battle-renderer/src/strokeWidth";
 import { gameHud } from "@web/battle/present/hudTheme";
 import type { SideName } from "@web/battle/sim/protocol";
 import { airborne, fixedWing, type UnitCatalog } from "@packages/scene-assets/src/units";
@@ -25,15 +26,24 @@ import { buildSupplyOverlay } from "@packages/battle-renderer/src/supplyOverlay"
 import {
   buildAircraftMarks,
   buildOrderOverlay,
-  buildDeploymentMarker,
   type AircraftView,
   type OrderView,
   type SurfaceHeight,
 } from "@packages/battle-renderer/src/orderOverlay";
-import { combineWorldMeshes, type Mesh } from "@packages/battle-renderer/src/mesh";
+import {
+  buildDeploymentMarker,
+  type EntryMarker,
+} from "@packages/battle-renderer/src/deploymentMarker";
+import {
+  combineWorldMeshes,
+  concatMeshes,
+  unpulsed,
+  type Mesh,
+} from "@packages/battle-renderer/src/mesh";
 import { buildZoneRing } from "@packages/battle-renderer/src/playAreaOverlay";
 import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
 import type { PresentedContact } from "@web/battle/present/contactPresentation";
+import type { EntryLane } from "@web/battle/prepare/lanes";
 import {
   aboardCarrier,
   inBuilding,
@@ -64,32 +74,44 @@ export interface BattleOverlayScenario {
   supplyRadius: number;
   zone: { center: readonly [number, number]; radius: number } | null;
   /** The viewer's side's roads in, each pointing into the map. */
-  deployments: { center: readonly [number, number]; facing: number }[];
+  deployments: EntryMarker[];
+}
+
+/** The parts of the scenario the overlay reads (the view parses it once). */
+export interface OverlayScenarioSource {
+  map: { size: [number, number] };
+  rules: { service: { radius_m: number } };
+  /** Absent or null when the scenario has no completion rule. */
+  encounter?: { success_zone_center: [number, number]; success_zone_radius_m: number } | null;
+  skirmish?: { sites: { entries: { side: SideName; center: [number, number] }[] } } | null;
 }
 
 /** The scenario's own marks as `side` sees them. A side's players share
  *  its roads in, and a purchase may arrive by any of them, so each one
- *  carries the reinforcement cue. */
-export function battleOverlayScenario(scenario: string, side: SideName): BattleOverlayScenario {
-  const s = JSON.parse(scenario) as {
-    map: { size: [number, number] };
-    rules: { service: { radius_m: number } };
-    /** Absent or null when the scenario has no completion rule. */
-    encounter?: { success_zone_center: [number, number]; success_zone_radius_m: number } | null;
-    skirmish?: { sites: { entries: { side: SideName; center: [number, number] }[] } } | null;
-  };
+ *  carries the reinforcement cue, numbered by its lane (`lanes`, one per
+ *  entry in list order, empty with no skirmish). */
+export function battleOverlayScenario(
+  s: OverlayScenarioSource,
+  lanes: readonly EntryLane[],
+  side: SideName,
+): BattleOverlayScenario {
   const [w, d] = s.map.size;
   return {
     supplyRadius: s.rules.service.radius_m,
     zone: s.encounter
       ? { center: s.encounter.success_zone_center, radius: s.encounter.success_zone_radius_m }
       : null,
-    deployments: (s.skirmish?.sites.entries ?? [])
-      .filter((entry) => entry.side === side)
-      .map(({ center }) => ({
-        center,
-        facing: Math.atan2(d / 2 - center[1], w / 2 - center[0]),
-      })),
+    deployments: (s.skirmish?.sites.entries ?? []).flatMap(({ side: entrySide, center }, i) =>
+      entrySide === side
+        ? [
+            {
+              center,
+              facing: Math.atan2(d / 2 - center[1], w / 2 - center[0]),
+              lane: lanes[i].lane,
+            },
+          ]
+        : [],
+    ),
   };
 }
 
@@ -212,13 +234,14 @@ export function supplyLayer(
 }
 
 /** An own unit as the orders draw it: selected or not, its order marks
- *  shown at `reveal` (0: none), an ally's or the player's. */
+ *  shown at `reveal` (0: none), an ally's or the player's, hovered or not. */
 export function orderView(
   units: UnitCatalog,
   u: OwnUnitView,
   selected: boolean,
   reveal = 0,
   ally = false,
+  hovered = false,
 ): OrderView {
   const g = u.hold;
   return {
@@ -233,12 +256,14 @@ export function orderView(
         ? { center: g.host.center, half: g.host.half }
         : null,
     selected,
+    hovered,
     reveal,
     ally,
   };
 }
 
-/** The selection's markers under the units in `selected`, the order
+/** The selection's markers under the units in `selected` (and the hovered
+ *  unit's under `hovered`), the order
  *  marks (the Space view) of each unit `reveal` shows, at its opacity
  *  (`OrderReveal`), with an unload mark where a carrier's published
  *  order lets its passengers out, and every own aircraft's marker and drop
@@ -255,18 +280,39 @@ export function orderLayer(
   selected: readonly number[],
   reveal: RevealedOrders,
   z: SurfaceHeight,
-  stroke = gameStroke(OPENING_METRES_PER_PX),
-  ghosts = false,
-  allies: ReadonlyMap<number, unknown> = new Map(),
+  {
+    stroke = gameStroke(OPENING_METRES_PER_PX),
+    ghosts = false,
+    allies = new Map(),
+    hovered = null,
+  }: {
+    stroke?: StrokeWidth;
+    ghosts?: boolean;
+    allies?: ReadonlyMap<number, unknown>;
+    hovered?: number | null;
+  } = {},
 ): WorldMeshes {
   const aloft = ghostAloft(units, air);
   return buildOrderOverlay(
     o.own
       // A squad a carrier holds has no marks of its own: it is off the field.
       .filter((u) => !aboardCarrier(u))
-      .filter((u) => selected.includes(u.id) || reveal.has(u.id) || airborne(units.type(u.kind)))
+      .filter(
+        (u) =>
+          selected.includes(u.id) ||
+          u.id === hovered ||
+          reveal.has(u.id) ||
+          airborne(units.type(u.kind)),
+      )
       .map((u) => ({
-        ...orderView(units, u, selected.includes(u.id), reveal.get(u.id), allies.has(u.id)),
+        ...orderView(
+          units,
+          u,
+          selected.includes(u.id),
+          reveal.get(u.id),
+          allies.has(u.id),
+          u.id === hovered,
+        ),
         ghostAloft: ghosts && reveal.has(u.id) ? aloft(u.kind) : 0,
       })),
     z,
@@ -326,6 +372,7 @@ export function battleOverlayParts(
     contacts,
     facing,
     allies,
+    hovered = null,
   }: {
     showOrders: boolean;
     reveal: RevealedOrders;
@@ -333,16 +380,23 @@ export function battleOverlayParts(
     facing: ContactFacing;
     /** The side's units an ally owns (`allyOwners`). */
     allies?: ReadonlyMap<number, unknown>;
+    /** The own unit under the pointer, its model or its card (`ReadoutLayerHandle.place`). */
+    hovered?: number | null;
   },
   border: Mesh | null = null,
   stroke = gameStroke(OPENING_METRES_PER_PX),
 ): Partial<WorldMeshes>[] {
   const contactMarks = contactLayer(contacts, z, facing);
   const supply = supplyLayer(o, scenario.supplyRadius, z, selected, stroke, showOrders);
-  const orders = orderLayer(units, rules.air, o, selected, reveal, z, stroke, showOrders, allies);
+  const orders = orderLayer(units, rules.air, o, selected, reveal, z, {
+    stroke,
+    ghosts: showOrders,
+    allies,
+    hovered,
+  });
   const aircraft = aircraftLayer(units, o, z, stroke);
-  const deployments = scenario.deployments.map(({ center, facing }) =>
-    buildDeploymentMarker(center, facing, z, gameOrderStyle, gameHud.accent, { stroke }),
+  const deployments = scenario.deployments.map((marker) =>
+    buildDeploymentMarker(marker, z, gameOrderStyle, gameHud.accent, { stroke }),
   );
   // The hold zone, a line of the orders' weight: dashed while blue is not
   // holding it. The zone and the border are paint, like the orders.
@@ -379,9 +433,19 @@ export function battleOverlayParts(
     ...(zone ? [{ painted: zone }] : []),
     ...(border ? [{ painted: border }] : []),
     contactMarks,
-    supply,
-    orders,
-    aircraft,
-    ...deployments.map((paintedMarching) => ({ paintedMarching })),
+    // The roads in lie under every mark of the units: they draw first in
+    // the marching layer, and the units' marks follow them there.
+    ...deployments,
+    overEntries(supply),
+    overEntries(orders),
+    overEntries(aircraft),
   ];
+}
+
+/** `part` with its still paint moved, unpulsed, into the marching layer
+ *  ahead of its own marching paint, so it draws over the entry markers. */
+function overEntries(part: Partial<WorldMeshes>): Partial<WorldMeshes> {
+  const { painted, paintedMarching, ...rest } = part;
+  const marks = [painted && unpulsed(painted), paintedMarching].filter((m) => !!m);
+  return marks.length ? { ...rest, paintedMarching: concatMeshes(marks) } : rest;
 }

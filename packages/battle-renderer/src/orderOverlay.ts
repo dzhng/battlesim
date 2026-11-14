@@ -31,14 +31,19 @@ import {
   concatMeshes,
   fadeAlpha,
   glowing,
-  groundAnnulus,
-  groundRing,
-  groundStrip,
   MeshBuilder,
   paintOnly,
   type Mesh,
   type Rgba,
 } from "./mesh";
+import {
+  SOLDIER_R,
+  circleReach,
+  unitCircle,
+  destinationCircle,
+  type UnitCircle,
+} from "./unitCircle";
+import { along, circleMarker, crossMark, orderPen, pip, ribbon, ring, type Pen } from "./orderPen";
 import type { WorldMeshes } from "./scene";
 import type { StrokeWidth } from "./strokeWidth";
 
@@ -65,6 +70,8 @@ export interface OrderStyle {
   /** A selected unit's own marker (its circle and arrowhead) and its
    *  soldiers' markers. */
   selected: Rgba;
+  /** The marker of the unit under the pointer: the colour of its card. */
+  hovered: Rgba;
   /** An ally's unit's marker: the HUD's allied colour (D24). */
   ally: Rgba;
   /** How far each role's paint glows past its colour's full value (up to 2,
@@ -160,6 +167,10 @@ export interface OrderView {
   queueUnloads?: readonly boolean[];
   /** In the player's selection: the marker under it is `selected`'s. */
   selected?: boolean;
+  /** Under the pointer (its model or its card): its marker shows as a
+   *  selected one's does, in the style's `hovered` colour; selected, it keeps
+   *  the selection's. */
+  hovered?: boolean;
   /** Another player on the side owns it (an ally's): its marker is a
    *  broken ring with no facing, in the style's `ally` colour, and none of
    *  its orders show. */
@@ -179,16 +190,8 @@ interface OrderOverlayOptions {
 /** Height of the walkable surface (bridge deck where one spans). */
 export type SurfaceHeight = (x: number, y: number) => number;
 
-/** A soldier's marker circle radius (a vehicle's is the style's
- *  its hull's half-length plus `vehicle_marker_margin_m`). */
-const SOLDIER_R = 0.45;
 /** How far outside a vehicle's marker its travel chevrons start. */
 const CHEVRONS_GAP_M = 1;
-/** A unit marker's arrowhead: its length past the rim, over the radius. */
-const MARKER_HEAD = 0.6;
-/** …never longer than this: a vehicle's reads as a pointer, not a wedge. */
-const MARKER_HEAD_MAX_M = 1.5;
-const markerHead = (r: number) => Math.min(r * MARKER_HEAD, MARKER_HEAD_MAX_M);
 /** A queued waypoint's ring, and a blocked route's warning ring. */
 const QUEUED_R = 2.8;
 const BLOCKED_R = 4.5;
@@ -196,148 +199,6 @@ const BLOCKED_R = 4.5;
 const CHEVRON_M: readonly [number, number] = [0.9, 1.7];
 
 type P2 = readonly [number, number];
-
-/** One draw's widths and style. */
-interface Pen {
-  style: OrderStyle;
-  z: SurfaceHeight;
-  /** A route's width. */
-  line: number;
-  /** An outline's width. */
-  stroke: number;
-  /** A soldier's marker's width, and a selected soldier's. */
-  soldier: number;
-  soldierSelected: number;
-  /** An aircraft's drop line's width. */
-  drop: number;
-}
-
-/** A route's or a mark's straight line, `width` wide. */
-function ribbon(
-  mesh: MeshBuilder,
-  pen: Pen,
-  a: P2,
-  b: P2,
-  color: Rgba,
-  width: number,
-  { dashed = false } = {},
-) {
-  groundStrip(mesh, a, b, width, color, { z: pen.z, dashed });
-}
-
-/** An outlined circle of `radius`, its line `width` wide centred on it. */
-function ring(
-  mesh: MeshBuilder,
-  pen: Pen,
-  c: P2,
-  radius: number,
-  color: Rgba,
-  { width = pen.stroke, dashed = false } = {},
-) {
-  groundRing(mesh, c, radius, width, color, { z: pen.z, dashed });
-}
-
-/** A cover pip in the middle of a soldier's marker. */
-function pip(mesh: MeshBuilder, pen: Pen, c: P2, color: Rgba) {
-  groundAnnulus(mesh, c, 0, pen.style.cover_pip_m, {
-    z: pen.z,
-    segments: 14,
-    colorIn: glowing(color, pen.style.cover_glow),
-  });
-}
-
-function crossMark(mesh: MeshBuilder, pen: Pen, c: P2, size: number, color: Rgba) {
-  const h = size / 2;
-  ribbon(mesh, pen, [c[0] - h, c[1] - h], [c[0] + h, c[1] + h], color, pen.line);
-  ribbon(mesh, pen, [c[0] - h, c[1] + h], [c[0] + h, c[1] - h], color, pen.line);
-}
-
-/** A point `d` metres from `c` along `bearing`. */
-const along = (c: P2, bearing: number, d: number): P2 => [
-  c[0] + Math.cos(bearing) * d,
-  c[1] + Math.sin(bearing) * d,
-];
-
-/** A filled arrowhead on the rim of the circle of radius `r` round `c`,
- *  pointing along `bearing`: its base spans the rim, its tip `head` metres
- *  out (the user's pick among the marker shapes). */
-function rimArrowhead(
-  mesh: MeshBuilder,
-  pen: Pen,
-  c: P2,
-  bearing: number,
-  r: number,
-  head: number,
-  color: Rgba,
-) {
-  const at = (p: P2) => [p[0], p[1], pen.z(p[0], p[1])] as const;
-  const base = (s: number): P2 => {
-    const p = along(c, bearing, r - head * 0.25);
-    return [p[0] - Math.sin(bearing) * s, p[1] + Math.cos(bearing) * s];
-  };
-  mesh.triangle(
-    at(base(head * 0.75)),
-    at(along(c, bearing, r + head)),
-    at(base(-head * 0.75)),
-    color,
-  );
-}
-
-/** How far a unit marker of radius `r` reaches along its facing (its
- *  arrowhead's tip): where a route arriving from ahead stops. */
-const markerReach = (r: number) => r + markerHead(r);
-
-/** How far from its centre a line leaving (or reaching) circle `c` along
- *  `bearing` meets it: its rim, or its arrowhead's tip near its facing (a
- *  circle with no facing has no arrowhead). */
-export function circleReach(c: Pick<UnitCircle, "r" | "facing">, bearing: number): number {
-  return c.facing !== null && Math.cos(bearing - c.facing) > Math.cos(Math.PI / 3)
-    ? markerReach(c.r)
-    : c.r;
-}
-
-/** How far along the ground from `from` toward `to` a line leaves `circle`
- *  (clearing its arrowhead where it leaves along the facing): 0 with no
- *  circle, or from outside one it doesn't cross. From the circle's centre it
- *  is `circleReach`; with `to` inside the circle it is past `to`. */
-export function circleExit(
-  from: readonly number[],
-  to: readonly number[],
-  circle: UnitCircle | null,
-): number {
-  if (!circle) return 0;
-  const [dx, dy] = [to[0] - from[0], to[1] - from[1]];
-  const length = Math.hypot(dx, dy);
-  if (length < 1e-9) return 0;
-  const [ux, uy] = [dx / length, dy / length];
-  const r = circleReach(circle, Math.atan2(uy, ux));
-  // |from + t·u − c|² = r², the larger root.
-  const [fx, fy] = [from[0] - circle.c[0], from[1] - circle.c[1]];
-  const b = fx * ux + fy * uy;
-  const disc = b * b - (fx * fx + fy * fy - r * r);
-  return disc > 0 ? Math.max(0, -b + Math.sqrt(disc)) : 0;
-}
-
-/** A unit's marker, "the unit plus its facing": a circle of radius `r` on
- *  `c` with a small filled arrowhead on its rim at `bearing`. */
-function unitMarker(
-  mesh: MeshBuilder,
-  pen: Pen,
-  c: P2,
-  bearing: number | null,
-  r: number,
-  color: Rgba,
-  { width = pen.stroke } = {},
-) {
-  ring(mesh, pen, c, r, color, { width });
-  if (bearing !== null) rimArrowhead(mesh, pen, c, bearing, r, markerHead(r), color);
-}
-
-/** A circle marker: the circle with the filled arrowhead on its rim at its
- *  facing, if it has one (`unitMarker`), in the route's line weight. */
-function circleMarker(mesh: MeshBuilder, pen: Pen, m: UnitCircle, color: Rgba) {
-  unitMarker(mesh, pen, m.c, m.facing, m.r, color, { width: pen.line });
-}
 
 /** An airframe this close to the ground under it draws no drop line. */
 const DROP_MIN_M = 0.5;
@@ -477,7 +338,7 @@ function travelChevrons(
 }
 
 /** One open chevron whose vertices carry `normal` for the overlay's march. */
-function marchChevron(
+export function marchChevron(
   mesh: MeshBuilder,
   pen: Pen,
   tip: P2,
@@ -515,15 +376,6 @@ function marchChevron(
   }
 }
 
-/** The circle a squad stands in now: round its soldiers, from its position. */
-function squadNow(u: Pick<OrderView, "members">, here: P2): number {
-  const radius = u.members.reduce(
-    (r, m) => Math.max(r, Math.hypot(m[0] - here[0], m[1] - here[1])),
-    0,
-  );
-  return radius + SOLDIER_R + 0.4;
-}
-
 /** `points` from `from` with `head` metres cut off its start and `tail` off
  *  its end, as the segments left. */
 function trimmed(from: P2, points: readonly P2[], head: number, tail: number): [P2, P2][] {
@@ -545,96 +397,6 @@ function trimmed(from: P2, points: readonly P2[], head: number, tail: number): [
     at += l;
   });
   return out;
-}
-
-/** A unit's circle on the ground, with its arrowhead's facing (null: none). */
-export interface UnitCircle {
-  c: P2;
-  r: number;
-  facing: number | null;
-}
-
-/** The circular interior, excluding the facing arrowhead. */
-export function circleContains(circle: UnitCircle, point: readonly [number, number]): boolean {
-  return vec2.squaredDistance(circle.c as Vec2, point as Vec2) <= circle.r * circle.r;
-}
-
-/** The circle the orders draw round a unit where it stands, or null where
- *  they draw none, one marker for every ground unit: a vehicle's under its
- *  hull (moving, selected or revealed; an aircraft's always, on the ground
- *  under it), a moving squad's round its soldiers,
- *  and, selected or revealed, a holding squad's area ring round its anchor,
- *  each with its arrowhead at the unit's facing (a moving squad's heading, a
- *  holding one's facing). A garrisoned squad's circle, moving (leaving on an
- *  order), selected or revealed, encloses its building, with no arrowhead. Lines to or from the unit (routes, the range ruler) meet this
- *  circle at its border (`circleReach`). */
-export function unitCircle(
-  u: Pick<
-    OrderView,
-    | "position"
-    | "goal"
-    | "state"
-    | "members"
-    | "area"
-    | "hullHalfLength"
-    | "building"
-    | "yaw"
-    | "selected"
-    | "reveal"
-    | "fixedWing"
-    | "airborne"
-  >,
-  style: Pick<
-    OrderStyle,
-    "area_draw_scale" | "vehicle_marker_margin_m" | "building_marker_margin_m"
-  >,
-): UnitCircle | null {
-  const shown = (u.reveal ?? 0) > 0;
-  const here: P2 = [u.position[0], u.position[1]];
-  const moving = !!u.goal && u.state !== "route_blocked";
-  // A winged aircraft never stops over a point: its card carries where it
-  // is, and it has no ground marker.
-  if (u.fixedWing) return null;
-  if (u.building) {
-    const { center, half } = u.building;
-    const r = Math.hypot(half[0], half[1]) + style.building_marker_margin_m;
-    return moving || shown || u.selected ? { c: center, r, facing: null } : null;
-  }
-  // A squad's rings are drawn at `area_draw_scale` of their radius (the
-  // movement area itself is the simulation's).
-  const drawn = (radius: number) => radius * style.area_draw_scale;
-  if (u.members.length === 0)
-    return moving || shown || u.selected || u.airborne
-      ? { c: here, r: u.hullHalfLength + style.vehicle_marker_margin_m, facing: u.yaw }
-      : null;
-  if (moving) return { c: here, r: drawn(squadNow(u, here)), facing: u.yaw };
-  return (shown || u.selected) && !u.goal && u.area
-    ? { c: u.area.anchor, r: drawn(u.area.radius), facing: u.yaw }
-    : null;
-}
-
-/** The circle a unit's order ends in: a squad's area ring round its new
- *  anchor, a vehicle's marker at its goal, pointing the final facing. */
-export function destinationCircle(
-  u: Pick<OrderView, "goal" | "area" | "members" | "hullHalfLength" | "finalFacing">,
-  goal: P2,
-  style: Pick<OrderStyle, "area_draw_scale" | "vehicle_marker_margin_m">,
-): UnitCircle {
-  return u.members.length > 0 && u.area
-    ? { c: u.area.anchor, r: u.area.radius * style.area_draw_scale, facing: u.finalFacing }
-    : { c: goal, r: u.hullHalfLength + style.vehicle_marker_margin_m, facing: u.finalFacing };
-}
-
-function orderPen(z: SurfaceHeight, style: OrderStyle, stroke: StrokeWidth): Pen {
-  return {
-    style,
-    z,
-    line: stroke(style.line_px),
-    stroke: stroke(style.mark_px),
-    soldier: stroke(style.soldier_mark_px),
-    soldierSelected: stroke(style.soldier_line_px),
-    drop: stroke(style.drop_line_px),
-  };
 }
 
 export interface DestinationMarker extends UnitCircle {
@@ -687,46 +449,22 @@ export function buildDestinationPreview(
   return mesh.build();
 }
 
-/** The reinforcement entry marker: three inward chevrons stacked along the
- *  battle direction. Their bright fill pulses in sequence, so the glow reads
- *  as movement into the map rather than as a static button-shaped glyph. */
-export function buildDeploymentMarker(
-  destination: readonly [number, number],
-  facing: number,
+/** The marker of what the pointer is over that is not yet a unit (a
+ *  purchase being placed): its circle in the hover's colour, as a hovered
+ *  unit's is drawn. */
+export function buildHoverMarker(
+  circle: UnitCircle,
   z: SurfaceHeight,
   style: OrderStyle,
-  markerColor: readonly [number, number, number],
   { stroke }: OrderOverlayOptions,
 ): Mesh {
   const mesh = new MeshBuilder();
-  const pen = orderPen(z, style, stroke);
-  const color = glowing([...markerColor, 1], style.glow.selected);
-  const { cycles_per_s, amplitude } = style.march;
-  // The spawn is on the playable edge. A chevron's arms extend behind its
-  // tip, so start the stack one arm length inside the map; otherwise the
-  // outer chevron paints across the border and into the HUD pane.
-  const armLength = 12.5;
-  const firstTip = armLength + pen.line * 2;
-  const offsets = [firstTip, firstTip + 9, firstTip + 18];
-  const outline: Rgba = [markerColor[0] * 0.45, markerColor[1] * 0.55, markerColor[2] * 0.6, 1];
-  offsets.forEach((offset, i) => {
-    const tip = along(destination, facing, offset);
-    // A dark, slightly oversized underlay leaves the crisp outlined edge seen
-    // in the reference around each painted chevron.
-    marchChevron(mesh, pen, tip, facing, outline, [0, 0, 0], [7.8, armLength], pen.line * 2.6);
-    // The pulse advances from the outer chevron toward the spawn point and
-    // back again. At any instant one chevron is visibly bright.
-    marchChevron(
-      mesh,
-      pen,
-      tip,
-      facing,
-      i === 1 ? color : fadeAlpha(color, 0.42),
-      [i === 1 ? 0 : i === 0 ? 1 / 3 : 2 / 3, cycles_per_s, Math.min(amplitude, 0.32)],
-      [6.8, 10.8],
-      i === 1 ? pen.line * 3.2 : pen.line * 1.25,
-    );
-  });
+  circleMarker(
+    mesh,
+    orderPen(z, style, stroke),
+    circle,
+    glowing(style.hovered, style.glow.selected),
+  );
   return mesh.build();
 }
 
@@ -773,8 +511,6 @@ function queuedLegs(
   }
 }
 
-/** The player's entry chevrons are ground paint so a placement ghost can
- * render over them in the world pass. */
 export function buildOrderOverlay(
   units: readonly OrderView[],
   z: SurfaceHeight,
@@ -794,15 +530,18 @@ export function buildOrderOverlay(
   const selected = glowing(style.selected, style.glow.selected);
   const cannot = glowing(style.blocked, style.glow.order);
   const ally = glowing(style.ally, style.glow.selected);
+  const hovered = glowing(style.hovered, style.glow.selected);
   for (const u of units) {
     if (u.ally) {
+      // Hovered, an ally's unit shows its marker as selected: still an ally's.
+      const lit = !!u.selected || !!u.hovered;
       allyMarker(
         paint,
         soldiers,
         lines,
         pen,
-        u,
-        u.selected ? ally : fadeAlpha(ally, style.current_alpha),
+        { ...u, selected: lit },
+        lit ? ally : fadeAlpha(ally, style.current_alpha),
       );
       continue;
     }
@@ -810,7 +549,10 @@ export function buildOrderOverlay(
     // selection's own markers either way.
     const reveal = u.reveal ?? 0;
     const shown = reveal > 0;
-    if (!shown && !u.selected && !u.airborne) continue;
+    // Its own marker's colour while it is selected or hovered (selection
+    // first), drawn then as a selected unit's; null otherwise.
+    const highlight = u.selected ? selected : u.hovered ? hovered : null;
+    if (!shown && !highlight && !u.airborne) continue;
     const fade = (c: Rgba): Rgba => fadeAlpha(c, reveal);
     const color = fade(order);
     const current = fade(fadeAlpha(order, style.current_alpha));
@@ -822,14 +564,15 @@ export function buildOrderOverlay(
     const squad = u.members.length > 0;
     // The unit's marker: its circle and its soldiers' markers are one mark,
     // shown and hidden together (`unitCircle` decides when: moving, selected
-    // or revealed), in the selection's colours when selected. The circle is a
+    // or revealed), in the selection's colours when selected (the hover's
+    // when hovered). The circle is a
     // squad's area ring round its anchor while it holds, the ring round its
     // soldiers while it moves, the ring round its building while it holds
     // one, or a vehicle's marker under its hull.
     const circle = unitCircle(u, style);
     // A squad with no circle to draw (no area) still shows its soldiers'
     // markers when the unit's marker would.
-    if (circle || shown || u.selected) {
+    if (circle || shown || highlight) {
       if (circle && u.airborne)
         // An aircraft's marker shows whatever the reveal: at the current
         // markers' alpha, brighter only while a shown order moves it.
@@ -839,17 +582,12 @@ export function buildOrderOverlay(
           pen,
           u.position,
           circle,
-          u.selected
-            ? selected
-            : fadeAlpha(
-                order,
-                moving ? Math.max(reveal, style.current_alpha) : style.current_alpha,
-              ),
+          highlight ??
+            fadeAlpha(order, moving ? Math.max(reveal, style.current_alpha) : style.current_alpha),
         );
-      else if (circle)
-        circleMarker(paint, pen, circle, u.selected ? selected : moving ? color : current);
+      else if (circle) circleMarker(paint, pen, circle, highlight ?? (moving ? color : current));
       // Each soldier's marker, with his cover now when shown.
-      const mark = u.selected ? selected : current;
+      const mark = highlight ?? current;
       u.members.forEach((m, k) =>
         soldierMark(
           soldiers,
@@ -857,7 +595,7 @@ export function buildOrderOverlay(
           [m[0], m[1]],
           pipOf(u.memberOrders[k]?.coverNow),
           mark,
-          u.selected ? pen.soldierSelected : pen.soldier,
+          highlight ? pen.soldierSelected : pen.soldier,
         ),
       );
     }
@@ -870,7 +608,7 @@ export function buildOrderOverlay(
         circle.r,
         u.finalFacing,
         u.direction === "reverse",
-        u.selected ? selected : current,
+        highlight ?? current,
       );
     // The rest are order marks only.
     if (!shown) continue;

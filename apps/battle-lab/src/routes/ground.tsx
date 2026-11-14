@@ -198,7 +198,7 @@ function GroundInspector({ scenario, seed, camera, legend, extra }: InspectorPro
       control.selected,
       session.revealed,
       surfaceZ,
-      gameStroke(OPENING_METRES_PER_PX, renderScale),
+      { stroke: gameStroke(OPENING_METRES_PER_PX, renderScale), hovered: session.hovered },
     );
     const parts = [tracers, remains, orders];
     const view = cells ? buildGroundCellOverlay(cells, shown, surfaceZ) : new Float32Array();
@@ -210,6 +210,7 @@ function GroundInspector({ scenario, seed, camera, legend, extra }: InspectorPro
     surfaceZ,
     control.selected,
     session.revealed,
+    session.hovered,
     cells,
     shown,
     session.units,

@@ -28,7 +28,7 @@ mod showground;
 pub use showground::{Showground, SoldierAtRest, SquadAtRest};
 mod skirmish;
 mod world_view;
-pub use skirmish::synthetic_skirmish_setup;
+pub use skirmish::{skirmish_lanes, synthetic_skirmish_setup};
 
 /// Generate a plan and compile it into a map, as the CLI's `generate-map` does.
 #[wasm_bindgen]

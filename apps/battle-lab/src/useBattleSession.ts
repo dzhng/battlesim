@@ -33,8 +33,8 @@ import {
   type RevealedOrders,
 } from "@web/battle/present/orderReveal";
 import { highAir } from "@packages/scene-assets/src/units";
-import { PurchasePlacementControl, type PurchaseGhost } from "@web/battle/input/purchasePlacement";
 import { useUnitControl } from "@web/battle/input/useUnitControl";
+import { usePurchasePlacement } from "./usePurchasePlacement";
 import {
   dragFacing,
   reconcilePointerIntent,
@@ -59,7 +59,8 @@ import type { Order, SideName } from "@web/battle/sim/protocol";
 import type { Player } from "@web/battle/prepare/protocol";
 import type { LabBox, LabPick, ViewportCursor } from "./LabViewport";
 import { drawnUnits, pickToPointer, sideInstances, type DrawnInstances } from "./sideInstances";
-import { panelPlacer } from "./panelPlacement";
+import { surfaceHeights } from "./surfaceHeights";
+import { usePanels } from "./panelPlacement";
 import { commandedEconomy, commandingPlayer, takesOrders } from "./commandingPlayer";
 import { allyOwners, controlled, playerIndex } from "@web/battle/input/controlled";
 import { useSimSession } from "./useSimSession";
@@ -93,8 +94,6 @@ import {
 import { byReference, pendingGhosts } from "./pendingGhosts";
 
 const PURCHASE_BLOCKED = [...gameHud.bad, gameXray.selected[3]] as const;
-/** Ground heights the page remembers before starting afresh. */
-const SURFACE_HEIGHTS_MAX = 1 << 20;
 
 export function useBattleSession({
   scenario,
@@ -177,10 +176,14 @@ export function useBattleSession({
   const sideFaction = (which: SideName) =>
     players.find((player) => player.side === which)?.faction ?? null;
   const faction = sideFaction(side);
-  /** The chosen reinforcement must be requested before the cursor asks the
-   *  presentation to draw its ghost.  Keep this in React state so the art
-   *  request advances on the same render as the picker choice. */
-  const [purchasing, setPurchasing] = useState<string | null>(null);
+  const {
+    placement: purchasePlacement,
+    placing: purchasing,
+    ghost: purchaseGhost,
+    placed: placedGhosts,
+    choose: chooseVariant,
+    click: clickPurchase,
+  } = usePurchasePlacement(sim.client);
   useEffect(() => {
     responses.current =
       audio && sim.client ? new UnitResponses(audio, units, faction, rules.tick_hz) : null;
@@ -269,42 +272,20 @@ export function useBattleSession({
   );
   /** The side's units an ally owns, with their panels' owner lines. */
   const allies = useMemo(() => allyOwners(observation, commanding), [observation, commanding]);
-  const [purchasePlacement] = useState(() => new PurchasePlacementControl());
-  const purchaseGhost = useRef<PurchaseGhost | null>(null);
-  /** The ghosts the authority accepted, for their facing: a pending purchase
-   *  carries only its kind and destination. */
-  const placedGhosts = useRef<PurchaseGhost[]>([]);
-  const cancelPurchase = useCallback(() => {
-    purchasePlacement.cancel();
-    purchaseGhost.current = null;
-    setPurchasing(null);
-  }, [purchasePlacement]);
   const choosePurchase = useCallback(
     (variant: string) => {
       control.setSelected([]);
       control.setMode("move");
-      purchasePlacement.choose(variant);
-      setPurchasing(variant);
+      chooseVariant(variant);
     },
-    [control, purchasePlacement],
+    [control, chooseVariant],
   );
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || !purchasePlacement.variant) return;
-      event.preventDefault();
-      cancelPurchase();
-    };
-    window.addEventListener("keydown", onKey, { capture: true });
-    return () => window.removeEventListener("keydown", onKey, { capture: true });
-  }, [purchasePlacement, cancelPurchase]);
   // A new battle carries no flash over.
   useEffect(() => {
-    cancelPurchase();
-    placedGhosts.current = [];
     orderReveal.clear();
     releasedAction.reset();
     orderPreview.update(null, null, 0);
-  }, [sim.client, orderReveal, orderPreview, releasedAction, cancelPurchase]);
+  }, [sim.client, orderReveal, orderPreview, releasedAction]);
 
   // Every building is drawn from its template's rows, as instances of kit
   // modules, standing or fallen: no fitted model stands for one or for its
@@ -406,29 +387,7 @@ export function useBattleSession({
 
   const fogFeed = useFeed(fog);
 
-  // The page's world is the map as loaded: a point's height never changes,
-  // and the overlays drape their marks at the same points every publication.
-  // Each height is asked of the module once, until the memory is full.
-  const surfaceZ = useMemo(() => {
-    let heights = new Map<number, Map<number, number>>();
-    let size = 0;
-    return (x: number, y: number) => {
-      let row = heights.get(x);
-      let z = row?.get(y);
-      if (z === undefined) {
-        z = world?.view.surface_at(x, y)[0] ?? 0;
-        if (size >= SURFACE_HEIGHTS_MAX) {
-          heights = new Map();
-          size = 0;
-          row = undefined;
-        }
-        if (!row) heights.set(x, (row = new Map()));
-        row.set(y, z);
-        size++;
-      }
-      return z;
-    };
-  }, [world]);
+  const surfaceZ = useMemo(() => surfaceHeights(world), [world]);
   const cameraObstacles = useMemo(() => {
     if (!placedProps || !buildingParts || !knownBuildingsKey) return null;
     const started = performance.now();
@@ -465,7 +424,7 @@ export function useBattleSession({
           ),
         [],
       ),
-    [commanding],
+    [commanding, placedGhosts],
   );
   const frame = useCallback(
     (now: number, viewport: ViewportCamera, generation: number): ViewportFrame | null => {
@@ -563,6 +522,7 @@ export function useBattleSession({
       control.selected,
       xray,
       placedGhostList,
+      purchaseGhost,
       inputEnabled,
       rules.air,
       surfaceZ,
@@ -603,18 +563,7 @@ export function useBattleSession({
   };
   const onPick = useCallback(
     (pick: LabPick) => {
-      if (purchasePlacement.variant) {
-        if (pick.button === "right") cancelPurchase();
-        else
-          void purchasePlacement.confirm(control.issue).then((accepted) => {
-            if (accepted) placedGhosts.current.push(accepted);
-            if (accepted && !purchasePlacement.variant) {
-              purchaseGhost.current = null;
-              setPurchasing(null);
-            }
-          });
-        return;
-      }
+      if (purchasePlacement.variant) return clickPurchase(pick, control.issue);
       const held = releasedAction.capturedFor(sim.client);
       if (pick.button === "right") {
         // A reset cancels the old press; its release cannot command the new battle.
@@ -629,7 +578,7 @@ export function useBattleSession({
         if (pointer) control.onPointer(pointer);
       }
     },
-    [semanticPick, control, world, sim.client, purchasePlacement, cancelPurchase, releasedAction],
+    [semanticPick, control, world, sim.client, purchasePlacement, clickPurchase, releasedAction],
   );
   const eligibilityIdentity = JSON.stringify(
     (observation?.own ?? []).map((u) => [
@@ -705,6 +654,7 @@ export function useBattleSession({
         metresPerPxAt(camera.distance, camera.fovY, window.innerHeight),
         null,
         renderScale,
+        purchaseGhost.current,
       );
       return active ? (purchaseGhost.current?.valid === false ? "blocked" : "default") : null;
     }
@@ -1077,14 +1027,9 @@ export function useBattleSession({
     /** The battle's sound (null unless `sound`), and its per-frame listener. */
     audio,
     hear,
-    /** The info panels' layer, and its placing (`panelPlacer`). */
+    /** The info panels' layer, and its placing and hover (`usePanels`). */
     readouts,
-    placePanels: panelPlacer(
-      readouts,
-      { drawn, drawnAt, drawnEnemyAt, drawnClock },
-      surfaceZ,
-      control,
-    ),
+    ...usePanels(readouts, { drawn, drawnAt, drawnEnemyAt, drawnClock }, surfaceZ, control),
     refusals: {
       refusals: sim.refusals,
       cardBox: (unit: number) => readouts.current?.cardBox(unit) ?? null,

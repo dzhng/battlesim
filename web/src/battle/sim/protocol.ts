@@ -126,7 +126,15 @@ export interface MoveDestination {
 /** An admitted placement's unit type, and where a squad's soldiers would
  *  stand round its destination, in slot order (empty for a vehicle). */
 export type PurchasePlacement =
-  | { Ok: { kind: number; destination: [number, number]; spots: [number, number][] } }
+  | {
+      Ok: {
+        kind: number;
+        destination: [number, number];
+        spots: [number, number][];
+        /** The area a squad holds round `destination` once it arrives; null for a vehicle. */
+        area_radius_m: number | null;
+      };
+    }
   | { Err: OrderError };
 
 export interface OrderError {

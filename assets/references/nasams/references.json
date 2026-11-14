@@ -43,11 +43,34 @@
    "licence": "CC-BY-4.0",
    "sha256": "0232b0e2646bb77986b3164258782263c6fa50de86536ebd59cec6f9c5de50ec",
    "note": "A Finnish NASAMS II launcher on its trailer behind its truck, rear quarter in snow."
+  },
+  {
+   "file": "europe_nasams_nasams_3-three_quarter_front-2.jpg",
+   "variant": "europe_nasams_nasams_3",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AAugust_20%2C_Nationalfeiertag%2C_MH_D%C3%A1nielfy_Tibor_205._Luftabwehrraketenregiment_MAN_Lkw._%2B_NASAMS-3%2C_2026_Stadtw%C3%A4ldchen.jpg",
+   "author": "Globetrotter19",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "717e6e3232eeaf5b9e90c2447b6558b72e548613f7af06c9c9835615ee98731a",
+   "note": "Hungary's NASAMS-3 on its MAN 8x8 carrier, front quarter: the cab-over, eight wheels, a box behind the cab; the launcher raised on the trailer behind. Crop: the whole frame."
+  },
+  {
+   "file": "europe_nasams_nasams_3-three_quarter_front-3.jpg",
+   "variant": "europe_nasams_nasams_3",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ANasams_lchr_truck.jpg",
+   "author": "Jorgh (English Wikipedia)",
+   "licence": "public-domain",
+   "sha256": "acb6a287677b0dedf9e15f9df0aae800d47ff779dab33e3b894969393e52f934",
+   "note": "Norway's launcher travelling on its Scania 6x6: the crane behind the cab, the six canisters stowed flat over the rear deck, caps forward."
   }
  ],
  "gaps": [
-  "europe_nasams_nasams_3: the photos are NASAMS 2 launchers (Dutch, Finnish); the NASAMS 3 launcher keeps the six-canister layout",
-  "europe_nasams_nasams_3: every photo shows the canisters raised; the stowed pack is a guess",
-  "us_nasams_medium: the same launcher drawn from these European photos, painted in the roster's US tan"
+  "europe_nasams_nasams_3: the photos are NASAMS 2 launchers (Dutch, Finnish, Norwegian); the NASAMS 3 launcher keeps the six-canister layout",
+  "europe_nasams_nasams_3: no allowed photo shows the launcher stowed on an 8x8 (Lithuania's on a Mercedes 8x8 is GFDL); the pack on the HX's deck follows the Scania photo's layout",
+  "europe_nasams_nasams_3: the carrier is the roster's MAN HX standing in for the MAN, Mercedes, Sisu and Scania trucks the photos show",
+  "us_nasams_medium: the same launcher and truck drawn from these European photos, painted in the roster's US tan"
  ]
 }

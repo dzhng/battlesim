@@ -123,16 +123,19 @@ test("own units and identified enemies carry no contact glyph", () => {
   expect(marked(m, IDENTIFIED_AIR, ["translucent"]), "an identified aircraft has no glyph").toBe(
     false,
   );
-  expect(marked(m, IDENTIFIED_AIR, ["painted"]), "but its ground marker").toBe(true);
+  expect(marked(m, IDENTIFIED_AIR, ["painted", "paintedMarching"]), "but its ground marker").toBe(
+    true,
+  );
 });
 
 test("a contact carries its glyph, and never an identified unit's marks", () => {
   const m = indicators(observation(0, contacts), new ContactPresentation(TICK_HZ, 3));
   expect(marked(m, CONTACT, ["translucent"]), "a ground contact's glyph").toBe(true);
   expect(marked(m, CONTACT_AIR, ["translucent"]), "an aloft contact's sign").toBe(true);
-  expect(marked(m, CONTACT_AIR, ["painted", "opaque"]), "no aircraft marker or drop line").toBe(
-    false,
-  );
+  expect(
+    marked(m, CONTACT_AIR, ["painted", "paintedMarching", "opaque"]),
+    "no aircraft marker or drop line",
+  ).toBe(false);
 });
 
 test("a contact's glyph says nothing of its type, even one identified before", () => {

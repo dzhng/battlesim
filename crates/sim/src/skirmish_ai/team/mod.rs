@@ -13,7 +13,7 @@ use contract::scenario::Rules;
 use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::entries::EntryIndex;
+use crate::entries::{self, EntryIndex};
 use crate::skirmish::PlayerState;
 
 mod backline;
@@ -42,6 +42,12 @@ pub struct TeamTuning {
     pub planner_decision_s: f64,
     pub grid_resolution: usize,
     pub distance_weight: f64,
+    /// The pull toward a player's own lane (`entries::homes`) at the
+    /// match's first tick, in metres of distance; it fades to nothing over
+    /// `home_lane_fade_s` of match time, preparation included, so every AI
+    /// opens on its lane and need takes over as the battle goes on.
+    pub home_lane_bonus: f64,
+    pub home_lane_fade_s: f64,
     pub influence_weight: f64,
     pub incumbency_bonus: f64,
     pub group_radius_m: f64,
@@ -204,6 +210,10 @@ pub fn plan<'a>(
         .filter(|(_, entry)| entry.side == side)
         .map(|(index, _)| EntryIndex(index))
         .collect();
+    let player_sides: Vec<_> = players.iter().map(|player| player.side).collect();
+    let home_entries = entries::homes(sites, &player_sides);
+    let elapsed_s = side_frame.tick as f64 / f64::from(tick_hz);
+    let home_pull = tuning.home_lane_bonus * (1.0 - elapsed_s / tuning.home_lane_fade_s).max(0.0);
     let mut objectives: Vec<_> = sites.objectives.clone();
     let covered_by_player = covered_objectives_by_player(side_frame, players, side, &objectives);
     let covered: BTreeSet<_> = covered_by_player
@@ -321,6 +331,11 @@ pub fn plan<'a>(
             }
             - if incumbent {
                 tuning.incumbency_bonus
+            } else {
+                0.0
+            }
+            - if home_entries[player.0 as usize] == Some(lane) {
+                home_pull
             } else {
                 0.0
             }

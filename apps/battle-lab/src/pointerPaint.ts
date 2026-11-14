@@ -10,15 +10,19 @@ import {
 } from "@packages/battle-renderer/src/mesh";
 import {
   buildDestinationPreview,
+  buildHoverMarker,
+  type SurfaceHeight,
+  type DestinationMarker,
+} from "@packages/battle-renderer/src/orderOverlay";
+import {
   circleExit,
   unitCircle,
   destinationCircle,
-  type SurfaceHeight,
   type UnitCircle,
-  type DestinationMarker,
-} from "@packages/battle-renderer/src/orderOverlay";
+} from "@packages/battle-renderer/src/unitCircle";
 import { buildRangeRuler, type RulerLine } from "@packages/battle-renderer/src/rangeRulerOverlay";
-import type { UnitCatalog } from "@packages/scene-assets/src/units";
+import { airborne, fixedWing, type UnitCatalog } from "@packages/scene-assets/src/units";
+import type { PurchaseGhost } from "@web/battle/input/purchasePlacement";
 import {
   closestUnit,
   rangeRuler,
@@ -138,6 +142,33 @@ export function rulerAt(
   };
 }
 
+/** The ring a purchase being placed shows (the pointer is over its ghost):
+ *  the circle its unit will show selected once it stands there, or null for
+ *  a squad until a preview names its area. */
+export function placementCircle(ghost: PurchaseGhost, units: UnitCatalog): UnitCircle | null {
+  const type = units.type(ghost.variant);
+  const hull = units.hull(ghost.variant);
+  if (!hull && ghost.areaRadius === null) return null;
+  const [x, y] = ghost.destination;
+  return unitCircle(
+    {
+      position: [x, y, 0],
+      goal: null,
+      state: "idle",
+      members: ghost.spots.map(([sx, sy]): [number, number, number] => [sx, sy, 0]),
+      area:
+        ghost.areaRadius === null ? null : { anchor: ghost.destination, radius: ghost.areaRadius },
+      hullHalfLength: hull?.half_extents_m[0] ?? 0,
+      building: null,
+      yaw: ghost.facing,
+      selected: true,
+      fixedWing: fixedWing(type),
+      airborne: airborne(type),
+    },
+    gameOrderStyle,
+  );
+}
+
 /** What the ruler paints: lit up to the farthest reach short of the cursor
  *  (all of it when a weapon reaches the cursor or the unit has none), a
  *  tick where each reach ends on the line. */
@@ -208,8 +239,11 @@ export class PointerPaint {
     metresPerPx: number,
     attackGround: AttackGroundSpread | null = null,
     renderScale = 1,
+    placing: PurchaseGhost | null = null,
   ) {
     this.preview = preview;
+    // A purchase being placed is under the pointer: its ghost shows its ring.
+    const hover = placing && placementCircle(placing, this.units);
     this.shown = shown?.ruler ?? null;
     const rulerKey = shown
       ? [
@@ -233,7 +267,10 @@ export class PointerPaint {
     const spreadKey = attackGround
       ? `:${attackGround.center.join(",")}:${attackGround.radius_m.toFixed(3)}:${metresPerPx}`
       : ":";
-    const nextKey = key + spreadKey + `:${renderScale}`;
+    const hoverKey = hover
+      ? `:${[...hover.c, hover.r, hover.facing ?? 0, metresPerPx].join()}`
+      : ":";
+    const nextKey = key + spreadKey + hoverKey + `:${renderScale}`;
     if (nextKey === this.key) return;
     this.key = nextKey;
     const spread = attackGround
@@ -264,6 +301,11 @@ export class PointerPaint {
           : EMPTY_MESH,
         preview.length
           ? buildDestinationPreview(preview, z, gameOrderStyle, {
+              stroke: gameStroke(metresPerPx, renderScale),
+            })
+          : EMPTY_MESH,
+        hover
+          ? buildHoverMarker(hover, z, gameOrderStyle, {
               stroke: gameStroke(metresPerPx, renderScale),
             })
           : EMPTY_MESH,

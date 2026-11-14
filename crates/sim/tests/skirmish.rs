@@ -1,29 +1,13 @@
 #![allow(clippy::approx_constant)]
 
 use crate::common;
+use crate::common::command;
 use crate::common::Seat;
 use contract::command::{CommandEnvelope, Order, TargetRef};
 use contract::ids::{Side, UnitId};
 use serde_json::json;
 use sim::battle::Battle;
 use sim::fixtures::{self, test_rules};
-
-fn command(side: Side, seq: u64, order: Order) -> CommandEnvelope {
-    CommandEnvelope {
-        side,
-        player: Some(
-            match side {
-                Side::Blue => "blue-1",
-                Side::Red => "red-1",
-                Side::Neutral => "neutral",
-            }
-            .into(),
-        ),
-        seq,
-        order,
-        queued: false,
-    }
-}
 
 /// A match on the test units, with a U.S. deck of a tank and a supply truck.
 pub(crate) fn setup() -> contract::scenario::ScenarioDefinition {
@@ -206,7 +190,7 @@ fn a_returning_unit_reselects_the_nearest_entry_after_moving() {
 }
 
 /// The test units, with a U.S. deck of a tank and a supply truck.
-fn deck() -> serde_json::Value {
+pub(crate) fn deck() -> serde_json::Value {
     let mut rules = test_rules();
     fixtures::patch_catalog(
         &mut rules,
@@ -229,7 +213,7 @@ fn deck() -> serde_json::Value {
 }
 
 /// A U.S. against Eastern match on `rules`.
-fn match_on(rules: serde_json::Value) -> contract::scenario::ScenarioDefinition {
+pub(crate) fn match_on(rules: serde_json::Value) -> contract::scenario::ScenarioDefinition {
     serde_json::from_value(json!({
         "map": { "size": [800, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
         "rules": rules, "units": [],
@@ -615,75 +599,6 @@ fn packed_match_header_exposes_players_and_pending_counts() {
         assert_eq!(read("playersCount"), players);
         assert_eq!(read("pendingCount"), pending);
         assert_eq!(read("skirmishPhase"), 0.0);
-    }
-}
-
-#[test]
-fn a_purchase_preview_spreads_a_squad_round_its_destination_and_a_hull_stands_alone() {
-    let mut rules = deck();
-    fixtures::patch_catalog(
-        &mut rules,
-        "units",
-        "test_rifle",
-        json!({
-            "roster": { "factions": ["us"], "category": "inf", "family_name": "Test squad", "variant": "Test" }
-        }),
-    );
-    let mut battle = Battle::new(&match_on(rules), 1);
-    let squad = battle
-        .preview_purchase(Side::Blue, "test_rifle", [400.0, 300.0])
-        .unwrap();
-    let slots = battle
-        .rules()
-        .catalog
-        .get(squad.kind)
-        .slots()
-        .unwrap()
-        .len();
-    assert!(slots > 1);
-    assert_eq!(
-        squad.spots.len(),
-        slots,
-        "one spot per soldier the squad fields"
-    );
-    assert!(squad
-        .spots
-        .iter()
-        .all(|s| (s[0] - 400.0).hypot(s[1] - 300.0) < 15.0));
-    let tank = battle
-        .preview_purchase(Side::Blue, "test_tank", [400.0, 300.0])
-        .unwrap();
-    assert!(tank.spots.is_empty(), "a vehicle stands as one body");
-}
-
-#[test]
-fn a_purchase_ghost_keeps_its_shape_as_the_cursor_moves_over_open_ground() {
-    let mut rules = deck();
-    fixtures::patch_catalog(
-        &mut rules,
-        "units",
-        "test_rifle",
-        json!({
-            "roster": { "factions": ["us"], "category": "inf", "family_name": "Test squad", "variant": "Test" }
-        }),
-    );
-    let mut battle = Battle::new(&match_on(rules), 1);
-    let shape = |battle: &mut Battle, at: [f64; 2]| -> Vec<(i64, i64)> {
-        battle
-            .preview_purchase(Side::Blue, "test_rifle", at)
-            .unwrap()
-            .spots
-            .iter()
-            .map(|s| (((s[0] - at[0]) * 1e6) as i64, ((s[1] - at[1]) * 1e6) as i64))
-            .collect()
-    };
-    let first = shape(&mut battle, [400.0, 300.0]);
-    for at in [[400.5, 300.0], [403.0, 298.0], [410.0, 305.0]] {
-        assert_eq!(
-            shape(&mut battle, at),
-            first,
-            "the ghost slides with the cursor at {at:?}"
-        );
     }
 }
 

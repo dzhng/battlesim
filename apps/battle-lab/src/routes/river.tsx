@@ -102,7 +102,7 @@ function RiverLab({ battle }: { battle: SavedBattle }) {
       control.selected,
       session.revealed,
       surfaceZ,
-      gameStroke(OPENING_METRES_PER_PX, renderScale),
+      { stroke: gameStroke(OPENING_METRES_PER_PX, renderScale), hovered: session.hovered },
     );
   }, [
     renderScale,
@@ -110,6 +110,7 @@ function RiverLab({ battle }: { battle: SavedBattle }) {
     observation,
     control.selected,
     session.revealed,
+    session.hovered,
     surfaceZ,
     session.units,
     session.rules.air,

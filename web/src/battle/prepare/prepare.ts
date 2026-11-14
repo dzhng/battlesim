@@ -6,6 +6,7 @@
  *  adapter it is given, so the worker and a test share it. */
 import type { SimBattle } from "../sim/authority";
 import { between, MapRefused, resolveMap, type MapGenerator } from "../../maps/source.ts";
+import { lanesOf, type LanesModule } from "./lanes";
 import type {
   PrepareBattleRequest,
   PrepareDiagnostic,
@@ -17,7 +18,7 @@ import type {
 } from "./protocol.ts";
 
 /** The simulation's functions preparation calls. */
-export interface PreparationModule extends MapGenerator {
+export interface PreparationModule extends MapGenerator, LanesModule {
   city_stress_preparation(map: string, rules: string, seed: bigint, late: boolean): string;
   check_prepare_request(request: string): string;
   check_scenario_player_contract(scenario: string): string;
@@ -186,13 +187,11 @@ export async function prepare(
       laid = { scenario: stressScenario, metadata, stress };
       start = metadata.start;
     } else {
-      const blueEntries = skirmish?.entries.filter((e) => e.side === "blue") ?? [];
-      const human = checked.players.find(
-        (player) => player.side === "blue" && player.controller === "human",
-      );
-      const bluePlayers = checked.players.filter((player) => player.side === "blue");
-      const lane = human ? Math.max(0, bluePlayers.indexOf(human)) : 0;
-      const base = blueEntries[lane % Math.max(blueEntries.length, 1)];
+      // The view opens on the human's lane (`sim::entries::opening`).
+      const opening = skirmish
+        ? lanesOf(wasm, JSON.stringify(skirmish), checked.players).opening
+        : null;
+      const base = opening === null ? undefined : skirmish?.entries[opening];
       if (!base)
         throw new PreparationRefused("encounter", [
           {

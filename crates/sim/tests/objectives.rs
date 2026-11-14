@@ -1,23 +1,8 @@
-use contract::command::{CommandEnvelope, Order};
+use contract::command::Order;
 use contract::ids::Side;
 use sim::battle::Battle;
 
-fn command(side: Side, seq: u64, order: Order) -> CommandEnvelope {
-    CommandEnvelope {
-        side,
-        player: Some(
-            match side {
-                Side::Blue => "blue-1",
-                Side::Red => "red-1",
-                Side::Neutral => "neutral",
-            }
-            .into(),
-        ),
-        seq,
-        order,
-        queued: false,
-    }
-}
+use crate::common::command;
 
 #[test]
 fn an_uncontested_ground_unit_captures_after_twenty_seconds_and_scores_without_credit_income() {

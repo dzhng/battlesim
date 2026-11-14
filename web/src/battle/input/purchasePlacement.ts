@@ -12,6 +12,9 @@ export interface PurchaseGhost {
   valid: boolean | null;
   /** Where a squad's soldiers stand; empty for a vehicle, or until a preview answers. */
   spots: [number, number][];
+  /** The radius of the area a squad will hold round `destination`; null for
+   *  a vehicle, or until a preview answers. */
+  areaRadius: number | null;
 }
 /** Free previews are coalesced; only an acknowledgement commits a purchase. */
 export class PurchasePlacementControl {
@@ -34,6 +37,8 @@ export class PurchasePlacementControl {
   /** The chosen squad's soldiers about its destination, as the last preview
    *  spread them: the ghost keeps this shape while the next one is pending. */
   private shape: [number, number][] = [];
+  /** The chosen squad's area radius, as the last preview named it. */
+  private areaRadius: number | null = null;
   private previewRun: string | null = null;
   private generation = 0;
   private confirmation: number | null = null;
@@ -50,6 +55,7 @@ export class PurchasePlacementControl {
     this.intent = null;
     this.resolved = null;
     this.shape = [];
+    this.areaRadius = null;
   }
   at(
     destination: [number, number] | null,
@@ -77,6 +83,7 @@ export class PurchasePlacementControl {
       facing,
       valid: placement ? "Ok" in placement : null,
       spots: this.shape.map(([dx, dy]): [number, number] => [at[0] + dx, at[1] + dy]),
+      areaRadius: this.areaRadius,
     };
     this.intent = { client, spot, revision, cursor: destination, ghost };
     this.ghost = ghost;
@@ -101,6 +108,7 @@ export class PurchasePlacementControl {
           if ("Ok" in placement) {
             const [x, y] = placement.Ok.destination;
             this.shape = placement.Ok.spots.map(([sx, sy]) => [sx - x, sy - y]);
+            this.areaRadius = placement.Ok.area_radius_m;
           }
         },
         () => {
@@ -117,9 +125,11 @@ export class PurchasePlacementControl {
         this.resolve();
       });
   }
-  /** The ghost the authority accepted, or null when nothing was placed. */
+  /** The ghost the authority accepted, or null when nothing was placed.
+   *  `another` keeps the choice after an accepted placement, for the next. */
   async confirm(
     send: (order: Order) => Promise<CommandAck | null | undefined>,
+    another = false,
   ): Promise<PurchaseGhost | null> {
     const ghost = this.ghost;
     if (
@@ -139,7 +149,7 @@ export class PurchasePlacementControl {
         destination: ghost.destination,
       });
       if (!ack || ack.error) return null;
-      if (confirmation === this.generation) this.cancel();
+      if (confirmation === this.generation && !another) this.cancel();
       return { ...ghost, valid: true };
     } finally {
       if (this.confirmation === confirmation) this.confirmation = null;

@@ -48,8 +48,10 @@ const CANNOT: Rgba = [...gameHud.bad, 1];
 export const gameAttackGroundSpread: Rgba = [...gameHud.bad, 0.82];
 
 export const gameOrderStyle: OrderStyle = {
-  ...(orders as unknown as Omit<OrderStyle, "blocked" | "ally">),
+  ...(orders as unknown as Omit<OrderStyle, "blocked" | "hovered" | "ally">),
   blocked: CANNOT,
+  // The hovered unit's marker takes its card's colour, tying the two.
+  hovered: [...gameHud.accent, 1],
   ally: [...gameHud.ally, 1],
 };
 

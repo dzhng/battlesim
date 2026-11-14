@@ -1,7 +1,7 @@
 //! Catalog admission stages geometry facts while the active observer keeps running.
 mod static_art;
-pub(super) use static_art::scenery_from_art;
 use static_art::StaticDraft;
+pub(super) use static_art::{building_rows, scenery_from_art};
 
 use super::lab::{self, Asset, ModelInput, Pose};
 use super::*;
@@ -321,8 +321,9 @@ impl Presentation {
         for r in self.world.appearances.iter().take(rows) {
             let text = |at: u32, len: u32| &self.world.strings[at as usize..(at + len) as usize];
             let name = self.world.name(r);
-            // Static rows retain their indices. Dynamic battle rows are rebuilt
-            // from the new facts, so retired corpse poses cannot leak through.
+            // Dynamic battle rows are rebuilt from the new facts, so retired
+            // corpse poses cannot leak through. That renumbers the rows after
+            // them: static populations resolve theirs again by appearance.
             if r.placed == 0
                 && battle
                     .as_ref()

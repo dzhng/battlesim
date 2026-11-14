@@ -467,6 +467,25 @@ impl ImpactResolver for TankHulls {
     }
 }
 
+/// `side`'s order as command `seq`, sent by the side's first seated player
+/// (`blue-1`, `red-1`), as a skirmish requires.
+pub fn command(side: Side, seq: u64, order: Order) -> CommandEnvelope {
+    CommandEnvelope {
+        side,
+        player: Some(
+            match side {
+                Side::Blue => "blue-1",
+                Side::Red => "red-1",
+                Side::Neutral => "neutral",
+            }
+            .into(),
+        ),
+        seq,
+        order,
+        queued: false,
+    }
+}
+
 /// Hand `side`'s order to the battle as command `seq`; the order must be
 /// accepted.
 pub fn order(

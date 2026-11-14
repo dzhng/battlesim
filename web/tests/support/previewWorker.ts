@@ -31,17 +31,23 @@ export class PreviewWorker {
   get seed() {
     return this.request.map_source.request.seed;
   }
-  /** The map is admitted: the request comes back with its picture. */
-  admit() {
-    return this.reply(this.admitted());
+  /** The map is admitted: the request comes back with its picture, by
+   *  default one with no entries. */
+  admit(picture?: { sites: string; svg: string }) {
+    return this.reply(this.admitted(picture));
   }
-  private admitted(): PrepareReply {
+  private admitted(
+    picture = {
+      sites: JSON.stringify({ entries: [], objectives: [] }),
+      svg: `<svg data-seed="${this.seed}"></svg>`,
+    },
+  ): PrepareReply {
     return {
       type: "prepared",
       battle: {
         scenario: "{}",
         report: { request: this.request } as never,
-        preview: { map: "{}", sites: "{}", svg: `<svg data-seed="${this.seed}"></svg>` },
+        preview: { map: "{}", ...picture },
       },
     };
   }

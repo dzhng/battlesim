@@ -93,7 +93,7 @@ function ConsequencesLab({ battle }: { battle: SavedBattle }) {
       control.selected,
       session.revealed,
       surfaceZ,
-      gameStroke(OPENING_METRES_PER_PX, renderScale),
+      { stroke: gameStroke(OPENING_METRES_PER_PX, renderScale), hovered: session.hovered },
     );
     const parts = [tracers, remains, orders];
     return combineWorldMeshes(parts);
@@ -104,6 +104,7 @@ function ConsequencesLab({ battle }: { battle: SavedBattle }) {
     surfaceZ,
     control.selected,
     session.revealed,
+    session.hovered,
     session.units,
     session.rules.air,
   ]);

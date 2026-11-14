@@ -1,5 +1,5 @@
-"""Air defence vehicles: Gepard 1A2, Buk-M3, Pantsir-SM,
-Boxer Skyranger 30 and NASAMS 3, from assets/references/<family>/.
+"""Air defence vehicles: Gepard 1A2, Buk-M3, Pantsir-SM and Boxer
+Skyranger 30, from assets/references/<family>/ (NASAMS 3 is `nasams.py`).
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/air_defence.py -- [--variant=<card id>] [--wreck]
 
@@ -22,10 +22,6 @@ What the photos settle:
 - Skyranger 30 on Boxer (German three-tone): the Boxer's own hull
   (`boxer.drive`), the turret with its 30 mm KCE gun, the four radar
   panels round its top and a missile launcher box on its side.
-- NASAMS 3 (Norway's, NATO green): the canister launcher on its two-axle
-  trailer, six AMRAAM canisters in two rows on the turntable, stowed flat,
-  levelling legs at the corners. The US Army's is the same launcher in its
-  own tan.
 
 The Gepard's guns ride the gun rig; the wheeled cards' turrets, guns and
 launchers are drawn stowed and do not articulate yet.
@@ -40,7 +36,6 @@ import boxer  # noqa: E402
 import armour_parts as AR  # noqa: E402
 import hull_fittings as HF  # noqa: E402
 import roof_parts as RF  # noqa: E402
-import running_gear as RG  # noqa: E402
 import scripted_body as SB  # noqa: E402
 import stowage as SW  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
@@ -58,8 +53,6 @@ CARDS = {
     "eastern_buk_buk_m3_medium_range_air_defense": ("buk", "russian_green"),
     "eastern_pantsir_pantsir_sm": ("pantsir", "russian_green"),
     "europe_boxer_skyranger_30_gun_and_missile_air_defense": ("boxer_skyranger_30", "german_three_tone"),
-    "europe_nasams_nasams_3": ("nasams", "german_three_tone"),
-    "us_nasams_medium": ("nasams", "us_desert_tan"),
 }
 
 
@@ -171,60 +164,6 @@ def skyranger(v):
     RF.antenna("antenna_turret", (x - 0.70, 0.40, roof + 0.70), m, whip, height=1.8)
 
 
-def nasams(v):
-    """The launcher on its two-axle trailer."""
-    m, h = v.mats, v.hull
-    half = v.length / 2
-    rail_z = 0.95
-    for side, s in ((1, "L"), (-1, "R")):
-        for k, x in enumerate((-0.55, -1.55)):
-            RG.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * 0.95, 0.48), 0.48, 0.35, side, m, h, rim_radius=0.27,
-                          tread="bar", hub_bolts=8)
-            box(f"axle_{s}_{k}", (0.16, 0.50, 0.14), (x, side * 0.55, 0.48), m["dark"], h, lods=NEAR)
-        # One mudguard over the pair, a mudflap behind it.
-        box(f"fender_{s}", (2.20, 0.48, 0.04), (-1.05, side * 0.95, 1.02), m["paint"], h, bevel=0.01, lods=MID)
-        box(f"fender_lip_{s}", (2.20, 0.03, 0.16), (-1.05, side * 1.19, 0.95), m["paint"], h, lods=NEAR)
-        HF.mudflap(f"mudflap_{s}", (-2.20, side * 0.95, 0.95), (0.40, 0.45), m, h)
-        box(f"frame_rail_{s}", (v.length - 0.9, 0.14, 0.24), (-0.35, side * 0.55, rail_z), m["dark"], h, bevel=0.01)
-        # Levelling legs at the corners, folded up, their winding handles.
-        for k, x in enumerate((half - 0.6, -half + 0.3)):
-            box(f"leg_{s}_{k}", (0.14, 0.14, 0.80), (x, side * 1.05, rail_z + 0.05), m["dark"], h, lods=MID)
-            box(f"leg_pad_{s}_{k}", (0.30, 0.30, 0.05), (x, side * 1.05, rail_z - 0.38), m["dark"], h, lods=MID)
-            box(f"leg_crank_{s}_{k}", (0.03, 0.14, 0.03), (x, side * 1.05, rail_z + 0.47), m["steel"], h, lods=FINE)
-    # The A-frame drawbar and its eye, the jockey wheel.
-    for side in (-1, 1):
-        box(f"drawbar_{side}", (1.5, 0.10, 0.10), (half - 0.85, side * 0.28, 0.80), m["dark"], h,
-            rot=(0, 0.10, -side * 0.35))
-    cyl("drawbar_eye", 0.10, 0.04, (half - 0.02, 0, 0.62), "Z", m["steel"], h, seg=12, lods=MID)
-    jockey = VP.wheel_node("wheel_jockey", (half - 0.55, 0.15, 0.12), 0.12, h)
-    cyl("jockey_tyre", 0.12, 0.08, (0, 0, 0), "Y", m["rubber"], jockey, seg=16, lods=MID)
-    box("jockey_leg", (0.06, 0.06, 0.60), (half - 0.55, 0.15, 0.50), m["steel"], h, lods=MID)
-    box("deck_plate", (v.length - 1.2, 2.0, 0.10), (-0.40, 0, rail_z + 0.17), m["paint"], h, bevel=0.01)
-    cyl("turntable", 0.65, 0.22, (-0.30, 0, rail_z + 0.33), "Z", m["dark"], h, seg=28)
-    box("launcher_cradle", (1.0, 1.4, 0.30), (-0.30, 0, rail_z + 0.58), m["paint"], h, bevel=0.03)
-    for side in (-1, 1):
-        box(f"launcher_arm_{side}", (2.2, 0.08, 0.45), (-0.70, side * 1.10, rail_z + 1.20), m["paint"], h,
-            bevel=0.015)
-    # Six canisters, two rows of three: ribbed, caps forward, lugs on top.
-    for j in range(2):
-        for i in range(3):
-            y = (i - 1) * 0.68
-            z = rail_z + 0.98 + j * 0.62
-            box(f"canister_{j}_{i}", (4.3, 0.62, 0.58), (-0.70, y, z), m["paint"], h, bevel=0.03)
-            box(f"canister_cap_{j}_{i}", (0.03, 0.52, 0.50), (1.46, y, z), m["dark"], h, lods=MID)
-            box(f"canister_end_{j}_{i}", (0.03, 0.52, 0.50), (-2.86, y, z), m["dark"], h, lods=MID)
-            for k in range(3):
-                box(f"canister_rib_{j}_{i}_{k}", (0.06, 0.64, 0.60), (-2.40 + k * 1.70, y, z), m["paint"], h,
-                    lods=NEAR)
-    SW.stowage_box("electronics_box", (half - 1.2, 0, rail_z + 0.22), (0.70, 1.40, 0.55), m, h)
-    cyl("cable_reel", 0.22, 0.30, (half - 1.2, -0.95, rail_z + 0.30), "Y", m["dark"], h, seg=16, lods=MID)
-    whip = empty("dressing_antenna", parent=h)
-    RF.antenna("antenna", (half - 1.40, 0.60, rail_z + 0.77), m, whip, height=1.6)
-    for side in (-1, 1):
-        HF.light_with_guard(f"tail_light_{side}", (-half + 0.02, side * 0.95, rail_z), 0.05, dict(m, lamp=m["tail"]),
-                            h, rot=(0, 0, math.pi))
-
-
 # The tracked cards' bodies (`scripted_body`): each its own Argon build,
 # its track's link pitch.
 BODIES = {
@@ -242,24 +181,23 @@ def build(variant, v):
             # The whips on the turret roof's rear corners (turret frame).
             RF.whip_pair(turret, (-1.40, 0.75, 0.89), v.mats, height=2.0)
         return
-    {"eastern_pantsir_pantsir_sm": pantsir, "europe_boxer_skyranger_30_gun_and_missile_air_defense": skyranger,
-     "europe_nasams_nasams_3": nasams, "us_nasams_medium": nasams}[variant["id"]](v)
+    {"eastern_pantsir_pantsir_sm": pantsir,
+     "europe_boxer_skyranger_30_gun_and_missile_air_defense": skyranger}[variant["id"]](v)
 
 
 def wreck(variant, v):
     """An air defence vehicle after its fire: the right side's running gear
     torn (a track off, or wheels gone and the hull down on that side), the
-    radar and canisters burst, plates and the module warped; what it
+    radar and missile tubes burst, plates and the module warped; what it
     throws is `wreckage.scatter`'s."""
     from parts import rest_on_ground
     from wreckage import densify, dent, heat, parts, remove, warp
     if variant["id"] in BODIES:
         return SB.wreck(v, "R", (2, 3))
-    remove("wheel_R_1_", "wheel_R_2_", "skirt_R", "search_radar", "canister_cap_", "missile_cap_",
-           "missile_tube_R_1_2", "missile_tube_R_0_2", "canister_1_2", "canister_rib_1_2",
-           "mudflap_R", "windscreen", "door_window_", "rear_window_", "dressing_mirror_R", "mirror_R", "mirror_arm_R",
-           "radar_panel_1", "radar_frame_1")
-    shell = parts("turret_shell", "boxer_upper", "boxer_lower", "module_body", "cab_body", "canister_")
+    remove("wheel_R_1_", "wheel_R_2_", "skirt_R", "search_radar", "missile_cap_",
+           "missile_tube_R_1_2", "missile_tube_R_0_2", "mudflap_R", "windscreen", "door_window_", "rear_window_",
+           "dressing_mirror_R", "mirror_R", "mirror_arm_R", "radar_panel_1", "radar_frame_1")
+    shell = parts("turret_shell", "boxer_upper", "boxer_lower", "module_body", "cab_body")
     densify(shell, scale=2.0)
     warp(shell, heat(0.025, 0.8, seed=81.0), dent((0.0, -1.2, 1.6), 0.6, 0.12, (0, 1, -0.2)))
     v.root.rotation_euler = (0.03, 0.0, 0)
