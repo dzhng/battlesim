@@ -23,8 +23,9 @@ action, so the controls omit them.
 Large armies keep their vertical card size and wrap into balanced rows that use
 the full viewport; the deck never becomes a horizontal scroller. Pending
 reinforcements reuse the same cards in a dimmed, non-interactive state, with
-their deployment state available on hover. Keyboard focus
-reveals the whole focused card. The existing facts panel serves both card
+their deployment state available on hover. The battle HUD is pointer-driven:
+card details and command names show on hover, and nothing in it is built
+for a keyboard focus walk (Tab belongs to the shop). The existing facts panel serves both card
 details and battlefield callouts; no second unit-information vocabulary or
 selection authority is needed. Captions and hints share normal layout with the
 deck because guessed footer heights become wrong as content changes.

@@ -1,5 +1,5 @@
 /* The HUD's holo-tactical look: the panel as dark
-   glass with thin glowing edges, icon command tiles with focus/hover tooltips, and
+   glass with thin glowing edges, icon command tiles with hover tooltips, and
    the weapon callouts floating off their units on leader lines over soft dark
    scrims. Every colour is a `--hud-*` property from `presentation.hud`
    (`hudTheme.ts`); this sheet holds none of its own. */
@@ -168,12 +168,6 @@ html {
   height: 48px;
   padding: 0;
   border-color: rgb(var(--hud-accent) / 0.18);
-}
-.hud-panel button.ro-cmd:focus-visible {
-  outline: 2px solid rgb(var(--hud-accent));
-  outline-offset: 2px;
-  border-color: rgb(var(--hud-accent));
-  background: rgb(var(--hud-accent) / 0.2);
 }
 .hud-panel button.ro-cmd-emphasis {
   border-color: rgb(var(--hud-accent));
@@ -1551,8 +1545,7 @@ html {
   text-align: left;
   background: rgb(var(--hud-glass) / 0.98);
 }
-.hud-panel button.hud-purchase-info:hover:not(:disabled),
-.hud-panel button.hud-purchase-info:focus-visible {
+.hud-panel button.hud-purchase-info:hover:not(:disabled) {
   border-color: rgb(var(--hud-accent) / 0.8);
 }
 .hud-purchase-info-foot {

@@ -31,8 +31,6 @@ function CommandButton({
 }: CommandProps & { hintHost?: HTMLElement | null }) {
   const id = useId();
   const [hovered, setHovered] = useState(false);
-  const [focused, setFocused] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
   const [hintCenter, setHintCenter] = useState(0);
   const alignHint = (button: HTMLButtonElement) => {
     if (!hintHost) return;
@@ -41,8 +39,7 @@ function CommandButton({
     const lower = hintHost.parentElement!.getBoundingClientRect();
     setHintCenter(owner.left + owner.width / 2 - lower.left);
   };
-  const shown = (hovered || focused) && !dismissed;
-  const tooltip = shown ? (
+  const tooltip = hovered ? (
     <span
       className="ro-cmd-tooltip"
       role="tooltip"
@@ -57,25 +54,15 @@ function CommandButton({
       type="button"
       className={`ro-cmd${emphasis ? " ro-cmd-emphasis" : ""}`}
       aria-label={label}
-      aria-describedby={shown ? id : undefined}
+      aria-describedby={hovered ? id : undefined}
       aria-pressed={pressed}
       disabled={disabled}
       onClick={onClick}
       onMouseEnter={(event) => {
         alignHint(event.currentTarget);
         setHovered(true);
-        setDismissed(false);
       }}
       onMouseLeave={() => setHovered(false)}
-      onFocus={(event) => {
-        alignHint(event.currentTarget);
-        setFocused(true);
-        setDismissed(false);
-      }}
-      onBlur={() => setFocused(false)}
-      onKeyDown={(event) => {
-        if (event.key === "Escape") setDismissed(true);
-      }}
     >
       <Icon path={icon} className="ro-cmd-icon" />
       {hintHost ? createPortal(tooltip, hintHost) : tooltip}
