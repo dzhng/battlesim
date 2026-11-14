@@ -48,7 +48,15 @@ export async function run(ctx) {
 
   // Buy at your entry through the picker's own keyboard path (a family
   // name, then Enter arms its first variant's ghost), then ready.
-  const entry = await lab(page, () => window.__lab.route.prepared().start.at);
+  const { entry, size } = await lab(page, () => {
+    const prepared = window.__lab.route.prepared();
+    return { entry: prepared.start.at, size: prepared.size };
+  });
+  // Buy a little way into the map from your road, not on it: a tank parked
+  // on the road's edge blocks every later arrival there, your ally's too,
+  // and your ally may share your road.
+  const inward = Math.atan2(size[1] / 2 - entry[1], size[0] / 2 - entry[0]);
+  const into = (d) => [entry[0] + Math.cos(inward) * d, entry[1] + Math.sin(inward) * d];
   // Your road in paints its lane's number behind its chevrons, outlined as
   // yours; pulled out, Blue's other road shows its own.
   await shoot(ctx, page, "entry-lane", entry, 160);
@@ -59,7 +67,7 @@ export async function run(ctx) {
   await search.press("Enter");
   // The ghost stays armed after a placement: each click places another.
   for (let k = 0; k < BUY; k++) {
-    const at = await groundCss(page, [entry[0] + 60 * k, entry[1]]);
+    const at = await groundCss(page, into(120 + 40 * k));
     await page.mouse.move(at[0], at[1]);
     await page
       .waitForFunction(() => window.__lab.route.purchaseGhost?.()?.valid === true, undefined, {
