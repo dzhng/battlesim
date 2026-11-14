@@ -9,8 +9,10 @@
 //! bundles (Git LFS).
 //!
 //! The fixture is a count-only browser run of paris-corner's whole reel
-//! (`PARITY_SCENES=paris-corner PARITY_COUNTS=1`, `native-parity-capture`),
-//! its `capture.json` and `manifest.json` gzipped as written (`gzip -9n`).
+//! (`PARITY_SCENES=paris-corner PARITY_COUNTS=1 PARITY_INDICATORS=0
+//! PARITY_CARDS=0`, `native-parity-capture`), its `capture.json` and
+//! `manifest.json` gzipped as written (`gzip -9n`). Re-record it whenever
+//! what the browser draws changes.
 use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
