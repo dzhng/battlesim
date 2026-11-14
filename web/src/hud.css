@@ -402,9 +402,10 @@ html {
   --leader: var(--hud-accent);
 }
 /* A leader is one line everywhere: solid, one width, in its panel's own
-   colour (own cyan, enemy and contact red; amber is the ground markers'
-   alone). Selection shows only as the panel's: an unselected panel and its
-   leader are dimmed alike. */
+   colour (own cyan, enemy and contact red). A selected unit's leader takes
+   its selection ring's amber, the one mark joining ring and card; an ally's
+   ring is ice, as its leader already is. An unselected panel and its leader
+   are dimmed alike. */
 .ro-leader {
   filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.8))
     drop-shadow(0 0 3px rgb(var(--leader) / calc(0.55 * var(--hud-callout-glow))));
@@ -429,6 +430,10 @@ html {
 }
 .ro-leader.ro-contact {
   opacity: 1;
+}
+.ro-leader.ro-own.ro-selected {
+  --leader: var(--hud-selected);
+  stroke: rgb(var(--hud-selected) / 0.95);
 }
 /* ---- An info panel (infoPanel.tsx): NAME, WEAPONS, STATES --------------
    One markup for every panel, in a callout here and in the unit card.
