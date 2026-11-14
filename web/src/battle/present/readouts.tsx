@@ -17,18 +17,16 @@ import {
 } from "../sim/observationView";
 import type { PointerPick } from "../input/pointerIntent";
 import { gameHud } from "./hudTheme";
-import { layoutReadoutDetails, type DetailCard, type DetailPlacement } from "./readoutDetails";
 import {
   layoutReadouts,
   leaderOf,
+  openedBox,
   overlaps,
   readoutPaintOrder,
-  READOUT_ANCHOR_PX,
   type ReadoutRect,
 } from "./readoutLayout";
 import { eyePosition, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { clamp, vec3 } from "math";
-import type { Box2 } from "math/shapes";
+import { vec3 } from "math";
 import {
   InfoPanel,
   PanelCallout,
@@ -185,12 +183,14 @@ const HEAD_M = 2;
  *  `layoutReadouts`, in two planes back to front: the ground and low-air
  *  cards; the high-air models' canvas (`HIGH_PLANE_ATTR`, which the battle
  *  view draws into); the high-air cards. In each plane cards make room for
- *  each other on short, uncrossed leaders, and a selected or hovered panel
- *  paints above the others. A card near the viewport's edge hides. Far
- *  views allow overlap in camera-depth order. Nudges ease on the
- *  presentation clock. A squad riding a carrier has no callout of its own:
- *  its compact card stacks under the carrier's, inside that callout, and
- *  picks the carrier. */
+ *  each other on short, uncrossed leaders, and a selected panel paints
+ *  above the others. Hover plays no part in the layout, with or without
+ *  Space held: the hovered card opens in place over every other card
+ *  (`openedBox`), so hovering moves nothing. A card near the viewport's
+ *  edge hides. Far views allow overlap in camera-depth order. Nudges ease
+ *  on the presentation clock. A squad riding a carrier has no callout of
+ *  its own: its compact card stacks under the carrier's, inside that
+ *  callout, and picks the carrier. */
 export function ReadoutLayer({
   own,
   identified = [],
@@ -338,25 +338,25 @@ export function ReadoutLayer({
     leaders.current.get(key)?.setAttribute("d", "");
     nudges.current.delete(key);
   };
-  /** In a far view, where cards may overlap: a card another paints over is
-   *  softened (unless hovered), and one painted over another is marked. */
+  /** Where cards may overprint (`overprint`): a card another paints over
+   *  is softened (unless hovered), and one painted over another is marked. */
   const shadeOverlaps = (
     cards: readonly { id: string; node: HTMLDivElement; distanceSq: number; opacity: number }[],
     drawnBoxes: ReadonlyMap<string, ReadoutRect>,
-    overlap: boolean,
+    overprint: boolean,
   ) => {
     const near = [...cards].sort((a, b) => a.distanceSq - b.distanceSq);
     for (const b of cards) {
       const box = drawnBoxes.get(b.id)!;
       const behind =
-        overlap &&
+        overprint &&
         near.some(
           (other) =>
             paintOrder.current.get(other.id)! > paintOrder.current.get(b.id)! &&
             overlaps(box, drawnBoxes.get(other.id)!),
         );
       const inFront =
-        overlap &&
+        overprint &&
         near.some(
           (other) =>
             paintOrder.current.get(other.id)! < paintOrder.current.get(b.id)! &&
@@ -447,14 +447,15 @@ export function ReadoutLayer({
       }
       const zoom = expanded ? "default" : "compressed";
       if (layer.current && layer.current.dataset.zoom !== zoom) layer.current.dataset.zoom = zoom;
-      // Measure detail separately, then always lay out the compact footprints.
+      // Measure the cards that may open, then always lay out the compact
+      // footprints.
+      const hovered = hoveredCard.current;
+      // Every card opens with Space held; otherwise only the hovered one.
+      const opening = anchored.filter((a) => expanded || a.id === hovered);
       const fullSizes = new Map<string, { w: number; h: number }>();
-      const detailing = expanded || hoveredCard.current !== null;
-      if (detailing) {
-        for (const a of anchored) a.node.dataset.zoom = "default";
-        for (const a of anchored)
-          fullSizes.set(a.id, { w: a.node.offsetWidth, h: a.node.offsetHeight });
-      }
+      for (const a of opening) a.node.dataset.zoom = "default";
+      for (const a of opening)
+        fullSizes.set(a.id, { w: a.node.offsetWidth, h: a.node.offsetHeight });
       for (const a of anchored) a.node.dataset.zoom = "compressed";
       const situated: { b: (typeof anchored)[number]; box: ReadoutRect }[] = [];
       // The presentation clock's step, which eases each callout's nudge.
@@ -502,75 +503,30 @@ export function ReadoutLayer({
         b.node.style.transform = `translate(${box.x0}px, ${box.y0}px)`;
         situated.push({ b, box });
       }
-      const viewport: Box2 = [edge, edge, right, bottom];
       compactBoxes.current.clear();
       for (const { b, box } of situated) compactBoxes.current.set(b.id, box);
-      const details = new Map<string, DetailPlacement>();
-      // Each plane's cards open into their full detail among themselves.
-      if (detailing && !overlap)
-        for (const high of [false, true]) {
-          const detailCards: DetailCard[] = situated
-            .filter(({ b }) => b.highAir === high)
-            .map(({ b, box }) => {
-              const size = fullSizes.get(b.id)!;
-              return {
-                id: b.id,
-                anchor: [b.x, b.y],
-                distanceSq: b.distanceSq,
-                compact: [box.x0, box.y0, box.x1, box.y1],
-                full: [box.x0, box.y0, box.x0 + size.w, box.y0 + size.h],
-              };
-            });
-          const obstacles: Box2[] = [
-            ...panels.map((r): Box2 => [r.x0, r.y0, r.x1, r.y1]),
-            ...callouts
-              .filter((b) => b.highAir === high)
-              .map(
-                (b): Box2 => [
-                  b.x - READOUT_ANCHOR_PX,
-                  b.y - READOUT_ANCHOR_PX,
-                  b.x + READOUT_ANCHOR_PX,
-                  b.y + READOUT_ANCHOR_PX,
-                ],
-              ),
-          ];
-          const plane = layoutReadoutDetails(
-            detailCards,
-            obstacles,
-            viewport,
-            gap,
-            expanded,
-            hoveredCard.current,
-          );
-          for (const [id, at] of plane) details.set(id, at);
-        }
+      // Open cards may overprint one another: in a far view, and with Space
+      // held, when every card opens where it stands.
+      const overprint = overlap || expanded;
       paintOrder.current = readoutPaintOrder(
         situated.map(({ b }) => b),
-        hoveredCard.current,
-        overlap,
+        hovered,
+        overprint,
       );
       for (const { b } of situated)
         b.node.parentElement!.style.zIndex = String(paintOrder.current.get(b.id));
       const drawnBoxes = new Map<string, ReadoutRect>();
+      const bounds = { x0: edge, y0: edge, x1: right, y1: bottom };
       for (const { b, box: compact } of situated) {
-        const detail = details.get(b.id);
-        let box = detail
-          ? { x0: detail.box[0], y0: detail.box[1], x1: detail.box[2], y1: detail.box[3] }
-          : compact;
-        // In a far view every card opens where it stands, off the edge.
-        b.node.dataset.zoom = (overlap ? expanded || b.id === hoveredCard.current : detail?.full)
-          ? "default"
-          : "compressed";
-        if (overlap && b.node.dataset.zoom === "default") {
-          const size = fullSizes.get(b.id)!;
-          const x0 = clamp(box.x0, edge, right - size.w);
-          const y0 = clamp(box.y0, edge, bottom - size.h);
-          box = { x0, y0, x1: x0 + size.w, y1: y0 + size.h };
-        }
+        // A card measured open opens where its compact card stands, off the
+        // edge.
+        const size = fullSizes.get(b.id);
+        const box = size ? openedBox(b, compact, size.w, size.h, bounds) : compact;
+        b.node.dataset.zoom = size ? "default" : "compressed";
         drawnBoxes.set(b.id, box);
         b.node.style.transform = `translate(${box.x0}px, ${box.y0}px)`;
         const group = b.node.parentElement!;
-        if (b.id === hoveredCard.current) group.dataset.hovered = "true";
+        if (b.id === hovered) group.dataset.hovered = "true";
         else delete group.dataset.hovered;
         // The leader: a small ring on the unit, a line off it to the
         // callout's near corner, then along its edge nearest the unit.
@@ -588,7 +544,7 @@ export function ReadoutLayer({
       shadeOverlaps(
         situated.map(({ b }) => b),
         drawnBoxes,
-        overlap,
+        overprint,
       );
     },
   }));

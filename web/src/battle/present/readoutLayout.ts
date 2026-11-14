@@ -1,5 +1,6 @@
 /** Where each unit's compact info card sits on screen, from its unit's
  *  anchor and the card's size: pure, run every frame. */
+import { clamp } from "math";
 import { segment2 } from "math/shapes";
 
 /** Page-pixel box. */
@@ -251,7 +252,7 @@ const reach = (x: number, y: number, x0: number, y0: number, x1: number, y1: num
 /** Whether a card at the box (x0, y0)–(x1, y1) lies nearer another unit's
  *  anchor than its own unit's (`anchors[own]`), so it reads as that unit's
  *  card. The caller says which units' anchors count. */
-export function nearerAnotherAnchor(
+function nearerAnotherAnchor(
   anchors: readonly (readonly [number, number])[],
   own: number,
   x0: number,
@@ -279,22 +280,38 @@ export function leaderOf(
   ];
 }
 
-/** Each card's paint order, higher on top: every high-air card above every
- *  ground and low-air one; within each plane, the hovered card on top, then
- *  in a far view nearer the eye above, otherwise a selected card above the
- *  rest. */
+/** Where a card opens to `w`×`h` from its compact `box` off its unit's
+ *  anchor: grown away from the unit, so the edge its leader runs along stays
+ *  put, then kept within `bounds`. */
+export function openedBox(
+  anchor: { x: number; y: number },
+  box: ReadoutRect,
+  w: number,
+  h: number,
+  bounds: ReadoutRect,
+): ReadoutRect {
+  const x0 = clamp(box.x0 >= anchor.x ? box.x0 : box.x1 - w, bounds.x0, bounds.x1 - w);
+  const y0 = clamp(box.y0 >= anchor.y ? box.y0 : box.y1 - h, bounds.y0, bounds.y1 - h);
+  return { x0, x1: x0 + w, y0, y1: y0 + h };
+}
+
+/** Each card's paint order, higher on top, about the high-air models'
+ *  canvas at 0: every ground and low-air card below it, every high-air card
+ *  above it, and the hovered card above them all, since it opens in place
+ *  over whatever it covers. Within a plane, where cards may `overprint`,
+ *  nearer the eye above, otherwise a selected card above the rest. */
 export function readoutPaintOrder(
   cards: readonly { id: string; distanceSq: number; selected: boolean; highAir: boolean }[],
   hovered: string | null,
-  overlap: boolean,
+  overprint: boolean,
 ): Map<string, number> {
   const order = new Map<string, number>();
   const n = cards.length;
   const near = [...cards].sort((a, b) => a.distanceSq - b.distanceSq);
-  for (const [i, b] of near.entries())
-    order.set(
-      b.id,
-      (b.id === hovered ? n + 1 : overlap ? n - i : Number(b.selected)) + (b.highAir ? n + 2 : 0),
-    );
+  for (const [i, b] of near.entries()) {
+    // 0 to n within its plane.
+    const rank = overprint ? n - i : Number(b.selected);
+    order.set(b.id, b.id === hovered ? n + 2 : b.highAir ? rank + 1 : rank - n - 1);
+  }
   return order;
 }

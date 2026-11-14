@@ -280,28 +280,42 @@ export async function run(ctx) {
     JSON.stringify({ lineLoss, spill, shadeAboveLine, atPanel }),
   );
   await neutralField.evaluate((node) => node.remove());
-  const smallLayout = await page.locator("[data-testid=readouts] .ro-unit").evaluateAll((nodes) => {
-    const boxes = nodes
-      .filter((n) => n.style.display !== "none")
-      .map((n) => n.getBoundingClientRect().toJSON());
-    return {
-      boxes,
-      inside: boxes.every(
-        (b) => b.left >= 0 && b.top >= 0 && b.right <= innerWidth && b.bottom <= innerHeight,
-      ),
-      apart: boxes.every((a, i) =>
-        boxes
-          .slice(i + 1)
-          .every(
-            (b) => a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top,
-          ),
-      ),
-    };
-  });
+  // Holding Space opens every card where it stands: each leader rises to
+  // the same corner with it as without, and the hovered card draws on top.
+  const placed = () =>
+    page.evaluate(async () => {
+      await window.__lab.frame();
+      return [...document.querySelectorAll("[data-testid=readouts] .ro-callout")]
+        .map((group) => ({ group, card: group.querySelector(":scope > .ro-unit") }))
+        .filter(({ card }) => card.style.display !== "none")
+        .map(({ group, card }) => {
+          const d = group.querySelector("path.ro-leader").getAttribute("d");
+          const b = card.getBoundingClientRect();
+          return {
+            unit: card.dataset.unit,
+            rise: d.slice(0, d.lastIndexOf(" L ")),
+            open: card.dataset.zoom === "default",
+            inside: b.left >= 0 && b.top >= 0 && b.right <= innerWidth && b.bottom <= innerHeight,
+            hovered: group.dataset.hovered !== undefined,
+            z: Number(group.style.zIndex) || 0,
+          };
+        });
+    });
+  await page.keyboard.up("Space");
+  const withoutSpace = await placed();
+  await page.keyboard.down("Space");
+  await page.waitForFunction(() => document.querySelector(".ro-layer").dataset.zoom === "default");
+  const withSpace = await placed();
+  const top = withSpace.find((c) => c.hovered);
   ctx.check(
-    "four readouts fit the smaller viewport without hiding or overprinting",
-    smallLayout.boxes.length === 4 && smallLayout.inside && smallLayout.apart,
-    JSON.stringify(smallLayout),
+    "holding Space opens the four readouts where they stand, inside the smaller viewport, the hovered one on top",
+    withSpace.length === 4 &&
+      withSpace.every(
+        (c) => c.open && c.inside && withoutSpace.find((w) => w.unit === c.unit)?.rise === c.rise,
+      ) &&
+      !!top &&
+      withSpace.every((c) => c.hovered || c.z < top.z),
+    JSON.stringify({ withoutSpace, withSpace }),
   );
   const ordered = await lab(page, () =>
     window.__lab.route

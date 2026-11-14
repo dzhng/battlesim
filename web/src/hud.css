@@ -371,16 +371,19 @@ html {
   font-family: var(--hud-font);
 }
 /* Back to front: the ground and low-air cards, the high-air models' canvas,
-   the high-air cards. Each card plane stacks its own cards. */
+   the high-air cards, then the hovered card over all of them. The planes
+   share the layer's stacking: each card's z-index (`readoutPaintOrder`) is
+   below the models' 0 for a ground or low-air card, above it for a high-air
+   one, and highest for the hovered card. */
 .ro-plane {
   position: absolute;
   inset: 0;
-  isolation: isolate;
 }
 /* The models are the world's, not cards: they stay when the cards are hidden. */
 .ro-high-models {
   position: absolute;
   inset: 0;
+  z-index: 0;
   visibility: visible;
 }
 .ro-high-models > canvas {
@@ -391,12 +394,6 @@ html {
   position: absolute;
   inset: 0;
   isolation: isolate;
-}
-.ro-callout.ro-selected {
-  z-index: 1;
-}
-.ro-callout[data-hovered] {
-  z-index: 3;
 }
 .ro-callout[data-ghost] {
   pointer-events: none;
@@ -471,11 +468,18 @@ html {
   filter: blur(10px);
 }
 /* Overlapping cards need a tighter dark core to reduce rear glyphs bleeding
-   through the foreground title. The softened edge still belongs to the world. */
-.ro-callout[data-overlapping] .ro-unit::before {
+   through the foreground title. The softened edge still belongs to the world.
+   The hovered card opens over other cards, so it always has one. */
+.ro-callout:is([data-overlapping], [data-hovered]) .ro-unit::before {
   background: rgb(var(--hud-glass) / 0.9);
   filter: blur(3px);
 }
+/* The hovered card is one solid plate down to its underline: its blurred
+   edge falls just past the line, not above it. */
+.ro-callout[data-hovered] > .ro-unit::before {
+  bottom: -3px;
+}
+.ro-callout[data-hovered] > .ro-unit,
 .ro-leader.ro-selected,
 .ro-unit.ro-selected {
   opacity: 1;

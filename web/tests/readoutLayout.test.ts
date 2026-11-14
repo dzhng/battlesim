@@ -14,7 +14,6 @@ import {
   type LayoutCard,
   type ReadoutRect,
 } from "../src/battle/present/readoutLayout";
-import { layoutReadoutDetails, type DetailCard } from "../src/battle/present/readoutDetails";
 import {
   cardZoomOpacity,
   CARD_FADE_END_M,
@@ -280,7 +279,7 @@ test("a ground card lies under a high-air card only when nothing clear is in rea
   );
 });
 
-test("high-air cards draw above every ground and low-air card, the selected one too", () => {
+test("high-air cards draw above every ground and low-air card, and the hovered card above all", () => {
   const cards = [
     { id: "ground", distanceSq: 1, selected: true, highAir: false },
     { id: "lowair", distanceSq: 2, selected: false, highAir: false },
@@ -294,14 +293,13 @@ test("high-air cards draw above every ground and low-air card, the selected one 
         expect(order.get(high)!, `${high} over ${low}, far ${far}`).toBeGreaterThan(
           order.get(low)!,
         );
-    // The card under the pointer comes to the top of its own plane: a
-    // high-air card still draws over it.
-    const hovered = readoutPaintOrder(cards, "lowair", far);
-    expect(hovered.get("lowair")!).toBeGreaterThan(hovered.get("ground")!);
-    for (const high of ["jet", "blimp"])
-      expect(hovered.get(high)!).toBeGreaterThan(hovered.get("lowair")!);
-    const aloft = readoutPaintOrder(cards, "jet", far);
-    expect(Math.max(...aloft.values())).toBe(aloft.get("jet"));
+    // The card under the pointer opens over every other card, a high-air
+    // card's too.
+    for (const hovered of ["lowair", "jet"]) {
+      const order = readoutPaintOrder(cards, hovered, far);
+      const others = cards.filter((c) => c.id !== hovered).map((c) => order.get(c.id)!);
+      expect(order.get(hovered)!, `${hovered}, far ${far}`).toBeGreaterThan(Math.max(...others));
+    }
   }
 });
 
@@ -345,51 +343,6 @@ test("a card lies nearer its own unit than any other unit of its plane", () => {
       Math.hypot(Math.max(box.x0 - c.x, 0, c.x - box.x1), Math.max(box.y0 - c.y, 0, c.y - box.y1));
     const nearer = shown.filter((c) => c.id !== id && d(c) < d(own));
     if (nearer.length) wrong.push(`${id} nearer ${nearer.map((c) => c.id).join(",")}`);
-  }
-  expect(wrong).toEqual([]);
-});
-
-test("a card opening into its detail moves only where it stays nearer its own unit", () => {
-  // The readouts lab at 900×600 with the AT team's card hovered: its detail
-  // pushes the tank's card, which used to leap above the AT team's.
-  const card = (
-    id: string,
-    anchor: [number, number],
-    [x0, y0, w0]: number[],
-    [w, h]: number[],
-    distanceSq: number,
-  ): DetailCard => ({
-    id,
-    anchor,
-    distanceSq,
-    compact: [x0, y0, x0 + w0, y0 + 12],
-    full: [x0, y0, x0 + w, y0 + h],
-  });
-  const cards = [
-    // Nearest the eye first: the rifle section, low on the screen.
-    card("tank", [423, 313], [453, 291, 60], [287, 78], 2),
-    card("at", [449, 245], [479, 194, 80], [132, 83], 4),
-    card("rifle", [391, 393], [421, 359, 110], [145, 78], 1),
-    card("supply", [316, 298], [162, 252, 110], [130, 75], 3),
-  ];
-  const obstacles: [number, number, number, number][] = [
-    [12, 12, 392, 188],
-    [292, 459, 608, 600],
-    ...cards.map((c): [number, number, number, number] => [
-      c.anchor[0] - 6,
-      c.anchor[1] - 6,
-      c.anchor[0] + 6,
-      c.anchor[1] + 6,
-    ]),
-  ];
-  const plan = layoutReadoutDetails(cards, obstacles, [36, 36, 864, 564], GAP, true, "at");
-  const wrong: string[] = [];
-  for (const c of cards) {
-    const [x0, y0, x1, y1] = plan.get(c.id)!.box;
-    const d = ([x, y]: readonly [number, number]) =>
-      Math.hypot(Math.max(x0 - x, 0, x - x1), Math.max(y0 - y, 0, y - y1));
-    const nearer = cards.filter((o) => o.id !== c.id && d(o.anchor) < d(c.anchor));
-    if (nearer.length) wrong.push(`${c.id} nearer ${nearer.map((o) => o.id).join(",")}`);
   }
   expect(wrong).toEqual([]);
 });
