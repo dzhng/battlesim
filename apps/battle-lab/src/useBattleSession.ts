@@ -59,6 +59,7 @@ import type { Order, SideName } from "@web/battle/sim/protocol";
 import type { Player } from "@web/battle/prepare/protocol";
 import type { LabBox, LabPick, ViewportCursor } from "./LabViewport";
 import { drawnUnits, pickToPointer, sideInstances, type DrawnInstances } from "./sideInstances";
+import { surfaceHeights } from "./surfaceHeights";
 import { panelPlacer } from "./panelPlacement";
 import { commandedEconomy, commandingPlayer, takesOrders } from "./commandingPlayer";
 import { allyOwners, controlled, playerIndex } from "@web/battle/input/controlled";
@@ -93,8 +94,6 @@ import {
 import { byReference, pendingGhosts } from "./pendingGhosts";
 
 const PURCHASE_BLOCKED = [...gameHud.bad, gameXray.selected[3]] as const;
-/** Ground heights the page remembers before starting afresh. */
-const SURFACE_HEIGHTS_MAX = 1 << 20;
 
 export function useBattleSession({
   scenario,
@@ -388,29 +387,7 @@ export function useBattleSession({
 
   const fogFeed = useFeed(fog);
 
-  // The page's world is the map as loaded: a point's height never changes,
-  // and the overlays drape their marks at the same points every publication.
-  // Each height is asked of the module once, until the memory is full.
-  const surfaceZ = useMemo(() => {
-    let heights = new Map<number, Map<number, number>>();
-    let size = 0;
-    return (x: number, y: number) => {
-      let row = heights.get(x);
-      let z = row?.get(y);
-      if (z === undefined) {
-        z = world?.view.surface_at(x, y)[0] ?? 0;
-        if (size >= SURFACE_HEIGHTS_MAX) {
-          heights = new Map();
-          size = 0;
-          row = undefined;
-        }
-        if (!row) heights.set(x, (row = new Map()));
-        row.set(y, z);
-        size++;
-      }
-      return z;
-    };
-  }, [world]);
+  const surfaceZ = useMemo(() => surfaceHeights(world), [world]);
   const cameraObstacles = useMemo(() => {
     if (!placedProps || !buildingParts || !knownBuildingsKey) return null;
     const started = performance.now();
