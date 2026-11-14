@@ -121,47 +121,22 @@ test("the grade's switch is a boolean the validation accepts either way", () => 
   expect(checkLight(withLight((l) => (l.grade.enabled = true)))).toBeTruthy();
 });
 
-test("the fixture admits a day default and a selectable golden_hour look", () => {
-  expect(lightPreset).toBe("day");
-  expect(lightPresetLabels.day).toBe("Daylight");
-  expect(lightPresetLabels.golden_hour).toBe("Golden hour");
-  expect(LIGHT.sun_elevation).toBe(0.7);
-  expect(LIGHT.sun_azimuth).toBe(-0.35);
-  expect(lightPresets.day.sun_elevation).toBe(0.7);
-  const golden = lightForPreset("golden_hour");
-  expect(golden.sun_azimuth).toBe(0);
-  expect(golden.sun_azimuths).toEqual([0, Math.PI]);
-  expect(LIGHT.sun_azimuths === undefined || LIGHT.sun_azimuths.length === 0).toBe(true);
-  expect(golden.sun_elevation).toBe(0.16);
-  expect(golden.exposure).toBe(1.78);
-  expect(golden.sky.fill).toEqual([0.62, 0.7, 0.84]);
-  expect(golden.sky.turbidity).toBe(2.8);
-  expect(golden.sky.saturation).toBe(1.32);
-  expect(golden.grade.highlight_tint).toEqual([1.0, 1.04, 0.98]);
-  expect(golden.grade.split_tone).toBe(0.5);
-  expect(golden.glow.wrap).toBe(0.8);
-  expect(golden.glow.rim).toBe(0.45);
-  expect(golden.bloom.threshold).toBe(1.12);
-  expect(golden.haze.sun_strength).toBe(0.5);
-  expect(LIGHT.glow.wrap).toBeLessThan(golden.glow.wrap);
-  expect(LIGHT.glow.rim).toBeLessThan(golden.glow.rim);
-  expect(LIGHT.vegetation_tint).toEqual([1.0, 1.0, 1.0]);
-  expect(LIGHT.vegetation_lit_keep).toBe(0);
-  expect(golden.vegetation_tint).toEqual([0.9, 1.3, 1.08]);
-  expect(golden.vegetation_lit_keep).toBe(0.7);
-  expect(() => lightForPreset("dusk")).toThrow(/unknown light preset/);
-  expect(checkLight(golden)).toBe(golden);
+test("every look the fixture names is admitted and labelled, the default among them; an unknown one is refused by name", () => {
+  expect(Object.keys(lightPresets)).toContain(lightPreset);
+  for (const name of Object.keys(lightPresets)) {
+    expect(lightPresetLabels[name]?.trim()).toBeTruthy();
+    const light = lightForPreset(name);
+    expect(checkLight(light)).toBe(light);
+  }
+  expect(() => lightForPreset("no_such_look")).toThrow(/unknown light preset/);
 });
 
-test("selecting golden hour as the document default is a one-key change", () => {
-  const admitted = JSON.parse(
-    check_presentation(JSON.stringify({ ...presentation, light_preset: "golden_hour" })),
-  ) as {
-    light: LightPresentation;
-    light_preset: string;
-    light_presets: { day: LightPresentation };
-  };
-  expect(admitted.light_preset).toBe("golden_hour");
-  expect(admitted.light.sun_elevation).toBe(0.16);
-  expect(admitted.light_presets.day.sun_elevation).toBe(0.7);
+test("making another look the document default is a one-key change", () => {
+  for (const name of Object.keys(lightPresets)) {
+    const admitted = JSON.parse(
+      check_presentation(JSON.stringify({ ...presentation, light_preset: name })),
+    ) as { light: LightPresentation; light_preset: string };
+    expect(admitted.light_preset).toBe(name);
+    expect(admitted.light).toEqual(lightForPreset(name));
+  }
 });

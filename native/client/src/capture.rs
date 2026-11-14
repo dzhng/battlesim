@@ -252,16 +252,14 @@ fn read_json<T: for<'a> Deserialize<'a>>(path: &Path) -> Result<T, String> {
 
 /// The map's generation seed, or `"1"` when the listing has none: the same
 /// fallback the web client uses for authored maps (`mapSeedOf`).
-fn map_light_seed(root: &Path, map: &str) -> String {
+fn map_light_seed(root: &Path, map: &str) -> Result<String, String> {
     let path = root.join("fixtures/maps").join(map).join("meta.json");
-    let Ok(value) = read_json::<Value>(&path) else {
-        return "1".into();
-    };
-    match value.get("seed") {
+    let value = read_json::<Value>(&path)?;
+    Ok(match value.get("seed") {
         Some(Value::String(s)) if !s.is_empty() => s.clone(),
         Some(Value::Number(n)) => n.to_string(),
         _ => "1".into(),
-    }
+    })
 }
 
 /// The repository a replay reads its world and rules from.
@@ -273,19 +271,7 @@ impl Replay {
     /// art, the scenery placed from `library`'s bundles, under the game's
     /// rules (the soldier's body, the light).
     pub fn open(dir: &Path, library: &Library) -> Result<Self, String> {
-        Self::open_played(dir, library, Path::new(ROOT), Playback::default())
-    }
-
-    /// Loads scene `dir` under a named fixture lighting look. `None` keeps
-    /// the document's `light_preset` (the mid-morning `day` look).
-    pub fn open_with_light(
-        dir: &Path,
-        library: &Library,
-        root: &Path,
-        playback: Playback,
-        light_preset: Option<&str>,
-    ) -> Result<Self, String> {
-        Self::open_played_with(dir, library, root, playback, light_preset)
+        Self::open_played(dir, library, Path::new(ROOT), Playback::default(), None)
     }
 
     /// Loads scene `dir` to play back as `playback` chooses: each layer the
@@ -294,17 +280,9 @@ impl Replay {
     /// overlays ([`overlays::FILE`]), and naming `cards` its recorded cards
     /// ([`cards::FILE`]); a capture without the layer has none.
     /// `root` is the repository: packaged Windows builds name it, because
-    /// the build-time manifest path may be WSL's.
+    /// the build-time manifest path may be WSL's. `light_preset` names a
+    /// fixture lighting look; none keeps the document's `light_preset`.
     pub fn open_played(
-        dir: &Path,
-        library: &Library,
-        root: &Path,
-        playback: Playback,
-    ) -> Result<Self, String> {
-        Self::open_played_with(dir, library, root, playback, None)
-    }
-
-    fn open_played_with(
         dir: &Path,
         library: &Library,
         root: &Path,
@@ -405,7 +383,7 @@ impl Replay {
         // Presentation only: a look with `sun_azimuths` picks one from the
         // map seed (`mapSeed % n`), the same rule as the web lobby. Day has
         // no list, so its authored azimuth stands.
-        let map_seed = map_light_seed(root, &map);
+        let map_seed = map_light_seed(root, &map)?;
         settings.light = settings.light.with_map_seed(&map_seed)?;
         let light = settings.light;
         // The battle's units, effects and clip tables, as a page fielding

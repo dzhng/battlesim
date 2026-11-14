@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
 import { askedBattle, battleHref, spoken } from "../../apps/battle-lab/src/battleLinks";
+import { lightingPresetNames } from "../../apps/battle-lab/src/lobby/lighting";
 import { sizeTier } from "../../apps/battle-lab/src/skirmishSetup";
 import { MAP_SIZES } from "@web/maps/source";
 
@@ -102,12 +103,11 @@ test("a one-a-side link without a size is on the smallest map", () => {
 });
 
 test("a light= value is a match setting, and a bad one is refused by name", () => {
-  const ok =
-    "?type=mixed&size=small&seed=1&light=golden_hour&blue=h&red=a&blue_faction=us&red_faction=eastern";
-  expect(askedBattle(ok)).toMatchObject({ kind: "generated", lighting: "golden_hour" });
-  expect(
-    askedBattle(
-      "?type=mixed&size=small&seed=1&light=dusk&blue=h&red=a&blue_faction=us&red_faction=eastern",
-    ),
-  ).toMatchObject({ error: expect.stringMatching(/light must be/) });
+  const link = (light: string) =>
+    `?type=mixed&size=small&seed=1&light=${light}&blue=h&red=a&blue_faction=us&red_faction=eastern`;
+  for (const name of lightingPresetNames())
+    expect(askedBattle(link(name))).toMatchObject({ kind: "generated", lighting: name });
+  expect(askedBattle(link("no_such_look"))).toMatchObject({
+    error: expect.stringMatching(/light must be/),
+  });
 });

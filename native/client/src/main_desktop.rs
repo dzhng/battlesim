@@ -140,7 +140,7 @@ impl Run {
             .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../.."));
         std::env::set_var("BATTLEGAME_ROOT", &root);
         let opened = Instant::now();
-        let mut replay = Replay::open_with_light(
+        let mut replay = Replay::open_played(
             &args.scene,
             &library,
             &root,

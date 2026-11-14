@@ -12,7 +12,8 @@ import { LoadingScreen } from "./LoadingScreen";
 export interface ReplayFile {
   battle: PreparedBattle;
   replay: string;
-  /** Resolved fixture lighting look. Older files omit it and play as Daylight. */
+  /** The resolved fixture lighting look. A file without one plays the
+   *  document's default look (`presentation.light_preset`). */
   light_preset?: string;
 }
 

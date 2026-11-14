@@ -346,7 +346,6 @@ function Pick<T extends string>({
   value,
   onChange,
   children,
-  say = spoken,
 }: {
   label: string;
   testId: string;
@@ -355,7 +354,6 @@ function Pick<T extends string>({
   value: T;
   onChange: (value: T) => void;
   children: ReactNode;
-  say?: (value: T) => string;
 }) {
   const [open, setOpen] = useState(false);
   const close = (event: KeyboardEvent) => {
@@ -397,7 +395,7 @@ function Pick<T extends string>({
                   if (option !== value) onChange(option);
                 }}
               >
-                {say(option)}
+                {spoken(option)}
               </button>
             </li>
           ))}

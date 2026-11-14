@@ -356,13 +356,6 @@ impl LightSettings {
         ]
     }
 
-    /// Horizontal direction shadows fall: the ground projection of
-    /// `-sun_direction` (light travels away from the sun).
-    pub fn shadow_direction_xy(&self) -> [f64; 2] {
-        let s = self.sun_direction();
-        [-s[0], -s[1]]
-    }
-
     /// Pick `sun_azimuth` from `sun_azimuths` with the map seed, or
     /// leave the authored value when the list is empty.
     pub fn with_map_seed(&self, map_seed: &str) -> Result<Self, String> {
@@ -486,9 +479,5 @@ pub fn pick_sun_azimuth(candidates: &[f64], map_seed: &str) -> Result<f64, Strin
     }
     let mut sorted = candidates.to_vec();
     sorted.sort_by(|a, b| a.total_cmp(b));
-    let i = map_seed_index(map_seed, sorted.len())?;
-    sorted
-        .get(i)
-        .copied()
-        .ok_or_else(|| "presentation.light.sun_azimuths: no candidate".into())
+    Ok(sorted[map_seed_index(map_seed, sorted.len())?])
 }
