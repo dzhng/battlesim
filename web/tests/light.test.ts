@@ -145,7 +145,7 @@ test("the fixture admits a day default and a selectable golden_hour look", () =>
   expect(LIGHT.glow.rim).toBeLessThan(golden.glow.rim);
   expect(LIGHT.vegetation_tint).toEqual([1.0, 1.0, 1.0]);
   expect(LIGHT.vegetation_lit_keep).toBe(0);
-  expect(golden.vegetation_tint).toEqual([0.9, 1.18, 1.4]);
+  expect(golden.vegetation_tint).toEqual([0.9, 1.3, 1.08]);
   expect(golden.vegetation_lit_keep).toBe(0.7);
   expect(() => lightForPreset("dusk")).toThrow(/unknown light preset/);
   expect(checkLight(golden)).toBe(golden);
