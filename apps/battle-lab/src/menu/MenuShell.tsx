@@ -28,8 +28,6 @@ import { menuPage, type MenuPageId } from "./pages";
 
 /** What the shell tells the page it holds. */
 export interface MenuShellState {
-  /** The loading cover has lifted. It never comes back. */
-  revealed: boolean;
   /** The graphics tier is settled: detection was not needed, or it is done. */
   detected: boolean;
   /** The page last left for another, or null. Home focuses its tile. */
@@ -120,7 +118,7 @@ export function MenuShell({ page, children }: { page: MenuPageId | "home"; child
     [fromMenu, navigate],
   );
   return (
-    <Shell value={{ revealed, detected, left, back }}>
+    <Shell value={{ detected, left, back }}>
       <main
         className="menu"
         data-open={page === "home" ? undefined : page}
