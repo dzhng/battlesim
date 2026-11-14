@@ -10,13 +10,15 @@ import {
 } from "@packages/battle-renderer/src/mesh";
 import {
   buildDestinationPreview,
+  type SurfaceHeight,
+  type DestinationMarker,
+} from "@packages/battle-renderer/src/orderOverlay";
+import {
   circleExit,
   unitCircle,
   destinationCircle,
-  type SurfaceHeight,
   type UnitCircle,
-  type DestinationMarker,
-} from "@packages/battle-renderer/src/orderOverlay";
+} from "@packages/battle-renderer/src/unitCircle";
 import { buildRangeRuler, type RulerLine } from "@packages/battle-renderer/src/rangeRulerOverlay";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import {

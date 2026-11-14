@@ -1,12 +1,12 @@
 import { vec2, type Vec2, type Vec3 } from "math";
 import type { PickBox } from "@packages/battle-renderer/src/picking";
 import { NONE, PICK_WORDS, Pick } from "@packages/battle-renderer/src/records.gen";
+import { aircraftCircle } from "@packages/battle-renderer/src/orderOverlay";
 import {
-  aircraftCircle,
   circleContains,
   unitCircle,
   type UnitCircle,
-} from "@packages/battle-renderer/src/orderOverlay";
+} from "@packages/battle-renderer/src/unitCircle";
 import { airborne, type UnitCatalog } from "@packages/scene-assets/src/units";
 import type { PointerPick } from "@web/battle/input/pointerIntent";
 import type { PresentedFrame } from "@web/battle/sim/presentation";
