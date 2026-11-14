@@ -207,7 +207,11 @@ export function ArmorySheet({ card, group, variants, onVariant }: ArmorySheetPro
         <p className="armory-description">{card.description}</p>
       )}
       {sheet.planned ? (
-        <p className="armory-planned">Not yet in battle: these are its planned weapons.</p>
+        <p className="armory-planned">
+          {sheet.mounts.length > 0
+            ? "Not yet in battle: these are its planned weapons."
+            : "Not yet in battle."}
+        </p>
       ) : (
         <>
           <Body sheet={sheet} />
@@ -226,22 +230,25 @@ export function ArmorySheet({ card, group, variants, onVariant }: ArmorySheetPro
           )}
         </>
       )}
-      <Section title="Weapons">
-        <ul className="armory-mounts">
-          {sheet.mounts.map((mount, k) => (
-            <li key={k} className="armory-mount">
-              <div className="armory-mount-head">
-                <Icon path={weaponIcon(mount.icon)} />
-                <strong>{mount.name}</strong>
-                {mount.kinds.length === 1 && <AmmoMarks kind={mount.kinds[0]} />}
-              </div>
-              {mount.kinds.map((kind) => (
-                <Ammo key={kind.weapon} kind={kind} alone={mount.kinds.length === 1} />
-              ))}
-            </li>
-          ))}
-        </ul>
-      </Section>
+      {/* An unarmed unit has no weapons heading: its absence says so. */}
+      {sheet.mounts.length > 0 && (
+        <Section title="Weapons">
+          <ul className="armory-mounts">
+            {sheet.mounts.map((mount, k) => (
+              <li key={k} className="armory-mount">
+                <div className="armory-mount-head">
+                  <Icon path={weaponIcon(mount.icon)} />
+                  <strong>{mount.name}</strong>
+                  {mount.kinds.length === 1 && <AmmoMarks kind={mount.kinds[0]} />}
+                </div>
+                {mount.kinds.map((kind) => (
+                  <Ammo key={kind.weapon} kind={kind} alone={mount.kinds.length === 1} />
+                ))}
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
     </aside>
   );
 }

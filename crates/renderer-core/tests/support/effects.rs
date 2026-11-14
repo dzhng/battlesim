@@ -1,5 +1,6 @@
 //! The shared lighting and effect pass a test draws sprites with, seen as
-//! `view` and `camera`, bloom off.
+//! `view` and `camera`, bloom off. The shadow map the lighting binds comes
+//! back too: it is destroyed when it drops, so a test holds it while it draws.
 use presentation::light::LightSettings;
 use presentation::records::{Camera, View};
 use presentation::shadow::SunShadowFrame;
@@ -22,6 +23,7 @@ pub fn stage(
     Environment,
     EffectsResources,
     LightSettings,
+    ShadowResources,
 ) {
     let pipelines = pipelines::build_builtin(&gpu.device).unwrap();
     let targets = Targets::new(&gpu.device, size);
@@ -67,5 +69,5 @@ pub fn stage(
         &environment,
         sheets,
     );
-    (pipelines, targets, environment, effects, light)
+    (pipelines, targets, environment, effects, light, shadow)
 }

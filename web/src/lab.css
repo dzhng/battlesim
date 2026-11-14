@@ -264,11 +264,13 @@
 .lab-swatch-reach {
   border-color: rgb(242, 242, 250);
 }
+/* The panel's own rings (hud.css `.ro-arc`): aim in its ink, reload dashed
+   in its tone, an own panel's colours. */
 .lab-swatch-aim {
-  border-color: #6fd8ff;
+  border-color: rgb(var(--hud-text));
 }
 .lab-swatch-reload {
-  border-color: #ffb347;
+  border-color: rgb(var(--hud-accent));
   border-style: dashed;
 }
 .lab-panel.lab-inspector {

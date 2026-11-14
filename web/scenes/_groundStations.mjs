@@ -469,7 +469,7 @@ const generatedGround = (page) =>
       try {
         const exports = mesh.readWorldExports(view);
         const layout = JSON.parse(wasm.world_layout(rules));
-        const surface = mesh.buildWorldLayers(exports, layout, biome.default, "surface").terrain;
+        const surface = mesh.buildWorldGround(exports, layout, biome.default, "surface").terrain;
         const { presentGround } = await import(
           file("packages/battle-renderer/src/terrain/terrainSurface.ts")
         );
@@ -904,7 +904,7 @@ const streetGround = (page) =>
       try {
         const exported = mesh.readWorldExports(view);
         const layout = JSON.parse(wasm.world_layout(rules));
-        const surface = mesh.buildWorldLayers(exported, layout, biome.default, "surface").terrain;
+        const surface = mesh.buildWorldGround(exported, layout, biome.default, "surface").terrain;
         const { presentGround } = await import(
           file("packages/battle-renderer/src/terrain/terrainSurface.ts")
         );

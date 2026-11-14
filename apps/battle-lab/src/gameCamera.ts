@@ -13,6 +13,8 @@ const config: CameraPresentation = {
   ...presentation,
   pitch_curve: presentation.pitch_curve as [number, number][],
   pitch_limits: PITCH_LIMITS,
+  // The player looks round from where they stand, as in Total War.
+  drag_pivot: "eye",
 };
 const rig = new CameraController(config);
 

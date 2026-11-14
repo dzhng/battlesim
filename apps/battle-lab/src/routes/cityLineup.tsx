@@ -22,7 +22,7 @@ import { useSessionCatalog } from "@web/battle/catalog/context";
 import { useCallback, useMemo, useRef, useState } from "react";
 import catalogue from "@fixtures/prototype-building-templates.json";
 import type { SceneBuildings } from "@packages/battle-renderer/src/models/buildingReferences";
-import { buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
+import { buildWorldGround, withWorldArt } from "@packages/battle-renderer/src/worldMesh";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { CameraController, type CameraPose } from "@packages/renderer-core/src/cameraController";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
@@ -228,9 +228,13 @@ function Rows({
     (x: number, y: number) => world?.view.surface_at(x, y)[0] ?? 0,
     [world],
   );
+  const ground = useMemo(
+    () => world && buildWorldGround(world.exports, world.layout, gameBiome, "surface"),
+    [world],
+  );
   const meshes = useMemo(
-    () => world && buildWorldLayers(world.exports, world.layout, gameBiome, "surface", appearances),
-    [world, appearances],
+    () => ground && withWorldArt(ground, gameBiome, appearances),
+    [ground, appearances],
   );
   const worldFeed = useFeed(meshes);
   // The models layer installs the kits and the library, nothing else.
@@ -424,7 +428,7 @@ function Rows({
           {query.set && ` of set ${query.set}`}
           {query.category && ` of category ${query.category}`}
           {missing.length > 0 && ` · ${missing.length} without art`}. WASD/arrows pan · Q/E turn ·
-          middle‑drag orbit · wheel zoom
+          middle‑drag look · wheel zoom
         </div>
         <div className="lab-row">
           {[null, 0, 1, 2, 3].map((t) => (

@@ -5,7 +5,8 @@ import { fixtureMap } from "../fixtures";
 import { useMemo, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import {
-  buildWorldLayers,
+  buildWorldGround,
+  withWorldArt,
   type WorldLayout,
   type WorldOverlay,
 } from "@packages/battle-renderer/src/worldMesh";
@@ -98,11 +99,15 @@ function GeometryLab({ id, readMap }: { id: string; readMap: () => MapDefinition
   );
   const [probed, setProbed] = useState<Probe | null>(null);
 
+  const ground = useMemo(
+    () => world && buildWorldGround(world.exports, world.layout, gameBiome, overlay),
+    [world, overlay],
+  );
   const localMeshes = useMemo(() => {
-    if (!world || !appearances) return null;
-    const built = buildWorldLayers(world.exports, world.layout, gameBiome, overlay, appearances);
+    if (!ground || !appearances) return null;
+    const built = withWorldArt(ground, gameBiome, appearances, overlay === "surface");
     return showTrees ? built : { ...built, scenery: null };
-  }, [world, overlay, showTrees, appearances]);
+  }, [ground, overlay, showTrees, appearances]);
   // Keep the local skirt, backdrop and populations; receivers use the full mesh.
   const meshes = useMemo(
     () =>
@@ -172,7 +177,7 @@ function GeometryLab({ id, readMap }: { id: string; readMap: () => MapDefinition
       <aside className="hud-panel lab-panel" data-testid="geometry-panel">
         <strong>{label}</strong>
         <div className="lab-hint">
-          Click probes the authoritative surface · middle‑drag orbit · arrows pan
+          Click probes the authoritative surface · middle‑drag look · arrows pan
         </div>
         <fieldset className="lab-field">
           <legend>Ground overlay</legend>

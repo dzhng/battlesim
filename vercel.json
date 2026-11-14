@@ -1,8 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
-  "installCommand": "bun install --cwd web&&rustup target add wasm32-unknown-unknown&&curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf|sh",
-  "buildCommand": "bun run build",
+  "installCommand": "sh tools/vercel-install.sh",
+  "buildCommand": "sh tools/vercel-build.sh",
+  "git": { "deploymentEnabled": { "main": false } },
   "outputDirectory": "web/dist",
   "headers": [
     {

@@ -42,7 +42,7 @@ export async function surfaceFieldAgreement(ctx) {
       const cases = [
         [
           "every shape",
-          mesh.buildWorldLayers(exported, layout, biome.default, "surface").terrain,
+          mesh.buildWorldGround(exported, layout, biome.default, "surface").terrain,
           exported,
           [0, 0, ...grounds.CURATED_GROUND.size],
         ],

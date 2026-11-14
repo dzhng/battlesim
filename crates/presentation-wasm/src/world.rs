@@ -62,6 +62,21 @@ impl Presentation {
         Ok(())
     }
 
+    /// Stages the loaded battle fielded again (`WorldInput` JSON, with the
+    /// clip tables added) for the next appearance admission, which draws it
+    /// without loading the world anew; false when it is another battle,
+    /// which only `load_world` loads.
+    pub fn stage_battle(&mut self, json: &str) -> Result<bool, JsError> {
+        let input = serde_json::from_str(json).map_err(error)?;
+        let tables = std::mem::take(&mut self.tables);
+        self.inner.stage_battle(input, tables).map_err(error)
+    }
+
+    /// The appearances a staged battle draws: its admission brings their art.
+    pub fn staged_appearances(&self) -> Vec<String> {
+        self.inner.staged_appearances()
+    }
+
     /// Loads what the world draws (`WorldInput`
     /// JSON) with the clip tables and buildings added; returns the
     /// `WorldHeader`'s address.

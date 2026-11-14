@@ -60,6 +60,15 @@ pub(super) fn register_appearance(world: &mut World, name: &str, a: &Appearance)
     }
 }
 
+/// The rows a cook-off draws its wrecks' pieces from: whole, hull, turret, debris.
+pub(super) fn register_wreck_rows(world: &mut World, effects: &crate::world::EffectsSection) {
+    for look in effects.wreck_looks.values() {
+        for state in ["default", "hull", "turret", "debris"] {
+            world.row(&look.appearance, state, NONE, 0, false);
+        }
+    }
+}
+
 impl Model {
     /// A unit's model: fogged as units are, unscaled, unhighlighted, untinted
     /// and unposed.

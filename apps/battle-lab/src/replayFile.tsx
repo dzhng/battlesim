@@ -3,7 +3,6 @@ import { useLabLoading } from "./LabLoading";
 // exact scenario bytes (compiled map, encounter and resolved rules), so
 // fixture edits cannot change playback. The simulation checks the engine,
 // scenario and rules digests; replay retention across builds is unsupported.
-import { useNavigate } from "react-router";
 import { usePageVisitActive } from "./navigation";
 import { useEffect, useRef, useState } from "react";
 import type { PreparedBattle } from "@web/battle/prepare/protocol";
@@ -14,9 +13,6 @@ export interface ReplayFile {
   battle: PreparedBattle;
   replay: string;
 }
-
-/** The viewer of a saved replay. */
-export const REPLAY_ROUTE = "/battle?replay=saved";
 
 const LAST_REPLAY_KEY = "last-replay";
 
@@ -116,12 +112,10 @@ export async function saveReplay(file: ReplayFile, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-/** Load a saved battle from a file and keep it as the last saved battle.
- *  The viewer hands it to `onLoad`; elsewhere (the menu) it is opened in the
- *  viewer. */
-export function ReplayImport({ onLoad }: { onLoad?: (file: ReplayFile) => void }) {
+/** Load a saved battle from a file, keep it as the last saved battle and
+ *  hand it to the viewer's `onLoad`. */
+export function ReplayImport({ onLoad }: { onLoad: (file: ReplayFile) => void }) {
   const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
   const visitActive = usePageVisitActive();
   const generation = useRef(0);
   useEffect(
@@ -151,8 +145,7 @@ export function ReplayImport({ onLoad }: { onLoad?: (file: ReplayFile) => void }
               await rememberReplay(text);
               if (!active()) return;
               setError(null);
-              if (onLoad) return onLoad(file);
-              void navigate(REPLAY_ROUTE);
+              onLoad(file);
             } catch (err) {
               if (active()) setError(err instanceof Error ? err.message : String(err));
             }

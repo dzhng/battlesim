@@ -7,9 +7,9 @@ autotests = false
 
 [dependencies]
 contract = { path = "../contract" }
-serde = { version = "1", features = ["derive", "rc"] }
+serde.workspace = true
 serde_json.workspace = true
-libm = { version = "=0.2.16", default-features = false }
+libm.workspace = true
 
 [build-dependencies]
 contract = { path = "../contract" }

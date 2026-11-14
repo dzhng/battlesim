@@ -29,6 +29,8 @@ export interface LoadingProgress {
   current: Stage;
   /** Every reported task is ready, and a viewport has reported in. */
   done: boolean;
+  /** A reported task is not ready yet. */
+  pending: boolean;
   error: string | null;
 }
 
@@ -56,6 +58,7 @@ export function useLoadingTasks() {
   const progress: LoadingProgress = {
     current: pending?.id ?? (waiting ? (values.length ? "world" : "preparation") : "renderer"),
     done: !waiting && !pending,
+    pending: pending !== undefined,
     error,
   };
   return { report, progress };

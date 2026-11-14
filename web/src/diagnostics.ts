@@ -1,5 +1,6 @@
 // The diagnostics report a player copies from settings to report a problem:
-// the build, the machine, and a rolling window of how the page has run.
+// the build, the machine, a rolling window of how the page has run, and a
+// timeline of moments placed beside its long frames (`diagnosticsEvent`).
 // Collection is on unless the player turns it off; nothing leaves the page
 // except by the player's copy. Pages add live sections (`diagnosticsSource`).
 
@@ -7,6 +8,10 @@ const KEY = "battle.diagnostics";
 /** Frames, inputs and long frames kept: the last several seconds of play. */
 const WINDOW = 600;
 const ERRORS = 20;
+/** Timeline events kept: rebuilds, resizes, art swaps, skipped draws. */
+const EVENTS = 200;
+/** A long frame this long also enters the timeline, beside what it overlapped. */
+const TIMELINE_FRAME_MS = 1_000;
 
 function load(): boolean {
   try {
@@ -45,6 +50,13 @@ interface LongFrame {
 const frames = new Ring<number>(WINDOW);
 const inputDelays = new Ring<number>(WINDOW);
 const longFrames = new Ring<LongFrame>(WINDOW);
+interface TimelineEvent {
+  /** `performance.now()` ms, the clock long frames are stamped on. */
+  at: number;
+  kind: string;
+  detail?: Record<string, unknown>;
+}
+const events = new Ring<TimelineEvent>(EVENTS);
 /** Errors in the order first seen. A repeat (a failure every frame) counts on
  *  its first entry, so a flood cannot push out the error that started it. */
 const errors = {
@@ -108,13 +120,20 @@ function start() {
   let observer: PerformanceObserver | null = null;
   if (globalThis.PerformanceObserver?.supportedEntryTypes?.includes("long-animation-frame")) {
     observer = new PerformanceObserver((list) => {
-      for (const e of list.getEntries() as PerformanceEntry[] & LoafEntry[])
-        longFrames.push({
+      for (const e of list.getEntries() as PerformanceEntry[] & LoafEntry[]) {
+        const frame: LongFrame = {
           at: Math.round(e.startTime),
           ms: Math.round(e.duration),
           blockingMs: Math.round(e.blockingDuration),
           scripts: e.scripts.map((s) => [scriptName(s), Math.round(s.duration)]),
-        });
+        };
+        longFrames.push(frame);
+        if (frame.ms >= TIMELINE_FRAME_MS)
+          record(frame.at, "long frame", {
+            ms: frame.ms,
+            scripts: [...frame.scripts].sort((a, b) => b[1] - a[1]).slice(0, 3),
+          });
+      }
     });
     observer.observe({ type: "long-animation-frame" });
   }
@@ -123,7 +142,7 @@ function start() {
     cancelAnimationFrame(raf);
     console.error = consoleError;
     observer?.disconnect();
-    for (const ring of [frames, inputDelays, longFrames, errors]) ring.clear();
+    for (const ring of [frames, inputDelays, longFrames, events, errors]) ring.clear();
     stop = null;
   };
 }
@@ -173,6 +192,17 @@ export const diagnostics = {
  *  and the details behind it, which the console never saw. */
 export function diagnosticsFailure(message: string, details: readonly string[]) {
   if (stop) errors.push(`shown: ${[message, ...details].join(" | ")}`);
+}
+
+function record(at: number, kind: string, detail?: Record<string, unknown>) {
+  console.info(`[battle ${at} ms] ${kind}`, detail ?? "");
+  events.push(detail ? { at, kind, detail } : { at, kind });
+}
+
+/** A moment worth placing on the report's timeline (a scene rebuild, a
+ *  canvas resize): logged to the console, and kept while collecting. */
+export function diagnosticsEvent(kind: string, detail?: Record<string, unknown>) {
+  if (stop) record(Math.round(performance.now()), kind, detail);
 }
 
 /** Add `name`'s live section to the report while the page shows it; returns
@@ -249,6 +279,8 @@ export function diagnosticsReport(build: Record<string, unknown>): string {
         heaviestScripts: heaviestScripts(long),
       },
       live,
+      // Oldest first, on the clock long frames are stamped with.
+      timeline: enabled && { now: Math.round(performance.now()), events: events.values },
       errors: errors.values,
     },
     null,

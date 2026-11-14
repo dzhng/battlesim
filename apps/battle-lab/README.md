@@ -45,8 +45,10 @@ Every menu page is an address, and [the menu's pages](src/menu/pages.ts) own
 their paths, titles and tiles. Every menu address is a visit inside [one menu
 shell](src/menu/MenuShell.tsx): one plate over the backdrop, its tiles
 title-only over generated military art. The shell owns the backdrop, graphics detection and
-the loading cover, so moving between pages replaces only the plate's contents,
-and the film behind never changes. A page opens under a Back button, and Escape
+the loading covers, so moving between pages replaces only the plate's contents,
+and the film behind never changes. The menu's own cover shows once, until the
+backdrop is first ready; a page that loads a scene of its own stands under a
+cover of its own until that scene draws, so the film never stands in for it. A page opens under a Back button, and Escape
 is Back: a page opened from home goes back through history onto the tile it
 left, and one opened by its address replaces itself with home. An address that
 names no page opens home. A Skirmish address (`/skirmish?type=…`) opens the
@@ -126,7 +128,10 @@ stands on a presentation and a scene of its own, as a battle's do. [Its camera](
 Armory's own config (`presentation.camera_armory`): left-drag orbits and the
 wheel zooms between framings fitted to the unit's bounds. Input comes from the
 stage's canvas alone, and the eye keeps clear of the unit and the yard's props. The stage reports to the menu shell's loading cover, mounts only once
-the graphics tier is settled, and keeps its failures on its own boundary.
+the graphics tier is settled, and keeps its failures on its own boundary. The
+menu's film never shows on the Armory: a switch holds the last frame drawn,
+copied in the frame loop because a WebGPU canvas reads back clear outside the
+task that drew it.
 
 ## Observation feeds
 
@@ -154,7 +159,12 @@ still-live page's resources.
 Source loading retains the last complete topology and art generation for the
 same battle and observer. Downloads cannot withdraw the running battlefield;
 changing battle or observer retires its old generation. Audio continues receiving
-publications during visual admission. The viewport reconciles sources after
+publications during visual admission. A kind the battle newly fields (a
+reinforcement picked, an enemy first seen) changes art, never topology: the
+battle grows in place with the art's admission while the last frame keeps
+drawing, and the ground is built once per world, so new art never brings a new
+terrain. A rebuild draws nothing until the new scene is installed, so it is kept
+for real topology changes. The viewport reconciles sources after
 canonical framing so a topology change takes one rebuild path. Picking,
 projection and drawn observation advance with successful submission.
 

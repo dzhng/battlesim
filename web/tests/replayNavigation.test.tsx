@@ -52,26 +52,6 @@ afterEach(() => {
   window.history.replaceState(null, "", "/");
 });
 
-test("an imported replay opens its viewer through the live router", async () => {
-  storage();
-  render(
-    <BrowserRouter unstable_useTransitions={false}>
-      <PageVisit>
-        <Routes>
-          <Route path="/" element={<ReplayImport />} />
-          <Route path="/battle" element={<p>Imported battle viewer</p>} />
-        </Routes>
-      </PageVisit>
-    </BrowserRouter>,
-  );
-  const file = { text: async () => SAVED };
-  await act(async () => {
-    fireEvent.change(screen.getByTestId("replay-file"), { target: { files: [file] } });
-  });
-  expect(window.location.pathname + window.location.search).toBe("/battle?replay=saved");
-  expect(screen.getByText("Imported battle viewer")).toBeDefined();
-});
-
 test("departing while a file read is pending discards its viewer continuation", async () => {
   storage();
   const loaded: ReplayFile[] = [];
@@ -110,8 +90,9 @@ test("departing while a file read is pending discards its viewer continuation", 
   expect(loaded).toEqual([]);
 });
 
-test("a completed storage write cannot navigate after departure", async () => {
+test("a completed storage write cannot hand its battle over after departure", async () => {
   const finishWrite = storage(true);
+  const loaded: ReplayFile[] = [];
   const file = { text: async () => SAVED };
   render(
     <BrowserRouter unstable_useTransitions={false}>
@@ -121,13 +102,12 @@ test("a completed storage write cannot navigate after departure", async () => {
             path="/"
             element={
               <>
-                <ReplayImport />
+                <ReplayImport onLoad={(file) => loaded.push(file)} />
                 <Link to="/elsewhere">Leave</Link>
               </>
             }
           />
           <Route path="/elsewhere" element={<p>Another screen</p>} />
-          <Route path="/battle" element={<p>Imported battle viewer</p>} />
         </Routes>
       </PageVisit>
     </BrowserRouter>,
@@ -141,4 +121,5 @@ test("a completed storage write cannot navigate after departure", async () => {
   });
   expect(screen.getByText("Another screen")).toBeDefined();
   expect(window.location.pathname).toBe("/elsewhere");
+  expect(loaded).toEqual([]);
 });

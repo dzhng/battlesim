@@ -1,5 +1,10 @@
 import { afterEach, expect, test } from "vitest";
-import { diagnostics, diagnosticsReport, diagnosticsSource } from "../src/diagnostics";
+import {
+  diagnostics,
+  diagnosticsEvent,
+  diagnosticsReport,
+  diagnosticsSource,
+} from "../src/diagnostics";
 
 afterEach(() => diagnostics.set(true));
 const report = () => JSON.parse(diagnosticsReport({ commit: "abc" }));
@@ -39,6 +44,22 @@ test("collection is on unless the player turns it off, and off keeps nothing", (
     false,
     [],
   ]);
+});
+
+test("moments the page marks land on the report's timeline in order, and off keeps none", () => {
+  diagnostics.start();
+  diagnosticsEvent("scene rebuild", { reason: "graphics quality" });
+  diagnosticsEvent("scene installed");
+  const { now, events } = report().timeline;
+  expect(events.map((e: { kind: string }) => e.kind)).toEqual(["scene rebuild", "scene installed"]);
+  expect(events[0].detail).toEqual({ reason: "graphics quality" });
+  expect(events[0].at).toBeLessThanOrEqual(events[1].at);
+  expect(events[1].at).toBeLessThanOrEqual(now);
+  diagnostics.set(false);
+  diagnosticsEvent("canvas blank");
+  expect(report().timeline).toBe(false);
+  diagnostics.set(true);
+  expect(report().timeline.events).toEqual([]);
 });
 
 test("a failure the player is shown is in the report: what they read, and why", async () => {

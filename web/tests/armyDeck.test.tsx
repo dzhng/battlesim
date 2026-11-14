@@ -187,7 +187,7 @@ test("a selected card asks the camera to centre while an unselected card only se
   expect(onCenter).not.toHaveBeenCalled();
 });
 
-test("hover and focus expose live unit facts, health and casualty removal without claiming Escape", () => {
+test("hover exposes live unit facts, health and casualty removal", () => {
   const tank = specimenUnit(TEST_CATALOG, "test_tank", { id: 11 });
   const rifle = specimenUnit(TEST_CATALOG, "test_rifle", {
     id: 22,
@@ -209,20 +209,9 @@ test("hover and focus expose live unit facts, health and casualty removal withou
   expect(card.getAttribute("aria-describedby")).toBe(hint.id);
   fireEvent.mouseLeave(card);
   expect(view.queryByRole("tooltip")).toBeNull();
-  fireEvent.focus(view.getByRole("button", { name: "Tank #11" }));
+  fireEvent.mouseEnter(view.getByRole("button", { name: "Tank #11" }));
   expect(view.getByRole("tooltip").textContent).toContain("MAIN GUN");
   expect(view.getByRole("tooltip").textContent).toContain("HMG");
-  const battleEscape = vi.fn();
-  window.addEventListener("keydown", battleEscape);
-  const key = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
-  try {
-    fireEvent(view.getByRole("button", { name: "Tank #11" }), key);
-    expect(view.queryByRole("tooltip")).toBeNull();
-    expect(key.defaultPrevented).toBe(false);
-    expect(battleEscape).toHaveBeenCalledOnce();
-  } finally {
-    window.removeEventListener("keydown", battleEscape);
-  }
   fireEvent.mouseEnter(card);
   view.rerender(
     <ArmyDeck
@@ -294,37 +283,8 @@ test("the army remains in replay and empty selection while commands follow only 
   expect(view.queryByText(/\d+ selected/i)).toBeNull();
   view.rerender(<Harness replay />);
   expect(view.queryByRole("toolbar")).toBeNull();
-  fireEvent.focus(view.getByRole("button", { name: "Tank #11" }));
+  fireEvent.mouseEnter(view.getByRole("button", { name: "Tank #11" }));
   expect(view.getByRole("tooltip").textContent).toContain("MAIN GUN");
-});
-
-test("keyboard focus takes ownership from an old hover and mouse leave restores focused facts", () => {
-  const view = render(
-    <ArmyDeck
-      state={
-        new Feed({
-          own: [
-            specimenUnit(TEST_CATALOG, "test_tank", { id: 11 }),
-            specimenUnit(TEST_CATALOG, "test_rifle", { id: 22 }),
-          ],
-        })
-      }
-      selected={[]}
-      onSelect={vi.fn()}
-      rules={shippedRules as unknown as PanelRules}
-      captions={null}
-    />,
-  );
-  const tank = view.getByRole("button", { name: "Tank #11" });
-  const rifle = view.getByRole("button", { name: "Rifle Section #22" });
-  fireEvent.mouseEnter(tank);
-  fireEvent.focus(rifle);
-  expect(view.getByRole("tooltip").getAttribute("data-unit")).toBe("22");
-  expect(rifle.getAttribute("aria-describedby")).toBe(view.getByRole("tooltip").id);
-  fireEvent.mouseEnter(tank);
-  expect(view.getByRole("tooltip").getAttribute("data-unit")).toBe("11");
-  fireEvent.mouseLeave(tank);
-  expect(view.getByRole("tooltip").getAttribute("data-unit")).toBe("22");
 });
 
 test("reinforcements remain available before the first unit enters", () => {

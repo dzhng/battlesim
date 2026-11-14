@@ -222,30 +222,42 @@ function addTraversalProps(mesh: MeshBuilder, exports: WorldExports, layout: Wor
   }
 }
 
-/** The static world's layers: the ground under `biome` (whose props the
- *  scene's presentation draws as their appearances in the surface view),
- *  and, given the installed appearances, the scenery's and the grass's art
- *  (the surface view; the traversal view draws the props' boxes instead). */
-export function buildWorldLayers(
+/** The static world's ground under `biome`, with no scenery or grass: its
+ *  props the scene's presentation draws as their appearances in the surface
+ *  view, and the traversal view as boxes. No art changes it, so a page builds
+ *  it once per world and lays the art on with `withWorldArt`. */
+export function buildWorldGround(
   exports: WorldExports,
   layout: WorldLayout,
   biome: Biome,
   overlay: WorldOverlay,
-  appearances: InstalledAppearances | null = null,
-  drawScenery = true,
 ): WorldLayers {
   const props = new MeshBuilder();
   if (overlay === "traversal") addTraversalProps(props, exports, layout);
-
-  const terrain = buildTerrainSurface(exports, layout, biome, overlay);
   return {
-    terrain,
+    terrain: buildTerrainSurface(exports, layout, biome, overlay),
     skirtPositions: exports.positions,
     extraFaces: props.build(),
-    scenery:
-      overlay === "surface" && appearances && drawScenery ? worldScenery(biome, appearances) : null,
-    grass:
-      overlay === "surface" && appearances && drawScenery ? grassAppearancesOf(appearances) : null,
+    scenery: null,
+    grass: null,
+  };
+}
+
+/** `ground` drawing the scenery and the grass of the installed `appearances`
+ *  under `biome` (none while there are none, or where scenery is not drawn:
+ *  the traversal view). It keeps `ground`'s terrain and faces, the same
+ *  objects, so a scene takes new art in place and never as a new terrain. */
+export function withWorldArt(
+  ground: WorldLayers,
+  biome: Biome,
+  appearances: InstalledAppearances | null,
+  drawScenery = true,
+): WorldLayers {
+  const drawn = drawScenery ? appearances : null;
+  return {
+    ...ground,
+    scenery: drawn && worldScenery(biome, drawn),
+    grass: drawn && grassAppearancesOf(drawn),
   };
 }
 

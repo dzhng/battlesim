@@ -163,7 +163,7 @@ export function Tutorial() {
       <Section title="Buying units">
         <ul>
           <li>
-            Click <strong>Reinforcements</strong> (or press <kbd>V</kbd>) at the bottom left. Your
+            Click <strong>Reinforcements</strong> (or press <kbd>Tab</kbd>) at the bottom left. Your
             faction&apos;s shop opens with tabs by role under the cards; point at a tab to switch to
             it:{" "}
             {UNIT_GROUPS.map((group, k) => (
@@ -180,6 +180,11 @@ export function Tutorial() {
             cannot afford it. <strong>Hover</strong> a card to fan out its variants with their
             weapons and prices, and click the one you want; click the card itself to take the first
             one you can afford.
+          </li>
+          <li>
+            Press <kbd>Tab</kbd> again to type a name into the search, and once more to leave it.{" "}
+            <kbd>Enter</kbd> buys when one family matches. <kbd>Esc</kbd> clears the search, then
+            closes the shop.
           </li>
           <li>
             A ghost of the unit follows the cursor (a squad shows where each soldier will stand).{" "}
@@ -331,7 +336,8 @@ export function Tutorial() {
           </li>
           <li>
             <kbd>Q</kbd> and <kbd>E</kbd> rotate the view; <kbd>Z</kbd> and <kbd>X</kbd> tilt it.
-            <kbd>Middle-drag</kbd> also orbits and tilts.
+            Hold the <kbd>middle mouse button</kbd> and move the mouse to look round from where you
+            stand.
           </li>
           <li>The mouse wheel zooms, from close over a squad to the whole battlefield.</li>
           <li>
@@ -513,7 +519,7 @@ export function Tutorial() {
       <Section title="Pausing">
         <p>
           <kbd>Esc</kbd> (or the menu button at the top) pauses the battle. From the pause menu you
-          can resume, restart, save a replay to watch later, change the sound, or return here.
+          can resume, restart, change the sound, or return here.
         </p>
       </Section>
     </article>

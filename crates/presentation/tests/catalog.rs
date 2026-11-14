@@ -46,6 +46,36 @@ fn names(p: &Presentation) -> Vec<String> {
         .collect()
 }
 
+/** A battle's world as a page loads it for `side`, from what it fields. */
+fn battle_input(
+    units: presentation::world::UnitsSection,
+    effects: presentation::world::EffectsSection,
+    side: &str,
+) -> WorldInput {
+    use presentation::world::{BattleInput, SoldierBody, Xray};
+    WorldInput {
+        battle: Some(BattleInput {
+            units,
+            effects,
+            side: side.into(),
+            tick_hz: 30.0,
+            soldier: SoldierBody {
+                radius_m: 0.2,
+                height_m: 1.8,
+            },
+            xray: Xray {
+                own: [0.0; 4],
+                selected: [0.0; 4],
+                ally: [0.0; 4],
+            },
+            blocked: [0.0; 4],
+        }),
+        sun_azimuth: 0.0,
+        sun_elevation: 0.7,
+        buildings: None,
+    }
+}
+
 #[test]
 fn pending_catalog_preserves_live_rows_and_models_and_commits_latest_models() {
     let mut p = Presentation::new(None, 30.0).unwrap();
@@ -148,10 +178,7 @@ fn stale_or_invalid_admission_never_replaces_the_active_generation() {
 #[test]
 fn battle_art_replacement_changes_live_joint_facts_without_restarting_the_observer() {
     use contract::ids::Side;
-    use presentation::{
-        fielded,
-        world::{Appearance, BattleInput, SoldierBody, Xray},
-    };
+    use presentation::{fielded, world::Appearance};
     use sim::{
         battle::Battle,
         publication::{self, Publisher},
@@ -178,27 +205,7 @@ fn battle_art_replacement_changes_live_joint_facts_without_restarting_the_observ
         nodes[0].bind.t[0] += 4.0;
     }
     let detail = fielded.units.detail;
-    let input = WorldInput {
-        battle: Some(BattleInput {
-            units: fielded.units,
-            effects: fielded.effects,
-            side: "blue".into(),
-            tick_hz: 30.0,
-            soldier: SoldierBody {
-                radius_m: 0.2,
-                height_m: 1.8,
-            },
-            xray: Xray {
-                own: [0.0; 4],
-                selected: [0.0; 4],
-                ally: [0.0; 4],
-            },
-            blocked: [0.0; 4],
-        }),
-        sun_azimuth: 0.0,
-        sun_elevation: 0.7,
-        buildings: None,
-    };
+    let input = battle_input(fielded.units, fielded.effects, "blue");
     let mut p = Presentation::new(Some(&publication::layout_json(&battle)), 30.0).unwrap();
     p.load_world(input, fielded.tables, None).unwrap();
     let words: Vec<u32> = Publisher::new()
@@ -319,4 +326,95 @@ fn battle_compatibility_requires_only_retained_clips_and_blends() {
         })
         .unwrap();
     assert!(driver.validate_catalog(&remove(&unused)).is_ok());
+}
+
+#[test]
+fn a_newly_fielded_kind_joins_the_loaded_battle_without_reloading_its_world() {
+    use contract::ids::Side;
+    use presentation::fielded;
+    use sim::{
+        battle::Battle,
+        publication::{self, Publisher},
+    };
+    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let battle = Battle::new(
+        &serde_json::from_value(json!({
+            "map":{"size":[600,400],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
+            "rules":sim::fixtures::test_rules(),
+            "units":[
+                {"side":"blue","kind":"test_tank","position":[0,0]},
+                {"side":"blue","kind":"test_rifle","position":[12,0]}
+            ],"events":[],"scripts":[]
+        }))
+        .unwrap(),
+        1,
+    );
+    let tank = fielded::fielded(&root, battle.rules(), &["test_tank".into()]).unwrap();
+    let detail = tank.units.detail;
+    let mut p = Presentation::new(Some(&publication::layout_json(&battle)), 30.0).unwrap();
+    p.load_world(
+        battle_input(tank.units, tank.effects, "blue"),
+        tank.tables,
+        None,
+    )
+    .unwrap();
+    let words: Vec<u32> = Publisher::new()
+        .publish(&battle, Side::Blue)
+        .unwrap()
+        .iter()
+        .map(|v| v.to_bits())
+        .collect();
+    p.push_publication(&words, 0.0).unwrap();
+    let before = p.frame(0.0, &camera(), &Ui::default(), 0).unwrap();
+    let (drawn, tank_at) = (before.instances.len(), before.instances[0].placement);
+
+    let both = || {
+        fielded::fielded(
+            &root,
+            battle.rules(),
+            &["test_tank".into(), "test_rifle".into()],
+        )
+        .unwrap()
+    };
+    let other_side = both();
+    assert!(
+        !p.stage_battle(
+            battle_input(other_side.units, other_side.effects, "red"),
+            other_side.tables
+        )
+        .unwrap(),
+        "another side is another battle: its world loads anew"
+    );
+    let grown = both();
+    assert!(p
+        .stage_battle(
+            battle_input(grown.units, grown.effects, "blue"),
+            grown.tables
+        )
+        .unwrap());
+    assert_eq!(
+        p.frame(0.0, &camera(), &Ui::default(), 0)
+            .unwrap()
+            .instances
+            .len(),
+        drawn,
+        "a staged catalog changes nothing drawn until it commits"
+    );
+    let draft = p
+        .stage_catalog(Default::default(), detail, Default::default())
+        .unwrap();
+    assert!(p.commit_catalog(draft, Vec::new()).unwrap());
+    let after = p.frame(0.0, &camera(), &Ui::default(), 0).unwrap();
+    assert!(
+        after.instances.len() > drawn,
+        "the newly fielded squad draws from the publication already taken"
+    );
+    assert!(
+        after.instances.iter().any(|i| i.placement == tank_at),
+        "the units already drawn stay where they were"
+    );
+    assert!(
+        p.observation().is_some(),
+        "the battle stream remains attached"
+    );
 }

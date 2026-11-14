@@ -10,9 +10,39 @@ import type { Order } from "../src/battle/sim/protocol";
 import type { SimClient } from "../src/battle/sim/client";
 import { WithTestCatalog } from "./catalog";
 
-test("the paused battle offers a return to the game's main menu", () => {
+test("leaving for the main menu asks first, and staying keeps the battle", async () => {
   const view = render(<PauseMenu onClose={() => {}} />);
-  expect(view.getByRole("link", { name: "Main menu" }).getAttribute("href")).toBe("/");
+  // The first press only asks; the menu's other items step aside.
+  await act(async () => view.getByRole("button", { name: "Main menu" }).click());
+  expect(view.getByRole("dialog", { name: "Leave the battle?" })).toBeTruthy();
+  expect(view.queryByRole("button", { name: "Resume" })).toBeNull();
+  await act(async () => view.getByRole("button", { name: "Stay" }).click());
+  expect(view.getByRole("button", { name: "Resume" })).toBeTruthy();
+  // Escape backs out of the question, not out of the pause menu.
+  await act(async () => view.getByRole("button", { name: "Main menu" }).click());
+  fireEvent.keyDown(window, { code: "Escape", cancelable: true });
+  expect(view.getByRole("button", { name: "Resume" })).toBeTruthy();
+  await act(async () => view.getByRole("button", { name: "Main menu" }).click());
+  expect(view.getByRole("link", { name: "Leave battle" }).getAttribute("href")).toBe("/");
+  view.unmount();
+});
+
+test("restart asks first, and only confirming restarts", async () => {
+  let restarts = 0;
+  const view = render(<PauseMenu onClose={() => {}} onRestart={() => restarts++} />);
+  await act(async () => view.getByRole("button", { name: "Restart" }).click());
+  expect(restarts).toBe(0);
+  expect(view.getByRole("dialog", { name: "Restart the battle?" })).toBeTruthy();
+  expect(view.queryByRole("button", { name: "Resume" })).toBeNull();
+  await act(async () => view.getByRole("button", { name: "Cancel" }).click());
+  expect(view.getByRole("button", { name: "Resume" })).toBeTruthy();
+  await act(async () => view.getByRole("button", { name: "Restart" }).click());
+  fireEvent.keyDown(window, { code: "Escape", cancelable: true });
+  expect(view.getByRole("button", { name: "Resume" })).toBeTruthy();
+  expect(restarts).toBe(0);
+  await act(async () => view.getByRole("button", { name: "Restart" }).click());
+  await act(async () => view.getByRole("button", { name: "Restart battle" }).click());
+  expect(restarts).toBe(1);
   view.unmount();
 });
 

@@ -76,11 +76,14 @@ export const channels = (c: readonly number[]) =>
     .map((v) => Math.round(v * 255))
     .join(" ");
 
-/** The theme as CSS custom properties, with the callouts' glow scale. */
+/** The theme as CSS custom properties, with the callouts' glow scale and the
+ *  selection ring's colour (`presentation.overlay.orders.selected`), which a
+ *  selected unit's leader shares to tie its ring to its card. */
 export function hudProperties(theme: HudTheme, calloutGlow = 1): Record<string, string> {
   const out: Record<string, string> = {
     "--hud-font": theme.font,
     "--hud-callout-glow": String(calloutGlow),
+    "--hud-selected": channels(presentationSettings.overlay.orders.selected),
     "--hud-glass": channels(theme.glass),
     "--hud-glass-alpha": String(theme.glass[3]),
     "--hud-glow": `${theme.glow_px}px`,

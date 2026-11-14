@@ -382,52 +382,50 @@ function leaderOf(path: SVGPathElement | null): CardPlacement["leader"] {
 /** A card's contents last read, while its markup stays the same. */
 export type PartCache = WeakMap<HTMLElement, { signature: string; part: Primitive[] }>;
 
-/** Every card the readout layer `layer` shows this frame, back to front:
- *  the ground and low-air plane, then the high-air plane, each in its
- *  paint order. A hidden card, or one faded to nothing, has none. */
+/** Every card the readout layer `layer` shows this frame, back to front in
+ *  its paint order, which spans both planes (`readoutPaintOrder`). A hidden
+ *  card, or one faded to nothing, has none. */
 export function readoutSnapshot(
   layer: HTMLElement,
   sprites: SpriteRequests,
   cache: PartCache,
 ): CardPlacement[] {
   const out: CardPlacement[] = [];
-  for (const plane of layer.querySelectorAll<HTMLElement>(":scope > .ro-plane")) {
-    const groups = [...plane.querySelectorAll<HTMLElement>(":scope > .ro-callout")]
-      .map((group, order) => ({ group, order, z: Number(group.style.zIndex) || 0 }))
-      .sort((a, b) => a.z - b.z || a.order - b.order);
-    for (const { group } of groups) {
-      const node = group.querySelector<HTMLElement>(":scope > .ro-unit");
-      if (!node || node.style.display === "none") continue;
-      const opacity = opacityOf(getComputedStyle(group));
-      if (opacity <= 0) continue;
-      // Everything its contents' look reads, but not where it stands (its
-      // own inline transform).
-      const signature = [
-        group.className,
-        group.dataset.overlapping ?? "",
-        group.dataset.hovered ?? "",
-        node.className,
-        node.dataset.zoom ?? "",
-        node.innerHTML,
-      ].join("|");
-      let held = cache.get(node);
-      if (held?.signature !== signature) {
-        held = { signature, part: cardPart(node, sprites) };
-        cache.set(node, held);
-      }
-      const id = node.dataset.unit ?? node.dataset.enemy ?? node.dataset.contact ?? "";
-      const box = node.getBoundingClientRect();
-      out.push({
-        card: `${node.dataset.owner}${group.dataset.ghost !== undefined ? "-ghost" : ""}-${id}${
-          group.dataset.retiring !== undefined ? " retiring" : ""
-        }`,
-        part: held.part,
-        signature,
-        at: [box.left, box.top],
-        opacity,
-        leader: leaderOf(group.querySelector<SVGPathElement>("path.ro-leader")),
-      });
+  const groups = [...layer.querySelectorAll<HTMLElement>(":scope > .ro-plane > .ro-callout")]
+    .map((group, order) => ({ group, order, z: Number(group.style.zIndex) || 0 }))
+    .sort((a, b) => a.z - b.z || a.order - b.order);
+  for (const { group } of groups) {
+    const node = group.querySelector<HTMLElement>(":scope > .ro-unit");
+    if (!node || node.style.display === "none") continue;
+    const opacity = opacityOf(getComputedStyle(group));
+    if (opacity <= 0) continue;
+    // Everything its contents' look reads, but not where it stands (its
+    // own inline transform).
+    const signature = [
+      group.className,
+      group.dataset.overlapping ?? "",
+      group.dataset.hovered ?? "",
+      node.className,
+      node.dataset.zoom ?? "",
+      node.innerHTML,
+    ].join("|");
+    let held = cache.get(node);
+    if (held?.signature !== signature) {
+      held = { signature, part: cardPart(node, sprites) };
+      cache.set(node, held);
     }
+    const id = node.dataset.unit ?? node.dataset.enemy ?? node.dataset.contact ?? "";
+    const box = node.getBoundingClientRect();
+    out.push({
+      card: `${node.dataset.owner}${group.dataset.ghost !== undefined ? "-ghost" : ""}-${id}${
+        group.dataset.retiring !== undefined ? " retiring" : ""
+      }`,
+      part: held.part,
+      signature,
+      at: [box.left, box.top],
+      opacity,
+      leader: leaderOf(group.querySelector<SVGPathElement>("path.ro-leader")),
+    });
   }
   return out;
 }

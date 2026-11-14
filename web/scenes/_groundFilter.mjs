@@ -20,7 +20,7 @@ export async function groundFilterExact(ctx) {
       JSON.stringify({ size: [32, 32], height_grid_m: 4, fog_cell_m: 8, slope_cutoff_deg: 35 }),
       JSON.stringify(rules.rules),
     );
-    const world = mesh.buildWorldLayers(
+    const world = mesh.buildWorldGround(
       mesh.readWorldExports(view),
       JSON.parse(wasm.world_layout(JSON.stringify(rules.rules))),
       biome.default,

@@ -8,6 +8,8 @@
 // texture is fetched once however many bundles name it. Every file's hash is
 // verified (`gzip.ts`), and a load or a request installs one whole
 // generation: a failure anywhere leaves the installed generation in place.
+// Files are read a few at a time, and one the network drops is read again
+// before it fails anything (`boundedReads`).
 
 import type { Vec3 } from "math";
 import {
@@ -101,8 +103,51 @@ export type Fetch = (url: string) => Promise<{
   ok: boolean;
   status: number;
   arrayBuffer(): Promise<ArrayBuffer>;
-  json(): Promise<unknown>;
 }>;
+
+/** Runtime files read at once. A load names hundreds; a browser fails every
+ *  request outstanding on a connection when that connection drops, and
+ *  refuses requests past a few hundred outstanding. Sixteen files of the
+ *  median size (about 170 KB) in flight keep a link of a few hundred Mbit/s
+ *  busy, so the cap costs a load nothing on any ordinary connection. */
+const READS_IN_FLIGHT = 16;
+
+/** The waits before each read again of a file the network dropped. */
+const RETRY_MS = [250, 1_000, 3_000];
+
+/** `fetcher`'s files as bytes, held to `READS_IN_FLIGHT` at once, a read the
+ *  network drops tried again after each of `RETRY_MS`. A browser reports a
+ *  dropped connection, from the request or from its body, as a TypeError; an
+ *  HTTP status is an answer, and is not asked again. `name` is how a failure
+ *  names the file. */
+function boundedReads(fetcher: Fetch): (url: string, name: string) => Promise<Uint8Array> {
+  const read = async (url: string, name: string) => {
+    const response = await fetcher(url);
+    if (!response.ok) throw new Error(`${name}: HTTP ${response.status}`);
+    return new Uint8Array(await response.arrayBuffer());
+  };
+  let free = READS_IN_FLIGHT;
+  const waiting: (() => void)[] = [];
+  return async (url, name) => {
+    if (free > 0) free--;
+    else await new Promise<void>((resolve) => waiting.push(resolve));
+    try {
+      for (let attempt = 0; ; attempt++) {
+        try {
+          return await read(url, name);
+        } catch (error) {
+          if (!(error instanceof TypeError) || attempt >= RETRY_MS.length) throw error;
+          await new Promise((resolve) => setTimeout(resolve, RETRY_MS[attempt]));
+        }
+      }
+    } finally {
+      // A finished read hands its slot straight to the next one waiting.
+      const next = waiting.shift();
+      if (next) next();
+      else free++;
+    }
+  };
+}
 
 /** Skeleton clips needed by a catalog load.  Clips are shared by soldier
  * appearances, so loading every catalog skeleton defeats faction and roster
@@ -129,7 +174,8 @@ interface Source {
 }
 
 export class AppearanceLibrary {
-  private readonly fetcher: Fetch;
+  /** Every file the library reads, through its one bounded queue (`boundedReads`). */
+  private readonly read: (url: string, name: string) => Promise<Uint8Array>;
   private current: InstalledAppearances | null = null;
   /** What the installed generation was loaded from: where its kits are. */
   private source: Source | null = null;
@@ -137,7 +183,7 @@ export class AppearanceLibrary {
   private readonly arriving = new Map<string, Promise<InstalledAppearance>>();
 
   constructor(fetcher: Fetch = (url) => fetch(url)) {
-    this.fetcher = fetcher;
+    this.read = boundedReads(fetcher);
   }
 
   get installed(): InstalledAppearances | null {
@@ -171,9 +217,9 @@ export class AppearanceLibrary {
     factions?: ReadonlySet<string> | null,
     scenery?: ReadonlySet<string> | null,
   ): Promise<InstalledAppearances> {
-    const response = await this.fetcher(`${baseUrl}catalog.json`);
-    if (!response.ok) throw new Error(`appearance catalog: HTTP ${response.status}`);
-    const catalog = (await response.json()) as RuntimeCatalog;
+    const catalog = JSON.parse(
+      new TextDecoder().decode(await this.read(`${baseUrl}catalog.json`, "appearance catalog")),
+    ) as RuntimeCatalog;
     admitLoad(catalog, wearing, factions, scenery);
     const source: Source = {
       catalog,
@@ -322,11 +368,7 @@ export class AppearanceLibrary {
 
   /** Runtime files under `baseUrl`, by their path there. */
   private reader(baseUrl: string): ReadRuntime {
-    return async (path) => {
-      const res = await this.fetcher(`${baseUrl}${path}`);
-      if (!res.ok) throw new Error(`${path}: HTTP ${res.status}`);
-      return new Uint8Array(await res.arrayBuffer());
-    };
+    return (path) => this.read(`${baseUrl}${path}`, path);
   }
 
   /** The bundle `hash`, each of its textures fetched once for the source. */
@@ -470,7 +512,6 @@ export function memoryFetch(files: ReadonlyMap<string, Uint8Array>, baseUrl: str
       ok: !!bytes,
       status: bytes ? 200 : 404,
       arrayBuffer: async () => bytes!.slice().buffer,
-      json: async () => JSON.parse(new TextDecoder().decode(bytes)),
     };
   };
 }

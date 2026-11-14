@@ -135,19 +135,6 @@
   gap: 6px;
   padding: 10px;
 }
-.scenario-builder-panel {
-  scrollbar-color: transparent transparent;
-  scrollbar-width: none;
-}
-.scenario-builder-panel::-webkit-scrollbar {
-  width: 0;
-}
-.scenario-builder-panel::-webkit-scrollbar-track {
-  background: transparent;
-}
-.scenario-builder-panel::-webkit-scrollbar-thumb {
-  background: transparent;
-}
 .scenario-builder-panel > * {
   min-width: 0;
 }
@@ -247,7 +234,5 @@
     margin: 0 14px 14px;
     max-height: 45vh;
     overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: rgb(var(--hud-accent) / 0.4) transparent;
   }
 }

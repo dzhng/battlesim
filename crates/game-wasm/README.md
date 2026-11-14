@@ -26,7 +26,7 @@ with rendering and sound in one browser module. That module observes the battle;
 the worker remains its authority.
 
 The build task in [the web manifest](../../web/package.json) owns wasm-pack and
-its target/output settings. Generated bindings under `web/src/wasm/` are rebuildable
+its target/output settings; each wasm crate's own manifest sets its wasm-opt level. Generated bindings under `web/src/wasm/` are rebuildable
 output, not edited source. Each page or worker initializes its own realm's module;
 sharing a JavaScript loader promise does not share an authority between workers.
 

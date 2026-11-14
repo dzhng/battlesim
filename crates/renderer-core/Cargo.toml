@@ -9,12 +9,12 @@ presentation = { path = "../presentation" }
 wgpu = { version = "30.0.1", default-features = false, features = ["webgpu", "wgsl", "serde"] }
 bytemuck = { version = "1.25", features = ["derive"] }
 
-serde = { version = "1", features = ["derive"] }
+serde.workspace = true
 serde_json.workspace = true
 
 sha2 = "0.10"
 ryu-js = "1"
-libm = "0.2"
+libm.workspace = true
 
 [dev-dependencies]
 contract = { path = "../contract" }

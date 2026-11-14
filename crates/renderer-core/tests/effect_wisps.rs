@@ -44,7 +44,7 @@ fn draw(gpu: &support::Gpu, records: &[[f32; 16]]) -> Vec<f32> {
         size: SIZE,
     };
     let framed = Framed::new(&eye);
-    let (_, targets, _, mut effects, _) =
+    let (_, targets, _environment, mut effects, _, _shadow) =
         effects::stage(gpu, SIZE, &framed.record(&eye), &framed.camera(&eye, 0.));
     effects.prepare(&gpu.device, &gpu.queue, bytemuck::cast_slice(records));
     let mut encoder = gpu.device.create_command_encoder(&Default::default());

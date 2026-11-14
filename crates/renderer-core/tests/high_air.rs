@@ -18,6 +18,7 @@ use renderer_core::high_air::HighAir;
 use renderer_core::models::{Models, Surface};
 use renderer_core::pipelines;
 use renderer_core::post;
+use renderer_core::shadow::ShadowResources;
 use renderer_core::Targets;
 use std::sync::Arc;
 use wgpu::*;
@@ -209,10 +210,13 @@ struct Stage {
     post: post::PostResources,
     models: Models,
     effects: EffectsResources,
+    /// Bound by `environment`; held while the stage draws.
+    shadow: ShadowResources,
 }
 
 fn stage(gpu: &support::Gpu, view: &View, camera: &Camera) -> Stage {
-    let (pipelines, targets, environment, effects, light) = effects::stage(gpu, SIZE, view, camera);
+    let (pipelines, targets, environment, effects, light, shadow) =
+        effects::stage(gpu, SIZE, view, camera);
     let fog = Fog::new(&gpu.device, &gpu.queue, &pipelines, &targets);
     let post = post::new(
         &gpu.device,
@@ -247,6 +251,7 @@ fn stage(gpu: &support::Gpu, view: &View, camera: &Camera) -> Stage {
         post,
         models,
         effects,
+        shadow,
     }
 }
 
@@ -261,6 +266,7 @@ fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
         post,
         mut models,
         effects,
+        shadow: _shadow,
     } = stage(
         &gpu,
         &View {
@@ -515,6 +521,7 @@ fn effects_in_front_of_high_air_stay_over_it() {
         post,
         mut models,
         mut effects,
+        shadow: _shadow,
     } = stage(&gpu, &framed.record(&eye), &framed.camera(&eye, 0.));
     models.set_high_apart(true);
     prepare(&mut models, &gpu, true);
@@ -586,6 +593,7 @@ fn black_smoke_in_front_of_high_air_darkens_it() {
         post,
         mut models,
         mut effects,
+        shadow: _shadow,
     } = stage(&gpu, &framed.record(&eye), &framed.camera(&eye, 0.));
     models.set_high_apart(true);
     prepare(&mut models, &gpu, true);

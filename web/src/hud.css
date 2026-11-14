@@ -1,5 +1,5 @@
 /* The HUD's holo-tactical look: the panel as dark
-   glass with thin glowing edges, icon command tiles with focus/hover tooltips, and
+   glass with thin glowing edges, icon command tiles with hover tooltips, and
    the weapon callouts floating off their units on leader lines over soft dark
    scrims. Every colour is a `--hud-*` property from `presentation.hud`
    (`hudTheme.ts`); this sheet holds none of its own. */
@@ -14,6 +14,15 @@ html {
 :is(input, textarea, [contenteditable]) {
   -webkit-user-select: text;
   user-select: text;
+}
+
+/* Nor does it ever show the browser's scrollbars: a panel that overflows
+   still scrolls by wheel, touch or keys, but no bar is drawn. */
+* {
+  scrollbar-width: none !important;
+}
+::-webkit-scrollbar {
+  display: none !important;
 }
 
 /* The black halo that keeps callout text legible over any ground. */
@@ -168,12 +177,6 @@ html {
   height: 48px;
   padding: 0;
   border-color: rgb(var(--hud-accent) / 0.18);
-}
-.hud-panel button.ro-cmd:focus-visible {
-  outline: 2px solid rgb(var(--hud-accent));
-  outline-offset: 2px;
-  border-color: rgb(var(--hud-accent));
-  background: rgb(var(--hud-accent) / 0.2);
 }
 .hud-panel button.ro-cmd-emphasis {
   border-color: rgb(var(--hud-accent));
@@ -371,16 +374,19 @@ html {
   font-family: var(--hud-font);
 }
 /* Back to front: the ground and low-air cards, the high-air models' canvas,
-   the high-air cards. Each card plane stacks its own cards. */
+   the high-air cards, then the hovered card over all of them. The planes
+   share the layer's stacking: each card's z-index (`readoutPaintOrder`) is
+   below the models' 0 for a ground or low-air card, above it for a high-air
+   one, and highest for the hovered card. */
 .ro-plane {
   position: absolute;
   inset: 0;
-  isolation: isolate;
 }
 /* The models are the world's, not cards: they stay when the cards are hidden. */
 .ro-high-models {
   position: absolute;
   inset: 0;
+  z-index: 0;
   visibility: visible;
 }
 .ro-high-models > canvas {
@@ -391,12 +397,6 @@ html {
   position: absolute;
   inset: 0;
   isolation: isolate;
-}
-.ro-callout.ro-selected {
-  z-index: 1;
-}
-.ro-callout[data-hovered] {
-  z-index: 3;
 }
 .ro-callout[data-ghost] {
   pointer-events: none;
@@ -411,9 +411,10 @@ html {
   --leader: var(--hud-accent);
 }
 /* A leader is one line everywhere: solid, one width, in its panel's own
-   colour (own cyan, enemy and contact red; amber is the ground markers'
-   alone). Selection shows only as the panel's: an unselected panel and its
-   leader are dimmed alike. */
+   colour (own cyan, enemy and contact red). A selected unit's leader takes
+   its selection ring's amber, the one mark joining ring and card; an ally's
+   ring is ice, as its leader already is. An unselected panel and its leader
+   are dimmed alike. */
 .ro-leader {
   filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.8))
     drop-shadow(0 0 3px rgb(var(--leader) / calc(0.55 * var(--hud-callout-glow))));
@@ -438,6 +439,10 @@ html {
 }
 .ro-leader.ro-contact {
   opacity: 1;
+}
+.ro-leader.ro-own.ro-selected {
+  --leader: var(--hud-selected);
+  stroke: rgb(var(--hud-selected) / 0.95);
 }
 /* ---- An info panel (infoPanel.tsx): NAME, WEAPONS, STATES --------------
    One markup for every panel, in a callout here and in the unit card.
@@ -471,11 +476,18 @@ html {
   filter: blur(10px);
 }
 /* Overlapping cards need a tighter dark core to reduce rear glyphs bleeding
-   through the foreground title. The softened edge still belongs to the world. */
-.ro-callout[data-overlapping] .ro-unit::before {
+   through the foreground title. The softened edge still belongs to the world.
+   The hovered card opens over other cards, so it always has one. */
+.ro-callout:is([data-overlapping], [data-hovered]) .ro-unit::before {
   background: rgb(var(--hud-glass) / 0.9);
   filter: blur(3px);
 }
+/* The hovered card is one solid plate down to its underline: its blurred
+   edge falls just past the line, not above it. */
+.ro-callout[data-hovered] > .ro-unit::before {
+  bottom: -3px;
+}
+.ro-callout[data-hovered] > .ro-unit,
 .ro-leader.ro-selected,
 .ro-unit.ro-selected {
   opacity: 1;
@@ -1551,8 +1563,7 @@ html {
   text-align: left;
   background: rgb(var(--hud-glass) / 0.98);
 }
-.hud-panel button.hud-purchase-info:hover:not(:disabled),
-.hud-panel button.hud-purchase-info:focus-visible {
+.hud-panel button.hud-purchase-info:hover:not(:disabled) {
   border-color: rgb(var(--hud-accent) / 0.8);
 }
 .hud-purchase-info-foot {
@@ -1803,8 +1814,6 @@ html {
   margin: 0;
   overflow-y: auto;
   list-style: none;
-  scrollbar-color: rgb(var(--hud-accent) / 0.58) rgb(255 255 255 / 0.06);
-  scrollbar-width: thin;
   padding: 6px 18px 14px;
 }
 /* Lines run on below the fold: the list fades out at its foot. */
@@ -1819,15 +1828,6 @@ html {
 .match-result-actor[data-destroyed] .match-result-unit {
   border-style: dashed;
   opacity: 0.55;
-}
-.match-result-timeline::-webkit-scrollbar {
-  width: 8px;
-}
-.match-result-timeline::-webkit-scrollbar-track {
-  background: rgb(255 255 255 / 0.06);
-}
-.match-result-timeline::-webkit-scrollbar-thumb {
-  background: rgb(var(--hud-accent) / 0.58);
 }
 .match-result-event {
   display: grid;
