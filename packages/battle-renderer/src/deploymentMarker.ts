@@ -2,17 +2,19 @@
 // edge, its lane's number painted on the ground and three chevrons marching
 // inward past it (lane slots D9). Teammates call lanes by number ("push 2"),
 // so the number sits nearest the edge, the way a road is labelled where it
-// starts, and the chevrons carry on from it into the map. The player's own
-// lane's number is outlined in the HUD's white, as the lobby bands its tag
-// in white. Every mark is ground paint, so a placement ghost renders
-// over it in the world pass; the number holds still and the chevrons pulse.
+// starts, and the chevrons carry on from it into the map, drawn with the
+// chevrons' strokes. Every mark is ground paint in the marching layer, drawn
+// before the units' marks so a selection ring lies over it; the number holds
+// still and the chevrons pulse.
 // The digits are stroke glyphs: a lane is 1, 2 or 3, so there is no font.
 import {
+  concatMeshes,
   fadeAlpha,
   glowing,
   groundAnnulus,
   groundStrip,
   MeshBuilder,
+  unpulsed,
   type Mesh,
   type Rgba,
 } from "./mesh";
@@ -37,8 +39,6 @@ export interface EntryMarker {
   facing: number;
   /** Its number on the side, from `sim::entries` (`lanesOf`). */
   lane: number;
-  /** The viewer's own slot holds it. */
-  own: boolean;
 }
 
 /** Each digit's strokes: polylines in units of its height, x across (right
@@ -72,11 +72,10 @@ const DIGIT_LINES = 3.6;
 /** The digit's height, in route widths, that its stroke weights are drawn
  *  for; a shorter digit thins its strokes in step. */
 const STROKED_LINES = 9;
-/** Its strokes, in route widths: the bright fill, the dark outline under it
- *  (the chevrons' outline weight), and the own lane's white outline. */
-const DIGIT_FILL_LINES = 1.6;
-const DIGIT_OUTLINE_LINES = 2.6;
-const OWN_OUTLINE_LINES = 3.6;
+/** The chevrons' strokes, in route widths, which the digit shares: the dark
+ *  outline under every chevron, and an outer chevron's fill. */
+const OUTLINE_LINES = 2.6;
+const FILL_LINES = 1.25;
 /** From the digit's top to the first chevron's arms. */
 const DIGIT_GAP_M = 3;
 /** A chevron: its outline's and its fill's length and spread, and the step
@@ -85,30 +84,30 @@ const CHEVRON_OUTLINE: readonly [number, number] = [7.8, 12.5];
 const CHEVRON_FILL: readonly [number, number] = [6.8, 10.8];
 const CHEVRON_STEP_M = 9;
 
-/** The entry `marker`, in `markerColor` (the side's accent) with the dark
- *  outline the chevrons share; the own lane's digit outlined in `ownColor`.
- *  The digit is still paint (`painted`), the chevrons marching paint. */
+/** The entry `marker` in `markerColor` (the side's accent), its digit and
+ *  chevrons sharing one outline colour and stroke weights; all marching
+ *  paint, the digit never pulsing. */
 export function buildDeploymentMarker(
   marker: EntryMarker,
   z: SurfaceHeight,
   style: OrderStyle,
-  { markerColor, ownColor }: { markerColor: Rgb; ownColor: Rgb },
+  markerColor: Rgb,
   { stroke }: { stroke: StrokeWidth },
-): { painted: Mesh; paintedMarching: Mesh } {
+): { paintedMarching: Mesh } {
   const pen = orderPen(z, style, stroke);
   const { center, facing } = marker;
   const color = glowing([...markerColor, 1], style.glow.selected);
   const outline: Rgba = [markerColor[0] * 0.45, markerColor[1] * 0.55, markerColor[2] * 0.6, 1];
   const height = Math.max(DIGIT_M, pen.line * DIGIT_LINES);
   const weight = pen.line * Math.min(1, height / (pen.line * STROKED_LINES));
-  const outlineWidth = weight * (marker.own ? OWN_OUTLINE_LINES : DIGIT_OUTLINE_LINES);
+  const outlineWidth = weight * OUTLINE_LINES;
   // The digit stands just inside the edge, nearest the border: its
   // outline clear of the border and the HUD pane past it.
   const foot = pen.line * 2 + outlineWidth / 2;
   const painted = new MeshBuilder();
   const glyph = { origin: along(center, facing, foot), facing, height };
-  digit(painted, pen, glyph, marker.lane, marker.own ? [...ownColor, 1] : outline, outlineWidth);
-  digit(painted, pen, glyph, marker.lane, color, weight * DIGIT_FILL_LINES);
+  digit(painted, pen, glyph, marker.lane, outline, outlineWidth);
+  digit(painted, pen, glyph, marker.lane, color, weight * FILL_LINES);
 
   const marching = new MeshBuilder();
   const { cycles_per_s, amplitude } = style.march;
@@ -117,7 +116,16 @@ export function buildDeploymentMarker(
     const tip = along(center, facing, firstTip + i * CHEVRON_STEP_M);
     // A dark, slightly oversized underlay leaves the crisp outlined edge seen
     // in the reference around each painted chevron.
-    marchChevron(marching, pen, tip, facing, outline, [0, 0, 0], CHEVRON_OUTLINE, pen.line * 2.6);
+    marchChevron(
+      marching,
+      pen,
+      tip,
+      facing,
+      outline,
+      [0, 0, 0],
+      CHEVRON_OUTLINE,
+      pen.line * OUTLINE_LINES,
+    );
     // The pulse advances from the outer chevron toward the spawn point and
     // back again. At any instant one chevron is visibly bright.
     marchChevron(
@@ -128,10 +136,10 @@ export function buildDeploymentMarker(
       i === 1 ? color : fadeAlpha(color, 0.42),
       [i === 1 ? 0 : i === 0 ? 1 / 3 : 2 / 3, cycles_per_s, Math.min(amplitude, 0.32)],
       CHEVRON_FILL,
-      i === 1 ? pen.line * 3.2 : pen.line * 1.25,
+      i === 1 ? pen.line * 3.2 : pen.line * FILL_LINES,
     );
   });
-  return { painted: painted.build(), paintedMarching: marching.build() };
+  return { paintedMarching: concatMeshes([unpulsed(painted.build()), marching.build()]) };
 }
 
 /** `lane`'s digit, upright as seen from the edge looking along `facing`, its

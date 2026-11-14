@@ -60,9 +60,12 @@ line, and Region is a row of tabs.
 - **In battle** each road in of the viewer's side paints its lane digit behind
   its chevrons, nearest the edge (`packages/battle-renderer/src/deploymentMarker.ts`,
   placed by `battleOverlayScenario` in `apps/battle-lab/src/battleOverlay.ts`).
-  Digits are stroke glyphs (a lane is 1, 2 or 3), still paint beside the marching
-  chevrons; the viewer's own lane's digit is outlined in the HUD's white. Native
-  replays the browser's recorded overlays and draws nothing itself.
+  Digits are stroke glyphs (a lane is 1, 2 or 3) drawn with the chevrons' outline
+  colour and stroke weights. The whole marker lies under every mark of the units:
+  it draws first in the marching paint layer, and the units' still marks follow
+  it there, unpulsed (`unpulsed`, `packages/battle-renderer/src/mesh.ts`), because
+  the renderer draws all still paint before all marching paint. Native replays
+  the browser's recorded overlays and draws nothing itself.
 - **The AI's home pull** (`TeamTuning::home_lane_bonus`, `home_lane_fade_s` in
   `fixtures/skirmish-ai.json`) scores an AI's own lane better, starting at the
   match's first tick and fading to nothing, preparation included. Every AI on
@@ -144,8 +147,9 @@ line, and Region is a row of tabs.
   `2v3` shot, the shipped lobby with you in Blue 2 and Blue's third lane open.
 - `assets/slice-06-before.png`: an entry's chevrons before the digit.
   `slice-06-own-lane.png` and `slice-06-far.png`: the `allies` scene's
-  `entry-lane` and `entry-lanes-far` shots, your lane's digit close up and both
-  team digits far out. An earlier far shot, with the digit grown large, drove the
+  `entry-lane` and `entry-lanes-far` shots, your lane's digit close up (from
+  before the user asked for the chevrons' strokes, which replaced its white
+  outline) and both team digits far out. An earlier far shot, with the digit grown large, drove the
   user's 60% cut.
 - `visualizations/unknowns-map.html`: the explore-unknowns map the plan came
   from, banner-marked where the build superseded it.
@@ -165,7 +169,7 @@ they opted into during the walk.
 | D6 | Numbers only, never player names. | you |
 | D7 | Lanes show in the lobby, in battle, and in the future minimap. | you |
 | D8 | The pull is specified by behaviour; it fades over the match. | you |
-| D9 | In battle the digit is ground paint behind the chevrons; far out it stays small. | you |
+| D9 | In battle the digit is ground paint behind the chevrons, in the chevrons' strokes and colours, under a unit's selection ring; far out it stays small. | you |
 | D10–D12 | No seed in the status; no size reason line; Region as tabs. | you |
 | D13 | No backward compatibility or migrations. | you |
 | A1 | In battle only your own side's lanes are marked. | agent |

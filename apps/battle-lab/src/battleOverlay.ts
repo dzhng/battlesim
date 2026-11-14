@@ -33,7 +33,12 @@ import {
   buildDeploymentMarker,
   type EntryMarker,
 } from "@packages/battle-renderer/src/deploymentMarker";
-import { combineWorldMeshes, type Mesh } from "@packages/battle-renderer/src/mesh";
+import {
+  combineWorldMeshes,
+  concatMeshes,
+  unpulsed,
+  type Mesh,
+} from "@packages/battle-renderer/src/mesh";
 import { buildZoneRing } from "@packages/battle-renderer/src/playAreaOverlay";
 import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
 import type { PresentedContact } from "@web/battle/present/contactPresentation";
@@ -83,13 +88,11 @@ export interface OverlayScenarioSource {
 /** The scenario's own marks as `side` sees them. A side's players share
  *  its roads in, and a purchase may arrive by any of them, so each one
  *  carries the reinforcement cue, numbered by its lane (`lanes`, one per
- *  entry in list order, empty with no skirmish); the one `viewer`'s slot
- *  holds is its own. */
+ *  entry in list order, empty with no skirmish). */
 export function battleOverlayScenario(
   s: OverlayScenarioSource,
   lanes: readonly EntryLane[],
   side: SideName,
-  viewer: string | null,
 ): BattleOverlayScenario {
   const [w, d] = s.map.size;
   return {
@@ -104,7 +107,6 @@ export function battleOverlayScenario(
               center,
               facing: Math.atan2(d / 2 - center[1], w / 2 - center[0]),
               lane: lanes[i].lane,
-              own: viewer !== null && lanes[i].holder === viewer,
             },
           ]
         : [],
@@ -361,13 +363,7 @@ export function battleOverlayParts(
   const orders = orderLayer(units, rules.air, o, selected, reveal, z, stroke, showOrders, allies);
   const aircraft = aircraftLayer(units, o, z, stroke);
   const deployments = scenario.deployments.map((marker) =>
-    buildDeploymentMarker(
-      marker,
-      z,
-      gameOrderStyle,
-      { markerColor: gameHud.accent, ownColor: gameHud.text },
-      { stroke },
-    ),
+    buildDeploymentMarker(marker, z, gameOrderStyle, gameHud.accent, { stroke }),
   );
   // The hold zone, a line of the orders' weight: dashed while blue is not
   // holding it. The zone and the border are paint, like the orders.
@@ -404,9 +400,19 @@ export function battleOverlayParts(
     ...(zone ? [{ painted: zone }] : []),
     ...(border ? [{ painted: border }] : []),
     contactMarks,
-    supply,
-    orders,
-    aircraft,
+    // The roads in lie under every mark of the units: they draw first in
+    // the marching layer, and the units' marks follow them there.
     ...deployments,
+    overEntries(supply),
+    overEntries(orders),
+    overEntries(aircraft),
   ];
+}
+
+/** `part` with its still paint moved, unpulsed, into the marching layer
+ *  ahead of its own marching paint, so it draws over the entry markers. */
+function overEntries(part: Partial<WorldMeshes>): Partial<WorldMeshes> {
+  const { painted, paintedMarching, ...rest } = part;
+  const marks = [painted && unpulsed(painted), paintedMarching].filter((m) => !!m);
+  return marks.length ? { ...rest, paintedMarching: concatMeshes(marks) } : rest;
 }

@@ -69,15 +69,18 @@ unit can block teammates on a shared road (C2), and the open-lane look (C3).
 ### C4 · The battle's lane digit is a stroke glyph, 7 m tall, upright from the edge
 - **When:** slice 06 (`6f20c1df1`, `5aa426896`).
 - **The choice:** Digits 1–3 are polylines with round joins, drawn with the
-  chevrons' pen and colours, about 7 m tall, reading upright to a player
-  looking in from their own edge. Your own lane's digit gets a wider outline
-  in the HUD's white instead of the dark one. Pulled far out the digit grows
-  only to 3.6 route widths (you cut it 60%), strokes thinning with it.
+  chevrons' pen, about 7 m tall, reading upright to a player looking in from
+  their own edge. You then asked for the chevrons' exact strokes: the digit
+  shares their dark outline (2.6 route widths) and an outer chevron's fill
+  (1.25), which dropped the white outline that marked your own lane in
+  battle. Pulled far out the digit grows only to 3.6 route widths (you cut it
+  60%), strokes thinning with it.
 - **The gap:** D9 said where, not how big or how "yours" shows.
 - **The reach:** A lane past 3 would need a new glyph (there are at most
   three roads a side).
-- **Verdict:** sound. Two critique notes left open: your lane's outline is
-  subtle at far zoom, and the "1" reads a little like a font glyph.
+- **Verdict:** sound. One critique note left open: the "1" reads a little
+  like a font glyph. Your own lane no longer differs from a teammate's in
+  battle (it still does in the lobby).
 - **Confidence:** medium.
 
 ### C5 · The pull's values: 1000 fading linearly over 600 s
@@ -129,11 +132,18 @@ unit can block teammates on a shared road (C2), and the open-lane look (C3).
 - **Verdict:** sound.
 - **Confidence:** high.
 
-### C9 · The digit is still paint; the chevrons stay marching paint
-- **When:** slice 06.
-- **The choice:** The marching-paint pass reads each vertex's normal as pulse
-  data, so a digit there would pulse. The digit goes in the still `painted`
-  layer; both are lit, shadowed ground paint.
+### C9 · The entry marker draws under the units' marks
+- **When:** slice 06, reordered after you saw a selection ring under the digit.
+- **The choice:** The renderer draws all still paint, then all marching paint.
+  The chevrons pulse, so they are marching paint, and a selection ring is
+  still paint, so the chevrons covered the ring. Now the whole marker (digit
+  included) draws first in the marching layer, and the units' still marks
+  (supply, orders, aircraft) follow it there with their pulse data zeroed,
+  which the shared fragment shader draws exactly as still paint.
+- **The reach:** Units' marks now order after other marching paint in the
+  same list, not in a separate pass. Objectives, the zone and the border stay
+  in the still layer, under everything. A renderer change (a second marching
+  pass) was the alternative, with a capture-format cost.
 - **Verdict:** sound.
 - **Confidence:** high.
 

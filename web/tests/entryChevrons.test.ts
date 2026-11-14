@@ -3,7 +3,7 @@ import { shippedRules } from "@web/shippedRules";
 // A side's players share its roads in, and a purchase may arrive by any of
 // them, so every road in of the viewer's side carries its chevrons, and no
 // road in of the other side does. Each also paints its lane's number nearer
-// the edge, and the viewer's own lane's number stands out.
+// the edge, and a unit's marks draw over it.
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import * as wasm from "@wasm/game_wasm.js";
@@ -57,77 +57,90 @@ beforeAll(() => {
 });
 
 type P = [number, number];
-/** The ground points each kind of paint covers, as `side` sees the battle
- *  with `viewer` seated (Blue 1 and 2, Red 1 and 2, the viewer human). */
-function paint(side: "blue" | "red", viewer: string): { still: P[]; marching: P[] } {
-  const players = ["blue-1", "blue-2", "red-1", "red-2"].map((id) => seat(id, id === viewer));
+interface Vertex {
+  at: P;
+  /** The marching pass reads the normal as pulse data; still marks have none. */
+  pulses: boolean;
+}
+const TANK = {
+  id: 1,
+  kind: "test_tank",
+  position: [245, 975, 0],
+  yaw: 0,
+  hold: null,
+  stock: null,
+  members: [],
+  queue: [],
+  goal: null,
+  state: "idle",
+};
+const catalog = {
+  type: () => ({ mobility: {} }),
+  hull: () => ({ half_extents_m: [4, 2, 1.5] }),
+} as unknown as UnitCatalog;
+
+/** The marching paint's vertices in draw order, as `side` sees the battle
+ *  with Blue 1 human, and Blue 1's tank beside its road selected or not. */
+function marching(side: "blue" | "red", selected: number[] = []): Vertex[] {
+  const players = ["blue-1", "blue-2", "red-1", "red-2"].map((id) => seat(id, id === "blue-1"));
   const lanes = lanesOf(wasm, JSON.stringify(scenario.skirmish.sites), players).entries;
+  const own = { ...observation, own: selected.length ? [TANK] : [] } as unknown as ObservationView;
   const meshes = buildBattleOverlay(
-    {} as UnitCatalog,
+    catalog,
     shippedRules,
-    observation,
-    [],
+    own,
+    selected,
     () => 0,
-    battleOverlayScenario(scenario, lanes, side, viewer),
+    battleOverlayScenario(scenario, lanes, side),
     { showOrders: false, reveal: new Map(), contacts: [], facing: () => 0 } as never,
   );
-  const points = (mesh = new Float32Array()) => {
-    const out: P[] = [];
-    for (let i = 0; i < mesh.length; i += VERTEX_FLOATS) out.push([mesh[i], mesh[i + 1]]);
-    return out;
-  };
-  return { still: points(meshes.painted), marching: points(meshes.paintedMarching) };
+  const mesh = meshes.paintedMarching ?? new Float32Array();
+  const out: Vertex[] = [];
+  for (let i = 0; i < mesh.length; i += VERTEX_FLOATS)
+    out.push({ at: [mesh[i], mesh[i + 1]], pulses: mesh[i + 5] !== 0 });
+  return out;
 }
 
-const near = (points: P[], at: P) =>
-  points.filter(([x, y]) => Math.hypot(x - at[0], y - at[1]) < 60);
+const near = (vertices: Vertex[], at: P, within = 60) =>
+  vertices.filter(({ at: [x, y] }) => Math.hypot(x - at[0], y - at[1]) < within);
 /** How far `p` lies into the map from the road at `road`, along the way in
- *  (toward the map's centre), and how far across it. */
-const way = (road: P) => {
+ *  (toward the map's centre). */
+const inward = (road: P, [x, y]: P) => {
   const a = Math.atan2(500 - road[1], 500 - road[0]);
-  return [Math.cos(a), Math.sin(a)] as const;
-};
-const inward = (road: P, p: P) => {
-  const [fx, fy] = way(road);
-  return (p[0] - road[0]) * fx + (p[1] - road[1]) * fy;
-};
-const across = (road: P, p: P) => {
-  const [fx, fy] = way(road);
-  return (p[0] - road[0]) * fy - (p[1] - road[1]) * fx;
+  return (x - road[0]) * Math.cos(a) + (y - road[1]) * Math.sin(a);
 };
 
 test("every road in of the viewer's side carries chevrons, and the other side's none", () => {
-  const blue = paint("blue", "blue-1").marching;
+  const blue = marching("blue");
   for (const road of BLUE_ROADS)
     expect(near(blue, road).length, `blue road at ${road}`).toBeGreaterThan(0);
   for (const road of RED_ROADS) expect(near(blue, road), `red road at ${road}`).toEqual([]);
-  const red = paint("red", "red-1").marching;
+  const red = marching("red");
   for (const road of RED_ROADS)
     expect(near(red, road).length, `red road at ${road}`).toBeGreaterThan(0);
 });
 
 test("each road in paints its lane's number between the edge and its chevrons", () => {
-  const { still, marching } = paint("blue", "blue-1");
   for (const road of BLUE_ROADS) {
-    const number = near(still, road);
+    const marks = near(marching("blue"), road);
+    // Past the outline's overhang behind the chevrons' arms, a still mark
+    // nearer the edge than every pulsing chevron is the number.
+    const chevrons = Math.min(...marks.filter((v) => v.pulses).map((v) => inward(road, v.at)));
+    const number = marks.filter((v) => !v.pulses && inward(road, v.at) < chevrons - 2.5);
     expect(number.length, `blue road at ${road}`).toBeGreaterThan(0);
-    const deepest = Math.max(...number.map((p) => inward(road, p)));
-    const chevrons = Math.min(...near(marching, road).map((p) => inward(road, p)));
-    expect(deepest, `blue road at ${road}`).toBeLessThan(chevrons);
   }
-  for (const road of RED_ROADS) expect(near(still, road), `red road at ${road}`).toEqual([]);
 });
 
-test("the viewer's own lane's number is drawn larger than the same number not its own", () => {
-  const width = (viewer: string, road: P) => {
-    const xs = near(paint("blue", viewer).still, road).map((p) => across(road, p));
-    return Math.max(...xs) - Math.min(...xs);
-  };
-  // Blue 1 holds one road, Blue 2 the other: each road, seen as its holder
-  // and as the other, is the same number either way.
-  for (const road of BLUE_ROADS) {
-    const own = Math.max(width("blue-1", road), width("blue-2", road));
-    const other = Math.min(width("blue-1", road), width("blue-2", road));
-    expect(own, `blue road at ${road}`).toBeGreaterThan(other);
-  }
+test("a unit's marks draw over the road in it stands beside", () => {
+  const road = BLUE_ROADS[0];
+  const drawn = marching("blue", [TANK.id]);
+  const order = (v: Vertex) => drawn.indexOf(v);
+  // The marker spans a few metres across its road; the tank's ring lies
+  // 45 m to one side of it.
+  const across = (v: Vertex) => Math.abs(v.at[0] - road[0]);
+  const marker = near(drawn, road).filter((v) => across(v) < 20);
+  const ring = near(drawn, [TANK.position[0], TANK.position[1]], 15).filter((v) => across(v) > 30);
+  expect(marker.length).toBeGreaterThan(0);
+  expect(ring.length).toBeGreaterThan(0);
+  expect(Math.max(...marker.map(order))).toBeLessThan(Math.min(...ring.map(order)));
 });

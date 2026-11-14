@@ -186,6 +186,16 @@ export class MeshBuilder {
   }
 }
 
+/** Still paint as marching paint that never pulses, so it can be ordered
+ *  among marching marks: the marching pass reads a vertex's normal as
+ *  (phase, cycles a second, amplitude), and the still pass draws with a zero
+ *  normal, so zeroing it draws the same mark. */
+export function unpulsed(mesh: Mesh): Mesh {
+  const out = mesh.slice();
+  for (let i = 0; i < out.length; i += VERTEX_FLOATS) out.fill(0, i + 3, i + 6);
+  return out;
+}
+
 /** One mesh holding every input's triangles, in order. */
 export function concatMeshes(parts: readonly Mesh[]): Mesh {
   const out = new Float32Array(parts.reduce((n, p) => n + p.length, 0));

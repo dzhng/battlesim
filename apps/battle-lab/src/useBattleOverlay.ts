@@ -43,16 +43,14 @@ export function useBattleOverlay(
     shown = true,
   }: { scenario: string; side?: SideName; camera: Camera3DParams; shown?: boolean },
 ) {
-  // The roads in are numbered by `sim::entries`, and the viewer's own is
-  // the one its seat holds.
-  const viewer = session.viewer?.id ?? null;
+  // The roads in are numbered by `sim::entries`.
   const parsed = useMemo(() => {
     const s = JSON.parse(scenario) as OverlayScenarioSource & { players?: Player[] };
     const lanes = s.skirmish
       ? lanesOf(gameWasm, JSON.stringify(s.skirmish.sites), s.players ?? []).entries
       : [];
-    return { size: s.map.size, drawn: battleOverlayScenario(s, lanes, side ?? "blue", viewer) };
-  }, [scenario, side, viewer]);
+    return { size: s.map.size, drawn: battleOverlayScenario(s, lanes, side ?? "blue") };
+  }, [scenario, side]);
   // The border and the orders are rebuilt only when the zoom crosses a step
   // (×1.25), so their widths hold near their `_px` widths on screen.
   const [zoom, setZoom] = useState(() => zoomStep(camera.distance));
