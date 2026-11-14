@@ -81,11 +81,12 @@ attributes taken there extrapolate past every vertex: a thin slat's vertex
 colour overshoots into a white speck. So every multisampled pass interpolates
 its smooth attributes at the centroid, inside the covered part; the pipeline
 registry's tests refuse one that doesn't. A full-screen triangle has nothing to
-fix: it covers every sample of every pixel. The one exception is an attribute a
-pass differentiates to size its filtering: a centroid moves between the pixels
-of a quad, so its derivative jumps at edges. Scenery keeps world position at
-the centre for its leaf footprint, safely, since a position can't overshoot off
-its triangle's plane.
+fix: it covers every sample of every pixel. The cost is a rougher derivative on
+partly covered pixels, since a centroid moves between the pixels of a quad.
+Texture filtering, ground detail and room interiors don't show it, but
+scenery's painted leaves sparkled, so scenery keeps world position, whose
+`fwidth` sizes those leaves, at the centre. That one is safe: a position can't
+overshoot off its triangle's plane.
 
 ## Validation
 

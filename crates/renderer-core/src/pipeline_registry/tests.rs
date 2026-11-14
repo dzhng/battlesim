@@ -168,8 +168,7 @@ fn pipelines_fit_default_per_stage_binding_limits() {
     }
 }
 
-/// Smooth inputs a pass differentiates to size its filtering, so it takes them
-/// at the pixel centre (see the scenery stage IO).
+/// Smooth inputs measured to need the pixel centre (see the scenery stage IO).
 const CENTRE_SAMPLED: &[&str] = &["FoliageFragmentInput.world"];
 
 /// Every smooth fragment input of a pass that can cover part of a pixel, as
@@ -229,12 +228,12 @@ fn multisampled_geometry_shades_inside_its_triangles() {
         .into_iter()
         .filter(|pipeline| pipeline.multisample_count > 1)
         .filter_map(|pipeline| {
-            let locations: Vec<_> = smooth_fragment_inputs(&pipeline)
+            let fields: Vec<_> = smooth_fragment_inputs(&pipeline)
                 .into_iter()
                 .filter(|(name, centroid)| !centroid && !CENTRE_SAMPLED.contains(&name.as_str()))
                 .map(|(name, _)| name)
                 .collect();
-            (!locations.is_empty()).then(|| format!("{} {locations:?}", pipeline.name))
+            (!fields.is_empty()).then(|| format!("{} {fields:?}", pipeline.name))
         })
         .collect();
     assert!(
