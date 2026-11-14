@@ -54,6 +54,14 @@ export interface BloomSettings {
   smooth_width: number;
 }
 
+/** Sunlit-surface wrap and rim, in the sun's colour. 0 is a no-op. */
+export interface GlowSettings {
+  /** Softens the sun's Lambertian terminator so raking faces stay lit. */
+  wrap: number;
+  /** A sun-coloured rim on sun-facing surfaces at grazing view angles. */
+  rim: number;
+}
+
 /** Post owns the display transform: exposure, grade, AgX and bloom. */
 export interface PostSettings {
   exposure: number;
@@ -106,6 +114,7 @@ export interface LightPresentation extends PostSettings {
     clouds: CloudSettings;
   };
   haze: HazeSettings;
+  glow: GlowSettings;
   cascades: CascadeSettings;
 }
 

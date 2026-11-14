@@ -756,6 +756,40 @@ fn golden_hour_is_the_v4_look_with_the_day_azimuth() {
     assert_eq!(settings.light.cascades.depth_bias, -0.000045);
     assert_eq!(settings.light.cascades.softness_m, 0.16);
     assert_eq!(settings.light.cascades.map_size, 2048);
+    // Glow is strongest at golden hour; bloom is a wide, low-threshold highpass.
+    assert_eq!(settings.light.glow.wrap, 0.40);
+    assert_eq!(settings.light.glow.rim, 0.22);
+    assert_eq!(settings.light.bloom.threshold, 0.92);
+    assert_eq!(settings.light.bloom.radius, 0.88);
+    assert_eq!(settings.light.bloom.strength, 0.30);
+    assert_eq!(settings.light.haze.sun_strength, 0.34);
+    assert_eq!(settings.light.haze.sun_power, 2.2);
+}
+
+#[test]
+fn sunlit_glow_is_packed_into_the_sun_record_and_day_is_gentler() {
+    let settings =
+        presentation::settings::PresentationSettings::from_value(&fixture("presentation")).unwrap();
+    let day = settings.light.records().sun.settings;
+    assert_eq!(day[2], 0.16);
+    assert_eq!(day[3], 0.08);
+    assert_eq!(settings.light.bloom.threshold, 1.25);
+    assert_eq!(settings.light.haze.sun_strength, 0.22);
+    let golden = settings
+        .with_light_preset("golden_hour")
+        .unwrap()
+        .light
+        .records()
+        .sun
+        .settings;
+    assert!(golden[2] > day[2], "wrap");
+    assert!(golden[3] > day[3], "rim");
+}
+
+#[test]
+fn a_glow_outside_range_is_refused_by_name() {
+    reject_presentation("/light/glow/wrap", json!(-0.1), "glow.wrap");
+    reject_presentation("/light/glow/rim", json!(2.1), "glow.rim");
 }
 
 #[test]

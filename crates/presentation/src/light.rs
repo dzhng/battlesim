@@ -51,6 +51,10 @@ pub struct LightSettings {
     pub exposure: f64,
     pub grade: GradeSettings,
     pub bloom: BloomSettings,
+    /// Sunlit-surface glow: a wrap and a grazing rim, both in the sun's colour.
+    /// Missing on older test lights is a no-op (wrap and rim 0).
+    #[serde(default)]
+    pub glow: GlowSettings,
     /// The sun's shadow cascades (`shadow.rs`).
     pub cascades: CascadeSettings,
 }
@@ -191,6 +195,16 @@ pub struct BloomSettings {
     pub smooth_width: f64,
 }
 
+/// Wrap and rim on sunlit faces. 0 is a no-op; golden hour is authored strongest.
+#[derive(Clone, Debug, Default, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct GlowSettings {
+    /// Softens the sun's Lambertian terminator so raking faces stay lit.
+    pub wrap: f64,
+    /// A sun-coloured rim on sun-facing surfaces at grazing view angles.
+    pub rim: f64,
+}
+
 fn smoothstep(edge0: f64, edge1: f64, x: f64) -> f64 {
     let t = ((x - edge0) / (edge1 - edge0)).clamp(0.0, 1.0);
     t * t * (3.0 - 2.0 * t)
@@ -259,7 +273,12 @@ impl LightSettings {
         Sun {
             direction: f32s([sun[0], sun[1], sun[2], 0.0]),
             radiance: f32s([r, g, b, 0.0]),
-            settings: [0.0, self.shadow_floor as f32, 0.0, 0.0],
+            settings: [
+                0.0,
+                self.shadow_floor as f32,
+                self.glow.wrap as f32,
+                self.glow.rim as f32,
+            ],
             fill: f32s([fill[0], fill[1], fill[2], 0.0]),
         }
     }

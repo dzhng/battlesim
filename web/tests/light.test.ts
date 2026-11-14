@@ -49,6 +49,7 @@ test("the street test map's light is valid, and a broken one is refused by name"
   );
   expect(() => checkLight(withLight((l) => (l.shadow_floor = 0.8)))).toThrow(/shadow_floor/);
   expect(() => checkLight(withLight((l) => (l.shadow_floor = -0.1)))).toThrow(/shadow_floor/);
+  expect(() => checkLight(withLight((l) => (l.glow.wrap = -0.1)))).toThrow(/glow\.wrap/);
 });
 
 test("a frame's cascades are the structs the renderer binds: a receiver block and a camera per cascade", () => {
@@ -130,6 +131,12 @@ test("the fixture admits a day default and a selectable golden_hour look", () =>
   expect(golden.sky.saturation).toBe(1.32);
   expect(golden.grade.highlight_tint).toEqual([1.0, 1.04, 0.98]);
   expect(golden.grade.split_tone).toBe(0.5);
+  expect(golden.glow.wrap).toBe(0.4);
+  expect(golden.glow.rim).toBe(0.22);
+  expect(golden.bloom.threshold).toBe(0.92);
+  expect(golden.haze.sun_strength).toBe(0.34);
+  expect(LIGHT.glow.wrap).toBeLessThan(golden.glow.wrap);
+  expect(LIGHT.glow.rim).toBeLessThan(golden.glow.rim);
   expect(() => lightForPreset("dusk")).toThrow(/unknown light preset/);
   expect(checkLight(golden)).toBe(golden);
 });
