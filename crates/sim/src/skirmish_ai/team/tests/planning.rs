@@ -1,6 +1,54 @@
 use super::*;
 
 #[test]
+fn clear_objective_pull_beats_home_lane_and_unassigned_slot_gets_no_pull() {
+    // Blue 1's home is the high-x road (entry 2, x 500); its one objective
+    // sits beside the x 100 road (entry 0), 140 m closer than from home, so
+    // a home pull of 50 loses and it takes the needier road.
+    let mut ai_players = players();
+    ai_players.truncate(3);
+    let mut sites = sites();
+    sites.objectives.retain(|objective| objective.id == "west");
+    let mut memory = TeamMemory::default();
+    let tuning = TeamTuning {
+        home_lane_bonus: 50.0,
+        ..TeamTuning::shipped()
+    };
+    let first_plan = plan(
+        Side::Blue,
+        &team_rules(),
+        &ObservationFrame::default(),
+        &ai_players,
+        &sites,
+        &mut memory,
+        tuning,
+    );
+    assert_eq!(first_plan.players.len(), 1);
+    assert_eq!(first_plan.players[0].player, PlayerIndex(0));
+    assert_eq!(first_plan.players[0].lane, EntryIndex(0));
+
+    let mut slot_four = players();
+    for player in slot_four.iter_mut().take(3) {
+        player.controller = ControllerKind::Human;
+    }
+    slot_four[3].side = Side::Blue;
+    slot_four[3].controller = ControllerKind::ActiveAi;
+    let mut memory = TeamMemory::default();
+    let slot_four_plan = plan(
+        Side::Blue,
+        &team_rules(),
+        &ObservationFrame::default(),
+        &slot_four,
+        &sites,
+        &mut memory,
+        tuning,
+    );
+    assert_eq!(slot_four_plan.players.len(), 1);
+    assert_eq!(slot_four_plan.players[0].player, PlayerIndex(3));
+    assert_eq!(slot_four_plan.players[0].lane, EntryIndex(0));
+}
+
+#[test]
 fn three_ai_players_get_distinct_lanes_and_objectives() {
     let players = players();
     let sites = sites();
@@ -16,6 +64,7 @@ fn three_ai_players_get_distinct_lanes_and_objectives() {
             planner_decision_s: 5.0,
             grid_resolution: 4,
             distance_weight: 1.0,
+            home_lane_bonus: 0.0,
             influence_weight: 1.0,
             incumbency_bonus: 80.0,
             group_radius_m: 90.0,
@@ -86,6 +135,7 @@ fn a_large_team_plan_uses_bounded_assignment_work() {
             planner_decision_s: 5.0,
             grid_resolution: 4,
             distance_weight: 1.0,
+            home_lane_bonus: 0.0,
             influence_weight: 1.0,
             incumbency_bonus: 80.0,
             group_radius_m: 90.0,
@@ -132,6 +182,7 @@ fn three_ai_players_reuse_two_lanes() {
             planner_decision_s: 5.0,
             grid_resolution: 4,
             distance_weight: 1.0,
+            home_lane_bonus: 0.0,
             influence_weight: 1.0,
             incumbency_bonus: 80.0,
             group_radius_m: 90.0,
@@ -176,6 +227,7 @@ fn a_lone_ai_takes_the_lane_nearest_its_objective_not_the_first() {
             planner_decision_s: 5.0,
             grid_resolution: 4,
             distance_weight: 1.0,
+            home_lane_bonus: 0.0,
             influence_weight: 1.0,
             incumbency_bonus: 80.0,
             group_radius_m: 90.0,
@@ -213,6 +265,7 @@ fn planning_is_repeatable_and_incumbency_survives_a_marginal_score_change() {
         planner_decision_s: 5.0,
         grid_resolution: 4,
         distance_weight: 1.0,
+        home_lane_bonus: 0.0,
         influence_weight: 1.0,
         incumbency_bonus: 80.0,
         group_radius_m: 90.0,
@@ -263,6 +316,7 @@ fn a_held_objective_replans_to_one_the_side_does_not_hold_immediately() {
         planner_decision_s: 5.0,
         grid_resolution: 4,
         distance_weight: 1.0,
+        home_lane_bonus: 0.0,
         influence_weight: 1.0,
         incumbency_bonus: 80.0,
         group_radius_m: 90.0,

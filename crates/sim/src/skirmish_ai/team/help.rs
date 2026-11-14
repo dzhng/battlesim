@@ -37,12 +37,13 @@ pub(super) fn lane_contexts(
     if lanes.is_empty() || sites.objectives.is_empty() {
         return Vec::new();
     }
+    let sides: Vec<_> = players.iter().map(|player| player.side).collect();
+    let home_entries = entries::homes(sites, &sides);
     players
         .iter()
         .enumerate()
         .filter(|(_, player)| player.side == side)
-        .enumerate()
-        .filter_map(|(local_index, (index, _))| {
+        .filter_map(|(index, _)| {
             let player = PlayerIndex(index as u16);
             if let Some(plan) = plans.iter().find(|plan| plan.player == player) {
                 return Some((
@@ -57,7 +58,7 @@ pub(super) fn lane_contexts(
             if players[index].controller != ControllerKind::Human {
                 return None;
             }
-            let lane = lanes[local_index % lanes.len()];
+            let lane = home_entries.get(index).copied().flatten()?;
             let objective = covered_by_player.get(&player)?.clone();
             let staging_point = staging(
                 sites.entries[lane.0].center,

@@ -13,7 +13,7 @@ use contract::scenario::Rules;
 use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::entries::EntryIndex;
+use crate::entries::{self, EntryIndex};
 use crate::skirmish::PlayerState;
 
 mod backline;
@@ -42,6 +42,7 @@ pub struct TeamTuning {
     pub planner_decision_s: f64,
     pub grid_resolution: usize,
     pub distance_weight: f64,
+    pub home_lane_bonus: f64,
     pub influence_weight: f64,
     pub incumbency_bonus: f64,
     pub group_radius_m: f64,
@@ -204,6 +205,8 @@ pub fn plan<'a>(
         .filter(|(_, entry)| entry.side == side)
         .map(|(index, _)| EntryIndex(index))
         .collect();
+    let player_sides: Vec<_> = players.iter().map(|player| player.side).collect();
+    let home_entries = entries::homes(sites, &player_sides);
     let mut objectives: Vec<_> = sites.objectives.clone();
     let covered_by_player = covered_objectives_by_player(side_frame, players, side, &objectives);
     let covered: BTreeSet<_> = covered_by_player
@@ -321,6 +324,11 @@ pub fn plan<'a>(
             }
             - if incumbent {
                 tuning.incumbency_bonus
+            } else {
+                0.0
+            }
+            - if home_entries.get(player.0 as usize).copied().flatten() == Some(lane) {
+                tuning.home_lane_bonus
             } else {
                 0.0
             }

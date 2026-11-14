@@ -24,6 +24,7 @@
   "smoke_reverse_m": 40,
   "grid_resolution": 8,
   "distance_weight": 1.0,
+  "home_lane_bonus": 0.0,
   "influence_weight": 49.0,
   "incumbency_bonus": 80.0,
   "group_radius_m": 90.0,
