@@ -107,11 +107,12 @@ export class ArmoryAppearances {
     if (call !== this.newest) return Promise.reject(superseded());
     const file = read.get(url) ?? this.kept.get(url) ?? this.download(url);
     read.set(url, file);
+    // A failed read is not kept: the loader asks again for one the network dropped.
+    file.catch(() => read.get(url) === file && read.delete(url));
     return file.then(({ ok, status, bytes }) => ({
       ok,
       status,
       arrayBuffer: async () => bytes.slice().buffer,
-      json: async () => JSON.parse(new TextDecoder().decode(bytes)) as unknown,
     }));
   }
 

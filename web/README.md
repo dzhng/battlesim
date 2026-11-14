@@ -57,7 +57,8 @@ editors' local APIs and asset rebaking. Those APIs and editor routes are develop
 facilities; the production build does not provide fixture editing.
 
 [Vercel configuration](../vercel.json) owns deployed builds, SPA rewrites, isolation
-headers and immutable caching for content-addressed assets. Keep serving isolation
+headers and immutable caching for content-addressed assets. It never deploys `main`,
+whose commits `staging` already built ([release order](../development.md#release-order)). Keep serving isolation
 consistent with Vite so local, preview and deployed pages follow the same
 cross-origin isolation policy. Runtime assets must be materialized from Git LFS before a build can
 serve them; committed pointer files are not media.
@@ -156,4 +157,4 @@ provenance and crops belong to the sound catalog rather than the appearance cata
 
 ## Deployed runtime assets
 
-The Vercel project keeps its **Git LFS** setting off: that setting fetches every LFS object in the repository, most of it art sources and evidence the site never serves. [The install step](../tools/vercel-install.sh) fetches only `assets/runtime`, and fails the build if a runtime file is still a pointer, so a deployment never serves pointer files instead of media.
+The Vercel project keeps its **Git LFS** setting off: that setting fetches every LFS object in the repository, most of it art sources and evidence the site never serves. [The install step](../tools/vercel-install.sh) fetches only what the site serves, the runtime assets and the effect flipbooks the bundle imports. [The build step](../tools/vercel-build.sh) refuses to deploy a site that still carries a pointer, as a file or inlined into a bundle, and names it; a new import of an LFS file belongs in the install step's list.

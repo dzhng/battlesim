@@ -2,9 +2,11 @@
 // pick (a tile, a group, a faction) rewrites `?unit=` in place, with no new
 // history entry and no remount, a refresh reopens the same unit, an unknown
 // unit opens the first tile, and Back returns to the menu on the Armory's
-// tile. Its stage stands one unit of each group on its spot, seated on the
-// ground, with its idle loops heard while the Armory is open; the backdrop
-// never restarts and the cover never returns. Its approved pictures are the
+// tile. It opens under a cover that lifts once its unit stands. Its stage
+// stands one unit of each group on its spot, seated on the ground, with its
+// idle loops heard while the Armory is open; a switch holds the last frame;
+// the backdrop never restarts and no cover returns after the Armory's
+// opening. Its approved pictures are the
 // UI gallery's, on fixed content (`ui.mjs`); this scene leaves shots of the
 // real page, and crops of each unit on its spot, in its evidence. It also
 // measures, once, the frame time with both scenes live, each switch's time
@@ -77,8 +79,19 @@ export async function run(ctx) {
   await page.addInitScript(seedGraphics);
   await openMenu(page, `${origin}/`);
   await page.locator(`${MENU} [data-page="armory"]`).click();
+  // The Armory loads under its own cover: the page is revealed only once its
+  // unit stands, so the menu's film never stands in for a stage still loading.
+  const covered = await page
+    .getByTestId("loading")
+    .waitFor({ timeout: 5_000 })
+    .then(() => true)
+    .catch(() => false);
   const list = page.getByRole("region", { name: "Units" });
-  await list.waitFor();
+  await page.locator(MENU).getByRole("region", { name: "Units" }).waitFor({ timeout: 120_000 });
+  ctx.check(
+    "the Armory opens under a cover that lifts once its unit stands",
+    covered && (await armoryProbe(page, () => window.__armory?.shown() != null)),
+  );
   const opened = unit(page);
   ctx.check(
     "the tile opens the Armory at its own address, on a unit",
@@ -165,6 +178,7 @@ export async function run(ctx) {
  *  ground, its switch timed and the files its art holds counted, and its crop (its
  *  bounds plus a fifth, the panels left out) kept. */
 async function stageTour(ctx, page, list) {
+  let heldChecks = 0;
   const groups = list
     .getByRole("tablist", { name: "Unit groups" })
     .locator('[role="tab"]:not([disabled])');
@@ -178,7 +192,26 @@ async function stageTour(ctx, page, list) {
     if ((await tile.count()) === 0) continue;
     if ((await tile.getAttribute("aria-pressed")) !== "true") await tile.click();
     const kind = unit(page);
-    // Mid-switch, the stage holds the unit before: never the backdrop.
+    // Mid-switch, the stage holds the unit before: never the backdrop. The
+    // held frame is a picture, not a clear canvas.
+    const held = await (
+      await page.waitForFunction(
+        (k) => {
+          if (window.__armory?.shown()?.kind === k) return { done: true };
+          const switching = document.querySelector(".armory-stage[data-switching]");
+          const canvas = switching?.querySelector("canvas.armory-stage-canvas");
+          if (!canvas) return false;
+          const at = [canvas.width / 2, canvas.height / 2, 1, 1];
+          return { alpha: canvas.getContext("2d").getImageData(...at).data[3] };
+        },
+        kind,
+        { timeout: 120_000, polling: "raf" },
+      )
+    ).jsonValue();
+    if (!held.done) {
+      heldChecks++;
+      ctx.check(`${group}: the switch holds the last frame`, held.alpha > 0, `${held.alpha}`);
+    }
     await page.screenshot({ path: ctx.evidencePath(`armory-switching-${g}.png`) });
     await page.waitForFunction((k) => window.__armory?.shown()?.kind === k, kind, {
       timeout: 120_000,
@@ -215,6 +248,7 @@ async function stageTour(ctx, page, list) {
     tours.push({ group, kind, spot: shown.spot, rect: shown.rect, held: shown.held });
   }
   ctx.check("the stage shows a unit of every group", tours.length > 0, `${tours.length} groups`);
+  ctx.check("a switch was caught mid-way", heldChecks > 0, `${heldChecks} switches`);
   const switches = await armoryProbe(page, () => window.__armory.switches);
   // Measured once and recorded: loose tripwires, never targets.
   await mkdir(MEASURES, { recursive: true });
@@ -223,16 +257,22 @@ async function stageTour(ctx, page, list) {
 }
 
 /** Menu → Armory → Back: the stage's loops sound while it is open and stop
- *  after, the backdrop's battle never restarts, the cover never returns,
- *  and the frame time with both scenes live is measured. */
+ *  after, the backdrop's battle never restarts, a cover is drawn only while
+ *  the Armory opens (never on a pick, never after Back), and the frame time
+ *  with both scenes live is measured. */
 async function roundTrip(ctx, origin) {
   const page = await ctx.newPage({ viewport: { width: 1280, height: 800 } });
   await page.addInitScript(seedGraphics);
-  // Whether the loading cover is ever drawn after the menu first shows.
+  // Whether a loading cover is drawn after the menu first shows, outside the
+  // Armory's opening.
   await page.addInitScript(() => {
     window.__coverReturned = false;
     new MutationObserver(() => {
-      if (window.__menuShown && document.querySelector('[data-testid="loading"]'))
+      if (
+        window.__menuShown &&
+        !window.__armoryOpening &&
+        document.querySelector('[data-testid="loading"]')
+      )
         window.__coverReturned = true;
     }).observe(document, { childList: true, subtree: true });
   });
@@ -240,12 +280,14 @@ async function roundTrip(ctx, origin) {
   await page.evaluate(() => (window.__menuShown = true));
   const backdrop = page.workers();
   const alone = await frameTimes(page, 3000);
+  await page.evaluate(() => (window.__armoryOpening = true));
   await page.locator(`${MENU} [data-page="armory"]`).click();
   // A hull with an engine: the first typed tile of the first group whose
   // first unit idles with loops.
   const list = page.getByRole("region", { name: "Units" });
-  await list.waitFor();
+  await page.locator(MENU).getByRole("region", { name: "Units" }).waitFor({ timeout: 120_000 });
   await page.waitForFunction(() => window.__armory?.shown(), undefined, { timeout: 120_000 });
+  await page.evaluate(() => (window.__armoryOpening = false));
   const groups = list
     .getByRole("tablist", { name: "Unit groups" })
     .locator('[role="tab"]:not([disabled])');
@@ -277,7 +319,7 @@ async function roundTrip(ctx, origin) {
   ctx.check("its loops stop after Back", after === 0, `${after} voices`);
   const workers = page.workers();
   ctx.check(
-    "the backdrop's battle never restarts and the cover never returns",
+    "the backdrop's battle never restarts and no cover returns but the Armory's opening",
     backdrop.length === 1 &&
       workers.length === 1 &&
       workers[0] === backdrop[0] &&

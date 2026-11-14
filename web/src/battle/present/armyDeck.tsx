@@ -40,8 +40,6 @@ export function ArmyDeck({
   const deck = useRef<HTMLElement>(null);
   const [hintHost, setHintHost] = useState<HTMLDivElement | null>(null);
   const [hovered, setHovered] = useState<number | null>(null);
-  const [focused, setFocused] = useState<number | null>(null);
-  const [dismissed, setDismissed] = useState<number | null>(null);
   const [detailX, setDetailX] = useState(0);
   const [detailY, setDetailY] = useState(0);
   const tooltipId = useId();
@@ -76,14 +74,12 @@ export function ArmyDeck({
     lastRow && index >= count - lastRow
       ? { transform: `translateX(${(columns - lastRow) * 34}px)` }
       : undefined;
-  const active = hovered ?? focused;
-  const detail = active === dismissed ? undefined : own.find((unit) => unit.id === active);
+  const detail = own.find((unit) => unit.id === hovered);
   const alignDetail = (button: HTMLButtonElement) => {
     // Both popups anchor to the deck; captions above it must not inflate the gap.
     const box = button.getBoundingClientRect();
     setDetailX(box.left + box.width / 2);
     setDetailY(deck.current!.getBoundingClientRect().top);
-    setDismissed(null);
   };
   return (
     <div className="hud-lower" ref={lower}>
@@ -169,29 +165,14 @@ export function ArmyDeck({
                       // selected unit rather than the passenger.
                       onCenter?.(carrier ?? unit);
                   }}
-                  // Mouse selection keeps details tied to hover; Tab still offers focus details.
+                  // A click leaves keyboard focus where it was, so Enter and
+                  // Space stay the game's rather than clicking the card again.
                   onMouseDown={(event) => event.preventDefault()}
                   onMouseEnter={(event) => {
                     alignDetail(event.currentTarget);
                     setHovered(unit.id);
                   }}
-                  onMouseLeave={() => {
-                    setHovered(null);
-                    const button = lower.current!.querySelector<HTMLButtonElement>(
-                      `button[data-unit="${focused}"]`,
-                    );
-                    if (button) alignDetail(button);
-                  }}
-                  onFocus={(event) => {
-                    setHovered(null);
-                    event.currentTarget.scrollIntoView({ block: "nearest", inline: "nearest" });
-                    alignDetail(event.currentTarget);
-                    setFocused(unit.id);
-                  }}
-                  onBlur={() => setFocused(null)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Escape") setDismissed(active);
-                  }}
+                  onMouseLeave={() => setHovered(null)}
                 >
                   <UnitFace kind={unit.kind}>
                     <StrengthMeter name={name} strength={strength} />

@@ -17,6 +17,7 @@ import type { ClearanceReading, LabHandle } from "./labDiagnostics";
 import { FrameRate, type FrameRateHandle } from "@web/battle/present/frameRate";
 import { useLabLoading } from "./LabLoading";
 import { diagnosticsSource } from "@web/diagnostics";
+import { ViewportTrace } from "./viewportTrace";
 import {
   ScenePresentation,
   type PropStats,
@@ -51,7 +52,8 @@ import type { ModelInstance } from "@packages/battle-renderer/src/models/modelIn
 import { trackHeldKeys } from "@web/battle/input/heldKeys";
 import { focusStep, type FocusTarget } from "@web/battle/input/contactFocus";
 import { isGameKey } from "@web/battle/input/keyGuard";
-import { HIGH_PLANE_ATTR, type Project } from "@web/battle/present/readouts";
+import type { Project } from "@web/battle/present/readouts";
+import { highAirCanvas } from "./highAirCanvas";
 import { gameCamera } from "./gameCamera";
 import { gameLightFor } from "./gameLight";
 import { applyShadowQuality } from "@packages/renderer-core/src/lightQuality";
@@ -483,45 +485,22 @@ export function LabViewport({
         const info = JSON.parse(gpu.info()) as BrowserGpuInfo;
         if (signal.aborted) return;
         const plates = pilot?.plates === true;
+        const trace = new ViewportTrace(canvas, signal);
         const syncSize = () => {
           const scale = qualityRef.current?.renderScale ?? 1;
           const w = Math.max(1, Math.round(canvas.clientWidth * scale));
           const h = Math.max(1, Math.round(canvas.clientHeight * scale));
           if (canvas.width !== w || canvas.height !== h) {
+            const from: [number, number] = [canvas.width, canvas.height];
             canvas.width = w;
             canvas.height = h;
+            trace.resized(from, [canvas.clientWidth, canvas.clientHeight]);
             sceneAdmissionRef.current?.current()?.resize();
             dirty = true;
           }
         };
         syncSize();
-        // The high-air models' canvas, drawn by the same frame: laid over this
-        // one between the card planes once the page has them
-        // (`HIGH_PLANE_ATTR`), so a high-air model rises above every ground
-        // and low-air card. Without them, and for control plates (which a
-        // second client's single picture is held to), the models draw with
-        // the world.
-        const high = plates ? undefined : document.createElement("canvas");
-        if (high) Object.assign(high.style, { position: "absolute", pointerEvents: "none" });
-        signal.addEventListener("abort", () => high?.remove());
-        let highAt = "";
-        const placeHigh = () => {
-          if (!high) return;
-          const host = document.querySelector(`[${HIGH_PLANE_ATTR}]`) ?? canvas.parentElement!;
-          if (high.parentElement !== host) host.appendChild(high);
-          const r = canvas.getBoundingClientRect();
-          const h = host.getBoundingClientRect();
-          const at = `${r.left - h.left} ${r.top - h.top} ${r.width} ${r.height}`;
-          if (at !== highAt) {
-            highAt = at;
-            Object.assign(high.style, {
-              left: `${r.left - h.left}px`,
-              top: `${r.top - h.top}px`,
-              width: `${r.width}px`,
-              height: `${r.height}px`,
-            });
-          }
-        };
+        const high = plates ? undefined : highAirCanvas(canvas, signal);
         let clock = 0;
         // A route's own light, else the fixture's (a lab URL's `?sun=` sets it lower).
         const light = () => lightRef.current ?? gameLightFor(window.location.search);
@@ -635,7 +614,7 @@ export function LabViewport({
             next = await BrowserScene.create({
               gpu,
               canvas,
-              highCanvas: high,
+              highCanvas: high?.canvas,
               presentation: decoder,
               world,
               settings: {
@@ -685,12 +664,14 @@ export function LabViewport({
           build,
           redraw: () => (dirty = true),
           installed: (next) => {
+            trace.installed();
             scene = next;
             staged = null;
             setInspecting((shown) => (shown ? next : shown));
           },
         });
         sceneAdmissionRef.current = admission;
+        trace.rebuild("first scene");
         await admission.request();
         if (signal.aborted) return;
         const allocations = () => scene.stats().memory;
@@ -710,14 +691,21 @@ export function LabViewport({
             gpuAllocations: allocations(),
           })),
         );
+        /** Replace the whole scene: the old one stops drawing until then. */
+        const rebuild = (reason: string) => {
+          trace.rebuild(reason);
+          void handle.rebuild?.().catch(reportFailure);
+        };
         const draw = () => {
           // Cleared first: a frame may ask to be drawn again (`requestRedraw`).
           dirty = false;
-          placeHigh();
+          high?.place();
           if (!scene.render()) {
             dirty = true;
+            trace.skipped(performance.now(), "no canvas output");
             return false;
           }
+          trace.drawn(performance.now());
           return true;
         };
         /** Whether the lab took the grass away (`suppressGrass`). */
@@ -753,12 +741,14 @@ export function LabViewport({
         // eslint-disable-next-line complexity -- debt: its stages read and write the effect's mutable locals (scene, dirty, pointer, grassSuppressed, lastFrame); split needs those in one frame-state object the stages take, not more closures.
         const loop = (now: number) => {
           if (signal.aborted || handle.error) return;
+          trace.check(now, () => ({ dirty, replacing: admission.replacing() }));
           if (admission.replacing()) {
+            trace.skipped(now, "scene rebuilding");
             raf = requestAnimationFrame(loop);
             return;
           }
           if (scene.presentation !== scenePresentation()) {
-            void handle.rebuild?.().catch(reportFailure);
+            rebuild("observer changed");
             raf = requestAnimationFrame(loop);
             return;
           }
@@ -806,7 +796,9 @@ export function LabViewport({
           const terrain = scene.world().terrain.mesh;
           let animated: ViewportFrame | null | undefined = null;
           try {
+            const art = scene.appearances();
             if (scene.flush()) dirty = true;
+            if (scene.appearances() !== art) trace.artCommitted(scene);
             if (decoder) {
               decoder.setBuildings(
                 buildingsRef.current?.current ?? null,
@@ -859,7 +851,7 @@ export function LabViewport({
             return;
           }
           if (!scene.worldCurrent()) {
-            void handle.rebuild?.().catch(reportFailure);
+            rebuild("world reloaded");
             raf = requestAnimationFrame(loop);
             return;
           }
@@ -875,7 +867,7 @@ export function LabViewport({
                 staged?.instances ?? instancesRef.current,
               );
             if (updated === "rebuild") {
-              void handle.rebuild?.().catch(reportFailure);
+              rebuild("terrain changed");
               raf = requestAnimationFrame(loop);
               return;
             }
@@ -1106,9 +1098,7 @@ export function LabViewport({
           },
         } satisfies Partial<LabHandle>);
 
-        rebuildRef.current = () => {
-          void handle.rebuild?.().catch(reportFailure);
-        };
+        rebuildRef.current = () => rebuild("graphics quality");
 
         // Input: left click selects, left drag box-selects (or, as an action,
         // places at the press and faces toward the release), right click

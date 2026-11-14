@@ -20,6 +20,12 @@ const MUSIC = JSON.parse(
   readFileSync(new URL("../../fixtures/sounds.json", import.meta.url)),
 ).music;
 
+/** The pause menu's way out: Main menu, then confirm leaving the battle. */
+async function leaveForMenu(page) {
+  await page.getByRole("button", { name: "Main menu", exact: true }).click();
+  await page.getByRole("link", { name: "Leave battle", exact: true }).click();
+}
+
 /** The actual player entry and retained page owners, across complete battles:
  *  the menu's Deploy into a generated battle, its pause controls, restart,
  *  history, a saved replay and the way back to the menu. */
@@ -168,8 +174,10 @@ export async function appJourney(ctx) {
       covered.tick === 90,
     JSON.stringify(covered),
   );
+  // Replays have no menu item yet: the battle saves one through its
+  // diagnostics, and the viewer is reached by its address below.
   const download = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Save replay", exact: true }).click();
+  await page.evaluate(() => window.__lab.route.exportReplay());
   await download;
   await closeMenu(page);
   // A unit of the player's own: bought and placed at blue's entry, the
@@ -250,7 +258,7 @@ export async function appJourney(ctx) {
   // Everything the battle made comes before this mark; the menu's backdrop,
   // which starts building at once, allocates after it.
   let mark = await page.evaluate(() => window.__gpuResources.created());
-  await page.getByRole("link", { name: "Main menu", exact: true }).click();
+  await leaveForMenu(page);
   await departed;
   const departedAllocations = await releasedBefore(mark);
   ctx.check(
@@ -301,9 +309,11 @@ export async function appJourney(ctx) {
   await page.evaluate(() => window.__pauseNextWorkerStart());
   await page.goBack();
   await ready();
-  await openMenu(page);
-  await page.evaluate(() => window.__pauseNextWorkerStart());
-  await page.getByRole("link", { name: "Watch saved replay", exact: true }).click();
+  await page.evaluate(() => {
+    window.__pauseNextWorkerStart();
+    history.pushState(null, "", "/battle?replay=saved");
+    dispatchEvent(new PopStateEvent("popstate"));
+  });
   await ready();
   await advance(page, 90 - (await obs(page)).tick);
   await presented(page);
@@ -315,7 +325,7 @@ export async function appJourney(ctx) {
   await snapshot(ctx, page, "app-journey-replay.png");
   await openMenu(page);
   mark = await page.evaluate(() => window.__gpuResources.created());
-  await page.getByRole("link", { name: "Main menu", exact: true }).click();
+  await leaveForMenu(page);
   const released = await releasedBefore(mark);
   const owners = await page.evaluate((allocations) => {
     const p = window.__appJourney;

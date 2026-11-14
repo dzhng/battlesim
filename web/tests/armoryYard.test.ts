@@ -39,7 +39,6 @@ const diskFetch: Fetch = async (url) => {
     status: bytes ? 200 : 404,
     arrayBuffer: async () =>
       bytes!.buffer.slice(bytes!.byteOffset, bytes!.byteOffset + bytes!.length),
-    json: async () => JSON.parse(bytes!.toString("utf8")) as unknown,
   };
 };
 

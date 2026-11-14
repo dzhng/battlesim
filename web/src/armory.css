@@ -1,13 +1,19 @@
 /* The Armory, layout A: the list's panel on the left with the page's head on
    top of it, the open card's sheet on the right, and the stage between them,
-   its yard drawn across the whole screen behind both (the menu's backdrop
-   shows where none is drawn). Every colour is a `--hud-*` property. */
+   its yard drawn across the whole screen behind both. Every colour is a
+   `--hud-*` property. */
 
 .menu[data-open="armory"] {
   grid-template-columns: minmax(0, 1fr);
   justify-items: stretch;
   overflow: hidden;
   padding: 12px 20px;
+}
+/* The menu's film never shows on the Armory: where its stage draws nothing
+   (a failure), the plain ground does. The film plays on behind, so Back
+   returns to it uninterrupted. */
+.menu[data-open="armory"] .menu-backdrop {
+  visibility: hidden;
 }
 .menu[data-open="armory"] .menu-slot {
   grid-template-columns: minmax(0, 1fr);

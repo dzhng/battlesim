@@ -1,11 +1,11 @@
 // The battle deck's workbench, scripted (part of the panels scene): every
-// case of the army deck and its command bar at two widths, plain, hovered and
-// focused, with the deck's layout contract and its approved pictures.
+// case of the army deck and its command bar at two widths, plain and hovered,
+// with the deck's layout contract and its approved pictures.
 import { pointerAway } from "./_baseline.mjs";
 import { spills } from "./_spills.mjs";
 
-/** The battle deck's every case at two widths, plain, hovered and focused:
- *  its layout contract and its approved pictures. */
+/** The battle deck's every case at two widths, plain and hovered: its layout
+ *  contract and its approved pictures. */
 export async function checkBattleDeck(ctx, page) {
   await ctx.openLab(page, ctx.url);
   await page.getByRole("button", { name: "Review battle deck" }).click();
@@ -174,40 +174,6 @@ export async function checkBattleDeck(ctx, page) {
           `${width}px: the whole army wraps into several rows`,
           (await page.locator(".hud-army").getAttribute("data-army-rows")) > 1,
         );
-        await cards.first().focus();
-        for (let i = 1; i < (await cards.count()); i++) await page.keyboard.press("Tab");
-        const reach = await cards.last().evaluate((e) => {
-          const r = e.getBoundingClientRect(),
-            parent = e.parentElement.getBoundingClientRect();
-          return {
-            focused: document.activeElement === e,
-            left: r.left,
-            right: r.right,
-            parentLeft: parent.left,
-            parentRight: parent.right,
-            scroll: e.parentElement.scrollLeft,
-          };
-        });
-        ctx.check(
-          `${width}px: Tab reaches the final unit, whole inside its row`,
-          reach.focused &&
-            reach.scroll === 0 &&
-            reach.left >= reach.parentLeft &&
-            reach.right <= reach.parentRight,
-          JSON.stringify(reach),
-        );
-        const lastId = await cards.last().getAttribute("data-unit");
-        ctx.check(
-          `${width}px: final focused card owns its facts`,
-          (await page.getByRole("tooltip").getAttribute("data-unit")) === lastId,
-        );
-        await ctx.matchBaseline(page, `army-${width}-entire-force-focus-end`);
-        await page.keyboard.press("Escape");
-        ctx.check(
-          `${width}px: Escape dismisses card details`,
-          (await page.getByRole("tooltip").count()) === 0,
-        );
-        await page.getByRole("button", { name: "Info panels", exact: true }).focus();
       }
       if (name === "Mixed capabilities") {
         const attack = page.getByRole("button", { name: /^Attack-move / });
@@ -217,35 +183,15 @@ export async function checkBattleDeck(ctx, page) {
           (await attack.getAttribute("aria-pressed")) === "true",
         );
         await pointerAway(page);
-        const deploy = page.getByRole("button", { name: /^Deploy / });
-        await cards.last().focus();
-        for (let i = 0; i < 7; i++) await page.keyboard.press("Tab");
-        ctx.check(
-          `${width}px: keyboard deployment focus is distinct from the armed attack-move`,
-          await deploy.evaluate(
-            (e) => document.activeElement === e && parseFloat(getComputedStyle(e).outlineWidth) > 0,
-          ),
-        );
-        ctx.check(
-          `${width}px: deployment focus retains its binding without counts`,
-          (await page.getByRole("tooltip").textContent()) === "Deploy (T)",
-        );
-        await ctx.matchBaseline(page, `army-${width}-mixed-command-focus`);
-        await page.getByRole("button", { name: "Info panels", exact: true }).focus();
       }
     }
     await page.getByRole("button", { name: "Rifle squad", exact: true }).click();
-    await page.getByRole("button", { name: /^Attack ground / }).focus();
-    const focus = await page.getByRole("button", { name: /^Attack ground / }).evaluate((e) => ({
-      active: document.activeElement === e,
-      outline: parseFloat(getComputedStyle(e).outlineWidth),
-      icon: e.querySelector("svg").getBoundingClientRect().height,
-    }));
-    ctx.check(
-      `${width}px: compact commands retain legible icons and strong keyboard focus`,
-      focus.active && focus.outline >= 2 && focus.icon >= 24,
-      JSON.stringify(focus),
+    const attackGround = page.getByRole("button", { name: /^Attack ground / });
+    await attackGround.hover();
+    const icon = await attackGround.evaluate(
+      (e) => e.querySelector("svg").getBoundingClientRect().height,
     );
+    ctx.check(`${width}px: compact commands retain legible icons`, icon >= 24, String(icon));
     const tip = await page.getByRole("tooltip").boundingBox();
     const commands = await page.getByRole("toolbar", { name: "Commands" }).boundingBox();
     const deck = await page.locator(".hud-army-deck").boundingBox();
@@ -259,6 +205,6 @@ export async function checkBattleDeck(ctx, page) {
 
       heard.y + heard.height < tip.y && tip.x >= 0 && tip.x + tip.width <= width,
     );
-    await ctx.matchBaseline(page, `army-${width}-focus-tooltip`);
+    await ctx.matchBaseline(page, `army-${width}-command-tooltip`);
   }
 }

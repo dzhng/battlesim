@@ -385,7 +385,11 @@ test("Escape clears the filter first, then closes and returns focus to its butto
   expect(document.activeElement).toBe(toggle);
 });
 
-test("V opens the shop and stays a search character in the field", () => {
+/** A Tab press, as the browser sends it, at `target`; true if not consumed. */
+const tabAt = (target: Element, shiftKey = false) =>
+  fireEvent.keyDown(target, { key: "Tab", code: "Tab", shiftKey, cancelable: true });
+
+test("Tab opens the shop, Tab again types into its search, a third Tab leaves the field", () => {
   const view = render(
     <PurchasePicker
       cards={[card("base", "SEP v2")]}
@@ -396,22 +400,33 @@ test("V opens the shop and stays a search character in the field", () => {
     />,
   );
   const toggle = view.getByRole("button", { name: "Reinforcements" });
-  expect(toggle.getAttribute("aria-keyshortcuts")).toBe("V");
-  // The visible label stays the name; the tooltip carries the key, as the
-  // menu button's does, so no standalone control spells its shortcut.
+  // The tooltip carries the key, as the menu button's does; the name stays.
+  expect(toggle.getAttribute("aria-keyshortcuts")).toBe("Tab");
   expect(toggle.textContent?.trim()).toBe("Reinforcements");
-  expect(toggle.getAttribute("title")).toBe("Reinforcements (V)");
-  fireEvent.keyDown(window, { code: "KeyV" });
+  expect(toggle.getAttribute("title")).toBe("Reinforcements (Tab)");
+  // Opening leaves game keys to the game: the field waits.
+  expect(tabAt(document.body)).toBe(false);
   const field = view.getByRole("textbox", { name: "Search units" });
-  // The field owns its typing: the press is not consumed and the shop stays open.
-  expect(fireEvent.keyDown(field, { code: "KeyV", cancelable: true })).toBe(true);
+  expect(document.activeElement).not.toBe(field);
+  expect(tabAt(document.body)).toBe(false);
+  expect(document.activeElement).toBe(field);
+  // In the field every letter types, V included: no letter is the shop's.
+  expect(fireEvent.keyDown(field, { key: "v", code: "KeyV", cancelable: true })).toBe(true);
+  expect(tabAt(field)).toBe(false);
+  expect(document.activeElement).not.toBe(field);
   expect(view.getByRole("textbox", { name: "Search units" })).toBeTruthy();
-  // The button is the close, as it was before the key.
+  // The cycle goes on while the shop is open.
+  tabAt(document.body);
+  expect(document.activeElement).toBe(field);
+  // Shift+Tab is the same key: it never walks focus onto a button.
+  expect(tabAt(field, true)).toBe(false);
+  expect(document.activeElement).not.toBe(field);
+  // The button is the close.
   fireEvent.click(toggle);
   expect(view.queryByRole("textbox", { name: "Search units" })).toBeNull();
 });
 
-test("V does nothing while the battle is covered", () => {
+test("Escape outside the field closes the shop ahead of the pause menu", () => {
   const view = render(
     <PurchasePicker
       cards={[card("base", "SEP v2")]}
@@ -419,9 +434,31 @@ test("V does nothing while the battle is covered", () => {
       match={match}
       onChoose={vi.fn()}
       rules={RULES}
-      enabled={false}
     />,
   );
-  fireEvent.keyDown(window, { code: "KeyV" });
+  tabAt(document.body);
+  expect(fireEvent.keyDown(document.body, { key: "Escape", cancelable: true })).toBe(false);
+  expect(view.queryByRole("textbox", { name: "Search units" })).toBeNull();
+});
+
+test("the shop's keys do nothing while the battle is covered", () => {
+  const props = {
+    cards: [card("base", "SEP v2")],
+    faction: "us" as const,
+    match,
+    onChoose: vi.fn(),
+    rules: RULES,
+  };
+  const view = render(<PurchasePicker {...props} />);
+  tabAt(document.body);
+  expect(view.getByRole("textbox", { name: "Search units" })).toBeTruthy();
+  // A menu covers the open shop: Tab and Escape are the menu's.
+  view.rerender(<PurchasePicker {...props} enabled={false} />);
+  expect(tabAt(document.body)).toBe(true);
+  expect(fireEvent.keyDown(document.body, { key: "Escape", cancelable: true })).toBe(true);
+  expect(view.getByRole("textbox", { name: "Search units" })).toBeTruthy();
+  // Closed and covered, Tab opens nothing.
+  fireEvent.click(view.getByRole("button", { name: "Reinforcements" }));
+  expect(tabAt(document.body)).toBe(true);
   expect(view.queryByRole("textbox", { name: "Search units" })).toBeNull();
 });
