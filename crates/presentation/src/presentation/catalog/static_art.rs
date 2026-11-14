@@ -224,7 +224,7 @@ impl Presentation {
             .as_ref()
             .ok_or("scenery stands on a ground: set_ground first")?;
         let walk = catalog::scenery_from_art(ground, finest, self.scenery_quality)?;
-        self.catalog_revision = catalog::next_revision();
+        self.catalog_state.renew();
         self.clear_lab_rows();
         self.scenery = Some(walk);
         self.register_scenery_rows();

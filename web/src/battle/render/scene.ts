@@ -77,6 +77,10 @@ export class BrowserScene {
   private proxies: ReturnType<typeof proxyModels>;
   private models: readonly LabModel[];
   private instances: readonly SceneInstance[];
+  /** The presentation's staged battles this scene has taken, and what the
+   *  last one draws: its sources until the presentation's rows name them. */
+  private battlesSeen = 0;
+  private battleNames: readonly string[] = [];
   private desired: InstalledAppearances | null;
   private installed: InstalledAppearances | null;
   private activeWorld: WorldLayers;
@@ -175,6 +179,7 @@ export class BrowserScene {
         presentation,
         appearances,
         options.models,
+        [],
         options.world,
         options.settings.grassDensity !== undefined,
       );
@@ -251,21 +256,42 @@ export class BrowserScene {
     this.instances = instances;
     this.desired = installed;
     this.desiredWorld = world;
+    const battleGrew = this.battleGrew(installed);
     const sourcesChanged =
       artChanged ||
+      battleGrew ||
       (modelsChanged &&
         !sameNames(
-          sourceNames(this.presentation, models, this.hasGrass, !!world.scenery),
+          sourceNames(this.presentation, models, this.battleNames, this.hasGrass, !!world.scenery),
           this.authored,
         ));
     if (sourcesChanged)
-      this.authored = assetsFor(this.presentation, installed, models, world, this.hasGrass);
+      this.authored = assetsFor(
+        this.presentation,
+        installed,
+        models,
+        this.battleNames,
+        world,
+        this.hasGrass,
+      );
     if (sourcesChanged || proxiesChanged) void this.request();
     else if (modelsChanged || instancesChanged) {
       this.admission.models(this.modelList());
       return "reframe";
     }
     return "current";
+  }
+
+  /** A battle staged in place comes in with the next admission, once every
+   *  appearance it draws is installed. */
+  private battleGrew(installed: InstalledAppearances | null): boolean {
+    const staged = this.presentation.stagedBattles();
+    if (staged === this.battlesSeen) return false;
+    const names = this.presentation.stagedAppearances();
+    if (!names.every((name) => installed?.appearances.has(name))) return false;
+    this.battlesSeen = staged;
+    this.battleNames = names;
+    return names.length > 0;
   }
 
   setModels(models: readonly LabModel[]): void {
@@ -276,6 +302,7 @@ export class BrowserScene {
     const names = sourceNames(
       this.presentation,
       models,
+      this.battleNames,
       this.hasGrass,
       !!this.desiredWorld.scenery,
     );
@@ -284,6 +311,7 @@ export class BrowserScene {
         this.presentation,
         this.desired,
         models,
+        this.battleNames,
         this.desiredWorld,
         this.hasGrass,
       );
@@ -473,10 +501,12 @@ export class BrowserScene {
 function sourceNames(
   presentation: ScenePresentation,
   models: readonly LabModel[],
+  battle: readonly string[],
   grass: boolean,
   scenery: boolean,
 ): string[] {
   const names = new Set(presentation.canonicalAppearanceRows().map((row) => row.name));
+  for (const name of battle) names.add(name);
   for (const model of models) names.add(model.appearance);
   const ground = presentation.presentedGround();
   if (ground && grass)
@@ -490,6 +520,7 @@ function assetsFor(
   presentation: ScenePresentation,
   installed: InstalledAppearances | null,
   models: readonly LabModel[],
+  battle: readonly string[],
   world: WorldLayers,
   grass: boolean,
 ): ModelAsset[] {
@@ -498,7 +529,7 @@ function assetsFor(
   );
   return modelAssetsOf(
     installed,
-    sourceNames(presentation, models, grass, !!world.scenery),
+    sourceNames(presentation, models, battle, grass, !!world.scenery),
     sources,
   );
 }

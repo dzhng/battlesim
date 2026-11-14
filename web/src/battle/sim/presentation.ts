@@ -2,6 +2,7 @@
  * and frame views out. Rust owns decoding, poses, effects and static walks. */
 import { EMPTY_MESH } from "@packages/battle-renderer/src/mesh";
 import { presentationSettings } from "@web/presentationSettings";
+import { diagnosticsEvent } from "@web/diagnostics";
 import type { ModelAsset } from "../render/modelAssets";
 import type { GrassClumpRow } from "@packages/battle-renderer/src/grass";
 import type { BattleAudio } from "@packages/battle-audio/src/battleAudio";
@@ -257,6 +258,7 @@ export class ScenePresentation {
   private shadow: [LightPresentation | null, Float32Array | null] = [null, null];
   /** Something staged changed since the last load. */
   private stale = false;
+  private battlesStaged = 0;
   /** The drawables of the last load, and those the page has not taken yet. */
   private rows: readonly PresentedAppearance[] = [];
   private loaded: PresentedAppearance[] | null = null;
@@ -404,12 +406,35 @@ export class ScenePresentation {
     return this.rows;
   }
 
-  /** Stage what the battle draws (null: none); loaded with the rest by the
-   *  next frame when it is another. */
+  /** Stage what the battle draws (null: none). The loaded battle fielded
+   *  again (with a kind it newly fields) waits for the scene's next
+   *  appearance admission, which draws it without loading the world anew;
+   *  any other battle loads with the rest by the next frame. */
   setBattle(battle: PresentedBattle | null) {
     if (battle === this.battle) return;
+    const grown = battle !== null && !this.stale && this.stageBattle(battle);
     this.battle = battle;
-    this.stale = true;
+    if (!grown) {
+      this.stale = true;
+      return;
+    }
+    this.battlesStaged++;
+    diagnosticsEvent("battle staged", { appearances: this.stagedAppearances().length });
+  }
+
+  private stageBattle({ world, tables }: PresentedBattle): boolean {
+    for (const [name, floats] of tables) this.rust.add_clip_table(name, floats);
+    return this.rust.stage_battle(JSON.stringify(world));
+  }
+
+  /** How many battles were staged in place: a scene admits art when it moves. */
+  stagedBattles(): number {
+    return this.battlesStaged;
+  }
+
+  /** What the staged battle draws, by appearance: its admission brings their art. */
+  stagedAppearances(): string[] {
+    return this.rust.staged_appearances();
   }
 
   /** Canonical battle topology is staged before the worker starts publishing. */

@@ -211,7 +211,7 @@ pub struct Presentation {
     /// values (`set_detail_scale`).
     detail_scale: [f64; 2],
     world: World,
-    catalog_revision: u32,
+    catalog_state: catalog::CatalogState,
     lab: lab::Lab,
     showcase: Option<showcase::Showcase>,
     models: Vec<Model>,
@@ -245,6 +245,12 @@ fn ground_of(layout: &str) -> Result<LearnedGround, String> {
 
 /// Rows of the x-ray or ghost colour (`packXray`): rgb as one integer
 /// under 2²⁴, exact in a float.
+/// Where a unit's shadow falls from it, per metre of height, under the sun.
+fn shadow_fall(azimuth: f64, elevation: f64) -> [f64; 2] {
+    let throw = 1.0 / libm::tan(elevation);
+    [-libm::cos(azimuth) * throw, -libm::sin(azimuth) * throw]
+}
+
 fn pack_colour(c: [f64; 4]) -> f32 {
     let byte = |v: f64| (v.clamp(0.0, 1.0) * 255.0).round();
     (byte(c[0]) * 65536.0 + byte(c[1]) * 256.0 + byte(c[2])) as f32
@@ -292,7 +298,7 @@ impl Presentation {
             felled_from: None,
             detail_scale: [1.0, 1.0],
             world: World::default(),
-            catalog_revision: catalog::next_revision(),
+            catalog_state: catalog::CatalogState::new(),
             lab: lab::Lab::default(),
             showcase: None,
             models: Vec::new(),
@@ -408,7 +414,7 @@ impl Presentation {
         if let Some(fit) = &mut self.shadow {
             fit.invalidate();
         }
-        self.catalog_revision = catalog::next_revision();
+        self.catalog_state = catalog::CatalogState::new();
         self.world = World::default();
         self.lab.frontier = None;
         self.fallen.clear();
@@ -469,14 +475,8 @@ impl Presentation {
         for (name, a) in &units.appearances {
             posing::register_appearance(&mut self.world, name, a);
         }
-        // A cook-off draws its wreck's pieces: whole, hull, turret, debris.
-        for look in input.effects.wreck_looks.values() {
-            for state in ["default", "hull", "turret", "debris"] {
-                self.world.row(&look.appearance, state, NONE, 0, false);
-            }
-        }
-        let throw = 1.0 / libm::tan(elevation);
-        let shadow_fall = [-libm::cos(azimuth) * throw, -libm::sin(azimuth) * throw];
+        posing::register_wreck_rows(&mut self.world, &input.effects);
+        let shadow_fall = shadow_fall(azimuth, elevation);
         let mut loaded = Loaded {
             feed: ObservationFeed::new(&side),
             driver: PoseDriver::new(&units)?,
@@ -728,7 +728,7 @@ impl Presentation {
             fog.known_from = None;
             fog.dirty = true;
         }
-        self.catalog_revision = catalog::next_revision();
+        self.catalog_state.renew();
         self.ground = Some(ground);
         self.scenery = None;
         self.props = None;
@@ -742,7 +742,7 @@ impl Presentation {
 
     /// The ground's mutably (a lab growing grass by other rules).
     pub fn ground_mut(&mut self) -> Option<&mut Ground> {
-        self.catalog_revision = catalog::next_revision();
+        self.catalog_state.renew();
         self.ground.as_mut()
     }
 
@@ -757,7 +757,7 @@ impl Presentation {
         let layout = PropLayout::parse(layout)?;
         let props = crate::static_world::props::map_props(records, &layout);
         self.props = Some(PropPopulation::new(PropArt::new(layout, input)?, props));
-        self.catalog_revision = catalog::next_revision();
+        self.catalog_state.renew();
         self.known_from = KnownFrom::Unread;
         Ok(())
     }
