@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Faction, UnitCard } from "@packages/scene-assets/src/units";
 import { hudIcon } from "@packages/scene-assets/src/icons";
-import { isGameKey } from "../input/keyGuard";
+import { isTypingTarget } from "../input/keyGuard";
 import { useSessionCatalog } from "../catalog/context";
 import { Icon } from "./icons";
 import { InfoPanel } from "./infoPanel";
@@ -39,8 +39,21 @@ function Price({ cost, credits, unsold }: { cost: number; credits: number; unsol
  *  before the hover moves to it. */
 const HOVER_INTENT_MS = 250;
 
-/** The shop's key. V sits beside the command cluster and names nothing else. */
-const REINFORCEMENTS_KEY = { code: "KeyV", label: "V" } as const;
+/** The shop's key. Tab, not a letter, so every letter stays a search
+ *  character and no command key is spent: one key opens the shop, enters its
+ *  search and leaves it again. */
+const REINFORCEMENTS_KEY = { code: "Tab", label: "Tab" } as const;
+
+/** A press of the key, with or without Shift, wherever it lands: the battle
+ *  never walks focus onto a button. Ctrl, Cmd and Alt+Tab stay the browser's
+ *  and the system's. */
+const isShopTab = (event: KeyboardEvent) =>
+  event.code === REINFORCEMENTS_KEY.code &&
+  !event.ctrlKey &&
+  !event.metaKey &&
+  !event.altKey &&
+  !event.repeat;
+
 /** The Reinforcements button, its key and the credits. The menu exists only
  *  while open, so every opening starts fresh: first group, empty filter. */
 export function PurchasePicker({ match, player, enabled = true, ...menu }: PickerProps) {
@@ -48,18 +61,17 @@ export function PurchasePicker({ match, player, enabled = true, ...menu }: Picke
   if (!viewingPlayer) return null;
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
-  // The key opens the shop. The typing guard keeps V a search character while
-  // the field has focus, so the field stays the only owner of the letter.
+  // The key opens the shop; once it is open, the menu owns the key.
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || open) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.code !== REINFORCEMENTS_KEY.code || !isGameKey(event)) return;
+      if (!isShopTab(event) || isTypingTarget(event.target)) return;
       event.preventDefault();
       setOpen(true);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [enabled]);
+  }, [enabled, open]);
   return (
     <div className="hud-reinforcements" data-occludes-readouts>
       <div className="hud-purchase-controls">
@@ -82,6 +94,7 @@ export function PurchasePicker({ match, player, enabled = true, ...menu }: Picke
       {open && (
         <PurchaseMenu
           {...menu}
+          enabled={enabled}
           match={match}
           player={viewingPlayer}
           onChoose={(variant) => {
@@ -100,19 +113,50 @@ export function PurchasePicker({ match, player, enabled = true, ...menu }: Picke
 
 interface MenuProps extends Omit<PickerProps, "player"> {
   player: PlayerView;
-  /** Escape with an empty filter closes the menu and returns focus. */
+  /** Escape (the field's once its filter is empty) closes the menu and
+   *  returns focus to the button. */
   onClose: () => void;
 }
 
 /** Catalog families organize browsing; only a concrete available variant starts placement. */
-function PurchaseMenu({ cards, faction, match, player, onChoose, rules, onClose }: MenuProps) {
+function PurchaseMenu({
+  cards,
+  faction,
+  match,
+  player,
+  onChoose,
+  rules,
+  onClose,
+  enabled,
+}: MenuProps) {
   const catalog = useSessionCatalog();
   const [group, setGroup] = useState<UnitGroup>(UNIT_GROUPS[0].id);
   const [family, setFamily] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const search = useRef<HTMLInputElement>(null);
-  // The field takes focus on open, so typing filters at once.
-  useEffect(() => search.current?.focus(), []);
+  // The field waits for the key, so game keys stay the game's while the shop
+  // is open; the key enters the field and, pressed in it, leaves it. Escape
+  // anywhere but the field (which clears itself first) closes the shop ahead
+  // of the pause menu. A menu over the shop takes both keys.
+  const close = useRef(onClose);
+  close.current = onClose;
+  useEffect(() => {
+    if (!enabled) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      const inField = event.target === search.current;
+      if (isShopTab(event)) {
+        event.preventDefault();
+        if (inField) search.current?.blur();
+        else search.current?.focus();
+      } else if (event.key === "Escape" && !event.repeat && !inField) {
+        event.preventDefault();
+        close.current();
+      }
+    };
+    window.addEventListener("keydown", onKey, { capture: true });
+    return () => window.removeEventListener("keydown", onKey, { capture: true });
+  }, [enabled]);
   const facts: BuyFacts = {
     credits: player.credits,
     unitCount: player.unitCount,

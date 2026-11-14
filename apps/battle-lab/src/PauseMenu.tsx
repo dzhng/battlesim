@@ -3,7 +3,8 @@ import { Link } from "react-router";
 // hasn't taken to disarm a command) or the HUD's menu button opens it and
 // pauses the battle, and closing it resumes a battle it paused. It holds
 // what the player sets between moments of play: the route's own items (the
-// scenario, replays), restart, and the sound.
+// scenario), restart, and the sound. Main menu asks before it leaves: the
+// battle is lost once left.
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { hudIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "@web/battle/present/icons";
@@ -78,18 +79,21 @@ export function PauseMenu({
 }) {
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  // Escape closes what is open above the menu, or backs out of leaving.
   useEffect(() => {
-    if (!tutorialOpen && !settingsOpen) return;
+    if (!tutorialOpen && !settingsOpen && !leaving) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.code !== "Escape" || e.repeat || e.defaultPrevented) return;
       e.preventDefault();
       e.stopPropagation();
       setTutorialOpen(false);
       setSettingsOpen(false);
+      setLeaving(false);
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [tutorialOpen, settingsOpen]);
+  }, [tutorialOpen, settingsOpen, leaving]);
   return (
     <>
       <div className="hud-veil" data-occludes-readouts>
@@ -97,29 +101,49 @@ export function PauseMenu({
           className="hud-panel hud-menu"
           role="dialog"
           aria-modal="true"
-          aria-label="Paused"
+          aria-label={leaving ? "Leave the battle?" : "Paused"}
           aria-hidden={tutorialOpen || settingsOpen || undefined}
           inert={tutorialOpen || settingsOpen || undefined}
         >
-          <strong className="hud-menu-title">Paused</strong>
-          <button type="button" className="hud-menu-item" onClick={onClose} autoFocus>
-            Resume
-          </button>
-          <button type="button" className="hud-menu-item" onClick={() => setTutorialOpen(true)}>
-            Tutorial
-          </button>
-          <button type="button" className="hud-menu-item" onClick={() => setSettingsOpen(true)}>
-            Settings
-          </button>
-          {onRestart && (
-            <button type="button" className="hud-menu-item" onClick={onRestart}>
-              Restart
-            </button>
+          {leaving ? (
+            <>
+              <strong className="hud-menu-title">Leave the battle?</strong>
+              <div className="hud-menu-note">Progress in this battle will be lost.</div>
+              <button
+                type="button"
+                className="hud-menu-item"
+                onClick={() => setLeaving(false)}
+                autoFocus
+              >
+                Stay
+              </button>
+              <Link className="hud-menu-item" to="/">
+                Leave battle
+              </Link>
+            </>
+          ) : (
+            <>
+              <strong className="hud-menu-title">Paused</strong>
+              <button type="button" className="hud-menu-item" onClick={onClose} autoFocus>
+                Resume
+              </button>
+              <button type="button" className="hud-menu-item" onClick={() => setTutorialOpen(true)}>
+                Tutorial
+              </button>
+              <button type="button" className="hud-menu-item" onClick={() => setSettingsOpen(true)}>
+                Settings
+              </button>
+              {onRestart && (
+                <button type="button" className="hud-menu-item" onClick={onRestart}>
+                  Restart
+                </button>
+              )}
+              {children}
+              <button type="button" className="hud-menu-item" onClick={() => setLeaving(true)}>
+                Main menu
+              </button>
+            </>
           )}
-          {children}
-          <Link className="hud-menu-item" to="/">
-            Main menu
-          </Link>
         </div>
       </div>
       {tutorialOpen && (

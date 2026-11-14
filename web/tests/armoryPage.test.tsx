@@ -115,3 +115,30 @@ test("each group tab shows only its own group's cards", () => {
       }
     }
 });
+
+test("a sheet heads its weapons only when it lists one", () => {
+  render(
+    <WithTestCatalog>
+      <ArmoryPage cards={UNITS.cards} />
+    </WithTestCatalog>,
+  );
+  let unarmed = 0;
+  for (const faction of FACTIONS) {
+    fireEvent.click(screen.getByRole("tab", { name: spoken(faction) }));
+    for (const { label } of UNIT_GROUPS) {
+      const tab = screen.getByRole("tab", { name: label });
+      if (tab.hasAttribute("disabled")) continue;
+      fireEvent.click(tab);
+      for (const family of families()) {
+        fireEvent.click(list().querySelector(`button[data-family="${family}"]`)!);
+        const sheet = document.querySelector<HTMLElement>(".armory-sheet")!;
+        const heading = within(sheet).queryByRole("heading", { name: "Weapons" });
+        const mounts = sheet.querySelectorAll(".armory-mount").length;
+        expect(heading !== null, `${faction} ${family}: ${mounts} mounts`).toBe(mounts > 0);
+        if (mounts === 0) unarmed++;
+      }
+    }
+  }
+  // The catalog fields an unarmed card, or this proves nothing.
+  expect(unarmed).toBeGreaterThan(0);
+});

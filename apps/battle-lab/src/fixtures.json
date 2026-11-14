@@ -367,7 +367,7 @@
   {
     "id": "armory",
     "route": "/armory",
-    "describe": "The Armory at /armory: the menu's tile opens it, a pick of a tile, a group and a faction rewrites the address in place without a new history entry or a remount, a refresh reopens the same unit, an unknown unit opens the first tile, and Back returns to the menu on the Armory's tile. On the stage, one unit of each group stands grounded on its spot and each switch is timed; its idle loops play while the Armory is open and stop after Back; at every orbit and zoom extreme the camera's eye stays clear of the unit, the yard's props and the ground.",
+    "describe": "The Armory at /armory: the menu's tile opens it under a loading cover that lifts once its unit stands, a pick of a tile, a group and a faction rewrites the address in place without a new history entry or a remount, a refresh reopens the same unit, an unknown unit opens the first tile, and Back returns to the menu on the Armory's tile. On the stage, one unit of each group stands grounded on its spot, each switch holds the last frame (never the menu's film) and is timed; its idle loops play while the Armory is open and stop after Back; at every orbit and zoom extreme the camera's eye stays clear of the unit, the yard's props and the ground.",
     "map": null
   },
   {

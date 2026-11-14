@@ -92,7 +92,7 @@ interface ArmoryPageProps {
   /** The cards to browse: the game's roster, or a fixed set in the gallery. */
   cards: readonly UnitCard[];
   /** What stands in the centre for the open card, under the open faction's
-   *  look (L11). Absent, the menu's backdrop shows through. */
+   *  look (L11). Absent, the centre stays clear. */
   stage?: (card: UnitCard, faction: Faction) => ReactNode;
 }
 

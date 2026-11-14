@@ -71,6 +71,10 @@ function LiveStage({ card, faction, drawn }: StageProps & { drawn: () => void })
   const showground = useShowground(fielding.rules, fail);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const heldRef = useRef<HTMLCanvasElement>(null);
+  // Switches waiting for the frame loop to copy the next frame it draws into
+  // the held canvas. A WebGPU canvas can be read only in the task that drew
+  // it: a copy taken later, from a pick, is clear.
+  const holds = useRef<(() => void)[]>([]);
   const [stage, setStage] = useState<ShowcaseStage | null>(null);
   const appearances = useMemo(() => new ArmoryAppearances(units), [units]);
   const shown = useRef<Shown | null>(null);
@@ -117,9 +121,17 @@ function LiveStage({ card, faction, drawn }: StageProps & { drawn: () => void })
               ? camera.presented(canvas.getBoundingClientRect(), cell, width, height, dt)
               : null;
           };
-          if (made!.frame((now - start) / 1000, presented) && first) {
-            first = false;
-            drawn();
+          if (made!.frame((now - start) / 1000, presented)) {
+            if (holds.current.length > 0) {
+              const held = heldRef.current!;
+              [held.width, held.height] = [canvas.width, canvas.height];
+              held.getContext("2d")?.drawImage(canvas, 0, 0);
+              for (const done of holds.current.splice(0)) done();
+            }
+            if (first) {
+              first = false;
+              drawn();
+            }
           }
           raf = requestAnimationFrame(loop);
         };
@@ -157,17 +169,15 @@ function LiveStage({ card, faction, drawn }: StageProps & { drawn: () => void })
     let live = true;
     const asked = performance.now();
     // A switch rebuilds the stage's scene, and its canvas is clear until the
-    // new one draws: the last frame drawn holds behind it meanwhile. The cell
-    // says a switch is under way until the next unit stands; a pick during a
-    // switch keeps the frame already held, never the cleared canvas.
-    const [held, canvas] = [heldRef.current!, canvasRef.current!];
-    const cell = canvas.parentElement!;
-    if (shown.current && !cell.hasAttribute("data-switching")) {
-      [held.width, held.height] = [canvas.width, canvas.height];
-      held.getContext("2d")?.drawImage(canvas, 0, 0);
-    }
+    // new one draws: the next frame drawn is held behind it meanwhile. The
+    // cell says a switch is under way until the next unit stands; a pick
+    // during a switch keeps the frame already held, never the cleared canvas.
+    const cell = canvasRef.current!.parentElement!;
     const switching = (on: boolean) => cell.toggleAttribute("data-switching", on);
     void (async () => {
+      if (shown.current && !cell.hasAttribute("data-switching"))
+        await new Promise<void>((held) => holds.current.push(held));
+      if (!live) return;
       switching(true);
       scenery.current ??= yardScenery(yard, units.view.props, await appearances.catalog());
       if (!unit) {
