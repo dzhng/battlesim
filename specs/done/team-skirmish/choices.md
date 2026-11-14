@@ -300,7 +300,7 @@ None. Every entry an audit found unsound was corrected in the closing passes; ea
   - side colours and text come from the page's HUD theme variables (`--hud-accent`, `--hud-enemy`, `--hud-text`), so the HUD stays the one owner of player colours;
   - it is simplified for lobby size: tiny points are dropped, there are no single trees or tree lines (only woods), buildings are one footprint shape, and there is no relief;
   - objectives are numbered rings, in the score strip's order, over a dark disc;
-  - entries are unlabelled side-coloured arrowheads, since no entry belongs to a player (D8).
+  - entries are side-coloured arrowheads. Revised by [lane slots](../../lane-slots/README.md) (D5): each is now a pointed tag carrying its lane number, because a slot holds a lane. Arrivals stay shared (D8).
 
   Five unprimed critique rounds judged that the map reads at lobby size, with entries and objectives above the terrain.
 - **The gap:** The marks, the simplification level and the colours were delegated.

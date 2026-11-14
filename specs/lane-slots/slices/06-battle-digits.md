@@ -17,7 +17,7 @@ edge and the first chevron, with the stack slid inward to make room (D9).
 
 - Only digits 1–3 ever occur (at most three lanes), so they are stroke glyphs
   in the mesh. No font, no text renderer.
-- An unheld lane paints chevrons with no digit (A4).
+- Every lane paints its digit, held or not (revised A4).
 - The viewer's own lane is emphasised in a way that reads as the lobby's YOU
   mark, without adding text to the ground.
 - Only the viewer's side is marked (A1, already true).
@@ -25,7 +25,7 @@ edge and the first chevron, with the stack slid inward to make room (D9).
 ## Seam
 
 - `apps/battle-lab/src/battleOverlay.ts`: `BattleOverlayScenario.deployments[]`
-  gains `digit: 1 | 2 | 3 | null` and `own: boolean`. `battleOverlayScenario`
+  gains `lane: 1 | 2 | 3` and `own: boolean`. `battleOverlayScenario`
   stays pure and takes slice 01's answer plus the viewer's player id;
   `apps/battle-lab/src/useBattleOverlay.ts` makes the Wasm call. While
   touching it, parse the scenario once: `BattleView.tsx` and
@@ -40,14 +40,12 @@ edge and the first chevron, with the stack slid inward to make room (D9).
 ## What a human can see
 
 A generated 3v3 on a Large map, seated as Blue 2: the camera opens on road 2,
-whose digit is emphasised; roads 1 and 3 show theirs. A 2v3 as Blue: the third
-road shows chevrons only.
+whose digit is emphasised; roads 1 and 3 show theirs.
 
 ## Verification
 
 - Extend `web/tests/entryChevrons.test.ts`, measured from mesh coverage:
-  - a held lane paints between the edge and the first chevron, and an unheld
-    lane does not;
+  - every lane paints between the edge and the first chevron;
   - the own lane's paint differs measurably from the others';
   - the other side's entries paint nothing (as today).
   Assert positions and coverage, never a style value.

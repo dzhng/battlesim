@@ -96,7 +96,10 @@ entry. TypeScript has one reader for it and never computes a lane itself. The
 **The lobby picture's markup.** `skirmish_picture(map, sites)` keeps its
 signature and stays player-free (it is cached per map input and will be reused
 by a future minimap). Each entry becomes a pointed tag carrying its digit, with
-`data-entry="<side>"` and `data-lane="N"` on its group.
+`data-entry="<side>"` and `data-lane="N"` on its group. The page styles a tag
+by who holds it through custom properties on that group (`--lane-body`,
+`--lane-edge`, `--lane-edge-scale`, `--lane-digit`; `--side` is the tag's
+accent), and reveals the hidden own-lane mark, `[data-own]`.
 
 **AI tuning.** `fixtures/skirmish-ai.json` gains one weight, the home-lane
 bonus. Existing weights do not change.
@@ -146,7 +149,7 @@ wins, no implementation detail on screen).
 | D13 | No backward compatibility, no migrations. Hard cutover; old replays re-baseline. | | you |
 | A1 | In battle, only your own side's lanes are marked. | Already true of the chevrons; coordination is within a team. | agent |
 | A3 | Battle digits are always on, like the chevrons. | "Push 2" needs the number mid-fight. | agent |
-| A4 | An unheld lane shows chevrons (battle) or a plain tag (lobby) with no digit. | One rule for both screens. | agent |
+| A4 | ~~An unheld lane shows no digit.~~ Revised in slice 04: every lane keeps its number; an unheld lane's lobby tag goes hollow (an opaque dark tint of the side colour, a heavier side-coloured edge, a side-coloured digit). In battle every lane paints its digit. | Two unprimed critiques: a blank tag read as broken, and the open lane is the one teammates most need to name. A black hollow tag then read as an objective disc and vanished over forest; the tint fixed both. | agent |
 | A5 | Red's lanes are numbered too, and Red's AI gets the same pull. | One general rule; humans may sit on Red later. | agent |
 | A6 | A human in slot 4–5 opens on the centre entry. | Follows D4. | agent |
 | A7 | The picture stays player-free; the lobby overlays occupancy by `data-lane`. | Seat changes don't restart the preview (`isMapInputChange`, `apps/battle-lab/src/lobby/model.ts:204`), and 2v3 → 3v3 keeps the entry count. | agent |

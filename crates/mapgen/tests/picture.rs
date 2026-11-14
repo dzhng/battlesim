@@ -123,3 +123,28 @@ fn the_picture_draws_every_admitted_entry_and_objective_with_blue_on_the_left() 
         assert!(!objectives.iter().any(|(id, _)| *id == candidate.id));
     }
 }
+
+/// Each entry tag carries its lane, and a side's lanes count 1, 2, 3 from the
+/// top of the picture down, on both edges, so they read in the order of the
+/// lobby's player banners.
+#[test]
+fn each_sides_lanes_count_down_the_picture() {
+    let (map, sites) = admitted_map();
+    let svg = mapgen::inspect::skirmish_picture(&map, &sites);
+    let lane_key = "data-lane=\"";
+    for side in ["blue", "red"] {
+        let mut drawn: Vec<(f64, u8)> = svg
+            .match_indices(&format!("data-entry=\"{side}\""))
+            .map(|(at, _)| {
+                let rest = &svg[at..];
+                let lane = &rest[rest.find(lane_key).unwrap() + lane_key.len()..];
+                let lane: u8 = lane[..lane.find('"').unwrap()].parse().unwrap();
+                let y = marks(rest, "entry")[0].1[1];
+                (y, lane)
+            })
+            .collect();
+        drawn.sort_by(|a, b| a.0.total_cmp(&b.0));
+        let lanes: Vec<u8> = drawn.iter().map(|(_, lane)| *lane).collect();
+        assert_eq!(lanes, vec![1, 2, 3], "{side} lanes from the top");
+    }
+}
