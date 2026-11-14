@@ -214,8 +214,6 @@ pub struct Presentation {
     catalog_revision: u32,
     lab: lab::Lab,
     showcase: Option<showcase::Showcase>,
-    /// Where the shown unit's rows begin, after the world's own.
-    showcase_frontier: Option<(usize, usize)>,
     models: Vec<Model>,
     frame: Frame,
     /// The camera the last frame was asked for.
@@ -297,7 +295,6 @@ impl Presentation {
             catalog_revision: catalog::next_revision(),
             lab: lab::Lab::default(),
             showcase: None,
-            showcase_frontier: None,
             models: Vec::new(),
             frame: Frame::default(),
             camera: None,
@@ -406,7 +403,7 @@ impl Presentation {
         buildings: Option<PlacedBuildings>,
     ) -> Result<(), String> {
         if input.battle.is_some() && self.showcase.is_some() {
-            return Err("a showcase is shown: clear it before loading a battle".into());
+            return Err("a showcase is shown: a battle needs a presentation of its own".into());
         }
         if let Some(fit) = &mut self.shadow {
             fit.invalidate();
@@ -414,7 +411,6 @@ impl Presentation {
         self.catalog_revision = catalog::next_revision();
         self.world = World::default();
         self.lab.frontier = None;
-        self.showcase_frontier = None;
         self.fallen.clear();
         self.known_from = KnownFrom::Unread;
         self.knowledge = Knowledge::default();
@@ -624,12 +620,9 @@ impl Presentation {
 
     /// This frame's effect instances, in draw order.
     pub fn effects(&self) -> &[Effect] {
-        let batch = match (&self.loaded, &self.showcase) {
-            (Some(l), _) => &l.batch,
-            (None, Some(s)) => &s.batch,
-            (None, None) => return &[],
-        };
-        bytemuck::cast_slice(&batch.data[..batch.count * EFFECT_FLOATS])
+        self.loaded.as_ref().map_or(&[], |l| {
+            bytemuck::cast_slice(&l.batch.data[..l.batch.count * EFFECT_FLOATS])
+        })
     }
 
     /// This frame's cast lights, chosen for the view.
@@ -1032,8 +1025,7 @@ impl Loaded {
         f.counts.lights = counts.lights as u32;
         f.counts.dropped = batch.dropped as u32;
 
-        let mut detail = units.detail;
-        detail.lod_px = detail.lod_px.map(|v| v * unit_scale);
+        let detail = units.detail.scaled(unit_scale);
         let xray = input.xray;
         let o = &sample.observation;
         indoor.clear();

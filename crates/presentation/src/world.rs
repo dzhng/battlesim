@@ -115,6 +115,17 @@ pub struct Detail {
     pub shadow_caster_px: f64,
 }
 
+impl Detail {
+    /// These tiers with their mesh thresholds scaled by `scale`: the units'
+    /// detail scale (`Presentation::set_detail_scale`).
+    pub fn scaled(self, scale: f64) -> Self {
+        Self {
+            lod_px: self.lod_px.map(|v| v * scale),
+            ..self
+        }
+    }
+}
+
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UnitType {

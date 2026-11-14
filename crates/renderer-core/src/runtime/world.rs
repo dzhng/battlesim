@@ -38,26 +38,40 @@ impl WorldGeometry {
         extra_faces: &[f32],
     ) -> Self {
         let terrain = mesh::terrain(positions, indices, tint);
-        Self::from_mesh(terrain, positions, extra_faces, water_cells, backdrop_m)
+        let level = BackdropRelief::default();
+        Self::from_mesh(
+            terrain,
+            positions,
+            extra_faces,
+            water_cells,
+            None,
+            backdrop_m,
+            &level,
+        )
     }
 
     /// Prebuilt terrain shares the world builders with physical triangles.
-    /// Boundary and backdrop inputs may describe only a local lab patch.
+    /// Boundary and backdrop inputs may describe only a local lab patch: the
+    /// backdrop is the land past the box of `backdrop_terrain` (the terrain's
+    /// own without it) out to `backdrop_m`, rising where `relief` does
+    /// (`mesh::backdrop`).
     pub fn from_mesh(
         terrain: Vec<f32>,
         skirt_positions: &[f32],
         extra_faces: &[f32],
         water_cells: &[f32],
+        backdrop_terrain: Option<&[f32]>,
         backdrop_m: f64,
+        relief: &BackdropRelief,
     ) -> Self {
-        let mut geometry = Self {
+        let backdrop = map_box(backdrop_terrain.unwrap_or(&terrain))
+            .map_or_else(Vec::new, |b| mesh::backdrop(&b, backdrop_m, relief));
+        Self {
             terrain,
             skirt_and_props: Self::faces(skirt_positions, extra_faces),
-            backdrop: Vec::new(),
+            backdrop,
             water: mesh::water(water_cells),
-        };
-        geometry.set_backdrop(None, backdrop_m, &BackdropRelief::default());
-        geometry
+        }
     }
 
     /// Boundary skirt followed by the caller's additional world faces.
@@ -65,13 +79,6 @@ impl WorldGeometry {
         let mut faces = mesh::skirt(skirt_positions);
         faces.extend_from_slice(extra_faces);
         faces
-    }
-
-    /// The land past the box of `terrain` (the world's own without it) out
-    /// to `reach_m`, rising where `relief` does (`mesh::backdrop`).
-    pub fn set_backdrop(&mut self, terrain: Option<&[f32]>, reach_m: f64, relief: &BackdropRelief) {
-        self.backdrop = map_box(terrain.unwrap_or(&self.terrain))
-            .map_or_else(Vec::new, |b| mesh::backdrop(&b, reach_m, relief));
     }
 
     pub fn payload_bytes(&self) -> usize {

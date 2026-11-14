@@ -433,12 +433,12 @@ pub(super) fn validate_models(models: &[ModelInput]) -> Result<(), String> {
 
 /// Where the world's rows and strings end: the rows a later registration
 /// can be truncated back to.
-pub(super) fn frontier(world: &World) -> (usize, usize) {
+fn frontier(world: &World) -> (usize, usize) {
     (world.appearances.len(), world.strings.len())
 }
 
 /// Drops every row registered after `frontier`.
-pub(super) fn truncate_rows(world: &mut World, (rows, strings): (usize, usize)) {
+fn truncate_rows(world: &mut World, (rows, strings): (usize, usize)) {
     world.appearances.truncate(rows);
     world.strings.truncate(strings);
     world.rows.retain(|_, row| (*row as usize) < rows);

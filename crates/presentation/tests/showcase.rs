@@ -3,7 +3,6 @@
 use std::path::PathBuf;
 
 use presentation::assets::Runtime;
-use presentation::effects::frame::SHAPE_NAMES;
 use presentation::fielded::{Fielded, Fielding};
 use presentation::presentation::lab::Asset;
 use presentation::presentation::showcase::ShowcaseInput;
@@ -48,6 +47,11 @@ fn fielded(kinds: &[&str], factions: Option<[&str; 2]>, edit: impl FnOnce(&mut V
 
 fn plain(kind: &str) -> Fielded {
     fielded(&[kind], None, |_| {})
+}
+
+/// Shows `input`'s unit on `p`, drawn from what `fielded` resolved.
+fn show(p: &mut Presentation, fielded: Fielded, input: ShowcaseInput) -> Result<(), String> {
+    p.set_showcase(fielded.units, fielded.tables, input)
 }
 
 /// A hull standing at `at`, facing +X.
@@ -151,8 +155,12 @@ impl Shot {
 #[test]
 fn a_showcase_poses_without_any_publication() {
     let mut p = Presentation::new(None, 30.0).unwrap();
-    p.set_showcase(plain("test_tank"), hull("test_tank", [3.0, 2.0, 0.0]))
-        .unwrap();
+    show(
+        &mut p,
+        plain("test_tank"),
+        hull("test_tank", [3.0, 2.0, 0.0]),
+    )
+    .unwrap();
     let f = shown(&mut p, 0.0);
     let (name, tank) = f.at(3.0, 2.0);
     assert!(
@@ -165,8 +173,12 @@ fn a_showcase_poses_without_any_publication() {
 #[test]
 fn showcased_soldiers_idle_each_at_their_own_tempo() {
     let mut p = Presentation::new(None, 30.0).unwrap();
-    p.set_showcase(plain("test_rifle"), squad("test_rifle", "blue", 3, 0, None))
-        .unwrap();
+    show(
+        &mut p,
+        plain("test_rifle"),
+        squad("test_rifle", "blue", 3, 0, None),
+    )
+    .unwrap();
     let spots = [(0.0, 0.0), (1.5, 0.8), (3.0, 0.0)];
     let poses =
         |f: &Shot| -> Vec<Vec<f32>> { spots.iter().map(|&(x, y)| f.palette(x, y)).collect() };
@@ -189,21 +201,19 @@ fn showcased_soldiers_idle_each_at_their_own_tempo() {
 }
 
 #[test]
-fn a_parked_rotorcraft_draws_its_blades_at_rest_with_no_rotor_disc() {
-    let rotor = SHAPE_NAMES.iter().position(|s| *s == "rotor").unwrap() as f32;
+fn a_parked_rotorcraft_draws_its_blades_at_rest_and_throws_no_effects() {
     let fielded = plain("test_heli");
     let appearances = fielded.units.appearances.clone();
     let mut p = Presentation::new(None, 30.0).unwrap();
-    p.set_showcase(fielded, hull("test_heli", [0.0, 0.0, 0.0]))
-        .unwrap();
+    show(&mut p, fielded, hull("test_heli", [0.0, 0.0, 0.0])).unwrap();
     let mut blades = Vec::new();
     for k in 0..3 {
         let f = shown(&mut p, f64::from(k) / 30.0);
         let (name, heli) = f.at(0.0, 0.0);
         assert_eq!(heli.placement[2], 0.0, "it stands on the ground");
         assert!(
-            !p.effects().iter().any(|e| e.misc[0] == rotor),
-            "frame {k}: a parked rotorcraft draws no rotor disc"
+            p.effects().is_empty(),
+            "frame {k}: a parked rotorcraft throws no effects, no rotor disc"
         );
         let Some(Appearance::Articulated { rig, .. }) = appearances.get(&name) else {
             panic!("{name} is not articulated");
@@ -246,8 +256,12 @@ fn an_operator_at_rest_carries_his_weapons_carried_kit() {
     let carried = draws.operated[m].as_ref().unwrap().carried.clone();
     let slots = draws.slots.len();
     let mut p = Presentation::new(None, 30.0).unwrap();
-    p.set_showcase(fielded, squad("test_at", "blue", slots, mounts, Some(m)))
-        .unwrap();
+    show(
+        &mut p,
+        fielded,
+        squad("test_at", "blue", slots, mounts, Some(m)),
+    )
+    .unwrap();
     let f = shown(&mut p, 0.0);
     let (operator, _) = f.at(0.0, 0.0);
     assert!(
@@ -273,8 +287,7 @@ fn a_showcase_wears_the_look_fielding_resolved_for_its_faction() {
     };
     let worn = |side: &str| {
         let mut p = Presentation::new(None, 30.0).unwrap();
-        p.set_showcase(field(), squad("test_rifle", side, 3, 0, None))
-            .unwrap();
+        show(&mut p, field(), squad("test_rifle", side, 3, 0, None)).unwrap();
         shown(&mut p, 0.0).at(0.0, 0.0).0
     };
     let red = field().units.types["test_rifle"].draws["red"].slots[0].clone();
@@ -303,7 +316,7 @@ fn study() -> Asset {
 }
 
 #[test]
-fn a_shown_unit_s_rows_are_the_presentation_s_own_and_the_next_unit_replaces_them() {
+fn a_shown_unit_s_rows_are_the_presentation_s_own_and_another_needs_its_own_presentation() {
     let mut p = Presentation::new(None, 30.0).unwrap();
     p.install_lab_assets(
         [("study".into(), study())].into(),
@@ -330,8 +343,12 @@ fn a_shown_unit_s_rows_are_the_presentation_s_own_and_the_next_unit_replaces_the
     };
     let before = rows(&p);
     let lab = shown(&mut p, 0.0).at(-6.0, 0.0);
-    p.set_showcase(plain("test_tank"), hull("test_tank", [3.0, 0.0, 0.0]))
-        .unwrap();
+    show(
+        &mut p,
+        plain("test_tank"),
+        hull("test_tank", [3.0, 0.0, 0.0]),
+    )
+    .unwrap();
     let both = shown(&mut p, 0.0);
     let (tank, _) = both.at(3.0, 0.0);
     // The page loads the art of the canonical rows: the shown unit's are
@@ -348,21 +365,18 @@ fn a_shown_unit_s_rows_are_the_presentation_s_own_and_the_next_unit_replaces_the
         lab.1.placement,
         "the lab model is drawn as it was"
     );
-    p.set_showcase(plain("test_heli"), hull("test_heli", [3.0, 0.0, 0.0]))
-        .unwrap();
-    let next = rows(&p);
-    assert!(!next.contains(&tank), "the last unit's rows are gone");
-    assert!(
-        next.len() > before.len(),
-        "the next unit's rows stand in their place"
-    );
+    assert!(shown_rows.len() > before.len(), "the unit's rows are added");
+    // A second unit is refused, and the first stays shown as it was.
+    assert!(show(
+        &mut p,
+        plain("test_heli"),
+        hull("test_heli", [3.0, 0.0, 0.0])
+    )
+    .is_err());
+    assert_eq!(rows(&p), shown_rows, "the refusal leaves the rows");
     let after = shown(&mut p, 0.0);
-    assert_eq!(after.models.len(), 2, "the next unit and the lab model");
-    assert_eq!(
-        after.at(-6.0, 0.0).1.placement,
-        lab.1.placement,
-        "the lab model is drawn as it was"
-    );
+    assert_eq!(after.models.len(), 2, "the unit and the lab model");
+    assert_eq!(after.at(3.0, 0.0).0, tank, "the first unit stays shown");
 }
 
 #[test]
@@ -395,12 +409,9 @@ fn a_showcase_and_a_battle_never_share_a_presentation() {
     let mut p = Presentation::new(None, 30.0).unwrap();
     let (world, tables) = battle();
     p.load_world(world, tables, None).unwrap();
-    assert!(p
-        .set_showcase(plain("test_tank"), hull("test_tank", [0.0; 3]))
-        .is_err());
+    assert!(show(&mut p, plain("test_tank"), hull("test_tank", [0.0; 3])).is_err());
     let mut p = Presentation::new(None, 30.0).unwrap();
-    p.set_showcase(plain("test_tank"), hull("test_tank", [0.0; 3]))
-        .unwrap();
+    show(&mut p, plain("test_tank"), hull("test_tank", [0.0; 3])).unwrap();
     let (world, tables) = battle();
     assert!(p.load_world(world, tables, None).is_err());
 }

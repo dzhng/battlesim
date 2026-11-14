@@ -77,9 +77,11 @@ fn prebuilt_terrain_keeps_its_faces_while_backdrop_uses_the_local_patch() {
         vertex[0] += 1000.0;
         vertex[2] += 100.0;
     }
-    let mut world = WorldGeometry::from_mesh(remote.clone(), &[], &local, &[], 80.0);
+    let level = BackdropRelief::default();
+    let world = WorldGeometry::from_mesh(remote.clone(), &[], &local, &[], None, 80.0, &level);
     assert_eq!(world.backdrop[0], 920.0);
-    world.set_backdrop(Some(&local), 80.0, &BackdropRelief::default());
+    let world =
+        WorldGeometry::from_mesh(remote.clone(), &[], &local, &[], Some(&local), 80.0, &level);
     assert_eq!(world.terrain, remote);
     assert_eq!(world.skirt_and_props, local);
     assert_eq!(&world.backdrop[..3], &[-80.0, -80.0, 0.5]);

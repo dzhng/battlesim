@@ -617,7 +617,7 @@ fn armory_camera_is_admitted_before_control() {
             "camera_armory.pitch_limits",
         );
     }
-    // Framing: the unit's sphere fills the cell at most at the nearest zoom,
+    // Framing: the unit's box fills the cell at most at the nearest zoom,
     // and less at the opening and less again at the farthest.
     for (key, value) in [("near", 1.01), ("near", 0.0), ("far", 0.0), ("open", 2.0)] {
         reject_presentation(

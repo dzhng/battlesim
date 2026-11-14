@@ -61,17 +61,15 @@ impl Renderer {
         } else {
             Vec::new()
         };
-        let mut geometry = WorldGeometry::from_mesh(
+        let geometry = WorldGeometry::from_mesh(
             terrain_mesh,
             skirt_positions,
             extra_faces,
             &cells,
+            backdrop_terrain.as_deref(),
             backdrop_m,
+            &ground.source.relief,
         );
-        let relief = &ground.source.relief;
-        if backdrop_terrain.is_some() || !relief.is_level() {
-            geometry.set_backdrop(backdrop_terrain.as_deref(), backdrop_m, relief);
-        }
         self.geometry = Some(Arc::new(geometry));
         self.runtime = None;
         self.display_group = None;

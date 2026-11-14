@@ -7,7 +7,6 @@ use contract::scenario::{Rules, ScenarioDefinition};
 use game_wasm::{Showground, SquadAtRest};
 use serde_json::json;
 use sim::battle::Battle;
-use sim::weapons::Arsenal;
 
 fn rules() -> Rules {
     serde_json::from_value(sim::fixtures::rules()).unwrap()
@@ -50,6 +49,9 @@ fn a_squad_at_rest_stands_as_a_fresh_battle_squad_stands() {
     let ground = showground(&rules);
     let kinds = squads(&rules);
     assert!(!kinds.is_empty(), "the game fields squads");
+    // Operated special weapons seen, so the operators' check never passes
+    // on squads that carry none.
+    let mut operated = 0;
     for kind in &kinds {
         for seed in 0..20 {
             let squad = at_rest(&ground, kind, seed);
@@ -80,60 +82,10 @@ fn a_squad_at_rest_stands_as_a_fresh_battle_squad_stands() {
                 squad.operators, operators,
                 "{kind} seed {seed}: each weapon's operator"
             );
+            operated += operators.iter().flatten().count();
         }
     }
-}
-
-#[test]
-fn every_special_weapon_starts_with_its_original_carrier() {
-    let rules = rules();
-    let ground = showground(&rules);
-    let arsenal = Arsenal::new(&rules);
-    let mut operated = 0;
-    for kind in squads(&rules) {
-        let specs = arsenal.specs(rules.catalog.index(&kind).unwrap());
-        let squad = at_rest(&ground, &kind, 7);
-        assert_eq!(
-            squad.operators.len(),
-            specs.len(),
-            "{kind}: one entry a mount"
-        );
-        let slot_of = |id: u32| squad.soldiers.iter().find(|s| s.id == id).map(|s| s.slot);
-        let mut holding = Vec::new();
-        for (m, (spec, operator)) in specs.iter().zip(&squad.operators).enumerate() {
-            if spec.squad {
-                assert_eq!(
-                    *operator, None,
-                    "{kind}: the squad's gun {m} has no one operator"
-                );
-                continue;
-            }
-            match operator {
-                Some(id) => {
-                    let slot = slot_of(*id).expect("the operator is one of the squad");
-                    assert!(
-                        spec.carriers.contains(&slot),
-                        "{kind}: mount {m} went to slot {slot}, which doesn't carry it"
-                    );
-                    assert!(
-                        !holding.contains(id),
-                        "{kind}: soldier {id} operates two weapons"
-                    );
-                    holding.push(*id);
-                    operated += 1;
-                }
-                None => assert!(
-                    squad
-                        .soldiers
-                        .iter()
-                        .filter(|s| spec.carriers.contains(&s.slot))
-                        .all(|s| squad.operators.contains(&Some(s.id))),
-                    "{kind}: mount {m} has a free carrier but no operator"
-                ),
-            }
-        }
-    }
-    assert!(operated > 0, "some squad carries a special weapon");
+    assert!(operated > 0, "some squad operates a special weapon");
 }
 
 #[test]

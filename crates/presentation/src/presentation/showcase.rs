@@ -3,12 +3,9 @@
 //! standing still instead of a publication, so its idle life is the
 //! battle's: each soldier's own tempo and gaze, the occasional watcher, the
 //! kit each operator carries. It stands on the ground (`FeedUnit::grounded`),
-//! so an aircraft is parked: its rotors stand still and draw as blades,
-//! with no blur.
+//! so an aircraft is parked: its rotors stand still and draw as blades.
+//! It has no effects: nothing it does at rest throws any.
 use super::*;
-use crate::effects::frame::draw_rotors;
-use crate::effects::tables::RotorBlurStyle;
-use crate::fielded::Fielded;
 use crate::units::driver::{FeedFallen, FeedFrame, FeedMount, FeedSoldier, FeedUnit};
 
 /// The unit a page shows: a kind of the fielded units, the side whose look
@@ -42,9 +39,6 @@ pub(super) struct Showcase {
     tables: Arc<ClipTables>,
     inverse_binds: HashMap<String, Vec<Mat4>>,
     driver: PoseDriver,
-    drawn: DrawnModels,
-    blur: RotorBlurStyle,
-    pub(super) batch: EffectBatch,
     unit: FeedUnit,
     /// No one has fallen: one list, so the driver never reconciles it.
     fallen: Arc<Vec<FeedFallen>>,
@@ -52,9 +46,8 @@ pub(super) struct Showcase {
 }
 
 impl Showcase {
-    fn new(fielded: Fielded, input: ShowcaseInput) -> Result<Self, String> {
-        let ty = fielded
-            .units
+    fn new(units: UnitsSection, tables: ClipTables, input: ShowcaseInput) -> Result<Self, String> {
+        let ty = units
             .types
             .get(&input.kind)
             .ok_or_else(|| format!("showcase: {} is not fielded", input.kind))?;
@@ -106,15 +99,11 @@ impl Showcase {
             grounded: true,
             ..FeedUnit::default()
         };
-        let presentation = EffectPresentation::from_value(&fielded.effects.presentation)?;
-        let units = Arc::new(fielded.units);
-        let tables = Arc::new(fielded.tables);
+        let units = Arc::new(units);
+        let tables = Arc::new(tables);
         Ok(Self {
             inverse_binds: posing::inverse_binds(&units),
             driver: PoseDriver::new(&units)?,
-            drawn: DrawnModels::new(units.clone(), tables.clone(), &input.side),
-            blur: presentation.rotor_blur,
-            batch: EffectBatch::new(presentation.capacity),
             unit,
             fallen: Arc::default(),
             scratch: Scratch::default(),
@@ -134,19 +123,14 @@ impl Showcase {
         }
     }
 
-    /// The unit at presentation time `time`, and its rotors' blur into its
-    /// effects.
+    /// The unit at presentation time `time`.
     pub(super) fn pose(&mut self, time: f64, ground: Option<&Ground>) {
         let feed = FeedFrame {
             time,
             units: vec![self.unit.clone()],
             fallen: self.fallen.clone(),
         };
-        let poses = self.driver.update(&feed, &self.units, ground);
-        self.drawn.update(poses);
-        self.batch.count = 0;
-        self.batch.dropped = 0;
-        draw_rotors(&self.blur, &self.drawn.rotors(), &mut self.batch);
+        self.driver.update(&feed, &self.units, ground);
     }
 
     /// The unit as last posed into the frame's models, its detail scaled by
@@ -160,15 +144,13 @@ impl Showcase {
         models: &mut Vec<Model>,
     ) {
         let poses = self.driver.poses();
-        let mut detail = self.units.detail;
-        detail.lod_px = detail.lod_px.map(|v| v * unit_scale);
         let art = UnitArt {
             units: &self.units,
             tables: &self.tables,
             inverse_binds: &self.inverse_binds,
             world,
             view,
-            detail,
+            detail: self.units.detail.scaled(unit_scale),
         };
         let plain = |_: &str, _: f64| [0.0; 4];
         let culled = art.soldiers(&poses.soldiers, plain, &mut self.scratch.worlds, f, models);
@@ -186,16 +168,27 @@ impl Showcase {
 }
 
 impl Presentation {
-    /// Shows `input`'s unit at rest, drawn from what `fielded` resolved for
-    /// it, in place of any shown before. Its rows are the presentation's own,
-    /// as a battle's are, so the page loads their art as it loads a battle's;
-    /// the lab's rows move after them: reinstall the renderer's tables after
-    /// this call. A presentation shows a battle or a showcase, never both.
-    pub fn set_showcase(&mut self, fielded: Fielded, input: ShowcaseInput) -> Result<(), String> {
+    /// Shows `input`'s unit at rest, drawn from the `units` and clip `tables`
+    /// `Fielded` resolved for it. Its rows are the presentation's own, as a
+    /// battle's are, so the page loads their art as it loads a battle's; the
+    /// lab's rows move after them: reinstall the renderer's tables after this
+    /// call. A presentation shows one showcase or a battle, never both, and
+    /// never another: each show takes a presentation of its own.
+    pub fn set_showcase(
+        &mut self,
+        units: UnitsSection,
+        tables: ClipTables,
+        input: ShowcaseInput,
+    ) -> Result<(), String> {
         if self.loaded.is_some() {
             return Err("showcase: a battle is loaded".into());
         }
-        self.showcase = Some(Showcase::new(fielded, input)?);
+        if self.showcase.is_some() {
+            return Err(
+                "showcase: a unit is shown; another needs a presentation of its own".into(),
+            );
+        }
+        self.showcase = Some(Showcase::new(units, tables, input)?);
         self.catalog_revision = catalog::next_revision();
         self.register_shown_rows();
         Ok(())
@@ -204,11 +197,7 @@ impl Presentation {
     /// The rows after the world's own: the shown unit's, then the lab's.
     pub(super) fn register_shown_rows(&mut self) {
         self.clear_lab_rows();
-        if let Some(frontier) = self.showcase_frontier.take() {
-            lab::truncate_rows(&mut self.world, frontier);
-        }
         if let Some(showcase) = &self.showcase {
-            self.showcase_frontier = Some(lab::frontier(&self.world));
             showcase.register_rows(&mut self.world);
         }
         self.register_lab_rows();

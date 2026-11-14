@@ -162,9 +162,11 @@ calls the same reader for workbench drafts.
   posed by the battle's own driver from a unit standing still instead of a
   publication, so its idle life (each soldier's tempo and gaze, the watcher,
   each operator's carried kit) is the battle's. A flying type stands parked
-  (`FeedUnit::grounded`): rotors still, gear down, no idle loops. Posing is
+  (`FeedUnit::grounded`): rotors still, gear down, no idle loops, and a unit
+  at rest throws no effects. Posing is
   [one owner](src/presentation/posing.rs) for both. A presentation shows a
-  battle or a showcase, never both; the unit's rows are the
+  battle or one showcase, never both and never a second unit (each show
+  takes a presentation of its own); the unit's rows are the
   presentation's own, as a battle's are, with the lab's after them. [Idle loops](src/sound/idle.rs) are what a stationary battle vehicle
   starts, replacements applied; a flying type on the ground makes none.
 - [Sound](src/sound/): what a battle hears, when, where and how loud, from the

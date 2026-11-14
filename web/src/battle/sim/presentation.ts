@@ -384,11 +384,13 @@ export class ScenePresentation {
   }
 
   /** Shows one unit at rest with no battle (`ShowcaseInput`), drawn from
-   *  `fielded`; returns the rows, the unit's now among the canonical ones, so
-   *  a scene built on this presentation reloads (`BrowserScene.worldCurrent`). */
+   *  `fielded`'s units and clip tables (a unit at rest throws no effects);
+   *  returns the rows, the unit's now among the canonical ones, so a scene
+   *  built on this presentation reloads (`BrowserScene.worldCurrent`). Once
+   *  per presentation: another unit needs a presentation of its own. */
   setShowcase(fielded: FieldedUnits, input: ShowcaseInput): PresentedAppearance[] {
     for (const [name, floats] of fielded.tables) this.rust.add_clip_table(name, floats);
-    const sections = JSON.stringify({ units: fielded.units, effects: fielded.effects });
+    const sections = JSON.stringify({ units: fielded.units });
     return (this.loaded = this.readWorld(this.rust.set_showcase(sections, JSON.stringify(input))));
   }
 

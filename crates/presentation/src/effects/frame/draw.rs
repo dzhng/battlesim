@@ -118,7 +118,7 @@ pub(super) fn draw_tail(
 /// Each rotor as a shutter sees it: its blades smeared over the angle they
 /// swept while it was open, a faint disc over its reach while it spins, its
 /// hub, and its mast.
-pub(crate) fn draw_rotors(blur: &RotorBlurStyle, rotors: &[DrawnRotor], batch: &mut EffectBatch) {
+pub(super) fn draw_rotors(blur: &RotorBlurStyle, rotors: &[DrawnRotor], batch: &mut EffectBatch) {
     let RotorBlurStyle {
         albedo,
         shutter,
