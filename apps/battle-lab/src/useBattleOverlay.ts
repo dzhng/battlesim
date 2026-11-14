@@ -9,9 +9,16 @@ import { metresPerPxAt, type Camera3DParams } from "@packages/renderer-core/src/
 import { borderWidthM, buildMapBorder } from "@packages/battle-renderer/src/playAreaOverlay";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
+import * as gameWasm from "@wasm/game_wasm";
+import { lanesOf } from "@web/battle/prepare/lanes";
+import type { Player } from "@web/battle/prepare/protocol";
 import type { SideName } from "@web/battle/sim/protocol";
 import { useFeed } from "@web/feed";
-import { battleOverlayParts, battleOverlayScenario } from "./battleOverlay";
+import {
+  battleOverlayParts,
+  battleOverlayScenario,
+  type OverlayScenarioSource,
+} from "./battleOverlay";
 import { useContactFacing } from "./contactFacing";
 import { gameMapBorder } from "./gameFog";
 import { gameStroke } from "./gameOverlay";
@@ -36,13 +43,14 @@ export function useBattleOverlay(
     shown = true,
   }: { scenario: string; side?: SideName; camera: Camera3DParams; shown?: boolean },
 ) {
-  const parsed = useMemo(
-    () => ({
-      size: (JSON.parse(scenario) as { map: { size: [number, number] } }).map.size,
-      drawn: battleOverlayScenario(scenario, side ?? "blue"),
-    }),
-    [scenario, side],
-  );
+  // The roads in are numbered by `sim::entries`.
+  const parsed = useMemo(() => {
+    const s = JSON.parse(scenario) as OverlayScenarioSource & { players?: Player[] };
+    const lanes = s.skirmish
+      ? lanesOf(gameWasm, JSON.stringify(s.skirmish.sites), s.players ?? []).entries
+      : [];
+    return { size: s.map.size, drawn: battleOverlayScenario(s, lanes, side ?? "blue") };
+  }, [scenario, side]);
   // The border and the orders are rebuilt only when the zoom crosses a step
   // (×1.25), so their widths hold near their `_px` widths on screen.
   const [zoom, setZoom] = useState(() => zoomStep(camera.distance));

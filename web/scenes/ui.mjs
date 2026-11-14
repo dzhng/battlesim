@@ -15,8 +15,9 @@ const PANELS = ".hud-panel, .hud-card, .hud-rejected, .frame-rate";
  *  of it) and the build's identity. */
 const MENU_UNPINNED = ".menu-backdrop, [data-testid=menu-build] { visibility: hidden !important; }";
 /** Also never pinned here: the lobby's map, a fresh seed each visit (the
- *  map-picture scene judges the picture). */
-const LOBBY_UNPINNED = `${MENU_UNPINNED} .lobby-picture, .lobby-seed { visibility: hidden !important; }`;
+ *  map-picture scene judges the picture). Every mark in it too: a mark the
+ *  lobby reveals (your lane's band) would otherwise show through. */
+const LOBBY_UNPINNED = `${MENU_UNPINNED} .lobby-picture, .lobby-picture * { visibility: hidden !important; }`;
 
 async function contained(ctx, page, name) {
   const out = await spills(page, PANELS);

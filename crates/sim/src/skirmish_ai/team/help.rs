@@ -37,12 +37,13 @@ pub(super) fn lane_contexts(
     if lanes.is_empty() || sites.objectives.is_empty() {
         return Vec::new();
     }
+    let sides: Vec<_> = players.iter().map(|player| player.side).collect();
+    let home_entries = entries::homes(sites, &sides);
     players
         .iter()
         .enumerate()
         .filter(|(_, player)| player.side == side)
-        .enumerate()
-        .filter_map(|(local_index, (index, _))| {
+        .filter_map(|(index, _)| {
             let player = PlayerIndex(index as u16);
             if let Some(plan) = plans.iter().find(|plan| plan.player == player) {
                 return Some((
@@ -52,13 +53,24 @@ pub(super) fn lane_contexts(
                     plan.staging_point,
                 ));
             }
-            // A human teammate asks for help where it fights. An AI player
-            // the plan left unassigned has no lane to ask for.
+            // A human teammate asks for help where it fights: from its own
+            // lane, or, holding none (a slot past the side's roads), from the
+            // side's road nearest that fight. An AI player the plan left
+            // unassigned has no lane to ask for.
             if players[index].controller != ControllerKind::Human {
                 return None;
             }
-            let lane = lanes[local_index % lanes.len()];
             let objective = covered_by_player.get(&player)?.clone();
+            let from = |lane: &EntryIndex| {
+                let [x, y] = sites.entries[lane.0].center;
+                libm::hypot(x - objective.center[0], y - objective.center[1])
+            };
+            let lane = home_entries[index].unwrap_or_else(|| {
+                *lanes
+                    .iter()
+                    .min_by(|a, b| from(a).total_cmp(&from(b)))
+                    .expect("a side with lanes")
+            });
             let staging_point = staging(
                 sites.entries[lane.0].center,
                 objective.center,

@@ -12,14 +12,13 @@ The items are independent:
 - [ ] Give the five launchers a soft truck's armour.
 - [ ] Refresh the stale model receipts.
 - [ ] Decide whether the shared truck parts the launchers inherit are close enough.
-- [ ] Parse the battle scenario once in the battle view.
 
 ## The items
 
 1. **The launchers keep the Stryker's armour.** Each of the five has the Dragoon's hull armour and ricochet chances (`body.hull.armor` in `fixtures/units/roster/{us,europe,eastern}.json`). The other soft air-defence trucks on the same base profile (Europe's NASAMS, the Buk-M3, the Pantsir-SM) have much thinner armour and no ricochet. The clearest mismatch is the US NASAMS, which is the same launcher as Europe's but much tougher. Armour is data that drives outcomes, so changing it moves battle digests and is a named decision. Run `tweak-mechanics` first.
 2. **Most model receipts no longer match their scripts.** A receipt (`assets/source/roster/<family>/source-receipt.json` or `<script>.source-receipt.json`) records the hash of every script that built a family's models. Shared helpers (`textures.py`, `catalog_frames.py`, `vehicle_export.py`, `parts.py`, `vehicle_parts.py`) have changed since most families were exported, so most receipts are stale. No check reads them. Re-exporting a family refreshes its receipt, but the model may change with it: helper changes that landed without a re-export show up as new geometry or materials. So each re-export needs the model diffed. Where it changed, it needs the validator, a contact sheet and the bake. Decide first whether a check should hold receipts fresh, or whether a receipt only records what built the committed file.
 3. **Shared truck parts stand in on the launchers.** The S-350's cab and tyres come from `truck_chassis`. The IRIS-T's and the NASAMS's cabs and wheels are the MAN HX script's. Each is close, not exact, to its references; the HX cab's steps touch its front tyres (in the lint baseline for all three). Correcting one changes every truck that shares it, so judge the sharing trucks together against their references (`compare-screenshots`). The fittings under an HX's deck (lockers, fuel tank, battery box, underrun bar, pintle, tail lights) are written three times, in `man-hx.py`, `iris_t_slm.py` and `nasams.py`; give them one owner in `man-hx.py` when those trucks are next re-exported.
-4. **The battle view parses the scenario twice.** `apps/battle-lab/src/BattleView.tsx` parses the scenario JSON for the map size, then `battleOverlayScenario` parses it again. It happens once per scenario change, so it costs nothing measurable; fold it into one parse when that code is next touched.
+4. **Done:** the battle overlay now parses the scenario once ([lane slots](../done/lane-slots/README.md)).
 
 ## Open questions for the walk
 

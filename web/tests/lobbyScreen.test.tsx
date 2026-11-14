@@ -47,6 +47,8 @@ const banners = (menu: RenderResult, name: "Blue" | "Red") =>
     .getAllByRole("listitem")
     .map((li) => li.textContent);
 const deploy = (menu: RenderResult) => menu.getByTestId("menu-deploy");
+/** What the preview is doing, as the status line marks it. */
+const status = (menu: RenderResult) => menu.getByTestId("lobby-status").dataset.status;
 /** The battle Deploy's link names, or null while Deploy waits. */
 const deployed = (menu: RenderResult) => {
   const href = deploy(menu).getAttribute("href");
@@ -61,7 +63,7 @@ test("the lobby opens on a 1v1 of the asked map, and Deploy waits for that map",
   expect(banners(menu, "Blue")).toEqual(["1You"]);
   expect(banners(menu, "Red")).toEqual(["1AI"]);
   expect(menu.getByTestId("lobby-vs").textContent).toBe("1 VS 1");
-  expect(menu.getByTestId("lobby-status").textContent).toBe("Generating map");
+  expect(status(menu)).toBe("loading");
   expect(deploy(menu).getAttribute("aria-disabled")).toBe("true");
   expect(deployed(menu)).toBeNull();
 
@@ -74,7 +76,7 @@ test("the lobby opens on a 1v1 of the asked map, and Deploy waits for that map",
   });
   expect(preview.request.map_source.request.entries_per_side).toBe(1);
   await preview.admit();
-  expect(menu.getByTestId("lobby-status").textContent).toBe("Ready seed 77");
+  expect(status(menu)).toBe("ready");
   expect(menu.getByTestId("lobby-map").querySelector("svg")?.dataset.seed).toBe("77");
   expect(deployed(menu)).toMatchObject({
     map: { type: "open", size: "small", seed: "77" },
@@ -90,7 +92,10 @@ test("presets and Add/Delete set up any match, and the size follows the larger s
   expect(banners(menu, "Blue")).toEqual(["1You", "2AI", "3AI"]);
   expect(size("L").getAttribute("aria-checked")).toBe("true");
   expect([size("S"), size("M")].every((s) => (s as HTMLButtonElement).disabled)).toBe(true);
-  expect(menu.getByTestId("lobby-size-reason").textContent).toBe("S · M too small for 3 a side");
+  // A closed size can't be chosen.
+  fireEvent.click(size("S"));
+  expect(size("S").getAttribute("aria-checked")).toBe("false");
+  expect(size("L").getAttribute("aria-checked")).toBe("true");
 
   // 3v4: one more on Red.
   fireEvent.click(menu.getByTestId("lobby-add-red"));
@@ -152,12 +157,52 @@ test("only a change to the map's inputs draws a new map", async () => {
     type: "metro",
     seed: threes.seed,
   });
-  fireEvent.click(menu.getByTestId("menu-region"));
-  fireEvent.click(menu.getByTestId("menu-region-paris"));
-  expect(menu.getByTestId("menu-region").textContent).toBe("paris");
+  const region = (name: string) => menu.getByTestId(`menu-region-${name}`);
+  expect(region("random").getAttribute("aria-checked")).toBe("true");
+  fireEvent.click(region("paris"));
+  expect(region("paris").getAttribute("aria-checked")).toBe("true");
+  expect(region("random").getAttribute("aria-checked")).toBe("false");
   expect((await started(3)).request.map_source.request.region).toBe("paris");
   fireEvent.click(menu.getByTestId("lobby-reroll"));
   expect((await started(4)).seed).not.toBe(threes.seed);
+});
+
+test("the map marks who holds each lane, and a seat change re-marks it without a new map", async () => {
+  const menu = await openLobby();
+  await (await started(0)).admit();
+  fireEvent.click(menu.getByRole("radio", { name: "3v3" }));
+  // Three roads a side, listed centre first as admitted sites are; the
+  // picture draws a tag per entry in that order, numbered from the top
+  // (high x) down.
+  const roads = [1500, 600, 2400];
+  // This fake picture numbers its tags as `sim::entries` would (the real
+  // picture asks it), so the test can name lanes.
+  const lane = (x: number) => [...roads].sort((a, b) => b - a).indexOf(x) + 1;
+  const entries = (["blue", "red"] as const).flatMap((side) =>
+    roads.map((x) => ({ side, center: [x, side === "blue" ? 12 : 2988], yaw: 0 })),
+  );
+  const svg = `<svg>${entries
+    .map((e) => `<g data-entry="${e.side}" data-lane="${lane(e.center[0])}"></g>`)
+    .join("")}</svg>`;
+  await (await started(1)).admit({ sites: JSON.stringify({ entries, objectives: [] }), svg });
+  const held = (side: "blue" | "red", n: number) =>
+    menu
+      .getByTestId("lobby-map")
+      .querySelector(`[data-entry="${side}"][data-lane="${n}"]`)
+      ?.getAttribute("data-held");
+  expect([1, 2, 3].map((n) => held("blue", n))).toEqual(["you", "player", "player"]);
+  expect([1, 2, 3].map((n) => held("red", n))).toEqual(["player", "player", "player"]);
+
+  // You take Blue 2's seat: the mark moves down a road.
+  fireEvent.click(menu.getByTestId("lobby-controller-blue-2"));
+  fireEvent.click(menu.getByTestId("lobby-controller-blue-2-you"));
+  expect([1, 2, 3].map((n) => held("blue", n))).toEqual(["player", "you", "player"]);
+
+  // 2v3 keeps three roads a side: Blue's third is open, and still there.
+  fireEvent.click(menu.getByRole("button", { name: "Remove Blue 3" }));
+  expect([1, 2, 3].map((n) => held("blue", n))).toEqual(["player", "you", "none"]);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(PreviewWorker.all).toHaveLength(2);
 });
 
 test("a refused map is redrawn quietly, and Deploy names the seed that was admitted", async () => {
@@ -165,7 +210,7 @@ test("a refused map is redrawn quietly, and Deploy names the seed that was admit
   const refused = await started(0);
   expect(refused.seed).toBe("19");
   await refused.refuse();
-  expect(menu.getByTestId("lobby-status").textContent).toBe("Redrawing map · try 2");
+  expect(status(menu)).toBe("retrying");
   const admitted = await started(1);
   expect(admitted.seed).not.toBe("19");
   await admitted.admit();
@@ -178,7 +223,7 @@ test("a refused map is redrawn quietly, and Deploy names the seed that was admit
 test("a map that cannot be made says so, keeps Deploy closed and offers a reroll", async () => {
   const menu = await openLobby();
   await (await started(0)).refuse("invalid_request", "request");
-  expect(menu.getByTestId("lobby-status").textContent).toBe("No map");
+  expect(status(menu)).toBe("failed");
   expect(deploy(menu).getAttribute("aria-disabled")).toBe("true");
   fireEvent.click(menu.getByRole("button", { name: "Reroll" }));
   await (await started(1)).admit();

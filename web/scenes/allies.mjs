@@ -47,6 +47,23 @@ export async function run(ctx) {
     JSON.stringify(players),
   );
 
+  const { entry, size } = await lab(page, () => {
+    const prepared = window.__lab.route.prepared();
+    return { entry: prepared.start.at, size: prepared.size };
+  });
+  // Your road in paints its lane's number behind its chevrons; pulled out,
+  // Blue's other road shows its own.
+  await shoot(ctx, page, "entry-lane", entry, 160);
+  await shoot(ctx, page, "entry-lanes-far", entry, 900);
+  // Buy a little way into the map from your road, not on it: a tank parked
+  // on the road's edge blocks every later arrival there, your ally's too,
+  // and your ally may share your road. Aim there, so the mid-screen clicks
+  // below land inward.
+  const inward = Math.atan2(size[1] / 2 - entry[1], size[0] / 2 - entry[0]);
+  await aim(page, [entry[0] + Math.cos(inward) * 120, entry[1] + Math.sin(inward) * 120], {
+    distance: 160,
+  });
+  await presented(page);
   // Buy through the picker's own keyboard path (a family name, then Enter
   // arms its first variant's ghost), then ready.
   await page.getByRole("button", { name: "Reinforcements", exact: true }).click();

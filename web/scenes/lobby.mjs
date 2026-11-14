@@ -91,10 +91,11 @@ export async function run(ctx) {
 
   const status = () => page.getByTestId("lobby-status").getAttribute("data-status");
   const vs = () => page.getByTestId("lobby-vs").textContent();
+  /** The seed Deploy's link names: the map the preview admitted. */
   const seed = async () =>
-    (await page.getByTestId("lobby-status").textContent())
-      .match(/seed ([\d ]+)/)?.[1]
-      .replaceAll(" ", "");
+    new URL(await page.getByTestId("menu-deploy").getAttribute("href"), origin).searchParams.get(
+      "seed",
+    );
   const previews = () => page.evaluate(() => window.__previews.length);
   const settled = async (timeout = PREVIEW_TIMEOUT) => {
     await page.waitForFunction(
@@ -166,9 +167,9 @@ export async function run(ctx) {
       (await page.getByTestId("menu-size-large").getAttribute("aria-checked")) === "true",
   );
   ctx.check(
-    "sizes below a 3v3's floor are closed, with why",
-    (await page.getByTestId("menu-size-medium").isDisabled()) &&
-      /too small for 3 a side/.test(await page.getByTestId("lobby-size-reason").textContent()),
+    "sizes below a 3v3's floor are closed",
+    (await page.getByTestId("menu-size-small").isDisabled()) &&
+      (await page.getByTestId("menu-size-medium").isDisabled()),
   );
   await page.getByTestId("lobby-add-red").click();
   ctx.check("Add makes it 3 VS 4", (await vs()) === "3 VS 4");
@@ -199,6 +200,19 @@ export async function run(ctx) {
     (await previews()) === drawn && (await status()) === "ready",
     `${drawn} → ${await previews()} previews, ${await status()}`,
   );
+  // The picture marks who holds each lane: yours is Blue's second, and with
+  // two Blue players Blue's third lies open.
+  const held = (lane) =>
+    page
+      .locator(`[data-testid=lobby-map] [data-entry="blue"][data-lane="${lane}"]`)
+      .getAttribute("data-held");
+  const blue = [await held(1), await held(2), await held(3)];
+  ctx.check(
+    "the map marks your lane and the open one",
+    blue.join() === "player,you,none",
+    blue.join(),
+  );
+  await shoot("2v3");
 
   // 5v5: the size ratchets to XL; time its preview.
   await page.getByTestId("menu-match-5v5").click();

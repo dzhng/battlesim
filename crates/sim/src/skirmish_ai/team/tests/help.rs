@@ -102,6 +102,8 @@ fn help_uses_the_nearest_surplus_ally_and_holds_it_until_the_lane_is_relieved() 
             planner_decision_s: 5.0,
             grid_resolution: 1,
             distance_weight: 1.0,
+            home_lane_bonus: 0.0,
+            home_lane_fade_s: 1.0,
             influence_weight: 1.0,
             incumbency_bonus: 1.0,
             group_radius_m: 90.0,
@@ -784,4 +786,30 @@ fn a_lane_beaten_but_steady_still_asks_for_help() {
         steady_at(-0.5).is_empty(),
         "a lane pressed but not outgunned asks only when its reading falls"
     );
+}
+
+#[test]
+fn a_human_past_the_sides_lanes_asks_help_from_the_road_nearest_its_fight() {
+    // Blue fields four on three roads: the human in slot 4 holds no lane,
+    // and fights for the west objective, beside the x 100 road (entry 0).
+    let sites = sites();
+    let mut players = players();
+    players[3].side = Side::Blue;
+    players[3].controller = ControllerKind::Human;
+    let west = sites.objectives[0].clone();
+    let covered = BTreeMap::from([(PlayerIndex(3), west.clone())]);
+    let asking = lane_contexts(
+        Side::Blue,
+        &players,
+        &sites,
+        &[],
+        &covered,
+        TeamTuning::shipped(),
+    );
+    let human: Vec<_> = asking
+        .iter()
+        .filter(|lane| lane.0 == PlayerIndex(3))
+        .map(|lane| (lane.1, lane.2.id.clone()))
+        .collect();
+    assert_eq!(human, vec![(EntryIndex(0), west.id)]);
 }

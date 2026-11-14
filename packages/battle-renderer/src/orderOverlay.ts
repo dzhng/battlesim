@@ -36,7 +36,6 @@ import {
   groundStrip,
   MeshBuilder,
   paintOnly,
-  type Mesh,
   type Rgba,
 } from "./mesh";
 import type { WorldMeshes } from "./scene";
@@ -198,7 +197,7 @@ const CHEVRON_M: readonly [number, number] = [0.9, 1.7];
 type P2 = readonly [number, number];
 
 /** One draw's widths and style. */
-interface Pen {
+export interface Pen {
   style: OrderStyle;
   z: SurfaceHeight;
   /** A route's width. */
@@ -253,7 +252,7 @@ function crossMark(mesh: MeshBuilder, pen: Pen, c: P2, size: number, color: Rgba
 }
 
 /** A point `d` metres from `c` along `bearing`. */
-const along = (c: P2, bearing: number, d: number): P2 => [
+export const along = (c: P2, bearing: number, d: number): P2 => [
   c[0] + Math.cos(bearing) * d,
   c[1] + Math.sin(bearing) * d,
 ];
@@ -477,7 +476,7 @@ function travelChevrons(
 }
 
 /** One open chevron whose vertices carry `normal` for the overlay's march. */
-function marchChevron(
+export function marchChevron(
   mesh: MeshBuilder,
   pen: Pen,
   tip: P2,
@@ -625,7 +624,7 @@ export function destinationCircle(
     : { c: goal, r: u.hullHalfLength + style.vehicle_marker_margin_m, facing: u.finalFacing };
 }
 
-function orderPen(z: SurfaceHeight, style: OrderStyle, stroke: StrokeWidth): Pen {
+export function orderPen(z: SurfaceHeight, style: OrderStyle, stroke: StrokeWidth): Pen {
   return {
     style,
     z,
@@ -687,49 +686,6 @@ export function buildDestinationPreview(
   return mesh.build();
 }
 
-/** The reinforcement entry marker: three inward chevrons stacked along the
- *  battle direction. Their bright fill pulses in sequence, so the glow reads
- *  as movement into the map rather than as a static button-shaped glyph. */
-export function buildDeploymentMarker(
-  destination: readonly [number, number],
-  facing: number,
-  z: SurfaceHeight,
-  style: OrderStyle,
-  markerColor: readonly [number, number, number],
-  { stroke }: OrderOverlayOptions,
-): Mesh {
-  const mesh = new MeshBuilder();
-  const pen = orderPen(z, style, stroke);
-  const color = glowing([...markerColor, 1], style.glow.selected);
-  const { cycles_per_s, amplitude } = style.march;
-  // The spawn is on the playable edge. A chevron's arms extend behind its
-  // tip, so start the stack one arm length inside the map; otherwise the
-  // outer chevron paints across the border and into the HUD pane.
-  const armLength = 12.5;
-  const firstTip = armLength + pen.line * 2;
-  const offsets = [firstTip, firstTip + 9, firstTip + 18];
-  const outline: Rgba = [markerColor[0] * 0.45, markerColor[1] * 0.55, markerColor[2] * 0.6, 1];
-  offsets.forEach((offset, i) => {
-    const tip = along(destination, facing, offset);
-    // A dark, slightly oversized underlay leaves the crisp outlined edge seen
-    // in the reference around each painted chevron.
-    marchChevron(mesh, pen, tip, facing, outline, [0, 0, 0], [7.8, armLength], pen.line * 2.6);
-    // The pulse advances from the outer chevron toward the spawn point and
-    // back again. At any instant one chevron is visibly bright.
-    marchChevron(
-      mesh,
-      pen,
-      tip,
-      facing,
-      i === 1 ? color : fadeAlpha(color, 0.42),
-      [i === 1 ? 0 : i === 0 ? 1 / 3 : 2 / 3, cycles_per_s, Math.min(amplitude, 0.32)],
-      [6.8, 10.8],
-      i === 1 ? pen.line * 3.2 : pen.line * 1.25,
-    );
-  });
-  return mesh.build();
-}
-
 /** An ally's unit's marker, selected (to read its panel) or aloft: form
  *  before colour, it is hollow where yours is whole. Its circle is a broken
  *  ring with no arrowhead, its soldiers' plain rings, an aircraft's drop
@@ -773,8 +729,6 @@ function queuedLegs(
   }
 }
 
-/** The player's entry chevrons are ground paint so a placement ghost can
- * render over them in the world pass. */
 export function buildOrderOverlay(
   units: readonly OrderView[],
   z: SurfaceHeight,

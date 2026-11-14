@@ -50,8 +50,13 @@ struct Weights {
     objective_ring: f64,
     objective_stroke: f64,
     numeral: f64,
-    entry_length: f64,
+    /// An entry's tag: its body (which holds the lane digit), its arrow tip
+    /// and its half height.
+    entry_body: f64,
+    entry_tip: f64,
     entry_half_width: f64,
+    /// The own-lane mark: the band round the tag, outside its halo.
+    own_band: f64,
     halo: f64,
 }
 const WEIGHTS: Weights = Weights {
@@ -66,8 +71,10 @@ const WEIGHTS: Weights = Weights {
     objective_ring: 2.0,
     objective_stroke: 0.4,
     numeral: 2.6,
-    entry_length: 3.6,
-    entry_half_width: 2.0,
+    entry_body: 3.6,
+    entry_tip: 2.2,
+    entry_half_width: 2.1,
+    own_band: 0.5,
     halo: 0.55,
 };
 /// Points closer than this share of the longer side to the last one kept are
@@ -240,13 +247,17 @@ pub fn skirmish_picture(map: &MapDefinition, sites: &SkirmishSites) -> String {
         );
     }
 
-    // Entries: an arrowhead in its side's accent, from the edge the entry
-    // stands at straight into the map, wholly inside the frame.
-    for entry in &sites.entries {
+    // Entries: a tag in its side's accent pointing from the edge the entry
+    // stands at straight into the map, wholly inside the frame, its lane's
+    // digit in its body (`sim::entries::lane_number`). The picture holds no
+    // players: the page that seats them styles a lane by who holds it,
+    // through the tag's `--lane-*` custom properties (an unheld lane takes a
+    // dark tint), and reveals the own-lane mark each tag carries hidden.
+    for (index, entry) in sites.entries.iter().enumerate() {
         let [x, y] = at(entry.center);
         // The picture's edges, nearest first: the distance to each and the
         // way into the map from it, in SVG degrees (clockwise, Y down).
-        let edges = [(x, 0.0), (height - x, 180.0), (y, 90.0), (width - y, 270.0)];
+        let edges: [(f64, f64); 4] = [(x, 0.0), (height - x, 180.0), (y, 90.0), (width - y, 270.0)];
         let (edge, degrees) = edges
             .into_iter()
             .min_by(|a, b| a.0.total_cmp(&b.0))
@@ -255,16 +266,31 @@ pub fn skirmish_picture(map: &MapDefinition, sites: &SkirmishSites) -> String {
             Side::Blue => ("blue", "--hud-accent"),
             Side::Red | Side::Neutral => ("red", "--hud-enemy"),
         };
-        // Its base stands its halo's width in from the frame, so the whole
-        // arrowhead shows.
-        let base = unit * WEIGHTS.halo - edge;
+        let lane = sim::entries::lane_number(sites, sim::entries::EntryIndex(index)).0;
+        // Its back stands its halo and own-lane band in from the frame, so
+        // the whole tag shows, marked or not.
+        let back = unit * (WEIGHTS.halo + WEIGHTS.own_band) - edge;
+        let shoulder = back + unit * WEIGHTS.entry_body;
+        let tip = shoulder + unit * WEIGHTS.entry_tip;
         let half = unit * WEIGHTS.entry_half_width;
+        let outline = format!(
+            "M{back:.1} {top:.1}L{shoulder:.1} {top:.1}L{tip:.1} 0L{shoulder:.1} {half:.1}L{back:.1} {half:.1}Z",
+            top = -half
+        );
+        // The digit stays upright whichever way the tag points: placed by the
+        // tag's turn, not turned itself.
+        let turn = degrees.to_radians();
+        let (sin, cos) = (libm::sin(turn), libm::cos(turn));
+        let along = |d: f64| [d * cos, d * sin];
+        let digit = along((back + shoulder) / 2.0);
         let _ = write!(
             out,
-            r##"<g data-entry="{side}" transform="translate({x:.1} {y:.1}) rotate({degrees})"><path d="M{base:.1} {top:.1}L{tip:.1} 0L{base:.1} {half:.1}Z" stroke="{HALO}" stroke-width="{halo:.1}" stroke-linejoin="round" paint-order="stroke" style="fill:rgb(var({accent}))"/></g>"##,
-            top = -half,
-            tip = base + unit * WEIGHTS.entry_length,
+            r##"<g data-entry="{side}" data-lane="{lane}" transform="translate({x:.1} {y:.1})" style="--side:var({accent})"><g data-own="" visibility="hidden"><path transform="rotate({degrees})" d="{outline}" fill="none" stroke-width="{band:.1}" stroke-linejoin="round" style="stroke:rgb(var(--hud-text))"/></g><path transform="rotate({degrees})" d="{outline}" stroke-linejoin="round" paint-order="stroke" style="fill:var(--lane-body, rgb(var(--side)));stroke:var(--lane-edge, {HALO});stroke-width:calc({halo:.1}px * var(--lane-edge-scale, 1))"/><text data-digit="" x="{dx:.1}" y="{dy:.1}" dy="0.35em" text-anchor="middle" font-size="{size:.1}" font-weight="800" font-family="ui-monospace, Menlo, monospace" style="fill:var(--lane-digit, {HALO})">{lane}</text></g>"##,
             halo = unit * WEIGHTS.halo,
+            band = 2.0 * unit * (WEIGHTS.halo + WEIGHTS.own_band),
+            size = unit * WEIGHTS.numeral,
+            dx = digit[0],
+            dy = digit[1],
         );
     }
     out.push_str("</svg>");

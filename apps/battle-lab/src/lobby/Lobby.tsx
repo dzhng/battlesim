@@ -9,7 +9,15 @@
 // then opens the battle the lobby's link names: the admitted seed, so the
 // battle is the map the player saw.
 import { Link } from "react-router";
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 import config from "@fixtures/generated-battle.json";
 import presets from "@fixtures/map-presets.json?raw";
 import templates from "@fixtures/prototype-building-templates.json?raw";
@@ -17,8 +25,9 @@ import { FACTIONS } from "@packages/scene-assets/src/units";
 import { catalogSet } from "@web/battle/catalog/sets";
 import { mapPreviews, type MapPreviews, type PreviewState } from "@web/battle/prepare/preview";
 import type { Player } from "@web/battle/prepare/protocol";
+import { lanesOf, type LanesModule } from "@web/battle/prepare/lanes";
 import { loadWasm } from "@web/battle/sim/module";
-import { MAP_SIZES, MAP_TYPES, newSeed, type MapSize } from "@web/maps/source";
+import { MAP_SIZES, MAP_TYPES, newSeed } from "@web/maps/source";
 import { REGIONS, spoken, type AskedLobby } from "../battleLinks";
 import { MAX_PLAYERS_PER_SIDE } from "../skirmishSetup";
 import {
@@ -67,6 +76,7 @@ function useLobby(asked: AskedLobby) {
   /** The lobby state the running preview shows. */
   const shown = useRef<LobbyState | null>(null);
   const previews = useRef<{ show(state: LobbyState): void } | null>(null);
+  const [wasm, setWasm] = useState<LanesModule | null>(null);
 
   const update = (next: LobbyState) => {
     current.current = next;
@@ -95,6 +105,7 @@ function useLobby(asked: AskedLobby) {
     void Promise.all([loadWasm(), catalogSet("game")]).then(
       ([wasm, catalog]) => {
         if (!live) return;
+        setWasm(wasm);
         controller = mapPreviews(
           {
             documents: { rules: JSON.stringify(catalog.rules), presets, templates },
@@ -135,14 +146,19 @@ function useLobby(asked: AskedLobby) {
     };
   }, []);
 
-  return { lobby, preview, update };
+  return { lobby, preview, update, wasm };
 }
 
 /** The skirmish page: set up any match and deploy it. */
 export function Lobby({ asked }: { asked: AskedLobby }) {
-  const { lobby, preview, update } = useLobby(asked);
+  const { lobby, preview, update, wasm } = useLobby(asked);
   const count = (side: LobbySide) => lobby.players.filter((p) => p.side === side).length;
   const ready = preview.status === "ready";
+  const sites = ready ? preview.preview.sites : null;
+  const held = useMemo(
+    () => (wasm && sites ? holders(wasm, sites, lobby.players) : null),
+    [wasm, sites, lobby.players],
+  );
   return (
     <section className="lobby" aria-label="New battle">
       <div className="lobby-field">
@@ -152,7 +168,7 @@ export function Lobby({ asked }: { asked: AskedLobby }) {
             <span data-side="blue">{count("blue")}</span> VS{" "}
             <span data-side="red">{count("red")}</span>
           </figcaption>
-          <MapFrame state={preview} />
+          <MapFrame state={preview} held={held} />
         </figure>
         <SideColumn side="red" lobby={lobby} update={update} />
       </div>
@@ -169,34 +185,27 @@ export function Lobby({ asked }: { asked: AskedLobby }) {
           value={lobby.map.type}
           onChange={(type) => update(setType(lobby, type))}
         />
-        <SizeChoice lobby={lobby} update={update} />
-        <div className="lobby-choice">
-          <span className="lobby-label">region</span>
-          <Pick
-            label="Region"
-            testId="menu-region"
-            className="lobby-region"
-            options={[RANDOM, ...REGIONS]}
-            value={lobby.map.region ?? RANDOM}
-            onChange={(region) => update(setRegion(lobby, region === RANDOM ? undefined : region))}
-          >
-            {spoken(lobby.map.region ?? RANDOM)}
-          </Pick>
-        </div>
-        <div className="lobby-choice">
-          <span className="lobby-label">lighting</span>
-          <Pick
-            label="Lighting"
-            testId="menu-lighting"
-            className="lobby-region"
-            options={lightingChoices()}
-            value={lobby.lighting}
-            onChange={(lighting) => update(setLighting(lobby, lighting))}
-            say={lightingLabel}
-          >
-            {lightingLabel(lobby.lighting)}
-          </Pick>
-        </div>
+        <Choice
+          label="size"
+          options={MAP_SIZES}
+          value={lobby.map.size}
+          onChange={(size) => update(setSize(lobby, size))}
+          // Sizes too small for the larger side are closed (D18).
+          closed={(size) => MAP_SIZES.indexOf(size) < MAP_SIZES.indexOf(lobby.sizeFloor)}
+        />
+        <Choice
+          label="region"
+          options={[RANDOM, ...REGIONS]}
+          value={lobby.map.region ?? RANDOM}
+          onChange={(region) => update(setRegion(lobby, region === RANDOM ? undefined : region))}
+        />
+        <Choice
+          label="lighting"
+          options={lightingChoices()}
+          value={lobby.lighting}
+          onChange={(lighting) => update(setLighting(lobby, lighting))}
+          say={lightingLabel}
+        />
         <PreviewStatus state={preview} />
         <button
           type="button"
@@ -405,14 +414,14 @@ function Choice<T extends string>({
   value,
   onChange,
   closed = () => false,
-  children,
+  say = spoken,
 }: {
   label: string;
   options: readonly T[];
   value: T | null;
   onChange: (value: T) => void;
   closed?: (option: T) => boolean;
-  children?: ReactNode;
+  say?: (option: T) => string;
 }) {
   return (
     <div className="lobby-choice">
@@ -430,53 +439,58 @@ function Choice<T extends string>({
             data-testid={`menu-${label}-${option}`}
             onClick={() => option !== value && onChange(option)}
           >
-            {spoken(option)}
+            {say(option)}
           </button>
         ))}
       </div>
-      {children}
     </div>
   );
 }
 
-/** The map's size, S to XL: sizes too small for the larger side are closed,
- *  with why (D18). */
-function SizeChoice({ lobby, update }: { lobby: LobbyState; update: (next: LobbyState) => void }) {
-  const floor = MAP_SIZES.indexOf(lobby.sizeFloor);
-  const closed = (size: MapSize) => MAP_SIZES.indexOf(size) < floor;
-  const largest = Math.max(
-    ...(["blue", "red"] as const).map(
-      (side) => lobby.players.filter((p) => p.side === side).length,
-    ),
-  );
-  return (
-    <Choice
-      label="size"
-      options={MAP_SIZES}
-      value={lobby.map.size}
-      onChange={(size) => update(setSize(lobby, size))}
-      closed={closed}
-    >
-      {floor > 0 && (
-        <span className="lobby-reason" data-testid="lobby-size-reason">
-          {MAP_SIZES.slice(0, floor).map(spoken).join(" · ")} too small for {largest} a side
-        </span>
-      )}
-    </Choice>
-  );
+/** Who holds a side's lane: you, another player, or nobody. */
+interface LaneHolder {
+  side: Player["side"];
+  lane: number;
+  held: "you" | "player" | "none";
+}
+
+function holders(wasm: LanesModule, sites: string, players: readonly Player[]): LaneHolder[] {
+  const you = players.find((player) => player.controller === "human")?.id;
+  return lanesOf(wasm, sites, players).entries.map(({ side, lane, holder }) => ({
+    side,
+    lane,
+    held: holder === null ? "none" : holder === you ? "you" : "player",
+  }));
 }
 
 /** The map frame: the admitted map once it is ready, and until then what its
- *  preparation is doing over the last map shown. */
-function MapFrame({ state }: { state: PreviewState }) {
+ *  preparation is doing over the last map shown. The picture holds no
+ *  players, so each entry tag (found by its side and lane) is marked with who
+ *  holds that lane, and the stylesheet draws an open lane and yours. A seat
+ *  change re-marks the tags without drawing a new map. */
+function MapFrame({ state, held }: { state: PreviewState; held: readonly LaneHolder[] | null }) {
   const [last, setLast] = useState<string | null>(null);
+  const picture = useRef<HTMLDivElement>(null);
   const svg = state.status === "ready" ? state.preview.svg : last;
+  // One markup object per picture: React sets the inner HTML again whenever
+  // this object is a new one, which would re-parse the picture and drop the
+  // tags' marks on every render.
+  const html = useMemo(() => (svg ? { __html: svg } : null), [svg]);
   useEffect(() => {
     if (state.status === "ready") setLast(state.preview.svg);
   }, [state]);
+  useLayoutEffect(() => {
+    const frame = picture.current;
+    if (!frame) return;
+    for (const tag of frame.querySelectorAll("[data-held]")) tag.removeAttribute("data-held");
+    for (const { side, lane, held: who } of held ?? [])
+      frame
+        .querySelector(`[data-entry="${side}"][data-lane="${lane}"]`)
+        ?.setAttribute("data-held", who);
+  }, [svg, held]);
   return (
     <div className="lobby-frame" data-status={state.status} data-testid="lobby-map">
-      {svg && <div className="lobby-picture" dangerouslySetInnerHTML={{ __html: svg }} />}
+      {html && <div ref={picture} className="lobby-picture" dangerouslySetInnerHTML={html} />}
       {state.status !== "ready" && (
         <div className="lobby-frame-state">
           {state.status === "failed" ? (
@@ -493,26 +507,18 @@ function MapFrame({ state }: { state: PreviewState }) {
   );
 }
 
-/** Quiet word on the map: whether it is coming, being redrawn, ready (with
- *  its seed), or missing. */
+/** Quiet word on the map: whether it is coming, being redrawn, ready, or
+ *  missing. */
 function PreviewStatus({ state }: { state: PreviewState }) {
-  const seed =
-    state.status === "ready"
-      ? state.preview.request.map_source.request.seed.replace(/\B(?=(\d{3})+$)/g, " ")
-      : null;
   return (
     <p className="lobby-status" data-status={state.status} data-testid="lobby-status">
-      {state.status === "ready" ? (
-        <>
-          Ready <span className="lobby-seed">seed {seed}</span>
-        </>
-      ) : state.status === "retrying" ? (
-        `Redrawing map · try ${state.attempt}`
-      ) : state.status === "failed" ? (
-        "No map"
-      ) : (
-        "Generating map"
-      )}
+      {state.status === "ready"
+        ? "Ready"
+        : state.status === "retrying"
+          ? `Redrawing map · try ${state.attempt}`
+          : state.status === "failed"
+            ? "No map"
+            : "Generating map"}
     </p>
   );
 }
