@@ -49,6 +49,15 @@ export const HIGH_PLANE_ATTR = "data-high-plane";
 export const CARD_FADE_START_M = 90;
 export const CARD_FADE_END_M = 48;
 
+/** `box` moved onto whole pixels. Text snaps its baseline to the pixel grid
+ *  and icons do not, so a card drawn between pixels shifts its words against
+ *  its icons by a different fraction each frame. */
+function onPixels(box: ReadoutRect): ReadoutRect {
+  const dx = Math.round(box.x0) - box.x0,
+    dy = Math.round(box.y0) - box.y0;
+  return { x0: box.x0 + dx, x1: box.x1 + dx, y0: box.y0 + dy, y1: box.y1 + dy };
+}
+
 /** The cards' opacity at camera distance `cameraDistance`. */
 export function cardZoomOpacity(cameraDistance: number): number {
   if (cameraDistance >= CARD_FADE_START_M) return 1;
@@ -529,7 +538,7 @@ export function ReadoutLayer({
         // A card measured open opens where its compact card stands, off the
         // edge.
         const size = fullSizes.get(b.id);
-        const box = size ? openedBox(b, compact, size.w, size.h, bounds) : compact;
+        const box = onPixels(size ? openedBox(b, compact, size.w, size.h, bounds) : compact);
         b.node.dataset.zoom = size ? "default" : "compressed";
         drawnBoxes.set(b.id, box);
         b.node.style.transform = `translate(${box.x0}px, ${box.y0}px)`;

@@ -163,3 +163,31 @@ test("the pointer over a card hovers its unit, unless a close camera has faded t
   expect(place(gameCamera.opening().distance), "over the APC's card").toBe(2);
   expect(place(1), "the card faded out by a close camera").toBeNull();
 });
+
+test("a card stands on whole pixels wherever its unit projects", () => {
+  // Text snaps to the pixel grid and icons do not: a card between pixels
+  // would shift its words against its icons by a different amount each frame.
+  const own = [
+    specimenUnit(TEST_CATALOG, "test_tank", { id: 1 }),
+    specimenUnit(TEST_CATALOG, "test_rifle", { id: 2 }),
+  ];
+  const handle = createRef<ReadoutLayerHandle>();
+  const view = renderView(<ReadoutLayer own={own} rules={RULES} selected={[]} handle={handle} />, {
+    wrapper: WithTestCatalog,
+  });
+  const drawn = { own: new Map(own.map((u) => [u.id, [u.id * 1000, 0, 0] as const])) };
+  for (const [dx, dy] of [
+    [0.25, 0.5],
+    [0.6, 0.37],
+    [0.91, 0.08],
+  ]) {
+    const project = (x: number) => [300 * (x / 1000) + dx, 400 + dy] as [number, number];
+    handle.current!.place(project, gameCamera.opening(), drawn, null, false, null);
+    for (const u of own) {
+      const at = view.container.querySelector<HTMLElement>(`[data-unit="${u.id}"]`)!.style
+        .transform;
+      const [x, y] = [...at.matchAll(/(-?[\d.]+)px/g)].map((m) => Number(m[1]));
+      expect([x, y].every(Number.isInteger), `${at} at +${dx}, +${dy}`).toBe(true);
+    }
+  }
+});
