@@ -3,9 +3,11 @@
 use super::*;
 use contract::ids::UnitId;
 
-/// Party bounds these tests set for themselves.
+/// Party bounds these tests set for themselves, and no pull toward a
+/// player's own lane: lanes are not what they test.
 fn tuning() -> TeamTuning {
     TeamTuning {
+        home_lane_bonus: 0.0,
         party_budget_share: 0.5,
         claim_party_size: 2,
         hold_party_size: 2,
