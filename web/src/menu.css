@@ -1367,18 +1367,6 @@ span.lobby-controller:not(.lobby-pick) {
 .hud-panel .lobby-pick li button[aria-selected="true"] {
   color: rgb(var(--hud-accent));
 }
-/* At the bottom of the screen a list opens upward. */
-.lobby-strip .lobby-pick ul {
-  top: auto;
-  bottom: calc(100% + 4px);
-}
-.hud-panel .lobby-region > button {
-  min-width: 128px;
-  padding: 7px 26px 7px 10px;
-  font-size: 11px;
-  text-align: left;
-  border-color: rgb(var(--hud-accent) / 0.22);
-}
 .hud-panel .lobby-faction > button {
   padding: 4px 26px 4px 0;
   font-size: 14px;
@@ -1404,7 +1392,6 @@ span.lobby-controller:not(.lobby-pick) {
   text-transform: none;
 }
 .lobby-choice {
-  position: relative;
   display: grid;
   gap: 6px;
 }
@@ -1419,7 +1406,7 @@ span.lobby-controller:not(.lobby-pick) {
 }
 .hud-panel .lobby-options button {
   margin-right: -1px;
-  padding: 7px 10px;
+  padding: 7px 8px;
   white-space: nowrap;
   font-size: 11px;
   color: rgb(var(--hud-dim));
@@ -1435,30 +1422,17 @@ span.lobby-controller:not(.lobby-pick) {
   border-color: rgb(var(--hud-accent) / 0.85);
   text-shadow: var(--hud-text-halo);
 }
-/* A closed size is there but unlit; the line under it says why. */
+/* A closed size is there but unlit. */
 .hud-panel .lobby-options button:disabled {
   opacity: 1;
   color: rgb(var(--hud-dim) / 0.4);
   border-style: dashed;
   border-color: rgb(var(--hud-dim) / 0.25);
 }
-.lobby-reason {
-  position: absolute;
-  top: calc(100% + 3px);
-  left: 0;
-  white-space: nowrap;
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgb(var(--hud-text) / 0.75);
-}
-/* Two lines in every state, so the status never jumps: the state, then the
-   seed once there is one. */
+/* One line, level with the options' row, at the end beside Reroll. */
 .lobby-status {
-  min-width: 220px;
-  min-height: 2.9em;
-  box-sizing: border-box;
   margin: 0 0 0 auto;
+  padding: 8px 0;
   white-space: nowrap;
   font-size: 10.5px;
   letter-spacing: 0.16em;
@@ -1493,14 +1467,6 @@ span.lobby-controller:not(.lobby-pick) {
 }
 .lobby-status[data-status="failed"]::before {
   background: rgb(var(--hud-bad));
-}
-/* The seed, under its status: there to share, never needed to play. */
-.lobby-seed {
-  display: block;
-  margin: 4px 0 0 15px;
-  font-size: 9.5px;
-  letter-spacing: 0.1em;
-  color: rgb(var(--hud-dim));
 }
 .hud-panel button.lobby-reroll {
   padding: 9px 16px;

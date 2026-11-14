@@ -80,14 +80,17 @@ async function deployFromMenu(ctx, page, map, shots = false, beforeDeploy = asyn
   await page.getByTestId(`menu-size-${map.size}`).click();
   await page.locator('[data-testid=lobby-status][data-status="ready"]').waitFor();
   const menu = {
-    seed: await page.locator(".lobby-seed").innerText(),
     href: await page.getByTestId("menu-deploy").getAttribute("href"),
     checked: await page
       .locator(
         '[data-testid^="menu-map-"][aria-checked="true"], [data-testid^="menu-size-"][aria-checked="true"]',
       )
       .allTextContents(),
-    region: await page.getByTestId("menu-region").textContent(),
+    region: (
+      await page
+        .locator('[data-testid^="menu-region-"][aria-checked="true"]')
+        .getAttribute("data-testid")
+    ).replace("menu-region-", ""),
   };
   if (shots)
     await writeFile(ctx.evidencePath("menu-chosen-1920x1080.png"), await page.screenshot());
@@ -289,7 +292,7 @@ export async function run(ctx) {
   ctx.check(
     "the lobby deploys the map it previewed at the seed its address asked for",
     asked.pathname === "/battle" &&
-      menu.seed.replaceAll(" ", "").toLowerCase() === `seed${MAP.seed}` &&
+      asked.searchParams.get("seed") === MAP.seed &&
       // The size choices read S, M, L, XL (slice 07).
       menu.checked.join() ===
         `${MAP.type},${{ small: "S", medium: "M", large: "L", xl: "XL" }[MAP.size]}` &&

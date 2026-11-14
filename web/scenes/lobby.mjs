@@ -91,10 +91,11 @@ export async function run(ctx) {
 
   const status = () => page.getByTestId("lobby-status").getAttribute("data-status");
   const vs = () => page.getByTestId("lobby-vs").textContent();
+  /** The seed Deploy's link names: the map the preview admitted. */
   const seed = async () =>
-    (await page.getByTestId("lobby-status").textContent())
-      .match(/seed ([\d ]+)/)?.[1]
-      .replaceAll(" ", "");
+    new URL(await page.getByTestId("menu-deploy").getAttribute("href"), origin).searchParams.get(
+      "seed",
+    );
   const previews = () => page.evaluate(() => window.__previews.length);
   const settled = async (timeout = PREVIEW_TIMEOUT) => {
     await page.waitForFunction(
@@ -166,9 +167,9 @@ export async function run(ctx) {
       (await page.getByTestId("menu-size-large").getAttribute("aria-checked")) === "true",
   );
   ctx.check(
-    "sizes below a 3v3's floor are closed, with why",
-    (await page.getByTestId("menu-size-medium").isDisabled()) &&
-      /too small for 3 a side/.test(await page.getByTestId("lobby-size-reason").textContent()),
+    "sizes below a 3v3's floor are closed",
+    (await page.getByTestId("menu-size-small").isDisabled()) &&
+      (await page.getByTestId("menu-size-medium").isDisabled()),
   );
   await page.getByTestId("lobby-add-red").click();
   ctx.check("Add makes it 3 VS 4", (await vs()) === "3 VS 4");

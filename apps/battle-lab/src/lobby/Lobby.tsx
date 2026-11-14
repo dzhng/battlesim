@@ -18,7 +18,7 @@ import { catalogSet } from "@web/battle/catalog/sets";
 import { mapPreviews, type MapPreviews, type PreviewState } from "@web/battle/prepare/preview";
 import type { Player } from "@web/battle/prepare/protocol";
 import { loadWasm } from "@web/battle/sim/module";
-import { MAP_SIZES, MAP_TYPES, newSeed, type MapSize } from "@web/maps/source";
+import { MAP_SIZES, MAP_TYPES, newSeed } from "@web/maps/source";
 import { REGIONS, spoken, type AskedLobby } from "../battleLinks";
 import { MAX_PLAYERS_PER_SIDE } from "../skirmishSetup";
 import {
@@ -166,20 +166,20 @@ export function Lobby({ asked }: { asked: AskedLobby }) {
           value={lobby.map.type}
           onChange={(type) => update(setType(lobby, type))}
         />
-        <SizeChoice lobby={lobby} update={update} />
-        <div className="lobby-choice">
-          <span className="lobby-label">region</span>
-          <Pick
-            label="Region"
-            testId="menu-region"
-            className="lobby-region"
-            options={[RANDOM, ...REGIONS]}
-            value={lobby.map.region ?? RANDOM}
-            onChange={(region) => update(setRegion(lobby, region === RANDOM ? undefined : region))}
-          >
-            {spoken(lobby.map.region ?? RANDOM)}
-          </Pick>
-        </div>
+        <Choice
+          label="size"
+          options={MAP_SIZES}
+          value={lobby.map.size}
+          onChange={(size) => update(setSize(lobby, size))}
+          // Sizes too small for the larger side are closed (D18).
+          closed={(size) => MAP_SIZES.indexOf(size) < MAP_SIZES.indexOf(lobby.sizeFloor)}
+        />
+        <Choice
+          label="region"
+          options={[RANDOM, ...REGIONS]}
+          value={lobby.map.region ?? RANDOM}
+          onChange={(region) => update(setRegion(lobby, region === RANDOM ? undefined : region))}
+        />
         <PreviewStatus state={preview} />
         <button
           type="button"
@@ -386,14 +386,12 @@ function Choice<T extends string>({
   value,
   onChange,
   closed = () => false,
-  children,
 }: {
   label: string;
   options: readonly T[];
   value: T | null;
   onChange: (value: T) => void;
   closed?: (option: T) => boolean;
-  children?: ReactNode;
 }) {
   return (
     <div className="lobby-choice">
@@ -415,35 +413,7 @@ function Choice<T extends string>({
           </button>
         ))}
       </div>
-      {children}
     </div>
-  );
-}
-
-/** The map's size, S to XL: sizes too small for the larger side are closed,
- *  with why (D18). */
-function SizeChoice({ lobby, update }: { lobby: LobbyState; update: (next: LobbyState) => void }) {
-  const floor = MAP_SIZES.indexOf(lobby.sizeFloor);
-  const closed = (size: MapSize) => MAP_SIZES.indexOf(size) < floor;
-  const largest = Math.max(
-    ...(["blue", "red"] as const).map(
-      (side) => lobby.players.filter((p) => p.side === side).length,
-    ),
-  );
-  return (
-    <Choice
-      label="size"
-      options={MAP_SIZES}
-      value={lobby.map.size}
-      onChange={(size) => update(setSize(lobby, size))}
-      closed={closed}
-    >
-      {floor > 0 && (
-        <span className="lobby-reason" data-testid="lobby-size-reason">
-          {MAP_SIZES.slice(0, floor).map(spoken).join(" · ")} too small for {largest} a side
-        </span>
-      )}
-    </Choice>
   );
 }
 
@@ -474,26 +444,18 @@ function MapFrame({ state }: { state: PreviewState }) {
   );
 }
 
-/** Quiet word on the map: whether it is coming, being redrawn, ready (with
- *  its seed), or missing. */
+/** Quiet word on the map: whether it is coming, being redrawn, ready, or
+ *  missing. */
 function PreviewStatus({ state }: { state: PreviewState }) {
-  const seed =
-    state.status === "ready"
-      ? state.preview.request.map_source.request.seed.replace(/\B(?=(\d{3})+$)/g, " ")
-      : null;
   return (
     <p className="lobby-status" data-status={state.status} data-testid="lobby-status">
-      {state.status === "ready" ? (
-        <>
-          Ready <span className="lobby-seed">seed {seed}</span>
-        </>
-      ) : state.status === "retrying" ? (
-        `Redrawing map · try ${state.attempt}`
-      ) : state.status === "failed" ? (
-        "No map"
-      ) : (
-        "Generating map"
-      )}
+      {state.status === "ready"
+        ? "Ready"
+        : state.status === "retrying"
+          ? `Redrawing map · try ${state.attempt}`
+          : state.status === "failed"
+            ? "No map"
+            : "Generating map"}
     </p>
   );
 }
