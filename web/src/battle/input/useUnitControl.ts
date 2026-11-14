@@ -25,7 +25,7 @@ import { commandForKey, ShowOrdersBinding } from "./commandBindings";
 import { useHeldKey } from "./heldKeys";
 import { MoveGestures } from "./moveGestures";
 import {
-  armedCommand,
+  isArmed,
   pointerIntent,
   reconcilePointerIntent,
   type PointerPick,
@@ -244,7 +244,7 @@ export function useUnitControl(
   const onPointer = useCallback(
     (pick: PointerPick, captured?: PointerIntent) => {
       if (!enabledRef.current) return;
-      if (pick.button === "left" && !armedCommand(modeRef.current)) {
+      if (pick.button === "left" && !isArmed(modeRef.current)) {
         const unit = pick.unit;
         const own = yoursRef.current;
         if (unit !== null && !own.some((u) => u.id === unit)) {

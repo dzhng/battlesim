@@ -36,7 +36,7 @@ function card(patch: Partial<OwnUnitView>, reason: string) {
   return { container, shows };
 }
 
-test("return fire only is the unit's row and name icon, not a mark on every weapon", () => {
+test("holding fire is the unit's row and name icon, not a mark on every weapon", () => {
   const { container, shows } = card({ engagement: "return_fire_only" }, "holding_fire");
   const mark = hudIcon("hold_fire");
   expect(container.querySelectorAll(".ro-weapon")).toHaveLength(2);

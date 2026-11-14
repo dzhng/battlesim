@@ -35,7 +35,7 @@ export type CommandMode =
 /** An armed command (any mode but plain move) is confirmed by a left-click
  *  and cancelled by a right-click; in plain move a left-click selects and a
  *  right-click orders. */
-export const armedCommand = (mode: CommandMode): boolean => mode !== "move";
+export const isArmed = (mode: CommandMode): boolean => mode !== "move";
 
 type PointerOrder = Extract<
   Order,
@@ -137,7 +137,7 @@ export function pointerIntent(
   own: readonly OwnUnitView[],
   yours: readonly OwnUnitView[],
 ): PointerIntent {
-  if (pick.button === "right" && armedCommand(mode)) return { kind: "cancel" };
+  if (pick.button === "right" && isArmed(mode)) return { kind: "cancel" };
   if (selected.length === 0) return { kind: "none" };
   const queued = pick.shift;
   const units = selected.map((u) => u.id);

@@ -36,7 +36,7 @@ import { highAir } from "@packages/scene-assets/src/units";
 import { useUnitControl } from "@web/battle/input/useUnitControl";
 import { usePurchasePlacement } from "./usePurchasePlacement";
 import {
-  armedCommand,
+  isArmed,
   facedIntent,
   reconcilePointerIntent,
   type PointerIntent,
@@ -655,8 +655,7 @@ export function useBattleSession({
           ...pointer.position!,
           ray: pointer.ray!,
           instance: pickBox(pointer.ray!, drawn.current.picks),
-          // The click hover previews.
-          button: armedCommand(control.mode) ? "left" : "right",
+          button: isArmed(control.mode) ? "left" : "right",
           ctrl: pointer.ctrl,
           shift: pointer.shift,
           time: 0,
