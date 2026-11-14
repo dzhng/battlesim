@@ -3,6 +3,7 @@ import { Link } from "react-router";
 // how far along it is, and, if it cannot be made, why. In the HUD's look.
 import { useEffect, useState, type ReactNode } from "react";
 import { diagnosticsFailure } from "@web/diagnostics";
+import { CopyDiagnostics } from "./DiagnosticsControls";
 import {
   downloadRate,
   downloads,
@@ -111,22 +112,27 @@ export function LoadingScreen({
           <div className="loading-failure" role="alert" data-testid="error">
             <p className="hud-error">{failure.message}</p>
             {failure.advice && <p className="loading-advice">{failure.advice}</p>}
-            {back !== null && (
-              <Link className="hud-menu-item" to={back}>
-                Back to the menu
-              </Link>
-            )}
-            {recovery}
-            {failure.details.length > 0 && (
-              <button
-                type="button"
-                className="menu-dev"
-                aria-expanded={details}
-                onClick={() => setDetails(!details)}
-              >
-                Details
-              </button>
-            )}
+            <div className="loading-actions">
+              {back !== null && (
+                <Link className="hud-menu-item" to={back}>
+                  Back to the menu
+                </Link>
+              )}
+              {recovery}
+            </div>
+            <div className="loading-dev">
+              {failure.details.length > 0 && (
+                <button
+                  type="button"
+                  className="menu-dev"
+                  aria-expanded={details}
+                  onClick={() => setDetails(!details)}
+                >
+                  Details
+                </button>
+              )}
+              <CopyDiagnostics className="menu-dev" />
+            </div>
             {details && (
               <ul className="loading-details" data-testid="error-details">
                 {[...new Set(failure.details)].map((line) => (

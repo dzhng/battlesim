@@ -594,10 +594,25 @@
   background-clip: text;
   animation: graphics-detection-shine 1.8s linear infinite;
 }
-.hud-panel :is(.loading-cancel, .loading-failure a).hud-menu-item {
+/* A failure's way out, a link or a button alike, sized to its words. */
+.hud-panel :is(.loading-cancel, .loading-failure :is(a, button)).hud-menu-item {
   justify-self: start;
   width: auto;
   padding: 5px 14px;
+}
+/* The ways out share one width, the widest's, so they read as a set. */
+.loading-actions {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 8px;
+}
+.hud-panel .loading-failure .loading-actions .hud-menu-item {
+  width: 100%;
+}
+.loading-dev {
+  display: flex;
+  gap: 16px;
 }
 .loading-failure {
   display: grid;
@@ -611,9 +626,6 @@
 .loading:has(.loading-failure) h1 {
   color: rgb(var(--hud-bad));
   text-shadow: var(--hud-text-halo);
-}
-.hud-panel .loading-failure button.menu-dev {
-  justify-self: start;
 }
 .loading-failure .hud-error {
   font-size: 13px;
