@@ -364,9 +364,9 @@ export function previewForIntent(intent: PointerIntent): PointerPreview | null {
   }
 }
 
-/** Pending availability stays plain; an attack may validly pursue its target.
- *  `entrants`: someone selected can enter a building, so its badge shows
- *  before the simulation answers. */
+/** A move still being placed stays plain; an attack may validly pursue its
+ *  target. `entrants`: someone selected can enter a building, so its badge
+ *  shows before the simulation answers. */
 export function cursorForIntent(
   intent: PointerIntent,
   paint: Pick<OrderPreviewSnapshot, "state" | "building" | "carried">,
