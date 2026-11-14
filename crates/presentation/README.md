@@ -57,7 +57,11 @@ calls the same reader for workbench drafts.
   learned, fallen and held movement state survives. Matching GPU assets and the latest
   model requests commit together; stale or failed work preserves the active
   generation. Battle replacements preserve the pose vocabulary used by retained
-  history. Unchanged time still permits edited geometry. Mesh
+  history. The loaded battle fielded again with a kind it newly fields is
+  staged (`stage_battle`) and rides the next admission in, so poses, effects in
+  flight and what the side knows carry on; another side, sun or soldier body,
+  or a catalog that drops a clip a live pose plays, is another battle, which
+  `load_world` loads anew. Unchanged time still permits edited geometry. Mesh
   selection cues retain actual geometry rather than silently disappearing when
   detail would otherwise select an impostor.
 - [Units](src/units/): interpolation between ticks (of units, falling

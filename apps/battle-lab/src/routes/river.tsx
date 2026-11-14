@@ -3,7 +3,7 @@ import { useCallback, useMemo, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh";
 import { OPEN } from "@packages/battle-renderer/src/terrain/terrainSurface";
-import { buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
+import { buildWorldGround } from "@packages/battle-renderer/src/worldMesh";
 import type { OwnUnitView } from "@web/battle/sim/observationView";
 import type { Order } from "@web/battle/sim/protocol";
 import { AckLog } from "../AckLog";
@@ -82,7 +82,7 @@ function RiverLab({ battle }: { battle: SavedBattle }) {
   const [view, setView] = useState<GroundView>("surface");
   const drawn = useMemo(() => {
     if (view === "surface" || !world) return meshes;
-    const layers = buildWorldLayers(world.exports, world.layout, gameBiome, "traversal");
+    const layers = buildWorldGround(world.exports, world.layout, gameBiome, "traversal");
     if (view === "traversal") return layers;
     // One tint over every triangle: what is left is the ground's shading.
     const mesh = layers.terrain.mesh.slice();

@@ -251,7 +251,7 @@ impl Presentation {
     /// battle, observations or static world. Reinstall the renderer's tables
     /// after this call; world rows can have moved.
     pub fn install_lab_assets(&mut self, assets: BTreeMap<String, Asset>, detail: Detail) {
-        self.catalog_revision = super::catalog::next_revision();
+        self.catalog_state.renew();
         self.lab.assets = assets;
         self.lab.detail = Some(detail);
         self.register_lab_rows();

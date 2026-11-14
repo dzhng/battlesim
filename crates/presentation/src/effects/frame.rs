@@ -363,6 +363,12 @@ impl EffectFrame {
         }
     }
 
+    /// Draw from `presentation` from now on (a battle fielding another kind):
+    /// the effects in flight carry on.
+    pub fn replace_presentation(&mut self, presentation: EffectPresentation) {
+        self.p = presentation;
+    }
+
     pub fn presentation(&self) -> &EffectPresentation {
         &self.p
     }

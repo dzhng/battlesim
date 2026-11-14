@@ -157,7 +157,12 @@ still-live page's resources.
 Source loading retains the last complete topology and art generation for the
 same battle and observer. Downloads cannot withdraw the running battlefield;
 changing battle or observer retires its old generation. Audio continues receiving
-publications during visual admission. The viewport reconciles sources after
+publications during visual admission. A kind the battle newly fields (a
+reinforcement picked, an enemy first seen) changes art, never topology: the
+battle grows in place with the art's admission while the last frame keeps
+drawing, and the ground is built once per world, so new art never brings a new
+terrain. A rebuild draws nothing until the new scene is installed, so it is kept
+for real topology changes. The viewport reconciles sources after
 canonical framing so a topology change takes one rebuild path. Picking,
 projection and drawn observation advance with successful submission.
 

@@ -189,7 +189,7 @@ impl Presentation {
             );
         }
         self.showcase = Some(Showcase::new(units, tables, input)?);
-        self.catalog_revision = catalog::next_revision();
+        self.catalog_state.renew();
         self.register_shown_rows();
         Ok(())
     }

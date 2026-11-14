@@ -485,7 +485,7 @@ export function LabViewport({
         const info = JSON.parse(gpu.info()) as BrowserGpuInfo;
         if (signal.aborted) return;
         const plates = pilot?.plates === true;
-        const trace = new ViewportTrace(canvas, signal);
+        const trace = new ViewportTrace(canvas);
         const syncSize = () => {
           const scale = qualityRef.current?.renderScale ?? 1;
           const w = Math.max(1, Math.round(canvas.clientWidth * scale));
@@ -741,7 +741,6 @@ export function LabViewport({
         // eslint-disable-next-line complexity -- debt: its stages read and write the effect's mutable locals (scene, dirty, pointer, grassSuppressed, lastFrame); split needs those in one frame-state object the stages take, not more closures.
         const loop = (now: number) => {
           if (signal.aborted || handle.error) return;
-          trace.check(now, () => ({ dirty, replacing: admission.replacing() }));
           if (admission.replacing()) {
             trace.skipped(now, "scene rebuilding");
             raf = requestAnimationFrame(loop);

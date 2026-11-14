@@ -14,6 +14,33 @@ static NEXT_REVISION: AtomicU32 = AtomicU32::new(1);
 pub(super) fn next_revision() -> u32 {
     NEXT_REVISION.fetch_add(1, Ordering::Relaxed)
 }
+
+/// What a catalog draft is checked against: a revision that every change to
+/// what rows resolve to renews, and the loaded battle fielded again (with a
+/// kind it newly fields), held until an admission carries its rows and art.
+pub(super) struct CatalogState {
+    revision: u32,
+    staged: Option<StagedBattle>,
+}
+
+struct StagedBattle {
+    grown: GrownBattle,
+    tables: ClipTables,
+}
+
+impl CatalogState {
+    pub(super) fn new() -> Self {
+        Self {
+            revision: next_revision(),
+            staged: None,
+        }
+    }
+
+    /// Drafts staged before a change to what rows resolve to are stale.
+    pub(super) fn renew(&mut self) {
+        self.revision = next_revision();
+    }
+}
 /// The world's records, read once per load.
 #[derive(Clone, Default)]
 pub struct World {
@@ -102,6 +129,15 @@ struct BattleCatalog {
     units: Arc<UnitsSection>,
     tables: Arc<ClipTables>,
     inverse_binds: HashMap<String, Vec<Mat4>>,
+    /// The staged battle this draft draws, when it carries one in.
+    grown: Option<GrownBattle>,
+}
+
+#[derive(Clone)]
+struct GrownBattle {
+    generation: u32,
+    input: BattleInput,
+    effects: EffectPresentation,
 }
 
 /// A synchronous reader shared by native admission and staged replacement.
@@ -130,7 +166,7 @@ impl CatalogDraft {
     }
 
     pub fn is_current(&self, presentation: &Presentation) -> bool {
-        self.revision == presentation.catalog_revision
+        self.revision == presentation.catalog_state.revision
     }
 
     pub fn view<'a>(&'a self, presentation: &'a Presentation) -> Result<CatalogView<'a>, String> {
@@ -161,10 +197,8 @@ impl<'a> CatalogView<'a> {
             return Some(CatalogAppearance::Asset(asset));
         }
         if let Some(appearance) = self
-            .presentation
-            .loaded
-            .as_ref()
-            .and_then(|loaded| loaded.units.appearances.get(name))
+            .battle_units()
+            .and_then(|units| units.appearances.get(name))
         {
             return Some(CatalogAppearance::Battle(appearance));
         }
@@ -173,6 +207,15 @@ impl<'a> CatalogView<'a> {
             .assets
             .get(name)
             .map(CatalogAppearance::Asset)
+    }
+
+    /// The battle's catalog as this view resolves it: the draft's, else the
+    /// loaded one.
+    fn battle_units(&self) -> Option<&'a UnitsSection> {
+        match self.draft.and_then(|d| d.battle.as_ref()) {
+            Some(battle) => Some(&battle.units),
+            None => self.presentation.loaded.as_ref().map(|l| &*l.units),
+        }
     }
 
     pub fn world(&self) -> &'a World {
@@ -186,7 +229,14 @@ impl<'a> CatalogView<'a> {
             CatalogAppearance::Asset(asset) => {
                 asset_rest_palette(asset, self.world().appearances[row as usize].lies)
             }
-            CatalogAppearance::Battle(_) => self.presentation.rest_palette(self.active_row(row)?),
+            CatalogAppearance::Battle(_) => match self.draft.and_then(|d| d.battle.as_ref()) {
+                Some(b) => {
+                    let r = &self.world().appearances[row as usize];
+                    let name = self.world().name(r);
+                    posing::rest_palette(&b.units, &b.tables, &b.inverse_binds, name, r.lies)
+                }
+                None => self.presentation.rest_palette(self.active_row(row)?),
+            },
         }
     }
     /// A node's canonical running-gear side, including prospective catalogs.
@@ -291,28 +341,17 @@ impl Presentation {
         }
         if let Some(battle) = &battle {
             for (name, appearance) in &battle.units.appearances {
-                match appearance {
-                    Appearance::Skinned {
-                        joints,
-                        corpse_poses,
-                        ..
-                    } => {
-                        world.row(name, "", NONE, joints.len() as u32, false);
-                        for lies in 0..corpse_poses.len() {
-                            world.row(name, "", lies as u32, 0, false);
-                        }
-                    }
-                    Appearance::Articulated { nodes, .. } => {
-                        world.row(name, "", NONE, nodes.len() as u32, false);
-                    }
-                }
+                posing::register_appearance(&mut world, name, appearance);
+            }
+            if let Some(grown) = &battle.grown {
+                posing::register_wreck_rows(&mut world, &grown.input.effects);
             }
         }
         let statics = StaticDraft::stage(self, &assets, &placements, &mut world)?;
         let frontier = (world.appearances.len(), world.strings.len());
         lab::register_rows(&mut world, &assets);
         Ok(CatalogDraft {
-            revision: self.catalog_revision,
+            revision: self.catalog_state.revision,
             world,
             assets,
             detail,
@@ -347,14 +386,84 @@ impl Presentation {
             loaded
                 .drawn
                 .replace_catalog(battle.units.clone(), battle.tables.clone());
-            loaded.input.units = (*battle.units).clone();
+            let units = (*battle.units).clone();
+            match battle.grown {
+                Some(grown) => {
+                    loaded.input = BattleInput {
+                        units,
+                        ..grown.input
+                    };
+                    loaded.effects.replace_presentation(grown.effects);
+                    let staged = &mut self.catalog_state.staged;
+                    if staged
+                        .as_ref()
+                        .is_some_and(|s| s.grown.generation == grown.generation)
+                    {
+                        *staged = None;
+                    }
+                }
+                None => loaded.input.units = units,
+            }
             loaded.units = battle.units;
             loaded.tables = battle.tables;
             loaded.inverse_binds = battle.inverse_binds;
         }
-        self.catalog_revision = next_revision();
+        self.catalog_state.renew();
         self.statics.invalidate();
         Ok(true)
+    }
+
+    /// Stage the loaded battle fielded again (with a kind it newly fields)
+    /// for the next catalog admission, which draws it without loading the
+    /// world anew: what the side saw, the effects in flight and every pose
+    /// carry on. False when `input` is another battle (another side, sun or
+    /// body), or drops a clip a live pose plays: that world loads anew.
+    pub fn stage_battle(&mut self, input: WorldInput, tables: ClipTables) -> Result<bool, String> {
+        let (Some(loaded), Some(battle)) = (&self.loaded, input.battle) else {
+            return Ok(false);
+        };
+        let effects = EffectPresentation::from_value(&battle.effects.presentation)?;
+        let (a, b) = (&loaded.input, &battle);
+        let same = a.side == b.side
+            && a.tick_hz == b.tick_hz
+            && [a.soldier.radius_m, a.soldier.height_m] == [b.soldier.radius_m, b.soldier.height_m]
+            && [a.xray.own, a.xray.selected, a.xray.ally]
+                == [b.xray.own, b.xray.selected, b.xray.ally]
+            && a.blocked == b.blocked
+            && loaded.shadow_fall == shadow_fall(input.sun_azimuth, input.sun_elevation)
+            && loaded.effects.presentation().capacity == effects.capacity;
+        // A live pose the new catalog cannot draw needs the world loaded anew.
+        if !same || loaded.driver.validate_catalog(&battle.units).is_err() {
+            return Ok(false);
+        }
+        self.catalog_state.staged = Some(StagedBattle {
+            grown: GrownBattle {
+                generation: next_revision(),
+                input: battle,
+                effects,
+            },
+            tables,
+        });
+        Ok(true)
+    }
+
+    /// What a staged battle draws, by appearance: its units' and its wrecks'
+    /// looks, whose art the admission that carries it in must bring.
+    pub fn staged_appearances(&self) -> Vec<String> {
+        let Some(staged) = &self.catalog_state.staged else {
+            return Vec::new();
+        };
+        let input = &staged.grown.input;
+        (input.units.appearances.keys())
+            .chain(
+                input
+                    .effects
+                    .wreck_looks
+                    .values()
+                    .map(|look| &look.appearance),
+            )
+            .cloned()
+            .collect()
     }
 
     fn stage_battle_catalog(
@@ -364,14 +473,20 @@ impl Presentation {
         let Some(loaded) = &self.loaded else {
             return Ok(None);
         };
-        if !assets
-            .keys()
-            .any(|name| loaded.units.appearances.contains_key(name))
+        let staged = self.catalog_state.staged.as_ref();
+        let (units, tables) = match staged {
+            Some(s) => (&s.grown.input.units, &s.tables),
+            None => (&*loaded.units, &*loaded.tables),
+        };
+        if staged.is_none()
+            && !assets
+                .keys()
+                .any(|name| units.appearances.contains_key(name))
         {
             return Ok(None);
         }
-        let mut units = (*loaded.units).clone();
-        let mut tables = (*loaded.tables).clone();
+        let mut units = units.clone();
+        let mut tables = tables.clone();
         for (name, old) in &mut units.appearances {
             let Some(asset) = assets.get(name) else {
                 continue;
@@ -410,6 +525,7 @@ impl Presentation {
             units: Arc::new(units),
             tables: Arc::new(tables),
             inverse_binds,
+            grown: staged.map(|s| s.grown.clone()),
         }))
     }
 }
