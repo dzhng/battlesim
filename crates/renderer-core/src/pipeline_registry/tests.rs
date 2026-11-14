@@ -167,3 +167,78 @@ fn pipelines_fit_default_per_stage_binding_limits() {
         }
     }
 }
+
+/// Smooth inputs a pass differentiates to size its filtering, so it takes them
+/// at the pixel centre (see the scenery stage IO).
+const CENTRE_SAMPLED: &[&str] = &["FoliageFragmentInput.world"];
+
+/// Every smooth fragment input of a pass that can cover part of a pixel, as
+/// `(name, sampled at the centroid)`. A full-screen triangle covers every
+/// sample of every pixel, so it has none to report.
+fn smooth_fragment_inputs(pipeline: &PipelineSpec) -> Vec<(String, bool)> {
+    let source = crate::pipelines::builtin_source(pipeline.shader).unwrap();
+    let module = naga::front::wgsl::parse_str(&source).unwrap();
+    let stage = |stage, name: Option<&str>| {
+        module
+            .entry_points
+            .iter()
+            .find(|e| e.stage == stage && name.is_none_or(|name| e.name == name))
+    };
+    let vertex = pipeline.vertex.as_ref().and_then(|v| v.entry_point);
+    if stage(naga::ShaderStage::Vertex, vertex).is_some_and(|e| e.name == "fullScreenTriangle") {
+        return vec![];
+    }
+    let entry = pipeline.fragment.as_ref().and_then(|f| f.entry_point);
+    let Some(fragment) = stage(naga::ShaderStage::Fragment, entry) else {
+        return vec![];
+    };
+    let mut bindings = vec![];
+    for argument in &fragment.function.arguments {
+        match (&argument.binding, &module.types[argument.ty]) {
+            (Some(binding), _) => bindings.push((argument.name.clone(), binding)),
+            (None, ty) => {
+                if let TypeInner::Struct { members, .. } = &ty.inner {
+                    let owner = ty.name.as_deref().unwrap_or_default();
+                    bindings.extend(members.iter().filter_map(|m| {
+                        let name = format!("{owner}.{}", m.name.as_deref().unwrap_or_default());
+                        m.binding.as_ref().map(|binding| (Some(name), binding))
+                    }));
+                }
+            }
+        }
+    }
+    bindings
+        .into_iter()
+        .filter_map(|(name, binding)| match binding {
+            naga::Binding::Location {
+                interpolation,
+                sampling,
+                ..
+            } if *interpolation != Some(naga::Interpolation::Flat) => Some((
+                name.unwrap_or_default(),
+                *sampling == Some(naga::Sampling::Centroid),
+            )),
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn multisampled_geometry_shades_inside_its_triangles() {
+    let centre: Vec<_> = pipelines()
+        .into_iter()
+        .filter(|pipeline| pipeline.multisample_count > 1)
+        .filter_map(|pipeline| {
+            let locations: Vec<_> = smooth_fragment_inputs(&pipeline)
+                .into_iter()
+                .filter(|(name, centroid)| !centroid && !CENTRE_SAMPLED.contains(&name.as_str()))
+                .map(|(name, _)| name)
+                .collect();
+            (!locations.is_empty()).then(|| format!("{} {locations:?}", pipeline.name))
+        })
+        .collect();
+    assert!(
+        centre.is_empty(),
+        "these take smooth inputs at the pixel centre: {centre:?}"
+    );
+}

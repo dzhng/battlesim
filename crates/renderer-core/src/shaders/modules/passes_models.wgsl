@@ -52,25 +52,25 @@
 
 // @block passes_models_CardFragmentInput
 struct CardFragmentInput {
-  @location(0) world: vec3f,
-  @location(1) uv: vec2f,
+  @location(0) @interpolate(perspective, centroid) world: vec3f,
+  @location(1) @interpolate(perspective, centroid) uv: vec2f,
   @location(2) @interpolate(flat) layer: u32,
   @location(3) @interpolate(flat) yaw: f32,
   @location(4) @interpolate(flat) scale: vec3f,
-  @location(5) tint: vec3f,
-  @location(6) anchor: vec3f,
+  @location(5) @interpolate(perspective, centroid) tint: vec3f,
+  @location(6) @interpolate(perspective, centroid) anchor: vec3f,
 }
 
 // @block passes_models_CardVertexOutput
 struct CardVertexOutput {
   @builtin(position) clip: vec4f,
-  @location(0) world: vec3f,
-  @location(1) uv: vec2f,
+  @location(0) @interpolate(perspective, centroid) world: vec3f,
+  @location(1) @interpolate(perspective, centroid) uv: vec2f,
   @location(2) @interpolate(flat) layer: u32,
   @location(3) @interpolate(flat) yaw: f32,
   @location(4) @interpolate(flat) scale: vec3f,
-  @location(5) tint: vec3f,
-  @location(6) anchor: vec3f,
+  @location(5) @interpolate(perspective, centroid) tint: vec3f,
+  @location(6) @interpolate(perspective, centroid) anchor: vec3f,
 }
 
 // @block passes_models_ImpostorBuffers
@@ -81,10 +81,6 @@ struct ImpostorBuffers {
 }
 
 // @block passes_models_ModelVertexOutput
-// Every interpolated attribute is taken at the centroid: under MSAA a pixel a
-// thin triangle only partly covers shades once, and at the pixel's centre,
-// outside the triangle, its vertex colour or uv would extrapolate to a value
-// no vertex has (a lone white speck on a slat or grille bar once lit).
 struct ModelVertexOutput {
   @invariant @builtin(position) clip: vec4f,
   @location(0) @interpolate(perspective, centroid) world: vec3f,

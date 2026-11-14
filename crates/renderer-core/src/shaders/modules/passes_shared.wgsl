@@ -3,18 +3,18 @@
 // @block passes_shared_MeshFragmentInput
 struct MeshFragmentInput {
   @location(0) @interpolate(perspective, centroid) world: vec3f,
-  @location(1) normal: vec3f,
-  @location(2) color: vec4f,
-  @location(3) highlight: f32,
+  @location(1) @interpolate(perspective, centroid) normal: vec3f,
+  @location(2) @interpolate(perspective, centroid) color: vec4f,
+  @location(3) @interpolate(perspective, centroid) highlight: f32,
 }
 
 // @block passes_shared_MeshVertexOutput
 struct MeshVertexOutput {
   @invariant @builtin(position) clip: vec4f,
   @location(0) @interpolate(perspective, centroid) world: vec3f,
-  @location(1) normal: vec3f,
-  @location(2) color: vec4f,
-  @location(3) highlight: f32,
+  @location(1) @interpolate(perspective, centroid) normal: vec3f,
+  @location(2) @interpolate(perspective, centroid) color: vec4f,
+  @location(3) @interpolate(perspective, centroid) highlight: f32,
 }
 
 // @block passes_shared_fullScreenTriangle
