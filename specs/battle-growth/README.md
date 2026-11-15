@@ -1,8 +1,8 @@
 # Battle growth: a new unit type costs only its own art
 
-**Status:** slice 00 is done. Slice 01 is next. Slice 10's first pass is
-written but must not merge as it is (see the warnings).
-**Updated:** 2026-11-14.
+**Status:** slice 00 is done. Slices 01, 02 and 10 are in review fix rounds,
+and slice 06 is being timed, each on its own branch (see the lanes below).
+**Updated:** 2026-11-15.
 
 This plan replaces the "shared GPU assets across generations" placeholder. That
 placeholder's motive was memory during a swap. The motive now is a freeze the
@@ -13,8 +13,19 @@ player sees, and sharing GPU assets is one part of the fix.
 You are fixing the multi-second freeze that happens whenever a running battle
 first fields a unit type it had not shown. The admission work report exists,
 `battle-growth` prints it, and the [ledger](decisions.md) holds what it and
-the reference battle measured. Next: build
-[slice 01](slices/01-fielding-and-install.md).
+the reference battle measured. Four slices are out with implementers; none
+has merged since slice 00:
+
+| Slice | Branch | State |
+| --- | --- | --- |
+| 01 | `t3/battle-growth-admission-report` | First pass rejected: it cached inflated bytes in WASM, and its install count was 1 by construction. Fix round sent. |
+| 02 | the "content identity" child's branch | First pass close: six findings (a second SHA-256, a draining getter, orphaned content). Fix round sent. |
+| 06 | the "statics carry" child's branch | Timing scenery work at growth; builds only if it costs more than a frame. |
+| 10 | `t3/battle-growth-stand-in-mechanics` | Fix round sent for the findings in the ledger. |
+
+When one returns: read its whole diff (changed tests first), rerun its checks
+yourself, merge it into this branch, then start what it unblocks (03 and 07
+after 02; 11 after 10).
 
 Read, in this order: this file, the [decisions ledger](decisions.md), the slice
 you are about to build, the [renderer contract](../../crates/renderer-core/README.md)
@@ -33,15 +44,11 @@ Warnings:
   plan. Record it in the ledger; do not settle it silently.
 - Slices 06 and 09 are conditional on measurements. Follow the rule each one
   states.
-- The machine's disk runs nearly full, and each checkout's Rust build adds
-  8–22 GB. Check free space before a cold build; build one slice at a time and
-  reuse a warm checkout. A burst of unrelated failures after a build usually
-  means the build ran out of space.
-- Slice 10's first pass sits uncommitted on the branch
-  `t3/battle-growth-stand-in-mechanics`. It must not merge as it is: it
-  fields every type in the unit catalog, which in the real game would read the
-  whole catalog's art and never show a stand-in. The findings are in the
-  [ledger](decisions.md).
+- Each checkout's Rust build adds 3–22 GB. Check free space before a cold
+  build, and remove a checkout's build output when its branch has merged. A
+  burst of unrelated failures after a build usually means it ran out of space.
+- Slices 01 and 10 both change `crates/presentation/src/fielded.rs`; whichever
+  merges second merges the other in first.
 - Two implementers so far deleted or shortened comments to fit the file-size
   ratchet. Reject that in review: move code out by concept instead.
 
