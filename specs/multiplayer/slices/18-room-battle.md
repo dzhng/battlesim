@@ -125,3 +125,21 @@ crash, a failed map and an empty room each free the slot. The `online-battle`
 scene now goes through a room from two browsers and plays to a real
 victory under the ordinary rules: one side takes every objective.
 
+**An unprimed look at both commanders' screens** (after a drop, after the
+return, and at the result) found nothing clipped, overlapping or broken,
+and the two result screens telling one story from two sides: victory
+against defeat, each viewer's own side first and in their own colour, the
+same tallies and timeline mirrored. Two things it could not find are worth
+the user's attention, and neither is built:
+
+- **Nothing tells a player that their opponent dropped or came back.** The
+  battle carries on against the seat's AI in silence, and the result does
+  not mention it.
+- **The result does not say why the battle ended.** A match won by holding
+  every objective stops at whatever the score was (73 to 48 here, against a
+  target of 1,000). This is the offline result screen too.
+
+The rest of what it listed is the result screen and battle HUD as
+single-player has them: small dim column labels, a ragged name column in
+the timeline, unlabelled score counters, icon-only command buttons.
+

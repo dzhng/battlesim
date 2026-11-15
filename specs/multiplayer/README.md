@@ -61,6 +61,9 @@ alone. The `online-battle` scene no longer drives through a town.
   for the heads not to be cut off; both done).
 - **Lane numbers** (slice 12): kept as they are unless the user says
   otherwise.
+- **A dropped opponent is silent** (slice 18): nothing tells a player that
+  the other side's commander dropped and an AI took over, or came back.
+  Not in the plan; worth a line on screen if the user wants it.
 - **Frontline's length** (slice 21): 2,100 points, about an hour for the
   leading side on the largest maps. The user's dial.
 
