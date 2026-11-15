@@ -3230,7 +3230,7 @@
             "metal": false,
             "occludes": true,
             "stops_rounds": false,
-            "topples": false,
+            "topples": true,
             "weight_class": "light"
           },
           "destroyed": "removed"
@@ -22964,7 +22964,7 @@
         "metal": false,
         "occludes": true,
         "stops_rounds": false,
-        "topples": false,
+        "topples": true,
         "weight_class": "light"
       },
       "destroyed": "removed"

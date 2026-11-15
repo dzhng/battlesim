@@ -11,7 +11,7 @@
       "appearance": {"stand_in_tint": [0.2, 0.36, 0.16], "drawn_by": "hedge", "modular": true, "map_only": true}
     },
     "garden_fence": {
-      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": true, "weight_class": "light", "hp": 25, "cover_tier": "light"},
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": true, "weight_class": "light", "topples": true, "hp": 25, "cover_tier": "light"},
       "destroyed": "removed",
       "appearance": {"stand_in_tint": [0.6, 0.48, 0.34], "drawn_by": "garden_fence", "modular": true, "map_only": true}
     },
