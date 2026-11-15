@@ -10,6 +10,7 @@ use crate::common;
 
 mod road_speed;
 mod static_bodies;
+mod traffic_detours;
 
 fn scenario(units: serde_json::Value, events: serde_json::Value) -> ScenarioDefinition {
     common::scenario(common::saved_map("geometry"), units, events)
