@@ -110,4 +110,58 @@ game ends near the hour. Finding what grows and trimming it is the
 before any Frontline game is allowed to run much past an hour. Slice 15 sets
 the battle cap from memory: about 2 GB a battle.
 
-**O1:** not run yet.
+**O1: run on 2026-11-15, and it misses.** `bun run server:soak 600` (a
+generated 5v5 of ten AIs on a battle thread, real time, ten minutes) on the
+temporary host: 47% of ticks ran over the 33 ms budget, the 95th percentile
+step was 95 ms, and the battle shed 30% of its ticks. From the fifth minute
+it ran at about half speed. The host is an 8-core Xeon Platinum 8259CL at
+2.5 GHz. Raw numbers for everything below are in
+[host-comparison-2026-11-15.txt](../assets/host-comparison-2026-11-15.txt).
+
+**The same soak misses on fast hardware too, by less.** On this Mac (an M6)
+and on a Ryzen 9 9950X it ran 18% of ticks over budget and shed about 5%,
+all of it from the fifth minute on, when the armies are large. So the host
+is one limit and the simulation's step with ten AIs is another: no host
+measured here holds 30 ticks a second through a full 5v5 of AIs.
+
+**A second host was measured the same day: a Bento sandbox,** at the user's
+suggestion (a sandbox for each match). It is a rented Linux machine, billed
+by the second, on a Ryzen 9 9950X in France.
+
+| | Bento VM | Sandbox, 2 vCPU | Sandbox, 4 vCPU | Sandbox, 8 vCPU | Mac |
+|---|---|---|---|---|---|
+| Soak: ticks over budget | 47% | 18% | 19% | 30% | 18% |
+| Soak: ticks shed | 30% | 4% | 6% | 18% | 5% |
+| 200-unit fight flat out: median tick | 22.8 ms | 11.0 ms | 11.8 ms | 14.5 ms | 10.2 ms |
+| 200-unit fight paced: late ticks | 24% | 7% | 16% | 18% | |
+| An order's round trip from California | 95 ms private, 300 ms public | 182 ms | | | |
+| A stream is cut after | 300 s | not within 400 s | | | |
+| Price | the workspace's | $0.018 an hour | $0.036 | $0.072 | |
+
+- **Speed:** a sandbox core is about twice the VM's and level with the Mac.
+  More cores buy nothing for one battle, which is one thread; the three
+  sandboxes landed on different machines and the largest was the slowest,
+  so expect a spread of about 30% between machines.
+- **Native is no faster than WebAssembly there either.** The native
+  endurance report on the sandbox ran a median tick of 6.5 ms in its first
+  five minutes and 13.2 ms in its second; the Mac ran 2.6 and 6.9. Decision
+  13 stands on this host too.
+- **Starting one takes about nine seconds:** from the create call to the
+  real game server answering `/hello` through HTTPS, with a 3 MB bundle
+  uploaded on the way. A match-hour on the smallest size costs about two
+  cents.
+- **The route:** an HTTPS address per sandbox and port. The stream arrived
+  unbuffered, one record a chunk, and was not cut in 400 seconds. Every
+  machine was in France, with no choice of region seen: 182 ms an order
+  from California is distance, and a player in Europe would be close.
+  Measured through the token-protected address; a page on another origin
+  cannot send that token, so real play needs the port made public.
+- **Memory grew through the soak** on every machine: about 1.1 GB at ten
+  minutes on the sandboxes, rising about 75 MB a minute from the fourth.
+  Whether it levels off was not measured. The smallest sandbox has 4 GB.
+- **Limits not tested:** how many sandboxes may start a minute and exist at
+  once under the workspace's plan; a start from a saved disk (the provider
+  says seconds, and Bento does not admit it yet); a player in Europe.
+
+**What this changes** is the user's to decide: see the README's open
+items. The plan as written still deploys to the VM.

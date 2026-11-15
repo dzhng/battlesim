@@ -40,8 +40,7 @@ create a room, start its battle, survive a drop and finish
 2. **Then stop for the user** if they have not yet said when to deploy.
 3. **The three things that need the user's go-ahead,** all outward-facing:
    slice 09's push (deploying the server), slice 01's host half (O1, the
-   late-tick measurement on the host: `bun run server:soak` is the
-   workload), and slice 19, the milestone (two people on two networks
+   late-tick measurement on the host, now done), and slice 19, the milestone (two people on two networks
    finish a room battle). Ask before promoting a site build, before
    deploying, and before making the address public.
 4. **Slice 27,** the closeout: the one full run, the docs, the plan
@@ -52,6 +51,23 @@ since the staging merge of 2026-11-15, four approved `unit-roster` pictures
 differ (staging's road and entry changes), and a vehicle ordered through a
 town on the default mixed map stopped with "route blocked". Leave both
 alone. The `online-battle` scene no longer drives through a town.
+
+**Waiting on the user, and now blocking the deploy:**
+
+- **Which host.** The user asked on 2026-11-15 for Bento's sandboxes to be
+  measured against its VM, with a sandbox for each match in mind. Results
+  are in [slice 01](slices/01-probes.md): a sandbox is about twice as fast,
+  starts in about nine seconds, costs about two cents a match-hour, does
+  not cut streams, and is in France. The VM misses badly (O1). Three ways
+  forward: the VM as planned; the whole server on one long-lived sandbox
+  (only the deploy folder changes, but a sandbox's lease is finite and
+  must be renewed); or the rooms and Frontline service on the VM and one
+  sandbox for each battle (the ticket must then carry the battle's
+  address: a wire change and a new slice). Do not deploy until the user
+  picks.
+- **The soak sheds ticks on every machine,** the Mac included, once ten
+  AIs have large armies. No host fixes that. It is the simulation's cost
+  and is not in this plan.
 
 **Waiting on the user, not blocking:**
 

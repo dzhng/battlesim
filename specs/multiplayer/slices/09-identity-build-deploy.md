@@ -118,6 +118,22 @@ Not done, and why:
   build." and a way back to the menu. It is honest and plain; slice 16's
   multiplayer screen is where it gets its proper place.
 
+## Learnt about the host on 2026-11-15, not yet applied
+
+Found while measuring hosts (slice 01), before any real deploy:
+
+- A public app's address is `https://<app>--<workspace>.public.bento.ing`,
+  not the standard one. A private app refuses a request from another
+  origin, so a game page can only reach a public app.
+- The host gives the process its port in `PORT`; the deploy command must
+  not choose one.
+- A folder must be made before files are written into it, and the CLI
+  takes its workspace from `BENTO_WORKSPACE` or `--workspace`.
+- On the private route the proxy sets `x-forwarded-for` and `x-real-ip`.
+  The public route's headers are still unread.
+- `deploy/bento.mjs` can only register a new app. A second deploy needs it
+  to write the files and restart the existing one.
+
 ## Results
 
 Not run yet.

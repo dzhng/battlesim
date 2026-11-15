@@ -1,0 +1,99 @@
+Host comparison, 2026-11-15. Scratch workloads; see slices/01-probes.md for the reading.
+
+Machines
+  Bento VM (workspace app runtime): Intel Xeon Platinum 8259CL 2.5 GHz, 8 vCPU, 16 GB, Node 24
+  Bento sandbox (provider: boat): AMD Ryzen 9 9950X, France; small 2 vCPU/4 GB, default 4/8, large 8/16; Node 24
+  Mac: Apple M6, 12 cores, busy with other builds
+
+A. 200-unit endurance fight, 10 simulated minutes, WebAssembly in Node (probe build of 2026-11-14).
+   Every machine ended on digest 421fb87634122caa.
+  vm flat-out: {"meanMs":33.91,"p50":22.75,"p95":96.9,"p99":152.89,"lateTicks":4314,"total":18000}
+  vm paced:    {"meanMs":33.8,"p50":22.76,"p95":95.37,"p99":152.07,"lateTicks":4306,"droppedBacklogs":1979,"worstLagMs":202,"rssMiB":560}
+  small flat-out: {"meanMs":15.09,"p50":11.03,"p95":40.81,"p99":61.62,"lateTicks":1617,"total":18000}
+  small paced:    {"meanMs":13.84,"p50":9.77,"p95":36.35,"p99":55.96,"lateTicks":1195,"droppedBacklogs":17,"worstLagMs":45,"rssMiB":557}
+  default flat-out: {"meanMs":16.07,"p50":11.81,"p95":41.12,"p99":67.56,"lateTicks":1884,"total":18000}
+  default paced:    {"meanMs":18.26,"p50":13.81,"p95":48.65,"p99":67.96,"lateTicks":2853,"droppedBacklogs":161,"worstLagMs":63,"rssMiB":562}
+  large flat-out: {"meanMs":19.93,"p50":14.47,"p95":56.83,"p99":82.58,"lateTicks":3116,"total":18000}
+  large paced:    {"meanMs":19.63,"p50":14.25,"p95":53.34,"p99":73.85,"lateTicks":3154,"droppedBacklogs":275,"worstLagMs":116,"rssMiB":558}
+  mac flat-out (2026-11-14): mean 13.8, p50 10.2, p95 39.9, p99 61.3, 1237 ticks over budget of 18000
+
+B. This build's soak (bun run server:soak 600): a generated 5v5 of ten AIs on a battle thread, real time.
+## mac/soak.jsonl: 600 seconds
+  min  1: ticks 1792/1800  over budget   0.4%  p95 step (median of seconds)   6.9 ms  behind    10  rss  425 MiB
+  min  2: ticks 1801/1800  over budget   0.5%  p95 step (median of seconds)  12.2 ms  behind    10  rss  333 MiB
+  min  3: ticks 1799/1800  over budget   0.9%  p95 step (median of seconds)  15.8 ms  behind    14  rss  373 MiB
+  min  4: ticks 1783/1800  over budget   2.8%  p95 step (median of seconds)  25.8 ms  behind    33  rss  233 MiB
+  min  5: ticks 1788/1800  over budget  22.7%  p95 step (median of seconds)  50.3 ms  behind    48  rss  363 MiB
+  min  6: ticks 1601/1800  over budget  36.4%  p95 step (median of seconds)  58.6 ms  behind   249  rss  445 MiB
+  min  7: ticks 1674/1800  over budget  25.9%  p95 step (median of seconds)  51.1 ms  behind   378  rss  424 MiB
+  min  8: ticks 1749/1800  over budget  26.2%  p95 step (median of seconds)  54.5 ms  behind   431  rss  578 MiB
+  min  9: ticks 1492/1800  over budget  40.6%  p95 step (median of seconds)  63.8 ms  behind   742  rss  693 MiB
+  min 10: ticks 1629/1800  over budget  31.4%  p95 step (median of seconds)  55.6 ms  behind   915  rss  813 MiB
+  whole: ticks 17108  over budget 18.0%  p95 50.8 ms  behind 915
+## small/results/soak.jsonl: 600 seconds
+  min  1: ticks 1781/1800  over budget   0.2%  p95 step (median of seconds)   7.0 ms  behind    19  rss  370 MiB
+  min  2: ticks 1800/1800  over budget   0.5%  p95 step (median of seconds)  14.7 ms  behind    20  rss  317 MiB
+  min  3: ticks 1798/1800  over budget   0.7%  p95 step (median of seconds)  17.2 ms  behind    23  rss  357 MiB
+  min  4: ticks 1781/1800  over budget   4.3%  p95 step (median of seconds)  29.2 ms  behind    42  rss  426 MiB
+  min  5: ticks 1790/1800  over budget  26.8%  p95 step (median of seconds)  42.7 ms  behind    53  rss  526 MiB
+  min  6: ticks 1471/1800  over budget  45.0%  p95 step (median of seconds)  57.2 ms  behind   382  rss  602 MiB
+  min  7: ticks 1606/1800  over budget  32.6%  p95 step (median of seconds)  47.1 ms  behind   577  rss  728 MiB
+  min  8: ticks 1775/1800  over budget  23.2%  p95 step (median of seconds)  43.1 ms  behind   602  rss  843 MiB
+  min  9: ticks 1678/1800  over budget  29.6%  p95 step (median of seconds)  51.0 ms  behind   724  rss  983 MiB
+  min 10: ticks 1727/1800  over budget  28.8%  p95 step (median of seconds)  50.1 ms  behind   798  rss 1091 MiB
+  whole: ticks 17207  over budget 18.4%  p95 48.5 ms  behind 798
+## default/results/soak.jsonl: 600 seconds
+  min  1: ticks 1775/1800  over budget   0.2%  p95 step (median of seconds)   9.0 ms  behind    25  rss  403 MiB
+  min  2: ticks 1800/1800  over budget   0.5%  p95 step (median of seconds)  14.8 ms  behind    26  rss  334 MiB
+  min  3: ticks 1798/1800  over budget   0.7%  p95 step (median of seconds)  21.1 ms  behind    29  rss  372 MiB
+  min  4: ticks 1784/1800  over budget   2.4%  p95 step (median of seconds)  29.5 ms  behind    45  rss  442 MiB
+  min  5: ticks 1785/1800  over budget  26.4%  p95 step (median of seconds)  43.4 ms  behind    60  rss  542 MiB
+  min  6: ticks 1562/1800  over budget  39.2%  p95 step (median of seconds)  54.0 ms  behind   298  rss  621 MiB
+  min  7: ticks 1675/1800  over budget  25.6%  p95 step (median of seconds)  43.8 ms  behind   423  rss  756 MiB
+  min  8: ticks 1752/1800  over budget  26.7%  p95 step (median of seconds)  45.3 ms  behind   472  rss  871 MiB
+  min  9: ticks 1353/1800  over budget  47.1%  p95 step (median of seconds)  62.5 ms  behind   919  rss  984 MiB
+  min 10: ticks 1565/1800  over budget  36.2%  p95 step (median of seconds)  54.7 ms  behind  1154  rss 1085 MiB
+  whole: ticks 16849  over budget 19.3%  p95 50.1 ms  behind 1154
+## large/results/soak.jsonl: 600 seconds
+  min  1: ticks 1771/1800  over budget   0.2%  p95 step (median of seconds)  16.4 ms  behind    29  rss  396 MiB
+  min  2: ticks 1798/1800  over budget   0.5%  p95 step (median of seconds)  22.5 ms  behind    32  rss  334 MiB
+  min  3: ticks 1794/1800  over budget   3.7%  p95 step (median of seconds)  27.7 ms  behind    39  rss  372 MiB
+  min  4: ticks 1728/1800  over budget  17.0%  p95 step (median of seconds)  39.9 ms  behind   111  rss  437 MiB
+  min  5: ticks 1692/1800  over budget  33.3%  p95 step (median of seconds)  53.0 ms  behind   220  rss  534 MiB
+  min  6: ticks 1241/1800  over budget  61.9%  p95 step (median of seconds)  71.7 ms  behind   779  rss  595 MiB
+  min  7: ticks 1288/1800  over budget  57.9%  p95 step (median of seconds)  66.0 ms  behind  1291  rss  685 MiB
+  min  8: ticks 1378/1800  over budget  40.7%  p95 step (median of seconds)  62.9 ms  behind  1714  rss  780 MiB
+  min  9: ticks 1268/1800  over budget  48.2%  p95 step (median of seconds)  68.1 ms  behind  2246  rss  872 MiB
+  min 10: ticks  871/1800  over budget  90.7%  p95 step (median of seconds)  98.2 ms  behind  3176  rss  954 MiB
+  whole: ticks 14829  over budget 29.8%  p95 64.1 ms  behind 3176
+## vm/soak.jsonl: 600 seconds
+  min  1: ticks 1723/1800  over budget   0.9%  p95 step (median of seconds)  16.2 ms  behind    77  rss  401 MiB
+  min  2: ticks 1782/1800  over budget   8.4%  p95 step (median of seconds)  33.9 ms  behind    95  rss  332 MiB
+  min  3: ticks 1759/1800  over budget  28.7%  p95 step (median of seconds)  44.1 ms  behind   136  rss  369 MiB
+  min  4: ticks 1668/1800  over budget  34.0%  p95 step (median of seconds)  57.9 ms  behind   269  rss  422 MiB
+  min  5: ticks 1168/1800  over budget  61.6%  p95 step (median of seconds)  83.6 ms  behind   901  rss  493 MiB
+  min  6: ticks  939/1800  over budget  99.9%  p95 step (median of seconds)  98.1 ms  behind  1762  rss  546 MiB
+  min  7: ticks  867/1800  over budget 100.0%  p95 step (median of seconds) 111.1 ms  behind  2695  rss  588 MiB
+  min  8: ticks  755/1800  over budget 100.0%  p95 step (median of seconds) 117.3 ms  behind  3741  rss  626 MiB
+  min  9: ticks  927/1800  over budget  78.5%  p95 step (median of seconds) 105.8 ms  behind  4614  rss  710 MiB
+  min 10: ticks 1051/1800  over budget  64.4%  p95 step (median of seconds) 102.4 ms  behind  5363  rss  775 MiB
+  whole: ticks 12639  over budget 46.8%  p95 94.5 ms  behind 5364
+
+C. Native endurance report, 10 simulated minutes, this build (rows: minutes, tick p50, p95, p99, max, ticks over 33 ms).
+  sandbox small:  5 | 6.5 | 35.9 | 72.4 | 94 | 613 ; 10 | 13.2 | 51.3 | 76.7 | 115 | 2204 ;
+  sandbox default:  5 | 6.2 | 34.3 | 70.9 | 98 | 544 ; 10 | 13.4 | 52.3 | 80.0 | 112 | 2234 ;
+  mac:  5 | 2.6 | 13.4 | 25.1 | 34 | 2 ; 10 | 6.9 | 21.9 | 29.5 | 54 | 36 ;
+
+D. Route to a sandbox from California, through its token-protected HTTPS address, 400 s.
+  /stream: HTTP 200, application/octet-stream, first byte after 578 ms
+  stream lived 400.5 s (time limit); 11806 records, 48.7 kB/s
+  gap between records, ms: p50 33  p95 66  p99 84  max 124; gaps over 100 ms: 12
+  records per network chunk: p50 1  p95 1  p99 1  max 2
+  order round trip, ms: p50 182  p95 190  p99 224  max 612 (584 sent)
+  the real server's /hello on a kept connection: about 190 ms
+  Bento app, measured 2026-11-14: about 95 ms private, about 300 ms public; streams cut at 300 s
+
+E. A fresh small sandbox, seconds from the create call (driven by one CLI call after another):
+  create returned 2.2; ready 3.4; 3 MB server bundle uploaded 6.1; server started 7.1; port hosted 8.0; first /hello answered 8.7
+
+F. Charged by Bento for the run: small 44 min 0.0159 USD, default 0.0319, large 0.0647, the timing machine 0.0054.
