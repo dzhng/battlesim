@@ -7,6 +7,7 @@ import { Icon } from "@web/battle/present/icons";
 import { playerName, type Seat } from "@web/battle/present/playerName";
 import type { MatchEventView, SkirmishView } from "@web/battle/sim/observationView";
 import type { SideName } from "@web/battle/sim/protocol";
+import { Fragment } from "react";
 import { clock, outcome } from "./battleStatus";
 
 type Report = NonNullable<SkirmishView["report"]>;
@@ -277,18 +278,29 @@ export function MatchResultOverlay({
   if (match.phase !== "finished" || !report) return null;
   const viewerSide = seats.find((seat) => seat.id === viewer)?.side ?? null;
   const names = { seats, viewer, viewerSide };
-  const sides = [...new Set(seats.map((seat) => seat.side))];
+  // The viewer's side first, as the battle's score strip has it; seat order
+  // for a watcher.
+  const sides = [...new Set(seats.map((seat) => seat.side))].sort(
+    (a, b) => Number(b === viewerSide) - Number(a === viewerSide),
+  );
   const result = match.result ?? "draw";
   return (
     <div className="match-result-scrim" role="dialog" aria-label="Match result">
-      <section className={`match-result-modal match-result-${result}`}>
+      <section
+        className={`match-result-modal match-result-${result === "draw" ? result : toneOf(names, result)}`}
+      >
         <header className="match-result-heading">
           <h1>{outcome(result, viewerSide)}</h1>
           <span className="match-result-score" aria-label="Final score">
             <small>SCORE</small>
-            <b className="match-result-score-blue">{Math.floor(match.scores[0])}</b>
-            <span>—</span>
-            <b className="match-result-score-red">{Math.floor(match.scores[1])}</b>
+            {sides.map((side, index) => (
+              <Fragment key={side}>
+                {index > 0 && <span>—</span>}
+                <b className={`match-result-tone-${toneOf(names, side)}`}>
+                  {Math.floor(match.scores[side === "blue" ? 0 : 1])}
+                </b>
+              </Fragment>
+            ))}
           </span>
         </header>
         <div className="match-result-sides">

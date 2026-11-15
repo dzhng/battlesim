@@ -155,7 +155,7 @@ export function BattleView({
     audio?.reset();
   }, [sim.client, clearCues, audio]);
 
-  const overlay = useBattleOverlay(session, { scenario, side, camera });
+  const overlay = useBattleOverlay(session, { scenario, camera });
 
   // Loading: the static world's meshes, then the viewport's first frame, then
   // the battle's first observation, which is when the player can act.

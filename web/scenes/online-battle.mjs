@@ -2,6 +2,7 @@
 import { spawn, execFileSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { once } from "node:events";
+import { captureSeats, resultColours } from "./_battle-colours.mjs";
 
 const root = new URL("../../", import.meta.url).pathname;
 const evidence = new URL("../../throwaway/multiplayer/slice08/", import.meta.url).pathname;
@@ -38,8 +39,11 @@ async function server() {
   });
   return {
     address,
+    hold: () => child.kill("SIGSTOP"),
+    resume: () => child.kill("SIGCONT"),
     async stop() {
       const exited = once(child, "exit");
+      child.kill("SIGCONT");
       child.kill("SIGTERM");
       await exited;
       await writeFile(`${evidence}server.log`, log);
@@ -124,7 +128,7 @@ async function controls(ctx, page, side) {
   await page.getByRole("button", { name: "Back to battle", exact: true }).click();
 }
 
-async function move(page, goal) {
+async function orderMove(page, goal, fast = false) {
   const unit = (await observation(page)).own[0];
   await page.evaluate(
     ({ id, goal }) => {
@@ -140,12 +144,18 @@ async function move(page, goal) {
     goal,
   );
   if (!css) throw new Error("move destination is not drawn");
-  await page.mouse.click(css[0], css[1], { button: "right" });
+  if (fast) await page.mouse.dblclick(css[0], css[1], { button: "right" });
+  else await page.mouse.click(css[0], css[1], { button: "right" });
   await page.waitForFunction(() =>
     window.__lab.route
       .acks()
       .some(({ order, ack }) => order.kind === "move" && !ack.error && ack.refused.length === 0),
   );
+  return unit;
+}
+
+async function move(page, goal) {
+  const unit = await orderMove(page, goal);
   await page.waitForFunction(
     ({ id, position, goal }) => {
       const u = window.__lab.route.observation().own.find((u) => u.id === id);
@@ -159,6 +169,10 @@ async function move(page, goal) {
 
 export async function run(ctx) {
   await mkdir(evidence, { recursive: true });
+  const colours = new URL("../../throwaway/multiplayer/slice11/", import.meta.url).pathname;
+  const captures = process.env.SLICE11_BEFORE ? `${colours}before/` : colours;
+  await mkdir(captures, { recursive: true });
+  await resultColours(ctx, new URL(ctx.url).origin, captures);
   const local = await server();
   const url = `${new URL(ctx.url).origin}/online/dev?server=${encodeURIComponent(local.address)}&quality=${ctx.graphicsQuality}`;
   try {
@@ -201,6 +215,7 @@ export async function run(ctx) {
         tickets[0].battle === tickets[1].battle,
     );
     await Promise.all(pages.map((page, i) => purchase(page, tickets[i])));
+    await captureSeats(ctx, local, pages, "preparation", captures);
     for (const page of pages) {
       const ready = page.getByRole("button", { name: "START BATTLE", exact: true });
       if (await ready.isVisible()) await ready.click();
@@ -242,6 +257,49 @@ export async function run(ctx) {
       JSON.stringify(starts[0]) !== JSON.stringify(starts[1]),
     );
     const middle = [(starts[0][0] + starts[1][0]) / 2, (starts[0][1] + starts[1][1]) / 2];
+    const objectives = initial.map(
+      (o, i) =>
+        [...o.skirmish.objectives].sort(
+          (a, b) =>
+            Math.hypot(a.center[0] - starts[i][0], a.center[1] - starts[i][1]) -
+            Math.hypot(b.center[0] - starts[i][0], b.center[1] - starts[i][1]),
+        )[0],
+    );
+    try {
+      await Promise.all(pages.map((page, i) => orderMove(page, objectives[i].center, true)));
+    } catch (error) {
+      await ctx.writeEvidence("failed-objective-move.json", {
+        objectives,
+        observations: await Promise.all(pages.map(observation)),
+      });
+      throw error;
+    }
+    await pages[0].waitForTimeout(1500);
+    await captureSeats(ctx, local, pages, "moving", captures);
+    await Promise.all(
+      pages.map((page, i) =>
+        page.waitForFunction(
+          (side) =>
+            window.__lab.route
+              .observation()
+              .skirmish.objectives.some((o) => o.capturing === side || o.owner === side),
+          tickets[i].side,
+          { timeout: 300_000 },
+        ),
+      ),
+    );
+    await captureSeats(ctx, local, pages, "capture", captures);
+    await Promise.all(
+      pages.map((page, i) =>
+        page.waitForFunction(
+          (side) =>
+            window.__lab.route.observation().skirmish.objectives.some((o) => o.owner === side),
+          tickets[i].side,
+          { timeout: 60_000 },
+        ),
+      ),
+    );
+    await captureSeats(ctx, local, pages, "held", captures);
     // Both drive toward the same meeting ground. The page issues the order
     // through picking and the ordinary right-click command path.
     await Promise.all(pages.map((page) => move(page, middle)));
@@ -277,11 +335,15 @@ export async function run(ctx) {
             { timeout: 240_000 },
           )
           .then(
-            (count) => count.jsonValue(),
+            async (count) => {
+              await page.keyboard.press("Backspace");
+              return count.jsonValue();
+            },
             () => 0,
           ),
       ),
     );
+    await captureSeats(ctx, local, pages, "contact", captures);
     for (let i = 0; i < pages.length; i++) {
       const page = pages[i];
       const side = tickets[i].side;
