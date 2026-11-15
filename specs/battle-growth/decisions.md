@@ -1628,3 +1628,67 @@ type is the unit that is too big). Its first confirm-first question may
 replace it: if most of an infantry type's 85.7 MB is geometry posed for
 bodies that do not exist yet, packing those when the first body lies is
 smaller.
+
+**Slice 12, first confirm-first answer stops implementation, 2026-11-15.**
+
+- Based on `origin/staging` at `4df1c6b11`, on
+  `t3/battle-growth-arrival-over-frames`. No production change was made.
+  The first stop condition applies: **57,159,360 of the 85,739,040 packed
+  vertex bytes (exactly two thirds) are two corpse-pose copies per bundle**.
+  Living meshes total 28,579,680 bytes. There is no additional packed far-rest
+  geometry: living rows share their unposed geometry, and the far pose keeps
+  only its bounds/palette and supplies its card bake.
+
+  All rows below use the `eastern_rpg_team_rpg_7_` prefix. Counts cover all
+  four mesh tiers, using the production 48-byte vertex layout; index buffers,
+  CPU rest facts and card pixels are not included in vertex bytes.
+
+  | Bundle suffix | Living tier bytes | Corpse tier bytes | Living / corpse / extra far geometry keys |
+  | --- | ---: | ---: | ---: |
+  | active_a | 3,098,736 | 6,197,472 | 1 / 2 / 0 |
+  | active_b | 2,929,776 | 5,859,552 | 1 / 2 / 0 |
+  | active_c | 2,930,592 | 5,861,184 | 1 / 2 / 0 |
+  | carried_a | 3,391,248 | 6,782,496 | 1 / 2 / 0 |
+  | carried_b | 3,217,584 | 6,435,168 | 1 / 2 / 0 |
+  | carried_c | 3,231,552 | 6,463,104 | 1 / 2 / 0 |
+  | guard_a | 3,241,968 | 6,483,936 | 1 / 2 / 0 |
+  | guard_b | 3,271,632 | 6,543,264 | 1 / 2 / 0 |
+  | guard_c | 3,266,592 | 6,533,184 | 1 / 2 / 0 |
+  | Total | 28,579,680 | 57,159,360 | 9 / 18 / 0 |
+
+- Evidence: `throwaway/slice12-confirm/geometry.py`, `.json` and `.log`.
+  The scratch reader inflates the nine committed runtime bundles, reads each
+  tier's position-array length and the production vertex stride, and records
+  their exact content identities, tier counts and authored poses. Every bundle
+  authors `death` and `death_back` at phase 1. The current production key rule
+  (`models/plan.rs`) adds a palette only for a corpse row, and
+  `models/admission.rs` poses and packs every tier for those rows; living
+  geometry remains unposed. `presentation/posing.rs::register_appearance`
+  registers the living row and both corpse rows before a body lies.
+  `models/rest_pose.rs` retains bounds and palettes, not another packed
+  living far mesh.
+- The calculated 85,739,040 bytes reconcile exactly with the actual reference
+  admission in the preceding pass's
+  `throwaway/evidence/growth-probe/reference-arrivals.json`: the commit adds
+  exactly those nine names and bakes 27 cards. Its tick-5521 observation has
+  three living RPG-team members and no RPG-team corpse. That is reused
+  historical browser evidence from `3041e1cba` plus download warm-up, not a
+  new run claimed on `4df1c6b11`. The nine runtime contents and the geometry
+  key/admission code are unchanged between those trees. Simulation/mapgen are
+  unchanged too; the intervening presentation fixture edit lengthens wreck
+  smoke and does not affect these mesh sizes or poses.
+- **Second confirm-first answer: not measured in this pass.** The task says
+  to stop at the first answer if posed copies dominate. It is therefore not
+  established that all fielding, supply and preparation costs divide by content,
+  nor is a per-content/global-table timing invented from the previous aggregate
+  measurements. No scratch timers, new reference run, stepping API, warm-store
+  state, viewport scheduling or fielding/supply stepping was built. Continuing
+  to implement slice 12 despite its stop condition was rejected; the next slice
+  can address unnecessary corpse preparation instead, under the user's spec.
+- No implementation tests, workspace Clippy, GPU tests/scenes or three-run
+  before/after cohort were run: there is no implementation to verify after
+  this explicit stop. The scratch calculation and its exact admission/observation
+  reconciliation pass. Evidence stays in `throwaway/`; only this ledger entry
+  changes. `df -h` showed 107 GiB free at setup, so no old measurement builds
+  were removed. No switch, setting, shader, vertex layout, assertion, README
+  status or slice text changed.
