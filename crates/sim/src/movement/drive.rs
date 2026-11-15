@@ -5,12 +5,13 @@
 //! Tracks turn at their own rate and pivot on the spot beyond
 //! `movement.drive.turn_in_place_deg` of heading error. Wheels never pivot: the yaw
 //! turns only as the hull rolls, at most `1 / radius` per metre, so a
-//! U-turn is an arc. A waypoint inside the turning circle, or a turn whose
-//! next metre runs into a solid, starts a three-point turn: a leg driven
-//! against the order's direction that keeps turning the same way, until
-//! the forward arc to the waypoint is clear. A leg that cannot turn its way
-//! (a hull nosed into a gap between parked cars) backs out straight, or
-//! turning the other way. Every arc is swept for bodies finer than a corner
+//! U-turn is an arc. A corner of the route inside the turning circle is cut
+//! when the straight way past it is clear ([`prune`]). The route's end, a
+//! corner it cannot cut, or a turn whose next metre runs into a solid
+//! starts a three-point turn: a leg driven against the order's direction
+//! that keeps turning the same way, until the forward arc to the waypoint
+//! is clear. A leg that cannot turn its way (a hull nosed into a gap
+//! between parked cars) backs out straight, or turning the other way. Every arc is swept for bodies finer than a corner
 //! can swing through one.
 //!
 //! A reverse move (Q31) drives the same way with the travel direction
@@ -463,12 +464,29 @@ pub fn pivot(world: &WorldGeometry, unit: &mut Unit, dt: f64) {
 }
 
 /// Drop the waypoints a wheeled vehicle has done with before it steers:
-/// one reached or one it passes abeam. A route's corners supply clearance;
-/// the steering owner follows them at the hull's turning radius. Returns
-/// whether the route's end is reached.
-pub fn prune(unit: &mut Unit) -> bool {
-    let Some(drive) = unit.ground().drive.filter(|d| !d.tracked) else {
+/// one reached, one it passes abeam, or a corner inside its turning circle
+/// whose clearance it does not need: the straight way on to the next
+/// waypoint fits its side's grid with the other vehicles in `traffic` as
+/// solid, since a detour's corners clear vehicles the grid does not hold.
+/// A route's corners supply clearance; the steering owner follows them at
+/// the hull's turning radius. Returns whether the route's end is reached.
+pub(super) fn prune(
+    ctx: &super::MovementContext,
+    sides: &mut [super::SideGeometry; 3],
+    traffic: &[Option<Obb2>],
+    unit: &mut Unit,
+) -> bool {
+    let mobility = *unit.ground();
+    let Some(drive) = mobility.drive.filter(|d| !d.tracked) else {
         return false;
+    };
+    let known = &mut sides[unit.side.index()];
+    let own = unit.id.0 as usize;
+    let others = || -> Vec<Obb2> {
+        let hulls = traffic.iter().enumerate();
+        hulls
+            .filter_map(|(id, hull)| hull.filter(|_| id != own))
+            .collect()
     };
     let here = unit.position.xy();
     let heading = travel(unit.yaw, gear_sign(unit.direction()));
@@ -476,10 +494,18 @@ pub fn prune(unit: &mut Unit) -> bool {
     while let Some(&wp) = route.first() {
         let to = wp - here;
         let distance = to.length();
-        let error = wrap_angle(libm::atan2(to.y, to.x) - heading).abs();
+        let signed = wrap_angle(libm::atan2(to.y, to.x) - heading);
+        let error = signed.abs();
         let reached = distance < super::PROGRESS_EPSILON_M
             || (distance < drive.feel.abeam_m && error > drive.feel.abeam_deg.to_radians());
-        if !reached {
+        // Never the route's end: that is where it must stand.
+        let side = if signed >= 0.0 { 1.0 } else { -1.0 };
+        let passed = route.len() > 1
+            && inside_circle(here, heading, side, drive.radius_m, wp, 0.0)
+            && known
+                .grid(ctx.world, ctx.authored)
+                .way_fits(here, route[1], &mobility, &others());
+        if !reached && !passed {
             break;
         }
         route.remove(0);

@@ -878,20 +878,14 @@ fn step_vehicle(
             let before = units[i].yaw;
             drive::pivot(ctx.world, &mut units[i], dt);
             let unit = &units[i];
-            let here = unit.position.xy();
-            if units.iter().enumerate().any(|(j, o)| {
-                j != i
-                    && o.ground_footprint().is_some()
-                    && o.on_field()
-                    && vehicle_conflict(unit, here, unit.yaw, o)
-            }) {
+            if in_the_way(units, i, unit.position.xy(), unit.yaw).is_some() {
                 units[i].yaw = before;
                 units[i].turn_to = None;
             }
         }
         return;
     }
-    if drive::prune(&mut units[i]) {
+    if drive::prune(ctx, sides, traffic, &mut units[i]) {
         arrive(&mut units[i]);
         return;
     }
@@ -939,15 +933,9 @@ fn step_vehicle(
     // Traffic, whatever its side (Q14): a vehicle waits for whatever it
     // would run into; live vehicles are never shoved (Q15).
     let unit = &units[i];
-    let mut blocker = motion.blocker.or_else(|| {
-        units.iter().enumerate().find_map(|(j, other)| {
-            (j != i
-                && other.ground_footprint().is_some()
-                && other.on_field()
-                && vehicle_conflict(unit, next, motion.yaw, other))
-            .then_some(other.id)
-        })
-    });
+    let mut blocker = motion
+        .blocker
+        .or_else(|| in_the_way(units, i, next, motion.yaw));
 
     // A detouring tank must not pivot through its neighbour, nor a tank
     // nosed up to a body through that body. Give the turn room instead of
@@ -963,13 +951,8 @@ fn step_vehicle(
     {
         let at = here + back.heading * back.step;
         let behind = push::meet(ctx.world, &hull_at(at, back.yaw), &current, push);
-        let traffic = units.iter().enumerate().any(|(j, other)| {
-            j != i
-                && other.ground_footprint().is_some()
-                && other.on_field()
-                && vehicle_conflict(unit, at, back.yaw, other)
-        });
-        if behind.solid.is_none() && behind.shoved.is_empty() && !traffic {
+        let traffic = in_the_way(units, i, at, back.yaw);
+        if behind.solid.is_none() && behind.shoved.is_empty() && traffic.is_none() {
             motion = back;
             next = at;
             met = behind;
@@ -1094,6 +1077,17 @@ fn backing_frees_pivot(world: &WorldGeometry, unit: &Unit, away: V2, yaw: f64) -
     push::meet(world, &turned, &backed, unit.ground().push)
         .solid
         .is_none()
+}
+
+/// The first live vehicle that vehicle `i`, moved to `next` at `yaw`, would run into.
+fn in_the_way(units: &[Unit], i: usize, next: V2, yaw: f64) -> Option<contract::ids::UnitId> {
+    units.iter().enumerate().find_map(|(j, other)| {
+        (j != i
+            && other.ground_footprint().is_some()
+            && other.on_field()
+            && vehicle_conflict(&units[i], next, yaw, other))
+        .then_some(other.id)
+    })
 }
 
 /// Would this vehicle, moved to `next`, run into the vehicle `other`? Only a move that

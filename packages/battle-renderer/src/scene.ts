@@ -17,7 +17,8 @@ export interface SceneInstance {
 }
 
 /** Marks in world space. `opaque` and `translucent` are display-space
- *  overlay (contacts, and the labs' tracers, garrison and guidance marks):
+ *  overlay (contacts, a held capture area's curtain, and the labs' tracers,
+ *  garrison and guidance marks):
  *  drawn after post, never fogged or lit; translucent triangles draw after
  *  everything opaque without writing depth. `painted` and `paintedMarching`
  *  are painted on the ground in the lit world: orders and selection,

@@ -266,7 +266,7 @@ function Purchase({ match }: { match: SkirmishView }) {
 function Objectives() {
   const handle = useRef<ObjectiveMarkersHandle>(null);
   useLayoutEffect(() => handle.current?.place(project, () => 0));
-  return <ObjectiveMarkers objectives={OBJECTIVES} handle={handle} />;
+  return <ObjectiveMarkers objectives={OBJECTIVES} viewer="blue" handle={handle} />;
 }
 
 function Ruler() {

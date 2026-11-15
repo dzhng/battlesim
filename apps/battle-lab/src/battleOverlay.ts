@@ -39,8 +39,9 @@ import {
   concatMeshes,
   unpulsed,
   type Mesh,
+  type Rgba,
 } from "@packages/battle-renderer/src/mesh";
-import { buildZoneRing } from "@packages/battle-renderer/src/playAreaOverlay";
+import { buildZoneCurtain, buildZoneRing } from "@packages/battle-renderer/src/playAreaOverlay";
 import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
 import type { PresentedContact } from "@web/battle/present/contactPresentation";
 import type { EntryLane } from "@web/battle/prepare/lanes";
@@ -52,6 +53,7 @@ import {
   type OwnUnitView,
 } from "@web/battle/sim/observationView";
 import type { RevealedOrders } from "@web/battle/present/orderReveal";
+import { objectiveStanding, type ObjectiveStanding } from "@web/battle/present/objectiveMarkers";
 import { gameContactStyle } from "./gameFog";
 import { ghostAloft } from "./unitGhosts";
 import {
@@ -60,6 +62,7 @@ import {
   gameStroke,
   gameSupplyStyle,
   gameZone,
+  gameCaptureCurtain,
 } from "./gameOverlay";
 
 type P3 = [number, number, number];
@@ -68,9 +71,18 @@ type P3 = [number, number, number];
 const OWN_TRACER = [0.98, 0.97, 0.9, 1] as const;
 const ENEMY_TRACER = [1.0, 0.45, 0.4, 1] as const;
 const IMPACT = [1.0, 0.86, 0.35, 1] as const;
+/** A capture area's ring by its standing to the viewer, in its flag's colour;
+ *  nobody's is the zone's neutral edge. */
+const STANDING_RING: Record<ObjectiveStanding, Rgba> = {
+  own: [...gameHud.accent, 1],
+  enemy: [...gameHud.enemy, 1],
+  neutral: gameZone,
+};
 
 /** What the overlay draws from the scenario itself. */
 export interface BattleOverlayScenario {
+  /** The side whose view this is; a watching client reads as Blue. */
+  side: SideName;
   supplyRadius: number;
   zone: { center: readonly [number, number]; radius: number } | null;
   /** The viewer's side's roads in, each pointing into the map. */
@@ -97,6 +109,7 @@ export function battleOverlayScenario(
 ): BattleOverlayScenario {
   const [w, d] = s.map.size;
   return {
+    side,
     supplyRadius: s.rules.service.radius_m,
     zone: s.encounter
       ? { center: s.encounter.success_zone_center, radius: s.encounter.success_zone_radius_m }
@@ -411,23 +424,29 @@ export function battleOverlayParts(
         z,
       )
     : null;
-  const objectives = (o.skirmish?.objectives ?? []).map((objective) => ({
-    painted: buildZoneRing(
-      objective.center,
-      objective.radiusM,
-      line,
+  // A capture area's ring takes its flag's colour: the HUD's own colour for
+  // the viewer's side, the enemy's for the other. A held one (a solid ring)
+  // gives off a faint curtain of the same light.
+  const objectives = (o.skirmish?.objectives ?? []).map((objective) => {
+    const color: Rgba =
       objective.contested && Math.floor(o.tick / rules.tick_hz) % 2 === 1
         ? [...gameHud.warn, 1]
-        : objective.owner === "red"
-          ? [...gameHud.enemy, 1]
-          : objective.owner === "blue"
-            ? gameOrderStyle.selected
-            : gameZone,
-      // Contested capture areas stay a solid ring while their colour flashes.
-      objective.contested || objective.owner !== null,
-      z,
-    ),
-  }));
+        : STANDING_RING[objectiveStanding(objective.owner, scenario.side)];
+    // Contested capture areas stay a solid ring while their colour flashes.
+    const held = objective.contested || objective.owner !== null;
+    return {
+      painted: buildZoneRing(objective.center, objective.radiusM, line, color, held, z),
+      ...(held && {
+        translucent: buildZoneCurtain(
+          objective.center,
+          objective.radiusM - line / 2,
+          color,
+          gameCaptureCurtain,
+          z,
+        ),
+      }),
+    };
+  });
   return [
     ...objectives,
     ...(zone ? [{ painted: zone }] : []),
