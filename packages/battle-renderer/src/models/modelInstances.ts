@@ -40,7 +40,7 @@ export interface StaticModelPose {
 }
 
 /** A skinned appearance lying dead at one of its bundle's `corpse_poses`
- *  (`lies`, its index): a static mesh. */
+ *  (`lies`, its index): its living mesh, held in that pose. */
 export interface CorpseModelPose {
   kind: "corpse";
   lies: number;
