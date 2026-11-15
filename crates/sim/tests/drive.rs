@@ -349,3 +349,92 @@ fn a_truck_nosed_into_a_kerb_gap_backs_out_to_the_street_behind_it() {
         truck.position.xy()
     );
 }
+
+/// The moment: a light tank under the trees, a trunk off its front right,
+/// is told to come round to a spot 2 m behind its left shoulder and face
+/// back the way it came. Pivoting on the spot swings its rear quarter into
+/// the trunk whichever way it turns, so the crew rolls along its length
+/// until the turn is clear, comes round, and finishes facing as ordered.
+/// (A played battle's M10 Booker, its trunks and its order, as they stood;
+/// before, it froze against the trunk for every later order.)
+#[test]
+fn a_tank_with_a_trunk_beside_it_rolls_clear_to_turn_and_faces_as_ordered() {
+    let mut fixture = rules();
+    // The test tank in the Booker's body: a medium hull, which a trunk
+    // of the same weight class stops.
+    sim::fixtures::patch_catalog(
+        &mut fixture,
+        "units",
+        "test_tank",
+        json!({
+            "body": { "hull": { "half_extents_m": [3.5, 1.7, 1.3],
+                                "weight_class": "medium", "push_class": "medium",
+                                "wreck": "medium_wreck" } },
+            "mobility": { "tracked": { "offroad_kmh": 30, "road_kmh": 64, "turn_deg_s": 50,
+                                       "reverse_speed_factor": 0.4 } }
+        }),
+    );
+    let at = [60.0, 40.0];
+    let trunk = |rel: [f64; 2]| {
+        let center = [at[0] + rel[0], at[1] + rel[1]];
+        json!({ "kind": "trunk", "center": center, "yaw": 0, "half_extents": [0.35, 0.35, 5.0] })
+    };
+    let props: Vec<Value> = [
+        [2.44, -1.37],
+        [14.05, -1.21],
+        [-7.52, 8.0],
+        [5.23, 8.43],
+        [9.51, 6.45],
+        [18.84, 8.4],
+        [-4.63, 19.24],
+        [3.15, 18.0],
+        [11.01, 20.43],
+        [23.55, 16.28],
+    ]
+    .into_iter()
+    .map(trunk)
+    .collect();
+    let goal = [at[0] - 2.137, at[1] - 0.847];
+    let facing = -1.675;
+    let setup: ScenarioDefinition = serde_json::from_value(json!({
+        "map": { "size": [160, 120], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props },
+        "rules": fixture,
+        "units": [{ "side": "blue", "kind": "test_tank", "position": at, "yaw": 0.3837,
+                    "engagement": "return_fire_only" }],
+        "events": [],
+        "scripts": [{ "tick": 1, "side": "blue", "order": { "kind": "move", "units": [0],
+            "gesture": 1, "goal": goal, "route": "shortest", "direction": "forward",
+            "facing": facing } }],
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    for _ in 0..30 * 30 {
+        b.step();
+        let tank = b.unit(UnitId(0)).unwrap();
+        let hull = tank.ground_footprint().unwrap();
+        assert!(
+            !b.world()
+                .props()
+                .filter(|p| p.blocks(contract::map::MoverClass::Vehicle))
+                .any(|p| hull.overlaps(&p.footprint())),
+            "the hull is in a trunk at {:?}",
+            hull.center
+        );
+        if b.tick() > 2 && tank.state == MoveState::Idle && tank.turn_to.is_none() {
+            break;
+        }
+    }
+    let tank = b.unit(UnitId(0)).unwrap();
+    assert!(
+        tank.state == MoveState::Idle
+            && (tank.position.xy() - sim::math::v2(goal[0], goal[1])).length() < 1.0,
+        "it is {:?} at {:?}, not at its spot",
+        tank.state,
+        tank.position.xy()
+    );
+    assert!(
+        wrap_angle(tank.yaw - facing).abs() < 2f64.to_radians(),
+        "it faces {:.3}, not the ordered {facing}",
+        tank.yaw
+    );
+}
