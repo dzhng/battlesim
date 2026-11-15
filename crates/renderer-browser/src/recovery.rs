@@ -19,6 +19,8 @@ impl Renderer {
         replacement.frames = self.frames;
         replacement.set_gpu_timing(self.gpu_timer.is_some());
         replacement.model_library = self.model_library.clone();
+        replacement.pending_rebuild_reason =
+            Some(renderer_core::runtime::RebuildReason::DeviceRecreated);
         replacement.geometry = self.geometry.clone();
         replacement.effect_sheets = self.effect_sheets.clone();
         replacement.overlay_glow = self.overlay_glow;

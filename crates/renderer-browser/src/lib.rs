@@ -63,6 +63,7 @@ pub struct Renderer {
     geometry: Option<Arc<WorldGeometry>>,
     effect_sheets: Option<Arc<EffectSheets>>,
     model_library: Arc<Library>,
+    pending_rebuild_reason: Option<renderer_core::runtime::RebuildReason>,
     display_pipelines: Pipelines,
     display_sampler: Sampler,
     display_group: Option<BindGroup>,
@@ -113,6 +114,10 @@ impl Renderer {
                 canvas,
                 high_canvas.clone(),
                 RuntimeConfig {
+                    art_store: renderer_core::models::ArtStorePolicy {
+                        report: |message| web_sys::console::warn_1(&JsValue::from_str(message)),
+                        ..Default::default()
+                    },
                     size: [1, 1],
                     light: settings.light,
                     fog_look: settings.fog.look().map_err(js_error)?,
@@ -241,6 +246,7 @@ impl Renderer {
             geometry: None,
             effect_sheets: None,
             model_library: Arc::new(Library::default()),
+            pending_rebuild_reason: None,
             display_pipelines,
             display_sampler,
             display_group: None,
