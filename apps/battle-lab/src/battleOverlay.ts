@@ -95,7 +95,9 @@ export interface OverlayScenarioSource {
   rules: { service: { radius_m: number } };
   /** Absent or null when the scenario has no completion rule. */
   encounter?: { success_zone_center: [number, number]; success_zone_radius_m: number } | null;
-  skirmish?: { sites: { entries: { side: SideName; center: [number, number] }[] } } | null;
+  skirmish?: {
+    sites: { entries: { side: SideName; center: [number, number]; yaw: number }[] };
+  } | null;
 }
 
 /** The scenario's own marks as `side` sees them. A side's players share
