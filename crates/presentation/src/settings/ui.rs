@@ -213,6 +213,7 @@ pub struct Hud {
     pub good: [f64; 3],
     pub bad: [f64; 3],
     pub credits: [f64; 3],
+    pub group_ink: [f64; 3],
     pub film: [f64; 3],
     pub glass: [f64; 4],
     pub glow_px: f64,

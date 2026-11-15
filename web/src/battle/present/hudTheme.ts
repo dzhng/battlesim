@@ -33,6 +33,8 @@ export interface HudTheme {
   bad: Readonly<Vec3>;
   /** Money: the credits and every price that can be paid. */
   credits: Readonly<Vec3>;
+  /** A control group's key and ×, on the white tab in its bracket's corner. */
+  group_ink: Readonly<Vec3>;
   /** The main menu's backdrop film, graded to one military amber that the
    *  menu plate's blue reads against. Never a mark or readout. */
   film: Readonly<Vec3>;
@@ -64,6 +66,7 @@ const COLOURS = [
   "good",
   "bad",
   "credits",
+  "group_ink",
   "film",
 ] as const;
 
@@ -88,7 +91,7 @@ export function hudProperties(theme: HudTheme, calloutGlow = 1): Record<string, 
     "--hud-glass-alpha": String(theme.glass[3]),
     "--hud-glow": `${theme.glow_px}px`,
   };
-  for (const k of COLOURS) out[`--hud-${k}`] = channels(theme[k]);
+  for (const k of COLOURS) out[`--hud-${k.replaceAll("_", "-")}`] = channels(theme[k]);
   return out;
 }
 

@@ -72,3 +72,15 @@ settings in [`assets/blink-reference.html`](assets/blink-reference.html) and are
 tuning keys in `presentation.hud`, guesses the evidence may retune.
 
 ## During implementation
+
+| # | Decision and why | Closed by |
+| --- | --- | --- |
+| I1 | A range's anchor lapses when the selection changed any other way: the deck compares the selection it last asked for with the current one, so a box or a world click needs no plumbing into the deck. | agent |
+| I2 | Ctrl+N with nothing selected leaves group N as it was (RTS convention; an empty assignment never deletes a group — the × does). | agent |
+| I3 | A group's cards follow army order, not the order units joined it. | agent |
+| I4 | The × is a new generated HUD icon, `close`: a lighter cross than `rejected`, which means a refusal. | agent |
+| I5 | The digit's ink is `presentation.hud.group_ink`; a snake_case HUD key becomes a kebab CSS variable (`--hud-group-ink`). | agent |
+| I6 | A bracket piece reaches across the gap on its inner sides, so neighbouring pieces meet, an L's inner corner included; the white line overlays the card's outer border pixel. On a selected card the cyan border shows inside it as a second edge, accepted under D8. | agent |
+| I7 | The units' voices moved out of `useBattleSession` into `useUnitVoices`: the session file is over its size budget and could not take the camera hook otherwise. | agent |
+| I8 | The battle-deck workbench gained a "Control groups" case with its own pictures; every older deck picture was re-blessed for the lab's new nav button alone (the deck's pixels did not move). | agent |
+| I9 | The unprimed critique's group-separation and hover-× findings are accepted: groups sit one card gap apart by D8, and the hover × covers a rider's seat mark as the walk showed. | agent |

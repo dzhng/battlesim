@@ -177,6 +177,9 @@ const HUD_ICONS = {
   // A bare chevron: back out of a menu page, unlike reverse's barred arrow.
   back: '<path d="M15 4l-8 8 8 8"/>',
   rejected: '<path d="M6 6l12 12M18 6L6 18"/>',
+  // Dismiss what it sits on (a control group): a small cross, lighter than
+  // rejected's, which is a refusal rather than a choice.
+  close: '<path d="M8 8l8 8M16 8l-8 8"/>',
   guiding: '<path d="M3 20c5 0 6-8 10-8"/><path d="M13 12h5l3-2v4l-3-2"/>',
   // A shot's arrow stopped at a hatched wall, the wall and the shaft heavy.
   blocked_shot:

@@ -263,6 +263,8 @@ export function BattleView({
           selected={control.selected}
           onSelect={control.setSelected}
           onCenter={input ? focusUnit : undefined}
+          groups={input ? control.groups : undefined}
+          onDeleteGroup={control.deleteGroup}
           onHover={session.hoverFromDeck}
           rules={session.rules}
           pending={viewingPlayer?.pending}

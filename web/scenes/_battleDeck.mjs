@@ -23,6 +23,7 @@ export async function checkBattleDeck(ctx, page) {
       "Large selection",
       "Army roster",
       "Entire force",
+      "Control groups",
       "No selection",
       "Replay",
     ]) {

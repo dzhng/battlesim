@@ -1139,12 +1139,84 @@ html {
   width: 100%;
   max-width: none;
 }
+/* One sequence filled top to bottom, then across: the deck never has a gap. */
 .hud-army {
   display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 64px;
   justify-content: center;
   gap: 4px;
   width: 100%;
   overflow: visible;
+}
+/* A card's cell. A control group's bracket, key and × sit on the cards'
+   outer edge, so grouping moves no card: the white line covers the card's
+   own border wherever the neighbour is outside the group. */
+.hud-army-slot {
+  position: relative;
+  display: flex;
+}
+/* Each piece reaches across the 4 px gap on its inner sides, so the pieces
+   of neighbouring cards meet, an L's inner corner included. */
+.hud-army-slot[data-bracket]::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  z-index: 1;
+  pointer-events: none;
+  border: 0 solid rgb(var(--hud-text));
+}
+.hud-army-slot[data-bracket~="top"]::after {
+  top: 0;
+  border-top-width: 1px;
+}
+.hud-army-slot[data-bracket~="right"]::after {
+  right: 0;
+  border-right-width: 1px;
+}
+.hud-army-slot[data-bracket~="bottom"]::after {
+  bottom: 0;
+  border-bottom-width: 1px;
+}
+.hud-army-slot[data-bracket~="left"]::after {
+  left: 0;
+  border-left-width: 1px;
+}
+/* The group's key and its ×: white tabs flush in the bracket's corners. */
+.hud-army-group-key,
+.hud-panel button.hud-army-group-delete {
+  position: absolute;
+  top: 0;
+  z-index: 2;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 2px;
+  border: 0;
+  color: rgb(var(--hud-group-ink));
+  background: rgb(var(--hud-text));
+}
+.hud-army-group-key {
+  left: 0;
+  pointer-events: none;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0;
+}
+.hud-panel button.hud-army-group-delete {
+  right: 0;
+  width: 15px;
+  padding: 0;
+}
+.hud-army-group-delete .ro-icon {
+  margin: 0;
+}
+.hud-army-group-delete .ro-icon svg {
+  width: 13px;
+  height: 13px;
 }
 /* Not on the field: a purchase waiting to deploy, or a squad riding a
    carrier (its card picks the carrier). */

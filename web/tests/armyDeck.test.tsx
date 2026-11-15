@@ -530,3 +530,52 @@ test("hovering a card hovers its unit, a rider's its carrier, until the pointer 
   fireEvent.mouseEnter(card(/^Rifle Section #7/));
   expect(onHover).toHaveBeenLastCalledWith(4);
 });
+
+test("control groups lead the deck in key order, read their key, and delete from the hovered group's ×", () => {
+  const own = [11, 22, 33, 44, 55].map((id) =>
+    specimenUnit(TEST_CATALOG, id === 33 ? "test_supply" : "test_tank", { id }),
+  );
+  const onDeleteGroup = vi.fn();
+  function Harness() {
+    const [selected, setSelected] = useState<number[]>([]);
+    return (
+      <ArmyDeck
+        state={new Feed({ own })}
+        selected={selected}
+        onSelect={setSelected}
+        groups={
+          new Map([
+            ["0", [22]],
+            ["2", [55, 33]],
+          ])
+        }
+        onDeleteGroup={onDeleteGroup}
+        rules={shippedRules as unknown as PanelRules}
+        contactLines={null}
+      />
+    );
+  }
+  const view = render(<Harness />);
+  const cards = () =>
+    view.getAllByRole("button", { name: /#\d+/ }).map((b) => b.getAttribute("aria-label"));
+  // Group 2 before group 0 (1–9, then 0), each in army order, then the rest.
+  expect(cards()).toEqual([
+    "Supply Truck #33, group 2",
+    "Tank #55, group 2",
+    "Tank #22, group 0",
+    "Tank #11",
+    "Tank #44",
+  ]);
+  // A run follows the deck's order across groups.
+  fireEvent.click(view.getByRole("button", { name: "Tank #55, group 2" }));
+  fireEvent.click(view.getByRole("button", { name: "Tank #11" }), { shiftKey: true });
+  expect(
+    view.getAllByRole("button", { pressed: true }).map((b) => b.getAttribute("aria-label")),
+  ).toEqual(["Tank #55, group 2", "Tank #22, group 0", "Tank #11"]);
+  // Only the group under the pointer offers its ×.
+  expect(view.queryByRole("button", { name: /^Delete group/ })).toBeNull();
+  fireEvent.mouseEnter(view.getByRole("button", { name: "Tank #22, group 0" }).parentElement!);
+  fireEvent.click(view.getByRole("button", { name: "Delete group 0" }));
+  expect(onDeleteGroup).toHaveBeenCalledWith("0");
+  expect(view.queryByRole("button", { name: "Delete group 2" })).toBeNull();
+});

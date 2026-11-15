@@ -14,6 +14,7 @@ import { panelSpecimens, specimenUnit, type Specimen } from "../panelSpecimens";
 
 import type { CommandControl } from "@web/battle/present/commandBar";
 import { ArmyDeck } from "@web/battle/present/armyDeck";
+import type { ControlGroups } from "@web/battle/input/controlGroups";
 import { PurchasePicker } from "@web/battle/present/purchasePicker";
 import { ContactLines } from "@web/battle/present/contactLines";
 
@@ -100,6 +101,7 @@ function DeckReview({ onBack }: { onBack: () => void }) {
     units: ReturnType<typeof specimenUnit>[];
     replay?: boolean;
     selected?: number[];
+    groups?: ControlGroups;
   }[] = [
     { name: "Rifle squad", units: [specimenUnit(catalog, "test_rifle")] },
     { name: "Tank ammunition", units: [specimenUnit(catalog, "test_tank")] },
@@ -185,6 +187,42 @@ function DeckReview({ onBack }: { onBack: () => void }) {
         specimenUnit(catalog, "test_rifle", { id, suppression: "suppressed", service: "serving" }),
       ),
     },
+    // Group 1 holds a squad riding the APC; at two rows group 2's three
+    // cards leave their column's foot to the next card, an L.
+    {
+      name: "Control groups",
+      units: [
+        "test_tank",
+        "test_tank",
+        "test_apc",
+        "test_rifle",
+        "test_jet",
+        "test_jet",
+        "test_jet",
+        "test_recon",
+        "test_supply",
+        "test_at",
+        "test_rifle",
+        "test_jeep",
+        "test_tank",
+        "test_rifle",
+        "test_at",
+        "test_heli",
+      ].map((kind, id) =>
+        specimenUnit(catalog, kind, {
+          id: id + 1,
+          ...(id === 3 && {
+            hold: { host: { kind: "carrier" as const, id: 3 }, phase: "inside", progress: 1 },
+          }),
+        }),
+      ),
+      selected: [5, 6, 7],
+      groups: new Map([
+        ["1", [1, 2, 3, 4]],
+        ["2", [5, 6, 7]],
+        ["0", [8]],
+      ]),
+    },
     {
       name: "No selection",
       units: [specimenUnit(catalog, "test_rifle"), specimenUnit(catalog, "test_tank", { id: 2 })],
@@ -268,6 +306,8 @@ function DeckReview({ onBack }: { onBack: () => void }) {
           state={armyState}
           selected={selected}
           onSelect={setSelected}
+          groups={selection.groups}
+          onDeleteGroup={(key) => setAction(`Delete group ${key}`)}
           rules={rules}
           contactLines={<ContactLines lines={[{ key: 1, text: "Unknown, firing" }]} />}
           reinforcements={
