@@ -1507,3 +1507,101 @@ choice, an exception to the plan's "an exact colour the UI already has". It
 is not metallic any more: a metallic grey has no colour of its own to show.
 The four shots in `assets/stand-in/` show it; lit by the scene it reads as
 the same kind of box as a wreck awaiting its art.
+
+
+**Slice 09, download warm-up, player contract change, 2026-11-15.**
+
+- The game is zero-config. The GPU preload from `012834b8d` is rejected,
+  including its fragment switch, in-flight roster steps, progress events,
+  fixture and scenes. None is carried to `t3/battle-growth-warm-up`.
+  The measured memory evidence remains in `throwaway/`; no raw runs are
+  committed here. The memory fix is being integrated separately and is not
+  reimplemented or included in this pass.
+- Download warm-up is unconditional for the public-faction player battle.
+  Its existing viewport-ready callback runs after the first drawn frame,
+  including deployment. Using it avoids another readiness feed or renderer
+  publication. The menu retains its existing delayed warm-up, sharing the same
+  downloader. Smaller encounter/capture labs with no public enemy do not
+  start a whole-catalog download merely by using the shared session.
+- The priority is learned kinds retained for the observing session, then enabled
+  kinds in the public enemy faction, then the remaining runtime files. Each
+  kind resolves through the loader’s dependency selection (including faction
+  looks); files already started finish, unstarted files follow the current
+  priority and each transport URL is claimed once. No second downloader,
+  decoded-art cache, new wanted kind or admission is introduced by warming.
+- `useBattleSession.ts` was already 40,868 bytes, above the 32,000-byte source
+  budget. Wiring the readiness callback would grow it, so its existing art
+  composition moves intact to `useBattleArt`: wanted kinds, complete source and
+  fielding stay together. Comments move with that concept. `runtimePrefetch`
+  owns the existing cache/file work; forwarding exports and comment deletion
+  were rejected. The session shrinks while adding the readiness composition.
+- Tests first: the direct-battle readiness/order/residency test fails before
+  the warm-up module exists, then passes without any fragment, roster pin or
+  GPU mock. A deferred-fetch test checks a newly learned type takes the next
+  unstarted download and retains priority when its contact expires. Existing
+  prefetch departure/network/cache-cleanup tests consume the new owner directly.
+- Large-arrival confirmation is being run before any admission policy change.
+  The supplied scratch `probe-on.sh`/`probe-off.sh` do not exist on this machine;
+  the committed probe’s own instructions register it temporarily instead.
+  Its scratch extension records observed kinds and installed appearance names
+  alongside each staging/commit, plus subsecond browser long-frame entries.
+  The temporary fixture, scene and observations stay out of commits.
+
+**Slice 09, large-arrival confirmation, before changing admission, 2026-11-15.**
+
+- The nine-bundle, 27-card growth is **one type**,
+  `eastern_rpg_team_rpg_7`, not several unit types learned together. In the
+  reference battle on `3041e1cba` plus download warm-up it is growth four,
+  not the historical sixth: the order changed with staging's battle/map code.
+  The nine installed names are that type's `active_{a,b,c}`,
+  `carried_{a,b,c}` and `guard_{a,b,c}` appearances. The admission decodes
+  nine bundles, packs 85,739,040 vertex bytes and bakes 27 cards. No other
+  appearance joins that commit. The observation first identifies the RPG team
+  at its staging; a simultaneous own mortar description is already in the
+  player's purchase roster and adds no art.
+- Scratch evidence: `throwaway/evidence/growth-probe/reference-arrivals.json`
+  records the side's observation and actual installed names on each event.
+  The uninstrumented high-graphics run has six stages and six commits. The
+  RPG-team stage-to-commit interval is 505 ms. Its admission frame is 285 ms
+  (264 ms in the viewport loop, 11 ms in the React task, 10 ms browser/remainder);
+  the preceding fielding/transport frame is 150 ms (140 ms Promise task).
+  These browser-script intervals are not exclusive Rust phase attribution.
+  The historical 399 ms breakdown remains the earlier ledger measurement:
+  141 ms new geometry, 61 ms fielding, 47 ms decoding, 40 ms rest facts,
+  and 110 ms other work. New nested binding measurements follow separately.
+- The task's one-type branch applies. No learned-type pacing, spreading within
+  one admission, worker move, switch or roster GPU preload is built. A type
+  queue cannot divide this team's nine appearances. The next design decision
+  is how to bound work within one type, outside this pass. Relabelling the
+  current fourth growth as the sixth, or splitting units merely because the
+  bundle count is nine, was rejected.
+
+- Supplemental binding-only timing on the same single RPG-team arrival:
+  357 ms whole frame, fielding 82.08 ms, `stage_battle` 13.90 ms,
+  missing-content query/draft creation 0.32 ms, nine synchronous draft supplies
+  43.17 ms, catalog/GPU preparation 171.38 ms, remainder 46.15 ms. The
+  preparation interval contains geometry/rest/material work; it is not a
+  measurement of geometry alone. Staging-to-commit is 475 ms; the commit call
+  is 2.29 ms in its later 54 ms frame. These intervals were wrapped in the
+  scratch scene around existing WASM methods, without production edits or
+  a change to the observer. Evidence is
+  `throwaway/evidence/growth-probe/reference-arrivals-profiled.json` and the
+  exact scratch scene is `throwaway/warmup-reference-profiled.mjs`.
+  No before/after optimization table or three-run comparison is claimed:
+  the task explicitly stops at attribution for a single-type arrival.
+- Verification: the rebuilt WASM, 21 focused web tests across four files,
+  typecheck and lint pass. Lint retains the existing `unitGhosts.test.ts:150`
+  no-explicit-any warning. High-graphics `battle-growth` and `stand-in` pass
+  under the shared GPU lock. The growth's staging-to-commit is 73 ms; its
+  overlapping long frame is 120 ms, below the unchanged 700 ms tripwire;
+  every existing exact work assertion passes. Both reference probe runs finish
+  six stages and six commits. The temporary scene and fixture are removed.
+- Failure receipts, all in `throwaway/`: the initial missing-module test is
+  red; priority fault injection fails both order assertions; isolated readiness
+  fault injection fails on a pre-frame catalog fetch. A typecheck first refused
+  a broad string passed to the faction union (TS2345/TS2322); the fake and
+  comparison now use the real contract. Lint first found an unused import in
+  the temporary scene; it was removed. One supplemental scene was invalidated
+  by HMR during a fault-injection edit (`Execution context was destroyed`);
+  it was not used as evidence, and the stable-source rerun above passes.
+  No assertion, timeout, seed or acceptance threshold was relaxed.
