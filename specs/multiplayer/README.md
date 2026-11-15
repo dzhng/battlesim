@@ -134,7 +134,7 @@ Frontline
 | **Seat** | A position, `blue-1`, renumbered when a neighbour is removed (`apps/battle-lab/src/skirmishSetup.ts:36`) | An id that never moves, holding a human, an AI, or nothing (slice 04). |
 | **Wire** | None | [wire.md](wire.md): a record stream down, one request per batch of orders up (slices 05, 07). |
 | **Room** | None | A room is lobby state on the server; the page draws a view of it and sends actions (slices 14, 15). |
-| **Match rules** | One rule set (`fixtures/skirmish.json`) | Frontline overrides two values: the points target and the instant win (slice 21). |
+| **Match rules** | One rule set (`fixtures/skirmish.json`) | Frontline overrides three values: how long a game is, the points that is shown as, and the instant win (slice 21). |
 | **Unit ownership** | A unit never changes owner | Frontline only: two recorded seat events, the hand-over and the reset (slices 22, 23). |
 | **Build identity** | Shown on screen only (`apps/battle-lab/src/buildIdentity.ts`) | The server refuses a page whose commit or simulation file differs from its own (slice 09). |
 
