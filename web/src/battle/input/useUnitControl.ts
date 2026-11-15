@@ -493,6 +493,7 @@ export function useUnitControl(
       else if (command === "toggle_afterburner") toggleAfterburner();
       else if (command === "unload") pressUnload();
       else if (command === "pop_smoke") popSmoke();
+      else if (command === "return_to_base" && observationRef.current?.skirmish) refund();
       else if (command === "attack_move" && any) setMode("attack_move");
       else if (command === "reverse_move" && any) setMode("reverse_move");
       else if (command === "attack_ground" && armed) setMode("attack_ground");
@@ -509,6 +510,7 @@ export function useUnitControl(
     toggleAfterburner,
     pressUnload,
     popSmoke,
+    refund,
     setMode,
     catalog,
     ownUnits,

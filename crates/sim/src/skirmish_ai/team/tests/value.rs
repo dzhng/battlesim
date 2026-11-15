@@ -34,6 +34,7 @@ fn seen(rules: &Rules, kind: &str, at: [f64; 2], index: u32) -> IdentifiedUnit {
         reversing: false,
         smoking: false,
         member_leans: vec![],
+        building: None,
     }
 }
 

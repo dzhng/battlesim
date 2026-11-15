@@ -593,7 +593,7 @@
       "damage": 140,
       "near_miss_suppression": 0.3,
       "suppression_radius_m": 18,
-      "blast_radius_m": 14,
+      "blast_radius_m": 28,
       "structural_damage": 80
     },
     "air_bomb_cluster": {
@@ -614,9 +614,9 @@
       "damage": 70,
       "near_miss_suppression": 0.45,
       "suppression_radius_m": 24,
-      "blast_radius_m": 9,
+      "blast_radius_m": 18,
       "structural_damage": 35,
-      "magazine": { "rounds": 4, "shot_interval_s": 0.08 }
+      "magazine": { "rounds": 8, "shot_interval_s": 0.08 }
     },
     "air_ground_missile": {
       "appearance": "atgm",
@@ -967,7 +967,7 @@
     "flare_service_s": 2,
     "stock_per_flare": 2
   },
-  "carriage": { "board_s": 1, "reach_m": 3.0, "unload_search_m": 5 },
+  "carriage": { "board_s": 1, "reach_m": 3.0, "unload_search_m": 5, "climb_speed_mps": 2.5 },
   "garrison": {
     "enter_exit_s": 2,
     "entry_distance_m": 4,

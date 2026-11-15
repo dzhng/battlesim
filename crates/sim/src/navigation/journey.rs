@@ -10,13 +10,16 @@
 //! found clear when it cannot from that stretch's end; only a road with no
 //! free width is searched round. A run nothing gets past closes its arc and
 //! the graph is asked again. With no road worth taking, or by the shortest
-//! policy, the leg is one search across the grid ([`RouteSearch`]). Every
-//! step is counted work, so a battle spends a share of a tick on it.
+//! policy, the leg is one search across the grid ([`RouteSearch`]). A
+//! wheeled mover's route then has its corners rounded to what it can drive
+//! ([`Rounding`]). Every step is counted work, so a battle spends a share
+//! of a tick on it.
 use std::collections::{BTreeMap, BTreeSet, BinaryHeap};
 
 use contract::command::RoutePolicy;
 use contract::scenario::NavigationRules;
 
+use super::corners::Rounding;
 use super::roads::{Access, RoadNet};
 use super::search::{Open, RouteSearch, Scratch, SearchWork};
 use super::{Leg, Mobility, Mover, NavGrid, Plan};
@@ -593,41 +596,13 @@ impl RoadSearch {
                 middle.push((point, arc));
             }
         }
-        // Each run's lane: its right-hand side, as far over as leaves
-        // `KEEP_RIGHT_M` between the mover and the middle, but with its own
-        // middle still on the road (so on a narrow one a wide mover
-        // straddles the middle). Where two runs meet, their lanes do.
-        let lanes: Vec<V2> = middle
-            .windows(2)
-            .map(|run| {
-                let along = run[1].0 - run[0].0;
-                let right = crate::math::v2(along.y, -along.x) * (1.0 / along.length());
-                let edge = (roads.arc(run[1].1).half_width - KEEP_RIGHT_M).max(0.0);
-                let over = (m.half_width_m + KEEP_RIGHT_M).min(edge);
-                right * over
-            })
-            .collect();
-        let lane = |k: usize| match (k.checked_sub(1).map(|k| lanes[k]), lanes.get(k)) {
-            (Some(a), Some(&b)) => {
-                // The corner both lanes share, unless the road doubles back
-                // (or has no width to keep to one side of).
-                let widths = a.length() * b.length();
-                let turn = 1.0 + a.dot(b) / widths;
-                if widths > 0.0 && turn > 0.5 {
-                    (a + b) * (1.0 / turn)
-                } else {
-                    b
-                }
-            }
-            (Some(lane), None) | (None, Some(&lane)) => lane,
-            (None, None) => V2::default(),
-        };
-        let joined = middle[0].0 + lane(0);
+        let lane = super::lanes::lane_line(&mut middle, roads, m.half_width_m, KEEP_RIGHT_M);
+        let joined = lane[0];
         let runs = middle
             .iter()
-            .enumerate()
+            .zip(lane)
             .skip(1)
-            .map(|(k, &(point, arc))| (point + lane(k), arc))
+            .map(|(&(_, arc), point)| (point, arc))
             .collect();
         (joined, runs)
     }
@@ -686,6 +661,8 @@ enum Stage {
     Direct(RouteSearch),
     /// One rare-failure proof, before trying further goal road accesses.
     GoalProof(RouteSearch, u32),
+    /// A wheeled route's corners being made drivable.
+    Rounding(Box<Rounding>),
     Done(Plan),
 }
 
@@ -850,7 +827,7 @@ impl Journey {
             Stage::Direct(search) => (None, Some(search.finish().1)),
             Stage::GoalProof(search, _) => (None, Some(search.finish().1)),
             Stage::Driving(driving) => (None, driving.search.map(|s| s.finish().1)),
-            Stage::Roads(_) | Stage::Terrain(_) => (None, None),
+            Stage::Roads(_) | Stage::Terrain(_) | Stage::Rounding(_) => (None, None),
         };
         (
             plan,
@@ -932,6 +909,10 @@ impl Journey {
                 d.u64(5).u64(*access as u64);
                 search.digest(d);
             }
+            Stage::Rounding(corners) => {
+                d.u64(6);
+                corners.digest(d);
+            }
             Stage::Done(_) => {
                 d.u64(3);
             }
@@ -943,8 +924,14 @@ impl Journey {
             &mut self.stage,
             Stage::Done(Plan::Blocked(super::BlockReason::NoRoute)),
         );
+        // A route is rounded once, as it is first found.
+        let settled = matches!(stage, Stage::Rounding(_) | Stage::Done(_));
         self.stage = match stage {
             Stage::Done(plan) => Stage::Done(plan),
+            Stage::Rounding(mut corners) => match corners.step(grid, &self.m, &self.avoid) {
+                Some(route) => Stage::Done(Plan::Route(route)),
+                None => Stage::Rounding(corners),
+            },
             Stage::Terrain(mut probe) => match grid.terrain_step(&mut probe) {
                 Some(direct) => self.by_road(grid, roads, direct),
                 None => Stage::Terrain(probe),
@@ -1022,6 +1009,11 @@ impl Journey {
                 }
             }
         };
+        if let (false, Stage::Done(Plan::Route(route))) = (settled, &self.stage) {
+            if let Some(corners) = Rounding::new(self.from, route, &self.m) {
+                self.stage = Stage::Rounding(Box::new(corners));
+            }
+        }
     }
 
     /// One step of making the way by road physical.

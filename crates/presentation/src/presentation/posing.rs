@@ -67,7 +67,7 @@ pub(super) fn register_appearance(world: &mut World, name: &str, a: &Appearance)
         } => {
             world.row(name, "", NONE, joints.len() as u32, false);
             for lies in 0..corpse_poses.len() {
-                world.row(name, "", lies as u32, 0, false);
+                world.row(name, "", lies as u32, joints.len() as u32, false);
             }
         }
         Appearance::Articulated { nodes, .. } => {
@@ -395,4 +395,27 @@ pub(super) fn pose_vehicle(
     let first = palettes.len() as u32;
     palettes.extend(worlds.iter().map(|w| joint(&skin::affine(w))));
     (first, track_scroll(rig, articulation))
+}
+
+/// One held fall palette per corpse row drawn in this frame. A body adds only
+/// its instance; the row's remaining bodies reuse the same palette offset.
+#[derive(Default)]
+pub(super) struct CorpsePalettes(HashMap<u32, u32>);
+
+impl CorpsePalettes {
+    pub fn append(
+        &mut self,
+        row: u32,
+        palettes: &mut Vec<Joint>,
+        derive: impl FnOnce() -> Option<Vec<Joint>>,
+    ) -> Option<u32> {
+        if let Some(&base) = self.0.get(&row) {
+            return Some(base);
+        }
+        let palette = derive()?;
+        let base = palettes.len() as u32;
+        palettes.extend(palette);
+        self.0.insert(row, base);
+        Some(base)
+    }
 }

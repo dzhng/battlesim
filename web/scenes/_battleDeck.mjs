@@ -19,6 +19,7 @@ export async function checkBattleDeck(ctx, page) {
       "Mixed capabilities",
       "Smoke ready",
       "Smoke spent",
+      "Returning to base",
       "Garrison exit",
       "Large selection",
       "Army roster",

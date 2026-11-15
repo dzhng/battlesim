@@ -309,6 +309,7 @@
       "area_draw_scale": 0.8,
       "vehicle_marker_margin_m": 0.7,
       "building_marker_margin_m": 3,
+      "garrison_outline_margin_m": 1.5,
       "drop_line_px": 5.6,
       "drop_line_spacing": 4,
       "drop_line_alpha": 1,

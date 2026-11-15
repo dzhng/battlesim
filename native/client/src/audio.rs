@@ -385,10 +385,7 @@ impl Audio {
             ambience_duck,
             ambience_level: audio.buses.ambience,
             voices: HashMap::new(),
-            listener: Listener {
-                position: [0.0; 3],
-                forward: [0.0, 1.0, 0.0],
-            },
+            listener: Listener::START,
             played: Played::default(),
             errors: Vec::new(),
             no_music,
@@ -447,8 +444,7 @@ impl Audio {
     /// Hears `presentation`'s last frame, from its camera, at wall time
     /// `wall` and player time `now` (seconds).
     pub fn hear(&mut self, presentation: &Presentation, wall: f64, now: f64) {
-        let share = self.sound.tables().audio.listener_eye_share;
-        let Some(listener) = presentation.listener(share) else {
+        let Some(listener) = presentation.listener() else {
             return;
         };
         let motion = presentation.motion();

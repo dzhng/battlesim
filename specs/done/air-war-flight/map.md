@@ -70,8 +70,8 @@ The `explore-unknowns` walk on 2026-10-14, held with the user. It was sliced int
 | D13 | Run heights are **ceilings, not targets**: about **130 m to strafe and 200 m to bomb**, with the 100 m floor below. Each pass randomises its height between the floor and the ceiling, using seeded randomness. A jet already below the ceiling doesn't climb. | Hollywood variety. | user |
 | D30 | **The gun fires whenever the jet's nose is on a legal target within gun range.** There is no weapon-pairing rule. Nose-on missile passes and dogfights fire the gun on their own; a bombing pass flies past high and never does. Today's "no strafing while bombs remain" rule is deleted. | One rule. | user |
 | D23 | **Any loadout works.** Limited-ammunition ground weapons choose the pass ahead of the unlimited gun; a pass flies under its chosen weapon's ceiling, and every other weapon that can engage during the pass fires too. | A data choice must never confuse the sim. | user |
-| D15 | **Orders.** An explicit attack repeats passes until the target dies. Attack-move picks up new targets along the way. When the attack-move goal is reached or the target is dead, the jet **holds by circling where it is**. A holding jet starts no runs on its own. | Player orders win. | user |
-| D15″ | A holding jet that is fired on **attacks the attacker**: the unit itself if its side can see it, otherwise its contact area (every shot is disclosed map-wide: `knowledge.rs:146`). Hold fire stops this. | The best knowledge the side has. | user, territory |
+| D15 | **Orders.** An explicit attack repeats passes until the target dies. Attack-move picks up new targets along the way. When the attack-move goal is reached or the target is dead, the jet **holds by circling where it is**. A holding jet starts no runs on its own. Since 2026-11-16 an attack-move no longer ends at its goal: the jet hunts round it ([README](README.md)). | Player orders win. | user |
+| D15″ | A holding jet that is fired on **attacks the attacker**: the unit itself if its side can see it, otherwise its contact area (every shot is disclosed map-wide: `knowledge.rs:146`). Hold fire stops this. Superseded 2026-11-16 for every jet: an unordered or moved jet never turns on anything; only an attack-move answers attackers and firing contacts, round its goal ([README](README.md)). | The best knowledge the side has. | user, territory |
 | D16 | **Weapons that fire on their own** (air-to-air and SEAD missiles) fire whenever an enemy is in range and in their field of view, during any order or run. | | user |
 | D18 | **Mid-run:** under an explicit attack the jet keeps making passes whatever fires on it. On attack-move or holding it finishes the pass, then turns on its attacker: a dogfight against an aircraft, runs against a ground unit. A pass is never abandoned halfway, and a Move order breaks off at once. | | user |
 
@@ -123,7 +123,7 @@ The user saw these preferences and kept answering questions themselves. The only
 
 ## 3. Unknown knowns: what was drawn out
 
-- **The other player flies the enemy's jets.** No computer jet behaviour is needed. The encounter defender (`crates/sim/src/encounter/defender.rs`) buys nothing; its jets would follow D15″.
+- **The other player flies the enemy's jets.** No computer jet behaviour is needed. The encounter defender (`crates/sim/src/encounter/defender.rs`) buys nothing; its jets would circle where they were sent (D15″ is superseded).
 - **The camera isn't a blocker.** The walk's numbers stand until the user plays them.
 - **No balance tests.** Tests pin mechanisms (a missile burns out at its lifetime, the afterburner ramps, the floor holds), never which unit wins. This is now in the agent's memory.
 - **Aircraft get a real model pass,** unlike other units.

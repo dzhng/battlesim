@@ -4,7 +4,25 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PurchasePlacementControl, type PurchaseGhost } from "@web/battle/input/purchasePlacement";
 import type { SimClient } from "@web/battle/sim/client";
+import type { WorldRay } from "@packages/renderer-core/src/camera3d";
 import type { LabPick } from "./LabViewport";
+
+/** Where the reinforcement in hand stands for the pointer, and which way it
+ *  faces: at the point `under` finds beneath the pointer's ray, or, while a
+ *  left drag is held, pinned where it was pressed and turned toward the
+ *  pointer. */
+export function placementPose(
+  pointer: { ray: WorldRay | null; leftPress: WorldRay | null },
+  under: (ray: WorldRay) => readonly number[] | null,
+): { at: [number, number] | null; facing: number | undefined } {
+  const ray = pointer.leftPress ?? pointer.ray;
+  const at = ray && under(ray);
+  const to = pointer.leftPress && pointer.ray ? under(pointer.ray) : null;
+  return {
+    at: at ? [at[0], at[1]] : null,
+    facing: at && to ? Math.atan2(to[1] - at[1], to[0] - at[0]) : undefined,
+  };
+}
 
 type Send = Parameters<PurchasePlacementControl["confirm"]>[0];
 

@@ -358,6 +358,90 @@ fn a_truck_nosed_into_a_kerb_gap_backs_out_to_the_street_behind_it() {
 /// until the turn is clear, comes round, and finishes facing as ordered.
 /// (A played battle's M10 Booker, its trunks and its order, as they stood;
 /// before, it froze against the trunk for every later order.)
+/// A long truck whose tail stands in the mouth of an alley cannot turn
+/// toward its way where it stands: its tail would swing into the building
+/// beside the alley, and there is no room to back. It rolls straight ahead
+/// until the turn clears, rather than standing there for good.
+#[test]
+fn a_truck_with_its_tail_in_an_alley_rolls_ahead_until_it_can_turn() {
+    // The street, the truck's pose and its next waypoint as a game truck met
+    // them on a generated map, around the truck's spot.
+    let origin = [80.0, 60.0];
+    let props: Vec<Value> = [
+        ("wall", 7.5453, 13.5108, -1.478504, 3.0000, 5.5000, 4.8750),
+        ("wall", 8.0983, 7.5364, -1.478504, 3.0000, 5.5000, 4.8750),
+        ("wall", 8.6513, 1.5619, -1.478504, 3.0000, 5.5000, 4.8750),
+        ("wall", 10.5485, -8.0571, -1.478504, 3.7500, 6.5000, 5.3750),
+        ("wall", 11.2397, -15.5251, -1.478504, 3.7500, 6.5000, 5.3750),
+        (
+            "parked_car",
+            -12.2247,
+            14.9908,
+            -1.478504,
+            2.1000,
+            0.9000,
+            0.7500,
+        ),
+        (
+            "parked_car",
+            -11.7847,
+            10.3108,
+            -1.478504,
+            2.1000,
+            0.9000,
+            0.7500,
+        ),
+        (
+            "parked_car",
+            -11.3547,
+            5.6308,
+            -1.478504,
+            2.1000,
+            0.9000,
+            0.7500,
+        ),
+        ("hydrant", 0.0553, 6.0108, -1.478504, 0.2000, 0.2000, 0.4000),
+        (
+            "scooter", -0.3147, 11.1508, -1.478504, 0.8000, 0.3000, 0.5500,
+        ),
+    ]
+    .into_iter()
+    .map(|(kind, x, y, yaw, hx, hy, hz)| {
+        json!({ "kind": kind, "center": [origin[0] + x, origin[1] + y], "yaw": yaw,
+                "half_extents": [hx, hy, hz] })
+    })
+    .collect();
+    let goal = [origin[0] - 6.3047, origin[1] + 5.5108];
+    // A truck as long and narrow as the game's.
+    let mut fixture = rules();
+    sim::fixtures::patch_catalog(
+        &mut fixture,
+        "units",
+        "test_supply",
+        json!({ "body": { "hull": { "half_extents_m": [5.2, 1.2, 1.8] } } }),
+    );
+    let setup: ScenarioDefinition = serde_json::from_value(json!({
+        "map": { "size": [160, 120], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+            "props": props },
+        "rules": fixture,
+        "units": [{ "side": "blue", "kind": "test_supply", "position": origin, "yaw": -4.104237,
+                    "engagement": "return_fire_only" }],
+        "events": [],
+        "scripts": [{ "tick": 1, "side": "blue", "order": { "kind": "move", "units": [0],
+            "gesture": 1, "goal": goal, "route": "shortest", "direction": "forward" } }],
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    drive(&mut b, 40.0);
+    let unit = b.unit(UnitId(0)).unwrap();
+    assert!(
+        (unit.position.xy() - sim::math::v2(goal[0], goal[1])).length() < 2.0,
+        "it reaches {goal:?}: at {:?}, {:?}",
+        unit.position.xy(),
+        unit.state
+    );
+}
+
 #[test]
 fn a_tank_with_a_trunk_beside_it_rolls_clear_to_turn_and_faces_as_ordered() {
     let mut fixture = rules();

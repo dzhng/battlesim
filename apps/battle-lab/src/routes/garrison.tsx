@@ -1,4 +1,4 @@
-import { gameStroke, OPENING_METRES_PER_PX } from "../gameOverlay";
+import { gameOrderStyle, gameStroke, OPENING_METRES_PER_PX } from "../gameOverlay";
 import { BattleView } from "../BattleView";
 import { RejectedOrder } from "@web/battle/present/rejectedOrder";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
@@ -11,6 +11,7 @@ import { AckLog } from "../AckLog";
 import {
   BattleMemory,
   garrisonLayer,
+  heldBuildingsLayer,
   orderLayer,
   remainsLayer,
   tracerLayer,
@@ -127,6 +128,15 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
     const tracers = tracerLayer(observation);
     const remains = remainsLayer(observation, memory.current, surfaceZ);
     const garrisons = garrisonLayer(observation, surfaceZ);
+    const stroke = gameStroke(OPENING_METRES_PER_PX, renderScale);
+    const held = session.buildingIndex
+      ? heldBuildingsLayer(
+          observation,
+          session.buildingIndex,
+          stroke(gameOrderStyle.line_px),
+          surfaceZ,
+        )
+      : {};
     const orders = orderLayer(
       session.units,
       session.rules.air,
@@ -134,9 +144,9 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
       control.selected,
       session.revealed,
       surfaceZ,
-      { stroke: gameStroke(OPENING_METRES_PER_PX, renderScale), hovered: session.hovered },
+      { stroke, hovered: session.hovered },
     );
-    const parts = [tracers, remains, garrisons, orders];
+    const parts = [tracers, remains, held, garrisons, orders];
     return combineWorldMeshes(parts);
   }, [
     renderScale,
@@ -148,6 +158,7 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
     session.hovered,
     session.units,
     session.rules.air,
+    session.buildingIndex,
   ]);
   const overlayFeed = useFeed(overlay);
 
@@ -221,6 +232,8 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
         <div className="lab-legend">
           <span className="lab-swatch lab-swatch-occupant" /> occupant at a perimeter slot ·{" "}
           <span className="lab-swatch lab-swatch-ruin" /> ruin
+          <br />
+          <span className="lab-swatch lab-swatch-held" /> building a squad holds (own or seen enemy)
           <br />
           <span className="lab-swatch lab-swatch-fallen-blue" /> blue fallen ·{" "}
           <span className="lab-swatch lab-swatch-impact" /> where a round struck (2 s)

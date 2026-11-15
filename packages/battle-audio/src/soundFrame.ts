@@ -113,10 +113,13 @@ export interface SoundMotion {
   soldiers: readonly SoundSoldier[];
 }
 
-/** The listener: where it stands and which way it looks (horizontal). */
+/** The listener: where it stands, which way it faces (horizontal, for
+ *  panning) and which way it looks (the camera's view, its directional mic;
+ *  absent, it hears without one). */
 export interface Listener {
   position: P3;
   forward: P3;
+  look?: P3;
 }
 
 /** A voice to start. `position` null is not positional: `pan` places it
@@ -377,7 +380,11 @@ export class SoundFrame {
         soldiers,
         vehicles,
         motion.vehicles.map((v) => v.vehicleClass).join(" "),
-        Float64Array.from([...listener.position, ...listener.forward]),
+        Float64Array.from([
+          ...listener.position,
+          ...listener.forward,
+          ...(listener.look ?? [0, 0, 0]),
+        ]),
       ),
     );
   }

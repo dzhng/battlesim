@@ -10,6 +10,9 @@ mod cards;
 #[path = "asset_generations/rest_poses.rs"]
 mod rest_poses;
 
+#[path = "asset_generations/bodies.rs"]
+mod bodies;
+
 use contract::identity::ContentId;
 use presentation::presentation::{lab::Asset, Presentation};
 use presentation::records::{Appearance, Joint, NONE};
@@ -114,7 +117,7 @@ fn material_slots_keep_reservations_when_arrival_order_changes_and_refuse_overfl
 }
 
 #[test]
-fn changed_corpse_pose_does_not_reuse_geometry() {
+fn changed_corpse_pose_keeps_shared_geometry() {
     let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
     let pipelines = renderer_core::pipelines::build_builtin(&gpu.device).unwrap();
     let bytes = bundle_bytes("skinned", 1, "default", 1, &[]);
@@ -152,10 +155,10 @@ fn changed_corpse_pose_does_not_reuse_geometry() {
     }
     assert!(counts[0] > 0);
     assert_eq!(
-        counts[1], counts[0],
-        "same row and content with a changed baked palette is a miss"
+        counts[1], 0,
+        "a changed corpse palette still draws the same living geometry"
     );
-    assert_eq!(counts[2], 0, "the same baked palette is reused");
+    assert_eq!(counts[2], 0, "the same corpse palette also reuses geometry");
 }
 
 #[test]

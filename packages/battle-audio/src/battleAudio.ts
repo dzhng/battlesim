@@ -26,11 +26,10 @@ import { ShoutPool } from "./voices/shoutPool";
 import type { ResponseRequest } from "./voices/responses";
 
 /** Where a script's listener stands for a camera, as the battle's does
- *  (`Listener::of_camera`): `share` of the way from the point looked at to
- *  the eye, facing the way the camera looks (level). */
+ *  (`Listener::of_camera`): at its eye, facing the way it looks (level),
+ *  its view the camera's. */
 export function cameraListener(
   camera: Pick<Camera3DParams, "target" | "distance" | "pitch" | "yaw">,
-  share: number,
 ): Listener {
   const eye = eyePosition(vec3.create(), camera as Camera3DParams);
   const s = Math.sin(camera.pitch);
@@ -39,9 +38,8 @@ export function cameraListener(
     Float64Array.from(eye),
     Float64Array.from(camera.target),
     Float64Array.from(up),
-    share,
   );
-  return { position: [l[0], l[1], l[2]], forward: [l[3], l[4], l[5]] };
+  return { position: [l[0], l[1], l[2]], forward: [l[3], l[4], l[5]], look: [l[6], l[7], l[8]] };
 }
 
 interface BattleGraph {

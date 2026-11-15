@@ -107,6 +107,7 @@ fn enemy_at(rules: &Rules, frame: &mut ObservationFrame, at: [f64; 2], cost: u32
             reversing: false,
             smoking: false,
             member_leans: vec![],
+            building: None,
         });
 }
 

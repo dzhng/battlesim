@@ -110,11 +110,9 @@ export function panelSpecimens(
   const panelOf = (u: OwnUnitView, others: OwnUnitView[] = []) =>
     ownPanel(catalog.units, u, [u, ...others], rules);
 
-  add(
-    "withdrawal",
-    "returning to base",
-    panelOf(specimenUnit(catalog, "test_tank", { withdrawing: true })),
-  );
+  const returning = panelOf(specimenUnit(catalog, "test_tank", { withdrawing: true }));
+  add("withdrawal", "returning to base", returning);
+  add("withdrawal", "returning to base, compact", returning, "own", { zoom: "compressed" });
   // The Trophy part's protection, as its catalog row gives it.
   const trophy = { name: "Trophy", icon: "trophy", capacity: 4 };
   for (const [label, charges, cooldown, service] of [

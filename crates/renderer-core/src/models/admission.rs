@@ -160,42 +160,6 @@ impl Models {
                     .ok_or(format!("{name}: no rest pose for row {r}"))
             };
             let row = match &bundle.shape {
-                Shape::Skinned(tiers) if a.lies != NONE => {
-                    let palette = rest()?;
-                    let geometry =
-                        ArtStore::geometry(&store, plan.geometry.clone(), work, |work| {
-                            let finest = tiers.first().map(|mesh| posed_mesh(mesh, &palette));
-                            let tiers = tiers
-                                .iter()
-                                .enumerate()
-                                .map(|(tier, mesh)| {
-                                    if tier == 0 {
-                                        single(finest.as_ref().expect("finest tier"), Some(0), work)
-                                    } else {
-                                        single(&posed_mesh(mesh, &palette), Some(0), work)
-                                    }
-                                })
-                                .collect::<Result<_, _>>()?;
-                            Ok(ModelGeometry {
-                                tiers,
-                                rests: Default::default(),
-                            })
-                        })?;
-                    let rest = tiers.first().map(|mesh| {
-                        geometry.rest_pose(&palette, work, || {
-                            RestPose::new(&posed_mesh(mesh, &palette), RestPose::identity())
-                        })
-                    });
-                    Row {
-                        rest,
-                        kind: Kind::Corpse,
-                        building: a.draws == 0 && a.placed != 0,
-                        prop,
-                        geometry,
-                        card: None,
-                        card_key: plan.card.clone(),
-                    }
-                }
                 Shape::Skinned(tiers) => {
                     let palette = rest()?;
                     let geometry =
@@ -216,7 +180,11 @@ impl Models {
                     });
                     Row {
                         rest,
-                        kind: Kind::Soldier,
+                        kind: if a.lies == NONE {
+                            Kind::Soldier
+                        } else {
+                            Kind::Corpse
+                        },
                         building: a.draws == 0 && a.placed != 0,
                         prop,
                         card: None,

@@ -291,7 +291,7 @@ test("battle exit keeps the page context and prepared buffers but disconnects it
   first.update({
     clock: 8 / 30,
     motion: { vehicles: [], soldiers: [] },
-    listener: cameraListener(camera, 0.25),
+    listener: cameraListener(camera),
   });
   expect(first.stats()?.tick).toBe(8);
   const oldSources = sources.filter((s) => !s.stopped);
@@ -316,7 +316,7 @@ test("battle exit keeps the page context and prepared buffers but disconnects it
   second.update({
     clock: 1 / 30,
     motion: { vehicles: [], soldiers: [] },
-    listener: cameraListener(camera, 0.25),
+    listener: cameraListener(camera),
   });
   expect(sources.at(-1)!.buffer).toBe(ambient);
   expect(contexts).toHaveLength(1);
@@ -377,7 +377,7 @@ test("a blocked early attempt resumes on menu input and the bed lasts until batt
   battle.update({
     clock: 4 / 30,
     motion: { vehicles: [], soldiers: [] },
-    listener: cameraListener(camera, 0.25),
+    listener: cameraListener(camera),
   });
   expect(battle.stats()?.tick).toBe(-1);
   expect(sources.filter((s) => !s.stopped)).toHaveLength(1);
@@ -389,7 +389,7 @@ test("a blocked early attempt resumes on menu input and the bed lasts until batt
   battle.update({
     clock: 5 / 30,
     motion: { vehicles: [], soldiers: [] },
-    listener: cameraListener(camera, 0.25),
+    listener: cameraListener(camera),
   });
   expect(app.stats().menuPlaying).toBe(false);
   expect(sources.filter((s) => !s.stopped)).toHaveLength(1);
@@ -422,7 +422,7 @@ test("repeated battle visits return every audio connection to the menu baseline"
     battle.update({
       clock: 1 / 30,
       motion: { vehicles: [], soldiers: [] },
-      listener: cameraListener(camera, 0.25),
+      listener: cameraListener(camera),
     });
     battle.dispose();
     app.setScreen("menu");
@@ -570,7 +570,7 @@ test("a battle's score shuffles by the battle's own seed", async () => {
     battle.update({
       clock: 1 / 30,
       motion: { vehicles: [], soldiers: [] },
-      listener: cameraListener(camera, 0.25),
+      listener: cameraListener(camera),
     });
     battle.dispose();
   }

@@ -296,7 +296,11 @@ fn authored_clips_rest_corpses_and_supplied_palettes_share_the_frame_pose_contra
     let posed = at(0.0);
     assert_eq!(f.palettes[posed.data[0] as usize].z, [0.0, 0.0, 1.0, 1.0]);
     assert_eq!(posed.scale[3], 0.7);
-    assert_eq!(at(3.0).data[0], 0.0, "corpse uses its baked resting mesh");
+    assert_eq!(
+        f.palettes[at(3.0).data[0] as usize].z,
+        [0.0, 0.0, 1.0, 2.0],
+        "corpse instance names its row's rest palette"
+    );
     assert_eq!(
         at(3.0).scale[3],
         0.0,
@@ -464,4 +468,62 @@ fn replacing_a_tooling_catalog_removes_rows_the_new_gpu_library_cannot_load() {
         f.batches[0].appearance, 0,
         "new generation reuses the retired row frontier"
     );
+}
+
+#[test]
+fn corpses_share_one_actual_rest_palette_per_drawn_row_each_frame() {
+    let mut p = Presentation::new(None, 30.0).unwrap();
+    p.install_lab_assets(
+        [
+            installed("body", skinned_asset()),
+            installed("other", skinned_asset()),
+        ]
+        .into(),
+        Detail {
+            lod_px: [80.0, 40.0, 20.0],
+            impostor_px: 4.0,
+            shadow_caster_px: 0.0,
+        },
+    );
+    let models = |names: &[&str]| {
+        serde_json::from_value(json!(names
+            .iter()
+            .enumerate()
+            .map(|(i, name)| json!({
+                "appearance":name,"x":(i % 3) as f64,"y":(i / 3) as f64,"z":0,"yaw":0,"tier":0,
+                "pose":{"kind":"corpse","lies":0}
+            }))
+            .collect::<Vec<_>>()))
+        .unwrap()
+    };
+    p.set_lab_models(models(&["body", "body", "other", "body", "other"]))
+        .unwrap();
+    let frame = p.frame(0.0, &camera(), &Ui::default(), 0).unwrap();
+    assert_eq!(frame.instances.len(), 5, "every requested body draws");
+    assert_eq!(
+        frame.palettes.len(),
+        3,
+        "identity plus one joint for each drawn row"
+    );
+    for batch in &frame.batches {
+        let bodies = &frame.instances[batch.first as usize..(batch.first + batch.count) as usize];
+        let base = bodies[0].data[0];
+        assert!(
+            bodies.iter().all(|body| body.data[0] == base),
+            "one row shares a palette offset"
+        );
+        assert_eq!(
+            frame.palettes[base as usize].z,
+            [0.0, 0.0, 1.0, 2.0],
+            "the shared value is the fall's rest palette"
+        );
+    }
+    p.set_lab_models(models(&["other", "other"])).unwrap();
+    let frame = p.frame(1.0, &camera(), &Ui::default(), 0).unwrap();
+    assert_eq!(
+        frame.palettes.len(),
+        2,
+        "only this frame's drawn rows hold palettes"
+    );
+    assert!(frame.instances.iter().all(|body| body.data[0] == 1.0));
 }

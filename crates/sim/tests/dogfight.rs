@@ -55,6 +55,22 @@ fn fly_to(battle: &mut sim::battle::Battle, side: Side, seq: u64, unit: u32, goa
     assert_eq!(ack.error, None);
 }
 
+/// Attack-move `unit` to `goal`, where it circles hunting.
+fn hunt_at(battle: &mut sim::battle::Battle, side: Side, seq: u64, unit: u32, goal: [f64; 2]) {
+    let ack = battle.accept(contract::command::CommandEnvelope {
+        side,
+        player: None,
+        seq,
+        queued: false,
+        order: contract::command::Order::AttackMove {
+            units: vec![UnitId(unit)],
+            gesture: seq,
+            goal,
+        },
+    });
+    assert_eq!(ack.error, None);
+}
+
 fn air_battle(units: serde_json::Value) -> sim::battle::Battle {
     air_battle_with(sim::fixtures::test_rules(), units)
 }
@@ -246,8 +262,8 @@ fn a_jet_makes_passes_at_a_helicopter_and_neither_dogfights() {
         ]),
     );
     let (jet, heli) = (UnitId(0), UnitId(1));
-    // The jet flies in to circle within the helicopter's reach.
-    fly_to(&mut battle, Side::Blue, 1, 0, [1000.0, 500.0]);
+    // The jet flies in to hunt within the helicopter's reach.
+    hunt_at(&mut battle, Side::Blue, 1, 0, [1000.0, 500.0]);
     let mut passes = false;
     for _ in 0..600 {
         battle.step();
@@ -265,8 +281,8 @@ fn a_jet_makes_passes_at_a_helicopter_and_neither_dogfights() {
 
 /// Height never makes a dogfight: a helicopter hovering over a mesa,
 /// higher above the map than half the jet's altitude, is still a low-air
-/// rotor. The jet it fires on answers it in passes rather than circling
-/// where it was, waiting for a dogfight that can never form.
+/// rotor. The hunting jet it fires on answers it in passes rather than
+/// circling where it was, waiting for a dogfight that can never form.
 #[test]
 fn a_jet_answers_a_helicopter_above_it_on_high_ground_in_passes() {
     const MESA_M: f64 = 250.0;
@@ -305,8 +321,8 @@ fn a_jet_answers_a_helicopter_above_it_on_high_ground_in_passes() {
     .unwrap();
     let mut battle = sim::battle::Battle::new(&setup, 1);
     let (jet, heli) = (UnitId(0), UnitId(1));
-    // The jet flies in to circle within the helicopter's reach.
-    fly_to(&mut battle, Side::Blue, 1, 0, [1000.0, 500.0]);
+    // The jet flies in to hunt within the helicopter's reach.
+    hunt_at(&mut battle, Side::Blue, 1, 0, [1000.0, 500.0]);
     let mut fired_on = false;
     let mut passes = false;
     for _ in 0..600 {

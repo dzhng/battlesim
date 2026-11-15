@@ -447,8 +447,26 @@ test("the command row exposes refund for a selected skirmish unit", () => {
       contactLines={null}
     />,
   );
-  fireEvent.click(view.getByRole("button", { name: "Refund · Return to base" }));
+  fireEvent.click(view.getByRole("button", { name: /^Refund · Return to base/ }));
   expect(refund).toHaveBeenCalledOnce();
+});
+
+test("a unit returning to base says so on its army card", () => {
+  const going = specimenUnit(TEST_CATALOG, "test_tank", { id: 3, withdrawing: true });
+  const staying = specimenUnit(TEST_CATALOG, "test_tank", { id: 5 });
+  const view = render(
+    <ArmyDeck
+      state={new Feed({ own: [going, staying] })}
+      selected={[]}
+      onSelect={vi.fn()}
+      rules={shippedRules as unknown as PanelRules}
+      contactLines={null}
+    />,
+  );
+  expect(view.getByRole("button", { name: /#3, returning to base$/ }).dataset.withdrawing).toBe(
+    "true",
+  );
+  expect(view.getByRole("button", { name: /#5$/ }).dataset.withdrawing).toBeUndefined();
 });
 
 test("a squad aboard a carrier keeps its card, dimmed as aboard, and clicking it selects its carrier", () => {

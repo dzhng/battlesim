@@ -428,6 +428,9 @@ export interface IdentifiedView {
   /** It trails smoke: a coarse sign of damage (an aircraft below half its
    *  health), never its health. */
   smoking: boolean;
+  /** The building it holds, inside or leaving (any of its parts' prop
+   *  ids), or null: seen at its windows, a garrison gives its building away. */
+  building: number | null;
 }
 
 /** Uncertain evidence: an area, never an exact position, strength or

@@ -557,6 +557,7 @@ impl SideKnowledge {
                         .collect(),
                     reversing: unit.reversing,
                     smoking: unit.smoking(rules),
+                    building: crate::garrison::garrisoned_in(unit),
                 }
             })
     }
