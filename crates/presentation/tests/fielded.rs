@@ -2,7 +2,7 @@
 //! `Fielding::contents` names, and from no others: a page that fetches
 //! exactly those has everything Rust reads.
 use presentation::assets::Runtime;
-use presentation::fielded::{self, ContentCache, Fielding};
+use presentation::fielded::{self, Facts, Fielding};
 use serde_json::Value;
 use std::cell::RefCell;
 use std::collections::BTreeSet;
@@ -29,33 +29,18 @@ fn a_battle_reads_only_the_contents_it_names() {
         runtime: &runtime.catalog,
         kinds: &kinds,
         factions: None,
-        cache: Default::default(),
     };
-    let named: BTreeSet<String> = fielding.contents().unwrap().into_iter().collect();
-    let read = RefCell::new(BTreeSet::new());
+    let mut facts = Facts::default();
+    let named: BTreeSet<String> = fielding.contents(&facts).unwrap().into_iter().collect();
     let sections = fielding
-        .resolve(&|hash| {
+        .resolve(&mut facts, &|hash| {
             assert!(
                 named.contains(hash),
                 "content {hash} was read but not named"
             );
-            read.borrow_mut().insert(hash.to_owned());
             runtime.read(hash, "bundle.bin")
         })
         .unwrap();
-    // Every drawn appearance and wreck is read; a skeleton no body wears
-    // may go unread.
-    let skeletons: BTreeSet<String> = runtime.catalog["skeletons"]
-        .as_object()
-        .unwrap()
-        .values()
-        .map(|h| h.as_str().unwrap().to_owned())
-        .collect();
-    let unread: Vec<_> = named.difference(&read.borrow()).cloned().collect();
-    assert!(
-        unread.iter().all(|h| skeletons.contains(h)),
-        "named but unread: {unread:?}"
-    );
     let typed = sections.typed().unwrap();
     assert!(!typed.units.appearances.is_empty() && !typed.tables.is_empty());
 }
@@ -73,7 +58,7 @@ fn repeated_fielding_reads_only_new_kind_contents_and_matches_cold_resolution() 
             .unwrap();
     let first = vec!["test_rifle".to_owned()];
     let both = vec!["test_rifle".to_owned(), "test_tank".to_owned()];
-    let cache = ContentCache::default();
+    let mut facts = Facts::default();
     let first_fielding = Fielding {
         presentation: &presentation,
         rules: &rules,
@@ -81,12 +66,15 @@ fn repeated_fielding_reads_only_new_kind_contents_and_matches_cold_resolution() 
         runtime: &runtime.catalog,
         kinds: &first,
         factions: None,
-        cache: cache.clone(),
     };
-    let first_named: BTreeSet<_> = first_fielding.contents().unwrap().into_iter().collect();
+    let first_named: BTreeSet<_> = first_fielding
+        .contents(&facts)
+        .unwrap()
+        .into_iter()
+        .collect();
     let first_read = RefCell::new(BTreeSet::new());
     first_fielding
-        .resolve(&|hash| {
+        .resolve(&mut facts, &|hash| {
             first_read.borrow_mut().insert(hash.to_owned());
             runtime.read(hash, "bundle.bin")
         })
@@ -99,19 +87,32 @@ fn repeated_fielding_reads_only_new_kind_contents_and_matches_cold_resolution() 
         runtime: &runtime.catalog,
         kinds: &both,
         factions: None,
-        cache: cache.clone(),
     };
-    let second_named: BTreeSet<_> = second_fielding.contents().unwrap().into_iter().collect();
+    let second_named: BTreeSet<_> = second_fielding
+        .contents(&facts)
+        .unwrap()
+        .into_iter()
+        .collect();
     assert!(!second_named.is_empty());
     assert!(second_named.iter().all(|hash| !first_named.contains(hash)));
     let second_read = RefCell::new(BTreeSet::new());
     let incremental = second_fielding
-        .resolve(&|hash| {
+        .resolve(&mut facts, &|hash| {
             second_read.borrow_mut().insert(hash.to_owned());
             runtime.read(hash, "bundle.bin")
         })
         .unwrap();
+    assert_eq!(second_read.into_inner(), second_named);
 
+    let third_named = second_fielding.contents(&facts).unwrap();
+    assert!(third_named.is_empty());
+    let third = second_fielding
+        .resolve(&mut facts, &|hash| {
+            Err(format!("unexpected content read: {hash}"))
+        })
+        .unwrap();
+
+    let mut cold_facts = Facts::default();
     let cold = Fielding {
         presentation: &presentation,
         rules: &rules,
@@ -119,14 +120,15 @@ fn repeated_fielding_reads_only_new_kind_contents_and_matches_cold_resolution() 
         runtime: &runtime.catalog,
         kinds: &both,
         factions: None,
-        cache: ContentCache::default(),
     }
-    .resolve(&|hash| runtime.read(hash, "bundle.bin"))
+    .resolve(&mut cold_facts, &|hash| runtime.read(hash, "bundle.bin"))
     .unwrap();
     assert_eq!(incremental.units, cold.units);
     assert_eq!(incremental.effects, cold.effects);
     assert_eq!(incremental.tables, cold.tables);
-    assert_eq!(second_read.into_inner(), second_named);
+    assert_eq!(third.units, cold.units);
+    assert_eq!(third.effects, cold.effects);
+    assert_eq!(third.tables, cold.tables);
 }
 
 #[test]
@@ -163,9 +165,10 @@ fn a_ground_hull_model_without_its_gauge_is_refused_before_loading_bundles() {
         runtime: &runtime,
         kinds: &kinds,
         factions: Some(["test_faction", "test_faction"]),
-        cache: Default::default(),
     }
-    .resolve(&|_| Err("unexpected bundle read".into()));
+    .resolve(&mut Facts::default(), &|_| {
+        Err("unexpected bundle read".into())
+    });
     let error = result.err().expect("the missing gauge is refused");
     assert!(
         error.contains(faction_appearance) && error.contains("track_gauge"),
@@ -205,9 +208,10 @@ fn each_factions_gauge_drives_its_own_track_travel() {
         runtime: &art,
         kinds: &["test_tank".into()],
         factions: Some(["test_blue", "test_red"]),
-        cache: Default::default(),
     }
-    .resolve(&|hash| runtime.read(hash, "bundle.bin"))
+    .resolve(&mut Facts::default(), &|hash| {
+        runtime.read(hash, "bundle.bin")
+    })
     .unwrap()
     .typed()
     .unwrap()

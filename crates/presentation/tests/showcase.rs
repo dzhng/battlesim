@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 
 use presentation::assets::Runtime;
-use presentation::fielded::{Fielded, Fielding};
+use presentation::fielded::{Facts, Fielded, Fielding};
 use presentation::presentation::lab::Asset;
 use presentation::presentation::showcase::ShowcaseInput;
 use presentation::presentation::{Presentation, Ui};
@@ -38,9 +38,10 @@ fn fielded(kinds: &[&str], factions: Option<[&str; 2]>, edit: impl FnOnce(&mut V
         runtime: &entries,
         kinds: &kinds,
         factions,
-        cache: Default::default(),
     }
-    .resolve(&|hash| runtime.read(hash, "bundle.bin"))
+    .resolve(&mut Facts::default(), &|hash| {
+        runtime.read(hash, "bundle.bin")
+    })
     .unwrap()
     .typed()
     .unwrap()

@@ -10,7 +10,7 @@ use presentation::assets::Runtime;
 use presentation::effects::frame::{EffectBatch, EffectFrame, EFFECT_FLOATS};
 use presentation::effects::publication::EffectPublication;
 use presentation::effects::tables::EffectPresentation;
-use presentation::fielded::Fielding;
+use presentation::fielded::{Facts, Fielding};
 use presentation::settings::PresentationSettings;
 use presentation::wind::WindSettings;
 use serde_json::{json, Value};
@@ -215,9 +215,10 @@ fn a_smoke_capability_naming_a_look_the_presentation_lacks_is_refused_when_field
         runtime: &runtime,
         kinds: &kinds,
         factions: None,
-        cache: Default::default(),
     }
-    .resolve(&|_| Err("unexpected bundle read".into()))
+    .resolve(&mut Facts::default(), &|_| {
+        Err("unexpected bundle read".into())
+    })
     .err()
     .expect("the unknown look is refused");
     assert!(

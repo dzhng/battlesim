@@ -71,6 +71,20 @@ export interface ViewportGpu {
   frame: () => BrowserScene;
 }
 
+/** Attach a pilot to the live scene's adapter and renderer measurements. */
+export function attachViewportPilot(
+  pilot: ViewportPilot | undefined,
+  adapter: string,
+  scene: BrowserScene,
+  receiverFit: () => ReturnType<ScenePresentation["shadowStats"]> | null,
+): void {
+  pilot?.attach?.({
+    adapter,
+    stats: () => ({ ...scene.stats(), receiverFit: receiverFit() }),
+    resetGpuTiming: () => scene.resetGpuTiming(),
+  });
+}
+
 /** A one-shot ask from the page: put the orbit target on a ground point,
  *  keeping the current angle and zoom. `token` changes for every new ask. */
 export interface CameraFocusRequest {

@@ -63,7 +63,7 @@ Each is confirmed by the slice named, which then moves it to the section below.
 
 ## Confirmed during implementation
 
-**Slice 01, 2026-11-15.** The doubled fielding is caused by a fresh
+**Slice 01, 2026-11-15 (fix round).** The doubled fielding is caused by a fresh
 `Fielding` request in `fieldedBattle` (`apps/battle-lab/src/presentedFrame.ts`)
 from `useBattleFielding` (`apps/battle-lab/src/useBattleFielding.ts`) whenever
 the complete art object changes. Separately, the library path in
@@ -75,6 +75,14 @@ workbench. The loader now serializes those widening calls so one kinds change
 installs one generation. The fielding fix retains resolved content facts across
 the reusable fielding object and serializes requests for one stable
 rules/catalog/faction identity.
+
+In `battle-growth`, the first scene fields the initial roster set (the 50 kinds
+logged by the route); the growth adds `eastern_rifle_squad` to the art set but
+does not change the fielded kinds request. The reference battle follows the
+same shape: both sides' kinds are already in the fielding request, while the
+growth changes the installed art. The growth therefore must not field again;
+the reusable owner is exercised by the armory and by the `{test_rifle}` then
+`{test_rifle, test_tank}` presentation test, where kinds really widen.
 
 Catalog admission and fielding derive different facts. `Asset::from_bundle`
 (`crates/presentation/src/presentation/lab.rs`) derives model presentation
@@ -110,7 +118,7 @@ Decisions made where slice 00 was silent:
 | A shell hands in work it did before staging (decoding its draft, the first scenery placement) as the starting report of `Runtime::new` and `stage_assets` | Decoding happens in the library before the runtime sees the art, and the count belongs where the work is |
 | The page's counts are those since the previous `art committed` | The event must say what this admission cost |
 | The scene reads the event's detail from the console call's argument | It needs no test hook in the page, and `LabViewport.tsx` is over its size budget |
-| The first scene publishes an `art committed` event | It gives the page a baseline so later events can report per-admission deltas |
+| The first scene publishes no `art committed` event | `scene installed` carries the baseline page work; art commits report only later admissions |
 | The swap test compares the live report and the world's appearance names, not pixels | It proves a dropped, stale or failed candidate changes nothing live without a frame readback; pixel equality starts with slice 03 |
 
 **Slice 00's probe, 2026-11-14.** The reference battle at high graphics in the

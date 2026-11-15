@@ -1,4 +1,5 @@
 //! Looks are fielded from the battle's resolved weapon rows.
+use presentation::fielded::Facts;
 use serde_json::{json, Value};
 
 fn fixture(name: &str) -> Value {
@@ -103,9 +104,10 @@ fn fired_look(added: bool, require_kick: bool, second: bool) {
         runtime: &runtime.catalog,
         kinds: &kinds,
         factions: None,
-        cache: Default::default(),
     }
-    .resolve(&|hash| runtime.read(hash, "bundle.bin"))
+    .resolve(&mut Facts::default(), &|hash| {
+        runtime.read(hash, "bundle.bin")
+    })
     .unwrap()
     .typed()
     .unwrap();
@@ -267,9 +269,10 @@ fn fielding_names_the_weapon_when_its_look_lacks_a_required_part() {
             runtime: &json!({}),
             kinds: &[],
             factions: None,
-            cache: Default::default(),
         }
-        .resolve(&|_| panic!("bad fielding must not read assets"));
+        .resolve(&mut Facts::default(), &|_| {
+            panic!("bad fielding must not read assets")
+        });
         let error = result
             .err()
             .expect("missing physics-required look part was accepted");
@@ -300,9 +303,8 @@ fn an_unmounted_weapon_may_have_only_blast_parts_whatever_its_name() {
         runtime: &json!({}),
         kinds: &[],
         factions: None,
-        cache: Default::default(),
     }
-    .resolve(&|_| panic!("no units need assets"))
+    .resolve(&mut Facts::default(), &|_| panic!("no units need assets"))
     .unwrap();
 }
 
@@ -324,9 +326,8 @@ fn a_crash_look_needs_no_firing_parts() {
         runtime: &json!({}),
         kinds: &[],
         factions: None,
-        cache: Default::default(),
     }
-    .resolve(&|_| panic!("no units need assets"))
+    .resolve(&mut Facts::default(), &|_| panic!("no units need assets"))
     .unwrap();
 }
 
@@ -360,9 +361,10 @@ fn a_crash_mounted_as_a_gun_must_supply_firing_parts() {
             runtime: &json!({}),
             kinds: &["test_tank".into()],
             factions: None,
-            cache: Default::default(),
         }
-        .resolve(&|_| panic!("invalid firing look must be refused before reading art"));
+        .resolve(&mut Facts::default(), &|_| {
+            panic!("invalid firing look must be refused before reading art")
+        });
         let error = result
             .err()
             .expect("every ammunition kind needs firing parts");

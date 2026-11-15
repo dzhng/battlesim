@@ -6,6 +6,7 @@ import type {
   ViewportGpu,
   ViewportPilot,
 } from "./viewportRender";
+import { attachViewportPilot } from "./viewportRender";
 import {
   ViewportGestureOwner,
   type ViewportPointer,
@@ -664,10 +665,10 @@ export function LabViewport({
           build,
           redraw: () => (dirty = true),
           installed: (next) => {
-            trace.installed(next);
+            trace.installed();
             scene = next;
             staged = null;
-            setInspecting((shown) => shown && next);
+            setInspecting((shown) => (shown ? next : shown));
           },
         });
         sceneAdmissionRef.current = admission;
@@ -676,11 +677,7 @@ export function LabViewport({
         if (signal.aborted) return;
         const allocations = () => scene.stats().memory;
         const adapter = info.name || info.backend;
-        pilot?.attach?.({
-          adapter,
-          stats: () => ({ ...scene.stats(), receiverFit: receiverStats() }),
-          resetGpuTiming: () => scene.resetGpuTiming(),
-        });
+        attachViewportPilot(pilot, adapter, scene, receiverStats);
         // What the battle draws, for a player's diagnostics report.
         signal.addEventListener(
           "abort",

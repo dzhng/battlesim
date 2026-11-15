@@ -19,12 +19,53 @@ export interface FieldedUnits {
   tables: ReadonlyMap<string, Float32Array>;
 }
 
-interface FieldingSession {
-  fielding: Fielding;
-  tail: Promise<void>;
+export class FieldingOwner {
+  private fielding: Fielding | null = null;
+  private tail: Promise<void> = Promise.resolve();
+  private closed = false;
+  private last: { input: Parameters<typeof createFielding>[0]; result: FieldedUnits } | null = null;
+
+  field(input: Parameters<typeof createFielding>[0]): Promise<FieldedUnits> {
+    if (this.closed) return Promise.reject(new Error("fielding owner is closed"));
+    const run = this.tail.then(async () => {
+      if (this.closed) throw new Error("fielding owner is closed");
+      const fielding = (this.fielding ??= createFielding(input));
+      if (this.last && sameFieldingInput(this.last.input, input)) return this.last.result;
+      fielding.set_kinds(JSON.stringify(input.kinds));
+      const result = await resolveFielding(fielding, input);
+      this.last = { input, result };
+      return result;
+    });
+    this.tail = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
+  }
+
+  free(): void {
+    this.closed = true;
+    const fielding = this.fielding;
+    this.fielding = null;
+    this.last = null;
+    void this.tail.then(() => fielding?.free());
+  }
 }
 
-const sessions = new Map<string, FieldingSession>();
+function sameFieldingInput(
+  a: Parameters<typeof createFielding>[0],
+  b: Parameters<typeof createFielding>[0],
+): boolean {
+  return (
+    a.rules === b.rules &&
+    a.catalog === b.catalog &&
+    a.runtime === b.runtime &&
+    a.factions?.[0] === b.factions?.[0] &&
+    a.factions?.[1] === b.factions?.[1] &&
+    a.kinds.length === b.kinds.length &&
+    a.kinds.every((kind, i) => kind === b.kinds[i])
+  );
+}
 
 /** `kinds` of the session's unit `catalog` under `rules` (a scenario's
  *  rules, JSON), each side wearing `factions`' looks (blue, red; none: one
@@ -36,49 +77,55 @@ export async function fieldUnits(input: {
   factions?: readonly [string, string];
   runtime: RuntimeFiles;
 }): Promise<FieldedUnits> {
+  const owner = new FieldingOwner();
+  try {
+    return await owner.field(input);
+  } finally {
+    owner.free();
+  }
+}
+
+function createFielding(input: {
+  rules: string;
+  catalog: CatalogView;
+  kinds: readonly string[];
+  factions?: readonly [string, string];
+  runtime: RuntimeFiles;
+}): Fielding {
   const catalog = input.runtime.catalog;
   if (!catalog) throw new Error("units were fielded before the runtime catalog was loaded");
-  const key = JSON.stringify([input.rules, input.catalog, catalog, input.factions ?? null]);
-  let session = sessions.get(key);
-  if (!session) {
-    session = {
-      fielding: new Fielding(
-        JSON.stringify(presentationSettings),
-        input.rules,
-        JSON.stringify(input.catalog),
-        JSON.stringify(catalog),
-        JSON.stringify(input.kinds),
-        input.factions && JSON.stringify(input.factions),
-      ),
-      tail: Promise.resolve(),
-    };
-    sessions.set(key, session);
-  }
-  const current = session;
-  const run = current.tail.then(async () => {
-    current.fielding.set_kinds(JSON.stringify(input.kinds));
-    const files = await input.runtime.contents(current.fielding.contents());
-    const lengths = Uint32Array.from(files, (f) => f.length);
-    const bytes = new Uint8Array(lengths.reduce((n, l) => n + l, 0));
-    let at = 0;
-    for (const f of files) {
-      bytes.set(f, at);
-      at += f.length;
-    }
-    const { units, effects, tables } = JSON.parse(current.fielding.resolve(bytes, lengths)) as {
-      units: object;
-      effects: object;
-      tables: string[];
-    };
-    return {
-      units,
-      effects,
-      tables: new Map(tables.map((name, i) => [name, current.fielding.table(i)])),
-    };
-  });
-  current.tail = run.then(
-    () => undefined,
-    () => undefined,
+  return new Fielding(
+    JSON.stringify(presentationSettings),
+    input.rules,
+    JSON.stringify(input.catalog),
+    JSON.stringify(catalog),
+    JSON.stringify(input.kinds),
+    input.factions && JSON.stringify(input.factions),
   );
-  return run;
+}
+
+async function resolveFielding(
+  fielding: Fielding,
+  input: {
+    runtime: RuntimeFiles;
+  },
+): Promise<FieldedUnits> {
+  const files = await input.runtime.contents(fielding.contents());
+  const lengths = Uint32Array.from(files, (f) => f.length);
+  const bytes = new Uint8Array(lengths.reduce((n, l) => n + l, 0));
+  let at = 0;
+  for (const f of files) {
+    bytes.set(f, at);
+    at += f.length;
+  }
+  const { units, effects, tables } = JSON.parse(fielding.resolve(bytes, lengths)) as {
+    units: object;
+    effects: object;
+    tables: string[];
+  };
+  return {
+    units,
+    effects,
+    tables: new Map(tables.map((name, i) => [name, fielding.table(i)])),
+  };
 }

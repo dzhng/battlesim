@@ -5,7 +5,7 @@
 //! `units` and `effects` sections and clip tables from their bytes.
 use std::collections::HashMap;
 
-use presentation::fielded::{self, ContentCache, Sections};
+use presentation::fielded::{self, Facts, Sections};
 use serde_json::{json, Value};
 use wasm_bindgen::prelude::*;
 
@@ -20,7 +20,7 @@ pub struct Fielding {
     kinds: Vec<String>,
     factions: Option<[String; 2]>,
     tables: Vec<Vec<f32>>,
-    cache: ContentCache,
+    facts: Facts,
 }
 
 impl Fielding {
@@ -35,7 +35,6 @@ impl Fielding {
                 .factions
                 .as_ref()
                 .map(|[blue, red]| [blue.as_str(), red.as_str()]),
-            cache: self.cache.clone(),
         }
     }
 }
@@ -71,7 +70,7 @@ impl Fielding {
                 .transpose()
                 .map_err(|e| error(format!("factions: {e}")))?,
             tables: Vec::new(),
-            cache: ContentCache::default(),
+            facts: Facts::default(),
         })
     }
 
@@ -82,7 +81,7 @@ impl Fielding {
 
     /// The runtime contents `resolve` reads, by hash.
     pub fn contents(&self) -> Result<Vec<String>, JsError> {
-        self.fielding().contents().map_err(error)
+        self.fielding().contents(&self.facts).map_err(error)
     }
 
     /// Resolves the battle from each content `contents` named, inflated, in
@@ -114,14 +113,23 @@ impl Fielding {
             units,
             effects,
             tables,
-        } = self
-            .fielding()
-            .resolve(&|hash| {
-                read.get(hash)
-                    .map(|b| b.to_vec())
-                    .ok_or(format!("content {hash} was not read"))
-            })
-            .map_err(error)?;
+        } = fielded::Fielding {
+            presentation: &self.presentation,
+            rules: &self.rules,
+            catalog: &self.catalog,
+            runtime: &self.runtime,
+            kinds: &self.kinds,
+            factions: self
+                .factions
+                .as_ref()
+                .map(|[blue, red]| [blue.as_str(), red.as_str()]),
+        }
+        .resolve(&mut self.facts, &|hash| {
+            read.get(hash)
+                .map(|b| b.to_vec())
+                .ok_or(format!("content {hash} was not read"))
+        })
+        .map_err(error)?;
         let names: Vec<&String> = tables.keys().collect();
         let out = json!({ "units": units, "effects": effects, "tables": names }).to_string();
         self.tables = tables.into_values().collect();
