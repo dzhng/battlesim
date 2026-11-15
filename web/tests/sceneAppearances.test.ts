@@ -1,8 +1,8 @@
 import { expect, test } from "vitest";
-import type { PreparedAppearances, Renderer } from "@wasm/renderer_browser";
+import type { Presentation, PreparedAppearances, Renderer } from "@wasm/renderer_browser";
 import type { ScenePresentation } from "../src/battle/sim/presentation";
 import type { ModelAsset } from "../src/battle/render/modelAssets";
-import type { LabModel } from "../src/battle/sim/presentationModels";
+import { prepareAppearances, type LabModel } from "../src/battle/sim/presentationModels";
 import { SceneAppearances } from "../src/battle/render/sceneAppearances";
 
 const detail = { lod_px: [100, 50, 25] as const, impostor_px: 10 };
@@ -18,9 +18,7 @@ const assets = (name: string): ModelAsset[] => [
   {
     name,
     contentId: { bundle: "a".repeat(64), skeleton: null },
-    bundle: new Uint8Array(),
-    textureIds: [],
-    textureBytes: [],
+    encode: () => ({ bundle: new Uint8Array(), textureIds: [], textureBytes: [] }),
   },
 ];
 
@@ -138,4 +136,148 @@ test("departure discards pending and ready assets without committing or starting
   expect(ready.freed).toEqual(["A"]);
   expect(ready.owner.flush()).toBe(false);
   expect(ready.visible()).toBe("C");
+});
+
+/** Exercise admission scheduling and the real page transport across a fake WASM seam. */
+function transportStage() {
+  const encoded: string[] = [];
+  const sent: { content: string; bytes: number[] }[] = [];
+  const pending: { names: string[]; finish: () => void }[] = [];
+  let committed: string[] = ["A"];
+  let held = new Set(["a".repeat(64)]);
+  const asset = (name: string, hash: string, byte: number): ModelAsset => ({
+    name,
+    contentId: { bundle: hash.repeat(64), skeleton: null },
+    encode() {
+      encoded.push(name);
+      return { bundle: Uint8Array.of(byte), textureIds: [], textureBytes: [] };
+    },
+  });
+  const renderer = {
+    missing_content_ids(_presentation: unknown, json: string) {
+      return JSON.stringify(
+        JSON.parse(json).filter((id: { bundle: string }) => !held.has(id.bundle)),
+      );
+    },
+    appearance_draft() {
+      const declared = new Map<string, string>();
+      return {
+        declared,
+        declare(name: string, json: string) {
+          declared.set(name, JSON.parse(json).bundle);
+        },
+        add_bundle(json: string, bytes: Uint8Array) {
+          sent.push({ content: JSON.parse(json).bundle, bytes: [...bytes] });
+        },
+        free() {},
+      };
+    },
+    prepare_appearances(_presentation: unknown, draft: { declared: Map<string, string> }) {
+      return new Promise<PreparedAppearances>((resolve) =>
+        pending.push({
+          names: [...draft.declared.keys()],
+          finish: () =>
+            resolve({ declared: draft.declared, free() {} } as unknown as PreparedAppearances),
+        }),
+      );
+    },
+  };
+  const presentation = {
+    prepareRendererAppearances(_renderer: Renderer, assets: readonly ModelAsset[]) {
+      return prepareAppearances(
+        renderer as unknown as Renderer,
+        {} as Presentation,
+        assets,
+        detail,
+      );
+    },
+    commitRendererAppearances(_renderer: Renderer, ready: { declared: Map<string, string> }) {
+      committed = [...ready.declared.keys()];
+      held = new Set(ready.declared.values());
+      return true;
+    },
+    setLabModels() {},
+  };
+  const owner = new SceneAppearances(
+    renderer as unknown as Renderer,
+    presentation as unknown as ScenePresentation,
+    detail,
+    () => {},
+    (error) => {
+      throw error;
+    },
+    { assets: [asset("A", "a", 1)], models: [] },
+  );
+  return { owner, asset, encoded, sent, pending, committed: () => committed };
+}
+
+test("fresh objects with the same name/content set leave committed art current", async () => {
+  const scene = transportStage();
+  const result = scene.owner.request([scene.asset("A", "a", 1)], []);
+  expect(scene.pending).toEqual([]);
+  expect(await result).toBe(true);
+  expect(scene.owner.current()).toBe(true);
+  expect(scene.encoded).toEqual([]);
+  expect(scene.sent).toEqual([]);
+  scene.owner.dispose();
+});
+
+test("growth and replacement send only missing content, and a duplicate in flight stays committable", async () => {
+  const scene = transportStage();
+  const wanted = [
+    scene.asset("A", "a", 1),
+    scene.asset("B", "b", 2),
+    scene.asset("B-alias", "b", 2),
+  ];
+  const growth = scene.owner.request(wanted, []);
+  const repeated = scene.owner.request(
+    [scene.asset("B-alias", "b", 2), scene.asset("B", "b", 2), scene.asset("A", "a", 1)],
+    [],
+  );
+  expect(scene.pending.map((p) => p.names)).toEqual([["A", "B", "B-alias"]]);
+  expect(scene.encoded).toEqual(["B"]);
+  expect(scene.sent).toEqual([{ content: "b".repeat(64), bytes: [2] }]);
+  scene.pending[0].finish();
+  await Promise.resolve();
+  await Promise.resolve();
+  expect(scene.owner.flush()).toBe(true);
+  expect(await growth).toBe(true);
+  expect(await repeated).toBe(true);
+  expect(scene.committed()).toEqual(["A", "B", "B-alias"]);
+  expect(scene.owner.work()).toEqual({ bundlesEncoded: 1, bundleBytesSent: 1 });
+
+  const replacement = scene.owner.request([scene.asset("A", "c", 3), wanted[1], wanted[2]], []);
+  expect(scene.pending.map((p) => p.names)).toEqual([
+    ["A", "B", "B-alias"],
+    ["A", "B", "B-alias"],
+  ]);
+  expect(scene.encoded).toEqual(["B", "A"]);
+  expect(scene.sent).toEqual([
+    { content: "b".repeat(64), bytes: [2] },
+    { content: "c".repeat(64), bytes: [3] },
+  ]);
+  scene.pending[1].finish();
+  await Promise.resolve();
+  await Promise.resolve();
+  expect(scene.owner.flush()).toBe(true);
+  expect(await replacement).toBe(true);
+  expect(scene.committed()).toEqual(["A", "B", "B-alias"]);
+  scene.owner.dispose();
+});
+
+test("explicit grass-rule changes still prepare placement with held art", async () => {
+  const scene = transportStage();
+  const assets = [scene.asset("A", "a", 1)];
+  const tuned = scene.owner.request(assets, [], { density: 2 });
+  const repeated = scene.owner.request([scene.asset("A", "a", 1)], [], { density: 2 });
+  expect(scene.pending.map((p) => p.names)).toEqual([["A"]]);
+  expect(scene.encoded).toEqual([]);
+  scene.pending[0].finish();
+  await Promise.resolve();
+  await Promise.resolve();
+  expect(scene.owner.flush()).toBe(true);
+  expect(await tuned).toBe(true);
+  expect(await repeated).toBe(true);
+  expect(scene.committed()).toEqual(["A"]);
+  scene.owner.dispose();
 });

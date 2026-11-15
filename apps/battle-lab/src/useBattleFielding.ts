@@ -22,6 +22,7 @@ export function useBattleFielding(
   } | null>(null);
   const owner = useMemo(() => new FieldingOwner(), [scope]);
   const ready = art !== null;
+  const settled = resolved?.scope === scope && resolved.request === request;
   const admitted = useRef<{
     scope: object;
     generation: BattleArt & { battle: PresentedBattle };
@@ -30,7 +31,9 @@ export function useBattleFielding(
   if (admitted.current?.scope !== scope) admitted.current = null;
   useEffect(() => () => owner.free(), [owner]);
   useEffect(() => {
-    if (!ready) return;
+    // Art readiness can change while the fielding input stays the same. Its
+    // resolved battle must keep its identity, including during GPU admission.
+    if (!ready || settled) return;
     let live = true;
     fieldedBattle(request, owner).then(
       (battle) => live && setResolved({ scope, request, result: { battle } }),
@@ -39,7 +42,7 @@ export function useBattleFielding(
     return () => {
       live = false;
     };
-  }, [scope, request, ready, owner]);
+  }, [scope, request, ready, owner, settled]);
   if (resolved?.scope === scope && resolved.request === request) {
     if ("error" in resolved.result) throw resolved.result.error;
     if (

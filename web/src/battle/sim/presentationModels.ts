@@ -1,6 +1,8 @@
 /** Canonical appearance catalog records and external model pose requests. */
 import type { ModelInstance, ModelPose } from "@packages/battle-renderer/src/models/modelInstances";
 import { type Presentation, type Renderer, type PreparedAppearances } from "@wasm/renderer_browser";
+import { contentIdKey } from "../render/contentIdentity";
+import type { ContentId } from "@packages/scene-assets/src/loader";
 import type { ModelAsset } from "../render/modelAssets";
 import {
   APPEARANCE_WORDS,
@@ -86,29 +88,34 @@ export function readAppearanceRows(
   return loaded;
 }
 
-/** Transport complete appearance facts without changing the active catalog. */
+/** Declare the complete wanted catalog and transport only Rust's missing content. */
 export function prepareAppearances(
-  renderer: Pick<Renderer, "appearance_draft" | "prepare_appearances">,
+  renderer: Pick<Renderer, "missing_content_ids" | "appearance_draft" | "prepare_appearances">,
   presentation: Presentation,
   assets: readonly ModelAsset[],
   detail: ModelDetail,
 ): Promise<PreparedAppearances> {
+  const missing = new Set(
+    (
+      JSON.parse(
+        renderer.missing_content_ids(
+          presentation,
+          JSON.stringify(assets.map((asset) => asset.contentId)),
+        ),
+      ) as ContentId[]
+    ).map(contentIdKey),
+  );
   const draft = renderer.appearance_draft(presentation, JSON.stringify(detail));
   const work = { bundlesEncoded: 0, bundleBytesSent: 0 };
   try {
     for (const asset of assets) {
       draft.declare(asset.name, JSON.stringify(asset.contentId));
       if (asset.placement) draft.set_placement(asset.name, JSON.stringify(asset.placement));
-      const bundle = asset.bundle;
+      if (!missing.delete(contentIdKey(asset.contentId))) continue;
+      const { bundle, textureIds, textureBytes, skeleton } = asset.encode();
       work.bundlesEncoded++;
       work.bundleBytesSent += bundle.byteLength;
-      draft.add_bundle(
-        JSON.stringify(asset.contentId),
-        bundle,
-        asset.textureIds,
-        asset.textureBytes,
-        asset.skeleton,
-      );
+      draft.add_bundle(JSON.stringify(asset.contentId), bundle, textureIds, textureBytes, skeleton);
     }
   } catch (error) {
     draft.free();

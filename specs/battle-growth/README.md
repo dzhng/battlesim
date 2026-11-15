@@ -1,7 +1,9 @@
 # Battle growth: a new unit type costs only its own art
 
-**Status:** slices 00–04, 05a, 06, 07 and 10 are done. Three slices are
-out with implementers (see the lanes below).
+**Status:** slices 00–04, 05a, 06, 07 and 10 are done. Slice 08 is merged
+with its gate red on the long-frame tripwire (735 ms against 700): every
+work count is the new art's, and the frame is still long. Slice 08a finds
+why. Three slices are out with implementers (see the lanes below).
 **Updated:** 2026-11-15.
 
 This plan replaces the "shared GPU assets across generations" placeholder. That
@@ -19,7 +21,7 @@ in its own checkout and thread:
 | Slice | Branch | State |
 | --- | --- | --- |
 | 05 | `t3/art-content-identity` (the checkout of slices 02–04) | Building. |
-| 08 | `t3/battle-growth-catalog-delta` (slice 07's checkout) | Building. Its gate leaves a marked place for the texture and card assertions, which slices 04 and 05 add when they land. |
+| 08a | `t3/battle-growth-catalog-delta` (the checkout of slices 07 and 08) | Timing the staging frame, then removing what still scales with the catalog. Slice 08's checklist box closes with it. |
 | 11 | `t3/battle-growth-stand-in-mechanics` (slice 10's checkout) | Building. |
 
 When one returns: read its whole diff (changed tests first), rerun its checks
@@ -66,6 +68,7 @@ Checklist:
 - [x] [06 Statics carry](slices/06-statics-carry.md)
 - [x] [07 Catalog delta](slices/07-catalog-delta.md)
 - [ ] [08 Browser transport and the growth gate](slices/08-browser-transport-and-growth-gate.md)
+- [ ] [08a The staging frame](slices/08a-the-staging-frame.md)
 - [ ] [09 Preload](slices/09-preload.md)
 - [x] [10 Stand-in mechanics](slices/10-stand-in-mechanics.md)
 - [ ] [11 Stand-in look](slices/11-stand-in-look.md)
@@ -153,6 +156,7 @@ are an independent track.
 | 06 | No scenery or grass work at growth |
 | 07 | Nothing visible; the seam accepts a delta |
 | 08 | The reference battle plays without a freeze at `battle staged`; the gate is green |
+| 08a | The long frame at `battle staged` shrinks to what the new art costs |
 | 09 | First contact with a preloaded type stages nothing; the memory report |
 | 10 | A unit with no art is a block you can click and target |
 | 11 | The block's approved look |

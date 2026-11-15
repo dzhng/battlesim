@@ -72,3 +72,29 @@ test("new art keeps the last complete battle drawing until matching topology and
   expect(result.current).toEqual({ ...refreshed, battle: nextBattle });
   expect(result.current?.battle).toBe(nextBattle);
 });
+
+test("an art-readiness round trip keeps the already resolved battle instead of staging it again", async () => {
+  const appearances: BattleArt["appearances"] = {
+    generation: 1,
+    appearances: new Map(),
+    onRequest: new Map(),
+    skeletons: new Map(),
+    sides: { blue: [1, 1, 1], red: [1, 1, 1] },
+  };
+  const art = { appearances, models: appearances };
+  const request = {} as Parameters<typeof fieldedBattle>[0];
+  const scope = {};
+  const battle = { world: { battle: true }, tables: new Map() } as PresentedBattle;
+  const hook = renderHook(
+    (p: { art: BattleArt | null }) => useBattleFielding(scope, request, p.art),
+    { initialProps: { art: art as BattleArt | null } },
+  );
+  await act(async () => fielding.resolve!(battle));
+  expect(hook.result.current?.battle).toBe(battle);
+  hook.rerender({ art: null });
+  hook.rerender({ art: { ...art } });
+  // A fielding that actually restarted would replace the battle with another
+  // wrapper for the same result when its asynchronous callback completes.
+  await act(async () => fielding.resolve!({ ...battle }));
+  expect(hook.result.current?.battle).toBe(battle);
+});

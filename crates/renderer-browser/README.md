@@ -43,14 +43,16 @@ detail)` consult the same shared source admission owner. Initial renderer
 installation requires facts for every loaded content identity. A draft resolves
 held content against the current committed owners when prepared; retired
 content refuses preparation without changing live art. `AppearanceDraft::add_bundle` supplies facts and
-bytes by identity, so a draft may send only that missing list while the page can
-still send all bytes. Names route to the bundle hash (and a skinned bundle's
-skeleton hash), never to a reuse decision. Drafts collect source transport and
+bytes by identity. The page declares every wanted name and encodes and copies
+only the missing contents, with their textures and skeletons. Names route to
+the bundle hash (and a skinned bundle's skeleton hash), never to a reuse decision. Drafts collect source transport and
 pose facts without changing active art. Page-generated bundles use the same
 exported `bytes_hash` implementation as the contract crate, cached by bundle
 object in the web renderer. Preparation returns an owned promise; the caller
 may continue rendering or dispose its scene while cards bake. Latest-request
-scheduling belongs to the viewport. It commits only its desired complete
+scheduling belongs to the viewport, with one candidate at a time and no
+cancellation. It compares wanted names and content identities; repeating the
+same set keeps the candidate committable. It commits only its desired complete
 candidate and latest model requests at a frame boundary, then publishes a fresh
 canonical frame. Retained source ownership changes with the GPU/catalog commit,
 so recovery cannot resurrect an older generation.

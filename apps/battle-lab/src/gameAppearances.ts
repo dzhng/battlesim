@@ -375,11 +375,13 @@ export function mapAppearances(
   };
 }
 
-/** A battle keeps art it has learned, and preloads its player's purchase choices. */
+/** A battle keeps art it has learned, and preloads its player's purchase choices.
+ * Kinds wearing only that art are fielded together: learning another description
+ * for an already wanted look must not stage the same catalog again. */
 export function useBattleKinds(input: {
   scope: unknown;
   side: string;
-  units: Pick<UnitCatalog, "cards">;
+  units: Pick<UnitCatalog, "cards" | "ids" | "appearancesFor">;
   fielded: readonly string[];
   faction: string | null;
   observation: ObservationView | null;
@@ -412,7 +414,7 @@ export function useBattleKinds(input: {
   )
     history.current = { scope, side, seed, kinds: new Set(seed) };
   const retained = history.current.kinds;
-  const key = useMemo(() => {
+  const learned = useMemo(() => {
     for (const unit of [
       ...(observation?.own ?? []),
       ...(observation?.identified ?? []),
@@ -428,6 +430,18 @@ export function useBattleKinds(input: {
     if (purchasing) retained.add(purchasing);
     return [...retained].sort().join("\0");
   }, [retained, observation, purchasing]);
+  const requirements = useMemo(
+    () => units.ids.map((kind) => ({ kind, names: units.appearancesFor([kind]) })),
+    [units],
+  );
+  const key = useMemo(() => {
+    const wanted = units.appearancesFor(learned ? learned.split("\0") : []);
+    return requirements
+      .filter(({ names }) => [...names].every((name) => wanted.has(name)))
+      .map(({ kind }) => kind)
+      .sort()
+      .join("\0");
+  }, [learned, requirements, units]);
   return useMemo(() => (key ? key.split("\0") : []), [key]);
 }
 

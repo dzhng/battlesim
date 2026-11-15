@@ -1,3 +1,8 @@
+import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
+import { joinTextures } from "@packages/scene-assets/src/codec";
+import type { ScenePresentation } from "@web/battle/sim/presentation";
+import type { ModelAsset } from "@web/battle/render/modelAssets";
+import type { PreparedAppearances } from "@wasm/renderer_browser";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { proxyModels } from "@web/battle/render/proxyModels";
 import { Renderer } from "@wasm/renderer_browser";
@@ -11,7 +16,11 @@ beforeAll(async () => {
 vi.mock("@web/battle/render/effectAssets", () => ({ loadEffectAtlasLayers: async () => [] }));
 afterEach(() => vi.restoreAllMocks());
 
-async function scene(installed: string[] = []) {
+async function scene(
+  installed: string[] = [],
+  options: Partial<SceneOptions> = {},
+  seam: Partial<Renderer> = {},
+) {
   const freed = () => {
     throw new Error("freed wasm handle");
   };
@@ -29,6 +38,7 @@ async function scene(installed: string[] = []) {
     fog_shape: freed,
     fog_tile_counts: freed,
     grass_counts: freed,
+    ...seam,
   };
   vi.spyOn(Renderer, "new").mockResolvedValue(renderer as unknown as Renderer);
   const presentation = {
@@ -56,6 +66,7 @@ async function scene(installed: string[] = []) {
     failed(error: unknown) {
       throw error;
     },
+    ...options,
   } as unknown as SceneOptions);
 }
 
@@ -103,3 +114,87 @@ test("scene diagnostics publish proxy counts from the admitted appearance identi
     frame.dispose();
   }
 });
+
+for (const first of ["art", "battle"]) {
+  test(`a growth requests once when ${first} arrives a frame before the other input`, async () => {
+    const generated = proxyModels([{ kind: "box", x: 0, y: 0, z: 0, yaw: 0, color: [1, 1, 1] }]);
+    const bundle = joinTextures(generated.assets[0].encode().bundle, []);
+    if (bundle.kind !== "articulated") throw new Error("expected articulated fixture");
+    const art = (names: string[]): InstalledAppearances => ({
+      generation: names.length,
+      sides: { blue: [1, 1, 1], red: [1, 1, 1] },
+      skeletons: new Map(),
+      onRequest: new Map(),
+      appearances: new Map(
+        names.map((name, i) => [
+          name,
+          {
+            contentId: { bundle: String(i + 1).repeat(64), skeleton: null },
+            bundle,
+            unit: "vehicle",
+            scenery: null,
+            footprint: null,
+            mounts: null,
+            regionalFamily: null,
+            paints: null,
+            wreck: null,
+            factions: null,
+          },
+        ]),
+      ),
+    });
+    const initial = art(["A"]),
+      grown = art(["A", "B"]);
+    const prepared: string[][] = [];
+    let staged = 0;
+    const worldRows = [{ name: "A" }];
+    const presentation = {
+      canonicalAppearanceRows: () => worldRows,
+      presentedGround: () => null,
+      installLabAssets() {},
+      setLabModels() {},
+      installGeometry() {},
+      installRenderer() {},
+      world: () => worldRows,
+      stagedBattles: () => staged,
+      stagedAppearances: () => ["A", "B"],
+      prepareRendererAppearances(_renderer: Renderer, assets: ModelAsset[]) {
+        prepared.push(assets.map((a) => a.name));
+        return Promise.resolve({ free() {} } as PreparedAppearances);
+      },
+      commitRendererAppearances: () => true,
+      adoptRendererAppearanceSource() {},
+    } as unknown as ScenePresentation;
+    const world = {
+      terrain: { mesh: {}, biome: { grass: {} } },
+      scenery: null,
+    } as unknown as SceneOptions["world"];
+    const models: SceneOptions["models"] = [],
+      instances: SceneOptions["instances"] = [];
+    const frame = await scene(
+      [],
+      { presentation, appearances: initial, world, models, instances },
+      { load_bundle() {} },
+    );
+    try {
+      if (first === "battle") staged = 1;
+      frame.updateSources(world, first === "art" ? grown : initial, models, instances);
+      expect(prepared).toEqual([]);
+      staged = 1;
+      frame.updateSources(world, grown, models, instances);
+      frame.updateSources(
+        world,
+        { ...grown, appearances: new Map(grown.appearances) },
+        models,
+        instances,
+      );
+      expect(prepared).toEqual([["A", "B"]]);
+      await Promise.resolve();
+      expect(frame.flush()).toBe(true);
+      expect(await frame.settled()).toBe(false);
+      expect(prepared).toEqual([["A", "B"]]);
+    } finally {
+      frame.dispose();
+    }
+  });
+}

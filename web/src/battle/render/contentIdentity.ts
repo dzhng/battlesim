@@ -15,3 +15,19 @@ export function generatedContentId(bundle: Exclude<Bundle, SkeletonClips>): Cont
   }
   return content;
 }
+
+/** The identity pair has a stable key independent of JavaScript property order. */
+export function contentIdKey(content: ContentId): string {
+  return JSON.stringify([content.bundle, content.skeleton]);
+}
+
+/** Names route to content; array order and source-object identity do not matter. */
+export function appearanceContentKey(
+  entries: Iterable<readonly [string, { contentId: ContentId }]>,
+): string {
+  return JSON.stringify(
+    [...entries]
+      .map(([name, asset]) => [name, contentIdKey(asset.contentId)])
+      .sort(([a], [b]) => a.localeCompare(b)),
+  );
+}

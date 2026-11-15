@@ -17,7 +17,7 @@ beforeAll(async () => {
 test("the battle stand-in retains its content and states the physical size of its grounded mesh", () => {
   const asset = battleStandInAsset();
   expect(battleStandInAsset()).toBe(asset);
-  const bundle = joinTextures(asset.bundle, []);
+  const bundle = joinTextures(asset.encode().bundle, []);
   if (bundle.kind !== "articulated") throw new Error("expected articulated stand-in");
   expect(bundle.bounds.min[2]).toBe(0);
   BATTLE_STAND_IN_HALF_EXTENTS.forEach((half, axis) => {
@@ -66,7 +66,7 @@ test("proxy admission preserves drawn shapes, pre-gamma color, transforms and pi
     [1, "marker", [1, 1, 1, 1]],
   ] as const) {
     const asset = generated.assets[row];
-    const bundle = joinTextures(asset.bundle, []);
+    const bundle = joinTextures(asset.encode().bundle, []);
     expect(bundle.kind).toBe("articulated");
     if (bundle.kind !== "articulated") throw new Error("expected articulated proxy");
     const source = PROXY_MESHES[kind];
@@ -87,7 +87,7 @@ test("proxy admission preserves drawn shapes, pre-gamma color, transforms and pi
       metallic: 0,
       tint: 0,
     });
-    expect(asset.textureIds).toEqual([]);
+    expect(asset.encode().textureIds).toEqual([]);
   }
 });
 
@@ -106,7 +106,7 @@ test("parsed model transport round-trips art and shares textures within one admi
   const { modelAssetsOf } = await import("../src/battle/render/modelAssets");
   const { decodeTexture } = await import("@packages/scene-assets/src/texture");
   const generated = proxyModels([{ kind: "box", x: 0, y: 0, z: 0, yaw: 0, color: [1, 1, 1] }]);
-  const bundle = joinTextures(generated.assets[0].bundle, []);
+  const bundle = joinTextures(generated.assets[0].encode().bundle, []);
   if (bundle.kind !== "articulated") throw new Error("expected articulated model");
   const texture = {
     id: "shared-albedo",
@@ -143,9 +143,10 @@ test("parsed model transport round-trips art and shares textures within one admi
   };
   const assets = modelAssetsOf(installed, ["a", "b", "a"]);
   expect(assets.map((asset) => asset.name)).toEqual(["a", "b"]);
-  expect(assets[0].textureBytes[0]).toBe(assets[1].textureBytes[0]);
-  const pixels = decodeTexture("shared-albedo", assets[0].textureBytes[0]);
+  const encoded = assets.map((asset) => asset.encode());
+  expect(encoded[0].textureBytes[0]).toBe(encoded[1].textureBytes[0]);
+  const pixels = decodeTexture("shared-albedo", encoded[0].textureBytes[0]);
   expect(pixels.levels).toEqual(texture.levels);
-  expect(joinTextures(assets[0].bundle, [pixels])).toEqual(bundle);
+  expect(joinTextures(encoded[0].bundle, [pixels])).toEqual(bundle);
   expect(() => modelAssetsOf(installed, ["missing"])).toThrow("missing is not installed");
 });
