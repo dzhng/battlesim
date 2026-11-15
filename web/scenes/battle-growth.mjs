@@ -15,26 +15,37 @@ export async function run(ctx) {
   // An event's detail is the log call's second argument: its text prints
   // nested values as "Object".
   let admissions = [];
+  let baseline;
   page.on("console", (message) => {
-    const kind = /^\[battle \d+ ms\] (battle staged|art committed|scene rebuild)\b/.exec(
-      message.text(),
-    );
+    const kind =
+      /^\[battle \d+ ms\] (battle staged|art committed|scene rebuild|scene installed)\b/.exec(
+        message.text(),
+      );
     if (!kind) return;
     timeline.push(kind[1]);
     if (kind[1] === "battle staged") admissions = [];
-    if (kind[1] === "art committed")
-      admissions.push(
-        message
-          .args()[1]
-          ?.jsonValue()
-          .then((detail) => detail?.work ?? null),
-      );
+    if (kind[1] === "scene installed") {
+      const work = message
+        .args()[1]
+        ?.jsonValue()
+        .then((detail) => detail?.work ?? null);
+      baseline = work;
+    }
+    if (kind[1] === "art committed") {
+      const work = message
+        .args()[1]
+        ?.jsonValue()
+        .then((detail) => detail?.work ?? null);
+      admissions.push(work);
+    }
   });
   await ctx.openLab(page, ctx.url, 120000);
   await lab(page, () => window.__lab.route.pause());
   await page.waitForFunction(() => window.__lab?.route?.status().status === "paused");
   await advance(page, 90 - (await obs(page)).tick);
   await presented(page);
+  const initialWork = await baseline;
+  console.log("battle-growth admission work", JSON.stringify(initialWork));
   // The first scene is built: from here on, only growth.
   timeline.length = 0;
 
@@ -92,7 +103,26 @@ export async function run(ctx) {
   );
   // What each admission since the staging cost (`AdmissionWork` and the page's
   // own counts), as the page logged it.
-  for (const work of await Promise.all(admissions))
-    console.log("battle-growth admission work", JSON.stringify(work));
+  const works = await Promise.all(admissions);
+  const work = works.at(-1);
+  const growthContents = work?.page?.runtimeContentsInflated ?? -1;
+  const initialContents = initialWork?.page?.runtimeContentsInflated ?? -1;
+  // The roster decides how much art a new kind brings, so these compare the
+  // growth with the first scene and with its own stagings, not with numbers.
+  // The exact proof is in `crates/presentation/tests/fielded.rs` and the
+  // loader's tests.
+  ctx.check(
+    "a growth reads less art than the first scene did: it does not read it all again",
+    growthContents >= 0 && growthContents < initialContents,
+    JSON.stringify({ initial: initialWork?.page, growth: work?.page }),
+  );
+  const stagings = timeline.filter((kind) => kind === "battle staged").length;
+  ctx.check(
+    "a growth installs no more art generations than it staged battles",
+    work?.page?.appearanceLibraryInstalls <= stagings,
+    JSON.stringify({ stagings, growth: work?.page }),
+  );
+  for (const admission of works)
+    console.log("battle-growth admission work", JSON.stringify(admission));
   await page.close();
 }

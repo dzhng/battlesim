@@ -35,6 +35,11 @@ changed.
 - `SceneAppearances.request` and the scene's "art changed" test compare the
   set of (name, content), not object identity.
 - One candidate at a time stays. No cancellation.
+- A battle staged again while a build is in flight, wanting the same art,
+  leaves that build committable. Measured after slice 01: the reference
+  battle's first growth stages twice four seconds apart with the same 145
+  appearances, and the first build is thrown away after its bake (109 s to
+  commit against 65–70 s). Confirm first what the second staging changes.
 
 ## Verification
 

@@ -22,6 +22,7 @@ fn scene(gpu: &gpu::Gpu) -> (Replay, Runtime) {
         &[],
     ));
     let config = RuntimeConfig {
+        art_store: Default::default(),
         size: [320, 180],
         light: replay.light.clone(),
         fog_look: replay.fog_look,
@@ -32,7 +33,6 @@ fn scene(gpu: &gpu::Gpu) -> (Replay, Runtime) {
         hdr_output: false,
         water_detail: Default::default(),
         controls: Default::default(),
-        card_bake_memory_bytes: renderer_core::impostor::DEFAULT_BAKE_MEMORY_BYTES,
     };
     let effect_sheets = effects::load_sheets(
         &root.join("assets/third-party/effects"),

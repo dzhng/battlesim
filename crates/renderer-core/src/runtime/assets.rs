@@ -20,7 +20,8 @@ pub struct PendingAssets {
     catalog: CatalogDraft,
     assets: Assets,
     work: AdmissionWork,
-    card_bake_memory_bytes: u64,
+    art_store_policy: crate::models::ArtStorePolicy,
+    card_bake_split_reported: Arc<AtomicBool>,
 }
 
 /// An opaque complete generation. Dropping stale work never changes active art.
@@ -46,7 +47,8 @@ impl PendingAssets {
                 &self.device,
                 &self.queue,
                 &self.pipelines,
-                self.card_bake_memory_bytes,
+                self.art_store_policy,
+                &self.card_bake_split_reported,
                 &mut self.work,
             )
             .await?;
@@ -66,7 +68,7 @@ impl Runtime {
         library: &impl BundleSource,
         mut starting_work: AdmissionWork,
     ) -> Result<PendingAssets, String> {
-        starting_work.rebuild_reason = Some(RebuildReason::Replacement);
+        starting_work.rebuild_reason = None;
         let mut work = starting_work;
         if catalog.needs_scenery() {
             let finest = crate::scenery::finest_meshes(
@@ -78,7 +80,15 @@ impl Runtime {
             work.scenery_placements += 1;
         }
         let view = catalog.view(presentation)?;
-        let models = Models::new(device, queue, &self.pipelines, library, view, &mut work)?;
+        let models = Models::new(
+            device,
+            queue,
+            &self.pipelines,
+            library,
+            view,
+            self.art_store.clone(),
+            &mut work,
+        )?;
         let scenery = Scenery::new(device, queue, &self.pipelines, library, view, &mut work)?;
         let grass = grass(
             device,
@@ -101,7 +111,8 @@ impl Runtime {
                 grass,
             },
             work,
-            card_bake_memory_bytes: self.config.card_bake_memory_bytes,
+            art_store_policy: self.config.art_store,
+            card_bake_split_reported: self.card_bake_split_reported.clone(),
         })
     }
 
@@ -126,6 +137,7 @@ impl Runtime {
             return Ok(false);
         }
         self.models = pending.assets.models;
+        self.art_store = self.models.store.clone();
         self.scenery = pending.assets.scenery;
         self.grass = pending.assets.grass;
         self.admission_work = pending.work;

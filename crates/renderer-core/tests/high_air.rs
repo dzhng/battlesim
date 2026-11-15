@@ -5,6 +5,7 @@
 mod effects;
 mod support;
 
+use contract::identity::ContentId;
 use presentation::records::{
     Appearance, Batch, Camera, Instance as ModelInstance, Joint, View, FOG_UNITS, HIGH_PASS, NONE,
     VIEW_PASS,
@@ -15,7 +16,7 @@ use renderer_core::effects::EffectsResources;
 use renderer_core::environment::Environment;
 use renderer_core::fog::Fog;
 use renderer_core::high_air::HighAir;
-use renderer_core::models::{Models, Surface};
+use renderer_core::models::{ArtStore, Models, Surface};
 use renderer_core::pipelines;
 use renderer_core::post;
 use renderer_core::shadow::ShadowResources;
@@ -62,6 +63,12 @@ impl BundleSource for Source {
             }],
             textures: vec![],
         }))
+    }
+
+    fn content_id(&self, _: &str) -> Result<ContentId, String> {
+        ContentId::bundle(contract::identity::bytes_hash(include_bytes!(
+            "high_air.rs"
+        )))
     }
 }
 fn read(
@@ -241,6 +248,7 @@ fn stage(gpu: &support::Gpu, view: &View, camera: &Camera) -> Stage {
         "body",
         |_| None,
         |_, _| None,
+        ArtStore::shared(),
         &mut AdmissionWork::default(),
     )
     .unwrap();
@@ -441,6 +449,7 @@ fn model_suppression_preserves_static_props_and_buildings() {
         "body",
         |_| None,
         |_, _| None,
+        ArtStore::shared(),
         &mut AdmissionWork::default(),
     )
     .unwrap();

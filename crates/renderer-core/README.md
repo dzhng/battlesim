@@ -15,9 +15,20 @@ for browser fetches. The held static batch buffers also belong to this core, so
 a frame that names an unchanged batch has the same meaning on either target.
 Preparation detects skipped publications and materializes current canonical
 populations before reusing held buffers; shells need no skipped-frame protocol.
-Appearance rows route instances rather than own copies of their meshes. Rows
-that select the same authored state/pose share immutable GPU tiers within one
-asset generation; corpse poses remain distinct.
+Appearance rows route instances rather than own copies of their meshes. Each
+runtime owns one scene/device [art store](src/models/store.rs), shared with
+pending generations. Its append-only material slots belong to content identities;
+inserting a row earlier in the catalog cannot change existing packed vertices.
+Dropped preparations keep their slot reservations, so they cannot renumber live
+art. Slot addresses must fit the vertex ABI; an oversized active catalog is an
+error. Excess dead slots or exhausted addresses admit through the same path with
+a fresh store, with the reason reported in admission work.
+
+The store's geometry index is weak and keyed by content, authored state, baked
+corpse palette and running-gear flags. Generations hold shared immutable tiers;
+the last holder destroys their GPU buffers. Neither a generation's drop nor the
+store explicitly destroys a buffer another generation can draw. Materials and
+row routing remain per generation, rebuilt against the stable slot addresses.
 Decoded bundles are keyed by the runtime catalog's `ContentId`: the bundle hash
 and, for skinned art, its skeleton hash. Names only route to that identity, so
 one name can replace its art and two names can share one decode. The library's
@@ -38,9 +49,10 @@ same atlases and shader; the impostor tier never substitutes a coarsest mesh.
 Runtime card bakes submit all cards in each memory-bounded batch before
 awaiting every channel's readback concurrently. The byte bound counts color
 and depth targets plus aligned readback buffers; its default lives with the
-[impostor specification](src/impostor/mod.rs) and the runtime config carries
-it across staging. A split is logged, and admission work counts one read wait
-per batch. Authored materials upload once per generation on the first bake
+[impostor specification](src/impostor/mod.rs). The runtime's
+[art policy](src/models/store.rs) carries the bound and platform report sink
+across staging. The first split is reported once per runtime, including pending
+work that is later dropped; admission work counts every batch's read wait. Authored materials upload once per generation on the first bake
 and remain separate from live diagnostic material controls. Grouped review
 requests use the same bake and preserve their input order.
 Asynchronous asset preparation finishes before a frame may request cards.

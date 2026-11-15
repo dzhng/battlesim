@@ -9,7 +9,7 @@ pub use controls::Controls;
 pub use work::{AdmissionWork, RebuildReason};
 pub use world::WorldGeometry;
 
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
 
 use presentation::light::LightSettings;
@@ -27,6 +27,7 @@ use crate::frame::{FrameInputs, FrameRenderer, PaintFrame};
 use crate::grass::Grass;
 use crate::ground::{Ground, GroundData};
 use crate::models::Models;
+use crate::models::SharedArtStore;
 use crate::overlay::{self, OverlayResources};
 use crate::paint::{PaintGeometry, PaintResources};
 use crate::pipelines::Pipelines;
@@ -56,8 +57,7 @@ pub struct RuntimeConfig {
     pub hdr_output: bool,
     pub water_detail: WaterDetail,
     pub controls: Controls,
-    /// Target and readback byte bound for each card-bake batch.
-    pub card_bake_memory_bytes: u64,
+    pub art_store: crate::models::ArtStorePolicy,
 }
 
 /// CPU inputs rather than platform-assembled GPU resources. Presentation is
@@ -109,6 +109,10 @@ pub struct Runtime {
     prepared_frame: Option<u32>,
     pending_catalog_frame: Option<u32>,
     admission_work: AdmissionWork,
+    pub(super) art_store: SharedArtStore,
+    /// Pending bakes share this lifetime without borrowing the live runtime.
+    /// A store fallback must not rearm the same card-split warning.
+    card_bake_split_reported: Arc<AtomicBool>,
 }
 
 impl Runtime {
@@ -173,7 +177,12 @@ impl Runtime {
             },
         );
         let mut admission_work = starting_work;
-        admission_work.rebuild_reason = Some(RebuildReason::Initial);
+        admission_work
+            .rebuild_reason
+            .get_or_insert(RebuildReason::Initial);
+        let art_store = Arc::new(std::sync::Mutex::new(crate::models::ArtStore::new(
+            config.art_store,
+        )));
         let grass = assets::grass(
             device,
             queue,
@@ -190,6 +199,7 @@ impl Runtime {
             &pipelines,
             world.assets,
             presentation.catalog(),
+            art_store.clone(),
             &mut admission_work,
         )?;
         models.set_high_apart(config.separate_high_air);
@@ -274,6 +284,8 @@ impl Runtime {
             prepared_frame: None,
             pending_catalog_frame: None,
             admission_work,
+            art_store,
+            card_bake_split_reported: Arc::new(AtomicBool::new(false)),
         };
         runtime
             .ground
@@ -291,7 +303,8 @@ impl Runtime {
                 device,
                 queue,
                 &self.pipelines,
-                self.config.card_bake_memory_bytes,
+                self.config.art_store,
+                &self.card_bake_split_reported,
                 &mut self.admission_work,
             )
             .await
@@ -562,6 +575,10 @@ impl Runtime {
             grass.record_memory(memory);
         }
         self.models.record_memory(memory);
+        self.art_store
+            .lock()
+            .expect("art store lock")
+            .record_memory(memory);
         self.scenery.record_memory(memory);
         self.effects.record_memory(memory);
         self.fog.record_memory(memory);

@@ -1,6 +1,7 @@
 //! Model rest poses feed both runtime cards and configurable review atlases.
 use super::*;
 use crate::impostor::{self, BakeRequest, Spec};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 pub(super) struct RestPose {
     name: String,
@@ -62,7 +63,8 @@ impl Models {
         device: &Device,
         queue: &Queue,
         pipelines: &Pipelines,
-        batch_memory_bytes: u64,
+        policy: ArtStorePolicy,
+        split_reported: &AtomicBool,
         work: &mut crate::runtime::AdmissionWork,
     ) -> Result<(), String> {
         let rows: Vec<u32> = self
@@ -82,21 +84,19 @@ impl Models {
         }
         let spec = Spec::runtime();
         let card_bytes = spec.bake_memory_bytes()?;
+        let batch_memory_bytes = policy.card_bake_memory_bytes;
         if batch_memory_bytes < card_bytes {
             return Err(format!(
                 "impostor bake bound {batch_memory_bytes} bytes cannot hold one card ({card_bytes} bytes)"
             ));
         }
         let cards_per_batch = (batch_memory_bytes / card_bytes).min(rows.len() as u64) as usize;
-        if rows.len() > cards_per_batch {
+        if rows.len() > cards_per_batch && !split_reported.swap(true, Ordering::Relaxed) {
             let message = format!(
                 "impostor bake split: {} cards, {} batches, {batch_memory_bytes} byte bound ({card_bytes} bytes/card)",
                 rows.len(), rows.len().div_ceil(cards_per_batch)
             );
-            #[cfg(target_arch = "wasm32")]
-            web_sys::console::info_1(&message.into());
-            #[cfg(not(target_arch = "wasm32"))]
-            eprintln!("{message}");
+            (policy.report)(&message);
         }
         let mut atlases = Vec::with_capacity(rows.len());
         for batch in rows.chunks(cards_per_batch) {
