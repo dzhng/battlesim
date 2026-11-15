@@ -2030,3 +2030,20 @@ the check wait for the pieces instead of sampling one instant.
   rule stopped the slice. Evidence/logs and exact instrumentation snapshots:
   `throwaway/slice12-resume/`; full hand-back `throwaway/slice12-resume/report.md`.
   Disk remains about 95 GiB free; no old measurement builds were removed.
+
+**Slice 12 goes ahead after its confirm-first stop, 2026-11-15.** The
+implementer stopped because the last step would still be long: with every
+new content's facts cached, fielding's final resolve takes 35–40 ms, and it
+judged that against the 22 ms a 45 FPS frame allows. The measurement stands
+and the stop was right by the rule as written; the rule was too strict.
+Decided: build the stepping, and judge a step against what a one-vehicle
+arrival already costs (one frame of about 52 ms in a production build), not
+against the steady frame budget. Reason: the hitch a player sees today is an
+infantry team's 194–256 ms, and its divisible parts (facts 3.1–3.5 ms,
+supply 3.6–4.4 ms and preparation 6.0–7.8 ms per content, nine contents)
+are most of it. Stepping brings an infantry team down to what a vehicle
+costs. The whole-result resolve is the floor under every arrival, vehicles
+included, and it is catalog-shaped work this plan says should not exist: it
+is [slice 14](slices/14-fielding-follows-the-new-kinds.md), after 12.
+Rejected: doing slice 14 first (it lowers every arrival by tens of
+milliseconds and leaves the infantry hitch at about 160 ms).

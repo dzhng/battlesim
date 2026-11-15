@@ -21,9 +21,16 @@ the reference battle measured. What is left, in order:
    ([slice](slices/12-an-arrival-over-frames.md)). With the corpse copies
    gone (slice 13) an infantry team's first sighting is still one frame of
    about 0.2–0.25 s: fielding, nine supplies and their packing all run
-   without yielding. Staging has to do one content's work a frame. Take its
-   second confirm-first measurement first.
-2. Closeout: correct the stale WASM note in one-renderer, run everything
+   without yielding. Staging has to do one content's work a frame. Its
+   second confirm-first measurement is taken (ledger): the parts divide,
+   3–8 ms a content each, and the last step is fielding's whole-result
+   resolve at 35–40 ms. A step is judged against a one-vehicle arrival's
+   frame (about 52 ms), not the steady frame budget.
+2. **Slice 14, fielding's result follows the new kinds**
+   ([slice](slices/14-fielding-follows-the-new-kinds.md)): the floor under
+   every arrival. Each growth rebuilds and serialises the whole fielded
+   battle's description (2.6 million characters). Not started.
+3. Closeout: correct the stale WASM note in one-renderer, run everything
    once, then `close-spec`.
 
 Settled since the engine shipped, all in the ledger: the page's lingering
@@ -45,7 +52,8 @@ Warnings:
   what you found into the ledger.
 - A decision the slice does not make and does not delegate is a gap in this
   plan. Record it in the ledger; do not settle it silently.
-- Slice 12's second confirm-first measurement comes before its build.
+- Slice 12 judges a step against a one-vehicle arrival's frame, not the
+  steady frame budget (ledger, "Slice 12 goes ahead").
 - Each checkout's Rust build adds 3–22 GB. Check free space before a cold
   build, and remove a checkout's build output when its branch has merged. A
   burst of unrelated failures after a build usually means it ran out of space.
@@ -73,6 +81,7 @@ Checklist:
 - [x] [11 Stand-in look](slices/11-stand-in-look.md)
 - [ ] [12 An arrival over frames](slices/12-an-arrival-over-frames.md)
 - [x] [13 A body draws its type's mesh](slices/13-a-body-draws-its-types-mesh.md)
+- [ ] [14 Fielding's result follows the new kinds](slices/14-fielding-follows-the-new-kinds.md)
 - [ ] Closeout: correct the stale WASM note in
   [one-renderer](../done/one-renderer/README.md) (confirm first that the
   exhaustion predates texture sharing), run everything once, then
