@@ -4,9 +4,9 @@
 // its art committed, never a scene rebuild (which draws nothing until done).
 // The fixture's link is a fixed small skirmish, so the meeting is the same
 // every run.
-import { gunzipSync } from "node:zlib";
 import { readFile } from "node:fs/promises";
 import { advance, lab, obs, presented } from "./_lab.mjs";
+import { growthArt } from "./_growthArt.mjs";
 
 /** Minutes of play allowed for blue to meet red. */
 const ROUNDS = 10;
@@ -30,7 +30,7 @@ export async function run(ctx) {
   const timeline = [];
   const snapshots = [];
   const details = [];
-  page.on("console", (message) => {
+  const record = (message) => {
     const match =
       /^\[battle (\d+) ms\] (battle staged|art committed|scene rebuild|scene installed)\b/.exec(
         message.text(),
@@ -48,7 +48,8 @@ export async function run(ctx) {
     );
     if (event.kind === "scene installed" || event.kind === "art committed")
       snapshots.push(page.evaluate(() => window.__lab.stats().models.installed));
-  });
+  };
+  page.on("console", record);
   await ctx.openLab(page, ctx.url, 120000);
   await lab(page, () => window.__lab.route.pause());
   await page.waitForFunction(() => window.__lab?.route?.status().status === "paused");
@@ -139,67 +140,8 @@ export async function run(ctx) {
   const catalog = JSON.parse(
     await readFile(new URL("../../assets/runtime/catalog.json", import.meta.url), "utf8"),
   );
-  const identity = (name) => {
-    const entry = catalog.appearances[name];
-    if (!entry) throw new Error(`growth appearance ${name} is absent from the runtime catalog`);
-    return {
-      bundle: entry.bundle,
-      skeleton: entry.skeleton ? catalog.skeletons[entry.skeleton] : null,
-    };
-  };
-  const key = (id) => JSON.stringify([id.bundle, id.skeleton]);
-  const before = new Set(
-    initialNames.filter((name) => catalog.appearances[name]).map((name) => key(identity(name))),
-  );
-  const added = new Map(
-    names
-      .filter((name) => !initialNames.includes(name))
-      .map((name) => {
-        const id = identity(name);
-        return [key(id), id];
-      }),
-  );
-  for (const id of before) added.delete(id);
-  const newContents = added.size;
-  const newFiles = new Set(
-    [...added.values()].flatMap((id) => [id.bundle, ...(id.skeleton ? [id.skeleton] : [])]),
-  );
-  const headers = await Promise.all(
-    [...added.values()].map(async (id) => {
-      const bytes = gunzipSync(
-        await readFile(
-          new URL(
-            `../../assets/runtime/${catalog.gzip[id.bundle].hash}/bundle.bin`,
-            import.meta.url,
-          ),
-        ),
-      );
-      return JSON.parse(bytes.subarray(16, 16 + bytes.readUInt32LE(8)).toString());
-    }),
-  );
-  // VERTEX_BYTES in crates/renderer-core/src/models/geometry.rs: shared GPU ABI.
-  const PACKED_VERTEX_BYTES = 48;
-  const vertices = (header) => {
-    const meshVertices = (node) => {
-      if (!node || typeof node !== "object") return 0;
-      if (node.positions?.$view !== undefined) return header.views[node.positions.$view][2] / 3;
-      return Object.values(node).reduce((sum, child) => sum + meshVertices(child), 0);
-    };
-    return meshVertices(header.content);
-  };
-  const vertexBytes = headers.reduce(
-    (sum, header) => sum + vertices(header) * PACKED_VERTEX_BYTES,
-    0,
-  );
-  // Skinned art packs the living mesh and posed copies for corpses. Different
-  // authored poses may yield identical palettes, which the art store shares;
-  // headers alone bound that multiplicity. Rigid/articulated arrivals are exact.
-  const posedVertexBytes = headers.reduce(
-    (sum, header) =>
-      sum +
-      vertices(header) * PACKED_VERTEX_BYTES * (1 + (header.content.corpse_poses?.length ?? 0)),
-    0,
-  );
+  const art = await growthArt(page, catalog, initialNames, names);
+  const { newContents, newFiles, vertexBytes } = art;
   for (const commit of commits) {
     const work = commit.detail?.work;
     console.log("battle-growth admission work", JSON.stringify(work));
@@ -208,16 +150,12 @@ export async function run(ctx) {
       newContents > 0 &&
         work?.page?.bundlesEncoded === newContents &&
         work?.core?.bundlesDecoded === newContents,
-      JSON.stringify({ added: [...added.values()], work }),
+      JSON.stringify({ added: art.added, work }),
     );
     ctx.check(
       "growth packs the meshes of its new art",
-      vertexBytes > 0 &&
-        (vertexBytes === posedVertexBytes
-          ? work?.core?.vertexBytesPacked === vertexBytes
-          : work?.core?.vertexBytesPacked >= vertexBytes &&
-            work?.core?.vertexBytesPacked <= posedVertexBytes),
-      JSON.stringify({ vertexBytes, posedVertexBytes, core: work?.core }),
+      vertexBytes > 0 && work?.core?.vertexBytesPacked === vertexBytes,
+      JSON.stringify({ vertexBytes, core: work?.core }),
     );
     ctx.check(
       "growth carries scenery without placement or upload",
@@ -227,10 +165,25 @@ export async function run(ctx) {
     ctx.check(
       "growth installs once and reads only its missing files",
       work?.page?.appearanceLibraryInstalls === 1 &&
-        work?.page?.runtimeContentsInflated <= newFiles.size,
-      JSON.stringify({ newFiles: newFiles.size, page: work?.page }),
+        work?.page?.runtimeContentsInflated <= newFiles,
+      JSON.stringify({ newFiles: newFiles, page: work?.page }),
     );
-    // Texture-layer and card delta assertions belong here when slices 04 and 05 land.
+    ctx.check(
+      "growth derives rest facts only for its new content and poses",
+      work?.core?.restPosesDerived === art.restPoses,
+      JSON.stringify({ restPoses: art.restPoses, core: work?.core }),
+    );
+    ctx.check(
+      "growth writes only new referenced textures without rebuilding arrays",
+      work?.core?.textureLayersWritten === art.textureLayers &&
+        work?.core?.textureArraysRebuilt === 0,
+      JSON.stringify({ textureLayers: art.textureLayers, core: work?.core }),
+    );
+    ctx.check(
+      "growth bakes only new runtime card keys",
+      work?.core?.cardsBaked === art.cards && (art.cards > 0 || work?.core?.cardReadWaits === 0),
+      JSON.stringify({ cards: art.cards, core: work?.core }),
+    );
   }
   // A loose tripwire at 700 ms, about one quarter of slice 00's 2.5–2.9 s
   // freeze at this profile. Work counts above are the performance contract.
@@ -253,5 +206,7 @@ export async function run(ctx) {
       longFrames: frames,
     }),
   );
+  page.off("console", record);
+  await Promise.all(details);
   await page.close();
 }

@@ -26,6 +26,8 @@ pub enum RebuildReason {
 pub struct AdmissionWork {
     pub bundles_decoded: u32,
     pub vertex_bytes_packed: u64,
+    /// Rest geometry scanned or skinned for distinct content/state/pose bake bounds.
+    pub rest_poses_derived: u32,
     pub buffer_bytes_uploaded: u64,
     pub texture_layers_written: u32,
     pub texture_bytes_uploaded: u64,
