@@ -374,6 +374,8 @@ pub struct Models {
     layout: BindGroupLayout,
     materials: Buffer,
     authored_materials: Vec<f32>,
+    /// Diagnostic controls write `materials`; bakes share this immutable copy.
+    impostor_materials: std::sync::OnceLock<Buffer>,
     surfaces: [bool; 4],
     buildings_shown: bool,
     models_shown: bool,
@@ -398,6 +400,9 @@ impl Drop for Models {
     fn drop(&mut self) {
         self.albedo.texture().destroy();
         self.surface.texture().destroy();
+        if let Some(materials) = self.impostor_materials.get() {
+            materials.destroy();
+        }
     }
 }
 
@@ -781,6 +786,9 @@ impl Models {
     pub fn record_memory(&self, memory: &mut crate::memory::ResourceMemory) {
         for buffer in [&self.materials, &self.palette, &self.instances] {
             memory.buffer(buffer);
+        }
+        if let Some(materials) = self.impostor_materials.get() {
+            memory.buffer(materials);
         }
         memory.view(&self.albedo);
         memory.view(&self.surface);

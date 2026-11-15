@@ -56,12 +56,13 @@ impl Renderer {
                 &self.gpu.device,
                 &self.gpu.queue,
                 &runtime.pipelines,
-                row,
+                &[row],
                 &spec,
+                &mut renderer_core::runtime::AdmissionWork::default(),
             )
             .map_err(js_error)?;
         Ok(future_to_promise(async move {
-            let atlas = request.read().await.map_err(js_error)?;
+            let atlas = request.read().await.map_err(js_error)?.remove(0);
             let result = js_sys::Object::new();
             field(&result, "appearance", atlas.appearance)?;
             field(

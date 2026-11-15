@@ -56,6 +56,8 @@ pub struct RuntimeConfig {
     pub hdr_output: bool,
     pub water_detail: WaterDetail,
     pub controls: Controls,
+    /// Target and readback byte bound for each card-bake batch.
+    pub card_bake_memory_bytes: u64,
 }
 
 /// CPU inputs rather than platform-assembled GPU resources. Presentation is
@@ -285,7 +287,13 @@ impl Runtime {
     /// Complete this admission phase before preparing the first frame.
     pub async fn prepare_assets(&mut self, device: &Device, queue: &Queue) -> Result<(), String> {
         self.models
-            .bake_cards(device, queue, &self.pipelines, &mut self.admission_work)
+            .bake_cards(
+                device,
+                queue,
+                &self.pipelines,
+                self.config.card_bake_memory_bytes,
+                &mut self.admission_work,
+            )
             .await
     }
 

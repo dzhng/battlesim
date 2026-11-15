@@ -242,6 +242,7 @@ impl Run {
             hdr_output: args.hdr,
             water_detail: Default::default(),
             controls: Default::default(),
+            card_bake_memory_bytes: renderer_core::impostor::DEFAULT_BAKE_MEMORY_BYTES,
         };
         let mut scene = Runtime::new(
             &gpu.device,

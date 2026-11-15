@@ -201,3 +201,67 @@ that chain is. The alternative, leaving it inside 05, kept the longest wait
 the player sees behind three other slices. Its batches are bounded by bytes
 because one runtime card is about 3 MB across its targets and a full rebuild
 bakes about 190 of them.
+
+**Slice 05a, 2026-11-15.** Confirmed first on the reference battle from the
+freeze report, at high graphics, in the scene runner's 1280 × 800 viewport.
+Temporary timers isolated the entire bake and each awaited read. The initial
+189-card bake took 0.904 s (567 reads, 0.361 s in those waits) before battle
+frames competed with it. Two later growths each baked 234 cards:
+
+| Growth | Bake | Awaited reads | Time in reads | Other bake work | Staging to commit |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Before 1 | 124.027 s | 702 | 122.914 s | 1.113 s | 127.356 s |
+| Before 2 | 104.598 s | 702 | 103.521 s | 1.077 s | 108.504 s |
+
+Over 99% of each growth's bake was in the sequential reads: the inference was
+right. Individual reads averaged 175 ms and 147 ms in these growths. The
+catalog and battle now produce more cards than slice 00's earlier measurement;
+these are this checkout's measured counts, not new expectations for content.
+
+After batching, the same reference route at high graphics committed its first
+two growth admissions in 5.248 s and 4.542 s. They each baked 189 cards, issuing
+567 GPU reads in 21 read-wait groups; the isolated bakes took 2.032 s and
+1.369 s. These are admission timings, not a matched-card benchmark: the earlier
+run materialized requested LFS files while loading and coalesced more arrivals
+before staging (234 cards), whereas the after run had those files available
+and admitted earlier (189 cards). The synthetic tests hold inputs fixed for the
+work-count and byte-equality proof.
+
+The reads no longer each add a frame. Within each card, 95% of channel wait
+spreads were at most 1 ms (maxima 15 ms and 3 ms). A whole batch still waits
+behind battle frames: its awaited duration averaged 94.9 ms and 63.3 ms, with
+maxima 179 ms and 183 ms. Those group durations include readback copying and
+coverage filtering, and sum to 1.993 s and 1.330 s; unlike the before timer,
+they are not pure GPU-read waits. Batching removes repeated round trips, not
+frame pacing or the synchronous staging freeze owned by the other slices.
+
+Decisions left open by 05a:
+
+| Decision | Why; alternative rejected |
+| --- | --- |
+| A 64 MiB byte bound, owned by `impostor::DEFAULT_BAKE_MEMORY_BYTES` and carried by `RuntimeConfig::card_bake_memory_bytes` into pending admissions | The runtime spec needs 7 MiB per card: three 1 MiB RGBA8 targets, three aligned 1 MiB readbacks, and 1 MiB of depth. Nine cards fit (63 MiB); a small new type fits one batch. Holding 234 cards together would account for about 1.6 GiB. A card-count cap was rejected because changing atlas dimensions would silently change its memory cost. A bound below one card is refused rather than silently exceeded. |
+| Submit every card in a batch, then use `futures_util::future::join_all` across cards and across their three channels | All maps can become pending before yielding to the browser; output order remains input order. `join_all` waits for every result before propagating an error, with no cancellation handle. A custom polling executor and a second single-card API were rejected. Each card keeps the original submission and target-destruction protocol. |
+| One lazily uploaded immutable authored-materials buffer per `Models` generation | Runtime batches and configurable review requests share it. Diagnostic channel controls still write the separate live materials table. Reusing that mutable table would bake diagnostic suppression; uploading per batch would still repeat stage work. `OnceLock` supplies the lifetime without another admission path, and memory diagnostics and destruction include the buffer. |
+| `impostor_request` takes a slice of rows and `BakeRequest::read` returns ordered atlases | Runtime and review use one grouped request contract. The browser review caller passes one row and still returns its existing single-atlas JavaScript object. Parallel wrapper APIs were rejected. |
+| `AdmissionWork::card_read_waits`, serialized as `cardReadWaits`, counts actual batch awaits | It travels through the existing generic serde/report path. The unchanged `battle-growth` logger prints it with the rest of the work. Timing assertions and a count derived only from the planned number of cards were rejected. |
+| Log a split at the bake site to native stderr or the browser console | The log includes card count, batch count, byte bound and bytes per card. A new logger/callback configuration was rejected for this tripwire. |
+
+Validation: `cargo test -p renderer-core --test asset_generations card --
+--nocapture` was red with the sequential implementation behind the new request
+seam: four cards reported 12 waits versus one, grouped requests were refused,
+and the materials upload was 640 bytes versus the fixture-derived 160 bytes.
+`cargo test -p renderer-core --test asset_generations --test impostors --
+--nocapture` then passed all seven admission tests and both existing impostor
+tests. Deliberately routing every batched request to its first row made
+`cards_baked_in_one_batch_match_each_card_baked_alone` fail on atlas identity;
+the mutation was removed. `cargo check -p native-client`,
+`cargo check -p renderer-browser --target wasm32-unknown-unknown` and the owning
+crates' all-target Clippy check passed. Temporary timers, scene copies and the
+fixture entry are excluded from the commit. No delegated decision remains open.
+
+After restoring the deliberate fault and removing instrumentation, both named
+GPU test binaries passed again. `SCENE_GRAPHICS_QUALITY=high bun run --cwd web
+scene -- battle-growth` also passed and printed `cardsBaked: 189` and
+`cardReadWaits: 21`. Its missing Paris homes/farmsteads kits and regional bench
+were LFS setup media; their region's requested bundles/textures were materialized
+before the successful run, without changing any assertion.

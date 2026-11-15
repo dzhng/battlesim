@@ -80,6 +80,7 @@ fn runtime_config() -> RuntimeConfig {
         hdr_output: false,
         water_detail: Default::default(),
         controls: Default::default(),
+        card_bake_memory_bytes: renderer_core::impostor::DEFAULT_BAKE_MEMORY_BYTES,
     }
 }
 
@@ -202,6 +203,7 @@ fn first_admission_reports_the_synthetic_fixture_work() {
             texture_layers_written: 0,
             texture_bytes_uploaded: 0,
             cards_baked: 0,
+            card_read_waits: 0,
             statics_bytes_uploaded: 0,
             scenery_placements: 0,
             rebuild_reason: None,
@@ -426,4 +428,347 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
         .is_err());
     assert_eq!(runtime.admission_work(), live_after_renewed);
     assert_eq!(world_names(&presentation), renewed_names);
+}
+
+fn container(content: serde_json::Value, views: serde_json::Value, body: &[u8]) -> Vec<u8> {
+    let header = serde_json::to_vec(&json!({"content": content, "views": views})).unwrap();
+    let mut bytes = Vec::new();
+    for word in [0x5441_4742u32, 4, header.len() as u32, body.len() as u32] {
+        bytes.extend(word.to_le_bytes());
+    }
+    bytes.extend(header);
+    bytes.extend(body);
+    bytes
+}
+
+fn card_bundle(color: [f32; 3]) -> (Vec<u8>, Vec<u8>) {
+    let mut body = Vec::new();
+    let mut views = Vec::new();
+    let mut array = |ty, bytes: &[u8], length| {
+        let at = views.len();
+        views.push(json!([ty, body.len(), length]));
+        body.extend(bytes);
+        json!({"$view": at})
+    };
+    let positions = [
+        -0.35f32, -0.2, 0., 0.3, -0.2, 0., -0.1, 0.25, 0., -0.1, 0., 0.8,
+    ];
+    let mesh = json!({
+        "positions": array("f32", bytemuck::cast_slice(&positions), positions.len()),
+        "normals": array("i16", bytemuck::cast_slice(&[0i16, 0, 32767, 0].repeat(4)), 16),
+        "uvs": array("f32", bytemuck::cast_slice(&[0f32; 8]), 8),
+        "colors": array("u8", &[255; 16], 16),
+        "joints": array("u8", &[0; 16], 16),
+        "weights": array("u16", bytemuck::cast_slice(&[65535u16, 0, 0, 0].repeat(4)), 16),
+        "indices": array("u16", bytemuck::cast_slice(&[0u16, 1, 2, 0, 1, 3, 1, 2, 3, 2, 0, 3]), 12),
+        "draws": [{"material": 0, "first": 0, "count": 12}],
+    });
+    let bundle = container(
+        json!({
+            "kind": "skinned", "skeleton": "synthetic",
+            "materials": [{"name":"cloth", "base_color":[color[0],color[1],color[2],1],
+                "metallic":0, "roughness":1, "tint":1, "coverage":{"kind":"opaque"}}],
+            "joints": [{"name":"root", "parent":-1,
+                "bind":{"t":[0,0,0],"r":[0,0,0,1],"s":[1,1,1]},
+                "inverse_bind":[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]}],
+            "tiers":[mesh], "far_pose":{"clip":"rise","phase":0},
+            "corpse_poses":[{"clip":"rise","phase":1}], "sockets":[]
+        }),
+        json!(views),
+        &body,
+    );
+    let mut samples = vec![0, 2];
+    samples.extend(bytemuck::cast_slice::<f32, u8>(&[0., 0., 0., 0.4, 0., 0.2]));
+    let skeleton = container(
+        json!({"sample_hz":1,"clips":[{
+            "name":"rise","frames":2,"duration":1,"loop":false,
+            "rotation_modes":{"$view":0},"translation_modes":{"$view":1},
+            "rotations":{"$view":2},"translations":{"$view":3}
+        }]}),
+        json!([["u8", 0, 1], ["u8", 1, 1], ["i16", 2, 0], ["f32", 2, 6]]),
+        &samples,
+    );
+    (bundle, skeleton)
+}
+
+fn card_catalog() -> (
+    Library,
+    BTreeMap<String, Asset>,
+    Vec<presentation::presentation::lab::ModelInput>,
+) {
+    let mut library = Library::default();
+    let mut assets = BTreeMap::new();
+    let mut models = Vec::new();
+    for (name, color) in [("cloth-a", [0.3, 0.6, 0.9]), ("cloth-b", [0.8, 0.4, 0.2])] {
+        let (bundle, skeleton) = card_bundle(color);
+        library
+            .insert_bundle(
+                name,
+                ContentId::new(
+                    contract::identity::bytes_hash(&bundle),
+                    Some(contract::identity::bytes_hash(&skeleton)),
+                )
+                .unwrap(),
+                &bundle,
+                &[],
+            )
+            .unwrap();
+        assets.insert(
+            name.into(),
+            Asset::from_bundle(&bundle, Some(&skeleton)).unwrap(),
+        );
+        for pose in [json!({"kind":"rest"}), json!({"kind":"corpse","lies":0})] {
+            models.push(
+                serde_json::from_value(json!({
+                    "appearance":name, "x":0,"y":0,"z":0,"yaw":0,"pose":pose
+                }))
+                .unwrap(),
+            );
+        }
+    }
+    (library, assets, models)
+}
+
+fn empty_card_runtime(gpu: &support::Gpu, bound: u64) -> (Presentation, Runtime) {
+    let mut presentation = Presentation::new(None, 30.).unwrap();
+    let game: serde_json::Value =
+        serde_json::from_str(include_str!("../../../fixtures/presentation.json")).unwrap();
+    let settings = presentation::settings::PresentationSettings::from_value(&game).unwrap();
+    let biome = presentation::static_world::ground::biome::Biome::load(
+        include_str!("../../../fixtures/biomes/summer.json"),
+        None,
+    )
+    .unwrap();
+    presentation
+        .set_ground(
+            presentation::static_world::ground::Source {
+                map: [0., 0., 64., 64.],
+                playable: [0., 0., 64., 64.],
+                grid: presentation::static_world::ground::tables::Grid {
+                    nx: 17,
+                    ny: 17,
+                    spacing: 4.,
+                    page_size: 16,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            biome,
+            settings.tuning(),
+        )
+        .unwrap();
+    let mut config = runtime_config();
+    config.card_bake_memory_bytes = bound;
+    let mut runtime = Runtime::new(
+        &gpu.device,
+        &gpu.queue,
+        config,
+        AdmissionWork::default(),
+        RuntimeWorld {
+            presentation: &mut presentation,
+            assets: &Library::default(),
+            geometry: Arc::new(WorldGeometry::from_triangles(&[], &[], &[], 64., None, &[])),
+            effect_sheets: effects(),
+        },
+    )
+    .unwrap();
+    pollster::block_on(runtime.prepare_assets(&gpu.device, &gpu.queue)).unwrap();
+    assert_eq!(
+        runtime.admission_work().card_read_waits,
+        0,
+        "no cards means no read wait"
+    );
+    (presentation, runtime)
+}
+
+#[test]
+fn card_bake_reports_one_read_wait_per_memory_batch() {
+    let gpu = support::gpu().expect("a GPU is required for card bake tests");
+    let card_bytes = renderer_core::impostor::Spec::runtime()
+        .bake_memory_bytes()
+        .unwrap();
+    for bound in [card_bytes * 8, card_bytes * 2 + card_bytes / 2] {
+        let (mut presentation, mut runtime) = empty_card_runtime(&gpu, bound);
+        let (mut library, assets, models) = card_catalog();
+        let catalog = presentation
+            .stage_catalog(assets, detail(), Default::default())
+            .unwrap();
+        let expected_cards = catalog
+            .view(&presentation)
+            .unwrap()
+            .world()
+            .appearances
+            .len();
+        assert!(expected_cards > 2, "fixture must split at the narrow bound");
+        let work = library.take_admission_work();
+        let pending = runtime
+            .stage_assets(
+                &gpu.device,
+                &gpu.queue,
+                &presentation,
+                catalog,
+                &library,
+                work,
+            )
+            .unwrap();
+        let ready = pollster::block_on(pending.prepare()).unwrap();
+        let work = ready.work().clone();
+        assert_eq!(work.cards_baked as usize, expected_cards);
+        assert_eq!(
+            work.card_read_waits as usize,
+            expected_cards.div_ceil((bound / card_bytes) as usize)
+        );
+        assert!(runtime
+            .commit_assets(&gpu.device, &gpu.queue, &mut presentation, ready, models)
+            .unwrap());
+        assert_eq!(
+            runtime.admission_work(),
+            work,
+            "the committed report carries the bake waits"
+        );
+    }
+}
+
+#[test]
+fn cards_baked_in_one_batch_match_each_card_baked_alone() {
+    let gpu = support::gpu().expect("a GPU is required for card bake tests");
+    let spec = renderer_core::impostor::Spec::runtime();
+    let (mut presentation, mut runtime) =
+        empty_card_runtime(&gpu, spec.bake_memory_bytes().unwrap() * 8);
+    let (mut library, assets, models) = card_catalog();
+    let catalog = presentation
+        .stage_catalog(assets, detail(), Default::default())
+        .unwrap();
+    let rows: Vec<_> = (0..catalog
+        .view(&presentation)
+        .unwrap()
+        .world()
+        .appearances
+        .len() as u32)
+        .collect();
+    let work = library.take_admission_work();
+    let ready = pollster::block_on(
+        runtime
+            .stage_assets(
+                &gpu.device,
+                &gpu.queue,
+                &presentation,
+                catalog,
+                &library,
+                work,
+            )
+            .unwrap()
+            .prepare(),
+    )
+    .unwrap();
+    assert!(runtime
+        .commit_assets(&gpu.device, &gpu.queue, &mut presentation, ready, models)
+        .unwrap());
+    let batched = pollster::block_on(
+        runtime
+            .models
+            .impostor_request(
+                &gpu.device,
+                &gpu.queue,
+                &runtime.pipelines,
+                &rows,
+                &spec,
+                &mut AdmissionWork::default(),
+            )
+            .unwrap()
+            .read(),
+    )
+    .unwrap();
+    assert_eq!(batched.len(), rows.len());
+    for (&row, batch) in rows.iter().zip(&batched) {
+        let alone = pollster::block_on(
+            runtime
+                .models
+                .impostor_request(
+                    &gpu.device,
+                    &gpu.queue,
+                    &runtime.pipelines,
+                    &[row],
+                    &spec,
+                    &mut AdmissionWork::default(),
+                )
+                .unwrap()
+                .read(),
+        )
+        .unwrap()
+        .remove(0);
+        assert!(
+            batch
+                .albedo
+                .as_chunks::<4>()
+                .0
+                .iter()
+                .any(|pixel| pixel[3] > 0),
+            "the fixture must draw geometry"
+        );
+        assert_eq!(batch.hash, alone.hash);
+        assert_eq!(batch.albedo, alone.albedo);
+        assert_eq!(batch.normal, alone.normal);
+        assert_eq!(batch.mask, alone.mask);
+    }
+    assert!(
+        batched
+            .iter()
+            .any(|atlas| atlas.albedo != batched[0].albedo),
+        "the fixture must draw distinct authored materials"
+    );
+    assert!(
+        batched
+            .iter()
+            .any(|atlas| atlas.center != batched[0].center),
+        "the fixture must distinguish its authored poses"
+    );
+    assert_ne!(
+        batched.first().unwrap().hash,
+        batched.last().unwrap().hash,
+        "the fixture must distinguish its poses/materials"
+    );
+}
+
+#[test]
+fn card_bake_uploads_the_authored_materials_once_per_stage() {
+    let gpu = support::gpu().expect("a GPU is required for card bake tests");
+    let spec = renderer_core::impostor::Spec::runtime();
+    let (presentation, runtime) = empty_card_runtime(
+        &gpu,
+        spec.bake_memory_bytes().unwrap() * 2 + spec.bake_memory_bytes().unwrap() / 2,
+    );
+    let (mut library, assets, _) = card_catalog();
+    let catalog = presentation
+        .stage_catalog(assets, detail(), Default::default())
+        .unwrap();
+    let material_bytes = ["cloth-a", "cloth-b"]
+        .into_iter()
+        .map(|name| library.bundle(name).unwrap().materials.len())
+        .sum::<usize>()
+        * 5
+        * 4
+        * std::mem::size_of::<f32>();
+    let work = library.take_admission_work();
+    let pending = runtime
+        .stage_assets(
+            &gpu.device,
+            &gpu.queue,
+            &presentation,
+            catalog,
+            &library,
+            work,
+        )
+        .unwrap();
+    let staged_bytes = pending.work().buffer_bytes_uploaded;
+    let ready = pollster::block_on(pending.prepare()).unwrap();
+    assert!(
+        ready.work().cards_baked > 1,
+        "fixture must bake several cards"
+    );
+    assert_eq!(
+        ready.work().buffer_bytes_uploaded - staged_bytes,
+        material_bytes as u64,
+        "the authored table is uploaded once, independent of the number of cards or batches"
+    );
 }

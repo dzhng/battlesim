@@ -123,6 +123,7 @@ impl Renderer {
                     hdr_output: false,
                     water_detail: settings.water_detail.unwrap_or_default(),
                     controls: settings.controls.unwrap_or_default(),
+                    card_bake_memory_bytes: renderer_core::impostor::DEFAULT_BAKE_MEMORY_BYTES,
                 },
             )
             .await?;

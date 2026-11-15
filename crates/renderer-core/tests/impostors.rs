@@ -125,11 +125,19 @@ fn diagnostic_texture_controls_do_not_change_authored_impostor_bakes() {
     let bake = || {
         pollster::block_on(
             models
-                .impostor_request(&gpu.device, &gpu.queue, &pipelines, 0, &Spec::runtime())
+                .impostor_request(
+                    &gpu.device,
+                    &gpu.queue,
+                    &pipelines,
+                    &[0],
+                    &Spec::runtime(),
+                    &mut AdmissionWork::default(),
+                )
                 .unwrap()
                 .read(),
         )
         .unwrap()
+        .remove(0)
     };
     let authored = bake();
     models.set_texture_channels(&gpu.queue, [false; 3]);
@@ -227,28 +235,51 @@ fn authored_bake_and_runtime_cards_preserve_coverage_normals_tint_and_real_geome
     let mut models = make_models(&gpu, &pipelines);
     let atlas = pollster::block_on(
         models
-            .impostor_request(&gpu.device, &gpu.queue, &pipelines, 0, &Spec::runtime())
+            .impostor_request(
+                &gpu.device,
+                &gpu.queue,
+                &pipelines,
+                &[0],
+                &Spec::runtime(),
+                &mut AdmissionWork::default(),
+            )
             .unwrap()
             .read(),
     )
-    .unwrap();
+    .unwrap()
+    .remove(0);
     let second = pollster::block_on(
         models
-            .impostor_request(&gpu.device, &gpu.queue, &pipelines, 0, &Spec::runtime())
+            .impostor_request(
+                &gpu.device,
+                &gpu.queue,
+                &pipelines,
+                &[0],
+                &Spec::runtime(),
+                &mut AdmissionWork::default(),
+            )
             .unwrap()
             .read(),
     )
-    .unwrap();
+    .unwrap()
+    .remove(0);
     assert_eq!(
         atlas.hash, second.hash,
         "identical GPU bake inputs must have the same identity"
     );
     let detached = {
         let old = make_models(&gpu, &pipelines);
-        old.impostor_request(&gpu.device, &gpu.queue, &pipelines, 0, &Spec::runtime())
-            .unwrap()
+        old.impostor_request(
+            &gpu.device,
+            &gpu.queue,
+            &pipelines,
+            &[0],
+            &Spec::runtime(),
+            &mut AdmissionWork::default(),
+        )
+        .unwrap()
     };
-    let detached = pollster::block_on(detached.read()).unwrap();
+    let detached = pollster::block_on(detached.read()).unwrap().remove(0);
     assert_eq!(
         atlas.hash, detached.hash,
         "an owned bake must finish after its originating model catalog is dropped"
@@ -271,9 +302,16 @@ fn authored_bake_and_runtime_cards_preserve_coverage_normals_tint_and_real_geome
         )
         .unwrap();
         let snapshot = rigid
-            .impostor_request(&gpu.device, &gpu.queue, &pipelines, 0, &Spec::runtime())
+            .impostor_request(
+                &gpu.device,
+                &gpu.queue,
+                &pipelines,
+                &[0],
+                &Spec::runtime(),
+                &mut AdmissionWork::default(),
+            )
             .unwrap();
-        let rigid_atlas = pollster::block_on(snapshot.read()).unwrap();
+        let rigid_atlas = pollster::block_on(snapshot.read()).unwrap().remove(0);
         assert_eq!(atlas.hash,rigid_atlas.hash,"the same rigid authored body must bake identically through static/articulated review inputs");
     }
     let covered = atlas
@@ -325,6 +363,7 @@ fn authored_bake_and_runtime_cards_preserve_coverage_normals_tint_and_real_geome
         &gpu.device,
         &gpu.queue,
         &pipelines,
+        renderer_core::impostor::DEFAULT_BAKE_MEMORY_BYTES,
         &mut AdmissionWork::default(),
     ))
     .unwrap();

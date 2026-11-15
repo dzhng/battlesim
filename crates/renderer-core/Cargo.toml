@@ -16,6 +16,7 @@ serde_json.workspace = true
 sha2 = "0.10"
 ryu-js = "1"
 libm.workspace = true
+futures-util = { version = "0.3", default-features = false, features = ["alloc"] }
 
 [dev-dependencies]
 contract = { path = "../contract" }
@@ -24,3 +25,6 @@ wgpu = "30.0.1"
 pollster = "0.4"
 presentation = { path = "../presentation", features = ["files"] }
 naga = { version = "30.0.1", default-features = false, features = ["wgsl-in"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys = { version = "0.3", features = ["console"] }

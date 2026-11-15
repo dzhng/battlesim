@@ -1867,6 +1867,7 @@ version = "0.1.0"
 dependencies = [
  "bytemuck",
  "contract",
+ "futures-util",
  "half",
  "libm",
  "naga",
@@ -1877,6 +1878,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "web-sys",
  "wgpu",
 ]
 

@@ -20,6 +20,7 @@ pub struct PendingAssets {
     catalog: CatalogDraft,
     assets: Assets,
     work: AdmissionWork,
+    card_bake_memory_bytes: u64,
 }
 
 /// An opaque complete generation. Dropping stale work never changes active art.
@@ -41,7 +42,13 @@ impl PendingAssets {
     pub async fn prepare(mut self) -> Result<ReadyAssets, String> {
         self.assets
             .models
-            .bake_cards(&self.device, &self.queue, &self.pipelines, &mut self.work)
+            .bake_cards(
+                &self.device,
+                &self.queue,
+                &self.pipelines,
+                self.card_bake_memory_bytes,
+                &mut self.work,
+            )
             .await?;
         Ok(ReadyAssets(self))
     }
@@ -94,6 +101,7 @@ impl Runtime {
                 grass,
             },
             work,
+            card_bake_memory_bytes: self.config.card_bake_memory_bytes,
         })
     }
 
