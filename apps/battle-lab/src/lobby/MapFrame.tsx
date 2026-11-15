@@ -50,11 +50,21 @@ export function MapFrame({
   useLayoutEffect(() => {
     const frame = picture.current;
     if (!frame) return;
-    for (const tag of frame.querySelectorAll("[data-held]")) tag.removeAttribute("data-held");
-    for (const { side, lane, held: who } of held ?? [])
-      frame
-        .querySelector(`[data-entry="${side}"][data-lane="${lane}"]`)
-        ?.setAttribute("data-held", who);
+    for (const tag of frame.querySelectorAll("[data-held]")) {
+      tag.removeAttribute("data-held");
+      tag.removeAttribute("role");
+      tag.removeAttribute("aria-label");
+    }
+    for (const { side, lane, held: who } of held ?? []) {
+      const tag = frame.querySelector(`[data-entry="${side}"][data-lane="${lane}"]`);
+      if (!tag) continue;
+      tag.setAttribute("data-held", who);
+      tag.setAttribute("role", "img");
+      tag.setAttribute(
+        "aria-label",
+        `${side === "blue" ? "Blue" : "Red"} lane ${lane}: ${who === "none" ? "unused" : who === "you" ? "you" : "occupied"}`,
+      );
+    }
   }, [svg, held]);
   return (
     <div className="lobby-frame" data-status={state.status} data-testid="lobby-map">
@@ -77,16 +87,23 @@ export function MapFrame({
 
 /** Quiet word on the map: whether it is coming, being redrawn, ready, or
  *  missing. */
-export function PreviewStatus({ state }: { state: PreviewState }) {
+export function PreviewStatus({ state, label }: { state: PreviewState; label?: string }) {
   return (
-    <p className="lobby-status" data-status={state.status} data-testid="lobby-status">
-      {state.status === "ready"
-        ? "Ready"
-        : state.status === "retrying"
-          ? `Redrawing map · try ${state.attempt}`
-          : state.status === "failed"
-            ? "No map"
-            : "Generating map"}
+    <p
+      className="lobby-status"
+      data-status={state.status}
+      data-testid="lobby-status"
+      role={label ? "status" : undefined}
+      aria-label={label ? "Map preview" : undefined}
+    >
+      {label ??
+        (state.status === "ready"
+          ? "Ready"
+          : state.status === "retrying"
+            ? `Redrawing map · try ${state.attempt}`
+            : state.status === "failed"
+              ? "No map"
+              : "Generating map")}
     </p>
   );
 }

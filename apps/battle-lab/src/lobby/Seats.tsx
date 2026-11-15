@@ -1,6 +1,6 @@
 import { FACTIONS } from "@packages/scene-assets/src/units";
-import { sideFaction, lobbyPlayers, type LobbySide } from "@packages/skirmish-setup/src/lobby";
-import { MAX_PLAYERS_PER_SIDE, type Seat } from "@packages/skirmish-setup/src/seats";
+import { sideFaction, type LobbySide } from "@packages/skirmish-setup/src/lobby";
+import { battlePlayers, MAX_PLAYERS_PER_SIDE, type Seat } from "@packages/skirmish-setup/src/seats";
 import { spoken } from "../battleLinks";
 import { Pick } from "./Choices";
 import type { LobbyDriver } from "./driver";
@@ -12,7 +12,14 @@ export function SideColumn({ side, driver }: { side: LobbySide; driver: LobbyDri
   const seats = lobby.seats.filter(
     (seat) => seat.side === side && (room || seat.occupant.kind !== "open"),
   );
-  const players = room ? [] : lobbyPlayers(lobby).filter((player) => player.side === side);
+  // battlePlayers requires both sides. For numbering an unfinished room only,
+  // give an empty side a placeholder; it is never rendered or sent to a preview.
+  const numbering = [...lobby.seats];
+  if (room)
+    for (const team of ["blue", "red"] as const)
+      if (!numbering.some((seat) => seat.side === team && seat.occupant.kind !== "open"))
+        numbering.push({ id: `numbering-${team}`, side: team, occupant: { kind: "ai" } });
+  const { playerOf } = battlePlayers(numbering);
   const name = side === "blue" ? "Blue" : "Red";
   return (
     <div className="lobby-side" data-side={side} aria-label={`${name} side`} role="group">
@@ -33,7 +40,7 @@ export function SideColumn({ side, driver }: { side: LobbySide; driver: LobbyDri
             key={seat.id}
             seat={seat}
             index={index + 1}
-            player={players[index]?.id}
+            player={playerOf[seat.id]}
             count={seats.length}
             driver={driver}
           />
@@ -71,19 +78,29 @@ function Banner({
     ? room.view.seats.find((view) => view.id === seat.id)!.occupant
     : seat.occupant;
   const you = room ? room.view.you === seat.id : occupant.kind === "human";
-  const name = `${seat.side === "blue" ? "Blue" : "Red"} ${index}`;
+  const sideName = seat.side === "blue" ? "Blue" : "Red";
+  const name = `${sideName} ${index}`;
+  const lane = player?.split("-").at(-1);
   const removable = count > 1 && (room ? room.editable && !you : occupant.kind !== "human");
+  /** What holds a seat nobody sits in. */
+  const vacant = occupant.kind === "human" ? null : occupant.kind;
   const sit = () => driver.sit(seat.id);
   const removeSeat = () => driver.remove(seat.id);
   return (
     <li
       className="lobby-banner"
+      aria-label={room ? `${name} seat` : undefined}
       data-player={player}
       data-you={you || undefined}
       data-kind={room ? occupant.kind : undefined}
     >
-      <span className="lobby-index" aria-hidden>
-        {index}
+      <span
+        className="lobby-index"
+        aria-hidden={room ? undefined : true}
+        role={room && player ? "img" : undefined}
+        aria-label={room && player ? `${sideName} lane ${lane}` : undefined}
+      >
+        {room ? lane : index}
       </span>
       {room ? (
         <>
@@ -93,32 +110,40 @@ function Banner({
               {you ? " · you" : ""}
               {occupant.host && <small>host</small>}
             </span>
-          ) : occupant.kind === "open" ? (
-            <button
-              type="button"
-              className="lobby-controller online-sit"
-              aria-label={`Sit ${name}`}
-              onClick={sit}
-            >
-              Open
-            </button>
           ) : (
-            <span className="lobby-controller">AI</span>
+            <>
+              {/* The host chooses what holds a seat nobody sits in; anyone
+                  may sit in an open one, by clicking anywhere on its row. */}
+              {room.editable && vacant ? (
+                <Pick
+                  label={`${name} seat`}
+                  testId={`lobby-seat-${seat.id}`}
+                  className="lobby-controller"
+                  options={["open", "ai"] as const}
+                  value={vacant}
+                  onChange={(to) => room.setSeat(seat.id, to)}
+                >
+                  {vacant === "open" ? "Open" : "AI"}
+                </Pick>
+              ) : (
+                vacant === "ai" && <span className="lobby-controller">AI</span>
+              )}
+              {vacant === "open" && (
+                <button
+                  type="button"
+                  className="lobby-controller online-sit"
+                  aria-label={`Sit ${name}`}
+                  onClick={sit}
+                >
+                  {room.editable ? "" : "Open"}
+                </button>
+              )}
+            </>
           )}
           {occupant.kind === "human" && "ready" in occupant && occupant.ready && (
             <span className="online-ready" role="status" aria-label={`${occupant.callsign} ready`}>
               Ready
             </span>
-          )}
-          {room.editable && occupant.kind !== "human" && (
-            <button
-              type="button"
-              className="online-set-seat"
-              aria-label={`Set ${name} ${occupant.kind === "open" ? "AI" : "open"}`}
-              onClick={() => room.setSeat(seat.id, occupant.kind === "open" ? "ai" : "open")}
-            >
-              {occupant.kind === "open" ? "Set AI" : "Set open"}
-            </button>
           )}
         </>
       ) : seat.side === "blue" && !you ? (
@@ -141,7 +166,11 @@ function Banner({
         <button
           type="button"
           className="lobby-remove"
-          aria-label={`Remove ${name}`}
+          aria-label={
+            room && occupant.kind === "human" && "callsign" in occupant
+              ? `Remove ${occupant.callsign} from room`
+              : `Remove ${name}`
+          }
           data-testid={`lobby-remove-${player}`}
           onClick={removeSeat}
         />

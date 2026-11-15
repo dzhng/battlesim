@@ -124,9 +124,9 @@ export function MultiplayerPage() {
           <div className="online-room-tools">
             <h3>Public rooms</h3>
             <span className="online-seat-key">
-              <SeatStrip seats={["human"]} side="blue" />
-              Player <SeatStrip seats={["open"]} side="blue" />
-              Open <SeatStrip seats={["ai"]} side="blue" />
+              <SeatStrip seats={["human"]} />
+              Player <SeatStrip seats={["open"]} />
+              Open <SeatStrip seats={["ai"]} />
               AI
             </span>
             <span className="online-spacer" />
@@ -187,8 +187,9 @@ export function MultiplayerPage() {
                     aria-label={`${room.host}'s room`}
                   >
                     <strong>{room.host}'s room</strong>
-                    <span>
-                      {spoken(room.map.type)} · {spoken(room.map.size)}
+                    <span className="online-room-map" aria-label="Map">
+                      <small className="lobby-label">Map</small> {spoken(room.map.type)} ·{" "}
+                      {spoken(room.map.size)}
                       {room.map.region ? ` · ${spoken(room.map.region)}` : ""}
                     </span>
                     <span className="online-room-seats">
@@ -205,7 +206,7 @@ export function MultiplayerPage() {
                         Join
                       </button>
                     ) : (
-                      <span>Full</span>
+                      <span>FULL</span>
                     )}
                   </li>
                 );
@@ -223,13 +224,13 @@ function SeatStrip({
   side,
 }: {
   seats: RoomList["rooms"][number]["blue"];
-  side: "blue" | "red";
+  side?: "blue" | "red";
 }) {
   return (
     <span
       className="online-seat-strip"
       data-side={side}
-      aria-label={`${side}: ${seats.join(", ")}`}
+      aria-label={`${side ? `${side}: ` : ""}${seats.join(", ")}`}
     >
       {seats.map((kind, index) => (
         <i key={index} data-kind={kind} />

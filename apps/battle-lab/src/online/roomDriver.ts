@@ -73,9 +73,18 @@ export function useRoom(code: string) {
 export function useRoomDriver(view: RoomView, act: (action: RoomAction) => void): LobbyDriver {
   const lobby = useMemo(() => roomLobby(view), [view]);
   const preview = useRoomPreview(lobby);
+  const state = preview.preview;
   const own = view.seats.find((seat) => seat.id === view.you)?.occupant;
   return {
     kind: "room",
+    previewStatus:
+      state.status === "ready"
+        ? "Map ready"
+        : state.status === "failed"
+          ? "Map unavailable"
+          : state.status === "retrying"
+            ? `Map redrawing · try ${state.attempt}`
+            : "Map generating",
     lobby,
     view,
     setType: (type) => act({ kind: "settings", patch: { map: { type } } }),

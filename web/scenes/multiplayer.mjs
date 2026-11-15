@@ -7,6 +7,8 @@ import {
   onlinePage,
   root,
   roomServer,
+  sizes,
+  uncovered,
 } from "./_rooms.mjs";
 
 export async function run(ctx) {
@@ -47,6 +49,59 @@ export async function run(ctx) {
           .getByRole("button", { name: /^Join .*room$/ })
           .count()) === 2,
     );
+    for (const size of sizes) {
+      await page.setViewportSize(size);
+      const rows = await page
+        .getByRole("list", { name: "Rooms" })
+        .getByRole("listitem")
+        .evaluateAll((rows) =>
+          rows.map((row) => {
+            const map = row.querySelector('[aria-label="Map"]');
+            return {
+              x: map.getBoundingClientRect().x,
+              case: getComputedStyle(map).textTransform,
+              labelCase: getComputedStyle(map.querySelector("small")).textTransform,
+            };
+          }),
+        );
+      ctx.check(
+        `room map columns align at ${size.width}`,
+        rows.every((r) => r.x === rows[0].x),
+        JSON.stringify(rows),
+      );
+      ctx.check(
+        `map rows use the label's upper case at ${size.width}`,
+        rows.every((r) => r.case === r.labelCase),
+        JSON.stringify(rows),
+      );
+      const legend = page.locator(".online-seat-key");
+      ctx.check(
+        "seat legend describes shapes without a team",
+        (await legend.locator("[data-side]").count()) === 0,
+      );
+      const ai = await page.locator('.online-room-seats [data-kind="ai"]').evaluateAll((seats) =>
+        seats.map((s) => {
+          const sample = document.querySelector(
+            `.online-room-seats [data-side="${s.parentElement.dataset.side}"] i`,
+          );
+          const role = getComputedStyle(sample);
+          return {
+            side: s.parentElement.dataset.side,
+            outline: getComputedStyle(s).borderTopColor,
+            role: sample.dataset.kind === "open" ? role.borderTopColor : role.backgroundColor,
+            stroke: getComputedStyle(s).borderTopStyle,
+            rowStroke: getComputedStyle(s.closest("li")).borderLeftStyle,
+          };
+        }),
+      );
+      ctx.check(
+        "AI blocks have equal strength on both sides",
+        ai.some((s) => s.side === "red") &&
+          ai.some((s) => s.side === "blue") &&
+          ai.every((s) => s.outline === s.role && s.stroke === s.rowStroke),
+        JSON.stringify(ai),
+      );
+    }
     await capture(page, folder, "rooms");
     await page.goto(new URL(ctx.url).origin);
     await page.locator("main.menu:not([inert])").waitFor({ timeout: 120_000 });
@@ -68,7 +123,7 @@ export async function run(ctx) {
     await refused.addInitScript(() =>
       localStorage.setItem(
         "battle.graphics",
-        JSON.stringify({ mode: "high", detectedMode: "high" }),
+        JSON.stringify({ mode: "high", detectedMode: "high", lastResult: null }),
       ),
     );
     await refused.route("**/hello", (route) => {
@@ -84,6 +139,13 @@ export async function run(ctx) {
       `${new URL(ctx.url).origin}/multiplayer?server=${encodeURIComponent(local.address)}`,
     );
     await refused.getByRole("status", { name: "Online unavailable" }).waitFor();
+    await uncovered(refused);
+    ctx.check(
+      "the refusal's words are visible after the cover leaves",
+      (await refused.getByRole("status", { name: "Online unavailable" }).isVisible()) &&
+        (await refused.getByRole("status", { name: "Online unavailable" }).innerText()) ===
+          "Online play is not available on this build.",
+    );
     ctx.check(
       "a refused build offers no online action",
       (await refused.getByRole("button", { name: "Create room" }).count()) === 0 &&

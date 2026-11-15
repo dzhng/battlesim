@@ -21,7 +21,7 @@ simulation test build here, with other sessions building too. Check
 `df -h .` before any Rust build or new checkout. Under about 30 GB free, run
 Rust passes one or two at a time; under 5 GB, start nothing and ask the user.
 
-**Done and committed:** slices 02 to 08, 10 to 15, 20, 21 and 24,
+**Done and committed:** slices 02 to 08, 10 to 17, 20, 21 and 24,
 and the local half of 09; the
 endurance half of slice 01. The branch holds staging as of
 2026-11-15. **The first playable checkpoint is reached:** two browsers
@@ -119,7 +119,7 @@ Rooms
 - [x] [14 Room model](slices/14-room-model.md)
 - [x] [15 Room service](slices/15-room-service.md)
 - [x] [16 Multiplayer screen](slices/16-multiplayer-screen.md)
-- [ ] [17 Room lobby screen](slices/17-room-lobby-screen.md)
+- [x] [17 Room lobby screen](slices/17-room-lobby-screen.md)
 - [ ] [18 Room battle](slices/18-room-battle.md)
 - [ ] [19 Milestone: a room battle across the internet](slices/19-milestone.md)
 

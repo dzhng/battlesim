@@ -62,6 +62,15 @@ function DrivenLobby({ driver }: { driver: LobbyDriver }) {
         <SideColumn side="red" driver={driver} />
       </div>
       <div className="lobby-strip">
+        {disabled && (
+          <span
+            className="lobby-label online-settings-note"
+            role="note"
+            aria-label="Set by the host"
+          >
+            Set by the host
+          </span>
+        )}
         {local && (
           <Choice
             label="match"
@@ -102,11 +111,11 @@ function DrivenLobby({ driver }: { driver: LobbyDriver }) {
           onChange={driver.setLighting}
           say={lightingLabel}
         />
-        <PreviewStatus state={preview} />
+        <PreviewStatus state={preview} label={room?.previewStatus} />
         {(!room || room.editable) && (
           <button
             type="button"
-            className="lobby-reroll"
+            className="lobby-reroll lobby-order"
             data-testid="lobby-reroll"
             onClick={driver.reroll}
           >
@@ -140,13 +149,18 @@ function RoomCommands({ driver }: { driver: Extract<LobbyDriver, { kind: "room" 
   const ready = own?.kind === "human" && own.ready;
   return (
     <>
-      <button type="button" aria-pressed={ready} onClick={() => driver.ready(!ready)}>
+      <button
+        type="button"
+        className="lobby-order"
+        aria-pressed={ready}
+        onClick={() => driver.ready(!ready)}
+      >
         {ready ? "Unready" : "Ready"}
       </button>
       {driver.editable && (
         <button
           type="button"
-          className="online-start"
+          className="lobby-order online-start"
           disabled={!driver.view.canStart}
           onClick={driver.start}
         >

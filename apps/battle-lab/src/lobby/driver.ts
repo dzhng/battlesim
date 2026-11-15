@@ -23,6 +23,7 @@ export type LobbyDriver = {
   | {
       kind: "room";
       view: RoomView;
+      previewStatus: string;
       editable: boolean;
       setSeat(seat: SeatId, to: "open" | "ai"): void;
       ready(ready: boolean): void;

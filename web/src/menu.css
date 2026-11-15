@@ -1513,7 +1513,7 @@ span.lobby-controller:not(.lobby-pick) {
 .lobby-status[data-status="failed"]::before {
   background: rgb(var(--hud-bad));
 }
-.hud-panel button.lobby-reroll {
+.hud-panel button.lobby-order {
   padding: 9px 16px;
   font-size: 11px;
   letter-spacing: 0.18em;

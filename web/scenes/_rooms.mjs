@@ -63,7 +63,10 @@ export async function onlinePage(ctx, local, name, path = "/multiplayer") {
   const page = await ctx.newPage({ viewport: sizes[0] });
   await page.addInitScript((name) => {
     localStorage.setItem("battle.callsign", name);
-    localStorage.setItem("battle.graphics", JSON.stringify({ mode: "high", detectedMode: "high" }));
+    localStorage.setItem(
+      "battle.graphics",
+      JSON.stringify({ mode: "high", detectedMode: "high", lastResult: null }),
+    );
   }, name);
   const handshake = page.waitForRequest((r) => r.url().endsWith("/hello"));
   await page.goto(`${new URL(ctx.url).origin}${path}?server=${encodeURIComponent(local.address)}`);
@@ -89,7 +92,14 @@ export async function commander(local, build, name) {
   return { who, code: room.code, close: () => lifetime.abort() };
 }
 
+export async function uncovered(page) {
+  await page.getByTestId("loading").waitFor({ state: "hidden", timeout: 120_000 });
+  await page.locator("main.menu:not([inert])").waitFor({ timeout: 120_000 });
+  await page.evaluate(() => document.fonts.ready);
+}
+
 export async function capture(page, folder, name, allSizes = true) {
+  await uncovered(page);
   await mkdir(folder, { recursive: true });
   for (const size of allSizes ? sizes : [page.viewportSize()]) {
     await page.setViewportSize(size);

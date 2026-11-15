@@ -107,7 +107,7 @@ test("a guest cannot change any setting or send a host action, while streamed se
 });
 
 test("ready, sit, add, remove and set-seat send actions and wait for the stream", async () => {
-  const { page, code } = await open();
+  const { page } = await open();
   expect(page.getByTestId("lobby-vs").textContent).toBe("1 VS 2");
   const sent: RoomAction[] = [];
   let release!: () => void;
@@ -147,15 +147,19 @@ test("ready, sit, add, remove and set-seat send actions and wait for the stream"
     () => expect(group(page, "Blue").getAllByRole("listitem")).toHaveLength(2),
     () => expect(group(page, "Blue").getAllByRole("listitem")).toHaveLength(3),
   );
+  // One picker on a seat nobody sits in: the host chooses Open or AI.
+  fireEvent.click(page.getByRole("button", { name: "Blue 2 seat" }));
+  expect(page.getAllByRole("option").map((option) => option.textContent)).toEqual(["open", "ai"]);
   await request(
-    page.getByRole("button", { name: "Set Blue 2 AI" }),
+    page.getByRole("option", { name: "ai" }),
     { kind: "set_seat", seat: "seat-3", to: "ai" },
     () => expect(page.getByRole("button", { name: "Sit Blue 2" })).toBeTruthy(),
     () => expect(page.queryByRole("button", { name: "Sit Blue 2" })).toBeNull(),
   );
   expect(page.getByTestId("lobby-vs").textContent).toBe("3 VS 2");
+  fireEvent.click(page.getByRole("button", { name: "Blue 2 seat" }));
   await request(
-    page.getByRole("button", { name: "Set Blue 2 open" }),
+    page.getByRole("option", { name: "open" }),
     { kind: "set_seat", seat: "seat-3", to: "open" },
     () => expect(page.queryByRole("button", { name: "Sit Blue 2" })).toBeNull(),
     () => expect(page.getByRole("button", { name: "Sit Blue 2" })).toBeTruthy(),
@@ -357,4 +361,107 @@ test("a successful action reply cannot change a banner while its streamed view i
     release();
   });
   await page.findByRole("status", { name: "SCOUT ready" });
+});
+
+test("room rows keep seat order but number only fighting lanes after a guest moves", async () => {
+  const { page } = await open(false);
+  await waitFor(() => expect(PreviewWorker.all.length).toBeGreaterThan(0));
+  const entries = (["blue", "red"] as const).flatMap((side) =>
+    [2400, 600].map((x) => ({ side, center: [x, side === "blue" ? 12 : 2988], yaw: 0 })),
+  );
+  await PreviewWorker.all.at(-1)!.admit({
+    sites: JSON.stringify({ entries, objectives: [] }),
+    svg: `<svg>${["blue", "red"].flatMap((side) => [1, 2].map((lane) => `<g data-entry="${side}" data-lane="${lane}"></g>`)).join("")}</svg>`,
+  });
+  expect(page.getByRole("img", { name: "Red lane 1: you" })).toBeTruthy();
+  expect(page.getByRole("img", { name: "Blue lane 2: unused" })).toBeTruthy();
+  fireEvent.click(page.getByRole("button", { name: "Sit Blue 2" }));
+  await waitFor(() => expect(group(page, "Blue").getByText("SCOUT · you")).toBeTruthy());
+  expect(page.getByRole("img", { name: "Blue lane 2: you" })).toBeTruthy();
+  expect(page.getByRole("img", { name: "Red lane 1: occupied" })).toBeTruthy();
+  expect(page.getByRole("img", { name: "Red lane 2: unused" })).toBeTruthy();
+  const red = group(page, "Red").getAllByRole("listitem");
+  expect(within(red[0]).getByRole("button", { name: "Sit Red 1" })).toBeTruthy();
+  expect(within(red[0]).queryByRole("img", { name: /lane/ })).toBeNull();
+  expect(within(red[1]).getByRole("img", { name: "Red lane 1" }).textContent).toBe("1");
+  expect(group(page, "Red").queryByRole("img", { name: "Red lane 2" })).toBeNull();
+  expect(
+    group(page, "Blue")
+      .getAllByRole("img")
+      .map((lane) => lane.textContent),
+  ).toEqual(["1", "2"]);
+});
+
+test("only guests see the host ownership note beside read-only settings", async () => {
+  const guest = await open(false);
+  expect(guest.page.getByRole("note", { name: "Set by the host" }).textContent).toBe(
+    "Set by the host",
+  );
+  for (const name of ["map", "size", "region", "lighting"])
+    for (const radio of within(guest.page.getByRole("radiogroup", { name })).getAllByRole("radio"))
+      expect((radio as HTMLButtonElement).disabled).toBe(true);
+  guest.page.unmount();
+  await service.close();
+  const host = await open();
+  expect(host.page.queryByRole("note", { name: "Set by the host" })).toBeNull();
+});
+
+test("the map status names the map while the player's ready state stays independent", async () => {
+  const { page } = await open();
+  const map = page.getByRole("status", { name: "Map preview" });
+  expect(map.textContent).toBe("Map generating");
+  await waitFor(() => expect(PreviewWorker.all.length).toBeGreaterThan(0));
+  await PreviewWorker.all.at(-1)!.admit();
+  expect(map.textContent).toBe("Map ready");
+  expect(page.queryByRole("status", { name: "SCOUT ready" })).toBeNull();
+  fireEvent.click(page.getByRole("button", { name: "Reroll" }));
+  await waitFor(() => expect(map.textContent).toBe("Map generating"));
+  await PreviewWorker.all.at(-1)!.refuse();
+  await waitFor(() => expect(map.textContent).toBe("Map unavailable"));
+  expect(page.getByRole("button", { name: "Ready" })).toBeTruthy();
+});
+
+test("both sides expose open seats as sit targets without a lane until occupied", async () => {
+  const { page, code, host } = await open(false);
+  await act(async () => {
+    await service.post(`/rooms/${code}/act`, host, { kind: "add_seat", side: "red" });
+    await service.post(`/rooms/${code}/act`, host, {
+      kind: "set_seat",
+      seat: "seat-5",
+      to: "open",
+    });
+  });
+  for (const name of ["Blue 2", "Red 3"]) {
+    const row = await page.findByRole("listitem", { name: `${name} seat` });
+    expect(within(row).getByRole("button", { name: `Sit ${name}` }).textContent).toBe("Open");
+    expect(within(row).queryByRole("img", { name: /lane/ })).toBeNull();
+  }
+  fireEvent.click(page.getByRole("button", { name: "Sit Red 3" }));
+  const row = page.getByRole("listitem", { name: "Red 3 seat" });
+  await waitFor(() => expect(within(row).getByText("SCOUT · you")).toBeTruthy());
+  expect(within(row).getByRole("img", { name: "Red lane 2" }).textContent).toBe("2");
+});
+
+test("the host's player removal says who leaves the room and removes that player", async () => {
+  const { page, code } = await open();
+  fireEvent.click(page.getByRole("button", { name: "Remove WING from room" }));
+  await waitFor(() => expect(page.queryByText("WING", { exact: true })).toBeNull());
+  const view = await snapshot(code);
+  expect(
+    view.seats.some((seat) => seat.occupant.kind === "human" && seat.occupant.callsign === "WING"),
+  ).toBe(false);
+  expect(group(page, "Red").getAllByRole("listitem")).toHaveLength(1);
+});
+
+test("an unfinished room numbers its real fighters without inventing a lane on the empty side", async () => {
+  const { page } = await open();
+  fireEvent.click(page.getByRole("button", { name: "Remove WING from room" }));
+  fireEvent.click(await page.findByRole("button", { name: "Red 1 seat" }));
+  fireEvent.click(page.getByRole("option", { name: "open" }));
+  await page.findByRole("button", { name: "Sit Red 1" });
+  expect(group(page, "Blue").getByRole("img", { name: "Blue lane 1" }).textContent).toBe("1");
+  expect(group(page, "Red").queryByRole("img", { name: /lane/ })).toBeNull();
+  await waitFor(() =>
+    expect(page.getByRole("status", { name: "Map preview" }).textContent).toBe("Map unavailable"),
+  );
 });
