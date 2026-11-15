@@ -114,6 +114,12 @@ export function newSeed(): string {
   return ((BigInt(high) << 32n) | BigInt(low)).toString();
 }
 
+/** A map seed from a caller's source of randomness (values in [0, 1)). */
+export function seedFrom(random: () => number): string {
+  const word = () => BigInt(Math.floor(random() * 2 ** 32));
+  return ((word() << 32n) | word()).toString();
+}
+
 /** `choice` pinned to this build's generator, the presets' revision and the
  *  catalogue's hash, under `limits`. */
 export function generationRequest(

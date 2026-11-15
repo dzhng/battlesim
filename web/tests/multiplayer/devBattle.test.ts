@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { timerClock } from "./timerClock";
 import { expect, test } from "vitest";
 import { devBattle } from "../../../apps/game-server/src/devBattle";
 import { createBattleHttp } from "../../../apps/game-server/src/http/index";
@@ -26,6 +27,7 @@ test("HTTP dev entry is opt-in, checks the credential and returns tickets withou
     const server = createBattleHttp(
       () => undefined,
       { commit: "test", sim: "test" },
+      { capacity: 0, clock: timerClock(), random: Math.random, clientAddressHeader: null },
       enabled ? battle.join : undefined,
     );
     await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));

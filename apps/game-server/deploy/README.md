@@ -19,7 +19,12 @@ independently of the working directory.
 The untested host adapter is [bento.mjs](bento.mjs). Its local CLI help supplied
 the file-write and private-app-registration commands. The proxy header is
 unconfigured: the help does not establish it, and no host request was made.
-Verify it before address-based throttling relies on it. No public visibility or promotion is part of this step.
+After verifying that the proxy replaces it, supply its name through
+`CLIENT_ADDRESS_HEADER` in the launch command. No header is trusted when this
+is unset: code-guess throttling uses the socket address, and ignores caller
+headers. A configured header must be present on room stream requests; missing
+values are refused rather than silently mixing address sources. No public
+visibility or promotion is part of this step.
 
 Only after the repository owner authorizes an outward release:
 

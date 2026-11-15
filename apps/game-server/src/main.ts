@@ -5,6 +5,7 @@ import { createBattleHost, type BattleHost } from "./battleHost/index.ts";
 import { nodeSetupData } from "./serverData.ts";
 import { battleRoute, createBattleHttp } from "./http/index.ts";
 import { devBattle } from "./devBattle.ts";
+import { battleCapacity } from "./rooms.ts";
 
 async function main() {
   const root = fileURLToPath(new URL(".", import.meta.url));
@@ -24,6 +25,18 @@ async function main() {
   const server = createBattleHttp(
     (id) => (id === "dev" ? route : undefined),
     build,
+    {
+      capacity: battleCapacity(),
+      clock: {
+        now: () => performance.now(),
+        schedule: (run, delay) => {
+          const timer = setTimeout(run, delay);
+          return () => clearTimeout(timer);
+        },
+      },
+      random: Math.random,
+      clientAddressHeader: process.env.CLIENT_ADDRESS_HEADER ?? null,
+    },
     process.argv.includes("--dev") ? dev.join : undefined,
   );
   const port = Number(process.env.PORT ?? 8787);

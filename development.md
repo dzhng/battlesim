@@ -13,6 +13,7 @@ Subsystem READMEs own commands and contracts for their code.
 | [Presentation](crates/presentation/README.md)             | Per-side frame publications: interpolation, poses, effects, cook-offs, tiers, and cast lights.       |
 | [Browser application](web/README.md)                      | Workers, map adapters, player input, readouts, build configuration, and browser verification.        |
 | [Battle lab](apps/battle-lab/README.md)                   | Player pages, shareable battle addresses, and focused developer fixtures.                            |
+| [Online authority](apps/game-server/README.md) | In-memory rooms, stream presence, admission capacity, and online battle transport. |
 | [Browser camera primitives](packages/renderer-core/README.md) | Camera/depth contracts, view control, camera rays and clearance.                                           |
 | [Browser render inputs](packages/battle-renderer/README.md) | Plain scene contracts, external geometry and material inputs.                                   |
 | [Scene assets](packages/scene-assets/README.md)           | Appearance contracts, validation, baking, loading, and Blender authoring.                            |

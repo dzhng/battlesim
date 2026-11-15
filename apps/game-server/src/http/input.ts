@@ -1,4 +1,8 @@
-import type { PreviewQuery, UpBatch } from "../../../../packages/multiplayer/src/wire.ts";
+import type {
+  PreviewQuery,
+  RoomAction,
+  UpBatch,
+} from "../../../../packages/multiplayer/src/wire.ts";
 
 const object = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
@@ -48,4 +52,27 @@ export function isPreview(value: unknown): value is PreviewQuery {
     value.building.units.every(natural) &&
     natural(value.building.building)
   );
+}
+
+/** Validate action envelopes only; the room model validates settings and permissions. */
+export function isRoomAction(value: unknown): value is RoomAction {
+  if (!object(value)) return false;
+  switch (value.kind) {
+    case "sit":
+    case "remove_seat":
+      return typeof value.seat === "string";
+    case "ready":
+      return typeof value.ready === "boolean";
+    case "leave":
+    case "start":
+      return true;
+    case "add_seat":
+      return value.side === "blue" || value.side === "red";
+    case "set_seat":
+      return typeof value.seat === "string" && (value.to === "open" || value.to === "ai");
+    case "settings":
+      return object(value.patch);
+    default:
+      return false;
+  }
 }

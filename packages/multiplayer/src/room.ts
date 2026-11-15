@@ -102,13 +102,16 @@ export function roomCode(random: () => number): RoomCode {
   return `${WORDS[draw(WORDS.length)]}-${draw(10_000).toString().padStart(4, "0")}`;
 }
 
+/** A new room: a 1v1 on the map `seed` makes, its host on Blue and Red's
+ *  seat open. The seed is the caller's, so each room opens on its own map. */
 export function createRoom(
   host: { who: string; callsign: string },
   visibility: Room["visibility"],
   code: RoomCode,
+  seed: string,
   now: number,
 ): Room {
-  const initial = preset("1v1");
+  const initial = reroll(preset("1v1"), seed);
   const hostSeat = initial.seats[0]!.id;
   const otherSeat = initial.seats.find((seat) => seat.id !== hostSeat);
   let lobby = setOccupant(initial, hostSeat, { kind: "human", who: host.who });

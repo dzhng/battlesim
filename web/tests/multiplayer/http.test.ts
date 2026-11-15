@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { timerClock } from "./timerClock";
 import { PageClock } from "./pageClock";
 import { join } from "node:path";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
@@ -66,7 +67,11 @@ async function serving() {
   ]);
   const route = battleRoute(host, (id) => seats.get(id), ordersPerSecond, clock.now);
   const routes = new Map([["duel", route]]);
-  const server = createBattleHttp((id) => routes.get(id), { commit: "test", sim: "test" });
+  const server = createBattleHttp(
+    (id) => routes.get(id),
+    { commit: "test", sim: "test" },
+    { capacity: 0, clock: timerClock(), random: Math.random, clientAddressHeader: null },
+  );
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
   if (!address || typeof address === "string") throw new Error("no TCP address");

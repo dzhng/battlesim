@@ -21,8 +21,8 @@ simulation test build here, with other sessions building too. Check
 `df -h .` before any Rust build or new checkout. Under about 30 GB free, run
 Rust passes one or two at a time; under 5 GB, start nothing and ask the user.
 
-**Done and committed:** slices 02 to 08, 10, 11, 13, 14, 20 and 24, and
-the local half of 09; the
+**Done and committed:** slices 02 to 08, 10, 11, 13, 14, 15, 20 and 24,
+and the local half of 09; the
 endurance half of slice 01. The branch holds staging as of
 2026-11-15. **The first playable checkpoint is reached:** two browsers
 command opposite sides of one battle on a local server
@@ -30,13 +30,13 @@ command opposite sides of one battle on a local server
 
 **Pick up here, in this order:**
 
-1. **Integrate slices 12, 15 and 21** (your side at the bottom, the room
-   service, Frontline rules), each handed to Codex on 2026-11-15 in its own
-   checkout with a report in `throwaway/multiplayer/` there. Slice 12
-   changes what a Red commander sees: look at the pictures, get an unprimed
-   critique, and show the user, the lane numbers in particular. Slice 21
-   must leave every existing digest unchanged and measures its own points
-   target (slice 01's run has no scores in it).
+1. **Integrate slices 12, 16, 17 and 21** (your side at the bottom, the
+   multiplayer screen, the room lobby screen, Frontline rules), each handed
+   to Codex on 2026-11-15 in its own checkout with a report in
+   `throwaway/multiplayer/` there. Slices 12, 16 and 17 change what a
+   player sees: look at the pictures, get an unprimed critique, and show
+   the user. Slice 21 must leave every existing digest unchanged and
+   measures its own length (slice 01's run has no scores in it).
 2. **Slice 09's push** waits for the user: ask before promoting a site
    build, before deploying, and before making the address public. Its local
    half is in, with a deploy step that is a dry run by default
@@ -109,7 +109,7 @@ Foundation
 
 Rooms
 - [x] [14 Room model](slices/14-room-model.md)
-- [ ] [15 Room service](slices/15-room-service.md)
+- [x] [15 Room service](slices/15-room-service.md)
 - [ ] [16 Multiplayer screen](slices/16-multiplayer-screen.md)
 - [ ] [17 Room lobby screen](slices/17-room-lobby-screen.md)
 - [ ] [18 Room battle](slices/18-room-battle.md)

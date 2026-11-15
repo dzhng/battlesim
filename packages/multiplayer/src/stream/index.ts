@@ -110,23 +110,30 @@ export interface RecordSource {
   end(reason: string): void;
 }
 
-/** One stream's producer end. A reader whose place is still in the ring
+/** A null byte budget retains only the current snapshot: state streams resend it
+ * on every open, through the same keyframe rule as a battle.
+ * One stream's producer end. A reader whose place is still in the ring
  *  continues from it. Any other reader is told `keyframe`, the producer is
  *  asked for one, and that reader hears nothing until a record flagged
  *  [`KEYFRAME`] arrives. The source never waits for a reader. */
 export function recordSource(
-  limitBytes: number,
+  limitBytes: number | null,
   describe: () => Omit<StreamOpen, "resume">,
   requestKeyframe: () => void,
 ): RecordSource {
-  const ring = recordRing(limitBytes);
+  const ring = limitBytes === null ? null : recordRing(limitBytes);
+  let nextId = 1;
+  let current: StreamRecord | null = null;
   type Reader = { deliver: (record: StreamRecord) => boolean; awaitingKeyframe: boolean };
   const readers = new Set<Reader>();
   let last: StreamRecord | null = null;
   return {
     append(kind, flags, payload) {
       if (last) throw new Error("the stream has ended");
-      const record = ring.append(kind, flags, payload);
+      const record = ring
+        ? ring.append(kind, flags, payload)
+        : { id: nextId++, kind, flags, payload: payload.slice() };
+      if (ring === null) current = record;
       for (const reader of readers) {
         if (reader.awaitingKeyframe && !(flags & KEYFRAME)) continue;
         reader.awaitingKeyframe = false;
@@ -135,7 +142,7 @@ export function recordSource(
       return record.id;
     },
     attach(after, deliver) {
-      const backlog = after === null ? "gap" : ring.since(after);
+      const backlog = after === null || ring === null ? "gap" : ring.since(after);
       const resume = backlog === "gap" && !last ? "keyframe" : "continued";
       if (!deliver(jsonRecord("open", { resume, ...describe() }))) return () => {};
       if (last) {
@@ -143,7 +150,9 @@ export function recordSource(
         return () => {};
       }
       if (backlog !== "gap") for (const record of backlog) if (!deliver(record)) return () => {};
-      const reader = { deliver, awaitingKeyframe: backlog === "gap" };
+      const snapshot = ring === null ? current : null;
+      if (snapshot && !deliver(snapshot)) return () => {};
+      const reader = { deliver, awaitingKeyframe: backlog === "gap" && snapshot === null };
       readers.add(reader);
       if (reader.awaitingKeyframe) requestKeyframe();
       return () => void readers.delete(reader);

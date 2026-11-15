@@ -26,7 +26,7 @@ const guest = {
   callsign: "Bravo",
 };
 const room = (visibility: "public" | "private" = "public") =>
-  createRoom(host, visibility, "TANGO-4821", 10);
+  createRoom(host, visibility, "TANGO-4821", "7", 10);
 const changed = (state: Room, by: string, action: Parameters<typeof roomReduce>[2], now = 20) => {
   const next = roomReduce(state, by, action, now);
   if ("refused" in next) throw new Error(next.refused);
@@ -35,7 +35,7 @@ const changed = (state: Room, by: string, action: Parameters<typeof roomReduce>[
 
 test("room creation assigns its first seat and presence time from the room inputs", () => {
   const legacyShape = { ...host, seat: "seat-99", ready: true, since: -1 };
-  const state = createRoom(legacyShape, "public", "TANGO-4821", 50);
+  const state = createRoom(legacyShape, "public", "TANGO-4821", "7", 50);
   expect(state.members[0]).toMatchObject({
     who: host.who,
     callsign: host.callsign,

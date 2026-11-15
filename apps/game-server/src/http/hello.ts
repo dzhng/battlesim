@@ -4,7 +4,7 @@ import type { BuildIdentity } from "../../../../packages/multiplayer/src/wire.ts
 /** Names and credentials belong to this server lifetime, never to a battle ticket. */
 export function helloRegistry(build: BuildIdentity) {
   const names = new Map<string, { base: string; callsign: string }>();
-  return (id: string, value: unknown): { callsign: string } | { refused: string } => {
+  const hello = (id: string, value: unknown): { callsign: string } | { refused: string } => {
     if (!value || typeof value !== "object") return { refused: "invalid" };
     const page = value as { build?: BuildIdentity; callsign?: unknown };
     if (page.build?.commit !== build.commit || page.build?.sim !== build.sim)
@@ -22,4 +22,8 @@ export function helloRegistry(build: BuildIdentity) {
     names.set(id, { base, callsign });
     return { callsign };
   };
+  return Object.assign(hello, {
+    callsignOf: (id: string) => names.get(id)?.callsign,
+    release: (id: string) => void names.delete(id),
+  });
 }

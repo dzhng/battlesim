@@ -29,3 +29,17 @@ The local build snapshots its identity and runtime data beside the bundle, so
 changing the working directory or rebuilding the checkout cannot change a
 running bundle's identity. The [release preparation](deploy/README.md) uses the
 site's simulation and an archive of its commit; it defaults to a dry run.
+
+Rooms reserve battle capacity when created, before anyone gathers or readies.
+The [service](src/rooms.ts) holds them in memory; the shared room model alone
+owns their rules. Room and list streams use the battle transport's record
+framing, with a current snapshot on each open. Starting stops at the model's
+`starting` phase until battle creation is connected.
+
+[Presence](src/presence.ts) counts all of a browser's open streams together.
+Its disconnect grace protects seats across stream cuts; a room's lifetime is
+measured from its last connected human, including a room nobody ever opens.
+Callsigns are assigned by `/hello` and held while connected or remembered by a
+room. Once both have forgotten a browser, its name is available again.
+
+The client-address trust boundary belongs to [deployment](deploy/README.md).

@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { timerClock } from "./timerClock";
 import { afterEach, expect, test, vi } from "vitest";
 import { createBattleHttp } from "../../../apps/game-server/src/http/index";
 import type { BuildIdentity } from "../../../packages/multiplayer/src/wire";
@@ -10,7 +11,12 @@ afterEach(async () => {
   vi.restoreAllMocks();
 });
 async function serving() {
-  const server = createBattleHttp(() => undefined, build);
+  const server = createBattleHttp(() => undefined, build, {
+    capacity: 0,
+    clock: timerClock(),
+    random: Math.random,
+    clientAddressHeader: null,
+  });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
   if (!address || typeof address === "string") throw new Error("no TCP address");
