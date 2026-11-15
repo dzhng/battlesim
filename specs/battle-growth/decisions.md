@@ -251,3 +251,25 @@ share content with another name. Everything else is decoded again because
 each admission's draft starts with no decoded bundles; slice 07 changes that.
 The scene also shows the battle staged twice before one commit, as the
 reference probe did.
+
+**Slice 01 in the reference battle, 2026-11-15.** The probe again, on the
+merged tree, at high graphics:
+
+| Growth | Staging to commit | Files fielding read | Installs | Cards baked |
+| --- | ---: | ---: | ---: | ---: |
+| 1 (staged twice, 4 s apart) | 109 s | 2 (8 MB) | 1 | 189 |
+| 2 | 65 s | 2 (5 MB) | 1 | 189 |
+| 3 | 69 s | 4 (12 MB) | 1 | 207 |
+| 4 | 70 s | 2 (4 MB) | 1 | 207 |
+
+- Before the slice each growth read all 136 files (635 MB) and installed
+  twice. The first scene still reads 136 and installs two generations.
+- The freeze at staging is unchanged, 2.6–3.6 s, as expected: it is the
+  geometry, texture and transport work of slices 03, 04, 07 and 08.
+- **The doubled staging is two stagings of the same art.** Growth 1 staged
+  twice four seconds apart, both times with 145 appearances, and the first
+  build was thrown away after its bake. The kinds list changes only when its
+  content does, so the second staging is most likely a kind that brings no
+  new appearance (a contact's kind, a wreck's owner). That is not confirmed.
+  Slice 08 owns it: a staging that wants the same art as the build in flight
+  should not discard that build.
