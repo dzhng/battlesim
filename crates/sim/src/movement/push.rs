@@ -93,6 +93,25 @@ pub fn pressed(world: &WorldGeometry, unit: &Unit) -> Vec<PropId> {
         .collect()
 }
 
+/// The footprints of the bodies that stop vehicles within touch of `unit`'s
+/// hull: what it is pressed against.
+pub fn pressing(world: &WorldGeometry, unit: &Unit) -> Vec<Obb2> {
+    let Some(hull) = unit.ground_footprint() else {
+        return Vec::new();
+    };
+    let reach = Obb2 {
+        half: hull.half + v2(TOUCH_M, TOUCH_M),
+        ..hull
+    };
+    world
+        .props_near(hull.center, reach.half.length())
+        .into_iter()
+        .filter(|prop| prop.blocks(MoverClass::Vehicle))
+        .map(Prop::footprint)
+        .filter(|body| reach.overlaps(body))
+        .collect()
+}
+
 /// A vehicle driving into bodies this tick: the unit, where its hull goes
 /// and its horizontal travel.
 #[derive(Clone, Copy)]

@@ -212,8 +212,10 @@ fn request_route(
             return;
         }
     }
-    // A stalled vehicle goes round the whole knot. A waiting rear vehicle
-    // must also move aside when the one in front needs room to reverse.
+    // A stalled vehicle goes round the whole knot, and round the bodies its
+    // hull is pressed against: one it could shove alone may be jammed
+    // against another (no chain shoves). A waiting rear vehicle must also
+    // move aside when the one in front needs room to reverse.
     let detour: Vec<Obb2> = if stalled && unit.is_vehicle() {
         let here = unit.position.xy();
         footprints
@@ -222,6 +224,7 @@ fn request_route(
             .filter(|(k, _)| *k != unit.id.0 as usize)
             .filter_map(|(_, hull)| *hull)
             .filter(|hull| (hull.center - here).within_radius(KNOT_M))
+            .chain(push::pressing(ctx.world, unit))
             .map(|hull| Obb2 {
                 half: hull.half + v2(TRAFFIC_MARGIN_M, TRAFFIC_MARGIN_M),
                 ..hull

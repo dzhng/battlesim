@@ -14,6 +14,48 @@ use super::{
     PROGRESS_EPSILON_M,
 };
 
+/// Where `motion`'s step from `current` lands on true geometry: free, with
+/// the bodies it shoves and the ground under it; or held, by the body that
+/// stops it (one it cannot shove, or one whose shove is jammed), or by
+/// ground it cannot cross (`None`).
+fn land(
+    ctx: &MovementContext,
+    units: &[Unit],
+    i: usize,
+    current: &Obb2,
+    motion: &drive::Motion,
+) -> Result<(V2, Vec<Shove>, crate::world::Surface), Option<Obb2>> {
+    let next = current.center + motion.heading * motion.step;
+    let hull = Obb2 {
+        center: next,
+        yaw: motion.yaw,
+        half: current.half,
+    };
+    let met = push::meet(ctx.world, &hull, current, units[i].ground().push);
+    if let Some(body) = met.solid.and_then(|id| ctx.world.prop(id)) {
+        return Err(Some(body.footprint()));
+    }
+    let turn = ctx.rules.pushing.turn_deg_per_m.to_radians();
+    let pusher = push::Pusher {
+        unit: i,
+        hull,
+        heading: motion.heading,
+    };
+    let mut shoved = Vec::new();
+    for prop in &met.shoved {
+        match push::shove(ctx.world, units, pusher, prop, turn) {
+            Some(s) => shoved.push(s),
+            None => return Err(Some(prop.footprint())),
+        }
+    }
+    let ground = ctx
+        .world
+        .surface_at(next.x, next.y)
+        .filter(|s| s.traversable)
+        .ok_or(None)?;
+    Ok((next, shoved, ground))
+}
+
 pub(super) fn step_vehicle(
     ctx: &MovementContext,
     units: &mut [Unit],
@@ -115,7 +157,6 @@ pub(super) fn step_vehicle(
         if behind.solid.is_none() && behind.shoved.is_empty() && traffic.is_none() {
             motion = back;
             next = at;
-            met = behind;
             blocker = None;
         }
     }
@@ -143,32 +184,36 @@ pub(super) fn step_vehicle(
             side.learn(prop, ctx.authored, ctx.rules.pushing.relearn_m, resting);
         }
     }
-    let turn = ctx.rules.pushing.turn_deg_per_m.to_radians();
-    let pusher = push::Pusher {
-        unit: i,
-        hull: hull_at(next, motion.yaw),
-        heading: motion.heading,
-    };
-    let mut shoved = Vec::new();
-    let mut solid = met.solid.is_some();
-    for prop in &met.shoved {
-        match push::shove(ctx.world, units, pusher, prop, turn) {
-            Some(s) => shoved.push(s),
-            None => solid = true,
+    let mut landed = land(ctx, units, i, &current, &motion);
+    // A forward step held at its trailing end (a turn swinging the tail
+    // into a jammed body) rolls straight on instead, when that lands free.
+    if let Err(Some(body)) = landed {
+        let trailing = current.to_local(body.closest(here)).x * drive::gear(&units[i]) < 0.0;
+        if trailing && !motion.backwards && motion.yaw != units[i].yaw {
+            let straight = drive::Motion {
+                yaw: units[i].yaw,
+                heading: drive::travel_heading(&units[i]),
+                ..motion
+            };
+            if let Ok(free) = land(ctx, units, i, &current, &straight) {
+                motion = straight;
+                landed = Ok(free);
+            }
         }
     }
-    let ground = ctx
-        .world
-        .surface_at(next.x, next.y)
-        .filter(|s| s.traversable);
-    if solid || ground.is_none() {
-        let held_yaw = stationary_yaw(ctx.world, units, i, motion.yaw);
-        let unit = &mut units[i];
-        unit.yaw = held_yaw;
-        unit.drive_speed_mps = 0.0;
-        return;
-    }
-    let ground = ground.expect("traversable ground checked above");
+    let (next, shoved, ground) = match landed {
+        Ok(free) => free,
+        Err(held_by) => {
+            let held_yaw = stationary_yaw(ctx.world, units, i, motion.yaw);
+            let unit = &mut units[i];
+            unit.yaw = held_yaw;
+            unit.drive_speed_mps = 0.0;
+            if let Some(body) = held_by.filter(|_| !motion.backwards) {
+                drive::held_ahead(unit, body, target);
+            }
+            return;
+        }
+    };
     let unit = &mut units[i];
     shoves.extend(shoved);
     unit.yaw = motion.yaw;

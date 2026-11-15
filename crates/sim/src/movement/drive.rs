@@ -8,17 +8,19 @@
 //! sends them straight along their length to where the whole turn clears
 //! ([`room_to_turn`]). Wheels never pivot: the yaw
 //! turns only as the hull rolls, at most `1 / radius` per metre, so a
-//! U-turn is an arc. A corner of the route inside the turning circle is cut
-//! when the straight way past it is clear ([`prune`]). The route's end, a
-//! corner it cannot cut, or a turn whose next metre runs into a solid
-//! starts a three-point turn: a leg driven against the order's direction
-//! that keeps turning the same way, until the forward arc to the waypoint
-//! is clear. A leg that cannot turn its way (a hull nosed into a gap
-//! between parked cars) backs out straight, or turning the other way. A
-//! turn that would swing the trailing end into a body (a tail in an alley's
-//! mouth) rolls straight on until it clears instead, since backing would
-//! only drive the tail further in. Every arc is swept for bodies finer than
-//! a corner can swing through one.
+//! U-turn is an arc. A waypoint inside the turning circle, or already under
+//! the hull, is dropped when the straight way past it is clear ([`prune`]).
+//! The route's end, a corner it cannot cut, or a turn whose next metre runs
+//! into a solid starts a three-point turn: a leg driven against the order's
+//! direction that keeps turning the same way, until the forward arc to the
+//! waypoint is clear. A leg that cannot turn its way (a hull nosed into a
+//! gap between parked cars) backs out straight, or turning the other way. A
+//! blocked turn rolls straight on instead, while straight ahead is clear,
+//! when the way lies ahead or the block is at the trailing end (a tail in
+//! an alley's mouth, which backing would drive further in). Every arc is
+//! swept for bodies finer than a corner can swing through one, and the step
+//! itself must land clear; a step held at the nose anyway (a jammed shove)
+//! starts the reverse leg ([`held_ahead`]).
 //!
 //! A reverse move (Q31) drives the same way with the travel direction
 //! behind the hull, so the facing is held, at the reverse fraction of the
@@ -79,6 +81,16 @@ fn gear_sign(direction: MoveDirection) -> f64 {
         MoveDirection::Forward => 1.0,
         MoveDirection::Reverse => -1.0,
     }
+}
+
+/// `unit`'s gear for its current order: +1 forward, -1 reverse.
+pub(super) fn gear(unit: &Unit) -> f64 {
+    gear_sign(unit.direction())
+}
+
+/// The unit direction `unit` travels along for its current order.
+pub(super) fn travel_heading(unit: &Unit) -> V2 {
+    dir(travel(unit.yaw, gear(unit)))
 }
 
 /// The travel heading of a hull at `yaw` in `gear` (+1 forward, -1 back).
@@ -399,16 +411,19 @@ pub fn steer(
         // other way.
         let full = m.turn * curvature(v);
         for turn in [full, 0.0, -full] {
-            if arc_clear(world, unit, back, turn, PROBE_M, traffic).is_ok() {
-                let dyaw = turn * step;
-                return Motion {
-                    yaw: unit.yaw + dyaw,
-                    heading: dir(travel(unit.yaw, back) + dyaw / 2.0),
-                    step,
-                    backwards: back < 0.0,
-                    making_space: false,
-                    blocker: None,
-                };
+            let dyaw = turn * step;
+            let leg = Motion {
+                yaw: unit.yaw + dyaw,
+                heading: dir(travel(unit.yaw, back) + dyaw / 2.0),
+                step,
+                backwards: back < 0.0,
+                making_space: false,
+                blocker: None,
+            };
+            if arc_clear(world, unit, back, turn, PROBE_M, traffic).is_ok()
+                && lands(world, unit, &leg, back).is_none()
+            {
+                return leg;
             }
         }
         // Nothing behind is clear either: the leg ends, and the forward arc
@@ -423,21 +438,35 @@ pub fn steer(
     let dyaw = error.clamp(-max, max);
     let reach = PROBE_M.min((distance - super::PROGRESS_EPSILON_M).max(0.0));
     let turn = error.clamp(-curvature(v) * PROBE_M, curvature(v) * PROBE_M) / PROBE_M;
-    if let Err(block) = arc_clear(world, unit, gear, turn, reach, traffic) {
-        // The turn swings the trailing end into a body (a tail in an
-        // alley's mouth): backing would only drive it further in, so roll
-        // straight on until the turn clears.
-        if matches!(block, ArcBlock::Solid { trailing: true })
+    let turning = Motion {
+        yaw: unit.yaw + dyaw,
+        heading: dir(heading + dyaw / 2.0),
+        step,
+        backwards: gear < 0.0 && step > 0.0,
+        making_space: false,
+        blocker: None,
+    };
+    let blocked = arc_clear(world, unit, gear, turn, reach, traffic)
+        .err()
+        .or_else(|| {
+            lands(world, unit, &turning, gear).map(|trailing| ArcBlock::Solid { trailing })
+        });
+    if let Some(block) = blocked {
+        // A turn blocked while straight ahead is clear rolls straight on
+        // until it clears, when the way lies ahead (a backing leg would
+        // give up ground it needs) or the block is at the trailing end (a
+        // tail in an alley's mouth, which backing drives further in).
+        let straight = Motion {
+            yaw: unit.yaw,
+            heading: dir(heading),
+            ..turning
+        };
+        let ahead = error.abs() < std::f64::consts::FRAC_PI_2;
+        if matches!(block, ArcBlock::Solid { trailing } if trailing || ahead)
             && arc_clear(world, unit, gear, 0.0, reach, traffic).is_ok()
+            && lands(world, unit, &straight, gear).is_none()
         {
-            return Motion {
-                yaw: unit.yaw,
-                heading: dir(heading),
-                step,
-                backwards: gear < 0.0 && step > 0.0,
-                making_space: false,
-                blocker: None,
-            };
+            return straight;
         }
         // The forward arc runs into a solid: back up, still turning the same way.
         unit.manoeuvre = Some(Manoeuvre {
@@ -456,14 +485,38 @@ pub fn steer(
             },
         };
     }
-    Motion {
-        yaw: unit.yaw + dyaw,
-        heading: dir(heading + dyaw / 2.0),
-        step,
-        backwards: gear < 0.0 && step > 0.0,
-        making_space: false,
-        blocker: None,
+    turning
+}
+
+/// A wheeled vehicle whose forward step `body` holds at its leading end (a
+/// jammed shove, or a corner the arc's samples passed) backs up turning
+/// toward `target`, as when its arc is blocked; otherwise the follower picks
+/// the same step every tick.
+pub fn held_ahead(unit: &mut Unit, body: Obb2, target: V2) {
+    let wheeled = unit.ground().drive.is_some_and(|d| !d.tracked);
+    let Some(hull) = unit.ground_footprint() else {
+        return;
+    };
+    let gear = gear_sign(unit.direction());
+    let leading = hull.to_local(body.closest(hull.center)).x * gear > 0.0;
+    if !wheeled || !leading || unit.manoeuvre.is_some() {
+        return;
     }
+    let to = target - hull.center;
+    let error = wrap_angle(libm::atan2(to.y, to.x) - travel(unit.yaw, gear));
+    unit.manoeuvre = Some(Manoeuvre {
+        turn: if error >= 0.0 { 1.0 } else { -1.0 },
+        driven_m: 0.0,
+    });
+}
+
+/// What stops `motion`'s own step, travelling in `gear`, if anything (as
+/// [`solid_at`]). The arc's samples, a tenth of a metre apart, can pass a
+/// corner that grazes a body within the first few millimetres; the step
+/// itself must still land clear, or the follower picks it again every tick.
+fn lands(world: &WorldGeometry, unit: &Unit, motion: &Motion, gear: f64) -> Option<bool> {
+    let at = unit.position.xy() + motion.heading * motion.step;
+    solid_at(world, unit, at, motion.yaw, gear)
 }
 
 /// The ordered arrival heading, refined by the route's final approach.
@@ -602,10 +655,11 @@ pub fn pivot(
 }
 
 /// Drop the waypoints a wheeled vehicle has done with before it steers:
-/// one reached, one it passes abeam, or a corner inside its turning circle
-/// whose clearance it does not need: the straight way on to the next
-/// waypoint fits its side's grid with the other vehicles in `traffic` as
-/// solid, since a detour's corners clear vehicles the grid does not hold.
+/// one reached, one it passes abeam, or one inside its turning circle or
+/// under its own hull whose clearance it does not need: the straight way on
+/// to the next waypoint fits its side's grid with the other vehicles in
+/// `traffic`, and the bodies its hull is pressed against, as solid, since a
+/// detour's corners clear vehicles and jammed bodies the grid does not hold.
 /// A route's corners supply clearance; the steering owner follows them at
 /// the hull's turning radius. Returns whether the route's end is reached.
 pub(super) fn prune(
@@ -620,13 +674,16 @@ pub(super) fn prune(
     };
     let known = &mut sides[unit.side.index()];
     let own = unit.id.0 as usize;
+    let pressed = super::push::pressing(ctx.world, unit);
     let others = || -> Vec<Obb2> {
         let hulls = traffic.iter().enumerate();
         hulls
             .filter_map(|(id, hull)| hull.filter(|_| id != own))
+            .chain(pressed.iter().copied())
             .collect()
     };
     let here = unit.position.xy();
+    let hull = unit.ground_footprint().expect("a vehicle has a hull");
     let heading = travel(unit.yaw, gear_sign(unit.direction()));
     let route = unit.route.as_mut().expect("a route to follow");
     while let Some(&wp) = route.first() {
@@ -639,7 +696,8 @@ pub(super) fn prune(
         // Never the route's end: that is where it must stand.
         let side = if signed >= 0.0 { 1.0 } else { -1.0 };
         let passed = route.len() > 1
-            && inside_circle(here, heading, side, drive.radius_m, wp, 0.0)
+            && (inside_circle(here, heading, side, drive.radius_m, wp, 0.0)
+                || hull.contains(wp, 0.0))
             && known
                 .grid(ctx.world, ctx.authored)
                 .way_fits(here, route[1], &mobility, &others());
