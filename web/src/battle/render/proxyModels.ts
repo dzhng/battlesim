@@ -4,13 +4,13 @@ import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import { positionsBounds } from "@packages/scene-assets/src/pose";
 import type { ArticulatedBundle } from "@packages/scene-assets/src/schema";
 import type { LabModel } from "../sim/presentationModels";
+import { generatedContentId } from "./contentIdentity";
 import { modelAsset, type ModelAsset } from "./modelAssets";
 
 const PREFIX = "__renderer_proxy__:";
 
 /** The one battle appearance Rust uses while a unit's authored art is absent. */
 export const BATTLE_STAND_IN_APPEARANCE = "__battle_stand_in__";
-export const BATTLE_STAND_IN_HALF_EXTENTS = [0.6, 0.6, 0.6] as const;
 
 /** Whether an admitted appearance is a generated primitive. */
 export function isProxyAppearance(name: string): boolean {
@@ -67,10 +67,24 @@ function proxyBundle(kind: DrawnProxyKind, tint: readonly number[]): Articulated
   };
 }
 
+const battleStandInBundle = proxyBundle("box", [1, 1, 1]);
+const battleStandInBounds = battleStandInBundle.bounds;
+export const BATTLE_STAND_IN_HALF_EXTENTS = [
+  (battleStandInBounds.max[0] - battleStandInBounds.min[0]) / 2,
+  (battleStandInBounds.max[1] - battleStandInBounds.min[1]) / 2,
+  (battleStandInBounds.max[2] - battleStandInBounds.min[2]) / 2,
+] as const;
+
 /** The battle stand-in is admitted with the first generation, before any
  * withheld unit art can arrive. It is an ordinary articulated box asset. */
+const BATTLE_STAND_IN_ASSET = modelAsset(
+  BATTLE_STAND_IN_APPEARANCE,
+  battleStandInBundle,
+  generatedContentId(battleStandInBundle),
+);
+
 export function battleStandInAsset(): ModelAsset {
-  return modelAsset(BATTLE_STAND_IN_APPEARANCE, proxyBundle("box", [1, 1, 1]));
+  return BATTLE_STAND_IN_ASSET;
 }
 
 /** Active-generation deduplication only; transforms and highlights do not own art. */
@@ -87,8 +101,10 @@ export function proxyModels(
     const name = `${PREFIX}${instance.kind}:${Array.from(bits, (v) => v.toString(16)).join(":")}`;
     if (installed.has(name))
       throw new Error(`proxy appearance ${name} collides with installed art`);
-    if (!assets.has(name))
-      assets.set(name, modelAsset(name, proxyBundle(instance.kind, instance.color)));
+    if (!assets.has(name)) {
+      const bundle = proxyBundle(instance.kind, instance.color);
+      assets.set(name, modelAsset(name, bundle, generatedContentId(bundle)));
+    }
     models.push({
       appearance: name,
       x: instance.x,

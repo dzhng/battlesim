@@ -17,6 +17,7 @@ const model = (name: string, x = 0): LabModel => ({
 const assets = (name: string): ModelAsset[] => [
   {
     name,
+    contentId: { bundle: "a".repeat(64), skeleton: null },
     bundle: new Uint8Array(),
     textureIds: [],
     textureBytes: [],

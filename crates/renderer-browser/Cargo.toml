@@ -10,6 +10,7 @@ crate-type = ["cdylib", "rlib"]
 presentation-wasm = { path = "../presentation-wasm" }
 renderer-core = { path = "../renderer-core" }
 presentation = { path = "../presentation" }
+contract = { path = "../contract" }
 wgpu = { version = "30.0.1", default-features = false, features = ["webgpu", "wgsl"] }
 wasm-bindgen = "0.2"
 serde_json.workspace = true

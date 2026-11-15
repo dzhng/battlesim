@@ -1,5 +1,8 @@
 // Slice 10: hold the growth admission's runtime responses at the browser
 // network edge, inspect the live stand-ins, then release those same responses.
+// This growth battle has no own unfielded kind to select; Rust proves identical
+// picks before and after art commits. The browser gate checks drawn blocks and
+// targets the newly identified vehicle and squad.
 import { writeFile } from "node:fs/promises";
 import { advance, lab, obs, presented } from "./_lab.mjs";
 
@@ -19,6 +22,20 @@ async function frameOn(page, unit) {
   await page.evaluate(() => window.__lab.frame());
 }
 
+const drawnStandIns = (page) =>
+  lab(page, () => ({
+    vehicles: window.__lab.route
+      .vehicles()
+      .filter((unit) => unit.appearance === "__battle_stand_in__"),
+    soldiers: window.__lab.route
+      .soldiers()
+      .filter((unit) => unit.appearance === "__battle_stand_in__"),
+  }));
+
+function samePoint(a, b) {
+  return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) < 0.01;
+}
+
 export async function run(ctx) {
   const page = await ctx.newPage();
   const held = [];
@@ -32,117 +49,146 @@ export async function run(ctx) {
     const match = /^\[battle \d+ ms\] (battle staged|art committed)/.exec(message.text());
     if (match) timeline.push(match[1]);
   });
-  await ctx.openLab(page, ctx.url, 120000);
-  await lab(page, () => window.__lab.route.pause());
-  await advance(page, 90 - (await obs(page)).tick);
-  await presented(page);
+  try {
+    await ctx.openLab(page, ctx.url, 120000);
+    await lab(page, () => window.__lab.route.pause());
+    await advance(page, 90 - (await obs(page)).tick);
+    await presented(page);
 
-  const entry = await page.evaluate(() => window.__lab.route.prepared().start.at);
-  await page.evaluate(
-    (at) => window.__lab.setCamera({ ...window.__lab.camera(), target: [...at, 0], distance: 120 }),
-    entry,
-  );
-  const view = page.viewportSize();
-  const [cx, cy] = [view.width / 2, view.height / 2];
-  await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
-  await page.getByRole("tab", { name: "MBT", exact: true }).click();
-  await page.getByRole("button", { name: "M1 Abrams", exact: true }).hover();
-  await page.getByRole("button", { name: /^SEP v2 — \d+ credits$/ }).click();
-  await page.mouse.move(cx, cy);
-  await page.waitForTimeout(100);
-  await page.mouse.click(cx, cy);
-  await advance(page, 1);
-  await page.getByRole("button", { name: "START BATTLE", exact: true }).click();
-  await advance(page, 60 * 30);
-  await obs(page);
-  hold = true;
-  const current = await obs(page);
-  const goal = current.skirmish.objectives
-    .map((objective) => objective.center)
-    .sort(
-      (a, b) =>
-        Math.hypot(b[0] - entry[0], b[1] - entry[1]) - Math.hypot(a[0] - entry[0], a[1] - entry[1]),
-    )[0];
-  await page.evaluate(
-    ([id, at]) =>
-      window.__lab.route.command({
-        kind: "move",
-        units: [id],
-        gesture: 2801,
-        goal: at,
-        route: "fastest",
-      }),
-    [current.own[0].id, goal],
-  );
-  for (let i = 0; i < 10 && !timeline.includes("battle staged"); i++) await advance(page, 60 * 30);
-  ctx.check(
-    "the growth stages while art responses are held",
-    timeline.includes("battle staged"),
-    JSON.stringify(timeline),
-  );
-  const heldObservation = await obs(page);
-  const vehicle = heldObservation.identified.find((unit) => unit.members.length === 0);
-  const squad = heldObservation.identified.find((unit) => unit.members.length > 0);
-  ctx.check(
-    "the newly seen vehicle and squad remain observed while art is held",
-    !!vehicle && !!squad,
-    JSON.stringify(heldObservation.identified),
-  );
-  if (!vehicle || !squad) return;
+    const entry = await page.evaluate(() => window.__lab.route.prepared().start.at);
+    await page.evaluate(
+      (at) =>
+        window.__lab.setCamera({ ...window.__lab.camera(), target: [...at, 0], distance: 120 }),
+      entry,
+    );
+    const view = page.viewportSize();
+    const [cx, cy] = [view.width / 2, view.height / 2];
+    await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
+    await page.getByRole("tab", { name: "MBT", exact: true }).click();
+    await page.getByRole("button", { name: "M1 Abrams", exact: true }).hover();
+    await page.getByRole("button", { name: /^SEP v2 — \d+ credits$/ }).click();
+    await page.mouse.move(cx, cy);
+    await page.waitForTimeout(100);
+    await page.mouse.click(cx, cy);
+    await advance(page, 1);
+    await page.getByRole("button", { name: "START BATTLE", exact: true }).click();
+    await advance(page, 60 * 30);
+    await obs(page);
+    hold = true;
+    const current = await obs(page);
+    const goal = current.skirmish.objectives
+      .map((objective) => objective.center)
+      .sort(
+        (a, b) =>
+          Math.hypot(b[0] - entry[0], b[1] - entry[1]) -
+          Math.hypot(a[0] - entry[0], a[1] - entry[1]),
+      )[0];
+    await page.evaluate(
+      ([id, at]) =>
+        window.__lab.route.command({
+          kind: "move",
+          units: [id],
+          gesture: 2801,
+          goal: at,
+          route: "fastest",
+        }),
+      [current.own[0].id, goal],
+    );
+    for (let i = 0; i < 10 && !timeline.includes("battle staged"); i++)
+      await advance(page, 60 * 30);
+    ctx.check(
+      "the growth stages while art responses are held",
+      timeline.includes("battle staged"),
+      JSON.stringify(timeline),
+    );
+    const heldObservation = await obs(page);
+    const vehicle = heldObservation.identified.find((unit) => unit.members.length === 0);
+    const squad = heldObservation.identified.find((unit) => unit.members.length > 0);
+    ctx.check(
+      "the newly seen vehicle and squad remain observed while art is held",
+      !!vehicle && !!squad,
+      JSON.stringify(heldObservation.identified),
+    );
+    if (!vehicle || !squad) return;
 
-  const ownVehicle = current.own.find((unit) => unit.members.length === 0);
-  const ownSquad = current.own.find((unit) => unit.members.length > 0);
-  ctx.check(
-    "the battle supplies vehicle and squad bodies for interaction",
-    !!ownVehicle && !!ownSquad,
-  );
-  if (!ownVehicle || !ownSquad) return;
+    const heldDrawn = await drawnStandIns(page);
+    ctx.check(
+      "the withheld vehicle is drawn as its stand-in block",
+      heldDrawn.vehicles.some((unit) => samePoint(unit.position, vehicle.position)),
+      JSON.stringify(heldDrawn.vehicles),
+    );
+    const squadBlocks = heldDrawn.soldiers.filter((unit) =>
+      squad.members.some((member) => samePoint(unit.position, member)),
+    );
+    ctx.check(
+      "every seen soldier of the withheld squad is drawn as a stand-in block",
+      squadBlocks.length === squad.members.length,
+      JSON.stringify({ expected: squad.members, drawn: heldDrawn.soldiers }),
+    );
 
-  await clickUnit(page, ownVehicle);
-  await page.waitForFunction((id) => window.__lab.route.selected().includes(id), ownVehicle.id);
-  await clickUnit(page, ownSquad);
-  await page.waitForFunction((id) => window.__lab.route.selected().includes(id), ownSquad.id);
-  ctx.check("withheld vehicle and squad bodies select", true);
+    const ownVehicle = current.own.find((unit) => unit.members.length === 0);
+    const ownSquad = current.own.find((unit) => unit.members.length > 0);
+    if (!ownVehicle || !ownSquad) return;
 
-  const beforeAcks = await lab(page, () => window.__lab.route.acks().length);
-  await frameOn(page, vehicle);
-  await clickUnit(page, vehicle, "right");
-  await page.waitForFunction((n) => window.__lab.route.acks().length > n, beforeAcks);
-  const vehicleAttack = await lab(page, () => window.__lab.route.acks().at(-1)?.order.kind);
-  ctx.check(
-    "a click on the withheld vehicle is an attack target",
-    vehicleAttack === "attack",
-    vehicleAttack,
-  );
+    await clickUnit(page, ownVehicle);
+    await page.waitForFunction((id) => window.__lab.route.selected().includes(id), ownVehicle.id);
+    await clickUnit(page, ownSquad);
+    await page.waitForFunction((id) => window.__lab.route.selected().includes(id), ownSquad.id);
 
-  const squadAcks = await lab(page, () => window.__lab.route.acks().length);
-  await frameOn(page, squad);
-  await clickUnit(page, squad, "right");
-  await page.waitForFunction((n) => window.__lab.route.acks().length > n, squadAcks);
-  const squadAttack = await lab(page, () => window.__lab.route.acks().at(-1)?.order.kind);
-  ctx.check(
-    "a click on the withheld squad is an attack target",
-    squadAttack === "attack",
-    squadAttack,
-  );
+    const beforeAcks = await lab(page, () => window.__lab.route.acks().length);
+    await frameOn(page, vehicle);
+    await clickUnit(page, vehicle, "right");
+    await page.waitForFunction((n) => window.__lab.route.acks().length > n, beforeAcks);
+    const vehicleAttack = await lab(page, () => window.__lab.route.acks().at(-1)?.order.kind);
+    ctx.check(
+      "a click on the withheld vehicle is an attack target",
+      vehicleAttack === "attack",
+      vehicleAttack,
+    );
 
-  await frameOn(page, vehicle);
-  await writeFile(ctx.evidencePath("vehicle-before.png"), await page.screenshot());
-  await frameOn(page, squad);
-  await writeFile(ctx.evidencePath("squad-before.png"), await page.screenshot());
+    const squadAcks = await lab(page, () => window.__lab.route.acks().length);
+    await frameOn(page, squad);
+    await clickUnit(page, squad, "right");
+    await page.waitForFunction((n) => window.__lab.route.acks().length > n, squadAcks);
+    const squadAttack = await lab(page, () => window.__lab.route.acks().at(-1)?.order.kind);
+    ctx.check(
+      "a click on the withheld squad is an attack target",
+      squadAttack === "attack",
+      squadAttack,
+    );
 
-  for (const route of held.splice(0)) await route.continue();
-  hold = false;
-  await page.waitForTimeout(1000);
-  ctx.check(
-    "releasing the responses commits art in the same session",
-    timeline.includes("art committed"),
-    JSON.stringify(timeline),
-  );
-  await frameOn(page, vehicle);
-  await writeFile(ctx.evidencePath("vehicle-after.png"), await page.screenshot());
-  await frameOn(page, squad);
-  await writeFile(ctx.evidencePath("squad-after.png"), await page.screenshot());
-  await page.unroute("**/bundle.bin");
-  await page.close();
+    await frameOn(page, vehicle);
+    await writeFile(ctx.evidencePath("vehicle-before.png"), await page.screenshot());
+    await frameOn(page, squad);
+    await writeFile(ctx.evidencePath("squad-before.png"), await page.screenshot());
+
+    for (const route of held.splice(0)) await route.continue();
+    hold = false;
+    const committedAt = Date.now();
+    while (!timeline.includes("art committed") && Date.now() - committedAt < 120_000)
+      await page.waitForTimeout(250);
+    ctx.check(
+      "releasing the responses commits art in the same session",
+      timeline.includes("art committed"),
+      JSON.stringify(timeline),
+    );
+    const releasedDrawn = await drawnStandIns(page);
+    ctx.check(
+      "the committed vehicle and squad have no stand-in blocks",
+      !releasedDrawn.vehicles.some((unit) => samePoint(unit.position, vehicle.position)) &&
+        !releasedDrawn.soldiers.some((unit) =>
+          squad.members.some((member) => samePoint(unit.position, member)),
+        ),
+      JSON.stringify(releasedDrawn),
+    );
+    await frameOn(page, vehicle);
+    await writeFile(ctx.evidencePath("vehicle-after.png"), await page.screenshot());
+    await frameOn(page, squad);
+    await writeFile(ctx.evidencePath("squad-after.png"), await page.screenshot());
+  } finally {
+    hold = false;
+    for (const route of held.splice(0)) await route.continue().catch(() => {});
+    await page.unroute("**/bundle.bin").catch(() => {});
+    await page.close().catch(() => {});
+  }
 }

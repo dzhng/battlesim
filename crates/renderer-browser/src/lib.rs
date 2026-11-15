@@ -81,6 +81,12 @@ fn js_error(error: impl std::fmt::Display) -> JsValue {
     JsValue::from_str(&error.to_string())
 }
 
+/// Hash generated page art with the shared content identity implementation.
+#[wasm_bindgen]
+pub fn bytes_hash(bytes: &[u8]) -> String {
+    contract::identity::bytes_hash(bytes)
+}
+
 #[wasm_bindgen]
 impl Renderer {
     /// Clone page ownership before awaiting, so disposal may race admission safely.

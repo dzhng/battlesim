@@ -61,7 +61,6 @@ pub struct BattleInput {
     pub blocked: [f64; 4],
     /// The browser's canonical box appearance and its physical half extents
     /// for bodies whose art is not committed. Native input leaves this unset.
-    #[serde(default)]
     pub stand_in: Option<StandIn>,
 }
 
@@ -489,10 +488,10 @@ pub struct BodyBox<'a> {
 }
 
 impl<'a> BodyBox<'a> {
-    pub fn new(units: &'a UnitsSection, soldier: Option<SoldierBody>) -> Self {
+    pub fn new(units: &'a UnitsSection, soldier: SoldierBody) -> Self {
         Self {
             units,
-            soldier_half: soldier.map_or([0.0; 3], |s| [s.radius_m, s.radius_m, s.height_m / 2.0]),
+            soldier_half: [soldier.radius_m, soldier.radius_m, soldier.height_m / 2.0],
         }
     }
 

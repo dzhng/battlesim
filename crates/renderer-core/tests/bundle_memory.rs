@@ -1,3 +1,4 @@
+use contract::identity::ContentId;
 use renderer_core::bundle::Library;
 
 fn empty_bundle() -> Vec<u8> {
@@ -24,17 +25,28 @@ fn shared_texture_payload_is_retained_once_across_bundles_and_catalog_replacemen
         .chain(0..20)
         .collect();
     let mut library = Library::default();
+    let content = ContentId::bundle(contract::identity::bytes_hash(&bytes)).unwrap();
     library
-        .insert_bundle("house", &bytes, &[("same-content", &pixels)])
+        .insert_bundle(
+            "house",
+            content.clone(),
+            &bytes,
+            &[("same-content", &pixels)],
+        )
         .unwrap();
     library
-        .insert_bundle("vehicle", &bytes, &[("same-content", &pixels)])
+        .insert_bundle(
+            "vehicle",
+            content.clone(),
+            &bytes,
+            &[("same-content", &pixels)],
+        )
         .unwrap();
     assert_eq!(library.payload_bytes(), 20);
     let mut replacement = library.empty_generation();
     assert!(replacement.bundle("house").is_err());
     replacement
-        .insert_bundle("new-vehicle", &bytes, &[("same-content", &pixels)])
+        .insert_bundle("new-vehicle", content, &bytes, &[("same-content", &pixels)])
         .unwrap();
     replacement.retain(|name| name == "new-vehicle");
     library.replace_with(replacement);

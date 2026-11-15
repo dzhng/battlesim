@@ -4,6 +4,7 @@ use presentation::effects::{
     publication::EffectFeed,
     tables::EffectPresentation,
 };
+use presentation::fielded::Facts;
 use serde_json::{json, Value};
 use sim::{
     battle::Battle,
@@ -45,7 +46,9 @@ fn second_round(case: &str) {
         kinds: &["test_tank".into()],
         factions: None,
     }
-    .resolve(&|hash| runtime.read(hash, "bundle.bin"))
+    .resolve(&mut Facts::default(), &|hash| {
+        runtime.read(hash, "bundle.bin")
+    })
     .unwrap()
     .typed()
     .unwrap();

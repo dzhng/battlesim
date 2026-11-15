@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 png = "0.17"
 presentation = { path = "../presentation" }
+contract = { path = "../contract" }
 wgpu = { version = "30.0.1", default-features = false, features = ["webgpu", "wgsl", "serde"] }
 bytemuck = { version = "1.25", features = ["derive"] }
 

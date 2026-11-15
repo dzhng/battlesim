@@ -93,6 +93,7 @@ import {
   type UnitGhost,
 } from "./unitGhosts";
 import { byReference, pendingGhosts } from "./pendingGhosts";
+import { unitPoseProbe } from "./unitPoseProbe";
 
 const PURCHASE_BLOCKED = [...gameHud.bad, gameXray.selected[3]] as const;
 
@@ -950,8 +951,7 @@ export function useBattleSession({
       );
       return [...soldiers, ...vehicles];
     },
-    /** The vehicles as last posed: appearance, placement and articulation. */
-    vehicles: () => presentationRef.current?.probe().vehicles ?? [],
+    ...unitPoseProbe(() => presentationRef.current),
     /** What the props draw (`ScenePresentation.propStats`): the bodies drawn,
      *  those a building draws, those no model draws, the models placed and
      *  those drawing what the side knows. */

@@ -13,6 +13,7 @@ pub(super) fn section(
     rules: &Value,
     catalog: &Catalog,
     art: &Art,
+    bundle_facts: &mut BundleFacts,
     kinds: &[String],
 ) -> Result<Value, String> {
     let vec3 = |v: &Value| -> Value {
@@ -59,30 +60,17 @@ pub(super) fn section(
     for (unit, name) in hull_wrecks(catalog, art) {
         let name = name.as_str();
         let footprint = &art.entry(name)["footprint_half_m"];
-        let bytes = art.bytes(art.bundle(name)?)?;
-        let bundle = Container::<Value>::parse(&bytes, BUNDLE, name)?;
-        let states: &[Value] = match bundle.content["kind"].as_str() {
-            Some("static") => bundle.content["states"]
-                .as_array()
-                .map_or(&[], Vec::as_slice),
-            _ => &[],
-        };
-        let state = |n: &str| states.iter().find(|s| s["name"] == n);
+        let wreck = wreck_facts(bundle_facts.facts, art, bundle_facts.bytes, name)?;
         // A wreck with no whole state makes no transition.
-        let (Some(whole), false) = (state("default"), footprint.is_null()) else {
+        let (Some(bounds), false) = (&wreck.bounds, footprint.is_null()) else {
             continue;
         };
-        let turret = state(WRECK_TURRET).filter(|_| state(WRECK_HULL).is_some());
-        let corner = |b: &Value, c: usize| b[c].as_f64().unwrap_or(0.0);
         wrecks.insert(
             name.to_owned(),
             json!({
-                "lies": turret.map(|t| {
-                    let (min, max) = (&t["bounds"]["min"], &t["bounds"]["max"]);
-                    [0, 1, 2].map(|c| (corner(min, c) + corner(max, c)) / 2.0)
-                }),
-                "underside": turret.map_or(0.0, |t| corner(&t["bounds"]["min"], 2)),
-                "debrisTop": state(WRECK_DEBRIS).map(|d| corner(&d["bounds"]["max"], 2)),
+                "lies": wreck.lies,
+                "underside": wreck.underside,
+                "debrisTop": wreck.debris_top,
             }),
         );
         looks.insert(
@@ -90,7 +78,7 @@ pub(super) fn section(
             json!({
                 "appearance": name,
                 "footprint": vec3(footprint),
-                "bounds": [vec3(&whole["bounds"]["min"]), vec3(&whole["bounds"]["max"])],
+                "bounds": [vec3(&bounds[0]), vec3(&bounds[1])],
                 "braking": top_speed_kmh(catalog.get(&unit)?) / 3.6 / wreck_stop_s,
             }),
         );
@@ -109,6 +97,48 @@ pub(super) fn section(
         "wrecks": wrecks,
         "wreckLooks": looks,
     }))
+}
+
+fn wreck_facts(
+    facts: &mut Facts,
+    art: &Art,
+    bytes: &HashMap<String, Vec<u8>>,
+    name: &str,
+) -> Result<WreckFacts, String> {
+    let hash = art.bundle(name)?.to_owned();
+    if let Some(facts) = facts.wrecks.get(&hash) {
+        return Ok(facts.clone());
+    }
+    let bytes = bytes
+        .get(&hash)
+        .ok_or(format!("content {hash} was not read"))?;
+    let bundle = Container::<Value>::parse(bytes, BUNDLE, name)?;
+    let states: &[Value] = match bundle.content["kind"].as_str() {
+        Some("static") => bundle.content["states"]
+            .as_array()
+            .map_or(&[], Vec::as_slice),
+        _ => &[],
+    };
+    let state = |n: &str| states.iter().find(|s| s["name"] == n);
+    let corner = |b: &Value, c: usize| b[c].as_f64().unwrap_or(0.0);
+    let whole = state("default").map(|state| {
+        [
+            state["bounds"]["min"].clone(),
+            state["bounds"]["max"].clone(),
+        ]
+    });
+    let turret = state(WRECK_TURRET).filter(|_| state(WRECK_HULL).is_some());
+    let derived = WreckFacts {
+        bounds: whole,
+        lies: turret.map(|t| {
+            [0, 1, 2]
+                .map(|c| (corner(&t["bounds"]["min"], c) + corner(&t["bounds"]["max"], c)) / 2.0)
+        }),
+        underside: turret.map_or(0.0, |t| corner(&t["bounds"]["min"], 2)),
+        debris_top: state(WRECK_DEBRIS).map(|d| corner(&d["bounds"]["max"], 2)),
+    };
+    facts.wrecks.insert(hash, derived.clone());
+    Ok(derived)
 }
 
 /// Every fielded type that carries smoke names a `presentation.smoke_screen_looks`

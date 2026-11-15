@@ -8,6 +8,7 @@ impl Renderer {
     pub fn load_bundle(
         &mut self,
         name: String,
+        content_id: String,
         bundle: &[u8],
         texture_ids: js_sys::Array,
         textures: js_sys::Array,
@@ -17,8 +18,10 @@ impl Renderer {
             .iter()
             .map(|(id, data)| (id.as_str(), data.as_slice()))
             .collect::<Vec<_>>();
+        let content: contract::identity::ContentId =
+            serde_json::from_str(&content_id).map_err(js_error)?;
         Arc::make_mut(&mut self.model_library)
-            .insert_bundle(&name, bundle, &refs)
+            .insert_bundle(&name, content, bundle, &refs)
             .map_err(js_error)?;
         Ok(())
     }

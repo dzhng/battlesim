@@ -901,6 +901,8 @@
         { "kind": "pallet_stack", "half_extents_m": [0.6, 0.5, 0.6], "weight": 2 },
         { "kind": "crate", "half_extents_m": [0.6, 0.6, 0.6], "weight": 2 }
       ],
+      "objective_yard_m": 14,
+      "objective_lane_m": 300,
       "attempts": 40
     },
     "depots": {

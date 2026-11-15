@@ -84,16 +84,16 @@ impl Loaded {
                 xray.own
             }
         };
-        let art = UnitArt::battle(
+        let art = UnitArt::battle(super::posing::UnitArtInput {
             units,
             tables,
             inverse_binds,
             world,
             view,
             detail,
-            input.stand_in.as_ref(),
-            input.soldier,
-        );
+            stand_in: input.stand_in.as_ref(),
+            soldier: input.soldier,
+        });
         // Soldiers off screen, as the gates count bodies drawn, carded or culled.
         let culled = art.soldiers(&poses.soldiers, colour_of, &mut scratch.worlds, f, models);
         // Where an aircraft's shadow lies, and the pass that draws it: a
@@ -310,7 +310,7 @@ impl Loaded {
         picks::picks(
             sample,
             units,
-            art.body.as_ref().expect("battle art has a body box"),
+            art.body_box().expect("battle art has a body box"),
             f,
         );
         emitters(o, poses, side, units, f);
