@@ -21,7 +21,7 @@ import { SkirmishStatus } from "./battleStatus";
 import { MatchResultOverlay } from "./MatchResultOverlay";
 import { PurchasePicker } from "@web/battle/present/purchasePicker";
 import { ArmyDeck } from "@web/battle/present/armyDeck";
-import { CaptionList, contactCaptions } from "@web/battle/present/captions";
+import { ContactLines, contactLines } from "@web/battle/present/contactLines";
 import { useBattleOverlay } from "./useBattleOverlay";
 import { LabViewport } from "./LabViewport";
 import { useUnitFocus } from "./useUnitFocus";
@@ -134,8 +134,8 @@ export function BattleView({
   const { contacts } = session;
   // Contacts N steps through, newest first.
   const focusTargets = useMemo(() => contactFocusTargets(contacts), [contacts]);
-  const captions = useMemo(
-    () => contactCaptions(session.units, contacts, observation?.tick ?? 0, session.rules.tick_hz),
+  const lines = useMemo(
+    () => contactLines(session.units, contacts, observation?.tick ?? 0, session.rules.tick_hz),
     [session.units, contacts, observation?.tick, session.rules.tick_hz],
   );
   const { cameraFocus, focusUnit } = useUnitFocus();
@@ -266,7 +266,7 @@ export function BattleView({
           rules={session.rules}
           pending={viewingPlayer?.pending}
           tick={observation?.tick}
-          captions={<CaptionList lines={captions} />}
+          contactLines={<ContactLines lines={lines} />}
           reinforcements={
             input && session.purchase && observation?.skirmish ? (
               <>

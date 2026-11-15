@@ -19,16 +19,22 @@ export interface FocusContact {
   retiring: boolean;
 }
 
-/** Live contacts as camera targets, newest evidence first. */
-export function contactFocusTargets(contacts: readonly FocusContact[]): FocusTarget[] {
+/** The contacts N steps through, in its order: live ones, newest evidence first. */
+export function liveContactsNewestFirst<
+  C extends Pick<FocusContact, "id" | "evidenceTick" | "retiring">,
+>(contacts: readonly C[]): C[] {
   return contacts
     .filter((c) => !c.retiring)
-    .sort((a, b) => b.evidenceTick - a.evidenceTick || b.id - a.id)
-    .map((c) => ({
-      id: c.id,
-      target: [c.center[0], c.center[1]] as const,
-      evidenceTick: c.evidenceTick,
-    }));
+    .sort((a, b) => b.evidenceTick - a.evidenceTick || b.id - a.id);
+}
+
+/** Live contacts as camera targets, newest evidence first. */
+export function contactFocusTargets(contacts: readonly FocusContact[]): FocusTarget[] {
+  return liveContactsNewestFirst(contacts).map((c) => ({
+    id: c.id,
+    target: [c.center[0], c.center[1]] as const,
+    evidenceTick: c.evidenceTick,
+  }));
 }
 
 /** The target a jump lands on: -1 when empty, otherwise the newest when the

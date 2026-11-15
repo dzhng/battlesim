@@ -1,5 +1,5 @@
 import { installWorkerStartFence } from "./_workerStart.mjs";
-// Player commands, the pause menu and captions on the street battle.
+// Player commands, the pause menu and contact lines on the street battle.
 import {
   lab,
   obs,
@@ -168,8 +168,8 @@ export async function playTour(ctx) {
     JSON.stringify(placed),
   );
 
-  // Sound: at a tick where blue hears something, the newest caption says
-  // what, how far and from where, for the unit that heard it.
+  // Sound: at a tick where blue hears something, the status strip still
+  // lists only contacts, never the sound itself.
   // Nobody fires until blue closes to weapon range, so send it into contact.
   await lab(page, () =>
     window.__lab.route.command({
@@ -194,7 +194,7 @@ export async function playTour(ctx) {
   await ctx.writeEvidence("play-contact-approach.json", approach ?? null);
   if (!admitted) return page.close();
   const heard = await until(page, (o) => o.audible.length > 0, 30 * 240, 1);
-  const lines = heard ? (await text(page, "captions")).split("\n").filter(Boolean) : [];
+  const lines = heard ? (await text(page, "contact-lines")).split("\n").filter(Boolean) : [];
   ctx.check(
     "a heard sound adds no status line; every line is a contact N can reach",
     !!heard &&

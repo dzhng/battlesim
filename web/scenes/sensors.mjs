@@ -235,12 +235,12 @@ async function contactChecks(ctx) {
     isolation.isolated && isolation.coveredChannels > 0,
     JSON.stringify(isolation),
   );
-  const captions = await page.getByTestId("captions").locator("li").allTextContents();
+  const lines = await page.getByTestId("contact-lines").locator("li").allTextContents();
   ctx.check(
     "the firing contact gets a status line, and heard sounds get none",
-    captions.length > 0 && !captions.some((text) => text.startsWith("Heard")),
-    captions.join(" | "),
+    lines.length > 0 && !lines.some((text) => text.startsWith("Heard")),
+    lines.join(" | "),
   );
-  await writeFile(ctx.evidencePath("contact-audio-captions.txt"), captions.join("\n"));
+  await writeFile(ctx.evidencePath("contact-lines.txt"), lines.join("\n"));
   await page.close();
 }

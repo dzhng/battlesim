@@ -1072,7 +1072,7 @@ html {
   pointer-events: none;
 }
 /* The deck stands on the screen's edge; without it (no units, nothing to
-   buy) the captions keep their margin. */
+   buy) the contact lines keep their margin. */
 .hud-lower:has(.hud-army-deck) {
   inset-inline: 0;
   bottom: 0;
@@ -1279,7 +1279,7 @@ html {
   white-space: normal;
 }
 /* Normal flow keeps status lines above a deck of any actual height. */
-.hud-subtitles {
+.hud-contact-lines {
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1290,7 +1290,7 @@ html {
   text-shadow: var(--hud-text-halo);
 }
 /* Keep status lines above the detail without moving its deck anchor. */
-.hud-lower:has(.hud-army-detail) .hud-subtitles {
+.hud-lower:has(.hud-army-detail) .hud-contact-lines {
   transform: translateY(calc(-1 * var(--hud-army-detail-height)));
 }
 /* A rejected order's reason beside the cursor: the one "can't" colour,

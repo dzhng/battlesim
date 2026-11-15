@@ -85,7 +85,7 @@ function TransportLab({ battles }: { battles: Record<Variant, SavedBattle> }) {
           onSelect={control.setSelected}
           onHover={session.hoverFromDeck}
           rules={session.rules}
-          captions={null}
+          contactLines={null}
         />
       </div>
       <RejectedOrder acks={control.acks} {...session.refusals} />

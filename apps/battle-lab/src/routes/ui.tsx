@@ -13,7 +13,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "re
 import type { UnitCard, UnitCategory } from "@packages/scene-assets/src/units";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { ArmyDeck } from "@web/battle/present/armyDeck";
-import { CaptionList, type CaptionLine } from "@web/battle/present/captions";
+import { ContactLines, type ContactLine } from "@web/battle/present/contactLines";
 import { FrameRate, type FrameRateHandle } from "@web/battle/present/frameRate";
 import { CursorPicture } from "@web/battle/present/gameCursor";
 import {
@@ -197,7 +197,7 @@ const RULER: RangeRuler = {
   ],
 };
 
-const CONTACTS: CaptionLine[] = [
+const CONTACTS: ContactLine[] = [
   { key: 3, text: "Unknown, firing" },
   { key: 2, text: "T-72B3, last seen" },
   { key: 1, text: "Radar contact" },
@@ -247,7 +247,7 @@ function Purchase({ match }: { match: SkirmishView }) {
         selected={[1]}
         onSelect={() => {}}
         rules={rules}
-        captions={null}
+        contactLines={null}
         reinforcements={
           <PurchasePicker
             cards={CARDS}
@@ -409,11 +409,11 @@ const SHOTS: { id: string; draw: () => ReactNode }[] = [
   { id: "refused-order", draw: () => <Refusal /> },
   { id: "frame-rate", draw: () => <Frames /> },
   {
-    id: "captions",
+    id: "contact-lines",
     draw: () => (
       <div className="hud">
         <div className="hud-lower">
-          <CaptionList lines={CONTACTS} />
+          <ContactLines lines={CONTACTS} />
         </div>
       </div>
     ),
