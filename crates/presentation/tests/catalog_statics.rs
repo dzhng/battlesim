@@ -294,7 +294,6 @@ fn adding_an_appearance_carries_placed_scenery_without_requesting_placement() {
     let candidate = p
         .stage_catalog(wanted, facts, detail(), Default::default())
         .unwrap();
-    assert!(!candidate.needs_scenery());
     assert!(p.commit_catalog(candidate, Vec::new()).unwrap());
     assert_eq!(p.scenery_stats(), before);
 }

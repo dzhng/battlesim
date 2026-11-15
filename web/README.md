@@ -33,7 +33,11 @@ Scene art is declared by wanted name and content identity. After the first
 scene, the page asks Rust which identities lack decoded sources or retained
 presentation facts, then encodes and copies only those contents, including
 their textures and skeletons. Parsed art stays the browser source; transport
-bytes are produced on request rather than on property access.
+bytes are produced on request rather than on property access. A buffer made
+only to cross into Rust is [released](src/battle/transport.ts) as soon as its
+last reader has copied it, at the first scene as well as at growth: the page
+never holds a scene's encoded art at once, and never waits for the collector
+to notice a gigabyte it no longer needs.
 
 [Appearance admission](src/battle/render/sceneAppearances.ts) keeps one candidate
 at a time. The set of names and content identities determines whether art changed;
@@ -41,6 +45,15 @@ fresh source objects, array order and pose changes do not start another admissio
 or supersede the same candidate. Explicit grass-rule changes also prepare their
 new placement. The battle's wanted kinds include every description whose art is
 already wanted, so learning another kind wearing that art does not stage it again.
+
+A battle enables the existing browser-cache warm-up after its first presented
+frame, including deployment and direct links. It fetches learned types first,
+then the public enemy faction roster, then remaining runtime files. New
+observations reprioritize files not yet started. This only warms transport in
+cache storage: it neither decodes art nor changes wanted kinds, admissions or
+side knowledge. The menu uses the same downloader after its existing settle
+period. [Runtime prefetch](../apps/battle-lab/src/runtimePrefetch.ts) owns that
+file queue; the battle’s readiness callback supplies its public priorities.
 
 ## Build and serving
 

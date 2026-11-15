@@ -15,56 +15,45 @@ for browser fetches. The held static batch buffers also belong to this core, so
 a frame that names an unchanged batch has the same meaning on either target.
 Preparation detects skipped publications and materializes current canonical
 populations before reusing held buffers; shells need no skipped-frame protocol.
+
 Appearance rows route instances rather than own copies of their meshes. Each
-runtime owns one scene/device [art store](src/models/store.rs), shared with
-pending generations. Its append-only material slots belong to content identities;
-inserting a row earlier in the catalog cannot change existing packed vertices.
-Dropped preparations keep their slot reservations, so they cannot renumber live
-art. Slot addresses must fit the vertex ABI; an oversized active catalog is an
-error. Excess dead slots or exhausted addresses admit through the same path with
-a fresh store, with the reason reported in admission work.
+runtime owns one [art store](src/models/store.rs) for its scene and device,
+shared with pending generations. Four rules hold for everything in it: packed
+geometry, material slots, and [texture and card layers](src/texture_array.rs).
 
-The store's geometry index is weak and keyed by content, authored state, baked
-corpse palette and running-gear flags. Its shared geometry owner also indexes
-immutable rest bounds and palettes by exact pose bytes; unchanged rows neither
-skin the mesh again nor rescan it for bounds. Different living far poses share
-unposed vertices while retaining distinct rest facts. Both indexes are weak:
-generations hold the payloads, and the last holder destroys their GPU buffers. Neither a generation's
-drop nor the store explicitly destroys a buffer another generation can draw. Materials and
-row routing remain per generation, rebuilt against the stable slot addresses.
-Model texture arrays also have shared final-holder ownership. The art store
-assigns append-only layer slots by texture content id, independently for colour
-and linear surface data. An admission writes only previously unwritten slots in
-an array, before any committed material table can name them. Existing layers
-stay immutable while a candidate prepares. Unused layers from dropped work can
-be reused while their allocation survives; weak allocation records retain no
-GPU lifetime or CPU texture payload.
+- **Identity is content, never a name or a row.** What is packed, uploaded or
+  baked for a content depends only on that content and the pose baked into it,
+  so a type added to a running battle costs its own art alone. A key includes
+  every input that changes the stored bytes; a texture array's edge is one,
+  because it changes filtered pixels.
+- **Addresses are append-only.** A material slot or a layer never moves and is
+  never reassigned while the store lives, and a dropped preparation keeps what
+  it reserved, so cancelled work cannot renumber live art. A layer is written
+  before any committed table can name it and is immutable afterwards.
+- **The last holder destroys.** Generations hold the GPU payloads and the
+  store's indexes are weak. Retiring a generation cannot free what another
+  draws.
+- **A full rebuild is the same admission with a fresh store.** It runs for the
+  first scene, a recreated device, and when dead or exhausted addresses pass
+  the store's policy; admission work names the reason. An address that cannot
+  fit the vertex layout is an error, never a wrap.
 
-Arrays reserve modest spare capacity. Capacity growth creates one destination
-array and copies existing mip levels GPU-side; it does not upload old textures
-again. An edge change rebuilds that channel's array with the same authored
-upsampling as a clean admission. Array edge is an exact reuse input because it
-affects filtered pixels. Admission work distinguishes GPU copies and edge
-rebuilds from ordinary new-layer writes. Material tables remain generation-local
-and select the store's stable layers; channel diagnostics change only those
-local tables. Retiring a generation cannot destroy another's arrays.
+Materials, row routing and diagnostics stay per generation, rebuilt against the
+stable addresses. Growing an array copies its layers on the GPU and never
+uploads old art again; a changed edge rebuilds the array. Admission work counts
+both apart from new-layer writes.
 
 Decoded bundles are keyed by the runtime catalog's `ContentId`: the bundle hash
 and, for skinned art, its skeleton hash. Names only route to that identity, so
-one name can replace its art and two names can share one decode. The library's
-weak texture index cannot retain retired art. A new source draft shares that
-index without copying canonical bundle ownership, so a late draft cannot restore
-unrelated stale sources. Its pending decode count is drained when an admission
-takes it, so a device rebuild reports only decodes that admission performed.
-The shell asks for missing identities against both the decoded library and
-presentation's retained facts. [Source drafts](src/bundle/draft.rs) share that
-answer across browser transport and native contract tests. They retain no old
-bundle ownership and resolve held identities against the current committed
-owners at preparation, refusing retired content before GPU work. Declarations
-route every wanted name, while supplied bytes populate only those identities.
-Undeclared decoded sources are dropped when the library retains the wanted set.
-Initial buffer data is queued through
-the common upload owner, avoiding mapped-at-creation transfer copies in browsers.
+one name can replace its art and two names can share one decode. The shell asks
+which identities are missing from both the decoded library and presentation's
+retained facts, and supplies bytes for those alone;
+[source drafts](src/bundle/draft.rs) give browser transport and the native
+tests that one answer. A draft holds no retired art and refuses retired content
+before any GPU work.
+
+Initial buffer data is queued through the common upload owner, avoiding
+mapped-at-creation transfer copies in browsers.
 Scenery also shares authored tier admission and held-batch routing. Initial
 placement and atomic art replacement derive geometry from decoded Rust bundles;
 presentation owns the resulting sizes, trunks, stumps and placement. Runtime
@@ -73,34 +62,16 @@ reconstruction retains those facts and the observer's learned felling.
 [Impostors](src/impostor/) bake through the same authored model/material path,
 then filter coverage before uploading relit cards. Native and browser use the
 same atlases and shader; the impostor tier never substitutes a coarsest mesh.
-Runtime cards share scene-lifetime layers keyed by content, geometry state,
-baked pose, track flags and the bake specification. The key also includes the
-rendered rest palette and source texture-array shape: those affect bake pixels
-even when unposed geometry is unchanged. Names and appearance rows route to
-cards; they do not identify them, and the name-bearing atlas hash remains a
-review oracle rather than a cache key. Material addresses and texture layers
-are stable within a store, so a content's authored material rows stay identical
-across generations.
+Runtime cards live in the art store under the same rules. A card's key adds the
+bake specification and the rendered rest palette to its geometry's. The
+name-bearing atlas hash is a review oracle, not a cache key.
 
-Card planes use the same [layer-array owner](src/texture_array.rs) as model
-textures: append-only slots, spare capacity, immutable writes, GPU-side copies
-on growth and destruction by the last shared holder. Dropped preparations keep
-reservations and any written layers still held by another generation. Losing
-the final holder frees the array; weak records cannot retain its pixels. Frame
-and row-to-layer tables remain generation-local. Card dead slots and exhaustion
-participate in the store's existing fresh-admission policy.
-
-Runtime card bakes submit only missing keys in each memory-bounded batch before
-awaiting every channel's readback concurrently. The byte bound counts color
-and depth targets plus aligned readback buffers; its default lives with the
-[impostor specification](src/impostor/mod.rs). The runtime's
-[art policy](src/models/store.rs) carries the bound and platform report sink
-across staging. The first split is reported once per runtime, including pending
-work that is later dropped; admission work counts every batch's read wait. Authored materials upload once per generation on the first bake
-and remain separate from live diagnostic material controls. Grouped review
-requests preserve their input order and can either inspect resident runtime
-layers or force the same independent bake. Resident readback reconstructs the
-coverage and tint channels losslessly from the stored planes.
+A stage bakes only the keys the store lacks, in batches bounded by the memory
+their targets and readbacks hold, and awaits each batch's reads together; the
+bound's default lives with the [impostor specification](src/impostor/mod.rs),
+and a split is reported once per runtime. Authored materials upload once per
+generation and stay separate from live diagnostic material controls. A review
+is always an independent bake, never a read of a stored layer.
 Asynchronous asset preparation finishes before a frame may request cards.
 Configurable offscreen bakes capture owned GPU resources, so replacing the
 source catalog cannot invalidate a pending review image.
@@ -114,12 +85,11 @@ current controls, and requires a fresh
 canonical frame before drawing the new rows. Targets, compiled pipelines, sky,
 fog and learned ground retain their active owners throughout loading.
 
-Static admission compares the presentation's ground revision, ordered kind
-routes through `BundleSource::content_id`, and grass density. Unchanged static
-content performs no placement or scenery/grass upload. Scenery tiers keep their
-shared GPU buffers while row routing follows the prospective catalog; unchanged
-grass keeps its live owner so frames prepared during admission cannot lose its
-latest regrowth state.
+Static admission compares the presentation's ground revision, each kind's
+content identity in order, and grass density. Unchanged static content does no
+placement and no scenery or grass upload: scenery keeps its GPU buffers while
+its rows follow the prospective catalog, and grass keeps its live owner, so a
+frame prepared during admission cannot lose its latest regrowth.
 
 Sky and environment lighting share one owner too. The sky lookup and its
 reflection prefilter are baked from the presentation's light records at

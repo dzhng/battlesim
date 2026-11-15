@@ -57,7 +57,7 @@ impl Renderer {
                 &self.gpu.queue,
                 &runtime.pipelines,
                 &[row],
-                renderer_core::impostor::AtlasSource::PreferResident(&spec),
+                &spec,
                 &mut renderer_core::runtime::AdmissionWork::default(),
             )
             .map_err(js_error)?;
@@ -79,11 +79,6 @@ impl Renderer {
             )?;
             field(&result, "radius", atlas.radius)?;
             field(&result, "hash", atlas.hash)?;
-            field(
-                &result,
-                "layer",
-                atlas.layer.map_or(JsValue::NULL, JsValue::from),
-            )?;
             field(
                 &result,
                 "albedo",

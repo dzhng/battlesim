@@ -5,7 +5,7 @@ mod camera;
 mod cards;
 
 pub use bake::AtlasRequest;
-pub(crate) use bake::{AtlasInput, BakeInput, ResidentInput};
+pub(crate) use bake::BakeInput;
 pub(crate) use cards::{CardInstance, Cards};
 
 #[derive(Clone)]
@@ -83,17 +83,8 @@ impl Default for Spec {
     }
 }
 
-/// Review can inspect the resident runtime layer, or force an independent bake.
-#[derive(Clone, Copy)]
-pub enum AtlasSource<'a> {
-    Fresh(&'a Spec),
-    PreferResident(&'a Spec),
-}
-
 #[derive(Clone)]
 pub struct Atlas {
-    /// Runtime routing, excluded from the cross-platform pixel hash.
-    pub layer: Option<u32>,
     pub appearance: String,
     pub spec: Spec,
     pub width: u32,

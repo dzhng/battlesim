@@ -1382,17 +1382,78 @@ panics or leftovers. Its four "fix soon" findings:
 | Finding | State |
 | --- | --- |
 | The fielding owner compared the runtime catalog through the one library object, so a catalog reloaded inside a battle kept the old Rust fielding | Fixed: the owner keeps the catalog object it was made from |
-| A card's key includes the model texture arrays' edge, so a new type with a larger texture retires every card layer and rebuilds that array; two such arrivals in one battle would pass the dead-layer bound and start a fresh store mid-battle. The ledger's "monotonic growth creates no dead layers" is wrong for cards | Open. Not seen in the reference battle (no array was rebuilt). The fix is to make the array edge a scene constant from the catalog's largest texture |
-| `AtlasSource::PreferResident` is reached only by the card-reuse tests; no page asks for the runtime spec | Open: delete the resident path or give the workbench a use for it |
-| The scenery "needs placement" guard can no longer be true, and its only caller is a test | Open: delete it |
+| A card's key includes the model texture arrays' edge, so a new type with a larger texture retires every card layer and rebuilds that array; two such arrivals in one battle would pass the dead-layer bound and start a fresh store mid-battle. The ledger's "monotonic growth creates no dead layers" is wrong for cards | Closed without a change: today's art cannot reach it. Every unit texture in the runtime catalog is 256 px or smaller (458 textures read: sRGB 128 ×22, 256 ×136, 512 ×2; linear 128 ×44, 256 ×254), and the two 512 px textures belong to the 16 city building kits, which are map art present from the first scene. A battle's growth is unit types, so it cannot raise an array's edge. A scene constant would also cost every map without those kits four times its colour layers. If a larger unit texture is ever authored, the array rebuild already reports itself (`art-store tripwire kind=TextureShape … outcome=array-rebuild`) and `battle-growth` fails on `textureArraysRebuilt`. The sentence "monotonic growth creates no dead layers" holds for the catalog as it is, not by construction |
+| `AtlasSource::PreferResident` is reached only by the card-reuse tests; no page asks for the runtime spec | Fixed: the resident read-back is deleted (`AtlasSource`, the resident request, the channel reconstruction, the `layer` result and the frame table kept only for it, about 110 lines). Card reuse is proved by what it is for: a frame drawn from reused cards equals a clean bake's, growth bakes only new keys, and two names with one content bake once. The test of zero-tint normals went with it, since it tested the read-back's own reconstruction; a stored card's normals and tint are still checked through drawn cards in `tests/impostors.rs` |
+| The scenery "needs placement" guard can no longer be true, and its only caller is a test | Fixed: `needs_scenery`, the `carried` field and the commit check that could not fire are deleted |
 
-**The engine's memory, 2026-11-15, open and blocking.** Slice 09's memory
+Its notes, 2026-11-15: the layer array now carries its own label, which
+removes one of the two new `too_many_arguments` exemptions; the other (the
+grass admission) says what blocks its split. The renderer READMEs' store
+sections are rewritten as four rules (identity is content, addresses are
+append-only, the last holder destroys, a full rebuild is the same admission)
+instead of a walk through the code. Left as recorded notes: one batched widen
+fails for every caller in it (one caller today), the fielding owner made in
+`useMemo` (development only), and the hull-sized pick box in shells that pass
+no stand-in (native capture, showcase).
+
+**The engine's memory, 2026-11-15, found open (fixed below).** Slice 09's memory
 report measured the engine without the preload against the base, in the
 reference battle at deployment: 7.25 GB settled against 6.25 GB, all of the
 difference in the renderer process (4.5 GB against 3.5 GB); the GPU process
 is unchanged. That breaks decision 3, and the page's WASM modules have a
 4 GB ceiling. Attribution (which part of the page, which slice) is in
 progress; the engine is not pushed until it is found and fixed.
+**The engine's memory, fixed, 2026-11-15.** Two causes, both in how the page
+hands bytes to Rust, neither a leak:
+
+- At the first scene the page encoded every model's transport packet into one
+  list before either reader took any of it, and nothing released the list. The
+  browser's collector had no reason to run, so about 0.9 GB sat in the page
+  until it did. Each packet is now encoded, read by the renderer and by
+  presentation, and released before the next (`releaseTransport`,
+  `web/src/battle/transport.ts`); growth and fielding release theirs the same
+  way. A released buffer is only ever one the caller just made: cached
+  textures and skeletons keep their owners.
+- Fielding copied every source file a second time inside WASM memory, which
+  never shrinks. It now borrows the bytes the page passed in
+  (`fielded::Read` returns a borrow or an owned buffer).
+
+Whole-browser footprint, reference battle at deployment, high graphics, three
+interleaved runs each, same harness and base as the report above (GB):
+
+| | Settled, each run | Mean | Page buffers | Renderer WASM |
+| --- | --- | ---: | ---: | ---: |
+| Base `c61374e29` | 6.22 / 6.20 / 6.18 | 6.20 | 0.95 | 1.28 |
+| Staging `3041e1cba` | 7.01 / 7.04 / 7.42 | 7.16 | 1.7–2.0 | 1.41 |
+| Fielding release and borrow only | 7.03 / 6.96 / 6.99 | 7.00 | 1.8–1.9 | 1.21 |
+| The whole fix | 6.02 / 6.03 / 6.01 | 6.02 | 0.95 | 1.21 |
+
+Every run of the fix is below every run of the base, and the simulation
+digest is the same in all twelve. The third row was built to see whether the
+per-packet release at admission could be left out: it cannot, that is where
+the gigabyte was. What the fielding release adds beside it was not isolated.
+The harness borrowed the main checkout's map presets, which had moved past
+the base's game module; it is pinned to the base's file now. Raw runs are in
+the scratch folder (`throwaway/memory-fix/`), not the spec.
+
+
+**The GPU preload is cancelled, 2026-11-15 (the player).** Shown the preload
+behind its off-by-default switch, the player's answer was: no configuration;
+what would be left off by default is not built; this is a zero-config game.
+That supersedes decisions 2, 5, 6 and 13 where they describe a GPU preload,
+and the slice's switch. Chosen between on-for-everyone and not-built, by the
+agent on the measurements: not built. With the engine a one-type arrival is a
+54 ms frame and a commit about 50 ms after staging, behind a stand-in, which
+is decision 13's own condition for a download-only preload; the GPU preload
+cost 3.0 GB settled (7.37 → 10.41 GB) and its WASM memory against the 4 GB
+ceiling was never measured. Kept from the slice: the download warm-up, on for
+every battle. The largest arrival's 399 ms frame, which the preload would
+have hidden, is now slice 09's second half. Commit `012834b8d` holds the
+cancelled code and its raw memory runs; neither is merged. If the player
+wants the enemy faction on the GPU for everyone after all, that commit's
+queue is the starting point and the WASM ceiling is the first thing to
+measure.
+
 **Growth scene contact after the staging merge, 2026-11-15.**
 
 - The fixed links remain unchanged. On the moved map the farthest field is
@@ -1446,3 +1507,200 @@ choice, an exception to the plan's "an exact colour the UI already has". It
 is not metallic any more: a metallic grey has no colour of its own to show.
 The four shots in `assets/stand-in/` show it; lit by the scene it reads as
 the same kind of box as a wreck awaiting its art.
+
+
+**Slice 09, download warm-up, player contract change, 2026-11-15.**
+
+- The game is zero-config. The GPU preload from `012834b8d` is rejected,
+  including its fragment switch, in-flight roster steps, progress events,
+  fixture and scenes. None is carried to `t3/battle-growth-warm-up`.
+  The measured memory evidence remains in `throwaway/`; no raw runs are
+  committed here. The memory fix is being integrated separately and is not
+  reimplemented or included in this pass.
+- Download warm-up is unconditional for the public-faction player battle.
+  Its existing viewport-ready callback runs after the first drawn frame,
+  including deployment. Using it avoids another readiness feed or renderer
+  publication. The menu retains its existing delayed warm-up, sharing the same
+  downloader. Smaller encounter/capture labs with no public enemy do not
+  start a whole-catalog download merely by using the shared session.
+- The priority is learned kinds retained for the observing session, then enabled
+  kinds in the public enemy faction, then the remaining runtime files. Each
+  kind resolves through the loader’s dependency selection (including faction
+  looks); files already started finish, unstarted files follow the current
+  priority and each transport URL is claimed once. No second downloader,
+  decoded-art cache, new wanted kind or admission is introduced by warming.
+- `useBattleSession.ts` was already 40,868 bytes, above the 32,000-byte source
+  budget. Wiring the readiness callback would grow it, so its existing art
+  composition moves intact to `useBattleArt`: wanted kinds, complete source and
+  fielding stay together. Comments move with that concept. `runtimePrefetch`
+  owns the existing cache/file work; forwarding exports and comment deletion
+  were rejected. The session shrinks while adding the readiness composition.
+- Tests first: the direct-battle readiness/order/residency test fails before
+  the warm-up module exists, then passes without any fragment, roster pin or
+  GPU mock. A deferred-fetch test checks a newly learned type takes the next
+  unstarted download and retains priority when its contact expires. Existing
+  prefetch departure/network/cache-cleanup tests consume the new owner directly.
+- Large-arrival confirmation is being run before any admission policy change.
+  The supplied scratch `probe-on.sh`/`probe-off.sh` do not exist on this machine;
+  the committed probe’s own instructions register it temporarily instead.
+  Its scratch extension records observed kinds and installed appearance names
+  alongside each staging/commit, plus subsecond browser long-frame entries.
+  The temporary fixture, scene and observations stay out of commits.
+
+**Slice 09, large-arrival confirmation, before changing admission, 2026-11-15.**
+
+- The nine-bundle, 27-card growth is **one type**,
+  `eastern_rpg_team_rpg_7`, not several unit types learned together. In the
+  reference battle on `3041e1cba` plus download warm-up it is growth four,
+  not the historical sixth: the order changed with staging's battle/map code.
+  The nine installed names are that type's `active_{a,b,c}`,
+  `carried_{a,b,c}` and `guard_{a,b,c}` appearances. The admission decodes
+  nine bundles, packs 85,739,040 vertex bytes and bakes 27 cards. No other
+  appearance joins that commit. The observation first identifies the RPG team
+  at its staging; a simultaneous own mortar description is already in the
+  player's purchase roster and adds no art.
+- Scratch evidence: `throwaway/evidence/growth-probe/reference-arrivals.json`
+  records the side's observation and actual installed names on each event.
+  The uninstrumented high-graphics run has six stages and six commits. The
+  RPG-team stage-to-commit interval is 505 ms. Its admission frame is 285 ms
+  (264 ms in the viewport loop, 11 ms in the React task, 10 ms browser/remainder);
+  the preceding fielding/transport frame is 150 ms (140 ms Promise task).
+  These browser-script intervals are not exclusive Rust phase attribution.
+  The historical 399 ms breakdown remains the earlier ledger measurement:
+  141 ms new geometry, 61 ms fielding, 47 ms decoding, 40 ms rest facts,
+  and 110 ms other work. New nested binding measurements follow separately.
+- The task's one-type branch applies. No learned-type pacing, spreading within
+  one admission, worker move, switch or roster GPU preload is built. A type
+  queue cannot divide this team's nine appearances. The next design decision
+  is how to bound work within one type, outside this pass. Relabelling the
+  current fourth growth as the sixth, or splitting units merely because the
+  bundle count is nine, was rejected.
+
+- Supplemental binding-only timing on the same single RPG-team arrival:
+  357 ms whole frame, fielding 82.08 ms, `stage_battle` 13.90 ms,
+  missing-content query/draft creation 0.32 ms, nine synchronous draft supplies
+  43.17 ms, catalog/GPU preparation 171.38 ms, remainder 46.15 ms. The
+  preparation interval contains geometry/rest/material work; it is not a
+  measurement of geometry alone. Staging-to-commit is 475 ms; the commit call
+  is 2.29 ms in its later 54 ms frame. These intervals were wrapped in the
+  scratch scene around existing WASM methods, without production edits or
+  a change to the observer. Evidence is
+  `throwaway/evidence/growth-probe/reference-arrivals-profiled.json` and the
+  exact scratch scene is `throwaway/warmup-reference-profiled.mjs`.
+  No before/after optimization table or three-run comparison is claimed:
+  the task explicitly stops at attribution for a single-type arrival.
+- Verification: the rebuilt WASM, 21 focused web tests across four files,
+  typecheck and lint pass. Lint retains the existing `unitGhosts.test.ts:150`
+  no-explicit-any warning. High-graphics `battle-growth` and `stand-in` pass
+  under the shared GPU lock. The growth's staging-to-commit is 73 ms; its
+  overlapping long frame is 120 ms, below the unchanged 700 ms tripwire;
+  every existing exact work assertion passes. Both reference probe runs finish
+  six stages and six commits. The temporary scene and fixture are removed.
+- Failure receipts, all in `throwaway/`: the initial missing-module test is
+  red; priority fault injection fails both order assertions; isolated readiness
+  fault injection fails on a pre-frame catalog fetch. A typecheck first refused
+  a broad string passed to the faction union (TS2345/TS2322); the fake and
+  comparison now use the real contract. Lint first found an unused import in
+  the temporary scene; it was removed. One supplemental scene was invalidated
+  by HMR during a fault-injection edit (`Execution context was destroyed`);
+  it was not used as evidence, and the stable-source rerun above passes.
+  No assertion, timeout, seed or acceptance threshold was relaxed.
+
+**The warm-up as merged, 2026-11-15.** Three `battle-growth` runs with the
+warm-up downloading in the background: the growth frame is 52, 52 and 51 ms,
+against 54 ms without it, so it costs no smoothness there (the 120 ms in the
+implementer's own run did not repeat). Slice 09's earlier memory runs had a
+warm-up-only arm: 0.12 GB more settled than the engine alone. In the merge
+the walk of "which kinds an observation shows" got one owner
+(`observedKinds`), shared by the wanted set and the warm-up's order, and the
+session computes the art's factions once for both. Noted, not changed: the
+downloader also writes every file into Cache Storage (`battle-runtime-v1`),
+which nothing reads back; the loader is served by the HTTP cache. It is how
+the downloader remembers what it has fetched, and it is 0.83 GB of second
+copy on disk. It predates this plan.
+
+**Slice 12 added, 2026-11-15 (the README's reslice trigger).** The one hitch
+left is a single type's art done in one frame. The slice warms the art store
+a content per frame and then admits, so the admission path stays single.
+Rejected: a worker (the renderer's WASM memory is not shared across threads
+today, and that is a larger change than the hitch), and pacing by type (the
+type is the unit that is too big). Its first confirm-first question may
+replace it: if most of an infantry type's 85.7 MB is geometry posed for
+bodies that do not exist yet, packing those when the first body lies is
+smaller.
+
+**Slice 12, first confirm-first answer stops implementation, 2026-11-15.**
+
+- Based on `origin/staging` at `4df1c6b11`, on
+  `t3/battle-growth-arrival-over-frames`. No production change was made.
+  The first stop condition applies: **57,159,360 of the 85,739,040 packed
+  vertex bytes (exactly two thirds) are two corpse-pose copies per bundle**.
+  Living meshes total 28,579,680 bytes. There is no additional packed far-rest
+  geometry: living rows share their unposed geometry, and the far pose keeps
+  only its bounds/palette and supplies its card bake.
+
+  All rows below use the `eastern_rpg_team_rpg_7_` prefix. Counts cover all
+  four mesh tiers, using the production 48-byte vertex layout; index buffers,
+  CPU rest facts and card pixels are not included in vertex bytes.
+
+  | Bundle suffix | Living tier bytes | Corpse tier bytes | Living / corpse / extra far geometry keys |
+  | --- | ---: | ---: | ---: |
+  | active_a | 3,098,736 | 6,197,472 | 1 / 2 / 0 |
+  | active_b | 2,929,776 | 5,859,552 | 1 / 2 / 0 |
+  | active_c | 2,930,592 | 5,861,184 | 1 / 2 / 0 |
+  | carried_a | 3,391,248 | 6,782,496 | 1 / 2 / 0 |
+  | carried_b | 3,217,584 | 6,435,168 | 1 / 2 / 0 |
+  | carried_c | 3,231,552 | 6,463,104 | 1 / 2 / 0 |
+  | guard_a | 3,241,968 | 6,483,936 | 1 / 2 / 0 |
+  | guard_b | 3,271,632 | 6,543,264 | 1 / 2 / 0 |
+  | guard_c | 3,266,592 | 6,533,184 | 1 / 2 / 0 |
+  | Total | 28,579,680 | 57,159,360 | 9 / 18 / 0 |
+
+- Evidence: `throwaway/slice12-confirm/geometry.py`, `.json` and `.log`.
+  The scratch reader inflates the nine committed runtime bundles, reads each
+  tier's position-array length and the production vertex stride, and records
+  their exact content identities, tier counts and authored poses. Every bundle
+  authors `death` and `death_back` at phase 1. The current production key rule
+  (`models/plan.rs`) adds a palette only for a corpse row, and
+  `models/admission.rs` poses and packs every tier for those rows; living
+  geometry remains unposed. `presentation/posing.rs::register_appearance`
+  registers the living row and both corpse rows before a body lies.
+  `models/rest_pose.rs` retains bounds and palettes, not another packed
+  living far mesh.
+- The calculated 85,739,040 bytes reconcile exactly with the actual reference
+  admission in the preceding pass's
+  `throwaway/evidence/growth-probe/reference-arrivals.json`: the commit adds
+  exactly those nine names and bakes 27 cards. Its tick-5521 observation has
+  three living RPG-team members and no RPG-team corpse. That is reused
+  historical browser evidence from `3041e1cba` plus download warm-up, not a
+  new run claimed on `4df1c6b11`. The nine runtime contents and the geometry
+  key/admission code are unchanged between those trees. Simulation/mapgen are
+  unchanged too; the intervening presentation fixture edit lengthens wreck
+  smoke and does not affect these mesh sizes or poses.
+- **Second confirm-first answer: not measured in this pass.** The task says
+  to stop at the first answer if posed copies dominate. It is therefore not
+  established that all fielding, supply and preparation costs divide by content,
+  nor is a per-content/global-table timing invented from the previous aggregate
+  measurements. No scratch timers, new reference run, stepping API, warm-store
+  state, viewport scheduling or fielding/supply stepping was built. Continuing
+  to implement slice 12 despite its stop condition was rejected; the next slice
+  can address unnecessary corpse preparation instead, under the user's spec.
+- No implementation tests, workspace Clippy, GPU tests/scenes or three-run
+  before/after cohort were run: there is no implementation to verify after
+  this explicit stop. The scratch calculation and its exact admission/observation
+  reconciliation pass. Evidence stays in `throwaway/`; only this ledger entry
+  changes. `df -h` showed 107 GiB free at setup, so no old measurement builds
+  were removed. No switch, setting, shader, vertex layout, assertion, README
+  status or slice text changed.
+
+**Slice 13 replaces slice 12, 2026-11-15.** Slice 12's stop rule fired: two
+thirds of an infantry type's packed geometry is corpse copies made before
+anyone has died. Chosen: stop making the copies; a body draws the living mesh
+held in its fall's last pose, with one shared palette per row. It removes the
+work instead of moving it, and it removes the same copies from the first
+scene and from GPU memory. Rejected for now: packing a pose's copy when its
+first body lies. That keeps three geometries per appearance, moves the cost
+to the middle of a firefight, and needs something to draw for a body found
+already dead in the fog, which has no fall to wait behind. It stays the
+fallback if bodies drawn skinned cost too much frame time at the corpse cap,
+which the slice measures before building. Not built: slice 12's stepping.

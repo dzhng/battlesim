@@ -31,9 +31,11 @@ export interface ModelAsset {
   name: string;
   contentId: ContentId;
   placement?: ModelPlacement;
-  /** Borrow encoded transport only when Rust lacks this content. */
+  /** Borrow encoded transport only when Rust lacks this content. The bundle is
+   * a fresh owned packet, released after both decoders read it; texture and
+   * skeleton transports are shared with other assets. */
   encode(): {
-    bundle: Uint8Array;
+    bundle: Uint8Array<ArrayBuffer>;
     textureIds: string[];
     textureBytes: Uint8Array[];
     skeleton?: Uint8Array;

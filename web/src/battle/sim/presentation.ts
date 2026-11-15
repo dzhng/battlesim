@@ -340,7 +340,7 @@ export class ScenePresentation {
 
   /** Installs a complete external art generation without fabricating a battle.
    *  Reinstall renderer tables after admission; returned rows include both. */
-  installLabAssets(assets: readonly LabAsset[], detail: ModelDetail): PresentedAppearance[] {
+  installLabAssets(assets: Iterable<LabAsset>, detail: ModelDetail): PresentedAppearance[] {
     this.rust.begin_lab_assets();
     for (const asset of assets)
       this.rust.add_lab_asset(

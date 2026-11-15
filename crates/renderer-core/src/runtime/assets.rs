@@ -168,6 +168,8 @@ impl Runtime {
     }
 }
 
+// The device, queue and pipelines travel as three arguments throughout this
+// crate; they fold into one here when it has a context type for them.
 #[allow(clippy::too_many_arguments)]
 pub(super) fn grass(
     device: &Device,

@@ -30,7 +30,9 @@ The shared renderer consumes fresh incremental work after acquiring a drawable
 output. The core owns [device reconstruction](../renderer-core/README.md#device-reconstruction).
 The page still owns asset transport, input, UI observations and probes. Fielding
 names the authored contents it needs, and the page fetches them without
-reinterpreting their battle meaning.
+reinterpreting their battle meaning. Fielding borrows the boundary’s packed
+source bytes for the resolve and retains only derived facts. It must not make
+another complete byte copy inside the non-shrinking linear memory.
 
 External tooling art is admitted as an atomic catalog generation before its
 models are requested. A decode failure leaves the active catalog usable.

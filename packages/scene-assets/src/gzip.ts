@@ -111,7 +111,7 @@ export async function readGzip(
   hash: string,
   path: (hash: string) => string,
   read: ReadRuntime,
-): Promise<Uint8Array> {
+): Promise<Uint8Array<ArrayBuffer>> {
   const record = gzipTransport(catalog, hash);
   return unpackGzip(await readFile(read, what, hash, path(record.hash)), record, hash);
 }
@@ -245,7 +245,7 @@ export async function unpackGzip(
   bytes: Uint8Array,
   record: GzipTransport,
   rawHash: string,
-): Promise<Uint8Array> {
+): Promise<Uint8Array<ArrayBuffer>> {
   if (bytes.length !== record.bytes)
     throw new Error(`content ${rawHash}: gzip length is ${bytes.length}, expected ${record.bytes}`);
   const raw = new Uint8Array(record.raw_bytes);

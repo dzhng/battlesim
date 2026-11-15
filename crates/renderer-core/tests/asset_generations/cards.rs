@@ -105,7 +105,7 @@ fn cards_baked_in_one_batch_match_each_card_baked_alone() {
                 &gpu.queue,
                 &runtime.pipelines,
                 &rows,
-                renderer_core::impostor::AtlasSource::Fresh(&spec),
+                &spec,
                 &mut AdmissionWork::default(),
             )
             .unwrap()
@@ -122,7 +122,7 @@ fn cards_baked_in_one_batch_match_each_card_baked_alone() {
                     &gpu.queue,
                     &runtime.pipelines,
                     &[row],
-                    renderer_core::impostor::AtlasSource::Fresh(&spec),
+                    &spec,
                     &mut AdmissionWork::default(),
                 )
                 .unwrap()

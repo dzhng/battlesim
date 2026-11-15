@@ -47,7 +47,7 @@ fn second_round(case: &str) {
         factions: None,
     }
     .resolve(&mut Facts::default(), &|hash| {
-        runtime.read(hash, "bundle.bin")
+        runtime.read(hash, "bundle.bin").map(Into::into)
     })
     .unwrap()
     .typed()

@@ -36,7 +36,7 @@ fn a_battle_reads_only_the_contents_it_names() {
     let sections = fielding
         .resolve(&mut facts, &|hash| {
             read.borrow_mut().insert(hash.to_owned());
-            runtime.read(hash, "bundle.bin")
+            runtime.read(hash, "bundle.bin").map(Into::into)
         })
         .unwrap();
     // Exactly what was named is read: nothing more, and nothing named in vain.
@@ -76,7 +76,7 @@ fn repeated_fielding_reads_only_new_kind_contents_and_matches_cold_resolution() 
     first_fielding
         .resolve(&mut facts, &|hash| {
             first_read.borrow_mut().insert(hash.to_owned());
-            runtime.read(hash, "bundle.bin")
+            runtime.read(hash, "bundle.bin").map(Into::into)
         })
         .unwrap();
 
@@ -99,7 +99,7 @@ fn repeated_fielding_reads_only_new_kind_contents_and_matches_cold_resolution() 
     let incremental = second_fielding
         .resolve(&mut facts, &|hash| {
             second_read.borrow_mut().insert(hash.to_owned());
-            runtime.read(hash, "bundle.bin")
+            runtime.read(hash, "bundle.bin").map(Into::into)
         })
         .unwrap();
     assert_eq!(second_read.into_inner(), second_named);
@@ -121,7 +121,9 @@ fn repeated_fielding_reads_only_new_kind_contents_and_matches_cold_resolution() 
         kinds: &both,
         factions: None,
     }
-    .resolve(&mut cold_facts, &|hash| runtime.read(hash, "bundle.bin"))
+    .resolve(&mut cold_facts, &|hash| {
+        runtime.read(hash, "bundle.bin").map(Into::into)
+    })
     .unwrap();
     assert_eq!(incremental.units, cold.units);
     assert_eq!(incremental.effects, cold.effects);
@@ -240,7 +242,7 @@ fn each_factions_gauge_drives_its_own_track_travel() {
         factions: Some(["test_blue", "test_red"]),
     }
     .resolve(&mut Facts::default(), &|hash| {
-        runtime.read(hash, "bundle.bin")
+        runtime.read(hash, "bundle.bin").map(Into::into)
     })
     .unwrap()
     .typed()

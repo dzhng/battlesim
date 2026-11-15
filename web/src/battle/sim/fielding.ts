@@ -6,6 +6,7 @@ import { presentationSettings } from "@web/presentationSettings";
 import type { AppearanceLibrary } from "@packages/scene-assets/src/loader";
 import type { CatalogView } from "@packages/scene-assets/src/units";
 import { Fielding } from "@wasm/renderer_browser";
+import { releaseTransport } from "../transport";
 
 /** The runtime files a page's appearances were loaded from: the runtime
  *  catalog and its bundle contents by hash (`AppearanceLibrary`). */
@@ -157,8 +158,15 @@ async function resolveFielding(
   for (const f of files) {
     bytes.set(f, at);
     at += f.length;
+    releaseTransport(f);
   }
-  const { units, effects, tables } = JSON.parse(fielding.resolve(bytes, lengths)) as {
+  let sections: string;
+  try {
+    sections = fielding.resolve(bytes, lengths);
+  } finally {
+    releaseTransport(bytes);
+  }
+  const { units, effects, tables } = JSON.parse(sections) as {
     units: object;
     effects: object;
     tables: string[];

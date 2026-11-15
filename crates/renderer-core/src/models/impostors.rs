@@ -1,6 +1,6 @@
 //! Model rest poses feed both runtime cards and configurable review atlases.
 use super::*;
-use crate::impostor::{self, AtlasRequest, AtlasSource, Spec};
+use crate::impostor::{self, AtlasRequest, Spec};
 use std::sync::atomic::{AtomicBool, Ordering};
 
 impl Models {
@@ -58,14 +58,7 @@ impl Models {
         }
         for batch in missing.chunks(cards_per_batch) {
             let rows = batch.iter().map(|(_, row)| *row).collect::<Vec<_>>();
-            let request = self.impostor_request(
-                device,
-                queue,
-                pipelines,
-                &rows,
-                AtlasSource::Fresh(&spec),
-                work,
-            )?;
+            let request = self.impostor_request(device, queue, pipelines, &rows, &spec, work)?;
             work.cards_baked += batch.len() as u32;
             work.card_read_waits += 1;
             let atlases = request.read().await?;
@@ -93,13 +86,9 @@ impl Models {
         queue: &Queue,
         pipelines: &Pipelines,
         rows: &[u32],
-        source: AtlasSource<'_>,
+        spec: &Spec,
         work: &mut crate::runtime::AdmissionWork,
     ) -> Result<AtlasRequest, String> {
-        let (spec, resident) = match source {
-            AtlasSource::Fresh(spec) => (spec, false),
-            AtlasSource::PreferResident(spec) => (spec, true),
-        };
         if rows.is_empty() {
             return Err("impostor request needs at least one appearance row".into());
         }
@@ -115,17 +104,6 @@ impl Models {
                     .rest
                     .as_ref()
                     .ok_or("appearance has no authored far or corpse pose")?;
-                if resident && *spec == Spec::runtime() {
-                    if let Some((cards, layer)) = self.cards.as_ref().zip(row.card) {
-                        return Ok(impostor::AtlasInput::Resident(impostor::ResidentInput {
-                            appearance: self.row_names[row_index as usize].clone(),
-                            spec: spec.clone(),
-                            frame: cards.metadata[&layer].clone(),
-                            array: cards.array.clone(),
-                            layer,
-                        }));
-                    }
-                }
                 let materials = self.impostor_materials.get_or_init(|| {
                     let bytes = bytemuck::cast_slice(&self.authored_materials);
                     work.buffer_bytes_uploaded += bytes.len() as u64;
@@ -159,7 +137,7 @@ impl Models {
                     &self.sampler,
                 );
                 let part = drawable.part(Surface::Opaque);
-                Ok(impostor::AtlasInput::Bake(impostor::BakeInput {
+                Ok(impostor::BakeInput {
                     appearance: self.row_names[row_index as usize].clone(),
                     bounds: rest.bounds,
                     vertices: drawable.vertices.clone(),
@@ -168,7 +146,7 @@ impl Models {
                     count: part.count,
                     models: models.bind_group().clone(),
                     spec: spec.clone(),
-                }))
+                })
             })
             .collect::<Result<Vec<_>, String>>()?;
         AtlasRequest::new(device, queue, pipelines, inputs)

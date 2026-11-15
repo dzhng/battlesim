@@ -59,17 +59,10 @@ struct Allocation<K> {
 }
 
 pub(crate) struct LayerArray<K> {
+    /// Names the array's texture, and its owner in a tripwire report.
+    label: &'static str,
     slots: BTreeMap<K, u32>,
     allocations: Vec<Allocation<K>>,
-}
-
-impl<K> Default for LayerArray<K> {
-    fn default() -> Self {
-        Self {
-            slots: BTreeMap::new(),
-            allocations: Vec::new(),
-        }
-    }
 }
 
 pub(crate) struct LayerPressure {
@@ -85,6 +78,13 @@ pub(crate) struct ArrayAdmission {
 }
 
 impl<K: Clone + Ord> LayerArray<K> {
+    pub fn new(label: &'static str) -> Self {
+        Self {
+            label,
+            slots: BTreeMap::new(),
+            allocations: Vec::new(),
+        }
+    }
     pub fn pressure(&self, wanted: &BTreeSet<K>) -> LayerPressure {
         let dead = self.slots.keys().filter(|id| !wanted.contains(*id)).count();
         let added = wanted
@@ -130,7 +130,6 @@ impl<K: Clone + Ord> LayerArray<K> {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub fn admit(
         &mut self,
         device: &Device,
@@ -138,9 +137,9 @@ impl<K: Clone + Ord> LayerArray<K> {
         wanted: &BTreeSet<K>,
         shape: &ArrayShape,
         spare: u32,
-        label: &str,
         report: fn(&str),
     ) -> ArrayAdmission {
+        let label = self.label;
         self.reserve(wanted);
         self.allocations.retain(|a| a.owner.strong_count() > 0);
         // Reservations absent from this table need no backing address in this

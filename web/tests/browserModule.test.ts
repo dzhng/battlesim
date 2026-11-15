@@ -158,8 +158,11 @@ function diskRuntime(): RuntimeFiles {
   return {
     catalog,
     contents: async (hashes: readonly string[]) =>
-      hashes.map((hash) =>
-        gunzipSync(readFileSync(new URL(`${catalog.gzip[hash].hash}/bundle.bin`, runtime))),
+      hashes.map(
+        (hash) =>
+          new Uint8Array(
+            gunzipSync(readFileSync(new URL(`${catalog.gzip[hash].hash}/bundle.bin`, runtime))),
+          ),
       ),
   } as unknown as RuntimeFiles;
 }
