@@ -291,7 +291,7 @@ RIFLE_HOLD = {
     "sight": (0, 0.005, 0.11),
     "cheek_blend": 0.5,
     "recoil": ((0, 0, 0), (3, 0, 0), (5, 0.06, 7.0), (8, 0.03, 3.5), (14, 0, 0), (36, 0, 0)),
-    "prone_butt": (0, 0.39, 0.03),
+    "butt": (0, 0.39, 0.03),
     "prone_support_back": 0.1,
 }
 
@@ -308,7 +308,7 @@ LAUNCHER_HOLD = {
     "sight": (0.14, 0.21, 0.13),
     "cheek_blend": 0.0,
     "recoil": ((0, 0, 0), (3, 0, 0), (5, 0.03, 2.0), (9, 0.01, 0.8), (16, 0, 0), (36, 0, 0)),
-    "prone_butt": None,
+    "butt": None,
     "prone_support_back": 0.0,
 }
 

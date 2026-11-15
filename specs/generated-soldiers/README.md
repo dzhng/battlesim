@@ -53,6 +53,7 @@ afterwards.
 - [x] 01 One owner each for pins, army data and source paths ([slice](slices/01-data-owners.md))
 - [x] 02 Crews wear their vehicle's army ([slice](slices/02-crew-by-army.md))
 - [x] 03 The wearer handles every soldier; a lying-fit gate for every corpse ([slice](slices/03-wearer.md))
+- [x] 03b The aim hold: stock in the shoulder, head on the stock ([slice](slices/03b-aim-hold.md)), added from user review
 - [x] 04 One generation tool: pins, resume, cost ledger ([slice](slices/04-generation-tool.md)). `status infantry` lists 23 missing bodies until slice 06 adds the PLA and French armies (29 after).
 - [ ] 05 Probe bodies: a second army, a scout, the kind cue ([slice](slices/05-probes.md))
 - [ ] 06 The PLA and French armies, and the teams that move to them ([slice](slices/06-new-armies.md))
