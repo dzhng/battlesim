@@ -4,9 +4,11 @@ use crate::assets::{Container, BUNDLE};
 use crate::records::FOG_UNITS;
 use crate::static_world::props::{DRAWS_PROP, DRAWS_PROP_GROUND};
 use crate::world::{Corners, Detail};
+use contract::identity::ContentId;
 use std::collections::BTreeMap;
 
 /// Geometry facts and authored poses, independent of a battle roster.
+#[derive(Clone)]
 pub enum Asset {
     Animated {
         appearance: Box<Appearance>,
@@ -15,6 +17,7 @@ pub enum Asset {
     Static(Vec<State>),
 }
 
+#[derive(Clone)]
 pub struct State {
     name: String,
     tiers: u32,
@@ -240,6 +243,7 @@ pub enum Pose {
 #[derive(Default)]
 pub(super) struct Lab {
     pub(super) assets: BTreeMap<String, Asset>,
+    pub(super) catalog_facts: BTreeMap<ContentId, Asset>,
     pub(super) detail: Option<Detail>,
     pub(super) models: Vec<ModelInput>,
     /// Canonical battle/static rows and strings precede replaceable tooling rows.
@@ -250,9 +254,20 @@ impl Presentation {
     /// Replaces the tooling catalog as one generation, without changing the
     /// battle, observations or static world. Reinstall the renderer's tables
     /// after this call; world rows can have moved.
-    pub fn install_lab_assets(&mut self, assets: BTreeMap<String, Asset>, detail: Detail) {
+    pub fn install_lab_assets(
+        &mut self,
+        assets: BTreeMap<String, (ContentId, Asset)>,
+        detail: Detail,
+    ) {
         self.catalog_state.renew();
-        self.lab.assets = assets;
+        self.lab.catalog_facts = assets
+            .values()
+            .map(|(content, asset)| (content.clone(), asset.clone()))
+            .collect();
+        self.lab.assets = assets
+            .into_iter()
+            .map(|(name, (_, asset))| (name, asset))
+            .collect();
         self.lab.detail = Some(detail);
         self.register_lab_rows();
     }

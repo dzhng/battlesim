@@ -201,3 +201,24 @@ that chain is. The alternative, leaving it inside 05, kept the longest wait
 the player sees behind three other slices. Its batches are bounded by bytes
 because one runtime card is about 3 MB across its targets and a full rebuild
 bakes about 190 of them.
+
+**Slice 07, 2026-11-15.** The binding seam is identity-first: `Renderer::missing_content_ids`
+takes a JSON array of `ContentId` values and returns the missing identities in
+request order; `AppearanceDraft::declare` routes every wanted name to an
+identity; and `AppearanceDraft::add_bundle` supplies one identity's bytes and
+facts. Keeping the old name-plus-bytes admission as a second API was rejected
+because it would preserve the rebuild requirement beside the delta contract.
+The page still calls `add_bundle` for every asset until slice 08; known content
+is a library hit and decodes nothing.
+
+Presentation retains the decoded geometry facts (`Asset`) by `ContentId` at
+catalog commit. Those facts include static state bounds, tier counts and
+corners, or animated appearance rigs, poses and clip tables; staging needs them
+to rebuild rows, pose palettes, culling and scenery fitting when bytes are
+absent. Names are retained only as routes in the wanted set, and retired
+identities are dropped with those routes. Placement metadata remains part of the
+shell declaration because it describes the wanted name's placement and is sent
+with each declaration. Retaining placements in a second identity table was
+rejected as a duplicate owner. The complete-catalog and delta paths are required
+to produce the same world rows and strings, while undeclared source bytes are
+discarded at library retention.

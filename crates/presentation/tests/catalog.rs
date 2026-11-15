@@ -1,4 +1,5 @@
 //! A candidate catalog cannot change the currently displayed presentation.
+use contract::identity::ContentId;
 use presentation::presentation::{lab::Asset, Presentation, Ui};
 use presentation::view::Camera;
 use presentation::world::{Detail, WorldInput};
@@ -40,6 +41,25 @@ fn camera() -> Camera {
         size: [640, 480],
     }
 }
+
+fn content(name: &str) -> ContentId {
+    ContentId::bundle(contract::identity::bytes_hash(name.as_bytes())).unwrap()
+}
+
+fn installed(name: &str, asset: Asset) -> (String, (ContentId, Asset)) {
+    (name.to_owned(), (content(name), asset))
+}
+
+fn staged(
+    name: &str,
+    asset: Asset,
+) -> (
+    std::collections::BTreeMap<String, ContentId>,
+    std::collections::BTreeMap<ContentId, Asset>,
+) {
+    let id = content(name);
+    ([(name.to_owned(), id.clone())].into(), [(id, asset)].into())
+}
 /// What each static batch draws, by appearance rather than row number:
 /// name, state, draw kind, tier, pass and count.
 fn static_draws(
@@ -68,6 +88,57 @@ fn units_drawn(p: &Presentation, batches: &[presentation::records::Batch]) -> u3
         .filter(|b| rows[b.appearance as usize].placed == 0)
         .map(|b| b.count)
         .sum()
+}
+
+#[test]
+fn catalog_delta_reuses_facts_retained_by_content_identity() {
+    let a = content("a");
+    let x = content("x");
+    let y = content("y");
+    let mut p = Presentation::new(None, 30.0).unwrap();
+    let committed = [
+        ("x".to_owned(), x.clone(), asset()),
+        ("y".to_owned(), y.clone(), asset()),
+    ];
+    p.install_lab_assets(
+        committed
+            .iter()
+            .map(|(name, id, fact)| (name.clone(), (id.clone(), fact.clone())))
+            .collect(),
+        detail(),
+    );
+    let delta = p
+        .stage_catalog(
+            [
+                ("a".to_owned(), a.clone()),
+                ("x".to_owned(), x.clone()),
+                ("y".to_owned(), y.clone()),
+            ]
+            .into_iter()
+            .collect(),
+            [(a.clone(), asset())].into(),
+            detail(),
+            Default::default(),
+        )
+        .unwrap();
+    let complete = p
+        .stage_catalog(
+            [
+                ("a".to_owned(), a.clone()),
+                ("x".to_owned(), x.clone()),
+                ("y".to_owned(), y.clone()),
+            ]
+            .into_iter()
+            .collect(),
+            [(a, asset()), (x, asset()), (y, asset())].into(),
+            detail(),
+            Default::default(),
+        )
+        .unwrap();
+    let delta_world = delta.view(&p).unwrap().world();
+    let complete_world = complete.view(&p).unwrap().world();
+    assert_eq!(delta_world.appearances, complete_world.appearances);
+    assert_eq!(delta_world.strings, complete_world.strings);
 }
 fn names(p: &Presentation) -> Vec<String> {
     let w = p.world();
@@ -110,14 +181,11 @@ fn battle_input(
 #[test]
 fn pending_catalog_preserves_live_rows_and_models_and_commits_latest_models() {
     let mut p = Presentation::new(None, 30.0).unwrap();
-    p.install_lab_assets([("committed".into(), asset())].into(), detail());
+    p.install_lab_assets([installed("committed", asset())].into(), detail());
     p.set_lab_models(model("committed", 1.0)).unwrap();
+    let (wanted, facts) = staged("candidate", asset());
     let candidate = p
-        .stage_catalog(
-            [("candidate".into(), asset())].into(),
-            detail(),
-            Default::default(),
-        )
+        .stage_catalog(wanted, facts, detail(), Default::default())
         .unwrap();
     assert!(candidate
         .view(&p)
@@ -158,13 +226,10 @@ fn pending_catalog_preserves_live_rows_and_models_and_commits_latest_models() {
 #[test]
 fn stale_or_invalid_admission_never_replaces_the_active_generation() {
     let mut p = Presentation::new(None, 30.0).unwrap();
-    p.install_lab_assets([("committed".into(), asset())].into(), detail());
+    p.install_lab_assets([installed("committed", asset())].into(), detail());
+    let (wanted, facts) = staged("stale", asset());
     let stale = p
-        .stage_catalog(
-            [("stale".into(), asset())].into(),
-            detail(),
-            Default::default(),
-        )
+        .stage_catalog(wanted, facts, detail(), Default::default())
         .unwrap();
     let mut another = Presentation::new(None, 30.0).unwrap();
     assert!(
@@ -173,12 +238,9 @@ fn stale_or_invalid_admission_never_replaces_the_active_generation() {
     );
     assert!(stale.view(&another).is_err());
     assert!(!another.commit_catalog(stale, Vec::new()).unwrap());
+    let (wanted, facts) = staged("stale", asset());
     let stale = p
-        .stage_catalog(
-            [("stale".into(), asset())].into(),
-            detail(),
-            Default::default(),
-        )
+        .stage_catalog(wanted, facts, detail(), Default::default())
         .unwrap();
     p.load_world(
         WorldInput {
@@ -192,12 +254,9 @@ fn stale_or_invalid_admission_never_replaces_the_active_generation() {
     )
     .unwrap();
     assert!(!p.commit_catalog(stale, Vec::new()).unwrap());
+    let (wanted, facts) = staged("invalid", asset());
     let draft = p
-        .stage_catalog(
-            [("invalid".into(), asset())].into(),
-            detail(),
-            Default::default(),
-        )
+        .stage_catalog(wanted, facts, detail(), Default::default())
         .unwrap();
     let bad = serde_json::from_value(json!([{"appearance":"invalid","x":0,"y":0,"z":0,"yaw":0,
         "pose":{"kind":"posed","palette":[1,2,3]}}]))
@@ -249,14 +308,17 @@ fn battle_art_replacement_changes_live_joint_facts_without_restarting_the_observ
     let frame = p.frame(0.0, &camera(), &Ui::default(), 0).unwrap();
     let instance = frame.instances[0];
     let root_x = frame.palettes[instance.data[0] as usize].x[3];
+    let (wanted, facts) = staged(&name, asset());
     assert!(p
-        .stage_catalog([(name.clone(), asset())].into(), detail, Default::default())
+        .stage_catalog(wanted, facts, detail, Default::default())
         .is_err());
     assert_eq!(p.last_frame().instances[0].placement, instance.placement);
+    let id = content(&name);
     let draft = p
         .stage_catalog(
+            [(name, id.clone())].into(),
             [(
-                name,
+                id,
                 Asset::Animated {
                     appearance: Box::new(replacement),
                     table: Vec::new(),
@@ -447,7 +509,12 @@ fn a_newly_fielded_kind_joins_the_loaded_battle_without_reloading_its_world() {
         "a staged catalog changes nothing drawn until it commits"
     );
     let mut draft = p
-        .stage_catalog(Default::default(), detail, Default::default())
+        .stage_catalog(
+            Default::default(),
+            Default::default(),
+            detail,
+            Default::default(),
+        )
         .unwrap();
     let mesh = ground::scenery_mesh(0.25, 4.0);
     let kinds = p.ground().unwrap().scenery_kinds().len();

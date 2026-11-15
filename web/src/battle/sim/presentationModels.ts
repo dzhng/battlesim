@@ -97,12 +97,12 @@ export function prepareAppearances(
   const work = { bundlesEncoded: 0, bundleBytesSent: 0 };
   try {
     for (const asset of assets) {
+      draft.declare(asset.name, JSON.stringify(asset.contentId));
       if (asset.placement) draft.set_placement(asset.name, JSON.stringify(asset.placement));
       const bundle = asset.bundle;
       work.bundlesEncoded++;
       work.bundleBytesSent += bundle.byteLength;
       draft.add_bundle(
-        asset.name,
         JSON.stringify(asset.contentId),
         bundle,
         asset.textureIds,

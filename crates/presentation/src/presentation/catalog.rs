@@ -7,6 +7,7 @@ use super::lab::{self, Asset, ModelInput, Pose};
 use super::*;
 use crate::static_world::ground::Ground;
 use crate::world::Detail;
+use contract::identity::ContentId;
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU32, Ordering};
 
@@ -119,6 +120,7 @@ pub struct CatalogDraft {
     revision: u32,
     world: World,
     assets: BTreeMap<String, Asset>,
+    facts: BTreeMap<ContentId, Asset>,
     detail: Detail,
     frontier: (usize, usize),
     battle: Option<BattleCatalog>,
@@ -308,10 +310,22 @@ impl Presentation {
     /// poses, model requests or knowledge, and holds no observer borrow.
     pub fn stage_catalog(
         &self,
-        assets: BTreeMap<String, Asset>,
+        wanted: BTreeMap<String, ContentId>,
+        facts: BTreeMap<ContentId, Asset>,
         detail: Detail,
         placements: BTreeMap<String, Placement>,
     ) -> Result<CatalogDraft, String> {
+        let mut assets = BTreeMap::new();
+        let mut retained = BTreeMap::new();
+        for (name, content) in &wanted {
+            let asset = facts
+                .get(content)
+                .cloned()
+                .or_else(|| self.lab.catalog_facts.get(content).cloned())
+                .ok_or_else(|| format!("{name}: catalog facts missing for content identity"))?;
+            retained.insert(content.clone(), asset.clone());
+            assets.insert(name.clone(), asset);
+        }
         let battle = self.stage_battle_catalog(&assets)?;
         let (rows, _) = self
             .lab
@@ -355,6 +369,7 @@ impl Presentation {
             revision: self.catalog_state.revision,
             world,
             assets,
+            facts: retained,
             detail,
             frontier,
             battle,
@@ -380,6 +395,7 @@ impl Presentation {
         draft.statics.commit(self);
         self.world = draft.world;
         self.lab.assets = draft.assets;
+        self.lab.catalog_facts = draft.facts;
         self.lab.detail = Some(draft.detail);
         self.lab.frontier = Some(draft.frontier);
         self.lab.models = models;

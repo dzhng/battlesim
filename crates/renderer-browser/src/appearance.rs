@@ -10,13 +10,23 @@ use std::collections::{BTreeMap, HashSet};
 #[wasm_bindgen]
 pub struct AppearanceDraft {
     library: Library,
-    facts: BTreeMap<String, Asset>,
+    held: HashSet<contract::identity::ContentId>,
+    declarations: BTreeMap<String, contract::identity::ContentId>,
+    facts: BTreeMap<contract::identity::ContentId, Asset>,
     detail: Detail,
     placements: BTreeMap<String, Placement>,
 }
 
 #[wasm_bindgen]
 impl AppearanceDraft {
+    /// Declare every wanted route. Bytes are supplied separately only for
+    /// identities the renderer reports missing.
+    pub fn declare(&mut self, name: String, content_id: String) -> Result<(), JsValue> {
+        let content = serde_json::from_str(&content_id).map_err(js_error)?;
+        self.declarations.insert(name, content);
+        Ok(())
+    }
+
     /// Placement metadata accompanies mesh bytes in the authored catalog.
     pub fn set_placement(&mut self, name: String, json: &str) -> Result<(), JsValue> {
         self.placements
@@ -26,7 +36,6 @@ impl AppearanceDraft {
 
     pub fn add_bundle(
         &mut self,
-        name: String,
         content_id: String,
         bundle: &[u8],
         texture_ids: js_sys::Array,
@@ -39,13 +48,16 @@ impl AppearanceDraft {
             .map(|(id, data)| (id.as_str(), data.as_slice()))
             .collect();
         // Both decoders finish before either draft owner changes.
-        let facts = Asset::from_bundle(bundle, skeleton.as_deref()).map_err(js_error)?;
         let content: contract::identity::ContentId =
             serde_json::from_str(&content_id).map_err(js_error)?;
-        self.library
-            .insert_bundle(&name, content, bundle, &refs)
-            .map_err(js_error)?;
-        self.facts.insert(name, facts);
+        if !self.held.contains(&content) {
+            self.library
+                .insert_content(content.clone(), bundle, &refs)
+                .map_err(js_error)?;
+            let facts = Asset::from_bundle(bundle, skeleton.as_deref()).map_err(js_error)?;
+            self.facts.insert(content.clone(), facts);
+            self.held.insert(content);
+        }
         Ok(())
     }
 }
@@ -64,6 +76,8 @@ impl Renderer {
     pub fn appearance_draft(&self, detail: &str) -> Result<AppearanceDraft, JsValue> {
         Ok(AppearanceDraft {
             library: self.model_library.empty_generation(),
+            held: self.model_library.content_ids().cloned().collect(),
+            declarations: BTreeMap::new(),
             facts: BTreeMap::new(),
             placements: BTreeMap::new(),
             detail: serde_json::from_str(detail).map_err(js_error)?,
@@ -85,7 +99,12 @@ impl Renderer {
             .ok_or_else(|| js_error("install presentation before preparing appearances"))?;
         let catalog = presentation
             .core()
-            .stage_catalog(draft.facts, draft.detail, draft.placements)
+            .stage_catalog(
+                draft.declarations.clone(),
+                draft.facts,
+                draft.detail,
+                draft.placements,
+            )
             .map_err(js_error)?;
         let view = catalog.view(presentation.core()).map_err(js_error)?;
         let world = view.world();
@@ -103,6 +122,9 @@ impl Renderer {
         let draft_work = draft.library.take_admission_work();
         let mut library = (*self.model_library).clone();
         library.replace_with(draft.library);
+        for (name, content) in &draft.declarations {
+            library.declare(name.clone(), content.clone());
+        }
         library.retain(|name| names.contains(name));
         let pending = runtime
             .stage_assets(

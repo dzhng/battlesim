@@ -11,6 +11,8 @@ import { generatedContentId } from "./contentIdentity";
 
 export interface LabAsset {
   name: string;
+  /** Catalog identity used to retain presentation facts across deltas. */
+  contentId?: ContentId;
   /** Inflated scene-assets container; texture bytes belong to rendering. */
   bundle: Uint8Array;
   skeleton?: Uint8Array;

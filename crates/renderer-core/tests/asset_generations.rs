@@ -128,6 +128,10 @@ fn same_name_with_new_content_replaces_the_admitted_art() {
         .insert_bundle("synthetic", content_id(&bytes_b), &bytes_b, &[])
         .unwrap();
     assert_eq!(library.take_admission_work().bundles_decoded, 1);
+    assert_eq!(
+        library.missing_content(&[content_id(&bytes_a)]),
+        vec![content_id(&bytes_a)]
+    );
     assert_eq!(Arc::strong_count(&old), 1);
     let new_top = match &library.bundle("synthetic").unwrap().shape {
         renderer_core::bundle::Shape::Static(states) => states[0].top,
@@ -160,6 +164,33 @@ fn identical_content_under_a_second_name_decodes_once() {
         .unwrap();
     assert_eq!(library.take_admission_work().bundles_decoded, 1);
     assert!(Arc::ptr_eq(&old, &library.bundle("synthetic-b").unwrap()));
+}
+
+#[test]
+fn missing_content_is_exact_and_held_sources_decode_nothing() {
+    let held_bytes = bundle_bytes("static", 1);
+    let missing_x = bundle_bytes("static", 2);
+    let missing_y = bundle_bytes("static", 3);
+    let held = content_id(&held_bytes);
+    let x = content_id(&missing_x);
+    let y = content_id(&missing_y);
+    let mut library = Library::default();
+    library
+        .insert_bundle("held", held.clone(), &held_bytes, &[])
+        .unwrap();
+    assert_eq!(
+        library.missing_content(&[held.clone(), x.clone(), y.clone()]),
+        vec![x.clone(), y.clone()]
+    );
+    assert_eq!(
+        library.missing_content(&[y.clone(), held.clone(), x.clone()]),
+        vec![y.clone(), x.clone()]
+    );
+    library.insert_content(x.clone(), &missing_x, &[]).unwrap();
+    library.insert_content(y.clone(), &missing_y, &[]).unwrap();
+    assert_eq!(library.take_admission_work().bundles_decoded, 3);
+    library.insert_content(held, &held_bytes, &[]).unwrap();
+    assert_eq!(library.take_admission_work().bundles_decoded, 0);
 }
 
 #[test]
@@ -217,7 +248,10 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
     let asset_a = Asset::from_bundle(&bytes_a, None).unwrap();
     let asset_b = Asset::from_bundle(&bytes_b, None).unwrap();
     let mut presentation = Presentation::new(None, 30.).unwrap();
-    presentation.install_lab_assets(BTreeMap::from([("synthetic-a".into(), asset_a)]), detail());
+    presentation.install_lab_assets(
+        BTreeMap::from([("synthetic-a".into(), (content_id(&bytes_a), asset_a))]),
+        detail(),
+    );
     presentation
         .set_lab_models(
             serde_json::from_value(json!([{
@@ -274,7 +308,8 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
 
     let candidate = presentation
         .stage_catalog(
-            [("synthetic-b".into(), asset_b)].into(),
+            [("synthetic-b".into(), content_id(&bytes_b))].into(),
+            [(content_id(&bytes_b), asset_b)].into(),
             detail(),
             Default::default(),
         )
@@ -309,8 +344,9 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
 
     let dropped_catalog = presentation
         .stage_catalog(
+            [("synthetic-a".into(), content_id(&bytes_a))].into(),
             [(
-                "synthetic-a".into(),
+                content_id(&bytes_a),
                 Asset::from_bundle(&bytes_a, None).unwrap(),
             )]
             .into(),
@@ -335,8 +371,9 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
 
     let stale_catalog = presentation
         .stage_catalog(
+            [("synthetic-a".into(), content_id(&bytes_a))].into(),
             [(
-                "synthetic-a".into(),
+                content_id(&bytes_a),
                 Asset::from_bundle(&bytes_a, None).unwrap(),
             )]
             .into(),
@@ -358,8 +395,9 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
     let stale = pollster::block_on(stale.prepare()).unwrap();
     let renewed_catalog = presentation
         .stage_catalog(
+            [("synthetic-c".into(), content_id(&bytes_b))].into(),
             [(
-                "synthetic-c".into(),
+                content_id(&bytes_b),
                 Asset::from_bundle(&bytes_b, None).unwrap(),
             )]
             .into(),
@@ -405,8 +443,9 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
 
     let failed_catalog = presentation
         .stage_catalog(
+            [("missing".into(), content_id(&bytes_a))].into(),
             [(
-                "missing".into(),
+                content_id(&bytes_a),
                 Asset::from_bundle(&bytes_a, None).unwrap(),
             )]
             .into(),

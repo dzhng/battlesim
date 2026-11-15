@@ -33,8 +33,11 @@ then installs current presentation and prepares assets before drawing again.
 A renderer cannot silently replace the page's shared device.
 The core owns [device reconstruction](../renderer-core/README.md#device-reconstruction).
 
-[Appearance drafts](src/appearance.rs) carry each asset's runtime `ContentId`
-alongside its bytes. Names route to the bundle hash (and a skinned bundle's
+[Appearance drafts](src/appearance.rs) carry declarations for every wanted name
+and its runtime `ContentId`; `Renderer::missing_content_ids` answers which
+identities lack source bytes. `AppearanceDraft::add_bundle` supplies facts and
+bytes by identity, so a draft may send only that missing list while the page can
+still send all bytes. Names route to the bundle hash (and a skinned bundle's
 skeleton hash), never to a reuse decision. Drafts collect source transport and
 pose facts without changing active art. Page-generated bundles use the same
 exported `bytes_hash` implementation as the contract crate, cached by bundle

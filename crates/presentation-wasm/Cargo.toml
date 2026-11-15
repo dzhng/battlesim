@@ -12,4 +12,5 @@ sim = { path = "../sim" }
 serde.workspace = true
 serde_json.workspace = true
 presentation = { path = "../presentation" }
+contract = { path = "../contract" }
 bytemuck = "1.25"

@@ -1,5 +1,6 @@
 use super::*;
 use crate::bundle::Draw;
+use contract::identity::ContentId;
 
 fn mesh(draws: &[(usize, usize)]) -> Mesh {
     let mut first = 0;
@@ -184,7 +185,14 @@ fn admission_does_not_scroll_pitchless_track_nodes() {
     bytes.extend([0; 32]);
     let mut p = Presentation::new(None, 30.0).unwrap();
     p.install_lab_assets(
-        [("tracks".into(), Asset::from_bundle(&bytes, None).unwrap())].into(),
+        [(
+            "tracks".into(),
+            (
+                ContentId::bundle(contract::identity::bytes_hash("tracks".as_bytes())).unwrap(),
+                Asset::from_bundle(&bytes, None).unwrap(),
+            ),
+        )]
+        .into(),
         Detail {
             lod_px: [80.0, 40.0, 20.0],
             impostor_px: 4.0,
@@ -216,7 +224,16 @@ fn admission_does_not_scroll_pitchless_track_nodes() {
     rig.tracks.clear();
     let draft = p
         .stage_catalog(
-            [("tracks".into(), candidate)].into(),
+            [(
+                "tracks".into(),
+                ContentId::bundle(contract::identity::bytes_hash("tracks".as_bytes())).unwrap(),
+            )]
+            .into(),
+            [(
+                ContentId::bundle(contract::identity::bytes_hash("tracks".as_bytes())).unwrap(),
+                candidate,
+            )]
+            .into(),
             Detail {
                 lod_px: [80.0, 40.0, 20.0],
                 impostor_px: 4.0,

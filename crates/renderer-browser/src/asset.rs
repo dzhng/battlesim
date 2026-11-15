@@ -3,6 +3,14 @@ use super::*;
 
 #[wasm_bindgen]
 impl Renderer {
+    /// Return the content identities absent from the retained source library.
+    /// The list is identity keyed so names may be replaced or shared freely.
+    pub fn missing_content_ids(&self, content_ids_json: &str) -> Result<String, JsValue> {
+        let contents: Vec<contract::identity::ContentId> =
+            serde_json::from_str(content_ids_json).map_err(js_error)?;
+        serde_json::to_string(&self.model_library.missing_content(&contents)).map_err(js_error)
+    }
+
     /// Decode fetched assets without constructing GPU tables per appearance.
     #[wasm_bindgen]
     pub fn load_bundle(
