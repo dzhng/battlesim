@@ -14,6 +14,9 @@ pub struct Road {
     pub palette: String,
     /// Width of the blend across the road's edge, centred on it.
     pub feather_m: f64,
+    /// How far its edge wanders either side of the stroke's: its surface
+    /// spills onto the shoulder and is bitten back by it, never a ruled line.
+    pub ragged_m: f64,
     /// How far a patch goes to the second colour, and a patch's size.
     pub mottle: f64,
     pub patch_m: f64,
@@ -154,6 +157,12 @@ impl Biome {
         };
         self.has_palette(&at("palette"), &road.palette, 2)?;
         within(&at("feather_m"), road.feather_m, 0.0, 5.0)?;
+        within(
+            &at("ragged_m"),
+            road.ragged_m,
+            0.0,
+            road.shoulder.width_m.max(0.0),
+        )?;
         within(&at("mottle"), road.mottle, 0.0, 1.0)?;
         within(&at("patch_m"), road.patch_m, 0.1, 1000.0)?;
         within(&at("grain"), road.grain, 0.0, 1.0)?;

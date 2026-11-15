@@ -298,7 +298,12 @@ impl Ground {
                 road.grain,
                 1.0 / road.grain_m,
             ]),
-            join: f4([road.join_m, 0.0, walk(|w| w.width_m), walk_row as f64]),
+            join: f4([
+                road.join_m,
+                road.ragged_m,
+                walk(|w| w.width_m),
+                walk_row as f64,
+            ]),
             shoulder: f4(rgb(first(&s.palette), s.width_m)),
             edge: f4([s.jitter, 1.0 / s.jitter_m, s.grass, s.cover]),
             ruts: f4([rut(0), rut(1), r.width_m, tan_deg(r.tilt_deg)]),
