@@ -9,6 +9,9 @@ pub struct CarriageRules {
     pub board_s: f64,
     pub reach_m: f64,
     pub unload_search_m: f64,
+    /// The fastest a ground carrier may roll while squads climb on or off
+    /// it, m/s: about a soldier's jog.
+    pub climb_speed_mps: f64,
 }
 
 impl CarriageRules {
@@ -17,6 +20,7 @@ impl CarriageRules {
             ("board_s", self.board_s),
             ("reach_m", self.reach_m),
             ("unload_search_m", self.unload_search_m),
+            ("climb_speed_mps", self.climb_speed_mps),
         ] {
             if !value.is_finite() || value <= 0.0 {
                 return Err(format!("carriage.{name} must be finite and positive"));

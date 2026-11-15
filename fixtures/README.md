@@ -139,7 +139,8 @@ independently; zero air reach means blind. `capabilities.radar_emitter` authors
 a signature independently of those ranges. The [sensing contract](../crates/sim/README.md#sensing) explains
 how these values interact with ground and movement.
 A unit's `capabilities.carriage.seats` (3, 8 or 16) makes it a carrier; nothing
-else does. The rules' `carriage` row sets the boarding timer and reach, and their
+else does. The rules' `carriage` row sets the boarding timer and reach, the
+climbing speed a carrier may roll at while squads get on or off, and their
 `bail_out` rows, one per kind of host (building, ground, air), set how a garrison
 or riders come out of a destroyed host: death odds, the health lost and how far
 to search for a place to stand.
