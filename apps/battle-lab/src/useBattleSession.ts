@@ -34,7 +34,7 @@ import {
 } from "@web/battle/present/orderReveal";
 import { highAir } from "@packages/scene-assets/src/units";
 import { useUnitControl } from "@web/battle/input/useUnitControl";
-import { usePurchasePlacement } from "./usePurchasePlacement";
+import { placementPose, usePurchasePlacement } from "./usePurchasePlacement";
 import {
   isArmed,
   facedIntent,
@@ -624,21 +624,17 @@ export function useBattleSession({
       sim.client &&
       world;
     if (purchasePlacement.variant) {
-      // A held left drag pins the ghost where it was pressed and turns it
-      // toward the pointer.
-      const at =
-        active && inputEnabled && groundUnderRay(world.view, pointer.leftPress ?? pointer.ray!);
-      const facingTo =
-        active && inputEnabled && pointer.leftPress
-          ? groundUnderRay(world.view, pointer.ray!)
+      const pose =
+        active && inputEnabled
+          ? placementPose({ ray: pointer.ray!, leftPress: pointer.leftPress ?? null }, (ray) =>
+              groundUnderRay(world.view, ray),
+            )
           : null;
-      const facing =
-        at && facingTo ? Math.atan2(facingTo[1] - at[1], facingTo[0] - at[0]) : undefined;
       purchaseGhost.current = purchasePlacement.at(
-        at ? [at[0], at[1]] : null,
+        pose?.at ?? null,
         active ? sim.client : null,
         `${semanticRevision.current.version}`,
-        facing,
+        pose?.facing,
       );
       pointerPaint.update(
         null,
