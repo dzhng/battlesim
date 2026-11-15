@@ -46,6 +46,15 @@ reconstruction retains those facts and the observer's learned felling.
 [Impostors](src/impostor/) bake through the same authored model/material path,
 then filter coverage before uploading relit cards. Native and browser use the
 same atlases and shader; the impostor tier never substitutes a coarsest mesh.
+Runtime card bakes submit all cards in each memory-bounded batch before
+awaiting every channel's readback concurrently. The byte bound counts color
+and depth targets plus aligned readback buffers; its default lives with the
+[impostor specification](src/impostor/mod.rs). The runtime's
+[art policy](src/models/store.rs) carries the bound and platform report sink
+across staging. The first split is reported once per runtime, including pending
+work that is later dropped; admission work counts every batch's read wait. Authored materials upload once per generation on the first bake
+and remain separate from live diagnostic material controls. Grouped review
+requests use the same bake and preserve their input order.
 Asynchronous asset preparation finishes before a frame may request cards.
 Configurable offscreen bakes capture owned GPU resources, so replacing the
 source catalog cannot invalidate a pending review image.
@@ -80,8 +89,9 @@ work must be consumed rather than replayed.
 
 Each asset generation also carries an [`AdmissionWork`](src/runtime/work.rs)
 report: counts and payload bytes for decode, packing, uploads, texture layers,
-cards and scenery placement. It is swapped atomically with the generation, so
-discarded or stale preparation cannot change the live report.
+cards, card-read wait groups and scenery placement. It is swapped atomically
+with the generation, so discarded or stale preparation cannot change the live
+report.
 
 [World geometry](src/runtime/world.rs) constructs submitted layers for both
 shells through shared skirt, backdrop and water builders. Native supplies physical

@@ -10,7 +10,7 @@ pub use controls::Controls;
 pub use work::{AdmissionWork, RebuildReason};
 pub use world::WorldGeometry;
 
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
 
 use presentation::light::LightSettings;
@@ -112,6 +112,9 @@ pub struct Runtime {
     pending_catalog_frame: Option<u32>,
     admission_work: AdmissionWork,
     pub(super) art_store: SharedArtStore,
+    /// Pending bakes share this lifetime without borrowing the live runtime.
+    /// A store fallback must not rearm the same card-split warning.
+    card_bake_split_reported: Arc<AtomicBool>,
 }
 
 impl Runtime {
@@ -287,6 +290,7 @@ impl Runtime {
             pending_catalog_frame: None,
             admission_work,
             art_store,
+            card_bake_split_reported: Arc::new(AtomicBool::new(false)),
         };
         runtime
             .ground
@@ -300,7 +304,14 @@ impl Runtime {
     /// Complete this admission phase before preparing the first frame.
     pub async fn prepare_assets(&mut self, device: &Device, queue: &Queue) -> Result<(), String> {
         self.models
-            .bake_cards(device, queue, &self.pipelines, &mut self.admission_work)
+            .bake_cards(
+                device,
+                queue,
+                &self.pipelines,
+                self.config.art_store,
+                &self.card_bake_split_reported,
+                &mut self.admission_work,
+            )
             .await
     }
 

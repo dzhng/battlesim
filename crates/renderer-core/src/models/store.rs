@@ -40,10 +40,12 @@ impl MaterialSlots {
     }
 }
 
-/// Scene slot tripwire and the platform sink that reports when it fires.
+/// Scene art tripwires and the platform sink that reports when they fire.
 #[derive(Clone, Copy)]
 pub struct ArtStorePolicy {
     pub dead_material_slots: usize,
+    /// Target and readback byte bound for each card-bake batch.
+    pub card_bake_memory_bytes: u64,
     pub report: fn(&str),
 }
 
@@ -51,6 +53,7 @@ impl Default for ArtStorePolicy {
     fn default() -> Self {
         Self {
             dead_material_slots: 8192,
+            card_bake_memory_bytes: crate::impostor::DEFAULT_BAKE_MEMORY_BYTES,
             report: |message| eprintln!("{message}"),
         }
     }

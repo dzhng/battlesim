@@ -248,6 +248,7 @@ fn first_admission_reports_the_synthetic_fixture_work() {
             texture_layers_written: 0,
             texture_bytes_uploaded: 0,
             cards_baked: 0,
+            card_read_waits: 0,
             statics_bytes_uploaded: 0,
             scenery_placements: 0,
             rebuild_reason: None,
@@ -273,32 +274,7 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
             .unwrap(),
         )
         .unwrap();
-    let game: serde_json::Value =
-        serde_json::from_str(include_str!("../../../fixtures/presentation.json")).unwrap();
-    let settings = presentation::settings::PresentationSettings::from_value(&game).unwrap();
-    let biome = presentation::static_world::ground::biome::Biome::load(
-        include_str!("../../../fixtures/biomes/summer.json"),
-        None,
-    )
-    .unwrap();
-    presentation
-        .set_ground(
-            presentation::static_world::ground::Source {
-                map: [0., 0., 64., 64.],
-                playable: [0., 0., 64., 64.],
-                grid: presentation::static_world::ground::tables::Grid {
-                    nx: 17,
-                    ny: 17,
-                    spacing: 4.,
-                    page_size: 16,
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
-            biome,
-            settings.tuning(),
-        )
-        .unwrap();
+    ground(&mut presentation, None);
     let geometry = Arc::new(WorldGeometry::from_triangles(&[], &[], &[], 64., None, &[]));
     let mut library_a = Library::from_bundle("synthetic-a", &bytes_a, &[]).unwrap();
     let work_a = library_a.take_admission_work();
@@ -679,46 +655,287 @@ fn stale_and_dropped_geometry_preparations_leave_live_pixels_unchanged() {
 }
 
 #[test]
-fn unchanged_statics_are_carried_without_uploads_or_replacement_placement() {
-    let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
-    let scenery = bundle_bytes("static", 1, "summer", 4);
-    let unit = bundle_bytes("static", 1, "default", 1);
-    let initial: Art<'_> = &[("synthetic-scenery", &scenery)];
-    let final_art: Art<'_> = &[("synthetic-scenery", &scenery), ("new-unit", &unit)];
+fn card_bake_reports_one_read_wait_per_memory_batch() {
+    let gpu = support::gpu().expect("a GPU is required for card bake tests");
+    let card_bytes = renderer_core::impostor::Spec::runtime()
+        .bake_memory_bytes()
+        .unwrap();
+    for bound in [card_bytes * 8, card_bytes * 2 + card_bytes / 2] {
+        let mut config = runtime_config();
+        config.art_store.card_bake_memory_bytes = bound;
+        let Stage {
+            mut presentation,
+            mut runtime,
+        } = Stage::new(&gpu, &[], config, None);
+        assert_eq!(
+            runtime.admission_work().card_read_waits,
+            0,
+            "no cards means no read wait"
+        );
+        let (mut library, assets, models) = card_catalog();
+        let catalog = presentation
+            .stage_catalog(assets, detail(), Default::default())
+            .unwrap();
+        let expected_cards = catalog
+            .view(&presentation)
+            .unwrap()
+            .world()
+            .appearances
+            .len();
+        assert!(expected_cards > 2, "fixture must split at the narrow bound");
+        let work = library.take_admission_work();
+        let pending = runtime
+            .stage_assets(
+                &gpu.device,
+                &gpu.queue,
+                &presentation,
+                catalog,
+                &library,
+                work,
+            )
+            .unwrap();
+        let ready = pollster::block_on(pending.prepare()).unwrap();
+        let work = ready.work().clone();
+        assert_eq!(work.cards_baked as usize, expected_cards);
+        assert_eq!(
+            work.card_read_waits as usize,
+            expected_cards.div_ceil((bound / card_bytes) as usize)
+        );
+        assert!(runtime
+            .commit_assets(&gpu.device, &gpu.queue, &mut presentation, ready, models)
+            .unwrap());
+        assert_eq!(
+            runtime.admission_work(),
+            work,
+            "the committed report carries the bake waits"
+        );
+    }
+}
+
+#[test]
+fn cards_baked_in_one_batch_match_each_card_baked_alone() {
+    let gpu = support::gpu().expect("a GPU is required for card bake tests");
+    let spec = renderer_core::impostor::Spec::runtime();
     let mut config = runtime_config();
-    config.grass_density = Some(1.0);
-    let mut stage = Stage::new(&gpu, initial, config.clone(), Some(&scenery));
-    let ready = stage.stage(&gpu, final_art);
-    assert_eq!(ready.work().scenery_placements, 0);
-    assert_eq!(ready.work().statics_bytes_uploaded, 0);
-    stage.commit(&gpu, final_art, ready);
-    let carried = stage.pixels(&gpu);
-    let mut clean = Stage::new(&gpu, final_art, config, Some(&scenery));
+    config.art_store.card_bake_memory_bytes = spec.bake_memory_bytes().unwrap() * 8;
+    let Stage {
+        mut presentation,
+        mut runtime,
+    } = Stage::new(&gpu, &[], config, None);
     assert_eq!(
-        carried,
-        clean.pixels(&gpu),
-        "carried statics differ from a clean final-catalog build"
+        runtime.admission_work().card_read_waits,
+        0,
+        "no cards means no read wait"
+    );
+    let (mut library, assets, models) = card_catalog();
+    let catalog = presentation
+        .stage_catalog(assets, detail(), Default::default())
+        .unwrap();
+    let rows: Vec<_> = (0..catalog
+        .view(&presentation)
+        .unwrap()
+        .world()
+        .appearances
+        .len() as u32)
+        .collect();
+    let work = library.take_admission_work();
+    let ready = pollster::block_on(
+        runtime
+            .stage_assets(
+                &gpu.device,
+                &gpu.queue,
+                &presentation,
+                catalog,
+                &library,
+                work,
+            )
+            .unwrap()
+            .prepare(),
+    )
+    .unwrap();
+    assert!(runtime
+        .commit_assets(&gpu.device, &gpu.queue, &mut presentation, ready, models)
+        .unwrap());
+    let batched = pollster::block_on(
+        runtime
+            .models
+            .impostor_request(
+                &gpu.device,
+                &gpu.queue,
+                &runtime.pipelines,
+                &rows,
+                &spec,
+                &mut AdmissionWork::default(),
+            )
+            .unwrap()
+            .read(),
+    )
+    .unwrap();
+    assert_eq!(batched.len(), rows.len());
+    for (&row, batch) in rows.iter().zip(&batched) {
+        let alone = pollster::block_on(
+            runtime
+                .models
+                .impostor_request(
+                    &gpu.device,
+                    &gpu.queue,
+                    &runtime.pipelines,
+                    &[row],
+                    &spec,
+                    &mut AdmissionWork::default(),
+                )
+                .unwrap()
+                .read(),
+        )
+        .unwrap()
+        .remove(0);
+        assert!(
+            batch
+                .albedo
+                .as_chunks::<4>()
+                .0
+                .iter()
+                .any(|pixel| pixel[3] > 0),
+            "the fixture must draw geometry"
+        );
+        assert_eq!(batch.hash, alone.hash);
+        assert_eq!(batch.albedo, alone.albedo);
+        assert_eq!(batch.normal, alone.normal);
+        assert_eq!(batch.mask, alone.mask);
+    }
+    assert!(
+        batched
+            .iter()
+            .any(|atlas| atlas.albedo != batched[0].albedo),
+        "the fixture must draw distinct authored materials"
+    );
+    assert!(
+        batched
+            .iter()
+            .any(|atlas| atlas.center != batched[0].center),
+        "the fixture must distinguish its authored poses"
+    );
+    assert_ne!(
+        batched.first().unwrap().hash,
+        batched.last().unwrap().hash,
+        "the fixture must distinguish its poses/materials"
     );
 }
 
 #[test]
-fn changed_scenery_content_places_and_uploads_again() {
-    let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
-    let original = bundle_bytes("static", 1, "summer", 4);
-    let changed = bundle_bytes("static", 2, "summer", 4);
-    let unit = bundle_bytes("static", 1, "default", 1);
+fn card_bake_uploads_the_authored_materials_once_per_stage() {
+    let gpu = support::gpu().expect("a GPU is required for card bake tests");
+    let spec = renderer_core::impostor::Spec::runtime();
     let mut config = runtime_config();
-    config.grass_density = Some(1.0);
-    let mut stage = Stage::new(
-        &gpu,
-        &[("synthetic-scenery", &original)],
-        config,
-        Some(&original),
+    config.art_store.card_bake_memory_bytes =
+        spec.bake_memory_bytes().unwrap() * 2 + spec.bake_memory_bytes().unwrap() / 2;
+    let Stage {
+        presentation,
+        runtime,
+    } = Stage::new(&gpu, &[], config, None);
+    assert_eq!(
+        runtime.admission_work().card_read_waits,
+        0,
+        "no cards means no read wait"
     );
-    let ready = stage.stage(
-        &gpu,
-        &[("synthetic-scenery", &changed), ("new-unit", &unit)],
+    let (mut library, assets, _) = card_catalog();
+    let catalog = presentation
+        .stage_catalog(assets, detail(), Default::default())
+        .unwrap();
+    let material_bytes = ["cloth-a", "cloth-b"]
+        .into_iter()
+        .map(|name| library.bundle(name).unwrap().materials.len())
+        .sum::<usize>()
+        * 5
+        * 4
+        * std::mem::size_of::<f32>();
+    let work = library.take_admission_work();
+    let pending = runtime
+        .stage_assets(
+            &gpu.device,
+            &gpu.queue,
+            &presentation,
+            catalog,
+            &library,
+            work,
+        )
+        .unwrap();
+    let staged_bytes = pending.work().buffer_bytes_uploaded;
+    let ready = pollster::block_on(pending.prepare()).unwrap();
+    assert!(
+        ready.work().cards_baked > 1,
+        "fixture must bake several cards"
     );
-    assert_eq!(ready.work().scenery_placements, 1);
-    assert!(ready.work().statics_bytes_uploaded > 0);
+    assert_eq!(
+        ready.work().buffer_bytes_uploaded - staged_bytes,
+        material_bytes as u64,
+        "the authored table is uploaded once, independent of the number of cards or batches"
+    );
 }
+
+#[test]
+fn card_batch_split_uses_the_policy_sink_once_per_runtime() {
+    static REPORTS: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(Vec::new());
+    fn report(message: &str) {
+        REPORTS.lock().unwrap().push(message.into());
+    }
+    REPORTS.lock().unwrap().clear();
+    let gpu = support::gpu().expect("a GPU is required for card bake tests");
+    let card_bytes = renderer_core::impostor::Spec::runtime()
+        .bake_memory_bytes()
+        .unwrap();
+    let bound = card_bytes * 2;
+    for runtime_count in 1..=2 {
+        let mut config = runtime_config();
+        config.art_store.card_bake_memory_bytes = bound;
+        config.art_store.report = report;
+        let stage = Stage::new(&gpu, &[], config, None);
+        for _ in 0..2 {
+            let (mut library, assets, _) = card_catalog();
+            let catalog = stage
+                .presentation
+                .stage_catalog(assets, detail(), Default::default())
+                .unwrap();
+            let cards = catalog
+                .view(&stage.presentation)
+                .unwrap()
+                .world()
+                .appearances
+                .len();
+            let work = library.take_admission_work();
+            let pending = stage
+                .runtime
+                .stage_assets(
+                    &gpu.device,
+                    &gpu.queue,
+                    &stage.presentation,
+                    catalog,
+                    &library,
+                    work,
+                )
+                .unwrap();
+            let ready = pollster::block_on(pending.prepare()).unwrap();
+            assert_eq!(
+                ready.work().card_read_waits as usize,
+                cards.div_ceil((bound / card_bytes) as usize)
+            );
+            drop(ready);
+            let reports = REPORTS.lock().unwrap();
+            assert_eq!(
+                reports.len(),
+                runtime_count,
+                "dropped pending bakes share the runtime's split-report lifetime"
+            );
+            assert!(
+                reports
+                    .last()
+                    .unwrap()
+                    .contains(&format!("{bound} byte bound")),
+                "the existing sink receives the selected byte bound"
+            );
+        }
+    }
+}
+
+#[path = "asset_generations/statics.rs"]
+mod statics;
