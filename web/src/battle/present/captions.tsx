@@ -1,129 +1,65 @@
-/** One side's heard sounds, as captions: every decoded observation's hearing
- *  cues are captioned with exactly what the cue carries (kind, band and
- *  direction, never a position); `battle-audio` plays the same cues. The
- *  same sound (kind, direction and listener) keeps one row with a count;
- *  rows expire a few seconds after the sound was last heard, and only the
- *  newest few show. Hearing cues are always captioned, independently of
- *  audio settings. */
+/** The status lines above the army deck: one per fresh contact, the patches N
+ *  steps through. A line names what the side knows of the contact (its type
+ *  once identified, and how it was found) and lasts a few seconds after the
+ *  contact's latest evidence, while the contact is live. A heard sound alone
+ *  is never a line: it marks nothing on the map, so the player could not act
+ *  on it (`battle-audio` still plays it). */
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
-import { useCallback, useState } from "react";
-import type { ObservationView, SoundCueView } from "../sim/observationView";
-import { unitName } from "./readouts";
+import type { ContactView } from "../sim/observationView";
+import { contactFocusTargets } from "../input/contactFocus";
 
 /** Rows shown at most. */
 export const CAPTION_ROWS = 3;
-/** A row lasts this long after its sound was last heard (seconds). */
+/** A row lasts this long after its contact's latest evidence (seconds). */
 export const CAPTION_SECONDS = 5;
 
-const DIRECTIONS = [
-  "east",
-  "north-east",
-  "north",
-  "north-west",
-  "west",
-  "south-west",
-  "south",
-  "south-east",
-];
-
-export function describeCue(cue: SoundCueView, listenerName: string): string {
-  const what =
-    cue.category === "shot"
-      ? "gunfire"
-      : cue.category === "vehicle"
-        ? cue.moving
-          ? "engine, moving"
-          : "engine, idling"
-        : cue.moving
-          ? "footsteps"
-          : "voices";
-  return `Heard ${what}, ${cue.band}, ${DIRECTIONS[cue.sector]} of ${listenerName}`;
-}
-
 export interface CaptionLine {
-  tick: number;
+  /** The contact's handle. */
+  key: number;
   text: string;
-  /** The sound this row stands for: kind, direction and the listener as
-   *  named (two tanks hearing the same shot are one row, as they read). */
-  key: string;
-  /** How many times it was heard while the row lasted. */
-  count: number;
 }
 
-/** One heard cue as a caption row. */
-export function cueLine(cue: SoundCueView, tick: number, listenerName: string): CaptionLine {
-  return {
-    key: `${cue.category}/${cue.moving}/${cue.sector}/${listenerName}`,
-    tick,
-    text: describeCue(cue, listenerName),
-    count: 1,
-  };
+/** The contact fields a caption reads. */
+export type CaptionContact = Pick<ContactView, "id" | "source" | "kind" | "evidenceTick"> & {
+  center: readonly number[];
+  retiring: boolean;
+};
+
+/** What one contact's line says. */
+export function describeContact(units: UnitCatalog, c: CaptionContact): string {
+  if (c.source === "radar") return "Radar contact";
+  const name = c.kind ? units.type(c.kind).name : "Unknown";
+  return c.source === "last_seen" ? `${name}, last seen` : `${name}, firing`;
 }
 
-/** Fold newly heard lines into the rows at `tick`: expired rows go, a sound
- *  already listed moves to the top with its count raised and its latest
- *  wording, newest first, at most CAPTION_ROWS. */
-export function foldCaptions(
-  rows: readonly CaptionLine[],
-  heard: readonly CaptionLine[],
+/** The lines at `tick`: live contacts with recent evidence, newest first, in
+ *  N's order, at most CAPTION_ROWS. */
+export function contactCaptions(
+  units: UnitCatalog,
+  contacts: readonly CaptionContact[],
   tick: number,
   tickHz: number,
 ): CaptionLine[] {
-  let next = rows.filter((r) => tick - r.tick < CAPTION_SECONDS * tickHz);
-  for (const line of heard) {
-    const old = next.find((r) => r.key === line.key);
-    next = [
-      { ...line, count: (old?.count ?? 0) + line.count },
-      ...next.filter((r) => r.key !== line.key),
-    ];
-  }
-  return next.slice(0, CAPTION_ROWS);
+  const byId = new Map(contacts.map((c) => [c.id, c]));
+  return contactFocusTargets(contacts)
+    .filter((t) => tick - t.evidenceTick < CAPTION_SECONDS * tickHz)
+    .slice(0, CAPTION_ROWS)
+    .map((t) => ({ key: t.id, text: describeContact(units, byId.get(t.id)!) }));
 }
 
-export function useCaptions(units: UnitCatalog, tickHz: number) {
-  const [captions, setCaptions] = useState<CaptionLine[]>([]);
-
-  /** Caption one decoded frame's cues; expire old rows. */
-  const note = useCallback(
-    (o: ObservationView) => {
-      const lines = o.audible.map((cue) => {
-        const listener = o.own.find((u) => u.id === cue.listener);
-        return cueLine(cue, o.tick, listener ? unitName(units, listener) : "a unit");
-      });
-      setCaptions((current) => {
-        const expiring = current.some((r) => o.tick - r.tick >= CAPTION_SECONDS * tickHz);
-        return lines.length || expiring ? foldCaptions(current, lines, o.tick, tickHz) : current;
-      });
-    },
-    [units, tickHz],
-  );
-
-  /** A fresh battle starts with nothing heard. */
-  const clear = useCallback(() => {
-    setCaptions([]);
-  }, []);
-
-  return { note, clear, captions };
-}
-
-type Captions = ReturnType<typeof useCaptions>;
-
-/** What was heard, newest first: nothing at all while nothing is. The
- *  battle's sound captions; a lab can list them in its own style. */
+/** Fresh contacts, newest first: nothing at all while there are none. A lab
+ *  can list them in its own style. */
 export function CaptionList({
-  captions,
+  lines,
   className = "hud-subtitles",
 }: {
-  captions: Captions;
+  lines: readonly CaptionLine[];
   className?: string;
 }) {
   return (
     <ul className={className} data-testid="captions">
-      {captions.captions.map((c) => (
-        <li key={c.key} data-count={c.count}>
-          {c.text}
-          {c.count > 1 ? ` ×${c.count}` : ""}
-        </li>
+      {lines.map((c) => (
+        <li key={c.key}>{c.text}</li>
       ))}
     </ul>
   );

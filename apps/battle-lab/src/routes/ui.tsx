@@ -197,10 +197,10 @@ const RULER: RangeRuler = {
   ],
 };
 
-const HEARD: CaptionLine[] = [
-  { key: "a", tick: 0, count: 3, text: "Heard gunfire, nearby, east of Rifle squad" },
-  { key: "b", tick: 0, count: 1, text: "Heard a tank engine, far, north of Tank #2" },
-  { key: "c", tick: 0, count: 1, text: "Heard an explosion, nearby, south of AT Team #4" },
+const CONTACTS: CaptionLine[] = [
+  { key: 3, text: "Unknown, firing" },
+  { key: 2, text: "T-72B3, last seen" },
+  { key: 1, text: "Radar contact" },
 ];
 
 const STAGES = [
@@ -413,7 +413,7 @@ const SHOTS: { id: string; draw: () => ReactNode }[] = [
     draw: () => (
       <div className="hud">
         <div className="hud-lower">
-          <CaptionList captions={{ captions: HEARD, note: () => {}, clear: () => {} }} />
+          <CaptionList lines={CONTACTS} />
         </div>
       </div>
     ),

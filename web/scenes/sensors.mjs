@@ -237,8 +237,8 @@ async function contactChecks(ctx) {
   );
   const captions = await page.getByTestId("captions").locator("li").allTextContents();
   ctx.check(
-    "unseen enemies are heard as captioned cues",
-    captions.some((text) => /Heard (gunfire|engine)/.test(text)),
+    "the firing contact gets a status line, and heard sounds get none",
+    captions.length > 0 && !captions.some((text) => text.startsWith("Heard")),
     captions.join(" | "),
   );
   await writeFile(ctx.evidencePath("contact-audio-captions.txt"), captions.join("\n"));

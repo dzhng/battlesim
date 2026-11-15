@@ -269,22 +269,7 @@ function DeckReview({ onBack }: { onBack: () => void }) {
           selected={selected}
           onSelect={setSelected}
           rules={rules}
-          captions={
-            <CaptionList
-              captions={{
-                captions: [
-                  {
-                    key: "heard",
-                    text: "Heard gunfire, nearby, east of Rifle squad",
-                    count: 2,
-                    tick: 0,
-                  },
-                ],
-                note: () => {},
-                clear: () => {},
-              }}
-            />
-          }
+          captions={<CaptionList lines={[{ key: 1, text: "Unknown, firing" }]} />}
           reinforcements={
             <PurchasePicker
               cards={[]}

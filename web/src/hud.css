@@ -1278,7 +1278,7 @@ html {
 .hud-army-detail .ro-name {
   white-space: normal;
 }
-/* Normal flow keeps hearing captions above a deck of any actual height. */
+/* Normal flow keeps status lines above a deck of any actual height. */
 .hud-subtitles {
   margin: 0;
   padding: 0;
@@ -1289,7 +1289,7 @@ html {
   color: rgb(var(--hud-text));
   text-shadow: var(--hud-text-halo);
 }
-/* Keep hearing captions above the detail without moving its deck anchor. */
+/* Keep status lines above the detail without moving its deck anchor. */
 .hud-lower:has(.hud-army-detail) .hud-subtitles {
   transform: translateY(calc(-1 * var(--hud-army-detail-height)));
 }
