@@ -14,8 +14,11 @@
 //! starts a three-point turn: a leg driven against the order's direction
 //! that keeps turning the same way, until the forward arc to the waypoint
 //! is clear. A leg that cannot turn its way (a hull nosed into a gap
-//! between parked cars) backs out straight, or turning the other way. Every arc is swept for bodies finer than a corner
-//! can swing through one.
+//! between parked cars) backs out straight, or turning the other way. A
+//! turn that would swing the trailing end into a body (a tail in an alley's
+//! mouth) rolls straight on until it clears instead, since backing would
+//! only drive the tail further in. Every arc is swept for bodies finer than
+//! a corner can swing through one.
 //!
 //! A reverse move (Q31) drives the same way with the travel direction
 //! behind the hull, so the facing is held, at the reverse fraction of the
@@ -62,7 +65,12 @@ pub struct Motion {
 }
 
 enum ArcBlock {
-    Solid,
+    /// A body it cannot shove, or ground it cannot cross; `trailing` when
+    /// the body meets the hull behind its middle, as a turn swings the
+    /// trailing end out.
+    Solid {
+        trailing: bool,
+    },
     Vehicle(UnitId),
 }
 
@@ -162,15 +170,25 @@ fn inside_circle(at: V2, heading: f64, side: f64, radius: f64, target: V2, margi
 /// Whether a hull at `center`/`yaw` would stand in a body that stops it, or
 /// off traversable ground (true geometry: what the step itself meets).
 fn blocked(world: &WorldGeometry, unit: &Unit, center: V2, yaw: f64) -> bool {
+    solid_at(world, unit, center, yaw, 1.0).is_some()
+}
+
+/// What stops a hull at `center`/`yaw` travelling in `gear`, if anything:
+/// `Some(true)` when the body meets it behind its middle (its trailing end).
+/// Ground it cannot cross counts as ahead.
+fn solid_at(world: &WorldGeometry, unit: &Unit, center: V2, yaw: f64, gear: f64) -> Option<bool> {
     let half = unit.hull.expect("a vehicle has a hull").xy();
     let here = unit.ground_footprint().expect("a vehicle has a hull");
     let hull = Obb2 { center, yaw, half };
-    world
+    if world
         .surface_at(center.x, center.y)
         .is_none_or(|s| !s.traversable)
-        || super::push::meet(world, &hull, &here, unit.ground().push)
-            .solid
-            .is_some()
+    {
+        return Some(false);
+    }
+    let solid = super::push::meet(world, &hull, &here, unit.ground().push).solid?;
+    let body = world.prop(solid).expect("a met body").footprint();
+    Some(hull.to_local(body.closest(center)).x * gear < 0.0)
 }
 
 /// Whether the hull, rolling `length` from where it stands in `gear` and
@@ -202,8 +220,8 @@ fn arc_clear(
                 && other.is_some_and(|other| super::hull_conflict(before, after, other)))
             .then_some(UnitId(id as u32))
         });
-        if blocked(world, unit, at, yaw) {
-            return Err(ArcBlock::Solid);
+        if let Some(trailing) = solid_at(world, unit, at, yaw, gear) {
+            return Err(ArcBlock::Solid { trailing });
         }
         if let Some(id) = into_traffic {
             return Err(ArcBlock::Vehicle(id));
@@ -218,8 +236,8 @@ fn arc_clear(
         let dyaw = turn * piece;
         at = at + dir(travel(yaw, gear) + dyaw / 2.0) * piece;
         yaw += dyaw;
-        if blocked(world, unit, at, yaw) {
-            return Err(ArcBlock::Solid);
+        if let Some(trailing) = solid_at(world, unit, at, yaw, gear) {
+            return Err(ArcBlock::Solid { trailing });
         }
     }
     Ok(())
@@ -403,14 +421,24 @@ pub fn steer(
     let step = (v * dt).min(distance);
     let max = curvature(v) * step;
     let dyaw = error.clamp(-max, max);
-    if let Err(block) = arc_clear(
-        world,
-        unit,
-        gear,
-        error.clamp(-curvature(v) * PROBE_M, curvature(v) * PROBE_M) / PROBE_M,
-        PROBE_M.min((distance - super::PROGRESS_EPSILON_M).max(0.0)),
-        traffic,
-    ) {
+    let reach = PROBE_M.min((distance - super::PROGRESS_EPSILON_M).max(0.0));
+    let turn = error.clamp(-curvature(v) * PROBE_M, curvature(v) * PROBE_M) / PROBE_M;
+    if let Err(block) = arc_clear(world, unit, gear, turn, reach, traffic) {
+        // The turn swings the trailing end into a body (a tail in an
+        // alley's mouth): backing would only drive it further in, so roll
+        // straight on until the turn clears.
+        if matches!(block, ArcBlock::Solid { trailing: true })
+            && arc_clear(world, unit, gear, 0.0, reach, traffic).is_ok()
+        {
+            return Motion {
+                yaw: unit.yaw,
+                heading: dir(heading),
+                step,
+                backwards: gear < 0.0 && step > 0.0,
+                making_space: false,
+                blocker: None,
+            };
+        }
         // The forward arc runs into a solid: back up, still turning the same way.
         unit.manoeuvre = Some(Manoeuvre {
             turn: side,
@@ -424,7 +452,7 @@ pub fn steer(
             making_space: false,
             blocker: match block {
                 ArcBlock::Vehicle(id) => Some(id),
-                ArcBlock::Solid => None,
+                ArcBlock::Solid { .. } => None,
             },
         };
     }
