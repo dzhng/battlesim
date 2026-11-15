@@ -34,10 +34,7 @@ Rust passes one or two at a time; under 5 GB, start nothing and ask the user.
    section says what each outcome means.
 2. **Hand out slice 07,** the HTTP transport, once 06 is in. Slice 13 needs
    nothing first and can go beside it.
-3. **Look at the skirmish lobby in a browser.** Nobody has since slice 04
-   replaced its model. It should look and play exactly as before; capture it
-   against its baseline before slice 17 builds on it.
-4. **Run slice 01's host half** (O1) on the probe app.
+3. **Run slice 01's host half** (O1) on the probe app.
 
 **How to work with Codex here.**
 

@@ -76,3 +76,13 @@ The file split inside the package; how seat ids are minted.
 
 If the user wants the offline lobby to keep its human on Blue, that becomes a
 rule of the skirmish page, not of the model.
+
+## Seen in a browser (2026-11-15)
+
+After slices 02 and 03 and a merge of staging, the `lobby` scene passes all
+22 of its checks (presets, Add and Delete, taking another Blue seat, the
+size floor, Reroll, Deploy preparing the request the preview admitted) and
+the `ui` scene's picture of the lobby matches its approved one with no pixel
+differing. Both need the menu's large files fetched first: runtime art and
+audio, and `assets/third-party`.
+
