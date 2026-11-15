@@ -1,7 +1,7 @@
 # Battle growth: a new unit type costs only its own art
 
-**Status:** slices 00 and 02 are done. Six slices are out with implementers
-(see the lanes below).
+**Status:** slices 00, 01 and 02 are done. Five slices are out with
+implementers (see the lanes below).
 **Updated:** 2026-11-15.
 
 This plan replaces the "shared GPU assets across generations" placeholder. That
@@ -13,17 +13,16 @@ player sees, and sharing GPU assets is one part of the fix.
 You are fixing the multi-second freeze that happens whenever a running battle
 first fields a unit type it had not shown. The admission work report exists,
 `battle-growth` prints it, and the [ledger](decisions.md) holds what it and
-the reference battle measured. Six slices are out with implementers, each
+the reference battle measured. Five slices are out with implementers, each
 in its own checkout and thread:
 
 | Slice | Branch | State |
 | --- | --- | --- |
-| 01 | `t3/battle-growth-admission-report` | First pass rejected: it cached inflated bytes in WASM, and its install count was 1 by construction. Fix round sent. |
 | 03 | `t3/art-content-identity` (slice 02's checkout) | Building. |
-| 05a | the "cards bake together" child's branch | Confirms the cause first, then builds. |
-| 06 | the "statics carry" child's branch | Timing scenery work at growth; builds only if it costs more than a frame. |
-| 07 | the "catalog delta" child's branch | Building. |
-| 10 | `t3/battle-growth-stand-in-mechanics` | Fix round sent for the findings in the ledger. |
+| 05a | `t3/cards-bake-together` | Confirms the cause first, then builds. |
+| 06 | `t3/battle-growth-scenery-grass-timing` | Timing scenery work at growth; builds only if it costs more than a frame. |
+| 07 | `t3/battle-growth-catalog-delta` | Fix round: it had not run in a browser, and the library and presentation can disagree about what content is held. |
+| 10 | `t3/battle-growth-stand-in-mechanics` | Second fix round: the mechanics are right in Rust; it has not been seen running. |
 
 When one returns: read its whole diff (changed tests first), rerun its checks
 yourself, merge it into this branch, then start what it unblocks (04 after
@@ -51,15 +50,16 @@ Warnings:
 - Each checkout's Rust build adds 3–22 GB. Check free space before a cold
   build, and remove a checkout's build output when its branch has merged. A
   burst of unrelated failures after a build usually means it ran out of space.
-- Slices 01 and 10 both change `crates/presentation/src/fielded.rs`; whichever
-  merges second merges the other in first.
+- The scenes and GPU tests of every lane share one GPU lock, so a long probe
+  in one lane holds up the others' scenes. Start scenes in the background and
+  wait for the lock.
 - Two implementers so far deleted or shortened comments to fit the file-size
   ratchet. Reject that in review: move code out by concept instead.
 
 Checklist:
 
 - [x] [00 Proof and probes](slices/00-proof-and-probes.md)
-- [ ] [01 Fielding and install](slices/01-fielding-and-install.md)
+- [x] [01 Fielding and install](slices/01-fielding-and-install.md)
 - [x] [02 Content identity](slices/02-content-identity.md)
 - [ ] [03 Geometry reuse](slices/03-geometry-reuse.md)
 - [ ] [04 Texture layers](slices/04-texture-layers.md)
