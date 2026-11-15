@@ -13,6 +13,8 @@ import { battleOverlayScenario, buildBattleOverlay } from "@apps/battle-lab/src/
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh";
 
+/** The way Blue's roads run in from its edge. */
+const BLUE_IN = -Math.PI / 2;
 const BLUE_ROADS: [number, number][] = [
   [200, 990],
   [800, 990],
@@ -28,7 +30,7 @@ const scenario = {
   skirmish: {
     sites: {
       entries: [
-        ...BLUE_ROADS.map((center) => ({ side: "blue" as const, center, yaw: -Math.PI / 2 })),
+        ...BLUE_ROADS.map((center) => ({ side: "blue" as const, center, yaw: BLUE_IN })),
         ...RED_ROADS.map((center) => ({ side: "red" as const, center, yaw: Math.PI / 2 })),
       ],
       objectives: [],
@@ -103,12 +105,12 @@ function marching(side: "blue" | "red", selected: number[] = []): Vertex[] {
 
 const near = (vertices: Vertex[], at: P, within = 60) =>
   vertices.filter(({ at: [x, y] }) => Math.hypot(x - at[0], y - at[1]) < within);
-/** How far `p` lies into the map from the road at `road`, along the way in
- *  (toward the map's centre). */
-const inward = (road: P, [x, y]: P) => {
-  const a = Math.atan2(500 - road[1], 500 - road[0]);
-  return (x - road[0]) * Math.cos(a) + (y - road[1]) * Math.sin(a);
-};
+/** How far `p` lies into the map from Blue's road at `road`, along the way
+ *  it runs in (its entry's heading), and how far to one side of it. */
+const inward = (road: P, [x, y]: P) =>
+  (x - road[0]) * Math.cos(BLUE_IN) + (y - road[1]) * Math.sin(BLUE_IN);
+const aside = (road: P, [x, y]: P) =>
+  -(x - road[0]) * Math.sin(BLUE_IN) + (y - road[1]) * Math.cos(BLUE_IN);
 
 test("every road in of the viewer's side carries chevrons, and the other side's none", () => {
   const blue = marching("blue");
@@ -128,6 +130,16 @@ test("each road in paints its lane's number between the edge and its chevrons", 
     const chevrons = Math.min(...marks.filter((v) => v.pulses).map((v) => inward(road, v.at)));
     const number = marks.filter((v) => !v.pulses && inward(road, v.at) < chevrons - 2.5);
     expect(number.length, `blue road at ${road}`).toBeGreaterThan(0);
+  }
+});
+
+test("each road's chevrons march straight in along it, not toward the map's centre", () => {
+  // Both roads run straight in, well to either side of the map's centre:
+  // their chevrons stay within a chevron's spread of the road's own line.
+  for (const road of BLUE_ROADS) {
+    const chevrons = near(marching("blue"), road).filter((v) => v.pulses);
+    const widest = Math.max(...chevrons.map((v) => Math.abs(aside(road, v.at))));
+    expect(widest, `blue road at ${road}`).toBeLessThan(8);
   }
 });
 
