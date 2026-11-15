@@ -2,7 +2,8 @@
 // to one named preset so every client and a later replay draw the same sky.
 // Presentation only — nothing here enters the sim or its hashes.
 import { light_sun_azimuth, map_seed_index } from "@wasm/renderer_browser";
-import { lightPreset, lightPresetLabels, lightPresets } from "@web/presentationSettings";
+import { lightPresetLabels, lightPresets } from "@web/presentationSettings";
+import { DEFAULT_LIGHTING } from "@packages/skirmish-setup/src/lobby";
 
 /** The lobby's Random choice, not a fixture look. */
 export const LIGHTING_RANDOM = "random";
@@ -12,7 +13,7 @@ export const LIGHTING_RANDOM = "random";
  * Golden hour and Random stay one click away; a new match should not
  * silently change every existing battle's light.
  */
-export const DEFAULT_LIGHTING = lightPreset;
+export { DEFAULT_LIGHTING };
 
 /** Fixture lighting looks in a stable order, including `day`. */
 export function lightingPresetNames(): string[] {

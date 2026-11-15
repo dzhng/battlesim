@@ -29,11 +29,11 @@ import { lanesOf, type LanesModule } from "@web/battle/prepare/lanes";
 import { loadWasm } from "@web/battle/sim/module";
 import { MAP_SIZES, MAP_TYPES, newSeed } from "@web/maps/source";
 import { REGIONS, spoken, type AskedLobby } from "../battleLinks";
-import { MAX_PLAYERS_PER_SIDE } from "../skirmishSetup";
 import {
   add,
   isMapInputChange,
-  lobbyCandidate,
+  lobbyPlayers,
+  sizeFloor,
   preset,
   remove,
   reroll,
@@ -44,15 +44,30 @@ import {
   setSize,
   setType,
   sideFaction,
-  toUrl,
-  type LobbyPreset,
-  type LobbySide,
   type LobbyState,
-} from "./model";
+} from "@packages/skirmish-setup/src/lobby";
+import { MAX_PLAYERS_PER_SIDE, type Seat } from "@packages/skirmish-setup/src/seats";
+import { lobbyCandidate } from "../skirmishData";
+import { toUrl } from "../battleLinks";
+import type { LobbyPreset, LobbySide } from "@packages/skirmish-setup/src/lobby";
 import { lightingChoices, lightingLabel } from "./lighting";
 
 const RANDOM = "random";
 const PRESETS: readonly LobbyPreset[] = ["1v1", "3v3", "5v5"];
+
+function seatOfflineHuman(state: LobbyState, target: Seat): LobbyState {
+  const next = seatHuman(state, target);
+  return {
+    ...next,
+    seats: next.seats.map((seat) =>
+      seat.id === target.id
+        ? seat
+        : seat.occupant.kind === "human"
+          ? { ...seat, occupant: { kind: "ai" } }
+          : seat,
+    ),
+  };
+}
 
 /** A 1v1 on the asked map, at the asked seed or a fresh one. */
 function opening(asked: AskedLobby): LobbyState {
@@ -152,12 +167,13 @@ function useLobby(asked: AskedLobby) {
 /** The skirmish page: set up any match and deploy it. */
 export function Lobby({ asked }: { asked: AskedLobby }) {
   const { lobby, preview, update, wasm } = useLobby(asked);
-  const count = (side: LobbySide) => lobby.players.filter((p) => p.side === side).length;
+  const players = lobbyPlayers(lobby);
+  const count = (side: LobbySide) => players.filter((p) => p.side === side).length;
   const ready = preview.status === "ready";
   const sites = ready ? preview.preview.sites : null;
   const held = useMemo(
-    () => (wasm && sites ? holders(wasm, sites, lobby.players) : null),
-    [wasm, sites, lobby.players],
+    () => (wasm && sites ? holders(wasm, sites, players) : null),
+    [wasm, sites, players],
   );
   return (
     <section className="lobby" aria-label="New battle">
@@ -191,7 +207,7 @@ export function Lobby({ asked }: { asked: AskedLobby }) {
           value={lobby.map.size}
           onChange={(size) => update(setSize(lobby, size))}
           // Sizes too small for the larger side are closed (D18).
-          closed={(size) => MAP_SIZES.indexOf(size) < MAP_SIZES.indexOf(lobby.sizeFloor)}
+          closed={(size) => MAP_SIZES.indexOf(size) < MAP_SIZES.indexOf(sizeFloor(lobby))}
         />
         <Choice
           label="region"
@@ -245,7 +261,8 @@ function SideColumn({
   lobby: LobbyState;
   update: (next: LobbyState) => void;
 }) {
-  const players = lobby.players.filter((player) => player.side === side);
+  const seats = lobby.seats.filter((seat) => seat.side === side && seat.occupant.kind !== "open");
+  const players = lobbyPlayers(lobby).filter((player) => player.side === side);
   const name = side === "blue" ? "Blue" : "Red";
   return (
     <div className="lobby-side" data-side={side} aria-label={`${name} side`} role="group">
@@ -265,9 +282,9 @@ function SideColumn({
             key={player.id}
             player={player}
             index={index + 1}
-            removable={players.length > 1 && player.controller !== "human"}
-            onSeat={() => update(seatHuman(lobby, player))}
-            onRemove={() => update(remove(lobby, player))}
+            removable={player.controller !== "human" && players.length > 1}
+            onSeat={() => update(seatOfflineHuman(lobby, seats[index]))}
+            onRemove={() => update(remove(lobby, seats[index]))}
           />
         ))}
       </ol>

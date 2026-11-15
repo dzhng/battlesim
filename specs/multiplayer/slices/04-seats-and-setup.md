@@ -28,7 +28,8 @@ type SeatId = string;                                  // minted once
 type Occupant = { kind: "human"; who: string } | { kind: "ai" } | { kind: "open" };
 interface Seat { id: SeatId; side: "blue" | "red"; occupant: Occupant }
 interface LobbyState {
-  seats: Seat[]; factions: Record<"blue" | "red", Faction>;
+  seats: Seat[]; nextSeat: number;                     // the lobby mints its own ids
+  factions: Record<"blue" | "red", Faction>;
   map: MapChoice; battleSeed: number; lighting: string;
 }
 function battlePlayers(seats: readonly Seat[]):

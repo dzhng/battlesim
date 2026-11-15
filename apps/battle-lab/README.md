@@ -53,7 +53,7 @@ is Back: a page opened from home goes back through history onto the tile it
 left, and one opened by its address replaces itself with home. An address that
 names no page opens home. A Skirmish address (`/skirmish?type=…`) opens the
 lobby on that map; the menu at `/` never reads one. The Skirmish page is [the lobby](src/lobby/Lobby.tsx), an order of
-battle: [the lobby model](src/lobby/model.ts) owns its rules, and the page only
+battle: [the lobby model](../../packages/skirmish-setup/src/lobby.ts) owns its rules, and the page only
 shows them. Its map is a real admitted preparation, started again only when a
 map input changes, and Deploy opens only on a ready map and names the seed that
 was admitted, so the battle is the map the player saw. The preview may try
@@ -62,12 +62,11 @@ Deploy stays shut, and no fixed map is ever substituted. The lobby's players are
 always the battle's players, numbered by place on their side; that number is
 the lane the player holds, so the map's entry tags carry it and the lobby marks
 which lanes are open and which is yours. Its preview
-and its Deploy link build one request ([skirmish setup](src/skirmishSetup.ts)),
+and its Deploy link build one request ([skirmish setup](../../packages/skirmish-setup/src)),
 so the battle is the one previewed. A battle address names exact preparation
 inputs on the same build. It must name both sides' players and factions; the
 map type, size, map seed and battle seed default when left out, the size to the
-smallest map that fits the players. A link with humans has exactly one, on
-Blue. An old-shape link (its `faction` or `enemy`, or no players), a wrong
+smallest map that fits the players. A link may place several humans on either side. An old-shape link (its `faction` or `enemy`, or no players), a wrong
 value, or a parameter the battle does not read is refused by name, never
 ignored, and a refused seed never silently becomes another battle.
 

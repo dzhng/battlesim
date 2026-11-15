@@ -10,7 +10,7 @@ import {
   entryCountForPlayers,
   MAX_PLAYERS_PER_SIDE,
   playersFor,
-} from "@apps/battle-lab/src/skirmishSetup";
+} from "@packages/skirmish-setup/src/seats";
 
 beforeAll(() => {
   const module = wasm.initSync({

@@ -7,7 +7,7 @@
 // sets the battle's seed. The browser scenes judge the battle view here; their
 // `remount()` probe mounts a fresh battle view (a new device, worker and
 // sound), so they can check that one releases the last.
-import { DEFAULT_BATTLE_SEED } from "@apps/battle-lab/src/lobby/defaults";
+import { DEFAULT_BATTLE_SEED } from "@packages/skirmish-setup/src/lobby";
 import { useState } from "react";
 import { SavedEncounter } from "../savedMaps";
 import { BattleView } from "../BattleView";

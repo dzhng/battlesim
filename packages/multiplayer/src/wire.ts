@@ -10,6 +10,7 @@ import type {
 import type { ControllerKind } from "../../../web/src/battle/prepare/protocol";
 import type { MapChoice } from "../../../web/src/maps/source";
 import type { Faction } from "../../scene-assets/src/units";
+import type { SeatId } from "../../skirmish-setup/src/seats";
 
 export type RecordKind = "open" | "publication" | "status" | "state" | "end";
 export interface StreamRecord {
@@ -44,8 +45,6 @@ export type PreviewAnswer =
 
 export type BuildIdentity = { commit: string; sim: string };
 
-// This alias is replaced by the setup package when that package lands.
-export type SeatId = string;
 export type BattleSetup = {
   seats: { id: SeatId; side: "blue" | "red"; controller: ControllerKind }[];
   factions: Record<"blue" | "red", Faction>;

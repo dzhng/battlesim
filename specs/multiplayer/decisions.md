@@ -190,3 +190,10 @@ Append here: the slice, the decision, why, and what it replaced.
 | 05 | A reader waiting for a keyframe is sent nothing until one arrives. | Deltas before the snapshot cannot be applied, and the page fails on one. |
 | 05 | The reader reconnects at once after a connection that delivered something, and waits 250 ms, then 1 s, then 4 s while connections deliver nothing. | A fixed one-second wait would have stalled every player for a second at each of the host's five-minute cuts. |
 | 05 | An id that is not the next one, without `keyframe`, fails the reader instead of reconnecting. | It is the server breaking its own rule; reconnecting would loop. |
+| 04 | A lobby mints seat ids from a counter it carries (`nextSeat`), so the same action on the same lobby gives the same lobby. | The first cut used a counter shared by the whole process, which made every lobby function impure and let unrelated lobbies share numbering. |
+| 04 | The size tiers, the default battle seed and the default lighting each have one owner the server can read: the package imports the fixtures by relative path, and the app takes the values from the package. | The first cut copied all three into code beside the fixtures. |
+| 04 | A side holding only open seats is an ordinary lobby. It is refused only when asked to become a battle. | The first cut computed the size floor through the battle's player list, so a room waiting for players on one side threw on every edit. |
+| 04 | Any seat can be removed, an open one and a human's included, except a side's last. Keeping the offline player seated is the skirmish page's rule: their row has no remove control. | The model refusing the human's row, which a room's host must be able to do; and the page allowing it, which made an AI-only battle from the offline lobby. |
+| 04 | Filling or emptying a seat moves the size floor exactly as adding or removing one does. | Open-to-AI left a three-player side on a two-road map. |
+| 04 | The battle route turns a link back into a lobby and builds its request with the lobby's own builder, so the link and the preview cannot disagree. | A second request builder for links. |
+

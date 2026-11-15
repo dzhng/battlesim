@@ -25,12 +25,8 @@ cannot hold. Do not build Rust here until the user has freed space; check
 
 - **Slice 05 is done** and committed (`931f58e89`), reworked at integration:
   see part 4 of [decisions.md](decisions.md).
-- **Slice 04** is in this checkout, uncommitted, on its second round of
-  repairs with Codex: the first rewrite dropped nine pieces of lobby test
-  coverage (restored), and the model that came back duplicated game data,
-  minted seat ids from a module-wide counter, and could not hold a side with
-  only open seats. It is not ready until those are fixed and every restored
-  test passes.
+- **Slice 04 is done** and committed, after two repair rounds with Codex and
+  one fix at integration: see part 4 of [decisions.md](decisions.md).
 - **Slices 02 and 03** came back from Codex as two commits on the local
   branch `t3/per-side-publisher-sim-orders` (`67844ee46`, `25dad0b20`).
   Slice 02 is half integrated: its changes and two fixes sit uncommitted in
@@ -41,10 +37,10 @@ cannot hold. Do not build Rust here until the user has freed space; check
 - **Slice 01's** two-hour native run is going in this checkout (see the
   slice file). Its host half, O1, has not been started.
 
-**Next:** finish and commit slice 04 (TypeScript only, so the disk allows
-it). Then, once there is space: finish slice 02 as its file says, integrate
-03, and hand out slice 06. Slices 13 and 20 need nothing first, and slice 14
-needs only 04 and 05.
+**Next, once there is space:** finish slice 02 as its file says, integrate
+03, and hand out slice 06. Slices 13 and 20 need nothing first. Slice 14
+(the room model) needs only 04 and 05 and no Rust build, so it can go out
+now.
 
 **Keep parallel work small.** One checkout per child costs about 1 GB before
 any build, and a Rust build adds 1 to 2 GB. Run at most two children at once,
@@ -89,7 +85,7 @@ Foundation
 - [ ] [01 Host and endurance probes](slices/01-probes.md)
 - [ ] [02 Per-side publisher](slices/02-per-side-publisher.md)
 - [ ] [03 The sim stamps orders](slices/03-sim-stamps-orders.md)
-- [ ] [04 Seats and setup the server can run](slices/04-seats-and-setup.md)
+- [x] [04 Seats and setup the server can run](slices/04-seats-and-setup.md)
 - [x] [05 Record stream and seat link](slices/05-record-stream.md)
 - [ ] [06 Battle host](slices/06-battle-host.md)
 - [ ] [07 HTTP transport](slices/07-http-transport.md)
