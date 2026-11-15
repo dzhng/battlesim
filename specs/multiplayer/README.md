@@ -30,10 +30,13 @@ command opposite sides of one battle on a local server
 
 **Pick up here, in this order:**
 
-1. **Integrate slice 12** (your side at the bottom), handed to Codex on
-   2026-11-15 in its own checkout with a report in `throwaway/multiplayer/`
-   there. It changes what a Red commander sees: look at the pictures, get
-   an unprimed critique, and show the user, the lane numbers in particular.
+1. **Integrate slices 12, 15 and 21** (your side at the bottom, the room
+   service, Frontline rules), each handed to Codex on 2026-11-15 in its own
+   checkout with a report in `throwaway/multiplayer/` there. Slice 12
+   changes what a Red commander sees: look at the pictures, get an unprimed
+   critique, and show the user, the lane numbers in particular. Slice 21
+   must leave every existing digest unchanged and measures its own points
+   target (slice 01's run has no scores in it).
 2. **Slice 09's push** waits for the user: ask before promoting a site
    build, before deploying, and before making the address public. Its local
    half is in, with a deploy step that is a dry run by default
