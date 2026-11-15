@@ -201,3 +201,18 @@ that chain is. The alternative, leaving it inside 05, kept the longest wait
 the player sees behind three other slices. Its batches are bounded by bytes
 because one runtime card is about 3 MB across its targets and a full rebuild
 bakes about 190 of them.
+
+**Correction to slice 00's small-skirmish numbers, 2026-11-15.** The page's
+counts on the first `art committed` cover everything since the page loaded:
+the first scene publishes no event, so nothing reset them. The 272 contents
+and 2 installs reported for "one growth" in `battle-growth` therefore include
+the first scene's own. The reference probe's later growths, whose counts were
+reset by the commit before them, still show two installs per growth, so the
+doubled install is real. Slice 01 gives the first scene a baseline.
+
+**Slice 02, verified on the merged tree, 2026-11-15.** `battle-growth` at
+growth: 203 bundles sent, 194 decoded. The nine not decoded are names that
+share content with another name. Everything else is decoded again because
+each admission's draft starts with no decoded bundles; slice 07 changes that.
+The scene also shows the battle staged twice before one commit, as the
+reference probe did.
