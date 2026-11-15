@@ -14,18 +14,18 @@
     "ratio": 20,
     "clip_db": -1
   },
-  "listener_eye_share": 0.25,
+  "listener_eye_share": 0.1,
   "distance": {
     "ref_m": 15,
-    "rolloff": 1.8,
+    "rolloff": 1.2,
     "max_m": 3000,
-    "floor": 0.06,
+    "floor": 0.15,
     "cull": 0.004
   },
   "air": {
     "near_hz": 18000,
     "far_hz": 1600,
-    "far_m": 500,
+    "far_m": 1000,
     "wet": 0.35,
     "reverb_s": 1.8,
     "attack_s": 0.012
