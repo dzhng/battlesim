@@ -62,8 +62,10 @@ export function fal({ exec = runBento, fetch = globalThis.fetch, wait = sleep, r
         }
         const run = await exec([...args, "--out", out]);
         if (run.code !== 0) {
+          // The service's own reason, when it sent one, says why it refused.
+          const reason = await readFile(out, "utf8").catch(() => "");
           const error = new Error(
-            `bento ${method} ${path}: ${run.stderr.trim() || `exit ${run.code}`}`,
+            `bento ${method} ${path}: ${run.stderr.trim() || `exit ${run.code}`}${reason ? ` ${reason.trim().slice(0, 500)}` : ""}`,
           );
           error.transient = transient(run);
           throw error;
