@@ -1342,3 +1342,27 @@ whole catalog exhausted WASM address space predates texture sharing: the note
 was written in `966bde248` (2026-10-28 17:19) and decoded bundles began
 sharing texture payloads in `e56cb964c` (22:43 the same day). The note is
 corrected when the spec is archived.
+
+**The reference battle on the finished engine, 2026-11-15.** The probe at
+high graphics on the merged tree (every slice but 09), six growths, each one
+staging and one commit:
+
+| Growth | Staging to commit | Bundles sent and decoded | Vertices packed | Texture layers written | Cards baked | Copied GPU-side |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 92 ms | 2 | 8.6 MB | 3 | 0 | 51 MB |
+| 2 | 57 ms | 2 | 5.6 MB | 0 | 0 | 0 |
+| 3 | 216 ms | 3 | 28.6 MB | 3 | 9 | 243 MB |
+| 4 | 50 ms | 2 | 4.5 MB | 3 | 0 | 52 MB |
+| 5 | 47 ms | 2 | 8.6 MB | 1 | 0 | 0 |
+| 6 | 443 ms | 9 | 85.7 MB | 0 | 27 | 90 MB |
+
+- At the start each growth froze for 2.6–3.6 s and committed 62–103 s later,
+  with 189–207 cards baked and 216–228 bundles sent.
+- No frame of a second or more occurred after the first scene. The page's
+  timeline records only frames that long, so the probe cannot give the
+  shorter ones; slice 08a's timers measured 61–166 ms for typical arrivals
+  and 399 ms for the sixth.
+- One install and the new type's files only at every growth.
+- The GPU-side copies are the arrays growing past one spare layer. They are
+  not in the frame's CPU time; whether they cost the GPU a frame is not
+  measured.
