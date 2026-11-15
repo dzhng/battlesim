@@ -65,4 +65,28 @@ Script shape, the report's format, which generated map the 5v5 uses.
 
 ## Results
 
-Not run yet.
+**O3 and O4: running since 2026-11-14.** The probe is scratch under
+`throwaway/multiplayer/probes/` (a release binary,
+`multiplayer-native-probe --minutes 120 --seed 2`), with its log in
+`two-hour.log` and its process id in `two-hour.pid` beside it. It is done
+when that process is gone and the log ends in `finished:` or
+`STOP wall_limit`.
+
+- **How the battle is kept going.** A skirmish would end in 30 to 40
+  minutes, so the probe feeds the battle rules in which no objective can be
+  captured and no score reached (capture and majority times and the points
+  target are set out of reach). The generated XL map, the ten AIs and the
+  simulation are unchanged. Read the result as the cost of two hours of ten
+  AIs buying and fighting. It says nothing about scoring, and the AIs fight
+  over objectives they can never take, which is not what a Frontline game
+  will look like once slice 21 exists.
+- **Columns.** Simulated minutes; median and 95th-percentile wall time per
+  tick; median and 95th-percentile instructions retired per tick, in
+  millions; memory; a fresh full snapshot's bytes for Blue and for Red; live
+  units; units ever bought. Wall times were taken on a heavily loaded
+  machine: trust the instruction counts.
+- **Five-minute proving run:** 7.3 ms median, 22.8 ms at the 95th
+  percentile, 125 M instructions a tick, 408 MiB, snapshots of 390 KB and
+  404 KB, 134 live units of 143 bought.
+
+**O1:** not run yet.

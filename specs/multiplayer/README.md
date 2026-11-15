@@ -1,6 +1,6 @@
 # Multiplayer: rooms and Frontline
 
-**Status:** planned, nothing built. **Updated:** 2026-11-14.
+**Status:** building; the first wave is in flight, nothing integrated yet. **Updated:** 2026-11-14.
 
 Two online modes on one game server. **Rooms:** a host creates a public or
 private room, which is the skirmish lobby with several humans on either side,
@@ -10,7 +10,25 @@ by its own AI.
 
 ## Next Agent Prompt
 
-You are building online multiplayer from this plan. Nothing is implemented.
+You are building online multiplayer from this plan, with Codex writing each
+pass in its own checkout and you integrating: read every diff, rerun its
+checks yourself, review, then commit.
+
+**In flight (2026-11-14):**
+
+- Slice 01's two-hour native run is going in this checkout (see the slice
+  file for how to read it). Its host half, O1, has not been started.
+- Slices 02 then 03, and slices 05 then 04, are each with a Codex child in
+  its own checkout. Nothing from them is on this branch yet.
+
+**Next:** integrate those four slices as they come back, then hand out slice
+06. Slices 13 and 20 need nothing first and can go out as soon as a checkout
+is free.
+
+**Disk is the limit on parallel work.** The machine had about 6 GB free with
+other sessions building on it. Run at most two child checkouts at once, and
+give slices that share no files to one child, one commit each, rather than a
+checkout apiece. Remove a child's checkout once its commits are integrated.
 
 1. Read [decisions.md](decisions.md) (every row is settled; do not reopen one)
    and [wire.md](wire.md) (the one wire contract). The walk that produced the
