@@ -32,6 +32,7 @@ mod drive;
 mod encounter;
 mod endurance;
 mod entries;
+mod entry_reach;
 mod exact_numbers;
 mod finite_ammo;
 mod fire_through;
