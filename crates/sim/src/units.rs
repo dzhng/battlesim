@@ -10,10 +10,11 @@ use contract::map::MoverClass;
 use contract::observation::{FlareReadiness, MoveState};
 use contract::scenario::{Armor, Rules};
 
+use crate::flight::BodyId;
 use crate::hold::{Hold, Phase};
 use crate::math::{Obb2, V2, V3};
 use crate::navigation::Mobility;
-use crate::weapons::{Mount, Target};
+use crate::weapons::{Mount, Target, VEHICLE_BODY_BASE};
 use crate::world::PropId;
 
 mod digest;
@@ -662,4 +663,18 @@ impl Unit {
             _ => None,
         }
     }
+}
+
+/// Where a body lives: (unit index, soldier index) or a vehicle.
+pub fn locate(units: &[Unit], body: BodyId) -> Option<(usize, Option<usize>)> {
+    if body.0 >= VEHICLE_BODY_BASE {
+        let i = (body.0 - VEHICLE_BODY_BASE) as usize;
+        return (i < units.len()).then_some((i, None));
+    }
+    units.iter().enumerate().find_map(|(i, u)| {
+        u.members
+            .iter()
+            .position(|s| s.id == body.0)
+            .map(|k| (i, Some(k)))
+    })
 }

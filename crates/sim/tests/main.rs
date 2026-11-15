@@ -70,6 +70,7 @@ mod rivers;
 mod road_journeys;
 mod route_planning;
 mod sensing;
+mod shot_at;
 mod shouts;
 mod side_topology;
 mod sight;
