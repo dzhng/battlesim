@@ -46,7 +46,7 @@ Each runs today as the recommended call and is reversible; the entry says how.
 - [Fog's face rule judges an upward face by the air above it, so low props can show lit ledges on an unseen side](#fogs-face-rule-judges-an-upward-face-by-the-air-above-it-so-low-props-can-show-lit-ledges-on-an-unseen-side) (needs-user, confidence medium)
 - [Model surfaces are vertex-colour paint, with baked textures on vehicles, soldiers and small props](#model-surfaces-are-vertex-colour-paint-with-baked-textures-on-vehicles-soldiers-and-small-props) (needs-user, confidence medium)
 - [Effect curves and sizes are fixture tuning](#effect-curves-and-sizes-are-fixture-tuning) (needs-user, confidence medium)
-- [A wreck burns from when the side first knows it: 60 s of fire, 150 s of smouldering](#a-wreck-burns-from-when-the-side-first-knows-it-60-s-of-fire-150-s-of-smouldering) (needs-user, confidence medium)
+- [A wreck burns, then smoulders, from when the side first knows it](#a-wreck-burns-then-smoulders-from-when-the-side-first-knows-it) (user's call)
 - [Smoke, flame, dust and blast-plume looks are fixture tuning](#smoke-flame-dust-and-blast-plume-looks-are-fixture-tuning) (needs-user, confidence medium)
 - [Tracers are styled by round kind, not by side](#tracers-are-styled-by-round-kind-not-by-side) (needs-user, confidence medium)
 - [Cover tier is a filled pip inside the soldier's marker: yellow, light green, strong green](#cover-tier-is-a-filled-pip-inside-the-soldiers-marker-yellow-light-green-strong-green) (needs-user, confidence medium)
@@ -282,17 +282,17 @@ A screen-space cleanup would also erase true thin seen features. The fog-look ch
 
 **Verdict.** needs-user — provisional: the numbers tuned on the gate frames; reverse by editing `presentation.effects`. Critiques left open: no scorch at the burst, sparks reading as zig-zags, tracers as rods from low cameras.
 
-### A wreck burns from when the side first knows it: 60 s of fire, 150 s of smouldering
+### A wreck burns, then smoulders, from when the side first knows it
 
-***needs-user** · confidence **medium** · **provisional** · Effects and sound · from Slice 26*
+***user's call** · Effects and sound · from Slice 26*
 
-**The choice.** A tank is destroyed. When your side first learns its wreck, it draws flames and thick smoke for `burn_s` 60 s, then thin smoke for `smoulder_s` 150 s, then nothing. Knowledge carries no death time, so a wreck first seen long after it died (or known when a view starts) burns from then. A wreck no longer published stops making smoke and its puffs live out.
+**The choice.** A tank is destroyed. When your side first learns its wreck, it draws flames and thick smoke for `burn_s`, then thin smoke for `smoulder_s`, then nothing. A wreck stays a landmark well after the fight moves on: fire and smoke last minutes, not seconds. Knowledge carries no death time, so a wreck first seen long after it died (or known when a view starts) burns from then. A wreck no longer published stops making smoke and its puffs live out.
 
 **The gap.** How long a wreck burns, and from when.
 
 **The reach.** Adding a death tick to prop knowledge would let late-seen wrecks show their true age.
 
-**Verdict.** needs-user — provisional: the durations are `presentation.effects.smoke.wreck` tuning; reverse there, or add a death time to the publication if late wrecks burning fresh looks wrong.
+**Verdict.** user's call; the durations are `presentation.effects.smoke.wreck` tuning. With many wrecks burning at once, the smoke budget thins every column alike. Add a death time to the publication if late wrecks burning fresh looks wrong.
 
 ### Smoke, flame, dust and blast-plume looks are fixture tuning
 
