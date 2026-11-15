@@ -473,3 +473,9 @@ bytes packed, 10,298,016 buffer bytes uploaded, 189 cards and 21 read waits;
 one growth read two runtime contents (7,942,032 bytes) and installed one art
 library generation. A reused growth has no rebuild reason. The spec README
 was taken from upstream without changing its status or checklist.
+
+**Slice 05a, verified on the merged tree, 2026-11-15.** `battle-growth`: 189
+cards baked in 21 read waits. The scene's timeline is now staged, committed,
+staged, committed: with a short bake the first build commits before the
+second staging arrives, so the doubled staging costs a second admission and
+no longer a discarded one. Slice 08 still owns making it one.
