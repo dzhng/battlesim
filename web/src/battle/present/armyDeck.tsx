@@ -8,11 +8,10 @@ import { InfoPanel } from "./infoPanel";
 import { ownPanel, unitStrength, type PanelRules } from "./panelRows";
 import { unitName } from "./readouts";
 import { CommandBar, type ArmyCommandState } from "./commandBar";
-import { useFeedValue, type FeedSource } from "@web/feed";
+import { Feed, useFeedValue, type FeedSource } from "@web/feed";
 import { GROUP_KEYS, type ControlGroups, type GroupKey } from "../input/controlGroups";
 import { deckSlots } from "./deckLayout";
-import { Feed } from "@web/feed";
-import type { CardBlink } from "./fireBlink";
+import { playBlink, type CardBlink } from "./fireBlink";
 
 /** The unit a card's click selects: a rider's carrier, since a squad a
  *  carrier holds can't be ordered (D10), else the unit itself. */
@@ -85,7 +84,7 @@ export function ArmyDeck({
   const deck = useRef<HTMLElement>(null);
   const [hintHost, setHintHost] = useState<HTMLDivElement | null>(null);
   const [hovered, setHovered] = useState<number | null>(null);
-  const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
+  const [hoveredGroup, setHoveredGroup] = useState<GroupKey | null>(null);
   const [detailX, setDetailX] = useState(0);
   const [detailY, setDetailY] = useState(0);
   const tooltipId = useId();
@@ -127,11 +126,12 @@ export function ArmyDeck({
   );
   /** A card in its grid cell, with its group's bracket, key and ×. */
   const slot = (key: string | number, index: number, children: ReactNode, blink?: CardBlink) => {
-    const { group, sides, keyTab, deleteTab } = slots[index];
+    const { row, column, group, sides, keyTab, deleteTab } = slots[index];
     return (
       <div
         key={key}
         className="hud-army-slot"
+        style={{ gridRow: row + 1, gridColumn: column + 1 }}
         data-group={group ?? undefined}
         data-bracket={sides.length ? sides.join(" ") : undefined}
         onMouseEnter={() => setHoveredGroup(group)}
@@ -141,6 +141,7 @@ export function ArmyDeck({
           // clean; a new serial is a new element, so the animation restarts.
           <span
             key={blink.serial}
+            ref={playBlink}
             className="hud-army-blink"
             data-colour={blink.colour}
             aria-hidden="true"
@@ -152,14 +153,14 @@ export function ArmyDeck({
             {group}
           </span>
         )}
-        {deleteTab && hoveredGroup === group && onDeleteGroup && (
+        {deleteTab && group && hoveredGroup === group && onDeleteGroup && (
           <button
             type="button"
             className="hud-army-group-delete"
             aria-label={`Delete group ${group}`}
             title={`Delete group ${group}`}
             onMouseDown={(event) => event.preventDefault()}
-            onClick={() => onDeleteGroup(group as GroupKey)}
+            onClick={() => onDeleteGroup(group)}
           >
             <Icon path={hudIcon("close")} />
           </button>

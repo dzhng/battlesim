@@ -95,3 +95,7 @@ tuning keys in `presentation.hud`, guesses the evidence may retune.
 | I18 | The glow lies behind the card's face, not over it as in the mock: the unprimed critique found it muddied the strength meter just when a unit is hurt, and tinted the group's white bracket. The card's translucent face lets it show through. | agent |
 | I19 | The tuning keys are `presentation.hud.fire_blink` (`on_s`, `off_s`, `wait_s`, `depth`, `glow`), started at the player's mock settings. | agent |
 | I20 | The deck workbench gained a "Fire blink" button (first card shot at, third hurt); its pictures were re-blessed for the lab's nav row alone. | agent |
+| I21 | A blink leaves the feed once it has run, and with its unit when the unit is gone, so a card that moves (a new group reorders the deck) or remounts never replays an old one. | agent (whole-spec review) |
+| I22 | The blink is a Web Animation built from `on_s` and `off_s` (each pulse rises over half of `on_s`, eases off over the rest, fades over half of `off_s`), started by a stable ref as its element mounts. CSS keyframes could only honour their sum. | agent (whole-spec review) |
+| I23 | A number key with no group leaves the selection alone (RTS convention); a group whose members all ride still selects nothing, as D5 says. | agent (whole-spec review) |
+| I24 | Each card's grid cell is placed from its slot (`deckLayout.ts`), so one module owns where a card sits and how its bracket is drawn; CSS no longer flows them. | agent (whole-spec review) |

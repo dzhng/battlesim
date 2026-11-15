@@ -43,6 +43,7 @@ import {
   nearestCentre,
   storeGroup,
   type ControlGroups,
+  type GroupAction,
   type GroupKey,
 } from "./controlGroups";
 import { DOUBLE_CLICK_MS } from "./moveGestures";
@@ -446,13 +447,15 @@ export function useUnitControl(
   /** Ctrl+N stores the selection, Shift+N adds it, N selects the group's
    *  units on the field, and N again within a double-click centres on it. */
   const pressGroup = useCallback(
-    (key: GroupKey, action: "assign" | "add" | "recall", at: number) => {
+    (key: GroupKey, action: GroupAction, at: number) => {
       if (action !== "recall") {
         const units = selectedUnitsRef.current.map((u) => u.id);
         setStored((current) => storeGroup(current, key, units, action === "add"));
         return;
       }
-      const members = groupsRef.current.get(key) ?? [];
+      // A key with no group leaves the selection alone (RTS convention).
+      const members = groupsRef.current.get(key);
+      if (!members) return;
       const onField = members.flatMap(
         (id) => yoursRef.current.find((u) => u.id === id && !aboardCarrier(u)) ?? [],
       );

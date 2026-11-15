@@ -32,9 +32,11 @@ test("a card blinks yellow when an aimed round passes and red when its unit is h
   blinks.observe(frame(4, [unit(1, 80), unit(2, 0, false, [1])]));
   expect(colour(2)).toBe("red");
 
-  // Past the blink but inside yellow's wait: another pass shows nothing new.
+  // Past the blink but inside yellow's wait: another pass shows nothing new,
+  // and the finished blinks are gone, so a moved card never replays one.
   blinks.observe(frame(8, [unit(1, 80, true), unit(2, 0, false, [1])]));
-  expect(colour(1)).toBe("red");
+  expect(colour(1)).toBe(null);
+  expect(colour(2)).toBe(null);
   // Past the wait, yellow shows again.
   blinks.observe(frame(11, [unit(1, 80, true), unit(2, 0, false, [1])]));
   expect(colour(1)).toBe("yellow");
@@ -43,6 +45,9 @@ test("a card blinks yellow when an aimed round passes and red when its unit is h
   expect(colour(1)).toBe("yellow");
   blinks.observe(frame(16, [unit(1, 60), unit(2, 0, false, [1])]));
   expect(colour(1)).toBe("red");
+  // A unit that is gone takes its blink with it.
+  blinks.observe(frame(17, [unit(2, 0, false, [1])]));
+  expect(colour(1)).toBe(null);
 });
 
 test("a new battle starts over", () => {

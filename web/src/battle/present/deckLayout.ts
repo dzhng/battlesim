@@ -5,13 +5,15 @@
  *  drawn per card, on each side whose neighbour is not in the same group, so
  *  a group split across columns, or an L, needs no case of its own. */
 
+import type { GroupKey } from "../input/controlGroups";
+
 export type Side = "top" | "right" | "bottom" | "left";
 
 export interface DeckSlot {
   row: number;
   column: number;
   /** The card's group key, or null for an ungrouped card. */
-  group: string | null;
+  group: GroupKey | null;
   /** The sides of the card its group's bracket runs along, in this order. */
   sides: Side[];
   /** The group's first card: it carries the group's key. */
@@ -22,7 +24,7 @@ export interface DeckSlot {
 
 /** The slot of each card, given each card's group in deck order and the
  *  deck's row count. */
-export function deckSlots(groups: readonly (string | null)[], rows: number): DeckSlot[] {
+export function deckSlots(groups: readonly (GroupKey | null)[], rows: number): DeckSlot[] {
   const at = (row: number, column: number) =>
     row < 0 || row >= rows || column < 0 ? undefined : groups[column * rows + row];
   return groups.map((group, i) => {

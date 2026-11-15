@@ -92,8 +92,6 @@ export function hudProperties(theme: HudTheme, calloutGlow = 1): Record<string, 
     "--hud-glass": channels(theme.glass),
     "--hud-glass-alpha": String(theme.glass[3]),
     "--hud-glow": `${theme.glow_px}px`,
-    "--hud-blink-on": `${theme.fire_blink.on_s}s`,
-    "--hud-blink-off": `${theme.fire_blink.off_s}s`,
     "--hud-blink-depth": `${theme.fire_blink.depth * 100}%`,
     "--hud-blink-glow": String(theme.fire_blink.glow),
   };

@@ -7,7 +7,7 @@
  *  in ticks, so the rules follow the battle and not the frame rate. */
 import { Feed } from "@web/feed";
 import type { ObservationView, OwnUnitView } from "../sim/observationView";
-import { gameHud } from "./hudTheme";
+import { gameHud, type HudTheme } from "./hudTheme";
 
 export type BlinkColour = "yellow" | "red";
 /** A card's latest blink; a new `serial` starts its animation again. */
@@ -16,17 +16,37 @@ export interface CardBlink {
   serial: number;
 }
 
-export interface BlinkTiming {
-  on_s: number;
-  off_s: number;
-  wait_s: number;
+export type BlinkTiming = Pick<HudTheme["fire_blink"], "on_s" | "off_s" | "wait_s">;
+
+/** Plays a blink on its element as it mounts (a ref callback, so a stable
+ *  function: it runs once per blink, never per render). Two pulses, each
+ *  rising for half of `on_s`, easing off over the rest, and fading out over
+ *  half of `off_s`, dark for the other half. */
+export function playBlink(el: HTMLElement | null, timing: BlinkTiming = gameHud.fire_blink) {
+  if (!el?.animate || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const { on_s: on, off_s: off } = timing;
+  const total = 2 * (on + off);
+  const frame = (s: number, opacity: number) =>
+    ({ offset: s / total, opacity, easing: "ease-in-out" }) as const;
+  el.animate(
+    [0, on + off]
+      .flatMap((p) => [
+        frame(p, 0),
+        frame(p + on / 2, 1),
+        frame(p + on, 0.85),
+        frame(p + on + off / 2, 0),
+      ])
+      .concat(frame(total, 0)),
+    { duration: total * 1000 },
+  );
 }
 
 /** A unit's health as one number: a vehicle's, plus every living soldier's. */
 const health = (u: OwnUnitView) => u.hp + u.memberHp.reduce((sum, hp) => sum + hp, 0);
 
 export class FireBlinks {
-  /** Each unit's latest blink, by unit id. */
+  /** Each unit's running blink, by unit id; gone once it has run, so a card
+   *  that moves or remounts never shows an old one again. */
   readonly feed = new Feed<ReadonlyMap<number, CardBlink>>(new Map());
   private readonly blinkTicks: number;
   private readonly waitTicks: number;
@@ -46,7 +66,14 @@ export class FireBlinks {
   observe(o: ObservationView) {
     if (o.tick < this.tick) this.reset();
     this.tick = o.tick;
+    const present = new Set(o.own.map((u) => u.id));
     let next: Map<number, CardBlink> | null = null;
+    for (const id of this.feed.current.keys()) {
+      const running = this.started.get(id);
+      if (present.has(id) && running && o.tick - running.tick < this.blinkTicks) continue;
+      next ??= new Map(this.feed.current);
+      next.delete(id);
+    }
     const measured = new Map<number, number>();
     for (const unit of o.own) {
       const now = health(unit);
