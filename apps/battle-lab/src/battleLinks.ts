@@ -24,9 +24,9 @@ import {
   skirmishPlayers,
   type SkirmishSide,
 } from "@packages/skirmish-setup/src/seats";
-import presets from "@fixtures/map-presets.json";
 import {
   canonicalSeed,
+  MAP_REGIONS,
   MAP_SIZES,
   MAP_TYPES,
   type MapChoice,
@@ -59,7 +59,7 @@ const PARAMETERS = new Set([
 ]);
 
 /** The regions a player may ask for: the presets' regional families. */
-export const REGIONS: readonly string[] = presets.parcels.regional_families;
+export const REGIONS: readonly string[] = MAP_REGIONS;
 /** Data names the player reads as another name. */
 const SAID: Readonly<Record<string, string>> = {
   small: "S",

@@ -196,4 +196,13 @@ Append here: the slice, the decision, why, and what it replaced.
 | 04 | Any seat can be removed, an open one and a human's included, except a side's last. Keeping the offline player seated is the skirmish page's rule: their row has no remove control. | The model refusing the human's row, which a room's host must be able to do; and the page allowing it, which made an AI-only battle from the offline lobby. |
 | 04 | Filling or emptying a seat moves the size floor exactly as adding or removing one does. | Open-to-AI left a three-player side on a two-road map. |
 | 04 | The battle route turns a link back into a lobby and builds its request with the lobby's own builder, so the link and the preview cannot disagree. | A second request builder for links. |
+| 14 | A room has a `starting` state between the host pressing Start and the battle existing. The server records the battle's id and map identity when it has them, and only then do views carry tickets. | The first cut filled the ticket with the room code and an empty map identity, because the model was asked for values only the server learns, seconds later. |
+| 14 | `BattleSetup` lists the battle's players (`blue-1`), not lobby seats. One module turns a lobby into a `BattleSetup` and back; rooms and Frontline both use it. | The field was typed as a seat id, and a lookup that mixed the two kinds of id gave every player the first player's ticket. |
+| 14 | A host's settings are a narrow patch, checked against the game's own lists and applied through the lobby's own functions. | Spreading the patch over the lobby's map, which skipped the size floor and accepted any field from the network. |
+| 14 | `set_seat` is refused on a seat a human holds. The host removes a player by removing their seat. | Setting a held seat open or AI silently removing its player. |
+| 14 | A room code is one of the 26 radio alphabet words and four digits, about 18 bits. The throttle on wrong guesses (P25) is what protects a private room, not the code's size. | A 2,048-word list, which would be a data file to own for six more bits. |
+| 14 | A new room is a 1v1 with its host on Blue and Red's seat open. | Starting with Red's seat set to AI, which a joiner could not take. |
+| 24 | Whether a battle slot is free is an argument to placement. | A fixed limit of eight games inside the model. |
+| 24 | A player who still holds a seat gets `resume`, a different answer from `join`. | One answer for both, which the server could not tell apart, though only a join fires the seat events. |
+| 24 | The list of map regions is owned by `web/src/maps/source.ts`, read from the map presets fixture; the app's link code takes it from there. | The list living in app code the server cannot import. |
 

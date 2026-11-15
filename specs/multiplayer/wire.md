@@ -150,7 +150,7 @@ play is not available on it.
 
 ```ts
 type BattleSetup = {            // what both ends feed the one request builder
-  seats: { id: SeatId; side: "blue" | "red"; controller: ControllerKind }[];
+  seats: { player: string; side: "blue" | "red"; controller: ControllerKind }[];  // the battle's players, in order
   factions: Record<"blue" | "red", Faction>;
   map: MapChoice; battleSeed: number; lighting: string;
   rules: "skirmish" | "frontline";
@@ -187,7 +187,10 @@ type RoomView = {
   settings: { factions: Record<"blue" | "red", Faction>; map: MapChoice; lighting: string };
   you: SeatId;
   canStart: boolean;            // every human ready, a fighter on each side
-  phase: { kind: "lobby" } | { kind: "battle"; ticket: BattleTicket };
+  phase:
+    | { kind: "lobby" }
+    | { kind: "starting" }       // the host started; the server is building the battle
+    | { kind: "battle"; ticket: BattleTicket };
 };
 type RoomList = {
   rooms: { code: RoomCode; host: string; map: MapChoice;
@@ -200,9 +203,18 @@ type RoomAction =
   | { kind: "add_seat"; side: "blue" | "red" }
   | { kind: "remove_seat"; seat: SeatId }
   | { kind: "set_seat"; seat: SeatId; to: "open" | "ai" }
-  | { kind: "settings"; patch: Partial<RoomView["settings"]> }
+  | { kind: "settings"; patch: RoomSettingsPatch }
   | { kind: "start" };
+type RoomSettingsPatch = {      // exactly what a host may set; anything else is refused
+  map?: { type?: MapType; size?: MapSize; region?: string | null; seed?: string };
+  factions?: Partial<Record<"blue" | "red", Faction>>;
+  lighting?: string;
+};
 ```
+
+A host's settings come from the network. Each value is checked against the
+game's own lists and applied through the lobby's own rules, so a size below
+the floor is raised to it and an unknown value is refused.
 
 Only public rooms still in the lobby appear in `RoomList`. The last five
 actions are the host's.

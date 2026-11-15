@@ -8,7 +8,7 @@ import type {
   PurchasePlacement,
 } from "../../../web/src/battle/sim/protocol";
 import type { ControllerKind } from "../../../web/src/battle/prepare/protocol";
-import type { MapChoice } from "../../../web/src/maps/source";
+import type { MapChoice, MapSize, MapType } from "../../../web/src/maps/source";
 import type { Faction } from "../../scene-assets/src/units";
 import type { SeatId } from "../../skirmish-setup/src/seats";
 
@@ -46,7 +46,7 @@ export type PreviewAnswer =
 export type BuildIdentity = { commit: string; sim: string };
 
 export type BattleSetup = {
-  seats: { id: SeatId; side: "blue" | "red"; controller: ControllerKind }[];
+  seats: { player: string; side: "blue" | "red"; controller: ControllerKind }[];
   factions: Record<"blue" | "red", Faction>;
   map: MapChoice;
   battleSeed: number;
@@ -81,7 +81,7 @@ export type RoomView = {
   };
   you: SeatId;
   canStart: boolean;
-  phase: { kind: "lobby" } | { kind: "battle"; ticket: BattleTicket };
+  phase: { kind: "lobby" } | { kind: "starting" } | { kind: "battle"; ticket: BattleTicket };
 };
 export type RoomList = {
   rooms: {
@@ -92,6 +92,18 @@ export type RoomList = {
     red: ("human" | "open" | "ai")[];
   }[];
 };
+
+export type RoomSettingsPatch = {
+  map?: {
+    type?: MapType;
+    size?: MapSize;
+    region?: string | null;
+    seed?: string;
+  };
+  factions?: Partial<Record<"blue" | "red", Faction>>;
+  lighting?: string;
+};
+
 export type RoomAction =
   | { kind: "sit"; seat: SeatId }
   | { kind: "ready"; ready: boolean }
@@ -99,7 +111,7 @@ export type RoomAction =
   | { kind: "add_seat"; side: "blue" | "red" }
   | { kind: "remove_seat"; seat: SeatId }
   | { kind: "set_seat"; seat: SeatId; to: "open" | "ai" }
-  | { kind: "settings"; patch: Partial<RoomView["settings"]> }
+  | { kind: "settings"; patch: RoomSettingsPatch }
   | { kind: "start" };
 
 export type Briefing = {

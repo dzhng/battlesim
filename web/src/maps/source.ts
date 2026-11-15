@@ -6,11 +6,14 @@
 //
 // Plain TypeScript with no bundler features, so Node tools import it too.
 import type { MapIdentity, ResolvedMap } from "./resolve.ts";
+import presets from "../../../fixtures/map-presets.json";
 
 export type MapType = "open" | "mixed" | "metro";
 export type MapSize = "small" | "medium" | "large" | "xl";
 export const MAP_TYPES: readonly MapType[] = ["open", "mixed", "metro"];
 export const MAP_SIZES: readonly MapSize[] = ["small", "medium", "large", "xl"];
+/** The regional families authored by the map presets. */
+export const MAP_REGIONS: readonly string[] = presets.parcels.regional_families;
 
 /** What a player chooses: the two composition controls, the seed, and
  *  optionally the region its buildings are of. */

@@ -18,9 +18,12 @@ interface Room {
   lobby: LobbyState;                                  // slice 04
   members: { who: string; callsign: string; seat: SeatId; ready: boolean; since: number }[];
   host: string;
-  phase: "lobby" | "battle";
+  phase: "lobby" | "starting" | "battle";
+  battle?: { id: string; mapIdentity: string };       // known once the server has built it
 }
-function createRoom(host: Member, visibility: Room["visibility"], code: RoomCode, now: number): Room;
+function createRoom(host: { who: string; callsign: string }, visibility: Room["visibility"],
+                    code: RoomCode, now: number): Room;
+function recordBattle(room: Room, battle: { id: string; mapIdentity: string }): Room;
 function roomReduce(room: Room, by: string, action: RoomAction | { kind: "join"; callsign: string }, now: number):
   Room | { refused: string };
 function canStart(room: Room): boolean;
@@ -39,6 +42,15 @@ The rules it holds:
   in removes that player from the room. Up to five seats a side.
 - Start needs every human ready and a human or an AI on each side.
 - When the host leaves, the human who has been in the room longest hosts.
+- Start moves the room to `starting`. The server builds the battle, which
+  takes seconds, and records its id and map identity; only then does a
+  member's view carry their ticket. The model invents neither value.
+- After the start, leaving changes nothing in the room: the player and their
+  seat stay, so they can return to it and nobody else can take it. Who
+  drives the seat meanwhile is the server's business (slice 18).
+- A host's settings are checked against the game's own lists and applied
+  through the lobby's rules. `set_seat` is refused on a seat someone sits in;
+  the host removes a player by removing their seat.
 - An open seat is not in the battle and does not move the map's size or road
   count; seats close up at the start (slice 04's `battlePlayers`).
 

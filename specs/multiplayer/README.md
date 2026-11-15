@@ -30,8 +30,8 @@ cannot hold. Do not build Rust here until the user has freed space; check
   **Owed:** nobody has looked at the skirmish lobby in a browser since. It
   should look and play exactly as before; capture it against its baseline
   the next time a scene run is possible, before slice 17 builds on it.
-- **Slices 14 and 24** (the room model and Frontline placement, both pure
-  TypeScript) are with Codex in this checkout, uncommitted.
+- **Slices 14 and 24 are done** and committed (the room model and Frontline
+  placement), after one repair round with Codex.
 - **Slices 02 and 03** came back from Codex as two commits on the local
   branch `t3/per-side-publisher-sim-orders` (`67844ee46`, `25dad0b20`).
   Slice 02 is half integrated: its changes and two fixes sit uncommitted in
@@ -44,9 +44,9 @@ cannot hold. Do not build Rust here until the user has freed space; check
   O1, has not been started.
 
 **Next, once there is space:** finish slice 02 as its file says, integrate
-03, and hand out slice 06. Slices 13 and 20 need nothing first. Slice 14
-(the room model) needs only 04 and 05 and no Rust build, so it can go out
-now.
+03, and hand out slice 06. Slices 13 and 20 need nothing first. Nothing
+else can start without a Rust build: every remaining slice needs 02, 03 or
+the simulation.
 
 **Keep parallel work small.** One checkout per child costs about 1 GB before
 any build, and a Rust build adds 1 to 2 GB. Run at most two children at once,
@@ -88,7 +88,7 @@ reading anything else.
 **Checklist**
 
 Foundation
-- [ ] [01 Host and endurance probes](slices/01-probes.md)
+- [ ] [01 Host and endurance probes](slices/01-probes.md) (the endurance half is done; the host half is not)
 - [ ] [02 Per-side publisher](slices/02-per-side-publisher.md)
 - [ ] [03 The sim stamps orders](slices/03-sim-stamps-orders.md)
 - [x] [04 Seats and setup the server can run](slices/04-seats-and-setup.md)
@@ -103,7 +103,7 @@ Foundation
 - [ ] [13 Native and WebAssembly parity](slices/13-native-wasm-parity.md)
 
 Rooms
-- [ ] [14 Room model](slices/14-room-model.md)
+- [x] [14 Room model](slices/14-room-model.md)
 - [ ] [15 Room service](slices/15-room-service.md)
 - [ ] [16 Multiplayer screen](slices/16-multiplayer-screen.md)
 - [ ] [17 Room lobby screen](slices/17-room-lobby-screen.md)
@@ -115,7 +115,7 @@ Frontline
 - [ ] [21 Frontline rules](slices/21-frontline-rules.md)
 - [ ] [22 Army hand-over](slices/22-army-hand-over.md)
 - [ ] [23 Seat reset](slices/23-seat-reset.md)
-- [ ] [24 Frontline placement](slices/24-frontline-placement.md)
+- [x] [24 Frontline placement](slices/24-frontline-placement.md)
 - [ ] [25 Frontline service](slices/25-frontline-service.md)
 - [ ] [26 Briefing card and Play](slices/26-briefing-card.md)
 - [ ] [27 Closeout](slices/27-closeout.md)

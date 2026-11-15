@@ -20,7 +20,9 @@ interface GameView {                    // what the server knows of one game
            reservedUntil: number | null }[];
   granted: string[];                    // players who have had opening credits here
 }
-function place(games: GameView[], who: string, now: number, random: () => number):
+function place(games: GameView[], who: string, now: number, random: () => number,
+               slotFree: boolean):                    // the server's knowledge, not the model's
+  | { resume: string; side: "blue" | "red"; seat: number }     // still holds a seat: no seat events
   | { join: string; side: "blue" | "red"; seat: number; opening: boolean }
   | { create: true }
   | { full: true };
@@ -38,6 +40,9 @@ The rules it holds:
   `full` when no battle slot is free.
 - The seat is the lowest-numbered free one. Seat 5 is never offered.
 - `opening` is true only the first time this player joins this game.
+- A player who still holds a seat resumes it. That is a different answer
+  from a join, because a join fires the hand-over and the reset and a resume
+  fires neither.
 - A new game has five seats a side, all AI, two different factions drawn at
   random, a random map kind and region, and the smallest size that seats five
   a side (P18). The player who caused it takes a seat from tick zero, with no

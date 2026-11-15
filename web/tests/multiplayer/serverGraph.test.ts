@@ -10,6 +10,9 @@ const entries = [
   "packages/multiplayer/src/wire.ts",
   "packages/multiplayer/src/link.ts",
   "packages/multiplayer/src/stream/index.ts",
+  "packages/multiplayer/src/room.ts",
+  "packages/multiplayer/src/frontline.ts",
+  "packages/multiplayer/src/setup.ts",
   "packages/skirmish-setup/src/seats.ts",
   "packages/skirmish-setup/src/lobby.ts",
 ];
