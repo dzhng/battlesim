@@ -4,7 +4,7 @@ use presentation::presentation::catalog::Placement;
 use presentation::presentation::lab::ModelInput;
 use presentation::world::Detail;
 use renderer_core::bundle::SourceDraft;
-use renderer_core::runtime::ReadyAssets;
+use renderer_core::runtime::{PendingAssets, ReadyAssets};
 use std::collections::BTreeMap;
 
 /// Owned source draft; adding or dropping it cannot change a live renderer.
@@ -53,6 +53,21 @@ impl AppearanceDraft {
     }
 }
 
+/// One prospective generation, warming geometry between presented frames.
+#[wasm_bindgen]
+pub struct WarmingAppearances {
+    pending: PendingAssets,
+    library: Arc<Library>,
+    gpu: std::rc::Rc<crate::gpu::GpuInner>,
+}
+#[wasm_bindgen]
+impl WarmingAppearances {
+    pub fn step(&mut self) -> Result<bool, JsValue> {
+        self.gpu.ensure_live()?;
+        self.pending.step().map_err(js_error)
+    }
+}
+
 /// Complete GPU generation plus retained source bytes for device recreation.
 #[wasm_bindgen]
 pub struct PreparedAppearances {
@@ -76,14 +91,12 @@ impl Renderer {
         })
     }
 
-    /// Creates a future with owned resources synchronously. Browser frames,
-    /// controls, resize and disposal may proceed while real atlas reads await.
-    #[wasm_bindgen(unchecked_return_type = "Promise<PreparedAppearances>")]
-    pub fn prepare_appearances(
+    /// Resolve the prospective catalog before warming its missing geometry.
+    pub fn begin_appearances(
         &self,
         presentation: &Presentation,
         draft: AppearanceDraft,
-    ) -> Result<js_sys::Promise, JsValue> {
+    ) -> Result<WarmingAppearances, JsValue> {
         self.gpu.ensure_live()?;
         let runtime = self
             .runtime
@@ -108,15 +121,29 @@ impl Renderer {
                 work,
             )
             .map_err(js_error)?;
-        let gpu = self.gpu.clone();
+        Ok(WarmingAppearances {
+            pending,
+            library: Arc::new(library),
+            gpu: self.gpu.clone(),
+        })
+    }
+
+    /// Finish the existing admission and await its cards after geometry warming.
+    #[wasm_bindgen(unchecked_return_type = "Promise<PreparedAppearances>")]
+    pub fn prepare_appearances(
+        &self,
+        warming: WarmingAppearances,
+    ) -> Result<js_sys::Promise, JsValue> {
+        let WarmingAppearances {
+            pending,
+            library,
+            gpu,
+        } = warming;
+        gpu.ensure_live()?;
         Ok(wasm_bindgen_futures::future_to_promise(async move {
             let ready = pending.prepare().await.map_err(js_error)?;
             gpu.ensure_live()?;
-            Ok(PreparedAppearances {
-                ready,
-                library: Arc::new(library),
-            }
-            .into())
+            Ok(PreparedAppearances { ready, library }.into())
         }))
     }
 

@@ -2,14 +2,22 @@
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { Worker } from "node:worker_threads";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { Fielding } from "@wasm/renderer_browser";
 import { loadPresentation } from "@web/battle/sim/presentation";
 import { resolveCatalogSet } from "@web/battle/catalog/sets";
 import presentation from "@fixtures/presentation.json";
 import { FieldingOwner, type RuntimeFiles } from "@web/battle/sim/fielding";
 
-afterEach(() => vi.restoreAllMocks());
+beforeEach(() => {
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) =>
+    setImmediate(() => callback(performance.now())),
+  );
+});
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 
 const runtime = new URL("../../assets/runtime/", import.meta.url);
 
@@ -87,11 +95,11 @@ test("fielding releases its owned file and boundary packets after their last rea
   const catalog = JSON.parse(readFileSync(new URL("catalog.json", runtime), "utf8"));
   const files: Uint8Array[] = [];
   const boundary: Uint8Array[] = [];
-  const resolve = Fielding.prototype.resolve;
-  vi.spyOn(Fielding.prototype, "resolve").mockImplementation(
-    function (this: Fielding, bytes, lengths) {
+  const absorb = Fielding.prototype.absorb;
+  vi.spyOn(Fielding.prototype, "absorb").mockImplementation(
+    function (this: Fielding, content, bytes, lengths) {
       boundary.push(bytes);
-      return resolve.call(this, bytes, lengths);
+      return absorb.call(this, content, bytes, lengths);
     },
   );
   const source: RuntimeFiles = {
@@ -116,7 +124,8 @@ test("fielding releases its owned file and boundary packets after their last rea
     const first = await owner.field(input);
     expect(files.length).toBeGreaterThan(0);
     expect(files.map((file) => file.byteLength)).toEqual(files.map(() => 0));
-    expect(boundary.map((packet) => packet.byteLength)).toEqual([0]);
+    expect(boundary.length).toBeGreaterThan(0);
+    expect(boundary.map((packet) => packet.byteLength)).toEqual(boundary.map(() => 0));
     expect(await owner.field(input)).toBe(first);
   } finally {
     owner.free();
@@ -129,11 +138,11 @@ test("fielding releases owned transport when a decoder refuses it", async () => 
   const catalog = JSON.parse(readFileSync(new URL("catalog.json", runtime), "utf8"));
   const files: Uint8Array[] = [];
   const boundary: Uint8Array[] = [];
-  const resolve = Fielding.prototype.resolve;
-  vi.spyOn(Fielding.prototype, "resolve").mockImplementation(
-    function (this: Fielding, bytes, lengths) {
+  const absorb = Fielding.prototype.absorb;
+  vi.spyOn(Fielding.prototype, "absorb").mockImplementation(
+    function (this: Fielding, content, bytes, lengths) {
       boundary.push(bytes);
-      return resolve.call(this, bytes, lengths);
+      return absorb.call(this, content, bytes, lengths);
     },
   );
   const source: RuntimeFiles = {
@@ -159,7 +168,8 @@ test("fielding releases owned transport when a decoder refuses it", async () => 
     await expect(owner.field(input)).rejects.toThrow(/not a bundle of format/);
     expect(files.length).toBeGreaterThan(0);
     expect(files.map((file) => file.byteLength)).toEqual(files.map(() => 0));
-    expect(boundary.map((packet) => packet.byteLength)).toEqual([0]);
+    expect(boundary.length).toBeGreaterThan(0);
+    expect(boundary.map((packet) => packet.byteLength)).toEqual(boundary.map(() => 0));
   } finally {
     owner.free();
   }

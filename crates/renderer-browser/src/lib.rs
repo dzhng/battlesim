@@ -15,7 +15,7 @@ use wgpu::*;
 
 mod appearance;
 mod asset;
-pub use appearance::{AppearanceDraft, PreparedAppearances};
+pub use appearance::{AppearanceDraft, PreparedAppearances, WarmingAppearances};
 mod diagnostics;
 mod geometry;
 mod gpu;

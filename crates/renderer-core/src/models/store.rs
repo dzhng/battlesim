@@ -207,6 +207,27 @@ impl ArtStore {
         Ok((store, None))
     }
 
+    pub(super) fn has_rest(
+        store: &SharedArtStore,
+        key: &GeometryKey,
+        palette: &[presentation::records::Joint],
+    ) -> bool {
+        store
+            .lock()
+            .expect("art store lock")
+            .geometry
+            .get(key)
+            .and_then(Weak::upgrade)
+            .is_some_and(|geometry| {
+                geometry
+                    .rests
+                    .lock()
+                    .expect("geometry rest poses")
+                    .get(bytemuck::cast_slice(palette))
+                    .is_some_and(|rest| rest.strong_count() > 0)
+            })
+    }
+
     pub(super) fn geometry(
         store: &SharedArtStore,
         key: GeometryKey,

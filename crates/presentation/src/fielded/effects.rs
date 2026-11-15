@@ -99,7 +99,7 @@ pub(super) fn section(
     }))
 }
 
-fn wreck_facts(
+pub(super) fn wreck_facts(
     facts: &mut Facts,
     art: &Art,
     bytes: &HashMap<String, std::borrow::Cow<'_, [u8]>>,

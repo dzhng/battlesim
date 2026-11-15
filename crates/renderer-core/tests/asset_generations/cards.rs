@@ -188,7 +188,7 @@ fn card_bake_uploads_the_authored_materials_once_per_stage() {
         * 4
         * std::mem::size_of::<f32>();
     let work = library.take_admission_work();
-    let pending = runtime
+    let mut pending = runtime
         .stage_assets(
             &gpu.device,
             &gpu.queue,
@@ -198,6 +198,7 @@ fn card_bake_uploads_the_authored_materials_once_per_stage() {
             work,
         )
         .unwrap();
+    while pending.step().unwrap() {}
     let staged_bytes = pending.work().buffer_bytes_uploaded;
     let ready = pollster::block_on(pending.prepare()).unwrap();
     assert!(
@@ -206,8 +207,8 @@ fn card_bake_uploads_the_authored_materials_once_per_stage() {
     );
     assert_eq!(
         ready.work().buffer_bytes_uploaded - staged_bytes,
-        material_bytes as u64,
-        "the authored table is uploaded once, independent of the number of cards or batches"
+        (material_bytes * 2) as u64,
+        "the model and card authored tables are each uploaded once, independent of the number of cards or batches"
     );
 }
 

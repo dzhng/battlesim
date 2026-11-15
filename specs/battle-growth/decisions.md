@@ -2047,3 +2047,104 @@ included, and it is catalog-shaped work this plan says should not exist: it
 is [slice 14](slices/14-fielding-follows-the-new-kinds.md), after 12.
 Rejected: doing slice 14 first (it lowers every arrival by tens of
 milliseconds and leaves the infantry hitch at about 160 ms).
+
+**Slice 12, stepped implementation checkpoint, 2026-11-15 (not merge-ready).**
+
+- Based on `37508a3fd`, after the explicit decision above. One missing geometry
+  key per step is the default; a pending generation holds its packed rows and
+  their rest facts until the existing `Models::from_world` finds them. Strong
+  ownership in the store, a byte budget and a second admission path were
+  rejected. Complete preflight selects a fallback store before warming, so a
+  fallback cannot pack the new content twice. Shared planning and per-row
+  packing were extracted by concept rather than copied into an incremental
+  admission; no comments were removed to fit the size ratchet.
+- The browser's one candidate supplies one content per presented frame, stages
+  its catalog in another, warms one key per frame and finishes admission in
+  another. Superseding partial supply or geometry drops it before another
+  candidate begins; submitted card work still finishes before the next one.
+  WASM adds `begin_appearances` and the owned `WarmingAppearances.step`;
+  `prepare_appearances` consumes that warm-up. Native `PendingAssets.prepare`
+  can finish remaining steps for its existing callers. Atomic commit is
+  unchanged. No worker, shader, layout, switch or timer was added.
+- Fielding names missing content facts and absorbs each into its existing
+  `Facts`; shared skeleton input is released after its last reader. WASM adds
+  `pending_contents` and `absorb`. The final whole-result resolve still reads
+  no bytes and has its own frame, with a further paint before publishing the
+  result to battle staging. Initial fielding uses animation-frame callbacks
+  because no viewport exists yet. Rebuilding/caching/re-seaming the result
+  is rejected here: it belongs to slice 14, as explicitly decided above.
+- The original confirm-first attribution remains in `throwaway/slice12-resume/`:
+  RPG nine contents, 27 cards, 28,579,680 packed vertex bytes; per-content facts
+  3.08–3.50 ms, supply/decode 3.555–4.445 ms and geometry/rest 6.01–7.845 ms in
+  run 2. The accepted final cached resolve floor is 40.045 / 37 / 35.240 ms.
+- Three release production reference runs per arm, high graphics, same route,
+  authority and maps, fresh Chromium under the shared GPU lock. All six
+  arrivals' full lists of frames over 50 ms and learning-to-commit intervals
+  are retained in `throwaway/slice12-build/reference/comparison.md`, with raw
+  runs alongside. All 18 paired complete admission-work reports are exactly
+  equal. RPG longest frames before: **231.1 / 267.8 / 242.2 ms**; after:
+  **99.7 / 92.7 / 96.9 ms**. Learning to commit before:
+  **676.7 / 749.4 / 780.5 ms**; after: **1887.6 / 1858.2 / 1869.9 ms**.
+  This reduces the burst but does not establish a 52 ms infantry arrival.
+  The same candidate cohort's vehicles reach 104.7 ms at the extreme, but
+  most are lower; infantry is still slower than a typical vehicle. The
+  approximately 1.9 second stand-in is an explicit tradeoff, not accepted
+  silently. Remaining frame attribution is unfinished at the scene stop.
+- Tests first: the renderer candidate test failed with 576 packed vertex
+  bytes instead of zero; the fielding test with five pending contents instead
+  of four after a no-op absorb; the page test with every operation in one
+  frame. They pass with stepping. GPU tests also prove unchanged live pixels
+  after a partial drop, release of its only holder, exact complete work totals
+  and committed pixel equality against a clean runtime with nonempty-image
+  control. The pixel oracle has not yet been deliberately falsified. Page
+  tests prove supersession during supply and warming commits only the newer
+  complete catalog. Packet retention/memory budgets remain unchanged.
+- Mechanism assertions changed, listed verbatim in the scratch report: the
+  card upload test first finishes geometry warming, then expects the model
+  and card authored tables each exactly once in final preparation (formerly
+  only the card table fell after `stage_assets`); asynchronous transport
+  refusal uses `rejects.toThrow` instead of synchronous `toThrow`; fielding
+  packet release observes every `absorb` packet instead of the one complete
+  `resolve` packet. No behavior assertion or timing gate was weakened.
+- Checks so far: release WASM build passes; all six presentation fielded
+  tests pass; renderer GPU suites pass (asset_generations 38, impostors 2,
+  model_geometry 1); workspace/all-target clippy, root lint, typecheck pass;
+  page admission/fielding tests pass (four files, 22 tests). Initial compile
+  errors (missing extraction imports, wrong GPU handle type), needless-borrow
+  clippy errors and Node harness's absent animation-frame API were fixed.
+  Upload accounting initially failed at 800 versus160, then416 versus320
+  while incorrectly subtracting vertices without index bytes; measuring
+  after warming fixes the partition without pinning new payload numbers.
+- **Stop on unchanged scene failure, as instructed.** The requested five-scene
+  command passes `battle-growth`'s unchanged work assertions and 700 ms
+  tripwire (69 ms growth frame), but `workbench` throws
+  `TypeError: window.__lab.camera is not a function` in its existing
+  `appearanceRace` (`web/scenes/workbench.mjs:430`). `stand-in` then times out
+  after 30,000 ms waiting for `window.__lab.ready` during `meetStandIns`'
+  advance (`web/scenes/_stand-in-battle.mjs:67`). No scene/check is edited or
+  rebaselined; no cause is claimed without diagnosis. The full command and
+  any already-running attribution finish before hand-back; final receipts
+  live in `throwaway/slice12-build/report.md`. This is a checkpoint of work
+  written, not a claim the slice is accepted or merge-ready.
+- Final receipts for that command: `battle-growth`, `armory` and `consequences`
+  pass; `workbench` and `stand-in` are the two failures above (exit1). The
+  destroyed-hull debris check passes, so the specified isolated consequences
+  retry is unnecessary. No scene is rerun or edited to work around the stop.
+- One already-queued scratch attribution run completes after the scene run.
+  Its RPG whole fielding resolve is38.665 ms plus3.745 ms result parsing;
+  each of nine supply/decode calls is4.055–5.375 ms; catalog staging is19.925 ms.
+  Geometry/rest steps are6.455 /6.420 /39.715 /26.420 /15.315 /16.055 /11.930
+  /10.660 /9.220 ms; the final empty step is0.005 ms. No single timed content
+  step exceeds52 ms, but these are call times, not full presented-frame costs.
+  Final admission/cards' promise takes452.220 ms wall time, including GPU
+  work/readback waits; it is not452 ms of synchronous blocking. Source timers
+  are removed before the WIP commit. This does not fully attribute the
+  remaining93–100 ms frames. Evidence: `throwaway/slice12-build/reference/profile-1.json`
+  and `reference-profile.log`; frozen profiled build is separate from the
+  three uninstrumented candidate runs. This extra run is not substituted for
+  any confirmation run.
+- Work is preserved as a WIP commit with the normal hook passing; it is not
+  proposed as merge-ready. Remaining work: diagnose both readiness failures,
+  prove the pixel oracle red on a broken implementation, complete the final
+  review/checks after any fix, and settle the remaining frame/stand-in trade.
+  No report is a claim that the infantry arrival is now a52 ms vehicle frame.

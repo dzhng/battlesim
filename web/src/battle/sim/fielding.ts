@@ -7,6 +7,7 @@ import type { AppearanceLibrary } from "@packages/scene-assets/src/loader";
 import type { CatalogView } from "@packages/scene-assets/src/units";
 import { Fielding } from "@wasm/renderer_browser";
 import { releaseTransport } from "../transport";
+import { afterFrame } from "../frameBoundary";
 
 /** The runtime files a page's appearances were loaded from: the runtime
  *  catalog and its bundle contents by hash (`AppearanceLibrary`). */
@@ -52,6 +53,10 @@ export class FieldingOwner {
       const { fielding } = (this.made ??= { fielding: createFielding(input), source });
       fielding.set_kinds(JSON.stringify(input.kinds));
       const result = await resolveFielding(fielding, input);
+      // Publish the whole result only after its resolve frame has presented.
+      // Typed battle staging and GPU admission therefore cannot join that call.
+      await afterFrame();
+      if (this.closed) throw new Error("fielding owner is closed");
       this.last = { source, kinds: input.kinds, result };
       return result;
     });
@@ -151,21 +156,54 @@ async function resolveFielding(
     runtime: RuntimeFiles;
   },
 ): Promise<FieldedUnits> {
-  const files = await input.runtime.contents(fielding.contents());
-  const lengths = Uint32Array.from(files, (f) => f.length);
-  const bytes = new Uint8Array(lengths.reduce((n, l) => n + l, 0));
-  let at = 0;
-  for (const f of files) {
-    bytes.set(f, at);
-    at += f.length;
-    releaseTransport(f);
-  }
-  let sections: string;
+  const pending = JSON.parse(fielding.pending_contents()) as {
+    bundle: string;
+    skeleton?: string | null;
+  }[];
+  const hashes = (content: (typeof pending)[number]) => [
+    content.bundle,
+    ...(content.skeleton ? [content.skeleton] : []),
+  ];
+  const uses = new Map<string, number>();
+  for (const content of pending)
+    for (const hash of hashes(content)) uses.set(hash, (uses.get(hash) ?? 0) + 1);
+  const sources = new Map<string, Uint8Array<ArrayBuffer>>();
   try {
-    sections = fielding.resolve(bytes, lengths);
+    for (const content of pending) {
+      const needed = hashes(content);
+      for (const hash of needed)
+        if (!sources.has(hash)) {
+          const [file] = await input.runtime.contents([hash]);
+          sources.set(hash, file);
+        }
+      await afterFrame();
+      const files = needed.map((hash) => sources.get(hash)!);
+      const lengths = Uint32Array.from(files, (file) => file.length);
+      const bytes = new Uint8Array(files.reduce((sum, file) => sum + file.length, 0));
+      let at = 0;
+      for (const file of files) {
+        bytes.set(file, at);
+        at += file.length;
+      }
+      try {
+        fielding.absorb(JSON.stringify(content), bytes, lengths);
+      } finally {
+        releaseTransport(bytes);
+      }
+      for (const hash of needed) {
+        const left = uses.get(hash)! - 1;
+        uses.set(hash, left);
+        if (!left) {
+          releaseTransport(sources.get(hash)!);
+          sources.delete(hash);
+        }
+      }
+    }
+    await afterFrame();
   } finally {
-    releaseTransport(bytes);
+    for (const file of sources.values()) releaseTransport(file);
   }
+  const sections = fielding.resolve(new Uint8Array(), new Uint32Array());
   const { units, effects, tables } = JSON.parse(sections) as {
     units: object;
     effects: object;

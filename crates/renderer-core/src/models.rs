@@ -27,6 +27,10 @@ use crate::statics::Statics;
 mod tests;
 
 mod admission;
+mod admission_plan;
+mod row;
+mod warming;
+pub(crate) use warming::GeometryDraft;
 mod card_store;
 mod diagnostics;
 mod geometry;
