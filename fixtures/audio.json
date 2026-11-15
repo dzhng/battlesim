@@ -14,7 +14,7 @@
     "ratio": 20,
     "clip_db": -1
   },
-  "listener_eye_share": 0.1,
+  "listener_eye_share": 0.02,
   "distance": {
     "ref_m": 15,
     "rolloff": 1.2,
