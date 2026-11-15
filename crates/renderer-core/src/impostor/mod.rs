@@ -4,9 +4,15 @@ mod bake;
 mod camera;
 mod cards;
 
-pub(crate) use bake::BakeInput;
-pub use bake::BakeRequest;
+pub use bake::AtlasRequest;
+pub(crate) use bake::{AtlasInput, BakeInput, ResidentInput};
 pub(crate) use cards::{CardInstance, Cards};
+
+#[derive(Clone)]
+pub(crate) struct CardFrame {
+    pub center: [f64; 3],
+    pub radius: f64,
+}
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -77,8 +83,17 @@ impl Default for Spec {
     }
 }
 
+/// Review can inspect the resident runtime layer, or force an independent bake.
+#[derive(Clone, Copy)]
+pub enum AtlasSource<'a> {
+    Fresh(&'a Spec),
+    PreferResident(&'a Spec),
+}
+
 #[derive(Clone)]
 pub struct Atlas {
+    /// Runtime routing, excluded from the cross-platform pixel hash.
+    pub layer: Option<u32>,
     pub appearance: String,
     pub spec: Spec,
     pub width: u32,

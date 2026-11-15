@@ -29,7 +29,7 @@ impl Renderer {
         let (width, height) = (texture.width(), texture.height());
         let mut encoder = self.gpu.device.create_command_encoder(&Default::default());
         let read =
-            RgbaReadback::encode(&self.gpu.device, &mut encoder, texture).map_err(js_error)?;
+            RgbaReadback::encode(&self.gpu.device, &mut encoder, texture, 0).map_err(js_error)?;
         self.gpu.queue.submit([encoder.finish()]);
         let device = self.gpu.device.clone();
         Ok(future_to_promise(async move {
@@ -57,7 +57,7 @@ impl Renderer {
                 &self.gpu.queue,
                 &runtime.pipelines,
                 &[row],
-                &spec,
+                renderer_core::impostor::AtlasSource::PreferResident(&spec),
                 &mut renderer_core::runtime::AdmissionWork::default(),
             )
             .map_err(js_error)?;
@@ -79,6 +79,11 @@ impl Renderer {
             )?;
             field(&result, "radius", atlas.radius)?;
             field(&result, "hash", atlas.hash)?;
+            field(
+                &result,
+                "layer",
+                atlas.layer.map_or(JsValue::NULL, JsValue::from),
+            )?;
             field(
                 &result,
                 "albedo",

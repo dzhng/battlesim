@@ -757,3 +757,107 @@ them at the same positions with no stand-in left.
   floats or sinks. Its look findings go to slice 11: the default block reads
   as a model that failed to load, and the unit block and the wreck's box are
   different colours for no reason a player can see.
+
+**Slice 05, 2026-11-15.**
+
+- Runtime cards are addressed by `CardKey`: the canonical tier-0 `GeometryKey`
+  (content, state, baked corpse palette and track signature), exact rendered
+  palette bytes, serialized full bake `Spec`, and the two source model arrays'
+  width, height and mip count. Living geometry is unposed, but its bake applies
+  the rest palette, so the geometry key alone is insufficient. Array shape
+  affects filtered pixels, as 04 confirmed. Rejected: names, appearance rows,
+  name-bearing `Atlas.hash`, or geometry identity without these pixel inputs.
+  The synthetic changed-palette test confirms geometry hits while cards miss.
+- Content-owned authored material rows have identical values across generations:
+  content fixes material factors, append-only material slots fix bases and
+  texture slots fix channel layers. Only unrelated rows/holes change. The bake
+  reads the immutable authored-material snapshot, never live diagnostic controls.
+  Pose-derived bounds determine framing; the instance is untinted at identity,
+  and the bake pipeline is fixed within the scene/device. No other varying
+  generation input was found. The existing cross-platform hash remains unchanged
+  and includes the requested appearance label, independently of shared routing.
+- The model array owner is generalized, not duplicated: `LayerArray<K>` owns
+  append-only slots and weak allocation/written-key records; `SharedArray`
+  owns one or more format-specific planes of one shape and capacity. Models
+  have one plane per channel; cards have two RGBA8 planes at the runtime atlas
+  size, with one mip. Final shared-owner drop destroys all planes. `Cards`
+  destroys only its generation-local frame and instance buffers, and rebuilds
+  frame/routing tables against stable layers. Rejected: generation-owned card
+  textures, a second card-array allocator, and a strong scene cache that retains
+  retired GPU data.
+- Card growth uses the same policy's **one spare layer** after the required
+  address range, capped by the device limit. This keeps overlap modest rather
+  than doubling capacity or reserving a batch of unused full atlases. Existing
+  planes copy GPU-side, with no readback/re-upload of old cards; admissions that
+  fit allocate no new card planes. Capacity reports use `ArtStorePolicy.report`
+  with kind, value, bound, owner and outcome. `cardBytesCopied` and
+  `cardBytesUploaded` distinguish these operations from model-texture counters.
+- Dropped bakes are not cancelled. Their reservations remain; written layers are
+  reusable while any generation holds that allocation. A dropped grown array
+  with no other holder is destroyed, so a retry bakes its missing keys again.
+  Rejected: address recycling, retaining CPU atlases, retaining GPU arrays
+  strongly, and a second cancellation/cleanup protocol. Card dead addresses join
+  the existing **256** dead-layer bound across all model/card pools; historical
+  exhaustion and dead slots use the same fresh-store preflight. An active set
+  beyond the device limit errors before allocations. A recreated device starts
+  with the same admission and an empty store.
+- Only missing representative keys enter 05a's memory-bounded batches. Alias
+  rows route to one layer, while cache hits require neither read waits nor an
+  authored-material upload. Batch ownership, split reporting and the one
+  authored-material upload per stage remain in place. Review atlas requests can
+  inspect a resident runtime layer or force a fresh configurable bake. Their
+  snapshots own readbacks rather than scene borrows; the returned layer is
+  separate from the unchanged pixel hash. Rejected: test-only layer accessors
+  and retaining CPU pixels merely to prove reuse. Resident normal alpha stores
+  tint, not coverage: readback reconstructs the original channels directly,
+  without filtering them again. A zero-tint regression was observed red and
+  fixed before acceptance.
+- Production `ResourceMemory` measured the synthetic card lifetime scenario
+  below. The test sets two spare layers so one content's rest/corpse pair fits;
+  production keeps one. Figures include the tiny shared model placeholders and
+  generation-local buffers, not driver residency or temporary bake targets.
+  The latter still obey 05a's target/readback byte bound.
+
+  | State | Buffers | Buffer bytes | Textures | Texture bytes |
+  | --- | ---: | ---: | ---: | ---: |
+  | Live | 10 | 1,440 | 4 | 2,097,160 |
+  | Fitting overlap | 20 | 3,072 | 4 | 2,097,160 |
+  | Growing overlap (live, fitting and grown holders) | 30 | 4,896 | 6 | 6,291,464 |
+  | After retiring old holders | 18 | 2,784 | 4 | 4,194,312 |
+  | Final holder dropped | 0 | 0 | 0 | 0 |
+
+  The fitting case adds no texture allocation. Growth holds at most the source
+  pair plus destination pair; retiring source holders releases the old pair.
+  No cache holds GPU payload after the final generation retires. Expectations
+  are relational and fixture-derived; these are observations, not pinned values.
+- Both requested `battle-growth` commands pass. Growth changes from **189 cards,
+  21 read waits** to **0 cards, 0 waits**, with zero card-upload/copy bytes. That
+  arrival adds vehicle/wreck art with no eligible card keys. The synthetic
+  positive-delta test goes from six bakes to the new content's two keys; shared
+  aliases bake once. Card-distance committed pixels equal a clean runtime and
+  resident atlases equal independent fresh bakes, including all channels and
+  their hashes. The scene's own profile and the high environment both resolve
+  this battle route to high (the runner's quality URL override applies to labs;
+  an unset battle preference resolves to high).
+- One high-graphics run of the reference probe recorded these page-timeline
+  staging-to-commit intervals. The scratch runner/fixture and probe copy are not
+  committed. Generation 3 was admitted twice; the second did no new core art
+  work but still paid page transport. No admission here ran a fresh-store rebuild.
+
+  | Generation | Appearance count | Staged ms | Committed ms | Wait ms | Cards baked | Read batches |
+  | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+  | 3 | 145 | 27,154 | 27,633 | 479 | 0 | 0 |
+  | 3 (repeated) | 145 | 28,114 | 28,637 | 523 | 0 | 0 |
+  | 4 | 147 | 42,232 | 42,762 | 530 | 0 | 0 |
+  | 5 | 153 | 49,640 | 50,748 | 1,108 | 9 | 1 |
+  | 6 | 155 | 78,476 | 79,788 | 1,312 | 0 | 0 |
+  | 7 | 157 | 129,712 | 130,927 | 1,215 | 0 | 0 |
+  | 8 | 166 | 135,622 | 137,374 | 1,752 | 27 | 3 |
+
+  Nine new cards upload 4,718,592 bytes and copy 84,934,656 old bytes GPU-side;
+  27 upload 14,155,776 and copy 89,653,248. The waits remain visible. They include
+  page-wide transport and new geometry as well as cards: zero-card arrivals also
+  take over a second. The page still encodes/sends the whole declared catalog in
+  this checkout, which slice 08 changes. This is measurement for preload depth
+  (09), not a reason to add another engine scheduling mechanism. The stand-in
+  covers uncommitted art meanwhile.

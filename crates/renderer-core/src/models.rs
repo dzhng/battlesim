@@ -27,12 +27,14 @@ use crate::statics::Statics;
 mod tests;
 
 mod admission;
+mod card_store;
 mod diagnostics;
 mod geometry;
 mod impostors;
+mod plan;
 mod store;
 mod textures;
-use textures::SharedTexture;
+use crate::texture_array::SharedArray;
 mod visibility;
 use crate::impostor::{CardInstance, Cards};
 pub use geometry::{pack_vertices, posed_mesh, VERTEX_BYTES};
@@ -128,6 +130,7 @@ struct Row {
     tiers: Arc<[Drawable]>,
     /// Baked atlas layer; the authored rest pose is kept for alternate bakes.
     card: Option<u32>,
+    card_key: Option<card_store::CardKey>,
     rest: Option<RestPose>,
 }
 
@@ -283,8 +286,8 @@ pub struct Models {
     surfaces: [bool; 4],
     buildings_shown: bool,
     models_shown: bool,
-    albedo: Arc<SharedTexture>,
-    surface: Arc<SharedTexture>,
+    albedo: Arc<SharedArray>,
+    surface: Arc<SharedArray>,
     sampler: Sampler,
     palette: Buffer,
     instances: Buffer,
@@ -301,7 +304,7 @@ pub struct Models {
 
 /// The immutable impostor material buffer belongs to this generation and is
 /// destroyed here rather than left for browser garbage collection. Shared
-/// texture arrays are destroyed by their final SharedTexture holder, so retiring
+/// texture arrays are destroyed by their final SharedArray holder, so retiring
 /// this generation cannot invalidate another generation's material bindings.
 impl Drop for Models {
     fn drop(&mut self) {

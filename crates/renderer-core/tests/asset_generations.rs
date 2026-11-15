@@ -274,6 +274,8 @@ fn first_admission_reports_the_synthetic_fixture_work() {
             texture_arrays_rebuilt: 0,
             cards_baked: 0,
             card_read_waits: 0,
+            card_bytes_uploaded: 0,
+            card_bytes_copied: 0,
             statics_bytes_uploaded: 0,
             scenery_placements: 0,
             rebuild_reason: None,
@@ -693,3 +695,6 @@ mod statics;
 mod swap;
 #[path = "asset_generations/textures.rs"]
 mod textures;
+
+#[path = "asset_generations/card_reuse.rs"]
+mod card_reuse;

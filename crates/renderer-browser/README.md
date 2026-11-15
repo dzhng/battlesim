@@ -56,6 +56,9 @@ canonical frame. Retained source ownership changes with the GPU/catalog commit,
 so recovery cannot resurrect an older generation.
 
 Explicit pixel, atlas and visibility queries queue GPU snapshots synchronously.
+Runtime-spec atlas reviews inspect resident card layers when present; other
+specifications use the independent authored bake. The result identifies a
+resident layer separately from its name-bearing pixel hash.
 Their promises retain only the submitted readbacks and metadata, so the live
 scene can render, resize or replace its catalog while mapping completes.
 

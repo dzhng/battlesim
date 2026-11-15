@@ -70,7 +70,24 @@ reconstruction retains those facts and the observer's learned felling.
 [Impostors](src/impostor/) bake through the same authored model/material path,
 then filter coverage before uploading relit cards. Native and browser use the
 same atlases and shader; the impostor tier never substitutes a coarsest mesh.
-Runtime card bakes submit all cards in each memory-bounded batch before
+Runtime cards share scene-lifetime layers keyed by content, geometry state,
+baked pose, track flags and the bake specification. The key also includes the
+rendered rest palette and source texture-array shape: those affect bake pixels
+even when unposed geometry is unchanged. Names and appearance rows route to
+cards; they do not identify them, and the name-bearing atlas hash remains a
+review oracle rather than a cache key. Material addresses and texture layers
+are stable within a store, so a content's authored material rows stay identical
+across generations.
+
+Card planes use the same [layer-array owner](src/texture_array.rs) as model
+textures: append-only slots, spare capacity, immutable writes, GPU-side copies
+on growth and destruction by the last shared holder. Dropped preparations keep
+reservations and any written layers still held by another generation. Losing
+the final holder frees the array; weak records cannot retain its pixels. Frame
+and row-to-layer tables remain generation-local. Card dead slots and exhaustion
+participate in the store's existing fresh-admission policy.
+
+Runtime card bakes submit only missing keys in each memory-bounded batch before
 awaiting every channel's readback concurrently. The byte bound counts color
 and depth targets plus aligned readback buffers; its default lives with the
 [impostor specification](src/impostor/mod.rs). The runtime's
@@ -78,7 +95,9 @@ and depth targets plus aligned readback buffers; its default lives with the
 across staging. The first split is reported once per runtime, including pending
 work that is later dropped; admission work counts every batch's read wait. Authored materials upload once per generation on the first bake
 and remain separate from live diagnostic material controls. Grouped review
-requests use the same bake and preserve their input order.
+requests preserve their input order and can either inspect resident runtime
+layers or force the same independent bake. Resident readback reconstructs the
+coverage and tint channels losslessly from the stored planes.
 Asynchronous asset preparation finishes before a frame may request cards.
 Configurable offscreen bakes capture owned GPU resources, so replacing the
 source catalog cannot invalidate a pending review image.

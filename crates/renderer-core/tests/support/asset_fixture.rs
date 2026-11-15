@@ -325,6 +325,7 @@ impl Stage {
             &gpu.device,
             &mut encoder,
             &self.runtime.targets.display_texture,
+            0,
         )
         .unwrap();
         gpu.queue.submit([encoder.finish()]);
@@ -359,7 +360,7 @@ pub fn container(content: serde_json::Value, views: serde_json::Value, body: &[u
     bytes
 }
 
-pub fn card_bundle(color: [f32; 3]) -> (Vec<u8>, Vec<u8>) {
+pub fn card_bundle(color: [f32; 3], tint: f32) -> (Vec<u8>, Vec<u8>) {
     let mut body = Vec::new();
     let mut views = Vec::new();
     let mut array = |ty, bytes: &[u8], length| {
@@ -385,7 +386,7 @@ pub fn card_bundle(color: [f32; 3]) -> (Vec<u8>, Vec<u8>) {
         json!({
             "kind": "skinned", "skeleton": "synthetic",
             "materials": [{"name":"cloth", "base_color":[color[0],color[1],color[2],1],
-                "metallic":0, "roughness":1, "tint":1, "coverage":{"kind":"opaque"}}],
+                "metallic":0, "roughness":1, "tint":tint, "coverage":{"kind":"opaque"}}],
             "joints": [{"name":"root", "parent":-1,
                 "bind":{"t":[0,0,0],"r":[0,0,0,1],"s":[1,1,1]},
                 "inverse_bind":[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]}],
@@ -409,8 +410,12 @@ pub fn card_bundle(color: [f32; 3]) -> (Vec<u8>, Vec<u8>) {
     (bundle, skeleton)
 }
 
+pub const CARD_ART: &[(&str, [f32; 3])] =
+    &[("cloth-a", [0.3, 0.6, 0.9]), ("cloth-b", [0.8, 0.4, 0.2])];
+
 pub fn card_catalog(
     presentation: &Presentation,
+    art: &[(&str, [f32; 3])],
 ) -> (
     Library,
     presentation::presentation::catalog::CatalogDraft,
@@ -420,8 +425,8 @@ pub fn card_catalog(
     let mut wanted = BTreeMap::new();
     let mut facts = BTreeMap::new();
     let mut models = Vec::new();
-    for (name, color) in [("cloth-a", [0.3, 0.6, 0.9]), ("cloth-b", [0.8, 0.4, 0.2])] {
-        let (bundle, skeleton) = card_bundle(color);
+    for &(name, color) in art {
+        let (bundle, skeleton) = card_bundle(color, 1.);
         let content = ContentId::new(
             contract::identity::bytes_hash(&bundle),
             Some(contract::identity::bytes_hash(&skeleton)),

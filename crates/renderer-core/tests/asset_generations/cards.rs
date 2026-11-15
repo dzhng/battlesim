@@ -19,7 +19,7 @@ fn card_bake_reports_one_read_wait_per_memory_batch() {
             0,
             "no cards means no read wait"
         );
-        let (mut library, catalog, models) = card_catalog(&presentation);
+        let (mut library, catalog, models) = card_catalog(&presentation, CARD_ART);
         let expected_cards = catalog
             .view(&presentation)
             .unwrap()
@@ -71,7 +71,7 @@ fn cards_baked_in_one_batch_match_each_card_baked_alone() {
         0,
         "no cards means no read wait"
     );
-    let (mut library, catalog, models) = card_catalog(&presentation);
+    let (mut library, catalog, models) = card_catalog(&presentation, CARD_ART);
     let rows: Vec<_> = (0..catalog
         .view(&presentation)
         .unwrap()
@@ -105,7 +105,7 @@ fn cards_baked_in_one_batch_match_each_card_baked_alone() {
                 &gpu.queue,
                 &runtime.pipelines,
                 &rows,
-                &spec,
+                renderer_core::impostor::AtlasSource::Fresh(&spec),
                 &mut AdmissionWork::default(),
             )
             .unwrap()
@@ -122,7 +122,7 @@ fn cards_baked_in_one_batch_match_each_card_baked_alone() {
                     &gpu.queue,
                     &runtime.pipelines,
                     &[row],
-                    &spec,
+                    renderer_core::impostor::AtlasSource::Fresh(&spec),
                     &mut AdmissionWork::default(),
                 )
                 .unwrap()
@@ -179,7 +179,7 @@ fn card_bake_uploads_the_authored_materials_once_per_stage() {
         0,
         "no cards means no read wait"
     );
-    let (mut library, catalog, _) = card_catalog(&presentation);
+    let (mut library, catalog, _) = card_catalog(&presentation, CARD_ART);
     let material_bytes = ["cloth-a", "cloth-b"]
         .into_iter()
         .map(|name| library.bundle(name).unwrap().materials.len())
@@ -229,7 +229,7 @@ fn card_batch_split_uses_the_policy_sink_once_per_runtime() {
         config.art_store.report = report;
         let stage = Stage::new(&gpu, &[], config, None, &[]);
         for _ in 0..2 {
-            let (mut library, catalog, _) = card_catalog(&stage.presentation);
+            let (mut library, catalog, _) = card_catalog(&stage.presentation, CARD_ART);
             let cards = catalog
                 .view(&stage.presentation)
                 .unwrap()
