@@ -121,7 +121,7 @@ fn meeting_point(squad: &Unit) -> V2 {
         .map_or(squad.position.xy(), |garrison| garrison.entry)
 }
 
-pub(crate) fn near_and_still(
+pub(crate) fn ready_to_board(
     world: &WorldGeometry,
     units: &[Unit],
     passenger: usize,
@@ -378,7 +378,7 @@ pub(crate) fn advance(
                     });
                     continue;
                 }
-                if near_and_still(world, units, i, carrier, rules) {
+                if ready_to_board(world, units, i, carrier, rules) {
                     start_boarding(&mut units[i], carrier);
                 } else {
                     // The destination is the carrier centre; movement stops at
@@ -437,7 +437,7 @@ pub(crate) fn advance(
                             continue;
                         }
                         let near = units[k].hold.is_none()
-                            && near_and_still(world, units, k, carrier_id, rules);
+                            && ready_to_board(world, units, k, carrier_id, rules);
                         let squad = &mut units[k];
                         squad.orders.clear();
                         squad.orders.push_front(UnitOrder::Board {
