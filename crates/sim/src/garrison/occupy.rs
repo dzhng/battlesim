@@ -19,8 +19,12 @@ struct EntryPoint {
 
 #[derive(Clone, Copy)]
 pub(crate) enum EntryAction {
+    /// The entrant's current entry work stands.
     Keep,
-    Reassert,
+    /// The entrant is ordered in from where it stands: it holds the
+    /// building already, or stands within entry reach of it.
+    Enter,
+    /// The entrant walks to its entry point, then goes in.
     Route,
 }
 
@@ -37,8 +41,18 @@ struct Candidate {
     distance: f64,
     ordinal: usize,
     action: EntryAction,
-    held: bool,
+    /// It goes in without a proof: it is inside already, or within entry
+    /// reach of the building.
+    assured: bool,
 }
+/// Shorter route first; ties keep a stable unit, then edge, order.
+fn rank(a: &Candidate, b: &Candidate) -> std::cmp::Ordering {
+    a.distance
+        .total_cmp(&b.distance)
+        .then(a.unit.cmp(&b.unit))
+        .then(a.ordinal.cmp(&b.ordinal))
+}
+
 struct RouteJob {
     candidate: Candidate,
     journey: Journey,
@@ -266,7 +280,7 @@ pub(crate) fn occupy(
             {
                 EntryAction::Keep
             } else {
-                EntryAction::Reassert
+                EntryAction::Enter
             };
             Some((id, hold.building()?.entry, action, held))
         } else {
@@ -282,7 +296,7 @@ pub(crate) fn occupy(
         }
     }
     let mut proof_source = source.to_vec();
-    if let Some((id, at, EntryAction::Reassert, _)) = selected_holder {
+    if let Some((id, at, EntryAction::Enter, _)) = selected_holder {
         proof_source[id.0 as usize].enqueue(
             UnitOrder::Garrison {
                 building: owner,
@@ -327,6 +341,27 @@ pub(crate) fn occupy(
             }
             let u = &origins[id.0 as usize];
             let from = u.position.xy();
+            // A squad already within entry reach steps in from where it
+            // stands, with no route to plan and nothing to prove. One still
+            // in a host (leaving it, say) is no squad standing there yet.
+            if !request.queued
+                && u.hold.is_none()
+                && super::within_entry_reach(ctx.world, known, ctx.authored, owner, from, ctx.rules)
+            {
+                candidates.push(Candidate {
+                    unit: id,
+                    entry: EntryPoint {
+                        at: from,
+                        outward: (from - target.center).normalized(),
+                    },
+                    route: vec![from],
+                    distance: 0.0,
+                    ordinal: 0,
+                    action: EntryAction::Enter,
+                    assured: true,
+                });
+                continue;
+            }
             for (ordinal, entry) in points(ctx, known, owner, from).into_iter().enumerate() {
                 if !crate::arrangement::standing_room(
                     ctx.world,
@@ -355,28 +390,33 @@ pub(crate) fn occupy(
                         distance: (entry.at - from).length(),
                         ordinal,
                         action: EntryAction::Route,
-                        held: false,
+                        assured: false,
                     },
                     journey,
                 });
             }
         }
     }
-    jobs.sort_by(|a, b| {
-        a.candidate
-            .distance
-            .total_cmp(&b.candidate.distance)
-            .then(a.candidate.unit.cmp(&b.candidate.unit))
-            .then(a.candidate.ordinal.cmp(&b.candidate.ordinal))
-    });
+    jobs.sort_by(|a, b| rank(&a.candidate, &b.candidate));
+    // Searches run one at a time, nearest straight-line bound first, each to
+    // its end: work shared among dozens of entry searches round one obstacle
+    // runs out with none finished. A straight distance is a lower bound on
+    // its route, so once the nearest unsearched bound cannot beat the best
+    // completed route, no search left can.
     let mut jobs = VecDeque::from(jobs);
-    while route_work > 0 && !jobs.is_empty() {
-        let share = route_work
-            .div_ceil(jobs.len() as u64)
-            .max(crate::navigation::LARGEST_STEP)
-            .min(route_work);
+    while let Some(job) = jobs.front() {
+        if candidates
+            .first()
+            .is_some_and(|best| !rank(&job.candidate, best).is_lt())
+        {
+            jobs.clear();
+            break;
+        }
+        if route_work == 0 {
+            break;
+        }
         let mut job = jobs.pop_front().unwrap();
-        let spent = job.journey.advance(grid, ctx.roads, share);
+        let spent = job.journey.advance(grid, ctx.roads, route_work);
         route_work = route_work.saturating_sub(spent.max(1));
         match job.journey.plan() {
             Some(Plan::Route(route)) => {
@@ -388,19 +428,18 @@ pub(crate) fn occupy(
                     .map(|w| (w[1] - w[0]).length())
                     .sum();
                 candidates.push(job.candidate);
+                candidates.sort_by(rank);
             }
             Some(Plan::Blocked(_)) => {}
-            None => jobs.push_back(job),
+            None => {
+                jobs.push_front(job);
+                break;
+            }
         }
     }
+    // Searches that could still beat the best route when the work ran out.
     let route_unproven = !jobs.is_empty();
     allowance -= route_before - route_work;
-    candidates.sort_by(|a, b| {
-        a.distance
-            .total_cmp(&b.distance)
-            .then(a.unit.cmp(&b.unit))
-            .then(a.ordinal.cmp(&b.ordinal))
-    });
     if let Some((unit, at, action, held)) = selected_holder {
         candidates.insert(
             0,
@@ -414,7 +453,7 @@ pub(crate) fn occupy(
                 distance: 0.0,
                 ordinal: 0,
                 action,
-                held,
+                assured: held,
             },
         );
     }
@@ -422,21 +461,10 @@ pub(crate) fn occupy(
     let fallback_work = allowance / 3;
     allowance -= fallback_work;
     let mut entry_unproven = false;
+    // When the work ran out first, the best completed route still enters:
+    // the plan says it is unproven, but a far building is entered rather
+    // than refused.
     for candidate in &candidates {
-        // An unfinished route may still beat a completed path. Its straight
-        // distance is a lower bound; ties use the same stable unit/edge order.
-        if matches!(candidate.action, EntryAction::Route)
-            && jobs.iter().any(|job| {
-                job.candidate
-                    .distance
-                    .total_cmp(&candidate.distance)
-                    .then(job.candidate.unit.cmp(&candidate.unit))
-                    .then(job.candidate.ordinal.cmp(&candidate.ordinal))
-                    .is_lt()
-            })
-        {
-            break;
-        }
         let mut outcome = gather(
             ctx,
             known,
@@ -599,7 +627,7 @@ fn gather(
             })]
         })
         .collect();
-    if let Some(c) = candidate.filter(|c| !c.held) {
+    if let Some(c) = candidate.filter(|c| !c.assured) {
         slots.push(Slot {
             id: c.unit,
             point: Some(c.entry.at),
@@ -636,7 +664,7 @@ fn gather(
     );
     let entrant = candidate
         .filter(|c| {
-            c.held
+            c.assured
                 || proof.stable
                     && proof
                         .arrivals

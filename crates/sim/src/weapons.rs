@@ -16,6 +16,8 @@ mod bearing;
 mod cycle;
 mod muzzle;
 mod observation;
+mod permission;
+use permission::permitted;
 pub mod operators;
 pub use observation::{pose, readiness};
 pub mod tick;
@@ -712,23 +714,6 @@ fn engage(
         })
         .find_map(|s| s.map(Ok))
         .unwrap_or(at_unit)
-}
-
-/// Whether the unit's engagement policy allows firing at this target (W12–W13).
-fn permitted(ctx: &FireContext, unit: &Unit, target: Target) -> bool {
-    match unit.engagement {
-        // Which weapons fire at a radar contact is theirs to say
-        // (`anti_radiation`, [`preferred_kind`]).
-        Engagement::FireAtWill => true,
-        Engagement::ReturnFireOnly => match target {
-            Target::Unit(u) => unit.attackers.contains(&u),
-            Target::Contact(c) => ctx.knowledge[unit.side.index()]
-                .contact(c)
-                .is_some_and(|contact| unit.attackers.contains(&contact.emitter)),
-            Target::Ground(_) => false,
-            Target::Round(_) => true,
-        },
-    }
 }
 
 /// One mount's assessments this tick, by target: choosing its lock and then

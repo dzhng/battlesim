@@ -176,7 +176,7 @@ export function CommandBar({
       {control.refund &&
         command({
           icon: stateIcon("withdrawing"),
-          label: "Refund · Return to base",
+          label: `Refund · Return to base ${key("return_to_base")}`,
           disabled: n === 0,
           onClick: control.refund,
         })}

@@ -427,7 +427,8 @@
   "carriage": {
     "board_s": 1,
     "reach_m": 3,
-    "unload_search_m": 5
+    "unload_search_m": 5,
+    "climb_speed_mps": 2.5
   },
   "garrison": {
     "enter_exit_s": 2,

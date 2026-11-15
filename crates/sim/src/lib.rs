@@ -44,6 +44,7 @@ pub mod sight;
 pub mod skirmish;
 pub mod skirmish_ai;
 pub mod smoke;
+pub mod strike;
 pub mod structures;
 pub mod supply;
 pub mod units;

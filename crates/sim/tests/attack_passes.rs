@@ -12,7 +12,6 @@ use sim::air::{Bounds, FixedWingState};
 use sim::fixtures::{self, test_rules};
 use sim::flight::Release;
 use sim::math::{v2, v3};
-use std::f64::consts::TAU;
 
 fn ground_attack_battle(weapons: &[&str]) -> sim::battle::Battle {
     ground_attack_battle_with_bomb_ammo(weapons, 1)
@@ -885,6 +884,17 @@ fn attack_move(battle: &mut sim::battle::Battle, seq: u64, goal: [f64; 2]) {
     assert_eq!(ack.error, None);
 }
 
+/// Whether the jet has come round onto its attack-move's goal: within twice
+/// its turn radius of it, where it circles hunting (the order lives on).
+fn round_goal(battle: &sim::battle::Battle, goal: [f64; 2]) -> bool {
+    let jet = battle.unit(UnitId(0)).unwrap();
+    let sim::units::Motion::Air(flight) = jet.motion else {
+        panic!("test_jet flies");
+    };
+    let off = libm::hypot(jet.position.x - goal[0], jet.position.y - goal[1]);
+    off <= 2.0 * flight.cruise_mps / flight.turn_rad_s
+}
+
 #[test]
 fn an_explicit_attack_repeats_passes_until_the_target_dies() {
     let mut battle = attack_move_battle_with_hp(10_000.0);
@@ -921,7 +931,7 @@ fn an_explicit_attack_repeats_passes_until_the_target_dies() {
 }
 
 #[test]
-fn attack_move_picks_up_targets_then_holds_circling() {
+fn attack_move_picks_up_targets_and_goes_on_hunting() {
     let mut battle = attack_move_battle();
     attack_move(&mut battle, 1, [1_700.0, 400.0]);
     let mut fired = false;
@@ -931,8 +941,11 @@ fn attack_move_picks_up_targets_then_holds_circling() {
     }
     assert!(fired, "attack-move never picked up the target");
     assert!(
-        battle.unit(UnitId(0)).unwrap().orders.is_empty(),
-        "attack-move did not settle"
+        matches!(
+            battle.unit(UnitId(0)).unwrap().orders.front(),
+            Some(sim::units::UnitOrder::AttackMove(_))
+        ),
+        "attack-move settled after its first target"
     );
 }
 
@@ -976,14 +989,16 @@ fn attack_move_leaves_an_enemy_beyond_reach_of_its_leg() {
             jet.air.unwrap().pass.is_none(),
             "the jet turned off its leg"
         );
-        if jet.orders.is_empty() {
+        if round_goal(&battle, [3_500.0, 1_000.0]) {
             break;
         }
     }
     assert!(known, "the recon sees the tank");
-    let jet = battle.unit(UnitId(0)).unwrap();
-    assert!(jet.orders.is_empty(), "the jet never reached its goal");
-    assert_eq!(jet.mounts[0].shots, 0);
+    assert!(
+        round_goal(&battle, [3_500.0, 1_000.0]),
+        "the jet never reached its goal"
+    );
+    assert_eq!(battle.unit(UnitId(0)).unwrap().mounts[0].shots, 0);
 }
 
 /// Attack-move picks up only what the jet can hit: a squad its side knows
@@ -1025,7 +1040,7 @@ fn attack_move_leaves_an_enemy_no_row_engages() {
         known |= !battle.observe(Side::Blue).identified.is_empty();
         let jet = battle.unit(UnitId(0)).unwrap();
         strayed = strayed.max((jet.position.y - 1000.0).abs());
-        if jet.orders.is_empty() {
+        if round_goal(&battle, [3_500.0, 1_000.0]) {
             break;
         }
     }
@@ -1035,7 +1050,7 @@ fn attack_move_leaves_an_enemy_no_row_engages() {
         "the jet turned {strayed:.0} m off its leg at a squad it cannot engage"
     );
     assert!(
-        battle.unit(UnitId(0)).unwrap().orders.is_empty(),
+        round_goal(&battle, [3_500.0, 1_000.0]),
         "the jet never reached its goal"
     );
 }
@@ -1052,75 +1067,6 @@ fn a_holding_jet_starts_no_runs() {
             units: vec![UnitId(0)],
         },
     });
-    for _ in 0..300 {
-        battle.step();
-    }
-    let jet = battle.unit(UnitId(0)).unwrap();
-    assert!(jet.air.unwrap().pass.is_none());
-    assert_eq!(jet.mounts[0].shots, 0);
-}
-
-#[test]
-fn a_fired_on_holding_jet_attacks_its_visible_attacker() {
-    let mut battle = air_battle();
-    for _ in 0..30 {
-        battle.step();
-    }
-    assert!(battle
-        .observe(Side::Blue)
-        .identified
-        .iter()
-        .any(|u| u.kind == battle.unit(UnitId(1)).unwrap().kind));
-    // Red is ordered onto blue, and fires on it.
-    let blue = battle
-        .observe(Side::Red)
-        .identified
-        .first()
-        .map(|t| t.id)
-        .expect("red sees blue");
-    let ack = battle.accept(CommandEnvelope {
-        side: Side::Red,
-        player: None,
-        seq: 1,
-        queued: false,
-        order: Order::Attack {
-            units: vec![UnitId(1)],
-            target: TargetRef::Identified { id: blue },
-        },
-    });
-    assert_eq!(ack.error, None);
-    // Three laps of its turn to bring its nose on.
-    let sim::units::Motion::Air(f) = battle.unit(UnitId(1)).unwrap().motion else {
-        unreachable!()
-    };
-    for _ in 0..(3.0 * TAU / f.turn_rad_s * 30.0) as u32 {
-        battle.step();
-        if battle.unit(UnitId(0)).unwrap().air.unwrap().dogfight_target == Some(UnitId(1)) {
-            return;
-        }
-    }
-    panic!("holding jet did not answer its visible attacker");
-}
-
-#[test]
-fn a_fired_on_holding_jet_attacks_the_contact_area_when_unseen() {
-    let mut battle = holding_ground_battle("fire_at_will", true);
-    for _ in 0..30 {
-        battle.step();
-    }
-    assert!(battle.observe(Side::Blue).identified.is_empty());
-    for _ in 0..300 {
-        battle.step();
-        if battle.unit(UnitId(0)).unwrap().air.unwrap().pass.is_some() {
-            return;
-        }
-    }
-    panic!("holding jet did not attack its firing contact");
-}
-
-#[test]
-fn hold_fire_stops_the_answer() {
-    let mut battle = holding_ground_battle("return_fire_only", true);
     for _ in 0..300 {
         battle.step();
     }
@@ -1161,14 +1107,27 @@ fn an_explicit_attack_keeps_passing_under_fire() {
 }
 
 #[test]
-fn attack_move_finishes_its_pass_then_turns_on_the_attacker() {
+fn attack_move_finishes_its_pass_then_hunts_on() {
+    // The tank dies to the run; a red jet's fire stays a contact.
     let mut battle = attack_move_battle_with_hp_and_fire(100.0, true);
     attack_move(&mut battle, 1, [1_700.0, 400.0]);
     for _ in 0..1200 {
         battle.step();
     }
+    assert!(
+        !battle.unit(UnitId(2)).unwrap().alive(),
+        "the run never killed the tank"
+    );
     let jet = battle.unit(UnitId(0)).unwrap();
-    assert!(jet.orders.is_empty() && jet.air.unwrap().pass.is_none());
+    assert!(
+        matches!(
+            jet.orders.front(),
+            Some(sim::units::UnitOrder::AttackMove(_))
+        ),
+        "the attack-move ended with its first kill"
+    );
+    // The firing jet is answered as a dogfight, never in passes.
+    assert!(jet.air.unwrap().pass.is_none());
 }
 
 #[test]
@@ -1252,8 +1211,8 @@ fn a_tank_on_high_ground_gets_attack_runs_not_a_dogfight() {
     assert!(passed, "the jet flies an attack run at the tank");
 }
 
-/// A jet carrying bombs and its gun answers a helicopter that fires on it
-/// from above (hovering over a mesa higher than the jet flies): a bomb
+/// A jet hunting on attack-move with bombs and its gun answers a
+/// helicopter that fires on it from above (hovering over a mesa higher than the jet flies): a bomb
 /// can't reach an aircraft, so it strafes with the gun, and flies on
 /// rather than circling on a release point no bomb could fall to.
 #[test]
@@ -1297,6 +1256,13 @@ fn a_bomb_carrier_strafes_a_helicopter_attacker_above_it() {
     }))
     .unwrap();
     let mut battle = sim::battle::Battle::new(&setup, 1);
+    // Sent hunting once it sees the helicopter aloft: a firing area left
+    // while it still sat on the mesa would read as ground.
+    while battle.observe(Side::Blue).identified.is_empty() {
+        assert!(battle.tick() < 600, "the jet never sees the helicopter");
+        battle.step();
+    }
+    attack_move(&mut battle, 1, [500.0, 600.0]);
     let mut strafed = false;
     let mut dived = false;
     let mut answered_from_below = None;

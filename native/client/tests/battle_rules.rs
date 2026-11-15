@@ -179,6 +179,7 @@ fn consecutive_battles_present_their_encounters_rules() {
                     Listener {
                         position: [100.0, 200.0, 2.0],
                         forward: [1.0, 0.0, 0.0],
+                        look: [0.0; 3],
                     },
                 );
                 let voice = commands
