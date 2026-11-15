@@ -1704,3 +1704,221 @@ to the middle of a firefight, and needs something to draw for a body found
 already dead in the fog, which has no fall to wait behind. It stays the
 fallback if bodies drawn skinned cost too much frame time at the corpse cap,
 which the slice measures before building. Not built: slice 12's stepping.
+
+**Slice 13, confirm first, 2026-11-15.**
+
+- Corpses currently enter presentation's ordinary dynamic model list each
+  frame, grouped by appearance row/tier/pass. They are not held static batches.
+  Near and shadow draws use the existing model pipeline; a corpse's instance
+  palette index is zero because admission already skins every mesh tier into
+  a rigid copy. The corpse appearance row advertises zero joints. The living
+  path needs retained authored joint indices/weights, the row's joint count,
+  and an instance offset to a shared rest palette in Frame.palettes. The
+  existing instance ABI and model shader already supply those operations.
+- Corpse bounds/cards are not currently the unposed-mesh-plus-palette path:
+  admission poses the finest mesh for bounds, retains an identity rest palette,
+  and bakes the card from the posed copy with that identity. Living far bounds
+  also scan a posed finest mesh, but retain the actual rest palette and bake
+  with unposed geometry. The replacement must retain the corpse's actual rest
+  palette, remove pose from geometry identity, and keep that rendered palette
+  in card identity. Rest bounds can still be derived by the existing CPU skin;
+  that transient scan is distinct from packing/uploading every posed tier.
+- The third confirm-first measurement is pending: three baseline and candidate
+  runs at the fixture's corpse cap, high graphics, using the existing renderer
+  GPU timer and frame CPU duration. The minimal candidate and test oracles are
+  built before finishing the implementation; the user-visible frame-time cost
+  decides whether the rest proceeds. No frame-budget assertion is introduced.
+- **Stopped before building the minimal candidate:** existing test
+  `authored_clips_rest_corpses_and_supplied_palettes_share_the_frame_pose_contract`
+  in `crates/presentation/tests/lab_models.rs:299` asserts the corpse instance's
+  palette index is zero, with the message “corpse uses its baked resting mesh”.
+  The same test establishes that corpse row's rest palette translates Z by 2;
+  frame construction reserves palette zero for identity. With the requested
+  unposed living geometry, keeping that assertion would draw the wrong picture.
+  It pins the baked-copy implementation the new contract removes.
+- The user explicitly requires every other existing assertion to stay unchanged
+  and says to stop if one is wrong. No assertion was edited, weakened or worked
+  around by changing identity, the shader, or another rendering path. The
+  natural replacement would check that the corpse instance references its row's
+  actual rest palette while preserving the existing ground-fog/no-xray checks,
+  but that replacement requires the next instruction under the stated rule.
+- Consequently the third confirm-first comparison, new regression tests,
+  minimal skinned build, reference before/after, buffer/memory measurements and
+  full implementation verification are not claimed. There is no production or
+  interface change and nothing merge-ready about corpse rendering in this pass.
+  The blocker and source evidence are recorded in `throwaway/slice13/report.md`.
+  Disk had 103 GiB free at setup; no builds were removed. README and slice text
+  are unchanged.
+- Baseline check: `CARGO_INCREMENTAL=0 CARGO_PROFILE_DEV_DEBUG=line-tables-only
+  CARGO_PROFILE_TEST_DEBUG=line-tables-only cargo test -p presentation --test
+  lab_models authored_clips_rest_corpses_and_supplied_palettes_share_the_frame_pose_contract`
+  passes (one test). The contradictory assertion is therefore active coverage,
+  not stale unreachable code. Receipt:
+  `throwaway/slice13/existing-contract-test.log`.
+
+**Slice 13, continuation: frozen living geometry, 2026-11-15.**
+
+- The player authorized replacing mechanism assertions (baked corpse geometry,
+  identity corpse palettes and zero corpse joints) with the new contract. Fog,
+  x-ray, visibility, sinking, picks and the growth gate's other assertions stay.
+  The accepted correction to confirm-first answer 2 is retained: cards/bounds
+  currently use the posed copy plus identity; the replacement uses authored
+  geometry plus the real palette, with CPU posing retained only for bounds.
+- Confirm-first frame-cost gate: a scratch headless production `Runtime` draws
+  the fixture's cap (1,000 bodies), distributed across all nine RPG-team
+  appearances and both fall poses. High graphics: 1920×1080, 2048 shadows,
+  2600 m reach, automatic unscaled unit detail. Every body is in view at mesh
+  tier 1, no impostors; 6,967,545 model triangles. CPU measures presentation,
+  prepare, encode and submit, excluding the profiling wait. GPU is the shared
+  renderer's `FrameTimer`, native `AfterCompletion`; 60 warm frames then 240
+  samples per fresh process. This deliberately dense local workload isolates
+  the skinning cost; it is not a whole-battle browser FPS claim.
+- Alternating baseline/candidate runs (all retained in `throwaway/slice13/`):
+
+  | Run | Baseline CPU mean / p95 ms | Skinned CPU mean / p95 ms | Baseline GPU mean / p95 ms | Skinned GPU mean / p95 ms |
+  | --- | ---: | ---: | ---: | ---: |
+  | 1 | 0.381 / 0.409 | 1.297 / 1.880 | 21.745 / 21.824 | 22.261 / 24.557 |
+  | 2 | 0.591 / 0.943 | 0.421 / 0.480 | 21.825 / 21.999 | 21.698 / 21.775 |
+  | 3 | 0.438 / 0.735 | 0.447 / 0.460 | 21.755 / 21.863 | 21.683 / 21.772 |
+
+  Candidate 1 overlapped a focused test compile and has extra CPU/GPU variance;
+  it is retained, not replaced with a favorable repeat. Other host activity is
+  not suppressed. Relative to the game's 45 FPS target (22.22 ms) and 60 Hz
+  (16.67 ms), the repeated stable GPU results show no sustained frame penalty;
+  CPU remains submillisecond in the later runs. The first run's outlier does
+  not recur in the next two. Proceed with the slice. The old path already
+  consumes roughly the entire 45 FPS budget at this deliberately dense cap.
+- Minimal candidate proof before finishing: the new geometry test fails first
+  (384 bytes rather than 192), then passes with identical mesh allocation
+  bytes/counts to living-only admission. The near-frame oracle fails first
+  with an identity corpse palette, then passes pixel-exact against the living
+  row frozen with the corpse's real rest palette. Its independent card bakes
+  also agree exactly (albedo, normal, mask, center and radius).
+- Decision: keep a frame-local per-row palette cache in presentation's posing
+  owner, used by battle and tooling; reject per-body sampling/appends and a
+  retained cross-frame cache. Only rows actually drawn write palettes, and no
+  state survives the frame. No WASM export or vertex ABI change is needed.
+- Decision: keep `posed_mesh` for the CPU bounds scan; delete only pose-specific
+  packing/upload/keying. Cards still key their actual rendered palette.
+
+- **Measurement correction:** the cap table immediately above is pilot data,
+  not the final high-profile gate. Review found the scratch probe used the
+  synthetic test helper's LOD thresholds rather than `presentation.models`.
+  Lighting/shadows matched high, but model detail did not. Repeat all three
+  interleaved pairs with the authored detail, retaining the pilots and every
+  sample. No acceptance claim relies on replacing that discrepancy silently.
+- Review also found a shared-row composition case: battle and lab instances
+  can route to one row. Their cache must therefore be owned by the outer frame
+  builder, passed through both draws. A cache per caller was rejected because
+  it could append that row's palette twice. Moving frame orchestration into
+  the existing `presentation/frame.rs` keeps this owner together; the root
+  `presentation.rs` was already beyond the size ratchet and could not grow.
+  All moved comments survive verbatim; no public/WASM signature changes.
+
+- **Corrected confirm-first gate, authored high profile:** the probe reads
+  `presentation.models` directly, with the same high-quality light/shadows.
+  All 1,000 bodies draw; tiers are 188 at tier 1 and 812 at tier 2, no cards,
+  3,262,772 triangles. Three fresh, alternating pairs, no task compilation
+  during these samples (240 frames after 60 warmup frames per process):
+
+  | Run | Baseline CPU mean / p95 ms | Skinned CPU mean / p95 ms | Baseline GPU mean / p95 ms | Skinned GPU mean / p95 ms |
+  | --- | ---: | ---: | ---: | ---: |
+  | 1 | 0.617 / 0.722 | 0.689 / 0.838 | 16.233 / 16.284 | 16.151 / 16.201 |
+  | 2 | 0.601 / 0.653 | 0.684 / 0.782 | 16.231 / 16.285 | 16.144 / 16.185 |
+  | 3 | 0.699 / 0.928 | 0.638 / 0.666 | 16.239 / 16.319 | 16.136 / 16.180 |
+
+  GPU mean is slightly lower in every pair; CPU changes are below a tenth of
+  a millisecond in either direction. Both paths stay below 16.67 ms on the GPU
+  and comfortably below the game's 22.22 ms target. Skinning does not introduce
+  a frame-time cost a player would feel in this workload. Finish the slice.
+  Raw samples and pictures: `throwaway/slice13/high-{baseline,candidate}-{1,2,3}/`.
+
+- The corpse-versus-frozen-living oracle covers an actual near frame, independent
+  authored card bakes (albedo/normal/mask and bounds), and relit far-card frames.
+  They are pixel-exact, with nonempty controls. Palette-sharing coverage checks
+  both actual sampled values and that the next frame drops rows no longer drawn;
+  bypassing sharing makes the test fail (six palettes instead of three).
+- Previous-card rounding was also measured on a real RPG appearance in both
+  fall poses, through a scratch reproduction of the previous CPU-posed input
+  (not a retained production branch). Albedo changed 203 / 301 pixels of each
+  1024×256 atlas, mean absolute channel delta 0.002449 / 0.003929 (0–255).
+  Normal deltas are 0.007004 / 0.010014; mask deltas 0.001728 / 0.002579.
+  Centers/radii agree exactly. At alpha coverage >=32, the first silhouette
+  agrees exactly; the second differs at one pixel, within one pixel of the
+  other silhouette. CPU u16 skinning versus the living GPU path's unorm8
+  weights and packed normal rounding account for this boundary difference.
+  The contract's frozen-living oracle remains exact, with no tolerance added.
+  Receipts/pairs: `throwaway/slice13/card-rounding/`.
+- Unprimed picture review found no visible change in placement, scale,
+  orientation, silhouettes, ground contact, lighting or shadows; the crops
+  show no conspicuous missing limbs, stretched skinning or detached geometry,
+  and the cards retain poses, framing and shading. Limitation retained: the
+  dense cap workload hides interior ground contact and small geometry defects.
+  Images do not prove hidden geometry; the independent frame/card oracles do.
+  Full critique and its receipt check remain under `throwaway/slice13/`.
+
+- Reference battle, three alternating frozen-production pairs at high graphics.
+  The RPG team is one learned type (nine bundles, 27 cards), fourth growth in
+  these runs. Raw per-frame entries, learned observations and admission work
+  for every arrival remain in `throwaway/slice13/reference/`; the full report
+  lists all six runs' six arrivals, not just means.
+
+  | Run | Before longest frame ms | After longest frame ms | Before staging→commit ms | After staging→commit ms | Before packed vertices B | After packed vertices B |
+  | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+  | 1 | 400.20 | 222.19 | 590 | 422 | 85,739,040 | 28,579,680 |
+  | 2 | 275.78 | 193.82 | 519 | 428 | 85,739,040 | 28,579,680 |
+  | 3 | 236.88 | 255.82 | 445 | 378 | 85,739,040 | 28,579,680 |
+
+  The copies are gone: vertex work drops by two thirds every run; all 27 cards
+  remain. Staging→commit is lower in every pair. Longest frame is lower in two
+  pairs, higher in the third. This is still a visible 194–256 ms arrival, not a
+  claim that arrival is unnoticed. No stepping is built here; the remaining
+  arrival cost needs the owner's next plan decision.
+- First-scene logical GPU buffers: 1,334,384,540 → 914,667,500 B (419,717,040 B
+  removed), with texture payload unchanged at 521,529,117 B. This is the same
+  reference deployment at tick 90, digest `bab549b4fc9795d1` in all six runs.
+- Whole-browser memory follows `specs/done/one-renderer/memory.md`: isolated
+  fresh Chromium trees, macOS physical-footprint sampler about every 200 ms,
+  frozen production assets, high, 1280×800 DPR 1, disabled browser cache,
+  all 940 runtime files warmed, ten seconds settled at tick 90. No compilation,
+  tracing, screenshots or forced GC during sampling. Final-second median
+  footprint and sampled peak through settle, decimal GB, every repeat:
+
+  | Run | Before settled | After settled | Before peak | After peak |
+  | --- | ---: | ---: | ---: | ---: |
+  | 1 | 7.106 | 6.663 | 7.107 | 6.665 |
+  | 2 | 7.098 | 6.621 | 7.099 | 6.623 |
+  | 3 | 7.145 | 6.634 | 7.147 | 6.714 |
+
+  Both fall in every pair. Logical GPU bytes overlap this footprint and are
+  never added to it. Sample-gap medians are 205–208 ms, maximum 249 ms; shorter
+  peaks may be missed. All raw runs stay ignored under
+  `throwaway/slice13/memory-confirmation/`, with artifact hashes beside them.
+  An earlier baseline artifact mixed binding imports/current WASM with aliased
+  old bindings and failed before readiness (`__wbindgen_malloc` undefined).
+  Fixing the scratch build's aliases/WASM URL, not production, made the six-run
+  cohort valid. The failed attempt remains separate under `throwaway/slice13/memory/`.
+- Mechanism expectations changed, as authorized: identity corpse palette becomes
+  the row's actual Z=2 rest palette in `lab_models`; a changed corpse palette
+  now packs zero new geometry in `asset_generations` (the unchanged-palette
+  zero-work assertion keeps its value and receives accurate wording).
+  `_growthArt` counts living tiers once and groups rest/card facts by actual
+  palette without a living/corpse discriminator. Every assertion in the growth
+  gate, including 700 ms, and adjacent fog/no-x-ray checks stays unchanged.
+  Exact old/new assertion text is in `throwaway/slice13/assertions.md` and the
+  full report. No rule, shader, vertex layout or public WASM export changed.
+- The requested tests are green: 36 asset-generation, two impostor and one
+  model-geometry test; 23 selected presentation tests of lab frames, poses,
+  falls and observed sides; 28 selected web tests; workspace/all-target clippy,
+  WASM target checks/build, typecheck and both web lint checks. The first full
+  high-profile scene pass (`battle-growth`, `stand-in`, `workbench`, `armory`)
+  passes; the growth frame is 54 ms. A shipped-WASM repetition is recorded in
+  the final report (its growth frame is 56 ms). No scene baseline is blessed.
+  Source/tests/docs remain scoped to corpses; all scratch probes are removed
+  from source. Disk remains about 95 GiB free; no old builds were removed.
+- Final shipped-WASM scene repetition passes all checks: `battle-growth`,
+  `stand-in`, `workbench`, `armory`. The growth frame is 56 ms; no work check or
+  700 ms tripwire was changed. Full hand-back, tables, exact assertion changes,
+  decisions, command failures/repairs and picture receipts:
+  `throwaway/slice13/report.md`. Remaining limitation is the still-visible
+  reference arrival above, not corpse-cap frame cost or picture correctness.

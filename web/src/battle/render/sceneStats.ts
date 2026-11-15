@@ -73,7 +73,8 @@ export interface ModelStats {
   triangles: number;
   draws: number;
   paletteMatrices: number;
-  skinned: number;
+  /** Living soldiers drawn as meshes; cards and bodies lying dead are counted apart. */
+  soldierMeshes: number;
   tiers: number[];
   bodyTiers: number[];
   cards: number;

@@ -196,8 +196,8 @@ async function ownDeath(ctx) {
   const aliveModels = await lab(page, () => window.__lab.stats().models);
   ctx.check(
     "the own squad is rendered alive before damage",
-    squad.memberIds.length > 0 && aliveModels.skinned > 0,
-    JSON.stringify({ ids: squad.memberIds, skinned: aliveModels.skinned }),
+    squad.memberIds.length > 0 && aliveModels.soldierMeshes > 0,
+    JSON.stringify({ ids: squad.memberIds, soldierMeshes: aliveModels.soldierMeshes }),
   );
   const ack = await lab(page, () =>
     window.__lab.route.command({

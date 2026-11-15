@@ -325,12 +325,12 @@ async function measureModelCost(ctx) {
   await ctx.writeEvidence("model-cost.json", { adapter, live, late });
   // Presentation draws all realistic late-state corpses, up to `corpses.max`.
   ctx.check(
-    "the models layer draws the late state's corpses as static instances",
+    "the models layer draws every late-state corpse, and few living soldiers as meshes",
     late.strategic.models.corpses === Math.min(CORPSE_CAP, LATE_CORPSES) &&
-      late.strategic.models.skinned < 2000,
+      late.strategic.models.soldierMeshes < 2000,
     JSON.stringify({
       corpses: late.strategic.models.corpses,
-      skinned: late.strategic.models.skinned,
+      soldierMeshes: late.strategic.models.soldierMeshes,
     }),
   );
   await page.close();
