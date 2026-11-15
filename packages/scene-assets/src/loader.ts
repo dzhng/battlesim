@@ -438,10 +438,16 @@ export class AppearanceLibrary {
       if (!same)
         throw new Error(`appearance ${name}: joints differ from skeleton ${bundle.skeleton}`);
     }
+    let skeletonHash: string | null = null;
+    if (entry.skeleton) {
+      skeletonHash = source.catalog.skeletons[entry.skeleton];
+      if (!skeletonHash)
+        throw new Error(`appearance ${name}: skeleton ${entry.skeleton} is not in the catalog`);
+    }
     return {
       contentId: {
         bundle: entry.bundle,
-        skeleton: entry.skeleton ? (source.catalog.skeletons[entry.skeleton] ?? null) : null,
+        skeleton: skeletonHash,
       },
       unit: entry.unit,
       scenery: entry.scenery ?? null,

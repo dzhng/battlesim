@@ -55,28 +55,45 @@ pub fn is_sha256(value: &str) -> bool {
             .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
 }
 
+/// The raw wire shape for a runtime art identity. Validation happens before a
+/// `ContentId` can exist.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawContentId {
+    bundle: String,
+    skeleton: Option<String>,
+}
+
 /// The runtime art content a name routes to. Skinned art includes the
 /// skeleton clips because changing either bundle changes the rendered model.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(try_from = "RawContentId")]
 pub struct ContentId {
-    pub bundle: String,
-    pub skeleton: Option<String>,
+    bundle: String,
+    skeleton: Option<String>,
 }
 
 impl ContentId {
-    pub fn new(bundle: String, skeleton: Option<String>) -> Result<Self, &'static str> {
+    pub fn new(bundle: String, skeleton: Option<String>) -> Result<Self, String> {
         if !is_sha256(&bundle) {
-            return Err("content identity bundle must be a canonical SHA256");
+            return Err("content identity bundle must be a canonical SHA256".into());
         }
         if skeleton.as_deref().is_some_and(|hash| !is_sha256(hash)) {
-            return Err("content identity skeleton must be a canonical SHA256");
+            return Err("content identity skeleton must be a canonical SHA256".into());
         }
         Ok(Self { bundle, skeleton })
     }
 
-    pub fn bundle(bundle: impl Into<String>) -> Result<Self, &'static str> {
+    pub fn bundle(bundle: impl Into<String>) -> Result<Self, String> {
         Self::new(bundle.into(), None)
+    }
+}
+
+impl TryFrom<RawContentId> for ContentId {
+    type Error = String;
+
+    fn try_from(raw: RawContentId) -> Result<Self, Self::Error> {
+        Self::new(raw.bundle, raw.skeleton)
     }
 }
 

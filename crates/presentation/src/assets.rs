@@ -209,7 +209,7 @@ mod runtime {
                         .ok_or_else(|| format!("no skeleton hash for {id}"))
                 })
                 .transpose()?;
-            ContentId::new(bundle, skeleton).map_err(str::to_owned)
+            ContentId::new(bundle, skeleton)
         }
 
         /// The gzipped file `file` content `hash` travels in, open, its path

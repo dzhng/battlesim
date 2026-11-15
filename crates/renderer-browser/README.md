@@ -36,7 +36,9 @@ The core owns [device reconstruction](../renderer-core/README.md#device-reconstr
 [Appearance drafts](src/appearance.rs) carry each asset's runtime `ContentId`
 alongside its bytes. Names route to the bundle hash (and a skinned bundle's
 skeleton hash), never to a reuse decision. Drafts collect source transport and
-pose facts without changing active art. Preparation returns an owned promise; the caller
+pose facts without changing active art. Page-generated bundles use the same
+exported `bytes_hash` implementation as the contract crate, cached by bundle
+object in the web renderer. Preparation returns an owned promise; the caller
 may continue rendering or dispose its scene while cards bake. Latest-request
 scheduling belongs to the viewport. It commits only its desired complete
 candidate and latest model requests at a frame boundary, then publishes a fresh

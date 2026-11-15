@@ -4,7 +4,6 @@ use contract::identity::{bytes_hash, ContentId};
 use presentation::assets::{Container, View, BUNDLE};
 use serde::Deserialize;
 use serde_json::Value;
-use std::cell::Cell;
 use std::collections::{BTreeMap, HashSet};
 use std::sync::{Arc, Weak};
 
@@ -20,8 +19,9 @@ pub trait BundleSource {
 pub struct Library {
     names: BTreeMap<String, ContentId>,
     bundles: BTreeMap<ContentId, Arc<Bundle>>,
+    routes: BTreeMap<ContentId, u32>,
     textures: BTreeMap<String, Weak<Texture>>,
-    pending_decodes: Cell<u32>,
+    pending_decodes: u32,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]
@@ -248,25 +248,33 @@ impl Library {
         Self {
             names: BTreeMap::new(),
             bundles: BTreeMap::new(),
+            routes: BTreeMap::new(),
             textures: self.textures.clone(),
-            pending_decodes: Cell::new(0),
+            pending_decodes: 0,
         }
     }
 
     /// Retained immutable sources share payload ownership while a replacement
     /// is staged and while admission reads them.
     pub fn replace_with(&mut self, replacements: Self) {
-        self.names.extend(replacements.names);
         self.bundles.extend(replacements.bundles);
         self.textures.extend(replacements.textures);
-        self.pending_decodes
-            .set(self.pending_decodes.get() + replacements.pending_decodes.get());
+        self.pending_decodes += replacements.pending_decodes;
+        for (name, content) in replacements.names {
+            self.route(name, content);
+        }
     }
 
     pub fn retain(&mut self, mut keep: impl FnMut(&str) -> bool) {
-        self.names.retain(|name, _| keep(name));
-        let names: HashSet<_> = self.names.values().cloned().collect();
-        self.bundles.retain(|content, _| names.contains(content));
+        let removed: Vec<_> = self
+            .names
+            .keys()
+            .filter(|name| !keep(name))
+            .cloned()
+            .collect();
+        for name in removed {
+            self.unroute(&name);
+        }
         self.textures
             .retain(|_, texture| texture.strong_count() > 0);
     }
@@ -283,7 +291,7 @@ impl Library {
             identity.extend((payload.len() as u64).to_le_bytes());
             identity.extend(payload);
         }
-        let content = ContentId::bundle(bytes_hash(&identity)).map_err(str::to_owned)?;
+        let content = ContentId::bundle(bytes_hash(&identity))?;
         library.insert_bundle(name, content, bytes, textures)?;
         Ok(library)
     }
@@ -306,15 +314,14 @@ impl Library {
                 Ok(texture)
             })?;
             self.bundles.insert(content.clone(), Arc::new(bundle));
-            self.pending_decodes
-                .set(self.pending_decodes.get().saturating_add(1));
+            self.pending_decodes = self.pending_decodes.saturating_add(1);
         }
-        self.names.insert(name.to_owned(), content);
+        self.route(name.to_owned(), content);
         Ok(())
     }
 
-    pub fn admission_work(&self) -> crate::runtime::AdmissionWork {
-        let bundles_decoded = self.pending_decodes.replace(0);
+    pub fn take_admission_work(&mut self) -> crate::runtime::AdmissionWork {
+        let bundles_decoded = std::mem::take(&mut self.pending_decodes);
         crate::runtime::AdmissionWork {
             bundles_decoded,
             ..Default::default()
@@ -330,6 +337,32 @@ impl Library {
             .get(content)
             .cloned()
             .ok_or_else(|| format!("bundle not loaded: {name}"))
+    }
+
+    fn route(&mut self, name: String, content: ContentId) {
+        if self.names.get(&name) == Some(&content) {
+            return;
+        }
+        if self.names.contains_key(&name) {
+            self.unroute(&name);
+        }
+        self.names.insert(name, content.clone());
+        *self.routes.entry(content).or_default() += 1;
+    }
+
+    fn unroute(&mut self, name: &str) {
+        let Some(content) = self.names.remove(name) else {
+            return;
+        };
+        let routes = self
+            .routes
+            .get_mut(&content)
+            .expect("every name route has a content count");
+        *routes -= 1;
+        if *routes == 0 {
+            self.routes.remove(&content);
+            self.bundles.remove(&content);
+        }
     }
 }
 

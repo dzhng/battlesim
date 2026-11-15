@@ -1,9 +1,10 @@
 /** Parsed art transported once to presentation and GPU admission. */
 import type { InstalledAppearances, InstalledAppearance } from "@packages/scene-assets/src/loader";
-import { generatedContentId, type ContentId } from "@packages/scene-assets/src/contentIdentity";
+import type { ContentId } from "@packages/scene-assets/src/contentIdentity";
 import { splitTextures } from "@packages/scene-assets/src/codec";
 import { encodeTexture } from "@packages/scene-assets/src/texture";
 import type { Bundle, SkeletonClips, StaticBundle } from "@packages/scene-assets/src/schema";
+import { generatedContentId } from "./contentIdentity";
 
 export interface LabAsset {
   name: string;

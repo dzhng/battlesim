@@ -166,20 +166,28 @@ Review findings to fix before it merges:
   not decode. Keeping the old name-keyed map beside the identity map was
   rejected because it would leave reuse decisions keyed by names.
 - The decode counter is pending work owned by `Library` and drained by its
-  `admission_work` read. The alternative cumulative lifetime counter was
+  mutable `take_admission_work` read. The alternative cumulative lifetime counter was
   rejected: rebuilding a runtime after device loss would report decodes that
   the rebuild did not perform. This keeps `bundles_decoded` scoped to the
   admission that consumes the source draft.
+- `Library` keeps a route count per content identity, so rerouting a name drops
+  an unshared decoded bundle immediately. Rescanning all names after every
+  insert was rejected; the count also proves that a second name keeps shared
+  content alive.
 - Tooling constructors with no catalog identity hash their bytes at the point
   they make the bundle; catalog paths pass the catalog identity directly.
   Falling back to an appearance name was rejected because names route and do
-  not identify content. Generated page proxies use a synchronous SHA256 of
-  their encoded bundle at creation so reconciliation does not carry a pending
-  identity promise.
-- The native library now keeps the shared decoded library and obtains the
-  identity from the runtime catalog it already reads. Re-decoding on every
-  `bundle` lookup was the previous behavior and was rejected because it made
-  native reuse diverge from browser reuse.
+  not identify content. Generated page bundles use the contract crate's
+  exported WASM `bytes_hash`, cached once per bundle object in the web renderer;
+  a second JavaScript digest implementation was rejected as a duplicate owner.
+- `ContentId` is private-field and serde-validated through its raw wire shape,
+  so browser call sites cannot deserialize an invalid hash and then patch it by
+  hand. Duplicating that validation in both browser asset entrypoints was
+  rejected.
+- The native client takes its identity through `Runtime::content_id` when slice
+  03 gives `BundleSource` its first identity consumer. Caching decoded bundles
+  in the native client was rejected because it holds decoded art the client did
+  not hold before.
 - Confirmed from the implementation: the scene-assets runtime catalog already
   carries bundle and skeleton content hashes, while `InstalledAppearance` and
   `ModelAsset` previously dropped them before the Rust seam. Both now carry the

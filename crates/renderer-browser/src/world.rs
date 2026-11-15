@@ -98,7 +98,7 @@ impl Renderer {
         presentation: &mut Presentation,
         scenery: bool,
     ) -> Result<u32, JsValue> {
-        let mut starting_work = self.model_library.admission_work();
+        let mut starting_work = Arc::make_mut(&mut self.model_library).take_admission_work();
         if scenery {
             renderer_core::scenery::place_scenery(
                 presentation.core_mut(),

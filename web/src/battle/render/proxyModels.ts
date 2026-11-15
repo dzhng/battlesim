@@ -3,8 +3,8 @@ import { PROXY_MESHES, type DrawnProxyKind } from "@packages/battle-renderer/src
 import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import { positionsBounds } from "@packages/scene-assets/src/pose";
 import type { ArticulatedBundle } from "@packages/scene-assets/src/schema";
-import { generatedContentId } from "@packages/scene-assets/src/contentIdentity";
 import type { LabModel } from "../sim/presentationModels";
+import { generatedContentId } from "./contentIdentity";
 import { modelAsset, type ModelAsset } from "./modelAssets";
 
 const PREFIX = "__renderer_proxy__:";

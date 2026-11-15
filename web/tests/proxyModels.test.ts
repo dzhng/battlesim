@@ -1,9 +1,14 @@
 // @vitest-environment node
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
-import { expect, test, vi } from "vitest";
+import { beforeAll, expect, test, vi } from "vitest";
 import { joinTextures } from "@packages/scene-assets/src/codec";
 import { PROXY_MESHES } from "@packages/battle-renderer/src/proxies";
 import { proxyModels } from "../src/battle/render/proxyModels";
+import { loadPresentationModule } from "../src/presentationModule";
+
+beforeAll(async () => {
+  await loadPresentationModule();
+});
 
 // Control the authored mesh colour at the asset boundary: this checks colour
 // conversion independently of any later change to primitive art.

@@ -18,12 +18,8 @@ impl Renderer {
             .iter()
             .map(|(id, data)| (id.as_str(), data.as_slice()))
             .collect::<Vec<_>>();
-        let content = serde_json::from_str(&content_id)
-            .map_err(js_error)
-            .and_then(|content: contract::identity::ContentId| {
-                contract::identity::ContentId::new(content.bundle, content.skeleton)
-                    .map_err(js_error)
-            })?;
+        let content: contract::identity::ContentId =
+            serde_json::from_str(&content_id).map_err(js_error)?;
         Arc::make_mut(&mut self.model_library)
             .insert_bundle(&name, content, bundle, &refs)
             .map_err(js_error)?;

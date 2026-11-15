@@ -40,12 +40,8 @@ impl AppearanceDraft {
             .collect();
         // Both decoders finish before either draft owner changes.
         let facts = Asset::from_bundle(bundle, skeleton.as_deref()).map_err(js_error)?;
-        let content = serde_json::from_str(&content_id)
-            .map_err(js_error)
-            .and_then(|content: contract::identity::ContentId| {
-                contract::identity::ContentId::new(content.bundle, content.skeleton)
-                    .map_err(js_error)
-            })?;
+        let content: contract::identity::ContentId =
+            serde_json::from_str(&content_id).map_err(js_error)?;
         self.library
             .insert_bundle(&name, content, bundle, &refs)
             .map_err(js_error)?;
@@ -80,7 +76,7 @@ impl Renderer {
     pub fn prepare_appearances(
         &self,
         presentation: &Presentation,
-        draft: AppearanceDraft,
+        mut draft: AppearanceDraft,
     ) -> Result<js_sys::Promise, JsValue> {
         self.gpu.ensure_live()?;
         let runtime = self
@@ -104,7 +100,7 @@ impl Renderer {
         }
         // Preserve canonical battle/static sources, remove retired external art,
         // and replace only names carried by the desired generation.
-        let draft_work = draft.library.admission_work();
+        let draft_work = draft.library.take_admission_work();
         let mut library = (*self.model_library).clone();
         library.replace_with(draft.library);
         library.retain(|name| names.contains(name));
