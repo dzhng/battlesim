@@ -1,9 +1,11 @@
-//! A refunded supply truck drives home from where a player set it up, on the
+//! A refunded supply truck drives home from where a player sent it, on the
 //! generated town a player reported trucks stuck in: a large mixed map,
-//! three players a side. Each case is a spot a truck once stalled leaving,
-//! pressed against a garden fence panel it could only slide endwise into the
-//! next, or with its tail in an alley's mouth. Pinned to one generated map,
-//! a generator change may move the spots; the cases then still pass.
+//! three players a side. Each case is a spot a truck once stalled leaving
+//! or reaching: a garden fence panel it could only slide endwise into the
+//! next, a tail in an alley's mouth, a corner of a parked car its turn
+//! grazed, a waypoint under its own hull that it kept circling, and a fence
+//! jammed behind it as it turned. Pinned to one generated map, a generator
+//! change may move the spots; the cases then still pass.
 #[path = "common/limits.rs"]
 mod limits;
 #[path = "common/parallel.rs"]
@@ -35,8 +37,9 @@ fn command(seq: u64, side: Side, order: Order) -> CommandEnvelope {
 }
 
 /// Blue buys a truck down `lane` toward objective `objective`, `share` of
-/// the way, lets it set up there, refunds it, and reports whether it
-/// reached base within four minutes.
+/// the way, refunds it wherever it is after the drive out (set up there, or
+/// still on its way), and reports whether it reached base within four
+/// minutes.
 fn returns_home(rules: &Rules, (lane, objective, share): (usize, usize, f64)) -> bool {
     let players: Vec<contract::players::Player> = serde_json::from_value(serde_json::json!([
         {"id":"blue-1","side":"blue","faction":"us","controller":"human","human_capable":true},
@@ -122,10 +125,6 @@ fn returns_home(rules: &Rules, (lane, objective, share): (usize, usize, f64)) ->
         battle.step();
     }
     let truck = battle.observe(Side::Blue).own[0].clone();
-    assert!(
-        truck.deployment.is_some_and(|d| d.progress == 1.0),
-        "the truck set up at its spot: {truck:?}"
-    );
     let refund = Order::Refund {
         units: vec![truck.id],
     };
@@ -143,11 +142,19 @@ fn returns_home(rules: &Rules, (lane, objective, share): (usize, usize, f64)) ->
 }
 
 #[test]
-fn a_set_up_truck_refunded_in_town_drives_home() {
+fn a_truck_refunded_in_town_drives_home() {
     let rules: Rules = serde_json::from_value(sim::fixtures::rules()).unwrap();
-    // (lane, objective, share of the way): a fence panel jammed endwise,
-    // a tail in an alley's mouth, and a second fence.
-    let cases = [(1, 1, 0.6), (0, 6, 0.6), (2, 6, 0.8)];
+    // (lane, objective, share of the way): a fence panel jammed endwise, a
+    // tail in an alley's mouth, a second fence, a parked car's corner, a
+    // waypoint under the hull, and a fence jammed behind a turn.
+    let cases = [
+        (1, 1, 0.6),
+        (0, 6, 0.6),
+        (2, 6, 0.8),
+        (0, 0, 0.8),
+        (1, 6, 0.6),
+        (0, 6, 0.8),
+    ];
     let home = parallel::each(&cases, |&case| returns_home(&rules, case));
     let stuck: Vec<_> = cases.iter().zip(&home).filter(|(_, h)| !**h).collect();
     assert!(stuck.is_empty(), "trucks that never got home: {stuck:?}");
