@@ -33,6 +33,10 @@ impl Battle { pub fn hand_over(&mut self, player: &str) -> Result<(), SeatError>
 
 It applies at a tick boundary. A battle that records no seat event keeps its
 digest and its replay byte for byte, so rooms and skirmish are untouched.
+(The replay's `engine_build` stamp is the one exception: it is a fingerprint
+of the simulation's source and changes with every source change, as it has
+for every slice. A first pass at this slice stopped on that; it is not what
+"byte for byte" is about.)
 
 ## Run or see
 
