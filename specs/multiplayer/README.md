@@ -97,7 +97,7 @@ Foundation
 - [ ] [07 HTTP transport](slices/07-http-transport.md)
 - [ ] [08 Command any seat](slices/08-command-any-seat.md) (first playable checkpoint)
 - [ ] [09 Identity, build check, deploy](slices/09-identity-build-deploy.md)
-- [ ] [10 Playout](slices/10-playout.md)
+- [ ] [10 Playout](slices/10-playout.md) (the module is built; wiring it in waits for 07 and 08)
 - [ ] [11 Yours is blue](slices/11-yours-is-blue.md)
 - [ ] [12 Your side at the bottom](slices/12-your-side-at-the-bottom.md)
 - [ ] [13 Native and WebAssembly parity](slices/13-native-wasm-parity.md)

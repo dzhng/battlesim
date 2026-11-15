@@ -14,20 +14,29 @@ timed by when records arrive, so a burst shows as a lurch.
 New `web/src/battle/remote/playout.ts`, between the link and the connection:
 
 ```ts
-function playout(clock: Clock, tickHz: number, delayMs: number): {
-  push(reply: SimReply): void;
+function playout(tickHz: number, delayMs: number): {
+  push(reply: SimReply, now: number): void;
   due(now: number): SimReply[];
-  behindMs(now: number): number;
+  queuedMs(): number;          // battle time waiting
+  reset(): void;               // the stream was reopened
 };
 ```
 
-- Publications are released one tick apart, about 100 to 150 ms behind
-  arrival. Everything else passes straight through.
-- On underrun it holds the last tick. It never extrapolates.
-- Records cannot be skipped: the reader needs every delta in order. So a page
-  that is behind by under about two seconds releases its backlog back to
-  back, and a page further behind (a tab that was hidden) reopens its stream
-  with no `after` and takes a snapshot.
+- Publications are released one tick apart, `delayMs` behind arrival (about
+  100 to 150 ms). Everything else keeps its place in the stream.
+- When nothing is waiting it holds, and never extrapolates. The next record
+  to arrive is held for the full delay again.
+- Records cannot be skipped: the reader needs every delta in order. A page
+  holding more than about twice its usual buffer fast-forwards back to it,
+  every tick in order, then plays evenly again.
+- The caller decides when fast-forwarding is too much: before asking what is
+  due it reads `queuedMs()`, and past about two seconds it reopens its stream
+  with no `after`, takes the snapshot and calls `reset`. A tab that was
+  hidden returns this way.
+
+**Built so far (2026-11-14):** the module and its tests. Time is an argument,
+so there is no clock to inject. Putting it between the link and the
+connection waits for slice 07, and tuning the delay by eye waits for slice 08.
 
 ## Run or see
 

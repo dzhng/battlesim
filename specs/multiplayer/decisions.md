@@ -205,4 +205,5 @@ Append here: the slice, the decision, why, and what it replaced.
 | 24 | Whether a battle slot is free is an argument to placement. | A fixed limit of eight games inside the model. |
 | 24 | A player who still holds a seat gets `resume`, a different answer from `join`. | One answer for both, which the server could not tell apart, though only a join fires the seat events. |
 | 24 | The list of map regions is owned by `web/src/maps/source.ts`, read from the map presets fixture; the app's link code takes it from there. | The list living in app code the server cannot import. |
+| 10 | Playout keeps one playhead: publications leave a tick apart; an empty buffer holds and the next arrival waits the full delay again; more than about twice the usual buffer is fast-forwarded back to it. The caller, not playout, decides when the backlog is too long to fast-forward and reopens the stream. | The first cut stamped each record with a release time, which never caught up: after one stall every later record stayed late by the length of the stall. It also took a backlog bound it never used. |
 
