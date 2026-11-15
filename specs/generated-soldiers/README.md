@@ -8,25 +8,26 @@ squads that wore the wrong army today move to them.
 
 ## Next Agent Prompt
 
-*Status (2026-11-15):* the spec is written; no slice has started. The pilot
-(US Army OCP look `a`, slice 00 below) is working but **uncommitted** on
-branch `t3/soldier-3d-model-comparison`, which is level with `staging` at
-`9893ffcd5`.
+*Status (2026-11-15):* slices 00 (the pilot) and 01 are committed on branch
+`t3/soldier-3d-model-comparison`. **Next: slice 02.** Slice 04 can run in
+parallel, because it touches only Node tooling.
 
 You are implementing this spec.
-1. Commit the pilot on the branch as it stands (its own commit, "soldiers: a
-   generated body for the US Army rifleman, look a"), with the re-exported
-   GLBs, the pin and its LFS files, the re-baked runtime and the icons.
-2. Then start at [slice 01](slices/01-data-owners.md).
-3. At the start of every slice, merge `origin/staging` into the branch. Check
+1. Pick up at the first unchecked slice below.
+2. At the start of every slice, merge `origin/staging` into the branch. Check
    the merge's exit code and grep for conflict markers; never pipe it through
    `tail`. Re-bake if `assets/runtime/catalog.json` conflicts: the bake owns
    that file.
-4. Work slice by slice. Each slice file says what to build, what to show and
+3. Work slice by slice. Each slice file says what to build, what to show and
    what must pass. Commit each slice on the branch. Nothing reaches `staging`
    until [slice 09](slices/09-ship.md), which merges once.
-5. Before you end a pass, update this section: the status, the next pickup
+4. Before you end a pass, update this section: the status, the next pickup
    point, and the checklist.
+
+Byte-identity proofs use fresh exports from the pre-change scripts, never the
+committed GLBs (some drift). The reference exporter is
+`throwaway/soldier-models-trial/refexport.sh <outdir>`, which restores the tree
+afterwards.
 
 **Warnings:**
 - **Generator spend is real money.** Log every call, and never pay twice for
@@ -37,8 +38,8 @@ You are implementing this spec.
   uncommitted work.
 
 **Checklist:**
-- [ ] Commit the pilot on the branch (above)
-- [ ] 01 One owner each for pins, army data and source paths ([slice](slices/01-data-owners.md))
+- [x] Commit the pilot on the branch (`291546b64`)
+- [x] 01 One owner each for pins, army data and source paths ([slice](slices/01-data-owners.md))
 - [ ] 02 Crews wear their vehicle's army ([slice](slices/02-crew-by-army.md))
 - [ ] 03 The wearer handles every soldier; a lying-fit gate for every corpse ([slice](slices/03-wearer.md))
 - [ ] 04 One generation tool: pins, resume, cost ledger ([slice](slices/04-generation-tool.md))
@@ -174,7 +175,7 @@ What changes:
 | Pin records: read and verified for every skin, airframes included | `blender/skin_pins.py` | 01 |
 | Pin records: written | `tools/skins/pins.mjs` | 04 |
 | Army data, look clauses, kind cues | `blender/roster/armies.json` | 01 |
-| Source path of a kit look | `roster/infantry_roster.py` (no bpy) | 01 |
+| Source path of a kit look | `infantry_roster.py` (no bpy) | 01 |
 | Crew soldier choice | the family's `crew_army` plus `infantry_roster.crew_source` | 02 |
 | Generation prompt | `tools/skins/prompt.mjs` (stored in the pin) | 04 |
 | Paid-call ledger | `blender/skins/calls.jsonl`, written only by `tools/skins/journal.mjs` | 04 |

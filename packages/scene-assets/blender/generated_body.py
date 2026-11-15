@@ -17,7 +17,7 @@ body:
 - Hands. The generator's hands are fused mittens that can't close on a grip.
   They are cut off at the wrist and replaced by the kit's own glove shell.
 - Surface. The generator's texture is kept, regraded so its cloth's mean
-  matches the army's uniform print, and embedded at `ATLAS_PX`. Skin faces get
+  matches the army's cloth mean (`roster/armies.json`), and embedded at `ATLAS_PX`. Skin faces get
   their own material with no side tint. Every other face takes the full tint.
   Both materials share one atlas (`textures.ATLASES`, which keeps their UVs
   and embeds it). The vertex colour carries ambient occlusion at
@@ -26,20 +26,16 @@ body:
 While building, space is the rig's rest space (`infantry_rig.py`), in the UBC
 body's units: Z up, facing -Y.
 """
-import hashlib
-import json
-import os
-
 import bmesh
 import bpy
 import numpy as np
 from mathutils import Matrix, Vector
 
+import skin_pins
 import textures
-from common import REPO, fbm, mat
+from common import fbm, mat
 from infantry_rig import SCALE
 
-PINS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "skins", "infantry.json")
 # The atlas, square px. A soldier is at most ~150 px tall on screen at tier 0,
 # and each generated look's atlas counts against the catalog's load budget
 # (scene-assets unitArt), so 512 is the size that lets every look ship.
@@ -60,24 +56,6 @@ FRONT_TURN = {"+x": -np.pi / 2, "-y": 0.0, "-x": np.pi / 2, "+y": np.pi}
 ARM_PREFIXES = ("upperarm", "lowerarm", "hand_", "index", "middle", "ring", "pinky", "thumb")
 FINGERS = ("index", "middle", "ring", "pinky", "thumb")
 SKIN_BONES = ("Head", "neck_01")
-
-
-def pin_of(army, look, kind):
-    """The pinned generated body of an army's look, or None (the procedural shells)."""
-    for p in json.load(open(PINS)):
-        if (p["army"], p["look"], p["kind"]) == (army, look, kind):
-            return p
-    return None
-
-
-def _verified(pin):
-    path = os.path.join(REPO, pin["glb"])
-    data = open(path, "rb").read()
-    if data[:4] != b"glTF":
-        raise SystemExit(f"generated body not fetched (LFS pointer?): {pin['glb']}")
-    if hashlib.sha256(data).hexdigest() != pin["sha256"]:
-        raise SystemExit(f"generated body {pin['glb']} does not match its pin's sha256")
-    return path
 
 
 def _import(path, front):
@@ -326,7 +304,7 @@ def _skin_like(rgb_linear):
     return r > 0.42 and r - g > 0.09 and g - b > 0.02
 
 
-def _surface(gen, atlas, army_print):
+def _surface(gen, atlas, cloth_mean):
     """Split skin from cloth, regrade the atlas, and set both materials."""
     me = gen.data
     uv = me.uv_layers[0]
@@ -350,7 +328,7 @@ def _surface(gen, atlas, army_print):
         if poly.material_index == 0:
             acc += rgb * poly.area
             area += poly.area
-    target = np.array(textures.baked(army_print).mean())
+    target = np.array(cloth_mean)
     gain = target / (acc / area)
     print(f"GENERATED_BODY cloth mean {np.round(acc / area, 4).tolist()} -> {np.round(target, 4).tolist()} gain {np.round(gain, 3).tolist()}")
     graded = np.clip(atlas * gain, 0, 1)
@@ -369,11 +347,11 @@ def _surface(gen, atlas, army_print):
     textures.ATLASES[skin.name] = images
 
 
-def wear(kit, pin, army_print):
+def wear(kit, pin, cloth_mean):
     """Build the pinned generated body into `kit` (in place of its cloth shells)
     and return it. Call before anything that seats kit on the clothing."""
     rig = kit.rig
-    gen = _import(_verified(pin), pin["front"])
+    gen = _import(skin_pins.verified(pin), pin["front"])
     atlas = _atlas(gen)
     _decimate(gen)
     _fit(gen, kit.body, kit.arm)
@@ -381,7 +359,7 @@ def wear(kit, pin, army_print):
     _align_legs(gen, kit.arm)
     _cut_hands(gen, kit.arm)
     _weights(gen, kit.body, kit.arm, rig.scn)
-    _surface(gen, atlas, army_print)
+    _surface(gen, atlas, cloth_mean)
     for img in list(bpy.data.images):
         bpy.data.images.remove(img)
     gen.parent = kit.arm

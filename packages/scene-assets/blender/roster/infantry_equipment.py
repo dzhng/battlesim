@@ -6,7 +6,7 @@ Add --preview-only to inspect the existing source without rebuilding it;
 --receipt writes the kit's receipt once every look is exported.
 Writes into the kit's own directory, `assets/source/roster/infantry/<kit>/`.
 A kit is built in one of its armies' looks (`KITS`, its first by default):
-`<mode>_<look>.glb` for the first, `<faction>_<mode>_<look>.glb` for the
+`<mode>_<look>.glb` for the first, `<army>_<mode>_<look>.glb` for the
 others. Rifle-family grip, support and sight anchors stay identical to the
 shared clips. Lengths are world metres; geometry compensates for the shared
 hold and soldier scales, never the rig. Tripod ATGMs use a root-weighted kit
@@ -29,86 +29,57 @@ from infantry_rig import Rig, SCALE
 from mesh_lods import canonical, make_tiers, triangle_count
 import weapons
 import generated_body
+import skin_pins
+import infantry_roster as roster
+from infantry_roster import KITS, kind_of, source_path
 from infantry_preview import preview
 
-# An army's look of a kit, named as its reference variant
-# (assets/references/<kit>/): the uniform print (textures.UNIFORMS), whether
-# carrier, pouches and helmet cover are printed, helmet, boots, gloves,
-# webbing, squad rifle (weapons.RIFLES), and per look a, b, c what differs.
-ARMIES = {
+# What the procedural shells still read of an army's look, named as its
+# reference variant (assets/references/<kit>/): the uniform print
+# (textures.UNIFORMS), whether carrier, pouches and helmet cover are printed,
+# helmet, boots, webbing, and per look a, b, c what differs. An army's faction,
+# gloves and weapons are its data (`armies.json`). This table goes once every
+# look wears a generated body (specs/generated-soldiers, slice 08).
+PROCEDURAL_LOOKS = {
     "us_army_ocp": dict(
-        faction="us", print=UNIFORMS["us_army_ocp"], printed_gear=True, vest="print", pouch="print",
-        straps=COYOTE, accent="print", helmet="ach", boots=(0.075, 0.056, 0.036), gloves=(0.06, 0.05, 0.036),
-        rifle="m4a1", lmg="m249",
+        print=UNIFORMS["us_army_ocp"], printed_gear=True, vest="print", pouch="print",
+        straps=COYOTE, accent="print", helmet="ach", boots=(0.075, 0.056, 0.036),
         variants={"a": dict(head="nvg"), "b": dict(head="scrim", scarf=False), "c": dict(head="cover", pack="hydration")},
     ),
     # Marines wear MARPAT woodland under coyote nylon (Plate Carrier Gen III,
-    # pouches and packs), a woodland helmet cover, coyote boots, and the M27.
+    # pouches and packs), a woodland helmet cover and coyote boots.
     "usmc_marpat": dict(
-        faction="us", print=UNIFORMS["usmc_marpat"], printed_gear=False, printed_cover=True, vest=COYOTE,
+        print=UNIFORMS["usmc_marpat"], printed_gear=False, printed_cover=True, vest=COYOTE,
         pouch=COYOTE, straps=COYOTE, accent=COYOTE, helmet="ach", boots=(0.075, 0.056, 0.036),
-        gloves=(0.06, 0.05, 0.036), rifle="m27", lmg="m249",
         variants={"a": dict(head="nvg"), "b": dict(head="cover", scarf=False, eyewear=True),
                   "c": dict(head="cover", pack="hydration", vest=RANGER)},
     ),
     # Europe's shared kits wear the Bundeswehr's
     # (specs/done/unit-models/choices.md): Flecktarn, a Flecktarn carrier and
-    # pouches, a covered helmet, black boots, olive webbing, and the G36.
+    # pouches, a covered helmet, black boots and olive webbing.
     "german_flecktarn": dict(
-        faction="europe", print=UNIFORMS["german_flecktarn"], printed_gear=True, vest="print", pouch="print",
+        print=UNIFORMS["german_flecktarn"], printed_gear=True, vest="print", pouch="print",
         straps=(0.055, 0.062, 0.038), accent="print", helmet="ach", boots=(0.018, 0.017, 0.015),
-        gloves=(0.025, 0.025, 0.021), rifle="g36", lmg="mg4",
         variants={"a": dict(head="nvg", eyewear=False), "b": dict(head="cover", scarf=False),
                   "c": dict(head="cover", pack="hydration", accent=COYOTE)},
     ),
     "eastern_emr": dict(
-        faction="eastern", print=UNIFORMS["eastern_emr"], printed_gear=True, vest="print", pouch="print",
+        print=UNIFORMS["eastern_emr"], printed_gear=True, vest="print", pouch="print",
         straps=(0.07, 0.078, 0.048), accent="print", helmet="6b47", rails=False, headset=False, collar=True, groin=True,
-        boots=(0.018, 0.017, 0.015), gloves=(0.02, 0.02, 0.018), rifle="ak12", lmg="pkp",
+        boots=(0.018, 0.017, 0.015),
         variants={"a": dict(head="cover", eyewear=False, balaclava=True, knee_pads=False),
                   "b": dict(head="cover", eyewear=False, balaclava=True, scarf=False, pack="none"),
                   "c": dict(head="cover", eyewear=False, radio=False, pack="hydration")},
     ),
 }
 
-# Each roster kit (a directory of assets/source/roster/infantry/): its
-# weapon (the army's squad rifle, or a `LENGTHS` model), whether its men are
-# scouts (the recon ruck, `infantry_kit.KIND_LOOKS`) and carry grenades, and
-# the armies it is built in, its default first: the faction its roster card
-# names first, and a faction look for every other faction that fields it.
-# A US Marine card is the Marines' look, an Eastern card the Russian army's
-# (the roster's Eastern infantry are all Russian weapons).
-KITS = {
-    "rifle_squad": dict(weapon="rifle", grenades=True, armies=("us_army_ocp", "eastern_emr", "german_flecktarn")),
-    "assault_squad": dict(weapon="rifle", grenades=True, armies=("german_flecktarn", "eastern_emr")),
-    "us_marine_squad_close_quarters_infantry": dict(weapon="rifle", grenades=True, armies=("usmc_marpat",)),
-    "us_army_scouts_light_patrol": dict(weapon="rifle", scout=True, armies=("us_army_ocp",)),
-    "us_force_recon_recon_patrol": dict(weapon="rifle", scout=True, grenades=True, armies=("usmc_marpat",)),
-    "eastern_scouts_light_patrol": dict(weapon="rifle", scout=True, armies=("eastern_emr",)),
-    "europe_recon_patrol_light_patrol": dict(weapon="rifle", scout=True, armies=("german_flecktarn",)),
-    "us_marksman_squad_m110_equipped_longer_range_infantry": dict(weapon="m110", armies=("us_army_ocp",)),
-    "eastern_marksman_squad_svd_equipped_longer_range_infantry": dict(weapon="svd", armies=("eastern_emr",)),
-    "europe_marksman_squad_longer_range_infantry": dict(weapon="g28", armies=("german_flecktarn",)),
-    "us_scout_snipers_m107_heavy_sniper_team": dict(weapon="m107", scout=True, armies=("usmc_marpat",)),
-    "eastern_sniper_team_asvk_heavy_sniper_team": dict(weapon="asvk", scout=True, armies=("eastern_emr",)),
-    "us_atgm_team_bgm_71_tow_2a": dict(weapon="tow", armies=("us_army_ocp",)),
-    "eastern_atgm_team_kornet": dict(weapon="kornet", armies=("eastern_emr",)),
-    "eastern_rpg_team_rpg_7": dict(weapon="rpg7", armies=("eastern_emr",)),
-    "eastern_rpg_team_rpg_29": dict(weapon="rpg29", armies=("eastern_emr",)),
-    # The FN-6 team wears the Eastern army's EMR, as every Eastern kit does;
-    # there is no Chinese uniform print yet. The Akeron is French, but Europe's
-    # kits all wear the Bundeswehr's look; there is no French uniform print.
-    "fgm_148_javelin_team": dict(weapon="javelin", armies=("us_army_ocp", "german_flecktarn")),
-    "fim_92_stinger_team": dict(weapon="stinger", armies=("us_army_ocp", "german_flecktarn")),
-    "eastern_air_defense_team_igla_s": dict(weapon="igla", armies=("eastern_emr",)),
-    "eastern_air_defense_team_fn_6": dict(weapon="fn6", armies=("eastern_emr",)),
-    "europe_atgm_team_akeron_mp": dict(weapon="akeron", armies=("german_flecktarn",)),
-    # A squad's machine gunner and, in the Marines' MARPAT, its machine gunner
-    # and marksman: each army's light machine gun (`ARMIES` lmg), the M110.
-    "machine_gunner": dict(weapon="lmg", armies=("us_army_ocp", "eastern_emr", "german_flecktarn")),
-    "us_marine_machine_gunner": dict(weapon="lmg", armies=("usmc_marpat",)),
-    "us_marine_marksman": dict(weapon="m110", armies=("usmc_marpat",)),
-}
+
+def army_look(army):
+    """An army's look as `Kit` reads it: its procedural shells' table with the
+    army's gloves and weapons (`armies.json`)."""
+    data = roster.armies()[army]
+    return {**PROCEDURAL_LOOKS[army], "gloves": tuple(data["gloves"]), "rifle": data["rifle"], "lmg": data["lmg"]}
+
 
 # Team weapons' lengths, world metres (the roster's equipment authoring):
 # complete unsuppressed rifles; launcher tubes loaded and packed; tripod
@@ -534,14 +505,6 @@ def tripod_equipment(kit, model, carried=False):
     kit.rig.bone_parent(empty('muzzle',Vector((-.20,-.85-length/2,bore))/SCALE,size=.02),'root')
 
 
-def source_path(unit, variant, mode, army=None):
-    """A kit's source: `<mode>_<look>.glb`, prefixed by the faction for an
-    army other than its first."""
-    armies=KITS[unit]['armies']
-    prefix='' if army is None or army==armies[0] else ARMIES[army]['faction']+'_'
-    return os.path.join(REPO,'assets/source/roster/infantry',unit,prefix+mode+'_'+variant+'.glb')
-
-
 def hold_of(unit, mode):
     """The clip family a kit's soldier is carried with: a launcher in the
     hands (the shoulder RPG, the tripod ATGM's operator) or a rifle."""
@@ -563,16 +526,16 @@ def build(unit, variant, mode, army=None):
     ground=model in ('tow','kornet')
     shoulder=model in SHOULDER and mode=='active'
     hold=hold_of(unit,mode)
-    kind='recon' if spec.get('scout') else 'rifle'
+    kind=kind_of(unit)
     rig=Rig()
     for name in ('Eyes','Eyebrows'):
         if name in bpy.data.objects: bpy.data.objects.remove(bpy.data.objects[name],do_unlink=True)
-    kit=Kit(rig,look_of(kind,variant,ARMIES.get(army)))
+    kit=Kit(rig,look_of(kind,variant,army_look(army)))
     # A look with a pinned generated body wears it (clothing, kit and head
     # in one); every other look builds its cloth shells and kit here.
-    body=generated_body.pin_of(army,variant,kind)
+    body=skin_pins.pin_where('infantry',army=army,look=variant,kind=kind)
     if body:
-        generated_body.wear(kit,body,kit.look['print'])
+        generated_body.wear(kit,body,roster.armies()[army]['cloth_mean'])
     else:
         kit.uniform();kit.boots();kit.plate_carrier();kit.molle()
         if kit.look['pack']!='none':kit.pack_straps()
@@ -666,13 +629,22 @@ def receipt(unit):
                 variants.append({'army':army,'mode':mode,'look':look,'source':os.path.relpath(path,REPO),
                                  'sha256':hashlib.sha256(data).hexdigest(),'bytes':len(data)})
     sha=lambda p:hashlib.sha256(open(p,'rb').read()).hexdigest()
+    loaded.add(os.path.join(os.path.dirname(os.path.abspath(__file__)),'armies.json'))
+    # The generated bodies its looks wore (`skin_pins`), their pinned hashes.
+    worn={p['glb']:p['sha256'] for army in spec['armies'] for look in 'abc'
+          for p in [skin_pins.pin_where('infantry',army=army,look=look,kind=kind_of(unit))] if p}
     out=os.path.join(REPO,'assets/source/roster/infantry',unit,'source-receipt.json')
     with open(out,'w') as f:
         f.write(json.dumps({
             'blender_version':bpy.app.version_string,
             'source_sha256':{os.path.relpath(p,REPO):sha(p) for p in sorted(loaded)},
             'references':f'assets/references/{unit}/references.json',
-            'authoring':'Original procedural kit on the shared Quaternius rig, built from the committed references; photos are visual reference only.',
+            'authoring':('Generated bodies (`skins`, pinned in blender/skins/) on the shared Quaternius rig, with the '
+                         'procedural weapon and fittings built from the committed references; photos are visual '
+                         'reference only.' if worn else
+                         'Original procedural kit on the shared Quaternius rig, built from the committed references; '
+                         'photos are visual reference only.'),
+            **({'skins':worn} if worn else {}),
             'variants':variants,
         },indent=2)+'\n')
     print('ROSTER_INFANTRY_RECEIPT',out)

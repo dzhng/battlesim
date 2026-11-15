@@ -47,6 +47,7 @@ import parts as P  # noqa: E402
 from catalog_frames import family_variants, roster_variant  # noqa: E402
 from parts import bare_steel, empty, finish, flat_paint, glass, reset, script_args, textured, track_steel, tyre, triangles_by_tier  # noqa: E402
 from wreckage import WRECK_ARG, burn, export_wreck, scatter  # noqa: E402
+import skin_pins  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[3]
 # Each articulation's nodes (MOUNT_NODES in packages/scene-assets/src/validate.ts).
@@ -245,8 +246,8 @@ def _receipt(path, script, variants, frames, references=None):
     loaded = (Path(m.__file__).resolve() for m in list(sys.modules.values()) if getattr(m, "__file__", None))
     sources = sorted({p for p in loaded if p.is_relative_to(REPO) and p.is_file()} | {here / "roster" / script})
     family = script.removesuffix(".py")
-    # The generated skins an airframe wore (`aircraft_skin`), their pinned hashes.
-    worn = dict(getattr(sys.modules.get("aircraft_skin"), "WORN", {}))
+    # The generated skins the export wore (`skin_pins`), their pinned hashes.
+    worn = dict(skin_pins.WORN)
     scripted = any(p.name == "build.py" for p in sources)
     (REPO / path).write_text(json.dumps({
         "blender_version": bpy.app.version_string,

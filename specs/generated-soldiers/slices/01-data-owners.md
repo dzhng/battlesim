@@ -54,7 +54,7 @@ Byte-identical refactor. Nothing anyone sees changes.
   - Python `ARMIES` keeps only what the procedural shells still read, renamed
     `PROCEDURAL_LOOKS` so it reads as the legacy owner slice 08 deletes. `KITS`
     stays in Python; it is the exporter's own matrix.
-- **`packages/scene-assets/blender/roster/infantry_roster.py`** (new, no bpy, so
+- **`packages/scene-assets/blender/infantry_roster.py`** (new, no bpy, so
   plain `python3` can import it) exposes `armies()`, `kit(name)` and
   `source_path(kit, look, mode, army)`, prefixing by army id.
   `infantry_equipment.source_path` is deleted and its callers use this.

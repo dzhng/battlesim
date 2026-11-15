@@ -22,21 +22,22 @@ subject-owned default, so inspect its usage before replacing committed art.
 
 [Infantry clip export](clips_infantry.py) builds a hold family's animation library;
 [infantry kit export](infantry_kit.py) builds bodies and equipment using that rig.
-Each roster kit ([roster equipment](roster/infantry_equipment.py) `KITS`) names its
-weapon and the armies it is built in (`ARMIES`, named as its reference variants):
-each army's uniform print ([`textures.py`](textures.py) `UNIFORMS`), helmet,
-carrier and rifle on the same rig. A kit's first army is its default look; the
-others are the appearance's faction looks.
+Each roster kit ([the infantry roster](infantry_roster.py) `KITS`) names its
+weapon and the armies it is built in. An army is data
+([`roster/armies.json`](roster/armies.json)), named as its reference variant:
+its faction, rifle, light machine gun, gloves, cloth colour and the prompts its
+generated bodies are made from. A kit's first army is its default look and
+writes `<mode>_<look>.glb`; every other army writes `<army>_<mode>_<look>.glb`.
 An army's look can instead wear a generated body
 ([`generated_body.py`](generated_body.py)). This is an image-to-3D
 generator's T-pose soldier, with its clothing, kit and head in one mesh. Each is
 paid for once and pinned in [`skins/infantry.json`](skins/infantry.json) by
-army, look and kind, with its hash, request, inputs and terms, and its files
+army, look and kind (read, like every skin pin, through [`skin_pins.py`](skin_pins.py)), with its hash, request, inputs and terms, and its files
 live in `assets/source/skins/infantry/`. A kit whose look has a pin wears it in
 place of the cloth shells. The body is fitted to the rig's rest pose, its limbs
 seated on their bones, and its weights taken from the procedural body. Our
 gloves replace its hands. It keeps the generator's texture, regraded to the
-army's print, as an atlas (`textures.ATLASES`). Everything else is built here
+army's cloth colour, as an atlas (`textures.ATLASES`). Everything else is built here
 as for any kit: the weapon, the sockets, AO, the tiers and the export.
 Clips and meshes must retain the shared skeleton contract: regenerating one does
 not regenerate the other. Shared rig, weapon and mesh-tier helpers concentrate

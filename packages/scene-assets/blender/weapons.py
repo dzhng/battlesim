@@ -204,7 +204,7 @@ def ak12(mats, name="ak12"):
     ])
 
 
-# A squad rifle per army (`roster/infantry_equipment.py` ARMIES).
+# A squad rifle per army (`roster/armies.json` rifle).
 RIFLES = {"m4a1": m4a1, "m27": m27, "g36": g36, "ak12": ak12}
 
 

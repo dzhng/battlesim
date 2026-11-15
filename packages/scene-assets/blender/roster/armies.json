@@ -1,0 +1,65 @@
+{
+  "studio": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular.",
+  "kinds": {
+    "rifle": {
+      "cue": "A small coyote assault pack on his back, its shoulder straps visible from the front, with a radio whose thin whip antenna rises above his left shoulder."
+    },
+    "recon": {
+      "cue": "A large patrol rucksack on his back, its frame and top rising above his shoulders, its shoulder straps visible from the front."
+    }
+  },
+  "armies": {
+    "us_army_ocp": {
+      "faction": "us",
+      "rifle": "m4a1",
+      "lmg": "m249",
+      "gloves": [0.06, 0.05, 0.036],
+      "cloth_mean": [0.13260956337275298, 0.11599680509527323, 0.07754403944069542],
+      "prompt": "A modern US Army soldier in OCP camouflage (Operational Camouflage Pattern: tan, olive and brown, with no white): Army Combat Uniform blouse and trousers, black knee pads, coyote-brown combat boots and gloves, a coyote-brown plate carrier with three rifle magazine pouches across the front, an ACH helmet in an OCP cover.",
+      "looks": {
+        "a": "A black night-vision mount on the front of the helmet, ballistic glasses, a medium skin tone.",
+        "b": "Loose scrim netting over the helmet, no glasses, dark skin, a sand shemagh at the neck.",
+        "c": "A plain helmet cover, ballistic glasses, fair skin."
+      }
+    },
+    "usmc_marpat": {
+      "faction": "us",
+      "rifle": "m27",
+      "lmg": "m249",
+      "gloves": [0.06, 0.05, 0.036],
+      "cloth_mean": [0.08420868722937018, 0.07643555043580062, 0.04934922318685333],
+      "prompt": "A modern US Marine in woodland MARPAT digital camouflage (small green, brown and black pixels on khaki, with no white): MCCUU blouse and trousers, coyote-brown combat boots and gloves, a coyote-brown plate carrier with magazine pouches, an ECH helmet in a woodland MARPAT cover, knee pads.",
+      "looks": {
+        "a": "A black night-vision mount on the front of the helmet, ballistic glasses, a medium skin tone.",
+        "b": "A plain helmet cover, wraparound ballistic glasses, dark skin.",
+        "c": "A plain helmet cover, no glasses, fair skin."
+      }
+    },
+    "german_flecktarn": {
+      "faction": "europe",
+      "rifle": "g36",
+      "lmg": "mg4",
+      "gloves": [0.025, 0.025, 0.021],
+      "cloth_mean": [0.08375367423685942, 0.08781684699008586, 0.04911622622604957],
+      "prompt": "A modern German Bundeswehr soldier in Flecktarn camouflage (green, brown and black spots on a yellow-green ground, with no white): field blouse and trousers, black combat boots, dark gloves, a Flecktarn plate carrier with magazine pouches, olive webbing, a helmet in a Flecktarn cover, knee pads.",
+      "looks": {
+        "a": "A black night-vision mount on the front of the helmet, no glasses, a medium skin tone.",
+        "b": "A plain helmet cover, no glasses, dark skin.",
+        "c": "A plain helmet cover, ballistic glasses, fair skin."
+      }
+    },
+    "eastern_emr": {
+      "faction": "eastern",
+      "rifle": "ak12",
+      "lmg": "pkp",
+      "gloves": [0.02, 0.02, 0.018],
+      "cloth_mean": [0.08459560749148105, 0.0917333738997422, 0.05573425059888451],
+      "prompt": "A modern Russian soldier in Ratnik EMR digital camouflage (pixelated grey-green, dark green and brown, with no white): field jacket and trousers, black boots and black gloves, a 6B45 body armour vest in EMR with its high collar, shoulder pads and groin flap, magazine pouches across the front, a 6B47 helmet in an EMR cover.",
+      "looks": {
+        "a": "A dark green balaclava covering the face except the eyes, no knee pads.",
+        "b": "A dark green balaclava covering the face except the eyes, knee pads.",
+        "c": "The face uncovered, fair skin, light stubble, knee pads."
+      }
+    }
+  }
+}
