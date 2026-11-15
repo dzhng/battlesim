@@ -27,14 +27,14 @@ export function httpLink(address: string, battle: string, browserId: string): Se
     return reply as T;
   }
   return {
-    async *records(after) {
+    async *records(after, signal = new AbortController().signal) {
       const connection = new AbortController();
-      const signal = AbortSignal.any([lifetime.signal, connection.signal]);
+      const reading = AbortSignal.any([lifetime.signal, connection.signal, signal]);
       let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
       try {
         const response = await fetch(`${base}/stream${after === null ? "" : `?after=${after}`}`, {
           headers: { "X-Player": browserId },
-          signal,
+          signal: reading,
         });
         if (!response.ok || !response.body)
           throw new StreamBroken(`Battle stream failed (${response.status})`);

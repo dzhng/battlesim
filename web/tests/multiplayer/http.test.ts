@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { PageClock } from "./pageClock";
 import { join } from "node:path";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { createBattleHttp, battleRoute } from "../../../apps/game-server/src/http/index";
@@ -382,10 +383,17 @@ test("the online client decodes a real loopback battle, survives visibility chan
   const document = new EventTarget();
   const listeners = vi.spyOn(document, "addEventListener");
   vi.stubGlobal("document", document);
+  const pageClock = new PageClock();
+  const run = async (ticks: number) => {
+    for (let i = 0; i < ticks; i++) {
+      await b.run(1);
+      await pageClock.advance(1000 / b.ready.tickHz);
+    }
+  };
   const client = createSimClient({
     side: "blue",
     transport: "remote",
-    connect: remoteConnection(pair.link),
+    connect: remoteConnection(pair.link, pageClock),
   });
   const ticks: number[] = [];
   const status: string[] = [];
@@ -395,17 +403,17 @@ test("the online client decodes a real loopback battle, survives visibility chan
     p.release();
   });
   try {
-    await b.run(3);
+    await run(3);
     const ready = await client.ready;
     expect(ready.tick).toBeGreaterThan(0);
     client.start();
     // It starts on a snapshot of its own, which a side gives at most once a
     // second: the one that described the battle to it was a moment ago.
-    await b.run(ready.tickHz + 3);
+    await run(ready.tickHz + 10);
     expect(status).toContain("running");
     const before = ticks.at(-1)!;
     document.dispatchEvent(new Event("visibilitychange"));
-    await b.run(3);
+    await run(3);
     expect(ticks.at(-1)).toBeGreaterThan(before);
     expect(listeners.mock.calls.filter(([event]) => event === "visibilitychange")).toEqual([]);
     expect(status).not.toContain("failed");

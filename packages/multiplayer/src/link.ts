@@ -12,8 +12,9 @@ export interface Seat {
 /** The page's end of one seat. */
 export interface SeatLink {
   /** One connection's records, after `after` (null: from nothing). It ends
-   *  when the connection does; `resumingReader` opens the next. */
-  records(after: number | null): AsyncIterable<StreamRecord>;
+   *  when the connection does; `resumingReader` opens the next. Aborting
+   *  discards unread records and detaches just this reader. */
+  records(after: number | null, signal?: AbortSignal): AsyncIterable<StreamRecord>;
   up(batch: UpBatch): Promise<UpReply>;
   preview(query: PreviewQuery): Promise<PreviewAnswer>;
   close(): void;
@@ -42,8 +43,11 @@ export function loopback(seat: Seat): { link: SeatLink; port: SeatPort; cut(): v
   const connections = new Set<() => void>();
   let closed = false;
 
-  async function* connection(after: number | null): AsyncGenerator<StreamRecord, void, void> {
-    if (closed || !reader) return;
+  async function* connection(
+    after: number | null,
+    signal?: AbortSignal,
+  ): AsyncGenerator<StreamRecord, void, void> {
+    if (closed || signal?.aborted || !reader) return;
     const queue: StreamRecord[] = [];
     let over = false;
     let wake: (() => void) | undefined;
@@ -52,6 +56,7 @@ export function loopback(seat: Seat): { link: SeatLink; port: SeatPort; cut(): v
       wake?.();
     };
     connections.add(drop);
+    signal?.addEventListener("abort", drop, { once: true });
     const gone = reader(after, (record) => {
       if (over) return false;
       queue.push(record);
@@ -60,7 +65,7 @@ export function loopback(seat: Seat): { link: SeatLink; port: SeatPort; cut(): v
     });
     try {
       for (;;) {
-        while (queue.length) yield queue.shift()!;
+        while (queue.length && !signal?.aborted) yield queue.shift()!;
         if (over) return;
         await new Promise<void>((resolve) => (wake = resolve));
         wake = undefined;
@@ -68,6 +73,7 @@ export function loopback(seat: Seat): { link: SeatLink; port: SeatPort; cut(): v
     } finally {
       over = true;
       connections.delete(drop);
+      signal?.removeEventListener("abort", drop);
       gone();
     }
   }

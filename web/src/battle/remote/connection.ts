@@ -15,15 +15,24 @@ import {
 } from "../../../../packages/multiplayer/src/stream/index";
 import type { SimConnection } from "../sim/client";
 import type { SimReply, SimRequest, SideName } from "../sim/protocol";
+import { playout, type Playout } from "./playout";
+import { remoteClock, type RemoteClock } from "./clock";
 
 /** A lost reply must not block later orders; a retry keeps the batch's identity. */
 const BATCH_RETRY_MS = 2000;
+/** Absorb short delivery bursts without making orders feel remote. */
+const PLAYOUT_DELAY_MS = 120;
+/** Beyond two seconds, a fresh snapshot is cheaper than playing stale battle. */
+const MAX_QUEUED_MS = 2000;
 type Preview = Extract<
   SimRequest,
   { type: "purchase_preview" | "move_preview" | "building_preview" }
 >;
 
-export function remoteConnection(link: SeatLink): SimConnection {
+export function remoteConnection(
+  link: SeatLink,
+  clock: RemoteClock = remoteClock(),
+): SimConnection {
   return (receive, fail) => {
     let closed = false;
     let initialized = false;
@@ -34,20 +43,23 @@ export function remoteConnection(link: SeatLink): SimConnection {
     let description: StreamOpen | null = null;
     // A batch's number only has to be later than every earlier one from this
     // seat, a reloaded page's included, so it counts up from the clock.
-    let seq = Date.now();
+    let seq = Math.floor(clock.now());
     const orders: UpBatch["items"] = [];
-    let flight: { batch: UpBatch; timer: ReturnType<typeof setTimeout> | null } | null = null;
+    let flight: { batch: UpBatch; cancel: (() => void) | null } | null = null;
     let preview: Preview | null = null;
     let activePreview: Preview | null = null;
-    let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
-    let wakeReconnect: (() => void) | undefined;
+    let stream: AbortController | undefined;
+    let cancelRelease: (() => void) | undefined;
+    let feed: Playout;
+    let ending: SimReply | null = null;
 
     const close = () => {
       if (closed) return;
       closed = true;
-      if (flight?.timer) clearTimeout(flight.timer);
-      clearTimeout(reconnectTimer);
-      wakeReconnect?.();
+      flight?.cancel?.();
+      cancelRelease?.();
+      stream?.abort();
+      clock.dispose();
       orders.length = 0;
       preview = null;
       link.close();
@@ -63,12 +75,12 @@ export function remoteConnection(link: SeatLink): SimConnection {
     function sendOrders() {
       if (closed || flight || !orders.length) return;
       const batch = { seq: ++seq, items: orders.splice(0) };
-      flight = { batch, timer: null };
+      flight = { batch, cancel: null };
       attempt(batch);
     }
     function attempt(batch: UpBatch) {
       if (closed || flight?.batch !== batch) return;
-      flight.timer = setTimeout(() => attempt(batch), BATCH_RETRY_MS);
+      flight.cancel = clock.schedule(() => attempt(batch), BATCH_RETRY_MS);
       // A late attempt may settle first. Only the first answer for this
       // batch is consumed; every later one is silent.
       void link.up(batch).then(
@@ -76,7 +88,7 @@ export function remoteConnection(link: SeatLink): SimConnection {
           if (closed || flight?.batch !== batch) return;
           if (reply.seq !== batch.seq)
             return failed(new Error("Order reply has the wrong batch sequence"));
-          if (flight.timer) clearTimeout(flight.timer);
+          flight.cancel?.();
           flight = null;
           if ("refused" in reply)
             for (const item of batch.items) refused("command", item.id, reply.refused);
@@ -128,21 +140,23 @@ export function remoteConnection(link: SeatLink): SimConnection {
     }
 
     /** The seat's stream as one endless sequence of records. */
-    const records = () =>
+    const records = (signal: AbortSignal) =>
       resumingReader(
         (after) => {
-          if (closed) throw new StreamBroken("connection closed");
-          return link.records(after);
+          if (closed || signal.aborted) throw new StreamBroken("connection closed");
+          return link.records(after, signal);
         },
         {
           sleep: (ms) =>
             new Promise<void>((resolve) => {
-              if (closed) return resolve();
-              wakeReconnect = resolve;
-              reconnectTimer = setTimeout(() => {
-                wakeReconnect = undefined;
+              if (closed || signal.aborted) return resolve();
+              const wake = () => {
+                cancel();
+                signal.removeEventListener("abort", wake);
                 resolve();
-              }, ms);
+              };
+              const cancel = clock.schedule(wake, ms);
+              signal.addEventListener("abort", wake, { once: true });
             }),
         },
       );
@@ -153,7 +167,8 @@ export function remoteConnection(link: SeatLink): SimConnection {
      *  page may take as long as it likes to load: until it starts, nothing
      *  of the battle is read or kept. */
     async function describe() {
-      for await (const record of records()) {
+      stream = new AbortController();
+      for await (const record of records(stream.signal)) {
         if (closed) return;
         if (record.kind === "open") description = readJson<StreamOpen>(record);
         else if (record.kind === "end")
@@ -172,42 +187,89 @@ export function remoteConnection(link: SeatLink): SimConnection {
       }
     }
 
-    /** Follow the battle from a snapshot taken now. */
+    /** Release on the battle clock, independently of stream arrival. Check the
+     *  bound before due(): fast-forwarding must never hide an oversized queue. */
+    function release() {
+      if (closed) return;
+      if (feed.queuedMs() > MAX_QUEUED_MS) {
+        feed.reset();
+        ending = null;
+        stream?.abort();
+      } else {
+        for (const reply of feed.due(clock.now())) {
+          if (closed) return;
+          if (reply === ending) {
+            for (const item of [...(flight?.batch.items ?? []), ...orders])
+              refused("command", item.id, "ended");
+            if (activePreview) dropPreview(activePreview, "ended");
+            if (preview) dropPreview(preview, "ended");
+            if (reply.type === "error") failed(new Error(reply.message));
+            else {
+              receive(reply);
+              close();
+            }
+            return;
+          }
+          receive(reply);
+        }
+      }
+      if (!closed) cancelRelease = clock.schedule(release, 1000 / description!.tickHz!);
+    }
+
+    /** Follow from a snapshot taken now. A deliberate reopen starts a new
+     *  resumingReader with no after; that reader and recordSource still own
+     *  all numbering and snapshot rules. Abort discards the old link's unread
+     *  records as well as the playout queue, even during a pending read. */
     async function follow() {
-      for await (const record of records()) {
-        if (closed) return;
-        if (record.kind === "open") {
-          // A reader that joins a running battle missed its status record.
-          const { status } = readJson<StreamOpen>(record);
-          if (status) receive({ type: "status", ...status });
-        } else if (record.kind === "publication") {
-          const buffer = record.payload.slice(24).buffer;
-          receive({
-            type: "publication",
-            side,
-            tick: tickOf(record.payload),
-            digest: new TextDecoder().decode(record.payload.subarray(4, 20)),
-            stepMs: new DataView(
-              record.payload.buffer,
-              record.payload.byteOffset,
-              record.payload.byteLength,
-            ).getFloat32(20, true),
-            buffer,
-            length: buffer.byteLength / 4,
-          });
-        } else if (record.kind === "status") {
-          const status = readJson<Extract<SimReply, { type: "status" }>>(record);
-          receive({ type: "status", status: status.status, slow: status.slow });
-        } else if (record.kind === "end") {
-          const { reason } = readJson<{ reason: string }>(record);
-          if (reason !== "finished") throw new Error(`Battle stream ended: ${reason}`);
-          for (const item of [...(flight?.batch.items ?? []), ...orders])
-            refused("command", item.id, "ended");
-          if (activePreview) dropPreview(activePreview, "ended");
-          if (preview) dropPreview(preview, "ended");
-          receive({ type: "status", status: "finished", slow: false });
-          close();
-          return;
+      feed = playout(description!.tickHz!, PLAYOUT_DELAY_MS);
+      cancelRelease = clock.schedule(release, 1000 / description!.tickHz!);
+      while (!closed) {
+        const scope = new AbortController();
+        stream = scope;
+        try {
+          for await (const record of records(scope.signal)) {
+            if (closed || scope.signal.aborted) break;
+            if (record.kind === "open") {
+              const { status } = readJson<StreamOpen>(record);
+              if (status) feed.push({ type: "status", ...status }, clock.now());
+            } else if (record.kind === "publication") {
+              const buffer = record.payload.slice(24).buffer;
+              feed.push(
+                {
+                  type: "publication",
+                  side,
+                  tick: tickOf(record.payload),
+                  digest: new TextDecoder().decode(record.payload.subarray(4, 20)),
+                  stepMs: new DataView(
+                    record.payload.buffer,
+                    record.payload.byteOffset,
+                    record.payload.byteLength,
+                  ).getFloat32(20, true),
+                  buffer,
+                  length: buffer.byteLength / 4,
+                },
+                clock.now(),
+              );
+            } else if (record.kind === "status") {
+              const status = readJson<Extract<SimReply, { type: "status" }>>(record);
+              feed.push({ type: "status", status: status.status, slow: status.slow }, clock.now());
+            } else if (record.kind === "end") {
+              const { reason } = readJson<{ reason: string }>(record);
+              ending =
+                reason === "finished"
+                  ? { type: "status", status: "finished", slow: false }
+                  : { type: "error", message: `Battle stream ended: ${reason}` };
+              feed.push(ending, clock.now());
+            }
+          }
+          // An end still waits behind earlier publications. Keep this scope
+          // alive until they drain, or an oversized backlog asks for a reopen.
+          if (!scope.signal.aborted)
+            await new Promise<void>((resolve) => {
+              scope.signal.addEventListener("abort", () => resolve(), { once: true });
+            });
+        } catch (error) {
+          if (!scope.signal.aborted) throw error;
         }
       }
     }

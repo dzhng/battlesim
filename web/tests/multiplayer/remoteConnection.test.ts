@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { timerClock } from "./timerClock";
 import { afterEach, expect, test, vi } from "vitest";
 import { loopback } from "../../../packages/multiplayer/src/link";
 import { KEYFRAME, recordSource } from "../../../packages/multiplayer/src/stream/index";
@@ -45,7 +46,7 @@ function connected() {
   });
   const replies: SimReply[] = [];
   const failures: string[] = [];
-  const channel = remoteConnection(pair.link)(
+  const channel = remoteConnection(pair.link, timerClock())(
     (reply) => replies.push(reply),
     (error) => failures.push(error),
   );
@@ -163,6 +164,7 @@ test("a batch refusal settles its own orders and the next batch can still succee
 });
 
 test("nothing of the battle is kept while the page loads; it starts on a snapshot taken then, resumes after a cut, and an end never reconnects", async () => {
+  vi.useFakeTimers();
   const c = connected();
   const payload = (tick: number) => {
     const bytes = new Uint8Array(28);
@@ -198,6 +200,7 @@ test("nothing of the battle is kept while the page loads; it starts on a snapsho
   c.source.append("publication", KEYFRAME, payload(402));
   c.source.append("publication", 0, payload(403));
   await flush();
+  await vi.advanceTimersByTimeAsync(250);
   // A battle already running says so to a page that missed it starting.
   expect(c.replies[1]).toEqual({ type: "status", status: "running", slow: false });
   expect(published()).toEqual([
@@ -208,7 +211,7 @@ test("nothing of the battle is kept while the page loads; it starts on a snapsho
   // A cut resumes where it stopped, with no new snapshot.
   c.cut();
   c.source.append("publication", 0, payload(404));
-  await new Promise((resolve) => setTimeout(resolve, 10));
+  await vi.advanceTimersByTimeAsync(200);
   expect(published().map((p) => p[1])).toEqual([402, 403, 404]);
   expect(c.keyframesAsked()).toBe(asked + 1);
   // Credits neither cause a request nor block the next publication.
@@ -216,12 +219,14 @@ test("nothing of the battle is kept while the page loads; it starts on a snapsho
   c.channel.send({ type: "credit", buffer: last.buffer });
   c.source.append("publication", 0, payload(405));
   await flush();
+  await vi.advanceTimersByTimeAsync(200);
   expect(published().map((p) => p[1])).toEqual([402, 403, 404, 405]);
 
   c.source.end("finished");
   await flush();
+  await vi.advanceTimersByTimeAsync(100);
   expect(c.replies.at(-1)).toEqual({ type: "status", status: "finished", slow: false });
-  await new Promise((resolve) => setTimeout(resolve, 20));
+  await vi.advanceTimersByTimeAsync(200);
   // One connection to learn the battle, one to follow it, one after the cut.
   expect(c.readers()).toBe(3);
   expect(c.failures).toEqual([]);
@@ -248,6 +253,7 @@ test("a page reloaded onto its seat sends batches the server takes as later than
 });
 
 test("a finished battle settles orders and previews still waiting for a reply", async () => {
+  vi.useFakeTimers();
   const c = connected();
   const payload = new Uint8Array(28);
   new DataView(payload.buffer).setUint32(0, 1, true);
@@ -261,6 +267,7 @@ test("a finished battle settles orders and previews still waiting for a reply", 
   await flush();
   c.source.end("finished");
   await flush();
+  await vi.advanceTimersByTimeAsync(100);
   expect(c.replies).toContainEqual({
     type: "request_refused",
     request: "command",

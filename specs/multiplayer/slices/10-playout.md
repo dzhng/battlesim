@@ -65,3 +65,34 @@ The delay and the bound, tuned by eye on the dev battle.
 
 If the user finds the added delay worse than the jitter, lower it; the
 research gives 100 ms as the floor others use.
+
+## As built (2026-11-15)
+
+Playout sits in the remote connection, between the stream and what the page
+receives.
+
+- **A page's publications leave one tick apart, 120 ms behind arrival.**
+  Status and end records wait their turn among the publications around
+  them. Acknowledgements and preview answers are not part of the stream and
+  are never delayed.
+- **Past two seconds of battle waiting, the page reopens its stream** with
+  no `after`, drops what it had not played, and starts again from the
+  snapshot. The bound is checked before anything is released, so a tab that
+  was frozen never plays its backlog.
+- **Releases are driven by a timer in a small worker of the connection's
+  own,** one per battle tick. A hidden tab's page timers are throttled; a
+  worker's are not, so a hidden tab keeps decoding and stays current.
+- **One clock** gives the connection its time, its release timer, its batch
+  retry and its reconnect waits, so tests drive all of them.
+- A link's `records(after, signal)` can now be abandoned mid-read: the
+  reopen needs that.
+
+Evidence, twenty ticks a second with records arriving three at a time at
+irregular intervals up to 180 ms apart: all 39 gaps between releases were
+50 ms, with every tick in order.
+
+The delay (120 ms) and the bound (2 s) are the plan's starting values. They
+have not been judged by eye: nobody has watched units move under a jittery
+network yet. That is for the user at the next playable checkpoint, and the
+slice's "Feedback that would change this" still stands.
+

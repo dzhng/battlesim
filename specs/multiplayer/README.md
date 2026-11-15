@@ -21,19 +21,19 @@ simulation test build here, with other sessions building too. Check
 `df -h .` before any Rust build or new checkout. Under about 30 GB free, run
 Rust passes one or two at a time; under 5 GB, start nothing and ask the user.
 
-**Done and committed:** slices 02 to 08, 13, 14, 20 and 24; the module of
-slice 10; the endurance half of slice 01. The branch holds staging as of
+**Done and committed:** slices 02 to 08, 10, 13, 14, 20 and 24; the
+endurance half of slice 01. The branch holds staging as of
 2026-11-15. **The first playable checkpoint is reached:** two browsers
 command opposite sides of one battle on a local server
 ([how to run it](slices/08-command-any-seat.md)).
 
 **Pick up here, in this order:**
 
-1. **Integrate slices 10, 11 and 12** (playout wired in, yours is blue, your
-   side at the bottom), handed to Codex on 2026-11-15, each in its own
-   checkout with a report in `throwaway/multiplayer/` there. 11 and 12
-   change what a Red commander sees: look at the pictures, get an unprimed
-   critique, and show the user.
+1. **Integrate slices 11 and 12** (yours is blue, your side at the
+   bottom), handed to Codex on 2026-11-15, each in its own checkout with a
+   report in `throwaway/multiplayer/` there. Both change what a Red
+   commander sees: look at the pictures, get an unprimed critique, and show
+   the user.
 2. **Slice 09** (identity, build check, deploy) deploys to the temporary
    host, which is outward-facing: ask the user before deploying. Its code
    can be built and tested locally first.
@@ -98,7 +98,7 @@ Foundation
 - [x] [07 HTTP transport](slices/07-http-transport.md)
 - [x] [08 Command any seat](slices/08-command-any-seat.md) (first playable checkpoint)
 - [ ] [09 Identity, build check, deploy](slices/09-identity-build-deploy.md)
-- [ ] [10 Playout](slices/10-playout.md) (the module is built; wiring it in waits for 07 and 08)
+- [x] [10 Playout](slices/10-playout.md) (the delay and bound are untuned: nobody has watched it under a jittery network)
 - [ ] [11 Yours is blue](slices/11-yours-is-blue.md)
 - [ ] [12 Your side at the bottom](slices/12-your-side-at-the-bottom.md)
 - [x] [13 Native and WebAssembly parity](slices/13-native-wasm-parity.md) (the two builds agree; nothing to fix)
