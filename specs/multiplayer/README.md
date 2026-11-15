@@ -1,6 +1,6 @@
 # Multiplayer: rooms and Frontline
 
-**Status:** building. Five slices are in; the rest wait on disk space for a Rust build. **Updated:** 2026-11-14.
+**Status:** building. Rooms and the Frontline server are in; the Frontline page (slice 26) is with Codex; deploying waits on the user. **Updated:** 2026-11-15.
 
 Two online modes on one game server. **Rooms:** a host creates a public or
 private room, which is the skirmish lobby with several humans on either side,
@@ -23,7 +23,10 @@ Rust passes one or two at a time; under 5 GB, start nothing and ask the user.
 
 **Done and committed:** slices 02 to 08, 10 to 18 and 20 to 25, and the
 local half of 09; the endurance half of slice 01. The branch holds staging
-as of 2026-11-15. **Rooms work end to end on a local server:** two browsers
+as of the morning of 2026-11-15; staging has since gained about 80 commits
+(the battle-growth renderer work), which merge without conflict. Merge them
+after slice 26 is in and before the closeout's full run, not under a pass
+that is taking pictures. **Rooms work end to end on a local server:** two browsers
 create a room, start its battle, survive a drop and finish
 ([how to run it](slices/18-room-battle.md)).
 
