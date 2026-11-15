@@ -44505,7 +44505,7 @@
       "lifetime_s": null,
       "magazine": {
         "burst": null,
-        "rounds": 4,
+        "rounds": 8,
         "shot_interval_s": 0.08
       },
       "min_range_m": 0.0,

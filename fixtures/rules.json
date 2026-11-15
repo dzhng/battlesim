@@ -616,7 +616,7 @@
       "suppression_radius_m": 24,
       "blast_radius_m": 18,
       "structural_damage": 35,
-      "magazine": { "rounds": 4, "shot_interval_s": 0.08 }
+      "magazine": { "rounds": 8, "shot_interval_s": 0.08 }
     },
     "air_ground_missile": {
       "appearance": "atgm",
