@@ -129,6 +129,16 @@ the one list of deliberate hard-coded rules:
 2. Run the owning package or scene checks when the slice is coherent.
 3. Run the full repository closeout checks once the spec is complete.
 
+**Never run the whole suite (a workspace-wide test command) short of step 3.**
+Run only the tests of the domain you changed. A change in one crate is proven
+by that crate's tests, not by every package that depends on it: the sim owns
+outcomes and pins its own digests and replays, so the observers (the client,
+presentation, renderer) have nothing new to say about a sim change. The whole
+suite needs nearly all of the LFS assets, which no checkout should fetch unless
+it really needs them, and it fills the disk with builds of crates you never
+touched. A test outside your domain that refuses an LFS pointer is a missing
+asset, not a failure: don't fetch assets to chase it.
+
 Played battles, browser scenes, and the balance report are the expensive runs.
 Rendering, UI, sound, and docs need no battle. A rule change needs a quick
 sample while iterating, and the full balance report runs once, at closeout.
