@@ -113,6 +113,7 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
     let pass_before = unit.air.as_ref().and_then(|air| air.pass);
     let task = orders::task(
         unit,
+        ctx.rules,
         ctx.knowledge[unit.side.index()],
         ctx.arsenal,
         pass_before.as_ref(),

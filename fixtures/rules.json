@@ -593,7 +593,7 @@
       "damage": 140,
       "near_miss_suppression": 0.3,
       "suppression_radius_m": 18,
-      "blast_radius_m": 14,
+      "blast_radius_m": 28,
       "structural_damage": 80
     },
     "air_bomb_cluster": {
@@ -614,7 +614,7 @@
       "damage": 70,
       "near_miss_suppression": 0.45,
       "suppression_radius_m": 24,
-      "blast_radius_m": 9,
+      "blast_radius_m": 18,
       "structural_damage": 35,
       "magazine": { "rounds": 4, "shot_interval_s": 0.08 }
     },

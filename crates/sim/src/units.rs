@@ -543,6 +543,17 @@ impl Unit {
         rules.catalog.get(self.kind)
     }
 
+    /// Whether it holds its offensive fire for want of an order: its type
+    /// attacks only on order (`attacks_only_on_order`) and its current order
+    /// is no attack or attack-move.
+    pub fn awaits_attack_order(&self, rules: &Rules) -> bool {
+        self.unit_type(rules).capabilities.attacks_only_on_order
+            && !matches!(
+                self.orders.front(),
+                Some(UnitOrder::Attack { .. } | UnitOrder::AttackMove(_))
+            )
+    }
+
     /// The size of the area a contact this unit causes covers: the fixture's
     /// factor over its type's footprint radius, from the catalog alone (a
     /// hull's half-diagonal, or half a full squad's spread plus a soldier's

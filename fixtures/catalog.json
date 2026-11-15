@@ -8218,6 +8218,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -8232,8 +8233,8 @@
             "air": {
               "arrival": {
                 "delay_s": [
-                  15.0,
-                  30.0
+                  8.0,
+                  12.0
                 ]
               },
               "climb_mps": 30.0,
@@ -8355,6 +8356,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -8369,8 +8371,8 @@
             "air": {
               "arrival": {
                 "delay_s": [
-                  15.0,
-                  30.0
+                  8.0,
+                  12.0
                 ]
               },
               "climb_mps": 30.0,
@@ -9061,6 +9063,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -9075,8 +9078,8 @@
             "air": {
               "arrival": {
                 "delay_s": [
-                  15.0,
-                  30.0
+                  8.0,
+                  12.0
                 ]
               },
               "climb_mps": 30.0,
@@ -9219,6 +9222,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -9233,8 +9237,8 @@
             "air": {
               "arrival": {
                 "delay_s": [
-                  15.0,
-                  30.0
+                  8.0,
+                  12.0
                 ]
               },
               "climb_mps": 30.0,
@@ -10022,6 +10026,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -10036,8 +10041,8 @@
             "air": {
               "arrival": {
                 "delay_s": [
-                  15.0,
-                  30.0
+                  8.0,
+                  12.0
                 ]
               },
               "climb_mps": 30.0,
@@ -10159,6 +10164,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -10173,8 +10179,8 @@
             "air": {
               "arrival": {
                 "delay_s": [
-                  15.0,
-                  30.0
+                  8.0,
+                  12.0
                 ]
               },
               "climb_mps": 30.0,
@@ -10317,6 +10323,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -10331,8 +10338,8 @@
             "air": {
               "arrival": {
                 "delay_s": [
-                  15.0,
-                  30.0
+                  8.0,
+                  12.0
                 ]
               },
               "climb_mps": 30.0,
@@ -10454,6 +10461,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -10471,8 +10479,8 @@
             "air": {
               "arrival": {
                 "delay_s": [
-                  15.0,
-                  30.0
+                  8.0,
+                  12.0
                 ]
               },
               "climb_mps": 30.0,
@@ -10594,6 +10602,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -10608,8 +10617,8 @@
             "air": {
               "arrival": {
                 "delay_s": [
-                  15.0,
-                  30.0
+                  8.0,
+                  12.0
                 ]
               },
               "climb_mps": 30.0,
@@ -10752,6 +10761,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -10766,8 +10776,8 @@
             "air": {
               "arrival": {
                 "delay_s": [
-                  15.0,
-                  30.0
+                  8.0,
+                  12.0
                 ]
               },
               "climb_mps": 30.0,
@@ -14323,6 +14333,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -14337,8 +14348,8 @@
             "air": {
               "arrival": {
                 "delay_s": [
-                  15.0,
-                  30.0
+                  8.0,
+                  12.0
                 ]
               },
               "climb_mps": 30.0,
@@ -14741,6 +14752,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -14755,8 +14767,8 @@
             "air": {
               "arrival": {
                 "delay_s": [
-                  15.0,
-                  30.0
+                  8.0,
+                  12.0
                 ]
               },
               "climb_mps": 30.0,
@@ -15848,6 +15860,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -15862,8 +15875,8 @@
             "air": {
               "arrival": {
                 "delay_s": [
-                  15.0,
-                  30.0
+                  8.0,
+                  12.0
                 ]
               },
               "climb_mps": 30.0,
@@ -16433,6 +16446,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -16447,8 +16461,8 @@
             "air": {
               "arrival": {
                 "delay_s": [
-                  15.0,
-                  30.0
+                  8.0,
+                  12.0
                 ]
               },
               "climb_mps": 30.0,
@@ -16683,6 +16697,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -16700,8 +16715,8 @@
             "air": {
               "arrival": {
                 "delay_s": [
-                  15.0,
-                  30.0
+                  8.0,
+                  12.0
                 ]
               },
               "climb_mps": 30.0,
@@ -16823,6 +16838,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -16837,8 +16853,8 @@
             "air": {
               "arrival": {
                 "delay_s": [
-                  15.0,
-                  30.0
+                  8.0,
+                  12.0
                 ]
               },
               "climb_mps": 30.0,
@@ -17154,6 +17170,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -17168,8 +17185,8 @@
             "air": {
               "arrival": {
                 "delay_s": [
-                  15.0,
-                  30.0
+                  8.0,
+                  12.0
                 ]
               },
               "climb_mps": 30.0,
@@ -17313,6 +17330,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -17327,8 +17345,8 @@
             "air": {
               "arrival": {
                 "delay_s": [
-                  15.0,
-                  30.0
+                  8.0,
+                  12.0
                 ]
               },
               "climb_mps": 30.0,
@@ -17627,6 +17645,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -17641,8 +17660,8 @@
             "air": {
               "arrival": {
                 "delay_s": [
-                  15.0,
-                  30.0
+                  8.0,
+                  12.0
                 ]
               },
               "climb_mps": 30.0,
@@ -18454,6 +18473,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -18471,8 +18491,8 @@
             "air": {
               "arrival": {
                 "delay_s": [
-                  15.0,
-                  30.0
+                  8.0,
+                  12.0
                 ]
               },
               "climb_mps": 30.0,
@@ -18594,6 +18614,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -18608,8 +18629,8 @@
             "air": {
               "arrival": {
                 "delay_s": [
-                  15.0,
-                  30.0
+                  8.0,
+                  12.0
                 ]
               },
               "climb_mps": 30.0,
@@ -18752,6 +18773,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -18766,8 +18788,8 @@
             "air": {
               "arrival": {
                 "delay_s": [
-                  15.0,
-                  30.0
+                  8.0,
+                  12.0
                 ]
               },
               "climb_mps": 30.0,
@@ -18889,6 +18911,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -18903,8 +18926,8 @@
             "air": {
               "arrival": {
                 "delay_s": [
-                  15.0,
-                  30.0
+                  8.0,
+                  12.0
                 ]
               },
               "climb_mps": 30.0,
@@ -19026,6 +19049,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -19040,8 +19064,8 @@
             "air": {
               "arrival": {
                 "delay_s": [
-                  15.0,
-                  30.0
+                  8.0,
+                  12.0
                 ]
               },
               "climb_mps": 30.0,
@@ -19184,6 +19208,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -19198,8 +19223,8 @@
             "air": {
               "arrival": {
                 "delay_s": [
-                  15.0,
-                  30.0
+                  8.0,
+                  12.0
                 ]
               },
               "climb_mps": 30.0,
@@ -28308,6 +28333,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -28323,8 +28349,8 @@
         "air": {
           "arrival": {
             "delay_s": [
-              15.0,
-              30.0
+              8.0,
+              12.0
             ]
           },
           "climb_mps": 30.0,
@@ -28449,6 +28475,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -28464,8 +28491,8 @@
         "air": {
           "arrival": {
             "delay_s": [
-              15.0,
-              30.0
+              8.0,
+              12.0
             ]
           },
           "climb_mps": 30.0,
@@ -29267,6 +29294,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -29282,8 +29310,8 @@
         "air": {
           "arrival": {
             "delay_s": [
-              15.0,
-              30.0
+              8.0,
+              12.0
             ]
           },
           "climb_mps": 30.0,
@@ -29430,6 +29458,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -29445,8 +29474,8 @@
         "air": {
           "arrival": {
             "delay_s": [
-              15.0,
-              30.0
+              8.0,
+              12.0
             ]
           },
           "climb_mps": 30.0,
@@ -30561,6 +30590,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -30576,8 +30606,8 @@
         "air": {
           "arrival": {
             "delay_s": [
-              15.0,
-              30.0
+              8.0,
+              12.0
             ]
           },
           "climb_mps": 30.0,
@@ -30702,6 +30732,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -30717,8 +30748,8 @@
         "air": {
           "arrival": {
             "delay_s": [
-              15.0,
-              30.0
+              8.0,
+              12.0
             ]
           },
           "climb_mps": 30.0,
@@ -30865,6 +30896,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -30880,8 +30912,8 @@
         "air": {
           "arrival": {
             "delay_s": [
-              15.0,
-              30.0
+              8.0,
+              12.0
             ]
           },
           "climb_mps": 30.0,
@@ -31006,6 +31038,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -31024,8 +31057,8 @@
         "air": {
           "arrival": {
             "delay_s": [
-              15.0,
-              30.0
+              8.0,
+              12.0
             ]
           },
           "climb_mps": 30.0,
@@ -31150,6 +31183,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -31165,8 +31199,8 @@
         "air": {
           "arrival": {
             "delay_s": [
-              15.0,
-              30.0
+              8.0,
+              12.0
             ]
           },
           "climb_mps": 30.0,
@@ -31313,6 +31347,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -31328,8 +31363,8 @@
         "air": {
           "arrival": {
             "delay_s": [
-              15.0,
-              30.0
+              8.0,
+              12.0
             ]
           },
           "climb_mps": 30.0,
@@ -35056,6 +35091,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -35071,8 +35107,8 @@
         "air": {
           "arrival": {
             "delay_s": [
-              15.0,
-              30.0
+              8.0,
+              12.0
             ]
           },
           "climb_mps": 30.0,
@@ -35487,6 +35523,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -35502,8 +35539,8 @@
         "air": {
           "arrival": {
             "delay_s": [
-              15.0,
-              30.0
+              8.0,
+              12.0
             ]
           },
           "climb_mps": 30.0,
@@ -36718,6 +36755,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -36733,8 +36771,8 @@
         "air": {
           "arrival": {
             "delay_s": [
-              15.0,
-              30.0
+              8.0,
+              12.0
             ]
           },
           "climb_mps": 30.0,
@@ -37321,6 +37359,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -37336,8 +37375,8 @@
         "air": {
           "arrival": {
             "delay_s": [
-              15.0,
-              30.0
+              8.0,
+              12.0
             ]
           },
           "climb_mps": 30.0,
@@ -37592,6 +37631,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -37610,8 +37650,8 @@
         "air": {
           "arrival": {
             "delay_s": [
-              15.0,
-              30.0
+              8.0,
+              12.0
             ]
           },
           "climb_mps": 30.0,
@@ -37736,6 +37776,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -37751,8 +37792,8 @@
         "air": {
           "arrival": {
             "delay_s": [
-              15.0,
-              30.0
+              8.0,
+              12.0
             ]
           },
           "climb_mps": 30.0,
@@ -38077,6 +38118,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -38092,8 +38134,8 @@
         "air": {
           "arrival": {
             "delay_s": [
-              15.0,
-              30.0
+              8.0,
+              12.0
             ]
           },
           "climb_mps": 30.0,
@@ -38241,6 +38283,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -38256,8 +38299,8 @@
         "air": {
           "arrival": {
             "delay_s": [
-              15.0,
-              30.0
+              8.0,
+              12.0
             ]
           },
           "climb_mps": 30.0,
@@ -38799,6 +38842,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -38814,8 +38858,8 @@
         "air": {
           "arrival": {
             "delay_s": [
-              15.0,
-              30.0
+              8.0,
+              12.0
             ]
           },
           "climb_mps": 30.0,
@@ -39773,6 +39817,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -39791,8 +39836,8 @@
         "air": {
           "arrival": {
             "delay_s": [
-              15.0,
-              30.0
+              8.0,
+              12.0
             ]
           },
           "climb_mps": 30.0,
@@ -39917,6 +39962,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -39932,8 +39978,8 @@
         "air": {
           "arrival": {
             "delay_s": [
-              15.0,
-              30.0
+              8.0,
+              12.0
             ]
           },
           "climb_mps": 30.0,
@@ -40080,6 +40126,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -40095,8 +40142,8 @@
         "air": {
           "arrival": {
             "delay_s": [
-              15.0,
-              30.0
+              8.0,
+              12.0
             ]
           },
           "climb_mps": 30.0,
@@ -40221,6 +40268,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -40236,8 +40284,8 @@
         "air": {
           "arrival": {
             "delay_s": [
-              15.0,
-              30.0
+              8.0,
+              12.0
             ]
           },
           "climb_mps": 30.0,
@@ -40362,6 +40410,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -40377,8 +40426,8 @@
         "air": {
           "arrival": {
             "delay_s": [
-              15.0,
-              30.0
+              8.0,
+              12.0
             ]
           },
           "climb_mps": 30.0,
@@ -40525,6 +40574,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -40540,8 +40590,8 @@
         "air": {
           "arrival": {
             "delay_s": [
-              15.0,
-              30.0
+              8.0,
+              12.0
             ]
           },
           "climb_mps": 30.0,
@@ -44426,7 +44476,7 @@
       "anti_radiation": false,
       "appearance": "bomb",
       "armor_piercing": false,
-      "blast_radius_m": 14.0,
+      "blast_radius_m": 28.0,
       "damage": 140.0,
       "decoyable": false,
       "default": false,
@@ -44482,7 +44532,7 @@
       "anti_radiation": false,
       "appearance": "bomb",
       "armor_piercing": false,
-      "blast_radius_m": 9.0,
+      "blast_radius_m": 18.0,
       "damage": 70.0,
       "decoyable": false,
       "default": false,

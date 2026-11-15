@@ -45,8 +45,8 @@
           "flight": "fixed_wing",
           "arrival": {
             "delay_s": [
-              15,
-              30
+              8,
+              12
             ]
           }
         }
@@ -67,6 +67,7 @@
         "loudness_m": 1400
       },
       "capabilities": {
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3
