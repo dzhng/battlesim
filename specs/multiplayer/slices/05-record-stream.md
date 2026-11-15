@@ -19,32 +19,50 @@ Node:
 function encodeRecord(r: StreamRecord): Uint8Array;
 function recordDecoder(): { push(chunk: Uint8Array): StreamRecord[] };
 function recordRing(limitBytes: number): {
-  append(kind: RecordKind, flags: number, payload: Uint8Array): number;   // returns the id
-  since(after: number | null): StreamRecord[] | "gap";
+  append(kind: RecordKind, flags: number, payload: Uint8Array): StreamRecord;
+  since(after: number): StreamRecord[] | "gap";
 };
+// One stream's producer end: the ring, the live readers and the resume rule.
+function recordSource(
+  limitBytes: number,
+  describe: () => Omit<StreamOpen, "resume">,   // what `open` says besides the mode
+  requestKeyframe: () => void,                   // a reader needs one
+): {
+  append(kind: RecordKind, flags: number, payload: Uint8Array): number;
+  attach(after: number | null, deliver: (record: StreamRecord) => boolean): () => void;
+  end(reason: string): void;
+};
+// One endless stream out of many connections.
 function resumingReader(
-  open: (after: number | null) => AsyncIterable<Uint8Array>, clock: Clock,
-): AsyncIterable<StreamRecord>;                // reconnects, never repeats or skips an id
+  open: (after: number | null) => AsyncIterable<StreamRecord>, clock: Clock,
+): AsyncGenerator<StreamRecord>;
 
 // link.ts: what a transport implements
+interface Seat { side: "blue" | "red"; player: string }
 interface SeatLink {            // the page's end
-  records(after: number | null): AsyncIterable<StreamRecord>;
+  records(after: number | null): AsyncIterable<StreamRecord>;   // one connection
   up(batch: UpBatch): Promise<UpReply>;
   preview(query: PreviewQuery): Promise<PreviewAnswer>;
   close(): void;
 }
 interface SeatPort {            // the server's end
-  side: "blue" | "red"; player: string;
-  deliver(record: StreamRecord): boolean;      // false: the reader is behind
+  seat: Seat;                   // the transport's word, never a request's
+  onReader(handle: (after: number | null,
+                    deliver: (record: StreamRecord) => boolean) => () => void): void;
   onUp(handle: (batch: UpBatch) => Promise<UpReply>): void;
   onPreview(handle: (query: PreviewQuery) => Promise<PreviewAnswer>): void;
-  onGone(handle: () => void): void;
 }
-function loopback(): { link: SeatLink; port: SeatPort };
+function loopback(seat: Seat): { link: SeatLink; port: SeatPort; cut(): void };
 ```
 
-`loopback` joins a link to a port in memory. Tests use it, and it is the
-model a WebSocket transport would follow later.
+`loopback` joins a link to a port in memory, and `cut` drops its open
+connections as a network would. Tests use it, and it is the model a
+WebSocket transport would follow later.
+
+The resume rule has one owner, `recordSource`. A transport carries `after`
+to the port and records back; it keeps no history of its own. A reader's
+stream opening and closing is what `onReader` and its returned function
+report, so nothing else needs to be told that a reader has gone.
 
 ## Run or see
 
@@ -59,7 +77,12 @@ No network and no real timers:
 - A reader cut after any record resumes with no record lost and none
   repeated.
 - An id the ring has dropped yields `"gap"`.
-- A reader that reconnects after a gap sees `open` with `keyframe`.
+- A reader that reconnects after a gap sees `open` with `keyframe`, and then
+  nothing until the next keyframe.
+- A reader that can take no more is dropped without holding the others up.
+- An `end` record stops the reader, and a reader that opens later hears it.
+- The reader reconnects at once after progress and backs off while nothing
+  arrives.
 - A loopback round trip carries a batch up and its reply back.
 
 ## Must stay green

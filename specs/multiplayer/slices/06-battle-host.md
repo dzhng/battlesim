@@ -31,10 +31,14 @@ function createBattleHost(spec: BattleSpec, run: "thread" | "inline", data: Setu
 - The host starts the battle at once (P8), lists both sides, returns every
   publication buffer the moment it has copied the record into that side's
   ring, and never sends `pause` or `hidden`.
-- A port whose `after` is a gap, or a new port, asks for that side's resync,
-  at most once a second per side.
-- A port's seat is stamped from the port: the host calls the authority with
-  the port's side and player, whatever the batch claims.
+- Each side has one `recordSource` (slice 05). A port's `onReader` attaches
+  to its side's source, which owns the ring and the resume rule; the source's
+  request for a keyframe is that side's resync, at most once a second per
+  side. A publication that opens a new epoch is flagged as the keyframe.
+- A port's seat is stamped from the port: the host gives the authority the
+  port's side and player with each order, whatever the batch claims. The
+  authority's `command` request therefore names its seat when a host serves
+  more than one (see "For slice 06" in [slice 02](02-per-side-publisher.md)).
 - The host changes a seat's controller only when told to, through
   `setController`. It reports a port going away and times nothing: deciding
   that a player is gone belongs to the presence module (slice 15).

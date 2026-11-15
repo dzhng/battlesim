@@ -64,8 +64,9 @@ u32 payloadBytes | u32 id | u8 kind | u8 flags | u16 0 | payload
 
 `flags` bit 0 marks a keyframe: a publication that is a full snapshot.
 
-Ids count up by one per stream source (one battle side, one room, the room
-list). Chunk boundaries mean nothing: a decoder must accept any split.
+Ids count up from 1 per stream source (one battle side, one room, the room
+list). `open` and `end` records are not numbered: their id is 0. Chunk
+boundaries mean nothing: a decoder must accept any split.
 
 ```ts
 type StreamOpen = {
@@ -80,10 +81,17 @@ The reader reconnects with `?after=<last id it handled>`.
 
 - **The id is still in the ring:** `open` says `continued`, and the records
   after that id follow. Nothing is repeated and nothing is skipped.
-- **It is not, or there is no `after`:** the side's publisher is resynced, and
-  `open` says `keyframe`. The next publication is a full snapshot, flagged, and
-  every reader on that side receives it in line. A side is resynced at most
-  once a second.
+- **It is not, or there is no `after`:** `open` says `keyframe` and the side's
+  publisher is asked to resync. That reader is sent nothing until the next
+  record flagged as a keyframe, which is the full snapshot; every reader
+  already on that side receives the same snapshot in line. After `keyframe`
+  the reader's numbering starts afresh from whatever comes next. A side is
+  resynced at most once a second.
+- **An id that is not the next one, without `keyframe`,** is the server
+  breaking this rule. The reader fails; it does not reconnect.
+- **An `end` record** is the last: the reader stops and does not reconnect.
+  Until then a reader reconnects at once after a connection that delivered
+  something, and backs off while connections deliver nothing.
 
 State streams need no ring: on any open the server sends the current state.
 

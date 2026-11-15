@@ -182,3 +182,11 @@ those first.
 ## Part 4: decided while building
 
 Append here: the slice, the decision, why, and what it replaced.
+
+| Slice | Decision | Why, and what it replaced |
+|---|---|---|
+| 05 | The resume rule has one owner, `recordSource`: it holds the ring and the live readers, and decides between continuing and a keyframe. A transport hands it a reader's `after` through `SeatPort.onReader` and keeps no history. | The first seat link gave the server no way to learn where a reader had got to, so the in-memory test link replayed a history of its own: a second resume rule that the real transport would not share. |
+| 05 | `open` and `end` records are unnumbered (id 0). After an `open` that says `keyframe`, a reader's numbering starts afresh with the next record. | The plan did not say. Numbering them would make every reconnect look like a gap. |
+| 05 | A reader waiting for a keyframe is sent nothing until one arrives. | Deltas before the snapshot cannot be applied, and the page fails on one. |
+| 05 | The reader reconnects at once after a connection that delivered something, and waits 250 ms, then 1 s, then 4 s while connections deliver nothing. | A fixed one-second wait would have stalled every player for a second at each of the host's five-minute cuts. |
+| 05 | An id that is not the next one, without `keyframe`, fails the reader instead of reconnecting. | It is the server breaking its own rule; reconnecting would loop. |

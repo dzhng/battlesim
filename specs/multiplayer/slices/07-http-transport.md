@@ -12,7 +12,8 @@ A WebSocket later replaces the two files this slice adds and nothing else.
 ## Seam
 
 - **`apps/game-server/src/http/`** (new): the only server code that imports
-  `node:http`. It turns requests into `SeatPort`s and serves the endpoints in
+  `node:http`. It keeps one `SeatPort` per seat, calls its reader handler
+  for each stream request, and serves the endpoints in
   [wire.md](../wire.md) that exist so far: the battle stream, `up` and
   `preview`. It sets the headers wire.md lists on every response, answers
   the cross-origin preflight, watches `writableLength` and closes a socket
