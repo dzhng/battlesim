@@ -226,7 +226,7 @@ function GroundInspector({ scenario, seed, camera, legend, extra }: InspectorPro
     });
   const observeAs = (next: SideName) => {
     setSide(next);
-    client?.observeAs(next);
+    sim.local?.observeAs(next);
   };
 
   // Lab-only probes for the scene harness; rebuilt each render.

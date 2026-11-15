@@ -1,6 +1,6 @@
 // What a battle session (`useBattleSession`) is handed, and the rules its
 // views read.
-import type { PreparedConnectionSession } from "@web/battle/prepare/client";
+import type { BattleConnectionSession } from "@web/battle/prepare/client";
 import type { SoldierBody } from "@packages/battle-renderer/src/picking";
 import type { ResolvedRules } from "@web/battle/catalog/compose";
 import type { PanelRules } from "@web/battle/present/panelRows";
@@ -14,7 +14,7 @@ export interface BattleSessionOptions {
   /** The scenario JSON the authority runs. */
   scenario: string;
   seed: number;
-  prepared?: PreparedConnectionSession;
+  prepared?: BattleConnectionSession;
   /** Called for every decoded frame, before its credit returns. */
   onDecoded?: (o: ObservationView, digest: string) => void;
   /** A recorded battle to replay: input is off. */

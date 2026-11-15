@@ -72,11 +72,13 @@ const questions = {
 
 export function PauseMenu({
   onClose,
+  online = false,
   onRestart,
   onSettingsApply,
   children,
 }: {
   onClose: () => void;
+  online?: boolean;
   /** Restart the battle from its seed; none where a run can't restart. */
   onRestart?: () => void;
   onSettingsApply?: () => void | Promise<void>;
@@ -108,7 +110,7 @@ export function PauseMenu({
           className="hud-panel hud-menu"
           role="dialog"
           aria-modal="true"
-          aria-label={question ? question.title : "Paused"}
+          aria-label={question ? question.title : online ? "Menu" : "Paused"}
           aria-hidden={tutorialOpen || settingsOpen || undefined}
           inert={tutorialOpen || settingsOpen || undefined}
         >
@@ -136,9 +138,9 @@ export function PauseMenu({
             </>
           ) : (
             <>
-              <strong className="hud-menu-title">Paused</strong>
+              <strong className="hud-menu-title">{online ? "Menu" : "Paused"}</strong>
               <button type="button" className="hud-menu-item" onClick={onClose} autoFocus>
-                Resume
+                {online ? "Back to battle" : "Resume"}
               </button>
               <button type="button" className="hud-menu-item" onClick={() => setTutorialOpen(true)}>
                 Tutorial

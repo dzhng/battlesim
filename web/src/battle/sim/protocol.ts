@@ -159,6 +159,7 @@ export type AuthorityStatus =
   | "disposed";
 
 export type SimRequest =
+  | { type: "connect"; side: SideName }
   | {
       type: "init";
       scenario: string;

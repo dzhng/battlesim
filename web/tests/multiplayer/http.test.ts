@@ -383,8 +383,6 @@ test("the online client decodes a real loopback battle, survives visibility chan
   const listeners = vi.spyOn(document, "addEventListener");
   vi.stubGlobal("document", document);
   const client = createSimClient({
-    scenario: "{}",
-    seed: 1,
     side: "blue",
     transport: "remote",
     connect: remoteConnection(pair.link),

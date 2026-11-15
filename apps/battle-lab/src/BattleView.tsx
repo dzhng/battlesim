@@ -8,7 +8,7 @@ import {
 // command bar, subtitles, and the pause menu. Routes compose it with their
 // own readout (a battle's clock, a lab's telemetry) and
 // pause menu items (the scenario, replays, a lab's switches).
-import type { PreparedConnectionSession } from "@web/battle/prepare/client";
+import type { BattleConnectionSession } from "@web/battle/prepare/client";
 import type { ObservationView } from "@web/battle/sim/observationView";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { contactFocusTargets } from "@web/battle/input/contactFocus";
@@ -74,7 +74,7 @@ export function BattleView({
   /** The scenario JSON the authority runs; the view draws its map. */
   scenario: string;
   seed: number;
-  prepared?: PreparedConnectionSession;
+  prepared?: BattleConnectionSession;
   /** Uploaded resolved sandbox bundles can narrow art to their fielded map. */
   scenarioArt?: boolean;
   /** Player issuing commands in a player-owned scenario; null when the
@@ -144,7 +144,7 @@ export function BattleView({
   const rulerLabels = useRef<RangeRulerLabelsHandle>(null);
   const objectiveMarkers = useRef<ObjectiveMarkersHandle>(null);
   const { clear: clearCues } = cues;
-  const pause = usePauseMenu(sim.client, menuOpen, setMenuOpen);
+  const pause = usePauseMenu(sim.local, menuOpen, setMenuOpen);
   const graphics = useSyncExternalStore(graphicsSettings.subscribe, graphicsSettings.get);
   const quality =
     testQualityProfile(window.location.search) ??
@@ -291,9 +291,10 @@ export function BattleView({
       {!sim.error && loadStage !== "playable" && cover}
       {pause.open && (
         <PauseMenu
+          online={!!prepared && "transport" in prepared}
           onClose={() => pause.show(false)}
           onRestart={
-            scripted?.pilot
+            !sim.local || scripted?.pilot
               ? undefined
               : () => {
                   pause.show(false);

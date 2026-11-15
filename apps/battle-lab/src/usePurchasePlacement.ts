@@ -3,12 +3,12 @@
 // or cancel. A new battle drops all of it.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PurchasePlacementControl, type PurchaseGhost } from "@web/battle/input/purchasePlacement";
-import type { SimClient } from "@web/battle/sim/client";
+import type { OnlineSimClient } from "@web/battle/sim/client";
 import type { LabPick } from "./LabViewport";
 
 type Send = Parameters<PurchasePlacementControl["confirm"]>[0];
 
-export function usePurchasePlacement(client: SimClient | null) {
+export function usePurchasePlacement(client: OnlineSimClient | null) {
   const [placement] = useState(() => new PurchasePlacementControl());
   /** The chosen reinforcement must be requested before the cursor asks the
    *  presentation to draw its ghost.  Keep this in React state so the art

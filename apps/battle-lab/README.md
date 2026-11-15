@@ -88,6 +88,11 @@ pilot slides each framing so its subject plays in the open screen beside it. The
 film's camera is the player's rig reaching in as close as the reels' closest
 framing, so a shot in a narrow street may stand nearer than a player may zoom.
 
+[Online battle pages](src/routes/onlineBattle.tsx) prepare the map locally and
+check its hash before opening any server stream. Their session takes only seat
+actions; local authority controls stay with offline battles. The
+[game server](../game-server/README.md) owns local startup and dev seating.
+
 [The shared battle view](src/BattleView.tsx) composes page resources and observation
 feeds. [Session ownership](src/useBattleSession.ts) keeps worker preparation and
 cleanup tied to that page. A session also owns its unit catalog: [the router](src/router.tsx)

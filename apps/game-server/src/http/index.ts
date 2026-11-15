@@ -1,7 +1,11 @@
 // HTTP owns credentials and sockets. The battle only sees the seat's port;
 // recordSource owns all history and the decision to resume or resync.
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import type { PreviewQuery, UpBatch } from "../../../../packages/multiplayer/src/wire.ts";
+import type {
+  BattleTicket,
+  PreviewQuery,
+  UpBatch,
+} from "../../../../packages/multiplayer/src/wire.ts";
 import { isBatch, isPreview } from "./input.ts";
 import { battleRoute, HttpRefusal, type BattleRoute, type Handlers } from "./seats.ts";
 export { battleRoute };
@@ -46,7 +50,10 @@ function stream(response: ServerResponse, handlers: Handlers, after: number | nu
   });
 }
 
-export function createBattleHttp(battle: (id: string) => BattleRoute | undefined) {
+export function createBattleHttp(
+  battle: (id: string) => BattleRoute | undefined,
+  devJoin?: (browserId: string) => Promise<BattleTicket | { refused: "full" }>,
+) {
   return createServer((request, response) => {
     response.setHeader("Cache-Control", "no-store, no-transform");
     response.setHeader("Access-Control-Allow-Origin", "*");
@@ -69,6 +76,14 @@ export function createBattleHttp(battle: (id: string) => BattleRoute | undefined
       return;
     }
     const url = new URL(request.url!, "http://localhost");
+    if (url.pathname === "/dev/battle" && devJoin) {
+      if (request.method !== "POST") return json(response, 405, { refused: "method" });
+      const browserId = request.headers["x-player"];
+      if (typeof browserId !== "string" || !/^[a-f0-9]{32}$/.test(browserId))
+        return json(response, 403, { refused: "not_seated" });
+      const result = await devJoin(browserId);
+      return json(response, "refused" in result ? 409 : 200, result);
+    }
     const match = /^\/battles\/([^/]+)\/(stream|up|preview)$/.exec(url.pathname);
     const found = match && battle(match[1]);
     if (!match || !found) return json(response, 404, { refused: "unknown" });

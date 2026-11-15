@@ -52,13 +52,11 @@ export interface LocalSimClientOptions {
   replay?: string;
 }
 
-export type RemoteSimClientOptions = Omit<
-  LocalSimClientOptions,
-  "transport" | "connect" | "replay"
-> & {
+export interface RemoteSimClientOptions {
+  side: SideName;
   transport: "remote";
   connect: SimConnection;
-};
+}
 export type SimClientOptions = LocalSimClientOptions | RemoteSimClientOptions;
 /** Online seats offer only actions the server permits. Local clients add
  * authority controls below; both use the same decoder and request tracking. */
@@ -371,13 +369,15 @@ export function createSimClient(options: SimClientOptions): OnlineSimClient | Si
     : options.transport === "worker"
       ? workerChannel(receive, fail)
       : directChannel(receive);
-  channel.send({
-    type: "init",
-    scenario: options.scenario,
-    seed: options.seed,
-    sides: [options.side],
-    replay: options.transport === "remote" ? undefined : options.replay,
-  });
+  if (options.transport === "remote") channel.send({ type: "connect", side: options.side });
+  else
+    channel.send({
+      type: "init",
+      scenario: options.scenario,
+      seed: options.seed,
+      sides: [options.side],
+      replay: options.replay,
+    });
 
   const send = (request: SimRequest) => {
     if (lifetime.kind === "active") channel.send(request);
@@ -403,7 +403,10 @@ export function createSimClient(options: SimClientOptions): OnlineSimClient | Si
           id,
           order,
           queued,
-          seat: { side: options.side, player: options.player },
+          seat: {
+            side: options.side,
+            player: options.transport === "remote" ? undefined : options.player,
+          },
         });
       });
     },

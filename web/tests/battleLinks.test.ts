@@ -72,6 +72,26 @@ test("a link may place humans on either side", () => {
   });
 });
 
+test.each([
+  ["h,h", "h,a"],
+  ["a", "h"],
+])("human seats round trip on either team: %s versus %s", (blue, red) => {
+  const asked = askedBattle(`?blue=${blue}&red=${red}&blue_faction=us&red_faction=eastern`);
+  if (!("kind" in asked) || asked.kind !== "generated") throw new Error(JSON.stringify(asked));
+  const link = battleHref(asked.map, asked.players, asked.battleSeed, asked.lighting);
+  expect(askedBattle(new URL(link, "https://battle.invalid").search)).toEqual(asked);
+  expect(asked.players.filter((p) => p.controller === "human").map((p) => p.side)).toEqual([
+    ...blue
+      .split(",")
+      .filter((c) => c === "h")
+      .map(() => "blue"),
+    ...red
+      .split(",")
+      .filter((c) => c === "h")
+      .map(() => "red"),
+  ]);
+});
+
 test("a link with no human is an AI-only battle at any size", () => {
   for (const [blue, red] of [
     ["a", "a"],

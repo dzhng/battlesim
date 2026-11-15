@@ -1,5 +1,5 @@
 import type { CommandAck, Order, PurchasePlacement } from "../sim/protocol";
-import type { SimClient } from "../sim/client";
+import type { OnlineSimClient } from "../sim/client";
 /** A placed ghost faces the opposing edge unless it is turned as it is placed. */
 export const DEFAULT_PLACEMENT_FACING = -Math.PI / 2;
 export interface PurchaseGhost {
@@ -21,7 +21,7 @@ export class PurchasePlacementControl {
   variant: string | null = null;
   private ghost: PurchaseGhost | null = null;
   private intent: {
-    client: SimClient;
+    client: OnlineSimClient;
     /** The authority, variant and spot asked about. */
     spot: string;
     /** The side's knowledge the question was asked of. */
@@ -42,7 +42,7 @@ export class PurchasePlacementControl {
   private previewRun: string | null = null;
   private generation = 0;
   private confirmation: number | null = null;
-  private client: SimClient | null = null;
+  private client: OnlineSimClient | null = null;
 
   choose(variant: string) {
     this.cancel();
@@ -59,7 +59,7 @@ export class PurchasePlacementControl {
   }
   at(
     destination: [number, number] | null,
-    client: SimClient | null,
+    client: OnlineSimClient | null,
     revision: string,
     facing = DEFAULT_PLACEMENT_FACING,
   ): PurchaseGhost | null {

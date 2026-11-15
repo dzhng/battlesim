@@ -224,10 +224,10 @@ export function remoteConnection(link: SeatLink): SimConnection {
           return;
         }
         switch (request.type) {
-          case "init":
+          case "connect":
             if (initialized) return;
             initialized = true;
-            side = request.sides[0];
+            side = request.side;
             void describe()
               .then(() => {
                 described = true;

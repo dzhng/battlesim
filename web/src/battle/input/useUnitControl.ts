@@ -18,7 +18,7 @@
  * only them, and a click on an ally's unit selects it alone, to read, so
  * nothing selected then takes an order. */
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
-import type { SimClient } from "../sim/client";
+import type { OnlineSimClient } from "../sim/client";
 import { aboardCarrier, type ObservationView, type OwnUnitView } from "../sim/observationView";
 import type { CommandAck, Order } from "../sim/protocol";
 import { commandForKey, ShowOrdersBinding } from "./commandBindings";
@@ -57,7 +57,7 @@ export interface UnitControlEvents {
 }
 
 export function useUnitControl(
-  client: SimClient | null,
+  client: OnlineSimClient | null,
   observation: ObservationView | null,
   events?: UnitControlEvents,
   enabled = true,

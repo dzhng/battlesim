@@ -21,20 +21,22 @@ simulation test build here, with other sessions building too. Check
 `df -h .` before any Rust build or new checkout. Under about 30 GB free, run
 Rust passes one or two at a time; under 5 GB, start nothing and ask the user.
 
-**Done and committed:** slices 02 to 07, 13, 14, 20 and 24; the module of slice
-10; the endurance half of slice 01. The branch holds staging as of
-2026-11-15.
+**Done and committed:** slices 02 to 08, 13, 14, 20 and 24; the module of
+slice 10; the endurance half of slice 01. The branch holds staging as of
+2026-11-15. **The first playable checkpoint is reached:** two browsers
+command opposite sides of one battle on a local server
+([how to run it](slices/08-command-any-seat.md)).
 
 **Pick up here, in this order:**
 
-1. **Integrate slice 08,** command any seat, handed to Codex on 2026-11-15
-   in its own checkout; its report is in `throwaway/multiplayer/` there. It
-   is the first playable checkpoint: play it in two browsers yourself, get
-   an unprimed critique of the Red commander's screen, and show the user
-   both screens (its Verification says how).
-2. **Slices 09 to 12** come after 08. Slice 09 deploys, which is
-   outward-facing: ask the user first. Slices 10, 11 and 12 need only 08
-   and can go out together.
+1. **Integrate slices 10, 11 and 12** (playout wired in, yours is blue, your
+   side at the bottom), handed to Codex on 2026-11-15, each in its own
+   checkout with a report in `throwaway/multiplayer/` there. 11 and 12
+   change what a Red commander sees: look at the pictures, get an unprimed
+   critique, and show the user.
+2. **Slice 09** (identity, build check, deploy) deploys to the temporary
+   host, which is outward-facing: ask the user before deploying. Its code
+   can be built and tested locally first.
 3. **Run slice 01's host half** (O1) on the probe app. `bun run server:soak`
    is the workload: bundle it, run it on the host, and read its summary
    line.
@@ -94,7 +96,7 @@ Foundation
 - [x] [05 Record stream and seat link](slices/05-record-stream.md)
 - [x] [06 Battle host](slices/06-battle-host.md)
 - [x] [07 HTTP transport](slices/07-http-transport.md)
-- [ ] [08 Command any seat](slices/08-command-any-seat.md) (first playable checkpoint)
+- [x] [08 Command any seat](slices/08-command-any-seat.md) (first playable checkpoint)
 - [ ] [09 Identity, build check, deploy](slices/09-identity-build-deploy.md)
 - [ ] [10 Playout](slices/10-playout.md) (the module is built; wiring it in waits for 07 and 08)
 - [ ] [11 Yours is blue](slices/11-yours-is-blue.md)

@@ -400,5 +400,15 @@
     "serial": true,
     "catalog": "game",
     "loading": false
+  },
+  {
+    "id": "online-battle",
+    "route": "/online/dev",
+    "describe": "Two commanders play a real local server: seat-owned orders, side-only observations, map identity refusal before streaming and no local authority controls.",
+    "map": null,
+    "catalog": "game",
+    "loading": false,
+    "serial": true,
+    "timeout_s": 600
   }
 ]

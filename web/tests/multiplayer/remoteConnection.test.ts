@@ -14,7 +14,7 @@ afterEach(() => {
 const flush = async () => {
   for (let i = 0; i < 20; i++) await Promise.resolve();
 };
-const init: SimRequest = { type: "init", scenario: "{}", seed: 1, sides: ["blue"] };
+const init: SimRequest = { type: "connect", side: "blue" };
 const command = (id: number): SimRequest => ({
   type: "command",
   id,

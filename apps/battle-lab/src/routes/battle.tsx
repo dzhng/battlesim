@@ -258,10 +258,10 @@ function PreparedBattleView({
   if (!prepared || !view) return cover;
 
   const exportReplay = async ({ sim }: BattleSession) => {
-    if (!sim.client) return null;
+    if (!sim.local) return null;
     const file: ReplayFile = {
       battle: { scenario: prepared.scenario, report: prepared.report },
-      replay: await sim.client.replay(),
+      replay: await sim.local.replay(),
       light_preset: resolvedMatchLighting(replay, window.location.search, request),
     };
     const name = subject.toLowerCase().replaceAll(" · ", "-").replaceAll(" ", "");
