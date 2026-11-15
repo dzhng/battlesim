@@ -65,28 +65,49 @@ Script shape, the report's format, which generated map the 5v5 uses.
 
 ## Results
 
-**O3 and O4: running since 2026-11-14.** The probe is scratch under
-`throwaway/multiplayer/probes/` (a release binary,
-`multiplayer-native-probe --minutes 120 --seed 2`), with its log in
-`two-hour.log` and its process id in `two-hour.pid` beside it. It is done
-when that process is gone and the log ends in `finished:` or
-`STOP wall_limit`.
+**O3 and O4: run on 2026-11-14.** Two simulated hours of a generated 5v5 on
+an XL map, ten AIs, native build, on a heavily loaded Mac. The full log is
+[endurance-two-hour-5v5.log](../assets/endurance-two-hour-5v5.log). The
+probe itself is scratch, in `throwaway/multiplayer/probes/`.
 
-- **How the battle is kept going.** A skirmish would end in 30 to 40
-  minutes, so the probe feeds the battle rules in which no objective can be
-  captured and no score reached (capture and majority times and the points
-  target are set out of reach). The generated XL map, the ten AIs and the
-  simulation are unchanged. Read the result as the cost of two hours of ten
-  AIs buying and fighting. It says nothing about scoring, and the AIs fight
-  over objectives they can never take, which is not what a Frontline game
-  will look like once slice 21 exists.
-- **Columns.** Simulated minutes; median and 95th-percentile wall time per
-  tick; median and 95th-percentile instructions retired per tick, in
-  millions; memory; a fresh full snapshot's bytes for Blue and for Red; live
-  units; units ever bought. Wall times were taken on a heavily loaded
-  machine: trust the instruction counts.
-- **Five-minute proving run:** 7.3 ms median, 22.8 ms at the 95th
-  percentile, 125 M instructions a tick, 408 MiB, snapshots of 390 KB and
-  404 KB, 134 live units of 143 bought.
+| Minutes | Instructions a tick, median | Wall, median | Memory | Join snapshot | Live units | Units ever bought |
+|---|---|---|---|---|---|---|
+| 10 | 265 M | 15.7 ms | 0.5 GB | 0.7 MB | 183 | 213 |
+| 30 | 288 M | 12.8 ms | 1.3 GB | 1.6 MB | 210 | 303 |
+| 60 | 319 M | 12.3 ms | 1.8 GB | 2.1 MB | 217 | 371 |
+| 90 | 341 M | 13.9 ms | 2.6 GB | 2.5 MB | 205 | 388 |
+| 120 | 402 M | 14.7 ms | 3.2 GB | 2.6 MB | 215 | 418 |
+
+- **How the battle was kept going.** A skirmish would end in 30 to 40
+  minutes, so the probe fed the battle rules in which no objective can be
+  captured and no score reached. The map, the ten AIs and the simulation
+  were unchanged. Read the result as the cost of two hours of ten AIs buying
+  and fighting; it says nothing about scoring, and the AIs fought over
+  objectives they could never take.
+- **O3, tick cost: it grows slowly.** About half again more work per tick at
+  two hours than at ten minutes, most of it in the first twenty minutes as
+  the armies fill out. The armies sat near 200 live units and only 418 were
+  ever bought, so this run did not stress the "every unit ever bought stays
+  in the loops" landmine hard: a game with humans feeding units into a
+  grinder would buy far more. On this Mac the median tick stayed under half
+  the 33 ms budget throughout.
+- **O3, memory: it grows without levelling off,** about 1.4 GB an hour, to
+  3.2 GB at two hours. This is the finding that matters. A 35-minute room
+  battle on a large map needs about 1.3 GB, so memory, not cores, caps how
+  many battles a host runs (P26): the temporary host's 16 GB holds roughly
+  eight room battles, fewer once Frontline games run long. A WebAssembly
+  battle cannot pass 4 GB at all, which this rate reaches in under three
+  hours. What is growing was not measured; the recorded order log, wrecks
+  and corpses are the suspects the walk named.
+- **O4, join snapshot: not a problem.** 0.7 MB at ten minutes, 2.6 MB at two
+  hours, and flattening as the sides finish exploring the map. The 64 MiB
+  cap is far away.
+
+**What this changes.** Frontline's target of about an hour (decision 54)
+stands, and now has a second reason: memory. Slice 21 sets the target so a
+game ends near the hour. Finding what grows and trimming it is the
+"forgetting the dead" plan in the README's deferred list, and it is needed
+before any Frontline game is allowed to run much past an hour. Slice 15 sets
+the battle cap from memory: about 2 GB a battle.
 
 **O1:** not run yet.

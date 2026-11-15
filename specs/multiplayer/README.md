@@ -39,8 +39,9 @@ cannot hold. Do not build Rust here until the user has freed space; check
   `throwaway/multiplayer/slice02-integration-wip.patch`. It is not ready;
   read "Found at integration" in [slice 02](slices/02-per-side-publisher.md)
   before touching it. Slice 03 has not been looked at beyond its diff.
-- **Slice 01's** two-hour native run is going in this checkout (see the
-  slice file). Its host half, O1, has not been started.
+- **Slice 01's** two-hour native run is finished and written up in the slice
+  file: memory, not tick cost, is what limits a long battle. Its host half,
+  O1, has not been started.
 
 **Next, once there is space:** finish slice 02 as its file says, integrate
 03, and hand out slice 06. Slices 13 and 20 need nothing first. Slice 14
@@ -260,8 +261,8 @@ slice 08 and is deleted in slice 18, when a room can start a battle.
 |---|---|---|
 | O1 | Can the host hold a real 5v5 at 30 ticks a second? | [01](slices/01-probes.md) |
 | O2 | Where do native and WebAssembly first disagree? | [13](slices/13-native-wasm-parity.md) |
-| O3 | How fast does a battle slow with age? | [01](slices/01-probes.md), read by [21](slices/21-frontline-rules.md) |
-| O4 | How big is a join snapshot after hours? | [01](slices/01-probes.md), read by [25](slices/25-frontline-service.md) |
+| O3 | How fast does a battle slow with age? | Answered in [01](slices/01-probes.md): tick cost grows slowly, memory grows about 1.4 GB an hour without levelling off. Read by [15](slices/15-room-service.md) and [21](slices/21-frontline-rules.md). |
+| O4 | How big is a join snapshot after hours? | Answered in [01](slices/01-probes.md): 2.6 MB at two hours. Not a problem. |
 | O5 | Does an AI cope with an army it didn't buy? | [20](slices/20-ai-inherits-an-army.md) |
 | O6 | Is 300 ms or more per order acceptable? | [09](slices/09-identity-build-deploy.md), judged at [19](slices/19-milestone.md) |
 
@@ -272,9 +273,10 @@ folder and one address.
 ## Deferred, on purpose
 
 - **Forgetting the dead.** Every unit ever bought stays in the per-tick loops
-  (`crates/sim/src/battle/dispatch.rs:237`), so a battle slows with age.
-  Frontline's target starts at about an hour's play. Trimming the dead is its
-  own plan, opened if slice 01 shows an hour does not hold.
+  (`crates/sim/src/battle/dispatch.rs:237`), and a battle's memory grows by
+  about 1.4 GB an hour without levelling off (slice 01). An hour holds, so
+  Frontline's target starts there. Finding what grows and trimming it is its
+  own plan, needed before a game may run much longer.
 - **A faster host, WebSockets, native battle processes.** Each is a swap behind
   a seam this plan builds.
 - **Answering previews in the browser.** The fallback if server previews feel
