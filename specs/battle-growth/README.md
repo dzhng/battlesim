@@ -1,7 +1,7 @@
 # Battle growth: a new unit type costs only its own art
 
-**Status:** slices 00, 01, 02, 03, 05a, 06 and 07 are done. Two slices are
-out with implementers (see the lanes below). Slice 08 can start.
+**Status:** slices 00, 01, 02, 03, 05a, 06 and 07 are done. Three slices are
+out with implementers (see the lanes below).
 **Updated:** 2026-11-15.
 
 This plan replaces the "shared GPU assets across generations" placeholder. That
@@ -13,19 +13,19 @@ player sees, and sharing GPU assets is one part of the fix.
 You are fixing the multi-second freeze that happens whenever a running battle
 first fields a unit type it had not shown. The admission work report exists,
 `battle-growth` prints it, and the [ledger](decisions.md) holds what it and
-the reference battle measured. Two slices are out with implementers, each
+the reference battle measured. Three slices are out with implementers, each
 in its own checkout and thread:
 
 | Slice | Branch | State |
 | --- | --- | --- |
 | 04 | `t3/art-content-identity` (the checkout of slices 02 and 03) | Building. |
+| 08 | `t3/battle-growth-catalog-delta` (slice 07's checkout) | Building. Its gate leaves a marked place for the texture and card assertions, which slices 04 and 05 add when they land. |
 | 10 | `t3/battle-growth-stand-in-mechanics` | The mechanics, scene and close shots are right. Open: a second block in the vehicle shot that is not a Rust stand-in (probably the browser's older proxy path drawing the player's own tank). Then it merges. |
 
 When one returns: read its whole diff (changed tests first), rerun its checks
-yourself, merge it into this branch, then start what it unblocks (05 after 04
-and 05a; 08 after 05, 06 and 07; 11 after 10). Slices 04, 05a, 06 and 07 all
-touch `crates/renderer-core`; whichever merges later merges this branch in
-first.
+yourself, merge it into this branch, then start what it unblocks (05 after
+04; 09 after 08; 11 after 10). The build output of the merged checkouts for
+slices 01, 05a and 06 has been removed.
 
 Read, in this order: this file, the [decisions ledger](decisions.md), the slice
 you are about to build, the [renderer contract](../../crates/renderer-core/README.md)
