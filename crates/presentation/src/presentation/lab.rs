@@ -393,6 +393,7 @@ impl Lab {
                 at,
                 yaw: m.yaw,
                 tint: m.tint,
+                shadow: true,
                 highlight: m.highlight,
                 scale: m.scale,
                 colour,

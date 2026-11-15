@@ -20,17 +20,23 @@ pub(super) struct Model {
     pub(super) scroll: [f64; 2],
     /// How fog takes it (`Batch.fog`).
     pub(super) fog: u32,
+    pub(super) shadow: bool,
 }
 
 /// The models as batches: one per drawable, tier and pass, in that order.
 /// A model in view casts a tier coarser; a card, a ghost and a high-air
-/// model cast nothing (`batch_caster`).
+/// model cast nothing (`batch_caster`). A live stand-in can opt out of
+/// casting while authored models keep this policy.
 pub(super) fn write(models: &mut [Model], f: &mut Frame) {
-    let run_of = |m: &Model| (m.row, m.tier, m.pass);
+    let run_of = |m: &Model| (m.row, m.tier, m.pass, m.shadow);
     models.sort_by_key(run_of);
     for run in models.chunk_by(|a, b| run_of(a) == run_of(b)) {
         let m = &run[0];
-        let caster = batch_caster(m.tier, m.pass);
+        let caster = if m.shadow {
+            batch_caster(m.tier, m.pass)
+        } else {
+            NONE
+        };
         let cascade_mask = if caster == NONE {
             0
         } else {
