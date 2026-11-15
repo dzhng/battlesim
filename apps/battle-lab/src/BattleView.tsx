@@ -227,6 +227,7 @@ export function BattleView({
       )}
       <ObjectiveMarkers
         objectives={observation?.skirmish?.objectives ?? []}
+        viewer={session.viewer?.side ?? null}
         handle={objectiveMarkers}
       />
       <ReadoutLayer {...battleReadouts(session)} />
