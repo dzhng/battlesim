@@ -93,7 +93,7 @@ import {
   type UnitGhost,
 } from "./unitGhosts";
 import { byReference, pendingGhosts } from "./pendingGhosts";
-import { unitPoseProbe } from "./unitPoseProbe";
+import { modelProbes } from "./modelProbes";
 
 const PURCHASE_BLOCKED = [...gameHud.bad, gameXray.selected[3]] as const;
 
@@ -929,29 +929,7 @@ export function useBattleSession({
     /** The lights the effects offered last frame: where, how far, their
      *  colour × intensity, and what cast each. */
     castLights: () => presentationRef.current?.probe().castLights ?? [],
-    /** Every drawn model's muzzles in the world, where the presentation
-     *  draws them (a soldier's crossfaded and kicked, a hull's articulated
-     *  and rocked), with each model's origin to select the firing body before
-     *  its attachment is measured. */
-    muzzleSockets: () => {
-      const probe = presentationRef.current?.probe();
-      if (!probe) return [];
-      const soldiers = probe.soldiers.flatMap((m) =>
-        m.muzzle
-          ? [{ appearance: m.appearance, origin: m.position, name: "muzzle", at: m.muzzle }]
-          : [],
-      );
-      const vehicles = probe.vehicles.flatMap((m) =>
-        m.muzzles.map(({ name, at }) => ({
-          appearance: m.appearance,
-          origin: m.position,
-          name,
-          at,
-        })),
-      );
-      return [...soldiers, ...vehicles];
-    },
-    ...unitPoseProbe(() => presentationRef.current),
+    ...modelProbes(() => presentationRef.current),
     /** What the props draw (`ScenePresentation.propStats`): the bodies drawn,
      *  those a building draws, those no model draws, the models placed and
      *  those drawing what the side knows. */

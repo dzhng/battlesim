@@ -58,7 +58,7 @@ Each is confirmed by the slice named, which then moves it to the section below.
 | The download prefetch is idle on a battle opened by link because only the menu enables it | 09 |
 | A hull's size reaches presentation only for fielded types; the unit catalog has it for every type | 10 |
 | An unfielded vehicle has a pick of no size today, so it cannot be clicked; an unfielded squad's soldiers can | 10 |
-| An undrawn enemy still gets a HUD readout, because readouts follow picks | 10 |
+| An undrawn enemy still gets a HUD readout, because readouts follow the observation | 10 |
 | The archived WASM exhaustion predates texture sharing | closeout |
 
 ## Confirmed during implementation
@@ -280,3 +280,44 @@ share content with another name. Everything else is decoded again because
 each admission's draft starts with no decoded bundles; slice 07 changes that.
 The scene also shows the battle staged twice before one commit, as the
 reference probe did.
+
+**Slice 10, second fix round, 2026-11-15.**
+
+- `UnitArt` has one optional stand-in value with its mesh description and a
+  reference to the frame's body box; showcase passes none. The body box still
+  supplies native picks without a stand-in. Paired optional fields and an
+  eight-argument constructor with a clippy exemption were rejected.
+- The shared body-draw helper supplies both soldier and vehicle loops with the
+  resolved appearance, physical bounds and stand-in scale. Duplicating the
+  resolve/half/scale branches was rejected.
+- The browser derives the stand-in half extents from the generated box bundle's
+  `positionsBounds` and caches the complete asset and content hash once at
+  module scope. The asset is initialized on first admission, after WASM is
+  ready; eager hashing at module import was rejected because `bytes_hash`
+  needs initialized WASM. Rebuilding and hashing the bundle at every admission
+  was rejected.
+- The user approved extending the existing lab probe with `drawnModels`: each
+  instance's appearance name, placement and scale, read from the last frame's
+  batches and instances only when called. It holds no state or counters and
+  has no production consumer. Screenshots plus counts alone were rejected
+  because they cannot identify the appearance a body was drawn with.
+- The scene holds newly requested bundle responses after the first scene and
+  before starting the battle. Its opponent is European, and its squad candidates
+  derive from body art absent from the initial installed names. The Eastern
+  opening rifle squad was rejected: it reuses rifle art already installed for
+  blue, so no network response can withhold it at growth. Moving interception
+  earlier did not change that. The scene waits for multiple seen members and
+  frames the most compact eligible squad so the near shot shows per-body blocks.
+- A commit event can belong to an earlier admission. The scene waits for both
+  an event and the actual drawn stand-ins to disappear before its after shots;
+  treating the first event as proof that every requested type committed was
+  rejected after it left the vehicle block on screen.
+- `drawnModels` reads only batches with instance records in the last Frame.
+  Retained static batches name `first = NONE` when unchanged and cannot be read
+  without retaining a second instance store. That store and a dynamic-only
+  appearance filter were rejected: the probe simply reads all instance records
+  the Frame actually contains, with no copied state between frames.
+- The scene captures both subjects at the same near camera distance before and
+  after commit and checks actual replacement instances at every observed body
+  position. A far overview and screenshot-only inference were rejected because
+  neither proves the block-to-model swap for the identified bodies.

@@ -3,7 +3,7 @@
 //! alike.
 use super::*;
 use crate::units::pose::{SoldierPose, VehiclePose};
-use crate::world::{BodyBox, Detail, SoldierBody, StandIn};
+use crate::world::{BodyBox, Detail, StandIn};
 
 /// What units are drawn from: their section, each skinned body's clip table
 /// and inverse binds, and the world rows their appearances hold; and the
@@ -15,33 +15,20 @@ pub(super) struct UnitArt<'a> {
     pub world: &'a World,
     pub view: &'a View,
     pub detail: Detail,
-    pub(super) battle: Option<BattleArt<'a>>,
+    pub stand_in: Option<UnitStandIn<'a>>,
 }
 
-struct UnitStandIn<'a> {
-    appearance: &'a str,
-    mesh_half: Vec3,
-}
-
-pub(super) struct BattleArt<'a> {
-    stand_in: Option<UnitStandIn<'a>>,
-    body: BodyBox<'a>,
+/// A battle's reserved mesh and the same body box its picks read.
+pub(super) struct UnitStandIn<'a> {
+    pub appearance: &'a StandIn,
+    pub body: &'a BodyBox<'a>,
 }
 
 struct DrawnBody<'a> {
     name: &'a str,
-    half: Option<Vec3>,
-}
-
-pub(super) struct UnitArtInput<'a> {
-    pub units: &'a UnitsSection,
-    pub tables: &'a ClipTables,
-    pub inverse_binds: &'a HashMap<String, Vec<Mat4>>,
-    pub world: &'a World,
-    pub view: &'a View,
-    pub detail: Detail,
-    pub stand_in: Option<&'a StandIn>,
-    pub soldier: SoldierBody,
+    bounds: Bounds,
+    scale: [f32; 3],
+    stand_in: bool,
 }
 
 /// The node transforms posing reuses from model to model.
@@ -124,69 +111,27 @@ impl Model {
 }
 
 impl UnitArt<'_> {
-    pub(super) fn battle<'a>(input: UnitArtInput<'a>) -> UnitArt<'a> {
-        let UnitArtInput {
-            units,
-            tables,
-            inverse_binds,
-            world,
-            view,
-            detail,
-            stand_in,
-            soldier,
-        } = input;
-        UnitArt {
-            units,
-            tables,
-            inverse_binds,
-            world,
-            view,
-            detail,
-            battle: Some(BattleArt {
-                stand_in: stand_in.map(|stand_in| UnitStandIn {
-                    appearance: &stand_in.appearance,
-                    mesh_half: stand_in.half,
-                }),
-                body: BodyBox::new(units, soldier),
-            }),
-        }
-    }
-
-    fn body<'b>(&'b self, kind: &str, resolved: Option<&'b str>) -> Option<DrawnBody<'b>> {
+    /// What one posed body draws: authored art or its physical box.
+    fn body<'a>(&'a self, kind: &str, resolved: Option<&'a str>) -> Option<DrawnBody<'a>> {
         if let Some(name) = resolved {
-            return Some(DrawnBody { name, half: None });
+            return Some(DrawnBody {
+                name,
+                bounds: bounds(self.units, name, 0),
+                scale: [1.0; 3],
+                stand_in: false,
+            });
         }
-        let stand_in = self.battle.as_ref()?.stand_in.as_ref()?;
+        let stand_in = self.stand_in.as_ref()?;
+        let half = stand_in.body.half(kind)?;
         Some(DrawnBody {
-            name: stand_in.appearance,
-            half: Some(self.battle.as_ref()?.body.half(kind)?),
-        })
-    }
-
-    fn bounds(&self, body: &DrawnBody<'_>) -> Bounds {
-        body.half.map_or_else(
-            || bounds(self.units, body.name, 0),
-            |half| Bounds {
+            name: &stand_in.appearance.appearance,
+            bounds: Bounds {
                 size: half[2] * 2.0,
                 radius: (half[0] * half[0] + half[1] * half[1] + half[2] * half[2]).sqrt(),
             },
-        )
-    }
-
-    fn scale(&self, body: &DrawnBody<'_>) -> [f32; 3] {
-        body.half.map_or([1.0; 3], |half| {
-            let mesh_half = self
-                .battle
-                .as_ref()
-                .and_then(|battle| battle.stand_in.as_ref())
-                .expect("stand-in")
-                .mesh_half;
-            std::array::from_fn(|i| (half[i] / mesh_half[i]) as f32)
+            scale: std::array::from_fn(|i| (half[i] / stand_in.appearance.half[i]) as f32),
+            stand_in: true,
         })
-    }
-
-    pub(super) fn body_box(&self) -> Option<&BodyBox<'_>> {
-        self.battle.as_ref().map(|battle| &battle.body)
     }
 
     pub(super) fn tint(&self, side: &str) -> [f32; 3] {
@@ -224,9 +169,9 @@ impl UnitArt<'_> {
             let Some(body) = self.body(&s.kind, resolved) else {
                 continue;
             };
-            let is_stand_in = body.half.is_some();
+            let is_stand_in = body.stand_in;
             f.counts.soldiers += 1;
-            let far = self.bounds(&body);
+            let far = body.bounds;
             let tier = model_detail(
                 &self.detail,
                 self.view,
@@ -260,7 +205,7 @@ impl UnitArt<'_> {
                 tint: self.tint(&s.side),
                 colour: colour(&s.side, s.unit),
                 palette,
-                scale: self.scale(&body),
+                scale: body.scale,
                 ..Model::unit(self.row(body.name, "", NONE), tier, 0, s.position, s.facing)
             });
         }
@@ -285,13 +230,13 @@ impl UnitArt<'_> {
             let Some(body) = self.body(&v.kind, resolved) else {
                 continue;
             };
-            let is_stand_in = body.half.is_some();
+            let is_stand_in = body.stand_in;
             if v.airborne {
                 f.counts.aircraft += 1;
             } else {
                 f.counts.vehicles += 1;
             }
-            let far = self.bounds(&body);
+            let far = body.bounds;
             let (shadow, pass) = shadow(v);
             let tier = model_detail(
                 &self.detail,
@@ -322,7 +267,7 @@ impl UnitArt<'_> {
                 colour: colour(&v.side, v.unit),
                 palette,
                 scroll,
-                scale: self.scale(&body),
+                scale: body.scale,
                 ..Model::unit(self.row(body.name, "", NONE), tier, pass, v.position, v.yaw)
             });
         }

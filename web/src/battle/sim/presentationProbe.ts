@@ -5,6 +5,11 @@ type P3 = [number, number, number];
 
 /** The last frame as the labs' scenes probe it. */
 export interface PresentationProbe {
+  drawnModels: {
+    appearance: string;
+    placement: [number, number, number, number];
+    scale: [number, number, number, number];
+  }[];
   effects: { live: number; instances: number; dropped: number; sources: number; tick: number };
   effectInstances: { shape: number; at: P3; to: P3; rgb: P3; size: number; rays: number }[];
   castLights: { at: P3; radius: number; rgb: P3; cause: string }[];

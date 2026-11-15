@@ -78,6 +78,10 @@ calls the same reader for workbench drafts.
   each node's side from the catalog. The source validator and workbench poser
   share the TypeScript bake rule; source validation rejects malformed tracks
   before admission.
+  Observed bodies whose art has not committed use the battle's reserved box
+  appearance when supplied. One physical body box supplies both instance scale
+  and picking, so loading art changes appearance without changing selection or
+  targeting. Stand-ins share unit fog and x-ray and never become impostor cards.
 - [Effects](src/effects/): the effect publication, launches (the one derivation
   the flashes, the firing soldiers and the gunfire sounds read), the effect frame,
   the cast lights it chooses for the view, cook-offs, and the sparks a hull

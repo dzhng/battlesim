@@ -77,14 +77,14 @@ export const BATTLE_STAND_IN_HALF_EXTENTS = [
 
 /** The battle stand-in is admitted with the first generation, before any
  * withheld unit art can arrive. It is an ordinary articulated box asset. */
-const BATTLE_STAND_IN_ASSET = modelAsset(
-  BATTLE_STAND_IN_APPEARANCE,
-  battleStandInBundle,
-  generatedContentId(battleStandInBundle),
-);
+let battleStandIn: ModelAsset | undefined;
 
 export function battleStandInAsset(): ModelAsset {
-  return BATTLE_STAND_IN_ASSET;
+  return (battleStandIn ??= modelAsset(
+    BATTLE_STAND_IN_APPEARANCE,
+    battleStandInBundle,
+    generatedContentId(battleStandInBundle),
+  ));
 }
 
 /** Active-generation deduplication only; transforms and highlights do not own art. */

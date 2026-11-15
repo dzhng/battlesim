@@ -262,7 +262,8 @@ fn an_unseen_unarted_unit_draws_nothing() {
         Some(STAND_IN),
     );
     let frame = p.frame(0.0, &camera(), &Ui::default(), 0).unwrap();
-    assert!(frame.picks.iter().all(|pick| pick.unit != 3));
+    let unseen = battle.observe(Side::Red).own[0].id;
+    assert!(frame.picks.iter().all(|pick| pick.unit != unseen.0));
     assert!(stand_in_instances(&mut p)
         .iter()
         .all(|i| i.placement[0] < 100.0));

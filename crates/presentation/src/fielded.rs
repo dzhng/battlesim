@@ -105,8 +105,8 @@ impl Fielding<'_> {
         let art = Art::new(self.runtime, &catalog, self.kinds, self.factions)?;
         let (_, drawn) = unit_types(&catalog, &art, self.kinds, self.factions)?;
         let mut contents = BTreeSet::new();
-        for name in &drawn {
-            let (bundle, skeleton) = art.key(name)?;
+        for name in drawn {
+            let (bundle, skeleton) = art.key(&name)?;
             if !facts
                 .appearances
                 .contains_key(&(bundle.clone(), skeleton.clone()))
@@ -518,7 +518,7 @@ fn unit_types(
         // Its vehicle class, as the catalog derives it from its physics.
         let class = t["vehicle_class"].as_str().map(str::to_owned);
         let mounts: &[Value] = t["mounts"].as_array().map_or(&[], Vec::as_slice);
-        let installed = t["appearance"].as_str().filter(|a| art.has(a));
+        let installed = t["appearance"].as_str().filter(|a| has_art && art.has(a));
         let rigs = installed.map(|a| &art.entry(a)["mounts"]);
         let mut draws = Map::new();
         for (side, name) in ["blue", "red"].into_iter().enumerate() {

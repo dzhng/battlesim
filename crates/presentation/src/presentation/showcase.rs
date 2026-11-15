@@ -151,7 +151,7 @@ impl Showcase {
             world,
             view,
             detail: self.units.detail.scaled(unit_scale),
-            battle: None,
+            stand_in: None,
         };
         let plain = |_: &str, _: f64| [0.0; 4];
         let culled = art.soldiers(&poses.soldiers, plain, &mut self.scratch.worlds, f, models);

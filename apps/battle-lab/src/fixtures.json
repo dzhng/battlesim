@@ -106,8 +106,8 @@
   },
   {
     "id": "stand-in",
-    "route": "/battle?type=mixed&size=small&seed=7684954605204256359&battle=20260925&blue=h&red=a&blue_faction=us&red_faction=eastern",
-    "describe": "Stand-in mechanics during battle growth: newly requested vehicle and squad art is held at the network edge, physical blocks remain visible, selectable and targetable, then the same session swaps them to models.",
+    "route": "/battle?type=mixed&size=small&seed=7684954605204256359&battle=20260925&blue=h&red=a&blue_faction=us&red_faction=europe",
+    "describe": "Stand-in mechanics during battle growth: newly requested vehicle and squad art is held at the network edge; physical blocks take attack clicks, then the same session swaps them to models. Rust proves identical selection picks.",
     "map": null,
     "catalog": "game",
     "loading": false,
