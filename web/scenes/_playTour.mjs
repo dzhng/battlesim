@@ -1,5 +1,5 @@
 import { installWorkerStartFence } from "./_workerStart.mjs";
-// Player commands, the pause menu and captions on the street battle.
+// Player commands, the pause menu and contact lines on the street battle.
 import {
   lab,
   obs,
@@ -13,7 +13,6 @@ import {
   pauseMenuText,
   pointerOffCanvas,
 } from "./_lab.mjs";
-import { unitType } from "./_units.mjs";
 const text = (page, id) => page.getByTestId(id).innerText();
 const shot = (ctx, page, name) => snapshot(ctx, page, `frame-${name}.png`);
 
@@ -169,8 +168,8 @@ export async function playTour(ctx) {
     JSON.stringify(placed),
   );
 
-  // Sound: at a tick where blue hears something, the newest caption says
-  // what, how far and from where, for the unit that heard it.
+  // Sound: at a tick where blue hears something, the status strip still
+  // lists only contacts, never the sound itself.
   // Nobody fires until blue closes to weapon range, so send it into contact.
   await lab(page, () =>
     window.__lab.route.command({
@@ -195,30 +194,13 @@ export async function playTour(ctx) {
   await ctx.writeEvidence("play-contact-approach.json", approach ?? null);
   if (!admitted) return page.close();
   const heard = await until(page, (o) => o.audible.length > 0, 30 * 240, 1);
-  const cue = heard?.audible.at(-1);
-  const listener = cue && heard.own.find((u) => u.id === cue.listener);
-  const caption = heard && (await text(page, "captions")).split("\n")[0];
+  const lines = heard ? (await text(page, "contact-lines")).split("\n").filter(Boolean) : [];
   ctx.check(
-    "when blue hears something, a caption names the sound, its range and the listener",
-    !!listener &&
-      caption.startsWith("Heard ") &&
-      caption.includes(`, ${cue.band}, `) &&
-      caption.includes(` of ${unitType(listener.kind).name}`),
-    heard ? `tick ${heard.tick}: ${JSON.stringify(cue)} → ${caption}` : "never heard",
-  );
-  // Twenty seconds of fire later, repeats have collapsed into a few rows.
-  await advance(page, 30 * 20);
-  await page.evaluate(() => window.__lab.frame());
-  const rows = await lab(page, () =>
-    [...document.querySelectorAll("[data-testid=captions] li[data-count]")].map((li) => ({
-      text: li.textContent.replace(/ ×\d+$/, ""),
-      count: Number(li.dataset.count),
-    })),
-  );
-  ctx.check(
-    "repeated sounds collapse into at most three counted rows",
-    rows.length <= 3 && new Set(rows.map((r) => r.text)).size === rows.length,
-    JSON.stringify(rows),
+    "a heard sound adds no status line; every line is a contact N can reach",
+    !!heard &&
+      lines.every((line) => !line.startsWith("Heard")) &&
+      lines.length <= heard.contacts.length,
+    heard ? `tick ${heard.tick}: ${lines.join(" | ")}` : "never heard",
   );
 
   // Pause holds the tick; resume continues.

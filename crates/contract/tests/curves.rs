@@ -115,3 +115,39 @@ fn an_insufficient_sample_allowance_refuses_the_whole_line() {
 fn a_line_cannot_double_back_on_itself_at_a_control() {
     assert!(Centerline::new(vec![[0.0, 0.0], [100.0, 0.0], [0.0, 0.0]], 6.0, 256).is_err());
 }
+
+/// The radius of the circle through three samples.
+fn circumradius(a: [f64; 2], b: [f64; 2], c: [f64; 2]) -> f64 {
+    let cross = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+    gap(&[a, b]) * gap(&[b, c]) * gap(&[a, c]) / (2.0 * cross.abs())
+}
+
+/// A corner with room on both runs is swept no tighter than the corridor it
+/// stays in, so a stroke that wide never folds its inside edge into a point,
+/// however sharp the turn.
+#[test]
+fn a_roomy_corner_turns_no_tighter_than_its_corridor() {
+    let half_width = 5.0;
+    for turn_deg in [20.0_f64, 60.0, 90.0, 99.0, 135.0, 170.0] {
+        let turn = turn_deg.to_radians();
+        // North, then `turn` to the right.
+        let controls = vec![
+            [0.0, -300.0],
+            [0.0, 0.0],
+            [300.0 * turn.sin(), 300.0 * turn.cos()],
+        ];
+        let line = Centerline::new(controls.clone(), half_width, 4096).unwrap();
+        let tightest = line
+            .samples()
+            .windows(3)
+            .map(|s| circumradius(s[0], s[1], s[2]))
+            .fold(f64::INFINITY, f64::min);
+        assert!(
+            tightest >= half_width,
+            "a {turn_deg}° corner curls to a {tightest:.2} m radius inside a {half_width} m corridor"
+        );
+        for &point in line.samples() {
+            assert!(off_runs(&controls, point) <= half_width + 1e-9);
+        }
+    }
+}

@@ -11,10 +11,13 @@ use super::{NavBase, NavGrid, NAV_CELL_M};
 use crate::math::{v2, V2};
 use crate::world::{Prop, PropId, WorldGeometry};
 
-/// One point's exact known-body query, read in fixed groups so a dense
-/// bucket never turns a road probe into an indivisible whole-world scan.
+/// One stretch's exact known-body query (a point is a stretch of no
+/// length), read in fixed groups so a dense bucket never turns a road probe
+/// into an indivisible whole-world scan. A probe's stretches tile its
+/// segment, so it meets every body the whole segment's sweep does, however
+/// its samples fall.
 pub(super) struct BodyCheck {
-    point: V2,
+    stretch: (V2, V2),
     width: f64,
     push: contract::scenario::PushClass,
     buckets: Vec<usize>,
@@ -25,13 +28,13 @@ pub(super) struct BodyCheck {
 impl BodyCheck {
     pub(super) fn new(
         grid: &NavGrid,
-        point: V2,
+        (a, b): (V2, V2),
         width: f64,
         push: contract::scenario::PushClass,
     ) -> Self {
         let reach = width * std::f64::consts::SQRT_2;
-        let (i0, j0) = cell_of(point - v2(reach, reach));
-        let (i1, j1) = cell_of(point + v2(reach, reach));
+        let (i0, j0) = cell_of(v2(a.x.min(b.x), a.y.min(b.y)) - v2(reach, reach));
+        let (i1, j1) = cell_of(v2(a.x.max(b.x), a.y.max(b.y)) + v2(reach, reach));
         let mut buckets = Vec::new();
         for j in j0..=j1 {
             for i in i0..=i1 {
@@ -48,7 +51,7 @@ impl BodyCheck {
             }
         }
         Self {
-            point,
+            stretch: (a, b),
             width,
             push,
             buckets,
@@ -107,7 +110,8 @@ impl BodyCheck {
                     }
                 }
             };
-            if body.is_some_and(|body| body.blocks_vehicle(self.point, self.width, self.push)) {
+            let (a, b) = self.stretch;
+            if body.is_some_and(|body| body.blocks_vehicle_along(a, b, self.width, self.push)) {
                 return Some(false);
             }
         }
@@ -118,8 +122,11 @@ impl BodyCheck {
         for bucket in &self.buckets {
             d.u64(*bucket as u64);
         }
-        d.f64(self.point.x)
-            .f64(self.point.y)
+        let (a, b) = self.stretch;
+        d.f64(a.x)
+            .f64(a.y)
+            .f64(b.x)
+            .f64(b.y)
             .f64(self.width)
             .u64(self.push.rank() as u64)
             .u64(self.bucket as u64)
@@ -280,7 +287,7 @@ impl NavGrid {
         push: contract::scenario::PushClass,
         counts: &dyn Fn(PropId) -> bool,
     ) -> bool {
-        let mut check = BodyCheck::new(self, point, width, push);
+        let mut check = BodyCheck::new(self, (point, point), width, push);
         loop {
             if let Some(clear) = check.advance_counting(self, false, counts) {
                 return clear;

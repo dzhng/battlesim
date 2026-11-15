@@ -12,7 +12,7 @@
     "square_widths": 1.5,
     "stub_widths": 2.0,
     "alongside_cos": 0.94,
-    "gate_widths": 2.0,
+    "edge_run_m": 50.0,
     "trim_margin_m": 1.0,
     "pin_rounds": 4,
     "shortest_run_m": 1.0

@@ -21,7 +21,7 @@ import { SkirmishStatus } from "./battleStatus";
 import { MatchResultOverlay } from "./MatchResultOverlay";
 import { PurchasePicker } from "@web/battle/present/purchasePicker";
 import { ArmyDeck } from "@web/battle/present/armyDeck";
-import { CaptionList, useCaptions } from "@web/battle/present/captions";
+import { ContactLines, contactLines } from "@web/battle/present/contactLines";
 import { useBattleOverlay } from "./useBattleOverlay";
 import { LabViewport } from "./LabViewport";
 import { useUnitFocus } from "./useUnitFocus";
@@ -119,17 +119,12 @@ export function BattleView({
     scenarioArt,
     player,
     side,
-    onDecoded: (observation, digest) => {
-      noteCues(observation);
-      onDecoded?.(observation, digest);
-    },
+    onDecoded,
     replay,
     scripted,
     sound: true,
     inputEnabled: !menuOpen && viewportReady && inCommand,
   });
-  const cues = useCaptions(session.units, session.rules.tick_hz);
-  const { note: noteCues } = cues;
   const input = !replay && !scripted;
   const { meshes, sim, control, surfaceZ } = session;
   const worldFeed = useFeed(meshes);
@@ -139,11 +134,14 @@ export function BattleView({
   const { contacts } = session;
   // Contacts N steps through, newest first.
   const focusTargets = useMemo(() => contactFocusTargets(contacts), [contacts]);
+  const lines = useMemo(
+    () => contactLines(session.units, contacts, observation?.tick ?? 0, session.rules.tick_hz),
+    [session.units, contacts, observation?.tick, session.rules.tick_hz],
+  );
   const { cameraFocus, focusUnit } = useUnitFocus();
   const { pointerPaint } = session;
   const rulerLabels = useRef<RangeRulerLabelsHandle>(null);
   const objectiveMarkers = useRef<ObjectiveMarkersHandle>(null);
-  const { clear: clearCues } = cues;
   const pause = usePauseMenu(sim.client, menuOpen, setMenuOpen);
   const graphics = useSyncExternalStore(graphicsSettings.subscribe, graphicsSettings.get);
   const quality =
@@ -151,9 +149,8 @@ export function BattleView({
     graphicsProfiles[resolveEffectiveTier(graphics.mode, graphics.detectedMode)];
   const { audio } = session;
   useEffect(() => {
-    clearCues();
     audio?.reset();
-  }, [sim.client, clearCues, audio]);
+  }, [sim.client, audio]);
 
   const overlay = useBattleOverlay(session, { scenario, side, camera });
 
@@ -269,7 +266,7 @@ export function BattleView({
           rules={session.rules}
           pending={viewingPlayer?.pending}
           tick={observation?.tick}
-          captions={<CaptionList captions={cues} />}
+          contactLines={<ContactLines lines={lines} />}
           reinforcements={
             input && session.purchase && observation?.skirmish ? (
               <>

@@ -53,6 +53,8 @@ use contract::ground::GroundShape;
 use contract::map::{SurfaceArea, SurfaceKind};
 use std::collections::{BTreeMap, BTreeSet};
 
+mod gate;
+
 /// An end stops this far past the middle of the road it joins, so the two
 /// centrelines cross whatever a centimetre of rounding did to either.
 const OVERSHOOT_M: f64 = 0.25;
@@ -230,7 +232,7 @@ fn closed(
     // Unlike ways at a corner are carried to where their width may change,
     // and what that leaves alike and end to end is one way.
     let mut ways = weld(policy, carry(policy, weld(policy, ways), size));
-    gate(policy, &mut ways, size);
+    gate::gate(policy, &mut ways, size);
     snap(policy, &mut ways, size);
     ways
 }
@@ -1254,40 +1256,6 @@ fn carry(policy: &crate::layout::JointPolicy, mut ways: Vec<Way>, size: [f64; 2]
     ways
 }
 
-/// A way that ends on the map's edge at a slant turns square to the edge
-/// before it, so its flat end lies along the edge and none of it shows.
-fn gate(policy: &crate::layout::JointPolicy, ways: &mut [Way], size: [f64; 2]) {
-    for way in ways.iter_mut().filter(|way| !way.pinned) {
-        for last in [false, true] {
-            let (at, out_of) = way.end(last);
-            // The edge it stands on and that edge's outward normal.
-            let normal = [
-                (at[0] <= 0.0, [-1.0, 0.0]),
-                (at[0] >= size[0], [1.0, 0.0]),
-                (at[1] <= 0.0, [0.0, -1.0]),
-                (at[1] >= size[1], [0.0, 1.0]),
-            ]
-            .into_iter()
-            .find_map(|(on, normal)| (on && dot(out_of, normal) > 0.0).then_some(normal));
-            let Some(normal) = normal else { continue };
-            // Square enough that no corner of its end shows inside the map.
-            if way.half() * cross(out_of, normal).abs() <= ROUNDING_M {
-                continue;
-            }
-            // How far in from the edge the point before the end stands.
-            let room = dot(sub(at, way.before(last)), normal);
-            let depth = (policy.gate_widths * way.width).min(room / 2.0);
-            if depth < policy.shortest_run_m {
-                continue;
-            }
-            let turn = round_cm(sub(at, scale(normal, depth)));
-            let mut gated = way.points.clone();
-            gated.insert(if last { gated.len() - 1 } else { 1 }, turn);
-            way.relay(gated);
-        }
-    }
-}
-
 /// What a lone end does about the carriageway it meets.
 enum Join {
     /// Run on, or back, to this point.
@@ -1881,7 +1849,7 @@ mod tests {
     }
 
     #[test]
-    fn a_road_that_leaves_the_map_at_a_slant_turns_square_to_the_edge() {
+    fn a_road_that_leaves_the_map_at_a_slant_runs_in_square_and_straight() {
         let closed = close(
             &policy(),
             vec![way(
@@ -1893,7 +1861,12 @@ mod tests {
             &[],
         );
         let road = &lines(&closed)[0];
-        assert_eq!(road, &[[500.0, 500.0], [700.0, 984.0], [700.0, 1000.0]]);
+        // Straight in for the edge run, and the reach of its bend there.
+        let depth = policy().edge_run_m + 3.0 * 4.0;
+        assert_eq!(
+            road,
+            &[[500.0, 500.0], [700.0, 1000.0 - depth], [700.0, 1000.0]]
+        );
         // Both corners of its square end lie on the edge.
         let GroundShape::Stroke { centerline, .. } = &closed[0].shape else {
             unreachable!()

@@ -159,7 +159,7 @@ pub fn generate_layout(
         .map(|(index, road)| roads::surface(&context, index, road))
         .collect::<Result<Vec<_>, _>>()?;
     surfaces.extend(towns::surfaces(&context, &towns)?);
-    let skirmish = crate::skirmish::reserve(
+    let mut skirmish = crate::skirmish::reserve(
         request,
         &mut surfaces,
         &water,
@@ -168,6 +168,7 @@ pub fn generate_layout(
             .iter()
             .map(|t| t.outline.as_slice())
             .collect::<Vec<_>>(),
+        presets.joints.edge_run_m,
     )?;
     placed.reserved.extend(
         crate::skirmish::objective_clearances(skirmish.as_ref())
@@ -184,6 +185,9 @@ pub fn generate_layout(
         [context.extent; 2],
         &blocks,
     );
+    if let Some(sites) = skirmish.as_mut() {
+        crate::skirmish::follow_roads(sites, &surfaces, context.extent);
+    }
     let swamps = swamps::place(
         &context,
         &swamps::Clear {

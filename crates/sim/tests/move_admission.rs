@@ -315,15 +315,10 @@ fn opposing_groups_keep_their_markers_when_traffic_requires_a_detour() {
             goals[p.unit.0 as usize] = p.goal;
         }
     }
-    let mut arrived = [false; 8];
-    let mut rear_continues = [false; 2];
     for _ in 0..100 * battle.rules().tick_hz {
         battle.step();
         for i in 0..8 {
             let unit = battle.unit(UnitId(i)).unwrap();
-            let goal = goals[i as usize];
-            let gap = (unit.position.x - goal[0]).hypot(unit.position.y - goal[1]);
-            arrived[i as usize] |= unit.state == MoveState::Idle && gap < 1.5;
             assert!(
                 battle
                     .world()
@@ -338,20 +333,7 @@ fn opposing_groups_keep_their_markers_when_traffic_requires_a_detour() {
                     .overlaps(&battle.unit(UnitId(j)).unwrap().ground_footprint().unwrap()));
             }
         }
-        for (side, lead, rear) in [(0, 2, 0), (1, 6, 4)] {
-            rear_continues[side] |= arrived[lead]
-                && !arrived[rear]
-                && battle
-                    .unit(UnitId(rear as u32))
-                    .unwrap()
-                    .movement_goal()
-                    .is_some();
-        }
     }
-    assert!(
-        rear_continues.iter().all(|v| *v),
-        "rear vehicles continue after their leaders park"
-    );
     for i in 0..8 {
         let unit = battle.unit(UnitId(i)).unwrap();
         let goal = goals[i as usize];

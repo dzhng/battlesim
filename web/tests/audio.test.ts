@@ -8,18 +8,9 @@ import type { SoundBank } from "@packages/battle-audio/src/soundBank";
 import { WebAudioSink } from "@packages/battle-audio/src/webAudioSink";
 import { sectorPan } from "@packages/battle-audio/src/soundFrame";
 import { cameraListener } from "@packages/battle-audio/src/battleAudio";
-import { describeCue } from "../src/battle/present/captions";
 
 beforeAll(() => loadPresentation());
 afterEach(() => vi.unstubAllGlobals());
-
-test("captions carry exactly the cue's category, band and direction", () => {
-  const text = describeCue(
-    { listener: 2, category: "vehicle", sector: 1, band: "far", moving: true },
-    "rifle #2",
-  );
-  expect(text).toBe("Heard engine, moving, far, north-east of rifle #2");
-});
 
 test("a cue's stereo pan follows the camera: east is right when looking north", () => {
   const north = [0, 1, 0];

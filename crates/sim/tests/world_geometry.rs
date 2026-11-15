@@ -694,9 +694,9 @@ fn overlapping_polygon_boundaries_clip_covered_edges_and_keep_one_exterior() {
     assert_eq!(perimeter, 50.0);
 }
 
-/// C65: a rounded stroke's samples are the same bits in every runtime, and
-/// so are a river's with the width and grade at each (C69). The web test
-/// holds Wasm to this file's native samples.
+/// C65: a rounded stroke's exported samples, and a river's with the width
+/// and grade at each (C69), are frozen to the bit: moving them is a named
+/// change, re-recorded with `BLESS_PARITY=1`.
 #[test]
 fn rounded_strokes_match_the_parity_oracle() {
     let oracle: serde_json::Value = serde_json::from_str(include_str!(
