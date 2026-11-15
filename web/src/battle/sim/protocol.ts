@@ -215,6 +215,7 @@ export type SimRequest =
   | { type: "dispose" };
 
 export type SimReply =
+  | { type: "request_refused"; request: "command" | "preview"; id: number; reason: string }
   | { type: "ready"; layout: string; tickHz: number; tick: number }
   | { type: "ack"; id: number; ack: CommandAck }
   | { type: "purchase_preview"; id: number; placement: PurchasePlacement }

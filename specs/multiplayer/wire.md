@@ -72,6 +72,8 @@ boundaries mean nothing: a decoder must accept any split.
 type StreamOpen = {
   resume: "continued" | "keyframe";
   layout?: string; tickHz?: number;      // battle streams only
+  status?: { status: "running" | "finished" | "failed"; slow: boolean };
+                                         // a battle's status as last said, for a late reader
 };
 ```
 
@@ -102,7 +104,7 @@ closed, and that reader resumes like any other.
 
 ```ts
 type UpBatch = {
-  seq: number;                       // counts up per player; a retry reuses it
+  seq: number;                       // counts up from the page's clock, so a reloaded page is later; a retry reuses it
   items: { id: number; order: Order; queued: boolean }[];
 };
 type UpReply =

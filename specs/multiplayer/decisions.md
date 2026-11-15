@@ -218,6 +218,12 @@ Append here: the slice, the decision, why, and what it replaced.
 | 06 | The host throws for a seat or player the battle does not have. Refusing a stranger (`not_seated`) is the transport's. | The host answering `not_seated` too. |
 | 06 | The host exports the battle's recorded orders (`replay()`). | No way to check a server battle against its replay. |
 | 06 | The server's code finds its data from a repository root it is given, and the battle thread's file beside the bundle. Thread mode runs only from the bundle. | Each file working the root out from its own location, which breaks once bundled. |
+| 07 | A page reads the battle's layout, rate and tick, then closes the stream until it starts; it starts on a snapshot taken then. | Buffering the battle while the page loads, with a four-second cap that failed any page slower than that. |
+| 07 | A batch's number counts up from the page's clock. | Counting from 1, which made the server refuse every batch from a reloaded page as older than its last. |
+| 07 | The stream's `open` record carries the battle's status. | A page joining a running battle never hearing that it runs. |
+| 07 | A battle's seats reach the transport as a lookup asked on every request. | A list fixed when the battle starts, which a room could not change when a player returns or a seat moves. |
+| 07 | A transport refusal is its own reply to the page (`request_refused`). | Inventing a simulation acknowledgement for an order the battle never saw. |
+| 07 | The transport refuses a whole batch that exceeds the seat's order allowance, at the rules' own rate. | A second rate constant beside the rules'. |
 | 20 | An AI handed a 30-unit army copes: every unit is ordered within one planner round and it fights better than an army nobody commands. Rooms may rely on a seat's AI. | Assuming it without a fight: the first tests had no enemy on the field. |
 | 20 | An AI handed 150 units gets only 30 orders through per planner round, because it gives them in one burst. Open, for the user before slice 22: spread the AI's orders (recommended) or cap what a seat may receive. | Counting issued orders as applied: the battle logs an order before it checks the rate limit. |
 

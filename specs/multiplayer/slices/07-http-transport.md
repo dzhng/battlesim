@@ -67,3 +67,52 @@ fallback is the deferred "previews in the browser" plan.
 ## Delegated
 
 The router's shape; the queue bound; the retry timeout.
+
+## As built
+
+- **Server:** `apps/game-server/src/http/` serves `GET /battles/:id/stream`,
+  `POST /battles/:id/up` and `POST /battles/:id/preview`, and the preflight.
+  `battleRoute(host, seatOf, ordersPerSecond)` is one battle's seats:
+  `seatOf(browserId)` is asked on every request, so whoever owns seating
+  (the room service, later) can move a seat while the battle runs. Each seat
+  has one port, one order allowance and one remembered batch, shared by all
+  its sockets.
+- **Page:** `httpLink` is one connection per `records(after)` call;
+  `remoteConnection` turns a link into the page's existing channel.
+- **`bun run server`** bundles for Node and serves one battle named `dev`
+  on localhost, with its two browser ids taken from `BATTLE_BLUE_ID` and
+  `BATTLE_RED_ID`. This is scaffolding until rooms create battles.
+
+What the plan did not say, and what was decided:
+
+- **A page learns the battle, then lets the stream go until it starts.** On
+  connecting it reads the layout, rate and current tick and closes the
+  connection. When the page starts it opens the stream afresh and begins on
+  a snapshot taken then. Nothing of the battle is read or held while the
+  page loads, however long that takes. The first cut buffered up to four
+  seconds of battle and failed the page past that.
+- **A batch's number counts up from the page's clock,** so a reloaded page's
+  batches are later than its old ones. The first cut counted from 1, and the
+  server would have refused every batch from a reloaded page as stale.
+- **The stream's `open` record says the battle's status.** A page that joins
+  a running battle missed the `running` record.
+- **A transport refusal reaches the page as its own reply**
+  (`request_refused`), which rejects that order or preview. It is not
+  dressed up as an acknowledgement from the simulation.
+- **HTTP statuses:** 400 for a body or cursor that is not well formed, 403
+  with `not_seated` for a stranger, 404 for an unknown battle, 405 for the
+  wrong method, 409 for a batch older than the seat's last or sent while
+  one is in flight, 410 once the battle cannot answer.
+- **Constants,** each beside the code that enforces it: a socket's queue
+  may hold 4 MiB before it is closed; a request body 64 KiB; one preview
+  per 200 ms per seat; orders at the rules' own rate (30 a second),
+  refused a whole batch at a time; a batch is retried after 2 s without a
+  reply; a preview is given up after 2 s.
+
+Not stress-tested: a socket queue passing its bound, and a preview that is
+never answered.
+
+A page still cannot play through this: slice 08 wires the page's battle to
+`remoteConnection`. The online client's options still ask for a scenario
+and seed it does not use; slice 08 owns that shape.
+

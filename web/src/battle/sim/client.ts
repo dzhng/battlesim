@@ -38,7 +38,7 @@ export interface Publication {
   release(): void;
 }
 
-export interface SimClientOptions {
+export interface LocalSimClientOptions {
   scenario: string;
   seed: number;
   side: SideName;
@@ -51,6 +51,30 @@ export interface SimClientOptions {
   /** Replay a recorded battle instead of accepting input. */
   replay?: string;
 }
+
+export type RemoteSimClientOptions = Omit<
+  LocalSimClientOptions,
+  "transport" | "connect" | "replay"
+> & {
+  transport: "remote";
+  connect: SimConnection;
+};
+export type SimClientOptions = LocalSimClientOptions | RemoteSimClientOptions;
+/** Online seats offer only actions the server permits. Local clients add
+ * authority controls below; both use the same decoder and request tracking. */
+export type OnlineSimClient = Pick<
+  SimClient,
+  | "ready"
+  | "presentation"
+  | "start"
+  | "command"
+  | "previewPurchase"
+  | "previewMove"
+  | "previewBuilding"
+  | "onPublication"
+  | "onStatus"
+  | "dispose"
+>;
 
 export interface SimClient {
   readonly ready: Promise<{ tickHz: number; tick: number; layout: string }>;
@@ -131,7 +155,10 @@ function directChannel(receive: (reply: SimReply) => void): SimChannel {
   };
 }
 
-export function createSimClient(options: SimClientOptions): SimClient {
+export function createSimClient(options: RemoteSimClientOptions): OnlineSimClient;
+export function createSimClient(options: LocalSimClientOptions): SimClient;
+export function createSimClient(options: SimClientOptions): OnlineSimClient | SimClient {
+  const online = options.transport === "remote";
   let decoder: ScenePresentation | null = null;
   let observedSide = options.side;
   let slow = false;
@@ -184,7 +211,8 @@ export function createSimClient(options: SimClientOptions): SimClient {
     lifetime = next;
     if (next.kind === "failed") {
       for (const buffer of heldBuffers) returnCredit(buffer);
-      channel.send({ type: "pause" });
+      if (online) channel.close();
+      else channel.send({ type: "pause" });
       rejectReady(next.error);
       for (const pending of pendingAcks.values()) pending.reject(next.error);
       for (const pending of advances.values()) pending.reject(next.error);
@@ -199,7 +227,7 @@ export function createSimClient(options: SimClientOptions): SimClient {
       replayWaiter = null;
     } else {
       previews.clear();
-      if (typeof document !== "undefined")
+      if (!online && typeof document !== "undefined")
         document.removeEventListener("visibilitychange", onVisibility);
       channel.close();
     }
@@ -244,6 +272,12 @@ export function createSimClient(options: SimClientOptions): SimClient {
         case "status":
           setStatus(reply.status, reply.slow);
           break;
+        case "request_refused": {
+          const pending = reply.request === "command" ? pendingAcks : previews;
+          pending.get(reply.id)?.reject(new Error(reply.reason));
+          pending.delete(reply.id);
+          break;
+        }
         case "ack":
           pendingAcks.get(reply.id)?.resolve(reply.ack);
           pendingAcks.delete(reply.id);
@@ -342,22 +376,20 @@ export function createSimClient(options: SimClientOptions): SimClient {
     scenario: options.scenario,
     seed: options.seed,
     sides: [options.side],
-    replay: options.replay,
+    replay: options.transport === "remote" ? undefined : options.replay,
   });
 
   const send = (request: SimRequest) => {
     if (lifetime.kind === "active") channel.send(request);
   };
   const onVisibility = () => send({ type: "hidden", hidden: document.hidden });
-  if (typeof document !== "undefined") document.addEventListener("visibilitychange", onVisibility);
+  if (!online && typeof document !== "undefined")
+    document.addEventListener("visibilitychange", onVisibility);
 
-  return {
+  const client: OnlineSimClient = {
     ready,
     get presentation() {
       return decoder;
-    },
-    get paused() {
-      return paused;
     },
     start: () => send({ type: "start" }),
     command(order, queued = false) {
@@ -408,6 +440,16 @@ export function createSimClient(options: SimClientOptions): SimClient {
     onStatus(listener) {
       statusListeners.push(listener);
     },
+    dispose() {
+      if (lifetime.kind === "disposed") return;
+      terminate({ kind: "disposed", error: lifetime.kind === "failed" ? lifetime.error : null });
+    },
+  };
+  if (online) return client;
+  const controls = {
+    get paused() {
+      return paused;
+    },
     pause() {
       paused = true;
       send({ type: "pause" });
@@ -416,7 +458,7 @@ export function createSimClient(options: SimClientOptions): SimClient {
       paused = false;
       send({ type: "resume" });
     },
-    advance(ticks) {
+    advance(ticks: number) {
       if (lifetime.kind !== "active")
         return Promise.reject(lifetime.error ?? new Error("simulation client disposed"));
       const id = nextAdvance++;
@@ -425,11 +467,11 @@ export function createSimClient(options: SimClientOptions): SimClient {
         channel.send({ type: "advance", id, ticks });
       });
     },
-    setControllers(controllers) {
+    setControllers(controllers: string) {
       if (lifetime.kind !== "active") return;
       channel.send({ type: "controllers", controllers });
     },
-    observeAs(side) {
+    observeAs(side: SideName) {
       if (lifetime.kind !== "active") return;
       observedSide = side;
       decoder?.invalidate(side);
@@ -443,9 +485,9 @@ export function createSimClient(options: SimClientOptions): SimClient {
         channel.send({ type: "replay" });
       });
     },
-    dispose() {
-      if (lifetime.kind === "disposed") return;
-      terminate({ kind: "disposed", error: lifetime.kind === "failed" ? lifetime.error : null });
-    },
   };
+  // Preserve the shared client's live presentation getter and the local
+  // pause getter; object spread would evaluate both at construction time.
+  Object.defineProperties(client, Object.getOwnPropertyDescriptors(controls));
+  return client as SimClient;
 }

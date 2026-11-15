@@ -19,6 +19,8 @@ const entries = [
   "apps/game-server/src/battleHost/worker.ts",
   "apps/game-server/src/serverData.ts",
   "apps/game-server/src/soak.ts",
+  "apps/game-server/src/http/index.ts",
+  "apps/game-server/src/main.ts",
 ];
 
 test("multiplayer packages bundle for Node without browser aliases or asset loaders", () => {

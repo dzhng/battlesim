@@ -82,6 +82,9 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
   let send: (request: SimRequest) => void = () => {};
   let stop: () => void = () => {};
 
+  /** The status last written to both streams; a late reader's `open` says it. */
+  let told: { status: "running"; slow: boolean } | null = null;
+
   // A side's readers ask for a keyframe through its source. One resync
   // serves every reader waiting, and a side is resynced at most once a
   // second: an ask that comes sooner is served when the second is up.
@@ -106,7 +109,7 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
       side,
       recordSource(
         RING_BYTES,
-        () => ({ layout, tickHz }),
+        () => ({ layout, tickHz, ...(told && { status: told }) }),
         () => resync(side),
       ),
     ]),
@@ -138,7 +141,6 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
     close(message, { kind: "crashed", message });
   };
 
-  let told: { status: string; slow: boolean } | null = null;
   const settle = <T>(waiters: Map<number, Waiter<T>>, id: number, value: T) => {
     waiters.get(id)?.resolve(value);
     waiters.delete(id);
@@ -171,7 +173,7 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
         if (message.status === "finished") return close("finished", { kind: "finished" });
         if (message.status !== "running") return;
         if (told?.status === message.status && told.slow === message.slow) return;
-        told = { status: message.status, slow: message.slow };
+        told = { status: "running", slow: message.slow };
         return tellBoth("running", message.slow);
       case "error":
         return crash(message.message);
@@ -179,7 +181,7 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
   };
 
   if (run === "thread") {
-    const worker = new Worker(new URL("./worker.js", import.meta.url));
+    const worker = new Worker(new URL("./worker.mjs", import.meta.url));
     worker.on("message", onMessage);
     worker.on("error", crash);
     worker.on("exit", (code) => crash(`the battle's thread exited with code ${code}`));

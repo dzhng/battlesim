@@ -92,7 +92,7 @@ Foundation
 - [x] [04 Seats and setup the server can run](slices/04-seats-and-setup.md)
 - [x] [05 Record stream and seat link](slices/05-record-stream.md)
 - [x] [06 Battle host](slices/06-battle-host.md)
-- [ ] [07 HTTP transport](slices/07-http-transport.md)
+- [x] [07 HTTP transport](slices/07-http-transport.md)
 - [ ] [08 Command any seat](slices/08-command-any-seat.md) (first playable checkpoint)
 - [ ] [09 Identity, build check, deploy](slices/09-identity-build-deploy.md)
 - [ ] [10 Playout](slices/10-playout.md) (the module is built; wiring it in waits for 07 and 08)

@@ -23,6 +23,8 @@ export interface StreamOpen {
   resume: "continued" | "keyframe";
   layout?: string;
   tickHz?: number;
+  /** A battle's status as last said, for a reader that joins after it was. */
+  status?: { status: "running" | "finished" | "failed"; slow: boolean };
 }
 
 export type UpBatch = {

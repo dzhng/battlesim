@@ -124,7 +124,7 @@ What differs from the plan above, and why:
   `setController` for a player it does not have. `not_seated` is the
   transport's answer (slice 07), which is the only code that meets a
   stranger.
-- **Thread mode runs from the bundle.** The host looks for `worker.js` beside
+- **Thread mode runs from the bundle.** The host looks for `worker.mjs` beside
   its own bundled file, and the server's data takes the repository root as
   an argument. `bun run server:soak [seconds]` bundles for Node and runs
   under Node.
