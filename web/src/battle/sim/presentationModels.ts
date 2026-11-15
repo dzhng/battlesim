@@ -1,7 +1,10 @@
 /** Canonical appearance catalog records and external model pose requests. */
 import type { ModelInstance, ModelPose } from "@packages/battle-renderer/src/models/modelInstances";
 import { type Presentation, type Renderer, type PreparedAppearances } from "@wasm/renderer_browser";
+import { contentIdKey } from "../render/contentIdentity";
+import type { ContentId } from "@packages/scene-assets/src/loader";
 import type { ModelAsset } from "../render/modelAssets";
+import { releaseTransport } from "../transport";
 import {
   APPEARANCE_WORDS,
   Appearance,
@@ -10,6 +13,17 @@ import {
 import { STUMP } from "@packages/battle-renderer/src/scenery/walk";
 import type { Mesh } from "@packages/battle-renderer/src/mesh";
 import type { Articulation } from "@packages/scene-assets/src/articulation";
+
+export interface AdmissionTransportWork {
+  bundlesEncoded: number;
+  bundleBytesSent: number;
+}
+
+const preparedTransportWork = new WeakMap<object, AdmissionTransportWork>();
+
+export function preparedAdmissionWork(prepared: PreparedAppearances): AdmissionTransportWork {
+  return preparedTransportWork.get(prepared) ?? { bundlesEncoded: 0, bundleBytesSent: 0 };
+}
 
 export interface ModelDetail {
   lod_px: readonly [number, number, number];
@@ -75,29 +89,52 @@ export function readAppearanceRows(
   return loaded;
 }
 
-/** Transport complete appearance facts without changing the active catalog. */
+/** Declare the complete wanted catalog and transport only Rust's missing content. */
 export function prepareAppearances(
-  renderer: Pick<Renderer, "appearance_draft" | "prepare_appearances">,
+  renderer: Pick<Renderer, "missing_content_ids" | "appearance_draft" | "prepare_appearances">,
   presentation: Presentation,
   assets: readonly ModelAsset[],
   detail: ModelDetail,
 ): Promise<PreparedAppearances> {
-  const draft = renderer.appearance_draft(JSON.stringify(detail));
+  const missing = new Set(
+    (
+      JSON.parse(
+        renderer.missing_content_ids(
+          presentation,
+          JSON.stringify(assets.map((asset) => asset.contentId)),
+        ),
+      ) as ContentId[]
+    ).map(contentIdKey),
+  );
+  const draft = renderer.appearance_draft(presentation, JSON.stringify(detail));
+  const work = { bundlesEncoded: 0, bundleBytesSent: 0 };
   try {
     for (const asset of assets) {
+      draft.declare(asset.name, JSON.stringify(asset.contentId));
       if (asset.placement) draft.set_placement(asset.name, JSON.stringify(asset.placement));
-      draft.add_bundle(
-        asset.name,
-        asset.bundle,
-        asset.textureIds,
-        asset.textureBytes,
-        asset.skeleton,
-      );
+      if (!missing.delete(contentIdKey(asset.contentId))) continue;
+      const { bundle, textureIds, textureBytes, skeleton } = asset.encode();
+      try {
+        work.bundlesEncoded++;
+        work.bundleBytesSent += bundle.byteLength;
+        draft.add_bundle(
+          JSON.stringify(asset.contentId),
+          bundle,
+          textureIds,
+          textureBytes,
+          skeleton,
+        );
+      } finally {
+        releaseTransport(bundle);
+      }
     }
   } catch (error) {
     draft.free();
     throw error;
   }
   // Ownership moves into Rust even when synchronous GPU admission throws.
-  return renderer.prepare_appearances(presentation, draft);
+  return renderer.prepare_appearances(presentation, draft).then((prepared) => {
+    preparedTransportWork.set(prepared, work);
+    return prepared;
+  });
 }

@@ -19,6 +19,7 @@ use crate::units::drawn::ClipTables;
 use crate::world::{EffectsSection, UnitsSection};
 use contract::catalog::Mobility;
 use serde_json::{json, Map, Value};
+use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 /// A wreck's pieces a cook-off throws (`WRECK_PIECES`) and its debris state.
@@ -52,8 +53,35 @@ impl Sections {
     }
 }
 
-/// A runtime content's bytes, inflated, by its hash.
-pub type Read<'a> = dyn Fn(&str) -> Result<Vec<u8>, String> + 'a;
+/// A runtime content's bytes, inflated, by its hash. File readers can own
+/// these; a boundary can lend its input without another complete catalog copy.
+pub type Read<'a> = dyn Fn(&str) -> Result<Cow<'a, [u8]>, String> + 'a;
+
+/// Facts derived from runtime bundles by a reusable fielding owner.
+#[derive(Default)]
+pub struct Facts {
+    appearances: HashMap<(String, Option<String>), AppearanceFacts>,
+    wrecks: HashMap<String, WreckFacts>,
+}
+
+pub(crate) struct BundleFacts<'a> {
+    pub facts: &'a mut Facts,
+    pub bytes: &'a HashMap<String, Cow<'a, [u8]>>,
+}
+
+#[derive(Clone)]
+struct AppearanceFacts {
+    record: Value,
+    table: Option<Vec<f32>>,
+}
+
+#[derive(Clone)]
+struct WreckFacts {
+    bounds: Option<[Value; 2]>,
+    lies: Option<[f64; 3]>,
+    underside: f64,
+    debris_top: Option<f64>,
+}
 
 /// A battle fielding `kinds` of the resolved unit catalog `catalog`
 /// (`Catalog::view`) under `rules` (how long a soldier holds his firing
@@ -74,23 +102,35 @@ impl Fielding<'_> {
     /// The runtime contents [`Fielding::resolve`] reads, by hash, sorted:
     /// each drawn appearance's bundle, each fielded hull's wreck and every
     /// skeleton's clips.
-    pub fn contents(&self) -> Result<Vec<String>, String> {
+    pub fn contents(&self, facts: &Facts) -> Result<Vec<String>, String> {
         let catalog = Catalog::new(self.catalog)?;
         let art = Art::new(self.runtime, &catalog, self.kinds, self.factions)?;
         let (_, drawn) = unit_types(&catalog, &art, self.kinds, self.factions)?;
         let mut contents = BTreeSet::new();
-        for name in drawn.iter().chain(hull_wrecks(&catalog, &art).values()) {
-            contents.insert(art.bundle(name)?.to_owned());
+        for name in drawn {
+            let (bundle, skeleton) = art.key(&name)?;
+            if !facts
+                .appearances
+                .contains_key(&(bundle.clone(), skeleton.clone()))
+            {
+                contents.insert(bundle);
+                if let Some(skeleton) = skeleton {
+                    contents.insert(skeleton);
+                }
+            }
         }
-        for hash in self.runtime["skeletons"].as_object().into_iter().flatten() {
-            contents.extend(hash.1.as_str().map(str::to_owned));
+        for name in hull_wrecks(&catalog, &art).values() {
+            let bundle = art.bundle(name)?.to_owned();
+            if !facts.wrecks.contains_key(&bundle) {
+                contents.insert(bundle);
+            }
         }
         Ok(contents.into_iter().collect())
     }
 
     /// The battle's sections, each content [`Fielding::contents`] names
     /// read by `read`.
-    pub fn resolve(&self, read: &Read<'_>) -> Result<Sections, String> {
+    pub fn resolve(&self, facts: &mut Facts, read: &Read<'_>) -> Result<Sections, String> {
         let presentation = PresentationSettings::from_value(self.presentation)?;
         let catalog = Catalog::new(self.catalog)?;
         let looks = crate::looks::WeaponLooks::new(
@@ -99,24 +139,41 @@ impl Fielding<'_> {
         )?;
         looks.check_mounts(self.catalog)?;
         effects::check_smoke_screen_looks(&presentation, &catalog, self.kinds)?;
-        let art = Art {
-            read,
-            ..Art::new(self.runtime, &catalog, self.kinds, self.factions)?
+        let bytes: HashMap<String, Cow<'_, [u8]>> = self
+            .contents(facts)?
+            .into_iter()
+            .map(|hash| {
+                let value = read(&hash)?;
+                Ok((hash, value))
+            })
+            .collect::<Result<_, String>>()?;
+        let art = Art::new(self.runtime, &catalog, self.kinds, self.factions)?;
+        let mut bundle_facts = BundleFacts {
+            facts,
+            bytes: &bytes,
         };
         let (mut units, tables) = units(
             &presentation,
             self.rules,
             &catalog,
             &art,
+            &mut bundle_facts,
             self.kinds,
             self.factions,
         )?;
         for unit in units["types"].as_object_mut().unwrap().values_mut() {
             for mount in unit["mounts"].as_array_mut().unwrap() {
-                mount["weapons"] = Value::Array(mount["weapons"].as_array().unwrap().iter().map(|id| {
-                    let weapon = id.as_str().unwrap();
-                    json!({"kind": weapon, "kick": looks.get(weapon).kick.expect("fielded firing kick")})
-                }).collect());
+                mount["weapons"] = Value::Array(
+                    mount["weapons"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .map(|id| {
+                            let weapon = id.as_str().unwrap();
+                            json!({"kind": weapon, "kick": looks.get(weapon).kick.expect("fielded firing kick")})
+                        })
+                        .collect(),
+                );
             }
         }
         let effects = effects::section(
@@ -125,6 +182,7 @@ impl Fielding<'_> {
             self.rules,
             &catalog,
             &art,
+            &mut bundle_facts,
             self.kinds,
         )?;
         Ok(Sections {
@@ -141,7 +199,7 @@ pub use files::{encounter_kinds, fielded};
 mod effects;
 #[cfg(all(feature = "files", not(target_arch = "wasm32")))]
 mod files {
-    use super::{Fielded, Fielding};
+    use super::{Facts, Fielded, Fielding};
     use crate::assets::Runtime;
     use serde_json::Value;
     use std::collections::BTreeSet;
@@ -182,6 +240,7 @@ mod files {
         let rules = serde_json::to_value(rules).map_err(|e| e.to_string())?;
         let runtime = Runtime::open(&root.join("assets/runtime"))?;
         let presentation = read_json(&root.join("fixtures/presentation.json"))?;
+        let mut facts = Facts::default();
         Fielding {
             presentation: &presentation,
             rules: &rules,
@@ -190,7 +249,9 @@ mod files {
             kinds,
             factions: None,
         }
-        .resolve(&|hash| runtime.read(hash, "bundle.bin"))?
+        .resolve(&mut facts, &|hash| {
+            runtime.read(hash, "bundle.bin").map(Into::into)
+        })?
         .typed()
     }
 }
@@ -327,13 +388,7 @@ fn top_speed_kmh(t: &Value) -> f64 {
 /// their contents are read.
 struct Art<'a> {
     runtime: &'a Value,
-    read: &'a Read<'a>,
     installed: BTreeSet<String>,
-}
-
-/// A reader of no content: art whose bytes are not asked for.
-fn unread(hash: &str) -> Result<Vec<u8>, String> {
-    Err(format!("content {hash} was not read"))
 }
 
 impl<'a> Art<'a> {
@@ -354,11 +409,7 @@ impl<'a> Art<'a> {
             }
         }
         installed.retain(|n| entries[n].is_object());
-        Ok(Self {
-            runtime,
-            read: &unread,
-            installed,
-        })
+        Ok(Self { runtime, installed })
     }
 
     fn has(&self, name: &str) -> bool {
@@ -376,10 +427,56 @@ impl<'a> Art<'a> {
             .ok_or(format!("appearance {name}: no bundle"))
     }
 
-    /// Content `hash`, inflated.
-    fn bytes(&self, hash: &str) -> Result<Vec<u8>, String> {
-        (self.read)(hash)
+    fn key(&self, name: &str) -> Result<(String, Option<String>), String> {
+        let entry = self.entry(name);
+        let bundle = self.bundle(name)?.to_owned();
+        let skeleton = entry["skeleton"]
+            .as_str()
+            .map(|id| {
+                self.runtime["skeletons"][id]
+                    .as_str()
+                    .ok_or(format!("skeleton {id} is not installed"))
+                    .map(str::to_owned)
+            })
+            .transpose()?;
+        Ok((bundle, skeleton))
     }
+}
+
+fn appearance_facts(
+    facts: &mut Facts,
+    art: &Art,
+    bytes: &HashMap<String, Cow<'_, [u8]>>,
+    name: &str,
+) -> Result<AppearanceFacts, String> {
+    let key = art.key(name)?;
+    if let Some(facts) = facts.appearances.get(&key) {
+        return Ok(facts.clone());
+    }
+    let bundle_bytes = bytes
+        .get(&key.0)
+        .ok_or(format!("content {} was not read", key.0))?;
+    let what = format!("bundle {name}");
+    let bundle = Container::<Value>::parse(bundle_bytes, BUNDLE, &what)?;
+    let fail = |e: String| format!("appearance {name}: {e}");
+    let (record, table) = match bundle.content["kind"].as_str() {
+        Some("skinned") => {
+            let skeleton_hash = key.1.as_ref().ok_or("no skeleton")?;
+            let skeleton_bytes = bytes
+                .get(skeleton_hash)
+                .ok_or(format!("content {skeleton_hash} was not read"))?;
+            let skeleton = Container::<Value>::parse(skeleton_bytes, BUNDLE, skeleton_hash)?;
+            skinned(&bundle, &skeleton).map_err(fail)?
+        }
+        Some("articulated") => (articulated(&bundle).map_err(fail)?, Vec::new()),
+        other => return Err(fail(format!("draws a unit but is an {other:?} bundle"))),
+    };
+    let derived = AppearanceFacts {
+        record,
+        table: (!table.is_empty()).then_some(table),
+    };
+    facts.appearances.insert(key, derived.clone());
+    Ok(derived)
 }
 
 /// Running-gear gauge belongs to every ground appearance, including faction looks.
@@ -392,8 +489,8 @@ fn track_gauge(art: &Art, name: &str) -> Result<f64, String> {
         ))
 }
 
-/// Each fielded type's facts and the appearance sets it draws from per
-/// side, and every appearance those sets name.
+/// Every catalog type's facts and the appearance sets fielded types draw from
+/// per side, and every appearance those sets name.
 fn unit_types(
     catalog: &Catalog,
     art: &Art,
@@ -413,8 +510,10 @@ fn unit_types(
     };
     let mut types = Map::new();
     let mut drawn = BTreeSet::new();
-    for kind in kinds.iter().collect::<BTreeSet<_>>() {
+    let fielded: BTreeSet<&str> = kinds.iter().map(String::as_str).collect();
+    for kind in catalog.ids().collect::<BTreeSet<_>>() {
         let t = catalog.get(kind)?;
+        let has_art = fielded.contains(kind);
         let hull = catalog.hull(kind)?;
         let ground = matches!(
             mobility(t)?,
@@ -423,44 +522,56 @@ fn unit_types(
         // Its vehicle class, as the catalog derives it from its physics.
         let class = t["vehicle_class"].as_str().map(str::to_owned);
         let mounts: &[Value] = t["mounts"].as_array().map_or(&[], Vec::as_slice);
-        let installed = t["appearance"].as_str().filter(|a| art.has(a));
+        let installed = t["appearance"].as_str().filter(|a| has_art && art.has(a));
         let rigs = installed.map(|a| &art.entry(a)["mounts"]);
         let mut draws = Map::new();
         for (side, name) in ["blue", "red"].into_iter().enumerate() {
-            let hull_look = match hull {
-                Some(_) => look(
+            let hull_look = match (has_art, hull) {
+                (false, _) => vec![],
+                (true, Some(_)) => look(
                     side,
                     &mut names(&json!([t["appearance"].as_str().unwrap_or("")])),
                 ),
-                None => vec![],
+                (true, None) => vec![],
             };
-            let half_track = if ground {
-                let name = hull_look
-                    .first()
-                    .ok_or(format!("{kind}: no hull appearance"))?;
-                hull.unwrap()["half_extents_m"][1].as_f64().unwrap() * track_gauge(art, name)?
+            let half_track = if has_art && ground {
+                match hull_look.first() {
+                    Some(name) => {
+                        hull.unwrap()["half_extents_m"][1].as_f64().unwrap()
+                            * track_gauge(art, name)?
+                    }
+                    None => 0.0,
+                }
             } else {
                 0.0
             };
-            let slots = catalog
-                .slots(kind)?
-                .iter()
-                .map(|s| Ok(look(side, &mut names(&catalog.soldier(s)?["appearance"]))))
-                .collect::<Result<Vec<_>, String>>()?;
-            let operated: Vec<Value> = mounts
-                .iter()
-                .map(|m| {
-                    let kit = &m["operator_appearance"];
-                    if kit.is_object() {
-                        json!({
-                            "active": look(side, &mut names(&kit["active"])),
-                            "carried": look(side, &mut names(&kit["carried"])),
-                        })
-                    } else {
-                        Value::Null
-                    }
-                })
-                .collect();
+            let slots = if has_art {
+                catalog
+                    .slots(kind)?
+                    .iter()
+                    .map(|s| Ok(look(side, &mut names(&catalog.soldier(s)?["appearance"]))))
+                    .collect::<Result<Vec<_>, String>>()?
+            } else {
+                Vec::new()
+            };
+            let operated: Vec<Value> = if has_art {
+                mounts
+                    .iter()
+                    .map(|m| {
+                        let kit = &m["operator_appearance"];
+                        if kit.is_object() {
+                            json!({
+                                "active": look(side, &mut names(&kit["active"])),
+                                "carried": look(side, &mut names(&kit["carried"])),
+                            })
+                        } else {
+                            Value::Null
+                        }
+                    })
+                    .collect()
+            } else {
+                vec![Value::Null; mounts.len()]
+            };
             drawn.extend(hull_look.iter().cloned());
             drawn.extend(slots.iter().flatten().cloned());
             for o in &operated {
@@ -500,7 +611,7 @@ fn unit_types(
             })
             .collect();
         types.insert(
-            kind.clone(),
+            kind.to_owned(),
             json!({
                 "hull": hull.is_some(),
                 "vehicleClass": class,
@@ -532,42 +643,40 @@ fn units(
     rules: &Value,
     catalog: &Catalog,
     art: &Art,
+    bundle_facts: &mut BundleFacts,
     kinds: &[String],
     factions: Option<[&str; 2]>,
 ) -> Result<(Value, ClipTables), String> {
     let (types, drawn) = unit_types(catalog, art, kinds, factions)?;
+    let mut body_half = Map::new();
+    for kind in catalog.ids() {
+        let half = catalog.hull(kind)?.map(|h| {
+            json!([
+                h["half_extents_m"][0],
+                h["half_extents_m"][1],
+                h["half_extents_m"][2]
+            ])
+        });
+        body_half.insert(kind.to_owned(), half.unwrap_or(Value::Null));
+    }
     let mut appearances = Map::new();
     let mut tables = ClipTables::new();
     let mut table_of: Vec<(Vec<f32>, String)> = Vec::new();
     for name in &drawn {
-        let bytes = art.bytes(art.bundle(name)?)?;
-        let what = format!("bundle {name}");
-        let bundle = Container::<Value>::parse(&bytes, BUNDLE, &what)?;
-        let fail = |e: String| format!("appearance {name}: {e}");
-        let record = match bundle.content["kind"].as_str() {
-            Some("skinned") => {
-                let skeleton_id = bundle.content["skeleton"].as_str().ok_or("no skeleton")?;
-                let hash = art.runtime["skeletons"][skeleton_id]
-                    .as_str()
-                    .ok_or(format!("skeleton {skeleton_id} is not installed"))?;
-                let skeleton_bytes = art.bytes(hash)?;
-                let skeleton = Container::<Value>::parse(&skeleton_bytes, BUNDLE, skeleton_id)?;
-                let (mut record, table) = skinned(&bundle, &skeleton).map_err(fail)?;
-                let table_name = match table_of.iter().find(|(t, _)| *t == table) {
-                    Some((_, n)) => n.clone(),
-                    None => {
-                        let n = format!("clips-{}", table_of.len());
-                        tables.insert(n.clone(), table.clone());
-                        table_of.push((table, n.clone()));
-                        n
-                    }
-                };
-                record["table"] = json!(table_name);
-                record
-            }
-            Some("articulated") => articulated(&bundle).map_err(fail)?,
-            other => return Err(fail(format!("draws a unit but is a {other:?} bundle"))),
-        };
+        let appearance = appearance_facts(bundle_facts.facts, art, bundle_facts.bytes, name)?;
+        let mut record = appearance.record;
+        if let Some(table) = appearance.table {
+            let table_name = match table_of.iter().find(|(t, _)| *t == table) {
+                Some((_, n)) => n.clone(),
+                None => {
+                    let n = format!("clips-{}", table_of.len());
+                    tables.insert(n.clone(), table.clone());
+                    table_of.push((table, n.clone()));
+                    n
+                }
+            };
+            record["table"] = json!(table_name);
+        }
         appearances.insert(name.clone(), record);
     }
     let sides = &art.runtime["sides"];
@@ -577,6 +686,7 @@ fn units(
         "leanHold": number(rules, "cover", "lean_hold_s")?,
         "detail": presentation.models,
         "tints": { "blue": sides["blue"], "red": sides["red"] },
+        "bodyHalf": body_half,
         "types": types,
         "appearances": appearances,
     });

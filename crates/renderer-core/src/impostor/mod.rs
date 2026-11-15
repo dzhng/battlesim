@@ -4,9 +4,15 @@ mod bake;
 mod camera;
 mod cards;
 
+pub use bake::AtlasRequest;
 pub(crate) use bake::BakeInput;
-pub use bake::BakeRequest;
 pub(crate) use cards::{CardInstance, Cards};
+
+#[derive(Clone)]
+pub(crate) struct CardFrame {
+    pub center: [f64; 3],
+    pub radius: f64,
+}
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -19,6 +25,9 @@ pub struct Spec {
     pub cell: u32,
     pub supersample: u32,
 }
+/// A tripwire for temporary render-target and readback memory, not a card cap.
+pub const DEFAULT_BAKE_MEMORY_BYTES: u64 = 64 * 1024 * 1024;
+
 impl Spec {
     pub fn runtime() -> Self {
         Self {
@@ -28,6 +37,21 @@ impl Spec {
             supersample: 2,
         }
     }
+    /// Temporary GPU payload for three RGBA8 targets, their aligned readbacks,
+    /// and the Depth32 target. Validate dimensions before allocating anything.
+    pub fn bake_memory_bytes(&self) -> Result<u64, String> {
+        self.validate(u32::MAX)?;
+        let px = u64::from(self.cell) * u64::from(self.supersample);
+        let width = u64::from(self.yaws) * px;
+        let height = self.pitches.len() as u64 * px;
+        let row = width * 4;
+        let read_row = row.next_multiple_of(u64::from(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT));
+        row.checked_mul(4)
+            .and_then(|targets| read_row.checked_mul(3)?.checked_add(targets))
+            .and_then(|bytes| bytes.checked_mul(height))
+            .ok_or_else(|| "impostor bake memory exceeds byte bounds".into())
+    }
+
     pub fn validate(&self, max_texture_dimension: u32) -> Result<(), String> {
         if self.yaws == 0
             || self.pitches.is_empty()

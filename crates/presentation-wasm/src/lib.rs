@@ -36,7 +36,13 @@ use wasm_bindgen::prelude::*;
 pub struct Presentation {
     inner: Inner,
     tables: ClipTables,
-    lab_assets: std::collections::BTreeMap<String, presentation::presentation::lab::Asset>,
+    lab_assets: std::collections::BTreeMap<
+        String,
+        (
+            contract::identity::ContentId,
+            presentation::presentation::lab::Asset,
+        ),
+    >,
     buildings: Option<PlacedBuildings>,
     /// The static groups and the fog the page last took, kept to compare by pointer.
     taken: Option<(Shared<Corpse>, Shared<KnownProp>, Shared<FallenBody>)>,

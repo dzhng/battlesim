@@ -9,6 +9,7 @@ pub fn runtime_library(names: &[impl AsRef<str>]) -> Result<Library, String> {
     for name in names {
         let name = name.as_ref();
         let hash = runtime.bundle_hash(name)?;
+        let content = runtime.content_id(name)?;
         let bytes = runtime.read(hash, "bundle.bin")?;
         let textures = runtime.catalog["textures"][hash]
             .as_array()
@@ -23,7 +24,7 @@ pub fn runtime_library(names: &[impl AsRef<str>]) -> Result<Library, String> {
             .iter()
             .map(|(id, bytes)| (*id, bytes.as_slice()))
             .collect::<Vec<_>>();
-        library.insert_bundle(name, &bytes, &refs)?;
+        library.insert_bundle(name, content, &bytes, &refs)?;
     }
     Ok(library)
 }

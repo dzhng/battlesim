@@ -29,7 +29,7 @@ impl Renderer {
         let (width, height) = (texture.width(), texture.height());
         let mut encoder = self.gpu.device.create_command_encoder(&Default::default());
         let read =
-            RgbaReadback::encode(&self.gpu.device, &mut encoder, texture).map_err(js_error)?;
+            RgbaReadback::encode(&self.gpu.device, &mut encoder, texture, 0).map_err(js_error)?;
         self.gpu.queue.submit([encoder.finish()]);
         let device = self.gpu.device.clone();
         Ok(future_to_promise(async move {
@@ -56,12 +56,13 @@ impl Renderer {
                 &self.gpu.device,
                 &self.gpu.queue,
                 &runtime.pipelines,
-                row,
+                &[row],
                 &spec,
+                &mut renderer_core::runtime::AdmissionWork::default(),
             )
             .map_err(js_error)?;
         Ok(future_to_promise(async move {
-            let atlas = request.read().await.map_err(js_error)?;
+            let atlas = request.read().await.map_err(js_error)?.remove(0);
             let result = js_sys::Object::new();
             field(&result, "appearance", atlas.appearance)?;
             field(

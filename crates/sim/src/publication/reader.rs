@@ -29,8 +29,8 @@ use super::{
     COPY_FIELDS, CORPSE_FIELDS, DELIVERY_FIELDS, FALLEN_BODY_FIELDS, GRIND_FIELDS, GROUND_FIELDS,
     GROUP_ENCODINGS, GROUP_LAYOUTS, GUIDED_FIELDS, HEADER, HEARD_WORD_BITS, IDENTIFIED_FIELDS,
     KNOWN_PROP_FIELDS, LEAN_FIELDS, LIMB_BITS, MEMBER_ID_FIELDS, MEMBER_ORDER_FIELDS, MOUNT_FIELDS,
-    OBJECTIVE_FIELDS, OWN_FIELDS, PENDING_FIELDS, PLAYER_FIELDS, PROJECTILE_FIELDS,
-    PROP_DISPLAY_POSE_FIELDS, QUEUE_FIELDS, RANGE_FIELDS, REFUSAL_FIELDS, SHOUT_FIELDS,
+    OWN_FIELDS, PROJECTILE_FIELDS, PROP_DISPLAY_POSE_FIELDS, QUEUE_FIELDS, RANGE_FIELDS,
+    REFUSAL_FIELDS, SHOUT_FIELDS,
 };
 
 pub use view::*;
@@ -116,6 +116,7 @@ macro_rules! v {
 mod crash;
 mod poses;
 mod report;
+mod skirmish;
 mod smoke;
 use poses::weapon_poses;
 use report::totals;
@@ -883,6 +884,7 @@ impl Reader {
             weapon_poses: weapon_poses(poses),
             reversing: v!(f, "reversing") == 1.0,
             smoking: v!(f, "smoking") == 1.0,
+            building: limbs(v!(f, "buildingLo"), v!(f, "buildingHi")),
         })
     }
 
@@ -1000,56 +1002,6 @@ impl Reader {
             position: [v!(f, "x"), v!(f, "y"), v!(f, "z")],
             trigger: self.name("shoutTriggers", v!(f, "trigger"))?,
             intensity: self.name("intensities", v!(f, "intensity"))?,
-        })
-    }
-
-    fn objective(&self, r: &Row) -> Result<Objective> {
-        const FIELDS: &[&str] = &OBJECTIVE_FIELDS;
-        let f = r.fields;
-        Ok(Objective {
-            id: self.name("objectiveIds", v!(f, "id"))?,
-            center: [v!(f, "x"), v!(f, "y")],
-            radius_m: v!(f, "radius"),
-            owner: optional_fixed(&["blue", "red"], v!(f, "owner")),
-            capturing: optional_fixed(&["blue", "red"], v!(f, "capturing")),
-            capture_progress: v!(f, "captureProgress"),
-            contested: v!(f, "contested") != 0.0,
-        })
-    }
-
-    fn pending(&self, r: &Row) -> Result<PendingPurchase> {
-        const FIELDS: &[&str] = &PENDING_FIELDS;
-        let f = r.fields;
-        Ok(PendingPurchase {
-            owner: v!(f, "owner"),
-            id: v!(f, "idLo") + v!(f, "idHi") * LIMB,
-            kind: self.name("unitKinds", v!(f, "kind"))?,
-            destination: [v!(f, "x"), v!(f, "y")],
-            confirmed_tick: v!(f, "confirmedLo") + v!(f, "confirmedHi") * LIMB,
-            blocked: v!(f, "blocked") != 0.0,
-            arrival_tick: v!(f, "arrivalLo") + v!(f, "arrivalHi") * LIMB,
-        })
-    }
-
-    fn player(&self, r: &Row) -> Result<Player> {
-        const FIELDS: &[&str] = &PLAYER_FIELDS;
-        let f = r.fields;
-        let id_index = v!(f, "id");
-        let id = self
-            .tables
-            .get("playerIds")
-            .and_then(|ids| ids.get(id_index as usize))
-            .cloned()
-            .ok_or_else(|| format!("player id index {id_index} is outside its table"))?;
-        Ok(Player {
-            index: v!(f, "index"),
-            id,
-            controller: self.name("controllers", v!(f, "controller"))?,
-            ready: v!(f, "ready") != 0.0,
-            credits: v!(f, "credits"),
-            unit_count: v!(f, "unitCount"),
-            cap: v!(f, "cap"),
-            pending: Vec::new(),
         })
     }
 

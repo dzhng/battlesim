@@ -545,6 +545,7 @@ mod tests {
                 reversing: false,
                 smoking: false,
                 member_leans: vec![],
+                building: None,
             });
         assert!(!objective_open(&threatened, &site, &BTreeSet::new()));
     }

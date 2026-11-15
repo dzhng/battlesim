@@ -215,6 +215,13 @@
   background: rgb(58, 66, 52);
   border: 1px solid #777;
 }
+/* A held building's outline, in the HUD's own side colour. */
+.lab-swatch-held {
+  border-radius: 1px;
+  width: 7px;
+  height: 7px;
+  border: 2px solid rgb(115, 219, 255);
+}
 .lab-swatch-ruin {
   border-radius: 2px;
   background: rgb(128, 92, 71);

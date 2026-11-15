@@ -1,4 +1,5 @@
 //! One complete replaceable asset generation, independent of the live frame.
+use super::statics::StaticIdentity;
 use super::*;
 use crate::grass::GrassData;
 use presentation::presentation::catalog::{CatalogDraft, CatalogView};
@@ -8,7 +9,8 @@ use presentation::static_world::ground::grass::Quality;
 struct Assets {
     models: Models,
     scenery: Scenery,
-    grass: Option<Grass>,
+    /// None retains the live owner; Some(None) replaces it with disabled grass.
+    grass: Option<Option<Grass>>,
 }
 
 /// Owns all resources needed by asynchronous card baking. No Runtime or
@@ -19,16 +21,39 @@ pub struct PendingAssets {
     pipelines: Arc<Pipelines>,
     catalog: CatalogDraft,
     assets: Assets,
+    statics: StaticIdentity,
+    work: AdmissionWork,
+    art_store_policy: crate::models::ArtStorePolicy,
+    card_bake_split_reported: Arc<AtomicBool>,
 }
 
 /// An opaque complete generation. Dropping stale work never changes active art.
 pub struct ReadyAssets(PendingAssets);
 
 impl PendingAssets {
+    pub fn work(&self) -> &AdmissionWork {
+        &self.work
+    }
+}
+
+impl ReadyAssets {
+    pub fn work(&self) -> &AdmissionWork {
+        &self.0.work
+    }
+}
+
+impl PendingAssets {
     pub async fn prepare(mut self) -> Result<ReadyAssets, String> {
         self.assets
             .models
-            .bake_cards(&self.device, &self.queue, &self.pipelines)
+            .bake_cards(
+                &self.device,
+                &self.queue,
+                &self.pipelines,
+                self.art_store_policy,
+                &self.card_bake_split_reported,
+                &mut self.work,
+            )
             .await?;
         Ok(ReadyAssets(self))
     }
@@ -44,27 +69,52 @@ impl Runtime {
         presentation: &Presentation,
         mut catalog: CatalogDraft,
         library: &impl BundleSource,
+        mut starting_work: AdmissionWork,
     ) -> Result<PendingAssets, String> {
-        if catalog.needs_scenery() {
+        starting_work.rebuild_reason = None;
+        let mut work = starting_work;
+        let statics = StaticIdentity::new(presentation, library, self.config.grass_density)?;
+        let scenery_changed = !self.statics_identity.scenery_same(&statics);
+        let grass_changed = !self.statics_identity.grass_same(&statics);
+
+        if scenery_changed && self.statics_identity.placed() {
             let finest = crate::scenery::finest_meshes(
                 presentation.ground().ok_or("scenery requires ground")?,
                 library,
             )?;
             let refs: Vec<_> = finest.iter().map(Vec::as_slice).collect();
             catalog.stage_scenery(presentation, &refs)?;
+            work.scenery_placements += 1;
         }
         let view = catalog.view(presentation)?;
-        let models = Models::new(device, queue, &self.pipelines, library, view)?;
-        let scenery = Scenery::new(device, queue, &self.pipelines, library, view)?;
-        let grass = grass(
+        let models = Models::new(
             device,
             queue,
             &self.pipelines,
             library,
             view,
-            &self.ground.heights,
-            self.config.grass_density,
+            self.art_store.clone(),
+            &mut work,
         )?;
+        let scenery = if scenery_changed {
+            Scenery::new(device, queue, &self.pipelines, library, view, &mut work)?
+        } else {
+            self.scenery.reuse(view)?
+        };
+        let grass = if grass_changed {
+            Some(grass(
+                device,
+                queue,
+                &self.pipelines,
+                library,
+                view,
+                &self.ground.heights,
+                self.config.grass_density,
+                &mut work,
+            )?)
+        } else {
+            None
+        };
         Ok(PendingAssets {
             device: device.clone(),
             queue: queue.clone(),
@@ -75,6 +125,10 @@ impl Runtime {
                 scenery,
                 grass,
             },
+            statics,
+            work,
+            art_store_policy: self.config.art_store,
+            card_bake_split_reported: self.card_bake_split_reported.clone(),
         })
     }
 
@@ -99,8 +153,13 @@ impl Runtime {
             return Ok(false);
         }
         self.models = pending.assets.models;
+        self.art_store = self.models.store.clone();
         self.scenery = pending.assets.scenery;
-        self.grass = pending.assets.grass;
+        if let Some(grass) = pending.assets.grass {
+            self.grass = grass;
+        }
+        self.statics_identity = pending.statics;
+        self.admission_work = pending.work;
         self.apply_asset_controls(queue, self.config.controls);
         self.invalidate_statics();
         self.prepared_frame = None;
@@ -109,6 +168,9 @@ impl Runtime {
     }
 }
 
+// The device, queue and pipelines travel as three arguments throughout this
+// crate; they fold into one here when it has a context type for them.
+#[allow(clippy::too_many_arguments)]
 pub(super) fn grass(
     device: &Device,
     queue: &Queue,
@@ -117,6 +179,7 @@ pub(super) fn grass(
     catalog: CatalogView<'_>,
     heights: &Buffer,
     density: Option<f64>,
+    work: &mut AdmissionWork,
 ) -> Result<Option<Grass>, String> {
     let Some(density) = density else {
         return Ok(None);
@@ -142,5 +205,6 @@ pub(super) fn grass(
             max_blades: packed.max_blades,
             capacity: resolved.biome.grass.capacity,
         },
+        work,
     )))
 }

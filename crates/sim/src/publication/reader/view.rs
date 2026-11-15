@@ -112,7 +112,7 @@ view!(MountTarget { kind: Name, #[serde(skip_serializing_if = "Option::is_none")
 view!(Identified { id: f64, kind: Name, cost: f64, position: Point3, yaw: f64, velocity: Point2,
     members: Vec<Point3>, member_ids: Vec<Option<f64>>, member_slots: Vec<f64>,
     member_active_mounts: Vec<Option<f64>>, member_leans: Vec<Option<MemberLean>>,
-    weapon_poses: Vec<WeaponPose>, reversing: bool, smoking: bool });
+    weapon_poses: Vec<WeaponPose>, reversing: bool, smoking: bool, building: Option<f64> });
 view!(Contact { id: f64, source: Name, center: Point3, layer: Name, aloft: bool, radius: f64,
     evidence_tick: f64, expires_tick: f64, kind: Option<Name>, heard: Vec<Name>,
     #[serde(skip_serializing_if = "Option::is_none")] bearing_deg: Option<f64>,

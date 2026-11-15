@@ -80,6 +80,10 @@ vi.mock("@web/battle/render/scene", () => ({
             dispose() {},
             updateSources: () => "current",
             stats: () => ({ memory: { buffers: 0, textures: 0 } }),
+            admissionWork: () => ({
+              core: null,
+              transport: { bundlesEncoded: 0, bundleBytesSent: 0 },
+            }),
             settled: async () => false,
             ...overrides,
           };

@@ -1,6 +1,7 @@
 use super::{box_filter, camera, Atlas, Spec};
 use crate::pipelines::Pipelines;
 use crate::readback::RgbaReadback;
+use futures_util::future::join_all;
 use wgpu::*;
 
 pub(crate) struct BakeInput {
@@ -14,9 +15,13 @@ pub(crate) struct BakeInput {
     pub spec: Spec,
 }
 
-/// An already-submitted bake, independent of a renderer/catalog borrow. Queue
+/// An already-submitted atlas snapshot, independent of a renderer/catalog borrow. Queue
 /// order preserves its material/pose snapshot while replacement inputs arrive.
-pub struct BakeRequest {
+pub struct AtlasRequest {
+    cards: Vec<CardRequest>,
+}
+
+struct CardRequest {
     device: Device,
     reads: Vec<RgbaReadback>,
     atlas: Atlas,
@@ -24,8 +29,32 @@ pub struct BakeRequest {
     height: u32,
 }
 
-impl BakeRequest {
+impl AtlasRequest {
     pub(crate) fn new(
+        device: &Device,
+        queue: &Queue,
+        pipelines: &Pipelines,
+        inputs: Vec<BakeInput>,
+    ) -> Result<Self, String> {
+        let cards = inputs
+            .into_iter()
+            .map(|input| CardRequest::new(device, queue, pipelines, input))
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(Self { cards })
+    }
+
+    /// Poll every channel of every submitted card before yielding to WebGPU.
+    /// Results retain input order, independently of callback completion order.
+    pub async fn read(self) -> Result<Vec<Atlas>, String> {
+        join_all(self.cards.into_iter().map(CardRequest::read))
+            .await
+            .into_iter()
+            .collect()
+    }
+}
+
+impl CardRequest {
+    fn new(
         device: &Device,
         queue: &Queue,
         pipelines: &Pipelines,
@@ -156,7 +185,7 @@ impl BakeRequest {
         }
         let reads = outputs
             .iter()
-            .map(|texture| RgbaReadback::encode(device, &mut encoder, texture))
+            .map(|texture| RgbaReadback::encode(device, &mut encoder, texture, 0))
             .collect::<Result<Vec<_>, _>>()?;
         queue.submit([encoder.finish()]);
         // The bake's targets serve this one submission, already copied into
@@ -186,7 +215,7 @@ impl BakeRequest {
         })
     }
 
-    pub async fn read(self) -> Result<Atlas, String> {
+    async fn read(self) -> Result<Atlas, String> {
         let Self {
             device,
             reads,
@@ -194,15 +223,11 @@ impl BakeRequest {
             width,
             height,
         } = self;
-        let mut channels = Vec::new();
-        for readback in reads {
-            channels.push(box_filter(
-                &readback.read(&device).await?,
-                width,
-                height,
-                atlas.spec.supersample,
-            ));
-        }
+        let channels = join_all(reads.into_iter().map(|readback| readback.read(&device)))
+            .await
+            .into_iter()
+            .map(|bytes| Ok(box_filter(&bytes?, width, height, atlas.spec.supersample)))
+            .collect::<Result<Vec<_>, String>>()?;
         let mut channels = channels.into_iter();
         atlas.albedo = channels.next().expect("albedo");
         atlas.normal = channels.next().expect("normal");

@@ -22,23 +22,38 @@ actual presentation during synchronous calls into the
 [common Runtime](../renderer-core/README.md). A presentation borrow must never
 survive asynchronous device or readback work.
 
+The browser shell exposes the committed generation's admission work to the page;
+the page adds transport and appearance-library work to its diagnostics event.
+
 The shell transports authored asset bytes and geometry inputs, configures the
 canvas, acquires usable surface output and presents the runtime's display
 texture. It acquires output before consuming incremental presentation work.
 The recovery harness explicitly admits a fresh `BrowserGpu` after device loss,
 then installs current presentation and prepares assets before drawing again.
 A renderer cannot silently replace the page's shared device.
+The new runtime starts with a fresh art store and reports device recreation as
+its rebuild reason. Failed installation keeps that reason for the next attempt.
 The core owns [device reconstruction](../renderer-core/README.md#device-reconstruction).
 
-[Appearance drafts](src/appearance.rs) collect source transport and pose facts
-without changing active art. Preparation returns an owned promise; the caller
+[Appearance drafts](src/appearance.rs) change art without touching what is
+live. The page declares every wanted name with its runtime content identity,
+asks the renderer which identities it lacks, and encodes and copies those
+alone, with their textures and skeletons. What is held is the
+[core's](../renderer-core/README.md) one answer, shared by the question and
+the draft. A name only routes to its identity. A draft that names retired
+content refuses preparation and leaves live art as it was. Page-generated
+bundles are hashed by the contract crate's own function, exported here, so a
+generated identity means what a catalog one does. Preparation returns an owned promise; the caller
 may continue rendering or dispose its scene while cards bake. Latest-request
-scheduling belongs to the viewport. It commits only its desired complete
+scheduling belongs to the viewport, with one candidate at a time and no
+cancellation. It compares wanted names and content identities; repeating the
+same set keeps the candidate committable. It commits only its desired complete
 candidate and latest model requests at a frame boundary, then publishes a fresh
 canonical frame. Retained source ownership changes with the GPU/catalog commit,
 so recovery cannot resurrect an older generation.
 
 Explicit pixel, atlas and visibility queries queue GPU snapshots synchronously.
+An atlas review is always an independent authored bake.
 Their promises retain only the submitted readbacks and metadata, so the live
 scene can render, resize or replace its catalog while mapping completes.
 

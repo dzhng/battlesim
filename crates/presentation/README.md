@@ -41,24 +41,37 @@ calls the same reader for workbench drafts.
   `files`) of the runtime directory: its catalog and each gzipped transport
   file. The native client reads its models through it.
 - [What a battle fields](src/fielded.rs): `load_world`'s units, effects and
-  clip tables for the units a battle fields, resolved from presentation
+  clip tables for the units a battle fields, plus the physical hull-size table
+  for every unit in the session catalog, resolved from presentation
   settings, weapon appearances resolved by the contract, the battle's rules and their catalog,
   and the runtime bundles,
   as a page wearing those units installs them, for both clients. It names
   the runtime contents it reads; the caller reads them (native from the
   runtime directory, feature `files`; the page by fetching them, through
   [its WebAssembly binding](../presentation-wasm/README.md)), and it decides.
+  Source bytes can be borrowed for a resolve; only derived facts survive it.
+  A byte cache must not duplicate a complete boundary input: even temporary
+  copies permanently raise a WebAssembly module’s linear-memory capacity.
 - [External models](src/presentation/lab.rs): tooling admits authored art and
   descriptive poses independently of a battle roster. Its instances supplement
   the same frame, sharing pose math, detail, fog and batch identity with battle
   models. [Catalog admission](src/presentation/catalog.rs) stages prospective rows and
-  pose and placement facts without replacing the observer. A draft rebuilds the
+  pose and placement facts without replacing the observer. Declarations route
+  names to `ContentId`s and new facts are supplied by identity; presentation
+  retains one immutable `Arc<Asset>` per content identity. Names only route to
+  those identities; stages share held facts and discard undeclared supplied
+  facts. Initial tooling installation retains the same facts as catalog commit,
+  so a delta has the
+  same complete catalog as a full admission. A draft rebuilds the
   battle's rows, which renumbers those after them, so every static population
   resolves its rows by appearance in the draft's world and never carries a row
   number over: the renderer holds a batch as the static world's by its row's
   placed flag alone. Prop fitting, building
   extents and scenery trunks/stumps follow the new authored art while current
-  learned, fallen and held movement state survives. Matching GPU assets and the latest
+  learned, fallen and held movement state survives. Scenery placement is
+  immutable and shared with catalog drafts. An unchanged admission rebinds the
+  live walk's appearance rows while retaining its indexes, dressing cache and
+  current observer knowledge; changed scenery art builds new placement. Matching GPU assets and the latest
   model requests commit together; stale or failed work preserves the active
   generation. Battle replacements preserve the pose vocabulary used by retained
   history. The loaded battle fielded again with a kind it newly fields is
@@ -77,6 +90,13 @@ calls the same reader for workbench drafts.
   each node's side from the catalog. The source validator and workbench poser
   share the TypeScript bake rule; source validation rejects malformed tracks
   before admission.
+  Observed bodies whose art has not committed use the battle's reserved box
+  appearance when supplied. One physical body box supplies both instance scale
+  and picking, so loading art changes appearance without changing selection or
+  targeting. Stand-ins share unit fog and x-ray and never become impostor cards.
+  The shell supplies one colour for their tint and a shadow
+  policy that applies only to the placeholder; authored models keep their own
+  materials and casting.
 - [Effects](src/effects/): the effect publication, launches (the one derivation
   the flashes, the firing soldiers and the gunfire sounds read), the effect frame,
   the cast lights it chooses for the view, cook-offs, and the sparks a hull

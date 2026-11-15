@@ -10,9 +10,16 @@ import type { OverlayGlowStyle } from "@packages/battle-renderer/src/overlayStyl
 import type { PaintStyle } from "@packages/battle-renderer/src/paintStyle";
 import { EMPTY_MESH, type Mesh } from "@packages/battle-renderer/src/mesh";
 import type { ScenePresentation } from "../sim/presentation";
-import type { LabModel, ModelDetail } from "../sim/presentationModels";
-import { modelAssetsOf, type ModelAsset } from "./modelAssets";
-import { isProxyAppearance, proxyModels } from "./proxyModels";
+import type { AdmissionTransportWork, LabModel, ModelDetail } from "../sim/presentationModels";
+import { appearanceContentKey } from "./contentIdentity";
+import { modelAssetsOf, type LabAsset, type ModelAsset } from "./modelAssets";
+import { releaseTransport } from "../transport";
+import {
+  BATTLE_STAND_IN_APPEARANCE,
+  battleStandInAsset,
+  isProxyAppearance,
+  proxyModels,
+} from "./proxyModels";
 import { SceneAppearances } from "./sceneAppearances";
 import { loadEffectAtlasLayers } from "./effectAssets";
 import type { SceneStats, DrawnInstances, FrameView } from "./sceneStats";
@@ -86,6 +93,7 @@ export class BrowserScene {
   private activeWorld: WorldLayers;
   private desiredWorld: WorldLayers;
   private admittedWorld: ReturnType<ScenePresentation["world"]>;
+  private transportWork: AdmissionTransportWork = { bundlesEncoded: 0, bundleBytesSent: 0 };
   private readonly hasGrass: boolean;
   private controls: SceneControls = {};
   private overlayGlow: OverlayGlowStyle;
@@ -104,6 +112,7 @@ export class BrowserScene {
     proxies: ReturnType<typeof proxyModels>,
     assets: readonly ModelAsset[],
     admittedWorld: ReturnType<ScenePresentation["world"]>,
+    transportWork: AdmissionTransportWork,
   ) {
     this.authored = authored;
     this.overlayGlow = options.overlayGlow;
@@ -116,6 +125,7 @@ export class BrowserScene {
     this.desired = this.installed = options.appearances;
     this.activeWorld = this.desiredWorld = options.world;
     this.admittedWorld = admittedWorld;
+    this.transportWork = transportWork;
     this.hasGrass = options.settings.grassDensity !== undefined;
     this.admission = new SceneAppearances(
       renderer,
@@ -123,7 +133,7 @@ export class BrowserScene {
       options.detail,
       options.redraw,
       options.failed,
-      { assets, models: this.modelList() },
+      { assets, models: this.modelList(), grass: this.grassRules },
     );
     this.fogProbes = {
       probe: (points) => {
@@ -185,12 +195,34 @@ export class BrowserScene {
       );
       const proxies = proxyModels(options.instances, appearances?.appearances.keys());
       const assets = [...authored, ...proxies.assets];
+      const transportWork = { bundlesEncoded: 0, bundleBytesSent: 0 };
       // Initial admission is private until every asset is ready. Live changes
       // use the asset-only transaction below and retain the current output.
-      presentation.installLabAssets(assets, options.detail);
+      // Each packet has two readers: the renderer here, and presentation as
+      // it draws the packet from this generator. It is released before the
+      // next is encoded: the whole set encoded at once left about a gigabyte
+      // for the collector to find.
+      function* packets(): Generator<LabAsset> {
+        for (const asset of assets) {
+          const packet = asset.encode();
+          try {
+            transportWork.bundlesEncoded++;
+            transportWork.bundleBytesSent += packet.bundle.byteLength;
+            renderer.load_bundle(
+              asset.name,
+              JSON.stringify(asset.contentId),
+              packet.bundle,
+              packet.textureIds,
+              packet.textureBytes,
+            );
+            yield { name: asset.name, contentId: asset.contentId, ...packet };
+          } finally {
+            releaseTransport(packet.bundle);
+          }
+        }
+      }
+      presentation.installLabAssets(packets(), options.detail);
       presentation.setLabModels([...options.models, ...proxies.models]);
-      for (const asset of assets)
-        renderer.load_bundle(asset.name, asset.bundle, asset.textureIds, asset.textureBytes);
       renderer.load_effect_atlas(await loadEffectAtlasLayers());
       presentation.installGeometry(renderer, options.world);
       renderer.set_overlay_glow(options.overlayGlow.radius_px, options.overlayGlow.strength);
@@ -207,6 +239,7 @@ export class BrowserScene {
         proxies,
         assets,
         admittedWorld,
+        transportWork,
       );
     } catch (error) {
       renderer.free();
@@ -238,7 +271,9 @@ export class BrowserScene {
     )
       return "rebuild";
     const artChanged =
-      installed !== this.desired ||
+      (installed !== this.desired &&
+        appearanceContentKey(installed?.appearances ?? []) !==
+          appearanceContentKey(this.desired?.appearances ?? [])) ||
       world.scenery !== previous.scenery ||
       world.grass !== previous.grass;
     const modelsChanged = models !== this.models;
@@ -338,6 +373,7 @@ export class BrowserScene {
     if (!this.worldCurrent()) return false;
     const changed = this.admission.flush();
     if (changed) {
+      this.transportWork = this.admission.work();
       this.installed = this.desired;
       this.presentation.adoptRendererAppearanceSource(
         this.installed,
@@ -471,6 +507,12 @@ export class BrowserScene {
     stats.models.proxyAppearances = stats.models.installed.filter(isProxyAppearance).length;
     return stats;
   }
+
+  /** What the last committed generation cost: Rust's report (`AdmissionWork`)
+   *  and what the page encoded and sent for it. */
+  admissionWork(): { core: unknown; transport: AdmissionTransportWork } {
+    return { core: this.renderer.admission_work(), transport: this.transportWork };
+  }
   drawnInstances(): DrawnInstances {
     this.assertLive("drawnInstances");
     return JSON.parse(this.renderer.drawn_instances()) as DrawnInstances;
@@ -492,7 +534,11 @@ export class BrowserScene {
   }
 
   private request(): Promise<boolean> {
-    return this.admission.request([...this.authored, ...this.proxies.assets], this.modelList());
+    return this.admission.request(
+      [...this.authored, ...this.proxies.assets],
+      this.modelList(),
+      this.grassRules,
+    );
   }
 }
 
@@ -527,10 +573,15 @@ function assetsFor(
   const sources = [world.scenery?.appearances, grass ? world.grass : null].filter(
     (source): source is NonNullable<typeof source> => source != null,
   );
-  return modelAssetsOf(
+  const names = sourceNames(presentation, models, battle, grass, !!world.scenery);
+  const art = modelAssetsOf(
     installed,
-    sourceNames(presentation, models, battle, grass, !!world.scenery),
+    names.filter((name) => name !== BATTLE_STAND_IN_APPEARANCE),
     sources,
+  );
+  const byName = new Map(art.map((asset) => [asset.name, asset]));
+  return names.map((name) =>
+    name === BATTLE_STAND_IN_APPEARANCE ? battleStandInAsset() : byName.get(name)!,
   );
 }
 

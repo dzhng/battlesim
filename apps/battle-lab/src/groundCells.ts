@@ -42,6 +42,31 @@ export function groundCells(ground: LearnedGround): GroundCells {
   return { cellM: ground.cellM, cells };
 }
 
+/** The side's known craters: how many cells are cratered, and the centre of
+ *  the `binM`-square block holding the most (framing a shelled field). */
+export function knownCraters(ground: LearnedGround, binM: number) {
+  const per = Math.max(1, Math.round(binM / ground.cellM));
+  const bins = new Map<number, number>();
+  let cells = 0;
+  const marked = ground.markedCells();
+  for (let k = 0; k < marked.length; k += 2) {
+    if ((marked[k + 1] & 255) < 64) continue;
+    const [i, j] = [marked[k] % ground.cols, Math.floor(marked[k] / ground.cols)];
+    cells++;
+    const key = Math.floor(j / per) * ground.cols + Math.floor(i / per);
+    bins.set(key, (bins.get(key) ?? 0) + 1);
+  }
+  let densest: [number, number] | null = null;
+  let most = 0;
+  for (const [key, n] of bins)
+    if (n > most) {
+      most = n;
+      const [bi, bj] = [key % ground.cols, Math.floor(key / ground.cols)];
+      densest = [(bi + 0.5) * per * ground.cellM, (bj + 0.5) * per * ground.cellM];
+    }
+  return { cells, densest, most };
+}
+
 export const CHANNEL_COLORS: Record<GroundChannel, Rgba> = {
   crater: [0.95, 0.2, 0.1, 1],
   scorch: [0.08, 0.06, 0.05, 1],

@@ -1,5 +1,6 @@
 //! Explicit diagnostics must read the real submitted GPU data.
 mod support;
+use renderer_core::runtime::AdmissionWork;
 
 use renderer_core::pipelines;
 use renderer_core::probes::FogProbes;
@@ -254,7 +255,7 @@ fn display_readback_removes_row_padding_swizzles_bgra_and_keeps_the_encoded_fram
     };
     write(&original);
     let mut encoder = gpu.device.create_command_encoder(&Default::default());
-    let read = RgbaReadback::encode(&gpu.device, &mut encoder, &texture).unwrap();
+    let read = RgbaReadback::encode(&gpu.device, &mut encoder, &texture, 0).unwrap();
     gpu.queue.submit([encoder.finish()]);
     write(&[0; 24]);
     assert_eq!(
@@ -699,6 +700,7 @@ fn grass_probes_decode_actual_tier_buffers_and_snapshot_counts_before_a_later_fr
             max_blades: 1,
             capacity: [2, 2],
         },
+        &mut AdmissionWork::default(),
     );
     assert_eq!(
         pollster::block_on(

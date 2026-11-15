@@ -6,9 +6,10 @@ import type { ScenarioRules } from "./battleSessionOptions";
 // public objective's zone when the scenario has one, and the playable area's
 // border (built by the view per zoom step, passed in). Ground marks are for
 // selection and movement and extents; every unit state is its info panel's
-// (`readouts.tsx`).
-// The battle view composes the contacts, supply, orders, aircraft, zone and
-// border (an aircraft's ground marker and drop line, own or enemy, D18):
+// (`readouts.tsx`). The one held-building outline is an extent the user
+// asked for: which buildings a garrison holds, in the holder's side colour.
+// The battle view composes the contacts, supply, orders, aircraft, held
+// buildings, zone and border (an aircraft's ground marker and drop line, own or enemy, D18):
 // combat effects (`effects/`) draw the flight, the flashes, the impacts and a
 // missile's flare and smoke trail, and a garrisoned squad's circle says where
 // it holds. Labs compose the layers their fixture exercises, the rest among
@@ -20,7 +21,12 @@ import { airborne, fixedWing, type UnitCatalog } from "@packages/scene-assets/sr
 import { buildContactGlyphs, type ContactFacing } from "@packages/battle-renderer/src/contactGlyph";
 import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
 import { buildConsequenceOverlay } from "@packages/battle-renderer/src/consequenceOverlay";
-import { buildGarrisonOverlay } from "@packages/battle-renderer/src/garrisonOverlay";
+import {
+  buildGarrisonOutlines,
+  buildGarrisonOverlay,
+  type HeldBuilding,
+} from "@packages/battle-renderer/src/garrisonOverlay";
+import type { BuildingIndex } from "@packages/battle-renderer/src/models/buildingReferences";
 import { buildGuidanceOverlay } from "@packages/battle-renderer/src/guidanceOverlay";
 import { buildSupplyOverlay } from "@packages/battle-renderer/src/supplyOverlay";
 import {
@@ -95,7 +101,9 @@ export interface OverlayScenarioSource {
   rules: { service: { radius_m: number } };
   /** Absent or null when the scenario has no completion rule. */
   encounter?: { success_zone_center: [number, number]; success_zone_radius_m: number } | null;
-  skirmish?: { sites: { entries: { side: SideName; center: [number, number] }[] } } | null;
+  skirmish?: {
+    sites: { entries: { side: SideName; center: [number, number]; yaw: number }[] };
+  } | null;
 }
 
 /** The scenario's own marks as `side` sees them. A side's players share
@@ -202,6 +210,40 @@ export function garrisonLayer(o: ObservationView, z: SurfaceHeight): WorldMeshes
     o.own.flatMap((u) => (inBuilding(u) ? [{ members: u.members, phase: u.hold!.phase }] : [])),
     z,
   );
+}
+
+/** The buildings the side knows a garrison holds (inside or leaving): its
+ *  own squads' in its own colour, and an identified enemy's in the enemy's,
+ *  while it is seen. A held id is any part's prop, or a remains prop whose
+ *  authored source is one; the outline traces the map's parts. */
+export function heldBuildingsLayer(
+  o: ObservationView,
+  buildings: Pick<BuildingIndex, "partBuilding" | "parts">,
+  line: number,
+  z: SurfaceHeight,
+): Partial<WorldMeshes> {
+  const building = (id: number) =>
+    buildings.partBuilding.get(id) ??
+    buildings.partBuilding.get(o.knownProps.find((k) => k.id === id)?.authoredProp ?? -1);
+  const held = (id: number, color: Rgba): HeldBuilding[] => {
+    const i = building(id);
+    return i === undefined ? [] : [{ parts: buildings.parts[i], color }];
+  };
+  const own: Rgba = [...gameHud.accent, 1];
+  const enemy: Rgba = [...gameHud.enemy, 1];
+  const marks = [
+    ...o.own.flatMap((u) =>
+      u.hold?.host.kind === "building" && u.hold.phase !== "entering"
+        ? held(u.hold.host.id, own)
+        : [],
+    ),
+    ...o.identified.flatMap((e) => (e.building === null ? [] : held(e.building, enemy))),
+  ];
+  return marks.length
+    ? {
+        painted: buildGarrisonOutlines(marks, line, gameOrderStyle.garrison_outline_margin_m, z),
+      }
+    : {};
 }
 
 /** Own guided missiles with the paths `memory` has kept. */
@@ -378,6 +420,7 @@ export function battleOverlayParts(
     facing,
     allies,
     hovered = null,
+    buildings = null,
   }: {
     showOrders: boolean;
     reveal: RevealedOrders;
@@ -387,6 +430,8 @@ export function battleOverlayParts(
     allies?: ReadonlyMap<number, unknown>;
     /** The own unit under the pointer, its model or its card (`ReadoutLayerHandle.place`). */
     hovered?: number | null;
+    /** The map's buildings and their parts, which held buildings' outlines trace. */
+    buildings?: Pick<BuildingIndex, "partBuilding" | "parts"> | null;
   },
   border: Mesh | null = null,
   stroke = gameStroke(OPENING_METRES_PER_PX),
@@ -443,6 +488,7 @@ export function battleOverlayParts(
     ...objectives,
     ...(zone ? [{ painted: zone }] : []),
     ...(border ? [{ painted: border }] : []),
+    ...(buildings ? [heldBuildingsLayer(o, buildings, line, z)] : []),
     contactMarks,
     // The roads in lie under every mark of the units: they draw first in
     // the marching layer, and the units' marks follow them there.

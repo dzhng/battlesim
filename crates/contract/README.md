@@ -55,6 +55,8 @@ so no reader recomputes them, and resolution refuses `derived` as an authored
 field.
 
 [Identity](src/identity.rs) defines canonical content and exact generation seeds.
+`ContentId` is the runtime art identity: a bundle hash plus the skeleton hash
+for skinned art. Names route to it but never identify art.
 Its decimal-text seed contract must survive JSON without JavaScript number
 rounding. Typed serialization order and meaningful authored sequence order can
 change identity even when an unordered JSON comparison looks equal. [Generation

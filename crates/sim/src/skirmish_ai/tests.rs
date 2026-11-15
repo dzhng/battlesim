@@ -668,20 +668,8 @@ fn identified_helicopter_selects_a_catalog_unit_that_can_engage_low_air() {
     frame
         .identified
         .push(contract::observation::IdentifiedUnit {
-            id: contract::observation::ObservedTargetId(7),
-            kind: heli,
             cost: rules.catalog.get(heli).cost,
-            position: [500.0, 500.0, 20.0],
-            yaw: 0.0,
-            velocity: [0.0, 0.0],
-            members: vec![],
-            member_ids: vec![],
-            member_slots: vec![],
-            member_active_mounts: vec![],
-            weapon_poses: vec![],
-            reversing: false,
-            smoking: false,
-            member_leans: vec![],
+            ..identified(7, heli, [500.0, 500.0, 20.0])
         });
     let mut ai = BalancedDoctrine::new(0);
     let orders = ai.decide(
@@ -885,20 +873,8 @@ fn nearest_air_target_uses_body_distance_in_three_dimensions() {
         frame
             .identified
             .push(contract::observation::IdentifiedUnit {
-                id: contract::observation::ObservedTargetId(id),
-                kind,
                 cost: 1,
-                position,
-                yaw: 0.0,
-                velocity: [0.0, 0.0],
-                members: vec![],
-                member_ids: vec![],
-                member_slots: vec![],
-                member_active_mounts: vec![],
-                weapon_poses: vec![],
-                reversing: false,
-                smoking: false,
-                member_leans: vec![],
+                ..identified(id, kind, position)
             });
     }
     let orders = BalancedDoctrine::default().decide(
@@ -1122,20 +1098,12 @@ fn the_ai_buys_more_high_air_defence_when_it_sees_enemy_jets() {
     frame
         .identified
         .push(contract::observation::IdentifiedUnit {
-            id: contract::observation::ObservedTargetId(7),
-            kind: rules.catalog.index("test_jet").unwrap(),
             cost: 300,
-            position: [500.0, 500.0, 250.0],
-            yaw: 0.0,
-            velocity: [0.0, 0.0],
-            members: vec![],
-            member_ids: vec![],
-            member_slots: vec![],
-            member_active_mounts: vec![],
-            weapon_poses: vec![],
-            reversing: false,
-            smoking: false,
-            member_leans: vec![],
+            ..identified(
+                7,
+                rules.catalog.index("test_jet").unwrap(),
+                [500.0, 500.0, 250.0],
+            )
         });
     let threatened = BalancedDoctrine::default().decide(
         DecisionInput {
@@ -1361,24 +1329,11 @@ fn active_policy_uses_an_ordinary_attack_for_a_known_target() {
     let view = frame.skirmish.as_mut().unwrap();
     view.phase = Phase::Active;
     view.players[0].credits = 0.0;
-    frame
-        .identified
-        .push(contract::observation::IdentifiedUnit {
-            id: contract::observation::ObservedTargetId(9),
-            kind: rules.catalog.index("test_tank").unwrap(),
-            cost: 100,
-            position: [500.0, 500.0, 0.0],
-            yaw: 0.0,
-            velocity: [0.0, 0.0],
-            members: vec![],
-            member_ids: vec![],
-            member_slots: vec![],
-            member_active_mounts: vec![],
-            weapon_poses: vec![],
-            reversing: false,
-            smoking: false,
-            member_leans: vec![],
-        });
+    frame.identified.push(identified(
+        9,
+        rules.catalog.index("test_tank").unwrap(),
+        [500.0, 500.0, 0.0],
+    ));
     let orders = BalancedDoctrine::default().decide(
         DecisionInput {
             side: Side::Red,
@@ -1446,6 +1401,7 @@ fn identified(
         reversing: false,
         smoking: false,
         member_leans: vec![],
+        building: None,
     }
 }
 

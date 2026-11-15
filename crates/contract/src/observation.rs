@@ -53,6 +53,10 @@ pub struct IdentifiedUnit {
     /// edge, where rounds meet him, while he fires. His `members`
     /// position stays where he tucks in.
     pub member_leans: Vec<Option<MemberLean>>,
+    /// The building it holds, inside or leaving (any of its parts' prop
+    /// ids): seen at its windows, a garrison gives away its building.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub building: Option<u32>,
 }
 
 /// Which way a soldier leans out round his cover, facing the threat.

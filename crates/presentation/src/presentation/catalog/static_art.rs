@@ -39,7 +39,7 @@ fn scenery_rows(world: &mut World, kinds: &[String]) -> Vec<Vec<u32>> {
 impl StaticDraft {
     pub(super) fn stage(
         p: &Presentation,
-        assets: &BTreeMap<String, Asset>,
+        assets: &Facts,
         placements: &BTreeMap<String, Placement>,
         world: &mut World,
     ) -> Result<Self, String> {
@@ -92,10 +92,6 @@ impl StaticDraft {
             scenery_required: p.scenery.is_some(),
         })
     }
-    pub(super) fn needs_scenery(&self) -> bool {
-        self.scenery_required
-    }
-
     pub(super) fn stage_scenery(
         &mut self,
         p: &Presentation,
@@ -113,9 +109,6 @@ impl StaticDraft {
 
     /// Validation and current knowledge transfer precede every active-owner move.
     pub(super) fn adopt_knowledge(&mut self, p: &Presentation) -> Result<(), String> {
-        if self.scenery_required && self.scenery.is_none() {
-            return Err("prepare scenery placement facts before catalog commit".into());
-        }
         if let Some(buildings) = &mut self.buildings {
             if let Some(&b) = buildings.walk.set_fallen(&p.fallen).first() {
                 return Err(format!(
@@ -136,8 +129,10 @@ impl StaticDraft {
     pub(super) fn commit(self, p: &mut Presentation) {
         p.buildings = self.buildings;
         p.props = self.props;
-        if self.scenery_required {
-            p.scenery = self.scenery;
+        if let Some(next) = self.scenery {
+            p.scenery = Some(next);
+        } else if let Some(active) = &mut p.scenery {
+            active.rows = self.scenery_rows;
         }
     }
     pub(super) fn stump_mesh(&self, row: u32) -> Option<&[f32]> {
@@ -150,14 +145,14 @@ impl StaticDraft {
 
 fn patch_props(
     input: &mut PropInput,
-    assets: &BTreeMap<String, Asset>,
+    assets: &Facts,
     placements: &BTreeMap<String, Placement>,
 ) -> Result<(), String> {
     let mut appearances: BTreeMap<String, Art> = std::mem::take(&mut input.appearances)
         .into_iter()
         .map(|a| (a.name.clone(), a))
         .collect();
-    for (name, asset) in assets {
+    for (name, asset) in assets.iter() {
         match placements.get(name) {
             Some(placement) => {
                 appearances.remove(name);

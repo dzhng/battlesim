@@ -340,16 +340,22 @@ export class ScenePresentation {
 
   /** Installs a complete external art generation without fabricating a battle.
    *  Reinstall renderer tables after admission; returned rows include both. */
-  installLabAssets(assets: readonly LabAsset[], detail: ModelDetail): PresentedAppearance[] {
+  installLabAssets(assets: Iterable<LabAsset>, detail: ModelDetail): PresentedAppearance[] {
     this.rust.begin_lab_assets();
-    for (const asset of assets) this.rust.add_lab_asset(asset.name, asset.bundle, asset.skeleton);
+    for (const asset of assets)
+      this.rust.add_lab_asset(
+        asset.name,
+        JSON.stringify(asset.contentId),
+        asset.bundle,
+        asset.skeleton,
+      );
     const ptr = this.rust.install_lab_assets(JSON.stringify(detail));
     return (this.loaded = this.readWorld(ptr));
   }
 
   /** Prepare a complete source/GPU generation while the active catalog stays live. */
   prepareRendererAppearances(
-    renderer: Pick<Renderer, "appearance_draft" | "prepare_appearances">,
+    renderer: Pick<Renderer, "missing_content_ids" | "appearance_draft" | "prepare_appearances">,
     assets: readonly ModelAsset[],
     detail: ModelDetail,
   ): Promise<PreparedAppearances> {

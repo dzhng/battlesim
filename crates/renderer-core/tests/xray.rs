@@ -1,14 +1,16 @@
 //! GPU occlusion regression over actual authored-model packing and exported
 //! x-ray shaders. Run under the repository GPU lock.
 mod support;
+use renderer_core::runtime::AdmissionWork;
 
+use contract::identity::ContentId;
 use presentation::records::{
     Appearance, Batch, Camera, Instance as ModelInstance, Joint, FOG_FACES, FOG_UNITS, NONE,
     VIEW_PASS,
 };
 use renderer_core::bundle::{Bundle, BundleSource, Coverage, Draw, Material, Mesh, Node, Shape};
 use renderer_core::fog::Layer;
-use renderer_core::models::{Models, Surface};
+use renderer_core::models::{ArtStore, Models, Surface};
 use renderer_core::pipelines;
 use renderer_core::xray::XrayResources;
 use renderer_core::{buffer, Targets};
@@ -78,6 +80,16 @@ impl BundleSource for Source {
             }],
             textures: Vec::new(),
         }))
+    }
+
+    fn content_id(&self, name: &str) -> Result<ContentId, String> {
+        let bundle = self.bundle(name)?;
+        let Shape::Static(states) = &bundle.shape else {
+            unreachable!()
+        };
+        ContentId::bundle(contract::identity::bytes_hash(bytemuck::cast_slice(
+            &states[0].tiers[0].positions,
+        )))
     }
 }
 
@@ -250,6 +262,8 @@ fn xray_preserves_occlusion_gate_information_colors_and_frame_reset() {
         names,
         |_| None,
         |_, _| None,
+        ArtStore::shared(),
+        &mut AdmissionWork::default(),
     )
     .unwrap();
     let identity = Joint {

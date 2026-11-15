@@ -77,7 +77,7 @@ impl super::Run {
             .encode(device, queue, &self.view, &mut encoder, geometry);
         let hdr = self.scene.post.hdr_output(PostMode::Look);
         let source = hdr.map_or(&self.scene.targets.display_texture, |view| view.texture());
-        let read = renderer_core::readback::RgbaReadback::encode(device, &mut encoder, source)?;
+        let read = renderer_core::readback::RgbaReadback::encode(device, &mut encoder, source, 0)?;
         queue.submit([encoder.finish()]);
         let mut texels = pollster::block_on(read.read(device))?;
         let size = self.scene.targets.size;

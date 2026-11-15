@@ -1,5 +1,6 @@
 use super::*;
 use crate::bundle::Draw;
+use contract::identity::ContentId;
 
 fn mesh(draws: &[(usize, usize)]) -> Mesh {
     let mut first = 0;
@@ -184,7 +185,14 @@ fn admission_does_not_scroll_pitchless_track_nodes() {
     bytes.extend([0; 32]);
     let mut p = Presentation::new(None, 30.0).unwrap();
     p.install_lab_assets(
-        [("tracks".into(), Asset::from_bundle(&bytes, None).unwrap())].into(),
+        [(
+            "tracks".into(),
+            (
+                ContentId::bundle(contract::identity::bytes_hash("tracks".as_bytes())).unwrap(),
+                Asset::from_bundle(&bytes, None).unwrap(),
+            ),
+        )]
+        .into(),
         Detail {
             lod_px: [80.0, 40.0, 20.0],
             impostor_px: 4.0,
@@ -195,7 +203,8 @@ fn admission_does_not_scroll_pitchless_track_nodes() {
     let Shape::Articulated(nodes) = &bundle.shape else {
         panic!("articulated fixture")
     };
-    let meshes = admission::articulated_meshes(nodes, 0, 0, |node| p.catalog().track_side(0, node));
+    let meshes =
+        admission::articulated_meshes(nodes, 0, 0, |node| p.catalog().track_side(0, node)).unwrap();
     let tracks: Vec<_> = meshes
         .iter()
         .map(|(_, vertices)| u16::from_le_bytes(vertices[46..48].try_into().unwrap()))
@@ -216,7 +225,16 @@ fn admission_does_not_scroll_pitchless_track_nodes() {
     rig.tracks.clear();
     let draft = p
         .stage_catalog(
-            [("tracks".into(), candidate)].into(),
+            [(
+                "tracks".into(),
+                ContentId::bundle(contract::identity::bytes_hash("tracks".as_bytes())).unwrap(),
+            )]
+            .into(),
+            [(
+                ContentId::bundle(contract::identity::bytes_hash("tracks".as_bytes())).unwrap(),
+                candidate,
+            )]
+            .into(),
             Detail {
                 lod_px: [80.0, 40.0, 20.0],
                 impostor_px: 4.0,
@@ -227,7 +245,7 @@ fn admission_does_not_scroll_pitchless_track_nodes() {
         .unwrap();
     let catalog = draft.view(&p).unwrap();
     for (_, vertices) in
-        admission::articulated_meshes(nodes, 0, 0, |node| catalog.track_side(0, node))
+        admission::articulated_meshes(nodes, 0, 0, |node| catalog.track_side(0, node)).unwrap()
     {
         assert_eq!(&vertices[46..48], &[0, 0]);
     }

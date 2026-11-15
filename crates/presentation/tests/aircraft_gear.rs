@@ -4,7 +4,7 @@
 //! at rest (a lab, a bake) still stands on its gear. The shipped
 //! presentation, roster and runtime art; synthetic flights.
 use presentation::assets::Runtime;
-use presentation::fielded::Fielding;
+use presentation::fielded::{Facts, Fielding};
 use presentation::units::articulation::{articulate, rest_locals};
 use presentation::units::driver::{FeedFrame, FeedUnit, PoseDriver};
 use presentation::units::pose::Articulation;
@@ -54,7 +54,9 @@ fn roster_jet_units() -> (Vec<String>, presentation::world::UnitsSection) {
         kinds: &kinds,
         factions: None,
     }
-    .resolve(&|hash| runtime.read(hash, "bundle.bin"))
+    .resolve(&mut Facts::default(), &|hash| {
+        runtime.read(hash, "bundle.bin").map(Into::into)
+    })
     .unwrap()
     .typed()
     .unwrap();

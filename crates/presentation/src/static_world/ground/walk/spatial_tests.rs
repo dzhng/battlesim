@@ -415,7 +415,9 @@ fn offscreen_falls_age_to_settled_and_reenter_without_restarting() {
 fn fixed_fall_envelope_keeps_tipped_compressed_and_stump_extremes() {
     for (sxy, sz) in [(1., 1.), (3., 0.02), (0.2, 4.)] {
         let (ground, initial) = felled_fixture(0);
-        let mut scenery = initial.scenery;
+        let mut scenery = Arc::try_unwrap(initial.scenery)
+            .ok()
+            .expect("the fixture is the placement's only holder");
         scenery.forest.truncate(FLOATS);
         scenery.forest_ids.truncate(1);
         scenery.forest[4] = sxy;

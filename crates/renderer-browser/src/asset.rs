@@ -3,11 +3,29 @@ use super::*;
 
 #[wasm_bindgen]
 impl Renderer {
+    /// Return identities lacking decoded source or retained presentation facts.
+    /// The list is identity keyed so names may be replaced or shared freely.
+    pub fn missing_content_ids(
+        &self,
+        presentation: &Presentation,
+        content_ids_json: &str,
+    ) -> Result<String, JsValue> {
+        let contents: Vec<contract::identity::ContentId> =
+            serde_json::from_str(content_ids_json).map_err(js_error)?;
+        serde_json::to_string(
+            &self
+                .model_library
+                .missing_content(presentation.core(), &contents),
+        )
+        .map_err(js_error)
+    }
+
     /// Decode fetched assets without constructing GPU tables per appearance.
     #[wasm_bindgen]
     pub fn load_bundle(
         &mut self,
         name: String,
+        content_id: String,
         bundle: &[u8],
         texture_ids: js_sys::Array,
         textures: js_sys::Array,
@@ -17,8 +35,10 @@ impl Renderer {
             .iter()
             .map(|(id, data)| (id.as_str(), data.as_slice()))
             .collect::<Vec<_>>();
+        let content: contract::identity::ContentId =
+            serde_json::from_str(&content_id).map_err(js_error)?;
         Arc::make_mut(&mut self.model_library)
-            .insert_bundle(&name, bundle, &refs)
+            .insert_bundle(&name, content, bundle, &refs)
             .map_err(js_error)?;
         Ok(())
     }
