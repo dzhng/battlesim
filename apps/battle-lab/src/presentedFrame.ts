@@ -138,8 +138,7 @@ export async function fieldedBattle(
         stand_in: {
           appearance: BATTLE_STAND_IN_APPEARANCE,
           half: BATTLE_STAND_IN_HALF_EXTENTS,
-          own: gameHud.accent,
-          enemy: gameHud.enemy,
+          tint: gameHud.dim,
           shadow: false,
         },
       },

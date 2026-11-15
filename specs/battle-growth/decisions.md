@@ -1366,3 +1366,11 @@ staging and one commit:
 - The GPU-side copies are the arrays growing past one spare layer. They are
   not in the frame's CPU time; whether they cost the GPU a frame is not
   measured.
+
+**The stand-in's colour, the player's decision, 2026-11-15.** Shown the
+side-coloured block, the player chose neutral grey. The block is now one
+colour for every side, the HUD's existing `hud.dim`; the side colours and the
+observer they needed are removed from the battle input. Still fully rough and
+casting no shadow. This supersedes the checkpoint's provisional resolution
+above. The kept shots in `assets/stand-in/look/` show the superseded red
+block; they are refreshed at closeout.

@@ -69,10 +69,10 @@ pub struct BattleInput {
 pub struct StandIn {
     pub appearance: String,
     pub half: Vec3,
-    /// Existing display-encoded HUD side colours, supplied by the shell
-    /// in the same roles; converted to linear for the model material.
-    pub own: Vec3,
-    pub enemy: Vec3,
+    /// An existing display-encoded HUD colour, supplied by the shell and
+    /// converted to linear for the model material. One colour for every side:
+    /// the block says only that art is on its way.
+    pub tint: Vec3,
     /// Whether the placeholder is a solid sun-shadow caster.
     pub shadow: bool,
 }

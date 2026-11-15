@@ -91,7 +91,7 @@ calls the same reader for workbench drafts.
   appearance when supplied. One physical body box supplies both instance scale
   and picking, so loading art changes appearance without changing selection or
   targeting. Stand-ins share unit fog and x-ray and never become impostor cards.
-  The shell supplies existing HUD side colours for their tint and a shadow
+  The shell supplies one existing HUD colour for their tint and a shadow
   policy that applies only to the placeholder; authored models keep their own
   materials and casting.
 - [Effects](src/effects/): the effect publication, launches (the one derivation

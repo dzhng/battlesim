@@ -22,7 +22,6 @@ pub(super) struct UnitArt<'a> {
 pub(super) struct UnitStandIn<'a> {
     pub appearance: &'a StandIn,
     pub body: &'a BodyBox<'a>,
-    pub observer: &'a str,
 }
 
 struct DrawnBody<'a> {
@@ -142,12 +141,10 @@ impl UnitArt<'_> {
             },
             scale: std::array::from_fn(|i| (half[i] / stand_in.appearance.half[i]) as f32),
             stand_in: true,
-            tint: if side == stand_in.observer {
-                stand_in.appearance.own
-            } else {
-                stand_in.appearance.enemy
-            }
-            .map(|v| crate::static_world::srgb_to_linear(v) as f32),
+            tint: stand_in
+                .appearance
+                .tint
+                .map(|v| crate::static_world::srgb_to_linear(v) as f32),
             shadow: stand_in.appearance.shadow,
         })
     }

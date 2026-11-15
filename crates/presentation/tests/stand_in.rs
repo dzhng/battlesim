@@ -107,8 +107,7 @@ fn stand_in(shadow: bool) -> StandIn {
     serde_json::from_value(json!({
         "appearance": STAND_IN,
         "half": [0.6, 0.6, 0.6],
-        "own": [0.15, 0.35, 0.75],
-        "enemy": [0.8, 0.2, 0.1],
+        "tint": [0.3, 0.4, 0.5],
         "shadow": shadow,
     }))
     .unwrap()
@@ -285,12 +284,12 @@ fn an_unseen_unarted_unit_draws_nothing() {
 }
 
 #[test]
-fn a_stand_in_takes_its_side_colour_and_its_own_shadow_policy() {
+fn a_stand_in_takes_its_given_colour_and_its_own_shadow_policy() {
     let (battle, fielded) = setup();
     let expected_art = fielded.units.tints["blue"].map(|v| v as f32);
     let look = stand_in(false);
     let expected_stand = look
-        .own
+        .tint
         .map(|v| presentation::static_world::srgb_to_linear(v) as f32);
     let mut stand = presented(
         with_art_withheld(fielded.units.clone()),

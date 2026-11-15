@@ -98,7 +98,6 @@ impl Loaded {
                 .map(|appearance| super::posing::UnitStandIn {
                     appearance,
                     body: &body,
-                    observer: side,
                 }),
         };
         // Soldiers off screen, as the gates count bodies drawn, carded or culled.
