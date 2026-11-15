@@ -1394,3 +1394,47 @@ difference in the renderer process (4.5 GB against 3.5 GB); the GPU process
 is unchanged. That breaks decision 3, and the page's WASM modules have a
 4 GB ceiling. Attribution (which part of the page, which slice) is in
 progress; the engine is not pushed until it is found and fixed.
+**Growth scene contact after the staging merge, 2026-11-15.**
+
+- The fixed links remain unchanged. On the moved map the farthest field is
+  not a reliable meeting point. Both original purchases and moves are accepted;
+  the European tank reaches the field, but its held vehicle and infantry are
+  never co-visible before it dies. The Eastern tank dies to a BTR before it
+  identifies new art: its last live trace has 500 m sight while the firing
+  contact is over 550 m away even allowing its uncertainty. Navigation is
+  progressing normally; no game regression was found in these failures.
+- The scene actor uses a real recon vehicle through the ordinary purchase UI,
+  initially visiting the objective nearest the reported main settlement. Once
+  that move completes, it visits the nearest objective the blue observation
+  reports red capturing or holding. The European failing-session replay shows
+  the assault squad unloading at that field rather than the junction. Rejected:
+  a new seed, hard-coded world points, reading hidden red units to drive the
+  pilot, and waiting forever at one objective. The existing play limit remains.
+  The shared actor in `web/scenes/_contact-battle.mjs` owns the approach for
+  both fixtures; the preload scene should reuse it instead of the old tank/
+  farthest-field approach.
+- A second fixture assumption was a body click framed around the squad anchor.
+  The outer member projected onto the army HUD, which correctly consumed the
+  click despite the geometric picker finding the soldier below it. Camera and
+  mouse now share the same chosen outer body. The actual mouse attack, target
+  id and acknowledgement assertions are unchanged, as are the physical block,
+  position, in-session swap and no-remaining-block assertions. The player's
+  neutral `StandIn.tint` / `hud.dim` decision is unchanged.
+- Missing growth leaves failed checks and a named `the battle never grew`
+  diagnostic with the latest observation, rather than entering header analysis
+  with undefined installed names. A short-sighted-tank control exercised this
+  failure path. Growth work, one staging/commit, texture/card/rest derivation
+  checks and the 700 ms tripwire are unchanged. The pilot stops advancing at
+  the first drawn staging, rather than stepping through another minute's
+  possible arrivals.
+- Verification on `011977f72`: rebuilt WASM, typecheck and lint passed. Under
+  the shared GPU lock, all four requested scenes passed with fixture concurrency
+  one; an earlier concurrent run had timed out opening workbench's second page
+  while armory was running, without a page error. No readiness timeout changed.
+  The final growth/stand-in rerun passed again: staging to commit was 54 ms,
+  longest overlapping long frame 66 ms against the unchanged 700 ms tripwire.
+  Growth encoded/decoded 2 bundles, packed 8,648,160 vertex bytes, derived 5
+  rest poses, wrote 3 texture layers with no array rebuild, baked/read 0 cards,
+  did no scenery placement/static upload, and installed the page library once.
+  The four requested stand-in evidence shots were refreshed with the accepted
+  neutral tint. No production code changed.

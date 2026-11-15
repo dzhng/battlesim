@@ -296,7 +296,7 @@
   {
     "id": "battle-growth",
     "route": "/battle?type=mixed&size=small&seed=7684954605204256359&battle=20260925&blue=h&red=a&blue_faction=us&red_faction=eastern",
-    "describe": "A small skirmish from its link, played until blue meets an enemy kind its battle had not fielded (its tank drives for red's farthest objective): the battle grows in place, its art is admitted while the scene keeps drawing, and the page's timeline shows no scene rebuild.",
+    "describe": "A small skirmish from its link, played until blue meets an enemy kind its battle had not fielded (its recon vehicle visits the reported junction and enemy-held objectives): the battle grows in place, its art is admitted while the scene keeps drawing, and the page's timeline shows no scene rebuild.",
     "map": null,
     "catalog": "game",
     "loading": false,
