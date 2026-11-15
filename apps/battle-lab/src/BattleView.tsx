@@ -112,6 +112,7 @@ export function BattleView({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [viewportReady, setViewportReady] = useState(false);
+  const { cameraFocus, focusUnit } = useUnitFocus();
   const session = useBattleSession({
     scenario,
     seed,
@@ -124,6 +125,7 @@ export function BattleView({
     scripted,
     sound: true,
     inputEnabled: !menuOpen && viewportReady && inCommand,
+    onCenter: focusUnit,
   });
   const input = !replay && !scripted;
   const { meshes, sim, control, surfaceZ } = session;
@@ -138,7 +140,6 @@ export function BattleView({
     () => contactLines(session.units, contacts, observation?.tick ?? 0, session.rules.tick_hz),
     [session.units, contacts, observation?.tick, session.rules.tick_hz],
   );
-  const { cameraFocus, focusUnit } = useUnitFocus();
   const { pointerPaint } = session;
   const rulerLabels = useRef<RangeRulerLabelsHandle>(null);
   const objectiveMarkers = useRef<ObjectiveMarkersHandle>(null);
