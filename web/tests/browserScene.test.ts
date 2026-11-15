@@ -1,7 +1,7 @@
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { joinTextures } from "@packages/scene-assets/src/codec";
 import type { ScenePresentation } from "@web/battle/sim/presentation";
-import type { ModelAsset } from "@web/battle/render/modelAssets";
+import type { LabAsset, ModelAsset } from "@web/battle/render/modelAssets";
 import type { PreparedAppearances } from "@wasm/renderer_browser";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { proxyModels } from "@web/battle/render/proxyModels";
@@ -44,7 +44,9 @@ async function scene(
   const presentation = {
     canonicalAppearanceRows: () => [],
     presentedGround: () => null,
-    installLabAssets() {},
+    installLabAssets(assets: Iterable<LabAsset>) {
+      Array.from(assets);
+    },
     setLabModels() {},
     installGeometry() {},
     installRenderer() {},
@@ -151,7 +153,9 @@ for (const first of ["art", "battle"]) {
     const presentation = {
       canonicalAppearanceRows: () => worldRows,
       presentedGround: () => null,
-      installLabAssets() {},
+      installLabAssets(assets: Iterable<LabAsset>) {
+        Array.from(assets);
+      },
       setLabModels() {},
       installGeometry() {},
       installRenderer() {},
@@ -198,3 +202,80 @@ for (const first of ["art", "battle"]) {
     }
   });
 }
+
+test("initial admission shares one packet between its readers and retires it before the next", async () => {
+  const generated = proxyModels([{ kind: "box", x: 0, y: 0, z: 0, yaw: 0, color: [1, 1, 1] }]);
+  const bundle = joinTextures(generated.assets[0].encode().bundle, []);
+  if (bundle.kind !== "articulated") throw new Error("expected articulated fixture");
+  const names = ["test-a", "test-b"];
+  const installed: InstalledAppearances = {
+    generation: 1,
+    sides: { blue: [1, 1, 1], red: [1, 1, 1] },
+    skeletons: new Map(),
+    onRequest: new Map(),
+    appearances: new Map(
+      names.map((name, i) => [
+        name,
+        {
+          contentId: { bundle: String(i).repeat(64), skeleton: null },
+          bundle,
+          unit: "vehicle",
+          scenery: null,
+          footprint: null,
+          mounts: null,
+          regionalFamily: null,
+          paints: null,
+          wreck: null,
+          factions: null,
+        },
+      ]),
+    ),
+  };
+  const seen = new Set<Uint8Array>();
+  const rendererRead = new Map<string, { packet: Uint8Array; copy: Uint8Array }>();
+  const presentationRead = new Map<string, { packet: Uint8Array; copy: Uint8Array }>();
+  let peak = 0;
+  const read = (packet: Uint8Array) => {
+    seen.add(packet);
+    peak = Math.max(
+      peak,
+      [...seen].reduce((sum, bytes) => sum + bytes.byteLength, 0),
+    );
+    return { packet, copy: new Uint8Array(packet) };
+  };
+  const presentation = {
+    canonicalAppearanceRows: () => names.map((name) => ({ name })),
+    presentedGround: () => null,
+    installLabAssets(assets: Iterable<LabAsset>) {
+      for (const asset of assets) presentationRead.set(asset.name, read(asset.bundle));
+    },
+    setLabModels() {},
+    installGeometry() {},
+    installRenderer() {},
+    world: () => ({}),
+  } as unknown as ScenePresentation;
+  const frame = await scene(
+    [],
+    { presentation, appearances: installed },
+    {
+      load_bundle(name: string, _content: string, bytes: Uint8Array) {
+        rendererRead.set(name, read(bytes));
+      },
+    },
+  );
+  try {
+    expect([...rendererRead.keys()]).toEqual(names);
+    expect([...presentationRead.keys()]).toEqual(names);
+    for (const name of names) {
+      const renderer = rendererRead.get(name)!;
+      const posed = presentationRead.get(name)!;
+      expect(renderer.packet).toBe(posed.packet);
+      expect(renderer.copy).toEqual(posed.copy);
+      expect(joinTextures(renderer.copy, [])).toEqual(bundle);
+      expect(renderer.packet.byteLength).toBe(0);
+    }
+    expect(peak).toBe(Math.max(...[...rendererRead.values()].map((read) => read.copy.byteLength)));
+  } finally {
+    frame.dispose();
+  }
+});

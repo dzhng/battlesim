@@ -10,8 +10,6 @@ pub(super) struct StaticDraft {
     /// The scenery's rows in the draft's world, once `scenery_required`.
     scenery_rows: Vec<Vec<u32>>,
     scenery_required: bool,
-    /// Shared map placement; selection, dressing cache and learned falls stay live.
-    carried: Option<Arc<crate::static_world::ground::scenery::Scenery>>,
 }
 
 /// Each building module's row: its kit, and the module as the state.
@@ -86,18 +84,13 @@ impl StaticDraft {
             .scenery
             .as_ref()
             .map_or_else(Vec::new, |walk| scenery_rows(world, &walk.scenery.kinds));
-        let carried = p.scenery.as_ref().map(|walk| walk.scenery.clone());
         Ok(Self {
             buildings,
             props,
             scenery: None,
-            carried,
             scenery_rows,
             scenery_required: p.scenery.is_some(),
         })
-    }
-    pub(super) fn needs_scenery(&self) -> bool {
-        self.scenery_required && self.scenery.is_none() && self.carried.is_none()
     }
     pub(super) fn stage_scenery(
         &mut self,
@@ -116,9 +109,6 @@ impl StaticDraft {
 
     /// Validation and current knowledge transfer precede every active-owner move.
     pub(super) fn adopt_knowledge(&mut self, p: &Presentation) -> Result<(), String> {
-        if self.scenery_required && self.scenery.is_none() && self.carried.is_none() {
-            return Err("prepare scenery placement facts before catalog commit".into());
-        }
         if let Some(buildings) = &mut self.buildings {
             if let Some(&b) = buildings.walk.set_fallen(&p.fallen).first() {
                 return Err(format!(

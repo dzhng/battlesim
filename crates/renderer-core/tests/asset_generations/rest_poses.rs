@@ -107,7 +107,7 @@ fn shared_rest_poses_bake_identically_to_fresh_poses_under_new_names() {
                     &gpu.queue,
                     &pipelines,
                     &rows,
-                    renderer_core::impostor::AtlasSource::Fresh(&spec),
+                    &spec,
                     &mut AdmissionWork::default(),
                 )
                 .unwrap()
@@ -135,8 +135,7 @@ fn shared_rest_poses_bake_identically_to_fresh_poses_under_new_names() {
                 &shared.albedo,
                 &shared.normal,
                 &shared.mask,
-                &shared.hash,
-                shared.layer
+                &shared.hash
             ),
             (
                 &fresh.appearance,
@@ -148,8 +147,7 @@ fn shared_rest_poses_bake_identically_to_fresh_poses_under_new_names() {
                 &fresh.albedo,
                 &fresh.normal,
                 &fresh.mask,
-                &fresh.hash,
-                fresh.layer
+                &fresh.hash
             )
         );
     }

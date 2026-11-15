@@ -72,7 +72,7 @@ fn drawn_roster() -> Vec<(String, String, DrawnJet, [f64; 4], f64)> {
         factions: None,
     }
     .resolve(&mut Facts::default(), &|hash| {
-        runtime.read(hash, "bundle.bin")
+        runtime.read(hash, "bundle.bin").map(Into::into)
     })
     .unwrap()
     .typed()

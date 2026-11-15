@@ -1,4 +1,4 @@
-use super::{box_filter, camera, Atlas, CardFrame, Spec};
+use super::{box_filter, camera, Atlas, Spec};
 use crate::pipelines::Pipelines;
 use crate::readback::RgbaReadback;
 use futures_util::future::join_all;
@@ -13,18 +13,6 @@ pub(crate) struct BakeInput {
     pub count: u32,
     pub models: BindGroup,
     pub spec: Spec,
-}
-
-pub(crate) enum AtlasInput {
-    Bake(BakeInput),
-    Resident(ResidentInput),
-}
-pub(crate) struct ResidentInput {
-    pub appearance: String,
-    pub spec: Spec,
-    pub frame: CardFrame,
-    pub array: std::sync::Arc<crate::texture_array::SharedArray>,
-    pub layer: u32,
 }
 
 /// An already-submitted atlas snapshot, independent of a renderer/catalog borrow. Queue
@@ -46,14 +34,11 @@ impl AtlasRequest {
         device: &Device,
         queue: &Queue,
         pipelines: &Pipelines,
-        inputs: Vec<AtlasInput>,
+        inputs: Vec<BakeInput>,
     ) -> Result<Self, String> {
         let cards = inputs
             .into_iter()
-            .map(|input| match input {
-                AtlasInput::Bake(input) => CardRequest::new(device, queue, pipelines, input),
-                AtlasInput::Resident(input) => CardRequest::resident(device, queue, input),
-            })
+            .map(|input| CardRequest::new(device, queue, pipelines, input))
             .collect::<Result<Vec<_>, _>>()?;
         Ok(Self { cards })
     }
@@ -210,7 +195,6 @@ impl CardRequest {
         }
         depth.texture().destroy();
         let atlas = Atlas {
-            layer: None,
             appearance: input.appearance,
             spec: spec.clone(),
             width: width / spec.supersample,
@@ -231,42 +215,6 @@ impl CardRequest {
         })
     }
 
-    fn resident(device: &Device, queue: &Queue, input: ResidentInput) -> Result<Self, String> {
-        let mut encoder = device.create_command_encoder(&Default::default());
-        let reads = (0..2)
-            .map(|plane| {
-                RgbaReadback::encode(
-                    device,
-                    &mut encoder,
-                    input.array.view(plane).texture(),
-                    input.layer,
-                )
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-        queue.submit([encoder.finish()]);
-        let width = input.array.texture().width();
-        let height = input.array.texture().height();
-        Ok(Self {
-            device: device.clone(),
-            reads,
-            width,
-            height,
-            atlas: Atlas {
-                layer: Some(input.layer),
-                appearance: input.appearance,
-                spec: input.spec,
-                width,
-                height,
-                center: input.frame.center,
-                radius: input.frame.radius,
-                albedo: Vec::new(),
-                normal: Vec::new(),
-                mask: Vec::new(),
-                hash: String::new(),
-            },
-        })
-    }
-
     async fn read(self) -> Result<Atlas, String> {
         let Self {
             device,
@@ -278,36 +226,12 @@ impl CardRequest {
         let channels = join_all(reads.into_iter().map(|readback| readback.read(&device)))
             .await
             .into_iter()
-            .map(|bytes| {
-                let bytes = bytes?;
-                Ok(if atlas.layer.is_some() {
-                    bytes
-                } else {
-                    box_filter(&bytes, width, height, atlas.spec.supersample)
-                })
-            })
+            .map(|bytes| Ok(box_filter(&bytes?, width, height, atlas.spec.supersample)))
             .collect::<Result<Vec<_>, String>>()?;
         let mut channels = channels.into_iter();
         atlas.albedo = channels.next().expect("albedo");
         atlas.normal = channels.next().expect("normal");
-        atlas.mask = if atlas.layer.is_some() {
-            // The runtime normal plane stores tint in alpha. Coverage is shared
-            // by all three bake outputs, so the original channels are lossless.
-            atlas
-                .normal
-                .as_chunks_mut::<4>()
-                .0
-                .iter_mut()
-                .zip(atlas.albedo.as_chunks::<4>().0.iter())
-                .flat_map(|(normal, albedo)| {
-                    let mask = [normal[3], 0, 0, albedo[3]];
-                    normal[3] = albedo[3];
-                    mask
-                })
-                .collect()
-        } else {
-            channels.next().expect("mask")
-        };
+        atlas.mask = channels.next().expect("mask");
         atlas.hash();
         Ok(atlas)
     }

@@ -249,8 +249,8 @@ test("a prefetch the page cuts off as it leaves is not an error", async () => {
       }),
   );
   const { AppResourceBoundary } = await import("@apps/battle-lab/src/AppResourceBoundary");
-  const { gameAppearances, prefetchRuntimeAssets } =
-    await import("@apps/battle-lab/src/gameAppearances");
+  const { gameAppearances } = await import("@apps/battle-lab/src/gameAppearances");
+  const { prefetchRuntimeAssets } = await import("@apps/battle-lab/src/runtimePrefetch");
   render(
     <AppResourceBoundary menu={false}>
       <div>Main menu</div>
@@ -270,8 +270,8 @@ test("a prefetch the network fails while the page stays is still an error", asyn
     throw new TypeError("Failed to fetch");
   });
   const { AppResourceBoundary } = await import("@apps/battle-lab/src/AppResourceBoundary");
-  const { gameAppearances, prefetchRuntimeAssets } =
-    await import("@apps/battle-lab/src/gameAppearances");
+  const { gameAppearances } = await import("@apps/battle-lab/src/gameAppearances");
+  const { prefetchRuntimeAssets } = await import("@apps/battle-lab/src/runtimePrefetch");
   render(
     <AppResourceBoundary menu={false}>
       <div>Main menu</div>
@@ -303,7 +303,7 @@ test("a successful prefetch removes obsolete runtime cache entries", async () =>
     delete: async (request: RequestInfo | URL) => entries.delete(key(request)),
   };
   vi.stubGlobal("caches", { open: async () => cache });
-  const { prefetchRuntimeAssets } = await import("@apps/battle-lab/src/gameAppearances");
+  const { prefetchRuntimeAssets } = await import("@apps/battle-lab/src/runtimePrefetch");
   await prefetchRuntimeAssets("/");
   expect(asked).toEqual(["/gzip-a/texture.bin", "/gzip-b/texture.bin"]);
   expect([...entries.keys()].sort()).toEqual([

@@ -31,10 +31,18 @@ impl CardKey {
     }
 }
 
-#[derive(Default)]
 pub(super) struct CardStore {
     layers: LayerArray<CardKey>,
     frames: BTreeMap<CardKey, CardFrame>,
+}
+
+impl Default for CardStore {
+    fn default() -> Self {
+        Self {
+            layers: LayerArray::new("cards"),
+            frames: BTreeMap::new(),
+        }
+    }
 }
 
 impl CardStore {
@@ -64,7 +72,6 @@ impl CardStore {
             wanted,
             &shape,
             policy.texture_spare_layers,
-            "cards",
             policy.report,
         );
         work.card_bytes_copied += admitted.copied_bytes;

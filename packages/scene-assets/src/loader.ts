@@ -237,10 +237,10 @@ export class AppearanceLibrary {
     return work;
   }
 
-  /** The bundle contents `hashes` (appearances' and skeletons') as their
+  /** Fresh, exclusively owned bundle contents `hashes` (appearances' and skeletons') as their
    *  files inflate, without their textures, verified: the bytes Rust
    *  resolves a battle's units and effects from (`presentation::fielded`). */
-  contents(hashes: readonly string[]): Promise<Uint8Array[]> {
+  contents(hashes: readonly string[]): Promise<Uint8Array<ArrayBuffer>[]> {
     const source = this.source;
     if (!source) throw new Error("runtime contents were asked for before a catalog was loaded");
     return Promise.all(

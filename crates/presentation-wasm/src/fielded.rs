@@ -3,6 +3,7 @@
 //! names the runtime contents it reads (`contents`), the page fetches and
 //! inflates them as it does any bundle, and `resolve` builds `load_world`'s
 //! `units` and `effects` sections and clip tables from their bytes.
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 use presentation::fielded::{self, Facts, Sections};
@@ -124,9 +125,11 @@ impl Fielding {
                 .as_ref()
                 .map(|[blue, red]| [blue.as_str(), red.as_str()]),
         }
+        // The boundary already owns these bytes. Copying the complete source
+        // set again raises the non-shrinking WASM heap for the rest of the visit.
         .resolve(&mut self.facts, &|hash| {
             read.get(hash)
-                .map(|b| b.to_vec())
+                .map(|b| Cow::Borrowed(*b))
                 .ok_or(format!("content {hash} was not read"))
         })
         .map_err(error)?;

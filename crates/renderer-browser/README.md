@@ -35,20 +35,15 @@ The new runtime starts with a fresh art store and reports device recreation as
 its rebuild reason. Failed installation keeps that reason for the next attempt.
 The core owns [device reconstruction](../renderer-core/README.md#device-reconstruction).
 
-[Appearance drafts](src/appearance.rs) carry declarations for every wanted name
-and its runtime `ContentId`; `Renderer::missing_content_ids` answers which
-identities lack either decoded source or committed presentation facts. Both
-`missing_content_ids(presentation, json)` and `appearance_draft(presentation,
-detail)` consult the same shared source admission owner. Initial renderer
-installation requires facts for every loaded content identity. A draft resolves
-held content against the current committed owners when prepared; retired
-content refuses preparation without changing live art. `AppearanceDraft::add_bundle` supplies facts and
-bytes by identity. The page declares every wanted name and encodes and copies
-only the missing contents, with their textures and skeletons. Names route to
-the bundle hash (and a skinned bundle's skeleton hash), never to a reuse decision. Drafts collect source transport and
-pose facts without changing active art. Page-generated bundles use the same
-exported `bytes_hash` implementation as the contract crate, cached by bundle
-object in the web renderer. Preparation returns an owned promise; the caller
+[Appearance drafts](src/appearance.rs) change art without touching what is
+live. The page declares every wanted name with its runtime content identity,
+asks the renderer which identities it lacks, and encodes and copies those
+alone, with their textures and skeletons. What is held is the
+[core's](../renderer-core/README.md) one answer, shared by the question and
+the draft. A name only routes to its identity. A draft that names retired
+content refuses preparation and leaves live art as it was. Page-generated
+bundles are hashed by the contract crate's own function, exported here, so a
+generated identity means what a catalog one does. Preparation returns an owned promise; the caller
 may continue rendering or dispose its scene while cards bake. Latest-request
 scheduling belongs to the viewport, with one candidate at a time and no
 cancellation. It compares wanted names and content identities; repeating the
@@ -58,9 +53,7 @@ canonical frame. Retained source ownership changes with the GPU/catalog commit,
 so recovery cannot resurrect an older generation.
 
 Explicit pixel, atlas and visibility queries queue GPU snapshots synchronously.
-Runtime-spec atlas reviews inspect resident card layers when present; other
-specifications use the independent authored bake. The result identifies a
-resident layer separately from its name-bearing pixel hash.
+An atlas review is always an independent authored bake.
 Their promises retain only the submitted readbacks and metadata, so the live
 scene can render, resize or replace its catalog while mapping completes.
 

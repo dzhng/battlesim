@@ -102,7 +102,7 @@ pub(super) fn section(
 fn wreck_facts(
     facts: &mut Facts,
     art: &Art,
-    bytes: &HashMap<String, Vec<u8>>,
+    bytes: &HashMap<String, std::borrow::Cow<'_, [u8]>>,
     name: &str,
 ) -> Result<WreckFacts, String> {
     let hash = art.bundle(name)?.to_owned();

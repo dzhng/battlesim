@@ -19,6 +19,7 @@ use crate::units::drawn::ClipTables;
 use crate::world::{EffectsSection, UnitsSection};
 use contract::catalog::Mobility;
 use serde_json::{json, Map, Value};
+use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 /// A wreck's pieces a cook-off throws (`WRECK_PIECES`) and its debris state.
@@ -52,8 +53,9 @@ impl Sections {
     }
 }
 
-/// A runtime content's bytes, inflated, by its hash.
-pub type Read<'a> = dyn Fn(&str) -> Result<Vec<u8>, String> + 'a;
+/// A runtime content's bytes, inflated, by its hash. File readers can own
+/// these; a boundary can lend its input without another complete catalog copy.
+pub type Read<'a> = dyn Fn(&str) -> Result<Cow<'a, [u8]>, String> + 'a;
 
 /// Facts derived from runtime bundles by a reusable fielding owner.
 #[derive(Default)]
@@ -64,7 +66,7 @@ pub struct Facts {
 
 pub(crate) struct BundleFacts<'a> {
     pub facts: &'a mut Facts,
-    pub bytes: &'a HashMap<String, Vec<u8>>,
+    pub bytes: &'a HashMap<String, Cow<'a, [u8]>>,
 }
 
 #[derive(Clone)]
@@ -137,7 +139,7 @@ impl Fielding<'_> {
         )?;
         looks.check_mounts(self.catalog)?;
         effects::check_smoke_screen_looks(&presentation, &catalog, self.kinds)?;
-        let bytes: HashMap<String, Vec<u8>> = self
+        let bytes: HashMap<String, Cow<'_, [u8]>> = self
             .contents(facts)?
             .into_iter()
             .map(|hash| {
@@ -247,7 +249,9 @@ mod files {
             kinds,
             factions: None,
         }
-        .resolve(&mut facts, &|hash| runtime.read(hash, "bundle.bin"))?
+        .resolve(&mut facts, &|hash| {
+            runtime.read(hash, "bundle.bin").map(Into::into)
+        })?
         .typed()
     }
 }
@@ -442,7 +446,7 @@ impl<'a> Art<'a> {
 fn appearance_facts(
     facts: &mut Facts,
     art: &Art,
-    bytes: &HashMap<String, Vec<u8>>,
+    bytes: &HashMap<String, Cow<'_, [u8]>>,
     name: &str,
 ) -> Result<AppearanceFacts, String> {
     let key = art.key(name)?;

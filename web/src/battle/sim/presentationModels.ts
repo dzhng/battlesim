@@ -4,6 +4,7 @@ import { type Presentation, type Renderer, type PreparedAppearances } from "@was
 import { contentIdKey } from "../render/contentIdentity";
 import type { ContentId } from "@packages/scene-assets/src/loader";
 import type { ModelAsset } from "../render/modelAssets";
+import { releaseTransport } from "../transport";
 import {
   APPEARANCE_WORDS,
   Appearance,
@@ -113,9 +114,19 @@ export function prepareAppearances(
       if (asset.placement) draft.set_placement(asset.name, JSON.stringify(asset.placement));
       if (!missing.delete(contentIdKey(asset.contentId))) continue;
       const { bundle, textureIds, textureBytes, skeleton } = asset.encode();
-      work.bundlesEncoded++;
-      work.bundleBytesSent += bundle.byteLength;
-      draft.add_bundle(JSON.stringify(asset.contentId), bundle, textureIds, textureBytes, skeleton);
+      try {
+        work.bundlesEncoded++;
+        work.bundleBytesSent += bundle.byteLength;
+        draft.add_bundle(
+          JSON.stringify(asset.contentId),
+          bundle,
+          textureIds,
+          textureBytes,
+          skeleton,
+        );
+      } finally {
+        releaseTransport(bundle);
+      }
     }
   } catch (error) {
     draft.free();
