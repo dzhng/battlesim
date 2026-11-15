@@ -20,6 +20,8 @@ pub struct PendingAssets {
     catalog: CatalogDraft,
     assets: Assets,
     work: AdmissionWork,
+    art_store_policy: crate::models::ArtStorePolicy,
+    card_bake_split_reported: Arc<AtomicBool>,
 }
 
 /// An opaque complete generation. Dropping stale work never changes active art.
@@ -41,7 +43,14 @@ impl PendingAssets {
     pub async fn prepare(mut self) -> Result<ReadyAssets, String> {
         self.assets
             .models
-            .bake_cards(&self.device, &self.queue, &self.pipelines, &mut self.work)
+            .bake_cards(
+                &self.device,
+                &self.queue,
+                &self.pipelines,
+                self.art_store_policy,
+                &self.card_bake_split_reported,
+                &mut self.work,
+            )
             .await?;
         Ok(ReadyAssets(self))
     }
@@ -102,6 +111,8 @@ impl Runtime {
                 grass,
             },
             work,
+            art_store_policy: self.config.art_store,
+            card_bake_split_reported: self.card_bake_split_reported.clone(),
         })
     }
 

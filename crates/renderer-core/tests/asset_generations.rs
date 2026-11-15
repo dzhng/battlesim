@@ -4,6 +4,9 @@
 #[path = "support/mod.rs"]
 mod support;
 
+#[path = "asset_generations/cards.rs"]
+mod cards;
+
 use contract::identity::ContentId;
 use presentation::presentation::{lab::Asset, Presentation};
 use presentation::records::{Appearance, Joint, NONE};
@@ -260,6 +263,7 @@ fn first_admission_reports_the_synthetic_fixture_work() {
             texture_layers_written: 0,
             texture_bytes_uploaded: 0,
             cards_baked: 0,
+            card_read_waits: 0,
             statics_bytes_uploaded: 0,
             scenery_placements: 0,
             rebuild_reason: None,

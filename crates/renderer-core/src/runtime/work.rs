@@ -26,6 +26,8 @@ pub struct AdmissionWork {
     pub texture_layers_written: u32,
     pub texture_bytes_uploaded: u64,
     pub cards_baked: u32,
+    /// Concurrent readback groups awaited by the card bake.
+    pub card_read_waits: u32,
     pub statics_bytes_uploaded: u64,
     pub scenery_placements: u32,
     pub rebuild_reason: Option<RebuildReason>,
