@@ -1704,3 +1704,54 @@ to the middle of a firefight, and needs something to draw for a body found
 already dead in the fog, which has no fall to wait behind. It stays the
 fallback if bodies drawn skinned cost too much frame time at the corpse cap,
 which the slice measures before building. Not built: slice 12's stepping.
+
+**Slice 13, confirm first, 2026-11-15.**
+
+- Corpses currently enter presentation's ordinary dynamic model list each
+  frame, grouped by appearance row/tier/pass. They are not held static batches.
+  Near and shadow draws use the existing model pipeline; a corpse's instance
+  palette index is zero because admission already skins every mesh tier into
+  a rigid copy. The corpse appearance row advertises zero joints. The living
+  path needs retained authored joint indices/weights, the row's joint count,
+  and an instance offset to a shared rest palette in Frame.palettes. The
+  existing instance ABI and model shader already supply those operations.
+- Corpse bounds/cards are not currently the unposed-mesh-plus-palette path:
+  admission poses the finest mesh for bounds, retains an identity rest palette,
+  and bakes the card from the posed copy with that identity. Living far bounds
+  also scan a posed finest mesh, but retain the actual rest palette and bake
+  with unposed geometry. The replacement must retain the corpse's actual rest
+  palette, remove pose from geometry identity, and keep that rendered palette
+  in card identity. Rest bounds can still be derived by the existing CPU skin;
+  that transient scan is distinct from packing/uploading every posed tier.
+- The third confirm-first measurement is pending: three baseline and candidate
+  runs at the fixture's corpse cap, high graphics, using the existing renderer
+  GPU timer and frame CPU duration. The minimal candidate and test oracles are
+  built before finishing the implementation; the user-visible frame-time cost
+  decides whether the rest proceeds. No frame-budget assertion is introduced.
+- **Stopped before building the minimal candidate:** existing test
+  `authored_clips_rest_corpses_and_supplied_palettes_share_the_frame_pose_contract`
+  in `crates/presentation/tests/lab_models.rs:299` asserts the corpse instance's
+  palette index is zero, with the message “corpse uses its baked resting mesh”.
+  The same test establishes that corpse row's rest palette translates Z by 2;
+  frame construction reserves palette zero for identity. With the requested
+  unposed living geometry, keeping that assertion would draw the wrong picture.
+  It pins the baked-copy implementation the new contract removes.
+- The user explicitly requires every other existing assertion to stay unchanged
+  and says to stop if one is wrong. No assertion was edited, weakened or worked
+  around by changing identity, the shader, or another rendering path. The
+  natural replacement would check that the corpse instance references its row's
+  actual rest palette while preserving the existing ground-fog/no-xray checks,
+  but that replacement requires the next instruction under the stated rule.
+- Consequently the third confirm-first comparison, new regression tests,
+  minimal skinned build, reference before/after, buffer/memory measurements and
+  full implementation verification are not claimed. There is no production or
+  interface change and nothing merge-ready about corpse rendering in this pass.
+  The blocker and source evidence are recorded in `throwaway/slice13/report.md`.
+  Disk had 103 GiB free at setup; no builds were removed. README and slice text
+  are unchanged.
+- Baseline check: `CARGO_INCREMENTAL=0 CARGO_PROFILE_DEV_DEBUG=line-tables-only
+  CARGO_PROFILE_TEST_DEBUG=line-tables-only cargo test -p presentation --test
+  lab_models authored_clips_rest_corpses_and_supplied_palettes_share_the_frame_pose_contract`
+  passes (one test). The contradictory assertion is therefore active coverage,
+  not stale unreachable code. Receipt:
+  `throwaway/slice13/existing-contract-test.log`.
