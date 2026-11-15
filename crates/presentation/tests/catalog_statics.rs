@@ -257,6 +257,27 @@ fn scenery_admitted_after_world_and_tooling_art_stays_canonical_through_replacem
     scenery_replacement(true);
 }
 
+#[test]
+fn adding_an_appearance_carries_placed_scenery_without_requesting_placement() {
+    let mut p = Presentation::new(None, 30.0).unwrap();
+    ground::set_summer_ground(&mut p);
+    let mesh = ground::scenery_mesh(0.25, 4.0);
+    let kinds = p.ground().unwrap().scenery_kinds().len();
+    p.place_scenery(&vec![mesh.as_slice(); kinds]).unwrap();
+    let before = p.scenery_stats();
+
+    let candidate = p
+        .stage_catalog(
+            [("new-unit".into(), asset())].into(),
+            detail(),
+            Default::default(),
+        )
+        .unwrap();
+    assert!(!candidate.needs_scenery());
+    assert!(p.commit_catalog(candidate, Vec::new()).unwrap());
+    assert_eq!(p.scenery_stats(), before);
+}
+
 fn scenery_replacement(late: bool) {
     let biome = presentation::static_world::ground::biome::Biome::load(
         include_str!("../../../fixtures/biomes/summer.json"),

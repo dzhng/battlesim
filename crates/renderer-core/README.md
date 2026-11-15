@@ -68,6 +68,13 @@ current controls, and requires a fresh
 canonical frame before drawing the new rows. Targets, compiled pipelines, sky,
 fog and learned ground retain their active owners throughout loading.
 
+Static admission compares the presentation's ground revision, ordered kind
+routes through `BundleSource::content_id`, and grass density. Unchanged static
+content performs no placement or scenery/grass upload. Scenery tiers keep their
+shared GPU buffers while row routing follows the prospective catalog; unchanged
+grass keeps its live owner so frames prepared during admission cannot lose its
+latest regrowth state.
+
 Sky and environment lighting share one owner too. The sky lookup and its
 reflection prefilter are baked from the presentation's light records at
 construction. Each frame supplies the canonical view, camera and cast lights;

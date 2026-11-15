@@ -8,7 +8,7 @@ pub fn identity() -> Joint {
     }
 }
 
-pub fn bundle_bytes(kind: &str, max_z: u8) -> Vec<u8> {
+pub fn bundle_bytes(kind: &str, max_z: u8, state: &str, tier_count: usize) -> Vec<u8> {
     let mut body = Vec::new();
     let mut views = Vec::new();
     let mut array = |ty, bytes: Vec<u8>, length| {
@@ -42,10 +42,9 @@ pub fn bundle_bytes(kind: &str, max_z: u8) -> Vec<u8> {
         "roughness": 1, "tint": 0, "coverage": {"kind":"opaque"}
     }]});
     if kind == "skinned" {
-        content["tiers"] = json!([mesh]);
+        content["tiers"] = json!(vec![mesh; tier_count]);
     } else {
-        content["states"] =
-            json!([{"name":"default", "bounds":{"min":[0,0,0],"max":[1,1,max_z]}, "tiers":[mesh]}]);
+        content["states"] = json!([{"name":state, "bounds":{"min":[0,0,0],"max":[1,1,max_z]}, "tiers":vec![mesh; tier_count]}]);
     }
     container(content, json!(views), &body)
 }
@@ -114,23 +113,42 @@ pub fn models(art: Art<'_>) -> Vec<presentation::presentation::lab::ModelInput> 
     serde_json::from_value(json!(art
         .iter()
         .enumerate()
-        .map(|(i, (name, _))| json!({
-            "appearance":name, "x":(i % 2) as f32 * 6., "y":(i / 2) as f32 * 6., "z":0, "yaw":0,
-            "tier":0, "pose":{"kind":"static", "state":"default"}
-        }))
+        .map(|(i, (name, bytes))| {
+            let bundle = renderer_core::bundle::decode(name, bytes, &[]).unwrap();
+            let renderer_core::bundle::Shape::Static(states) = &bundle.shape else {
+                panic!("lab model fixture is static");
+            };
+            json!({
+                "appearance":name, "x":(i % 2) as f32 * 6., "y":(i / 2) as f32 * 6., "z":0, "yaw":0,
+                "tier":0, "pose":{"kind":"static", "state":states[0].name}
+            })
+        })
         .collect::<Vec<_>>()))
     .unwrap()
 }
 
-pub fn ground(presentation: &mut Presentation) {
+pub fn ground(presentation: &mut Presentation, scenery: Option<&[u8]>) {
     let game =
         serde_json::from_str(include_str!("../../../../fixtures/presentation.json")).unwrap();
     let settings = presentation::settings::PresentationSettings::from_value(&game).unwrap();
-    let biome = presentation::static_world::ground::biome::Biome::load(
+    let mut biome = presentation::static_world::ground::biome::Biome::load(
         include_str!("../../../../fixtures/biomes/summer.json"),
         None,
     )
     .unwrap();
+    if scenery.is_some() {
+        biome.trees.species = vec![presentation::static_world::ground::biome::TreeSpecies {
+            appearance: "synthetic-scenery".into(),
+            weight: 1.,
+            tint: [1.; 3],
+            family: None,
+            interior_m: None,
+        }];
+        biome.trees.understorey.appearance = "synthetic-scenery".into();
+        biome.trees.hedgerows.appearance = "synthetic-scenery".into();
+        biome.forest_floor.dressing.kinds.clear();
+        biome.grass.growth.clear();
+    }
     presentation
         .set_ground(
             presentation::static_world::ground::Source {
@@ -149,6 +167,11 @@ pub fn ground(presentation: &mut Presentation) {
             settings.tuning(),
         )
         .unwrap();
+    if let Some(bytes) = scenery {
+        let bundle = renderer_core::bundle::decode("synthetic-scenery", bytes, &[]).unwrap();
+        let mesh = renderer_core::scenery::tier_mesh("synthetic-scenery", &bundle, 0).unwrap();
+        presentation.place_scenery(&[mesh.as_slice()]).unwrap();
+    }
 }
 
 pub struct Stage {
@@ -157,11 +180,16 @@ pub struct Stage {
 }
 
 impl Stage {
-    pub fn new(gpu: &support::Gpu, art: Art<'_>, config: RuntimeConfig) -> Self {
+    pub fn new(
+        gpu: &support::Gpu,
+        art: Art<'_>,
+        config: RuntimeConfig,
+        scenery: Option<&[u8]>,
+    ) -> Self {
         let mut presentation = Presentation::new(None, 30.).unwrap();
         presentation.install_lab_assets(catalog(art), detail());
         presentation.set_lab_models(models(art)).unwrap();
-        ground(&mut presentation);
+        ground(&mut presentation, scenery);
         let mut library = Library::default();
         for (name, bytes) in art {
             library
@@ -277,7 +305,7 @@ impl Stage {
 
 /// The same small mesh with enough material rows to exercise ABI capacity.
 pub fn material_bundle(count: usize) -> Vec<u8> {
-    let bytes = bundle_bytes("static", 1);
+    let bytes = bundle_bytes("static", 1, "default", 1);
     let header_len = u32::from_le_bytes(bytes[8..12].try_into().unwrap()) as usize;
     let mut header: serde_json::Value =
         serde_json::from_slice(&bytes[16..16 + header_len]).unwrap();

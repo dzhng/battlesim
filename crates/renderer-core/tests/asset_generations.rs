@@ -25,13 +25,13 @@ use fixture::*;
 fn geometry_growth_packs_only_the_new_content() {
     let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
     let bytes = [
-        bundle_bytes("static", 1),
-        bundle_bytes("static", 2),
-        bundle_bytes("static", 3),
+        bundle_bytes("static", 1, "default", 1),
+        bundle_bytes("static", 2, "default", 1),
+        bundle_bytes("static", 3, "default", 1),
     ];
     let xy: Art<'_> = &[("x", &bytes[0]), ("y", &bytes[1])];
     let axy: Art<'_> = &[("a", &bytes[2]), ("x", &bytes[0]), ("y", &bytes[1])];
-    let mut stage = Stage::new(&gpu, xy, runtime_config());
+    let mut stage = Stage::new(&gpu, xy, runtime_config(), None);
     let ready = stage.stage(&gpu, axy);
     let bundle = renderer_core::bundle::decode("a", &bytes[2], &[]).unwrap();
     let renderer_core::bundle::Shape::Static(states) = &bundle.shape else {
@@ -59,7 +59,7 @@ fn geometry_growth_packs_only_the_new_content() {
     assert_eq!(ready.work().rebuild_reason, None);
     stage.commit(&gpu, axy, ready);
     let pixels = stage.pixels(&gpu);
-    let mut clean = Stage::new(&gpu, axy, runtime_config());
+    let mut clean = Stage::new(&gpu, axy, runtime_config(), None);
     assert_eq!(pixels, clean.pixels(&gpu));
     let mut no_models = runtime_config().controls;
     no_models.models = false;
@@ -78,7 +78,10 @@ fn geometry_growth_packs_only_the_new_content() {
 #[test]
 fn material_slots_keep_reservations_when_arrival_order_changes_and_refuse_overflow() {
     use renderer_core::models::MaterialSlots;
-    let bytes = [bundle_bytes("static", 1), bundle_bytes("static", 2)];
+    let bytes = [
+        bundle_bytes("static", 1, "default", 1),
+        bundle_bytes("static", 2, "default", 1),
+    ];
     let ids = bytes.each_ref().map(|b| content_id(b));
     let counts = [2, 3];
     let mut slots = MaterialSlots::default();
@@ -108,7 +111,7 @@ fn material_slots_keep_reservations_when_arrival_order_changes_and_refuse_overfl
 fn changed_corpse_pose_does_not_reuse_geometry() {
     let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
     let pipelines = renderer_core::pipelines::build_builtin(&gpu.device).unwrap();
-    let bytes = bundle_bytes("skinned", 1);
+    let bytes = bundle_bytes("skinned", 1, "default", 1);
     let library = Library::from_bundle("x", &bytes, &[]).unwrap();
     let rows = [Appearance {
         name_len: 1,
@@ -151,8 +154,8 @@ fn changed_corpse_pose_does_not_reuse_geometry() {
 
 #[test]
 fn same_name_with_new_content_replaces_the_admitted_art() {
-    let bytes_a = bundle_bytes("static", 1);
-    let bytes_b = bundle_bytes("static", 2);
+    let bytes_a = bundle_bytes("static", 1, "default", 1);
+    let bytes_b = bundle_bytes("static", 2, "default", 1);
 
     let mut library = Library::default();
     library
@@ -179,7 +182,7 @@ fn same_name_with_new_content_replaces_the_admitted_art() {
 
 #[test]
 fn identical_content_under_a_second_name_decodes_once() {
-    let bytes = bundle_bytes("static", 1);
+    let bytes = bundle_bytes("static", 1, "default", 1);
     let id = content_id(&bytes);
     let mut library = Library::default();
     library
@@ -195,7 +198,7 @@ fn identical_content_under_a_second_name_decodes_once() {
         &library.bundle("synthetic-b").unwrap()
     ));
     let old = library.bundle("synthetic-a").unwrap();
-    let replacement = bundle_bytes("static", 2);
+    let replacement = bundle_bytes("static", 2, "default", 1);
     library
         .insert_bundle("synthetic-a", content_id(&replacement), &replacement, &[])
         .unwrap();
@@ -207,7 +210,8 @@ fn identical_content_under_a_second_name_decodes_once() {
 fn first_admission_reports_the_synthetic_fixture_work() {
     let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
     let pipelines = renderer_core::pipelines::build_builtin(&gpu.device).unwrap();
-    let mut library = Library::from_bundle("synthetic", &bundle_bytes("static", 1), &[]).unwrap();
+    let mut library =
+        Library::from_bundle("synthetic", &bundle_bytes("static", 1, "default", 1), &[]).unwrap();
     let mut work = library.take_admission_work();
     let _models = Models::from_world(
         &gpu.device,
@@ -255,8 +259,8 @@ fn first_admission_reports_the_synthetic_fixture_work() {
 #[test]
 fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates() {
     let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
-    let bytes_a = bundle_bytes("static", 1);
-    let bytes_b = bundle_bytes("static", 1);
+    let bytes_a = bundle_bytes("static", 1, "default", 1);
+    let bytes_b = bundle_bytes("static", 1, "default", 1);
     let asset_a = Asset::from_bundle(&bytes_a, None).unwrap();
     let asset_b = Asset::from_bundle(&bytes_b, None).unwrap();
     let mut presentation = Presentation::new(None, 30.).unwrap();
@@ -270,7 +274,7 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
             .unwrap(),
         )
         .unwrap();
-    ground(&mut presentation);
+    ground(&mut presentation, None);
     let geometry = Arc::new(WorldGeometry::from_triangles(&[], &[], &[], 64., None, &[]));
     let mut library_a = Library::from_bundle("synthetic-a", &bytes_a, &[]).unwrap();
     let work_a = library_a.take_admission_work();
@@ -450,13 +454,13 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
 fn dropped_pending_slots_force_fresh_admission_without_changing_pixels() {
     use renderer_core::runtime::RebuildReason;
     let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
-    let x = bundle_bytes("static", 1);
-    let y = bundle_bytes("static", 2);
-    let a = bundle_bytes("static", 3);
+    let x = bundle_bytes("static", 1, "default", 1);
+    let y = bundle_bytes("static", 2, "default", 1);
+    let a = bundle_bytes("static", 3, "default", 1);
     let xy: Art<'_> = &[("x", &x), ("y", &y)];
     let mut config = runtime_config();
     config.art_store.dead_material_slots = 0;
-    let mut stage = Stage::new(&gpu, xy, config);
+    let mut stage = Stage::new(&gpu, xy, config, None);
     let before = stage.pixels(&gpu);
     let dropped = stage.stage(&gpu, &[("a", &a), ("x", &x), ("y", &y)]);
     drop(dropped);
@@ -474,7 +478,7 @@ fn dropped_pending_slots_force_fresh_admission_without_changing_pixels() {
     assert_eq!(ready.work().vertex_bytes_packed, packed);
     stage.commit(&gpu, xy, ready);
     assert_eq!(stage.pixels(&gpu), before);
-    let mut clean = Stage::new(&gpu, xy, runtime_config());
+    let mut clean = Stage::new(&gpu, xy, runtime_config(), None);
     assert_eq!(stage.pixels(&gpu), clean.pixels(&gpu));
 }
 
@@ -482,10 +486,10 @@ fn dropped_pending_slots_force_fresh_admission_without_changing_pixels() {
 fn replacement_content_draws_new_geometry_and_releases_retired_buffers() {
     use renderer_core::memory::ResourceMemory;
     let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
-    let old = bundle_bytes("static", 1);
-    let new = bundle_bytes("static", 3);
+    let old = bundle_bytes("static", 1, "default", 1);
+    let new = bundle_bytes("static", 3, "default", 1);
     let art: Art<'_> = &[("x", &old)];
-    let mut stage = Stage::new(&gpu, art, runtime_config());
+    let mut stage = Stage::new(&gpu, art, runtime_config(), None);
     let before = stage.pixels(&gpu);
     let ready = stage.stage(&gpu, &[("x", &new)]);
     assert_eq!(
@@ -500,7 +504,7 @@ fn replacement_content_draws_new_geometry_and_releases_retired_buffers() {
     stage.commit(&gpu, &[("x", &new)], ready);
     let after = stage.pixels(&gpu);
     assert_ne!(after, before);
-    let mut clean = Stage::new(&gpu, &[("x", &new)], runtime_config());
+    let mut clean = Stage::new(&gpu, &[("x", &new)], runtime_config(), None);
     assert_eq!(after, clean.pixels(&gpu));
 
     // Observe the store through the production memory visitor. Keeping the
@@ -564,13 +568,13 @@ fn replacement_content_draws_new_geometry_and_releases_retired_buffers() {
 fn slot_exhaustion_reclaims_dead_ranges_and_refuses_an_oversized_catalog() {
     use renderer_core::runtime::RebuildReason;
     let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
-    let x = bundle_bytes("static", 1);
-    let y = bundle_bytes("static", 2);
+    let x = bundle_bytes("static", 1, "default", 1);
+    let y = bundle_bytes("static", 2, "default", 1);
     let capacity = u16::MAX as usize + 1;
     let full = material_bundle(capacity);
     let mut config = runtime_config();
     config.art_store.dead_material_slots = capacity;
-    let mut stage = Stage::new(&gpu, &[("old", &full)], config);
+    let mut stage = Stage::new(&gpu, &[("old", &full)], config, None);
     let before = stage.pixels(&gpu);
     let art: Art<'_> = &[("x", &x), ("y", &y)];
     let ready = stage.stage(&gpu, art);
@@ -580,7 +584,7 @@ fn slot_exhaustion_reclaims_dead_ranges_and_refuses_an_oversized_catalog() {
     );
     assert_eq!(stage.pixels(&gpu), before);
     stage.commit(&gpu, art, ready);
-    let mut clean = Stage::new(&gpu, art, runtime_config());
+    let mut clean = Stage::new(&gpu, art, runtime_config(), None);
     assert_eq!(stage.pixels(&gpu), clean.pixels(&gpu));
 
     let too_many = material_bundle(capacity + 1);
@@ -623,10 +627,10 @@ fn slot_exhaustion_reclaims_dead_ranges_and_refuses_an_oversized_catalog() {
 #[test]
 fn stale_and_dropped_geometry_preparations_leave_live_pixels_unchanged() {
     let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
-    let x = bundle_bytes("static", 1);
-    let y = bundle_bytes("static", 2);
-    let z = bundle_bytes("static", 3);
-    let mut stage = Stage::new(&gpu, &[("x", &x)], runtime_config());
+    let x = bundle_bytes("static", 1, "default", 1);
+    let y = bundle_bytes("static", 2, "default", 1);
+    let z = bundle_bytes("static", 3, "default", 1);
+    let mut stage = Stage::new(&gpu, &[("x", &x)], runtime_config(), None);
     let initial = stage.pixels(&gpu);
     let dropped = stage.stage(&gpu, &[("y", &y), ("x", &x)]);
     assert_eq!(stage.pixels(&gpu), initial);
@@ -662,7 +666,7 @@ fn card_bake_reports_one_read_wait_per_memory_batch() {
         let Stage {
             mut presentation,
             mut runtime,
-        } = Stage::new(&gpu, &[], config);
+        } = Stage::new(&gpu, &[], config, None);
         assert_eq!(
             runtime.admission_work().card_read_waits,
             0,
@@ -717,7 +721,7 @@ fn cards_baked_in_one_batch_match_each_card_baked_alone() {
     let Stage {
         mut presentation,
         mut runtime,
-    } = Stage::new(&gpu, &[], config);
+    } = Stage::new(&gpu, &[], config, None);
     assert_eq!(
         runtime.admission_work().card_read_waits,
         0,
@@ -828,7 +832,7 @@ fn card_bake_uploads_the_authored_materials_once_per_stage() {
     let Stage {
         presentation,
         runtime,
-    } = Stage::new(&gpu, &[], config);
+    } = Stage::new(&gpu, &[], config, None);
     assert_eq!(
         runtime.admission_work().card_read_waits,
         0,
@@ -885,7 +889,7 @@ fn card_batch_split_uses_the_policy_sink_once_per_runtime() {
         let mut config = runtime_config();
         config.art_store.card_bake_memory_bytes = bound;
         config.art_store.report = report;
-        let stage = Stage::new(&gpu, &[], config);
+        let stage = Stage::new(&gpu, &[], config, None);
         for _ in 0..2 {
             let (mut library, assets, _) = card_catalog();
             let catalog = stage
@@ -932,3 +936,6 @@ fn card_batch_split_uses_the_policy_sink_once_per_runtime() {
         }
     }
 }
+
+#[path = "asset_generations/statics.rs"]
+mod statics;

@@ -20,6 +20,7 @@ pub(super) fn next_revision() -> u32 {
 /// kind it newly fields), held until an admission carries its rows and art.
 pub(super) struct CatalogState {
     revision: u32,
+    ground_revision: u32,
     staged: Option<StagedBattle>,
 }
 
@@ -32,6 +33,7 @@ impl CatalogState {
     pub(super) fn new() -> Self {
         Self {
             revision: next_revision(),
+            ground_revision: 0,
             staged: None,
         }
     }
@@ -39,6 +41,15 @@ impl CatalogState {
     /// Drafts staged before a change to what rows resolve to are stale.
     pub(super) fn renew(&mut self) {
         self.revision = next_revision();
+    }
+
+    pub(super) fn renew_ground(&mut self) {
+        self.renew();
+        self.ground_revision = self.ground_revision.wrapping_add(1);
+    }
+
+    pub(super) fn ground_revision(&self) -> u32 {
+        self.ground_revision
     }
 }
 /// The world's records, read once per load.
@@ -252,7 +263,7 @@ impl<'a> CatalogView<'a> {
         rig.track_side(node)
     }
     pub fn stump_mesh(&self, row: u32) -> Option<&'a [f32]> {
-        if let Some(draft) = self.draft.filter(|d| d.statics.needs_scenery()) {
+        if let Some(draft) = self.draft.filter(|draft| draft.statics.scenery.is_some()) {
             return draft.statics.stump_mesh(row);
         }
         self.presentation.stump_mesh(self.active_row(row)?)

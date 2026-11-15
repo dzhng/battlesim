@@ -1,7 +1,7 @@
 # Battle growth: a new unit type costs only its own art
 
-**Status:** slices 00, 01, 02, 03 and 05a are done. Four slices are out
-with implementers (see the lanes below).
+**Status:** slices 00, 01, 02, 03, 05a and 06 are done. Three slices are
+out with implementers (see the lanes below).
 **Updated:** 2026-11-15.
 
 This plan replaces the "shared GPU assets across generations" placeholder. That
@@ -13,13 +13,12 @@ player sees, and sharing GPU assets is one part of the fix.
 You are fixing the multi-second freeze that happens whenever a running battle
 first fields a unit type it had not shown. The admission work report exists,
 `battle-growth` prints it, and the [ledger](decisions.md) holds what it and
-the reference battle measured. Four slices are out with implementers, each
+the reference battle measured. Three slices are out with implementers, each
 in its own checkout and thread:
 
 | Slice | Branch | State |
 | --- | --- | --- |
 | 04 | `t3/art-content-identity` (the checkout of slices 02 and 03) | Building. |
-| 06 | `t3/battle-growth-scenery-grass-timing` | Accepted on reading (98–128 ms of scenery work per growth down to 0–1 ms). Merging this branch in, then it merges. |
 | 07 | `t3/battle-growth-catalog-delta` | Accepted on reading (2 bundles decoded at growth, not 194). Merging this branch in, then it merges. |
 | 10 | `t3/battle-growth-stand-in-mechanics` | Second fix round: the mechanics are right in Rust; it has not been seen running. |
 
@@ -64,7 +63,7 @@ Checklist:
 - [ ] [04 Texture layers](slices/04-texture-layers.md)
 - [x] [05a Cards bake together](slices/05a-cards-bake-together.md)
 - [ ] [05 Card reuse](slices/05-card-reuse.md)
-- [ ] [06 Statics carry](slices/06-statics-carry.md) (conditional)
+- [x] [06 Statics carry](slices/06-statics-carry.md)
 - [ ] [07 Catalog delta](slices/07-catalog-delta.md)
 - [ ] [08 Browser transport and the growth gate](slices/08-browser-transport-and-growth-gate.md)
 - [ ] [09 Preload](slices/09-preload.md)

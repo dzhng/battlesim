@@ -12,6 +12,7 @@ type Result<T> = std::result::Result<T, String>;
 /// Source of decoded bundles for appearance admission.
 pub trait BundleSource {
     fn bundle(&self, name: &str) -> Result<Arc<Bundle>>;
+    /// The canonical content this name routes to, independent of decoded allocation.
     fn content_id(&self, name: &str) -> Result<ContentId>;
 }
 

@@ -1,4 +1,5 @@
 //! One complete replaceable asset generation, independent of the live frame.
+use super::statics::StaticIdentity;
 use super::*;
 use crate::grass::GrassData;
 use presentation::presentation::catalog::{CatalogDraft, CatalogView};
@@ -8,7 +9,8 @@ use presentation::static_world::ground::grass::Quality;
 struct Assets {
     models: Models,
     scenery: Scenery,
-    grass: Option<Grass>,
+    /// None retains the live owner; Some(None) replaces it with disabled grass.
+    grass: Option<Option<Grass>>,
 }
 
 /// Owns all resources needed by asynchronous card baking. No Runtime or
@@ -19,6 +21,7 @@ pub struct PendingAssets {
     pipelines: Arc<Pipelines>,
     catalog: CatalogDraft,
     assets: Assets,
+    statics: StaticIdentity,
     work: AdmissionWork,
     art_store_policy: crate::models::ArtStorePolicy,
     card_bake_split_reported: Arc<AtomicBool>,
@@ -70,7 +73,11 @@ impl Runtime {
     ) -> Result<PendingAssets, String> {
         starting_work.rebuild_reason = None;
         let mut work = starting_work;
-        if catalog.needs_scenery() {
+        let statics = StaticIdentity::new(presentation, library, self.config.grass_density)?;
+        let scenery_changed = !self.statics_identity.scenery_same(&statics);
+        let grass_changed = !self.statics_identity.grass_same(&statics);
+
+        if scenery_changed && self.statics_identity.placed() {
             let finest = crate::scenery::finest_meshes(
                 presentation.ground().ok_or("scenery requires ground")?,
                 library,
@@ -89,17 +96,25 @@ impl Runtime {
             self.art_store.clone(),
             &mut work,
         )?;
-        let scenery = Scenery::new(device, queue, &self.pipelines, library, view, &mut work)?;
-        let grass = grass(
-            device,
-            queue,
-            &self.pipelines,
-            library,
-            view,
-            &self.ground.heights,
-            self.config.grass_density,
-            &mut work,
-        )?;
+        let scenery = if scenery_changed {
+            Scenery::new(device, queue, &self.pipelines, library, view, &mut work)?
+        } else {
+            self.scenery.reuse(view)?
+        };
+        let grass = if grass_changed {
+            Some(grass(
+                device,
+                queue,
+                &self.pipelines,
+                library,
+                view,
+                &self.ground.heights,
+                self.config.grass_density,
+                &mut work,
+            )?)
+        } else {
+            None
+        };
         Ok(PendingAssets {
             device: device.clone(),
             queue: queue.clone(),
@@ -110,6 +125,7 @@ impl Runtime {
                 scenery,
                 grass,
             },
+            statics,
             work,
             art_store_policy: self.config.art_store,
             card_bake_split_reported: self.card_bake_split_reported.clone(),
@@ -139,7 +155,10 @@ impl Runtime {
         self.models = pending.assets.models;
         self.art_store = self.models.store.clone();
         self.scenery = pending.assets.scenery;
-        self.grass = pending.assets.grass;
+        if let Some(grass) = pending.assets.grass {
+            self.grass = grass;
+        }
+        self.statics_identity = pending.statics;
         self.admission_work = pending.work;
         self.apply_asset_controls(queue, self.config.controls);
         self.invalidate_statics();

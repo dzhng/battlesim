@@ -160,6 +160,70 @@ scene harness, five growths, run with
 - The player's own freezes were longer (2.9–9.9 s) on a larger window with the
   battle running in real time.
 
+**Slice 06 initial measurement, 2026-11-15.** Temporary `js_sys::Date::now()`
+timers (1 ms resolution) in the browser WASM admission timed the exact main-thread regions
+in `Runtime::stage_assets`: `finest_meshes` plus `stage_scenery` (placement),
+`Scenery::new` (scenery build), and `grass` (grass build). The timer and the
+probe scene/fixture were removed after the runs.
+
+| Workload | Growth | Placement | Scenery build | Grass build | Total |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Reference battle, high graphics | 1 | 115 ms | 6 ms | 3 ms | 124 ms |
+| Reference battle, high graphics | 2 | 104 ms | 6 ms | 1 ms | 111 ms |
+| Reference battle, high graphics | 3 | 94 ms | 5 ms | 1 ms | 100 ms |
+| Reference battle, high graphics | 4 | 91 ms | 5 ms | 2 ms | 98 ms |
+| Reference battle, high graphics | 5 | 120 ms | 6 ms | 2 ms | 128 ms |
+| `battle-growth`, high graphics | 1 | 45 ms | 3 ms | 1 ms | 49 ms |
+| `battle-growth`, high graphics | 2 | 45 ms | 7 ms | 1 ms | 53 ms |
+
+The reference run took 401 s and reached five staged admissions; the small
+scene passed in 29 s. Every total is clearly above one 16 ms frame, so Slice 06
+was built. Review rejected the first implementation's duplicate byte hashing,
+address-based reuse keys and deep-cloned placement. Its initial tests did not
+cover the final identity refinement or compare with a clean final-catalog build;
+the corrective pass below supersedes those implementation claims.
+
+**Slice 06 corrective pass, 2026-11-15.** Merged slices 01 and 02 at
+`3456f63e6`. Static reuse reads the canonical `ContentId` through the required
+`BundleSource::content_id` seam in every source. No admission hashes transported
+bytes or uses an allocation address as identity. Ground identity is its revision:
+`set_ground` and `ground_mut` bump it; catalog commits do not.
+
+A draft shares immutable scenery placement through `Arc<Scenery>` and resolves
+its appearance rows again. It does not clone map placement, sizes, trunks or
+lookup indexes. On an unchanged commit the live walk retains its indexes,
+selection lists, dressing cache, cleared-ground and falling-tree knowledge;
+changed art builds a prospective walk and adopts current knowledge at commit.
+Unchanged grass retains the live GPU owner, including regrowth state that may
+have advanced while asynchronous cards baked.
+
+The same high-graphics reference probe completed in 366 s, with five admissions
+and four committed growths (the first admission is superseded). Temporary
+`js_sys::Date::now()` timers wrapped the original three regions plus shared
+placement carry and row resolution in the presentation draft. All values below
+are milliseconds; 0 means below the timer's 1 ms resolution, or a skipped region,
+not an assertion of literally zero elapsed time. The before column repeats the
+initial measurement above, in admission order.
+
+| Growth admission | Before placement / scenery / grass / total | After carry | After placement | After scenery | After grass | After total |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| 1, superseded | 115 / 6 / 3 / 124 | 0 | 0 | 1 | 0 | 1 |
+| 1, committed | 104 / 6 / 1 / 111 | 0 | 0 | 1 | 0 | 1 |
+| 2 | 94 / 5 / 1 / 100 | 0 | 0 | 0 | 0 | 0 |
+| 3 | 91 / 5 / 2 / 98 | 0 | 0 | 0 | 0 | 0 |
+| 4 | 120 / 6 / 2 / 128 | 0 | 0 | 1 | 0 | 1 |
+
+All four reference commits reported `sceneryPlacements: 0` and
+`staticsBytesUploaded: 0`. Carry is below a millisecond on this map. The timers,
+probe copy and temporary registry entry were removed after measurement.
+
+On the timer-free final tree, `catalog` and `catalog_statics` passed (five tests
+each), as did `asset_generations` (six tests), `grass` and `grass_assets` (one
+each). The unchanged-admission test decodes a fresh source generation with the
+same `ContentId`s and compares its committed pixels to a second runtime built
+from scratch with the final catalog. Changed scenery content still places and
+uploads again. No assertions were weakened.
+
 Known imprecision: the library's decode count is cumulative, so a runtime
 rebuilt after a lost GPU device reports decodes it did not redo. Slice 02
 reworks the library and settles the count's owner.
@@ -424,3 +488,8 @@ cards baked in 21 read waits. The scene's timeline is now staged, committed,
 staged, committed: with a short bake the first build commits before the
 second staging arrives, so the doubled staging costs a second admission and
 no longer a discarded one. Slice 08 still owns making it one.
+
+**Slice 06, verified on the merged tree, 2026-11-15.** `battle-growth` at
+growth: no scenery placement and no scenery or grass bytes uploaded (one
+placement and 22 MB before). The placement types are not `Clone`: a draft
+shares the live placement, and nothing copies it.
