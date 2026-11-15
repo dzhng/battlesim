@@ -8,6 +8,9 @@ import { modelAsset, type ModelAsset } from "./modelAssets";
 
 const PREFIX = "__renderer_proxy__:";
 
+/** The one battle appearance Rust uses while a unit's authored art is absent. */
+export const BATTLE_STAND_IN_APPEARANCE = "__battle_stand_in__";
+
 /** Whether an admitted appearance is a generated primitive. */
 export function isProxyAppearance(name: string): boolean {
   return name.startsWith(PREFIX);
@@ -61,6 +64,12 @@ function proxyBundle(kind: DrawnProxyKind, tint: readonly number[]): Articulated
     textures: [],
     bounds: positionsBounds(positions),
   };
+}
+
+/** The battle stand-in is admitted with the first generation, before any
+ * withheld unit art can arrive. It is an ordinary articulated box asset. */
+export function battleStandInAsset(): ModelAsset {
+  return modelAsset(BATTLE_STAND_IN_APPEARANCE, proxyBundle("box", [1, 1, 1]));
 }
 
 /** Active-generation deduplication only; transforms and highlights do not own art. */

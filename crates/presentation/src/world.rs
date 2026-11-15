@@ -59,6 +59,10 @@ pub struct BattleInput {
     pub xray: Xray,
     /// A purchase the simulation refused, drawn as a ghost (rgba).
     pub blocked: [f64; 4],
+    /// The browser's canonical box appearance for bodies whose art is not
+    /// committed. Native input leaves this unset and keeps the old skip.
+    #[serde(default)]
+    pub stand_in: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]
@@ -99,6 +103,10 @@ pub struct UnitsSection {
     pub lean_hold: f64,
     pub detail: Detail,
     pub tints: BTreeMap<String, Vec3>,
+    /// Physical hull half extents for every unit type in the session catalog,
+    /// including types whose art is not fielded yet.
+    #[serde(default, rename = "bodyHalf")]
+    pub body_half: BTreeMap<String, Option<Vec3>>,
     pub types: BTreeMap<String, UnitType>,
     pub appearances: BTreeMap<String, Appearance>,
 }
@@ -431,6 +439,16 @@ pub struct Wreck {
 }
 
 impl UnitsSection {
+    /// The one body box shared by drawing and picking: a hull's authored half
+    /// extents, or the generic soldier cylinder's box for a squad.
+    pub fn body_half(&self, kind: &str, soldier: SoldierBody) -> Vec3 {
+        self.body_half.get(kind).copied().flatten().unwrap_or([
+            soldier.radius_m,
+            soldier.radius_m,
+            soldier.height_m / 2.0,
+        ])
+    }
+
     /// The appearance drawing soldier `id` in slot `slot` of a `kind` unit on
     /// `side` (a hull's model whatever the id), or None where none is
     /// installed: `AppearanceCatalog.resolve` over the section's sets.
@@ -465,5 +483,21 @@ impl UnitsSection {
         }
         let n = names.len() as f64;
         Some(&names[(id.rem_euclid(n)) as usize])
+    }
+}
+
+/// Body boxes prepared once for a frame and shared by drawing and picking.
+pub struct BodyBoxes<'a> {
+    units: &'a UnitsSection,
+    soldier: SoldierBody,
+}
+
+impl<'a> BodyBoxes<'a> {
+    pub fn new(units: &'a UnitsSection, soldier: SoldierBody) -> Self {
+        Self { units, soldier }
+    }
+
+    pub fn half(&self, kind: &str) -> Vec3 {
+        self.units.body_half(kind, self.soldier)
     }
 }

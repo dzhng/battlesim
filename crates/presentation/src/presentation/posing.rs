@@ -3,19 +3,24 @@
 //! alike.
 use super::*;
 use crate::units::pose::{SoldierPose, VehiclePose};
-use crate::world::Detail;
+use crate::world::{BodyBoxes, Detail};
 
 /// What units are drawn from: their section, each skinned body's clip table
 /// and inverse binds, and the world rows their appearances hold; and the
 /// view and detail this frame draws them at.
-pub(super) struct UnitArt<'a> {
+pub(super) struct UnitArt<'a, 'b> {
     pub units: &'a UnitsSection,
     pub tables: &'a ClipTables,
     pub inverse_binds: &'a HashMap<String, Vec<Mat4>>,
     pub world: &'a World,
     pub view: &'a View,
     pub detail: Detail,
+    pub stand_in: Option<&'a str>,
+    pub body: &'b BodyBoxes<'a>,
 }
+
+/// The existing browser box primitive is 1.2 m wide, deep and tall.
+const STAND_IN_HALF_M: f64 = 0.6;
 
 /// The node transforms posing reuses from model to model.
 #[derive(Default)]
@@ -60,6 +65,12 @@ pub(super) fn register_appearance(world: &mut World, name: &str, a: &Appearance)
     }
 }
 
+/// The canonical unit stand-in is a browser-admitted articulated box, so it
+/// needs a row even though Rust does not deserialize it as authored art.
+pub(super) fn register_stand_in(world: &mut World, name: &str) {
+    world.row(name, "", NONE, 0, false);
+}
+
 /// The rows a cook-off draws its wrecks' pieces from: whole, hull, turret, debris.
 pub(super) fn register_wreck_rows(world: &mut World, effects: &crate::world::EffectsSection) {
     for look in effects.wreck_looks.values() {
@@ -90,7 +101,7 @@ impl Model {
     }
 }
 
-impl UnitArt<'_> {
+impl UnitArt<'_, '_> {
     pub(super) fn tint(&self, side: &str) -> [f32; 3] {
         self.units
             .tints
@@ -115,32 +126,43 @@ impl UnitArt<'_> {
         let units = self.units;
         let mut culled = 0;
         for s in soldiers {
-            let Some(name) = units.resolve(
+            let resolved = units.resolve(
                 &s.kind,
                 &s.side,
                 s.soldier,
                 s.slot,
                 s.operator_mount,
                 s.active_mount,
-            ) else {
+            );
+            let name = resolved.or(self.stand_in);
+            let Some(name) = name else {
                 continue;
             };
+            let stand_in = resolved.is_none();
             f.counts.soldiers += 1;
-            let far = bounds(units, name, 0);
+            let half = self.body.half(&s.kind);
+            let far = if stand_in {
+                Bounds {
+                    size: half[2] * 2.0,
+                    radius: (half[0] * half[0] + half[1] * half[1] + half[2] * half[2]).sqrt(),
+                }
+            } else {
+                bounds(units, name, 0)
+            };
             let tier = model_detail(
                 &self.detail,
                 self.view,
                 s.position,
                 far.size,
                 far.radius,
-                true,
+                !stand_in,
                 None,
             );
             if tier == CULLED {
                 culled += 1;
                 continue;
             }
-            let palette = if tier == IMPOSTOR {
+            let palette = if stand_in || tier == IMPOSTOR {
                 0
             } else {
                 pose_body(
@@ -160,6 +182,11 @@ impl UnitArt<'_> {
                 tint: self.tint(&s.side),
                 colour: colour(&s.side, s.unit),
                 palette,
+                scale: if stand_in {
+                    half.map(|v| (v / STAND_IN_HALF_M) as f32)
+                } else {
+                    [1.0; 3]
+                },
                 ..Model::unit(self.row(name, "", NONE), tier, 0, s.position, s.facing)
             });
         }
@@ -180,15 +207,26 @@ impl UnitArt<'_> {
     ) {
         let units = self.units;
         for v in vehicles {
-            let Some(name) = units.resolve(&v.kind, &v.side, v.unit, 0, None, None) else {
+            let resolved = units.resolve(&v.kind, &v.side, v.unit, 0, None, None);
+            let name = resolved.or(self.stand_in);
+            let Some(name) = name else {
                 continue;
             };
+            let stand_in = resolved.is_none();
             if v.airborne {
                 f.counts.aircraft += 1;
             } else {
                 f.counts.vehicles += 1;
             }
-            let far = bounds(units, name, 0);
+            let half = self.body.half(&v.kind);
+            let far = if stand_in {
+                Bounds {
+                    size: half[2] * 2.0,
+                    radius: (half[0] * half[0] + half[1] * half[1] + half[2] * half[2]).sqrt(),
+                }
+            } else {
+                bounds(units, name, 0)
+            };
             let (shadow, pass) = shadow(v);
             let tier = model_detail(
                 &self.detail,
@@ -202,19 +240,28 @@ impl UnitArt<'_> {
             if tier == CULLED {
                 continue;
             }
-            let (palette, scroll) = pose_vehicle(
-                units,
-                scratch,
-                &mut f.palettes,
-                name,
-                &v.articulation,
-                v.motion.as_ref(),
-            );
+            let (palette, scroll) = if stand_in {
+                (0, [0.0; 2])
+            } else {
+                pose_vehicle(
+                    units,
+                    scratch,
+                    &mut f.palettes,
+                    name,
+                    &v.articulation,
+                    v.motion.as_ref(),
+                )
+            };
             models.push(Model {
                 tint: self.tint(&v.side),
                 colour: colour(&v.side, v.unit),
                 palette,
                 scroll,
+                scale: if stand_in {
+                    half.map(|v| (v / STAND_IN_HALF_M) as f32)
+                } else {
+                    [1.0; 3]
+                },
                 ..Model::unit(self.row(name, "", NONE), tier, pass, v.position, v.yaw)
             });
         }

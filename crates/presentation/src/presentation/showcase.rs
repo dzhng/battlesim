@@ -144,6 +144,13 @@ impl Showcase {
         models: &mut Vec<Model>,
     ) {
         let poses = self.driver.poses();
+        let body = crate::world::BodyBoxes::new(
+            &self.units,
+            crate::world::SoldierBody {
+                radius_m: 0.2,
+                height_m: 1.8,
+            },
+        );
         let art = UnitArt {
             units: &self.units,
             tables: &self.tables,
@@ -151,6 +158,8 @@ impl Showcase {
             world,
             view,
             detail: self.units.detail.scaled(unit_scale),
+            stand_in: None,
+            body: &body,
         };
         let plain = |_: &str, _: f64| [0.0; 4];
         let culled = art.soldiers(&poses.soldiers, plain, &mut self.scratch.worlds, f, models);

@@ -410,6 +410,7 @@ impl Replay {
                 ally: [0.0; 4],
             },
             blocked: [0.0; 4],
+            stand_in: None,
         };
         let fog = settings.fog;
         let fog_look = fog.selected()?.look()?;

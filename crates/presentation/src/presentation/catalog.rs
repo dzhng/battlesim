@@ -344,6 +344,13 @@ impl Presentation {
             for (name, appearance) in &battle.units.appearances {
                 posing::register_appearance(&mut world, name, appearance);
             }
+            if let Some(name) = self
+                .loaded
+                .as_ref()
+                .and_then(|l| l.input.stand_in.as_deref())
+            {
+                posing::register_stand_in(&mut world, name);
+            }
             if let Some(grown) = &battle.grown {
                 posing::register_wreck_rows(&mut world, &grown.input.effects);
             }
@@ -431,6 +438,7 @@ impl Presentation {
             && [a.xray.own, a.xray.selected, a.xray.ally]
                 == [b.xray.own, b.xray.selected, b.xray.ally]
             && a.blocked == b.blocked
+            && a.stand_in == b.stand_in
             && loaded.shadow_fall == shadow_fall(input.sun_azimuth, input.sun_elevation)
             && loaded.effects.presentation().capacity == effects.capacity;
         // A live pose the new catalog cannot draw needs the world loaded anew.

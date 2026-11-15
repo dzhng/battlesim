@@ -69,6 +69,7 @@ fn presented() -> Presentation {
                 ally: ALLY,
             },
             blocked: [0.0; 4],
+            stand_in: None,
         }),
         sun_azimuth: 0.0,
         sun_elevation: 0.7,

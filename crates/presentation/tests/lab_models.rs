@@ -351,6 +351,7 @@ fn battle_and_lab_instances_of_one_appearance_share_one_batch_without_replacing_
                 ally: [0.0; 4],
             },
             blocked: [0.0; 4],
+            stand_in: None,
         }),
         sun_azimuth: 0.0,
         sun_elevation: 0.7,

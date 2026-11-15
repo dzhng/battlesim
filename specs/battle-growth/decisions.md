@@ -65,4 +65,10 @@ Each is confirmed by the slice named, which then moves it to the section below.
 
 ## Confirmed during implementation
 
-Nothing yet.
+- Slice 10 probes (2026-11-14): the browser readout layer builds enemy cards from the
+  observation and falls back to the published position, so an identified enemy
+  still gets a HUD readout when Rust draws no model. Rust picks are the limiting
+  surface: an unfielded vehicle receives a zero half box from
+  `effects.types`, so it cannot be clicked; an unfielded squad still gets one
+  generic soldier pick per published member. The publication sample carries
+  every observed member position and member id, including for an unarted type.

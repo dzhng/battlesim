@@ -52,7 +52,7 @@ use crate::units::pose::{Articulation, ClipBlend, Kick, PoseFrame};
 use crate::units::skin::{self, Mat4};
 use crate::view::{batch_caster, model_detail, model_fog, Camera, View, CULLED, IMPOSTOR};
 use crate::world::{
-    bounds_size, Appearance, BattleInput, Bounds, Trs, UnitsSection, Vec3, WorldInput,
+    bounds_size, Appearance, BattleInput, BodyBoxes, Bounds, Trs, UnitsSection, Vec3, WorldInput,
 };
 
 mod aircraft;
@@ -469,6 +469,9 @@ impl Presentation {
         let inverse_binds = posing::inverse_binds(&units);
         for (name, a) in &units.appearances {
             posing::register_appearance(&mut self.world, name, a);
+        }
+        if let Some(name) = input.stand_in.as_deref() {
+            posing::register_stand_in(&mut self.world, name);
         }
         posing::register_wreck_rows(&mut self.world, &input.effects);
         let shadow_fall = shadow_fall(azimuth, elevation);
@@ -919,7 +922,6 @@ impl Presentation {
             }
         }
         let sample = self.interpolator.frame(time);
-        // A body the side watches shoved moves every frame, as units do.
         if let Some(props) = &mut self.props {
             if props.set_shoved(sample.map_or(&[], |s| &s.shoved)) {
                 self.statics.rewalk();
@@ -1050,6 +1052,7 @@ impl Loaded {
                 xray.own
             }
         };
+        let body = BodyBoxes::new(units, input.soldier);
         let art = UnitArt {
             units,
             tables,
@@ -1057,13 +1060,10 @@ impl Loaded {
             world,
             view,
             detail,
+            stand_in: input.stand_in.as_deref(),
+            body: &body,
         };
-        // Soldiers off screen, as the gates count bodies drawn, carded or culled.
         let culled = art.soldiers(&poses.soldiers, colour_of, &mut scratch.worlds, f, models);
-        // Where an aircraft's shadow lies, and the pass that draws it: a
-        // low-air airframe's shadow lands its height along the sun's fall; a
-        // high-air one, drawn in its own pass, casts none, and its shadow
-        // lies on the ground beneath it.
         let aircraft_shadow_at = |kind: &str, p: Vec3| {
             let high = units.types.get(kind).is_some_and(|t| t.high_air());
             let ground_z = height(p[0], p[1]);
@@ -1090,8 +1090,6 @@ impl Loaded {
             f,
             models,
         );
-        // Edge transits use the same appearance, articulation and shadow as a
-        // live aircraft, but have no unit identity for selection or cards.
         for t in &transit_poses {
             let Some(name) = units.resolve(&t.kind, side, 0.0, 0, None, None) else {
                 continue;
@@ -1271,7 +1269,7 @@ impl Loaded {
             });
         }
         f.counts.culled = culled;
-        picks::picks(sample, units, input, f);
+        picks::picks(sample, units, &body, f);
         emitters(o, poses, side, units, f);
     }
 }

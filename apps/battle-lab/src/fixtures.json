@@ -105,6 +105,12 @@
     "map": "sensors"
   },
   {
+    "id": "stand-in",
+    "route": "/labs/stand-in",
+    "describe": "Stand-in mechanics: with the test vehicle and squad art withheld by the loader, physical blocks remain visible, selectable and targetable; releasing art swaps the same bodies to models.",
+    "map": "sensors"
+  },
+  {
     "id": "ballistics",
     "route": "/labs/ballistics",
     "describe": "Physical flight and swept collision: gravity arcs, a fast bullet leading a thin sliding target, dodge after launch, a hill crest blocking direct fire while the indirect high arc clears it, and bodies crossing a round's line between ticks.",

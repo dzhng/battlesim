@@ -392,12 +392,12 @@ fn track_gauge(art: &Art, name: &str) -> Result<f64, String> {
         ))
 }
 
-/// Each fielded type's facts and the appearance sets it draws from per
-/// side, and every appearance those sets name.
+/// Every catalog type's facts and the appearance sets fielded types draw from
+/// per side, and every appearance those sets name.
 fn unit_types(
     catalog: &Catalog,
     art: &Art,
-    kinds: &[String],
+    _kinds: &[String],
     factions: Option<[&str; 2]>,
 ) -> Result<(Map<String, Value>, BTreeSet<String>), String> {
     let look = |side: usize, list: &mut dyn Iterator<Item = String>| -> Vec<String> {
@@ -413,7 +413,7 @@ fn unit_types(
     };
     let mut types = Map::new();
     let mut drawn = BTreeSet::new();
-    for kind in kinds.iter().collect::<BTreeSet<_>>() {
+    for kind in catalog.ids().collect::<BTreeSet<_>>() {
         let t = catalog.get(kind)?;
         let hull = catalog.hull(kind)?;
         let ground = matches!(
@@ -435,10 +435,13 @@ fn unit_types(
                 None => vec![],
             };
             let half_track = if ground {
-                let name = hull_look
-                    .first()
-                    .ok_or(format!("{kind}: no hull appearance"))?;
-                hull.unwrap()["half_extents_m"][1].as_f64().unwrap() * track_gauge(art, name)?
+                match hull_look.first() {
+                    Some(name) => {
+                        hull.unwrap()["half_extents_m"][1].as_f64().unwrap()
+                            * track_gauge(art, name)?
+                    }
+                    None => 0.0,
+                }
             } else {
                 0.0
             };
@@ -500,7 +503,7 @@ fn unit_types(
             })
             .collect();
         types.insert(
-            kind.clone(),
+            kind.to_owned(),
             json!({
                 "hull": hull.is_some(),
                 "vehicleClass": class,
@@ -536,6 +539,24 @@ fn units(
     factions: Option<[&str; 2]>,
 ) -> Result<(Value, ClipTables), String> {
     let (types, drawn) = unit_types(catalog, art, kinds, factions)?;
+    let body_half: Map<String, Value> = catalog
+        .ids()
+        .map(|kind| {
+            let half = catalog
+                .hull(kind)
+                .ok()
+                .flatten()
+                .map(|h| {
+                    json!([
+                        h["half_extents_m"][0],
+                        h["half_extents_m"][1],
+                        h["half_extents_m"][2]
+                    ])
+                })
+                .unwrap_or(Value::Null);
+            (kind.to_owned(), half)
+        })
+        .collect();
     let mut appearances = Map::new();
     let mut tables = ClipTables::new();
     let mut table_of: Vec<(Vec<f32>, String)> = Vec::new();
@@ -577,6 +598,7 @@ fn units(
         "leanHold": number(rules, "cover", "lean_hold_s")?,
         "detail": presentation.models,
         "tints": { "blue": sides["blue"], "red": sides["red"] },
+        "bodyHalf": body_half,
         "types": types,
         "appearances": appearances,
     });

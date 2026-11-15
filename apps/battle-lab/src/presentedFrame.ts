@@ -23,6 +23,7 @@ import { vec3 } from "math";
 import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import type { PickBox } from "@packages/battle-renderer/src/picking";
 import type { SideName } from "@web/battle/sim/protocol";
+import { BATTLE_STAND_IN_APPEARANCE } from "@web/battle/render/proxyModels";
 
 /** What a frame poses, by kind: living and dying soldiers, ground
  *  vehicles, aircraft (flying or falling), lying corpses and corpses
@@ -127,6 +128,7 @@ export async function fieldedBattle(input: {
         },
         xray: input.xray,
         blocked: input.blocked,
+        stand_in: BATTLE_STAND_IN_APPEARANCE,
       },
       sun_azimuth: input.sun.azimuth,
       sun_elevation: input.sun.elevation,
