@@ -38,7 +38,7 @@ import { specimenUnit } from "../panelSpecimens";
 import { MatchResultOverlay } from "../MatchResultOverlay";
 import { reportSpecimen } from "../reportSpecimens";
 import { ArmoryPage } from "../armory/ArmoryPage";
-import { PageHead } from "../menu/MenuVisit";
+import { PageHead } from "../menu/PageHead";
 import { menuPage } from "../menu/pages";
 
 const MATCH: SkirmishView = {

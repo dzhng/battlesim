@@ -1,0 +1,111 @@
+/* Room pages use the menu plate, type and existing HUD roles. */
+.menu-card[data-art="multiplayer"] {
+  --menu-art: url("/menu/skirmish.jpg");
+}
+.menu[data-open="multiplayer"] {
+  padding: 20px;
+  justify-items: center;
+}
+.menu[data-open="multiplayer"] .hud-panel.menu-body {
+  width: min(1200px, 100%);
+  min-height: 460px;
+  --hud-glass-alpha: 0.9;
+}
+.online-callsign {
+  margin-left: auto;
+}
+.online-callsign label,
+.online-room-tools label {
+  font-size: 11px;
+  color: rgb(var(--hud-dim));
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+.online-callsign input,
+.online-room-tools input {
+  background: none;
+  color: rgb(var(--hud-text));
+  border: 0;
+  border-bottom: 1px solid rgb(var(--hud-accent) / 0.5);
+  font: 700 13px var(--hud-font);
+  padding: 6px;
+  width: 200px;
+}
+.online-rooms {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  min-width: 0;
+}
+.online-room-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.online-room-tools h3 {
+  margin: 0;
+  font: 700 12px var(--hud-font);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+.online-spacer {
+  flex: 1;
+}
+.online-seat-key,
+.online-room-seats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.online-seat-key {
+  color: rgb(var(--hud-dim));
+  font-size: 10px;
+  text-transform: uppercase;
+}
+.online-seat-strip {
+  --seat-role: var(--hud-accent);
+  display: inline-flex;
+  gap: 4px;
+}
+.online-seat-strip[data-side="red"] {
+  --seat-role: var(--hud-enemy);
+}
+.online-seat-strip i {
+  width: 9px;
+  height: 14px;
+  background: rgb(var(--seat-role));
+}
+.online-seat-strip [data-kind="open"] {
+  background: none;
+  border: 1px dashed rgb(var(--seat-role));
+  box-sizing: border-box;
+}
+.online-seat-strip [data-kind="ai"] {
+  opacity: 0.35;
+}
+.online-room-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto 100px;
+  align-items: center;
+  gap: 24px;
+  min-height: 64px;
+  padding: 0 20px;
+  border-left: 2px solid rgb(var(--hud-accent) / 0.8);
+  background: linear-gradient(90deg, rgb(var(--hud-accent) / 0.14), rgb(var(--hud-accent) / 0.03));
+}
+.online-room-row > strong {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  overflow-wrap: anywhere;
+}
+.online-room-row > span {
+  font-size: 12px;
+  color: rgb(var(--hud-dim));
+}
+/* Five home tiles still leave the build line inside the smallest game window. */
+@media (max-height: 800px) {
+  .menu:not([data-open]) {
+    padding-block: 4px;
+  }
+}

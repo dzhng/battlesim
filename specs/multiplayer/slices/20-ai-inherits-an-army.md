@@ -165,3 +165,6 @@ army to the AI seat with the fewest units, which spreads them.
 - **Cap what one seat may receive** at about 30 units, sending the rest to
   another AI seat.
 
+**Decided by the user on 2026-11-15: leave it for the alpha.** The AI's
+order pace is not changed. The ignored 150-unit test stays as the record.
+

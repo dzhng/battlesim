@@ -1,7 +1,7 @@
 // One HTTP connection per records() call. resumingReader, above this seam,
 // decides when to reconnect and which id to carry to the next connection.
 import type { SeatLink } from "../../../../packages/multiplayer/src/link";
-import { recordDecoder, StreamBroken } from "../../../../packages/multiplayer/src/stream/index";
+import { httpRecords } from "../../../../packages/multiplayer/src/stream/http";
 
 /** A missing ghost answer must give the next cursor intent a turn. */
 const PREVIEW_TIMEOUT_MS = 2000;
@@ -27,29 +27,12 @@ export function httpLink(address: string, battle: string, browserId: string): Se
     return reply as T;
   }
   return {
-    async *records(after, signal = new AbortController().signal) {
-      const connection = new AbortController();
-      const reading = AbortSignal.any([lifetime.signal, connection.signal, signal]);
-      let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
-      try {
-        const response = await fetch(`${base}/stream${after === null ? "" : `?after=${after}`}`, {
-          headers: { "X-Player": browserId },
-          signal: reading,
-        });
-        if (!response.ok || !response.body)
-          throw new StreamBroken(`Battle stream failed (${response.status})`);
-        reader = response.body.getReader();
-        const decoder = recordDecoder();
-        for (;;) {
-          const chunk = await reader.read();
-          if (chunk.done) return;
-          for (const record of decoder.push(chunk.value)) yield record;
-        }
-      } finally {
-        connection.abort();
-        await reader?.cancel().catch(() => {});
-        reader?.releaseLock();
-      }
+    records(after, signal = new AbortController().signal) {
+      return httpRecords(
+        `${base}/stream${after === null ? "" : `?after=${after}`}`,
+        browserId,
+        AbortSignal.any([lifetime.signal, signal]),
+      );
     },
     up(batch) {
       // The connection owns retry timing; replacing an attempt also closes

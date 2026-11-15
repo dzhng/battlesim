@@ -133,6 +133,7 @@ export function menuPageOf(pathname: string): MenuPageId | "home" | null {
   const page = resolvePage(pathname);
   if (page.editor || page.Route || page.path === "/labs" || ONLINE_BATTLE_PATH.test(page.path))
     return null;
+  if (/^\/room\/[^/]+$/.test(page.path)) return "room";
   return MENU_PAGES.find((row) => row.path === page.path)?.id ?? "home";
 }
 

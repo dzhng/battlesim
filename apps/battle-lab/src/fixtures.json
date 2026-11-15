@@ -410,5 +410,15 @@
     "loading": false,
     "serial": true,
     "timeout_s": 600
+  },
+  {
+    "id": "multiplayer",
+    "route": "/multiplayer",
+    "describe": "Real room service: empty and changing room lists, open and full seats, unavailable builds and the Multiplayer menu entry, at both supported window sizes.",
+    "map": null,
+    "catalog": "game",
+    "loading": false,
+    "serial": true,
+    "timeout_s": 300
   }
 ]

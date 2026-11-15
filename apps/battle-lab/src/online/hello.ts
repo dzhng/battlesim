@@ -2,7 +2,7 @@ import { buildIdentity } from "../buildIdentity";
 import { browserId, callsign } from "./identity";
 
 /** A build refusal is terminal for this visit: no seat or stream is requested. */
-export async function hello(address: string, signal: AbortSignal): Promise<void> {
+export async function hello(address: string, signal: AbortSignal): Promise<string> {
   const response = await fetch(`${address}/hello`, {
     method: "POST",
     headers: { "X-Player": browserId(), "Content-Type": "application/json" },
@@ -15,4 +15,5 @@ export async function hello(address: string, signal: AbortSignal): Promise<void>
     throw new Error("Online play is not available.");
   }
   if (!response.ok) throw new Error("Online play is not available.");
+  return result.callsign;
 }

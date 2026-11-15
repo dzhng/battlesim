@@ -52,10 +52,6 @@ command opposite sides of one battle on a local server
 - **Deploying** (slice 09): now, or after rooms exist. Recommended: after,
   because until then a deployed server must offer its dev battle to anyone
   with the address.
-- **An AI handed far more units than a seat buys** (slice 20): leave it for
-  the alpha (recommended: a doubled army is fully ordered in about ten
-  seconds), make the AI pace its orders (retires an existing rule and its
-  test), or cap what a seat may receive.
 - **The result screen's side names** (slice 11): keep "BLUE" and "RED", or
   head the columns by role. Recommended: by role, with slice 18.
 - **Lane numbers** (slice 12): kept as they are unless the user says
@@ -122,13 +118,13 @@ Foundation
 Rooms
 - [x] [14 Room model](slices/14-room-model.md)
 - [x] [15 Room service](slices/15-room-service.md)
-- [ ] [16 Multiplayer screen](slices/16-multiplayer-screen.md)
+- [x] [16 Multiplayer screen](slices/16-multiplayer-screen.md)
 - [ ] [17 Room lobby screen](slices/17-room-lobby-screen.md)
 - [ ] [18 Room battle](slices/18-room-battle.md)
 - [ ] [19 Milestone: a room battle across the internet](slices/19-milestone.md)
 
 Frontline
-- [x] [20 An AI inherits an army](slices/20-ai-inherits-an-army.md) (it copes at 30 and is slow at 150; a choice for the user, not blocking)
+- [x] [20 An AI inherits an army](slices/20-ai-inherits-an-army.md) (it copes at 30 and is slow at 150; left so for the alpha by the user)
 - [x] [21 Frontline rules](slices/21-frontline-rules.md)
 - [ ] [22 Army hand-over](slices/22-army-hand-over.md)
 - [ ] [23 Seat reset](slices/23-seat-reset.md)

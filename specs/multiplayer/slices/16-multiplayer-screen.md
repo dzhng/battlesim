@@ -64,3 +64,34 @@ The main menu's existing scenes, apart from the new tile.
 ## Delegated
 
 Wording of the empty and error states; the row's exact layout.
+
+## As built (2026-11-15)
+
+- **The tile** sits above Skirmish on the main menu and opens the
+  Multiplayer page. It wears Skirmish's picture until it has art of its own.
+- **The page** shows the callsign in its header (editable; a change is sent
+  to `/hello` and the header shows the name the server gave back, a `#2`
+  included), the public rooms from the list stream, Create room (public or
+  private) and Join private room by code. It keeps only the latest list.
+- **A row** reads host, then map (type, size, region), then the seat
+  strips (solid for a player, dashed for open, dim for AI), then Join, or
+  "Full".
+- **Wording:** an empty list says "No public rooms. Create one and call in
+  your team."; a wrong code, "Room code not found. Check it and try
+  again."; too many guesses, "Too many guesses. Wait a moment and try
+  again."; no free battle slot, "The servers are full. Try again later."
+- **A page with no server address, or refused for its build,** shows that
+  online play is not available and offers nothing online.
+- **Reading a stream over HTTP has one owner,**
+  `packages/multiplayer/src/stream/http.ts`, used by the battle's link and
+  by the page's state streams (`apps/battle-lab/src/online/stateStream.ts`).
+
+Checked by tests against a real local room service (the list follows the
+stream through a cut; empty, wrong code, throttled and full each say so;
+create and join land in the room; a callsign edit shows the server's
+answer) and by the `multiplayer` scene at 1280×720 and 1920×1080. The
+mock's three screens are saved in [assets](../assets/).
+
+**One approved picture changes: the main menu,** which is one tile taller.
+It is not re-approved yet: that waits for the user to see the new menu.
+
