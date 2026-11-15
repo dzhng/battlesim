@@ -295,6 +295,7 @@ impl Models {
             layout,
             materials,
             authored_materials,
+            impostor_materials: Default::default(),
             surfaces: [true; 4],
             buildings_shown: true,
             models_shown: true,

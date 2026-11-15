@@ -237,6 +237,69 @@ the player sees behind three other slices. Its batches are bounded by bytes
 because one runtime card is about 3 MB across its targets and a full rebuild
 bakes about 190 of them.
 
+**Slice 05a, 2026-11-15.** Confirmed first on the reference battle from the
+freeze report, at high graphics, in the scene runner's 1280 × 800 viewport.
+Temporary timers isolated the entire bake and each awaited read. The initial
+189-card bake took 0.904 s (567 reads, 0.361 s in those waits) before battle
+frames competed with it. Two later growths each baked 234 cards:
+
+| Growth | Bake | Awaited reads | Time in reads | Other bake work | Staging to commit |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Before 1 | 124.027 s | 702 | 122.914 s | 1.113 s | 127.356 s |
+| Before 2 | 104.598 s | 702 | 103.521 s | 1.077 s | 108.504 s |
+
+Over 99% of each growth's bake was in the sequential reads: the inference was
+right. Individual reads averaged 175 ms and 147 ms in these growths. The
+catalog and battle now produce more cards than slice 00's earlier measurement;
+these are this checkout's measured counts, not new expectations for content.
+
+After batching, the same reference route at high graphics committed its first
+two growth admissions in 5.248 s and 4.542 s. They each baked 189 cards, issuing
+567 GPU reads in 21 read-wait groups; the isolated bakes took 2.032 s and
+1.369 s. These are admission timings, not a matched-card benchmark: the earlier
+run materialized requested LFS files while loading and coalesced more arrivals
+before staging (234 cards), whereas the after run had those files available
+and admitted earlier (189 cards). The synthetic tests hold inputs fixed for the
+work-count and byte-equality proof.
+
+The reads no longer each add a frame. Within each card, 95% of channel wait
+spreads were at most 1 ms (maxima 15 ms and 3 ms). A whole batch still waits
+behind battle frames: its awaited duration averaged 94.9 ms and 63.3 ms, with
+maxima 179 ms and 183 ms. Those group durations include readback copying and
+coverage filtering, and sum to 1.993 s and 1.330 s; unlike the before timer,
+they are not pure GPU-read waits. Batching removes repeated round trips, not
+frame pacing or the synchronous staging freeze owned by the other slices.
+
+Decisions left open by 05a:
+
+| Decision | Why; alternative rejected |
+| --- | --- |
+| A 64 MiB byte bound, owned by `impostor::DEFAULT_BAKE_MEMORY_BYTES` and carried by `RuntimeConfig::art_store.card_bake_memory_bytes` into pending admissions | The runtime spec needs 7 MiB per card: three 1 MiB RGBA8 targets, three aligned 1 MiB readbacks, and 1 MiB of depth. Nine cards fit (63 MiB); a small new type fits one batch. Holding 234 cards together would account for about 1.6 GiB. A card-count cap was rejected because changing atlas dimensions would silently change its memory cost. A bound below one card is refused rather than silently exceeded. |
+| Submit every card in a batch, then use `futures_util::future::join_all` across cards and across their three channels | All maps can become pending before yielding to the browser; output order remains input order. `join_all` waits for every result before propagating an error, with no cancellation handle. A custom polling executor and a second single-card API were rejected. Each card keeps the original submission and target-destruction protocol. |
+| One lazily uploaded immutable authored-materials buffer per `Models` generation | Runtime batches and configurable review requests share it. Diagnostic channel controls still write the separate live materials table. Reusing that mutable table would bake diagnostic suppression; uploading per batch would still repeat stage work. `OnceLock` supplies the lifetime without another admission path, and memory diagnostics and destruction include the buffer. |
+| `impostor_request` takes a slice of rows and `BakeRequest::read` returns ordered atlases | Runtime and review use one grouped request contract. The browser review caller passes one row and still returns its existing single-atlas JavaScript object. Parallel wrapper APIs were rejected. |
+| `AdmissionWork::card_read_waits`, serialized as `cardReadWaits`, counts actual batch awaits | It travels through the existing generic serde/report path. The unchanged `battle-growth` logger prints it with the rest of the work. Timing assertions and a count derived only from the planned number of cards were rejected. |
+| Report the first split once per runtime through `ArtStorePolicy::report`, shared with the store tripwires | The policy now carries the card byte bound beside the slot bound. The existing shell sink keeps the core platform-free; the original decision to reject a callback was superseded when slice 03 supplied this sink. A runtime-owned latch also covers dropped/stale pending bakes and survives a fresh-store fallback. Reporting each full rebuild would repeat the same 21-batch warning on every growth. A guessed new-type size threshold was rejected because 05a still bakes whole catalogs; slice 05 owns selecting new cards. No second sink was added. |
+
+Validation: `cargo test -p renderer-core --test asset_generations card --
+--nocapture` was red with the sequential implementation behind the new request
+seam: four cards reported 12 waits versus one, grouped requests were refused,
+and the materials upload was 640 bytes versus the fixture-derived 160 bytes.
+`cargo test -p renderer-core --test asset_generations --test impostors --
+--nocapture` then passed all seven admission tests and both existing impostor
+tests. Deliberately routing every batched request to its first row made
+`cards_baked_in_one_batch_match_each_card_baked_alone` fail on atlas identity;
+the mutation was removed. `cargo check -p native-client`,
+`cargo check -p renderer-browser --target wasm32-unknown-unknown` and the owning
+crates' all-target Clippy check passed. Temporary timers, scene copies and the
+fixture entry are excluded from the commit. No delegated decision remains open.
+
+After restoring the deliberate fault and removing instrumentation, both named
+GPU test binaries passed again. `SCENE_GRAPHICS_QUALITY=high bun run --cwd web
+scene -- battle-growth` also passed and printed `cardsBaked: 189` and
+`cardReadWaits: 21`. Its missing Paris homes/farmsteads kits and regional bench
+were LFS setup media; their region's requested bundles/textures were materialized
+before the successful run, without changing any assertion.
 **Correction to slice 00's small-skirmish numbers, 2026-11-15.** The page's
 counts on the first `art committed` cover everything since the page loaded:
 the first scene publishes no event, so nothing reset them. The 272 contents
@@ -334,3 +397,24 @@ scene's own profile and at high, one growth: 8.6 MB of vertices packed and
 at every growth: 178 texture layers (125 MB, slice 04), 189 cards (slices 05a
 and 05), one scenery placement and 22 MB of scenery (slice 06), and 203
 bundles sent with 194 decoded (slices 07 and 08).
+
+**Slice 05a integrated with 01 and 03, 2026-11-15.** The card byte bound now
+shares `ArtStorePolicy` with the slot tripwire and the shell-supplied report
+sink. A runtime-owned shared latch reports the first split once, including a
+pending bake that is dropped; changing the store cannot rearm that warning.
+The full bake still counts every batch in each admission. The core has no
+`web-sys` dependency or platform-specific logging branch.
+
+Card fixtures join the existing generation fixture owner and share its one
+container writer, config and `Stage` runtime setup. All earlier geometry and
+card assertions remain. The new sink/lifetime test first failed because the
+configured sink received zero reports while the split printed to stderr; it
+then passed across repeated dropped preparations and two independent runtimes.
+
+On the merged tree, the requested renderer lib and five named test binaries
+passed all 39 tests. Native-client and WASM checks, the WASM build, typecheck,
+and high-graphics `battle-growth` passed. The scene reported 8,648,160 vertex
+bytes packed, 10,298,016 buffer bytes uploaded, 189 cards and 21 read waits;
+one growth read two runtime contents (7,942,032 bytes) and installed one art
+library generation. A reused growth has no rebuild reason. The spec README
+was taken from upstream without changing its status or checklist.

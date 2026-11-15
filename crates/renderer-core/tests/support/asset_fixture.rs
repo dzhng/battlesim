@@ -47,15 +47,7 @@ pub fn bundle_bytes(kind: &str, max_z: u8) -> Vec<u8> {
         content["states"] =
             json!([{"name":"default", "bounds":{"min":[0,0,0],"max":[1,1,max_z]}, "tiers":[mesh]}]);
     }
-    let mut header = serde_json::to_vec(&json!({"content": content, "views": views})).unwrap();
-    header.resize(header.len().next_multiple_of(4), b' ');
-    let mut bytes = Vec::new();
-    for word in [0x5441_4742_u32, 4, header.len() as u32, body.len() as u32] {
-        bytes.extend(word.to_le_bytes());
-    }
-    bytes.extend(header);
-    bytes.extend(body);
-    bytes
+    container(content, json!(views), &body)
 }
 
 pub fn detail() -> presentation::world::Detail {
@@ -291,11 +283,109 @@ pub fn material_bundle(count: usize) -> Vec<u8> {
         serde_json::from_slice(&bytes[16..16 + header_len]).unwrap();
     let material = header["content"]["materials"][0].clone();
     header["content"]["materials"] = json!(vec![material; count]);
-    let mut json = serde_json::to_vec(&header).unwrap();
-    json.resize(json.len().next_multiple_of(4), b' ');
-    let mut result = bytes[..16].to_vec();
-    result[8..12].copy_from_slice(&(json.len() as u32).to_le_bytes());
-    result.extend(json);
-    result.extend_from_slice(&bytes[16 + header_len..]);
-    result
+    container(
+        header["content"].take(),
+        header["views"].take(),
+        &bytes[16 + header_len..],
+    )
+}
+
+pub fn container(content: serde_json::Value, views: serde_json::Value, body: &[u8]) -> Vec<u8> {
+    let mut header = serde_json::to_vec(&json!({"content": content, "views": views})).unwrap();
+    header.resize(header.len().next_multiple_of(4), b' ');
+    let mut bytes = Vec::new();
+    for word in [0x5441_4742u32, 4, header.len() as u32, body.len() as u32] {
+        bytes.extend(word.to_le_bytes());
+    }
+    bytes.extend(header);
+    bytes.extend(body);
+    bytes
+}
+
+pub fn card_bundle(color: [f32; 3]) -> (Vec<u8>, Vec<u8>) {
+    let mut body = Vec::new();
+    let mut views = Vec::new();
+    let mut array = |ty, bytes: &[u8], length| {
+        let at = views.len();
+        views.push(json!([ty, body.len(), length]));
+        body.extend(bytes);
+        json!({"$view": at})
+    };
+    let positions = [
+        -0.35f32, -0.2, 0., 0.3, -0.2, 0., -0.1, 0.25, 0., -0.1, 0., 0.8,
+    ];
+    let mesh = json!({
+        "positions": array("f32", bytemuck::cast_slice(&positions), positions.len()),
+        "normals": array("i16", bytemuck::cast_slice(&[0i16, 0, 32767, 0].repeat(4)), 16),
+        "uvs": array("f32", bytemuck::cast_slice(&[0f32; 8]), 8),
+        "colors": array("u8", &[255; 16], 16),
+        "joints": array("u8", &[0; 16], 16),
+        "weights": array("u16", bytemuck::cast_slice(&[65535u16, 0, 0, 0].repeat(4)), 16),
+        "indices": array("u16", bytemuck::cast_slice(&[0u16, 1, 2, 0, 1, 3, 1, 2, 3, 2, 0, 3]), 12),
+        "draws": [{"material": 0, "first": 0, "count": 12}],
+    });
+    let bundle = container(
+        json!({
+            "kind": "skinned", "skeleton": "synthetic",
+            "materials": [{"name":"cloth", "base_color":[color[0],color[1],color[2],1],
+                "metallic":0, "roughness":1, "tint":1, "coverage":{"kind":"opaque"}}],
+            "joints": [{"name":"root", "parent":-1,
+                "bind":{"t":[0,0,0],"r":[0,0,0,1],"s":[1,1,1]},
+                "inverse_bind":[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]}],
+            "tiers":[mesh], "far_pose":{"clip":"rise","phase":0},
+            "corpse_poses":[{"clip":"rise","phase":1}], "sockets":[]
+        }),
+        json!(views),
+        &body,
+    );
+    let mut samples = vec![0, 2];
+    samples.extend(bytemuck::cast_slice::<f32, u8>(&[0., 0., 0., 0.4, 0., 0.2]));
+    let skeleton = container(
+        json!({"sample_hz":1,"clips":[{
+            "name":"rise","frames":2,"duration":1,"loop":false,
+            "rotation_modes":{"$view":0},"translation_modes":{"$view":1},
+            "rotations":{"$view":2},"translations":{"$view":3}
+        }]}),
+        json!([["u8", 0, 1], ["u8", 1, 1], ["i16", 2, 0], ["f32", 2, 6]]),
+        &samples,
+    );
+    (bundle, skeleton)
+}
+
+pub fn card_catalog() -> (
+    Library,
+    BTreeMap<String, Asset>,
+    Vec<presentation::presentation::lab::ModelInput>,
+) {
+    let mut library = Library::default();
+    let mut assets = BTreeMap::new();
+    let mut models = Vec::new();
+    for (name, color) in [("cloth-a", [0.3, 0.6, 0.9]), ("cloth-b", [0.8, 0.4, 0.2])] {
+        let (bundle, skeleton) = card_bundle(color);
+        library
+            .insert_bundle(
+                name,
+                ContentId::new(
+                    contract::identity::bytes_hash(&bundle),
+                    Some(contract::identity::bytes_hash(&skeleton)),
+                )
+                .unwrap(),
+                &bundle,
+                &[],
+            )
+            .unwrap();
+        assets.insert(
+            name.into(),
+            Asset::from_bundle(&bundle, Some(&skeleton)).unwrap(),
+        );
+        for pose in [json!({"kind":"rest"}), json!({"kind":"corpse","lies":0})] {
+            models.push(
+                serde_json::from_value(json!({
+                    "appearance":name, "x":0,"y":0,"z":0,"yaw":0,"pose":pose
+                }))
+                .unwrap(),
+            );
+        }
+    }
+    (library, assets, models)
 }

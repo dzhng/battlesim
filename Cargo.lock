@@ -1867,6 +1867,7 @@ version = "0.1.0"
 dependencies = [
  "bytemuck",
  "contract",
+ "futures-util",
  "half",
  "libm",
  "naga",
