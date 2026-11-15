@@ -116,6 +116,8 @@ pub fn layout_json(battle: &Battle) -> String {
         // reversing is 1 while the unit drives backwards this tick, else 0.
         // smoking is 1 while it trails smoke (an aircraft below half its
         // health), own or identified alike, else 0.
+        // shotAt is 1 on a tick an enemy round aimed at the own unit passed
+        // near it or struck it, else 0.
         // finalFacing is the bearing the unit ends its move at (its yaw
         // without one). A member order is the soldier's spot (his post while
         // holding, where he stands without either); coverNow and coverThere

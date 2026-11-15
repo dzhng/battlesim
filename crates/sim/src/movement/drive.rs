@@ -1,6 +1,8 @@
 //! A vehicle's own kinematics (Q29–Q31): how it turns toward its next
-//! waypoint this tick. The route is the planner's; the follower owns the
-//! kinematics (no kinodynamic planner).
+//! waypoint this tick. The route is the planner's, its corners rounded to
+//! the turning radius (`navigation::corners`); the follower owns the rest
+//! of the kinematics (no kinodynamic planner), and slows ahead of a bend to
+//! what its yaw rate can take round it ([`approach_speed`]).
 //!
 //! Tracks turn at their own rate and pivot on the spot beyond
 //! `movement.drive.turn_in_place_deg` of heading error. A body they can't
@@ -164,7 +166,11 @@ fn approach_speed(unit: &Unit, surface_speed: f64, gear: f64) -> f64 {
             let angle = wrap_angle(
                 libm::atan2(outgoing.y, outgoing.x) - libm::atan2(incoming.y, incoming.x),
             );
-            turn_speed(&drive, full, angle)
+            // A bend drawn as short runs turns at the radius they describe,
+            // and the hull's yaw rate takes it no faster than that allows.
+            let bend = incoming.length().min(outgoing.length())
+                / (2.0 * libm::sin(angle.abs() / 2.0)).max(1e-9);
+            turn_speed(&drive, full, angle).min(drive.turn_rad_s * bend)
         });
         limit = limit.min((corner * corner + 2.0 * braking * distance).sqrt());
         from = point;

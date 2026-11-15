@@ -18,6 +18,9 @@ optimization that changes a digest has changed behavior, even if a picture looks
 the same. Seeded randomness and iteration order are part of that contract. A body
 still where the map authored it is held by one digest of the authored props, taken
 when the world is built, so a tick's digest costs what changed, not the map's size.
+Per-tick presentation evidence (the shouts, an own unit's `shot_at`) is
+published but kept out of the digest: it is derived from digested state, such
+as the target a round carries (`Round.aimed_at`), so replays reproduce it.
 
 Seed a draw by what it decides, never by when it is asked. A draw that settles a
 decision (where a squad stands at its goal, where it steps out of a building) is

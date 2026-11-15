@@ -42,7 +42,9 @@ pub struct Shove {
 
 /// What a hull moving to `next` from `here` meets among the bodies that
 /// stop vehicles: the first it cannot move (a body it already overlaps at
-/// `here` never stops it, so it can always back out), and those it shoves.
+/// `here` never stops it, so it can always back out), and those it shoves
+/// (not one it overlaps at `here` and presses no deeper into: backing off
+/// bins pinned against a car is not shoving them).
 pub struct Meet<'a> {
     pub solid: Option<PropId>,
     pub shoved: Vec<&'a Prop>,
@@ -58,12 +60,16 @@ pub fn meet<'a>(world: &'a WorldGeometry, next: &Obb2, here: &Obb2, push: PushCl
             continue;
         }
         let body = prop.footprint();
-        if next.separation(&body).is_none() {
+        let Some(into) = next.separation(&body) else {
             continue;
-        }
+        };
+        let now = here.separation(&body);
         if push.pushes(prop.body.weight_class) {
-            out.shoved.push(prop);
-        } else if here.separation(&body).is_none() && out.solid.is_none() {
+            // Leaving a body it already touches shoves nothing.
+            if now.is_none_or(|now| into.length() > now.length()) {
+                out.shoved.push(prop);
+            }
+        } else if now.is_none() && out.solid.is_none() {
             out.solid = Some(prop.id);
         }
     }
