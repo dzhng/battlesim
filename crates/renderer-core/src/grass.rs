@@ -123,7 +123,11 @@ impl Grass {
         pipelines: &Pipelines,
         heights: &Buffer,
         data: GrassData<'_>,
+        work: &mut crate::runtime::AdmissionWork,
     ) -> Self {
+        work.statics_bytes_uploaded += bytemuck::bytes_of(data.params).len() as u64;
+        work.statics_bytes_uploaded += bytemuck::cast_slice::<u32, u8>(data.props).len() as u64;
+        work.statics_bytes_uploaded += bytemuck::cast_slice::<f32, u8>(data.shapes).len() as u64;
         let record = *data.params;
         let storage = BufferUsages::STORAGE;
         let uniform = BufferUsages::UNIFORM | BufferUsages::COPY_DST;
@@ -183,6 +187,7 @@ impl Grass {
             let mut strip = field::strip_indices(data.max_blades, segments);
             let count = strip.len() as u32;
             strip.resize(strip.len().next_multiple_of(2), 0);
+            work.statics_bytes_uploaded += bytemuck::cast_slice::<u16, u8>(&strip).len() as u64;
             indices.push((
                 buffer(
                     device,
@@ -195,6 +200,7 @@ impl Grass {
             ));
             let first = if t == 0 { 0 } else { near as u32 };
             let tier = [t as u32, first, field::blade_vertices(segments), 0];
+            work.statics_bytes_uploaded += bytemuck::cast_slice::<u32, u8>(&tier).len() as u64;
             let tier = buffer(
                 device,
                 queue,

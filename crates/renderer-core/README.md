@@ -56,6 +56,11 @@ reuses its model/effect buffers; a new canonical frame prepares them again.
 Fog and scar work prepare for every drawn frame because their incremental
 work must be consumed rather than replayed.
 
+Each asset generation also carries an [`AdmissionWork`](src/runtime/work.rs)
+report: counts and payload bytes for decode, packing, uploads, texture layers,
+cards and scenery placement. It is swapped atomically with the generation, so
+discarded or stale preparation cannot change the live report.
+
 [World geometry](src/runtime/world.rs) constructs submitted layers for both
 shells through shared skirt, backdrop and water builders. Native supplies physical
 triangles; the browser supplies the same Rust-generated terrain mesh it uses for

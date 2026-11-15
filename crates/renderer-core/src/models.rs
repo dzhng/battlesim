@@ -208,6 +208,7 @@ fn texture_array(
     label: &str,
     format: TextureFormat,
     textures: &[Arc<Texture>],
+    work: &mut crate::runtime::AdmissionWork,
 ) -> TextureView {
     let size = textures.iter().map(|t| t.size).max().unwrap_or(1);
     let levels = size.ilog2() + 1;
@@ -225,6 +226,7 @@ fn texture_array(
         usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
         view_formats: &[],
     });
+    work.texture_layers_written += textures.len() as u32;
     for (layer, t) in textures.iter().enumerate() {
         let shift = (size / t.size).ilog2();
         for level in 0..levels {
@@ -267,6 +269,7 @@ fn texture_array(
                     depth_or_array_layers: 1,
                 },
             );
+            work.texture_bytes_uploaded += data.len() as u64;
         }
     }
     texture.create_view(&TextureViewDescriptor {
@@ -341,10 +344,14 @@ fn drawable(
     label: &str,
     bundle: &Bundle,
     meshes: &[(&Mesh, Vec<u8>)],
+    work: &mut crate::runtime::AdmissionWork,
 ) -> Drawable {
     let list: Vec<&Mesh> = meshes.iter().map(|(m, _)| *m).collect();
     let (indices, parts) = order_surfaces(&list, &|m| class_of(&bundle.materials[m]));
     let vertices: Vec<u8> = meshes.iter().flat_map(|(_, v)| v.iter().copied()).collect();
+    work.vertex_bytes_packed += vertices.len() as u64;
+    work.buffer_bytes_uploaded +=
+        (vertices.len() + indices.len() * std::mem::size_of::<u32>()) as u64;
     Drawable {
         vertices: crate::buffer(device, queue, label, BufferUsages::VERTEX, &vertices),
         indices: crate::buffer(

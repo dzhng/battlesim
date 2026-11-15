@@ -1,6 +1,7 @@
 # Battle growth: a new unit type costs only its own art
 
-**Status:** planned, nothing built. Slice 00 is next.
+**Status:** slice 00's code has landed; its probes have not run. Slice 10 is
+written but unreviewed-clean and uncommitted (see the warnings).
 **Updated:** 2026-11-14.
 
 This plan replaces the "shared GPU assets across generations" placeholder. That
@@ -10,8 +11,9 @@ player sees, and sharing GPU assets is one part of the fix.
 ## Next Agent Prompt
 
 You are fixing the multi-second freeze that happens whenever a running battle
-first fields a unit type it had not shown. Nothing is built yet. Start at
-[slice 00](slices/00-proof-and-probes.md).
+first fields a unit type it had not shown. The admission work report exists
+and `battle-growth` prints it. Next: run [slice 00](slices/00-proof-and-probes.md)'s
+probes in the reference battle, then build [slice 01](slices/01-fielding-and-install.md).
 
 Read, in this order: this file, the [decisions ledger](decisions.md), the slice
 you are about to build, the [renderer contract](../../crates/renderer-core/README.md)
@@ -30,10 +32,22 @@ Warnings:
   plan. Record it in the ledger; do not settle it silently.
 - Slices 06 and 09 are conditional on measurements. Follow the rule each one
   states.
+- The machine's disk runs nearly full, and each checkout's Rust build adds
+  8–22 GB. Check free space before a cold build; build one slice at a time and
+  reuse a warm checkout. A burst of unrelated failures after a build usually
+  means the build ran out of space.
+- Slice 10's first pass sits uncommitted on the branch
+  `t3/battle-growth-stand-in-mechanics`. It must not merge as it is: it
+  fields every type in the unit catalog, which in the real game would read the
+  whole catalog's art and never show a stand-in. The findings are in the
+  [ledger](decisions.md).
+- Two implementers so far deleted or shortened comments to fit the file-size
+  ratchet. Reject that in review: move code out by concept instead.
 
 Checklist:
 
-- [ ] [00 Proof and probes](slices/00-proof-and-probes.md)
+- [ ] [00 Proof and probes](slices/00-proof-and-probes.md): the report and
+  its tests are in; the probes in the reference battle remain
 - [ ] [01 Fielding and install](slices/01-fielding-and-install.md)
 - [ ] [02 Content identity](slices/02-content-identity.md)
 - [ ] [03 Geometry reuse](slices/03-geometry-reuse.md)

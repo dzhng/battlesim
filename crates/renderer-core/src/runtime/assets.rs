@@ -19,16 +19,29 @@ pub struct PendingAssets {
     pipelines: Arc<Pipelines>,
     catalog: CatalogDraft,
     assets: Assets,
+    work: AdmissionWork,
 }
 
 /// An opaque complete generation. Dropping stale work never changes active art.
 pub struct ReadyAssets(PendingAssets);
 
 impl PendingAssets {
+    pub fn work(&self) -> &AdmissionWork {
+        &self.work
+    }
+}
+
+impl ReadyAssets {
+    pub fn work(&self) -> &AdmissionWork {
+        &self.0.work
+    }
+}
+
+impl PendingAssets {
     pub async fn prepare(mut self) -> Result<ReadyAssets, String> {
         self.assets
             .models
-            .bake_cards(&self.device, &self.queue, &self.pipelines)
+            .bake_cards(&self.device, &self.queue, &self.pipelines, &mut self.work)
             .await?;
         Ok(ReadyAssets(self))
     }
@@ -44,7 +57,10 @@ impl Runtime {
         presentation: &Presentation,
         mut catalog: CatalogDraft,
         library: &impl BundleSource,
+        mut starting_work: AdmissionWork,
     ) -> Result<PendingAssets, String> {
+        starting_work.rebuild_reason = Some(RebuildReason::Replacement);
+        let mut work = starting_work;
         if catalog.needs_scenery() {
             let finest = crate::scenery::finest_meshes(
                 presentation.ground().ok_or("scenery requires ground")?,
@@ -52,10 +68,11 @@ impl Runtime {
             )?;
             let refs: Vec<_> = finest.iter().map(Vec::as_slice).collect();
             catalog.stage_scenery(presentation, &refs)?;
+            work.scenery_placements += 1;
         }
         let view = catalog.view(presentation)?;
-        let models = Models::new(device, queue, &self.pipelines, library, view)?;
-        let scenery = Scenery::new(device, queue, &self.pipelines, library, view)?;
+        let models = Models::new(device, queue, &self.pipelines, library, view, &mut work)?;
+        let scenery = Scenery::new(device, queue, &self.pipelines, library, view, &mut work)?;
         let grass = grass(
             device,
             queue,
@@ -64,6 +81,7 @@ impl Runtime {
             view,
             &self.ground.heights,
             self.config.grass_density,
+            &mut work,
         )?;
         Ok(PendingAssets {
             device: device.clone(),
@@ -75,6 +93,7 @@ impl Runtime {
                 scenery,
                 grass,
             },
+            work,
         })
     }
 
@@ -101,6 +120,7 @@ impl Runtime {
         self.models = pending.assets.models;
         self.scenery = pending.assets.scenery;
         self.grass = pending.assets.grass;
+        self.admission_work = pending.work;
         self.apply_asset_controls(queue, self.config.controls);
         self.invalidate_statics();
         self.prepared_frame = None;
@@ -109,6 +129,7 @@ impl Runtime {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn grass(
     device: &Device,
     queue: &Queue,
@@ -117,6 +138,7 @@ pub(super) fn grass(
     catalog: CatalogView<'_>,
     heights: &Buffer,
     density: Option<f64>,
+    work: &mut AdmissionWork,
 ) -> Result<Option<Grass>, String> {
     let Some(density) = density else {
         return Ok(None);
@@ -142,5 +164,6 @@ pub(super) fn grass(
             max_blades: packed.max_blades,
             capacity: resolved.biome.grass.capacity,
         },
+        work,
     )))
 }

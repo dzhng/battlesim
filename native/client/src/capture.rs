@@ -427,7 +427,11 @@ impl Replay {
                 ..FogSetup::default()
             }))?;
         }
-        place_scenery(&mut presentation, library)?;
+        place_scenery(
+            &mut presentation,
+            library,
+            &mut renderer_core::runtime::AdmissionWork::default(),
+        )?;
         // The props, from the art a page running these units installs.
         let wearing: Vec<&str> = battle
             .units

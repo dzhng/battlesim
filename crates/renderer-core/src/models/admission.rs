@@ -1,5 +1,6 @@
 //! Authored model rows and shared material admission.
 use super::*;
+use crate::runtime::AdmissionWork;
 
 impl Models {
     /// Installs every row of the presentation's world from `library`.
@@ -9,6 +10,7 @@ impl Models {
         pipelines: &Pipelines,
         library: &impl BundleSource,
         catalog: presentation::presentation::catalog::CatalogView<'_>,
+        work: &mut AdmissionWork,
     ) -> Result<Self, String> {
         let world = catalog.world();
         Self::from_world(
@@ -20,6 +22,7 @@ impl Models {
             &world.strings,
             |row| catalog.rest_palette(row),
             |row, node| catalog.track_side(row, node),
+            work,
         )
     }
 
@@ -36,6 +39,7 @@ impl Models {
         strings: &str,
         rest_palette: impl Fn(u32) -> Option<Vec<Joint>>,
         track_side: impl Fn(u32, usize) -> Option<presentation::world::TrackSide>,
+        work: &mut AdmissionWork,
     ) -> Result<Self, String> {
         let text = |at: u32, len: u32| &strings[at as usize..(at + len) as usize];
         let mut bundles: HashMap<String, (Arc<Bundle>, usize)> = HashMap::new();
@@ -65,13 +69,14 @@ impl Models {
             }
             let (bundle, base) = &bundles[name];
             let label = format!("{name}-{r}");
-            let single = |mesh: &Mesh, rigid| {
+            let mut single = |mesh: &Mesh, rigid| {
                 drawable(
                     device,
                     queue,
                     &label,
                     bundle,
                     &[(mesh, pack_vertices(mesh, *base, rigid, 0))],
+                    work,
                 )
             };
             let rest = || rest_palette(r as u32).ok_or(format!("{name}: no rest pose for row {r}"));
@@ -126,7 +131,7 @@ impl Models {
                                     let meshes = articulated_meshes(nodes, t, *base, |node| {
                                         track_side(r as u32, node)
                                     });
-                                    drawable(device, queue, &label, bundle, &meshes)
+                                    drawable(device, queue, &label, bundle, &meshes, work)
                                 })
                                 .collect()
                         })
@@ -173,6 +178,7 @@ impl Models {
         if materials.is_empty() {
             materials.resize(MATERIAL_ROWS * 4, 0.0);
         }
+        work.buffer_bytes_uploaded += bytemuck::cast_slice::<f32, u8>(&materials).len() as u64;
         let authored_materials = materials.clone();
         let materials = crate::buffer(
             device,
@@ -187,6 +193,7 @@ impl Models {
             "model-albedo",
             TextureFormat::Rgba8UnormSrgb,
             &layers.albedo,
+            work,
         );
         let surface = texture_array(
             device,
@@ -194,6 +201,7 @@ impl Models {
             "model-surface",
             TextureFormat::Rgba8Unorm,
             &layers.surface,
+            work,
         );
         let sampler = device.create_sampler(&SamplerDescriptor {
             label: Some("model-textures"),

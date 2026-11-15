@@ -65,4 +65,61 @@ Each is confirmed by the slice named, which then moves it to the section below.
 
 ## Confirmed during implementation
 
-Nothing yet.
+**Slice 00, 2026-11-14.** One growth in `battle-growth` at the scene's own
+graphics profile, from the new report:
+
+| Count | One growth today |
+| --- | --- |
+| Bundles decoded in Rust | 201 |
+| Vertex bytes packed | 1.13 GB |
+| Model buffer bytes uploaded | 1.31 GB |
+| Model texture layers written | 175 (123 MB) |
+| Cards baked | 189 |
+| Scenery and grass bytes uploaded | 22 MB |
+| Scenery placement runs | 1 |
+| Bundles encoded and sent by the page | 201 (710 MB) |
+| Runtime contents inflated | 272 (1.27 GB) |
+| Art library installs | 2 |
+
+- **The art library does install twice per new type, and fielding runs
+  twice:** 272 contents is two passes over the same 136. There was one
+  admission for the growth. Slice 01 owns both.
+
+Decisions made where slice 00 was silent:
+
+| Decision | Why |
+| --- | --- |
+| The report's fields: bundles decoded; vertex bytes packed and buffer bytes uploaded for model geometry and the materials table; texture layers and bytes for the model texture arrays; cards baked; scenery and grass bytes; scenery placement runs; and a rebuild reason | Each engine slice needs its own number, so the kinds of work are not mixed |
+| A shell hands in work it did before staging (decoding its draft, the first scenery placement) as the starting report of `Runtime::new` and `stage_assets` | Decoding happens in the library before the runtime sees the art, and the count belongs where the work is |
+| The page's counts are those since the previous `art committed` | The event must say what this admission cost |
+| The scene reads the event's detail from the console call's argument | It needs no test hook in the page, and `LabViewport.tsx` is over its size budget |
+| The first scene publishes no `art committed` event | Nothing gates on it; the Rust test covers a first admission |
+| The swap test compares the live report and the world's appearance names, not pixels | It proves a dropped, stale or failed candidate changes nothing live without a frame readback; pixel equality starts with slice 03 |
+
+Known imprecision: the library's decode count is cumulative, so a runtime
+rebuilt after a lost GPU device reports decodes it did not redo. Slice 02
+reworks the library and settles the count's owner.
+
+**Slice 10, first pass, 2026-11-14 (not merged).** Confirmed on screen by the
+implementer: an identified enemy with no art still gets its HUD readout,
+because readouts follow the observation; an unfielded vehicle has a click box
+of no size and cannot be clicked; an unfielded squad's soldiers can. The
+observation carries every seen member's position for a type with no art.
+
+Review findings to fix before it merges:
+
+1. It fields every type in the unit catalog. In the real game every type's art
+   is in the runtime catalog, so fielding would read the whole catalog and no
+   type would ever be unfielded. Facts that need no art cover every type;
+   appearance sets and anything read from art cover fielded types only.
+2. Its fixture deletes the art from the catalog file through a hook in
+   production code, and proves the swap by reloading the page. The real case
+   is a type requested after the first scene whose files have not arrived:
+   hold those responses from the scene, and swap in the same session.
+3. It deleted comments from `presentation.rs` to fit the size ratchet.
+4. It hardcodes the browser mesh's size inside presentation. The shell that
+   builds the mesh states its size in the battle input.
+5. The showcase invents a soldier's body to satisfy a parameter it never uses.
+6. Hull sizes have two owners after it (the effects section and the new
+   table), and the new table defaults silently when missing.
+7. Its "art arrives" test starts with the art already present.

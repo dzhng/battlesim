@@ -150,6 +150,15 @@ impl Renderer {
     pub fn destroy_device_for_test(&self) {
         self.gpu.device.destroy();
     }
+
+    pub fn admission_work(&self) -> Result<JsValue, JsValue> {
+        let work = self
+            .runtime
+            .as_ref()
+            .map(Runtime::admission_work)
+            .ok_or_else(|| js_error("install presentation before reading admission work"))?;
+        serde_wasm_bindgen::to_value(&work).map_err(js_error)
+    }
 }
 
 impl Renderer {

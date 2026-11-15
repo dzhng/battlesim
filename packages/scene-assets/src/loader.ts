@@ -181,6 +181,11 @@ export class AppearanceLibrary {
   private source: Source | null = null;
   /** Repeated requests for the same appearance and source share one load. */
   private readonly arriving = new Map<string, Promise<InstalledAppearance>>();
+  private work = {
+    runtimeContentsInflated: 0,
+    runtimeContentBytesInflated: 0,
+    appearanceLibraryInstalls: 0,
+  };
 
   constructor(fetcher: Fetch = (url) => fetch(url)) {
     this.read = boundedReads(fetcher);
@@ -195,6 +200,20 @@ export class AppearanceLibrary {
     return this.source?.catalog ?? null;
   }
 
+  admissionWork() {
+    return { ...this.work };
+  }
+
+  takeAdmissionWork() {
+    const work = this.admissionWork();
+    this.work = {
+      runtimeContentsInflated: 0,
+      runtimeContentBytesInflated: 0,
+      appearanceLibraryInstalls: 0,
+    };
+    return work;
+  }
+
   /** The bundle contents `hashes` (appearances' and skeletons') as their
    *  files inflate, without their textures, verified: the bytes Rust
    *  resolves a battle's units and effects from (`presentation::fielded`). */
@@ -203,7 +222,11 @@ export class AppearanceLibrary {
     if (!source) throw new Error("runtime contents were asked for before a catalog was loaded");
     return Promise.all(
       hashes.map((hash) => readGzip(source.catalog, "bundle", hash, bundlePath, source.read)),
-    );
+    ).then((files) => {
+      this.work.runtimeContentsInflated += files.length;
+      this.work.runtimeContentBytesInflated += files.reduce((n, file) => n + file.byteLength, 0);
+      return files;
+    });
   }
 
   /** Load the catalog under `baseUrl` (ending in "/") for a page whose units
@@ -363,6 +386,7 @@ export class AppearanceLibrary {
       onRequest: onRequestOf(source.catalog),
       ...(templates && modules ? { templates: { ...templates, modules } } : {}),
     };
+    this.work.appearanceLibraryInstalls++;
     return this.current;
   }
 

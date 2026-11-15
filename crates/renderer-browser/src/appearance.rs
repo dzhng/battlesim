@@ -97,6 +97,7 @@ impl Renderer {
         }
         // Preserve canonical battle/static sources, remove retired external art,
         // and replace only names carried by the desired generation.
+        let draft_work = draft.library.admission_work();
         let mut library = (*self.model_library).clone();
         library.replace_with(draft.library);
         library.retain(|name| names.contains(name));
@@ -107,6 +108,7 @@ impl Renderer {
                 presentation.core(),
                 catalog,
                 &library,
+                draft_work,
             )
             .map_err(js_error)?;
         let gpu = self.gpu.clone();

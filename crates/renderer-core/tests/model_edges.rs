@@ -10,6 +10,7 @@ mod effects;
 #[path = "support/readback.rs"]
 mod readback;
 mod support;
+use renderer_core::runtime::AdmissionWork;
 
 use presentation::records::{
     Appearance, Batch, Camera, Instance as ModelInstance, Joint, View, FOG_UNITS, HIGH_PASS, NONE,
@@ -113,6 +114,7 @@ fn drawn(gpu: &support::Gpu, sliver: &Sliver) -> Vec<[u8; 4]> {
         "body",
         |_| None,
         |_, _| None,
+        &mut AdmissionWork::default(),
     )
     .unwrap();
     models.set_high_apart(true);

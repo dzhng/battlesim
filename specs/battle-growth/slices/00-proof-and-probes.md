@@ -25,8 +25,8 @@ facts true?
   sent, contents inflated, library installs) and publishes both with the
   `art committed` event
   ([viewportTrace.ts](../../../apps/battle-lab/src/viewportTrace.ts)).
-- A scene reads the event's detail from the page's diagnostics report, not from
-  console text (console text prints nested detail as `Object`).
+- A scene reads the event's detail from the log call's second argument, not
+  from its text (the text prints nested detail as `Object`).
 
 ## Verification
 

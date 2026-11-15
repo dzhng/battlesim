@@ -3,6 +3,7 @@
 // frames it wanted to draw but could not, on the diagnostics timeline.
 import { diagnosticsEvent } from "@web/diagnostics";
 import type { BrowserScene } from "@web/battle/render/scene";
+import { gameAdmissionWork } from "./gameAppearances";
 
 /** A run of skipped frames shorter than this is not worth a line. */
 const SKIP_EVENT_FRAMES = 2;
@@ -37,11 +38,15 @@ export class ViewportTrace {
     });
   }
 
-  /** New unit or scenery art went live: the generation and GPU memory after. */
+  /** New unit or scenery art went live: the generation, GPU memory after, and the work it took. */
   artCommitted(scene: BrowserScene) {
+    const { core, transport } = scene.admissionWork();
     diagnosticsEvent("art committed", {
       generation: scene.appearances()?.generation ?? null,
       gpu: scene.stats().memory,
+      // What this admission cost: Rust's report, and the page's own work
+      // since the last one.
+      work: { core, page: { ...transport, ...gameAdmissionWork() } },
     });
   }
 

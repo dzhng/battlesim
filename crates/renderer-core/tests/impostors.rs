@@ -2,6 +2,7 @@
 #[path = "support/readback.rs"]
 mod readback;
 mod support;
+use renderer_core::runtime::AdmissionWork;
 
 use presentation::records::{
     Appearance, Batch, Camera, Instance as ModelInstance, Joint, View, FOG_UNITS, NONE, VIEW_PASS,
@@ -118,6 +119,7 @@ fn diagnostic_texture_controls_do_not_change_authored_impostor_bakes() {
         "body",
         |_| Some(vec![identity()]),
         |_, _| None,
+        &mut AdmissionWork::default(),
     )
     .unwrap();
     let bake = || {
@@ -155,6 +157,7 @@ fn make_models(gpu: &support::Gpu, pipelines: &renderer_core::pipelines::Pipelin
         "body",
         |_| Some(vec![identity()]),
         |_, _| None,
+        &mut AdmissionWork::default(),
     )
     .unwrap()
 }
@@ -264,6 +267,7 @@ fn authored_bake_and_runtime_cards_preserve_coverage_normals_tint_and_real_geome
             "body",
             |_| Some(vec![identity()]),
             |_, _| None,
+            &mut AdmissionWork::default(),
         )
         .unwrap();
         let snapshot = rigid
@@ -317,7 +321,13 @@ fn authored_bake_and_runtime_cards_preserve_coverage_normals_tint_and_real_geome
         }
         std::fs::write(format!("{directory}/atlas.json"),serde_json::to_vec(&serde_json::json!({"appearance":atlas.appearance,"spec":atlas.spec,"width":atlas.width,"height":atlas.height,"center":atlas.center,"radius":atlas.radius,"hash":atlas.hash})).unwrap()).unwrap();
     }
-    pollster::block_on(models.bake_cards(&gpu.device, &gpu.queue, &pipelines)).unwrap();
+    pollster::block_on(models.bake_cards(
+        &gpu.device,
+        &gpu.queue,
+        &pipelines,
+        &mut AdmissionWork::default(),
+    ))
+    .unwrap();
     let instances =
         [(-0.5, [1., 0., 0., 1.]), (0.5, [0., 0., 1., 1.])].map(|(x, tint)| ModelInstance {
             placement: [x, 0., 0., 0.],

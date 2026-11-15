@@ -98,10 +98,12 @@ impl Renderer {
         presentation: &mut Presentation,
         scenery: bool,
     ) -> Result<u32, JsValue> {
+        let mut starting_work = self.model_library.admission_work();
         if scenery {
             renderer_core::scenery::place_scenery(
                 presentation.core_mut(),
                 self.model_library.as_ref(),
+                &mut starting_work,
             )
             .map_err(js_error)?;
         }
@@ -109,6 +111,7 @@ impl Renderer {
             &self.gpu.device,
             &self.gpu.queue,
             self.config.clone(),
+            starting_work,
             RuntimeWorld {
                 presentation: presentation.core_mut(),
                 assets: self.model_library.as_ref(),

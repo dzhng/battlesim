@@ -241,6 +241,7 @@ fn stage(gpu: &support::Gpu, view: &View, camera: &Camera) -> Stage {
         "body",
         |_| None,
         |_, _| None,
+        &mut AdmissionWork::default(),
     )
     .unwrap();
     Stage {
@@ -440,6 +441,7 @@ fn model_suppression_preserves_static_props_and_buildings() {
         "body",
         |_| None,
         |_, _| None,
+        &mut AdmissionWork::default(),
     )
     .unwrap();
     let instances: Vec<_> = [-0.5, 0., 0.5]
@@ -633,3 +635,5 @@ fn black_smoke_in_front_of_high_air_darkens_it() {
         "smoke behind the jet does not show through it"
     );
 }
+
+use renderer_core::runtime::AdmissionWork;
