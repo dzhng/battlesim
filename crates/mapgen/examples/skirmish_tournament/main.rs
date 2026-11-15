@@ -262,7 +262,7 @@ mod tests {
         inputs.buy[0] = Some(vec![card.clone()]);
         let report = run(
             &inputs,
-            self_play_row_with_players(7, 90, inputs.rules.tick_hz, 1),
+            self_play_row_with_players(8, 90, inputs.rules.tick_hz, 1),
         );
         assert_eq!(report.refused_by_side[0], 0);
         assert!(report.opening[0].len() > 1, "a list without | must repeat");
