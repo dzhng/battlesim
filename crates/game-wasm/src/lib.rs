@@ -1,6 +1,6 @@
 //! Thin WASM boundary for physical preparation and side-filtered battle runtime.
 use contract::ballistics::WeaponBallistics;
-use contract::command::CommandEnvelope;
+use contract::command::Order;
 use contract::ids::{Side, UnitId};
 use contract::map::MapDefinition;
 use contract::random::Rng;
@@ -683,10 +683,18 @@ impl BattleHandle {
         })
     }
 
-    /// Returns the acknowledgement as JSON.
-    pub fn accept(&mut self, command_json: &str) -> Result<String, JsError> {
-        let command: CommandEnvelope = serde_json::from_str(command_json).map_err(js_error)?;
-        serde_json::to_string(&self.battle.accept(command)).map_err(js_error)
+    /// Accept a live order. The simulation supplies its side/player sequence stamp.
+    pub fn accept_order(
+        &mut self,
+        side: &str,
+        player: Option<String>,
+        order_json: &str,
+        queued: bool,
+    ) -> Result<String, JsError> {
+        let side = parse_side(side)?;
+        let order: Order = serde_json::from_str(order_json).map_err(js_error)?;
+        serde_json::to_string(&self.battle.accept_order(side, player, order, queued))
+            .map_err(js_error)
     }
 
     /// Check a ghost destination using only the purchasing side's geometry.

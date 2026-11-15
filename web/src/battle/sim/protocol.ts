@@ -73,15 +73,6 @@ export type Order =
   | { kind: "pop_smoke"; units: number[] }
   | { kind: "upgrade_move"; gesture: number; route: RoutePolicy };
 
-export interface CommandEnvelope {
-  side: SideName;
-  /** Player issuing the order in a player-owned scenario. */
-  player?: string;
-  seq: number;
-  order: Order;
-  queued: boolean;
-}
-
 export interface MovePreviewRequest {
   /** Match execution: omitted route means shortest; omitted queued means replacement. */
   route?: RoutePolicy;
@@ -187,7 +178,7 @@ export type SimRequest =
       variant: string;
       destination: [number, number];
     }
-  | { type: "command"; command: CommandEnvelope }
+  | { type: "command"; id: number; order: Order; queued: boolean }
   | {
       type: "move_preview";
       id: number;
@@ -216,7 +207,7 @@ export type SimRequest =
 
 export type SimReply =
   | { type: "ready"; layout: string; tickHz: number; tick: number }
-  | { type: "ack"; ack: CommandAck }
+  | { type: "ack"; id: number; ack: CommandAck }
   | { type: "purchase_preview"; id: number; placement: PurchasePlacement }
   | { type: "move_preview"; id: number; destinations: MoveDestination[] }
   | {

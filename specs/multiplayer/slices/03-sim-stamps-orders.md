@@ -55,3 +55,18 @@ each moves to the new request in this slice.
 Names; how the tests that build a `CommandEnvelope` by hand are re-pointed.
 Use [refactor-change](../../../.agents/skills/refactor-change/SKILL.md): the
 page-side counter is deleted, not kept beside the new one.
+
+## As built
+
+`Battle::accept_order(side, player, order, queued)` stamps the next sequence
+number for that player (or, in a battle without players, that side) and hands
+the envelope to `Battle::accept`, so a live order and a replayed one share
+every check after the stamp. The authority takes the commanding side from
+the first side it publishes and the player from `init`; slice 06 changes
+that for a host serving several seats.
+
+A page can no longer send an order out of sequence, so the authority test
+that expected that refusal now shows the page's id returning on the ack
+beside the battle's own sequence number. The refusal itself remains for
+replays and is still tested in `crates/sim`.
+

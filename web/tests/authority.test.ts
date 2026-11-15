@@ -11,7 +11,7 @@ import {
 } from "../src/battle/sim/authority";
 import { simModule } from "../src/battle/sim/module";
 import { MAX_CATCHUP_TICKS, PUBLICATION_POOL } from "../src/battle/sim/timing";
-import type { CommandEnvelope, SimReply } from "../src/battle/sim/protocol";
+import type { SimReply, SimRequest } from "../src/battle/sim/protocol";
 import type { ObservationLayout } from "../src/battle/sim/observationView";
 import { ScenePresentation, loadPresentation } from "../src/battle/sim/presentation";
 import { loadMap } from "@web/maps/node";
@@ -79,12 +79,14 @@ function harness(load: () => Promise<SimModule> = async () => sim) {
       replay?: string,
       setup = scenario,
       sides: ("blue" | "red" | "neutral")[] = ["blue"],
+      player?: string,
     ) {
       authority.handle({
         type: "init",
         scenario: setup,
         seed: 9,
         sides,
+        player,
         replay,
       });
       await new Promise((r) => setTimeout(r, 0));
@@ -98,17 +100,24 @@ function stepOnce(h: ReturnType<typeof harness>, id: number) {
   h.authority.handle({ type: "advance", id, ticks: 1 });
 }
 
-const move = (seq: number, units: number[]): CommandEnvelope => ({
-  side: "blue",
-  seq,
+const move = (id: number, units: number[]): Extract<SimRequest, { type: "command" }> => ({
+  type: "command",
+  id,
   queued: false,
   order: {
     kind: "move",
     units,
-    gesture: seq,
+    gesture: id,
     goal: [120, 150],
     route: "shortest",
   },
+});
+
+const ready = (id: number): Extract<SimRequest, { type: "command" }> => ({
+  type: "command",
+  id,
+  queued: false,
+  order: { kind: "ready" },
 });
 
 test("a paused formation preview returns only own destinations without issuing an order", async () => {
@@ -151,10 +160,11 @@ test("a paused formation preview returns only own destinations without issuing a
     { type: "move_preview", id: 2, destinations: [] },
   ]);
   expect(h.publications().length).toBe(count);
-  h.authority.handle({ type: "command", command: move(1, [0]) });
+  h.authority.handle(move(1, [0]));
   expect(h.replies.filter((r) => r.type === "ack")).toEqual([
     {
       type: "ack",
+      id: 1,
       ack: {
         seq: 1,
         applied_tick: 2,
@@ -208,14 +218,14 @@ test("building previews preserve battle outcomes and an invalid query leaves the
   });
   expect(queried.publications()).toHaveLength(publications);
   expect(queried.closed()).toBe(false);
-  const command: CommandEnvelope = {
-    side: "blue",
-    seq: 1,
+  const command: Extract<SimRequest, { type: "command" }> = {
+    type: "command",
+    id: 1,
     queued: false,
     order: { kind: "occupy_building", units: [0, 1], building: 0, gesture: 1 },
   };
   for (const h of [queried, untouched]) {
-    h.authority.handle({ type: "command", command });
+    h.authority.handle(command);
     for (let i = 0; i < 20; i++) stepOnce(h, i);
     h.authority.handle({ type: "replay" });
   }
@@ -270,14 +280,38 @@ test("a consumer that withholds credit stalls the battle instead of dropping tic
 test("commands are acknowledged in order with the authority's verdict", async () => {
   const h = harness();
   await h.init();
-  h.authority.handle({ type: "command", command: move(1, [0]) });
-  h.authority.handle({ type: "command", command: move(2, [1]) });
-  h.authority.handle({ type: "command", command: move(4, [0]) });
+  h.authority.handle(move(1, [0]));
+  h.authority.handle(move(2, [1]));
+  h.authority.handle(move(4, [0]));
+  // The page's id comes back on its ack; the place in the sequence is the
+  // battle's to give, whatever the page called the order.
+  expect(h.replies.flatMap((r) => (r.type === "ack" ? [r.id] : []))).toEqual([1, 2, 4]);
   const acks = h.replies.flatMap((r) => (r.type === "ack" ? [r.ack] : []));
-  expect(acks.map((a) => a.seq)).toEqual([1, 2, 4]);
+  expect(acks.map((a) => a.seq)).toEqual([1, 2, 3]);
   expect(acks[0].error).toBeNull();
   expect(acks[1].error?.reason).toBe("not_own_unit");
-  expect(acks[2].error?.reason).toBe("out_of_sequence");
+  expect(acks[2].error).toBeNull();
+});
+
+test("a human order after AI control uses the simulation's next player sequence", async () => {
+  const { default: record } = await import("@fixtures/parity/skirmish-purchases.json");
+  const h = harness();
+  await h.init(undefined, JSON.stringify(record.scenario), ["blue"], "blue-1");
+  h.authority.handle({
+    type: "controllers",
+    controllers: JSON.stringify([["blue-1", "active_ai"]]),
+  });
+  h.authority.handle({ type: "start" });
+  h.authority.handle({ type: "pause" });
+  stepOnce(h, 1);
+  h.authority.handle({
+    type: "controllers",
+    controllers: JSON.stringify([["blue-1", "human"]]),
+  });
+  h.authority.handle(ready(2));
+  const ack = h.replies.filter((r) => r.type === "ack").at(-1);
+  expect(ack?.type === "ack" && ack.ack.error).toBeNull();
+  expect(ack?.type === "ack" && ack.ack.seq).toBeGreaterThan(1);
 });
 
 test("wall-clock debt is shed, never spiralled", async () => {
@@ -335,7 +369,7 @@ test("disposal during module loading cannot admit a battle or drain queued work"
   const h = harness(() => loaded);
   await h.init();
   h.authority.handle({ type: "start" });
-  h.authority.handle({ type: "command", command: move(1, [0]) });
+  h.authority.handle(move(1, [0]));
   h.authority.handle({ type: "dispose" });
   h.authority.handle({ type: "dispose" });
   resolveLoaded({ ...sim, createBattle });
@@ -360,7 +394,7 @@ test("a replay of the accepted commands reproduces every tick digest", async () 
   await live.init();
   live.authority.handle({ type: "start" });
   live.authority.handle({ type: "pause" });
-  live.authority.handle({ type: "command", command: move(1, [0]) });
+  live.authority.handle(move(1, [0]));
   for (let i = 0; i < 40; i++) stepOnce(live, i);
   live.authority.handle({ type: "replay" });
   const json = (live.replies.find((r) => r.type === "replay") as { json: string }).json;
@@ -373,7 +407,7 @@ test("a replay of the accepted commands reproduces every tick digest", async () 
   for (let i = 0; i < digests.length; i++) stepOnce(again, i);
   const replayed = again.publications().map((p) => (p.type === "publication" ? p.digest : ""));
   expect(replayed.slice(0, digests.length)).toEqual(digests);
-  again.authority.handle({ type: "command", command: move(1, [0]) });
+  again.authority.handle(move(1, [0]));
   const ack = again.replies.flatMap((r) => (r.type === "ack" ? [r.ack] : []))[0];
   expect(ack.error?.reason).toBe("replay_in_progress");
 });
@@ -472,7 +506,7 @@ test("worker publication copying and transfer preserve every raw NaN carrier bit
   const battle = {
     observation_layout: () => "{}",
     set_controllers: () => {},
-    accept: () => "{}",
+    accept_order: () => "{}",
     preview_purchase: () => '{"Err":{"reason":"not_skirmish"}}',
     preview_move: () => "[]",
     preview_building: () => "null",
@@ -503,7 +537,7 @@ test("terminal matches complete fast-forward at their final tick and stop publis
   const battle = {
     observation_layout: () => "{}",
     set_controllers: () => {},
-    accept: () => "{}",
+    accept_order: () => "{}",
     preview_purchase: () => '{"Err":{"reason":"not_skirmish"}}',
     preview_move: () => "[]",
     preview_building: () => "null",

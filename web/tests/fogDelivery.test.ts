@@ -373,22 +373,21 @@ test("a live variable route copy matches a fresh producer snapshot and retains p
     snapshot.step();
     const initial = record(battle);
     const before = decoder.decode(initial)!;
-    const command = JSON.stringify({
-      side: "blue",
-      seq: 1,
-      queued: false,
-      order: {
-        kind: "move",
-        units: [0],
-        gesture: 1,
-        goal: [300, 250],
-        route: "shortest",
-        direction: "forward",
-        facing: null,
-      },
-    });
-    expect(JSON.parse(battle.accept(command)).error).toBeNull();
-    expect(JSON.parse(snapshot.accept(command)).error).toBeNull();
+    const order = {
+      kind: "move",
+      units: [0],
+      gesture: 1,
+      goal: [300, 250],
+      route: "shortest",
+      direction: "forward",
+      facing: null,
+    } as const;
+    expect(
+      JSON.parse(battle.accept_order("blue", undefined, JSON.stringify(order), false)).error,
+    ).toBeNull();
+    expect(
+      JSON.parse(snapshot.accept_order("blue", undefined, JSON.stringify(order), false)).error,
+    ).toBeNull();
     let oracle = before;
     for (let tick = 0; tick < 240; tick++) {
       battle.step();

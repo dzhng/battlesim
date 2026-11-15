@@ -82,7 +82,7 @@ endurance half of slice 01.
 Foundation
 - [ ] [01 Host and endurance probes](slices/01-probes.md) (the endurance half is done; the host half is not)
 - [x] [02 Per-side publisher](slices/02-per-side-publisher.md)
-- [ ] [03 The sim stamps orders](slices/03-sim-stamps-orders.md)
+- [x] [03 The sim stamps orders](slices/03-sim-stamps-orders.md)
 - [x] [04 Seats and setup the server can run](slices/04-seats-and-setup.md)
 - [x] [05 Record stream and seat link](slices/05-record-stream.md)
 - [ ] [06 Battle host](slices/06-battle-host.md)

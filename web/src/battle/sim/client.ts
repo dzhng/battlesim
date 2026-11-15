@@ -136,7 +136,7 @@ export function createSimClient(options: SimClientOptions): SimClient {
   let observedSide = options.side;
   let slow = false;
   let paused = false;
-  let seq = 0;
+  let nextCommand = 1;
   let nextAdvance = 1;
   let nextPreview = 1;
   type Lifetime =
@@ -245,8 +245,8 @@ export function createSimClient(options: SimClientOptions): SimClient {
           setStatus(reply.status, reply.slow);
           break;
         case "ack":
-          pendingAcks.get(reply.ack.seq)?.resolve(reply.ack);
-          pendingAcks.delete(reply.ack.seq);
+          pendingAcks.get(reply.id)?.resolve(reply.ack);
+          pendingAcks.delete(reply.id);
           break;
         case "purchase_preview": {
           const preview = previews.get(reply.id);
@@ -364,11 +364,10 @@ export function createSimClient(options: SimClientOptions): SimClient {
     command(order, queued = false) {
       if (lifetime.kind !== "active")
         return Promise.reject(lifetime.error ?? new Error("simulation client disposed"));
-      seq += 1;
-      const command = { side: options.side, player: options.player, seq, order, queued };
+      const id = nextCommand++;
       return new Promise<CommandAck>((resolve, reject) => {
-        pendingAcks.set(seq, { resolve, reject });
-        channel.send({ type: "command", command });
+        pendingAcks.set(id, { resolve, reject });
+        channel.send({ type: "command", id, order, queued });
       });
     },
     previewPurchase(variant, destination) {

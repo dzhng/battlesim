@@ -209,4 +209,5 @@ Append here: the slice, the decision, why, and what it replaced.
 | 02 | Per-side publication has one owner in the simulation crate, `Publishers`, used by the WebAssembly handle and by the native parity test. | A publisher per side kept inside the WebAssembly handle, which the native build could not reproduce: the parity check between the two builds was deleted to hide that. |
 | 02 | Reopening a side's stream gives it an epoch later than any side has reached. | Each side counting its own epochs, which made a page that switched sides twice drop every later record as stale. |
 | 02 | The paired publication records were re-recorded: a reader that moves to another side reopens that side's stream. Digests and delivered fog in them did not change. | Keeping records of a single publisher changing side, which the product no longer does. |
+| 03 | An acknowledgement carries two numbers: the page's own id for the request, and the sequence number the battle gave the order. The page matches on the first and never reads the second as its own. | Matching acknowledgements by sequence number, which the page no longer knows in advance. |
 

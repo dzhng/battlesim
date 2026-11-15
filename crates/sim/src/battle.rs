@@ -24,6 +24,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::arrangement;
 
+mod accept_order;
 mod controllers;
 mod dispatch;
 mod fire;
@@ -1110,11 +1111,8 @@ impl Battle {
         applied_tick: Tick,
     ) -> Result<Admission, OrderError> {
         let side = command.side.index();
-        let player = self
-            .skirmish
-            .as_ref()
-            .and_then(|s| command.player.as_deref().and_then(|id| s.player_index(id)));
-        let expected = player.map_or(self.next_seq[side], |i| self.player_next_seq[i]);
+        let player = self.player_index(command.player.as_deref());
+        let expected = self.expected_seq(command.side, player);
         if command.seq != expected {
             return Err(OrderError::OutOfSequence { expected });
         }
@@ -2985,10 +2983,7 @@ impl Battle {
         planning_tick: Tick,
     ) -> Result<PreparedCommand, OrderError> {
         self.validate(&command)?;
-        let player = self
-            .skirmish
-            .as_ref()
-            .and_then(|s| command.player.as_deref().and_then(|id| s.player_index(id)));
+        let player = self.player_index(command.player.as_deref());
         if matches!(command.order, Order::Ready) {
             self.skirmish.as_mut().unwrap().players[player.expect("validated skirmish player")]
                 .ready = true;

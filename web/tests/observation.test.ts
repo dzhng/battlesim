@@ -252,8 +252,8 @@ test("deployment progress, its target and the packing state decode", () => {
   const battle = new Battle(scenario, 3);
   const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
   const decode = () => published(battle, layout);
-  const send = (seq: number, order: Order) =>
-    JSON.parse(battle.accept(JSON.stringify({ side: "blue", seq, order, queued: false })));
+  const send = (order: Order) =>
+    JSON.parse(battle.accept_order("blue", undefined, JSON.stringify(order), false));
   const timing = UNITS.type("test_supply").capabilities.deploy!;
   const ticks = timing.seconds * shippedRules.tick_hz;
   const packTicks = (timing.pack_seconds ?? timing.seconds) * shippedRules.tick_hz;
@@ -262,12 +262,12 @@ test("deployment progress, its target and the packing state decode", () => {
   // A stopped supply unit sets up where it stands; a tank never deploys.
   expect(supply.deployment).toEqual({ progress: 0.5, target: "deployed" });
   expect(tank.deployment).toBeNull();
-  expect(send(1, { kind: "set_deployment", units: [0], deployed: false }).error).toBeNull();
+  expect(send({ kind: "set_deployment", units: [0], deployed: false }).error).toBeNull();
   battle.step();
   [supply] = decode().own;
   expect(supply.deployment!.target).toBe("packed");
   expect(supply.deployment!.progress).toBeCloseTo(0.5 - 1 / packTicks, 6);
-  send(2, { kind: "move", units: [0], gesture: 1, goal: [150, 100], route: "shortest" });
+  send({ kind: "move", units: [0], gesture: 1, goal: [150, 100], route: "shortest" });
   battle.step();
   [supply] = decode().own;
   expect(supply.state).toBe("packing");

@@ -27,7 +27,11 @@ test("native purchases replay in WASM and publish the side wallet, queue and phy
         new Float32Array(memory.buffer, battle.publication_ptr(side), length).slice(),
       )!;
     };
-    expect(JSON.parse(battle.accept(JSON.stringify(record.commands[0]))).error).toBeNull();
+    const accept = (b: Battle, command: (typeof record.commands)[number]) =>
+      JSON.parse(
+        b.accept_order(command.side, command.player, JSON.stringify(command.order), command.queued),
+      );
+    expect(accept(battle, record.commands[0]).error).toBeNull();
     battle.step();
     const prep = frame("blue").skirmish!;
     expect(prep.players).toHaveLength(1);
@@ -45,12 +49,12 @@ test("native purchases replay in WASM and publish the side wallet, queue and phy
     ]);
     expect(frame("red").skirmish?.players[0]).toMatchObject({ credits: 1000, pending: [] });
     for (const command of record.commands.slice(1))
-      expect(JSON.parse(battle.accept(JSON.stringify(command))).error).toBeNull();
+      expect(accept(battle, command).error).toBeNull();
     for (let t = 0; t < record.ticks - 1; t++) battle.step();
     const paired = new Battle(JSON.stringify(record.scenario), record.seed);
     try {
       paired.set_controllers(JSON.stringify([["red-1", "human"]]));
-      for (const command of record.commands) paired.accept(JSON.stringify(command));
+      for (const command of record.commands) accept(paired, command);
       for (let t = 0; t < record.ticks; t++) paired.step();
       expect(paired.digest()).toBe(record.digest);
     } finally {

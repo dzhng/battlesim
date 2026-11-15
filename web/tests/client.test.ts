@@ -133,7 +133,7 @@ test("disposal rejects previews while leaving already pending operations silent"
         reason: new Error("simulation client disposed"),
       })),
     );
-    deliver({ type: "ack", ack: { seq: 1, applied_tick: 1, error: null, refused: [] } });
+    deliver({ type: "ack", id: 1, ack: { seq: 1, applied_tick: 1, error: null, refused: [] } });
     deliver({ type: "advanced", id: 1, tick: 0 });
     deliver({ type: "replay", json: "{}" });
     deliver({ type: "error", message: "late worker failure" });
@@ -317,8 +317,8 @@ test("an invalid building preview rejects only that query and commands still wor
     await rejected;
     const command = client.command({ kind: "stop", units: [2] });
     const sent = requests.find((request) => request.type === "command");
-    expect(sent?.command.order).toEqual({ kind: "stop", units: [2] });
-    deliver({ type: "ack", ack: { seq: 1, applied_tick: 2, error: null, refused: [] } });
+    expect(sent?.type === "command" && sent.order).toEqual({ kind: "stop", units: [2] });
+    deliver({ type: "ack", id: 1, ack: { seq: 1, applied_tick: 2, error: null, refused: [] } });
     expect(await command).toMatchObject({ seq: 1, error: null });
   } finally {
     client.dispose();

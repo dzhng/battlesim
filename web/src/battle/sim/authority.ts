@@ -22,7 +22,12 @@ export interface SimBattle {
   /** The publication layout: offsets, tags and this battle's round kinds. */
   observation_layout(): string;
   set_controllers(controllersJson: string): void;
-  accept(commandJson: string): string;
+  accept_order(
+    side: string,
+    player: string | undefined,
+    orderJson: string,
+    queued: boolean,
+  ): string;
   preview_purchase(side: string, variant: string, x: number, y: number): string;
   preview_move(side: string, moveJson: string): string;
   preview_building(side: string, buildingJson: string): string;
@@ -61,6 +66,8 @@ export function createAuthority(host: AuthorityHost): Authority {
   type Lifetime = { kind: "loading" } | { kind: "live"; resources: Resources } | { kind: "closed" };
   let lifetime: Lifetime = { kind: "loading" };
   let sides: SideName[] = ["blue"];
+  let commandSide: SideName = "blue";
+  let player: string | undefined;
   // The rules' rate, kept as given: the page's presentation times every
   // effect from it, so a rate derived back from `tickMs` would drift.
   let tickHz = 30;
@@ -193,6 +200,8 @@ export function createAuthority(host: AuthorityHost): Authority {
         case "init": {
           sides = [...new Set(request.sides)];
           if (sides.length === 0) throw new Error("at least one publication side is required");
+          commandSide = sides[0];
+          player = request.player;
           tickHz = JSON.parse(request.scenario).rules.tick_hz;
           tickMs = 1000 / tickHz;
           // A refused scenario or replay throws while building: report it too.
@@ -224,7 +233,15 @@ export function createAuthority(host: AuthorityHost): Authority {
         case "command":
           host.post({
             type: "ack",
-            ack: JSON.parse(activeResources().battle.accept(JSON.stringify(request.command))),
+            id: request.id,
+            ack: JSON.parse(
+              activeResources().battle.accept_order(
+                commandSide,
+                player,
+                JSON.stringify(request.order),
+                request.queued,
+              ),
+            ),
           });
           return;
         case "purchase_preview":
