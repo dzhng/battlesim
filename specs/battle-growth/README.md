@@ -1,11 +1,8 @@
 # Battle growth: a new unit type costs only its own art
 
-**Status:** every slice but 09 is done. In `battle-growth` a one-type
-arrival's longest frame is 55 ms (2.5–2.9 s at the start) and every work
-count is the new art's. Slice 09 (the preload) is with an implementer, on its
-memory report. Open: whether the largest arrivals (0.4 s for nine bundles
-and 27 cards in the reference battle) need their work spread over frames;
-decided with the preload's numbers. Then closeout.
+**Status:** the engine, the transport and the stand-in are on `staging`
+(slices 00–08a, 10, 11). Not shipped: slice 09 (the preload), which is
+written and measured on its own branch. Open follow-ups are listed below.
 **Updated:** 2026-11-15.
 
 This plan replaces the "shared GPU assets across generations" placeholder. That
@@ -17,18 +14,28 @@ player sees, and sharing GPU assets is one part of the fix.
 You are fixing the multi-second freeze that happens whenever a running battle
 first fields a unit type it had not shown. The admission work report exists,
 `battle-growth` prints it, and the [ledger](decisions.md) holds what it and
-the reference battle measured. One slice is out with an implementer, each
-in its own checkout and thread:
+the reference battle measured. What is left, in order:
 
-| Slice | Branch | State |
-| --- | --- | --- |
-| 09 | `t3/battle-growth-stand-in-mechanics` (the checkout of slices 10 and 11) | Building the queue, the scene and the deeper preload behind its off-by-default switch. Its memory report comes last. The depth rule is applied again from 08a's and 05's numbers before the switch could be turned on. |
-
-When one returns: read its whole diff (changed tests first), rerun its checks
-yourself, merge it into this branch, then start what it unblocks (09 after 08).
-When 05 and 08 have both merged, add the texture and card assertions slices
-04 and 05 specified to the gate in `battle-growth`. The build output of the merged checkouts for
-slices 01, 05a and 06 has been removed.
+1. **Lingering page memory.** Right after the first scene the page holds
+   about 1.1 GB of buffers that a garbage collection frees (0.95 GB before
+   this plan, 2.05 GB now, 0.94 GB in both after a forced collection). It came
+   in with slice 00, 01 or 02. Find what leaves them and release them; then
+   repeat the three-run memory comparison against the base. The renderer's
+   WASM memory is 0.12 GB larger, which does not shrink.
+2. **Slice 09, the preload**, on `t3/battle-growth-stand-in-mechanics`
+   (`012834b8d`): the queue, the download warm-up for battles opened by link,
+   and the GPU preload behind `#preload=gpu`, off by default. Its memory
+   report: 3.0 GB more settled with the enemy faction on the GPU. Its
+   `battle-preload` scene must find first contact the way `battle-growth` now
+   does (`web/scenes/_contact-battle.mjs`). Turning the preload on is the
+   player's call.
+3. **The pre-ship review's open findings** (in the ledger): a larger texture
+   arriving retires every card layer; the resident card read-back that only
+   tests reach; the scenery placement guard that can no longer fire.
+4. **Large arrivals.** Nine bundles and 27 cards at once still cost one frame
+   of about 0.4 s. Decide between spreading an arrival's work over frames and
+   relying on the preload.
+5. Closeout: correct the stale WASM note in one-renderer, then `close-spec`.
 
 Read, in this order: this file, the [decisions ledger](decisions.md), the slice
 you are about to build, the [renderer contract](../../crates/renderer-core/README.md)
