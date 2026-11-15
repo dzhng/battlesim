@@ -69,3 +69,9 @@ def source_path(kit, look, mode, army=None):
     first = KITS[kit]["armies"][0]
     prefix = "" if army is None or army == first else army + "_"
     return os.path.join(REPO, "assets/source/roster/infantry", kit, f"{prefix}{mode}_{look}.glb")
+
+
+def crew_source(army):
+    """The source a vehicle's crew are cut from: the army's crew kit
+    (`armies.json` `crew_kit`), look a, active."""
+    return source_path(armies()[army]["crew_kit"], "a", "active", army)

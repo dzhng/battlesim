@@ -3,7 +3,8 @@
 Crew are part of the vehicle appearance, not extra simulation soldiers. The
 driver follows the body; a gunner follows the mount's yaw, not barrel pitch.
 
-- A vehicle's crew wear its faction's soldier (`soldier_source`).
+- A vehicle's crew wear its army's soldier: the family names the army
+  (`vehicle_export.run` `crew_army`) and `infantry_roster.crew_source` its source.
 - Crew are drawn from the soldier's tier 1 down: vehicle tier t carries the
   soldier's tier t + 1, and the far tier 3 carries no crew. They are the
   vehicle's own triangles, so its budget counts them.
@@ -18,30 +19,14 @@ import os
 import copy
 import json
 import struct
-from pathlib import Path
 
 import bmesh
 import bpy
 from mathutils import Matrix, Vector
 
-REPO = Path(__file__).resolve().parents[3]
-# Each faction's crew soldier, an appearance in assets/catalog.json: its army's
-# rifleman (the rifle squad's faction look). Vehicles pick up a changed
-# look when they are next exported.
-CREW_SOLDIER = {
-    "us": "rifle_squad_active_a",
-    "europe": "rifle_squad_europe_active_a",
-    "eastern": "rifle_squad_eastern_active_a",
-}
 CREW_TIERS = 3
 WEAPON_JOINT = "hand_r"
 PREFIX = "crew_"
-
-
-def soldier_source(faction):
-    """The source GLB of the faction's crew soldier."""
-    appearances = json.loads((REPO / "assets/catalog.json").read_text())["appearances"]
-    return str(REPO / appearances[CREW_SOLDIER[faction]]["source"])
 
 
 def _without_weapon(mesh):

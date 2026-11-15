@@ -217,4 +217,4 @@ def wreck(variant, v):
     rest_on_ground(0.004)
 
 
-run("humvee", "us_desert_tan", build, wreck)
+run("humvee", "us_desert_tan", build, wreck, crew_army="us_army_ocp")

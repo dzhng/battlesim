@@ -30,3 +30,19 @@ this ledger from scratch against the shipped code.
 - **The generator's prompt text is written now, in `armies.json`**, from
   today's look table; slice 04 composes it. Provisional: slice 05 judges
   whether the wording gets the cues.
+
+## Slice 02
+
+- **The crew kit is army data (`armies.json` `crew_kit`).** Sound.
+  - *Why:* the Marines aren't in `rifle_squad`, so the LAV's MARPAT crew
+    (slice 07) needs another kit: `us_marine_squad_close_quarters_infantry`.
+  - *Values:* `rifle_squad` for the three armies in it today. The French name
+    their crew kit in slice 06.
+- **No unit test for the "crewed family without `crew_army`" refusal.** Sound.
+  - *Why:* it is a one-line guard, and testing it would mean mocking `bpy`
+    deep inside `_export`. AGENTS.md keeps unit tests for complex logic.
+  - *How it was checked:* reading the code; all six families export with
+    their army.
+- **Proof against fresh references:** the Tigr's reference crew came from a
+  freshly exported EMR soldier, which differs from the committed file (the
+  pre-existing drift). Its proof re-exported that soldier first. Sound.

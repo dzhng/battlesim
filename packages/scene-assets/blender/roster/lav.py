@@ -281,4 +281,4 @@ def wreck(variant, v):
     rest_on_ground(0.004)
 
 
-run("lav", "us_desert_tan", build, wreck, chip=0.6)
+run("lav", "us_desert_tan", build, wreck, chip=0.6, crew_army="us_army_ocp")

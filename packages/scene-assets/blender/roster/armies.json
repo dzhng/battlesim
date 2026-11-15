@@ -20,7 +20,8 @@
         "a": "A black night-vision mount on the front of the helmet, ballistic glasses, a medium skin tone.",
         "b": "Loose scrim netting over the helmet, no glasses, dark skin, a sand shemagh at the neck.",
         "c": "A plain helmet cover, ballistic glasses, fair skin."
-      }
+      },
+      "crew_kit": "rifle_squad"
     },
     "usmc_marpat": {
       "faction": "us",
@@ -33,7 +34,8 @@
         "a": "A black night-vision mount on the front of the helmet, ballistic glasses, a medium skin tone.",
         "b": "A plain helmet cover, wraparound ballistic glasses, dark skin.",
         "c": "A plain helmet cover, no glasses, fair skin."
-      }
+      },
+      "crew_kit": "us_marine_squad_close_quarters_infantry"
     },
     "german_flecktarn": {
       "faction": "europe",
@@ -46,7 +48,8 @@
         "a": "A black night-vision mount on the front of the helmet, no glasses, a medium skin tone.",
         "b": "A plain helmet cover, no glasses, dark skin.",
         "c": "A plain helmet cover, ballistic glasses, fair skin."
-      }
+      },
+      "crew_kit": "rifle_squad"
     },
     "eastern_emr": {
       "faction": "eastern",
@@ -59,7 +62,8 @@
         "a": "A dark green balaclava covering the face except the eyes, no knee pads.",
         "b": "A dark green balaclava covering the face except the eyes, knee pads.",
         "c": "The face uncovered, fair skin, light stubble, knee pads."
-      }
+      },
+      "crew_kit": "rifle_squad"
     }
   }
 }

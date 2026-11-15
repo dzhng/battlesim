@@ -8,9 +8,9 @@ squads that wore the wrong army today move to them.
 
 ## Next Agent Prompt
 
-*Status (2026-11-15):* slices 00 (the pilot) and 01 are committed on branch
-`t3/soldier-3d-model-comparison`. **Next: slice 02.** Slice 04 can run in
-parallel, because it touches only Node tooling.
+*Status (2026-11-15):* slices 00–02 are committed on branch
+`t3/soldier-3d-model-comparison`. **Next: slice 03.** Slice 04 (Node tooling) is
+being built in parallel in its own worktree; merge it when it lands.
 
 You are implementing this spec.
 1. Pick up at the first unchecked slice below.
@@ -40,7 +40,7 @@ afterwards.
 **Checklist:**
 - [x] Commit the pilot on the branch (`291546b64`)
 - [x] 01 One owner each for pins, army data and source paths ([slice](slices/01-data-owners.md))
-- [ ] 02 Crews wear their vehicle's army ([slice](slices/02-crew-by-army.md))
+- [x] 02 Crews wear their vehicle's army ([slice](slices/02-crew-by-army.md))
 - [ ] 03 The wearer handles every soldier; a lying-fit gate for every corpse ([slice](slices/03-wearer.md))
 - [ ] 04 One generation tool: pins, resume, cost ledger ([slice](slices/04-generation-tool.md))
 - [ ] 05 Probe bodies: a second army, a scout, the kind cue ([slice](slices/05-probes.md))

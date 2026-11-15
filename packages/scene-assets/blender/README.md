@@ -43,9 +43,10 @@ Clips and meshes must retain the shared skeleton contract: regenerating one does
 not regenerate the other. Shared rig, weapon and mesh-tier helpers concentrate
 that policy rather than defining extra standalone asset commands.
 
-Visible vehicle crew ([crew module](vehicle_crew.py)) reuse their faction's
-exported soldier art in fixed operating poses, from the soldier's tier 1 down
-and without the weapon. They belong to the vehicle's appearance and mount
+Visible vehicle crew ([crew module](vehicle_crew.py)) reuse the exported
+soldier art of the army their family names (`run(..., crew_army=...)`, that
+army's crew kit in [`armies.json`](roster/armies.json)) in fixed operating
+poses, from the soldier's tier 1 down and without the weapon. They belong to the vehicle's appearance and mount
 hierarchy, rather than adding simulation soldiers. Re-export their vehicles
 after changing the infantry source; the crew exporter preserves that source's
 exact textures and material masks on the crew's own materials only.
