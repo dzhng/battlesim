@@ -94,6 +94,13 @@ export interface InstalledAppearances {
   templates?: InstalledTemplateArt;
 }
 
+/** Page work counted since the document loaded, split from GPU admission work. */
+export interface AdmissionPageWork {
+  runtimeContentsInflated: number;
+  runtimeContentBytesInflated: number;
+  appearanceLibraryInstalls: number;
+}
+
 /** The template art library as installed: its rows, and each of its modules
  *  bound to the installed kit bundle state that draws it, or to none while
  *  its kit is absent (parallel to `library.modules`). */
@@ -190,7 +197,14 @@ export class AppearanceLibrary {
   private source: Source | null = null;
   /** Repeated requests for the same appearance and source share one load. */
   private readonly arriving = new Map<string, Promise<InstalledAppearance>>();
-  private work = {
+  /** Concurrent unit widening requests become one ordered generation change. */
+  private unitsTail: Promise<void> = Promise.resolve();
+  private queuedWiden: {
+    wearing: Set<string>;
+    asked: Set<string>;
+    waiters: { resolve: (value: InstalledAppearances) => void; reject: (error: unknown) => void }[];
+  } | null = null;
+  private work: AdmissionPageWork = {
     runtimeContentsInflated: 0,
     runtimeContentBytesInflated: 0,
     appearanceLibraryInstalls: 0,
@@ -209,11 +223,11 @@ export class AppearanceLibrary {
     return this.source?.catalog ?? null;
   }
 
-  admissionWork() {
+  admissionWork(): AdmissionPageWork {
     return { ...this.work };
   }
 
-  takeAdmissionWork() {
+  takeAdmissionWork(): AdmissionPageWork {
     const work = this.admissionWork();
     this.work = {
       runtimeContentsInflated: 0,
@@ -288,20 +302,74 @@ export class AppearanceLibrary {
    * fetched, its textures the load already has are not, and when it lacks
    * nothing it is returned as it is.
    */
-  async withUnits(wearing: ReadonlySet<string>): Promise<InstalledAppearances> {
+  async withUnits(
+    wearing: ReadonlySet<string>,
+    asked: Iterable<string> = [],
+  ): Promise<InstalledAppearances> {
+    return this.queueWiden(wearing, asked);
+  }
+
+  private queueWiden(
+    wearing: Iterable<string>,
+    asked: Iterable<string>,
+  ): Promise<InstalledAppearances> {
+    const queued = (this.queuedWiden ??= { wearing: new Set(), asked: new Set(), waiters: [] });
+    for (const name of wearing) queued.wearing.add(name);
+    for (const name of asked) queued.asked.add(name);
+    const promise = new Promise<InstalledAppearances>((resolve, reject) =>
+      queued.waiters.push({ resolve, reject }),
+    );
+    if (queued.waiters.length === 1)
+      queueMicrotask(() => {
+        const batch = this.queuedWiden;
+        this.queuedWiden = null;
+        if (!batch) return;
+        const run = this.unitsTail.then(() => this.widen(batch.wearing, batch.asked));
+        this.unitsTail = run.then(
+          () => undefined,
+          () => undefined,
+        );
+        run.then(
+          (value) => batch.waiters.forEach(({ resolve }) => resolve(value)),
+          (error) => batch.waiters.forEach(({ reject }) => reject(error)),
+        );
+      });
+    return promise;
+  }
+
+  private async widen(
+    wearing: ReadonlySet<string>,
+    asked: Iterable<string>,
+  ): Promise<InstalledAppearances> {
     const source = this.source;
     if (!source || !this.current)
       throw new Error("unit art was asked for before a catalog was loaded");
-    if (!source.wearing) return this.current;
-    const wider = new Set([...source.wearing, ...wearing]);
+    const wider = new Set([...(source.wearing ?? []), ...wearing]);
     const held = this.current.appearances;
-    const absent = catalogLoadNames(source.catalog, wider, source.factions, source.scenery).filter(
-      (name) => !held.has(name),
+    const absentUnits = source.wearing
+      ? catalogLoadNames(source.catalog, wider, source.factions, source.scenery).filter(
+          (name) => !held.has(name),
+        )
+      : [];
+    const requested = [...new Set(asked)];
+    const bytes = downloadBytes(
+      source.catalog,
+      requested.filter((name) => {
+        const entry = source.catalog.appearances[name];
+        return entry && fetchedOnRequest(entry);
+      }),
+      source.wearing,
+      source.factions,
+      source.scenery,
     );
+    if (bytes > MAP_DOWNLOAD_MAX_BYTES)
+      throw new Error(`map download ${bytes} bytes is over ${MAP_DOWNLOAD_MAX_BYTES}`);
+    const absentAsked = requested.filter((name) => !held.has(name));
+    const absent = [...new Set([...absentUnits, ...absentAsked])];
     if (absent.length === 0) return this.current;
     admitLoad(source.catalog, wider, source.factions, source.scenery);
     const { sides, skeletons } = this.current;
-    const neededSkeletons = [...skeletonIds(source.catalog, absent)].filter(
+    const neededSkeletons = [...skeletonIds(source.catalog, absentUnits)].filter(
       (id) => !skeletons.has(id),
     );
     await Promise.all(
@@ -319,13 +387,16 @@ export class AppearanceLibrary {
         async (name) =>
           [
             name,
-            await this.arrive(source, name, () => this.appearance(source, name, skeletons)),
+            await (absentUnits.includes(name)
+              ? this.arrive(source, name, () => this.appearance(source, name, skeletons))
+              : this.onRequest(source, name)),
           ] as const,
       ),
     );
     // The catalog was loaded again meanwhile: these are the new one's to answer for.
-    if (this.source !== source) return this.withUnits(wearing);
-    source.wearing = new Set([...source.wearing, ...wearing]);
+    if (this.source !== source) return this.widen(wearing, asked);
+    // A load of every unit has nothing to widen and stays that way.
+    if (source.wearing) source.wearing = new Set([...source.wearing, ...wearing]);
     const { appearances, templates } = this.current;
     return this.install(source, sides, skeletons, new Map([...appearances, ...arrived]), templates);
   }
@@ -340,33 +411,8 @@ export class AppearanceLibrary {
    * generation stays.
    */
   async withAppearances(names: Iterable<string>): Promise<InstalledAppearances> {
-    const source = this.source;
-    if (!source || !this.current)
-      throw new Error("appearances were asked for before a catalog was loaded");
-    const requested = [...new Set(names)];
-    const bytes = downloadBytes(
-      source.catalog,
-      requested.filter((name) => {
-        const entry = source.catalog.appearances[name];
-        return entry && fetchedOnRequest(entry);
-      }),
-      source.wearing,
-      source.factions,
-      source.scenery,
-    );
-    if (bytes > MAP_DOWNLOAD_MAX_BYTES)
-      throw new Error(`map download ${bytes} bytes is over ${MAP_DOWNLOAD_MAX_BYTES}`);
-    const held = this.current.appearances;
-    const absent = requested.filter((name) => !held.has(name));
-    if (absent.length === 0) return this.current;
-    const arrived = await Promise.all(
-      absent.map(async (name) => [name, await this.onRequest(source, name)] as const),
-    );
-    // The catalog was loaded again meanwhile: these are the new one's to answer for.
-    if (this.source !== source) return this.withAppearances(requested);
-    // Onto whatever is installed by now: another request may have landed first.
-    const { sides, skeletons, appearances, templates } = this.current;
-    return this.install(source, sides, skeletons, new Map([...appearances, ...arrived]), templates);
+    const wearing = this.source?.wearing ?? new Set<string>();
+    return this.queueWiden(wearing, names);
   }
 
   /** Install the next generation: `appearances` of `source`, and its template

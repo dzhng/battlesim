@@ -15,6 +15,7 @@ type Result<T> = std::result::Result<T, String>;
 /// Source of decoded bundles for appearance admission.
 pub trait BundleSource {
     fn bundle(&self, name: &str) -> Result<Arc<Bundle>>;
+    fn content_id(&self, name: &str) -> Result<ContentId>;
 }
 
 /// Fetched bundles retained by a platform shell across renderer rebuilds.
@@ -418,11 +419,22 @@ impl Library {
             self.bundles.remove(&content);
         }
     }
+
+    pub fn content_id(&self, name: &str) -> Result<ContentId> {
+        self.names
+            .get(name)
+            .cloned()
+            .ok_or_else(|| format!("bundle not loaded: {name}"))
+    }
 }
 
 impl BundleSource for Library {
     fn bundle(&self, name: &str) -> Result<Arc<Bundle>> {
         self.bundle(name)
+    }
+
+    fn content_id(&self, name: &str) -> Result<ContentId> {
+        self.content_id(name)
     }
 }
 

@@ -55,15 +55,50 @@ Each is confirmed by the slice named, which then moves it to the section below.
 
 | Fact | Slice |
 | --- | --- |
-| The art library installs twice per new type (`withUnits` then `withAppearances` in `gameAppearances.ts`) | 01 |
 | The download prefetch is idle on a battle opened by link because only the menu enables it | 09 |
-| Catalog admission and fielding derive the same facts from a bundle | 01 |
 | A hull's size reaches presentation only for fielded types; the unit catalog has it for every type | 10 |
 | An unfielded vehicle has a pick of no size today, so it cannot be clicked; an unfielded squad's soldiers can | 10 |
 | An undrawn enemy still gets a HUD readout, because readouts follow picks | 10 |
 | The archived WASM exhaustion predates texture sharing | closeout |
 
 ## Confirmed during implementation
+
+**Slice 01, 2026-11-15.** What was confirmed:
+
+- **Every fielding read everything again.** `useBattleFielding` made a fresh
+  Rust `Fielding` for every request, and each one inflated all of the battle's
+  contents (136 files, 635 MB in `battle-growth`). A growth widens the kinds by
+  the type just met, so that happened at every growth. It was the stall before
+  each freeze.
+- **After the slice, measured in `battle-growth` on the merged tree:** the
+  growth reads 2 files (8 MB), the new squad's bundle and its skeleton, and
+  installs one art generation. The first scene reads 136 and installs two (the
+  units, then the map's kits).
+- **The battle is staged twice before one commit** in that scene, as in the
+  reference probe's first growth. Whether those are two types met moments
+  apart or one request made twice is not settled; slice 08's gate (one
+  admission per growth) owns it.
+- **The doubled install** came from `useMapAppearances`, which asks the
+  library twice (once for the units, once when the map knows its kits). The
+  two requests raced, and each installed a generation.
+- **Catalog admission and fielding derive different facts** from a bundle:
+  admission (`Asset::from_bundle`) derives bounds, poses and static states;
+  fielding derives a unit's joints, rig and clip table and a wreck's pieces.
+  Neither replaces the other, so by the slice's rule the facts stay with
+  fielding.
+
+Decisions made where slice 01 was silent:
+
+| Decision | Why, and what was rejected |
+| --- | --- |
+| Fielding keeps `Facts`: per appearance, the record and clip table it derives, keyed by bundle hash and skeleton hash; per wreck, its pieces' bounds, keyed by bundle hash. The bytes are dropped when `resolve` returns | Rejected: caching the inflated bytes in Rust (the first pass did; it is the byte cache the plan rejected, inside the 4 GB heap) |
+| The WASM `Fielding` object owns the facts, and a `FieldingOwner` in the page owns that object for one battle and frees it | Rejected: a module-level map of fieldings keyed by the serialized inputs, which leaked them and serialized megabytes per call |
+| An owner asked to field the same inputs again returns its last result without calling Rust | An art install changes the request object but none of fielding's inputs |
+| A change to the rules, either catalog or the factions makes a new Rust fielding | They are fixed when it is made; only the kinds can change under it |
+| A new skinned body reads its skeleton again even when another body already used it | Keeping the parsed skeleton would hold its clips twice; it is one file, and only when kinds widen |
+| `contents()` names a skeleton only for a body that wears it | It named every skeleton in the catalog before |
+| Unit widenings and on-request appearances that arrive together are one install | Rejected: serializing them, which still installs once each |
+| `scene installed` takes the page's counts, so the first `art committed` reports its own admission only | The counts were cumulative from page load |
 
 **Slice 00, 2026-11-14.** One growth in `battle-growth` at the scene's own
 graphics profile, from the new report:
@@ -93,7 +128,7 @@ Decisions made where slice 00 was silent:
 | A shell hands in work it did before staging (decoding its draft, the first scenery placement) as the starting report of `Runtime::new` and `stage_assets` | Decoding happens in the library before the runtime sees the art, and the count belongs where the work is |
 | The page's counts are those since the previous `art committed` | The event must say what this admission cost |
 | The scene reads the event's detail from the console call's argument | It needs no test hook in the page, and `LabViewport.tsx` is over its size budget |
-| The first scene publishes no `art committed` event | Nothing gates on it; the Rust test covers a first admission |
+| The first scene publishes no `art committed` event | `scene installed` carries the baseline page work; art commits report only later admissions |
 | The swap test compares the live report and the world's appearance names, not pixels | It proves a dropped, stale or failed candidate changes nothing live without a frame readback; pixel equality starts with slice 03 |
 
 **Slice 00's probe, 2026-11-14.** The reference battle at high graphics in the
@@ -246,3 +281,112 @@ catalog pair, and generated art uses `generatedContentId`. The binding's fallbac
 hash was rejected because it omitted skeleton identity and repeated work at each
 install. `insert_bundle` calls `insert_content`'s single decoder and then routes
 the name; decode failures identify the content.
+
+**Correction to slice 00's small-skirmish numbers, 2026-11-15.** The page's
+counts on the first `art committed` cover everything since the page loaded:
+the first scene publishes no event, so nothing reset them. The 272 contents
+and 2 installs reported for "one growth" in `battle-growth` therefore include
+the first scene's own. The reference probe's later growths, whose counts were
+reset by the commit before them, still show two installs per growth, so the
+doubled install is real. Slice 01 gives the first scene a baseline.
+
+**Slice 02, verified on the merged tree, 2026-11-15.** `battle-growth` at
+growth: 203 bundles sent, 194 decoded. The nine not decoded are names that
+share content with another name. Everything else is decoded again because
+each admission's draft starts with no decoded bundles; slice 07 changes that.
+The scene also shows the battle staged twice before one commit, as the
+reference probe did.
+
+**Slice 01 in the reference battle, 2026-11-15.** The probe again, on the
+merged tree, at high graphics:
+
+| Growth | Staging to commit | Files fielding read | Installs | Cards baked |
+| --- | ---: | ---: | ---: | ---: |
+| 1 (staged twice, 4 s apart) | 109 s | 2 (8 MB) | 1 | 189 |
+| 2 | 65 s | 2 (5 MB) | 1 | 189 |
+| 3 | 69 s | 4 (12 MB) | 1 | 207 |
+| 4 | 70 s | 2 (4 MB) | 1 | 207 |
+
+- Before the slice each growth read all 136 files (635 MB) and installed
+  twice. The first scene still reads 136 and installs two generations.
+- The freeze at staging is unchanged, 2.6–3.6 s, as expected: it is the
+  geometry, texture and transport work of slices 03, 04, 07 and 08.
+- **The doubled staging is two stagings of the same art.** Growth 1 staged
+  twice four seconds apart, both times with 145 appearances, and the first
+  build was thrown away after its bake. The kinds list changes only when its
+  content does, so the second staging is most likely a kind that brings no
+  new appearance (a contact's kind, a wreck's owner). That is not confirmed.
+  Slice 08 owns it: a staging that wants the same art as the build in flight
+  should not discard that build.
+
+**Slice 03, 2026-11-15.**
+
+- `Runtime` owns one `Arc<Mutex<ArtStore>>` per scene/device, also held by model
+  generations. `MaterialSlots` owns append-only ranges per `ContentId`; the weak
+  geometry index owns no buffer lifetime. Rejected: a separate incremental
+  renderer, strong cache retention, or slot renumbering after cancelled work.
+- The geometry key includes content, the resolved static state, an optional
+  baked corpse palette (the exact joint bytes), and the ordered track-side
+  signature. The corpse row/`lies` index is not an identity. Animated skinning
+  keeps the unposed mesh; changing its live palette does not repack it.
+- An admission resolves its complete wanted content and preflights capacity
+  before any geometry allocation. Material and texture tables are rebuilt from
+  the generation's decoded bundles at the store's stable material bases; the
+  slot table retains addresses only, not retired CPU materials or textures.
+  Rejected: retaining old bundle data in the store, or discovering exhaustion
+  midway through a geometry rebuild.
+- The default dead-material-slot tripwire is **8,192 slots**, counting addresses
+  absent from the prospective catalog, including reservations left by dropped
+  preparations. A read of this runtime catalog found 4,587 material rows across
+  479 distinct appearance contents, so the bound exceeds the whole current art
+  catalog and ordinary monotonic battle growth cannot hit it. Rejected: a
+  time-based eviction policy or a tight percentage bound that rebuilds during
+  ordinary growth. `ArtStorePolicy` supplies the bound and platform log sink;
+  firing logs kind, value, bound, owner and the fresh-store outcome.
+- Dead-slot pressure and exhausted historical addresses use the same admission
+  into a new store. A wanted catalog larger than the 16-bit address space is an
+  error; vertex packing also checks the actual material index instead of
+  narrowing with a wrapping cast. Initial admission, device recreation and the
+  two slot tripwires have distinct rebuild reasons; reused growth has none.
+- `BundleSource::content_id` carries the identity to the store. The browser
+  library reads its existing name-to-content index; the native source asks
+  `Runtime::content_id` without caching decoded bundles. Every synthetic source
+  supplies an explicit fixture identity rather than falling back to a name.
+- Geometry lifetimes are generation-held shared references. `Models::Drop`
+  still releases its own per-generation textures; it does not destroy shared
+  vertex/index buffers. The final `Arc<[Drawable]>` holder drops the tiers,
+  whose destructors destroy their buffers. Confirmed in wgpu's browser backend:
+  dropping a buffer handle alone does not destroy its allocation, so deferring
+  this cleanup to browser garbage collection was rejected. The store's
+  memory visitor also counts geometry held by pending generations sharing the
+  live store, without extending those lifetimes beyond the snapshot.
+- Synthetic runtime admissions confirmed exact pixel equality against a clean
+  build after a name-sorting insertion, content replacement and fresh-store
+  fallback. The prescribed key covered those inputs without widening. Dropped
+  and stale candidates also preserve live pixels, and retirement releases the
+  old geometry while the store remains alive.
+- At the scene's own profile and at high, `battle-growth` packs 8,648,160
+  vertex bytes at growth, down from 1,141,746,672. A scratch observer of the
+  committed names found just the BTR-82A and its wreck newly admitted; their
+  bundle vertex counts independently sum to exactly 8,648,160 packed bytes.
+  Geometry uploads are those vertices plus 1,396,896 index bytes; the other
+  126,480 buffer bytes are the generation's material table. Texture/card and
+  scenery work remains for the other slices.
+
+**Slice 03, verified on the merged tree, 2026-11-15.** `battle-growth` at the
+scene's own profile and at high, one growth: 8.6 MB of vertices packed and
+10.2 MB of buffers uploaded, against 1.14 GB and 1.32 GB before. Still whole
+at every growth: 178 texture layers (125 MB, slice 04), 189 cards (slices 05a
+and 05), one scenery placement and 22 MB of scenery (slice 06), and 203
+bundles sent with 194 decoded (slices 07 and 08).
+
+**Slice 07 integration with 01 and 03, 2026-11-15.** A source draft's explicit
+name routes supply `BundleSource::content_id` to the runtime's shared art store,
+including held content and aliases. The delta lifecycle test uses the same
+runtime fixture and pixel reader as the geometry-reuse tests; the common catalog
+fixture stages wanted identities plus facts through presentation's one API.
+All eleven existing admission tests retain their assertions alongside the three
+delta tests. On the merged browser path, growth decoded two bundles and packed
+8,648,160 vertex bytes; the page read two runtime files and installed once.
+The first-scene facts guard precedes consuming the pending rebuild reason, which
+is cleared only after successful renderer installation.

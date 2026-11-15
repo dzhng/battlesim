@@ -1,7 +1,7 @@
 # Battle growth: a new unit type costs only its own art
 
-**Status:** slice 00 is done. Slices 01, 02 and 10 are in review fix rounds,
-and slice 06 is being timed, each on its own branch (see the lanes below).
+**Status:** slices 00, 01, 02 and 03 are done. Five slices are out with
+implementers (see the lanes below).
 **Updated:** 2026-11-15.
 
 This plan replaces the "shared GPU assets across generations" placeholder. That
@@ -13,19 +13,22 @@ player sees, and sharing GPU assets is one part of the fix.
 You are fixing the multi-second freeze that happens whenever a running battle
 first fields a unit type it had not shown. The admission work report exists,
 `battle-growth` prints it, and the [ledger](decisions.md) holds what it and
-the reference battle measured. Four slices are out with implementers; none
-has merged since slice 00:
+the reference battle measured. Five slices are out with implementers, each
+in its own checkout and thread:
 
 | Slice | Branch | State |
 | --- | --- | --- |
-| 01 | `t3/battle-growth-admission-report` | First pass rejected: it cached inflated bytes in WASM, and its install count was 1 by construction. Fix round sent. |
-| 02 | the "content identity" child's branch | First pass close: six findings (a second SHA-256, a draining getter, orphaned content). Fix round sent. |
-| 06 | the "statics carry" child's branch | Timing scenery work at growth; builds only if it costs more than a frame. |
-| 10 | `t3/battle-growth-stand-in-mechanics` | Fix round sent for the findings in the ledger. |
+| 04 | `t3/art-content-identity` (the checkout of slices 02 and 03) | Building. |
+| 05a | `t3/cards-bake-together` | Confirms the cause first, then builds. |
+| 06 | `t3/battle-growth-scenery-grass-timing` | Measured 91–120 ms per growth, so it was built. Fix round: it hashed every bundle on every admission and deep-copied the placement. |
+| 07 | `t3/battle-growth-catalog-delta` | Fix round: it had not run in a browser, and the library and presentation can disagree about what content is held. |
+| 10 | `t3/battle-growth-stand-in-mechanics` | Second fix round: the mechanics are right in Rust; it has not been seen running. |
 
 When one returns: read its whole diff (changed tests first), rerun its checks
-yourself, merge it into this branch, then start what it unblocks (03 and 07
-after 02; 11 after 10).
+yourself, merge it into this branch, then start what it unblocks (05 after 04
+and 05a; 08 after 05, 06 and 07; 11 after 10). Slices 04, 05a, 06 and 07 all
+touch `crates/renderer-core`; whichever merges later merges this branch in
+first.
 
 Read, in this order: this file, the [decisions ledger](decisions.md), the slice
 you are about to build, the [renderer contract](../../crates/renderer-core/README.md)
@@ -47,17 +50,18 @@ Warnings:
 - Each checkout's Rust build adds 3–22 GB. Check free space before a cold
   build, and remove a checkout's build output when its branch has merged. A
   burst of unrelated failures after a build usually means it ran out of space.
-- Slices 01 and 10 both change `crates/presentation/src/fielded.rs`; whichever
-  merges second merges the other in first.
+- The scenes and GPU tests of every lane share one GPU lock, so a long probe
+  in one lane holds up the others' scenes. Start scenes in the background and
+  wait for the lock.
 - Two implementers so far deleted or shortened comments to fit the file-size
   ratchet. Reject that in review: move code out by concept instead.
 
 Checklist:
 
 - [x] [00 Proof and probes](slices/00-proof-and-probes.md)
-- [ ] [01 Fielding and install](slices/01-fielding-and-install.md)
-- [ ] [02 Content identity](slices/02-content-identity.md)
-- [ ] [03 Geometry reuse](slices/03-geometry-reuse.md)
+- [x] [01 Fielding and install](slices/01-fielding-and-install.md)
+- [x] [02 Content identity](slices/02-content-identity.md)
+- [x] [03 Geometry reuse](slices/03-geometry-reuse.md)
 - [ ] [04 Texture layers](slices/04-texture-layers.md)
 - [ ] [05a Cards bake together](slices/05a-cards-bake-together.md)
 - [ ] [05 Card reuse](slices/05-card-reuse.md)

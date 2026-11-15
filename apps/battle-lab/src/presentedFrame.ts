@@ -11,7 +11,7 @@ import {
   MIN_TARGET_PX,
 } from "@packages/battle-renderer/src/records.gen";
 import type { CatalogView } from "@packages/scene-assets/src/units";
-import { fieldUnits, type RuntimeFiles } from "@web/battle/sim/fielding";
+import { fieldUnits, FieldingOwner, type RuntimeFiles } from "@web/battle/sim/fielding";
 import type {
   PresentedBattle,
   PresentedCamera,
@@ -100,20 +100,23 @@ export function frameCounts(frame: PresentedFrame): { models: ModelCounts; effec
  *  `catalog` under `rules` (its scenario's rules, JSON), each side fighting
  *  for `factions` (blue, red), with the facts the presentation reads of the
  *  battle and the page. */
-export async function fieldedBattle(input: {
-  rules: string;
-  catalog: CatalogView;
-  kinds: readonly string[];
-  factions?: readonly [string, string];
-  runtime: RuntimeFiles;
-  side: SideName;
-  tickHz: number;
-  sun: { azimuth: number; elevation: number };
-  soldier: { soldier_radius_m: number; soldier_height_m: number };
-  xray: { own: readonly number[]; selected: readonly number[]; ally: readonly number[] };
-  blocked: readonly number[];
-}): Promise<PresentedBattle> {
-  const { units, effects, tables } = await fieldUnits(input);
+export async function fieldedBattle(
+  input: {
+    rules: string;
+    catalog: CatalogView;
+    kinds: readonly string[];
+    factions?: readonly [string, string];
+    runtime: RuntimeFiles;
+    side: SideName;
+    tickHz: number;
+    sun: { azimuth: number; elevation: number };
+    soldier: { soldier_radius_m: number; soldier_height_m: number };
+    xray: { own: readonly number[]; selected: readonly number[]; ally: readonly number[] };
+    blocked: readonly number[];
+  },
+  owner?: FieldingOwner,
+): Promise<PresentedBattle> {
+  const { units, effects, tables } = owner ? await owner.field(input) : await fieldUnits(input);
   return {
     world: {
       battle: {

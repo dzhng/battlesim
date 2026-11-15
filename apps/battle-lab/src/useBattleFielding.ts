@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import type { PresentedBattle } from "@web/battle/sim/presentation";
 import { fieldedBattle } from "./presentedFrame";
+import { FieldingOwner } from "@web/battle/sim/fielding";
 
 export interface BattleArt {
   appearances: InstalledAppearances;
@@ -19,6 +20,7 @@ export function useBattleFielding(
     request: typeof request;
     result: { battle: PresentedBattle } | { error: unknown };
   } | null>(null);
+  const owner = useMemo(() => new FieldingOwner(), [scope]);
   const ready = art !== null;
   const admitted = useRef<{
     scope: object;
@@ -26,17 +28,18 @@ export function useBattleFielding(
     art: BattleArt;
   } | null>(null);
   if (admitted.current?.scope !== scope) admitted.current = null;
+  useEffect(() => () => owner.free(), [owner]);
   useEffect(() => {
     if (!ready) return;
     let live = true;
-    fieldedBattle(request).then(
+    fieldedBattle(request, owner).then(
       (battle) => live && setResolved({ scope, request, result: { battle } }),
       (error: unknown) => live && setResolved({ scope, request, result: { error } }),
     );
     return () => {
       live = false;
     };
-  }, [scope, request, ready]);
+  }, [scope, request, ready, owner]);
   if (resolved?.scope === scope && resolved.request === request) {
     if ("error" in resolved.result) throw resolved.result.error;
     if (

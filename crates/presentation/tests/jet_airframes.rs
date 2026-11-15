@@ -11,7 +11,7 @@ use presentation::assets::Runtime;
 use presentation::effects::exhaust::{DrawnJet, Emitter, JetExhaustStyle};
 use presentation::effects::frame::EffectFrame;
 use presentation::effects::tables::EffectPresentation;
-use presentation::fielded::Fielding;
+use presentation::fielded::{Facts, Fielding};
 use presentation::units::drawn::DrawnModels;
 use presentation::units::pose::{PoseFrame, VehiclePose};
 use presentation::world::Appearance;
@@ -71,7 +71,9 @@ fn drawn_roster() -> Vec<(String, String, DrawnJet, [f64; 4], f64)> {
         kinds: &kinds,
         factions: None,
     }
-    .resolve(&|hash| runtime.read(hash, "bundle.bin"))
+    .resolve(&mut Facts::default(), &|hash| {
+        runtime.read(hash, "bundle.bin")
+    })
     .unwrap()
     .typed()
     .unwrap();

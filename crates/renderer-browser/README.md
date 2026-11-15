@@ -31,6 +31,8 @@ texture. It acquires output before consuming incremental presentation work.
 The recovery harness explicitly admits a fresh `BrowserGpu` after device loss,
 then installs current presentation and prepares assets before drawing again.
 A renderer cannot silently replace the page's shared device.
+The new runtime starts with a fresh art store and reports device recreation as
+its rebuild reason. Failed installation keeps that reason for the next attempt.
 The core owns [device reconstruction](../renderer-core/README.md#device-reconstruction).
 
 [Appearance drafts](src/appearance.rs) carry declarations for every wanted name
