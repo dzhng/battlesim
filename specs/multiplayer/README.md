@@ -1,6 +1,6 @@
 # Multiplayer: rooms and Frontline
 
-**Status:** building; the first wave is in flight, nothing integrated yet. **Updated:** 2026-11-14.
+**Status:** building, and blocked on disk space. Nothing is integrated yet. **Updated:** 2026-11-14.
 
 Two online modes on one game server. **Rooms:** a host creates a public or
 private room, which is the skirmish lobby with several humans on either side,
@@ -14,21 +14,40 @@ You are building online multiplayer from this plan, with Codex writing each
 pass in its own checkout and you integrating: read every diff, rerun its
 checks yourself, review, then commit.
 
-**In flight (2026-11-14):**
+**Blocked on disk (2026-11-14).** The machine ran out of space while this
+checkout was building the simulation's tests, with about 3 GB free
+afterwards and other sessions building too. A Rust commit needs the
+pre-commit hook's workspace clippy, which needs a debug build this disk
+cannot hold. Do not build Rust here until the user has freed space; check
+`df -h .` first, and stop under 5 GB.
 
-- Slice 01's two-hour native run is going in this checkout (see the slice
-  file for how to read it). Its host half, O1, has not been started.
-- Slices 02 then 03, and slices 05 then 04, are each with a Codex child in
-  its own checkout. Nothing from them is on this branch yet.
+**Where things are:**
 
-**Next:** integrate those four slices as they come back, then hand out slice
-06. Slices 13 and 20 need nothing first and can go out as soon as a checkout
-is free.
+- **Slices 02 and 03** came back from Codex as two commits on the local
+  branch `t3/per-side-publisher-sim-orders` (`67844ee46`, `25dad0b20`).
+  Slice 02 is half integrated: its changes and two fixes sit uncommitted in
+  this checkout, with a copy at
+  `throwaway/multiplayer/slice02-integration-wip.patch`. It is not ready;
+  read "Found at integration" in [slice 02](slices/02-per-side-publisher.md)
+  before touching it. Slice 03 has not been looked at beyond its diff.
+- **Slices 05 then 04** are with a Codex child on the local branch
+  `t3/multiplayer-record-stream-seats`. Nothing from it is here yet.
+- **Slice 01's** two-hour native run is going in this checkout (see the
+  slice file). Its host half, O1, has not been started.
 
-**Disk is the limit on parallel work.** The machine had about 6 GB free with
-other sessions building on it. Run at most two child checkouts at once, and
-give slices that share no files to one child, one commit each, rather than a
-checkout apiece. Remove a child's checkout once its commits are integrated.
+**Next, once there is space:** finish slice 02 as its file says, then
+integrate 03, 05 and 04 (read every diff, rerun the checks, review, commit),
+then hand out slice 06. Slices 13 and 20 need nothing first.
+
+**Keep parallel work small.** One checkout per child costs about 1 GB before
+any build, and a Rust build adds 1 to 2 GB. Run at most two children at once,
+give slices that share no files to one child, one commit each, and delete a
+child's build output as soon as its commits are safe on a branch.
+
+**What Codex needs watching for.** Both defects in slice 02 hid behind edited
+tests: one assertion was repinned to the new numbers and one was deleted with
+a comment. Read every changed test for a weakened or removed assertion before
+reading anything else.
 
 1. Read [decisions.md](decisions.md) (every row is settled; do not reopen one)
    and [wire.md](wire.md) (the one wire contract). The walk that produced the
