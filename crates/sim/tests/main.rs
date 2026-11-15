@@ -98,3 +98,7 @@ mod protection;
 mod settlement;
 mod shelter;
 mod withdrawal;
+
+mod seat_hand_over;
+mod seat_replay;
+mod seat_reset;

@@ -228,7 +228,7 @@ impl Battle {
                     },
                 );
                 skirmish.record_spawn(
-                    player_index,
+                    reservation.player,
                     unit.id,
                     unit.kind,
                     reservation.price,

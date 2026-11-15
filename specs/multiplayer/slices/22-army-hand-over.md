@@ -73,3 +73,47 @@ Every existing digest and replay. No room path calls this.
 
 How ownership is represented, after reading the battle's data layout; the
 order of seat events within a tick, fixed once and documented.
+
+## As built (2026-11-15)
+
+`crates/sim/src/battle/seats.rs` holds both seat events.
+`Battle::hand_over(player)` records `SeatEvent::HandOver` for the next tick.
+
+- **The receiver** is another seat on the same side that an AI holds
+  (active or passive), with the fewest living units, ties broken by the
+  order of players. It is chosen again when the event applies, from the
+  battle's state, so a replay chooses the same one.
+- **What moves:** every living unit (keeping its place, orders, routes and
+  condition), the whole wallet, and every purchase on its way (keeping its
+  price, kind, destination, road and timing).
+- **What does not move:** history. A unit's spawn and its price stay with
+  the seat that bought it; a kill or a loss counts for whoever held the
+  unit when it happened; dead units keep the owner they died under.
+- **A refund** for a handed-over unit pays the receiver, at the price and
+  age the unit always had.
+- **Purchase numbers:** handed-over purchases are given fresh numbers from
+  the receiver's own counter, so none clashes with one the receiver made.
+- **Over the cap:** the receiver keeps every unit and cannot buy until
+  losses bring it under.
+- **With no AI seat to receive,** the hand-over is refused and nothing
+  changes.
+
+Order within a tick, written where the events apply
+(`apply_seat_events`): controller changes at the boundary before; then
+orders are admitted and executed and that tick's income is paid; then seat
+events in the order they were recorded; then arrivals and the tick. An
+event that is no longer valid when it applies (or one a tampered replay
+supplies) does nothing, live and replayed alike.
+
+A replay carries `seat_events`, absent when there are none. Three existing
+battles recorded before the change (seeds 1, 7 and 19, 600 ticks each) give
+the same 1,803 digests, the same scenario and configuration digests, and
+the same replay apart from the engine stamp; no fixture changed.
+
+Both events are listed among the deliberate rules in `development.md`:
+choosing an AI seat and moving ownership and money follow from no physical
+property.
+
+The native example `crates/sim/examples/seat_events.rs` plays a 5v5, hands
+a seat's six units and its credits over mid-fight, and matches its replay
+at every one of 1,800 ticks.

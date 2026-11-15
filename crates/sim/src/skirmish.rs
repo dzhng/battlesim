@@ -91,12 +91,20 @@ pub fn synthetic_sites(
 pub struct Reservation {
     pub data: PendingPurchase,
     pub price: u32,
+    /// Original buyer, retained for historical spending and spawn reports.
     pub player: usize,
 }
 pub const CREDIT_SCALE: u64 = 1_000_000;
+
+/// Opening money in wallet microcredits, for both admission and seat reset.
+pub(crate) fn opening_wallet(rules: &MatchRules) -> u64 {
+    u64::from(rules.credits_per_minute) * u64::from(rules.starting_minutes) * CREDIT_SCALE
+}
+
 pub struct EnteredUnit {
     pub price: u32,
     pub entered_tick: Tick,
+    /// Current refund beneficiary; price and entry time stay with the unit.
     pub player: usize,
 }
 
@@ -147,9 +155,7 @@ impl PlayerState {
 impl Skirmish {
     pub fn new(setup: SkirmishSetup, source: &[Player]) -> Self {
         let entry_count = setup.sites.entries.len();
-        let budget = u64::from(setup.rules.credits_per_minute)
-            * u64::from(setup.rules.starting_minutes)
-            * CREDIT_SCALE;
+        let budget = opening_wallet(&setup.rules);
         let players = source
             .iter()
             .map(|p| PlayerState::new(p, budget))
@@ -380,13 +386,17 @@ impl Skirmish {
         self.objectives.digest(d);
         self.settlement.digest(d);
         d.u64(self.phase as u64).u64(self.income_remainder);
-        for p in &self.players {
+        for (index, p) in self.players.iter().enumerate() {
             d.u64(p.side.index() as u64)
                 .u64(p.wallet)
                 .u64(p.ready as u64)
                 .u64(p.next_purchase as u64);
             d.u64(p.reservations.len() as u64);
             for r in &p.reservations {
+                // Only transferred reservations need separate buyer identity.
+                if r.player != index {
+                    d.u64(u64::MAX).u64(r.player as u64);
+                }
                 d.u64(r.data.id.0 as u64)
                     .u64(r.data.kind.0 as u64)
                     .f64(r.data.destination[0])

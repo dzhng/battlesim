@@ -21,7 +21,7 @@ simulation test build here, with other sessions building too. Check
 `df -h .` before any Rust build or new checkout. Under about 30 GB free, run
 Rust passes one or two at a time; under 5 GB, start nothing and ask the user.
 
-**Done and committed:** slices 02 to 08, 10 to 17, 20, 21 and 24,
+**Done and committed:** slices 02 to 08, 10 to 17 and 20 to 24,
 and the local half of 09; the
 endurance half of slice 01. The branch holds staging as of
 2026-11-15. **The first playable checkpoint is reached:** two browsers
@@ -126,8 +126,8 @@ Rooms
 Frontline
 - [x] [20 An AI inherits an army](slices/20-ai-inherits-an-army.md) (it copes at 30 and is slow at 150; left so for the alpha by the user)
 - [x] [21 Frontline rules](slices/21-frontline-rules.md)
-- [ ] [22 Army hand-over](slices/22-army-hand-over.md)
-- [ ] [23 Seat reset](slices/23-seat-reset.md)
+- [x] [22 Army hand-over](slices/22-army-hand-over.md)
+- [x] [23 Seat reset](slices/23-seat-reset.md)
 - [x] [24 Frontline placement](slices/24-frontline-placement.md)
 - [ ] [25 Frontline service](slices/25-frontline-service.md)
 - [ ] [26 Briefing card and Play](slices/26-briefing-card.md)

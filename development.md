@@ -119,6 +119,12 @@ the one list of deliberate hard-coded rules:
   team to coordinate by; an AI opens on its own lane and lets the pull fade as
   the battle goes on, and every purchase still arrives by the side's quickest
   road;
+- a recorded army hand-over passes a seat’s living units, wallet and pending
+  purchases to the other AI-held seat on its side with the fewest living units,
+  ties broken by seat order; it may exceed the receiver’s buying cap;
+- a recorded seat reset requires no living units or pending purchases, then
+  replaces that seat’s wallet with opening credits or zero as its caller
+  decides; human identity and once-per-person grants belong to the server;
 - the skirmish AI and the scripted encounter defender choose their behaviour by
   role tags (logistics, artillery, recon, AT, MBT). They are opponents'
   playbooks, not rules of the battle.

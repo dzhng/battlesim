@@ -60,3 +60,18 @@ every five seconds. That is accepted for the alpha.
 P17 is the user's to overturn: a player who rejoins a game they left starts
 with no credits. The alternative is letting them take their old seat back as
 it stands if its AI still holds it.
+
+## As built (2026-11-15)
+
+`Battle::reset_seat(player, opening)` records `SeatEvent::Reset` for the
+next tick. It is refused for a seat that still holds a living unit or a
+purchase on its way. It sets the seat's wallet to the opening credits (the
+same sum a battle starts every seat with) or to nothing, as the event
+says, and income resumes on the next tick. The seat's order sequence, its
+purchase counter, its controller and its history carry on.
+
+The example now hands a seat over, resets it, and has it buy its first
+unit, which drives in by that side's road; it matches its replay at every
+tick with both events. A replay whose reset is moved a tick, named for
+another player, or flipped to no opening credits does not reproduce the
+battle.

@@ -89,7 +89,14 @@ A confirmed purchase reserves both its cost and a place under the player's unit
 cap; physical entry converts that reservation to a living unit only when the road-edge footprint
 is clear. Browser previews use side knowledge, while actual entry checks physical
 bodies. These are different questions and must not expose private occupancy through
-a free preview. [Match contracts](../contract/src/skirmish.rs) carry setup and the
+a free preview. [Recorded seat events](src/battle/seats.rs) transfer current ownership without
+rewriting history: spending and spawn receipts name the buyer, while a kill, loss
+or refund names the owner when it happens. Pending purchases keep their buyer
+and arrival data, with new receiver-local cancellation handles. Orders already
+admitted survive a transfer. A reset replaces only an empty seat’s wallet; its
+identity, command sequence, AI memory and historical totals continue. The caller
+decides whether opening credits are owed. The event module owns tick ordering.
+[Match contracts](../contract/src/skirmish.rs) carry setup and the
 side's observation through the existing publication owner.
 [Entries](src/entries.rs) is the one owner of which of a side's roads a
 reinforcement takes and where a unit leaves the map; the roads are the side's,
