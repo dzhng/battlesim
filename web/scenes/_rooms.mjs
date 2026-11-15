@@ -76,7 +76,27 @@ export async function onlinePage(ctx, local, name, path = "/multiplayer") {
   if (path.startsWith("/room/"))
     await page.getByRole("region", { name: "Room lobby" }).waitFor({ timeout: 120_000 });
   else await page.getByRole("textbox", { name: "Callsign" }).waitFor({ timeout: 120_000 });
-  await page.getByTestId("loading").waitFor({ state: "hidden", timeout: 120_000 });
+  try {
+    await Promise.race([
+      page.getByTestId("loading").waitFor({ state: "hidden", timeout: 120_000 }),
+      page
+        .getByTestId("error")
+        .waitFor({ state: "visible", timeout: 120_000 })
+        .then(() => {
+          throw new Error("Online preparation was refused");
+        }),
+    ]);
+  } catch (error) {
+    const failure = page.getByTestId("error");
+    if (await failure.count()) {
+      const details = failure.getByRole("button", { name: "Details", exact: true });
+      if (await details.count()) await details.click();
+      throw new Error(`Online page preparation failed: ${await failure.innerText()}`, {
+        cause: error,
+      });
+    }
+    throw error;
+  }
   await page.evaluate(() => document.fonts.ready);
   return { page, build };
 }

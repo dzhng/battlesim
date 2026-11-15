@@ -88,6 +88,7 @@ export type RoomView = {
   phase: { kind: "lobby" } | { kind: "starting" } | { kind: "battle"; ticket: BattleTicket };
 };
 export type RoomList = {
+  frontline: { battles: number; commanders: number };
   rooms: {
     code: RoomCode;
     host: string;

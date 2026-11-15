@@ -8,7 +8,8 @@ import { callsign, setCallsign } from "./identity";
 import { hello } from "./hello";
 import { serverAddress } from "./server";
 import { joinRoom, stateStream } from "./stateStream";
-import { roomFailure, roomRequest } from "./roomRequests";
+import { roomFailure, onlineRequest } from "./requests";
+import { Frontline } from "./Frontline";
 import "./online.css";
 
 export function MultiplayerPage() {
@@ -72,7 +73,7 @@ export function MultiplayerPage() {
     });
   const make = (visibility: "public" | "private") =>
     run(async (signal) => {
-      const room = await roomRequest<{ code: string }>(address, "/rooms", { visibility }, signal);
+      const room = await onlineRequest<{ code: string }>(address, "/rooms", { visibility }, signal);
       if (!signal.aborted) navigate(`/room/${encodeURIComponent(room.code)}${location.search}`);
     });
   return (
@@ -120,100 +121,110 @@ export function MultiplayerPage() {
       ) : available === null ? (
         <p role="status">Connecting…</p>
       ) : (
-        <section className="online-rooms" aria-label="Public rooms">
-          <div className="online-room-tools">
-            <h3>Public rooms</h3>
-            <span className="online-seat-key">
-              <SeatStrip seats={["human"]} />
-              Player <SeatStrip seats={["open"]} />
-              Open <SeatStrip seats={["ai"]} />
-              AI
-            </span>
-            <span className="online-spacer" />
-            <button type="button" onClick={() => setJoining(!joining)}>
-              Join private room
-            </button>
-            <button type="button" onClick={() => setCreate(!create)}>
-              Create room
-            </button>
-          </div>
-          {joining && (
-            <form
-              className="online-room-tools"
-              onSubmit={(event) => {
-                event.preventDefault();
-                void enter(code.trim().toUpperCase());
-              }}
-            >
-              <label>
-                Room code{" "}
-                <input
-                  aria-label="Room code"
-                  value={code}
-                  onChange={(event) => setCode(event.target.value)}
-                  autoFocus
-                />
-              </label>
-              <button type="submit" disabled={busy || !code.trim()}>
-                Enter room
+        <>
+          <Frontline
+            address={address}
+            counts={list?.frontline}
+            onCallsign={(assigned) => {
+              assignedName.current = assigned;
+              setName(assigned);
+            }}
+          />
+          <section className="online-rooms" aria-label="Public rooms">
+            <div className="online-room-tools">
+              <h3>Public rooms</h3>
+              <span className="online-seat-key">
+                <SeatStrip seats={["human"]} />
+                Player <SeatStrip seats={["open"]} />
+                Open <SeatStrip seats={["ai"]} />
+                AI
+              </span>
+              <span className="online-spacer" />
+              <button type="button" onClick={() => setJoining(!joining)}>
+                Join private room
               </button>
-            </form>
-          )}
-          {create && (
-            <div className="online-room-tools" role="group" aria-label="Room visibility">
-              <button type="button" disabled={busy} onClick={() => void make("public")}>
-                Public room
-              </button>
-              <button type="button" disabled={busy} onClick={() => void make("private")}>
-                Private room
+              <button type="button" onClick={() => setCreate(!create)}>
+                Create room
               </button>
             </div>
-          )}
-          {error && <p role="alert">{error}</p>}
-          {list === null ? (
-            <p role="status">Finding rooms…</p>
-          ) : list.rooms.length === 0 ? (
-            <p role="status" aria-label="No public rooms">
-              No public rooms. Create one and call in your team.
-            </p>
-          ) : (
-            <ul className="online-room-list" aria-label="Rooms">
-              {list.rooms.map((room) => {
-                const open = [...room.blue, ...room.red].includes("open");
-                return (
-                  <li
-                    key={room.code}
-                    className="online-room-row"
-                    aria-label={`${room.host}'s room`}
-                  >
-                    <strong>{room.host}'s room</strong>
-                    <span className="online-room-map" aria-label="Map">
-                      <small className="lobby-label">Map</small> {spoken(room.map.type)} ·{" "}
-                      {spoken(room.map.size)}
-                      {room.map.region ? ` · ${spoken(room.map.region)}` : ""}
-                    </span>
-                    <span className="online-room-seats">
-                      <SeatStrip seats={room.blue} side="blue" /> VS{" "}
-                      <SeatStrip seats={room.red} side="red" />
-                    </span>
-                    {open ? (
-                      <button
-                        type="button"
-                        disabled={busy}
-                        aria-label={`Join ${room.host}'s room`}
-                        onClick={() => void enter(room.code)}
-                      >
-                        Join
-                      </button>
-                    ) : (
-                      <span>FULL</span>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
+            {joining && (
+              <form
+                className="online-room-tools"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void enter(code.trim().toUpperCase());
+                }}
+              >
+                <label>
+                  Room code{" "}
+                  <input
+                    aria-label="Room code"
+                    value={code}
+                    onChange={(event) => setCode(event.target.value)}
+                    autoFocus
+                  />
+                </label>
+                <button type="submit" disabled={busy || !code.trim()}>
+                  Enter room
+                </button>
+              </form>
+            )}
+            {create && (
+              <div className="online-room-tools" role="group" aria-label="Room visibility">
+                <button type="button" disabled={busy} onClick={() => void make("public")}>
+                  Public room
+                </button>
+                <button type="button" disabled={busy} onClick={() => void make("private")}>
+                  Private room
+                </button>
+              </div>
+            )}
+            {error && <p role="alert">{error}</p>}
+            {list === null ? (
+              <p role="status">Finding rooms…</p>
+            ) : list.rooms.length === 0 ? (
+              <p role="status" aria-label="No public rooms">
+                No public rooms. Create one and call in your team.
+              </p>
+            ) : (
+              <ul className="online-room-list" aria-label="Rooms">
+                {list.rooms.map((room) => {
+                  const open = [...room.blue, ...room.red].includes("open");
+                  return (
+                    <li
+                      key={room.code}
+                      className="online-room-row"
+                      aria-label={`${room.host}'s room`}
+                    >
+                      <strong>{room.host}'s room</strong>
+                      <span className="online-room-map" aria-label="Map">
+                        <small className="lobby-label">Map</small> {spoken(room.map.type)} ·{" "}
+                        {spoken(room.map.size)}
+                        {room.map.region ? ` · ${spoken(room.map.region)}` : ""}
+                      </span>
+                      <span className="online-room-seats">
+                        <SeatStrip seats={room.blue} side="blue" /> VS{" "}
+                        <SeatStrip seats={room.red} side="red" />
+                      </span>
+                      {open ? (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          aria-label={`Join ${room.host}'s room`}
+                          onClick={() => void enter(room.code)}
+                        >
+                          Join
+                        </button>
+                      ) : (
+                        <span>FULL</span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+        </>
       )}
     </>
   );

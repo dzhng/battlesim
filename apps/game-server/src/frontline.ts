@@ -51,6 +51,15 @@ export function createFrontlineService(options: {
   const { clock, presence } = online;
   const games = new Map<string, Game>();
   const admitting = new Map<string, number>();
+  const publishCounts = () =>
+    online.publishFrontline({
+      battles: games.size,
+      commanders: [...games.values()].reduce(
+        (count, g) =>
+          count + g.view.seats.filter((s) => s.held && s.held.goneSince === null).length,
+        0,
+      ),
+    });
   // Join and deploy include worker replies. Serialize admissions so two Play
   // requests cannot reserve the same seat while those replies are in flight.
   let pending: Promise<unknown> = Promise.resolve();
@@ -63,6 +72,7 @@ export function createFrontlineService(options: {
   const player = (g: Game, index: number) => g.setup.seats[index].player;
   const remove = (g: Game) => {
     if (!games.delete(g.view.battle)) return;
+    publishCounts();
     g.cancel();
     g.slot.release();
     g.host.dispose();
@@ -108,6 +118,7 @@ export function createFrontlineService(options: {
       }
     }
     if (!occupied(g)) return remove(g);
+    publishCounts();
     const deadlines = [...g.reservations.values()].map((r) => r.until);
     for (const s of g.view.seats)
       if (s.held && !g.reservations.has(s.held.who))
@@ -161,10 +172,13 @@ export function createFrontlineService(options: {
     minutesIn: g.referee.tick / (g.tickHz * 60),
     setup: g.setup,
     mapIdentity: g.mapIdentity,
-    roster: g.view.seats.map((s, i) => ({
-      side: s.side,
-      callsign: callsigns(g)[player(g, i)] ?? null,
-    })),
+    roster: g.view.seats.map((s, i) => {
+      // A departed army is fighting under AI even while its human may return.
+      const who =
+        [...g.reservations].find(([, r]) => r.index === i)?.[0] ??
+        (s.held?.goneSince === null ? s.held.who : undefined);
+      return { side: s.side, callsign: who ? (online.callsign(who) ?? null) : null };
+    }),
   });
   const unsubscribe = online.subscribe({
     changed(who) {

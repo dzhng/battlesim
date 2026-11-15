@@ -78,6 +78,7 @@ export function LoadingScreen({
   failure,
   recovery,
   back = "/",
+  onCancel,
 }: {
   title: ReactNode;
   /** What is loading, e.g. the map's type, size and seed. */
@@ -92,6 +93,7 @@ export function LoadingScreen({
   /** Where cancelling, or leaving a failure, goes: the menu. Null when
    *  there is nowhere to go back to (the menu's own loading). */
   back?: string | null;
+  onCancel?: () => void;
 }) {
   const at = stages.findIndex((s) => s.id === current);
   const failed = failure && JSON.stringify([failure.message, failure.details]);
@@ -114,7 +116,7 @@ export function LoadingScreen({
             {failure.advice && <p className="loading-advice">{failure.advice}</p>}
             <div className="loading-actions">
               {back !== null && (
-                <Link className="hud-menu-item" to={back}>
+                <Link className="hud-menu-item" to={back} onClick={onCancel}>
                   Back to the menu
                 </Link>
               )}
@@ -166,7 +168,12 @@ export function LoadingScreen({
             )}
             <Downloading />
             {back !== null && (
-              <Link className="hud-menu-item loading-cancel" to={back} data-testid="loading-cancel">
+              <Link
+                className="hud-menu-item loading-cancel"
+                to={back}
+                onClick={onCancel}
+                data-testid="loading-cancel"
+              >
                 Cancel
               </Link>
             )}

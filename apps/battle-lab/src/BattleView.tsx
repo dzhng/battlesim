@@ -68,6 +68,7 @@ export function BattleView({
   cover,
   onLoadStage,
   onFailure,
+  onLeave,
   onDecoded,
   result,
 }: {
@@ -109,6 +110,8 @@ export function BattleView({
   /** The battle's authority refused or failed it: the route's cover shows the
    *  refusal, and nothing is drawn under it. Without one, the HUD says why. */
   onFailure?: (error: string) => void;
+  /** Route-owned departure through the existing confirmation. */
+  onLeave?: () => void;
   /** Scenario/runtime audio may react to the first authoritative publication. */
   onDecoded?: (observation: ObservationView, digest: string) => void;
 }) {
@@ -131,6 +134,10 @@ export function BattleView({
   const { meshes, sim, control, surfaceZ } = session;
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
+  const matchTarget = useMemo(() => {
+    const setup = JSON.parse(scenario).skirmish as { rules: { victory_score: number } } | undefined;
+    return setup?.rules.victory_score;
+  }, [scenario]);
   const matchFinished = observation?.skirmish?.phase === "finished";
   const viewingPlayer = commandedEconomy(observation?.skirmish, session.viewer?.id);
   const { contacts } = session;
@@ -236,7 +243,11 @@ export function BattleView({
         <header className="hud-panel hud-top" data-occludes-readouts>
           {!sim.error &&
             (observation?.skirmish ? (
-              <SkirmishStatus match={observation.skirmish} viewer={session.viewer?.side ?? null} />
+              <SkirmishStatus
+                target={matchTarget!}
+                match={observation.skirmish}
+                viewer={session.viewer?.side ?? null}
+              />
             ) : (
               status(session)
             ))}
@@ -290,6 +301,7 @@ export function BattleView({
       {!sim.error && loadStage !== "playable" && cover}
       {pause.open && (
         <PauseMenu
+          onLeave={onLeave}
           online={!!prepared && "transport" in prepared}
           onClose={() => pause.show(false)}
           onRestart={

@@ -1,5 +1,6 @@
 // Shared admission, battle routing and presence for every online mode.
 import { cpus, totalmem } from "node:os";
+import type { RoomList } from "../../../packages/multiplayer/src/wire.ts";
 import type { Seat } from "../../../packages/multiplayer/src/link.ts";
 import type { BattleHost } from "./battleHost/index.ts";
 import { createPresence, PRESENCE_GRACE_MS, type PresenceClock } from "./presence.ts";
@@ -24,6 +25,8 @@ export function createOnlineState(options: {
   releaseCallsign(who: string): void;
 }) {
   const members = new Set<Member>();
+  let frontline: RoomList["frontline"] = { battles: 0, commanders: 0 };
+  const listListeners = new Set<() => void>();
   const slots = new Map<object, ServedBattle | null>();
   const releaseIfForgotten = (who: string) => {
     const absent = presence.goneFor(who);
@@ -43,6 +46,16 @@ export function createOnlineState(options: {
     },
   );
   return {
+    frontline: () => frontline,
+    publishFrontline(next: RoomList["frontline"]) {
+      if (next.battles === frontline.battles && next.commanders === frontline.commanders) return;
+      frontline = next;
+      for (const listener of listListeners) listener();
+    },
+    onFrontlineChanged(listener: () => void) {
+      listListeners.add(listener);
+      return () => listListeners.delete(listener);
+    },
     clock: options.clock,
     callsign: options.callsign,
     presence,
@@ -72,6 +85,7 @@ export function createOnlineState(options: {
       presence.dispose();
       slots.clear();
       members.clear();
+      listListeners.clear();
     },
   };
 }

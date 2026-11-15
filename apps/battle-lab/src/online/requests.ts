@@ -3,7 +3,7 @@ import { browserId } from "./identity";
 
 export const BATTLE_FAILED_NOTICE = "The battle could not continue. The room has closed.";
 
-export async function roomRequest<T>(
+export async function onlineRequest<T>(
   address: string,
   path: string,
   value: unknown,
@@ -17,7 +17,7 @@ export async function roomRequest<T>(
   });
   const result = await response.json();
   if ("refused" in result) throw new StreamRefused(result.refused);
-  if (!response.ok) throw new Error("Room request failed.");
+  if (!response.ok) throw new Error("Online request failed.");
   return result as T;
 }
 

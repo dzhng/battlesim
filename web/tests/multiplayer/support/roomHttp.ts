@@ -1,3 +1,6 @@
+import type { BattleHost } from "@apps/game-server/src/battleHost/index";
+import type { BattleSetup } from "@packages/multiplayer/src/wire";
+import type { PresenceClock } from "@apps/game-server/src/presence";
 import { pendingBattle } from "./pendingBattle";
 import { createBattleHttp } from "@apps/game-server/src/http/index";
 import type { BuildIdentity } from "@packages/multiplayer/src/wire";
@@ -5,13 +8,17 @@ import type { BuildIdentity } from "@packages/multiplayer/src/wire";
 export const build: BuildIdentity = { commit: "room-screen-test", sim: "room-screen-sim" };
 
 /** Real room HTTP service; no battle or external service is started. */
-export async function roomHttp(capacity = 8, createBattle = pendingBattle) {
+export async function roomHttp(
+  capacity = 8,
+  createBattle: (setup: BattleSetup) => BattleHost = pendingBattle,
+  clock?: PresenceClock,
+) {
   const server = createBattleHttp(() => undefined, build, {
     createBattle,
     mapAttempts: 1,
     ordersPerSecond: 100,
     capacity,
-    clock: {
+    clock: clock ?? {
       now: () => Date.now(),
       schedule: (run, delay) => {
         const timer = setTimeout(run, delay);

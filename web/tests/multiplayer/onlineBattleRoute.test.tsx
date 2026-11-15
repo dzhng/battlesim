@@ -13,9 +13,14 @@ vi.mock("@web/battle/remote/connection", () => ({
   remoteConnection: () => () => ({ send() {}, close() {} }),
 }));
 
-const preparation = vi.hoisted(() => ({ calls: 0, hold: false, endRoom: () => {} }));
+const preparation = vi.hoisted(() => ({
+  calls: 0,
+  hold: false,
+  endRoom: () => {},
+  request: { map_source: { request: { seed: "1" } }, battle_seed: 1 },
+}));
 vi.mock("@apps/battle-lab/src/useBuiltScenario", () => ({
-  useBuiltScenario: () => ({ map_source: { request: { seed: "1" } }, battle_seed: 1 }),
+  useBuiltScenario: () => preparation.request,
   buildFailed: () => false,
 }));
 vi.mock("@web/battle/catalog/context", () => ({ useSessionCatalog: () => ({ rules: {} }) }));

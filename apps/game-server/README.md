@@ -73,3 +73,11 @@ ends the game, even if an AI still holds an absent commander's seat.
 The referee view is server accounting, read directly from battle state. It is
 separate from either side's fog-limited publication. Administrative seat events
 and this view have no remote-connection or HTTP entry point.
+
+Frontline's activity is part of the room-list state. The Frontline lifecycle
+counts running games and actively seated humans; the shared online state
+notifies the room-list publisher only when those counts change. An existing
+game's reservation is not a deployed human, and a departed command running
+under AI does not count as one. Briefing rosters likewise describe who is
+currently fighting, including the command being reserved, rather than every
+human whose army the game remembers.

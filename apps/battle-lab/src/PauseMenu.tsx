@@ -74,6 +74,7 @@ export function PauseMenu({
   onClose,
   online = false,
   onRestart,
+  onLeave,
   onSettingsApply,
   children,
 }: {
@@ -81,6 +82,7 @@ export function PauseMenu({
   online?: boolean;
   /** Restart the battle from its seed; none where a run can't restart. */
   onRestart?: () => void;
+  onLeave?: () => void;
   onSettingsApply?: () => void | Promise<void>;
   /** The route's own items. */
   children?: ReactNode;
@@ -117,7 +119,11 @@ export function PauseMenu({
           {question ? (
             <>
               <strong className="hud-menu-title">{question.title}</strong>
-              <div className="hud-menu-note">Progress in this battle will be lost.</div>
+              <div className="hud-menu-note">
+                {online
+                  ? "An AI will take command of your units."
+                  : "Progress in this battle will be lost."}
+              </div>
               <button
                 type="button"
                 className="hud-menu-item"
@@ -126,7 +132,11 @@ export function PauseMenu({
               >
                 {question.back}
               </button>
-              {asking === "leave" ? (
+              {asking === "leave" && onLeave ? (
+                <button type="button" className="hud-menu-item" onClick={onLeave}>
+                  {question.go}
+                </button>
+              ) : asking === "leave" ? (
                 <Link className="hud-menu-item" to="/">
                   {question.go}
                 </Link>
@@ -159,7 +169,7 @@ export function PauseMenu({
               )}
               {children}
               <button type="button" className="hud-menu-item" onClick={() => setAsking("leave")}>
-                Main menu
+                {onLeave ? "Multiplayer" : "Main menu"}
               </button>
             </>
           )}

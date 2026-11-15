@@ -1,19 +1,20 @@
-import { BATTLE_FAILED_NOTICE } from "./roomRequests";
+import { BATTLE_FAILED_NOTICE } from "./requests";
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router";
 import type { OnlineBattleEntry } from "../onlineSession";
 import { stateStream } from "./stateStream";
 
-/** Map verification precedes the battle stream. Keep the member present
- * through that work, including a page whose local preparation is slow. */
-export function useRoomBattlePresence({ address, room }: OnlineBattleEntry) {
+/** Map preparation and the first renderer frame can outlive a battle stream's
+ * description. Keep presence through both: a room's state, or the shared list
+ * for Frontline. Neither adds another presence clock or transport. */
+export function useOnlineBattlePresence({ address, room }: OnlineBattleEntry) {
   const navigate = useNavigate();
   const location = useLocation();
   useEffect(() => {
     const visit = new AbortController();
     stateStream(
       address,
-      `/rooms/${encodeURIComponent(room)}`,
+      room ? `/rooms/${encodeURIComponent(room)}` : "/rooms",
       visit.signal,
       () => {},
       (reason) => {

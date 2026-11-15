@@ -61,3 +61,30 @@ Slice 16's Multiplayer scenes, apart from the new band.
 ## Delegated
 
 Wording; the live line's content.
+
+## As built (2026-11-15)
+
+Frontline is the leading band on Multiplayer. Its live games and active human
+commanders come from the existing room-list stream. Play stays busy through
+server admission, including map retries. Full capacity uses the room page's
+existing refusal; failed generation has its own line. A forgotten callsign is
+repaired through the same hello owner and join is retried once.
+
+The briefing names teams “Your side” and “Enemy”, followed by their factions,
+and reads assignment, credits, own and enemy scores against the real target,
+then both rosters, then Deploy. New games say “Battle just begun”. There is no
+road callout. Departed commanders driven by AI count as AI on the roster.
+
+Exact-map preparation is shared with room battles. Deploy stays shut until it
+succeeds and matches the server. The battlefield it built is handed to the
+battle page in memory, so the battle does not build it twice; it is 5 to 8 MB,
+too large for the history entry, and a reloaded page builds it again. A failure
+keeps the card and offers Back. The shared battle view's cover remains through
+the first snapshot and first frame. Back and Escape return the reservation;
+chosen battle departures use the existing menu confirmation, send leave, and
+return to Multiplayer. Idle returns there with an explanation on the band;
+the existing result screen does too.
+
+Checked at integration: the whole multiplayer domain (254 tests), and the
+`frontline`, `multiplayer`, `online-battle` and `room-lobby` scenes on the
+integrated tree.

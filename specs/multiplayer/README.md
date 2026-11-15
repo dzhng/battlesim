@@ -1,6 +1,6 @@
 # Multiplayer: rooms and Frontline
 
-**Status:** building. Rooms and the Frontline server are in; the Frontline page (slice 26) is with Codex; deploying waits on the user. **Updated:** 2026-11-15.
+**Status:** building. Rooms and Frontline work end to end on a local server. What is left is hosting: a sandbox for each battle (slices 28 and 29), the milestone and the closeout. **Updated:** 2026-11-15.
 
 Two online modes on one game server. **Rooms:** a host creates a public or
 private room, which is the skirmish lobby with several humans on either side,
@@ -21,7 +21,7 @@ simulation test build here, with other sessions building too. Check
 `df -h .` before any Rust build or new checkout. Under about 30 GB free, run
 Rust passes one or two at a time; under 5 GB, start nothing and ask the user.
 
-**Done and committed:** slices 02 to 08, 10 to 18 and 20 to 25, and the
+**Done and committed:** slices 02 to 08, 10 to 18 and 20 to 26, and the
 local half of 09; the endurance half of slice 01. The branch holds staging
 as of the morning of 2026-11-15; staging has since gained about 80 commits
 (the battle-growth renderer work), which merge without conflict. Merge them
@@ -32,17 +32,14 @@ create a room, start its battle, survive a drop and finish
 
 **Pick up here, in this order:**
 
-1. **Integrate slice 26,** the briefing card and Play, handed to Codex on
-   2026-11-15 in its own checkout with a report in `throwaway/multiplayer/`
-   there. It changes what a player sees: look at the pictures, get an
-   unprimed critique, and show the user. It is the last slice that can be
-   built without deploying.
-2. **Then stop for the user** if they have not yet said when to deploy.
-3. **The three things that need the user's go-ahead,** all outward-facing:
-   slice 09's push (deploying the server), slice 01's host half (O1, the
-   late-tick measurement on the host, now done), and slice 19, the milestone (two people on two networks
-   finish a room battle). Ask before promoting a site build, before
-   deploying, and before making the address public.
+1. **Slice 28,** a battle in its own process: the split between the lobby
+   and a battle server, built and proven on one computer. Hand it to Codex.
+2. **Slice 29,** a sandbox for each battle, and the lobby deployed on the
+   temporary host. The user has said to deploy there. It replaces slice
+   09's push and burns O6.
+3. **Slice 19,** the milestone: two people on two networks finish a room
+   battle. **Ask the user before** putting the lobby's address in the site
+   and before promoting a site build.
 4. **Slice 27,** the closeout: the one full run, the docs, the plan
    archived.
 
@@ -52,22 +49,14 @@ differ (staging's road and entry changes), and a vehicle ordered through a
 town on the default mixed map stopped with "route blocked". Leave both
 alone. The `online-battle` scene no longer drives through a town.
 
-**Waiting on the user, and now blocking the deploy:**
+**Decided by the user on 2026-11-15: a sandbox for each battle** (decision
+68). The rooms and Frontline service stays on the temporary host's VM and
+starts a sandbox for every battle. The measurements behind it are in
+[slice 01](slices/01-probes.md); slices 28 and 29 build it.
 
-- **Which host.** The user asked on 2026-11-15 for Bento's sandboxes to be
-  measured against its VM, with a sandbox for each match in mind. Results
-  are in [slice 01](slices/01-probes.md): a sandbox is about twice as fast,
-  starts in about nine seconds, costs about two cents a match-hour, does
-  not cut streams, and is in France. The VM misses badly (O1). Three ways
-  forward: the VM as planned; the whole server on one long-lived sandbox
-  (only the deploy folder changes, but a sandbox's lease is finite and
-  must be renewed); or the rooms and Frontline service on the VM and one
-  sandbox for each battle (the ticket must then carry the battle's
-  address: a wire change and a new slice). Do not deploy until the user
-  picks.
-- **The soak sheds ticks on every machine,** the Mac included, once ten
-  AIs have large armies. No host fixes that. It is the simulation's cost
-  and is not in this plan.
+**Known and not this plan's to fix:** the soak sheds ticks on every machine
+measured, the Mac included, once ten AIs have large armies. No host fixes
+that; it is the simulation's cost.
 
 **Waiting on the user, not blocking:**
 
@@ -162,7 +151,12 @@ Frontline
 - [x] [23 Seat reset](slices/23-seat-reset.md)
 - [x] [24 Frontline placement](slices/24-frontline-placement.md)
 - [x] [25 Frontline service](slices/25-frontline-service.md)
-- [ ] [26 Briefing card and Play](slices/26-briefing-card.md)
+- [x] [26 Briefing card and Play](slices/26-briefing-card.md)
+
+Hosting
+
+- [ ] [28 A battle in its own process](slices/28-battle-process.md)
+- [ ] [29 A sandbox for each battle](slices/29-sandbox-per-battle.md)
 - [ ] [27 Closeout](slices/27-closeout.md)
 
 ## Contracts this changes
@@ -217,6 +211,8 @@ The page's battle code keeps speaking the existing page-to-authority protocol
 | 24 | Frontline placement | → 05 | Every placement rule as a test with no network |
 | 25 | Frontline service | → 18 21 to 24 | Join, leave, idle out, return, last one out |
 | 26 | Briefing card and Play | → 25 | One click, a briefing, Deploy, fighting |
+| 28 | A battle in its own process | → 26 | A room battle with one more process on the computer for each battle |
+| 29 | A sandbox for each battle | → 28 | A room battle through the deployed lobby, each battle on its own sandbox |
 | 27 | Closeout | → all | The one full run; docs; the plan archived |
 
 The same graph, drawn: [roadmap.html](visualizations/roadmap.html).

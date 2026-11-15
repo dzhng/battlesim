@@ -163,5 +163,12 @@ by the second, on a Ryzen 9 9950X in France.
   once under the workspace's plan; a start from a saved disk (the provider
   says seconds, and Bento does not admit it yet); a player in Europe.
 
-**What this changes** is the user's to decide: see the README's open
-items. The plan as written still deploys to the VM.
+- **WebSockets work through a sandbox's address,** which the VM refuses.
+  One held for seven minutes was not cut. A message's round trip from
+  California was 173 ms against 177 ms for an HTTP request at the same
+  moment, and frames pushed 30 times a second arrived evenly (95th
+  percentile gap 34 ms). The gain is a few milliseconds: the wait is
+  distance. A socket would simplify the transport, not speed it up.
+
+**What this changed:** the user chose a sandbox for each battle (decision
+68, slices 28 and 29).

@@ -430,5 +430,15 @@
     "loading": false,
     "serial": true,
     "timeout_s": 400
+  },
+  {
+    "id": "frontline",
+    "route": "/multiplayer?scene=frontline",
+    "describe": "Frontline through the real local server: exact-map briefing, delayed first snapshot, opening wallet with no army, and a first purchase driving in; fresh and late briefings at both supported sizes.",
+    "map": null,
+    "catalog": "game",
+    "loading": false,
+    "serial": true,
+    "timeout_s": 900
   }
 ]

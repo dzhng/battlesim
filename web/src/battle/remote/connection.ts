@@ -17,6 +17,7 @@ import type { SimConnection } from "../sim/client";
 import type { SimReply, SimRequest, SideName } from "../sim/protocol";
 import { playout, type Playout } from "./playout";
 import { remoteClock, type RemoteClock } from "./clock";
+import { streamEnded } from "./streamEnd";
 
 /** A lost reply must not block later orders; a retry keeps the batch's identity. */
 const BATCH_RETRY_MS = 2000;
@@ -172,7 +173,7 @@ export function remoteConnection(
         if (closed) return;
         if (record.kind === "open") description = readJson<StreamOpen>(record);
         else if (record.kind === "end")
-          throw new Error(`Battle stream ended: ${readJson<{ reason: string }>(record).reason}`);
+          throw new Error(streamEnded(readJson<{ reason: string }>(record).reason));
         else if (record.kind === "publication") {
           if (!description?.layout || !description.tickHz)
             throw new Error("Battle stream has no layout or tick rate");
@@ -257,7 +258,7 @@ export function remoteConnection(
               ending =
                 reason === "finished"
                   ? { type: "status", status: "finished", slow: false }
-                  : { type: "error", message: `Battle stream ended: ${reason}` };
+                  : { type: "error", message: streamEnded(reason) };
               feed.push(ending, clock.now());
             }
           }

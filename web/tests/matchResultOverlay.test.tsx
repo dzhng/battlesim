@@ -1,3 +1,4 @@
+import matchRules from "@fixtures/skirmish.json";
 import { SessionCatalogProvider } from "@web/battle/catalog/context";
 // The end-of-match report: every player's totals under their side, a
 // timeline naming each player, and a result judged from the viewer's side.
@@ -125,9 +126,11 @@ test("the result is judged from the viewer's side", () => {
 
 test("the battle's status strip judges the result from the viewer's side too", () => {
   const match = finished(seats("h", "a"), "red");
-  const view = render(<SkirmishStatus match={match} viewer="red" />);
+  const view = render(
+    <SkirmishStatus target={matchRules.victory_score} match={match} viewer="red" />,
+  );
   expect(view.getByRole("status").textContent).toBe("VICTORY");
-  view.rerender(<SkirmishStatus match={match} viewer={null} />);
+  view.rerender(<SkirmishStatus target={matchRules.victory_score} match={match} viewer={null} />);
   expect(view.getByRole("status").textContent).toBe("RED WINS");
 });
 

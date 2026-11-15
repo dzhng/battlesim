@@ -50,6 +50,7 @@ export function createRoomService(options: {
   const guesses = new Map<string, { count: number; cancel: () => void }>();
 
   const roomList = (): RoomList => ({
+    frontline: online.frontline(),
     rooms: [...rooms.values()]
       .map(({ room }) => room)
       .filter((room) => room.visibility === "public" && room.phase === "lobby")
@@ -75,6 +76,7 @@ export function createRoomService(options: {
     () => publishList(),
   );
   const publishList = () => append(listSource, roomList());
+  const unlistenList = online.onFrontlineChanged(publishList);
 
   const remove = (code: string, reason = "room_deleted") => {
     const stored = rooms.get(code);
@@ -302,6 +304,7 @@ export function createRoomService(options: {
       guesses.clear();
       listSource.end("disposed");
       unsubscribe();
+      unlistenList();
     },
   };
 }

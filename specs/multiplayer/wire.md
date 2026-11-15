@@ -196,6 +196,7 @@ type RoomView = {
     | { kind: "battle"; ticket: BattleTicket };
 };
 type RoomList = {
+  frontline: { battles: number; commanders: number }; // running Frontline games and their seated humans
   rooms: { code: RoomCode; host: string; map: MapChoice;
            blue: ("human" | "open" | "ai")[]; red: ("human" | "open" | "ai")[] }[];
 };
@@ -218,6 +219,11 @@ type RoomSettingsPatch = {      // exactly what a host may set; anything else is
 A host's settings come from the network. Each value is checked against the
 game's own lists and applied through the lobby's own rules, so a size below
 the floor is raised to it and an unknown value is refused.
+
+The room list stream also republishes when either Frontline count changes.
+Reservations in an existing game are not seated humans; the first commander
+of a new game is seated from tick zero. A departed seat running on AI does
+not count as a human.
 
 Only public rooms still in the lobby appear in `RoomList`. The last five
 actions are the host's.

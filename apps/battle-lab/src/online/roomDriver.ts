@@ -1,3 +1,4 @@
+import { followBattle } from "../onlineSession";
 import { newSeed } from "@web/maps/source";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
@@ -6,7 +7,7 @@ import type { LobbyDriver } from "../lobby/driver";
 import { serverAddress } from "./server";
 import { hello } from "./hello";
 import { stateStream } from "./stateStream";
-import { BATTLE_FAILED_NOTICE, roomFailure, roomRequest } from "./roomRequests";
+import { BATTLE_FAILED_NOTICE, roomFailure, onlineRequest } from "./requests";
 import { roomLobby, useRoomPreview } from "./roomPreview";
 
 export function useRoom(code: string) {
@@ -44,12 +45,10 @@ export function useRoom(code: string) {
             }
             if (next.phase.kind === "battle") {
               visit.abort();
-              navigate(
-                `/online/battle/${encodeURIComponent(next.phase.ticket.battle)}${location.search}`,
-                {
-                  replace: true,
-                  state: { ticket: next.phase.ticket, address, room: code },
-                },
+              followBattle(
+                navigate,
+                { ticket: next.phase.ticket, address, room: code },
+                location.search,
               );
               return;
             }
@@ -69,7 +68,7 @@ export function useRoom(code: string) {
     (action: RoomAction) => {
       const signal = lifetime.current!.signal;
       setError(null);
-      void roomRequest(address, `/rooms/${encodeURIComponent(code)}/act`, action, signal)
+      void onlineRequest(address, `/rooms/${encodeURIComponent(code)}/act`, action, signal)
         .then(() => {
           if (!signal.aborted && action.kind === "leave") leavePage();
         })

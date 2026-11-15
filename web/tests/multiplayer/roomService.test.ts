@@ -162,7 +162,7 @@ test("the list publishes a public lobby and removes it on start while a private 
   expect(service.act("alpha", code, { kind: "ready", ready: true })).toEqual({ ok: true });
   expect(service.act("alpha", code, { kind: "start" })).toEqual({ ok: true });
   expect(host.states().at(-1)?.phase).toEqual({ kind: "starting" });
-  expect(lists().at(-1)).toEqual({ rooms: [] });
+  expect(lists().at(-1)).toEqual({ rooms: [], frontline: { battles: 0, commanders: 0 } });
   const reopened = open("alpha", code, host.records.at(-1)!.id);
   expect(reopened.states().at(-1)?.you).toBe(host.states().at(-1)?.you);
   expect(reopened.states().at(-1)?.phase).toEqual({ kind: "starting" });
@@ -229,7 +229,7 @@ test.each([false, true])(
     clock.advance(EMPTY_ROOM_TIMEOUT_MS - 1);
     expect(service.create("another", "public")).toEqual({ refused: "full" });
     clock.advance(1);
-    expect(lists().at(-1)).toEqual({ rooms: [] });
+    expect(lists().at(-1)).toEqual({ rooms: [], frontline: { battles: 0, commanders: 0 } });
     expect(service.roomStream("alpha", code, "address", null, () => true)).toEqual({
       refused: "unknown",
     });
@@ -379,7 +379,7 @@ test("localhost routes create, list, join and act; both streams update from thei
   expect(await http.hello(ids[1], "SCOUT")).toEqual({ callsign: "SCOUT#2" });
   expect(await http.hello(ids[2], "STRANGER")).toEqual({ callsign: "STRANGER" });
   const list = await http.open("/rooms");
-  expect(await list.state()).toEqual({ rooms: [] });
+  expect(await list.state()).toEqual({ rooms: [], frontline: { battles: 0, commanders: 0 } });
   const made = await http.reply("/rooms", { visibility: "public" });
   expect((await list.state<RoomList>()).rooms).toEqual([
     expect.objectContaining({ code: made.code, host: "SCOUT" }),

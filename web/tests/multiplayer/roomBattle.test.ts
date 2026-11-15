@@ -1,8 +1,4 @@
-import {
-  createOnlineState,
-  battleCapacity,
-  BYTES_PER_BATTLE,
-} from "../../../apps/game-server/src/online";
+import { createOnlineState } from "../../../apps/game-server/src/online";
 import { nodeCatalogSet } from "../../src/battle/catalog/node";
 import { join } from "node:path";
 // @vitest-environment node
@@ -121,7 +117,7 @@ test("Start unlists and locks the room; each member receives only their own comp
   const b = await r.start();
   const [a, g] = [ticket(r.alpha.view()), ticket(r.bravo.view())];
   expect(ticket(r.open("bravo").view())).toEqual(g);
-  expect(r.list.at(-1)).toEqual({ rooms: [] });
+  expect(r.list.at(-1)).toEqual({ rooms: [], frontline: { battles: 0, commanders: 0 } });
   expect(r.service.roomStream("stranger", r.code, "other", null, () => true)).toEqual({
     refused: "started",
   });

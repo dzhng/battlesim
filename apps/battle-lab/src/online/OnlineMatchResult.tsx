@@ -10,11 +10,13 @@ export function OnlineMatchResult({
   seats,
   viewer,
   callsigns,
+  onReturn,
 }: {
   match: SkirmishView | null;
   seats: readonly Seat[];
   viewer: string;
   callsigns: Record<string, string>;
+  onReturn?: () => void;
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -26,7 +28,7 @@ export function OnlineMatchResult({
       viewer={viewer}
       online={{
         callsigns,
-        onReturn: () => navigate(`/multiplayer${location.search}`, { replace: true }),
+        onReturn: onReturn ?? (() => navigate(`/multiplayer${location.search}`, { replace: true })),
       }}
     />
   );
