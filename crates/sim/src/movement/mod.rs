@@ -24,6 +24,7 @@ use crate::route_planner::{Request, RoutePlanner};
 use crate::units::Unit;
 use crate::world::{Prop, PropId, PropIndex, WorldGeometry, PROP_BUCKET_M};
 use changes::{span, Change};
+use traffic::{hull_conflict, in_the_way};
 
 pub(crate) mod air;
 mod certify;
@@ -34,6 +35,7 @@ mod final_leg;
 mod push;
 mod soldier;
 mod take_cover;
+mod traffic;
 
 pub(crate) use certify::{certify_orders, ProofRequest};
 pub use drive::{final_facing, final_yaw, Manoeuvre};
@@ -880,7 +882,7 @@ fn step_vehicle(
         }
         return;
     }
-    if drive::prune(&mut units[i]) {
+    if drive::prune(ctx, sides, traffic, &mut units[i]) {
         arrive(&mut units[i]);
         return;
     }
@@ -928,15 +930,9 @@ fn step_vehicle(
     // Traffic, whatever its side (Q14): a vehicle waits for whatever it
     // would run into; live vehicles are never shoved (Q15).
     let unit = &units[i];
-    let mut blocker = motion.blocker.or_else(|| {
-        units.iter().enumerate().find_map(|(j, other)| {
-            (j != i
-                && other.ground_footprint().is_some()
-                && other.on_field()
-                && vehicle_conflict(unit, next, motion.yaw, other))
-            .then_some(other.id)
-        })
-    });
+    let mut blocker = motion
+        .blocker
+        .or_else(|| in_the_way(units, i, next, motion.yaw));
 
     // A detouring tank must not pivot through its neighbour, nor through
     // a body. Give the turn room instead of deadlocking: back off from
@@ -956,13 +952,8 @@ fn step_vehicle(
         let back = drive::give_space(unit, room, speed, dt);
         let at = here + back.heading * back.step;
         let behind = push::meet(ctx.world, &hull_at(at, back.yaw), &current, push);
-        let traffic = units.iter().enumerate().any(|(j, other)| {
-            j != i
-                && other.ground_footprint().is_some()
-                && other.on_field()
-                && vehicle_conflict(unit, at, back.yaw, other)
-        });
-        if behind.solid.is_none() && behind.shoved.is_empty() && !traffic {
+        let traffic = in_the_way(units, i, at, back.yaw);
+        if behind.solid.is_none() && behind.shoved.is_empty() && traffic.is_none() {
             motion = back;
             next = at;
             met = behind;
@@ -1071,29 +1062,6 @@ fn stationary_yaw(world: &WorldGeometry, units: &[Unit], i: usize, yaw: f64) -> 
     } else {
         yaw
     }
-}
-
-/// Would this vehicle, moved to `next`, run into the vehicle `other`? Only a move that
-/// makes an existing overlap no worse is allowed, so touching units can part.
-fn vehicle_conflict(unit: &Unit, next: V2, yaw: f64, other: &Unit) -> bool {
-    let before = unit.ground_footprint().expect("a vehicle has a hull");
-    let after = Obb2 {
-        center: next,
-        yaw,
-        ..before
-    };
-    let other = other.ground_footprint().expect("a vehicle has a hull");
-    hull_conflict(before, after, other)
-}
-
-/// Look-ahead and actual steps keep the same clearance, including when parting.
-fn hull_conflict(before: Obb2, after: Obb2, other: Obb2) -> bool {
-    let padded = |hull: Obb2| Obb2 {
-        half: hull.half + v2(TRAFFIC_MARGIN_M, TRAFFIC_MARGIN_M),
-        ..hull
-    };
-    let depth = |hull: Obb2| hull.separation(&other).map_or(0.0, |v| v.length());
-    depth(padded(after)) > depth(padded(before)) + 1e-9 || depth(after) > depth(before) + 1e-9
 }
 
 /// Draw each living soldier's spot around the end of the squad's route for
