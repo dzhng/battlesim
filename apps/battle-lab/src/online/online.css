@@ -2,6 +2,10 @@
 .menu-card[data-art="multiplayer"] {
   --menu-art: url("/menu/multiplayer.jpg");
 }
+/* Its people stand the picture's full height: a short tile keeps their heads. */
+.hud-panel .menu-card[data-art="multiplayer"]::before {
+  background-position: center top;
+}
 .menu[data-open="multiplayer"] {
   padding: 20px;
   justify-items: center;
