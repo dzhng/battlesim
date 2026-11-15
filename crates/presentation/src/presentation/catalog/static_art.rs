@@ -41,7 +41,7 @@ fn scenery_rows(world: &mut World, kinds: &[String]) -> Vec<Vec<u32>> {
 impl StaticDraft {
     pub(super) fn stage(
         p: &Presentation,
-        assets: &BTreeMap<String, Asset>,
+        assets: &Facts,
         placements: &BTreeMap<String, Placement>,
         world: &mut World,
     ) -> Result<Self, String> {
@@ -155,14 +155,14 @@ impl StaticDraft {
 
 fn patch_props(
     input: &mut PropInput,
-    assets: &BTreeMap<String, Asset>,
+    assets: &Facts,
     placements: &BTreeMap<String, Placement>,
 ) -> Result<(), String> {
     let mut appearances: BTreeMap<String, Art> = std::mem::take(&mut input.appearances)
         .into_iter()
         .map(|a| (a.name.clone(), a))
         .collect();
-    for (name, asset) in assets {
+    for (name, asset) in assets.iter() {
         match placements.get(name) {
             Some(placement) => {
                 appearances.remove(name);

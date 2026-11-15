@@ -342,7 +342,13 @@ export class ScenePresentation {
    *  Reinstall renderer tables after admission; returned rows include both. */
   installLabAssets(assets: readonly LabAsset[], detail: ModelDetail): PresentedAppearance[] {
     this.rust.begin_lab_assets();
-    for (const asset of assets) this.rust.add_lab_asset(asset.name, asset.bundle, asset.skeleton);
+    for (const asset of assets)
+      this.rust.add_lab_asset(
+        asset.name,
+        JSON.stringify(asset.contentId),
+        asset.bundle,
+        asset.skeleton,
+      );
     const ptr = this.rust.install_lab_assets(JSON.stringify(detail));
     return (this.loaded = this.readWorld(ptr));
   }

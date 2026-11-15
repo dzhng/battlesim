@@ -1,5 +1,6 @@
 //! Atomic external asset admission and descriptive tooling model requests.
 use super::{error, Presentation};
+use contract::identity::ContentId;
 use presentation::presentation::lab::Asset;
 use wasm_bindgen::prelude::*;
 
@@ -18,11 +19,13 @@ impl Presentation {
     pub fn add_lab_asset(
         &mut self,
         name: String,
+        content_id: String,
         bundle: &[u8],
         skeleton: Option<Vec<u8>>,
     ) -> Result<(), JsError> {
         let asset = Asset::from_bundle(bundle, skeleton.as_deref()).map_err(error)?;
-        self.lab_assets.insert(name, asset);
+        let content: ContentId = serde_json::from_str(&content_id).map_err(error)?;
+        self.lab_assets.insert(name, (content, asset));
         Ok(())
     }
 

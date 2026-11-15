@@ -103,10 +103,31 @@ pub fn content_id(bytes: &[u8]) -> ContentId {
 
 pub type Art<'a> = &'a [(&'a str, &'a [u8])];
 
-pub fn catalog(art: Art<'_>) -> BTreeMap<String, Asset> {
-    art.iter()
-        .map(|(name, bytes)| (name.to_string(), Asset::from_bundle(bytes, None).unwrap()))
-        .collect()
+pub fn catalog(
+    presentation: &Presentation,
+    art: Art<'_>,
+) -> presentation::presentation::catalog::CatalogDraft {
+    let wanted = art
+        .iter()
+        .map(|(name, bytes)| (name.to_string(), content_id(bytes)))
+        .collect();
+    let facts = art
+        .iter()
+        .map(|(_, bytes)| (content_id(bytes), Asset::from_bundle(bytes, None).unwrap()))
+        .collect();
+    presentation
+        .stage_catalog(wanted, facts, detail(), Default::default())
+        .unwrap()
+}
+
+pub fn library(art: Art<'_>) -> Library {
+    let mut library = Library::default();
+    for (name, bytes) in art {
+        library
+            .insert_bundle(name, content_id(bytes), bytes, &[])
+            .unwrap();
+    }
+    library
 }
 
 pub fn models(art: Art<'_>) -> Vec<presentation::presentation::lab::ModelInput> {
@@ -187,15 +208,20 @@ impl Stage {
         scenery: Option<&[u8]>,
     ) -> Self {
         let mut presentation = Presentation::new(None, 30.).unwrap();
-        presentation.install_lab_assets(catalog(art), detail());
+        presentation.install_lab_assets(
+            art.iter()
+                .map(|(name, bytes)| {
+                    (
+                        name.to_string(),
+                        (content_id(bytes), Asset::from_bundle(bytes, None).unwrap()),
+                    )
+                })
+                .collect(),
+            detail(),
+        );
         presentation.set_lab_models(models(art)).unwrap();
         ground(&mut presentation, scenery);
-        let mut library = Library::default();
-        for (name, bytes) in art {
-            library
-                .insert_bundle(name, content_id(bytes), bytes, &[])
-                .unwrap();
-        }
+        let mut library = library(art);
         let mut runtime = Runtime::new(
             &gpu.device,
             &gpu.queue,
@@ -221,16 +247,8 @@ impl Stage {
         gpu: &support::Gpu,
         art: Art<'_>,
     ) -> renderer_core::runtime::ReadyAssets {
-        let draft = self
-            .presentation
-            .stage_catalog(catalog(art), detail(), Default::default())
-            .unwrap();
-        let mut library = Library::default();
-        for (name, bytes) in art {
-            library
-                .insert_bundle(name, content_id(bytes), bytes, &[])
-                .unwrap();
-        }
+        let draft = catalog(&self.presentation, art);
+        let mut library = library(art);
         let work = library.take_admission_work();
         let pending = self
             .runtime
@@ -380,30 +398,30 @@ pub fn card_bundle(color: [f32; 3]) -> (Vec<u8>, Vec<u8>) {
     (bundle, skeleton)
 }
 
-pub fn card_catalog() -> (
+pub fn card_catalog(
+    presentation: &Presentation,
+) -> (
     Library,
-    BTreeMap<String, Asset>,
+    presentation::presentation::catalog::CatalogDraft,
     Vec<presentation::presentation::lab::ModelInput>,
 ) {
     let mut library = Library::default();
-    let mut assets = BTreeMap::new();
+    let mut wanted = BTreeMap::new();
+    let mut facts = BTreeMap::new();
     let mut models = Vec::new();
     for (name, color) in [("cloth-a", [0.3, 0.6, 0.9]), ("cloth-b", [0.8, 0.4, 0.2])] {
         let (bundle, skeleton) = card_bundle(color);
+        let content = ContentId::new(
+            contract::identity::bytes_hash(&bundle),
+            Some(contract::identity::bytes_hash(&skeleton)),
+        )
+        .unwrap();
         library
-            .insert_bundle(
-                name,
-                ContentId::new(
-                    contract::identity::bytes_hash(&bundle),
-                    Some(contract::identity::bytes_hash(&skeleton)),
-                )
-                .unwrap(),
-                &bundle,
-                &[],
-            )
+            .insert_bundle(name, content.clone(), &bundle, &[])
             .unwrap();
-        assets.insert(
-            name.into(),
+        wanted.insert(name.into(), content.clone());
+        facts.insert(
+            content,
             Asset::from_bundle(&bundle, Some(&skeleton)).unwrap(),
         );
         for pose in [json!({"kind":"rest"}), json!({"kind":"corpse","lies":0})] {
@@ -415,5 +433,8 @@ pub fn card_catalog() -> (
             );
         }
     }
-    (library, assets, models)
+    let catalog = presentation
+        .stage_catalog(wanted, facts, detail(), Default::default())
+        .unwrap();
+    (library, catalog, models)
 }

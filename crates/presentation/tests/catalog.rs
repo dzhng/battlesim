@@ -1,4 +1,5 @@
 //! A candidate catalog cannot change the currently displayed presentation.
+use contract::identity::ContentId;
 use presentation::presentation::{lab::Asset, Presentation, Ui};
 use presentation::view::Camera;
 use presentation::world::{Detail, WorldInput};
@@ -7,8 +8,14 @@ use serde_json::json;
 mod ground;
 
 fn asset() -> Asset {
+    asset_with_height(2)
+}
+fn asset_with_height(height: u32) -> Asset {
+    asset_with_state("default", height)
+}
+fn asset_with_state(state: &str, height: u32) -> Asset {
     let head = serde_json::to_vec(&json!({"content":{"kind":"prop","states":[{
-        "name":"default","bounds":{"min":[-1,-1,0],"max":[1,1,2]},"tiers":[{}]
+        "name":state,"bounds":{"min":[-1,-1,0],"max":[1,1,height]},"tiers":[{}]
     }]},"views":[]}))
     .unwrap();
     let mut bytes = Vec::new();
@@ -40,6 +47,25 @@ fn camera() -> Camera {
         size: [640, 480],
     }
 }
+
+fn content(name: &str) -> ContentId {
+    ContentId::bundle(contract::identity::bytes_hash(name.as_bytes())).unwrap()
+}
+
+fn installed(name: &str, asset: Asset) -> (String, (ContentId, Asset)) {
+    (name.to_owned(), (content(name), asset))
+}
+
+fn staged(
+    name: &str,
+    asset: Asset,
+) -> (
+    std::collections::BTreeMap<String, ContentId>,
+    std::collections::BTreeMap<ContentId, Asset>,
+) {
+    let id = content(name);
+    ([(name.to_owned(), id.clone())].into(), [(id, asset)].into())
+}
 /// What each static batch draws, by appearance rather than row number:
 /// name, state, draw kind, tier, pass and count.
 fn static_draws(
@@ -68,6 +94,108 @@ fn units_drawn(p: &Presentation, batches: &[presentation::records::Batch]) -> u3
         .filter(|b| rows[b.appearance as usize].placed == 0)
         .map(|b| b.count)
         .sum()
+}
+
+#[test]
+fn catalog_delta_reuses_facts_retained_by_content_identity() {
+    let fixtures = [("a", "short", 2), ("x", "tall", 3), ("y", "tower", 4)];
+    let initial = || {
+        let mut p = Presentation::new(None, 30.0).unwrap();
+        p.install_lab_assets(
+            fixtures[1..]
+                .iter()
+                .map(|(name, state, height)| {
+                    (
+                        (*name).to_owned(),
+                        (content(name), asset_with_state(state, *height)),
+                    )
+                })
+                .collect(),
+            detail(),
+        );
+        p
+    };
+    let wanted = || {
+        fixtures
+            .iter()
+            .map(|(name, _, _)| ((*name).to_owned(), content(name)))
+            .collect()
+    };
+    let facts = || {
+        fixtures
+            .iter()
+            .map(|(name, state, height)| (content(name), asset_with_state(state, *height)))
+            .collect()
+    };
+    let models = || {
+        fixtures
+            .iter()
+            .enumerate()
+            .map(|(i, (name, state, _))| {
+                serde_json::from_value(
+                    json!({"appearance":name,"x":i as f64 * 2.0,"y":0,"z":0,"yaw":0,
+            "pose":{"kind":"static","state":state}}),
+                )
+                .unwrap()
+            })
+            .collect()
+    };
+    let (mut delta_p, mut full_p) = (initial(), initial());
+    let delta = delta_p
+        .stage_catalog(
+            wanted(),
+            [(content("a"), asset_with_state("short", 2))].into(),
+            detail(),
+            Default::default(),
+        )
+        .unwrap();
+    let full = full_p
+        .stage_catalog(wanted(), facts(), detail(), Default::default())
+        .unwrap();
+    // World equality includes the row lookup index as well as every public row
+    // and the string arena. Distinct states catch facts routed to the wrong id.
+    assert_eq!(
+        delta.view(&delta_p).unwrap().world(),
+        full.view(&full_p).unwrap().world()
+    );
+    assert!(delta_p.commit_catalog(delta, models()).unwrap());
+    assert!(full_p.commit_catalog(full, models()).unwrap());
+    assert_eq!(delta_p.world(), full_p.world());
+    let delta_frame = delta_p.frame(0.0, &camera(), &Ui::default(), 0).unwrap();
+    let full_frame = full_p.frame(0.0, &camera(), &Ui::default(), 0).unwrap();
+    assert_eq!(delta_frame.instances.len(), fixtures.len());
+    assert_eq!(delta_frame.batches, full_frame.batches);
+    assert_eq!(delta_frame.instances, full_frame.instances);
+    assert_eq!(delta_frame.palettes, full_frame.palettes);
+}
+
+#[test]
+fn a_held_draft_retired_before_preparation_is_rejected_without_touching_live_art() {
+    let mut p = Presentation::new(None, 30.0).unwrap();
+    p.install_lab_assets([installed("held", asset())].into(), detail());
+    let held_id = content("held");
+    let draft = p
+        .stage_catalog(
+            [("held".to_owned(), held_id.clone())].into(),
+            Default::default(),
+            detail(),
+            Default::default(),
+        )
+        .unwrap();
+    let replacement = p
+        .stage_catalog(
+            [("replacement".to_owned(), content("replacement"))].into(),
+            [(content("replacement"), asset_with_height(5))].into(),
+            detail(),
+            Default::default(),
+        )
+        .unwrap();
+    assert!(p.commit_catalog(replacement, Vec::new()).unwrap());
+    assert!(
+        draft.view(&p).is_err(),
+        "retired held draft must be rejected cleanly"
+    );
+    assert!(names(&p).iter().all(|name| name == "replacement"));
 }
 fn names(p: &Presentation) -> Vec<String> {
     let w = p.world();
@@ -110,14 +238,11 @@ fn battle_input(
 #[test]
 fn pending_catalog_preserves_live_rows_and_models_and_commits_latest_models() {
     let mut p = Presentation::new(None, 30.0).unwrap();
-    p.install_lab_assets([("committed".into(), asset())].into(), detail());
+    p.install_lab_assets([installed("committed", asset())].into(), detail());
     p.set_lab_models(model("committed", 1.0)).unwrap();
+    let (wanted, facts) = staged("candidate", asset());
     let candidate = p
-        .stage_catalog(
-            [("candidate".into(), asset())].into(),
-            detail(),
-            Default::default(),
-        )
+        .stage_catalog(wanted, facts, detail(), Default::default())
         .unwrap();
     assert!(candidate
         .view(&p)
@@ -158,13 +283,10 @@ fn pending_catalog_preserves_live_rows_and_models_and_commits_latest_models() {
 #[test]
 fn stale_or_invalid_admission_never_replaces_the_active_generation() {
     let mut p = Presentation::new(None, 30.0).unwrap();
-    p.install_lab_assets([("committed".into(), asset())].into(), detail());
+    p.install_lab_assets([installed("committed", asset())].into(), detail());
+    let (wanted, facts) = staged("stale", asset());
     let stale = p
-        .stage_catalog(
-            [("stale".into(), asset())].into(),
-            detail(),
-            Default::default(),
-        )
+        .stage_catalog(wanted, facts, detail(), Default::default())
         .unwrap();
     let mut another = Presentation::new(None, 30.0).unwrap();
     assert!(
@@ -173,12 +295,9 @@ fn stale_or_invalid_admission_never_replaces_the_active_generation() {
     );
     assert!(stale.view(&another).is_err());
     assert!(!another.commit_catalog(stale, Vec::new()).unwrap());
+    let (wanted, facts) = staged("stale", asset());
     let stale = p
-        .stage_catalog(
-            [("stale".into(), asset())].into(),
-            detail(),
-            Default::default(),
-        )
+        .stage_catalog(wanted, facts, detail(), Default::default())
         .unwrap();
     p.load_world(
         WorldInput {
@@ -192,12 +311,9 @@ fn stale_or_invalid_admission_never_replaces_the_active_generation() {
     )
     .unwrap();
     assert!(!p.commit_catalog(stale, Vec::new()).unwrap());
+    let (wanted, facts) = staged("invalid", asset());
     let draft = p
-        .stage_catalog(
-            [("invalid".into(), asset())].into(),
-            detail(),
-            Default::default(),
-        )
+        .stage_catalog(wanted, facts, detail(), Default::default())
         .unwrap();
     let bad = serde_json::from_value(json!([{"appearance":"invalid","x":0,"y":0,"z":0,"yaw":0,
         "pose":{"kind":"posed","palette":[1,2,3]}}]))
@@ -249,14 +365,17 @@ fn battle_art_replacement_changes_live_joint_facts_without_restarting_the_observ
     let frame = p.frame(0.0, &camera(), &Ui::default(), 0).unwrap();
     let instance = frame.instances[0];
     let root_x = frame.palettes[instance.data[0] as usize].x[3];
+    let (wanted, facts) = staged(&name, asset());
     assert!(p
-        .stage_catalog([(name.clone(), asset())].into(), detail, Default::default())
+        .stage_catalog(wanted, facts, detail, Default::default())
         .is_err());
     assert_eq!(p.last_frame().instances[0].placement, instance.placement);
+    let id = content(&name);
     let draft = p
         .stage_catalog(
+            [(name, id.clone())].into(),
             [(
-                name,
+                id,
                 Asset::Animated {
                     appearance: Box::new(replacement),
                     table: Vec::new(),
@@ -447,7 +566,12 @@ fn a_newly_fielded_kind_joins_the_loaded_battle_without_reloading_its_world() {
         "a staged catalog changes nothing drawn until it commits"
     );
     let mut draft = p
-        .stage_catalog(Default::default(), detail, Default::default())
+        .stage_catalog(
+            Default::default(),
+            Default::default(),
+            detail,
+            Default::default(),
+        )
         .unwrap();
     let mesh = ground::scenery_mesh(0.25, 4.0);
     let kinds = p.ground().unwrap().scenery_kinds().len();

@@ -35,8 +35,16 @@ The new runtime starts with a fresh art store and reports device recreation as
 its rebuild reason. Failed installation keeps that reason for the next attempt.
 The core owns [device reconstruction](../renderer-core/README.md#device-reconstruction).
 
-[Appearance drafts](src/appearance.rs) carry each asset's runtime `ContentId`
-alongside its bytes. Names route to the bundle hash (and a skinned bundle's
+[Appearance drafts](src/appearance.rs) carry declarations for every wanted name
+and its runtime `ContentId`; `Renderer::missing_content_ids` answers which
+identities lack either decoded source or committed presentation facts. Both
+`missing_content_ids(presentation, json)` and `appearance_draft(presentation,
+detail)` consult the same shared source admission owner. Initial renderer
+installation requires facts for every loaded content identity. A draft resolves
+held content against the current committed owners when prepared; retired
+content refuses preparation without changing live art. `AppearanceDraft::add_bundle` supplies facts and
+bytes by identity, so a draft may send only that missing list while the page can
+still send all bytes. Names route to the bundle hash (and a skinned bundle's
 skeleton hash), never to a reuse decision. Drafts collect source transport and
 pose facts without changing active art. Page-generated bundles use the same
 exported `bytes_hash` implementation as the contract crate, cached by bundle

@@ -7,6 +7,9 @@ use serde_json::Value;
 use std::collections::{BTreeMap, HashSet};
 use std::sync::{Arc, Weak};
 
+mod draft;
+pub use draft::SourceDraft;
+
 type Result<T> = std::result::Result<T, String>;
 
 /// Source of decoded bundles for appearance admission.
@@ -279,6 +282,8 @@ impl Library {
         }
         self.textures
             .retain(|_, texture| texture.strong_count() > 0);
+        self.bundles
+            .retain(|content, _| self.routes.contains_key(content));
     }
 
     /// Build a tooling library from bytes that have no catalog identity. The
@@ -305,21 +310,70 @@ impl Library {
         bytes: &[u8],
         textures: &[(&str, &[u8])],
     ) -> Result<()> {
-        if !self.bundles.contains_key(&content) {
-            let cache = &mut self.textures;
-            let bundle = decode_with(name, bytes, textures, |id, bytes| {
+        self.insert_content(content.clone(), bytes, textures)?;
+        self.route(name.to_owned(), content);
+        Ok(())
+    }
+
+    /// Decode a content identity without routing a name to it. A draft uses
+    /// this while declarations are supplied separately, so shared content is
+    /// decoded once even when several names request it.
+    pub fn insert_content(
+        &mut self,
+        content: ContentId,
+        bytes: &[u8],
+        textures: &[(&str, &[u8])],
+    ) -> Result<()> {
+        if self.bundles.contains_key(&content) {
+            return Ok(());
+        }
+        let cache = &mut self.textures;
+        let bundle = decode_with(
+            &format!("content {content:?}"),
+            bytes,
+            textures,
+            |id, bytes| {
                 if let Some(texture) = cache.get(id).and_then(Weak::upgrade) {
                     return Ok(texture);
                 }
                 let texture = Arc::new(texture_bytes(id, bytes)?);
                 cache.insert(id.to_owned(), Arc::downgrade(&texture));
                 Ok(texture)
-            })?;
-            self.bundles.insert(content.clone(), Arc::new(bundle));
-            self.pending_decodes = self.pending_decodes.saturating_add(1);
-        }
-        self.route(name.to_owned(), content);
+            },
+        )?;
+        self.bundles.insert(content, Arc::new(bundle));
+        self.pending_decodes = self.pending_decodes.saturating_add(1);
         Ok(())
+    }
+
+    /// Route a wanted name to its content identity after the draft has been
+    /// merged with the active library.
+    pub fn declare(&mut self, name: String, content: ContentId) {
+        self.route(name, content);
+    }
+
+    pub fn has_content(&self, content: &ContentId) -> bool {
+        self.bundles.contains_key(content)
+    }
+
+    pub fn content_ids(&self) -> impl Iterator<Item = &ContentId> {
+        self.bundles.keys()
+    }
+
+    /// A complete retained source needs both decoded geometry and the facts
+    /// presentation will reuse on the next stage.
+    pub fn missing_content(
+        &self,
+        presentation: &presentation::presentation::Presentation,
+        contents: &[ContentId],
+    ) -> Vec<ContentId> {
+        contents
+            .iter()
+            .filter(|content| {
+                !self.has_content(content) || !presentation.retains_catalog_facts(content)
+            })
+            .cloned()
+            .collect()
     }
 
     pub fn take_admission_work(&mut self) -> crate::runtime::AdmissionWork {

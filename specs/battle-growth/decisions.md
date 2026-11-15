@@ -301,6 +301,51 @@ the player sees behind three other slices. Its batches are bounded by bytes
 because one runtime card is about 3 MB across its targets and a full rebuild
 bakes about 190 of them.
 
+**Slice 07, 2026-11-15.** The binding seam is identity-first:
+`Renderer::missing_content_ids(presentation, json)` accepts the presentation
+and a JSON array of `ContentId` values, returning missing identities in request
+order. `AppearanceDraft::declare` routes every wanted name to an identity;
+`AppearanceDraft::add_bundle` supplies bytes by identity. A second name-plus-bytes
+API was rejected because it would preserve the full-resend requirement beside
+the delta contract. The page still sends every asset until slice 08; held
+content is a hit for both decoders.
+
+Presentation owns one immutable `Arc<Asset>` per `ContentId`. Names route to
+identities instead of holding copies; stages share held facts once per identity.
+These facts include static state bounds, tier counts and corners, or animated
+rigs, poses and clip tables. Rows, palettes, culling, building bounds and scenery
+fitting need them when no bytes arrive. A second fact map keyed by name and deep
+clones on every stage were rejected because unchanged rigs and clip tables would
+still cost catalog-sized work.
+
+`Library::missing_content` owns the answer to “held”: decoded bundle and retained
+presentation facts must both exist. The shared `SourceDraft` used by the browser
+binding and native runtime tests uses this same answer. Initial renderer
+installation requires facts for every decoded content identity; the first scene
+installs facts for all its sources before admitting its renderer. Trusting only
+the renderer snapshot was rejected because it could suppress supplied facts that
+presentation lacked. A mesh-only hit supplied by the shell reads its missing
+facts without decoding geometry again.
+
+Drafts retain identities, never old decoded bundle ownership. Preparation
+resolves every declaration against the current committed owners. If another
+commit retired held content, preparation fails before GPU work, leaving live art
+intact; retry belongs to slice 08. Only declared identities survive a successful
+commit, including when the shell supplied extra bytes. A replacement name drops
+its old content when no other route uses it.
+
+Placement metadata remains in each wanted name's declaration because it describes
+placement rather than content. A second identity-keyed placement table was
+rejected as a duplicate owner. Complete and delta admissions must yield equal
+worlds (including the row lookup index) and equal committed draws; the test uses
+distinct facts for each identity so wrong routing cannot pass.
+
+Every `LabAsset` requires its creator's `ContentId`: catalog art passes the
+catalog pair, and generated art uses `generatedContentId`. The binding's fallback
+hash was rejected because it omitted skeleton identity and repeated work at each
+install. `insert_bundle` calls `insert_content`'s single decoder and then routes
+the name; decode failures identify the content.
+
 **Slice 05a, 2026-11-15.** Confirmed first on the reference battle from the
 freeze report, at high graphics, in the scene runner's 1280 × 800 viewport.
 Temporary timers isolated the entire bake and each awaited read. The initial
@@ -462,6 +507,16 @@ at every growth: 178 texture layers (125 MB, slice 04), 189 cards (slices 05a
 and 05), one scenery placement and 22 MB of scenery (slice 06), and 203
 bundles sent with 194 decoded (slices 07 and 08).
 
+**Slice 07 integration with 01 and 03, 2026-11-15.** A source draft's explicit
+name routes supply `BundleSource::content_id` to the runtime's shared art store,
+including held content and aliases. The delta lifecycle test uses the same
+runtime fixture and pixel reader as the geometry-reuse tests; the common catalog
+fixture stages wanted identities plus facts through presentation's one API.
+All eleven existing admission tests retain their assertions alongside the three
+delta tests. On the merged browser path, growth decoded two bundles and packed
+8,648,160 vertex bytes; the page read two runtime files and installed once.
+The first-scene facts guard precedes consuming the pending rebuild reason, which
+is cleared only after successful renderer installation.
 **Slice 05a integrated with 01 and 03, 2026-11-15.** The card byte bound now
 shares `ArtStorePolicy` with the slot tripwire and the shell-supplied report
 sink. A runtime-owned shared latch reports the first split once, including a
@@ -493,3 +548,10 @@ no longer a discarded one. Slice 08 still owns making it one.
 growth: no scenery placement and no scenery or grass bytes uploaded (one
 placement and 22 MB before). The placement types are not `Clone`: a draft
 shares the live placement, and nothing copies it.
+
+**Slice 07, verified on the merged tree, 2026-11-15.** `battle-growth` at
+growth, with slices 01, 03, 05a, 06 and 07 together: 2 bundles decoded (194
+before), 8.6 MB of vertices packed, 21 card read waits, no scenery work, 2
+art files read by fielding. Still whole: 178 texture layers written (slice
+04), 189 cards baked (slice 05), 203 bundles encoded and sent by the page
+(slice 08). The armory scene passes.

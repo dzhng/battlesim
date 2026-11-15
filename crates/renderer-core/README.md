@@ -36,6 +36,13 @@ weak texture index cannot retain retired art. A new source draft shares that
 index without copying canonical bundle ownership, so a late draft cannot restore
 unrelated stale sources. Its pending decode count is drained when an admission
 takes it, so a device rebuild reports only decodes that admission performed.
+The shell asks for missing identities against both the decoded library and
+presentation's retained facts. [Source drafts](src/bundle/draft.rs) share that
+answer across browser transport and native contract tests. They retain no old
+bundle ownership and resolve held identities against the current committed
+owners at preparation, refusing retired content before GPU work. Declarations
+route every wanted name, while supplied bytes populate only those identities.
+Undeclared decoded sources are dropped when the library retains the wanted set.
 Initial buffer data is queued through
 the common upload owner, avoiding mapped-at-creation transfer copies in browsers.
 Scenery also shares authored tier admission and held-batch routing. Initial

@@ -4,10 +4,13 @@
 #[path = "support/mod.rs"]
 mod support;
 
+#[path = "asset_generations/cards.rs"]
+mod cards;
+
 use contract::identity::ContentId;
 use presentation::presentation::{lab::Asset, Presentation};
 use presentation::records::{Appearance, Joint, NONE};
-use renderer_core::bundle::Library;
+use renderer_core::bundle::{Library, SourceDraft};
 use renderer_core::effects::EffectSheets;
 use renderer_core::models::VERTEX_BYTES;
 use renderer_core::models::{ArtStore, Models};
@@ -157,6 +160,18 @@ fn same_name_with_new_content_replaces_the_admitted_art() {
     let bytes_a = bundle_bytes("static", 1, "default", 1);
     let bytes_b = bundle_bytes("static", 2, "default", 1);
 
+    let mut presentation = Presentation::new(None, 30.).unwrap();
+    presentation.install_lab_assets(
+        [(
+            "synthetic".into(),
+            (
+                content_id(&bytes_a),
+                Asset::from_bundle(&bytes_a, None).unwrap(),
+            ),
+        )]
+        .into(),
+        detail(),
+    );
     let mut library = Library::default();
     library
         .insert_bundle("synthetic", content_id(&bytes_a), &bytes_a, &[])
@@ -172,6 +187,10 @@ fn same_name_with_new_content_replaces_the_admitted_art() {
         .insert_bundle("synthetic", content_id(&bytes_b), &bytes_b, &[])
         .unwrap();
     assert_eq!(library.take_admission_work().bundles_decoded, 1);
+    assert_eq!(
+        library.missing_content(&presentation, &[content_id(&bytes_a)]),
+        vec![content_id(&bytes_a)]
+    );
     assert_eq!(Arc::strong_count(&old), 1);
     let new_top = match &library.bundle("synthetic").unwrap().shape {
         renderer_core::bundle::Shape::Static(states) => states[0].top,
@@ -264,7 +283,10 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
     let asset_a = Asset::from_bundle(&bytes_a, None).unwrap();
     let asset_b = Asset::from_bundle(&bytes_b, None).unwrap();
     let mut presentation = Presentation::new(None, 30.).unwrap();
-    presentation.install_lab_assets(BTreeMap::from([("synthetic-a".into(), asset_a)]), detail());
+    presentation.install_lab_assets(
+        BTreeMap::from([("synthetic-a".into(), (content_id(&bytes_a), asset_a))]),
+        detail(),
+    );
     presentation
         .set_lab_models(
             serde_json::from_value(json!([{
@@ -296,7 +318,8 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
 
     let candidate = presentation
         .stage_catalog(
-            [("synthetic-b".into(), asset_b)].into(),
+            [("synthetic-b".into(), content_id(&bytes_b))].into(),
+            [(content_id(&bytes_b), asset_b)].into(),
             detail(),
             Default::default(),
         )
@@ -331,8 +354,9 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
 
     let dropped_catalog = presentation
         .stage_catalog(
+            [("synthetic-a".into(), content_id(&bytes_a))].into(),
             [(
-                "synthetic-a".into(),
+                content_id(&bytes_a),
                 Asset::from_bundle(&bytes_a, None).unwrap(),
             )]
             .into(),
@@ -357,8 +381,9 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
 
     let stale_catalog = presentation
         .stage_catalog(
+            [("synthetic-a".into(), content_id(&bytes_a))].into(),
             [(
-                "synthetic-a".into(),
+                content_id(&bytes_a),
                 Asset::from_bundle(&bytes_a, None).unwrap(),
             )]
             .into(),
@@ -380,8 +405,9 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
     let stale = pollster::block_on(stale.prepare()).unwrap();
     let renewed_catalog = presentation
         .stage_catalog(
+            [("synthetic-c".into(), content_id(&bytes_b))].into(),
             [(
-                "synthetic-c".into(),
+                content_id(&bytes_b),
                 Asset::from_bundle(&bytes_b, None).unwrap(),
             )]
             .into(),
@@ -427,8 +453,9 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
 
     let failed_catalog = presentation
         .stage_catalog(
+            [("missing".into(), content_id(&bytes_a))].into(),
             [(
-                "missing".into(),
+                content_id(&bytes_a),
                 Asset::from_bundle(&bytes_a, None).unwrap(),
             )]
             .into(),
@@ -589,14 +616,7 @@ fn slot_exhaustion_reclaims_dead_ranges_and_refuses_an_oversized_catalog() {
 
     let too_many = material_bundle(capacity + 1);
     let library = Library::from_bundle("oversized", &too_many, &[]).unwrap();
-    let draft = stage
-        .presentation
-        .stage_catalog(
-            catalog(&[("oversized", &too_many)]),
-            detail(),
-            Default::default(),
-        )
-        .unwrap();
+    let draft = catalog(&stage.presentation, &[("oversized", &too_many)]);
     let live = stage.pixels(&gpu);
     let failed = stage.runtime.stage_assets(
         &gpu.device,
@@ -655,286 +675,211 @@ fn stale_and_dropped_geometry_preparations_leave_live_pixels_unchanged() {
 }
 
 #[test]
-fn card_bake_reports_one_read_wait_per_memory_batch() {
-    let gpu = support::gpu().expect("a GPU is required for card bake tests");
-    let card_bytes = renderer_core::impostor::Spec::runtime()
-        .bake_memory_bytes()
+fn missing_content_is_exact_and_held_sources_decode_nothing() {
+    let held_bytes = bundle_bytes("static", 1, "default", 1);
+    let missing_x = bundle_bytes("static", 2, "default", 1);
+    let missing_y = bundle_bytes("static", 3, "default", 1);
+    let held = content_id(&held_bytes);
+    let x = content_id(&missing_x);
+    let y = content_id(&missing_y);
+    let mut library = Library::default();
+    let mut presentation = Presentation::new(None, 30.).unwrap();
+    presentation.install_lab_assets(
+        [(
+            "held".into(),
+            (held.clone(), Asset::from_bundle(&held_bytes, None).unwrap()),
+        )]
+        .into(),
+        detail(),
+    );
+    library
+        .insert_bundle("held", held.clone(), &held_bytes, &[])
         .unwrap();
-    for bound in [card_bytes * 8, card_bytes * 2 + card_bytes / 2] {
-        let mut config = runtime_config();
-        config.art_store.card_bake_memory_bytes = bound;
-        let Stage {
-            mut presentation,
-            mut runtime,
-        } = Stage::new(&gpu, &[], config, None);
-        assert_eq!(
-            runtime.admission_work().card_read_waits,
-            0,
-            "no cards means no read wait"
-        );
-        let (mut library, assets, models) = card_catalog();
-        let catalog = presentation
-            .stage_catalog(assets, detail(), Default::default())
-            .unwrap();
-        let expected_cards = catalog
-            .view(&presentation)
-            .unwrap()
-            .world()
-            .appearances
-            .len();
-        assert!(expected_cards > 2, "fixture must split at the narrow bound");
-        let work = library.take_admission_work();
-        let pending = runtime
-            .stage_assets(
-                &gpu.device,
-                &gpu.queue,
-                &presentation,
-                catalog,
-                &library,
-                work,
-            )
-            .unwrap();
-        let ready = pollster::block_on(pending.prepare()).unwrap();
-        let work = ready.work().clone();
-        assert_eq!(work.cards_baked as usize, expected_cards);
-        assert_eq!(
-            work.card_read_waits as usize,
-            expected_cards.div_ceil((bound / card_bytes) as usize)
-        );
-        assert!(runtime
-            .commit_assets(&gpu.device, &gpu.queue, &mut presentation, ready, models)
-            .unwrap());
-        assert_eq!(
-            runtime.admission_work(),
-            work,
-            "the committed report carries the bake waits"
-        );
-    }
+    assert_eq!(
+        library.missing_content(&presentation, &[held.clone(), x.clone(), y.clone()]),
+        vec![x.clone(), y.clone()]
+    );
+    assert_eq!(
+        library.missing_content(&presentation, &[y.clone(), held.clone(), x.clone()]),
+        vec![y.clone(), x.clone()]
+    );
+    library.insert_content(x.clone(), &missing_x, &[]).unwrap();
+    library.insert_content(y.clone(), &missing_y, &[]).unwrap();
+    assert_eq!(library.take_admission_work().bundles_decoded, 3);
+    library.insert_content(held, &held_bytes, &[]).unwrap();
+    assert_eq!(library.take_admission_work().bundles_decoded, 0);
+
+    let mut undeclared = library.empty_generation();
+    undeclared
+        .insert_content(y.clone(), &missing_y, &[])
+        .unwrap();
+    library.replace_with(undeclared);
+    library.retain(|name| name == "held");
+    assert!(
+        !library.has_content(&y),
+        "undeclared draft bytes cannot revive art"
+    );
 }
 
 #[test]
-fn cards_baked_in_one_batch_match_each_card_baked_alone() {
-    let gpu = support::gpu().expect("a GPU is required for card bake tests");
-    let spec = renderer_core::impostor::Spec::runtime();
-    let mut config = runtime_config();
-    config.art_store.card_bake_memory_bytes = spec.bake_memory_bytes().unwrap() * 8;
-    let Stage {
-        mut presentation,
-        mut runtime,
-    } = Stage::new(&gpu, &[], config, None);
-    assert_eq!(
-        runtime.admission_work().card_read_waits,
-        0,
-        "no cards means no read wait"
-    );
-    let (mut library, assets, models) = card_catalog();
-    let catalog = presentation
-        .stage_catalog(assets, detail(), Default::default())
+fn held_requires_both_decoded_content_and_retained_facts() {
+    let bytes = bundle_bytes("static", 7, "default", 1);
+    let id = content_id(&bytes);
+    let mut library = Library::default();
+    let mut presentation = Presentation::new(None, 30.).unwrap();
+    library
+        .insert_bundle("first", id.clone(), &bytes, &[])
         .unwrap();
-    let rows: Vec<_> = (0..catalog
-        .view(&presentation)
-        .unwrap()
-        .world()
-        .appearances
-        .len() as u32)
-        .collect();
-    let work = library.take_admission_work();
+    assert_eq!(
+        library.missing_content(&presentation, std::slice::from_ref(&id)),
+        vec![id.clone()]
+    );
+    let mut draft = SourceDraft::new(&library, &presentation);
+    draft.declare("first".into(), id.clone());
+    draft.add_bundle(id.clone(), &bytes, &[], None).unwrap();
+    let (library, catalog, work) = draft
+        .stage(&library, &presentation, detail(), Default::default())
+        .unwrap();
+    assert_eq!(
+        work.bundles_decoded, 0,
+        "only missing facts are read for decoded content"
+    );
+    assert!(presentation.commit_catalog(catalog, Vec::new()).unwrap());
+    assert!(library.missing_content(&presentation, &[id]).is_empty());
+}
+
+#[test]
+fn first_scene_sources_admit_delta_and_retired_drafts_leave_live_art_intact() {
+    let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
+    let fixtures = [
+        ("x", bundle_bytes("static", 2, "default", 1)),
+        ("y", bundle_bytes("static", 3, "default", 1)),
+    ];
+    let fresh = bundle_bytes("static", 4, "default", 1);
+    let stray = bundle_bytes("static", 5, "default", 1);
+    let initial: Art<'_> = &[("x", &fixtures[0].1), ("y", &fixtures[1].1)];
+    let grown: Art<'_> = &[
+        ("a", &fresh),
+        ("alias-a", &fresh),
+        ("x", &fixtures[0].1),
+        ("y", &fixtures[1].1),
+    ];
+    // The browser's initial order: presentation installs all named facts, then
+    // load_bundle fills the decoded library, then Runtime admits that pair.
+    let mut stage = Stage::new(&gpu, initial, runtime_config(), None);
+    let mut library = library(initial);
+    let mut draft = SourceDraft::new(&library, &stage.presentation);
+    for (name, bytes) in grown {
+        draft.declare((*name).into(), content_id(bytes));
+    }
+    let wanted = fixtures
+        .iter()
+        .map(|(_, bytes)| content_id(bytes))
+        .chain([content_id(&fresh)])
+        .collect::<Vec<_>>();
+    let missing = library.missing_content(&stage.presentation, &wanted);
+    assert_eq!(missing, vec![content_id(&fresh)]);
+    draft
+        .add_bundle(content_id(&fresh), &fresh, &[], None)
+        .unwrap();
+    // The old page may still supply bytes for a hit; neither decoder runs.
+    draft
+        .add_bundle(content_id(&fixtures[0].1), &fixtures[0].1, &[], None)
+        .unwrap();
+    let (grown_library, catalog, work) = draft
+        .stage(&library, &stage.presentation, detail(), Default::default())
+        .unwrap();
+    assert_eq!(work.bundles_decoded as usize, missing.len());
+    for (name, bytes) in grown {
+        assert_eq!(grown_library.content_id(name).unwrap(), content_id(bytes));
+    }
     let ready = pollster::block_on(
-        runtime
+        stage
+            .runtime
             .stage_assets(
                 &gpu.device,
                 &gpu.queue,
-                &presentation,
+                &stage.presentation,
                 catalog,
-                &library,
+                &grown_library,
                 work,
             )
             .unwrap()
             .prepare(),
     )
     .unwrap();
-    assert!(runtime
-        .commit_assets(&gpu.device, &gpu.queue, &mut presentation, ready, models)
-        .unwrap());
-    let batched = pollster::block_on(
-        runtime
-            .models
-            .impostor_request(
+    assert_eq!(ready.work().bundles_decoded as usize, missing.len());
+    stage.commit(&gpu, grown, ready);
+    library = grown_library;
+    assert!(library
+        .missing_content(&stage.presentation, &wanted)
+        .is_empty());
+    assert!(Arc::ptr_eq(
+        &library.bundle("a").unwrap(),
+        &library.bundle("alias-a").unwrap()
+    ));
+    let pixels = stage.pixels(&gpu);
+    assert_eq!(stage.presentation.last_frame().instances.len(), 4);
+    let mut clean = Stage::new(&gpu, grown, runtime_config(), None);
+    assert_eq!(pixels, clean.pixels(&gpu));
+
+    let mut late = SourceDraft::new(&library, &stage.presentation);
+    late.declare("x".into(), content_id(&fixtures[0].1));
+    let mut replacement = SourceDraft::new(&library, &stage.presentation);
+    replacement.declare("x".into(), content_id(&fresh));
+    replacement
+        .add_bundle(content_id(&stray), &stray, &[], None)
+        .unwrap();
+    let (replaced_library, catalog, work) = replacement
+        .stage(&library, &stage.presentation, detail(), Default::default())
+        .unwrap();
+    let ready = pollster::block_on(
+        stage
+            .runtime
+            .stage_assets(
                 &gpu.device,
                 &gpu.queue,
-                &runtime.pipelines,
-                &rows,
-                &spec,
-                &mut AdmissionWork::default(),
+                &stage.presentation,
+                catalog,
+                &replaced_library,
+                work,
             )
             .unwrap()
-            .read(),
+            .prepare(),
     )
     .unwrap();
-    assert_eq!(batched.len(), rows.len());
-    for (&row, batch) in rows.iter().zip(&batched) {
-        let alone = pollster::block_on(
-            runtime
-                .models
-                .impostor_request(
-                    &gpu.device,
-                    &gpu.queue,
-                    &runtime.pipelines,
-                    &[row],
-                    &spec,
-                    &mut AdmissionWork::default(),
-                )
-                .unwrap()
-                .read(),
-        )
-        .unwrap()
-        .remove(0);
+    stage.commit(&gpu, &[("x", &fresh)], ready);
+    library = replaced_library;
+    assert!(
+        !library.has_content(&content_id(&stray)),
+        "undeclared bytes must not survive commit"
+    );
+    assert!(!stage
+        .presentation
+        .retains_catalog_facts(&content_id(&stray)));
+    for (_, bytes) in &fixtures {
         assert!(
-            batch
-                .albedo
-                .as_chunks::<4>()
-                .0
-                .iter()
-                .any(|pixel| pixel[3] > 0),
-            "the fixture must draw geometry"
+            !library.has_content(&content_id(bytes)),
+            "unrouted old content is retired"
         );
-        assert_eq!(batch.hash, alone.hash);
-        assert_eq!(batch.albedo, alone.albedo);
-        assert_eq!(batch.normal, alone.normal);
-        assert_eq!(batch.mask, alone.mask);
+        assert!(!stage.presentation.retains_catalog_facts(&content_id(bytes)));
     }
+    let world = stage.presentation.world().clone();
+    let work = stage.runtime.admission_work();
+    let before_pixels = stage.pixels(&gpu);
+    let before = stage.presentation.last_frame().instances.clone();
+    let error = late
+        .stage(&library, &stage.presentation, detail(), Default::default())
+        .err()
+        .expect("retired held content must refuse preparation");
     assert!(
-        batched
-            .iter()
-            .any(|atlas| atlas.albedo != batched[0].albedo),
-        "the fixture must draw distinct authored materials"
+        error.contains("source content retired or not supplied"),
+        "{error}"
     );
-    assert!(
-        batched
-            .iter()
-            .any(|atlas| atlas.center != batched[0].center),
-        "the fixture must distinguish its authored poses"
-    );
-    assert_ne!(
-        batched.first().unwrap().hash,
-        batched.last().unwrap().hash,
-        "the fixture must distinguish its poses/materials"
-    );
-}
-
-#[test]
-fn card_bake_uploads_the_authored_materials_once_per_stage() {
-    let gpu = support::gpu().expect("a GPU is required for card bake tests");
-    let spec = renderer_core::impostor::Spec::runtime();
-    let mut config = runtime_config();
-    config.art_store.card_bake_memory_bytes =
-        spec.bake_memory_bytes().unwrap() * 2 + spec.bake_memory_bytes().unwrap() / 2;
-    let Stage {
-        presentation,
-        runtime,
-    } = Stage::new(&gpu, &[], config, None);
-    assert_eq!(
-        runtime.admission_work().card_read_waits,
-        0,
-        "no cards means no read wait"
-    );
-    let (mut library, assets, _) = card_catalog();
-    let catalog = presentation
-        .stage_catalog(assets, detail(), Default::default())
-        .unwrap();
-    let material_bytes = ["cloth-a", "cloth-b"]
-        .into_iter()
-        .map(|name| library.bundle(name).unwrap().materials.len())
-        .sum::<usize>()
-        * 5
-        * 4
-        * std::mem::size_of::<f32>();
-    let work = library.take_admission_work();
-    let pending = runtime
-        .stage_assets(
-            &gpu.device,
-            &gpu.queue,
-            &presentation,
-            catalog,
-            &library,
-            work,
-        )
-        .unwrap();
-    let staged_bytes = pending.work().buffer_bytes_uploaded;
-    let ready = pollster::block_on(pending.prepare()).unwrap();
-    assert!(
-        ready.work().cards_baked > 1,
-        "fixture must bake several cards"
-    );
-    assert_eq!(
-        ready.work().buffer_bytes_uploaded - staged_bytes,
-        material_bytes as u64,
-        "the authored table is uploaded once, independent of the number of cards or batches"
-    );
-}
-
-#[test]
-fn card_batch_split_uses_the_policy_sink_once_per_runtime() {
-    static REPORTS: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(Vec::new());
-    fn report(message: &str) {
-        REPORTS.lock().unwrap().push(message.into());
-    }
-    REPORTS.lock().unwrap().clear();
-    let gpu = support::gpu().expect("a GPU is required for card bake tests");
-    let card_bytes = renderer_core::impostor::Spec::runtime()
-        .bake_memory_bytes()
-        .unwrap();
-    let bound = card_bytes * 2;
-    for runtime_count in 1..=2 {
-        let mut config = runtime_config();
-        config.art_store.card_bake_memory_bytes = bound;
-        config.art_store.report = report;
-        let stage = Stage::new(&gpu, &[], config, None);
-        for _ in 0..2 {
-            let (mut library, assets, _) = card_catalog();
-            let catalog = stage
-                .presentation
-                .stage_catalog(assets, detail(), Default::default())
-                .unwrap();
-            let cards = catalog
-                .view(&stage.presentation)
-                .unwrap()
-                .world()
-                .appearances
-                .len();
-            let work = library.take_admission_work();
-            let pending = stage
-                .runtime
-                .stage_assets(
-                    &gpu.device,
-                    &gpu.queue,
-                    &stage.presentation,
-                    catalog,
-                    &library,
-                    work,
-                )
-                .unwrap();
-            let ready = pollster::block_on(pending.prepare()).unwrap();
-            assert_eq!(
-                ready.work().card_read_waits as usize,
-                cards.div_ceil((bound / card_bytes) as usize)
-            );
-            drop(ready);
-            let reports = REPORTS.lock().unwrap();
-            assert_eq!(
-                reports.len(),
-                runtime_count,
-                "dropped pending bakes share the runtime's split-report lifetime"
-            );
-            assert!(
-                reports
-                    .last()
-                    .unwrap()
-                    .contains(&format!("{bound} byte bound")),
-                "the existing sink receives the selected byte bound"
-            );
-        }
-    }
+    assert_eq!(stage.presentation.world(), &world);
+    assert_eq!(stage.runtime.admission_work(), work);
+    assert_eq!(stage.pixels(&gpu), before_pixels);
+    assert_eq!(stage.presentation.last_frame().instances, before);
 }
 
 #[path = "asset_generations/statics.rs"]

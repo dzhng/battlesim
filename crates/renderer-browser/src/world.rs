@@ -98,6 +98,15 @@ impl Renderer {
         presentation: &mut Presentation,
         scenery: bool,
     ) -> Result<u32, JsValue> {
+        let contents: Vec<_> = self.model_library.content_ids().cloned().collect();
+        let missing = self
+            .model_library
+            .missing_content(presentation.core(), &contents);
+        if !missing.is_empty() {
+            return Err(js_error(format!(
+                "install presentation facts before renderer sources: {missing:?}"
+            )));
+        }
         let mut starting_work = Arc::make_mut(&mut self.model_library).take_admission_work();
         starting_work.rebuild_reason = self.pending_rebuild_reason;
         if scenery {

@@ -2,6 +2,7 @@
 //! unit standing still, with no publication behind it.
 use std::path::PathBuf;
 
+use contract::identity::ContentId;
 use presentation::assets::Runtime;
 use presentation::fielded::{Facts, Fielded, Fielding};
 use presentation::presentation::lab::Asset;
@@ -11,6 +12,16 @@ use presentation::records::{Counts, Instance, Joint};
 use presentation::view::Camera;
 use presentation::world::{Appearance, BattleInput, Detail, SoldierBody, WorldInput, Xray};
 use serde_json::{json, Value};
+
+fn installed(name: &str, asset: Asset) -> (String, (ContentId, Asset)) {
+    (
+        name.into(),
+        (
+            ContentId::bundle(contract::identity::bytes_hash(name.as_bytes())).unwrap(),
+            asset,
+        ),
+    )
+}
 
 fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -321,7 +332,7 @@ fn study() -> Asset {
 fn a_shown_unit_s_rows_are_the_presentation_s_own_and_another_needs_its_own_presentation() {
     let mut p = Presentation::new(None, 30.0).unwrap();
     p.install_lab_assets(
-        [("study".into(), study())].into(),
+        [installed("study", study())].into(),
         Detail {
             lod_px: [80.0, 40.0, 20.0],
             impostor_px: 0.0,
