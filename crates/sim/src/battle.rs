@@ -1173,21 +1173,17 @@ impl Battle {
             }
             Order::CancelPending { purchase } => {
                 let index = skirmish_player.ok_or(OrderError::NotSkirmish)?;
-                if !(!self.seat_events.is_empty()
-                    && self.skirmish.as_ref().unwrap().players[index]
-                        .reservations
-                        .iter()
-                        .any(|r| r.data.id == *purchase))
-                    && self
-                        .skirmish
-                        .as_ref()
-                        .unwrap()
-                        .players
+                // Players number their purchases separately: a number names
+                // another player's only when the canceller has none by it.
+                let players = &self.skirmish.as_ref().unwrap().players;
+                let holds = |p: &crate::skirmish::PlayerState| {
+                    p.reservations.iter().any(|r| r.data.id == *purchase)
+                };
+                if !holds(&players[index])
+                    && players
                         .iter()
                         .enumerate()
-                        .any(|(other, p)| {
-                            other != index && p.reservations.iter().any(|r| r.data.id == *purchase)
-                        })
+                        .any(|(other, p)| other != index && holds(p))
                 {
                     return Err(OrderError::WrongFaction);
                 }
