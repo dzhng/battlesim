@@ -63,6 +63,7 @@ pub struct Renderer {
     geometry: Option<Arc<WorldGeometry>>,
     effect_sheets: Option<Arc<EffectSheets>>,
     model_library: Arc<Library>,
+    pending_rebuild_reason: Option<renderer_core::runtime::RebuildReason>,
     display_pipelines: Pipelines,
     display_sampler: Sampler,
     display_group: Option<BindGroup>,
@@ -79,6 +80,12 @@ pub struct Renderer {
 
 fn js_error(error: impl std::fmt::Display) -> JsValue {
     JsValue::from_str(&error.to_string())
+}
+
+/// Hash generated page art with the shared content identity implementation.
+#[wasm_bindgen]
+pub fn bytes_hash(bytes: &[u8]) -> String {
+    contract::identity::bytes_hash(bytes)
 }
 
 #[wasm_bindgen]
@@ -107,6 +114,10 @@ impl Renderer {
                 canvas,
                 high_canvas.clone(),
                 RuntimeConfig {
+                    art_store: renderer_core::models::ArtStorePolicy {
+                        report: |message| web_sys::console::warn_1(&JsValue::from_str(message)),
+                        ..Default::default()
+                    },
                     size: [1, 1],
                     light: settings.light,
                     fog_look: settings.fog.look().map_err(js_error)?,
@@ -149,6 +160,15 @@ impl Renderer {
 
     pub fn destroy_device_for_test(&self) {
         self.gpu.device.destroy();
+    }
+
+    pub fn admission_work(&self) -> Result<JsValue, JsValue> {
+        let work = self
+            .runtime
+            .as_ref()
+            .map(Runtime::admission_work)
+            .ok_or_else(|| js_error("install presentation before reading admission work"))?;
+        serde_wasm_bindgen::to_value(&work).map_err(js_error)
     }
 }
 
@@ -226,6 +246,7 @@ impl Renderer {
             geometry: None,
             effect_sheets: None,
             model_library: Arc::new(Library::default()),
+            pending_rebuild_reason: None,
             display_pipelines,
             display_sampler,
             display_group: None,

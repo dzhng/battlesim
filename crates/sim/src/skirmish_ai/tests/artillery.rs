@@ -149,6 +149,7 @@ fn artillery_prediction_uses_only_a_matching_sighting_and_stays_bounded() {
         reversing: false,
         smoking: false,
         member_leans: vec![],
+        building: None,
     };
     frame.identified.push(target);
     // A second same-kind sighting is far from the firing report. The policy
@@ -170,6 +171,7 @@ fn artillery_prediction_uses_only_a_matching_sighting_and_stays_bounded() {
             reversing: false,
             smoking: false,
             member_leans: vec![],
+            building: None,
         });
     // Hold fire while recording the first sighting, then release it for the
     // next decision so the prediction is the only possible salvo.

@@ -1,9 +1,20 @@
 //! Tooling models use the same frame records as battle and static populations.
+use contract::identity::ContentId;
 use presentation::presentation::{lab::Asset, Presentation, Ui};
 use presentation::records::{FOG_FACES, FOG_PAINTED_FACES, GHOST_PASS, NONE};
 use presentation::view::Camera;
 use presentation::world::Detail;
 use serde_json::json;
+
+fn installed(name: &str, asset: Asset) -> (String, (ContentId, Asset)) {
+    (
+        name.into(),
+        (
+            ContentId::bundle(contract::identity::bytes_hash(name.as_bytes())).unwrap(),
+            asset,
+        ),
+    )
+}
 
 fn static_asset() -> Asset {
     let head = serde_json::to_vec(&json!({
@@ -36,7 +47,7 @@ fn camera() -> Camera {
 fn tooling_detail_uses_its_admitted_thresholds_when_gameplay_quality_changes() {
     let mut p = Presentation::new(None, 30.0).unwrap();
     p.install_lab_assets(
-        [("study".into(), static_asset())].into(),
+        [installed("study", static_asset())].into(),
         Detail {
             lod_px: [80.0, 40.0, 20.0],
             impostor_px: 0.0,
@@ -64,7 +75,7 @@ fn tooling_detail_uses_its_admitted_thresholds_when_gameplay_quality_changes() {
 fn lab_models_compose_named_states_motion_and_ghosts_in_the_canonical_frame() {
     let mut p = Presentation::new(None, 30.0).unwrap();
     p.install_lab_assets(
-        [("tool-model".into(), static_asset())].into(),
+        [installed("tool-model", static_asset())].into(),
         Detail {
             lod_px: [80.0, 40.0, 20.0],
             impostor_px: 4.0,
@@ -179,7 +190,7 @@ fn skinned_asset() -> Asset {
 fn skinned_lab_bodies_and_corpses_select_cards_and_ghosts_keep_meshes() {
     let mut p = Presentation::new(None, 30.0).unwrap();
     p.install_lab_assets(
-        [("body".into(), skinned_asset())].into(),
+        [installed("body", skinned_asset())].into(),
         Detail {
             lod_px: [80.0, 40.0, 20.0],
             impostor_px: 1000.0,
@@ -232,7 +243,7 @@ fn authored_clips_rest_corpses_and_supplied_palettes_share_the_frame_pose_contra
     use presentation::world::WorldInput;
     let mut p = Presentation::new(None, 30.0).unwrap();
     p.install_lab_assets(
-        [("body".into(), skinned_asset())].into(),
+        [installed("body", skinned_asset())].into(),
         Detail {
             lod_px: [80.0, 40.0, 20.0],
             impostor_px: 4.0,
@@ -285,7 +296,11 @@ fn authored_clips_rest_corpses_and_supplied_palettes_share_the_frame_pose_contra
     let posed = at(0.0);
     assert_eq!(f.palettes[posed.data[0] as usize].z, [0.0, 0.0, 1.0, 1.0]);
     assert_eq!(posed.scale[3], 0.7);
-    assert_eq!(at(3.0).data[0], 0.0, "corpse uses its baked resting mesh");
+    assert_eq!(
+        f.palettes[at(3.0).data[0] as usize].z,
+        [0.0, 0.0, 1.0, 2.0],
+        "corpse instance names its row's rest palette"
+    );
     assert_eq!(
         at(3.0).scale[3],
         0.0,
@@ -351,6 +366,7 @@ fn battle_and_lab_instances_of_one_appearance_share_one_batch_without_replacing_
                 ally: [0.0; 4],
             },
             blocked: [0.0; 4],
+            stand_in: None,
         }),
         sun_azimuth: 0.0,
         sun_elevation: 0.7,
@@ -370,8 +386,8 @@ fn battle_and_lab_instances_of_one_appearance_share_one_batch_without_replacing_
     let batch = first.batches.iter().find(|b| b.pass == 0).unwrap();
     let (key, tier, count) = (batch.key, batch.tier, batch.count);
     p.install_lab_assets(
-        [(
-            name.clone(),
+        [installed(
+            &name,
             Asset::Animated {
                 appearance: Box::new(appearance),
                 table: Vec::new(),
@@ -428,8 +444,8 @@ fn replacing_a_tooling_catalog_removes_rows_the_new_gpu_library_cannot_load() {
         impostor_px: 4.0,
         shadow_caster_px: 0.0,
     };
-    p.install_lab_assets([("retired".into(), static_asset())].into(), detail);
-    p.install_lab_assets([("current".into(), static_asset())].into(), detail);
+    p.install_lab_assets([installed("retired", static_asset())].into(), detail);
+    p.install_lab_assets([installed("current", static_asset())].into(), detail);
     let world = p.world();
     for row in &world.appearances {
         let name = &world.strings[row.name as usize..(row.name + row.name_len) as usize];
@@ -452,4 +468,62 @@ fn replacing_a_tooling_catalog_removes_rows_the_new_gpu_library_cannot_load() {
         f.batches[0].appearance, 0,
         "new generation reuses the retired row frontier"
     );
+}
+
+#[test]
+fn corpses_share_one_actual_rest_palette_per_drawn_row_each_frame() {
+    let mut p = Presentation::new(None, 30.0).unwrap();
+    p.install_lab_assets(
+        [
+            installed("body", skinned_asset()),
+            installed("other", skinned_asset()),
+        ]
+        .into(),
+        Detail {
+            lod_px: [80.0, 40.0, 20.0],
+            impostor_px: 4.0,
+            shadow_caster_px: 0.0,
+        },
+    );
+    let models = |names: &[&str]| {
+        serde_json::from_value(json!(names
+            .iter()
+            .enumerate()
+            .map(|(i, name)| json!({
+                "appearance":name,"x":(i % 3) as f64,"y":(i / 3) as f64,"z":0,"yaw":0,"tier":0,
+                "pose":{"kind":"corpse","lies":0}
+            }))
+            .collect::<Vec<_>>()))
+        .unwrap()
+    };
+    p.set_lab_models(models(&["body", "body", "other", "body", "other"]))
+        .unwrap();
+    let frame = p.frame(0.0, &camera(), &Ui::default(), 0).unwrap();
+    assert_eq!(frame.instances.len(), 5, "every requested body draws");
+    assert_eq!(
+        frame.palettes.len(),
+        3,
+        "identity plus one joint for each drawn row"
+    );
+    for batch in &frame.batches {
+        let bodies = &frame.instances[batch.first as usize..(batch.first + batch.count) as usize];
+        let base = bodies[0].data[0];
+        assert!(
+            bodies.iter().all(|body| body.data[0] == base),
+            "one row shares a palette offset"
+        );
+        assert_eq!(
+            frame.palettes[base as usize].z,
+            [0.0, 0.0, 1.0, 2.0],
+            "the shared value is the fall's rest palette"
+        );
+    }
+    p.set_lab_models(models(&["other", "other"])).unwrap();
+    let frame = p.frame(1.0, &camera(), &Ui::default(), 0).unwrap();
+    assert_eq!(
+        frame.palettes.len(),
+        2,
+        "only this frame's drawn rows hold palettes"
+    );
+    assert!(frame.instances.iter().all(|body| body.data[0] == 1.0));
 }

@@ -1,5 +1,12 @@
 //! The menu reel is a film: its battles may field any units with any stats,
 //! but every approved shot stays exactly the same.
+//!
+//! **This test never blocks a game change.** The reel is promotional footage
+//! on fake stats and follows the game's mechanics. When a mechanic, rule or
+//! map change makes this test fail, keep the change: re-direct the scene
+//! (its capture units' stats, its scenario, its map), re-record the log and
+//! show the user the new footage (`fixtures/README.md`, the menu backdrop).
+//! Never revert or narrow a game change to make this test pass.
 //! Each scene of `fixtures/captures/menu.json` is replayed natively, as the
 //! menu's worker runs it (same rules, catalog set, seed and ticks), and its
 //! event log (who fires which round, what each round strikes, who falls, by

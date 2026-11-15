@@ -9,14 +9,7 @@ import type { MapBuildings, StaticWorld } from "./useStaticWorld";
 import { countedFetch } from "@web/downloads";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppearanceLibrary, type InstalledAppearances } from "@packages/scene-assets/src/loader";
-import {
-  bundlePath,
-  familyLooks,
-  templateLibraryPath,
-  texturePath,
-  type RuntimeCatalog,
-  catalogLoadNames,
-} from "@packages/scene-assets/src/schema";
+import { familyLooks, catalogLoadNames } from "@packages/scene-assets/src/schema";
 import { STAND_IN_KIT } from "@packages/scene-assets/src/standInKit";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import type { ObservationView } from "@web/battle/sim/observationView";
@@ -28,117 +21,21 @@ import type { WorldExports, WorldLayout } from "@packages/battle-renderer/src/wo
 import { prop_appearances } from "@wasm/renderer_browser";
 import { diagnosticsSource } from "@web/diagnostics";
 import { appResources } from "./appResources";
-import type { RuntimeFiles } from "@web/battle/sim/fielding";
+import { prefetchStatus, scheduleRuntimePrefetch, resetRuntimePrefetch } from "./runtimePrefetch";
 
 const library = new AppearanceLibrary(countedFetch);
-/** The runtime files the page's appearances were loaded from: what Rust
- *  resolves a battle's units and effects from (`fieldedBattle`). */
-export const gameRuntime: RuntimeFiles = library;
+/** The appearance library is also the runtime source fielding reads. */
+export const gameRuntime = library;
 let loading: Promise<InstalledAppearances> | null = null;
 let loadingFactions: string | null | undefined;
 let loadingScenery: string | null | undefined;
 let appearanceStatus: Record<string, unknown> = { state: "idle" };
-let prefetching: Promise<void> | null = null;
-let prefetchTimer: ReturnType<typeof setTimeout> | null = null;
-let prefetchAllowed = false;
-let prefetchStatus: Record<string, unknown> = { state: "idle" };
 diagnosticsSource("appearance loading", () => ({ ...appearanceStatus, prefetch: prefetchStatus }));
 
 function selectionKey(
   selection: ReadonlySet<string> | null | undefined,
 ): string | null | undefined {
   return selection === null ? null : selection && [...selection].sort().join("|");
-}
-
-/** Warm the browser's network/cache storage without decoding or uploading art.
- * The page cancels it as it leaves (`appResources.signal`): that is no failure,
- * where a fetch the network fails while the page stays is. */
-export async function prefetchRuntimeAssets(baseUrl: string): Promise<void> {
-  if (prefetching) return prefetching;
-  const { signal } = appResources;
-  prefetching = (async () => {
-    prefetchStatus = { state: "loading" };
-    const response = await fetch(`${baseUrl}catalog.json`, { cache: "force-cache", signal });
-    if (!response.ok) throw new Error(`appearance prefetch catalog: HTTP ${response.status}`);
-    const catalog = (await response.json()) as RuntimeCatalog;
-    const files = new Set<string>();
-    const add = (hash: string | undefined, path: (hash: string) => string) => {
-      if (!hash) return;
-      const transport = catalog.gzip?.[hash];
-      if (transport) files.add(`${baseUrl}${path(transport.hash)}`);
-    };
-    for (const entry of Object.values(catalog.appearances ?? {})) add(entry.bundle, bundlePath);
-    for (const ids of Object.values(catalog.textures ?? {}))
-      for (const id of ids) add(id, texturePath);
-    for (const hash of Object.values(catalog.skeletons ?? {})) add(hash, bundlePath);
-    if (catalog.templates) add(catalog.templates.library, templateLibraryPath);
-    const urls = [...files.keys()];
-    const cache =
-      typeof caches === "undefined"
-        ? null
-        : await caches.open("battle-runtime-v1").catch(() => null);
-    let cursor = 0;
-    let failed = 0;
-    const worker = async () => {
-      for (;;) {
-        const url = urls[cursor++];
-        if (!url) return;
-        try {
-          if (cache && (await cache.match(url))) continue;
-          const file = await fetch(url, { cache: "force-cache", signal });
-          if (!file.ok) throw new Error(`HTTP ${file.status}`);
-          if (cache) await cache.put(url, file.clone());
-          await file.arrayBuffer();
-        } catch (error) {
-          if (signal.aborted) return;
-          failed++;
-          console.error("Background appearance prefetch failed.", { url, error });
-        }
-      }
-    };
-    await Promise.all(Array.from({ length: Math.min(6, urls.length) }, () => worker()));
-    if (cache && failed === 0 && !signal.aborted) {
-      const expected = new Set(
-        urls.map((url) => new URL(url, globalThis.location?.href ?? "http://localhost/").href),
-      );
-      for (const request of await cache.keys()) {
-        if (!expected.has(request.url)) await cache.delete(request);
-      }
-    }
-    prefetchStatus = signal.aborted
-      ? { state: "cancelled" }
-      : { state: failed ? "partial" : "ready", files: urls.length, failed };
-  })()
-    .catch((error) => {
-      if (signal.aborted) {
-        prefetchStatus = { state: "cancelled" };
-        return;
-      }
-      prefetchStatus = {
-        state: "failed",
-        error: error instanceof Error ? error.message : String(error),
-      };
-      console.error("Background appearance prefetch failed.", error);
-    })
-    .then(() => undefined);
-  return prefetching;
-}
-
-function scheduleRuntimePrefetch(baseUrl: string): void {
-  if (prefetching || prefetchTimer !== null) return;
-  prefetchStatus = { state: "scheduled" };
-  // Let the first page settle before broadening the network/cache work beyond
-  // the current view's required art.
-  prefetchTimer = setTimeout(() => {
-    prefetchTimer = null;
-    void prefetchRuntimeAssets(baseUrl);
-  }, 3_000);
-}
-
-/** Start warming unused art only after the first page has a stable graphics tier. */
-export function allowRuntimePrefetch(): void {
-  prefetchAllowed = true;
-  scheduleRuntimePrefetch("/");
 }
 
 /** The page's appearances for a session running `units`, with `asked`
@@ -158,10 +55,9 @@ export function gameAppearances(
   loadingScenery = sceneryKey;
   loading ??= library.load("/", wearing, factions, scenery);
   return loading
-    .then(() => library.withUnits(wearing))
-    .then(() => library.withAppearances(asked))
+    .then(() => library.withUnits(wearing, asked))
     .then((next) => {
-      if (prefetchAllowed) scheduleRuntimePrefetch("/");
+      scheduleRuntimePrefetch("/");
       return next;
     });
 }
@@ -178,12 +74,7 @@ export function reloadGameAppearances(
   loading = null;
   loadingFactions = undefined;
   loadingScenery = undefined;
-  prefetching = null;
-  if (prefetchTimer !== null) {
-    clearTimeout(prefetchTimer);
-    prefetchTimer = null;
-  }
-  prefetchStatus = { state: "idle" };
+  resetRuntimePrefetch();
   return gameAppearances(units, [], wearing, factions, scenery);
 }
 
@@ -378,11 +269,28 @@ export function mapAppearances(
   };
 }
 
-/** A battle keeps art it has learned, and preloads its player's purchase choices. */
+/** The kinds an observation shows its side: its units, what it has identified
+ *  or holds as a contact, and the wrecks and bodies it knows. */
+export function* observedKinds(observation: ObservationView | null): Generator<string> {
+  for (const unit of [
+    ...(observation?.own ?? []),
+    ...(observation?.identified ?? []),
+    ...(observation?.corpses ?? []),
+    ...(observation?.crashes ?? []),
+    ...(observation?.airTransits ?? []),
+  ])
+    yield unit.kind;
+  for (const prop of observation?.knownProps ?? []) if (prop.wreckOf) yield prop.wreckOf;
+  for (const contact of observation?.contacts ?? []) if (contact.kind) yield contact.kind;
+}
+
+/** A battle keeps art it has learned, and preloads its player's purchase choices.
+ * Kinds wearing only that art are fielded together: learning another description
+ * for an already wanted look must not stage the same catalog again. */
 export function useBattleKinds(input: {
   scope: unknown;
   side: string;
-  units: Pick<UnitCatalog, "cards">;
+  units: Pick<UnitCatalog, "cards" | "ids" | "appearancesFor">;
   fielded: readonly string[];
   faction: string | null;
   observation: ObservationView | null;
@@ -415,22 +323,25 @@ export function useBattleKinds(input: {
   )
     history.current = { scope, side, seed, kinds: new Set(seed) };
   const retained = history.current.kinds;
-  const key = useMemo(() => {
-    for (const unit of [
-      ...(observation?.own ?? []),
-      ...(observation?.identified ?? []),
-      ...(observation?.corpses ?? []),
-      ...(observation?.crashes ?? []),
-      ...(observation?.airTransits ?? []),
-    ])
-      retained.add(unit.kind);
-    for (const prop of observation?.knownProps ?? []) if (prop.wreckOf) retained.add(prop.wreckOf);
-    for (const contact of observation?.contacts ?? []) if (contact.kind) retained.add(contact.kind);
+  const learned = useMemo(() => {
+    for (const kind of observedKinds(observation)) retained.add(kind);
     for (const pending of observation?.skirmish?.players.flatMap((player) => player.pending) ?? [])
       retained.add(pending.kind);
     if (purchasing) retained.add(purchasing);
     return [...retained].sort().join("\0");
   }, [retained, observation, purchasing]);
+  const requirements = useMemo(
+    () => units.ids.map((kind) => ({ kind, names: units.appearancesFor([kind]) })),
+    [units],
+  );
+  const key = useMemo(() => {
+    const wanted = units.appearancesFor(learned ? learned.split("\0") : []);
+    return requirements
+      .filter(({ names }) => [...names].every((name) => wanted.has(name)))
+      .map(({ kind }) => kind)
+      .sort()
+      .join("\0");
+  }, [learned, requirements, units]);
   return useMemo(() => (key ? key.split("\0") : []), [key]);
 }
 

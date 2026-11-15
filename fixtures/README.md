@@ -45,9 +45,23 @@ each scene a saved battle (an ordinary saved encounter, scripted orders and all,
 a `capture` map) and its reel of camera shots. The
 [capture tool](../apps/battle-lab/src/capture/README.md) films any of them and owns
 the format; [the menu backdrop](captures/menu.json) is the one the main menu plays.
-The rest of this section is the backdrop's: each of its encounters is staged
-like a film, not balanced: set-pieces open fire on a schedule, set by how far each
-force starts from its enemy, so every cut has guns firing in frame. Cannon fire and
+
+## The menu reel
+
+> **The menu reel follows the game. It never blocks a game change.** It is a
+> promotional video staged on fake stats, not a test of the game. When a
+> mechanic, rule, map or roster change moves it, keep the change exactly as it
+> is and re-direct the reel: change its units' stats, its scenario or its map
+> however the shots need, re-record its log, and show the user the new footage.
+> Never revert, narrow, delay or special-case a game change for the reel, and
+> don't spend time working out which change moved it: that answer changes
+> nothing. Its [exact-shot test](../crates/sim/tests/menu_reel.rs) is a
+> tripwire that says "re-direct and re-record", never a gate a change must
+> pass as it stands.
+
+Each of the backdrop's encounters is staged like a film, not balanced:
+set-pieces open fire on a schedule, set by how far each force starts from its
+enemy, so every cut has guns firing in frame. Cannon fire and
 blasts read at film distance; rifle fire barely does. A changed encounter or rule
 (movement included) retimes the set-pieces, so recheck each scene's cuts after
 either. Each battle is directed, not left to play out: starting health, scheduled
@@ -87,8 +101,10 @@ encounter pins, in its `overrides`, every stat of every weapon its cast fires, a
 the values the approved reel was filmed with: the game's weapons are retuned all
 the time, and none of that retuning reaches the reel. The pins prevent only
 stat-driven reshoots: a change to a rule (a mechanic, a rules section, a test
-unit) still retimes the battle, and is never held back to keep the reel. It
-re-records the reel's log, and the user approves the new footage.
+unit, the map) still retimes the battle. That is expected and fine: direct the
+battle back to its shots with the levers above, re-record the reel's log, and
+the user approves the new footage. The game is never held back to keep the
+reel.
 
 [Sound authoring](#sound-catalog) owns audio provenance and choices independently
 of gameplay weapon cycles. Saved maps, component inheritance and paired evidence
@@ -147,7 +163,8 @@ independently; zero air reach means blind. `capabilities.radar_emitter` authors
 a signature independently of those ranges. The [sensing contract](../crates/sim/README.md#sensing) explains
 how these values interact with ground and movement.
 A unit's `capabilities.carriage.seats` (3, 8 or 16) makes it a carrier; nothing
-else does. The rules' `carriage` row sets the boarding timer and reach, and their
+else does. The rules' `carriage` row sets the boarding timer and reach, the
+climbing speed a carrier may roll at while squads get on or off, and their
 `bail_out` rows, one per kind of host (building, ground, air), set how a garrison
 or riders come out of a destroyed host: death odds, the health lost and how far
 to search for a place to stand.

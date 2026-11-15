@@ -14,18 +14,18 @@
     "ratio": 20,
     "clip_db": -1
   },
-  "listener_eye_share": 0.25,
   "distance": {
-    "ref_m": 15,
-    "rolloff": 1.8,
+    "ref_m": 150,
+    "rolloff": 1.2,
     "max_m": 3000,
-    "floor": 0.06,
+    "floor": 0.15,
     "cull": 0.004
   },
+  "focus": { "share": 0.3, "inner_deg": 35, "outer_deg": 55 },
   "air": {
     "near_hz": 18000,
     "far_hz": 1600,
-    "far_m": 500,
+    "far_m": 1000,
     "wet": 0.35,
     "reverb_s": 1.8,
     "attack_s": 0.012
@@ -319,13 +319,7 @@
     "combat_window_s": 20,
     "calm_s": 45,
     "crossfade_s": 4,
-    "combat_triggers": [
-      "under_fire",
-      "suppressed",
-      "pinned",
-      "hit",
-      "man_down"
-    ]
+    "combat_triggers": ["under_fire", "suppressed", "pinned", "hit", "man_down"]
   },
   "voices": {
     "lines": 4,

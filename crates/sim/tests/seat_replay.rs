@@ -84,8 +84,10 @@ fn same_tick_events_apply_in_recording_order_after_order_admission() {
 #[test]
 fn no_seat_events_preserve_the_pre_feature_tick_digests_and_replay_shape() {
     use sha2::{Digest, Sha256};
-    // SHA-256 of the complete 601-tick digest streams captured at be8bb7e3e,
-    // before any simulation edit. This pins outcomes, not tuning values.
+    // SHA-256 of the complete 601-tick digest streams captured on code with
+    // no seat events in it: seeds 1 and 7 at be8bb7e3e, before any simulation
+    // edit here; seed 19, two AIs fighting, on staging at d1c7ad093, whose own
+    // movement and AI changes moved it. This pins outcomes, not tuning values.
     for (seed, expected) in [
         (
             1,
@@ -97,7 +99,7 @@ fn no_seat_events_preserve_the_pre_feature_tick_digests_and_replay_shape() {
         ),
         (
             19,
-            "48963fc827ceff411248257c3cd125b35b19c8dfd3c300a876d005371c8c887f",
+            "fdfd0eec1d9e2750fc2bee6c0f08d84eef790cad192ae75f31ae11ccdba0e4b3",
         ),
     ] {
         let mut setup = crate::skirmish::setup();

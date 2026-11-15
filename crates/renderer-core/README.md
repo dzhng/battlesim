@@ -15,14 +15,47 @@ for browser fetches. The held static batch buffers also belong to this core, so
 a frame that names an unchanged batch has the same meaning on either target.
 Preparation detects skipped publications and materializes current canonical
 populations before reusing held buffers; shells need no skipped-frame protocol.
-Appearance rows route instances rather than own copies of their meshes. Rows
-that select the same authored state/pose share immutable GPU tiers within one
-asset generation; corpse poses remain distinct.
-Decoded bundles also share immutable texture payloads by content identity.
-The library's weak texture index cannot retain retired art. A new source draft
-shares that index without copying canonical bundle ownership, so a late draft
-cannot restore unrelated stale sources. Initial buffer data is queued through
-the common upload owner, avoiding mapped-at-creation transfer copies in browsers.
+
+Appearance rows route instances rather than own copies of their meshes. Each
+runtime owns one [art store](src/models/store.rs) for its scene and device,
+shared with pending generations. Four rules hold for everything in it: packed
+geometry, material slots, and [texture and card layers](src/texture_array.rs).
+
+- **Identity is content, never a name or a row.** What is packed, uploaded or
+  baked for a content depends only on the inputs to those bytes. Geometry
+  retains the authored skin; living and corpse rows share it, while cards
+  include their rendered rest palette. A type added to a running battle costs
+  its own art alone. A key includes
+  every input that changes the stored bytes; a texture array's edge is one,
+  because it changes filtered pixels.
+- **Addresses are append-only.** A material slot or a layer never moves and is
+  never reassigned while the store lives, and a dropped preparation keeps what
+  it reserved, so cancelled work cannot renumber live art. A layer is written
+  before any committed table can name it and is immutable afterwards.
+- **The last holder destroys.** Generations hold the GPU payloads and the
+  store's indexes are weak. Retiring a generation cannot free what another
+  draws.
+- **A full rebuild is the same admission with a fresh store.** It runs for the
+  first scene, a recreated device, and when dead or exhausted addresses pass
+  the store's policy; admission work names the reason. An address that cannot
+  fit the vertex layout is an error, never a wrap.
+
+Materials, row routing and diagnostics stay per generation, rebuilt against the
+stable addresses. Growing an array copies its layers on the GPU and never
+uploads old art again; a changed edge rebuilds the array. Admission work counts
+both apart from new-layer writes.
+
+Decoded bundles are keyed by the runtime catalog's `ContentId`: the bundle hash
+and, for skinned art, its skeleton hash. Names only route to that identity, so
+one name can replace its art and two names can share one decode. The shell asks
+which identities are missing from both the decoded library and presentation's
+retained facts, and supplies bytes for those alone;
+[source drafts](src/bundle/draft.rs) give browser transport and the native
+tests that one answer. A draft holds no retired art and refuses retired content
+before any GPU work.
+
+Initial buffer data is queued through the common upload owner, avoiding
+mapped-at-creation transfer copies in browsers.
 Scenery also shares authored tier admission and held-batch routing. Initial
 placement and atomic art replacement derive geometry from decoded Rust bundles;
 presentation owns the resulting sizes, trunks, stumps and placement. Runtime
@@ -31,6 +64,16 @@ reconstruction retains those facts and the observer's learned felling.
 [Impostors](src/impostor/) bake through the same authored model/material path,
 then filter coverage before uploading relit cards. Native and browser use the
 same atlases and shader; the impostor tier never substitutes a coarsest mesh.
+Runtime cards live in the art store under the same rules. A card's key adds the
+bake specification and the rendered rest palette to its geometry's. The
+name-bearing atlas hash is a review oracle, not a cache key.
+
+A stage bakes only the keys the store lacks, in batches bounded by the memory
+their targets and readbacks hold, and awaits each batch's reads together; the
+bound's default lives with the [impostor specification](src/impostor/mod.rs),
+and a split is reported once per runtime. Authored materials upload once per
+generation and stay separate from live diagnostic material controls. A review
+is always an independent bake, never a read of a stored layer.
 Asynchronous asset preparation finishes before a frame may request cards.
 Configurable offscreen bakes capture owned GPU resources, so replacing the
 source catalog cannot invalidate a pending review image.
@@ -44,6 +87,12 @@ current controls, and requires a fresh
 canonical frame before drawing the new rows. Targets, compiled pipelines, sky,
 fog and learned ground retain their active owners throughout loading.
 
+Static admission compares the presentation's ground revision, each kind's
+content identity in order, and grass density. Unchanged static content does no
+placement and no scenery or grass upload: scenery keeps its GPU buffers while
+its rows follow the prospective catalog, and grass keeps its live owner, so a
+frame prepared during admission cannot lose its latest regrowth.
+
 Sky and environment lighting share one owner too. The sky lookup and its
 reflection prefilter are baked from the presentation's light records at
 construction. Each frame supplies the canonical view, camera and cast lights;
@@ -55,6 +104,12 @@ canonical presentation, source assets and external geometry. A held publication
 reuses its model/effect buffers; a new canonical frame prepares them again.
 Fog and scar work prepare for every drawn frame because their incremental
 work must be consumed rather than replayed.
+
+Each asset generation also carries an [`AdmissionWork`](src/runtime/work.rs)
+report: counts and payload bytes for decode, packing, uploads, texture layers,
+cards, card-read wait groups and scenery placement. It is swapped atomically
+with the generation, so discarded or stale preparation cannot change the live
+report.
 
 [World geometry](src/runtime/world.rs) constructs submitted layers for both
 shells through shared skirt, backdrop and water builders. Native supplies physical

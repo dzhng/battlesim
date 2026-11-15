@@ -3177,7 +3177,7 @@ impl Battle {
                 if let Some(entry) = plan.entrant {
                     let unit = &mut movers[entry.unit.0 as usize];
                     let approach = v2(entry.approach[0], entry.approach[1]);
-                    if matches!(entry_action, garrison::EntryAction::Reassert) {
+                    if matches!(entry_action, garrison::EntryAction::Enter) {
                         unit.enqueue(
                             UnitOrder::Garrison {
                                 building: plan.building,

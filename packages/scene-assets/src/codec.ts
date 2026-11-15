@@ -47,13 +47,17 @@ const typeName = (a: Typed): TypeName =>
           ? "u16"
           : "u32";
 
-export function encodeBundle(bundle: Bundle): Uint8Array {
+export function encodeBundle(bundle: Bundle): Uint8Array<ArrayBuffer> {
   return encodeContainer(MAGIC, FORMAT_VERSION, bundle);
 }
 
 /** The container above, for any content: the bundles here, and the template
  *  art library (`templateLibrary.ts`) under its own magic and version. */
-export function encodeContainer(magic: number, version: number, value: object): Uint8Array {
+export function encodeContainer(
+  magic: number,
+  version: number,
+  value: object,
+): Uint8Array<ArrayBuffer> {
   const arrays: Typed[] = [];
   const canonical = (value: unknown): unknown => {
     if (ArrayBuffer.isView(value)) {
@@ -155,7 +159,10 @@ export function decodeContainer(
 const TRANSPORT_MAGIC = 0x54414742; // "BGAT" little-endian
 
 /** `bundle` without its textures' pixels, and the textures it leaves out. */
-export function splitTextures(bundle: Bundle): { content: Uint8Array; textures: Texture[] } {
+export function splitTextures(bundle: Bundle): {
+  content: Uint8Array<ArrayBuffer>;
+  textures: Texture[];
+} {
   const textures = bundle.kind === "clips" ? [] : bundle.textures;
   const refs = textures.map(({ id, format, width, height }) => ({ id, format, width, height }));
   const content = bundle.kind === "clips" ? bundle : { ...bundle, textures: refs };

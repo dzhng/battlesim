@@ -144,6 +144,13 @@ function DeckReview({ onBack }: { onBack: () => void }) {
       selected: [1, 2],
     },
     {
+      name: "Returning to base",
+      units: [
+        specimenUnit(catalog, "test_tank", { id: 1, withdrawing: true }),
+        specimenUnit(catalog, "test_rifle", { id: 2 }),
+      ],
+    },
+    {
       name: "Garrison exit",
       units: [
         specimenUnit(catalog, "test_rifle", {
@@ -269,7 +276,7 @@ function DeckReview({ onBack }: { onBack: () => void }) {
           selected={selected}
           onSelect={setSelected}
           rules={rules}
-          contactLines={<ContactLines lines={[{ key: 1, text: "Unknown, firing" }]} />}
+          contactLines={<ContactLines lines={[{ key: 1, text: "Unknown, last seen" }]} />}
           reinforcements={
             <PurchasePicker
               cards={[]}

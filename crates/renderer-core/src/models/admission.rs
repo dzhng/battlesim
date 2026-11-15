@@ -1,5 +1,7 @@
 //! Authored model rows and shared material admission.
 use super::*;
+use crate::models::store::SharedArtStore;
+use crate::runtime::AdmissionWork;
 
 impl Models {
     /// Installs every row of the presentation's world from `library`.
@@ -9,6 +11,8 @@ impl Models {
         pipelines: &Pipelines,
         library: &impl BundleSource,
         catalog: presentation::presentation::catalog::CatalogView<'_>,
+        store: SharedArtStore,
+        work: &mut AdmissionWork,
     ) -> Result<Self, String> {
         let world = catalog.world();
         Self::from_world(
@@ -20,6 +24,8 @@ impl Models {
             &world.strings,
             |row| catalog.rest_palette(row),
             |row, node| catalog.track_side(row, node),
+            store,
+            work,
         )
     }
 
@@ -36,15 +42,87 @@ impl Models {
         strings: &str,
         rest_palette: impl Fn(u32) -> Option<Vec<Joint>>,
         track_side: impl Fn(u32, usize) -> Option<presentation::world::TrackSide>,
+        store: SharedArtStore,
+        work: &mut AdmissionWork,
     ) -> Result<Self, String> {
         let text = |at: u32, len: u32| &strings[at as usize..(at + len) as usize];
-        let mut bundles: HashMap<String, (Arc<Bundle>, usize)> = HashMap::new();
-        let mut materials: Vec<f32> = Vec::new();
-        let mut layers = Layers::default();
+        let mut bundles = std::collections::BTreeMap::new();
+        let mut wanted = std::collections::BTreeMap::new();
+        for a in appearances {
+            if a.draws != 0 && a.draws != DRAWS_PROP && a.draws != DRAWS_PROP_GROUND {
+                continue;
+            }
+            let name = text(a.name, a.name_len);
+            if bundles.contains_key(name) {
+                continue;
+            }
+            let content = library.content_id(name)?;
+            let bundle = library.bundle(name)?;
+            wanted.insert(content.clone(), bundle.materials.len());
+            bundles.insert(name.to_owned(), (bundle, content));
+        }
+        let mut wanted_textures = std::collections::BTreeMap::new();
+        for (bundle, _) in bundles.values() {
+            for material in &bundle.materials {
+                for &index in material.textures.values() {
+                    let texture = &bundle.textures[index];
+                    wanted_textures.insert(texture.id.clone(), texture.clone());
+                }
+            }
+        }
+        let plans = super::plan::rows(
+            appearances,
+            strings,
+            &bundles,
+            &wanted_textures,
+            &rest_palette,
+            &track_side,
+        )?;
+        let wanted_cards = plans
+            .iter()
+            .flatten()
+            .filter_map(|plan| plan.card.clone())
+            .collect();
+        let (store, reason) = ArtStore::admit(
+            store,
+            &wanted,
+            &wanted_textures,
+            &wanted_cards,
+            device.limits().max_texture_array_layers,
+        )?;
+        if reason.is_some() {
+            work.rebuild_reason = reason;
+        }
+        let mut materials =
+            vec![0.; store.lock().expect("art store lock").slots.len().max(1) * MATERIAL_ROWS * 4];
+        let mut held = store.lock().expect("art store lock");
+        let policy = held.policy;
+        let [albedo, surface] = held.textures.admit(
+            device,
+            queue,
+            &wanted_textures,
+            policy.texture_spare_layers,
+            policy.report,
+            work,
+        );
+        let mut written = std::collections::BTreeSet::new();
+        for (bundle, content) in bundles.values() {
+            if !written.insert(content) {
+                continue;
+            }
+            let base = held.slots.base(content).expect("reserved content");
+            for (i, m) in bundle.materials.iter().enumerate() {
+                let mut layer = |c: &str| {
+                    held.textures
+                        .layer(m.textures.get(c).map(|&i| &bundle.textures[i]))
+                };
+                let at = (base + i) * MATERIAL_ROWS * 4;
+                materials[at..at + MATERIAL_ROWS * 4]
+                    .copy_from_slice(&material_rows(m, &mut layer));
+            }
+        }
+        drop(held);
         let mut rows = Vec::new();
-        // Routing and placement rows share immutable geometry within this
-        // material generation. Corpse poses remain distinct authored meshes.
-        let mut geometry: HashMap<(String, String, u32), Arc<[Drawable]>> = HashMap::new();
         for (r, a) in appearances.iter().enumerate() {
             // The scenery's rows are the scenery layer's (`scenery.rs`).
             let prop = a.draws == DRAWS_PROP || a.draws == DRAWS_PROP_GROUND;
@@ -52,127 +130,136 @@ impl Models {
                 rows.push(None);
                 continue;
             }
-            let (name, state) = (text(a.name, a.name_len), text(a.state, a.state_len));
-            if !bundles.contains_key(name) {
-                let bundle = library.bundle(name)?;
-                let base = materials.len() / (MATERIAL_ROWS * 4);
-                for m in &bundle.materials {
-                    let mut layer =
-                        |c: &str| layers.layer(m.textures.get(c).map(|&i| &bundle.textures[i]));
-                    materials.extend(material_rows(m, &mut layer));
-                }
-                bundles.insert(name.to_owned(), (bundle, base));
-            }
-            let (bundle, base) = &bundles[name];
-            let label = format!("{name}-{r}");
-            let single = |mesh: &Mesh, rigid| {
-                drawable(
-                    device,
-                    queue,
-                    &label,
-                    bundle,
-                    &[(mesh, pack_vertices(mesh, *base, rigid, 0))],
-                )
+            let Some(plan) = &plans[r] else {
+                rows.push(None);
+                continue;
             };
-            let rest = || rest_palette(r as u32).ok_or(format!("{name}: no rest pose for row {r}"));
+            let name = text(a.name, a.name_len);
+            let (bundle, content) = &bundles[name];
+            let base = store
+                .lock()
+                .expect("art store lock")
+                .slots
+                .base(content)
+                .expect("reserved content");
+            let label = format!("{name}-{r}");
+            let single =
+                |mesh: &Mesh, rigid, work: &mut AdmissionWork| -> Result<Drawable, String> {
+                    Ok(drawable(
+                        device,
+                        queue,
+                        &label,
+                        bundle,
+                        &[(mesh, pack_vertices(mesh, base, rigid, 0)?)],
+                        work,
+                    ))
+                };
+            let rest = || {
+                plan.palette
+                    .clone()
+                    .ok_or(format!("{name}: no rest pose for row {r}"))
+            };
             let row = match &bundle.shape {
-                Shape::Skinned(tiers) if a.lies != NONE => {
-                    let palette = rest()?;
-                    let rest = tiers.first().map(|mesh| {
-                        RestPose::new(name, &posed_mesh(mesh, &palette), RestPose::identity())
-                    });
-                    let tiers = geometry
-                        .entry((name.to_owned(), String::new(), a.lies))
-                        .or_insert_with(|| {
-                            tiers
-                                .iter()
-                                .map(|m| single(&posed_mesh(m, &palette), Some(0)))
-                                .collect()
-                        })
-                        .clone();
-                    Row {
-                        kind: Kind::Corpse,
-                        building: a.draws == 0 && a.placed != 0,
-                        prop,
-                        tiers,
-                        card: None,
-                        rest,
-                    }
-                }
                 Shape::Skinned(tiers) => {
                     let palette = rest()?;
+                    let geometry =
+                        ArtStore::geometry(&store, plan.geometry.clone(), work, |work| {
+                            let tiers = tiers
+                                .iter()
+                                .map(|m| single(m, None, work))
+                                .collect::<Result<_, _>>()?;
+                            Ok(ModelGeometry {
+                                tiers,
+                                rests: Default::default(),
+                            })
+                        })?;
                     let rest = tiers.first().map(|mesh| {
-                        RestPose::new(name, &posed_mesh(mesh, &palette), palette.clone())
+                        geometry.rest_pose(&palette, work, || {
+                            RestPose::new(&posed_mesh(mesh, &palette), palette.clone())
+                        })
                     });
                     Row {
-                        kind: Kind::Soldier,
+                        rest,
+                        kind: if a.lies == NONE {
+                            Kind::Soldier
+                        } else {
+                            Kind::Corpse
+                        },
                         building: a.draws == 0 && a.placed != 0,
                         prop,
                         card: None,
-                        rest,
-                        tiers: geometry
-                            .entry((name.to_owned(), String::new(), NONE))
-                            .or_insert_with(|| tiers.iter().map(|m| single(m, None)).collect())
-                            .clone(),
+                        card_key: plan.card.clone(),
+                        geometry,
                     }
                 }
                 Shape::Articulated(nodes) => {
                     let count = nodes.first().map_or(0, |n| n.tiers.len());
-                    let tiers = geometry
-                        .entry((name.to_owned(), String::new(), NONE))
-                        .or_insert_with(|| {
-                            (0..count)
+                    let palette = plan.palette.clone();
+                    let geometry =
+                        ArtStore::geometry(&store, plan.geometry.clone(), work, |work| {
+                            let tiers = (0..count)
                                 .map(|t| {
-                                    let meshes = articulated_meshes(nodes, t, *base, |node| {
+                                    let meshes = articulated_meshes(nodes, t, base, |node| {
                                         track_side(r as u32, node)
-                                    });
-                                    drawable(device, queue, &label, bundle, &meshes)
+                                    })?;
+                                    Ok(drawable(device, queue, &label, bundle, &meshes, work))
                                 })
-                                .collect()
+                                .collect::<Result<_, String>>()?;
+                            Ok(ModelGeometry {
+                                tiers,
+                                rests: Default::default(),
+                            })
+                        })?;
+                    let rest = palette.as_ref().map(|palette| {
+                        geometry.rest_pose(palette, work, || {
+                            RestPose::articulated(nodes, palette.clone())
                         })
-                        .clone();
+                    });
                     Row {
+                        rest,
                         kind: Kind::Vehicle,
                         building: a.draws == 0 && a.placed != 0,
                         prop,
-                        tiers,
+                        geometry,
                         card: None,
-                        rest: rest_palette(r as u32)
-                            .map(|palette| RestPose::articulated(name, nodes, palette)),
+                        card_key: plan.card.clone(),
                     }
                 }
                 Shape::Static(states) => {
-                    // A piece the bundle lacks (a wreck with no turret to
-                    // throw) is a row nothing draws.
-                    let found = states
+                    let s = states
                         .iter()
-                        .find(|s| s.name == state)
-                        .or_else(|| state.is_empty().then(|| states.first()).flatten());
-                    let Some(s) = found else {
-                        rows.push(None);
-                        continue;
-                    };
+                        .find(|s| s.name == plan.geometry.state)
+                        .expect("planned authored state");
+                    let geometry =
+                        ArtStore::geometry(&store, plan.geometry.clone(), work, |work| {
+                            let tiers = s
+                                .tiers
+                                .iter()
+                                .map(|m| single(m, Some(0), work))
+                                .collect::<Result<_, _>>()?;
+                            Ok(ModelGeometry {
+                                tiers,
+                                rests: Default::default(),
+                            })
+                        })?;
+                    let palette = RestPose::identity();
+                    let rest = s.tiers.first().map(|mesh| {
+                        geometry.rest_pose(&palette, work, || RestPose::new(mesh, palette.clone()))
+                    });
                     Row {
+                        rest,
                         kind: if prop { Kind::Prop } else { Kind::Piece },
                         building: a.draws == 0 && a.placed != 0,
                         prop,
-                        tiers: geometry
-                            .entry((name.to_owned(), s.name.clone(), NONE))
-                            .or_insert_with(|| s.tiers.iter().map(|m| single(m, Some(0))).collect())
-                            .clone(),
+                        geometry,
                         card: None,
-                        rest: s
-                            .tiers
-                            .first()
-                            .map(|mesh| RestPose::new(name, mesh, RestPose::identity())),
+                        card_key: plan.card.clone(),
                     }
                 }
             };
             rows.push(Some(row));
         }
-        if materials.is_empty() {
-            materials.resize(MATERIAL_ROWS * 4, 0.0);
-        }
+        work.buffer_bytes_uploaded += bytemuck::cast_slice::<f32, u8>(&materials).len() as u64;
         let authored_materials = materials.clone();
         let materials = crate::buffer(
             device,
@@ -180,20 +267,6 @@ impl Models {
             "model-materials",
             BufferUsages::STORAGE | BufferUsages::COPY_DST,
             bytemuck::cast_slice(&materials),
-        );
-        let albedo = texture_array(
-            device,
-            queue,
-            "model-albedo",
-            TextureFormat::Rgba8UnormSrgb,
-            &layers.albedo,
-        );
-        let surface = texture_array(
-            device,
-            queue,
-            "model-surface",
-            TextureFormat::Rgba8Unorm,
-            &layers.surface,
         );
         let sampler = device.create_sampler(&SamplerDescriptor {
             label: Some("model-textures"),
@@ -225,6 +298,7 @@ impl Models {
             layout,
             materials,
             authored_materials,
+            impostor_materials: Default::default(),
             surfaces: [true; 4],
             buildings_shown: true,
             models_shown: true,
@@ -240,6 +314,7 @@ impl Models {
             has_xray_meshes: false,
             high_apart: false,
             cards: None,
+            store,
         })
     }
 }
@@ -250,7 +325,7 @@ pub(super) fn articulated_meshes(
     tier: usize,
     material_base: usize,
     track_side: impl Fn(usize) -> Option<presentation::world::TrackSide>,
-) -> Vec<(&Mesh, Vec<u8>)> {
+) -> Result<Vec<(&Mesh, Vec<u8>)>, String> {
     nodes
         .iter()
         .enumerate()
@@ -261,10 +336,10 @@ pub(super) fn articulated_meshes(
                 None => 0,
             };
             let mesh = &node.tiers[tier];
-            (
+            Ok((
                 mesh,
-                pack_vertices(mesh, material_base, Some(i as u8), track),
-            )
+                pack_vertices(mesh, material_base, Some(i as u8), track)?,
+            ))
         })
         .collect()
 }

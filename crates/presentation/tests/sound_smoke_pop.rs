@@ -6,6 +6,7 @@
 //! shipped mix's.
 use contract::smoke::SmokeCloud;
 use presentation::effects::publication::{EffectFeed, EffectPublication};
+use presentation::fielded::Facts;
 use presentation::sound::frame::{Command, Heard, Listener, Motion, Sound, Voice};
 use serde_json::{json, Value};
 use sim::battle::Battle;
@@ -84,6 +85,7 @@ fn hear(s: &mut Sound, effects: &EffectPublication, hz: f64, at: [f64; 3]) -> Ve
     let listener = Listener {
         position: at,
         forward: [0.0, 1.0, 0.0],
+        look: [0.0; 3],
     };
     let commands = s.update(now, now, now, &Motion::default(), listener);
     (commands.iter())
@@ -194,7 +196,9 @@ fn a_side_always_hears_its_own_units_pop() {
         kinds: &["test_smoke_tank".into()],
         factions: None,
     }
-    .resolve(&|hash| runtime.read(hash, "bundle.bin"))
+    .resolve(&mut Facts::default(), &|hash| {
+        runtime.read(hash, "bundle.bin").map(Into::into)
+    })
     .unwrap()
     .typed()
     .unwrap();

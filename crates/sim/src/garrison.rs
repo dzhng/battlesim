@@ -80,6 +80,11 @@ fn held_building(unit: &Unit) -> Option<PropId> {
     unit.hold.as_ref().and_then(|hold| hold.host.building())
 }
 
+/// The building a squad fights from (inside or leaving, not entering).
+pub fn garrisoned_in(unit: &Unit) -> Option<PropId> {
+    held_building(unit).filter(|_| unit.garrisoned())
+}
+
 /// Published body pose: indoors behind the occupied window. Combat keeps
 /// the abstract exposed capsule and muzzle outside the shell, so a missed
 /// occupant still meets the wall without making it target-transparent.
@@ -171,6 +176,24 @@ pub(crate) fn building(world: &WorldGeometry, id: PropId) -> Option<&Prop> {
     world
         .prop(world.structure_owner(id)?)
         .filter(|p| p.body.garrison)
+}
+
+/// Whether a squad standing at `point` is close enough to `building` to step
+/// in where it stands: within entry reach of any part its side knows.
+pub(crate) fn within_entry_reach(
+    world: &WorldGeometry,
+    known: &crate::movement::SideGeometry,
+    authored: PropId,
+    building: PropId,
+    point: V2,
+    rules: &Rules,
+) -> bool {
+    let reach = crate::hold::Host::Building(building).timing(rules).reach_m;
+    world
+        .structure_parts(building)
+        .into_iter()
+        .filter_map(|id| known.prop(world, authored, id))
+        .any(|p| p.footprint().contains(point, reach))
 }
 
 /// Approach the nearest exposed physical part using remembered poses: the

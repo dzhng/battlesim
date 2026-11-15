@@ -27,6 +27,8 @@ pub use prepared_world::PreparedWorld;
 mod showground;
 pub use showground::{Showground, SoldierAtRest, SquadAtRest};
 mod skirmish;
+mod strike;
+pub use strike::StrikeFootprints;
 mod world_view;
 pub use skirmish::{skirmish_lanes, synthetic_skirmish_setup};
 

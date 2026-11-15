@@ -1,0 +1,224 @@
+//! Scene/device ownership of stable material and texture slots and shared art.
+use super::{
+    card_store::{CardKey, CardStore},
+    textures::TextureStore,
+    ModelGeometry,
+};
+use crate::runtime::RebuildReason;
+use contract::identity::ContentId;
+use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::sync::{Arc, Mutex, Weak};
+
+const MATERIAL_SLOT_LIMIT: usize = u16::MAX as usize + 1;
+
+/// Append-only ranges in the vertex ABI's 16-bit material address space.
+/// Reservations survive dropped preparations; identities never change base.
+#[derive(Default)]
+pub struct MaterialSlots {
+    ranges: BTreeMap<ContentId, std::ops::Range<usize>>,
+    end: usize,
+}
+
+impl MaterialSlots {
+    pub fn reserve(&mut self, content: ContentId, count: usize) -> Result<usize, String> {
+        if let Some(range) = self.ranges.get(&content) {
+            return Ok(range.start);
+        }
+        let end = self
+            .end
+            .checked_add(count)
+            .filter(|&end| end <= MATERIAL_SLOT_LIMIT)
+            .ok_or("model material slots exhausted: vertex ABI allows 65536 slots")?;
+        let base = self.end;
+        self.ranges.insert(content, base..end);
+        self.end = end;
+        Ok(base)
+    }
+
+    pub fn base(&self, content: &ContentId) -> Option<usize> {
+        self.ranges.get(content).map(|range| range.start)
+    }
+
+    pub(super) fn len(&self) -> usize {
+        self.end
+    }
+}
+
+/// Scene art tripwires and the platform sink that reports when they fire.
+#[derive(Clone, Copy)]
+pub struct ArtStorePolicy {
+    pub dead_material_slots: usize,
+    /// Target and readback byte bound for each card-bake batch.
+    pub card_bake_memory_bytes: u64,
+    pub dead_texture_layers: usize,
+    pub texture_spare_layers: u32,
+    pub report: fn(&str),
+}
+
+impl Default for ArtStorePolicy {
+    fn default() -> Self {
+        Self {
+            dead_material_slots: 8192,
+            card_bake_memory_bytes: crate::impostor::DEFAULT_BAKE_MEMORY_BYTES,
+            dead_texture_layers: 256,
+            texture_spare_layers: 1,
+            report: |message| eprintln!("{message}"),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(super) struct GeometryKey {
+    pub content: ContentId,
+    pub state: String,
+    pub tracks: Vec<u8>,
+}
+
+/// Routing and placement rows share immutable geometry across generations.
+/// Running-gear flags affect packed vertices; rest palettes do not.
+/// Only generations own buffers; the index cannot keep retired geometry alive.
+/// Texture allocations likewise have weak records; generation-held shared
+/// owners destroy their arrays only when the final holder retires.
+#[derive(Default)]
+pub struct ArtStore {
+    pub(super) slots: MaterialSlots,
+    geometry: HashMap<GeometryKey, Weak<ModelGeometry>>,
+    pub(super) policy: ArtStorePolicy,
+    pub(super) textures: TextureStore,
+    pub(super) cards: CardStore,
+}
+
+pub type SharedArtStore = Arc<Mutex<ArtStore>>;
+
+impl ArtStore {
+    pub fn new(policy: ArtStorePolicy) -> Self {
+        Self {
+            policy,
+            ..Default::default()
+        }
+    }
+
+    pub fn shared() -> SharedArtStore {
+        Arc::new(Mutex::new(Self::default()))
+    }
+
+    /// Include shared geometry and texture allocations held by live or pending
+    /// generations. The visitor deduplicates handles shared with Models' own
+    /// memory snapshot.
+    pub fn record_memory(&self, memory: &mut crate::memory::ResourceMemory) {
+        self.textures.record_memory(memory);
+        self.cards.record_memory(memory);
+        for geometry in self.geometry.values().filter_map(Weak::upgrade) {
+            for tier in &geometry.tiers {
+                memory.buffer(&tier.vertices);
+                memory.buffer(&tier.indices);
+            }
+        }
+    }
+
+    /// Preflight all wanted content before packing anything. A fresh store uses
+    /// this same admission; an oversized wanted catalog fails without wrapping.
+    pub(super) fn admit(
+        store: SharedArtStore,
+        wanted: &BTreeMap<ContentId, usize>,
+        textures: &BTreeMap<String, Arc<crate::bundle::Texture>>,
+        cards: &BTreeSet<CardKey>,
+        layer_limit: u32,
+    ) -> Result<(SharedArtStore, Option<RebuildReason>), String> {
+        let mut held = store.lock().expect("art store lock");
+        let pressures = held
+            .textures
+            .pressures(textures)
+            .into_iter()
+            .chain([held.cards.pressure(cards)])
+            .collect::<Vec<_>>();
+        if let Some(pressure) = pressures.iter().find(|p| p.active > layer_limit as usize) {
+            return Err(format!(
+                "model or card texture layers exhausted: {} wanted, limit {layer_limit}",
+                pressure.active
+            ));
+        }
+        let dead_layers: usize = pressures.iter().map(|p| p.dead).sum();
+        let texture_pressure = if dead_layers > held.policy.dead_texture_layers {
+            Some((
+                RebuildReason::DeadTextureLayers,
+                dead_layers,
+                held.policy.dead_texture_layers,
+            ))
+        } else {
+            pressures
+                .iter()
+                .find(|p| p.total > layer_limit as usize)
+                .map(|p| {
+                    (
+                        RebuildReason::TextureLayersExhausted,
+                        p.total,
+                        layer_limit as usize,
+                    )
+                })
+        };
+        let active: usize = wanted.values().sum();
+        if active > MATERIAL_SLOT_LIMIT {
+            return Err(format!(
+                "model material slots exhausted: {active} wanted, limit {MATERIAL_SLOT_LIMIT}"
+            ));
+        }
+        let live: usize = wanted
+            .keys()
+            .filter_map(|id| held.slots.ranges.get(id))
+            .map(|r| r.len())
+            .sum();
+        let added: usize = wanted
+            .iter()
+            .filter(|(id, _)| held.slots.base(id).is_none())
+            .map(|(_, count)| count)
+            .sum();
+        let dead = held.slots.len() - live;
+        let reason = if dead > held.policy.dead_material_slots {
+            Some((
+                RebuildReason::DeadMaterialSlots,
+                dead,
+                held.policy.dead_material_slots,
+            ))
+        } else if held.slots.len() + added > MATERIAL_SLOT_LIMIT {
+            Some((
+                RebuildReason::MaterialSlotsExhausted,
+                held.slots.len() + added,
+                MATERIAL_SLOT_LIMIT,
+            ))
+        } else {
+            None
+        };
+        let reason = reason.or(texture_pressure);
+        if let Some((kind, value, bound)) = reason {
+            (held.policy.report)(&format!("art-store tripwire kind={kind:?} value={value} bound={bound} owner=Runtime.art_store outcome=fresh-store"));
+            let fresh = Arc::new(Mutex::new(Self::new(held.policy)));
+            drop(held);
+            let (fresh, _) = Self::admit(fresh, wanted, textures, cards, layer_limit)?;
+            return Ok((fresh, Some(kind)));
+        }
+        for (id, &count) in wanted {
+            held.slots.reserve(id.clone(), count)?;
+        }
+        held.cards.reserve(cards);
+        held.geometry
+            .retain(|_, geometry| geometry.strong_count() > 0);
+        drop(held);
+        Ok((store, None))
+    }
+
+    pub(super) fn geometry(
+        store: &SharedArtStore,
+        key: GeometryKey,
+        work: &mut crate::runtime::AdmissionWork,
+        build: impl FnOnce(&mut crate::runtime::AdmissionWork) -> Result<ModelGeometry, String>,
+    ) -> Result<Arc<ModelGeometry>, String> {
+        let mut held = store.lock().expect("art store lock");
+        if let Some(geometry) = held.geometry.get(&key).and_then(Weak::upgrade) {
+            return Ok(geometry);
+        }
+        let geometry = Arc::new(build(work)?);
+        held.geometry.insert(key, Arc::downgrade(&geometry));
+        Ok(geometry)
+    }
+}

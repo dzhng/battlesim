@@ -410,6 +410,7 @@ impl Replay {
                 ally: [0.0; 4],
             },
             blocked: [0.0; 4],
+            stand_in: None,
         };
         let fog = settings.fog;
         let fog_look = fog.selected()?.look()?;
@@ -427,7 +428,11 @@ impl Replay {
                 ..FogSetup::default()
             }))?;
         }
-        place_scenery(&mut presentation, library)?;
+        place_scenery(
+            &mut presentation,
+            library,
+            &mut renderer_core::runtime::AdmissionWork::default(),
+        )?;
         // The props, from the art a page running these units installs.
         let wearing: Vec<&str> = battle
             .units

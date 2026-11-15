@@ -10,6 +10,7 @@ import {
   orderedGhost,
   aircraftOrderReadouts,
   ghostAloft,
+  pointAloftOnRay,
   type UnitGhost,
 } from "@apps/battle-lab/src/unitGhosts";
 
@@ -159,4 +160,25 @@ test("the ghost stands at its kind's cruise height: its own, else its layer's, n
   expect(altitude("high_jet")).toBe(400);
   expect(altitude("low_jet")).toBe(100);
   expect(altitude("tall_heli")).toBe(300);
+});
+
+test("an aircraft ghost placed aloft lies on the pointer's ray at its height over the ground", () => {
+  // Looking down at 45° from 1 km up, toward +x.
+  const ray = { origin: [0, 0, 1000], dir: [Math.SQRT1_2, 0, -Math.SQRT1_2] };
+  const flat = pointAloftOnRay(ray, () => 0, 250);
+  expect(flat![0]).toBeCloseTo(750, 6);
+  expect(flat![1]).toBeCloseTo(0, 6);
+
+  // Over a slope it still stands at its height over the ground under it,
+  // on the ray: so it draws under the pointer.
+  const slope = (x: number) => x * 0.1;
+  const [x, y] = pointAloftOnRay(ray, slope, 250)!;
+  const t = x / Math.SQRT1_2;
+  expect(y).toBeCloseTo(0, 6);
+  expect(1000 - t * Math.SQRT1_2).toBeCloseTo(slope(x) + 250, 1);
+});
+
+test("a ray that never climbs down to the height has no point aloft", () => {
+  expect(pointAloftOnRay({ origin: [0, 0, 200], dir: [0.6, 0, -0.8] }, () => 0, 250)).toBeNull();
+  expect(pointAloftOnRay({ origin: [0, 0, 900], dir: [1, 0, 0] }, () => 0, 250)).toBeNull();
 });

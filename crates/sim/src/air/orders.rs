@@ -7,7 +7,7 @@ use contract::command::Engagement;
 use super::pass::{PassPhase, PassPlan};
 
 /// A jet's flight task for this tick. This is the only result that turns an
-/// order or a reaction into flight in [`super::step_fixed_wing`].
+/// order into flight in [`super::step_fixed_wing`].
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AirTask {
     Hold,
@@ -22,10 +22,13 @@ pub enum AirTask {
     Withdraw,
 }
 
-/// Resolve one jet's order and reaction against the knowledge available to
-/// its side. On attack-move a committed run finishes before the jet picks
-/// anew (D18), and once the target it picked up is dead the jet holds,
-/// unless something calls for an answer (D15).
+/// Resolve one jet's order against the knowledge available to its side.
+/// Only an attack or an attack-move turns a jet from its circle: moved, or
+/// with no order, it circles and only its weapons answer what they bear on.
+/// An attack-move never ends on arrival: the jet circles its goal hunting,
+/// picking up what its weapons reach from its leg and answering fire, and
+/// flies back to the goal after each attack; a committed run finishes
+/// before it picks anew (D18).
 pub fn task(
     unit: &Unit,
     knowledge: &SideKnowledge,
@@ -35,33 +38,29 @@ pub fn task(
     if unit.withdrawing {
         return AirTask::Withdraw;
     }
-
-    if let (Some(pass), Some(UnitOrder::AttackMove(_))) = (pass, unit.orders.front()) {
-        if target_is_destroyed(pass.target, knowledge) {
-            return reaction(unit, knowledge);
-        }
-        if pass.phase == PassPhase::Dive {
-            return AirTask::Attack {
-                target: pass.target,
-            };
-        }
-    }
-
     match unit.orders.front() {
         Some(UnitOrder::Move(order)) => AirTask::Orbit {
             centre: order.destination,
         },
         Some(UnitOrder::AttackMove(order)) => {
-            if let Some(target) = along_way_target(unit, order.destination, knowledge, arsenal) {
-                AirTask::Attack { target }
-            } else {
-                match reaction(unit, knowledge) {
-                    AirTask::Hold => AirTask::Orbit {
+            // A run at a target its side has lost or seen die is over.
+            if let Some(pass) = pass.filter(|pass| {
+                pass.phase == PassPhase::Dive
+                    && super::knows_target(knowledge, pass.target)
+                    && !target_is_destroyed(pass.target, knowledge)
+            }) {
+                return AirTask::Attack {
+                    target: pass.target,
+                };
+            }
+            along_way_target(unit, order.destination, knowledge, arsenal)
+                .or_else(|| answer(unit, knowledge))
+                .map_or(
+                    AirTask::Orbit {
                         centre: order.destination,
                     },
-                    task => task,
-                }
-            }
+                    |target| AirTask::Attack { target },
+                )
         }
         Some(UnitOrder::Attack { target, .. }) => {
             if target_is_destroyed(*target, knowledge) {
@@ -76,40 +75,34 @@ pub fn task(
             | UnitOrder::Board { .. }
             | UnitOrder::Collect { .. }
             | UnitOrder::Unload,
-        ) => AirTask::Hold,
-        None => reaction(unit, knowledge),
+        )
+        | None => AirTask::Hold,
     }
 }
 
-/// What a jet with no order does on its own: answer an attacker it knows
-/// of, or a firing contact, under fire at will; otherwise hold.
-pub(crate) fn reaction(unit: &Unit, knowledge: &SideKnowledge) -> AirTask {
+/// What an attack-moving jet answers under fire at will: an attacker it
+/// knows of, else a firing contact.
+fn answer(unit: &Unit, knowledge: &SideKnowledge) -> Option<Target> {
     if unit.engagement != Engagement::FireAtWill {
-        return AirTask::Hold;
+        return None;
     }
-    let attacker = unit.attackers.iter().find_map(|&id| {
-        if knowledge.track(id).is_some() {
-            return Some(AirTask::Attack {
-                target: Target::Unit(id),
-            });
-        }
-        knowledge
-            .all_contacts()
-            .find(|contact| contact.emitter == id)
-            .map(|contact| AirTask::Attack {
-                target: Target::Contact(contact.id),
-            })
-    });
-    attacker
+    unit.attackers
+        .iter()
+        .find_map(|&id| {
+            if knowledge.track(id).is_some() {
+                return Some(Target::Unit(id));
+            }
+            knowledge
+                .all_contacts()
+                .find(|contact| contact.emitter == id)
+                .map(|contact| Target::Contact(contact.id))
+        })
         .or_else(|| {
             knowledge
                 .all_contacts()
                 .find(|contact| contact.source == contract::observation::ContactSource::Firing)
-                .map(|contact| AirTask::Attack {
-                    target: Target::Contact(contact.id),
-                })
+                .map(|contact| Target::Contact(contact.id))
         })
-        .unwrap_or(AirTask::Hold)
 }
 
 fn target_is_destroyed(target: Target, knowledge: &SideKnowledge) -> bool {
@@ -118,8 +111,8 @@ fn target_is_destroyed(target: Target, knowledge: &SideKnowledge) -> bool {
 
 /// The known enemy nearest the jet's remaining leg to `goal`, among those
 /// a row it can attack them with (`super::engaging_rows`) reaches from
-/// somewhere on the leg: what an attack-move picks up along the way. None
-/// once the leg is flown.
+/// somewhere on the leg, its ends included: what an attack-move picks up
+/// along the way, and round its goal once there.
 fn along_way_target(
     unit: &Unit,
     goal: V2,
@@ -129,18 +122,18 @@ fn along_way_target(
     let from = unit.position.xy();
     let leg = goal - from;
     let length_sq = leg.dot(leg);
-    if length_sq <= 1e-9 {
-        return None;
-    }
     knowledge
         .tracks()
         .filter_map(|(id, track)| {
-            let projection = (track.position.xy() - from).dot(leg) / length_sq;
+            let projection = if length_sq <= 1e-9 {
+                0.0
+            } else {
+                ((track.position.xy() - from).dot(leg) / length_sq).clamp(0.0, 1.0)
+            };
             let off = (track.position.xy() - (from + leg * projection)).length();
-            ((0.0..=1.0).contains(&projection)
-                && super::engaging_rows(arsenal, unit, track.layer, Some(track.class))
-                    .any(|(_, fire)| off <= fire.range_m))
-            .then_some((off, id))
+            super::engaging_rows(arsenal, unit, track.layer, Some(track.class))
+                .any(|(_, fire)| off <= fire.range_m)
+                .then_some((off, id))
         })
         .min_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)))
         .map(|(_, id)| Target::Unit(id))

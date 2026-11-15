@@ -1,7 +1,10 @@
-use super::{Atlas, Spec};
+use super::{CardFrame, Spec};
 use crate::fog::Layer;
 use crate::pipelines::Pipelines;
+use crate::texture_array::SharedArray;
 use presentation::records::Instance;
+use std::collections::BTreeMap;
+use std::sync::Arc;
 use wgpu::*;
 
 pub(crate) struct CardInstance {
@@ -17,94 +20,39 @@ struct Run {
 }
 pub(crate) struct Cards {
     pub group: BindGroup,
-    albedo: TextureView,
-    normal: TextureView,
+    array: Arc<SharedArray>,
     frames: Buffer,
     instances: Buffer,
     runs: Vec<Run>,
 }
-/// The atlases are destroyed with their owner, as the frame's targets are
-/// (`Targets`), rather than left for the browser's garbage collector.
-impl Drop for Cards {
-    fn drop(&mut self) {
-        self.albedo.texture().destroy();
-        self.normal.texture().destroy();
-    }
-}
-
+/// The atlases are destroyed with their final shared owner, as the frame's
+/// targets are (`Targets`), rather than left for the browser's garbage collector.
 impl Cards {
     pub fn new(
         device: &Device,
         queue: &Queue,
         pipelines: &Pipelines,
-        atlases: &[Atlas],
+        array: Arc<SharedArray>,
+        metadata: BTreeMap<u32, CardFrame>,
     ) -> Result<Self, String> {
         let spec = Spec::runtime();
         let (width, height) = (spec.yaws * spec.cell, spec.pitches.len() as u32 * spec.cell);
-        if atlases
-            .iter()
-            .any(|a| a.spec != spec || a.width != width || a.height != height)
-        {
+        if array.texture().width() != width || array.texture().height() != height {
             return Err("runtime card atlases must use the runtime specification".into());
         }
-        let texture = |label| {
-            device.create_texture(&TextureDescriptor {
-                label: Some(label),
-                size: Extent3d {
-                    width,
-                    height,
-                    depth_or_array_layers: atlases.len().max(1) as u32,
-                },
-                mip_level_count: 1,
-                sample_count: 1,
-                dimension: TextureDimension::D2,
-                format: TextureFormat::Rgba8Unorm,
-                usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
-                view_formats: &[],
-            })
-        };
-        let (albedo, normal) = (texture("card-albedo"), texture("card-normal"));
-        let mut frames = Vec::new();
-        for (layer, atlas) in atlases.iter().enumerate() {
-            let mut packed = atlas.normal.clone();
-            for (normal, mask) in packed
-                .as_chunks_mut::<4>()
-                .0
-                .iter_mut()
-                .zip(atlas.mask.as_chunks::<4>().0.iter())
-            {
-                normal[3] = mask[0];
-            }
-            for (texture, bytes) in [(&albedo, &atlas.albedo), (&normal, &packed)] {
-                queue.write_texture(
-                    TexelCopyTextureInfo {
-                        texture,
-                        mip_level: 0,
-                        origin: Origin3d {
-                            x: 0,
-                            y: 0,
-                            z: layer as u32,
-                        },
-                        aspect: TextureAspect::All,
-                    },
-                    bytes,
-                    TexelCopyBufferLayout {
-                        offset: 0,
-                        bytes_per_row: Some(width * 4),
-                        rows_per_image: Some(height),
-                    },
-                    Extent3d {
-                        width,
-                        height,
-                        depth_or_array_layers: 1,
-                    },
-                );
-            }
-            frames.extend(atlas.center.map(|n| n as f32));
-            frames.push(atlas.radius as f32);
-        }
-        if frames.is_empty() {
-            frames = vec![0., 0., 0., 1.];
+        let mut frames = vec![
+            0_f32;
+            (metadata
+                .keys()
+                .copied()
+                .max()
+                .map_or(1, |layer| layer as usize + 1))
+                * 4
+        ];
+        for (&layer, frame) in &metadata {
+            let at = layer as usize * 4;
+            frames[at..at + 3].copy_from_slice(&frame.center.map(|n| n as f32));
+            frames[at + 3] = frame.radius as f32;
         }
         let frames = crate::buffer(
             device,
@@ -113,13 +61,6 @@ impl Cards {
             BufferUsages::STORAGE,
             bytemuck::cast_slice(&frames),
         );
-        let view = |texture: &Texture| {
-            texture.create_view(&TextureViewDescriptor {
-                dimension: Some(TextureViewDimension::D2Array),
-                ..Default::default()
-            })
-        };
-        let (albedo, normal) = (view(&albedo), view(&normal));
         let sampler = device.create_sampler(&SamplerDescriptor {
             label: Some("card-linear"),
             mag_filter: FilterMode::Linear,
@@ -131,8 +72,8 @@ impl Cards {
             pipelines.layout("cardLayout"),
             "model-cards",
             &[
-                BindingResource::TextureView(&albedo),
-                BindingResource::TextureView(&normal),
+                BindingResource::TextureView(array.view(0)),
+                BindingResource::TextureView(array.view(1)),
                 BindingResource::Sampler(&sampler),
                 frames.as_entire_binding(),
             ],
@@ -146,8 +87,7 @@ impl Cards {
         );
         Ok(Self {
             group,
-            albedo,
-            normal,
+            array,
             frames,
             instances,
             runs: Vec::new(),
@@ -157,6 +97,7 @@ impl Cards {
         let instances: Vec<_> = records.iter().map(|r| r.record).collect();
         let bytes = bytemuck::cast_slice::<_, u8>(&instances);
         if bytes.len() as u64 > self.instances.size() {
+            self.instances.destroy();
             self.instances = device.create_buffer(&BufferDescriptor {
                 label: Some("card-instances"),
                 size: (bytes.len() * 2) as u64,
@@ -204,7 +145,7 @@ impl Cards {
         submitted
     }
     pub fn layers(&self) -> u32 {
-        self.albedo.texture().depth_or_array_layers()
+        self.array.texture().depth_or_array_layers()
     }
     pub fn has_pass(&self, pass: u32) -> bool {
         self.runs
@@ -214,7 +155,13 @@ impl Cards {
     pub fn record_memory(&self, memory: &mut crate::memory::ResourceMemory) {
         memory.buffer(&self.frames);
         memory.buffer(&self.instances);
-        memory.view(&self.albedo);
-        memory.view(&self.normal);
+        self.array.record_memory(memory);
+    }
+}
+
+impl Drop for Cards {
+    fn drop(&mut self) {
+        self.frames.destroy();
+        self.instances.destroy();
     }
 }

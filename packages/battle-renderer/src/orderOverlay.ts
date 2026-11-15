@@ -101,6 +101,9 @@ export interface OrderStyle {
   /** How far a garrisoned squad's circle reaches past its building's
    *  corners (`OrderView.building`): the ring encloses the whole house. */
   building_marker_margin_m: number;
+  /** How far a held building's outline (`heldOutline`) lies outside
+   *  each part's walls, so the paint peeks out round the shell. */
+  garrison_outline_margin_m: number;
   /** An aircraft's drop line (D18), dots rising from its marker's centre
    *  on the ground toward its airframe: a dot's size on screen, by the
    *  stroke rule like every mark's; the pitch from one dot to the next, in

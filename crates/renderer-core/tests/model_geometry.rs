@@ -2,12 +2,13 @@
 #[path = "support/runtime_library.rs"]
 mod runtime_library;
 mod support;
+use renderer_core::runtime::AdmissionWork;
 
 use presentation::records::{Appearance, Batch, Instance, NONE, VIEW_PASS};
 use presentation::static_world::props::{DRAWS_PROP, DRAWS_PROP_GROUND};
 use renderer_core::bundle::Shape;
 use renderer_core::memory::ResourceMemory;
-use renderer_core::models::Models;
+use renderer_core::models::{ArtStore, Models};
 use renderer_core::pipelines;
 
 #[test]
@@ -57,6 +58,8 @@ fn static_routing_placement_and_default_alias_share_geometry() {
             &strings,
             |_| None,
             |_, _| None,
+            ArtStore::shared(),
+            &mut AdmissionWork::default(),
         )
         .unwrap()
     };

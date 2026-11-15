@@ -45,8 +45,8 @@
           "flight": "fixed_wing",
           "arrival": {
             "delay_s": [
-              15,
-              30
+              8,
+              12
             ]
           }
         }

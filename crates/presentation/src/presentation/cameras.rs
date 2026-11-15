@@ -1,9 +1,11 @@
 //! The frame's cameras: its eye's, and the sun's cascades fitted to it,
 //! each on the frame's clock and in the ground's wind, so whatever moves in
 //! the wind moves alike in every pass that draws it, shadows included; and
-//! the wave field, which follows the eye (`crate::wave`).
+//! the wave field, which follows the eye (`crate::wave`); and where sound
+//! listens for it.
 use super::*;
 use crate::effects::frame::WaveFrame;
+use crate::sound::frame::Listener;
 
 /// Fills `f`'s camera and sun shadow for `camera` at `time`.
 pub(super) fn cameras(
@@ -28,6 +30,13 @@ pub(super) fn cameras(
 }
 
 impl Presentation {
+    /// Where sound listens for the last frame's camera: at its eye; none
+    /// before a frame.
+    pub fn listener(&self) -> Option<Listener> {
+        let c = self.camera.as_ref()?;
+        Some(Listener::of_camera(c.eye, c.target, c.up.map(|v| v as f32)))
+    }
+
     /// The wave field's frame for the last frame's clock and camera: its
     /// steps since the one before and the wakes they splat
     /// (`EffectFrame::waves`); none before a battle and a frame.

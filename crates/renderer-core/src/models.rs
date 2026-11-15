@@ -3,14 +3,13 @@
 //!
 //! At load, `World.appearances` rows share their authored mesh tiers on the GPU,
 //! packed into the shared vertex format (`geometry::pack_vertices`) with each
-//! mesh's indices ordered by surface class: a posed body and an
-//! articulated hull skin by the frame's palettes; a corpse is its body posed
-//! once as it lies (`geometry::posed_mesh`, by presentation's palette for the
-//! row); a static state is rigid. Each frame the palettes and the units'
+//! mesh's indices ordered by surface class: living bodies, corpses and
+//! articulated hulls skin by the frame's palettes. A corpse row shares its
+//! living mesh and holds its final fall palette; CPU posing derives bounds
+//! only. A static state is rigid. Each frame the palettes and the units'
 //! instances are written whole; the static world's batches are held between
 //! frames (`statics.rs`). Each batch is one run of instances over one row's
 //! tier.
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use presentation::records::{Joint, CAST_PASS, GHOST_PASS, HIGH_PASS, NONE, VIEW_PASS};
@@ -20,7 +19,7 @@ use wgpu::*;
 
 use crate::fog::Layer;
 
-use crate::bundle::{Bundle, BundleSource, Coverage, Material, Mesh, Shape, Texture};
+use crate::bundle::{Bundle, BundleSource, Coverage, Material, Mesh, Shape};
 use crate::pipelines::Pipelines;
 use crate::statics::Statics;
 
@@ -28,13 +27,20 @@ use crate::statics::Statics;
 mod tests;
 
 mod admission;
+mod card_store;
 mod diagnostics;
 mod geometry;
 mod impostors;
+mod plan;
+mod rest_pose;
+mod store;
+mod textures;
+use crate::texture_array::SharedArray;
 mod visibility;
 use crate::impostor::{CardInstance, Cards};
 pub use geometry::{pack_vertices, posed_mesh, VERTEX_BYTES};
-use impostors::RestPose;
+use rest_pose::RestPose;
+pub use store::{ArtStore, ArtStorePolicy, MaterialSlots, SharedArtStore};
 /// Material rows a material takes in the materials buffer (`MATERIAL_ROWS`).
 const MATERIAL_ROWS: usize = 5;
 
@@ -83,6 +89,15 @@ struct Drawable {
     count: u32,
 }
 
+// Only the final shared tier holder drops this owner. Browser buffer handles
+// do not destroy their WebGPU allocations when dropped.
+impl Drop for Drawable {
+    fn drop(&mut self) {
+        self.vertices.destroy();
+        self.indices.destroy();
+    }
+}
+
 impl Drawable {
     fn part(&self, surface: Surface) -> Part {
         match surface {
@@ -109,19 +124,26 @@ enum Kind {
     Prop,
 }
 
+/// Packed geometry owns the weak index of its pose-specific rest facts.
+struct ModelGeometry {
+    tiers: Vec<Drawable>,
+    rests: std::sync::Mutex<std::collections::BTreeMap<Vec<u8>, std::sync::Weak<RestPose>>>,
+}
+
 struct Row {
     kind: Kind,
     building: bool,
     prop: bool,
-    tiers: Arc<[Drawable]>,
+    geometry: Arc<ModelGeometry>,
+    rest: Option<Arc<RestPose>>,
     /// Baked atlas layer; the authored rest pose is kept for alternate bakes.
     card: Option<u32>,
-    rest: Option<RestPose>,
+    card_key: Option<card_store::CardKey>,
 }
 
 impl Row {
     fn drawable(&self, tier: usize) -> Option<&Drawable> {
-        self.tiers.get(tier)
+        self.geometry.tiers.get(tier)
     }
 }
 
@@ -168,111 +190,6 @@ pub struct Drawn {
     /// The instances the frame's batches list.
     pub listed: u32,
     pub triangles: u64,
-}
-
-/// The installed textures, one layer each in two arrays:
-/// albedo (sRGB), and surface (normal and ORM, linear).
-#[derive(Default)]
-struct Layers {
-    albedo: Vec<Arc<Texture>>,
-    surface: Vec<Arc<Texture>>,
-    at: HashMap<String, usize>,
-}
-
-impl Layers {
-    fn layer(&mut self, t: Option<&Arc<Texture>>) -> f32 {
-        let Some(t) = t else { return -1.0 };
-        let next = if t.srgb {
-            self.albedo.len()
-        } else {
-            self.surface.len()
-        };
-        let layer = *self.at.entry(t.id.clone()).or_insert_with(|| {
-            let list = if t.srgb {
-                &mut self.albedo
-            } else {
-                &mut self.surface
-            };
-            list.push(t.clone());
-            next
-        });
-        layer as f32
-    }
-}
-
-/// One array texture holding `textures` with every level:
-/// the edge is the largest's, a smaller one upsampled into the finer levels.
-fn texture_array(
-    device: &Device,
-    queue: &Queue,
-    label: &str,
-    format: TextureFormat,
-    textures: &[Arc<Texture>],
-) -> TextureView {
-    let size = textures.iter().map(|t| t.size).max().unwrap_or(1);
-    let levels = size.ilog2() + 1;
-    let texture = device.create_texture(&TextureDescriptor {
-        label: Some(label),
-        size: Extent3d {
-            width: size,
-            height: size,
-            depth_or_array_layers: textures.len().max(1) as u32,
-        },
-        mip_level_count: levels,
-        sample_count: 1,
-        dimension: TextureDimension::D2,
-        format,
-        usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
-        view_formats: &[],
-    });
-    for (layer, t) in textures.iter().enumerate() {
-        let shift = (size / t.size).ilog2();
-        for level in 0..levels {
-            let edge = size >> level;
-            let upsampled;
-            let data = if level >= shift {
-                &t.levels[(level - shift) as usize]
-            } else {
-                let (from, k) = (t.size as usize, t.size as f64 / f64::from(edge));
-                let src = &t.levels[0];
-                upsampled = (0..edge as usize * edge as usize)
-                    .flat_map(|i| {
-                        let (y, x) = (i / edge as usize, i % edge as usize);
-                        let s = ((y as f64 * k) as usize * from + (x as f64 * k) as usize) * 4;
-                        src[s..s + 4].to_vec()
-                    })
-                    .collect::<Vec<u8>>();
-                &upsampled
-            };
-            queue.write_texture(
-                TexelCopyTextureInfo {
-                    texture: &texture,
-                    mip_level: level,
-                    origin: Origin3d {
-                        x: 0,
-                        y: 0,
-                        z: layer as u32,
-                    },
-                    aspect: TextureAspect::All,
-                },
-                data,
-                TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(edge * 4),
-                    rows_per_image: Some(edge),
-                },
-                Extent3d {
-                    width: edge,
-                    height: edge,
-                    depth_or_array_layers: 1,
-                },
-            );
-        }
-    }
-    texture.create_view(&TextureViewDescriptor {
-        dimension: Some(TextureViewDimension::D2Array),
-        ..Default::default()
-    })
 }
 
 /// A material's packed shader rows.
@@ -341,10 +258,14 @@ fn drawable(
     label: &str,
     bundle: &Bundle,
     meshes: &[(&Mesh, Vec<u8>)],
+    work: &mut crate::runtime::AdmissionWork,
 ) -> Drawable {
     let list: Vec<&Mesh> = meshes.iter().map(|(m, _)| *m).collect();
     let (indices, parts) = order_surfaces(&list, &|m| class_of(&bundle.materials[m]));
     let vertices: Vec<u8> = meshes.iter().flat_map(|(_, v)| v.iter().copied()).collect();
+    work.vertex_bytes_packed += vertices.len() as u64;
+    work.buffer_bytes_uploaded +=
+        (vertices.len() + indices.len() * std::mem::size_of::<u32>()) as u64;
     Drawable {
         vertices: crate::buffer(device, queue, label, BufferUsages::VERTEX, &vertices),
         indices: crate::buffer(
@@ -367,11 +288,13 @@ pub struct Models {
     layout: BindGroupLayout,
     materials: Buffer,
     authored_materials: Vec<f32>,
+    /// Diagnostic controls write `materials`; bakes share this immutable copy.
+    impostor_materials: std::sync::OnceLock<Buffer>,
     surfaces: [bool; 4],
     buildings_shown: bool,
     models_shown: bool,
-    albedo: TextureView,
-    surface: TextureView,
+    albedo: Arc<SharedArray>,
+    surface: Arc<SharedArray>,
     sampler: Sampler,
     palette: Buffer,
     instances: Buffer,
@@ -383,14 +306,18 @@ pub struct Models {
     has_xray_meshes: bool,
     high_apart: bool,
     cards: Option<Cards>,
+    pub(crate) store: SharedArtStore,
 }
 
-/// The texture arrays are destroyed with their owner, as the frame's targets
-/// are (`Targets`), rather than left for the browser's garbage collector.
+/// The immutable impostor material buffer belongs to this generation and is
+/// destroyed here rather than left for browser garbage collection. Shared
+/// texture arrays are destroyed by their final SharedArray holder, so retiring
+/// this generation cannot invalidate another generation's material bindings.
 impl Drop for Models {
     fn drop(&mut self) {
-        self.albedo.texture().destroy();
-        self.surface.texture().destroy();
+        if let Some(materials) = self.impostor_materials.get() {
+            materials.destroy();
+        }
     }
 }
 
@@ -775,10 +702,13 @@ impl Models {
         for buffer in [&self.materials, &self.palette, &self.instances] {
             memory.buffer(buffer);
         }
+        if let Some(materials) = self.impostor_materials.get() {
+            memory.buffer(materials);
+        }
         memory.view(&self.albedo);
         memory.view(&self.surface);
         for row in self.rows.iter().flatten() {
-            for drawable in row.tiers.iter() {
+            for drawable in row.geometry.tiers.iter() {
                 memory.buffer(&drawable.vertices);
                 memory.buffer(&drawable.indices);
             }

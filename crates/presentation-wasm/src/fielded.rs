@@ -3,9 +3,10 @@
 //! names the runtime contents it reads (`contents`), the page fetches and
 //! inflates them as it does any bundle, and `resolve` builds `load_world`'s
 //! `units` and `effects` sections and clip tables from their bytes.
+use std::borrow::Cow;
 use std::collections::HashMap;
 
-use presentation::fielded::{self, Sections};
+use presentation::fielded::{self, Facts, Sections};
 use serde_json::{json, Value};
 use wasm_bindgen::prelude::*;
 
@@ -20,6 +21,7 @@ pub struct Fielding {
     kinds: Vec<String>,
     factions: Option<[String; 2]>,
     tables: Vec<Vec<f32>>,
+    facts: Facts,
 }
 
 impl Fielding {
@@ -69,12 +71,18 @@ impl Fielding {
                 .transpose()
                 .map_err(|e| error(format!("factions: {e}")))?,
             tables: Vec::new(),
+            facts: Facts::default(),
         })
+    }
+
+    pub fn set_kinds(&mut self, kinds: &str) -> Result<(), JsError> {
+        self.kinds = serde_json::from_str(kinds).map_err(|e| error(format!("kinds: {e}")))?;
+        Ok(())
     }
 
     /// The runtime contents `resolve` reads, by hash.
     pub fn contents(&self) -> Result<Vec<String>, JsError> {
-        self.fielding().contents().map_err(error)
+        self.fielding().contents(&self.facts).map_err(error)
     }
 
     /// Resolves the battle from each content `contents` named, inflated, in
@@ -106,14 +114,25 @@ impl Fielding {
             units,
             effects,
             tables,
-        } = self
-            .fielding()
-            .resolve(&|hash| {
-                read.get(hash)
-                    .map(|b| b.to_vec())
-                    .ok_or(format!("content {hash} was not read"))
-            })
-            .map_err(error)?;
+        } = fielded::Fielding {
+            presentation: &self.presentation,
+            rules: &self.rules,
+            catalog: &self.catalog,
+            runtime: &self.runtime,
+            kinds: &self.kinds,
+            factions: self
+                .factions
+                .as_ref()
+                .map(|[blue, red]| [blue.as_str(), red.as_str()]),
+        }
+        // The boundary already owns these bytes. Copying the complete source
+        // set again raises the non-shrinking WASM heap for the rest of the visit.
+        .resolve(&mut self.facts, &|hash| {
+            read.get(hash)
+                .map(|b| Cow::Borrowed(*b))
+                .ok_or(format!("content {hash} was not read"))
+        })
+        .map_err(error)?;
         let names: Vec<&String> = tables.keys().collect();
         let out = json!({ "units": units, "effects": effects, "tables": names }).to_string();
         self.tables = tables.into_values().collect();

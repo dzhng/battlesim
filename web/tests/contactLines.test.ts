@@ -14,7 +14,7 @@ const WINDOW = CONTACT_LINE_SECONDS * HZ;
 const units = { type: (kind: string) => ({ name: `type ${kind}` }) } as unknown as UnitCatalog;
 
 const contact = (c: Partial<LineContact> & { id: number }): LineContact => ({
-  source: "firing",
+  source: "last_seen",
   kind: null,
   evidenceTick: 0,
   retiring: false,
@@ -53,4 +53,18 @@ test("a line names an identified contact's type and nothing for an unidentified 
   );
   expect(known.text).toContain("type t72");
   expect(unknown.text).not.toContain("type");
+});
+
+test("firing evidence is never a line: the marker on the map already says it", () => {
+  const lines = contactLines(
+    units,
+    [
+      contact({ id: 1, source: "firing", evidenceTick: 3 }),
+      contact({ id: 2, source: "last_seen", evidenceTick: 2 }),
+      contact({ id: 3, source: "radar", evidenceTick: 1 }),
+    ],
+    3,
+    HZ,
+  );
+  expect(lines.map((l) => l.key)).toEqual([2, 3]);
 });

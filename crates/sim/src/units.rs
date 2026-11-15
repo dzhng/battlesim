@@ -276,7 +276,8 @@ pub struct Unit {
     pub progress: (f64, u64),
     /// Give-up watch: the shortest way left seen at a stall, and the tick it
     /// was seen; a way no shorter for long enough gives the move up
-    /// ([`MoveState::RouteBlocked`]).
+    /// ([`MoveState::RouteBlocked`]). Blocked, the tick it last tried, which
+    /// times its next try.
     pub stalls: (f64, u64),
     pub engagement: Engagement,
     /// While a passive AI holds the unit at return fire, the engagement it

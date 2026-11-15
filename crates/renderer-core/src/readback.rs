@@ -130,6 +130,7 @@ impl RgbaReadback {
         device: &Device,
         encoder: &mut CommandEncoder,
         source: &Texture,
+        layer: u32,
     ) -> Result<Self, String> {
         let (texel, bgra) = match source.format() {
             TextureFormat::Rgba8Unorm | TextureFormat::Rgba8UnormSrgb => (4, false),
@@ -138,12 +139,12 @@ impl RgbaReadback {
             _ => return Err("RGBA readback requires an RGBA8, BGRA8 or RGBA16F texture".into()),
         };
         if source.dimension() != TextureDimension::D2
-            || source.depth_or_array_layers() != 1
+            || layer >= source.depth_or_array_layers()
             || source.sample_count() != 1
             || !source.usage().contains(TextureUsages::COPY_SRC)
         {
             return Err(
-                "RGBA readback requires a single-layer, single-sample COPY_SRC texture".into(),
+                "RGBA readback requires a valid layer of a single-sample COPY_SRC texture".into(),
             );
         }
         let width = source.width();
@@ -155,7 +156,14 @@ impl RgbaReadback {
             .ok_or("RGBA row alignment overflows")?;
         let readback = Readback::allocate(device, u64::from(padded_row) * u64::from(height))?;
         encoder.copy_texture_to_buffer(
-            source.as_image_copy(),
+            TexelCopyTextureInfo {
+                origin: Origin3d {
+                    x: 0,
+                    y: 0,
+                    z: layer,
+                },
+                ..source.as_image_copy()
+            },
             TexelCopyBufferInfo {
                 buffer: &readback.buffer,
                 layout: TexelCopyBufferLayout {
@@ -164,7 +172,10 @@ impl RgbaReadback {
                     rows_per_image: Some(height),
                 },
             },
-            source.size(),
+            Extent3d {
+                depth_or_array_layers: 1,
+                ..source.size()
+            },
         );
         Ok(Self {
             readback,

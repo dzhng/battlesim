@@ -67,6 +67,12 @@ impl NavGrid {
             .is_some()
     }
 
+    /// How long the straight way from `from` to `to` takes this footprint,
+    /// with the `avoid` hulls as solid; `None` where it does not fit.
+    pub fn way_time(&self, from: V2, to: V2, m: &Mobility, avoid: &[Obb2]) -> Option<f64> {
+        self.segment_cost(from, to, Mover { m, avoid }, RoutePolicy::Fastest)
+    }
+
     /// Travel time of a route for this footprint, for diagnostics and tests.
     pub fn route_time(&self, from: V2, route: &[V2], m: &Mobility) -> f64 {
         let mut a = from;

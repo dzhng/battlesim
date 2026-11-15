@@ -1,3 +1,4 @@
+import { knownCraters } from "./groundCells";
 import { useViewportGpu } from "./useViewportGpu";
 import * as gameWasm from "@wasm/game_wasm";
 import type { ViewportFrame } from "./presentedFrame";
@@ -23,9 +24,9 @@ import {
   knownOf,
 } from "@packages/battle-renderer/src/buildingObstacles";
 import { useWorldLayers } from "./useWorldLayers";
-import { gameRuntime, useBattleAppearances, useBattleKinds } from "./gameAppearances";
-import { gameHud } from "@web/battle/present/hudTheme";
-import { gameOrderFlash, gameXray } from "./gameOverlay";
+import { useBattleArt } from "./useBattleArt";
+import { useBattleWarmup } from "./useBattleWarmup";
+import { gameOrderFlash } from "./gameOverlay";
 import {
   NOTHING_REVEALED,
   OrderReveal,
@@ -34,7 +35,7 @@ import {
 } from "@web/battle/present/orderReveal";
 import { highAir } from "@packages/scene-assets/src/units";
 import { useUnitControl } from "@web/battle/input/useUnitControl";
-import { usePurchasePlacement } from "./usePurchasePlacement";
+import { placementPose, usePurchasePlacement } from "./usePurchasePlacement";
 import {
   isArmed,
   facedIntent,
@@ -72,9 +73,6 @@ import { UnitResponses } from "./unitResponses";
 import { assignments as voiceAssignments } from "@fixtures/voices.json";
 import { factionVoices } from "@packages/battle-audio/src/voices/voiceCatalog";
 import { frameCounts, presentedCamera } from "./presentedFrame";
-import { useBattleFielding } from "./useBattleFielding";
-import type { fieldedBattle } from "./presentedFrame";
-import { gameSun } from "./gameLight";
 import type { FogRequest, ScenePresentation } from "@web/battle/sim/presentation";
 import type { ViewportCamera } from "@packages/renderer-core/src/viewportCamera";
 import { useAppAudio } from "./AppAudio";
@@ -90,11 +88,11 @@ import {
   aircraftOrderReadouts,
   orderedGhost,
   ownSoldiers,
+  placementUnder,
   type UnitGhost,
 } from "./unitGhosts";
 import { byReference, pendingGhosts } from "./pendingGhosts";
-
-const PURCHASE_BLOCKED = [...gameHud.bad, gameXray.selected[3]] as const;
+import { modelProbes } from "./modelProbes";
 
 export function useBattleSession({
   scenario,
@@ -190,22 +188,6 @@ export function useBattleSession({
       audio && sim.client ? new UnitResponses(audio, units, faction, rules.tick_hz) : null;
   }, [audio, sim.client, units, faction, rules.tick_hz]);
   const { observation } = sim;
-  const requestedKinds = useBattleKinds({
-    scope: sim.client?.presentation,
-    side,
-    units,
-    fielded,
-    faction: skirmish && viewer ? faction : null,
-    observation,
-    purchasing,
-  });
-  const factionsForArt = useMemo(
-    () =>
-      skirmish
-        ? new Set(players.flatMap((player) => (player.faction ? [player.faction] : [])))
-        : null,
-    [skirmish, players],
-  );
   const sceneryForArt = useMemo(() => {
     if (!scenarioArt) return undefined;
     const candidate = map as { props?: unknown[]; forests?: unknown[] } | null;
@@ -294,43 +276,33 @@ export function useBattleSession({
   const mapBuildings = useMapBuildings(world);
   const placedProps = mapBuildings?.props ?? null;
   const drawnBuildings = mapBuildings?.index ?? null;
-  // The kits this map's buildings and stand-in boxes draw
-  // from and its region's looks, fetched once the map is known: the loading
-  // cover stays up for them.
-  const completeArt = useBattleAppearances({
+  const presentation = sim.client?.presentation ?? null;
+  const factionsForArt = useMemo(
+    () =>
+      skirmish
+        ? new Set(players.flatMap((player) => (player.faction ? [player.faction] : [])))
+        : null,
+    [skirmish, players],
+  );
+  const admitted = useBattleArt({
+    scenario,
+    seed,
+    side,
+    presentation,
     world,
     buildings: mapBuildings,
     units,
-    kinds: requestedKinds,
+    fielded,
+    rules,
+    rulesText,
     skirmish: skirmish !== undefined,
+    players,
     factions: factionsForArt,
+    viewer: viewer !== null,
+    observation,
+    purchasing,
     scenery: sceneryForArt,
   });
-  // A battle/observer/map owns one sequence of complete topology/art generations.
-  const blueFaction = sideFaction("blue");
-  const redFaction = sideFaction("red");
-  const presentation = sim.client?.presentation ?? null;
-  const fielding = useMemo<Parameters<typeof fieldedBattle>[0]>(
-    () => ({
-      rules: rulesText,
-      catalog: units.view,
-      kinds: requestedKinds,
-      factions: skirmish ? [blueFaction!, redFaction!] : undefined,
-      runtime: gameRuntime,
-      side,
-      tickHz: rules.tick_hz,
-      sun: gameSun(),
-      soldier: rules.physics,
-      xray: gameXray,
-      blocked: PURCHASE_BLOCKED,
-    }),
-    [rulesText, units, requestedKinds, skirmish, blueFaction, redFaction, rules, side],
-  );
-  const fieldingScope = useMemo(
-    () => ({ scenario, seed, side, presentation, world }),
-    [scenario, seed, side, presentation, world],
-  );
-  const admitted = useBattleFielding(fieldingScope, fielding, completeArt);
   const {
     battle: worldInput,
     appearances,
@@ -389,6 +361,7 @@ export function useBattleSession({
   const fogFeed = useFeed(fog);
 
   const surfaceZ = useMemo(() => surfaceHeights(world), [world]);
+  const aloft = useMemo(() => ghostAloft(units, rules.air), [units, rules.air]);
   const cameraObstacles = useMemo(() => {
     if (!placedProps || !buildingParts || !knownBuildingsKey) return null;
     const started = performance.now();
@@ -482,12 +455,7 @@ export function useBattleSession({
           selected: control.selected,
           xray,
           player: playerIndex(published, commanding),
-          ghosts: ghostBodies(
-            ghosts,
-            (kind) => Boolean(units.hull(kind)),
-            surfaceZ,
-            ghostAloft(units, rules.air),
-          ),
+          ghosts: ghostBodies(ghosts, (kind) => Boolean(units.hull(kind)), surfaceZ, aloft),
         },
         generation,
       );
@@ -525,7 +493,7 @@ export function useBattleSession({
       placedGhostList,
       purchaseGhost,
       inputEnabled,
-      rules.air,
+      aloft,
       surfaceZ,
       commanding,
     ],
@@ -607,7 +575,7 @@ export function useBattleSession({
       version: semanticRevision.current.version + 1,
     };
   }
-  // eslint-disable-next-line complexity -- debt: purchase placement, held-drag intent, pending-order marks and ruler all read the same closure refs; the purchase-ghost branch could leave first, but the rest needs a pure intent resolver that returns marks instead of writing refs.
+  // eslint-disable-next-line complexity -- debt: held-drag intent, pending-order marks and ruler read the same closure refs; splitting needs a pure intent resolver that returns marks instead of writing refs.
   const onCursor: ViewportCursor = (pointer, camera, _project, renderScale) => {
     // The battle as the last frame drew it: the picks and drawn positions
     // below are that frame's, so its units and tick are too. Nothing drawn
@@ -623,21 +591,18 @@ export function useBattleSession({
       sim.client &&
       world;
     if (purchasePlacement.variant) {
-      // A held left drag pins the ghost where it was pressed and turns it
-      // toward the pointer.
-      const at =
-        active && inputEnabled && groundUnderRay(world.view, pointer.leftPress ?? pointer.ray!);
-      const facingTo =
-        active && inputEnabled && pointer.leftPress
-          ? groundUnderRay(world.view, pointer.ray!)
+      const pose =
+        active && inputEnabled
+          ? placementPose(
+              pointer,
+              placementUnder(units, purchasePlacement.variant, aloft, surfaceZ, world.view),
+            )
           : null;
-      const facing =
-        at && facingTo ? Math.atan2(facingTo[1] - at[1], facingTo[0] - at[0]) : undefined;
       purchaseGhost.current = purchasePlacement.at(
-        at ? [at[0], at[1]] : null,
+        pose?.at ?? null,
         active ? sim.client : null,
         `${semanticRevision.current.version}`,
-        facing,
+        pose?.facing,
       );
       pointerPaint.update(
         null,
@@ -751,8 +716,7 @@ export function useBattleSession({
             [intent.target.point[0], intent.target.point[1]],
             control.selectedUnits,
             drawnAt.current,
-            units,
-            rules.weapons,
+            rulesText,
           )
         : null;
     // An unload's destination carries the unload mark, held or released.
@@ -795,7 +759,16 @@ export function useBattleSession({
     [control],
   );
 
-  const { onReady, onDispose, gpuAllocations, gpuFrame } = useViewportGpu(sim.onViewportReady);
+  const { onReady, onDispose, gpuAllocations, gpuFrame } = useViewportGpu(
+    useBattleWarmup({
+      scope: presentation,
+      units,
+      enemy,
+      factions: factionsForArt,
+      observation,
+      onReady: sim.onViewportReady,
+    }),
+  );
 
   const probes = {
     tick: () => sim.latest.current?.tick ?? 0,
@@ -889,32 +862,8 @@ export function useBattleSession({
     },
     /** The boxes the fog is cut by: the occluders the side knows stand. */
     fogOccluders: () => sim.client?.presentation?.fogOccluders() ?? [],
-    /** The side's known craters: marked cells, and the centre of the
-     *  `binM`-square block holding the most (framing a shelled field). */
-    craters: (binM = 16) => {
-      const g = sim.ground.current;
-      if (!g) return null;
-      const per = Math.max(1, Math.round(binM / g.cellM));
-      const bins = new Map<number, number>();
-      let cells = 0;
-      const marked = g.markedCells();
-      for (let k = 0; k < marked.length; k += 2) {
-        if ((marked[k + 1] & 255) < 64) continue;
-        const [i, j] = [marked[k] % g.cols, Math.floor(marked[k] / g.cols)];
-        cells++;
-        const key = Math.floor(j / per) * g.cols + Math.floor(i / per);
-        bins.set(key, (bins.get(key) ?? 0) + 1);
-      }
-      let densest: [number, number] | null = null;
-      let most = 0;
-      for (const [key, n] of bins)
-        if (n > most) {
-          most = n;
-          const [bi, bj] = [key % g.cols, Math.floor(key / g.cols)];
-          densest = [(bi + 0.5) * per * g.cellM, (bj + 0.5) * per * g.cellM];
-        }
-      return { cells, densest, most };
-    },
+    /** The side's known craters (`knownCraters`); null before any ground. */
+    craters: (binM = 16) => sim.ground.current && knownCraters(sim.ground.current, binM),
     /** Sound: voices, budget, holds and counts; null before audio starts. */
     sound: () => audio?.stats() ?? null,
     /** Combat effects: running, drawn last frame, dropped, and the last tick noted. */
@@ -925,30 +874,7 @@ export function useBattleSession({
     /** The lights the effects offered last frame: where, how far, their
      *  colour × intensity, and what cast each. */
     castLights: () => presentationRef.current?.probe().castLights ?? [],
-    /** Every drawn model's muzzles in the world, where the presentation
-     *  draws them (a soldier's crossfaded and kicked, a hull's articulated
-     *  and rocked), with each model's origin to select the firing body before
-     *  its attachment is measured. */
-    muzzleSockets: () => {
-      const probe = presentationRef.current?.probe();
-      if (!probe) return [];
-      const soldiers = probe.soldiers.flatMap((m) =>
-        m.muzzle
-          ? [{ appearance: m.appearance, origin: m.position, name: "muzzle", at: m.muzzle }]
-          : [],
-      );
-      const vehicles = probe.vehicles.flatMap((m) =>
-        m.muzzles.map(({ name, at }) => ({
-          appearance: m.appearance,
-          origin: m.position,
-          name,
-          at,
-        })),
-      );
-      return [...soldiers, ...vehicles];
-    },
-    /** The vehicles as last posed: appearance, placement and articulation. */
-    vehicles: () => presentationRef.current?.probe().vehicles ?? [],
+    ...modelProbes(() => presentationRef.current),
     /** What the props draw (`ScenePresentation.propStats`): the bodies drawn,
      *  those a building draws, those no model draws, the models placed and
      *  those drawing what the side knows. */
@@ -965,9 +891,9 @@ export function useBattleSession({
         revealed,
         (kind) => highAir(units.type(kind)),
         surfaceZ,
-        ghostAloft(units, rules.air),
+        aloft,
       ),
-    [control.showOrders, observation, revealed, units, surfaceZ, rules.air],
+    [control.showOrders, observation, revealed, units, surfaceZ, aloft],
   );
 
   return {
@@ -984,6 +910,8 @@ export function useBattleSession({
     /** What the side knows stands, for a viewport that draws it: the map's
      *  buildings, and what the camera keeps clear of. */
     known: { buildings: buildingsFeed, obstacles: cameraObstaclesFeed },
+    /** The map's buildings and their parts (null before the map loads). */
+    buildingIndex: drawnBuildings,
     /** The player's pointer on a viewport that takes orders. */
     input: { onPick, onRightPress, onCursor, onBox, pointerMarks: pointerPaint.feed },
     /** What renderer fog is drawn from; `fogFeed` carries it to the viewport. */

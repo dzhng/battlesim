@@ -199,7 +199,7 @@ const RULER: RangeRuler = {
 };
 
 const CONTACTS: ContactLine[] = [
-  { key: 3, text: "Unknown, firing" },
+  { key: 3, text: "Unknown, last seen" },
   { key: 2, text: "T-72B3, last seen" },
   { key: 1, text: "Radar contact" },
 ];

@@ -8,6 +8,8 @@ import type { SoundBank } from "@packages/battle-audio/src/soundBank";
 import { WebAudioSink } from "@packages/battle-audio/src/webAudioSink";
 import { sectorPan } from "@packages/battle-audio/src/soundFrame";
 import { cameraListener } from "@packages/battle-audio/src/battleAudio";
+import { eyePosition, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
+import { vec3 } from "math";
 
 beforeAll(() => loadPresentation());
 afterEach(() => vi.unstubAllGlobals());
@@ -21,32 +23,19 @@ test("a cue's stereo pan follows the camera: east is right when looking north", 
   expect(sectorPan(2, [1, 0, 0])).toBeCloseTo(-1);
 });
 
-test("cameraListener places listener between target and eye based on share", () => {
-  const camera = {
-    target: [100, 200, 0] as [number, number, number],
-    distance: 100,
-    pitch: -Math.PI / 4,
-    yaw: 0,
-  };
-  const listener = cameraListener(camera, 0.25);
-  expect(listener.position).toHaveLength(3);
-  expect(listener.forward).toHaveLength(3);
-  const atTarget = cameraListener(camera, 0).position;
-  const atEye = cameraListener(camera, 1).position;
-  expect(atTarget[0]).toBeCloseTo(camera.target[0]);
-  expect(atTarget[1]).toBeCloseTo(camera.target[1]);
-  expect(atTarget[2]).toBeCloseTo(camera.target[2]);
-  const dist0 = Math.hypot(
-    listener.position[0] - atTarget[0],
-    listener.position[1] - atTarget[1],
-    listener.position[2] - atTarget[2],
-  );
-  const dist1 = Math.hypot(
-    listener.position[0] - atEye[0],
-    listener.position[1] - atEye[1],
-    listener.position[2] - atEye[2],
-  );
-  expect(dist0).toBeLessThan(dist1);
+test("the listener stands at the camera's eye and looks where it looks", () => {
+  for (const camera of [
+    { target: [100, 200, 0] as [number, number, number], distance: 600, pitch: 0.85, yaw: 0 },
+    { target: [0, 0, 0] as [number, number, number], distance: 2000, pitch: 0.16, yaw: 1 },
+  ]) {
+    const eye = eyePosition(vec3.create(), camera as unknown as Camera3DParams);
+    const { position, look } = cameraListener(camera);
+    for (const i of [0, 1, 2]) expect(position[i]).toBeCloseTo(eye[i], 6);
+    // It looks where the camera looks: from the eye toward its target.
+    const to = [0, 1, 2].map((i) => camera.target[i] - eye[i]);
+    const length = Math.hypot(...to);
+    for (const i of [0, 1, 2]) expect(look![i]).toBeCloseTo(to[i] / length, 6);
+  }
 });
 
 test("cameraListener forward vector depends on yaw", () => {
@@ -62,8 +51,8 @@ test("cameraListener forward vector depends on yaw", () => {
     pitch: -Math.PI / 4,
     yaw: Math.PI / 2,
   };
-  const forward1 = cameraListener(camera1, 0.25).forward;
-  const forward2 = cameraListener(camera2, 0.25).forward;
+  const forward1 = cameraListener(camera1).forward;
+  const forward2 = cameraListener(camera2).forward;
   expect(Math.hypot(forward1[0], forward1[1])).toBeGreaterThan(0);
   expect(Math.hypot(forward2[0], forward2[1])).toBeGreaterThan(0);
   expect(forward1[0]).not.toBeCloseTo(forward2[0]);

@@ -1,9 +1,11 @@
 //! External tooling models composed into the ordinary presentation frame.
+use super::catalog::Facts;
 use super::*;
 use crate::assets::{Container, BUNDLE};
 use crate::records::FOG_UNITS;
 use crate::static_world::props::{DRAWS_PROP, DRAWS_PROP_GROUND};
 use crate::world::{Corners, Detail};
+use contract::identity::ContentId;
 use std::collections::BTreeMap;
 
 /// Geometry facts and authored poses, independent of a battle roster.
@@ -98,7 +100,6 @@ impl Asset {
                     .unwrap_or_default(),
                 [0.0; 2],
             )),
-            Pose::Corpse { .. } => Some((Vec::new(), [0.0; 2])),
             _ => {
                 let Self::Animated { appearance, table } = self else {
                     return None;
@@ -109,11 +110,16 @@ impl Asset {
                         inverse_binds,
                         clips,
                         far_pose,
+                        corpse_poses,
                         ..
                     } => {
                         let (clip, phase) = match pose {
                             Pose::Clip { clip, phase } => (clip, *phase),
                             Pose::Rest => (&far_pose.clip, far_pose.phase),
+                            Pose::Corpse { lies } => {
+                                let rest = corpse_poses.get(*lies as usize)?;
+                                (&rest.clip, rest.phase)
+                            }
                             _ => return None,
                         };
                         if !clips.contains_key(clip) {
@@ -239,7 +245,7 @@ pub enum Pose {
 
 #[derive(Default)]
 pub(super) struct Lab {
-    pub(super) assets: BTreeMap<String, Asset>,
+    pub(super) assets: Facts,
     pub(super) detail: Option<Detail>,
     pub(super) models: Vec<ModelInput>,
     /// Canonical battle/static rows and strings precede replaceable tooling rows.
@@ -250,9 +256,13 @@ impl Presentation {
     /// Replaces the tooling catalog as one generation, without changing the
     /// battle, observations or static world. Reinstall the renderer's tables
     /// after this call; world rows can have moved.
-    pub fn install_lab_assets(&mut self, assets: BTreeMap<String, Asset>, detail: Detail) {
+    pub fn install_lab_assets(
+        &mut self,
+        assets: BTreeMap<String, (ContentId, Asset)>,
+        detail: Detail,
+    ) {
         self.catalog_state.renew();
-        self.lab.assets = assets;
+        self.lab.assets = Facts::installed(assets);
         self.lab.detail = Some(detail);
         self.register_lab_rows();
     }
@@ -292,6 +302,7 @@ impl Lab {
         world: &World,
         f: &mut Frame,
         models: &mut Vec<Model>,
+        corpse_palettes: &mut posing::CorpsePalettes,
     ) {
         let Some(detail) = self.detail else {
             return;
@@ -356,15 +367,25 @@ impl Lab {
                 f.counts.culled += 1;
                 continue;
             }
-            let Some((palette, scroll)) = asset.palette(&m.pose) else {
-                continue;
-            };
-            let base = if palette.is_empty() {
-                0
+            let (base, scroll) = if let Pose::Corpse { lies } = &m.pose {
+                let Some(base) = corpse_palettes.append(row, &mut f.palettes, || {
+                    super::catalog::asset_rest_palette(asset, *lies)
+                }) else {
+                    continue;
+                };
+                (base, [0.0; 2])
             } else {
-                f.palettes.len() as u32
+                let Some((palette, scroll)) = asset.palette(&m.pose) else {
+                    continue;
+                };
+                let base = if palette.is_empty() {
+                    0
+                } else {
+                    f.palettes.len() as u32
+                };
+                f.palettes.extend(palette);
+                (base, scroll)
             };
-            f.palettes.extend(palette);
             let colour = m.ghost.unwrap_or_else(|| {
                 if fog == FOG_UNITS {
                     m.xray.unwrap_or([0.0; 4])
@@ -387,6 +408,7 @@ impl Lab {
                 at,
                 yaw: m.yaw,
                 tint: m.tint,
+                shadow: true,
                 highlight: m.highlight,
                 scale: m.scale,
                 colour,
@@ -402,10 +424,9 @@ impl Presentation {
     /// A skinned row's body as it holds still (`World.appearances`): a
     /// corpse row as it lies (its `corpse_poses` entry), a body row in its
     /// far pose (what its impostor card shows). Each joint's bind-to-model
-    /// motion: a renderer skins the body's mesh by it once, when it loads
-    /// the row (`posedMesh`), and draws that mesh where the frame's
-    /// instance takes the identity. None for a rigid row, or a row nothing
-    /// loaded draws.
+    /// motion: the renderer skins the authored mesh with this palette for
+    /// its card; a corpse instance names the same palette in the frame.
+    /// None for a rigid row, or a row nothing loaded draws.
     pub fn rest_palette(&self, row: u32) -> Option<Vec<Joint>> {
         let r = self.world.appearances.get(row as usize)?;
         let name = self.world.name(r);
@@ -444,8 +465,8 @@ fn truncate_rows(world: &mut World, (rows, strings): (usize, usize)) {
     world.rows.retain(|_, row| (*row as usize) < rows);
 }
 
-pub(super) fn register_rows(world: &mut World, assets: &BTreeMap<String, Asset>) {
-    for (name, asset) in assets {
+pub(super) fn register_rows(world: &mut World, assets: &Facts) {
+    for (name, asset) in assets.iter() {
         match asset {
             Asset::Static(states) => {
                 for s in states {

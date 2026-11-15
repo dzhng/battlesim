@@ -4,10 +4,12 @@ import { cruise_agl_m } from "@wasm/game_wasm";
 // preview, and every ordered destination with Space held. The UI says where
 // each body stands; the presentation fields and poses them (`GhostBody`).
 import type { SurfaceHeight } from "@packages/battle-renderer/src/orderOverlay";
-import type { UnitCatalog } from "@packages/scene-assets/src/units";
+import type { WorldRay } from "@packages/renderer-core/src/camera3d";
+import { highAir, type UnitCatalog } from "@packages/scene-assets/src/units";
 import type { GhostReadout } from "@web/battle/present/readouts";
 import type { OwnUnitView } from "@web/battle/sim/observationView";
 import type { GhostBody } from "@web/battle/sim/presentation";
+import { groundUnderRay, type WorldView } from "./useStaticWorld";
 
 /** A ghost's look (`GhostBody.look`): the side's own colour, the
  *  selection's, or a purchase the simulation refused. */
@@ -32,6 +34,45 @@ export function ghostAloft(units: UnitCatalog, air: AirLayers) {
     heights.set(kind, height);
     return height;
   };
+}
+
+/** Where a camera ray reaches `aloft` metres over the ground, as a map
+ *  point: a ghost standing there at that height draws right under the
+ *  pointer. A high-air purchase is placed by it, as its ghost flies far above
+ *  the ground the pointer is over. A few steps settle the crossing onto the
+ *  terrain under it; null when the eye is already below that height or the
+ *  ray never descends. */
+export function pointAloftOnRay(
+  ray: { origin: readonly number[]; dir: readonly number[] },
+  ground: SurfaceHeight,
+  aloft: number,
+): [number, number] | null {
+  const [ox, oy, oz] = ray.origin;
+  const [dx, dy, dz] = ray.dir;
+  if (dz >= 0) return null;
+  let [x, y] = [ox, oy];
+  for (let step = 0; step < 8; step++) {
+    const t = (ground(x, y) + aloft - oz) / dz;
+    if (t <= 0) return null;
+    [x, y] = [ox + dx * t, oy + dy * t];
+  }
+  return [x, y];
+}
+
+/** Where a purchase of `kind` stands under a ray. A high-air one flies far
+ *  above the ground, so it stands where the ray reaches its height (`aloft`)
+ *  and its ghost draws under the pointer; anything else, or a ray that never
+ *  gets down to that height, on the surface under the ray. */
+export function placementUnder(
+  units: UnitCatalog,
+  kind: string,
+  aloft: (kind: string) => number,
+  surface: SurfaceHeight,
+  view: WorldView,
+) {
+  const high = highAir(units.type(kind));
+  return (ray: WorldRay) =>
+    (high ? pointAloftOnRay(ray, surface, aloft(kind)) : null) ?? groundUnderRay(view, ray);
 }
 
 /** Cards accompany only revealed HighAir order ghosts while Space is held. */

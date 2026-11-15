@@ -2,13 +2,15 @@
 #[path = "support/readback.rs"]
 mod readback;
 mod support;
+use renderer_core::runtime::AdmissionWork;
 
+use contract::identity::ContentId;
 use presentation::records::{
     Appearance, Batch, Camera, Instance as ModelInstance, Joint, View, FOG_UNITS, NONE, VIEW_PASS,
 };
 use renderer_core::bundle::{Bundle, BundleSource, Coverage, Draw, Material, Mesh, Shape};
 use renderer_core::impostor::Spec;
-use renderer_core::models::Models;
+use renderer_core::models::{ArtStore, Models};
 use renderer_core::pipelines;
 use std::sync::Arc;
 use wgpu::*;
@@ -57,6 +59,12 @@ impl BundleSource for Source {
             textures: vec![],
         }))
     }
+
+    fn content_id(&self, _: &str) -> Result<ContentId, String> {
+        ContentId::bundle(contract::identity::bytes_hash(include_bytes!(
+            "impostors.rs"
+        )))
+    }
 }
 struct RigidSource(bool);
 impl BundleSource for RigidSource {
@@ -76,6 +84,12 @@ impl BundleSource for RigidSource {
             Shape::Static(vec![node])
         };
         Ok(Arc::new(bundle))
+    }
+
+    fn content_id(&self, _: &str) -> Result<ContentId, String> {
+        let mut recipe = include_bytes!("impostors.rs").to_vec();
+        recipe.push(u8::from(self.0));
+        ContentId::bundle(contract::identity::bytes_hash(&recipe))
     }
 }
 
@@ -99,6 +113,12 @@ impl BundleSource for TexturedSource {
             }));
         Ok(Arc::new(bundle))
     }
+
+    fn content_id(&self, _: &str) -> Result<ContentId, String> {
+        ContentId::bundle(contract::identity::bytes_hash(
+            b"textured tetrahedron fixture",
+        ))
+    }
 }
 
 #[test]
@@ -118,16 +138,26 @@ fn diagnostic_texture_controls_do_not_change_authored_impostor_bakes() {
         "body",
         |_| Some(vec![identity()]),
         |_, _| None,
+        ArtStore::shared(),
+        &mut AdmissionWork::default(),
     )
     .unwrap();
     let bake = || {
         pollster::block_on(
             models
-                .impostor_request(&gpu.device, &gpu.queue, &pipelines, 0, &Spec::runtime())
+                .impostor_request(
+                    &gpu.device,
+                    &gpu.queue,
+                    &pipelines,
+                    &[0],
+                    &Spec::runtime(),
+                    &mut AdmissionWork::default(),
+                )
                 .unwrap()
                 .read(),
         )
         .unwrap()
+        .remove(0)
     };
     let authored = bake();
     models.set_texture_channels(&gpu.queue, [false; 3]);
@@ -155,6 +185,8 @@ fn make_models(gpu: &support::Gpu, pipelines: &renderer_core::pipelines::Pipelin
         "body",
         |_| Some(vec![identity()]),
         |_, _| None,
+        ArtStore::shared(),
+        &mut AdmissionWork::default(),
     )
     .unwrap()
 }
@@ -224,28 +256,51 @@ fn authored_bake_and_runtime_cards_preserve_coverage_normals_tint_and_real_geome
     let mut models = make_models(&gpu, &pipelines);
     let atlas = pollster::block_on(
         models
-            .impostor_request(&gpu.device, &gpu.queue, &pipelines, 0, &Spec::runtime())
+            .impostor_request(
+                &gpu.device,
+                &gpu.queue,
+                &pipelines,
+                &[0],
+                &Spec::runtime(),
+                &mut AdmissionWork::default(),
+            )
             .unwrap()
             .read(),
     )
-    .unwrap();
+    .unwrap()
+    .remove(0);
     let second = pollster::block_on(
         models
-            .impostor_request(&gpu.device, &gpu.queue, &pipelines, 0, &Spec::runtime())
+            .impostor_request(
+                &gpu.device,
+                &gpu.queue,
+                &pipelines,
+                &[0],
+                &Spec::runtime(),
+                &mut AdmissionWork::default(),
+            )
             .unwrap()
             .read(),
     )
-    .unwrap();
+    .unwrap()
+    .remove(0);
     assert_eq!(
         atlas.hash, second.hash,
         "identical GPU bake inputs must have the same identity"
     );
     let detached = {
         let old = make_models(&gpu, &pipelines);
-        old.impostor_request(&gpu.device, &gpu.queue, &pipelines, 0, &Spec::runtime())
-            .unwrap()
+        old.impostor_request(
+            &gpu.device,
+            &gpu.queue,
+            &pipelines,
+            &[0],
+            &Spec::runtime(),
+            &mut AdmissionWork::default(),
+        )
+        .unwrap()
     };
-    let detached = pollster::block_on(detached.read()).unwrap();
+    let detached = pollster::block_on(detached.read()).unwrap().remove(0);
     assert_eq!(
         atlas.hash, detached.hash,
         "an owned bake must finish after its originating model catalog is dropped"
@@ -264,12 +319,21 @@ fn authored_bake_and_runtime_cards_preserve_coverage_normals_tint_and_real_geome
             "body",
             |_| Some(vec![identity()]),
             |_, _| None,
+            ArtStore::shared(),
+            &mut AdmissionWork::default(),
         )
         .unwrap();
         let snapshot = rigid
-            .impostor_request(&gpu.device, &gpu.queue, &pipelines, 0, &Spec::runtime())
+            .impostor_request(
+                &gpu.device,
+                &gpu.queue,
+                &pipelines,
+                &[0],
+                &Spec::runtime(),
+                &mut AdmissionWork::default(),
+            )
             .unwrap();
-        let rigid_atlas = pollster::block_on(snapshot.read()).unwrap();
+        let rigid_atlas = pollster::block_on(snapshot.read()).unwrap().remove(0);
         assert_eq!(atlas.hash,rigid_atlas.hash,"the same rigid authored body must bake identically through static/articulated review inputs");
     }
     let covered = atlas
@@ -317,7 +381,15 @@ fn authored_bake_and_runtime_cards_preserve_coverage_normals_tint_and_real_geome
         }
         std::fs::write(format!("{directory}/atlas.json"),serde_json::to_vec(&serde_json::json!({"appearance":atlas.appearance,"spec":atlas.spec,"width":atlas.width,"height":atlas.height,"center":atlas.center,"radius":atlas.radius,"hash":atlas.hash})).unwrap()).unwrap();
     }
-    pollster::block_on(models.bake_cards(&gpu.device, &gpu.queue, &pipelines)).unwrap();
+    pollster::block_on(models.bake_cards(
+        &gpu.device,
+        &gpu.queue,
+        &pipelines,
+        renderer_core::models::ArtStorePolicy::default(),
+        &std::sync::atomic::AtomicBool::new(false),
+        &mut AdmissionWork::default(),
+    ))
+    .unwrap();
     let instances =
         [(-0.5, [1., 0., 0., 1.]), (0.5, [0., 0., 1., 1.])].map(|(x, tint)| ModelInstance {
             placement: [x, 0., 0., 0.],

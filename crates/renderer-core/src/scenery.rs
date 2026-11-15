@@ -24,6 +24,7 @@ use wgpu::*;
 use crate::buffer;
 use crate::bundle::{Bundle, BundleSource, Shape};
 use crate::pipelines::{Bound, Pipelines};
+use crate::runtime::AdmissionWork;
 use crate::statics::Statics;
 
 /// The state scenery draws (winter will be the next biome's).
@@ -82,6 +83,7 @@ pub(crate) fn finest_meshes(
 pub fn place_scenery(
     presentation: &mut presentation::presentation::Presentation,
     library: &impl BundleSource,
+    work: &mut AdmissionWork,
 ) -> Result<(), String> {
     if presentation.scenery_is_placed() {
         return Ok(());
@@ -91,6 +93,7 @@ pub fn place_scenery(
         library,
     )?;
     let refs: Vec<_> = finest.iter().map(Vec::as_slice).collect();
+    work.scenery_placements += 1;
     presentation.place_scenery(&refs)
 }
 
@@ -99,6 +102,7 @@ type Mesh = (Buffer, u32);
 
 /// One scenery row: what draws it, and its kind (`Ground::scenery_kinds`
 /// index), whose tiers it draws; a stump draws its own mesh.
+#[derive(Clone)]
 struct Row {
     draws: u32,
     kind: usize,
@@ -129,6 +133,7 @@ pub struct Scenery {
     pub submissions: crate::submitted::Submissions,
     trees_shown: bool,
     rows: Vec<Option<Row>>,
+    names: Vec<Option<String>>,
     /// Per kind, its tiers, shared by every row that draws the kind.
     tiers: Vec<Vec<Mesh>>,
     runs: Vec<Run>,
@@ -152,6 +157,7 @@ impl Scenery {
         pipelines: &Pipelines,
         library: &impl BundleSource,
         catalog: CatalogView<'_>,
+        work: &mut AdmissionWork,
     ) -> Result<Self, String> {
         let world = catalog.world();
         let kinds = catalog
@@ -166,6 +172,7 @@ impl Scenery {
             &world.strings,
             &kinds,
             |row| catalog.stump_mesh(row),
+            work,
         )
     }
 
@@ -182,10 +189,12 @@ impl Scenery {
         strings: &str,
         kinds: &[String],
         stump_mesh: impl Fn(u32) -> Option<&'a [f32]>,
+        work: &mut AdmissionWork,
     ) -> Result<Self, String> {
         let text = |at: u32, len: u32| &strings[at as usize..(at + len) as usize];
-        let upload = |name: &str, mesh: &[f32]| -> Mesh {
+        let mut upload = |name: &str, mesh: &[f32]| -> Mesh {
             let bytes = bytemuck::cast_slice(mesh);
+            work.statics_bytes_uploaded += bytes.len() as u64;
             let vertices = (mesh.len() / VERTEX_FLOATS) as u32;
             (
                 buffer(device, queue, name, BufferUsages::VERTEX, bytes),
@@ -194,16 +203,19 @@ impl Scenery {
         };
         let mut tiers: Vec<Vec<Mesh>> = kinds.iter().map(|_| Vec::new()).collect();
         let mut rows = Vec::with_capacity(appearances.len());
+        let mut names = Vec::with_capacity(appearances.len());
         for (r, a) in appearances.iter().enumerate() {
             let name = text(a.name, a.name_len);
             let kind = kinds.iter().position(|k| k == name);
             let (Some(kind), true) = (kind, a.draws != 0) else {
                 rows.push(None);
+                names.push(None);
                 continue;
             };
             let stump = if a.draws == Draws::Stump as u32 {
                 // Only a tree leaves a stump; a shrub's stump row draws nothing.
                 let Some(mesh) = stump_mesh(r as u32) else {
+                    names.push(None);
                     rows.push(None);
                     continue;
                 };
@@ -222,11 +234,13 @@ impl Scenery {
                 kind,
                 stump,
             }));
+            names.push(Some(name.to_owned()));
         }
         Ok(Self {
             submissions: Default::default(),
             trees_shown: true,
             rows,
+            names,
             tiers,
             runs: Vec::new(),
             prepass: pipelines.bound("sceneryPrepass"),
@@ -238,6 +252,82 @@ impl Scenery {
             felled_prepass: pipelines.bound("felledPrepass"),
             felled_caster: pipelines.bound("felledCaster"),
             felled: pipelines.bound("felledColour"),
+        })
+    }
+
+    /// Rebinds placement rows to a prospective catalog while retaining every
+    /// scenery GPU buffer. Static identity is checked by the runtime before
+    /// this is called, so only appearance row routing changes here.
+    pub fn reuse(&self, catalog: CatalogView<'_>) -> Result<Self, String> {
+        let world = catalog.world();
+        let kinds = catalog
+            .ground()
+            .map_or_else(Vec::new, |ground| ground.scenery_kinds());
+        if kinds.len() != self.tiers.len() {
+            return Err("scenery kind count changed while reusing static buffers".into());
+        }
+        let mut rows = Vec::with_capacity(world.appearances.len());
+        let mut names = Vec::with_capacity(world.appearances.len());
+        for appearance in &world.appearances {
+            let name = world.name(appearance);
+            let Some(kind) = kinds.iter().position(|kind| kind == name) else {
+                rows.push(None);
+                names.push(None);
+                continue;
+            };
+            if appearance.draws == 0 {
+                rows.push(None);
+                names.push(None);
+                continue;
+            }
+            let old = self
+                .names
+                .iter()
+                .zip(&self.rows)
+                .find_map(|(old_name, row)| {
+                    (old_name.as_deref() == Some(name)
+                        && row
+                            .as_ref()
+                            .is_some_and(|row| row.draws == appearance.draws))
+                    .then_some(row)
+                })
+                .and_then(Option::as_ref);
+            let Some(old) = old else {
+                if appearance.draws == Draws::Stump as u32
+                    && catalog.stump_mesh(rows.len() as u32).is_none()
+                {
+                    rows.push(None);
+                    names.push(None);
+                    continue;
+                }
+                return Err(format!("scenery row {name} was not admitted"));
+            };
+            if appearance.draws == Draws::Stump as u32 && old.stump.is_none() {
+                return Err(format!("scenery stump row {name} was not admitted"));
+            }
+            rows.push(Some(Row {
+                draws: appearance.draws,
+                kind,
+                stump: old.stump.clone(),
+            }));
+            names.push(Some(name.to_owned()));
+        }
+        Ok(Self {
+            submissions: Default::default(),
+            trees_shown: self.trees_shown,
+            rows,
+            names,
+            tiers: self.tiers.clone(),
+            runs: Vec::new(),
+            prepass: self.prepass.clone(),
+            caster: self.caster.clone(),
+            forest: self.forest.clone(),
+            backdrop: self.backdrop.clone(),
+            dressing_prepass: self.dressing_prepass.clone(),
+            dressing: self.dressing.clone(),
+            felled_prepass: self.felled_prepass.clone(),
+            felled_caster: self.felled_caster.clone(),
+            felled: self.felled.clone(),
         })
     }
 

@@ -75,7 +75,9 @@ to the closest distance in the capture.
 The battle runs live and is not scripted by the capture. A shot shows whatever
 the encounter makes happen at that moment. Only `menu.json` is held to a
 recorded event log (`crates/sim/tests/menu_reel.rs`, see
-[the backdrop's rules](../../../../fixtures/README.md)). Any other capture can
+[the backdrop's rules](../../../../fixtures/README.md#the-menu-reel)), and that
+log never holds back a game change: when one moves the reel, re-direct the
+encounter and re-record. Any other capture can
 retime after a rule change, so watch it again before reusing the footage. The
 same test checks every capture file's maps and `follow` indices, and is the
 fastest check after editing one:
@@ -225,8 +227,8 @@ HLG tags.
 
 **Indicators are the game's, recorded.** The parity run films the battle
 view's in-world indicators with the battle: contact glyphs (a remembered
-contact's too, while it fades), aircraft marks, the zone, objectives, roads in
-and the map's border, built by the live game's own builders from blue's own
+contact's too, while it fades), aircraft marks, held buildings' outlines, the
+zone, objectives, roads in and the map's border, built by the live game's own builders from blue's own
 view (`useBattleOverlay`). A hidden enemy has no mark, and a contact never
 gets an identified unit's. The page records what it uploaded each frame
 beside the capture (`overlays.bin`, the manifest's `overlays` layer); native

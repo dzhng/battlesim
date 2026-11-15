@@ -3,7 +3,11 @@
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { hudIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "@web/battle/present/icons";
-import { objectiveStanding, type ObjectiveStanding } from "@web/battle/present/objectiveMarkers";
+import {
+  captureShare,
+  objectiveStanding,
+  type ObjectiveStanding,
+} from "@web/battle/present/objectiveMarkers";
 import type { ObservationView, SkirmishView } from "@web/battle/sim/observationView";
 import type { SideName } from "@web/battle/sim/protocol";
 
@@ -87,11 +91,7 @@ export function SkirmishStatus({
             >
               <Icon path={hudIcon("objective")} />
               {index + 1}
-              {objective.contested
-                ? " · CONTESTED"
-                : objective.capturing
-                  ? ` · ${Math.floor(objective.captureProgress * 100)}%`
-                  : ""}
+              {captureShare(objective)}
             </span>
           );
         })}

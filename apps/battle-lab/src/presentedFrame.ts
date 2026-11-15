@@ -11,7 +11,7 @@ import {
   MIN_TARGET_PX,
 } from "@packages/battle-renderer/src/records.gen";
 import type { CatalogView } from "@packages/scene-assets/src/units";
-import { fieldUnits, type RuntimeFiles } from "@web/battle/sim/fielding";
+import { fieldUnits, FieldingOwner, type RuntimeFiles } from "@web/battle/sim/fielding";
 import type {
   PresentedBattle,
   PresentedCamera,
@@ -23,6 +23,11 @@ import { vec3 } from "math";
 import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import type { PickBox } from "@packages/battle-renderer/src/picking";
 import type { SideName } from "@web/battle/sim/protocol";
+import {
+  BATTLE_STAND_IN_APPEARANCE,
+  BATTLE_STAND_IN_HALF_EXTENTS,
+  BATTLE_STAND_IN_TINT,
+} from "@web/battle/render/proxyModels";
 
 /** What a frame poses, by kind: living and dying soldiers, ground
  *  vehicles, aircraft (flying or falling), lying corpses and corpses
@@ -100,20 +105,23 @@ export function frameCounts(frame: PresentedFrame): { models: ModelCounts; effec
  *  `catalog` under `rules` (its scenario's rules, JSON), each side fighting
  *  for `factions` (blue, red), with the facts the presentation reads of the
  *  battle and the page. */
-export async function fieldedBattle(input: {
-  rules: string;
-  catalog: CatalogView;
-  kinds: readonly string[];
-  factions?: readonly [string, string];
-  runtime: RuntimeFiles;
-  side: SideName;
-  tickHz: number;
-  sun: { azimuth: number; elevation: number };
-  soldier: { soldier_radius_m: number; soldier_height_m: number };
-  xray: { own: readonly number[]; selected: readonly number[]; ally: readonly number[] };
-  blocked: readonly number[];
-}): Promise<PresentedBattle> {
-  const { units, effects, tables } = await fieldUnits(input);
+export async function fieldedBattle(
+  input: {
+    rules: string;
+    catalog: CatalogView;
+    kinds: readonly string[];
+    factions?: readonly [string, string];
+    runtime: RuntimeFiles;
+    side: SideName;
+    tickHz: number;
+    sun: { azimuth: number; elevation: number };
+    soldier: { soldier_radius_m: number; soldier_height_m: number };
+    xray: { own: readonly number[]; selected: readonly number[]; ally: readonly number[] };
+    blocked: readonly number[];
+  },
+  owner?: FieldingOwner,
+): Promise<PresentedBattle> {
+  const { units, effects, tables } = owner ? await owner.field(input) : await fieldUnits(input);
   return {
     world: {
       battle: {
@@ -127,6 +135,12 @@ export async function fieldedBattle(input: {
         },
         xray: input.xray,
         blocked: input.blocked,
+        stand_in: {
+          appearance: BATTLE_STAND_IN_APPEARANCE,
+          half: BATTLE_STAND_IN_HALF_EXTENTS,
+          tint: BATTLE_STAND_IN_TINT,
+          shadow: false,
+        },
       },
       sun_azimuth: input.sun.azimuth,
       sun_elevation: input.sun.elevation,
