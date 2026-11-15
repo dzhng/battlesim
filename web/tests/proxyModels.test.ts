@@ -100,6 +100,7 @@ test("parsed model transport round-trips art and shares textures within one admi
   bundle.textures = [{ ...texture, levels: [...texture.levels] }];
   bundle.materials[0].textures = { albedo: 0 };
   const appearance = {
+    contentId: { bundle: "a".repeat(64), skeleton: null },
     bundle,
     unit: "vehicle",
     scenery: null,

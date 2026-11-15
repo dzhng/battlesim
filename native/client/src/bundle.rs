@@ -2,20 +2,29 @@
 use renderer_core::bundle::{Bundle, BundleSource};
 
 use presentation::assets::Runtime;
+use std::cell::RefCell;
 use std::path::Path;
 use std::sync::Arc;
 
 /// Filesystem runtime catalog. Decoding belongs to the shared renderer.
 pub struct Library {
     runtime: Runtime,
+    decoded: RefCell<renderer_core::bundle::Library>,
 }
 
 impl Library {
     pub fn open(dir: &Path) -> Result<Self, String> {
-        Runtime::open(dir).map(|runtime| Self { runtime })
+        Runtime::open(dir).map(|runtime| Self {
+            runtime,
+            decoded: RefCell::new(renderer_core::bundle::Library::default()),
+        })
     }
 
     pub fn bundle(&self, name: &str) -> Result<Arc<Bundle>, String> {
+        if let Ok(bundle) = self.decoded.borrow().bundle(name) {
+            return Ok(bundle);
+        }
+        let content = self.runtime.content_id(name)?;
         let hash = self.runtime.bundle_hash(name)?;
         let bytes = self.runtime.read(hash, "bundle.bin")?;
         let textures = self.runtime.catalog["textures"][hash]
@@ -31,7 +40,9 @@ impl Library {
             .iter()
             .map(|(id, data)| (id.as_str(), data.as_slice()))
             .collect::<Vec<_>>();
-        renderer_core::bundle::decode(name, &bytes, &refs).map(Arc::new)
+        let mut decoded = self.decoded.borrow_mut();
+        decoded.insert_bundle(name, content, &bytes, &refs)?;
+        decoded.bundle(name)
     }
 }
 

@@ -55,6 +55,31 @@ pub fn is_sha256(value: &str) -> bool {
             .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
 }
 
+/// The runtime art content a name routes to. Skinned art includes the
+/// skeleton clips because changing either bundle changes the rendered model.
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContentId {
+    pub bundle: String,
+    pub skeleton: Option<String>,
+}
+
+impl ContentId {
+    pub fn new(bundle: String, skeleton: Option<String>) -> Result<Self, &'static str> {
+        if !is_sha256(&bundle) {
+            return Err("content identity bundle must be a canonical SHA256");
+        }
+        if skeleton.as_deref().is_some_and(|hash| !is_sha256(hash)) {
+            return Err("content identity skeleton must be a canonical SHA256");
+        }
+        Ok(Self { bundle, skeleton })
+    }
+
+    pub fn bundle(bundle: impl Into<String>) -> Result<Self, &'static str> {
+        Self::new(bundle.into(), None)
+    }
+}
+
 pub fn validate_version_identifier(value: &str) -> Result<(), &'static str> {
     if value.trim().is_empty() {
         Err("generation version identifiers must be nonempty")

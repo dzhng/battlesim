@@ -4,6 +4,7 @@
 #[path = "support/mod.rs"]
 mod support;
 
+use contract::identity::ContentId;
 use presentation::presentation::{lab::Asset, Presentation};
 use presentation::records::{Appearance, Joint, NONE};
 use renderer_core::bundle::Library;
@@ -101,6 +102,62 @@ fn world_names(presentation: &Presentation) -> Vec<String> {
         .iter()
         .map(|row| world.strings[row.name as usize..(row.name + row.name_len) as usize].to_owned())
         .collect()
+}
+
+fn content_id(bytes: &[u8]) -> ContentId {
+    ContentId::bundle(contract::identity::bytes_hash(bytes)).unwrap()
+}
+
+#[test]
+fn same_name_with_new_content_replaces_the_admitted_art() {
+    let bytes_a = bundle_bytes("static");
+    let mut bytes_b = bytes_a.clone();
+    let old = b"\"max\":[1,1,1]";
+    let new = b"\"max\":[1,1,2]";
+    let at = bytes_b
+        .windows(old.len())
+        .position(|window| window == old)
+        .expect("synthetic bounds are present");
+    bytes_b[at..at + old.len()].copy_from_slice(new);
+
+    let mut library = Library::default();
+    library
+        .insert_bundle("synthetic", content_id(&bytes_a), &bytes_a, &[])
+        .unwrap();
+    assert_eq!(library.admission_work().bundles_decoded, 1);
+    let old_top = match &library.bundle("synthetic").unwrap().shape {
+        renderer_core::bundle::Shape::Static(states) => states[0].top,
+        _ => panic!("synthetic bundle is static"),
+    };
+
+    library
+        .insert_bundle("synthetic", content_id(&bytes_b), &bytes_b, &[])
+        .unwrap();
+    assert_eq!(library.admission_work().bundles_decoded, 1);
+    let new_top = match &library.bundle("synthetic").unwrap().shape {
+        renderer_core::bundle::Shape::Static(states) => states[0].top,
+        _ => panic!("synthetic bundle is static"),
+    };
+    assert_ne!(old_top, new_top);
+}
+
+#[test]
+fn identical_content_under_a_second_name_decodes_once() {
+    let bytes = bundle_bytes("static");
+    let id = content_id(&bytes);
+    let mut library = Library::default();
+    library
+        .insert_bundle("synthetic-a", id.clone(), &bytes, &[])
+        .unwrap();
+    assert_eq!(library.admission_work().bundles_decoded, 1);
+    library
+        .insert_bundle("synthetic-b", id, &bytes, &[])
+        .unwrap();
+    assert_eq!(library.admission_work().bundles_decoded, 0);
+    assert!(Arc::ptr_eq(
+        &library.bundle("synthetic-a").unwrap(),
+        &library.bundle("synthetic-b").unwrap()
+    ));
 }
 
 #[test]

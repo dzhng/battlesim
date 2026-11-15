@@ -27,6 +27,7 @@ impl AppearanceDraft {
     pub fn add_bundle(
         &mut self,
         name: String,
+        content_id: String,
         bundle: &[u8],
         texture_ids: js_sys::Array,
         textures: js_sys::Array,
@@ -39,8 +40,14 @@ impl AppearanceDraft {
             .collect();
         // Both decoders finish before either draft owner changes.
         let facts = Asset::from_bundle(bundle, skeleton.as_deref()).map_err(js_error)?;
+        let content = serde_json::from_str(&content_id)
+            .map_err(js_error)
+            .and_then(|content: contract::identity::ContentId| {
+                contract::identity::ContentId::new(content.bundle, content.skeleton)
+                    .map_err(js_error)
+            })?;
         self.library
-            .insert_bundle(&name, bundle, &refs)
+            .insert_bundle(&name, content, bundle, &refs)
             .map_err(js_error)?;
         self.facts.insert(name, facts);
         Ok(())

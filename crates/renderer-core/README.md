@@ -18,10 +18,14 @@ populations before reusing held buffers; shells need no skipped-frame protocol.
 Appearance rows route instances rather than own copies of their meshes. Rows
 that select the same authored state/pose share immutable GPU tiers within one
 asset generation; corpse poses remain distinct.
-Decoded bundles also share immutable texture payloads by content identity.
-The library's weak texture index cannot retain retired art. A new source draft
-shares that index without copying canonical bundle ownership, so a late draft
-cannot restore unrelated stale sources. Initial buffer data is queued through
+Decoded bundles are keyed by the runtime catalog's `ContentId`: the bundle hash
+and, for skinned art, its skeleton hash. Names only route to that identity, so
+one name can replace its art and two names can share one decode. The library's
+weak texture index cannot retain retired art. A new source draft shares that
+index without copying canonical bundle ownership, so a late draft cannot restore
+unrelated stale sources. Its pending decode count is drained when an admission
+takes it, so a device rebuild reports only decodes that admission performed.
+Initial buffer data is queued through
 the common upload owner, avoiding mapped-at-creation transfer copies in browsers.
 Scenery also shares authored tier admission and held-batch routing. Initial
 placement and atomic art replacement derive geometry from decoded Rust bundles;

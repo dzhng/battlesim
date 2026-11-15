@@ -1,5 +1,6 @@
 /** Parsed art transported once to presentation and GPU admission. */
 import type { InstalledAppearances, InstalledAppearance } from "@packages/scene-assets/src/loader";
+import { generatedContentId, type ContentId } from "@packages/scene-assets/src/contentIdentity";
 import { splitTextures } from "@packages/scene-assets/src/codec";
 import { encodeTexture } from "@packages/scene-assets/src/texture";
 import type { Bundle, SkeletonClips, StaticBundle } from "@packages/scene-assets/src/schema";
@@ -21,6 +22,8 @@ export interface ModelPlacement {
 }
 
 export interface ModelAsset extends LabAsset {
+  /** The catalog identity Rust uses for reuse; never the route name. */
+  contentId: ContentId;
   placement?: ModelPlacement;
   textureIds: string[];
   textureBytes: Uint8Array[];
@@ -29,10 +32,12 @@ export interface ModelAsset extends LabAsset {
 export function modelAsset(
   name: string,
   bundle: Exclude<Bundle, SkeletonClips>,
+  contentId: ContentId,
   textures = new Map<string, Uint8Array>(),
 ): ModelAsset {
   return {
     name,
+    contentId,
     // Parsed art is the durable browser source; encoded transport is borrowed
     // by admission, rather than retained beside both parsed and Rust copies.
     get bundle() {
@@ -72,15 +77,18 @@ export function modelAssetsOf(
         skeletons.set(bundle.skeleton, skeleton);
       }
     }
-    return Object.assign(modelAsset(name, bundle, textures), {
-      skeleton,
-      placement: entry && {
-        footprint: entry.footprint,
-        scenery: entry.scenery,
-        family: entry.regionalFamily,
-        paints: entry.paints,
-        wreck: entry.wreck,
+    return Object.assign(
+      modelAsset(name, bundle, entry ? entry.contentId : generatedContentId(bundle), textures),
+      {
+        skeleton,
+        placement: entry && {
+          footprint: entry.footprint,
+          scenery: entry.scenery,
+          family: entry.regionalFamily,
+          paints: entry.paints,
+          wreck: entry.wreck,
+        },
       },
-    });
+    );
   });
 }

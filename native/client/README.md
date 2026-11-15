@@ -42,7 +42,9 @@ The [presentation README](../../crates/presentation/README.md) owns the records.
 
 Native adapts desktop services around those owners. Audio commands come from
 presentation; the desktop sink decodes runtime recordings and plays them through
-`kira`. Missing Git LFS takes or tracks are refused by name. Offline replay sound
+`kira`. Appearance bundles are cached by the runtime catalog's content identity
+(bundle hash plus skeleton hash for skinned art), while names only route to that
+identity. Missing Git LFS takes or tracks are refused by name. Offline replay sound
 is rendered to a file or buffer, never played aloud by a test. A replay's UI
 geometry is the indicators the browser recorded (`overlays.bin`, when its
 manifest names the `overlays` layer), drawn as the page uploaded them with the

@@ -1,8 +1,10 @@
 //! Authored appearance bundles decoded from transported runtime bytes.
 //! Filesystem and network fetching belong to the platform shells.
+use contract::identity::{bytes_hash, ContentId};
 use presentation::assets::{Container, View, BUNDLE};
 use serde::Deserialize;
 use serde_json::Value;
+use std::cell::Cell;
 use std::collections::{BTreeMap, HashSet};
 use std::sync::{Arc, Weak};
 
@@ -16,9 +18,10 @@ pub trait BundleSource {
 /// Fetched bundles retained by a platform shell across renderer rebuilds.
 #[derive(Clone, Default)]
 pub struct Library {
-    bundles: BTreeMap<String, Arc<Bundle>>,
+    names: BTreeMap<String, ContentId>,
+    bundles: BTreeMap<ContentId, Arc<Bundle>>,
     textures: BTreeMap<String, Weak<Texture>>,
-    decoded_bundles: u32,
+    pending_decodes: Cell<u32>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]
@@ -243,62 +246,88 @@ impl Library {
     /// bundle replacements over a catalog committed while the draft is filled.
     pub fn empty_generation(&self) -> Self {
         Self {
+            names: BTreeMap::new(),
             bundles: BTreeMap::new(),
             textures: self.textures.clone(),
-            decoded_bundles: 0,
+            pending_decodes: Cell::new(0),
         }
     }
 
     /// Retained immutable sources share payload ownership while a replacement
     /// is staged and while admission reads them.
     pub fn replace_with(&mut self, replacements: Self) {
+        self.names.extend(replacements.names);
         self.bundles.extend(replacements.bundles);
         self.textures.extend(replacements.textures);
-        self.decoded_bundles += replacements.decoded_bundles;
+        self.pending_decodes
+            .set(self.pending_decodes.get() + replacements.pending_decodes.get());
     }
 
     pub fn retain(&mut self, mut keep: impl FnMut(&str) -> bool) {
-        self.bundles.retain(|name, _| keep(name));
+        self.names.retain(|name, _| keep(name));
+        let names: HashSet<_> = self.names.values().cloned().collect();
+        self.bundles.retain(|content, _| names.contains(content));
         self.textures
             .retain(|_, texture| texture.strong_count() > 0);
     }
 
+    /// Build a tooling library from bytes that have no catalog identity. The
+    /// bundle and texture payloads are hashed at this boundary once; catalog callers use
+    /// `insert_bundle` with their supplied identity.
     pub fn from_bundle(name: &str, bytes: &[u8], textures: &[(&str, &[u8])]) -> Result<Self> {
         let mut library = Self::default();
-        library.insert_bundle(name, bytes, textures)?;
+        let mut identity = bytes.to_vec();
+        for &(id, payload) in textures {
+            identity.extend((id.len() as u64).to_le_bytes());
+            identity.extend(id.as_bytes());
+            identity.extend((payload.len() as u64).to_le_bytes());
+            identity.extend(payload);
+        }
+        let content = ContentId::bundle(bytes_hash(&identity)).map_err(str::to_owned)?;
+        library.insert_bundle(name, content, bytes, textures)?;
         Ok(library)
     }
 
     pub fn insert_bundle(
         &mut self,
         name: &str,
+        content: ContentId,
         bytes: &[u8],
         textures: &[(&str, &[u8])],
     ) -> Result<()> {
-        let cache = &mut self.textures;
-        let bundle = decode_with(name, bytes, textures, |id, bytes| {
-            if let Some(texture) = cache.get(id).and_then(Weak::upgrade) {
-                return Ok(texture);
-            }
-            let texture = Arc::new(texture_bytes(id, bytes)?);
-            cache.insert(id.to_owned(), Arc::downgrade(&texture));
-            Ok(texture)
-        })?;
-        self.decoded_bundles += 1;
-        self.bundles.insert(name.to_owned(), Arc::new(bundle));
+        if !self.bundles.contains_key(&content) {
+            let cache = &mut self.textures;
+            let bundle = decode_with(name, bytes, textures, |id, bytes| {
+                if let Some(texture) = cache.get(id).and_then(Weak::upgrade) {
+                    return Ok(texture);
+                }
+                let texture = Arc::new(texture_bytes(id, bytes)?);
+                cache.insert(id.to_owned(), Arc::downgrade(&texture));
+                Ok(texture)
+            })?;
+            self.bundles.insert(content.clone(), Arc::new(bundle));
+            self.pending_decodes
+                .set(self.pending_decodes.get().saturating_add(1));
+        }
+        self.names.insert(name.to_owned(), content);
         Ok(())
     }
 
     pub fn admission_work(&self) -> crate::runtime::AdmissionWork {
+        let bundles_decoded = self.pending_decodes.replace(0);
         crate::runtime::AdmissionWork {
-            bundles_decoded: self.decoded_bundles,
+            bundles_decoded,
             ..Default::default()
         }
     }
 
     pub fn bundle(&self, name: &str) -> Result<Arc<Bundle>> {
-        self.bundles
+        let content = self
+            .names
             .get(name)
+            .ok_or_else(|| format!("bundle not loaded: {name}"))?;
+        self.bundles
+            .get(content)
             .cloned()
             .ok_or_else(|| format!("bundle not loaded: {name}"))
     }

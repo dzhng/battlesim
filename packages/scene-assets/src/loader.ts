@@ -31,6 +31,9 @@ import {
   type TemplateArtLibrary,
 } from "./templateLibrary.ts";
 import type { MountDraws } from "./units.ts";
+import type { ContentId } from "./contentIdentity.ts";
+
+export type { ContentId } from "./contentIdentity.ts";
 import {
   catalogLoadBytes,
   downloadBytes,
@@ -50,6 +53,8 @@ import {
 } from "./schema.ts";
 
 export interface InstalledAppearance {
+  /** Runtime catalog identity: bundle hash and, for skinned art, skeleton hash. */
+  contentId: ContentId;
   unit: AppearanceUnit;
   scenery: string | null;
   /** The simulation box a static appearance is authored to (catalog `footprint_half_m`). */
@@ -434,6 +439,10 @@ export class AppearanceLibrary {
         throw new Error(`appearance ${name}: joints differ from skeleton ${bundle.skeleton}`);
     }
     return {
+      contentId: {
+        bundle: entry.bundle,
+        skeleton: entry.skeleton ? (source.catalog.skeletons[entry.skeleton] ?? null) : null,
+      },
       unit: entry.unit,
       scenery: entry.scenery ?? null,
       footprint: entry.footprint_half_m ?? null,

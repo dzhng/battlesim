@@ -152,3 +152,35 @@ Review findings to fix before it merges:
 6. Hull sizes have two owners after it (the effects section and the new
    table), and the new table defaults silently when missing.
 7. Its "art arrives" test starts with the art already present.
+
+**Slice 02, 2026-11-15.**
+
+- `ContentId` reuses the shared contract crate's identity owner. It is a typed
+  `{ bundle, skeleton? }` pair of canonical SHA256 strings, with the skeleton
+  hash present for skinned art because clips change the model. A renderer-local
+  identity type was rejected because it would duplicate validation beside the
+  contract crate's exact content-hash vocabulary.
+- `Library` owns two indexes: names route to `ContentId`, and each identity
+  owns one decoded bundle. A replacement name therefore keeps old content only
+  while another name routes to it; a second name with the same identity does
+  not decode. Keeping the old name-keyed map beside the identity map was
+  rejected because it would leave reuse decisions keyed by names.
+- The decode counter is pending work owned by `Library` and drained by its
+  `admission_work` read. The alternative cumulative lifetime counter was
+  rejected: rebuilding a runtime after device loss would report decodes that
+  the rebuild did not perform. This keeps `bundles_decoded` scoped to the
+  admission that consumes the source draft.
+- Tooling constructors with no catalog identity hash their bytes at the point
+  they make the bundle; catalog paths pass the catalog identity directly.
+  Falling back to an appearance name was rejected because names route and do
+  not identify content. Generated page proxies use a synchronous SHA256 of
+  their encoded bundle at creation so reconciliation does not carry a pending
+  identity promise.
+- The native library now keeps the shared decoded library and obtains the
+  identity from the runtime catalog it already reads. Re-decoding on every
+  `bundle` lookup was the previous behavior and was rejected because it made
+  native reuse diverge from browser reuse.
+- Confirmed from the implementation: the scene-assets runtime catalog already
+  carries bundle and skeleton content hashes, while `InstalledAppearance` and
+  `ModelAsset` previously dropped them before the Rust seam. Both now carry the
+  same pair through `add_bundle` and `load_bundle`.

@@ -163,6 +163,7 @@ pub use runtime::{Runtime, RUNTIME};
 
 #[cfg(feature = "files")]
 mod runtime {
+    use contract::identity::ContentId;
     use flate2::read::GzDecoder;
     use serde_json::Value;
     use std::fs::File;
@@ -194,6 +195,21 @@ mod runtime {
             self.catalog["appearances"][name]["bundle"]
                 .as_str()
                 .ok_or(format!("no appearance {name} in the catalog"))
+        }
+
+        /// The art identity the runtime catalog assigns to an appearance.
+        pub fn content_id(&self, name: &str) -> Result<ContentId, String> {
+            let bundle = self.bundle_hash(name)?.to_owned();
+            let skeleton = self.catalog["appearances"][name]["skeleton"]
+                .as_str()
+                .map(|id| {
+                    self.catalog["skeletons"][id]
+                        .as_str()
+                        .map(str::to_owned)
+                        .ok_or_else(|| format!("no skeleton hash for {id}"))
+                })
+                .transpose()?;
+            ContentId::new(bundle, skeleton).map_err(str::to_owned)
         }
 
         /// The gzipped file `file` content `hash` travels in, open, its path
