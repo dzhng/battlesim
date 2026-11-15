@@ -1958,3 +1958,75 @@ the instant the wreck becomes known. Slice 13 does not touch wrecks. It was
 pushed before that result was read, which was a mistake in the order of
 work, not a judgement that the failure did not matter. If it recurs, make
 the check wait for the pieces instead of sampling one instant.
+
+**Slice 12, confirm-first after slice 13, 2026-11-15.**
+
+- Tree: `b1b0b8d73`, branch `t3/battle-growth-arrival-over-frames-2`. The exact reference battle in the freeze report, high graphics, release/optimized WASM through the Vite development shell. The temporary growth probe stops after the RPG team is learned. GPU work waits for and holds the main checkout’s shared lock. Scratch timers measure the existing fielding, source draft and ordinary admission; no step API or implementation is built before this gate.
+
+- The RPG arrival is still nine contents and 27 distinct rest/card rows: 28,579,680 packed vertex bytes, nine bundles decoded, zero new texture layers and zero scenery placement/upload. Each missing content’s work does divide. Corrected attribution run 2 (ms; supply includes boundary copying, facts and decode; preparation is geometry packing/upload plus all three rest rows):
+
+  | Content suffix (`eastern_rpg_team_rpg_7_`) | New fielding facts | Supply including decode | Geometry pack/upload | Preparation including rest bounds |
+  | --- | ---: | ---: | ---: | ---: |
+  | active_a | 3.500 | 3.890 | 3.460 | 6.725 |
+  | active_b | 3.360 | 3.705 | 2.965 | 6.010 |
+  | active_c | 3.240 | 3.715 | 2.990 | 6.010 |
+  | carried_a | 3.395 | 4.055 | 3.455 | 7.170 |
+  | carried_b | 3.235 | 3.965 | 3.205 | 6.490 |
+  | carried_c | 3.200 | 3.755 | 3.275 | 6.690 |
+  | guard_a | 3.275 | 4.445 | 3.140 | 6.600 |
+  | guard_b | 3.275 | 3.760 | 4.280 | 7.845 |
+  | guard_c | 3.080 | 3.555 | 3.260 | 6.480 |
+
+- Generation-wide costs, run 2: complete fielding core resolve 50.085 ms, including 29.560 ms of new facts; its units/clip-table assembly is 45.410 ms (15.850 ms after subtracting the new facts), mount/effects assembly 0.830 ms, and other validation/catalog work 3.845 ms. Serialization of the complete result takes another 11 ms. The whole WASM resolve call takes 67.045 ms; boundary/result transfer and other wrapper work account for the remaining 5.960 ms. Contents queries take 1.455 ms; returning the two clip tables takes 0.205 ms. Merely pre-deriving the new facts leaves roughly 31.525 ms of core assembly plus serialization, before the remaining boundary work.
+
+- Preparation’s whole-generation costs, run 2: catalog staging 12.790 ms, row planning 1.135 ms, material/texture/store tables 1.115 ms, and other model-row/table/buffer work 2.610 ms after subtracting the new content rows. `Models::from_world` is 64.880 ms including 60.020 ms of new-content geometry/rest work; the whole preparation call is 78.215 ms. Battle staging at the page boundary is another 9.925 ms; commit 2.175 ms. Those are measured separately rather than charged to one bundle.
+
+- Pilot run 1: new facts total 27.260 ms, supply 33.825 ms including boundary, new content rows 57.535 ms; whole fielding call 61.130 ms. Logging every old model row added about 30 ms to the apparent fixed admission remainder. Run 2 suppresses those unrelated cached-row logs: the core admission is 64.880 ms rather than 95.720 ms in the pilot. Keep both raw runs and instrumentation variants; do not mistake the logging overhead for engine cost.
+
+- A final probe will resolve the same fully cached fielding with no supplied contents, checking `contents()` is empty before each trial. That directly measures the prospective final resolve after every divisible new fact was absorbed; it determines the stop decision before implementation. Evidence and exact scratch source variants stay in `throwaway/slice12-resume/`.
+
+- **Stop condition confirmed directly; stepping is not built.** In the third
+  reference run, after the RPG admission committed, the probe retains the real
+  `Fielding` instance, verifies `contents()` is empty, and calls the existing
+  `resolve` with zero bytes and zero lengths on three separate animation frames.
+  Every appearance fact is already cached; no new content is read or derived.
+  The calls take **40.045 / 37.000 / 35.240 ms**, each returning a **2,593,598
+  character** complete result. Core resolve alone is 22.745 / 20.990 / 19.780 ms;
+  serialization is another 13 / 12 / 13 ms, with boundary/result handling
+  accounting for the rest. Cached units/clip-table assembly alone is
+  17.470 / 16.335 / 15.260 ms. This is the actual prospective final resolve,
+  rather than only a subtraction from a call that also derived new contents.
+- Longest remaining single step if new content work is stepped: at least this
+  measured **35.240–40.045 ms** whole-result resolve, before ordinary framing
+  and rendering. The existing 45 FPS target leaves 22.22 ms for the entire
+  frame (60 Hz leaves 16.67 ms). I judge this itself noticeable and apply the
+  user's explicit confirm-first stop rule. No new timing gate is introduced.
+  The individual new contents are smaller (largest preparation 7.845 ms in
+  run 2, 9.620 ms in run 3); one-content stepping alone does not remove the
+  full-result rebuild/publication cost. This does not claim most of the frame
+  is indivisible, or that the fielding result cannot be split under a different
+  design: that publication seam needs an explicit next scope decision.
+- All variance is retained. In run 3, new fact derivation totals 68.710 ms,
+  supplies 46.610 ms and new geometry/rest rows 73.800 ms; the whole fielding
+  call is 134.905 ms and preparation 96.775 ms. Do not substitute the faster
+  run 2 for these. The direct cached calls above avoid inferring the remaining
+  cost from that slower arrival. Full tables and all three raw traces remain
+  in `throwaway/slice12-resume/`.
+- The gate stops before feature tests/implementation: no WASM export, draft
+  method, scheduling, fielding API, owner or assertion changes. The delegated
+  step size and geometry lifetime choice remain open. No worker, thread,
+  switch, shader/layout change or alternative admission path was added.
+  Shrinking/caching final fielding assembly or changing its result publication
+  is an option to scope next; neither was built silently.
+- Commands/results: instrumented release WASM builds and all three high-graphics
+  reference growth probes pass under the shared GPU lock; waits of several
+  minutes are honored. One scratch instrumentation build fails first with
+  E0433 (`js_sys` not declared in presentation-wasm), then passes with the
+  temporary dependency. All timers, temporary dependencies, source edits and
+  the temporary scene/fixture are removed; the clean renderer-browser WASM
+  rebuild passes. Final diff is this ledger entry only. No assertions were
+  edited and no baseline was blessed. The implementation tests, full check
+  ladder and before/after cohort are not claimed because the confirm-first
+  rule stopped the slice. Evidence/logs and exact instrumentation snapshots:
+  `throwaway/slice12-resume/`; full hand-back `throwaway/slice12-resume/report.md`.
+  Disk remains about 95 GiB free; no old measurement builds were removed.
