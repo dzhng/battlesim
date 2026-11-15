@@ -1,8 +1,10 @@
-import { act, renderHook } from "@testing-library/react";
-import { expect, test, vi } from "vitest";
+import { act, cleanup, renderHook } from "@testing-library/react";
+import { afterEach, expect, test, vi } from "vitest";
 import { useUnitControl } from "../src/battle/input/useUnitControl";
 import type { ObservationView, OwnUnitView } from "../src/battle/sim/observationView";
 import { recordingClient, wrapper } from "./unitControlHarness";
+
+afterEach(cleanup);
 
 const unit = (id: number, kind: string, x: number, extra: Partial<OwnUnitView> = {}) =>
   ({ id, kind, position: [x, 0, 0], yaw: 0, ...extra }) as unknown as OwnUnitView;
@@ -81,8 +83,22 @@ test("Ctrl+N stores a group, N selects it, Shift+N adds, N twice centres, and gr
   expect(press("Digit3", { ctrl: true }, field)).toBe(false);
   field.remove();
 
+  // A key with no group leaves the selection alone.
+  select([3]);
+  press("Digit9");
+  expect(hook.result.current.selected).toEqual([3]);
+
   act(() => hook.result.current.deleteGroup("1"));
   expect(groups()).toEqual({});
+});
+
+test("a replay takes no group keys: Ctrl+N stays the browser's", () => {
+  const hook = renderHook(() => useUnitControl(null, observe([unit(1, "test_rifle", 0)])), {
+    wrapper,
+  });
+  act(() => hook.result.current.setSelected([1]));
+  expect(press("Digit1", { ctrl: true })).toBe(false);
+  expect(hook.result.current.groups.size).toBe(0);
 });
 
 test("a new battle starts with no groups", () => {

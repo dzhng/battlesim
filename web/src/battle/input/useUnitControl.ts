@@ -473,7 +473,8 @@ export function useUnitControl(
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!enabledRef.current) return;
-      const group = groupKeyPress(e);
+      // A replay or a script has no client: its keys stay the browser's.
+      const group = clientRef.current ? groupKeyPress(e) : null;
       if (group) {
         e.preventDefault();
         pressGroup(group.key, group.action, e.timeStamp);

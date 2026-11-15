@@ -45,8 +45,11 @@ test("a card blinks yellow when an aimed round passes and red when its unit is h
   expect(colour(1)).toBe("yellow");
   blinks.observe(frame(16, [unit(1, 60), unit(2, 0, false, [1])]));
   expect(colour(1)).toBe("red");
+  // Hurt again inside red's wait while an aimed round passes: yellow shows.
+  blinks.observe(frame(22, [unit(1, 50, true), unit(2, 0, false, [1])]));
+  expect(colour(1)).toBe("yellow");
   // A unit that is gone takes its blink with it.
-  blinks.observe(frame(17, [unit(2, 0, false, [1])]));
+  blinks.observe(frame(23, [unit(2, 0, false, [1])]));
   expect(colour(1)).toBe(null);
 });
 
