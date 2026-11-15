@@ -1,6 +1,8 @@
 import { StreamRefused } from "@packages/multiplayer/src/stream/http";
 import { browserId } from "./identity";
 
+export const BATTLE_FAILED_NOTICE = "The battle could not continue. The room has closed.";
+
 export async function roomRequest<T>(
   address: string,
   path: string,

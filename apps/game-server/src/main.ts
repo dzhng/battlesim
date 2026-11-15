@@ -1,10 +1,9 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { BuildIdentity } from "../../../packages/multiplayer/src/wire.ts";
-import { createBattleHost, type BattleHost } from "./battleHost/index.ts";
+import { createBattleHost } from "./battleHost/index.ts";
 import { nodeSetupData } from "./serverData.ts";
-import { battleRoute, createBattleHttp } from "./http/index.ts";
-import { devBattle } from "./devBattle.ts";
+import { createBattleHttp } from "./http/index.ts";
 import { battleCapacity } from "./rooms.ts";
 
 async function main() {
@@ -14,31 +13,27 @@ async function main() {
   );
   const data = await nodeSetupData(root);
   const { commands } = JSON.parse(data.rules) as { commands: { orders_per_s: number } };
-  let host: BattleHost | undefined;
-  let route: ReturnType<typeof battleRoute> | undefined;
-  const dev = devBattle(async (setup) => {
-    host = createBattleHost({ setup }, "thread", data);
-    const ready = await host.ready;
-    route = battleRoute(host, dev.seatOf, commands.orders_per_s);
-    return ready;
-  });
-  const server = createBattleHttp(
-    (id) => (id === "dev" ? route : undefined),
-    build,
-    {
-      capacity: battleCapacity(),
-      clock: {
-        now: () => performance.now(),
-        schedule: (run, delay) => {
-          const timer = setTimeout(run, delay);
-          return () => clearTimeout(timer);
-        },
-      },
-      random: Math.random,
-      clientAddressHeader: process.env.CLIENT_ADDRESS_HEADER ?? null,
+  const server = createBattleHttp(() => undefined, build, {
+    capacity: battleCapacity(),
+    createBattle(setup) {
+      const host = createBattleHost({ setup }, "thread", data);
+      // A crashed battle is lost; the log is the only record of why.
+      host.onEnd((end) => {
+        if (end.kind === "crashed") console.error(`A battle crashed: ${end.message}`);
+      });
+      return host;
     },
-    process.argv.includes("--dev") ? dev.join : undefined,
-  );
+    ordersPerSecond: commands.orders_per_s,
+    clock: {
+      now: () => performance.now(),
+      schedule: (run, delay) => {
+        const timer = setTimeout(run, delay);
+        return () => clearTimeout(timer);
+      },
+    },
+    random: Math.random,
+    clientAddressHeader: process.env.CLIENT_ADDRESS_HEADER ?? null,
+  });
   const port = Number(process.env.PORT ?? 8787);
   server.listen(port, process.env.HOST ?? "127.0.0.1", () => {
     const address = server.address();
@@ -46,7 +41,6 @@ async function main() {
       console.log(`Game server: http://127.0.0.1:${address.port}`);
   });
   function stop() {
-    host?.dispose();
     server.closeAllConnections();
     server.close();
   }

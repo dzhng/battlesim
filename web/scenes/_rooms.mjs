@@ -69,7 +69,9 @@ export async function onlinePage(ctx, local, name, path = "/multiplayer") {
     );
   }, name);
   const handshake = page.waitForRequest((r) => r.url().endsWith("/hello"));
-  await page.goto(`${new URL(ctx.url).origin}${path}?server=${encodeURIComponent(local.address)}`);
+  await page.goto(
+    `${new URL(ctx.url).origin}${path}?server=${encodeURIComponent(local.address)}&quality=${ctx.graphicsQuality}`,
+  );
   const build = (await handshake).postDataJSON().build;
   if (path.startsWith("/room/"))
     await page.getByRole("region", { name: "Room lobby" }).waitFor({ timeout: 120_000 });

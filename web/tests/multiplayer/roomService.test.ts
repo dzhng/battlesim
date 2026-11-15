@@ -1,3 +1,4 @@
+import { pendingBattle } from "./support/pendingBattle";
 // @vitest-environment node
 import { afterEach, expect, test, vi } from "vitest";
 import {
@@ -54,6 +55,7 @@ function setup(capacity = 3) {
   const clock = new Clock();
   let draw = 0;
   const service = createRoomService({
+    createBattle: pendingBattle,
     capacity,
     clock,
     releaseCallsign: () => {},
@@ -286,6 +288,8 @@ const ids = ["1".repeat(32), "2".repeat(32), "3".repeat(32), "4".repeat(32)];
 async function serving(clientAddressHeader: string | null = null) {
   const clock = new Clock();
   const server = createBattleHttp(() => undefined, build, {
+    createBattle: pendingBattle,
+    ordersPerSecond: 100,
     capacity: 3,
     clock,
     random: Math.random,
@@ -499,6 +503,7 @@ test("a callsign stays reserved while a started room remembers its gone member, 
   const hello = helloRegistry(build);
   let draw = 0;
   const service = createRoomService({
+    createBattle: pendingBattle,
     capacity: 2,
     clock,
     callsign: hello.callsignOf,

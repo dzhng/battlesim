@@ -36,7 +36,7 @@ export async function push(folder, app) {
     body,
     JSON.stringify({
       path: `apps/${app}`,
-      command: "HOST=0.0.0.0 PORT=3000 node main.mjs --dev",
+      command: "HOST=0.0.0.0 PORT=3000 node main.mjs",
       installCommand: "",
       apiScopes: [],
     }),

@@ -65,7 +65,7 @@ export function RoomPage() {
         <p role="status">Joining room…</p>
       ) : room.view.phase.kind !== "lobby" ? (
         <p role="status" aria-label="Starting">
-          Starting…
+          Preparing the battlefield… This can take a few seconds.
         </p>
       ) : (
         <RoomLobby view={room.view} act={room.act} />

@@ -56,6 +56,8 @@ export type BattleSetup = {
   rules: "skirmish" | "frontline";
 };
 export type BattleTicket = {
+  /** Public player names, keyed by battle player id; never browser credentials. */
+  callsigns: Record<string, string>;
   battle: string;
   setup: BattleSetup;
   mapIdentity: string;

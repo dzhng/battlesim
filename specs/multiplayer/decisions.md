@@ -251,6 +251,10 @@ Append here: the slice, the decision, why, and what it replaced.
 | 17 | A seat's numeral in a room is the lane it will fight on; an open seat has none. | Numbering seats, which disagreed with the map as soon as an open seat sat above a filled one. |
 | 17 | The host sets an empty seat from one picker, Open or AI: the user's call on seeing the first cut. | "Set AI" and "Set open" buttons beside a separate tag. |
 | 17 | The lobby view keeps no copy of a room. A control sends an action and the screen changes when the server's state arrives. | Updating the screen at once and correcting it later. |
+| 18 | A crashed battle tells its players only that it crashed; the reason goes to the server's log. | Sending the error's text to every player (it may quote what one of them sent), or discarding it so nobody can tell why a battle died. |
+| 18 | The battle page keeps its room stream open while it builds its map, so a slow load is not a drop. | Counting only the battle stream as presence, which handed a loading player's seat to the AI. |
+| 18 | A ticket carries the players' callsigns, so the result screen names people. | Seat names ("RED 1") on an online result. |
+| 18 | Once a battle's stream has ended, the page sends nothing more and plays out every frame it holds. | Reopening a stream that no longer exists, and losing the final observation the result is read from. |
 | 20 | An AI handed a 30-unit army copes: every unit is ordered within one planner round and it fights better than an army nobody commands. Rooms may rely on a seat's AI. | Assuming it without a fight: the first tests had no enemy on the field. |
 | 20 | An AI handed 150 units gets only 30 orders through per planner round, because it gives them in one burst. Open, for the user before slice 22: spread the AI's orders (recommended) or cap what a seat may receive. | Counting issued orders as applied: the battle logs an order before it checks the rate limit. |
 

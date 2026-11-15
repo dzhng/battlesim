@@ -1,256 +1,31 @@
 // @vitest-environment node
-// The battle host, on a clock the test drives, over in-memory seat links.
-import { join } from "node:path";
 import { afterEach, beforeAll, expect, test } from "vitest";
-import { KEYFRAME, readJson } from "../../../packages/multiplayer/src/stream/index";
+import { createBattleHost, type BattleEnd } from "../../../apps/game-server/src/battleHost/index";
 import { loopback } from "../../../packages/multiplayer/src/link";
-import type { Seat } from "../../../packages/multiplayer/src/link";
-import type { BattleSetup, StreamOpen } from "../../../packages/multiplayer/src/wire";
-import { preset, setOccupant } from "../../../packages/skirmish-setup/src/lobby";
-import { toBattleSetup } from "../../../packages/multiplayer/src/setup";
-import {
-  createBattleHost,
-  type BattleClock,
-  type BattleEnd,
-  type BattleHost,
-} from "../../../apps/game-server/src/battleHost/index";
-import { prepareBattle } from "../../../apps/game-server/src/battleHost/runtime";
-import { nodeSetupData } from "../../../apps/game-server/src/serverData";
-import { nodeCatalogSet } from "../../src/battle/catalog/node";
-import type { MapGenerator } from "../../src/maps/source";
-import { createAuthority } from "../../src/battle/sim/authority";
 import type { ControllerKind } from "../../src/battle/prepare/protocol";
-import type { CommandAck, Order } from "../../src/battle/sim/protocol";
-import type { ObservationView } from "../../src/battle/sim/observationView";
-import { ScenePresentation, loadPresentation } from "../../src/battle/sim/presentation";
-
-const ROOT = join(import.meta.dirname, "../../..");
-type Data = Awaited<ReturnType<typeof nodeSetupData>>;
-let data: Data;
-/** The simulation's generator, generating each requested map once: making
- *  the map is most of a battle's preparation, and no test here is about it. */
-let generator: MapGenerator;
-/** Every card of the game, to find one a seat may buy. */
-let cards: string[];
-/** A 1v1 of two humans, and a 3v3 with two humans on Blue. */
-let duel: BattleSetup;
-let squad: BattleSetup;
-
-beforeAll(async () => {
-  await loadPresentation();
-  data = await nodeSetupData(ROOT);
-  const made = new Map<string, string>();
-  generator = {
-    ...data.generator,
-    generate_map(request, ...documents) {
-      if (!made.has(request)) made.set(request, data.generator.generate_map(request, ...documents));
-      return made.get(request)!;
-    },
-  };
-  cards = (await nodeCatalogSet("game", ROOT)).units.view.cards
-    .filter((card) => card.disabled_reason === null)
-    .map((card) => card.id);
-  duel = toBattleSetup(
-    setOccupant(preset("1v1"), "seat-2", { kind: "human", who: "a guest" }),
-    "skirmish",
-  );
-  squad = toBattleSetup(
-    setOccupant(preset("3v3"), "seat-2", { kind: "human", who: "a guest" }),
-    "skirmish",
-  );
-}, 60_000);
-
-/** Let every promise and stream reader that can run, run. */
-const flush = () => new Promise<void>((resolve) => setImmediate(resolve));
-
-class TestClock implements BattleClock {
-  private time = 0;
-  private waiting: { at: number; run: () => void }[] = [];
-  now = () => this.time;
-  schedule = (run: () => void, delayMs: number) => {
-    this.waiting.push({ at: this.time + delayMs, run });
-  };
-  advance(ms: number) {
-    this.time += ms;
-    for (;;) {
-      const due = this.waiting.filter((entry) => entry.at <= this.time);
-      if (due.length === 0) return;
-      this.waiting = this.waiting.filter((entry) => entry.at > this.time);
-      for (const entry of due) entry.run();
-    }
-  }
-}
-
-const hosts: BattleHost[] = [];
-afterEach(() => {
-  for (const host of hosts.splice(0)) host.dispose();
-});
-
-/** A battle on a test clock. `run(ticks)` lets that much battle time pass. */
-async function battle(setup: BattleSetup) {
-  const clock = new TestClock();
-  const host = createBattleHost({ setup }, { clock, generator }, data);
-  hosts.push(host);
-  const ended: BattleEnd[] = [];
-  host.onEnd((end) => ended.push(end));
-  const ready = await host.ready;
-  const run = async (ticks: number) => {
-    for (let i = 0; i < ticks; i++) {
-      clock.advance(1000 / ready.tickHz);
-      await flush();
-    }
-  };
-  return { host, ready, run, ended };
-}
-type Battle = Awaited<ReturnType<typeof battle>>;
-
-/** What one reader made of one publication. */
-interface Seen {
-  id: number;
-  tick: number;
-  digest: string;
-  keyframe: boolean;
-  side: string;
-  epoch: number;
-  units: number[];
-}
-
-/** A page at a seat: its link, and one connection read through the page's
- *  own decoder for as long as the connection lasts. */
-function seat(b: Battle, who: Seat) {
-  const { link, port, cut } = loopback(who);
-  b.host.attach(port);
-  const sent: { tick: number; seat: Seat; order: Order }[] = [];
-  let seq = 0;
-  return {
-    link,
-    cut,
-    sent,
-    /** Send one order and wait for its acknowledgement. */
-    async order(order: Order): Promise<CommandAck> {
-      const reply = await link.up({ seq: ++seq, items: [{ id: 1, order, queued: false }] });
-      if (!("results" in reply)) throw new Error(`the batch was refused: ${reply.refused}`);
-      const { ack } = reply.results[0];
-      sent.push({ tick: ack.applied_tick - 1, seat: who, order });
-      return ack;
-    },
-    /** Read one connection, from `after`, with `decoder` (a page keeps its
-     *  decoder across reconnects). */
-    read(after: number | null = null, decoder = new ScenePresentation(b.ready.layout)) {
-      const reading = {
-        decoder,
-        opens: [] as StreamOpen[],
-        seen: [] as Seen[],
-        latest: null as ObservationView | null,
-        end: null as string | null,
-        failure: null as unknown,
-        lastId: after,
-      };
-      void (async () => {
-        try {
-          for await (const record of link.records(after)) {
-            if (record.kind === "open") reading.opens.push(readJson<StreamOpen>(record));
-            if (record.kind === "end") reading.end = readJson<{ reason: string }>(record).reason;
-            if (record.kind !== "publication") continue;
-            const { buffer, byteOffset, byteLength } = record.payload;
-            const view = new DataView(buffer, byteOffset, byteLength);
-            const frame = decoder.decode(
-              new Float32Array(buffer.slice(byteOffset + 24, byteOffset + byteLength)),
-            );
-            if (!frame) throw new Error(`the page's reader dropped record ${record.id}`);
-            reading.latest = frame;
-            reading.lastId = record.id;
-            reading.seen.push({
-              id: record.id,
-              tick: view.getUint32(0, true),
-              digest: new TextDecoder().decode(record.payload.subarray(4, 20)),
-              keyframe: (record.flags & KEYFRAME) !== 0,
-              side: frame.groundPatch.side,
-              epoch: frame.groundPatch.epoch,
-              units: frame.own.map((unit) => unit.id),
-            });
-          }
-        } catch (error) {
-          reading.failure = error;
-        }
-      })();
-      return reading;
-    },
-  };
-}
-type Reading = ReturnType<ReturnType<typeof seat>["read"]>;
-
-const tickOf = (reading: Reading) => reading.seen.at(-1)?.tick ?? 0;
-const digests = (reading: Reading) => new Map(reading.seen.map((s) => [s.tick, s.digest]));
-
-/** Buy the first card the battle lets this seat buy, placed where its side
- *  may place it; returns the card. */
-async function buy(at: ReturnType<typeof seat>): Promise<string> {
-  for (const variant of cards) {
-    const ack = await at.order({ kind: "confirm_purchase", variant, destination: [0, 0] });
-    if (ack.error === null) return variant;
-  }
-  throw new Error("the battle sold this seat nothing");
-}
-
-/** Run until `reading` shows a unit of its own, and return its id. */
-async function firstUnit(b: Battle, reading: Reading): Promise<number> {
-  for (let i = 0; i < 4000 && !reading.latest?.own.length; i++) await b.run(1);
-  const unit = reading.latest?.own[0];
-  if (!unit) throw new Error("no unit entered the battle");
-  return unit.id;
-}
-
-/** An order sending `unit` to the battle's first objective. */
-const moveTo = (reading: Reading, unit: number): Order => {
-  const [x, y] = reading.latest!.skirmish!.objectives[0].center;
-  return { kind: "move", units: [unit], gesture: 1, goal: [x, y], route: "shortest" };
-};
-
-/** An authority with no host around it, stepped by hand: the yardstick for
- *  what the host's battle should have computed. */
-async function yardstick(setup: BattleSetup, replay?: string) {
-  const prepared = await prepareBattle(setup, data, generator);
-  const seen = new Map<number, string>();
-  const acks: CommandAck[] = [];
-  let failure: string | null = null;
-  let tick = 0;
-  const authority = createAuthority({
-    post(reply) {
-      if (reply.type === "ack") acks.push(reply.ack);
-      if (reply.type === "error") failure = reply.message;
-      if (reply.type !== "publication") return;
-      tick = reply.tick;
-      seen.set(reply.tick, reply.digest);
-      authority.handle({ type: "credit", buffer: reply.buffer });
-    },
-    now: () => 0,
-    schedule: () => {},
-    close: () => {},
-    load: async () => prepared.sim,
-  });
-  authority.handle({
-    type: "init",
-    scenario: prepared.scenario,
-    seed: prepared.seed,
-    sides: ["blue"],
-    replay,
-  });
-  await flush();
-  authority.handle({ type: "start" });
-  authority.handle({ type: "pause" });
-  return {
-    seen,
-    acks,
-    failure: () => failure,
-    runTo(target: number) {
-      if (target > tick) authority.handle({ type: "advance", id: 1, ticks: target - tick });
-    },
-    order(from: Seat, order: Order) {
-      authority.handle({ type: "command", id: 1, seat: from, order, queued: false });
-    },
-  };
-}
+import type { Order } from "../../src/battle/sim/protocol";
+import { PageClock } from "./pageClock";
+import {
+  hosts,
+  battle,
+  seat,
+  buy,
+  firstUnit,
+  moveTo,
+  yardstick,
+  flush,
+  tickOf,
+  digests,
+  data,
+  generator,
+  cards,
+  duel,
+  squad,
+  loadBattleSupport,
+  disposeBattles,
+} from "./support/battle";
+beforeAll(loadBattleSupport, 60_000);
+afterEach(disposeBattles);
 
 test("two seats' orders through the host make the battle the same orders make without it, and its replay makes it again", async () => {
   const b = await battle(duel);
@@ -463,8 +238,10 @@ test("a battle whose simulation fails says it crashed, ends every stream and set
   expect(b.ended).toHaveLength(1);
   expect(b.ended[0].kind).toBe("crashed");
   const { message } = b.ended[0] as Extract<BattleEnd, { kind: "crashed" }>;
+  // The server learns why; a player's stream is told only that it crashed.
   expect(message).not.toBe("");
-  expect([blues.end, reds.end]).toEqual([message, message]);
+  expect([blues.end, reds.end]).toEqual(["crashed", "crashed"]);
+  expect(message).not.toBe(blues.end);
   expect([blues.failure, reds.failure]).toEqual([null, null]);
 
   const late: BattleEnd[] = [];
@@ -478,7 +255,7 @@ test("a battle whose simulation fails says it crashed, ends every stream and set
   // A reader that arrives after the end hears the end.
   const after = blue.read();
   await flush();
-  expect(after.end).toBe(message);
+  expect(after.end).toBe("crashed");
   const ticked = tickOf(reds);
   await b.run(10);
   expect(tickOf(reds)).toBe(ticked);
@@ -486,7 +263,7 @@ test("a battle whose simulation fails says it crashed, ends every stream and set
 
 test("a battle whose map cannot be made never becomes ready and says it crashed", async () => {
   const unmakeable = { ...duel, map: { ...duel.map, type: "no such map type" as never } };
-  const host = createBattleHost({ setup: unmakeable }, { clock: new TestClock(), generator }, data);
+  const host = createBattleHost({ setup: unmakeable }, { clock: new PageClock(), generator }, data);
   hosts.push(host);
   const ended: BattleEnd[] = [];
   host.onEnd((end) => ended.push(end));

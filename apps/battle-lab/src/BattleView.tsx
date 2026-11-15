@@ -69,7 +69,9 @@ export function BattleView({
   onLoadStage,
   onFailure,
   onDecoded,
+  result,
 }: {
+  result?: (session: BattleSession) => ReactNode;
   fixture: string;
   /** The scenario JSON the authority runs; the view draws its map. */
   scenario: string;
@@ -303,13 +305,15 @@ export function BattleView({
           {menu?.(session)}
         </PauseMenu>
       )}
-      {observation?.skirmish && (
-        <MatchResultOverlay
-          match={observation.skirmish}
-          seats={session.seats}
-          viewer={session.viewer?.id ?? null}
-        />
-      )}
+      {result
+        ? result(session)
+        : observation?.skirmish && (
+            <MatchResultOverlay
+              match={observation.skirmish}
+              seats={session.seats}
+              viewer={session.viewer?.id ?? null}
+            />
+          )}
     </SessionCatalogProvider>
   );
 }

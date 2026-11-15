@@ -2,7 +2,6 @@
 // recordSource owns all history and the decision to resume or resync.
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type {
-  BattleTicket,
   BuildIdentity,
   PreviewQuery,
   UpBatch,
@@ -15,9 +14,13 @@ export { battleRoute };
 import { afterId, body, json, stream } from "./io.ts";
 import { roomRequest } from "./rooms.ts";
 import { createRoomService } from "../rooms.ts";
+import type { BattleSetup } from "../../../../packages/multiplayer/src/wire.ts";
+import type { BattleHost } from "../battleHost/index.ts";
 import type { PresenceClock } from "../presence.ts";
 
 export type RoomHttpOptions = {
+  createBattle: (setup: BattleSetup) => BattleHost;
+  ordersPerSecond: number;
   capacity: number;
   clock: PresenceClock;
   random: () => number;
@@ -28,7 +31,6 @@ export function createBattleHttp(
   battle: (id: string) => BattleRoute | undefined,
   build: BuildIdentity,
   roomOptions: RoomHttpOptions,
-  devJoin?: (browserId: string) => Promise<BattleTicket | { refused: "full" }>,
 ) {
   const hello = helloRegistry(build);
   const rooms = createRoomService({
@@ -36,6 +38,7 @@ export function createBattleHttp(
     callsign: hello.callsignOf,
     releaseCallsign: hello.release,
   });
+  const battleRoutes = new WeakMap<BattleHost, BattleRoute>();
   const server = createServer((request, response) => {
     response.setHeader("Cache-Control", "no-store, no-transform");
     response.setHeader("Access-Control-Allow-Origin", "*");
@@ -75,18 +78,23 @@ export function createBattleHttp(
       if (!("refused" in result)) rooms.presence.track(id);
       return json(response, "refused" in result ? 409 : 200, result);
     }
-    if (url.pathname === "/dev/battle" && devJoin) {
-      if (request.method !== "POST") return json(response, 405, { refused: "method" });
-      const browserId = request.headers["x-player"];
-      if (typeof browserId !== "string" || !/^[a-f0-9]{32}$/.test(browserId))
-        return json(response, 403, { refused: "not_seated" });
-      const result = await devJoin(browserId);
-      return json(response, "refused" in result ? 409 : 200, result);
-    }
     if (url.pathname === "/rooms" || url.pathname.startsWith("/rooms/"))
       return roomRequest(request, response, url, rooms, roomOptions.clientAddressHeader);
     const match = /^\/battles\/([^/]+)\/(stream|up|preview)$/.exec(url.pathname);
-    const found = match && battle(match[1]);
+    const roomBattle = match && rooms.battle(match[1]);
+    let found = match && battle(match[1]);
+    if (roomBattle) {
+      found = battleRoutes.get(roomBattle.host);
+      if (!found) {
+        found = battleRoute(
+          roomBattle.host,
+          roomBattle.seatOf,
+          roomOptions.ordersPerSecond,
+          roomOptions.clock.now,
+        );
+        battleRoutes.set(roomBattle.host, found);
+      }
+    }
     if (!match || !found) return json(response, 404, { refused: "unknown" });
     const action = match[2];
     if (request.method !== (action === "stream" ? "GET" : "POST"))

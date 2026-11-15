@@ -1,3 +1,4 @@
+import { pendingBattle } from "./support/pendingBattle";
 // @vitest-environment node
 import { timerClock } from "./timerClock";
 import { PageClock } from "./pageClock";
@@ -70,7 +71,14 @@ async function serving() {
   const server = createBattleHttp(
     (id) => routes.get(id),
     { commit: "test", sim: "test" },
-    { capacity: 0, clock: timerClock(), random: Math.random, clientAddressHeader: null },
+    {
+      createBattle: pendingBattle,
+      ordersPerSecond: 100,
+      capacity: 0,
+      clock: timerClock(),
+      random: Math.random,
+      clientAddressHeader: null,
+    },
   );
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();

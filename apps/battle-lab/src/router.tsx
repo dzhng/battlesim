@@ -54,7 +54,6 @@ const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   "city-lineup": lazy(() => import("./routes/cityLineup")),
   "city-ruins": lazy(() => import("./routes/cityRuins")),
   street: lazy(() => import("./routes/street")),
-  "online-battle": lazy(() => import("./routes/onlineDev")),
   generated: lazy(() => import("./routes/battle")),
   benchmark: lazy(() => import("./routes/benchmark")),
   endurance: lazy(() => import("./routes/endurance")),

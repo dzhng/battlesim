@@ -136,9 +136,11 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
     end = result;
     for (const handle of endings) handle(result);
   };
+  /** Players are told only that the battle crashed. Why is the server's to
+   *  know (`onEnd`): an error's text may quote what a player sent. */
   const crash = (error: unknown) => {
     const message = error instanceof Error ? error.message : String(error);
-    close(message, { kind: "crashed", message });
+    close("crashed", { kind: "crashed", message });
   };
 
   const settle = <T>(waiters: Map<number, Waiter<T>>, id: number, value: T) => {

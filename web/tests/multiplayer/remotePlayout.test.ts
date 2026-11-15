@@ -269,3 +269,76 @@ test("forty jittery arrivals leave evenly and write reviewer spacing evidence", 
     p.channel.close();
   }
 });
+
+test("after receiving the end, the page sends no more orders or previews while the final observation drains", async () => {
+  const p = await page();
+  const sent: string[] = [];
+  p.pair.port.onUp(async (batch) => {
+    sent.push("order");
+    return { seq: batch.seq, results: [] };
+  });
+  p.pair.port.onPreview(async () => {
+    sent.push("preview");
+    return { dropped: true };
+  });
+  try {
+    p.publish(1, KEYFRAME);
+    p.source.end("finished");
+    await flush();
+    // The stream is over on the server, but playout has not released its
+    // final observation yet. Input may still arrive from the active frame.
+    p.channel.send({
+      type: "command",
+      id: 1,
+      seat: { side: "blue", player: "blue-1" },
+      order: { kind: "ready" },
+      queued: false,
+    });
+    p.channel.send({
+      type: "move_preview",
+      id: 2,
+      side: "blue",
+      move: { units: [], goal: [0, 0] },
+    });
+    await flush();
+    expect(sent).toEqual([]);
+    await p.clock.advance(500);
+    expect(p.publications().map((frame) => frame.tick)).toEqual([1]);
+    expect(p.seen.filter((entry) => entry.reply.type === "status").at(-1)?.reply).toMatchObject({
+      type: "status",
+      status: "finished",
+    });
+    expect(
+      p.seen.filter((entry) => entry.reply.type === "request_refused").map((entry) => entry.reply),
+    ).toEqual([
+      { type: "request_refused", request: "command", id: 1, reason: "ended" },
+      { type: "request_refused", request: "preview", id: 2, reason: "ended" },
+    ]);
+    expect(p.failures).toEqual([]);
+  } finally {
+    p.channel.close();
+  }
+});
+
+test("a terminal backlog releases its final observation instead of reopening a deleted battle", async () => {
+  const p = await page();
+  try {
+    const first = 1,
+      last = 100;
+    for (let tick = first; tick <= last; tick++) p.publish(tick, tick === first ? KEYFRAME : 0);
+    p.source.end("finished");
+    await flush();
+    const readers = p.opened.length;
+    await p.clock.advance(1000);
+    expect(p.publications().map((frame) => frame.tick)).toEqual(
+      Array.from({ length: last }, (_, index) => index + first),
+    );
+    expect(p.opened).toHaveLength(readers);
+    expect(p.seen.filter((entry) => entry.reply.type === "status").at(-1)?.reply).toMatchObject({
+      status: "finished",
+    });
+    expect(p.failures).toEqual([]);
+  } finally {
+    p.channel.close();
+  }
+});

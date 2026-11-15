@@ -73,13 +73,13 @@ export function remoteConnection(
       receive({ type: "request_refused", request, id, reason });
 
     function sendOrders() {
-      if (closed || flight || !orders.length) return;
+      if (closed || ending || flight || !orders.length) return;
       const batch = { seq: ++seq, items: orders.splice(0) };
       flight = { batch, cancel: null };
       attempt(batch);
     }
     function attempt(batch: UpBatch) {
-      if (closed || flight?.batch !== batch) return;
+      if (closed || ending || flight?.batch !== batch) return;
       flight.cancel = clock.schedule(() => attempt(batch), BATCH_RETRY_MS);
       // A late attempt may settle first. Only the first answer for this
       // batch is consumed; every later one is silent.
@@ -104,7 +104,7 @@ export function remoteConnection(
     const dropPreview = (request: Preview, reason: string) =>
       refused("preview", request.id, reason);
     function sendPreview() {
-      if (closed || activePreview || !preview) return;
+      if (closed || ending || activePreview || !preview) return;
       const request = preview;
       preview = null;
       activePreview = request;
@@ -191,9 +191,8 @@ export function remoteConnection(
      *  bound before due(): fast-forwarding must never hide an oversized queue. */
     function release() {
       if (closed) return;
-      if (feed.queuedMs() > MAX_QUEUED_MS) {
+      if (!ending && feed.queuedMs() > MAX_QUEUED_MS) {
         feed.reset();
-        ending = null;
         stream?.abort();
       } else {
         for (const reply of feed.due(clock.now())) {
@@ -275,7 +274,7 @@ export function remoteConnection(
     }
     return {
       send(request) {
-        if (closed) {
+        if (closed || ending) {
           if (request.type === "command") refused("command", request.id, "ended");
           else if (
             request.type === "purchase_preview" ||

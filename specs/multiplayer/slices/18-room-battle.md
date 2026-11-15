@@ -68,3 +68,60 @@ The result screen's wording for an online match.
 
 P14: if the user wants a rematch, the end returns everyone to the room's
 lobby instead of the menu.
+
+## As built (2026-11-15)
+
+- **Start.** When the room service accepts the host's Start it builds the
+  battle from the model's own setup (open seats dropped, the rest closed
+  up) and the room turns to `starting`: off the list, closed to newcomers.
+  When the battle's host is ready the service records the battle and each
+  member's view carries that member's own ticket. The page says "Preparing
+  the battlefield… This can take a few seconds." in between.
+- **Seats.** A room's battle is served at `/battles/:id` like any battle.
+  The room service answers who sits where, from the room itself.
+- **Drop and return.** The one presence module decides. After the grace a
+  gone member's seat is given to its AI with the army it has; they stay a
+  member. The same browser opening the room again gets its own ticket and
+  its seat back. Nobody else can join or take it. A battle stream counts as
+  being there, and so does the room stream the battle page keeps open
+  while it builds its map.
+- **End.** A finished battle, a crashed one, and a room with nobody
+  connected for a minute each dispose the battle, delete the room and free
+  its slot. The room's stream ends with `battle_finished`,
+  `battle_failed` or `room_deleted`. Each page keeps its last observation
+  and shows the result, with a "Return to Multiplayer" button.
+- **A crash.** Players' streams are told only `crashed`; the page says "The
+  battle could not continue. The room has closed." The reason goes to the
+  server's log, since an error's text may quote what a player sent.
+- **The result screen online** shows callsigns on players' rows and in the
+  timeline. A ticket carries the callsigns, keyed by battle player.
+- **Playout at the end:** once the stream has said its last word the
+  connection sends nothing more and plays out every frame it holds, so the
+  final observation is the battle's last.
+- **Deleted (P23):** `POST /dev/battle`, the fixed dev battle, the
+  `/online/dev` page, the server's `--dev` flag and the deploy command's use
+  of it. `bun run server` serves rooms with no flag.
+
+To play it by hand, from the repository root in two terminals:
+
+```sh
+bun run server
+bun run --cwd web dev --host 127.0.0.1 --port 5173
+```
+
+Open `http://127.0.0.1:5173/multiplayer` in two separate browser profiles.
+Create a room in one and open its copied link in the other; both press
+Ready; the host presses Start. Close one page for more than five seconds
+and the other keeps playing against its AI; reopen the room's link in the
+same profile to take the army back.
+
+Checked at the service seam with real battles on a test clock
+(`web/tests/multiplayer/roomBattle.test.ts`): tickets are each member's
+own; open seats are not players; the AI orders a dropped player's units
+only after the grace; the returning player's next order is applied and a
+stranger is refused; a dropped seat does not hold preparation open; the
+replay with its controller changes matches at every tick; a victory, a
+crash, a failed map and an empty room each free the slot. The `online-battle`
+scene now goes through a room from two browsers and plays to a real
+victory under the ordinary rules: one side takes every objective.
+

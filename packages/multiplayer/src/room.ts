@@ -359,6 +359,9 @@ function ticketFor(room: Room, who: string): BattleTicket | null {
   const player = setup.seats.find((seat) => seat.player === playerId);
   if (!player) return null;
   return {
+    callsigns: Object.fromEntries(
+      room.members.map((member) => [playerOf[member.seat]!, member.callsign]),
+    ),
     battle: room.battle.id,
     setup,
     mapIdentity: room.battle.mapIdentity,

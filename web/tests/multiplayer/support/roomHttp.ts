@@ -1,11 +1,14 @@
+import { pendingBattle } from "./pendingBattle";
 import { createBattleHttp } from "@apps/game-server/src/http/index";
 import type { BuildIdentity } from "@packages/multiplayer/src/wire";
 
 export const build: BuildIdentity = { commit: "room-screen-test", sim: "room-screen-sim" };
 
 /** Real room HTTP service; no battle or external service is started. */
-export async function roomHttp(capacity = 8) {
+export async function roomHttp(capacity = 8, createBattle = pendingBattle) {
   const server = createBattleHttp(() => undefined, build, {
+    createBattle,
+    ordersPerSecond: 100,
     capacity,
     clock: {
       now: () => Date.now(),

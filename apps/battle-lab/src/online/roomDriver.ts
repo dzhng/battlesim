@@ -6,7 +6,7 @@ import type { LobbyDriver } from "../lobby/driver";
 import { serverAddress } from "./server";
 import { hello } from "./hello";
 import { stateStream } from "./stateStream";
-import { roomFailure, roomRequest } from "./roomRequests";
+import { BATTLE_FAILED_NOTICE, roomFailure, roomRequest } from "./roomRequests";
 import { roomLobby, useRoomPreview } from "./roomPreview";
 
 export function useRoom(code: string) {
@@ -42,9 +42,21 @@ export function useRoom(code: string) {
               leavePage("You are no longer in that room.");
               return;
             }
+            if (next.phase.kind === "battle") {
+              visit.abort();
+              navigate(
+                `/online/battle/${encodeURIComponent(next.phase.ticket.battle)}${location.search}`,
+                {
+                  replace: true,
+                  state: { ticket: next.phase.ticket, address, room: code },
+                },
+              );
+              return;
+            }
             setView(next);
           },
-          () => leavePage("That room has closed."),
+          (reason) =>
+            leavePage(reason === "battle_failed" ? BATTLE_FAILED_NOTICE : "That room has closed."),
           (error) => leavePage(roomFailure(error)),
         );
       })
@@ -52,7 +64,7 @@ export function useRoom(code: string) {
         if (!visit.signal.aborted) setUnavailable(true);
       });
     return () => visit.abort();
-  }, [address, code, leavePage]);
+  }, [address, code, leavePage, navigate, location.search]);
   const act = useCallback(
     (action: RoomAction) => {
       const signal = lifetime.current!.signal;

@@ -43,7 +43,6 @@ and `Faction` (`packages/scene-assets/src/units.ts`).
 | `GET /battles/:id/stream?after=<id>` | | battle stream for the caller's side |
 | `POST /battles/:id/up` | `UpBatch` | `UpReply` |
 | `POST /battles/:id/preview` | `PreviewQuery` | `PreviewAnswer` |
-| `POST /dev/battle` | | `BattleTicket`. Local scaffolding from slice 08, deleted in slice 18. |
 
 ## Record framing
 
@@ -163,6 +162,7 @@ type BattleTicket = {
   mapIdentity: string;          // the server's map hash; the page refuses to start on a mismatch
   side: "blue" | "red";
   player: string;               // the battle's player id for this seat
+  callsigns: Record<string, string>;  // public names, keyed by battle player id
 };
 ```
 

@@ -68,6 +68,7 @@ interface Names {
   seats: readonly Seat[];
   viewer: string | null;
   viewerSide: SideName | null;
+  callsigns?: Record<string, string>;
 }
 
 /** The colour a player reads in, as the battle draws them: yours, an
@@ -86,11 +87,19 @@ function sideName(names: Names, side: SideName): string {
   return side === names.viewerSide ? "YOUR SIDE" : "ENEMY";
 }
 
+/** Humans keep one public name throughout an online report. */
+function seatName(names: Names, seat: Seat): string {
+  const callsign = names.callsigns?.[seat.id];
+  return callsign
+    ? `${callsign}${seat.id === names.viewer ? " (YOU)" : ""}`
+    : playerName(seat, seat.id === names.viewer);
+}
+
 /** The player behind a line, or their side where the event carries no owner. */
 function nameOf(names: Names, owner: number | null | undefined, side: Side) {
   const seat = owner == null ? undefined : names.seats[owner];
   return {
-    name: seat ? playerName(seat, seat.id === names.viewer) : sideName(names, side),
+    name: seat ? seatName(names, seat) : sideName(names, side),
     tone: toneOf(names, side, seat),
     you: !!seat && seat.id === names.viewer,
   };
@@ -249,7 +258,7 @@ function Scoreboard({ side, report, names }: { side: SideName; report: Report; n
           {players.map(({ seat, index }) => {
             const totals = report.totals[index] ?? { spawned: 0, spent: 0, killed: 0, refunded: 0 };
             const you = seat.id === names.viewer;
-            const name = playerName(seat, you);
+            const name = seatName(names, seat);
             return (
               <tr key={seat.id} aria-label={name} data-you={you || undefined}>
                 <th scope="row" className={`match-result-tone-${toneOf(names, side, seat)}`}>
@@ -275,7 +284,9 @@ export function MatchResultOverlay({
   match,
   seats,
   viewer,
+  online,
 }: {
+  online?: { callsigns: Record<string, string>; onReturn: () => void };
   match: SkirmishView;
   seats: readonly Seat[];
   viewer: string | null;
@@ -284,7 +295,7 @@ export function MatchResultOverlay({
   const report = match.report;
   if (match.phase !== "finished" || !report) return null;
   const viewerSide = seats.find((seat) => seat.id === viewer)?.side ?? null;
-  const names = { seats, viewer, viewerSide };
+  const names = { seats, viewer, viewerSide, callsigns: online?.callsigns };
   // The viewer's side first, as the battle's score strip has it; seat order
   // for a watcher.
   const sides = [...new Set(seats.map((seat) => seat.side))].sort(
@@ -320,6 +331,11 @@ export function MatchResultOverlay({
             <LineRow line={line} names={names} key={`${line.tick}-${index}`} />
           ))}
         </ol>
+        {online && (
+          <button className="match-result-return" type="button" onClick={online.onReturn}>
+            Return to Multiplayer
+          </button>
+        )}
       </section>
     </div>
   );

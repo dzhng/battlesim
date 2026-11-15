@@ -4,6 +4,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { once } from "node:events";
 import { captureSeats, resultColours } from "./_battle-colours.mjs";
 import { openingView, screenControls, screenUpOrder } from "./_battleOrientation.mjs";
+import { onlinePage } from "./_rooms.mjs";
+import { encodeRecord, jsonRecord } from "../../packages/multiplayer/src/stream/index.ts";
 
 const root = new URL("../../", import.meta.url).pathname;
 const evidence = new URL("../../throwaway/multiplayer/online-battle/", import.meta.url).pathname;
@@ -11,7 +13,7 @@ const observation = (page) => page.evaluate(() => window.__lab.route.observation
 
 async function server() {
   execFileSync("bun", ["apps/game-server/build.mjs"], { cwd: root });
-  const child = spawn("node", ["throwaway/game-server/main.mjs", "--dev"], {
+  const child = spawn("node", ["throwaway/game-server/main.mjs"], {
     cwd: root,
     env: { ...process.env, PORT: "0" },
     stdio: ["ignore", "pipe", "pipe"],
@@ -62,6 +64,7 @@ async function purchase(page, ticket) {
     const cards = catalog.units.cards.filter(
       (card) =>
         card.disabled_reason === null &&
+        card.roster.category === "rec" &&
         card.roster.factions.includes(setup.factions[side]) &&
         card.cost <= economy.credits &&
         catalog.units.has(card.id) &&
@@ -131,6 +134,9 @@ async function controls(ctx, page, side) {
 
 async function orderMove(page, goal, fast = false) {
   const unit = (await observation(page)).own[0];
+  const acknowledged = await page.evaluate(() =>
+    Math.max(0, ...window.__lab.route.acks().map((entry) => entry.seq)),
+  );
   await page.evaluate(
     ({ id, goal }) => {
       window.__lab.route.select([id]);
@@ -147,10 +153,15 @@ async function orderMove(page, goal, fast = false) {
   if (!css) throw new Error("move destination is not drawn");
   if (fast) await page.mouse.dblclick(css[0], css[1], { button: "right" });
   else await page.mouse.click(css[0], css[1], { button: "right" });
-  await page.waitForFunction(() =>
-    window.__lab.route
-      .acks()
-      .some(({ order, ack }) => order.kind === "move" && !ack.error && ack.refused.length === 0),
+  await page.waitForFunction(
+    (before) =>
+      window.__lab.route
+        .acks()
+        .some(
+          ({ seq, order, ack }) =>
+            seq > before && order.kind === "move" && !ack.error && ack.refused.length === 0,
+        ),
+    acknowledged,
   );
   return unit;
 }
@@ -176,34 +187,121 @@ export async function run(ctx) {
   await mkdir(captures, { recursive: true });
   await resultColours(ctx, new URL(ctx.url).origin, captures);
   const local = await server();
-  const url = `${new URL(ctx.url).origin}/online/dev?server=${encodeURIComponent(local.address)}&quality=${ctx.graphicsQuality}`;
+  const base = `${new URL(ctx.url).origin}`;
+  const onlineQuery = `?server=${encodeURIComponent(local.address)}&quality=${ctx.graphicsQuality}`;
+  const pages = [];
+  const refusedRequests = [];
+  const trace = (page) => {
+    page.on("response", (response) => {
+      if (response.status() >= 400)
+        refusedRequests.push({
+          path: new URL(response.url()).pathname,
+          method: response.request().method(),
+          status: response.status(),
+        });
+    });
+    return page;
+  };
   try {
-    const pages = [
-      await ctx.newPage({ viewport: { width: 1280, height: 720 } }),
-      await ctx.newPage({ viewport: { width: 1280, height: 720 } }),
-    ];
+    const { page: host } = await onlinePage(ctx, local, "SCOUT");
+    console.log("      online room: host at Multiplayer");
+    pages.push(trace(host));
+    // The harness can cut just this document's streams without adding any
+    // disconnect control to the product or a second server-side timer.
+    await host.evaluate(() => {
+      const original = window.fetch.bind(window);
+      const pending = new Set();
+      let cut = false;
+      window.fetch = (input, init = {}) => {
+        if (!/\/(?:battles\/[^/]+\/stream|rooms\/[^/?]+(?:\?|$))/.test(String(input)))
+          return original(input, init);
+        if (cut) {
+          const waiting = Promise.withResolvers();
+          init.signal?.addEventListener("abort", () => waiting.reject(init.signal.reason), {
+            once: true,
+          });
+          return waiting.promise;
+        }
+        const lifetime = new AbortController();
+        pending.add(lifetime);
+        return original(input, {
+          ...init,
+          signal: init.signal ? AbortSignal.any([init.signal, lifetime.signal]) : lifetime.signal,
+        });
+      };
+      window.__cutBattleStreams = () => {
+        cut = true;
+        for (const stream of pending) stream.abort();
+      };
+    });
+    await host.getByRole("button", { name: "Create room", exact: true }).click();
+    const creation = host.waitForResponse(
+      (r) => r.url().endsWith("/rooms") && r.request().method() === "POST",
+    );
+    await host.getByRole("button", { name: "Private room", exact: true }).click();
+    await host.getByRole("region", { name: "Room lobby" }).waitFor();
+    const made = await creation;
+    const { code } = await made.json();
+    const credential = (await made.request().allHeaders())["x-player"];
+    const setting = await fetch(`${local.address}/rooms/${code}/act`, {
+      method: "POST",
+      headers: { "X-Player": credential, "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "settings", patch: { map: { type: "open", seed: "1" } } }),
+    });
+    if (!(await setting.json()).ok) throw new Error("Fixture seed refused");
+    const roomUrl = `${base}/room/${code}${onlineQuery}`;
+    const { page: guest } = await onlinePage(ctx, local, "WING", `/room/${code}`);
+    console.log("      online room: both commanders in the room");
+    pages.push(trace(guest));
+    for (const page of pages)
+      await page.getByRole("button", { name: "Ready", exact: true }).click();
+    await host.getByRole("button", { name: "Start", exact: true }).click();
+    console.log("      online room: Start accepted, preparing");
     const tickets = [];
     for (const page of pages) {
-      const response = page.waitForResponse(
-        (r) => r.url().endsWith("/dev/battle") && r.request().method() === "POST",
-      );
-      const opening = ctx.openLab(page, url, 120_000);
-      tickets.push(await (await response).json());
-      await opening;
+      await page.waitForURL(/\/online\/battle\//, { timeout: 120_000 });
+      await page.waitForFunction(() => window.__lab?.ready && window.__lab?.route?.prepared, null, {
+        timeout: 120_000,
+      });
+      await page.getByTestId("loading").waitFor({ state: "hidden", timeout: 120_000 });
+      tickets.push(await page.evaluate(() => history.state.usr.ticket));
     }
     for (let i = 0; i < pages.length; i++) {
       await openingView(ctx, pages[i], tickets[i].side, evidence);
       await screenControls(ctx, pages[i], tickets[i].side);
     }
-    const mismatch = await ctx.newPage();
+    const mismatch = trace(await ctx.newPage());
+    // This is the same member receiving a bad ticket, not a stranger. Its
+    // room-presence stream may resume normally while map verification fails.
+    await mismatch.addInitScript((credential) => {
+      localStorage.setItem("battle.browser-id", credential);
+      localStorage.setItem("battle.callsign", "SCOUT");
+    }, credential);
     let streams = 0;
     mismatch.on("request", (request) => {
       if (/\/battles\/[^/]+\/stream/.test(request.url())) streams++;
     });
-    await mismatch.route("**/dev/battle", (route) =>
-      route.fulfill({ json: { ...tickets[0], mapIdentity: "wrong-map" } }),
+    // A malformed server ticket still travels the real room-to-page path.
+    const firstView = {
+      code,
+      visibility: "private",
+      seats: [],
+      settings: {
+        factions: tickets[0].setup.factions,
+        map: tickets[0].setup.map,
+        lighting: tickets[0].setup.lighting,
+      },
+      you: "seat-1",
+      canStart: false,
+      phase: { kind: "battle", ticket: { ...tickets[0], mapIdentity: "wrong-map" } },
+    };
+    await mismatch.route(`**/rooms/${code}`, (route) =>
+      route.fulfill({
+        contentType: "application/octet-stream",
+        body: Buffer.from(encodeRecord(jsonRecord("state", firstView, 1, 1))),
+      }),
     );
-    await mismatch.goto(url);
+    await mismatch.goto(roomUrl);
     await mismatch.getByRole("alert").waitFor({ timeout: 120_000 });
     const details = mismatch.getByRole("button", { name: "Details", exact: true });
     await details.click();
@@ -265,7 +363,9 @@ export async function run(ctx) {
       "commanders open on different home roads",
       JSON.stringify(starts[0]) !== JSON.stringify(starts[1]),
     );
-    const middle = [(starts[0][0] + starts[1][0]) / 2, (starts[0][1] + starts[1][1]) / 2];
+    // The map admits an objective's approaches for both sides. An arbitrary
+    // midpoint can be inside a building and strands a scout short of sight.
+    const middle = initial[0].skirmish.objectives[0].center;
     const objectives = initial.map(
       (o, i) =>
         [...o.skirmish.objectives].sort(
@@ -309,8 +409,21 @@ export async function run(ctx) {
       ),
     );
     await captureSeats(ctx, local, pages, "held", captures);
-    // Both drive toward the same meeting ground. The page issues the order
-    // through picking and the ordinary right-click command path.
+    // Sight and reconnect are the subjects here. Both commanders issue the
+    // ordinary Return fire order so a scout's death cannot erase the army
+    // needed by the later reconnect and result checks.
+    await Promise.all(
+      pages.map(async (page) => {
+        await page.getByRole("button", { name: /^Fire at will/ }).click();
+        await page.waitForFunction(() =>
+          window.__lab.route
+            .observation()
+            .own.every((unit) => unit.engagement === "return_fire_only"),
+        );
+      }),
+    );
+    // Both drive toward the same admitted meeting ground. The page issues
+    // the order through picking and the ordinary right-click command path.
     await Promise.all(pages.map((page) => move(page, middle)));
     for (let i = 0; i < pages.length; i++) {
       ctx.check(
@@ -374,12 +487,135 @@ export async function run(ctx) {
       );
       await page.screenshot({ path: `${evidence}${side}.png` });
     }
-    await ctx.writeEvidence("observations.json", {
-      initial,
-      final: await Promise.all(pages.map(observation)),
-    });
+    // Keep every combat and orientation check above. Then actually close a
+    // commander's document: the only disconnect clock is server presence.
+    const storage = await pages[0].context().storageState();
+    const beforeDrop = await observation(pages[1]);
+    const departingArmy = await observation(pages[0]);
+    await pages[0].evaluate(() => window.__cutBattleStreams());
+    await pages[1].waitForTimeout(6000);
+    const handedOver = await (
+      await fetch(`${local.address}/battles/${tickets[0].battle}/up`, {
+        method: "POST",
+        headers: { "X-Player": credential, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          seq: Date.now(),
+          items: [{ id: 1, order: { kind: "ready" }, queued: false }],
+        }),
+      })
+    ).json();
+    ctx.check(
+      "a disconnected commander's seat is run by AI after the presence grace",
+      handedOver.results?.[0]?.ack.error?.reason === "ai_controlled",
+      JSON.stringify(handedOver),
+    );
+    for (const [i, page] of pages.entries())
+      await page.screenshot({ path: `${evidence}${tickets[i].side}-after-drop.png` });
+    await pages[0].close();
+    await pages[1].waitForTimeout(1000);
+    ctx.check(
+      "the surviving commander keeps playing after the other page closes",
+      (await observation(pages[1])).tick > beforeDrop.tick,
+    );
+    const returned = trace(await ctx.newPage({ viewport: { width: 1280, height: 720 } }));
+    await returned.addInitScript((storage) => {
+      for (const entry of storage.origins.flatMap((o) => o.localStorage))
+        localStorage.setItem(entry.name, entry.value);
+    }, storage);
+    // Reopening through the room restores the ticket and human controller.
+    // Observe before the open restores it, using the surviving side if in sight.
+    await returned.goto(roomUrl);
+    await returned.waitForURL(/\/online\/battle\//, { timeout: 120_000 });
+    await returned.waitForFunction(
+      () => window.__lab?.ready && window.__lab?.route?.observation()?.own.length > 0,
+      null,
+      { timeout: 120_000 },
+    );
+    const returnTicket = await returned.evaluate(() => history.state.usr.ticket);
+    ctx.check(
+      "reopening the room link returns the same battle and seat",
+      returnTicket.battle === tickets[0].battle && returnTicket.player === tickets[0].player,
+    );
+    pages[0] = returned;
+    const inherited = await observation(returned);
+    ctx.check(
+      "the returning seat still has the army it dropped",
+      inherited.own.some((u) => departingArmy.own.some((before) => before.id === u.id)),
+    );
+    await captureSeats(ctx, local, pages, "returned", evidence);
+    // A new order must be applied after the AI's orders, not merely queued
+    // behind an obsolete sequence number from before the drop.
+    await orderMove(returned, objectives[0].center, true);
+    ctx.check(
+      "the returned commander can issue an applied order",
+      (await returned.evaluate(() => window.__lab.route.acks())).some(
+        ({ order, ack }) => order.kind === "move" && !ack.error && ack.refused.length === 0,
+      ),
+    );
+    console.log("      online room: returned, taking every objective for the normal skirmish end");
+    // Keep Red out of the capture route. Blue wins by taking every objective
+    // under the unmodified skirmish rules, exactly as at the service seam.
+    await orderMove(pages[1], starts[1], true);
+    for (const objective of initial[0].skirmish.objectives) {
+      await orderMove(returned, objective.center, true);
+      await returned.waitForFunction(
+        (center) => {
+          const match = window.__lab.route.observation().skirmish;
+          return (
+            match.phase === "finished" ||
+            match.objectives.find((o) => o.center[0] === center[0] && o.center[1] === center[1])
+              ?.owner === "blue"
+          );
+        },
+        objective.center,
+        { timeout: 180_000 },
+      );
+      if ((await observation(returned)).skirmish.phase === "finished") break;
+    }
+    const final = [];
+    for (const [i, page] of pages.entries()) {
+      await page.getByRole("dialog", { name: "Match result" }).waitFor({ timeout: 180_000 });
+      ctx.check(
+        `${tickets[i].side}: the final observation shows both commanders' callsigns`,
+        (await page
+          .getByRole("row", { name: i === 0 ? "SCOUT (YOU)" : "SCOUT", exact: true })
+          .isVisible()) &&
+          (await page
+            .getByRole("row", { name: i === 1 ? "WING (YOU)" : "WING", exact: true })
+            .isVisible()),
+      );
+      await page.screenshot({ path: `${evidence}${tickets[i].side}-result.png` });
+      final.push(await observation(page));
+      await ctx.writeEvidence(`${tickets[i].side}-final.json`, final.at(-1));
+      await page.getByRole("button", { name: "Return to Multiplayer", exact: true }).click();
+      await page.getByRole("heading", { name: "Multiplayer", exact: true }).waitFor();
+      ctx.check(
+        `${tickets[i].side}: result returns to the multiplayer menu`,
+        new URL(page.url()).pathname === "/multiplayer",
+      );
+    }
+
+    await ctx.writeEvidence("observations.json", { initial, final });
     for (const page of pages) await page.close();
+  } catch (error) {
+    for (const [index, page] of pages.entries())
+      if (!page.isClosed()) {
+        await page.screenshot({ path: `${evidence}failure-${index}.png` }).catch(() => {});
+        await ctx.writeEvidence(
+          `failure-${index}.json`,
+          await page
+            .evaluate(() => ({
+              observation: window.__lab?.route?.observation?.() ?? null,
+              path: location.pathname,
+              text: document.body.innerText,
+            }))
+            .catch(() => null),
+        );
+      }
+    throw error;
   } finally {
+    for (const page of pages) if (!page.isClosed()) await page.close();
     await local.stop();
+    await writeFile(`${evidence}http-refusals.json`, JSON.stringify(refusedRequests, null, 2));
   }
 }

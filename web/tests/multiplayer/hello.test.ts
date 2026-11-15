@@ -1,3 +1,4 @@
+import { pendingBattle } from "./support/pendingBattle";
 // @vitest-environment node
 import { timerClock } from "./timerClock";
 import { afterEach, expect, test, vi } from "vitest";
@@ -12,6 +13,8 @@ afterEach(async () => {
 });
 async function serving() {
   const server = createBattleHttp(() => undefined, build, {
+    createBattle: pendingBattle,
+    ordersPerSecond: 100,
     capacity: 0,
     clock: timerClock(),
     random: Math.random,

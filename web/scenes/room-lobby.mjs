@@ -180,12 +180,18 @@ async function changeSetting(ctx, host, guest, guestRequests) {
   );
   const guestActions = guestRequests.length;
   await choices.nth(chosen).click();
-  await guest.waitForFunction(
-    (index) =>
-      document
-        .querySelectorAll('[role=radiogroup][aria-labelledby="menu-map"] [role=radio]')
-        [index]?.getAttribute("aria-checked") === "true",
-    chosen,
+  // Both view deliveries must describe the selected setting before waiting
+  // for either preview; the guest's socket can be delivered first.
+  await Promise.all(
+    [host, guest].map((page) =>
+      page.waitForFunction(
+        (index) =>
+          document
+            .querySelectorAll('[role=radiogroup][aria-labelledby="menu-map"] [role=radio]')
+            [index]?.getAttribute("aria-checked") === "true",
+        chosen,
+      ),
+    ),
   );
   await Promise.all([settled(host), settled(guest)]);
   ctx.check(

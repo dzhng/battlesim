@@ -1,5 +1,6 @@
+import { BATTLE_FAILED_NOTICE } from "../online/roomRequests";
 import { useEffect, useMemo, useState } from "react";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import presets from "@fixtures/map-presets.json?raw";
 import templates from "@fixtures/prototype-building-templates.json?raw";
 import { fromBattleSetup } from "@packages/multiplayer/src/setup";
@@ -10,6 +11,8 @@ import { lanesOf } from "@web/battle/prepare/lanes";
 import { loadWasm } from "@web/battle/sim/module";
 import { httpLink } from "@web/battle/remote/httpLink";
 import { remoteConnection } from "@web/battle/remote/connection";
+import { useRoomBattlePresence } from "../online/roomBattlePresence";
+import { OnlineMatchResult } from "../online/OnlineMatchResult";
 import { BattleView } from "../BattleView";
 import { BattleClock } from "../battleStatus";
 import { LoadingScreen } from "../LoadingScreen";
@@ -45,11 +48,12 @@ export default function OnlineBattle() {
   const location = useLocation();
   const entry = location.state as OnlineBattleEntry | null;
   if (!entry || location.pathname !== `/online/battle/${encodeURIComponent(entry.ticket.battle)}`)
-    return <Cover stage="map" error="This page needs a battle ticket. Join through /online/dev." />;
+    return <Cover stage="map" error="This page needs a battle ticket. Join through Multiplayer." />;
   return <TicketBattle entry={entry} />;
 }
 
 function TicketBattle({ entry }: { entry: OnlineBattleEntry }) {
+  useRoomBattlePresence(entry);
   const request = useBuiltScenario(entry.ticket.setup, (wasm, setup) =>
     battleRequest(fromBattleSetup(setup), setupData(wasm)),
   );
@@ -66,6 +70,8 @@ function PreparedOnlineBattle({
   request: PrepareBattleRequest;
 }) {
   const { rules } = useSessionCatalog();
+  const navigate = useNavigate();
+  const location = useLocation();
   const active = usePageVisitActive();
   const [stage, setStage] = useState("map");
   const [error, setError] = useState<string | null>(null);
@@ -156,7 +162,20 @@ function PreparedOnlineBattle({
       camera={view.camera}
       cameraConfig={view.config}
       cover={cover}
-      onFailure={setError}
+      onFailure={() =>
+        navigate(`/multiplayer${location.search}`, {
+          replace: true,
+          state: { roomNotice: BATTLE_FAILED_NOTICE },
+        })
+      }
+      result={(session) => (
+        <OnlineMatchResult
+          match={session.sim.observation?.skirmish ?? null}
+          seats={session.seats}
+          viewer={ticket.player}
+          callsigns={ticket.callsigns}
+        />
+      )}
       onLoadStage={(loaded) => {
         if (loaded === "world") setStage("renderer");
       }}

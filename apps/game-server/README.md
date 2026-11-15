@@ -8,22 +8,16 @@ credential.
 For local play, from the repository root:
 
 ```sh
-bun run server --dev
+bun run server
 bun run --cwd web dev --host 127.0.0.1 --port 5173
 ```
 
-Open `http://127.0.0.1:5173/online/dev` in two independent browser profiles.
-The dev flag enables temporary two-seat entry; without it the endpoint is absent.
-`PORT` chooses the server's listening port. A development page can name a
-different local address with `?server=http://127.0.0.1:<port>`.
-
-Dev entry is scaffolding until rooms own battle creation. It keeps one fixed
-battle in memory, returns the same ticket to a returning browser, and refuses a
-third browser. A restart discards it. Tabs share the browser credential kept in
-local storage; separate profiles take the two seats. The page checks its commit
-and simulation hash at `/hello` before asking for a ticket. Local builds compare
-the checkout commit and the actual simulation file, including uncommitted
-simulation builds.
+Open `http://127.0.0.1:5173/multiplayer` in two independent browser profiles.
+Create a room, share its link, ready both players and Start. Tabs in one profile
+share the credential kept in local storage. `PORT` chooses the server's listening
+port; a development page can use `?server=http://127.0.0.1:<port>`.
+The page checks its commit and simulation hash at `/hello` before opening a
+room. Local builds compare the checkout commit and the actual simulation file.
 
 The local build snapshots its identity and runtime data beside the bundle, so
 changing the working directory or rebuilding the checkout cannot change a
@@ -35,7 +29,17 @@ The [service](src/rooms.ts) holds them in memory; the shared room model alone
 owns their rules. Room and list streams use the battle transport's record
 framing, with a current snapshot on each open. A room stream opened with a resume cursor must still belong to its member;
 a removed player is refused `removed` instead of silently joining again.
-Starting stops at the model's `starting` phase until battle creation is connected.
+Start prepares the room's skirmish on a battle host, then publishes each
+member's own ticket with the admitted map identity. A ticket's callsigns map
+contains public names indexed by battle player, never credentials.
+The room link restores a returning member's seat while its battle runs.
+A finished or failed battle deletes its room and frees the reserved capacity;
+existing battle readers receive the final observation before the stream ends.
+Preparation failures and crashes close room streams with `battle_failed`.
+
+A dropped member keeps their seat and army, driven by AI until any of their
+streams reopens. Controller changes belong to the battle's recorded history;
+they change no lobby membership. Empty-room deletion disposes its host too.
 
 [Presence](src/presence.ts) counts all of a browser's open streams together.
 Its disconnect grace protects seats across stream cuts; a room's lifetime is

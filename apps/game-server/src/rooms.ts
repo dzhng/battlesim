@@ -1,6 +1,12 @@
+import { battlePlayers } from "../../../packages/skirmish-setup/src/seats.ts";
+import { randomUUID } from "node:crypto";
+import type { BattleSetup } from "../../../packages/multiplayer/src/wire.ts";
+import type { BattleHost } from "./battleHost/index.ts";
 import { cpus, totalmem } from "node:os";
 import {
   createRoom,
+  battleSetup,
+  recordBattle,
   roomCode,
   roomReduce,
   roomView,
@@ -35,9 +41,11 @@ type StoredRoom = {
   room: Room;
   source: RecordSource;
   idle: { cancel: () => void } | null;
+  battle: { id: string; host: BattleHost; controllers: Map<string, string> } | null;
 };
 
 export function createRoomService(options: {
+  createBattle: (setup: BattleSetup) => BattleHost;
   capacity: number;
   clock: PresenceClock;
   callsign: (who: string) => string | undefined;
@@ -86,11 +94,13 @@ export function createRoomService(options: {
     options.releaseCallsign(who);
     presence.forget(who);
   };
-  const remove = (code: string) => {
-    const stored = rooms.get(code)!;
+  const remove = (code: string, reason = "room_deleted") => {
+    const stored = rooms.get(code);
+    if (!stored) return;
     stored.idle?.cancel();
     rooms.delete(code);
-    stored.source.end("room_deleted");
+    stored.battle?.host.dispose();
+    stored.source.end(reason);
     for (const member of stored.room.members) releaseIfForgotten(member.who);
     publishList();
   };
@@ -116,6 +126,47 @@ export function createRoomService(options: {
     publishList();
     updateIdle(stored);
   };
+  const controller = (stored: StoredRoom, who: string, kind: "human" | "active_ai") => {
+    const battle = stored.battle;
+    if (!battle) return;
+    // The model owns the seat-to-player projection, including dropped open seats.
+    const member = stored.room.members.find((m) => m.who === who);
+    if (!member) return;
+    const player = battlePlayers(stored.room.lobby.seats).playerOf[member.seat]!;
+    if (battle.controllers.get(player) === kind) return;
+    battle.controllers.set(player, kind);
+    battle.host.setController(player, kind);
+  };
+  const startBattle = (stored: StoredRoom) => {
+    try {
+      const setup = battleSetup(stored.room);
+      const host = options.createBattle(setup);
+      const id = randomUUID();
+      stored.battle = {
+        id,
+        host,
+        controllers: new Map(setup.seats.map((s) => [s.player, s.controller])),
+      };
+      const ended = (reason: string) => {
+        if (rooms.get(stored.room.code) === stored) remove(stored.room.code, reason);
+      };
+      host.onEnd((end) => ended(end.kind === "finished" ? "battle_finished" : "battle_failed"));
+      for (const member of stored.room.members) {
+        const absent = presence.goneFor(member.who);
+        if (absent !== null && absent >= PRESENCE_GRACE_MS)
+          controller(stored, member.who, "active_ai");
+      }
+      void host.ready
+        .then(({ mapIdentity }) => {
+          if (rooms.get(stored.room.code) !== stored) return;
+          stored.room = recordBattle(stored.room, { id, mapIdentity });
+          publishRoom(stored);
+        })
+        .catch(() => ended("battle_failed"));
+    } catch {
+      remove(stored.room.code, "battle_failed");
+    }
+  };
   const transition = (
     stored: StoredRoom,
     who: string,
@@ -128,6 +179,7 @@ export function createRoomService(options: {
       stored.room = next;
       publishRoom(stored);
       for (const member of previous.members) releaseIfForgotten(member.who);
+      if (previous.phase === "lobby" && next.phase === "starting") startBattle(stored);
     }
     return { ok: true } as const;
   };
@@ -135,17 +187,36 @@ export function createRoomService(options: {
     clock,
     (who) => {
       for (const stored of rooms.values()) {
-        if (stored.room.members.some((member) => member.who === who)) updateIdle(stored);
+        if (stored.room.members.some((member) => member.who === who)) {
+          updateIdle(stored);
+          if (presence.goneFor(who) === null) controller(stored, who, "human");
+        }
       }
     },
     (who) => {
-      for (const stored of rooms.values()) transition(stored, who, { kind: "leave" });
+      for (const stored of rooms.values()) {
+        if (stored.room.phase === "lobby") transition(stored, who, { kind: "leave" });
+        else controller(stored, who, "active_ai");
+      }
       releaseIfForgotten(who);
     },
   );
 
   return {
     presence,
+    battle(id: string) {
+      const stored = [...rooms.values()].find((s) => s.battle?.id === id);
+      if (!stored?.battle || stored.room.phase !== "battle") return;
+      return {
+        host: stored.battle.host,
+        seatOf(who: string) {
+          const view = roomView(stored.room, who);
+          if (view.phase.kind !== "battle") return;
+          const { side, player } = view.phase.ticket;
+          return { side, player };
+        },
+      };
+    },
     create(who: string, visibility: Room["visibility"]): { code: string } | RoomRefusal {
       if (rooms.size >= options.capacity) return { refused: "full" };
       const callsign = options.callsign(who);
@@ -170,6 +241,7 @@ export function createRoomService(options: {
         ),
         source,
         idle: null,
+        battle: null,
       };
       rooms.set(code, stored);
       updateIdle(stored);
@@ -239,6 +311,7 @@ export function createRoomService(options: {
     dispose() {
       for (const stored of rooms.values()) {
         stored.idle?.cancel();
+        stored.battle?.host.dispose();
         stored.source.end("disposed");
       }
       for (const guess of guesses.values()) guess.cancel();
