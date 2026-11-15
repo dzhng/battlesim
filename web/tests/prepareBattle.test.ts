@@ -207,8 +207,13 @@ test("a map seed a JavaScript number cannot hold reaches the generator as writte
   const { report } = await prepared(request({ ...OPEN, seed: "9007199254740993" }));
   if (report.identity.kind !== "generated") throw new Error("a generated map was asked for");
   expect(report.identity.generation.seed).toBe("9007199254740993");
-  const rounded = await prepared(request({ ...OPEN, seed: "9007199254740992" }));
-  expect(rounded.report.identity).not.toEqual(report.identity);
+  // The seed a number would round it to is another outcome: another map, or
+  // a refusal by name, since which seeds prepare belongs to the generator.
+  const rounded = await prepared(request({ ...OPEN, seed: "9007199254740992" })).catch((error) => {
+    if (!(error instanceof PreparationRefused)) throw error;
+    return undefined;
+  });
+  expect(rounded?.report.identity).not.toEqual(report.identity);
 }, 60_000);
 
 test("a request the simulation's check refuses prepares nothing, and names the field", async () => {

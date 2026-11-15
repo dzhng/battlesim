@@ -205,6 +205,9 @@ fn generate(
     let dressing =
         street_props::place_courts_and_gardens(&plan, &request, &catalogue, &physics, &presets)?;
     plan.props.extend(dressing);
+    // Objectives are fought over buildings: the finished plan keeps only the
+    // reserved sites it built on.
+    skirmish::keep_built(&mut plan, &catalogue)?;
     let hash = physics.hash().map_err(|error| {
         vec![Diagnostic {
             code: DiagnosticCode::InvalidPhysicalRules,

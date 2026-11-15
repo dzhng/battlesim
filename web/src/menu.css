@@ -1374,6 +1374,25 @@ span.lobby-controller:not(.lobby-pick) {
   border: 1px solid rgb(var(--hud-accent) / 0.45);
   box-shadow: 0 6px 18px rgb(0 0 0 / 0.5);
 }
+/* A folded choice sits where its options did: the same height, and its list
+   opens upward, off the strip at the panel's foot. */
+.hud-panel .lobby-folded > button {
+  padding: 7px 26px 7px 10px;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: rgb(var(--hud-accent) / 0.16);
+  border-color: rgb(var(--hud-accent) / 0.85);
+  text-shadow: var(--hud-text-halo);
+}
+.lobby-folded ul {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+.lobby-folded ul button {
+  white-space: nowrap;
+}
 .lobby-side[data-side="red"] .lobby-pick ul {
   left: auto;
   right: 0;

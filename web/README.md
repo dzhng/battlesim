@@ -106,6 +106,12 @@ Playwright's Chromium, or inside WSL headless Windows Chrome, because WSL's own
 Chromium has only a software GPU. Its header names the setting that keeps
 Chromium.
 
+The game supports windows of 1280 × 720 and larger, and every page fits that
+size. A layout that needs more room than that folds rather than wrapping or
+scrolling: the lobby's strip, for one, turns its longest choices into pickers
+on a narrower window. The [UI scene](scenes/ui.mjs) checks the lobby at the
+smallest size.
+
 Interface appearance is a regression gate. A scene can match a capture against
 an approved picture ([baselines](scenes/_baseline.mjs), stored in LFS beside the
 scenes); a mismatch fails and leaves the capture and a diff in its evidence.

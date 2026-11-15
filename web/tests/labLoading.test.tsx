@@ -90,7 +90,8 @@ test("the router covers a lab while its route prepares", async () => {
 
 test.each([
   { path: "/labs/cursor", label: "Arrow + action" },
-  { path: "/labs/panels", label: "Info panels" },
+  // Its fixed test units: the full roster's sheet grows with the roster.
+  { path: "/labs/panels?units=test", label: "Info panels" },
   { path: "/labs/benchmark", label: "Benchmark" },
 ])("non-battle view $path becomes usable", async ({ path, label }) => {
   window.history.replaceState(null, "", path);
