@@ -7,6 +7,7 @@ use contract::scenario::ScenarioDefinition;
 use serde_json::{json, Value};
 use sim::battle::Battle;
 use sim::math::wrap_angle;
+use std::f64::consts::FRAC_PI_2;
 
 fn rules() -> Value {
     sim::fixtures::test_rules()
@@ -348,4 +349,81 @@ fn a_truck_nosed_into_a_kerb_gap_backs_out_to_the_street_behind_it() {
         "it stopped at {:?}, short of the street",
         truck.position.xy()
     );
+}
+
+/// Every tick's poses of a `kind` sent by road from `at` (facing `yaw`) to
+/// `goal` over the road strokes `roads` (`[points, width]`).
+fn by_road(
+    kind: &str,
+    roads: &[(Value, f64)],
+    at: [f64; 2],
+    yaw: f64,
+    goal: [f64; 2],
+) -> (Battle, Vec<(sim::math::V2, f64, bool)>) {
+    let surfaces: Vec<Value> = roads
+        .iter()
+        .map(|(points, width)| json!({ "kind": "road", "shape": { "kind": "stroke", "points": points, "width_m": width } }))
+        .collect();
+    let setup: ScenarioDefinition = serde_json::from_value(json!({
+        "map": { "size": [320, 320], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+                 "surfaces": surfaces },
+        "rules": rules(),
+        "units": [{ "side": "blue", "kind": kind, "position": at, "yaw": yaw,
+                    "engagement": "return_fire_only" }],
+        "events": [],
+        "scripts": [{ "tick": 1, "side": "blue", "order": { "kind": "move", "units": [0],
+            "gesture": 1, "goal": goal, "route": "fastest", "direction": "forward" } }],
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    let poses = drive(&mut b, 90.0);
+    (b, poses)
+}
+
+/// A road that turns back on itself sharper than a right angle, on its own
+/// bend or where one road meets another, is driven round forward: a truck
+/// whose turning circle is wider than the corner swings through it and
+/// never stops to back and fill.
+#[test]
+fn a_truck_drives_round_a_sharp_road_corner_without_reversing() {
+    let corners = [
+        // One road's own corner, its runs too short to round it wide.
+        vec![(
+            json!([[60, 10], [60, 160], [62, 190], [100, 182], [300, 140]]),
+            10.0,
+        )],
+        // Two roads meeting at a corner, which no stroke rounds.
+        vec![
+            (json!([[60, 10], [60, 190]]), 10.0),
+            (json!([[60, 190], [300, 140]]), 10.0),
+        ],
+    ];
+    for (i, roads) in corners.iter().enumerate() {
+        let (b, poses) = by_road(
+            "test_supply",
+            roads,
+            [60.0, 20.0],
+            FRAC_PI_2,
+            [280.0, 144.0],
+        );
+        let truck = b.unit(UnitId(0)).unwrap();
+        assert_eq!(
+            truck.state,
+            MoveState::Idle,
+            "corner {i}: still {:?} at {:?}",
+            truck.state,
+            truck.position.xy()
+        );
+        assert!(
+            (truck.position.xy() - sim::math::v2(280.0, 144.0)).length() < 2.0,
+            "corner {i}: stopped at {:?}",
+            truck.position.xy()
+        );
+        let backed: Vec<_> = poses.iter().filter(|p| p.2).map(|p| p.0).collect();
+        assert!(
+            backed.is_empty(),
+            "corner {i}: backed up at {:?}",
+            backed.first()
+        );
+    }
 }
