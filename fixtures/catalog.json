@@ -8218,6 +8218,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -8355,6 +8356,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -9061,6 +9063,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -9219,6 +9222,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -10022,6 +10026,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -10159,6 +10164,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -10317,6 +10323,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -10454,6 +10461,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -10594,6 +10602,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -10752,6 +10761,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -14323,6 +14333,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -14741,6 +14752,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -15848,6 +15860,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -16433,6 +16446,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -16683,6 +16697,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -16823,6 +16838,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -17154,6 +17170,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -17313,6 +17330,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -17627,6 +17645,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -18454,6 +18473,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -18594,6 +18614,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -18752,6 +18773,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -18889,6 +18911,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -19026,6 +19049,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -19184,6 +19208,7 @@
                 "health": 0.4
               }
             },
+            "attacks_only_on_order": true,
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -28308,6 +28333,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -28449,6 +28475,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -29267,6 +29294,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -29430,6 +29458,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -30561,6 +30590,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -30702,6 +30732,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -30865,6 +30896,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -31006,6 +31038,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -31150,6 +31183,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -31313,6 +31347,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -35056,6 +35091,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -35487,6 +35523,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -36718,6 +36755,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -37321,6 +37359,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -37592,6 +37631,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -37736,6 +37776,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -38077,6 +38118,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -38241,6 +38283,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -38799,6 +38842,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -39773,6 +39817,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -39917,6 +39962,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -40080,6 +40126,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -40221,6 +40268,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -40362,6 +40410,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -40525,6 +40574,7 @@
             "health": 0.4
           }
         },
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3.0

@@ -3,6 +3,7 @@ use crate::math::V2;
 use crate::units::{Unit, UnitOrder};
 use crate::weapons::{Arsenal, Target};
 use contract::command::Engagement;
+use contract::scenario::Rules;
 
 use super::pass::{PassPhase, PassPlan};
 
@@ -28,6 +29,7 @@ pub enum AirTask {
 /// unless something calls for an answer (D15).
 pub fn task(
     unit: &Unit,
+    rules: &Rules,
     knowledge: &SideKnowledge,
     arsenal: &Arsenal,
     pass: Option<&PassPlan>,
@@ -38,7 +40,7 @@ pub fn task(
 
     if let (Some(pass), Some(UnitOrder::AttackMove(_))) = (pass, unit.orders.front()) {
         if target_is_destroyed(pass.target, knowledge) {
-            return reaction(unit, knowledge);
+            return reaction(unit, rules, knowledge);
         }
         if pass.phase == PassPhase::Dive {
             return AirTask::Attack {
@@ -55,7 +57,7 @@ pub fn task(
             if let Some(target) = along_way_target(unit, order.destination, knowledge, arsenal) {
                 AirTask::Attack { target }
             } else {
-                match reaction(unit, knowledge) {
+                match reaction(unit, rules, knowledge) {
                     AirTask::Hold => AirTask::Orbit {
                         centre: order.destination,
                     },
@@ -77,14 +79,15 @@ pub fn task(
             | UnitOrder::Collect { .. }
             | UnitOrder::Unload,
         ) => AirTask::Hold,
-        None => reaction(unit, knowledge),
+        None => reaction(unit, rules, knowledge),
     }
 }
 
 /// What a jet with no order does on its own: answer an attacker it knows
-/// of, or a firing contact, under fire at will; otherwise hold.
-pub(crate) fn reaction(unit: &Unit, knowledge: &SideKnowledge) -> AirTask {
-    if unit.engagement != Engagement::FireAtWill {
+/// of, or a firing contact, under fire at will; otherwise hold. A type that
+/// attacks only on order never answers without one.
+pub(crate) fn reaction(unit: &Unit, rules: &Rules, knowledge: &SideKnowledge) -> AirTask {
+    if unit.engagement != Engagement::FireAtWill || unit.awaits_attack_order(rules) {
         return AirTask::Hold;
     }
     let attacker = unit.attackers.iter().find_map(|&id| {

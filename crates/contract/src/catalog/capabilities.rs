@@ -35,6 +35,12 @@ pub struct Capabilities {
     pub radar_receiver: Option<RadarReceiver>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub smoke: Option<SmokeCapability>,
+    /// It fights only under an attack or attack-move order. Moved, stopped
+    /// or with no order it holds every offensive weapon, even against an
+    /// enemy shooting at it, and starts no attack of its own; interceptors
+    /// and weapons that fire on their own still do.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub attacks_only_on_order: bool,
 }
 
 /// A hull's passenger capacity. Only the authored capacities are admitted so

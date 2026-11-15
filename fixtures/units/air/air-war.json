@@ -67,6 +67,7 @@
         "loudness_m": 1400
       },
       "capabilities": {
+        "attacks_only_on_order": true,
         "flares": {
           "capacity": 4,
           "reload_s": 3
