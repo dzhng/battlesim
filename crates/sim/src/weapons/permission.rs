@@ -3,13 +3,8 @@ use super::{FireContext, Target};
 use crate::units::Unit;
 use contract::command::Engagement;
 
-/// Whether the unit's engagement policy allows firing at this target (W12–W13),
-/// and, for a type that attacks only on order, whether its order is an attack.
+/// Whether the unit's engagement policy allows firing at this target (W12–W13).
 pub(super) fn permitted(ctx: &FireContext, unit: &Unit, target: Target) -> bool {
-    // Shooting down a round defends; it is never an attack.
-    if unit.awaits_attack_order(ctx.rules) && !matches!(target, Target::Round(_)) {
-        return false;
-    }
     match unit.engagement {
         // Which weapons fire at a radar contact is theirs to say
         // (`anti_radiation`, [`preferred_kind`]).
