@@ -79,7 +79,7 @@ Foundation
 - [x] [03 The sim stamps orders](slices/03-sim-stamps-orders.md)
 - [x] [04 Seats and setup the server can run](slices/04-seats-and-setup.md)
 - [x] [05 Record stream and seat link](slices/05-record-stream.md)
-- [ ] [06 Battle host](slices/06-battle-host.md)
+- [x] [06 Battle host](slices/06-battle-host.md)
 - [ ] [07 HTTP transport](slices/07-http-transport.md)
 - [ ] [08 Command any seat](slices/08-command-any-seat.md) (first playable checkpoint)
 - [ ] [09 Identity, build check, deploy](slices/09-identity-build-deploy.md)

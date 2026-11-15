@@ -164,8 +164,6 @@ export type SimRequest =
       scenario: string;
       seed: number;
       sides: SideName[];
-      /** Player issuing commands for a player-owned scenario. */
-      player?: string;
       /** Replay these accepted commands instead of taking input. */
       replay?: string;
     }
@@ -178,7 +176,16 @@ export type SimRequest =
       variant: string;
       destination: [number, number];
     }
-  | { type: "command"; id: number; order: Order; queued: boolean }
+  | {
+      type: "command";
+      id: number;
+      order: Order;
+      queued: boolean;
+      /** Who gives the order. Whoever owns this end of the channel says: the
+       *  page for its own battle, a server from the port the order came in
+       *  on. Never a value read off a network. */
+      seat: { side: SideName; player?: string };
+    }
   | {
       type: "move_preview";
       id: number;
@@ -203,6 +210,8 @@ export type SimRequest =
    *  listed side opens with a full snapshot. */
   | { type: "sides"; sides: SideName[] }
   | { type: "controllers"; controllers: string }
+  /** `side`'s next publication is a full snapshot: a reader needs one. */
+  | { type: "resync"; side: SideName }
   | { type: "dispose" };
 
 export type SimReply =

@@ -15,6 +15,10 @@ const entries = [
   "packages/multiplayer/src/setup.ts",
   "packages/skirmish-setup/src/seats.ts",
   "packages/skirmish-setup/src/lobby.ts",
+  "apps/game-server/src/battleHost/index.ts",
+  "apps/game-server/src/battleHost/worker.ts",
+  "apps/game-server/src/serverData.ts",
+  "apps/game-server/src/soak.ts",
 ];
 
 test("multiplayer packages bundle for Node without browser aliases or asset loaders", () => {

@@ -210,4 +210,12 @@ Append here: the slice, the decision, why, and what it replaced.
 | 02 | Reopening a side's stream gives it an epoch later than any side has reached. | Each side counting its own epochs, which made a page that switched sides twice drop every later record as stale. |
 | 02 | The paired publication records were re-recorded: a reader that moves to another side reopens that side's stream. Digests and delivered fog in them did not change. | Keeping records of a single publisher changing side, which the product no longer does. |
 | 03 | An acknowledgement carries two numbers: the page's own id for the request, and the sequence number the battle gave the order. The page matches on the first and never reads the second as its own. | Matching acknowledgements by sequence number, which the page no longer knows in advance. |
+| 06 | The battle's thread copies each publication into its stream payload and takes its buffer back at once. The main thread only ever receives finished payloads. | Sending the authority's buffers to the main thread and waiting for them to come back, which made every tick of every battle wait on the thread that serves HTTP. |
+| 06 | A record is a keyframe when it opens a new epoch for its side, decided on the battle's thread from the record itself. | Flagging "the next record after a request" on the main thread: a partial update already on its way was flagged as the snapshot. |
+| 06 | A side is resynced at most once a second, and a request that comes sooner is served when the second is up. | Dropping the early request, which left the reader that made it with nothing, for good. |
+| 06 | Every order names its seat, set by whoever owns that end of the channel: the page for its own battle, the host from the port. The authority keeps no seat of its own. | An optional seat on the request with the authority's own as fallback: two ways to stamp an order. |
+| 06 | A battle's map identity is its generated map's hash. | The whole identity object as JSON, whose text depends on key order. |
+| 06 | The host throws for a seat or player the battle does not have. Refusing a stranger (`not_seated`) is the transport's. | The host answering `not_seated` too. |
+| 06 | The host exports the battle's recorded orders (`replay()`). | No way to check a server battle against its replay. |
+| 06 | The server's code finds its data from a repository root it is given, and the battle thread's file beside the bundle. Thread mode runs only from the bundle. | Each file working the root out from its own location, which breaks once bundled. |
 

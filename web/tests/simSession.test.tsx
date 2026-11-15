@@ -33,7 +33,6 @@ test("development Restart recreates the authority with the page's captured scena
     scenario: "captured scenario",
     seed: 7,
     sides: ["blue"],
-    player: undefined,
     replay: undefined,
   };
   const { result } = renderHook(() => useSimSession({ scenario: init.scenario, seed: init.seed }));

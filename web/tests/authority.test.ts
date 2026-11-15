@@ -79,14 +79,12 @@ function harness(load: () => Promise<SimModule> = async () => sim) {
       replay?: string,
       setup = scenario,
       sides: ("blue" | "red" | "neutral")[] = ["blue"],
-      player?: string,
     ) {
       authority.handle({
         type: "init",
         scenario: setup,
         seed: 9,
         sides,
-        player,
         replay,
       });
       await new Promise((r) => setTimeout(r, 0));
@@ -104,6 +102,7 @@ const move = (id: number, units: number[]): Extract<SimRequest, { type: "command
   type: "command",
   id,
   queued: false,
+  seat: { side: "blue" },
   order: {
     kind: "move",
     units,
@@ -117,6 +116,7 @@ const ready = (id: number): Extract<SimRequest, { type: "command" }> => ({
   type: "command",
   id,
   queued: false,
+  seat: { side: "blue", player: "blue-1" },
   order: { kind: "ready" },
 });
 
@@ -222,6 +222,7 @@ test("building previews preserve battle outcomes and an invalid query leaves the
     type: "command",
     id: 1,
     queued: false,
+    seat: { side: "blue" },
     order: { kind: "occupy_building", units: [0, 1], building: 0, gesture: 1 },
   };
   for (const h of [queried, untouched]) {
@@ -296,7 +297,7 @@ test("commands are acknowledged in order with the authority's verdict", async ()
 test("a human order after AI control uses the simulation's next player sequence", async () => {
   const { default: record } = await import("@fixtures/parity/skirmish-purchases.json");
   const h = harness();
-  await h.init(undefined, JSON.stringify(record.scenario), ["blue"], "blue-1");
+  await h.init(undefined, JSON.stringify(record.scenario), ["blue"]);
   h.authority.handle({
     type: "controllers",
     controllers: JSON.stringify([["blue-1", "active_ai"]]),

@@ -66,8 +66,6 @@ export function createAuthority(host: AuthorityHost): Authority {
   type Lifetime = { kind: "loading" } | { kind: "live"; resources: Resources } | { kind: "closed" };
   let lifetime: Lifetime = { kind: "loading" };
   let sides: SideName[] = ["blue"];
-  let commandSide: SideName = "blue";
-  let player: string | undefined;
   // The rules' rate, kept as given: the page's presentation times every
   // effect from it, so a rate derived back from `tickMs` would drift.
   let tickHz = 30;
@@ -81,6 +79,7 @@ export function createAuthority(host: AuthorityHost): Authority {
   let status: AuthorityStatus = "loading";
   let script: { id: number; target: number } | null = null;
   const credits: ArrayBuffer[] = [];
+  let pumping = false;
   // Requests that arrive while the module loads keep their order.
   const backlog: SimRequest[] = [];
 
@@ -137,7 +136,20 @@ export function createAuthority(host: AuthorityHost): Authority {
     }
   }
 
+  /** Runs the ticks that are due. A host that returns a credit from inside
+   *  `post` re-enters here through `handle`; the run in progress picks the
+   *  credit up, so the inner call has nothing to do. */
   function pump() {
+    if (pumping) return;
+    pumping = true;
+    try {
+      runDue();
+    } finally {
+      pumping = false;
+    }
+  }
+
+  function runDue() {
     if (lifetime.kind !== "live" || !started) return;
     const resources = lifetime.resources;
     const battle = resources.battle;
@@ -200,8 +212,6 @@ export function createAuthority(host: AuthorityHost): Authority {
         case "init": {
           sides = [...new Set(request.sides)];
           if (sides.length === 0) throw new Error("at least one publication side is required");
-          commandSide = sides[0];
-          player = request.player;
           tickHz = JSON.parse(request.scenario).rules.tick_hz;
           tickMs = 1000 / tickHz;
           // A refused scenario or replay throws while building: report it too.
@@ -213,7 +223,8 @@ export function createAuthority(host: AuthorityHost): Authority {
                 ? module.replayBattle(request.scenario, request.replay)
                 : module.createBattle(request.scenario, request.seed);
               lifetime = { kind: "live", resources: { sim: module, battle } };
-              for (let i = 0; i < PUBLICATION_POOL; i++) credits.push(new ArrayBuffer(4096));
+              for (let i = 0; i < PUBLICATION_POOL * sides.length; i++)
+                credits.push(new ArrayBuffer(4096));
               host.post({
                 type: "ready",
                 layout: battle.observation_layout(),
@@ -236,8 +247,8 @@ export function createAuthority(host: AuthorityHost): Authority {
             id: request.id,
             ack: JSON.parse(
               activeResources().battle.accept_order(
-                commandSide,
-                player,
+                request.seat.side,
+                request.seat.player,
                 JSON.stringify(request.order),
                 request.queued,
               ),
@@ -320,6 +331,9 @@ export function createAuthority(host: AuthorityHost): Authority {
         }
         case "controllers":
           activeResources().battle.set_controllers(request.controllers);
+          return;
+        case "resync":
+          activeResources().battle.resync_observation(request.side);
           return;
       }
       pump();

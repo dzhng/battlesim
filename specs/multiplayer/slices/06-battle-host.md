@@ -14,14 +14,17 @@ New `apps/game-server/src/battleHost/`:
 
 ```ts
 interface BattleSpec { setup: BattleSetup }            // wire.md
+interface BattleClock { now(): number; schedule(run: () => void, delayMs: number): void }
+type BattleRun = "thread" | { clock: BattleClock; generator?: MapGenerator };
 interface BattleHost {
   ready: Promise<{ layout: string; tickHz: number; mapIdentity: string }>;
   attach(port: SeatPort): void;                         // slice 05
   setController(player: string, kind: ControllerKind): void;
   onEnd(handle: (end: { kind: "finished" } | { kind: "crashed"; message: string }) => void): void;
+  replay(): Promise<string>;                            // the recorded orders (decision 56)
   dispose(): void;
 }
-function createBattleHost(spec: BattleSpec, run: "thread" | "inline", data: SetupData): BattleHost;
+function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleData): BattleHost;
 ```
 
 - The thread's entry follows `web/src/battle/prepare/worker.ts`: it runs
@@ -82,3 +85,55 @@ server's entries.
 ## Delegated
 
 Messages between the main thread and the worker; how the soak picks its map.
+
+## As built
+
+Three files under `apps/game-server/src/battleHost/`:
+
+- **`runtime.ts`** runs on the battle's thread in either mode. It prepares
+  the battle (`prepareBattle`), hosts the authority with one
+  earliest-deadline timer, and turns each publication into its stream
+  record's payload. The payload is the copy, so the authority has its buffer
+  back before anything crosses to another thread. It also decides the
+  keyframe flag, from the record: a publication whose ground epoch is later
+  than its side's last.
+- **`worker.ts`** is the thread's entry: the runtime with the parent port as
+  its host.
+- **`index.ts`** is the host: a `recordSource` per side, the ports, and the
+  end. It stamps each order with the port's seat, defers a keyframe request
+  that comes within a second of the last, and settles every waiting and
+  later request when the battle is over.
+
+What differs from the plan above, and why:
+
+- **The run mode carries the test's clock** (`{ clock }`), where the plan had
+  the word `"inline"`. A test also passes a map generator that makes each
+  map once.
+- **`replay()`** was added: the tests need the recorded orders, and decision
+  56 makes replay export the server's.
+- **Every `command` request names its seat** (`seat: { side, player? }`). The
+  page fills it from its own options; the host from the port. The authority
+  keeps no seat, so there is one way an order is stamped. `init.player` is
+  gone.
+- **A new request, `{ type: "resync"; side }`,** asks for a side's snapshot.
+- **The authority's starting pool is three buffers per listed side,** so two
+  sides have the headroom one side had.
+- **`mapIdentity` is the generated map's hash.** A battle on any other kind
+  of map fails to start.
+- **`attach` throws for a seat the battle does not have,** and
+  `setController` for a player it does not have. `not_seated` is the
+  transport's answer (slice 07), which is the only code that meets a
+  stranger.
+- **Thread mode runs from the bundle.** The host looks for `worker.js` beside
+  its own bundled file, and the server's data takes the repository root as
+  an argument. `bun run server:soak [seconds]` bundles for Node and runs
+  under Node.
+- **The crash test uses an error, not a trap.** It gives the simulation a
+  controller kind it refuses mid-battle, which travels the same path a trap
+  does from the authority outward. No cheap way to cause a real trap was
+  found.
+
+The first soak on this Mac, a 5v5 of AIs for 30 seconds under Node: 30 ticks
+every second, 2 ticks of 885 over the 33 ms budget, 95th percentile step
+9 ms, 15 ticks shed at start-up and none after, 420 MB resident.
+

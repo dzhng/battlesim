@@ -58,7 +58,7 @@ u32 payloadBytes | u32 id | u8 kind | u8 flags | u16 0 | payload
 |---|---|---|
 | `open` | JSON `StreamOpen` | First record of every response |
 | `publication` | binary | One tick of one side: `u32 tick`, 16 ASCII bytes of digest, `f32 stepMs`, then the publication's `f32` words |
-| `status` | JSON | The battle's status changed (`running`, `finished`, `failed`) |
+| `status` | JSON `{ status, slow }` | The battle's status changed (`running`, `finished`, `failed`), or it began or stopped running behind its clock (`slow`) |
 | `state` | JSON | The whole current `RoomList` or `RoomView` |
 | `end` | JSON `{ reason }` | The server's last word on this stream |
 
@@ -158,7 +158,7 @@ type BattleSetup = {            // what both ends feed the one request builder
 type BattleTicket = {
   battle: string;               // the id in /battles/:id
   setup: BattleSetup;
-  mapIdentity: string;          // the server's; the page refuses to start on a mismatch
+  mapIdentity: string;          // the server's map hash; the page refuses to start on a mismatch
   side: "blue" | "red";
   player: string;               // the battle's player id for this seat
 };

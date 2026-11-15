@@ -27,7 +27,8 @@
     "visual": "bun run build:wasm && bun run build:mechanics && bun run build:map-workbench && bun run --cwd web visual",
     "renderer:accounting": "node tools/renderer-accounting.mjs --write",
     "check": "bun run fmt:check && bun run lint && bun run build:wasm && bun run build:mechanics && bun run build:map-workbench && bun run typecheck && bun run test:rust && bun run --cwd web test",
-    "generate": "bun packages/battle-audio/tools/generate/cli.ts"
+    "generate": "bun packages/battle-audio/tools/generate/cli.ts",
+    "server:soak": "bun build --target=node --format=esm --entry-naming '[name].[ext]' --outdir throwaway/game-server apps/game-server/src/soak.ts apps/game-server/src/battleHost/worker.ts && node throwaway/game-server/soak.js"
   },
   "devDependencies": {
     "linguist-languages": "9.5.0",

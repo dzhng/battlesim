@@ -342,7 +342,6 @@ export function createSimClient(options: SimClientOptions): SimClient {
     scenario: options.scenario,
     seed: options.seed,
     sides: [options.side],
-    player: options.player,
     replay: options.replay,
   });
 
@@ -367,7 +366,13 @@ export function createSimClient(options: SimClientOptions): SimClient {
       const id = nextCommand++;
       return new Promise<CommandAck>((resolve, reject) => {
         pendingAcks.set(id, { resolve, reject });
-        channel.send({ type: "command", id, order, queued });
+        channel.send({
+          type: "command",
+          id,
+          order,
+          queued,
+          seat: { side: options.side, player: options.player },
+        });
       });
     },
     previewPurchase(variant, destination) {
