@@ -38,7 +38,7 @@ Each runs today as the recommended call and is reversible; the entry says how.
 - [A tank's long gun can poke into a wall; nothing guards against it](#a-tanks-long-gun-can-poke-into-a-wall-nothing-guards-against-it) (needs-user, confidence medium)
 - [A soldier's round starts at his body, not at his rifle](#a-soldiers-round-starts-at-his-body-not-at-his-rifle) (needs-user, confidence medium)
 - [A garrison sees, and spots, from one eye per facade it holds](#a-garrison-sees-and-spots-from-one-eye-per-facade-it-holds) (needs-user, confidence medium)
-- [The far view stays at the default's 49° tilt instead of WARNO's horizon vista](#the-far-view-stays-at-the-defaults-49-tilt-instead-of-warnos-horizon-vista) (needs-user, confidence medium)
+- [The far view stays at the default's tilt instead of WARNO's horizon vista](#the-far-view-stays-at-the-defaults-tilt-instead-of-warnos-horizon-vista) (needs-user, confidence medium)
 - [No trees stand inside the map outside the simulation's forests; hedgerows and copses stand only past the edge](#no-trees-stand-inside-the-map-outside-the-simulations-forests-hedgerows-and-copses-stand-only-past-the-edge) (needs-user, confidence medium)
 - [Scar colours and strengths live in the biome file](#scar-colours-and-strengths-live-in-the-biome-file) (needs-user, confidence medium)
 - [Grass over painted ground glows only near its root](#grass-over-painted-ground-glows-only-near-its-root) (needs-user, confidence medium)
@@ -46,7 +46,7 @@ Each runs today as the recommended call and is reversible; the entry says how.
 - [Fog's face rule judges an upward face by the air above it, so low props can show lit ledges on an unseen side](#fogs-face-rule-judges-an-upward-face-by-the-air-above-it-so-low-props-can-show-lit-ledges-on-an-unseen-side) (needs-user, confidence medium)
 - [Model surfaces are vertex-colour paint, with baked textures on vehicles, soldiers and small props](#model-surfaces-are-vertex-colour-paint-with-baked-textures-on-vehicles-soldiers-and-small-props) (needs-user, confidence medium)
 - [Effect curves and sizes are fixture tuning](#effect-curves-and-sizes-are-fixture-tuning) (needs-user, confidence medium)
-- [A wreck burns from when the side first knows it: 60 s of fire, 150 s of smouldering](#a-wreck-burns-from-when-the-side-first-knows-it-60-s-of-fire-150-s-of-smouldering) (needs-user, confidence medium)
+- [A wreck burns, then smoulders, from when the side first knows it](#a-wreck-burns-then-smoulders-from-when-the-side-first-knows-it) (user's call)
 - [Smoke, flame, dust and blast-plume looks are fixture tuning](#smoke-flame-dust-and-blast-plume-looks-are-fixture-tuning) (needs-user, confidence medium)
 - [Tracers are styled by round kind, not by side](#tracers-are-styled-by-round-kind-not-by-side) (needs-user, confidence medium)
 - [Cover tier is a filled pip inside the soldier's marker: yellow, light green, strong green](#cover-tier-is-a-filled-pip-inside-the-soldiers-marker-yellow-light-green-strong-green) (needs-user, confidence medium)
@@ -58,16 +58,16 @@ Each runs today as the recommended call and is reversible; the entry says how.
 - [Crater and scorch size scale with the weapon's blast radius](#crater-and-scorch-size-scale-with-the-weapons-blast-radius) (sound, confidence medium)
 - [Cover tiers are three spread multipliers; each body's tier comes from its catalog row or its weight class](#cover-tiers-are-three-spread-multipliers-each-bodys-tier-comes-from-its-catalog-row-or-its-weight-class) (sound, confidence medium)
 - [Weight and push classes are ranks; a shove slows the pusher by the ratio](#weight-and-push-classes-are-ranks-a-shove-slows-the-pusher-by-the-ratio) (sound, confidence medium)
-- [Vehicles see 100 % ahead, 50 % abeam and 30 % astern](#vehicles-see-100--ahead-50--abeam-and-30--astern) (sound, confidence medium)
+- [Vehicles see farthest ahead, less abeam and least astern](#vehicles-see-farthest-ahead-less-abeam-and-least-astern) (sound, confidence medium)
 - [Forest densities: light, medium, dense; the village's west wood is medium, the orchard light](#forest-densities-light-medium-dense-the-villages-west-wood-is-medium-the-orchard-light) (sound, confidence medium)
 - [Benchmark memory is the frame's GPU allocations plus the main-thread JS heap](#benchmark-memory-is-the-frames-gpu-allocations-plus-the-main-thread-js-heap) (sound, confidence medium)
 - [Fog tracing budgets live in the fixture as provisional numbers, and a crowded screen tile drops eyes past its cap](#fog-tracing-budgets-live-in-the-fixture-as-provisional-numbers-and-a-crowded-screen-tile-drops-eyes-past-its-cap) (sound, confidence medium)
 - [Model detail tiers are chosen by projected height; casters draw one tier coarser](#model-detail-tiers-are-chosen-by-projected-height-casters-draw-one-tier-coarser) (sound, confidence medium)
 - [Vehicle mounts ease elevation and recoil but draw the turret bearing as published](#vehicle-mounts-ease-elevation-and-recoil-but-draw-the-turret-bearing-as-published) (sound, confidence medium)
-- [Impostor cards are baked by our own renderer at install time, 8 headings × 2 pitches, not shipped in bundles](#impostor-cards-are-baked-by-our-own-renderer-at-install-time-8-headings--2-pitches-not-shipped-in-bundles) (sound, confidence medium)
+- [Impostor cards are baked by our own renderer at install time, not shipped in bundles](#impostor-cards-are-baked-by-our-own-renderer-at-install-time-not-shipped-in-bundles) (sound, confidence medium)
 - [Trees draw in their own scenery layer with per-tree detail tiers; props draw in the models layer](#trees-draw-in-their-own-scenery-layer-with-per-tree-detail-tiers-props-draw-in-the-models-layer) (sound, confidence medium)
 - [Water is its own world layer, shaded by the terrain material, with a pale bare shore](#water-is-its-own-world-layer-shaded-by-the-terrain-material-with-a-pale-bare-shore) (sound, confidence medium)
-- [The fog sight map is 4096 rays by 64 range bins per eye](#the-fog-sight-map-is-4096-rays-by-64-range-bins-per-eye) (sound, confidence medium)
+- [The fog sight map is a fixed grid of directions by range bins per eye](#the-fog-sight-map-is-a-fixed-grid-of-directions-by-range-bins-per-eye) (sound, confidence medium)
 - [The run is the library jog with its upper-body twist damped](#the-run-is-the-library-jog-with-its-upper-body-twist-damped) (sound, confidence medium)
 - [Gun and HMG pitch are clamped by presentation constants](#gun-and-hmg-pitch-are-clamped-by-presentation-constants) (sound, confidence medium)
 - [The side's colour is a tint mask on materials, with the side colours in the asset catalog](#the-sides-colour-is-a-tint-mask-on-materials-with-the-side-colours-in-the-asset-catalog) (sound, confidence medium)
@@ -87,7 +87,7 @@ Taste, product direction or external cost: only you can settle these. Each carri
 
 ***needs-user** · confidence **low** · **provisional** · Simulation rules · from Slice 04; Orchestrator, after slice 04*
 
-**The choice.** A tank fights to its left, then drives off east. Its turret only turns while it has a target (`weapons.rs`), so it stays pointed left, and because sight follows the turret, the tank sees its own route at side reach (50 %). The alternative, turning an idle turret back over the hull's front, would be a new weapons rule.
+**The choice.** A tank fights to its left, then drives off east. Its turret only turns while it has a target (`weapons.rs`), so it stays pointed left, and because sight follows the turret, the tank sees its own route at side reach. The alternative, turning an idle turret back over the hull's front, would be a new weapons rule.
 
 **The gap.** Sight along the turret made the old "turret stays put" behaviour matter.
 
@@ -99,13 +99,13 @@ Taste, product direction or external cost: only you can settle these. Each carri
 
 ***needs-user** · confidence **low** · **provisional** · Simulation rules · from Orchestrator, after slice 06; Slice 06*
 
-**The choice.** The rule order is "fails to penetrate, then rolls the face's ricochet chance". AP penetration is 180 and the tank's front armour 140, so AP pierces every face and never ricochets; only stray rifle and HMG rounds glance off tanks. The user's wording ("per-face probability of ricochet, to simulate the angle") could also support rolling ricochet before penetration on every face, as an angle stand-in. Or AP penetration could come down, or armour go up.
+**The choice.** The rule order is "fails to penetrate, then rolls the face's ricochet chance". AP's penetration is above even the tank's front armour, so AP pierces every face and never ricochets; only stray rifle and HMG rounds glance off tanks. The user's wording ("per-face probability of ricochet, to simulate the angle") could also support rolling ricochet before penetration on every face, as an angle stand-in. Or AP penetration could come down, or armour go up.
 
 **The gap.** Q9's order with today's numbers makes tank-on-tank ricochets impossible.
 
 **The reach.** Whether tank duels ever see a bounce.
 
-**Verdict.** needs-user. Provisional: keep the order. To reverse, roll the ricochet chance before the penetration check in `damage::meet_hull`, or lower `tank_ap.penetration` below 140.
+**Verdict.** needs-user. Provisional: keep the order. To reverse, roll the ricochet chance before the penetration check in `damage::meet_hull`, or lower `tank_ap.penetration` below the tank's front armour.
 
 ### The village capture target is left unbalanced; balance gets its own spec
 
@@ -123,7 +123,7 @@ Taste, product direction or external cost: only you can settle these. Each carri
 
 ***needs-user** · confidence **low** · **provisional** · Simulation rules · from Post-close review (sim)*
 
-**The choice.** In the ordinary ambush script, blue's tanks drive toward the village, red's AT teams wait in the west wood, and blue retreats 0.75 s after the first missile. A retreating tank now takes a second missile. On the quick report (`village_report -- --quick --compare main`: three seeds, 600 s), blue lost 3 tanks where it lost 1, and 672 cost where it lost 280; seeds 2 and 3 each lose a tank they kept. A probe of the operator-muzzle fix alone reproduces it: red's AT teams launch 2 and 4 missiles in seeds 2 and 3, where they launched 1. From the team's middle, the follow-up shot at the retreating tank never cleared. From the gunner's own muzzle, up to 5 m off that middle, or out on his lean, it does. So this is the rule working the way a real ambush would, not a bug. The flank script still captures 2 of 3. Nothing was retuned. The unbuilt alternative was to retune the ambush (the AT teams' placement or the retreat delay) until the old cost returned.
+**The choice.** In the ordinary ambush script, blue's tanks drive toward the village, red's AT teams wait in the west wood, and blue retreats moments after the first missile. A retreating tank now takes a second missile. On the quick report (`village_report -- --quick --compare main`: three seeds, 600 s), blue lost 3 tanks where it lost 1, and 672 cost where it lost 280; seeds 2 and 3 each lose a tank they kept. A probe of the operator-muzzle fix alone reproduces it: red's AT teams launch 2 and 4 missiles in seeds 2 and 3, where they launched 1. From the team's middle, the follow-up shot at the retreating tank never cleared. From the gunner's own muzzle, a few metres off that middle, or out on his lean, it does. So this is the rule working the way a real ambush would, not a bug. The flank script still captures 2 of 3. Nothing was retuned. The unbuilt alternative was to retune the ambush (the AT teams' placement or the retreat delay) until the old cost returned.
 
 **The gap.** The fix corrected a rule. The user had already moved balance to its own spec (`decisions.md`, 2026-09-27), so whether the new cost is acceptable is that spec's call.
 
@@ -147,7 +147,7 @@ Taste, product direction or external cost: only you can settle these. Each carri
 
 ***needs-user** · confidence **medium** · **provisional** · Simulation rules · from Slice 24; Orchestrator, after slices 21 and 22*
 
-**The choice.** A tank parks hard against a house and turns its turret. Its 5.9 m gun reaches into the wall. The simulation launches rounds from that muzzle (each mount's `muzzle_m`), so the drawing is left as is: hiding or shortening the gun would draw something other than what fires. The alternative is a simulation rule, such as limiting traverse or requiring muzzle clearance, which is a named rule change.
+**The choice.** A tank parks hard against a house and turns its turret. Its long gun reaches into the wall. The simulation launches rounds from that muzzle (each mount's `muzzle_m`), so the drawing is left as is: hiding or shortening the gun would draw something other than what fires. The alternative is a simulation rule, such as limiting traverse or requiring muzzle clearance, which is a named rule change.
 
 **The gap.** Neither the simulation nor presentation covered a muzzle inside a body.
 
@@ -181,23 +181,23 @@ Taste, product direction or external cost: only you can settle these. Each carri
 
 **Verdict.** needs-user. Provisional: spotting uses the facade eyes, so the fog never lies. To reverse it, have `sensing::evaluate` read per-soldier eyes for a garrison while the fog sweep keeps `facade_eyes`. The drawn fog would then under-show what the garrison can spot.
 
-### The far view stays at the default's 49° tilt instead of WARNO's horizon vista
+### The far view stays at the default's tilt instead of WARNO's horizon vista
 
 ***needs-user** · confidence **medium** · **provisional** · Camera and controls · from Slice 09*
 
-**The choice.** The pitch curve today is `[25 m, 0.22 rad]`, `[65 m, 0.85]`, `[2000 m, 0.85]`. Zooming in from the default (65 m) lowers the camera toward the ground: at 25 m it looks almost level, with the horizon about where Broken Arrow puts it but from about 5.5 m up (Broken Arrow is about 20 m), so near units look bigger. Zooming out from the default keeps the same 0.85 rad (about 49°) tilt all the way to 2 km, so the strategic view looks down on the map rather than across to a horizon. WARNO's far view is flatter (about 0.4 rad). Getting there would need pitch to fall again as you zoom out, which the monotonic-curve rule forbids. The player can still middle-drag to tilt to a vista.
+**The choice.** The pitch curve (`pitch_curve`) rises from a near-level look at the closest zoom to the default's tilt at the default distance, then stays flat to the farthest zoom. Zooming in from the default lowers the camera toward the ground: at the closest zoom it looks almost level, with the horizon about where Broken Arrow puts it but from much lower (Broken Arrow is about 20 m), so near units look bigger. Zooming out from the default keeps the same tilt all the way out, so the strategic view looks down on the map rather than across to a horizon. WARNO's far view is flatter (about 0.4 rad). Getting there would need pitch to fall again as you zoom out, which the monotonic-curve rule forbids. The player can still middle-drag to tilt to a vista.
 
 **The gap.** The contract asks for a monotonic curve, and the two references (Defilade's default, WARNO's far view) can't both sit on one.
 
 **The reach.** What the strategic view looks like by default.
 
-**Verdict.** needs-user — a taste call. Provisional: plateau at 0.85. To reverse, allow a non-monotonic curve in `CameraController` and add a flatter far point to `pitch_curve`.
+**Verdict.** needs-user — a taste call. Provisional: plateau at the default's tilt. To reverse, allow a non-monotonic curve in `CameraController` and add a flatter far point to `pitch_curve`.
 
 ### No trees stand inside the map outside the simulation's forests; hedgerows and copses stand only past the edge
 
 ***needs-user** · confidence **medium** · **provisional** · Light, terrain, grass and trees · from Slice 19*
 
-**The choice.** WARNO-style maps have tree lines along roads and hedgerows between fields. Here, a drawn tree line inside the map that the simulation does not know would hide units the simulation says are visible. So today no tree stands inside the map except in the simulation's forests. Hedgerows (shrubs 4.2 m apart with trees 6–22 m apart in them) and copses stand only past the map, from `trees.backdrop.clear_m` (12 m) off it out to `reach_m` (1,500 m), on the patchwork's plot edges. The alternative is authoring in-map tree lines as real simulation forests (rect volumes in `game.json`), which changes sensing and balance.
+**The choice.** WARNO-style maps have tree lines along roads and hedgerows between fields. Here, a drawn tree line inside the map that the simulation does not know would hide units the simulation says are visible. So today no tree stands inside the map except in the simulation's forests. Hedgerows (shrubs with trees spaced along them) and copses stand only past the map, from `trees.backdrop.clear_m` off it out to `reach_m`, on the patchwork's plot edges. The alternative is authoring in-map tree lines as real simulation forests (rect volumes in `game.json`), which changes sensing and balance.
 
 **The gap.** The plan asked for WARNO's tree lines without deciding whether they are simulated.
 
@@ -209,7 +209,7 @@ Taste, product direction or external cost: only you can settle these. Each carri
 
 ***needs-user** · confidence **medium** · **provisional** · Light, terrain, grass and trees · from Slice 17; Slice 17b*
 
-**The choice.** `fixtures/biomes/summer.json` `scars {crater {palette, full, strength, relief_m, rim, ejecta_palette, ejecta}, scorch, tracks, trampled, grass {thin, tracks_thin, flatten}}` and palettes `crater_soil` [0.3, 0.24, 0.17], `crater_ejecta`, `scorch` [0.11, 0.105, 0.1], `track_soil` [0.3, 0.25, 0.18] (strength 0.85: a rut is bare edged soil, not darker green), `trampled` (strength 0.15; the grass lying over carries it). `validateBiome` checks every field; a winter biome would be another file on the same schema. Technique constants stay in code, named beside `groundScars` (lip, ring, ash scale, depth cap 1.6 fulls, rim reach 1.5 cells, floor 0.7).
+**The choice.** `fixtures/biomes/summer.json` `scars {crater {palette, full, strength, relief_m, rim, ejecta_palette, ejecta}, scorch, tracks, trampled, grass {thin, tracks_thin, flatten}}` and palettes `crater_soil`, `crater_ejecta`, `scorch`, `track_soil` (strong enough that a rut is bare edged soil, not darker green), `trampled` (faint; the grass lying over carries it). `validateBiome` checks every field; a winter biome would be another file on the same schema. Technique constants stay in code, named beside `groundScars` (lip, ring, ash scale, depth cap, rim reach, floor).
 
 **The gap.** Material contrast was delegated.
 
@@ -221,7 +221,7 @@ Taste, product direction or external cost: only you can settle these. Each carri
 
 ***needs-user** · confidence **medium** · **provisional** · Light, terrain, grass and trees · from decisions.md 2026-09-27 provisional calls; Slice 27e (follow-ups); Slice 27 (muzzle flash) — the paint is a light; grass fringe fix*
 
-**The choice.** A painted amber selection circle (or a painted blocked route) lies under long grass. A grass blade keeps its own colour and takes an additive glow in the paint's colour, strongest at the root: `presentation.overlay.paint.grass_glow` 0.8, falling off over `paint.grass_falloff_m` 0.06 m, so only the bottom few centimetres light up. A blade fragment that stands over the painted stroke on screen carries the stroke's glow at full strength, so the line runs unbroken through the grass without spreading past its edges. The alternative, a longer falloff (0.3 m, or a blade's full height), lit whole blades and grew a glowing fringe of blade tips out of every stroke, so marks read as fuzzy light columns in tall grass.
+**The choice.** A painted amber selection circle (or a painted blocked route) lies under long grass. A grass blade keeps its own colour and takes an additive glow in the paint's colour, strongest at the root: `presentation.overlay.paint.grass_glow`, falling off over `paint.grass_falloff_m`, so only the bottom few centimetres light up. A blade fragment that stands over the painted stroke on screen carries the stroke's glow at full strength, so the line runs unbroken through the grass without spreading past its edges. The alternative, a longer falloff (up to a blade's full height), lit whole blades and grew a glowing fringe of blade tips out of every stroke, so marks read as fuzzy light columns in tall grass.
 
 **The gap.** The user asked for paint on the grass and for grass to glow a little; how far up a blade the glow goes was not specified. Marked provisional while the user was away.
 
@@ -245,12 +245,12 @@ Taste, product direction or external cost: only you can settle these. Each carri
 
 ***needs-user** · confidence **medium** · **provisional** · How fog looks · from Slice 37; Slice 37b (fog)*
 
-**The choice.** Sandbags straddle the fog edge. Their far side is unseen, yet under the black fog style the top of each course shows a lit stripe 1–2 pixels wide. The cause: `fogTerm` decides whether a face is seen by probing 0.1 m along its normal. An upward ledge probes the air above it, which is seen, even though the bag courses above hide the ledge. The sight model doesn't know the sandbag is there, because a low body is not a sight occluder. The same gap lets a thin lintel on an unseen house wall count as a roof (the roof rule, `roof_reach_m`). This is left unfixed, because every sound fix changes a contract:
+**The choice.** Sandbags straddle the fog edge. Their far side is unseen, yet under the black fog style the top of each course shows a lit stripe 1–2 pixels wide. The cause: `fogTerm` decides whether a face is seen by probing a short way along its normal. An upward ledge probes the air above it, which is seen, even though the bag courses above hide the ledge. The sight model doesn't know the sandbag is there, because a low body is not a sight occluder. The same gap lets a thin lintel on an unseen house wall count as a roof (the roof rule, `roof_reach_m`). This is left unfixed, because every sound fix changes a contract:
 - a per-model hull, or a baked "bent normal" for fog (the average open direction, so a ledge under the next course points outward), needs an asset-pipeline change;
 - low props as fog occluders would disagree with sim sight;
 - limiting the roof rule to a body's top needs the fragment to know its occluder.
 
-A screen-space cleanup would also erase true thin seen features. The fog-look check keeps its 2 px margin, and its comment names this cause.
+A screen-space cleanup would also erase true thin seen features. The fog-look check keeps its small pixel margin, and its comment names this cause.
 
 **The gap.** The fog rule has no self-occlusion.
 
@@ -262,7 +262,7 @@ A screen-space cleanup would also erase true thin seen features. The fog-look ch
 
 ***needs-user** · confidence **medium** · **provisional** · Models and the asset pipeline · from Slice 21; Slice 22; Orchestrator, after slices 21 and 22*
 
-**The choice.** A house wall needs grime near the ground and lichen higher up; a tank needs printed camouflage, chipped paint and stencilled markings. Every model material is first a "paint": a function of world position, normal and edge sharpness, plus ray-cast ambient occlusion against the model and a ground plane, baked into vertex colour. Materials carry base colour 0.5 and the vertex colour holds albedo ÷ 0.5, so dark paints keep precision in 8 bits. Large faces are split so the paint has vertices to live on (0.28 m at LOD0 for vehicles, coarser on textured faces and for houses and the bridge). Houses use this paint alone and passed the look gate that way. Paint at 0.28 m spacing cannot draw chips, weave, mud or markings, and the unprimed critique called the soldiers, tank, truck and small props "toy-like" in every round. The user had chosen a real modelling budget with the critique as pass/fail, so the gate was not waived: those models also carry baked textures (albedo, normal map, ORM, with a side-tint mask in the ORM alpha; see the bundle format entry), and the vertex colour becomes macro variation over them. The alternatives were accepting the untextured vertex-colour look everywhere, or textures everywhere.
+**The choice.** A house wall needs grime near the ground and lichen higher up; a tank needs printed camouflage, chipped paint and stencilled markings. Every model material is first a "paint": a function of world position, normal and edge sharpness, plus ray-cast ambient occlusion against the model and a ground plane, baked into vertex colour. Materials carry base colour 0.5 and the vertex colour holds albedo ÷ 0.5, so dark paints keep precision in 8 bits. Large faces are split so the paint has vertices to live on (finest at LOD0 for vehicles, coarser on textured faces and for houses and the bridge). Houses use this paint alone and passed the look gate that way. Paint at that spacing cannot draw chips, weave, mud or markings, and the unprimed critique called the soldiers, tank, truck and small props "toy-like" in every round. The user had chosen a real modelling budget with the critique as pass/fail, so the gate was not waived: those models also carry baked textures (albedo, normal map, ORM, with a side-tint mask in the ORM alpha; see the bundle format entry), and the vertex colour becomes macro variation over them. The alternatives were accepting the untextured vertex-colour look everywhere, or textures everywhere.
 
 **The gap.** The slices' contract kept textures out of bundles, and the spike's wear and camouflage were Cycles-only nodes; passing the look gate needed a texture channel the plan did not have.
 
@@ -274,7 +274,7 @@ A screen-space cleanup would also erase true thin seen features. The fog-look ch
 
 ***needs-user** · confidence **medium** · **provisional** · Effects and sound · from Slice 25*
 
-**The choice.** Every look number lives in `presentation.effects` in `fixtures/game.json`: tracers (rifle 14 m × 0.07 m, HMG 18 × 0.10, AP 30 × 0.15, HE 20 × 0.14, grenade 2.5 × 0.08 dim, ATGM 3 × 0.35), flashes (rifle 0.25 m for 0.05 s; cannon 1.8 m with a 3.5 m fireball over 0.35 s; no star on muzzle glows, the tongue along the bore gives direction), impact puffs scaled by round kind, ten sparks per ricochet, and a blast fireball 0.9 × its radius (at least 3 m) over 1.6 s with a short compact flash and 32 sparks. Colours are HDR multipliers tuned under this lighting.
+**The choice.** Every look number lives in `presentation.effects` in `fixtures/game.json`: each round kind's tracer length, width and brightness, flashes (a small rifle flash; a cannon flash with a fireball; no star on muzzle glows, the tongue along the bore gives direction), impact puffs scaled by round kind, sparks per ricochet, and a blast fireball scaled by its radius with a short compact flash and sparks. Colours are HDR multipliers tuned under this lighting.
 
 **The gap.** All curves were delegated.
 
@@ -282,23 +282,23 @@ A screen-space cleanup would also erase true thin seen features. The fog-look ch
 
 **Verdict.** needs-user — provisional: the numbers tuned on the gate frames; reverse by editing `presentation.effects`. Critiques left open: no scorch at the burst, sparks reading as zig-zags, tracers as rods from low cameras.
 
-### A wreck burns from when the side first knows it: 60 s of fire, 150 s of smouldering
+### A wreck burns, then smoulders, from when the side first knows it
 
-***needs-user** · confidence **medium** · **provisional** · Effects and sound · from Slice 26*
+***user's call** · Effects and sound · from Slice 26*
 
-**The choice.** A tank is destroyed. When your side first learns its wreck, it draws flames and thick smoke for `burn_s` 60 s, then thin smoke for `smoulder_s` 150 s, then nothing. Knowledge carries no death time, so a wreck first seen long after it died (or known when a view starts) burns from then. A wreck no longer published stops making smoke and its puffs live out.
+**The choice.** A tank is destroyed. When your side first learns its wreck, it draws flames and thick smoke for `burn_s`, then thin smoke for `smoulder_s`, then nothing. A wreck stays a landmark well after the fight moves on: fire and smoke last minutes, not seconds. Knowledge carries no death time, so a wreck first seen long after it died (or known when a view starts) burns from then. A wreck no longer published stops making smoke and its puffs live out.
 
 **The gap.** How long a wreck burns, and from when.
 
 **The reach.** Adding a death tick to prop knowledge would let late-seen wrecks show their true age.
 
-**Verdict.** needs-user — provisional: the durations are `presentation.effects.smoke.wreck` tuning; reverse there, or add a death time to the publication if late wrecks burning fresh looks wrong.
+**Verdict.** user's call; the durations are `presentation.effects.smoke.wreck` tuning. With many wrecks burning at once, the smoke budget thins every column alike. Add a death time to the publication if late wrecks burning fresh looks wrong.
 
 ### Smoke, flame, dust and blast-plume looks are fixture tuning
 
 ***needs-user** · confidence **medium** · **provisional** · Effects and sound · from Slice 26*
 
-**The choice.** In `presentation.effects`: wreck smoke sooty grey (albedo 0.16, opacity 0.7, 1.2 → 6 m over 10 s, rising 3 m/s), each wreck's column 0.75–1.25× in size by its own seed; smoulder thinner; flames 1.3 m, 14 a second with a flickering 3.5 m light; dust sandy (opacity 0.4, 0.8 → 3 m over 2.4 s); a blast's plume of 8 dirt puffs and 4 smoke puffs lasting 9 s; wind 0.6, 0.3 m/s (presentation only).
+**The choice.** In `presentation.effects`: wreck smoke sooty grey, each puff growing and rising over its life, each wreck's column varied in size by its own seed; smoulder thinner; flames with a flickering light; dust sandy and fainter than smoke; a blast's plume of dirt and smoke puffs that lingers for seconds; wind (presentation only).
 
 **The gap.** Looks were delegated.
 
@@ -322,19 +322,19 @@ A screen-space cleanup would also erase true thin seen features. The fog-look ch
 
 ***needs-user** · confidence **medium** · **provisional** · In-world UI and HUD · from Slice 27 (muzzle flash) — light cover cyan; cover tiers ramp; cover icons; cover icons centred*
 
-**The choice.** Hold Space. Each soldier's marker, and each destination spot, shows a filled pip in its middle in its cover tier's colour: light is the orders' yellow [1.0, 0.9, 0.3], medium a clear light green [0.55, 0.95, 0.45], heavy a strong green [0.1, 0.8, 0.25] (`overlay.orders.cover`). With no cover, the marker's middle is empty. The pip is 0.3 m (`cover_pip_m`) inside a 0.45 m marker, clear of the marker's line. The user asked for 1.6×, which would have filled the circle. The pip is built into the same mesh as its marker, at the marker's own height, so it shares the marker's layer and cannot drift off-centre. `cover_glow` is 1, because the pips are overlay in `yellow-orders` and any extra glow only clamps toward white. Scene checks find pips by position and shape, since light cover shares the orders' yellow.
+**The choice.** Hold Space. Each soldier's marker, and each destination spot, shows a filled pip in its middle in its cover tier's colour: light is the orders' yellow, medium a clear light green, heavy a strong green (`overlay.orders.cover`). With no cover, the marker's middle is empty. The pip (`cover_pip_m`) sits inside the marker, clear of the marker's line. The user asked for 1.6×, which would have filled the circle. The pip is built into the same mesh as its marker, at the marker's own height, so it shares the marker's layer and cannot drift off-centre. `cover_glow` stays neutral, because the pips are overlay in `yellow-orders` and any extra glow only clamps toward white. Scene checks find pips by position and shape, since light cover shares the orders' yellow.
 
 **The gap.** The user picked the colours reversibly. The pip size compromise and "light cover = order yellow" were consequences.
 
 **The reach.** A light-cover pip is the same colour as the order marks around it. It is told apart only by being a filled dot inside a marker.
 
-**Verdict.** needs-user. Provisional: the user's colours, pip at 0.3 m. To reverse it, change `overlay.orders.cover.light` to a hue distinct from the order colour.
+**Verdict.** needs-user. Provisional: the user's colours, pip inside the marker. To reverse it, change `overlay.orders.cover.light` to a hue distinct from the order colour.
 
 ### Prop hit points and the wreck chain are provisional numbers
 
 ***needs-user** · confidence **medium** · **provisional** · The catalog · from Slice 34c; Slice 27c*
 
-**The choice.** The body rows in `fixtures/props/generic/` set: crate and fence 20, sandbags 150 (into rubble at 0.3 m), wall 300 (into rubble at 0.4 m), building 400 (into ruin at 2 m), and trunk 100, which the user set (see the weapons entry). Wrecks drop one weight class each time they are destroyed: a tank wreck (hp 400, heavy cover) becomes a supply wreck at 1.2 m (250, medium), which becomes a jeep wreck at 0.8 m (150, light), which is removed. Every wreck has `armor` 0.5, so AP mostly passes through a hulk and blast is what breaks it. Tooth, ruin, bridge deck and rubble have no hp. In rough terms: a crate or fence falls to one HE shell, sandbags to two, a wall to three, a building to four.
+**The choice.** The body rows in `fixtures/props/generic/` set each body's `hp` and the height of the rubble or ruin it leaves; the trunk's `hp` is the user's (see the weapons entry). Wrecks drop one weight class each time they are destroyed: a tank wreck (heavy cover) becomes a supply wreck (medium), which becomes a jeep wreck (light), which is removed. Every wreck has a low `armor`, so AP mostly passes through a hulk and blast is what breaks it. Tooth, ruin, bridge deck and rubble have no hp. In rough terms, a crate or fence falls to a single HE shell, and sandbags, walls and buildings take more, a building the most.
 
 **The gap.** The numbers were delegated.
 
@@ -346,7 +346,7 @@ A screen-space cleanup would also erase true thin seen features. The fog-look ch
 
 ***needs-user** · confidence **medium** · **provisional** · The catalog · from Slice 27f; Sim lane (review fixes, props catalog)*
 
-**The choice.** A rifleman and an AT gunner are different soldier kinds. Each has its own `hp`, appearance and mounts. But every soldier has the same radius (0.3 m), height, eye height, aim height (`infantry_aim_m` 1.0), centre height (`infantry_center_m` 0.9) and muzzle height, all in `physics`. Two things force this. Navigation's clearance grid is built for one soldier radius, and cover and the fit authority read one body frame. The aim and centre heights are their own rows, not derived from `soldier_height_m`: deriving them would have moved both values and every digest.
+**The choice.** A rifleman and an AT gunner are different soldier kinds. Each has its own `hp`, appearance and mounts. But every soldier has the same radius, height, eye height, aim height (`infantry_aim_m`), centre height (`infantry_center_m`) and muzzle height, all in `physics`. Two things force this. Navigation's clearance grid is built for one soldier radius, and cover and the fit authority read one body frame. The aim and centre heights are their own rows, not derived from `soldier_height_m`: deriving them would have moved both values and every digest.
 
 **The gap.** The user said each soldier kind has its own body numbers. The existing grid and cover code support only one.
 
@@ -366,7 +366,7 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 ***sound** · confidence **medium** · **provisional** · Simulation rules · from Slice 00*
 
-**The choice.** A tank fires HE (high-explosive) at another tank. HE's penetration (30) is far below any tank face's armour, so it never pierces. Today it still does damage: the weapon row's `armor_fraction` (0.15) times its damage (80), so 12 hit points a hit, against AP's 40 when AP pierces. The row is `weapons.tank_he.armor_fraction` in `fixtures/game.json`, read in `damage.rs`. The alternative, a fraction of 0, would make a tank that ran out of AP harmless to other tanks.
+**The choice.** A tank fires HE (high-explosive) at another tank. HE's penetration is far below any tank face's armour, so it never pierces. Today it still does damage: the weapon row's `armor_fraction` times its damage, a small share of what AP deals when it pierces. The row is `weapons.tank_he.armor_fraction` in `fixtures/game.json`, read in `damage.rs`. The alternative, a fraction of 0, would make a tank that ran out of AP harmless to other tanks.
 
 **The gap.** The user said HE on armour is "partial, not nearly as effective as AP" but gave no number.
 
@@ -390,7 +390,7 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 ***sound** · confidence **medium** · **provisional** · Simulation rules · from Slice 06*
 
-**The choice.** A kinetic round that fails to pierce rolls the face's ricochet chance (tank `armor.ricochet {front 0.5, side 0.35, rear 0.2, roof 0.6}`, truck `{0.1, 0.1, 0.05, 0.15}`, jeep lower). On a bounce it flies on in the same tick along the mirror reflection turned randomly within `ricochet.scatter_deg` (12°), never within about 1° of the plate, keeping `speed_kept` (0.6) of its speed and `penetration_kept` (0.5) of its penetration, for up to `max_bounces` (2). Many glancing rounds dive into the ground nearby; some leave the map.
+**The choice.** A kinetic round that fails to pierce rolls the face's ricochet chance (each hull's `armor.ricochet`, per face). On a bounce it flies on in the same tick along the mirror reflection turned randomly within `ricochet.scatter_deg`, never grazing along the plate, keeping `speed_kept` of its speed and `penetration_kept` of its penetration, for up to `max_bounces`. Many glancing rounds dive into the ground nearby; some leave the map.
 
 **The gap.** Delegated within a provisional range.
 
@@ -402,11 +402,11 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 ***sound** · confidence **medium** · **provisional** · Simulation rules · from Slice 07*
 
-**The choice.** A round bursts on open ground. Today its crater radius is blast radius × `ground.crater_radius_fraction` (0.15) and its scorch radius blast radius × `scorch_radius_fraction` (0.4). Crater depth at the centre is `crater_depth_per_m` (90) × crater radius, falling linearly to the rim, full at `crater_full_depth` (160). So a 12 m blast digs a 1.8 m crater, full at its centre; a 6 m blast a 0.9 m crater half full (not deep enough to be cover by itself); a 4 m blast a 0.6 m shallow one. Repeated bursts add up to full.
+**The choice.** A round bursts on open ground. Today its crater radius is blast radius × `ground.crater_radius_fraction` and its scorch radius blast radius × `scorch_radius_fraction`. Crater depth at the centre is `crater_depth_per_m` × crater radius, falling linearly to the rim, full at `crater_full_depth`. So the biggest blasts dig a crater full at its centre; smaller ones dig part-full craters, not deep enough to be cover by themselves, down to shallow scrapes. Repeated bursts add up to full.
 
 **The gap.** "Crater radius per weapon, from blast radius"; the accumulation curve was delegated.
 
-**The reach.** Every blast in every battle; with the 0.5 cover threshold, it decides which weapons make cover in one hit.
+**The reach.** Every blast in every battle; with the cover threshold, it decides which weapons make cover in one hit.
 
 **Verdict.** sound, provisional — tunable in the fixture's `ground` block.
 
@@ -414,7 +414,7 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 ***sound** · confidence **medium** · **provisional** · Simulation rules · from Slice 33; Slice 34*
 
-**The choice.** `cover.tiers` in `fixtures/game.json` holds light 1.4, medium 1.8, heavy 2.4: a round aimed at a soldier behind heavy cover scatters 2.4× as wide. Heavy stays under a garrisoned building's 3×. A prop's tier is its catalog body row's `cover_tier` (`fixtures/props/`: crate and fence light; trunk, sandbags and tooth medium; wall, ruin and building heavy; rubble light; bridge deck none). A vehicle, live or wrecked, takes its tier from its weight class (light/medium/heavy). A crater at least half full is light. `cover::validate` refuses tiers that do not widen the spread, heavier tiers that are narrower, and a wreck row whose tier differs from its vehicle's.
+**The choice.** `cover.tiers` in `fixtures/game.json` holds a spread multiplier for light, medium and heavy: a round aimed at a soldier behind heavy cover scatters several times as wide. Heavy stays under a garrisoned building's shelter. A prop's tier is its catalog body row's `cover_tier` (`fixtures/props/`). A vehicle, live or wrecked, takes its tier from its weight class (light/medium/heavy). A crater filled past the cover threshold is light. `cover::validate` refuses tiers that do not widen the spread, heavier tiers that are narrower, and a wreck row whose tier differs from its vehicle's.
 
 **The gap.** The spec named tiers, not numbers or where each body's tier lives.
 
@@ -426,7 +426,7 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 ***sound** · confidence **medium** · **provisional** · Simulation rules · from Slice 34*
 
-**The choice.** Weight ranks: light 1, medium 2, heavy 3, immovable beyond all. Push ranks: none 0, light 1, medium 2, heavy 3, super-heavy 4. A vehicle shoves a body only when the body's weight rank is strictly below its push rank, so a jeep (push light) shoves nothing. While shoving, the vehicle keeps `1 − weight/push` of its speed (`PushClass::shove_speed`): a tank against a light body keeps 2/3, a medium one 1/3; a truck against a light one 1/2. Fixture numbers: `pushing.turn_deg_per_m` 8, `pushing.relearn_m` 1.
+**The choice.** Weight ranks: light 1, medium 2, heavy 3, immovable beyond all. Push ranks: none 0, light 1, medium 2, heavy 3, super-heavy 4. A vehicle shoves a body only when the body's weight rank is strictly below its push rank, so a jeep (push light) shoves nothing. While shoving, the vehicle keeps `1 − weight/push` of its speed (`PushClass::shove_speed`): a tank against a light body keeps 2/3, a medium one 1/3; a truck against a light one 1/2. The fixture's `pushing` section holds `turn_deg_per_m` and `relearn_m`.
 
 **The gap.** Q2 asked for a class-ratio slowdown without a formula.
 
@@ -434,11 +434,11 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 **Verdict.** sound rule; the pushing numbers are provisional for the balance spec. Reverse in the `pushing` fixture section.
 
-### Vehicles see 100 % ahead, 50 % abeam and 30 % astern
+### Vehicles see farthest ahead, less abeam and least astern
 
 ***sound** · confidence **medium** · **provisional** · Sight, sensing and the simulation's fog · from Slice 04*
 
-**The choice.** The tank and supply truck carry `sensors.sight_shape {front 1.0, side 0.5, rear 0.3}` in the unit catalog (`fixtures/units/generic/`). The jeep and infantry are even all round (`{1, 1, 1}`). Load refuses a shape that isn't `0 < rear ≤ side ≤ front`.
+**The choice.** The tank and supply truck carry `sensors.sight_shape {front, side, rear}` in the unit catalog (`fixtures/units/generic/`). The jeep and infantry are even all round. Load refuses a shape that isn't `0 < rear ≤ side ≤ front`.
 
 **The gap.** The user said "sides about 50 %, rear about 30 %" but left the values to the build.
 
@@ -450,7 +450,7 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 ***sound** · confidence **medium** · **provisional** · Sight, sensing and the simulation's fog · from Slice 34b; Orchestrator, after slice 34b*
 
-**The choice.** light: spacing 14 m, jitter 0.3, concealment infantry 0.7 / vehicle 0.9, 0.007/m, crown 8 m. medium: 9 m, 0.3, 0.45/0.7, 0.011/m, 6.5 m. dense: 6 m, 0.25, 0.3/0.5, 0.02/m, 5 m. Trunks are weight medium, so a heavy pusher (tank) knocks them; the truck and jeep cannot. The village's west wood (the ambush edge) is medium, its orchard light. Swapped, the flank captured more but the AT ambush in light forest died before sighting a tank.
+**The choice.** Each density sets a trunk spacing and jitter, concealment for infantry and for vehicles, attenuation per metre and a crown radius, from sparse light woods to close dense ones. Trunks are weight medium, so a heavy pusher (tank) knocks them; the truck and jeep cannot. The village's west wood (the ambush edge) is medium, its orchard light. Swapped, the flank captured more but the AT ambush in light forest died before sighting a tank.
 
 **The gap.** Numbers and village assignment were delegated.
 
@@ -474,7 +474,7 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 ***sound** · confidence **medium** · **provisional** · Renderer frame · from Slice 14*
 
-**The choice.** The GPU fog builds a small sight map per eye, and each 16-pixel screen tile keeps a list of which eyes might see it. Five of the numbers that bound this work are fixture keys in `presentation.fog_geometry`: `first_bin_m` 1 (the first distance ring), `terrain_step_m` [0.5, 4] and `terrain_step_fraction` 0.01 (how finely the terrain is marched), `tile_eyes_max` 128 (eyes listed per tile), `rebuild_eyes_per_frame` 48 (sight maps rebuilt per frame). If a tile ever has more than 128 eyes that could see it, the extras are dropped and that tile's fog could be wrong; the lab's `tileCounts` probe would show it. The spike measured at most 72 eyes in a tile. At 1080p the tile lists cost about 4.2 MiB.
+**The choice.** The GPU fog builds a small sight map per eye, and each small screen tile keeps a list of which eyes might see it. Five of the numbers that bound this work are fixture keys in `presentation.fog_geometry`: `first_bin_m` (the first distance ring), `terrain_step_m` and `terrain_step_fraction` (how finely the terrain is marched), `tile_eyes_max` (eyes listed per tile), `rebuild_eyes_per_frame` (sight maps rebuilt per frame). If a tile ever has more than `tile_eyes_max` eyes that could see it, the extras are dropped and that tile's fog could be wrong; the lab's `tileCounts` probe would show it. The spike measured at most 72 eyes in a tile. At 1080p the tile lists cost about 4.2 MiB.
 
 **The gap.** The plan said every provisional number goes in the fixture, and the spike named these budgets without keys.
 
@@ -486,7 +486,7 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 ***sound** · confidence **medium** · **provisional** · Renderer frame · from Slice 23; Slice 24*
 
-**The choice.** A soldier 65 m away is about 35 pixels tall. Tiers come from projected height (`presentation.models {lod_px [150, 60, 24], impostor_px 10}`, `models/modelDetail.ts`), measured on each appearance's far-pose height (a corpse's from its length; a tank's from its swept bounds with the gun). At the default framing soldiers draw tier 2, at the closest zoom tier 1, and cards from about 230 m. Models more than 3 m (their shadow's reach) outside the view are skipped. Props enter with their size grown by their largest fitted scale. Every model's shadow caster draws one tier coarser (`CASTER_COARSER`), as the forest's do. Only skinned bodies have impostor cards; vehicles and props past the coarsest tier keep drawing it. A `tier` on a model still forces it (the workbench).
+**The choice.** A soldier at the default framing is a few dozen pixels tall. Tiers come from projected height (`presentation.models {lod_px, impostor_px}`, `models/modelDetail.ts`), measured on each appearance's far-pose height (a corpse's from its length; a tank's from its swept bounds with the gun). Soldiers step down tiers as the camera pulls back and become cards far out. Models farther outside the view than their shadow's reach are skipped. Props enter with their size grown by their largest fitted scale. Every model's shadow caster draws one tier coarser (`CASTER_COARSER`), as the forest's do. Only skinned bodies have impostor cards; vehicles and props past the coarsest tier keep drawing it. A `tier` on a model still forces it (the workbench).
 
 **The gap.** Delegated: LOD distances.
 
@@ -498,7 +498,7 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 ***sound** · confidence **medium** · **provisional** · Renderer frame · from Slice 24*
 
-**The choice.** A tank fires. A mount's published elevation is its last round's, so it changes only on a shot; the gun eases to it at `presentation.pose.mount.gun_elevation_rad_s` 0.6 (HMG 2). Each rise of the cannon's shot counter runs the gun back `recoil_m` 0.45 m, returning over `recoil_return_s` 0.9 s (quadratic ease). A vehicle first seen with rounds already fired does not recoil. HMG bursts move nothing. The turret bearing is not eased: it is the simulation's own traversed turret at 30 Hz, drawn as published. There is no suspension motion: the rig has no hull input, and rocking the hull needs the running gear split from the hull node. Identified enemy vehicles are drawn packed, since their deployment is unknown.
+**The choice.** A tank fires. A mount's published elevation is its last round's, so it changes only on a shot; the gun eases to it at `presentation.pose.mount.gun_elevation_rad_s` (faster for the HMG). Each rise of the cannon's shot counter runs the gun back `recoil_m`, returning over `recoil_return_s` (quadratic ease). A vehicle first seen with rounds already fired does not recoil. HMG bursts move nothing. The turret bearing is not eased: it is the simulation's own traversed turret at the tick rate, drawn as published. There is no suspension motion: the rig has no hull input, and rocking the hull needs the running gear split from the hull node. Identified enemy vehicles are drawn packed, since their deployment is unknown.
 
 **The gap.** Delegated: mount feel.
 
@@ -506,15 +506,15 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 **Verdict.** sound; the feel numbers are provisional. Edit `presentation.pose.mount`.
 
-### Impostor cards are baked by our own renderer at install time, 8 headings × 2 pitches, not shipped in bundles
+### Impostor cards are baked by our own renderer at install time, not shipped in bundles
 
 ***sound** · confidence **medium** · **provisional** · Renderer frame · from Slice 20; Slice 23*
 
-**The choice.** A soldier far away is a few pixels, so he is drawn as an impostor: a flat card showing the model from the nearest angle. Our own renderer bakes the cards (`models/impostor.ts`): 8 yaws × 2 pitches (0.85 rad, the camera's far plateau, and 0.5), rendered at 2× and box-filtered on the CPU, storing unlit albedo, model-space normals and a side-tint mask, so the battle can relight cards and one atlas serves both sides. One orthographic frame fitted to the far pose's bounding sphere serves every cell, and the same inputs give the same bytes. The battle frame bakes each skinned appearance's far pose and corpse when appearances are installed (64 px cells, `CARD_SPEC`; about 56 ms for the three infantry kinds); the workbench bakes 128 px cells (`IMPOSTOR_SPEC`) for its sheets. A card uses the cell nearest the view direction, alpha-tested; it writes depth in the colour pass and casts no shadow. The rejected alternative was atlases shipped in bundles (a format change, LFS churn, and a GPU in the bake tool).
+**The choice.** A soldier far away is a few pixels, so he is drawn as an impostor: a flat card showing the model from the nearest angle. Our own renderer bakes the cards (`models/impostor.ts`): a ring of yaws at two pitches (the camera's far plateau and a flatter one), rendered at a higher resolution and box-filtered on the CPU, storing unlit albedo, model-space normals and a side-tint mask, so the battle can relight cards and one atlas serves both sides. One orthographic frame fitted to the far pose's bounding sphere serves every cell, and the same inputs give the same bytes. The battle frame bakes each skinned appearance's far pose and corpse when appearances are installed (cells sized by `CARD_SPEC`; about 56 ms for the three infantry kinds); the workbench bakes larger cells (`IMPOSTOR_SPEC`) for its sheets. A card uses the cell nearest the view direction, alpha-tested; it writes depth in the colour pass and casts no shadow. The rejected alternative was atlases shipped in bundles (a format change, LFS churn, and a GPU in the bake tool).
 
 **The gap.** "LODs and impostors come from the port"; the layout and where atlases are made were left open.
 
-**The reach.** Install time grows with appearances; atlases never go stale against the art. A card can jump between cells as the camera turns (under two pixels at 10 px).
+**The reach.** Install time grows with appearances; atlases never go stale against the art. A card can jump between cells as the camera turns (under two pixels at card size).
 
 **Verdict.** sound; provisional. To ship atlases in bundles instead, move the bake into the asset CLI and add an atlas view to the bundle format.
 
@@ -522,7 +522,7 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 ***sound** · confidence **medium** · **provisional** · Renderer frame · from Slice 19; Slice 24*
 
-**The choice.** Thousands of trees, most far away, plus a few hundred props. Two layers draw static meshes. Trees draw in `frame/sceneryLayer.ts`: it reads the same bundles as models but scales and tints each instance and picks a detail tier per tree by projected height (`trees.lod_px` [260, 90, 26]). 128 m chunks too far for tier 2 draw whole at tier 3 from a static buffer; the backdrop scenery is culled to the view's sides, the forest never (it casts shadows into view). Shadow casters draw one tier coarser than the view (`CASTER_COARSER`), and leaf-clump noise is skipped where it has faded (about 0.5 ms saved). Its crowns take fog whole at their heart. It draws about 44,000 instances, which cost about 0.17 ms; thinning backdrop scenery was rejected because it is what breaks the horizon. Props joined the models layer instead, which already draws static bundles with materials, detail tiers, culling and cards, and gained a per-axis scale. Both layers choose tiers from one `DetailView`. The alternative was converging the two now.
+**The choice.** Thousands of trees, most far away, plus a few hundred props. Two layers draw static meshes. Trees draw in `frame/sceneryLayer.ts`: it reads the same bundles as models but scales and tints each instance and picks a detail tier per tree by projected height (`trees.lod_px`). Chunks too far for tier 2 draw whole at tier 3 from a static buffer; the backdrop scenery is culled to the view's sides, the forest never (it casts shadows into view). Shadow casters draw one tier coarser than the view (`CASTER_COARSER`), and leaf-clump noise is skipped where it has faded (about 0.5 ms saved). Its crowns take fog whole at their heart. It draws about 44,000 instances, which cost about 0.17 ms; thinning backdrop scenery was rejected because it is what breaks the horizon. Props joined the models layer instead, which already draws static bundles with materials, detail tiers, culling and cards, and gained a per-axis scale. Both layers choose tiers from one `DetailView`. The alternative was converging the two now.
 
 **The gap.** The models layer's placement had no scale or tint and one tier per call; the spec said "consider converging".
 
@@ -534,7 +534,7 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 ***sound** · confidence **medium** · **provisional** · Light, terrain, grass and trees · from Slice 22b*
 
-**The choice.** The world's water layer is drawn from the terrain material's `waterSurface` and `waterNormal`, one owner with the bed and the shore. Colour is the biome's `water` palette over deep water, with the bed showing at the edge; two ripple octaves fade with distance; low roughness reflects sky and sun; shadows keep 55% of the light. The quad extends 6 m past its rectangle to meet banks the 4 m height grid slopes, and the depth test hides it under higher ground. A biome `shore` (palette, `width_m` 2) paints pale bare earth along a ragged line round every water rect, with no grass. A dark wet-soil shore read as a shadow rim.
+**The choice.** The world's water layer is drawn from the terrain material's `waterSurface` and `waterNormal`, one owner with the bed and the shore. Colour is the biome's `water` palette over deep water, with the bed showing at the edge; two ripple octaves fade with distance; low roughness reflects sky and sun; shadows keep part of the light. The quad extends a few metres past its rectangle to meet banks the height grid slopes, and the depth test hides it under higher ground. A biome `shore` (palette, `width_m`) paints pale bare earth along a ragged line round every water rect, with no grass. A dark wet-soil shore read as a shadow rim.
 
 **The gap.** "Coordinate with the terrain's water, don't fork."
 
@@ -542,15 +542,15 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 **Verdict.** sound shape; the shore colour is a provisional look. Reverse by changing the biome's `shore` palette.
 
-### The fog sight map is 4096 rays by 64 range bins per eye
+### The fog sight map is a fixed grid of directions by range bins per eye
 
 ***sound** · confidence **medium** · **provisional** · How fog looks · from Spike 02*
 
-**The choice.** The drawn fog asks, for each pixel, whether any friendly eye (a unit or soldier that sees) sees that spot. Each eye has a sight map: `presentation.fog_geometry.azimuth_bins` 4096 directions by `radial_bins` 64 range steps, with terrain marched at 512 directions. That is about 1 MiB per eye. At 4096, the edge of a building's sight shadow stays within 1.4 px of the building corner at ground framing; 2048 would halve memory at about 5 px.
+**The choice.** The drawn fog asks, for each pixel, whether any friendly eye (a unit or soldier that sees) sees that spot. Each eye has a sight map: `presentation.fog_geometry.azimuth_bins` directions by `radial_bins` range steps, with terrain marched at fewer directions. That is about 1 MiB per eye. At the shipped resolution, the edge of a building's sight shadow stays within 1.4 px of the building corner at ground framing; half the directions would halve memory at about 5 px.
 
 **The gap.** Resolution was left open.
 
-**The reach.** GPU memory scales with eye count; a very large battle may need 2048.
+**The reach.** GPU memory scales with eye count; a very large battle may need half the directions.
 
 **Verdict.** sound, provisional — lower `azimuth_bins` in the fixture to trade edge accuracy for memory.
 
@@ -558,7 +558,7 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 ***sound** · confidence **medium** · **provisional** · Models and the asset pipeline · from Spike 03*
 
-**The choice.** No rifle-run clip exists. Today the run is the library's jog with the spine and neck twist damped to 30 % of the original (`RUN_TWIST` in `clips_infantry.py`), so the weapon stays pointed forward.
+**The choice.** No rifle-run clip exists. Today the run is the library's jog with the spine and neck twist damped (`RUN_TWIST` in `clips_infantry.py`), so the weapon stays pointed forward.
 
 **The gap.** No clip to use.
 
@@ -570,7 +570,7 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 ***sound** · confidence **medium** · **provisional** · Models and the asset pipeline · from Slice 20*
 
-**The choice.** The simulation aims a tank gun at a target on a hill. Today the drawn gun pitch is clamped to −10°..+20°, the HMG to −10°..+45° (`PITCH_LIMITS` in `scene-assets/src/articulation.ts`), and the culling bounds sweep those limits. These are presentation constants, not simulation rules: the simulation's fire is not limited by them.
+**The choice.** The simulation aims a tank gun at a target on a hill. Today the drawn gun and HMG pitch are clamped (`PITCH_LIMITS` in `scene-assets/src/articulation.ts`), and the culling bounds sweep those limits. These are presentation constants, not simulation rules: the simulation's fire is not limited by them.
 
 **The gap.** The spike's test strip went −8..+20 without saying who owns the limit.
 
@@ -582,7 +582,7 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 ***sound** · confidence **medium** · **provisional** · Models and the asset pipeline · from Slice 21; Slice 24*
 
-**The choice.** A red tank and a blue tank use the same mesh. Each material carries a `tint` value from 0 to 1 (glTF material extras): how much of the side's colour it takes. Where a material has an ORM texture (occlusion, roughness, metalness), that texture's alpha multiplies the mask. Soldiers' uniforms and helmets take 1.0, gear and webbing 0.6, skin, boots and weapons 0. The tank's `tank_camo` and the truck's `truck_paint` take 1.0; wrecks take none. The side colours live in the asset catalog's `sides`: blue `[1, 1, 1]` (neutral, so own vehicles keep their camouflage) and red `[1.18, 1.0, 0.78]` (a shift toward sand). Each drawn model carries its tint in its instance record. Impostor cards are baked untinted, with the mask baked beside them, so one atlas serves both sides. Telling sides apart at a glance is the HUD's job, not the paint's. The alternative was separate meshes or textures per side.
+**The choice.** A red tank and a blue tank use the same mesh. Each material carries a `tint` value from 0 to 1 (glTF material extras): how much of the side's colour it takes. Where a material has an ORM texture (occlusion, roughness, metalness), that texture's alpha multiplies the mask. Soldiers' uniforms and helmets take it fully, gear and webbing partly, skin, boots and weapons not at all. The tank's `tank_camo` and the truck's `truck_paint` take it fully; wrecks take none. The side colours live in the asset catalog's `sides`: blue neutral, so own vehicles keep their camouflage, and red a shift toward sand. Each drawn model carries its tint in its instance record. Impostor cards are baked untinted, with the mask baked beside them, so one atlas serves both sides. Telling sides apart at a glance is the HUD's job, not the paint's. The alternative was separate meshes or textures per side.
 
 **The gap.** The spec said "a tint mask" with no form, and not where side colours live.
 
@@ -594,7 +594,7 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 ***sound** · confidence **medium** · **provisional** · Models and the asset pipeline · from Slice 22*
 
-**The choice.** The tank far away should drop its tow hooks. Each part declares which tiers it appears in (small detail drops out by LOD1–2), segment counts fall per tier (×1, 0.6, 0.36, 0.2), and bevels exist only on LOD0–1. The tank is about 74.5k / 20.4k / 3.7k / 1.0k triangles, the truck 35.3k / 10.4k / 1.9k / 280, houses 68–110k at LOD0 (the roof courses). The alternative was automatic decimation from one mesh.
+**The choice.** The tank far away should drop its tow hooks. Each part declares which tiers it appears in (small detail drops out by LOD1–2), segment counts fall per tier, and bevels exist only on LOD0–1. The tank is about 74.5k / 20.4k / 3.7k / 1.0k triangles, the truck 35.3k / 10.4k / 1.9k / 280, houses 68–110k at LOD0 (the roof courses). The alternative was automatic decimation from one mesh.
 
 **The gap.** "Four tiers" with no triangle budget.
 
@@ -606,7 +606,7 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 ***sound** · confidence **medium** · **provisional** · Models and the asset pipeline · from Slice 22*
 
-**The choice.** A tank wreck's thrown track and askew turret reach past its hull box. Per-appearance footprint tolerances (catalog `tolerances.footprint_m`) allow it: houses and the ruin 0.5 m (eaves, chimneys, rubble), the tank wreck 3.0, the truck wreck 2.0, the jeep wreck 1.0, the field wall 0.15, the bridge 1.2 (a railing above the deck box). The alternative was making the art fit the box exactly, or growing the simulation boxes.
+**The choice.** A tank wreck's thrown track and askew turret reach past its hull box. Per-appearance footprint tolerances (catalog `tolerances.footprint_m`) allow it, from a hair for the field wall to metres for the tank wreck: houses and the ruin for eaves, chimneys and rubble, the wrecks for thrown parts, the bridge for a railing above the deck box. The alternative was making the art fit the box exactly, or growing the simulation boxes.
 
 **The gap.** The spec did not cover art that overhangs a rule box on purpose.
 
@@ -642,7 +642,7 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 ***sound** · confidence **medium** · **provisional** · Effects and sound · from Slice 40*
 
-**The choice.** `presentation.audio.buses`: master 0.9, units 0.7, effects 1.0, ambience 0.4, into a limiter (−6 dB threshold, ratio 20). The countryside bed is at gain 0.2; at 0.6 it sat within 2 dB of the effects' peaks.
+**The choice.** `presentation.audio.buses`: master, units, effects and ambience, into a limiter. The countryside bed sits well under the effects; louder, it sat within 2 dB of the effects' peaks.
 
 **The gap.** Mix levels were unspecified.
 
@@ -654,7 +654,7 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 ***sound** · confidence **medium** · **provisional** · The catalog · from Slice 34; Slice 36*
 
-**The choice.** `fixtures/units/generic/vehicles.json` `jeep`: 9 m/s off road, 18 on it; hull half extents 2.2 × 1.0 × 0.95 m; eye 2.1 m; 40 hp; armour front 8, side 7, rear 6, roof 6 (the rifle's 5 stops, every heavier round gets through: a test pins that rule, not the numbers); 450 m all-round sight; 500 m loudness; cost 70; weight light, push light, leaves `jeep_wreck`; wheeled, 60°/s, 6 m radius, reverse 0.4×. Its HMG mount pivots on the hull origin at 1.68 m with the muzzle 1.43 m ahead (2.0 m up): the pedestal stands between the front seats, so a turret muzzle swung about the origin points forward. The art is a 4.4 m open-topped 4×4 with a folded windscreen so the HMG sweeps clear.
+**The choice.** `fixtures/units/generic/vehicles.json` `jeep`: fast off road and faster on it; small, lightly built and lightly armoured (the rifle's round stops on it, every heavier round gets through: a test pins that rule, not the numbers); all-round sight; quiet and cheap; weight light, push light, leaves `jeep_wreck`; wheeled, with a tight turning radius. Its HMG mount pivots on the hull origin with the muzzle ahead of and above it: the pedestal stands between the front seats, so a turret muzzle swung about the origin points forward. The art is an open-topped 4×4 with a folded windscreen so the HMG sweeps clear.
 
 **The gap.** The jeep's stats and mount placement were delegated.
 
@@ -666,7 +666,7 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 ***sound** · confidence **medium** · **provisional** · The catalog · from Slice 39*
 
-**The choice.** A vehicle's `mobility` is `tracked {mps, road_mps, turn_deg_s, reverse_fraction}` or `wheeled {…, turning_radius_m, …}` (`contract::catalog::Mobility`); only wheels have a radius. It is read once into the vehicle's drive state. Route planning never reads it. The follower's feel numbers are the fixture's `movement.drive` (pivot beyond 60°, abeam 1.5 m, and so on). Numbers: tank tracked 45°/s, 0.4× reverse; truck wheeled 40°/s, 9 m, 0.35×; jeep wheeled 60°/s, 6 m, 0.4×.
+**The choice.** A vehicle's `mobility` is `tracked {mps, road_mps, turn_deg_s, reverse_fraction}` or `wheeled {…, turning_radius_m, …}` (`contract::catalog::Mobility`); only wheels have a radius. It is read once into the vehicle's drive state. Route planning never reads it. The follower's feel numbers are the fixture's `movement.drive` (the pivot angle, the abeam distance, and so on). Today the tank is tracked; the truck and jeep are wheeled.
 
 **The gap.** The spec named no turn rates for wheeled vehicles.
 
@@ -702,7 +702,7 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 ***sound** · confidence **medium** · Simulation rules · from Slice 33*
 
-**The choice.** A soldier peers past the edge of a tree trunk: his line of fire is clear, yet the trunk still counts as between him and the shooter, because his 0.3 m disc swept `reach_m` toward the shooter meets it. A soldier standing beside the end of a wall, whose disc sweep misses it, gets nothing. With the bare line, every covered soldier would also have his own line blocked by his cover and could never fire from it.
+**The choice.** A soldier peers past the edge of a tree trunk: his line of fire is clear, yet the trunk still counts as between him and the shooter, because his disc swept `reach_m` toward the shooter meets it. A soldier standing beside the end of a wall, whose disc sweep misses it, gets nothing. With the bare line, every covered soldier would also have his own line blocked by his cover and could never fire from it.
 
 **The gap.** Q20 said "between" without a geometry.
 
@@ -750,7 +750,7 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 ***sound** · confidence **medium** · Simulation rules · from Slice 34*
 
-**The choice.** A tank meets a wreck. Box against box (`Obb2::separation`), the wreck slides out along the axis of least overlap, 1 cm clear, and turns by `turn_deg_per_m` × depth × a lever arm (where along the body the contact is), in three passes. A shove that would drive it into another vehicle-stopping body or a live hull, or off the map, fails and the vehicle stops as at a solid. `movement::advance` returns the tick's `Shove`s and `Battle` applies them after the movement pass, so later units in the same tick see the old pose. Soldiers the moved body now covers step out unhurt (`movement::clear_of`). A body that `topples` (a tree) is knocked down instead of sliding.
+**The choice.** A tank meets a wreck. Box against box (`Obb2::separation`), the wreck slides out along the axis of least overlap, just clear, and turns by `turn_deg_per_m` × depth × a lever arm (where along the body the contact is), in a few passes. A shove that would drive it into another vehicle-stopping body or a live hull, or off the map, fails and the vehicle stops as at a solid. `movement::advance` returns the tick's `Shove`s and `Battle` applies them after the movement pass, so later units in the same tick see the old pose. Soldiers the moved body now covers step out unhurt (`movement::clear_of`). A body that `topples` (a tree) is knocked down instead of sliding.
 
 **The gap.** Q2/L8 asked for pushing without the mechanics.
 
@@ -762,7 +762,7 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 ***sound** · confidence **medium** · Simulation rules · from Slice 34b*
 
-**The choice.** Forest speed applies on *forest ground*: inside an authored forest rect, less cleared cells. Each tick, every vehicle able to knock trunks that moved clears the forest ground its hull has left behind, widened `ground.lane_margin_m` (0.5 m) each side, on 1 m cells; not the ground under the hull now. A knocked tree takes its foliage but not its ground, so the carving tank moves at forest speed; the jeep following uses the lane at open speed. Two stores are written deliberately: the world's cleared mask is authority for speed, sensing, fog and cover; the ground layer's `cleared` channel (255) is each side's learned knowledge of it, drawn as crushed ground.
+**The choice.** Forest speed applies on *forest ground*: inside an authored forest rect, less cleared cells. Each tick, every vehicle able to knock trunks that moved clears the forest ground its hull has left behind, widened `ground.lane_margin_m` each side, on the ground layer's cells; not the ground under the hull now. A knocked tree takes its foliage but not its ground, so the carving tank moves at forest speed; the jeep following uses the lane at open speed. Two stores are written deliberately: the world's cleared mask is authority for speed, sensing, fog and cover; the ground layer's `cleared` channel (255) is each side's learned knowledge of it, drawn as crushed ground.
 
 **The gap.** Q16 said the lane stops being forest, not the carving tank's own speed.
 
@@ -790,7 +790,7 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 **The gap.** The seam gave the damage sources, but not whether blast is shielded or reads armour.
 
-**The reach.** Wrecks (armour 0.5) fall mostly to blast rather than to AP. Near misses count against houses.
+**The reach.** Wrecks (low armour) fall mostly to blast rather than to AP. Near misses count against houses.
 
 **Verdict.** sound. It is simple and reads right on screen. Shielded blast would be a costlier refinement.
 
@@ -806,15 +806,15 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 **Verdict.** sound. Nearest-trunk partition is the general rule and leaves no leftovers.
 
-### The village's works: a road block, sandbags by two houses, fences in 6 m panels, placed off the tanks' firing lines
+### The village's works: a road block, sandbags by two houses, fences in short panels, placed off the tanks' firing lines
 
 ***sound** · confidence **medium** · Simulation rules · from Slice 37; Slice 27a*
 
 **The choice.** `fixtures/game.json` `map.props` places, after the three houses (so building indices don't move):
-- A road block of 20 dragon's teeth across the main road at the village's west entrance (x 895, y 767–813, 2.4 m pitch, one-man gaps). Vehicles leave the road round either end, and squads thread through.
-- Sandbags on the north house's west face (three sections and a return arm, x 947, y 737–752).
-- Sandbags on the square facing the road's end (two sections and an arm, x 1012, y 790–800). The sections abut, so the corners close.
-- Fences in 6 m panels, each its own body 0.2 m apart, so a shove moves one panel, not a 50 m line. There is a field fence across the approach to the west wood (x 600, y 872–922, with a gate), a garden fence behind the south house (y 905, with a gate), and a farm fence at blue's start, clear of both roads.
+- A road block of dragon's teeth across the main road at the village's west entrance, with one-man gaps. Vehicles leave the road round either end, and squads thread through.
+- Sandbags on the north house's west face (sections and a return arm).
+- Sandbags on the square facing the road's end (sections and an arm). The sections abut, so the corners close.
+- Fences in short panels, each its own body with a small gap between, so a shove moves one panel, not a whole line. There is a field fence across the approach to the west wood (with a gate), a garden fence behind the south house (with a gate), and a farm fence at blue's start, clear of both roads.
 
 The works stand beside the houses because the defenders start garrisoned. They use the works once a house falls and they spill out. Every work sits off the lines from the flank script's tank position (`BOMBARD`) to the houses, because works on those lines stopped the shelling.
 
@@ -824,11 +824,11 @@ The works stand beside the houses because the defenders start garrisoned. They u
 
 **Verdict.** sound. It is reversible tuning; balance has its own future spec.
 
-### The west wood stays medium density, with its north edge 60 m south so its AT team can be found
+### The west wood stays medium density, with its AT team near its edge so it can be found
 
 ***sound** · confidence **medium** · Simulation rules · from Slice 37; Slice 27a*
 
-**The choice.** The west wood is medium density (rect `[700, 880, 180, 160]`) and the orchard is light. Red's ambushing AT team spawns 6 m inside the west wood's edge (760, 886). With the team 60 m deep, blue's recon and tanks never identified it and it stalled the push. At 6 m in, blue finds and kills it in about 35–105 s. The alternative was to make the wood light density, which killed the ambush at once and changed the wood the user sees. Deeper spots were measured and gave worse capture rates.
+**The choice.** The west wood is medium density and the orchard is light. Red's ambushing AT team spawns just inside the west wood's edge. With the team deep in the wood, blue's recon and tanks never identified it and it stalled the push. Just inside the edge, blue finds and kills it in about 35–105 s. The alternative was to make the wood light density, which killed the ambush at once and changed the wood the user sees. Deeper spots were measured and gave worse capture rates.
 
 **The gap.** The slice asked for a density per forest. The ambush depth fell out of balancing.
 
@@ -840,11 +840,11 @@ The works stand beside the houses because the defenders start garrisoned. They u
 
 ***sound** · confidence **medium** · Simulation rules · from Slice 37; Slice 27a*
 
-**The choice.** The slice asked for jeeps, but encounter.md names five unit kinds a side. Blue's jeep is appended to its spawn at (125, 905), south of the start. Red's is appended at (1175, 800), a rear reserve at the flank road's end, out of the objective zone. Appending keeps every existing spawn index (the variants' disabled indices and garrison pairs), but red's unit ids each move up one. Red's jeep at the road block pinned blue's staging area with its HMG from minute one. Blue's jeep at the road junction drew fire across the supply truck's post and killed the truck in 9 of 10 seeds. Both jeeps fire at will. Blue's scripts leave its jeep idle, except the flank script, where it joins the push. Holding red's jeep's fire cost less but captured the same, so it wasn't done.
+**The choice.** The slice asked for jeeps, but encounter.md names five unit kinds a side. Blue's jeep is appended to its spawn, south of the start. Red's is appended as a rear reserve at the flank road's end, out of the objective zone. Appending keeps every existing spawn index (the variants' disabled indices and garrison pairs), but red's unit ids each move up one. Red's jeep at the road block pinned blue's staging area with its HMG from minute one. Blue's jeep at the road junction drew fire across the supply truck's post and killed the truck in 9 of 10 seeds. Both jeeps fire at will. Blue's scripts leave its jeep idle, except the flank script, where it joins the push. Holding red's jeep's fire cost less but captured the same, so it wasn't done.
 
 **The gap.** The roster wasn't the slice's to change, and the fixture couldn't then set a blue unit's engagement.
 
-**The reach.** A red reserve jeep can duel a halted push from 500 m (an open item for the balance spec).
+**The reach.** A red reserve jeep can duel a halted push from long range (an open item for the balance spec).
 
 **Verdict.** sound. Adding kinds to the encounter is a user-visible change, but the slice asked for jeeps. To reverse, remove the two spawn rows.
 
@@ -852,7 +852,7 @@ The works stand beside the houses because the defenders start garrisoned. They u
 
 ***sound** · confidence **medium** · Simulation rules · from Slice 27c*
 
-**The choice.** A tank aims AP at an enemy tank behind a tank wreck. AP does 10 × armour 0.5 = 5 per round, and it has 20 rounds, so 100 against the wreck's 400 hp. It holds. The test is `structural_damage × armor × rounds_left ≥ hp_left`, and unlimited ammunition always passes. Without it, the tank would empty its AP into the hulk, and a squad would throw its eight grenades into sandbags. Only direct hits count, not blast, which errs toward holding. Test: `a_gun_holds_fire_when_its_rounds_left_cannot_break_the_blocker`.
+**The choice.** A tank aims AP at an enemy tank behind a tank wreck. The AP rounds it has left, each dealing its structural damage scaled by the wreck's armour, add up to far less than the wreck's hp. It holds. The test is `structural_damage × armor × rounds_left ≥ hp_left`, and unlimited ammunition always passes. Without it, the tank would empty its AP into the hulk, and a squad would throw all its grenades into sandbags. Only direct hits count, not blast, which errs toward holding. Test: `a_gun_holds_fire_when_its_rounds_left_cannot_break_the_blocker`.
 
 **The gap.** Added by the agent. The brief didn't mention ammunition.
 
@@ -888,7 +888,7 @@ The works stand beside the houses because the defenders start garrisoned. They u
 
 ***sound** · confidence **medium** · Simulation rules · from Slice 27 (per-mount muzzles)*
 
-**The choice.** The tank's roof HMG sits 0.6 m off the hull's centre. When it turns to a target 80 m away, the bearing it aims along, which the traverse and the fire tolerance read, is measured from the hull origin, not from the HMG's own pivot. The error is under half a degree at 80 m. The round's arc is solved from the true muzzle, so it still reaches the target. The alternative, measuring from each pivot, is exact but would move more of the traverse code and every digest.
+**The choice.** The tank's roof HMG sits a little off the hull's centre. When it turns to a target 80 m away, the bearing it aims along, which the traverse and the fire tolerance read, is measured from the hull origin, not from the HMG's own pivot. The error is under half a degree at 80 m. The round's arc is solved from the true muzzle, so it still reaches the target. The alternative, measuring from each pivot, is exact but would move more of the traverse code and every digest.
 
 **The gap.** Per-mount muzzles raised the question of where "pointing" is measured from. The spec did not answer it.
 
@@ -930,11 +930,11 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Simulation rules · from Slice 27d*
 
-**The choice.** Rifles have unlimited ammunition, so a leaning man who leaned out only while firing would stay out for the whole fight. A stretch out lasts at most `cover.lean_burst_s` (3 s). Then he stays in until `cover.lean_tuck_s` (2 s) has passed; tucked in, he fires only along a straight line. After his last round from the lean point he stays out `cover.lean_hold_s` (1.5 s), the firing pose's hold. The alternative, leaning out while he fires with no cap, left men out forever.
+**The choice.** Rifles have unlimited ammunition, so a leaning man who leaned out only while firing would stay out for the whole fight. A stretch out lasts at most `cover.lean_burst_s`. Then he stays in until `cover.lean_tuck_s` has passed; tucked in, he fires only along a straight line. After his last round from the lean point he stays out `cover.lean_hold_s`, the firing pose's hold. The alternative, leaning out while he fires with no cap, left men out forever.
 
 **The gap.** The slice's picture ("fires from there, and tucks back in") had no rhythm.
 
-**The reach.** It cuts a leaner's fire by roughly 40%, unmeasured on balance. The numbers are fixture rules, validated positive.
+**The reach.** It cuts a leaner's fire by a large share, unmeasured on balance. The numbers are fixture rules, validated positive.
 
 **Verdict.** sound — gives the picture the slice asked for; medium on the numbers.
 
@@ -954,13 +954,13 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Sight, sensing and the simulation's fog · from Slice 14; Slice 15*
 
-**The choice.** A blue squad on the street looks at a two-storey house. Its roof faces the sky, above every eye, so a strict "is this face turned to an eye" test would always fog it. Today a surface facing up (normal z ≥ 0.7) and above an eye counts as seen by that eye if the point at the roof's own height, pulled up to `presentation.fog_geometry.roof_reach_m` (40 m; 0 turns it off) toward the eye, is visible from the eye with no facing test, and the roof is within the eye's range. So a roof reads like its building's near wall; a lower roof hidden behind a taller building stays unseen; a canopy top reads seen as far as sight into the foliage allows plus the reach. This lives in `fogSeenSurface`, which the fragment term and the lab probe share. The rejected alternative, "a roof is seen if the ground under it is", fails because that ground is inside the building's own blocker and never seen.
+**The choice.** A blue squad on the street looks at a two-storey house. Its roof faces the sky, above every eye, so a strict "is this face turned to an eye" test would always fog it. Today a surface facing up (its normal mostly upward) and above an eye counts as seen by that eye if the point at the roof's own height, pulled up to `presentation.fog_geometry.roof_reach_m` (0 turns it off) toward the eye, is visible from the eye with no facing test, and the roof is within the eye's range. So a roof reads like its building's near wall; a lower roof hidden behind a taller building stays unseen; a canopy top reads seen as far as sight into the foliage allows plus the reach. This lives in `fogSeenSurface`, which the fragment term and the lab probe share. The rejected alternative, "a roof is seen if the ground under it is", fails because that ground is inside the building's own blocker and never seen.
 
 **The gap.** The spike handed roofs and canopy tops to the fog look without a rule.
 
 **The reach.** Walls facing away from every eye stay unseen under a seen roof, so buildings can look half-fogged; this is geometry, not a bug.
 
-**Amended (Armory closeout, `3a48f3df7`).** The rule now gates on the probe point standing level with or above an eye, not the surface, so a top just under eye height (a 1.5 m ruin under 1.6 m eyes) takes it too; see the [Armory's choices](../armory/choices.md).
+**Amended (Armory closeout, `3a48f3df7`).** The rule now gates on the probe point standing level with or above an eye, not the surface, so a top just under eye height (a low ruin's) takes it too; see the [Armory's choices](../armory/choices.md).
 
 **Verdict.** sound — a general rule from the eye's own sight line, not a roof special case.
 
@@ -976,15 +976,15 @@ Where the operator fires it from is the operator-muzzle entry.
 
 **Verdict.** sound as a bounded stopgap — the true-box read is limited to bodies already known.
 
-### Foliage is an 8 m cell grid built from the trunks whose crowns cover each cell
+### Foliage is a cell grid built from the trunks whose crowns cover each cell
 
 ***sound** · confidence **medium** · Sight, sensing and the simulation's fog · from Slice 34b*
 
-**The choice.** A cell's strength is `s = 1 − Π(1 − conceals)` over the standing trunks whose crown (`canopy_radius_m`) covers its centre. The densest forest's row there scales it: depth per metre `attenuation_per_m · s`; range multipliers `1 + (concealment_<class> − 1) · s`. Knocking a trunk refreshes the cells its crown reached. Light forest is therefore patchy (a cell no crown reaches is open), and a knocked lane opens the 8 m cells only its trees covered. Only trunks conceal today (a crate would need a crown).
+**The choice.** A cell's strength is `s = 1 − Π(1 − conceals)` over the standing trunks whose crown (`canopy_radius_m`) covers its centre. The densest forest's row there scales it: depth per metre `attenuation_per_m · s`; range multipliers `1 + (concealment_<class> − 1) · s`. Knocking a trunk refreshes the cells its crown reached. Light forest is therefore patchy (a cell no crown reaches is open), and a knocked lane opens only the cells its trees covered. Only trunks conceal today (a crate would need a crown).
 
 **The gap.** Q21 gave the product, not how per-class numbers combine.
 
-**The reach.** Foliage overhangs a forest's rectangle by up to a crown; lanes open in 8 m blocks.
+**The reach.** Foliage overhangs a forest's rectangle by up to a crown; lanes open in whole cells.
 
 **Verdict.** sound.
 
@@ -992,7 +992,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Movement, cover and pushing · from Slice 07*
 
-**The choice.** A 7 m tank drives over a 1 m crater cell. Today the speed multiplier reads the cell under the hull's centre (`GroundLayer::vehicle_speed`: 1 − (1 − `crater_vehicle_mult` 0.85) × fill), and scales translation only; turning in place, turret slew and infantry are never slowed. A tank straddling a crater with its centre off it is not slowed. Navigation never reads craters, so a crater never replans anyone.
+**The choice.** A tank drives over a crater cell much smaller than its hull. Today the speed multiplier reads the cell under the hull's centre (`GroundLayer::vehicle_speed`: 1 − (1 − `crater_vehicle_mult`) × fill), and scales translation only; turning in place, turret slew and infantry are never slowed. A tank straddling a crater with its centre off it is not slowed. Navigation never reads craters, so a crater never replans anyone.
 
 **The gap.** How a large hull samples small cells.
 
@@ -1004,13 +1004,13 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Movement, cover and pushing · from Slice 32*
 
-**The choice.** A soldier walking toward a line of concrete anti-tank teeth checks his lane ahead: from where he stands, through his steer point and on up to `lane_lookahead_m` (8 m) along the lane, his 0.3 m disc must cross no body his side knows about. If his wanted offset is blocked he tries, in order, the offset shifted by ±0.5, ±1, ±2, ±3 m, then half the offset, and finally the corridor itself (`movement::soldier::lane_offset`). The sideways shifts make each man pick his own gap between teeth, and let half a squad pass north of a crate stack while the rest pass south. The unbuilt alternative, simply narrowing every lane toward the corridor, funnels the whole squad through the corridor's one gap.
+**The choice.** A soldier walking toward a line of concrete anti-tank teeth checks his lane ahead: from where he stands, through his steer point and on up to `lane_lookahead_m` along the lane, his disc must cross no body his side knows about. If his wanted offset is blocked he tries, in order, the offset shifted by a widening ladder of sideways steps either way, then half the offset, and finally the corridor itself (`movement::soldier::lane_offset`). The sideways shifts make each man pick his own gap between teeth, and let half a squad pass north of a crate stack while the rest pass south. The unbuilt alternative, simply narrowing every lane toward the corridor, funnels the whole squad through the corridor's one gap.
 
 **The gap.** The mock lesson said only "the lane falls back toward the corridor".
 
-**The reach.** Squads flow round small obstacles without replanning. The 3 m ladder is a code constant, not a fixture row.
+**The reach.** Squads flow round small obstacles without replanning. The offset ladder is a code constant, not a fixture row.
 
-**Verdict.** sound — a search reads naturally; the ±3 m bound is tuning living in code, which is the only doubt.
+**Verdict.** sound — a search reads naturally; the ladder's bound is tuning living in code, which is the only doubt.
 
 ### The squad plans its corridor from the soldier nearest its middle, and each soldier starts at his current offset from it
 
@@ -1052,7 +1052,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Movement, cover and pushing · from Slice 39*
 
-**The choice.** A truck drops a waypoint within 0.5 m, one it passes abeam within `movement.drive.abeam_m` (1.5 m), and a corner early: at the fillet tangent `radius · tan(turn/2)`, capped at half a radius, so a corner is cut by at most about 0.1 radius. Route smoothing keeps its clearance, so the cut stays within that margin.
+**The choice.** A truck drops a waypoint it comes close to, one it passes abeam within `movement.drive.abeam_m`, and a corner early: at the fillet tangent `radius · tan(turn/2)`, capped so a corner is cut by only a small share of the radius. Route smoothing keeps its clearance, so the cut stays within that margin.
 
 **The gap.** The spec delegated the arc construction.
 
@@ -1064,13 +1064,13 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Movement, cover and pushing · from Slice 39*
 
-**The choice.** A truck needs to turn round in a 10 m lane. When the next waypoint (over 1.5 m away) is inside its turning circle, or a turn over 20° would hit a solid within its next metre of arc, it starts a leg driven against the order's direction, turning the same way (`Unit::manoeuvre`, in the digest). The leg ends when the waypoint is outside the circle by 0.5 m and the whole forward arc is clear, after a quarter circle, or when its own next metre meets a solid. A tight lane takes as many points as it needs. Solids are the bodies that stop the hull, not live vehicles (traffic still waits). A forward turn counts as progress, so a U-turn is not a stall.
+**The choice.** A truck needs to turn round in a 10 m lane. When the next waypoint (not one right beside it) is inside its turning circle, or a sharp turn would hit a solid within its next short stretch of arc, it starts a leg driven against the order's direction, turning the same way (`Unit::manoeuvre`, in the digest). The leg ends when the waypoint is clear outside the circle and the whole forward arc is clear, after a quarter circle, or when its own next stretch meets a solid. A tight lane takes as many points as it needs. Solids are the bodies that stop the hull, not live vehicles (traffic still waits). A forward turn counts as progress, so a U-turn is not a stall.
 
 **The gap.** Q29 asked for three-point turns, not the mechanism.
 
 **The reach.** No reverse planning; a narrow lane may take more than three points.
 
-**Since (2026-10-05).** A leg whose turning arc is blocked backs out straight, or turning the other way, before it ends: a truck nosed into a gap between parked cars otherwise flipped between leg and forward arc for ever. Arcs are also swept for solids every 10 cm (`drive::SAMPLE_M`), since a turning corner clips a body within a metre.
+**Since (2026-10-05).** A leg whose turning arc is blocked backs out straight, or turning the other way, before it ends: a truck nosed into a gap between parked cars otherwise flipped between leg and forward arc for ever. Arcs are also swept for solids at a fine step (`drive::SAMPLE_M`), since a turning corner clips a body within a metre.
 
 **Verdict.** sound.
 
@@ -1090,7 +1090,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Movement, cover and pushing · from Slice 27d*
 
-**The choice.** Eight soldiers, a dozen candidate places, some with lean points. `cover::claim` lists every (soldier, place, lean) offer and sorts it: can he engage from it, then cover tier, then "he's already there", then distance, then a lean before none. It walks the list once and gives each soldier the first free offer. A place is `cover::Place { at, tier, direct, leans }`. A lean point is taken like a place, and none may be within `cover.lean_apart_m` (0.8 m) of another taken place or lean point. A soldier shoved outside the area is offered no "stay" and walks back in to the nearest free room. The alternative is an optimal assignment (e.g. Hungarian); conflicts are rare (two spots sharing a lean point), and the step-out rule (next entry) catches whoever is left unable to fire.
+**The choice.** Eight soldiers, a dozen candidate places, some with lean points. `cover::claim` lists every (soldier, place, lean) offer and sorts it: can he engage from it, then cover tier, then "he's already there", then distance, then a lean before none. It walks the list once and gives each soldier the first free offer. A place is `cover::Place { at, tier, direct, leans }`. A lean point is taken like a place, and none may be within `cover.lean_apart_m` of another taken place or lean point. A soldier shoved outside the area is offered no "stay" and walks back in to the nearest free room. The alternative is an optimal assignment (e.g. Hungarian); conflicts are rare (two spots sharing a lean point), and the step-out rule (next entry) catches whoever is left unable to fire.
 
 **The gap.** The slice named the goal, not the algorithm.
 
@@ -1102,7 +1102,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Movement, cover and pushing · from Sim lane (review fixes, props catalog); decisions.md Trenches removed*
 
-**The choice.** A defender's post is 0.5 m off a house wall. A squadmate already stands at the corner, also 0.5 m off the wall, leaving a 0.2 m gap. The first man's own route ran through that gap, and he stood pinned for 35 s. Two changes fix it. The fine route (`movement::final_leg`, a 0.5 m grid over a small window) now treats standing soldiers as discs beside the bodies' boxes. A holding soldier who makes no progress toward a post more than `SETTLE_M` (1 m) away re-plans around the soldiers within 2 m, at most once a second. Two alternatives were rejected. Holding a waypoint until the next leg is clear did not help: the leg was clear, the man was not. Insetting corner posts did not help either, because the gap exists wherever two posts share a face.
+**The choice.** A defender's post is just off a house wall. A squadmate already stands at the corner, also just off the wall, leaving a gap too narrow to pass. The first man's own route ran through that gap, and he stood pinned for 35 s. Two changes fix it. The fine route (`movement::final_leg`, a fine grid over a small window) now treats standing soldiers as discs beside the bodies' boxes. A holding soldier who makes no progress toward a post more than `SETTLE_M` away re-plans around the soldiers near him, rate-limited. Two alternatives were rejected. Holding a waypoint until the next leg is clear did not help: the leg was clear, the man was not. Insetting corner posts did not help either, because the gap exists wherever two posts share a face.
 
 **The gap.** A real movement bug, exposed when the trench was removed. How to fix it was open.
 
@@ -1110,11 +1110,11 @@ Where the operator fires it from is the operator-muzzle entry.
 
 **Verdict.** sound. It is a general crowd rule, not a corner special case.
 
-### The route grid holds a 4×4 sub-cell mask per 2 m cell, so infantry routes find gaps narrower than a cell
+### The route grid holds a sub-cell mask per cell, so infantry routes find gaps narrower than a cell
 
 ***sound** · confidence **medium** · Movement, cover and pushing · from Slice 32*
 
-**The choice.** Squad corridors are planned on a 2 m grid (`navigation::NavGrid`). Each 2 m cell also stores which of its sixteen 0.5 m sub-cells a 0.3 m soldier disc fits in. The cell is open to infantry when its free sub-cells form one connected gap; a step between two cells is open when free sub-cells touch across the shared edge (a diagonal step also needs both side steps open). A corridor step through a narrow gap is placed at the middle of the longest open run of the shared edge, so it runs down the gap's middle, not through a tooth. Next to untraversable ground each sub-cell reads the ground under its own centre. A cell split in two by a thin wall is simply closed rather than tracked as two nodes. Vehicles use the whole-cell grid with a clearance field; infantry planning ignores `Mobility.half_width_m`. The alternative was one resolution for both, closing gaps narrower than a cell to infantry.
+**The choice.** Squad corridors are planned on a coarse grid (`navigation::NavGrid`). Each cell also stores which of its sub-cells a soldier's disc fits in. The cell is open to infantry when its free sub-cells form one connected gap; a step between two cells is open when free sub-cells touch across the shared edge (a diagonal step also needs both side steps open). A corridor step through a narrow gap is placed at the middle of the longest open run of the shared edge, so it runs down the gap's middle, not through a tooth. Next to untraversable ground each sub-cell reads the ground under its own centre. A cell split in two by a thin wall is simply closed rather than tracked as two nodes. Vehicles use the whole-cell grid with a clearance field; infantry planning ignores `Mobility.half_width_m`. The alternative was one resolution for both, closing gaps narrower than a cell to infantry.
 
 **The gap.** Q27 asked for two resolutions without the data layout.
 
@@ -1186,7 +1186,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Contracts and seams · from Slice 05*
 
-**The choice.** The observation is packed as 32-bit floats, which hold integers exactly only up to 2²⁴. Soldier ids, shot counters, shooters, guided missile ids and ground cells travel as `<name>Lo`/`<name>Hi` pairs of 16-bit halves (limbs). The tick stays a single float; it passes 2²⁴ after 6.5 days at 30 Hz.
+**The choice.** The observation is packed as 32-bit floats, which hold integers exactly only up to 2²⁴. Soldier ids, shot counters, shooters, guided missile ids and ground cells travel as `<name>Lo`/`<name>Hi` pairs of 16-bit halves (limbs). The tick stays a single float; at the battle's tick rate it passes 2²⁴ only after days.
 
 **The gap.** "Integers go into 16-bit limbs" didn't say which.
 
@@ -1210,7 +1210,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Contracts and seams · from Slice 08*
 
-**The choice.** The client's `GroundView` (`web/src/battle/sim/ground.ts`) is one RGBA8 texture's worth of bytes per map cell (10 MiB for the village) and the exact list of cells changed since the renderer last asked. Past a sixteenth of the map unasked, the list collapses to "everything changed". A delta that doesn't start at the view's revision, or a new epoch that isn't a snapshot, throws: the transport is ordered, so that is a bug, not something to recover from. The alternative was a sparse client store.
+**The choice.** The client's `GroundView` (`web/src/battle/sim/ground.ts`) is one RGBA8 texture's worth of bytes per map cell (10 MiB for the village) and the exact list of cells changed since the renderer last asked. Past a set share of the map unasked, the list collapses to "everything changed". A delta that doesn't start at the view's revision, or a new epoch that isn't a snapshot, throws: the transport is ordered, so that is a bug, not something to recover from. The alternative was a sparse client store.
 
 **The gap.** The consumer's shape was left to the scars slice.
 
@@ -1258,7 +1258,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Camera and controls · from Slice 09*
 
-**The choice.** The camera's vertical field of view is `presentation.camera.fov_y` (0.8 rad) at every distance. The alternative, a field of view that narrows as you zoom out (Defilade looks almost orthographic from above; Broken Arrow uses a wide lens near the ground), would need a second curve.
+**The choice.** The camera's vertical field of view is `presentation.camera.fov_y` at every distance. The alternative, a field of view that narrows as you zoom out (Defilade looks almost orthographic from above; Broken Arrow uses a wide lens near the ground), would need a second curve.
 
 **The gap.** The contract had no per-zoom field of view.
 
@@ -1282,7 +1282,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Camera and controls · from 27f presentation leftovers*
 
-**The choice.** Two left clicks on one unit within the right-click gesture's window (`DOUBLE_CLICK_MS` 350 ms, `DOUBLE_CLICK_PX` 6 px) select every own unit of its type. A second double-click on that type, or Ctrl + double-click, widens to every own unit sharing the type's first role, the one its symbol shows. Shift adds to the selection. The widening is remembered only briefly: it lapses when the next double-click starts after the double-click window, and it ends when the selection changes any other way (`useUnitControl` reports each change through `SelectClicks.selectionChanged`). So a click elsewhere, a box selection or a group key starts over. A third quick click begins a new double-click. All own units count, not just those on screen, because the maps are small. The owner is `web/src/battle/input/selectSimilar.ts`. Today each role has one type, so the widening selects the same units. A unit test proves the widening with a synthetic catalog.
+**The choice.** Two left clicks on one unit within the right-click gesture's window (`DOUBLE_CLICK_MS`, `DOUBLE_CLICK_PX`) select every own unit of its type. A second double-click on that type, or Ctrl + double-click, widens to every own unit sharing the type's first role, the one its symbol shows. Shift adds to the selection. The widening is remembered only briefly: it lapses when the next double-click starts after the double-click window, and it ends when the selection changes any other way (`useUnitControl` reports each change through `SelectClicks.selectionChanged`). So a click elsewhere, a box selection or a group key starts over. A third quick click begins a new double-click. All own units count, not just those on screen, because the maps are small. The owner is `web/src/battle/input/selectSimilar.ts`. Today each role has one type, so the widening selects the same units. A unit test proves the widening with a synthetic catalog.
 
 **The gap.** The user asked for select-similar. The on-screen scope, the timing and the widening key were not specified.
 
@@ -1330,7 +1330,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Renderer frame · from Slice 12*
 
-**The choice.** The fog needs the scene's depth before colour is shaded, to know which eyes matter to each 16-pixel tile. Today a depth prepass writes the frame's 4× multisampled depth first; the colour pass reuses it and shades only the surface the prepass left (compare `greater-equal`, no depth writes). Elsewhere the repo's one compare is `greater` (reverse-Z). The depth texture is sampleable, so the fog's tile cull reads sample 0. The shared vertex stage marks its position `@invariant` so both passes compute bit-identical depth (TypeGPU's types omit the attribute, so it is cast in). Rejected: a separate single-sample depth (disagrees at edges) and last frame's depth (a frame of lag at the fog edge).
+**The choice.** The fog needs the scene's depth before colour is shaded, to know which eyes matter to each screen tile. Today a depth prepass writes the frame's 4× multisampled depth first; the colour pass reuses it and shades only the surface the prepass left (compare `greater-equal`, no depth writes). Elsewhere the repo's one compare is `greater` (reverse-Z). The depth texture is sampleable, so the fog's tile cull reads sample 0. The shared vertex stage marks its position `@invariant` so both passes compute bit-identical depth (TypeGPU's types omit the attribute, so it is cast in). Rejected: a separate single-sample depth (disagrees at edges) and last frame's depth (a frame of lag at the fog edge).
 
 **The gap.** Spike 02 needed depth before colour and left the arrangement open.
 
@@ -1366,7 +1366,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Renderer frame · from Slice 14*
 
-**The choice.** A tank drives forward. Its fog eye's sight map (which ground it can see, around where it stood) is expensive to rebuild, and only 48 are rebuilt per frame. Today a moved eye keeps its old map, looked up from the position it was built at, until its rebuild turn; brand-new eyes, a new world or new sight-blocker knowledge rebuild at once. The eye's facing, sight shape and range are always the current publication's, since those are applied per pixel. Eyes are keyed `unit:slot`, so an eye that did not move keeps its map across publications. The alternative, rebuilding every moved eye every frame, would spike GPU cost with many units moving.
+**The choice.** A tank drives forward. Its fog eye's sight map (which ground it can see, around where it stood) is expensive to rebuild, and only `rebuild_eyes_per_frame` are rebuilt per frame. Today a moved eye keeps its old map, looked up from the position it was built at, until its rebuild turn; brand-new eyes, a new world or new sight-blocker knowledge rebuild at once. The eye's facing, sight shape and range are always the current publication's, since those are applied per pixel. Eyes are keyed `unit:slot`, so an eye that did not move keeps its map across publications. The alternative, rebuilding every moved eye every frame, would spike GPU cost with many units moving.
 
 **The gap.** The spike said rebuilds were "capped per frame" but not what a waiting eye shows.
 
@@ -1414,7 +1414,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Renderer frame · from Slice 27b*
 
-**The choice.** A squad walks into a wood, and the canopy hides it. The parts of the observing side's own soldiers and vehicles that the world hides are drawn through it as a flat silhouette: pale blue for own units, and the scheme's selection colour when selected (`presentation.overlay.xray` `own`, `selected_alpha`; `ModelInstance.xray` carries the colour). This covers anything in front: trees, houses, a ridge. Enemies are never x-rayed, because that would say more than the fog does. The depth prepass draws the x-ray into the overlay target with an inverted depth test ("behind") and a small depth margin (`XRAY_DEPTH_BIAS`), so a prone man or a track's lower run doesn't fleck where it dips under the ground. Impostor cards, used for units beyond about 230 m, are not x-rayed. The alternatives were a canopy cutaway, which changes how the forest reads from above and needs per-tree fading, and an outline pass.
+**The choice.** A squad walks into a wood, and the canopy hides it. The parts of the observing side's own soldiers and vehicles that the world hides are drawn through it as a flat silhouette: pale blue for own units, and the scheme's selection colour when selected (`presentation.overlay.xray` `own`, `selected_alpha`; `ModelInstance.xray` carries the colour). This covers anything in front: trees, houses, a ridge. Enemies are never x-rayed, because that would say more than the fog does. The depth prepass draws the x-ray into the overlay target with an inverted depth test ("behind") and a small depth margin (`XRAY_DEPTH_BIAS`), so a prone man or a track's lower run doesn't fleck where it dips under the ground. Impostor cards, used for far units, are not x-rayed. The alternatives were a canopy cutaway, which changes how the forest reads from above and needs per-tree fading, and an outline pass.
 
 **The gap.** The slice named three options and chose none.
 
@@ -1426,7 +1426,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Renderer frame · from Slice 27e (follow-ups); Slice 27 (muzzle flash) — coverage of the ground-versus-bodies rule*
 
-**The choice.** The user wanted marks "literally on the ground and glowing a bit", under smoke, painting the grass blades. A painted route crosses a crater, a road verge, a slope and a sandbag wall: the paint drapes over the crater, tank tracks and trampled grass, the road edge, the slope and past the map edge, but never onto a body (building, ruin, sandbags, fence, wreck, tree, soldier, hull). Under the shipped scheme the painted marks are the selection's circles and selected soldiers' markers, a blocked route, travel chevrons, supply rings, suppression and impact rings, the objective zone and the map border. Each frame they are drawn from the camera into `targets.paint` (screen size, rgba8, about 8 MiB at 1080p), depth-tested against the ground-only half of the depth prepass (terrain, props, backdrop, trees), and pulled 1 m toward the eye along each vertex's view ray so the pixel is unchanged but the depth clears the ground. The ground layers (terrain, grass, backdrop) read the paint at their own pixel and take it as albedo and emissive (see the paint-is-a-light entry), lit and shadowed as their own surface, taking `paint.fog_keep` 0.35 of the fog. A grass blade takes whichever covers more, the paint under it or the paint at its pixel, so strokes are never speckled by blades. One place decides who reads paint: fog's `FogLayer.painted`. The `paintedGround` layer reads it, and so does `paintedFaces`, which holds the water and the props that block no mover (the bridge deck and rubble) and paints only their upward faces (see the deck-and-water entry). Buildings, trees, wrecks, the fallen and units never read it, so smoke and effects draw over a stroke and it can never land on a hull. Chosen over a world-space texture (too coarse at a low camera, or tens of MB) and over per-fragment stroke lists (too costly).
+**The choice.** The user wanted marks "literally on the ground and glowing a bit", under smoke, painting the grass blades. A painted route crosses a crater, a road verge, a slope and a sandbag wall: the paint drapes over the crater, tank tracks and trampled grass, the road edge, the slope and past the map edge, but never onto a body (building, ruin, sandbags, fence, wreck, tree, soldier, hull). Under the shipped scheme the painted marks are the selection's circles and selected soldiers' markers, a blocked route, travel chevrons, supply rings, suppression and impact rings, the objective zone and the map border. Each frame they are drawn from the camera into `targets.paint` (screen size, rgba8, about 8 MiB at 1080p), depth-tested against the ground-only half of the depth prepass (terrain, props, backdrop, trees), and pulled a little toward the eye along each vertex's view ray so the pixel is unchanged but the depth clears the ground. The ground layers (terrain, grass, backdrop) read the paint at their own pixel and take it as albedo and emissive (see the paint-is-a-light entry), lit and shadowed as their own surface, taking `paint.fog_keep` of the fog. A grass blade takes whichever covers more, the paint under it or the paint at its pixel, so strokes are never speckled by blades. One place decides who reads paint: fog's `FogLayer.painted`. The `paintedGround` layer reads it, and so does `paintedFaces`, which holds the water and the props that block no mover (the bridge deck and rubble) and paints only their upward faces (see the deck-and-water entry). Buildings, trees, wrecks, the fallen and units never read it, so smoke and effects draw over a stroke and it can never land on a hull. Chosen over a world-space texture (too coarse at a low camera, or tens of MB) and over per-fragment stroke lists (too costly).
 
 **The gap.** The user gave the look; the technique and what counts as ground versus body were delegated.
 
@@ -1474,7 +1474,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Renderer frame · from Slice 20; Slice 23; Post-close review (presentation)*
 
-**The choice.** A rifle squad of eight advances and two men fire. The pose driver (`battle-renderer/src/models/poseDriver.ts`) reads its own small `FeedFrame`: per unit its id, kind, side, position, yaw, soldiers by id and position (with optional posture, shot count and lean), mounts, deployment and suppression, plus the fallen. The battle fills it from the observation (`apps/battle-lab/src/poseFeed.ts`), the workbench from synthetic frames, and the renderer package never imports the web observation. Each soldier is posed from his own data, blended only with himself by member id. **Gait:** from his own velocity: walk from `presentation.pose.gait.walk_mps` (0.25), run from `run_mps` (2.2), 0.25 s crossfades. **Firing:** he fired when his `FeedSoldier.shots` rises: the feed's count of his launches, so a shot is timed once, not on every frame that shows the same publication. A feed that leaves `shots` out names no one, and then a rise of the squad's hand-weapon shot counter counts as the whole squad firing. He holds a firing pose for the rules' `cover.lean_hold_s`. **Posture:** the simulation's own posture for him wins when published; else out on a lean point he kneels; else he is prone at or above the rules' `suppression.collapse_level`; else kneeling while firing; else standing. No hysteresis: the simulation's recovery delay keeps it from flickering. An identified enemy never goes prone from suppression, because his side can't know it (the feed sends 0). **Facing:** his own velocity above `gait.facing_mps`; else the hand weapon's bearing once it has fired, else the unit's heading, with a per-man gaze stray once the squad has settled; turning at `turn_rad_s` 6. Nothing reads a formation slot. The alternative was one pose for the whole squad from the squad's heading.
+**The choice.** A rifle squad of eight advances and two men fire. The pose driver (`battle-renderer/src/models/poseDriver.ts`) reads its own small `FeedFrame`: per unit its id, kind, side, position, yaw, soldiers by id and position (with optional posture, shot count and lean), mounts, deployment and suppression, plus the fallen. The battle fills it from the observation (`apps/battle-lab/src/poseFeed.ts`), the workbench from synthetic frames, and the renderer package never imports the web observation. Each soldier is posed from his own data, blended only with himself by member id. **Gait:** from his own velocity: walk from `presentation.pose.gait.walk_mps`, run from `run_mps`, short crossfades. **Firing:** he fired when his `FeedSoldier.shots` rises: the feed's count of his launches, so a shot is timed once, not on every frame that shows the same publication. A feed that leaves `shots` out names no one, and then a rise of the squad's hand-weapon shot counter counts as the whole squad firing. He holds a firing pose for the rules' `cover.lean_hold_s`. **Posture:** the simulation's own posture for him wins when published; else out on a lean point he kneels; else he is prone at or above the rules' `suppression.collapse_level`; else kneeling while firing; else standing. No hysteresis: the simulation's recovery delay keeps it from flickering. An identified enemy never goes prone from suppression, because his side can't know it (the feed sends 0). **Facing:** his own velocity above `gait.facing_mps`; else the hand weapon's bearing once it has fired, else the unit's heading, with a per-man gaze stray once the squad has settled; turning at `turn_rad_s`. Nothing reads a formation slot. The alternative was one pose for the whole squad from the squad's heading.
 
 **The gap.** Pose thresholds are presentation and no slice owned them; weapon shots are counted per mount, not per soldier, and the spec named no priorities.
 
@@ -1486,7 +1486,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Renderer frame · from Post-close review (presentation)*
 
-**The choice.** A tank parks on the bridge and the player selects it; another unit's blocked route crosses the river. Order and ground marks are paint: drawn into the lit world on surfaces the fog layer `FogLayer.painted` covers (see the painted-marks entries). Before, only the terrain was painted, so the tank's ring vanished on the deck and the dashes faded mid-river. Now a second fog layer, `paintedFaces`, is painted and fogged face by face. The water draws through it and takes the paint as its surface. A static prop joins it when its body stops no mover class; the pose marks it `ground: true`, taken from the world layout's `blockingPropKinds`, so the catalog needed no new field. Today that is the bridge deck and rubble. The model shader reads the paint only on faces that look up (a smoothstep of the normal's z from 0.5 to 0.8), so a deck's sides stay clean, and no other layer reads it. Impostor cards (the flat pictures that stand in for far models) don't read the paint, so a deck far enough away to be a card shows no marks. The movement scene checks both surfaces: on the deck, the share of the parked tank's ring shown went from 0 to 96%; mid-river, a blocked route's dashes went from 38% to 89% as bright as on the bank. The alternative was a catalog flag for "paintable", a second field that says what the body's blocking already says.
+**The choice.** A tank parks on the bridge and the player selects it; another unit's blocked route crosses the river. Order and ground marks are paint: drawn into the lit world on surfaces the fog layer `FogLayer.painted` covers (see the painted-marks entries). Before, only the terrain was painted, so the tank's ring vanished on the deck and the dashes faded mid-river. Now a second fog layer, `paintedFaces`, is painted and fogged face by face. The water draws through it and takes the paint as its surface. A static prop joins it when its body stops no mover class; the pose marks it `ground: true`, taken from the world layout's `blockingPropKinds`, so the catalog needed no new field. Today that is the bridge deck and rubble. The model shader reads the paint only on faces that look up (a smoothstep on the normal's z), so a deck's sides stay clean, and no other layer reads it. Impostor cards (the flat pictures that stand in for far models) don't read the paint, so a deck far enough away to be a card shows no marks. The movement scene checks both surfaces: on the deck, the share of the parked tank's ring shown went from 0 to 96%; mid-river, a blocked route's dashes went from 38% to 89% as bright as on the bank. The alternative was a catalog flag for "paintable", a second field that says what the body's blocking already says.
 
 **The gap.** The review found marks missing on the deck and the water. Which surfaces take paint, and how a prop qualifies, were open.
 
@@ -1498,7 +1498,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Light, terrain, grass and trees · from Spike 01; Slice 13*
 
-**The choice.** A soldier's shadow should be equally soft whether the near or a far cascade draws it. Today softness is a world width, `cascades.softness_m` (0.2 m). Each cascade turns that into a filter radius in texels (its own texel size), clamped to 1–4 texels. The normal bias (how far a surface is pushed off itself before testing the shadow map, to stop surfaces shadowing themselves) is at least `normal_bias_min_m` (0.03 m), or `normal_bias_texels` (1.5) texels, and grows with the filter radius. The ported code used a fixed 0.6 m bias, which would lift soldiers' shadows off their feet at the default camera, and a softness in texels, which blurred far cascades more metres than near ones.
+**The choice.** A soldier's shadow should be equally soft whether the near or a far cascade draws it. Today softness is a world width, `cascades.softness_m`. Each cascade turns that into a filter radius in texels (its own texel size), clamped to a few texels. The normal bias (how far a surface is pushed off itself before testing the shadow map, to stop surfaces shadowing themselves) is at least `normal_bias_min_m`, or `normal_bias_texels` texels, and grows with the filter radius. The ported code used a fixed 0.6 m bias, which would lift soldiers' shadows off their feet at the default camera, and a softness in texels, which blurred far cascades more metres than near ones.
 
 **The gap.** The source was tuned for one camera reach.
 
@@ -1571,10 +1571,10 @@ Where the operator fires it from is the operator-muzzle entry.
 ***sound** · confidence **medium** · Light, terrain, grass and trees · from Slice 18*
 
 **The choice.** A designer wants shorter grass on the verges. The biome file (`fixtures/biomes/summer.json`, key `grass`) holds it:
-- `growth`: per plot kind (or `verge`), which grass appearance grows and its density and height. Meadow grows meadow, pasture grows pasture, young crop grows crop, wheat grows wheat, hay grows stubble, ploughed land grows sparse meadow weeds (density 0.04, height 0.6), and the verge grows meadow at height 1.1.
-- tuning: `pixels_per_clump` 28, `max_clumps_m2` 40, `fade_m_per_px` [0.08, 0.14], `near_tier_px` 40, `min_blade_px` 0.8, `clear_m` {road 0.2, prop 0.3, area 0.5}.
-- `wind`: heading 35°, lean 0.08, gust 0.18 over 45 m at 5 m/s, flutter 0.04 at 1.3 Hz.
-- `capacity`: [20000, 120000] clumps (near and far tier buffers).
+- `growth`: per plot kind (or `verge`), which grass appearance grows and its density and height. Meadow grows meadow, pasture grows pasture, young crop grows crop, wheat grows wheat, hay grows stubble, ploughed land grows sparse, low meadow weeds, and the verge grows tall meadow.
+- tuning: `pixels_per_clump`, `max_clumps_m2`, `fade_m_per_px`, `near_tier_px`, `min_blade_px`, `clear_m` {road, prop, area}.
+- `wind`: heading, lean, gusts and flutter.
+- `capacity`: clumps for the near and far tier buffers.
 
 `validateBiome` checks every field, and refuses a growth key that names no plot kind.
 
@@ -1588,7 +1588,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Light, terrain, grass and trees · from Slice 18*
 
-**The choice.** Some grass numbers are how the technique works, not how the field looks, and they stay as constants: the 4 m tile, the 0.4 m jitter, 7 m patches of taller and lower grass, grass thinning and lowering over 1.2 m past a road's or a wood's margin, the ground-normal weight 0.55, blade roughness 0.9, the tier meshes [LOD0, LOD2], and the far "plain" colour blend (`grassPass.ts`, `grassField.ts`). The alternative was putting every number in the biome file.
+**The choice.** Some grass numbers are how the technique works, not how the field looks, and they stay as constants: the tile size, the jitter, patches of taller and lower grass, grass thinning and lowering just past a road's or a wood's margin, the ground-normal weight, blade roughness, the tier meshes (LOD0 and LOD2), and the far "plain" colour blend (`grassPass.ts`, `grassField.ts`). The alternative was putting every number in the biome file.
 
 **The gap.** The spec asked for "every provisional number in the fixture", which read literally would include technique constants.
 
@@ -1612,7 +1612,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Light, terrain, grass and trees · from Slice 18*
 
-**The choice.** Two blades cross at almost the same depth. On Apple's GPU, which one wins changed from frame to frame even with identical input, so a still frame shimmered and the overlay-isolation check (it compares two captures pixel by pixel) failed. Each blade now moves its depth by up to 1/2000 of the depth, chosen by a hash of the clump and blade (at most 5 cm at 100 m). A still frame is then almost bit-stable: about one pixel flips in some runs. The overlay-isolation check allows 16 such stray pixels (`web/scenes/_overlays.mjs`, `STRAY_MAX`). The alternative was accepting the flicker, or rendering grass without depth ties at all.
+**The choice.** Two blades cross at almost the same depth. On Apple's GPU, which one wins changed from frame to frame even with identical input, so a still frame shimmered and the overlay-isolation check (it compares two captures pixel by pixel) failed. Each blade now moves its depth by a tiny share of the depth, chosen by a hash of the clump and blade (a few centimetres at most at battle distances). A still frame is then almost bit-stable: about one pixel flips in some runs. The overlay-isolation check allows a few such stray pixels (`web/scenes/_overlays.mjs`, `STRAY_MAX`). The alternative was accepting the flicker, or rendering grass without depth ties at all.
 
 **The gap.** Found by experiment; nothing in the spec covered GPU depth ties.
 
@@ -1624,11 +1624,11 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Light, terrain, grass and trees · from Slice 18*
 
-**The choice.** From the default camera, grass 150 m away appeared as dark speckle. Between 0.6× and 1.1× the fade's first footprint, a clump's tint and shading normal now blend to the ground's, so near grass keeps blade texture and past about 100 m grass reads as the painted ground. The alternative was keeping full blade shading to the fade distance.
+**The choice.** From the default camera, grass 150 m away appeared as dark speckle. Across a band around the fade's first footprint, a clump's tint and shading normal now blend to the ground's, so near grass keeps blade texture and far grass reads as the painted ground. The alternative was keeping full blade shading to the fade distance.
 
 **The gap.** The spec did not say how far grass hands off to the ground.
 
-**The reach.** There is a deliberate detail drop between about 65 and 110 m. Far field texture is the terrain material's job.
+**The reach.** There is a deliberate detail drop in the middle distance. Far field texture is the terrain material's job.
 
 **Verdict.** sound — matches the source game's "far grass matches the ground".
 
@@ -1636,7 +1636,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Light, terrain, grass and trees · from Slice 19b*
 
-**The choice.** A sun shadow must never be darker than fog, or it reads as fog. `presentation.light.shadow_floor` (0.4) is the share of sunlight a shadowed surface keeps (`sun = mix(floor, 1, shadow)`), carried to the GPU in the environment uniform. Every world material shades through the environment frame's one `shade` function, so terrain, grass, trees, props and units all get it. It keeps shade in the sun's warm hue with the surface's relief. The alternative was raising the sky fill light, which would have lifted lit ground as much as shade and tinted it blue.
+**The choice.** A sun shadow must never be darker than fog, or it reads as fog. `presentation.light.shadow_floor` is the share of sunlight a shadowed surface keeps (`sun = mix(floor, 1, shadow)`), carried to the GPU in the environment uniform. Every world material shades through the environment frame's one `shade` function, so terrain, grass, trees, props and units all get it. It keeps shade in the sun's warm hue with the surface's relief. The alternative was raising the sky fill light, which would have lifted lit ground as much as shade and tinted it blue.
 
 **The gap.** The spec said "raise the shadow floor" without saying where.
 
@@ -1660,11 +1660,11 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Light, terrain, grass and trees · from Slice 19b*
 
-**The choice.** A forest in the simulation is a rectangle, which drew as a ruled slab. The drawn floor now ends in a verge (`forestVergeInside`) half its width outside the rectangle, plus wander and patches, running from about 0.5 m inside to 4.5 m outside. The rectangle stays the rule for sight, cover and movement; the verge is only paint. Grass reads the same function and stops at whichever edge is farther out, so it never grows inside a forest and its line is as ragged as the floor's. The biome's `forest_floor` block holds the numbers. The alternative was feathering inside the rectangle.
+**The choice.** A forest in the simulation is a rectangle, which drew as a ruled slab. The drawn floor now ends in a verge (`forestVergeInside`) lying mostly outside the rectangle, plus wander and patches, running from just inside it to a few metres outside. The rectangle stays the rule for sight, cover and movement; the verge is only paint. Grass reads the same function and stops at whichever edge is farther out, so it never grows inside a forest and its line is as ragged as the floor's. The biome's `forest_floor` block holds the numbers. The alternative was feathering inside the rectangle.
 
 **The gap.** "A feathered verge, while the rect stays authoritative".
 
-**The reach.** The drawn wood looks up to 4.5 m bigger than the rule wood. A unit standing on the verge is in the open.
+**The reach.** The drawn wood looks a few metres bigger than the rule wood. A unit standing on the verge is in the open.
 
 **Verdict.** sound — paint may extend, rules don't move.
 
@@ -1684,7 +1684,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Light, terrain, grass and trees · from Slice 17b; Slice 17*
 
-**The choice.** The texture stays one byte-per-channel texel per learned 1 m cell; only its reading is smarter. `scarCubic` rebuilds a smooth field with a cubic B-spline (four bilinear taps), so a thresholded crater edge is a circle, not a diamond. Features are drawn as hard iso-lines anti-aliased over exactly one pixel at any zoom (`crossing`): the bowl's lip (0.3 of a full crater's depth, wandering by noise over 0.45 m), the outer edge of the thrown-soil ring (about a metre round every bowl), and each rut's edge. A hard crater lip was chosen because a soft dark disc read as a tree's shadow, and no sun shadow here has a hard ragged edge. Draw order: trampled, tracks, scorch, fresh soil thrown over the scorch, then the bowl darkened by depth (soil under scorch read as a stain; a bowl lighter than its scorch read as a mound). Rejected: a 2× supersampled texture (twice the uploads, a second grid to keep in step).
+**The choice.** The texture stays one byte-per-channel texel per learned ground cell (`ground.cell_m`); only its reading is smarter. `scarCubic` rebuilds a smooth field with a cubic B-spline (four bilinear taps), so a thresholded crater edge is a circle, not a diamond. Features are drawn as hard iso-lines anti-aliased over exactly one pixel at any zoom (`crossing`): the bowl's lip (a set share of a full crater's depth, wandering by noise), the outer edge of the thrown-soil ring (a narrow band round every bowl), and each rut's edge. A hard crater lip was chosen because a soft dark disc read as a tree's shadow, and no sun shadow here has a hard ragged edge. Draw order: trampled, tracks, scorch, fresh soil thrown over the scorch, then the bowl darkened by depth (soil under scorch read as a stain; a bowl lighter than its scorch read as a mound). Rejected: a 2× supersampled texture (twice the uploads, a second grid to keep in step).
 
 **The gap.** Reconstruction and edge treatment were delegated.
 
@@ -1696,7 +1696,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Light, terrain, grass and trees · from Slice 17b; Slice 17*
 
-**The choice.** Scorch draws only where its weight passes 0.45 (the burst's heart), as flecks: noise at 4.5 per metre crossing an edge that tightens toward the centre, never on the bowl or its soil ring, ash grey to char black. Tried and dropped on the frames: a noisy wash (read as smoke and cloud shadow), radial spokes (swirled or read as stripes), a dark collar (read as a drop shadow).
+**The choice.** Scorch draws only where its weight passes a threshold (the burst's heart), as flecks: fine noise crossing an edge that tightens toward the centre, never on the bowl or its soil ring, ash grey to char black. Tried and dropped on the frames: a noisy wash (read as smoke and cloud shadow), radial spokes (swirled or read as stripes), a dark collar (read as a drop shadow).
 
 **The gap.** The spec asked for "tighter, sooty-radial scorch"; the radial part did not ship.
 
@@ -1720,7 +1720,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Light, terrain, grass and trees · from Slice 13; Slice 19b*
 
-**The choice.** Under a blue sky with no bounced light, shade on green grass turned teal. The sky light is multiplied by `sky.fill`, an RGB tint (`[1.0, 0.75, 0.47]`), standing in for light bounced off sunlit ground, which the environment map lacks. A cooler fill would make shade look more natural, but it pulled the forest floor's hue toward the cool fog and failed the check that shadow and fog stay apart in hue, so the fill stays warm and shaded dirt stays slightly reddish: telling fog from shadow wins. The rejected alternatives were a warm shadow tint in the colour grade (which would also recolour every dark surface and the fog) and a cooler, more realistic fill.
+**The choice.** Under a blue sky with no bounced light, shade on green grass turned teal. The sky light is multiplied by `sky.fill`, a warm RGB tint, standing in for light bounced off sunlit ground, which the environment map lacks. A cooler fill would make shade look more natural, but it pulled the forest floor's hue toward the cool fog and failed the check that shadow and fog stay apart in hue, so the fill stays warm and shaded dirt stays slightly reddish: telling fog from shadow wins. The rejected alternatives were a warm shadow tint in the colour grade (which would also recolour every dark surface and the fog) and a cooler, more realistic fill.
 
 **The gap.** The slice owned the teal-shadow finding, not the method, and nothing said which wins when natural shade and fog legibility conflict.
 
@@ -1732,7 +1732,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Light, terrain, grass and trees · from Slice 13; Slice 16*
 
-**The choice.** At the strategic zoom the camera sees past the playable map. Beyond it lies a flat band of ground out to `presentation.light.backdrop.reach_m` (40 km) (`ground::mesh::backdrop` in `crates/presentation`), drawn with the same biome ground material: the field patchwork runs on past the edge for `field_rules.extent_m`, then fades over 600 m to the biome's `distant` colour. It is lit by the same sun and sky and hazed by the same aerial term as the map, and it takes the fog like the map's ground (drawn sight runs on past the edge; see the fog-past-the-edge entry). It is never shadowed, never casts and is never pickable. It sits at the map's lowest ground, so there is no step at the edge, and below the horizon the sky reads the colour just above the horizon, removing a khaki band and a hard edge at eye level. The alternatives, a skybox, a void or a flat-coloured plate, make the map read as a tabletop.
+**The choice.** At the strategic zoom the camera sees past the playable map. Beyond it lies a flat band of ground out to `presentation.light.backdrop.reach_m` (`ground::mesh::backdrop` in `crates/presentation`), drawn with the same biome ground material: the field patchwork runs on past the edge for `field_rules.extent_m`, then fades to the biome's `distant` colour. It is lit by the same sun and sky and hazed by the same aerial term as the map, and it takes the fog like the map's ground (drawn sight runs on past the edge; see the fog-past-the-edge entry). It is never shadowed, never casts and is never pickable. It sits at the map's lowest ground, so there is no step at the edge, and below the horizon the sky reads the colour just above the horizon, removing a khaki band and a hard edge at eye level. The alternatives, a skybox, a void or a flat-coloured plate, make the map read as a tabletop.
 
 **The gap.** Spike 01 left "a backdrop or horizon treatment" open, and the plan did not say what lies past the map.
 
@@ -1756,7 +1756,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Light, terrain, grass and trees · from Slice 16b*
 
-**The choice.** A player looks across farm fields in sun. `mottle(xy, footprint, across, plot)` returns `(value, dry)`: `value` is only fine 4 m brightness noise; `dry` is broad variation as ochre strips, stretched 16× along the plot's rows (40 m long, 2.5 m wide, `mottle_scale_m` [4, 40]), drawn afresh per plot so they end at its edge. `groundTint` shifts colour toward ochre at unchanged luminance. It's one-sided: nothing gets greener, bluer or darker (a two-sided shift read as a cool, dark patch — a shadow). A strip's edge is measured in metres (noise over its slope), so it's firm, not a soft fringe. Verge, road and forest floor read only the brightness term; grass takes the strips through `groundColour`. The alternative, broad soft dark blotches, kept being read by critiques as cloud shadow.
+**The choice.** A player looks across farm fields in sun. `mottle(xy, footprint, across, plot)` returns `(value, dry)`: `value` is only fine brightness noise; `dry` is broad variation as ochre strips, long and narrow along the plot's rows (`mottle_scale_m`), drawn afresh per plot so they end at its edge. `groundTint` shifts colour toward ochre at unchanged luminance. It's one-sided: nothing gets greener, bluer or darker (a two-sided shift read as a cool, dark patch — a shadow). A strip's edge is measured in metres (noise over its slope), so it's firm, not a soft fringe. Verge, road and forest floor read only the brightness term; grass takes the strips through `groundColour`. The alternative, broad soft dark blotches, kept being read by critiques as cloud shadow.
 
 **The gap.** The mottle's shape was delegated.
 
@@ -1792,7 +1792,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · How fog looks · from Slice 14; Slice 15; Slice 15b*
 
-**The choice.** A wall's sight shadow falls across a field. Every world fragment writes two outputs (`WORLD_OUT = {color, fog}`, `frame/targets.ts`): its lit colour into the 4× MSAA HDR target, and `fogCoverage(seen, alpha)` = (unseen, seen, ground, alpha) into an MSAA mask. Units, the sky, and anything that is never fogged write zero. Then `frame/fogMaskPass.ts` runs: distance rows → distance columns (a bounded distance transform finding, for each ground pixel, how far it is to the nearest seen and unseen ground) → compose (in HDR, before post-processing, fading the unseen side in over the style's `edge_softness` pixels) → rim (a line `rim.width_px` wide on the seen side, in display colour after post and before overlays, so it is exactly the style's colour and never blooms). `FogVisibility` says where is seen; the mask pass says how unseen looks, and no material has its own fog-look branch. The edge and rim are drawn only where seen ground meets unseen ground. A face (wall, roof, tree) is seen or unseen whole and keeps a hard edge, and a surface in front of another (a seen roof against unseen ground) makes no edge; drawing a rim wherever seen met unseen would ring every roof, every trunk against a seen field and every gap in a wood in white. The alternative was each material applying the unseen look itself with a per-pixel binary edge, which cannot know its neighbours, so it can neither soften nor rim, and a sight shadow read as a second cast shadow.
+**The choice.** A wall's sight shadow falls across a field. Every world fragment writes two outputs (`WORLD_OUT = {color, fog}`, `frame/targets.ts`): its lit colour into the MSAA HDR target, and `fogCoverage(seen, alpha)` = (unseen, seen, ground, alpha) into an MSAA mask. Units, the sky, and anything that is never fogged write zero. Then `frame/fogMaskPass.ts` runs: distance rows → distance columns (a bounded distance transform finding, for each ground pixel, how far it is to the nearest seen and unseen ground) → compose (in HDR, before post-processing, fading the unseen side in over the style's `edge_softness` pixels) → rim (a line `rim.width_px` wide on the seen side, in display colour after post and before overlays, so it is exactly the style's colour and never blooms). `FogVisibility` says where is seen; the mask pass says how unseen looks, and no material has its own fog-look branch. The edge and rim are drawn only where seen ground meets unseen ground. A face (wall, roof, tree) is seen or unseen whole and keeps a hard edge, and a surface in front of another (a seen roof against unseen ground) makes no edge; drawing a rim wherever seen met unseen would ring every roof, every trunk against a seen field and every gap in a wood in white. The alternative was each material applying the unseen look itself with a per-pixel binary edge, which cannot know its neighbours, so it can neither soften nor rim, and a sight shadow read as a second cast shadow.
 
 **The gap.** The contract asked for an `edge_softness` key and a clearer "seen/unseen boundary", which a per-material fog term cannot deliver, and named the pass but not how materials feed it.
 
@@ -1804,7 +1804,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · How fog looks · from Slice 34b; Orchestrator, after slice 34b; Slice 34c*
 
-**The choice.** A tank carves a lane through a wood, or a barrage fells a patch of trees, and blue sees it happen. The GPU fog marches a foliage grid (canopy and optical depth per 8 m cell, depth packed in 0.005 steps, full block at most 1.275). That grid is the load-time grid minus the trees standing on ground the side has seen cleared (`WorldGeometry::export_foliage_cleared`, via `WorldView.foliage_cleared`): a cell is open wherever its centre is cleared, which matches the simulation's `foliage_at` exactly (a test pins that). `GroundView.clearedCount` keys it; the session re-exports when the count changes, and the fog layer re-uploads only the foliage. So a lane or clearing opens in the drawn fog when the side learns it, agreeing with the simulation's fog field. The alternative, the grid from load time only, drew foliage over a clearing the side can see through.
+**The choice.** A tank carves a lane through a wood, or a barrage fells a patch of trees, and blue sees it happen. The GPU fog marches a foliage grid (canopy and optical depth per fog cell, depth packed in fixed steps up to a full block). That grid is the load-time grid minus the trees standing on ground the side has seen cleared (`WorldGeometry::export_foliage_cleared`, via `WorldView.foliage_cleared`): a cell is open wherever its centre is cleared, which matches the simulation's `foliage_at` exactly (a test pins that). `GroundView.clearedCount` keys it; the session re-exports when the count changes, and the fog layer re-uploads only the foliage. So a lane or clearing opens in the drawn fog when the side learns it, agreeing with the simulation's fog field. The alternative, the grid from load time only, drew foliage over a clearing the side can see through.
 
 **The gap.** The seam didn't say whether drawn sight follows destruction.
 
@@ -1888,7 +1888,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Models and the asset pipeline · from Slice 21*
 
-**The choice.** A soldier's helmet, pouches and rifle are all separate parts in the art. At export, rigid kit is skinned 100% to its bone and joined with the body, so each soldier appearance is one skinned mesh. It has four tiers `soldier_LOD0..3` (about 27k / 6.9k / 2.35k / 680 triangles), made by the ported LOD technique (a budget per mesh island, with small islands dropped at LOD2–3). The alternative was separate rigid meshes attached to bones at runtime.
+**The choice.** A soldier's helmet, pouches and rifle are all separate parts in the art. At export, rigid kit is skinned 100% to its bone and joined with the body, so each soldier appearance is one skinned mesh. It has four tiers `soldier_LOD0..3`, made by the ported LOD technique (a budget per mesh island, with small islands dropped at LOD2–3). The alternative was separate rigid meshes attached to bones at runtime.
 
 **The gap.** Delegated: the polygon count per tier.
 
@@ -1900,7 +1900,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Models and the asset pipeline · from Slice 21*
 
-**The choice.** The validator checks that a soldier's eye and muzzle sit where the simulation puts them. The standing-aim pose leans into the weapon, so the drawn eye is at about 1.50 m on a 1.70 m soldier. The eye tolerance is `eye_m` 0.12 (catalog `tolerances`), and the AT soldier alone gets `muzzle_m` 0.2, since the launcher's bore on the shoulder sits at about 1.56 m against the simulation's 1.4. The alternative was changing the simulation's eye and muzzle heights, or the art.
+**The choice.** The validator checks that a soldier's eye and muzzle sit where the simulation puts them. The standing-aim pose leans into the weapon, so the drawn eye is at about 1.50 m on a 1.70 m soldier. The eye tolerance is `eye_m` (catalog `tolerances`), and the AT soldier alone gets a looser `muzzle_m`, since the launcher's bore on the shoulder sits well above the simulation's muzzle height. The alternative was changing the simulation's eye and muzzle heights, or the art.
 
 **The gap.** The fit authority is one flat eye and muzzle height per soldier.
 
@@ -1912,9 +1912,9 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Models and the asset pipeline · from Slice 22*
 
-**The choice.** A placed building is a 30 × 24 × 8 m box, and the simulation blocks sight across all of it. One small house in the middle would leave most of that box empty while still blocking sight. So each of the three houses (`house_a` 30 × 24, `house_b` 34 × 28, `house_c` 26 × 22, all 8 m) is a courtyard farm whose outer walls stand on the box's faces: a dwelling, a barn, a stable wing, and a yard wall with a gate. The houses share one plan scaled to each box. The alternative was a single house per box.
+**The choice.** A placed building is a large box, and the simulation blocks sight across all of it. One small house in the middle would leave most of that box empty while still blocking sight. So each of the three houses (`house_a`, `house_b`, `house_c`) is a courtyard farm whose outer walls stand on the box's faces: a dwelling, a barn, a stable wing, and a yard wall with a gate. The houses share one plan scaled to each box. The alternative was a single house per box.
 
-**The gap.** "Houses sized to the prop half-extents" with 30 m boxes.
+**The gap.** "Houses sized to the prop half-extents" with boxes far bigger than a house.
 
 **The reach.** Fog edges and blocked sight lines fall on real walls.
 
@@ -1932,11 +1932,11 @@ Where the operator fires it from is the operator-muzzle entry.
 
 **Verdict.** sound.
 
-### Textures are uncompressed RGBA8 with full mips at 256 px, under a 32 MiB budget
+### Textures are uncompressed RGBA8 with full mips at one resolution, under a memory budget
 
 ***sound** · confidence **medium** · Models and the asset pipeline · from Slice 21b*
 
-**The choice.** Textures are RGBA8 with box-filtered mips (albedo averaged in linear light, normals renormalised), no GPU compression. Every recipe and tier is 256 px; detail comes from tile size in metres (1.6 mm a texel on a soldier's camo, 16 mm on a tank). The texture arrays size to the largest installed layer. The budget is 32 MiB for a battle's model textures (the village uses about 18 MiB); it is recorded in `frame-cost.md`, not enforced in code. A deterministic BC7 encoder would save about 4× but add a dependency.
+**The choice.** Textures are RGBA8 with box-filtered mips (albedo averaged in linear light, normals renormalised), no GPU compression. Every recipe and tier shares one resolution (`SIZE` in `textures.py`); detail comes from tile size in metres (far finer on a soldier's camo than on a tank). The texture arrays size to the largest installed layer. A battle's model textures have a budget, recorded in `frame-cost.md`, not enforced in code; the village uses about 18 MiB. A deterministic BC7 encoder would save about 4× but add a dependency.
 
 **The gap.** Format and resolution were delegated.
 
@@ -1960,7 +1960,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Models and the asset pipeline · from Slice 21b*
 
-**The choice.** On a textured material, vertex colour stores variation relative to the texture's mean at a third (`colour_scale` 3); the shader multiplies albedo by `colour × colour_scale`, so dust, ash and rust can lighten as well as darken. Vertex alpha is wear: where it passes the albedo's alpha threshold the material's `wear` colour shows, with a crisp 0.04 edge (`WEAR_EDGE`). To fit a tangent, the 48-byte vertex keeps its size by narrowing joint weights from 16-bit to 8-bit. One material function (`modelSurface`) serves lit drawing and impostor bakes. Trees and grass are untextured.
+**The choice.** On a textured material, vertex colour stores variation relative to the texture's mean, scaled down by `colour_scale`; the shader multiplies albedo by `colour × colour_scale`, so dust, ash and rust can lighten as well as darken. Vertex alpha is wear: where it passes the albedo's alpha threshold the material's `wear` colour shows, with a crisp edge (`WEAR_EDGE`). To fit a tangent, the 48-byte vertex keeps its size by narrowing joint weights from 16-bit to 8-bit. One material function (`modelSurface`) serves lit drawing and impostor bakes. Trees and grass are untextured.
 
 **The gap.** How textures combine with the existing vertex paint.
 
@@ -1984,7 +1984,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Models and the asset pipeline · from Slice 22b*
 
-**The choice.** The pose driver's `restManner(soldier)` gives each soldier, from his id: a gaze stray within ±1.0 rad, an idle tempo 0.8–1.25×, and every fourth man standing watch in the aim stance instead of idle. While the squad's shot counter rises, every man faces the aim; the stray returns after 4 s of quiet, over 6 s. Walking keeps per-id stride phase. Phase offsets alone left squads at rest in one identical stance, read as clones.
+**The choice.** The pose driver's `restManner(soldier)` gives each soldier, from his id: a gaze stray within `turn_rad`, an idle tempo within `tempo`, and one man in `watch_every` standing watch in the aim stance instead of idle. While the squad's shot counter rises, every man faces the aim; the stray returns after a few seconds of quiet (`settle_s`). Walking keeps per-id stride phase. Phase offsets alone left squads at rest in one identical stance, read as clones.
 
 **The gap.** "Pose-phase variants" with a shared clip set.
 
@@ -1992,15 +1992,15 @@ Where the operator fires it from is the operator-muzzle entry.
 
 **Verdict.** sound.
 
-### The bridge has piers and abutments below its deck, reaching 2 m under it
+### The bridge has piers and abutments below its deck, reaching down to the channel's bed
 
 ***sound** · confidence **medium** · Models and the asset pipeline · from Slice 22b*
 
-**The choice.** The bridge's collision box is a 0.8 m deck. The art hangs a substructure under it down to 2 m below (`BED_M`): two wall piers at a third of the half-stream (`BANK_M` 12 m, sized to the geometry lab's 24 m channel) with cutwaters, and abutments with wing walls at the banks. The appearance's ground tolerance widens to 2.05 m to allow it, per the README's "widen a tolerance per appearance" rule.
+**The choice.** The bridge's collision box is a thin deck. The art hangs a substructure under it down to the channel's bed (`BED_M`): two wall piers at a third of the half-stream (`BANK_M`, sized to the geometry lab's channel) with cutwaters, and abutments with wing walls at the banks. The appearance's ground tolerance widens to allow it, per the README's "widen a tolerance per appearance" rule.
 
 **The gap.** The validator required art on the ground plane.
 
-**The reach.** A bridge over a much wider channel than 24 m would stand its abutments in the water; a per-map bridge span is future work.
+**The reach.** A bridge over a much wider channel than the lab's would stand its abutments in the water; a per-map bridge span is future work.
 
 **Verdict.** sound.
 
@@ -2008,7 +2008,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Models and the asset pipeline · from Slice 27d*
 
-**The choice.** The sim says "soldier 3 is out on his lean at point P". The pose driver eases him from his tucked-in spot to P and back (`presentation.pose.lean`: `out_s` 0.25, `back_s` 0.4, sine in-out). His walk cycle reads his published (tucked-in) position, so a lean never plays as a walk. While out he kneels to fire, pinned or not; between bursts a pinned man lies behind his tree. Leans are read from the observation by soldier id and are not interpolated.
+**The choice.** The sim says "soldier 3 is out on his lean at point P". The pose driver eases him from his tucked-in spot to P over `out_s` and back over `back_s` (`presentation.pose.lean`, sine in-out). His walk cycle reads his published (tucked-in) position, so a lean never plays as a walk. While out he kneels to fire, pinned or not; between bursts a pinned man lies behind his tree. Leans are read from the observation by soldier id and are not interpolated.
 
 **The gap.** The slice did not say how a lean is drawn.
 
@@ -2032,7 +2032,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Models and the asset pipeline · from Spike 03; Slice 20*
 
-**The choice.** A supply truck deploys: side beams swing out, jacks drop, a mast rises and telescopes. The simulation gives one deployment progress (0 to 1). Each moving part carries custom properties on its model node: `deploy_start`, `deploy_end` (its window), `deploy_move_{x,y,z}` (metres, parent frame) and `deploy_turn_{x,y,z}` (degrees). On the truck: beams 0–0.3, jacks 0.2–0.5, mast raise 0.35–0.65, telescoping 0.6–1.0. Progress moves each part linearly through its window, read by `articulation.ts`. Validation finding `nodes.deploy_motion` fails a supply model with no deploy window, or whose deployed pads do not reach within `ground_m` of the ground. The alternative was phases coded per vehicle in the renderer, tying code to one model.
+**The choice.** A supply truck deploys: side beams swing out, jacks drop, a mast rises and telescopes. The simulation gives one deployment progress (0 to 1). Each moving part carries custom properties on its model node: `deploy_start`, `deploy_end` (its window), `deploy_move_{x,y,z}` (metres, parent frame) and `deploy_turn_{x,y,z}` (degrees). On the truck the windows overlap in order: beams, then jacks, then the mast's raise, then its telescoping. Progress moves each part linearly through its window, read by `articulation.ts`. Validation finding `nodes.deploy_motion` fails a supply model with no deploy window, or whose deployed pads do not reach within `ground_m` of the ground. The alternative was phases coded per vehicle in the renderer, tying code to one model.
 
 **The gap.** One progress value drives legs and mast together, and the spike's deploy motion was a Blender function nothing carried into a bundle.
 
@@ -2044,7 +2044,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Models and the asset pipeline · from Slice 11; Slice 22*
 
-**The choice.** The tank's simulation box is 2.4 m tall, but its antennas reach 3.45 m. The validator's `fit.hull_extents` compares the model's rest geometry, minus the parts its mounts carry, against the type's hull half extents, in both directions (too small or too big). It has two tolerances: `hull_extent_m` 0.1 m for the sides and `hull_top_m` for the top (0.1 m by default, 1.1 m for the tank and the jeep, for antennas and cupolas). Ground contact is `basis.ground`. One symmetric tolerance would have let the sides stray by a metre too.
+**The choice.** The tank's antennas reach well above its simulation box. The validator's `fit.hull_extents` compares the model's rest geometry, minus the parts its mounts carry, against the type's hull half extents, in both directions (too small or too big). It has two tolerances: `hull_extent_m` for the sides and `hull_top_m` for the top (tight by default, about a metre looser for the tank and the jeep, for antennas and cupolas). Ground contact is `basis.ground`. One symmetric tolerance would have let the sides stray by a metre too.
 
 **The gap.** "Vehicle bounds against the hull extents" didn't say which parts count, and the spike said "per-appearance tolerance" for antennas without a shape.
 
@@ -2068,7 +2068,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Effects and sound · from Slice 26*
 
-**The choice.** Each smoke or dust sprite is an albedo shaded like a soft ball: the sun on its sunward side (wrapped, as light scatters through smoke), plus sun scattered toward the eye when seen against it (Henyey-Greenstein, g 0.4), so backlit dust glows instead of going dark, plus the sky's diffuse light from the environment's prefiltered map, with the sheet's own relief on top. The effect pass binds the environment uniform and map directly (`EffectLight`). Fire keeps its own colour. Smoke neither casts nor receives sun shadow.
+**The choice.** Each smoke or dust sprite is an albedo shaded like a soft ball: the sun on its sunward side (wrapped, as light scatters through smoke), plus sun scattered toward the eye when seen against it (Henyey-Greenstein), so backlit dust glows instead of going dark, plus the sky's diffuse light from the environment's prefiltered map, with the sheet's own relief on top. The effect pass binds the environment uniform and map directly (`EffectLight`). Fire keeps its own colour. Smoke neither casts nor receives sun shadow.
 
 **The gap.** The lighting model was delegated.
 
@@ -2076,11 +2076,11 @@ Where the operator fires it from is the operator-muzzle entry.
 
 **Verdict.** sound — physically grounded and consistent with world lighting. Open: no smoke shadows.
 
-### Effect budget: 8,192 instances, smoke limited to 4,096 and thinned evenly
+### Effect budget: a fixed instance capacity, smoke limited to a share of it and thinned evenly
 
 ***sound** · confidence **medium** · Effects and sound · from Slice 25; Slice 26*
 
-**The choice.** The effect pass holds 8,192 instances (`capacity`); past it an effect is dropped and counted. Smoke sources together may use at most `smoke_budget` 4,096. Past that, every source thins alike: each puff and flame is kept by its own seeded draw, so every known wreck still smokes (fainter) and combat effects are never starved. A burning wreck holds about 51 instances, a smouldering one about 20; 2,000 wrecks burning at once held 3,955 with none dropped.
+**The choice.** The effect pass holds `capacity` instances; past it an effect is dropped and counted. Smoke sources together may use at most `smoke_budget`. Past that, every source thins alike: each puff and flame is kept by its own seeded draw, so every known wreck still smokes (fainter) and combat effects are never starved. A burning wreck holds about 51 instances, a smouldering one about 20; 2,000 wrecks burning at once held 3,955 with none dropped.
 
 **The gap.** Budgets were delegated.
 
@@ -2100,11 +2100,11 @@ Where the operator fires it from is the operator-muzzle entry.
 
 **Verdict.** sound — medium: a delay is more realistic and some players expect it.
 
-### The listener stands a quarter of the way from the camera's target toward its eye
+### The listener stands between the camera's target and its eye
 
 ***sound** · confidence **medium** · Effects and sound · from Slice 40*
 
-**The choice.** `presentation.audio.listener_eye_share` 0.25 places the ear between the look-at point and the camera, facing where the camera looks, level. At the eye, a strategic zoom would hear nothing; at the target, a low camera's own position would not matter. Level falls off as `ref_m` 15 over distance (`rolloff` 1), silent past 3,000 m, not started under 0.004. Browser panners pan by direction only, so what the code ranks and what is heard agree. The air low-pass runs from 18 kHz at the listener to 1.2 kHz at 1,200 m.
+**The choice.** `presentation.audio.listener_eye_share` places the ear between the look-at point and the camera, facing where the camera looks, level. At the eye, a strategic zoom would hear nothing; at the target, a low camera's own position would not matter. Level falls off as `ref_m` over distance (`rolloff`), silent past a cut-off distance, and a sound too quiet to hear is not started. Browser panners pan by direction only, so what the code ranks and what is heard agree. The air low-pass closes from near full bandwidth at the listener to a muffled band at long range.
 
 **The gap.** Listener placement in an RTS camera is unspecified.
 
@@ -2112,17 +2112,17 @@ Where the operator fires it from is the operator-muzzle entry.
 
 **Verdict.** sound — tuning, medium.
 
-### 48 voices at once, 16 of them loops; louder new sounds steal the quietest
+### A capped number of voices, a share of them loops; louder new sounds steal the quietest
 
 ***sound** · confidence **medium** · Effects and sound · from Slice 40*
 
-**The choice.** `presentation.audio.budget` allows 48 voices, 16 of them loops (engines, running gear, turrets, reverse, fires, motors); ambience is outside the budget. Priority is loudness at the listener: a louder new transient takes the quietest's place with a 20 ms fade, a quieter one is dropped; loops are re-chosen every frame, loudest first.
+**The choice.** `presentation.audio.budget` caps the voices, with a share for loops (engines, running gear, turrets, reverse, fires, motors); ambience is outside the budget. Priority is loudness at the listener: a louder new transient takes the quietest's place with a short fade, a quieter one is dropped; loops are re-chosen every frame, loudest first.
 
 **The gap.** No voice budget in the spec.
 
 **The reach.** Bounds audio cost in big firefights.
 
-**Verdict.** sound — 48 is a guess the live check showed ample.
+**Verdict.** sound — the cap is a guess the live check showed ample.
 
 ### Shots are inferred once, from shot-counter rises paired with the next publication's new rounds, and flashes and gunfire share that detector
 
@@ -2132,7 +2132,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 **The gap.** The feed has no round id; the renderer has to infer the pairing, and the spec did not say how. Sound needed launches that effects already found inline.
 
-**The reach.** A flash and its sound are at most one tick (50 ms) late. Any future effect keyed on squad launches inherits this pairing. A clipped enemy round re-entering seen ground on the tick its shooter fires again could flash at the wrong place; not seen in play.
+**The reach.** A flash and its sound are at most one tick late. Any future effect keyed on squad launches inherits this pairing. A clipped enemy round re-entering seen ground on the tick its shooter fires again could flash at the wrong place; not seen in play.
 
 **Verdict.** sound — the best inference without adding a round id to the publication, matching when the simulation actually flies a round; medium because it is inference.
 
@@ -2152,7 +2152,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · In-world UI and HUD · from Slice 15*
 
-**The choice.** Blue hears a firing report or loses sight of an enemy. The observation gives an approximate area (centre, radius, freshness, source), never the exact unit. Today `buildContactGlyphs` (`contactGlyph.ts`) draws a `ContactGlyph`: every contact has a red glow and a diagonal hatch; a last sighting is a pale ghost (hatch plus outline, glow hugging the rim); a firing report keeps an even red fill hatched in red. Glyphs fade with `contactFreshness` and vanish at expiry. The hatch is anchored to the world (no direction of its own, so it never hints at a heading). Numbers are in `presentation.contacts` (hatch every 16 m, 1.2 m wide, outline 1.6 m, etc.). `battleOverlay.contactLayer` is the only caller.
+**The choice.** Blue hears a firing report or loses sight of an enemy. The observation gives an approximate area (centre, radius, freshness, source), never the exact unit. Today `buildContactGlyphs` (`contactGlyph.ts`) draws a `ContactGlyph`: every contact has a red glow and a diagonal hatch; a last sighting is a pale ghost (hatch plus outline, glow hugging the rim); a firing report keeps an even red fill hatched in red. Glyphs fade with `contactFreshness` and vanish at expiry. The hatch is anchored to the world (no direction of its own, so it never hints at a heading). Numbers are in `presentation.contacts`. `battleOverlay.contactLayer` is the only caller.
 
 **The gap.** The contract gave "a hatch plus the red glow" but not how firing and last-seen differ.
 
@@ -2164,7 +2164,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · In-world UI and HUD · from Slice 27e; Slice 27e (follow-ups)*
 
-**The choice.** A tank reverses. Two small chevrons appear behind its marker circle (starting 1 m outside it), pointing against its facing; on a forward move they point along it. A pulse runs through them in the travel direction (`orders.march`: 1 cycle a second, dimming by 0.6). The pulse phase is stored in the vertex (the painted-marching mesh, `WorldMeshes.paintedMarching`) and driven by the frame's presentation clock, never wall time, so a paused or captured frame is still. They show only under the moving vehicle, when it is selected or Space is held, never at the destination. Squads get none: they never reverse, and their route already shows direction. Chevrons are always ground paint, whatever the scheme.
+**The choice.** A tank reverses. Two small chevrons appear behind its marker circle (starting just outside it), pointing against its facing; on a forward move they point along it. A pulse runs through them in the travel direction (`orders.march` sets its rate and dimming). The pulse phase is stored in the vertex (the painted-marching mesh, `WorldMeshes.paintedMarching`) and driven by the frame's presentation clock, never wall time, so a paused or captured frame is still. They show only under the moving vehicle, when it is selected or Space is held, never at the destination. Squads get none: they never reverse, and their route already shows direction. Chevrons are always ground paint, whatever the scheme.
 
 **The gap.** The user asked for travel chevrons that march; placement, clock and which units get them were delegated.
 
@@ -2176,7 +2176,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · In-world UI and HUD · from Slice 27e; Slice 27e (follow-ups)*
 
-**The choice.** Each own unit has a callout (its weapons' rings and rounds) in the DOM. It floats with its near bottom corner 30 px to the side and 34 px above the unit's anchor (a point 2 m over it). A leader line runs from a 2 px ring on the unit to that corner and along the callout's foot. At the right screen edge it hangs left. Leaders are dotted and neutral; a selected unit's is solid and cyan (the HUD accent), so they never read as another order line. Placement never goes under a HUD bar or over another callout, and keeps every unit's anchor clear. A selected unit's callout is bright with name and weapon captions; others are dimmer, rings and rounds only. Rings: reload dashed amber outside, aim cyan inside; why a weapon can't fire is an amber glyph in the middle. No box: a dark text stroke and glow carry legibility. When a callout must move to clear another, it eases toward its new place with a 50 ms time constant on the presentation clock (`easeNudge`, about 95% in 150 ms); layout uses the targets, so the next one clears where this one is going. A paused or rewound clock snaps to the settled layout, so paused callouts still clear each other as the camera moves; a new callout and a left/right flip snap. Destinations carry no text (user): the marker and route say whose it is.
+**The choice.** Each own unit has a callout (its weapons' rings and rounds) in the DOM. It floats with its near bottom corner a little to the side of and above the unit's anchor (a point over it). A leader line runs from a small ring on the unit to that corner and along the callout's foot. At the right screen edge it hangs left. Leaders are dotted and neutral; a selected unit's is solid and cyan (the HUD accent), so they never read as another order line. Placement never goes under a HUD bar or over another callout, and keeps every unit's anchor clear. A selected unit's callout is bright with name and weapon captions; others are dimmer, rings and rounds only. Rings: reload dashed amber outside, aim cyan inside; why a weapon can't fire is an amber glyph in the middle. No box: a dark text stroke and glow carry legibility. When a callout must move to clear another, it eases toward its new place in a fraction of a second on the presentation clock (`easeNudge`); layout uses the targets, so the next one clears where this one is going. A paused or rewound clock snaps to the settled layout, so paused callouts still clear each other as the camera moves; a new callout and a left/right flip snap. Destinations carry no text (user): the marker and route say whose it is.
 
 **The gap.** The user gave the reference (a unit connected to its readout by a line); placement, hierarchy and motion were delegated.
 
@@ -2188,7 +2188,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · In-world UI and HUD · from Slice 27e; Slice 27e (follow-ups)*
 
-**The choice.** The user said "game UI, not b2b saas" and asked for a command bar at the bottom. The battle's HUD (`[data-testid=battle-panel]`) is two bars, both marked `data-occludes-readouts`: `header.hud-top` (title, status, run controls, sound) and `footer.hud-bottom` (the unit card, a 6 × 2 command grid, the radio and command log). Dark glass, thin accent edges, monospace small caps; custom controls, no browser widgets. Command tiles show a glyph, a short name and a key chip; each button's accessible name is exactly its old text, so tests and screen readers are unchanged. The unit card for one unit shows name, segmented strength and pinning gauges, and each weapon's state; for two or more it is compact rows (`.ro-group`: "N units selected", then one row per unit). The log reads terse lines like `✓ #1 move tank #0 to (84, 148) · tick 27`.
+**The choice.** The user said "game UI, not b2b saas" and asked for a command bar at the bottom. The battle's HUD (`[data-testid=battle-panel]`) is two bars, both marked `data-occludes-readouts`: `header.hud-top` (title, status, run controls, sound) and `footer.hud-bottom` (the unit card, a command grid, the radio and command log). Dark glass, thin accent edges, monospace small caps; custom controls, no browser widgets. Command tiles show a glyph, a short name and a key chip; each button's accessible name is exactly its old text, so tests and screen readers are unchanged. The unit card for one unit shows name, segmented strength and pinning gauges, and each weapon's state; for two or more it is compact rows (`.ro-group`: "N units selected", then one row per unit). The log reads terse lines like `✓ #1 move tank #0 to (84, 148) · tick 27`.
 
 **The gap.** Layout, contents and styling were delegated.
 
@@ -2201,9 +2201,9 @@ Where the operator fires it from is the operator-muzzle entry.
 ***sound** · confidence **medium** · In-world UI and HUD · from Slice 27 (muzzle flash) — the paint is a light*
 
 **The choice.** The user asked that painted ground marks look like light shining up. The paint's settings are under `overlay.paint` and `overlay.glow`:
-- `paint.albedo` 0.15 and `glow.ground` 0.4: the hue is mostly emissive, so shade and cast shadows barely darken it.
-- `paint.saturation` 1.3 pushes the colour away from grey, because the AgX tone mapper and the colour grade pull bright hues toward white.
-- The paint target holds colour over a range of 2 (`PAINT_RANGE` in `frame/fogTerm.ts`), so a mark can glow past full value.
+- A low `paint.albedo` and a strong `glow.ground`: the hue is mostly emissive, so shade and cast shadows barely darken it.
+- `paint.saturation` pushes the colour away from grey, because the AgX tone mapper and the colour grade pull bright hues toward white.
+- The paint target holds colour over a range past full value (`PAINT_RANGE` in `frame/fogTerm.ts`), so a mark can glow past full value.
 
 **The gap.** "Look like a light" had to become numbers, and the tone mapper fights saturated brights.
 
@@ -2215,7 +2215,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · In-world UI and HUD · from Slice 35; Slice 27e; Slice 27e (follow-ups); Slice 27 (muzzle flash) — painted chosen over overlay; selection colour option C; option sheet; colour roles; user picked yellow-orders*
 
-**The choice.** The player selects a rifle squad and a tank, orders the squad across a field to a hedge, and holds Space. Three colour roles are drawn. **order**: the route, the destination marker (a vehicle's circle, or a squad's area ring with each soldier's spot inside), arrowheads, queued waypoints (at `queued_alpha` 0.5), Space's current markers under every own unit (at `current_alpha` 0.55) and the cover pips. These are true yellow `[1.0, 0.9, 0.3]` in the overlay layer: composited after tone mapping so the colour is exact, drawn over dust and smoke, still hidden by a hull, wall or ridge in front (depth-tested). **selected**: the selected unit's own circle and arrowhead, amber `[1.0, 0.6, 0.12]` ground paint in the world, lit, shadowed, fogged and under smoke, glowing past its colour by `selected_glow` 1.2. **soldier**: the marker under each soldier of a selected squad, also amber paint, told from the squad circle by shape and size. The fixture says this: `presentation.overlay.orders.scheme: "yellow-orders"` picks one of `orders.schemes`, each giving the three roles a colour and a layer (`"world"` paint or `"overlay"`); `resolveOrderScheme` in `packages/battle-renderer/src/orderOverlay.ts` turns it into the `OrderStyle` one builder draws, with no code branch per scheme. The other scheme, `white-orders` (white painted orders, yellow overlay selection), stays in the fixture as a switch. Colour carries meaning in few places: one order colour for every order kind; a blocked route is red and always paint; the cover tiers are pips (see the cover-pip entry). A moving vehicle's travel chevrons are paint. There is one route per unit and never a line from a single soldier (see the order-is-the-unit's entry). Cyan is only the HUD accent (`presentation.hud.accent`) and, as pale blue, own units' x-ray. The user picked this scheme from a side-by-side option sheet.
+**The choice.** The player selects a rifle squad and a tank, orders the squad across a field to a hedge, and holds Space. Three colour roles are drawn. **order**: the route, the destination marker (a vehicle's circle, or a squad's area ring with each soldier's spot inside), arrowheads, queued waypoints (at `queued_alpha`), Space's current markers under every own unit (at `current_alpha`) and the cover pips. These are true yellow in the overlay layer: composited after tone mapping so the colour is exact, drawn over dust and smoke, still hidden by a hull, wall or ridge in front (depth-tested). **selected**: the selected unit's own circle and arrowhead, amber ground paint in the world, lit, shadowed, fogged and under smoke, glowing past its colour by `selected_glow`. **soldier**: the marker under each soldier of a selected squad, also amber paint, told from the squad circle by shape and size. The fixture says this: `presentation.overlay.orders.scheme: "yellow-orders"` picks one of `orders.schemes`, each giving the three roles a colour and a layer (`"world"` paint or `"overlay"`); `resolveOrderScheme` in `packages/battle-renderer/src/orderOverlay.ts` turns it into the `OrderStyle` one builder draws, with no code branch per scheme. The other scheme, `white-orders` (white painted orders, yellow overlay selection), stays in the fixture as a switch. Colour carries meaning in few places: one order colour for every order kind; a blocked route is red and always paint; the cover tiers are pips (see the cover-pip entry). A moving vehicle's travel chevrons are paint. There is one route per unit and never a line from a single soldier (see the order-is-the-unit's entry). Cyan is only the HUD accent (`presentation.hud.accent`) and, as pale blue, own units' x-ray. The user picked this scheme from a side-by-side option sheet.
 
 **The gap.** The spec gave no colour or layer for orders versus the selection. The user chose the scheme; making it a data switch with a layer per role, and the three-role split, were the agent's.
 
@@ -2223,11 +2223,11 @@ Where the operator fires it from is the operator-muzzle entry.
 
 **Verdict.** sound — the user's pick, expressed as data with one owner. Since superseded: the UI simplification pass made every ground mark paint, and the scheme switch is gone (decisions).
 
-### Order and HUD lines are a fixed width on screen: 5 px strokes, thinner marks for a soldier's own markers
+### Order and HUD lines are a fixed width on screen, with thinner marks for a soldier's own markers
 
 ***sound** · confidence **medium** · In-world UI and HUD · from Slice 27e; Slice 27 (muzzle flash) — strokes 50% thicker; strokes at 5 px*
 
-**The choice.** The player zooms from street level to the strategic view; order lines keep the same on-screen weight. Lines are sized in screen pixels at the camera's target: routes and rings `overlay.orders.line_px` 5, marker outlines, arrowheads and chevrons `mark_px` 3.75, on both layers, and the supply, suppression and impact rings and the objective zone use the same weight. A soldier's own marker and his destination spot keep a finer `soldier_mark_px` 1.5 and `soldier_line_px` 2, so small per-soldier marks don't clot into blobs. On the ground no line is narrower than `min_line_m` 0.05 m. Marks are rebuilt only when the zoom crosses a ×1.25 step (the map border's mechanism, shared), and `metresPerPxAt` in `camera3d.ts` is the one owner of that projection. Unit tests read the weights from the fixture and pin them relative to each other. The alternative was widths in metres, which vanish when zoomed out and swamp the view up close.
+**The choice.** The player zooms from street level to the strategic view; order lines keep the same on-screen weight. Lines are sized in screen pixels at the camera's target: routes and rings `overlay.orders.line_px`, marker outlines, arrowheads and chevrons `mark_px`, on both layers, and the supply, suppression and impact rings and the objective zone use the same weight. A soldier's own marker and his destination spot keep a finer `soldier_mark_px` and `soldier_line_px`, so small per-soldier marks don't clot into blobs. On the ground no line is narrower than `min_line_m`. Marks are rebuilt only when the zoom crosses a step (the map border's mechanism, shared), and `metresPerPxAt` in `camera3d.ts` is the one owner of that projection. Unit tests read the weights from the fixture and pin them relative to each other. The alternative was widths in metres, which vanish when zoomed out and swamp the view up close.
 
 **The gap.** The user gave the feel (thin, then 50% thicker), not the mechanism or whether per-soldier marks count.
 
@@ -2239,11 +2239,11 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · In-world UI and HUD · from Slice 27e; Slice 27e (follow-ups); Slice 27 (muzzle flash)*
 
-**The choice.** A rifle squad faces east and the player orders it further east. Every unit mark is "the unit plus its facing": a circle with a small filled arrowhead on its rim (the user picked it from a sheet of five shapes), drawn by one function, `circleMarker`. Under a moving unit, and under a vehicle that is selected or when Space is held, the arrowhead points where the unit faces now (its published yaw); for a squad the circle surrounds its soldiers. At the destination it is a vehicle's marker, or a squad's area ring (anchor and radius at the destination), with the arrowhead at the final facing and each soldier's spot marker (a 0.45 m circle) inside. A vehicle's circle is its hull's half-length (from the catalog's `half_extents_m`) plus `orders.vehicle_marker_margin_m` (0.7 m), so a new vehicle needs no new number and the ring peeks out from under any hull. The arrowhead is capped at 1.5 m (`MARKER_HEAD_MAX_M`). A squad's circles are drawn at `area_draw_scale` 0.8 of their true radius (the user's visual scale; the real area is unchanged). `routeBetween` (`orderOverlay.ts`) clips every route, queued legs too, at the circles it joins: when a route leaves or arrives within 60° of a circle's facing it is clipped at the arrowhead's tip, otherwise at the rim, so a route never runs over an arrowhead. With Space, a holding squad's area is the same ring round its anchor, faint; a route waiting for the way to clear adds a broken ring round the unit. There is no other area ring.
+**The choice.** A rifle squad faces east and the player orders it further east. Every unit mark is "the unit plus its facing": a circle with a small filled arrowhead on its rim (the user picked it from a sheet of five shapes), drawn by one function, `circleMarker`. Under a moving unit, and under a vehicle that is selected or when Space is held, the arrowhead points where the unit faces now (its published yaw); for a squad the circle surrounds its soldiers. At the destination it is a vehicle's marker, or a squad's area ring (anchor and radius at the destination), with the arrowhead at the final facing and each soldier's spot marker (a small circle) inside. A vehicle's circle is its hull's half-length (from the catalog's `half_extents_m`) plus `orders.vehicle_marker_margin_m`, so a new vehicle needs no new number and the ring peeks out from under any hull. The arrowhead's size is capped (`MARKER_HEAD_MAX_M`). A squad's circles are drawn smaller than their true radius, by `area_draw_scale` (the user's visual scale; the real area is unchanged). `routeBetween` (`orderOverlay.ts`) clips every route, queued legs too, at the circles it joins: when a route leaves or arrives close to a circle's facing it is clipped at the arrowhead's tip, otherwise at the rim, so a route never runs over an arrowhead. With Space, a holding squad's area is the same ring round its anchor, faint; a route waiting for the way to clear adds a broken ring round the unit. There is no other area ring.
 
 **The gap.** The user chose the shape and the "no spokes, area ring, circle under the unit" look; sizes, clipping and when each circle shows were left to the implementer, and the arrowhead overlap was a critique finding.
 
-**The reach.** Any new unit type gets markers from catalog data; any new marker with a protrusion needs the same clipping. At 0.8 scale, a soldier can stand visibly outside his squad's drawn circle.
+**The reach.** Any new unit type gets markers from catalog data; any new marker with a protrusion needs the same clipping. At that reduced scale, a soldier can stand visibly outside his squad's drawn circle.
 
 **Verdict.** sound — medium on the sizes, which are taste.
 
@@ -2275,7 +2275,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · The catalog · from Slice 04*
 
-**The choice.** A squad sees evenly in every direction (settled by the user). Today that is data: the abstract `squad` entry in `fixtures/units/generic/infantry.json` sets `sight_shape {1, 1, 1}`, and every squad type inherits it. Nothing in code forces it; a catalog author could give a squad a directional shape, and it would then look along the squad's heading. The alternative, pinning infantry to `{1, 1, 1}` in code, would be a rule that asks "is this infantry?", which the catalog's "behaviour comes from components" rule forbids.
+**The choice.** A squad sees evenly in every direction (settled by the user). Today that is data: the abstract `squad` entry in `fixtures/units/generic/infantry.json` sets an even `sight_shape` (front, side and rear alike), and every squad type inherits it. Nothing in code forces it; a catalog author could give a squad a directional shape, and it would then look along the squad's heading. The alternative, pinning infantry to an even shape in code, would be a rule that asks "is this infantry?", which the catalog's "behaviour comes from components" rule forbids.
 
 **The gap.** Whether infantry's shape lives in data.
 
@@ -2299,7 +2299,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · The catalog · from Slice 22; Post-close review (presentation)*
 
-**The choice.** A house is placed on the map as a 30 × 24 m box. Each static prop appearance declares the box it is modelled to (`footprint_half_m` in `assets/catalog.json`). A validator finding, `fit.footprint`, measures the art against it; a building's ruin is checked at the ruin height, which the fit authority reads from the catalog prop type's `destroyed.into.height_m` (`scene-assets/src/authority.ts`). The building appearances share one authored ruin state, so `fixtureAuthority` throws, naming them, when the prop types they draw leave remains of differing heights. Keying the height per appearance would need a link from appearance to prop type that the asset catalog doesn't have. A catalog test holds every building to a village placement, every wreck to a hull box, and every ruin to a building's plan at ruin height. The workbench draws the declared box. The box travels into the runtime catalog and the installed appearance (`footprint`), where the renderer fits each placed prop from it. The alternative was sizing art per placement with no declared box.
+**The choice.** A house is placed on the map as a box. Each static prop appearance declares the box it is modelled to (`footprint_half_m` in `assets/catalog.json`). A validator finding, `fit.footprint`, measures the art against it; a building's ruin is checked at the ruin height, which the fit authority reads from the catalog prop type's `destroyed.into.height_m` (`scene-assets/src/authority.ts`). The building appearances share one authored ruin state, so `fixtureAuthority` throws, naming them, when the prop types they draw leave remains of differing heights. Keying the height per appearance would need a link from appearance to prop type that the asset catalog doesn't have. A catalog test holds every building to a village placement, every wreck to a hull box, and every ruin to a building's plan at ruin height. The workbench draws the declared box. The box travels into the runtime catalog and the installed appearance (`footprint`), where the renderer fits each placed prop from it. The alternative was sizing art per placement with no declared box.
 
 **The gap.** The user's 2026-09-26 decision said "validated against its simulation footprint" with no schema.
 
@@ -2383,7 +2383,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Tooling and tests · from Slice 30*
 
-**The choice.** A check reads the simulation's own state, not anything published to a player: a soldier's 0.3 m disc against every prop that blocks infantry; a hull box against props that block vehicles; closest soldier pairs within and between squads; soldier height against the ground; "in cover", which calls the simulation's own cover rule (`sim::cover::at` through `cover_tier`) against the named threat; how far short an attack-move first halts; a prop's displacement. The alternative was adding new published fields only for tests.
+**The choice.** A check reads the simulation's own state, not anything published to a player: a soldier's disc against every prop that blocks infantry; a hull box against props that block vehicles; closest soldier pairs within and between squads; soldier height against the ground; "in cover", which calls the simulation's own cover rule (`sim::cover::at` through `cover_tier`) against the named threat; how far short an attack-move first halts; a prop's displacement. The alternative was adding new published fields only for tests.
 
 **The gap.** Which measurements define "moved right" was delegated.
 
@@ -2441,11 +2441,11 @@ Where the operator fires it from is the operator-muzzle entry.
 
 **Verdict.** sound.
 
-### A crater is light cover for a soldier standing in it, from every side, once it is half deep
+### A crater is light cover for a soldier standing in it, from every side, once it is deep enough
 
 ***sound** · confidence **high** · Simulation rules · from Slice 07*
 
-**The choice.** An HE shell digs a crater; a rifleman later lies in it while taking fire. Today cover (`sim/src/cover.rs`) treats a crater under a soldier's feet as a cover body of tier `cover.crater` ("light") whenever its fill is at least `cover.crater_min_fill` (0.5), whatever the direction of fire; the strongest body protecting him widens the incoming round's spread by its tier. Cover protects soldiers only, so a tank parked in a crater gains nothing. The spread uses the true ground layer; seeking cover uses the craters the side has seen. The alternative, a crater strength on the old forest-cover scale, went away with that scale.
+**The choice.** An HE shell digs a crater; a rifleman later lies in it while taking fire. Today cover (`sim/src/cover.rs`) treats a crater under a soldier's feet as a cover body of tier `cover.crater` ("light") whenever its fill is at least `cover.crater_min_fill`, whatever the direction of fire; the strongest body protecting him widens the incoming round's spread by its tier. Cover protects soldiers only, so a tank parked in a crater gains nothing. The spread uses the true ground layer; seeking cover uses the craters the side has seen. The alternative, a crater strength on the old forest-cover scale, went away with that scale.
 
 **The gap.** The slice named one crater-cover key without saying how it combined with other cover.
 
@@ -2457,7 +2457,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Simulation rules · from Slice 07*
 
-**The choice.** A tank drives across a field. Today each vehicle has two track points at ±`ground.track_gauge` (0.75) of its half width, and each living, ungarrisoned soldier is one point; entering a new cell adds `tracks_per_pass` (24) or `trampled_per_pass` (6). Every channel saturates at 255; nothing decays. Wear is cosmetic: a test pins combat identical with the channels off.
+**The choice.** A tank drives across a field. Today each vehicle has two track points at ±`ground.track_gauge` of its half width, and each living, ungarrisoned soldier is one point; entering a new cell adds `tracks_per_pass` or `trampled_per_pass`. Every channel saturates at 255; nothing decays. Wear is cosmetic: a test pins combat identical with the channels off.
 
 **The gap.** Accumulation was delegated.
 
@@ -2505,7 +2505,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Simulation rules · from Slice 38*
 
-**The choice.** An anti-tank missile is steered by its launcher while the launcher stands still, lives and sees the target. When that support ends (the user's rule), the missile flies straight on for a short "coast", then goes to ground. The coast time is `guided.release_coast_s` (0.5 s), a new top-level section in `fixtures/game.json`, parsed as `contract::ballistics::GuidedRules`. It is not a field on the `atgm` weapon row, because it describes what any guided round does once released, not one launcher. `flight::validate_guided` refuses zero, negative or non-finite values at battle setup: at zero the aim point would sit right under the missile and it would circle.
+**The choice.** An anti-tank missile is steered by its launcher while the launcher stands still, lives and sees the target. When that support ends (the user's rule), the missile flies straight on for a short "coast", then goes to ground. The coast time is `guided.release_coast_s`, a new top-level section in `fixtures/game.json`, parsed as `contract::ballistics::GuidedRules`. It is not a field on the `atgm` weapon row, because it describes what any guided round does once released, not one launcher. `flight::validate_guided` refuses zero, negative or non-finite values at battle setup: at zero the aim point would sit right under the missile and it would circle.
 
 **The gap.** The spec named `guided.release_coast_s` but not where it lives or what values are legal.
 
@@ -2517,7 +2517,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Simulation rules · from Slice 38*
 
-**The choice.** Each tick `Battle::guide` checks whether each launcher still supports its missile. The check reads the sighting sensed on the previous tick, before this tick's flight, so a missile is released at the start of the tick after the sighting lapsed, from its last supported position. On release it calls `Projectiles::release(id, coast_s, world)`. The flight module fixes the missile's aim point at `position + velocity × coast_s`, dropped to the ground height beneath (`world.height_at`). The missile turns toward that point (about 1°, well inside its 60°/s turn limit) and glides in a straight, shallow line into the ground about 90 m past release. Over a rise the line can hit the slope first, which still counts as going to ground. If the point lies beyond the map there is no ground to drop to: it keeps the missile's height and flies level until its lifetime ends or it leaves the map. The rejected shape was level flight for 0.5 s then a hard dive, which lands farther than "the coast" and needs a second guidance phase.
+**The choice.** Each tick `Battle::guide` checks whether each launcher still supports its missile. The check reads the sighting sensed on the previous tick, before this tick's flight, so a missile is released at the start of the tick after the sighting lapsed, from its last supported position. On release it calls `Projectiles::release(id, coast_s, world)`. The flight module fixes the missile's aim point at `position + velocity × coast_s`, dropped to the ground height beneath (`world.height_at`). The missile turns toward that point (a slight turn, well inside its turn limit) and glides in a straight, shallow line into the ground a short way past release. Over a rise the line can hit the slope first, which still counts as going to ground. If the point lies beyond the map there is no ground to drop to: it keeps the missile's height and flies level until its lifetime ends or it leaves the map. The rejected shape was level flight for the coast time then a hard dive, which lands farther than "the coast" and needs a second guidance phase.
 
 **The gap.** The dive's shape was delegated, as were the timing and the off-map case.
 
@@ -2529,7 +2529,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Simulation rules · from Slice 33*
 
-**The choice.** One module owns what cover *is*: `cover::at(world, ground, hulls, rules, soldier, shooter) -> Option<Tier>` returns the strongest *tier* (light, medium or heavy, the contract's `CoverTier`) of any cover body within `cover.reach_m` (1.5 m) of the soldier and between him and the shooter, or of a crater under his feet at least `crater_min_fill` (0.5) full. `cover::spread(tier)` is the multiplier on the incoming round's scatter. The same rule, applied to a side's gathered knowledge (`cover::Known`), offers places (`cover::spots`), assigns them (`cover::claim`) and finds firing places (`cover::step_out`). `movement::take_cover` owns *when* a squad seeks cover and walking there.
+**The choice.** One module owns what cover *is*: `cover::at(world, ground, hulls, rules, soldier, shooter) -> Option<Tier>` returns the strongest *tier* (light, medium or heavy, the contract's `CoverTier`) of any cover body within `cover.reach_m` of the soldier and between him and the shooter, or of a crater under his feet at least `crater_min_fill` full. `cover::spread(tier)` is the multiplier on the incoming round's scatter. The same rule, applied to a side's gathered knowledge (`cover::Known`), offers places (`cover::spots`), assigns them (`cover::claim`) and finds firing places (`cover::step_out`). `movement::take_cover` owns *when* a squad seeks cover and walking there.
 
 **The gap.** The seam named `spots(world, knowledge, threat)`; the knowledge became a gathered `Known` so one squad's resolve reads the prop index once.
 
@@ -2565,7 +2565,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Simulation rules · from Slice 34b*
 
-**The choice.** A body whose row sets `topples` (the trunk) is knocked down, not shoved, when a vehicle that could shove it meets it, wherever it stands (no slide, no chain check), in `movement::push::shove`; `Battle::knock_down` removes it. The shove slowdown still applies for that tick (a tank keeps 1/3 against a medium trunk). Toppled kinds are not drawn apart as movable props: they fall.
+**The choice.** A body whose row sets `topples` (the trunk) is knocked down, not shoved, when a vehicle that could shove it meets it, wherever it stands (no slide, no chain check), in `movement::push::shove`; `Battle::knock_down` removes it. The shove slowdown still applies for that tick. Toppled kinds are not drawn apart as movable props: they fall.
 
 **The gap.** Q16 said heavy pushers knock trees down, not how.
 
@@ -2589,7 +2589,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Simulation rules · from Slice 27d*
 
-**The choice.** A rifleman stands behind a tree trunk. The enemy is on the far side. To fire, he needs a point where his round clears the trunk. `sim::lean::points` finds those points for any footprint (a trunk, a house corner, a parked tank): take the two edges of the footprint that the enemy's line of view just grazes; step past each edge far enough that his body clears it (his radius plus `cover.lean_clear_m`, 0.1 m); keep the step level with where he stands, sideways across the enemy's view. Points further than `cover.lean_max_m` (1.5 m) are thrown away, because a longer move is a walk, the cover search's job. The nearest point wins; if both are equally near, the right-hand one. So a man behind a trunk's middle has a lean point about 0.5–0.8 m to one side, and a man in the middle of a long hull has none and must be moved by the cover search. The result is a step out, not a bend round the bark: his body fully clears the cover, so a round from the lean point can never touch it. One function, `lean::reaches(world, hulls, from, to, past)`, is the only test of "does his round get there": no terrain, no round-stopping body except `past` (the body he leans round), no live vehicle hull in the way (grazing a hull within 0.1 m counts as hitting it; a line that ends inside a hull is aimed at that hull). The cover search (`take_cover::Fight`) and the fire code (`weapons::fire_from`) both call it, so they can never disagree about whether a shot is possible.
+**The choice.** A rifleman stands behind a tree trunk. The enemy is on the far side. To fire, he needs a point where his round clears the trunk. `sim::lean::points` finds those points for any footprint (a trunk, a house corner, a parked tank): take the two edges of the footprint that the enemy's line of view just grazes; step past each edge far enough that his body clears it (his radius plus `cover.lean_clear_m`); keep the step level with where he stands, sideways across the enemy's view. Points further than `cover.lean_max_m` are thrown away, because a longer move is a walk, the cover search's job. The nearest point wins; if both are equally near, the right-hand one. So a man behind a trunk's middle has a lean point a short step to one side, and a man in the middle of a long hull has none and must be moved by the cover search. The result is a step out, not a bend round the bark: his body fully clears the cover, so a round from the lean point can never touch it. One function, `lean::reaches(world, hulls, from, to, past)`, is the only test of "does his round get there": no terrain, no round-stopping body except `past` (the body he leans round), no live vehicle hull in the way (grazing a hull counts as hitting it; a line that ends inside a hull is aimed at that hull). The cover search (`take_cover::Fight`) and the fire code (`weapons::fire_from`) both call it, so they can never disagree about whether a shot is possible.
 
 **The gap.** The slice said soldiers lean out round tall cover, with no geometry and no rule for how the cover search and the fire code agree.
 
@@ -2605,7 +2605,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 **The gap.** The slice said "tall cover" and gave no rule.
 
-**The reach.** A new prop's lean behaviour follows from its body height in the catalog. A test scenario's sandbags had to drop from 1.5 m to 1.2 m to stay "fire over" cover.
+**The reach.** A new prop's lean behaviour follows from its body height in the catalog. A test scenario's sandbags had to be lowered to stay "fire over" cover.
 
 **Verdict.** sound — first-principles (the body's own height), matching the project's rule against named special cases.
 
@@ -2661,7 +2661,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Simulation rules · from Slice 32*
 
-**The choice.** A tank drives toward a squad resting on its route. The tank's path over the next `yield_horizon_s` (2 s) at its speed, plus half its hull length, is a *threat* strip. Any soldier (either side, moving or resting, not garrisoned) within the hull's half width plus his radius plus `yield_margin_m` (1 m) of that strip steps straight out of it, on the side he stands, at full pace, before doing anything else. Hulls are solid to his walking and planning. The vehicle never waits for soldiers (`vehicle_conflict` only considers other vehicles). If a hull still ends a step over a soldier, he is pushed out through its nearest side (and out of any prop that leaves him in), unhurt. The alternatives were vehicles slowing or waiting for infantry, or a fan of per-soldier side-step candidates with a minimum headway.
+**The choice.** A tank drives toward a squad resting on its route. The tank's path over the next `yield_horizon_s` at its speed, plus half its hull length, is a *threat* strip. Any soldier (either side, moving or resting, not garrisoned) within the hull's half width plus his radius plus `yield_margin_m` of that strip steps straight out of it, on the side he stands, at full pace, before doing anything else. Hulls are solid to his walking and planning. The vehicle never waits for soldiers (`vehicle_conflict` only considers other vehicles). If a hull still ends a step over a soldier, he is pushed out through its nearest side (and out of any prop that leaves him in), unhurt. The alternatives were vehicles slowing or waiting for infantry, or a fan of per-soldier side-step candidates with a minimum headway.
 
 **The gap.** Q23 said vehicles and soldiers must not interpenetrate, not who yields.
 
@@ -2697,7 +2697,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Simulation rules · from Slice 37*
 
-**The choice.** Sandbags are shot to a rubble strip, and three soldiers stand a step off it, 2 m apart. `cover::claim` hands out spots best offer first. Each taken place must be `spacing` from other taken places and `keep_clear` (2 m) from other soldiers, but only a soldier who is settled keeps his neighbourhood clear. Settled means he is allowed to stay and is offered nothing better than where he stands. So all three step onto the rubble together. The alternative, every soldier not yet placed keeping 2 m clear round him (even one about to leave for a better spot), made the three block each other's spots and all stay out. Test: `soldiers_beside_free_cover_step_in_together`.
+**The choice.** Sandbags are shot to a rubble strip, and three soldiers stand a step off it, close together. `cover::claim` hands out spots best offer first. Each taken place must be `spacing` from other taken places and `keep_clear` from other soldiers, but only a soldier who is settled keeps his neighbourhood clear. Settled means he is allowed to stay and is offered nothing better than where he stands. So all three step onto the rubble together. The alternative, every soldier not yet placed keeping `keep_clear` round him (even one about to leave for a better spot), made the three block each other's spots and all stay out. Test: `soldiers_beside_free_cover_step_in_together`.
 
 **The gap.** The claim rule didn't say who reserves space.
 
@@ -2745,7 +2745,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Simulation rules · from Slice 34c; Slice 27c*
 
-**The choice.** The village weapons (`fixtures/game.json` `weapons`) set `structural_damage`: tank HE 100, ATGM 100 (a warhead wrecks structures like a shell), tank AP 10, grenade 10, HMG 4 per round, rifle 0.25 per round. Trunk hp is 100, so one HE shell or one missile fells a tree. Sustained HMG fire fells one in about 10 s, and a squad's rifles in about 19–22 s at 30 m. Each is pinned by a test within ±30%. The user set these: a rifle value of 0.5 read as "mowing down trees". The alternative was rifles and HMGs with no structural damage.
+**The choice.** The village weapons (`fixtures/game.json` `weapons`) set `structural_damage` against each body's `hp`: one tank HE shell or one ATGM fells a tree (a warhead wrecks structures like a shell), tank AP and the grenade do a small share of that, and the HMG and rifles chip a little per round. Sustained HMG fire fells a tree in seconds, and a squad's rifles in about twice as long. Each is pinned by a test within ±30%. The user set these: a higher rifle value read as "mowing down trees". The alternative was rifles and HMGs with no structural damage.
 
 **The gap.** Rifles and HMGs had no structural damage.
 
@@ -2757,7 +2757,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Simulation rules · from Post-close review (sim)*
 
-**The choice.** An AT team's gunner launches a missile at a tank and is shot while it flies. The missile is released: it coasts `guided.release_coast_s` (0.5 s) and goes to ground, as when its launcher moves or loses sight (see the coast entries). The missile's support record (`Support`, what guidance checks each tick) names its guide, `Support.operator` (his `Soldier.id`; `None` for a hull's missile, whose crew guides while the hull lives), and it enters the mount digest. Guidance runs before damage in a tick, so the release comes on the tick after his fall, as the launcher's own death already did. Before, the missile flew on guided while anyone in his team lived. Rejected: releasing when the launcher passes to the next soldier, which is the same moment, stated less directly.
+**The choice.** An AT team's gunner launches a missile at a tank and is shot while it flies. The missile is released: it coasts `guided.release_coast_s` and goes to ground, as when its launcher moves or loses sight (see the coast entries). The missile's support record (`Support`, what guidance checks each tick) names its guide, `Support.operator` (his `Soldier.id`; `None` for a hull's missile, whose crew guides while the hull lives), and it enters the mount digest. Guidance runs before damage in a tick, so the release comes on the tick after his fall, as the launcher's own death already did. Before, the missile flew on guided while anyone in his team lived. Rejected: releasing when the launcher passes to the next soldier, which is the same moment, stated less directly.
 
 **The gap.** The user's guidance rule named the launcher. For a squad weapon the launcher is a man, and which man was open.
 
@@ -2781,7 +2781,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Sight, sensing and the simulation's fog · from Slice 04*
 
-**The choice.** A tank sees its full range ahead (`front`), half abeam (`side`), 30 % astern (`rear`). In between, the reach multiplier at angle θ off forward is `side·sin²θ + front·cos²θ` in the front half and `side·sin²θ + rear·cos²θ` in the back half (`sight::multiplier`). The curve is smooth (flat at 0°, 90° and 180°, so no seam behind the vehicle) and never rises away from the front when `front ≥ side ≥ rear`, which the target cull relies on. The alternative, linear in angle, has corners at 90°.
+**The choice.** A tank sees its full range ahead (`front`), less abeam (`side`), and least astern (`rear`). In between, the reach multiplier at angle θ off forward is `side·sin²θ + front·cos²θ` in the front half and `side·sin²θ + rear·cos²θ` in the back half (`sight::multiplier`). The curve is smooth (flat at 0°, 90° and 180°, so no seam behind the vehicle) and never rises away from the front when `front ≥ side ≥ rear`, which the target cull relies on. The alternative, linear in angle, has corners at 90°.
 
 **The gap.** Delegated: how the side band is interpolated.
 
@@ -2829,7 +2829,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Sight, sensing and the simulation's fog · from Slice 08*
 
-**The choice.** A shell leaves a crater behind a hill. Red doesn't see it until a scout crests the hill. At each fog sweep (each side, every 6 ticks), every ground cell whose centre lies in a seen 8 m fog cell is copied whole from the authoritative ground layer into that side's `KnownGround` (`sim::ground`, owned by `SideKnowledge`). A learned cell is never forgotten; ground out of sight keeps the marks it had when last seen, even if the battle changes it. The alternative was learning continuously, or forgetting marks over time.
+**The choice.** A shell leaves a crater behind a hill. Red doesn't see it until a scout crests the hill. At each fog sweep (each side, every few ticks), every ground cell whose centre lies in a seen fog cell is copied whole from the authoritative ground layer into that side's `KnownGround` (`sim::ground`, owned by `SideKnowledge`). A learned cell is never forgotten; ground out of sight keeps the marks it had when last seen, even if the battle changes it. The alternative was learning continuously, or forgetting marks over time.
 
 **The gap.** The decision named the fog rule, not when learning happens or what a stale cell holds.
 
@@ -2841,7 +2841,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Sight, sensing and the simulation's fog · from Slice 08*
 
-**The choice.** The client last saw revision 40 of blue's ground knowledge and needs what changed since. Each change is stamped with the side's knowledge revision. Each 8 m tile keeps a `u32` stamp per cell and the newest stamp in the tile, so answering any cursor skips unchanged tiles whole (`KnownGround::changes_since`). Learning also skips a fog cell whose tiles the ground layer has not edited since the side last learned there (a per-fog-cell edit counter); learning without it gives the same result, so it is a speed-up, not state. Memory is about 8 B per map cell per side if everything were learned, plus 8 B per fog cell (reported as `Load.known_ground_bytes`). The alternative was an append-only journal of changes.
+**The choice.** The client last saw revision 40 of blue's ground knowledge and needs what changed since. Each change is stamped with the side's knowledge revision. Each tile keeps a `u32` stamp per cell and the newest stamp in the tile, so answering any cursor skips unchanged tiles whole (`KnownGround::changes_since`). Learning also skips a fog cell whose tiles the ground layer has not edited since the side last learned there (a per-fog-cell edit counter); learning without it gives the same result, so it is a speed-up, not state. Memory is about 8 B per map cell per side if everything were learned, plus 8 B per fog cell (reported as `Load.known_ground_bytes`). The alternative was an append-only journal of changes.
 
 **The gap.** Delegated: storage for "only changed cells".
 
@@ -2861,15 +2861,15 @@ Where the operator fires it from is the operator-muzzle entry.
 
 **Verdict.** sound. It is consistent with the solver.
 
-### Observers identify on alternate ticks; knowledge still updates every tick
+### Observers identify on staggered ticks; knowledge still updates every tick
 
 ***sound** · confidence **high** · Sight, sensing and the simulation's fog · from decisions.md 27 perf (named decisions), decision 3*
 
-**The choice.** Line-of-sight identification (`sensing::evaluate`) runs for a given observer only when `(tick + id)` is even (`sensing::SENSE_EVERY` = 2, `sensing::due`), so half the observers run each tick. The others keep their last sightings, minus a fallen observer, a fallen target, or soldiers who have since fallen. The side's knowledge still folds the combined list every tick. Track positions (read from the target's true pose that tick), `last_seen`, the acquisition grace and lost-sight contacts stay per tick. Only gaining or losing sight lags, by at most one tick (50 ms). The kept sightings are battle state and enter `Battle::digest`. This saved about 7% of an endurance run.
+**The choice.** Line-of-sight identification (`sensing::evaluate`) runs for a given observer only on its turn, once every `sensing::SENSE_EVERY` ticks staggered by id (`sensing::due`), so only a share of the observers run each tick. The others keep their last sightings, minus a fallen observer, a fallen target, or soldiers who have since fallen. The side's knowledge still folds the combined list every tick. Track positions (read from the target's true pose that tick), `last_seen`, the acquisition grace and lost-sight contacts stay per tick. Only gaining or losing sight lags, by at most `SENSE_EVERY` less one tick. The kept sightings are battle state and enter `Battle::digest`. This saved about 7% of an endurance run.
 
 **The gap.** A performance cut that changes outcomes, named and approved by the user.
 
-**The reach.** Any rule that needs same-tick sight must read the kept sightings knowing they may be one tick old.
+**The reach.** Any rule that needs same-tick sight must read the kept sightings knowing they may be a little stale.
 
 **Verdict.** sound. The user approved it.
 
@@ -2901,7 +2901,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Sight, sensing and the simulation's fog · from Slice 34*
 
-**The choice.** A blue scout looks across a field at a red squad behind a wrecked truck and some crates. Sensing's line of sight is `world::sight_clear`, which meets only bodies whose catalog row sets `occludes`: building, ruin and wall. Trunks, crates, fences, sandbags and wrecks don't cut a sighting ray, so the scout sees the squad; a forest hides through its foliage instead. Rounds, blasts, fire lines and cover's line checks use `raycast`/`segment_clear`, which meet only `stops_rounds` bodies. The fog's 8 m occlusion grid samples cell centres: a wall thinner than a cell that covers no cell centre hides nothing there. There is no low field-wall type; low walls in scenarios are sandbags. The alternative, every solid body blocking sight, would make every crate a sight shadow.
+**The choice.** A blue scout looks across a field at a red squad behind a wrecked truck and some crates. Sensing's line of sight is `world::sight_clear`, which meets only bodies whose catalog row sets `occludes`: building, ruin and wall. Trunks, crates, fences, sandbags and wrecks don't cut a sighting ray, so the scout sees the squad; a forest hides through its foliage instead. Rounds, blasts, fire lines and cover's line checks use `raycast`/`segment_clear`, which meet only `stops_rounds` bodies. The fog's occlusion grid (`fog_cell_m`) samples cell centres: a wall thinner than a cell that covers no cell centre hides nothing there. There is no low field-wall type; low walls in scenarios are sandbags. The alternative, every solid body blocking sight, would make every crate a sight shadow.
 
 **The gap.** Q25 said "only big static bodies occlude", not which.
 
@@ -2913,7 +2913,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Sight, sensing and the simulation's fog · from Slice 34b*
 
-**The choice.** A map forest is `{rect, density, canopy_height_m, trunk_radius_m, trunk_height_m, trunk_clearance_m}`. The fixture's `forests.densities.<name>` holds `trunk_spacing_m, trunk_jitter, concealment_infantry, concealment_vehicle, attenuation_per_m, canopy_radius_m` (`contract::scenario::ForestDensity`). A trunk's body row has `conceals` (0.7). A scout looking into a wood sees to `range · exp(−depth)`, where depth is the foliage he looks through, and optical depth `sensors.foliage_full_block` (1.0) blocks a ground ray outright. Nothing else about a forest changes sight: there are no edge ramps or forest range multipliers. `WorldView.foliage()` exports the grid for the renderer's fog. The alternative was a forest as an area with its own sight rules.
+**The choice.** A map forest is `{rect, density, canopy_height_m, trunk_radius_m, trunk_height_m, trunk_clearance_m}`. The fixture's `forests.densities.<name>` holds `trunk_spacing_m, trunk_jitter, concealment_infantry, concealment_vehicle, attenuation_per_m, canopy_radius_m` (`contract::scenario::ForestDensity`). A trunk's body row has `conceals`. A scout looking into a wood sees to `range · exp(−depth)`, where depth is the foliage he looks through, and optical depth `sensors.foliage_full_block` blocks a ground ray outright. Nothing else about a forest changes sight: there are no edge ramps or forest range multipliers. `WorldView.foliage()` exports the grid for the renderer's fog. The alternative was a forest as an area with its own sight rules.
 
 **The gap.** The seam named density fields, not their units.
 
@@ -2949,7 +2949,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Movement, cover and pushing · from Slice 31*
 
-**The choice.** You send a rifle squad to a crossroads. `sim::arrangement` (the one owner of where soldiers stand) draws one spot per living soldier, uniformly over a disc of diameter `infantry_movement.spread_m` (12) × √(squad size / `spread_squad_size` (8)), so every squad gets the same ground per soldier (12 m for a rifle squad, about 8.5 m for recon). Each spot is at least `spacing_m` (2) from earlier ones (24 tries, else the farthest). The draw is then recentred on the goal so the squad's middle lands where it was sent. Any spot that isn't standing room for a 0.3 m disc, or not reachable in a straight line from the goal, moves to the nearest one that is. If 2 m spacing won't fit, it retries at 1 m; failing that, everyone heads for the goal. The draws come from `arrangement::rng(seed, unit, tick)`, a stateless mix: the same spots in a replay, new ones for every order, no new random state to digest. For orders, solids are the side's known props (hidden props never shape an order); for placements, the true world. Then take-cover may swap each spot for the best cover nearby. Starting squads spawn the same way (tick 0).
+**The choice.** You send a rifle squad to a crossroads. `sim::arrangement` (the one owner of where soldiers stand) draws one spot per living soldier, uniformly over a disc of diameter `infantry_movement.spread_m` × √(squad size / `spread_squad_size`), so every squad gets the same ground per soldier (a smaller squad, such as recon, a smaller disc). Each spot is at least `spacing_m` from earlier ones (a fixed number of tries, else the farthest). The draw is then recentred on the goal so the squad's middle lands where it was sent. Any spot that isn't standing room for a soldier's disc, or not reachable in a straight line from the goal, moves to the nearest one that is. If that spacing won't fit, it retries closer; failing that, everyone heads for the goal. The draws come from `arrangement::rng(seed, unit, tick)`, a stateless mix: the same spots in a replay, new ones for every order, no new random state to digest. For orders, solids are the side's known props (hidden props never shape an order); for placements, the true world. Then take-cover may swap each spot for the best cover nearby. Starting squads spawn the same way (tick 0).
 
 **The gap.** The spec deleted the formation without defining where soldiers stand.
 
@@ -2957,11 +2957,11 @@ Where the operator fires it from is the operator-muzzle entry.
 
 **Verdict.** sound.
 
-### Soldiers collide as 0.3 m discs with props and hulls, sliding along faces
+### Soldiers collide as discs with props and hulls, sliding along faces
 
 ***sound** · confidence **high** · Movement, cover and pushing · from Slice 31*
 
-**The choice.** Each soldier is a disc of `physics.soldier_radius_m` (0.3 m). Each step he is pushed out of every prop that blocks infantry (walls, crates, wrecks) and every live vehicle hull of either side, sliding along the face he meets (`Obb2::push_out`), never into one. A soldier may always step out of a solid he already stands in; the same rule holds for `arrangement::reachable`, so a garrisoned soldier whose slot lies inside a building's clearance can escape a collapse. Soldiers also keep apart from each other. The alternative, collision only at the squad's centre, let soldiers walk through walls and hulls.
+**The choice.** Each soldier is a disc of `physics.soldier_radius_m`. Each step he is pushed out of every prop that blocks infantry (walls, crates, wrecks) and every live vehicle hull of either side, sliding along the face he meets (`Obb2::push_out`), never into one. A soldier may always step out of a solid he already stands in; the same rule holds for `arrangement::reachable`, so a garrisoned soldier whose slot lies inside a building's clearance can escape a collapse. Soldiers also keep apart from each other. The alternative, collision only at the squad's centre, let soldiers walk through walls and hulls.
 
 **The gap.** The body rules were scheduled for later slices, but without them soldiers stood inside hulls.
 
@@ -2973,7 +2973,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Movement, cover and pushing · from Slice 32*
 
-**The choice.** A squad ordered across a field gets one planned route, the *corridor* (a polyline of waypoints). No soldier walks the corridor line itself. Each soldier keeps his own *lane*: the corridor shifted sideways by his *lane offset* (`Soldier.lateral`). Every tick he finds the corridor leg he is on (`Soldier.leg`), projects himself onto it, and heads for the point `infantry_movement.steer_ahead_m` (3 m) further along, shifted by his offset. The offset he wants is where his final spot sits across the corridor's last leg (so the lane turns when the corridor turns), plus a seeded sine *wander* (`wander_m` 0.7 m, period `wander_period_s` 9 s stretched 0.75–1.25× per soldier, phase seeded from battle seed, squad and soldier). His actual offset creeps toward that at `lane_shift_mps` (1.5 m/s), so he never jumps sideways. The alternative, everyone following one line or fixed formation slots, gives a single-file conga line. Code: `movement::soldier::soldier_steer`.
+**The choice.** A squad ordered across a field gets one planned route, the *corridor* (a polyline of waypoints). No soldier walks the corridor line itself. Each soldier keeps his own *lane*: the corridor shifted sideways by his *lane offset* (`Soldier.lateral`). Every tick he finds the corridor leg he is on (`Soldier.leg`), projects himself onto it, and heads for the point `infantry_movement.steer_ahead_m` further along, shifted by his offset. The offset he wants is where his final spot sits across the corridor's last leg (so the lane turns when the corridor turns), plus a seeded sine *wander* (`wander_m`, period `wander_period_s` stretched per soldier, phase seeded from battle seed, squad and soldier). His actual offset creeps toward that at `lane_shift_mps`, so he never jumps sideways. The alternative, everyone following one line or fixed formation slots, gives a single-file conga line. Code: `movement::soldier::soldier_steer`.
 
 **The gap.** The spec delegated the steering formulation.
 
@@ -2985,7 +2985,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Movement, cover and pushing · from Slice 32*
 
-**The choice.** A soldier whose lane point is behind a wall first heads for the furthest corridor point ahead he can walk to in a straight line (3 m, 2 m, 1 m ahead, then his own projection). Only if none is clear does he run his own small route search (`final_leg`, below) to the first corridor point ahead that is *standing room* (a spot his disc fits), within half his search window, else to his own spot. He runs that search at most once a second. Standing room matters because the corridor can run through a parked vehicle: vehicles are not in the route grid.
+**The choice.** A soldier whose lane point is behind a wall first heads for the furthest corridor point ahead he can walk to in a straight line (stepping back from a few metres ahead to his own projection). Only if none is clear does he run his own small route search (`final_leg`, below) to the first corridor point ahead that is *standing room* (a spot his disc fits), within half his search window, else to his own spot. He reruns that search only after a pause. Standing room matters because the corridor can run through a parked vehicle: vehicles are not in the route grid.
 
 **The gap.** The spec gave no rule for stragglers who lose their lane.
 
@@ -2997,7 +2997,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Movement, cover and pushing · from Slice 32*
 
-**The choice.** Near the end of a move, when the corridor has `final_leg_m` (12 m) or less left, or his spot is within 6 m, and his spot is inside his search reach (`window_m` 40 m halved, less 2 m), a soldier stops following his lane and plans a personal route straight to his spot. That route is kept until his side's knowledge changes *and* a known body now crosses what is left of it, or his spot changes. The alternative, replanning whenever knowledge changes at all, wastes searches and makes soldiers twitch.
+**The choice.** Near the end of a move, when the corridor has `final_leg_m` or less left, or his spot is close, and his spot is inside his search reach (half of `window_m`, less a margin), a soldier stops following his lane and plans a personal route straight to his spot. That route is kept until his side's knowledge changes *and* a known body now crosses what is left of it, or his spot changes. The alternative, replanning whenever knowledge changes at all, wastes searches and makes soldiers twitch.
 
 **The gap.** The spec said "replan only when the route no longer fits" (Q13) without saying when the personal final stretch starts.
 
@@ -3005,11 +3005,11 @@ Where the operator fires it from is the operator-muzzle entry.
 
 **Verdict.** sound — replan-on-invalidation, the general rule.
 
-### A soldier's own route is A* on a half-metre grid over the exact boxes, string-pulled
+### A soldier's own route is A* on a fine grid over the exact boxes, string-pulled
 
 ***sound** · confidence **high** · Movement, cover and pushing · from Slice 32*
 
-**The choice.** `movement::final_leg` lays a 0.5 m grid over a square window (40 m) centred between the soldier and his target. A cell is open when his disc at its centre meets no known box and the ground is walkable; both end cells count as open, and a solid he already stands in is ignored. A* finds a path, then it is string-pulled (shortcuts taken wherever a straight line is clear) against the exact boxes. Consequence of the grid: a gap is sure to pass from 1.1 m wide, may pass from 0.6 m depending on alignment (a test pins 1.2 m threads, 0.5 m does not).
+**The choice.** `movement::final_leg` lays a `FINE_CELL_M` grid over a square window (`window_m`) centred between the soldier and his target. A cell is open when his disc at its centre meets no known box and the ground is walkable; both end cells count as open, and a solid he already stands in is ignored. A* finds a path, then it is string-pulled (shortcuts taken wherever a straight line is clear) against the exact boxes. Consequence of the grid: a gap a soldier's width plus one cell wide always passes, and one just wider than a soldier may pass, depending on alignment (a test pins both).
 
 **The gap.** The spec did not name the fine-path algorithm.
 
@@ -3021,7 +3021,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Movement, cover and pushing · from Slice 32*
 
-**The choice.** Two squads crossing paths: anyone of either side within `personal_space_m` (0.8 m) pushes a soldier's velocity away, weighted by how deep inside, plus half as much to his right when the other man stands ahead, so head-on pairs pass instead of stopping. As a hard rule, a step never ends within two radii of another standing soldier unless it takes him further out; if pushing him out of other discs would put him in a body, he stays put. Soldiers are updated in place in unit and member order (deterministic), with neighbours from 2 m buckets. Idle soldiers do not make way for walking ones; they only get out of vehicles' way.
+**The choice.** Two squads crossing paths: anyone of either side within `personal_space_m` pushes a soldier's velocity away, weighted by how deep inside, plus half as much to his right when the other man stands ahead, so head-on pairs pass instead of stopping. As a hard rule, a step never ends within two radii of another standing soldier unless it takes him further out; if pushing him out of other discs would put him in a body, he stays put. Soldiers are updated in place in unit and member order (deterministic), with neighbours from spatial buckets. Idle soldiers do not make way for walking ones; they only get out of vehicles' way.
 
 **The gap.** Q10 asked for personal space, not its form.
 
@@ -3033,11 +3033,11 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Movement, cover and pushing · from Slice 32*
 
-**The choice.** On an order, each soldier's speed swings between `1 − pace_variation` (0.88) and full speed over two thirds of his wander period, from a seeded phase (`Soldier.pace`). Start delays are uniform up to `stagger_s` (0.8 s), less the smallest, so the first man leaves on the order's own tick. That matters because weapons that must notice a unit moving (a guided missile's operator, a stationary weapon losing aim) see it at once. A fixed per-soldier pace was the alternative; it strung a squad out 12 m over 100 m.
+**The choice.** On an order, each soldier's speed swings between `1 − pace_variation` and full speed over part of his wander period, from a seeded phase (`Soldier.pace`). Start delays are uniform up to `stagger_s`, less the smallest, so the first man leaves on the order's own tick. That matters because weapons that must notice a unit moving (a guided missile's operator, a stationary weapon losing aim) see it at once. A fixed per-soldier pace was the alternative; it strung a squad out 12 m over 100 m.
 
 **The gap.** The spec asked for variety without a mechanism.
 
-**The reach.** Squads look alive without anyone falling steadily behind; the average squad is about 6% below the rule speed.
+**The reach.** Squads look alive without anyone falling steadily behind; the average squad is a little below the rule speed.
 
 **Verdict.** sound.
 
@@ -3045,7 +3045,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Movement, cover and pushing · from Slice 32*
 
-**The choice.** Within 5 cm of his spot a soldier snaps onto it. Within 1 m and unable to move (someone stands there), he takes where he stands as his spot. The squad has arrived when every living soldier is on his spot. The *stall watch* (the check that forces a replan when a squad makes no progress) sums every living soldier's distance to his spot, including men not yet set off, so staggered starters don't read as a stall.
+**The choice.** Close enough to his spot, a soldier snaps onto it. Near it and unable to move (someone stands there), he takes where he stands as his spot. The squad has arrived when every living soldier is on his spot. The *stall watch* (the check that forces a replan when a squad makes no progress) sums every living soldier's distance to his spot, including men not yet set off, so staggered starters don't read as a stall.
 
 **The gap.** Arrival and stall for per-soldier movement were unspecified.
 
@@ -3069,7 +3069,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Movement, cover and pushing · from Slice 39*
 
-**The choice.** `movement/drive.rs`: tracks turn at their own rate, stand and pivot beyond 60° of heading error, and slow by the cosine within it (unchanged tank driving). Wheels turn at most `min(1/radius, turn rate / speed)` per metre, slow to half speed at full lock, and never turn when stopped: a blocked truck keeps its yaw, a blocked tank still pivots.
+**The choice.** `movement/drive.rs`: tracks turn at their own rate, stand and pivot beyond a set heading error, and slow by the cosine within it (unchanged tank driving). Wheels turn at most `min(1/radius, turn rate / speed)` per metre, slow down at full lock, and never turn when stopped: a blocked truck keeps its yaw, a blocked tank still pivots.
 
 **The gap.** Q29 said tracked and wheeled differ, not the follower.
 
@@ -3129,7 +3129,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Movement, cover and pushing · from Slice 34; Slice 34b; Orchestrator, after slice 34b; Slice 34c*
 
-**The choice.** A squad crosses a medium wood. A body whose catalog row sets `blocks.infantry` stops soldiers' discs, and every solid row sets it, the trunk included (`fixtures/props/generic/nature.json`). Soldiers thread between trunks on the 0.5 m sub-cell route grid and their own fine routes, so gaps smaller than a 2 m cell keep woods open to squads. A trunk gives cover from behind it like any body; it is not a ground body you stand inside. Only heavy vehicles knock trunks over by pushing. Rubble and the bridge deck block nobody. The alternative, trunks soldiers walk through with the forest as area cover, is what the user's rule (Q27: "every solid body blocks infantry") rejected.
+**The choice.** A squad crosses a medium wood. A body whose catalog row sets `blocks.infantry` stops soldiers' discs, and every solid row sets it, the trunk included (`fixtures/props/generic/nature.json`). Soldiers thread between trunks on the fine sub-cell route grid and their own fine routes, so gaps smaller than a route cell keep woods open to squads. A trunk gives cover from behind it like any body; it is not a ground body you stand inside. Only heavy vehicles knock trunks over by pushing. Rubble and the bridge deck block nobody. The alternative, trunks soldiers walk through with the forest as area cover, is what the user's rule (Q27: "every solid body blocks infantry") rejected.
 
 **The gap.** Q27 and a later slice's contract contradicted each other; the forest had been modelled as an area.
 
@@ -3137,11 +3137,11 @@ Where the operator fires it from is the operator-muzzle entry.
 
 **Verdict.** sound — the user's rule, first-principles bodies.
 
-### A holding squad re-resolves its cover only for changes within its reach, at most once a second
+### A holding squad re-resolves its cover only for changes within its reach, at a capped rate
 
 ***sound** · confidence **high** · Movement, cover and pushing · from Slice 33; decisions.md 27 perf (named decisions), decision 1*
 
-**The choice.** A squad holds a hedge. To re-resolve is to re-pick who stands where and who can fire from where. It happens when the squad arrives or an attack-move halts; when its side's planning knowledge changes within reach; when the threat's bearing swings past `cover.swing_deg` (45°); when the threat becomes a different enemy unit; when the threat enemy's soldiers move into or out of the squad's weapon reach (none, part or all of its area); or when a vehicle a soldier hides behind moves more than `cover.vehicle_moved_m` (2 m). "Within reach": every planning change a side makes (a body learned, moved, seen gone, forgotten) is logged as a circle (`SideGeometry`'s change log, `movement::changed_near`), and a holding squad reacts only when a logged change, or a newly learned crater, lies within its area's radius plus `cover.search_slack_m` (2 m) of its anchor. The log keeps the latest 1,024 changes; a squad whose last resolve is older than the log re-resolves anyway. Each squad checks once a second on its own tick of the second, at most once per `cover.reresolve_s` (1 s). A soldier who already holds the best place he could claim stays. A moving squad never re-resolves; its destination spots stand until arrival. So when a tank is destroyed across the map and becomes a wreck, the squad at the hedge does nothing. The alternatives: re-resolving on any change anywhere cost about 16% of heavy fights and made squads shuffle for no visible reason; watching the known-ground revision let cosmetic marks (trampled grass) change combat.
+**The choice.** A squad holds a hedge. To re-resolve is to re-pick who stands where and who can fire from where. It happens when the squad arrives or an attack-move halts; when its side's planning knowledge changes within reach; when the threat's bearing swings past `cover.swing_deg`; when the threat becomes a different enemy unit; when the threat enemy's soldiers move into or out of the squad's weapon reach (none, part or all of its area); or when a vehicle a soldier hides behind moves more than `cover.vehicle_moved_m`. "Within reach": every planning change a side makes (a body learned, moved, seen gone, forgotten) is logged as a circle (`SideGeometry`'s change log, `movement::changed_near`), and a holding squad reacts only when a logged change, or a newly learned crater, lies within its area's radius plus `cover.search_slack_m` of its anchor. The log keeps a bounded number of recent changes; a squad whose last resolve is older than the log re-resolves anyway. Each squad checks on its own staggered tick, at most once per `cover.reresolve_s`. A soldier who already holds the best place he could claim stays. A moving squad never re-resolves; its destination spots stand until arrival. So when a tank is destroyed across the map and becomes a wreck, the squad at the hedge does nothing. The alternatives: re-resolving on any change anywhere cost about 16% of heavy fights and made squads shuffle for no visible reason; watching the known-ground revision let cosmetic marks (trampled grass) change combat.
 
 **The gap.** "World change within the cover radius" and "a new crater" had no mechanism; the reach limit is a performance cut that changes outcomes, named and approved by the user.
 
@@ -3153,9 +3153,9 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Movement, cover and pushing · from Slice 33; Slice 27d*
 
-**The choice.** After cover places are claimed against a seen enemy, one soldier's place gives him no line to any enemy, straight or by a lean. He searches rings every 0.5 m outward: within `cover.step_out_m` (4 m) he takes the best cover, then the nearest place; beyond that, the nearest ring with any place, out to the full width of the squad's area and never outside it. A place must be standing room, `spacing_m` from the others, reachable on foot from where he is (`arrangement::reachable`, which stops a step offering the far side of a wall), and must let him engage straight or from a free lean point there. With none he sits out. The alternatives were no step-out (men hide uselessly) or only the short 4 m reach, which stranded men once squad areas grew.
+**The choice.** After cover places are claimed against a seen enemy, one soldier's place gives him no line to any enemy, straight or by a lean. He searches rings outward: within `cover.step_out_m` he takes the best cover, then the nearest place; beyond that, the nearest ring with any place, out to the full width of the squad's area and never outside it. A place must be standing room, `spacing_m` from the others, reachable on foot from where he is (`arrangement::reachable`, which stops a step offering the far side of a wall), and must let him engage straight or from a free lean point there. With none he sits out. The alternatives were no step-out (men hide uselessly) or only the short `step_out_m` reach, which stranded men once squad areas grew.
 
-**Since (2026-10-06).** Past `step_out_m` the rings and the places on them spread with the distance, staying the same angle apart as seen from him (0.5 m at 4 m, 2 m at 16 m); within it they stay 0.5 m apart. Unlike the uniform 1 m spacing declined earlier, the next step keeps its resolution. The user chose it (2026-10-06): on the city-contact minute it halves movement's work (321 → 165 G instructions), and searches find a place about as often (3,586 of 4,000 found none, against 3,617). A soldier who sat out also searches again only when he, the enemy (`step_out_retry_m`) or what his side knows near him has changed (`Soldier::sat_out`).
+**Since (2026-10-06).** Past `step_out_m` the rings and the places on them spread with the distance, staying the same angle apart as seen from him; within it they keep their fine spacing. Unlike the coarser uniform spacing declined earlier, the next step keeps its resolution. The user chose it (2026-10-06): on the city-contact minute it halves movement's work (321 → 165 G instructions), and searches find a place about as often (3,586 of 4,000 found none, against 3,617). A soldier who sat out also searches again only when he, the enemy (`step_out_retry_m`) or what his side knows near him has changed (`Soldier::sat_out`).
 
 **The gap.** The planning decision (D3) named the step-out, not its search or reach.
 
@@ -3167,7 +3167,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Movement, cover and pushing · from Slice 37; Slice 37b (sim)*
 
-**The choice.** A squad rounds a fence end. One man walks a "lane", a line offset about 7 m to one side of the squad's route (the corridor). His steer point is 3 m ahead on the leg he is on, never past its end, shifted across that leg (`Corridor::lane_point`). He walks each leg's lane to its end, then turns, and counts a leg as passed when his projection is within 0.3 m of its end. The lane check (`lane_offset`, looking `lane_lookahead_m` ahead) follows the lane as he walks it (`Corridor::lane`), so it doesn't cut corners. The unbuilt alternative, steering at the corridor point 3 m ahead shifted across whichever leg that point lay on, turns the shift with the next leg once past a waypoint and puts his target behind him, so he steps back, and the cycle repeats (490 reversals in 40 s in the test). Two other alternatives were rejected: a blend across the corner still moves backward on sharp turns, and a rule that "a lane may turn only in plain sight of the waypoint" funnelled a squad through one gap of a tooth line instead of a gap each. The known cost is a small bulge on the inside of a turn; at a fence end, the two widest-lane men can also walk into a pocket and back for about 3 s.
+**The choice.** A squad rounds a fence end. One man walks a "lane", a line offset about 7 m to one side of the squad's route (the corridor). His steer point is `steer_ahead_m` ahead on the leg he is on, never past its end, shifted across that leg (`Corridor::lane_point`). He walks each leg's lane to its end, then turns, and counts a leg as passed when his projection is close to its end. The lane check (`lane_offset`, looking `lane_lookahead_m` ahead) follows the lane as he walks it (`Corridor::lane`), so it doesn't cut corners. The unbuilt alternative, steering at the corridor point `steer_ahead_m` ahead shifted across whichever leg that point lay on, turns the shift with the next leg once past a waypoint and puts his target behind him, so he steps back, and the cycle repeats (490 reversals in 40 s in the test). Two other alternatives were rejected: a blend across the corner still moves backward on sharp turns, and a rule that "a lane may turn only in plain sight of the waypoint" funnelled a squad through one gap of a tooth line instead of a gap each. The known cost is a small bulge on the inside of a turn; at a fence end, the two widest-lane men can also walk into a pocket and back for about 3 s.
 
 **The gap.** The lane rule didn't say what a lane does at a corner.
 
@@ -3191,7 +3191,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Movement, cover and pushing · from Slice 31; Post-close review (sim)*
 
-**The choice.** A squad leaving a building stands in an arrangement round the exit nearest its heading (`garrison::exit_spots`, each spot checked with the squad's 0.5 m path clearance). Survivors of a collapsing building scramble out to wherever one soldier's body fits (`physics.soldier_radius_m`, 0.3 m) and stay there (no regrouping). An orderly exit keeps the squad's path clearance on purpose: the squad marches on from there, so its spots must be where its planned routes can start. A seated soldier's position is his slot. A replacement joins at the free spot nearest the squad's middle, `spacing_m` from squadmates and reachable (`arrangement::nearest_free`). Flight collision sweeps each soldier's own movement for the tick. There are no formation helpers: every placement goes through `sim::arrangement`. The alternative was keeping formation slots for non-order placements.
+**The choice.** A squad leaving a building stands in an arrangement round the exit nearest its heading (`garrison::exit_spots`, each spot checked with the squad's path clearance). Survivors of a collapsing building scramble out to wherever one soldier's body fits (`physics.soldier_radius_m`) and stay there (no regrouping). An orderly exit keeps the squad's path clearance on purpose: the squad marches on from there, so its spots must be where its planned routes can start. A seated soldier's position is his slot. A replacement joins at the free spot nearest the squad's middle, `spacing_m` from squadmates and reachable (`arrangement::nearest_free`). Flight collision sweeps each soldier's own movement for the tick. There are no formation helpers: every placement goes through `sim::arrangement`. The alternative was keeping formation slots for non-order placements.
 
 **The gap.** How non-order placements work without a formation.
 
@@ -3251,7 +3251,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Contracts and seams · from Slice 06; Slice 05*
 
-**The choice.** `VisibleSegment {path, ricochets: [{point, normal}], own, kind, shooter_member, hit, impact_normal}` replaces a from/to line: `path` bends where the round ricocheted, and `hit` (`none|ground|hull|prop|soldier`) says what ended it, with a normal only when there was a hit. Packed, a row is `pointCount, ricochetCount, own, kind, shooterLo/Hi, hit, nx, ny, nz` plus path and ricochet sections; a straight round costs 16 floats. Enemy polylines are clipped leg by leg with the 8-sample fog rule: only pieces over seen ground are sent, a seen ricochet stays a corner, and the hit rides the last piece only when its end is seen.
+**The choice.** `VisibleSegment {path, ricochets: [{point, normal}], own, kind, shooter_member, hit, impact_normal}` replaces a from/to line: `path` bends where the round ricocheted, and `hit` (`none|ground|hull|prop|soldier`) says what ended it, with a normal only when there was a hit. Packed, a row is `pointCount, ricochetCount, own, kind, shooterLo/Hi, hit, nx, ny, nz` plus path and ricochet sections; a straight round costs 16 floats. Enemy polylines are clipped leg by leg with the sampled fog rule (`SEGMENT_SAMPLES` points a leg): only pieces over seen ground are sent, a seen ricochet stays a corner, and the hit rides the last piece only when its end is seen.
 
 **The gap.** "A polyline per round per tick" without a layout.
 
@@ -3275,7 +3275,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Contracts and seams · from Slice 14*
 
-**The choice.** A blue recon squad stands at a street corner. Every time the simulation publishes blue's view, the renderer needs to know which pixels on screen blue can see. Today the frame gets `BattleFrame.setFog(FogInput | null)`, where `FogInput = { world: FogWorld, sight: FogSight }` (`frame/fogInputs.ts`). `FogWorld` is the static map that sight is cut by: the simulation's terrain height grid, its forests, and the three sensor rules the fog shares with the simulation's own sight sweep (`fog_target_height_m`, `forest_attenuation_m`, `forest_full_block_m`). `FogSight` changes with each publication: one `FogEye` (a position, facing, range and sight-shape) per eye the side's units publish (`OwnUnit.sight`), plus the sight blockers the side knows (`knownOccluders`). The GPU then traces sight per pixel from those eyes. The unbuilt alternative was to keep drawing the simulation's coarse 8 m seen/unseen grid (the observation's visibility field) as the fog; that grid still travels in the observation, but only the fog lab's agreement check reads it.
+**The choice.** A blue recon squad stands at a street corner. Every time the simulation publishes blue's view, the renderer needs to know which pixels on screen blue can see. Today the frame gets `BattleFrame.setFog(FogInput | null)`, where `FogInput = { world: FogWorld, sight: FogSight }` (`frame/fogInputs.ts`). `FogWorld` is the static map that sight is cut by: the simulation's terrain height grid, its forests, and the three sensor rules the fog shares with the simulation's own sight sweep (`fog_target_height_m`, `forest_attenuation_m`, `forest_full_block_m`). `FogSight` changes with each publication: one `FogEye` (a position, facing, range and sight-shape) per eye the side's units publish (`OwnUnit.sight`), plus the sight blockers the side knows (`knownOccluders`). The GPU then traces sight per pixel from those eyes. The unbuilt alternative was to keep drawing the simulation's coarse seen/unseen grid (the observation's visibility field) as the fog; that grid still travels in the observation, but only the fog lab's agreement check reads it.
 
 **The gap.** The plan named the fog's inputs but not their shape.
 
@@ -3455,7 +3455,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Contracts and seams · from Spike 03; Slice 11; Slice 36; Slice 27 (per-mount muzzles)*
 
-**The choice.** A tank's turret faces north and its roof machine gun (HMG) swings to fire east. The HMG's rounds start at the HMG's own barrel on the cupola, not at the cannon's tip. Each row in a unit type's `mounts` list (`fixtures/units/generic/*.json`) carries `on` (the earlier turret mount that carries this one; absent means the hull carries it), `pivot_m` (where the mount turns, in its carrier's frame: forward, left, up from the hull origin) and `muzzle_m` (the muzzle, measured from the pivot along the mount's own bearing; absent means a hand weapon, see the soldier-muzzle entry). World muzzle = position + pivot turned by the carrier's bearing (or the hull's yaw) + muzzle turned by the mount's own bearing (`weapons::muzzle`). The numbers are read from the models: the cannon pivots at [0, 0, 1.45] with its muzzle at [5.9, 0, 0.55]; the tank HMG is `on: "cannon"`, pivot [-0.25, -0.58, 2.35], muzzle [1.43, 0, 0.32]; the jeep's pedestal HMG has pivot [0, 0, 1.68] and muzzle [1.43, 0, 0.32]. Where the art is physically forced, the row follows the art: a muzzle behind its pivot at rest would be a gun pointing backwards, so the jeep's row puts the muzzle ahead of the pedestal's bearing, where a real pedestal gun can put it. Range, arc obstructions, friendly-in-line, firing and building-facade aim all read the mount's own muzzle, and `muzzle()` has no branch on unit kind. The same rule lives once more in TypeScript, `packages/scene-assets/src/mountMuzzle.ts` (`mountMuzzles`, `muzzleOffset`), read by two consumers: `LaunchTracker` (a hull shot's fallback flash point and the gunfire sound's position) and the asset validator. The validator fits the model to the numbers, not the reverse: `fit.vehicle_muzzle` checks each mount's drawn muzzle at rest against its row, and `fit.muzzle_arc` turns the mount's yaw node through 12 bearings (12 × 12 with its carrier's, for a carried mount) and checks the muzzle stays on the simulation's arc. A fixture listing a different number of mounts than the model draws is also a finding. Which rig draws each mount is declared on the appearance (see that entry). The alternative, one muzzle offset per unit kind, fired the roof HMG from the cannon's tip or from mid-air to the side, and let model and simulation keep separate offsets unnoticed.
+**The choice.** A tank's turret faces north and its roof machine gun (HMG) swings to fire east. The HMG's rounds start at the HMG's own barrel on the cupola, not at the cannon's tip. Each row in a unit type's `mounts` list (`fixtures/units/generic/*.json`) carries `on` (the earlier turret mount that carries this one; absent means the hull carries it), `pivot_m` (where the mount turns, in its carrier's frame: forward, left, up from the hull origin) and `muzzle_m` (the muzzle, measured from the pivot along the mount's own bearing; absent means a hand weapon, see the soldier-muzzle entry). World muzzle = position + pivot turned by the carrier's bearing (or the hull's yaw) + muzzle turned by the mount's own bearing (`weapons::muzzle`). The numbers are read from the models; the tank HMG is `on: "cannon"`, and the jeep's pedestal HMG rides the hull. Where the art is physically forced, the row follows the art: a muzzle behind its pivot at rest would be a gun pointing backwards, so the jeep's row puts the muzzle ahead of the pedestal's bearing, where a real pedestal gun can put it. Range, arc obstructions, friendly-in-line, firing and building-facade aim all read the mount's own muzzle, and `muzzle()` has no branch on unit kind. The same rule lives once more in TypeScript, `packages/scene-assets/src/mountMuzzle.ts` (`mountMuzzles`, `muzzleOffset`), read by two consumers: `LaunchTracker` (a hull shot's fallback flash point and the gunfire sound's position) and the asset validator. The validator fits the model to the numbers, not the reverse: `fit.vehicle_muzzle` checks each mount's drawn muzzle at rest against its row, and `fit.muzzle_arc` turns the mount's yaw node through a ring of bearings (crossed with its carrier's, for a carried mount) and checks the muzzle stays on the simulation's arc. A fixture listing a different number of mounts than the model draws is also a finding. Which rig draws each mount is declared on the appearance (see that entry). The alternative, one muzzle offset per unit kind, fired the roof HMG from the cannon's tip or from mid-air to the side, and let model and simulation keep separate offsets unnoticed.
 
 **The gap.** The user gave the rule ("each mount fires from its own muzzle"). The data shape (carrier chain, pivot plus muzzle), where it lives, and how models and simulation are kept in agreement were the agent's.
 
@@ -3491,7 +3491,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Contracts and seams · from Slice 27a; Slice 27b*
 
-**The choice.** A long battle runs in a development build. React 19's dev profiler logs each commit's changed props and expands typed arrays element by element, so passing the overlay mesh (a `Float32Array` rebuilt every publication), the fog grids or the world layers as props copies megabytes per commit and runs the page out of memory. Large, often-changing data goes through a `Feed<T>` (`apps/battle-lab/src/feed.ts`, `useFeed`): React sees an unchanged prop, and the viewport subscribes to updates. `LabViewport`'s `world`, `overlay` and `fog` props are `FeedSource`s, and the session returns `fogFeed`. A scene guard (`web/scene.mjs` `guardMeasures`) makes any profiler detail over 5,000 entries a console error, which fails the scene. Production builds are unaffected. The alternative was passing everything as props.
+**The choice.** A long battle runs in a development build. React 19's dev profiler logs each commit's changed props and expands typed arrays element by element, so passing the overlay mesh (a `Float32Array` rebuilt every publication), the fog grids or the world layers as props copies megabytes per commit and runs the page out of memory. Large, often-changing data goes through a `Feed<T>` (`apps/battle-lab/src/feed.ts`, `useFeed`): React sees an unchanged prop, and the viewport subscribes to updates. `LabViewport`'s `world`, `overlay` and `fog` props are `FeedSource`s, and the session returns `fogFeed`. A scene guard (`web/scene.mjs` `guardMeasures`) makes any oversized profiler detail a console error, which fails the scene. Production builds are unaffected. The alternative was passing everything as props.
 
 **The gap.** The props-for-everything pattern was never decided. It grew by default.
 
@@ -3527,7 +3527,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Camera and controls · from Slice 09*
 
-**The choice.** The battle camera orbits a target point on the ground. "Zoom" is the distance in metres from the eye to that target (`presentation.camera.zoom_min` 25 to `zoom_max` 2000). How steeply the camera looks down (its pitch) is read from `pitch_curve`, a list of `[distance, pitch]` points, interpolated in the logarithm of distance, so each wheel notch changes the view by the same proportion whether near or far. At load, `CameraController` refuses a curve that doesn't cover the zoom range, isn't monotonic (pitch never falling as you zoom out), or leaves the pitch limits. The alternative, a unitless 0–1 zoom with linear interpolation, would bunch all the change at one end.
+**The choice.** The battle camera orbits a target point on the ground. "Zoom" is the distance in metres from the eye to that target (from `presentation.camera.zoom_min` to `zoom_max`). How steeply the camera looks down (its pitch) is read from `pitch_curve`, a list of `[distance, pitch]` points, interpolated in the logarithm of distance, so each wheel notch changes the view by the same proportion whether near or far. At load, `CameraController` refuses a curve that doesn't cover the zoom range, isn't monotonic (pitch never falling as you zoom out), or leaves the pitch limits. The alternative, a unitless 0–1 zoom with linear interpolation, would bunch all the change at one end.
 
 **The gap.** The contract named `zoom_min`, `zoom_max` and `pitch_curve` without units or interpolation.
 
@@ -3551,7 +3551,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Camera and controls · from Slice 09*
 
-**The choice.** The player pans the camera across a 20 m ridge while zoomed right in (25 m, nearly level). Today every camera step snaps the target's height to the ground under it (`groundAt`, the session's surface height), so the eye rides up and over the ridge. Without it, the eye would go underground. Labs with no ground keep the target's height.
+**The choice.** The player pans the camera across a 20 m ridge while zoomed right in (at the closest zoom, nearly level). Today every camera step snaps the target's height to the ground under it (`groundAt`, the session's surface height), so the eye rides up and over the ridge. Without it, the eye would go underground. Labs with no ground keep the target's height.
 
 **The gap.** The controller's inputs had no terrain height.
 
@@ -3563,7 +3563,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Camera and controls · from Slice 09; Slice 13*
 
-**The choice.** Labs (the `/lab/*` debug routes) have no presentation block of their own. Today `LabViewport` takes the village fixture's `presentation.camera` (`gameCamera.ts`) and `presentation.light` (`gameLight.ts`) unless a lab passes its own. So lab wheels clamp to 25–2000 m and labs are lit like the battle. Cameras that a scene or lab places directly are not clamped. The alternative, a camera and light per lab, would drift apart from the real battle.
+**The choice.** Labs (the `/lab/*` debug routes) have no presentation block of their own. Today `LabViewport` takes the village fixture's `presentation.camera` (`gameCamera.ts`) and `presentation.light` (`gameLight.ts`) unless a lab passes its own. So lab wheels clamp to the battle's zoom range and labs are lit like the battle. Cameras that a scene or lab places directly are not clamped. The alternative, a camera and light per lab, would drift apart from the real battle.
 
 **The gap.** Labs had no presentation numbers.
 
@@ -3587,7 +3587,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Camera and controls · from Slice 39*
 
-**The choice.** `controls` in `fixtures/game.json` (`reverse_zone_length_m` 30, `reverse_zone_margin_m` 2) is read only by the web (`web/src/battle/input/reverseZone.ts`). With one vehicle selected, a right-click in the strip behind its hull, from the rear face back 30 m and the hull's half width plus 2 m each side, is a reverse move.
+**The choice.** `controls` in `fixtures/game.json` (`reverse_zone_length_m`, `reverse_zone_margin_m`) is read only by the web (`web/src/battle/input/reverseZone.ts`). With one vehicle selected, a right-click in the strip behind its hull, from the rear face back `reverse_zone_length_m` and the hull's half width plus `reverse_zone_margin_m` each side, is a reverse move.
 
 **The gap.** Where control tuning lives.
 
@@ -3607,11 +3607,11 @@ Where the operator fires it from is the operator-muzzle entry.
 
 **Verdict.** sound.
 
-### A right-click orders on release; a drag of 1 m or more sets the facing
+### A right-click orders on release; a drag past the click slop sets the facing
 
 ***sound** · confidence **high** · Camera and controls · from Slice 35*
 
-**The choice.** The player presses the right button on a field and drags toward a treeline. The press point is the goal. The order goes on release. If the release is more than the click slop away, the facing points from the goal toward the release point on the ground (`useUnitControl::dragFacing`). A drag under 1 m on the ground sets no facing. A drag never counts as the second click of a double-click. The alternative was to order on press, which leaves no room for a drag.
+**The choice.** The player presses the right button on a field and drags toward a treeline. The press point is the goal. The order goes on release. If the release is more than the click slop away, the facing points from the goal toward the release point on the ground (`useUnitControl::dragFacing`). A shorter drag sets no facing. A drag never counts as the second click of a double-click. The alternative was to order on press, which leaves no room for a drag.
 
 **The gap.** The spec said "right-drag sets facing" without the gesture's timing.
 
@@ -3655,15 +3655,15 @@ Where the operator fires it from is the operator-muzzle entry.
 
 **Verdict.** sound.
 
-### GPU time has one owner: the frame's timestamp timer, read every two seconds
+### GPU time has one owner: the frame's timestamp timer, read at a fixed interval
 
 ***sound** · confidence **high** · Renderer frame · from Slice 10; Spike 01*
 
-**The choice.** The frame measures its own GPU time (`frame/gpuTiming.ts`): two marker passes bracket the frame, each a 1×1 cleared render pass carrying `timestampWrites`, because empty compute passes write no timestamps on Apple's Metal. It keeps a rolling window of about 240 frames. The benchmark reads `BattleFrame.stats().gpu` every 2 s and files the reading under the current phase; the first reading waits a full window so warm-up frames stay out. There are no per-pass splits, because passes overlap on a tile-based GPU and only the total is meaningful. The alternative, the benchmark timing each frame itself, would be a second timer.
+**The choice.** The frame measures its own GPU time (`frame/gpuTiming.ts`): two marker passes bracket the frame, each a 1×1 cleared render pass carrying `timestampWrites`, because empty compute passes write no timestamps on Apple's Metal. It keeps a rolling window of recent frames. The benchmark reads `BattleFrame.stats().gpu` at a fixed interval and files the reading under the current phase; the first reading waits a full window so warm-up frames stay out. There are no per-pass splits, because passes overlap on a tile-based GPU and only the total is meaningful. The alternative, the benchmark timing each frame itself, would be a second timer.
 
 **The gap.** "GPU passes where available", and the frame already owned a timer.
 
-**The reach.** The chart's GPU line has a point every 2 s, and a window that straddles two phases is filed under the later one.
+**The reach.** The chart's GPU line has a point per reading, and a window that straddles two phases is filed under the later one.
 
 **Verdict.** sound — one owner of GPU timing.
 
@@ -3695,7 +3695,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Renderer frame · from Slice 28*
 
-**The choice.** `math` builds only forward-Z projections and has no infinite-far form. `perspectiveReverseZ` and `orthographicReverseZ` stay in `camera3d.ts`, writing into a `math` matrix. `viewMatrix` keeps the old top-down fallback (up becomes +Y within about 2.6° of vertical). The alternative, composing `math`'s projection with a depth flip, matches only up to rounding.
+**The choice.** `math` builds only forward-Z projections and has no infinite-far form. `perspectiveReverseZ` and `orthographicReverseZ` stay in `camera3d.ts`, writing into a `math` matrix. `viewMatrix` keeps the old top-down fallback (up becomes +Y near vertical). The alternative, composing `math`'s projection with a depth flip, matches only up to rounding.
 
 **The gap.** `math` lacks them.
 
@@ -3755,7 +3755,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Renderer frame · from Slice 23*
 
-**The choice.** A long battle leaves 14,000 bodies. A corpse is its body mesh posed once, at the bundle's `corpse_pose`, at install (`posedMesh`, CPU skinning of positions and normals per tier), then drawn with an identity pose. Corpses are one static population (`BattleFrame.setCorpses`, called only when the list changes), grouped in 64 m chunks: a chunk off screen is skipped whole, and a chunk too far for any corpse in it to be above `impostor_px` draws as one range of cards. The alternative was skinning each corpse every frame.
+**The choice.** A long battle leaves 14,000 bodies. A corpse is its body mesh posed once, at the bundle's `corpse_pose`, at install (`posedMesh`, CPU skinning of positions and normals per tier), then drawn with an identity pose. Corpses are one static population (`BattleFrame.setCorpses`, called only when the list changes), grouped in square chunks: a chunk off screen is skipped whole, and a chunk too far for any corpse in it to be above `impostor_px` draws as one range of cards. The alternative was skinning each corpse every frame.
 
 **The gap.** "A static corpse instance, never skinned" gave no form.
 
@@ -3779,7 +3779,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Renderer frame · from Slice 17*
 
-**The choice.** The simulation keeps a ground layer of 1 m cells (craters, scorch, tracks, trampling), and each side learns the cells it sees. `BattleFrame.setGround(ground: GroundMarks | null): boolean` is called every animation frame. `GroundMarks` (`frame/scarTexture.ts`) is `{cellM, cols, rows, marks, takeChanges()}`, which the client's `GroundView` already satisfies. A new view (new client, rebuilt frame, scars toggled off and on) or an `{all: true}` change (a new epoch, a side switch) uploads the whole texture. An exact change list uploads only the 16 × 16-cell tiles holding a changed cell, merged along tile rows (`scarUploadRects`), straight from the view's bytes with no staging copy. Nothing is written when nothing changed. The spec had named a `GroundSurface` consuming patches; there is none, so the view's change list is the patch stream. `FrameStats.scars` reports bytes written.
+**The choice.** The simulation keeps a ground layer of cells (craters, scorch, tracks, trampling), and each side learns the cells it sees. `BattleFrame.setGround(ground: GroundMarks | null): boolean` is called every animation frame. `GroundMarks` (`frame/scarTexture.ts`) is `{cellM, cols, rows, marks, takeChanges()}`, which the client's `GroundView` already satisfies. A new view (new client, rebuilt frame, scars toggled off and on) or an `{all: true}` change (a new epoch, a side switch) uploads the whole texture. An exact change list uploads only the scar tiles holding a changed cell, merged along tile rows (`scarUploadRects`), straight from the view's bytes with no staging copy. Nothing is written when nothing changed. The spec had named a `GroundSurface` consuming patches; there is none, so the view's change list is the patch stream. `FrameStats.scars` reports bytes written.
 
 **The gap.** The named seam didn't exist.
 
@@ -3791,7 +3791,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Renderer frame · from Slice 17*
 
-**The choice.** The scar texture (rgba8, one texel per 1 m cell) and its parameters join the terrain bind group (`terrainLayout`), visible to fragment and compute. The terrain shader and the grass build pass already bind that group, so one texture and one `groundScars` function serve both. The backdrop beyond the grid reads nothing.
+**The choice.** The scar texture (rgba8, one texel per ground cell) and its parameters join the terrain bind group (`terrainLayout`), visible to fragment and compute. The terrain shader and the grass build pass already bind that group, so one texture and one `groundScars` function serve both. The backdrop beyond the grid reads nothing.
 
 **The gap.** Where the texture binds.
 
@@ -3803,7 +3803,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Renderer frame · from Slice 27e; Slice 27e (follow-ups)*
 
-**The choice.** The user asked for a "holo-tactical" glow, then for less of it. Everything still in the overlay (the yellow order marks, contacts, the x-ray, garrison and guidance marks) gets one halo: the resolved overlay is blurred at half resolution (Gaussian, rows then columns, `glow.radius_px` 8) and laid under the overlay as a premultiplied halo (`O + (1 − O.a) · k · blur`, alpha kept ≤ 1) at strength `glow.overlay` 0.73 (a third of the first look, the user's call). Chosen over per-builder glow shaders because one pass covers every overlay without touching the builders; an additive glow was rejected because it clamps over white and breaks the overlay isolation check's maths. The world's bloom never sees an overlay. Painted ground marks don't take this halo: they glow by their paint emissive (`glow.ground` 0.4, next entry). The DOM callouts glow by CSS (`glow.callouts` 1).
+**The choice.** The user asked for a "holo-tactical" glow, then for less of it. Everything still in the overlay (the yellow order marks, contacts, the x-ray, garrison and guidance marks) gets one halo: the resolved overlay is blurred at half resolution (Gaussian, rows then columns, over `glow.radius_px`) and laid under the overlay as a premultiplied halo (`O + (1 − O.a) · k · blur`, alpha kept ≤ 1) at strength `glow.overlay` (well under the first look, the user's call). Chosen over per-builder glow shaders because one pass covers every overlay without touching the builders; an additive glow was rejected because it clamps over white and breaks the overlay isolation check's maths. The world's bloom never sees an overlay. Painted ground marks don't take this halo: they glow by their paint emissive (`glow.ground`, next entry). The DOM callouts glow by CSS (`glow.callouts`).
 
 **The gap.** The glow technique and strengths were delegated.
 
@@ -3815,7 +3815,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Renderer frame · from Slice 27 (muzzle flash) — paint and overlay marks lie at one height; Post-close review (presentation)*
 
-**The choice.** A selected squad's amber paint circle must meet its yellow overlay route exactly at the rim. Every order and ground mark lies on the ground: there is no mark height to set. `lift_m` is gone from the paint style, the orders style, `map_border` and the consequence rings. Each raster alone decides how its marks clear the ground. The paint pulls toward the eye against ground-only depth (`PULL_M`). The overlay scales its clip depth by 1 + `OVERLAY_DEPTH_BIAS` (0.003, in `frame/overlayPass.ts`): its pixel doesn't move, its depth clears the ground by about 7.5 cm at the 25 m ground camera and 20 cm at the default camera, and a hull, wall or ridge in front still hides it. A smaller bias lost to draped chords sagging below convex ground at glancing views; a larger one would reach a prone soldier's height at the default camera. It replaced a 0.5 m pull along the view ray, under which order ink drew over soldiers' bodies. The orders tour checks that at pitch 0.6, with Space held, no order ink lands on a soldier's body above 0.12 m (40 px before, 0 after), and the rim-join and route-over-grass checks hold. One step remains, `STACK_M` (4 cm). It isn't a mark height: it keeps an arrowhead or chevron from tying in depth with the ring it meets, since the overlay writes depth. The contacts, sight, deployment, garrison and ground-cell overlays keep their own lifts, because they are callouts or raised glyphs, not ground marks. The alternative, lifting the overlay 0.3 m, made the route end about 5 px off the circle at the default pitch.
+**The choice.** A selected squad's amber paint circle must meet its yellow overlay route exactly at the rim. Every order and ground mark lies on the ground: there is no mark height to set. `lift_m` is gone from the paint style, the orders style, `map_border` and the consequence rings. Each raster alone decides how its marks clear the ground. The paint pulls toward the eye against ground-only depth (`PULL_M`). The overlay scales its clip depth by 1 + `OVERLAY_DEPTH_BIAS` (in `frame/overlayPass.ts`): its pixel doesn't move, its depth clears the ground by a few centimetres at the ground and default cameras, and a hull, wall or ridge in front still hides it. A smaller bias lost to draped chords sagging below convex ground at glancing views; a larger one would reach a prone soldier's height at the default camera. It replaced a 0.5 m pull along the view ray, under which order ink drew over soldiers' bodies. The orders tour checks that at pitch 0.6, with Space held, no order ink lands on a soldier's body above 0.12 m (40 px before, 0 after), and the rim-join and route-over-grass checks hold. One step remains, `STACK_M`. It isn't a mark height: it keeps an arrowhead or chevron from tying in depth with the ring it meets, since the overlay writes depth. The contacts, sight, deployment, garrison and ground-cell overlays keep their own lifts, because they are callouts or raised glyphs, not ground marks. The alternative, lifting the overlay 0.3 m, made the route end about 5 px off the circle at the default pitch.
 
 **The gap.** Mixing two layers raised the question of how they line up. The spec had no answer.
 
@@ -3827,7 +3827,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Renderer frame · from Slice 18; Slice 23; Slice 24; Slice 25; Slice 26*
 
-**The choice.** The player pauses the battle. Everything drawn freezes: soldiers' breathing, turret easing, the grass's sway, smoke puffs. The clock is `TickInterpolator.time(now)` (`web/src/battle/present/interpolate.ts`): the simulation tick being shown, blended between the previous and the latest publication, standing still while no tick arrives. `ObservationFeed` (`apps/battle-lab/src/poseFeed.ts`) turns each decoded publication into a `FeedFrame`; one pose driver poses soldiers and vehicles on that clock, and `ViewportFrame.clock` carries the same number to the frame's `setClock` for the wind. Every effect has a `{start, end}` (`EffectLifetime`) on this clock; `maxEffectLifetime` bounds them all (about 11 s in the village) and `validateEffects` refuses an unbounded table. A smoke source's puffs and flames each have their own birth time (`start + k / rate`) and seed, so a hidden tab or a slow worker (publications arriving far apart) draws exactly the smoke a steady stream would, and after a gap only what would still be alive is made. A tracer on a tiny stretch lives at most 1 s past its tick. A publication with the same tick as the last is ignored; an earlier tick means a new battle or reset and forgets every effect, source and hull. A still camera with a still clock redraws the very same frame, so captures are deterministic. Routes with no battle draw still grass. The alternative was wall-clock time, so a paused battle would still breathe, sway and smoke, and effects would depend on frame and worker timing.
+**The choice.** The player pauses the battle. Everything drawn freezes: soldiers' breathing, turret easing, the grass's sway, smoke puffs. The clock is `TickInterpolator.time(now)` (`web/src/battle/present/interpolate.ts`): the simulation tick being shown, blended between the previous and the latest publication, standing still while no tick arrives. `ObservationFeed` (`apps/battle-lab/src/poseFeed.ts`) turns each decoded publication into a `FeedFrame`; one pose driver poses soldiers and vehicles on that clock, and `ViewportFrame.clock` carries the same number to the frame's `setClock` for the wind. Every effect has a `{start, end}` (`EffectLifetime`) on this clock; `maxEffectLifetime` bounds them all (seconds, in the village) and `validateEffects` refuses an unbounded table. A smoke source's puffs and flames each have their own birth time (`start + k / rate`) and seed, so a hidden tab or a slow worker (publications arriving far apart) draws exactly the smoke a steady stream would, and after a gap only what would still be alive is made. A tracer on a tiny stretch lives only briefly past its tick. A publication with the same tick as the last is ignored; an earlier tick means a new battle or reset and forgets every effect, source and hull. A still camera with a still clock redraws the very same frame, so captures are deterministic. Routes with no battle draw still grass. The alternative was wall-clock time, so a paused battle would still breathe, sway and smoke, and effects would depend on frame and worker timing.
 
 **The gap.** The spec named a `PoseDriver(ObservationView, PresentationClock)` but not what clock, what pausing does, or how effects survive irregular publication arrival and resets.
 
@@ -3851,7 +3851,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Light, terrain, grass and trees · from Spike 01; Slice 13*
 
-**The choice.** The sun shadow uses four cascades (nested shadow maps, finest nearest the camera), each 2048², out to 2,600 m. Today the split distances are spread over the "receiver range" — the depth span from the camera where the map actually lies — not from the camera's near plane. Each cascade's depth is measured as a fraction of that range, `(depth − splitNear) / (cappedFar − splitNear)`. From a camera 1 km up, a near-plane split would put the finest cascades over empty air. Dividing by the far distance alone squeezed the cascades until three of them shaded one pixel (darker bands). Each cascade's light-space depth fits its own slice plus a 300 m margin each side, not a fixed 2,500 m. The numbers are `presentation.light.cascades` (`count` must be 4, the layout size; `split_lambda` 0.5, `max_far_m` 2600). Code: `crates/presentation/src/shadow.rs`.
+**The choice.** The sun shadow uses four cascades (nested shadow maps, finest nearest the camera), out to `max_far_m`. Today the split distances are spread over the "receiver range" — the depth span from the camera where the map actually lies — not from the camera's near plane. Each cascade's depth is measured as a fraction of that range, `(depth − splitNear) / (cappedFar − splitNear)`. From a camera 1 km up, a near-plane split would put the finest cascades over empty air. Dividing by the far distance alone squeezed the cascades until three of them shaded one pixel (darker bands). Each cascade's light-space depth fits its own slice plus a margin each side, not a fixed depth for every cascade. The numbers are `presentation.light.cascades` (`count` must be 4, the layout size; `split_lambda`, `max_far_m`). Code: `crates/presentation/src/shadow.rs`.
 
 **The gap.** "3–4 cascades retuned for 0.3–1.6 km" without saying how.
 
@@ -3875,7 +3875,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Light, terrain, grass and trees · from Slice 18 (technique; taken from ~/dev/game; rejected from ~/dev/game)*
 
-**The choice.** The player pans the camera over a meadow. A compute pass (a GPU program that runs outside drawing) runs one workgroup for each 4 m square of world ground ("tile") inside a window sized to how far grass can be seen. It drops tiles outside the view, then walks that tile's candidate clumps in a fixed order. Candidate j stands at the j-th point of an R2 sequence (an evenly spread series of points) inside the tile, shifted by a fixed 0.4 m jitter. It exists only where the ground's grass density is above (j + ½) per tile. So a clump's position depends only on its tile and its number, and it never moves when the camera moves. The ground under each clump decides what grows there: the plot's grass kind or the verge's, and nothing on roads, forests, water or prop footprints. Each clump sits on the simulation's ground triangle and takes the ground's colour. Clumps are sorted into a near tier (LOD0, the finest mesh, 4 segments a blade) or a far tier (LOD2, 2 segments) by their height in pixels, then drawn with one indirect draw per tier (a draw whose count the GPU wrote itself). The field is rebuilt whenever the view changes or the side's learned ground scars change (`frame/grassPass.ts`, `terrain/grassField.ts`).
+**The choice.** The player pans the camera over a meadow. A compute pass (a GPU program that runs outside drawing) runs one workgroup for each small square of world ground ("tile") inside a window sized to how far grass can be seen. It drops tiles outside the view, then walks that tile's candidate clumps in a fixed order. Candidate j stands at the j-th point of an R2 sequence (an evenly spread series of points) inside the tile, shifted by a fixed jitter. It exists only where the ground's grass density is above (j + ½) per tile. So a clump's position depends only on its tile and its number, and it never moves when the camera moves. The ground under each clump decides what grows there: the plot's grass kind or the verge's, and nothing on roads, forests, water or prop footprints. Each clump sits on the simulation's ground triangle and takes the ground's colour. Clumps are sorted into a near tier (LOD0, the finest mesh) or a far tier (LOD2, fewer segments a blade) by their height in pixels, then drawn with one indirect draw per tier (a draw whose count the GPU wrote itself). The field is rebuilt whenever the view changes or the side's learned ground scars change (`frame/grassPass.ts`, `terrain/grassField.ts`).
 
 From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading normal mostly borrowed from the ground so grass lights like the ground and never glitters, about one clump per `pixels_per_clump` pixels of ground, a travelling gust band keyed to a clock, far grass matched to the ground colour, and no depth prepass. It rejects that game's CPU-placed records and uploads (its measured pain), its per-vertex curved blade, its one-by-one popping, and its quality ladder (22–31 ms on Metal). The unbuilt alternative was porting that CPU-resident three-tier field as-is.
 
@@ -3901,11 +3901,11 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · Light, terrain, grass and trees · from Slice 17; Slice 17b*
 
-**The choice.** A crater's depth tilts the terrain's shading normal (its slope from taps either side, and a rim where the neighbourhood is deeper; `relief_m` 2.6 at a full crater, tilt capped at 40° because steeper walls turned to the blue sky and read as a grey sheen). For low camera angles the shader adds parallax (`groundScarsSeen`): it reads the scars again at points stepped down the view ray by the bowl's depth, so the near wall hides the floor and the far wall faces the eye. The bowl floor keeps 0.7 of its soil's brightness (darker read as a black cast shadow); soil and ash are fully rough. The sun-shadow lookup and the fog's lighting term keep the true geometric normal, so shadows and fog are unchanged, and the simulation's triangles never move (the slice contract; "craters never enter navigation"). The grass build reads the plain sample, without parallax.
+**The choice.** A crater's depth tilts the terrain's shading normal (its slope from taps either side, and a rim where the neighbourhood is deeper; `relief_m` at a full crater, tilt capped because steeper walls turned to the blue sky and read as a grey sheen). For low camera angles the shader adds parallax (`groundScarsSeen`): it reads the scars again at points stepped down the view ray by the bowl's depth, so the near wall hides the floor and the far wall faces the eye. The bowl floor keeps most of its soil's brightness (darker read as a black cast shadow); soil and ash are fully rough. The sun-shadow lookup and the fog's lighting term keep the true geometric normal, so shadows and fog are unchanged, and the simulation's triangles never move (the slice contract; "craters never enter navigation"). The grass build reads the plain sample, without parallax.
 
 **The gap.** How to show a hole without moving geometry.
 
-**The reach.** Very low views still show a 0.9 m bowl as only a few pixels; opening it needs relief geometry.
+**The reach.** Very low views still show a shallow bowl as only a few pixels; opening it needs relief geometry.
 
 **Verdict.** sound — consistent with the rule that craters are cosmetic to sight and pathing.
 
@@ -3939,7 +3939,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · How fog looks · from Spike 02*
 
-**The choice.** A pixel on open ground asks "can an eye see a target standing here?", so it tests the point 1 m up (the simulation's target height). A pixel on a wall, roof or unit tests the point `face_probe_m` (0.1 m) out along its surface normal, and only eyes in front of that face count (`fogProbePoint`, `fogSeenSurface` in `frame/fogTerm.ts`). The alternatives measured (testing the surface point itself, or testing faces at target height) lit up roof bands up to 6 m wide. A separate roof rule (`roof_reach_m`) handles roofs above every eye.
+**The choice.** A pixel on open ground asks "can an eye see a target standing here?", so it tests the point at the simulation's target height (`fog_target_height_m`) above it. A pixel on a wall, roof or unit tests the point `face_probe_m` out along its surface normal, and only eyes in front of that face count (`fogProbePoint`, `fogSeenSurface` in `frame/fogTerm.ts`). The alternatives measured (testing the surface point itself, or testing faces at target height) lit up roof bands up to 6 m wide. A separate roof rule (`roof_reach_m`) handles roofs above every eye.
 
 **Amended (`3a48f3df7`).** The roof rule tests the probe point, not the surface: it takes every up face whose probe point stands level with or above an eye, exactly the faces the face test turns away.
 
@@ -3965,7 +3965,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · How fog looks · from Slice 27b*
 
-**The choice.** From the strategic height the camera sees land beyond the map. The backdrop and the off-map scenery now run `FogTerm` like the map does. A sight ray leaving the map keeps its running horizon, and beyond the edge is open ground at the map's lowest height, with no occluders or foliage. So a side's sight shape runs on past the edge instead of stopping there. The sim's knowledge still stops at the map edge; the drawn sight past it is presentation only. A red line along the inside of the map edge marks the playable area (`presentation.map_border`: colour `[0.86, 0.16, 0.12, 1]`, `width_px` 4, `min_width_m` 0.5). It is drawn as ground paint, and its width is set in screen pixels at the camera's target, rebuilt at each ×1.25 zoom step (`borderWidthM`). The first proposal was "everything off-map is unseen". The user replaced it because it cut sight shapes at the edge.
+**The choice.** From the strategic height the camera sees land beyond the map. The backdrop and the off-map scenery now run `FogTerm` like the map does. A sight ray leaving the map keeps its running horizon, and beyond the edge is open ground at the map's lowest height, with no occluders or foliage. So a side's sight shape runs on past the edge instead of stopping there. The sim's knowledge still stops at the map edge; the drawn sight past it is presentation only. A red line along the inside of the map edge marks the playable area (`presentation.map_border`: `colour`, `width_px`, `min_width_m`). It is drawn as ground paint, and its width is set in screen pixels at the camera's target, rebuilt at each zoom step (`borderWidthM`). The first proposal was "everything off-map is unseen". The user replaced it because it cut sight shapes at the edge.
 
 **The gap.** The spec didn't cover what lies past the map.
 
@@ -3989,11 +3989,11 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · How fog looks · from Slice 15; Slice 15b*
 
-**The choice.** A player looks at ground their side cannot see. It is drawn through a `FogStyle` from `presentation.fog {style, styles: {name: FogStyle}}`, swappable live through `BattleFrame.setFogStyle`. A `FogStyle` is `{dim, cool, tint, saturation, veil, lines {strength, floor, spacing_px, width_px, angle_deg}, edge_softness, rim {width_px, color, alpha}}`: darken, desaturate, pull toward a night tint (rescaled to unit brightness so it only tints), optionally add a glow at a set HDR brightness over all unseen (`veil`), rule fine lines, fade the unseen side in over `edge_softness` pixels from the seen side (so seen pixels never change outside the rim), and draw a rim over seen ground pixels within `rim.width_px` of an unseen one, in display sRGB after post so its colour is exact and it never blooms. Softness and rim are capped at 8 px (`FOG_EDGE_REACH_PX`); the distance passes search `ceil(max(rim, softness)) + 1` pixels. One WGSL function, `fogLook` (`frame/fogStyle.ts`), applies a style from the mask pass. Six styles ship: `veil`, `dusk`, `night`, `grey-veil`, `blue-highlight`, `scanlines`. `dusk` is selected (dim 0.5, cool 0.6, saturation 0.45, no veil, lines 0.5 with floor 0.015 at 5 px, soft edge 1 px, rim 2 px), chosen by the user after previewing all six. `/lab/fog-look` has sliders for every number and writes the block to paste. The alternatives were one hard-coded look, or an unbounded blur for the edge.
+**The choice.** A player looks at ground their side cannot see. It is drawn through a `FogStyle` from `presentation.fog {style, styles: {name: FogStyle}}`, swappable live through `BattleFrame.setFogStyle`. A `FogStyle` is `{dim, cool, tint, saturation, veil, lines {strength, floor, spacing_px, width_px, angle_deg}, edge_softness, rim {width_px, color, alpha}}`: darken, desaturate, pull toward a night tint (rescaled to unit brightness so it only tints), optionally add a glow at a set HDR brightness over all unseen (`veil`), rule fine lines, fade the unseen side in over `edge_softness` pixels from the seen side (so seen pixels never change outside the rim), and draw a rim over seen ground pixels within `rim.width_px` of an unseen one, in display sRGB after post so its colour is exact and it never blooms. Softness and rim are capped at `FOG_EDGE_REACH_PX`; the distance passes search `ceil(max(rim, softness)) + 1` pixels. One WGSL function, `fogLook` (`frame/fogStyle.ts`), applies a style from the mask pass. Six styles ship: `veil`, `dusk`, `night`, `grey-veil`, `blue-highlight`, `scanlines`. `dusk` is selected (no veil, fine lines, a soft edge and a thin rim), chosen by the user after previewing all six. `/lab/fog-look` has sliders for every number and writes the block to paste. The alternatives were one hard-coded look, or an unbounded blur for the edge.
 
 **The gap.** The contract named `{dim, cool, saturation, edge_softness}`, asked for a clearer edge without a form, and asked for live tuning and later A/B of other looks.
 
-**The reach.** Every world material's unseen pixels; the user swaps a look by editing one `style` string. A wider rim or softer edge needs the 8 px cap raised, which costs pass time.
+**The reach.** Every world material's unseen pixels; the user swaps a look by editing one `style` string. A wider rim or softer edge needs `FOG_EDGE_REACH_PX` raised, which costs pass time.
 
 **Verdict.** sound — data-driven, bounded, and already exercised by the user's own pick.
 
@@ -4025,7 +4025,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · Models and the asset pipeline · from Slice 11*
 
-**The choice.** A bundle is a JSON header (sorted keys, numbers rounded to float32, so the same input gives the same bytes) plus 4-byte-aligned binary arrays: float32 positions and UVs, 16-bit normals, 8-bit colours, and for skinned meshes 8-bit joint indices with 16-bit weights summing to 65535. Clips are sampled at `sample_hz` (30) as 16-bit quaternions and float32 translations, each joint channel absent, constant or animated; clip scale tracks are ignored. Textures are carried as baked channels.
+**The choice.** A bundle is a JSON header (sorted keys, numbers rounded to float32, so the same input gives the same bytes) plus 4-byte-aligned binary arrays: float32 positions and UVs, 16-bit normals, 8-bit colours, and for skinned meshes 8-bit joint indices with 16-bit weights summing to 65535. Clips are sampled at `sample_hz` as 16-bit quaternions and float32 translations, each joint channel absent, constant or animated; clip scale tracks are ignored. Textures are carried as baked channels.
 
 **The gap.** Delegated internal encoding.
 
@@ -4073,7 +4073,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · Models and the asset pipeline · from Slice 20*
 
-**The choice.** A tank's gun swung astern sticks out behind the hull. If culling used the rest pose's box, the gun could vanish at the screen edge. Today articulated `bounds` (`posedBounds`) sweep deploy in quarters and, packed and deployed, 32 turret bearings × 3 gun pitches × 16 HMG bearings × 3 HMG pitches, placing each node's 8 box corners, widening wheels to their disc and padding for the gaps between bearings. The spike tank grew from 9.5 × 3.7 m to 12.1 × 12.1 m. Fit checks still measure the rest pose; views frame the far pose (`farPoseBounds`).
+**The choice.** A tank's gun swung astern sticks out behind the hull. If culling used the rest pose's box, the gun could vanish at the screen edge. Today articulated `bounds` (`posedBounds`) sweep deploy in steps and, packed and deployed, a grid of turret bearings, gun pitches, HMG bearings and HMG pitches, placing each node's 8 box corners, widening wheels to their disc and padding for the gaps between bearings. The spike tank grew from 9.5 × 3.7 m to 12.1 × 12.1 m. Fit checks still measure the rest pose; views frame the far pose (`farPoseBounds`).
 
 **The gap.** An open item from the model bake: which pose the bounds describe.
 
@@ -4097,7 +4097,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · Models and the asset pipeline · from Slice 25*
 
-**The choice.** Fireballs and smoke use two CC0 sprite sheets from Unity Labs: `Explosion00` (5×5 frames, fire) and `Cloud01` (8×8, dust/smoke), converted from TGA to PNG in `assets/third-party/effects/` (Git LFS), each listed in the reuse manifest. They load as one 1024² layer each of an sRGB 2D texture array, premultiplied and mipmapped at load (about 10.7 MiB).
+**The choice.** Fireballs and smoke use two CC0 sprite sheets from Unity Labs: `Explosion00` (5×5 frames, fire) and `Cloud01` (8×8, dust/smoke), converted from TGA to PNG in `assets/third-party/effects/` (Git LFS), each listed in the reuse manifest. They load as one layer each of an sRGB 2D texture array, premultiplied and mipmapped at load (about 10.7 MiB).
 
 **The gap.** Research named the packs, not the sequences.
 
@@ -4129,11 +4129,11 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 **Verdict.** sound.
 
-### An infantry kind has three look variants; soldier id picks one, so neighbours never match
+### An infantry kind has several look variants; soldier id picks one, so neighbours never match
 
 ***sound** · confidence **high** · Models and the asset pipeline · from Slice 22b*
 
-**The choice.** A soldier kind in the unit catalog lists several appearances (`fixtures/units/generic/soldiers.json`: rifleman `["rifle", "rifle_b", "rifle_c"]`, and likewise recon and AT). `AppearanceCatalog.resolve(kind, side, id, slot)` gives soldier `id` the member `id mod n` in list order. Soldier ids are issued in order per squad, so consecutive soldiers never share a look and every squad of three or more shows all three. A vehicle type names exactly one appearance. All appearances a squad can wear must share one skeleton (refused otherwise), so they share one animation clip set. Corpses pass the fallen soldier's id, so a man keeps his look when he falls. A random hash would leave a four-man team all one variant about one time in 27.
+**The choice.** A soldier kind in the unit catalog lists several appearances (`fixtures/units/generic/soldiers.json`: rifleman, recon and AT each list their own). `AppearanceCatalog.resolve(kind, side, id, slot)` gives soldier `id` the member `id mod n` in list order. Soldier ids are issued in order per squad, so consecutive soldiers never share a look and a squad at least as large as the list shows every look. A vehicle type names exactly one appearance. All appearances a squad can wear must share one skeleton (refused otherwise), so they share one animation clip set. Corpses pass the fallen soldier's id, so a man keeps his look when he falls. A random hash would now and then leave a whole team in one variant.
 
 **The gap.** The seam named the call, not the pick rule or how clips stay shared.
 
@@ -4145,7 +4145,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · Models and the asset pipeline · from 27f presentation leftovers; Slice 27f*
 
-**The choice.** Each unit's card icon (`units/<type>.svg`) is a side view traced from its baked model by a small CPU rasteriser in the asset CLI (`packages/scene-assets/src/silhouette.ts`). Hulls are drawn at rest. A squad is drawn as its first three soldiers in their far pose, 0.8 m apart. The icon is traced at half coverage and simplified. It is deterministic, takes about 0.2 s for six types, and runs in vitest. `asset icons` also deletes icons nothing generates, and `asset check` fails on a missing, stale or orphan icon. The alternative was rendering with the game's GPU renderer. A coverage-only side view does not need it.
+**The choice.** Each unit's card icon (`units/<type>.svg`) is a side view traced from its baked model by a small CPU rasteriser in the asset CLI (`packages/scene-assets/src/silhouette.ts`). Hulls are drawn at rest. A squad is drawn as its first few soldiers in their far pose, spaced apart. The icon is traced at half coverage and simplified. It is deterministic, takes about 0.2 s for six types, and runs in vitest. `asset icons` also deletes icons nothing generates, and `asset check` fails on a missing, stale or orphan icon. The alternative was rendering with the game's GPU renderer. A coverage-only side view does not need it.
 
 **The gap.** The brief suggested "our own renderer or the bake path".
 
@@ -4193,7 +4193,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · Effects and sound · from Slice 25*
 
-**The choice.** The view runs a presentation clock between simulation ticks. A publication for tick T is drawn over the clock span (T−1)/hz to T/hz (hz is the tick rate, 30). A tracer's head runs along its stretch over that span, so a round still flying continues seamlessly in the next tick's stretch. The streak is its style's length, clamped to the stretch. A muzzle flash starts at the span's start; an impact and a blast at its end; a ricochet's sparks at the corner's share of the stretch. Paused, the clock holds and so do effects.
+**The choice.** The view runs a presentation clock between simulation ticks. A publication for tick T is drawn over the clock span (T−1)/hz to T/hz (hz is the tick rate, `tick_hz`). A tracer's head runs along its stretch over that span, so a round still flying continues seamlessly in the next tick's stretch. The streak is its style's length, clamped to the stretch. A muzzle flash starts at the span's start; an impact and a blast at its end; a ricochet's sparks at the corner's share of the stretch. Paused, the clock holds and so do effects.
 
 **The gap.** How tick-stepped data maps onto smooth frame time.
 
@@ -4205,7 +4205,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · Effects and sound · from Slice 26*
 
-**The choice.** A known wreck is drawn wherever the side knows it, fogged or not, and its smoke with it (the user's rule: if a wreck is shown, its fire and smoke are shown). Smoke over unseen ground is lit smoke, slightly tinted where it is thin. Dust is raised only by hulls the side currently sees (own units and identified enemies), from their published positions: one puff off each track every 1.5 m covered, thicker with speed up to 8 m/s.
+**The choice.** A known wreck is drawn wherever the side knows it, fogged or not, and its smoke with it (the user's rule: if a wreck is shown, its fire and smoke are shown). Smoke over unseen ground is lit smoke, slightly tinted where it is thin. Dust is raised only by hulls the side currently sees (own units and identified enemies), from their published positions: puffs off each track as it covers ground, thicker with speed.
 
 **The gap.** Which smoke and dust fog may show.
 
@@ -4229,7 +4229,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · Effects and sound · from Slice 40*
 
-**The choice.** Browsers allow audio only after a user gesture. On the first click or key the bank is synthesised one sound per task (about 250 ms of main-thread work in all; the 12 s ambience the longest at about 85 ms). The battle is silent for that fraction of a second.
+**The choice.** Browsers allow audio only after a user gesture. On the first click or key the bank is synthesised one sound per task (about 250 ms of main-thread work in all; the ambience the longest at about 85 ms). The battle is silent for that fraction of a second.
 
 **The gap.** When to pay synthesis cost was unspecified.
 
@@ -4237,11 +4237,11 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 **Verdict.** sound.
 
-### An unseen enemy's noise plays as a vague, positionless cue, at most every 1.5 s
+### An unseen enemy's noise plays as a vague, positionless cue, rate-limited per cue
 
 ***sound** · confidence **high** · Effects and sound · from Slice 40*
 
-**The choice.** Positional sounds come only from what the side sees: own units, identified enemies, visible rounds, blasts, known fires, drawn poses. A hearing cue (the side heard something it cannot see) plays one short vague sound (distant gunfire, an engine, footsteps, voices) panned by its sector relative to the camera, at a gain by near/far band, low-passed when far, with no position. The same cue (category, moving, sector, band) repeats at most every `presentation.audio.cues.repeat_s` (1.5 s). Captions still list every cue.
+**The choice.** Positional sounds come only from what the side sees: own units, identified enemies, visible rounds, blasts, known fires, drawn poses. A hearing cue (the side heard something it cannot see) plays one short vague sound (distant gunfire, an engine, footsteps, voices) panned by its sector relative to the camera, at a gain by near/far band, low-passed when far, with no position. The same cue (category, moving, sector, band) repeats at most every `presentation.audio.cues.repeat_s`. Captions still list every cue.
 
 **The gap.** The spec asked for fog-of-war-safe audio without the rule.
 
@@ -4253,7 +4253,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · Effects and sound · from Slice 40*
 
-**The choice.** When the presentation clock stops for `hold_s` (0.25 s wall), transients fade out in 30 ms and none start; loops play on. When it moves again, anything more than `late_s` (0.25 s) behind is dropped (hidden tab, fast-forward). An earlier publication or a clock running backwards is a new battle and clears everything, as the effects do.
+**The choice.** When the presentation clock stops for `hold_s` (wall time), transients fade out quickly and none start; loops play on. When it moves again, anything more than `late_s` behind is dropped (hidden tab, fast-forward). An earlier publication or a clock running backwards is a new battle and clears everything, as the effects do.
 
 **The gap.** Pause, fast-forward and replay semantics for audio.
 
@@ -4265,7 +4265,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · Effects and sound · from Slice 40*
 
-**The choice.** A vehicle's speed is the mean of both sides' rolled distances this frame, eased over about 0.25 s (so a pivot, one track backwards, still loads the engine); load is speed over the kind's `full_speed_mps`. Engine rate and gain go idle-to-load; tracks or wheels fade in with the square root of load; the turret whine follows traverse rate. The reverse whine plays by load while the vehicle is reversing (the publication's `reversing` flag).
+**The choice.** A vehicle's speed is the mean of both sides' rolled distances this frame, eased over a fraction of a second (so a pivot, one track backwards, still loads the engine); load is speed over the kind's `full_speed_mps`. Engine rate and gain go idle-to-load; tracks or wheels fade in with the square root of load; the turret whine follows traverse rate. The reverse whine plays by load while the vehicle is reversing (the publication's `reversing` flag).
 
 **The gap.** How to drive vehicle loops was unspecified.
 
@@ -4289,7 +4289,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · Effects and sound · from Slice 40*
 
-**The choice.** Each known smoke source plays the fire loop at its footprint's middle, full while it burns, easing to `smoulder_gain` over the last tenth of the burn, silent once the effects say it is out: the same clock as the flames. Fires are on the ambience bus.
+**The choice.** Each known smoke source plays the fire loop at its footprint's middle, full while it burns, easing to `smoulder_gain` over the end of the burn, silent once the effects say it is out: the same clock as the flames. Fires are on the ambience bus.
 
 **The gap.** Fire audio unspecified.
 
@@ -4313,11 +4313,11 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · Effects and sound · from Slice 27 (muzzle flash)*
 
-**The choice.** A tank drives down the road and fires. The simulation says where the round left: the hull's position plus the mount's muzzle offset, as of the end of the tick. The drawn tank is somewhere slightly different. It is interpolated between ticks, its barrel has just recoiled, its gun may be pitched up. If the flash stood at the simulation's point, it would float up to 0.4 m ahead of a moving barrel, or sit a few pixels past the recoiled tip. Today each flash remembers who fired it: the shooter, the mount, and for a squad the soldier. Every frame it asks the renderer where that gun's muzzle is drawn. For a vehicle that is the mount's muzzle node under its turret, pitch and recoil. For a soldier it is the `muzzle` socket on his rifle in his current animation clip. The flash's glow, tongue and fireball start there and point where the round went. If nothing of the shooter is drawn, the flash falls back to the published launch point. The owners are `DrawnMuzzles` (`packages/battle-renderer/src/models/drawnMuzzles.ts`), which poses only the live flashes' muzzles, once a frame each, and the `MuzzleSource` that `EffectFrame.build` takes. `drawnMuzzleSource` in `apps/battle-lab/src/effectFeed.ts` maps effect keys to sides. The unbuilt alternative was to make the simulation's muzzle model match the art exactly. It never can, because recoil and pitch are presentation only.
+**The choice.** A tank drives down the road and fires. The simulation says where the round left: the hull's position plus the mount's muzzle offset, as of the end of the tick. The drawn tank is somewhere slightly different. It is interpolated between ticks, its barrel has just recoiled, its gun may be pitched up. If the flash stood at the simulation's point, it would float ahead of a moving barrel, or sit a few pixels past the recoiled tip. Today each flash remembers who fired it: the shooter, the mount, and for a squad the soldier. Every frame it asks the renderer where that gun's muzzle is drawn. For a vehicle that is the mount's muzzle node under its turret, pitch and recoil. For a soldier it is the `muzzle` socket on his rifle in his current animation clip. The flash's glow, tongue and fireball start there and point where the round went. If nothing of the shooter is drawn, the flash falls back to the published launch point. The owners are `DrawnMuzzles` (`packages/battle-renderer/src/models/drawnMuzzles.ts`), which poses only the live flashes' muzzles, once a frame each, and the `MuzzleSource` that `EffectFrame.build` takes. `drawnMuzzleSource` in `apps/battle-lab/src/effectFeed.ts` maps effect keys to sides. The unbuilt alternative was to make the simulation's muzzle model match the art exactly. It never can, because recoil and pitch are presentation only.
 
 **The gap.** The spec said flashes appear at the muzzle. It did not say which muzzle, the simulation's or the drawn one, when the two differ.
 
-**The reach.** Effects must be built after the models are posed each frame. Any new flash-like effect (smoke puffs, shell ejection) should ask the same `MuzzleSource`. The tracer still starts at the simulation's muzzle, so a tracer and its flash can sit apart by the recoil distance, about 0.4 m on the cannon.
+**The reach.** Effects must be built after the models are posed each frame. Any new flash-like effect (smoke puffs, shell ejection) should ask the same `MuzzleSource`. The tracer still starts at the simulation's muzzle, so a tracer and its flash can sit apart by the recoil distance.
 
 **Verdict.** sound. Presentation follows what is drawn. The simulation's muzzle is for rules.
 
@@ -4373,7 +4373,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · In-world UI and HUD · from Slice 27e; Post-close review (presentation)*
 
-**The choice.** A selected squad walks behind a house. Its bodies are never tinted while visible; the selection shows as the amber circle painted on the ground under it, the colour scheme's `selected` role (see the colour-roles entry). The parts the house hides are drawn through it as the x-ray, a flat silhouette of the player's own hidden units (see the x-ray entry). A selected unit's x-ray takes the same `selected` colour: `gameOverlay.ts` reads it from `resolveOrderScheme` (which turns the fixture's chosen scheme into the style order marks are drawn with), and the fixture keeps only its opacity, `presentation.overlay.xray.selected_alpha` (0.62). The HUD follows the same role: `hudProperties` sets the CSS variable `--hud-selected` from it, and a selected unit's leader line (the line from the unit to its readout callout) is stroked in it. A selected vehicle's travel chevrons are always paint in `selected`, glowed by `selected_glow`. The alternative, a separate x-ray colour key in the fixture, was how it was first built. That key stayed the order yellow when the scheme moved the selection to amber, so a player asking "is that my selected unit behind the house?" saw the colour of routes and destinations.
+**The choice.** A selected squad walks behind a house. Its bodies are never tinted while visible; the selection shows as the amber circle painted on the ground under it, the colour scheme's `selected` role (see the colour-roles entry). The parts the house hides are drawn through it as the x-ray, a flat silhouette of the player's own hidden units (see the x-ray entry). A selected unit's x-ray takes the same `selected` colour: `gameOverlay.ts` reads it from `resolveOrderScheme` (which turns the fixture's chosen scheme into the style order marks are drawn with), and the fixture keeps only its opacity, `presentation.overlay.xray.selected_alpha`. The HUD follows the same role: `hudProperties` sets the CSS variable `--hud-selected` from it, and a selected unit's leader line (the line from the unit to its readout callout) is stroked in it. A selected vehicle's travel chevrons are always paint in `selected`, glowed by `selected_glow`. The alternative, a separate x-ray colour key in the fixture, was how it was first built. That key stayed the order yellow when the scheme moved the selection to amber, so a player asking "is that my selected unit behind the house?" saw the colour of routes and destinations.
 
 **The gap.** The x-ray and HUD colours were chosen while the selection was yellow, and nothing tied them to the scheme's `selected` role.
 
@@ -4481,7 +4481,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · The catalog · from Slice 27f*
 
-**The choice.** A supply truck's type carries `capabilities: { deploy: { seconds: 15 }, supply: { stock: 600 } }`. The service radius, rates and prices stay global rules. Supply requires deploy.
+**The choice.** A supply truck's type carries `capabilities: { deploy: { seconds }, supply: { stock } }`. The service radius, rates and prices stay global rules. Supply requires deploy.
 
 **The gap.** The spec did not say which service numbers belong to the type and which to the rules.
 
@@ -4505,7 +4505,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · The catalog · from Slice 34; Slice 34c; Sim lane (review fixes, props catalog)*
 
-**The choice.** A tank shells a sandbag wall in front of a squad. What happens is read from data. Props are the catalog's `props` section, resolved with the units by the same loader and the same `extends` (files `fixtures/props/generic/{structures,obstacles,nature,wrecks}.json`; the three wrecks extend an abstract `wreck` frame). A prop type is `{body, destroyed, appearance}`. `body` (`contract::catalog::PropBody`) holds `blocks {infantry, vehicle}`, `stops_rounds`, `occludes`, `weight_class`, optional `cover_tier`, `lifetime_s`, `conceals`, `hp`, `armor` (default 1, range 0–1, scales direct hits), and the flags `topples` and `garrison`. `destroyed` is one of three: `"removed"` (gone), `"cleared"` (gone, with the ground under it cleared too; allowed only for a body that `topples`, such as the trunk), or `{into: {prop, height_m}}` (replaced by another prop type at that height). It sits beside `body` because it names another type by id, so the body row stays a small `Copy` value on every placed prop. `appearance` says how it is drawn (see the prop-drawing entry). So the sandbags (`hp` 150, into `rubble` at 0.3 m) become a rubble body on the same footprint when their hp is gone; `rubble` blocks nothing, stops no rounds, can't be moved, gives light cover to whoever stands in it, and draws with the ruin appearance fitted to its box. A building owns its own numbers (`hp` 400, into `ruin` at 2 m). Each vehicle type in `fixtures/units/` has `body.hull` with `weight_class`, `push_class` and the `wreck` prop it leaves, and `sound {profile, loudness_m}`. Each placed prop carries its row (`world::Prop::body`), so collision, sight, cover and weapons each read their own column. Resolution validates as named `CatalogError::Prop` errors: `hp` and `destroyed` together, `armor` in range, `cleared` only on a toppling body, every `into` chain ending rather than looping, and a unit's `wreck` naming a prop type. A column is added only when something reads it, so there is no `name` or `description` yet. The alternative was per-kind fields and tables scattered over the rules and readers (`buildings.hp`, per-kind blocks and occludes lists, cover tables, per-class hearing ranges).
+**The choice.** A tank shells a sandbag wall in front of a squad. What happens is read from data. Props are the catalog's `props` section, resolved with the units by the same loader and the same `extends` (files `fixtures/props/generic/{structures,obstacles,nature,wrecks}.json`; the three wrecks extend an abstract `wreck` frame). A prop type is `{body, destroyed, appearance}`. `body` (`contract::catalog::PropBody`) holds `blocks {infantry, vehicle}`, `stops_rounds`, `occludes`, `weight_class`, optional `cover_tier`, `lifetime_s`, `conceals`, `hp`, `armor` (default 1, range 0–1, scales direct hits), and the flags `topples` and `garrison`. `destroyed` is one of three: `"removed"` (gone), `"cleared"` (gone, with the ground under it cleared too; allowed only for a body that `topples`, such as the trunk), or `{into: {prop, height_m}}` (replaced by another prop type at that height). It sits beside `body` because it names another type by id, so the body row stays a small `Copy` value on every placed prop. `appearance` says how it is drawn (see the prop-drawing entry). So the sandbags (an `hp`, into `rubble` at a low `height_m`) become a rubble body on the same footprint when their hp is gone; `rubble` blocks nothing, stops no rounds, can't be moved, gives light cover to whoever stands in it, and draws with the ruin appearance fitted to its box. A building owns its own numbers (its `hp`, into `ruin`). Each vehicle type in `fixtures/units/` has `body.hull` with `weight_class`, `push_class` and the `wreck` prop it leaves, and `sound {profile, loudness_m}`. Each placed prop carries its row (`world::Prop::body`), so collision, sight, cover and weapons each read their own column. Resolution validates as named `CatalogError::Prop` errors: `hp` and `destroyed` together, `armor` in range, `cleared` only on a toppling body, every `into` chain ending rather than looping, and a unit's `wreck` naming a prop type. A column is added only when something reads it, so there is no `name` or `description` yet. The alternative was per-kind fields and tables scattered over the rules and readers (`buildings.hp`, per-kind blocks and occludes lists, cover tables, per-class hearing ranges).
 
 **The gap.** The user asked for props as catalog data with string ids and `extends`, and the spec named `{hp, destroyed}` and an armour factor; the row shape, the destroyed states and the remains' heights were the agent's.
 
@@ -4565,7 +4565,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · Tooling and tests · from Slice 14*
 
-**The choice.** The fog shader has its own copy of the sight-shape formula (how far an eye sees to the front, side and rear). To be sure it matches the simulation, Rust exports test vectors from `sim::sight::multiplier` (`sight_multiplier_vectors()` over WASM); a vitest pins the TypeScript mirror against them and a browser scene pins the WGSL `fogShape` against them. The whole GPU lookup is pinned to the simulation directly: the `fog` scene probes it at every 8 m cell and requires agreement with the simulation's published sight sweep outside a one-cell band. The GPU answers are reached through lab-only readback probes (`BattleFrame.fogProbes`, `window.__lab.fog()`); the production frame never reads back. No CPU copy of the lookup runs beside it: a second copy of the WGSL would have to change in step with it, and could prove nothing the simulation's own answers do not.
+**The choice.** The fog shader has its own copy of the sight-shape formula (how far an eye sees to the front, side and rear). To be sure it matches the simulation, Rust exports test vectors from `sim::sight::multiplier` (`sight_multiplier_vectors()` over WASM); a vitest pins the TypeScript mirror against them and a browser scene pins the WGSL `fogShape` against them. The whole GPU lookup is pinned to the simulation directly: the `fog` scene probes it at every fog cell and requires agreement with the simulation's published sight sweep outside a one-cell band. The GPU answers are reached through lab-only readback probes (`BattleFrame.fogProbes`, `window.__lab.fog()`); the production frame never reads back. No CPU copy of the lookup runs beside it: a second copy of the WGSL would have to change in step with it, and could prove nothing the simulation's own answers do not.
 
 **The gap.** The plan said "pinned against Rust oracle vectors" without saying which layer is the oracle.
 
@@ -4589,7 +4589,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · Tooling and tests · from Slice 20*
 
-**The choice.** A reviewer wants to judge a new model without opening a browser. Today `asset sheet <appearance|glb>` drives the workbench in headless Chromium and writes `throwaway/sheets/<name>/`: a contact sheet of eight views (with a 1.8 m figure, the hit box and sockets), one strip per clip or vehicle motion, `stats.json` and the impostor atlases; `--accept` copies them to `assets/review/<name>/`. Tiles are rendered by a second `BattleFrame` at 512 px and composed on a canvas, so the sheet is the production renderer at a fixed size, not a page screenshot.
+**The choice.** A reviewer wants to judge a new model without opening a browser. Today `asset sheet <appearance|glb>` drives the workbench in headless Chromium and writes `throwaway/sheets/<name>/`: a contact sheet of eight views (with a human-height figure, the hit box and sockets), one strip per clip or vehicle motion, `stats.json` and the impostor atlases; `--accept` copies them to `assets/review/<name>/`. Tiles are rendered by a second `BattleFrame` at a fixed size and composed on a canvas, so the sheet is the production renderer at a fixed size, not a page screenshot.
 
 **The gap.** The plan asked for review sheets without a mechanism.
 
@@ -4637,7 +4637,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · Tooling and tests · from Slice 30*
 
-**The choice.** `movement_shots` renders each scenario north-up under a caption band, at most 1280×800, framing the units, goals, props and bursts plus 10 m, kept inside the map (a whole-map view left crates a few pixels wide). Soldiers are drawn at true 0.3 m radius, never under 2.5 px; props at true size, shaded by their real cover tier; a 10 m scale bar. A frame every 6 ticks (5 per second) and GIFs at 10 fps, so twice real time; a contact sheet with 560 px cells. PNGs come from the `png` crate as a dev-dependency (the WebAssembly build never pulls it); GIFs from ffmpeg with `-bitexact`, so two runs give identical bytes. Without ffmpeg the PNGs still land and a warning says so.
+**The choice.** `movement_shots` renders each scenario north-up under a caption band, at a capped size, framing the units, goals, props and bursts plus a margin, kept inside the map (a whole-map view left crates a few pixels wide). Soldiers are drawn at their true radius, never under a few pixels; props at true size, shaded by their real cover tier; a scale bar. A frame every few ticks, and GIFs that play at twice real time; a contact sheet of fixed-size cells. PNGs come from the `png` crate as a dev-dependency (the WebAssembly build never pulls it); GIFs from ffmpeg with `-bitexact`, so two runs give identical bytes. Without ffmpeg the PNGs still land and a warning says so.
 
 **The gap.** The drawing was delegated.
 
@@ -4661,7 +4661,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · Tooling and tests · from Sim lane (review fixes, props catalog)*
 
-**The choice.** Three tests need a wall gone. They bring it down with fire: three ATGM bursts at the wall (100 structural damage each, 4 m blast, so nearby crates survive). The wall leaves rubble, and each test's claim holds. There is no command that deletes a body (`RemoveProp` does not exist). The alternative was a debug removal command in the command schema.
+**The choice.** Three tests need a wall gone. They bring it down with fire: ATGM bursts at the wall (enough structural damage to fell it, a blast small enough that nearby crates survive). The wall leaves rubble, and each test's claim holds. There is no command that deletes a body (`RemoveProp` does not exist). The alternative was a debug removal command in the command schema.
 
 **The gap.** The review flagged a command that could delete bodies outside the rules.
 
@@ -4691,7 +4691,7 @@ Naming and cosmetic calls with no reach beyond their file, one line each.
 - Only CC0/MIT/project-owned art; the UAL2 animation pack is out.
 - Basis checks use reference parts (muzzle ahead, eye above half height, front wheels ahead).
 - Packages reach `math` through Vite and TypeScript aliases in `web/` and the asset CLI's resolve hook; a subpath gets an alias when first used.
-- The oblique-AP ballistics preset uses a lab-only spent AP row (penetration 120).
+- The oblique-AP ballistics preset uses a lab-only spent AP row.
 - The flight lab's tank bodies are armoured (shape code 2).
 - `ricochet_trace` example CLI: `cargo run -p sim --release --example ricochet_trace [row] [incidence_deg] [rounds] [penetration]`.
 - One parallel-ray tolerance, 1e-10.
@@ -4701,11 +4701,11 @@ Naming and cosmetic calls with no reach beyond their file, one line each.
 - The fog mask debug view is the pass-inspector view `fog-mask`: white seen, black unseen, post skipped; the mask keeps each surface's alpha.
 - The fog lab places blue's eight units in the street on the village's ordinary variant; red's garrisons are the garrison check.
 - Fog GPU cost is measured paired (fog on/off/all-rebuild interleaved) under `FOG_COST=1`, since Metal overlaps passes.
-- Contact glyph hatch is draped every 12 m, glow on 48-segment rings, outline on 128 (for CPU rebuild cost).
-- `/lab/fog-look` is the shared street scenario under a 16:00 sun (0.42 rad) with sliders and a copyable `presentation.fog` block.
+- Contact glyph hatch is draped coarsely, and glow and outline rings use modest segment counts (for CPU rebuild cost).
+- `/lab/fog-look` is the shared street scenario under a late-afternoon sun with sliders and a copyable `presentation.fog` block.
 - "Seen pixels identical" checks run with bloom off, since bloom from fogged HDR spills a few levels into seen pixels.
 - Plots within `field_rules.settlement_m` of a building are the settlement's meadow kind.
-- The backdrop and cascade receiver box sit a metre below the lowest ground, not 6 m under the skirt.
+- The backdrop and cascade receiver box sit just below the lowest ground, not deep under the skirt.
 - The workbench route is `/workbench`; its views are q-front, front, left, rear, top, and battle-near/mid/far at the village rig's zooms.
 - Asset hot reload is a Vite plugin (`assetWatch`) that rebakes on `assets/source/` or catalog changes and sends `assets:rebaked`.
 - The workbench scene builds its GLBs from scene-assets test builders and intercepts fetches, so nothing is written to `assets/`.
@@ -4722,12 +4722,12 @@ Naming and cosmetic calls with no reach beyond their file, one line each.
 - Tank turret front is a broad flat face with angled cheeks; pivots unchanged.
 - `veil` stays a selectable fog preset; the default is the user's `dusk` (dimmed and cooled, with rim).
 - Fog-look gate frames: `default-wall` and `ground-wall` reproduce the single-wall wedge; street wedge frames are `default-wedge` and `ground-street`.
-- Fog-look's hue check: CIELAB a*b* distance of 12 between the darkest 1% of unseen ground under a style and the same pixels drawn seen, with fog off (`HUE_MARGIN`).
+- Fog-look's hue check: a CIELAB a*b* distance (`HUE_MARGIN`) between the darkest 1% of unseen ground under a style and the same pixels drawn seen, with fog off.
 - Frame view `ground-mask` (`setMaskView`) shows ground coverage for checks.
 - The biome's `forest_floor` block (palette, patch, mottle, roots, verge, dapple, roughness) is validated by name; its palette is no longer required by name.
 - `/lab/ground?village` is the paused village ground inspector, with a side switch and stream readout.
 - The endurance report packs blue's publication every tick outside the timed step and reports ground patch bytes.
-- Suppression halos and strike rings are ground paint (`LIFT_M` 0) so prone soldiers and corpses lie over them.
+- Suppression halos and strike rings are ground paint with no `LIFT_M`, so prone soldiers and corpses lie over them.
 - Lab probes `suppressModels` and `timePoseKernel` (`MODEL_COST=1` on endurance) measure model cost.
 - `endurance_report` comparison battle: seed 1, craters off (`ground.crater_depth_per_m` 0), 9,000 ticks; comparison builds were `git archive` extracts in `throwaway/` (deleted).
 - The guidance tests stand a wall (`add_prop` event) in for smoke to blind a launcher.
@@ -4737,40 +4737,40 @@ Naming and cosmetic calls with no reach beyond their file, one line each.
 - Lab probes `suppressScars`, the grass probe's `laid`, `FrameStats.scars`.
 - The ground scene's village inspector page is 1920×1080.
 - `ScarSample` carries `at` so parallax and noise agree.
-- `/lab/ground`'s authored crater grids are jittered up to 0.4 of spacing (seeded) so they don't read as an egg-crate.
+- `/lab/ground`'s authored crater grids are jittered by a fraction of their spacing (seeded) so they don't read as an egg-crate.
 - A zero tangent on a sliver triangle gets a perpendicular fallback in `mergeParts`, not a validator error.
 - Validator findings `texture.size`, `texture.mips`, `texture.tangents`, `structure.texture`.
 - Workbench surface sheet and texture channel checkboxes (`setTextureChannels`); albedo-off draws the texture's mean.
-- Tolerances: `tank_wreck` footprint 3.0 m, `field_wall` 0.15 m (`assets/catalog.json`).
+- Tolerances for the `tank_wreck` footprint and `field_wall` live in `assets/catalog.json`.
 - Art detail added during texture critiques (fieldstone walls, stencilled ammo boxes, bridge girders, tank tools, MOLLE kit, redesigned wrecks).
 - Per-soldier digest fields (`lateral`, `pace`, `start`, `path`, `path_revision`, `planned_at`, `route_from`) and cover `Watch` state are in the battle digest.
-- Movement numbers live in `infantry_movement`; mechanism constants (3 slide passes, 0.3 m route-point pass, 5 cm on-spot, 1 m settle, 5 cm sight graze, once-a-second rejoin, push weights, lane shift ladder) stay in code.
+- Movement numbers live in `infantry_movement`; mechanism constants (slide passes, route-point pass, on-spot, settle, sight graze, rejoin interval, push weights, lane shift ladder) stay in code.
 - Pushing digest: prop poses, last-moved tick, each side's revision and last-seen poses, expiries.
 - The boonie hat's crown stands up to helmet height rather than widening the soldier-height tolerance.
 - No per-soldier stature scale: variants and stances cleared the clone read without it.
-- `supply_truck_wreck` footprint tolerance widened to 2.0 m for thrown debris.
+- `supply_truck_wreck` footprint tolerance widened for thrown debris.
 - The bridge deck lost its centre line and approach tiles; road dust films its paving.
-- Lab water surfaces lowered from −0.5 to −1.5 m so bridge piers show.
+- Lab water surfaces lowered so bridge piers show.
 - Jeep, fence, sandbags and dragon's-tooth models are delegated art (triangle counts in the catalog); two new texture recipes, `hessian` and `soil`.
 - The authority lab drops a sandbag line, a fence and five teeth at tick 1 and adds a jeep to its column.
-- The jeep is validated like the tank minus turret and tracks; its whip antenna sets `hull_top_m` 1.1.
+- The jeep is validated like the tank minus turret and tracks; its whip antenna sets `hull_top_m`.
 - Space shows every own unit's orders via `useHeldKey("Space")` (`ShowOrdersBinding`); held-key tracking swallows the release so a focused button isn't clicked.
 - Scenario check `EndsFacing` added to the movement runner.
 - The layout gains `destroyablePropKinds`; the renderer draws those apart (`apartKinds`) and skips destroyed structures.
 - No field wall or crates placed in the village: the slice's list named neither.
 - Village scenarios run on a window of the village's own map (`village(window)`).
 - Fixture edits made as in-place text edits so diffs show only moved rows.
-- Whole-battle frames are the `battle` tour (`_battleLook.mjs`, `BATTLE_TICK` 8100): strategic, line, default, ground, wreck, craters, low view, each also HUD-free.
+- Whole-battle frames are the `battle` tour (`_battleLook.mjs`, at `BATTLE_TICK`): strategic, line, default, ground, wreck, craters, low view, each also HUD-free.
 - The command-driven tours (`woods`, `cleanup`) run in `village`; the pose-only tours (`battle`, `edge`) run in a new `village-watch` fixture on `/battle/village/watch`, where a blue script plays under a free camera (`BattleView`'s `scripted.pilot` is optional).
 - The `cleanup` tour steps every fresh battle to tick 60 before measuring, so reset cycles compare the same battle.
 - A worktree needs only `assets/runtime/**` and `assets/third-party/**` from LFS to run the game.
 - Lean side tie-break: the shorter step; on an exact tie, right.
-- Lean numbers are fixture rules: `cover.lean_max_m` 1.5, `lean_clear_m` 0.1, `lean_apart_m` 0.8, `lean_hold_s` 1.5.
-- Pose lean slide `presentation.pose.lean` `out_s` 0.25, `back_s` 0.4, sine in-out.
+- Lean numbers are fixture rules: `cover.lean_max_m`, `lean_clear_m`, `lean_apart_m`, `lean_hold_s`.
+- Pose lean slide `presentation.pose.lean` `out_s`, `back_s`, sine in-out.
 - Test sandbags in `t1-cover-shot-away` lowered 1.5 → 1.2 m so they stay below a muzzle.
 - The `village-lean` lab scene (`/battle/village/lean`) shows a leaning squad at the ground camera.
 - `ModelInstance.xray` is an rgba or null; the model record packs its rgb in `data.w`, alpha in `scale.w`.
-- Queued waypoint rings are 2.8 m (`QUEUED_R`); chevrons start 1 m outside the marker (`CHEVRONS_GAP_M`).
+- Queued waypoint ring size is `QUEUED_R`; chevrons start `CHEVRONS_GAP_M` outside the marker.
 - Lab hooks `setOverlayGlowStrength` and `suppressPaint` exist for paired shots (`setPaintEmissive` was removed after close: no caller).
 - `GLOW_SHEET=1`, `MARKS_SHEET` capture comparison sheets in the orders tour.
 - The rifleman, tank-cannon and HMG flash look (fireball billows forward of the tip; flipbook rotation random) is unchanged from the effects slice.
@@ -4779,7 +4779,7 @@ Naming and cosmetic calls with no reach beyond their file, one line each.
 - Weapon rows gain `name`, `description`, `icon`; ring captions and AP/HE labels read row names; the arsenal keys by `Weapon.id`.
 - `sim::fixtures::patch_catalog` lets tests tune one catalog entry; "all soldiers tough" patches `rifleman`.
 - `movement_shots` is a `sim` example with `png` as a dev-dependency; the `shots` feature and the wasm exports `build_id`, `WorldView::obstacle_revision` are gone.
-- Role symbols: filled friendly frame, heavier strokes, shown in the accent colour beside the silhouette; group rows carry both at 18 px.
+- Role symbols: filled friendly frame, heavier strokes, shown in the accent colour beside the silhouette; group rows carry both at one small size.
 - `WATCH_TOURS=cover` and the garrison scene's `COVER_LIGHT=1` are opt-in tours that re-shoot the cover sheet.
 - `MARKS_SHEET=<tag>` shoots labelled stroke comparison frames.
 - The pose driver's vehicles and the feed's mount arrays are keyed by `sideKey(id, side, "blue")`; soldiers stay keyed by soldier id, which is unique across sides.
@@ -4807,18 +4807,18 @@ The user's requests of 2026-09-28, after close.
 
 **Verdict.** sound.
 
-### Distance never takes a heard sound below 30%, and far sounds sound far
+### Distance never takes a heard sound below a floor, and far sounds sound far
 
 ***sound** · confidence **medium** · Battle audio · from the user, 2026-09-28 · provisional*
 
-**The choice.** `presentation.audio.distance` gains `floor` 0.3. A positional sound's gain is `floor + (1 − floor) × ref/(ref + rolloff·(d − ref))` (`distanceGain`): full within `ref_m`, easing down to 30% and never below it within `max_m`. So at the farthest zoom (listener about 500 m off) your units still sound at about a third. The old start threshold is renamed `cull`. `presentation.audio.air` colours distance, from nothing at the listener to full at `far_m` 500:
-- a low-pass from `near_hz` 18 kHz to `far_hz` 1.6 kHz (was 1.2 kHz at 1,200 m);
-- a reverb send up to `wet` 0.35, into one convolver per bus: a synthesised 1.8 s outdoor tail (`reverb_s`), darkening as it decays;
-- the onset ramped in over up to `attack_s` 12 ms.
+**The choice.** `presentation.audio.distance` gains `floor`. A positional sound's gain is `floor + (1 − floor) × ref/(ref + rolloff·(d − ref))` (`distanceGain`): full within `ref_m`, easing down to `floor` and never below it within `max_m`. So at the farthest zoom your units still sound clearly. The old start threshold is renamed `cull`. `presentation.audio.air` colours distance, from nothing at the listener to full at `far_m`:
+- a low-pass from `near_hz` to `far_hz`;
+- a reverb send up to `wet`, into one convolver per bus: a synthesised outdoor tail (`reverb_s`), darkening as it decays;
+- the onset ramped in over up to `attack_s`.
 
-Hearing is unchanged: the same voices start from the same observation, and cues are still direction-only. Only level and colour moved; far-band cues take the full far colour. The sound scene renders one shot up close and from the farthest camera. The far shot measures 73% RMS (34% peak) of the close one. Its energy above 4 kHz drops from 8.9% to 0, and it keeps 14% of its energy after 0.5 s against 0 up close. The alternative, a flat 30% gain past some distance, loses the sense of zoom.
+Hearing is unchanged: the same voices start from the same observation, and cues are still direction-only. Only level and colour moved; far-band cues take the full far colour. The sound scene renders one shot up close and from the farthest camera. The far shot measures 73% RMS (34% peak) of the close one. Its energy above 4 kHz drops from 8.9% to 0, and it keeps 14% of its energy after 0.5 s against 0 up close. The alternative, a flat gain past some distance, loses the sense of zoom.
 
-**The reach.** Every positional sound. With the floor, distant sounds now compete for the 32 transient voices, loudest first. A seen enemy's fire can take a voice from quieter blue sounds; an unseen one still cannot.
+**The reach.** Every positional sound. With the floor, distant sounds now compete for the transient voices, loudest first. A seen enemy's fire can take a voice from quieter blue sounds; an unseen one still cannot.
 
 **Verdict.** sound; the numbers are provisional.
 
@@ -4826,12 +4826,12 @@ Hearing is unchanged: the same voices start from the same observation, and cues 
 
 ***sound** · confidence **medium** · Renderer fog · from the user, 2026-09-28*
 
-**The choice.** Every known occluder box takes fog as one piece: buildings, ruins and walls, the props whose body `occludes`. A compute pass (`FogVisibility`, `wholeFn`) runs one workgroup per occluder. It samples the occluder's four walls and its roof every `fog_geometry.whole_step_m` (1.5 m) with the ordinary face and roof rules, against every eye that can reach it, and flags it seen if any sample is. `fogTerm` then answers "seen" for any fragment inside a seen occluder's box, whatever the layer:
+**The choice.** Every known occluder box takes fog as one piece: buildings, ruins and walls, the props whose body `occludes`. A compute pass (`FogVisibility`, `wholeFn`) runs one workgroup per occluder. It samples the occluder's four walls and its roof every `fog_geometry.whole_step_m` with the ordinary face and roof rules, against every eye that can reach it, and flags it seen if any sample is. `fogTerm` then answers "seen" for any fragment inside a seen occluder's box, whatever the layer:
 - walls and roofs;
 - the courtyard's ground and grass;
 - a prop standing in the courtyard.
 
-The box is grown by twice the face probe, and reaches 3 m above the top for a ridge and 2 m below the base. An occluder with no seen sample falls back to the per-fragment test, so a seen pixel is still never fogged. In practice that fallback finds it unseen all over. The flags recompute only when the maps or eyes change.
+The box is grown by twice the face probe, and reaches a few metres above the top for a ridge and below the base. An occluder with no seen sample falls back to the per-fragment test, so a seen pixel is still never fogged. In practice that fallback finds it unseen all over. The flags recompute only when the maps or eyes change.
 
 The boxes, a lookup grid and the flags travel in an `r32uint` texture (`wholes`), not a storage buffer. The terrain's fragment already binds WebGPU's default eight storage buffers.
 
