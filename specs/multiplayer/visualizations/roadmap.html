@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multiplayer Roadmap</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; font-family: var(--font-sans, system-ui, sans-serif); font-size: 13px; line-height: 1.45; color: var(--foreground, CanvasText); }
+  .sub { color: var(--muted-foreground, #8a96a0); margin: 0 0 12px; max-width: 78ch; }
+  .key { display: flex; flex-wrap: wrap; gap: 14px; margin: 0 0 14px; font-size: 12px; color: var(--muted-foreground, #8a96a0); }
+  .key span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 2px; border: 1px solid var(--border, #2a3640); }
+  .dot.go { background: var(--success, #3fa66a); border-color: var(--success, #3fa66a); }
+  .dot.eye { background: var(--info, #4b9fd0); border-color: var(--info, #4b9fd0); }
+  .dot.rule { background: var(--warning, #c9972b); border-color: var(--warning, #c9972b); }
+  .dot.free { border-style: dashed; }
+  .cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
+  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
+  h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 4px; }
+  .goal { color: var(--muted-foreground, #8a96a0); margin: 0 0 10px; font-size: 12px; min-height: 2.9em; }
+  .card { border: 1px solid var(--border, #2a3640); border-left-width: 3px; border-radius: var(--radius, 6px); padding: 8px 10px; margin-bottom: 7px; background: var(--card, transparent); }
+  .card.free { border-left-style: dashed; }
+  .card.eye { border-left-color: var(--info, #4b9fd0); }
+  .card.rule { border-left-color: var(--warning, #c9972b); }
+  .card.go { border-color: var(--success, #3fa66a); box-shadow: inset 0 0 0 1px var(--success, #3fa66a); }
+  .top { display: flex; gap: 8px; align-items: baseline; }
+  .n { font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; color: var(--muted-foreground, #8a96a0); }
+  .t { font-weight: 600; }
+  .needs { margin-left: auto; font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; color: var(--muted-foreground, #8a96a0); white-space: nowrap; }
+  .p { margin: 3px 0 0; font-size: 12px; }
+  .burn { display: inline-block; margin-left: 6px; font-size: 10.5px; font-weight: 600; padding: 0 6px; border-radius: 999px; border: 1px solid var(--destructive, #d2553f); }
+</style>
+</head>
+<body>
+<p class="sub">Multiplayer in 27 slices, in three stages. Each card says what you can run or see when it is done. Nothing here is built yet.</p>
+<div class="key">
+  <span><i class="dot go"></i>a point you can play</span>
+  <span><i class="dot eye"></i>changes what the player sees</span>
+  <span><i class="dot rule"></i>changes a game rule</span>
+  <span><i class="dot free"></i>needs nothing first</span>
+  <span>"after 07": what must land before it</span>
+</div>
+<div class="cols" id="cols"></div>
+<script>
+const STAGES = [
+  ["Foundation", "A server runs a battle and two browsers command one side each.", [
+    ["01", "Host and endurance probes", "", "Late ticks for a 5v5 on the host; a two-hour battle's tick time, memory and snapshot size", "free", "O1 O3 O4"],
+    ["02", "Per-side publisher", "", "Two sides publish as deltas at once", "free"],
+    ["03", "The sim stamps orders", "", "An order after an AI held the seat is applied", "free"],
+    ["04", "Seats and setup the server can run", "", "Removing a seat renumbers nothing; skirmish plays as before", "free"],
+    ["05", "Record stream and seat link", "", "A stream cut at any record resumes with nothing lost", "free"],
+    ["06", "Battle host", "02 to 05", "A 5v5 of AIs on a worker thread, ordered through a test link"],
+    ["07", "HTTP transport", "06", "bun run server; a cut stream resumes over real HTTP"],
+    ["08", "Command any seat", "07", "Two browsers, one side each, against the local server", "go"],
+    ["09", "Identity, build check, deploy", "08", "The same battle through the deployed server", "", "O6"],
+    ["10", "Playout", "08", "Bursty arrival plays as even motion"],
+    ["11", "Yours is blue", "08", "A Red commander's screen colours as a Blue commander's does", "eye"],
+    ["12", "Your side at the bottom", "08", "A Red commander's own edge is at the bottom", "eye"],
+    ["13", "Native and WebAssembly parity", "", "The first tick where the two builds disagree, and why", "free", "O2"],
+  ]],
+  ["Rooms", "A host makes a room, friends join by list or by code, and they finish a battle. No new battle rules.", [
+    ["14", "Room model", "04 05", "Every room rule as a test with no network"],
+    ["15", "Room service", "07 09 14", "Two terminals watching one room change"],
+    ["16", "Multiplayer screen", "15", "Menu tile, room list, create, join by code", "eye"],
+    ["17", "Room lobby screen", "15", "Host and guest in one room, seats moving live", "eye"],
+    ["18", "Room battle", "08 15 17", "Start, drop, return, finish, result"],
+    ["19", "Milestone", "09 to 12, 16 to 18", "Two people on two networks finish a room battle", "go", "O6"],
+  ]],
+  ["Frontline", "One button drops you into a running battle on the losing side, with a fresh start.", [
+    ["20", "An AI inherits an army", "", "An AI handed 30 and 150 fighting units keeps its objectives", "free", "O5"],
+    ["21", "Frontline rules", "01 13", "Holding every objective no longer ends the match", "rule"],
+    ["22", "Army hand-over", "20", "A recorded event moves a seat's army; the replay matches", "rule"],
+    ["23", "Seat reset", "22", "A recorded event empties a seat; the replay matches", "rule"],
+    ["24", "Frontline placement", "05", "Every placement rule as a test with no network"],
+    ["25", "Frontline service", "18, 21 to 24", "Join, leave, idle out, return, last one out"],
+    ["26", "Briefing card and Play", "25", "One click, a briefing, Deploy, fighting", "eye"],
+    ["27", "Closeout", "all", "The one full run; docs; the plan archived", "go"],
+  ]],
+];
+const esc = s => s.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+document.getElementById("cols").innerHTML = STAGES.map(([name, goal, slices]) => `
+  <section><h2>${name}</h2><p class="goal">${esc(goal)}</p>
+  ${slices.map(([n, t, needs, proof, kind = "", burn = ""]) => `
+    <div class="card ${kind}">
+      <div class="top"><span class="n">${n}</span><span class="t">${esc(t)}</span>
+        <span class="needs">${needs ? "after " + esc(needs) : ""}</span></div>
+      <p class="p">${esc(proof)}${burn ? `<span class="burn">burns ${burn}</span>` : ""}</p>
+    </div>`).join("")}
+  </section>`).join("");
+</script>
+</body>
+</html>
