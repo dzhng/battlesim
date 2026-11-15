@@ -3,7 +3,7 @@
 **Status:** slices 00–04, 05a, 06, 07, 10 and 11 are done. Slice 08 is merged
 with its gate red on the long-frame tripwire (735 ms against 700): every
 work count is the new art's, and the frame is still long. Slice 08a finds
-why. Two slices are out with implementers (see the lanes below).
+why. Three slices are out with implementers (see the lanes below).
 **Updated:** 2026-11-15.
 
 This plan replaces the "shared GPU assets across generations" placeholder. That
@@ -15,13 +15,14 @@ player sees, and sharing GPU assets is one part of the fix.
 You are fixing the multi-second freeze that happens whenever a running battle
 first fields a unit type it had not shown. The admission work report exists,
 `battle-growth` prints it, and the [ledger](decisions.md) holds what it and
-the reference battle measured. Two slices are out with implementers, each
+the reference battle measured. Three slices are out with implementers, each
 in its own checkout and thread:
 
 | Slice | Branch | State |
 | --- | --- | --- |
 | 05 | `t3/art-content-identity` (the checkout of slices 02–04) | Building. |
 | 08a | `t3/battle-growth-catalog-delta` (the checkout of slices 07 and 08) | Timing the staging frame, then removing what still scales with the catalog. Slice 08's checklist box closes with it. |
+| 09 | `t3/battle-growth-stand-in-mechanics` (the checkout of slices 10 and 11) | Building the queue, the scene and the deeper preload behind its off-by-default switch. Its memory report comes last. The depth rule is applied again from 08a's and 05's numbers before the switch could be turned on. |
 
 When one returns: read its whole diff (changed tests first), rerun its checks
 yourself, merge it into this branch, then start what it unblocks (09 after 08).
