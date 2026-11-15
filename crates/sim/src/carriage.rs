@@ -74,7 +74,14 @@ pub(crate) fn seats_used(units: &[Unit], carrier: UnitId) -> usize {
 }
 
 pub(crate) fn stationary(unit: &Unit) -> bool {
-    unit.movement_goal().is_none() && unit.drive_speed_mps.abs() < 1e-6
+    unit.movement_goal().is_none() && standing(unit)
+}
+
+/// Whether a carrier is standing still, whatever its orders say: one that
+/// has stopped with a drive still pending (its route blocked, or waiting on
+/// traffic) takes a squad aboard as a parked one does.
+fn standing(unit: &Unit) -> bool {
+    unit.drive_speed_mps.abs() < 1e-6
 }
 
 pub(crate) fn within_reach(carrier: &Unit, passenger: &Unit, rules: &Rules) -> bool {
@@ -107,7 +114,7 @@ pub(crate) fn near_and_still(
         return false;
     };
     host.alive()
-        && stationary(host)
+        && standing(host)
         && stationary(&units[passenger])
         && within_reach(host, &units[passenger], rules)
         && at_loading_height(world, host, rules)

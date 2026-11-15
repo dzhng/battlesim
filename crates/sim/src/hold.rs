@@ -200,17 +200,14 @@ pub(crate) fn advance(
                 units[i].orders.pop_front();
                 continue;
             };
-            if world
-                .structure_parts(building)
-                .into_iter()
-                .filter_map(|id| sides[units[i].side.index()].prop(world, authored, id))
-                .any(|p| {
-                    p.footprint().contains(
-                        units[i].position.xy(),
-                        Host::Building(building).timing(rules).reach_m,
-                    )
-                })
-            {
+            if garrison::within_entry_reach(
+                world,
+                &sides[units[i].side.index()],
+                authored,
+                building,
+                units[i].position.xy(),
+                rules,
+            ) {
                 let at = units[i].position.xy();
                 units[i].route = None;
                 units[i].planned_goal = None;

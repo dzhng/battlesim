@@ -19,8 +19,12 @@ struct EntryPoint {
 
 #[derive(Clone, Copy)]
 pub(crate) enum EntryAction {
+    /// The entrant's current entry work stands.
     Keep,
-    Reassert,
+    /// The entrant is ordered in from where it stands: it holds the
+    /// building already, or stands within entry reach of it.
+    Enter,
+    /// The entrant walks to its entry point, then goes in.
     Route,
 }
 
@@ -37,7 +41,9 @@ struct Candidate {
     distance: f64,
     ordinal: usize,
     action: EntryAction,
-    held: bool,
+    /// It goes in without a proof: it is inside already, or within entry
+    /// reach of the building.
+    assured: bool,
 }
 /// Shorter route first; ties keep a stable unit, then edge, order.
 fn rank(a: &Candidate, b: &Candidate) -> std::cmp::Ordering {
@@ -278,7 +284,7 @@ pub(crate) fn occupy(
             {
                 EntryAction::Keep
             } else {
-                EntryAction::Reassert
+                EntryAction::Enter
             };
             Some((id, hold.building()?.entry, action, held))
         } else {
@@ -294,7 +300,7 @@ pub(crate) fn occupy(
         }
     }
     let mut proof_source = source.to_vec();
-    if let Some((id, at, EntryAction::Reassert, _)) = selected_holder {
+    if let Some((id, at, EntryAction::Enter, _)) = selected_holder {
         proof_source[id.0 as usize].enqueue(
             UnitOrder::Garrison {
                 building: owner,
@@ -339,6 +345,27 @@ pub(crate) fn occupy(
             }
             let u = &origins[id.0 as usize];
             let from = u.position.xy();
+            // A squad already within entry reach steps in from where it
+            // stands, with no route to plan and nothing to prove. One still
+            // in a host (leaving it, say) is no squad standing there yet.
+            if !request.queued
+                && u.hold.is_none()
+                && super::within_entry_reach(ctx.world, known, ctx.authored, owner, from, ctx.rules)
+            {
+                candidates.push(Candidate {
+                    unit: id,
+                    entry: EntryPoint {
+                        at: from,
+                        outward: (from - target.center).normalized(),
+                    },
+                    route: vec![from],
+                    distance: 0.0,
+                    ordinal: 0,
+                    action: EntryAction::Enter,
+                    assured: true,
+                });
+                continue;
+            }
             for (ordinal, entry) in points(ctx, known, owner, from).into_iter().enumerate() {
                 if !crate::arrangement::standing_room(
                     ctx.world,
@@ -367,7 +394,7 @@ pub(crate) fn occupy(
                         distance: (entry.at - from).length(),
                         ordinal,
                         action: EntryAction::Route,
-                        held: false,
+                        assured: false,
                     },
                     journey,
                 });
@@ -431,7 +458,7 @@ pub(crate) fn occupy(
                 distance: 0.0,
                 ordinal: 0,
                 action,
-                held,
+                assured: held,
             },
         );
     }
@@ -605,7 +632,7 @@ fn gather(
             })]
         })
         .collect();
-    if let Some(c) = candidate.filter(|c| !c.held) {
+    if let Some(c) = candidate.filter(|c| !c.assured) {
         slots.push(Slot {
             id: c.unit,
             point: Some(c.entry.at),
@@ -642,7 +669,7 @@ fn gather(
     );
     let entrant = candidate
         .filter(|c| {
-            c.held
+            c.assured
                 || proof.stable
                     && proof
                         .arrivals
