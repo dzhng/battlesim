@@ -51,12 +51,14 @@ use crate::units::feed::ObservationFeed;
 use crate::units::interpolate::{FrameSample, TickInterpolator};
 use crate::units::pose::{Articulation, ClipBlend, Kick, PoseFrame};
 use crate::units::skin::{self, Mat4};
-use crate::view::{batch_caster, model_detail, model_fog, Camera, View, CULLED, IMPOSTOR};
+use crate::view::{model_detail, model_fog, Camera, View, CULLED, IMPOSTOR};
 use crate::world::{
     bounds_size, Appearance, BattleInput, Bounds, Trs, UnitsSection, Vec3, WorldInput,
 };
 
 mod aircraft;
+mod batching;
+use batching::Model;
 mod cameras;
 mod frame;
 mod picks;
@@ -126,24 +128,6 @@ pub struct Frame {
     pub picks: Vec<Pick>,
     pub emitters: Vec<Emitter>,
     pub counts: Counts,
-}
-
-/// One model this frame may draw, before batching.
-struct Model {
-    row: u32,
-    tier: u32,
-    pass: u32,
-    at: Vec3,
-    yaw: f64,
-    tint: [f32; 3],
-    highlight: bool,
-    scale: [f32; 3],
-    colour: [f64; 4],
-    /// First palette joint, or 0 (identity).
-    palette: u32,
-    scroll: [f64; 2],
-    /// How fog takes it (`Batch.fog`).
-    fog: u32,
 }
 
 /// What the buildings' known states were last derived from.
@@ -926,55 +910,8 @@ impl Presentation {
                 &mut self.models,
             );
         }
-        batches(&mut self.models, &mut self.frame);
+        batching::write(&mut self.models, &mut self.frame);
         Ok(&self.frame)
-    }
-}
-
-/// The models as batches: one per drawable, tier and pass, in that order.
-/// A model in view casts a tier coarser; a card, a ghost and a high-air
-/// model cast nothing (`batch_caster`).
-fn batches(models: &mut [Model], f: &mut Frame) {
-    let run_of = |m: &Model| (m.row, m.tier, m.pass);
-    models.sort_by_key(run_of);
-    for run in models.chunk_by(|a, b| run_of(a) == run_of(b)) {
-        let m = &run[0];
-        let caster = batch_caster(m.tier, m.pass);
-        let cascade_mask = if caster == NONE {
-            0
-        } else {
-            crate::shadow::ALL_CASCADES
-        };
-        f.batches.push(Batch {
-            key: crate::view::batch_key(m.row, m.tier, m.pass, cascade_mask),
-            appearance: m.row,
-            tier: m.tier,
-            pass: m.pass,
-            caster,
-            cascade_mask,
-            fog: m.fog,
-            version: f.index,
-            first: f.instances.len() as u32,
-            count: run.len() as u32,
-            pad: [0; 2],
-        });
-        let fract = |v: f64| (v - v.floor()) as f32;
-        f.instances.extend(run.iter().map(|m| Instance {
-            placement: [m.at[0] as f32, m.at[1] as f32, m.at[2] as f32, m.yaw as f32],
-            data: [
-                m.palette as f32,
-                fract(m.scroll[0]),
-                fract(m.scroll[1]),
-                pack_colour(m.colour),
-            ],
-            tint: [
-                m.tint[0],
-                m.tint[1],
-                m.tint[2],
-                if m.highlight { -2.0 } else { -1.0 },
-            ],
-            scale: [m.scale[0], m.scale[1], m.scale[2], m.colour[3] as f32],
-        }));
     }
 }
 
