@@ -77,7 +77,7 @@ function overlay(selected: number[], hovered: number | null) {
     observation,
     selected,
     () => 0,
-    { supplyRadius: 0, zone: null, deployments: [] },
+    { side: "blue", supplyRadius: 0, zone: null, deployments: [] },
     {
       showOrders: false,
       reveal: NOTHING_REVEALED,

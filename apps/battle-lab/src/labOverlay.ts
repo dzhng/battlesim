@@ -47,7 +47,7 @@ export function useLabOverlay(
             observation,
             control.selected,
             surfaceZ,
-            { supplyRadius: 0, zone: null, deployments: [] },
+            { side: session.viewer?.side ?? "blue", supplyRadius: 0, zone: null, deployments: [] },
             {
               showOrders: control.showOrders,
               reveal: session.revealed,
@@ -70,6 +70,7 @@ export function useLabOverlay(
       control.showOrders,
       session.revealed,
       session.hovered,
+      session.viewer?.side,
       surfaceZ,
       metresPerPx,
       renderScale,

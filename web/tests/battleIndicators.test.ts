@@ -95,7 +95,7 @@ function indicators(o: ObservationView, presentation: ContactPresentation) {
     o,
     [],
     flat,
-    { supplyRadius: 170, zone: null, deployments: [] },
+    { side: "blue", supplyRadius: 170, zone: null, deployments: [] },
     { showOrders: false, reveal: NOTHING_REVEALED, contacts, facing },
   );
 }
