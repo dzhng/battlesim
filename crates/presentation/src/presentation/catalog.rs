@@ -344,12 +344,8 @@ impl Presentation {
             for (name, appearance) in &battle.units.appearances {
                 posing::register_appearance(&mut world, name, appearance);
             }
-            if let Some(name) = self
-                .loaded
-                .as_ref()
-                .and_then(|l| l.input.stand_in.as_deref())
-            {
-                posing::register_stand_in(&mut world, name);
+            if let Some(name) = self.loaded.as_ref().and_then(|l| l.input.stand_in.as_ref()) {
+                posing::register_stand_in(&mut world, &name.appearance);
             }
             if let Some(grown) = &battle.grown {
                 posing::register_wreck_rows(&mut world, &grown.input.effects);

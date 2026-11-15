@@ -106,9 +106,12 @@
   },
   {
     "id": "stand-in",
-    "route": "/labs/stand-in",
-    "describe": "Stand-in mechanics: with the test vehicle and squad art withheld by the loader, physical blocks remain visible, selectable and targetable; releasing art swaps the same bodies to models.",
-    "map": "sensors"
+    "route": "/battle?type=mixed&size=small&seed=7684954605204256359&battle=20260925&blue=h&red=a&blue_faction=us&red_faction=eastern",
+    "describe": "Stand-in mechanics during battle growth: newly requested vehicle and squad art is held at the network edge, physical blocks remain visible, selectable and targetable, then the same session swaps them to models.",
+    "map": null,
+    "catalog": "game",
+    "loading": false,
+    "timeout_s": 900
   },
   {
     "id": "ballistics",

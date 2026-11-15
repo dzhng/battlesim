@@ -202,7 +202,7 @@ impl EffectFeed {
             Shooter {
                 key,
                 position,
-                half: ty.and_then(|t| t.half),
+                half: units.body_half.get(kind).copied().flatten(),
                 airborne: unit.is_some_and(|u| u.airborne),
                 smoking,
                 yaw,

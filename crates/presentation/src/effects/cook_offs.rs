@@ -99,7 +99,7 @@ impl CookOffWatch {
         &mut self,
         o: &Observation,
         units: &UnitsSection,
-        effects: &EffectsSection,
+        _effects: &EffectsSection,
     ) -> Vec<CookOff> {
         if o.tick < self.last_tick {
             self.hulls.clear();
@@ -110,10 +110,11 @@ impl CookOffWatch {
         let hull = |own: bool, id: f64, kind: &Arc<str>, at: Vec3| {
             // An airframe's death is its fall: it never brews up.
             let airborne = units.types.get(&**kind).is_some_and(|t| t.airborne);
-            let half = effects
-                .types
+            let half = units
+                .body_half
                 .get(&**kind)
-                .and_then(|t| t.half)
+                .copied()
+                .flatten()
                 .filter(|_| !airborne)?;
             let h = Hull {
                 kind: kind.clone(),

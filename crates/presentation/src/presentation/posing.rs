@@ -3,24 +3,21 @@
 //! alike.
 use super::*;
 use crate::units::pose::{SoldierPose, VehiclePose};
-use crate::world::{BodyBoxes, Detail};
+use crate::world::{BodyBox, Detail, SoldierBody, StandIn};
 
 /// What units are drawn from: their section, each skinned body's clip table
 /// and inverse binds, and the world rows their appearances hold; and the
 /// view and detail this frame draws them at.
-pub(super) struct UnitArt<'a, 'b> {
+pub(super) struct UnitArt<'a> {
     pub units: &'a UnitsSection,
     pub tables: &'a ClipTables,
     pub inverse_binds: &'a HashMap<String, Vec<Mat4>>,
     pub world: &'a World,
     pub view: &'a View,
     pub detail: Detail,
-    pub stand_in: Option<&'a str>,
-    pub body: &'b BodyBoxes<'a>,
+    pub stand_in: Option<&'a StandIn>,
+    pub body: Option<BodyBox<'a>>,
 }
-
-/// The existing browser box primitive is 1.2 m wide, deep and tall.
-const STAND_IN_HALF_M: f64 = 0.6;
 
 /// The node transforms posing reuses from model to model.
 #[derive(Default)]
@@ -101,7 +98,30 @@ impl Model {
     }
 }
 
-impl UnitArt<'_, '_> {
+impl UnitArt<'_> {
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn battle<'a>(
+        units: &'a UnitsSection,
+        tables: &'a ClipTables,
+        inverse_binds: &'a HashMap<String, Vec<Mat4>>,
+        world: &'a World,
+        view: &'a View,
+        detail: Detail,
+        stand_in: Option<&'a StandIn>,
+        soldier: SoldierBody,
+    ) -> UnitArt<'a> {
+        UnitArt {
+            units,
+            tables,
+            inverse_binds,
+            world,
+            view,
+            detail,
+            stand_in,
+            body: Some(BodyBox::new(units, Some(soldier))),
+        }
+    }
+
     pub(super) fn tint(&self, side: &str) -> [f32; 3] {
         self.units
             .tints
@@ -134,14 +154,19 @@ impl UnitArt<'_, '_> {
                 s.operator_mount,
                 s.active_mount,
             );
-            let name = resolved.or(self.stand_in);
-            let Some(name) = name else {
+            let (stand_in, name) = match (resolved, self.stand_in) {
+                (Some(name), _) => (None, name),
+                (None, Some(stand_in)) => (Some(stand_in), stand_in.appearance.as_str()),
+                (None, None) => continue,
+            };
+            let is_stand_in = stand_in.is_some();
+            let half =
+                stand_in.and_then(|_| self.body.as_ref().and_then(|body| body.half(&s.kind)));
+            let Some(half) = half.or_else(|| (!is_stand_in).then_some([0.0; 3])) else {
                 continue;
             };
-            let stand_in = resolved.is_none();
             f.counts.soldiers += 1;
-            let half = self.body.half(&s.kind);
-            let far = if stand_in {
+            let far = if is_stand_in {
                 Bounds {
                     size: half[2] * 2.0,
                     radius: (half[0] * half[0] + half[1] * half[1] + half[2] * half[2]).sqrt(),
@@ -155,14 +180,14 @@ impl UnitArt<'_, '_> {
                 s.position,
                 far.size,
                 far.radius,
-                !stand_in,
+                !is_stand_in,
                 None,
             );
             if tier == CULLED {
                 culled += 1;
                 continue;
             }
-            let palette = if stand_in || tier == IMPOSTOR {
+            let palette = if is_stand_in || tier == IMPOSTOR {
                 0
             } else {
                 pose_body(
@@ -182,8 +207,8 @@ impl UnitArt<'_, '_> {
                 tint: self.tint(&s.side),
                 colour: colour(&s.side, s.unit),
                 palette,
-                scale: if stand_in {
-                    half.map(|v| (v / STAND_IN_HALF_M) as f32)
+                scale: if is_stand_in {
+                    std::array::from_fn(|i| (half[i] / stand_in.unwrap().half[i]) as f32)
                 } else {
                     [1.0; 3]
                 },
@@ -208,18 +233,23 @@ impl UnitArt<'_, '_> {
         let units = self.units;
         for v in vehicles {
             let resolved = units.resolve(&v.kind, &v.side, v.unit, 0, None, None);
-            let name = resolved.or(self.stand_in);
-            let Some(name) = name else {
+            let (stand_in, name) = match (resolved, self.stand_in) {
+                (Some(name), _) => (None, name),
+                (None, Some(stand_in)) => (Some(stand_in), stand_in.appearance.as_str()),
+                (None, None) => continue,
+            };
+            let is_stand_in = stand_in.is_some();
+            let half =
+                stand_in.and_then(|_| self.body.as_ref().and_then(|body| body.half(&v.kind)));
+            let Some(half) = half.or_else(|| (!is_stand_in).then_some([0.0; 3])) else {
                 continue;
             };
-            let stand_in = resolved.is_none();
             if v.airborne {
                 f.counts.aircraft += 1;
             } else {
                 f.counts.vehicles += 1;
             }
-            let half = self.body.half(&v.kind);
-            let far = if stand_in {
+            let far = if is_stand_in {
                 Bounds {
                     size: half[2] * 2.0,
                     radius: (half[0] * half[0] + half[1] * half[1] + half[2] * half[2]).sqrt(),
@@ -240,7 +270,7 @@ impl UnitArt<'_, '_> {
             if tier == CULLED {
                 continue;
             }
-            let (palette, scroll) = if stand_in {
+            let (palette, scroll) = if is_stand_in {
                 (0, [0.0; 2])
             } else {
                 pose_vehicle(
@@ -257,8 +287,8 @@ impl UnitArt<'_, '_> {
                 colour: colour(&v.side, v.unit),
                 palette,
                 scroll,
-                scale: if stand_in {
-                    half.map(|v| (v / STAND_IN_HALF_M) as f32)
+                scale: if is_stand_in {
+                    std::array::from_fn(|i| (half[i] / stand_in.unwrap().half[i]) as f32)
                 } else {
                     [1.0; 3]
                 },

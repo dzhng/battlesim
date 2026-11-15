@@ -10,6 +10,7 @@ const PREFIX = "__renderer_proxy__:";
 
 /** The one battle appearance Rust uses while a unit's authored art is absent. */
 export const BATTLE_STAND_IN_APPEARANCE = "__battle_stand_in__";
+export const BATTLE_STAND_IN_HALF_EXTENTS = [0.6, 0.6, 0.6] as const;
 
 /** Whether an admitted appearance is a generated primitive. */
 export function isProxyAppearance(name: string): boolean {

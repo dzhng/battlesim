@@ -60,6 +60,32 @@ fn a_battle_reads_only_the_contents_it_names() {
 }
 
 #[test]
+fn fielding_one_kind_does_not_name_another_catalog_type_s_art() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let rules: contract::scenario::Rules =
+        serde_json::from_value(sim::fixtures::test_rules()).unwrap();
+    let catalog = rules.catalog.view();
+    let runtime = Runtime::open(&root.join("assets/runtime")).unwrap();
+    let presentation: Value =
+        serde_json::from_str(include_str!("../../../fixtures/presentation.json")).unwrap();
+    let rules = serde_json::to_value(rules).unwrap();
+    let b_bundle = runtime.catalog["appearances"]["test_rifle"]["bundle"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let kinds = ["test_tank".to_owned()];
+    let fielding = Fielding {
+        presentation: &presentation,
+        rules: &rules,
+        catalog: &catalog,
+        runtime: &runtime.catalog,
+        kinds: &kinds,
+        factions: None,
+    };
+    assert!(!fielding.contents().unwrap().contains(&b_bundle));
+}
+
+#[test]
 fn a_ground_hull_model_without_its_gauge_is_refused_before_loading_bundles() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let rules: contract::scenario::Rules =

@@ -1,16 +1,12 @@
 //! What the UI hit-tests against: the drawn boxes of every soldier and
 //! vehicle the side sees.
 use super::*;
+use crate::world::BodyBox;
 
 /// The boxes of every drawn soldier and vehicle, for the UI's hit tests:
 /// a hull's box, else each soldier's body box. The same body-size table feeds
 /// UnitArt, so a stand-in's visible block and click box cannot diverge.
-pub(super) fn picks(
-    sample: &FrameSample,
-    units: &UnitsSection,
-    body: &BodyBoxes<'_>,
-    f: &mut Frame,
-) {
+pub(super) fn picks(sample: &FrameSample, units: &UnitsSection, body: &BodyBox<'_>, f: &mut Frame) {
     let o = &sample.observation;
     let kinds = o
         .own
@@ -44,11 +40,16 @@ pub(super) fn picks(
             ],
             half: [half[0] as f32, half[1] as f32, half[2] as f32, 0.0],
         };
-        if let Some(hull) = units.body_half.get(&***kind).copied().flatten() {
+        if units.types.get(&***kind).is_some_and(|t| t.hull) {
+            let Some(hull) = body.half(kind) else {
+                continue;
+            };
             f.picks.push(pick(NONE, pose.position, hull));
         } else {
+            let Some(half) = body.half(kind) else {
+                continue;
+            };
             f.picks.push(pick(NONE, pose.position, [0.0; 3]));
-            let half = body.half(kind);
             for (at, id) in pose.members.iter().zip(&pose.member_ids) {
                 f.picks
                     .push(pick(id.map_or(NONE, |id| id as u32), *at, half));

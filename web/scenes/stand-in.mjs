@@ -1,53 +1,148 @@
-// Slice 10: withheld vehicle and squad art remain visible, selectable and
-// targetable as physical blocks, then swap to models after release.
-import { openBattle, obs, route, snapshot, lab } from "./_lab.mjs";
+// Slice 10: hold the growth admission's runtime responses at the browser
+// network edge, inspect the live stand-ins, then release those same responses.
+import { writeFile } from "node:fs/promises";
+import { advance, lab, obs, presented } from "./_lab.mjs";
 
-const clickUnit = async (page, unit, button = "left") => {
-  const at = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2] + 1), unit.position);
-  await page.mouse.click(at[0], at[1], { button });
-};
+async function clickUnit(page, unit, button = "left") {
+  const point = unit.members[0] ?? unit.position;
+  const css = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2] + 1), point);
+  if (!css) throw new Error(`unit ${unit.id} is outside the camera`);
+  await page.mouse.click(css[0], css[1], { button });
+}
+
+async function frameOn(page, unit) {
+  await page.evaluate(
+    (at) =>
+      window.__lab.setCamera({ ...window.__lab.camera(), target: [at[0], at[1], 0], distance: 35 }),
+    unit.position,
+  );
+  await page.evaluate(() => window.__lab.frame());
+}
 
 export async function run(ctx) {
-  const page = await openBattle(ctx, { timeout: 60000 });
-  await page.evaluate(() => window.__lab.frame());
-  const before = await obs(page);
-  const tank = before.own.find((u) => u.kind === "test_tank");
-  const squad = before.own.find((u) => u.kind === "test_rifle");
-  const enemy = before.identified.find((u) => u.kind === "test_tank");
-  ctx.check(
-    "the withheld vehicle and squad are observed",
-    !!tank && !!squad,
-    JSON.stringify(before),
-  );
-  ctx.check("the withheld enemy is targetable", !!enemy, JSON.stringify(before.identified));
-  if (!tank || !squad || !enemy) return;
-
-  await snapshot(ctx, page, "stand-in-before.png");
-  await clickUnit(page, tank);
-  await page.waitForFunction((id) => window.__lab.route.selected().includes(id), tank.id);
-  ctx.check("a withheld vehicle block selects", (await route(page, "selected")).includes(tank.id));
-  await clickUnit(page, squad);
-  await page.waitForFunction((id) => window.__lab.route.selected().includes(id), squad.id);
-  ctx.check("a withheld squad block selects", (await route(page, "selected")).includes(squad.id));
-  await clickUnit(page, enemy, "right");
-  await page.waitForFunction(() => window.__lab.route.acks().length > 0, undefined, {
-    timeout: 5000,
+  const page = await ctx.newPage();
+  const held = [];
+  let hold = false;
+  await page.route("**/bundle.bin", async (route) => {
+    if (!hold) return route.continue();
+    held.push(route);
   });
+  const timeline = [];
+  page.on("console", (message) => {
+    const match = /^\[battle \d+ ms\] (battle staged|art committed)/.exec(message.text());
+    if (match) timeline.push(match[1]);
+  });
+  await ctx.openLab(page, ctx.url, 120000);
+  await lab(page, () => window.__lab.route.pause());
+  await advance(page, 90 - (await obs(page)).tick);
+  await presented(page);
+
+  const entry = await page.evaluate(() => window.__lab.route.prepared().start.at);
+  await page.evaluate(
+    (at) => window.__lab.setCamera({ ...window.__lab.camera(), target: [...at, 0], distance: 120 }),
+    entry,
+  );
+  const view = page.viewportSize();
+  const [cx, cy] = [view.width / 2, view.height / 2];
+  await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
+  await page.getByRole("tab", { name: "MBT", exact: true }).click();
+  await page.getByRole("button", { name: "M1 Abrams", exact: true }).hover();
+  await page.getByRole("button", { name: /^SEP v2 — \d+ credits$/ }).click();
+  await page.mouse.move(cx, cy);
+  await page.waitForTimeout(100);
+  await page.mouse.click(cx, cy);
+  await advance(page, 1);
+  await page.getByRole("button", { name: "START BATTLE", exact: true }).click();
+  await advance(page, 60 * 30);
+  await obs(page);
+  hold = true;
+  const current = await obs(page);
+  const goal = current.skirmish.objectives
+    .map((objective) => objective.center)
+    .sort(
+      (a, b) =>
+        Math.hypot(b[0] - entry[0], b[1] - entry[1]) - Math.hypot(a[0] - entry[0], a[1] - entry[1]),
+    )[0];
+  await page.evaluate(
+    ([id, at]) =>
+      window.__lab.route.command({
+        kind: "move",
+        units: [id],
+        gesture: 2801,
+        goal: at,
+        route: "fastest",
+      }),
+    [current.own[0].id, goal],
+  );
+  for (let i = 0; i < 10 && !timeline.includes("battle staged"); i++) await advance(page, 60 * 30);
   ctx.check(
-    "a right-click on a withheld enemy is an attack target",
-    (await route(page, "acks")).length > 0,
+    "the growth stages while art responses are held",
+    timeline.includes("battle staged"),
+    JSON.stringify(timeline),
+  );
+  const heldObservation = await obs(page);
+  const vehicle = heldObservation.identified.find((unit) => unit.members.length === 0);
+  const squad = heldObservation.identified.find((unit) => unit.members.length > 0);
+  ctx.check(
+    "the newly seen vehicle and squad remain observed while art is held",
+    !!vehicle && !!squad,
+    JSON.stringify(heldObservation.identified),
+  );
+  if (!vehicle || !squad) return;
+
+  const ownVehicle = current.own.find((unit) => unit.members.length === 0);
+  const ownSquad = current.own.find((unit) => unit.members.length > 0);
+  ctx.check(
+    "the battle supplies vehicle and squad bodies for interaction",
+    !!ownVehicle && !!ownSquad,
+  );
+  if (!ownVehicle || !ownSquad) return;
+
+  await clickUnit(page, ownVehicle);
+  await page.waitForFunction((id) => window.__lab.route.selected().includes(id), ownVehicle.id);
+  await clickUnit(page, ownSquad);
+  await page.waitForFunction((id) => window.__lab.route.selected().includes(id), ownSquad.id);
+  ctx.check("withheld vehicle and squad bodies select", true);
+
+  const beforeAcks = await lab(page, () => window.__lab.route.acks().length);
+  await frameOn(page, vehicle);
+  await clickUnit(page, vehicle, "right");
+  await page.waitForFunction((n) => window.__lab.route.acks().length > n, beforeAcks);
+  const vehicleAttack = await lab(page, () => window.__lab.route.acks().at(-1)?.order.kind);
+  ctx.check(
+    "a click on the withheld vehicle is an attack target",
+    vehicleAttack === "attack",
+    vehicleAttack,
   );
 
-  await page.goto(new URL("/labs/stand-in?release=1", page.url()).toString());
-  await page.waitForFunction(() => window.__lab?.route?.tick?.() > 3, undefined, {
-    timeout: 60000,
-  });
-  await page.evaluate(() => window.__lab.frame());
-  const releasedModels = await route(page, "vehicles");
+  const squadAcks = await lab(page, () => window.__lab.route.acks().length);
+  await frameOn(page, squad);
+  await clickUnit(page, squad, "right");
+  await page.waitForFunction((n) => window.__lab.route.acks().length > n, squadAcks);
+  const squadAttack = await lab(page, () => window.__lab.route.acks().at(-1)?.order.kind);
   ctx.check(
-    "released art replaces the stand-in vehicles",
-    releasedModels.some((v) => v.appearance === "test_tank"),
-    JSON.stringify(releasedModels),
+    "a click on the withheld squad is an attack target",
+    squadAttack === "attack",
+    squadAttack,
   );
-  await snapshot(ctx, page, "stand-in-after.png");
+
+  await frameOn(page, vehicle);
+  await writeFile(ctx.evidencePath("vehicle-before.png"), await page.screenshot());
+  await frameOn(page, squad);
+  await writeFile(ctx.evidencePath("squad-before.png"), await page.screenshot());
+
+  for (const route of held.splice(0)) await route.continue();
+  hold = false;
+  await page.waitForTimeout(1000);
+  ctx.check(
+    "releasing the responses commits art in the same session",
+    timeline.includes("art committed"),
+    JSON.stringify(timeline),
+  );
+  await frameOn(page, vehicle);
+  await writeFile(ctx.evidencePath("vehicle-after.png"), await page.screenshot());
+  await frameOn(page, squad);
+  await writeFile(ctx.evidencePath("squad-after.png"), await page.screenshot());
+  await page.unroute("**/bundle.bin");
+  await page.close();
 }

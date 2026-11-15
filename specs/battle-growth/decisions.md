@@ -159,3 +159,26 @@ Review findings to fix before it merges:
 6. Hull sizes have two owners after it (the effects section and the new
    table), and the new table defaults silently when missing.
 7. Its "art arrives" test starts with the art already present.
+
+Fix-round decisions (2026-11-15):
+
+8. The units section keeps one required `bodyHalf` table for every catalog
+   type, while `types[].draws`, track gauges, appearance records, wrecks and
+   skeleton contents remain scoped to `Fielding::kinds`; a second effects hull
+   size was removed. The rejected alternative was retaining the first pass's
+   all-catalog art derivation.
+9. The browser fixture uses Playwright response interception during the real
+   battle-growth admission and releases those responses in place. The rejected
+   alternative was a production fetch hook, catalog rewriting, or a page reload.
+10. The stand-in input carries `{ appearance, half }`, where `half` is the
+    browser box primitive's authored half extents. Presentation scales from
+    that value; it does not know the mesh dimensions. The rejected alternative
+    was a presentation constant.
+11. Showcase has no stand-in body input because it never draws a stand-in. The
+    rejected alternative was inventing a soldier physics value for it.
+12. `BodyBox` is the single frame-owned body-box value used by both UnitArt and
+    picks; the rejected alternative was a `BodyBoxes` wrapper plus a duplicate
+    `body_half` owner.
+13. The loaded frame builder moved to `presentation/frame.rs` as a concept split
+    so the frozen `presentation.rs` ratchet could keep all restored comments;
+    the rejected alternative was shortening or deleting those comments.

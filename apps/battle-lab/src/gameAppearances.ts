@@ -8,11 +8,7 @@
 import type { MapBuildings, StaticWorld } from "./useStaticWorld";
 import { countedFetch } from "@web/downloads";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  AppearanceLibrary,
-  type Fetch,
-  type InstalledAppearances,
-} from "@packages/scene-assets/src/loader";
+import { AppearanceLibrary, type InstalledAppearances } from "@packages/scene-assets/src/loader";
 import {
   bundlePath,
   familyLooks,
@@ -34,27 +30,7 @@ import { diagnosticsSource } from "@web/diagnostics";
 import { appResources } from "./appResources";
 import type { RuntimeFiles } from "@web/battle/sim/fielding";
 
-/** Test/lab hook: omit named runtime appearances from the catalog response so
- * the ordinary loader and Rust fielding observe a real art-withheld session. */
-let withheldRuntimeAppearances = new Set<string>();
-export function withholdRuntimeAppearances(names: Iterable<string>): void {
-  withheldRuntimeAppearances = new Set(names);
-}
-
-const battleFetcher: Fetch = async (url) => {
-  const response = await countedFetch(url);
-  if (withheldRuntimeAppearances.size === 0 || !url.endsWith("catalog.json")) return response;
-  const catalog = JSON.parse(await response.text()) as { appearances?: Record<string, unknown> };
-  if (catalog.appearances)
-    for (const name of withheldRuntimeAppearances) delete catalog.appearances[name];
-  const bytes = new TextEncoder().encode(JSON.stringify(catalog));
-  return {
-    ok: true,
-    status: 200,
-    arrayBuffer: async () => bytes.slice().buffer,
-  };
-};
-const library = new AppearanceLibrary(battleFetcher);
+const library = new AppearanceLibrary(countedFetch);
 /** The runtime files the page's appearances were loaded from: what Rust
  *  resolves a battle's units and effects from (`fieldedBattle`). */
 export const gameRuntime: RuntimeFiles = library;

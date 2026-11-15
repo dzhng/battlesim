@@ -3,7 +3,7 @@ use contract::ids::Side;
 use presentation::fielded;
 use presentation::presentation::{Presentation, Ui};
 use presentation::view::Camera;
-use presentation::world::{BattleInput, SoldierBody, UnitsSection, WorldInput, Xray};
+use presentation::world::{BattleInput, SoldierBody, StandIn, UnitsSection, WorldInput, Xray};
 use serde_json::json;
 use sim::battle::Battle;
 use sim::publication::{self, Publisher};
@@ -83,7 +83,10 @@ fn presented(
                     ally: [0.0; 4],
                 },
                 blocked: [0.0; 4],
-                stand_in: stand_in.map(str::to_owned),
+                stand_in: stand_in.map(|appearance| StandIn {
+                    appearance: appearance.to_owned(),
+                    half: [0.6, 0.6, 0.6],
+                }),
             }),
             sun_azimuth: 0.0,
             sun_elevation: 0.7,
@@ -139,13 +142,7 @@ fn stand_in_instances(p: &mut Presentation) -> Vec<presentation::records::Instan
 fn seen_unarted_units_draw_one_scaled_stand_in_per_body() {
     let (battle, fielded) = setup();
     let half_tank = fielded.units.body_half["test_tank"].unwrap();
-    let half_soldier = fielded.units.body_half(
-        "test_rifle",
-        SoldierBody {
-            radius_m: 0.2,
-            height_m: 1.8,
-        },
-    );
+    let half_soldier = [0.2, 0.2, 0.9];
     let mut p = presented(
         with_art_withheld(fielded.units),
         fielded.effects,
@@ -203,13 +200,56 @@ fn stand_in_and_committed_art_have_the_same_picks_and_hull_size() {
 #[test]
 fn committing_art_removes_the_stand_in_for_that_type() {
     let (battle, fielded) = setup();
+    let detail = fielded.units.detail;
+    let art_units = fielded.units.clone();
     let mut p = presented(
-        fielded.units.clone(),
+        with_art_withheld(fielded.units),
         fielded.effects.clone(),
         &battle,
         Some(STAND_IN),
     );
+    let before = p
+        .frame(0.0, &camera(), &Ui::default(), 0)
+        .unwrap()
+        .picks
+        .clone();
+    assert!(!stand_in_instances(&mut p).is_empty());
+    assert!(p
+        .stage_battle(
+            WorldInput {
+                battle: Some(BattleInput {
+                    units: art_units,
+                    effects: fielded.effects,
+                    side: "blue".into(),
+                    tick_hz: 30.0,
+                    soldier: SoldierBody {
+                        radius_m: 0.2,
+                        height_m: 1.8
+                    },
+                    xray: Xray {
+                        own: [0.0; 4],
+                        selected: [0.0; 4],
+                        ally: [0.0; 4]
+                    },
+                    blocked: [0.0; 4],
+                    stand_in: Some(StandIn {
+                        appearance: STAND_IN.into(),
+                        half: [0.6; 3]
+                    }),
+                }),
+                sun_azimuth: 0.0,
+                sun_elevation: 0.7,
+                buildings: None,
+            },
+            Default::default(),
+        )
+        .unwrap());
+    let draft = p
+        .stage_catalog(Default::default(), detail, Default::default())
+        .unwrap();
+    assert!(p.commit_catalog(draft, Vec::new()).unwrap());
     assert!(stand_in_instances(&mut p).is_empty());
+    assert_eq!(p.last_frame().picks, before);
 }
 
 #[test]
