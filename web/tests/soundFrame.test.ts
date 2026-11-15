@@ -377,10 +377,7 @@ function cameraAt(target: number[], distance: number): Listener {
   const cam = presentationSettings.camera;
   const pitch = cam.pitch_curve[cam.pitch_curve.length - 1][1];
   const rig = { target: [target[0], target[1], 0], distance, pitch, yaw: -1.57 };
-  return cameraListener(
-    rig as unknown as Parameters<typeof cameraListener>[0],
-    AUDIO.listener_eye_share,
-  );
+  return cameraListener(rig as unknown as Parameters<typeof cameraListener>[0], AUDIO.listener);
 }
 
 /** One blue rifleman's shots at `at`, heard from `listener`: the positional

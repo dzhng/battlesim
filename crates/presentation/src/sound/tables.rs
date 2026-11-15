@@ -217,15 +217,26 @@ pub struct ShoutCue {
     pub takes_per_voice: usize,
 }
 
+/// Where the listener stands for a camera: `eye_share` of the way from the
+/// point looked at to the eye, but never farther out from the eye, along the
+/// view, than `reach_heights` times the eye's height over that point. A
+/// steep view, near or far, listens at the ground it looks at; a look up
+/// toward the horizon, whose point runs far ahead, listens near the eye.
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ListenerPlacement {
+    pub eye_share: f64,
+    pub reach_heights: f64,
+}
+
 /// `audio.json`.
 #[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct AudioMix {
     pub buses: Buses,
     pub limiter: Limiter,
-    /// The listener stands this share of the way from the camera's target
-    /// to its eye.
-    pub listener_eye_share: f64,
+    /// Where the listener stands for the camera (`Listener::of_camera`).
+    pub listener: ListenerPlacement,
     pub distance: Distance,
     pub air: Air,
     pub budget: Budget,

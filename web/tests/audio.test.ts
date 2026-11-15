@@ -28,11 +28,11 @@ test("cameraListener places listener between target and eye based on share", () 
     pitch: -Math.PI / 4,
     yaw: 0,
   };
-  const listener = cameraListener(camera, 0.25);
+  const listener = cameraListener(camera, { eye_share: 0.25, reach_heights: 1e9 });
   expect(listener.position).toHaveLength(3);
   expect(listener.forward).toHaveLength(3);
-  const atTarget = cameraListener(camera, 0).position;
-  const atEye = cameraListener(camera, 1).position;
+  const atTarget = cameraListener(camera, { eye_share: 0, reach_heights: 1e9 }).position;
+  const atEye = cameraListener(camera, { eye_share: 1, reach_heights: 1e9 }).position;
   expect(atTarget[0]).toBeCloseTo(camera.target[0]);
   expect(atTarget[1]).toBeCloseTo(camera.target[1]);
   expect(atTarget[2]).toBeCloseTo(camera.target[2]);
@@ -49,6 +49,38 @@ test("cameraListener places listener between target and eye based on share", () 
   expect(dist0).toBeLessThan(dist1);
 });
 
+test("a steep view listens at the point looked at; a look toward the horizon stays near the eye", () => {
+  const placement = audioMix.listener;
+  const from = (camera: { target: [number, number, number]; distance: number; pitch: number }) => {
+    const c = { ...camera, yaw: 0 };
+    const eye = [
+      c.target[0] + c.distance * Math.cos(c.pitch),
+      c.target[1],
+      c.target[2] + c.distance * Math.sin(c.pitch),
+    ];
+    return { eye, at: cameraListener(c, placement).position };
+  };
+  const gap = (a: readonly number[], b: readonly number[]) =>
+    Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+
+  // An RTS view, zoomed far out: the listener stands by the ground it looks at.
+  const steep = { target: [0, 0, 0] as [number, number, number], distance: 600, pitch: 0.85 };
+  const rts = from(steep);
+  expect(gap(rts.at, steep.target)).toBeLessThanOrEqual(placement.eye_share * 600 + 1e-6);
+
+  // The same eye height tilted up to near the horizon: the point looked at
+  // runs far ahead, and the listener stays within its reach of the eye.
+  const height = 600 * Math.sin(0.85);
+  const low = {
+    target: [0, 0, 0] as [number, number, number],
+    distance: height / Math.sin(0.12),
+    pitch: 0.12,
+  };
+  const horizon = from(low);
+  expect(gap(horizon.at, horizon.eye)).toBeLessThanOrEqual(placement.reach_heights * height + 1e-6);
+  expect(gap(horizon.at, low.target)).toBeGreaterThan(low.distance / 2);
+});
+
 test("cameraListener forward vector depends on yaw", () => {
   const camera1 = {
     target: [0, 0, 0] as [number, number, number],
@@ -62,8 +94,8 @@ test("cameraListener forward vector depends on yaw", () => {
     pitch: -Math.PI / 4,
     yaw: Math.PI / 2,
   };
-  const forward1 = cameraListener(camera1, 0.25).forward;
-  const forward2 = cameraListener(camera2, 0.25).forward;
+  const forward1 = cameraListener(camera1, { eye_share: 0.25, reach_heights: 1e9 }).forward;
+  const forward2 = cameraListener(camera2, { eye_share: 0.25, reach_heights: 1e9 }).forward;
   expect(Math.hypot(forward1[0], forward1[1])).toBeGreaterThan(0);
   expect(Math.hypot(forward2[0], forward2[1])).toBeGreaterThan(0);
   expect(forward1[0]).not.toBeCloseTo(forward2[0]);

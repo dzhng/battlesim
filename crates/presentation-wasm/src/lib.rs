@@ -426,8 +426,8 @@ impl SoundFrame {
 
     /// Hears `presentation`'s last frame at wall time `wall`, mixer time `now`.
     pub fn hear(&mut self, presentation: &Presentation, wall: f64, now: f64) -> String {
-        let share = self.inner.tables().audio.listener_eye_share;
-        let Some(listener) = presentation.inner.listener(share) else {
+        let placement = self.inner.tables().audio.listener;
+        let Some(listener) = presentation.inner.listener(placement) else {
             return "[]".into();
         };
         let motion = presentation.inner.motion();
@@ -726,11 +726,22 @@ impl RecipeBank {
 }
 
 /// Where sound listens for a camera at `eye` looking at `target` with
-/// `up`, `share` of the way from the target to the eye: position, then facing.
+/// `up`, placed by `eye_share` and `reach_heights` (`ListenerPlacement`):
+/// position, then facing.
 #[wasm_bindgen]
-pub fn camera_listener(eye: &[f64], target: &[f64], up: &[f64], share: f64) -> Vec<f64> {
+pub fn camera_listener(
+    eye: &[f64],
+    target: &[f64],
+    up: &[f64],
+    eye_share: f64,
+    reach_heights: f64,
+) -> Vec<f64> {
     let v = |a: &[f64]| [a[0], a[1], a[2]];
-    let l = Listener::of_camera(v(eye), v(target), v(up).map(|x| x as f32), share);
+    let placement = presentation::sound::tables::ListenerPlacement {
+        eye_share,
+        reach_heights,
+    };
+    let l = Listener::of_camera(v(eye), v(target), v(up).map(|x| x as f32), placement);
     [l.position, l.forward].concat()
 }
 

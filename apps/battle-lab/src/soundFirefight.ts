@@ -604,7 +604,7 @@ export async function renderDistanceProbe(catalog: SoundCatalog = gameSounds) {
       pitch: cam.pitch_curve[cam.pitch_curve.length - 1][1],
       yaw: cam.default.yaw,
     },
-    audioMix.listener_eye_share,
+    audioMix.listener,
   );
   const close: Listener = { position: [0, -4, 3], forward: [0, 1, 0] };
   return {

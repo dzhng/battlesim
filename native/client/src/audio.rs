@@ -447,8 +447,8 @@ impl Audio {
     /// Hears `presentation`'s last frame, from its camera, at wall time
     /// `wall` and player time `now` (seconds).
     pub fn hear(&mut self, presentation: &Presentation, wall: f64, now: f64) {
-        let share = self.sound.tables().audio.listener_eye_share;
-        let Some(listener) = presentation.listener(share) else {
+        let placement = self.sound.tables().audio.listener;
+        let Some(listener) = presentation.listener(placement) else {
             return;
         };
         let motion = presentation.motion();

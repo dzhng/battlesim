@@ -70,14 +70,22 @@ export interface Limiter {
   clip_db: number;
 }
 
+export interface ListenerPlacement {
+  eye_share: number;
+  reach_heights: number;
+}
+
 export interface AudioMix {
   /** Bus levels, and the master's. */
   buses: Record<Bus | "master" | "music", number>;
   /** The master's limiter and clip, the last stage before the output. */
   limiter: Limiter;
-  /** Where the listener stands: this share of the way from the camera's
-   *  target to its eye (0 at the ground point looked at, 1 at the eye). */
-  listener_eye_share: number;
+  /** Where the listener stands for the camera (`ListenerPlacement`):
+   *  `eye_share` of the way from the point looked at to the eye, never
+   *  farther out from the eye along the view than `reach_heights` times the
+   *  eye's height over that point, so a look toward the horizon listens
+   *  near the eye. */
+  listener: ListenerPlacement;
   /** Distance attenuation: full within `ref_m`, then inverse (`rolloff`)
    *  down toward `floor`, a share of the sound's gain it never drops below
    *  within `max_m` (so the side always hears its own battle, even from the

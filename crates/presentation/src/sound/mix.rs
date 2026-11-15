@@ -51,7 +51,7 @@ impl AudioMix {
             positive(p, v)?;
         }
         for (p, v) in [
-            ("listener_eye_share", self.listener_eye_share),
+            ("listener.eye_share", self.listener.eye_share),
             ("distance.floor", self.distance.floor),
             ("air.wet", self.air.wet),
             ("ambience.duck.depth", self.ambience.duck.depth),

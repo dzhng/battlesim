@@ -14,7 +14,7 @@
     "ratio": 20,
     "clip_db": -1
   },
-  "listener_eye_share": 0.02,
+  "listener": { "eye_share": 0.02, "reach_heights": 2 },
   "distance": {
     "ref_m": 15,
     "rolloff": 1.2,
@@ -319,13 +319,7 @@
     "combat_window_s": 20,
     "calm_s": 45,
     "crossfade_s": 4,
-    "combat_triggers": [
-      "under_fire",
-      "suppressed",
-      "pinned",
-      "hit",
-      "man_down"
-    ]
+    "combat_triggers": ["under_fire", "suppressed", "pinned", "hit", "man_down"]
   },
   "voices": {
     "lines": 4,
