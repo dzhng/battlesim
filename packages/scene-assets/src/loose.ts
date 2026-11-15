@@ -17,12 +17,8 @@ import {
   type SkeletonClips,
   type SkeletonEntry,
 } from "./schema.ts";
-import {
-  validateAppearance,
-  validateSkeleton,
-  type Validation,
-  type ValidationContext,
-} from "./validate.ts";
+import { validateAppearance, type Validation, type ValidationContext } from "./validate.ts";
+import { validateSkeleton } from "./skeletonFit.ts";
 import type { MountDraws } from "./units.ts";
 
 export interface LooseOptions {

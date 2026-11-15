@@ -1,11 +1,10 @@
 // The appearance validator. Isomorphic: it takes bytes and data, never paths
-// to read, so the CLI, the bake and tests share it. `validateAppearance` and
-// `validateSkeleton` import, build and check one catalog entry; they return the
-// findings, stats and — when nothing is an error — the bundle to encode.
+// to read, so the CLI, the bake and tests share it. `validateAppearance` (and
+// `validateSkeleton`, in skeletonFit.ts) import, build and check one catalog entry;
+// they return the findings, stats and — when nothing is an error — the bundle.
 
 import {
   buildArticulated,
-  buildClips,
   buildKitModules,
   buildSkinned,
   buildStaticState,
@@ -55,7 +54,6 @@ import { debrisFindings, pieceFindings } from "./wreckFit.ts";
 import { extentFindings, footprintFindings, groundFindings } from "./boxFit.ts";
 import { infantryFindings, lyingFindings } from "./soldierFit.ts";
 import {
-  INFANTRY_CLIPS,
   INFANTRY_CORPSES,
   UNIT_BUNDLE_KIND,
   type AppearanceEntry,
@@ -72,7 +70,6 @@ import {
   type MeshData,
   type PoseRef,
   type SkeletonClips,
-  type SkeletonEntry,
   type SkinnedBundle,
   type StaticBundle,
   type Tolerances,
@@ -116,54 +113,6 @@ const surfaceFindings = (label: string, bundle: Exclude<Bundle, SkeletonClips>) 
   ...textureFindings(label, bundle),
   ...materialFindings(label, bundle),
 ];
-
-// ---------------------------------------------------------------- skeleton clips
-
-export async function validateSkeleton(
-  id: string,
-  entry: SkeletonEntry,
-  bytes: Uint8Array,
-): Promise<Validation<SkeletonClips>> {
-  const { scene, findings } = importScene(bytes, entry.source, entry.basis_yaw_deg);
-  if (!scene) return { findings, stats: null, bundle: null, preview: null };
-  const built = buildClips(scene, entry.source, id, entry.sample_hz, entry.clips);
-  findings.push(...built.findings);
-  if (!built.built) return { findings, stats: null, bundle: null, preview: null };
-  findings.push(...clipRoleFindings(built.built, entry.aim_reference, entry.source));
-  const clips = built.built;
-  return {
-    findings,
-    stats: {
-      kind: "clips",
-      tiers: [],
-      joints: clips.joints.length,
-      clips: clips.clips.map((c) => ({
-        name: c.name,
-        loop: c.loop,
-        duration: c.duration,
-        frames: c.frames,
-      })),
-      source_bytes: bytes.byteLength,
-    },
-    bundle: hasErrors(findings) ? null : clips,
-    preview: clips,
-  };
-}
-
-function clipRoleFindings(clips: SkeletonClips, aim: PoseRef, label: string): Finding[] {
-  const names = new Set(clips.clips.map((c) => c.name));
-  return [...INFANTRY_CLIPS, aim.clip]
-    .filter((name, i, all) => all.indexOf(name) === i && !names.has(name))
-    .map((name) =>
-      finding(
-        "structure.clips",
-        `${label}: skeleton ${clips.id} lacks clip "${name}"`,
-        name === aim.clip
-          ? "author the standing-aim reference pose infantry fit is measured in"
-          : `author the "${name}" role on the skeleton`,
-      ),
-    );
-}
 
 // ---------------------------------------------------------------- appearances
 

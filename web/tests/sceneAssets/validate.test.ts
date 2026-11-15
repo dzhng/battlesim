@@ -22,8 +22,8 @@ import {
   wreckFindings,
   factionLookFindings,
   validateAppearance,
-  validateSkeleton,
 } from "@packages/scene-assets/src/validate.ts";
+import { validateSkeleton } from "@packages/scene-assets/src/skeletonFit.ts";
 import { textureFindings, textureLayerFindings } from "@packages/scene-assets/src/texture.ts";
 import { bakeCatalog, kitBytesFindings } from "@packages/scene-assets/src/bake.ts";
 import {
