@@ -132,7 +132,10 @@ with one entering and exiting timer and one cancellation rule; each host only
 supplies its timing and where its occupants stand. [Carriage](src/carriage.rs)
 owns seats, boarding and unloading, which squads ride inside (one still getting
 in stands beside the carrier and shares none of its fate), and the one test of
-whether a carrier is low and still enough to load. [Bail-out](src/bail_out.rs)
+whether a carrier is low and slow enough to load or unload: a ground carrier
+rolling no faster than the rules' climbing speed takes squads on and lets them
+off, whatever its orders say, and riders getting off stand beside it where it
+is. [Bail-out](src/bail_out.rs)
 is the one forced exit from a destroyed carrier or a collapsing building: a
 rules row per kind of host sets the injury and death odds, each squad drawing
 from its own seed for the event, never from the combat stream. An explicit

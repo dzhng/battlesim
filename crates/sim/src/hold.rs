@@ -231,9 +231,7 @@ pub(crate) fn advance(
                     units[i].orders.front(),
                     Some(UnitOrder::Board { carrier: target, .. }) if *target == carrier
                 );
-                let unloading = units
-                    .get(carrier.0 as usize)
-                    .is_some_and(|host| matches!(host.orders.front(), Some(UnitOrder::Unload)));
+                let unloading = crate::carriage::unload_due(units, carrier, rules);
                 let loading_height = units
                     .get(carrier.0 as usize)
                     .is_some_and(|host| crate::carriage::at_loading_height(world, host, rules));
