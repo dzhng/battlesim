@@ -68,6 +68,12 @@ Write first:
 
 The menu's prefetch, `battle-growth`, `stand-in`, the armory.
 
+## Outcome
+
+The warm-up is built and on for every skirmish. The large arrival is one type
+(the RPG team: nine bundles, 27 cards), so pacing by type cannot divide it;
+that became [slice 12](12-an-arrival-over-frames.md).
+
 ## Feedback that would change this slice
 
 A paced arrival whose last type waits long enough to notice behind the

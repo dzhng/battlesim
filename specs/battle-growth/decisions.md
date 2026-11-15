@@ -1605,3 +1605,26 @@ the same kind of box as a wreck awaiting its art.
   by HMR during a fault-injection edit (`Execution context was destroyed`);
   it was not used as evidence, and the stable-source rerun above passes.
   No assertion, timeout, seed or acceptance threshold was relaxed.
+
+**The warm-up as merged, 2026-11-15.** Three `battle-growth` runs with the
+warm-up downloading in the background: the growth frame is 52, 52 and 51 ms,
+against 54 ms without it, so it costs no smoothness there (the 120 ms in the
+implementer's own run did not repeat). Slice 09's earlier memory runs had a
+warm-up-only arm: 0.12 GB more settled than the engine alone. In the merge
+the walk of "which kinds an observation shows" got one owner
+(`observedKinds`), shared by the wanted set and the warm-up's order, and the
+session computes the art's factions once for both. Noted, not changed: the
+downloader also writes every file into Cache Storage (`battle-runtime-v1`),
+which nothing reads back; the loader is served by the HTTP cache. It is how
+the downloader remembers what it has fetched, and it is 0.83 GB of second
+copy on disk. It predates this plan.
+
+**Slice 12 added, 2026-11-15 (the README's reslice trigger).** The one hitch
+left is a single type's art done in one frame. The slice warms the art store
+a content per frame and then admits, so the admission path stays single.
+Rejected: a worker (the renderer's WASM memory is not shared across threads
+today, and that is a larger change than the hitch), and pacing by type (the
+type is the unit that is too big). Its first confirm-first question may
+replace it: if most of an infantry type's 85.7 MB is geometry posed for
+bodies that do not exist yet, packing those when the first body lies is
+smaller.

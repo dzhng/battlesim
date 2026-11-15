@@ -1,9 +1,9 @@
 # Battle growth: a new unit type costs only its own art
 
 **Status:** the engine, the transport and the stand-in are on `staging`
-(slices 00–08a, 10, 11), with the page-memory fix. The GPU preload is
-cancelled: the player's rule is zero configuration, so nothing ships off by
-default. Slice 09 is now the download warm-up and the large arrival.
+(slices 00–11), with the page-memory fix and the download warm-up. The GPU
+preload is cancelled: the player's rule is zero configuration, so nothing
+ships off by default. One hitch is left, slice 12.
 **Updated:** 2026-11-15.
 
 This plan replaces the "shared GPU assets across generations" placeholder. That
@@ -17,18 +17,18 @@ first fields a unit type it had not shown. The admission work report exists,
 `battle-growth` prints it, and the [ledger](decisions.md) holds what it and
 the reference battle measured. What is left, in order:
 
-1. **Slice 09, warm-up and large arrivals**
-   ([slice](slices/09-preload.md)), on `t3/battle-growth-warm-up`: the
-   battle page starts the browser-cache warm-up after its first frame, in the
-   order learned types, enemy roster, rest; and the largest arrival's 0.4 s
-   frame, by admitting learned types one per commit if that arrival is several
-   types. No switch anywhere. Commit `012834b8d` (the cancelled GPU preload)
-   is a source to take from and is never merged.
+1. **Slice 12, an arrival over frames**
+   ([slice](slices/12-an-arrival-over-frames.md)). The largest arrival is one
+   type: an infantry team is nine bundles and costs a 0.3–0.4 s frame.
+   Staging has to yield between contents. Its first confirm-first question
+   (how much of the packed geometry is posed copies for bodies that do not
+   exist yet) can change the slice, so answer it before building.
 2. Closeout: correct the stale WASM note in one-renderer, run everything
    once, then `close-spec`.
 
 Settled since the engine shipped, all in the ledger: the page's lingering
-gigabyte (fixed, below the base now), and the pre-ship review's findings.
+gigabyte (fixed, below the base now), the pre-ship review's findings, and
+the download warm-up (on for every skirmish, no smoothness cost measured).
 
 Read, in this order: this file, the [decisions ledger](decisions.md), the slice
 you are about to build, the [renderer contract](../../crates/renderer-core/README.md)
@@ -45,8 +45,8 @@ Warnings:
   what you found into the ledger.
 - A decision the slice does not make and does not delegate is a gap in this
   plan. Record it in the ledger; do not settle it silently.
-- Slice 09's pacing is conditional on a measurement. Follow the rule it
-  states.
+- Slice 12's first confirm-first answer can replace the slice. Follow the
+  rule it states.
 - Each checkout's Rust build adds 3–22 GB. Check free space before a cold
   build, and remove a checkout's build output when its branch has merged. A
   burst of unrelated failures after a build usually means it ran out of space.
@@ -69,9 +69,10 @@ Checklist:
 - [x] [07 Catalog delta](slices/07-catalog-delta.md)
 - [x] [08 Browser transport and the growth gate](slices/08-browser-transport-and-growth-gate.md)
 - [x] [08a The staging frame](slices/08a-the-staging-frame.md)
-- [ ] [09 Warm-up and large arrivals](slices/09-preload.md)
+- [x] [09 Warm-up and large arrivals](slices/09-preload.md)
 - [x] [10 Stand-in mechanics](slices/10-stand-in-mechanics.md)
 - [x] [11 Stand-in look](slices/11-stand-in-look.md)
+- [ ] [12 An arrival over frames](slices/12-an-arrival-over-frames.md)
 - [ ] Closeout: correct the stale WASM note in
   [one-renderer](../done/one-renderer/README.md) (confirm first that the
   exhaustion predates texture sharing), run everything once, then
@@ -160,6 +161,7 @@ are an independent track.
 | 09 | A battle opened by link warms its art in the background; the largest arrival no longer hitches |
 | 10 | A unit with no art is a block you can click and target |
 | 11 | The block's approved look |
+| 12 | An infantry team appears without a hitch |
 
 ## One owner per concept
 
@@ -242,7 +244,7 @@ Seen and not planned here, so they are not lost:
 | Question | Unblocked by |
 | --- | --- |
 | Does scenery placement cost a frame on a large map? | Slice 06 times it first; slice 00 measured its bytes, not its time |
-| Does a multi-type arrival still stutter? | Yes: 399 ms for the largest. Slice 09 |
+| Does a large arrival still stutter? | Yes: 285–357 ms, and it is one type. Slice 12 |
 
 ## Background
 
