@@ -163,10 +163,6 @@ pub struct CatalogView<'a> {
 }
 
 impl CatalogDraft {
-    pub fn needs_scenery(&self) -> bool {
-        self.statics.needs_scenery()
-    }
-
     /// Finest scenery geometry comes from the same shared bundle decoder the
     /// GPU admission reads. The resulting placement facts remain prospective.
     pub fn stage_scenery(

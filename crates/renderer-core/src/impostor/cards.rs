@@ -20,8 +20,7 @@ struct Run {
 }
 pub(crate) struct Cards {
     pub group: BindGroup,
-    pub(crate) array: Arc<SharedArray>,
-    pub(crate) metadata: BTreeMap<u32, CardFrame>,
+    array: Arc<SharedArray>,
     frames: Buffer,
     instances: Buffer,
     runs: Vec<Run>,
@@ -89,7 +88,6 @@ impl Cards {
         Ok(Self {
             group,
             array,
-            metadata,
             frames,
             instances,
             runs: Vec::new(),

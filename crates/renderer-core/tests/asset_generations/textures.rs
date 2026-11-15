@@ -81,7 +81,7 @@ fn shared_texture_survives_retirement_and_last_holder_returns_memory_to_baseline
                 &gpu.queue,
                 &pipelines,
                 &[0],
-                renderer_core::impostor::AtlasSource::Fresh(&spec),
+                &spec,
                 &mut AdmissionWork::default(),
             )
             .unwrap()

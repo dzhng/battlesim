@@ -133,36 +133,8 @@ fn commit_cards(gpu: &support::Gpu, stage: &mut Stage, art: &[(&str, [f32; 3])])
     work
 }
 
-fn atlases(
-    gpu: &support::Gpu,
-    stage: &Stage,
-    resident: bool,
-) -> Vec<renderer_core::impostor::Atlas> {
-    let rows: Vec<_> = (0..stage.presentation.world().appearances.len() as u32).collect();
-    pollster::block_on(
-        stage
-            .runtime
-            .models
-            .impostor_request(
-                &gpu.device,
-                &gpu.queue,
-                &stage.runtime.pipelines,
-                &rows,
-                (if resident {
-                    renderer_core::impostor::AtlasSource::PreferResident
-                } else {
-                    renderer_core::impostor::AtlasSource::Fresh
-                })(&renderer_core::impostor::Spec::runtime()),
-                &mut AdmissionWork::default(),
-            )
-            .unwrap()
-            .read(),
-    )
-    .unwrap()
-}
-
 #[test]
-fn reused_card_pixels_and_committed_card_frame_equal_a_clean_bake() {
+fn a_frame_drawn_from_reused_cards_equals_a_clean_bakes() {
     let gpu = support::gpu().expect("a GPU is required for card admission tests");
     let all = [
         ("a", [0.4, 0.8, 0.3]),
@@ -190,31 +162,10 @@ fn reused_card_pixels_and_committed_card_frame_equal_a_clean_bake() {
         .set_controls(&gpu.queue, &clean.presentation, hidden)
         .unwrap();
     assert_ne!(pixels, clean.pixels(&gpu), "the comparison must draw cards");
-    for (resident, fresh) in atlases(&gpu, &stage, true)
-        .iter()
-        .zip(atlases(&gpu, &stage, false))
-    {
-        assert!(
-            resident.layer.is_some(),
-            "read the runtime layer, not a second bake"
-        );
-        assert!(resident
-            .albedo
-            .as_chunks::<4>()
-            .0
-            .iter()
-            .any(|pixel| pixel[3] > 0));
-        assert_eq!(resident.hash, fresh.hash);
-        assert_eq!(resident.albedo, fresh.albedo);
-        assert_eq!(resident.normal, fresh.normal);
-        assert_eq!(resident.mask, fresh.mask);
-        assert_eq!(resident.center, fresh.center);
-        assert_eq!(resident.radius, fresh.radius);
-    }
 }
 
 #[test]
-fn rows_with_identical_content_and_pose_share_one_card_layer() {
+fn names_with_identical_content_bake_one_card_per_pose() {
     let gpu = support::gpu().expect("a GPU is required for card admission tests");
     let art = [("first", [0.3, 0.6, 0.9]), ("second", [0.3, 0.6, 0.9])];
     let mut stage = Stage::new(&gpu, &[], runtime_config(), None, &[]);
@@ -226,22 +177,9 @@ fn rows_with_identical_content_and_pose_share_one_card_layer() {
         .appearances
         .len();
     let work = commit_cards(&gpu, &mut stage, &art);
-    assert_eq!(work.cards_baked as usize, distinct);
-    let resident = atlases(&gpu, &stage, true);
-    let mut by_pose = BTreeMap::new();
-    for atlas in resident {
-        let pose = atlas.center.map(f64::to_bits);
-        if let Some((layer, pixels)) = by_pose.get(&pose) {
-            assert_eq!(&atlas.layer, layer);
-            assert_eq!(&atlas.albedo, pixels);
-        } else {
-            by_pose.insert(pose, (atlas.layer, atlas.albedo));
-        }
-    }
     assert_eq!(
-        by_pose.len(),
-        distinct,
-        "rest and corpse remain different poses"
+        work.cards_baked as usize, distinct,
+        "the second name bakes nothing; rest and corpse remain different cards"
     );
 }
 
@@ -370,9 +308,7 @@ fn card_memory_shares_spares_grows_with_two_arrays_and_releases_the_last_holder(
             &gpu.queue,
             &pipelines,
             &rows,
-            renderer_core::impostor::AtlasSource::PreferResident(
-                &renderer_core::impostor::Spec::runtime(),
-            ),
+            &renderer_core::impostor::Spec::runtime(),
             &mut AdmissionWork::default(),
         )
         .unwrap();
@@ -393,8 +329,7 @@ fn card_memory_shares_spares_grows_with_two_arrays_and_releases_the_last_holder(
 }
 
 #[test]
-fn resident_untinted_normals_and_changed_rest_palettes_match_fresh_bakes() {
-    use renderer_core::impostor::{AtlasSource, Spec};
+fn a_changed_rest_palette_is_a_new_card_over_the_same_vertices() {
     let gpu = support::gpu().expect("a GPU is required for card admission tests");
     let pipelines = renderer_core::pipelines::build_builtin(&gpu.device).unwrap();
     let (bundle, skeleton) = card_bundle([0.4, 0.8, 0.3], 0.);
@@ -453,43 +388,6 @@ fn resident_untinted_normals_and_changed_rest_palettes_match_fresh_bakes() {
             work.cards_baked, 1,
             "the rendered palette is a card-key input"
         );
-        let spec = Spec::runtime();
-        let read = |source| {
-            pollster::block_on(
-                models
-                    .impostor_request(
-                        &gpu.device,
-                        &gpu.queue,
-                        &pipelines,
-                        &[0],
-                        source,
-                        &mut AdmissionWork::default(),
-                    )
-                    .unwrap()
-                    .read(),
-            )
-            .unwrap()
-            .remove(0)
-        };
-        let resident = read(AtlasSource::PreferResident(&spec));
-        let fresh = read(AtlasSource::Fresh(&spec));
-        assert!(fresh
-            .albedo
-            .as_chunks::<4>()
-            .0
-            .iter()
-            .any(|pixel| pixel[3] > 0));
-        assert!(fresh
-            .mask
-            .as_chunks::<4>()
-            .0
-            .iter()
-            .all(|pixel| pixel[0] == 0));
-        assert_eq!(
-            resident.normal, fresh.normal,
-            "zero tint must not erase covered normals"
-        );
-        assert_eq!(resident.hash, fresh.hash);
         held.push(models);
     }
 }

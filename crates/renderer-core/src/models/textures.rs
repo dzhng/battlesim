@@ -8,10 +8,18 @@ use wgpu::*;
 
 /// The installed textures, one layer each in two arrays:
 /// albedo (sRGB), and surface (normal and ORM, linear).
-#[derive(Default)]
 pub(super) struct TextureStore {
     albedo: LayerArray<String>,
     surface: LayerArray<String>,
+}
+
+impl Default for TextureStore {
+    fn default() -> Self {
+        Self {
+            albedo: LayerArray::new("model-albedo"),
+            surface: LayerArray::new("model-surface"),
+        }
+    }
 }
 
 impl TextureStore {
@@ -48,19 +56,7 @@ impl TextureStore {
                     TextureFormat::Rgba8Unorm
                 }],
             };
-            let admitted = array.admit(
-                device,
-                queue,
-                &ids,
-                &shape,
-                spare,
-                if srgb {
-                    "model-albedo"
-                } else {
-                    "model-surface"
-                },
-                report,
-            );
+            let admitted = array.admit(device, queue, &ids, &shape, spare, report);
             work.texture_bytes_copied += admitted.copied_bytes;
             work.texture_arrays_rebuilt += u32::from(admitted.rebuilt);
             for texture in textures {
