@@ -225,8 +225,8 @@ HLG tags.
 
 **Indicators are the game's, recorded.** The parity run films the battle
 view's in-world indicators with the battle: contact glyphs (a remembered
-contact's too, while it fades), aircraft marks, the zone, objectives, roads in
-and the map's border, built by the live game's own builders from blue's own
+contact's too, while it fades), aircraft marks, held buildings' outlines, the
+zone, objectives, roads in and the map's border, built by the live game's own builders from blue's own
 view (`useBattleOverlay`). A hidden enemy has no mark, and a contact never
 gets an identified unit's. The page records what it uploaded each frame
 beside the capture (`overlays.bin`, the manifest's `overlays` layer); native
