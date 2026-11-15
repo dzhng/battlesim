@@ -224,12 +224,6 @@
   display: none;
 }
 
-/* Room orders use the same button dimensions and type; Start keeps the fill. */
-.menu[data-open="room"] .lobby-strip > button {
-  align-self: stretch;
-  display: grid;
-  place-items: center;
-}
 .lobby-strip:has(.online-settings-note) {
   position: relative;
 }
