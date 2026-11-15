@@ -75,7 +75,9 @@ to the closest distance in the capture.
 The battle runs live and is not scripted by the capture. A shot shows whatever
 the encounter makes happen at that moment. Only `menu.json` is held to a
 recorded event log (`crates/sim/tests/menu_reel.rs`, see
-[the backdrop's rules](../../../../fixtures/README.md)). Any other capture can
+[the backdrop's rules](../../../../fixtures/README.md#the-menu-reel)), and that
+log never holds back a game change: when one moves the reel, re-direct the
+encounter and re-record. Any other capture can
 retime after a rule change, so watch it again before reusing the footage. The
 same test checks every capture file's maps and `follow` indices, and is the
 fastest check after editing one:

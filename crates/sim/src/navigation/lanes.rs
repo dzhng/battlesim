@@ -14,7 +14,7 @@
 //! lane would run backwards: the lane folds back on itself. Such a run is
 //! no run of the lane: its far end is dropped and its neighbours meet at
 //! one corner, which the route's rounding then makes drivable.
-use super::roads::RoadNet;
+use super::roads::{RoadNet, CHORD_M};
 use crate::math::{v2, V2};
 
 /// A short bend of the road's line straying less than this from the chord
@@ -22,9 +22,6 @@ use crate::math::{v2, V2};
 const STRAIGHTEN_M: f64 = 2.0;
 /// The longest chord a bend is straightened across.
 const STRAIGHTEN_SPAN_M: f64 = 24.0;
-/// Over a longer chord, only points this close to it are dropped: the
-/// road graph's own chord tolerance.
-const KEEP_SHAPE_M: f64 = 0.25;
 
 /// The lane point of each of `middle`'s points (a road point and the arc of
 /// the run ending there), dropping from `middle` the points a folded lane
@@ -73,7 +70,7 @@ fn straighten(line: &mut Vec<(V2, u32)>) {
         let tolerance = if length <= STRAIGHTEN_SPAN_M {
             STRAIGHTEN_M
         } else {
-            KEEP_SHAPE_M
+            CHORD_M
         };
         if let Some(k) = far.filter(|&k| stray(k) >= tolerance) {
             keep[k] = true;

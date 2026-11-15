@@ -175,7 +175,7 @@ impl Rounding {
             if reach + ease <= in_room && reach + ease <= out_room {
                 return Some(Way {
                     last,
-                    points: arc(corner, u, w, turn, reach, self.radius, shift, ease),
+                    points: arc(corner, u, w, turn, self.radius, shift),
                 });
             }
             // Too tight to round alone: round it with the next corner, at
@@ -210,19 +210,11 @@ impl Rounding {
 }
 
 /// The waypoints of an arc of `radius` round `corner` (the way in along
-/// `u`, out along `w`, turning `turn`), its ends `reach` from the corner,
-/// moved `shift` out from the corner and eased onto from `ease` back.
-#[allow(clippy::too_many_arguments)]
-fn arc(
-    corner: V2,
-    u: V2,
-    w: V2,
-    turn: f64,
-    reach: f64,
-    radius: f64,
-    shift: f64,
-    ease: f64,
-) -> Vec<V2> {
+/// `u`, out along `w`, turning `turn`), moved `shift` out from the corner
+/// and eased onto and off along the ways in and out.
+fn arc(corner: V2, u: V2, w: V2, turn: f64, radius: f64, shift: f64) -> Vec<V2> {
+    let reach = radius * libm::tan(turn.abs() / 2.0);
+    let ease = shift.abs() * EASE_PER_M;
     let side = turn.signum();
     let inward = v2(-u.y, u.x) * side;
     let start = corner - u * reach;

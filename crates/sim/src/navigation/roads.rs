@@ -16,8 +16,8 @@ use super::NAV_CELL_M;
 /// point and the roads that meet.
 const BUCKET_M: f64 = 64.0;
 /// A stroke's sampled bends are thinned to chords that stay this close to
-/// its centreline.
-const CHORD_M: f64 = 0.25;
+/// its centreline; a lane keeps a long bend's shape to the same tolerance.
+pub(super) const CHORD_M: f64 = 0.25;
 /// Two points of the graph closer than this are one node.
 const SAME_M: f64 = 0.5;
 
