@@ -55,15 +55,50 @@ Each is confirmed by the slice named, which then moves it to the section below.
 
 | Fact | Slice |
 | --- | --- |
-| The art library installs twice per new type (`withUnits` then `withAppearances` in `gameAppearances.ts`) | 01 |
 | The download prefetch is idle on a battle opened by link because only the menu enables it | 09 |
-| Catalog admission and fielding derive the same facts from a bundle | 01 |
 | A hull's size reaches presentation only for fielded types; the unit catalog has it for every type | 10 |
 | An unfielded vehicle has a pick of no size today, so it cannot be clicked; an unfielded squad's soldiers can | 10 |
 | An undrawn enemy still gets a HUD readout, because readouts follow picks | 10 |
 | The archived WASM exhaustion predates texture sharing | closeout |
 
 ## Confirmed during implementation
+
+**Slice 01, 2026-11-15.** What was confirmed:
+
+- **Every fielding read everything again.** `useBattleFielding` made a fresh
+  Rust `Fielding` for every request, and each one inflated all of the battle's
+  contents (136 files, 635 MB in `battle-growth`). A growth widens the kinds by
+  the type just met, so that happened at every growth. It was the stall before
+  each freeze.
+- **After the slice, measured in `battle-growth` on the merged tree:** the
+  growth reads 2 files (8 MB), the new squad's bundle and its skeleton, and
+  installs one art generation. The first scene reads 136 and installs two (the
+  units, then the map's kits).
+- **The battle is staged twice before one commit** in that scene, as in the
+  reference probe's first growth. Whether those are two types met moments
+  apart or one request made twice is not settled; slice 08's gate (one
+  admission per growth) owns it.
+- **The doubled install** came from `useMapAppearances`, which asks the
+  library twice (once for the units, once when the map knows its kits). The
+  two requests raced, and each installed a generation.
+- **Catalog admission and fielding derive different facts** from a bundle:
+  admission (`Asset::from_bundle`) derives bounds, poses and static states;
+  fielding derives a unit's joints, rig and clip table and a wreck's pieces.
+  Neither replaces the other, so by the slice's rule the facts stay with
+  fielding.
+
+Decisions made where slice 01 was silent:
+
+| Decision | Why, and what was rejected |
+| --- | --- |
+| Fielding keeps `Facts`: per appearance, the record and clip table it derives, keyed by bundle hash and skeleton hash; per wreck, its pieces' bounds, keyed by bundle hash. The bytes are dropped when `resolve` returns | Rejected: caching the inflated bytes in Rust (the first pass did; it is the byte cache the plan rejected, inside the 4 GB heap) |
+| The WASM `Fielding` object owns the facts, and a `FieldingOwner` in the page owns that object for one battle and frees it | Rejected: a module-level map of fieldings keyed by the serialized inputs, which leaked them and serialized megabytes per call |
+| An owner asked to field the same inputs again returns its last result without calling Rust | An art install changes the request object but none of fielding's inputs |
+| A change to the rules, either catalog or the factions makes a new Rust fielding | They are fixed when it is made; only the kinds can change under it |
+| A new skinned body reads its skeleton again even when another body already used it | Keeping the parsed skeleton would hold its clips twice; it is one file, and only when kinds widen |
+| `contents()` names a skeleton only for a body that wears it | It named every skeleton in the catalog before |
+| Unit widenings and on-request appearances that arrive together are one install | Rejected: serializing them, which still installs once each |
+| `scene installed` takes the page's counts, so the first `art committed` reports its own admission only | The counts were cumulative from page load |
 
 **Slice 00, 2026-11-14.** One growth in `battle-growth` at the scene's own
 graphics profile, from the new report:
@@ -93,7 +128,7 @@ Decisions made where slice 00 was silent:
 | A shell hands in work it did before staging (decoding its draft, the first scenery placement) as the starting report of `Runtime::new` and `stage_assets` | Decoding happens in the library before the runtime sees the art, and the count belongs where the work is |
 | The page's counts are those since the previous `art committed` | The event must say what this admission cost |
 | The scene reads the event's detail from the console call's argument | It needs no test hook in the page, and `LabViewport.tsx` is over its size budget |
-| The first scene publishes no `art committed` event | Nothing gates on it; the Rust test covers a first admission |
+| The first scene publishes no `art committed` event | `scene installed` carries the baseline page work; art commits report only later admissions |
 | The swap test compares the live report and the world's appearance names, not pixels | It proves a dropped, stale or failed candidate changes nothing live without a frame readback; pixel equality starts with slice 03 |
 
 **Slice 00's probe, 2026-11-14.** The reference battle at high graphics in the
