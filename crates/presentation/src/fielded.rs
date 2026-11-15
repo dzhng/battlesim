@@ -485,8 +485,8 @@ fn track_gauge(art: &Art, name: &str) -> Result<f64, String> {
         ))
 }
 
-/// Each fielded type's facts and the appearance sets it draws from per
-/// side, and every appearance those sets name.
+/// Every catalog type's facts and the appearance sets fielded types draw from
+/// per side, and every appearance those sets name.
 fn unit_types(
     catalog: &Catalog,
     art: &Art,
@@ -506,8 +506,10 @@ fn unit_types(
     };
     let mut types = Map::new();
     let mut drawn = BTreeSet::new();
-    for kind in kinds.iter().collect::<BTreeSet<_>>() {
+    let fielded: BTreeSet<&str> = kinds.iter().map(String::as_str).collect();
+    for kind in catalog.ids().collect::<BTreeSet<_>>() {
         let t = catalog.get(kind)?;
+        let has_art = fielded.contains(kind);
         let hull = catalog.hull(kind)?;
         let ground = matches!(
             mobility(t)?,
@@ -516,44 +518,56 @@ fn unit_types(
         // Its vehicle class, as the catalog derives it from its physics.
         let class = t["vehicle_class"].as_str().map(str::to_owned);
         let mounts: &[Value] = t["mounts"].as_array().map_or(&[], Vec::as_slice);
-        let installed = t["appearance"].as_str().filter(|a| art.has(a));
+        let installed = t["appearance"].as_str().filter(|a| has_art && art.has(a));
         let rigs = installed.map(|a| &art.entry(a)["mounts"]);
         let mut draws = Map::new();
         for (side, name) in ["blue", "red"].into_iter().enumerate() {
-            let hull_look = match hull {
-                Some(_) => look(
+            let hull_look = match (has_art, hull) {
+                (false, _) => vec![],
+                (true, Some(_)) => look(
                     side,
                     &mut names(&json!([t["appearance"].as_str().unwrap_or("")])),
                 ),
-                None => vec![],
+                (true, None) => vec![],
             };
-            let half_track = if ground {
-                let name = hull_look
-                    .first()
-                    .ok_or(format!("{kind}: no hull appearance"))?;
-                hull.unwrap()["half_extents_m"][1].as_f64().unwrap() * track_gauge(art, name)?
+            let half_track = if has_art && ground {
+                match hull_look.first() {
+                    Some(name) => {
+                        hull.unwrap()["half_extents_m"][1].as_f64().unwrap()
+                            * track_gauge(art, name)?
+                    }
+                    None => 0.0,
+                }
             } else {
                 0.0
             };
-            let slots = catalog
-                .slots(kind)?
-                .iter()
-                .map(|s| Ok(look(side, &mut names(&catalog.soldier(s)?["appearance"]))))
-                .collect::<Result<Vec<_>, String>>()?;
-            let operated: Vec<Value> = mounts
-                .iter()
-                .map(|m| {
-                    let kit = &m["operator_appearance"];
-                    if kit.is_object() {
-                        json!({
-                            "active": look(side, &mut names(&kit["active"])),
-                            "carried": look(side, &mut names(&kit["carried"])),
-                        })
-                    } else {
-                        Value::Null
-                    }
-                })
-                .collect();
+            let slots = if has_art {
+                catalog
+                    .slots(kind)?
+                    .iter()
+                    .map(|s| Ok(look(side, &mut names(&catalog.soldier(s)?["appearance"]))))
+                    .collect::<Result<Vec<_>, String>>()?
+            } else {
+                Vec::new()
+            };
+            let operated: Vec<Value> = if has_art {
+                mounts
+                    .iter()
+                    .map(|m| {
+                        let kit = &m["operator_appearance"];
+                        if kit.is_object() {
+                            json!({
+                                "active": look(side, &mut names(&kit["active"])),
+                                "carried": look(side, &mut names(&kit["carried"])),
+                            })
+                        } else {
+                            Value::Null
+                        }
+                    })
+                    .collect()
+            } else {
+                vec![Value::Null; mounts.len()]
+            };
             drawn.extend(hull_look.iter().cloned());
             drawn.extend(slots.iter().flatten().cloned());
             for o in &operated {
@@ -593,7 +607,7 @@ fn unit_types(
             })
             .collect();
         types.insert(
-            kind.clone(),
+            kind.to_owned(),
             json!({
                 "hull": hull.is_some(),
                 "vehicleClass": class,
@@ -630,6 +644,17 @@ fn units(
     factions: Option<[&str; 2]>,
 ) -> Result<(Value, ClipTables), String> {
     let (types, drawn) = unit_types(catalog, art, kinds, factions)?;
+    let mut body_half = Map::new();
+    for kind in catalog.ids() {
+        let half = catalog.hull(kind)?.map(|h| {
+            json!([
+                h["half_extents_m"][0],
+                h["half_extents_m"][1],
+                h["half_extents_m"][2]
+            ])
+        });
+        body_half.insert(kind.to_owned(), half.unwrap_or(Value::Null));
+    }
     let mut appearances = Map::new();
     let mut tables = ClipTables::new();
     let mut table_of: Vec<(Vec<f32>, String)> = Vec::new();
@@ -657,6 +682,7 @@ fn units(
         "leanHold": number(rules, "cover", "lean_hold_s")?,
         "detail": presentation.models,
         "tints": { "blue": sides["blue"], "red": sides["red"] },
+        "bodyHalf": body_half,
         "types": types,
         "appearances": appearances,
     });

@@ -3,11 +3,26 @@ import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { beforeAll, expect, test, vi } from "vitest";
 import { joinTextures } from "@packages/scene-assets/src/codec";
 import { PROXY_MESHES } from "@packages/battle-renderer/src/proxies";
-import { proxyModels } from "../src/battle/render/proxyModels";
+import {
+  battleStandInAsset,
+  BATTLE_STAND_IN_HALF_EXTENTS,
+  proxyModels,
+} from "../src/battle/render/proxyModels";
 import { loadPresentationModule } from "../src/presentationModule";
 
 beforeAll(async () => {
   await loadPresentationModule();
+});
+
+test("the battle stand-in retains its content and states the physical size of its grounded mesh", () => {
+  const asset = battleStandInAsset();
+  expect(battleStandInAsset()).toBe(asset);
+  const bundle = joinTextures(asset.bundle, []);
+  if (bundle.kind !== "articulated") throw new Error("expected articulated stand-in");
+  expect(bundle.bounds.min[2]).toBe(0);
+  BATTLE_STAND_IN_HALF_EXTENTS.forEach((half, axis) => {
+    expect(half * 2).toBeCloseTo(bundle.bounds.max[axis] - bundle.bounds.min[axis], 6);
+  });
 });
 
 // Control the authored mesh colour at the asset boundary: this checks colour

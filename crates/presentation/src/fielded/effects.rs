@@ -40,10 +40,7 @@ pub(super) fn section(
                 json!({ "on": on, "pivot": vec3(&row["pivot_m"]), "ring": ring, "muzzle": vec3(&row["muzzle_m"]) })
             })
             .collect();
-        let half = catalog
-            .hull(kind)?
-            .map_or(Value::Null, |h| vec3(&h["half_extents_m"]));
-        types.insert(kind.clone(), json!({ "half": half, "muzzles": muzzles }));
+        types.insert(kind.clone(), json!({ "muzzles": muzzles }));
     }
     let mut smokes = Map::new();
     let (remains, shells) = building_remains(catalog.view);

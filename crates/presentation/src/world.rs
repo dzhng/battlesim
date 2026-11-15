@@ -59,6 +59,16 @@ pub struct BattleInput {
     pub xray: Xray,
     /// A purchase the simulation refused, drawn as a ghost (rgba).
     pub blocked: [f64; 4],
+    /// The browser's canonical box appearance and its physical half extents
+    /// for bodies whose art is not committed. Native input leaves this unset.
+    pub stand_in: Option<StandIn>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct StandIn {
+    pub appearance: String,
+    pub half: Vec3,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]
@@ -99,6 +109,10 @@ pub struct UnitsSection {
     pub lean_hold: f64,
     pub detail: Detail,
     pub tints: BTreeMap<String, Vec3>,
+    /// Physical hull half extents for every unit type in the session catalog,
+    /// including types whose art is not fielded yet.
+    #[serde(rename = "bodyHalf")]
+    pub body_half: BTreeMap<String, Option<Vec3>>,
     pub types: BTreeMap<String, UnitType>,
     pub appearances: BTreeMap<String, Appearance>,
 }
@@ -397,7 +411,6 @@ pub struct EffectsSection {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct EffectType {
-    pub half: Option<Vec3>,
     pub muzzles: Vec<Option<MountMuzzle>>,
 }
 
@@ -465,5 +478,29 @@ impl UnitsSection {
         }
         let n = names.len() as f64;
         Some(&names[(id.rem_euclid(n)) as usize])
+    }
+}
+
+/// A body box prepared once for a frame and shared by drawing and picking.
+pub struct BodyBox<'a> {
+    units: &'a UnitsSection,
+    soldier_half: Vec3,
+}
+
+impl<'a> BodyBox<'a> {
+    pub fn new(units: &'a UnitsSection, soldier: SoldierBody) -> Self {
+        Self {
+            units,
+            soldier_half: [soldier.radius_m, soldier.radius_m, soldier.height_m / 2.0],
+        }
+    }
+
+    pub fn half(&self, kind: &str) -> Option<Vec3> {
+        let unit = self.units.types.get(kind)?;
+        if unit.hull {
+            self.units.body_half.get(kind).copied().flatten()
+        } else {
+            Some(self.soldier_half)
+        }
     }
 }

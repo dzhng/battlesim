@@ -23,6 +23,18 @@ grey block that the model replaces. The mock is a diagram, not a style
 reference; the style comes from
 [`game-ui`](../../../.agents/skills/game-ui/SKILL.md).
 
+## What slice 10 left (2026-11-15)
+
+[Four shots](../assets/stand-in/) of the default block and an
+[unprimed reading](../assets/stand-in/unprimed-critique.md) of them. Two
+things for this slice to settle:
+
+- The default block reads as a model that failed to load. Nothing says it is
+  a unit.
+- A wreck whose art has not arrived is drawn as a box by the map props' own
+  fallback, in a different colour from the unit's block. A player sees two
+  kinds of box. Give them one look, or say in the ledger why they differ.
+
 ## Fixed
 
 - Use `game-ui` before choosing anything.

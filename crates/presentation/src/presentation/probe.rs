@@ -40,6 +40,20 @@ impl Presentation {
             })
             .collect();
         serde_json::json!({
+            // Retained static batches name NONE when their instances did not
+            // change; only read instances actually published in this frame.
+            "drawnModels": self.frame.batches.iter()
+            .filter(|batch| batch.first != NONE)
+            .flat_map(|batch| {
+                let name = self.world.name(&self.world.appearances[batch.appearance as usize]);
+                self.frame.instances[batch.first as usize..(batch.first + batch.count) as usize]
+                    .iter()
+                    .map(move |instance| serde_json::json!({
+                        "appearance": name,
+                        "placement": instance.placement,
+                        "scale": instance.scale,
+                    }))
+            }).collect::<Vec<_>>(),
             "effects": {
                 "live": stats.live,
                 "instances": stats.instances,

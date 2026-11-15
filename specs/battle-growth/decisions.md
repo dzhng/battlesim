@@ -58,11 +58,18 @@ Each is confirmed by the slice named, which then moves it to the section below.
 | The download prefetch is idle on a battle opened by link because only the menu enables it | 09 |
 | A hull's size reaches presentation only for fielded types; the unit catalog has it for every type | 10 |
 | An unfielded vehicle has a pick of no size today, so it cannot be clicked; an unfielded squad's soldiers can | 10 |
-| An undrawn enemy still gets a HUD readout, because readouts follow picks | 10 |
+| An undrawn enemy still gets a HUD readout, because readouts follow the observation | 10 |
 | The archived WASM exhaustion predates texture sharing | closeout |
 
 ## Confirmed during implementation
 
+- Slice 10 probes (2026-11-14): the browser readout layer builds enemy cards from the
+  observation and falls back to the published position, so an identified enemy
+  still gets a HUD readout when Rust draws no model. Rust picks are the limiting
+  surface: an unfielded vehicle receives a zero half box from
+  `effects.types`, so it cannot be clicked; an unfielded squad still gets one
+  generic soldier pick per published member. The publication sample carries
+  every observed member position and member id, including for an unarted type.
 **Slice 01, 2026-11-15.** What was confirmed:
 
 - **Every fielding read everything again.** `useBattleFielding` made a fresh
@@ -252,6 +259,28 @@ Review findings to fix before it merges:
    table), and the new table defaults silently when missing.
 7. Its "art arrives" test starts with the art already present.
 
+Fix-round decisions (2026-11-15):
+
+8. The units section keeps one required `bodyHalf` table for every catalog
+   type, while `types[].draws`, track gauges, appearance records, wrecks and
+   skeleton contents remain scoped to `Fielding::kinds`; a second effects hull
+   size was removed. The rejected alternative was retaining the first pass's
+   all-catalog art derivation.
+9. The browser fixture uses Playwright response interception during the real
+   battle-growth admission and releases those responses in place. The rejected
+   alternative was a production fetch hook, catalog rewriting, or a page reload.
+10. The stand-in input carries `{ appearance, half }`, where `half` is the
+    browser box primitive's authored half extents. Presentation scales from
+    that value; it does not know the mesh dimensions. The rejected alternative
+    was a presentation constant.
+11. Showcase has no stand-in body input because it never draws a stand-in. The
+    rejected alternative was inventing a soldier physics value for it.
+12. `BodyBox` is the single frame-owned body-box value used by both UnitArt and
+    picks; the rejected alternative was a `BodyBoxes` wrapper plus a duplicate
+    `body_half` owner.
+13. The loaded frame builder moved to `presentation/frame.rs` as a concept split
+    so the frozen `presentation.rs` ratchet could keep all restored comments;
+    the rejected alternative was shortening or deleting those comments.
 **Slice 02, 2026-11-15.**
 
 - `ContentId` reuses the shared contract crate's identity owner. It is a typed
@@ -424,6 +453,46 @@ each admission's draft starts with no decoded bundles; slice 07 changes that.
 The scene also shows the battle staged twice before one commit, as the
 reference probe did.
 
+**Slice 10, second fix round, 2026-11-15.**
+
+- `UnitArt` has one optional stand-in value with its mesh description and a
+  reference to the frame's body box; showcase passes none. The body box still
+  supplies native picks without a stand-in. Paired optional fields and an
+  eight-argument constructor with a clippy exemption were rejected.
+- The shared body-draw helper supplies both soldier and vehicle loops with the
+  resolved appearance, physical bounds and stand-in scale. Duplicating the
+  resolve/half/scale branches was rejected.
+- The browser derives the stand-in half extents from the generated box bundle's
+  `positionsBounds` and caches the complete asset and content hash once at
+  module scope. The asset is initialized on first admission, after WASM is
+  ready; eager hashing at module import was rejected because `bytes_hash`
+  needs initialized WASM. Rebuilding and hashing the bundle at every admission
+  was rejected.
+- The user approved extending the existing lab probe with `drawnModels`: each
+  instance's appearance name, placement and scale, read from the last frame's
+  batches and instances only when called. It holds no state or counters and
+  has no production consumer. Screenshots plus counts alone were rejected
+  because they cannot identify the appearance a body was drawn with.
+- The scene holds newly requested bundle responses after the first scene and
+  before starting the battle. Its opponent is European, and its squad candidates
+  derive from body art absent from the initial installed names. The Eastern
+  opening rifle squad was rejected: it reuses rifle art already installed for
+  blue, so no network response can withhold it at growth. Moving interception
+  earlier did not change that. The scene waits for multiple seen members and
+  frames the most compact eligible squad so the near shot shows per-body blocks.
+- A commit event can belong to an earlier admission. The scene waits for both
+  an event and the actual drawn stand-ins to disappear before its after shots;
+  treating the first event as proof that every requested type committed was
+  rejected after it left the vehicle block on screen.
+- `drawnModels` reads only batches with instance records in the last Frame.
+  Retained static batches name `first = NONE` when unchanged and cannot be read
+  without retaining a second instance store. That store and a dynamic-only
+  appearance filter were rejected: the probe simply reads all instance records
+  the Frame actually contains, with no copied state between frames.
+- The scene captures both subjects at the same near camera distance before and
+  after commit and checks actual replacement instances at every observed body
+  position. A far overview and screenshot-only inference were rejected because
+  neither proves the block-to-model swap for the identified bodies.
 **Slice 01 in the reference battle, 2026-11-15.** The probe again, on the
 merged tree, at high graphics:
 
@@ -625,3 +694,66 @@ art files read by fielding. Still whole: 178 texture layers written (slice
   48 before this slice: the extra 349,524 bytes are one spare linear layer.
   These events are after retirement; they do not measure the overlap peak. The
   production-visitor fixture above owns that proof. Card-bake code was untouched.
+
+**Slice 10, foreground block investigation and integration, 2026-11-15.**
+
+- The second block in the vehicle close shot is a known `medium_wreck` of an
+  enemy European Boxer, not the player's Abrams. The scene's observation places
+  the wreck at `[1236.869873046875, 398.7654724121094, 0]`, with
+  `wreckOf = europe_boxer_apc` and known-prop id `9897`. The own Abrams is at
+  `[1352.411865234375, 706.9947509765625, 0]`, outside that close view. The
+  nearby drawn-model and structure probes identify the foreground appearance
+  as `city_kit_prototype`, state `unit_box`, with scale equal to twice the
+  wreck's published half extents, the same physical hull size as the live
+  Boxer; the foreground perspective makes it look larger. Its pale top and
+  dark flank are the existing
+  static prop material and lighting, not a blue-side unit cue.
+- That box is selected by `static_world::props::Art::fit`: without the unit's
+  installed wreck appearance, the known static wreck takes the existing prop
+  stand-in kit, fitted to its simulation box. When wreck art arrives it takes
+  the Boxer's wreck model. This static prop has no live-unit selection pick.
+  It is outside the live-body stand-in contract, so changing or restyling the
+  prop fallback was rejected.
+- The battle view supplies `Frame.picks` and Rust's presented frame, with no
+  browser proxy instances. `proxyModels` converts explicit lab `SceneInstance`
+  primitives (excluding pick-only infantry); it is not a missing-unit-art
+  fallback, does not resolve own versus identified units, and does not handle
+  the battle's purchase or order ghosts. Those ghosts already go through Rust.
+  A battle body is therefore not drawn by both mechanisms. Live unit stand-ins
+  still use the shared presentation body box; lab primitive picks use their
+  separate tooling shape only where a lab supplied no frame picks.
+- `the-vehicle-bodies.json.models` intentionally filtered for
+  `__battle_stand_in__`, so it named only the live Boxer. The full read-only
+  frame probe does report the prop kit whenever its static instances are
+  published, and the existing `structures` probe reports the retained prop.
+  The scene now saves both nearby model names and nearby structures before
+  and after release. Inferring a unit identity from colour or a filtered
+  stand-in count was rejected; the probes and observed positions establish it.
+- Upstream through `42dd5dd15` (including slices 03, 05a, 06 and 07) merged
+  without textual conflicts. Ground admission stays only in
+  `presentation/ground.rs`, and loaded frame construction stays only in
+  `presentation/frame.rs`. The upstream spec README and both sets of ledger
+  entries are retained. The stand-in test adopts slice 07's explicit wanted
+  names plus facts API; no compatibility wrapper is added. The generated
+  stand-in is an ordinary `ModelAsset` with its cached `ContentId`, so the
+  existing `prepareAppearances` loop declares it before supplying bytes. A
+  special stand-in declaration path was rejected as duplicate admission.
+
+**Slice 10, verified on the merged tree, 2026-11-15.** The `stand-in` scene
+passes: with the new art's responses held, the identified vehicle and each
+seen soldier are drawn as one stand-in at the body's size and place, both
+take an attack order by a click, and after the release the models replace
+them at the same positions with no stand-in left.
+
+- The second block in the vehicle shot is an earlier vehicle's wreck. A wreck
+  whose art has not arrived is drawn as a box by the map props' own fallback
+  (`static_world/props.rs`), which predates this plan and has no unit pick.
+  The browser's proxy path draws nothing in a battle. So live units have one
+  owner, the stand-in.
+- An unprimed reading of
+  [the four shots](assets/stand-in/unprimed-critique.md): position, heading
+  and shadow match between each block and its model; the blocks are slightly
+  larger than the art they replace (the body box, not the mesh); nothing
+  floats or sinks. Its look findings go to slice 11: the default block reads
+  as a model that failed to load, and the unit block and the wreck's box are
+  different colours for no reason a player can see.
