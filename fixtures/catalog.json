@@ -4794,9 +4794,9 @@
         },
         "eastern_air_defense_team_fn_6__gunner": {
           "appearance": [
-            "eastern_atgm_team_kornet_guard_a",
-            "eastern_atgm_team_kornet_guard_b",
-            "eastern_atgm_team_kornet_guard_c"
+            "rifle_squad_pla_active_a",
+            "rifle_squad_pla_active_b",
+            "rifle_squad_pla_active_c"
           ],
           "description": "A rifleman who carries the team's shoulder-fired air-defence missile.",
           "hp": 100.0,
@@ -4856,9 +4856,9 @@
         },
         "eastern_air_defense_team_fn_6__rifleman": {
           "appearance": [
-            "eastern_atgm_team_kornet_guard_a",
-            "eastern_atgm_team_kornet_guard_b",
-            "eastern_atgm_team_kornet_guard_c"
+            "rifle_squad_pla_active_a",
+            "rifle_squad_pla_active_b",
+            "rifle_squad_pla_active_c"
           ],
           "description": "A soldier with a rifle.",
           "hp": 100.0,
@@ -5606,9 +5606,9 @@
         },
         "europe_atgm_team_akeron_mp__at_rifleman": {
           "appearance": [
-            "europe_atgm_team_akeron_mp_guard_a",
-            "europe_atgm_team_akeron_mp_guard_b",
-            "europe_atgm_team_akeron_mp_guard_c"
+            "rifle_squad_french_active_a",
+            "rifle_squad_french_active_b",
+            "rifle_squad_french_active_c"
           ],
           "description": "A rifleman of an anti-tank team.",
           "hp": 100.0,
@@ -5635,9 +5635,9 @@
         },
         "europe_atgm_team_akeron_mp__roster_akeron_gunner": {
           "appearance": [
-            "europe_atgm_team_akeron_mp_guard_a",
-            "europe_atgm_team_akeron_mp_guard_b",
-            "europe_atgm_team_akeron_mp_guard_c"
+            "rifle_squad_french_active_a",
+            "rifle_squad_french_active_b",
+            "rifle_squad_french_active_c"
           ],
           "description": "One shoulder-fired top-attack launcher with ordinary guards.",
           "hp": 100.0,
@@ -24528,9 +24528,9 @@
     },
     "eastern_air_defense_team_fn_6__gunner": {
       "appearance": [
-        "eastern_atgm_team_kornet_guard_a",
-        "eastern_atgm_team_kornet_guard_b",
-        "eastern_atgm_team_kornet_guard_c"
+        "rifle_squad_pla_active_a",
+        "rifle_squad_pla_active_b",
+        "rifle_squad_pla_active_c"
       ],
       "description": "A rifleman who carries the team's shoulder-fired air-defence missile.",
       "hp": 100.0,
@@ -24590,9 +24590,9 @@
     },
     "eastern_air_defense_team_fn_6__rifleman": {
       "appearance": [
-        "eastern_atgm_team_kornet_guard_a",
-        "eastern_atgm_team_kornet_guard_b",
-        "eastern_atgm_team_kornet_guard_c"
+        "rifle_squad_pla_active_a",
+        "rifle_squad_pla_active_b",
+        "rifle_squad_pla_active_c"
       ],
       "description": "A soldier with a rifle.",
       "hp": 100.0,
@@ -25340,9 +25340,9 @@
     },
     "europe_atgm_team_akeron_mp__at_rifleman": {
       "appearance": [
-        "europe_atgm_team_akeron_mp_guard_a",
-        "europe_atgm_team_akeron_mp_guard_b",
-        "europe_atgm_team_akeron_mp_guard_c"
+        "rifle_squad_french_active_a",
+        "rifle_squad_french_active_b",
+        "rifle_squad_french_active_c"
       ],
       "description": "A rifleman of an anti-tank team.",
       "hp": 100.0,
@@ -25369,9 +25369,9 @@
     },
     "europe_atgm_team_akeron_mp__roster_akeron_gunner": {
       "appearance": [
-        "europe_atgm_team_akeron_mp_guard_a",
-        "europe_atgm_team_akeron_mp_guard_b",
-        "europe_atgm_team_akeron_mp_guard_c"
+        "rifle_squad_french_active_a",
+        "rifle_squad_french_active_b",
+        "rifle_squad_french_active_c"
       ],
       "description": "One shoulder-fired top-attack launcher with ordinary guards.",
       "hp": 100.0,

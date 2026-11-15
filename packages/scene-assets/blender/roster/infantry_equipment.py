@@ -23,8 +23,8 @@ import bpy
 import bmesh
 from mathutils import Matrix, Vector
 from common import REPO, box, cyl, empty, export_glb, fbm, script_args, texture_uvs, obj_from_bm
-from infantry_kit import COYOTE, RANGER, Kit, look_of, scale3
-from textures import UNIFORMS
+from infantry_kit import Kit, look_of, scale3
+from procedural_looks import PROCEDURAL_LOOKS, army_look
 from infantry_rig import Rig, SCALE, back_y
 from mesh_lods import canonical, make_tiers, triangle_count
 import weapons
@@ -33,53 +33,6 @@ import skin_pins
 import infantry_roster as roster
 from infantry_roster import KITS, kind_of, source_path
 from infantry_preview import preview
-
-# What the procedural shells still read of an army's look, named as its
-# reference variant (assets/references/<kit>/): the uniform print
-# (textures.UNIFORMS), whether carrier, pouches and helmet cover are printed,
-# helmet, boots, webbing, and per look a, b, c what differs. An army's faction,
-# gloves and weapons are its data (`armies.json`). This table goes once every
-# look wears a generated body (specs/generated-soldiers, slice 08).
-PROCEDURAL_LOOKS = {
-    "us_army_ocp": dict(
-        print=UNIFORMS["us_army_ocp"], printed_gear=True, vest="print", pouch="print",
-        straps=COYOTE, accent="print", helmet="ach", boots=(0.075, 0.056, 0.036),
-        variants={"a": dict(head="nvg"), "b": dict(head="scrim", scarf=False), "c": dict(head="cover", pack="hydration")},
-    ),
-    # Marines wear MARPAT woodland under coyote nylon (Plate Carrier Gen III,
-    # pouches and packs), a woodland helmet cover and coyote boots.
-    "usmc_marpat": dict(
-        print=UNIFORMS["usmc_marpat"], printed_gear=False, printed_cover=True, vest=COYOTE,
-        pouch=COYOTE, straps=COYOTE, accent=COYOTE, helmet="ach", boots=(0.075, 0.056, 0.036),
-        variants={"a": dict(head="nvg"), "b": dict(head="cover", scarf=False, eyewear=True),
-                  "c": dict(head="cover", pack="hydration", vest=RANGER)},
-    ),
-    # Europe's shared kits wear the Bundeswehr's
-    # (specs/done/unit-models/choices.md): Flecktarn, a Flecktarn carrier and
-    # pouches, a covered helmet, black boots and olive webbing.
-    "german_flecktarn": dict(
-        print=UNIFORMS["german_flecktarn"], printed_gear=True, vest="print", pouch="print",
-        straps=(0.055, 0.062, 0.038), accent="print", helmet="ach", boots=(0.018, 0.017, 0.015),
-        variants={"a": dict(head="nvg", eyewear=False), "b": dict(head="cover", scarf=False),
-                  "c": dict(head="cover", pack="hydration", accent=COYOTE)},
-    ),
-    "eastern_emr": dict(
-        print=UNIFORMS["eastern_emr"], printed_gear=True, vest="print", pouch="print",
-        straps=(0.07, 0.078, 0.048), accent="print", helmet="6b47", rails=False, headset=False, collar=True, groin=True,
-        boots=(0.018, 0.017, 0.015),
-        variants={"a": dict(head="cover", eyewear=False, balaclava=True, knee_pads=False),
-                  "b": dict(head="cover", eyewear=False, balaclava=True, scarf=False, pack="none"),
-                  "c": dict(head="cover", eyewear=False, radio=False, pack="hydration")},
-    ),
-}
-
-
-def army_look(army):
-    """An army's look as `Kit` reads it: its procedural shells' table with the
-    army's gloves and weapons (`armies.json`)."""
-    data = roster.armies()[army]
-    return {**PROCEDURAL_LOOKS[army], "gloves": tuple(data["gloves"]), "rifle": data["rifle"], "lmg": data["lmg"]}
-
 
 # Team weapons' lengths, world metres (the roster's equipment authoring):
 # complete unsuppressed rifles; launcher tubes loaded and packed; tripod
@@ -536,6 +489,8 @@ def build(unit, variant, mode, army=None):
     body=skin_pins.pin_where('infantry',army=army,look=variant,kind=kind)
     if body:
         generated_body.wear(kit,body,roster.armies()[army]['cloth_mean'])
+    elif army not in PROCEDURAL_LOOKS:
+        raise SystemExit(f'{army} {variant} {kind} has no pinned body (skin-generate status infantry)')
     else:
         kit.uniform();kit.boots();kit.plate_carrier();kit.molle()
         if kit.look['pack']!='none':kit.pack_straps()

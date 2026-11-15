@@ -68,7 +68,12 @@ this ledger from scratch against the shipped code.
   must make the bake green.
   - *The defect:* the slung tube stands 0.60–0.74 m on a face-down corpse, or
     sinks up to 0.3 m into the ground on its back. It predates this work;
-    a fresh procedural export still fails. Generated carried kits pass.
+    a fresh procedural export still fails. *Correction (slice 06):* generated
+    carried kits fail too. The French Akeron and Javelin carried kits stand
+    0.68–0.71 m face down and sink 0.23–0.26 m on their backs. The earlier
+    "generated carried kits pass" was only checked on a slimmer tube. The fix
+    is how a big tube rides the back (its sight block faces out today); slice
+    09 owns it.
   - *The call:* the gate stays strict (0.6 m). These files are replaced in
     slice 09 (roster) and slice 08 (test soldiers), so they aren't re-exported
     procedurally first.
@@ -165,3 +170,38 @@ this ledger from scratch against the shipped code.
 - **The procedural Kornet carried kit stands 1.752 m in stand_aim**, over the
   1.75 m limit. Provisional, like the `fit.lies` set: it predates this work,
   and slice 09 replaces the file.
+
+## Slice 06 (the PLA and French armies)
+
+- **The PLA army is `pla_type21`**, Type 21 (Xingkong) woodland. Sound: shippable
+  photos of the uniform, helmet and carrier together exist (CC-BY-4.0 frames
+  from the 2021 International Army Games, and CC0 flat lays of the uniform).
+  - *Caveats, in the reference notes:* the field frames don't settle Type 19
+    against Type 21. The helmet is a covered high-cut shell, not confirmed as a
+    QGF-11. There is no front view.
+  - *Why the prompt says "high-cut helmet with side rails and ear defenders",*
+    not "QGF-11": that is what the photos show.
+- **Licences:** CC-BY-SA references are allowed, as the existing library
+  allows them (`references.ts` has no review-only tier; the whole library is
+  review-only). The French Army's own Commons photos (Licence Ouverte) are
+  refused by the checker, so the French references are public-domain US DoD
+  photos from Saber Junction 23. Sound.
+- **A new army's `cloth_mean` is its look `a` body's own measured cloth mean**
+  (French `[0.0965, 0.0735, 0.0461]`, PLA `[0.088, 0.0799, 0.0593]`). Sound:
+  there is no print recipe to match, so look `a` keeps its colours and looks `b`
+  and `c` grade to it.
+- **The new rifles (`hk416f`, `qbz191`) follow the M4/M27 construction**, with
+  their optic's top at the shared hold's sight height. The eye-at-the-top-of-
+  the-sight rule then holds for them with no new hold. Sound; new rifle models
+  were out of scope.
+- **Until slice 08, a generated-only army borrows its faction's procedural look
+  table** for the kit's materials, and refuses to export without a pin.
+  Superseded in slice 08, which removes the tables.
+- **Catalog rows:** `rifle_squad_pla_active_*` and `rifle_squad_french_active_*`
+  (army, not faction, since two armies now share each faction).
+  - The FN-6 team's rows name the PLA riflemen, the Akeron team's name the
+    French riflemen, and the Javelin guard's `europe` variant is the French
+    rifleman.
+  - The Akeron guard rows (German scouts) had no user left, so they are
+    deleted, along with the six German Javelin exports no row names.
+  - Sound.

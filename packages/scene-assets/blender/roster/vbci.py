@@ -194,4 +194,4 @@ def wreck(variant, v):
     rest_on_ground(0.004)
 
 
-run("vbci", "french_three_tone", build, wreck, chip=0.6, crew_army="german_flecktarn")
+run("vbci", "french_three_tone", build, wreck, chip=0.6, crew_army="french_cce")

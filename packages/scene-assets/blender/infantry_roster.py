@@ -15,7 +15,8 @@ REPO = os.path.abspath(os.path.join(HERE, "../../.."))
 # built in, its default first: the faction its roster card names first, and a
 # look for every other army that fields it.
 KITS = {
-    "rifle_squad": dict(weapon="rifle", grenades=True, armies=("us_army_ocp", "eastern_emr", "german_flecktarn")),
+    "rifle_squad": dict(weapon="rifle", grenades=True,
+                        armies=("us_army_ocp", "eastern_emr", "german_flecktarn", "pla_type21", "french_cce")),
     "assault_squad": dict(weapon="rifle", grenades=True, armies=("german_flecktarn", "eastern_emr")),
     "us_marine_squad_close_quarters_infantry": dict(weapon="rifle", grenades=True, armies=("usmc_marpat",)),
     "us_army_scouts_light_patrol": dict(weapon="rifle", scout=True, armies=("us_army_ocp",)),
@@ -31,14 +32,12 @@ KITS = {
     "eastern_atgm_team_kornet": dict(weapon="kornet", armies=("eastern_emr",)),
     "eastern_rpg_team_rpg_7": dict(weapon="rpg7", armies=("eastern_emr",)),
     "eastern_rpg_team_rpg_29": dict(weapon="rpg29", armies=("eastern_emr",)),
-    # The FN-6 team wears the Eastern army's EMR, as every Eastern kit does;
-    # there is no Chinese uniform print yet. The Akeron is French, but Europe's
-    # kits all wear the Bundeswehr's look; there is no French uniform print.
-    "fgm_148_javelin_team": dict(weapon="javelin", armies=("us_army_ocp", "german_flecktarn")),
+    # The FN-6 team is Chinese and the Akeron French: each wears its own army.
+    "fgm_148_javelin_team": dict(weapon="javelin", armies=("us_army_ocp", "french_cce")),
     "fim_92_stinger_team": dict(weapon="stinger", armies=("us_army_ocp", "german_flecktarn")),
     "eastern_air_defense_team_igla_s": dict(weapon="igla", armies=("eastern_emr",)),
-    "eastern_air_defense_team_fn_6": dict(weapon="fn6", armies=("eastern_emr",)),
-    "europe_atgm_team_akeron_mp": dict(weapon="akeron", armies=("german_flecktarn",)),
+    "eastern_air_defense_team_fn_6": dict(weapon="fn6", armies=("pla_type21",)),
+    "europe_atgm_team_akeron_mp": dict(weapon="akeron", armies=("french_cce",)),
     # A squad's machine gunner and, in the Marines' MARPAT, its machine gunner
     # and marksman: each army's light machine gun (`armies.json` lmg), the M110.
     "machine_gunner": dict(weapon="lmg", armies=("us_army_ocp", "eastern_emr", "german_flecktarn")),
