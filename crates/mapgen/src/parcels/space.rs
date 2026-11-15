@@ -129,6 +129,15 @@ impl Run {
         self.along[self.along.len() - 1]
     }
 
+    /// Its own points strictly between `s0` and `s1` metres along.
+    pub fn between(&self, s0: f64, s1: f64) -> impl Iterator<Item = Point> + '_ {
+        self.points
+            .iter()
+            .zip(&self.along)
+            .filter(move |(_, at)| **at > s0 && **at < s1)
+            .map(|(point, _)| *point)
+    }
+
     /// The point `s` metres along, clamped to the ends.
     pub fn at(&self, s: f64) -> Point {
         let next = self

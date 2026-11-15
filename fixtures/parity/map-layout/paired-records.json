@@ -4,35 +4,35 @@
       "name": "open medium",
       "command": "generate",
       "request_json": "{\"generator_version\":\"layout-22\",\"preset_revision\":\"layout-presets-22\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"open\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "c9bee9548bc397b124a0b3e566d4fc37f227f978296f1c17e5ac6f6ecd17010a",
+      "native_sha256": "fd7b2131302791ba03cb9340e48c30c9806678e7d8e8d4d54f3f89fe1092ceea",
       "exit_code": 0
     },
     {
       "name": "mixed large, seed above the JavaScript integer range",
       "command": "generate",
       "request_json": "{\"generator_version\":\"layout-22\",\"preset_revision\":\"layout-presets-22\",\"seed\":\"18446744073709551615\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"large\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "6c234fbe2b10ce08bd8caa9c01a07ea6b3f675fc6987ba658c7f9b6d7b678560",
+      "native_sha256": "9aa3032583ab03fc7e6833abea209b86afa322425b8a01bb69f522e1c114b053",
       "exit_code": 0
     },
     {
       "name": "metro xl",
       "command": "generate",
       "request_json": "{\"generator_version\":\"layout-22\",\"preset_revision\":\"layout-presets-22\",\"seed\":\"7\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"xl\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "f1248fa946fd3ab8d5f4201228160a9a01326a0b1aed99b18bc54f13d6b813a5",
+      "native_sha256": "79635817a30768164db0f4ab5280b02074e918942c5f7445afc0d8e704015d36",
       "exit_code": 0
     },
     {
       "name": "metro medium compiled into a map",
       "command": "generate-map",
       "request_json": "{\"generator_version\":\"layout-22\",\"preset_revision\":\"layout-presets-22\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "40d3f239ddbccf56f9ad36f7feec284ca078a79fd825231e2727e68c8eebc750",
+      "native_sha256": "808465b3e3fb2a48787b4a05c028eaa847f03b3799ea05410e4ccecab5d47896",
       "exit_code": 0
     },
     {
       "name": "mixed xl compiled into a map",
       "command": "generate-map",
       "request_json": "{\"generator_version\":\"layout-22\",\"preset_revision\":\"layout-presets-22\",\"seed\":\"5\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"xl\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "4cf3ee994747e5b44e9b4c988375c777fc3738d7a97f05302b673d50521f33e3",
+      "native_sha256": "7cb115577313dd6ec935e42bb83b01ece8d45e832fa429975bb1d559c9e9752f",
       "exit_code": 0
     },
     {
@@ -53,14 +53,14 @@
       "name": "over the ground point allowance",
       "command": "generate-map",
       "request_json": "{\"generator_version\":\"layout-22\",\"preset_revision\":\"layout-presets-22\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"xl\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":100}}",
-      "native_sha256": "a4896f57aba9b0bef1c73bc97f4eab33d0285c75a82f13cea6b8c330354f3886",
+      "native_sha256": "da36cc47d0727eac02393415db52a59150d1f63734a25261e783f59dec1e4d26",
       "exit_code": 1
     },
     {
       "name": "streets over the ground point allowance",
       "command": "generate",
       "request_json": "{\"generator_version\":\"layout-22\",\"preset_revision\":\"layout-presets-22\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"xl\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":6000}}",
-      "native_sha256": "a4896f57aba9b0bef1c73bc97f4eab33d0285c75a82f13cea6b8c330354f3886",
+      "native_sha256": "da36cc47d0727eac02393415db52a59150d1f63734a25261e783f59dec1e4d26",
       "exit_code": 1
     },
     {
@@ -81,42 +81,42 @@
       "name": "open medium with a river and its bridges (seed 3: the first after the plain record's with a river)",
       "command": "generate",
       "request_json": "{\"generator_version\":\"layout-22\",\"preset_revision\":\"layout-presets-22\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"open\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "6fbcddb3183510e84f1bc036f1c31c9926578aea957df8c81e87325028d1cc2f",
+      "native_sha256": "a79c08df5e4ae30f42d5cf86234cbba047529a22a985877a3c9ba7b22080af55",
       "exit_code": 0
     },
     {
       "name": "mixed medium with a river, compiled into a map",
       "command": "generate-map",
       "request_json": "{\"generator_version\":\"layout-22\",\"preset_revision\":\"layout-presets-22\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "51739bd2e06dccbc39473bb882a61a0a6b255606c444abd5ffbd02205fa5c6aa",
+      "native_sha256": "59a1cc613b0417263a10d65cfa2d16c6d826636faa82eea87cb2858e7637d87a",
       "exit_code": 0
     },
     {
       "name": "metro medium seed 10",
       "command": "generate-map",
       "request_json": "{\"generator_version\":\"layout-22\",\"preset_revision\":\"layout-presets-22\",\"seed\":\"10\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "fc6454371ca07d2e7f80f0a60ad377a94bb5531d32484aa4fb92192227904ac5",
+      "native_sha256": "82223c9192b787329247dca3c839b8e955cbfbb18e95cd5745459df703638eb8",
       "exit_code": 0
     },
     {
       "name": "open small compiled into a map",
       "command": "generate-map",
       "request_json": "{\"generator_version\":\"layout-22\",\"preset_revision\":\"layout-presets-22\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"open\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "70b8b2286ea25e66f3767ed6bafdcaa8cd09cdbb528ac06d5323024aa864062b",
+      "native_sha256": "cc09ee3e2fd3fd3b3140030f30e4aaa1e513ea0fe0ec5edc2d49fd9543a02b86",
       "exit_code": 0
     },
     {
       "name": "mixed small compiled into a map",
       "command": "generate-map",
       "request_json": "{\"generator_version\":\"layout-22\",\"preset_revision\":\"layout-presets-22\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "77b3c9c6cafe9a4ae382d55372bd9b2ee172329d887ae362f5bebd5bc5e2a993",
+      "native_sha256": "4a46cf0c05e8f7bc783849247e748d94bcacc3f5a8edf71658cf0c554c213926",
       "exit_code": 0
     },
     {
       "name": "metro small compiled into a map",
       "command": "generate-map",
       "request_json": "{\"generator_version\":\"layout-22\",\"preset_revision\":\"layout-presets-22\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "8acbbe6cfae33c00f4bd717c66998367a4825f3d6d3cc547f1e4dff0ae05e30d",
+      "native_sha256": "d2196230be0c3ef0a32d96e58128e703ac5121a2ba30f00e904ad7f389a00479",
       "exit_code": 0
     }
   ]
