@@ -10,7 +10,7 @@ import {
 // pause menu items (the scenario, replays, a lab's switches).
 import type { PreparedConnectionSession } from "@web/battle/prepare/client";
 import type { ObservationView } from "@web/battle/sim/observationView";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { contactFocusTargets } from "@web/battle/input/contactFocus";
 import { RejectedOrder } from "@web/battle/present/rejectedOrder";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
@@ -25,6 +25,7 @@ import { ContactLines, contactLines } from "@web/battle/present/contactLines";
 import { useBattleOverlay } from "./useBattleOverlay";
 import { LabViewport } from "./LabViewport";
 import { useUnitFocus } from "./useUnitFocus";
+import { FireBlinks } from "@web/battle/present/fireBlink";
 import { MenuButton, PauseMenu, usePauseMenu } from "./PauseMenu";
 import { useBattleSession, type BattleSession } from "./useBattleSession";
 import { commandedEconomy } from "./commandingPlayer";
@@ -113,6 +114,16 @@ export function BattleView({
   const [menuOpen, setMenuOpen] = useState(false);
   const [viewportReady, setViewportReady] = useState(false);
   const { cameraFocus, focusUnit } = useUnitFocus();
+  // Every publication, not every render, so a pass published for one tick
+  // still blinks its card.
+  const blinksRef = useRef<FireBlinks | null>(null);
+  const noteDecoded = useCallback(
+    (observation: ObservationView, digest: string) => {
+      blinksRef.current?.observe(observation);
+      onDecoded?.(observation, digest);
+    },
+    [onDecoded],
+  );
   const session = useBattleSession({
     scenario,
     seed,
@@ -120,7 +131,7 @@ export function BattleView({
     scenarioArt,
     player,
     side,
-    onDecoded,
+    onDecoded: noteDecoded,
     replay,
     scripted,
     sound: true,
@@ -129,6 +140,8 @@ export function BattleView({
   });
   const input = !replay && !scripted;
   const { meshes, sim, control, surfaceZ } = session;
+  const blinks = useMemo(() => new FireBlinks(session.rules.tick_hz), [session.rules.tick_hz]);
+  blinksRef.current = blinks;
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
   const matchFinished = observation?.skirmish?.phase === "finished";
@@ -264,6 +277,7 @@ export function BattleView({
           onSelect={control.setSelected}
           onCenter={input ? focusUnit : undefined}
           groups={input ? control.groups : undefined}
+          blinks={blinks.feed}
           onDeleteGroup={control.deleteGroup}
           onHover={session.hoverFromDeck}
           rules={session.rules}

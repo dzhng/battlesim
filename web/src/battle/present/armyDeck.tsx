@@ -11,6 +11,8 @@ import { CommandBar, type ArmyCommandState } from "./commandBar";
 import { useFeedValue, type FeedSource } from "@web/feed";
 import { GROUP_KEYS, type ControlGroups, type GroupKey } from "../input/controlGroups";
 import { deckSlots } from "./deckLayout";
+import { Feed } from "@web/feed";
+import type { CardBlink } from "./fireBlink";
 
 /** The unit a card's click selects: a rider's carrier, since a squad a
  *  carrier holds can't be ordered (D10), else the unit itself. */
@@ -20,6 +22,7 @@ function pickOf(unit: OwnUnitView, own: readonly OwnUnitView[]): number {
 }
 
 const NO_GROUPS: ControlGroups = new Map();
+const NO_BLINKS: FeedSource<ReadonlyMap<number, CardBlink>> = new Feed(new Map());
 
 const sameSet = (a: readonly number[], b: readonly number[]) =>
   a.length === b.length && a.every((id) => b.includes(id));
@@ -44,6 +47,7 @@ export function ArmyDeck({
   tick = 0,
   groups = NO_GROUPS,
   onDeleteGroup,
+  blinks: blinkFeed = NO_BLINKS,
 }: {
   state: FeedSource<ArmyCommandState>;
   selected: readonly number[];
@@ -63,8 +67,11 @@ export function ArmyDeck({
   groups?: ControlGroups;
   /** A group's × was clicked. */
   onDeleteGroup?: (key: GroupKey) => void;
+  /** Each unit's latest fire blink (`fireBlink.ts`). */
+  blinks?: FeedSource<ReadonlyMap<number, CardBlink>>;
 }) {
   const { own, control } = useFeedValue(state);
+  const blinks = useFeedValue(blinkFeed);
   const lower = useRef<HTMLDivElement>(null);
   // The card a run starts from, and the selection the deck last asked for:
   // once the selection changes any other way, the run starts over.
@@ -119,7 +126,7 @@ export function ArmyDeck({
     rows,
   );
   /** A card in its grid cell, with its group's bracket, key and ×. */
-  const slot = (key: string | number, index: number, children: ReactNode) => {
+  const slot = (key: string | number, index: number, children: ReactNode, blink?: CardBlink) => {
     const { group, sides, keyTab, deleteTab } = slots[index];
     return (
       <div
@@ -129,6 +136,16 @@ export function ArmyDeck({
         data-bracket={sides.length ? sides.join(" ") : undefined}
         onMouseEnter={() => setHoveredGroup(group)}
       >
+        {blink && (
+          // Behind the card's face, so its strength meter and symbols stay
+          // clean; a new serial is a new element, so the animation restarts.
+          <span
+            key={blink.serial}
+            className="hud-army-blink"
+            data-colour={blink.colour}
+            aria-hidden="true"
+          />
+        )}
         {children}
         {keyTab && (
           <span className="hud-army-group-key" aria-hidden="true">
@@ -272,6 +289,7 @@ export function ArmyDeck({
                   </UnitFace>
                   {carrier && <Icon path={stateIcon("seats")} className="hud-army-aboard" />}
                 </button>,
+                blinks.get(unit.id),
               );
             })}
             {pending.map((unit, index) => {

@@ -35,6 +35,8 @@ export interface HudTheme {
   credits: Readonly<Vec3>;
   /** A control group's key and ×, on the white tab in its bracket's corner. */
   group_ink: Readonly<Vec3>;
+  /** An army card's blink when its unit is shot at or hurt (`fireBlink.ts`). */
+  fire_blink: { on_s: number; off_s: number; wait_s: number; depth: number; glow: number };
   /** The main menu's backdrop film, graded to one military amber that the
    *  menu plate's blue reads against. Never a mark or readout. */
   film: Readonly<Vec3>;
@@ -90,6 +92,10 @@ export function hudProperties(theme: HudTheme, calloutGlow = 1): Record<string, 
     "--hud-glass": channels(theme.glass),
     "--hud-glass-alpha": String(theme.glass[3]),
     "--hud-glow": `${theme.glow_px}px`,
+    "--hud-blink-on": `${theme.fire_blink.on_s}s`,
+    "--hud-blink-off": `${theme.fire_blink.off_s}s`,
+    "--hud-blink-depth": `${theme.fire_blink.depth * 100}%`,
+    "--hud-blink-glow": String(theme.fire_blink.glow),
   };
   for (const k of COLOURS) out[`--hud-${k.replaceAll("_", "-")}`] = channels(theme[k]);
   return out;

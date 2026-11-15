@@ -1,4 +1,4 @@
-import { useFeed } from "@web/feed";
+import { Feed, useFeed } from "@web/feed";
 import { useLabLoading } from "../LabLoading";
 // The panel workbench: every info panel the battle can draw (the specimens
 // in `panelSpecimens.ts`), through the battle's own `InfoPanel`, on a plain
@@ -15,6 +15,7 @@ import { panelSpecimens, specimenUnit, type Specimen } from "../panelSpecimens";
 import type { CommandControl } from "@web/battle/present/commandBar";
 import { ArmyDeck } from "@web/battle/present/armyDeck";
 import type { ControlGroups } from "@web/battle/input/controlGroups";
+import type { CardBlink } from "@web/battle/present/fireBlink";
 import { PurchasePicker } from "@web/battle/present/purchasePicker";
 import { ContactLines } from "@web/battle/present/contactLines";
 
@@ -250,6 +251,19 @@ function DeckReview({ onBack }: { onBack: () => void }) {
     own: selection.units,
     control: selection.replay ? undefined : control,
   });
+  // "Fire blink": the first card is shot at and the third hurt, again on
+  // every press, so the blink can be watched and shot.
+  const [blinks] = useState(() => new Feed<ReadonlyMap<number, CardBlink>>(new Map()));
+  const fireBlink = () => {
+    const [shot, , hurt] = selection.units;
+    const serial = Date.now();
+    blinks.set(
+      new Map([
+        ...(shot ? [[shot.id, { colour: "yellow", serial }] as const] : []),
+        ...(hurt ? [[hurt.id, { colour: "red", serial }] as const] : []),
+      ]),
+    );
+  };
 
   const skirmish = {
     phase: "preparation" as const,
@@ -286,6 +300,7 @@ function DeckReview({ onBack }: { onBack: () => void }) {
         }}
       >
         <button onClick={onBack}>Info panels</button>
+        <button onClick={fireBlink}>Fire blink</button>
         {cases.map((c, index) => (
           <button
             key={c.name}
@@ -307,6 +322,7 @@ function DeckReview({ onBack }: { onBack: () => void }) {
           selected={selected}
           onSelect={setSelected}
           groups={selection.groups}
+          blinks={blinks}
           onDeleteGroup={(key) => setAction(`Delete group ${key}`)}
           rules={rules}
           contactLines={<ContactLines lines={[{ key: 1, text: "Unknown, firing" }]} />}

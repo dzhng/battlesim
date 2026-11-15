@@ -199,6 +199,20 @@ pub struct Overlay {
     pub ruler: OverlayRuler,
 }
 
+/// An army card's blink when its unit is shot at or hurt: two pulses of
+/// `on_s` lit and `off_s` dark, never the same colour again within `wait_s`;
+/// its colour mixed `depth` of the way from the panel glass to the HUD's
+/// warning or damage colour, its glow scaled by `glow`.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct HudFireBlink {
+    pub on_s: f64,
+    pub off_s: f64,
+    pub wait_s: f64,
+    pub depth: f64,
+    pub glow: f64,
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Hud {
@@ -214,6 +228,7 @@ pub struct Hud {
     pub bad: [f64; 3],
     pub credits: [f64; 3],
     pub group_ink: [f64; 3],
+    pub fire_blink: HudFireBlink,
     pub film: [f64; 3],
     pub glass: [f64; 4],
     pub glow_px: f64,

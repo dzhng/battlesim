@@ -1218,6 +1218,58 @@ html {
   width: 13px;
   height: 13px;
 }
+/* A card's fire blink (`fireBlink.ts`): light rising from its foot, the
+   end its strength meter sits at, spilling softly below the card. Yellow
+   when its unit was shot at, red when hurt; each mixed from the panel glass
+   toward the HUD's warning or damage colour, so it fades in and out of the
+   deck's dark blue. It lies under the card's translucent face, which keeps
+   its meter, symbols and the group's white bracket on top. Two eased
+   pulses, then it rests unseen. */
+.hud-army-blink {
+  --blink: color-mix(in srgb, rgb(var(--hud-warn)) var(--hud-blink-depth), rgb(var(--hud-glass)));
+  position: absolute;
+  inset: -1px;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  border-bottom: 2px solid var(--blink);
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--blink) 80%, transparent),
+    color-mix(in srgb, var(--blink) 25%, transparent) 45%,
+    transparent 75%
+  );
+  box-shadow: 0 calc(4px * var(--hud-blink-glow)) calc(10px * var(--hud-blink-glow))
+    calc(-2px * var(--hud-blink-glow)) color-mix(in srgb, var(--blink) 80%, transparent);
+  animation: hud-army-blink calc(2 * (var(--hud-blink-on) + var(--hud-blink-off))) ease-in-out 1;
+}
+.hud-army-blink[data-colour="red"] {
+  --blink: color-mix(in srgb, rgb(var(--hud-bad)) var(--hud-blink-depth), rgb(var(--hud-glass)));
+}
+@keyframes hud-army-blink {
+  0%,
+  50%,
+  100% {
+    opacity: 0;
+  }
+  12.5%,
+  62.5% {
+    opacity: 1;
+  }
+  25%,
+  75% {
+    opacity: 0.85;
+  }
+  37.5%,
+  87.5% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hud-army-blink {
+    animation-duration: 1ms;
+  }
+}
 /* Not on the field: a purchase waiting to deploy, or a squad riding a
    carrier (its card picks the carrier). */
 .hud-panel button.hud-army-pending,
