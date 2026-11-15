@@ -1948,3 +1948,13 @@ Found beside it and fixed apart: that endurance mode's check on the late
 state fails on staging too. It expected all 800 fallen to be drawn; a side
 lays only the fallen it knows (616 there) and draws those the framing does
 not cull (568). The check now says that.
+
+**A flake seen while shipping slice 13, 2026-11-15, not fixed.** After
+merging another session's staging commits, one run of `consequences` failed
+"a destroyed hull draws debris" with no pieces found, while three scenes
+shared the machine. It passed before that merge, and twice alone afterwards
+(default and high graphics). The check reads the cook-off's pieces once, at
+the instant the wreck becomes known. Slice 13 does not touch wrecks. It was
+pushed before that result was read, which was a mistake in the order of
+work, not a judgement that the failure did not matter. If it recurs, make
+the check wait for the pieces instead of sampling one instant.
