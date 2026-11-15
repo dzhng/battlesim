@@ -31,10 +31,12 @@ mod admission;
 mod diagnostics;
 mod geometry;
 mod impostors;
+mod store;
 mod visibility;
 use crate::impostor::{CardInstance, Cards};
 pub use geometry::{pack_vertices, posed_mesh, VERTEX_BYTES};
 use impostors::RestPose;
+pub use store::{ArtStore, ArtStorePolicy, MaterialSlots, SharedArtStore};
 /// Material rows a material takes in the materials buffer (`MATERIAL_ROWS`).
 const MATERIAL_ROWS: usize = 5;
 
@@ -81,6 +83,15 @@ struct Drawable {
     /// Each surface class's range of the indices.
     parts: [Part; 4],
     count: u32,
+}
+
+// Only the final shared tier holder drops this owner. Browser buffer handles
+// do not destroy their WebGPU allocations when dropped.
+impl Drop for Drawable {
+    fn drop(&mut self) {
+        self.vertices.destroy();
+        self.indices.destroy();
+    }
 }
 
 impl Drawable {
@@ -390,6 +401,7 @@ pub struct Models {
     has_xray_meshes: bool,
     high_apart: bool,
     cards: Option<Cards>,
+    pub(crate) store: SharedArtStore,
 }
 
 /// The texture arrays are destroyed with their owner, as the frame's targets

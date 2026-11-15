@@ -24,6 +24,9 @@ through different boundaries. Vite copies `assets/runtime` into the web build;
 the native client reads it from disk. A packaged native build should place
 `assets/runtime` above the executable or set `BATTLEGAME_RUNTIME` to its path.
 The native resolver no longer depends on the WSL checkout path.
+Its bundle source supplies the runtime catalog's content identity to the shared
+art store without retaining a second decoded-art cache. Native startup and device
+reconstruction each admit into a fresh store.
 
 The browser is started with `bun run dev`. WSL should serve the app while
 Windows Chrome supplies the real GPU; configure `.wslconfig` with

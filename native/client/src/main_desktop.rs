@@ -230,6 +230,7 @@ impl Run {
             &[],
         ));
         let config = RuntimeConfig {
+            art_store: Default::default(),
             size,
             light,
             fog_look: replay.fog_look,

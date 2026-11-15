@@ -22,6 +22,7 @@ fn scene(gpu: &gpu::Gpu) -> (Replay, Runtime) {
         &[],
     ));
     let config = RuntimeConfig {
+        art_store: Default::default(),
         size: [320, 180],
         light: replay.light.clone(),
         fog_look: replay.fog_look,
