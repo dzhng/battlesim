@@ -21,19 +21,22 @@ simulation test build here, with other sessions building too. Check
 `df -h .` before any Rust build or new checkout. Under about 30 GB free, run
 Rust passes one or two at a time; under 5 GB, start nothing and ask the user.
 
-**Done and committed:** slices 02 to 06, 14, 20 and 24; the module of slice
+**Done and committed:** slices 02 to 07, 14, 20 and 24; the module of slice
 10; the endurance half of slice 01. The branch holds staging as of
 2026-11-15.
 
 **Pick up here, in this order:**
 
-1. **Integrate slice 07,** the HTTP transport, and **slice 13,** the
-   native and WebAssembly parity probe. Both went to Codex on 2026-11-15,
-   each in its own checkout; each writes a report to
-   `throwaway/multiplayer/` there. Slice 13 may end "named" and change
-   nothing in the tree.
-2. **Slice 08,** command any seat: the first playable checkpoint, two
-   browsers against the local server.
+1. **Integrate slice 08,** command any seat, and **slice 13,** the native
+   and WebAssembly parity probe. Both went to Codex on 2026-11-15, each in
+   its own checkout; each writes a report to `throwaway/multiplayer/`
+   there. Slice 08 is the first playable checkpoint: play it in two
+   browsers yourself, get an unprimed critique of the Red commander's
+   screen, and show the user both screens (its Verification says how).
+   Slice 13 may end "named" and change nothing in the tree.
+2. **Slices 09 to 12** come after 08. Slice 09 deploys, which is
+   outward-facing: ask the user first. Slices 10, 11 and 12 need only 08
+   and can go out together.
 3. **Run slice 01's host half** (O1) on the probe app. `bun run server:soak`
    is the workload: bundle it, run it on the host, and read its summary
    line.
