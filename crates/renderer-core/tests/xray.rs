@@ -1,6 +1,7 @@
 //! GPU occlusion regression over actual authored-model packing and exported
 //! x-ray shaders. Run under the repository GPU lock.
 mod support;
+use renderer_core::runtime::AdmissionWork;
 
 use presentation::records::{
     Appearance, Batch, Camera, Instance as ModelInstance, Joint, FOG_FACES, FOG_UNITS, NONE,
@@ -250,6 +251,7 @@ fn xray_preserves_occlusion_gate_information_colors_and_frame_reset() {
         names,
         |_| None,
         |_, _| None,
+        &mut AdmissionWork::default(),
     )
     .unwrap();
     let identity = Joint {

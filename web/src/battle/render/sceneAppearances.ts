@@ -1,7 +1,12 @@
 /** Bounded complete-generation admission at the browser's frame boundary. */
 import type { PreparedAppearances, Renderer } from "@wasm/renderer_browser";
 import type { ScenePresentation } from "../sim/presentation";
-import type { LabModel, ModelDetail } from "../sim/presentationModels";
+import {
+  preparedAdmissionWork,
+  type AdmissionTransportWork,
+  type LabModel,
+  type ModelDetail,
+} from "../sim/presentationModels";
 import type { ModelAsset } from "./modelAssets";
 
 interface Request {
@@ -20,6 +25,7 @@ export class SceneAppearances {
   private active: Request | null = null;
   private building: Request | null = null;
   private ready: { request: Request; assets: PreparedAppearances } | null = null;
+  private latestWork: AdmissionTransportWork = { bundlesEncoded: 0, bundleBytesSent: 0 };
   private disposed = false;
 
   constructor(
@@ -69,6 +75,10 @@ export class SceneAppearances {
 
   current(): boolean {
     return this.active === this.desired && this.desired?.completed === true;
+  }
+
+  work(): AdmissionTransportWork {
+    return this.latestWork;
   }
 
   /** Called before canonical framing. A successful swap must be followed by a
@@ -141,6 +151,7 @@ export class SceneAppearances {
           this.start();
           return;
         }
+        this.latestWork = preparedAdmissionWork(assets);
         this.ready = { request, assets };
         this.redraw();
       },

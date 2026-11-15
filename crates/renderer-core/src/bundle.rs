@@ -18,6 +18,7 @@ pub trait BundleSource {
 pub struct Library {
     bundles: BTreeMap<String, Arc<Bundle>>,
     textures: BTreeMap<String, Weak<Texture>>,
+    decoded_bundles: u32,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]
@@ -244,6 +245,7 @@ impl Library {
         Self {
             bundles: BTreeMap::new(),
             textures: self.textures.clone(),
+            decoded_bundles: 0,
         }
     }
 
@@ -252,6 +254,7 @@ impl Library {
     pub fn replace_with(&mut self, replacements: Self) {
         self.bundles.extend(replacements.bundles);
         self.textures.extend(replacements.textures);
+        self.decoded_bundles += replacements.decoded_bundles;
     }
 
     pub fn retain(&mut self, mut keep: impl FnMut(&str) -> bool) {
@@ -281,8 +284,16 @@ impl Library {
             cache.insert(id.to_owned(), Arc::downgrade(&texture));
             Ok(texture)
         })?;
+        self.decoded_bundles += 1;
         self.bundles.insert(name.to_owned(), Arc::new(bundle));
         Ok(())
+    }
+
+    pub fn admission_work(&self) -> crate::runtime::AdmissionWork {
+        crate::runtime::AdmissionWork {
+            bundles_decoded: self.decoded_bundles,
+            ..Default::default()
+        }
     }
 
     pub fn bundle(&self, name: &str) -> Result<Arc<Bundle>> {

@@ -1,7 +1,7 @@
 //! A planned route checked against what the side now knows: whether it
 //! still fits, whether it shoves a body aside, and how long it takes.
 use super::{Mobility, Mover, NavGrid, NAV_CELL_M};
-use crate::math::V2;
+use crate::math::{Obb2, V2};
 use crate::world::PropId;
 use contract::command::RoutePolicy;
 use contract::map::MoverClass;
@@ -54,12 +54,17 @@ impl NavGrid {
     pub fn route_fits(&self, from: V2, route: &[V2], m: &Mobility) -> bool {
         let mut a = from;
         route.iter().all(|&b| {
-            let ok = self
-                .segment_cost(a, b, Mover::free(m), RoutePolicy::Shortest)
-                .is_some();
+            let ok = self.way_fits(a, b, m, &[]);
             a = b;
             ok
         })
+    }
+
+    /// Whether the straight way from `from` to `to` fits this footprint,
+    /// with the `avoid` hulls as solid as any known blocker.
+    pub fn way_fits(&self, from: V2, to: V2, m: &Mobility, avoid: &[Obb2]) -> bool {
+        self.segment_cost(from, to, Mover { m, avoid }, RoutePolicy::Shortest)
+            .is_some()
     }
 
     /// Travel time of a route for this footprint, for diagnostics and tests.

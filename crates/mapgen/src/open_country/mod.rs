@@ -45,6 +45,7 @@ use crate::parcels::lots::{placement, Choices, Fit, Frontage, Lot};
 use crate::parcels::space::{Rect, Run};
 use crate::parcels::streets::Network;
 use crate::{BuildingPlacement, Diagnostic, DiagnosticCode, LotPlan, MapPlan};
+use contract::encounter::ObjectiveSiteKind;
 use contract::ground::{polygon_contains, GroundShape};
 use contract::map::{AuthoredPropDefinition, Forest, PropDefinition, SurfaceArea, SurfaceKind};
 use contract::templates::{PlacementFrame, TemplateGeometryCatalog};
@@ -134,7 +135,12 @@ struct Country<'a> {
     presets: &'a PresetDefinitions,
     rules: &'a Rules,
     size: [f64; 2],
+    /// The ground kept clear about each reserved skirmish objective, in
+    /// `SkirmishSites::all_reserved_objectives` order.
     objectives: Vec<(Point, f64)>,
+    /// Set while an objective's own homestead stands: that objective's
+    /// index and its farmyard.
+    own_objective: Option<(usize, f64)>,
     towns: Vec<Ground<'a>>,
     woods: Vec<Ground<'a>>,
     network: Network<'a>,
@@ -224,12 +230,28 @@ impl<'a> Country<'a> {
 
     /// The one question: may something of `ask` stand at `p`.
     fn open(&self, p: Point, ask: Ask) -> bool {
+        self.open_beside(p, ask, None)
+    }
+
+    /// [`Self::open`], except that the objective `own` names (its index in
+    /// `objectives`, and its farmyard) keeps only its farmyard clear: the
+    /// ground its own homestead stands on.
+    fn open_beside(&self, p: Point, ask: Ask, own: Option<(usize, f64)>) -> bool {
         if !self.charge(1) {
             return false;
         }
-        if self.objectives.iter().any(|(center, radius)| {
-            libm::hypot(p[0] - center[0], p[1] - center[1]) < radius + ask.radius
-        }) {
+        if self
+            .objectives
+            .iter()
+            .enumerate()
+            .any(|(index, (center, kept))| {
+                let kept = match own {
+                    Some((objective, farmyard)) if objective == index => farmyard,
+                    _ => *kept,
+                };
+                libm::hypot(p[0] - center[0], p[1] - center[1]) < kept + ask.radius
+            })
+        {
             return false;
         }
         let c = &self.rules.clear;
@@ -585,11 +607,25 @@ pub(crate) fn furnish(
             }
             sum / weights
         };
+        // A reserved skirmish objective in the open is fought over a
+        // homestead: each gets its own first, from its own stream.
+        if let Some(sites) = &plan.skirmish {
+            let mut rng = country.stream("objective_homesteads");
+            for (index, site) in sites.all_reserved_objectives().enumerate() {
+                if site.kind == ObjectiveSiteKind::Field {
+                    (0..h.attempts)
+                        .any(|_| country.objective_stead(index, site, &homesteads, &mut rng));
+                }
+            }
+        }
+        // They are the objectives', not the roads' share of homes, but the
+        // halves stay even over both.
+        let objective_homes: f64 = country.tally.homes.iter().sum();
         let mut rng = country.stream("homesteads");
         let groups = libm::round(h.per_road_km * country.road_m / 1000.0);
         let per_group = mean(&mut homes.groups.iter().map(|group| (group.weight, group.homes)));
         country.spread(
-            groups * per_group,
+            objective_homes + groups * per_group,
             e.homes,
             h.attempts,
             &mut rng,

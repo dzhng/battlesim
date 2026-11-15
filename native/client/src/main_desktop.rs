@@ -35,7 +35,7 @@ use native_client::counts::Counted;
 use native_client::gpu::{self, Gpu};
 use presentation::records::View;
 use renderer_core::frame::FrameStage;
-use renderer_core::runtime::{Runtime, RuntimeConfig, RuntimeWorld, WorldGeometry};
+use renderer_core::runtime::{AdmissionWork, Runtime, RuntimeConfig, RuntimeWorld, WorldGeometry};
 use renderer_core::DISPLAY_FORMAT;
 use wgpu::{
     CommandEncoder, CurrentSurfaceTexture, PresentMode, SubmissionIndex, Surface,
@@ -247,6 +247,7 @@ impl Run {
             &gpu.device,
             &gpu.queue,
             config,
+            AdmissionWork::default(),
             RuntimeWorld {
                 presentation: replay.presentation_mut(),
                 assets: &library,

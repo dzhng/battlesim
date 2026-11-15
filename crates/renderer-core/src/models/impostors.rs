@@ -62,6 +62,7 @@ impl Models {
         device: &Device,
         queue: &Queue,
         pipelines: &Pipelines,
+        work: &mut crate::runtime::AdmissionWork,
     ) -> Result<(), String> {
         let rows: Vec<usize> = self
             .rows
@@ -78,6 +79,7 @@ impl Models {
         if rows.is_empty() {
             return Ok(());
         }
+        work.cards_baked += rows.len() as u32;
         let mut atlases = Vec::new();
         for &row in &rows {
             atlases.push(

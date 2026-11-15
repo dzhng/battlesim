@@ -10,7 +10,7 @@ import type { OverlayGlowStyle } from "@packages/battle-renderer/src/overlayStyl
 import type { PaintStyle } from "@packages/battle-renderer/src/paintStyle";
 import { EMPTY_MESH, type Mesh } from "@packages/battle-renderer/src/mesh";
 import type { ScenePresentation } from "../sim/presentation";
-import type { LabModel, ModelDetail } from "../sim/presentationModels";
+import type { AdmissionTransportWork, LabModel, ModelDetail } from "../sim/presentationModels";
 import { modelAssetsOf, type ModelAsset } from "./modelAssets";
 import {
   BATTLE_STAND_IN_APPEARANCE,
@@ -91,6 +91,7 @@ export class BrowserScene {
   private activeWorld: WorldLayers;
   private desiredWorld: WorldLayers;
   private admittedWorld: ReturnType<ScenePresentation["world"]>;
+  private transportWork: AdmissionTransportWork = { bundlesEncoded: 0, bundleBytesSent: 0 };
   private readonly hasGrass: boolean;
   private controls: SceneControls = {};
   private overlayGlow: OverlayGlowStyle;
@@ -109,6 +110,7 @@ export class BrowserScene {
     proxies: ReturnType<typeof proxyModels>,
     assets: readonly ModelAsset[],
     admittedWorld: ReturnType<ScenePresentation["world"]>,
+    transportWork: AdmissionTransportWork,
   ) {
     this.authored = authored;
     this.overlayGlow = options.overlayGlow;
@@ -121,6 +123,7 @@ export class BrowserScene {
     this.desired = this.installed = options.appearances;
     this.activeWorld = this.desiredWorld = options.world;
     this.admittedWorld = admittedWorld;
+    this.transportWork = transportWork;
     this.hasGrass = options.settings.grassDensity !== undefined;
     this.admission = new SceneAppearances(
       renderer,
@@ -190,12 +193,17 @@ export class BrowserScene {
       );
       const proxies = proxyModels(options.instances, appearances?.appearances.keys());
       const assets = [...authored, ...proxies.assets];
+      const transportWork = { bundlesEncoded: 0, bundleBytesSent: 0 };
       // Initial admission is private until every asset is ready. Live changes
       // use the asset-only transaction below and retain the current output.
       presentation.installLabAssets(assets, options.detail);
       presentation.setLabModels([...options.models, ...proxies.models]);
-      for (const asset of assets)
-        renderer.load_bundle(asset.name, asset.bundle, asset.textureIds, asset.textureBytes);
+      for (const asset of assets) {
+        const bundle = asset.bundle;
+        transportWork.bundlesEncoded++;
+        transportWork.bundleBytesSent += bundle.byteLength;
+        renderer.load_bundle(asset.name, bundle, asset.textureIds, asset.textureBytes);
+      }
       renderer.load_effect_atlas(await loadEffectAtlasLayers());
       presentation.installGeometry(renderer, options.world);
       renderer.set_overlay_glow(options.overlayGlow.radius_px, options.overlayGlow.strength);
@@ -212,6 +220,7 @@ export class BrowserScene {
         proxies,
         assets,
         admittedWorld,
+        transportWork,
       );
     } catch (error) {
       renderer.free();
@@ -343,6 +352,7 @@ export class BrowserScene {
     if (!this.worldCurrent()) return false;
     const changed = this.admission.flush();
     if (changed) {
+      this.transportWork = this.admission.work();
       this.installed = this.desired;
       this.presentation.adoptRendererAppearanceSource(
         this.installed,
@@ -475,6 +485,12 @@ export class BrowserScene {
     const stats = JSON.parse(this.renderer.frame_stats()) as SceneStats;
     stats.models.proxyAppearances = stats.models.installed.filter(isProxyAppearance).length;
     return stats;
+  }
+
+  /** What the last committed generation cost: Rust's report (`AdmissionWork`)
+   *  and what the page encoded and sent for it. */
+  admissionWork(): { core: unknown; transport: AdmissionTransportWork } {
+    return { core: this.renderer.admission_work(), transport: this.transportWork };
   }
   drawnInstances(): DrawnInstances {
     this.assertLive("drawnInstances");

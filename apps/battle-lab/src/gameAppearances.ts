@@ -58,6 +58,9 @@ const library = new AppearanceLibrary(battleFetcher);
 /** The runtime files the page's appearances were loaded from: what Rust
  *  resolves a battle's units and effects from (`fieldedBattle`). */
 export const gameRuntime: RuntimeFiles = library;
+export function gameAdmissionWork() {
+  return library.takeAdmissionWork();
+}
 let loading: Promise<InstalledAppearances> | null = null;
 let loadingFactions: string | null | undefined;
 let loadingScenery: string | null | undefined;

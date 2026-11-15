@@ -1,7 +1,8 @@
 # Battle growth: a new unit type costs only its own art
 
-**Status:** planned, nothing built. Slice 00 is next.
-**Updated:** 2026-11-14.
+**Status:** slice 00 is done. Slices 01, 02 and 10 are in review fix rounds,
+and slice 06 is being timed, each on its own branch (see the lanes below).
+**Updated:** 2026-11-15.
 
 This plan replaces the "shared GPU assets across generations" placeholder. That
 placeholder's motive was memory during a swap. The motive now is a freeze the
@@ -10,8 +11,21 @@ player sees, and sharing GPU assets is one part of the fix.
 ## Next Agent Prompt
 
 You are fixing the multi-second freeze that happens whenever a running battle
-first fields a unit type it had not shown. Nothing is built yet. Start at
-[slice 00](slices/00-proof-and-probes.md).
+first fields a unit type it had not shown. The admission work report exists,
+`battle-growth` prints it, and the [ledger](decisions.md) holds what it and
+the reference battle measured. Four slices are out with implementers; none
+has merged since slice 00:
+
+| Slice | Branch | State |
+| --- | --- | --- |
+| 01 | `t3/battle-growth-admission-report` | First pass rejected: it cached inflated bytes in WASM, and its install count was 1 by construction. Fix round sent. |
+| 02 | the "content identity" child's branch | First pass close: six findings (a second SHA-256, a draining getter, orphaned content). Fix round sent. |
+| 06 | the "statics carry" child's branch | Timing scenery work at growth; builds only if it costs more than a frame. |
+| 10 | `t3/battle-growth-stand-in-mechanics` | Fix round sent for the findings in the ledger. |
+
+When one returns: read its whole diff (changed tests first), rerun its checks
+yourself, merge it into this branch, then start what it unblocks (03 and 07
+after 02; 11 after 10).
 
 Read, in this order: this file, the [decisions ledger](decisions.md), the slice
 you are about to build, the [renderer contract](../../crates/renderer-core/README.md)
@@ -30,10 +44,17 @@ Warnings:
   plan. Record it in the ledger; do not settle it silently.
 - Slices 06 and 09 are conditional on measurements. Follow the rule each one
   states.
+- Each checkout's Rust build adds 3–22 GB. Check free space before a cold
+  build, and remove a checkout's build output when its branch has merged. A
+  burst of unrelated failures after a build usually means it ran out of space.
+- Slices 01 and 10 both change `crates/presentation/src/fielded.rs`; whichever
+  merges second merges the other in first.
+- Two implementers so far deleted or shortened comments to fit the file-size
+  ratchet. Reject that in review: move code out by concept instead.
 
 Checklist:
 
-- [ ] [00 Proof and probes](slices/00-proof-and-probes.md)
+- [x] [00 Proof and probes](slices/00-proof-and-probes.md)
 - [ ] [01 Fielding and install](slices/01-fielding-and-install.md)
 - [ ] [02 Content identity](slices/02-content-identity.md)
 - [ ] [03 Geometry reuse](slices/03-geometry-reuse.md)
@@ -204,8 +225,6 @@ Seen and not planned here, so they are not lost:
 
 - **A multi-type arrival still visibly stutters after slice 08.** Add a slice
   that spreads admission work over frames in shared Rust.
-- **The long wait in the reference battle is not the card bake** (slice 00
-  measures it). Cut a slice for the real cause before 05.
 - **A reuse key turns out to miss an input**, so a reused resource differs
   from a fresh one. Stop and widen the key in its owning slice.
 - **The ledger keeps filling from one slice.** Split it.
@@ -214,8 +233,7 @@ Seen and not planned here, so they are not lost:
 
 | Question | Unblocked by |
 | --- | --- |
-| Is the 11–40 s wait the card bake? | Slice 00 times the bake in the reference battle |
-| Does scenery placement cost a frame on a large map? | Slice 00; decides slice 06 |
+| Does scenery placement cost a frame on a large map? | Slice 06 times it first; slice 00 measured its bytes, not its time |
 | How deep does the preload go? | Slice 08 measures a one-type arrival; rule in slice 09 |
 | Does a multi-type arrival still stutter? | Slice 08 |
 | What does the preload cost in whole-browser memory? | Slice 09 |

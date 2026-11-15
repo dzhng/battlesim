@@ -497,4 +497,41 @@ export async function run(ctx) {
     await page.keyboard.press("Escape");
   }
   await page.close();
+  // The smallest window the game supports (web/README.md), and the first
+  // width whose strip unfolds.
+  for (const [width, height] of [
+    [1280, 720],
+    [1500, 900],
+  ]) {
+    const sized = await ctx.newPage({ viewport: { width, height } });
+    await lobbyStrip(ctx, sized, width);
+    await sized.close();
+  }
+}
+
+/** The lobby's strip is one row that its panel holds, from the smallest
+ *  window the game supports up: below the fold its longest choices are
+ *  pickers, and an open picker stays on the panel too. */
+async function lobbyStrip(ctx, page, width) {
+  await page.goto(`${new URL(ctx.url).origin}/skirmish`);
+  await page
+    .locator('[data-testid=lobby-status][data-status="ready"]')
+    .waitFor({ timeout: 120_000 });
+  await page.getByTestId("loading").waitFor({ state: "hidden", timeout: 120_000 });
+  await page.evaluate(() => document.fonts.ready);
+  const bottoms = await page
+    .locator(".lobby-strip > *")
+    .evaluateAll((items) => items.map((item) => Math.round(item.getBoundingClientRect().bottom)));
+  ctx.check(
+    `lobby ${width}: its strip is one row`,
+    new Set(bottoms).size === 1,
+    JSON.stringify(bottoms),
+  );
+  await contained(ctx, page, `lobby ${width}`);
+  const picker = page.getByTestId("menu-region");
+  if (await picker.count()) {
+    await picker.click();
+    await contained(ctx, page, `lobby ${width}, region picker open`);
+    await page.keyboard.press("Escape");
+  }
 }

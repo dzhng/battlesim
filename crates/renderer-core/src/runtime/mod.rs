@@ -2,9 +2,11 @@
 mod assets;
 mod controls;
 mod stats;
+mod work;
 pub use assets::{PendingAssets, ReadyAssets};
 mod world;
 pub use controls::Controls;
+pub use work::{AdmissionWork, RebuildReason};
 pub use world::WorldGeometry;
 
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -104,6 +106,7 @@ pub struct Runtime {
     refresh_knowledge: bool,
     prepared_frame: Option<u32>,
     pending_catalog_frame: Option<u32>,
+    admission_work: AdmissionWork,
 }
 
 impl Runtime {
@@ -113,6 +116,7 @@ impl Runtime {
         device: &Device,
         queue: &Queue,
         mut config: RuntimeConfig,
+        starting_work: AdmissionWork,
         world: RuntimeWorld<'_, S>,
     ) -> Result<Self, String> {
         config.light.check()?;
@@ -166,6 +170,8 @@ impl Runtime {
                 water: &world.geometry.water,
             },
         );
+        let mut admission_work = starting_work;
+        admission_work.rebuild_reason = Some(RebuildReason::Initial);
         let grass = assets::grass(
             device,
             queue,
@@ -174,6 +180,7 @@ impl Runtime {
             presentation.catalog(),
             &ground.heights,
             config.grass_density,
+            &mut admission_work,
         )?;
         let mut models = Models::new(
             device,
@@ -181,6 +188,7 @@ impl Runtime {
             &pipelines,
             world.assets,
             presentation.catalog(),
+            &mut admission_work,
         )?;
         models.set_high_apart(config.separate_high_air);
         let scenery = Scenery::new(
@@ -189,6 +197,7 @@ impl Runtime {
             &pipelines,
             world.assets,
             presentation.catalog(),
+            &mut admission_work,
         )?;
         let effects = EffectsResources::new(
             device,
@@ -262,6 +271,7 @@ impl Runtime {
             refresh_knowledge: true,
             prepared_frame: None,
             pending_catalog_frame: None,
+            admission_work,
         };
         runtime
             .ground
@@ -274,7 +284,13 @@ impl Runtime {
     /// GPU readback for authored cards never borrows canonical presentation.
     /// Complete this admission phase before preparing the first frame.
     pub async fn prepare_assets(&mut self, device: &Device, queue: &Queue) -> Result<(), String> {
-        self.models.bake_cards(device, queue, &self.pipelines).await
+        self.models
+            .bake_cards(device, queue, &self.pipelines, &mut self.admission_work)
+            .await
+    }
+
+    pub fn admission_work(&self) -> AdmissionWork {
+        self.admission_work.clone()
     }
 
     pub fn config(&self) -> &RuntimeConfig {

@@ -7,6 +7,7 @@ use contract::scenario::ScenarioDefinition;
 use serde_json::{json, Value};
 use sim::battle::Battle;
 use sim::math::wrap_angle;
+use std::f64::consts::FRAC_PI_2;
 
 fn rules() -> Value {
     sim::fixtures::test_rules()
@@ -348,4 +349,210 @@ fn a_truck_nosed_into_a_kerb_gap_backs_out_to_the_street_behind_it() {
         "it stopped at {:?}, short of the street",
         truck.position.xy()
     );
+}
+
+/// The moment: a light tank under the trees, a trunk off its front right,
+/// is told to come round to a spot 2 m behind its left shoulder and face
+/// back the way it came. Pivoting on the spot swings its rear quarter into
+/// the trunk whichever way it turns, so the crew rolls along its length
+/// until the turn is clear, comes round, and finishes facing as ordered.
+/// (A played battle's M10 Booker, its trunks and its order, as they stood;
+/// before, it froze against the trunk for every later order.)
+#[test]
+fn a_tank_with_a_trunk_beside_it_rolls_clear_to_turn_and_faces_as_ordered() {
+    let mut fixture = rules();
+    // The test tank in the Booker's body: a medium hull, which a trunk
+    // of the same weight class stops.
+    sim::fixtures::patch_catalog(
+        &mut fixture,
+        "units",
+        "test_tank",
+        json!({
+            "body": { "hull": { "half_extents_m": [3.5, 1.7, 1.3],
+                                "weight_class": "medium", "push_class": "medium",
+                                "wreck": "medium_wreck" } },
+            "mobility": { "tracked": { "offroad_kmh": 30, "road_kmh": 64, "turn_deg_s": 50,
+                                       "reverse_speed_factor": 0.4 } }
+        }),
+    );
+    let at = [60.0, 40.0];
+    let trunk = |rel: [f64; 2]| {
+        let center = [at[0] + rel[0], at[1] + rel[1]];
+        json!({ "kind": "trunk", "center": center, "yaw": 0, "half_extents": [0.35, 0.35, 5.0] })
+    };
+    let props: Vec<Value> = [
+        [2.44, -1.37],
+        [14.05, -1.21],
+        [-7.52, 8.0],
+        [5.23, 8.43],
+        [9.51, 6.45],
+        [18.84, 8.4],
+        [-4.63, 19.24],
+        [3.15, 18.0],
+        [11.01, 20.43],
+        [23.55, 16.28],
+    ]
+    .into_iter()
+    .map(trunk)
+    .collect();
+    let goal = [at[0] - 2.137, at[1] - 0.847];
+    let facing = -1.675;
+    let setup: ScenarioDefinition = serde_json::from_value(json!({
+        "map": { "size": [160, 120], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props },
+        "rules": fixture,
+        "units": [{ "side": "blue", "kind": "test_tank", "position": at, "yaw": 0.3837,
+                    "engagement": "return_fire_only" }],
+        "events": [],
+        "scripts": [{ "tick": 1, "side": "blue", "order": { "kind": "move", "units": [0],
+            "gesture": 1, "goal": goal, "route": "shortest", "direction": "forward",
+            "facing": facing } }],
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    for _ in 0..30 * 30 {
+        b.step();
+        let tank = b.unit(UnitId(0)).unwrap();
+        let hull = tank.ground_footprint().unwrap();
+        assert!(
+            !b.world()
+                .props()
+                .filter(|p| p.blocks(contract::map::MoverClass::Vehicle))
+                .any(|p| hull.overlaps(&p.footprint())),
+            "the hull is in a trunk at {:?}",
+            hull.center
+        );
+        if b.tick() > 2 && tank.state == MoveState::Idle && tank.turn_to.is_none() {
+            break;
+        }
+    }
+    let tank = b.unit(UnitId(0)).unwrap();
+    assert!(
+        tank.state == MoveState::Idle
+            && (tank.position.xy() - sim::math::v2(goal[0], goal[1])).length() < 1.0,
+        "it is {:?} at {:?}, not at its spot",
+        tank.state,
+        tank.position.xy()
+    );
+    assert!(
+        wrap_angle(tank.yaw - facing).abs() < 2f64.to_radians(),
+        "it faces {:.3}, not the ordered {facing}",
+        tank.yaw
+    );
+}
+
+/// The moment: a tank pulls up beside another parked half a metre off its
+/// flank and is told to face toward it. Turning on the spot would swing its
+/// corners through the other hull, so the crew gives the turn up rather
+/// than drive into a friend.
+#[test]
+fn a_tank_at_rest_never_turns_into_the_tank_beside_it() {
+    let setup: ScenarioDefinition = serde_json::from_value(json!({
+        "map": { "size": [160, 120], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": rules(),
+        "units": [
+            { "side": "blue", "kind": "test_tank", "position": [60.0, 40.0], "yaw": 0,
+              "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_tank", "position": [70.0, 44.1], "yaw": 0,
+              "engagement": "return_fire_only" },
+        ],
+        "events": [],
+        "scripts": [{ "tick": 1, "side": "blue", "order": { "kind": "move", "units": [0],
+            "gesture": 1, "goal": [70.0, 40.0], "route": "shortest", "direction": "forward",
+            "facing": std::f64::consts::FRAC_PI_2 } }],
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    for _ in 0..30 * 30 {
+        b.step();
+        let hull = |id| b.unit(UnitId(id)).unwrap().ground_footprint().unwrap();
+        assert!(
+            !hull(0).overlaps(&hull(1)),
+            "the tank turned into its neighbour at {:?}",
+            hull(0)
+        );
+        let tank = b.unit(UnitId(0)).unwrap();
+        if b.tick() > 2 && tank.state == MoveState::Idle && tank.turn_to.is_none() {
+            break;
+        }
+    }
+    let tank = b.unit(UnitId(0)).unwrap();
+    assert_eq!(tank.state, MoveState::Idle, "it is still {:?}", tank.state);
+    assert!(tank.turn_to.is_none(), "it still means to turn");
+}
+
+/// Every tick's poses of a `kind` sent by road from `at` (facing `yaw`) to
+/// `goal` over the road strokes `roads` (`[points, width]`).
+fn by_road(
+    kind: &str,
+    roads: &[(Value, f64)],
+    at: [f64; 2],
+    yaw: f64,
+    goal: [f64; 2],
+) -> (Battle, Vec<(sim::math::V2, f64, bool)>) {
+    let surfaces: Vec<Value> = roads
+        .iter()
+        .map(|(points, width)| json!({ "kind": "road", "shape": { "kind": "stroke", "points": points, "width_m": width } }))
+        .collect();
+    let setup: ScenarioDefinition = serde_json::from_value(json!({
+        "map": { "size": [320, 320], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+                 "surfaces": surfaces },
+        "rules": rules(),
+        "units": [{ "side": "blue", "kind": kind, "position": at, "yaw": yaw,
+                    "engagement": "return_fire_only" }],
+        "events": [],
+        "scripts": [{ "tick": 1, "side": "blue", "order": { "kind": "move", "units": [0],
+            "gesture": 1, "goal": goal, "route": "fastest", "direction": "forward" } }],
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    let poses = drive(&mut b, 90.0);
+    (b, poses)
+}
+
+/// A road that turns back on itself sharper than a right angle, on its own
+/// bend or where one road meets another, is driven round forward: a truck
+/// whose turning circle is wider than the corner swings through it and
+/// never stops to back and fill.
+#[test]
+fn a_truck_drives_round_a_sharp_road_corner_without_reversing() {
+    let corners = [
+        // One road's own corner, its runs too short to round it wide.
+        vec![(
+            json!([[60, 10], [60, 160], [62, 190], [100, 182], [300, 140]]),
+            10.0,
+        )],
+        // Two roads meeting at a corner, which no stroke rounds.
+        vec![
+            (json!([[60, 10], [60, 190]]), 10.0),
+            (json!([[60, 190], [300, 140]]), 10.0),
+        ],
+    ];
+    for (i, roads) in corners.iter().enumerate() {
+        let (b, poses) = by_road(
+            "test_supply",
+            roads,
+            [60.0, 20.0],
+            FRAC_PI_2,
+            [280.0, 144.0],
+        );
+        let truck = b.unit(UnitId(0)).unwrap();
+        assert_eq!(
+            truck.state,
+            MoveState::Idle,
+            "corner {i}: still {:?} at {:?}",
+            truck.state,
+            truck.position.xy()
+        );
+        assert!(
+            (truck.position.xy() - sim::math::v2(280.0, 144.0)).length() < 2.0,
+            "corner {i}: stopped at {:?}",
+            truck.position.xy()
+        );
+        let backed: Vec<_> = poses.iter().filter(|p| p.2).map(|p| p.0).collect();
+        assert!(
+            backed.is_empty(),
+            "corner {i}: backed up at {:?}",
+            backed.first()
+        );
+    }
 }

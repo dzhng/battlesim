@@ -2,7 +2,7 @@
 use native_client::{bundle::Library, capture::Replay, effects, gpu};
 use presentation::assets::RUNTIME;
 use presentation::records::NONE;
-use renderer_core::runtime::{Runtime, RuntimeConfig, RuntimeWorld, WorldGeometry};
+use renderer_core::runtime::{AdmissionWork, Runtime, RuntimeConfig, RuntimeWorld, WorldGeometry};
 use std::{path::Path, sync::Arc};
 
 fn scene(gpu: &gpu::Gpu) -> (Replay, Runtime) {
@@ -42,6 +42,7 @@ fn scene(gpu: &gpu::Gpu) -> (Replay, Runtime) {
         &gpu.device,
         &gpu.queue,
         config,
+        AdmissionWork::default(),
         RuntimeWorld {
             presentation: replay.presentation_mut(),
             assets: &library,

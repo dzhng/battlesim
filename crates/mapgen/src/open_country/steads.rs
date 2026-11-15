@@ -2,6 +2,8 @@
 //! yard, at a station on a country road or track. Homes stand as many of a
 //! group as find room; a group of bodies (a depot) stands whole or not at all.
 use super::*;
+use crate::layout::geometry::segment_nearest;
+use contract::encounter::ObjectiveSite;
 
 /// What a group places: homes of its templates, or bodies in order.
 #[derive(Clone, Copy)]
@@ -15,6 +17,17 @@ enum Group<'g, 'f> {
 enum Stand<'g, 'f> {
     Home(&'f Fit<'f>, &'g Homes),
     Body(Row<'g>),
+}
+
+/// Where a group's yards stand: along `front`, starting `offset` from it,
+/// on its `side` (`1` left, `−1` right) or `either`, and off the lane laid
+/// to them (its ends and half width), if any.
+struct Yards<'r> {
+    front: &'r Run,
+    offset: f64,
+    side: f64,
+    either: bool,
+    lane: Option<([Point; 2], f64)>,
 }
 
 /// `count` bodies of `kind` side by side, the net over them if any, and the
@@ -133,6 +146,171 @@ impl<'a> Country<'a> {
             }
             (Run::new(line), half_width + verge, None)
         };
+        // Larger groups of homes, and homes along a lane, stand either side.
+        let either = matches!(group, Group::Homes(..)) && (lane.is_some() || count > 2);
+        let stead = self.steads.iter().filter(|(of, _)| *of == name).count();
+        let yards = Yards {
+            front: &front,
+            offset,
+            side,
+            either,
+            lane: lane.as_ref().map(|(_, ends, half)| (*ends, *half)),
+        };
+        if !self.stand_group(kind, group, count, &yards, |k| pieces.lot_id(stead, k), rng) {
+            // No yard found room: a lane would lead nowhere, so none is laid.
+            return false;
+        }
+        if let Some((shape, ..)) = lane {
+            self.lay_track(shape);
+        }
+        self.steads.push((name, at));
+        true
+    }
+
+    /// The homestead the reserved skirmish objective `site` is fought over:
+    /// a group of `kind`'s homes either side of a farmyard through its
+    /// centre, which stays open, at the end of a farm track from the nearest
+    /// country road when one is near enough. `objective` is the site's index
+    /// in `objectives`: these homes and their track may stand on the ground
+    /// it keeps clear, its farmyard aside, where nothing else may.
+    pub(super) fn objective_stead(
+        &mut self,
+        objective: usize,
+        site: &ObjectiveSite,
+        kind: &Steading<Eligible<'_, '_>>,
+        rng: &mut Stream,
+    ) -> bool {
+        let homes = kind.pieces.homes;
+        let Some((group, choices)) = rng.pick(
+            homes
+                .groups
+                .iter()
+                .zip(&kind.pieces.choices)
+                .map(|pair| (pair, pair.0.weight)),
+        ) else {
+            return false;
+        };
+        if choices.is_empty() {
+            return false;
+        }
+        let count = rng.count(group.homes);
+        let farmyard = homes.objective_yard_m;
+        let track = self.farm_track(objective, site.center, farmyard, homes.objective_lane_m);
+        // Along its track when it has one; failing that, on any bearing
+        // without one.
+        for track in track.map(Some).into_iter().chain([None]) {
+            // The farm lines up along its track, away from the road.
+            let axis = match &track {
+                Some((_, [from, to], _)) => scale(sub(*to, *from), 1.0 / distance(*from, *to)),
+                None => direction(rng.range([0.0, TAU])),
+            };
+            // The farmyard's line, begun half the capture radius short of
+            // the centre so the first yard on either side stands about it.
+            let front = Run::new(vec![
+                sub(site.center, scale(axis, site.radius_m / 2.0)),
+                add(site.center, scale(axis, 2.0 * site.radius_m)),
+            ]);
+            let yards = Yards {
+                front: &front,
+                offset: farmyard,
+                side: 1.0,
+                either: true,
+                lane: track.as_ref().map(|(_, ends, half)| (*ends, *half)),
+            };
+            self.own_objective = Some((objective, farmyard));
+            let stood = self.stand_group(
+                kind,
+                Group::Homes(homes, choices),
+                count,
+                &yards,
+                |k| format!("country/objective-{}/lot-{k}", site.id),
+                rng,
+            );
+            self.own_objective = None;
+            if stood {
+                if let Some((shape, ..)) = track {
+                    self.lay_track(shape);
+                }
+                return true;
+            }
+        }
+        false
+    }
+
+    /// A dirt track to a steading: ground the network and later steadings
+    /// keep off.
+    fn lay_track(&mut self, shape: GroundShape) {
+        self.network.add(&shape);
+        self.surfaces.push(SurfaceArea {
+            kind: SurfaceKind::DirtTrack,
+            shape,
+        });
+    }
+
+    /// A farm track from the nearest point of a country road or track, at
+    /// most `reach` from `center`, to the edge of its `farmyard`: its shape,
+    /// its ends and its half width. None where no road is near enough or the
+    /// ground on the way is not free; the objective's own clear ground is.
+    fn farm_track(
+        &self,
+        objective: usize,
+        center: Point,
+        farmyard: f64,
+        reach: f64,
+    ) -> Option<(GroundShape, [Point; 2], f64)> {
+        let (road, half_width) =
+            self.roads
+                .iter()
+                .flat_map(|road| {
+                    road.run.points.windows(2).map(move |pair| {
+                        (segment_nearest(pair[0], pair[1], center), road.half_width)
+                    })
+                })
+                .min_by(|a, b| distance(a.0, center).total_cmp(&distance(b.0, center)))?;
+        let length = distance(road, center) - farmyard;
+        let width = self.presets.roads.dirt_track_width_m;
+        let first = half_width + width;
+        if length > reach || length <= first {
+            return None;
+        }
+        let out = scale(sub(center, road), 1.0 / distance(road, center));
+        let ground = Ask {
+            radius: width / 2.0,
+            blocks_sight: false,
+            road_gap: 0.0,
+            own_from: usize::MAX,
+        };
+        let steps = libm::ceil((length - first) / width).max(1.0) as usize;
+        let free = (0..=steps).all(|step| {
+            let p = add(
+                road,
+                scale(out, first + (length - first) * step as f64 / steps as f64),
+            );
+            self.open_beside(p, ground, Some((objective, 0.0))) && self.apart(p, ground.radius)
+        });
+        if !free {
+            return None;
+        }
+        let ends = [
+            round_cm(sub(road, scale(out, JOIN_OVERSHOOT_M))),
+            round_cm(add(road, scale(out, length))),
+        ];
+        let shape = GroundShape::stroke(ends.to_vec(), width).ok()?;
+        Some((shape, ends, width / 2.0))
+    }
+
+    /// `count` of `group`'s pieces in yards along `yards.front`: whether any
+    /// stood. A depot stands whole or not at all; its yards are paved.
+    fn stand_group<P: Pieced>(
+        &mut self,
+        kind: &Steading<P>,
+        group: Group<'_, '_>,
+        count: u32,
+        yards: &Yards,
+        lot_id: impl Fn(usize) -> String,
+        rng: &mut Stream,
+    ) -> bool {
+        let presets = self.presets;
         let rule = LotRule {
             front_m: kind.yard.front_m,
             side_m: kind.yard.side_m,
@@ -140,7 +318,6 @@ impl<'a> Country<'a> {
             coverage: 1.0,
             apron_m: 0.0,
         };
-        let stead = self.steads.iter().filter(|(of, _)| *of == name).count();
         let lots_before = self.lots.len();
         let before = (
             self.yards.len(),
@@ -169,16 +346,16 @@ impl<'a> Country<'a> {
             if !retry {
                 index += 1;
             }
-            // A depot is one compound on one side of its road; larger
-            // groups of homes stand either side.
-            let across = match group {
-                Group::Homes(..) if lane.is_some() || count > 2 => usize::from(rng.chance(0.5)),
-                _ => usize::from(side < 0.0),
+            // A depot is one compound on one side of its road.
+            let across = if yards.either {
+                usize::from(rng.chance(0.5))
+            } else {
+                usize::from(yards.side < 0.0)
             };
             let frontage = Frontage {
-                run: &front,
+                run: yards.front,
                 side: if across == 0 { 1.0 } else { -1.0 },
-                offset,
+                offset: yards.offset,
             };
             let gap = rng.range([0.0, kind.spread_m]);
             let lot = match &piece {
@@ -196,9 +373,9 @@ impl<'a> Country<'a> {
                 continue;
             };
             // A lane is a carriageway its yards keep off, like any other.
-            let on_lane = lane.as_ref().is_some_and(|(_, [from, to], half)| {
-                lot.rect.segment_gap(*from, *to) < half - 0.01
-            });
+            let on_lane = yards
+                .lane
+                .is_some_and(|([from, to], half)| lot.rect.segment_gap(from, to) < half - 0.01);
             // A depot is one compound: its pieces' yards may touch.
             let kin = match group {
                 Group::Homes(..) => self.yards.len(),
@@ -212,7 +389,7 @@ impl<'a> Country<'a> {
             if retry {
                 index += 1;
             }
-            let id = pieces.lot_id(stead, self.lots.len() - lots_before);
+            let id = lot_id(self.lots.len() - lots_before);
             self.yards.push(lot.rect);
             self.lots.push(LotPlan {
                 id: id.clone(),
@@ -238,7 +415,6 @@ impl<'a> Country<'a> {
         }
         let stood = self.lots.len() - lots_before;
         if stood == 0 {
-            // No yard found room: a lane would lead nowhere, so none is laid.
             return false;
         }
         if let Group::Bodies(pieces) = group {
@@ -264,14 +440,6 @@ impl<'a> Country<'a> {
                 }
             }
         }
-        if let Some((shape, ..)) = lane {
-            self.network.add(&shape);
-            self.surfaces.push(SurfaceArea {
-                kind: SurfaceKind::DirtTrack,
-                shape,
-            });
-        }
-        self.steads.push((name, at));
         true
     }
 
@@ -329,7 +497,7 @@ impl<'a> Country<'a> {
         rect.corners()
             .into_iter()
             .chain([rect.center])
-            .all(|p| self.open(p, corner) && self.apart(p, 0.0))
+            .all(|p| self.open_beside(p, corner, self.own_objective) && self.apart(p, 0.0))
             && !self.network.covers(rect)
             && !self
                 .yards

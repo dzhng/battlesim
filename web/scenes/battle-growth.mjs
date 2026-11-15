@@ -12,11 +12,23 @@ const ROUNDS = 10;
 export async function run(ctx) {
   const page = await ctx.newPage();
   const timeline = [];
+  // An event's detail is the log call's second argument: its text prints
+  // nested values as "Object".
+  let admissions = [];
   page.on("console", (message) => {
     const kind = /^\[battle \d+ ms\] (battle staged|art committed|scene rebuild)\b/.exec(
       message.text(),
     );
-    if (kind) timeline.push(kind[1]);
+    if (!kind) return;
+    timeline.push(kind[1]);
+    if (kind[1] === "battle staged") admissions = [];
+    if (kind[1] === "art committed")
+      admissions.push(
+        message
+          .args()[1]
+          ?.jsonValue()
+          .then((detail) => detail?.work ?? null),
+      );
   });
   await ctx.openLab(page, ctx.url, 120000);
   await lab(page, () => window.__lab.route.pause());
@@ -78,5 +90,9 @@ export async function run(ctx) {
     timeline.includes("battle staged") && committed() && !timeline.includes("scene rebuild"),
     JSON.stringify(timeline),
   );
+  // What each admission since the staging cost (`AdmissionWork` and the page's
+  // own counts), as the page logged it.
+  for (const work of await Promise.all(admissions))
+    console.log("battle-growth admission work", JSON.stringify(work));
   await page.close();
 }

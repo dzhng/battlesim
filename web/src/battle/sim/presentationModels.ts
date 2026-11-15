@@ -11,6 +11,17 @@ import { STUMP } from "@packages/battle-renderer/src/scenery/walk";
 import type { Mesh } from "@packages/battle-renderer/src/mesh";
 import type { Articulation } from "@packages/scene-assets/src/articulation";
 
+export interface AdmissionTransportWork {
+  bundlesEncoded: number;
+  bundleBytesSent: number;
+}
+
+const preparedTransportWork = new WeakMap<object, AdmissionTransportWork>();
+
+export function preparedAdmissionWork(prepared: PreparedAppearances): AdmissionTransportWork {
+  return preparedTransportWork.get(prepared) ?? { bundlesEncoded: 0, bundleBytesSent: 0 };
+}
+
 export interface ModelDetail {
   lod_px: readonly [number, number, number];
   impostor_px: number;
@@ -83,21 +94,22 @@ export function prepareAppearances(
   detail: ModelDetail,
 ): Promise<PreparedAppearances> {
   const draft = renderer.appearance_draft(JSON.stringify(detail));
+  const work = { bundlesEncoded: 0, bundleBytesSent: 0 };
   try {
     for (const asset of assets) {
       if (asset.placement) draft.set_placement(asset.name, JSON.stringify(asset.placement));
-      draft.add_bundle(
-        asset.name,
-        asset.bundle,
-        asset.textureIds,
-        asset.textureBytes,
-        asset.skeleton,
-      );
+      const bundle = asset.bundle;
+      work.bundlesEncoded++;
+      work.bundleBytesSent += bundle.byteLength;
+      draft.add_bundle(asset.name, bundle, asset.textureIds, asset.textureBytes, asset.skeleton);
     }
   } catch (error) {
     draft.free();
     throw error;
   }
   // Ownership moves into Rust even when synchronous GPU admission throws.
-  return renderer.prepare_appearances(presentation, draft);
+  return renderer.prepare_appearances(presentation, draft).then((prepared) => {
+    preparedTransportWork.set(prepared, work);
+    return prepared;
+  });
 }

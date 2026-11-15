@@ -70,6 +70,11 @@ pub fn area_above(ring: &[Point], line: f64) -> f64 {
 }
 
 pub fn segment_distance(a: Point, b: Point, p: Point) -> f64 {
+    distance(p, segment_nearest(a, b, p))
+}
+
+/// The point of segment `ab` nearest `p`.
+pub fn segment_nearest(a: Point, b: Point, p: Point) -> Point {
     let ab = sub(b, a);
     let len2 = ab[0] * ab[0] + ab[1] * ab[1];
     let t = if len2 > 0.0 {
@@ -77,7 +82,7 @@ pub fn segment_distance(a: Point, b: Point, p: Point) -> f64 {
     } else {
         0.0
     };
-    distance(p, add(a, scale(ab, t)))
+    add(a, scale(ab, t))
 }
 
 /// A line with the points a chord can stand in for dropped: both ends stay,

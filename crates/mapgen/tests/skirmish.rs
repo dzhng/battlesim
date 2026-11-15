@@ -373,49 +373,6 @@ fn one_entry_hashes_are_unchanged_for_the_skirmish_corpus_generated_rows() {
     }
 }
 
-/// The town round the primary junction is a town to fight through, not a
-/// square hollowed out as a field objective is: a field keeps its whole
-/// capture circle and a margin past it clear, and the junction's buildings
-/// stand nearer than that, on every map tried.
-#[test]
-fn the_junction_square_keeps_its_town() {
-    /// What every reserved objective keeps clear past the ground it clears.
-    const FIELD_MARGIN_M: f64 = 10.0;
-    for map_type in ["mixed", "metro"] {
-        for (seed, result) in maps(map_type, 2) {
-            let sites = result.sites.skirmish.as_ref().unwrap();
-            let junction = sites
-                .objectives
-                .iter()
-                .find(|o| o.kind == contract::encounter::ObjectiveSiteKind::Junction)
-                .unwrap();
-            let nearest = result
-                .map
-                .buildings
-                .iter()
-                .flat_map(|building| &building.geometry.parts)
-                .map(|part| {
-                    // From the junction to the nearest point of the part's box.
-                    let (sin, cos) = libm::sincos(part.yaw);
-                    let [dx, dy] = [
-                        junction.center[0] - part.center[0],
-                        junction.center[1] - part.center[1],
-                    ];
-                    let local = [cos * dx + sin * dy, -sin * dx + cos * dy];
-                    libm::hypot(
-                        (local[0].abs() - part.half_extents[0]).max(0.0),
-                        (local[1].abs() - part.half_extents[1]).max(0.0),
-                    )
-                })
-                .fold(f64::INFINITY, f64::min);
-            assert!(
-                nearest < junction.radius_m + FIELD_MARGIN_M,
-                "{map_type} seed {seed}: the nearest building stands {nearest:.0} m from the junction"
-            );
-        }
-    }
-}
-
 /// Depots refuse no map: every skirmish corpus request the presets admit
 /// without depots, they admit with them. The corpus tests above pass over a
 /// refused request, so a refusal depots caused would otherwise hide there.
@@ -506,4 +463,87 @@ fn generated_lanes_number_the_same_road_on_both_sides() {
             }
         }
     }
+}
+
+/// The nearest a building of `map` stands to `p`: the distance from `p` to
+/// the nearest point of any building part's box.
+fn nearest_building(map: &contract::map::MapDefinition, p: [f64; 2]) -> f64 {
+    map.buildings
+        .iter()
+        .flat_map(|building| &building.geometry.parts)
+        .map(|part| {
+            let (sin, cos) = libm::sincos(part.yaw);
+            let [dx, dy] = [p[0] - part.center[0], p[1] - part.center[1]];
+            let local = [cos * dx + sin * dy, -sin * dx + cos * dy];
+            libm::hypot(
+                (local[0].abs() - part.half_extents[0]).max(0.0),
+                (local[1].abs() - part.half_extents[1]).max(0.0),
+            )
+        })
+        .fold(f64::INFINITY, f64::min)
+}
+
+/// A skirmish is fought over places, not empty fields: every objective the
+/// simulation admits has at least one building standing in its capture
+/// circle, whether a town's, a hamlet's or a lone farm's.
+#[test]
+fn every_admitted_objective_holds_a_building() {
+    let catalogue =
+        contract::templates::TemplateGeometryCatalog::new(serde_json::from_str(TEMPLATES).unwrap())
+            .unwrap();
+    let rules: contract::scenario::Rules =
+        serde_json::from_value(sim::fixtures::test_rules()).unwrap();
+    let mut missing = Vec::new();
+    for (map_type, size) in [
+        ("open", "small"),
+        ("mixed", "small"),
+        ("metro", "medium"),
+        ("open", "large"),
+    ] {
+        // A map the simulation refuses is refused like one generation
+        // refuses: the game draws another seed.
+        let generated = admitted::admitted(1.., 3, |seed| {
+            let mut request = request(map_type, seed, catalogue.hash());
+            request["size"] = serde_json::json!(size);
+            let result = match mapgen::generate_map(
+                &request.to_string(),
+                PRESETS,
+                TEMPLATES,
+                include_str!("../../../fixtures/parity/map-layout/physical-rules.json"),
+            ) {
+                mapgen::CompileOutcome::Ok { result } => result,
+                mapgen::CompileOutcome::Error { diagnostics } => return Err(diagnostics),
+            };
+            let prepared = sim::encounter::PreparedMap::new(&result.map, &rules);
+            sim::map_analysis::admit_skirmish(
+                &prepared.queries(&result.map, &result.sites),
+                &rules,
+                &test_players(),
+            )
+            .map(|admitted| (result.map.clone(), admitted.sites.skirmish.unwrap()))
+            .map_err(|message| {
+                vec![mapgen::Diagnostic {
+                    code: mapgen::DiagnosticCode::GenerationFailed,
+                    feature: Some("skirmish_admission".into()),
+                    location: "$.sites".into(),
+                    message,
+                }]
+            })
+        });
+        for (seed, (map, sites)) in generated {
+            for objective in &sites.objectives {
+                let nearest = nearest_building(&map, objective.center);
+                if nearest >= objective.radius_m {
+                    missing.push(format!(
+                        "{map_type} {size} seed {seed}: {} (nearest building {nearest:.0} m)",
+                        objective.id
+                    ));
+                }
+            }
+        }
+    }
+    assert!(
+        missing.is_empty(),
+        "objectives without a building: {missing:#?}"
+    );
 }

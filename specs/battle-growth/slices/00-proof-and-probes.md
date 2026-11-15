@@ -25,8 +25,8 @@ facts true?
   sent, contents inflated, library installs) and publishes both with the
   `art committed` event
   ([viewportTrace.ts](../../../apps/battle-lab/src/viewportTrace.ts)).
-- A scene reads the event's detail from the page's diagnostics report, not from
-  console text (console text prints nested detail as `Object`).
+- A scene reads the event's detail from the log call's second argument, not
+  from its text (the text prints nested detail as `Object`).
 
 ## Verification
 
@@ -63,7 +63,8 @@ Field names, how the report crosses the WASM seam, the probes' tooling.
 
 **Fixed:** the report's meaning, where each count is taken, synthetic fixtures.
 
-## Feedback that would change this slice
+## Outcome
 
-If the reference battle's wait is not the card bake, apply the reslice trigger
-in the [README](../README.md) before slice 05.
+Done 2026-11-14. The probe's results are in the [ledger](../decisions.md): the
+long wait is the card bake, and a superseded build is thrown away and redone.
+Scenery's time at growth was not measured; slice 06 times it first.

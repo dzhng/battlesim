@@ -24,6 +24,7 @@ use crate::route_planner::{Request, RoutePlanner};
 use crate::units::Unit;
 use crate::world::{Prop, PropId, PropIndex, WorldGeometry, PROP_BUCKET_M};
 use changes::{span, Change};
+use traffic::{hull_conflict, in_the_way};
 
 pub(crate) mod air;
 mod certify;
@@ -34,6 +35,7 @@ mod final_leg;
 mod push;
 mod soldier;
 mod take_cover;
+mod traffic;
 
 pub(crate) use certify::{certify_orders, ProofRequest};
 pub use drive::{final_facing, final_yaw, Manoeuvre};
@@ -864,34 +866,23 @@ fn step_vehicle(
     let dt = 1.0 / ctx.rules.tick_hz as f64;
     units[i].reversing = false;
     if !may_advance(ctx, &mut units[i]) {
-        units[i].drive_speed_mps = 0.0;
         units[i].manoeuvre = None;
         // With no orders, tracks pivot a gun fixed in the hull onto its
         // target (D8); wheels cannot turn on the spot, so they hold fire.
         let unit = &mut units[i];
-        if let Some(face) = unit.reach.face {
-            if unit.orders.is_empty() && unit.ground().drive.is_some_and(|d| d.tracked) {
-                unit.turn_to = Some(face);
-            }
-        }
+        let automatic = unit
+            .reach
+            .face
+            .filter(|_| unit.orders.is_empty() && unit.ground().drive.is_some_and(|d| d.tracked));
+        unit.turn_to = automatic.or(unit.turn_to);
         if units[i].route.is_none() && units[i].turn_to.is_some() {
-            let before = units[i].yaw;
-            drive::pivot(ctx.world, &mut units[i], dt);
-            let unit = &units[i];
-            let here = unit.position.xy();
-            if units.iter().enumerate().any(|(j, o)| {
-                j != i
-                    && o.ground_footprint().is_some()
-                    && o.on_field()
-                    && vehicle_conflict(unit, here, unit.yaw, o)
-            }) {
-                units[i].yaw = before;
-                units[i].turn_to = None;
-            }
+            drive::pivot(ctx, &mut units[i], dt, automatic.is_none(), traffic);
+        } else {
+            units[i].drive_speed_mps = 0.0;
         }
         return;
     }
-    if drive::prune(&mut units[i]) {
+    if drive::prune(ctx, sides, traffic, &mut units[i]) {
         arrive(&mut units[i]);
         return;
     }
@@ -939,37 +930,30 @@ fn step_vehicle(
     // Traffic, whatever its side (Q14): a vehicle waits for whatever it
     // would run into; live vehicles are never shoved (Q15).
     let unit = &units[i];
-    let mut blocker = motion.blocker.or_else(|| {
-        units.iter().enumerate().find_map(|(j, other)| {
-            (j != i
-                && other.ground_footprint().is_some()
-                && other.on_field()
-                && vehicle_conflict(unit, next, motion.yaw, other))
-            .then_some(other.id)
-        })
-    });
+    let mut blocker = motion
+        .blocker
+        .or_else(|| in_the_way(units, i, next, motion.yaw));
 
-    // A detouring tank must not pivot through its neighbour, nor a tank
-    // nosed up to a body through that body. Give the turn room instead of
-    // deadlocking nose-to-nose: against a body, only when backing off by
-    // what its corners swing out past its nose would free the turn.
-    let back = drive::give_space(unit, speed, dt);
-    if unit.ground().drive.is_some_and(|d| d.tracked)
+    // A detouring tank must not pivot through its neighbour, nor through
+    // a body. Give the turn room instead of deadlocking: back off from
+    // traffic; from a body, roll to where the whole turn clears.
+    let room = (unit.ground().drive.is_some_and(|d| d.tracked)
         && motion.yaw != unit.yaw
-        && (blocker.is_some()
-            || (met.solid.is_some()
-                && backing_frees_pivot(ctx.world, unit, back.heading, motion.yaw)))
-        && stationary_yaw(ctx.world, units, i, motion.yaw) == unit.yaw
-    {
+        && stationary_yaw(ctx.world, units, i, motion.yaw) == unit.yaw)
+        .then(|| match (blocker, met.solid) {
+            (Some(_), _) => Some(drive::away(unit) * f64::INFINITY),
+            (None, Some(_)) => drive::room_to_turn(ctx.world, unit, drive::away(unit), |at| {
+                drive::yaw_toward(at, target, unit.direction())
+            }),
+            (None, None) => None,
+        })
+        .flatten();
+    if let Some(room) = room {
+        let back = drive::give_space(unit, room, speed, dt);
         let at = here + back.heading * back.step;
         let behind = push::meet(ctx.world, &hull_at(at, back.yaw), &current, push);
-        let traffic = units.iter().enumerate().any(|(j, other)| {
-            j != i
-                && other.ground_footprint().is_some()
-                && other.on_field()
-                && vehicle_conflict(unit, at, back.yaw, other)
-        });
-        if behind.solid.is_none() && behind.shoved.is_empty() && !traffic {
+        let traffic = in_the_way(units, i, at, back.yaw);
+        if behind.solid.is_none() && behind.shoved.is_empty() && traffic.is_none() {
             motion = back;
             next = at;
             met = behind;
@@ -1078,45 +1062,6 @@ fn stationary_yaw(world: &WorldGeometry, units: &[Unit], i: usize, yaw: f64) -> 
     } else {
         yaw
     }
-}
-
-/// Whether a hull whose pivot to `yaw` a body blocks would turn clear of the
-/// bodies once backed off along `away` by as far as its corners swing out
-/// past its nose (half its diagonal less half its length). Squeezed side
-/// to side, backing frees nothing, and it does not back away.
-fn backing_frees_pivot(world: &WorldGeometry, unit: &Unit, away: V2, yaw: f64) -> bool {
-    let here = unit.ground_footprint().expect("a vehicle has a hull");
-    let backed = Obb2 {
-        center: here.center + away * (here.half.length() - here.half.x),
-        ..here
-    };
-    let turned = Obb2 { yaw, ..backed };
-    push::meet(world, &turned, &backed, unit.ground().push)
-        .solid
-        .is_none()
-}
-
-/// Would this vehicle, moved to `next`, run into the vehicle `other`? Only a move that
-/// makes an existing overlap no worse is allowed, so touching units can part.
-fn vehicle_conflict(unit: &Unit, next: V2, yaw: f64, other: &Unit) -> bool {
-    let before = unit.ground_footprint().expect("a vehicle has a hull");
-    let after = Obb2 {
-        center: next,
-        yaw,
-        ..before
-    };
-    let other = other.ground_footprint().expect("a vehicle has a hull");
-    hull_conflict(before, after, other)
-}
-
-/// Look-ahead and actual steps keep the same clearance, including when parting.
-fn hull_conflict(before: Obb2, after: Obb2, other: Obb2) -> bool {
-    let padded = |hull: Obb2| Obb2 {
-        half: hull.half + v2(TRAFFIC_MARGIN_M, TRAFFIC_MARGIN_M),
-        ..hull
-    };
-    let depth = |hull: Obb2| hull.separation(&other).map_or(0.0, |v| v.length());
-    depth(padded(after)) > depth(padded(before)) + 1e-9 || depth(after) > depth(before) + 1e-9
 }
 
 /// Draw each living soldier's spot around the end of the squad's route for

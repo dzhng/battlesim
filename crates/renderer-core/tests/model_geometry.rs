@@ -2,6 +2,7 @@
 #[path = "support/runtime_library.rs"]
 mod runtime_library;
 mod support;
+use renderer_core::runtime::AdmissionWork;
 
 use presentation::records::{Appearance, Batch, Instance, NONE, VIEW_PASS};
 use presentation::static_world::props::{DRAWS_PROP, DRAWS_PROP_GROUND};
@@ -57,6 +58,7 @@ fn static_routing_placement_and_default_alias_share_geometry() {
             &strings,
             |_| None,
             |_, _| None,
+            &mut AdmissionWork::default(),
         )
         .unwrap()
     };

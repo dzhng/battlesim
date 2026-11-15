@@ -1,5 +1,6 @@
 //! Grass regrowth and capacity selection through the production GPU pipeline.
 mod support;
+use renderer_core::runtime::AdmissionWork;
 use std::path::Path;
 
 #[test]
@@ -114,6 +115,7 @@ fn grass_regrowth_preserves_draw_order_and_selects_a_stable_prefix_when_full() {
                 max_blades: 1,
                 capacity,
             },
+            &mut AdmissionWork::default(),
         );
         let mut results = Vec::new();
         for _ in 0..3 {
