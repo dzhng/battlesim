@@ -255,12 +255,12 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
         .unwrap();
     let geometry = Arc::new(WorldGeometry::from_triangles(&[], &[], &[], 64., None, &[]));
     let mut library_a = Library::from_bundle("synthetic-a", &bytes_a, &[]).unwrap();
-    let mut library_a_work = library_a.clone();
+    let work_a = library_a.take_admission_work();
     let mut runtime = Runtime::new(
         &gpu.device,
         &gpu.queue,
         runtime_config(),
-        library_a_work.take_admission_work(),
+        work_a,
         RuntimeWorld {
             presentation: &mut presentation,
             assets: &library_a,

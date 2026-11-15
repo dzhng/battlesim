@@ -31,9 +31,6 @@ import {
   type TemplateArtLibrary,
 } from "./templateLibrary.ts";
 import type { MountDraws } from "./units.ts";
-import type { ContentId } from "./contentIdentity.ts";
-
-export type { ContentId } from "./contentIdentity.ts";
 import {
   catalogLoadBytes,
   downloadBytes,
@@ -51,6 +48,13 @@ import {
   MAP_DOWNLOAD_MAX_BYTES,
   onRequestOf,
 } from "./schema.ts";
+
+/** The art identity carried from the runtime catalog into renderer admission:
+ *  the bundle's content hash and, for skinned art, its skeleton's. */
+export interface ContentId {
+  bundle: string;
+  skeleton: string | null;
+}
 
 export interface InstalledAppearance {
   /** Runtime catalog identity: bundle hash and, for skinned art, skeleton hash. */

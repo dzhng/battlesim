@@ -1,7 +1,7 @@
 /** Page-generated art identities, shared by proxy and tooling model paths. */
 import { bytes_hash } from "@wasm/renderer_browser";
 import { encodeBundle } from "@packages/scene-assets/src/codec";
-import type { ContentId } from "@packages/scene-assets/src/contentIdentity";
+import type { ContentId } from "@packages/scene-assets/src/loader";
 import type { Bundle, SkeletonClips } from "@packages/scene-assets/src/schema";
 
 const generated = new WeakMap<Exclude<Bundle, SkeletonClips>, ContentId>();
