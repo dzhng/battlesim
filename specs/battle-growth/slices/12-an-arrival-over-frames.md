@@ -6,13 +6,16 @@ notices?
 **Depends on:** 09. Added 2026-11-15 from the README's reslice trigger, when
 slice 09 found the largest arrival is a single type.
 
-## Outcome: not built
+## Where it stands
 
-Its first confirm-first question stopped it, as written. Of the RPG team's
-85.7 MB, 57.2 MB is copies posed for bodies that do not exist yet (18 of 27
-geometry keys). [Slice 13](13-a-body-draws-its-types-mesh.md) removes those
-copies instead. If an arrival is still long after it, this slice is the next
-step and its per-content timings are still to take.
+Its first confirm-first question stopped it once, as written: 57.2 MB of the
+RPG team's 85.7 MB was copies posed for bodies that did not exist yet.
+[Slice 13](13-a-body-draws-its-types-mesh.md) removed those copies. The team
+now packs 28.6 MB and its longest frame over three runs is 222, 194 and
+256 ms (400, 276 and 237 ms before): better, and still a hitch. This slice is
+the step left. Its first question is answered; the second (does each cost
+divide by content) is still to take, on the tree with slice 13 in it. The
+numbers below are from before slice 13.
 
 ## What happens today
 

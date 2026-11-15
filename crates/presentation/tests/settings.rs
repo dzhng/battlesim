@@ -99,6 +99,7 @@ fn overlay_constraints_are_owned_by_document_admission() {
         ("/overlay/orders/cover_glow", 0.9),
         ("/overlay/orders/vehicle_marker_margin_m", 0.0),
         ("/overlay/orders/building_marker_margin_m", 0.0),
+        ("/overlay/orders/garrison_outline_margin_m", 0.0),
         ("/overlay/orders/drop_line_px", 0.0),
         ("/overlay/orders/drop_line_spacing", 1.0),
         ("/overlay/orders/drop_line_alpha", 0.0),

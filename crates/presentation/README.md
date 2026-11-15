@@ -83,9 +83,10 @@ calls the same reader for workbench drafts.
   detail would otherwise select an impostor.
 - [Units](src/units/): interpolation between ticks (of units, falling
   airframes and the bodies they shove), the pose feed and driver,
-  articulation, joint palettes (and each skinned row's rest palette: a corpse
-  as it lies, a body in its far pose, which a renderer poses its mesh by once),
-  and where each drawn model's muzzles and rotors are. Track classification
+  articulation, joint palettes, and where each drawn model's muzzles and rotors
+  are. Each skinned row has a rest palette: a corpse as it lies, a body in its
+  far pose. Corpses share their appearance's living mesh and one palette per
+  drawn row in the frame; no pose owns packed geometry. Track classification
   belongs to presentation's pitch-qualified rig facts: renderer admission reads
   each node's side from the catalog. The source validator and workbench poser
   share the TypeScript bake rule; source validation rejects malformed tracks

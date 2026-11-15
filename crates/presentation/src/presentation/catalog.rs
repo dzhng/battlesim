@@ -282,20 +282,11 @@ impl<'a> CatalogView<'a> {
 }
 
 pub(super) fn asset_rest_palette(asset: &Asset, lies: u32) -> Option<Vec<Joint>> {
-    if lies == NONE {
-        return asset.palette(&Pose::Rest).map(|p| p.0);
-    }
-    let Asset::Animated { appearance, .. } = asset else {
-        return None;
-    };
-    let Appearance::Skinned { corpse_poses, .. } = appearance.as_ref() else {
-        return None;
-    };
-    let pose = corpse_poses.get(lies as usize)?;
     asset
-        .palette(&Pose::Clip {
-            clip: pose.clip.clone(),
-            phase: pose.phase,
+        .palette(&if lies == NONE {
+            Pose::Rest
+        } else {
+            Pose::Corpse { lies }
         })
         .map(|p| p.0)
 }

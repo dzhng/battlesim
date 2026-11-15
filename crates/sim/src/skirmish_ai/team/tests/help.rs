@@ -261,6 +261,7 @@ fn help_detachment_uses_weapon_target_classes_for_a_ground_threat() {
             reversing: false,
             smoking: false,
             member_leans: vec![],
+            building: None,
         });
     let objective = sites().objectives[0].clone();
     let candidates = recruit(
@@ -586,6 +587,7 @@ fn a_battle_observation_routes_help_to_a_human_lane_and_keeps_the_ally_lane() {
             reversing: false,
             smoking: false,
             member_leans: vec![],
+            building: None,
         });
     let plan = plan(
         Side::Blue,
