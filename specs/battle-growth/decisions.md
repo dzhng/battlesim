@@ -167,6 +167,70 @@ scene harness, five growths, run with
 - The player's own freezes were longer (2.9–9.9 s) on a larger window with the
   battle running in real time.
 
+**Slice 06 initial measurement, 2026-11-15.** Temporary `js_sys::Date::now()`
+timers (1 ms resolution) in the browser WASM admission timed the exact main-thread regions
+in `Runtime::stage_assets`: `finest_meshes` plus `stage_scenery` (placement),
+`Scenery::new` (scenery build), and `grass` (grass build). The timer and the
+probe scene/fixture were removed after the runs.
+
+| Workload | Growth | Placement | Scenery build | Grass build | Total |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Reference battle, high graphics | 1 | 115 ms | 6 ms | 3 ms | 124 ms |
+| Reference battle, high graphics | 2 | 104 ms | 6 ms | 1 ms | 111 ms |
+| Reference battle, high graphics | 3 | 94 ms | 5 ms | 1 ms | 100 ms |
+| Reference battle, high graphics | 4 | 91 ms | 5 ms | 2 ms | 98 ms |
+| Reference battle, high graphics | 5 | 120 ms | 6 ms | 2 ms | 128 ms |
+| `battle-growth`, high graphics | 1 | 45 ms | 3 ms | 1 ms | 49 ms |
+| `battle-growth`, high graphics | 2 | 45 ms | 7 ms | 1 ms | 53 ms |
+
+The reference run took 401 s and reached five staged admissions; the small
+scene passed in 29 s. Every total is clearly above one 16 ms frame, so Slice 06
+was built. Review rejected the first implementation's duplicate byte hashing,
+address-based reuse keys and deep-cloned placement. Its initial tests did not
+cover the final identity refinement or compare with a clean final-catalog build;
+the corrective pass below supersedes those implementation claims.
+
+**Slice 06 corrective pass, 2026-11-15.** Merged slices 01 and 02 at
+`3456f63e6`. Static reuse reads the canonical `ContentId` through the required
+`BundleSource::content_id` seam in every source. No admission hashes transported
+bytes or uses an allocation address as identity. Ground identity is its revision:
+`set_ground` and `ground_mut` bump it; catalog commits do not.
+
+A draft shares immutable scenery placement through `Arc<Scenery>` and resolves
+its appearance rows again. It does not clone map placement, sizes, trunks or
+lookup indexes. On an unchanged commit the live walk retains its indexes,
+selection lists, dressing cache, cleared-ground and falling-tree knowledge;
+changed art builds a prospective walk and adopts current knowledge at commit.
+Unchanged grass retains the live GPU owner, including regrowth state that may
+have advanced while asynchronous cards baked.
+
+The same high-graphics reference probe completed in 366 s, with five admissions
+and four committed growths (the first admission is superseded). Temporary
+`js_sys::Date::now()` timers wrapped the original three regions plus shared
+placement carry and row resolution in the presentation draft. All values below
+are milliseconds; 0 means below the timer's 1 ms resolution, or a skipped region,
+not an assertion of literally zero elapsed time. The before column repeats the
+initial measurement above, in admission order.
+
+| Growth admission | Before placement / scenery / grass / total | After carry | After placement | After scenery | After grass | After total |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| 1, superseded | 115 / 6 / 3 / 124 | 0 | 0 | 1 | 0 | 1 |
+| 1, committed | 104 / 6 / 1 / 111 | 0 | 0 | 1 | 0 | 1 |
+| 2 | 94 / 5 / 1 / 100 | 0 | 0 | 0 | 0 | 0 |
+| 3 | 91 / 5 / 2 / 98 | 0 | 0 | 0 | 0 | 0 |
+| 4 | 120 / 6 / 2 / 128 | 0 | 0 | 1 | 0 | 1 |
+
+All four reference commits reported `sceneryPlacements: 0` and
+`staticsBytesUploaded: 0`. Carry is below a millisecond on this map. The timers,
+probe copy and temporary registry entry were removed after measurement.
+
+On the timer-free final tree, `catalog` and `catalog_statics` passed (five tests
+each), as did `asset_generations` (six tests), `grass` and `grass_assets` (one
+each). The unchanged-admission test decodes a fresh source generation with the
+same `ContentId`s and compares its committed pixels to a second runtime built
+from scratch with the final catalog. Changed scenery content still places and
+uploads again. No assertions were weakened.
+
 Known imprecision: the library's decode count is cumulative, so a runtime
 rebuilt after a lost GPU device reports decodes it did not redo. Slice 02
 reworks the library and settles the count's owner.
@@ -266,6 +330,114 @@ the player sees behind three other slices. Its batches are bounded by bytes
 because one runtime card is about 3 MB across its targets and a full rebuild
 bakes about 190 of them.
 
+**Slice 07, 2026-11-15.** The binding seam is identity-first:
+`Renderer::missing_content_ids(presentation, json)` accepts the presentation
+and a JSON array of `ContentId` values, returning missing identities in request
+order. `AppearanceDraft::declare` routes every wanted name to an identity;
+`AppearanceDraft::add_bundle` supplies bytes by identity. A second name-plus-bytes
+API was rejected because it would preserve the full-resend requirement beside
+the delta contract. The page still sends every asset until slice 08; held
+content is a hit for both decoders.
+
+Presentation owns one immutable `Arc<Asset>` per `ContentId`. Names route to
+identities instead of holding copies; stages share held facts once per identity.
+These facts include static state bounds, tier counts and corners, or animated
+rigs, poses and clip tables. Rows, palettes, culling, building bounds and scenery
+fitting need them when no bytes arrive. A second fact map keyed by name and deep
+clones on every stage were rejected because unchanged rigs and clip tables would
+still cost catalog-sized work.
+
+`Library::missing_content` owns the answer to “held”: decoded bundle and retained
+presentation facts must both exist. The shared `SourceDraft` used by the browser
+binding and native runtime tests uses this same answer. Initial renderer
+installation requires facts for every decoded content identity; the first scene
+installs facts for all its sources before admitting its renderer. Trusting only
+the renderer snapshot was rejected because it could suppress supplied facts that
+presentation lacked. A mesh-only hit supplied by the shell reads its missing
+facts without decoding geometry again.
+
+Drafts retain identities, never old decoded bundle ownership. Preparation
+resolves every declaration against the current committed owners. If another
+commit retired held content, preparation fails before GPU work, leaving live art
+intact; retry belongs to slice 08. Only declared identities survive a successful
+commit, including when the shell supplied extra bytes. A replacement name drops
+its old content when no other route uses it.
+
+Placement metadata remains in each wanted name's declaration because it describes
+placement rather than content. A second identity-keyed placement table was
+rejected as a duplicate owner. Complete and delta admissions must yield equal
+worlds (including the row lookup index) and equal committed draws; the test uses
+distinct facts for each identity so wrong routing cannot pass.
+
+Every `LabAsset` requires its creator's `ContentId`: catalog art passes the
+catalog pair, and generated art uses `generatedContentId`. The binding's fallback
+hash was rejected because it omitted skeleton identity and repeated work at each
+install. `insert_bundle` calls `insert_content`'s single decoder and then routes
+the name; decode failures identify the content.
+
+**Slice 05a, 2026-11-15.** Confirmed first on the reference battle from the
+freeze report, at high graphics, in the scene runner's 1280 × 800 viewport.
+Temporary timers isolated the entire bake and each awaited read. The initial
+189-card bake took 0.904 s (567 reads, 0.361 s in those waits) before battle
+frames competed with it. Two later growths each baked 234 cards:
+
+| Growth | Bake | Awaited reads | Time in reads | Other bake work | Staging to commit |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Before 1 | 124.027 s | 702 | 122.914 s | 1.113 s | 127.356 s |
+| Before 2 | 104.598 s | 702 | 103.521 s | 1.077 s | 108.504 s |
+
+Over 99% of each growth's bake was in the sequential reads: the inference was
+right. Individual reads averaged 175 ms and 147 ms in these growths. The
+catalog and battle now produce more cards than slice 00's earlier measurement;
+these are this checkout's measured counts, not new expectations for content.
+
+After batching, the same reference route at high graphics committed its first
+two growth admissions in 5.248 s and 4.542 s. They each baked 189 cards, issuing
+567 GPU reads in 21 read-wait groups; the isolated bakes took 2.032 s and
+1.369 s. These are admission timings, not a matched-card benchmark: the earlier
+run materialized requested LFS files while loading and coalesced more arrivals
+before staging (234 cards), whereas the after run had those files available
+and admitted earlier (189 cards). The synthetic tests hold inputs fixed for the
+work-count and byte-equality proof.
+
+The reads no longer each add a frame. Within each card, 95% of channel wait
+spreads were at most 1 ms (maxima 15 ms and 3 ms). A whole batch still waits
+behind battle frames: its awaited duration averaged 94.9 ms and 63.3 ms, with
+maxima 179 ms and 183 ms. Those group durations include readback copying and
+coverage filtering, and sum to 1.993 s and 1.330 s; unlike the before timer,
+they are not pure GPU-read waits. Batching removes repeated round trips, not
+frame pacing or the synchronous staging freeze owned by the other slices.
+
+Decisions left open by 05a:
+
+| Decision | Why; alternative rejected |
+| --- | --- |
+| A 64 MiB byte bound, owned by `impostor::DEFAULT_BAKE_MEMORY_BYTES` and carried by `RuntimeConfig::art_store.card_bake_memory_bytes` into pending admissions | The runtime spec needs 7 MiB per card: three 1 MiB RGBA8 targets, three aligned 1 MiB readbacks, and 1 MiB of depth. Nine cards fit (63 MiB); a small new type fits one batch. Holding 234 cards together would account for about 1.6 GiB. A card-count cap was rejected because changing atlas dimensions would silently change its memory cost. A bound below one card is refused rather than silently exceeded. |
+| Submit every card in a batch, then use `futures_util::future::join_all` across cards and across their three channels | All maps can become pending before yielding to the browser; output order remains input order. `join_all` waits for every result before propagating an error, with no cancellation handle. A custom polling executor and a second single-card API were rejected. Each card keeps the original submission and target-destruction protocol. |
+| One lazily uploaded immutable authored-materials buffer per `Models` generation | Runtime batches and configurable review requests share it. Diagnostic channel controls still write the separate live materials table. Reusing that mutable table would bake diagnostic suppression; uploading per batch would still repeat stage work. `OnceLock` supplies the lifetime without another admission path, and memory diagnostics and destruction include the buffer. |
+| `impostor_request` takes a slice of rows and `BakeRequest::read` returns ordered atlases | Runtime and review use one grouped request contract. The browser review caller passes one row and still returns its existing single-atlas JavaScript object. Parallel wrapper APIs were rejected. |
+| `AdmissionWork::card_read_waits`, serialized as `cardReadWaits`, counts actual batch awaits | It travels through the existing generic serde/report path. The unchanged `battle-growth` logger prints it with the rest of the work. Timing assertions and a count derived only from the planned number of cards were rejected. |
+| Report the first split once per runtime through `ArtStorePolicy::report`, shared with the store tripwires | The policy now carries the card byte bound beside the slot bound. The existing shell sink keeps the core platform-free; the original decision to reject a callback was superseded when slice 03 supplied this sink. A runtime-owned latch also covers dropped/stale pending bakes and survives a fresh-store fallback. Reporting each full rebuild would repeat the same 21-batch warning on every growth. A guessed new-type size threshold was rejected because 05a still bakes whole catalogs; slice 05 owns selecting new cards. No second sink was added. |
+
+Validation: `cargo test -p renderer-core --test asset_generations card --
+--nocapture` was red with the sequential implementation behind the new request
+seam: four cards reported 12 waits versus one, grouped requests were refused,
+and the materials upload was 640 bytes versus the fixture-derived 160 bytes.
+`cargo test -p renderer-core --test asset_generations --test impostors --
+--nocapture` then passed all seven admission tests and both existing impostor
+tests. Deliberately routing every batched request to its first row made
+`cards_baked_in_one_batch_match_each_card_baked_alone` fail on atlas identity;
+the mutation was removed. `cargo check -p native-client`,
+`cargo check -p renderer-browser --target wasm32-unknown-unknown` and the owning
+crates' all-target Clippy check passed. Temporary timers, scene copies and the
+fixture entry are excluded from the commit. No delegated decision remains open.
+
+After restoring the deliberate fault and removing instrumentation, both named
+GPU test binaries passed again. `SCENE_GRAPHICS_QUALITY=high bun run --cwd web
+scene -- battle-growth` also passed and printed `cardsBaked: 189` and
+`cardReadWaits: 21`. Its missing Paris homes/farmsteads kits and regional bench
+were LFS setup media; their region's requested bundles/textures were materialized
+before the successful run, without changing any assertion.
 **Correction to slice 00's small-skirmish numbers, 2026-11-15.** The page's
 counts on the first `art committed` cover everything since the page loaded:
 the first scene publishes no event, so nothing reset them. The 272 contents
@@ -321,3 +493,134 @@ reference probe did.
   after commit and checks actual replacement instances at every observed body
   position. A far overview and screenshot-only inference were rejected because
   neither proves the block-to-model swap for the identified bodies.
+**Slice 01 in the reference battle, 2026-11-15.** The probe again, on the
+merged tree, at high graphics:
+
+| Growth | Staging to commit | Files fielding read | Installs | Cards baked |
+| --- | ---: | ---: | ---: | ---: |
+| 1 (staged twice, 4 s apart) | 109 s | 2 (8 MB) | 1 | 189 |
+| 2 | 65 s | 2 (5 MB) | 1 | 189 |
+| 3 | 69 s | 4 (12 MB) | 1 | 207 |
+| 4 | 70 s | 2 (4 MB) | 1 | 207 |
+
+- Before the slice each growth read all 136 files (635 MB) and installed
+  twice. The first scene still reads 136 and installs two generations.
+- The freeze at staging is unchanged, 2.6–3.6 s, as expected: it is the
+  geometry, texture and transport work of slices 03, 04, 07 and 08.
+- **The doubled staging is two stagings of the same art.** Growth 1 staged
+  twice four seconds apart, both times with 145 appearances, and the first
+  build was thrown away after its bake. The kinds list changes only when its
+  content does, so the second staging is most likely a kind that brings no
+  new appearance (a contact's kind, a wreck's owner). That is not confirmed.
+  Slice 08 owns it: a staging that wants the same art as the build in flight
+  should not discard that build.
+
+**Slice 03, 2026-11-15.**
+
+- `Runtime` owns one `Arc<Mutex<ArtStore>>` per scene/device, also held by model
+  generations. `MaterialSlots` owns append-only ranges per `ContentId`; the weak
+  geometry index owns no buffer lifetime. Rejected: a separate incremental
+  renderer, strong cache retention, or slot renumbering after cancelled work.
+- The geometry key includes content, the resolved static state, an optional
+  baked corpse palette (the exact joint bytes), and the ordered track-side
+  signature. The corpse row/`lies` index is not an identity. Animated skinning
+  keeps the unposed mesh; changing its live palette does not repack it.
+- An admission resolves its complete wanted content and preflights capacity
+  before any geometry allocation. Material and texture tables are rebuilt from
+  the generation's decoded bundles at the store's stable material bases; the
+  slot table retains addresses only, not retired CPU materials or textures.
+  Rejected: retaining old bundle data in the store, or discovering exhaustion
+  midway through a geometry rebuild.
+- The default dead-material-slot tripwire is **8,192 slots**, counting addresses
+  absent from the prospective catalog, including reservations left by dropped
+  preparations. A read of this runtime catalog found 4,587 material rows across
+  479 distinct appearance contents, so the bound exceeds the whole current art
+  catalog and ordinary monotonic battle growth cannot hit it. Rejected: a
+  time-based eviction policy or a tight percentage bound that rebuilds during
+  ordinary growth. `ArtStorePolicy` supplies the bound and platform log sink;
+  firing logs kind, value, bound, owner and the fresh-store outcome.
+- Dead-slot pressure and exhausted historical addresses use the same admission
+  into a new store. A wanted catalog larger than the 16-bit address space is an
+  error; vertex packing also checks the actual material index instead of
+  narrowing with a wrapping cast. Initial admission, device recreation and the
+  two slot tripwires have distinct rebuild reasons; reused growth has none.
+- `BundleSource::content_id` carries the identity to the store. The browser
+  library reads its existing name-to-content index; the native source asks
+  `Runtime::content_id` without caching decoded bundles. Every synthetic source
+  supplies an explicit fixture identity rather than falling back to a name.
+- Geometry lifetimes are generation-held shared references. `Models::Drop`
+  still releases its own per-generation textures; it does not destroy shared
+  vertex/index buffers. The final `Arc<[Drawable]>` holder drops the tiers,
+  whose destructors destroy their buffers. Confirmed in wgpu's browser backend:
+  dropping a buffer handle alone does not destroy its allocation, so deferring
+  this cleanup to browser garbage collection was rejected. The store's
+  memory visitor also counts geometry held by pending generations sharing the
+  live store, without extending those lifetimes beyond the snapshot.
+- Synthetic runtime admissions confirmed exact pixel equality against a clean
+  build after a name-sorting insertion, content replacement and fresh-store
+  fallback. The prescribed key covered those inputs without widening. Dropped
+  and stale candidates also preserve live pixels, and retirement releases the
+  old geometry while the store remains alive.
+- At the scene's own profile and at high, `battle-growth` packs 8,648,160
+  vertex bytes at growth, down from 1,141,746,672. A scratch observer of the
+  committed names found just the BTR-82A and its wreck newly admitted; their
+  bundle vertex counts independently sum to exactly 8,648,160 packed bytes.
+  Geometry uploads are those vertices plus 1,396,896 index bytes; the other
+  126,480 buffer bytes are the generation's material table. Texture/card and
+  scenery work remains for the other slices.
+
+**Slice 03, verified on the merged tree, 2026-11-15.** `battle-growth` at the
+scene's own profile and at high, one growth: 8.6 MB of vertices packed and
+10.2 MB of buffers uploaded, against 1.14 GB and 1.32 GB before. Still whole
+at every growth: 178 texture layers (125 MB, slice 04), 189 cards (slices 05a
+and 05), one scenery placement and 22 MB of scenery (slice 06), and 203
+bundles sent with 194 decoded (slices 07 and 08).
+
+**Slice 07 integration with 01 and 03, 2026-11-15.** A source draft's explicit
+name routes supply `BundleSource::content_id` to the runtime's shared art store,
+including held content and aliases. The delta lifecycle test uses the same
+runtime fixture and pixel reader as the geometry-reuse tests; the common catalog
+fixture stages wanted identities plus facts through presentation's one API.
+All eleven existing admission tests retain their assertions alongside the three
+delta tests. On the merged browser path, growth decoded two bundles and packed
+8,648,160 vertex bytes; the page read two runtime files and installed once.
+The first-scene facts guard precedes consuming the pending rebuild reason, which
+is cleared only after successful renderer installation.
+**Slice 05a integrated with 01 and 03, 2026-11-15.** The card byte bound now
+shares `ArtStorePolicy` with the slot tripwire and the shell-supplied report
+sink. A runtime-owned shared latch reports the first split once, including a
+pending bake that is dropped; changing the store cannot rearm that warning.
+The full bake still counts every batch in each admission. The core has no
+`web-sys` dependency or platform-specific logging branch.
+
+Card fixtures join the existing generation fixture owner and share its one
+container writer, config and `Stage` runtime setup. All earlier geometry and
+card assertions remain. The new sink/lifetime test first failed because the
+configured sink received zero reports while the split printed to stderr; it
+then passed across repeated dropped preparations and two independent runtimes.
+
+On the merged tree, the requested renderer lib and five named test binaries
+passed all 39 tests. Native-client and WASM checks, the WASM build, typecheck,
+and high-graphics `battle-growth` passed. The scene reported 8,648,160 vertex
+bytes packed, 10,298,016 buffer bytes uploaded, 189 cards and 21 read waits;
+one growth read two runtime contents (7,942,032 bytes) and installed one art
+library generation. A reused growth has no rebuild reason. The spec README
+was taken from upstream without changing its status or checklist.
+
+**Slice 05a, verified on the merged tree, 2026-11-15.** `battle-growth`: 189
+cards baked in 21 read waits. The scene's timeline is now staged, committed,
+staged, committed: with a short bake the first build commits before the
+second staging arrives, so the doubled staging costs a second admission and
+no longer a discarded one. Slice 08 still owns making it one.
+
+**Slice 06, verified on the merged tree, 2026-11-15.** `battle-growth` at
+growth: no scenery placement and no scenery or grass bytes uploaded (one
+placement and 22 MB before). The placement types are not `Clone`: a draft
+shares the live placement, and nothing copies it.
+
+**Slice 07, verified on the merged tree, 2026-11-15.** `battle-growth` at
+growth, with slices 01, 03, 05a, 06 and 07 together: 2 bundles decoded (194
+before), 8.6 MB of vertices packed, 21 card read waits, no scenery work, 2
+art files read by fielding. Still whole: 178 texture layers written (slice
+04), 189 cards baked (slice 05), 203 bundles encoded and sent by the page
+(slice 08). The armory scene passes.

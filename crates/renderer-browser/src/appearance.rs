@@ -1,22 +1,30 @@
 //! Atomic source, canonical facts and GPU appearance-generation admission.
 use super::*;
 use presentation::presentation::catalog::Placement;
-use presentation::presentation::lab::{Asset, ModelInput};
+use presentation::presentation::lab::ModelInput;
 use presentation::world::Detail;
+use renderer_core::bundle::SourceDraft;
 use renderer_core::runtime::ReadyAssets;
-use std::collections::{BTreeMap, HashSet};
+use std::collections::BTreeMap;
 
 /// Owned source draft; adding or dropping it cannot change a live renderer.
 #[wasm_bindgen]
 pub struct AppearanceDraft {
-    library: Library,
-    facts: BTreeMap<String, Asset>,
+    sources: SourceDraft,
     detail: Detail,
     placements: BTreeMap<String, Placement>,
 }
 
 #[wasm_bindgen]
 impl AppearanceDraft {
+    /// Declare every wanted route. Bytes are supplied separately only for
+    /// identities the renderer reports missing.
+    pub fn declare(&mut self, name: String, content_id: String) -> Result<(), JsValue> {
+        let content = serde_json::from_str(&content_id).map_err(js_error)?;
+        self.sources.declare(name, content);
+        Ok(())
+    }
+
     /// Placement metadata accompanies mesh bytes in the authored catalog.
     pub fn set_placement(&mut self, name: String, json: &str) -> Result<(), JsValue> {
         self.placements
@@ -26,7 +34,6 @@ impl AppearanceDraft {
 
     pub fn add_bundle(
         &mut self,
-        name: String,
         content_id: String,
         bundle: &[u8],
         texture_ids: js_sys::Array,
@@ -38,14 +45,10 @@ impl AppearanceDraft {
             .iter()
             .map(|(id, data)| (id.as_str(), data.as_slice()))
             .collect();
-        // Both decoders finish before either draft owner changes.
-        let facts = Asset::from_bundle(bundle, skeleton.as_deref()).map_err(js_error)?;
-        let content: contract::identity::ContentId =
-            serde_json::from_str(&content_id).map_err(js_error)?;
-        self.library
-            .insert_bundle(&name, content, bundle, &refs)
+        let content = serde_json::from_str(&content_id).map_err(js_error)?;
+        self.sources
+            .add_bundle(content, bundle, &refs, skeleton.as_deref())
             .map_err(js_error)?;
-        self.facts.insert(name, facts);
         Ok(())
     }
 }
@@ -61,10 +64,13 @@ pub struct PreparedAppearances {
 impl Renderer {
     /// Share immutable source textures with the active generation while a new
     /// catalog is decoded. The draft cannot change live bundle ownership.
-    pub fn appearance_draft(&self, detail: &str) -> Result<AppearanceDraft, JsValue> {
+    pub fn appearance_draft(
+        &self,
+        presentation: &Presentation,
+        detail: &str,
+    ) -> Result<AppearanceDraft, JsValue> {
         Ok(AppearanceDraft {
-            library: self.model_library.empty_generation(),
-            facts: BTreeMap::new(),
+            sources: SourceDraft::new(&self.model_library, presentation.core()),
             placements: BTreeMap::new(),
             detail: serde_json::from_str(detail).map_err(js_error)?,
         })
@@ -76,34 +82,22 @@ impl Renderer {
     pub fn prepare_appearances(
         &self,
         presentation: &Presentation,
-        mut draft: AppearanceDraft,
+        draft: AppearanceDraft,
     ) -> Result<js_sys::Promise, JsValue> {
         self.gpu.ensure_live()?;
         let runtime = self
             .runtime
             .as_ref()
             .ok_or_else(|| js_error("install presentation before preparing appearances"))?;
-        let catalog = presentation
-            .core()
-            .stage_catalog(draft.facts, draft.detail, draft.placements)
+        let (library, catalog, work) = draft
+            .sources
+            .stage(
+                &self.model_library,
+                presentation.core(),
+                draft.detail,
+                draft.placements,
+            )
             .map_err(js_error)?;
-        let view = catalog.view(presentation.core()).map_err(js_error)?;
-        let world = view.world();
-        let mut names: HashSet<String> = world
-            .appearances
-            .iter()
-            .map(|r| world.strings[r.name as usize..(r.name + r.name_len) as usize].into())
-            .collect();
-        if let Some(ground) = view.ground() {
-            names.extend(ground.grass_kinds());
-            names.extend(ground.scenery_kinds());
-        }
-        // Preserve canonical battle/static sources, remove retired external art,
-        // and replace only names carried by the desired generation.
-        let draft_work = draft.library.take_admission_work();
-        let mut library = (*self.model_library).clone();
-        library.replace_with(draft.library);
-        library.retain(|name| names.contains(name));
         let pending = runtime
             .stage_assets(
                 &self.gpu.device,
@@ -111,7 +105,7 @@ impl Renderer {
                 presentation.core(),
                 catalog,
                 &library,
-                draft_work,
+                work,
             )
             .map_err(js_error)?;
         let gpu = self.gpu.clone();

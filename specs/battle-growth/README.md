@@ -1,7 +1,7 @@
 # Battle growth: a new unit type costs only its own art
 
-**Status:** slices 00 and 02 are done. Six slices are out with implementers
-(see the lanes below).
+**Status:** slices 00, 01, 02, 03, 05a, 06 and 07 are done. Two slices are
+out with implementers (see the lanes below). Slice 08 can start.
 **Updated:** 2026-11-15.
 
 This plan replaces the "shared GPU assets across generations" placeholder. That
@@ -13,23 +13,19 @@ player sees, and sharing GPU assets is one part of the fix.
 You are fixing the multi-second freeze that happens whenever a running battle
 first fields a unit type it had not shown. The admission work report exists,
 `battle-growth` prints it, and the [ledger](decisions.md) holds what it and
-the reference battle measured. Six slices are out with implementers, each
+the reference battle measured. Two slices are out with implementers, each
 in its own checkout and thread:
 
 | Slice | Branch | State |
 | --- | --- | --- |
-| 01 | `t3/battle-growth-admission-report` | First pass rejected: it cached inflated bytes in WASM, and its install count was 1 by construction. Fix round sent. |
-| 03 | `t3/art-content-identity` (slice 02's checkout) | Building. |
-| 05a | the "cards bake together" child's branch | Confirms the cause first, then builds. |
-| 06 | the "statics carry" child's branch | Timing scenery work at growth; builds only if it costs more than a frame. |
-| 07 | the "catalog delta" child's branch | Building. |
-| 10 | `t3/battle-growth-stand-in-mechanics` | Fix round sent for the findings in the ledger. |
+| 04 | `t3/art-content-identity` (the checkout of slices 02 and 03) | Building. |
+| 10 | `t3/battle-growth-stand-in-mechanics` | The mechanics, scene and close shots are right. Open: a second block in the vehicle shot that is not a Rust stand-in (probably the browser's older proxy path drawing the player's own tank). Then it merges. |
 
 When one returns: read its whole diff (changed tests first), rerun its checks
-yourself, merge it into this branch, then start what it unblocks (04 after
-03; 05 after 04 and 05a; 08 after 01, 05, 06 and 07; 11 after 10). Slices 03,
-05a and 07 all touch `crates/renderer-core`; whichever merges later merges
-this branch in first.
+yourself, merge it into this branch, then start what it unblocks (05 after 04
+and 05a; 08 after 05, 06 and 07; 11 after 10). Slices 04, 05a, 06 and 07 all
+touch `crates/renderer-core`; whichever merges later merges this branch in
+first.
 
 Read, in this order: this file, the [decisions ledger](decisions.md), the slice
 you are about to build, the [renderer contract](../../crates/renderer-core/README.md)
@@ -51,22 +47,23 @@ Warnings:
 - Each checkout's Rust build adds 3–22 GB. Check free space before a cold
   build, and remove a checkout's build output when its branch has merged. A
   burst of unrelated failures after a build usually means it ran out of space.
-- Slices 01 and 10 both change `crates/presentation/src/fielded.rs`; whichever
-  merges second merges the other in first.
+- The scenes and GPU tests of every lane share one GPU lock, so a long probe
+  in one lane holds up the others' scenes. Start scenes in the background and
+  wait for the lock.
 - Two implementers so far deleted or shortened comments to fit the file-size
   ratchet. Reject that in review: move code out by concept instead.
 
 Checklist:
 
 - [x] [00 Proof and probes](slices/00-proof-and-probes.md)
-- [ ] [01 Fielding and install](slices/01-fielding-and-install.md)
+- [x] [01 Fielding and install](slices/01-fielding-and-install.md)
 - [x] [02 Content identity](slices/02-content-identity.md)
-- [ ] [03 Geometry reuse](slices/03-geometry-reuse.md)
+- [x] [03 Geometry reuse](slices/03-geometry-reuse.md)
 - [ ] [04 Texture layers](slices/04-texture-layers.md)
-- [ ] [05a Cards bake together](slices/05a-cards-bake-together.md)
+- [x] [05a Cards bake together](slices/05a-cards-bake-together.md)
 - [ ] [05 Card reuse](slices/05-card-reuse.md)
-- [ ] [06 Statics carry](slices/06-statics-carry.md) (conditional)
-- [ ] [07 Catalog delta](slices/07-catalog-delta.md)
+- [x] [06 Statics carry](slices/06-statics-carry.md)
+- [x] [07 Catalog delta](slices/07-catalog-delta.md)
 - [ ] [08 Browser transport and the growth gate](slices/08-browser-transport-and-growth-gate.md)
 - [ ] [09 Preload](slices/09-preload.md)
 - [ ] [10 Stand-in mechanics](slices/10-stand-in-mechanics.md)

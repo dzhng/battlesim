@@ -98,7 +98,17 @@ impl Renderer {
         presentation: &mut Presentation,
         scenery: bool,
     ) -> Result<u32, JsValue> {
+        let contents: Vec<_> = self.model_library.content_ids().cloned().collect();
+        let missing = self
+            .model_library
+            .missing_content(presentation.core(), &contents);
+        if !missing.is_empty() {
+            return Err(js_error(format!(
+                "install presentation facts before renderer sources: {missing:?}"
+            )));
+        }
         let mut starting_work = Arc::make_mut(&mut self.model_library).take_admission_work();
+        starting_work.rebuild_reason = self.pending_rebuild_reason;
         if scenery {
             renderer_core::scenery::place_scenery(
                 presentation.core_mut(),
@@ -128,6 +138,7 @@ impl Renderer {
         .map_err(js_error)?;
         runtime.set_overlay_glow(&self.gpu.queue, self.overlay_glow);
         self.runtime = Some(runtime);
+        self.pending_rebuild_reason = None;
         self.rebind_display();
         presentation.refresh_frame_header();
         Ok(presentation.refresh_world_header())

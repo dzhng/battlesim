@@ -1,4 +1,5 @@
 //! Native runtime fetching for the shared appearance bundle decoder.
+use contract::identity::ContentId;
 use renderer_core::bundle::{Bundle, BundleSource};
 
 use presentation::assets::Runtime;
@@ -38,5 +39,9 @@ impl Library {
 impl BundleSource for Library {
     fn bundle(&self, name: &str) -> Result<Arc<Bundle>, String> {
         self.bundle(name)
+    }
+
+    fn content_id(&self, name: &str) -> Result<ContentId, String> {
+        self.runtime.content_id(name)
     }
 }

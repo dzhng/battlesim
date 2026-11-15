@@ -1711,6 +1711,7 @@ name = "presentation-wasm"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
+ "contract",
  "presentation",
  "serde",
  "serde_json",
@@ -1867,6 +1868,7 @@ version = "0.1.0"
 dependencies = [
  "bytemuck",
  "contract",
+ "futures-util",
  "half",
  "libm",
  "naga",

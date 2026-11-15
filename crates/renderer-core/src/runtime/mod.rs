@@ -1,6 +1,7 @@
 //! Resource composition and canonical presentation preparation shared by all shells.
 mod assets;
 mod controls;
+mod statics;
 mod stats;
 mod work;
 pub use assets::{PendingAssets, ReadyAssets};
@@ -9,7 +10,7 @@ pub use controls::Controls;
 pub use work::{AdmissionWork, RebuildReason};
 pub use world::WorldGeometry;
 
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
 
 use presentation::light::LightSettings;
@@ -27,6 +28,7 @@ use crate::frame::{FrameInputs, FrameRenderer, PaintFrame};
 use crate::grass::Grass;
 use crate::ground::{Ground, GroundData};
 use crate::models::Models;
+use crate::models::SharedArtStore;
 use crate::overlay::{self, OverlayResources};
 use crate::paint::{PaintGeometry, PaintResources};
 use crate::pipelines::Pipelines;
@@ -56,6 +58,7 @@ pub struct RuntimeConfig {
     pub hdr_output: bool,
     pub water_detail: WaterDetail,
     pub controls: Controls,
+    pub art_store: crate::models::ArtStorePolicy,
 }
 
 /// CPU inputs rather than platform-assembled GPU resources. Presentation is
@@ -99,6 +102,7 @@ pub struct Runtime {
     pub paint: Option<PaintResources>,
     pub high_air: Option<crate::high_air::HighAir>,
     config: RuntimeConfig,
+    statics_identity: statics::StaticIdentity,
     geometry: Arc<WorldGeometry>,
     overlay_glow: crate::records::OverlayGlow,
     generation: u32,
@@ -107,6 +111,10 @@ pub struct Runtime {
     prepared_frame: Option<u32>,
     pending_catalog_frame: Option<u32>,
     admission_work: AdmissionWork,
+    pub(super) art_store: SharedArtStore,
+    /// Pending bakes share this lifetime without borrowing the live runtime.
+    /// A store fallback must not rearm the same card-split warning.
+    card_bake_split_reported: Arc<AtomicBool>,
 }
 
 impl Runtime {
@@ -148,6 +156,8 @@ impl Runtime {
         let resolved = presentation
             .ground()
             .ok_or("renderer world has no presentation ground")?;
+        let statics_identity =
+            statics::StaticIdentity::new(presentation, world.assets, config.grass_density)?;
         let tables = resolved.terrain_tables(resolved.terrain_field()?);
         let plots = resolved.plot_records(true);
         let ground = Ground::from_data(
@@ -171,7 +181,12 @@ impl Runtime {
             },
         );
         let mut admission_work = starting_work;
-        admission_work.rebuild_reason = Some(RebuildReason::Initial);
+        admission_work
+            .rebuild_reason
+            .get_or_insert(RebuildReason::Initial);
+        let art_store = Arc::new(std::sync::Mutex::new(crate::models::ArtStore::new(
+            config.art_store,
+        )));
         let grass = assets::grass(
             device,
             queue,
@@ -188,6 +203,7 @@ impl Runtime {
             &pipelines,
             world.assets,
             presentation.catalog(),
+            art_store.clone(),
             &mut admission_work,
         )?;
         models.set_high_apart(config.separate_high_air);
@@ -264,6 +280,7 @@ impl Runtime {
             paint,
             high_air,
             config,
+            statics_identity,
             geometry: world.geometry,
             overlay_glow,
             generation: NEXT_GENERATION.fetch_add(1, Ordering::Relaxed),
@@ -272,6 +289,8 @@ impl Runtime {
             prepared_frame: None,
             pending_catalog_frame: None,
             admission_work,
+            art_store,
+            card_bake_split_reported: Arc::new(AtomicBool::new(false)),
         };
         runtime
             .ground
@@ -285,7 +304,14 @@ impl Runtime {
     /// Complete this admission phase before preparing the first frame.
     pub async fn prepare_assets(&mut self, device: &Device, queue: &Queue) -> Result<(), String> {
         self.models
-            .bake_cards(device, queue, &self.pipelines, &mut self.admission_work)
+            .bake_cards(
+                device,
+                queue,
+                &self.pipelines,
+                self.config.art_store,
+                &self.card_bake_split_reported,
+                &mut self.admission_work,
+            )
             .await
     }
 
@@ -554,6 +580,10 @@ impl Runtime {
             grass.record_memory(memory);
         }
         self.models.record_memory(memory);
+        self.art_store
+            .lock()
+            .expect("art store lock")
+            .record_memory(memory);
         self.scenery.record_memory(memory);
         self.effects.record_memory(memory);
         self.fog.record_memory(memory);

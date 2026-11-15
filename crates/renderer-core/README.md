@@ -15,9 +15,20 @@ for browser fetches. The held static batch buffers also belong to this core, so
 a frame that names an unchanged batch has the same meaning on either target.
 Preparation detects skipped publications and materializes current canonical
 populations before reusing held buffers; shells need no skipped-frame protocol.
-Appearance rows route instances rather than own copies of their meshes. Rows
-that select the same authored state/pose share immutable GPU tiers within one
-asset generation; corpse poses remain distinct.
+Appearance rows route instances rather than own copies of their meshes. Each
+runtime owns one scene/device [art store](src/models/store.rs), shared with
+pending generations. Its append-only material slots belong to content identities;
+inserting a row earlier in the catalog cannot change existing packed vertices.
+Dropped preparations keep their slot reservations, so they cannot renumber live
+art. Slot addresses must fit the vertex ABI; an oversized active catalog is an
+error. Excess dead slots or exhausted addresses admit through the same path with
+a fresh store, with the reason reported in admission work.
+
+The store's geometry index is weak and keyed by content, authored state, baked
+corpse palette and running-gear flags. Generations hold shared immutable tiers;
+the last holder destroys their GPU buffers. Neither a generation's drop nor the
+store explicitly destroys a buffer another generation can draw. Materials and
+row routing remain per generation, rebuilt against the stable slot addresses.
 Decoded bundles are keyed by the runtime catalog's `ContentId`: the bundle hash
 and, for skinned art, its skeleton hash. Names only route to that identity, so
 one name can replace its art and two names can share one decode. The library's
@@ -25,6 +36,13 @@ weak texture index cannot retain retired art. A new source draft shares that
 index without copying canonical bundle ownership, so a late draft cannot restore
 unrelated stale sources. Its pending decode count is drained when an admission
 takes it, so a device rebuild reports only decodes that admission performed.
+The shell asks for missing identities against both the decoded library and
+presentation's retained facts. [Source drafts](src/bundle/draft.rs) share that
+answer across browser transport and native contract tests. They retain no old
+bundle ownership and resolve held identities against the current committed
+owners at preparation, refusing retired content before GPU work. Declarations
+route every wanted name, while supplied bytes populate only those identities.
+Undeclared decoded sources are dropped when the library retains the wanted set.
 Initial buffer data is queued through
 the common upload owner, avoiding mapped-at-creation transfer copies in browsers.
 Scenery also shares authored tier admission and held-batch routing. Initial
@@ -35,6 +53,15 @@ reconstruction retains those facts and the observer's learned felling.
 [Impostors](src/impostor/) bake through the same authored model/material path,
 then filter coverage before uploading relit cards. Native and browser use the
 same atlases and shader; the impostor tier never substitutes a coarsest mesh.
+Runtime card bakes submit all cards in each memory-bounded batch before
+awaiting every channel's readback concurrently. The byte bound counts color
+and depth targets plus aligned readback buffers; its default lives with the
+[impostor specification](src/impostor/mod.rs). The runtime's
+[art policy](src/models/store.rs) carries the bound and platform report sink
+across staging. The first split is reported once per runtime, including pending
+work that is later dropped; admission work counts every batch's read wait. Authored materials upload once per generation on the first bake
+and remain separate from live diagnostic material controls. Grouped review
+requests use the same bake and preserve their input order.
 Asynchronous asset preparation finishes before a frame may request cards.
 Configurable offscreen bakes capture owned GPU resources, so replacing the
 source catalog cannot invalidate a pending review image.
@@ -47,6 +74,13 @@ runtime/catalog identity, transfers current placement knowledge, reapplies
 current controls, and requires a fresh
 canonical frame before drawing the new rows. Targets, compiled pipelines, sky,
 fog and learned ground retain their active owners throughout loading.
+
+Static admission compares the presentation's ground revision, ordered kind
+routes through `BundleSource::content_id`, and grass density. Unchanged static
+content performs no placement or scenery/grass upload. Scenery tiers keep their
+shared GPU buffers while row routing follows the prospective catalog; unchanged
+grass keeps its live owner so frames prepared during admission cannot lose its
+latest regrowth state.
 
 Sky and environment lighting share one owner too. The sky lookup and its
 reflection prefilter are baked from the presentation's light records at
@@ -62,8 +96,9 @@ work must be consumed rather than replayed.
 
 Each asset generation also carries an [`AdmissionWork`](src/runtime/work.rs)
 report: counts and payload bytes for decode, packing, uploads, texture layers,
-cards and scenery placement. It is swapped atomically with the generation, so
-discarded or stale preparation cannot change the live report.
+cards, card-read wait groups and scenery placement. It is swapped atomically
+with the generation, so discarded or stale preparation cannot change the live
+report.
 
 [World geometry](src/runtime/world.rs) constructs submitted layers for both
 shells through shared skirt, backdrop and water builders. Native supplies physical

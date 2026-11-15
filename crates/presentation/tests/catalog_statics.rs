@@ -1,4 +1,5 @@
 //! Art replacement refits the same known world without resetting its observer.
+use contract::identity::ContentId;
 use presentation::{
     presentation::{catalog::Placement, lab::Asset, Presentation, Ui},
     static_world::props::{Art, PropInput},
@@ -22,6 +23,25 @@ fn asset() -> Asset {
     }
     bytes.extend(head);
     Asset::from_bundle(&bytes, None).unwrap()
+}
+fn id(name: &str) -> ContentId {
+    ContentId::bundle(contract::identity::bytes_hash(name.as_bytes())).unwrap()
+}
+fn installed(name: &str, asset: Asset) -> (String, (ContentId, Asset)) {
+    (name.into(), (id(name), asset))
+}
+fn staged(
+    name: &str,
+    asset: Asset,
+) -> (
+    std::collections::BTreeMap<String, ContentId>,
+    std::collections::BTreeMap<ContentId, Asset>,
+) {
+    let content = id(name);
+    (
+        [(name.into(), content.clone())].into(),
+        [(content, asset)].into(),
+    )
 }
 #[test]
 fn same_name_props_refit_new_footprints_and_paint_using_knowledge_current_at_commit() {
@@ -88,9 +108,11 @@ fn same_name_props_refit_new_footprints_and_paint_using_knowledge_current_at_com
     )
     .unwrap();
     let replacement:Placement=serde_json::from_value(json!({"footprint":[2,1,1],"scenery":"crate","family":null,"paints":[[0,1,0]],"wreck":null})).unwrap();
+    let (wanted, facts) = staged("crate-art", asset());
     let candidate = p
         .stage_catalog(
-            [("crate-art".into(), asset())].into(),
+            wanted,
+            facts,
             detail(),
             [("crate-art".into(), replacement)].into(),
         )
@@ -214,9 +236,11 @@ fn building_replacement_updates_culling_extents_and_keeps_the_latest_known_ruin(
         None,
     )
     .unwrap();
+    let id = id("kit");
     let candidate = p
         .stage_catalog(
-            [("kit".into(), replacement)].into(),
+            [("kit".into(), id.clone())].into(),
+            [(id, replacement)].into(),
             detail(),
             Default::default(),
         )
@@ -257,6 +281,24 @@ fn scenery_admitted_after_world_and_tooling_art_stays_canonical_through_replacem
     scenery_replacement(true);
 }
 
+#[test]
+fn adding_an_appearance_carries_placed_scenery_without_requesting_placement() {
+    let mut p = Presentation::new(None, 30.0).unwrap();
+    ground::set_summer_ground(&mut p);
+    let mesh = ground::scenery_mesh(0.25, 4.0);
+    let kinds = p.ground().unwrap().scenery_kinds().len();
+    p.place_scenery(&vec![mesh.as_slice(); kinds]).unwrap();
+    let before = p.scenery_stats();
+
+    let (wanted, facts) = staged("new-unit", asset());
+    let candidate = p
+        .stage_catalog(wanted, facts, detail(), Default::default())
+        .unwrap();
+    assert!(!candidate.needs_scenery());
+    assert!(p.commit_catalog(candidate, Vec::new()).unwrap());
+    assert_eq!(p.scenery_stats(), before);
+}
+
 fn scenery_replacement(late: bool) {
     let biome = presentation::static_world::ground::biome::Biome::load(
         include_str!("../../../fixtures/biomes/summer.json"),
@@ -285,7 +327,7 @@ fn scenery_replacement(late: bool) {
     )
     .unwrap();
     if late {
-        p.install_lab_assets([("tool-crate".into(), asset())].into(), detail());
+        p.install_lab_assets([installed("tool-crate", asset())].into(), detail());
         p.place_scenery(&original_refs).unwrap();
         // Replacing the tooling suffix must retain admitted scenery rows.
         p.install_lab_assets(Default::default(), detail());
@@ -309,7 +351,12 @@ fn scenery_replacement(late: bool) {
     };
     assert_eq!(radius(p.stump_mesh(stump).unwrap()), 0.25);
     let mut candidate = p
-        .stage_catalog(Default::default(), detail(), Default::default())
+        .stage_catalog(
+            Default::default(),
+            Default::default(),
+            detail(),
+            Default::default(),
+        )
         .unwrap();
     let replacement = mesh(0.75, 8.0);
     let refs = vec![replacement.as_slice(); count];

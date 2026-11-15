@@ -1,4 +1,6 @@
 //! Catalog admission stages geometry facts while the active observer keeps running.
+mod facts;
+pub(in crate::presentation) use facts::Facts;
 mod static_art;
 use static_art::StaticDraft;
 pub(super) use static_art::{building_rows, scenery_from_art};
@@ -7,8 +9,10 @@ use super::lab::{self, Asset, ModelInput, Pose};
 use super::*;
 use crate::static_world::ground::Ground;
 use crate::world::Detail;
+use contract::identity::ContentId;
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::Arc;
 
 static NEXT_REVISION: AtomicU32 = AtomicU32::new(1);
 pub(super) fn next_revision() -> u32 {
@@ -20,6 +24,7 @@ pub(super) fn next_revision() -> u32 {
 /// kind it newly fields), held until an admission carries its rows and art.
 pub(super) struct CatalogState {
     revision: u32,
+    ground_revision: u32,
     staged: Option<StagedBattle>,
 }
 
@@ -32,6 +37,7 @@ impl CatalogState {
     pub(super) fn new() -> Self {
         Self {
             revision: next_revision(),
+            ground_revision: 0,
             staged: None,
         }
     }
@@ -40,9 +46,18 @@ impl CatalogState {
     pub(super) fn renew(&mut self) {
         self.revision = next_revision();
     }
+
+    pub(super) fn renew_ground(&mut self) {
+        self.renew();
+        self.ground_revision = self.ground_revision.wrapping_add(1);
+    }
+
+    pub(super) fn ground_revision(&self) -> u32 {
+        self.ground_revision
+    }
 }
 /// The world's records, read once per load.
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct World {
     pub appearances: Vec<Row>,
     pub strings: String,
@@ -118,7 +133,7 @@ pub struct Placement {
 pub struct CatalogDraft {
     revision: u32,
     world: World,
-    assets: BTreeMap<String, Asset>,
+    assets: Facts,
     detail: Detail,
     frontier: (usize, usize),
     battle: Option<BattleCatalog>,
@@ -252,7 +267,7 @@ impl<'a> CatalogView<'a> {
         rig.track_side(node)
     }
     pub fn stump_mesh(&self, row: u32) -> Option<&'a [f32]> {
-        if let Some(draft) = self.draft.filter(|d| d.statics.needs_scenery()) {
+        if let Some(draft) = self.draft.filter(|draft| draft.statics.scenery.is_some()) {
             return draft.statics.stump_mesh(row);
         }
         self.presentation.stump_mesh(self.active_row(row)?)
@@ -290,6 +305,12 @@ pub(super) fn asset_rest_palette(asset: &Asset, lies: u32) -> Option<Vec<Joint>>
 }
 
 impl Presentation {
+    /// A content identity is held for delta staging only when its geometry
+    /// facts survived the last catalog commit.
+    pub fn retains_catalog_facts(&self, content: &ContentId) -> bool {
+        self.lab.assets.contains_content(content)
+    }
+
     /// Canonical battle/static rows precede the replaceable tooling suffix.
     pub fn canonical_appearance_rows(&self) -> usize {
         self.lab
@@ -308,10 +329,12 @@ impl Presentation {
     /// poses, model requests or knowledge, and holds no observer borrow.
     pub fn stage_catalog(
         &self,
-        assets: BTreeMap<String, Asset>,
+        wanted: BTreeMap<String, ContentId>,
+        facts: BTreeMap<ContentId, Asset>,
         detail: Detail,
         placements: BTreeMap<String, Placement>,
     ) -> Result<CatalogDraft, String> {
+        let assets = self.lab.assets.stage(wanted, facts)?;
         let battle = self.stage_battle_catalog(&assets)?;
         let (rows, _) = self
             .lab
@@ -471,10 +494,7 @@ impl Presentation {
             .collect()
     }
 
-    fn stage_battle_catalog(
-        &self,
-        assets: &BTreeMap<String, Asset>,
-    ) -> Result<Option<BattleCatalog>, String> {
+    fn stage_battle_catalog(&self, assets: &Facts) -> Result<Option<BattleCatalog>, String> {
         let Some(loaded) = &self.loaded else {
             return Ok(None);
         };

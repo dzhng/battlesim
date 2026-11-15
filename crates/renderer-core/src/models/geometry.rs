@@ -7,12 +7,20 @@ pub const VERTEX_BYTES: usize = 48;
 /// A mesh's vertices in the shared 48-byte shader layout: `rigid` binds
 /// every vertex wholly to one palette joint, else the mesh's own skin;
 /// `track` is 1 or 2 for a track's links (their scroll), else 0.
-pub fn pack_vertices(mesh: &Mesh, material_base: usize, rigid: Option<u8>, track: u16) -> Vec<u8> {
+pub fn pack_vertices(
+    mesh: &Mesh,
+    material_base: usize,
+    rigid: Option<u8>,
+    track: u16,
+) -> Result<Vec<u8>, String> {
     let n = mesh.vertices();
     let mut material = vec![0u16; n];
     for d in &mesh.draws {
         for &i in &mesh.indices[d.first..d.first + d.count] {
-            material[i as usize] = (material_base + d.material) as u16;
+            material[i as usize] = material_base
+                .checked_add(d.material)
+                .and_then(|m| u16::try_from(m).ok())
+                .ok_or("model material index exceeds 16-bit vertex ABI")?;
         }
     }
     let mut out = vec![0u8; n * VERTEX_BYTES];
@@ -50,7 +58,7 @@ pub fn pack_vertices(mesh: &Mesh, material_base: usize, rigid: Option<u8>, track
         o[44..46].copy_from_slice(&material[v].to_le_bytes());
         o[46..48].copy_from_slice(&track.to_le_bytes());
     }
-    out
+    Ok(out)
 }
 
 /// `mesh` skinned once by `palette` (bind to model) into a rigid mesh
