@@ -16,33 +16,28 @@ Codex writes each pass and you integrate it. Read
 [decisions.md](decisions.md) first (parts 1 to 3 are settled; part 4 is what
 the build has decided so far) and [wire.md](wire.md), the one wire contract.
 
-**Blocked on disk.** On 2026-11-14 the machine ran out of space during a
-simulation test build here, with other sessions building too. Any commit
-that stages a `.rs` file runs the hook's workspace clippy, which needs a
-debug build of the whole workspace. Check `df -h .` before any Rust build
-or new checkout, and do not start one under 5 GB free: ask the user.
+**Watch the disk.** On 2026-11-14 the machine ran out of space during a
+simulation test build here, with other sessions building too. Check
+`df -h .` before any Rust build or new checkout. Under about 30 GB free, run
+Rust passes one or two at a time; under 5 GB, start nothing and ask the user.
 
-**Done and committed:** slices 04, 05, 14 and 24; the module of slice 10; the
-endurance half of slice 01.
+**Done and committed:** slices 02, 03, 04, 05, 14 and 24; the module of slice
+10; the endurance half of slice 01. The branch holds staging as of
+2026-11-15.
 
-**Pick up here, in this order, once there is space:**
+**Pick up here, in this order:**
 
-1. **Finish slice 02.** Codex's commit is `67844ee46` on the local branch
-   `t3/per-side-publisher-sim-orders`. Its changes plus two integration
-   fixes sit uncommitted in this checkout (a copy is at
-   `throwaway/multiplayer/slice02-integration-wip.patch`). One repair is
-   left, and it is written out under "Found at integration" in
-   [slice 02](slices/02-per-side-publisher.md): give per-side publication
-   one owner in `crates/sim` and regenerate the parity fixture from the
-   native test.
-2. **Integrate slice 03.** Codex's commit is `25dad0b20` on the same branch,
-   unreviewed beyond a first read of its diff.
-3. **Hand out slice 06,** the battle host. Slices 13 and 20 need nothing
-   first and can go out beside it.
-4. **Look at the skirmish lobby in a browser.** Nobody has since slice 04
+1. **Integrate slice 06,** the battle host, and **slice 20,** the AI
+   inheriting an army. Both went to Codex on 2026-11-15, each in its own
+   checkout, and each writes a report to `throwaway/multiplayer/` there.
+   Slice 20 may come back red on purpose: its "What the result changes"
+   section says what each outcome means.
+2. **Hand out slice 07,** the HTTP transport, once 06 is in. Slice 13 needs
+   nothing first and can go beside it.
+3. **Look at the skirmish lobby in a browser.** Nobody has since slice 04
    replaced its model. It should look and play exactly as before; capture it
    against its baseline before slice 17 builds on it.
-5. **Run slice 01's host half** (O1) on the probe app.
+4. **Run slice 01's host half** (O1) on the probe app.
 
 **How to work with Codex here.**
 
@@ -50,9 +45,11 @@ endurance half of slice 01.
   Codex told not to commit and not to touch other slices' files. That costs
   no disk. Do not commit while one is running: the hook stashes the working
   tree.
-- A Rust pass needs its own checkout: about 1 GB before any build and 1 to
-  2 GB after. Run at most two, and delete a child's `target/` and
+- A pass that builds needs its own checkout: about 1 GB before any build
+  and 1 to 2 GB after. Run at most two, and delete a child's `target/` and
   `node_modules` once its commits are safe on a branch.
+- The commit hook refuses growth in a file already over the size budget.
+  Split the file by concept; a pass once trimmed a comment to make room.
 - Read the changed tests first. Every pass so far came back green over a
   weakened gate: an expectation repinned to the new number, an assertion
   deleted with a comment, a rewrite that dropped nine tests, a new test
