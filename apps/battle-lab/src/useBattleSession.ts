@@ -23,9 +23,9 @@ import {
   knownOf,
 } from "@packages/battle-renderer/src/buildingObstacles";
 import { useWorldLayers } from "./useWorldLayers";
-import { gameRuntime, useBattleAppearances, useBattleKinds } from "./gameAppearances";
-import { gameHud } from "@web/battle/present/hudTheme";
-import { gameOrderFlash, gameXray } from "./gameOverlay";
+import { useBattleArt } from "./useBattleArt";
+import { useBattleWarmup } from "./useBattleWarmup";
+import { gameOrderFlash } from "./gameOverlay";
 import {
   NOTHING_REVEALED,
   OrderReveal,
@@ -72,9 +72,6 @@ import { UnitResponses } from "./unitResponses";
 import { assignments as voiceAssignments } from "@fixtures/voices.json";
 import { factionVoices } from "@packages/battle-audio/src/voices/voiceCatalog";
 import { frameCounts, presentedCamera } from "./presentedFrame";
-import { useBattleFielding } from "./useBattleFielding";
-import type { fieldedBattle } from "./presentedFrame";
-import { gameSun } from "./gameLight";
 import type { FogRequest, ScenePresentation } from "@web/battle/sim/presentation";
 import type { ViewportCamera } from "@packages/renderer-core/src/viewportCamera";
 import { useAppAudio } from "./AppAudio";
@@ -94,8 +91,6 @@ import {
 } from "./unitGhosts";
 import { byReference, pendingGhosts } from "./pendingGhosts";
 import { modelProbes } from "./modelProbes";
-
-const PURCHASE_BLOCKED = [...gameHud.bad, gameXray.selected[3]] as const;
 
 export function useBattleSession({
   scenario,
@@ -191,22 +186,6 @@ export function useBattleSession({
       audio && sim.client ? new UnitResponses(audio, units, faction, rules.tick_hz) : null;
   }, [audio, sim.client, units, faction, rules.tick_hz]);
   const { observation } = sim;
-  const requestedKinds = useBattleKinds({
-    scope: sim.client?.presentation,
-    side,
-    units,
-    fielded,
-    faction: skirmish && viewer ? faction : null,
-    observation,
-    purchasing,
-  });
-  const factionsForArt = useMemo(
-    () =>
-      skirmish
-        ? new Set(players.flatMap((player) => (player.faction ? [player.faction] : [])))
-        : null,
-    [skirmish, players],
-  );
   const sceneryForArt = useMemo(() => {
     if (!scenarioArt) return undefined;
     const candidate = map as { props?: unknown[]; forests?: unknown[] } | null;
@@ -295,43 +274,25 @@ export function useBattleSession({
   const mapBuildings = useMapBuildings(world);
   const placedProps = mapBuildings?.props ?? null;
   const drawnBuildings = mapBuildings?.index ?? null;
-  // The kits this map's buildings and stand-in boxes draw
-  // from and its region's looks, fetched once the map is known: the loading
-  // cover stays up for them.
-  const completeArt = useBattleAppearances({
+  const presentation = sim.client?.presentation ?? null;
+  const admitted = useBattleArt({
+    scenario,
+    seed,
+    side,
+    presentation,
     world,
     buildings: mapBuildings,
     units,
-    kinds: requestedKinds,
+    fielded,
+    rules,
+    rulesText,
     skirmish: skirmish !== undefined,
-    factions: factionsForArt,
+    players,
+    viewer: viewer !== null,
+    observation,
+    purchasing,
     scenery: sceneryForArt,
   });
-  // A battle/observer/map owns one sequence of complete topology/art generations.
-  const blueFaction = sideFaction("blue");
-  const redFaction = sideFaction("red");
-  const presentation = sim.client?.presentation ?? null;
-  const fielding = useMemo<Parameters<typeof fieldedBattle>[0]>(
-    () => ({
-      rules: rulesText,
-      catalog: units.view,
-      kinds: requestedKinds,
-      factions: skirmish ? [blueFaction!, redFaction!] : undefined,
-      runtime: gameRuntime,
-      side,
-      tickHz: rules.tick_hz,
-      sun: gameSun(),
-      soldier: rules.physics,
-      xray: gameXray,
-      blocked: PURCHASE_BLOCKED,
-    }),
-    [rulesText, units, requestedKinds, skirmish, blueFaction, redFaction, rules, side],
-  );
-  const fieldingScope = useMemo(
-    () => ({ scenario, seed, side, presentation, world }),
-    [scenario, seed, side, presentation, world],
-  );
-  const admitted = useBattleFielding(fieldingScope, fielding, completeArt);
   const {
     battle: worldInput,
     appearances,
@@ -796,7 +757,16 @@ export function useBattleSession({
     [control],
   );
 
-  const { onReady, onDispose, gpuAllocations, gpuFrame } = useViewportGpu(sim.onViewportReady);
+  const { onReady, onDispose, gpuAllocations, gpuFrame } = useViewportGpu(
+    useBattleWarmup({
+      scope: presentation,
+      units,
+      enemy,
+      factions: skirmish ? new Set(players.flatMap((p) => (p.faction ? [p.faction] : []))) : null,
+      observation,
+      onReady: sim.onViewportReady,
+    }),
+  );
 
   const probes = {
     tick: () => sim.latest.current?.tick ?? 0,

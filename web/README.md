@@ -42,6 +42,15 @@ or supersede the same candidate. Explicit grass-rule changes also prepare their
 new placement. The battle's wanted kinds include every description whose art is
 already wanted, so learning another kind wearing that art does not stage it again.
 
+A battle enables the existing browser-cache warm-up after its first presented
+frame, including deployment and direct links. It fetches learned types first,
+then the public enemy faction roster, then remaining runtime files. New
+observations reprioritize files not yet started. This only warms transport in
+cache storage: it neither decodes art nor changes wanted kinds, admissions or
+side knowledge. The menu uses the same downloader after its existing settle
+period. [Runtime prefetch](../apps/battle-lab/src/runtimePrefetch.ts) owns that
+file queue; the battle’s readiness callback supplies its public priorities.
+
 ## Build and serving
 
 [The web manifest](package.json) owns browser dependencies, WebAssembly compilation,

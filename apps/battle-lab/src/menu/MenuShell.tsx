@@ -23,7 +23,7 @@ import { Wordmark } from "../Wordmark";
 import { GraphicsDetectionHost } from "../GraphicsDetectionHost";
 import { graphicsDetectionState, subscribeGraphicsDetection } from "../graphicsDetection";
 import { GRAPHICS_TIERS, graphicsSettings } from "../graphicsSettings";
-import { allowRuntimePrefetch } from "../gameAppearances";
+import { allowRuntimePrefetch } from "../runtimePrefetch";
 import { menuPage, type MenuPageId } from "./pages";
 
 /** What the shell tells the page it holds. */
