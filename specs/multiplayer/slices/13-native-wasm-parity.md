@@ -44,3 +44,42 @@ named and left.
 ## Delegated
 
 How the probe steps the WebAssembly runner.
+
+## Result (2026-11-15): the two builds agree
+
+The disagreement did not reproduce, at commit `cad00e8a0`, on the endurance
+battle (200 units, one seed, an hour of fighting):
+
+| Tick | Simulated time | Native | WebAssembly |
+|---|---|---|---|
+| 1,800 | 1 minute | `217810a3a7c10c42` | `217810a3a7c10c42` |
+| 18,000 | 10 minutes | `63ca37e9b78dcd8a` | `63ca37e9b78dcd8a` |
+| 27,000 | 15 minutes, with losses | `535237c44d3c3c34` | `535237c44d3c3c34` |
+| 108,000 | 60 minutes, 73,259 rounds fired | `284b8769ce57c980` | `284b8769ce57c980` |
+
+The two builds were stepped over the same scenario bytes. Digests taken
+every 900 ticks agree at all 31 checkpoints through tick 27,000
+([the list](../assets/parity-endurance-checkpoints.txt)), and the two
+hour-long runs end on one digest.
+
+What the walk saw: its "native" digest, `63ca37e9b78dcd8a`, is this battle
+at ten minutes. Its WebAssembly digest, `421fb87634122caa`, appears at no
+checkpoint of either build now. The likeliest explanation is that the walk
+compared two runs of different length or a stale WebAssembly file; that
+cannot be checked, because the walk's files are gone.
+
+What this does and does not show:
+
+- A battle recorded on the server replays in a native tool, as far as this
+  battle exercises the simulation: movement, sight, fire, damage, an hour
+  long.
+- The endurance battle has no skirmish in it: no purchases, objectives,
+  score or AI players. Parity there rests on the existing paired records
+  (`fixtures/parity/skirmish-*.json`), which are short.
+- Nothing was added to the tree. A standing test that runs both builds for
+  an hour would cost about 25 minutes a build; the comparison is two
+  commands when it is wanted again (`endurance_report 60` natively, and the
+  same scenario stepped through the WebAssembly binding).
+
+Slice 21 no longer waits on this.
+

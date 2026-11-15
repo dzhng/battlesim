@@ -21,19 +21,17 @@ simulation test build here, with other sessions building too. Check
 `df -h .` before any Rust build or new checkout. Under about 30 GB free, run
 Rust passes one or two at a time; under 5 GB, start nothing and ask the user.
 
-**Done and committed:** slices 02 to 07, 14, 20 and 24; the module of slice
+**Done and committed:** slices 02 to 07, 13, 14, 20 and 24; the module of slice
 10; the endurance half of slice 01. The branch holds staging as of
 2026-11-15.
 
 **Pick up here, in this order:**
 
-1. **Integrate slice 08,** command any seat, and **slice 13,** the native
-   and WebAssembly parity probe. Both went to Codex on 2026-11-15, each in
-   its own checkout; each writes a report to `throwaway/multiplayer/`
-   there. Slice 08 is the first playable checkpoint: play it in two
-   browsers yourself, get an unprimed critique of the Red commander's
-   screen, and show the user both screens (its Verification says how).
-   Slice 13 may end "named" and change nothing in the tree.
+1. **Integrate slice 08,** command any seat, handed to Codex on 2026-11-15
+   in its own checkout; its report is in `throwaway/multiplayer/` there. It
+   is the first playable checkpoint: play it in two browsers yourself, get
+   an unprimed critique of the Red commander's screen, and show the user
+   both screens (its Verification says how).
 2. **Slices 09 to 12** come after 08. Slice 09 deploys, which is
    outward-facing: ask the user first. Slices 10, 11 and 12 need only 08
    and can go out together.
@@ -101,7 +99,7 @@ Foundation
 - [ ] [10 Playout](slices/10-playout.md) (the module is built; wiring it in waits for 07 and 08)
 - [ ] [11 Yours is blue](slices/11-yours-is-blue.md)
 - [ ] [12 Your side at the bottom](slices/12-your-side-at-the-bottom.md)
-- [ ] [13 Native and WebAssembly parity](slices/13-native-wasm-parity.md)
+- [x] [13 Native and WebAssembly parity](slices/13-native-wasm-parity.md) (the two builds agree; nothing to fix)
 
 Rooms
 - [x] [14 Room model](slices/14-room-model.md)
