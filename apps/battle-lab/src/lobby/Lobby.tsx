@@ -414,8 +414,8 @@ function Pick<T extends string>({
  *  pickers, so the strip stays one row down to the smallest window the game
  *  supports (1280 wide: web/README.md). */
 const FOLDED_STRIP = "(max-width: 1499px)";
-const narrow = () => globalThis.matchMedia?.(FOLDED_STRIP).matches ?? false;
-const onResize = (change: () => void) => {
+const stripFolds = () => globalThis.matchMedia?.(FOLDED_STRIP).matches ?? false;
+const watchFold = (change: () => void) => {
   const query = globalThis.matchMedia?.(FOLDED_STRIP);
   query?.addEventListener("change", change);
   return () => query?.removeEventListener("change", change);
@@ -440,7 +440,7 @@ function Choice<T extends string>({
   say?: (option: T) => string;
   folds?: boolean;
 }) {
-  const folded = useSyncExternalStore(onResize, narrow) && folds && value !== null;
+  const folded = useSyncExternalStore(watchFold, stripFolds) && folds && value !== null;
   return (
     <div className="lobby-choice">
       <span className="lobby-label" id={`menu-${label}`}>
