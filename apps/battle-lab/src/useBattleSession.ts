@@ -715,8 +715,7 @@ export function useBattleSession({
             [intent.target.point[0], intent.target.point[1]],
             control.selectedUnits,
             drawnAt.current,
-            units,
-            rules.weapons,
+            rulesText,
           )
         : null;
     // An unload's destination carries the unload mark, held or released.

@@ -94,6 +94,34 @@ fn ceiling(weapon: PassWeapon, air: &FixedWingFlight) -> f64 {
     }
 }
 
+/// How far from its aim a pass weapon fires: a bomb its slant from the
+/// release a run at its ceiling, `speed_mps` fast, drops it from (the highest
+/// a run is flown, so the farthest it falls); a gun or ground missile from its
+/// reach, nose on. `None` for a row a pass never fires at the ground.
+pub fn firing_range_m(
+    weapon: &crate::weapons::Weapon,
+    config: &crate::flight::FlightConfig,
+    air: &FixedWingFlight,
+    speed_mps: f64,
+) -> Option<f64> {
+    match pass_weapon(&weapon.def)? {
+        PassWeapon::Bomb => {
+            let height = ceiling(PassWeapon::Bomb, air);
+            let release = crate::flight::release(
+                crate::math::v3(0.0, 0.0, height),
+                crate::math::v3(speed_mps, 0.0, 0.0),
+                weapon.profile.gravity(config),
+                V3::default(),
+            )?;
+            Some(libm::hypot(release.ahead_m, height))
+        }
+        PassWeapon::Gun | PassWeapon::GroundMissile => weapon
+            .def
+            .against(contract::catalog::AltitudeLayer::Ground)
+            .map(|fire| fire.range_m),
+    }
+}
+
 /// Start an attack from `state`, flying over ground `ground_m` high, lining
 /// up. Its existing height above that ground is retained when already under
 /// its weapon's ceiling; otherwise a deterministic height in the permitted

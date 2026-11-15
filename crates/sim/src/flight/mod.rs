@@ -19,10 +19,8 @@ mod solve;
 mod sweep;
 
 pub use release::{release, Release};
-pub use solve::{
-    fire_round, predicted_path, scatter_aim, solve_fire, solve_launch_past, timed_path, Aim,
-    ArcKind, FiringSolution, NoSolution,
-};
+// Every public item of the solver is the flight module's.
+pub use solve::*;
 
 use contract::ballistics::{Delivery, FlightRules, Trajectory, WeaponBallistics};
 use contract::ids::UnitId;

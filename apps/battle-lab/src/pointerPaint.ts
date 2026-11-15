@@ -22,6 +22,7 @@ import {
 } from "@packages/battle-renderer/src/unitCircle";
 import { buildRangeRuler, type RulerLine } from "@packages/battle-renderer/src/rangeRulerOverlay";
 import { airborne, fixedWing, type UnitCatalog } from "@packages/scene-assets/src/units";
+import { StrikeFootprints } from "@wasm/game_wasm";
 import type { PurchaseGhost } from "@web/battle/input/purchasePlacement";
 import {
   closestUnit,
@@ -52,34 +53,34 @@ export interface AttackGroundSpread {
   radius_m: number;
 }
 
-/** The cursor footprint stays visible at close range and remains readable at
- *  distance. Its unclamped value is angular spread × range. */
+/** The simulation's strike footprints (`StrikeFootprints`) for a scenario's
+ *  resolved rules, admitted once per rules; the previous rules' are freed. */
+let footprints: { rules: string; owner: StrikeFootprints } | null = null;
+function strikeFootprints(rules: string): StrikeFootprints {
+  if (footprints?.rules !== rules) {
+    footprints?.owner.free();
+    footprints = { rules, owner: new StrikeFootprints(rules) };
+  }
+  return footprints.owner;
+}
+
+/** The attack-ground cursor's circle: the area the selected units' strikes
+ *  there can damage under `rules` (a scenario's resolved rules), as the
+ *  simulation's footprint says, the widest of them, never so small it
+ *  vanishes close in. Null when none strikes an area. */
 export function attackGroundSpread(
   center: readonly [number, number],
   selected: readonly OwnUnitView[],
   drawnAt: ReadonlyMap<number, Readonly<Vec3>>,
-  units: UnitCatalog,
-  weapons: Readonly<Record<string, unknown>>,
+  rules: string,
 ): AttackGroundSpread | null {
-  let radius = 0;
-  let hasGroundWeapon = false;
-  for (const unit of selected) {
+  const footprints = strikeFootprints(rules);
+  const radii = selected.flatMap((unit) => {
     const at = drawnAt.get(unit.id) ?? unit.position;
-    const distance = Math.hypot(center[0] - at[0], center[1] - at[1]);
-    for (const mount of units.type(unit.kind).mounts) {
-      for (const id of mount.weapons) {
-        const weapon = weapons[id] as
-          | { targets?: { ground?: { scatter_mrad: number } } }
-          | undefined;
-        if (!weapon?.targets?.ground) continue;
-        hasGroundWeapon = true;
-        const scatter = weapon.targets.ground.scatter_mrad;
-        radius = Math.max(radius, (distance * scatter) / 1000);
-      }
-    }
-  }
-  if (!hasGroundWeapon) return null;
-  return { center, radius_m: Math.min(80, Math.max(6, radius)) };
+    const radius = footprints.radius_m(unit.kind, Math.hypot(center[0] - at[0], center[1] - at[1]));
+    return radius === undefined ? [] : [radius];
+  });
+  return radii.length ? { center, radius_m: Math.max(6, ...radii) } : null;
 }
 
 /** The ruler shown, and the circle the orders draw round its unit (with
