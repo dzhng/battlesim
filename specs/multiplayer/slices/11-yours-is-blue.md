@@ -98,3 +98,10 @@ captions running into a callout, an objective label over a unit standing
 on it, a unit hidden behind the reinforcements panel at one camera
 position.
 
+**Decided by the user on 2026-11-15: head the columns by role.** To a
+commander the result screen's two sides are headed "YOUR SIDE" and "ENEMY";
+to a watcher they keep their names, "BLUE" and "RED". The three approved
+result pictures taken from a commander's seat were re-approved with the new
+headings. Players' rows still carry their seat names until slice 18 gives
+an online match callsigns.
+

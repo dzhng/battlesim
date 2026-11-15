@@ -154,6 +154,8 @@ export async function resultColours(ctx, origin, evidence) {
             enemyHeading: getComputedStyle(groups[1].querySelector("th")).color,
             numbers: [...scores].map((score) => score.textContent),
             headings: [...groups].map((group) => group.querySelector("th").textContent),
+            // Whether the viewer's own row is in the first scoreboard.
+            ownFirst: groups[0].querySelector("[data-you]") !== null,
           };
         }),
       );
@@ -190,9 +192,19 @@ export async function resultColours(ctx, origin, evidence) {
       "result: each commander's own score and own side come first, as in the battle's strip",
       paints[0].numbers[0] !== paints[0].numbers[1] &&
         paints[1].numbers.join("|") === flipped(paints[0].numbers) &&
-        paints[1].headings.join("|") === flipped(paints[0].headings) &&
+        paints[0].ownFirst &&
+        paints[1].ownFirst &&
         paints[2].numbers.join("|") === paints[0].numbers.join("|"),
-      JSON.stringify(paints.map(({ numbers, headings }) => ({ numbers, headings }))),
+      JSON.stringify(paints.map(({ numbers, ownFirst }) => ({ numbers, ownFirst }))),
+    );
+    // A commander's sides are headed by what they are to them, the same
+    // words from either seat; a watcher's by their names.
+    ctx.check(
+      "result: both commanders read the same headings, and a watcher reads the sides' names",
+      paints[0].headings.join("|") === paints[1].headings.join("|") &&
+        paints[2].headings.join("|") !== paints[0].headings.join("|") &&
+        paints[0].headings[0] !== paints[0].headings[1],
+      JSON.stringify(paints.map(({ headings }) => headings)),
     );
     ctx.check(
       "result: scoreboard headings agree with each viewer's final scores",

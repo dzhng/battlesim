@@ -1,6 +1,6 @@
 /* Room pages use the menu plate, type and existing HUD roles. */
 .menu-card[data-art="multiplayer"] {
-  --menu-art: url("/menu/skirmish.jpg");
+  --menu-art: url("/menu/multiplayer.jpg");
 }
 .menu[data-open="multiplayer"] {
   padding: 20px;

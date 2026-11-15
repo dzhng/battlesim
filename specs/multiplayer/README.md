@@ -45,15 +45,26 @@ the room lobby exist; a room cannot start its battle until slice 18.
    is the workload: bundle it, run it on the host, and read its summary
    line.
 
+**Broken by the staging merge of 2026-11-15, not by this work:**
+
+- The `online-battle` scene's three "armies meet" checks fail. Both units
+  are ordered to the middle of the map; since the merge Blue's vehicle
+  stops in the town with "route blocked", so the two never come into
+  sight. The scene's other checks pass. Slice 18 rewrites this scene to go
+  through a room: have it meet on ground both can reach, and tell the user
+  if a vehicle still cannot drive through the town.
+- Four approved `unit-roster` pictures differ. The camera did not change
+  here (slice 12 only renamed a variable); staging's road work changed how
+  the ground draws after those pictures were last approved. They are not
+  this plan's to re-approve: tell the user.
+
 **Waiting on the user, not blocking:**
 
 - **Deploying** (slice 09): now, or after rooms can start a battle (slice
   18). Recommended: after.
 - **The main menu's approved picture** fails since the Multiplayer tile made
-  the menu one tile taller. Re-approve it once the user has seen the menu.
-  The tile wears Skirmish's picture until it has art of its own.
-- **The result screen's side names** (slice 11): keep "BLUE" and "RED", or
-  head the columns by role. Recommended: by role.
+  the menu one tile taller. The user is happy with the taller menu; the
+  picture is re-approved once they have accepted the tile's new art.
 - **Lane numbers** (slice 12): kept as they are unless the user says
   otherwise.
 - **Frontline's length** (slice 21): 2,100 points, about an hour for the
@@ -61,7 +72,9 @@ the room lobby exist; a room cannot start its battle until slice 18.
 
 **Decided by the user so far:** leave the AI's order pace alone for the
 alpha (slice 20); the host sets an empty seat from one picker, Open or AI
-(slice 17).
+(slice 17); a room's buttons are the skirmish Reroll's height (slice 17);
+the result screen heads a commander's sides "YOUR SIDE" and "ENEMY"
+(slice 11).
 
 **How to work with Codex here.**
 

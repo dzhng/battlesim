@@ -68,7 +68,9 @@ Wording of the empty and error states; the row's exact layout.
 ## As built (2026-11-15)
 
 - **The tile** sits above Skirmish on the main menu and opens the
-  Multiplayer page. It wears Skirmish's picture until it has art of its own.
+  Multiplayer page. Its picture is its own: commanders and soldiers in
+  front, vehicles and helicopters behind (generated; the model and prompt
+  are recorded with the other tiles' in `assets/runtime/menu/provenance.json`).
 - **The page** shows the callsign in its header (editable; a change is sent
   to `/hello` and the header shows the name the server gave back, a `#2`
   included), the public rooms from the list stream, Create room (public or

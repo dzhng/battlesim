@@ -70,7 +70,10 @@ test.each([
   players.forEach((player, k) => {
     const name =
       player.id === "blue-1" ? "BLUE 1 (YOU)" : `${player.id.replace("-", " ").toUpperCase()} · AI`;
-    const side = view.getByRole("group", { name: player.side === "blue" ? "Blue" : "Red" });
+    // The viewer commands Blue: the sides are headed by what they are to them.
+    const side = view.getByRole("group", {
+      name: player.side === "blue" ? "YOUR SIDE" : "ENEMY",
+    });
     const row = within(side).getByRole("row", { name });
     const cells = within(row)
       .getAllByRole("cell")
@@ -83,9 +86,22 @@ test.each([
     ]);
   });
   // No row for anyone who isn't playing.
-  expect(view.getAllByRole("row", { name: /(YOU|· AI)/ })).toHaveLength(players.length);
+  expect(view.getAllByRole("row", { name: /\(YOU\)|· AI/ })).toHaveLength(players.length);
 });
 
+test("a watcher's report heads the sides by their names, a commander's by what they are to them", () => {
+  const players = seats("ha", "ha");
+  const headings = (viewer: string | null) =>
+    report(players, viewer)
+      .getAllByRole("group")
+      .map((group) => group.getAttribute("aria-label"));
+  expect(headings(null)).toEqual(["BLUE", "RED"]);
+  cleanup();
+  expect(headings("blue-1")).toEqual(["YOUR SIDE", "ENEMY"]);
+  cleanup();
+  // A Red commander's own side comes first, under the same words.
+  expect(headings("red-1")).toEqual(["YOUR SIDE", "ENEMY"]);
+});
 test("the result is judged from the viewer's side", () => {
   const players = seats("ha", "aa");
   expect(report(players, "blue-1", finished(players, "red")).getByRole("heading").textContent).toBe(

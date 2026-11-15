@@ -79,11 +79,18 @@ function toneOf(names: Names, side: SideName, seat?: Seat): Tone {
   return !seat || seat.id === names.viewer ? "own" : "ally";
 }
 
+/** What a side is called: to a commander, what it is to them; to a watcher,
+ *  its own name. Colour already says mine and theirs, so the word agrees. */
+function sideName(names: Names, side: SideName): string {
+  if (names.viewerSide === null) return side.toUpperCase();
+  return side === names.viewerSide ? "YOUR SIDE" : "ENEMY";
+}
+
 /** The player behind a line, or their side where the event carries no owner. */
 function nameOf(names: Names, owner: number | null | undefined, side: Side) {
   const seat = owner == null ? undefined : names.seats[owner];
   return {
-    name: seat ? playerName(seat, seat.id === names.viewer) : side.toUpperCase(),
+    name: seat ? playerName(seat, seat.id === names.viewer) : sideName(names, side),
     tone: toneOf(names, side, seat),
     you: !!seat && seat.id === names.viewer,
   };
@@ -217,7 +224,7 @@ function Scoreboard({ side, report, names }: { side: SideName; report: Report; n
   const players = names.seats.flatMap((seat, index) =>
     seat.side === side ? [{ seat, index }] : [],
   );
-  const label = side.charAt(0).toUpperCase() + side.slice(1);
+  const label = sideName(names, side);
   return (
     <section
       role="group"
@@ -228,7 +235,7 @@ function Scoreboard({ side, report, names }: { side: SideName; report: Report; n
         <thead>
           <tr>
             <th scope="col" className="match-result-side-name">
-              {side.toUpperCase()}
+              {label}
             </th>
             {COLUMNS.map((column) => (
               <th scope="col" key={column.label} title={column.title}>
