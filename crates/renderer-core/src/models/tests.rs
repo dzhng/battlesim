@@ -195,7 +195,8 @@ fn admission_does_not_scroll_pitchless_track_nodes() {
     let Shape::Articulated(nodes) = &bundle.shape else {
         panic!("articulated fixture")
     };
-    let meshes = admission::articulated_meshes(nodes, 0, 0, |node| p.catalog().track_side(0, node));
+    let meshes =
+        admission::articulated_meshes(nodes, 0, 0, |node| p.catalog().track_side(0, node)).unwrap();
     let tracks: Vec<_> = meshes
         .iter()
         .map(|(_, vertices)| u16::from_le_bytes(vertices[46..48].try_into().unwrap()))
@@ -227,7 +228,7 @@ fn admission_does_not_scroll_pitchless_track_nodes() {
         .unwrap();
     let catalog = draft.view(&p).unwrap();
     for (_, vertices) in
-        admission::articulated_meshes(nodes, 0, 0, |node| catalog.track_side(0, node))
+        admission::articulated_meshes(nodes, 0, 0, |node| catalog.track_side(0, node)).unwrap()
     {
         assert_eq!(&vertices[46..48], &[0, 0]);
     }

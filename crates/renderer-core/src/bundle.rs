@@ -366,6 +366,13 @@ impl Library {
             self.bundles.remove(&content);
         }
     }
+
+    pub fn content_id(&self, name: &str) -> Result<ContentId> {
+        self.names
+            .get(name)
+            .cloned()
+            .ok_or_else(|| format!("bundle not loaded: {name}"))
+    }
 }
 
 impl BundleSource for Library {
@@ -374,10 +381,7 @@ impl BundleSource for Library {
     }
 
     fn content_id(&self, name: &str) -> Result<ContentId> {
-        self.names
-            .get(name)
-            .cloned()
-            .ok_or_else(|| format!("bundle not loaded: {name}"))
+        self.content_id(name)
     }
 }
 

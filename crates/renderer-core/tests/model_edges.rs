@@ -10,16 +10,16 @@ mod effects;
 #[path = "support/readback.rs"]
 mod readback;
 mod support;
-use contract::identity::ContentId;
 use renderer_core::runtime::AdmissionWork;
 
+use contract::identity::ContentId;
 use presentation::records::{
     Appearance, Batch, Camera, Instance as ModelInstance, Joint, View, FOG_UNITS, HIGH_PASS, NONE,
 };
 use renderer_core::bundle::{Bundle, BundleSource, Coverage, Draw, Material, Mesh, Node, Shape};
 use renderer_core::fog::Fog;
 use renderer_core::high_air::HighAir;
-use renderer_core::models::Models;
+use renderer_core::models::{ArtStore, Models};
 use renderer_core::post;
 use std::sync::Arc;
 use wgpu::*;
@@ -38,10 +38,6 @@ const BLACK: [u8; 4] = [0, 0, 0, 255];
 struct Sliver([[u8; 4]; 3]);
 
 impl BundleSource for Sliver {
-    fn content_id(&self, _: &str) -> Result<ContentId, String> {
-        ContentId::bundle(contract::identity::bytes_hash(&self.0.concat()))
-    }
-
     fn bundle(&self, _: &str) -> Result<Arc<Bundle>, String> {
         Ok(Arc::new(Bundle {
             shape: Shape::Static(vec![Node {
@@ -76,6 +72,12 @@ impl BundleSource for Sliver {
             }],
             textures: vec![],
         }))
+    }
+
+    fn content_id(&self, _: &str) -> Result<ContentId, String> {
+        ContentId::bundle(contract::identity::bytes_hash(bytemuck::cast_slice(
+            &self.0,
+        )))
     }
 }
 
@@ -119,6 +121,7 @@ fn drawn(gpu: &support::Gpu, sliver: &Sliver) -> Vec<[u8; 4]> {
         "body",
         |_| None,
         |_, _| None,
+        ArtStore::shared(),
         &mut AdmissionWork::default(),
     )
     .unwrap();

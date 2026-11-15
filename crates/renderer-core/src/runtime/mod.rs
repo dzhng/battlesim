@@ -28,6 +28,7 @@ use crate::frame::{FrameInputs, FrameRenderer, PaintFrame};
 use crate::grass::Grass;
 use crate::ground::{Ground, GroundData};
 use crate::models::Models;
+use crate::models::SharedArtStore;
 use crate::overlay::{self, OverlayResources};
 use crate::paint::{PaintGeometry, PaintResources};
 use crate::pipelines::Pipelines;
@@ -57,6 +58,7 @@ pub struct RuntimeConfig {
     pub hdr_output: bool,
     pub water_detail: WaterDetail,
     pub controls: Controls,
+    pub art_store: crate::models::ArtStorePolicy,
 }
 
 /// CPU inputs rather than platform-assembled GPU resources. Presentation is
@@ -109,6 +111,7 @@ pub struct Runtime {
     prepared_frame: Option<u32>,
     pending_catalog_frame: Option<u32>,
     admission_work: AdmissionWork,
+    pub(super) art_store: SharedArtStore,
 }
 
 impl Runtime {
@@ -175,7 +178,12 @@ impl Runtime {
             },
         );
         let mut admission_work = starting_work;
-        admission_work.rebuild_reason = Some(RebuildReason::Initial);
+        admission_work
+            .rebuild_reason
+            .get_or_insert(RebuildReason::Initial);
+        let art_store = Arc::new(std::sync::Mutex::new(crate::models::ArtStore::new(
+            config.art_store,
+        )));
         let grass = assets::grass(
             device,
             queue,
@@ -192,6 +200,7 @@ impl Runtime {
             &pipelines,
             world.assets,
             presentation.catalog(),
+            art_store.clone(),
             &mut admission_work,
         )?;
         models.set_high_apart(config.separate_high_air);
@@ -277,6 +286,7 @@ impl Runtime {
             prepared_frame: None,
             pending_catalog_frame: None,
             admission_work,
+            art_store,
         };
         runtime
             .ground
@@ -559,6 +569,10 @@ impl Runtime {
             grass.record_memory(memory);
         }
         self.models.record_memory(memory);
+        self.art_store
+            .lock()
+            .expect("art store lock")
+            .record_memory(memory);
         self.scenery.record_memory(memory);
         self.effects.record_memory(memory);
         self.fog.record_memory(memory);

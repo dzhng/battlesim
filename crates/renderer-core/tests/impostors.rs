@@ -2,15 +2,15 @@
 #[path = "support/readback.rs"]
 mod readback;
 mod support;
-use contract::identity::ContentId;
 use renderer_core::runtime::AdmissionWork;
 
+use contract::identity::ContentId;
 use presentation::records::{
     Appearance, Batch, Camera, Instance as ModelInstance, Joint, View, FOG_UNITS, NONE, VIEW_PASS,
 };
 use renderer_core::bundle::{Bundle, BundleSource, Coverage, Draw, Material, Mesh, Shape};
 use renderer_core::impostor::Spec;
-use renderer_core::models::Models;
+use renderer_core::models::{ArtStore, Models};
 use renderer_core::pipelines;
 use std::sync::Arc;
 use wgpu::*;
@@ -24,12 +24,6 @@ fn identity() -> Joint {
 }
 struct Source;
 impl BundleSource for Source {
-    fn content_id(&self, _: &str) -> Result<ContentId, String> {
-        ContentId::bundle(contract::identity::bytes_hash(
-            b"synthetic skinned tetrahedron",
-        ))
-    }
-
     fn bundle(&self, _: &str) -> Result<Arc<Bundle>, String> {
         let positions = vec![
             -0.35, -0.2, 0., 0.3, -0.2, 0., -0.1, 0.25, 0., -0.1, 0., 0.8,
@@ -65,15 +59,15 @@ impl BundleSource for Source {
             textures: vec![],
         }))
     }
+
+    fn content_id(&self, _: &str) -> Result<ContentId, String> {
+        ContentId::bundle(contract::identity::bytes_hash(include_bytes!(
+            "impostors.rs"
+        )))
+    }
 }
 struct RigidSource(bool);
 impl BundleSource for RigidSource {
-    fn content_id(&self, _: &str) -> Result<ContentId, String> {
-        ContentId::bundle(contract::identity::bytes_hash(
-            format!("rigid tetrahedron {}", self.0).as_bytes(),
-        ))
-    }
-
     fn bundle(&self, name: &str) -> Result<Arc<Bundle>, String> {
         let mut bundle = Arc::unwrap_or_clone(Source.bundle(name)?);
         let Shape::Skinned(tiers) = bundle.shape else {
@@ -91,16 +85,16 @@ impl BundleSource for RigidSource {
         };
         Ok(Arc::new(bundle))
     }
+
+    fn content_id(&self, _: &str) -> Result<ContentId, String> {
+        let mut recipe = include_bytes!("impostors.rs").to_vec();
+        recipe.push(u8::from(self.0));
+        ContentId::bundle(contract::identity::bytes_hash(&recipe))
+    }
 }
 
 struct TexturedSource;
 impl BundleSource for TexturedSource {
-    fn content_id(&self, _: &str) -> Result<ContentId, String> {
-        ContentId::bundle(contract::identity::bytes_hash(
-            b"textured skinned tetrahedron",
-        ))
-    }
-
     fn bundle(&self, name: &str) -> Result<Arc<Bundle>, String> {
         let mut bundle = Arc::unwrap_or_clone(Source.bundle(name)?);
         bundle.materials[0].textures.insert("albedo".into(), 0);
@@ -118,6 +112,12 @@ impl BundleSource for TexturedSource {
                 ],
             }));
         Ok(Arc::new(bundle))
+    }
+
+    fn content_id(&self, _: &str) -> Result<ContentId, String> {
+        ContentId::bundle(contract::identity::bytes_hash(
+            b"textured tetrahedron fixture",
+        ))
     }
 }
 
@@ -138,6 +138,7 @@ fn diagnostic_texture_controls_do_not_change_authored_impostor_bakes() {
         "body",
         |_| Some(vec![identity()]),
         |_, _| None,
+        ArtStore::shared(),
         &mut AdmissionWork::default(),
     )
     .unwrap();
@@ -176,6 +177,7 @@ fn make_models(gpu: &support::Gpu, pipelines: &renderer_core::pipelines::Pipelin
         "body",
         |_| Some(vec![identity()]),
         |_, _| None,
+        ArtStore::shared(),
         &mut AdmissionWork::default(),
     )
     .unwrap()
@@ -286,6 +288,7 @@ fn authored_bake_and_runtime_cards_preserve_coverage_normals_tint_and_real_geome
             "body",
             |_| Some(vec![identity()]),
             |_, _| None,
+            ArtStore::shared(),
             &mut AdmissionWork::default(),
         )
         .unwrap();

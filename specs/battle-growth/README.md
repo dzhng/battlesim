@@ -1,6 +1,6 @@
 # Battle growth: a new unit type costs only its own art
 
-**Status:** slices 00, 01 and 02 are done. Five slices are out with
+**Status:** slices 00, 01, 02 and 03 are done. Five slices are out with
 implementers (see the lanes below).
 **Updated:** 2026-11-15.
 
@@ -18,17 +18,17 @@ in its own checkout and thread:
 
 | Slice | Branch | State |
 | --- | --- | --- |
-| 03 | `t3/art-content-identity` (slice 02's checkout) | Building. |
+| 04 | `t3/art-content-identity` (the checkout of slices 02 and 03) | Building. |
 | 05a | `t3/cards-bake-together` | Confirms the cause first, then builds. |
-| 06 | `t3/battle-growth-scenery-grass-timing` | Timing scenery work at growth; builds only if it costs more than a frame. |
+| 06 | `t3/battle-growth-scenery-grass-timing` | Measured 91–120 ms per growth, so it was built. Fix round: it hashed every bundle on every admission and deep-copied the placement. |
 | 07 | `t3/battle-growth-catalog-delta` | Fix round: it had not run in a browser, and the library and presentation can disagree about what content is held. |
 | 10 | `t3/battle-growth-stand-in-mechanics` | Second fix round: the mechanics are right in Rust; it has not been seen running. |
 
 When one returns: read its whole diff (changed tests first), rerun its checks
-yourself, merge it into this branch, then start what it unblocks (04 after
-03; 05 after 04 and 05a; 08 after 01, 05, 06 and 07; 11 after 10). Slices 03,
-05a and 07 all touch `crates/renderer-core`; whichever merges later merges
-this branch in first.
+yourself, merge it into this branch, then start what it unblocks (05 after 04
+and 05a; 08 after 05, 06 and 07; 11 after 10). Slices 04, 05a, 06 and 07 all
+touch `crates/renderer-core`; whichever merges later merges this branch in
+first.
 
 Read, in this order: this file, the [decisions ledger](decisions.md), the slice
 you are about to build, the [renderer contract](../../crates/renderer-core/README.md)
@@ -61,7 +61,7 @@ Checklist:
 - [x] [00 Proof and probes](slices/00-proof-and-probes.md)
 - [x] [01 Fielding and install](slices/01-fielding-and-install.md)
 - [x] [02 Content identity](slices/02-content-identity.md)
-- [ ] [03 Geometry reuse](slices/03-geometry-reuse.md)
+- [x] [03 Geometry reuse](slices/03-geometry-reuse.md)
 - [ ] [04 Texture layers](slices/04-texture-layers.md)
 - [ ] [05a Cards bake together](slices/05a-cards-bake-together.md)
 - [ ] [05 Card reuse](slices/05-card-reuse.md)

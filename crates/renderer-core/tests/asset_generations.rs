@@ -1,206 +1,155 @@
 //! Synthetic admission work and generation-swap contracts.
 #![allow(clippy::too_many_arguments)]
 
-#[path = "support/readback.rs"]
-mod readback;
 #[path = "support/mod.rs"]
 mod support;
 
 use contract::identity::ContentId;
-use presentation::presentation::{lab::Asset, Presentation, Ui};
+use presentation::presentation::{lab::Asset, Presentation};
 use presentation::records::{Appearance, Joint, NONE};
 use renderer_core::bundle::Library;
 use renderer_core::effects::EffectSheets;
-use renderer_core::models::Models;
 use renderer_core::models::VERTEX_BYTES;
-use renderer_core::runtime::PlayerGeometry;
+use renderer_core::models::{ArtStore, Models};
 use renderer_core::runtime::WorldGeometry;
 use renderer_core::runtime::{AdmissionWork, Runtime, RuntimeConfig, RuntimeWorld};
 use serde_json::json;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-fn identity() -> Joint {
-    Joint {
-        x: [1., 0., 0., 0.],
-        y: [0., 1., 0., 0.],
-        z: [0., 0., 1., 0.],
-    }
-}
+#[path = "support/asset_fixture.rs"]
+mod fixture;
+use fixture::*;
 
-fn bundle_bytes(kind: &str, max_z: u8, state: &str, tier_count: usize) -> Vec<u8> {
-    let mut body = Vec::new();
-    let mut views = Vec::new();
-    let mut array = |ty, bytes: Vec<u8>, length| {
-        let at = views.len();
-        views.push(json!([ty, body.len(), length]));
-        body.extend(bytes);
-        json!({"$view": at})
+#[test]
+fn geometry_growth_packs_only_the_new_content() {
+    let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
+    let bytes = [
+        bundle_bytes("static", 1, "default", 1),
+        bundle_bytes("static", 2, "default", 1),
+        bundle_bytes("static", 3, "default", 1),
+    ];
+    let xy: Art<'_> = &[("x", &bytes[0]), ("y", &bytes[1])];
+    let axy: Art<'_> = &[("a", &bytes[2]), ("x", &bytes[0]), ("y", &bytes[1])];
+    let mut stage = Stage::new(&gpu, xy, runtime_config(), None);
+    let ready = stage.stage(&gpu, axy);
+    let bundle = renderer_core::bundle::decode("a", &bytes[2], &[]).unwrap();
+    let renderer_core::bundle::Shape::Static(states) = &bundle.shape else {
+        panic!("static fixture");
     };
-    let mesh = json!({
-        "positions": array("f32", bytemuck::cast_slice(&[0.5f32, 0., 0., 0.5, 0., max_z as f32, 0., 0.5, max_z as f32]).to_vec(), 9),
-        "normals": array("i16", vec![0; 24], 12),
-        "uvs": array("f32", vec![0; 24], 6),
-        "colors": array("u8", vec![255; 12], 12),
-        "indices": array("u16", vec![0, 0, 1, 0, 2, 0], 3),
-        "draws": [{"material": 0, "first": 0, "count": 3}],
-    });
-    let content = json!({"kind": kind, "materials": [{
-        "name": "synthetic", "base_color": [1,1,1,1], "metallic": 0,
-        "roughness": 1, "tint": 0, "coverage": {"kind":"opaque"}
-    }], "states": [{"name":state, "bounds":{"min":[0,0,0],"max":[1,1,max_z]}, "tiers":vec![mesh; tier_count]}]});
-    let mut header = serde_json::to_vec(&json!({"content": content, "views": views})).unwrap();
-    header.resize(header.len().next_multiple_of(4), b' ');
-    let mut bytes = Vec::new();
-    for word in [0x5441_4742_u32, 4, header.len() as u32, body.len() as u32] {
-        bytes.extend(word.to_le_bytes());
-    }
-    bytes.extend(header);
-    bytes.extend(body);
-    bytes
-}
-
-fn detail() -> presentation::world::Detail {
-    presentation::world::Detail {
-        lod_px: [80., 40., 20.],
-        impostor_px: 4.,
-        shadow_caster_px: 0.,
-    }
-}
-
-fn runtime_config() -> RuntimeConfig {
-    let game: serde_json::Value =
-        serde_json::from_str(include_str!("../../../fixtures/presentation.json")).unwrap();
-    let settings = presentation::settings::PresentationSettings::from_value(&game).unwrap();
-    RuntimeConfig {
-        size: [64, 64],
-        light: settings.light,
-        fog_look: settings.fog.selected().unwrap().look().unwrap(),
-        grass_density: None,
-        xray_min_hidden_fraction: None,
-        paint: None,
-        separate_high_air: false,
-        hdr_output: false,
-        water_detail: Default::default(),
-        controls: Default::default(),
-    }
-}
-
-fn effects() -> Arc<EffectSheets> {
-    let mut png = Vec::new();
-    let mut encoder = png::Encoder::new(&mut png, 4, 4);
-    encoder.set_color(png::ColorType::Rgba);
-    encoder.set_depth(png::BitDepth::Eight);
-    {
-        let mut writer = encoder.write_header().unwrap();
-        writer.write_image_data(&[255; 64]).unwrap();
-    }
-    Arc::new(EffectSheets::decode(4, &[&png, &png]).unwrap())
-}
-
-fn world_names(presentation: &Presentation) -> Vec<String> {
-    let world = presentation.world();
-    world
-        .appearances
+    let vertex_bytes = states[0]
+        .tiers
         .iter()
-        .map(|row| world.strings[row.name as usize..(row.name + row.name_len) as usize].to_owned())
-        .collect()
+        .map(|m| m.vertices() * VERTEX_BYTES)
+        .sum::<usize>();
+    let index_bytes = states[0]
+        .tiers
+        .iter()
+        .map(|m| m.indices.len() * size_of::<u32>())
+        .sum::<usize>();
+    // All three contents' material rows are uploaded again. Geometry uploads
+    // contain only a's vertex and u32 index buffers; row/instance buffers are
+    // prepared later, and do not enter this admission count.
+    let material_bytes = axy.len() * bundle.materials.len() * 5 * 4 * size_of::<f32>();
+    assert_eq!(ready.work().vertex_bytes_packed, vertex_bytes as u64);
+    assert_eq!(
+        ready.work().buffer_bytes_uploaded,
+        (vertex_bytes + index_bytes + material_bytes) as u64
+    );
+    assert_eq!(ready.work().rebuild_reason, None);
+    stage.commit(&gpu, axy, ready);
+    let pixels = stage.pixels(&gpu);
+    let mut clean = Stage::new(&gpu, axy, runtime_config(), None);
+    assert_eq!(pixels, clean.pixels(&gpu));
+    let mut no_models = runtime_config().controls;
+    no_models.models = false;
+    no_models.surfaces = [false; 4];
+    clean
+        .runtime
+        .set_controls(&gpu.queue, &clean.presentation, no_models)
+        .unwrap();
+    assert_ne!(
+        pixels,
+        clean.pixels(&gpu),
+        "the comparison must contain visible art"
+    );
 }
 
-fn content_id(bytes: &[u8]) -> ContentId {
-    ContentId::bundle(contract::identity::bytes_hash(bytes)).unwrap()
+#[test]
+fn material_slots_keep_reservations_when_arrival_order_changes_and_refuse_overflow() {
+    use renderer_core::models::MaterialSlots;
+    let bytes = [
+        bundle_bytes("static", 1, "default", 1),
+        bundle_bytes("static", 2, "default", 1),
+    ];
+    let ids = bytes.each_ref().map(|b| content_id(b));
+    let counts = [2, 3];
+    let mut slots = MaterialSlots::default();
+    let assigned = [
+        slots.reserve(ids[0].clone(), counts[0]).unwrap(),
+        slots.reserve(ids[1].clone(), counts[1]).unwrap(),
+    ];
+    for i in [1, 0] {
+        assert_eq!(
+            slots.reserve(ids[i].clone(), counts[i]).unwrap(),
+            assigned[i]
+        );
+    }
+    assert_eq!(assigned, [0, counts[0]]);
+    let mut exhausted = MaterialSlots::default();
+    exhausted
+        .reserve(ids[0].clone(), u16::MAX as usize + 1)
+        .unwrap();
+    assert!(exhausted
+        .reserve(ids[1].clone(), counts[1])
+        .unwrap_err()
+        .contains("slots exhausted"));
+    assert!(exhausted.base(&ids[1]).is_none());
 }
 
-fn static_presentation(scenery_bytes: &[u8]) -> Presentation {
-    let mut p = Presentation::new(None, 30.).unwrap();
-    let game: serde_json::Value =
-        serde_json::from_str(include_str!("../../../fixtures/presentation.json")).unwrap();
-    let settings = presentation::settings::PresentationSettings::from_value(&game).unwrap();
-    let mut biome = presentation::static_world::ground::biome::Biome::load(
-        include_str!("../../../fixtures/biomes/summer.json"),
-        None,
-    )
-    .unwrap();
-    biome.trees.species = vec![presentation::static_world::ground::biome::TreeSpecies {
-        appearance: "synthetic-scenery".into(),
-        weight: 1.,
-        tint: [1.; 3],
-        family: None,
-        interior_m: None,
+#[test]
+fn changed_corpse_pose_does_not_reuse_geometry() {
+    let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
+    let pipelines = renderer_core::pipelines::build_builtin(&gpu.device).unwrap();
+    let bytes = bundle_bytes("skinned", 1, "default", 1);
+    let library = Library::from_bundle("x", &bytes, &[]).unwrap();
+    let rows = [Appearance {
+        name_len: 1,
+        lies: 1,
+        ..Default::default()
     }];
-    biome.trees.understorey.appearance = "synthetic-scenery".into();
-    biome.trees.hedgerows.appearance = "synthetic-scenery".into();
-    biome.forest_floor.dressing.kinds.clear();
-    biome.grass.growth.clear();
-    p.set_ground(
-        presentation::static_world::ground::Source {
-            map: [0., 0., 64., 64.],
-            playable: [0., 0., 64., 64.],
-            grid: presentation::static_world::ground::tables::Grid {
-                nx: 17,
-                ny: 17,
-                spacing: 4.,
-                page_size: 16,
-                ..Default::default()
-            },
-            ..Default::default()
-        },
-        biome,
-        settings.tuning(),
-    )
-    .unwrap();
-    let bundle = renderer_core::bundle::decode("synthetic-scenery", scenery_bytes, &[]).unwrap();
-    let mesh = renderer_core::scenery::tier_mesh("synthetic-scenery", &bundle, 0).unwrap();
-    p.place_scenery(&[mesh.as_slice()]).unwrap();
-    p
-}
-
-fn render_pixels(
-    gpu: &support::Gpu,
-    runtime: &mut Runtime,
-    presentation: &mut Presentation,
-) -> Vec<[u8; 4]> {
-    let camera = presentation::view::Camera {
-        eye: [32., -48., 32.],
-        target: [32., 32., 0.],
-        up: [0., 0., 1.],
-        fov_y: 1.,
-        near: 0.1,
-        size: [64, 64],
-    };
-    presentation
-        .frame(0., &camera, &Ui::default(), runtime.static_generation())
-        .unwrap();
-    runtime
-        .prepare(&gpu.device, &gpu.queue, presentation)
-        .unwrap();
-    let mut encoder = gpu.device.create_command_encoder(&Default::default());
-    runtime.encode(
-        &gpu.device,
-        &gpu.queue,
-        &presentation.last_frame().view,
-        &mut encoder,
-        PlayerGeometry::default(),
+    let store = ArtStore::shared();
+    let mut held = Vec::new();
+    let mut counts = Vec::new();
+    for offset in [0., 4., 4.] {
+        let mut work = AdmissionWork::default();
+        let pose = Joint {
+            x: [1., 0., 0., offset],
+            ..identity()
+        };
+        held.push(
+            Models::from_world(
+                &gpu.device,
+                &gpu.queue,
+                &pipelines,
+                &library,
+                &rows,
+                "x",
+                |_| Some(vec![pose]),
+                |_, _| None,
+                store.clone(),
+                &mut work,
+            )
+            .unwrap(),
+        );
+        counts.push(work.vertex_bytes_packed);
+    }
+    assert!(counts[0] > 0);
+    assert_eq!(
+        counts[1], counts[0],
+        "same row and content with a changed baked palette is a miss"
     );
-    let buffer = gpu.device.create_buffer(&wgpu::BufferDescriptor {
-        label: Some("statics-carry-pixels"),
-        size: 64 * 64 * 4,
-        usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
-        mapped_at_creation: false,
-    });
-    encoder.copy_texture_to_buffer(
-        runtime.targets.display_texture.as_image_copy(),
-        wgpu::TexelCopyBufferInfo {
-            buffer: &buffer,
-            layout: wgpu::TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(64 * 4),
-                rows_per_image: None,
-            },
-        },
-        runtime.targets.display_texture.size(),
-    );
-    readback::pixels(&gpu.device, &gpu.queue, encoder, &buffer)
+    assert_eq!(counts[2], 0, "the same baked palette is reused");
 }
 
 #[test]
@@ -277,6 +226,7 @@ fn first_admission_reports_the_synthetic_fixture_work() {
         "synthetic",
         |_| Some(vec![identity()]),
         |_, _| None,
+        ArtStore::shared(),
         &mut work,
     )
     .unwrap();
@@ -303,177 +253,6 @@ fn first_admission_reports_the_synthetic_fixture_work() {
             rebuild_reason: None,
         }
     );
-}
-
-#[test]
-fn unchanged_statics_are_carried_without_uploads_or_replacement_placement() {
-    let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
-    let scenery_bytes = bundle_bytes("static", 1, "summer", 4);
-    let unit_bytes = bundle_bytes("static", 1, "default", 1);
-    let mut presentation = static_presentation(&scenery_bytes);
-    let geometry = Arc::new(WorldGeometry::from_triangles(&[], &[], &[], 64., None, &[]));
-    let mut library = Library::from_bundle("synthetic-scenery", &scenery_bytes, &[]).unwrap();
-    library
-        .insert_bundle("new-unit", content_id(&unit_bytes), &unit_bytes, &[])
-        .unwrap();
-    let mut config = runtime_config();
-    config.grass_density = Some(1.0);
-    let mut runtime = Runtime::new(
-        &gpu.device,
-        &gpu.queue,
-        config.clone(),
-        library.take_admission_work(),
-        RuntimeWorld {
-            presentation: &mut presentation,
-            assets: &library,
-            geometry: geometry.clone(),
-            effect_sheets: effects(),
-        },
-    )
-    .unwrap();
-    pollster::block_on(runtime.prepare_assets(&gpu.device, &gpu.queue)).unwrap();
-    let candidate = presentation
-        .stage_catalog(
-            [(
-                "new-unit".into(),
-                Asset::from_bundle(&unit_bytes, None).unwrap(),
-            )]
-            .into(),
-            detail(),
-            Default::default(),
-        )
-        .unwrap();
-    let mut next_library = library.empty_generation();
-    next_library
-        .insert_bundle(
-            "synthetic-scenery",
-            content_id(&scenery_bytes),
-            &scenery_bytes,
-            &[],
-        )
-        .unwrap();
-    next_library
-        .insert_bundle("new-unit", content_id(&unit_bytes), &unit_bytes, &[])
-        .unwrap();
-    let pending = runtime
-        .stage_assets(
-            &gpu.device,
-            &gpu.queue,
-            &presentation,
-            candidate,
-            &next_library,
-            next_library.clone().take_admission_work(),
-        )
-        .unwrap();
-    let ready = pollster::block_on(pending.prepare()).unwrap();
-    assert_eq!(ready.work().scenery_placements, 0);
-    assert_eq!(ready.work().statics_bytes_uploaded, 0);
-    assert!(runtime
-        .commit_assets(
-            &gpu.device,
-            &gpu.queue,
-            &mut presentation,
-            ready,
-            Vec::new()
-        )
-        .unwrap());
-    let carried = render_pixels(&gpu, &mut runtime, &mut presentation);
-
-    let mut clean_presentation = static_presentation(&scenery_bytes);
-    let clean_catalog = clean_presentation
-        .stage_catalog(
-            [(
-                "new-unit".into(),
-                Asset::from_bundle(&unit_bytes, None).unwrap(),
-            )]
-            .into(),
-            detail(),
-            Default::default(),
-        )
-        .unwrap();
-    assert!(clean_presentation
-        .commit_catalog(clean_catalog, Vec::new())
-        .unwrap());
-    let mut clean_runtime = Runtime::new(
-        &gpu.device,
-        &gpu.queue,
-        config,
-        next_library.take_admission_work(),
-        RuntimeWorld {
-            presentation: &mut clean_presentation,
-            assets: &next_library,
-            geometry,
-            effect_sheets: effects(),
-        },
-    )
-    .unwrap();
-    pollster::block_on(clean_runtime.prepare_assets(&gpu.device, &gpu.queue)).unwrap();
-    let clean = render_pixels(&gpu, &mut clean_runtime, &mut clean_presentation);
-    assert_eq!(
-        carried, clean,
-        "carried statics differ from a clean final-catalog build"
-    );
-}
-
-#[test]
-fn changed_scenery_content_places_and_uploads_again() {
-    let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
-    let original = bundle_bytes("static", 1, "summer", 4);
-    let changed = bundle_bytes("static", 2, "summer", 4);
-    let mut presentation = static_presentation(&original);
-    let geometry = Arc::new(WorldGeometry::from_triangles(&[], &[], &[], 64., None, &[]));
-    let mut library = Library::from_bundle("synthetic-scenery", &original, &[]).unwrap();
-    let unit = bundle_bytes("static", 1, "default", 1);
-    library
-        .insert_bundle("new-unit", content_id(&unit), &unit, &[])
-        .unwrap();
-    let mut config = runtime_config();
-    config.grass_density = Some(1.0);
-    let runtime = Runtime::new(
-        &gpu.device,
-        &gpu.queue,
-        config,
-        library.take_admission_work(),
-        RuntimeWorld {
-            presentation: &mut presentation,
-            assets: &library,
-            geometry,
-            effect_sheets: effects(),
-        },
-    )
-    .unwrap();
-    let candidate = presentation
-        .stage_catalog(
-            [
-                (
-                    "synthetic-scenery".into(),
-                    Asset::from_bundle(&changed, None).unwrap(),
-                ),
-                ("new-unit".into(), Asset::from_bundle(&unit, None).unwrap()),
-            ]
-            .into(),
-            detail(),
-            Default::default(),
-        )
-        .unwrap();
-    let mut next = library.clone();
-    next.insert_bundle("synthetic-scenery", content_id(&changed), &changed, &[])
-        .unwrap();
-    next.insert_bundle("new-unit", content_id(&unit), &unit, &[])
-        .unwrap();
-    let pending = runtime
-        .stage_assets(
-            &gpu.device,
-            &gpu.queue,
-            &presentation,
-            candidate,
-            &next,
-            next.clone().take_admission_work(),
-        )
-        .unwrap();
-    let ready = pollster::block_on(pending.prepare()).unwrap();
-    assert_eq!(ready.work().scenery_placements, 1);
-    assert!(ready.work().statics_bytes_uploaded > 0);
 }
 
 #[test]
@@ -693,4 +472,253 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
         .is_err());
     assert_eq!(runtime.admission_work(), live_after_renewed);
     assert_eq!(world_names(&presentation), renewed_names);
+}
+
+#[test]
+fn dropped_pending_slots_force_fresh_admission_without_changing_pixels() {
+    use renderer_core::runtime::RebuildReason;
+    let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
+    let x = bundle_bytes("static", 1, "default", 1);
+    let y = bundle_bytes("static", 2, "default", 1);
+    let a = bundle_bytes("static", 3, "default", 1);
+    let xy: Art<'_> = &[("x", &x), ("y", &y)];
+    let mut config = runtime_config();
+    config.art_store.dead_material_slots = 0;
+    let mut stage = Stage::new(&gpu, xy, config, None);
+    let before = stage.pixels(&gpu);
+    let dropped = stage.stage(&gpu, &[("a", &a), ("x", &x), ("y", &y)]);
+    drop(dropped);
+    assert_eq!(
+        stage.pixels(&gpu),
+        before,
+        "dropped work cannot change the live frame"
+    );
+    let ready = stage.stage(&gpu, xy);
+    assert_eq!(
+        ready.work().rebuild_reason,
+        Some(RebuildReason::DeadMaterialSlots)
+    );
+    let packed = stage.runtime.admission_work().vertex_bytes_packed;
+    assert_eq!(ready.work().vertex_bytes_packed, packed);
+    stage.commit(&gpu, xy, ready);
+    assert_eq!(stage.pixels(&gpu), before);
+    let mut clean = Stage::new(&gpu, xy, runtime_config(), None);
+    assert_eq!(stage.pixels(&gpu), clean.pixels(&gpu));
+}
+
+#[test]
+fn replacement_content_draws_new_geometry_and_releases_retired_buffers() {
+    use renderer_core::memory::ResourceMemory;
+    let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
+    let old = bundle_bytes("static", 1, "default", 1);
+    let new = bundle_bytes("static", 3, "default", 1);
+    let art: Art<'_> = &[("x", &old)];
+    let mut stage = Stage::new(&gpu, art, runtime_config(), None);
+    let before = stage.pixels(&gpu);
+    let ready = stage.stage(&gpu, &[("x", &new)]);
+    assert_eq!(
+        ready.work().vertex_bytes_packed,
+        stage.runtime.admission_work().vertex_bytes_packed
+    );
+    assert_eq!(
+        stage.pixels(&gpu),
+        before,
+        "preparation leaves the live model drawable"
+    );
+    stage.commit(&gpu, &[("x", &new)], ready);
+    let after = stage.pixels(&gpu);
+    assert_ne!(after, before);
+    let mut clean = Stage::new(&gpu, &[("x", &new)], runtime_config(), None);
+    assert_eq!(after, clean.pixels(&gpu));
+
+    // Observe the store through the production memory visitor. Keeping the
+    // store after all model owners are dropped must keep no GPU buffers.
+    let pipelines = renderer_core::pipelines::build_builtin(&gpu.device).unwrap();
+    let store = ArtStore::shared();
+    let mut library = Library::from_bundle("x", &old, &[]).unwrap();
+    let rows = [Appearance {
+        name_len: 1,
+        lies: NONE,
+        ..Default::default()
+    }];
+    let old_models = Models::from_world(
+        &gpu.device,
+        &gpu.queue,
+        &pipelines,
+        &library,
+        &rows,
+        "x",
+        |_| None,
+        |_, _| None,
+        store.clone(),
+        &mut AdmissionWork::default(),
+    )
+    .unwrap();
+    let memory = || {
+        let mut memory = ResourceMemory::default();
+        store.lock().unwrap().record_memory(&mut memory);
+        memory.counts().buffer_bytes
+    };
+    let old_bytes = memory();
+    assert!(old_bytes > 0);
+    library
+        .insert_bundle("x", content_id(&new), &new, &[])
+        .unwrap();
+    let new_models = Models::from_world(
+        &gpu.device,
+        &gpu.queue,
+        &pipelines,
+        &library,
+        &rows,
+        "x",
+        |_| None,
+        |_, _| None,
+        store.clone(),
+        &mut AdmissionWork::default(),
+    )
+    .unwrap();
+    assert_eq!(memory(), old_bytes * 2);
+    drop(old_models);
+    assert_eq!(
+        memory(),
+        old_bytes,
+        "retired geometry has no store-owned strong reference"
+    );
+    drop(new_models);
+    assert_eq!(memory(), 0);
+}
+
+#[test]
+fn slot_exhaustion_reclaims_dead_ranges_and_refuses_an_oversized_catalog() {
+    use renderer_core::runtime::RebuildReason;
+    let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
+    let x = bundle_bytes("static", 1, "default", 1);
+    let y = bundle_bytes("static", 2, "default", 1);
+    let capacity = u16::MAX as usize + 1;
+    let full = material_bundle(capacity);
+    let mut config = runtime_config();
+    config.art_store.dead_material_slots = capacity;
+    let mut stage = Stage::new(&gpu, &[("old", &full)], config, None);
+    let before = stage.pixels(&gpu);
+    let art: Art<'_> = &[("x", &x), ("y", &y)];
+    let ready = stage.stage(&gpu, art);
+    assert_eq!(
+        ready.work().rebuild_reason,
+        Some(RebuildReason::MaterialSlotsExhausted)
+    );
+    assert_eq!(stage.pixels(&gpu), before);
+    stage.commit(&gpu, art, ready);
+    let mut clean = Stage::new(&gpu, art, runtime_config(), None);
+    assert_eq!(stage.pixels(&gpu), clean.pixels(&gpu));
+
+    let too_many = material_bundle(capacity + 1);
+    let library = Library::from_bundle("oversized", &too_many, &[]).unwrap();
+    let draft = stage
+        .presentation
+        .stage_catalog(
+            catalog(&[("oversized", &too_many)]),
+            detail(),
+            Default::default(),
+        )
+        .unwrap();
+    let live = stage.pixels(&gpu);
+    let failed = stage.runtime.stage_assets(
+        &gpu.device,
+        &gpu.queue,
+        &stage.presentation,
+        draft,
+        &library,
+        AdmissionWork::default(),
+    );
+    let Err(error) = failed else {
+        panic!("an oversized active catalog must be refused");
+    };
+    assert!(error.contains("material slots exhausted"), "{error}");
+    assert_eq!(stage.pixels(&gpu), live);
+
+    let bundle = library.bundle("oversized").unwrap();
+    let renderer_core::bundle::Shape::Static(states) = &bundle.shape else {
+        panic!("static fixture");
+    };
+    let mesh = &states[0].tiers[0];
+    assert!(
+        renderer_core::models::pack_vertices(mesh, capacity, Some(0), 0).is_err(),
+        "packing must never truncate a material address"
+    );
+    assert!(renderer_core::models::pack_vertices(mesh, capacity - 1, Some(0), 0).is_ok());
+}
+
+#[test]
+fn stale_and_dropped_geometry_preparations_leave_live_pixels_unchanged() {
+    let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
+    let x = bundle_bytes("static", 1, "default", 1);
+    let y = bundle_bytes("static", 2, "default", 1);
+    let z = bundle_bytes("static", 3, "default", 1);
+    let mut stage = Stage::new(&gpu, &[("x", &x)], runtime_config(), None);
+    let initial = stage.pixels(&gpu);
+    let dropped = stage.stage(&gpu, &[("y", &y), ("x", &x)]);
+    assert_eq!(stage.pixels(&gpu), initial);
+    drop(dropped);
+    assert_eq!(stage.pixels(&gpu), initial);
+    let stale = stage.stage(&gpu, &[("y", &y), ("x", &x)]);
+    let art: Art<'_> = &[("z", &z), ("x", &x)];
+    let ready = stage.stage(&gpu, art);
+    stage.commit(&gpu, art, ready);
+    let committed = stage.pixels(&gpu);
+    assert!(!stage
+        .runtime
+        .commit_assets(
+            &gpu.device,
+            &gpu.queue,
+            &mut stage.presentation,
+            stale,
+            models(&[("y", &y), ("x", &x)])
+        )
+        .unwrap());
+    assert_eq!(stage.pixels(&gpu), committed);
+}
+
+#[test]
+fn unchanged_statics_are_carried_without_uploads_or_replacement_placement() {
+    let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
+    let scenery = bundle_bytes("static", 1, "summer", 4);
+    let unit = bundle_bytes("static", 1, "default", 1);
+    let initial: Art<'_> = &[("synthetic-scenery", &scenery)];
+    let final_art: Art<'_> = &[("synthetic-scenery", &scenery), ("new-unit", &unit)];
+    let mut config = runtime_config();
+    config.grass_density = Some(1.0);
+    let mut stage = Stage::new(&gpu, initial, config.clone(), Some(&scenery));
+    let ready = stage.stage(&gpu, final_art);
+    assert_eq!(ready.work().scenery_placements, 0);
+    assert_eq!(ready.work().statics_bytes_uploaded, 0);
+    stage.commit(&gpu, final_art, ready);
+    let carried = stage.pixels(&gpu);
+    let mut clean = Stage::new(&gpu, final_art, config, Some(&scenery));
+    assert_eq!(
+        carried,
+        clean.pixels(&gpu),
+        "carried statics differ from a clean final-catalog build"
+    );
+}
+
+#[test]
+fn changed_scenery_content_places_and_uploads_again() {
+    let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
+    let original = bundle_bytes("static", 1, "summer", 4);
+    let changed = bundle_bytes("static", 2, "summer", 4);
+    let unit = bundle_bytes("static", 1, "default", 1);
+    let mut config = runtime_config();
+    config.grass_density = Some(1.0);
+    let mut stage = Stage::new(
+        &gpu,
+        &[("synthetic-scenery", &original)],
+        config,
+        Some(&original),
+    );
+    let ready = stage.stage(
+        &gpu,
+        &[("synthetic-scenery", &changed), ("new-unit", &unit)],
+    );
+    assert_eq!(ready.work().scenery_placements, 1);
+    assert!(ready.work().statics_bytes_uploaded > 0);
 }

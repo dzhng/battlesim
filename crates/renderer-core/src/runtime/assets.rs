@@ -62,7 +62,7 @@ impl Runtime {
         library: &impl BundleSource,
         mut starting_work: AdmissionWork,
     ) -> Result<PendingAssets, String> {
-        starting_work.rebuild_reason = Some(RebuildReason::Replacement);
+        starting_work.rebuild_reason = None;
         let mut work = starting_work;
         let statics = StaticIdentity::new(presentation, library, self.config.grass_density)?;
         let scenery_changed = !self.statics_identity.scenery_same(&statics);
@@ -78,7 +78,15 @@ impl Runtime {
             work.scenery_placements += 1;
         }
         let view = catalog.view(presentation)?;
-        let models = Models::new(device, queue, &self.pipelines, library, view, &mut work)?;
+        let models = Models::new(
+            device,
+            queue,
+            &self.pipelines,
+            library,
+            view,
+            self.art_store.clone(),
+            &mut work,
+        )?;
         let scenery = if scenery_changed {
             Scenery::new(device, queue, &self.pipelines, library, view, &mut work)?
         } else {
@@ -134,6 +142,7 @@ impl Runtime {
             return Ok(false);
         }
         self.models = pending.assets.models;
+        self.art_store = self.models.store.clone();
         self.scenery = pending.assets.scenery;
         if let Some(grass) = pending.assets.grass {
             self.grass = grass;

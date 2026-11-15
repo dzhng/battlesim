@@ -337,3 +337,64 @@ merged tree, at high graphics:
   new appearance (a contact's kind, a wreck's owner). That is not confirmed.
   Slice 08 owns it: a staging that wants the same art as the build in flight
   should not discard that build.
+
+**Slice 03, 2026-11-15.**
+
+- `Runtime` owns one `Arc<Mutex<ArtStore>>` per scene/device, also held by model
+  generations. `MaterialSlots` owns append-only ranges per `ContentId`; the weak
+  geometry index owns no buffer lifetime. Rejected: a separate incremental
+  renderer, strong cache retention, or slot renumbering after cancelled work.
+- The geometry key includes content, the resolved static state, an optional
+  baked corpse palette (the exact joint bytes), and the ordered track-side
+  signature. The corpse row/`lies` index is not an identity. Animated skinning
+  keeps the unposed mesh; changing its live palette does not repack it.
+- An admission resolves its complete wanted content and preflights capacity
+  before any geometry allocation. Material and texture tables are rebuilt from
+  the generation's decoded bundles at the store's stable material bases; the
+  slot table retains addresses only, not retired CPU materials or textures.
+  Rejected: retaining old bundle data in the store, or discovering exhaustion
+  midway through a geometry rebuild.
+- The default dead-material-slot tripwire is **8,192 slots**, counting addresses
+  absent from the prospective catalog, including reservations left by dropped
+  preparations. A read of this runtime catalog found 4,587 material rows across
+  479 distinct appearance contents, so the bound exceeds the whole current art
+  catalog and ordinary monotonic battle growth cannot hit it. Rejected: a
+  time-based eviction policy or a tight percentage bound that rebuilds during
+  ordinary growth. `ArtStorePolicy` supplies the bound and platform log sink;
+  firing logs kind, value, bound, owner and the fresh-store outcome.
+- Dead-slot pressure and exhausted historical addresses use the same admission
+  into a new store. A wanted catalog larger than the 16-bit address space is an
+  error; vertex packing also checks the actual material index instead of
+  narrowing with a wrapping cast. Initial admission, device recreation and the
+  two slot tripwires have distinct rebuild reasons; reused growth has none.
+- `BundleSource::content_id` carries the identity to the store. The browser
+  library reads its existing name-to-content index; the native source asks
+  `Runtime::content_id` without caching decoded bundles. Every synthetic source
+  supplies an explicit fixture identity rather than falling back to a name.
+- Geometry lifetimes are generation-held shared references. `Models::Drop`
+  still releases its own per-generation textures; it does not destroy shared
+  vertex/index buffers. The final `Arc<[Drawable]>` holder drops the tiers,
+  whose destructors destroy their buffers. Confirmed in wgpu's browser backend:
+  dropping a buffer handle alone does not destroy its allocation, so deferring
+  this cleanup to browser garbage collection was rejected. The store's
+  memory visitor also counts geometry held by pending generations sharing the
+  live store, without extending those lifetimes beyond the snapshot.
+- Synthetic runtime admissions confirmed exact pixel equality against a clean
+  build after a name-sorting insertion, content replacement and fresh-store
+  fallback. The prescribed key covered those inputs without widening. Dropped
+  and stale candidates also preserve live pixels, and retirement releases the
+  old geometry while the store remains alive.
+- At the scene's own profile and at high, `battle-growth` packs 8,648,160
+  vertex bytes at growth, down from 1,141,746,672. A scratch observer of the
+  committed names found just the BTR-82A and its wreck newly admitted; their
+  bundle vertex counts independently sum to exactly 8,648,160 packed bytes.
+  Geometry uploads are those vertices plus 1,396,896 index bytes; the other
+  126,480 buffer bytes are the generation's material table. Texture/card and
+  scenery work remains for the other slices.
+
+**Slice 03, verified on the merged tree, 2026-11-15.** `battle-growth` at the
+scene's own profile and at high, one growth: 8.6 MB of vertices packed and
+10.2 MB of buffers uploaded, against 1.14 GB and 1.32 GB before. Still whole
+at every growth: 178 texture layers (125 MB, slice 04), 189 cards (slices 05a
+and 05), one scenery placement and 22 MB of scenery (slice 06), and 203
+bundles sent with 194 decoded (slices 07 and 08).
