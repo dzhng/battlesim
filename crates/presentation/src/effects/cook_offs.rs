@@ -95,12 +95,7 @@ impl CookOffWatch {
 
     /// The hulls `o` shows the side watched brew up since the last
     /// publication. An earlier tick is a new battle and starts over.
-    pub fn note(
-        &mut self,
-        o: &Observation,
-        units: &UnitsSection,
-        effects: &EffectsSection,
-    ) -> Vec<CookOff> {
+    pub fn note(&mut self, o: &Observation, units: &UnitsSection) -> Vec<CookOff> {
         if o.tick < self.last_tick {
             self.hulls.clear();
             self.known.clear();
@@ -110,10 +105,11 @@ impl CookOffWatch {
         let hull = |own: bool, id: f64, kind: &Arc<str>, at: Vec3| {
             // An airframe's death is its fall: it never brews up.
             let airborne = units.types.get(&**kind).is_some_and(|t| t.airborne);
-            let half = effects
-                .types
+            let half = units
+                .body_half
                 .get(&**kind)
-                .and_then(|t| t.half)
+                .copied()
+                .flatten()
                 .filter(|_| !airborne)?;
             let h = Hull {
                 kind: kind.clone(),
@@ -453,7 +449,7 @@ impl CookOffs {
         }
         self.last_tick = o.tick;
         let mut out = Vec::new();
-        for c in self.watch.note(o, units, effects) {
+        for c in self.watch.note(o, units) {
             let f = transition_of(&c, looks, &effects.wrecks, self.tick_hz);
             out.push(effect_cook_off(&c, f.as_ref()));
             if let Some(f) = f {

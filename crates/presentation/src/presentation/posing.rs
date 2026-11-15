@@ -3,7 +3,7 @@
 //! alike.
 use super::*;
 use crate::units::pose::{SoldierPose, VehiclePose};
-use crate::world::Detail;
+use crate::world::{BodyBox, Detail, StandIn};
 
 /// What units are drawn from: their section, each skinned body's clip table
 /// and inverse binds, and the world rows their appearances hold; and the
@@ -15,6 +15,20 @@ pub(super) struct UnitArt<'a> {
     pub world: &'a World,
     pub view: &'a View,
     pub detail: Detail,
+    pub stand_in: Option<UnitStandIn<'a>>,
+}
+
+/// A battle's reserved mesh and the same body box its picks read.
+pub(super) struct UnitStandIn<'a> {
+    pub appearance: &'a StandIn,
+    pub body: &'a BodyBox<'a>,
+}
+
+struct DrawnBody<'a> {
+    name: &'a str,
+    bounds: Bounds,
+    scale: [f32; 3],
+    stand_in: bool,
 }
 
 /// The node transforms posing reuses from model to model.
@@ -60,6 +74,12 @@ pub(super) fn register_appearance(world: &mut World, name: &str, a: &Appearance)
     }
 }
 
+/// The canonical unit stand-in is a browser-admitted articulated box, so it
+/// needs a row even though Rust does not deserialize it as authored art.
+pub(super) fn register_stand_in(world: &mut World, name: &str) {
+    world.row(name, "", NONE, 0, false);
+}
+
 /// The rows a cook-off draws its wrecks' pieces from: whole, hull, turret, debris.
 pub(super) fn register_wreck_rows(world: &mut World, effects: &crate::world::EffectsSection) {
     for look in effects.wreck_looks.values() {
@@ -91,6 +111,29 @@ impl Model {
 }
 
 impl UnitArt<'_> {
+    /// What one posed body draws: authored art or its physical box.
+    fn body<'a>(&'a self, kind: &str, resolved: Option<&'a str>) -> Option<DrawnBody<'a>> {
+        if let Some(name) = resolved {
+            return Some(DrawnBody {
+                name,
+                bounds: bounds(self.units, name, 0),
+                scale: [1.0; 3],
+                stand_in: false,
+            });
+        }
+        let stand_in = self.stand_in.as_ref()?;
+        let half = stand_in.body.half(kind)?;
+        Some(DrawnBody {
+            name: &stand_in.appearance.appearance,
+            bounds: Bounds {
+                size: half[2] * 2.0,
+                radius: (half[0] * half[0] + half[1] * half[1] + half[2] * half[2]).sqrt(),
+            },
+            scale: std::array::from_fn(|i| (half[i] / stand_in.appearance.half[i]) as f32),
+            stand_in: true,
+        })
+    }
+
     pub(super) fn tint(&self, side: &str) -> [f32; 3] {
         self.units
             .tints
@@ -115,32 +158,34 @@ impl UnitArt<'_> {
         let units = self.units;
         let mut culled = 0;
         for s in soldiers {
-            let Some(name) = units.resolve(
+            let resolved = units.resolve(
                 &s.kind,
                 &s.side,
                 s.soldier,
                 s.slot,
                 s.operator_mount,
                 s.active_mount,
-            ) else {
+            );
+            let Some(body) = self.body(&s.kind, resolved) else {
                 continue;
             };
+            let is_stand_in = body.stand_in;
             f.counts.soldiers += 1;
-            let far = bounds(units, name, 0);
+            let far = body.bounds;
             let tier = model_detail(
                 &self.detail,
                 self.view,
                 s.position,
                 far.size,
                 far.radius,
-                true,
+                !is_stand_in,
                 None,
             );
             if tier == CULLED {
                 culled += 1;
                 continue;
             }
-            let palette = if tier == IMPOSTOR {
+            let palette = if is_stand_in || tier == IMPOSTOR {
                 0
             } else {
                 pose_body(
@@ -149,7 +194,7 @@ impl UnitArt<'_> {
                     self.inverse_binds,
                     worlds,
                     &mut f.palettes,
-                    name,
+                    body.name,
                     &s.clip,
                     s.phase,
                     s.blend.as_ref(),
@@ -160,7 +205,8 @@ impl UnitArt<'_> {
                 tint: self.tint(&s.side),
                 colour: colour(&s.side, s.unit),
                 palette,
-                ..Model::unit(self.row(name, "", NONE), tier, 0, s.position, s.facing)
+                scale: body.scale,
+                ..Model::unit(self.row(body.name, "", NONE), tier, 0, s.position, s.facing)
             });
         }
         culled
@@ -180,15 +226,17 @@ impl UnitArt<'_> {
     ) {
         let units = self.units;
         for v in vehicles {
-            let Some(name) = units.resolve(&v.kind, &v.side, v.unit, 0, None, None) else {
+            let resolved = units.resolve(&v.kind, &v.side, v.unit, 0, None, None);
+            let Some(body) = self.body(&v.kind, resolved) else {
                 continue;
             };
+            let is_stand_in = body.stand_in;
             if v.airborne {
                 f.counts.aircraft += 1;
             } else {
                 f.counts.vehicles += 1;
             }
-            let far = bounds(units, name, 0);
+            let far = body.bounds;
             let (shadow, pass) = shadow(v);
             let tier = model_detail(
                 &self.detail,
@@ -202,20 +250,25 @@ impl UnitArt<'_> {
             if tier == CULLED {
                 continue;
             }
-            let (palette, scroll) = pose_vehicle(
-                units,
-                scratch,
-                &mut f.palettes,
-                name,
-                &v.articulation,
-                v.motion.as_ref(),
-            );
+            let (palette, scroll) = if is_stand_in {
+                (0, [0.0; 2])
+            } else {
+                pose_vehicle(
+                    units,
+                    scratch,
+                    &mut f.palettes,
+                    body.name,
+                    &v.articulation,
+                    v.motion.as_ref(),
+                )
+            };
             models.push(Model {
                 tint: self.tint(&v.side),
                 colour: colour(&v.side, v.unit),
                 palette,
                 scroll,
-                ..Model::unit(self.row(name, "", NONE), tier, pass, v.position, v.yaw)
+                scale: body.scale,
+                ..Model::unit(self.row(body.name, "", NONE), tier, pass, v.position, v.yaw)
             });
         }
     }

@@ -12,7 +12,12 @@ import { EMPTY_MESH, type Mesh } from "@packages/battle-renderer/src/mesh";
 import type { ScenePresentation } from "../sim/presentation";
 import type { AdmissionTransportWork, LabModel, ModelDetail } from "../sim/presentationModels";
 import { modelAssetsOf, type ModelAsset } from "./modelAssets";
-import { isProxyAppearance, proxyModels } from "./proxyModels";
+import {
+  BATTLE_STAND_IN_APPEARANCE,
+  battleStandInAsset,
+  isProxyAppearance,
+  proxyModels,
+} from "./proxyModels";
 import { SceneAppearances } from "./sceneAppearances";
 import { loadEffectAtlasLayers } from "./effectAssets";
 import type { SceneStats, DrawnInstances, FrameView } from "./sceneStats";
@@ -549,10 +554,15 @@ function assetsFor(
   const sources = [world.scenery?.appearances, grass ? world.grass : null].filter(
     (source): source is NonNullable<typeof source> => source != null,
   );
-  return modelAssetsOf(
+  const names = sourceNames(presentation, models, battle, grass, !!world.scenery);
+  const art = modelAssetsOf(
     installed,
-    sourceNames(presentation, models, battle, grass, !!world.scenery),
+    names.filter((name) => name !== BATTLE_STAND_IN_APPEARANCE),
     sources,
+  );
+  const byName = new Map(art.map((asset) => [asset.name, asset]));
+  return names.map((name) =>
+    name === BATTLE_STAND_IN_APPEARANCE ? battleStandInAsset() : byName.get(name)!,
   );
 }
 

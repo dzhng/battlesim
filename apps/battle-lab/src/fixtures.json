@@ -105,6 +105,15 @@
     "map": "sensors"
   },
   {
+    "id": "stand-in",
+    "route": "/battle?type=mixed&size=small&seed=7684954605204256359&battle=20260925&blue=h&red=a&blue_faction=us&red_faction=europe",
+    "describe": "Stand-in mechanics during battle growth: newly requested vehicle and squad art is held at the network edge; physical blocks take attack clicks, then the same session swaps them to models. Rust proves identical selection picks.",
+    "map": null,
+    "catalog": "game",
+    "loading": false,
+    "timeout_s": 900
+  },
+  {
     "id": "ballistics",
     "route": "/labs/ballistics",
     "describe": "Physical flight and swept collision: gravity arcs, a fast bullet leading a thin sliding target, dodge after launch, a hill crest blocking direct fire while the indirect high arc clears it, and bodies crossing a round's line between ticks.",

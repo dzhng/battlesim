@@ -50,6 +50,7 @@ fn world(root: &Path, game: &Value, side: Side) -> WorldInput {
                 ally: [0.0; 4],
             },
             blocked: [0.0; 4],
+            stand_in: None,
         }),
         sun_azimuth: 0.0,
         sun_elevation: 0.5,
