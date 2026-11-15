@@ -1,0 +1,45 @@
+{
+  "note": "The player's diagnostics report that started this spec, 2026-11-14. Verbatim values; pointer delay, script entries under 1 s and the first-scene events are omitted.",
+  "build": { "commit": "080bcbe", "sim": "2df1c7f4" },
+  "page": "/battle?type=mixed&size=large&seed=14878165531969510907&battle=20260925&light=golden_hour&blue=h,a,a&blue_faction=us&red=a,a,a&red_faction=eastern",
+  "machine": { "platform": "MacIntel", "cores": 18, "memoryGb": 32, "window": [2048, 1050], "devicePixelRatio": 2 },
+  "frames": { "fps": 21, "intervalMs": { "n": 600, "p50": 33.3, "p90": 50.5, "p99": 133.3, "max": 6850 }, "blockedShare": 1.37 },
+  "longFrames": {
+    "durationMs": { "n": 600, "p50": 65, "p90": 118, "p99": 1474, "max": 9951 },
+    "heaviestScripts": [
+      { "name": "FrameRequestCallback Z LabViewport-CvyB60Zs.js:22448", "ms": 44716 },
+      { "name": "MessagePort.onmessage ie index-BkumFHYS.js:4402", "ms": 8326 },
+      { "name": "Promise.resolve ? gzip-qx8vC2yL.js:12450", "ms": 5168 },
+      { "name": "ReadableStreamDefaultReader.read.then ? gzip-qx8vC2yL.js:12551", "ms": 1670 }
+    ]
+  },
+  "live": {
+    "appearance loading": { "state": "ready", "generation": 10, "prefetch": { "state": "idle" } },
+    "battle view": {
+      "adapter": "browser-webgpu",
+      "gpu": { "frames": 240, "meanMs": 12.195157333333345, "p95Ms": 14.876672 },
+      "gpuAllocations": { "bufferBytes": 1553620708, "buffers": 5631, "textureBytes": 723697897, "textures": 48 }
+    }
+  },
+  "timeline": {
+    "now": 691014,
+    "events": [
+      { "at": 294395, "kind": "battle staged", "detail": { "appearances": 145 } },
+      { "at": 292843, "kind": "long frame", "detail": { "ms": 1502, "scripts": [["Promise.resolve ? gzip-qx8vC2yL.js:12450", 1472], ["MessagePort.onmessage ie index-BkumFHYS.js:4402", 14], ["FrameRequestCallback Z LabViewport-CvyB60Zs.js:22448", 8]] } },
+      { "at": 294346, "kind": "long frame", "detail": { "ms": 9951, "scripts": [["FrameRequestCallback Z LabViewport-CvyB60Zs.js:22448", 9924], ["MessagePort.onmessage ie index-BkumFHYS.js:4402", 12]] } },
+      { "at": 334598, "kind": "art committed", "detail": { "generation": 4, "gpu": { "bufferBytes": 1457771172, "buffers": 5407, "textureBytes": 712114413, "textures": 48 } } },
+      { "at": 342295, "kind": "battle staged", "detail": { "appearances": 145 } },
+      { "at": 342263, "kind": "long frame", "detail": { "ms": 2892, "scripts": [["FrameRequestCallback Z LabViewport-CvyB60Zs.js:22448", 2876], ["MessagePort.onmessage ie index-BkumFHYS.js:4402", 5]] } },
+      { "at": 353257, "kind": "art committed", "detail": { "generation": 4, "gpu": { "bufferBytes": 1458151828, "buffers": 5407, "textureBytes": 712114413, "textures": 48 } } },
+      { "at": 446026, "kind": "battle staged", "detail": { "appearances": 151 } },
+      { "at": 444488, "kind": "long frame", "detail": { "ms": 1474, "scripts": [["Promise.resolve ? gzip-qx8vC2yL.js:12450", 1461], ["FrameRequestCallback Z LabViewport-CvyB60Zs.js:22448", 8]] } },
+      { "at": 445963, "kind": "long frame", "detail": { "ms": 4209, "scripts": [["FrameRequestCallback Z LabViewport-CvyB60Zs.js:22448", 4178], ["MessagePort.onmessage ie index-BkumFHYS.js:4402", 13]] } },
+      { "at": 458790, "kind": "art committed", "detail": { "generation": 6, "gpu": { "bufferBytes": 1523754044, "buffers": 5551, "textureBytes": 723665129, "textures": 48 } } },
+      { "at": 477227, "kind": "battle staged", "detail": { "appearances": 153 } },
+      { "at": 477150, "kind": "long frame", "detail": { "ms": 7278, "scripts": [["FrameRequestCallback Z LabViewport-CvyB60Zs.js:22448", 7242], ["MessagePort.onmessage ie index-BkumFHYS.js:4402", 15]] } },
+      { "at": 514911, "kind": "art committed", "detail": { "generation": 8, "gpu": { "bufferBytes": 1535813332, "buffers": 5575, "textureBytes": 723665129, "textures": 48 } } },
+      { "at": 679605, "kind": "battle staged", "detail": { "appearances": 162 } },
+      { "at": 678655, "kind": "long frame", "detail": { "ms": 6830, "scripts": [["FrameRequestCallback Z LabViewport-CvyB60Zs.js:22448", 5914], ["Promise.resolve ? gzip-qx8vC2yL.js:12450", 866], ["MessagePort.onmessage ie index-BkumFHYS.js:4402", 18]] } }
+    ]
+  }
+}

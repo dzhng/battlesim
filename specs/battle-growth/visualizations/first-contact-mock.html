@@ -1,0 +1,95 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>First contact while art loads</title>
+<style>
+  /* Standalone fallbacks: the thread that first showed this mock supplied these variables. */
+  :root { --background: #0b0b0c; --foreground: #ededed; --muted-foreground: #9a9a9a; --card: #151516; --border: #2a2a2c;
+    --secondary: #1d1d1f; --secondary-foreground: #ededed; --primary: #ededed; --primary-foreground: #0b0b0c;
+    --info: #3b82f6; --destructive: #ef4444; --warning: #d97706; --success: #10b981; --code-background: #1d1d1f;
+    --radius: 10px; --font-sans: system-ui, sans-serif; --font-mono: ui-monospace, monospace; }
+  html { background: var(--background); padding: 16px; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: var(--font-sans); color: var(--foreground); font-size: 14px; line-height: 1.45; }
+  .note { color: var(--muted-foreground); font-size: 13px; margin: 0 0 12px; }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+  .panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+  .panel h3 { margin: 0 0 2px; font-size: 14px; font-weight: 600; }
+  .panel p { margin: 0 0 10px; color: var(--muted-foreground); font-size: 12.5px; min-height: 36px; }
+  .field { position: relative; height: 96px; border-radius: calc(var(--radius) - 2px); background: var(--secondary); overflow: hidden; }
+  .fog { position: absolute; inset: 0 0 0 62%; background: repeating-linear-gradient(135deg, transparent 0 6px, var(--border) 6px 7px); opacity: .8; }
+  .own { position: absolute; left: 14%; top: 50%; width: 22px; height: 14px; margin: -7px 0 0 -11px; background: var(--info); border-radius: 2px; }
+  .own::after { content: ""; position: absolute; left: 20px; top: 5px; width: 12px; height: 3px; background: var(--info); }
+  .sight { position: absolute; left: 14%; top: 50%; width: 96%; aspect-ratio: 1; transform: translate(-50%, -50%); border: 1px dashed var(--info); border-radius: 50%; opacity: .45; }
+  .enemy { position: absolute; left: 0; top: 50%; width: 30px; height: 30px; margin-top: -15px; animation: drive 6s linear infinite; }
+  @keyframes drive { from { left: 72%; } to { left: 32%; } }
+  .enemy > * { position: absolute; inset: 0; opacity: 0; animation-duration: 6s; animation-iteration-count: infinite; animation-timing-function: linear; }
+  .model::before { content: ""; position: absolute; left: 3px; top: 8px; width: 24px; height: 14px; background: var(--destructive); border-radius: 2px; }
+  .model::after { content: ""; position: absolute; left: -7px; top: 13px; width: 18px; height: 4px; background: var(--destructive); box-shadow: 16px -2px 0 3px var(--destructive); }
+  .glyph::before { content: ""; position: absolute; left: 7px; top: 7px; width: 16px; height: 16px; border: 2px solid var(--destructive); transform: rotate(45deg); }
+  .box::before { content: ""; position: absolute; left: 4px; top: 8px; width: 22px; height: 14px; background: var(--muted-foreground); border-radius: 2px; opacity: .7; }
+  .pop { animation-name: pop; } .fade { animation-name: fade; }
+  .until-pop { animation-name: untilPop; } .until-fade { animation-name: untilFade; }
+  @keyframes pop { 0%, 74.9% { opacity: 0; } 75%, 100% { opacity: 1; } }
+  @keyframes fade { 0%, 75% { opacity: 0; } 87%, 100% { opacity: 1; } }
+  @keyframes untilPop { 0%, 24.9% { opacity: 0; } 25%, 74.9% { opacity: 1; } 75%, 100% { opacity: 0; } }
+  @keyframes untilFade { 0%, 24.9% { opacity: 0; } 25%, 75% { opacity: 1; } 87%, 100% { opacity: 0; } }
+  .time { position: relative; height: 30px; margin-top: 8px; }
+  .time .bar { position: absolute; left: 0; right: 0; top: 5px; height: 4px; border-radius: 2px; background: var(--border); }
+  .time .wait { position: absolute; left: 25%; width: 50%; top: 5px; height: 4px; background: var(--warning); opacity: .7; }
+  .time .head { position: absolute; top: 0; width: 2px; height: 14px; background: var(--foreground); animation: head 6s linear infinite; }
+  @keyframes head { from { left: 0; } to { left: 100%; } }
+  .time span { position: absolute; top: 14px; font-size: 11px; color: var(--muted-foreground); transform: translateX(-50%); white-space: nowrap; }
+  .pick { margin-top: 10px; display: flex; gap: 8px; align-items: center; }
+  button { font: inherit; font-size: 13px; padding: 5px 12px; border-radius: calc(var(--radius) - 2px); border: 1px solid var(--border); background: var(--secondary); color: var(--secondary-foreground); cursor: pointer; }
+  button[aria-pressed="true"] { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+  .rec { font-size: 11.5px; color: var(--success); }
+  .reply { margin-top: 12px; display: flex; gap: 8px; align-items: center; }
+  .reply code { flex: 1; font-family: var(--font-mono); font-size: 13px; background: var(--code-background); padding: 8px 10px; border-radius: calc(var(--radius) - 2px); min-height: 34px; user-select: all; }
+  @media (prefers-reduced-motion: reduce) { .enemy, .enemy > *, .time .head { animation-duration: 12s; } }
+</style>
+</head>
+<body>
+<p class="note">The user picked D on 2026-11-14. Mock, not the game. Your unit (blue) spots an enemy whose art is still loading. The enemy keeps driving the whole time; only what is drawn differs. The 3-second wait is invented, and after the background preload it happens only when contact beats the download.</p>
+<div class="grid" id="grid"></div>
+<div class="reply"><code id="reply">Pick one above</code><button id="copy" type="button">Copy</button></div>
+<script>
+  const variants = [
+    { id: "A", name: "Nothing, then it appears", text: "Today's behaviour. No new visuals to build.", layers: [["model", "pop"]], rec: true },
+    { id: "B", name: "Contact marker, then it appears", text: "A marker shows at once where the enemy is; the model replaces it.", layers: [["glyph", "until-pop"], ["model", "pop"]] },
+    { id: "C", name: "Contact marker, then it fades in", text: "As B, but the model fades in over about half a second.", layers: [["glyph", "until-fade"], ["model", "fade"]] },
+    { id: "D", name: "Stand-in shape, then it swaps", text: "A plain grey block stands in for the model until the real one is ready.", layers: [["box", "until-pop"], ["model", "pop"]] },
+  ];
+  const grid = document.getElementById("grid");
+  const reply = document.getElementById("reply");
+  for (const v of variants) {
+    const el = document.createElement("section");
+    el.className = "panel";
+    el.innerHTML = `
+      <h3>${v.id}. ${v.name}</h3>
+      <p>${v.text}</p>
+      <div class="field">
+        <div class="fog"></div><div class="sight"></div><div class="own"></div>
+        <div class="enemy">${v.layers.map(([shape, anim]) => `<div class="${shape} ${anim}"></div>`).join("")}</div>
+      </div>
+      <div class="time"><div class="bar"></div><div class="wait"></div><div class="head"></div>
+        <span style="left:25%">spotted</span><span style="left:75%">art ready</span></div>
+      <div class="pick"><button type="button" aria-pressed="false" data-id="${v.id}">Pick ${v.id}</button>${v.rec ? '<span class="rec">my recommendation</span>' : ""}</div>`;
+    grid.append(el);
+  }
+  grid.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-id]");
+    if (!button) return;
+    for (const other of grid.querySelectorAll("button[data-id]")) other.setAttribute("aria-pressed", String(other === button));
+    reply.textContent = `Gap look: ${button.dataset.id}`;
+  });
+  document.getElementById("copy").addEventListener("click", async (event) => {
+    try { await navigator.clipboard.writeText(reply.textContent); event.target.textContent = "Copied"; }
+    catch { getSelection().selectAllChildren(reply); event.target.textContent = "Selected"; }
+  });
+</script>
+</body>
+</html>
