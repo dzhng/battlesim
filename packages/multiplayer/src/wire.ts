@@ -33,7 +33,7 @@ export type UpBatch = {
 };
 export type UpReply =
   | { seq: number; results: { id: number; ack: CommandAck }[] }
-  | { seq: number; refused: "not_seated" | "rate" };
+  | { seq: number; refused: "not_seated" | "rate" | "invalid" };
 
 export type PreviewQuery =
   | { kind: "purchase"; variant: string; destination: [number, number] }

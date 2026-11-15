@@ -22,6 +22,9 @@ export interface SimBattle {
   /** The publication layout: offsets, tags and this battle's round kinds. */
   observation_layout(): string;
   set_controllers(controllersJson: string): void;
+  hand_over(player: string): void;
+  reset_seat(player: string, opening: boolean): void;
+  referee_view(): string;
   accept_order(
     side: string,
     player: string | undefined,
@@ -80,8 +83,22 @@ export function createAuthority(host: AuthorityHost): Authority {
   let script: { id: number; target: number } | null = null;
   const credits: ArrayBuffer[] = [];
   let pumping = false;
+  const resets: { id: number; tick: number }[] = [];
+  const applied: { player: string; tick: number }[] = [];
   // Requests that arrive while the module loads keep their order.
   const backlog: SimRequest[] = [];
+
+  /** An order or preview the battle cannot read is refused, and the battle
+   *  goes on: one seat's bad input is not every seat's crash. A trap in the
+   *  simulation is not bad input, and still ends the battle. */
+  const refusing = (request: "command" | "preview", id: number, answer: () => void) => {
+    try {
+      answer();
+    } catch (error) {
+      if (error instanceof WebAssembly.RuntimeError) throw error;
+      host.post({ type: "request_refused", request, id, reason: "invalid" });
+    }
+  };
 
   const activeResources = (): Resources => {
     if (lifetime.kind !== "live") throw new Error("simulation resources are not admitted");
@@ -130,6 +147,10 @@ export function createAuthority(host: AuthorityHost): Authority {
         buffer,
       ]);
     }
+    while (resets.length && resets[0].tick <= tick)
+      host.post({ type: "seat_reset", id: resets.shift()!.id });
+    while (applied.length && applied[0].tick <= tick)
+      host.post({ type: "order_applied", player: applied.shift()!.player });
     if (script && (tick >= script.target || b.finished())) {
       host.post({ type: "advanced", id: script.id, tick });
       script = null;
@@ -241,42 +262,49 @@ export function createAuthority(host: AuthorityHost): Authority {
           started = true;
           nextTickAt = host.now();
           break;
-        case "command":
-          host.post({
-            type: "ack",
-            id: request.id,
-            ack: JSON.parse(
-              activeResources().battle.accept_order(
+        case "command": {
+          const { battle } = activeResources();
+          refusing("command", request.id, () => {
+            const ack = JSON.parse(
+              battle.accept_order(
                 request.seat.side,
                 request.seat.player,
                 JSON.stringify(request.order),
                 request.queued,
               ),
-            ),
+            );
+            if (ack.error === null && request.seat.player)
+              applied.push({ player: request.seat.player, tick: ack.applied_tick });
+            host.post({ type: "ack", id: request.id, ack });
           });
           return;
-        case "purchase_preview":
-          host.post({
-            type: "purchase_preview",
-            id: request.id,
-            placement: JSON.parse(
-              activeResources().battle.preview_purchase(
-                request.side,
-                request.variant,
-                ...request.destination,
+        }
+        case "purchase_preview": {
+          const { battle } = activeResources();
+          refusing("preview", request.id, () =>
+            host.post({
+              type: "purchase_preview",
+              id: request.id,
+              placement: JSON.parse(
+                battle.preview_purchase(request.side, request.variant, ...request.destination),
               ),
-            ),
-          });
+            }),
+          );
           return;
-        case "move_preview":
-          host.post({
-            type: "move_preview",
-            id: request.id,
-            destinations: JSON.parse(
-              activeResources().battle.preview_move(request.side, JSON.stringify(request.move)),
-            ),
-          });
+        }
+        case "move_preview": {
+          const { battle } = activeResources();
+          refusing("preview", request.id, () =>
+            host.post({
+              type: "move_preview",
+              id: request.id,
+              destinations: JSON.parse(
+                battle.preview_move(request.side, JSON.stringify(request.move)),
+              ),
+            }),
+          );
           return;
+        }
         case "building_preview": {
           // A changing selection can invalidate a preview without failing the battle.
           try {
@@ -331,6 +359,20 @@ export function createAuthority(host: AuthorityHost): Authority {
         }
         case "controllers":
           activeResources().battle.set_controllers(request.controllers);
+          return;
+        case "hand_over":
+          activeResources().battle.hand_over(request.player);
+          return;
+        case "reset_seat":
+          activeResources().battle.reset_seat(request.player, request.opening);
+          resets.push({ id: request.id, tick: activeResources().battle.tick() + 1 });
+          return;
+        case "referee":
+          host.post({
+            type: "referee",
+            id: request.id,
+            view: JSON.parse(activeResources().battle.referee_view()),
+          });
           return;
         case "resync":
           activeResources().battle.resync_observation(request.side);

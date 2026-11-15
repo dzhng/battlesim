@@ -39,3 +39,10 @@ its other errors (and its diagnostics report).
 [Paired native/WebAssembly records](../../fixtures/README.md#paired-records) prove
 both execution and packed decoding. Float32 observation agreement alone cannot
 prove identical authoritative state; exact battle digests provide that check.
+
+The battle's referee view exposes accounting for the server without publishing
+a side or advancing time. The binding also carries recorded seat events; neither
+belongs to a player's remote transport. A reset may be queued behind a hand-over
+for the same boundary, but application still refuses an occupied seat if that
+hand-over becomes invalid. The [event owner](../sim/src/battle/seats.rs) defines
+that ordering and the native proofs cover the invalidated pair too.

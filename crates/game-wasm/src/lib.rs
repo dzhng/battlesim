@@ -662,12 +662,25 @@ impl BattleHandle {
         })
     }
 
-    /// Set play-time controller ownership before the first tick.
+    /// Record play-time controller ownership at the current boundary.
     pub fn set_controllers(&mut self, controllers_json: &str) -> Result<(), JsError> {
         let controllers: Vec<(String, contract::bundle::ControllerKind)> =
             serde_json::from_str(controllers_json).map_err(js_error)?;
         self.battle.set_controllers(controllers);
         Ok(())
+    }
+
+    /// Server-only accounting, independent of side publications.
+    pub fn referee_view(&self) -> Result<String, JsError> {
+        serde_json::to_string(&self.battle.referee()).map_err(js_error)
+    }
+
+    pub fn hand_over(&mut self, player: &str) -> Result<(), JsError> {
+        self.battle.hand_over(player).map_err(js_error)
+    }
+
+    pub fn reset_seat(&mut self, player: &str, opening: bool) -> Result<(), JsError> {
+        self.battle.reset_seat(player, opening).map_err(js_error)
     }
 
     /// A battle that re-applies a recorded replay and refuses live commands.
@@ -692,7 +705,8 @@ impl BattleHandle {
         queued: bool,
     ) -> Result<String, JsError> {
         let side = parse_side(side)?;
-        let order: Order = serde_json::from_str(order_json).map_err(js_error)?;
+        let order: Order =
+            serde_json::from_str(order_json).map_err(|_| JsError::new("invalid order"))?;
         serde_json::to_string(&self.battle.accept_order(side, player, order, queued))
             .map_err(js_error)
     }
@@ -802,3 +816,6 @@ pub fn report_panics() {
         report_panic(&format!("simulation panic: {info}"))
     }));
 }
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod battle_tests;

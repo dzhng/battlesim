@@ -2,9 +2,9 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { BuildIdentity } from "../../../packages/multiplayer/src/wire.ts";
 import { createBattleHost } from "./battleHost/index.ts";
-import { nodeSetupData } from "./serverData.ts";
+import { MAP_ATTEMPTS, nodeSetupData } from "./serverData.ts";
 import { createBattleHttp } from "./http/index.ts";
-import { battleCapacity } from "./rooms.ts";
+import { battleCapacity } from "./online.ts";
 
 async function main() {
   const root = fileURLToPath(new URL(".", import.meta.url));
@@ -24,6 +24,7 @@ async function main() {
       return host;
     },
     ordersPerSecond: commands.orders_per_s,
+    mapAttempts: MAP_ATTEMPTS,
     clock: {
       now: () => performance.now(),
       schedule: (run, delay) => {

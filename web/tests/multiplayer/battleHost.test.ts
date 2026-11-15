@@ -224,6 +224,35 @@ test("a seat given to its AI is ordered by the AI, and its player's next order a
   expect(await ordersFor("blue-1")).toBe(fromAi + 1);
 }, 120_000);
 
+test("an order or preview the battle cannot read is refused to the seat that sent it, and the battle goes on for everyone", async () => {
+  const b = await battle(duel);
+  const blue = seat(b, { side: "blue", player: "blue-1" });
+  const red = seat(b, { side: "red", player: "red-1" });
+  const watching = red.read();
+  await b.run(3);
+
+  const unreadable = await blue.link.up({
+    seq: 1,
+    items: [{ id: 1, order: { kind: "no such order" } as never, queued: false }],
+  });
+  expect(unreadable).toEqual({ seq: 1, refused: "invalid" });
+  expect(
+    await blue.link.preview({
+      kind: "move",
+      move: { units: [0], goal: [1, 1], route: "no such route" } as never,
+    }),
+  ).toEqual({ dropped: true });
+
+  const before = tickOf(watching);
+  await b.run(10);
+  expect(b.ended).toEqual([]);
+  expect(watching.failure).toBeNull();
+  expect(tickOf(watching)).toBe(before + 10);
+  // Both seats, the sender's included, go on giving orders.
+  expect((await red.order({ kind: "ready" })).error).toBeNull();
+  expect((await blue.order({ kind: "ready" })).error).toBeNull();
+});
+
 test("a battle whose simulation fails says it crashed, ends every stream and settles every request", async () => {
   const b = await battle(duel);
   const blue = seat(b, { side: "blue", player: "blue-1" });

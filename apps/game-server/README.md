@@ -44,7 +44,32 @@ they change no lobby membership. Empty-room deletion disposes its host too.
 [Presence](src/presence.ts) counts all of a browser's open streams together.
 Its disconnect grace protects seats across stream cuts; a room's lifetime is
 measured from its last connected human, including a room nobody ever opens.
-Callsigns are assigned by `/hello` and held while connected or remembered by a
-room. Once both have forgotten a browser, its name is available again.
+Callsigns are assigned by `/hello` and held while connected or remembered by an
+online mode, including admission still preparing a battle. Once both have
+forgotten a browser, its name is available again.
 
 The client-address trust boundary belongs to [deployment](deploy/README.md).
+
+[Online state](src/online.ts) owns battle admission and presence across modes.
+A lobby holds a slot before it starts; Frontline holds one while preparing or
+running. Both register the same seat lookup and use the same battle transport.
+
+[Frontline](src/frontline.ts) reserves a seat while the briefing builds the map,
+then Deploy takes it. A new game's first commander owns their seat from tick
+zero; later arrivals displace its army through recorded events. The host sends
+both seat events and the human controller in one worker message, and acknowledges
+a deploy only after their boundary has been published. A resume changes only
+the controller. Placement and lifecycle deadlines belong to the
+[pure placement model](../../packages/multiplayer/src/frontline.ts).
+
+A departed commander's army returns to its AI. While another human or reservation
+keeps the game alive, its commander can reclaim it during the hold; after the
+hold a fresh join receives opening credits only if that person has not received
+them in this game. Idle ends only that seat's readers with an `idle` reason.
+Disconnects use presence's one grace; Deploy starts that grace again for a page
+about to open its first battle stream. The last active human or reservation out
+ends the game, even if an AI still holds an absent commander's seat.
+
+The referee view is server accounting, read directly from battle state. It is
+separate from either side's fog-limited publication. Administrative seat events
+and this view have no remote-connection or HTTP entry point.

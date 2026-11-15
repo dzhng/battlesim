@@ -255,6 +255,11 @@ Append here: the slice, the decision, why, and what it replaced.
 | 18 | The battle page keeps its room stream open while it builds its map, so a slow load is not a drop. | Counting only the battle stream as presence, which handed a loading player's seat to the AI. |
 | 18 | A ticket carries the players' callsigns, so the result screen names people. | Seat names ("RED 1") on an online result. |
 | 18 | Once a battle's stream has ended, the page sends nothing more and plays out every frame it holds. | Reopening a stream that no longer exists, and losing the final observation the result is read from. |
+| 25 | An order or preview the simulation cannot read is refused to the seat that sent it, and the battle goes on. Only a trap in the simulation ends a battle. | Treating unreadable input as a crash, which let any seated player end a battle for everyone with one request. |
+| 25 | A new Frontline game draws another map when the generator refuses one, up to the game's own limit, and answers `unavailable` if none is admitted. | Answering `full`, which is untrue, on the first refused draw. |
+| 25 | Seating a human in a running game is one message to the battle's thread: hand-over, reset and controller, applied at one tick. | Three requests from the main thread, with ticks free to run between them. |
+| 25 | Rooms and Frontline share one count of battle slots, one presence module and one way of serving a battle. | A second copy of each in the Frontline service. |
+| 25 | A seat's readers can be ended alone (an idle player is told `idle`) without ending the side's stream. | Ending the whole side's stream, or leaving the idle page reading a seat it no longer holds. |
 | 20 | An AI handed a 30-unit army copes: every unit is ordered within one planner round and it fights better than an army nobody commands. Rooms may rely on a seat's AI. | Assuming it without a fight: the first tests had no enemy on the field. |
 | 20 | An AI handed 150 units gets only 30 orders through per planner round, because it gives them in one burst. Open, for the user before slice 22: spread the AI's orders (recommended) or cap what a seat may receive. | Counting issued orders as applied: the battle logs an order before it checks the rate limit. |
 

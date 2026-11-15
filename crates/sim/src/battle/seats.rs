@@ -102,12 +102,21 @@ impl Battle {
 
     /// Record a fresh wallet for an empty seat at the next boundary. The
     /// caller decides whether opening credits are due; the simulation tracks
-    /// no human identity. Units and pending purchases must already be gone.
+    /// no human identity. A queued hand-over may empty the seat first.
     /// Player sequence, purchase numbering, controller, readiness, AI memory
     /// and historical totals continue unchanged.
     pub fn reset_seat(&mut self, player: &str, opening: bool) -> Result<(), SeatError> {
         let index = self.live_seat_player(player)?;
-        self.empty_seat(index)?;
+        // A preceding hand-over is applied before this reset at the same
+        // boundary. Application still checks emptiness if the transfer is
+        // invalidated in the meantime, exactly as for every recorded event.
+        if !self.pending_seat_events.iter().any(|event| {
+            matches!(event,
+            SeatEvent::HandOver { tick, player: source }
+                if *tick == self.tick + 1 && source == player)
+        }) {
+            self.empty_seat(index)?;
+        }
         let event = SeatEvent::Reset {
             tick: self.tick + 1,
             player: player.into(),
@@ -194,5 +203,58 @@ impl Battle {
             target.reservations.push_back(reservation);
         }
         Ok(())
+    }
+}
+
+/// Server accounting; no geometry, contacts, orders or human identity.
+#[derive(Clone, Debug, Serialize)]
+pub struct RefereeView {
+    pub tick: Tick,
+    pub scores: [f64; 2],
+    pub target: f64,
+    pub phase: contract::skirmish::Phase,
+    pub result: Option<contract::skirmish::MatchResult>,
+    pub opening_credits: f64,
+    pub seats: Vec<RefereeSeat>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct RefereeSeat {
+    pub player: String,
+    pub side: Side,
+    pub controller: ControllerKind,
+    pub living: usize,
+    pub credits: f64,
+}
+
+impl Battle {
+    /// Read the battle's own accounting without decoding a side's publication.
+    pub fn referee(&self) -> Option<RefereeView> {
+        let s = self.skirmish.as_ref()?;
+        let rules = &s.setup.rules;
+        Some(RefereeView {
+            tick: self.tick,
+            scores: s.objectives.scores(self.rules.tick_hz),
+            target: rules.victory_score,
+            phase: s.phase,
+            result: s.objectives.result,
+            opening_credits: crate::skirmish::opening_wallet(rules) as f64
+                / crate::skirmish::CREDIT_SCALE as f64,
+            seats: s
+                .players
+                .iter()
+                .map(|p| RefereeSeat {
+                    player: p.id.clone(),
+                    side: p.side,
+                    controller: p.controller.clone(),
+                    living: self
+                        .units
+                        .iter()
+                        .filter(|u| u.alive() && u.owner.as_deref() == Some(p.id.as_str()))
+                        .count(),
+                    credits: p.wallet as f64 / crate::skirmish::CREDIT_SCALE as f64,
+                })
+                .collect(),
+        })
     }
 }

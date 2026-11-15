@@ -12,32 +12,39 @@ import { battleRoute, HttpRefusal, type BattleRoute } from "./seats.ts";
 export { battleRoute };
 
 import { afterId, body, json, stream } from "./io.ts";
+import { createOnlineState } from "../online.ts";
+import { createFrontlineService } from "../frontline.ts";
+import { frontlineRequest } from "./frontline.ts";
 import { roomRequest } from "./rooms.ts";
 import { createRoomService } from "../rooms.ts";
 import type { BattleSetup } from "../../../../packages/multiplayer/src/wire.ts";
 import type { BattleHost } from "../battleHost/index.ts";
 import type { PresenceClock } from "../presence.ts";
 
-export type RoomHttpOptions = {
+export type OnlineHttpOptions = {
   createBattle: (setup: BattleSetup) => BattleHost;
   ordersPerSecond: number;
   capacity: number;
   clock: PresenceClock;
   random: () => number;
+  /** How many maps a new Frontline game may draw before giving up. */
+  mapAttempts: number;
   clientAddressHeader: string | null;
 };
 
 export function createBattleHttp(
   battle: (id: string) => BattleRoute | undefined,
   build: BuildIdentity,
-  roomOptions: RoomHttpOptions,
+  options: OnlineHttpOptions,
 ) {
   const hello = helloRegistry(build);
-  const rooms = createRoomService({
-    ...roomOptions,
+  const online = createOnlineState({
+    ...options,
     callsign: hello.callsignOf,
     releaseCallsign: hello.release,
   });
+  const rooms = createRoomService({ ...options, online });
+  const frontline = createFrontlineService({ ...options, online });
   const battleRoutes = new WeakMap<BattleHost, BattleRoute>();
   const server = createServer((request, response) => {
     response.setHeader("Cache-Control", "no-store, no-transform");
@@ -53,7 +60,11 @@ export function createBattleHttp(
       else json(response, 410, { refused: "unavailable" });
     });
   });
-  server.once("close", rooms.dispose);
+  server.once("close", () => {
+    rooms.dispose();
+    frontline.dispose();
+    online.dispose();
+  });
   return server;
 
   async function route(request: IncomingMessage, response: ServerResponse) {
@@ -75,24 +86,21 @@ export function createBattleHttp(
         return json(response, 400, { refused: "invalid" });
       }
       const result = hello(id, value);
-      if (!("refused" in result)) rooms.presence.track(id);
+      if (!("refused" in result)) online.presence.track(id);
       return json(response, "refused" in result ? 409 : 200, result);
     }
     if (url.pathname === "/rooms" || url.pathname.startsWith("/rooms/"))
-      return roomRequest(request, response, url, rooms, roomOptions.clientAddressHeader);
+      return roomRequest(request, response, url, rooms, options.clientAddressHeader);
+    if (url.pathname.startsWith("/frontline/"))
+      return frontlineRequest(request, response, url, frontline);
     const match = /^\/battles\/([^/]+)\/(stream|up|preview)$/.exec(url.pathname);
-    const roomBattle = match && rooms.battle(match[1]);
+    const hosted = match && online.battle(match[1]);
     let found = match && battle(match[1]);
-    if (roomBattle) {
-      found = battleRoutes.get(roomBattle.host);
+    if (hosted) {
+      found = battleRoutes.get(hosted.host);
       if (!found) {
-        found = battleRoute(
-          roomBattle.host,
-          roomBattle.seatOf,
-          roomOptions.ordersPerSecond,
-          roomOptions.clock.now,
-        );
-        battleRoutes.set(roomBattle.host, found);
+        found = battleRoute(hosted.host, hosted.seatOf, options.ordersPerSecond, options.clock.now);
+        battleRoutes.set(hosted.host, found);
       }
     }
     if (!match || !found) return json(response, 404, { refused: "unknown" });
@@ -120,7 +128,7 @@ export function createBattleHttp(
     if (action === "stream") {
       const after = afterId(url);
       return stream(response, (deliver) => {
-        const closePresence = rooms.presence.open(id as string);
+        const closePresence = online.presence.open(id as string);
         const detach = handlers.reader(after, deliver);
         return () => {
           detach();

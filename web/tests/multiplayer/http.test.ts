@@ -73,6 +73,7 @@ async function serving() {
     { commit: "test", sim: "test" },
     {
       createBattle: pendingBattle,
+      mapAttempts: 1,
       ordersPerSecond: 100,
       capacity: 0,
       clock: timerClock(),

@@ -14,6 +14,7 @@ afterEach(async () => {
 async function serving() {
   const server = createBattleHttp(() => undefined, build, {
     createBattle: pendingBattle,
+    mapAttempts: 1,
     ordersPerSecond: 100,
     capacity: 0,
     clock: timerClock(),

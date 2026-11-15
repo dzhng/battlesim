@@ -1,3 +1,8 @@
+import {
+  createOnlineState,
+  battleCapacity,
+  BYTES_PER_BATTLE,
+} from "../../../apps/game-server/src/online";
 import { nodeCatalogSet } from "../../src/battle/catalog/node";
 import { join } from "node:path";
 // @vitest-environment node
@@ -37,10 +42,12 @@ async function room() {
   let host!: BattleHost;
   let draw = 0;
   const service = createRoomService({
-    capacity: 1,
-    clock,
-    callsign: (who) => ({ alpha: "SCOUT", bravo: "WING", stranger: "STRANGER" })[who],
-    releaseCallsign: () => {},
+    online: createOnlineState({
+      capacity: 1,
+      clock: clock,
+      callsign: (who) => ({ alpha: "SCOUT", bravo: "WING", stranger: "STRANGER" })[who],
+      releaseCallsign: () => {},
+    }),
     random: () => (++draw % 1000) / 1000,
     createBattle: (setup) => (host = createBattleHost({ setup }, { clock, generator }, data)),
   });
@@ -198,6 +205,7 @@ test("one presence grace hands a dropped army to AI; returning reclaims it and r
     Array.from({ length: tickOf(seen) - first + 1 }, (_, index) => first + index),
   );
   const replay = await b.host.replay();
+  expect(JSON.parse(replay).seat_events).toBeUndefined();
   const direct = await yardstick(a.setup, replay);
   direct.runTo(tickOf(seen));
   expect(direct.failure()).toBeNull();
@@ -356,10 +364,12 @@ test("a room whose map fails preparation closes honestly and releases its capaci
   // readiness rejection and end notification, before any ticket exists.
   let failed!: BattleHost;
   const service = createRoomService({
-    capacity: 1,
-    clock: r.clock,
-    callsign: () => "SCOUT",
-    releaseCallsign: () => {},
+    online: createOnlineState({
+      capacity: 1,
+      clock: r.clock,
+      callsign: () => "SCOUT",
+      releaseCallsign: () => {},
+    }),
     random: () => 0.1,
     createBattle: (setup) =>
       (failed = createBattleHost(
@@ -401,6 +411,7 @@ test("localhost room streams deliver each ticket and route both seats' streams a
     random: Math.random,
     clientAddressHeader: null,
     createBattle: (setup) => (host = createBattleHost({ setup }, { clock, generator }, data)),
+    mapAttempts: 1,
     ordersPerSecond: (JSON.parse(data.rules) as { commands: { orders_per_s: number } }).commands
       .orders_per_s,
   });
@@ -518,15 +529,23 @@ test("localhost room streams deliver each ticket and route both seats' streams a
     });
     const joined = await fetch(`${address}${path}`, { headers: { "X-Player": ids[2] } });
     expect(await joined.json()).toEqual({ refused: "started" });
-    // Even a malformed order may not reflect its caller's credential back
-    // through the simulation's parse error and the battle's terminal record.
+    // An order the battle cannot read is refused to its sender, quotes
+    // nothing back (here it carried the sender's own credential), and ends
+    // nobody's battle: the other seat's next order is still applied.
     expect(
       await post(`/battles/${tickets[0].battle}/up`, {
         seq: 2,
         items: [{ id: 2, order: { kind: ids[0] }, queued: false }],
       }),
-    ).toEqual({ refused: "unavailable" });
-    await until(() => battles.every((records) => records.some((record) => record.kind === "end")));
+    ).toEqual({ seq: 2, refused: "invalid" });
+    expect(
+      await post(
+        `/battles/${tickets[1].battle}/up`,
+        { seq: 2, items: [{ id: 2, order: { kind: "ready" }, queued: false }] },
+        ids[1],
+      ),
+    ).toMatchObject({ seq: 2, results: [{ id: 2, ack: { error: null } }] });
+    expect(battles.some((records) => records.some((record) => record.kind === "end"))).toBe(false);
     const outgoing = JSON.stringify([
       recordings.map((records) =>
         records.map((record) => new TextDecoder().decode(record.payload)),

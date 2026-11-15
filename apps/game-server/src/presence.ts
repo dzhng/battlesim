@@ -29,6 +29,13 @@ export function createPresence(
       entries.set(who, entry);
       becomeAbsent(who, entry);
     },
+    /** Admission starts the same grace while a deployed page opens its stream. */
+    expectStream(who: string) {
+      const entry = entries.get(who);
+      if (!entry || entry.streams > 0) return;
+      entry.cancel();
+      becomeAbsent(who, entry);
+    },
     open(who: string): () => void {
       let entry = entries.get(who);
       if (!entry) {

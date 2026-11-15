@@ -1,3 +1,8 @@
+import {
+  createOnlineState,
+  battleCapacity,
+  BYTES_PER_BATTLE,
+} from "../../../apps/game-server/src/online";
 import { pendingBattle } from "./support/pendingBattle";
 // @vitest-environment node
 import { afterEach, expect, test, vi } from "vitest";
@@ -5,8 +10,6 @@ import {
   EMPTY_ROOM_TIMEOUT_MS,
   THROTTLE_MAX_GUESSES,
   THROTTLE_WINDOW_MS,
-  battleCapacity,
-  BYTES_PER_BATTLE,
   createRoomService,
 } from "../../../apps/game-server/src/rooms";
 import { PRESENCE_GRACE_MS, type PresenceClock } from "../../../apps/game-server/src/presence";
@@ -56,10 +59,12 @@ function setup(capacity = 3) {
   let draw = 0;
   const service = createRoomService({
     createBattle: pendingBattle,
-    capacity,
-    clock,
-    releaseCallsign: () => {},
-    callsign: (who) => who.toUpperCase(),
+    online: createOnlineState({
+      capacity,
+      clock,
+      releaseCallsign: () => {},
+      callsign: (who) => who.toUpperCase(),
+    }),
     random: () => (draw++ % 1000) / 1000,
   });
   cleanup.push(service.dispose);
@@ -289,6 +294,7 @@ async function serving(clientAddressHeader: string | null = null) {
   const clock = new Clock();
   const server = createBattleHttp(() => undefined, build, {
     createBattle: pendingBattle,
+    mapAttempts: 1,
     ordersPerSecond: 100,
     capacity: 3,
     clock,
@@ -504,10 +510,12 @@ test("a callsign stays reserved while a started room remembers its gone member, 
   let draw = 0;
   const service = createRoomService({
     createBattle: pendingBattle,
-    capacity: 2,
-    clock,
-    callsign: hello.callsignOf,
-    releaseCallsign: hello.release,
+    online: createOnlineState({
+      capacity: 2,
+      clock: clock,
+      callsign: hello.callsignOf,
+      releaseCallsign: hello.release,
+    }),
     random: () => draw++ / 100,
   });
   cleanup.push(service.dispose);

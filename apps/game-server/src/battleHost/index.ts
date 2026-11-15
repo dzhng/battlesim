@@ -12,8 +12,13 @@ import type {
 import { jsonRecord, recordSource } from "../../../../packages/multiplayer/src/stream/index.ts";
 import type { ControllerKind } from "../../../../web/src/battle/prepare/protocol.ts";
 import type { MapGenerator } from "../../../../web/src/maps/source.ts";
-import type { CommandAck, SimRequest } from "../../../../web/src/battle/sim/protocol.ts";
-import { createBattleRuntime, type BattleData, type RuntimeMessage } from "./runtime.ts";
+import type { CommandAck, RefereeView } from "../../../../web/src/battle/sim/protocol.ts";
+import {
+  createBattleRuntime,
+  type BattleData,
+  type RuntimeMessage,
+  type HostRequest,
+} from "./runtime.ts";
 import type { WorkerInit } from "./worker.ts";
 
 /** How much of a side's stream is kept for a reader to resume from. */
@@ -45,6 +50,11 @@ export interface BattleHost {
   /** Serve a seat. The port's seat is the transport's word for who this is. */
   attach(port: SeatPort): void;
   setController(player: string, kind: ControllerKind): void;
+  referee(): Promise<RefereeView>;
+  seatHuman(player: string, opening: boolean): Promise<void>;
+  onOrder(handle: (player: string) => void): void;
+  /** End this seat's readers without ending its side. */
+  endSeat(player: string, reason: string): void;
   onEnd(handle: (end: BattleEnd) => void): void;
   /** The battle's recorded orders so far. */
   replay(): Promise<string>;
@@ -52,6 +62,8 @@ export interface BattleHost {
 }
 
 type Waiter<T> = { resolve: (value: T) => void; reject: (error: Error) => void };
+/** The battle could not read an order or preview a seat sent. */
+class Unreadable extends Error {}
 
 export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleData): BattleHost {
   const clock: BattleClock =
@@ -72,6 +84,10 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
   const acks = new Map<number, Waiter<CommandAck>>();
   const previews = new Map<number, Waiter<PreviewAnswer>>();
   const replays: Waiter<string>[] = [];
+  const referees = new Map<number, Waiter<RefereeView>>();
+  const resets = new Map<number, Waiter<void>>();
+  const orders: ((player: string) => void)[] = [];
+  const readers = new Map<string, Set<(reason: string) => void>>();
   let ready!: Waiter<{ layout: string; tickHz: number; mapIdentity: string }>;
   const readiness = new Promise<{ layout: string; tickHz: number; mapIdentity: string }>(
     (resolve, reject) => (ready = { resolve, reject }),
@@ -79,7 +95,7 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
   // A battle nobody awaited may still fail to prepare; `onEnd` reports it.
   readiness.catch(() => {});
 
-  let send: (request: SimRequest) => void = () => {};
+  let send: (request: HostRequest) => void = () => {};
   let stop: () => void = () => {};
 
   /** The status last written to both streams; a late reader's `open` says it. */
@@ -126,8 +142,17 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
     if (result) tellBoth(result.kind === "finished" ? "finished" : "failed", false);
     for (const side of SIDES) sources[side].end(reason);
     const gone = new Error(`the battle has ended: ${reason}`);
-    for (const waiter of [...acks.values(), ...previews.values(), ...replays, ready])
+    for (const waiter of [
+      ...acks.values(),
+      ...previews.values(),
+      ...replays,
+      ...referees.values(),
+      ...resets.values(),
+      ready,
+    ])
       waiter.reject(gone);
+    referees.clear();
+    resets.clear();
     acks.clear();
     previews.clear();
     replays.length = 0;
@@ -159,6 +184,21 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
         return ready.resolve({ layout, tickHz, mapIdentity });
       case "publication":
         sources[message.side as Side].append("publication", message.flags, message.payload);
+        return;
+      case "request_refused": {
+        // The battle could not read what this seat sent. That seat is told
+        // so; nobody else is affected.
+        const waiter = message.request === "command" ? acks : previews;
+        waiter.get(message.id)?.reject(new Unreadable());
+        waiter.delete(message.id);
+        return;
+      }
+      case "referee":
+        return settle(referees, message.id, message.view);
+      case "seat_reset":
+        return settle(resets, message.id, undefined);
+      case "order_applied":
+        for (const handle of orders) handle(message.player);
         return;
       case "ack":
         return settle(acks, message.id, message.ack);
@@ -211,7 +251,7 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
   }
 
   /** Ask the battle something and wait for its answer by id. */
-  const ask = <T>(waiters: Map<number, Waiter<T>>, request: (id: number) => SimRequest) => {
+  const ask = <T>(waiters: Map<number, Waiter<T>>, request: (id: number) => HostRequest) => {
     if (over !== null) return Promise.reject(new Error(`the battle has ended: ${over}`));
     const id = nextId++;
     return new Promise<T>((resolve, reject) => {
@@ -226,28 +266,52 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
       const { side, player } = port.seat;
       if (!seats.has(`${side}/${player}`))
         throw new Error(`${player} on ${side} is not a seat of this battle`);
-      port.onReader((after, deliver) => sources[side].attach(after, deliver));
+      port.onReader((after, deliver) => {
+        const group = readers.get(player) ?? new Set();
+        readers.set(player, group);
+        const detach = sources[side].attach(after, deliver);
+        const end = (reason: string) => {
+          detach();
+          group.delete(end);
+          deliver(jsonRecord("end", { reason }));
+        };
+        group.add(end);
+        return () => {
+          detach();
+          group.delete(end);
+        };
+      });
       // The seat is the port's: an order is stamped with it whatever the
       // batch says, and a preview is answered from its side's knowledge.
-      port.onUp(
-        async (batch: UpBatch): Promise<UpReply> => ({
-          seq: batch.seq,
-          results: await Promise.all(
-            batch.items.map(async ({ id, order, queued }) => ({
-              id,
-              ack: await ask(acks, (ask) => ({
-                type: "command",
-                id: ask,
-                seat: { side, player },
-                order,
-                queued,
-              })),
-            })),
-          ),
+      port.onUp(async (batch: UpBatch): Promise<UpReply> => {
+        const acked = batch.items.map(async ({ id, order, queued }) => ({
+          id,
+          ack: await ask(acks, (ask) => ({
+            type: "command",
+            id: ask,
+            seat: { side, player },
+            order,
+            queued,
+          })),
+        }));
+        try {
+          return { seq: batch.seq, results: await Promise.all(acked) };
+        } catch (error) {
+          if (!(error instanceof Unreadable)) throw error;
+          // A page of this build never sends one; a batch holding one is
+          // refused whole, whatever became of its other orders.
+          await Promise.allSettled(acked);
+          return { seq: batch.seq, refused: "invalid" };
+        }
+      });
+      port.onPreview((query: PreviewQuery) =>
+        preview(query).catch((error: unknown) => {
+          if (!(error instanceof Unreadable)) throw error;
+          return { dropped: true as const };
         }),
       );
-      port.onPreview((query: PreviewQuery) =>
-        ask(previews, (id): SimRequest => {
+      const preview = (query: PreviewQuery) =>
+        ask(previews, (id): HostRequest => {
           if (query.kind === "purchase")
             return {
               type: "purchase_preview",
@@ -258,12 +322,22 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
             };
           if (query.kind === "move") return { type: "move_preview", id, side, move: query.move };
           return { type: "building_preview", id, side, building: query.building };
-        }),
-      );
+        });
     },
     setController(player, kind) {
       if (!players.has(player)) throw new Error(`${player} is not a player of this battle`);
       send({ type: "controllers", controllers: JSON.stringify([[player, kind]]) });
+    },
+    referee: () => ask(referees, (id) => ({ type: "referee", id })),
+    seatHuman(player, opening) {
+      if (!players.has(player)) throw new Error("unknown battle player");
+      return ask(resets, (id) => ({ type: "seat_human", id, player, opening }));
+    },
+    onOrder: (handle) => {
+      orders.push(handle);
+    },
+    endSeat(player, reason) {
+      for (const end of readers.get(player) ?? []) end(reason);
     },
     onEnd(handle) {
       if (end) handle(end);

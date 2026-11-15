@@ -8,6 +8,7 @@ export const build: BuildIdentity = { commit: "room-screen-test", sim: "room-scr
 export async function roomHttp(capacity = 8, createBattle = pendingBattle) {
   const server = createBattleHttp(() => undefined, build, {
     createBattle,
+    mapAttempts: 1,
     ordersPerSecond: 100,
     capacity,
     clock: {

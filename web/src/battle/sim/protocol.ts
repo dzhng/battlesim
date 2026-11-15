@@ -158,6 +158,23 @@ export type AuthorityStatus =
   | "failed"
   | "disposed";
 
+/** Server accounting, never sent through a remote connection. */
+export interface RefereeView {
+  tick: number;
+  scores: [number, number];
+  target: number;
+  phase: "preparation" | "active" | "finished";
+  result: { kind: "winner"; side: "blue" | "red" } | { kind: "draw" } | null;
+  opening_credits: number;
+  seats: {
+    player: string;
+    side: "blue" | "red";
+    controller: import("../prepare/protocol").ControllerKind;
+    living: number;
+    credits: number;
+  }[];
+}
+
 export type SimRequest =
   | { type: "connect"; side: SideName }
   | {
@@ -211,6 +228,10 @@ export type SimRequest =
    *  listed side opens with a full snapshot. */
   | { type: "sides"; sides: SideName[] }
   | { type: "controllers"; controllers: string }
+  /** Administrative requests are available to the local host only. */
+  | { type: "hand_over"; player: string }
+  | { type: "reset_seat"; id: number; player: string; opening: boolean }
+  | { type: "referee"; id: number }
   /** `side`'s next publication is a full snapshot: a reader needs one. */
   | { type: "resync"; side: SideName }
   | { type: "dispose" };
@@ -240,4 +261,7 @@ export type SimReply =
   | { type: "status"; status: AuthorityStatus; slow: boolean }
   | { type: "advanced"; id: number; tick: number }
   | { type: "replay"; json: string }
+  | { type: "referee"; id: number; view: RefereeView }
+  | { type: "seat_reset"; id: number }
+  | { type: "order_applied"; player: string }
   | { type: "error"; message: string };

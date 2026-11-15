@@ -2,7 +2,7 @@ import { battlePlayers } from "../../../packages/skirmish-setup/src/seats.ts";
 import { randomUUID } from "node:crypto";
 import type { BattleSetup } from "../../../packages/multiplayer/src/wire.ts";
 import type { BattleHost } from "./battleHost/index.ts";
-import { cpus, totalmem } from "node:os";
+import type { OnlineState, BattleSlot } from "./online.ts";
 import {
   createRoom,
   battleSetup,
@@ -21,10 +21,8 @@ import {
 } from "../../../packages/multiplayer/src/stream/index.ts";
 import type { RoomAction, RoomList } from "../../../packages/multiplayer/src/wire.ts";
 import { seedFrom } from "../../../web/src/maps/source.ts";
-import { createPresence, PRESENCE_GRACE_MS, type PresenceClock } from "./presence.ts";
+import { PRESENCE_GRACE_MS } from "./presence.ts";
 
-/** Slice 01's memory budget leaves room for a battle to grow toward an hour. */
-export const BYTES_PER_BATTLE = 2 * 1024 ** 3;
 /** Bound wrong guesses before a client can search a private code's small space. */
 export const THROTTLE_MAX_GUESSES = 5;
 /** Let a mistyping client try again after a short pause. */
@@ -32,13 +30,10 @@ export const THROTTLE_WINDOW_MS = 10_000;
 /** Reclaim a battle slot after a minute without any connected human member. */
 export const EMPTY_ROOM_TIMEOUT_MS = 60_000;
 
-export function battleCapacity(cores = cpus().length, memoryBytes = totalmem()): number {
-  return Math.max(0, Math.min(cores - 1, Math.floor(memoryBytes / BYTES_PER_BATTLE)));
-}
-
 type Deliver = Parameters<RecordSource["attach"]>[1];
 type StoredRoom = {
   room: Room;
+  slot: BattleSlot;
   source: RecordSource;
   idle: { cancel: () => void } | null;
   battle: { id: string; host: BattleHost; controllers: Map<string, string> } | null;
@@ -46,13 +41,11 @@ type StoredRoom = {
 
 export function createRoomService(options: {
   createBattle: (setup: BattleSetup) => BattleHost;
-  capacity: number;
-  clock: PresenceClock;
-  callsign: (who: string) => string | undefined;
-  releaseCallsign: (who: string) => void;
+  online: OnlineState;
   random: () => number;
 }) {
-  const { clock } = options;
+  const { online } = options;
+  const { clock, presence, releaseIfForgotten } = online;
   const rooms = new Map<string, StoredRoom>();
   const guesses = new Map<string, { count: number; cancel: () => void }>();
 
@@ -83,22 +76,12 @@ export function createRoomService(options: {
   );
   const publishList = () => append(listSource, roomList());
 
-  const releaseIfForgotten = (who: string) => {
-    const absent = presence.goneFor(who);
-    if (
-      absent === null ||
-      absent < PRESENCE_GRACE_MS ||
-      [...rooms.values()].some(({ room }) => room.members.some((member) => member.who === who))
-    )
-      return;
-    options.releaseCallsign(who);
-    presence.forget(who);
-  };
   const remove = (code: string, reason = "room_deleted") => {
     const stored = rooms.get(code);
     if (!stored) return;
     stored.idle?.cancel();
     rooms.delete(code);
+    stored.slot.release();
     stored.battle?.host.dispose();
     stored.source.end(reason);
     for (const member of stored.room.members) releaseIfForgotten(member.who);
@@ -160,6 +143,16 @@ export function createRoomService(options: {
         .then(({ mapIdentity }) => {
           if (rooms.get(stored.room.code) !== stored) return;
           stored.room = recordBattle(stored.room, { id, mapIdentity });
+          stored.slot.serve({
+            id,
+            host,
+            seatOf(who) {
+              const view = roomView(stored.room, who);
+              if (view.phase.kind !== "battle") return;
+              const { side, player } = view.phase.ticket;
+              return { side, player };
+            },
+          });
           publishRoom(stored);
         })
         .catch(() => ended("battle_failed"));
@@ -183,9 +176,8 @@ export function createRoomService(options: {
     }
     return { ok: true } as const;
   };
-  const presence = createPresence(
-    clock,
-    (who) => {
+  const unsubscribe = online.subscribe({
+    changed(who) {
       for (const stored of rooms.values()) {
         if (stored.room.members.some((member) => member.who === who)) {
           updateIdle(stored);
@@ -193,33 +185,22 @@ export function createRoomService(options: {
         }
       }
     },
-    (who) => {
+    gone(who) {
       for (const stored of rooms.values()) {
         if (stored.room.phase === "lobby") transition(stored, who, { kind: "leave" });
         else controller(stored, who, "active_ai");
       }
-      releaseIfForgotten(who);
     },
-  );
+    remembers: (who) =>
+      [...rooms.values()].some(({ room }) => room.members.some((m) => m.who === who)),
+  });
 
   return {
     presence,
-    battle(id: string) {
-      const stored = [...rooms.values()].find((s) => s.battle?.id === id);
-      if (!stored?.battle || stored.room.phase !== "battle") return;
-      return {
-        host: stored.battle.host,
-        seatOf(who: string) {
-          const view = roomView(stored.room, who);
-          if (view.phase.kind !== "battle") return;
-          const { side, player } = view.phase.ticket;
-          return { side, player };
-        },
-      };
-    },
+    battle: online.battle,
     create(who: string, visibility: Room["visibility"]): { code: string } | RoomRefusal {
-      if (rooms.size >= options.capacity) return { refused: "full" };
-      const callsign = options.callsign(who);
+      if (!online.slotFree()) return { refused: "full" };
+      const callsign = online.callsign(who);
       if (!callsign) return { refused: "callsign" };
       presence.track(who);
       let code: string;
@@ -232,6 +213,7 @@ export function createRoomService(options: {
         () => append(source, roomView(stored.room, "")),
       );
       const stored: StoredRoom = {
+        slot: online.reserve()!,
         room: createRoom(
           { who, callsign },
           visibility,
@@ -281,7 +263,7 @@ export function createRoomService(options: {
         guess.count++;
         return { refused: "unknown" };
       }
-      const callsign = options.callsign(who);
+      const callsign = online.callsign(who);
       if (!callsign) return { refused: "callsign" };
       const joined = transition(stored, who, { kind: "join", callsign });
       if ("refused" in joined) {
@@ -312,13 +294,14 @@ export function createRoomService(options: {
       for (const stored of rooms.values()) {
         stored.idle?.cancel();
         stored.battle?.host.dispose();
+        stored.slot.release();
         stored.source.end("disposed");
       }
       for (const guess of guesses.values()) guess.cancel();
       rooms.clear();
       guesses.clear();
       listSource.end("disposed");
-      presence.dispose();
+      unsubscribe();
     },
   };
 }

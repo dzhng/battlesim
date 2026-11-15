@@ -83,10 +83,20 @@ function publicationPayload(reply: Extract<SimReply, { type: "publication" }>): 
   return payload;
 }
 
+/** One worker message keeps the administrative transaction indivisible. */
+export type HostRequest =
+  | SimRequest
+  | {
+      type: "seat_human";
+      id: number;
+      player: string;
+      opening: boolean;
+    };
+
 export interface BattleRuntime {
   /** Prepare the battle and start it. Requests before then wait their turn. */
   start(): Promise<void>;
-  handle(request: SimRequest): void;
+  handle(request: HostRequest): void;
 }
 
 export function createBattleRuntime(options: {
@@ -99,7 +109,7 @@ export function createBattleRuntime(options: {
   close: () => void;
 }): BattleRuntime {
   let authority: Authority | null = null;
-  const backlog: SimRequest[] = [];
+  const backlog: HostRequest[] = [];
   /** Where a publication's header holds its epoch, from the layout. */
   let epochAt = -1;
   const epochs = new Map<SideName, number>();
@@ -142,6 +152,22 @@ export function createBattleRuntime(options: {
     );
   };
 
+  const handle = (request: HostRequest) => {
+    if (!authority) {
+      backlog.push(request);
+      return;
+    }
+    if (request.type === "seat_human") {
+      // These requests never pump. No timer, command or publication can
+      // run between them; both events target the same next boundary.
+      authority.handle({ type: "hand_over", player: request.player });
+      authority.handle({ ...request, type: "reset_seat" });
+      authority.handle({
+        type: "controllers",
+        controllers: JSON.stringify([[request.player, "human"]]),
+      });
+    } else authority.handle(request);
+  };
   return {
     async start() {
       const prepared = await prepareBattle(options.setup, options.data, options.generator);
@@ -160,11 +186,8 @@ export function createBattleRuntime(options: {
         sides: ["blue", "red"],
       });
       authority.handle({ type: "start" });
-      for (const request of backlog.splice(0)) authority.handle(request);
+      for (const request of backlog.splice(0)) handle(request);
     },
-    handle(request) {
-      if (authority) authority.handle(request);
-      else backlog.push(request);
-    },
+    handle,
   };
 }

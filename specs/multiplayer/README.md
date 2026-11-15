@@ -21,7 +21,7 @@ simulation test build here, with other sessions building too. Check
 `df -h .` before any Rust build or new checkout. Under about 30 GB free, run
 Rust passes one or two at a time; under 5 GB, start nothing and ask the user.
 
-**Done and committed:** slices 02 to 08, 10 to 18 and 20 to 24, and the
+**Done and committed:** slices 02 to 08, 10 to 18 and 20 to 25, and the
 local half of 09; the endurance half of slice 01. The branch holds staging
 as of 2026-11-15. **Rooms work end to end on a local server:** two browsers
 create a room, start its battle, survive a drop and finish
@@ -29,13 +29,12 @@ create a room, start its battle, survive a drop and finish
 
 **Pick up here, in this order:**
 
-1. **Integrate slice 25,** the Frontline service, handed to Codex on
+1. **Integrate slice 26,** the briefing card and Play, handed to Codex on
    2026-11-15 in its own checkout with a report in `throwaway/multiplayer/`
-   there. It touches the simulation's binding: every existing digest must
-   be unchanged.
-2. **Slice 26,** the briefing card and Play, which needs 25. It changes
-   what a player sees: look at the pictures, get an unprimed critique, and
-   show the user.
+   there. It changes what a player sees: look at the pictures, get an
+   unprimed critique, and show the user. It is the last slice that can be
+   built without deploying.
+2. **Then stop for the user** if they have not yet said when to deploy.
 3. **The three things that need the user's go-ahead,** all outward-facing:
    slice 09's push (deploying the server), slice 01's host half (O1, the
    late-tick measurement on the host: `bun run server:soak` is the
@@ -143,7 +142,7 @@ Frontline
 - [x] [22 Army hand-over](slices/22-army-hand-over.md)
 - [x] [23 Seat reset](slices/23-seat-reset.md)
 - [x] [24 Frontline placement](slices/24-frontline-placement.md)
-- [ ] [25 Frontline service](slices/25-frontline-service.md)
+- [x] [25 Frontline service](slices/25-frontline-service.md)
 - [ ] [26 Briefing card and Play](slices/26-briefing-card.md)
 - [ ] [27 Closeout](slices/27-closeout.md)
 

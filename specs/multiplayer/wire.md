@@ -38,8 +38,9 @@ and `Faction` (`packages/scene-assets/src/units.ts`).
 | `POST /rooms` | `{ visibility: "public" \| "private" }` | `{ code: RoomCode }`, or refused `full` |
 | `GET /rooms/:code` | | state stream of `RoomView`; opening it joins the room. A newcomer is refused `unknown`, `started`, `no_open_seat` or `throttled` |
 | `POST /rooms/:code/act` | `RoomAction` | `{ ok: true }`, or refused with the rule that said no |
-| `POST /frontline/join` | | `Briefing`, or refused `full` |
+| `POST /frontline/join` | | `Briefing`, or refused `full` (no battle slot), `unavailable` (no battlefield could be made) or `callsign` |
 | `POST /frontline/:battle/deploy` | | `BattleTicket`, or refused `expired` |
+| `POST /frontline/:battle/leave` | | `{ ok: true }`. The seat goes back to its AI. |
 | `GET /battles/:id/stream?after=<id>` | | battle stream for the caller's side |
 | `POST /battles/:id/up` | `UpBatch` | `UpReply` |
 | `POST /battles/:id/preview` | `PreviewQuery` | `PreviewAnswer` |
@@ -108,7 +109,7 @@ type UpBatch = {
 };
 type UpReply =
   | { seq: number; results: { id: number; ack: CommandAck }[] }
-  | { seq: number; refused: "not_seated" | "rate" };
+  | { seq: number; refused: "not_seated" | "rate" | "invalid" };
 ```
 
 - A page has one batch in flight. Orders issued meanwhile wait and leave

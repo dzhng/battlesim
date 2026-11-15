@@ -112,6 +112,7 @@ export interface Seen {
   side: string;
   epoch: number;
   units: number[];
+  players: NonNullable<ObservationView["skirmish"]>["players"];
 }
 
 /** A page at a seat: its link, and one connection read through the page's
@@ -167,6 +168,7 @@ export function seat(b: Battle, who: Seat) {
               side: frame.groundPatch.side,
               epoch: frame.groundPatch.epoch,
               units: frame.own.map((unit) => unit.id),
+              players: frame.skirmish?.players ?? [],
             });
           }
         } catch (error) {
@@ -185,7 +187,11 @@ export const digests = (reading: Reading) => new Map(reading.seen.map((s) => [s.
 /** Buy the first card the battle lets this seat buy, placed where its side
  *  may place it; returns the card. */
 export async function buy(at: ReturnType<typeof seat>): Promise<string> {
-  for (const variant of cards) {
+  return buyFrom(at, cards);
+}
+
+export async function buyFrom(at: ReturnType<typeof seat>, variants: string[]): Promise<string> {
+  for (const variant of variants) {
     const ack = await at.order({ kind: "confirm_purchase", variant, destination: [0, 0] });
     if (ack.error === null) return variant;
   }
@@ -249,4 +255,51 @@ export async function yardstick(setup: BattleSetup, replay?: string) {
       authority.handle({ type: "command", id: 1, seat: from, order, queued: false });
     },
   };
+}
+
+/** Record from before preparation, including the first authoritative tick. */
+export function recordHost(host: BattleHost, who: Seat) {
+  const frames = new Map<number, string>();
+  let detach = () => {};
+  host.attach({
+    seat: who,
+    onReader(read) {
+      detach = read(null, (record) => {
+        if (record.kind === "publication") {
+          const view = new DataView(record.payload.buffer, record.payload.byteOffset);
+          frames.set(
+            view.getUint32(0, true),
+            new TextDecoder().decode(record.payload.subarray(4, 20)),
+          );
+        }
+        return true;
+      });
+    },
+    onUp() {},
+    onPreview() {},
+  });
+  return { frames, close: () => detach() };
+}
+
+/** A scoring fixture at the preparation boundary: real capture, income,
+ *  finish, publication and replay, with a short match and no opponent buying.
+ *  The production target and scoring algorithm remain the rules' own. */
+export async function shortScoringFixture() {
+  const { vi } = await import("vitest");
+  const preparation = await import("../../../src/battle/prepare/prepare");
+  const original = preparation.prepare;
+  return vi.spyOn(preparation, "prepare").mockImplementation(async (...args) => {
+    const prepared = await original(...args);
+    const scenario = JSON.parse(prepared.scenario);
+    for (const p of scenario.players) if (p.controller !== "human") p.controller = "passive_ai";
+    scenario.skirmish.rules.majority_s = 10;
+    scenario.skirmish.rules.capture_s = 1;
+    const entry = scenario.skirmish.sites.entries.find((e: { side: string }) => e.side === "blue");
+    for (const objective of scenario.skirmish.sites.objectives) {
+      objective.center = entry.center;
+      // Cover the whole friendly entry edge, whichever road the purchase takes.
+      objective.radius_m = prepared.report.size[0] + prepared.report.size[1];
+    }
+    return { ...prepared, scenario: JSON.stringify(scenario) };
+  });
 }

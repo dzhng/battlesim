@@ -39,6 +39,14 @@ async function open() {
     },
     attach() {},
     setController() {},
+    referee() {
+      return Promise.reject(new Error("battle still preparing"));
+    },
+    seatHuman() {
+      return Promise.reject(new Error("battle still preparing"));
+    },
+    onOrder() {},
+    endSeat() {},
     dispose() {},
     replay: async () => "",
   }));

@@ -65,3 +65,63 @@ Slice 18's room battle tests: a room battle records no seat event.
 ## Delegated
 
 The referee view's shape; the timings' exact values.
+
+## As built (2026-11-15)
+
+- **`POST /frontline/join`** runs the placement model and answers with a
+  `Briefing`: it resumes a seat the caller still holds, reserves a seat in
+  a running game, or makes a new game. Refusals: `full` (no battle slot),
+  `unavailable` (no battlefield could be made), `callsign` (no `/hello`).
+- **`POST /frontline/:battle/deploy`** takes the reserved seat and answers
+  with the ticket, or `expired`.
+- **`POST /frontline/:battle/leave`** gives the seat back to its AI. The
+  plan had no endpoint for leaving on purpose.
+- **Seating a human in a running game is one message to the battle's
+  thread:** hand the seat's army over, reset the seat (with opening credits
+  the first time this player joins this game), and make its controller
+  human. Both seat events apply at the same next tick, in that order, and
+  only whole ticks are published, so no record shows it half done. A resume
+  changes only the controller.
+- **`reset_seat` is admitted behind a queued hand-over** of the same seat
+  for the same tick; it is still checked for emptiness when it applies.
+  That is the one change to slice 23's rules.
+- **The referee view** (`Battle::referee`, bound as `referee_view`): tick,
+  both scores, the target, phase and result, the opening credits, and for
+  each seat its player, side, controller, living units and credits. Only
+  the battle host can ask for it or send a seat event; a page's connection
+  and the HTTP routes have no way to say either.
+- **A seat comes free** when its player leaves, is gone past the one
+  presence grace, or gives no order for three minutes. Its AI takes the
+  army and wallet. The seat is held for its player for a minute, then
+  offered to the next joiner. An idle player's battle stream ends with
+  `idle`; other seats' streams carry on.
+- **A game ends** when it finishes, crashes, or its last human has left and
+  nobody holds a reservation. Rooms and Frontline share one count of battle
+  slots, one presence module and one way of serving a battle
+  (`apps/game-server/src/online.ts`).
+
+Two defects found at integration and fixed here:
+
+- **Any seated player could end a battle for everyone** by sending one
+  order or preview the simulation could not read: the authority treated it
+  as a crash. This was true of rooms too. The authority now refuses such a
+  request to its sender (`invalid` for a batch of orders, `dropped` for a
+  preview) and the battle goes on; a real trap in the simulation still
+  ends it. Two of the pass's own tests had pinned the crash.
+- **Play said "full" whenever the generator refused the drawn map,** which
+  on the largest maps is often (four of five draws in the pass's own
+  `curl` run). A new game now draws again, up to the game's existing limit
+  of five draws (`fixtures/generated-battle.json`), and answers
+  `unavailable` if none is admitted.
+
+**O4, the joiner's wait for a snapshot.** Slice 01 measured the join
+snapshot at 2.1 MB near the hour. That is about two seconds at 10 Mbit/s
+and about seventeen at 1 Mbit/s, on top of building the map. The stream
+opens only after Deploy, so this wait comes after the briefing, not under
+it: slice 26 must keep its loading state until the first snapshot arrives.
+These are sums from the measured size, not measurements over the internet.
+
+Not built, and open: a new game on the largest maps takes the server about
+as long to prepare as a browser (many seconds), and each refused draw adds
+to it. A player pressing Play on an empty server waits through that.
+

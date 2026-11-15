@@ -223,3 +223,76 @@ fn both_seat_events_replay_every_tick_and_a_changed_reset_does_not() {
         assert!(different, "a changed reset reproduced every tick");
     }
 }
+
+#[test]
+fn queued_hand_over_and_reset_take_one_boundary_and_replay_every_tick() {
+    let setup = setup();
+    let mut live = Battle::new(&setup, 41);
+    entered(&mut live, "blue-1");
+    let before = live.tick();
+    live.hand_over("blue-1").unwrap();
+    live.reset_seat("blue-1", true).unwrap();
+    live.set_controllers(vec![("blue-1".into(), ControllerKind::Human)]);
+    live.step();
+    assert_eq!(live.tick(), before + 1);
+    assert_eq!(seat(&live, "blue-1").unit_count, 0);
+    assert!(seat(&live, "blue-1").pending.is_empty());
+    let rules = &setup.skirmish.as_ref().unwrap().rules;
+    assert_eq!(
+        seat(&live, "blue-1").credits,
+        f64::from(rules.credits_per_minute) * f64::from(rules.starting_minutes)
+    );
+    let mut replay = Battle::from_replay(&setup, &live.replay()).unwrap();
+    while replay.tick() < live.tick() {
+        replay.step();
+    }
+    assert_eq!(replay.digest(), live.digest());
+}
+
+#[test]
+fn referee_reads_both_sides_without_mutating_or_counting_pending_as_living() {
+    let setup = setup();
+    let mut battle = Battle::new(&setup, 42);
+    let unit = entered(&mut battle, "blue-1");
+    buy(&mut battle, "blue-1", "test_tank");
+    let before = (battle.digest(), battle.replay());
+    let view = battle.referee().unwrap();
+    assert_eq!((battle.digest(), battle.replay()), before);
+    let rules = &setup.skirmish.as_ref().unwrap().rules;
+    assert_eq!(view.target, rules.victory_score);
+    assert_eq!(view.tick, battle.tick());
+    for side in [Side::Blue, Side::Red] {
+        let observed = battle.observe(side);
+        let observed = observed.skirmish.as_ref().unwrap();
+        assert_eq!(view.scores, observed.scores);
+        assert_eq!(view.phase, observed.phase);
+        assert_eq!(view.result, observed.result);
+        for player in &observed.players {
+            let seat = view.seats.iter().find(|s| s.player == player.id).unwrap();
+            assert_eq!(seat.controller, player.controller);
+            assert_eq!(seat.side, side);
+        }
+    }
+    assert!(battle.unit(unit).unwrap().alive());
+    assert_eq!(view.seats[0].living, 1);
+    assert_eq!(view.seats[1].living, 0);
+}
+
+#[test]
+fn queued_reset_still_refuses_an_army_if_the_hand_over_loses_its_receiver() {
+    let setup = setup();
+    let mut live = Battle::new(&setup, 44);
+    let unit = entered(&mut live, "blue-1");
+    live.hand_over("blue-1").unwrap();
+    live.reset_seat("blue-1", false).unwrap();
+    live.set_controllers(vec![("blue-2".into(), ControllerKind::Human)]);
+    live.step();
+    assert!(live.unit(unit).unwrap().alive());
+    assert_eq!(live.unit(unit).unwrap().owner.as_deref(), Some("blue-1"));
+    assert!(seat(&live, "blue-1").credits > 0.0);
+    let mut replay = Battle::from_replay(&setup, &live.replay()).unwrap();
+    while replay.tick() < live.tick() {
+        replay.step();
+    }
+    assert_eq!(replay.digest(), live.digest());
+}

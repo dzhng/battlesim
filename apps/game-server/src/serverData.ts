@@ -21,3 +21,6 @@ export async function nodeSetupData(
     root,
   };
 }
+
+/** How many generated maps the game tries before giving up on a battle. */
+export const MAP_ATTEMPTS = config.admission.max_generated_attempts;
