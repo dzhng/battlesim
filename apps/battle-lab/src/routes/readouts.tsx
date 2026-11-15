@@ -116,7 +116,7 @@ function ReadoutsLab({ battle }: { battle: SavedBattle }) {
           onCenter={focusUnit}
           onHover={session.hoverFromDeck}
           rules={session.rules}
-          captions={null}
+          contactLines={null}
         />
       </div>
     </>

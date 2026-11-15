@@ -136,7 +136,7 @@ fn multi_entry_generation_lays_spaced_entries_on_joined_arms() {
     let catalogue =
         contract::templates::TemplateGeometryCatalog::new(serde_json::from_str(TEMPLATES).unwrap())
             .unwrap();
-    let (_, result) = admitted::admitted(1.., 1, |seed| {
+    let maps = admitted::admitted(1.., 5, |seed| {
         let mut request = request_with_entries("open", seed, catalogue.hash(), 3);
         request["size"] = serde_json::json!("large");
         match mapgen::generate_map(
@@ -148,33 +148,46 @@ fn multi_entry_generation_lays_spaced_entries_on_joined_arms() {
             mapgen::CompileOutcome::Ok { result } => Ok(*result),
             mapgen::CompileOutcome::Error { diagnostics } => Err(diagnostics),
         }
-    })[0]
-        .clone();
-    let entries = &result.sites.skirmish.as_ref().unwrap().entries;
-    assert_eq!(entries.len(), 6);
-    for index in 1..3 {
-        let blue = entries[index].center[0] / result.map.size[0];
-        let red = entries[index + 3].center[0] / result.map.size[0];
-        assert!((blue - red).abs() < 1e-12, "arm {index} was not mirrored");
-    }
-    for (i, a) in entries.iter().enumerate() {
-        for b in &entries[..i] {
-            if a.side == b.side {
-                assert!(libm::hypot(a.center[0] - b.center[0], a.center[1] - b.center[1]) >= 150.0);
-            }
-        }
-    }
+    });
     let rules: contract::scenario::Rules =
         serde_json::from_value(sim::fixtures::test_rules()).unwrap();
-    let prepared = sim::encounter::PreparedMap::new(&result.map, &rules);
-    let admission = sim::map_analysis::admit_skirmish(
-        &prepared.queries(&result.map, &result.sites),
-        &rules,
-        &test_players(),
-    );
+    let mut admissible = 0;
+    for (seed, result) in &maps {
+        let entries = &result.sites.skirmish.as_ref().unwrap().entries;
+        assert_eq!(entries.len(), 6);
+        for index in 1..3 {
+            let blue = entries[index].center[0] / result.map.size[0];
+            let red = entries[index + 3].center[0] / result.map.size[0];
+            assert!(
+                (blue - red).abs() < 1e-12,
+                "seed {seed}: arm {index} was not mirrored"
+            );
+        }
+        for (i, a) in entries.iter().enumerate() {
+            for b in &entries[..i] {
+                if a.side == b.side {
+                    assert!(
+                        libm::hypot(a.center[0] - b.center[0], a.center[1] - b.center[1]) >= 150.0
+                    );
+                }
+            }
+        }
+        let prepared = sim::encounter::PreparedMap::new(&result.map, &rules);
+        admissible += usize::from(
+            sim::map_analysis::admit_skirmish(
+                &prepared.queries(&result.map, &result.sites),
+                &rules,
+                &test_players(),
+            )
+            .is_ok(),
+        );
+    }
+    // Admission also weighs fairness, which any one seed may miss: joined
+    // arms show in the maps it does admit.
     assert!(
-        admission.is_ok(),
-        "multi-entry map was not admissible: {admission:?}"
+        admissible > 0,
+        "no multi-entry map of {} was admissible",
+        maps.len()
     );
 }
 
@@ -546,4 +559,78 @@ fn every_admitted_objective_holds_a_building() {
         missing.is_empty(),
         "objectives without a building: {missing:#?}"
     );
+}
+
+/// Every entry's road runs straight in from the edge along the entry's
+/// heading for the presets' edge run, so the marker painted ahead of the
+/// entry lies on the road, not across a field beside its first bend.
+#[test]
+fn every_entry_road_runs_straight_in_along_its_entry() {
+    let catalogue =
+        contract::templates::TemplateGeometryCatalog::new(serde_json::from_str(TEMPLATES).unwrap())
+            .unwrap();
+    let run = presets().joints.edge_run_m;
+    for (map_type, size, entries) in [
+        ("open", "small", 1),
+        ("mixed", "large", 3),
+        ("open", "large", 3),
+    ] {
+        let maps = admitted::admitted(1.., 2, |seed| {
+            let mut request = request_with_entries(map_type, seed, catalogue.hash(), entries);
+            request["size"] = serde_json::json!(size);
+            match mapgen::generate_map(
+                &request.to_string(),
+                PRESETS,
+                TEMPLATES,
+                include_str!("../../../fixtures/parity/map-layout/physical-rules.json"),
+            ) {
+                mapgen::CompileOutcome::Ok { result } => Ok(*result),
+                mapgen::CompileOutcome::Error { diagnostics } => Err(diagnostics),
+            }
+        });
+        for (seed, result) in maps {
+            let depth = result.map.size[1];
+            for entry in &result.sites.skirmish.as_ref().unwrap().entries {
+                let edge = if entry.side == contract::ids::Side::Blue {
+                    depth
+                } else {
+                    0.0
+                };
+                let heading = [libm::cos(entry.yaw), libm::sin(entry.yaw)];
+                // The road that ends on this entry's edge nearest the entry.
+                let road = result
+                    .map
+                    .surfaces
+                    .iter()
+                    .filter(|s| s.kind.is_road())
+                    .filter_map(|s| match &s.shape {
+                        contract::ground::GroundShape::Stroke { centerline, .. } => {
+                            let samples = centerline.samples();
+                            [samples.to_vec(), samples.iter().rev().copied().collect()]
+                                .into_iter()
+                                .find(|line| line[0][1] == edge)
+                        }
+                        _ => None,
+                    })
+                    .min_by(|a, b| {
+                        let gap = |line: &Vec<[f64; 2]>| {
+                            libm::hypot(line[0][0] - entry.center[0], line[0][1] - entry.center[1])
+                        };
+                        gap(a).total_cmp(&gap(b))
+                    })
+                    .unwrap_or_else(|| {
+                        panic!("{map_type} {size} seed {seed}: no road at {entry:?}")
+                    });
+                let start = road[0];
+                for p in road.iter().take_while(|p| libm::fabs(p[1] - edge) <= run) {
+                    let d = [p[0] - start[0], p[1] - start[1]];
+                    let off = libm::fabs(d[0] * heading[1] - d[1] * heading[0]);
+                    assert!(
+                        off < 0.01,
+                        "{map_type} {size} seed {seed}: the road at {entry:?} leaves its heading by {off:.2} m at {p:?}"
+                    );
+                }
+            }
+        }
+    }
 }

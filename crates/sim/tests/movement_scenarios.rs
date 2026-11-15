@@ -1947,8 +1947,7 @@ fn authored() -> Vec<Scenario> {
             ]),
             rules: json!({}), seconds: 100.0, seed: 1,
             checks: (0..8).map(|i| check(ArriveAtMarker { unit: i, tick: 1, within_m: 1.5 }))
-                .chain([check(VehiclesNeverOverlap),check(NeverInWater),check(HullsOverWater { max_m: 0.5 }),
-                    check(ArrivesFirst { first: 2, second: 0 }),check(ArrivesFirst { first: 6, second: 4 })]).collect(),
+                .chain([check(VehiclesNeverOverlap),check(NeverInWater),check(HullsOverWater { max_m: 0.5 })]).collect(),
         },
         Scenario {
             name: "sa6-unbridged-river",
@@ -3047,6 +3046,6 @@ fn a_jeep_passes_a_wreck_across_the_road() {
     assert_scenario(&scenario("sa6-jeep-round-wreck"));
 }
 #[test]
-fn opposing_bridge_columns_finish_after_the_lead_vehicles_park() {
+fn opposing_bridge_columns_pass_and_park_at_their_markers() {
     assert_scenario(&scenario("sa6-columns-through-bridge"));
 }

@@ -12,6 +12,9 @@ use contract::ground::GroundShape;
 use contract::map::{BuildingPartReference, SurfaceArea, SurfaceKind};
 use contract::templates::{BuildingCategory, BuildingTemplateDescriptor, PlacementFrame};
 
+/// How far a carriageway may bow from the straight front of a parcel along it.
+const FRONT_BOW_M: f64 = 0.5;
+
 /// A template as a parcel sees it: turned so its entrances face `−Y`, the
 /// street side, with the box its parts then fill.
 pub struct Fit<'a> {
@@ -442,12 +445,14 @@ impl Frontage<'_> {
         }
         let (a, b) = (self.run.at(s), self.run.at(s + width));
         let chord = distance(a, b);
-        // A front is straight; a bend that shortens it by more than this
-        // would push the parcel's corners into the carriageway.
-        if chord < 0.98 * width {
+        let along = scale(sub(b, a), 1.0 / chord);
+        // A front is straight. A carriageway that bows toward it pushes the
+        // parcel's corners into the road, and one that bows away leaves its
+        // verge on open ground.
+        let bow = |p: Point| (along[0] * (p[1] - a[1]) - along[1] * (p[0] - a[0])).abs();
+        if self.run.between(s, s + width).any(|p| bow(p) > FRONT_BOW_M) {
             return None;
         }
-        let along = scale(sub(b, a), 1.0 / chord);
         let inward = scale([-along[1], along[0]], self.side);
         let front = add(scale(add(a, b), 0.5), scale(inward, self.offset));
         Some(Lot {

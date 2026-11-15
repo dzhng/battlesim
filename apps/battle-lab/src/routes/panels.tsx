@@ -15,7 +15,7 @@ import { panelSpecimens, specimenUnit, type Specimen } from "../panelSpecimens";
 import type { CommandControl } from "@web/battle/present/commandBar";
 import { ArmyDeck } from "@web/battle/present/armyDeck";
 import { PurchasePicker } from "@web/battle/present/purchasePicker";
-import { CaptionList } from "@web/battle/present/captions";
+import { ContactLines } from "@web/battle/present/contactLines";
 
 /** The specimens shown again over grass: one of each kind of panel. */
 const OVER_GRASS = [
@@ -269,22 +269,7 @@ function DeckReview({ onBack }: { onBack: () => void }) {
           selected={selected}
           onSelect={setSelected}
           rules={rules}
-          captions={
-            <CaptionList
-              captions={{
-                captions: [
-                  {
-                    key: "heard",
-                    text: "Heard gunfire, nearby, east of Rifle squad",
-                    count: 2,
-                    tick: 0,
-                  },
-                ],
-                note: () => {},
-                clear: () => {},
-              }}
-            />
-          }
+          contactLines={<ContactLines lines={[{ key: 1, text: "Unknown, firing" }]} />}
           reinforcements={
             <PurchasePicker
               cards={[]}

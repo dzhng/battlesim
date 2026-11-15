@@ -107,23 +107,15 @@ export function battleOverlayScenario(
   lanes: readonly EntryLane[],
   side: SideName,
 ): BattleOverlayScenario {
-  const [w, d] = s.map.size;
   return {
     side,
     supplyRadius: s.rules.service.radius_m,
     zone: s.encounter
       ? { center: s.encounter.success_zone_center, radius: s.encounter.success_zone_radius_m }
       : null,
-    deployments: (s.skirmish?.sites.entries ?? []).flatMap(({ side: entrySide, center }, i) =>
-      entrySide === side
-        ? [
-            {
-              center,
-              facing: Math.atan2(d / 2 - center[1], w / 2 - center[0]),
-              lane: lanes[i].lane,
-            },
-          ]
-        : [],
+    // Each marker faces the way its road runs in, as the entry does.
+    deployments: (s.skirmish?.sites.entries ?? []).flatMap(({ side: entrySide, center, yaw }, i) =>
+      entrySide === side ? [{ center, facing: yaw, lane: lanes[i].lane }] : [],
     ),
   };
 }

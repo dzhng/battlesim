@@ -43,7 +43,7 @@ test("army observation and selection read the same publication before paint", ()
           selected={own.map((unit) => unit.id)}
           onSelect={vi.fn()}
           rules={shippedRules as unknown as PanelRules}
-          captions={null}
+          contactLines={null}
         />
       </>
     );
@@ -78,7 +78,7 @@ test("live army publications refresh cards and command availability without repl
       selected={[11]}
       onSelect={vi.fn()}
       rules={shippedRules as unknown as PanelRules}
-      captions={null}
+      contactLines={null}
     />,
   );
   expect(view.getByRole("button", { name: "Tank #11" })).toBeTruthy();
@@ -106,7 +106,7 @@ test("the army row includes unselected own units and stays visible without a sel
       selected={[]}
       onSelect={vi.fn()}
       rules={shippedRules as unknown as PanelRules}
-      captions={null}
+      contactLines={null}
     />,
   );
   expect(view.getByRole("button", { name: "Tank #11" }).getAttribute("aria-pressed")).toBe("false");
@@ -133,7 +133,7 @@ test("card selection replaces the current selection and Shift toggles individual
         selected={selected}
         onSelect={setSelected}
         rules={shippedRules as unknown as PanelRules}
-        captions={null}
+        contactLines={null}
       />
     );
   }
@@ -164,7 +164,7 @@ test("a selected card asks the camera to centre while an unselected card only se
         onSelect={setSelected}
         onCenter={onCenter}
         rules={shippedRules as unknown as PanelRules}
-        captions={null}
+        contactLines={null}
       />
     );
   }
@@ -198,7 +198,7 @@ test("hover exposes live unit facts, health and casualty removal", () => {
     selected: [],
     onSelect: vi.fn(),
     rules: shippedRules as unknown as PanelRules,
-    captions: null,
+    contactLines: null,
   };
   const view = render(<ArmyDeck state={new Feed({ own: [tank, rifle] })} {...props} />);
   const card = view.getByRole("button", { name: "Rifle Section #22" });
@@ -234,7 +234,7 @@ test("hover detail anchors to the deck rather than the lower HUD stack", () => {
       selected={[]}
       onSelect={vi.fn()}
       rules={shippedRules as unknown as PanelRules}
-      captions={<ul className="hud-subtitles" />}
+      contactLines={<ul className="hud-contact-lines" />}
     />,
   );
   const deck = view.getByRole("group", { name: "Your units" }).closest("footer")!;
@@ -267,7 +267,7 @@ test("the army remains in replay and empty selection while commands follow only 
         selected={selected}
         onSelect={setSelected}
         rules={shippedRules as unknown as PanelRules}
-        captions={null}
+        contactLines={null}
       />
     );
   }
@@ -294,7 +294,7 @@ test("reinforcements remain available before the first unit enters", () => {
       selected={[]}
       onSelect={vi.fn()}
       rules={shippedRules as unknown as PanelRules}
-      captions={null}
+      contactLines={null}
       reinforcements={<button>Reinforcements</button>}
     />,
   );
@@ -309,7 +309,7 @@ test("pending reinforcements reuse dimmed vertical cards with deployment hover t
       selected={[]}
       onSelect={vi.fn()}
       rules={shippedRules as unknown as PanelRules}
-      captions={null}
+      contactLines={null}
       pending={[
         {
           id: 41,
@@ -356,7 +356,7 @@ test("a waiting aircraft's pending card counts down to its arrival, whole second
       selected={[]}
       onSelect={vi.fn()}
       rules={shippedRules as unknown as PanelRules}
-      captions={null}
+      contactLines={null}
       tick={tick}
       pending={[jet]}
     />
@@ -390,7 +390,7 @@ test("the command row exposes refund for a selected skirmish unit", () => {
       selected={[11]}
       onSelect={vi.fn()}
       rules={shippedRules as unknown as PanelRules}
-      captions={null}
+      contactLines={null}
     />,
   );
   fireEvent.click(view.getByRole("button", { name: "Refund · Return to base" }));
@@ -410,7 +410,7 @@ test("a squad aboard a carrier keeps its card, dimmed as aboard, and clicking it
       selected={[]}
       onSelect={onSelect}
       rules={shippedRules as unknown as PanelRules}
-      captions={null}
+      contactLines={null}
     />,
   );
   const card = view.getByRole("button", { name: /^Rifle Section #7/ });
@@ -436,7 +436,7 @@ test("a rider's selected card centres on the carrier it selects", () => {
         onSelect={setSelected}
         onCenter={onCenter}
         rules={shippedRules as unknown as PanelRules}
-        captions={null}
+        contactLines={null}
       />
     );
   }
@@ -465,7 +465,7 @@ test("hovering a card hovers its unit, a rider's its carrier, until the pointer 
       onSelect={vi.fn()}
       onHover={onHover}
       rules={shippedRules as unknown as PanelRules}
-      captions={null}
+      contactLines={null}
     />,
   );
   const card = (name: RegExp) => view.getByRole("button", { name });

@@ -83,6 +83,7 @@ mod skirmish_ownership;
 mod skirmish_team;
 mod smoke;
 mod soldier_bodies;
+mod straight_ways;
 mod supply;
 mod suppression;
 mod swamps;

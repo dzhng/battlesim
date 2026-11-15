@@ -184,8 +184,9 @@ checks oversized development performance details as well as ordinary page errors
 ## Presentation contracts
 
 [Browser presentation](../../web/src/battle/present/) turns observed evidence into
-panels, captions, contacts and cursors. Hidden contact reports retain uncertainty;
-retiring visuals are remembered evidence, never live targets. Panels prioritize
+panels, contact lines, contacts and cursors. Hidden contact reports retain uncertainty;
+retiring visuals are remembered evidence, never live targets. A contact line stands for
+a contact N can reach; a heard sound alone marks nothing on the map and gets none. Panels prioritize
 legibility and camera depth while preserving hover access to detail. Sensing rules
 own concealment; the UI cannot infer a hidden observer from private state. A new
 piece of interface is drawn by the panel workbench, the [UI gallery](src/routes/ui.tsx)

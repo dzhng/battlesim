@@ -936,10 +936,8 @@ impl NavGrid {
         })
     }
 
-    /// Cost of travelling a straight segment, walking the cells it crosses; `None`
-    /// when any sampled cell does not fit the footprint.
-    /// Infantry samples every half sub-cell, and each sample must lie in a
-    /// free sub-cell.
+    /// Cost of a straight segment over the cells it crosses; `None` where the
+    /// footprint does not fit. Infantry samples lie in free sub-cells.
     fn segment_cost(&self, a: V2, b: V2, who: Mover, policy: RoutePolicy) -> Option<f64> {
         let mut probe = Probe::new(a, b, who.m);
         loop {
@@ -1009,9 +1007,10 @@ impl NavGrid {
                     return Some(None);
                 }
                 let check = probe.bodies.get_or_insert_with(|| {
+                    let half = along * (piece / 2.0);
                     update::BodyCheck::new(
                         self,
-                        p,
+                        (p - half, p + half),
                         m.half_width_m,
                         if allow_push { m.push } else { PushClass::None },
                     )

@@ -8,7 +8,7 @@ fn areaJoint(along: f32, perMetre: f32, footprint: f32, width: f32) -> f32 {
 }
 
 // @block ground_roads_groundRoads
-const GROUND_SHOULDER_GRAIN = 0.5;
+const GROUND_SHOULDER_GRAIN = 1;
 const GROUND_SURFACE_JOIN_DRIFT_PER_M = 0.4;
 const GROUND_ROADS_PATCH_FROM = 0.52;
 const GROUND_ROADS_PATCH_TO = 0.66;
@@ -23,6 +23,17 @@ const GROUND_MARKS_WEAR_FROM = 0.4;
 const GROUND_MARKS_WEAR_TO = 0.6;
 const GROUND_ROADS_MARKS_WEAR_PER_M = 0.7692307692307692;
 const GROUND_ROADS_SLAB_JOINT_M = 0.03;
+const GROUND_ROADS_RAGGED_PER_M = 0.45;
+const GROUND_ROADS_RAGGED_FINE_PER_M = 1.6;
+const GROUND_ROADS_RAGGED_FINE = 0.35;
+const GROUND_ROADS_RAGGED_PEBBLES = 1.2;
+const GROUND_ROADS_RAGGED_SPREAD_PER_M = 0.07;
+const GROUND_ROADS_RAGGED_LEAST = 0.35;
+const GROUND_ROADS_RAGGED_MOST = 1.3;
+const GROUND_SHOULDER_MOTTLE = 0.15;
+const GROUND_SHOULDER_MOTTLE_PER_M = 0.6;
+const GROUND_SHOULDER_PATCH_PER_M = 0.3;
+const GROUND_SHOULDER_PATCH_LEAST = 0.45;
 fn groundRoads(xy: vec2f, footprint: f32, paved: GroundPaved, under: vec4f) -> vec4f {
  var surface=under;
  let plain=terrainParams.view.y==1u;
@@ -31,7 +42,11 @@ fn groundRoads(xy: vec2f, footprint: f32, paved: GroundPaved, under: vec4f) -> v
   let look=terrainParams.roads[u32(worn.y)];
   let lift=max(1.0,dot(under.xyz,LUMA)/max(dot(look.shoulder.xyz,LUMA),1e-5));
   let grain=roadGrain(xy*look.shape.w,footprint*look.shape.w)*GROUND_SHOULDER_GRAIN;
-  surface=mix(under,vec4f(look.shoulder.xyz*lift*(1.0+look.shape.z*grain),look.core.w),worn.x*look.edge.w);
+  // Worn earth is patchy: damper and drier, never one flat fill.
+  let mottle=1.0+(wanderNoise(xy*GROUND_SHOULDER_MOTTLE_PER_M+vec2f(47.1,3.9))-0.5)*2.0*GROUND_SHOULDER_MOTTLE;
+  // The field reaches into it in patches, so it is no even stripe.
+  let reached=mix(GROUND_SHOULDER_PATCH_LEAST,1.0,wanderNoise(xy*GROUND_SHOULDER_PATCH_PER_M+vec2f(83.3,61.7)));
+  surface=mix(under,vec4f(look.shoulder.xyz*lift*mottle*(1.0+look.shape.z*grain),look.core.w),worn.x*look.edge.w*reached);
  }
  let lane=roadLane(paved);
  // How far the roads already laid here are carried onto the next: each
@@ -49,6 +64,17 @@ fn groundRoads(xy: vec2f, footprint: f32, paved: GroundPaved, under: vec4f) -> v
    feather=max(feather,carried*0.5);
    inside-=feather;
    if(!plain){inside+=(wanderNoise(xy*GROUND_SURFACE_JOIN_DRIFT_PER_M+vec2f(7.9,52.3))-0.5)*2.0*carried;}
+  }
+  else if(!plain&&look.join.y>0.0){
+   // Its own edge wanders, in tongues and finer crumbs, so its surface
+   // spills onto the shoulder and the shoulder bites into it.
+   // How ragged it is wanders too, along the road: worn here, kept there.
+   let spread=look.join.y*mix(GROUND_ROADS_RAGGED_LEAST,GROUND_ROADS_RAGGED_MOST,wanderNoise(xy*GROUND_ROADS_RAGGED_SPREAD_PER_M+vec2f(5.3,29.9)));
+   let wide=wanderNoise(xy*GROUND_ROADS_RAGGED_PER_M+vec2f(13.1,77.9));
+   let fine=wanderNoise(xy*GROUND_ROADS_RAGGED_FINE_PER_M+vec2f(91.3,4.7));
+   inside+=(mix(wide,fine,GROUND_ROADS_RAGGED_FINE)-0.5)*2.0*spread;
+   // Across the feather it thins stone by stone, not in a blur.
+   inside+=roadGrain(xy*look.shape.w,footprint*look.shape.w)*GROUND_ROADS_RAGGED_PEBBLES*max(spread,feather);
   }
   if(inside<=-feather){continue;}
   var core=look.core.xyz;

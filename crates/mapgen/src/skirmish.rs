@@ -10,12 +10,55 @@ use contract::ids::Side;
 use contract::map::{SurfaceArea, SurfaceKind};
 use contract::templates::TemplateGeometryCatalog;
 
+/// How far in from the edge an entry stands on its road.
+const ENTRY_INSET_M: f64 = 8.0;
+/// An added entry arm's width.
+const ARM_WIDTH_M: f64 = 12.0;
+
+/// An entry on its road: `ENTRY_INSET_M` in from `end`, where the road meets
+/// the edge, facing along the road toward `next`.
+fn on_road(side: Side, end: [f64; 2], next: [f64; 2]) -> EntrySite {
+    let delta = [next[0] - end[0], next[1] - end[1]];
+    let length = libm::hypot(delta[0], delta[1]);
+    EntrySite {
+        side,
+        center: [
+            end[0] + delta[0] * ENTRY_INSET_M / length,
+            end[1] + delta[1] * ENTRY_INSET_M / length,
+        ],
+        yaw: libm::atan2(delta[1], delta[0]),
+    }
+}
+
+/// Each entry stands on its road as the joints left it, square to the edge
+/// and straight ahead for the edge run: the road whose end on the entry's
+/// edge lies nearest it.
+pub(crate) fn follow_roads(sites: &mut SkirmishSites, surfaces: &[SurfaceArea], depth: f64) {
+    for entry in &mut sites.entries {
+        let edge = if entry.side == Side::Blue { depth } else { 0.0 };
+        let road = surfaces
+            .iter()
+            .filter(|s| s.kind.is_road())
+            .filter_map(|s| match &s.shape {
+                GroundShape::Stroke { centerline, .. } => Some(centerline.samples()),
+                GroundShape::Polygon { .. } => None,
+            })
+            .flat_map(|p| [(p[0], p[1]), (p[p.len() - 1], p[p.len() - 2])])
+            .filter(|(end, _)| end[1] == edge)
+            .min_by(|a, b| distance(a.0, entry.center).total_cmp(&distance(b.0, entry.center)));
+        if let Some((end, next)) = road {
+            *entry = on_road(entry.side, end, next);
+        }
+    }
+}
+
 pub(crate) fn reserve(
     request: &GenerationRequest,
     surfaces: &mut Vec<SurfaceArea>,
     water: &Water<'_>,
     hub: [f64; 2],
     towns: &[&[[f64; 2]]],
+    edge_run: f64,
 ) -> Result<Option<SkirmishSites>, Vec<Diagnostic>> {
     if request.profile == GenerationProfile::Standard {
         return Ok(None);
@@ -48,21 +91,12 @@ pub(crate) fn reserve(
                 }
             })
             .ok_or_else(|| fail("opposing road-edge entry is missing"))?;
-        let delta = [road.1[0] - road.0[0], road.1[1] - road.0[1]];
-        let length = libm::hypot(delta[0], delta[1]);
-        Ok(EntrySite {
-            side,
-            center: [
-                road.0[0] + delta[0] * 8.0 / length,
-                road.0[1] + delta[1] * 8.0 / length,
-            ],
-            yaw: libm::atan2(delta[1], delta[0]),
-        })
+        Ok(on_road(side, road.0, road.1))
     };
     let centre_entries = [edge(Side::Blue, extent)?, edge(Side::Red, 0.0)?];
     let mut entries = centre_entries.to_vec();
     if request.entries_per_side > 1 {
-        let extra = add_entry_arms(request, surfaces, water, extent, &entries, fail)?;
+        let extra = add_entry_arms(request, surfaces, water, extent, edge_run, &entries, fail)?;
         entries.extend(extra);
     }
     let mut ordered = Vec::with_capacity(entries.len());
@@ -217,10 +251,12 @@ fn add_entry_arms(
     surfaces: &mut Vec<SurfaceArea>,
     water: &Water<'_>,
     extent: f64,
+    edge_run: f64,
     existing: &[EntrySite],
     fail: impl Fn(&str) -> Vec<Diagnostic> + Copy,
 ) -> Result<Vec<EntrySite>, Vec<Diagnostic>> {
     let wanted = request.entries_per_side - 1;
+    let reach = 2.0 * (edge_run + 3.0 * ARM_WIDTH_M / 2.0);
     let bands: &[f64] = match wanted {
         1 => &[0.22, 0.30, 0.38, 0.62, 0.70, 0.78],
         2 => &[0.18, 0.24, 0.30, 0.70, 0.76, 0.82],
@@ -253,7 +289,7 @@ fn add_entry_arms(
             .cloned()
             .collect::<Vec<_>>(),
     ];
-    type ArmSegment = (Side, [f64; 2], [f64; 2], f64, f64);
+    type ArmSegment = (Side, [f64; 2], [f64; 2]);
     struct ArmCandidate {
         pair: Vec<ArmSegment>,
     }
@@ -265,7 +301,7 @@ fn add_entry_arms(
         for (index, side) in [Side::Blue, Side::Red].into_iter().enumerate() {
             let y = if side == Side::Blue { extent } else { 0.0 };
             let inward = if side == Side::Blue { -1.0 } else { 1.0 };
-            let start = [extent * fraction, y];
+            let start = crate::layout::geometry::round_cm([extent * fraction, y]);
             if side_entries[index]
                 .iter()
                 .any(|e| distance(e.center, start) < 150.0)
@@ -277,7 +313,9 @@ fn add_entry_arms(
             let Some(target) = road_points
                 .iter()
                 .copied()
-                .filter(|p| (p[1] - y) * inward > 100.0 && (p[0] - start[0]).abs() < extent * 0.45)
+                // Far enough in that the arm leaves the edge square and
+                // straight for the edge run, and turns with room after.
+                .filter(|p| (p[1] - y) * inward > reach && (p[0] - start[0]).abs() < extent * 0.45)
                 .min_by(|a, b| distance(start, *a).total_cmp(&distance(start, *b)))
             else {
                 pair.clear();
@@ -287,8 +325,7 @@ fn add_entry_arms(
                 pair.clear();
                 break;
             }
-            let delta = [target[0] - start[0], target[1] - start[1]];
-            pair.push((side, start, target, libm::atan2(delta[1], delta[0]), inward));
+            pair.push((side, start, target));
         }
         if pair.len() == 2 {
             candidates.push(ArmCandidate { pair });
@@ -299,14 +336,14 @@ fn add_entry_arms(
             .pair
             .iter()
             .enumerate()
-            .all(|(index, (_, start, _, _, _))| start[0] < centre_x[index])
+            .all(|(index, (_, start, _))| start[0] < centre_x[index])
     };
     let is_right = |candidate: &ArmCandidate| {
         candidate
             .pair
             .iter()
             .enumerate()
-            .all(|(index, (_, start, _, _, _))| start[0] > centre_x[index])
+            .all(|(index, (_, start, _))| start[0] > centre_x[index])
     };
     let selected: Vec<&ArmCandidate> = if wanted == 2 {
         let mut left = candidates.iter().filter(|candidate| is_left(candidate));
@@ -344,18 +381,14 @@ fn add_entry_arms(
             .ok_or_else(|| fail("no mirrored, spaced, river-safe entry arm fits"))?]
     };
     for candidate in selected {
-        for (side, start, target, yaw, inward) in &candidate.pair {
-            let shape = GroundShape::stroke(vec![*start, *target], 12.0)
+        for (side, start, target) in &candidate.pair {
+            let shape = GroundShape::stroke(vec![*start, *target], ARM_WIDTH_M)
                 .map_err(|_| fail("entry arm geometry is not representable"))?;
             surfaces.push(SurfaceArea {
                 kind: SurfaceKind::CountryRoad,
                 shape,
             });
-            let entry = EntrySite {
-                side: *side,
-                center: [start[0], start[1] + inward * 8.0],
-                yaw: *yaw,
-            };
+            let entry = on_road(*side, *start, *target);
             let index = usize::from(*side == Side::Red);
             side_entries[index].push(entry.clone());
             added.push(entry);

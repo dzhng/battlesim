@@ -1043,7 +1043,7 @@ impl PresetDefinitions {
             ("joints.swing_widths", self.joints.swing_widths),
             ("joints.square_widths", self.joints.square_widths),
             ("joints.stub_widths", self.joints.stub_widths),
-            ("joints.gate_widths", self.joints.gate_widths),
+            ("joints.edge_run_m", self.joints.edge_run_m),
             ("joints.trim_margin_m", self.joints.trim_margin_m),
             ("joints.shortest_run_m", self.joints.shortest_run_m),
             ("towns.geometry.sliver_m", self.towns.geometry.sliver_m),
@@ -1922,8 +1922,8 @@ pub struct JointPolicy {
     pub stub_widths: f64,
     /// A road nearly alongside is not one an end runs into (20°).
     pub alongside_cos: f64,
-    /// A road leaves the map square to its edge over twice its width.
-    pub gate_widths: f64,
+    /// A road runs in square and straight this far: an entry's run.
+    pub edge_run_m: f64,
     /// A road cut back to a settlement stops this far past the last ground it runs along, and is walked back to it in steps this long.
     pub trim_margin_m: f64,
     /// How many times the ways of a lost joint are pinned and the rest closed again, before the plan's roads are left as they were laid.

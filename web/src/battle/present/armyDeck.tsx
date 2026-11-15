@@ -20,7 +20,7 @@ export function ArmyDeck({
   onCenter,
   onHover,
   rules,
-  captions,
+  contactLines,
   reinforcements,
   pending = [],
   tick = 0,
@@ -34,7 +34,7 @@ export function ArmyDeck({
    *  its click picks), or null when it leaves the card. */
   onHover?: (unit: number | null) => void;
   rules: PanelRules;
-  captions: ReactNode;
+  contactLines: ReactNode;
   reinforcements?: ReactNode;
   pending?: PendingPurchaseView[];
   /** The observed tick, which a waiting aircraft's countdown runs from. */
@@ -81,14 +81,14 @@ export function ArmyDeck({
       : undefined;
   const detail = own.find((unit) => unit.id === hovered);
   const alignDetail = (button: HTMLButtonElement) => {
-    // Both popups anchor to the deck; captions above it must not inflate the gap.
+    // Both popups anchor to the deck; contact lines above it must not inflate the gap.
     const box = button.getBoundingClientRect();
     setDetailX(box.left + box.width / 2);
     setDetailY(deck.current!.getBoundingClientRect().top);
   };
   return (
     <div className="hud-lower" ref={lower}>
-      {captions}
+      {contactLines}
       {detail && (
         <div className="hud-army-detail-host">
           <div

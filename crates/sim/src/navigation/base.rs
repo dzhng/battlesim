@@ -25,21 +25,10 @@ pub(super) struct Body {
 }
 
 impl Body {
-    pub(super) fn blocks_vehicle(
-        &self,
-        p: crate::math::V2,
-        radius: f64,
-        push: contract::scenario::PushClass,
-    ) -> bool {
-        self.stops_vehicles
-            && self.weight >= push.rank().max(1)
-            && self.footprint.contains(p, radius)
-    }
-
     /// How far `p` stands from it, if it stops a vehicle of class `push`,
-    /// as [`blocks_vehicle`](Self::blocks_vehicle) measures (the box grown
-    /// alike on every side, corners and all), and the way straight off its
-    /// nearer face.
+    /// as [`blocks_vehicle_along`](Self::blocks_vehicle_along) measures (the
+    /// box grown alike on every side, corners and all), and the way straight
+    /// off its nearer face.
     pub(super) fn vehicle_gap(
         &self,
         p: crate::math::V2,
@@ -58,9 +47,9 @@ impl Body {
         })
     }
 
-    /// Whether the segment `a`→`b` passes within `radius` of it, as
-    /// [`blocks_vehicle`](Self::blocks_vehicle) measures, if it stops a
-    /// vehicle of class `push`.
+    /// Whether the segment `a`→`b` (a point when they are one) passes
+    /// within `radius` of it, the box grown alike on every side, if it stops
+    /// a vehicle of class `push`.
     pub(super) fn blocks_vehicle_along(
         &self,
         a: crate::math::V2,

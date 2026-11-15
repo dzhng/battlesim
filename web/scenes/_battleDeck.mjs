@@ -55,20 +55,21 @@ export async function checkBattleDeck(ctx, page) {
           commandsDisabled: [
             ...(deck.querySelector('[role="toolbar"]')?.querySelectorAll("button") ?? []),
           ].every((button) => button.disabled),
-          captionBottom: document.querySelector('[data-testid="captions"]').getBoundingClientRect()
-            .bottom,
+          linesBottom: document
+            .querySelector('[data-testid="contact-lines"]')
+            .getBoundingClientRect().bottom,
           text: deck.textContent,
         };
       });
       ctx.check(
-        `${width}px ${name}: cards wrap on screen at one size above commands and clear captions`,
+        `${width}px ${name}: cards wrap on screen at one size above commands and clear contact lines`,
         !layout.scrolls &&
           layout.cardsOnScreen &&
           layout.cardHeights === 1 &&
           layout.left >= 0 &&
           layout.right <= width &&
           layout.bottom <= 900 &&
-          layout.captionBottom < layout.top &&
+          layout.linesBottom < layout.top &&
           (layout.commandTop === null ||
             (layout.commandTop >= layout.cardBottom + 4 && layout.commandHeight <= 48)),
         JSON.stringify(layout),
@@ -91,7 +92,7 @@ export async function checkBattleDeck(ctx, page) {
       );
       const slug = name.toLowerCase().replaceAll(" ", "-");
       // A game's interface is never selected like a page's text: no word of
-      // the HUD (a caption, a card, a command) takes a selection highlight.
+      // the HUD (a contact line, a card, a command) takes a selection highlight.
       const selectable = await page.evaluate(() =>
         [...document.querySelectorAll(".hud *")]
           .filter((e) => [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()))
@@ -121,8 +122,9 @@ export async function checkBattleDeck(ctx, page) {
           nameHeight: name.getBoundingClientRect().height,
           nameFont: parseFloat(getComputedStyle(name).fontSize),
           weaponRows: e.querySelectorAll(".ro-weapon").length,
-          captionBottom: document.querySelector('[data-testid="captions"]').getBoundingClientRect()
-            .bottom,
+          linesBottom: document
+            .querySelector('[data-testid="contact-lines"]')
+            .getBoundingClientRect().bottom,
           left: r.left,
           right: r.right,
           top: r.top,
@@ -149,9 +151,9 @@ export async function checkBattleDeck(ctx, page) {
       // word drawn: only its content against its frame shows it.
       const hoverSpills = await spills(page, ".hud-army-detail");
       ctx.check(
-        `${width}px ${name}: hover card holds its contents, its name on one line, clear of captions`,
+        `${width}px ${name}: hover card holds its contents, its name on one line, clear of contact lines`,
         hoverSpills.length === 0 &&
-          detail.captionBottom <= detail.top &&
+          detail.linesBottom <= detail.top &&
           detail.nameHeight < detail.nameFont * 2,
         JSON.stringify({ ...detail, spills: hoverSpills.slice(0, 6) }),
       );
@@ -199,9 +201,9 @@ export async function checkBattleDeck(ctx, page) {
       `${width}px: command row is centered below the cards`,
       Math.abs(commands.x + commands.width / 2 - deck.x - deck.width / 2) <= 1,
     );
-    const heard = await page.getByTestId("captions").boundingBox();
+    const heard = await page.getByTestId("contact-lines").boundingBox();
     ctx.check(
-      `${width}px: command hint stays above its owner and below captions`,
+      `${width}px: command hint stays above its owner and below contact lines`,
 
       heard.y + heard.height < tip.y && tip.x >= 0 && tip.x + tip.width <= width,
     );
