@@ -1,7 +1,7 @@
 # Battle growth: a new unit type costs only its own art
 
-**Status:** slices 00 and 06 are done. Slice 01 is next. Slice 10's first pass
-is written but must not merge as it is (see the warnings).
+**Status:** slices 00, 01 and 02 are done. Five slices are out with
+implementers (see the lanes below).
 **Updated:** 2026-11-15.
 
 This plan replaces the "shared GPU assets across generations" placeholder. That
@@ -13,8 +13,22 @@ player sees, and sharing GPU assets is one part of the fix.
 You are fixing the multi-second freeze that happens whenever a running battle
 first fields a unit type it had not shown. The admission work report exists,
 `battle-growth` prints it, and the [ledger](decisions.md) holds what it and
-the reference battle measured. Next: build
-[slice 01](slices/01-fielding-and-install.md).
+the reference battle measured. Five slices are out with implementers, each
+in its own checkout and thread:
+
+| Slice | Branch | State |
+| --- | --- | --- |
+| 03 | `t3/art-content-identity` (slice 02's checkout) | Building. |
+| 05a | `t3/cards-bake-together` | Confirms the cause first, then builds. |
+| 06 | `t3/battle-growth-scenery-grass-timing` | Timing scenery work at growth; builds only if it costs more than a frame. |
+| 07 | `t3/battle-growth-catalog-delta` | Fix round: it had not run in a browser, and the library and presentation can disagree about what content is held. |
+| 10 | `t3/battle-growth-stand-in-mechanics` | Second fix round: the mechanics are right in Rust; it has not been seen running. |
+
+When one returns: read its whole diff (changed tests first), rerun its checks
+yourself, merge it into this branch, then start what it unblocks (04 after
+03; 05 after 04 and 05a; 08 after 01, 05, 06 and 07; 11 after 10). Slices 03,
+05a and 07 all touch `crates/renderer-core`; whichever merges later merges
+this branch in first.
 
 Read, in this order: this file, the [decisions ledger](decisions.md), the slice
 you are about to build, the [renderer contract](../../crates/renderer-core/README.md)
@@ -33,27 +47,25 @@ Warnings:
   plan. Record it in the ledger; do not settle it silently.
 - Slices 06 and 09 are conditional on measurements. Follow the rule each one
   states.
-- The machine's disk runs nearly full, and each checkout's Rust build adds
-  8–22 GB. Check free space before a cold build; build one slice at a time and
-  reuse a warm checkout. A burst of unrelated failures after a build usually
-  means the build ran out of space.
-- Slice 10's first pass sits uncommitted on the branch
-  `t3/battle-growth-stand-in-mechanics`. It must not merge as it is: it
-  fields every type in the unit catalog, which in the real game would read the
-  whole catalog's art and never show a stand-in. The findings are in the
-  [ledger](decisions.md).
+- Each checkout's Rust build adds 3–22 GB. Check free space before a cold
+  build, and remove a checkout's build output when its branch has merged. A
+  burst of unrelated failures after a build usually means it ran out of space.
+- The scenes and GPU tests of every lane share one GPU lock, so a long probe
+  in one lane holds up the others' scenes. Start scenes in the background and
+  wait for the lock.
 - Two implementers so far deleted or shortened comments to fit the file-size
   ratchet. Reject that in review: move code out by concept instead.
 
 Checklist:
 
 - [x] [00 Proof and probes](slices/00-proof-and-probes.md)
-- [ ] [01 Fielding and install](slices/01-fielding-and-install.md)
-- [ ] [02 Content identity](slices/02-content-identity.md)
+- [x] [01 Fielding and install](slices/01-fielding-and-install.md)
+- [x] [02 Content identity](slices/02-content-identity.md)
 - [ ] [03 Geometry reuse](slices/03-geometry-reuse.md)
 - [ ] [04 Texture layers](slices/04-texture-layers.md)
+- [ ] [05a Cards bake together](slices/05a-cards-bake-together.md)
 - [ ] [05 Card reuse](slices/05-card-reuse.md)
-- [x] [06 Statics carry](slices/06-statics-carry.md)
+- [ ] [06 Statics carry](slices/06-statics-carry.md) (conditional)
 - [ ] [07 Catalog delta](slices/07-catalog-delta.md)
 - [ ] [08 Browser transport and the growth gate](slices/08-browser-transport-and-growth-gate.md)
 - [ ] [09 Preload](slices/09-preload.md)
@@ -122,6 +134,7 @@ The reference workload is the player's large battle in
 00 proof ─┬─ 01 fielding and install ────────────────────┐
           ├─ 02 identity ─┬─ 03 geometry ─ 04 textures ─ 05 cards ─┤
           │               └─ 07 catalog delta ─────────────────────┼─ 08 transport + gate ─ 09 preload
+          ├─ 05a cards bake together ─ (05) ──────────────────────┤
           ├─ 06 statics carry (conditional) ─────────────────────┘
           └─ 10 stand-in mechanics ─ 11 stand-in look
 ```
@@ -137,6 +150,7 @@ are an independent track.
 | 02 | Nothing visible; identity tests |
 | 03 | The largest part of the freeze is gone; geometry bytes at growth equal the new type's |
 | 04 | Texture work at growth equals the new type's; swap memory no higher |
+| 05a | The wait after staging drops from a minute to seconds |
 | 05 | The wait after staging shrinks to the new type's cards |
 | 06 | No scenery or grass work at growth |
 | 07 | Nothing visible; the seam accepts a delta |

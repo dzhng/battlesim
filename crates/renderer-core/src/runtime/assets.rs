@@ -1,84 +1,16 @@
 //! One complete replaceable asset generation, independent of the live frame.
+use super::statics::StaticIdentity;
 use super::*;
 use crate::grass::GrassData;
 use presentation::presentation::catalog::{CatalogDraft, CatalogView};
 use presentation::presentation::lab::ModelInput;
 use presentation::static_world::ground::grass::Quality;
 
-#[derive(Clone)]
-pub(super) struct StaticIdentity {
-    ground: usize,
-    revision: u32,
-    placed: bool,
-    scenery: Vec<(String, BundleIdentity)>,
-    grass: Vec<(String, BundleIdentity)>,
-    density: Option<u64>,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum BundleIdentity {
-    Content([u8; 32]),
-    Pointer(usize),
-}
-
-impl StaticIdentity {
-    pub(super) fn new<S: BundleSource>(
-        presentation: &Presentation,
-        library: &S,
-        density: Option<f64>,
-    ) -> Result<Self, String> {
-        let ground = presentation
-            .ground()
-            .ok_or("renderer world has no presentation ground")?;
-        let bundles = |names: Vec<String>| {
-            names
-                .into_iter()
-                .filter_map(|name| {
-                    let bundle = library.bundle(&name).ok()?;
-                    let identity = library.bundle_identity(&name).ok().flatten().map_or(
-                        BundleIdentity::Pointer(Arc::as_ptr(&bundle) as usize),
-                        BundleIdentity::Content,
-                    );
-                    Some((name, identity))
-                })
-                .collect::<Vec<_>>()
-        };
-        Ok(Self {
-            ground: ground as *const _ as usize,
-            revision: presentation.ground_revision(),
-            placed: presentation.scenery_is_placed(),
-            scenery: bundles(ground.scenery_kinds()),
-            grass: bundles(ground.grass_kinds()),
-            density: density.map(f64::to_bits),
-        })
-    }
-
-    fn same_bundles(a: &[(String, BundleIdentity)], b: &[(String, BundleIdentity)]) -> bool {
-        a.len() == b.len()
-            && a.iter()
-                .zip(b)
-                .all(|((an, ab), (bn, bb))| an == bn && ab == bb)
-    }
-
-    fn scenery_same(&self, other: &Self) -> bool {
-        self.ground == other.ground
-            && self.revision == other.revision
-            && self.placed == other.placed
-            && Self::same_bundles(&self.scenery, &other.scenery)
-    }
-
-    fn grass_same(&self, other: &Self) -> bool {
-        self.ground == other.ground
-            && self.revision == other.revision
-            && self.density == other.density
-            && Self::same_bundles(&self.grass, &other.grass)
-    }
-}
-
 struct Assets {
     models: Models,
     scenery: Scenery,
-    grass: Option<Grass>,
+    /// None retains the live owner; Some(None) replaces it with disabled grass.
+    grass: Option<Option<Grass>>,
 }
 
 /// Owns all resources needed by asynchronous card baking. No Runtime or
@@ -135,7 +67,8 @@ impl Runtime {
         let statics = StaticIdentity::new(presentation, library, self.config.grass_density)?;
         let scenery_changed = !self.statics_identity.scenery_same(&statics);
         let grass_changed = !self.statics_identity.grass_same(&statics);
-        if scenery_changed && self.statics_identity.placed {
+
+        if scenery_changed && self.statics_identity.placed() {
             let finest = crate::scenery::finest_meshes(
                 presentation.ground().ok_or("scenery requires ground")?,
                 library,
@@ -152,7 +85,7 @@ impl Runtime {
             self.scenery.reuse(view)?
         };
         let grass = if grass_changed {
-            grass(
+            Some(grass(
                 device,
                 queue,
                 &self.pipelines,
@@ -161,9 +94,9 @@ impl Runtime {
                 &self.ground.heights,
                 self.config.grass_density,
                 &mut work,
-            )?
+            )?)
         } else {
-            self.grass.clone()
+            None
         };
         Ok(PendingAssets {
             device: device.clone(),
@@ -202,7 +135,9 @@ impl Runtime {
         }
         self.models = pending.assets.models;
         self.scenery = pending.assets.scenery;
-        self.grass = pending.assets.grass;
+        if let Some(grass) = pending.assets.grass {
+            self.grass = grass;
+        }
         self.statics_identity = pending.statics;
         self.admission_work = pending.work;
         self.apply_asset_controls(queue, self.config.controls);

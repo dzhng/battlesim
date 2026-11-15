@@ -10,6 +10,7 @@ mod effects;
 #[path = "support/readback.rs"]
 mod readback;
 mod support;
+use contract::identity::ContentId;
 use renderer_core::runtime::AdmissionWork;
 
 use presentation::records::{
@@ -37,6 +38,10 @@ const BLACK: [u8; 4] = [0, 0, 0, 255];
 struct Sliver([[u8; 4]; 3]);
 
 impl BundleSource for Sliver {
+    fn content_id(&self, _: &str) -> Result<ContentId, String> {
+        ContentId::bundle(contract::identity::bytes_hash(&self.0.concat()))
+    }
+
     fn bundle(&self, _: &str) -> Result<Arc<Bundle>, String> {
         Ok(Arc::new(Bundle {
             shape: Shape::Static(vec![Node {

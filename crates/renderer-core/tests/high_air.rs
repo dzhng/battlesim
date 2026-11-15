@@ -5,6 +5,7 @@
 mod effects;
 mod support;
 
+use contract::identity::ContentId;
 use presentation::records::{
     Appearance, Batch, Camera, Instance as ModelInstance, Joint, View, FOG_UNITS, HIGH_PASS, NONE,
     VIEW_PASS,
@@ -29,6 +30,12 @@ const IDENTITY: [f32; 16] = [
 ];
 struct Source;
 impl BundleSource for Source {
+    fn content_id(&self, _: &str) -> Result<ContentId, String> {
+        ContentId::bundle(contract::identity::bytes_hash(
+            b"synthetic high-air triangle",
+        ))
+    }
+
     fn bundle(&self, _: &str) -> Result<Arc<Bundle>, String> {
         Ok(Arc::new(Bundle {
             shape: Shape::Static(vec![Node {

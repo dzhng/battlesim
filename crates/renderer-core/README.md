@@ -18,10 +18,14 @@ populations before reusing held buffers; shells need no skipped-frame protocol.
 Appearance rows route instances rather than own copies of their meshes. Rows
 that select the same authored state/pose share immutable GPU tiers within one
 asset generation; corpse poses remain distinct.
-Decoded bundles also share immutable texture payloads by content identity.
-The library's weak texture index cannot retain retired art. A new source draft
-shares that index without copying canonical bundle ownership, so a late draft
-cannot restore unrelated stale sources. Initial buffer data is queued through
+Decoded bundles are keyed by the runtime catalog's `ContentId`: the bundle hash
+and, for skinned art, its skeleton hash. Names only route to that identity, so
+one name can replace its art and two names can share one decode. The library's
+weak texture index cannot retain retired art. A new source draft shares that
+index without copying canonical bundle ownership, so a late draft cannot restore
+unrelated stale sources. Its pending decode count is drained when an admission
+takes it, so a device rebuild reports only decodes that admission performed.
+Initial buffer data is queued through
 the common upload owner, avoiding mapped-at-creation transfer copies in browsers.
 Scenery also shares authored tier admission and held-batch routing. Initial
 placement and atomic art replacement derive geometry from decoded Rust bundles;
@@ -43,6 +47,13 @@ runtime/catalog identity, transfers current placement knowledge, reapplies
 current controls, and requires a fresh
 canonical frame before drawing the new rows. Targets, compiled pipelines, sky,
 fog and learned ground retain their active owners throughout loading.
+
+Static admission compares the presentation's ground revision, ordered kind
+routes through `BundleSource::content_id`, and grass density. Unchanged static
+content performs no placement or scenery/grass upload. Scenery tiers keep their
+shared GPU buffers while row routing follows the prospective catalog; unchanged
+grass keeps its live owner so frames prepared during admission cannot lose its
+latest regrowth state.
 
 Sky and environment lighting share one owner too. The sky lookup and its
 reflection prefilter are baked from the presentation's light records at

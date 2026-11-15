@@ -55,15 +55,50 @@ Each is confirmed by the slice named, which then moves it to the section below.
 
 | Fact | Slice |
 | --- | --- |
-| The art library installs twice per new type (`withUnits` then `withAppearances` in `gameAppearances.ts`) | 01 |
 | The download prefetch is idle on a battle opened by link because only the menu enables it | 09 |
-| Catalog admission and fielding derive the same facts from a bundle | 01 |
 | A hull's size reaches presentation only for fielded types; the unit catalog has it for every type | 10 |
 | An unfielded vehicle has a pick of no size today, so it cannot be clicked; an unfielded squad's soldiers can | 10 |
 | An undrawn enemy still gets a HUD readout, because readouts follow picks | 10 |
 | The archived WASM exhaustion predates texture sharing | closeout |
 
 ## Confirmed during implementation
+
+**Slice 01, 2026-11-15.** What was confirmed:
+
+- **Every fielding read everything again.** `useBattleFielding` made a fresh
+  Rust `Fielding` for every request, and each one inflated all of the battle's
+  contents (136 files, 635 MB in `battle-growth`). A growth widens the kinds by
+  the type just met, so that happened at every growth. It was the stall before
+  each freeze.
+- **After the slice, measured in `battle-growth` on the merged tree:** the
+  growth reads 2 files (8 MB), the new squad's bundle and its skeleton, and
+  installs one art generation. The first scene reads 136 and installs two (the
+  units, then the map's kits).
+- **The battle is staged twice before one commit** in that scene, as in the
+  reference probe's first growth. Whether those are two types met moments
+  apart or one request made twice is not settled; slice 08's gate (one
+  admission per growth) owns it.
+- **The doubled install** came from `useMapAppearances`, which asks the
+  library twice (once for the units, once when the map knows its kits). The
+  two requests raced, and each installed a generation.
+- **Catalog admission and fielding derive different facts** from a bundle:
+  admission (`Asset::from_bundle`) derives bounds, poses and static states;
+  fielding derives a unit's joints, rig and clip table and a wreck's pieces.
+  Neither replaces the other, so by the slice's rule the facts stay with
+  fielding.
+
+Decisions made where slice 01 was silent:
+
+| Decision | Why, and what was rejected |
+| --- | --- |
+| Fielding keeps `Facts`: per appearance, the record and clip table it derives, keyed by bundle hash and skeleton hash; per wreck, its pieces' bounds, keyed by bundle hash. The bytes are dropped when `resolve` returns | Rejected: caching the inflated bytes in Rust (the first pass did; it is the byte cache the plan rejected, inside the 4 GB heap) |
+| The WASM `Fielding` object owns the facts, and a `FieldingOwner` in the page owns that object for one battle and frees it | Rejected: a module-level map of fieldings keyed by the serialized inputs, which leaked them and serialized megabytes per call |
+| An owner asked to field the same inputs again returns its last result without calling Rust | An art install changes the request object but none of fielding's inputs |
+| A change to the rules, either catalog or the factions makes a new Rust fielding | They are fixed when it is made; only the kinds can change under it |
+| A new skinned body reads its skeleton again even when another body already used it | Keeping the parsed skeleton would hold its clips twice; it is one file, and only when kinds widen |
+| `contents()` names a skeleton only for a body that wears it | It named every skeleton in the catalog before |
+| Unit widenings and on-request appearances that arrive together are one install | Rejected: serializing them, which still installs once each |
+| `scene installed` takes the page's counts, so the first `art committed` reports its own admission only | The counts were cumulative from page load |
 
 **Slice 00, 2026-11-14.** One growth in `battle-growth` at the scene's own
 graphics profile, from the new report:
@@ -93,7 +128,7 @@ Decisions made where slice 00 was silent:
 | A shell hands in work it did before staging (decoding its draft, the first scenery placement) as the starting report of `Runtime::new` and `stage_assets` | Decoding happens in the library before the runtime sees the art, and the count belongs where the work is |
 | The page's counts are those since the previous `art committed` | The event must say what this admission cost |
 | The scene reads the event's detail from the console call's argument | It needs no test hook in the page, and `LabViewport.tsx` is over its size budget |
-| The first scene publishes no `art committed` event | Nothing gates on it; the Rust test covers a first admission |
+| The first scene publishes no `art committed` event | `scene installed` carries the baseline page work; art commits report only later admissions |
 | The swap test compares the live report and the world's appearance names, not pixels | It proves a dropped, stale or failed candidate changes nothing live without a frame readback; pixel equality starts with slice 03 |
 
 **Slice 00's probe, 2026-11-14.** The reference battle at high graphics in the
@@ -125,8 +160,8 @@ scene harness, five growths, run with
 - The player's own freezes were longer (2.9–9.9 s) on a larger window with the
   battle running in real time.
 
-**Slice 06 timing and implementation, 2026-11-15.** Temporary `performance.now`
-equivalents in the browser WASM admission timed the exact main-thread regions
+**Slice 06 initial measurement, 2026-11-15.** Temporary `js_sys::Date::now()`
+timers (1 ms resolution) in the browser WASM admission timed the exact main-thread regions
 in `Runtime::stage_assets`: `finest_meshes` plus `stage_scenery` (placement),
 `Scenery::new` (scenery build), and `grass` (grass build). The timer and the
 probe scene/fixture were removed after the runs.
@@ -143,17 +178,51 @@ probe scene/fixture were removed after the runs.
 
 The reference run took 401 s and reached five staged admissions; the small
 scene passed in 29 s. Every total is clearly above one 16 ms frame, so Slice 06
-was built. Unchanged ground/static content now carries placement, scenery GPU
-buffers and grass GPU owners into the next generation; rows are rebound by
-appearance name. Content identity is the runtime catalog's SHA-256 over bundle
-and texture bytes, with pointer identity only for synthetic sources that do not
-provide a catalog hash. Rejected alternatives were rerunning placement/builds
-on every admission (the measured freeze) and name-only identity (tooling can
-replace art under one name).
+was built. Review rejected the first implementation's duplicate byte hashing,
+address-based reuse keys and deep-cloned placement. Its initial tests did not
+cover the final identity refinement or compare with a clean final-catalog build;
+the corrective pass below supersedes those implementation claims.
 
-The three synthetic contracts passed: adding a unit appearance preserves every
-placement, unchanged static admission uploads zero static bytes and is
-pixel-equal after commit, and changed scenery content places and uploads again.
+**Slice 06 corrective pass, 2026-11-15.** Merged slices 01 and 02 at
+`3456f63e6`. Static reuse reads the canonical `ContentId` through the required
+`BundleSource::content_id` seam in every source. No admission hashes transported
+bytes or uses an allocation address as identity. Ground identity is its revision:
+`set_ground` and `ground_mut` bump it; catalog commits do not.
+
+A draft shares immutable scenery placement through `Arc<Scenery>` and resolves
+its appearance rows again. It does not clone map placement, sizes, trunks or
+lookup indexes. On an unchanged commit the live walk retains its indexes,
+selection lists, dressing cache, cleared-ground and falling-tree knowledge;
+changed art builds a prospective walk and adopts current knowledge at commit.
+Unchanged grass retains the live GPU owner, including regrowth state that may
+have advanced while asynchronous cards baked.
+
+The same high-graphics reference probe completed in 366 s, with five admissions
+and four committed growths (the first admission is superseded). Temporary
+`js_sys::Date::now()` timers wrapped the original three regions plus shared
+placement carry and row resolution in the presentation draft. All values below
+are milliseconds; 0 means below the timer's 1 ms resolution, or a skipped region,
+not an assertion of literally zero elapsed time. The before column repeats the
+initial measurement above, in admission order.
+
+| Growth admission | Before placement / scenery / grass / total | After carry | After placement | After scenery | After grass | After total |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| 1, superseded | 115 / 6 / 3 / 124 | 0 | 0 | 1 | 0 | 1 |
+| 1, committed | 104 / 6 / 1 / 111 | 0 | 0 | 1 | 0 | 1 |
+| 2 | 94 / 5 / 1 / 100 | 0 | 0 | 0 | 0 | 0 |
+| 3 | 91 / 5 / 2 / 98 | 0 | 0 | 0 | 0 | 0 |
+| 4 | 120 / 6 / 2 / 128 | 0 | 0 | 1 | 0 | 1 |
+
+All four reference commits reported `sceneryPlacements: 0` and
+`staticsBytesUploaded: 0`. Carry is below a millisecond on this map. The timers,
+probe copy and temporary registry entry were removed after measurement.
+
+On the timer-free final tree, `catalog` and `catalog_statics` passed (five tests
+each), as did `asset_generations` (six tests), `grass` and `grass_assets` (one
+each). The unchanged-admission test decodes a fresh source generation with the
+same `ContentId`s and compares its committed pixels to a second runtime built
+from scratch with the final catalog. Changed scenery content still places and
+uploads again. No assertions were weakened.
 
 Known imprecision: the library's decode count is cumulative, so a runtime
 rebuilt after a lost GPU device reports decodes it did not redo. Slice 02
@@ -182,3 +251,89 @@ Review findings to fix before it merges:
 6. Hull sizes have two owners after it (the effects section and the new
    table), and the new table defaults silently when missing.
 7. Its "art arrives" test starts with the art already present.
+
+**Slice 02, 2026-11-15.**
+
+- `ContentId` reuses the shared contract crate's identity owner. It is a typed
+  `{ bundle, skeleton? }` pair of canonical SHA256 strings, with the skeleton
+  hash present for skinned art because clips change the model. A renderer-local
+  identity type was rejected because it would duplicate validation beside the
+  contract crate's exact content-hash vocabulary.
+- `Library` owns two indexes: names route to `ContentId`, and each identity
+  owns one decoded bundle. A replacement name therefore keeps old content only
+  while another name routes to it; a second name with the same identity does
+  not decode. Keeping the old name-keyed map beside the identity map was
+  rejected because it would leave reuse decisions keyed by names.
+- The decode counter is pending work owned by `Library` and drained by its
+  mutable `take_admission_work` read. The alternative cumulative lifetime counter was
+  rejected: rebuilding a runtime after device loss would report decodes that
+  the rebuild did not perform. This keeps `bundles_decoded` scoped to the
+  admission that consumes the source draft.
+- `Library` keeps a route count per content identity, so rerouting a name drops
+  an unshared decoded bundle immediately. Rescanning all names after every
+  insert was rejected; the count also proves that a second name keeps shared
+  content alive.
+- Tooling constructors with no catalog identity hash their bytes at the point
+  they make the bundle; catalog paths pass the catalog identity directly.
+  Falling back to an appearance name was rejected because names route and do
+  not identify content. Generated page bundles use the contract crate's
+  exported WASM `bytes_hash`, cached once per bundle object in the web renderer;
+  a second JavaScript digest implementation was rejected as a duplicate owner.
+- `ContentId` is private-field and serde-validated through its raw wire shape,
+  so browser call sites cannot deserialize an invalid hash and then patch it by
+  hand. Duplicating that validation in both browser asset entrypoints was
+  rejected.
+- The native client takes its identity through `Runtime::content_id` when slice
+  03 gives `BundleSource` its first identity consumer. Caching decoded bundles
+  in the native client was rejected because it holds decoded art the client did
+  not hold before.
+- Confirmed from the implementation: the scene-assets runtime catalog already
+  carries bundle and skeleton content hashes, while `InstalledAppearance` and
+  `ModelAsset` previously dropped them before the Rust seam. Both now carry the
+  same pair through `add_bundle` and `load_bundle`.
+
+**Reslice, 2026-11-15.** "New cards bake together" left slice 05 and became
+[slice 05a](slices/05a-cards-bake-together.md), depending only on slice 00.
+It needs none of the reuse chain (identity, geometry, textures), it removes
+the minute between staging and commit on its own, and it can be built while
+that chain is. The alternative, leaving it inside 05, kept the longest wait
+the player sees behind three other slices. Its batches are bounded by bytes
+because one runtime card is about 3 MB across its targets and a full rebuild
+bakes about 190 of them.
+
+**Correction to slice 00's small-skirmish numbers, 2026-11-15.** The page's
+counts on the first `art committed` cover everything since the page loaded:
+the first scene publishes no event, so nothing reset them. The 272 contents
+and 2 installs reported for "one growth" in `battle-growth` therefore include
+the first scene's own. The reference probe's later growths, whose counts were
+reset by the commit before them, still show two installs per growth, so the
+doubled install is real. Slice 01 gives the first scene a baseline.
+
+**Slice 02, verified on the merged tree, 2026-11-15.** `battle-growth` at
+growth: 203 bundles sent, 194 decoded. The nine not decoded are names that
+share content with another name. Everything else is decoded again because
+each admission's draft starts with no decoded bundles; slice 07 changes that.
+The scene also shows the battle staged twice before one commit, as the
+reference probe did.
+
+**Slice 01 in the reference battle, 2026-11-15.** The probe again, on the
+merged tree, at high graphics:
+
+| Growth | Staging to commit | Files fielding read | Installs | Cards baked |
+| --- | ---: | ---: | ---: | ---: |
+| 1 (staged twice, 4 s apart) | 109 s | 2 (8 MB) | 1 | 189 |
+| 2 | 65 s | 2 (5 MB) | 1 | 189 |
+| 3 | 69 s | 4 (12 MB) | 1 | 207 |
+| 4 | 70 s | 2 (4 MB) | 1 | 207 |
+
+- Before the slice each growth read all 136 files (635 MB) and installed
+  twice. The first scene still reads 136 and installs two generations.
+- The freeze at staging is unchanged, 2.6–3.6 s, as expected: it is the
+  geometry, texture and transport work of slices 03, 04, 07 and 08.
+- **The doubled staging is two stagings of the same art.** Growth 1 staged
+  twice four seconds apart, both times with 145 appearances, and the first
+  build was thrown away after its bake. The kinds list changes only when its
+  content does, so the second staging is most likely a kind that brings no
+  new appearance (a contact's kind, a wreck's owner). That is not confirmed.
+  Slice 08 owns it: a staging that wants the same art as the build in flight
+  should not discard that build.

@@ -28,15 +28,10 @@ import type { WorldExports, WorldLayout } from "@packages/battle-renderer/src/wo
 import { prop_appearances } from "@wasm/renderer_browser";
 import { diagnosticsSource } from "@web/diagnostics";
 import { appResources } from "./appResources";
-import type { RuntimeFiles } from "@web/battle/sim/fielding";
 
 const library = new AppearanceLibrary(countedFetch);
-/** The runtime files the page's appearances were loaded from: what Rust
- *  resolves a battle's units and effects from (`fieldedBattle`). */
-export const gameRuntime: RuntimeFiles = library;
-export function gameAdmissionWork() {
-  return library.takeAdmissionWork();
-}
+/** The appearance library is also the runtime source fielding reads. */
+export const gameRuntime = library;
 let loading: Promise<InstalledAppearances> | null = null;
 let loadingFactions: string | null | undefined;
 let loadingScenery: string | null | undefined;
@@ -161,8 +156,7 @@ export function gameAppearances(
   loadingScenery = sceneryKey;
   loading ??= library.load("/", wearing, factions, scenery);
   return loading
-    .then(() => library.withUnits(wearing))
-    .then(() => library.withAppearances(asked))
+    .then(() => library.withUnits(wearing, asked))
     .then((next) => {
       if (prefetchAllowed) scheduleRuntimePrefetch("/");
       return next;

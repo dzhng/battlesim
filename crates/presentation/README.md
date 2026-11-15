@@ -58,7 +58,10 @@ calls the same reader for workbench drafts.
   number over: the renderer holds a batch as the static world's by its row's
   placed flag alone. Prop fitting, building
   extents and scenery trunks/stumps follow the new authored art while current
-  learned, fallen and held movement state survives. Matching GPU assets and the latest
+  learned, fallen and held movement state survives. Scenery placement is
+  immutable and shared with catalog drafts. An unchanged admission rebinds the
+  live walk's appearance rows while retaining its indexes, dressing cache and
+  current observer knowledge; changed scenery art builds new placement. Matching GPU assets and the latest
   model requests commit together; stale or failed work preserves the active
   generation. Battle replacements preserve the pose vocabulary used by retained
   history. The loaded battle fielded again with a kind it newly fields is

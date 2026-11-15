@@ -1,9 +1,9 @@
 //! Authored appearance bundles decoded from transported runtime bytes.
 //! Filesystem and network fetching belong to the platform shells.
+use contract::identity::{bytes_hash, ContentId};
 use presentation::assets::{Container, View, BUNDLE};
 use serde::Deserialize;
 use serde_json::Value;
-use sha2::Digest;
 use std::collections::{BTreeMap, HashSet};
 use std::sync::{Arc, Weak};
 
@@ -12,19 +12,18 @@ type Result<T> = std::result::Result<T, String>;
 /// Source of decoded bundles for appearance admission.
 pub trait BundleSource {
     fn bundle(&self, name: &str) -> Result<Arc<Bundle>>;
-
-    fn bundle_identity(&self, _name: &str) -> Result<Option<[u8; 32]>> {
-        Ok(None)
-    }
+    /// The canonical content this name routes to, independent of decoded allocation.
+    fn content_id(&self, name: &str) -> Result<ContentId>;
 }
 
 /// Fetched bundles retained by a platform shell across renderer rebuilds.
 #[derive(Clone, Default)]
 pub struct Library {
-    bundles: BTreeMap<String, Arc<Bundle>>,
-    identities: BTreeMap<String, [u8; 32]>,
+    names: BTreeMap<String, ContentId>,
+    bundles: BTreeMap<ContentId, Arc<Bundle>>,
+    routes: BTreeMap<ContentId, u32>,
     textures: BTreeMap<String, Weak<Texture>>,
-    decoded_bundles: u32,
+    pending_decodes: u32,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]
@@ -249,10 +248,11 @@ impl Library {
     /// bundle replacements over a catalog committed while the draft is filled.
     pub fn empty_generation(&self) -> Self {
         Self {
+            names: BTreeMap::new(),
             bundles: BTreeMap::new(),
-            identities: BTreeMap::new(),
+            routes: BTreeMap::new(),
             textures: self.textures.clone(),
-            decoded_bundles: 0,
+            pending_decodes: 0,
         }
     }
 
@@ -260,68 +260,111 @@ impl Library {
     /// is staged and while admission reads them.
     pub fn replace_with(&mut self, replacements: Self) {
         self.bundles.extend(replacements.bundles);
-        self.identities.extend(replacements.identities);
         self.textures.extend(replacements.textures);
-        self.decoded_bundles += replacements.decoded_bundles;
+        self.pending_decodes += replacements.pending_decodes;
+        for (name, content) in replacements.names {
+            self.route(name, content);
+        }
     }
 
     pub fn retain(&mut self, mut keep: impl FnMut(&str) -> bool) {
-        self.bundles.retain(|name, _| keep(name));
-        self.identities.retain(|name, _| keep(name));
+        let removed: Vec<_> = self
+            .names
+            .keys()
+            .filter(|name| !keep(name))
+            .cloned()
+            .collect();
+        for name in removed {
+            self.unroute(&name);
+        }
         self.textures
             .retain(|_, texture| texture.strong_count() > 0);
     }
 
+    /// Build a tooling library from bytes that have no catalog identity. The
+    /// bundle and texture payloads are hashed at this boundary once; catalog callers use
+    /// `insert_bundle` with their supplied identity.
     pub fn from_bundle(name: &str, bytes: &[u8], textures: &[(&str, &[u8])]) -> Result<Self> {
         let mut library = Self::default();
-        library.insert_bundle(name, bytes, textures)?;
+        let mut identity = bytes.to_vec();
+        for &(id, payload) in textures {
+            identity.extend((id.len() as u64).to_le_bytes());
+            identity.extend(id.as_bytes());
+            identity.extend((payload.len() as u64).to_le_bytes());
+            identity.extend(payload);
+        }
+        let content = ContentId::bundle(bytes_hash(&identity))?;
+        library.insert_bundle(name, content, bytes, textures)?;
         Ok(library)
     }
 
     pub fn insert_bundle(
         &mut self,
         name: &str,
+        content: ContentId,
         bytes: &[u8],
         textures: &[(&str, &[u8])],
     ) -> Result<()> {
-        let cache = &mut self.textures;
-        let bundle = decode_with(name, bytes, textures, |id, bytes| {
-            if let Some(texture) = cache.get(id).and_then(Weak::upgrade) {
-                return Ok(texture);
-            }
-            let texture = Arc::new(texture_bytes(id, bytes)?);
-            cache.insert(id.to_owned(), Arc::downgrade(&texture));
-            Ok(texture)
-        })?;
-        self.decoded_bundles += 1;
-        let mut hash = sha2::Sha256::new();
-        hash.update(bytes);
-        for (id, bytes) in textures {
-            hash.update(id.as_bytes());
-            hash.update(bytes);
+        if !self.bundles.contains_key(&content) {
+            let cache = &mut self.textures;
+            let bundle = decode_with(name, bytes, textures, |id, bytes| {
+                if let Some(texture) = cache.get(id).and_then(Weak::upgrade) {
+                    return Ok(texture);
+                }
+                let texture = Arc::new(texture_bytes(id, bytes)?);
+                cache.insert(id.to_owned(), Arc::downgrade(&texture));
+                Ok(texture)
+            })?;
+            self.bundles.insert(content.clone(), Arc::new(bundle));
+            self.pending_decodes = self.pending_decodes.saturating_add(1);
         }
-        self.identities
-            .insert(name.to_owned(), hash.finalize().into());
-        self.bundles.insert(name.to_owned(), Arc::new(bundle));
+        self.route(name.to_owned(), content);
         Ok(())
     }
 
-    pub fn admission_work(&self) -> crate::runtime::AdmissionWork {
+    pub fn take_admission_work(&mut self) -> crate::runtime::AdmissionWork {
+        let bundles_decoded = std::mem::take(&mut self.pending_decodes);
         crate::runtime::AdmissionWork {
-            bundles_decoded: self.decoded_bundles,
+            bundles_decoded,
             ..Default::default()
         }
     }
 
     pub fn bundle(&self, name: &str) -> Result<Arc<Bundle>> {
-        self.bundles
+        let content = self
+            .names
             .get(name)
+            .ok_or_else(|| format!("bundle not loaded: {name}"))?;
+        self.bundles
+            .get(content)
             .cloned()
             .ok_or_else(|| format!("bundle not loaded: {name}"))
     }
 
-    pub fn bundle_identity(&self, name: &str) -> Result<Option<[u8; 32]>> {
-        Ok(self.identities.get(name).copied())
+    fn route(&mut self, name: String, content: ContentId) {
+        if self.names.get(&name) == Some(&content) {
+            return;
+        }
+        if self.names.contains_key(&name) {
+            self.unroute(&name);
+        }
+        self.names.insert(name, content.clone());
+        *self.routes.entry(content).or_default() += 1;
+    }
+
+    fn unroute(&mut self, name: &str) {
+        let Some(content) = self.names.remove(name) else {
+            return;
+        };
+        let routes = self
+            .routes
+            .get_mut(&content)
+            .expect("every name route has a content count");
+        *routes -= 1;
+        if *routes == 0 {
+            self.routes.remove(&content);
+            self.bundles.remove(&content);
+        }
     }
 }
 
@@ -330,8 +373,11 @@ impl BundleSource for Library {
         self.bundle(name)
     }
 
-    fn bundle_identity(&self, name: &str) -> Result<Option<[u8; 32]>> {
-        self.bundle_identity(name)
+    fn content_id(&self, name: &str) -> Result<ContentId> {
+        self.names
+            .get(name)
+            .cloned()
+            .ok_or_else(|| format!("bundle not loaded: {name}"))
     }
 }
 

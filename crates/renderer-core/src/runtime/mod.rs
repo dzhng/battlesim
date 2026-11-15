@@ -1,6 +1,7 @@
 //! Resource composition and canonical presentation preparation shared by all shells.
 mod assets;
 mod controls;
+mod statics;
 mod stats;
 mod work;
 pub use assets::{PendingAssets, ReadyAssets};
@@ -99,7 +100,7 @@ pub struct Runtime {
     pub paint: Option<PaintResources>,
     pub high_air: Option<crate::high_air::HighAir>,
     config: RuntimeConfig,
-    statics_identity: assets::StaticIdentity,
+    statics_identity: statics::StaticIdentity,
     geometry: Arc<WorldGeometry>,
     overlay_glow: crate::records::OverlayGlow,
     generation: u32,
@@ -150,7 +151,7 @@ impl Runtime {
             .ground()
             .ok_or("renderer world has no presentation ground")?;
         let statics_identity =
-            assets::StaticIdentity::new(presentation, world.assets, config.grass_density)?;
+            statics::StaticIdentity::new(presentation, world.assets, config.grass_density)?;
         let tables = resolved.terrain_tables(resolved.terrain_field()?);
         let plots = resolved.plot_records(true);
         let ground = Ground::from_data(

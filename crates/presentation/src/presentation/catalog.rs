@@ -263,10 +263,8 @@ impl<'a> CatalogView<'a> {
         rig.track_side(node)
     }
     pub fn stump_mesh(&self, row: u32) -> Option<&'a [f32]> {
-        if let Some(draft) = self.draft {
-            if let Some(mesh) = draft.statics.stump_mesh(row) {
-                return Some(mesh);
-            }
+        if let Some(draft) = self.draft.filter(|draft| draft.statics.scenery.is_some()) {
+            return draft.statics.stump_mesh(row);
         }
         self.presentation.stump_mesh(self.active_row(row)?)
     }
@@ -303,14 +301,6 @@ pub(super) fn asset_rest_palette(asset: &Asset, lies: u32) -> Option<Vec<Joint>>
 }
 
 impl Presentation {
-    pub fn ground(&self) -> Option<&Ground> {
-        self.ground.as_ref()
-    }
-
-    pub fn ground_revision(&self) -> u32 {
-        self.catalog_state.ground_revision()
-    }
-
     /// Canonical battle/static rows precede the replaceable tooling suffix.
     pub fn canonical_appearance_rows(&self) -> usize {
         self.lab

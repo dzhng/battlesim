@@ -31,6 +31,7 @@ use crate::static_world::index::BoundsIndex;
 use crate::static_world::walk::Record;
 use crate::view::{caster_tier, View, TIERS};
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 
 mod felled;
 use felled::FelledSpatial;
@@ -454,7 +455,7 @@ impl Default for Quality {
 }
 
 pub struct SceneryWalk {
-    pub scenery: Scenery,
+    pub scenery: Arc<Scenery>,
     sizes: Vec<Size>,
     trunks: Vec<Trunk>,
     /// Per placed forest tree: its trunk's prop id.
@@ -491,6 +492,7 @@ pub struct SceneryWalk {
 impl SceneryWalk {
     /// The walk of `scenery`, its kinds `sizes` big with `trunks`.
     pub fn new(scenery: Scenery, sizes: Vec<Size>, trunks: Vec<Trunk>) -> SceneryWalk {
+        let scenery = Arc::new(scenery);
         let kinds = scenery.kinds.len();
         let backdrop = Pop::new(&scenery.backdrop, &sizes, kinds, false, 0);
         let m = DRESSING_CELL_M;
@@ -549,21 +551,6 @@ impl SceneryWalk {
             sizes,
             trunks,
         }
-    }
-
-    /// Carry placement into a catalog draft without running the ground-wide
-    /// placement rules again. The draft receives fresh lookup indexes and
-    /// empty learned state; commit adopts the active observer's knowledge.
-    pub fn carry_placement(&self) -> SceneryWalk {
-        let mut carried = Self::new(
-            self.scenery.clone(),
-            self.sizes.clone(),
-            self.trunks.clone(),
-        );
-        carried.set_quality(self.quality);
-        carried.rows = self.rows.clone();
-        carried.stump_meshes = self.stump_meshes.clone();
-        carried
     }
 
     /// Preserve only current observation state; placement and geometric bounds

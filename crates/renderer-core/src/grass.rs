@@ -57,7 +57,6 @@ pub struct GrassData<'a> {
     pub capacity: [u32; 2],
 }
 
-#[derive(Clone)]
 pub struct Grass {
     count: BoundCompute,
     build: BoundCompute,

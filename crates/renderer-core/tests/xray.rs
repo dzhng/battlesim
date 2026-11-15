@@ -1,6 +1,7 @@
 //! GPU occlusion regression over actual authored-model packing and exported
 //! x-ray shaders. Run under the repository GPU lock.
 mod support;
+use contract::identity::ContentId;
 use renderer_core::runtime::AdmissionWork;
 
 use presentation::records::{
@@ -39,6 +40,10 @@ fn mesh(positions: Vec<f32>, indices: Vec<u32>) -> Mesh {
 }
 
 impl BundleSource for Source {
+    fn content_id(&self, name: &str) -> Result<ContentId, String> {
+        ContentId::bundle(contract::identity::bytes_hash(name.as_bytes()))
+    }
+
     fn bundle(&self, name: &str) -> Result<Arc<Bundle>, String> {
         let mesh = match name {
             "test_xray_unit" => mesh(

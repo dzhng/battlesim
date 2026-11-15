@@ -215,6 +215,7 @@ impl Scenery {
             let stump = if a.draws == Draws::Stump as u32 {
                 // Only a tree leaves a stump; a shrub's stump row draws nothing.
                 let Some(mesh) = stump_mesh(r as u32) else {
+                    names.push(None);
                     rows.push(None);
                     continue;
                 };
@@ -292,6 +293,13 @@ impl Scenery {
                 })
                 .and_then(Option::as_ref);
             let Some(old) = old else {
+                if appearance.draws == Draws::Stump as u32
+                    && catalog.stump_mesh(rows.len() as u32).is_none()
+                {
+                    rows.push(None);
+                    names.push(None);
+                    continue;
+                }
                 return Err(format!("scenery row {name} was not admitted"));
             };
             if appearance.draws == Draws::Stump as u32 && old.stump.is_none() {
