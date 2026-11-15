@@ -29,6 +29,7 @@ pub struct Objectives {
     capture_s: u64,
     majority_s: u64,
     victory_score: f64,
+    all_objectives_victory: bool,
     sites: Vec<Objective>,
     flag_ticks: [u64; 2],
     final_fraction: Option<FinalFraction>,
@@ -41,6 +42,7 @@ impl Objectives {
             capture_s: u64::from(rules.capture_s),
             majority_s: u64::from(rules.majority_s),
             victory_score: rules.victory_score,
+            all_objectives_victory: rules.all_objectives_victory,
             sites: (0..count).map(|_| Objective::default()).collect(),
             flag_ticks: [0; 2],
             final_fraction: None,
@@ -157,10 +159,11 @@ impl Objectives {
             }
         }
         for side in Side::COMBATANTS {
-            if self
-                .sites
-                .iter()
-                .all(|s| s.owner == Some(side) && !s.contested)
+            if self.all_objectives_victory
+                && self
+                    .sites
+                    .iter()
+                    .all(|s| s.owner == Some(side) && !s.contested)
             {
                 self.result = Some(MatchResult::Winner { side });
             }

@@ -32,7 +32,7 @@ export interface PreparationModule extends MapGenerator, LanesModule {
  *  admitted on it and the battle then takes it. */
 export interface PreparedWorld {
   admit_skirmish(sites: string, players: string): string;
-  skirmish_scenario(sites: string, players: string): string;
+  skirmish_scenario(sites: string, players: string, ruleSet: string): string;
   extents(): string;
   into_battle(scenario: string, seed: number): SimBattle;
   into_replay(scenario: string, replay: string): SimBattle;
@@ -202,7 +202,11 @@ export async function prepare(
           },
         ]);
       laid = {
-        fields: world.skirmish_scenario(map.sites, JSON.stringify(checked.players)),
+        fields: world.skirmish_scenario(
+          map.sites,
+          JSON.stringify(checked.players),
+          checked.rules ?? "skirmish",
+        ),
       };
       start = { at: base.center, yaw: base.yaw };
     }

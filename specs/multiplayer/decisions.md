@@ -241,6 +241,8 @@ Append here: the slice, the decision, why, and what it replaced.
 | 15 | One presence module counts all of a browser's streams (rooms, list, battle) and is the only code that times a disconnect. | The room service and the battle each timing their own. |
 | 15 | A client's address for the guess throttle is the socket's unless the deploy files name a trusted header. | Reading a forwarded-for header by default, which any client can forge. |
 | 15 | A new room's map seed is supplied by the service, so each room opens on its own map. | Every room opening on the lobby preset's one map. |
+| 21 | Frontline's length is 3,780 seconds of holding a majority, shown as 2,100 points: what the leading side of a 5v5 of AIs reaches in an hour on a mixed XL map, averaged over three seeds (1, 2 and 5). The user's dial. | Reading it off slice 01's two-hour run, which has no scores: its rules let no objective be captured. |
+| 21 | A battle request names a rule document only when it overrides the skirmish rules. | Two spellings of skirmish (absent, and the word), which made a room's request differ from an offline lobby's for the same battle. |
 | 20 | An AI handed a 30-unit army copes: every unit is ordered within one planner round and it fights better than an army nobody commands. Rooms may rely on a seat's AI. | Assuming it without a fight: the first tests had no enemy on the field. |
 | 20 | An AI handed 150 units gets only 30 orders through per planner round, because it gives them in one burst. Open, for the user before slice 22: spread the AI's orders (recommended) or cap what a seat may receive. | Counting issued orders as applied: the battle logs an order before it checks the rate limit. |
 

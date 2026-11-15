@@ -34,6 +34,8 @@ fn main() {
         "crates/game-wasm",
         "crates/mapgen/Cargo.toml",
         "crates/sim/Cargo.toml",
+        "fixtures/skirmish.json",
+        "fixtures/frontline.json",
     ] {
         println!("cargo:rerun-if-changed={}", root.join(path).display());
     }

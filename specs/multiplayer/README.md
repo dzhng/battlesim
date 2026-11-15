@@ -21,7 +21,7 @@ simulation test build here, with other sessions building too. Check
 `df -h .` before any Rust build or new checkout. Under about 30 GB free, run
 Rust passes one or two at a time; under 5 GB, start nothing and ask the user.
 
-**Done and committed:** slices 02 to 08, 10 to 15, 20 and 24,
+**Done and committed:** slices 02 to 08, 10 to 15, 20, 21 and 24,
 and the local half of 09; the
 endurance half of slice 01. The branch holds staging as of
 2026-11-15. **The first playable checkpoint is reached:** two browsers
@@ -30,13 +30,11 @@ command opposite sides of one battle on a local server
 
 **Pick up here, in this order:**
 
-1. **Integrate slices 16, 17 and 21** (the multiplayer screen and the room
-   lobby screen, from one agent as two commits; and Frontline rules), handed
-   to Codex on 2026-11-15, each in its own checkout with a report in
-   `throwaway/multiplayer/` there. Slices 16 and 17 change what a player
-   sees: look at the pictures, get an unprimed critique, and show the user.
-   Slice 21 must leave every existing digest unchanged and measures its own
-   length (slice 01's run has no scores in it).
+1. **Integrate slices 16 and 17** (the multiplayer screen and the room
+   lobby screen, from one agent as two commits), handed to Codex on
+   2026-11-15 in its own checkout with a report in `throwaway/multiplayer/`
+   there. Both change what a player sees: look at the pictures, get an
+   unprimed critique, and show the user.
 2. **Slice 09's push** waits for the user: ask before promoting a site
    build, before deploying, and before making the address public. Its local
    half is in, with a deploy step that is a dry run by default
@@ -117,7 +115,7 @@ Rooms
 
 Frontline
 - [x] [20 An AI inherits an army](slices/20-ai-inherits-an-army.md) (it copes at 30 and not at 150; a choice for the user before slice 22)
-- [ ] [21 Frontline rules](slices/21-frontline-rules.md)
+- [x] [21 Frontline rules](slices/21-frontline-rules.md)
 - [ ] [22 Army hand-over](slices/22-army-hand-over.md)
 - [ ] [23 Seat reset](slices/23-seat-reset.md)
 - [x] [24 Frontline placement](slices/24-frontline-placement.md)

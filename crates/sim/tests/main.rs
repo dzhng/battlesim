@@ -42,6 +42,7 @@ mod flight_collision;
 mod flight_load;
 mod forest;
 mod formation;
+mod frontline_rules;
 mod garrison;
 mod ground;
 mod ground_delivery;

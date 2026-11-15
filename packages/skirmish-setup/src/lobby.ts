@@ -30,6 +30,7 @@ export interface LobbyState {
   map: MapChoice;
   battleSeed: number;
   lighting: string;
+  rules?: PrepareBattleRequest["rules"];
 }
 export interface SetupData {
   generator: MapGenerator;
@@ -207,6 +208,7 @@ export function battleRequest(lobby: LobbyState, data: SetupData): PrepareBattle
     },
     players: factioned,
     battle_seed: lobby.battleSeed,
+    ...(lobby.rules !== undefined && { rules: lobby.rules }),
   };
 }
 

@@ -6,6 +6,14 @@ use crate::catalog::TypeIndex;
 use crate::encounter::SkirmishSites;
 use crate::ids::{Side, Tick, UnitId};
 
+/// Which authored match rule document preparation resolves over the base.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MatchRuleSet {
+    Skirmish,
+    Frontline,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MatchRules {
@@ -21,7 +29,18 @@ pub struct MatchRules {
     pub majority_s: u32,
     /// The score a side wins at.
     pub victory_score: f64,
+    /// Taking every objective uncontested wins immediately.
+    #[serde(default = "all_objectives_victory", skip_serializing_if = "is_true")]
+    pub all_objectives_victory: bool,
     pub max_players_per_side: u32,
+}
+
+fn all_objectives_victory() -> bool {
+    true
+}
+
+fn is_true(value: &bool) -> bool {
+    *value
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

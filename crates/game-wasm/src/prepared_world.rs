@@ -32,16 +32,20 @@ impl PreparedWorld {
         &self,
         sites_json: &str,
         players_json: &str,
+        rule_set: &str,
     ) -> Result<String, JsError> {
         let sites: contract::encounter::EncounterSites =
             serde_json::from_str(sites_json).map_err(js_error)?;
         let players: Vec<contract::players::Player> =
             serde_json::from_str(players_json).map_err(js_error)?;
+        let selection =
+            serde_json::from_value(serde_json::Value::String(rule_set.into())).map_err(js_error)?;
         let setup = sim::skirmish::setup_for(
             &players,
             sites
                 .skirmish
                 .ok_or_else(|| JsError::new("skirmish sites are missing"))?,
+            sim::skirmish::resolve_rules(selection),
         );
         setup.sites.validate().map_err(js_error)?;
         serde_json::to_string(&ScenarioDefinition {

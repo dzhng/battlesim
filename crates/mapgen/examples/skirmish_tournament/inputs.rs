@@ -160,7 +160,11 @@ pub(crate) fn prepare_row(
     };
     let setup = ScenarioDefinition {
         players: players.clone(),
-        skirmish: Some(sim::skirmish::setup_for(&players, sites)),
+        skirmish: Some(sim::skirmish::setup_for(
+            &players,
+            sites,
+            sim::skirmish::starter_rules(),
+        )),
         map,
         rules: inputs.rules.clone(),
         units: vec![],

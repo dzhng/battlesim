@@ -4,8 +4,8 @@ use contract::command::OrderError;
 use contract::ids::{Side, Tick, UnitId};
 use contract::players::{ControllerKind, Player, Seating};
 use contract::skirmish::{
-    MatchEvent, MatchReport, MatchTotals, MatchUnit, PendingPurchase, Phase, PurchaseId,
-    SkirmishSetup, SkirmishView,
+    MatchEvent, MatchReport, MatchRuleSet, MatchRules, MatchTotals, MatchUnit, PendingPurchase,
+    Phase, PurchaseId, SkirmishSetup, SkirmishView,
 };
 use std::collections::{BTreeMap, VecDeque};
 
@@ -14,12 +14,13 @@ use std::collections::{BTreeMap, VecDeque};
 pub fn setup_for<P: AsRef<[Player]>>(
     players: P,
     sites: contract::encounter::SkirmishSites,
+    rules: MatchRules,
 ) -> SkirmishSetup {
     let players = players.as_ref();
     debug_assert!(contract::players::validate_players(players, Seating::Skirmish).is_ok());
     debug_assert!(contract::players::validate_entry_counts(players, &sites.entries).is_ok());
     SkirmishSetup {
-        rules: starter_rules(),
+        rules,
         sites,
         openings: BTreeMap::new(),
     }
@@ -427,7 +428,27 @@ impl Skirmish {
         Ok(())
     }
 }
-pub fn starter_rules() -> contract::skirmish::MatchRules {
-    serde_json::from_str(include_str!("../../../fixtures/skirmish.json"))
-        .expect("authored match rules")
+pub fn starter_rules() -> MatchRules {
+    resolve_rules(MatchRuleSet::Skirmish)
+}
+
+/// Resolve the selected override document over the one base match rule record.
+/// Native tools and browser/server preparation all read these authored documents.
+pub fn resolve_rules(selection: MatchRuleSet) -> MatchRules {
+    let mut document: serde_json::Value =
+        serde_json::from_str(include_str!("../../../fixtures/skirmish.json"))
+            .expect("authored base match rules");
+    let overrides = match selection {
+        MatchRuleSet::Skirmish => None,
+        MatchRuleSet::Frontline => Some(include_str!("../../../fixtures/frontline.json")),
+    };
+    if let Some(overrides) = overrides {
+        let overrides: serde_json::Map<String, serde_json::Value> =
+            serde_json::from_str(overrides).expect("authored match rule overrides");
+        document
+            .as_object_mut()
+            .expect("base match rule object")
+            .extend(overrides);
+    }
+    serde_json::from_value(document).expect("authored resolved match rules")
 }

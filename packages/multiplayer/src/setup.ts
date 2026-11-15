@@ -40,6 +40,8 @@ export function fromBattleSetup(setup: BattleSetup): LobbyState {
     map: { ...setup.map, profile: "skirmish" },
     battleSeed: setup.battleSeed,
     lighting: setup.lighting,
+    // A lobby names its rules only when they are not the skirmish rules.
+    ...(setup.rules === "frontline" && { rules: setup.rules }),
   };
 }
 
