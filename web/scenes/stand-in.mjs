@@ -11,20 +11,28 @@ import { lab, presented } from "./_lab.mjs";
 import { meetStandIns } from "./_stand-in-battle.mjs";
 import { captureLook, vehicleLook } from "./_stand-in-look.mjs";
 
-async function clickUnit(page, unit, button = "left") {
+function bodyPoint(unit) {
   // An outer soldier is clear of the carrier his squad may be beside.
-  const point =
+  return (
     [...unit.members].sort(
       (a, b) =>
         Math.hypot(b[0] - unit.position[0], b[1] - unit.position[1]) -
         Math.hypot(a[0] - unit.position[0], a[1] - unit.position[1]),
-    )[0] ?? unit.position;
+    )[0] ?? unit.position
+  );
+}
+
+async function clickUnit(page, unit, button = "left") {
+  const point = bodyPoint(unit);
   const css = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2] + 1), point);
   if (!css) throw new Error(`unit ${unit.id} is outside the camera`);
   await page.mouse.click(css[0], css[1], { button });
 }
 
 async function frameOn(page, unit) {
+  // The outer body can be far from a spread squad's anchor. Frame the same
+  // point we click so that the army HUD cannot intercept its attack click.
+  const position = bodyPoint(unit);
   await page.evaluate(
     ({ position }) =>
       window.__lab.setCamera({
@@ -33,7 +41,7 @@ async function frameOn(page, unit) {
         distance: 22,
         pitch: 0.55,
       }),
-    unit,
+    { position },
   );
   await page.evaluate(() => window.__lab.frame());
 }

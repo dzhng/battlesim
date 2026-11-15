@@ -7,6 +7,7 @@
 import { readFile } from "node:fs/promises";
 import { advance, lab, obs, presented } from "./_lab.mjs";
 import { growthArt } from "./_growthArt.mjs";
+import { approachContact, followEnemyObjective } from "./_contact-battle.mjs";
 
 /** Minutes of play allowed for blue to meet red. */
 const ROUNDS = 10;
@@ -64,47 +65,21 @@ export async function run(ctx) {
   snapshots.length = 0;
   details.length = 0;
 
-  // A tank of blue's own, placed at its entry; the battle readied.
-  const entry = await page.evaluate(() => window.__lab.route.prepared().start.at);
-  await page.evaluate(
-    (at) => window.__lab.setCamera({ ...window.__lab.camera(), target: [...at, 0], distance: 120 }),
-    entry,
-  );
-  const view = page.viewportSize();
-  const [cx, cy] = [view.width / 2, view.height / 2];
-  await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
-  await page.getByRole("tab", { name: "MBT", exact: true }).click();
-  await page.getByRole("button", { name: "M1 Abrams", exact: true }).hover();
-  await page.getByRole("button", { name: /^SEP v2 — \d+ credits$/ }).click();
-  await page.mouse.move(cx, cy);
-  await page.waitForTimeout(100);
-  await page.mouse.click(cx, cy);
-  await advance(page, 1);
-  await page.getByRole("button", { name: "START BATTLE", exact: true }).click();
-  await advance(page, 60 * 30);
-
-  // It drives for the objective farthest from blue's entry, which red's army
-  // contests, until blue meets a kind its battle had not fielded.
-  const seen = await obs(page);
-  const goal = seen.skirmish.objectives
-    .map((objective) => objective.center)
-    .sort(
-      (a, b) =>
-        Math.hypot(b[0] - entry[0], b[1] - entry[1]) - Math.hypot(a[0] - entry[0], a[1] - entry[1]),
-    )[0];
-  await page.evaluate(
-    ([id, at]) =>
-      window.__lab.route.command({
-        kind: "move",
-        units: [id],
-        gesture: 2801,
-        goal: at,
-        route: "fastest",
-      }),
-    [seen.own[0].id, goal],
-  );
-  for (let round = 0; round < ROUNDS && !timeline.some((e) => e.kind === "battle staged"); round++)
-    await advance(page, 60 * 30);
+  // Recon's longer sight reaches the firing vehicles before they can kill a
+  // short-sighted tank on the approach. This fixture is a meeting, not an assault.
+  const scoutId = await approachContact(page);
+  for (
+    let ticks = 0;
+    ticks < ROUNDS * 60 * 30 && !timeline.some((e) => e.kind === "battle staged");
+    ticks += 30
+  ) {
+    await advance(page, 30);
+    // Stop at the first drawn growth, rather than fast-forwarding through a
+    // whole minute in which a second kind could arrive as well.
+    await presented(page);
+    if (!timeline.some((event) => event.kind === "battle staged"))
+      await followEnemyObjective(page, await obs(page), scoutId);
+  }
   // Its art is admitted while the scene keeps drawing.
   const staged = Date.now();
   const committed = () => {
@@ -137,6 +112,23 @@ export async function run(ctx) {
   );
 
   const names = await snapshots.at(-1);
+  if (!names) {
+    const observation = await obs(page);
+    ctx.check(
+      stages.length ? "the staged battle never committed its growth" : "the battle never grew",
+      false,
+      JSON.stringify({
+        timeline,
+        tick: observation.tick,
+        own: observation.own,
+        contacts: observation.contacts,
+      }),
+    );
+    page.off("console", record);
+    await Promise.all(details);
+    await page.close();
+    return;
+  }
   const catalog = JSON.parse(
     await readFile(new URL("../../assets/runtime/catalog.json", import.meta.url), "utf8"),
   );
