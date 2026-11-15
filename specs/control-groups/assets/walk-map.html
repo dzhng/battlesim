@@ -1,0 +1,173 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Control Groups Map</title>
+<style>
+:root { --gap: 14px; }
+body { font: 13px/1.55 var(--font-sans); }
+h1 { font-size: 17px; margin: 0 0 4px; }
+h2 { font-size: 14px; margin: 0; display: flex; gap: 8px; align-items: baseline; }
+h2 small { color: var(--muted-foreground); font-weight: 500; font-size: 12px; }
+h3 { font-size: 12.5px; margin: 10px 0 4px; color: var(--muted-foreground); text-transform: uppercase; letter-spacing: .06em; }
+p { margin: 4px 0; }
+.lede { color: var(--muted-foreground); margin-bottom: var(--gap); }
+section { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: var(--gap); }
+ul { margin: 6px 0; padding-left: 18px; }
+li { margin: 3px 0; }
+code { font: 12px var(--font-mono); background: var(--code-background); padding: 0 4px; border-radius: 4px; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+th, td { text-align: left; vertical-align: top; padding: 6px 8px; border-top: 1px solid var(--border); }
+th { color: var(--muted-foreground); font-weight: 600; border-top: 0; }
+td:first-child { font-family: var(--font-mono); white-space: nowrap; color: var(--muted-foreground); }
+.who { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 999px; white-space: nowrap; border: 1px solid var(--border); }
+.user { background: transparent; color: var(--success); border-color: var(--success); }
+.agent { background: var(--warning-surface); color: var(--warning-foreground); }
+.terr { background: var(--secondary); color: var(--secondary-foreground); }
+.open { background: var(--destructive-surface); color: var(--destructive-foreground); }
+.edge { background: var(--accent-surface); color: var(--accent-foreground); }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+.card { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; min-width: 0; }
+.card b { display: block; margin-bottom: 3px; }
+.card .ev { color: var(--muted-foreground); font-size: 12px; }
+details { margin-top: 8px; }
+summary { cursor: pointer; font-weight: 600; }
+pre { white-space: pre-wrap; font: 12px/1.5 var(--font-mono); background: var(--code-background); padding: 12px; border-radius: var(--radius); margin: 8px 0 0; -webkit-user-select: text; user-select: text; }
+button { font: inherit; font-size: 12px; padding: 5px 10px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--secondary); color: var(--secondary-foreground); cursor: pointer; margin-top: 8px; }
+button:focus-visible { outline: 2px solid var(--ring); }
+</style></head><body>
+<h1>Control groups and range-select · the map</h1>
+<p class="lede">The bottom unit bar gets Shift-click range-select and control groups on Ctrl+0–9. The game shows grouped cards as white brackets on the left of the bar. This page records everything settled during the walk, who settled it, and what a builder must still confirm.</p>
+
+<section>
+<h2>Q1 · Known knowns <small>settled ground</small></h2>
+<ul>
+<li><b>The bar</b> is <code>ArmyDeck</code> in <code>web/src/battle/present/armyDeck.tsx</code>. It only shows cards: <code>selected</code> and <code>onSelect</code> come from outside. Cards are 64 px wide with a 4 px gap, and the bar wraps into balanced rows using a 68 px-per-card capacity calculation (line 74).</li>
+<li><b>Card order</b> follows the order the observation lists your own units, filtered to units you control (<code>controlled.ts</code>, <code>BattleView.tsx:179</code>). Waiting reinforcements come last, as disabled cards.</li>
+<li><b>Selection</b> belongs to <code>useUnitControl</code>. It drops dead units and riders however they got in, resets on a new client (restart), and fires <code>onSelect</code> for added units, which triggers spoken answers.</li>
+<li><b>Keys</b> are listed in <code>CommandBindings</code> and matched by physical key code. The digits are free. <code>isGameKey</code> (<code>keyGuard.ts:26</code>) rejects every press with Ctrl, Cmd or Alt held.</li>
+<li><b>Unit ids are never reused</b> within a battle: a new id is the unit list's length, and the list never shrinks (<code>crates/sim/src/battle/purchase_preview.rs:78</code>).</li>
+<li><b>The contract:</b> nothing changes between the simulation and the client. There's no new command, no observation field, no digest change, and replays are untouched. Control groups are client presentation and input only.</li>
+</ul>
+</section>
+
+<section>
+<h2>Q2 · Known unknowns <small>the decision ledger</small></h2>
+<h3>Behaviour</h3>
+<div class="scroll"><table>
+<tr><th>#</th><th>Decision</th><th>Why</th><th>Closed by</th></tr>
+<tr><td>D1</td><td>Ctrl+N makes group N exactly the current selection; those units leave any other group. Shift+N adds the selection to group N.</td><td>RTS convention; one place per unit</td><td><span class="who user">you</span></td></tr>
+<tr><td>D2</td><td>On cards, Shift-click selects from the anchor (the last card clicked without Shift) to the clicked card, in bar order, replacing the selection. Cmd-click (Mac) or Ctrl-click (elsewhere) adds or removes one card.</td><td>File-list convention; on a Mac, Ctrl-click acts as a right-click</td><td><span class="who user">you</span></td></tr>
+<tr><td>D3</td><td>Pressing N twice within <code>DOUBLE_CLICK_MS</code> centres the camera on the member closest to the group's centre. A single press only selects.</td><td>Lands on a unit; selecting never moves the camera</td><td><span class="who user">you</span></td></tr>
+<tr><td>D4</td><td>Ctrl+0–9 on every platform, with the browser's default blocked while the battle accepts input. 10 groups. If Windows Chrome can't block it, that becomes a recorded gap; no other modifier gets swapped in.</td><td>Players expect it</td><td><span class="who user">you</span></td></tr>
+<tr><td>D5</td><td>A grouped squad that boards a vehicle stays in its group, with its dimmed card in place. N selects only members on the field. The vehicle doesn't join.</td><td>Membership outlasts riding</td><td><span class="who user">you</span></td></tr>
+<tr><td>S1–S4</td><td>Client only. A unit is in at most one group. Dead units leave their group and empty groups vanish. Typing into a field still wins.</td><td>Shown as "settled unless you say otherwise"; not challenged</td><td><span class="who terr">territory</span></td></tr>
+</table></div>
+<h3>Answered by the agent on your behalf</h3>
+<p><b>Confirmed preferences:</b> follow established conventions; take the recommendation when it's grounded in the code; keep it simple (one place per unit or group, nothing added on your behalf, no simulation change). <b>Scope:</b> behaviour questions only; how things look stayed with you.</p>
+<div class="scroll"><table>
+<tr><th>#</th><th>Question → answer</th><th>Preference and reason</th><th></th></tr>
+<tr><td>D15</td><td>How "no empty space" works → the bar is one sequence. Groups never force a new column, so a group's unused slot takes the next card.</td><td>Simple; your reference screenshot shows exactly this (group 2's spare slot holds the next card)</td><td><span class="who agent">agent</span></td></tr>
+<tr><td>L2</td><td>The bracket is drawn per card, one edge where a neighbour isn't in the same group. That covers row breaks and L shapes.</td><td>Simple: no layout special case</td><td><span class="who agent">agent</span></td></tr>
+<tr><td>L3</td><td>Group state lives in <code>useUnitControl</code>, next to the selection. The deck gets the groups and a delete callback. Lab routes without the hook show no groups.</td><td>One owner per concept</td><td><span class="who agent">agent</span></td></tr>
+<tr><td>L4</td><td>Restart clears every group.</td><td>Matches how the selection resets</td><td><span class="who agent">agent</span></td></tr>
+<tr><td>L5</td><td>Groups keep unit ids and filter to units still present. A group with no units left disappears. No cleanup code.</td><td>Simple; ids are never reused</td><td><span class="who agent">agent</span></td></tr>
+<tr><td>L6</td><td>Shift-click on units on the map still adds or removes one unit.</td><td>D2 was about cards; RTS convention</td><td><span class="who agent">agent</span></td></tr>
+<tr><td>L7</td><td>In team battles, Ctrl+N takes only units you control.</td><td>Existing <code>controlled.ts</code> rule</td><td><span class="who agent">agent</span></td></tr>
+<tr><td>L8</td><td>An armed command stays armed when you press N.</td><td>Same as any other selection change</td><td><span class="who agent">agent</span></td></tr>
+<tr><td>L9</td><td>Number row only, no numpad.</td><td>Simple</td><td><span class="who agent">agent</span></td></tr>
+<tr><td>L10</td><td>The tutorial gets text in "Selecting units", and the card line at <code>Tutorial.tsx:236</code> is corrected. No new picture.</td><td>Simple; the existing bar picture stays valid</td><td><span class="who agent">agent</span></td></tr>
+</table></div>
+</section>
+
+<section>
+<h2>Q3 · Unknown knowns <small>taste and context you supplied</small></h2>
+<div class="scroll"><table>
+<tr><th>#</th><th>Decision</th><th>What it reshaped</th><th></th></tr>
+<tr><td>D6</td><td>Groups are shown as 1 px white brackets (the HUD's text white). Concept 1 in round 4.</td><td>Replaced the blue bracket; white makes grouping obvious</td><td><span class="who user">you</span></td></tr>
+<tr><td>D7</td><td>× appears only on hover, as a white tab flush in the top-right of the group's top row.</td><td></td><td><span class="who user">you</span></td></tr>
+<tr><td>D8</td><td>Same margins everywhere. The bracket sits on the cards' outer edge, so grouping moves no card.</td><td>Keeps the 68 px capacity calculation true. Neighbouring groups' lines end up about 2 px apart</td><td><span class="who user">you</span></td></tr>
+<tr><td>D12</td><td>The group number is a white tab with a deep-blue digit, flush inside the top-left corner of the group's first card.</td><td>Ended the row-gap question (L1): no extra space anywhere</td><td><span class="who user">you</span></td></tr>
+<tr><td>D13</td><td>When the bar has 2 or more rows, every card fills top to bottom, then left to right, including ungrouped cards.</td><td>Replaced filling by rows. The partial-last-row centring (<code>cardOffset</code>) goes away</td><td><span class="who user">you</span></td></tr>
+<tr><td>D14</td><td>The bracket hugs the cards, so a group with a partly filled column becomes an L shape.</td><td></td><td><span class="who user">you</span></td></tr>
+<tr><td>D9–D11</td><td>The tutorial teaches groups and range-select. Selecting a group plays spoken answers. The command bar's hints don't mention group keys.</td><td></td><td><span class="who user">you</span></td></tr>
+</table></div>
+<p><b>Context:</b> the player uses mouse and keyboard in the browser. Your Mac is the main machine, and Windows Chrome is a supported path. The reference is the card bar in your second screenshot.</p>
+</section>
+
+<section>
+<h2>Q4 · Unknown unknowns <small>landmines and sharp edges</small></h2>
+<div class="cards">
+<div class="card"><span class="who open">OPEN</span><b>Can a page block Ctrl+1–9 in Windows Chrome?</b><p class="ev">Chrome uses these keys to switch tabs. From memory, they aren't on Chrome's list of shortcuts a page can never block, but that's untested. Unblock: a five-minute test on Windows early in the build.</p></div>
+<div class="card"><span class="who open">OPEN</span><b>The deep-blue digit is a new shade</b><p class="ev">The HUD's normal blue is too pale to read on white. Unblock: add a named colour to <code>presentation.hud</code> and check it reads at a 15 px tab. Never write the value into the code.</p></div>
+<div class="card"><span class="who edge">sharp edge</span><b>Ctrl+digit needs its own path</b><p class="ev"><code>isGameKey</code> rejects any press with Ctrl held (<code>keyGuard.ts:26</code>). The group keys need a deliberate check of their own. Don't loosen the shared filter.</p></div>
+<div class="card"><span class="who edge">sharp edge</span><b>The layout becomes simpler, not more complex</b><p class="ev">With no gaps, the existing rows and columns calculation from card count and capacity stays as it is. Changing the grid to fill by columns (<code>grid-auto-flow: column</code> with fixed rows) produces the order itself, and <code>cardOffset</code> is deleted.</p></div>
+<div class="card"><span class="who edge">sharp edge</span><b>The double-tap needs the camera</b><p class="ev"><code>focusUnit</code> lives in <code>BattleView.tsx:141</code>. The selection hook needs a callback to reach it.</p></div>
+<div class="card"><span class="who edge">sharp edge</span><b>Covered corners</b><p class="ev">The number tab covers the empty top-left corner of a card. On hover, the × tab covers the top-right, where a riding squad's seat mark sits.</p></div>
+<div class="card"><span class="who edge">sharp edge</span><b>Pressing N again can be silent</b><p class="ev">If the group is already selected, no unit is added, so nobody speaks.</p></div>
+<div class="card"><span class="who edge">sharp edge</span><b>Ctrl+0 only blocked during play</b><p class="ev">With the pause menu open, the browser gets Ctrl+0 back and resets the zoom.</p></div>
+<div class="card"><span class="who edge">sharp edge</span><b>An existing test flips meaning</b><p class="ev"><code>web/tests/armyDeck.test.tsx</code> checks today's Shift-click add-or-remove. Write the range test first.</p></div>
+</div>
+</section>
+
+<section>
+<h2>Addendum · Fire blink on cards <small>added after the walk</small></h2>
+<p><b>The contract:</b> each tick, the simulation publishes for each of your own units whether an enemy round <i>aimed at it</i> passed near it. Like voice lines, this stays out of the battle digest, so outcomes, digests and replays are unchanged. Every round records what it was fired at; today only fused rounds do (<code>fused_target</code>, <code>battle.rs:104</code>). Damage needs no change, because each unit's health and each soldier's health are already published every tick.</p>
+<div class="scroll"><table>
+<tr><th>#</th><th>Decision</th><th>Why</th><th></th></tr>
+<tr><td>B1</td><td>Look: a <b>rising glow</b> that climbs from the card's foot (the strength-bar end), with a 2 px foot line and a soft glow spilling below the card.</td><td>You chose the spilling version over the in-card one. It briefly tints the gap under the card, including a group bracket's bottom line</td><td><span class="who user">you</span></td></tr>
+<tr><td>B2</td><td>Yellow means a round aimed at the unit passed near it. Red means the unit's health dropped.</td><td>Your request</td><td><span class="who user">you</span></td></tr>
+<tr><td>B3</td><td>A blink is two pulses, faded in and out with easing (starting values: 120 ms on, 120 ms off).</td><td>Your tuning</td><td><span class="who user">you</span></td></tr>
+<tr><td>B4</td><td>A blink in progress finishes and ignores new rounds; a hit cuts in as red.</td><td>Steady pulse under sustained fire</td><td><span class="who user">you</span></td></tr>
+<tr><td>B5</td><td>A card doesn't repeat a colour within a wait (starting value: 3 s). Red and yellow are timed separately. The wait is applied on the client.</td><td>Your rate limit</td><td><span class="who user">you</span></td></tr>
+<tr><td>B6</td><td>Colours are the HUD's warning yellow and damage red, mixed toward the glass navy (starting values: depth 55%, glow size 0.7). No new colour.</td><td>Blends with the dark blue</td><td><span class="who user">you</span></td></tr>
+<tr><td>B7</td><td>The simulation publishes the per-tick "aimed round passed near" flag, and rounds carry their target.</td><td>The yellow blink can't exist without it</td><td><span class="who user">you</span></td></tr>
+<tr><td>B8</td><td>A round that hits without doing damage (a glance or a ricochet) blinks yellow.</td><td>Simple; red means health dropped</td><td><span class="who agent">agent</span></td></tr>
+<tr><td>B9</td><td>No new pass sound; the yellow blink is silent. The red blink fires on the same tick as that hit's existing impact sound.</td><td>Nothing added on your behalf. The game has no per-round near-miss sound; the spoken "under fire" line is limited by <code>shouts.cooldown_s</code></td><td><span class="who agent">agent</span></td></tr>
+</table></div>
+<p>Starting values are guesses. They live as tuning values in the HUD settings (<code>presentation.hud</code>), not as numbers in the code. Reference mock: <code>throwaway/control-groups/fire-glow3.html</code>.</p>
+</section>
+
+<section>
+<h2>Build plan <small>ordered by what you're most likely to tweak</small></h2>
+<ol>
+<li><b>The bracket's look in the real HUD.</b> Line opacity, tab size, and the digit's colour token. Judge it against the round-4 and round-5 mocks with screenshot-critique and compare-screenshots.</li>
+<li><b>The double-tap target.</b> The member closest to the group's centre. Easy to change to the plain average position.</li>
+<li><b>The tutorial wording</b> in "Selecting units".</li>
+</ol>
+<details><summary>Mechanical work (I trust you on that part)</summary>
+<ul>
+<li><code>useUnitControl</code>: a map from digit to unit ids; Ctrl/Shift/plain digit handling with <code>preventDefault</code> while input is enabled; double-tap through an <code>onCenterGroup</code> callback; restart clears the groups.</li>
+<li><code>ArmyDeck</code>: order the cards by group 1…9,0, then ungrouped, then waiting; a grid that fills by columns; per-card bracket edges plus the number and × tabs; Shift-click range from the anchor; Cmd/Ctrl-click toggles one card.</li>
+<li>The colour token in <code>presentation.hud</code>; <code>hud.css</code> reads it.</li>
+<li>Tests first, at system level: range-select, assign / add / recall / delete, riders kept but not selected, dead units dropped.</li>
+<li>Tutorial text. Screenshots before and after, critique, and a preview for you.</li>
+</ul>
+</details>
+</section>
+
+<section>
+<h2>Implementation prompt <small>paste to start the build</small></h2>
+<pre id="prompt">Implement control groups and Shift-click range-select in the battle's unit bar (ArmyDeck), from the map in throwaway/control-groups/map.html. Every decision there is a given: D1–D15 and L2–L10. The round-5 mock (throwaway/control-groups/flow-round5.html) is the visual reference.
+
+Contract: client-only. No sim, observation, digest or replay change.
+
+First: test on Windows Chrome whether a page can block Ctrl+1–9, and record the answer. Add the group digit's colour as a token in presentation.hud.
+
+Write the system-level tests first (range-select; Ctrl+N / Shift+N / N / NN; × deletes; riders stay grouped but aren't selected; dead units drop out). Then:
+- groups state in useUnitControl, behind a Ctrl-digit check of its own (don't loosen isGameKey);
+- ArmyDeck fills by columns (grid-auto-flow: column) in the order groups 1…9,0, then ungrouped, then waiting; delete cardOffset;
+- per-card white bracket edges on the cards' outer edge (no added spacing), a number tab flush in the group's first card's top-left corner, and a hover-only × tab;
+- tutorial text in "Selecting units".
+
+Then the fire blink (map addendum B1–B9; mock: throwaway/control-groups/fire-glow3.html). Contract: the sim publishes, per own unit per tick and outside the digest, whether an enemy round aimed at it passed near; rounds carry their target. The card shows a rising glow (spilling softly below the card): yellow for a pass, red for a health drop, two eased pulses, a hit cutting in, and a per-colour wait applied on the client. Tuning values go in presentation.hud. Test first at system level: a scripted near miss and a hit each publish and blink once within the wait.
+Use the game-ui and tweak-mechanics skills. Get a screenshot-critique and show me before and after shots.</pre>
+<button id="copy" type="button">Copy prompt</button> <span id="copied"></span>
+</section>
+<script>
+document.getElementById("copy").addEventListener("click", () => {
+  const t = document.getElementById("prompt").textContent;
+  const done = m => document.getElementById("copied").textContent = m;
+  if (navigator.clipboard) navigator.clipboard.writeText(t).then(() => done("Copied"), () => done("Select the text and copy it"));
+  else done("Select the text and copy it");
+});
+</script>
+</body></html>
