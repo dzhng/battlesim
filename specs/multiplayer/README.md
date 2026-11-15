@@ -30,11 +30,19 @@ command opposite sides of one battle on a local server
 
 **Pick up here, in this order:**
 
-1. **Integrate slices 16 and 17** (the multiplayer screen and the room
-   lobby screen, from one agent as two commits), handed to Codex on
-   2026-11-15 in its own checkout with a report in `throwaway/multiplayer/`
-   there. Both change what a player sees: look at the pictures, get an
-   unprimed critique, and show the user.
+1. **Integrate what is with Codex** (all handed out on 2026-11-15, each in
+   its own checkout with a report in `throwaway/multiplayer/` there):
+   - **Slices 16 and 17,** the multiplayer screen and the room lobby
+     screen, from one agent as two commits. Both change what a player sees:
+     look at the pictures, get an unprimed critique, and show the user.
+   - **Slices 22 and 23,** the army hand-over and the seat reset, from one
+     agent as two commits. Every existing digest and replay must be
+     unchanged.
+   - **An AI that paces its orders,** the recommended answer to slice 20's
+     finding, built so the user can judge it. It must change nothing for an
+     AI whose orders already fit the limit. The user has not chosen yet; it
+     is recorded as provisional.
+   Then **slice 18,** the room battle, which needs 17.
 2. **Slice 09's push** waits for the user: ask before promoting a site
    build, before deploying, and before making the address public. Its local
    half is in, with a deploy step that is a dry run by default
@@ -43,11 +51,19 @@ command opposite sides of one battle on a local server
    is the workload: bundle it, run it on the host, and read its summary
    line.
 
-**Waiting on the user, not blocking:** slice 20 found that an AI handed 150
-units gets only 30 orders through per planner round. Before slice 22 the
-user chooses between spreading the AI's orders (recommended) and capping
-what one seat may receive. See the results in
-[slice 20](slices/20-ai-inherits-an-army.md).
+**Waiting on the user, not blocking:**
+
+- **Deploying** (slice 09): now, or after rooms exist. Recommended: after,
+  because until then a deployed server must offer its dev battle to anyone
+  with the address.
+- **An AI handed 150 units** (slice 20): spread its orders (recommended, and
+  being built provisionally) or cap what a seat may receive.
+- **The result screen's side names** (slice 11): keep "BLUE" and "RED", or
+  head the columns by role. Recommended: by role, with slice 18.
+- **Lane numbers** (slice 12): kept as they are unless the user says
+  otherwise.
+- **Frontline's length** (slice 21): 2,100 points, about an hour for the
+  leading side on the largest maps. The user's dial.
 
 **How to work with Codex here.**
 
