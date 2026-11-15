@@ -2,7 +2,8 @@
 // with its rotors, and a cart on its wheels (the articulation and rubber
 // checks' fixtures), built with `synthetic.ts`'s glTF builder.
 import type { Vec3 } from "math";
-import { GltfBuilder, LODS, g3, gBox, qx, tieredPart } from "./synthetic";
+import { GltfBuilder } from "./gltfBuilder";
+import { LODS, g3, gBox, qx, tieredPart } from "./synthetic";
 
 /** A skid helicopter's stand-in: a fuselage block resting on two skid rails
  *  of painted metal; no wheels. */
