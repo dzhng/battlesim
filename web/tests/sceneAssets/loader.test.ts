@@ -50,6 +50,17 @@ test("a static appearance arrives with the simulation box its art is authored to
   expect(installed.appearances.get("tank")?.footprint).toBeNull();
 });
 
+test("one kinds change installs one generation", async () => {
+  const { library } = await served();
+  const first = await library.load("/assets/", new Set(["rifleman"]));
+  const [next] = await Promise.all([
+    library.withUnits(new Set(["rifleman", "tank"])),
+    library.withUnits(new Set(["rifleman", "tank"])),
+  ]);
+  expect(next.generation).toBe(first.generation + 1);
+  expect(next.appearances.has("tank")).toBe(true);
+});
+
 test.each(["eager", "deferred"] as const)(
   "%s appearances sharing a bundle retain their own metadata",
   async (mode) => {

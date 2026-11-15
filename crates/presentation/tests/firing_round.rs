@@ -44,6 +44,7 @@ fn second_round(case: &str) {
         runtime: &runtime.catalog,
         kinds: &["test_tank".into()],
         factions: None,
+        cache: Default::default(),
     }
     .resolve(&|hash| runtime.read(hash, "bundle.bin"))
     .unwrap()

@@ -53,6 +53,7 @@ fn roster_jet_units() -> (Vec<String>, presentation::world::UnitsSection) {
         runtime: &runtime.catalog,
         kinds: &kinds,
         factions: None,
+        cache: Default::default(),
     }
     .resolve(&|hash| runtime.read(hash, "bundle.bin"))
     .unwrap()

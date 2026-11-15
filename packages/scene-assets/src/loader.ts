@@ -85,6 +85,19 @@ export interface InstalledAppearances {
   templates?: InstalledTemplateArt;
 }
 
+/** Page work counted since the document loaded, split from GPU admission work. */
+export interface AdmissionPageWork {
+  runtimeContentsInflated: number;
+  runtimeContentBytesInflated: number;
+  appearanceLibraryInstalls: number;
+}
+
+const emptyAdmissionPageWork = (): AdmissionPageWork => ({
+  runtimeContentsInflated: 0,
+  runtimeContentBytesInflated: 0,
+  appearanceLibraryInstalls: 0,
+});
+
 /** The template art library as installed: its rows, and each of its modules
  *  bound to the installed kit bundle state that draws it, or to none while
  *  its kit is absent (parallel to `library.modules`). */
@@ -181,11 +194,14 @@ export class AppearanceLibrary {
   private source: Source | null = null;
   /** Repeated requests for the same appearance and source share one load. */
   private readonly arriving = new Map<string, Promise<InstalledAppearance>>();
-  private work = {
+  /** Concurrent unit widening requests become one ordered generation change. */
+  private unitsTail: Promise<void> = Promise.resolve();
+  private work: AdmissionPageWork = {
     runtimeContentsInflated: 0,
     runtimeContentBytesInflated: 0,
     appearanceLibraryInstalls: 0,
   };
+  private readonly generationWork = new Map<number, AdmissionPageWork>();
 
   constructor(fetcher: Fetch = (url) => fetch(url)) {
     this.read = boundedReads(fetcher);
@@ -200,18 +216,12 @@ export class AppearanceLibrary {
     return this.source?.catalog ?? null;
   }
 
-  admissionWork() {
+  admissionWork(): AdmissionPageWork {
     return { ...this.work };
   }
 
-  takeAdmissionWork() {
-    const work = this.admissionWork();
-    this.work = {
-      runtimeContentsInflated: 0,
-      runtimeContentBytesInflated: 0,
-      appearanceLibraryInstalls: 0,
-    };
-    return work;
+  admissionWorkFor(generation: number): AdmissionPageWork {
+    return { ...(this.generationWork.get(generation) ?? emptyAdmissionPageWork()) };
   }
 
   /** The bundle contents `hashes` (appearances' and skeletons') as their
@@ -279,20 +289,53 @@ export class AppearanceLibrary {
    * fetched, its textures the load already has are not, and when it lacks
    * nothing it is returned as it is.
    */
-  async withUnits(wearing: ReadonlySet<string>): Promise<InstalledAppearances> {
+  async withUnits(
+    wearing: ReadonlySet<string>,
+    asked: Iterable<string> = [],
+  ): Promise<InstalledAppearances> {
+    const run = this.unitsTail.then(() => this.withUnitsNow(wearing, asked));
+    this.unitsTail = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
+  }
+
+  private async withUnitsNow(
+    wearing: ReadonlySet<string>,
+    asked: Iterable<string>,
+  ): Promise<InstalledAppearances> {
     const source = this.source;
     if (!source || !this.current)
       throw new Error("unit art was asked for before a catalog was loaded");
     if (!source.wearing) return this.current;
     const wider = new Set([...source.wearing, ...wearing]);
     const held = this.current.appearances;
-    const absent = catalogLoadNames(source.catalog, wider, source.factions, source.scenery).filter(
-      (name) => !held.has(name),
+    const absentUnits = catalogLoadNames(
+      source.catalog,
+      wider,
+      source.factions,
+      source.scenery,
+    ).filter((name) => !held.has(name));
+    const requested = [...new Set(asked)];
+    const bytes = downloadBytes(
+      source.catalog,
+      requested.filter((name) => {
+        const entry = source.catalog.appearances[name];
+        return entry && fetchedOnRequest(entry);
+      }),
+      source.wearing,
+      source.factions,
+      source.scenery,
     );
+    if (bytes > MAP_DOWNLOAD_MAX_BYTES)
+      throw new Error(`map download ${bytes} bytes is over ${MAP_DOWNLOAD_MAX_BYTES}`);
+    const absentAsked = requested.filter((name) => !held.has(name));
+    const absent = [...new Set([...absentUnits, ...absentAsked])];
     if (absent.length === 0) return this.current;
     admitLoad(source.catalog, wider, source.factions, source.scenery);
     const { sides, skeletons } = this.current;
-    const neededSkeletons = [...skeletonIds(source.catalog, absent)].filter(
+    const neededSkeletons = [...skeletonIds(source.catalog, absentUnits)].filter(
       (id) => !skeletons.has(id),
     );
     await Promise.all(
@@ -310,12 +353,14 @@ export class AppearanceLibrary {
         async (name) =>
           [
             name,
-            await this.arrive(source, name, () => this.appearance(source, name, skeletons)),
+            await (absentUnits.includes(name)
+              ? this.arrive(source, name, () => this.appearance(source, name, skeletons))
+              : this.onRequest(source, name)),
           ] as const,
       ),
     );
     // The catalog was loaded again meanwhile: these are the new one's to answer for.
-    if (this.source !== source) return this.withUnits(wearing);
+    if (this.source !== source) return this.withUnitsNow(wearing, asked);
     source.wearing = new Set([...source.wearing, ...wearing]);
     const { appearances, templates } = this.current;
     return this.install(source, sides, skeletons, new Map([...appearances, ...arrived]), templates);
@@ -387,6 +432,10 @@ export class AppearanceLibrary {
       ...(templates && modules ? { templates: { ...templates, modules } } : {}),
     };
     this.work.appearanceLibraryInstalls++;
+    this.generationWork.set(this.current.generation, {
+      ...emptyAdmissionPageWork(),
+      appearanceLibraryInstalls: 1,
+    });
     return this.current;
   }
 

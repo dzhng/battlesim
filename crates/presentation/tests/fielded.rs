@@ -2,7 +2,7 @@
 //! `Fielding::contents` names, and from no others: a page that fetches
 //! exactly those has everything Rust reads.
 use presentation::assets::Runtime;
-use presentation::fielded::{self, Fielding};
+use presentation::fielded::{self, ContentCache, Fielding};
 use serde_json::Value;
 use std::cell::RefCell;
 use std::collections::BTreeSet;
@@ -29,6 +29,7 @@ fn a_battle_reads_only_the_contents_it_names() {
         runtime: &runtime.catalog,
         kinds: &kinds,
         factions: None,
+        cache: Default::default(),
     };
     let named: BTreeSet<String> = fielding.contents().unwrap().into_iter().collect();
     let read = RefCell::new(BTreeSet::new());
@@ -57,6 +58,75 @@ fn a_battle_reads_only_the_contents_it_names() {
     );
     let typed = sections.typed().unwrap();
     assert!(!typed.units.appearances.is_empty() && !typed.tables.is_empty());
+}
+
+#[test]
+fn repeated_fielding_reads_only_new_kind_contents_and_matches_cold_resolution() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let typed_rules: contract::scenario::Rules =
+        serde_json::from_value(sim::fixtures::test_rules()).unwrap();
+    let rules: Value = serde_json::to_value(&typed_rules).unwrap();
+    let catalog = typed_rules.catalog.view();
+    let runtime = Runtime::open(&root.join("assets/runtime")).unwrap();
+    let presentation: Value =
+        serde_json::from_slice(&std::fs::read(root.join("fixtures/presentation.json")).unwrap())
+            .unwrap();
+    let first = vec!["test_rifle".to_owned()];
+    let both = vec!["test_rifle".to_owned(), "test_tank".to_owned()];
+    let cache = ContentCache::default();
+    let first_fielding = Fielding {
+        presentation: &presentation,
+        rules: &rules,
+        catalog: &catalog,
+        runtime: &runtime.catalog,
+        kinds: &first,
+        factions: None,
+        cache: cache.clone(),
+    };
+    let first_named: BTreeSet<_> = first_fielding.contents().unwrap().into_iter().collect();
+    let first_read = RefCell::new(BTreeSet::new());
+    first_fielding
+        .resolve(&|hash| {
+            first_read.borrow_mut().insert(hash.to_owned());
+            runtime.read(hash, "bundle.bin")
+        })
+        .unwrap();
+
+    let second_fielding = Fielding {
+        presentation: &presentation,
+        rules: &rules,
+        catalog: &catalog,
+        runtime: &runtime.catalog,
+        kinds: &both,
+        factions: None,
+        cache: cache.clone(),
+    };
+    let second_named: BTreeSet<_> = second_fielding.contents().unwrap().into_iter().collect();
+    assert!(!second_named.is_empty());
+    assert!(second_named.iter().all(|hash| !first_named.contains(hash)));
+    let second_read = RefCell::new(BTreeSet::new());
+    let incremental = second_fielding
+        .resolve(&|hash| {
+            second_read.borrow_mut().insert(hash.to_owned());
+            runtime.read(hash, "bundle.bin")
+        })
+        .unwrap();
+
+    let cold = Fielding {
+        presentation: &presentation,
+        rules: &rules,
+        catalog: &catalog,
+        runtime: &runtime.catalog,
+        kinds: &both,
+        factions: None,
+        cache: ContentCache::default(),
+    }
+    .resolve(&|hash| runtime.read(hash, "bundle.bin"))
+    .unwrap();
+    assert_eq!(incremental.units, cold.units);
+    assert_eq!(incremental.effects, cold.effects);
+    assert_eq!(incremental.tables, cold.tables);
+    assert_eq!(second_read.into_inner(), second_named);
 }
 
 #[test]
@@ -93,6 +163,7 @@ fn a_ground_hull_model_without_its_gauge_is_refused_before_loading_bundles() {
         runtime: &runtime,
         kinds: &kinds,
         factions: Some(["test_faction", "test_faction"]),
+        cache: Default::default(),
     }
     .resolve(&|_| Err("unexpected bundle read".into()));
     let error = result.err().expect("the missing gauge is refused");
@@ -134,6 +205,7 @@ fn each_factions_gauge_drives_its_own_track_travel() {
         runtime: &art,
         kinds: &["test_tank".into()],
         factions: Some(["test_blue", "test_red"]),
+        cache: Default::default(),
     }
     .resolve(&|hash| runtime.read(hash, "bundle.bin"))
     .unwrap()

@@ -38,6 +38,7 @@ fn fielded(kinds: &[&str], factions: Option<[&str; 2]>, edit: impl FnOnce(&mut V
         runtime: &entries,
         kinds: &kinds,
         factions,
+        cache: Default::default(),
     }
     .resolve(&|hash| runtime.read(hash, "bundle.bin"))
     .unwrap()

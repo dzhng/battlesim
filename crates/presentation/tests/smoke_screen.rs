@@ -215,6 +215,7 @@ fn a_smoke_capability_naming_a_look_the_presentation_lacks_is_refused_when_field
         runtime: &runtime,
         kinds: &kinds,
         factions: None,
+        cache: Default::default(),
     }
     .resolve(&|_| Err("unexpected bundle read".into()))
     .err()

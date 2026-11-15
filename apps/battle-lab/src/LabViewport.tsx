@@ -664,10 +664,10 @@ export function LabViewport({
           build,
           redraw: () => (dirty = true),
           installed: (next) => {
-            trace.installed();
+            trace.installed(next);
             scene = next;
             staged = null;
-            setInspecting((shown) => (shown ? next : shown));
+            setInspecting((shown) => shown && next);
           },
         });
         sceneAdmissionRef.current = admission;

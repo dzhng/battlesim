@@ -55,15 +55,32 @@ Each is confirmed by the slice named, which then moves it to the section below.
 
 | Fact | Slice |
 | --- | --- |
-| The art library installs twice per new type (`withUnits` then `withAppearances` in `gameAppearances.ts`) | 01 |
 | The download prefetch is idle on a battle opened by link because only the menu enables it | 09 |
-| Catalog admission and fielding derive the same facts from a bundle | 01 |
 | A hull's size reaches presentation only for fielded types; the unit catalog has it for every type | 10 |
 | An unfielded vehicle has a pick of no size today, so it cannot be clicked; an unfielded squad's soldiers can | 10 |
 | An undrawn enemy still gets a HUD readout, because readouts follow picks | 10 |
 | The archived WASM exhaustion predates texture sharing | closeout |
 
 ## Confirmed during implementation
+
+**Slice 01, 2026-11-15.** The doubled fielding is caused by a fresh
+`Fielding` request in `fieldedBattle` (`apps/battle-lab/src/presentedFrame.ts`)
+from `useBattleFielding` (`apps/battle-lab/src/useBattleFielding.ts`) whenever
+the complete art object changes. Separately, the library path in
+`useMapAppearances` (`apps/battle-lab/src/gameAppearances.ts`) calls
+`useGameAppearances` twice: once for the unit widening and once after the map
+knows its requested kits. Both calls reach `gameAppearances` and
+`AppearanceLibrary.withUnits`; `withAppearances` is only used by the
+workbench. The loader now serializes those widening calls so one kinds change
+installs one generation. The fielding fix retains resolved content facts across
+the reusable fielding object and serializes requests for one stable
+rules/catalog/faction identity.
+
+Catalog admission and fielding derive different facts. `Asset::from_bundle`
+(`crates/presentation/src/presentation/lab.rs`) derives model presentation
+facts such as bounds, poses and static states. Fielding derives battle sections,
+faction-resolved appearance sets, weapon/effect rows and clip tables. They stay
+separate because neither result is a substitute for the other's contract.
 
 **Slice 00, 2026-11-14.** One growth in `battle-growth` at the scene's own
 graphics profile, from the new report:
@@ -93,7 +110,7 @@ Decisions made where slice 00 was silent:
 | A shell hands in work it did before staging (decoding its draft, the first scenery placement) as the starting report of `Runtime::new` and `stage_assets` | Decoding happens in the library before the runtime sees the art, and the count belongs where the work is |
 | The page's counts are those since the previous `art committed` | The event must say what this admission cost |
 | The scene reads the event's detail from the console call's argument | It needs no test hook in the page, and `LabViewport.tsx` is over its size budget |
-| The first scene publishes no `art committed` event | Nothing gates on it; the Rust test covers a first admission |
+| The first scene publishes an `art committed` event | It gives the page a baseline so later events can report per-admission deltas |
 | The swap test compares the live report and the world's appearance names, not pixels | It proves a dropped, stale or failed candidate changes nothing live without a frame readback; pixel equality starts with slice 03 |
 
 **Slice 00's probe, 2026-11-14.** The reference battle at high graphics in the

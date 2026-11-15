@@ -70,6 +70,7 @@ fn drawn_roster() -> Vec<(String, String, DrawnJet, [f64; 4], f64)> {
         runtime: &runtime.catalog,
         kinds: &kinds,
         factions: None,
+        cache: Default::default(),
     }
     .resolve(&|hash| runtime.read(hash, "bundle.bin"))
     .unwrap()

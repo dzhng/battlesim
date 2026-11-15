@@ -20,6 +20,7 @@ use crate::world::{EffectsSection, UnitsSection};
 use contract::catalog::Mobility;
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::sync::{Arc, Mutex};
 
 /// A wreck's pieces a cook-off throws (`WRECK_PIECES`) and its debris state.
 const WRECK_HULL: &str = "hull";
@@ -55,6 +56,10 @@ impl Sections {
 /// A runtime content's bytes, inflated, by its hash.
 pub type Read<'a> = dyn Fn(&str) -> Result<Vec<u8>, String> + 'a;
 
+/// Resolved runtime contents retained by a reusable fielding request.
+#[derive(Clone, Default)]
+pub struct ContentCache(Arc<Mutex<HashMap<String, Vec<u8>>>>);
+
 /// A battle fielding `kinds` of the resolved unit catalog `catalog`
 /// (`Catalog::view`) under `rules` (how long a soldier holds his firing
 /// pose, how a dead hull stops), each side fighting for the faction
@@ -68,6 +73,7 @@ pub struct Fielding<'a> {
     pub runtime: &'a Value,
     pub kinds: &'a [String],
     pub factions: Option<[&'a str; 2]>,
+    pub cache: ContentCache,
 }
 
 impl Fielding<'_> {
@@ -82,16 +88,31 @@ impl Fielding<'_> {
         for name in drawn.iter().chain(hull_wrecks(&catalog, &art).values()) {
             contents.insert(art.bundle(name)?.to_owned());
         }
+        let cache = self.cache.0.lock().unwrap();
         for hash in self.runtime["skeletons"].as_object().into_iter().flatten() {
-            contents.extend(hash.1.as_str().map(str::to_owned));
+            if let Some(hash) = hash.1.as_str().filter(|hash| !cache.contains_key(*hash)) {
+                contents.insert(hash.to_owned());
+            }
         }
-        Ok(contents.into_iter().collect())
+        Ok(contents
+            .into_iter()
+            .filter(|hash| !cache.contains_key(hash))
+            .collect())
     }
 
     /// The battle's sections, each content [`Fielding::contents`] names
     /// read by `read`.
     pub fn resolve(&self, read: &Read<'_>) -> Result<Sections, String> {
         let presentation = PresentationSettings::from_value(self.presentation)?;
+        let hashes = self.contents()?;
+        {
+            let mut cache = self.cache.0.lock().unwrap();
+            for hash in hashes {
+                if !cache.contains_key(&hash) {
+                    cache.insert(hash.clone(), (read)(&hash)?);
+                }
+            }
+        }
         let catalog = Catalog::new(self.catalog)?;
         let looks = crate::looks::WeaponLooks::new(
             presentation.weapon_looks.clone(),
@@ -99,8 +120,17 @@ impl Fielding<'_> {
         )?;
         looks.check_mounts(self.catalog)?;
         effects::check_smoke_screen_looks(&presentation, &catalog, self.kinds)?;
+        let cache = self.cache.clone();
         let art = Art {
-            read,
+            read: &|hash| {
+                cache
+                    .0
+                    .lock()
+                    .unwrap()
+                    .get(hash)
+                    .cloned()
+                    .ok_or(format!("content {hash} was not read"))
+            },
             ..Art::new(self.runtime, &catalog, self.kinds, self.factions)?
         };
         let (mut units, tables) = units(
@@ -189,6 +219,7 @@ mod files {
             runtime: &runtime.catalog,
             kinds,
             factions: None,
+            cache: Default::default(),
         }
         .resolve(&|hash| runtime.read(hash, "bundle.bin"))?
         .typed()
@@ -325,9 +356,9 @@ fn top_speed_kmh(t: &Value) -> f64 {
 /// The installed art: the runtime catalog's entries for what the battle
 /// wears, each worn vehicle's wreck and each side's faction look, and how
 /// their contents are read.
-struct Art<'a> {
+struct Art<'a, 'r> {
     runtime: &'a Value,
-    read: &'a Read<'a>,
+    read: &'r Read<'r>,
     installed: BTreeSet<String>,
 }
 
@@ -336,7 +367,7 @@ fn unread(hash: &str) -> Result<Vec<u8>, String> {
     Err(format!("content {hash} was not read"))
 }
 
-impl<'a> Art<'a> {
+impl<'a, 'r> Art<'a, 'r> {
     fn new(
         runtime: &'a Value,
         catalog: &Catalog,
@@ -383,7 +414,7 @@ impl<'a> Art<'a> {
 }
 
 /// Running-gear gauge belongs to every ground appearance, including faction looks.
-fn track_gauge(art: &Art, name: &str) -> Result<f64, String> {
+fn track_gauge(art: &Art<'_, '_>, name: &str) -> Result<f64, String> {
     art.entry(name)["track_gauge"]
         .as_f64()
         .filter(|v| v.is_finite() && *v > 0.0)
@@ -396,7 +427,7 @@ fn track_gauge(art: &Art, name: &str) -> Result<f64, String> {
 /// side, and every appearance those sets name.
 fn unit_types(
     catalog: &Catalog,
-    art: &Art,
+    art: &Art<'_, '_>,
     kinds: &[String],
     factions: Option<[&str; 2]>,
 ) -> Result<(Map<String, Value>, BTreeSet<String>), String> {
@@ -531,7 +562,7 @@ fn units(
     presentation: &PresentationSettings,
     rules: &Value,
     catalog: &Catalog,
-    art: &Art,
+    art: &Art<'_, '_>,
     kinds: &[String],
     factions: Option<[&str; 2]>,
 ) -> Result<(Value, ClipTables), String> {
@@ -586,7 +617,7 @@ fn units(
 /// Each hulled unit type's wreck, where its installed model (its
 /// `appearance`, as `layout.unitAppearance` names it) has an installed one,
 /// by type.
-fn hull_wrecks(catalog: &Catalog, art: &Art) -> BTreeMap<String, String> {
+fn hull_wrecks(catalog: &Catalog, art: &Art<'_, '_>) -> BTreeMap<String, String> {
     catalog
         .ids()
         .filter_map(|unit| {

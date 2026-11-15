@@ -5,7 +5,7 @@
 //! `units` and `effects` sections and clip tables from their bytes.
 use std::collections::HashMap;
 
-use presentation::fielded::{self, Sections};
+use presentation::fielded::{self, ContentCache, Sections};
 use serde_json::{json, Value};
 use wasm_bindgen::prelude::*;
 
@@ -20,6 +20,7 @@ pub struct Fielding {
     kinds: Vec<String>,
     factions: Option<[String; 2]>,
     tables: Vec<Vec<f32>>,
+    cache: ContentCache,
 }
 
 impl Fielding {
@@ -34,6 +35,7 @@ impl Fielding {
                 .factions
                 .as_ref()
                 .map(|[blue, red]| [blue.as_str(), red.as_str()]),
+            cache: self.cache.clone(),
         }
     }
 }
@@ -69,7 +71,13 @@ impl Fielding {
                 .transpose()
                 .map_err(|e| error(format!("factions: {e}")))?,
             tables: Vec::new(),
+            cache: ContentCache::default(),
         })
+    }
+
+    pub fn set_kinds(&mut self, kinds: &str) -> Result<(), JsError> {
+        self.kinds = serde_json::from_str(kinds).map_err(|e| error(format!("kinds: {e}")))?;
+        Ok(())
     }
 
     /// The runtime contents `resolve` reads, by hash.

@@ -193,6 +193,7 @@ fn a_side_always_hears_its_own_units_pop() {
         runtime: &runtime.catalog,
         kinds: &["test_smoke_tank".into()],
         factions: None,
+        cache: Default::default(),
     }
     .resolve(&|hash| runtime.read(hash, "bundle.bin"))
     .unwrap()

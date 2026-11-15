@@ -15,6 +15,7 @@ export async function run(ctx) {
   // An event's detail is the log call's second argument: its text prints
   // nested values as "Object".
   let admissions = [];
+  let allAdmissions = [];
   page.on("console", (message) => {
     const kind = /^\[battle \d+ ms\] (battle staged|art committed|scene rebuild)\b/.exec(
       message.text(),
@@ -22,19 +23,22 @@ export async function run(ctx) {
     if (!kind) return;
     timeline.push(kind[1]);
     if (kind[1] === "battle staged") admissions = [];
-    if (kind[1] === "art committed")
-      admissions.push(
-        message
-          .args()[1]
-          ?.jsonValue()
-          .then((detail) => detail?.work ?? null),
-      );
+    if (kind[1] === "art committed") {
+      const work = message
+        .args()[1]
+        ?.jsonValue()
+        .then((detail) => detail?.work ?? null);
+      admissions.push(work);
+      allAdmissions.push(work);
+    }
   });
   await ctx.openLab(page, ctx.url, 120000);
   await lab(page, () => window.__lab.route.pause());
   await page.waitForFunction(() => window.__lab?.route?.status().status === "paused");
   await advance(page, 90 - (await obs(page)).tick);
   await presented(page);
+  const initialWork = (await Promise.all(allAdmissions)).at(-1);
+  allAdmissions = [];
   // The first scene is built: from here on, only growth.
   timeline.length = 0;
 
@@ -92,7 +96,21 @@ export async function run(ctx) {
   );
   // What each admission since the staging cost (`AdmissionWork` and the page's
   // own counts), as the page logged it.
-  for (const work of await Promise.all(admissions))
-    console.log("battle-growth admission work", JSON.stringify(work));
+  const works = await Promise.all(admissions);
+  const work = works.at(-1);
+  const growthContents = work?.page?.runtimeContentsInflated ?? -1;
+  const initialContents = initialWork?.page?.runtimeContentsInflated ?? -1;
+  ctx.check(
+    "growth inflates only contents the scene had not read before",
+    growthContents >= 0 && initialContents > 0 && growthContents < initialContents,
+    JSON.stringify({ initial: initialWork, growth: work }),
+  );
+  ctx.check(
+    "growth installs one appearance-library generation",
+    work?.page?.appearanceLibraryInstalls === 1,
+    JSON.stringify(work),
+  );
+  for (const admission of works)
+    console.log("battle-growth admission work", JSON.stringify(admission));
   await page.close();
 }
