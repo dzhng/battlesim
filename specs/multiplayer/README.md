@@ -21,20 +21,27 @@ simulation test build here, with other sessions building too. Check
 `df -h .` before any Rust build or new checkout. Under about 30 GB free, run
 Rust passes one or two at a time; under 5 GB, start nothing and ask the user.
 
-**Done and committed:** slices 02, 03, 04, 05, 14 and 24; the module of slice
+**Done and committed:** slices 02 to 06, 14, 20 and 24; the module of slice
 10; the endurance half of slice 01. The branch holds staging as of
 2026-11-15.
 
 **Pick up here, in this order:**
 
-1. **Integrate slice 06,** the battle host, and **slice 20,** the AI
-   inheriting an army. Both went to Codex on 2026-11-15, each in its own
-   checkout, and each writes a report to `throwaway/multiplayer/` there.
-   Slice 20 may come back red on purpose: its "What the result changes"
-   section says what each outcome means.
-2. **Hand out slice 07,** the HTTP transport, once 06 is in. Slice 13 needs
-   nothing first and can go beside it.
-3. **Run slice 01's host half** (O1) on the probe app.
+1. **Integrate slice 07,** the HTTP transport, handed to Codex on
+   2026-11-15 in its own checkout. Its report is in `throwaway/multiplayer/`
+   there.
+2. **Slice 08,** command any seat: the first playable checkpoint, two
+   browsers against the local server. Slice 13 needs nothing first and can
+   go beside it.
+3. **Run slice 01's host half** (O1) on the probe app. `bun run server:soak`
+   is the workload: bundle it, run it on the host, and read its summary
+   line.
+
+**Waiting on the user, not blocking:** slice 20 found that an AI handed 150
+units gets only 30 orders through per planner round. Before slice 22 the
+user chooses between spreading the AI's orders (recommended) and capping
+what one seat may receive. See the results in
+[slice 20](slices/20-ai-inherits-an-army.md).
 
 **How to work with Codex here.**
 
@@ -97,7 +104,7 @@ Rooms
 - [ ] [19 Milestone: a room battle across the internet](slices/19-milestone.md)
 
 Frontline
-- [ ] [20 An AI inherits an army](slices/20-ai-inherits-an-army.md)
+- [x] [20 An AI inherits an army](slices/20-ai-inherits-an-army.md) (it copes at 30 and not at 150; a choice for the user before slice 22)
 - [ ] [21 Frontline rules](slices/21-frontline-rules.md)
 - [ ] [22 Army hand-over](slices/22-army-hand-over.md)
 - [ ] [23 Seat reset](slices/23-seat-reset.md)

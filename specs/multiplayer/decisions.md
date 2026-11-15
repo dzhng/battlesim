@@ -218,4 +218,6 @@ Append here: the slice, the decision, why, and what it replaced.
 | 06 | The host throws for a seat or player the battle does not have. Refusing a stranger (`not_seated`) is the transport's. | The host answering `not_seated` too. |
 | 06 | The host exports the battle's recorded orders (`replay()`). | No way to check a server battle against its replay. |
 | 06 | The server's code finds its data from a repository root it is given, and the battle thread's file beside the bundle. Thread mode runs only from the bundle. | Each file working the root out from its own location, which breaks once bundled. |
+| 20 | An AI handed a 30-unit army copes: every unit is ordered within one planner round and it fights better than an army nobody commands. Rooms may rely on a seat's AI. | Assuming it without a fight: the first tests had no enemy on the field. |
+| 20 | An AI handed 150 units gets only 30 orders through per planner round, because it gives them in one burst. Open, for the user before slice 22: spread the AI's orders (recommended) or cap what a seat may receive. | Counting issued orders as applied: the battle logs an order before it checks the rate limit. |
 

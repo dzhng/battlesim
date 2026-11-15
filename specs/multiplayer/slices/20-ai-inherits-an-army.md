@@ -53,3 +53,81 @@ Tests of what the AI does, not of how it is built:
 ## Delegated
 
 How the 150-unit army is assembled for the test.
+
+## Results (2026-11-15)
+
+The tests are `crates/sim/tests/skirmish_ai_inherits_army.rs`. No simulation
+code changed. This is the slice's second outcome: **it copes at 30 and not
+at 150.**
+
+**At 30 units, it copes.** A human buys 30 tanks, sends them into a fight
+with an active Red AI of the same size, and 90 seconds in the seat is handed
+to its AI. Beside it runs a control: the same battle and seed with nobody
+commanding the army after that moment. A minute later:
+
+| Seed | Blue alive, handed to AI | Blue alive, nobody commanding | Red alive, AI | Red alive, nobody |
+|---|---|---|---|---|
+| 31 | 23 | 18 | 23 | 29 |
+| 32 | 20 | 17 | 30 | 30 |
+| 33 | 15 | 17 | 26 | 30 |
+| 34 | 18 | 18 | 29 | 30 |
+| 35 | 20 | 17 | 30 | 30 |
+
+- Every unit the AI inherited had an order applied within one planner round
+  (five seconds), and none of its orders was refused.
+- The objective Blue held at the handover was still Blue's in every run.
+  That says less than it sounds: it was still Blue's in every control run
+  too, and the scores were identical. An army left alone on an objective
+  holds it for a minute. The difference the AI made is in the fight: it kept
+  more of its army in four seeds of five and killed more of Red's.
+- The AI's 29 orders in its first round fit the order limit of 30 a second
+  exactly. A seat's cap of 30 units and the limit are the same number, so a
+  seat at its cap is at the edge.
+
+**An army that shrank under a human does make the AI change doctrine, and it
+kept its objective anyway.** The AI held the seat with 28 units, a human
+took it for a minute while the fight cut the army to 12, and the AI got it
+back. The seat's AI does not watch while a human holds the seat, so it saw
+the whole loss at once and changed doctrine once, as the walk feared. It did
+not give up the objective it held.
+
+**At 150 units, the AI's orders run into the order limit.** On a field with
+no enemy, a seat holding 150 units was handed to its AI:
+
+| Planner round | Orders applied | Orders refused for rate |
+|---|---|---|
+| 1 | 30 | 117 |
+| 2 | 30 | 87 |
+| 3 | 30 | 57 |
+| 4 | 30 | 27 |
+| 5 | 28 | 0 |
+
+- The AI gives all its orders in one burst at the start of each planner
+  round. The limit holds 30 orders and refills at 30 a second, so one burst
+  gets 30 through and the rest are refused. The limit would allow 150 in the
+  five seconds between rounds; the burst uses a fifth of that.
+- No unit is starved for good: the refused units are ordered in later
+  rounds, and all 150 had an order after five rounds. But 117 of them waited
+  longer than one round, and the last waited 25 seconds. Any change of plan
+  takes that long to reach the whole army.
+- This was measured with the seat's cap raised to 150, because an army over
+  a seat's cap of 30 cannot be built until slice 22 exists. The AI's buying
+  code only compares its unit count to the cap, so at the cap and over it
+  the AI behaves the same: it stops buying.
+- A 150-unit army in a fight was not measured. With an active Red AI the
+  entry roads jammed before 150 units were on the field.
+
+**What this changes.** Rooms are safe: a dropped player's seat holds at most
+30 units. For Frontline it is the choice the slice names, and it is the
+user's, before slice 22:
+
+- **Make the AI spread its orders** across the planner round instead of
+  bursting them. This is the smaller change and removes the cause: 150 units
+  would all be ordered within one round.
+- **Cap what one seat may receive** in a hand-over at what the limit lets
+  through, about 30 units.
+
+Decision 29 already sends a displaced army to the AI seat with the fewest
+units, so the bad case needs four humans on one side. The recommendation is
+the first option.
+

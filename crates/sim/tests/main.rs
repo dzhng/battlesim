@@ -75,6 +75,7 @@ mod side_topology;
 mod sight;
 mod sight_gaps;
 mod skirmish;
+mod skirmish_ai_inherits_army;
 mod skirmish_ai_orders;
 mod skirmish_dispatch;
 mod skirmish_ownership;
