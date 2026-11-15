@@ -1590,10 +1590,10 @@ html {
   gap: 12px;
   font-size: 11px;
 }
-.hud-objective-flags [data-owner="blue"] {
+.hud-objective-flags [data-owner="own"] {
   color: rgb(var(--hud-accent));
 }
-.hud-objective-flags [data-owner="red"] {
+.hud-objective-flags [data-owner="enemy"] {
   color: rgb(var(--hud-enemy));
 }
 .hud-objective-flags [data-contested="true"] {
@@ -1625,8 +1625,8 @@ html {
 .hud-objective-flags [data-owner="neutral"] .ro-icon {
   opacity: 0.65;
 }
-.hud-objective-flags [data-owner="blue"] .ro-icon path,
-.hud-objective-flags [data-owner="red"] .ro-icon path {
+.hud-objective-flags [data-owner="own"] .ro-icon path,
+.hud-objective-flags [data-owner="enemy"] .ro-icon path {
   fill: currentColor;
   fill-opacity: 0.18;
 }

@@ -9,6 +9,7 @@ import { type OrderStyle } from "@packages/battle-renderer/src/orderOverlay";
 import { type PaintStyle } from "@packages/battle-renderer/src/paintStyle";
 import { type SupplyStyle } from "@packages/battle-renderer/src/supplyOverlay";
 import type { Rgba } from "@packages/battle-renderer/src/mesh";
+import type { ZoneCurtainStyle } from "@packages/battle-renderer/src/playAreaOverlay";
 import { type RulerStyle } from "@packages/battle-renderer/src/rangeRulerOverlay";
 import {
   strokeWidth,
@@ -68,6 +69,9 @@ export const gameRulerStyle: RulerStyle = {
 
 /** The objective zone's edge. */
 export const gameZone = overlaySettings.zone as unknown as Rgba;
+
+/** The light a held capture area gives off along its edge. */
+export const gameCaptureCurtain: ZoneCurtainStyle = overlaySettings.capture_curtain;
 
 /** The colour a unit's hidden parts are drawn in through the world in front
  *  of it (`ModelInstance.xray`). */

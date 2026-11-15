@@ -3,6 +3,7 @@
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { hudIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "@web/battle/present/icons";
+import { objectiveStanding, type ObjectiveStanding } from "@web/battle/present/objectiveMarkers";
 import type { ObservationView, SkirmishView } from "@web/battle/sim/observationView";
 import type { SideName } from "@web/battle/sim/protocol";
 
@@ -30,6 +31,13 @@ export function outcome(result: NonNullable<SkirmishView["result"]>, viewer: Sid
   if (viewer === null) return `${result.toUpperCase()} WINS`;
   return result === viewer ? "VICTORY" : "DEFEAT";
 }
+
+/** How the score strip names an objective's standing to the player. */
+const STANDING_LABEL: Record<ObjectiveStanding, string> = {
+  own: "yours",
+  enemy: "enemy",
+  neutral: "neutral",
+};
 
 /** Match authority publishes both teams' progress; territory funds victory
  *  only. `viewer` is the side of the human the client plays, null when it
@@ -66,22 +74,25 @@ export function SkirmishStatus({
         </span>
       )}
       <div className="hud-objective-flags" aria-label="Objectives">
-        {match.objectives.map((objective, index) => (
-          <span
-            key={objective.id}
-            data-owner={objective.owner ?? "neutral"}
-            data-contested={objective.contested}
-            aria-label={`Objective ${index + 1}: ${objective.contested ? "contested" : objective.owner === ours ? "yours" : objective.owner ? "enemy" : "neutral"}`}
-          >
-            <Icon path={hudIcon("objective")} />
-            {index + 1}
-            {objective.contested
-              ? " · CONTESTED"
-              : objective.capturing
-                ? ` · ${Math.floor(objective.captureProgress * 100)}%`
-                : ""}
-          </span>
-        ))}
+        {match.objectives.map((objective, index) => {
+          const standing = objectiveStanding(objective.owner, viewer);
+          return (
+            <span
+              key={objective.id}
+              data-owner={standing}
+              data-contested={objective.contested}
+              aria-label={`Objective ${index + 1}: ${objective.contested ? "contested" : STANDING_LABEL[standing]}`}
+            >
+              <Icon path={hudIcon("objective")} />
+              {index + 1}
+              {objective.contested
+                ? " · CONTESTED"
+                : objective.capturing
+                  ? ` · ${Math.floor(objective.captureProgress * 100)}%`
+                  : ""}
+            </span>
+          );
+        })}
       </div>
     </>
   );

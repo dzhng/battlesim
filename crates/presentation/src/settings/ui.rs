@@ -167,6 +167,14 @@ pub struct OverlaySupply {
     pub reach: [f64; 4],
 }
 
+/// The light a held capture area gives off along its edge.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct OverlayCaptureCurtain {
+    pub height_m: f64,
+    pub alpha: f64,
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct OverlayRuler {
@@ -187,6 +195,7 @@ pub struct Overlay {
     pub orders: OverlayOrders,
     pub supply: OverlaySupply,
     pub zone: [f64; 4],
+    pub capture_curtain: OverlayCaptureCurtain,
     pub ruler: OverlayRuler,
 }
 
@@ -323,6 +332,12 @@ impl Overlay {
                 f64::MIN_POSITIVE,
                 1.0,
             ),
+            (
+                "capture_curtain.alpha",
+                self.capture_curtain.alpha,
+                f64::MIN_POSITIVE,
+                1.0,
+            ),
             ("xray.own[3]", self.xray.own[3], f64::MIN_POSITIVE, 1.0),
             (
                 "xray.selected_alpha",
@@ -354,6 +369,7 @@ impl Overlay {
                 self.orders.building_marker_margin_m,
             ),
             ("orders.drop_line_px", self.orders.drop_line_px),
+            ("capture_curtain.height_m", self.capture_curtain.height_m),
             ("ruler.line_px", self.ruler.line_px),
             ("ruler.tick_px", self.ruler.tick_px),
             ("ruler.tick_line_px", self.ruler.tick_line_px),

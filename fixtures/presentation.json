@@ -318,6 +318,7 @@
     },
     "supply": { "reach": [0.95, 0.95, 0.98, 1] },
     "zone": [0.95, 0.95, 0.95, 1],
+    "capture_curtain": { "height_m": 16, "alpha": 0.45 },
     "ruler": {
       "line_px": 4,
       "tick_px": 26,
