@@ -7,7 +7,7 @@ mod support;
 use contract::identity::ContentId;
 use presentation::presentation::{lab::Asset, Presentation};
 use presentation::records::{Appearance, Joint, NONE};
-use renderer_core::bundle::Library;
+use renderer_core::bundle::{Library, SourceDraft};
 use renderer_core::effects::EffectSheets;
 use renderer_core::models::Models;
 use renderer_core::models::VERTEX_BYTES;
@@ -113,6 +113,18 @@ fn same_name_with_new_content_replaces_the_admitted_art() {
     let bytes_a = bundle_bytes("static", 1);
     let bytes_b = bundle_bytes("static", 2);
 
+    let mut presentation = Presentation::new(None, 30.).unwrap();
+    presentation.install_lab_assets(
+        [(
+            "synthetic".into(),
+            (
+                content_id(&bytes_a),
+                Asset::from_bundle(&bytes_a, None).unwrap(),
+            ),
+        )]
+        .into(),
+        detail(),
+    );
     let mut library = Library::default();
     library
         .insert_bundle("synthetic", content_id(&bytes_a), &bytes_a, &[])
@@ -129,7 +141,7 @@ fn same_name_with_new_content_replaces_the_admitted_art() {
         .unwrap();
     assert_eq!(library.take_admission_work().bundles_decoded, 1);
     assert_eq!(
-        library.missing_content(&[content_id(&bytes_a)]),
+        library.missing_content(&presentation, &[content_id(&bytes_a)]),
         vec![content_id(&bytes_a)]
     );
     assert_eq!(Arc::strong_count(&old), 1);
@@ -175,15 +187,24 @@ fn missing_content_is_exact_and_held_sources_decode_nothing() {
     let x = content_id(&missing_x);
     let y = content_id(&missing_y);
     let mut library = Library::default();
+    let mut presentation = Presentation::new(None, 30.).unwrap();
+    presentation.install_lab_assets(
+        [(
+            "held".into(),
+            (held.clone(), Asset::from_bundle(&held_bytes, None).unwrap()),
+        )]
+        .into(),
+        detail(),
+    );
     library
         .insert_bundle("held", held.clone(), &held_bytes, &[])
         .unwrap();
     assert_eq!(
-        library.missing_content(&[held.clone(), x.clone(), y.clone()]),
+        library.missing_content(&presentation, &[held.clone(), x.clone(), y.clone()]),
         vec![x.clone(), y.clone()]
     );
     assert_eq!(
-        library.missing_content(&[y.clone(), held.clone(), x.clone()]),
+        library.missing_content(&presentation, &[y.clone(), held.clone(), x.clone()]),
         vec![y.clone(), x.clone()]
     );
     library.insert_content(x.clone(), &missing_x, &[]).unwrap();
@@ -191,6 +212,44 @@ fn missing_content_is_exact_and_held_sources_decode_nothing() {
     assert_eq!(library.take_admission_work().bundles_decoded, 3);
     library.insert_content(held, &held_bytes, &[]).unwrap();
     assert_eq!(library.take_admission_work().bundles_decoded, 0);
+
+    let mut undeclared = library.empty_generation();
+    undeclared
+        .insert_content(y.clone(), &missing_y, &[])
+        .unwrap();
+    library.replace_with(undeclared);
+    library.retain(|name| name == "held");
+    assert!(
+        !library.has_content(&y),
+        "undeclared draft bytes cannot revive art"
+    );
+}
+
+#[test]
+fn held_requires_both_decoded_content_and_retained_facts() {
+    let bytes = bundle_bytes("static", 7);
+    let id = content_id(&bytes);
+    let mut library = Library::default();
+    let mut presentation = Presentation::new(None, 30.).unwrap();
+    library
+        .insert_bundle("first", id.clone(), &bytes, &[])
+        .unwrap();
+    assert_eq!(
+        library.missing_content(&presentation, std::slice::from_ref(&id)),
+        vec![id.clone()]
+    );
+    let mut draft = SourceDraft::new(&library, &presentation);
+    draft.declare("first".into(), id.clone());
+    draft.add_bundle(id.clone(), &bytes, &[], None).unwrap();
+    let (library, catalog, work) = draft
+        .stage(&library, &presentation, detail(), Default::default())
+        .unwrap();
+    assert_eq!(
+        work.bundles_decoded, 0,
+        "only missing facts are read for decoded content"
+    );
+    assert!(presentation.commit_catalog(catalog, Vec::new()).unwrap());
+    assert!(library.missing_content(&presentation, &[id]).is_empty());
 }
 
 #[test]
@@ -240,27 +299,7 @@ fn first_admission_reports_the_synthetic_fixture_work() {
     );
 }
 
-#[test]
-fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates() {
-    let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
-    let bytes_a = bundle_bytes("static", 1);
-    let bytes_b = bundle_bytes("static", 1);
-    let asset_a = Asset::from_bundle(&bytes_a, None).unwrap();
-    let asset_b = Asset::from_bundle(&bytes_b, None).unwrap();
-    let mut presentation = Presentation::new(None, 30.).unwrap();
-    presentation.install_lab_assets(
-        BTreeMap::from([("synthetic-a".into(), (content_id(&bytes_a), asset_a))]),
-        detail(),
-    );
-    presentation
-        .set_lab_models(
-            serde_json::from_value(json!([{
-                "appearance":"synthetic-a", "x":0, "y":0, "z":0, "yaw":0,
-                "tier":0, "pose":{"kind":"static", "state":"default"}
-            }]))
-            .unwrap(),
-        )
-        .unwrap();
+fn set_synthetic_ground(presentation: &mut Presentation) {
     let game: serde_json::Value =
         serde_json::from_str(include_str!("../../../fixtures/presentation.json")).unwrap();
     let settings = presentation::settings::PresentationSettings::from_value(&game).unwrap();
@@ -287,6 +326,30 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
             settings.tuning(),
         )
         .unwrap();
+}
+
+#[test]
+fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates() {
+    let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
+    let bytes_a = bundle_bytes("static", 1);
+    let bytes_b = bundle_bytes("static", 1);
+    let asset_a = Asset::from_bundle(&bytes_a, None).unwrap();
+    let asset_b = Asset::from_bundle(&bytes_b, None).unwrap();
+    let mut presentation = Presentation::new(None, 30.).unwrap();
+    presentation.install_lab_assets(
+        BTreeMap::from([("synthetic-a".into(), (content_id(&bytes_a), asset_a))]),
+        detail(),
+    );
+    presentation
+        .set_lab_models(
+            serde_json::from_value(json!([{
+                "appearance":"synthetic-a", "x":0, "y":0, "z":0, "yaw":0,
+                "tier":0, "pose":{"kind":"static", "state":"default"}
+            }]))
+            .unwrap(),
+        )
+        .unwrap();
+    set_synthetic_ground(&mut presentation);
     let geometry = Arc::new(WorldGeometry::from_triangles(&[], &[], &[], 64., None, &[]));
     let mut library_a = Library::from_bundle("synthetic-a", &bytes_a, &[]).unwrap();
     let work_a = library_a.take_admission_work();
@@ -465,4 +528,182 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
         .is_err());
     assert_eq!(runtime.admission_work(), live_after_renewed);
     assert_eq!(world_names(&presentation), renewed_names);
+}
+
+#[test]
+fn first_scene_sources_admit_delta_and_retired_drafts_leave_live_art_intact() {
+    let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
+    let fixtures = [
+        ("x", bundle_bytes("static", 2)),
+        ("y", bundle_bytes("static", 3)),
+    ];
+    let fresh = bundle_bytes("static", 4);
+    let stray = bundle_bytes("static", 5);
+    let mut p = Presentation::new(None, 30.).unwrap();
+    set_synthetic_ground(&mut p);
+    // The browser's initial order: presentation installs all named facts, then
+    // load_bundle fills the decoded library, then Runtime admits that pair.
+    p.install_lab_assets(
+        fixtures
+            .iter()
+            .map(|(name, bytes)| {
+                (
+                    (*name).into(),
+                    (content_id(bytes), Asset::from_bundle(bytes, None).unwrap()),
+                )
+            })
+            .collect(),
+        detail(),
+    );
+    let mut library = Library::default();
+    for (name, bytes) in &fixtures {
+        library
+            .insert_bundle(name, content_id(bytes), bytes, &[])
+            .unwrap();
+    }
+    let mut runtime = Runtime::new(
+        &gpu.device,
+        &gpu.queue,
+        runtime_config(),
+        library.take_admission_work(),
+        RuntimeWorld {
+            presentation: &mut p,
+            assets: &library,
+            geometry: Arc::new(WorldGeometry::from_triangles(&[], &[], &[], 64., None, &[])),
+            effect_sheets: effects(),
+        },
+    )
+    .unwrap();
+    pollster::block_on(runtime.prepare_assets(&gpu.device, &gpu.queue)).unwrap();
+    let mut draft = SourceDraft::new(&library, &p);
+    for (name, bytes) in &fixtures {
+        draft.declare((*name).into(), content_id(bytes));
+    }
+    draft.declare("a".into(), content_id(&fresh));
+    draft.declare("alias-a".into(), content_id(&fresh));
+    let wanted = fixtures
+        .iter()
+        .map(|(_, bytes)| content_id(bytes))
+        .chain([content_id(&fresh)])
+        .collect::<Vec<_>>();
+    let missing = library.missing_content(&p, &wanted);
+    assert_eq!(missing, vec![content_id(&fresh)]);
+    draft
+        .add_bundle(content_id(&fresh), &fresh, &[], None)
+        .unwrap();
+    // The old page may still supply bytes for a hit; neither decoder runs.
+    draft
+        .add_bundle(content_id(&fixtures[0].1), &fixtures[0].1, &[], None)
+        .unwrap();
+    let (grown_library, catalog, work) = draft
+        .stage(&library, &p, detail(), Default::default())
+        .unwrap();
+    assert_eq!(work.bundles_decoded as usize, missing.len());
+    let ready = pollster::block_on(
+        runtime
+            .stage_assets(&gpu.device, &gpu.queue, &p, catalog, &grown_library, work)
+            .unwrap()
+            .prepare(),
+    )
+    .unwrap();
+    assert_eq!(ready.work().bundles_decoded as usize, missing.len());
+    let models = |names: &[&str]| {
+        names.iter().enumerate().map(|(i, name)|
+        serde_json::from_value(json!({"appearance":name,"x":i,"y":0,"z":0,"yaw":0,"tier":0,"pose":{"kind":"static","state":"default"}})).unwrap()
+    ).collect()
+    };
+    assert!(runtime
+        .commit_assets(
+            &gpu.device,
+            &gpu.queue,
+            &mut p,
+            ready,
+            models(&["a", "alias-a", "x", "y"])
+        )
+        .unwrap());
+    library = grown_library;
+    assert!(library.missing_content(&p, &wanted).is_empty());
+    assert!(Arc::ptr_eq(
+        &library.bundle("a").unwrap(),
+        &library.bundle("alias-a").unwrap()
+    ));
+    let camera = presentation::view::Camera {
+        eye: [0., -20., 15.],
+        target: [0.; 3],
+        up: [0., 0., 1.],
+        fov_y: 1.,
+        near: 0.1,
+        size: [64, 64],
+    };
+    assert_eq!(
+        p.frame(0., &camera, &Default::default(), 0)
+            .unwrap()
+            .instances
+            .len(),
+        4
+    );
+
+    let mut late = SourceDraft::new(&library, &p);
+    late.declare("x".into(), content_id(&fixtures[0].1));
+    let mut replacement = SourceDraft::new(&library, &p);
+    replacement.declare("x".into(), content_id(&fresh));
+    replacement
+        .add_bundle(content_id(&stray), &stray, &[], None)
+        .unwrap();
+    let (replaced_library, catalog, work) = replacement
+        .stage(&library, &p, detail(), Default::default())
+        .unwrap();
+    let ready = pollster::block_on(
+        runtime
+            .stage_assets(
+                &gpu.device,
+                &gpu.queue,
+                &p,
+                catalog,
+                &replaced_library,
+                work,
+            )
+            .unwrap()
+            .prepare(),
+    )
+    .unwrap();
+    assert!(runtime
+        .commit_assets(&gpu.device, &gpu.queue, &mut p, ready, models(&["x"]))
+        .unwrap());
+    library = replaced_library;
+    assert!(
+        !library.has_content(&content_id(&stray)),
+        "undeclared bytes must not survive commit"
+    );
+    assert!(!p.retains_catalog_facts(&content_id(&stray)));
+    for (_, bytes) in &fixtures {
+        assert!(
+            !library.has_content(&content_id(bytes)),
+            "unrouted old content is retired"
+        );
+        assert!(!p.retains_catalog_facts(&content_id(bytes)));
+    }
+    let world = p.world().clone();
+    let work = runtime.admission_work();
+    let before = p
+        .frame(0., &camera, &Default::default(), 0)
+        .unwrap()
+        .instances
+        .clone();
+    let error = late
+        .stage(&library, &p, detail(), Default::default())
+        .err()
+        .expect("retired held content must refuse preparation");
+    assert!(
+        error.contains("source content retired or not supplied"),
+        "{error}"
+    );
+    assert_eq!(p.world(), &world);
+    assert_eq!(runtime.admission_work(), work);
+    assert_eq!(
+        p.frame(0., &camera, &Default::default(), 0)
+            .unwrap()
+            .instances,
+        before
+    );
 }

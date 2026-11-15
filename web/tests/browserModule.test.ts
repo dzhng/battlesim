@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { expect, test } from "vitest";
-import { Presentation } from "@wasm/renderer_browser";
+import { Presentation, bytes_hash } from "@wasm/renderer_browser";
 import {
   ScenePresentation,
   loadPresentation,
@@ -104,7 +104,11 @@ test("external model admission publishes canonical joints and keeps the prior ca
   const ui = { selected: [], xray: false, ghosts: [] };
   try {
     scene.loadWorld({ sun_azimuth: 0.4, sun_elevation: 0.8 });
-    const rows = scene.installLabAssets([{ name: "tool", bundle: articulatedBundle() }], detail);
+    const bundle = articulatedBundle();
+    const rows = scene.installLabAssets(
+      [{ name: "tool", contentId: { bundle: bytes_hash(bundle), skeleton: null }, bundle }],
+      detail,
+    );
     expect(rows.map((r) => r.name)).toContain("tool");
     scene.setLabModels([
       {
@@ -124,8 +128,18 @@ test("external model admission publishes canonical joints and keeps the prior ca
     expect(Array.from(before.palettes.f32.slice(palette, palette + 12))).toEqual([
       1, 0, 0, 5, 0, 1, 0, 6, 0, 0, 1, 7,
     ]);
+    const broken = new Uint8Array();
     expect(() =>
-      scene.installLabAssets([{ name: "broken", bundle: new Uint8Array() }], detail),
+      scene.installLabAssets(
+        [
+          {
+            name: "broken",
+            contentId: { bundle: bytes_hash(broken), skeleton: null },
+            bundle: broken,
+          },
+        ],
+        detail,
+      ),
     ).toThrow("not a bundle");
     const after = scene.frame(1, camera, ui, 0);
     expect(Array.from(after.instances.f32)).toEqual(expectedInstances);

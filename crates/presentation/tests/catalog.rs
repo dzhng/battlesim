@@ -8,8 +8,14 @@ use serde_json::json;
 mod ground;
 
 fn asset() -> Asset {
+    asset_with_height(2)
+}
+fn asset_with_height(height: u32) -> Asset {
+    asset_with_state("default", height)
+}
+fn asset_with_state(state: &str, height: u32) -> Asset {
     let head = serde_json::to_vec(&json!({"content":{"kind":"prop","states":[{
-        "name":"default","bounds":{"min":[-1,-1,0],"max":[1,1,2]},"tiers":[{}]
+        "name":state,"bounds":{"min":[-1,-1,0],"max":[1,1,height]},"tiers":[{}]
     }]},"views":[]}))
     .unwrap();
     let mut bytes = Vec::new();
@@ -92,53 +98,104 @@ fn units_drawn(p: &Presentation, batches: &[presentation::records::Batch]) -> u3
 
 #[test]
 fn catalog_delta_reuses_facts_retained_by_content_identity() {
-    let a = content("a");
-    let x = content("x");
-    let y = content("y");
-    let mut p = Presentation::new(None, 30.0).unwrap();
-    let committed = [
-        ("x".to_owned(), x.clone(), asset()),
-        ("y".to_owned(), y.clone(), asset()),
-    ];
-    p.install_lab_assets(
-        committed
+    let fixtures = [("a", "short", 2), ("x", "tall", 3), ("y", "tower", 4)];
+    let initial = || {
+        let mut p = Presentation::new(None, 30.0).unwrap();
+        p.install_lab_assets(
+            fixtures[1..]
+                .iter()
+                .map(|(name, state, height)| {
+                    (
+                        (*name).to_owned(),
+                        (content(name), asset_with_state(state, *height)),
+                    )
+                })
+                .collect(),
+            detail(),
+        );
+        p
+    };
+    let wanted = || {
+        fixtures
             .iter()
-            .map(|(name, id, fact)| (name.clone(), (id.clone(), fact.clone())))
-            .collect(),
-        detail(),
+            .map(|(name, _, _)| ((*name).to_owned(), content(name)))
+            .collect()
+    };
+    let facts = || {
+        fixtures
+            .iter()
+            .map(|(name, state, height)| (content(name), asset_with_state(state, *height)))
+            .collect()
+    };
+    let models = || {
+        fixtures
+            .iter()
+            .enumerate()
+            .map(|(i, (name, state, _))| {
+                serde_json::from_value(
+                    json!({"appearance":name,"x":i as f64 * 2.0,"y":0,"z":0,"yaw":0,
+            "pose":{"kind":"static","state":state}}),
+                )
+                .unwrap()
+            })
+            .collect()
+    };
+    let (mut delta_p, mut full_p) = (initial(), initial());
+    let delta = delta_p
+        .stage_catalog(
+            wanted(),
+            [(content("a"), asset_with_state("short", 2))].into(),
+            detail(),
+            Default::default(),
+        )
+        .unwrap();
+    let full = full_p
+        .stage_catalog(wanted(), facts(), detail(), Default::default())
+        .unwrap();
+    // World equality includes the row lookup index as well as every public row
+    // and the string arena. Distinct states catch facts routed to the wrong id.
+    assert_eq!(
+        delta.view(&delta_p).unwrap().world(),
+        full.view(&full_p).unwrap().world()
     );
-    let delta = p
+    assert!(delta_p.commit_catalog(delta, models()).unwrap());
+    assert!(full_p.commit_catalog(full, models()).unwrap());
+    assert_eq!(delta_p.world(), full_p.world());
+    let delta_frame = delta_p.frame(0.0, &camera(), &Ui::default(), 0).unwrap();
+    let full_frame = full_p.frame(0.0, &camera(), &Ui::default(), 0).unwrap();
+    assert_eq!(delta_frame.instances.len(), fixtures.len());
+    assert_eq!(delta_frame.batches, full_frame.batches);
+    assert_eq!(delta_frame.instances, full_frame.instances);
+    assert_eq!(delta_frame.palettes, full_frame.palettes);
+}
+
+#[test]
+fn a_held_draft_retired_before_preparation_is_rejected_without_touching_live_art() {
+    let mut p = Presentation::new(None, 30.0).unwrap();
+    p.install_lab_assets([installed("held", asset())].into(), detail());
+    let held_id = content("held");
+    let draft = p
         .stage_catalog(
-            [
-                ("a".to_owned(), a.clone()),
-                ("x".to_owned(), x.clone()),
-                ("y".to_owned(), y.clone()),
-            ]
-            .into_iter()
-            .collect(),
-            [(a.clone(), asset())].into(),
+            [("held".to_owned(), held_id.clone())].into(),
+            Default::default(),
             detail(),
             Default::default(),
         )
         .unwrap();
-    let complete = p
+    let replacement = p
         .stage_catalog(
-            [
-                ("a".to_owned(), a.clone()),
-                ("x".to_owned(), x.clone()),
-                ("y".to_owned(), y.clone()),
-            ]
-            .into_iter()
-            .collect(),
-            [(a, asset()), (x, asset()), (y, asset())].into(),
+            [("replacement".to_owned(), content("replacement"))].into(),
+            [(content("replacement"), asset_with_height(5))].into(),
             detail(),
             Default::default(),
         )
         .unwrap();
-    let delta_world = delta.view(&p).unwrap().world();
-    let complete_world = complete.view(&p).unwrap().world();
-    assert_eq!(delta_world.appearances, complete_world.appearances);
-    assert_eq!(delta_world.strings, complete_world.strings);
+    assert!(p.commit_catalog(replacement, Vec::new()).unwrap());
+    assert!(
+        draft.view(&p).is_err(),
+        "retired held draft must be rejected cleanly"
+    );
+    assert!(names(&p).iter().all(|name| name == "replacement"));
 }
 fn names(p: &Presentation) -> Vec<String> {
     let w = p.world();

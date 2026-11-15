@@ -202,23 +202,47 @@ the player sees behind three other slices. Its batches are bounded by bytes
 because one runtime card is about 3 MB across its targets and a full rebuild
 bakes about 190 of them.
 
-**Slice 07, 2026-11-15.** The binding seam is identity-first: `Renderer::missing_content_ids`
-takes a JSON array of `ContentId` values and returns the missing identities in
-request order; `AppearanceDraft::declare` routes every wanted name to an
-identity; and `AppearanceDraft::add_bundle` supplies one identity's bytes and
-facts. Keeping the old name-plus-bytes admission as a second API was rejected
-because it would preserve the rebuild requirement beside the delta contract.
-The page still calls `add_bundle` for every asset until slice 08; known content
-is a library hit and decodes nothing.
+**Slice 07, 2026-11-15.** The binding seam is identity-first:
+`Renderer::missing_content_ids(presentation, json)` accepts the presentation
+and a JSON array of `ContentId` values, returning missing identities in request
+order. `AppearanceDraft::declare` routes every wanted name to an identity;
+`AppearanceDraft::add_bundle` supplies bytes by identity. A second name-plus-bytes
+API was rejected because it would preserve the full-resend requirement beside
+the delta contract. The page still sends every asset until slice 08; held
+content is a hit for both decoders.
 
-Presentation retains the decoded geometry facts (`Asset`) by `ContentId` at
-catalog commit. Those facts include static state bounds, tier counts and
-corners, or animated appearance rigs, poses and clip tables; staging needs them
-to rebuild rows, pose palettes, culling and scenery fitting when bytes are
-absent. Names are retained only as routes in the wanted set, and retired
-identities are dropped with those routes. Placement metadata remains part of the
-shell declaration because it describes the wanted name's placement and is sent
-with each declaration. Retaining placements in a second identity table was
-rejected as a duplicate owner. The complete-catalog and delta paths are required
-to produce the same world rows and strings, while undeclared source bytes are
-discarded at library retention.
+Presentation owns one immutable `Arc<Asset>` per `ContentId`. Names route to
+identities instead of holding copies; stages share held facts once per identity.
+These facts include static state bounds, tier counts and corners, or animated
+rigs, poses and clip tables. Rows, palettes, culling, building bounds and scenery
+fitting need them when no bytes arrive. A second fact map keyed by name and deep
+clones on every stage were rejected because unchanged rigs and clip tables would
+still cost catalog-sized work.
+
+`Library::missing_content` owns the answer to “held”: decoded bundle and retained
+presentation facts must both exist. The shared `SourceDraft` used by the browser
+binding and native runtime tests uses this same answer. Initial renderer
+installation requires facts for every decoded content identity; the first scene
+installs facts for all its sources before admitting its renderer. Trusting only
+the renderer snapshot was rejected because it could suppress supplied facts that
+presentation lacked. A mesh-only hit supplied by the shell reads its missing
+facts without decoding geometry again.
+
+Drafts retain identities, never old decoded bundle ownership. Preparation
+resolves every declaration against the current committed owners. If another
+commit retired held content, preparation fails before GPU work, leaving live art
+intact; retry belongs to slice 08. Only declared identities survive a successful
+commit, including when the shell supplied extra bytes. A replacement name drops
+its old content when no other route uses it.
+
+Placement metadata remains in each wanted name's declaration because it describes
+placement rather than content. A second identity-keyed placement table was
+rejected as a duplicate owner. Complete and delta admissions must yield equal
+worlds (including the row lookup index) and equal committed draws; the test uses
+distinct facts for each identity so wrong routing cannot pass.
+
+Every `LabAsset` requires its creator's `ContentId`: catalog art passes the
+catalog pair, and generated art uses `generatedContentId`. The binding's fallback
+hash was rejected because it omitted skeleton identity and repeated work at each
+install. `insert_bundle` calls `insert_content`'s single decoder and then routes
+the name; decode failures identify the content.

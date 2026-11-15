@@ -7,6 +7,9 @@ use serde_json::Value;
 use std::collections::{BTreeMap, HashSet};
 use std::sync::{Arc, Weak};
 
+mod draft;
+pub use draft::SourceDraft;
+
 type Result<T> = std::result::Result<T, String>;
 
 /// Source of decoded bundles for appearance admission.
@@ -305,19 +308,7 @@ impl Library {
         bytes: &[u8],
         textures: &[(&str, &[u8])],
     ) -> Result<()> {
-        if !self.bundles.contains_key(&content) {
-            let cache = &mut self.textures;
-            let bundle = decode_with(name, bytes, textures, |id, bytes| {
-                if let Some(texture) = cache.get(id).and_then(Weak::upgrade) {
-                    return Ok(texture);
-                }
-                let texture = Arc::new(texture_bytes(id, bytes)?);
-                cache.insert(id.to_owned(), Arc::downgrade(&texture));
-                Ok(texture)
-            })?;
-            self.bundles.insert(content.clone(), Arc::new(bundle));
-            self.pending_decodes = self.pending_decodes.saturating_add(1);
-        }
+        self.insert_content(content.clone(), bytes, textures)?;
         self.route(name.to_owned(), content);
         Ok(())
     }
@@ -335,14 +326,19 @@ impl Library {
             return Ok(());
         }
         let cache = &mut self.textures;
-        let bundle = decode_with("content", bytes, textures, |id, bytes| {
-            if let Some(texture) = cache.get(id).and_then(Weak::upgrade) {
-                return Ok(texture);
-            }
-            let texture = Arc::new(texture_bytes(id, bytes)?);
-            cache.insert(id.to_owned(), Arc::downgrade(&texture));
-            Ok(texture)
-        })?;
+        let bundle = decode_with(
+            &format!("content {content:?}"),
+            bytes,
+            textures,
+            |id, bytes| {
+                if let Some(texture) = cache.get(id).and_then(Weak::upgrade) {
+                    return Ok(texture);
+                }
+                let texture = Arc::new(texture_bytes(id, bytes)?);
+                cache.insert(id.to_owned(), Arc::downgrade(&texture));
+                Ok(texture)
+            },
+        )?;
         self.bundles.insert(content, Arc::new(bundle));
         self.pending_decodes = self.pending_decodes.saturating_add(1);
         Ok(())
@@ -362,10 +358,18 @@ impl Library {
         self.bundles.keys()
     }
 
-    pub fn missing_content(&self, contents: &[ContentId]) -> Vec<ContentId> {
+    /// A complete retained source needs both decoded geometry and the facts
+    /// presentation will reuse on the next stage.
+    pub fn missing_content(
+        &self,
+        presentation: &presentation::presentation::Presentation,
+        contents: &[ContentId],
+    ) -> Vec<ContentId> {
         contents
             .iter()
-            .filter(|content| !self.has_content(content))
+            .filter(|content| {
+                !self.has_content(content) || !presentation.retains_catalog_facts(content)
+            })
             .cloned()
             .collect()
     }

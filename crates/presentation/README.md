@@ -54,7 +54,10 @@ calls the same reader for workbench drafts.
   models. [Catalog admission](src/presentation/catalog.rs) stages prospective rows and
   pose and placement facts without replacing the observer. Declarations route
   names to `ContentId`s and new facts are supplied by identity; presentation
-  retains every committed fact still named by the wanted set, so a delta has the
+  retains one immutable `Arc<Asset>` per content identity. Names only route to
+  those identities; stages share held facts and discard undeclared supplied
+  facts. Initial tooling installation retains the same facts as catalog commit,
+  so a delta has the
   same complete catalog as a full admission. A draft rebuilds the
   battle's rows, which renumbers those after them, so every static population
   resolves its rows by appearance in the draft's world and never carries a row

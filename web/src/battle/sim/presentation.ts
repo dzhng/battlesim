@@ -345,7 +345,7 @@ export class ScenePresentation {
     for (const asset of assets)
       this.rust.add_lab_asset(
         asset.name,
-        asset.contentId ? JSON.stringify(asset.contentId) : undefined,
+        JSON.stringify(asset.contentId),
         asset.bundle,
         asset.skeleton,
       );

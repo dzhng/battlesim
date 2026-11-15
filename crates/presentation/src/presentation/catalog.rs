@@ -1,4 +1,6 @@
 //! Catalog admission stages geometry facts while the active observer keeps running.
+mod facts;
+pub(in crate::presentation) use facts::Facts;
 mod static_art;
 use static_art::StaticDraft;
 pub(super) use static_art::{building_rows, scenery_from_art};
@@ -10,6 +12,7 @@ use crate::world::Detail;
 use contract::identity::ContentId;
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::Arc;
 
 static NEXT_REVISION: AtomicU32 = AtomicU32::new(1);
 pub(super) fn next_revision() -> u32 {
@@ -43,7 +46,7 @@ impl CatalogState {
     }
 }
 /// The world's records, read once per load.
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct World {
     pub appearances: Vec<Row>,
     pub strings: String,
@@ -119,8 +122,7 @@ pub struct Placement {
 pub struct CatalogDraft {
     revision: u32,
     world: World,
-    assets: BTreeMap<String, Asset>,
-    facts: BTreeMap<ContentId, Asset>,
+    assets: Facts,
     detail: Detail,
     frontier: (usize, usize),
     battle: Option<BattleCatalog>,
@@ -292,6 +294,12 @@ pub(super) fn asset_rest_palette(asset: &Asset, lies: u32) -> Option<Vec<Joint>>
 }
 
 impl Presentation {
+    /// A content identity is held for delta staging only when its geometry
+    /// facts survived the last catalog commit.
+    pub fn retains_catalog_facts(&self, content: &ContentId) -> bool {
+        self.lab.assets.contains_content(content)
+    }
+
     /// Canonical battle/static rows precede the replaceable tooling suffix.
     pub fn canonical_appearance_rows(&self) -> usize {
         self.lab
@@ -315,17 +323,7 @@ impl Presentation {
         detail: Detail,
         placements: BTreeMap<String, Placement>,
     ) -> Result<CatalogDraft, String> {
-        let mut assets = BTreeMap::new();
-        let mut retained = BTreeMap::new();
-        for (name, content) in &wanted {
-            let asset = facts
-                .get(content)
-                .cloned()
-                .or_else(|| self.lab.catalog_facts.get(content).cloned())
-                .ok_or_else(|| format!("{name}: catalog facts missing for content identity"))?;
-            retained.insert(content.clone(), asset.clone());
-            assets.insert(name.clone(), asset);
-        }
+        let assets = self.lab.assets.stage(wanted, facts)?;
         let battle = self.stage_battle_catalog(&assets)?;
         let (rows, _) = self
             .lab
@@ -369,7 +367,6 @@ impl Presentation {
             revision: self.catalog_state.revision,
             world,
             assets,
-            facts: retained,
             detail,
             frontier,
             battle,
@@ -395,7 +392,6 @@ impl Presentation {
         draft.statics.commit(self);
         self.world = draft.world;
         self.lab.assets = draft.assets;
-        self.lab.catalog_facts = draft.facts;
         self.lab.detail = Some(draft.detail);
         self.lab.frontier = Some(draft.frontier);
         self.lab.models = models;
@@ -483,10 +479,7 @@ impl Presentation {
             .collect()
     }
 
-    fn stage_battle_catalog(
-        &self,
-        assets: &BTreeMap<String, Asset>,
-    ) -> Result<Option<BattleCatalog>, String> {
+    fn stage_battle_catalog(&self, assets: &Facts) -> Result<Option<BattleCatalog>, String> {
         let Some(loaded) = &self.loaded else {
             return Ok(None);
         };

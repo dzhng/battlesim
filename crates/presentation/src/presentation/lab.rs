@@ -1,4 +1,5 @@
 //! External tooling models composed into the ordinary presentation frame.
+use super::catalog::Facts;
 use super::*;
 use crate::assets::{Container, BUNDLE};
 use crate::records::FOG_UNITS;
@@ -8,7 +9,6 @@ use contract::identity::ContentId;
 use std::collections::BTreeMap;
 
 /// Geometry facts and authored poses, independent of a battle roster.
-#[derive(Clone)]
 pub enum Asset {
     Animated {
         appearance: Box<Appearance>,
@@ -17,7 +17,6 @@ pub enum Asset {
     Static(Vec<State>),
 }
 
-#[derive(Clone)]
 pub struct State {
     name: String,
     tiers: u32,
@@ -242,8 +241,7 @@ pub enum Pose {
 
 #[derive(Default)]
 pub(super) struct Lab {
-    pub(super) assets: BTreeMap<String, Asset>,
-    pub(super) catalog_facts: BTreeMap<ContentId, Asset>,
+    pub(super) assets: Facts,
     pub(super) detail: Option<Detail>,
     pub(super) models: Vec<ModelInput>,
     /// Canonical battle/static rows and strings precede replaceable tooling rows.
@@ -260,14 +258,7 @@ impl Presentation {
         detail: Detail,
     ) {
         self.catalog_state.renew();
-        self.lab.catalog_facts = assets
-            .values()
-            .map(|(content, asset)| (content.clone(), asset.clone()))
-            .collect();
-        self.lab.assets = assets
-            .into_iter()
-            .map(|(name, (_, asset))| (name, asset))
-            .collect();
+        self.lab.assets = Facts::installed(assets);
         self.lab.detail = Some(detail);
         self.register_lab_rows();
     }
@@ -459,8 +450,8 @@ fn truncate_rows(world: &mut World, (rows, strings): (usize, usize)) {
     world.rows.retain(|_, row| (*row as usize) < rows);
 }
 
-pub(super) fn register_rows(world: &mut World, assets: &BTreeMap<String, Asset>) {
-    for (name, asset) in assets {
+pub(super) fn register_rows(world: &mut World, assets: &Facts) {
+    for (name, asset) in assets.iter() {
         match asset {
             Asset::Static(states) => {
                 for s in states {

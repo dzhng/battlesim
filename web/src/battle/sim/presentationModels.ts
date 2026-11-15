@@ -93,7 +93,7 @@ export function prepareAppearances(
   assets: readonly ModelAsset[],
   detail: ModelDetail,
 ): Promise<PreparedAppearances> {
-  const draft = renderer.appearance_draft(JSON.stringify(detail));
+  const draft = renderer.appearance_draft(presentation, JSON.stringify(detail));
   const work = { bundlesEncoded: 0, bundleBytesSent: 0 };
   try {
     for (const asset of assets) {

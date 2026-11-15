@@ -35,7 +35,12 @@ The core owns [device reconstruction](../renderer-core/README.md#device-reconstr
 
 [Appearance drafts](src/appearance.rs) carry declarations for every wanted name
 and its runtime `ContentId`; `Renderer::missing_content_ids` answers which
-identities lack source bytes. `AppearanceDraft::add_bundle` supplies facts and
+identities lack either decoded source or committed presentation facts. Both
+`missing_content_ids(presentation, json)` and `appearance_draft(presentation,
+detail)` consult the same shared source admission owner. Initial renderer
+installation requires facts for every loaded content identity. A draft resolves
+held content against the current committed owners when prepared; retired
+content refuses preparation without changing live art. `AppearanceDraft::add_bundle` supplies facts and
 bytes by identity, so a draft may send only that missing list while the page can
 still send all bytes. Names route to the bundle hash (and a skinned bundle's
 skeleton hash), never to a reuse decision. Drafts collect source transport and
