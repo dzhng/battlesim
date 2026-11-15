@@ -1,6 +1,6 @@
 # Multiplayer: rooms and Frontline
 
-**Status:** building, and blocked on disk space. Nothing is integrated yet. **Updated:** 2026-11-14.
+**Status:** building. Five slices are in; the rest wait on disk space for a Rust build. **Updated:** 2026-11-14.
 
 Two online modes on one game server. **Rooms:** a host creates a public or
 private room, which is the skirmish lobby with several humans on either side,
@@ -10,68 +10,60 @@ by its own AI.
 
 ## Next Agent Prompt
 
-You are building online multiplayer from this plan, with Codex writing each
-pass in its own checkout and you integrating: read every diff, rerun its
-checks yourself, review, then commit.
+You are building online multiplayer from this plan with
+[implement-spec-with-codex](../../.agents/skills/implement-spec-with-codex/SKILL.md):
+Codex writes each pass and you integrate it. Read
+[decisions.md](decisions.md) first (parts 1 to 3 are settled; part 4 is what
+the build has decided so far) and [wire.md](wire.md), the one wire contract.
 
-**Blocked on disk (2026-11-14).** The machine ran out of space while this
-checkout was building the simulation's tests, with about 3 GB free
-afterwards and other sessions building too. A Rust commit needs the
-pre-commit hook's workspace clippy, which needs a debug build this disk
-cannot hold. Do not build Rust here until the user has freed space; check
-`df -h .` first, and stop under 5 GB.
+**Blocked on disk.** On 2026-11-14 the machine ran out of space during a
+simulation test build here, with other sessions building too. Any commit
+that stages a `.rs` file runs the hook's workspace clippy, which needs a
+debug build of the whole workspace. Check `df -h .` before any Rust build
+or new checkout, and do not start one under 5 GB free: ask the user.
 
-**Where things are:**
+**Done and committed:** slices 04, 05, 14 and 24; the module of slice 10; the
+endurance half of slice 01.
 
-- **Slice 05 is done** and committed (`931f58e89`), reworked at integration:
-  see part 4 of [decisions.md](decisions.md).
-- **Slice 04 is done** and committed, after two repair rounds with Codex and
-  one fix at integration: see part 4 of [decisions.md](decisions.md).
-  **Owed:** nobody has looked at the skirmish lobby in a browser since. It
-  should look and play exactly as before; capture it against its baseline
-  the next time a scene run is possible, before slice 17 builds on it.
-- **Slices 14 and 24 are done** and committed (the room model and Frontline
-  placement), after one repair round with Codex.
-- **Slices 02 and 03** came back from Codex as two commits on the local
-  branch `t3/per-side-publisher-sim-orders` (`67844ee46`, `25dad0b20`).
-  Slice 02 is half integrated: its changes and two fixes sit uncommitted in
-  this checkout, with a copy at
-  `throwaway/multiplayer/slice02-integration-wip.patch`. It is not ready;
-  read "Found at integration" in [slice 02](slices/02-per-side-publisher.md)
-  before touching it. Slice 03 has not been looked at beyond its diff.
-- **Slice 01's** two-hour native run is finished and written up in the slice
-  file: memory, not tick cost, is what limits a long battle. Its host half,
-  O1, has not been started.
+**Pick up here, in this order, once there is space:**
 
-**Next, once there is space:** finish slice 02 as its file says, integrate
-03, and hand out slice 06. Slices 13 and 20 need nothing first. Nothing
-else can start without a Rust build: every remaining slice needs 02, 03 or
-the simulation.
+1. **Finish slice 02.** Codex's commit is `67844ee46` on the local branch
+   `t3/per-side-publisher-sim-orders`. Its changes plus two integration
+   fixes sit uncommitted in this checkout (a copy is at
+   `throwaway/multiplayer/slice02-integration-wip.patch`). One repair is
+   left, and it is written out under "Found at integration" in
+   [slice 02](slices/02-per-side-publisher.md): give per-side publication
+   one owner in `crates/sim` and regenerate the parity fixture from the
+   native test.
+2. **Integrate slice 03.** Codex's commit is `25dad0b20` on the same branch,
+   unreviewed beyond a first read of its diff.
+3. **Hand out slice 06,** the battle host. Slices 13 and 20 need nothing
+   first and can go out beside it.
+4. **Look at the skirmish lobby in a browser.** Nobody has since slice 04
+   replaced its model. It should look and play exactly as before; capture it
+   against its baseline before slice 17 builds on it.
+5. **Run slice 01's host half** (O1) on the probe app.
 
-**Keep parallel work small.** One checkout per child costs about 1 GB before
-any build, and a Rust build adds 1 to 2 GB. Run at most two children at once,
-give slices that share no files to one child, one commit each, and delete a
-child's build output as soon as its commits are safe on a branch.
+**How to work with Codex here.**
 
-**What Codex needs watching for.** Both defects in slice 02 hid behind edited
-tests: one assertion was repinned to the new numbers and one was deleted with
-a comment. Read every changed test for a weakened or removed assertion before
-reading anything else.
-
-1. Read [decisions.md](decisions.md) (every row is settled; do not reopen one)
-   and [wire.md](wire.md) (the one wire contract). The walk that produced the
-   decisions is [the map](visualizations/unknowns-map.html); external practice
-   is in [research.md](research.md).
-2. Start [slice 01](slices/01-probes.md) in the background: its two-hour run
-   and the host probe need no product code. While it runs, build slices 02 to
-   05, which depend on nothing and on each other in no order.
-3. Work the ladder below in order after that, with
-   [implement-spec](../../.agents/skills/implement-spec/SKILL.md). Each slice file names its seam,
-   its proof, and what is left to you. Anything a slice leaves you to invent
-   that it did not name as delegated is a gap: decide it, and record it in
-   part 4 of [decisions.md](decisions.md).
-4. Commit each slice when its proof passes. Update this section before you end
-   a pass: status, the next pickup point, and the checklist.
+- Pure TypeScript passes run in this checkout (`isolation: shared`), with
+  Codex told not to commit and not to touch other slices' files. That costs
+  no disk. Do not commit while one is running: the hook stashes the working
+  tree.
+- A Rust pass needs its own checkout: about 1 GB before any build and 1 to
+  2 GB after. Run at most two, and delete a child's `target/` and
+  `node_modules` once its commits are safe on a branch.
+- Read the changed tests first. Every pass so far came back green over a
+  weakened gate: an expectation repinned to the new number, an assertion
+  deleted with a comment, a rewrite that dropped nine tests, a new test
+  asserting the bug it was meant to fix. Say in each brief that an existing
+  assertion is never repinned or deleted, then check anyway.
+- Then read the model for what the brief did not say: game data copied into
+  code, module-level state, a parameter nothing uses, a value invented
+  because the function could not know it.
+- Record what a pass decided in part 4 of [decisions.md](decisions.md),
+  bring wire.md and the slice file up to what was built, tick the checklist
+  and update this section before ending a pass.
 
 **Warnings**
 
