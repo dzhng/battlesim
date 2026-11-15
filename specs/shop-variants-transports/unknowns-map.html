@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shop Variants Map</title>
+<style>
+:root{--fg:var(--foreground,#10171d);--mut:var(--muted-foreground,#5b6b77);--ln:var(--border,#c9d3da);--ac:var(--info,#1677a8);
+  --ok:var(--success,#1f8a3a);--wn:var(--warning,#a86b00);--bd:var(--destructive,#b3261e);--cd:var(--card,transparent);--mono:var(--font-mono,ui-monospace,Menlo,monospace)}
+*{box-sizing:border-box}
+body{margin:0;color:var(--fg);font:13px/1.55 var(--font-sans,system-ui,sans-serif)}
+main{max-width:980px;margin:0 auto}
+h1{font-size:18px;margin:0 0 2px}
+h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--ac);margin:28px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--ln)}
+h3{font-size:13px;margin:16px 0 6px}
+.dim{color:var(--mut)}
+code{font-family:var(--mono);font-size:12px}
+table{width:100%;border-collapse:collapse;margin:6px 0 12px;font-size:12.5px}
+th,td{border:1px solid var(--ln);padding:5px 7px;vertical-align:top;text-align:left}
+th{color:var(--mut);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+.who{white-space:nowrap;font-size:10.5px;padding:0 5px;border:1px solid;border-radius:3px}
+.u{color:var(--ok)}.t{color:var(--ac)}.a{color:var(--wn)}.o{color:var(--bd)}
+.card{border:1px solid var(--ln);border-left:3px solid var(--ac);padding:8px 11px;margin:7px 0;border-radius:var(--radius,4px);background:var(--cd)}
+.card.edge{border-left-color:var(--wn)}
+.card b.h{display:block;margin-bottom:2px}
+.contract{border:1px solid var(--ac);border-radius:var(--radius,4px);padding:10px 12px;font-family:var(--mono);font-size:12px;white-space:pre-wrap;overflow-x:auto}
+details{border:1px solid var(--ln);border-radius:var(--radius,4px);padding:6px 10px;margin:6px 0}
+summary{cursor:pointer;font-weight:600}
+textarea{width:100%;height:190px;font:12px/1.45 var(--mono);color:var(--fg);background:transparent;border:1px solid var(--ln);border-radius:var(--radius,4px);padding:8px}
+ul{padding-left:20px;margin:4px 0}
+</style>
+</head>
+<body><main>
+<h1>Shop: one card per variant, squads bought in transports</h1>
+<p class="dim">Four-quadrant map from the explore-unknowns walk on 2026-11-16, ready to feed write-spec. Throwaway mocks: <code>throwaway/shop-mock/shop-transport.html</code> (the final design) and <code>shop-cards.html</code> (name layouts, rejected).</p>
+
+<h2>The contract change</h2>
+<div class="contract">Order::ConfirmPurchase { variant, carrier: Option&lt;String&gt;, destination }    // carrier omitted when None
+PendingPurchase / PurchasePreview / Reservation / OpeningPurchase   + carrier (optional, #[serde(default)])
+publication pending row (PENDING_FIELDS, 11 → 12), reader, wasm preview_purchase, protocol.ts   + carrier
+Reservation digest: hash carrier only when present  → existing digests, replays, parity fixtures stay byte-identical
+Admission: refuse unless seats(carrier) ≥ squad size; cap needs room for 2; credits ≥ sum
+Arrival: one reservation, same tick: spawn the carrier (Move to destination), then the squad with hold Inside on it; no order for the squad
+Each unit records its own card price (refunds and bounties stay per unit); cancelling a pending pair refunds the sum
+UI: catalog family stays data; the shop and Armory stop grouping by it; FAMILIES_PER_CATEGORY is deleted</div>
+
+<h2>1 · Known knowns: settled ground</h2>
+<ul>
+<li>A catalog card is one variant: <code>id</code> plus <code>roster {factions, family_name, category, variant}</code>, 152 cards in all. Buying one already sends a single card id (<code>crates/contract/src/command.rs:119</code>).</li>
+<li>Today's shop (<code>web/src/battle/present/purchasePicker.tsx</code>) has one tile per family, showing the cheapest price. Hovering opens stacked info cards for every variant. Clicking the tile buys the "first affordable" variant, a hidden choice. Enter buys when exactly one family matches (<code>purchaseFilter.ts</code> <code>enterChoice</code>).</li>
+<li>The card face is 64 × 88 px: role icon, silhouette, price, no text (<code>hud.css:1189</code>, <code>unitFace.tsx</code>).</li>
+<li>Flattened, the largest tab holds 10 cards (US/Eastern JETS); US MBT goes from 2 tiles to 5. The grid scrolls past 45% of the viewport height.</li>
+<li>The AI already uses transports. It buys squads and carriers separately, pairs them by seat count (<code>skirmish_ai/transport.rs</code> <code>carrier_for</code>, <code>want</code>), boards them, and unloads at a drop point outside known enemy reach.</li>
+<li>Carriers: 32 card types with <code>carriage.seats</code> of 3, 8 or 16, including helicopters. Squads have 2–8 soldiers.</li>
+</ul>
+
+<h2>2 · Known unknowns: decision ledger</h2>
+<p class="dim"><span class="who u">user</span> you decided · <span class="who t">territory</span> the code settled it and you saw it · <span class="who a">agent</span> my recommendation, shown to you and not objected to · nothing is OPEN</p>
+<table>
+<tr><th>#</th><th>Decision</th><th>Why</th><th>Closed by</th></tr>
+<tr><td>1</td><td>The shop shows every variant as its own card, with no family grouping.</td><td>Grouping hid choices behind hover and a hidden default.</td><td><span class="who u">user</span></td></tr>
+<tr><td>2</td><td>Cards stay exactly as they are today: same size, role icon, silhouette, price, no text.</td><td>Existing cards carry no text, and the size must not change. Two-line names were mocked and dropped.</td><td><span class="who u">user</span></td></tr>
+<tr><td>3</td><td>Clicking a card starts placing that exact variant. Clicking a squad card buys it on foot.</td><td>No hidden choice.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>4</td><td>Hovering a non-squad card shows that one variant's info card (the existing <code>InfoPanel</code>).</td><td>Hover is how you tell look-alike variants apart (SEP v2 vs SEP v2 Trophy).</td><td><span class="who a">agent</span></td></tr>
+<tr><td>5</td><td>Within a tab, cards are ordered by family, then cheapest first.</td><td>Siblings stay next to each other.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>6</td><td>Each card sits under its own tab via <code>unitGroup</code>. <code>familyGroups</code> is deleted.</td><td>One rule. No shipped family splits across tabs.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>7</td><td>Every squad gets the transport menu, INF and REC alike. The rule keys on the squad body, not the category.</td><td>A physical property, not a role label.</td><td><span class="who u">user</span></td></tr>
+<tr><td>8</td><td>The menu lists every carrier with seats ≥ squad size, helicopters included, plus "On foot".</td><td>The AI's pairing already uses this physical rule.</td><td><span class="who t">territory</span></td></tr>
+<tr><td>9</td><td>Carriers are sectioned by shop tab (REC / IFV·APC / MBT / HELI), cheapest first within each section.</td><td>You asked for sections by role. Tab names are words the player already knows, while raw <code>roles</code> tags are too coarse.</td><td><span class="who u">user</span> + <span class="who a">agent</span> interpretation</td></tr>
+<tr><td>10</td><td>The menu opens with nothing highlighted and no info card showing.</td><td>Info appears only on intent.</td><td><span class="who u">user</span></td></tr>
+<tr><td>11</td><td>Hovering a carrier stacks the carrier's info card on top, the squad's below it marked aboard, then a total bar. Hovering On foot shows only the squad's card.</td><td>You see both units you're buying.</td><td><span class="who u">user</span></td></tr>
+<tr><td>12</td><td>The info stack sits above the whole transport menu, lined up with the hovered card.</td><td>In the mock it covered the section labels.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>13</td><td>On arrival the carrier drives to the placed spot and the squad stays aboard until the player unloads it.</td><td>You keep control: drive on, or unload behind cover.</td><td><span class="who u">user</span></td></tr>
+<tr><td>14</td><td>A pair is two units against the cap and costs the sum. Cancelling it pending cancels both. On the map, refunds are per unit.</td><td>Units stay units.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>15</td><td>Carriers can still be bought alone from their own tab.</td><td>Combat use.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>16</td><td>Keyboard: when search narrows to one squad, its transport menu opens. Up/Down step through it (On foot, then each section cheapest first) and Enter buys the highlighted option, or on foot if nothing is highlighted. Otherwise Enter buys only when exactly one card matches.</td><td>Left/Right stay the text cursor's, and the shop captures Up/Down from the camera.</td><td><span class="who u">user</span> (b) + <span class="who a">agent</span> details</td></tr>
+<tr><td>17</td><td>The AI buys a squad and its ride as one purchase wherever it would have bought both: the opening's squad-and-ride pairs, and a new squad short of a carrier. Boarding stays for re-pairing after a carrier is lost.</td><td>You delegated it: "if it makes sense for AI, add it". It skips the boarding dance and its swap-bug surface. This is a deliberate digest change for AI battles.</td><td><span class="who u">user</span> delegated → <span class="who a">agent</span></td></tr>
+<tr><td>18</td><td>The Armory flattens too, one tile per variant. Tiles show <code>card.name</code>, and the chips and "N VAR" tag go.</td><td>The catalog viewer matches the shop.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>19</td><td>Delete <code>FAMILIES_PER_CATEGORY</code> and <code>check_families</code> (<code>catalog.rs:831-857</code>).</td><td>Nothing on screen depends on the count any more.</td><td><span class="who u">user</span></td></tr>
+<tr><td>20</td><td>Tutorial text and "buy" shot, UI scenes and baselines: rewrite and re-approve after inspecting them. The menu reel is unaffected.</td><td>You delegated it: "you figure it out".</td><td><span class="who u">user</span> delegated → <span class="who a">agent</span></td></tr>
+</table>
+<p class="dim">No preference delegation was set up. Every agent row was shown in chat and stood unchallenged.</p>
+
+<h2>3 · Unknown knowns: what was extracted</h2>
+<ul>
+<li><b>No new chrome on cards.</b> Your first pick was two-line names. Seeing them on the real 64 × 88 px card reversed it: existing cards carry no text, so new ones don't. This made hover info (row 4) load-bearing.</li>
+<li><b>Card size is sacred.</b> Rows 2 and 12 obey this.</li>
+<li><b>Hover-to-choose is liked, but only where there is a real second choice.</b> Families didn't earn it; a squad's ride does.</li>
+<li><b>No preselection.</b> Nothing is highlighted until you show intent (row 10).</li>
+<li><b>Keyboard parity matters</b> (row 16).</li>
+<li><b>The AI should benefit if it can</b>, and you weren't sure it handles transports well today. The territory shows it does, through a boarding path with a pinned swap bug. Row 17 now carries a before/after proof.</li>
+</ul>
+
+<h2>4 · Unknown unknowns: landmines (all decided)</h2>
+<div class="card"><b class="h">The unit cap counts purchases, not units</b><code>skirmish.rs:239,274</code>, <code>skirmish_ai/mod.rs:530,556,563</code>. A pair would slip one unit past the cap. → It counts as two everywhere, the AI included.</div>
+<div class="card"><b class="h">One unit per entry road per dispatch interval</b><code>battle/dispatch.rs:83-237</code>. Two linked purchases would arrive seconds apart. → One reservation carries both and they spawn on the same tick. IDs are <code>units.len()</code> (<code>spawn.rs:55</code>), so the carrier is spawned first. Then the squad gets <code>Hold{Carrier, Inside}</code> and <code>copy_passenger_positions</code>, with two <code>EnteredUnit</code> and <code>record_spawn</code> entries.</div>
+<div class="card"><b class="h">Nothing checks seats for a squad that spawns aboard</b><code>fits</code> only runs when boarding completes (<code>hold.rs:261</code>). Three-seat carriers exist next to eight-man squads. → Admission checks seats ≥ squad size.</div>
+<div class="card"><b class="h">Money is recorded per unit</b>Refunds, bounties and settlement read <code>entered.price</code> (<code>battle.rs:574-603,2536,2579</code>). → Each unit records its own card price, and the two add up to what was paid.</div>
+<div class="card"><b class="h">AI pending bookkeeping reads only <code>p.kind</code></b><code>mod.rs:438-441,600-606</code>. Without the carrier counted, the AI would buy another carrier every decision. Its scripted-plan cursor advances one card per accepted order (<code>mod.rs:251-262</code>). → Count the carrier, and advance the cursor past both cards.</div>
+<div class="card"><b class="h">Fixture text is compared byte-for-byte</b><code>fixtures/parity/skirmish-purchases.json</code> is compared as exact strings (<code>crates/sim/tests/skirmish.rs:786</code>) and replayed in wasm. → The new field is skipped when empty and hashed only when present. Digest <code>216e3841550e5671</code> must not change from the contract step alone.</div>
+<div class="card"><b class="h">Client placement holds one variant from end to end</b>The <code>PurchasePlacementControl</code> preview cache key, <code>usePurchasePlacement.ts:34</code>, the art loader at <code>gameAppearances.ts:330</code> (the carrier's art would never load), the ghost at <code>useBattleSession.ts:441,598</code>, and <code>pendingGhosts.ts:19</code>. → Placement holds a squad plus an optional carrier. The ghost and art are the carrier's. Shift-click repeats the pair, re-checking both costs and two cap slots each time.</div>
+<div class="card"><b class="h">Accessible names duplicate</b>Cards are labelled by <code>family_name</code> (<code>purchasePicker.tsx:243</code>), and Playwright scenes find cards by name. → Label each card with <code>card.name</code>.</div>
+<div class="card"><b class="h">The flyout anchor is found by <code>[data-family]</code></b><code>purchasePicker.tsx:175</code> would pick the first sibling. → Key it by card id.</div>
+<div class="card"><b class="h">The army deck shows a pending pair as two unrelated cards</b><code>armyDeck.tsx:201-235</code>. → The pending squad card gets the existing aboard mark.</div>
+<div class="card"><b class="h">The hover delay applies whenever a menu is open</b><code>purchasePicker.tsx:40,190</code>. → Use it only while a transport menu is open.</div>
+<div class="card edge"><b class="h">Sharp edge: Puma Level C and T-15 Armata are tagged <code>mbt</code></b>These are heavy IFVs, but their role tag puts them in the MBT tab, so they'd appear under the MBT section of the transport menu. That's role data, not a menu rule; fix it in the catalog if it looks wrong.</div>
+<div class="card edge"><b class="h">Sharp edge: helicopters arrive flying at the map's back edge</b>They skip the entry-clear check (<code>dispatch.rs:179-181</code>). A squad bought in a Black Hawk arrives by air. Unloading needs the low hover (<code>carriage.rs:144</code>), not landing. No change planned.</div>
+<div class="card edge"><b class="h">Sharp edge: the AI unloads loaded carriers immediately</b><code>mod.rs:782</code>. That's correct for the AI. Row 13's "stays aboard" is the player's arrival rule.</div>
+
+<h3>Builder confirms before or while coding</h3>
+<ul>
+<li>Per-card <code>unitGroup</code> splits no shipped family across tabs (rerun the Armory spec's check).</li>
+<li>After the contract and sim step, before any AI change: the digests, parity fixtures and replays are unchanged.</li>
+<li>A squad bought in a helicopter arrives aboard and unloads at a low hover.</li>
+<li>AI: a before/after skirmish tournament shows squads reach objectives sooner and boarding stalls drop. Name the digest change.</li>
+<li>Planned (untyped) cards have neither seats nor squad size, so they never show a menu and never appear in one.</li>
+</ul>
+
+<h2>Tweakable plan</h2>
+<p class="dim">Ordered by how likely you are to want to change something, not by build order.</p>
+<details open><summary>Judgment calls</summary><ul>
+<li>AI pairing policy (row 17). Alternative: leave the AI as it is.</li>
+<li>Info stack placement (row 12). Alternative: beside the menu.</li>
+<li>Keyboard menu order (row 16).</li>
+<li>Armory tile text (row 18).</li>
+</ul></details>
+<details><summary>Mechanical, which you trust me on</summary><ul>
+<li>Contract field, admission, reservation and publication changes, plus the same-tick spawn aboard. Proof: sim e2e (buy a pair, arrives loaded, cap and refunds correct) and unchanged digests.</li>
+<li>Client: flat grid, card ids, transport menu, info stack, keyboard, placement state, aboard mark on the pending card.</li>
+<li>Armory flatten. Delete <code>familyGroups</code>, <code>enterChoice</code>'s family rule and <code>FAMILIES_PER_CATEGORY</code>.</li>
+<li>Rewrite the picker and Armory tests by behaviour. Update the scenes (<code>ui</code>, <code>unit-roster</code>, <code>_appJourney</code>, <code>armory</code>, <code>allies</code>, <code>tutorial-shots</code>), re-approve baselines after inspection, rewrite the tutorial text and re-shoot "buy".</li>
+</ul></details>
+
+<h2>Implementation prompt</h2>
+<textarea readonly>Implement specs/shop-variants-transports/unknowns-map.html. Turn it into a spec with write-spec first (README plus decisions ledger in that folder), then implement-spec.
+Slices: (1) contract and sim, the combined purchase with the squad spawned aboard, with digests and fixtures unchanged for existing battles; (2) flat shop, transport menu, info stack and keyboard; (3) Armory flatten and deleting the family cap; (4) AI combined purchases with a before/after tournament, digest change named; (5) tutorial, scenes and baselines.
+Every decision in the ledger is a given. Don't reopen them. Run screenshot-critique and compare-screenshots on the shop, and show me the shots.</textarea>
+</main></body>
+</html>
