@@ -25,9 +25,12 @@ error. Excess dead slots or exhausted addresses admit through the same path with
 a fresh store, with the reason reported in admission work.
 
 The store's geometry index is weak and keyed by content, authored state, baked
-corpse palette and running-gear flags. Generations hold shared immutable tiers;
-the last holder destroys their GPU buffers. Neither a generation's drop nor the
-store explicitly destroys a buffer another generation can draw. Materials and
+corpse palette and running-gear flags. Its shared geometry owner also indexes
+immutable rest bounds and palettes by exact pose bytes; unchanged rows neither
+skin the mesh again nor rescan it for bounds. Different living far poses share
+unposed vertices while retaining distinct rest facts. Both indexes are weak:
+generations hold the payloads, and the last holder destroys their GPU buffers. Neither a generation's
+drop nor the store explicitly destroys a buffer another generation can draw. Materials and
 row routing remain per generation, rebuilt against the stable slot addresses.
 Model texture arrays also have shared final-holder ownership. The art store
 assigns append-only layer slots by texture content id, independently for colour

@@ -2,7 +2,7 @@
 use super::{
     card_store::{CardKey, CardStore},
     textures::TextureStore,
-    Drawable,
+    ModelGeometry,
 };
 use crate::runtime::RebuildReason;
 use contract::identity::ContentId;
@@ -83,7 +83,7 @@ pub(super) struct GeometryKey {
 #[derive(Default)]
 pub struct ArtStore {
     pub(super) slots: MaterialSlots,
-    geometry: HashMap<GeometryKey, Weak<[Drawable]>>,
+    geometry: HashMap<GeometryKey, Weak<ModelGeometry>>,
     pub(super) policy: ArtStorePolicy,
     pub(super) textures: TextureStore,
     pub(super) cards: CardStore,
@@ -110,7 +110,7 @@ impl ArtStore {
         self.textures.record_memory(memory);
         self.cards.record_memory(memory);
         for geometry in self.geometry.values().filter_map(Weak::upgrade) {
-            for tier in geometry.iter() {
+            for tier in &geometry.tiers {
                 memory.buffer(&tier.vertices);
                 memory.buffer(&tier.indices);
             }
@@ -211,13 +211,14 @@ impl ArtStore {
     pub(super) fn geometry(
         store: &SharedArtStore,
         key: GeometryKey,
-        build: impl FnOnce() -> Result<Vec<Drawable>, String>,
-    ) -> Result<Arc<[Drawable]>, String> {
+        work: &mut crate::runtime::AdmissionWork,
+        build: impl FnOnce(&mut crate::runtime::AdmissionWork) -> Result<ModelGeometry, String>,
+    ) -> Result<Arc<ModelGeometry>, String> {
         let mut held = store.lock().expect("art store lock");
         if let Some(geometry) = held.geometry.get(&key).and_then(Weak::upgrade) {
             return Ok(geometry);
         }
-        let geometry: Arc<[Drawable]> = Arc::from(build()?);
+        let geometry = Arc::new(build(work)?);
         held.geometry.insert(key, Arc::downgrade(&geometry));
         Ok(geometry)
     }

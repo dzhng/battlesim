@@ -1138,3 +1138,202 @@ start). The whole gate passes.
   (`AtlasSource::PreferResident`), so its test could compare a reused layer
   with a fresh bake without a test-only accessor. It is production surface
   added for a proof; the whole-spec review decides whether it stays.
+
+**Slice 08a, 2026-11-15.**
+
+- Temporary browser-clock timers falsified the suspected cause: per-row skinning
+  and bounds scans took 289–463 ms per growth although the GPU geometry hit the
+  store. The page's requirements memo runs at initialization; its closure on
+  learned art takes 0.07–0.16 ms. There was one request per arrival. Wanted assets
+  and the content key together take less than 0.5 ms. Rejected: a page-side cache
+  for these small tables, timers/debouncing, a worker or work split across frames.
+- `ModelGeometry`, held through the existing weak `GeometryKey` index, owns
+  packed tiers and a weak index of immutable `RestPose` facts. Rows share both
+  with `Arc`. Geometry keeps the original content/state/baked-pose/tracks key;
+  its rest facts additionally distinguish exact f32 palette bytes. A living
+  far-pose change derives new bounds without repacking the unposed mesh, as the
+  merged card test requires. Rejected: adding the living palette to the packed
+  geometry key (it spuriously repacks), a second scene cache or strong retention
+  of retired facts. Routing labels stay on rows, so aliases share facts while
+  review atlases keep the requested appearance name. Final row/geometry drops
+  release both payloads; no retirement protocol was added.
+- `restPosesDerived` counts each actual rest-geometry scan/skin, on the miss where
+  it occurs. Static state aliases and the two scenery placement routes share
+  facts. The gate derives this delta from installed contents, states and sampled
+  authored palettes, alongside exact packed-vertex bytes. Texture ids come only
+  from referenced material channels and are deduplicated across contents/channels.
+  Cards use distinct content/pose keys (sampled f32 palette bytes, not clip labels)
+  and both source array shapes. The runtime spec is fixed during the scene.
+  Zero-card deltas require zero read waits. No production inspection hook was
+  added: installed names and the existing CPU pose owner supply the evidence.
+- Geometry misses retain all tiers. Fresh/shared committed pixels and every
+  returned atlas field, channel and hash match. The new growth regression was
+  red with five derivations versus its fixture's one new row; an alias admission
+  was red with four versus zero. Existing assertions are unchanged, including
+  slice 05's changed-palette test and slice 03's geometry/memory tests.
+
+Timing method: browser `performance.now()` around synchronous page/WASM phases,
+with exclusive nested row intervals. Long Animation Frame entries supply the
+whole frame; the last row is its remainder after the measured intervals (other
+observation/React scripts and browser gaps), not an attribution to Rust. Values
+below add to that frame; displayed rounding can differ by a few hundredths.
+GPU copies use asynchronous timestamp queries around the copy commands, without
+waiting on the CPU; those GPU intervals overlap CPU work and are not added to
+CPU-frame totals. Commit/row-read costs are separate. All probes run serially
+under the shared GPU lock at high graphics; scratch timers and registrations are
+removed. The fixture's existing serial flag and 700 ms tripwire stay unchanged.
+
+Before: accepted slice 08 tree `cd29d94a7` (04 textures, 05a batches, no 05 reuse).
+After: merged `9f478bc70` (05 and 11) plus 08a. Thus the rest-derivation intervals
+and new counter isolate 08a; staging-to-commit also benefits from 05 and is not
+claimed as 08a alone. The small sample repeats the same one-type arrival in
+three fresh pages. Reference arrivals use the supplied reference probe; a
+scratch network hold coalesces two vehicle kinds for the two-type sample.
+| Exclusive wall ms | small 1 | small 2 | small 3 | reference 1 | reference 2 | reference 3 | multi 1 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Page battle JSON/binding | 14.64 | 17.23 | 15.63 | 17.95 | 15.41 | 15.98 | 19.44 |
+| Fielding inside this frame | 0.00 | 0.00 | 18.85 | 0.00 | 18.14 | 0.00 | 0.00 |
+| Presentation stage_battle | 1.16 | 1.49 | 1.23 | 1.47 | 1.30 | 1.19 | 1.29 |
+| Wanted assets / content key | 0.21 | 0.25 | 0.22 | 0.27 | 0.25 | 0.35 | 0.45 |
+| Missing query / declarations | 0.90 | 1.11 | 0.88 | 1.04 | 0.54 | 0.59 | 1.30 |
+| Encode / supply missing art | 3.13 | 3.91 | 2.91 | 3.10 | 3.71 | 14.38 | 7.71 |
+| Catalog facts | 0.17 | 0.22 | 0.21 | 0.19 | 0.08 | 0.07 | 0.23 |
+| Catalog battle / rows / strings | 3.53 | 4.06 | 3.37 | 4.30 | 4.62 | 4.73 | 5.99 |
+| Catalog statics | 3.28 | 3.72 | 3.61 | 5.25 | 4.42 | 4.44 | 6.36 |
+| Content walk / store preflight | 0.50 | 0.65 | 0.55 | 0.66 | 0.61 | 0.62 | 0.81 |
+| Materials | 1.03 | 0.48 | 0.44 | 0.47 | 0.31 | 0.45 | 0.72 |
+| Rest palette / row routing | 2.94 | 3.21 | 1.91 | 2.46 | 2.39 | 3.61 | 3.94 |
+| Rest facts (skin / bounds) | 424.76 | 363.52 | 289.42 | 302.14 | 305.17 | 463.08 | 388.29 |
+| New geometry | 11.50 | 9.57 | 7.45 | 8.19 | 5.74 | 34.58 | 18.15 |
+| Texture store (CPU) | 5.84 | 6.37 | 5.51 | 6.14 | 0.22 | 6.25 | 7.24 |
+| Generation buffers / bindings | 0.06 | 0.07 | 0.05 | 0.06 | 0.06 | 0.10 | 0.10 |
+| Scenery / grass carry | 0.31 | 0.39 | 0.29 | 0.34 | 0.10 | 0.10 | 0.48 |
+| Source seam / request remainder | 1.86 | 2.39 | 1.99 | 2.20 | 1.05 | 1.12 | 2.73 |
+| Card preflight / submit / bind | 0.56 | 0.57 | 0.66 | 0.55 | 0.57 | 0.89 | 0.62 |
+| Canonical frame / render | 1.18 | 0.97 | 1.94 | 1.39 | 3.57 | 1.82 | 0.74 |
+| Other browser / observation / React | 4.43 | 5.82 | 30.89 | 10.83 | 44.73 | 13.64 | 14.41 |
+| **Frame total** | **482.00** | **426.00** | **388.00** | **369.00** | **413.00** | **568.00** | **481.00** |
+
+After:
+
+| Exclusive wall ms | small 1 | small 2 | small 3 | reference 1 | reference 2 | reference 3 | multi 1 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Page battle JSON/binding | 13.84 | 17.25 | 13.62 | 14.83 | 14.39 | 15.65 | 20.13 |
+| Fielding inside this frame | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 27.87 | 0.00 |
+| Presentation stage_battle | 1.18 | 1.37 | 1.13 | 1.19 | 1.17 | 1.14 | 1.53 |
+| Wanted assets / content key | 0.19 | 0.25 | 0.21 | 0.23 | 0.24 | 0.23 | 0.41 |
+| Missing query / declarations | 0.80 | 1.05 | 0.86 | 0.86 | 0.48 | 0.57 | 1.52 |
+| Encode / supply missing art | 3.65 | 2.97 | 3.36 | 3.51 | 2.79 | 21.52 | 10.59 |
+| Catalog facts | 0.16 | 0.20 | 0.16 | 0.18 | 0.07 | 0.08 | 0.27 |
+| Catalog battle / rows / strings | 5.32 | 6.02 | 3.95 | 5.63 | 6.67 | 5.78 | 17.50 |
+| Catalog statics | 3.17 | 3.36 | 3.22 | 4.72 | 4.20 | 4.26 | 5.90 |
+| Content walk / store preflight | 1.15 | 1.31 | 1.04 | 1.16 | 1.23 | 1.23 | 2.05 |
+| Materials | 0.44 | 0.49 | 0.39 | 0.42 | 0.30 | 0.52 | 0.61 |
+| Rest palette / row routing | 1.62 | 2.22 | 1.51 | 1.86 | 2.04 | 1.92 | 2.89 |
+| Rest facts (skin / bounds) | 0.52 | 0.53 | 0.50 | 0.52 | 0.38 | 9.50 | 1.06 |
+| New geometry | 7.96 | 11.19 | 7.73 | 8.66 | 6.33 | 35.02 | 20.01 |
+| Texture store (CPU) | 5.29 | 5.72 | 4.92 | 5.29 | 0.22 | 6.39 | 7.33 |
+| Generation buffers / bindings | 0.06 | 0.08 | 0.06 | 0.06 | 0.09 | 0.06 | 0.09 |
+| Scenery / grass carry | 0.28 | 0.34 | 0.28 | 0.30 | 0.11 | 0.10 | 0.46 |
+| Source seam / request remainder | 1.76 | 2.36 | 1.68 | 1.97 | 1.13 | 0.98 | 3.33 |
+| Card preflight / submit / bind | 1.12 | 1.32 | 1.10 | 1.19 | 1.31 | 1.94 | 1.95 |
+| Canonical frame / render | 1.17 | 0.73 | 0.89 | 0.50 | 4.63 | 1.35 | 1.03 |
+| Other browser / observation / React | 6.33 | 9.22 | 4.39 | 7.91 | 18.22 | 29.89 | 20.35 |
+| **Frame total** | **56.00** | **68.00** | **51.00** | **61.00** | **66.00** | **166.00** | **119.00** |
+
+The seventh column is the coalesced two-type arrival. The three reference
+arrivals after the main comparison were also measured to include the larger
+card-bearing arrival:
+
+| Arrival | Staging frame, before → after ms | Staging → commit, before → after ms | After rest derivation ms | After cards baked |
+| --- | ---: | ---: | ---: | ---: |
+| Small 1 | 482 → 56 | 1,371 → 48 | 0.52 | 0 |
+| Small 2 | 426 → 68 | 1,452 → 56 | 0.53 | 0 |
+| Small 3 | 388 → 51 | 1,192 → 39 | 0.50 | 0 |
+| Reference 1 | 369 → 61 | 2,352 → 49 | 0.52 | 0 |
+| Reference 2 | 413 → 66 | 1,583 → 55 | 0.38 | 0 |
+| Reference 3 | 568 → 166 | 2,163 → 173 | 9.50 | 9 |
+| Reference 4 | not sampled → 127 | not sampled → 54 | 0.29 | 0 |
+| Reference 5 | not sampled → 88 | not sampled → 78 | 0.59 | 0 |
+| Reference 6 | not sampled → 399 | not sampled → 503 | 39.78 | 27 |
+| Two-type arrival | 481 → 119 | 2,961 → 92 | 1.06 | 0 |
+
+Every measured growth makes one staging, one request and one commit. Small
+arrivals each send 2 bundles; reference sends 2, 2, 3, 2, 2, 9; the coalesced
+arrival sends 4. These are observations, not pinned roster expectations.
+The reference's third and sixth arrivals still exceed 100 ms, as does the
+coalesced arrival. The sixth spends 141.24 ms packing **new** geometry,
+39.78 ms deriving its new rest facts, 46.98 ms supplying/decoding new facts,
+12.92 ms encoding, 60.78 ms fielding inside that frame, 22.09 ms in page battle
+JSON/binding, 18.47 ms in catalog staging and 42.99 ms in other browser work.
+That is a remaining new-art arrival stutter and fires the README's reslice
+trigger; it is recorded here, not hidden with scheduling or a looser gate.
+
+| GPU growth copy | Existing bytes copied | GPU elapsed ms | CPU encode + submit ms |
+| --- | ---: | ---: | ---: |
+| Small, linear model array (three runs) | 40,544,784 | 0.89 / 0.74 / 0.66 | 1.00 / 1.19 / 0.93 |
+| Reference 1, model array | 50,680,980 | 0.82 | 1.06 |
+| Reference 3, model arrays | 157,635,628 total | 2.91 + 0.69 | 0.72 + 1.06 |
+| Reference 3, card arrays | 84,934,656 | 2.09 | 0.55 |
+| Reference 6, card arrays | 89,653,248 | 12.26 | 0.64 |
+
+The GPU intervals are real draw-queue work, including marker-pass overhead,
+but queue submission does not wait for them on the main thread. They overlap
+the frame and contribute GPU latency; they do not explain the former 0.3–0.5 s
+CPU scan. One spare layer permits these copies. If array growth is the next
+measured bottleneck, nine spare card layers fit the nine-key one-type arrival;
+**27** fit the larger one-type arrival. Two spare layers in the linear model
+array fit this vehicle's two new linear ids. The current shared spare policy
+would need 27 to cover both card arrivals, reserving about 14 MB of unused card
+planes plus the model-array spares. Rejected here: changing that policy without
+an observed dominant copy stall, or doubling all array capacities.
+
+Per-generation work retained deliberately: catalog facts/routing, battle rows,
+strings and statics; content/card preflight and material rows; evaluated palettes
+and row routing; small buffers and bind groups. The tables quantify them rather
+than adding more caches. Commit takes 3.0–5.9 ms after the change; reading world
+rows takes 0.38–0.90 ms. Before, those are 3.05–8.20 and 0.40–5.58 ms. The page
+requirements pass has no growth-time rebuild, and the content key is called once
+per admission. Before 05, all card submissions together took 13.3–19.7 ms spread
+over the asynchronous batches; only 0.55–0.89 ms belonged to the staging frame.
+After 05 the zero-delta arrivals submit no bake. No card bake or array policy is
+changed by 08a.
+
+The final uninstrumented `battle-growth` gate measures a **54 ms** staging
+frame and **43 ms** staging-to-commit. The unchanged 700 ms tripwire passes.
+Growth work is 2 decoded/encoded bundles (7,942,032 source bytes), 8,648,160
+packed vertex bytes, **5** derived rest facts, **3** referenced texture layers,
+0 texture-array rebuilds, 0 new cards/read waits, 0 scenery placements/static
+uploads, and 1 page install. Existing model layers copy 40,544,784 bytes on the
+GPU. The reference model-array copies were larger (50.7 MB and 157.6 MB across
+both channels), reflecting the observed resident generations; neither is pinned
+to the small fixture's 40.5 MB. The texture and card delta assertions now occupy both marked positions;
+neither is a pinned count. This has no whole-catalog texture or card bake left.
+
+All 64 named renderer/lib tests and 62 selected web tests pass; native-client,
+WASM check/build, typecheck and lint pass. Scratch-probe failures exposed a
+console-listener close race and an incorrect skeleton-container reader in the
+new gate; both were corrected and rerun. A web test started before the clean
+WASM build completed read the scratch profiling artifact; rerunning after that
+build passed with no fallback. The report in `throwaway/slice08a-report.md`
+records the exact commands, errors and evidence. The source retains no timers
+or new production inspection surface.
+
+The uninstrumented scenes `battle-growth`, `stand-in`, `armory` and `workbench`
+all pass, including the armory camera extremes and workbench same-name re-bake,
+stale/failed preparation and departure checks.
+
+**Slice 08a, verified on the merged tree, 2026-11-15.** `battle-growth`: the
+longest frame at the growth is 55 ms; the gate passes with its texture, card
+and rest-pose assertions and its unchanged 700 ms tripwire. The armory,
+workbench and stand-in scenes pass.
+
+**The reslice trigger, open.** After 08a nothing measured in the staging
+frame scales with the catalog. The reference battle's largest arrival still
+took one frame of 399 ms: 141 ms packing new geometry, 61 ms fielding, 47 ms
+decoding, 40 ms deriving new rest poses, the rest small. Two ways to make
+that unnoticed: spread an arrival's new art over frames (the README's
+trigger), or have it done before first contact (slice 09's preload, where
+each step is one type). Decided when slice 09's numbers are in: if the
+preload's own steps hitch, spreading is needed for the preload as much as for
+first contact.

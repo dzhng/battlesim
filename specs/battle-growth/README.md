@@ -1,10 +1,11 @@
 # Battle growth: a new unit type costs only its own art
 
-**Status:** slices 00–07 (with 05a), 10 and 11 are done. Slice 08 is
-merged and its gate is green: with card reuse in, the long frame at staging
-in `battle-growth` is 465 ms (tripwire 700) and the art commits 0.4 s after.
-That frame is still long, so slice 08a stays: it times it and removes what
-scales with the catalog. Two slices are out with implementers.
+**Status:** every slice but 09 is done. In `battle-growth` a one-type
+arrival's longest frame is 55 ms (2.5–2.9 s at the start) and every work
+count is the new art's. Slice 09 (the preload) is with an implementer, on its
+memory report. Open: whether the largest arrivals (0.4 s for nine bundles
+and 27 cards in the reference battle) need their work spread over frames;
+decided with the preload's numbers. Then closeout.
 **Updated:** 2026-11-15.
 
 This plan replaces the "shared GPU assets across generations" placeholder. That
@@ -16,12 +17,11 @@ player sees, and sharing GPU assets is one part of the fix.
 You are fixing the multi-second freeze that happens whenever a running battle
 first fields a unit type it had not shown. The admission work report exists,
 `battle-growth` prints it, and the [ledger](decisions.md) holds what it and
-the reference battle measured. Two slices are out with implementers, each
+the reference battle measured. One slice is out with an implementer, each
 in its own checkout and thread:
 
 | Slice | Branch | State |
 | --- | --- | --- |
-| 08a | `t3/battle-growth-catalog-delta` (the checkout of slices 07 and 08) | Timing the staging frame, then removing what still scales with the catalog. Slice 08's checklist box closes with it. |
 | 09 | `t3/battle-growth-stand-in-mechanics` (the checkout of slices 10 and 11) | Building the queue, the scene and the deeper preload behind its off-by-default switch. Its memory report comes last. The depth rule is applied again from 08a's and 05's numbers before the switch could be turned on. |
 
 When one returns: read its whole diff (changed tests first), rerun its checks
@@ -68,7 +68,7 @@ Checklist:
 - [x] [06 Statics carry](slices/06-statics-carry.md)
 - [x] [07 Catalog delta](slices/07-catalog-delta.md)
 - [x] [08 Browser transport and the growth gate](slices/08-browser-transport-and-growth-gate.md)
-- [ ] [08a The staging frame](slices/08a-the-staging-frame.md)
+- [x] [08a The staging frame](slices/08a-the-staging-frame.md)
 - [ ] [09 Preload](slices/09-preload.md)
 - [x] [10 Stand-in mechanics](slices/10-stand-in-mechanics.md)
 - [x] [11 Stand-in look](slices/11-stand-in-look.md)

@@ -32,13 +32,14 @@ mod diagnostics;
 mod geometry;
 mod impostors;
 mod plan;
+mod rest_pose;
 mod store;
 mod textures;
 use crate::texture_array::SharedArray;
 mod visibility;
 use crate::impostor::{CardInstance, Cards};
 pub use geometry::{pack_vertices, posed_mesh, VERTEX_BYTES};
-use impostors::RestPose;
+use rest_pose::RestPose;
 pub use store::{ArtStore, ArtStorePolicy, MaterialSlots, SharedArtStore};
 /// Material rows a material takes in the materials buffer (`MATERIAL_ROWS`).
 const MATERIAL_ROWS: usize = 5;
@@ -123,20 +124,26 @@ enum Kind {
     Prop,
 }
 
+/// Packed geometry owns the weak index of its pose-specific rest facts.
+struct ModelGeometry {
+    tiers: Vec<Drawable>,
+    rests: std::sync::Mutex<std::collections::BTreeMap<Vec<u8>, std::sync::Weak<RestPose>>>,
+}
+
 struct Row {
     kind: Kind,
     building: bool,
     prop: bool,
-    tiers: Arc<[Drawable]>,
+    geometry: Arc<ModelGeometry>,
+    rest: Option<Arc<RestPose>>,
     /// Baked atlas layer; the authored rest pose is kept for alternate bakes.
     card: Option<u32>,
     card_key: Option<card_store::CardKey>,
-    rest: Option<RestPose>,
 }
 
 impl Row {
     fn drawable(&self, tier: usize) -> Option<&Drawable> {
-        self.tiers.get(tier)
+        self.geometry.tiers.get(tier)
     }
 }
 
@@ -701,7 +708,7 @@ impl Models {
         memory.view(&self.albedo);
         memory.view(&self.surface);
         for row in self.rows.iter().flatten() {
-            for drawable in row.tiers.iter() {
+            for drawable in row.geometry.tiers.iter() {
                 memory.buffer(&drawable.vertices);
                 memory.buffer(&drawable.indices);
             }

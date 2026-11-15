@@ -143,16 +143,17 @@ impl Models {
                 .base(content)
                 .expect("reserved content");
             let label = format!("{name}-{r}");
-            let mut single = |mesh: &Mesh, rigid| {
-                Ok(drawable(
-                    device,
-                    queue,
-                    &label,
-                    bundle,
-                    &[(mesh, pack_vertices(mesh, base, rigid, 0)?)],
-                    work,
-                ))
-            };
+            let single =
+                |mesh: &Mesh, rigid, work: &mut AdmissionWork| -> Result<Drawable, String> {
+                    Ok(drawable(
+                        device,
+                        queue,
+                        &label,
+                        bundle,
+                        &[(mesh, pack_vertices(mesh, base, rigid, 0)?)],
+                        work,
+                    ))
+                };
             let rest = || {
                 plan.palette
                     .clone()
@@ -161,85 +162,130 @@ impl Models {
             let row = match &bundle.shape {
                 Shape::Skinned(tiers) if a.lies != NONE => {
                     let palette = rest()?;
+                    let geometry =
+                        ArtStore::geometry(&store, plan.geometry.clone(), work, |work| {
+                            let finest = tiers.first().map(|mesh| posed_mesh(mesh, &palette));
+                            let tiers = tiers
+                                .iter()
+                                .enumerate()
+                                .map(|(tier, mesh)| {
+                                    if tier == 0 {
+                                        single(finest.as_ref().expect("finest tier"), Some(0), work)
+                                    } else {
+                                        single(&posed_mesh(mesh, &palette), Some(0), work)
+                                    }
+                                })
+                                .collect::<Result<_, _>>()?;
+                            Ok(ModelGeometry {
+                                tiers,
+                                rests: Default::default(),
+                            })
+                        })?;
                     let rest = tiers.first().map(|mesh| {
-                        RestPose::new(name, &posed_mesh(mesh, &palette), RestPose::identity())
+                        geometry.rest_pose(&palette, work, || {
+                            RestPose::new(&posed_mesh(mesh, &palette), RestPose::identity())
+                        })
                     });
-                    let tiers = ArtStore::geometry(&store, plan.geometry.clone(), || {
-                        tiers
-                            .iter()
-                            .map(|m| single(&posed_mesh(m, &palette), Some(0)))
-                            .collect()
-                    })?;
                     Row {
+                        rest,
                         kind: Kind::Corpse,
                         building: a.draws == 0 && a.placed != 0,
                         prop,
-                        tiers,
+                        geometry,
                         card: None,
                         card_key: plan.card.clone(),
-                        rest,
                     }
                 }
                 Shape::Skinned(tiers) => {
                     let palette = rest()?;
+                    let geometry =
+                        ArtStore::geometry(&store, plan.geometry.clone(), work, |work| {
+                            let tiers = tiers
+                                .iter()
+                                .map(|m| single(m, None, work))
+                                .collect::<Result<_, _>>()?;
+                            Ok(ModelGeometry {
+                                tiers,
+                                rests: Default::default(),
+                            })
+                        })?;
                     let rest = tiers.first().map(|mesh| {
-                        RestPose::new(name, &posed_mesh(mesh, &palette), palette.clone())
+                        geometry.rest_pose(&palette, work, || {
+                            RestPose::new(&posed_mesh(mesh, &palette), palette.clone())
+                        })
                     });
                     Row {
+                        rest,
                         kind: Kind::Soldier,
                         building: a.draws == 0 && a.placed != 0,
                         prop,
                         card: None,
                         card_key: plan.card.clone(),
-                        rest,
-                        tiers: ArtStore::geometry(&store, plan.geometry.clone(), || {
-                            tiers.iter().map(|m| single(m, None)).collect()
-                        })?,
+                        geometry,
                     }
                 }
                 Shape::Articulated(nodes) => {
                     let count = nodes.first().map_or(0, |n| n.tiers.len());
-                    let tiers = ArtStore::geometry(&store, plan.geometry.clone(), || {
-                        (0..count)
-                            .map(|t| {
-                                let meshes = articulated_meshes(nodes, t, base, |node| {
-                                    track_side(r as u32, node)
-                                })?;
-                                Ok(drawable(device, queue, &label, bundle, &meshes, work))
+                    let palette = plan.palette.clone();
+                    let geometry =
+                        ArtStore::geometry(&store, plan.geometry.clone(), work, |work| {
+                            let tiers = (0..count)
+                                .map(|t| {
+                                    let meshes = articulated_meshes(nodes, t, base, |node| {
+                                        track_side(r as u32, node)
+                                    })?;
+                                    Ok(drawable(device, queue, &label, bundle, &meshes, work))
+                                })
+                                .collect::<Result<_, String>>()?;
+                            Ok(ModelGeometry {
+                                tiers,
+                                rests: Default::default(),
                             })
-                            .collect()
-                    })?;
+                        })?;
+                    let rest = palette.as_ref().map(|palette| {
+                        geometry.rest_pose(palette, work, || {
+                            RestPose::articulated(nodes, palette.clone())
+                        })
+                    });
                     Row {
+                        rest,
                         kind: Kind::Vehicle,
                         building: a.draws == 0 && a.placed != 0,
                         prop,
-                        tiers,
+                        geometry,
                         card: None,
                         card_key: plan.card.clone(),
-                        rest: plan
-                            .palette
-                            .clone()
-                            .map(|palette| RestPose::articulated(name, nodes, palette)),
                     }
                 }
                 Shape::Static(states) => {
                     let s = states
                         .iter()
-                        .find(|state| state.name == plan.geometry.state)
+                        .find(|s| s.name == plan.geometry.state)
                         .expect("planned authored state");
+                    let geometry =
+                        ArtStore::geometry(&store, plan.geometry.clone(), work, |work| {
+                            let tiers = s
+                                .tiers
+                                .iter()
+                                .map(|m| single(m, Some(0), work))
+                                .collect::<Result<_, _>>()?;
+                            Ok(ModelGeometry {
+                                tiers,
+                                rests: Default::default(),
+                            })
+                        })?;
+                    let palette = RestPose::identity();
+                    let rest = s.tiers.first().map(|mesh| {
+                        geometry.rest_pose(&palette, work, || RestPose::new(mesh, palette.clone()))
+                    });
                     Row {
+                        rest,
                         kind: if prop { Kind::Prop } else { Kind::Piece },
                         building: a.draws == 0 && a.placed != 0,
                         prop,
-                        tiers: ArtStore::geometry(&store, plan.geometry.clone(), || {
-                            s.tiers.iter().map(|m| single(m, Some(0))).collect()
-                        })?,
+                        geometry,
                         card: None,
                         card_key: plan.card.clone(),
-                        rest: s
-                            .tiers
-                            .first()
-                            .map(|mesh| RestPose::new(name, mesh, RestPose::identity())),
                     }
                 }
             };

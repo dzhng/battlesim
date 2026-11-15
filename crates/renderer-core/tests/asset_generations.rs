@@ -7,6 +7,9 @@ mod support;
 #[path = "asset_generations/cards.rs"]
 mod cards;
 
+#[path = "asset_generations/rest_poses.rs"]
+mod rest_poses;
+
 use contract::identity::ContentId;
 use presentation::presentation::{lab::Asset, Presentation};
 use presentation::records::{Appearance, Joint, NONE};
@@ -264,6 +267,7 @@ fn first_admission_reports_the_synthetic_fixture_work() {
         work,
         AdmissionWork {
             bundles_decoded: 1,
+            rest_poses_derived: 1,
             vertex_bytes_packed: expected_vertex_bytes as u64,
             buffer_bytes_uploaded: (expected_vertex_bytes
                 + expected_index_bytes

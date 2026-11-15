@@ -3,58 +3,6 @@ use super::*;
 use crate::impostor::{self, AtlasRequest, AtlasSource, Spec};
 use std::sync::atomic::{AtomicBool, Ordering};
 
-pub(super) struct RestPose {
-    name: String,
-    bounds: [[f64; 3]; 2],
-    palette: Vec<Joint>,
-}
-impl RestPose {
-    pub fn identity() -> Vec<Joint> {
-        vec![Joint {
-            x: [1., 0., 0., 0.],
-            y: [0., 1., 0., 0.],
-            z: [0., 0., 1., 0.],
-        }]
-    }
-    pub fn articulated(name: &str, nodes: &[crate::bundle::Node], palette: Vec<Joint>) -> Self {
-        let mut positions = Vec::new();
-        for (index, node) in nodes.iter().enumerate() {
-            if let Some(mesh) = node.tiers.first() {
-                let joint = &palette[index];
-                for point in mesh.positions.as_chunks::<3>().0 {
-                    for row in [joint.x, joint.y, joint.z] {
-                        positions.push(
-                            row[0] * point[0] + row[1] * point[1] + row[2] * point[2] + row[3],
-                        );
-                    }
-                }
-            }
-        }
-        Self::new(
-            name,
-            &Mesh {
-                positions,
-                ..Default::default()
-            },
-            palette,
-        )
-    }
-
-    pub fn new(name: &str, mesh: &Mesh, palette: Vec<Joint>) -> Self {
-        let mut bounds = [[f64::INFINITY; 3], [f64::NEG_INFINITY; 3]];
-        for point in mesh.positions.as_chunks::<3>().0.iter() {
-            for c in 0..3 {
-                bounds[0][c] = bounds[0][c].min(f64::from(point[c]));
-                bounds[1][c] = bounds[1][c].max(f64::from(point[c]));
-            }
-        }
-        Self {
-            name: name.into(),
-            bounds,
-            palette,
-        }
-    }
-}
 impl Models {
     /// Bake every authored far/corpse pose before admitting a world for drawing.
     /// No simulation or presentation borrow survives these asynchronous reads.
@@ -157,10 +105,10 @@ impl Models {
         }
         let inputs = rows
             .iter()
-            .map(|&row| {
+            .map(|&row_index| {
                 let row = self
                     .rows
-                    .get(row as usize)
+                    .get(row_index as usize)
                     .and_then(Option::as_ref)
                     .ok_or("impostor appearance row is not installed")?;
                 let rest = row
@@ -170,7 +118,7 @@ impl Models {
                 if resident && *spec == Spec::runtime() {
                     if let Some((cards, layer)) = self.cards.as_ref().zip(row.card) {
                         return Ok(impostor::AtlasInput::Resident(impostor::ResidentInput {
-                            appearance: rest.name.clone(),
+                            appearance: self.row_names[row_index as usize].clone(),
                             spec: spec.clone(),
                             frame: cards.metadata[&layer].clone(),
                             array: cards.array.clone(),
@@ -190,6 +138,7 @@ impl Models {
                     )
                 });
                 let drawable = row
+                    .geometry
                     .tiers
                     .first()
                     .ok_or("impostor appearance has no finest mesh")?;
@@ -211,7 +160,7 @@ impl Models {
                 );
                 let part = drawable.part(Surface::Opaque);
                 Ok(impostor::AtlasInput::Bake(impostor::BakeInput {
-                    appearance: rest.name.clone(),
+                    appearance: self.row_names[row_index as usize].clone(),
                     bounds: rest.bounds,
                     vertices: drawable.vertices.clone(),
                     indices: drawable.indices.clone(),

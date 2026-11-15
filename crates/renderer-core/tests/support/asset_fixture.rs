@@ -50,6 +50,10 @@ pub fn bundle_bytes(
     }]});
     if kind == "skinned" {
         content["tiers"] = json!(vec![mesh; tier_count]);
+    } else if kind == "articulated" {
+        content["nodes"] = json!([{"name":"body", "parent":-1, "pivot":[0,0,0],
+            "bind":{"t":[0,0,0], "r":[0,0,0,1], "s":[1,1,1]}, "extras":{},
+            "tiers":vec![mesh; tier_count]}]);
     } else {
         content["states"] = json!([{"name":state, "bounds":{"min":[0,0,0],"max":[1,1,max_z]}, "tiers":vec![mesh; tier_count]}]);
     }
@@ -150,7 +154,9 @@ pub fn models(art: Art<'_>) -> Vec<presentation::presentation::lab::ModelInput> 
             .unwrap();
             json!({
                 "appearance":name, "x":(i % 2) as f32 * 6., "y":(i / 2) as f32 * 6., "z":0, "yaw":0,
-                "tier":0, "pose":{"kind":"static", "state":bundle.content["states"][0]["name"]}
+                "tier":0, "pose": if bundle.content["kind"] == "static" {
+                    json!({"kind":"static", "state":bundle.content["states"][0]["name"]})
+                } else { json!({"kind":"rest"}) }
             })
         })
         .collect::<Vec<_>>()))
