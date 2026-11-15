@@ -668,3 +668,22 @@ art files read by fielding. Still whole: 178 texture layers written (slice
   stand-in is an ordinary `ModelAsset` with its cached `ContentId`, so the
   existing `prepareAppearances` loop declares it before supplying bytes. A
   special stand-in declaration path was rejected as duplicate admission.
+
+**Slice 10, verified on the merged tree, 2026-11-15.** The `stand-in` scene
+passes: with the new art's responses held, the identified vehicle and each
+seen soldier are drawn as one stand-in at the body's size and place, both
+take an attack order by a click, and after the release the models replace
+them at the same positions with no stand-in left.
+
+- The second block in the vehicle shot is an earlier vehicle's wreck. A wreck
+  whose art has not arrived is drawn as a box by the map props' own fallback
+  (`static_world/props.rs`), which predates this plan and has no unit pick.
+  The browser's proxy path draws nothing in a battle. So live units have one
+  owner, the stand-in.
+- An unprimed reading of
+  [the four shots](assets/stand-in/unprimed-critique.md): position, heading
+  and shadow match between each block and its model; the blocks are slightly
+  larger than the art they replace (the body box, not the mesh); nothing
+  floats or sinks. Its look findings go to slice 11: the default block reads
+  as a model that failed to load, and the unit block and the wreck's box are
+  different colours for no reason a player can see.

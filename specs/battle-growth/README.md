@@ -1,7 +1,7 @@
 # Battle growth: a new unit type costs only its own art
 
-**Status:** slices 00, 01, 02, 03, 05a, 06 and 07 are done. Three slices are
-out with implementers (see the lanes below).
+**Status:** slices 00, 01, 02, 03, 05a, 06, 07 and 10 are done. Three
+slices are out with implementers (see the lanes below).
 **Updated:** 2026-11-15.
 
 This plan replaces the "shared GPU assets across generations" placeholder. That
@@ -20,11 +20,11 @@ in its own checkout and thread:
 | --- | --- | --- |
 | 04 | `t3/art-content-identity` (the checkout of slices 02 and 03) | Building. |
 | 08 | `t3/battle-growth-catalog-delta` (slice 07's checkout) | Building. Its gate leaves a marked place for the texture and card assertions, which slices 04 and 05 add when they land. |
-| 10 | `t3/battle-growth-stand-in-mechanics` | The mechanics, scene and close shots are right. Open: a second block in the vehicle shot that is not a Rust stand-in (probably the browser's older proxy path drawing the player's own tank). Then it merges. |
+| 11 | `t3/battle-growth-stand-in-mechanics` (slice 10's checkout) | Building. |
 
 When one returns: read its whole diff (changed tests first), rerun its checks
 yourself, merge it into this branch, then start what it unblocks (05 after
-04; 09 after 08; 11 after 10). The build output of the merged checkouts for
+04; 09 after 08). The build output of the merged checkouts for
 slices 01, 05a and 06 has been removed.
 
 Read, in this order: this file, the [decisions ledger](decisions.md), the slice
@@ -66,7 +66,7 @@ Checklist:
 - [x] [07 Catalog delta](slices/07-catalog-delta.md)
 - [ ] [08 Browser transport and the growth gate](slices/08-browser-transport-and-growth-gate.md)
 - [ ] [09 Preload](slices/09-preload.md)
-- [ ] [10 Stand-in mechanics](slices/10-stand-in-mechanics.md)
+- [x] [10 Stand-in mechanics](slices/10-stand-in-mechanics.md)
 - [ ] [11 Stand-in look](slices/11-stand-in-look.md)
 - [ ] Closeout: correct the stale WASM note in
   [one-renderer](../done/one-renderer/README.md) (confirm first that the
