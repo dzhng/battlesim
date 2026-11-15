@@ -93,3 +93,75 @@ this ledger from scratch against the shipped code.
   - airframes keep overwriting `<appearance>.glb`, which their exports read.
   - *Accepted risk:* a submit retried after a 504 could pay twice if the first
     submit actually landed. That is rare, and the ledger would show it.
+
+## Slice 05 probes (fit changes they forced)
+
+- **The fit centres the body front to back on its thighs, not its torso.**
+  Sound.
+  - *Why:* with a pack or ruck, the torso band's centre sits behind the body.
+    The whole soldier then landed half a pack-depth too far forward, which
+    left the head forward of its joint and shrank the scout to 1.618 m in
+    `stand_aim`. The thighs never carry kit.
+- **The head band for the height fit excludes everything 5% of his height
+  behind the torso centre.** Sound: a ruck's top rising behind the head can't
+  set his height.
+- **Leg slices are centred on the midpoint of their 15th and 85th
+  percentiles**, from the leg's own vertices (within `LEG_REACH`). Moves are
+  smoothed over ±4 slices, and the whole leg region moves together. Sound.
+  - *Why:* the middle of the extent followed protrusions (knee pads,
+    pockets), and filtering which vertices moved tore the shins. The median
+    followed vertex density, not shape.
+- **Back kit rides one bone whole** (`_strap_packs`). Sound, and a physical
+  rule.
+  - *Kit:* above the crotch, behind the back plane, or standing more than
+    `PACK_STANDOFF` off the body behind the back or beside the head (a whip).
+  - *Which bone:* kit joined to what hangs from the shoulders rides `spine_03`,
+    down to a ruck's bottom. Separate kit lower down (an armour flap, a dump
+    pouch) rides the pelvis.
+  - *The seam:* two rings of body vertices round the kit take 50% and 25% of
+    its bone (`KIT_SEAM`). A ruck pivoting off the buttocks stretches the skin
+    over a few faces, not one; before this it tore into a spike.
+  - *Before:* a ruck's top nodded with the head, its sides swung with the arms,
+    a whip stood upright when he lay down, and a flap swung out with a thigh.
+- **The OCP rifleman was regenerated** with the composed prompt, so his pack
+  and radio whip are in the input. The pilot's body stays committed as an old
+  take. Sound.
+- **The scout's pale fringe under the ruck is not regenerated.** Sound: it
+  doesn't show at battle distance in the rear and side renders, and a
+  regeneration costs $0.64.
+- **The EMR body's helmet has a sharp corner at the back of its cover.**
+  Provisional. It is in the generated mesh, so no wearer fix would be general.
+  Slice 07's contact sheet judges whether the EMR body is regenerated.
+
+## Slice 03b (the aim hold)
+
+- **The eye sits at the top of the sight, and the weapon errs low.** This is
+  the user's rule: "make the eye look at the absolute top of the gun … I rather
+  have it be too low than too high … the butt of the gun needs to be aligned
+  with the shoulder".
+  - *How:* the neck cranes up to `NECK_CRANE_DEG` (36°), and the butt slides at
+    most `POCKET_SLIDE` (4 cm) on the shoulder.
+  - *Result:* on the M4s the eye is 0.2–1 cm above the scope's top. On the
+    AK-12 it is 3 cm above, because one hold serves every rifle and the AK has
+    no optic. The user accepts a low weapon.
+- **The eye socket moves to the pupil**, 1.5 cm below spike 03's brow point,
+  measured on three generated heads. Sound.
+  - *Effect:* the simulation's eye stands 1.5 cm lower; `fit.eye` still holds.
+  - *Until slice 09:* procedural exports keep the old socket until they are
+    re-exported.
+- **`fit.cheek`'s floor is skeleton data** (`aim_reference.sight_over_bore_m`:
+  0.05 on the rifle skeleton, absent on the launcher's). Sound: a launcher's
+  sight sits beside its tube, so the eye can be level with or below the bore.
+- **The support hand slides back to reach** (`within_reach`), and the aimed
+  poses swing the support shoulder forward 20° (`lean_in`). Sound.
+  - *Why:* with the butt in the pocket, the handguard was 67–72 cm from the
+    left shoulder, and the arm is 49.5 cm long.
+  - *Ruled out:* putting the clavicle in the IK chain. Blender's legacy solver
+    ignored both stiffness and limits, and hunched the shoulders up beside
+    the helmet.
+- **The walk and run low-ready support hand is 1.7 cm short** of its target.
+  Accepted (5.3 cm before): the walk animation swings the shoulder back, and
+  the hand is already at the magazine well.
+- **The procedural Kornet carried kit stands 1.752 m in stand_aim**, over the
+  1.75 m limit. Provisional, like the `fit.lies` set: it predates this work,
+  and slice 09 replaces the file.

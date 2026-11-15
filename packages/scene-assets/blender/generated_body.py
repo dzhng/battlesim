@@ -9,7 +9,7 @@ body:
 - Fit. The generated mesh is turned to face -Y (the pin says where its front
   faces), decimated to `BODY_TRIS`, and scaled to the rig's rest pose: its
   height (helmet on) to `HEIGHT_M`, its fingertip span to the body's, its
-  feet to the ground, its torso centred on the body's. Then each arm and leg
+  feet to the ground, its thighs centred on the body's. Then each arm and leg
   is seated on its bones, so every joint bends inside its limb.
 - Weights. Each vertex takes its weights from the procedural (slimmed) body,
   by nearest face. An arm vertex takes them only from the body's arm, so a
@@ -31,6 +31,7 @@ import bmesh
 import bpy
 import numpy as np
 from mathutils import Matrix, Vector
+from mathutils.bvhtree import BVHTree
 
 import skin_pins
 import textures
@@ -57,6 +58,18 @@ FLECK = 2.0
 ARM_BLEND = 0.08
 # How far from the hip and the ankle a leg's seating move takes full effect (body units).
 LEG_BLEND = 0.12
+# How far from a leg's bone line its own vertices reach (body units): past it is
+# kit hanging at the hip or a ruck's foot, which must not move the leg's centre.
+LEG_REACH = 0.2
+# How far off the body a pack stands before it rides the upper back alone (body units).
+PACK_STANDOFF = 0.09
+# How much of the kit's bone each ring of body vertices round welded-on kit takes.
+KIT_SEAM = (0.5, 0.25)
+# Half a helmeted head's width (body units): past it, kit rising above the shoulders
+# beside the head is on the back (a whip), not on the head.
+HEAD_HALF_WIDTH = 0.1
+# How many 1 cm slices either side a limb's seating move is averaged over.
+SEAT_SMOOTH = 4
 # A pin's `front`: where its generator's front faces (Tripo +X, Meshy -Y), as
 # the turn that brings it to the rig's -Y.
 FRONT_TURN = {"+x": -np.pi / 2, "-y": 0.0, "-x": np.pi / 2, "+y": np.pi}
@@ -121,12 +134,13 @@ def _sample(atlas, uv):
     return atlas[y, x]
 
 
-def _head_top(g, cx):
-    """The top of the head (helmet on): the highest slice of a central band
-    still `HEAD_WIDE` across, so a whip antenna or a ruck rising above the
-    helmet never sets the soldier's height."""
+def _head_top(g, cx, cy):
+    """The top of the head (helmet on): the highest slice of a band over the
+    torso's centre (`cx`, `cy`; the soldier faces -Y, so a pack is at +Y) still
+    `HEAD_WIDE` across, so a whip antenna or a ruck rising behind the helmet
+    never sets the soldier's height."""
     tall = g[:, 2].max() - g[:, 2].min()
-    band = g[np.abs(g[:, 0] - cx) < 0.07 * tall]
+    band = g[(np.abs(g[:, 0] - cx) < 0.07 * tall) & (g[:, 1] < cy + 0.05 * tall)]
     step, z = 0.005 * tall, band[:, 2].max()
     while z > band[:, 2].min():
         sl = band[(band[:, 2] <= z) & (band[:, 2] > z - 2 * step)]
@@ -139,25 +153,29 @@ def _head_top(g, cx):
 def _fit(gen, body, arm):
     """Scale and place the generated T-pose on the rig's rest pose: its height
     (helmet on, `_head_top`) to `HEIGHT_M`, its fingertip span to the body's, its feet on
-    the ground and its torso centred on the body's."""
+    the ground and its thighs centred on the body's (a pack never reaches them)."""
     g = np.array([v.co[:] for v in gen.data.vertices])
     mw = body.matrix_world
     b = np.array([(mw @ v.co)[:] for v in body.data.vertices])
     g_half = (g[:, 0].max() - g[:, 0].min()) / 2
     g_cx = (g[:, 0].max() + g[:, 0].min()) / 2
-    sz = (HEIGHT_M / SCALE - b[:, 2].min()) / (_head_top(g, g_cx) - g[:, 2].min())
-    sx = (b[:, 0].max() - b[:, 0].min()) / (2 * g_half)
 
-    def torso_y(pts, lo, hi):
+    def thighs_y(pts, lo, hi):
+        # The thighs carry no kit (a pack or ruck rides higher), so their centre
+        # places the body front to back.
         band = pts[(np.abs(pts[:, 0] - (pts[:, 0].max() + pts[:, 0].min()) / 2) < 0.15 * (hi - lo))
-                   & (pts[:, 2] > lo + 0.45 * (hi - lo)) & (pts[:, 2] < lo + 0.65 * (hi - lo))]
+                   & (pts[:, 2] > lo + 0.30 * (hi - lo)) & (pts[:, 2] < lo + 0.42 * (hi - lo))]
         return (band[:, 1].max() + band[:, 1].min()) / 2
 
-    gy = torso_y(g, g[:, 2].min(), g[:, 2].max())
-    by = torso_y(b, b[:, 2].min(), b[:, 2].max())
+    gy = thighs_y(g, g[:, 2].min(), g[:, 2].max())
+    head = _head_top(g, g_cx, gy)  # the head stands over the thighs
+    sz = (HEIGHT_M / SCALE - b[:, 2].min()) / (head - g[:, 2].min())
+    sx = (b[:, 0].max() - b[:, 0].min()) / (2 * g_half)
+    by = thighs_y(b, b[:, 2].min(), b[:, 2].max())
     fit = (Matrix.Translation(((b[:, 0].max() + b[:, 0].min()) / 2, by, b[:, 2].min()))
            @ Matrix.Diagonal((sx, sz, sz, 1))
            @ Matrix.Translation((-g_cx, -gy, -g[:, 2].min())))
+    g0 = g[:, 2].min()
     gen.data.transform(fit)
     # how well the arm line lands on the rig's (elbows), for the log
     g = np.array([v.co[:] for v in gen.data.vertices])
@@ -166,7 +184,8 @@ def _fit(gen, body, arm):
         e = bones["lowerarm_" + side].head_local
         near = g[np.abs(g[:, 0] - e.x) < 0.02]
         print(f"GENERATED_BODY elbow_{side} rig z={e.z:.3f} sleeve z={near[:, 2].min():.3f}..{near[:, 2].max():.3f}")
-    print(f"GENERATED_BODY fit sx={sx:.4f} sz={sz:.4f} top={g[:, 2].max():.3f} (bare body top {b[:, 2].max():.3f})")
+    top = (head - g0) * sz + b[:, 2].min()
+    print(f"GENERATED_BODY fit sx={sx:.4f} sz={sz:.4f} head top={top:.3f} mesh top={g[:, 2].max():.3f} (bare body top {b[:, 2].max():.3f})")
 
 
 def _align_arms(gen, arm):
@@ -222,31 +241,44 @@ def _align_legs(gen, arm):
     a different stance), which swings it out and up whenever the knee bends.
     Each 1 cm slice between the ankle and the hip moves along Y, shape
     unchanged, so its centre sits on the line through the hip, knee and ankle
-    joints. The move fades out over `LEG_BLEND` at both ends: the hip keeps
-    joining the torso, and the foot keeps its own shape."""
+    joints, its centre midway between the 15th and 85th percentiles of its
+    vertices (the leg's own shape: a knee pad or a cargo pocket barely moves it) and its move smoothed over its neighbours (`_smoothed`).
+    The move fades out over `LEG_BLEND` at both ends: the hip keeps joining
+    the torso, and the foot keeps its own shape."""
     bones = arm.data.bones
     me = gen.data
     for side in ("l", "r"):
         joints = [bones[n + side].head_local for n in ("thigh_", "calf_", "foot_")]
         sign = 1.0 if joints[0].x > 0 else -1.0
-        top, bottom = joints[0].z - LEG_BLEND, joints[2].z + 0.02
-        verts = [v for v in me.vertices if v.co.x * sign > 0.0 and bottom < v.co.z < joints[0].z]
-        slices = {}
-        for v in verts:
-            slices.setdefault(int(v.co.z * 100), []).append(v)
+        bottom = joints[2].z + 0.02
 
         def line_y(z):
             a, b = (joints[0], joints[1]) if z >= joints[1].z else (joints[1], joints[2])
             return a.y + (b.y - a.y) * (z - a.z) / (b.z - a.z)
 
-        moves = {k: line_y((k + 0.5) / 100) - (max(v.co.y for v in vs) + min(v.co.y for v in vs)) / 2
-                 for k, vs in slices.items() if len(vs) >= 4}
+        verts = [v for v in me.vertices if v.co.x * sign > 0.0 and bottom < v.co.z < joints[0].z]
+        slices = {}
+        for v in verts:  # the leg's own vertices set its centre; everything in the region moves
+            if abs(v.co.y - line_y(v.co.z)) < LEG_REACH:
+                slices.setdefault(int(v.co.z * 100), []).append(v)
+
+        raw = {k: line_y((k + 0.5) / 100) - float(np.mean(np.percentile([v.co.y for v in vs], (15, 85))))
+               for k, vs in slices.items() if len(vs) >= 4}
+        moves = _smoothed(raw)
         keys = sorted(moves)
         for v in verts:
             k = min(keys, key=lambda q: abs(q - int(v.co.z * 100)))
             fade = min(1.0, (joints[0].z - v.co.z) / LEG_BLEND, (v.co.z - bottom) / LEG_BLEND)
             v.co.y += moves[k] * max(0.0, fade)
         print(f"GENERATED_BODY leg_{side} moved by up to {max((abs(d) for d in moves.values()), default=0):.3f} in y over {len(moves)} slices")
+
+
+def _smoothed(moves, reach=SEAT_SMOOTH):
+    """Slice moves ({slice: move}) averaged over their neighbours within
+    `reach` slices, so a limb shifts as one piece and never tears between two
+    slices that a pocket or a pad pulled apart."""
+    keys = sorted(moves)
+    return {k: float(np.mean([moves[q] for q in keys if abs(q - k) <= reach])) for k in keys}
 
 
 def _cut_hands(gen, arm):
@@ -306,6 +338,7 @@ def _weights(gen, body, arm, scn):
         bpy.ops.object.modifier_apply(modifier=dt.name)
     for name in ("_zone_arm", "_zone_body"):
         gen.vertex_groups.remove(gen.vertex_groups[name])
+    _strap_packs(gen, full, arm)
     vg = gen.vertex_groups
     moves = [(v.index, vg[e.group].name, e.weight) for v in gen.data.vertices for e in v.groups
              if vg[e.group].name.startswith(FINGERS) and e.weight > 0]
@@ -318,6 +351,66 @@ def _weights(gen, body, arm, scn):
     bpy.ops.object.vertex_group_normalize_all(lock_active=False)
     for o in (full, arms):
         bpy.data.objects.remove(o, do_unlink=True)
+
+
+def _strap_packs(gen, body, arm):
+    """Kit on the back rides one bone whole, not whatever body surface happens to
+    be nearest. Kit is a vertex above the crotch behind the back plane (a pack or
+    ruck, its sides too, however near an arm), or one standing more than
+    `PACK_STANDOFF` off the body, either behind the back or above the shoulders
+    beside the head (a radio's whip). Kit joined to what hangs from the shoulders
+    rides the upper back (`spine_03`), down to a ruck's bottom; separate kit lower
+    down (an armour flap, a dump pouch) rides the pelvis. Otherwise a ruck's top
+    nods with the head, its sides swing with the arms, its bottom tears off with a
+    thigh, a whip stays upright when he lies down, and a flap swings out with a
+    thigh. The helmet stays on the head: it sits close over the skull. The soldier
+    faces -Y."""
+    pts = [body.matrix_world @ v.co for v in body.data.vertices]
+    tree = BVHTree.FromPolygons(pts, [tuple(p.vertices) for p in body.data.polygons])
+    back = max(p.y for p in pts if abs(p.x) < 0.15 and 1.0 < p.z < 1.4)  # the upper back's surface
+    shoulder = arm.data.bones["upperarm_l"].head_local.z
+
+    def is_kit(co):
+        if co.z < 0.6 or co.y > back + 0.03:
+            return co.z >= 0.6
+        far = tree.find_nearest(co)[3] > PACK_STANDOFF
+        return far and (co.y > back - 0.02 or (co.z > shoulder and abs(co.x) > HEAD_HALF_WIDTH))
+
+    kit = {v.index for v in gen.data.vertices if is_kit(v.co)}
+    links = {i: [] for i in kit}
+    for e in gen.data.edges:
+        a, b = e.vertices
+        if a in kit and b in kit:
+            links[a].append(b)
+            links[b].append(a)
+    upper = [i for i in kit if gen.data.vertices[i].co.z >= 0.9]
+    hung = set(upper)
+    while upper:  # flood from the shoulders' kit through kit only
+        for j in links[upper.pop()]:
+            if j not in hung:
+                hung.add(j)
+                upper.append(j)
+    near = {i: [] for i in range(len(gen.data.vertices))}
+    for e in gen.data.edges:
+        a, b = e.vertices
+        near[a].append(b)
+        near[b].append(a)
+    for bone, rides in (("spine_03", hung), ("pelvis", kit - hung)):
+        for g in gen.vertex_groups:
+            if g.name != bone:
+                g.remove(sorted(rides))
+        gen.vertex_groups[bone].add(sorted(rides), 1.0, "REPLACE")
+        print(f"GENERATED_BODY {len(rides)} kit vertices ride {bone}")
+        # The body rings round where kit is welded on (a ruck's bottom on the buttocks)
+        # follow it partly, so the seam stretches over a few faces, not one.
+        ring, seen = set(rides), set(rides) | kit
+        for share in KIT_SEAM:
+            ring = {j for i in ring for j in near[i]} - seen
+            seen |= ring
+            for i in ring:
+                for e in gen.data.vertices[i].groups:
+                    e.weight *= 1.0 - share
+                gen.vertex_groups[bone].add([i], share, "ADD")
 
 
 def _skin_like(rgb_linear):
