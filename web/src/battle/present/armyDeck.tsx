@@ -10,9 +10,21 @@ import { unitName } from "./readouts";
 import { CommandBar, type ArmyCommandState } from "./commandBar";
 import { useFeedValue, type FeedSource } from "@web/feed";
 
-/** Own observations populate the army row; selection remains the input owner's,
- *  and a plain click on an already selected card asks the page to centre on it.
- *  Hovering a card hovers its unit, as the pointer over the unit would. */
+/** The unit a card's click selects: a rider's carrier, since a squad a
+ *  carrier holds can't be ordered (D10), else the unit itself. */
+function pickOf(unit: OwnUnitView, own: readonly OwnUnitView[]): number {
+  const host = carrierOf(unit);
+  return host !== null && own.some((u) => u.id === host) ? host : unit.id;
+}
+
+const sameSet = (a: readonly number[], b: readonly number[]) =>
+  a.length === b.length && a.every((id) => b.includes(id));
+
+/** Own observations populate the army row; selection remains the input owner's.
+ *  A click selects one card, Shift-click the run of cards from the last one
+ *  clicked (the anchor), and Cmd- or Ctrl-click adds or removes one. A plain
+ *  click on an already selected card asks the page to centre on it. Hovering
+ *  a card hovers its unit, as the pointer over the unit would. */
 export function ArmyDeck({
   state,
   selected,
@@ -42,6 +54,15 @@ export function ArmyDeck({
 }) {
   const { own, control } = useFeedValue(state);
   const lower = useRef<HTMLDivElement>(null);
+  // The card a run starts from, and the selection the deck last asked for:
+  // once the selection changes any other way, the run starts over.
+  const anchor = useRef<number | null>(null);
+  const asked = useRef<readonly number[] | null>(null);
+  const select = (ids: number[], from: number | null) => {
+    asked.current = ids;
+    if (from !== null) anchor.current = from;
+    onSelect(ids);
+  };
   const deck = useRef<HTMLElement>(null);
   const [hintHost, setHintHost] = useState<HTMLDivElement | null>(null);
   const [hovered, setHovered] = useState<number | null>(null);
@@ -133,7 +154,7 @@ export function ArmyDeck({
               // rides in, and picks its carrier.
               const host = carrierOf(unit);
               const carrier = host === null ? undefined : own.find((u) => u.id === host);
-              const picks = carrier?.id ?? unit.id;
+              const picks = pickOf(unit, own);
               const selectedHere = selected.includes(picks);
               return (
                 <button
@@ -149,13 +170,22 @@ export function ArmyDeck({
                   aria-pressed={selectedHere}
                   aria-describedby={detail?.id === unit.id ? tooltipId : undefined}
                   onClick={(event) => {
-                    onSelect(
-                      event.shiftKey
-                        ? selectedHere
-                          ? selected.filter((id) => id !== picks)
-                          : [...selected, picks]
-                        : [picks],
-                    );
+                    const from = own.findIndex((u) => u.id === anchor.current);
+                    const run =
+                      event.shiftKey &&
+                      from >= 0 &&
+                      asked.current &&
+                      sameSet(asked.current, selected);
+                    if (run) {
+                      const [a, b] = from < index ? [from, index] : [index, from];
+                      const picked = own.slice(a, b + 1).map((u) => pickOf(u, own));
+                      select([...new Set(picked)], null);
+                    } else if (event.metaKey || event.ctrlKey) {
+                      select(
+                        selectedHere ? selected.filter((id) => id !== picks) : [...selected, picks],
+                        unit.id,
+                      );
+                    } else select([picks], unit.id);
                     // A double-click lands here twice: the first selects the card,
                     // the second sees it selected and centres. Modified clicks keep
                     // their selection meaning and never move the camera.

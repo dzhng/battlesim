@@ -117,19 +117,24 @@ test("the army row includes unselected own units and stays visible without a sel
   expect(view.queryByRole("tooltip")).toBeNull();
 });
 
-test("card selection replaces the current selection and Shift toggles individual units", () => {
+test("a click selects one card, Shift-click the run from the last clicked card, Cmd or Ctrl one more", () => {
+  const apc = specimenUnit(TEST_CATALOG, "test_apc", { id: 4 });
+  const rider = {
+    ...specimenUnit(TEST_CATALOG, "test_rifle", { id: 7 }),
+    hold: { host: { kind: "carrier" as const, id: 4 }, phase: "inside", progress: 1 },
+  };
+  const own = [
+    specimenUnit(TEST_CATALOG, "test_tank", { id: 11 }),
+    specimenUnit(TEST_CATALOG, "test_rifle", { id: 22 }),
+    rider,
+    specimenUnit(TEST_CATALOG, "test_supply", { id: 33 }),
+    apc,
+  ];
   function Harness() {
-    const [selected, setSelected] = useState([11]);
+    const [selected, setSelected] = useState<number[]>([]);
     return (
       <ArmyDeck
-        state={
-          new Feed({
-            own: [
-              specimenUnit(TEST_CATALOG, "test_tank", { id: 11 }),
-              specimenUnit(TEST_CATALOG, "test_rifle", { id: 22 }),
-            ],
-          })
-        }
+        state={new Feed({ own })}
         selected={selected}
         onSelect={setSelected}
         rules={shippedRules as unknown as PanelRules}
@@ -138,17 +143,66 @@ test("card selection replaces the current selection and Shift toggles individual
     );
   }
   const view = render(<Harness />);
-  const tank = view.getByRole("button", { name: "Tank #11" });
-  const rifle = view.getByRole("button", { name: "Rifle Section #22" });
-  fireEvent.click(rifle);
-  expect(tank.getAttribute("aria-pressed")).toBe("false");
-  expect(rifle.getAttribute("aria-pressed")).toBe("true");
-  fireEvent.click(tank, { shiftKey: true });
-  expect(tank.getAttribute("aria-pressed")).toBe("true");
-  expect(rifle.getAttribute("aria-pressed")).toBe("true");
-  fireEvent.click(rifle, { shiftKey: true });
-  expect(tank.getAttribute("aria-pressed")).toBe("true");
-  expect(rifle.getAttribute("aria-pressed")).toBe("false");
+  const card = (name: RegExp) => view.getByRole("button", { name });
+  const pressed = () =>
+    view
+      .getAllByRole("button", { pressed: true })
+      .map((b) => b.getAttribute("aria-label")!.split(",")[0]);
+  fireEvent.click(card(/ #22$/));
+  expect(pressed()).toEqual(["Rifle Section #22"]);
+  // The run replaces the selection; a rider in it picks its carrier.
+  fireEvent.click(card(/ #33$/), { shiftKey: true });
+  expect(pressed()).toEqual([
+    "Rifle Section #22",
+    "Rifle Section #7",
+    "Supply Truck #33",
+    "Test APC #4",
+  ]);
+  // A run backwards from the same anchor.
+  fireEvent.click(card(/ #11$/), { shiftKey: true });
+  expect(pressed()).toEqual(["Tank #11", "Rifle Section #22"]);
+  fireEvent.click(card(/ #33$/), { metaKey: true });
+  expect(pressed()).toEqual(["Tank #11", "Rifle Section #22", "Supply Truck #33"]);
+  fireEvent.click(card(/ #22$/), { ctrlKey: true });
+  expect(pressed()).toEqual(["Tank #11", "Supply Truck #33"]);
+  // The toggled card is the new anchor.
+  fireEvent.click(card(/^Test APC #4$/), { shiftKey: true });
+  expect(pressed()).toEqual([
+    "Rifle Section #22",
+    "Rifle Section #7",
+    "Supply Truck #33",
+    "Test APC #4",
+  ]);
+});
+
+test("Shift-click after the selection changed elsewhere starts a new run at the clicked card", () => {
+  const own = [
+    specimenUnit(TEST_CATALOG, "test_tank", { id: 11 }),
+    specimenUnit(TEST_CATALOG, "test_rifle", { id: 22 }),
+    specimenUnit(TEST_CATALOG, "test_supply", { id: 33 }),
+  ];
+  function Harness() {
+    const [selected, setSelected] = useState<number[]>([]);
+    return (
+      <>
+        <button onClick={() => setSelected([])}>Clear</button>
+        <ArmyDeck
+          state={new Feed({ own })}
+          selected={selected}
+          onSelect={setSelected}
+          rules={shippedRules as unknown as PanelRules}
+          contactLines={null}
+        />
+      </>
+    );
+  }
+  const view = render(<Harness />);
+  fireEvent.click(view.getByRole("button", { name: "Tank #11" }));
+  fireEvent.click(view.getByRole("button", { name: "Clear" }));
+  fireEvent.click(view.getByRole("button", { name: "Supply Truck #33" }), { shiftKey: true });
+  expect(
+    view.getAllByRole("button", { pressed: true }).map((b) => b.getAttribute("aria-label")),
+  ).toEqual(["Supply Truck #33"]);
 });
 
 test("a selected card asks the camera to centre while an unselected card only selects", () => {
@@ -182,7 +236,7 @@ test("a selected card asks the camera to centre while an unselected card only se
   expect(onCenter).toHaveBeenCalledOnce();
   expect(onCenter).toHaveBeenCalledWith(rifle);
   onCenter.mockClear();
-  fireEvent.click(rifleCard, { shiftKey: true });
+  fireEvent.click(rifleCard, { metaKey: true });
   expect(rifleCard.getAttribute("aria-pressed")).toBe("false");
   expect(onCenter).not.toHaveBeenCalled();
 });
