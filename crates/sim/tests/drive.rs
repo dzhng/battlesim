@@ -438,3 +438,43 @@ fn a_tank_with_a_trunk_beside_it_rolls_clear_to_turn_and_faces_as_ordered() {
         tank.yaw
     );
 }
+
+/// The moment: a tank pulls up beside another parked half a metre off its
+/// flank and is told to face toward it. Turning on the spot would swing its
+/// corners through the other hull, so the crew gives the turn up rather
+/// than drive into a friend.
+#[test]
+fn a_tank_at_rest_never_turns_into_the_tank_beside_it() {
+    let setup: ScenarioDefinition = serde_json::from_value(json!({
+        "map": { "size": [160, 120], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": rules(),
+        "units": [
+            { "side": "blue", "kind": "test_tank", "position": [60.0, 40.0], "yaw": 0,
+              "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_tank", "position": [70.0, 44.1], "yaw": 0,
+              "engagement": "return_fire_only" },
+        ],
+        "events": [],
+        "scripts": [{ "tick": 1, "side": "blue", "order": { "kind": "move", "units": [0],
+            "gesture": 1, "goal": [70.0, 40.0], "route": "shortest", "direction": "forward",
+            "facing": std::f64::consts::FRAC_PI_2 } }],
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    for _ in 0..30 * 30 {
+        b.step();
+        let hull = |id| b.unit(UnitId(id)).unwrap().ground_footprint().unwrap();
+        assert!(
+            !hull(0).overlaps(&hull(1)),
+            "the tank turned into its neighbour at {:?}",
+            hull(0)
+        );
+        let tank = b.unit(UnitId(0)).unwrap();
+        if b.tick() > 2 && tank.state == MoveState::Idle && tank.turn_to.is_none() {
+            break;
+        }
+    }
+    let tank = b.unit(UnitId(0)).unwrap();
+    assert_eq!(tank.state, MoveState::Idle, "it is still {:?}", tank.state);
+    assert!(tank.turn_to.is_none(), "it still means to turn");
+}

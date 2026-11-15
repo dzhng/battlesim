@@ -521,6 +521,16 @@ pub fn pivot(
     let max = drive.turn_rad_s * dt;
     let yaw = unit.yaw + error.clamp(-max, max);
     let here = unit.ground_footprint().expect("a vehicle has a hull");
+    // Another hull in the way gives the turn up: it checks true hulls, as
+    // a stopped approach may leave less than traffic's buffer beside it.
+    let turned = Obb2 { yaw, ..here };
+    if traffic.iter().enumerate().any(|(id, other)| {
+        id != unit.id.0 as usize && other.is_some_and(|other| turned.overlaps(&other))
+    }) {
+        unit.drive_speed_mps = 0.0;
+        unit.turn_to = None;
+        return;
+    }
     if !blocked(ctx.world, unit, here.center, yaw) {
         unit.yaw = yaw;
         unit.drive_speed_mps = 0.0;
