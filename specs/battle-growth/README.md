@@ -3,7 +3,7 @@
 **Status:** the engine, the transport and the stand-in are on `staging`
 (slices 00–11), with the page-memory fix and the download warm-up. The GPU
 preload is cancelled: the player's rule is zero configuration, so nothing
-ships off by default. One hitch is left, slice 12.
+ships off by default. One hitch is left, slice 13.
 **Updated:** 2026-11-15.
 
 This plan replaces the "shared GPU assets across generations" placeholder. That
@@ -17,12 +17,15 @@ first fields a unit type it had not shown. The admission work report exists,
 `battle-growth` prints it, and the [ledger](decisions.md) holds what it and
 the reference battle measured. What is left, in order:
 
-1. **Slice 12, an arrival over frames**
-   ([slice](slices/12-an-arrival-over-frames.md)). The largest arrival is one
-   type: an infantry team is nine bundles and costs a 0.3–0.4 s frame.
-   Staging has to yield between contents. Its first confirm-first question
-   (how much of the packed geometry is posed copies for bodies that do not
-   exist yet) can change the slice, so answer it before building.
+1. **Slice 13, a body draws its type's mesh**
+   ([slice](slices/13-a-body-draws-its-types-mesh.md)). An infantry type is
+   packed three times, once living and twice as a corpse, in the frame it is
+   first seen: that is the 0.3–0.4 s hitch left. A body should draw the
+   living mesh held in its last pose. The slice turns on one measurement
+   (what bodies cost drawn skinned); take it first.
+   [Slice 12](slices/12-an-arrival-over-frames.md) (spread staging over
+   frames) is written and not built; it is the next step only if an arrival
+   is still long afterwards.
 2. Closeout: correct the stale WASM note in one-renderer, run everything
    once, then `close-spec`.
 
@@ -45,8 +48,8 @@ Warnings:
   what you found into the ledger.
 - A decision the slice does not make and does not delegate is a gap in this
   plan. Record it in the ledger; do not settle it silently.
-- Slice 12's first confirm-first answer can replace the slice. Follow the
-  rule it states.
+- Slice 13 turns on its third confirm-first measurement. Follow the rule it
+  states.
 - Each checkout's Rust build adds 3–22 GB. Check free space before a cold
   build, and remove a checkout's build output when its branch has merged. A
   burst of unrelated failures after a build usually means it ran out of space.
@@ -72,7 +75,8 @@ Checklist:
 - [x] [09 Warm-up and large arrivals](slices/09-preload.md)
 - [x] [10 Stand-in mechanics](slices/10-stand-in-mechanics.md)
 - [x] [11 Stand-in look](slices/11-stand-in-look.md)
-- [ ] [12 An arrival over frames](slices/12-an-arrival-over-frames.md)
+- [ ] [12 An arrival over frames](slices/12-an-arrival-over-frames.md) (not built; see 13)
+- [ ] [13 A body draws its type's mesh](slices/13-a-body-draws-its-types-mesh.md)
 - [ ] Closeout: correct the stale WASM note in
   [one-renderer](../done/one-renderer/README.md) (confirm first that the
   exhaustion predates texture sharing), run everything once, then
@@ -161,7 +165,7 @@ are an independent track.
 | 09 | A battle opened by link warms its art in the background; the largest arrival no longer hitches |
 | 10 | A unit with no art is a block you can click and target |
 | 11 | The block's approved look |
-| 12 | An infantry team appears without a hitch |
+| 13 | An infantry team appears without a hitch; bodies look as they did |
 
 ## One owner per concept
 
@@ -244,7 +248,7 @@ Seen and not planned here, so they are not lost:
 | Question | Unblocked by |
 | --- | --- |
 | Does scenery placement cost a frame on a large map? | Slice 06 times it first; slice 00 measured its bytes, not its time |
-| Does a large arrival still stutter? | Yes: 285–357 ms, and it is one type. Slice 12 |
+| Does a large arrival still stutter? | Yes: 285–357 ms, one infantry type, two thirds of it corpse copies. Slice 13 |
 
 ## Background
 

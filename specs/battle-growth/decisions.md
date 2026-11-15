@@ -1692,3 +1692,15 @@ smaller.
   changes. `df -h` showed 107 GiB free at setup, so no old measurement builds
   were removed. No switch, setting, shader, vertex layout, assertion, README
   status or slice text changed.
+
+**Slice 13 replaces slice 12, 2026-11-15.** Slice 12's stop rule fired: two
+thirds of an infantry type's packed geometry is corpse copies made before
+anyone has died. Chosen: stop making the copies; a body draws the living mesh
+held in its fall's last pose, with one shared palette per row. It removes the
+work instead of moving it, and it removes the same copies from the first
+scene and from GPU memory. Rejected for now: packing a pose's copy when its
+first body lies. That keeps three geometries per appearance, moves the cost
+to the middle of a firefight, and needs something to draw for a body found
+already dead in the fog, which has no fall to wait behind. It stays the
+fallback if bodies drawn skinned cost too much frame time at the corpse cap,
+which the slice measures before building. Not built: slice 12's stepping.

@@ -6,6 +6,14 @@ notices?
 **Depends on:** 09. Added 2026-11-15 from the README's reslice trigger, when
 slice 09 found the largest arrival is a single type.
 
+## Outcome: not built
+
+Its first confirm-first question stopped it, as written. Of the RPG team's
+85.7 MB, 57.2 MB is copies posed for bodies that do not exist yet (18 of 27
+geometry keys). [Slice 13](13-a-body-draws-its-types-mesh.md) removes those
+copies instead. If an arrival is still long after it, this slice is the next
+step and its per-content timings are still to take.
+
 ## What happens today
 
 Every count is already the new art's alone, and the frame is still long
