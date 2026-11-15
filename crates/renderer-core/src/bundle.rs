@@ -3,6 +3,7 @@
 use presentation::assets::{Container, View, BUNDLE};
 use serde::Deserialize;
 use serde_json::Value;
+use sha2::Digest;
 use std::collections::{BTreeMap, HashSet};
 use std::sync::{Arc, Weak};
 
@@ -11,12 +12,17 @@ type Result<T> = std::result::Result<T, String>;
 /// Source of decoded bundles for appearance admission.
 pub trait BundleSource {
     fn bundle(&self, name: &str) -> Result<Arc<Bundle>>;
+
+    fn bundle_identity(&self, _name: &str) -> Result<Option<[u8; 32]>> {
+        Ok(None)
+    }
 }
 
 /// Fetched bundles retained by a platform shell across renderer rebuilds.
 #[derive(Clone, Default)]
 pub struct Library {
     bundles: BTreeMap<String, Arc<Bundle>>,
+    identities: BTreeMap<String, [u8; 32]>,
     textures: BTreeMap<String, Weak<Texture>>,
     decoded_bundles: u32,
 }
@@ -244,6 +250,7 @@ impl Library {
     pub fn empty_generation(&self) -> Self {
         Self {
             bundles: BTreeMap::new(),
+            identities: BTreeMap::new(),
             textures: self.textures.clone(),
             decoded_bundles: 0,
         }
@@ -253,12 +260,14 @@ impl Library {
     /// is staged and while admission reads them.
     pub fn replace_with(&mut self, replacements: Self) {
         self.bundles.extend(replacements.bundles);
+        self.identities.extend(replacements.identities);
         self.textures.extend(replacements.textures);
         self.decoded_bundles += replacements.decoded_bundles;
     }
 
     pub fn retain(&mut self, mut keep: impl FnMut(&str) -> bool) {
         self.bundles.retain(|name, _| keep(name));
+        self.identities.retain(|name, _| keep(name));
         self.textures
             .retain(|_, texture| texture.strong_count() > 0);
     }
@@ -285,6 +294,14 @@ impl Library {
             Ok(texture)
         })?;
         self.decoded_bundles += 1;
+        let mut hash = sha2::Sha256::new();
+        hash.update(bytes);
+        for (id, bytes) in textures {
+            hash.update(id.as_bytes());
+            hash.update(bytes);
+        }
+        self.identities
+            .insert(name.to_owned(), hash.finalize().into());
         self.bundles.insert(name.to_owned(), Arc::new(bundle));
         Ok(())
     }
@@ -302,11 +319,19 @@ impl Library {
             .cloned()
             .ok_or_else(|| format!("bundle not loaded: {name}"))
     }
+
+    pub fn bundle_identity(&self, name: &str) -> Result<Option<[u8; 32]>> {
+        Ok(self.identities.get(name).copied())
+    }
 }
 
 impl BundleSource for Library {
     fn bundle(&self, name: &str) -> Result<Arc<Bundle>> {
         self.bundle(name)
+    }
+
+    fn bundle_identity(&self, name: &str) -> Result<Option<[u8; 32]>> {
+        self.bundle_identity(name)
     }
 }
 

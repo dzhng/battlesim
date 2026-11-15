@@ -46,6 +46,7 @@ const LIST_BUDGET: f64 = 24.0;
 /// f32 arithmetic puts a hair into the next cell still finds its records.
 const CELL_PAD: f64 = 1.0 / (1 << 18) as f64;
 
+#[derive(Clone)]
 pub struct Field {
     pub records: Vec<f32>,
     pub index: Vec<u32>,

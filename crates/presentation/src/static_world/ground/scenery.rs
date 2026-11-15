@@ -81,6 +81,7 @@ fn push(out: &mut Vec<f32>, at: [f64; 7], tint: [f64; 3], rng: &mut Mulberry32, 
 }
 
 /// `simplex2d` of the `math` package, as seeded by `create(seed)`.
+#[derive(Clone)]
 struct Simplex {
     perm: [u8; 512],
     grad: [[f64; 2]; 512],
@@ -289,6 +290,7 @@ impl Species {
 
 /// The scenery of a map: the three populations placed whole, and what the
 /// dressing is laid from a cell at a time.
+#[derive(Clone)]
 pub struct Scenery {
     /// Appearance names, indexed by each record's `kind`.
     pub kinds: Vec<String>,
@@ -302,6 +304,7 @@ pub struct Scenery {
 }
 
 /// The forest floors' dressing, laid a cell of ground at a time.
+#[derive(Clone)]
 pub struct Dressing {
     /// The most pieces a cell holds.
     pub capacity: usize,

@@ -723,7 +723,7 @@ impl Presentation {
             fog.known_from = None;
             fog.dirty = true;
         }
-        self.catalog_state.renew();
+        self.catalog_state.renew_ground();
         self.ground = Some(ground);
         self.scenery = None;
         self.props = None;
@@ -731,13 +731,9 @@ impl Presentation {
         Ok(())
     }
 
-    pub fn ground(&self) -> Option<&Ground> {
-        self.ground.as_ref()
-    }
-
     /// The ground's mutably (a lab growing grass by other rules).
     pub fn ground_mut(&mut self) -> Option<&mut Ground> {
-        self.catalog_state.renew();
+        self.catalog_state.renew_ground();
         self.ground.as_mut()
     }
 

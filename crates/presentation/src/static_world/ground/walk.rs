@@ -551,6 +551,21 @@ impl SceneryWalk {
         }
     }
 
+    /// Carry placement into a catalog draft without running the ground-wide
+    /// placement rules again. The draft receives fresh lookup indexes and
+    /// empty learned state; commit adopts the active observer's knowledge.
+    pub fn carry_placement(&self) -> SceneryWalk {
+        let mut carried = Self::new(
+            self.scenery.clone(),
+            self.sizes.clone(),
+            self.trunks.clone(),
+        );
+        carried.set_quality(self.quality);
+        carried.rows = self.rows.clone();
+        carried.stump_meshes = self.stump_meshes.clone();
+        carried
+    }
+
     /// Preserve only current observation state; placement and geometric bounds
     /// are rebuilt from the candidate art and remain independent of knowledge.
     pub fn adopt_view_state(&mut self, current: &Self, ground: &Ground) {

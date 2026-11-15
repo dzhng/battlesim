@@ -1,15 +1,18 @@
 //! Synthetic admission work and generation-swap contracts.
 #![allow(clippy::too_many_arguments)]
 
+#[path = "support/readback.rs"]
+mod readback;
 #[path = "support/mod.rs"]
 mod support;
 
-use presentation::presentation::{lab::Asset, Presentation};
+use presentation::presentation::{lab::Asset, Presentation, Ui};
 use presentation::records::{Appearance, Joint, NONE};
 use renderer_core::bundle::Library;
 use renderer_core::effects::EffectSheets;
 use renderer_core::models::Models;
 use renderer_core::models::VERTEX_BYTES;
+use renderer_core::runtime::PlayerGeometry;
 use renderer_core::runtime::WorldGeometry;
 use renderer_core::runtime::{AdmissionWork, Runtime, RuntimeConfig, RuntimeWorld};
 use serde_json::json;
@@ -25,6 +28,10 @@ fn identity() -> Joint {
 }
 
 fn bundle_bytes(kind: &str) -> Vec<u8> {
+    bundle_bytes_with_state(kind, "default", 1)
+}
+
+fn bundle_bytes_with_state(kind: &str, state: &str, tier_count: usize) -> Vec<u8> {
     let mut body = Vec::new();
     let mut views = Vec::new();
     let mut array = |ty, bytes: Vec<u8>, length| {
@@ -33,18 +40,23 @@ fn bundle_bytes(kind: &str) -> Vec<u8> {
         body.extend(bytes);
         json!({"$view": at})
     };
+    let positions: Vec<u8> = [0.0f32, 0.0, 0.0, 0.5, 0.0, 1.0, 0.0, 0.5, 1.0]
+        .into_iter()
+        .flat_map(f32::to_le_bytes)
+        .collect();
     let mesh = json!({
-        "positions": array("f32", vec![0; 36], 9),
+        "positions": array("f32", positions, 9),
         "normals": array("i16", vec![0; 24], 12),
         "uvs": array("f32", vec![0; 24], 6),
         "colors": array("u8", vec![255; 12], 12),
         "indices": array("u16", vec![0, 0, 1, 0, 2, 0], 3),
         "draws": [{"material": 0, "first": 0, "count": 3}],
     });
+    let tiers = vec![mesh; tier_count];
     let content = json!({"kind": kind, "materials": [{
         "name": "synthetic", "base_color": [1,1,1,1], "metallic": 0,
         "roughness": 1, "tint": 0, "coverage": {"kind":"opaque"}
-    }], "states": [{"name":"default", "bounds":{"min":[0,0,0],"max":[1,1,1]}, "tiers":[mesh]}]});
+    }], "states": [{"name":state,"bounds":{"min":[0,0,0],"max":[1,1,1]}, "tiers":tiers}]});
     let mut header = serde_json::to_vec(&json!({"content": content, "views": views})).unwrap();
     header.resize(header.len().next_multiple_of(4), b' ');
     let mut bytes = Vec::new();
@@ -54,6 +66,124 @@ fn bundle_bytes(kind: &str) -> Vec<u8> {
     bytes.extend(header);
     bytes.extend(body);
     bytes
+}
+
+fn static_presentation() -> Presentation {
+    let mut p = Presentation::new(None, 30.).unwrap();
+    let game: serde_json::Value =
+        serde_json::from_str(include_str!("../../../fixtures/presentation.json")).unwrap();
+    let settings = presentation::settings::PresentationSettings::from_value(&game).unwrap();
+    let mut biome = presentation::static_world::ground::biome::Biome::load(
+        include_str!("../../../fixtures/biomes/summer.json"),
+        None,
+    )
+    .unwrap();
+    biome.trees.species = vec![presentation::static_world::ground::biome::TreeSpecies {
+        appearance: "synthetic-scenery".into(),
+        weight: 1.,
+        tint: [1., 1., 1.],
+        family: None,
+        interior_m: None,
+    }];
+    biome.trees.understorey.appearance = "synthetic-scenery".into();
+    biome.trees.hedgerows.appearance = "synthetic-scenery".into();
+    biome.forest_floor.dressing.kinds.clear();
+    biome.grass.growth.clear();
+    p.set_ground(
+        presentation::static_world::ground::Source {
+            map: [0., 0., 64., 64.],
+            playable: [0., 0., 64., 64.],
+            grid: presentation::static_world::ground::tables::Grid {
+                nx: 17,
+                ny: 17,
+                spacing: 4.,
+                page_size: 16,
+                ..Default::default()
+            },
+            ..Default::default()
+        },
+        biome,
+        settings.tuning(),
+    )
+    .unwrap();
+    let mesh = scenery_mesh();
+    p.place_scenery(&[mesh.as_slice()]).unwrap();
+    p
+}
+
+fn scenery_mesh() -> Vec<f32> {
+    let mut mesh = Vec::new();
+    for z in [0.0, 1.0] {
+        for side in 0..6 {
+            let angle = side as f64 / 6.0 * std::f64::consts::TAU;
+            mesh.extend(
+                [
+                    0.5 * libm::cos(angle),
+                    0.5 * libm::sin(angle),
+                    z,
+                    0.0,
+                    0.0,
+                    1.0,
+                    0.2,
+                    0.1,
+                    0.05,
+                    0.0,
+                ]
+                .map(|v| v as f32),
+            );
+        }
+    }
+    mesh.extend([2.0, 0.0, 1.2, 0.0, 0.0, 1.0, 0.0, 0.5, 0.0, 1.0]);
+    mesh
+}
+
+fn changed_scenery_bundle() -> Vec<u8> {
+    let mut bytes = bundle_bytes_with_state("static", "summer", 4);
+    let header = u32::from_le_bytes(bytes[8..12].try_into().unwrap()) as usize;
+    bytes[16 + header..20 + header].copy_from_slice(&1.0f32.to_le_bytes());
+    bytes
+}
+
+fn render_pixels(
+    gpu: &support::Gpu,
+    runtime: &mut Runtime,
+    presentation: &mut Presentation,
+    camera: &presentation::view::Camera,
+) -> Vec<[u8; 4]> {
+    presentation
+        .frame(0.0, camera, &Ui::default(), runtime.static_generation())
+        .unwrap();
+    runtime
+        .prepare(&gpu.device, &gpu.queue, presentation)
+        .unwrap();
+    let view = presentation.last_frame().view;
+    let mut encoder = gpu.device.create_command_encoder(&Default::default());
+    runtime.encode(
+        &gpu.device,
+        &gpu.queue,
+        &view,
+        &mut encoder,
+        PlayerGeometry::default(),
+    );
+    let buffer = gpu.device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("statics-carry-pixels"),
+        size: u64::from(runtime.targets.size[0] * runtime.targets.size[1] * 4),
+        usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+        mapped_at_creation: false,
+    });
+    encoder.copy_texture_to_buffer(
+        runtime.targets.display_texture.as_image_copy(),
+        wgpu::TexelCopyBufferInfo {
+            buffer: &buffer,
+            layout: wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(runtime.targets.size[0] * 4),
+                rows_per_image: None,
+            },
+        },
+        runtime.targets.display_texture.size(),
+    );
+    readback::pixels(&gpu.device, &gpu.queue, encoder, &buffer)
 }
 
 fn detail() -> presentation::world::Detail {
@@ -148,6 +278,137 @@ fn first_admission_reports_the_synthetic_fixture_work() {
             rebuild_reason: None,
         }
     );
+}
+
+#[test]
+fn unchanged_statics_are_carried_without_uploads_or_replacement_placement() {
+    let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
+    let bytes = bundle_bytes_with_state("static", "summer", 4);
+    let asset = Asset::from_bundle(&bytes, None).unwrap();
+    let mut presentation = static_presentation();
+    let geometry = Arc::new(WorldGeometry::from_triangles(&[], &[], &[], 64., None, &[]));
+    let library = Library::from_bundle("synthetic-scenery", &bytes, &[]).unwrap();
+    let mut config = runtime_config();
+    config.grass_density = Some(1.0);
+    let mut runtime = Runtime::new(
+        &gpu.device,
+        &gpu.queue,
+        config,
+        library.clone().admission_work(),
+        RuntimeWorld {
+            presentation: &mut presentation,
+            assets: &library,
+            geometry: geometry.clone(),
+            effect_sheets: effects(),
+        },
+    )
+    .unwrap();
+    pollster::block_on(runtime.prepare_assets(&gpu.device, &gpu.queue)).unwrap();
+    let camera = presentation::view::Camera {
+        eye: [32.0, -48.0, 32.0],
+        target: [32.0, 32.0, 0.0],
+        up: [0.0, 0.0, 1.0],
+        fov_y: 1.0,
+        near: 0.1,
+        size: [64, 64],
+    };
+    let before = render_pixels(&gpu, &mut runtime, &mut presentation, &camera);
+    let candidate = presentation
+        .stage_catalog(
+            [("new-unit".into(), asset)].into(),
+            detail(),
+            Default::default(),
+        )
+        .unwrap();
+    let mut next_library = library.clone();
+    next_library
+        .insert_bundle("synthetic-scenery", &bytes, &[])
+        .unwrap();
+    next_library
+        .insert_bundle("new-unit", &bundle_bytes("static"), &[])
+        .unwrap();
+    let pending = runtime
+        .stage_assets(
+            &gpu.device,
+            &gpu.queue,
+            &presentation,
+            candidate,
+            &next_library,
+            next_library.admission_work(),
+        )
+        .unwrap();
+    let ready = pollster::block_on(pending.prepare()).unwrap();
+    assert_eq!(ready.work().scenery_placements, 0);
+    assert_eq!(ready.work().statics_bytes_uploaded, 0);
+    assert!(runtime
+        .commit_assets(
+            &gpu.device,
+            &gpu.queue,
+            &mut presentation,
+            ready,
+            Vec::new(),
+        )
+        .unwrap());
+    let after = render_pixels(&gpu, &mut runtime, &mut presentation, &camera);
+    assert_eq!(after, before, "carried statics changed the committed frame");
+}
+
+#[test]
+fn changed_scenery_content_places_and_uploads_again() {
+    let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
+    let bytes = bundle_bytes_with_state("static", "summer", 4);
+    let changed = changed_scenery_bundle();
+    let asset = Asset::from_bundle(&bundle_bytes("static"), None).unwrap();
+    let scenery_asset = Asset::from_bundle(&changed, None).unwrap();
+    let mut presentation = static_presentation();
+    let geometry = Arc::new(WorldGeometry::from_triangles(&[], &[], &[], 64., None, &[]));
+    let library = Library::from_bundle("synthetic-scenery", &bytes, &[]).unwrap();
+    let mut config = runtime_config();
+    config.grass_density = Some(1.0);
+    let runtime = Runtime::new(
+        &gpu.device,
+        &gpu.queue,
+        config,
+        library.clone().admission_work(),
+        RuntimeWorld {
+            presentation: &mut presentation,
+            assets: &library,
+            geometry: geometry.clone(),
+            effect_sheets: effects(),
+        },
+    )
+    .unwrap();
+    let candidate = presentation
+        .stage_catalog(
+            [
+                ("synthetic-scenery".into(), scenery_asset),
+                ("new-unit".into(), asset),
+            ]
+            .into(),
+            detail(),
+            Default::default(),
+        )
+        .unwrap();
+    let mut next_library = library.clone();
+    next_library
+        .insert_bundle("synthetic-scenery", &changed, &[])
+        .unwrap();
+    next_library
+        .insert_bundle("new-unit", &bundle_bytes("static"), &[])
+        .unwrap();
+    let pending = runtime
+        .stage_assets(
+            &gpu.device,
+            &gpu.queue,
+            &presentation,
+            candidate,
+            &next_library,
+            next_library.admission_work(),
+        )
+        .unwrap();
+    let ready = pollster::block_on(pending.prepare()).unwrap();
+    assert_eq!(ready.work().scenery_placements, 1);
+    assert!(ready.work().statics_bytes_uploaded > 0);
 }
 
 #[test]

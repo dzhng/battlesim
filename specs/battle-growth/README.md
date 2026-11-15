@@ -1,8 +1,8 @@
 # Battle growth: a new unit type costs only its own art
 
-**Status:** slice 00 is done. Slice 01 is next. Slice 10's first pass is
-written but must not merge as it is (see the warnings).
-**Updated:** 2026-11-14.
+**Status:** slices 00 and 06 are done. Slice 01 is next. Slice 10's first pass
+is written but must not merge as it is (see the warnings).
+**Updated:** 2026-11-15.
 
 This plan replaces the "shared GPU assets across generations" placeholder. That
 placeholder's motive was memory during a swap. The motive now is a freeze the
@@ -53,7 +53,7 @@ Checklist:
 - [ ] [03 Geometry reuse](slices/03-geometry-reuse.md)
 - [ ] [04 Texture layers](slices/04-texture-layers.md)
 - [ ] [05 Card reuse](slices/05-card-reuse.md)
-- [ ] [06 Statics carry](slices/06-statics-carry.md) (conditional)
+- [x] [06 Statics carry](slices/06-statics-carry.md)
 - [ ] [07 Catalog delta](slices/07-catalog-delta.md)
 - [ ] [08 Browser transport and the growth gate](slices/08-browser-transport-and-growth-gate.md)
 - [ ] [09 Preload](slices/09-preload.md)

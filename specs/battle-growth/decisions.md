@@ -125,6 +125,36 @@ scene harness, five growths, run with
 - The player's own freezes were longer (2.9–9.9 s) on a larger window with the
   battle running in real time.
 
+**Slice 06 timing and implementation, 2026-11-15.** Temporary `performance.now`
+equivalents in the browser WASM admission timed the exact main-thread regions
+in `Runtime::stage_assets`: `finest_meshes` plus `stage_scenery` (placement),
+`Scenery::new` (scenery build), and `grass` (grass build). The timer and the
+probe scene/fixture were removed after the runs.
+
+| Workload | Growth | Placement | Scenery build | Grass build | Total |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Reference battle, high graphics | 1 | 115 ms | 6 ms | 3 ms | 124 ms |
+| Reference battle, high graphics | 2 | 104 ms | 6 ms | 1 ms | 111 ms |
+| Reference battle, high graphics | 3 | 94 ms | 5 ms | 1 ms | 100 ms |
+| Reference battle, high graphics | 4 | 91 ms | 5 ms | 2 ms | 98 ms |
+| Reference battle, high graphics | 5 | 120 ms | 6 ms | 2 ms | 128 ms |
+| `battle-growth`, high graphics | 1 | 45 ms | 3 ms | 1 ms | 49 ms |
+| `battle-growth`, high graphics | 2 | 45 ms | 7 ms | 1 ms | 53 ms |
+
+The reference run took 401 s and reached five staged admissions; the small
+scene passed in 29 s. Every total is clearly above one 16 ms frame, so Slice 06
+was built. Unchanged ground/static content now carries placement, scenery GPU
+buffers and grass GPU owners into the next generation; rows are rebound by
+appearance name. Content identity is the runtime catalog's SHA-256 over bundle
+and texture bytes, with pointer identity only for synthetic sources that do not
+provide a catalog hash. Rejected alternatives were rerunning placement/builds
+on every admission (the measured freeze) and name-only identity (tooling can
+replace art under one name).
+
+The three synthetic contracts passed: adding a unit appearance preserves every
+placement, unchanged static admission uploads zero static bytes and is
+pixel-equal after commit, and changed scenery content places and uploads again.
+
 Known imprecision: the library's decode count is cumulative, so a runtime
 rebuilt after a lost GPU device reports decodes it did not redo. Slice 02
 reworks the library and settles the count's owner.

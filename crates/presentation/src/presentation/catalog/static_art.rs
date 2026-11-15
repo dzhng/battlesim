@@ -87,15 +87,14 @@ impl StaticDraft {
         Ok(Self {
             buildings,
             props,
-            scenery: None,
+            scenery: p.scenery.as_ref().map(SceneryWalk::carry_placement),
             scenery_rows,
             scenery_required: p.scenery.is_some(),
         })
     }
     pub(super) fn needs_scenery(&self) -> bool {
-        self.scenery_required
+        self.scenery_required && self.scenery.is_none()
     }
-
     pub(super) fn stage_scenery(
         &mut self,
         p: &Presentation,
