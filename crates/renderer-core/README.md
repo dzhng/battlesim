@@ -22,8 +22,10 @@ shared with pending generations. Four rules hold for everything in it: packed
 geometry, material slots, and [texture and card layers](src/texture_array.rs).
 
 - **Identity is content, never a name or a row.** What is packed, uploaded or
-  baked for a content depends only on that content and the pose baked into it,
-  so a type added to a running battle costs its own art alone. A key includes
+  baked for a content depends only on the inputs to those bytes. Geometry
+  retains the authored skin; living and corpse rows share it, while cards
+  include their rendered rest palette. A type added to a running battle costs
+  its own art alone. A key includes
   every input that changes the stored bytes; a texture array's edge is one,
   because it changes filtered pixels.
 - **Addresses are append-only.** A material slot or a layer never moves and is

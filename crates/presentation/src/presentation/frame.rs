@@ -13,6 +13,7 @@ impl Loaded {
         unit_scale: f64,
         f: &mut Frame,
         models: &mut Vec<Model>,
+        corpse_palettes: &mut posing::CorpsePalettes,
     ) {
         let Loaded {
             input,
@@ -191,11 +192,18 @@ impl Loaded {
             if tier == CULLED {
                 continue;
             }
+            let row = art.row(name, "", c.lies as u32);
+            let Some(palette) = corpse_palettes.append(row, &mut f.palettes, || {
+                posing::rest_palette(units, tables, inverse_binds, name, c.lies as u32)
+            }) else {
+                continue;
+            };
             // Remains are seen or unseen whole, as the ground under them.
             models.push(Model {
                 fog: model_fog(true, false, false),
                 tint: art.tint(&c.side),
-                ..Model::unit(art.row(name, "", c.lies as u32), tier, 0, at, c.yaw)
+                palette,
+                ..Model::unit(row, tier, 0, at, c.yaw)
             });
         }
         // A cook-off's moving wreck and its thrown debris; a piece in
@@ -315,5 +323,101 @@ impl Loaded {
         f.counts.culled = culled;
         picks::picks(sample, units, &body, f);
         emitters(o, poses, side, units, f);
+    }
+}
+
+impl Presentation {
+    /// What to draw at presentation time `time` for `camera`, for a renderer
+    /// at `generation`: a number it bumps whenever it holds no static batches
+    /// (a new GPU frame, a new world, a jump), so a new one is written every
+    /// static batch. The camera's view, its uniform and the sun's cascades
+    /// come with it, and the scenery has followed the ground the side has
+    /// learned cleared by the publications pushed so far. Errs when the side
+    /// knows a building in a state its template lacks.
+    pub fn frame(
+        &mut self,
+        time: f64,
+        camera: &Camera,
+        ui: &Ui,
+        generation: u32,
+    ) -> Result<&Frame, String> {
+        self.know(ui.known)?;
+        self.camera = Some(*camera);
+        let f = &mut self.frame;
+        f.index += 1;
+        f.clock = time;
+        f.batches.clear();
+        f.instances.clear();
+        f.palettes.clear();
+        f.palettes.push(IDENTITY);
+        f.picks.clear();
+        f.emitters.clear();
+        f.counts = Counts::default();
+        f.light_wrap = 0.0;
+        let view = View::new(camera);
+        f.view = view.record(camera);
+        cameras::cameras(f, &view, &mut self.shadow, &self.ground, camera, time);
+        self.follow_felled(time);
+        self.follow_cleared();
+        // A wreck the cook-off draws moving is left out of the props until
+        // it lies still.
+        if let (Some(props), Some(loaded)) = (&mut self.props, &self.loaded) {
+            if props.set_moving(loaded.cook_offs.moving_props().collect()) {
+                self.statics.rewalk();
+            }
+        }
+        let sample = self.interpolator.frame(time);
+        // A body the side watches shoved moves every frame, as units do.
+        if let Some(props) = &mut self.props {
+            if props.set_shoved(sample.map_or(&[], |s| &s.shoved)) {
+                self.statics.rewalk();
+            }
+        }
+        let mut scenery = match (&mut self.scenery, &self.ground) {
+            (Some(walk), Some(ground)) if !walk.rows.is_empty() => {
+                Some(SceneryPopulation { walk, ground })
+            }
+            _ => None,
+        };
+        let mut populations =
+            static_frame::populations(&mut self.buildings, &mut scenery, &mut self.props);
+        let f = &mut self.frame;
+        self.statics
+            .write(&mut populations, camera, &view, generation, f);
+        self.models.clear();
+        let mut corpse_palettes = posing::CorpsePalettes::default();
+        if let (Some(loaded), Some(sample)) = (self.loaded.as_mut(), sample) {
+            f.tick = sample.observation.tick as u32;
+            loaded.frame(
+                sample,
+                &view,
+                ui,
+                &self.world,
+                self.ground.as_ref(),
+                self.detail_scale[0],
+                f,
+                &mut self.models,
+                &mut corpse_palettes,
+            );
+        }
+        self.lab.append(
+            &view,
+            &self.world,
+            &mut self.frame,
+            &mut self.models,
+            &mut corpse_palettes,
+        );
+        if let Some(showcase) = &mut self.showcase {
+            showcase.pose(time, self.ground.as_ref());
+            showcase.draw(
+                &view,
+                &self.world,
+                self.detail_scale[0],
+                &mut self.frame,
+                &mut self.models,
+            );
+        }
+        batching::write(&mut self.models, &mut self.frame);
+        Ok(&self.frame)
     }
 }
