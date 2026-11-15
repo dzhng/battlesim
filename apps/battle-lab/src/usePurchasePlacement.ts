@@ -12,11 +12,12 @@ import type { LabPick } from "./LabViewport";
  *  left drag is held, pinned where it was pressed and turned toward the
  *  pointer. */
 export function placementPose(
-  pointer: { ray: WorldRay; leftPress: WorldRay | null },
+  pointer: { ray: WorldRay | null; leftPress: WorldRay | null },
   under: (ray: WorldRay) => readonly number[] | null,
 ): { at: [number, number] | null; facing: number | undefined } {
-  const at = under(pointer.leftPress ?? pointer.ray);
-  const to = pointer.leftPress ? under(pointer.ray) : null;
+  const ray = pointer.leftPress ?? pointer.ray;
+  const at = ray && under(ray);
+  const to = pointer.leftPress && pointer.ray ? under(pointer.ray) : null;
   return {
     at: at ? [at[0], at[1]] : null,
     facing: at && to ? Math.atan2(to[1] - at[1], to[0] - at[0]) : undefined,

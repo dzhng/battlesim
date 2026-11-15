@@ -90,6 +90,7 @@ import {
   aircraftOrderReadouts,
   orderedGhost,
   ownSoldiers,
+  placementUnder,
   type UnitGhost,
 } from "./unitGhosts";
 import { byReference, pendingGhosts } from "./pendingGhosts";
@@ -390,6 +391,7 @@ export function useBattleSession({
   const fogFeed = useFeed(fog);
 
   const surfaceZ = useMemo(() => surfaceHeights(world), [world]);
+  const aloft = useMemo(() => ghostAloft(units, rules.air), [units, rules.air]);
   const cameraObstacles = useMemo(() => {
     if (!placedProps || !buildingParts || !knownBuildingsKey) return null;
     const started = performance.now();
@@ -483,12 +485,7 @@ export function useBattleSession({
           selected: control.selected,
           xray,
           player: playerIndex(published, commanding),
-          ghosts: ghostBodies(
-            ghosts,
-            (kind) => Boolean(units.hull(kind)),
-            surfaceZ,
-            ghostAloft(units, rules.air),
-          ),
+          ghosts: ghostBodies(ghosts, (kind) => Boolean(units.hull(kind)), surfaceZ, aloft),
         },
         generation,
       );
@@ -526,7 +523,7 @@ export function useBattleSession({
       placedGhostList,
       purchaseGhost,
       inputEnabled,
-      rules.air,
+      aloft,
       surfaceZ,
       commanding,
     ],
@@ -608,7 +605,7 @@ export function useBattleSession({
       version: semanticRevision.current.version + 1,
     };
   }
-  // eslint-disable-next-line complexity -- debt: purchase placement, held-drag intent, pending-order marks and ruler all read the same closure refs; the purchase-ghost branch could leave first, but the rest needs a pure intent resolver that returns marks instead of writing refs.
+  // eslint-disable-next-line complexity -- debt: held-drag intent, pending-order marks and ruler read the same closure refs; splitting needs a pure intent resolver that returns marks instead of writing refs.
   const onCursor: ViewportCursor = (pointer, camera, _project, renderScale) => {
     // The battle as the last frame drew it: the picks and drawn positions
     // below are that frame's, so its units and tick are too. Nothing drawn
@@ -626,8 +623,9 @@ export function useBattleSession({
     if (purchasePlacement.variant) {
       const pose =
         active && inputEnabled
-          ? placementPose({ ray: pointer.ray!, leftPress: pointer.leftPress ?? null }, (ray) =>
-              groundUnderRay(world.view, ray),
+          ? placementPose(
+              pointer,
+              placementUnder(units, purchasePlacement.variant, aloft, surfaceZ, world.view),
             )
           : null;
       purchaseGhost.current = purchasePlacement.at(
@@ -942,9 +940,9 @@ export function useBattleSession({
         revealed,
         (kind) => highAir(units.type(kind)),
         surfaceZ,
-        ghostAloft(units, rules.air),
+        aloft,
       ),
-    [control.showOrders, observation, revealed, units, surfaceZ, rules.air],
+    [control.showOrders, observation, revealed, units, surfaceZ, aloft],
   );
 
   return {
