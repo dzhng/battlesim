@@ -2,7 +2,8 @@
 // network edge, inspect the live stand-ins, then release those same responses.
 // This growth battle has no own unfielded kind to select; Rust proves identical
 // picks before and after art commits. The browser gate checks drawn blocks and
-// targets the newly identified vehicle and squad.
+// targets the newly identified vehicle and squad. A nearby known wreck uses
+// the static prop stand-in kit while its wreck art is held.
 import { readFile, writeFile } from "node:fs/promises";
 import { advance, lab, obs, presented } from "./_lab.mjs";
 
@@ -47,6 +48,15 @@ async function checkBlocks(ctx, page, unit, meshHalf, label) {
     unit,
     models,
     picks,
+    nearbyModels: (await lab(page, () => window.__lab.route.drawnModels())).filter(
+      (model) =>
+        Math.hypot(model.placement[0] - unit.position[0], model.placement[1] - unit.position[1]) <
+        25,
+    ),
+    nearbyStructures: (await lab(page, () => window.__lab.route.structures())).filter(
+      (model) =>
+        Math.hypot(model.position[0] - unit.position[0], model.position[1] - unit.position[1]) < 25,
+    ),
   });
   ctx.check(
     `${label} draws one stand-in per seen body at its physical size`,
@@ -255,6 +265,21 @@ export async function run(ctx) {
         ),
         JSON.stringify({ positions, models }),
       );
+      await ctx.writeEvidence(`${label}-after-models.json`, {
+        unit,
+        nearbyModels: models.filter(
+          (model) =>
+            Math.hypot(
+              model.placement[0] - unit.position[0],
+              model.placement[1] - unit.position[1],
+            ) < 25,
+        ),
+        nearbyStructures: (await lab(page, () => window.__lab.route.structures())).filter(
+          (model) =>
+            Math.hypot(model.position[0] - unit.position[0], model.position[1] - unit.position[1]) <
+            25,
+        ),
+      });
       await writeFile(ctx.evidencePath(`${label}-after.png`), await page.screenshot());
     }
     ctx.check(

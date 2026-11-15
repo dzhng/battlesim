@@ -624,3 +624,47 @@ before), 8.6 MB of vertices packed, 21 card read waits, no scenery work, 2
 art files read by fielding. Still whole: 178 texture layers written (slice
 04), 189 cards baked (slice 05), 203 bundles encoded and sent by the page
 (slice 08). The armory scene passes.
+
+**Slice 10, foreground block investigation and integration, 2026-11-15.**
+
+- The second block in the vehicle close shot is a known `medium_wreck` of an
+  enemy European Boxer, not the player's Abrams. The scene's observation places
+  the wreck at `[1236.869873046875, 398.7654724121094, 0]`, with
+  `wreckOf = europe_boxer_apc` and known-prop id `9897`. The own Abrams is at
+  `[1352.411865234375, 706.9947509765625, 0]`, outside that close view. The
+  nearby drawn-model and structure probes identify the foreground appearance
+  as `city_kit_prototype`, state `unit_box`, with scale equal to twice the
+  wreck's published half extents, the same physical hull size as the live
+  Boxer; the foreground perspective makes it look larger. Its pale top and
+  dark flank are the existing
+  static prop material and lighting, not a blue-side unit cue.
+- That box is selected by `static_world::props::Art::fit`: without the unit's
+  installed wreck appearance, the known static wreck takes the existing prop
+  stand-in kit, fitted to its simulation box. When wreck art arrives it takes
+  the Boxer's wreck model. This static prop has no live-unit selection pick.
+  It is outside the live-body stand-in contract, so changing or restyling the
+  prop fallback was rejected.
+- The battle view supplies `Frame.picks` and Rust's presented frame, with no
+  browser proxy instances. `proxyModels` converts explicit lab `SceneInstance`
+  primitives (excluding pick-only infantry); it is not a missing-unit-art
+  fallback, does not resolve own versus identified units, and does not handle
+  the battle's purchase or order ghosts. Those ghosts already go through Rust.
+  A battle body is therefore not drawn by both mechanisms. Live unit stand-ins
+  still use the shared presentation body box; lab primitive picks use their
+  separate tooling shape only where a lab supplied no frame picks.
+- `the-vehicle-bodies.json.models` intentionally filtered for
+  `__battle_stand_in__`, so it named only the live Boxer. The full read-only
+  frame probe does report the prop kit whenever its static instances are
+  published, and the existing `structures` probe reports the retained prop.
+  The scene now saves both nearby model names and nearby structures before
+  and after release. Inferring a unit identity from colour or a filtered
+  stand-in count was rejected; the probes and observed positions establish it.
+- Upstream through `42dd5dd15` (including slices 03, 05a, 06 and 07) merged
+  without textual conflicts. Ground admission stays only in
+  `presentation/ground.rs`, and loaded frame construction stays only in
+  `presentation/frame.rs`. The upstream spec README and both sets of ledger
+  entries are retained. The stand-in test adopts slice 07's explicit wanted
+  names plus facts API; no compatibility wrapper is added. The generated
+  stand-in is an ordinary `ModelAsset` with its cached `ContentId`, so the
+  existing `prepareAppearances` loop declares it before supplying bytes. A
+  special stand-in declaration path was rejected as duplicate admission.

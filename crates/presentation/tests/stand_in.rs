@@ -245,7 +245,12 @@ fn committing_art_removes_the_stand_in_for_that_type() {
         )
         .unwrap());
     let draft = p
-        .stage_catalog(Default::default(), detail, Default::default())
+        .stage_catalog(
+            Default::default(),
+            Default::default(),
+            detail,
+            Default::default(),
+        )
         .unwrap();
     assert!(p.commit_catalog(draft, Vec::new()).unwrap());
     assert!(stand_in_instances(&mut p).is_empty());
