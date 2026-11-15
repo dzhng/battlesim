@@ -929,3 +929,91 @@ derives for every row outside the geometry cache. Spreading work over frames
 (the README's reslice trigger, which the two-type arrival also fired) is
 decided after 08a's numbers: a frame that is long because of catalog-sized
 work should lose that work, not be sliced thinner.
+
+**Slice 11, stand-in look, 2026-11-15.**
+
+- Live placeholders use the existing HUD side roles: `hud.enemy` for the
+  opposing side and `hud.accent` for the observer's side, both owned by
+  `fixtures/presentation.json` and read through `gameHud`. The shell passes
+  those exact display-encoded values; presentation reuses `srgb_to_linear`
+  for the model's linear tint. A new loading hue, a near-copy of either role,
+  and a neutral colour with no side meaning were rejected.
+- The form remains the existing opaque box primitive on the reserved row,
+  scaled from slice 10's shared body box. Its neutral-white material takes
+  the full instance tint, with metallic 1 and roughness 1. These are shading
+  inputs, not a claim that the placeholder depicts a metal object. The fully
+  rough response keeps the contact colour stronger than the pale matte
+  versions without adding a shiny highlight, texture, emblem or animation.
+  A model-shaped silhouette and an extra loading marker were rejected because
+  the player chose a plain block. The hard swap remains unchanged.
+- The chosen block casts no sun shadow. A solid block's large shadow gives
+  an abstract representation the physical weight of scenery; removing that
+  caster separates it from a heavy prop. It still receives world lighting
+  and shadows, and keeps the existing unit fog and x-ray path. Authored units
+  and lab models retain their casting policy; only the stand-in reads this
+  optional appearance's policy. Shader code and the vertex layout did not
+  change.
+- The neutral `city_kit_prototype/unit_box` fallback for a known wreck is
+  intentionally different. A dead hull is terrain cover, not a live unit
+  carrying a combat-side selection target. Giving it the live contact colour
+  would imply that it was still an active unit. Neither the wreck fallback
+  nor any other prop fallback changed.
+- Three candidates were captured with matched cameras: `contact-solid`
+  (side colour, matte, shadow) was rejected for its prop-like mass;
+  `contact-shadowless` (same matte surface without its caster) was rejected
+  because the sun-facing faces remained pale and toy-like; `contact-metal`
+  (fully rough metallic response, no caster) is selected for review because
+  its faces retain the contact hue more clearly. Native shots, enlarged crops,
+  and baseline/model comparisons remain in
+  `throwaway/evidence/stand-in-look/`. The selected native frames, comparison
+  sheet, strict pixel proof and verbatim fresh critique are retained in
+  [the look evidence](assets/stand-in/look/).
+- Evidence uses the same paused body and camera before and after release:
+  near/far views of an open-field vehicle, a vehicle at its actual sight
+  boundary, and a squad at a fog edge. The squad's open control uses the
+  existing lab fog suppression without changing the observed bodies. Native
+  fog probes include both seen and unseen ground around the boundary views;
+  the open-field vehicle samples are all seen. Moving the subjects between
+  open and fog controls was rejected because it would confound the comparison.
+- A strict production-route pixel check projects the physical body and its
+  old shadow with the existing camera owner and the fixture's sun. Every
+  changed held-frame RGB pixel is inside that region. The after-swap scene
+  pixels are identical; only the existing FPS digits differ. Later meeting
+  captures also have timing-dependent smoke and pose variation between runs,
+  so they are not claimed as bit-identical after frames. No scene baseline
+  was blessed, and no Preview checkpoint was opened; the player owns review.
+- The unprimed reading recognises a deliberate side proxy and clear
+  positional correspondence, but does not prove that a still image says
+  specifically that art is loading. It also retains crate/post ambiguity,
+  an apparent separation at the street fog boundary, and uncertainty where
+  smoke hides infantry bases. These remain review limitations, not a claim
+  of full visual acceptance. The physical envelope and unchanged ground
+  position are fixed by slice 10; adding vehicle/infantry shape or a loading
+  cue would exceed the plain-block choice. Smoke, density and other shadows
+  are out of scope. The report's observation that the material does not
+  visibly read as metal needs no change: a schematic side proxy is the goal,
+  not a metal object. All findings are kept verbatim with the evidence.
+- Model batching now owns its posed records, record runs and casting policy in a dedicated
+  module. The file-size hook refused growth in frame orchestration; a
+  behavior-preserving split was committed before the look change. Shortening
+  comments or exempting the oversized file was rejected.
+
+**Slice 11's review checkpoint, 2026-11-15.** The accepted look is a plain
+block in the HUD's own side colour (`hud.enemy` for an enemy, `hud.accent`
+for the player's side), fully rough, casting no shadow. The player was shown
+it with the two rejected candidates and the choice of the paler block or a
+neutral grey; the plan carried on meanwhile. Resolution, by the agent on the
+player's behalf (something on screen over nothing; small taste questions):
+keep the side-coloured block.
+
+- Why not the mock's grey: a neutral block sits beside a wreck's neutral box
+  and scenery, and the slice forbids a block that can be taken for scenery.
+  The side colour is the one the HUD already uses for that side's contacts.
+- What is not proven: an unprimed reader accepted its visibility and its
+  match to the model's place, and still could not tell a temporary unit from
+  a coloured crate. A saturated block is also easy to notice for the moment
+  it shows, against the goal that a type's arrival goes unnoticed. Both are
+  reversible by one colour and one flag in the battle input; the preload
+  (slice 09) is what makes the block rare.
+- No scene baseline is blessed for it. Slice 10's mechanics tests and the
+  `stand-in` scene are the gate until a person who has looked blesses one.

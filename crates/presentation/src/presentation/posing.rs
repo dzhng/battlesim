@@ -22,6 +22,7 @@ pub(super) struct UnitArt<'a> {
 pub(super) struct UnitStandIn<'a> {
     pub appearance: &'a StandIn,
     pub body: &'a BodyBox<'a>,
+    pub observer: &'a str,
 }
 
 struct DrawnBody<'a> {
@@ -29,6 +30,8 @@ struct DrawnBody<'a> {
     bounds: Bounds,
     scale: [f32; 3],
     stand_in: bool,
+    tint: [f32; 3],
+    shadow: bool,
 }
 
 /// The node transforms posing reuses from model to model.
@@ -106,19 +109,27 @@ impl Model {
             palette: 0,
             scroll: [0.0; 2],
             fog: model_fog(false, false, false),
+            shadow: true,
         }
     }
 }
 
 impl UnitArt<'_> {
     /// What one posed body draws: authored art or its physical box.
-    fn body<'a>(&'a self, kind: &str, resolved: Option<&'a str>) -> Option<DrawnBody<'a>> {
+    fn body<'a>(
+        &'a self,
+        kind: &str,
+        resolved: Option<&'a str>,
+        side: &str,
+    ) -> Option<DrawnBody<'a>> {
         if let Some(name) = resolved {
             return Some(DrawnBody {
                 name,
                 bounds: bounds(self.units, name, 0),
                 scale: [1.0; 3],
                 stand_in: false,
+                tint: self.tint(side),
+                shadow: true,
             });
         }
         let stand_in = self.stand_in.as_ref()?;
@@ -131,6 +142,13 @@ impl UnitArt<'_> {
             },
             scale: std::array::from_fn(|i| (half[i] / stand_in.appearance.half[i]) as f32),
             stand_in: true,
+            tint: if side == stand_in.observer {
+                stand_in.appearance.own
+            } else {
+                stand_in.appearance.enemy
+            }
+            .map(|v| crate::static_world::srgb_to_linear(v) as f32),
+            shadow: stand_in.appearance.shadow,
         })
     }
 
@@ -166,7 +184,7 @@ impl UnitArt<'_> {
                 s.operator_mount,
                 s.active_mount,
             );
-            let Some(body) = self.body(&s.kind, resolved) else {
+            let Some(body) = self.body(&s.kind, resolved, &s.side) else {
                 continue;
             };
             let is_stand_in = body.stand_in;
@@ -202,7 +220,8 @@ impl UnitArt<'_> {
                 )
             };
             models.push(Model {
-                tint: self.tint(&s.side),
+                tint: body.tint,
+                shadow: body.shadow,
                 colour: colour(&s.side, s.unit),
                 palette,
                 scale: body.scale,
@@ -227,7 +246,7 @@ impl UnitArt<'_> {
         let units = self.units;
         for v in vehicles {
             let resolved = units.resolve(&v.kind, &v.side, v.unit, 0, None, None);
-            let Some(body) = self.body(&v.kind, resolved) else {
+            let Some(body) = self.body(&v.kind, resolved, &v.side) else {
                 continue;
             };
             let is_stand_in = body.stand_in;
@@ -263,7 +282,8 @@ impl UnitArt<'_> {
                 )
             };
             models.push(Model {
-                tint: self.tint(&v.side),
+                tint: body.tint,
+                shadow: body.shadow,
                 colour: colour(&v.side, v.unit),
                 palette,
                 scroll,

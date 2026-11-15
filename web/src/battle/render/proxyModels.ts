@@ -68,6 +68,13 @@ function proxyBundle(kind: DrawnProxyKind, tint: readonly number[]): Articulated
 }
 
 const battleStandInBundle = proxyBundle("box", [1, 1, 1]);
+battleStandInBundle.materials[0] = {
+  ...battleStandInBundle.materials[0],
+  base_color: [1, 1, 1, 1],
+  tint: 1,
+  metallic: 1,
+  roughness: 1,
+};
 const battleStandInBounds = battleStandInBundle.bounds;
 export const BATTLE_STAND_IN_HALF_EXTENTS = [
   (battleStandInBounds.max[0] - battleStandInBounds.min[0]) / 2,

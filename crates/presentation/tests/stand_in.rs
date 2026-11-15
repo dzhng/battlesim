@@ -63,7 +63,7 @@ fn presented(
     units: UnitsSection,
     effects: presentation::world::EffectsSection,
     battle: &Battle,
-    stand_in: Option<&str>,
+    stand_in: Option<StandIn>,
 ) -> Presentation {
     let mut p = Presentation::new(Some(&publication::layout_json(battle)), 30.0).unwrap();
     p.load_world(
@@ -83,10 +83,7 @@ fn presented(
                     ally: [0.0; 4],
                 },
                 blocked: [0.0; 4],
-                stand_in: stand_in.map(|appearance| StandIn {
-                    appearance: appearance.to_owned(),
-                    half: [0.6, 0.6, 0.6],
-                }),
+                stand_in,
             }),
             sun_azimuth: 0.0,
             sun_elevation: 0.7,
@@ -104,6 +101,17 @@ fn presented(
         .collect();
     assert!(p.push_publication(&words, 0.0).unwrap());
     p
+}
+
+fn stand_in(shadow: bool) -> StandIn {
+    serde_json::from_value(json!({
+        "appearance": STAND_IN,
+        "half": [0.6, 0.6, 0.6],
+        "own": [0.15, 0.35, 0.75],
+        "enemy": [0.8, 0.2, 0.1],
+        "shadow": shadow,
+    }))
+    .unwrap()
 }
 
 fn camera() -> Camera {
@@ -147,7 +155,7 @@ fn seen_unarted_units_draw_one_scaled_stand_in_per_body() {
         with_art_withheld(fielded.units),
         fielded.effects,
         &battle,
-        Some(STAND_IN),
+        Some(stand_in(true)),
     );
     let picks = p
         .frame(0.0, &camera(), &Ui::default(), 0)
@@ -180,14 +188,19 @@ fn stand_in_and_committed_art_have_the_same_picks_and_hull_size() {
         with_art_withheld(fielded.units.clone()),
         fielded.effects.clone(),
         &battle,
-        Some(STAND_IN),
+        Some(stand_in(true)),
     );
     let stand_picks = stand
         .frame(0.0, &camera(), &Ui::default(), 0)
         .unwrap()
         .picks
         .clone();
-    let mut art = presented(fielded.units, fielded.effects, &battle, Some(STAND_IN));
+    let mut art = presented(
+        fielded.units,
+        fielded.effects,
+        &battle,
+        Some(stand_in(true)),
+    );
     let art_picks = art
         .frame(0.0, &camera(), &Ui::default(), 0)
         .unwrap()
@@ -206,7 +219,7 @@ fn committing_art_removes_the_stand_in_for_that_type() {
         with_art_withheld(fielded.units),
         fielded.effects.clone(),
         &battle,
-        Some(STAND_IN),
+        Some(stand_in(true)),
     );
     let before = p
         .frame(0.0, &camera(), &Ui::default(), 0)
@@ -232,10 +245,7 @@ fn committing_art_removes_the_stand_in_for_that_type() {
                         ally: [0.0; 4]
                     },
                     blocked: [0.0; 4],
-                    stand_in: Some(StandIn {
-                        appearance: STAND_IN.into(),
-                        half: [0.6; 3]
-                    }),
+                    stand_in: Some(stand_in(true)),
                 }),
                 sun_azimuth: 0.0,
                 sun_elevation: 0.7,
@@ -264,7 +274,7 @@ fn an_unseen_unarted_unit_draws_nothing() {
         with_art_withheld(fielded.units),
         fielded.effects,
         &battle,
-        Some(STAND_IN),
+        Some(stand_in(true)),
     );
     let frame = p.frame(0.0, &camera(), &Ui::default(), 0).unwrap();
     let unseen = battle.observe(Side::Red).own[0].id;
@@ -272,4 +282,35 @@ fn an_unseen_unarted_unit_draws_nothing() {
     assert!(stand_in_instances(&mut p)
         .iter()
         .all(|i| i.placement[0] < 100.0));
+}
+
+#[test]
+fn a_stand_in_takes_its_side_colour_and_its_own_shadow_policy() {
+    let (battle, fielded) = setup();
+    let expected_art = fielded.units.tints["blue"].map(|v| v as f32);
+    let look = stand_in(false);
+    let expected_stand = look
+        .own
+        .map(|v| presentation::static_world::srgb_to_linear(v) as f32);
+    let mut stand = presented(
+        with_art_withheld(fielded.units.clone()),
+        fielded.effects.clone(),
+        &battle,
+        Some(look),
+    );
+    let frame = stand.frame(0.0, &camera(), &Ui::default(), 0).unwrap();
+    assert!(frame.batches.iter().all(|b| b.caster == u32::MAX));
+    assert!(frame
+        .instances
+        .iter()
+        .all(|i| i.tint[..3] == expected_stand));
+    let mut art = presented(
+        fielded.units,
+        fielded.effects,
+        &battle,
+        Some(stand_in(false)),
+    );
+    let frame = art.frame(0.0, &camera(), &Ui::default(), 0).unwrap();
+    assert!(frame.batches.iter().any(|b| b.caster != u32::MAX));
+    assert!(frame.instances.iter().all(|i| i.tint[..3] == expected_art));
 }

@@ -1,0 +1,529 @@
+{
+  "kind": "screenshot-parity-diff",
+  "generatedAt": "2026-11-15T13:05:10.291Z",
+  "note": "Lower parityDistance means the candidate is closer to the reference for this fixed pair. This is a distance metric, not an acceptance gate.",
+  "pairCount": 8,
+  "worstPair": "vehicle-open-near",
+  "results": [
+    {
+      "id": "vehicle-open-near",
+      "current": "throwaway/evidence/stand-in-look/contact-metal/held/vehicle-open-near.png",
+      "candidate": "throwaway/evidence/stand-in-look/contact-metal/model/vehicle-open-near.png",
+      "dimensions": {
+        "width": 1280,
+        "height": 800
+      },
+      "parityDistance": 0.0735,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 191,
+          "colorEntropyBits": 5.30831,
+          "edgeDensity": 0.42971,
+          "dominantColorShare": 0.16906,
+          "transparentShare": 0,
+          "luminanceMean": 114.65404,
+          "luminanceP5": 36.1508,
+          "luminanceP95": 173.0432,
+          "luminanceContrast": 136.8924
+        },
+        "candidate": {
+          "colorBuckets": 181,
+          "colorEntropyBits": 5.34071,
+          "edgeDensity": 0.46776,
+          "dominantColorShare": 0.17087,
+          "transparentShare": 0,
+          "luminanceMean": 109.4573,
+          "luminanceP5": 35.866,
+          "luminanceP95": 171.1114,
+          "luminanceContrast": 135.2454
+        }
+      },
+      "grayscale": {
+        "mae": 6.25684,
+        "rmse": 24.12894,
+        "diffRatio16": 0.082,
+        "diffRatio32": 0.06928,
+        "diffRatio64": 0.0432,
+        "pixelmatchRatio": 0.07973
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 0.00647,
+        "blackRatioCandidate": 0.01312,
+        "terrainLikeRatioCurrent": 0.83696,
+        "terrainLikeRatioCandidate": 0.8072,
+        "avgLuminanceCurrent": 114.29483,
+        "avgLuminanceCandidate": 109.01251,
+        "avgLuminanceDelta": -5.28232,
+        "edgeEnergyCurrent": 0.14486,
+        "edgeEnergyCandidate": 0.15749,
+        "edgeEnergyRatio": 1.08715,
+        "edgeDiffRatio32": 0.04496
+      },
+      "artifacts": {
+        "sideBySide": "contact-metal-model/vehicle-open-near-side-by-side.png",
+        "currentGray": "contact-metal-model/vehicle-open-near-current-gray.png",
+        "candidateGray": "contact-metal-model/vehicle-open-near-candidate-gray.png",
+        "absDiff": "contact-metal-model/vehicle-open-near-absdiff.png",
+        "pixelmatch": "contact-metal-model/vehicle-open-near-pixelmatch.png",
+        "currentEdges": "contact-metal-model/vehicle-open-near-current-edges.png",
+        "candidateEdges": "contact-metal-model/vehicle-open-near-candidate-edges.png",
+        "edgeDiff": "contact-metal-model/vehicle-open-near-edge-diff.png"
+      }
+    },
+    {
+      "id": "vehicle-fog-near",
+      "current": "throwaway/evidence/stand-in-look/contact-metal/held/vehicle-fog-near.png",
+      "candidate": "throwaway/evidence/stand-in-look/contact-metal/model/vehicle-fog-near.png",
+      "dimensions": {
+        "width": 1280,
+        "height": 800
+      },
+      "parityDistance": 0.03625,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 221,
+          "colorEntropyBits": 6.06791,
+          "edgeDensity": 0.52538,
+          "dominantColorShare": 0.0635,
+          "transparentShare": 0,
+          "luminanceMean": 88.97362,
+          "luminanceP5": 16.1548,
+          "luminanceP95": 188.5266,
+          "luminanceContrast": 172.3718
+        },
+        "candidate": {
+          "colorBuckets": 230,
+          "colorEntropyBits": 6.08086,
+          "edgeDensity": 0.54329,
+          "dominantColorShare": 0.06519,
+          "transparentShare": 0,
+          "luminanceMean": 85.76782,
+          "luminanceP5": 15.7296,
+          "luminanceP95": 188.4544,
+          "luminanceContrast": 172.7248
+        }
+      },
+      "grayscale": {
+        "mae": 3.18328,
+        "rmse": 15.65382,
+        "diffRatio16": 0.04738,
+        "diffRatio32": 0.04124,
+        "diffRatio64": 0.02565,
+        "pixelmatchRatio": 0.04472
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 0.12521,
+        "blackRatioCandidate": 0.12854,
+        "terrainLikeRatioCurrent": 0.24123,
+        "terrainLikeRatioCandidate": 0.21502,
+        "avgLuminanceCurrent": 88.2278,
+        "avgLuminanceCandidate": 85.12137,
+        "avgLuminanceDelta": -3.10644,
+        "edgeEnergyCurrent": 0.25343,
+        "edgeEnergyCandidate": 0.25989,
+        "edgeEnergyRatio": 1.02548,
+        "edgeDiffRatio32": 0.02075
+      },
+      "artifacts": {
+        "sideBySide": "contact-metal-model/vehicle-fog-near-side-by-side.png",
+        "currentGray": "contact-metal-model/vehicle-fog-near-current-gray.png",
+        "candidateGray": "contact-metal-model/vehicle-fog-near-candidate-gray.png",
+        "absDiff": "contact-metal-model/vehicle-fog-near-absdiff.png",
+        "pixelmatch": "contact-metal-model/vehicle-fog-near-pixelmatch.png",
+        "currentEdges": "contact-metal-model/vehicle-fog-near-current-edges.png",
+        "candidateEdges": "contact-metal-model/vehicle-fog-near-candidate-edges.png",
+        "edgeDiff": "contact-metal-model/vehicle-fog-near-edge-diff.png"
+      }
+    },
+    {
+      "id": "squad-fog-near",
+      "current": "throwaway/evidence/stand-in-look/contact-metal/held/squad-fog-near.png",
+      "candidate": "throwaway/evidence/stand-in-look/contact-metal/model/squad-fog-near.png",
+      "dimensions": {
+        "width": 1280,
+        "height": 800
+      },
+      "parityDistance": 0.02746,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 272,
+          "colorEntropyBits": 6.1318,
+          "edgeDensity": 0.34699,
+          "dominantColorShare": 0.11525,
+          "transparentShare": 0,
+          "luminanceMean": 136.6521,
+          "luminanceP5": 54.2888,
+          "luminanceP95": 196.4212,
+          "luminanceContrast": 142.1324
+        },
+        "candidate": {
+          "colorBuckets": 259,
+          "colorEntropyBits": 6.17481,
+          "edgeDensity": 0.35315,
+          "dominantColorShare": 0.12075,
+          "transparentShare": 0,
+          "luminanceMean": 135.76836,
+          "luminanceP5": 54.5704,
+          "luminanceP95": 192.8686,
+          "luminanceContrast": 138.2982
+        }
+      },
+      "grayscale": {
+        "mae": 1.87236,
+        "rmse": 9.1508,
+        "diffRatio16": 0.04348,
+        "diffRatio32": 0.0179,
+        "diffRatio64": 0.00511,
+        "pixelmatchRatio": 0.03476
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 0.0002,
+        "blackRatioCandidate": 0.00002,
+        "terrainLikeRatioCurrent": 0.89596,
+        "terrainLikeRatioCandidate": 0.89549,
+        "avgLuminanceCurrent": 136.703,
+        "avgLuminanceCandidate": 135.73699,
+        "avgLuminanceDelta": -0.96602,
+        "edgeEnergyCurrent": 0.10064,
+        "edgeEnergyCandidate": 0.10446,
+        "edgeEnergyRatio": 1.03792,
+        "edgeDiffRatio32": 0.01779
+      },
+      "artifacts": {
+        "sideBySide": "contact-metal-model/squad-fog-near-side-by-side.png",
+        "currentGray": "contact-metal-model/squad-fog-near-current-gray.png",
+        "candidateGray": "contact-metal-model/squad-fog-near-candidate-gray.png",
+        "absDiff": "contact-metal-model/squad-fog-near-absdiff.png",
+        "pixelmatch": "contact-metal-model/squad-fog-near-pixelmatch.png",
+        "currentEdges": "contact-metal-model/squad-fog-near-current-edges.png",
+        "candidateEdges": "contact-metal-model/squad-fog-near-candidate-edges.png",
+        "edgeDiff": "contact-metal-model/squad-fog-near-edge-diff.png"
+      }
+    },
+    {
+      "id": "squad-open-near",
+      "current": "throwaway/evidence/stand-in-look/contact-metal/held/squad-open-near.png",
+      "candidate": "throwaway/evidence/stand-in-look/contact-metal/model/squad-open-near.png",
+      "dimensions": {
+        "width": 1280,
+        "height": 800
+      },
+      "parityDistance": 0.0232,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 241,
+          "colorEntropyBits": 6.006,
+          "edgeDensity": 0.33867,
+          "dominantColorShare": 0.11987,
+          "transparentShare": 0,
+          "luminanceMean": 137.25227,
+          "luminanceP5": 54.5014,
+          "luminanceP95": 198.8028,
+          "luminanceContrast": 144.3014
+        },
+        "candidate": {
+          "colorBuckets": 218,
+          "colorEntropyBits": 6.03497,
+          "edgeDensity": 0.34401,
+          "dominantColorShare": 0.12619,
+          "transparentShare": 0,
+          "luminanceMean": 136.54081,
+          "luminanceP5": 55.004,
+          "luminanceP95": 193.362,
+          "luminanceContrast": 138.358
+        }
+      },
+      "grayscale": {
+        "mae": 1.70516,
+        "rmse": 8.06327,
+        "diffRatio16": 0.04285,
+        "diffRatio32": 0.01482,
+        "diffRatio64": 0.00322,
+        "pixelmatchRatio": 0.03295
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 0.0002,
+        "blackRatioCandidate": 0.00002,
+        "terrainLikeRatioCurrent": 0.89639,
+        "terrainLikeRatioCandidate": 0.89641,
+        "avgLuminanceCurrent": 137.29645,
+        "avgLuminanceCandidate": 136.50609,
+        "avgLuminanceDelta": -0.79037,
+        "edgeEnergyCurrent": 0.09658,
+        "edgeEnergyCandidate": 0.09955,
+        "edgeEnergyRatio": 1.03074,
+        "edgeDiffRatio32": 0.01289
+      },
+      "artifacts": {
+        "sideBySide": "contact-metal-model/squad-open-near-side-by-side.png",
+        "currentGray": "contact-metal-model/squad-open-near-current-gray.png",
+        "candidateGray": "contact-metal-model/squad-open-near-candidate-gray.png",
+        "absDiff": "contact-metal-model/squad-open-near-absdiff.png",
+        "pixelmatch": "contact-metal-model/squad-open-near-pixelmatch.png",
+        "currentEdges": "contact-metal-model/squad-open-near-current-edges.png",
+        "candidateEdges": "contact-metal-model/squad-open-near-candidate-edges.png",
+        "edgeDiff": "contact-metal-model/squad-open-near-edge-diff.png"
+      }
+    },
+    {
+      "id": "squad-open-far",
+      "current": "throwaway/evidence/stand-in-look/contact-metal/held/squad-open-far.png",
+      "candidate": "throwaway/evidence/stand-in-look/contact-metal/model/squad-open-far.png",
+      "dimensions": {
+        "width": 1280,
+        "height": 800
+      },
+      "parityDistance": 0.01222,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 227,
+          "colorEntropyBits": 5.03608,
+          "edgeDensity": 0.18843,
+          "dominantColorShare": 0.13319,
+          "transparentShare": 0,
+          "luminanceMean": 125.97396,
+          "luminanceP5": 45.0012,
+          "luminanceP95": 171.8386,
+          "luminanceContrast": 126.8374
+        },
+        "candidate": {
+          "colorBuckets": 229,
+          "colorEntropyBits": 5.06541,
+          "edgeDensity": 0.19262,
+          "dominantColorShare": 0.13319,
+          "transparentShare": 0,
+          "luminanceMean": 126.27896,
+          "luminanceP5": 46.0786,
+          "luminanceP95": 171.983,
+          "luminanceContrast": 125.9044
+        }
+      },
+      "grayscale": {
+        "mae": 0.47369,
+        "rmse": 5.405,
+        "diffRatio16": 0.00957,
+        "diffRatio32": 0.00321,
+        "diffRatio64": 0.00182,
+        "pixelmatchRatio": 0.00862
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 0.00123,
+        "blackRatioCandidate": 0.00126,
+        "terrainLikeRatioCurrent": 0.88783,
+        "terrainLikeRatioCandidate": 0.88742,
+        "avgLuminanceCurrent": 125.87631,
+        "avgLuminanceCandidate": 126.09024,
+        "avgLuminanceDelta": 0.21393,
+        "edgeEnergyCurrent": 0.06458,
+        "edgeEnergyCandidate": 0.06675,
+        "edgeEnergyRatio": 1.03356,
+        "edgeDiffRatio32": 0.00719
+      },
+      "artifacts": {
+        "sideBySide": "contact-metal-model/squad-open-far-side-by-side.png",
+        "currentGray": "contact-metal-model/squad-open-far-current-gray.png",
+        "candidateGray": "contact-metal-model/squad-open-far-candidate-gray.png",
+        "absDiff": "contact-metal-model/squad-open-far-absdiff.png",
+        "pixelmatch": "contact-metal-model/squad-open-far-pixelmatch.png",
+        "currentEdges": "contact-metal-model/squad-open-far-current-edges.png",
+        "candidateEdges": "contact-metal-model/squad-open-far-candidate-edges.png",
+        "edgeDiff": "contact-metal-model/squad-open-far-edge-diff.png"
+      }
+    },
+    {
+      "id": "vehicle-open-far",
+      "current": "throwaway/evidence/stand-in-look/contact-metal/held/vehicle-open-far.png",
+      "candidate": "throwaway/evidence/stand-in-look/contact-metal/model/vehicle-open-far.png",
+      "dimensions": {
+        "width": 1280,
+        "height": 800
+      },
+      "parityDistance": 0.01069,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 223,
+          "colorEntropyBits": 5.05246,
+          "edgeDensity": 0.24439,
+          "dominantColorShare": 0.24619,
+          "transparentShare": 0,
+          "luminanceMean": 111.70787,
+          "luminanceP5": 37.0064,
+          "luminanceP95": 172.983,
+          "luminanceContrast": 135.9766
+        },
+        "candidate": {
+          "colorBuckets": 224,
+          "colorEntropyBits": 5.07121,
+          "edgeDensity": 0.24871,
+          "dominantColorShare": 0.24631,
+          "transparentShare": 0,
+          "luminanceMean": 111.92752,
+          "luminanceP5": 37.0064,
+          "luminanceP95": 173.0512,
+          "luminanceContrast": 136.0448
+        }
+      },
+      "grayscale": {
+        "mae": 0.56727,
+        "rmse": 6.01656,
+        "diffRatio16": 0.01122,
+        "diffRatio32": 0.00477,
+        "diffRatio64": 0.00252,
+        "pixelmatchRatio": 0.01034
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 0.01,
+        "blackRatioCandidate": 0.01019,
+        "terrainLikeRatioCurrent": 0.74605,
+        "terrainLikeRatioCandidate": 0.74489,
+        "avgLuminanceCurrent": 111.49087,
+        "avgLuminanceCandidate": 111.62521,
+        "avgLuminanceDelta": 0.13434,
+        "edgeEnergyCurrent": 0.12448,
+        "edgeEnergyCandidate": 0.127,
+        "edgeEnergyRatio": 1.02029,
+        "edgeDiffRatio32": 0.00834
+      },
+      "artifacts": {
+        "sideBySide": "contact-metal-model/vehicle-open-far-side-by-side.png",
+        "currentGray": "contact-metal-model/vehicle-open-far-current-gray.png",
+        "candidateGray": "contact-metal-model/vehicle-open-far-candidate-gray.png",
+        "absDiff": "contact-metal-model/vehicle-open-far-absdiff.png",
+        "pixelmatch": "contact-metal-model/vehicle-open-far-pixelmatch.png",
+        "currentEdges": "contact-metal-model/vehicle-open-far-current-edges.png",
+        "candidateEdges": "contact-metal-model/vehicle-open-far-candidate-edges.png",
+        "edgeDiff": "contact-metal-model/vehicle-open-far-edge-diff.png"
+      }
+    },
+    {
+      "id": "squad-fog-far",
+      "current": "throwaway/evidence/stand-in-look/contact-metal/held/squad-fog-far.png",
+      "candidate": "throwaway/evidence/stand-in-look/contact-metal/model/squad-fog-far.png",
+      "dimensions": {
+        "width": 1280,
+        "height": 800
+      },
+      "parityDistance": 0.01018,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 279,
+          "colorEntropyBits": 5.46575,
+          "edgeDensity": 0.22356,
+          "dominantColorShare": 0.12562,
+          "transparentShare": 0,
+          "luminanceMean": 123.53456,
+          "luminanceP5": 42.929,
+          "luminanceP95": 172.7664,
+          "luminanceContrast": 129.8374
+        },
+        "candidate": {
+          "colorBuckets": 280,
+          "colorEntropyBits": 5.4913,
+          "edgeDensity": 0.22813,
+          "dominantColorShare": 0.12562,
+          "transparentShare": 0,
+          "luminanceMean": 123.86173,
+          "luminanceP5": 43.1456,
+          "luminanceP95": 172.7704,
+          "luminanceContrast": 129.6248
+        }
+      },
+      "grayscale": {
+        "mae": 0.4759,
+        "rmse": 5.28377,
+        "diffRatio16": 0.00962,
+        "diffRatio32": 0.00336,
+        "diffRatio64": 0.00184,
+        "pixelmatchRatio": 0.00867
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 0.00124,
+        "blackRatioCandidate": 0.00137,
+        "terrainLikeRatioCurrent": 0.82768,
+        "terrainLikeRatioCandidate": 0.82776,
+        "avgLuminanceCurrent": 123.38487,
+        "avgLuminanceCandidate": 123.62606,
+        "avgLuminanceDelta": 0.24119,
+        "edgeEnergyCurrent": 0.08818,
+        "edgeEnergyCandidate": 0.09026,
+        "edgeEnergyRatio": 1.02362,
+        "edgeDiffRatio32": 0.00714
+      },
+      "artifacts": {
+        "sideBySide": "contact-metal-model/squad-fog-far-side-by-side.png",
+        "currentGray": "contact-metal-model/squad-fog-far-current-gray.png",
+        "candidateGray": "contact-metal-model/squad-fog-far-candidate-gray.png",
+        "absDiff": "contact-metal-model/squad-fog-far-absdiff.png",
+        "pixelmatch": "contact-metal-model/squad-fog-far-pixelmatch.png",
+        "currentEdges": "contact-metal-model/squad-fog-far-current-edges.png",
+        "candidateEdges": "contact-metal-model/squad-fog-far-candidate-edges.png",
+        "edgeDiff": "contact-metal-model/squad-fog-far-edge-diff.png"
+      }
+    },
+    {
+      "id": "vehicle-fog-far",
+      "current": "throwaway/evidence/stand-in-look/contact-metal/held/vehicle-fog-far.png",
+      "candidate": "throwaway/evidence/stand-in-look/contact-metal/model/vehicle-fog-far.png",
+      "dimensions": {
+        "width": 1280,
+        "height": 800
+      },
+      "parityDistance": 0.00131,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 211,
+          "colorEntropyBits": 5.33031,
+          "edgeDensity": 0.72035,
+          "dominantColorShare": 0.10856,
+          "transparentShare": 0,
+          "luminanceMean": 78.28665,
+          "luminanceP5": 16.1588,
+          "luminanceP95": 168.0974,
+          "luminanceContrast": 151.9386
+        },
+        "candidate": {
+          "colorBuckets": 213,
+          "colorEntropyBits": 5.32779,
+          "edgeDensity": 0.71997,
+          "dominantColorShare": 0.10856,
+          "transparentShare": 0,
+          "luminanceMean": 78.19166,
+          "luminanceP5": 16.1548,
+          "luminanceP95": 168.0974,
+          "luminanceContrast": 151.9426
+        }
+      },
+      "grayscale": {
+        "mae": 0.09416,
+        "rmse": 2.52599,
+        "diffRatio16": 0.00153,
+        "diffRatio32": 0.00128,
+        "diffRatio64": 0.00074,
+        "pixelmatchRatio": 0.00142
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 0.1114,
+        "blackRatioCandidate": 0.11145,
+        "terrainLikeRatioCurrent": 0.07921,
+        "terrainLikeRatioCandidate": 0.07832,
+        "avgLuminanceCurrent": 78.11344,
+        "avgLuminanceCandidate": 78.02277,
+        "avgLuminanceDelta": -0.09067,
+        "edgeEnergyCurrent": 0.3667,
+        "edgeEnergyCandidate": 0.36704,
+        "edgeEnergyRatio": 1.00092,
+        "edgeDiffRatio32": 0.00124
+      },
+      "artifacts": {
+        "sideBySide": "contact-metal-model/vehicle-fog-far-side-by-side.png",
+        "currentGray": "contact-metal-model/vehicle-fog-far-current-gray.png",
+        "candidateGray": "contact-metal-model/vehicle-fog-far-candidate-gray.png",
+        "absDiff": "contact-metal-model/vehicle-fog-far-absdiff.png",
+        "pixelmatch": "contact-metal-model/vehicle-fog-far-pixelmatch.png",
+        "currentEdges": "contact-metal-model/vehicle-fog-far-current-edges.png",
+        "candidateEdges": "contact-metal-model/vehicle-fog-far-candidate-edges.png",
+        "edgeDiff": "contact-metal-model/vehicle-fog-far-edge-diff.png"
+      }
+    }
+  ]
+}

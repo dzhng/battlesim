@@ -11,6 +11,7 @@ import {
   MIN_TARGET_PX,
 } from "@packages/battle-renderer/src/records.gen";
 import type { CatalogView } from "@packages/scene-assets/src/units";
+import { gameHud } from "@web/battle/present/hudTheme";
 import { fieldUnits, FieldingOwner, type RuntimeFiles } from "@web/battle/sim/fielding";
 import type {
   PresentedBattle,
@@ -137,6 +138,9 @@ export async function fieldedBattle(
         stand_in: {
           appearance: BATTLE_STAND_IN_APPEARANCE,
           half: BATTLE_STAND_IN_HALF_EXTENTS,
+          own: gameHud.accent,
+          enemy: gameHud.enemy,
+          shadow: false,
         },
       },
       sun_azimuth: input.sun.azimuth,
