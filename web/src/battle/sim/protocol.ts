@@ -172,7 +172,7 @@ export type SimRequest =
       type: "init";
       scenario: string;
       seed: number;
-      side: SideName;
+      sides: SideName[];
       /** Player issuing commands for a player-owned scenario. */
       player?: string;
       /** Replay these accepted commands instead of taking input. */
@@ -208,9 +208,9 @@ export type SimRequest =
   /** Advance up to `ticks` or match completion while paused, as fast as credit allows. */
   | { type: "advance"; id: number; ticks: number }
   | { type: "replay" }
-  /** Lab diagnostic: publish the other side's observation from now on. Its
-   *  ground arrives as a new epoch's full snapshot. */
-  | { type: "side"; side: SideName }
+  /** Lab diagnostic: publish these side observations from now on. A newly
+   *  listed side opens with a full snapshot. */
+  | { type: "sides"; sides: SideName[] }
   | { type: "controllers"; controllers: string }
   | { type: "dispose" };
 
@@ -227,6 +227,7 @@ export type SimReply =
     }
   | {
       type: "publication";
+      side: SideName;
       tick: number;
       digest: string;
       length: number;

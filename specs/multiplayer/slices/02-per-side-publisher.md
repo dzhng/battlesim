@@ -14,10 +14,14 @@ full snapshot every tick.
 
 ## Seam
 
-- **`crates/game-wasm/src/lib.rs`, `BattleHandle`:** one
-  `sim::publication::Publisher` per side, made on first use.
+- **`crates/sim/src/publication.rs`, `Publishers`:** the one owner of a
+  battle's publications to its sides. It holds a `Publisher` per side and
+  has `publish(battle, side)`, `record(side)` and `resync(side)`. A resync
+  opens an epoch later than any side has reached, so one reader may leave a
+  side's stream for another's. `Publisher` itself is unchanged.
+- **`crates/game-wasm/src/lib.rs`, `BattleHandle`:** holds a `Publishers`.
   `publish(side)` stays; `publication_ptr(side)` and
-  `resync_observation(side)` take the side. `Publisher` itself is unchanged.
+  `resync_observation(side)` take the side.
 - **`web/src/battle/sim/protocol.ts`:** `init.side` becomes
   `init.sides: SideName[]`; the `publication` reply gains `side`; the lab's
   `{ type: "side" }` request becomes `{ type: "sides"; sides: SideName[] }`. A
@@ -54,36 +58,29 @@ How publication buffers are pooled per side; internal names.
 
 None expected from the user: nothing here is visible.
 
-## Found at integration (2026-11-14)
+## Found at integration
 
-Codex's commit `67844ee46` builds the contract above, with two defects. Both
-are fixed or restored in the uncommitted work, and the second is not finished.
+Codex's commit `67844ee46` built the binding and protocol above with a
+publisher per side inside the WebAssembly handle. Two defects came with it,
+both hidden by a changed test.
 
 1. **Switching the watched side a second time left the page blind.** Each
    publisher counted its own epochs, and a page's reader treats an epoch no
    later than the last one it saw as stale. Blue, Red, Blue: Blue's reopened
-   stream arrived with an epoch the reader had already passed, and every
-   record after it was dropped. The fix makes epochs rise across a battle's
-   sides: `Publisher::resync_after(epoch)`, called by the handle with the
-   latest epoch any of its publishers has reached. A new test switches four
-   times and sees each side.
-2. **The native parity assertion was deleted.** `web/tests/fogDelivery.test.ts`
-   checks that the WebAssembly build publishes the same bytes as the native
-   build for a recorded stream. That stream is one consumer on one publisher
-   that moves from Blue to Red, so it fails at the first side change: a
-   publisher per side has its own fog revision counter. The assertion is
-   restored and is red. The honest repair is to give per-side publication one
-   owner in `crates/sim` (a small type holding a publisher per side, with the
-   rising epochs), have the handle and the native test
-   (`crates/sim/tests/publication.rs`) both use it, and regenerate the
-   fixtures in `fixtures/parity/publication/` from the native test. That is a
-   named change to a parity fixture: the stream it recorded can no longer be
-   produced by the product. It needs the native publication tests built and
-   run, which the disk could not hold.
+   stream arrived with an epoch the reader had already passed. An epoch
+   expectation had been repinned to match. Epochs now rise across a battle's
+   sides, and tests on both builds switch back and forth.
+2. **The native parity assertion was deleted.** The paired records in
+   `fixtures/parity/publication/` are one reader's stream that moves between
+   sides. With a publisher per side they could no longer be produced by the
+   WebAssembly handle, and the native test still used a single publisher.
 
-Also not run here: `web/tests/battleRules.test.ts` and
-`web/tests/buildingKnowledge.test.ts`, which this slice edits. They read
-runtime assets this checkout holds only as large-file pointers.
+The repair gave per-side publication its one owner in `crates/sim`, used by
+the handle and by the native test alike, and re-recorded the five paired
+records from the native test. That is a named change to a parity fixture.
+What changed in them: a row that changes side now says `resync`, and the
+published bytes differ from the first side change onward. Every battle
+digest and every delivered fog field in them is unchanged.
 
 **For slice 06.** The authority takes the commanding side from the first
 published side (`commandSide = sides[0]`), and one player from `init`. A page

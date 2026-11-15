@@ -66,7 +66,7 @@ const SCENARIO = (() => {
 
 function publication(battle: Battle, side: "blue" | "red"): Float32Array {
   const length = battle.publish(side);
-  return new Float32Array(memory.buffer, battle.publication_ptr(), length).slice();
+  return new Float32Array(memory.buffer, battle.publication_ptr(side), length).slice();
 }
 
 test(
@@ -86,7 +86,7 @@ test(
     }
     expect(deltas).toBeGreaterThan(3);
     const view = decoder.ground!;
-    battle.resync_observation();
+    battle.resync_observation("blue");
     const fresh = new ScenePresentation(layout);
     const snapshot = fresh.decode(publication(battle, "blue"))!;
     expect(snapshot.groundPatch.full && snapshot.groundPatch.epoch === view.epoch + 1).toBe(true);
@@ -104,7 +104,7 @@ test(
     // Observing the other side forgets what was learned until its snapshot.
     decoder.invalidate("red");
     expect(view.markedCells().length).toBe(0);
-    battle.resync_observation();
+    battle.resync_observation("red");
     decoder.decode(publication(battle, "red"));
     expect(view.side).toBe("red");
     expect([...view.markedCells()]).toEqual([...red.ground!.markedCells()]);

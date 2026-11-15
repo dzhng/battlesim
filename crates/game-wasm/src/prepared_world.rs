@@ -88,7 +88,7 @@ impl PreparedWorld {
         let setup = self.scenario(scenario_json)?;
         Ok(BattleHandle {
             battle: Battle::from_prepared(&setup, seed as u64, self.prepared),
-            publisher: Publisher::new(),
+            publishers: Publishers::new(),
         })
     }
 
@@ -103,7 +103,7 @@ impl PreparedWorld {
             .map_err(|e| JsError::new(&e.to_string()))?;
         Ok(BattleHandle {
             battle,
-            publisher: Publisher::new(),
+            publishers: Publishers::new(),
         })
     }
 }

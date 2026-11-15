@@ -25,7 +25,7 @@ test("objective capture and both scores publish exactly the native timeline", ()
       expect(battle.digest()).toBe(row.digest);
       const length = battle.publish("blue");
       const view = decoder.decode(
-        new Float32Array(memory.buffer, battle.publication_ptr(), length).slice(),
+        new Float32Array(memory.buffer, battle.publication_ptr("blue"), length).slice(),
       )!.skirmish!;
       expect(view.result).toEqual(row.result);
       for (let side = 0; side < 2; side++)

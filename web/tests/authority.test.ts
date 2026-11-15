@@ -75,12 +75,16 @@ function harness(load: () => Promise<SimModule> = async () => sim) {
         }
       }
     },
-    async init(replay?: string, setup = scenario) {
+    async init(
+      replay?: string,
+      setup = scenario,
+      sides: ("blue" | "red" | "neutral")[] = ["blue"],
+    ) {
       authority.handle({
         type: "init",
         scenario: setup,
         seed: 9,
-        side: "blue",
+        sides,
         replay,
       });
       await new Promise((r) => setTimeout(r, 0));
@@ -398,11 +402,12 @@ test("the ground streams as deltas, and a side switch reopens it with a full sna
   h.authority.handle({ type: "start" });
   h.authority.handle({ type: "pause" });
   for (let i = 0; i < 5; i++) stepOnce(h, i);
-  h.authority.handle({ type: "side", side: "red" });
+  h.authority.handle({ type: "sides", sides: ["red"] });
   for (let i = 5; i < 8; i++) stepOnce(h, i);
   const layout = JSON.parse(
     (h.replies.find((r) => r.type === "ready") as { layout: string }).layout,
   ) as ObservationLayout;
+  // One reader follows the stream across the switch, as the page does.
   const decoder = new ScenePresentation(layout);
   const patches = h
     .publications()
@@ -418,6 +423,44 @@ test("the ground streams as deltas, and a side switch reopens it with a full sna
     [2, "red", true],
     [2, "red", false],
     [2, "red", false],
+  ]);
+});
+
+test("each listed side keeps its own publication baseline", async () => {
+  const h = harness();
+  await h.init(undefined, scenario, ["blue", "red"]);
+  h.authority.handle({ type: "start" });
+  h.authority.handle({ type: "pause" });
+  stepOnce(h, 1);
+  stepOnce(h, 2);
+  h.authority.handle({ type: "sides", sides: ["red"] });
+  h.authority.handle({ type: "sides", sides: ["blue", "red"] });
+  stepOnce(h, 3);
+
+  const layout = JSON.parse(
+    (h.replies.find((r) => r.type === "ready") as { layout: string }).layout,
+  ) as ObservationLayout;
+  const decoders = {
+    blue: new ScenePresentation(layout),
+    red: new ScenePresentation(layout),
+  };
+  const patches = h.publications().map((publication) => {
+    if (publication.type !== "publication") throw new Error("expected publication");
+    const side = publication.side as "blue" | "red";
+    const frame = decoders[side].decode(
+      new Float32Array(publication.buffer, 0, publication.length),
+    );
+    return { side, full: frame?.groundPatch.full };
+  });
+  expect(patches).toEqual([
+    { side: "blue", full: true },
+    { side: "red", full: true },
+    { side: "blue", full: false },
+    { side: "red", full: false },
+    { side: "blue", full: false },
+    { side: "red", full: false },
+    { side: "blue", full: true },
+    { side: "red", full: false },
   ]);
 });
 

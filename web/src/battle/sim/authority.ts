@@ -34,8 +34,8 @@ export interface SimBattle {
   /** Pack `side`'s observation with visibility and learned-ground changes. */
   publish(side: string): number;
   /** The next publication opens a new epoch with full visibility and learned ground. */
-  resync_observation(): void;
-  publication_ptr(): number;
+  resync_observation(side: string): void;
+  publication_ptr(side: string): number;
   free(): void;
 }
 
@@ -60,7 +60,7 @@ export function createAuthority(host: AuthorityHost): Authority {
   type Resources = { sim: SimModule; battle: SimBattle };
   type Lifetime = { kind: "loading" } | { kind: "live"; resources: Resources } | { kind: "closed" };
   let lifetime: Lifetime = { kind: "loading" };
-  let side: SideName = "blue";
+  let sides: SideName[] = ["blue"];
   // The rules' rate, kept as given: the page's presentation times every
   // effect from it, so a rate derived back from `tickMs` would drift.
   let tickHz = 30;
@@ -110,16 +110,20 @@ export function createAuthority(host: AuthorityHost): Authority {
     const started = host.now();
     const tick = b.step();
     const stepMs = host.now() - started;
-    const length = b.publish(side);
-    // Re-derive the view every time: memory may have grown since the last tick.
-    const view = new Float32Array(resources.sim.memory.buffer, b.publication_ptr(), length);
-    let buffer = credits.pop()!;
-    // Declared admission point: a publication larger than its credit gets a
-    // bigger buffer, never a truncated copy.
-    if (buffer.byteLength < length * 4)
-      buffer = new ArrayBuffer(Math.max(length * 4, buffer.byteLength * 2));
-    new Float32Array(buffer, 0, length).set(view);
-    host.post({ type: "publication", tick, digest: b.digest(), length, buffer, stepMs }, [buffer]);
+    for (const side of sides) {
+      const length = b.publish(side);
+      // Re-derive the view every time: memory may have grown since the last tick.
+      const view = new Float32Array(resources.sim.memory.buffer, b.publication_ptr(side), length);
+      let buffer = credits.pop()!;
+      // Declared admission point: a publication larger than its credit gets a
+      // bigger buffer, never a truncated copy.
+      if (buffer.byteLength < length * 4)
+        buffer = new ArrayBuffer(Math.max(length * 4, buffer.byteLength * 2));
+      new Float32Array(buffer, 0, length).set(view);
+      host.post({ type: "publication", side, tick, digest: b.digest(), length, buffer, stepMs }, [
+        buffer,
+      ]);
+    }
     if (script && (tick >= script.target || b.finished())) {
       host.post({ type: "advanced", id: script.id, tick });
       script = null;
@@ -138,7 +142,7 @@ export function createAuthority(host: AuthorityHost): Authority {
       return setStatus("finished");
     }
     if (script) {
-      while (script && credits.length > 0) stepAndPublish(resources);
+      while (script && credits.length >= sides.length) stepAndPublish(resources);
       if (script) return setStatus("waiting-consumer");
       nextTickAt = host.now();
     }
@@ -154,7 +158,7 @@ export function createAuthority(host: AuthorityHost): Authority {
     }
     let ran = 0;
     while (now >= nextTickAt && ran < MAX_CATCHUP_TICKS) {
-      if (credits.length === 0) {
+      if (credits.length < sides.length) {
         waitingForCredit = true;
         return setStatus("waiting-consumer");
       }
@@ -187,7 +191,8 @@ export function createAuthority(host: AuthorityHost): Authority {
     try {
       switch (request.type) {
         case "init": {
-          side = request.side;
+          sides = [...new Set(request.sides)];
+          if (sides.length === 0) throw new Error("at least one publication side is required");
           tickHz = JSON.parse(request.scenario).rules.tick_hz;
           tickMs = 1000 / tickHz;
           // A refused scenario or replay throws while building: report it too.
@@ -287,10 +292,15 @@ export function createAuthority(host: AuthorityHost): Authority {
         case "replay":
           host.post({ type: "replay", json: activeResources().battle.replay_json() });
           return;
-        case "side":
-          side = request.side;
-          activeResources().battle.resync_observation();
+        case "sides": {
+          const nextSides = [...new Set(request.sides)];
+          if (nextSides.length === 0) throw new Error("at least one publication side is required");
+          const previous = new Set(sides);
+          sides = nextSides;
+          for (const side of sides)
+            if (!previous.has(side)) activeResources().battle.resync_observation(side);
           return;
+        }
         case "controllers":
           activeResources().battle.set_controllers(request.controllers);
           return;

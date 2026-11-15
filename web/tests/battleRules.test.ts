@@ -193,7 +193,11 @@ test("consecutive wasm battles field and sound their own resolved encounter rule
         tick++
       ) {
         const length = battle.publish("blue");
-        const words = new Uint32Array(sim.memory.buffer, battle.publication_ptr(), length).slice();
+        const words = new Uint32Array(
+          sim.memory.buffer,
+          battle.publication_ptr("blue"),
+          length,
+        ).slice();
         const time = battle.tick() / hz;
         presentation.push_publication(words, time);
         active.sink.time = time;

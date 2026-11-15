@@ -39,7 +39,15 @@ test("a rejected worker record returns credits and fails every pending request",
   try {
     const buffer = new ArrayBuffer(4);
     expect(() =>
-      deliver({ type: "publication", tick: 0, digest: "", length: 1, buffer, stepMs: 0 }),
+      deliver({
+        type: "publication",
+        side: "blue",
+        tick: 0,
+        digest: "",
+        length: 1,
+        buffer,
+        stepMs: 0,
+      }),
     ).not.toThrow();
     expect(requests.filter((request) => request.type === "credit")).toEqual([
       { type: "credit", buffer },
@@ -50,7 +58,15 @@ test("a rejected worker record returns credits and fails every pending request",
     deliver({ type: "status", status: "running", slow: false });
     expect(statuses).toEqual(["failed"]);
     const late = new ArrayBuffer(4);
-    deliver({ type: "publication", tick: 1, digest: "", length: 1, buffer: late, stepMs: 0 });
+    deliver({
+      type: "publication",
+      side: "blue",
+      tick: 1,
+      digest: "",
+      length: 1,
+      buffer: late,
+      stepMs: 0,
+    });
     expect(requests.filter((request) => request.type === "credit")).toEqual([
       { type: "credit", buffer },
       { type: "credit", buffer: late },
@@ -154,9 +170,17 @@ test.each([true, false])(
       void advance.then(completed);
       battle.step();
       const length = battle.publish("blue");
-      const buffer = new Float32Array(memory.buffer, battle.publication_ptr(), length).slice()
+      const buffer = new Float32Array(memory.buffer, battle.publication_ptr("blue"), length).slice()
         .buffer;
-      deliver({ type: "publication", tick: 1, digest: battle.digest(), length, buffer, stepMs: 0 });
+      deliver({
+        type: "publication",
+        side: "blue",
+        tick: 1,
+        digest: battle.digest(),
+        length,
+        buffer,
+        stepMs: 0,
+      });
       const acknowledge = () => deliver({ type: "advanced", id: 1, tick: 1 });
       if (ackFirst) acknowledge();
       else held[0].release();
@@ -225,9 +249,17 @@ test("an authority failure returns held records once and rejects requests after 
     for (let tick = 1; tick <= 2; tick++) {
       battle.step();
       const length = battle.publish("blue");
-      const buffer = new Float32Array(memory.buffer, battle.publication_ptr(), length).slice()
+      const buffer = new Float32Array(memory.buffer, battle.publication_ptr("blue"), length).slice()
         .buffer;
-      deliver({ type: "publication", tick, digest: battle.digest(), length, buffer, stepMs: 0 });
+      deliver({
+        type: "publication",
+        side: "blue",
+        tick,
+        digest: battle.digest(),
+        length,
+        buffer,
+        stepMs: 0,
+      });
       expect(held.at(-1)!.copyPacked()).toEqual(Array.from(new Uint32Array(buffer)));
     }
     expect(held.map((publication) => publication.tick)).toEqual([1, 2]);
@@ -268,7 +300,7 @@ test("raw capture words replay through a fresh Rust publication decoder", () => 
   for (let i = 0; i < 3; i++) {
     const tick = battle.step();
     const length = battle.publish("blue");
-    const words = new Uint32Array(memory.buffer, battle.publication_ptr(), length).slice();
+    const words = new Uint32Array(memory.buffer, battle.publication_ptr("blue"), length).slice();
     const floats = new Float32Array(words.buffer);
     const observation = decoder.decode(floats);
     expect(observation?.tick).toBe(tick);

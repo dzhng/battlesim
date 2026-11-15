@@ -21,6 +21,7 @@ import type {
 } from "./protocol";
 
 export interface Publication {
+  side: SideName;
   tick: number;
   digest: string;
   observation: ObservationView;
@@ -270,6 +271,12 @@ export function createSimClient(options: SimClientOptions): SimClient {
         }
         case "publication": {
           const buffer = reply.buffer;
+          if (reply.side !== observedSide) {
+            returnCredit(buffer);
+            releasedTick = Math.max(releasedTick, reply.tick);
+            settleAdvances();
+            return;
+          }
           if (!decoder?.ground)
             throw new Error("publication arrived before the authority was ready");
           const observation = decoder.decode(
@@ -284,6 +291,7 @@ export function createSimClient(options: SimClientOptions): SimClient {
           }
           let released = false;
           const publication: Publication = {
+            side: reply.side,
             tick: reply.tick,
             digest: reply.digest,
             observation,
@@ -333,7 +341,7 @@ export function createSimClient(options: SimClientOptions): SimClient {
     type: "init",
     scenario: options.scenario,
     seed: options.seed,
-    side: options.side,
+    sides: [options.side],
     player: options.player,
     replay: options.replay,
   });
@@ -421,7 +429,7 @@ export function createSimClient(options: SimClientOptions): SimClient {
       if (lifetime.kind !== "active") return;
       observedSide = side;
       decoder?.invalidate(side);
-      channel.send({ type: "side", side });
+      channel.send({ type: "sides", sides: [side] });
     },
     replay() {
       if (lifetime.kind !== "active")

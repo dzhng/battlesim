@@ -131,9 +131,9 @@ function publicationStream(stream: PublicationStreamRecord, combat: boolean) {
     expect(battle.digest(), "initial authoritative state").toBe(stream.initial_digest);
     stream.rows.forEach((row, i) => {
       battle.step();
-      if (row.resync) battle.resync_observation();
+      if (row.resync) battle.resync_observation(row.side);
       const length = battle.publish(row.side);
-      const words = new Float32Array(memory.buffer, battle.publication_ptr(), length);
+      const words = new Float32Array(memory.buffer, battle.publication_ptr(row.side), length);
       expect(battle.digest(), `tick ${i + 1}`).toBe(row.digest);
       expect(sha256(words), `published words, tick ${i + 1}`).toBe(row.publication_sha256);
       const frame = decoder.decode(words)!;
@@ -318,6 +318,33 @@ test("a view switch returns stale in-flight credits without mixing sides or bloc
   }
 });
 
+test("the watched side can be switched back and forth, and each switch shows that side", async () => {
+  const client = createSimClient({
+    scenario: SCENARIO,
+    seed: stream.seed,
+    side: "blue",
+    transport: "direct",
+  });
+  const seen: string[] = [];
+  try {
+    await client.ready;
+    client.onPublication((p) => {
+      seen.push(p.observation.groundPatch.side);
+      p.release();
+    });
+    client.pause();
+    client.start();
+    await client.advance(1);
+    for (const side of ["red", "blue", "red", "blue"] as const) {
+      client.observeAs(side);
+      await client.advance(1);
+    }
+    expect(seen).toEqual(["blue", "red", "blue", "red", "blue"]);
+  } finally {
+    client.dispose();
+  }
+});
+
 test("oversized field dimensions cannot wrap past the wasm delivery bound", () => {
   const { layout, record } = packets();
   expect(() =>
@@ -339,7 +366,7 @@ test("a live variable route copy matches a fresh producer snapshot and retains p
   const decoder = new ScenePresentation(layout);
   const record = (b: Battle) => {
     const length = b.publish("blue");
-    return new Float32Array(memory.buffer, b.publication_ptr(), length).slice();
+    return new Float32Array(memory.buffer, b.publication_ptr("blue"), length).slice();
   };
   try {
     battle.step();
@@ -366,7 +393,7 @@ test("a live variable route copy matches a fresh producer snapshot and retains p
     for (let tick = 0; tick < 240; tick++) {
       battle.step();
       snapshot.step();
-      snapshot.resync_observation();
+      snapshot.resync_observation("blue");
       oracle = new ScenePresentation(layout).decode(record(snapshot))!;
       if (oracle.own[0].route.length > 0) break;
     }
@@ -387,7 +414,7 @@ test("a live variable route copy matches a fresh producer snapshot and retains p
     expect(after.own).toEqual(oracle.own);
     expect(before.own[0].route).toEqual([]);
     expect(after.own[0].route.length).toBeGreaterThan(0);
-    battle.resync_observation();
+    battle.resync_observation("blue");
     expect(decoder.decode(record(battle))!.own).toEqual(after.own);
     expect(before.own[0].route).toEqual([]);
   } finally {

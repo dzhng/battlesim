@@ -159,8 +159,9 @@ test("the public picker and delivered replacements share one physical building o
       for (let tick = 0; tick < 600; tick++) {
         seated.step();
         const len = seated.publish("blue");
-        state = decoder.decode(new Float32Array(memory.buffer, seated.publication_ptr(), len))!
-          .own[0].hold;
+        state = decoder.decode(
+          new Float32Array(memory.buffer, seated.publication_ptr("blue"), len),
+        )!.own[0].hold;
         if (state?.phase === "inside") break;
       }
       expect(state).toEqual({
@@ -172,10 +173,14 @@ test("the public picker and delivered replacements share one physical building o
       seated.free();
     }
     const observations = JSON.parse(battle.observation_layout()) as ObservationLayout;
-    const decoder = new ScenePresentation(observations);
+    const decoders = {
+      blue: new ScenePresentation(observations),
+      red: new ScenePresentation(observations),
+    };
     const publish = (side: "blue" | "red") => {
+      const decoder = decoders[side];
       const len = battle.publish(side);
-      return decoder.decode(new Float32Array(memory.buffer, battle.publication_ptr(), len))!;
+      return decoder.decode(new Float32Array(memory.buffer, battle.publication_ptr(side), len))!;
     };
     const initial = publish("blue");
     const frozen = JSON.stringify(initial);
@@ -197,7 +202,7 @@ test("the public picker and delivered replacements share one physical building o
     ]);
     const retained = JSON.stringify(collapsed);
     publish("red");
-    battle.resync_observation();
+    battle.resync_observation("blue");
     publish("blue");
     expect(JSON.stringify(initial)).toBe(frozen);
     expect(JSON.stringify(collapsed)).toBe(retained);

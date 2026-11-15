@@ -16,11 +16,15 @@ test("native purchases replay in WASM and publish the side wallet, queue and phy
   try {
     battle.set_controllers(JSON.stringify([["red-1", "human"]]));
     const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
-    const decoder = new ScenePresentation(layout);
+    const decoders = {
+      blue: new ScenePresentation(layout),
+      red: new ScenePresentation(layout),
+    };
     const frame = (side: "blue" | "red") => {
+      const decoder = decoders[side];
       const length = battle.publish(side);
       return decoder.decode(
-        new Float32Array(memory.buffer, battle.publication_ptr(), length).slice(),
+        new Float32Array(memory.buffer, battle.publication_ptr(side), length).slice(),
       )!;
     };
     expect(JSON.parse(battle.accept(JSON.stringify(record.commands[0]))).error).toBeNull();

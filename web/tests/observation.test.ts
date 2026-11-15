@@ -37,12 +37,19 @@ beforeAll(() => {
 });
 
 /** Publish first: packing can grow WASM memory and move the buffer. */
-const decoders = new WeakMap<Battle, ScenePresentation>();
+const decoders = new WeakMap<Battle, Map<"blue" | "red", ScenePresentation>>();
 function published(battle: Battle, layout: ObservationLayout, side: "blue" | "red" = "blue") {
+  let bySide = decoders.get(battle);
+  if (!bySide) decoders.set(battle, (bySide = new Map()));
+  let decoder = bySide.get(side);
+  if (!decoder) {
+    decoder = new ScenePresentation(layout);
+    bySide.set(side, decoder);
+  }
   const length = battle.publish(side);
-  let decoder = decoders.get(battle);
-  if (!decoder) decoders.set(battle, (decoder = new ScenePresentation(layout)));
-  return decoder.decode(new Float32Array(memory.buffer, battle.publication_ptr(), length).slice())!;
+  return decoder.decode(
+    new Float32Array(memory.buffer, battle.publication_ptr(side), length).slice(),
+  )!;
 }
 
 test("packed twin launchers keep separate readiness through to the panel rows", () => {
@@ -151,7 +158,7 @@ test("a packed side frame decodes group by group through the published layout", 
   const length = battle.publish("blue");
   const frame = new ScenePresentation(
     JSON.parse(battle.observation_layout()) as ObservationLayout,
-  ).decode(new Float32Array(memory.buffer, battle.publication_ptr(), length).slice())!;
+  ).decode(new Float32Array(memory.buffer, battle.publication_ptr("blue"), length).slice())!;
   expect(frame.tick).toBe(15);
   expect(frame.own.map((u) => u.kind)).toEqual(["test_recon", "test_rifle"]);
   expect(frame.own[1].members).toHaveLength(8);
@@ -282,7 +289,7 @@ test("casualties, health and corpses decode", () => {
   const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
   const decode = (side: "blue" | "red") => published(battle, layout, side);
   const snapshot = () => {
-    oracle.resync_observation();
+    oracle.resync_observation("red");
     return published(oracle, layout, "red");
   };
   const complete = (frame: ReturnType<typeof published>) => ({ ...frame, groundPatch: undefined });

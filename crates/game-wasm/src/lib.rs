@@ -13,7 +13,7 @@ use sim::flight::{
     FlightEvent, ImpactContext, NoSolution, Pose, ProjectileId, Projectiles, Shape, Struck,
 };
 use sim::math::{v3, V3};
-use sim::publication::{self, Publisher};
+use sim::publication::{self, Publishers};
 use sim::world::WorldGeometry;
 use wasm_bindgen::prelude::*;
 
@@ -646,8 +646,8 @@ fn parse_side(side: &str) -> Result<Side, JsError> {
 #[wasm_bindgen(js_name = Battle)]
 pub struct BattleHandle {
     battle: Battle,
-    /// Packs each publication and keeps the consumer's ground cursor.
-    publisher: Publisher,
+    /// Packs each side's publications and keeps that side's baseline.
+    publishers: Publishers,
 }
 
 #[wasm_bindgen(js_class = Battle)]
@@ -658,7 +658,7 @@ impl BattleHandle {
         sim::admit(&setup.rules).map_err(js_error)?;
         Ok(BattleHandle {
             battle: Battle::new(&setup, seed as u64),
-            publisher: Publisher::new(),
+            publishers: Publishers::new(),
         })
     }
 
@@ -679,7 +679,7 @@ impl BattleHandle {
             Battle::from_replay(&setup, &replay).map_err(|e| JsError::new(&e.to_string()))?;
         Ok(BattleHandle {
             battle,
-            publisher: Publisher::new(),
+            publishers: Publishers::new(),
         })
     }
 
@@ -751,24 +751,26 @@ impl BattleHandle {
     }
 
     /// Pack `side`'s observation with visibility and learned-ground changes
-    /// (all of them after a side change or `resync_observation`); returns its
-    /// length in f32s. Read it at `publication_ptr()` before any other call
+    /// (all of them in its first record and after `resync_observation`);
+    /// returns its length in f32s. Read it at `publication_ptr(side)` before any other call
     /// that may grow memory.
     pub fn publish(&mut self, side: &str) -> Result<usize, JsError> {
         let side = parse_side(side)?;
-        self.publisher
+        self.publishers
             .publish(&self.battle, side)
             .map(|record| record.len())
             .map_err(js_error)
     }
 
-    pub fn publication_ptr(&self) -> *const f32 {
-        self.publisher.record().as_ptr()
+    pub fn publication_ptr(&self, side: &str) -> Result<*const f32, JsError> {
+        Ok(self.publishers.record(parse_side(side)?).as_ptr())
     }
 
-    /// The next publication opens a new epoch with full visibility and learned ground.
-    pub fn resync_observation(&mut self) {
-        self.publisher.resync();
+    /// The next publication for `side` opens a new epoch with full visibility
+    /// and learned ground. The other sides' streams carry on.
+    pub fn resync_observation(&mut self, side: &str) -> Result<(), JsError> {
+        self.publishers.resync(parse_side(side)?);
+        Ok(())
     }
 }
 

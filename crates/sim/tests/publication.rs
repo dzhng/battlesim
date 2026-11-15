@@ -12,6 +12,7 @@ mod codec {
     include!("common/publication_codec.rs");
 }
 mod paired_records;
+mod sides;
 
 #[test]
 fn publication_layout_exposes_player_rows_instead_of_side_economy() {
@@ -868,70 +869,6 @@ fn unchanged_observation_groups_do_not_retransmit_own_rows() {
             .collect::<Vec<_>>(),
         own.iter().map(|v| v.to_bits()).collect::<Vec<_>>()
     );
-}
-
-#[test]
-fn group_delivery_reconstructs_the_logical_oracle_across_side_and_epoch_changes() {
-    let setup = common::scenario(
-        &json!({"size":[128,128],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35})
-            .to_string(),
-        json!([{"side":"blue","kind":"test_rifle","position":[32,32]}, {"side":"red","kind":"test_rifle","position":[64,32]}]),
-        json!([]),
-    );
-    let mut battle = Battle::new(&setup, 1);
-    let mut publisher = publication::Publisher::new();
-    let mut previous: Vec<Vec<f32>> = Vec::new();
-    for tick in 0..12 {
-        battle.step();
-        let side = if !(4..8).contains(&tick) {
-            Side::Blue
-        } else {
-            Side::Red
-        };
-        if tick == 2 {
-            publisher.resync();
-        }
-        let wire = publisher.publish(&battle, side).unwrap();
-        if wire[25] == 1.0 {
-            previous.clear();
-        }
-        let mut at = publication::HEADER_WORDS;
-        previous.resize_with(publication::GROUPS, Vec::new);
-        for group in &mut previous {
-            let decoded = codec::group(wire, at, group);
-            at += 3 + wire[at + 2] as usize;
-            *group = decoded;
-        }
-        let mut oracle = Vec::new();
-        let ground = publication::GroundHeader {
-            epoch: 1,
-            side,
-            base: 0,
-            revision: 0,
-            full: true,
-            count: 0,
-        };
-        let frame = battle.observe(side);
-        publication::pack_logical(
-            frame,
-            &[],
-            &ground,
-            &full_fog(),
-            std::iter::empty(),
-            &mut oracle,
-        )
-        .unwrap();
-        let row_end = oracle.len() - frame.ground_visibility.bits.len() * 2;
-        let actual: Vec<u32> = previous.iter().flatten().map(|f| f.to_bits()).collect();
-        assert_eq!(
-            actual,
-            oracle[publication::HEADER_WORDS..row_end]
-                .iter()
-                .map(|f| f.to_bits())
-                .collect::<Vec<_>>(),
-            "tick {tick}"
-        );
-    }
 }
 
 #[test]
