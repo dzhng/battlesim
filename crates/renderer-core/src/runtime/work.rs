@@ -37,6 +37,10 @@ pub struct AdmissionWork {
     pub cards_baked: u32,
     /// Concurrent readback groups awaited by the card bake.
     pub card_read_waits: u32,
+    /// New packed albedo/normal card layers written from completed bakes.
+    pub card_bytes_uploaded: u64,
+    /// Existing packed card layers copied GPU-side on capacity growth.
+    pub card_bytes_copied: u64,
     pub statics_bytes_uploaded: u64,
     pub scenery_placements: u32,
     pub rebuild_reason: Option<RebuildReason>,

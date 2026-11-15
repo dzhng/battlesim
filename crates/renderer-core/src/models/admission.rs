@@ -1,6 +1,6 @@
 //! Authored model rows and shared material admission.
 use super::*;
-use crate::models::store::{GeometryKey, SharedArtStore};
+use crate::models::store::SharedArtStore;
 use crate::runtime::AdmissionWork;
 
 impl Models {
@@ -70,10 +70,24 @@ impl Models {
                 }
             }
         }
+        let plans = super::plan::rows(
+            appearances,
+            strings,
+            &bundles,
+            &wanted_textures,
+            &rest_palette,
+            &track_side,
+        )?;
+        let wanted_cards = plans
+            .iter()
+            .flatten()
+            .filter_map(|plan| plan.card.clone())
+            .collect();
         let (store, reason) = ArtStore::admit(
             store,
             &wanted,
             &wanted_textures,
+            &wanted_cards,
             device.limits().max_texture_array_layers,
         )?;
         if reason.is_some() {
@@ -116,7 +130,11 @@ impl Models {
                 rows.push(None);
                 continue;
             }
-            let (name, state) = (text(a.name, a.name_len), text(a.state, a.state_len));
+            let Some(plan) = &plans[r] else {
+                rows.push(None);
+                continue;
+            };
+            let name = text(a.name, a.name_len);
             let (bundle, content) = &bundles[name];
             let base = store
                 .lock()
@@ -135,20 +153,18 @@ impl Models {
                     work,
                 ))
             };
-            let rest = || rest_palette(r as u32).ok_or(format!("{name}: no rest pose for row {r}"));
+            let rest = || {
+                plan.palette
+                    .clone()
+                    .ok_or(format!("{name}: no rest pose for row {r}"))
+            };
             let row = match &bundle.shape {
                 Shape::Skinned(tiers) if a.lies != NONE => {
                     let palette = rest()?;
                     let rest = tiers.first().map(|mesh| {
                         RestPose::new(name, &posed_mesh(mesh, &palette), RestPose::identity())
                     });
-                    let key = GeometryKey {
-                        content: content.clone(),
-                        state: String::new(),
-                        pose: Some(bytemuck::cast_slice(&palette).to_vec()),
-                        tracks: Vec::new(),
-                    };
-                    let tiers = ArtStore::geometry(&store, key, || {
+                    let tiers = ArtStore::geometry(&store, plan.geometry.clone(), || {
                         tiers
                             .iter()
                             .map(|m| single(&posed_mesh(m, &palette), Some(0)))
@@ -160,6 +176,7 @@ impl Models {
                         prop,
                         tiers,
                         card: None,
+                        card_key: plan.card.clone(),
                         rest,
                     }
                 }
@@ -173,85 +190,52 @@ impl Models {
                         building: a.draws == 0 && a.placed != 0,
                         prop,
                         card: None,
+                        card_key: plan.card.clone(),
                         rest,
-                        tiers: ArtStore::geometry(
-                            &store,
-                            GeometryKey {
-                                content: content.clone(),
-                                state: String::new(),
-                                pose: None,
-                                tracks: Vec::new(),
-                            },
-                            || tiers.iter().map(|m| single(m, None)).collect(),
-                        )?,
+                        tiers: ArtStore::geometry(&store, plan.geometry.clone(), || {
+                            tiers.iter().map(|m| single(m, None)).collect()
+                        })?,
                     }
                 }
                 Shape::Articulated(nodes) => {
                     let count = nodes.first().map_or(0, |n| n.tiers.len());
-                    let tracks = nodes
-                        .iter()
-                        .enumerate()
-                        .map(|(node, _)| match track_side(r as u32, node) {
-                            Some(presentation::world::TrackSide::Left) => 1,
-                            Some(presentation::world::TrackSide::Right) => 2,
-                            None => 0,
-                        })
-                        .collect();
-                    let tiers = ArtStore::geometry(
-                        &store,
-                        GeometryKey {
-                            content: content.clone(),
-                            state: String::new(),
-                            pose: None,
-                            tracks,
-                        },
-                        || {
-                            (0..count)
-                                .map(|t| {
-                                    let meshes = articulated_meshes(nodes, t, base, |node| {
-                                        track_side(r as u32, node)
-                                    })?;
-                                    Ok(drawable(device, queue, &label, bundle, &meshes, work))
-                                })
-                                .collect()
-                        },
-                    )?;
+                    let tiers = ArtStore::geometry(&store, plan.geometry.clone(), || {
+                        (0..count)
+                            .map(|t| {
+                                let meshes = articulated_meshes(nodes, t, base, |node| {
+                                    track_side(r as u32, node)
+                                })?;
+                                Ok(drawable(device, queue, &label, bundle, &meshes, work))
+                            })
+                            .collect()
+                    })?;
                     Row {
                         kind: Kind::Vehicle,
                         building: a.draws == 0 && a.placed != 0,
                         prop,
                         tiers,
                         card: None,
-                        rest: rest_palette(r as u32)
+                        card_key: plan.card.clone(),
+                        rest: plan
+                            .palette
+                            .clone()
                             .map(|palette| RestPose::articulated(name, nodes, palette)),
                     }
                 }
                 Shape::Static(states) => {
-                    // A piece the bundle lacks (a wreck with no turret to
-                    // throw) is a row nothing draws.
-                    let found = states
+                    let s = states
                         .iter()
-                        .find(|s| s.name == state)
-                        .or_else(|| state.is_empty().then(|| states.first()).flatten());
-                    let Some(s) = found else {
-                        rows.push(None);
-                        continue;
-                    };
+                        .find(|state| state.name == plan.geometry.state)
+                        .expect("planned authored state");
                     Row {
                         kind: if prop { Kind::Prop } else { Kind::Piece },
                         building: a.draws == 0 && a.placed != 0,
                         prop,
-                        tiers: ArtStore::geometry(
-                            &store,
-                            GeometryKey {
-                                content: content.clone(),
-                                state: s.name.clone(),
-                                pose: None,
-                                tracks: Vec::new(),
-                            },
-                            || s.tiers.iter().map(|m| single(m, Some(0))).collect(),
-                        )?,
+                        tiers: ArtStore::geometry(&store, plan.geometry.clone(), || {
+                            s.tiers.iter().map(|m| single(m, Some(0))).collect()
+                        })?,
                         card: None,
+                        card_key: plan.card.clone(),
                         rest: s
                             .tiers
                             .first()

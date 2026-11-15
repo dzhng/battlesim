@@ -255,7 +255,7 @@ fn display_readback_removes_row_padding_swizzles_bgra_and_keeps_the_encoded_fram
     };
     write(&original);
     let mut encoder = gpu.device.create_command_encoder(&Default::default());
-    let read = RgbaReadback::encode(&gpu.device, &mut encoder, &texture).unwrap();
+    let read = RgbaReadback::encode(&gpu.device, &mut encoder, &texture, 0).unwrap();
     gpu.queue.submit([encoder.finish()]);
     write(&[0; 24]);
     assert_eq!(

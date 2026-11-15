@@ -1,8 +1,12 @@
 //! Scene/device ownership of stable material and texture slots and shared art.
-use super::{textures::TextureStore, Drawable};
+use super::{
+    card_store::{CardKey, CardStore},
+    textures::TextureStore,
+    Drawable,
+};
 use crate::runtime::RebuildReason;
 use contract::identity::ContentId;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::{Arc, Mutex, Weak};
 
 const MATERIAL_SLOT_LIMIT: usize = u16::MAX as usize + 1;
@@ -63,7 +67,7 @@ impl Default for ArtStorePolicy {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(super) struct GeometryKey {
     pub content: ContentId,
     pub state: String,
@@ -82,6 +86,7 @@ pub struct ArtStore {
     geometry: HashMap<GeometryKey, Weak<[Drawable]>>,
     pub(super) policy: ArtStorePolicy,
     pub(super) textures: TextureStore,
+    pub(super) cards: CardStore,
 }
 
 pub type SharedArtStore = Arc<Mutex<ArtStore>>;
@@ -103,6 +108,7 @@ impl ArtStore {
     /// memory snapshot.
     pub fn record_memory(&self, memory: &mut crate::memory::ResourceMemory) {
         self.textures.record_memory(memory);
+        self.cards.record_memory(memory);
         for geometry in self.geometry.values().filter_map(Weak::upgrade) {
             for tier in geometry.iter() {
                 memory.buffer(&tier.vertices);
@@ -117,12 +123,41 @@ impl ArtStore {
         store: SharedArtStore,
         wanted: &BTreeMap<ContentId, usize>,
         textures: &BTreeMap<String, Arc<crate::bundle::Texture>>,
+        cards: &BTreeSet<CardKey>,
         layer_limit: u32,
     ) -> Result<(SharedArtStore, Option<RebuildReason>), String> {
         let mut held = store.lock().expect("art store lock");
-        let texture_pressure =
-            held.textures
-                .pressure(textures, layer_limit, held.policy.dead_texture_layers)?;
+        let pressures = held
+            .textures
+            .pressures(textures)
+            .into_iter()
+            .chain([held.cards.pressure(cards)])
+            .collect::<Vec<_>>();
+        if let Some(pressure) = pressures.iter().find(|p| p.active > layer_limit as usize) {
+            return Err(format!(
+                "model or card texture layers exhausted: {} wanted, limit {layer_limit}",
+                pressure.active
+            ));
+        }
+        let dead_layers: usize = pressures.iter().map(|p| p.dead).sum();
+        let texture_pressure = if dead_layers > held.policy.dead_texture_layers {
+            Some((
+                RebuildReason::DeadTextureLayers,
+                dead_layers,
+                held.policy.dead_texture_layers,
+            ))
+        } else {
+            pressures
+                .iter()
+                .find(|p| p.total > layer_limit as usize)
+                .map(|p| {
+                    (
+                        RebuildReason::TextureLayersExhausted,
+                        p.total,
+                        layer_limit as usize,
+                    )
+                })
+        };
         let active: usize = wanted.values().sum();
         if active > MATERIAL_SLOT_LIMIT {
             return Err(format!(
@@ -160,12 +195,13 @@ impl ArtStore {
             (held.policy.report)(&format!("art-store tripwire kind={kind:?} value={value} bound={bound} owner=Runtime.art_store outcome=fresh-store"));
             let fresh = Arc::new(Mutex::new(Self::new(held.policy)));
             drop(held);
-            let (fresh, _) = Self::admit(fresh, wanted, textures, layer_limit)?;
+            let (fresh, _) = Self::admit(fresh, wanted, textures, cards, layer_limit)?;
             return Ok((fresh, Some(kind)));
         }
         for (id, &count) in wanted {
             held.slots.reserve(id.clone(), count)?;
         }
+        held.cards.reserve(cards);
         held.geometry
             .retain(|_, geometry| geometry.strong_count() > 0);
         drop(held);

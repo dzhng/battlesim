@@ -150,7 +150,7 @@ fn diagnostic_texture_controls_do_not_change_authored_impostor_bakes() {
                     &gpu.queue,
                     &pipelines,
                     &[0],
-                    &Spec::runtime(),
+                    renderer_core::impostor::AtlasSource::Fresh(&Spec::runtime()),
                     &mut AdmissionWork::default(),
                 )
                 .unwrap()
@@ -261,7 +261,7 @@ fn authored_bake_and_runtime_cards_preserve_coverage_normals_tint_and_real_geome
                 &gpu.queue,
                 &pipelines,
                 &[0],
-                &Spec::runtime(),
+                renderer_core::impostor::AtlasSource::Fresh(&Spec::runtime()),
                 &mut AdmissionWork::default(),
             )
             .unwrap()
@@ -276,7 +276,7 @@ fn authored_bake_and_runtime_cards_preserve_coverage_normals_tint_and_real_geome
                 &gpu.queue,
                 &pipelines,
                 &[0],
-                &Spec::runtime(),
+                renderer_core::impostor::AtlasSource::Fresh(&Spec::runtime()),
                 &mut AdmissionWork::default(),
             )
             .unwrap()
@@ -295,7 +295,7 @@ fn authored_bake_and_runtime_cards_preserve_coverage_normals_tint_and_real_geome
             &gpu.queue,
             &pipelines,
             &[0],
-            &Spec::runtime(),
+            renderer_core::impostor::AtlasSource::Fresh(&Spec::runtime()),
             &mut AdmissionWork::default(),
         )
         .unwrap()
@@ -329,7 +329,7 @@ fn authored_bake_and_runtime_cards_preserve_coverage_normals_tint_and_real_geome
                 &gpu.queue,
                 &pipelines,
                 &[0],
-                &Spec::runtime(),
+                renderer_core::impostor::AtlasSource::Fresh(&Spec::runtime()),
                 &mut AdmissionWork::default(),
             )
             .unwrap();

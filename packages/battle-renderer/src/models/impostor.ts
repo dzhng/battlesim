@@ -13,6 +13,8 @@ export interface ImpostorSpec {
 
 export interface ImpostorAtlas {
   appearance: string;
+  /** Resident runtime layer, or null for a configurable fresh bake. */
+  layer: number | null;
   spec: ImpostorSpec;
   width: number;
   height: number;

@@ -69,7 +69,7 @@ fn drawn(
     });
     let hdr = (format == HDR_FORMAT).then_some(&view);
     pass.encode(&mut encoder, &view, hdr);
-    let read = RgbaReadback::encode(&gpu.device, &mut encoder, &output).unwrap();
+    let read = RgbaReadback::encode(&gpu.device, &mut encoder, &output, 0).unwrap();
     gpu.queue.submit([encoder.finish()]);
     let bytes = pollster::block_on(read.read(&gpu.device)).unwrap();
     if format == HDR_FORMAT {

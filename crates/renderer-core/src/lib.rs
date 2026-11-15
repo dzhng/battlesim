@@ -362,3 +362,5 @@ impl Targets {
         memory.texture(&self.display_texture);
     }
 }
+
+mod texture_array;
