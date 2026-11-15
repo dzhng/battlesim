@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multiplayer mock</title>
+<style>
+:root{
+  --accent:115 219 255; --ally:185 240 255; --enemy:255 97 82; --text:230 245 255;
+  --dim:143 173 194; --good:140 242 158; --credits:250 199 64; --glass:5 15 23;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  --cond:"Barlow Condensed","Arial Narrow","Helvetica Neue",sans-serif;
+  --halo:0 0 2px rgb(0 0 0/.95),0 0 5px rgb(0 0 0/.7);
+}
+*{box-sizing:border-box}
+:root{color-scheme:light dark}
+body{margin:0;color:var(--foreground,CanvasText);font:13px/1.45 var(--font-sans,system-ui,sans-serif)}
+/* ---------- mock chrome (not game UI) ---------- */
+.chrome h1{font-size:15px;margin:0 0 2px}
+.chrome p{margin:0 0 10px;color:var(--muted-foreground);max-width:70ch}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.tabs button,.opt{font:inherit;color:var(--foreground);background:var(--secondary);border:1px solid var(--border);border-radius:var(--radius,6px);padding:6px 10px;cursor:pointer;text-align:left}
+.tabs button[aria-current=true]{border-color:var(--primary);box-shadow:inset 0 0 0 1px var(--primary)}
+.react{display:grid;gap:12px;margin-top:14px}
+.group{border-left:2px solid var(--border);padding-left:10px}
+.group b{display:block;font-weight:600;margin-bottom:6px}
+.group .opts{display:flex;gap:6px;flex-wrap:wrap}
+.opt[aria-pressed=true]{border-color:var(--success);box-shadow:inset 0 0 0 1px var(--success)}
+.opt i{font-style:normal;font-weight:700;margin-right:6px}
+.reply{margin-top:6px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius,8px);padding:16px}
+.reply h2{font-size:13px;margin:0 0 8px}
+.reply pre{white-space:pre-wrap;margin:0 0 8px;font:12px/1.5 var(--font-mono,monospace)}
+.reply textarea{width:100%;min-height:54px;background:var(--background);color:var(--foreground);border:1px solid var(--border);border-radius:var(--radius,6px);padding:8px;font:12px/1.4 var(--font-mono,monospace)}
+.reply .copy{margin-top:8px;font:inherit;font-weight:600;color:var(--primary-foreground);background:var(--primary);border:0;border-radius:var(--radius,6px);padding:8px 14px;cursor:pointer}
+
+/* ---------- the game frame ---------- */
+#fit{width:100%;max-width:940px;overflow:hidden}
+#stage{width:940px;height:600px;transform-origin:0 0;position:relative;font-family:var(--mono);color:rgb(var(--text));
+  background:radial-gradient(ellipse at 50% 20%,rgb(var(--accent)/.08) 0%,transparent 70%),rgb(var(--glass));
+  border:1px solid rgb(var(--accent)/.35);padding:14px 18px;display:grid;grid-template-rows:auto minmax(0,1fr)}
+#stage button{font-family:var(--mono);cursor:pointer}
+.head{display:flex;align-items:center;gap:12px;padding-bottom:10px;border-bottom:1px solid rgb(var(--accent)/.22);margin-bottom:12px}
+.back{width:30px;height:30px;border:1px solid rgb(var(--accent)/.7);background:none;position:relative}
+.back::after{content:"";position:absolute;left:11px;top:9px;width:9px;height:9px;border-left:2px solid rgb(var(--accent));border-bottom:2px solid rgb(var(--accent));transform:rotate(45deg)}
+.title{font-size:17px;font-weight:700;letter-spacing:.28em;color:rgb(var(--accent))}
+.spacer{flex:1}
+.label{font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:rgb(var(--dim))}
+.callsign{display:flex;align-items:center;gap:8px}
+.callsign input{width:150px;background:none;border:0;border-bottom:1px solid rgb(var(--accent)/.5);color:#fff;font:700 13px var(--mono);letter-spacing:.12em;padding:3px 2px;text-transform:uppercase}
+.tag{white-space:nowrap;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;padding:4px 10px;border:1px solid rgb(var(--dim)/.5);color:rgb(var(--dim));background:none}
+.tag.lit{color:rgb(var(--glass));background:rgb(var(--accent));border-color:rgb(var(--accent));box-shadow:0 0 10px rgb(var(--accent)/.55)}
+.tag.good{color:rgb(var(--glass));background:rgb(var(--good));border-color:rgb(var(--good))}
+.btn{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;padding:9px 16px;color:rgb(var(--accent));background:none;border:1px solid rgb(var(--accent)/.6)}
+.btn:hover{background:rgb(var(--accent)/.12)}
+.go{align-self:stretch;display:grid;place-items:center;padding:0 34px;min-height:46px;font-size:16px;font-weight:700;letter-spacing:.32em;text-transform:uppercase;color:rgb(var(--glass));background:rgb(var(--accent));border:1px solid rgb(var(--accent));box-shadow:0 0 20px rgb(var(--accent)/.55);clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%)}
+.go[disabled]{color:rgb(var(--dim));background:none;box-shadow:none;border:1px dashed rgb(var(--dim)/.5);clip-path:none;cursor:default}
+/* home */
+.home{width:430px;margin:0 auto;display:grid;gap:8px;align-content:start}
+.word{font:500 40px/1 var(--cond);letter-spacing:.34em;color:rgb(var(--ally));text-shadow:0 0 14px rgb(var(--accent)/.6);margin:2px 0 8px}
+.tile{position:relative;height:66px;text-align:left;padding:0 22px;border:1px solid rgb(var(--accent)/.4);border-left:3px solid rgb(var(--accent)/.85);color:#fff;font-size:17px;font-weight:700;letter-spacing:.2em;
+  background:linear-gradient(90deg,rgb(var(--glass)) 30%,rgb(var(--accent)/.14) 75%,rgb(var(--accent)/.26))}
+.tile small{display:block;margin-top:6px;font-size:10px;font-weight:400;letter-spacing:.16em;color:rgb(var(--dim))}
+.tile.main{border-color:rgb(var(--accent));box-shadow:0 0 18px rgb(var(--accent)/.3)}
+.hero{display:grid;gap:8px;margin-bottom:6px}
+.live{display:inline-flex;align-items:center;gap:8px;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:rgb(var(--good))}
+.live::before{content:"";width:7px;height:7px;border-radius:50%;background:rgb(var(--good));box-shadow:0 0 8px rgb(var(--good))}
+/* multiplayer */
+.mp{display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:14px;min-height:0}
+.front{display:flex;align-items:center;gap:22px;padding:14px 18px;border-left:3px solid rgb(var(--accent));background:linear-gradient(90deg,rgb(var(--accent)/.2),rgb(var(--accent)/.04))}
+.front h3{margin:0 0 6px;font:500 30px/1 var(--cond);letter-spacing:.3em;color:#fff}
+.front p{margin:0;font-size:11px;letter-spacing:.08em;color:rgb(var(--dim))}
+.bar{display:flex;align-items:center;gap:12px}
+.code{display:flex;align-items:center;gap:8px}
+.code input{width:150px;background:none;border:1px solid rgb(var(--accent)/.5);color:#fff;font:700 13px var(--mono);letter-spacing:.2em;padding:8px 10px;text-transform:uppercase}
+.rooms{display:grid;gap:8px;align-content:start;overflow:auto;margin:0;padding:0;list-style:none}
+.room{position:relative;z-index:0;display:grid;grid-template-columns:200px 1fr auto 112px;justify-items:start;align-items:center;gap:14px;height:54px;padding:0 26px 0 16px}
+.room::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgb(var(--accent)/.2),rgb(var(--accent)/.05));border-left:3px solid rgb(var(--accent)/.85);clip-path:polygon(0 0,100% 0,calc(100% - 16px) 100%,0 100%)}
+.room[data-busy]::before{background:rgb(var(--dim)/.06);border-left-color:rgb(var(--dim)/.4)}
+.room[data-busy]{color:rgb(var(--dim))}
+.room .who{font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.room .map{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:rgb(var(--dim))}
+.room .map em{font-style:normal;color:rgb(var(--text))}
+.pips{display:flex;align-items:center;gap:14px;font:500 22px/1 var(--cond);letter-spacing:.2em}
+.pips span{display:inline-flex;gap:4px;align-items:center}
+.pip{width:9px;height:14px;display:inline-block}
+.pip.h{background:rgb(var(--s))}
+.pip.o{border:1px dashed rgb(var(--s))}
+.pip.a{background:rgb(var(--s)/.35)}
+.blue{--s:var(--accent)} .red{--s:var(--enemy)}
+.key{display:flex;gap:16px;align-items:center;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgb(var(--dim))}
+.key span{display:inline-flex;gap:6px;align-items:center}
+/* lobby */
+.lobby{display:grid;grid-template-rows:minmax(0,1fr) auto;gap:12px;min-height:0}
+.field{display:grid;grid-template-columns:minmax(0,1fr) 330px minmax(0,1fr);gap:20px;min-height:0}
+.side{display:flex;flex-direction:column;gap:8px}
+.side.red{align-items:flex-end}
+.fac{height:44px;display:flex;align-items:center;font-size:12px;font-weight:700;letter-spacing:.26em;color:rgb(var(--s))}
+.banners{display:grid;gap:8px;width:100%}
+.banner{position:relative;z-index:0;display:flex;align-items:center;gap:10px;height:52px;padding:0 24px 0 14px;border:0;background:none;color:inherit;text-align:left;width:100%}
+.banner::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgb(var(--s)/.24),rgb(var(--s)/.08));border-left:3px solid rgb(var(--s)/.85);clip-path:polygon(0 0,100% 0,calc(100% - 16px) 100%,0 100%)}
+.red .banner{flex-direction:row-reverse;padding:0 14px 0 24px}
+.red .banner::before{background:linear-gradient(270deg,rgb(var(--s)/.24),rgb(var(--s)/.08));border-left:0;border-right:3px solid rgb(var(--s)/.85);clip-path:polygon(16px 0,100% 0,100% 100%,0 100%)}
+.banner[data-you]::before{background:linear-gradient(90deg,rgb(var(--s)/.46),rgb(var(--s)/.14))}
+.banner[data-kind=open]::before{background:none;border:1px dashed rgb(var(--s)/.55);clip-path:none}
+.banner[data-kind=open]{cursor:pointer}
+.banner[data-kind=open]:hover::before{background:rgb(var(--s)/.1)}
+.idx{font:500 34px/1 var(--cond);color:rgb(var(--s));text-shadow:0 0 10px rgb(var(--s)/.45);min-width:.6em}
+.banner[data-kind=open] .idx{opacity:.45}
+.name{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;display:grid;gap:3px}
+.host{font-size:9px;font-weight:400;letter-spacing:.2em;color:rgb(var(--credits))}
+.red .name{text-align:right}
+.grow{flex:1}
+.x{width:22px;height:22px;border:0;background:none;position:relative;opacity:.7}
+.x::before,.x::after{content:"";position:absolute;left:10px;top:3px;width:2px;height:16px;background:rgb(var(--dim))}
+.x::before{transform:rotate(45deg)}.x::after{transform:rotate(-45deg)}
+.add{width:100%;height:34px;border:1px dashed rgb(var(--s)/.45);background:none;color:rgb(var(--s));font-size:10px;letter-spacing:.2em;text-transform:uppercase}
+.mapbox{display:grid;grid-template-rows:44px auto auto;align-content:start;gap:0}
+.mapbox .note{text-align:center;padding-top:8px}
+.vs{align-self:center;text-align:center;font:500 30px/1 var(--cond);letter-spacing:.3em;text-shadow:var(--halo)}
+.vs .b{color:rgb(var(--accent))}.vs .r{color:rgb(var(--enemy))}
+.pic{border:1px solid rgb(var(--accent)/.3);background:#0d1712;aspect-ratio:1;align-self:start}
+.strip{display:flex;align-items:flex-end;gap:12px;padding:10px 0 4px;border-top:1px solid rgb(var(--accent)/.22)}
+.choice{display:grid;gap:6px}
+.choice div{display:flex}
+.choice button{white-space:nowrap;margin-right:-1px;padding:7px 8px;font-size:11px;color:rgb(var(--dim));background:none;border:1px solid rgb(var(--accent)/.22)}
+.choice button[aria-checked=true]{font-weight:700;color:#fff;background:rgb(var(--accent)/.16);border-color:rgb(var(--accent)/.85)}
+.strip[data-guest] .choice button{cursor:default}
+.strip[data-guest] .choice button:not([aria-checked=true]){display:none}
+.chatline{display:flex;gap:10px;align-items:center;font-size:11px;color:rgb(var(--dim));padding-top:8px}
+.chatline b{color:rgb(var(--accent));letter-spacing:.1em}
+.chatline input{flex:1;background:none;border:0;border-bottom:1px solid rgb(var(--accent)/.35);color:#fff;font:12px var(--mono);padding:4px 2px}
+.note{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:rgb(var(--dim))}
+/* drop-in */
+.battle{position:relative;min-height:0;background:radial-gradient(ellipse at 40% 60%,#27301f,#141a12 70%);border:1px solid rgb(var(--accent)/.2);overflow:hidden}
+.battle svg{position:absolute;inset:0;width:100%;height:100%}
+.callout{position:absolute;left:50%;top:26px;transform:translateX(-50%);display:grid;gap:8px;justify-items:center;text-align:center;text-shadow:var(--halo)}
+.callout h3{white-space:nowrap;margin:0;font:500 34px/1 var(--cond);letter-spacing:.3em;color:rgb(var(--ally))}
+.callout p{white-space:nowrap;margin:0;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase}
+.cr{color:rgb(var(--credits))}
+.score{display:flex;align-items:center;gap:10px;font:500 22px/1 var(--cond);letter-spacing:.16em}
+.score i{display:block;height:6px;width:240px;background:linear-gradient(90deg,rgb(var(--accent)) 0 41%,rgb(var(--dim)/.25) 41% 61%,rgb(var(--enemy)) 61%)}
+.brief{position:absolute;inset:0;display:grid;place-items:center;background:rgb(var(--glass)/.94)}
+.brief>div{display:grid;gap:14px;justify-items:center;text-align:center}
+.roster{display:flex;gap:40px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;text-align:left}
+.roster div{display:grid;gap:5px;align-content:start}
+.roster .u{color:rgb(var(--dim))}
+</style>
+</head>
+<body>
+<div class="chrome">
+  <p>Everything inside the frame is a sketch of the game with invented players and rooms. Click through it, flip the options underneath, then copy the reply at the bottom.</p>
+  <div class="tabs" id="tabs"></div>
+</div>
+<div id="fit"><div id="stage"></div></div>
+<div class="react">
+  <div id="groups" style="display:grid;gap:12px"></div>
+  <div class="reply">
+    <h2>Three things I can't see from the code</h2>
+    <div id="probes" style="display:grid;gap:12px;margin-bottom:12px"></div>
+    <h2>Your reply</h2>
+    <pre id="out"></pre>
+    <textarea id="notes" placeholder="Anything that looked wrong, or that you'd steal from a game you like"></textarea>
+    <button class="copy" id="copy">Copy reply</button>
+  </div>
+</div>
+<script>
+const T = {
+  entry:{screen:'home',label:'Where multiplayer lives on the main menu',opts:{A:'One MULTIPLAYER tile; drop-in and rooms inside it',B:'Two tiles: drop-in first, ROOMS second',C:'Drop-in as one big button above the tiles'}},
+  mode:{screen:'home',label:'What the drop-in mode is called',opts:{A:'FRONTLINE',B:'QUICK BATTLE',C:'OPEN WAR',D:'JOIN THE FIGHT'}},
+  name:{screen:'mp',label:'When the player is asked for a callsign',opts:{A:'Never: a random one is filled in, editable in the header',B:'Once: a prompt the first time they go online'}},
+  rows:{screen:'mp',label:'What a room row says',opts:{A:'Host, map, seats',B:'Plus which factions are fighting'}},
+  busy:{screen:'mp',label:'Rooms whose battle has started',opts:{A:'Not listed',B:'Listed unlit; they can’t be joined'}},
+  code:{screen:'mp',label:'What a private room code looks like',opts:{A:'A word and a number: TANGO-4821',B:'Five letters: KQ7FD'}},
+  chat:{screen:'room',label:'Talking in the lobby',opts:{A:'Nothing in alpha',B:'One line of text chat'}},
+  drop:{screen:'drop',label:'The moment you drop in',opts:{A:'Straight into the battle, with a callout',B:'A briefing card first, then Deploy'}},
+};
+const P = {
+  who:{label:'Who plays the alpha?',opts:{A:'Friends I send a link to',B:'Anyone who finds the site',C:'Both'}},
+  where:{label:'Where are they?',opts:{A:'Mostly North America',B:'Worldwide'}},
+  done:{label:'The first moment that counts as “it works”',opts:{A:'A friend and I finish a room battle over the internet',B:'A stranger drops into a global game and stays ten minutes'}},
+};
+const pick = {entry:'A',mode:'A',name:'A',rows:'A',busy:'A',code:'A',chat:'A',drop:'A'};
+const probe = {};
+const SCREENS = {home:'1 Main menu',mp:'2 Multiplayer',room:'3 Room lobby',drop:'4 Drop-in'};
+let screen = 'home', asHost = true, joinOpen = false, createOpen = false;
+const modeName = () => T.mode.opts[pick.mode];
+const privateCode = () => pick.code === 'A' ? 'TANGO-4821' : 'KQ7FD';
+
+// The room: seats per side. kind: human | open | ai.
+let seats = {
+  blue:[{kind:'human',name:'VIPER-41',you:true,ready:false},{kind:'human',name:'MAKO',ready:true},{kind:'open'}],
+  red:[{kind:'human',name:'LENA#2',ready:false},{kind:'open'},{kind:'ai'}],
+};
+const all = () => [...seats.blue, ...seats.red];
+const hostSeat = () => all().find(s => asHost ? s.you : s.name === 'MAKO');
+const fighters = side => seats[side].filter(s => s.kind !== 'open').length;
+
+const ROOMS = [
+  {who:"MAKO's room",map:'Metro',size:'L',region:'Paris',f:'U.S. vs Eastern',b:'hho',r:'hoa'},
+  {who:"SALTMARSH's room",map:'Open',size:'M',region:'Taiwan',f:'Europe vs U.S.',b:'ho',r:'oo'},
+  {who:"IRONBARK's room",map:'Mixed',size:'XL',region:'New York',f:'Eastern vs Europe',b:'hhaao',r:'hhhoa'},
+  {who:"KESTREL's room",map:'Mixed',size:'S',region:'Paris',f:'U.S. vs Eastern',b:'h',r:'h',busy:true},
+];
+const pips = (s,side) => `<span class="${side}">${[...s].map(c=>`<i class="pip ${c}"></i>`).join('')}</span>`;
+
+function home(){
+  const m = modeName();
+  const tile = (t,sub,go,main) => `<button class="tile${main?' main':''}" data-go="${go}">${t}${sub?`<small>${sub}</small>`:''}</button>`;
+  const rest = tile('SKIRMISH','','')+tile('TUTORIAL','','')+tile('ARMORY','','')+tile('SETTINGS','','');
+  const live = '<span class="live">2 battles under way · 7 commanders</span>';
+  let top = '';
+  if (pick.entry==='A') top = tile('MULTIPLAYER',live,'mp',true);
+  if (pick.entry==='B') top = tile(m,live,'drop',true)+tile('ROOMS','3 open rooms','mp');
+  if (pick.entry==='C') top = `<div class="hero"><button class="go" data-go="drop" style="min-height:64px">${m}</button>${live}</div>`+tile('ROOMS','3 open rooms','mp');
+  return `<div></div><div class="home"><div class="word">ARMATA</div>${top}${rest}</div>`;
+}
+function head(title,back,extra=''){
+  return `<div class="head"><button class="back" data-go="${back}" aria-label="Back"></button><span class="title">${title}</span><span class="spacer"></span>${extra}</div>`;
+}
+const callsign = () => `<label class="callsign"><span class="label">Callsign</span><input value="VIPER-41" maxlength="14"></label>`;
+function mp(){
+  const rooms = ROOMS.filter(r => pick.busy==='B' || !r.busy).map(r => `
+    <li class="room" ${r.busy?'data-busy':''}>
+      <span class="who">${r.who}</span>
+      <span class="map"><em>${r.map}</em> · ${r.size} · ${r.region}${pick.rows==='B'?` · <em>${r.f}</em>`:''}</span>
+      <span class="pips">${pips(r.b,'blue')} VS ${pips(r.r,'red')}</span>
+      ${r.busy?'<span class="tag">In battle</span>':'<button class="btn" data-go="room">Join</button>'}
+    </li>`).join('');
+  const front = pick.entry==='A' ? `<div class="front"><div><h3>${modeName()}</h3><p>Two armies are already fighting. You take a command on the side that's losing.</p><p style="margin-top:8px"><span class="live">2 battles under way · 7 commanders</span></p></div><span class="spacer"></span><button class="go" data-go="drop">Play</button></div>` : '<div></div>';
+  const join = joinOpen ? `<span class="code"><input placeholder="${privateCode()}" autofocus><button class="btn" data-go="room">Enter</button></span>` : `<button class="btn" data-act="join">Join private room</button>`;
+  const create = createOpen ? `<span class="bar"><button class="btn" data-go="room">Public</button><button class="btn" data-go="room">Private</button></span>` : `<button class="btn" data-act="create">Create room</button>`;
+  const gate = pick.name==='B' ? `<span class="note">Callsign asked on first visit</span>` : '';
+  return head(pick.entry==='A'?'MULTIPLAYER':'ROOMS','home',gate+callsign()) + `<div class="mp">${front}
+    <div class="bar"><span class="label">Public rooms</span><span class="key"><span class="blue"><i class="pip h"></i>player</span><span class="blue"><i class="pip o"></i>open</span><span class="blue"><i class="pip a"></i>AI</span></span><span class="spacer"></span>${join}${create}</div>
+    <ul class="rooms">${rooms}</ul></div>`;
+}
+function banner(s,side,i){
+  const you = s.you, host = s === hostSeat();
+  const canHost = asHost && !s.you;
+  let mid;
+  if (s.kind==='human') mid = `<span class="name">${s.name}${you?' · you':''}${host?'<span class="host">HOST</span>':''}</span><span class="grow"></span>${s.ready?'<span class="tag good">Ready</span>':''}`;
+  else if (s.kind==='open') mid = `<span class="name" style="color:rgb(var(--s))">Open${you?'':''}</span><span class="grow"></span>${asHost?`<button class="tag" data-act="kind" data-side="${side}" data-i="${i}">Set AI</button>`:''}`;
+  else mid = `<span class="tag">AI</span><span class="grow"></span>${asHost?`<button class="tag" data-act="kind" data-side="${side}" data-i="${i}">Set open</button>`:''}`;
+  const x = canHost ? `<button class="x" data-act="remove" data-side="${side}" data-i="${i}" aria-label="Remove seat"></button>` : '';
+  return `<div class="banner" data-kind="${s.kind}" ${you?'data-you':''} ${s.kind==='open'?`data-act="sit" data-side="${side}" data-i="${i}"`:''}><span class="idx">${i+1}</span>${mid}${x}</div>`;
+}
+function side(name,fac){
+  const add = asHost && seats[name].length<5 ? `<button class="add" data-act="add" data-side="${name}">+ Add seat</button>` : '';
+  return `<div class="side ${name}"><div class="fac">${name.toUpperCase()} · ${fac}</div><div class="banners">${seats[name].map((s,i)=>banner(s,name,i)).join('')}</div>${add}</div>`;
+}
+function room(){
+  const me = all().find(s=>s.you);
+  const humans = all().filter(s=>s.kind==='human');
+  const allReady = humans.every(s=>s.ready);
+  const ch = (label,opts,on) => `<div class="choice"><span class="label">${label}</span><div>${opts.map(o=>`<button aria-checked="${o===on}">${o}</button>`).join('')}</div></div>`;
+  const start = asHost
+    ? `<button class="go" ${allReady?'data-go="drop"':'disabled'}>${allReady?'Start':'Waiting'}</button>`
+    : `<span class="note">${allReady?'Waiting for the host':'Host starts when everyone is ready'}</span>`;
+  const chat = pick.chat==='B' ? `<div class="chatline"><b>MAKO</b> metro again? <b>LENA#2</b> sure, give me a sec<input placeholder="Say something"></div>` : '';
+  const map = `<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width:100%;height:100%"><path d="M0 62 Q30 55 50 50 T100 40" stroke="#33402f" stroke-width="2.4" fill="none"/><path d="M22 100 Q30 70 50 50 T70 0" stroke="#33402f" stroke-width="1.8" fill="none"/><rect x="44" y="44" width="12" height="12" fill="none" stroke="#5c6b57" stroke-width=".6"/><g font-family="sans-serif" font-size="5" font-weight="700"><text x="20" y="96" fill="rgb(115 219 255)">1</text><text x="46" y="96" fill="rgb(115 219 255)">2</text><text x="72" y="8" fill="rgb(255 97 82)">1</text><text x="46" y="8" fill="rgb(255 97 82)">2</text></g></svg>`;
+  return head('ROOM','mp',`<span class="tag">Private</span><span class="label">Code</span><b style="letter-spacing:.2em">${privateCode()}</b><button class="btn">Copy link</button>`) + `<div class="lobby">
+    <div class="field">${side('blue','U.S.')}
+      <div class="mapbox"><div class="vs"><span class="b">${fighters('blue')}</span> VS <span class="r">${fighters('red')}</span></div><div class="pic">${map}</div><span class="note">Open seats sit out when the battle starts</span></div>
+      ${side('red','EASTERN')}</div>
+    <div><div class="strip" ${asHost?'':'data-guest'}>${ch('Map',['OPEN','MIXED','METRO'],'METRO')}${ch('Size',['S','M','L','XL'],'M')}${ch('Region',['RANDOM','TAIWAN','NEW YORK','PARIS'],'PARIS')}<span class="spacer"></span>
+      <button class="btn" data-act="ready">${me.ready?'Not ready':'Ready'}</button>${start}</div>${chat}</div></div>`;
+}
+function drop(){
+  const field = `<svg viewBox="0 0 100 60" preserveAspectRatio="none"><path d="M0 40 Q30 34 50 30 T100 22" stroke="#3a4631" stroke-width="1.6" fill="none"/><path d="M30 60 Q36 42 50 30 T64 0" stroke="#3a4631" stroke-width="1.2" fill="none"/><circle cx="50" cy="30" r="5" fill="none" stroke="rgb(115 219 255)" stroke-width=".3"/><circle cx="24" cy="38" r="4" fill="none" stroke="rgb(255 97 82)" stroke-width=".3" stroke-dasharray="1 1"/><circle cx="78" cy="24" r="4" fill="none" stroke="rgb(255 97 82)" stroke-width=".3"/></svg>`;
+  const score = `<div class="score"><span style="color:rgb(var(--accent))">2,050</span><i></i><span style="color:rgb(var(--enemy))">1,940</span><span class="note">of 5,000</span></div>`;
+  const call = `<div class="callout"><h3>YOU COMMAND BLUE 2</h3><p>U.S. · <span class="cr">1,000 credits</span> · your units arrive by road 2</p>${score}<p style="color:rgb(var(--dim))">With MAKO, IRONBARK and 2 AI · against LENA#2 and 4 AI</p></div>`;
+  const brief = `<div class="brief"><div><span class="label">${modeName()} · battle 2 · 38 minutes in</span><div class="callout" style="position:static;transform:none"><h3>BLUE NEEDS A COMMANDER</h3><p>U.S. · seat 2 · <span class="cr">1,000 credits</span></p>${score}</div>
+    <div class="roster"><div><span style="color:rgb(var(--accent))">BLUE · U.S.</span><span>MAKO</span><span>IRONBARK</span><span class="u">3 AI</span></div><div><span style="color:rgb(var(--enemy))">RED · EASTERN</span><span>LENA#2</span><span class="u">4 AI</span></div></div>
+    <button class="go" data-act="deploy">Deploy</button></div></div>`;
+  return head(modeName(),'home','<span class="live">Battle 2 · 38 minutes in</span>') + `<div class="battle">${field}${pick.drop==='A'||drop.deployed?call:brief}</div>`;
+}
+
+function render(){
+  const s = document.getElementById('stage');
+  s.innerHTML = ({home,mp,room,drop})[screen]();
+  document.getElementById('tabs').innerHTML = Object.entries(SCREENS).map(([k,v])=>`<button data-tab="${k}" aria-current="${k===screen}">${v}</button>`).join('')
+    + (screen==='room' ? `<button data-view>Viewing as: ${asHost?'host':'guest'} (switch)</button><button data-everyone>Everyone readies</button>` : '');
+  const g = Object.entries(T).filter(([,t])=>t.screen===screen).map(([k,t])=>`<div class="group"><b>${t.label}</b><div class="opts">${Object.entries(t.opts).map(([o,l])=>`<button class="opt" data-pick="${k}" data-o="${o}" aria-pressed="${pick[k]===o}"><i>${o}</i>${l}</button>`).join('')}</div></div>`).join('');
+  document.getElementById('groups').innerHTML = g;
+  document.getElementById('probes').innerHTML = Object.entries(P).map(([k,t])=>`<div class="group"><b>${t.label}</b><div class="opts">${Object.entries(t.opts).map(([o,l])=>`<button class="opt" data-probe="${k}" data-o="${o}" aria-pressed="${probe[k]===o}"><i>${o}</i>${l}</button>`).join('')}</div></div>`).join('');
+  const line = (k,src,chosen) => `${src[k].label} ${chosen[k]} (${src[k].opts[chosen[k]]})`;
+  document.getElementById('out').textContent =
+    Object.keys(T).map(k=>'- '+line(k,T,pick)).join('\n') + '\n' +
+    Object.keys(P).map(k=>'- '+(probe[k]?line(k,P,probe):P[k].label+' (not answered)')).join('\n');
+  fit();
+}
+function fit(){
+  const w = document.getElementById('fit').clientWidth, k = Math.min(1, w/940);
+  const s = document.getElementById('stage');
+  s.style.transform = `scale(${k})`;
+  document.getElementById('fit').style.height = 600*k+'px';
+}
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-go],[data-act],[data-tab],[data-pick],[data-probe],[data-view],[data-everyone],#copy');
+  if (!t) return;
+  if (t.id==='copy'){ const n=document.getElementById('notes').value.trim(); navigator.clipboard?.writeText(document.getElementById('out').textContent+(n?'\n- Notes: '+n:'')); t.textContent='Copied'; setTimeout(()=>t.textContent='Copy reply',1200); return; }
+  if (t.dataset.tab){ screen=t.dataset.tab; drop.deployed=false; }
+  else if (t.dataset.go !== undefined){ if(t.dataset.go){ screen=t.dataset.go; drop.deployed=false; joinOpen=createOpen=false; } }
+  else if (t.dataset.pick){ pick[t.dataset.pick]=t.dataset.o; drop.deployed=false; }
+  else if (t.dataset.probe){ probe[t.dataset.probe]=t.dataset.o; }
+  else if ('view' in t.dataset){ asHost=!asHost; }
+  else if ('everyone' in t.dataset){ all().forEach(s=>{ if(s.kind==='human') s.ready=true; }); }
+  else {
+    const a=t.dataset.act, sd=t.dataset.side, i=+t.dataset.i;
+    if (a==='join') joinOpen=true;
+    if (a==='create') createOpen=true;
+    if (a==='deploy') drop.deployed=true;
+    if (a==='ready'){ const me=all().find(s=>s.you); me.ready=!me.ready; }
+    if (a==='add') seats[sd].push({kind:'open'});
+    if (a==='kind'){ const s=seats[sd][i]; s.kind = s.kind==='open'?'ai':'open'; e.stopPropagation(); }
+    if (a==='remove' && seats[sd].length>1) seats[sd].splice(i,1);
+    if (a==='sit' && !e.target.closest('[data-act=kind]')){
+      const me=all().find(s=>s.you), copy={...me};
+      for (const k of Object.keys(me)) delete me[k]; me.kind='open';
+      Object.assign(seats[sd][i], copy, {ready:false});
+    }
+  }
+  render();
+});
+addEventListener('resize', fit);
+render();
+</script>
+</body>
+</html>
