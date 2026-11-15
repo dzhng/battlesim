@@ -231,6 +231,12 @@ play the same samples. The synthesized sounds' names are generated from Rust
 (`synthSounds.gen.ts`). Disposal aborts loading
 and prevents late admission.
 
+A battle listens from the camera's eye, and the camera is a directional mic:
+what it looks at is heard nearer than it is, louder and clearer than the same
+sound off screen or behind it, so the battle on screen sounds close at any zoom
+and one on the horizon sounds far
+([`sound::spatial`](../../crates/presentation/src/sound/spatial.rs)).
+
 The bed keeps its level between shots and makes room under a loud one, as a
 film mix does: a sound at least `audio.ambience.duck_over` loud
 at the listener (its level there, as the voice budget ranks it, never a list

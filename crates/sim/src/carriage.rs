@@ -77,6 +77,31 @@ pub(crate) fn stationary(unit: &Unit) -> bool {
     unit.movement_goal().is_none() && unit.drive_speed_mps.abs() < 1e-6
 }
 
+/// Whether a carrier rolls slowly enough for squads to climb on or off,
+/// whatever its orders say: one creeping along, or stopped with a drive
+/// still pending (its route blocked, or waiting on traffic), is as good as
+/// a parked one.
+pub(crate) fn climbable(host: &Unit, rules: &Rules) -> bool {
+    host.drive_speed_mps.abs() <= rules.carriage.climb_speed_mps
+}
+
+/// Whether `carrier`'s riders should be getting off: it rolls slowly enough
+/// and its unload is due, either its current order or the drive to the
+/// unload point once it is within reach of that point.
+pub(crate) fn unload_due(units: &[Unit], carrier: UnitId, rules: &Rules) -> bool {
+    let Some(host) = units.get(carrier.0 as usize) else {
+        return false;
+    };
+    let due = match (host.orders.front(), host.orders.get(1)) {
+        (Some(UnitOrder::Unload), _) => true,
+        (Some(UnitOrder::Move(drive)), Some(UnitOrder::Unload)) => {
+            reaches(host, drive.destination, rules)
+        }
+        _ => false,
+    };
+    due && climbable(host, rules)
+}
+
 pub(crate) fn within_reach(carrier: &Unit, passenger: &Unit, rules: &Rules) -> bool {
     reaches(carrier, passenger.position.xy(), rules)
 }
@@ -96,7 +121,7 @@ fn meeting_point(squad: &Unit) -> V2 {
         .map_or(squad.position.xy(), |garrison| garrison.entry)
 }
 
-pub(crate) fn near_and_still(
+pub(crate) fn ready_to_board(
     world: &WorldGeometry,
     units: &[Unit],
     passenger: usize,
@@ -107,7 +132,7 @@ pub(crate) fn near_and_still(
         return false;
     };
     host.alive()
-        && stationary(host)
+        && climbable(host, rules)
         && stationary(&units[passenger])
         && within_reach(host, &units[passenger], rules)
         && at_loading_height(world, host, rules)
@@ -353,7 +378,7 @@ pub(crate) fn advance(
                     });
                     continue;
                 }
-                if near_and_still(world, units, i, carrier, rules) {
+                if ready_to_board(world, units, i, carrier, rules) {
                     start_boarding(&mut units[i], carrier);
                 } else {
                     // The destination is the carrier centre; movement stops at
@@ -412,7 +437,7 @@ pub(crate) fn advance(
                             continue;
                         }
                         let near = units[k].hold.is_none()
-                            && near_and_still(world, units, k, carrier_id, rules);
+                            && ready_to_board(world, units, k, carrier_id, rules);
                         let squad = &mut units[k];
                         squad.orders.clear();
                         squad.orders.push_front(UnitOrder::Board {

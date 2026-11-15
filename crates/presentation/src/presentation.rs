@@ -30,7 +30,7 @@ use crate::records::{
 };
 use crate::scars::{LearnedGround, ScarCache, ScarStats, ScarUpload, MAX_AXIS};
 use crate::shadow::{aircraft_shadow, ReceiverStats, ShadowFit, SunShadowFrame};
-use crate::sound::frame::{Cue, Heard, Listener, Motion, Shout};
+use crate::sound::frame::{Cue, Heard, Motion, Shout};
 use crate::static_world::batches::StaticBatches;
 use crate::static_world::buildings::{Buildings, PlacedBuildings};
 use crate::static_world::fallen::{Knowledge, Known};
@@ -656,18 +656,6 @@ impl Presentation {
                 .vehicle_class
                 .as_deref()
         })
-    }
-
-    /// Where sound listens for the last frame's camera, `share` of the way
-    /// from what it looks at to its eye; none before a frame.
-    pub fn listener(&self, share: f64) -> Option<Listener> {
-        let c = self.camera.as_ref()?;
-        Some(Listener::of_camera(
-            c.eye,
-            c.target,
-            c.up.map(|v| v as f32),
-            share,
-        ))
     }
 
     /// The last frame's presentation time.

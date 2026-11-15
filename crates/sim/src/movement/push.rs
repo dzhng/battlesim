@@ -1,8 +1,11 @@
 //! The kinematic shove (Q2, Q14, L8): no physics engine. A vehicle's hull
 //! meets every body that stops vehicles box against box. A body strictly
 //! lighter than the vehicle's push class slides out of the hull along the
-//! axis of least overlap, turning a little when struck off-centre; anything
-//! else, and a body the shove would drive into another, stops the vehicle.
+//! axis of least overlap, turning a little when struck off-centre. Where
+//! that slide would drive it into another body (a fence panel clipped at its
+//! end, pushed endwise into the next), it goes the next shortest way out of
+//! the hull, aside or ahead, never back through it. Anything heavier, and a
+//! body no way out frees, stops the vehicle.
 //! A tree it could shove is knocked down instead (Q16), wherever it stands.
 //! Live vehicles are never shoved (Q15): they only block, as traffic.
 use contract::ids::Side;
@@ -90,6 +93,25 @@ pub fn pressed(world: &WorldGeometry, unit: &Unit) -> Vec<PropId> {
         .collect()
 }
 
+/// The footprints of the bodies that stop vehicles within touch of `unit`'s
+/// hull: what it is pressed against.
+pub fn pressing(world: &WorldGeometry, unit: &Unit) -> Vec<Obb2> {
+    let Some(hull) = unit.ground_footprint() else {
+        return Vec::new();
+    };
+    let reach = Obb2 {
+        half: hull.half + v2(TOUCH_M, TOUCH_M),
+        ..hull
+    };
+    world
+        .props_near(hull.center, reach.half.length())
+        .into_iter()
+        .filter(|prop| prop.blocks(MoverClass::Vehicle))
+        .map(Prop::footprint)
+        .filter(|body| reach.overlaps(body))
+        .collect()
+}
+
 /// A vehicle driving into bodies this tick: the unit, where its hull goes
 /// and its horizontal travel.
 #[derive(Clone, Copy)]
@@ -148,27 +170,33 @@ pub fn shove(
         rect.center = rect.center + out * (depth + CLEAR_M);
         rect.yaw += turn_rad_per_m * depth * arm.clamp(-1.0, 1.0);
     }
-    if hull.separation(&rect).is_some() || world.height_at(rect.center.x, rect.center.y).is_none() {
-        return None;
-    }
     // No deeper into any other body than it already was, beyond touching.
-    let deeper = |other: &Obb2| {
-        let depth = |r: &Obb2| other.separation(r).map_or(0.0, |v| v.length());
-        depth(&rect) > depth(&before).max(CLEAR_M) + 1e-9
+    let frees = |rect: &Obb2| {
+        let deeper = |other: &Obb2| {
+            let depth = |r: &Obb2| other.separation(r).map_or(0.0, |v| v.length());
+            depth(rect) > depth(&before).max(CLEAR_M) + 1e-9
+        };
+        let reach = rect.half.length() + 1.0;
+        let into_prop = world
+            .props_near(rect.center, reach)
+            .into_iter()
+            .filter(|q| q.id != prop.id && q.blocks(MoverClass::Vehicle))
+            .any(|q| deeper(&q.footprint()));
+        let into_hull = units
+            .iter()
+            .enumerate()
+            .filter(|(j, u)| *j != pusher && u.on_field())
+            .filter_map(|(_, u)| u.ground_footprint())
+            .any(|h| deeper(&h));
+        hull.separation(rect).is_none()
+            && world.height_at(rect.center.x, rect.center.y).is_some()
+            && !into_prop
+            && !into_hull
     };
-    let reach = rect.half.length() + 1.0;
-    let into_prop = world
-        .props_near(rect.center, reach)
-        .into_iter()
-        .filter(|q| q.id != prop.id && q.blocks(MoverClass::Vehicle))
-        .any(|q| deeper(&q.footprint()));
-    let into_hull = units
-        .iter()
-        .enumerate()
-        .filter(|(j, u)| *j != pusher && u.on_field())
-        .filter_map(|(_, u)| u.ground_footprint())
-        .any(|h| deeper(&h));
-    (!into_prop && !into_hull).then_some(Shove {
+    let rect = std::iter::once(rect)
+        .chain(exits(&hull, &before, heading))
+        .find(|rect| frees(rect))?;
+    Some(Shove {
         prop: prop.id,
         center: rect.center,
         yaw: rect.yaw,
@@ -176,6 +204,32 @@ pub fn shove(
         heading,
         contact: contact(&rect),
     })
+}
+
+/// The ways `body` can slide straight out of `hull`, shortest first: along
+/// each box's axes, aside from or ahead of the pusher's `heading`, never back
+/// through the hull.
+fn exits(hull: &Obb2, body: &Obb2, heading: V2) -> Vec<Obb2> {
+    let project = |r: &Obb2, axis: V2| {
+        r.half.x * v2(1.0, 0.0).rotated(r.yaw).dot(axis).abs()
+            + r.half.y * v2(0.0, 1.0).rotated(r.yaw).dot(axis).abs()
+    };
+    let d = body.center - hull.center;
+    let mut ways: Vec<(f64, V2)> = [hull.yaw, body.yaw]
+        .into_iter()
+        .flat_map(|yaw| [v2(1.0, 0.0).rotated(yaw), v2(0.0, 1.0).rotated(yaw)])
+        .flat_map(|axis| [axis, -axis])
+        .filter(|out| out.dot(heading) > -1e-9)
+        .map(|out| (project(hull, out) + project(body, out) - d.dot(out), out))
+        .filter(|(depth, _)| *depth > 0.0)
+        .collect();
+    ways.sort_by(|a, b| a.0.total_cmp(&b.0));
+    ways.into_iter()
+        .map(|(depth, out)| Obb2 {
+            center: body.center + out * (depth + CLEAR_M),
+            ..*body
+        })
+        .collect()
 }
 
 /// Where the hull meets the shoved body: the corners of either box that

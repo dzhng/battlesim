@@ -15,6 +15,7 @@ export type KeyCommand =
   | "toggle_afterburner"
   | "unload"
   | "pop_smoke"
+  | "return_to_base"
   | "disarm";
 
 export interface CommandBinding {
@@ -31,11 +32,13 @@ export const CommandBindings: Readonly<Record<KeyCommand, CommandBinding>> = {
   toggle_fire_policy: { code: "KeyF", label: "F" },
   attack_ground: { code: "KeyG", label: "G" },
   toggle_deployment: { code: "KeyT", label: "T" },
-  toggle_afterburner: { code: "KeyB", label: "B" },
+  toggle_afterburner: { code: "KeyV", label: "V" },
   /** Arms Unload; pressed again while armed, unloads where the carriers stand. */
   unload: { code: "KeyU", label: "U" },
   /** X is the camera's pitch key, so smoke takes H. */
   pop_smoke: { code: "KeyH", label: "H" },
+  /** Refund: the selection heads home and is refunded on arrival. */
+  return_to_base: { code: "KeyB", label: "B" },
   disarm: { code: "Escape", label: "Esc" },
 };
 

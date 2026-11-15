@@ -217,16 +217,25 @@ pub struct ShoutCue {
     pub takes_per_voice: usize,
 }
 
+/// The camera's directional mic (`spatial::heard_distance`): within
+/// `inner_deg` of where it looks a sound is heard as if `share` of its
+/// distance away, easing back to its whole distance by `outer_deg`.
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Focus {
+    pub share: f64,
+    pub inner_deg: f64,
+    pub outer_deg: f64,
+}
+
 /// `audio.json`.
 #[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct AudioMix {
     pub buses: Buses,
     pub limiter: Limiter,
-    /// The listener stands this share of the way from the camera's target
-    /// to its eye.
-    pub listener_eye_share: f64,
     pub distance: Distance,
+    pub focus: Focus,
     pub air: Air,
     pub budget: Budget,
     /// The clock standing still this long (wall seconds) is a hold.

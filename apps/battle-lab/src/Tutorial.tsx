@@ -149,9 +149,9 @@ export function Tutorial() {
           </li>
           <li>
             A unit you no longer need can be sent home with <strong>Refund · Return to base</strong>{" "}
-            on the command bar. It drives back to your entry point and, on arrival, returns part of
-            its price: more when it comes home healthy and with ammunition, less the longer it has
-            served.
+            on the command bar (or press <kbd>B</kbd>). It drives back to your entry point and, on
+            arrival, returns part of its price: more when it comes home healthy and with ammunition,
+            less the longer it has served.
           </li>
           <li>
             You may field at most <strong>{skirmish.max_units} units</strong> at once, counting

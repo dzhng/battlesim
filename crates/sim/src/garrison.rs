@@ -178,6 +178,24 @@ pub(crate) fn building(world: &WorldGeometry, id: PropId) -> Option<&Prop> {
         .filter(|p| p.body.garrison)
 }
 
+/// Whether a squad standing at `point` is close enough to `building` to step
+/// in where it stands: within entry reach of any part its side knows.
+pub(crate) fn within_entry_reach(
+    world: &WorldGeometry,
+    known: &crate::movement::SideGeometry,
+    authored: PropId,
+    building: PropId,
+    point: V2,
+    rules: &Rules,
+) -> bool {
+    let reach = crate::hold::Host::Building(building).timing(rules).reach_m;
+    world
+        .structure_parts(building)
+        .into_iter()
+        .filter_map(|id| known.prop(world, authored, id))
+        .any(|p| p.footprint().contains(point, reach))
+}
+
 /// Approach the nearest exposed physical part using remembered poses: the
 /// nearest point outside a part when it faces out through an exposed facade,
 /// else the nearest point standing off one. Internal faces admit no entry.
