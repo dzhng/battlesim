@@ -42,6 +42,13 @@ The rules it holds:
 - An open seat is not in the battle and does not move the map's size or road
   count; seats close up at the start (slice 04's `battlePlayers`).
 
+A seat's `who` is the player's browser id, which is their only credential.
+It never leaves the server: `roomView` shows a callsign, and the
+`BattleSetup` in a ticket carries each seat's controller and nothing about
+who holds it. One function here turns a room into its `BattleSetup`, and one
+turns a `BattleSetup` back into a lobby for the shared request builder, so
+the page and the server build the same battle.
+
 ## Run or see
 
 Tests only.

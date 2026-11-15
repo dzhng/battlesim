@@ -166,6 +166,8 @@ type BattleTicket = {
 
 A ticket carries the settings, not the prepared battle. The page builds the
 map itself from the settings and checks its identity against the server's.
+Nothing in a ticket, a `RoomView` or a `Briefing` names a browser id: that is
+a player's credential, and other players see a callsign.
 
 ## Rooms
 

@@ -27,6 +27,11 @@ cannot hold. Do not build Rust here until the user has freed space; check
   see part 4 of [decisions.md](decisions.md).
 - **Slice 04 is done** and committed, after two repair rounds with Codex and
   one fix at integration: see part 4 of [decisions.md](decisions.md).
+  **Owed:** nobody has looked at the skirmish lobby in a browser since. It
+  should look and play exactly as before; capture it against its baseline
+  the next time a scene run is possible, before slice 17 builds on it.
+- **Slices 14 and 24** (the room model and Frontline placement, both pure
+  TypeScript) are with Codex in this checkout, uncommitted.
 - **Slices 02 and 03** came back from Codex as two commits on the local
   branch `t3/per-side-publisher-sim-orders` (`67844ee46`, `25dad0b20`).
   Slice 02 is half integrated: its changes and two fixes sit uncommitted in
