@@ -34,9 +34,12 @@ command opposite sides of one battle on a local server
    report in `throwaway/multiplayer/` there. Both change what a Red
    commander sees: look at the pictures, get an unprimed critique, and show
    the user.
-2. **Slice 09** (identity, build check, deploy) deploys to the temporary
-   host, which is outward-facing: ask the user before deploying. Its code
-   can be built and tested locally first.
+2. **Integrate slice 09's local half** (identity, the build check, the
+   address file, and a deploy step whose default is a dry run), handed to
+   Codex on 2026-11-15 in its own checkout. The push itself, and the
+   measurement through the public route (O6), wait for the user's go-ahead:
+   deploying is outward-facing. Ask before promoting a site build, before
+   deploying, and before making the address public.
 3. **Run slice 01's host half** (O1) on the probe app. `bun run server:soak`
    is the workload: bundle it, run it on the host, and read its summary
    line.
