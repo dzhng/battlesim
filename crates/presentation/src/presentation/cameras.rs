@@ -6,7 +6,6 @@
 use super::*;
 use crate::effects::frame::WaveFrame;
 use crate::sound::frame::Listener;
-use crate::sound::tables::ListenerPlacement;
 
 /// Fills `f`'s camera and sun shadow for `camera` at `time`.
 pub(super) fn cameras(
@@ -31,12 +30,11 @@ pub(super) fn cameras(
 }
 
 impl Presentation {
-    /// Where sound listens for the last frame's camera, as `placement` puts
-    /// it; none before a frame.
-    pub fn listener(&self, placement: ListenerPlacement) -> Option<Listener> {
+    /// Where sound listens for the last frame's camera: at its eye; none
+    /// before a frame.
+    pub fn listener(&self) -> Option<Listener> {
         let c = self.camera.as_ref()?;
-        let up = c.up.map(|v| v as f32);
-        Some(Listener::of_camera(c.eye, c.target, up, placement))
+        Some(Listener::of_camera(c.eye, c.target, c.up.map(|v| v as f32)))
     }
 
     /// The wave field's frame for the last frame's clock and camera: its

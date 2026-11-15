@@ -14,14 +14,14 @@
     "ratio": 20,
     "clip_db": -1
   },
-  "listener": { "eye_share": 0.02, "reach_heights": 2 },
   "distance": {
-    "ref_m": 15,
+    "ref_m": 150,
     "rolloff": 1.2,
     "max_m": 3000,
     "floor": 0.15,
     "cull": 0.004
   },
+  "focus": { "share": 0.3, "inner_deg": 35, "outer_deg": 55 },
   "air": {
     "near_hz": 18000,
     "far_hz": 1600,

@@ -531,10 +531,7 @@ impl Sound {
             clock: None,
             advanced_at: 0.0,
             held: false,
-            listener: Listener {
-                position: [0.0; 3],
-                forward: [0.0, 1.0, 0.0],
-            },
+            listener: Listener::START,
             stats: Stats::default(),
             out: Vec::new(),
             high_air: BTreeSet::new(),
@@ -1046,8 +1043,7 @@ impl Sound {
     }
 
     fn distance(&self, position: &Vec3) -> f64 {
-        let l = self.listener.position;
-        crate::world::length([position[0] - l[0], position[1] - l[1], position[2] - l[2]])
+        super::spatial::heard_distance(&self.tables, &self.listener, position)
     }
 
     /// Level at the listener for a sound of `gain` at `position`.

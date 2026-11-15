@@ -70,28 +70,28 @@ export interface Limiter {
   clip_db: number;
 }
 
-export interface ListenerPlacement {
-  eye_share: number;
-  reach_heights: number;
-}
-
 export interface AudioMix {
   /** Bus levels, and the master's. */
   buses: Record<Bus | "master" | "music", number>;
   /** The master's limiter and clip, the last stage before the output. */
   limiter: Limiter;
-  /** Where the listener stands for the camera (`ListenerPlacement`):
-   *  `eye_share` of the way from the point looked at to the eye, never
-   *  farther out from the eye along the view than `reach_heights` times the
-   *  eye's height over that point, so a look toward the horizon listens
-   *  near the eye. */
-  listener: ListenerPlacement;
-  /** Distance attenuation: full within `ref_m`, then inverse (`rolloff`)
+  /** Distance attenuation from the listener (the camera's eye), as its
+   *  `focus` hears the distance: full within `ref_m`, then inverse (`rolloff`)
    *  down toward `floor`, a share of the sound's gain it never drops below
    *  within `max_m` (so the side always hears its own battle, even from the
    *  farthest zoom), and silent past `max_m`. A voice quieter than `cull` at
    *  the listener is not started. */
-  distance: { ref_m: number; rolloff: number; max_m: number; floor: number; cull: number };
+  distance: {
+    ref_m: number;
+    rolloff: number;
+    max_m: number;
+    floor: number;
+    cull: number;
+  };
+  /** The camera's directional mic: a sound within `inner_deg` of where it
+   *  looks is heard as if `share` of its distance away, louder and clearer,
+   *  easing back to its whole distance by `outer_deg` (`heard_distance`). */
+  focus: { share: number; inner_deg: number; outer_deg: number };
   /** The colour of distance, growing from nothing at the listener to full at
    *  `far_m`: the air's low-pass from `near_hz` to `far_hz` (log-spaced), a
    *  reverb send up to `wet` (an outdoor tail `reverb_s` long), and onsets

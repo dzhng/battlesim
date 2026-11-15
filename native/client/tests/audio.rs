@@ -36,6 +36,7 @@ fn player(tune: impl Fn(&mut Value)) -> Audio {
 const HERE: Listener = Listener {
     position: [0.0, 0.0, 2.0],
     forward: [0.0, 1.0, 0.0],
+    look: [0.0; 3],
 };
 
 /// When the cannon fires, player seconds: the bed sounds alone before it.

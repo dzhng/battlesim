@@ -51,7 +51,6 @@ impl AudioMix {
             positive(p, v)?;
         }
         for (p, v) in [
-            ("listener.eye_share", self.listener.eye_share),
             ("distance.floor", self.distance.floor),
             ("air.wet", self.air.wet),
             ("ambience.duck.depth", self.ambience.duck.depth),
@@ -60,6 +59,11 @@ impl AudioMix {
         ] {
             range(&format!("audio.{p}"), v, 0.0, 1.0)?;
         }
+        let focus = self.focus;
+        range("audio.focus.share", focus.share, 0.0, 1.0)?;
+        range("audio.focus.inner_deg", focus.inner_deg, 0.0, 89.0)?;
+        let inner = focus.inner_deg + 1e-6;
+        range("audio.focus.outer_deg", focus.outer_deg, inner, 89.0)?;
         range(
             "audio.distance.max_m",
             self.distance.max_m,

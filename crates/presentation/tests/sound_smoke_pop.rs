@@ -85,6 +85,7 @@ fn hear(s: &mut Sound, effects: &EffectPublication, hz: f64, at: [f64; 3]) -> Ve
     let listener = Listener {
         position: at,
         forward: [0.0, 1.0, 0.0],
+        look: [0.0; 3],
     };
     let commands = s.update(now, now, now, &Motion::default(), listener);
     (commands.iter())

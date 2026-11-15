@@ -1,5 +1,5 @@
 //! Shared listener direction and distance attenuation for native and browser sound.
-use super::tables::{ListenerPlacement, SoundTables};
+use super::tables::SoundTables;
 use crate::world::Vec3;
 use serde::{Deserialize, Serialize};
 
@@ -14,6 +14,25 @@ pub fn sector_pan(sector: f64, forward: Vec3) -> f64 {
     (libm::cos(a) * rx + libm::sin(a) * ry).clamp(-1.0, 1.0)
 }
 
+/// How far `position` sounds from `listener`, the distance level, the air's
+/// colour and a far recording all read. The camera is a directional mic: a
+/// sound within `focus.inner_deg` of where it looks is heard as if
+/// `focus.share` of its distance away, easing back to its whole distance by
+/// `focus.outer_deg`, so what the player watches is louder and clearer than
+/// what is off screen or behind them, though still farther than what is near.
+pub fn heard_distance(tables: &SoundTables, listener: &Listener, position: &Vec3) -> f64 {
+    let to = [0, 1, 2].map(|i| position[i] - listener.position[i]);
+    let d = crate::world::length(to);
+    let f = tables.audio.focus;
+    let along = (0..3).map(|i| to[i] * listener.look[i]).sum::<f64>() / d.max(1e-9);
+    let (inner, outer) = (
+        libm::cos(f.inner_deg.to_radians()),
+        libm::cos(f.outer_deg.to_radians()),
+    );
+    let t = ((along - outer) / (inner - outer)).clamp(0.0, 1.0);
+    d * (1.0 - (1.0 - f.share) * t * t * (3.0 - 2.0 * t))
+}
+
 /// The share of a sound's gain heard `d` metres off: full within `ref_m`,
 /// then inverse distance easing down to `floor`, and nothing past `max_m`.
 pub fn distance_gain(tables: &SoundTables, d: f64) -> f64 {
@@ -25,23 +44,32 @@ pub fn distance_gain(tables: &SoundTables, d: f64) -> f64 {
     p.floor + (1.0 - p.floor) * inverse
 }
 
-/// The listener: where it stands and which way it looks (level).
+/// The listener: where it stands, which way it faces (level, for panning)
+/// and which way it looks (its view, for its focus; none, all zero, hears
+/// without one).
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Listener {
     pub position: Vec3,
     pub forward: Vec3,
+    #[serde(default)]
+    pub look: Vec3,
 }
 
 impl Listener {
-    /// Where the listener stands for a camera at `eye` looking at `target`
-    /// with `up`, as `placement` puts it, facing the way the camera looks;
-    /// looking straight down, the way its top points.
-    pub fn of_camera(eye: Vec3, target: Vec3, up: [f32; 3], placement: ListenerPlacement) -> Self {
+    /// At the origin facing north, with no view: before any camera.
+    pub const START: Self = Self {
+        position: [0.0; 3],
+        forward: [0.0, 1.0, 0.0],
+        look: [0.0; 3],
+    };
+
+    /// The listener for a camera at `eye` looking at `target` with `up`: at
+    /// the eye, facing the way the camera looks; looking straight down, the
+    /// way its top points.
+    pub fn of_camera(eye: Vec3, target: Vec3, up: [f32; 3]) -> Self {
+        let position = eye;
         let span = crate::world::length([0, 1, 2].map(|i| target[i] - eye[i]));
-        let reach = placement.reach_heights * (eye[2] - target[2]).abs();
-        let along = ((1.0 - placement.eye_share) * span).min(reach);
-        let t = if span > 0.0 { along / span } else { 0.0 };
-        let position = [0, 1, 2].map(|i| eye[i] + t * (target[i] - eye[i]));
+        let look = [0, 1, 2].map(|i| (target[i] - eye[i]) / span.max(1e-9));
         let mut forward = [target[0] - eye[0], target[1] - eye[1], 0.0];
         if (forward[0] * forward[0] + forward[1] * forward[1]).sqrt() < 1e-6 {
             forward = [f64::from(up[0]), f64::from(up[1]), 0.0];
@@ -51,6 +79,10 @@ impl Listener {
             let inverse = 1.0 / squared.sqrt();
             forward = [forward[0] * inverse, forward[1] * inverse, 0.0];
         }
-        Self { position, forward }
+        Self {
+            position,
+            forward,
+            look,
+        }
     }
 }

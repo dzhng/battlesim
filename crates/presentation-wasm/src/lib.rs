@@ -426,8 +426,7 @@ impl SoundFrame {
 
     /// Hears `presentation`'s last frame at wall time `wall`, mixer time `now`.
     pub fn hear(&mut self, presentation: &Presentation, wall: f64, now: f64) -> String {
-        let placement = self.inner.tables().audio.listener;
-        let Some(listener) = presentation.inner.listener(placement) else {
+        let Some(listener) = presentation.inner.listener() else {
             return "[]".into();
         };
         let motion = presentation.inner.motion();
@@ -436,7 +435,7 @@ impl SoundFrame {
     }
 
     /// Hears scripted motion at presentation time `clock` from `listener`
-    /// (its position, then forward): `soldiers` four numbers each (id, x, y,
+    /// (its position, forward, then view, all zero for none): `soldiers` four numbers each (id, x, y,
     /// z), `vehicles` eight each (key, x, y, z, left and right travel,
     /// turret, 1 reversing), and `classes` the vehicles' sound classes,
     /// space-separated, in their order.
@@ -480,6 +479,7 @@ impl SoundFrame {
         let listener = Listener {
             position: [listener[0], listener[1], listener[2]],
             forward: [listener[3], listener[4], listener[5]],
+            look: [listener[6], listener[7], listener[8]],
         };
         let motion = Motion { vehicles, soldiers };
         commands(self.inner.update(clock, wall, now, &motion, listener))
@@ -726,23 +726,12 @@ impl RecipeBank {
 }
 
 /// Where sound listens for a camera at `eye` looking at `target` with
-/// `up`, placed by `eye_share` and `reach_heights` (`ListenerPlacement`):
-/// position, then facing.
+/// `up` (at its eye): position, facing, then view.
 #[wasm_bindgen]
-pub fn camera_listener(
-    eye: &[f64],
-    target: &[f64],
-    up: &[f64],
-    eye_share: f64,
-    reach_heights: f64,
-) -> Vec<f64> {
+pub fn camera_listener(eye: &[f64], target: &[f64], up: &[f64]) -> Vec<f64> {
     let v = |a: &[f64]| [a[0], a[1], a[2]];
-    let placement = presentation::sound::tables::ListenerPlacement {
-        eye_share,
-        reach_heights,
-    };
-    let l = Listener::of_camera(v(eye), v(target), v(up).map(|x| x as f32), placement);
-    [l.position, l.forward].concat()
+    let l = Listener::of_camera(v(eye), v(target), v(up).map(|x| x as f32));
+    [l.position, l.forward, l.look].concat()
 }
 
 /// One unseen look (a `presentation.fog` style, JSON) resolved into the

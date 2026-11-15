@@ -5,19 +5,17 @@ import { testWeaponLooks } from "./support/weaponLooks";
 // observation contains makes a positional sound, an unseen enemy is heard
 // only as its hearing cue's direction; the voice budget holds at battle
 // scale; a standing clock silences transients and holds loops; reset and a
-// new battle clear everything; the side's own sounds stay heard at the
-// farthest zoom, coloured far.
+// new battle clear everything. How far the camera hears a sound is
+// soundFocus.test.ts's.
 import { presentationSettings } from "@web/presentationSettings";
 import { audioMix } from "@web/audioMix";
 import { beforeAll, expect, test } from "vitest";
 import { loadPresentation } from "@web/battle/sim/presentation";
-import { cameraListener } from "@packages/battle-audio/src/battleAudio";
 import { gameSounds } from "@packages/battle-audio/src/shippedSounds";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 import {
   SoundFrame,
   battleSounds,
-  type Listener,
   type SoundCue,
   type VoiceSpec,
 } from "@packages/battle-audio/src/soundFrame";
@@ -266,63 +264,6 @@ test("a known wreck burns, then smoulders quieter, then falls silent", () => {
   expect(burning).toBeGreaterThan(smouldering);
   expect(smouldering).toBeGreaterThan(0);
   expect(out).toBe(0);
-});
-
-/** The camera `distance` metres out, looking at `target` (the fixture's
- *  rig), heard as the battle hears it. */
-function cameraAt(target: number[], distance: number): Listener {
-  const cam = presentationSettings.camera;
-  const pitch = cam.pitch_curve[cam.pitch_curve.length - 1][1];
-  const rig = { target: [target[0], target[1], 0], distance, pitch, yaw: -1.57 };
-  return cameraListener(rig as unknown as Parameters<typeof cameraListener>[0], AUDIO.listener);
-}
-
-/** One blue rifleman's shots at `at`, heard from `listener`: the positional
- *  transients started. */
-function heardFrom(listener: Listener, at: number[]) {
-  const { sink, frame } = setup();
-  for (let tick = 1; tick <= 10; tick++) {
-    frame.note({ ...heard(firefight(tick, [{ key: 2, at }])), audible: [] });
-    sink.time = tick * DT;
-    frame.update(tick * DT, tick * DT, STILL, listener);
-  }
-  return sink.started.filter((v) => v.position !== null && !v.loop);
-}
-
-/** A typical RTS camera height: most players never zoom in from here. */
-const RTS_DISTANCE_M = 600;
-
-test("a shot the camera looks at sounds at RTS height as it does zoomed in", () => {
-  const at = [200, 300, 1];
-  const report = shot("rifle").shot;
-  const close = presentationSettings.camera.default.distance;
-  const [zoomedIn, zoomedOut] = [close, RTS_DISTANCE_M].map((d) =>
-    heardFrom(cameraAt(at, d), at).filter((v) => v.sound === report.near),
-  );
-  expect(zoomedIn.length).toBeGreaterThan(0);
-  expect(zoomedOut.length).toBe(zoomedIn.length);
-  zoomedOut.forEach((v, i) => {
-    expect(v.gain).toBeGreaterThan(zoomedIn[i].gain * 0.9);
-    expect(v.lowpass).toBeGreaterThan(zoomedIn[i].lowpass * 0.9);
-  });
-});
-
-test("a shot far across the map sounds far: muffled, wet, softened, never under the floor", () => {
-  const at = [200, 300, 1];
-  const report = shot("rifle").shot;
-  const far = heardFrom(cameraAt([at[0], at[1] - 800], RTS_DISTANCE_M), at).filter(
-    (v) => v.sound === report.far,
-  );
-  const close = heardFrom(cameraAt(at, RTS_DISTANCE_M), at).filter((v) => v.sound === report.near);
-  expect(far.length).toBeGreaterThan(0);
-  expect(close.length).toBeGreaterThan(0);
-  for (const v of far) {
-    expect(v.gain).toBeGreaterThanOrEqual(AUDIO.distance.floor * report.gain - 1e-9);
-    expect(v.gain).toBeLessThan(close[0].gain);
-    expect(v.lowpass).toBeLessThan(Math.min(...close.map((c) => c.lowpass)));
-    expect(v.wet).toBeGreaterThan(close[0].wet);
-    expect(v.attack).toBeGreaterThan(0);
-  }
 });
 
 test("a shot loud at the listener dips the ambience, which recovers once dipped; a quiet one never does", () => {

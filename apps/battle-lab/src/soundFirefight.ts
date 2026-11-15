@@ -597,15 +597,12 @@ async function renderShot(
 export async function renderDistanceProbe(catalog: SoundCatalog = gameSounds) {
   const at = [0, 0, 1];
   const cam = presentationSettings.camera;
-  const far = cameraListener(
-    {
-      target: vec3.fromValues(at[0], at[1], 0),
-      distance: cam.zoom_max,
-      pitch: cam.pitch_curve[cam.pitch_curve.length - 1][1],
-      yaw: cam.default.yaw,
-    },
-    audioMix.listener,
-  );
+  const far = cameraListener({
+    target: vec3.fromValues(at[0], at[1], 0),
+    distance: cam.zoom_max,
+    pitch: cam.pitch_curve[cam.pitch_curve.length - 1][1],
+    yaw: cam.default.yaw,
+  });
   const close: Listener = { position: [0, -4, 3], forward: [0, 1, 0] };
   return {
     sampleRate: 48000,
