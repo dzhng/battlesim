@@ -143,8 +143,13 @@ export function ArmyDeck({
                   style={cardOffset(index)}
                   data-unit={unit.id}
                   data-aboard={carrier ? "true" : undefined}
+                  data-withdrawing={unit.withdrawing ? "true" : undefined}
                   aria-label={
-                    carrier ? `${name}, aboard ${unitName(units, carrier)} #${carrier.id}` : name
+                    carrier
+                      ? `${name}, aboard ${unitName(units, carrier)} #${carrier.id}`
+                      : unit.withdrawing
+                        ? `${name}, returning to base`
+                        : name
                   }
                   aria-pressed={selectedHere}
                   aria-describedby={detail?.id === unit.id ? tooltipId : undefined}
@@ -187,6 +192,9 @@ export function ArmyDeck({
                     <StrengthMeter name={name} strength={strength} />
                   </UnitFace>
                   {carrier && <Icon path={stateIcon("seats")} className="hud-army-aboard" />}
+                  {unit.withdrawing && (
+                    <Icon path={stateIcon("withdrawing")} className="hud-army-withdrawing" />
+                  )}
                 </button>
               );
             })}

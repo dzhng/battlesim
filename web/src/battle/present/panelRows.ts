@@ -72,7 +72,11 @@ export const STATE_ROWS = {
     lasting: true,
     amount: true,
   },
-  withdrawing: { icon: stateIcon("withdrawing"), word: () => "RETURNING TO BASE" },
+  withdrawing: {
+    icon: stateIcon("withdrawing"),
+    word: () => "RETURNING TO BASE",
+    byName: true,
+  },
   deploying: { icon: stateIcon("deploy"), word: () => "DEPLOYING" },
   packing: { icon: stateIcon("pack"), word: () => "PACKING" },
   entering: { icon: stateIcon("building"), word: () => "ENTERING" },

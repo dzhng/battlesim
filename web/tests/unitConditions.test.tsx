@@ -69,3 +69,11 @@ test("suppression shows by the name, as pinning does", () => {
     expect(shows(".ro-name .ro-status-icon", stateIcon(tier)), tier).toBe(1);
   }
 });
+
+test("returning to base is the unit's row and stands by its name on every card", () => {
+  const mark = stateIcon("withdrawing");
+  const { shows } = card({ withdrawing: true }, "no_compatible_target");
+  expect(shows(".ro-state", mark)).toBe(1);
+  expect(shows(".ro-name .ro-status-icon", mark)).toBe(1);
+  expect(card({ withdrawing: false }, "no_compatible_target").shows(".ro-body", mark)).toBe(0);
+});
