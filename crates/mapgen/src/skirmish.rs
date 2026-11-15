@@ -1,11 +1,14 @@
 //! Public skirmish sites reserved before parcels, trees and street furniture.
+use crate::layout::geometry::direction;
 use crate::layout::water::Water;
-use crate::{Diagnostic, DiagnosticCode};
+use crate::parcels::space::Rect;
+use crate::{Diagnostic, DiagnosticCode, MapPlan};
 use contract::encounter::{EntrySite, ObjectiveSite, ObjectiveSiteKind, SkirmishSites};
 use contract::generation::{GenerationProfile, GenerationRequest, MapSize};
 use contract::ground::GroundShape;
 use contract::ids::Side;
 use contract::map::{SurfaceArea, SurfaceKind};
+use contract::templates::TemplateGeometryCatalog;
 
 pub(crate) fn reserve(
     request: &GenerationRequest,
@@ -364,9 +367,10 @@ fn add_entry_arms(
 /// it does not crowd its edge.
 const CLEARANCE_MARGIN_M: f64 = 10.0;
 /// The most of the primary junction's capture circle that is kept clear: it
-/// stands in the main town's square, and clearing all of it would hollow the
-/// town out. The capture radius itself stays the objective's.
-const JUNCTION_CLEARANCE_M: f64 = 28.0;
+/// stands in the main town's square, and the town's first buildings must
+/// stand inside the circle, not beyond it. The capture radius itself stays
+/// the objective's.
+const JUNCTION_CLEARANCE_M: f64 = 18.0;
 
 /// The ground every generation pass keeps clear about each reserved objective
 /// of `sites` (forests, parcels, the open country and street furniture
@@ -384,6 +388,87 @@ pub(crate) fn objective_clearances(
             };
             (o.center, kept + CLEARANCE_MARGIN_M)
         })
+}
+
+/// Keep the reserved objectives the finished `plan` builds on: each holds a
+/// building within its capture circle, a town's or its own homestead's.
+/// The kept halves are paired again in reservation order, since the
+/// simulation pairs them by travel anyway. A plan left without its centres
+/// or its pairs is refused.
+pub(crate) fn keep_built(
+    plan: &mut MapPlan,
+    catalogue: &TemplateGeometryCatalog,
+) -> Result<(), Vec<Diagnostic>> {
+    let middle = plan.size[1] / 2.0;
+    let Some(sites) = plan.skirmish.as_mut() else {
+        return Ok(());
+    };
+    let mut walls = Vec::new();
+    for placement in &plan.buildings {
+        walls.extend(
+            placement
+                .materialize(catalogue)?
+                .parts
+                .into_iter()
+                .map(|part| Rect {
+                    center: part.center,
+                    axis: direction(part.yaw),
+                    half: [part.half_extents[0], part.half_extents[1]],
+                }),
+        );
+    }
+    let built = |site: &ObjectiveSite| {
+        walls
+            .iter()
+            .any(|wall| wall.segment_gap(site.center, site.center) < site.radius_m)
+    };
+    let centres = sites
+        .objectives
+        .iter()
+        .filter(|o| o.counterpart.is_none())
+        .count();
+    let pairs = (sites.objectives.len() - centres) / 2;
+    let (central, paired): (Vec<_>, Vec<_>) = sites
+        .all_reserved_objectives()
+        .filter(|site| built(site))
+        .cloned()
+        .partition(|site| site.counterpart.is_none());
+    let (high, low): (Vec<_>, Vec<_>) = paired.into_iter().partition(|o| o.center[1] > middle);
+    let matched: Vec<[ObjectiveSite; 2]> = low
+        .into_iter()
+        .zip(high)
+        .map(|(mut low, mut high)| {
+            low.counterpart = Some(high.id.clone());
+            high.counterpart = Some(low.id.clone());
+            [low, high]
+        })
+        .collect();
+    if central.len() < centres || matched.len() < pairs {
+        return Err(vec![Diagnostic {
+            code: DiagnosticCode::GenerationFailed,
+            feature: Some("skirmish_sites".into()),
+            location: "$.profile".into(),
+            message: format!(
+                "too few reserved objectives hold a building: {} of {centres} centres, \
+                 {} of {pairs} pairs",
+                central.len(),
+                matched.len()
+            ),
+        }]);
+    }
+    let (central, spare_central) = central.split_at(centres);
+    let (matched, spare_pairs) = matched.split_at(pairs);
+    sites.objectives = central
+        .iter()
+        .cloned()
+        .chain(matched.iter().flatten().cloned())
+        .collect();
+    sites.candidates = spare_central
+        .iter()
+        .cloned()
+        .chain(spare_pairs.iter().flatten().cloned())
+        .collect();
+    Ok(())
 }
 
 fn distance(a: [f64; 2], b: [f64; 2]) -> f64 {

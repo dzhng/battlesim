@@ -212,6 +212,13 @@ pub struct Homes {
     pub bodies: Vec<Body>,
     /// A body in the yard keeps this far from a door and the way out of it.
     pub door_clear_m: f64,
+    /// A homestead built at a skirmish objective keeps this much of the
+    /// ground about the objective's centre open: its farmyard, the ground
+    /// a vehicle drives onto to take it.
+    pub objective_yard_m: f64,
+    /// The longest farm track laid from a country road to the homestead of
+    /// a skirmish objective; one farther from every road has none.
+    pub objective_lane_m: f64,
 }
 
 /// `homesteads` as the presets write it: one flat row of homes.
@@ -229,6 +236,8 @@ struct HomesteadRow {
     tree_plot_m: [f64; 2],
     body_chance: f64,
     bodies: Vec<Body>,
+    objective_yard_m: f64,
+    objective_lane_m: f64,
     attempts: u32,
 }
 
@@ -303,6 +312,8 @@ impl From<HomesteadRow> for Steads<Homes> {
                     body_chance: row.body_chance,
                     bodies: row.bodies,
                     door_clear_m: row.yard.door_clear_m,
+                    objective_yard_m: row.objective_yard_m,
+                    objective_lane_m: row.objective_lane_m,
                 },
             },
         }
@@ -499,9 +510,12 @@ impl Rules {
                 && range(homes.tree_plot_m)
                 && chance(homes.body_chance)
                 && bodies(&homes.bodies)
+                && positive(homes.objective_yard_m)
+                && length(homes.objective_lane_m)
                 && h.attempts > 0,
             "homesteads",
-            "homesteads need a density, a lane, a yard, chances and bodies with positive boxes",
+            "homesteads need a density, a lane, a yard, chances, bodies with positive boxes \
+             and an objective's farmyard and track",
         );
         check(
             !homes.groups.is_empty()

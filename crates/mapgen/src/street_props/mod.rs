@@ -515,19 +515,7 @@ impl<'a> Pass<'a> {
     ) -> Result<(), Vec<Diagnostic>> {
         let plan = self.plan;
         for placement in &plan.buildings {
-            let template = templates
-                .templates()
-                .iter()
-                .find(|template| template.id == placement.template_id)
-                .expect("a placed template is the catalogue's: the generator chose it there");
-            let building = template.materialize(placement.frame).map_err(|message| {
-                vec![Diagnostic {
-                    code: DiagnosticCode::InvalidPlacement,
-                    feature: Some(placement.id.clone()),
-                    location: "frame".into(),
-                    message,
-                }]
-            })?;
+            let building = placement.materialize(templates)?;
             let first = self.field.walls.len();
             for part in &building.parts {
                 let wall = Rect {

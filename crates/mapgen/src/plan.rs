@@ -1,7 +1,7 @@
 //! The plan a map is generated as: where its settlements, lots, courts and
 //! features lie, before `lower` compiles it into the contract's physical map.
 use contract::map::{AuthoredPropDefinition, BuildingPartReference, SurfaceArea};
-use contract::templates::PlacementFrame;
+use contract::templates::{MaterializedBuilding, PlacementFrame, TemplateGeometryCatalog};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -14,6 +14,29 @@ pub struct BuildingPlacement {
     pub owner: u32,
     pub parts: Vec<BuildingPartReference>,
     pub frame: PlacementFrame,
+}
+
+impl BuildingPlacement {
+    /// The building standing here: its template from `catalogue`, placed.
+    pub(crate) fn materialize(
+        &self,
+        catalogue: &TemplateGeometryCatalog,
+    ) -> Result<MaterializedBuilding, Vec<crate::Diagnostic>> {
+        catalogue
+            .templates()
+            .iter()
+            .find(|template| template.id == self.template_id)
+            .expect("a placed template is the catalogue's: the generator chose it there")
+            .materialize(self.frame)
+            .map_err(|message| {
+                vec![crate::Diagnostic {
+                    code: crate::DiagnosticCode::InvalidPlacement,
+                    feature: Some(self.id.clone()),
+                    location: "frame".into(),
+                    message,
+                }]
+            })
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
