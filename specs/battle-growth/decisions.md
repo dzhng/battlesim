@@ -1382,17 +1382,78 @@ panics or leftovers. Its four "fix soon" findings:
 | Finding | State |
 | --- | --- |
 | The fielding owner compared the runtime catalog through the one library object, so a catalog reloaded inside a battle kept the old Rust fielding | Fixed: the owner keeps the catalog object it was made from |
-| A card's key includes the model texture arrays' edge, so a new type with a larger texture retires every card layer and rebuilds that array; two such arrivals in one battle would pass the dead-layer bound and start a fresh store mid-battle. The ledger's "monotonic growth creates no dead layers" is wrong for cards | Open. Not seen in the reference battle (no array was rebuilt). The fix is to make the array edge a scene constant from the catalog's largest texture |
-| `AtlasSource::PreferResident` is reached only by the card-reuse tests; no page asks for the runtime spec | Open: delete the resident path or give the workbench a use for it |
-| The scenery "needs placement" guard can no longer be true, and its only caller is a test | Open: delete it |
+| A card's key includes the model texture arrays' edge, so a new type with a larger texture retires every card layer and rebuilds that array; two such arrivals in one battle would pass the dead-layer bound and start a fresh store mid-battle. The ledger's "monotonic growth creates no dead layers" is wrong for cards | Closed without a change: today's art cannot reach it. Every unit texture in the runtime catalog is 256 px or smaller (458 textures read: sRGB 128 ×22, 256 ×136, 512 ×2; linear 128 ×44, 256 ×254), and the two 512 px textures belong to the 16 city building kits, which are map art present from the first scene. A battle's growth is unit types, so it cannot raise an array's edge. A scene constant would also cost every map without those kits four times its colour layers. If a larger unit texture is ever authored, the array rebuild already reports itself (`art-store tripwire kind=TextureShape … outcome=array-rebuild`) and `battle-growth` fails on `textureArraysRebuilt`. The sentence "monotonic growth creates no dead layers" holds for the catalog as it is, not by construction |
+| `AtlasSource::PreferResident` is reached only by the card-reuse tests; no page asks for the runtime spec | Fixed: the resident read-back is deleted (`AtlasSource`, the resident request, the channel reconstruction, the `layer` result and the frame table kept only for it, about 110 lines). Card reuse is proved by what it is for: a frame drawn from reused cards equals a clean bake's, growth bakes only new keys, and two names with one content bake once. The test of zero-tint normals went with it, since it tested the read-back's own reconstruction; a stored card's normals and tint are still checked through drawn cards in `tests/impostors.rs` |
+| The scenery "needs placement" guard can no longer be true, and its only caller is a test | Fixed: `needs_scenery`, the `carried` field and the commit check that could not fire are deleted |
 
-**The engine's memory, 2026-11-15, open and blocking.** Slice 09's memory
+Its notes, 2026-11-15: the layer array now carries its own label, which
+removes one of the two new `too_many_arguments` exemptions; the other (the
+grass admission) says what blocks its split. The renderer READMEs' store
+sections are rewritten as four rules (identity is content, addresses are
+append-only, the last holder destroys, a full rebuild is the same admission)
+instead of a walk through the code. Left as recorded notes: one batched widen
+fails for every caller in it (one caller today), the fielding owner made in
+`useMemo` (development only), and the hull-sized pick box in shells that pass
+no stand-in (native capture, showcase).
+
+**The engine's memory, 2026-11-15, found open (fixed below).** Slice 09's memory
 report measured the engine without the preload against the base, in the
 reference battle at deployment: 7.25 GB settled against 6.25 GB, all of the
 difference in the renderer process (4.5 GB against 3.5 GB); the GPU process
 is unchanged. That breaks decision 3, and the page's WASM modules have a
 4 GB ceiling. Attribution (which part of the page, which slice) is in
 progress; the engine is not pushed until it is found and fixed.
+**The engine's memory, fixed, 2026-11-15.** Two causes, both in how the page
+hands bytes to Rust, neither a leak:
+
+- At the first scene the page encoded every model's transport packet into one
+  list before either reader took any of it, and nothing released the list. The
+  browser's collector had no reason to run, so about 0.9 GB sat in the page
+  until it did. Each packet is now encoded, read by the renderer and by
+  presentation, and released before the next (`releaseTransport`,
+  `web/src/battle/transport.ts`); growth and fielding release theirs the same
+  way. A released buffer is only ever one the caller just made: cached
+  textures and skeletons keep their owners.
+- Fielding copied every source file a second time inside WASM memory, which
+  never shrinks. It now borrows the bytes the page passed in
+  (`fielded::Read` returns a borrow or an owned buffer).
+
+Whole-browser footprint, reference battle at deployment, high graphics, three
+interleaved runs each, same harness and base as the report above (GB):
+
+| | Settled, each run | Mean | Page buffers | Renderer WASM |
+| --- | --- | ---: | ---: | ---: |
+| Base `c61374e29` | 6.22 / 6.20 / 6.18 | 6.20 | 0.95 | 1.28 |
+| Staging `3041e1cba` | 7.01 / 7.04 / 7.42 | 7.16 | 1.7–2.0 | 1.41 |
+| Fielding release and borrow only | 7.03 / 6.96 / 6.99 | 7.00 | 1.8–1.9 | 1.21 |
+| The whole fix | 6.02 / 6.03 / 6.01 | 6.02 | 0.95 | 1.21 |
+
+Every run of the fix is below every run of the base, and the simulation
+digest is the same in all twelve. The third row was built to see whether the
+per-packet release at admission could be left out: it cannot, that is where
+the gigabyte was. What the fielding release adds beside it was not isolated.
+The harness borrowed the main checkout's map presets, which had moved past
+the base's game module; it is pinned to the base's file now. Raw runs are in
+the scratch folder (`throwaway/memory-fix/`), not the spec.
+
+
+**The GPU preload is cancelled, 2026-11-15 (the player).** Shown the preload
+behind its off-by-default switch, the player's answer was: no configuration;
+what would be left off by default is not built; this is a zero-config game.
+That supersedes decisions 2, 5, 6 and 13 where they describe a GPU preload,
+and the slice's switch. Chosen between on-for-everyone and not-built, by the
+agent on the measurements: not built. With the engine a one-type arrival is a
+54 ms frame and a commit about 50 ms after staging, behind a stand-in, which
+is decision 13's own condition for a download-only preload; the GPU preload
+cost 3.0 GB settled (7.37 → 10.41 GB) and its WASM memory against the 4 GB
+ceiling was never measured. Kept from the slice: the download warm-up, on for
+every battle. The largest arrival's 399 ms frame, which the preload would
+have hidden, is now slice 09's second half. Commit `012834b8d` holds the
+cancelled code and its raw memory runs; neither is merged. If the player
+wants the enemy faction on the GPU for everyone after all, that commit's
+queue is the starting point and the WASM ceiling is the first thing to
+measure.
+
 **Growth scene contact after the staging merge, 2026-11-15.**
 
 - The fixed links remain unchanged. On the moved map the farthest field is

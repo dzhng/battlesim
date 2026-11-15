@@ -1,85 +1,75 @@
-# 09 Preload
+# 09 Warm-up and large arrivals
 
-**Question:** does preloading the enemy faction make first contact free of any
-wait, and what does it cost in whole-browser memory?
+**Question:** with no GPU preload, is a battle's art already in the browser's
+cache when it is first needed, and does the largest arrival still hitch?
 
-**Depends on:** 08.
+**Depends on:** 08a.
+
+Rewritten 2026-11-15. This slice was the enemy-faction preload. It was built
+to the GPU behind a switch, measured at 3.0 GB more settled memory, and
+rejected by the player: the game is zero-config, so nothing ships off by
+default, and a preload that is not on is not built. The
+[ledger](../decisions.md) keeps the measurement. What is left is on for every
+player.
 
 ## What exists today
 
 [`prefetchRuntimeAssets`](../../../apps/battle-lab/src/gameAppearances.ts)
 warms the browser's cache with the whole catalog a few seconds after the first
 page, without decoding or uploading. Only the menu enables it, so a battle
-opened by its link never runs it. The art a battle wants is the set
-`useBattleKinds` keeps: the fielded kinds, the player's own purchase roster,
-and what the side has observed.
+opened by its link never runs it, and its order is the catalog's.
 
-## Confirm first
-
-- That the menu-only gate is why the prefetch was idle in the freeze report.
-- One faction's exact art size, from the roster.
+A battle admits everything its side learned since the last admission as one
+generation. The reference battle's largest arrival (9 bundles, 27 cards) costs
+one frame of 399 ms: 141 ms packing, 61 ms fielding, 47 ms decoding, 40 ms
+rest poses.
 
 ## Contract
 
-From the first frame the battle presents, deployment included, the enemy
-faction's types become ready one at a time. A type the side has just spotted
-goes before the rest of the queue.
+- After a battle's first presented frame, deployment included, the browser
+  warms the remaining runtime files into its cache: the types the side has
+  learned, then the public enemy faction's roster, then the rest. Warming
+  decodes nothing, uploads nothing and adds no wanted kind. Cached art grants
+  no unit visibility.
+- An arrival's longest frame does not grow with the number of types learned
+  together.
+
+## Confirm first
+
+Whether the 399 ms arrival is several types learned together or one type with
+many bundles. The second contract line is built only for the first answer.
 
 ## Seam
 
-- **The art queue:** a pure function beside `useBattleKinds` that, from what
-  is spotted, what is to preload and what is loaded, names the next type or
-  none. Order: spotted, then the enemy faction, then the rest of the download
-  warm-up.
-- The battle page enables the existing prefetch; the prefetch follows the
-  queue's order. No second downloader.
-- **Depth, by slice 08's measurement:**
-  - If a one-type arrival showed no visible wait once its files were cached,
-    the preload is download-only and this slice ends at ordering and enabling.
-  - Otherwise the preload goes to the GPU by feeding enemy types one at a time
-    into the set `useBattleKinds` owns. Each is an ordinary one-type growth.
-- **The switch:** the deeper preload lands off by default. It is the one
-  short-lived seam in this plan. When the player accepts the memory report it
-  is removed and the preload is unconditional; if the player rejects it, the
-  deeper preload code is deleted.
+- The battle page enables the existing prefetch, and the prefetch takes its
+  order from the battle. No second downloader, no switch.
+- If the large arrival is several types: learned types are admitted one per
+  commit, the next when the previous has committed. The
+  [stand-in](10-stand-in-mechanics.md) covers a type that waits. Kept only if
+  the longest frame falls in the reference battle; the wait of the last type
+  is reported.
+- If it is one type: stop. Spreading one admission's work over frames is a
+  different slice, decided on that breakdown.
+
+**Fixed:** no setting, URL flag or default-off path. No GPU work for a type
+the side has not learned.
 
 ## Verification
 
 Write first:
 
-1. The queue on fake observations: order, no type twice, a spotted type first.
-2. A new scene, `battle-preload`, asserting event order only: before any enemy
-   is seen each admission adds one type; a type spotted mid-queue commits
-   before the rest; first contact with a preloaded type stages nothing.
-
-`battle-growth` runs with the preload off, so it keeps proving growth.
-
-## Memory report
-
-Measure with the method in
-[one-renderer memory](../../done/one-renderer/memory.md): the whole Chromium
-process tree, interleaved baseline and candidate runs, all variance kept, in
-the reference battle. Report the engine alone against today (it must not raise
-the peak) and the preload against the engine.
-
-## Review checkpoint (non-blocking)
-
-Show the report with
-[`preview-shots`](../../../.agents/skills/preview-shots/SKILL.md) and allow
-about five minutes. If the player says nothing, leave the switch off, record
-the numbers and the open decision in the README, close the shots and proceed.
-Turning the preload on by default is the player's call.
-
-## Delegated
-
-The queue's data structure, the switch's name and home, how progress is shown
-in diagnostics.
+1. A battle opened by its link starts the warm-up after its first presented
+   frame, in the contract's order, and no admission happens because of it.
+2. If pacing is built: types learned together commit one at a time, in the
+   reference battle the longest arrival frame falls, and `battle-growth` keeps
+   its gate with its tripwire unchanged.
 
 ## Stays green
 
-The menu's prefetch, `battle-growth`, the armory.
+The menu's prefetch, `battle-growth`, `stand-in`, the armory.
 
 ## Feedback that would change this slice
 
-The player's answer to the memory report: on by default, off, or a shallower
-depth.
+A paced arrival whose last type waits long enough to notice behind the
+stand-in: then pacing is the wrong trade and the frame's work has to be spread
+instead.

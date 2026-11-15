@@ -1,8 +1,9 @@
 # Battle growth: a new unit type costs only its own art
 
 **Status:** the engine, the transport and the stand-in are on `staging`
-(slices 00–08a, 10, 11). Not shipped: slice 09 (the preload), which is
-written and measured on its own branch. Open follow-ups are listed below.
+(slices 00–08a, 10, 11), with the page-memory fix. The GPU preload is
+cancelled: the player's rule is zero configuration, so nothing ships off by
+default. Slice 09 is now the download warm-up and the large arrival.
 **Updated:** 2026-11-15.
 
 This plan replaces the "shared GPU assets across generations" placeholder. That
@@ -16,26 +17,18 @@ first fields a unit type it had not shown. The admission work report exists,
 `battle-growth` prints it, and the [ledger](decisions.md) holds what it and
 the reference battle measured. What is left, in order:
 
-1. **Lingering page memory.** Right after the first scene the page holds
-   about 1.1 GB of buffers that a garbage collection frees (0.95 GB before
-   this plan, 2.05 GB now, 0.94 GB in both after a forced collection). It came
-   in with slice 00, 01 or 02. Find what leaves them and release them; then
-   repeat the three-run memory comparison against the base. The renderer's
-   WASM memory is 0.12 GB larger, which does not shrink.
-2. **Slice 09, the preload**, on `t3/battle-growth-stand-in-mechanics`
-   (`012834b8d`): the queue, the download warm-up for battles opened by link,
-   and the GPU preload behind `#preload=gpu`, off by default. Its memory
-   report: 3.0 GB more settled with the enemy faction on the GPU. Its
-   `battle-preload` scene must find first contact the way `battle-growth` now
-   does (`web/scenes/_contact-battle.mjs`). Turning the preload on is the
-   player's call.
-3. **The pre-ship review's open findings** (in the ledger): a larger texture
-   arriving retires every card layer; the resident card read-back that only
-   tests reach; the scenery placement guard that can no longer fire.
-4. **Large arrivals.** Nine bundles and 27 cards at once still cost one frame
-   of about 0.4 s. Decide between spreading an arrival's work over frames and
-   relying on the preload.
-5. Closeout: correct the stale WASM note in one-renderer, then `close-spec`.
+1. **Slice 09, warm-up and large arrivals**
+   ([slice](slices/09-preload.md)), on `t3/battle-growth-warm-up`: the
+   battle page starts the browser-cache warm-up after its first frame, in the
+   order learned types, enemy roster, rest; and the largest arrival's 0.4 s
+   frame, by admitting learned types one per commit if that arrival is several
+   types. No switch anywhere. Commit `012834b8d` (the cancelled GPU preload)
+   is a source to take from and is never merged.
+2. Closeout: correct the stale WASM note in one-renderer, run everything
+   once, then `close-spec`.
+
+Settled since the engine shipped, all in the ledger: the page's lingering
+gigabyte (fixed, below the base now), and the pre-ship review's findings.
 
 Read, in this order: this file, the [decisions ledger](decisions.md), the slice
 you are about to build, the [renderer contract](../../crates/renderer-core/README.md)
@@ -52,7 +45,7 @@ Warnings:
   what you found into the ledger.
 - A decision the slice does not make and does not delegate is a gap in this
   plan. Record it in the ledger; do not settle it silently.
-- Slices 06 and 09 are conditional on measurements. Follow the rule each one
+- Slice 09's pacing is conditional on a measurement. Follow the rule it
   states.
 - Each checkout's Rust build adds 3–22 GB. Check free space before a cold
   build, and remove a checkout's build output when its branch has merged. A
@@ -76,7 +69,7 @@ Checklist:
 - [x] [07 Catalog delta](slices/07-catalog-delta.md)
 - [x] [08 Browser transport and the growth gate](slices/08-browser-transport-and-growth-gate.md)
 - [x] [08a The staging frame](slices/08a-the-staging-frame.md)
-- [ ] [09 Preload](slices/09-preload.md)
+- [ ] [09 Warm-up and large arrivals](slices/09-preload.md)
 - [x] [10 Stand-in mechanics](slices/10-stand-in-mechanics.md)
 - [x] [11 Stand-in look](slices/11-stand-in-look.md)
 - [ ] Closeout: correct the stale WASM note in
@@ -141,7 +134,7 @@ The reference workload is the player's large battle in
 ```
 00 proof ─┬─ 01 fielding and install ────────────────────┐
           ├─ 02 identity ─┬─ 03 geometry ─ 04 textures ─ 05 cards ─┤
-          │               └─ 07 catalog delta ─────────────────────┼─ 08 transport + gate ─ 09 preload
+          │               └─ 07 catalog delta ─────────────────────┼─ 08 transport + gate ─ 09 warm-up
           ├─ 05a cards bake together ─ (05) ──────────────────────┤
           ├─ 06 statics carry (conditional) ─────────────────────┘
           └─ 10 stand-in mechanics ─ 11 stand-in look
@@ -164,7 +157,7 @@ are an independent track.
 | 07 | Nothing visible; the seam accepts a delta |
 | 08 | The reference battle plays without a freeze at `battle staged`; the gate is green |
 | 08a | The long frame at `battle staged` shrinks to what the new art costs |
-| 09 | First contact with a preloaded type stages nothing; the memory report |
+| 09 | A battle opened by link warms its art in the background; the largest arrival no longer hitches |
 | 10 | A unit with no art is a block you can click and target |
 | 11 | The block's approved look |
 
@@ -186,9 +179,8 @@ The end state reads as designed today: one admission path that takes a store,
 which may be empty. No "incremental" path beside a "full" one, no compatibility
 layer, no migration.
 
-One short-lived seam is allowed: the preload's off-by-default switch in slice
-09. It is removed when the player accepts the memory report (the preload
-becomes unconditional) or rejects it (the deeper preload code is deleted).
+No switch, flag or default-off path anywhere: the game is zero-config. The
+GPU preload this plan first allowed behind one was measured and cancelled.
 
 ## Standing gates
 
@@ -250,9 +242,7 @@ Seen and not planned here, so they are not lost:
 | Question | Unblocked by |
 | --- | --- |
 | Does scenery placement cost a frame on a large map? | Slice 06 times it first; slice 00 measured its bytes, not its time |
-| How deep does the preload go? | Slice 08 measures a one-type arrival; rule in slice 09 |
-| Does a multi-type arrival still stutter? | Slice 08 |
-| What does the preload cost in whole-browser memory? | Slice 09 |
+| Does a multi-type arrival still stutter? | Yes: 399 ms for the largest. Slice 09 |
 
 ## Background
 
