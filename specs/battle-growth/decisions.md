@@ -327,3 +327,10 @@ merged tree, at high graphics:
   Geometry uploads are those vertices plus 1,396,896 index bytes; the other
   126,480 buffer bytes are the generation's material table. Texture/card and
   scenery work remains for the other slices.
+
+**Slice 03, verified on the merged tree, 2026-11-15.** `battle-growth` at the
+scene's own profile and at high, one growth: 8.6 MB of vertices packed and
+10.2 MB of buffers uploaded, against 1.14 GB and 1.32 GB before. Still whole
+at every growth: 178 texture layers (125 MB, slice 04), 189 cards (slices 05a
+and 05), one scenery placement and 22 MB of scenery (slice 06), and 203
+bundles sent with 194 decoded (slices 07 and 08).
