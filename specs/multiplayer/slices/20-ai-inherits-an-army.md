@@ -131,3 +131,37 @@ Decision 29 already sends a displaced army to the AI seat with the fewest
 units, so the bad case needs four humans on one side. The recommendation is
 the first option.
 
+## Follow-up (2026-11-15): pacing the AI's orders was tried and set aside
+
+With the user's choice still open, a pass was sent to build the first
+option (the AI spreads its orders) so it could be judged. It stopped before
+changing anything, on a real conflict: an existing test,
+`a_rate_limited_ai_order_is_receipted_and_the_battle_goes_on`
+(`crates/sim/tests/skirmish_ai_orders.rs`), pins the opposite as a
+principle. Its comment reads: "The world may refuse an AI's well-formed
+order: its order bucket is out of a view the AI does not have. The refusal
+is receipted, and the battle goes on." Pacing, wherever it lives, means an
+AI's order is never refused for rate, so that principle and its test would
+have to go. That is a change to an existing rule of the game, not a
+contained fix, and it is not the build's to make unasked. Nothing was
+changed.
+
+Looked at again, the cost of leaving it is smaller than the 150-unit table
+suggests. Frontline's real case is a seat holding its own army and one it
+was handed: at most about 60 units. The limit lets 30 orders through a
+planner round, so a 60-unit army is fully ordered in two rounds, about ten
+seconds, and no unit is left out. Only a seat that receives several armies
+in a row gets near the 150-unit case, and decision 29 sends each displaced
+army to the AI seat with the fewest units, which spreads them.
+
+**The choice, for the user, with a changed recommendation:**
+
+- **Leave it for the alpha** (now recommended). A doubled army takes about
+  ten seconds to be fully commanded after a hand-over or a change of plan.
+  The ignored 150-unit test stays as the record.
+- **Make the AI pace its orders.** Removes the delay, and retires the
+  principle that the world may refuse an AI's order for rate, with its
+  test.
+- **Cap what one seat may receive** at about 30 units, sending the rest to
+  another AI seat.
+

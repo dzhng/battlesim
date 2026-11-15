@@ -38,10 +38,6 @@ command opposite sides of one battle on a local server
    - **Slices 22 and 23,** the army hand-over and the seat reset, from one
      agent as two commits. Every existing digest and replay must be
      unchanged.
-   - **An AI that paces its orders,** the recommended answer to slice 20's
-     finding, built so the user can judge it. It must change nothing for an
-     AI whose orders already fit the limit. The user has not chosen yet; it
-     is recorded as provisional.
    Then **slice 18,** the room battle, which needs 17.
 2. **Slice 09's push** waits for the user: ask before promoting a site
    build, before deploying, and before making the address public. Its local
@@ -56,8 +52,10 @@ command opposite sides of one battle on a local server
 - **Deploying** (slice 09): now, or after rooms exist. Recommended: after,
   because until then a deployed server must offer its dev battle to anyone
   with the address.
-- **An AI handed 150 units** (slice 20): spread its orders (recommended, and
-  being built provisionally) or cap what a seat may receive.
+- **An AI handed far more units than a seat buys** (slice 20): leave it for
+  the alpha (recommended: a doubled army is fully ordered in about ten
+  seconds), make the AI pace its orders (retires an existing rule and its
+  test), or cap what a seat may receive.
 - **The result screen's side names** (slice 11): keep "BLUE" and "RED", or
   head the columns by role. Recommended: by role, with slice 18.
 - **Lane numbers** (slice 12): kept as they are unless the user says
@@ -130,7 +128,7 @@ Rooms
 - [ ] [19 Milestone: a room battle across the internet](slices/19-milestone.md)
 
 Frontline
-- [x] [20 An AI inherits an army](slices/20-ai-inherits-an-army.md) (it copes at 30 and not at 150; a choice for the user before slice 22)
+- [x] [20 An AI inherits an army](slices/20-ai-inherits-an-army.md) (it copes at 30 and is slow at 150; a choice for the user, not blocking)
 - [x] [21 Frontline rules](slices/21-frontline-rules.md)
 - [ ] [22 Army hand-over](slices/22-army-hand-over.md)
 - [ ] [23 Seat reset](slices/23-seat-reset.md)
