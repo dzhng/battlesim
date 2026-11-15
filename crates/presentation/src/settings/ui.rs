@@ -153,6 +153,7 @@ pub struct OverlayOrders {
     pub area_draw_scale: f64,
     pub vehicle_marker_margin_m: f64,
     pub building_marker_margin_m: f64,
+    pub garrison_outline_margin_m: f64,
     pub drop_line_px: f64,
     pub drop_line_spacing: f64,
     pub drop_line_alpha: f64,
@@ -367,6 +368,10 @@ impl Overlay {
             (
                 "orders.building_marker_margin_m",
                 self.orders.building_marker_margin_m,
+            ),
+            (
+                "orders.garrison_outline_margin_m",
+                self.orders.garrison_outline_margin_m,
             ),
             ("orders.drop_line_px", self.orders.drop_line_px),
             ("capture_curtain.height_m", self.capture_curtain.height_m),

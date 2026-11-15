@@ -1,3 +1,4 @@
+import { knownCraters } from "./groundCells";
 import { useViewportGpu } from "./useViewportGpu";
 import * as gameWasm from "@wasm/game_wasm";
 import type { ViewportFrame } from "./presentedFrame";
@@ -871,32 +872,8 @@ export function useBattleSession({
     },
     /** The boxes the fog is cut by: the occluders the side knows stand. */
     fogOccluders: () => sim.client?.presentation?.fogOccluders() ?? [],
-    /** The side's known craters: marked cells, and the centre of the
-     *  `binM`-square block holding the most (framing a shelled field). */
-    craters: (binM = 16) => {
-      const g = sim.ground.current;
-      if (!g) return null;
-      const per = Math.max(1, Math.round(binM / g.cellM));
-      const bins = new Map<number, number>();
-      let cells = 0;
-      const marked = g.markedCells();
-      for (let k = 0; k < marked.length; k += 2) {
-        if ((marked[k + 1] & 255) < 64) continue;
-        const [i, j] = [marked[k] % g.cols, Math.floor(marked[k] / g.cols)];
-        cells++;
-        const key = Math.floor(j / per) * g.cols + Math.floor(i / per);
-        bins.set(key, (bins.get(key) ?? 0) + 1);
-      }
-      let densest: [number, number] | null = null;
-      let most = 0;
-      for (const [key, n] of bins)
-        if (n > most) {
-          most = n;
-          const [bi, bj] = [key % g.cols, Math.floor(key / g.cols)];
-          densest = [(bi + 0.5) * per * g.cellM, (bj + 0.5) * per * g.cellM];
-        }
-      return { cells, densest, most };
-    },
+    /** The side's known craters (`knownCraters`); null before any ground. */
+    craters: (binM = 16) => sim.ground.current && knownCraters(sim.ground.current, binM),
     /** Sound: voices, budget, holds and counts; null before audio starts. */
     sound: () => audio?.stats() ?? null,
     /** Combat effects: running, drawn last frame, dropped, and the last tick noted. */
@@ -943,6 +920,8 @@ export function useBattleSession({
     /** What the side knows stands, for a viewport that draws it: the map's
      *  buildings, and what the camera keeps clear of. */
     known: { buildings: buildingsFeed, obstacles: cameraObstaclesFeed },
+    /** The map's buildings and their parts (null before the map loads). */
+    buildingIndex: drawnBuildings,
     /** The player's pointer on a viewport that takes orders. */
     input: { onPick, onRightPress, onCursor, onBox, pointerMarks: pointerPaint.feed },
     /** What renderer fog is drawn from; `fogFeed` carries it to the viewport. */

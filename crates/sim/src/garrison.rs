@@ -80,6 +80,11 @@ fn held_building(unit: &Unit) -> Option<PropId> {
     unit.hold.as_ref().and_then(|hold| hold.host.building())
 }
 
+/// The building a squad fights from (inside or leaving, not entering).
+pub fn garrisoned_in(unit: &Unit) -> Option<PropId> {
+    held_building(unit).filter(|_| unit.garrisoned())
+}
+
 /// Published body pose: indoors behind the occupied window. Combat keeps
 /// the abstract exposed capsule and muzzle outside the shell, so a missed
 /// occupant still meets the wall without making it target-transparent.
