@@ -59,7 +59,6 @@ Each is confirmed by the slice named, which then moves it to the section below.
 | A hull's size reaches presentation only for fielded types; the unit catalog has it for every type | 10 |
 | An unfielded vehicle has a pick of no size today, so it cannot be clicked; an unfielded squad's soldiers can | 10 |
 | An undrawn enemy still gets a HUD readout, because readouts follow the observation | 10 |
-| The archived WASM exhaustion predates texture sharing | closeout |
 
 ## Confirmed during implementation
 
@@ -1337,3 +1336,9 @@ trigger), or have it done before first contact (slice 09's preload, where
 each step is one type). Decided when slice 09's numbers are in: if the
 preload's own steps hitch, spreading is needed for the preload as much as for
 first contact.
+
+**Closeout fact, confirmed 2026-11-15.** The archived note that loading the
+whole catalog exhausted WASM address space predates texture sharing: the note
+was written in `966bde248` (2026-10-28 17:19) and decoded bundles began
+sharing texture payloads in `e56cb964c` (22:43 the same day). The note is
+corrected when the spec is archived.
