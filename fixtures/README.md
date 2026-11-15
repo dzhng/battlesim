@@ -268,7 +268,8 @@ full road speed and back; each vehicle's own top speed sets the rate. This keeps
 road entry gradual without reducing the road advantage. Surface and shove limits
 act on the target speed so slowdown does not compound every tick. The follower
 brakes on the incoming leg of a planned bend, using its turning radius and yaw rate to
-choose a corner speed. A tracked pivot blocked by traffic backs up when it needs room.
+choose a corner speed. A tracked pivot blocked by traffic backs up when it needs room;
+one blocked by a body it can't shove rolls along its length to where the whole turn clears.
 Stops, collisions and gear changes discard momentum. Infantry retain their own
 pace; their yield horizon follows a vehicle's accepted velocity, including reverse
 movement. Once clear of that path, a soldier waits rather than stepping back

@@ -62,7 +62,11 @@ admits them, and the compiler refuses a seed whose swamp it would not.
 Settlements, lots and measured approaches are plan evidence, not extra runtime
 geometry. Their [encounter sites](../contract/src/encounter.rs) accompany the compiled
 map so the simulation's planner can place forces on it. Skirmish generation reserves
-bounded alternative clearings through every furnishing stage. The simulation
+bounded alternative clearings through every furnishing stage. An objective is
+fought over buildings: the main junction stands in its town's square, and every
+other reserved site gets its own homestead in the open country. The finished plan
+keeps only the reserved sites with a building inside their capture circle, and
+refuses a seed left without its centres or pairs. The simulation
 selects the final sites from actual navigation on the completed physical map;
 mapgen's geometric placement cannot certify counterpart travel fairness. [Saved-map policy](../../fixtures/README.md#saved-maps)
 explains the retained documents.
@@ -124,6 +128,14 @@ sized by `street_props.bodies`: one compound on one side of its road, on paved
 yards that may touch. It stands whole or is left out; generation never refuses a
 map for one. Depots are placed after homes on their own random stream, so they
 never move a home.
+
+A reserved skirmish objective in the open gets its homestead before any other,
+on its own stream: homes either side of a farmyard through the objective's
+centre, which keeps a vehicle's way onto it open, lined up along a farm track
+from the nearest country road when one is near enough and a lone farm in its
+field when none is. Only those homes and their track may stand on the ground
+the objective keeps clear. They are the objective's, not the country's share of
+homes, so the roads keep theirs, and the halves stay even over both.
 
 [Coverage](src/open_country/coverage.rs) derives reach from resolved generation
 physics, using actual circular ground observers and native fog sampling. It has no

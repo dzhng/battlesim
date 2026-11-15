@@ -3,14 +3,18 @@
 //! kinematics (no kinodynamic planner).
 //!
 //! Tracks turn at their own rate and pivot on the spot beyond
-//! `movement.drive.turn_in_place_deg` of heading error. Wheels never pivot: the yaw
+//! `movement.drive.turn_in_place_deg` of heading error. A body they can't
+//! shove in the way of the turn (a trunk at the flank, a wall at the nose)
+//! sends them straight along their length to where the whole turn clears
+//! ([`room_to_turn`]). Wheels never pivot: the yaw
 //! turns only as the hull rolls, at most `1 / radius` per metre, so a
-//! U-turn is an arc. A waypoint inside the turning circle, or a turn whose
-//! next metre runs into a solid, starts a three-point turn: a leg driven
-//! against the order's direction that keeps turning the same way, until
-//! the forward arc to the waypoint is clear. A leg that cannot turn its way
-//! (a hull nosed into a gap between parked cars) backs out straight, or
-//! turning the other way. Every arc is swept for bodies finer than a corner
+//! U-turn is an arc. A corner of the route inside the turning circle is cut
+//! when the straight way past it is clear ([`prune`]). The route's end, a
+//! corner it cannot cut, or a turn whose next metre runs into a solid
+//! starts a three-point turn: a leg driven against the order's direction
+//! that keeps turning the same way, until the forward arc to the waypoint
+//! is clear. A leg that cannot turn its way (a hull nosed into a gap
+//! between parked cars) backs out straight, or turning the other way. Every arc is swept for bodies finer than a corner
 //! can swing through one.
 //!
 //! A reverse move (Q31) drives the same way with the travel direction
@@ -31,6 +35,8 @@ const PROBE_M: f64 = 1.0;
 /// hull's corner swings through a body and out again within a metre, so
 /// sampling only the end of each metre would pass a step it cannot take.
 const SAMPLE_M: f64 = 0.1;
+/// Room for a blocked tracked turn is looked for this often along the hull.
+const ROOM_STEP_M: f64 = 0.25;
 
 /// A three-point turn's leg against the order's direction (Q29): it turns
 /// the hull toward `turn` (+1 counter-clockwise, -1 clockwise).
@@ -219,19 +225,72 @@ fn arc_clear(
     Ok(())
 }
 
-/// Give a blocked tracked pivot room by rolling against its ordered direction.
-pub fn give_space(unit: &Unit, speed: f64, dt: f64) -> Motion {
+/// Give a blocked tracked turn room: roll straight along the hull, at
+/// most `room` metres (signed, ahead positive).
+pub fn give_space(unit: &Unit, room: f64, speed: f64, dt: f64) -> Motion {
     let drive = unit.ground().drive.expect("a vehicle has a drive");
-    let gear = -gear_sign(unit.direction());
+    let gear = room.signum();
     let v = accelerate(unit, speed_in(&drive, gear, speed), gear, dt);
     Motion {
         yaw: unit.yaw,
         heading: dir(travel(unit.yaw, gear)),
-        step: v * dt,
+        step: (v * dt).min(room.abs()),
         backwards: gear < 0.0,
         making_space: true,
         blocker: None,
     }
+}
+
+/// Which way a tracked hull gives a blocked turn room when nothing better
+/// is known: backing off against its ordered direction.
+pub fn away(unit: &Unit) -> f64 {
+    -gear_sign(unit.direction())
+}
+
+/// The yaw a hull at `at` takes to travel toward `target` in `direction`.
+pub fn yaw_toward(at: V2, target: V2, direction: MoveDirection) -> f64 {
+    let to = target - at;
+    travel(libm::atan2(to.y, to.x), gear_sign(direction))
+}
+
+/// Where a tracked hull that a body stops from turning to `yaw_at(spot)`
+/// can make the whole turn: the nearest spot straight along its length,
+/// within one hull length either way, that it rolls to clear and turns at
+/// clear of every body (a trunk beside its hull: drive on until it can come
+/// round; a wall at its nose: back off). Signed metres along its heading;
+/// at equal distance it goes `first` (+1 ahead, -1 back). `None`: nowhere
+/// within reach frees the turn.
+pub fn room_to_turn(
+    world: &WorldGeometry,
+    unit: &Unit,
+    first: f64,
+    yaw_at: impl Fn(V2) -> f64,
+) -> Option<f64> {
+    let half = unit.hull.expect("a vehicle has a hull").xy();
+    let (here, ahead) = (unit.position.xy(), dir(unit.yaw));
+    let mut open = [true; 2];
+    for k in 1..=(2.0 * half.x / ROOM_STEP_M).ceil() as usize {
+        for (way, sign) in [first, -first].into_iter().enumerate() {
+            let d = sign * k as f64 * ROOM_STEP_M;
+            let spot = here + ahead * d;
+            // Rolling straight, the hull trails its leading face by its
+            // whole length, so no body slips between two of these steps.
+            open[way] &= !blocked(world, unit, spot, unit.yaw);
+            if open[way] && turn_clear(world, unit, spot, yaw_at(spot)) {
+                return Some(d);
+            }
+        }
+    }
+    None
+}
+
+/// Whether a hull at `at` pivots the short way from its yaw to `yaw` with
+/// no part of it meeting a body.
+fn turn_clear(world: &WorldGeometry, unit: &Unit, at: V2, yaw: f64) -> bool {
+    let reach = unit.hull.expect("a vehicle has a hull").xy().length();
+    let error = wrap_angle(yaw - unit.yaw);
+    let pieces = (error.abs() * reach / SAMPLE_M).ceil().max(1.0) as usize;
+    (1..=pieces).all(|n| !blocked(world, unit, at, unit.yaw + error * n as f64 / pieces as f64))
 }
 
 /// This tick's motion toward `target`, at surface speed `speed`.
@@ -443,32 +502,101 @@ pub fn lead_in(end: V2, heading: f64, drive: &Drive, half: f64) -> V2 {
     end - dir(heading) * (4.0 * (drive.radius_m + half))
 }
 
-/// A tracked vehicle at rest pivots toward its ordered facing (Q9), at its
-/// turn rate, while the turn is clear; a blocked turn is given up.
-pub fn pivot(world: &WorldGeometry, unit: &mut Unit, dt: f64) {
+/// A tracked vehicle at rest pivots toward its facing (Q9) at its turn
+/// rate. A body in the way of an ordered facing sends it rolling along its
+/// length to room for the turn ([`room_to_turn`]), shoving nothing and
+/// waiting for no one (traffic gives the turn up); a turn it makes on its
+/// own (`ordered` false: a hull gun onto its target, D8) is given up
+/// instead, so it never leaves its spot unordered.
+pub fn pivot(
+    ctx: &super::MovementContext,
+    unit: &mut Unit,
+    dt: f64,
+    ordered: bool,
+    traffic: &[Option<Obb2>],
+) {
     let (Some(facing), Some(drive)) = (unit.turn_to, unit.ground().drive) else {
         return;
     };
     let error = wrap_angle(facing - unit.yaw);
     let max = drive.turn_rad_s * dt;
     let yaw = unit.yaw + error.clamp(-max, max);
-    if blocked(world, unit, unit.position.xy(), yaw) {
+    let here = unit.ground_footprint().expect("a vehicle has a hull");
+    // Another hull in the way gives the turn up: it checks true hulls, as
+    // a stopped approach may leave less than traffic's buffer beside it.
+    let turned = Obb2 { yaw, ..here };
+    if traffic.iter().enumerate().any(|(id, other)| {
+        id != unit.id.0 as usize && other.is_some_and(|other| turned.overlaps(&other))
+    }) {
+        unit.drive_speed_mps = 0.0;
         unit.turn_to = None;
         return;
     }
-    unit.yaw = yaw;
-    if error.abs() <= max {
-        unit.turn_to = None;
+    if !blocked(ctx.world, unit, here.center, yaw) {
+        unit.yaw = yaw;
+        unit.drive_speed_mps = 0.0;
+        if error.abs() <= max {
+            unit.turn_to = None;
+        }
+        return;
     }
+    let footing = ctx
+        .ground
+        .footing(ctx.world, here.center, &ctx.rules.ground);
+    let speed = footing.map_or(0.0, |g| unit.ground().speed(g));
+    let rolled = ordered
+        .then(|| room_to_turn(ctx.world, unit, away(unit), |_| facing))
+        .flatten()
+        .and_then(|room| {
+            let roll = give_space(unit, room, speed, dt);
+            let next = Obb2 {
+                center: here.center + roll.heading * roll.step,
+                ..here
+            };
+            let met = super::push::meet(ctx.world, &next, &here, unit.ground().push);
+            let jam = traffic.iter().enumerate().any(|(id, other)| {
+                id != unit.id.0 as usize
+                    && other.is_some_and(|other| super::hull_conflict(here, next, other))
+            });
+            let ground = ctx.world.surface_at(next.center.x, next.center.y);
+            ground
+                .filter(|s| s.traversable && met.solid.is_none() && met.shoved.is_empty() && !jam)
+                .map(|ground| (roll, next.center.with_z(ground.z)))
+        });
+    let Some((roll, at)) = rolled else {
+        unit.drive_speed_mps = 0.0;
+        unit.turn_to = None;
+        return;
+    };
+    unit.position = at;
+    unit.reversing = roll.backwards;
+    unit.drive_speed_mps = roll.step / dt * roll.heading.dot(dir(unit.yaw));
 }
 
 /// Drop the waypoints a wheeled vehicle has done with before it steers:
-/// one reached or one it passes abeam. A route's corners supply clearance;
-/// the steering owner follows them at the hull's turning radius. Returns
-/// whether the route's end is reached.
-pub fn prune(unit: &mut Unit) -> bool {
-    let Some(drive) = unit.ground().drive.filter(|d| !d.tracked) else {
+/// one reached, one it passes abeam, or a corner inside its turning circle
+/// whose clearance it does not need: the straight way on to the next
+/// waypoint fits its side's grid with the other vehicles in `traffic` as
+/// solid, since a detour's corners clear vehicles the grid does not hold.
+/// A route's corners supply clearance; the steering owner follows them at
+/// the hull's turning radius. Returns whether the route's end is reached.
+pub(super) fn prune(
+    ctx: &super::MovementContext,
+    sides: &mut [super::SideGeometry; 3],
+    traffic: &[Option<Obb2>],
+    unit: &mut Unit,
+) -> bool {
+    let mobility = *unit.ground();
+    let Some(drive) = mobility.drive.filter(|d| !d.tracked) else {
         return false;
+    };
+    let known = &mut sides[unit.side.index()];
+    let own = unit.id.0 as usize;
+    let others = || -> Vec<Obb2> {
+        let hulls = traffic.iter().enumerate();
+        hulls
+            .filter_map(|(id, hull)| hull.filter(|_| id != own))
+            .collect()
     };
     let here = unit.position.xy();
     let heading = travel(unit.yaw, gear_sign(unit.direction()));
@@ -476,10 +604,18 @@ pub fn prune(unit: &mut Unit) -> bool {
     while let Some(&wp) = route.first() {
         let to = wp - here;
         let distance = to.length();
-        let error = wrap_angle(libm::atan2(to.y, to.x) - heading).abs();
+        let signed = wrap_angle(libm::atan2(to.y, to.x) - heading);
+        let error = signed.abs();
         let reached = distance < super::PROGRESS_EPSILON_M
             || (distance < drive.feel.abeam_m && error > drive.feel.abeam_deg.to_radians());
-        if !reached {
+        // Never the route's end: that is where it must stand.
+        let side = if signed >= 0.0 { 1.0 } else { -1.0 };
+        let passed = route.len() > 1
+            && inside_circle(here, heading, side, drive.radius_m, wp, 0.0)
+            && known
+                .grid(ctx.world, ctx.authored)
+                .way_fits(here, route[1], &mobility, &others());
+        if !reached && !passed {
             break;
         }
         route.remove(0);
