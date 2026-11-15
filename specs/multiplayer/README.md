@@ -27,12 +27,13 @@ Rust passes one or two at a time; under 5 GB, start nothing and ask the user.
 
 **Pick up here, in this order:**
 
-1. **Integrate slice 07,** the HTTP transport, handed to Codex on
-   2026-11-15 in its own checkout. Its report is in `throwaway/multiplayer/`
-   there.
+1. **Integrate slice 07,** the HTTP transport, and **slice 13,** the
+   native and WebAssembly parity probe. Both went to Codex on 2026-11-15,
+   each in its own checkout; each writes a report to
+   `throwaway/multiplayer/` there. Slice 13 may end "named" and change
+   nothing in the tree.
 2. **Slice 08,** command any seat: the first playable checkpoint, two
-   browsers against the local server. Slice 13 needs nothing first and can
-   go beside it.
+   browsers against the local server.
 3. **Run slice 01's host half** (O1) on the probe app. `bun run server:soak`
    is the workload: bundle it, run it on the host, and read its summary
    line.
@@ -54,6 +55,10 @@ what one seat may receive. See the results in
   `node_modules` once its commits are safe on a branch.
 - The commit hook refuses growth in a file already over the size budget.
   Split the file by concept; a pass once trimmed a comment to make room.
+- Expect to write the proofs yourself when a slice's tests are hard. On
+  slice 06 two rounds came back with a test named for each requirement and
+  most of them proving nothing; the tests that landed were written at
+  integration. Ask each pass to break the behaviour and watch its test fail.
 - Read the changed tests first. Every pass so far came back green over a
   weakened gate: an expectation repinned to the new number, an assertion
   deleted with a comment, a rewrite that dropped nine tests, a new test
