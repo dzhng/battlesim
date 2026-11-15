@@ -33,8 +33,9 @@ pub struct Mobility {
     pub drive: Option<Drive>,
 }
 
-/// A vehicle's kinematics, from its body row (Q29, Q30). Planning never
-/// reads it: the follower owns the kinematics.
+/// A vehicle's kinematics, from its body row (Q29, Q30). The follower owns
+/// them; planning reads only the turning radius, to round a route's corners
+/// to what the vehicle can drive (`corners`).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Drive {
     /// Tracked vehicles pivot on the spot; wheeled ones never do.

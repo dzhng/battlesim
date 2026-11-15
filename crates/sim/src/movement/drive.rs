@@ -1,6 +1,8 @@
 //! A vehicle's own kinematics (Q29–Q31): how it turns toward its next
-//! waypoint this tick. The route is the planner's; the follower owns the
-//! kinematics (no kinodynamic planner).
+//! waypoint this tick. The route is the planner's, its corners rounded to
+//! the turning radius (`navigation::corners`); the follower owns the rest
+//! of the kinematics (no kinodynamic planner), and slows ahead of a bend to
+//! what its yaw rate can take round it ([`approach_speed`]).
 //!
 //! Tracks turn at their own rate and pivot on the spot beyond
 //! `movement.drive.turn_in_place_deg` of heading error. A body they can't
@@ -15,7 +17,9 @@
 //! that keeps turning the same way, until the forward arc to the waypoint
 //! is clear. A leg that cannot turn its way (a hull nosed into a gap
 //! between parked cars) backs out straight, or turning the other way. Every arc is swept for bodies finer than a corner
-//! can swing through one.
+//! can swing through one. A step the true geometry refuses all the same
+//! (bins it meant to shove pinned against a car) starts the leg too
+//! ([`refused`]): a refusal is an obstruction, or nothing starts the way out.
 //!
 //! A reverse move (Q31) drives the same way with the travel direction
 //! behind the hull, so the facing is held, at the reverse fraction of the
@@ -144,7 +148,11 @@ fn approach_speed(unit: &Unit, surface_speed: f64, gear: f64) -> f64 {
             let angle = wrap_angle(
                 libm::atan2(outgoing.y, outgoing.x) - libm::atan2(incoming.y, incoming.x),
             );
-            turn_speed(&drive, full, angle)
+            // A bend drawn as short runs turns at the radius they describe,
+            // and the hull's yaw rate takes it no faster than that allows.
+            let bend = incoming.length().min(outgoing.length())
+                / (2.0 * libm::sin(angle.abs() / 2.0)).max(1e-9);
+            turn_speed(&drive, full, angle).min(drive.turn_rad_s * bend)
         });
         limit = limit.min((corner * corner + 2.0 * braking * distance).sqrt());
         from = point;
@@ -622,6 +630,56 @@ pub(super) fn prune(
         unit.progress = (f64::INFINITY, unit.progress.1);
     }
     route.is_empty()
+}
+
+/// A rejected step may still let tracks pivot, but only into a clear pose.
+pub(super) fn stationary_yaw(world: &WorldGeometry, units: &[Unit], i: usize, yaw: f64) -> f64 {
+    let unit = &units[i];
+    if yaw == unit.yaw || !unit.ground().drive.is_some_and(|d| d.tracked) {
+        return unit.yaw;
+    }
+    let here = unit.ground_footprint().expect("a vehicle has a hull");
+    let turned = Obb2 { yaw, ..here };
+    let met = super::push::meet(world, &turned, &here, unit.ground().push);
+    // A stationary pivot checks true hulls; translation's traffic buffer
+    // would forbid using the clearance reserved by the stopped approach.
+    let occupied = met.solid.is_some()
+        || !met.shoved.is_empty()
+        || units.iter().enumerate().any(|(j, other)| {
+            j != i
+                && other.ground_footprint().is_some()
+                && other.on_field()
+                && turned.overlaps(&other.ground_footprint().expect("a vehicle has a hull"))
+        });
+    if occupied {
+        unit.yaw
+    } else {
+        yaw
+    }
+}
+
+/// A step toward `target` that the hull's true geometry refused: wheels
+/// start a leg back, turning toward the waypoint's side, as when the forward
+/// arc runs into a solid. A refused turning leg backs out straight instead
+/// (its nose swung into what it was nosed against); a refused straight leg
+/// ends, and the forward arc decides again.
+pub(super) fn refused(unit: &mut Unit, target: V2) {
+    if !unit.ground().drive.is_some_and(|d| !d.tracked) {
+        return;
+    }
+    if let Some(m) = unit.manoeuvre.take() {
+        if m.turn != 0.0 {
+            unit.manoeuvre = Some(Manoeuvre { turn: 0.0, ..m });
+        }
+        return;
+    }
+    let to = target - unit.position.xy();
+    let heading = travel(unit.yaw, gear_sign(unit.direction()));
+    let error = wrap_angle(libm::atan2(to.y, to.x) - heading);
+    unit.manoeuvre = Some(Manoeuvre {
+        turn: if error >= 0.0 { 1.0 } else { -1.0 },
+        driven_m: 0.0,
+    });
 }
 
 /// Where a vehicle killed on the move comes to rest: it rolls on along its

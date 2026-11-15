@@ -17,8 +17,8 @@
 //! The grid is what a route is checked on, not what works one out. A leg's
 //! route is a [`Journey`]: by road where the map's road graph ([`RoadNet`])
 //! offers a way worth taking, with a grid search (`search`) to and
-//! from the road and round whatever stands on it; otherwise one grid search
-//! for the whole leg. All of it is counted work a battle spends a share of
+//! from the road and round whatever stands on it; otherwise one grid
+//! search. All of it is counted work a battle spends a share of
 //! a tick on ([`crate::route_planner`]).
 //!
 //! Infantry reads the grid at two resolutions (Q27). Each 2 m cell holds a
@@ -43,8 +43,10 @@ pub mod air;
 mod base;
 mod cells;
 mod check;
+mod corners;
 mod foot;
 mod journey;
+mod lanes;
 mod mobility;
 mod pockets;
 mod regions;
@@ -67,8 +69,8 @@ pub use roads::RoadNet;
 pub use search::{Leg, Scratch, SearchWork};
 use slow::SlowGround;
 
-/// The whole route for `leg` at once, however much work it takes, and what
-/// its searches cost: what a battle's planner reaches in steps
+/// The whole route for `leg` at once, whatever the work, and what its
+/// searches cost: what a battle's planner reaches in steps
 /// ([`crate::route_planner`]). For tools and tests.
 pub fn plan(
     grid: &NavGrid,

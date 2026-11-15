@@ -48,9 +48,9 @@ const GOAL_REPLAN_M: f64 = 5.0;
 /// Seconds without closing on the next waypoint before a route is replanned.
 const STALL_REPLAN_S: f64 = 2.0;
 /// How long a stalled unit's way may stay no shorter before it gives the
-/// move up and holds until its side learns something new of the ground:
-/// longer than a truck's three-point turn takes. Waiting for a vehicle in
-/// the way is traffic, not a stall.
+/// move up and holds until its side learns something new of the ground, or
+/// this long again has passed: longer than a truck's three-point turn
+/// takes. Waiting for a vehicle in the way is traffic, not a stall.
 const GIVE_UP_S: f64 = 30.0;
 /// How much shorter its way must have become to count as progress.
 const STALL_GAIN_M: f64 = 2.0;
@@ -525,7 +525,14 @@ fn request_route(
     };
     let needs = match (&unit.route, unit.state) {
         _ if goal_moved => true,
-        (_, MoveState::RouteBlocked) => changed,
+        // Blocked, it tries again when its side learns something of the
+        // ground, and in any case once a give-up spell has passed since it
+        // last tried: something it cannot see may have moved.
+        (_, MoveState::RouteBlocked) => {
+            changed
+                || ctx.tick.saturating_sub(unit.stalls.1)
+                    > (GIVE_UP_S * ctx.rules.tick_hz as f64) as u64
+        }
         (None, _) => true,
         (Some(route), _) => {
             let from = if unit.is_vehicle() {
@@ -742,6 +749,7 @@ fn take_route(
         Plan::Blocked(_) => {
             unit.route = None;
             unit.state = MoveState::RouteBlocked;
+            unit.stalls = (f64::INFINITY, ctx.tick);
         }
     }
 }
@@ -939,7 +947,7 @@ fn step_vehicle(
     // traffic; from a body, roll to where the whole turn clears.
     let room = (unit.ground().drive.is_some_and(|d| d.tracked)
         && motion.yaw != unit.yaw
-        && stationary_yaw(ctx.world, units, i, motion.yaw) == unit.yaw)
+        && drive::stationary_yaw(ctx.world, units, i, motion.yaw) == unit.yaw)
         .then(|| match (blocker, met.solid) {
             (Some(_), _) => Some(drive::away(unit) * f64::INFINITY),
             (None, Some(_)) => drive::room_to_turn(ctx.world, unit, drive::away(unit), |at| {
@@ -961,7 +969,7 @@ fn step_vehicle(
         }
     }
     if let Some(b) = blocker {
-        let held_yaw = stationary_yaw(ctx.world, units, i, motion.yaw);
+        let held_yaw = drive::stationary_yaw(ctx.world, units, i, motion.yaw);
         let unit = &mut units[i];
         unit.state = MoveState::Waiting;
         unit.blocker = Some(b);
@@ -1003,10 +1011,11 @@ fn step_vehicle(
         .surface_at(next.x, next.y)
         .filter(|s| s.traversable);
     if solid || ground.is_none() {
-        let held_yaw = stationary_yaw(ctx.world, units, i, motion.yaw);
+        let held_yaw = drive::stationary_yaw(ctx.world, units, i, motion.yaw);
         let unit = &mut units[i];
         unit.yaw = held_yaw;
         unit.drive_speed_mps = 0.0;
+        drive::refused(unit, target);
         return;
     }
     let ground = ground.expect("traversable ground checked above");
@@ -1035,32 +1044,6 @@ fn step_vehicle(
         }
     } else if left < unit.progress.0 - PROGRESS_EPSILON_M {
         unit.progress = (left, ctx.tick);
-    }
-}
-
-/// A rejected step may still let tracks pivot, but only into a clear pose.
-fn stationary_yaw(world: &WorldGeometry, units: &[Unit], i: usize, yaw: f64) -> f64 {
-    let unit = &units[i];
-    if yaw == unit.yaw || !unit.ground().drive.is_some_and(|d| d.tracked) {
-        return unit.yaw;
-    }
-    let here = unit.ground_footprint().expect("a vehicle has a hull");
-    let turned = Obb2 { yaw, ..here };
-    let met = push::meet(world, &turned, &here, unit.ground().push);
-    // A stationary pivot checks true hulls; translation's traffic buffer
-    // would forbid using the clearance reserved by the stopped approach.
-    let occupied = met.solid.is_some()
-        || !met.shoved.is_empty()
-        || units.iter().enumerate().any(|(j, other)| {
-            j != i
-                && other.ground_footprint().is_some()
-                && other.on_field()
-                && turned.overlaps(&other.ground_footprint().expect("a vehicle has a hull"))
-        });
-    if occupied {
-        unit.yaw
-    } else {
-        yaw
     }
 }
 
