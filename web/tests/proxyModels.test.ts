@@ -1,9 +1,14 @@
 // @vitest-environment node
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
-import { expect, test, vi } from "vitest";
+import { beforeAll, expect, test, vi } from "vitest";
 import { joinTextures } from "@packages/scene-assets/src/codec";
 import { PROXY_MESHES } from "@packages/battle-renderer/src/proxies";
 import { proxyModels } from "../src/battle/render/proxyModels";
+import { loadPresentationModule } from "../src/presentationModule";
+
+beforeAll(async () => {
+  await loadPresentationModule();
+});
 
 // Control the authored mesh colour at the asset boundary: this checks colour
 // conversion independently of any later change to primitive art.
@@ -100,6 +105,7 @@ test("parsed model transport round-trips art and shares textures within one admi
   bundle.textures = [{ ...texture, levels: [...texture.levels] }];
   bundle.materials[0].textures = { albedo: 0 };
   const appearance = {
+    contentId: { bundle: "a".repeat(64), skeleton: null },
     bundle,
     unit: "vehicle",
     scenery: null,

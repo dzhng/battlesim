@@ -4,6 +4,7 @@ import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import { positionsBounds } from "@packages/scene-assets/src/pose";
 import type { ArticulatedBundle } from "@packages/scene-assets/src/schema";
 import type { LabModel } from "../sim/presentationModels";
+import { generatedContentId } from "./contentIdentity";
 import { modelAsset, type ModelAsset } from "./modelAssets";
 
 const PREFIX = "__renderer_proxy__:";
@@ -77,8 +78,10 @@ export function proxyModels(
     const name = `${PREFIX}${instance.kind}:${Array.from(bits, (v) => v.toString(16)).join(":")}`;
     if (installed.has(name))
       throw new Error(`proxy appearance ${name} collides with installed art`);
-    if (!assets.has(name))
-      assets.set(name, modelAsset(name, proxyBundle(instance.kind, instance.color)));
+    if (!assets.has(name)) {
+      const bundle = proxyBundle(instance.kind, instance.color);
+      assets.set(name, modelAsset(name, bundle, generatedContentId(bundle)));
+    }
     models.push({
       appearance: name,
       x: instance.x,

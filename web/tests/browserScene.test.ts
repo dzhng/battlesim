@@ -1,7 +1,12 @@
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { proxyModels } from "@web/battle/render/proxyModels";
 import { Renderer } from "@wasm/renderer_browser";
 import { BrowserScene, type SceneOptions } from "@web/battle/render/scene";
+import { loadPresentationModule } from "../src/presentationModule";
+
+beforeAll(async () => {
+  await loadPresentationModule();
+});
 
 vi.mock("@web/battle/render/effectAssets", () => ({ loadEffectAtlasLayers: async () => [] }));
 afterEach(() => vi.restoreAllMocks());

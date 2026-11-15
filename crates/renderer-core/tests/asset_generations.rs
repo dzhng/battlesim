@@ -4,6 +4,7 @@
 #[path = "support/mod.rs"]
 mod support;
 
+use contract::identity::ContentId;
 use presentation::presentation::{lab::Asset, Presentation};
 use presentation::records::{Appearance, Joint, NONE};
 use renderer_core::bundle::Library;
@@ -24,7 +25,7 @@ fn identity() -> Joint {
     }
 }
 
-fn bundle_bytes(kind: &str) -> Vec<u8> {
+fn bundle_bytes(kind: &str, max_z: u8) -> Vec<u8> {
     let mut body = Vec::new();
     let mut views = Vec::new();
     let mut array = |ty, bytes: Vec<u8>, length| {
@@ -44,7 +45,7 @@ fn bundle_bytes(kind: &str) -> Vec<u8> {
     let content = json!({"kind": kind, "materials": [{
         "name": "synthetic", "base_color": [1,1,1,1], "metallic": 0,
         "roughness": 1, "tint": 0, "coverage": {"kind":"opaque"}
-    }], "states": [{"name":"default", "bounds":{"min":[0,0,0],"max":[1,1,1]}, "tiers":[mesh]}]});
+    }], "states": [{"name":"default", "bounds":{"min":[0,0,0],"max":[1,1,max_z]}, "tiers":[mesh]}]});
     let mut header = serde_json::to_vec(&json!({"content": content, "views": views})).unwrap();
     header.resize(header.len().next_multiple_of(4), b' ');
     let mut bytes = Vec::new();
@@ -103,12 +104,70 @@ fn world_names(presentation: &Presentation) -> Vec<String> {
         .collect()
 }
 
+fn content_id(bytes: &[u8]) -> ContentId {
+    ContentId::bundle(contract::identity::bytes_hash(bytes)).unwrap()
+}
+
+#[test]
+fn same_name_with_new_content_replaces_the_admitted_art() {
+    let bytes_a = bundle_bytes("static", 1);
+    let bytes_b = bundle_bytes("static", 2);
+
+    let mut library = Library::default();
+    library
+        .insert_bundle("synthetic", content_id(&bytes_a), &bytes_a, &[])
+        .unwrap();
+    assert_eq!(library.take_admission_work().bundles_decoded, 1);
+    let old = library.bundle("synthetic").unwrap();
+    let old_top = match &old.shape {
+        renderer_core::bundle::Shape::Static(states) => states[0].top,
+        _ => panic!("synthetic bundle is static"),
+    };
+
+    library
+        .insert_bundle("synthetic", content_id(&bytes_b), &bytes_b, &[])
+        .unwrap();
+    assert_eq!(library.take_admission_work().bundles_decoded, 1);
+    assert_eq!(Arc::strong_count(&old), 1);
+    let new_top = match &library.bundle("synthetic").unwrap().shape {
+        renderer_core::bundle::Shape::Static(states) => states[0].top,
+        _ => panic!("synthetic bundle is static"),
+    };
+    assert_ne!(old_top, new_top);
+}
+
+#[test]
+fn identical_content_under_a_second_name_decodes_once() {
+    let bytes = bundle_bytes("static", 1);
+    let id = content_id(&bytes);
+    let mut library = Library::default();
+    library
+        .insert_bundle("synthetic-a", id.clone(), &bytes, &[])
+        .unwrap();
+    assert_eq!(library.take_admission_work().bundles_decoded, 1);
+    library
+        .insert_bundle("synthetic-b", id, &bytes, &[])
+        .unwrap();
+    assert_eq!(library.take_admission_work().bundles_decoded, 0);
+    assert!(Arc::ptr_eq(
+        &library.bundle("synthetic-a").unwrap(),
+        &library.bundle("synthetic-b").unwrap()
+    ));
+    let old = library.bundle("synthetic-a").unwrap();
+    let replacement = bundle_bytes("static", 2);
+    library
+        .insert_bundle("synthetic-a", content_id(&replacement), &replacement, &[])
+        .unwrap();
+    assert_eq!(library.take_admission_work().bundles_decoded, 1);
+    assert!(Arc::ptr_eq(&old, &library.bundle("synthetic-b").unwrap()));
+}
+
 #[test]
 fn first_admission_reports_the_synthetic_fixture_work() {
     let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
     let pipelines = renderer_core::pipelines::build_builtin(&gpu.device).unwrap();
-    let library = Library::from_bundle("synthetic", &bundle_bytes("static"), &[]).unwrap();
-    let mut work = library.admission_work();
+    let mut library = Library::from_bundle("synthetic", &bundle_bytes("static", 1), &[]).unwrap();
+    let mut work = library.take_admission_work();
     let _models = Models::from_world(
         &gpu.device,
         &gpu.queue,
@@ -153,8 +212,8 @@ fn first_admission_reports_the_synthetic_fixture_work() {
 #[test]
 fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates() {
     let gpu = support::gpu().expect("a GPU is required for renderer admission tests");
-    let bytes_a = bundle_bytes("static");
-    let bytes_b = bundle_bytes("static");
+    let bytes_a = bundle_bytes("static", 1);
+    let bytes_b = bundle_bytes("static", 1);
     let asset_a = Asset::from_bundle(&bytes_a, None).unwrap();
     let asset_b = Asset::from_bundle(&bytes_b, None).unwrap();
     let mut presentation = Presentation::new(None, 30.).unwrap();
@@ -195,12 +254,13 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
         )
         .unwrap();
     let geometry = Arc::new(WorldGeometry::from_triangles(&[], &[], &[], 64., None, &[]));
-    let library_a = Library::from_bundle("synthetic-a", &bytes_a, &[]).unwrap();
+    let mut library_a = Library::from_bundle("synthetic-a", &bytes_a, &[]).unwrap();
+    let mut library_a_work = library_a.clone();
     let mut runtime = Runtime::new(
         &gpu.device,
         &gpu.queue,
         runtime_config(),
-        library_a.clone().admission_work(),
+        library_a_work.take_admission_work(),
         RuntimeWorld {
             presentation: &mut presentation,
             assets: &library_a,
@@ -219,7 +279,8 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
             Default::default(),
         )
         .unwrap();
-    let library_b = Library::from_bundle("synthetic-b", &bytes_b, &[]).unwrap();
+    let mut library_b = Library::from_bundle("synthetic-b", &bytes_b, &[]).unwrap();
+    let library_b_work = library_b.take_admission_work();
     let pending = runtime
         .stage_assets(
             &gpu.device,
@@ -227,7 +288,7 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
             &presentation,
             candidate,
             &library_b,
-            library_b.admission_work(),
+            library_b_work,
         )
         .unwrap();
     let ready = pollster::block_on(pending.prepare()).unwrap();
@@ -257,6 +318,7 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
             Default::default(),
         )
         .unwrap();
+    let dropped_work = library_a.take_admission_work();
     let dropped = runtime
         .stage_assets(
             &gpu.device,
@@ -264,7 +326,7 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
             &presentation,
             dropped_catalog,
             &library_a,
-            library_a.admission_work(),
+            dropped_work,
         )
         .unwrap();
     drop(dropped);
@@ -282,6 +344,7 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
             Default::default(),
         )
         .unwrap();
+    let stale_work = library_a.take_admission_work();
     let stale = runtime
         .stage_assets(
             &gpu.device,
@@ -289,7 +352,7 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
             &presentation,
             stale_catalog,
             &library_a,
-            library_a.admission_work(),
+            stale_work,
         )
         .unwrap();
     let stale = pollster::block_on(stale.prepare()).unwrap();
@@ -304,7 +367,8 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
             Default::default(),
         )
         .unwrap();
-    let library_c = Library::from_bundle("synthetic-c", &bytes_b, &[]).unwrap();
+    let mut library_c = Library::from_bundle("synthetic-c", &bytes_b, &[]).unwrap();
+    let library_c_work = library_c.take_admission_work();
     let renewed = runtime
         .stage_assets(
             &gpu.device,
@@ -312,7 +376,7 @@ fn real_generation_swap_keeps_live_work_for_dropped_stale_and_failed_candidates(
             &presentation,
             renewed_catalog,
             &library_c,
-            library_c.admission_work(),
+            library_c_work,
         )
         .unwrap();
     let renewed = pollster::block_on(renewed.prepare()).unwrap();

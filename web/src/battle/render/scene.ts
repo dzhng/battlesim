@@ -197,7 +197,13 @@ export class BrowserScene {
         const bundle = asset.bundle;
         transportWork.bundlesEncoded++;
         transportWork.bundleBytesSent += bundle.byteLength;
-        renderer.load_bundle(asset.name, bundle, asset.textureIds, asset.textureBytes);
+        renderer.load_bundle(
+          asset.name,
+          JSON.stringify(asset.contentId),
+          bundle,
+          asset.textureIds,
+          asset.textureBytes,
+        );
       }
       renderer.load_effect_atlas(await loadEffectAtlasLayers());
       presentation.installGeometry(renderer, options.world);

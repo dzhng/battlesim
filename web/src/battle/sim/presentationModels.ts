@@ -101,7 +101,14 @@ export function prepareAppearances(
       const bundle = asset.bundle;
       work.bundlesEncoded++;
       work.bundleBytesSent += bundle.byteLength;
-      draft.add_bundle(asset.name, bundle, asset.textureIds, asset.textureBytes, asset.skeleton);
+      draft.add_bundle(
+        asset.name,
+        JSON.stringify(asset.contentId),
+        bundle,
+        asset.textureIds,
+        asset.textureBytes,
+        asset.skeleton,
+      );
     }
   } catch (error) {
     draft.free();
