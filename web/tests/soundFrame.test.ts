@@ -1,51 +1,43 @@
 import { testWeaponLooks } from "./support/weaponLooks";
-import { shippedRules } from "@web/shippedRules";
 // @vitest-environment node
 // The battle's sound at its seam: publications, drawn motion and
 // a presentation clock in, voices on a sink out. Only what the side's
 // observation contains makes a positional sound, an unseen enemy is heard
 // only as its hearing cue's direction; the voice budget holds at battle
 // scale; a standing clock silences transients and holds loops; reset and a
-// new battle clear everything; the side's own sounds stay heard at the
-// farthest zoom, coloured far.
+// new battle clear everything. How far the camera hears a sound is
+// soundFocus.test.ts's.
 import { presentationSettings } from "@web/presentationSettings";
 import { audioMix } from "@web/audioMix";
 import { beforeAll, expect, test } from "vitest";
 import { loadPresentation } from "@web/battle/sim/presentation";
-import type { AudioMix } from "@packages/battle-audio/src/audioMix";
-import { cameraListener } from "@packages/battle-audio/src/battleAudio";
 import { gameSounds } from "@packages/battle-audio/src/shippedSounds";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 import {
   SoundFrame,
   battleSounds,
-  type HeardPublication,
-  type Listener,
   type SoundCue,
-  type SoundMotion,
   type VoiceSpec,
 } from "@packages/battle-audio/src/soundFrame";
 import { FakeSink, testRecipe } from "./support/soundSink";
 import { standInPresentationRecordings } from "./support/soundStandIns";
-import { SOUNDS } from "@packages/battle-audio/src/synthSounds.gen";
-
-const HZ = 30;
-const DT = 1 / HZ;
-const AUDIO: AudioMix = {
-  ...audioMix,
-  effects: {},
-  weapon_defaults: {
-    blast: { near: "explosion", far: "explosion_far" },
-    motor: "motor",
-    impacts: {
-      ...audioMix.weapon_defaults.impacts,
-      ricochet: "ricochet",
-    },
-  },
-};
-const documents = testWeaponLooks();
-const shot = (kind: keyof typeof shippedRules.weapons) =>
-  documents.looks.weapon_looks[shippedRules.weapons[kind].appearance].sound;
+import {
+  AUDIO,
+  BASELINES,
+  DT,
+  HZ,
+  LISTENER,
+  STILL,
+  documents,
+  firefight,
+  heard,
+  launch,
+  near,
+  run,
+  setup,
+  shot,
+  type Effects,
+} from "./support/soundScene";
 
 const SMOKE = presentationSettings.effects.smoke;
 const COOK_OFF = presentationSettings.effects.cook_off;
@@ -54,46 +46,6 @@ const COOK_OFF = presentationSettings.effects.cook_off;
 const TURRET_LANDS_S = COOK_OFF.delay_s + Math.sqrt((8 * COOK_OFF.rise_m) / 9.81);
 
 beforeAll(() => loadPresentation());
-
-/** A publication as the presentation hears it: what the effects read, and
- *  the launches it shows (the presentation derives them; here, given). */
-type Effects = HeardPublication["effects"] & { launches?: HeardPublication["launches"] };
-const heard = ({ launches = [], ...effects }: Effects): HeardPublication => ({
-  effects,
-  launches,
-});
-const LISTENER: Listener = { position: [0, -20, 20], forward: [0, 1, 0] };
-const STILL: SoundMotion = { vehicles: [], soldiers: [] };
-
-/** Every synthesized baseline as a recipe, as the shipped catalog holds them: a
- *  battle prepares, and so can play, only what Rust's list names. */
-const BASELINES: SoundCatalog["sounds"] = Object.fromEntries(
-  Object.entries(SOUNDS).map(([name, { loop }]) => [
-    name,
-    { label: name, clips: [], synth: name, synth_gain: 1, gain: 1, loop },
-  ]),
-);
-
-function setup(presentation: AudioMix = AUDIO) {
-  const sink = new FakeSink();
-  const catalog: SoundCatalog = {
-    sources: {},
-    clips: {},
-    sounds: { ...BASELINES },
-    music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
-  };
-  standInPresentationRecordings(catalog, presentation);
-  const frame = new SoundFrame(
-    {
-      tickHz: HZ,
-      ...documents,
-      presentation,
-      catalog,
-    },
-    sink,
-  );
-  return { sink, frame };
-}
 
 test("a battle prepares the baselines, what is assigned and what its presentation names, not the audition-only library", () => {
   const recipe = { label: "r", clips: [], synth: "rifle", synth_gain: 0.5, gain: 1, loop: false };
@@ -131,63 +83,6 @@ test("a battle prepares the baselines, what is assigned and what its presentatio
   expect(prepared).not.toContain("unused");
   expect(new Set(prepared).size).toBe(prepared.length);
 });
-
-const launch = (
-  shooter: number,
-  soldier: number | null,
-  at: number[],
-  kind: string,
-  mount = 0,
-) => ({
-  shooter,
-  mount,
-  soldier,
-  x: at[0],
-  y: at[1],
-  z: at[2],
-  kind,
-});
-
-/** A publication where each shooter's one soldier fires a new round at
- *  tick `tick`: a squad's round is heard from the third tick it is seen,
- *  as the launches name it (its counter rises the tick after it is first
- *  seen, and the round leaves the tick after that). */
-function firefight(tick: number, shooters: { key: number; at: number[] }[]): Effects {
-  return {
-    tick,
-    launches: tick >= 3 ? shooters.map((s) => launch(s.key, s.key * 10, s.at, "rifle")) : [],
-    segments: shooters.map((s) => ({
-      path: [s.at, [s.at[0] + 10, s.at[1], s.at[2]]],
-      ricochets: [],
-      kind: "rifle",
-      shooter: s.key * 10,
-      hit: "ground",
-      normal: [0, 0, 1],
-    })),
-    blasts: [],
-    smokes: [],
-  };
-}
-
-/** Run ticks `from..to`, each noted and heard at its own presentation time. */
-function run(
-  frame: SoundFrame,
-  sink: FakeSink,
-  from: number,
-  to: number,
-  pub: (tick: number) => Effects,
-  audible: (tick: number) => SoundCue[] = () => [],
-  motion: SoundMotion = STILL,
-) {
-  for (let tick = from; tick <= to; tick++) {
-    frame.note({ ...heard(pub(tick)), audible: audible(tick) });
-    sink.time = tick * DT;
-    frame.update(tick * DT, tick * DT, motion, LISTENER);
-  }
-}
-
-const near = (spec: VoiceSpec, at: number[], within: number) =>
-  spec.position !== null && Math.hypot(spec.position[0] - at[0], spec.position[1] - at[1]) < within;
 
 test("an unseen enemy's shot makes no positional sound, only its cue", () => {
   const blue = { key: 2, at: [0, 0, 1] };
@@ -369,53 +264,6 @@ test("a known wreck burns, then smoulders quieter, then falls silent", () => {
   expect(burning).toBeGreaterThan(smouldering);
   expect(smouldering).toBeGreaterThan(0);
   expect(out).toBe(0);
-});
-
-/** The camera at its farthest zoom, looking at `target` (the fixture's rig). */
-function farthestCamera(target: number[]) {
-  const cam = presentationSettings.camera;
-  const pitch = cam.pitch_curve[cam.pitch_curve.length - 1][1];
-  return { target: [target[0], target[1], 0], distance: cam.zoom_max, pitch, yaw: -1.57 };
-}
-
-/** One blue rifleman's shots at `at`, heard from `listener`: the positional
- *  transients started. */
-function heardFrom(listener: Listener, at: number[]) {
-  const { sink, frame } = setup();
-  for (let tick = 1; tick <= 10; tick++) {
-    frame.note({ ...heard(firefight(tick, [{ key: 2, at }])), audible: [] });
-    sink.time = tick * DT;
-    frame.update(tick * DT, tick * DT, STILL, listener);
-  }
-  return sink.started.filter((v) => v.position !== null && !v.loop);
-}
-
-test("the side's own shot at the farthest zoom sounds at the floor at least, and far away", () => {
-  const at = [200, 300, 1];
-  const report = shot("rifle").shot;
-  const listener = cameraListener(
-    farthestCamera(at) as unknown as Parameters<typeof cameraListener>[0],
-    AUDIO.listener_eye_share,
-  );
-  const far = heardFrom(listener, at).filter((v) => v.sound === report.far);
-  const close = heardFrom({ position: [at[0], at[1] - 5, 6], forward: [0, 1, 0] }, at).filter(
-    (v) => v.sound === report.near,
-  );
-  expect(far.length).toBeGreaterThan(0);
-  expect(close.length).toBeGreaterThan(0);
-  for (const v of far) {
-    // Never quieter than the floor's share of the shot's gain.
-    expect(v.gain).toBeGreaterThanOrEqual(AUDIO.distance.floor * report.gain - 1e-9);
-    // Coloured far: low-passed well below the near air, a reverb tail, a softened onset.
-    expect(v.lowpass).toBeLessThan(AUDIO.air.near_hz / 4);
-    expect(v.wet).toBeGreaterThan(0);
-    expect(v.attack).toBeGreaterThan(0);
-  }
-  for (const v of close) {
-    expect(v.gain).toBeCloseTo(report.gain, 6);
-    expect(v.wet).toBeLessThan(far[0].wet / 10);
-    expect(v.lowpass).toBeGreaterThan(far[0].lowpass * 4);
-  }
 });
 
 test("a shot loud at the listener dips the ambience, which recovers once dipped; a quiet one never does", () => {

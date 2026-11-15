@@ -267,7 +267,7 @@ type LaunchKey = ([u64; 19], Option<PropId>, bool, usize, u64);
 /// on the world's static bodies, which change only with its obstacle
 /// revision. One flight configuration serves one battle's world.
 #[derive(Clone, Debug, Default)]
-pub struct Solved {
+pub(crate) struct Solved {
     intercepts: Kept<InterceptKey, Vec<FiringSolution>>,
     launches: Kept<LaunchKey, Result<FiringSolution, NoSolution>>,
 }
@@ -536,6 +536,12 @@ fn first_obstruction(
         }
     }
     None
+}
+
+/// The farthest a round fired with `scatter_mrad` strays from its aim at
+/// `range_m`: the truncation of [`scatter_aim`]'s spread.
+pub fn scatter_reach_m(scatter_mrad: f64, range_m: f64) -> f64 {
+    range_m * libm::tan(SCATTER_LIMIT_SIGMA * scatter_mrad * 1e-3)
 }
 
 /// The aim point displaced by launch spread: independent truncated Gaussian

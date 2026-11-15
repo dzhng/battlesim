@@ -61,6 +61,7 @@ fn first_high_air_entry_raises_one_alarm_until_the_episode_ends() {
     let listener = Listener {
         position: [0.0, 0.0, 0.0],
         forward: [0.0, 1.0, 0.0],
+        look: [0.0; 3],
     };
     let empty = Motion::default();
     s.update(0.0, 0.0, 0.0, &empty, listener);
@@ -292,6 +293,7 @@ fn shot(tick: f64, shooter: f64, at: [f64; 3], kind: &str) -> (EffectPublication
 const HERE: Listener = Listener {
     position: [0.0, 0.0, 0.0],
     forward: [0.0, 1.0, 0.0],
+    look: [0.0; 3],
 };
 
 fn starts(commands: &[Command]) -> Vec<&Voice> {
@@ -698,8 +700,9 @@ fn a_bark_is_spoken_where_it_was_shouted_and_an_answer_stays_dry() {
     for v in [&dry, &near, &far] {
         assert_eq!(v.bus, Bus::Voices);
     }
-    // Farther is quieter, duller and wetter, by the unit sounds' own curves.
-    assert!(level > near.gain && near.gain > far.gain);
+    // Farther is quieter, duller and wetter, by the unit sounds' own curves
+    // (a bark within their full-level reach is as loud as the radio).
+    assert!(level >= near.gain && near.gain > far.gain);
     let floor = s.tables().audio.distance.floor;
     assert!(far.gain >= level * floor);
     assert!(near.lowpass > far.lowpass && near.wet < far.wet);

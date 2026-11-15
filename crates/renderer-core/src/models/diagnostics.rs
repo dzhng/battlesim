@@ -35,7 +35,7 @@ impl Models {
             "draws": draws,
             "tiers": tiers,
             "bodyTiers": bodies,
-            "skinned": bodies.iter().sum::<u64>(),
+            "soldierMeshes": bodies.iter().sum::<u64>(),
             "cards": self.drawn.impostors,
             "corpses": self.drawn.corpses,
             "atlasLayers": self.cards.as_ref().map_or(0, |cards| cards.layers()),

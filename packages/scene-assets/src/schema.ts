@@ -239,7 +239,7 @@ export const INFANTRY_DEATHS = {
 /** Standing, the fall back onto his back of a man hit from the front. */
 export const INFANTRY_FALL_BACK = "death_back";
 /** The ways a dead soldier lies, each the end of a fall: face down, face up.
- *  A skinned bundle bakes one corpse for each (`corpse_poses`). */
+ *  A skinned bundle names the pose of each (`corpse_poses`). */
 export const INFANTRY_CORPSES = ["death", INFANTRY_FALL_BACK] as const;
 /** The corpse (an `INFANTRY_CORPSES` index) each fall ends in. */
 export const INFANTRY_FALLS: Readonly<Record<string, number>> = {

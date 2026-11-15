@@ -46,17 +46,13 @@ pub(super) fn rows(
             let mut geometry = GeometryKey {
                 content: content.clone(),
                 state: String::new(),
-                pose: None,
                 tracks: Vec::new(),
             };
             match &bundle.shape {
                 Shape::Skinned(_) => {
-                    let palette = palette
+                    palette
                         .as_ref()
                         .ok_or_else(|| format!("{name}: no rest pose for row {row}"))?;
-                    if a.lies != NONE {
-                        geometry.pose = Some(bytemuck::cast_slice(palette).to_vec());
-                    }
                 }
                 Shape::Articulated(nodes) => {
                     geometry.tracks = (0..nodes.len())
@@ -82,14 +78,10 @@ pub(super) fn rows(
             }
             let card = match &bundle.shape {
                 Shape::Skinned(tiers) if !tiers.is_empty() => {
-                    let baked_palette = if a.lies == NONE {
-                        palette.clone().expect("skinned palette")
-                    } else {
-                        RestPose::identity()
-                    };
+                    let baked_palette = palette.as_ref().expect("skinned palette");
                     Some(CardKey::new(
                         &geometry,
-                        &baked_palette,
+                        baked_palette,
                         &crate::impostor::Spec::runtime(),
                         texture_shapes,
                     ))

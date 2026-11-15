@@ -2100,75 +2100,13 @@ Where the operator fires it from is the operator-muzzle entry.
 
 **Verdict.** sound — medium: a delay is more realistic and some players expect it.
 
-### The listener stands between the camera's target and its eye
+### The listener stands at the camera's eye, and the camera is a directional mic
 
-***sound** · confidence **medium** · Effects and sound · from Slice 40*
+***sound** · confidence **medium** · Effects and sound · from the user, 2026-11-16*
 
-**The choice.** `presentation.audio.listener_eye_share` places the ear between the look-at point and the camera, facing where the camera looks, level. At the eye, a strategic zoom would hear nothing; at the target, a low camera's own position would not matter. Level falls off as `ref_m` over distance (`rolloff`), silent past a cut-off distance, and a sound too quiet to hear is not started. Browser panners pan by direction only, so what the code ranks and what is heard agree. The air low-pass closes from near full bandwidth at the listener to a muffled band at long range.
+**The choice.** The ear is at the camera's eye, facing where it looks, level, so a battle far off sounds far off. What the camera looks at is heard nearer than it is: within `presentation.audio.focus.inner_deg` of the view a sound is heard at `focus.share` of its distance, easing back to its whole distance by `focus.outer_deg`. Both its level and its air colour read that nearer distance, so the battle on screen sounds close and clear at RTS height, a battle seen on the horizon sounds distant and muffled, and a sound off screen or behind is heard at its own distance. Level falls off past `ref_m` (`rolloff`), down to `floor`, silent past `max_m`, and a sound too quiet to hear is not started. Browser panners pan by direction only, so what the code ranks and what is heard agree.
 
-**The gap.** Listener placement in an RTS camera is unspecified.
-
-**The reach.** All mix balance depends on it.
-
-**Verdict.** sound — tuning, medium.
-
-### A capped number of voices, a share of them loops; louder new sounds steal the quietest
-
-***sound** · confidence **medium** · Effects and sound · from Slice 40*
-
-**The choice.** `presentation.audio.budget` caps the voices, with a share for loops (engines, running gear, turrets, reverse, fires, motors); ambience is outside the budget. Priority is loudness at the listener: a louder new transient takes the quietest's place with a short fade, a quieter one is dropped; loops are re-chosen every frame, loudest first.
-
-**The gap.** No voice budget in the spec.
-
-**The reach.** Bounds audio cost in big firefights.
-
-**Verdict.** sound — the cap is a guess the live check showed ample.
-
-### Shots are inferred once, from shot-counter rises paired with the next publication's new rounds, and flashes and gunfire share that detector
-
-***sound** · confidence **medium** · Effects and sound · from Slice 25; Slice 40; Slice 27 (muzzle flash)*
-
-**The choice.** A rifleman fires one shot. The simulation raises his squad's shot counter on tick N, but the round first appears in flight on tick N+1, and the publication has no round id linking a shot to its round. `LaunchTracker` (`packages/battle-renderer/src/effects/launches.ts`) is the one place that decides "a gun fired". A mount's shot counter rising means it fired. A hull's mount fires from its own muzzle (its catalog `mounts` row) along its bearing and elevation. A squad's rise of n waits for the next publication and is assigned to up to n soldiers who start a new round of that mount's kind there; a round is "new" when its first point is not where one of last tick's still-flying stretches ended. So a garrisoned squad flashes at its firing slot, and lone shots flash too. A unit first seen, or seen again after leaving view, shows no shot until its counter rises once more. The effects frame and the sound frame each run one tracker over the same publications, so a muzzle flash and its report always agree. The flash is then drawn on the model's drawn muzzle (see the drawn-muzzle entry). The alternatives were looking for the round in the same publication as the rise, which missed every lone shot (sustained fire hid it by pairing each rise with the previous tick's rounds), or sound re-deriving launches its own way, which risks a flash without a bang.
-
-**The gap.** The feed has no round id; the renderer has to infer the pairing, and the spec did not say how. Sound needed launches that effects already found inline.
-
-**The reach.** A flash and its sound are at most one tick late. Any future effect keyed on squad launches inherits this pairing. A clipped enemy round re-entering seen ground on the tick its shooter fires again could flash at the wrong place; not seen in play.
-
-**Verdict.** sound — the best inference without adding a round id to the publication, matching when the simulation actually flies a round; medium because it is inference.
-
-### The battle view draws fire only as effects; labs keep the diagnostic flight overlay
-
-***sound** · confidence **medium** · Effects and sound · from Slice 25*
-
-**The choice.** In the battle view, tracers and hit marks are drawn only by the effect pass; the flat tracer lines and remembered strike marks of `buildBattleOverlay` are not drawn in play. Labs (weapons, readouts, ambush, garrison, ground, consequences, ballistics) keep them as diagnostics beside the effects. `/lab/ballistics` also feeds effects from its own flight events, shaped as a publication would carry them. The alternative was drawing both in play.
-
-**The gap.** Whether the diagnostic flight overlay stays in play once effects exist.
-
-**The reach.** One owner of drawn fire in play; labs remain free to show debug lines.
-
-**Verdict.** sound — a clean cutover with diagnostics kept where they help.
-
-### Contacts are drawn as a world-hatched area with a red glow; a last sighting is a pale ghost
-
-***sound** · confidence **medium** · In-world UI and HUD · from Slice 15*
-
-**The choice.** Blue hears a firing report or loses sight of an enemy. The observation gives an approximate area (centre, radius, freshness, source), never the exact unit. Today `buildContactGlyphs` (`contactGlyph.ts`) draws a `ContactGlyph`: every contact has a red glow and a diagonal hatch; a last sighting is a pale ghost (hatch plus outline, glow hugging the rim); a firing report keeps an even red fill hatched in red. Glyphs fade with `contactFreshness` and vanish at expiry. The hatch is anchored to the world (no direction of its own, so it never hints at a heading). Numbers are in `presentation.contacts`. `battleOverlay.contactLayer` is the only caller.
-
-**The gap.** The contract gave "a hatch plus the red glow" but not how firing and last-seen differ.
-
-**The reach.** The contact glyph is the only visual for approximate enemy information; any new contact source needs a look here.
-
-**Verdict.** sound — source is visible, precision is not.
-
-### A moving vehicle shows two painted chevrons behind it that pulse in the direction of travel
-
-***sound** · confidence **medium** · In-world UI and HUD · from Slice 27e; Slice 27e (follow-ups)*
-
-**The choice.** A tank reverses. Two small chevrons appear behind its marker circle (starting just outside it), pointing against its facing; on a forward move they point along it. A pulse runs through them in the travel direction (`orders.march` sets its rate and dimming). The pulse phase is stored in the vertex (the painted-marching mesh, `WorldMeshes.paintedMarching`) and driven by the frame's presentation clock, never wall time, so a paused or captured frame is still. They show only under the moving vehicle, when it is selected or Space is held, never at the destination. Squads get none: they never reverse, and their route already shows direction. Chevrons are always ground paint, whatever the scheme.
-
-**The gap.** The user asked for travel chevrons that march; placement, clock and which units get them were delegated.
-
-**The reach.** The presentation clock rule keeps every animated mark deterministic in tests.
+**The gap.** Most players never zoom in: the best sound must not wait for a zoom, nor make a battle on the horizon sound beside the camera.
 
 **Verdict.** sound.
 

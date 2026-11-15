@@ -73,6 +73,7 @@ fn sound_uses_the_presentation_smoke_clock_without_a_second_timing_document() {
     let listener = Listener {
         position: [0.0, 0.0, 0.0],
         forward: [0.0, 1.0, 0.0],
+        look: [0.0; 3],
     };
     let commands = sound.update(0.5, 0.5, 0.5, &Motion::default(), listener);
     let fire = commands

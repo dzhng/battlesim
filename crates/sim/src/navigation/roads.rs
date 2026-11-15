@@ -16,8 +16,8 @@ use super::NAV_CELL_M;
 /// point and the roads that meet.
 const BUCKET_M: f64 = 64.0;
 /// A stroke's sampled bends are thinned to chords that stay this close to
-/// its centreline.
-const CHORD_M: f64 = 0.25;
+/// its centreline; a lane keeps a long bend's shape to the same tolerance.
+pub(super) const CHORD_M: f64 = 0.25;
 /// Two points of the graph closer than this are one node.
 const SAME_M: f64 = 0.5;
 
@@ -113,6 +113,8 @@ impl RoadNet {
         );
         // Where two roads' surfaces meet, both are cut and joined.
         let mut links: Vec<Arc> = Vec::new();
+        // Nodes found to be one place: each merged node's root, the lowest.
+        let mut same: Vec<u32> = Vec::new();
         for (i, j) in meeting(&pieces, nx, ny) {
             let (a, b) = (&pieces[i], &pieces[j]);
             let (s, t) = closest(a.ends, b.ends);
@@ -125,7 +127,19 @@ impl RoadNet {
             let at = cut(&mut pieces[i], s, &mut nodes, None);
             let shared = (gap <= SAME_M).then_some(at);
             let to = cut(&mut pieces[j], t, &mut nodes, shared);
-            if at != to {
+            if at == to {
+                continue;
+            }
+            if gap <= SAME_M {
+                // Both roads already had a node here (a side road that
+                // starts a hair off the road it leaves): one node, not a
+                // stub of road between two.
+                same.resize(nodes.len(), u32::MAX);
+                let (a, b) = (root(&same, at), root(&same, to));
+                if a != b {
+                    same[a.max(b) as usize] = a.min(b);
+                }
+            } else {
                 links.push(Arc {
                     ends: [at, to],
                     length: gap,
@@ -136,7 +150,11 @@ impl RoadNet {
             }
         }
         let mut arcs = links;
+        same.resize(nodes.len(), u32::MAX);
         for piece in &mut pieces {
+            for cut in &mut piece.cuts {
+                cut.1 = root(&same, cut.1);
+            }
             piece
                 .cuts
                 .sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
@@ -152,6 +170,9 @@ impl RoadNet {
                     });
                 }
             }
+        }
+        for arc in &mut arcs {
+            arc.ends = arc.ends.map(|n| root(&same, n));
         }
         arcs.retain_mut(|arc| {
             match carried(
@@ -379,6 +400,14 @@ fn cut(piece: &mut Piece, share: f64, nodes: &mut Vec<V2>, shared: Option<u32>) 
     });
     piece.cuts.push((share, node));
     node
+}
+
+/// The node `n` is one with: itself, or the lowest it was merged into.
+fn root(same: &[u32], mut n: u32) -> u32 {
+    while let Some(&up) = same.get(n as usize).filter(|&&up| up != u32::MAX) {
+        n = up;
+    }
+    n
 }
 
 /// Whether the terrain carries a mover all the way from `a` to `b`.

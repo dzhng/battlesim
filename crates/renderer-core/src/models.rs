@@ -3,10 +3,10 @@
 //!
 //! At load, `World.appearances` rows share their authored mesh tiers on the GPU,
 //! packed into the shared vertex format (`geometry::pack_vertices`) with each
-//! mesh's indices ordered by surface class: a posed body and an
-//! articulated hull skin by the frame's palettes; a corpse is its body posed
-//! once as it lies (`geometry::posed_mesh`, by presentation's palette for the
-//! row); a static state is rigid. Each frame the palettes and the units'
+//! mesh's indices ordered by surface class: living bodies, corpses and
+//! articulated hulls skin by the frame's palettes. A corpse row shares its
+//! living mesh and holds its final fall palette; CPU posing derives bounds
+//! only. A static state is rigid. Each frame the palettes and the units'
 //! instances are written whole; the static world's batches are held between
 //! frames (`statics.rs`). Each batch is one run of instances over one row's
 //! tier.
