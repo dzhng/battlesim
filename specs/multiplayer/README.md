@@ -34,12 +34,10 @@ command opposite sides of one battle on a local server
    report in `throwaway/multiplayer/` there. Both change what a Red
    commander sees: look at the pictures, get an unprimed critique, and show
    the user.
-2. **Integrate slice 09's local half** (identity, the build check, the
-   address file, and a deploy step whose default is a dry run), handed to
-   Codex on 2026-11-15 in its own checkout. The push itself, and the
-   measurement through the public route (O6), wait for the user's go-ahead:
-   deploying is outward-facing. Ask before promoting a site build, before
-   deploying, and before making the address public.
+2. **Slice 09's push** waits for the user: ask before promoting a site
+   build, before deploying, and before making the address public. Its local
+   half is in, with a deploy step that is a dry run by default
+   ([what is left](slices/09-identity-build-deploy.md)).
 3. **Run slice 01's host half** (O1) on the probe app. `bun run server:soak`
    is the workload: bundle it, run it on the host, and read its summary
    line.
@@ -100,7 +98,7 @@ Foundation
 - [x] [06 Battle host](slices/06-battle-host.md)
 - [x] [07 HTTP transport](slices/07-http-transport.md)
 - [x] [08 Command any seat](slices/08-command-any-seat.md) (first playable checkpoint)
-- [ ] [09 Identity, build check, deploy](slices/09-identity-build-deploy.md)
+- [ ] [09 Identity, build check, deploy](slices/09-identity-build-deploy.md) (the local half is in; the push and the public-route measurement wait for the user)
 - [x] [10 Playout](slices/10-playout.md) (the delay and bound are untuned: nobody has watched it under a jittery network)
 - [ ] [11 Yours is blue](slices/11-yours-is-blue.md)
 - [ ] [12 Your side at the bottom](slices/12-your-side-at-the-bottom.md)

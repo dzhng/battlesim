@@ -23,7 +23,11 @@ test("one dev battle seats Blue then Red, refuses a third, and returns each brow
 test("HTTP dev entry is opt-in, checks the credential and returns tickets without credentials", async () => {
   for (const enabled of [false, true]) {
     const battle = devBattle(async () => ({ mapIdentity: "generated-map" }));
-    const server = createBattleHttp(() => undefined, enabled ? battle.join : undefined);
+    const server = createBattleHttp(
+      () => undefined,
+      { commit: "test", sim: "test" },
+      enabled ? battle.join : undefined,
+    );
     await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("no TCP address");

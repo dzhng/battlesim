@@ -8,21 +8,7 @@ const evidence = new URL("../../throwaway/multiplayer/slice08/", import.meta.url
 const observation = (page) => page.evaluate(() => window.__lab.route.observation());
 
 async function server() {
-  execFileSync(
-    "bun",
-    [
-      "build",
-      "--target=node",
-      "--format=esm",
-      "--entry-naming",
-      "[name].mjs",
-      "--outdir",
-      "throwaway/game-server",
-      "apps/game-server/src/main.ts",
-      "apps/game-server/src/battleHost/worker.ts",
-    ],
-    { cwd: root },
-  );
+  execFileSync("bun", ["apps/game-server/build.mjs"], { cwd: root });
   const child = spawn("node", ["throwaway/game-server/main.mjs", "--dev"], {
     cwd: root,
     env: { ...process.env, PORT: "0" },

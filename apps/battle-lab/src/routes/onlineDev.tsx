@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import type { BattleTicket } from "@packages/multiplayer/src/wire";
-import { browserId, devServerAddress, type OnlineBattleEntry } from "../onlineSession";
+import type { OnlineBattleEntry } from "../onlineSession";
+import { browserId } from "../online/identity";
+import { serverAddress } from "../online/server";
+import { hello } from "../online/hello";
 import { LoadingScreen } from "../LoadingScreen";
 import { usePageVisitActive } from "../navigation";
 
@@ -12,12 +15,20 @@ export default function OnlineDev() {
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     const lifetime = new AbortController();
-    const address = devServerAddress(window.location.search);
-    void fetch(`${address}/dev/battle`, {
-      method: "POST",
-      headers: { "X-Player": browserId() },
-      signal: lifetime.signal,
-    })
+    const address = serverAddress(window.location);
+    if (!address) {
+      setError("Online play is not available.");
+      return () => lifetime.abort();
+    }
+    void hello(address, lifetime.signal)
+      .then(() => {
+        if (lifetime.signal.aborted || !active()) throw new Error("Visit ended.");
+        return fetch(`${address}/dev/battle`, {
+          method: "POST",
+          headers: { "X-Player": browserId() },
+          signal: lifetime.signal,
+        });
+      })
       .then(async (response) => {
         const result: BattleTicket | { refused: string } = await response.json();
         if ("refused" in result) throw new Error(`Dev battle refused: ${result.refused}`);
@@ -43,8 +54,8 @@ export default function OnlineDev() {
       failure={
         error
           ? {
-              message: "The dev battle could not be joined.",
-              details: [error],
+              message: error,
+              details: [],
             }
           : null
       }

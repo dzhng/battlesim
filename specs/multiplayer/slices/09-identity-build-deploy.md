@@ -62,6 +62,62 @@ The build stamp the menu already shows.
 How the build emits `build.json`; callsign length and characters; the random
 callsign's word list.
 
+## As built: the local half (2026-11-15)
+
+Everything except the push and the measurement through the public route.
+
+- **Identity** (`apps/battle-lab/src/online/identity.ts`): the browser id is
+  16 random bytes in hex and the callsign starts as a random one (one of
+  eight words and two digits, such as `VIPER-41`). Both are kept in
+  `localStorage`. If storage is missing, full or holds garbage, the page
+  still has a usable id and callsign for that visit. This replaces the
+  tab-scoped id of slice 08.
+- **Callsign rule** (`packages/multiplayer/src/callsign.ts`), one owner for
+  page and server: at most 24 characters from letters, digits, space,
+  underscore and hyphen. A name is cleaned to fit, not refused; `#` belongs
+  to the server's clash suffix.
+- **`POST /hello`**: a page whose commit or simulation hash differs from the
+  server's is refused `build`. A welcomed page gets its callsign back, with
+  `#2`, `#3` and so on if another browser holds it. The same browser asking
+  again keeps its own.
+- **The server's own build identity** is a `build.json` written beside its
+  bundle when the bundle is made, with the game data and the simulation file
+  it was built from. The server reads those, never a live checkout.
+- **The site build** publishes `build.json` and, under `sim/`, the
+  simulation's files byte for byte (the glue's panic-reporting snippet
+  included, which the server's bundle needs).
+- **The address** (`apps/battle-lab/src/online/server.json`) is empty until
+  a server is deployed. A page on localhost uses the local server; a
+  development build takes `?server=`. A page with no address makes no
+  request and says online play is not available.
+- **`bun run deploy:server --site <url>`** is a dry run unless `--push` is
+  given. It fetches `build.json` and the simulation from the site, refuses
+  if the commit is not the checkout's or the simulation's hash is not the
+  one `build.json` names, builds the server from that commit's source and
+  data, and lists every file it would push. `deploy/bento.mjs` is the only
+  file that names the host.
+
+Not done, and why:
+
+- **The push has never been run.** `deploy/bento.mjs` was written from the
+  host CLI's help text alone. Expect to correct it on the first real deploy.
+- **The header the host's proxy uses for a client's address** (P25) is not
+  filled in: it can only be learnt from the host.
+- **O6** (round-trip times through the public route) needs the deployed
+  server.
+- **The deploy command starts the server with its dev flag,** because the
+  dev battle is the only way into a battle until rooms exist. A deployed
+  server therefore offers the dev battle to anyone who has the address.
+  Decide at deploy time whether that is acceptable for the measurement, and
+  drop the flag in slice 18.
+- **Callsigns are remembered for the server's lifetime** and never
+  released, so a name stays taken after its browser has gone. Slice 15,
+  which knows who is present, owns releasing them.
+- The page a refused browser sees is the shared failure panel, headed
+  "Aborted", with the sentence "Online play is not available on this
+  build." and a way back to the menu. It is honest and plain; slice 16's
+  multiplayer screen is where it gets its proper place.
+
 ## Results
 
 Not run yet.

@@ -29,7 +29,8 @@
     "check": "bun run fmt:check && bun run lint && bun run build:wasm && bun run build:mechanics && bun run build:map-workbench && bun run typecheck && bun run test:rust && bun run --cwd web test",
     "generate": "bun packages/battle-audio/tools/generate/cli.ts",
     "server:soak": "bun build --target=node --format=esm --entry-naming '[name].mjs' --outdir throwaway/game-server apps/game-server/src/soak.ts apps/game-server/src/battleHost/worker.ts && node throwaway/game-server/soak.mjs",
-    "server": "bun build --target=node --format=esm --entry-naming '[name].mjs' --outdir throwaway/game-server apps/game-server/src/main.ts apps/game-server/src/battleHost/worker.ts && node throwaway/game-server/main.mjs"
+    "server": "bun apps/game-server/build.mjs && node throwaway/game-server/main.mjs",
+    "deploy:server": "bun apps/game-server/deploy/index.mjs"
   },
   "devDependencies": {
     "linguist-languages": "9.5.0",
