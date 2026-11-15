@@ -11,7 +11,6 @@ import {
   MIN_TARGET_PX,
 } from "@packages/battle-renderer/src/records.gen";
 import type { CatalogView } from "@packages/scene-assets/src/units";
-import { gameHud } from "@web/battle/present/hudTheme";
 import { fieldUnits, FieldingOwner, type RuntimeFiles } from "@web/battle/sim/fielding";
 import type {
   PresentedBattle,
@@ -27,6 +26,7 @@ import type { SideName } from "@web/battle/sim/protocol";
 import {
   BATTLE_STAND_IN_APPEARANCE,
   BATTLE_STAND_IN_HALF_EXTENTS,
+  BATTLE_STAND_IN_TINT,
 } from "@web/battle/render/proxyModels";
 
 /** What a frame poses, by kind: living and dying soldiers, ground
@@ -138,7 +138,7 @@ export async function fieldedBattle(
         stand_in: {
           appearance: BATTLE_STAND_IN_APPEARANCE,
           half: BATTLE_STAND_IN_HALF_EXTENTS,
-          tint: gameHud.dim,
+          tint: BATTLE_STAND_IN_TINT,
           shadow: false,
         },
       },

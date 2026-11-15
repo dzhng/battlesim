@@ -903,7 +903,7 @@ work should lose that work, not be sliced thinner.
   and baseline/model comparisons remain in
   `throwaway/evidence/stand-in-look/`. The selected native frames, comparison
   sheet, strict pixel proof and verbatim fresh critique are retained in
-  [the look evidence](assets/stand-in/look/).
+  the look evidence (the side-coloured candidates' shots were removed when the player chose grey; they are in the history at `ffa774854`).
 - Evidence uses the same paused body and camera before and after release:
   near/far views of an open-field vehicle, a vehicle at its actual sight
   boundary, and a squad at a fog edge. The squad's open control uses the
@@ -1372,8 +1372,7 @@ side-coloured block, the player chose neutral grey. The block is now one
 colour for every side, the HUD's existing `hud.dim`; the side colours and the
 observer they needed are removed from the battle input. Still fully rough and
 casting no shadow. This supersedes the checkpoint's provisional resolution
-above. The kept shots in `assets/stand-in/look/` show the superseded red
-block; they are refreshed at closeout.
+above.
 
 **Pre-ship review, 2026-11-15.** An independent reading of the whole diff
 against staging ([findings](assets/pre-ship-review.md)) found nothing that
@@ -1438,3 +1437,12 @@ progress; the engine is not pushed until it is found and fixed.
   did no scenery placement/static upload, and installed the page library once.
   The four requested stand-in evidence shots were refreshed with the accepted
   neutral tint. No production code changed.
+
+**The stand-in's colour, second answer, 2026-11-15.** Shown `hud.dim` on
+screen (a blue-grey), the player asked for a real grey. The block is a matte
+grey with no hue, `[0.5, 0.5, 0.5]` display-encoded, defined beside the
+block's mesh (`BATTLE_STAND_IN_TINT`). This is a new colour by the player's
+choice, an exception to the plan's "an exact colour the UI already has". It
+is not metallic any more: a metallic grey has no colour of its own to show.
+The four shots in `assets/stand-in/` show it; lit by the scene it reads as
+the same kind of box as a wreck awaiting its art.

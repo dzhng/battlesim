@@ -72,9 +72,12 @@ battleStandInBundle.materials[0] = {
   ...battleStandInBundle.materials[0],
   base_color: [1, 1, 1, 1],
   tint: 1,
-  metallic: 1,
+  metallic: 0,
   roughness: 1,
 };
+/** The block's colour, display-encoded: a grey with no hue, so it reads as
+ * neither side's and as nothing the map draws. The player's choice. */
+export const BATTLE_STAND_IN_TINT = [0.5, 0.5, 0.5] as const;
 const battleStandInBounds = battleStandInBundle.bounds;
 export const BATTLE_STAND_IN_HALF_EXTENTS = [
   (battleStandInBounds.max[0] - battleStandInBounds.min[0]) / 2,
