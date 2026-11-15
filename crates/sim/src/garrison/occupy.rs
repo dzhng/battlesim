@@ -39,6 +39,18 @@ struct Candidate {
     action: EntryAction,
     held: bool,
 }
+/// Shorter route first; ties keep a stable unit, then edge, order.
+fn rank(a: &Candidate, b: &Candidate) -> std::cmp::Ordering {
+    a.distance
+        .total_cmp(&b.distance)
+        .then(a.unit.cmp(&b.unit))
+        .then(a.ordinal.cmp(&b.ordinal))
+}
+
+fn ranks_before(a: &Candidate, b: &Candidate) -> bool {
+    rank(a, b).is_lt()
+}
+
 struct RouteJob {
     candidate: Candidate,
     journey: Journey,
@@ -362,21 +374,27 @@ pub(crate) fn occupy(
             }
         }
     }
-    jobs.sort_by(|a, b| {
-        a.candidate
-            .distance
-            .total_cmp(&b.candidate.distance)
-            .then(a.candidate.unit.cmp(&b.candidate.unit))
-            .then(a.candidate.ordinal.cmp(&b.candidate.ordinal))
-    });
+    jobs.sort_by(|a, b| rank(&a.candidate, &b.candidate));
+    // Searches run one at a time, nearest straight-line bound first, each to
+    // its end. Sharing the work round-robin let dozens of entry searches
+    // round one obstacle spend it all with none finished, so a building a
+    // block away was never entered. A straight distance is a lower bound on
+    // its route: once the nearest unsearched bound cannot beat the best
+    // completed route, no search left can.
     let mut jobs = VecDeque::from(jobs);
-    while route_work > 0 && !jobs.is_empty() {
-        let share = route_work
-            .div_ceil(jobs.len() as u64)
-            .max(crate::navigation::LARGEST_STEP)
-            .min(route_work);
+    while let Some(job) = jobs.front() {
+        if candidates
+            .first()
+            .is_some_and(|best| !ranks_before(&job.candidate, best))
+        {
+            jobs.clear();
+            break;
+        }
+        if route_work == 0 {
+            break;
+        }
         let mut job = jobs.pop_front().unwrap();
-        let spent = job.journey.advance(grid, ctx.roads, share);
+        let spent = job.journey.advance(grid, ctx.roads, route_work);
         route_work = route_work.saturating_sub(spent.max(1));
         match job.journey.plan() {
             Some(Plan::Route(route)) => {
@@ -388,19 +406,18 @@ pub(crate) fn occupy(
                     .map(|w| (w[1] - w[0]).length())
                     .sum();
                 candidates.push(job.candidate);
+                candidates.sort_by(rank);
             }
             Some(Plan::Blocked(_)) => {}
-            None => jobs.push_back(job),
+            None => {
+                jobs.push_front(job);
+                break;
+            }
         }
     }
+    // Searches that could still beat the best route when the work ran out.
     let route_unproven = !jobs.is_empty();
     allowance -= route_before - route_work;
-    candidates.sort_by(|a, b| {
-        a.distance
-            .total_cmp(&b.distance)
-            .then(a.unit.cmp(&b.unit))
-            .then(a.ordinal.cmp(&b.ordinal))
-    });
     if let Some((unit, at, action, held)) = selected_holder {
         candidates.insert(
             0,
@@ -422,21 +439,10 @@ pub(crate) fn occupy(
     let fallback_work = allowance / 3;
     allowance -= fallback_work;
     let mut entry_unproven = false;
+    // When the work ran out first, the best completed route still enters:
+    // the plan says it is unproven, but a far building is entered rather
+    // than refused.
     for candidate in &candidates {
-        // An unfinished route may still beat a completed path. Its straight
-        // distance is a lower bound; ties use the same stable unit/edge order.
-        if matches!(candidate.action, EntryAction::Route)
-            && jobs.iter().any(|job| {
-                job.candidate
-                    .distance
-                    .total_cmp(&candidate.distance)
-                    .then(job.candidate.unit.cmp(&candidate.unit))
-                    .then(job.candidate.ordinal.cmp(&candidate.ordinal))
-                    .is_lt()
-            })
-        {
-            break;
-        }
         let mut outcome = gather(
             ctx,
             known,
