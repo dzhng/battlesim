@@ -65,6 +65,8 @@ export const FINDING_CODES = [
   "basis.up",
   // fit to authority
   "fit.soldier_height",
+  /** A corpse that stands taller than a lying body, or sinks into the ground. */
+  "fit.lies",
   "fit.eye",
   "fit.muzzle",
   "fit.hull_extents",
@@ -511,6 +513,10 @@ export type SideTints = Record<Side, Vec3>;
 export interface Tolerances {
   ground_m: number;
   soldier_height_m: number;
+  /** The highest a soldier may reach lying dead, at each of his `corpse_poses`:
+   *  above it a corpse reads as a man still kneeling or sitting up. An
+   *  absolute height, not a deviation; the simulation has no corpse height. */
+  soldier_lying_height_m: number;
   eye_m: number;
   muzzle_m: number;
   /** Every face of a vehicle's hull box, its top too. What may stand

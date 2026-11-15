@@ -33,7 +33,8 @@ that skin, and sockets locate observed effects on the drawn weapon. A shot's
 kick turns the upper body about one named joint (`spine_01`, the presentation
 crate's), so a rig without it is never kicked rather than kicked about the wrong
 bone. The fallen body uses a fixed corpse pose instead of retaining a live
-animation workload. [Pose construction](src/pose.ts) owns the install-time
+animation workload, and each one lies low: under the catalog's lying height,
+and barely into the ground (`fit.lies`, [soldier fit](src/soldierFit.ts)). [Pose construction](src/pose.ts) owns the install-time
 transformations.
 
 Articulated vehicles preserve moving-node frames and mount ownership. A mount's

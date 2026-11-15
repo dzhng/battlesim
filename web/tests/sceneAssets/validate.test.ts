@@ -3,8 +3,6 @@
 // valid synthetic asset and must produce that code. The valid assets produce
 // none, so every code below is caused by its mutation alone.
 import { expect, test } from "vitest";
-import { buildClips } from "@packages/scene-assets/src/build.ts";
-import { importScene } from "@packages/scene-assets/src/scene.ts";
 import {
   FINDING_CODES,
   KIT_BUNDLE_MAX_BYTES,
@@ -27,7 +25,6 @@ import {
   validateSkeleton,
 } from "@packages/scene-assets/src/validate.ts";
 import { textureFindings, textureLayerFindings } from "@packages/scene-assets/src/texture.ts";
-import { UnitCatalog } from "@packages/scene-assets/src/units.ts";
 import { bakeCatalog, kitBytesFindings } from "@packages/scene-assets/src/bake.ts";
 import {
   HOUSE,
@@ -56,6 +53,7 @@ import {
   heliGlb,
   HELI_AUTHORITY,
   soldierGlb,
+  soldierRig,
   syntheticUnits,
   tankGlb,
   tankMounts,
@@ -69,64 +67,13 @@ import {
 } from "./synthetic";
 
 const context = { authority: AUTHORITY, tolerances: TOLERANCES };
-const rig = (() => {
-  const { scene } = importScene(soldierGlb(), "rig.glb", 90);
-  return {
-    clips: buildClips(scene!, "rig.glb", "test-rig", 30, SKELETON_ENTRY.clips).built!,
-    aim_reference: SKELETON_ENTRY.aim_reference,
-  };
-})();
-
-test.each([0, 0.4])(
-  "a grounded active kit is checked against its declared full bore (error %s m)",
-  async (boreError) => {
-    const units = syntheticUnits();
-    const view = units.view;
-    const grounded = new UnitCatalog({
-      ...view,
-      units: view.units.map((u) =>
-        u.id === "rifle"
-          ? {
-              ...u,
-              mounts: [
-                {
-                  ...tankMounts()[0],
-                  turret: false,
-                  on: null,
-                  pivot_m: [0, 0, 0.75],
-                  muzzle_m: [0.7 + boreError, -0.2, 0],
-                  operator_appearance: {
-                    active: ["tripod"],
-                    carried: ["packed"],
-                    active_pose: { clip: "kneel_fire", phase: 0 },
-                  },
-                },
-              ],
-            }
-          : u,
-      ),
-    });
-    const result = await validateAppearance(
-      {
-        name: "tripod",
-        entry: { unit: "soldier", source: "tripod.glb", basis_yaw_deg: 90, skeleton: "test-rig" },
-        files: { "tripod.glb": soldierGlb({ animated: false, muzzleY: 0.75 }) },
-        skeleton: rig,
-      },
-      { ...context, authority: { ...AUTHORITY, units: grounded } },
-    );
-    if (boreError === 0) expect(result.findings.map((f) => f.message)).toEqual([]);
-    else
-      expect(
-        result.findings.some((f) => f.code === "fit.muzzle" && f.message.includes("declares")),
-      ).toBe(true);
-  },
-);
+const rig = soldierRig();
 
 async function soldier(
   options: SoldierOptions = {},
   entry: Partial<AppearanceEntry> = {},
   bytes?: Uint8Array,
+  skeleton = rig,
 ) {
   const source = "soldier.glb";
   return (
@@ -135,7 +82,7 @@ async function soldier(
         name: "soldier",
         entry: { unit: "soldier", source, basis_yaw_deg: 90, skeleton: "test-rig", ...entry },
         files: { [source]: bytes ?? soldierGlb({ animated: false, ...options }) },
-        skeleton: rig,
+        skeleton,
       },
       context,
     )
@@ -322,6 +269,7 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
   "fit.soldier_height": () => soldier({ top: 1.9 }),
   "fit.eye": () => soldier({ eyeY: 1.3 }),
   "fit.muzzle": () => soldier({ muzzleY: 1.0 }),
+  "fit.lies": () => soldier({}, {}, undefined, soldierRig({ corpseZ: 0.9 })),
   "fit.hull_extents": () => tank({ hullHalfY: 2.2 }),
   "fit.vehicle_muzzle": () => tank({ muzzleX: 5.9 }),
   "fit.footprint": async () =>

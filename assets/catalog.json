@@ -2,6 +2,7 @@
   "tolerances": {
     "ground_m": 0.01,
     "soldier_height_m": 0.05,
+    "soldier_lying_height_m": 0.6,
     "eye_m": 0.12,
     "muzzle_m": 0.1,
     "hull_extent_m": 0.1,
