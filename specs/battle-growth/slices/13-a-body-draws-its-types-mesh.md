@@ -95,6 +95,19 @@ the presentation tests of falls and corpses, and the scenes `battle-growth`,
 `stand-in`, `armory` and `workbench`. A scene baseline that shows bodies may
 move by rounding only; show any that moves.
 
+## Outcome
+
+Built. A corpse row shares its appearance's living geometry and names one
+rest palette per drawn row; the frame and the card of a body equal the living
+body frozen in that pose, pixel for pixel. One premise above was wrong and is
+corrected in the ledger: corpse cards and bounds came from the posed copy
+with an identity palette, not from the unposed mesh; they follow the living
+far-pose path now. Measured: an infantry type packs a third of what it did,
+the first scene holds 420 MB less in GPU buffers, and bodies cost no more to
+draw, natively at the corpse cap and in the browser's endurance scene. The
+arrival's frame fell and is still long; [slice 12](12-an-arrival-over-frames.md)
+is the step left.
+
 ## Feedback that would change this slice
 
 - Bodies drawn skinned cost a frame time a player would feel at the corpse

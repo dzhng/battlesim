@@ -1922,3 +1922,29 @@ which the slice measures before building. Not built: slice 12's stepping.
   decisions, command failures/repairs and picture receipts:
   `throwaway/slice13/report.md`. Remaining limitation is the still-visible
   reference arrival above, not corpse-cap frame cost or picture correctness.
+
+**Slice 13 as merged, 2026-11-15.** Checked again on the merged tree: lint,
+the presentation tests of falls and corpses, the renderer's GPU tests with
+the new body tests, and the scenes `battle-growth` (growth frame 51 ms),
+`stand-in`, `workbench`, `armory`, the street scene's soldier tour and
+`consequences` (a soldier seen falling plays his death and then lies; the
+fallen stay where they fell). The fallen in the `consequences` shot lie as
+before.
+
+The implementer's cost number was native. The browser's is the endurance
+scene's model-cost mode, late state with 800 fallen, two runs each on staging
+and on the change: the draw counts are identical (568 bodies, 1,044 cards,
+137,920 triangles in the widest framing) and the models layer's GPU time is
+0.48 and 0.50 ms against 0.65 and 0.51 ms in the closest framing, 0.62 and
+1.16 ms against 0.42 and 0.37 ms in the widest. That is noise; bodies cost
+no more drawn skinned.
+
+In the merge: the counter of living soldiers drawn as meshes is
+`soldierMeshes` (it was `skinned`, which bodies now are too), and the street
+scene's soldier tour moved to its own file, as its other tours are, because
+the rename grew a file already over the size budget.
+
+Found beside it and fixed apart: that endurance mode's check on the late
+state fails on staging too. It expected all 800 fallen to be drawn; a side
+lays only the fallen it knows (616 there) and draws those the framing does
+not cull (568). The check now says that.
