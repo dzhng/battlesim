@@ -269,7 +269,7 @@ function DeckReview({ onBack }: { onBack: () => void }) {
           selected={selected}
           onSelect={setSelected}
           rules={rules}
-          contactLines={<ContactLines lines={[{ key: 1, text: "Unknown, firing" }]} />}
+          contactLines={<ContactLines lines={[{ key: 1, text: "Unknown, last seen" }]} />}
           reinforcements={
             <PurchasePicker
               cards={[]}

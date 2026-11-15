@@ -85,11 +85,9 @@ export function SkirmishStatus({
             >
               <Icon path={hudIcon("objective")} />
               {index + 1}
-              {objective.contested
-                ? " · CONTESTED"
-                : objective.capturing
-                  ? ` · ${Math.floor(objective.captureProgress * 100)}%`
-                  : ""}
+              {!objective.contested && objective.capturing
+                ? ` · ${Math.floor(objective.captureProgress * 100)}%`
+                : ""}
             </span>
           );
         })}

@@ -1,9 +1,11 @@
 /** The status lines above the army deck: one per fresh contact, the patches N
  *  steps through. A line names what the side knows of the contact (its type
  *  once identified, and how it was found) and lasts a few seconds after the
- *  contact's latest evidence, while the contact is live. A heard sound alone
- *  is never a line: it marks nothing on the map, so the player could not act
- *  on it (`battle-audio` still plays it). */
+ *  contact's latest evidence, while the contact is live. Firing evidence is
+ *  never a line: its marker on the map already says where the shots came
+ *  from, and a list of "firing" rows only repeats it. A heard sound alone is
+ *  never a line either: it marks nothing on the map, so the player could not
+ *  act on it (`battle-audio` still plays it). */
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { liveContactsNewestFirst } from "../input/contactFocus";
 import type { PresentedContact } from "./contactPresentation";
@@ -28,12 +30,11 @@ export type LineContact = Pick<
 /** What one contact's line says. */
 function describeContact(units: UnitCatalog, c: LineContact): string {
   if (c.source === "radar") return "Radar contact";
-  const name = c.kind ? units.type(c.kind).name : "Unknown";
-  return c.source === "last_seen" ? `${name}, last seen` : `${name}, firing`;
+  return `${c.kind ? units.type(c.kind).name : "Unknown"}, last seen`;
 }
 
-/** The lines at `tick`: live contacts with recent evidence, newest first, in
- *  N's order, at most CONTACT_LINE_ROWS. */
+/** The lines at `tick`: live contacts with recent evidence other than
+ *  firing, newest first, in N's order, at most CONTACT_LINE_ROWS. */
 export function contactLines(
   units: UnitCatalog,
   contacts: readonly LineContact[],
@@ -41,6 +42,7 @@ export function contactLines(
   tickHz: number,
 ): ContactLine[] {
   return liveContactsNewestFirst(contacts)
+    .filter((c) => c.source !== "firing")
     .filter((c) => tick - c.evidenceTick < CONTACT_LINE_SECONDS * tickHz)
     .slice(0, CONTACT_LINE_ROWS)
     .map((c) => ({ key: c.id, text: describeContact(units, c) }));
