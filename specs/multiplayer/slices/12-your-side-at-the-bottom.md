@@ -50,3 +50,47 @@ A Blue commander's view; the skirmish lobby's map picture.
 ## Delegated
 
 Where the turn is applied.
+
+## As built (2026-11-15): it was already true
+
+Nothing about the camera changed. The battle's opening camera
+(`gameCamera.fromStart`) has always stood on the commanding player's entry
+edge and looked across the map, and slice 08 made it read the commanding
+player's own road. So a Red commander's side was at the bottom from the
+first playable checkpoint. This slice names that function as the one owner
+of the turn and adds the proofs.
+
+What follows the camera without knowing a side: everything drawn in the
+world (terrain, units, rings, order lines, ghosts, rulers, objective marks,
+the lane digits painted on the ground) is projected through it, and the
+controls already work in screen directions. No minimap, compass or
+off-screen arrow exists to turn.
+
+Checked in the `online-battle` scene, for both commanders: the own entry
+projects to the bottom of the opening view; each of up, down, left and
+right, by the letter keys, the arrow keys and the screen edges, moves the
+view that way on screen; and a unit ordered to a point straight up the
+screen advances up the screen and away from its own edge. A fast test
+covers all four map edges. Turning the opening by half a circle, and
+panning in map directions, each made a check fail.
+
+**An unprimed look at both commanders' views** found them the same kind of
+view (same distance, tilt and framing), each with its own way in at the
+bottom centre and its unit advancing up the screen, and nothing upside
+down, sideways or mirrored, the lane digit included. What it did find is
+true for both seats and for single-player: the entry marker is small at the
+opening distance, and a unit standing on the lane digit covers it.
+
+**Lane numbers: kept as they are.** Both sides' lanes are numbered from the
+same end of the map, so Blue's lane 1 faces Red's lane 1, and teammates on
+either side name the same road by the same number. The cost is that lane 1
+is on a Blue commander's left and on a Red commander's right. Numbering
+from each commander's own left would put every lane's number on the same
+side of the screen for everyone, and give one road two names. This is
+shown to the user with the lobby's picture; the numbering stays unless
+they say otherwise.
+
+Not captured: a battle with more than one lane a side from a Red seat (the
+dev battle is a 1v1). The claim for several lanes rests on the lobby's
+picture and the camera's geometry.
+

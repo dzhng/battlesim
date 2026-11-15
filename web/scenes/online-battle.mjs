@@ -3,9 +3,10 @@ import { spawn, execFileSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { once } from "node:events";
 import { captureSeats, resultColours } from "./_battle-colours.mjs";
+import { openingView, screenControls, screenUpOrder } from "./_battleOrientation.mjs";
 
 const root = new URL("../../", import.meta.url).pathname;
-const evidence = new URL("../../throwaway/multiplayer/slice08/", import.meta.url).pathname;
+const evidence = new URL("../../throwaway/multiplayer/online-battle/", import.meta.url).pathname;
 const observation = (page) => page.evaluate(() => window.__lab.route.observation());
 
 async function server() {
@@ -169,7 +170,8 @@ async function move(page, goal) {
 
 export async function run(ctx) {
   await mkdir(evidence, { recursive: true });
-  const colours = new URL("../../throwaway/multiplayer/slice11/", import.meta.url).pathname;
+  const colours = new URL("../../throwaway/multiplayer/online-battle/colours/", import.meta.url)
+    .pathname;
   const captures = process.env.SLICE11_BEFORE ? `${colours}before/` : colours;
   await mkdir(captures, { recursive: true });
   await resultColours(ctx, new URL(ctx.url).origin, captures);
@@ -188,6 +190,10 @@ export async function run(ctx) {
       const opening = ctx.openLab(page, url, 120_000);
       tickets.push(await (await response).json());
       await opening;
+    }
+    for (let i = 0; i < pages.length; i++) {
+      await openingView(ctx, pages[i], tickets[i].side, evidence);
+      await screenControls(ctx, pages[i], tickets[i].side);
     }
     const mismatch = await ctx.newPage();
     let streams = 0;
@@ -249,6 +255,9 @@ export async function run(ctx) {
       );
       await controls(ctx, pages[i], ticket.side);
     }
+    await Promise.all(
+      pages.map((page, i) => screenUpOrder(ctx, page, tickets[i].side, move, evidence)),
+    );
     const starts = await Promise.all(
       pages.map((page) => page.evaluate(() => window.__lab.route.prepared().start.at)),
     );

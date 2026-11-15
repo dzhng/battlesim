@@ -21,7 +21,7 @@ simulation test build here, with other sessions building too. Check
 `df -h .` before any Rust build or new checkout. Under about 30 GB free, run
 Rust passes one or two at a time; under 5 GB, start nothing and ask the user.
 
-**Done and committed:** slices 02 to 08, 10, 11, 13, 14, 15, 20 and 24,
+**Done and committed:** slices 02 to 08, 10 to 15, 20 and 24,
 and the local half of 09; the
 endurance half of slice 01. The branch holds staging as of
 2026-11-15. **The first playable checkpoint is reached:** two browsers
@@ -30,13 +30,13 @@ command opposite sides of one battle on a local server
 
 **Pick up here, in this order:**
 
-1. **Integrate slices 12, 16, 17 and 21** (your side at the bottom, the
-   multiplayer screen, the room lobby screen, Frontline rules), each handed
-   to Codex on 2026-11-15 in its own checkout with a report in
-   `throwaway/multiplayer/` there. Slices 12, 16 and 17 change what a
-   player sees: look at the pictures, get an unprimed critique, and show
-   the user. Slice 21 must leave every existing digest unchanged and
-   measures its own length (slice 01's run has no scores in it).
+1. **Integrate slices 16, 17 and 21** (the multiplayer screen and the room
+   lobby screen, from one agent as two commits; and Frontline rules), handed
+   to Codex on 2026-11-15, each in its own checkout with a report in
+   `throwaway/multiplayer/` there. Slices 16 and 17 change what a player
+   sees: look at the pictures, get an unprimed critique, and show the user.
+   Slice 21 must leave every existing digest unchanged and measures its own
+   length (slice 01's run has no scores in it).
 2. **Slice 09's push** waits for the user: ask before promoting a site
    build, before deploying, and before making the address public. Its local
    half is in, with a deploy step that is a dry run by default
@@ -104,7 +104,7 @@ Foundation
 - [ ] [09 Identity, build check, deploy](slices/09-identity-build-deploy.md) (the local half is in; the push and the public-route measurement wait for the user)
 - [x] [10 Playout](slices/10-playout.md) (the delay and bound are untuned: nobody has watched it under a jittery network)
 - [x] [11 Yours is blue](slices/11-yours-is-blue.md) (one naming question open for the user)
-- [ ] [12 Your side at the bottom](slices/12-your-side-at-the-bottom.md)
+- [x] [12 Your side at the bottom](slices/12-your-side-at-the-bottom.md) (it was already true; now proven)
 - [x] [13 Native and WebAssembly parity](slices/13-native-wasm-parity.md) (the two builds agree; nothing to fix)
 
 Rooms
