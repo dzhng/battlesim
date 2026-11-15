@@ -25,27 +25,33 @@ type FieldingInput = Parameters<typeof createFielding>[0];
  *  the facts it derived from art it has already read. Whoever owns the battle
  *  owns this and frees it. */
 export class FieldingOwner {
-  private made: { fielding: Fielding; input: FieldingInput } | null = null;
+  private made: { fielding: Fielding; source: FieldingSource } | null = null;
   private tail: Promise<void> = Promise.resolve();
   private closed = false;
-  private last: { input: FieldingInput; result: FieldedUnits } | null = null;
+  private last: { source: FieldingSource; kinds: readonly string[]; result: FieldedUnits } | null =
+    null;
 
   field(input: FieldingInput): Promise<FieldedUnits> {
     if (this.closed) return Promise.reject(new Error("fielding owner is closed"));
     const run = this.tail.then(async () => {
       if (this.closed) throw new Error("fielding owner is closed");
-      if (this.last && sameSource(this.last.input, input) && sameKinds(this.last.input, input))
+      const source = sourceOf(input);
+      if (
+        this.last &&
+        sameSource(this.last.source, source) &&
+        sameKinds(this.last.kinds, input.kinds)
+      )
         return this.last.result;
       // Rules, catalogs and factions are fixed when Rust's fielding is made:
       // a change to any of them starts over.
-      if (this.made && !sameSource(this.made.input, input)) {
+      if (this.made && !sameSource(this.made.source, source)) {
         this.made.fielding.free();
         this.made = null;
       }
-      const { fielding } = (this.made ??= { fielding: createFielding(input), input });
+      const { fielding } = (this.made ??= { fielding: createFielding(input), source });
       fielding.set_kinds(JSON.stringify(input.kinds));
       const result = await resolveFielding(fielding, input);
-      this.last = { input, result };
+      this.last = { source, kinds: input.kinds, result };
       return result;
     });
     this.tail = run.then(
@@ -65,19 +71,40 @@ export class FieldingOwner {
   }
 }
 
-function sameSource(a: FieldingInput, b: FieldingInput): boolean {
+/** What Rust's fielding is made from. The runtime catalog is held as the
+ *  object it was then: the library that serves it is one object for the page's
+ *  life, and loads a new catalog into itself. */
+interface FieldingSource {
+  rules: string;
+  catalog: CatalogView;
+  runtime: RuntimeFiles;
+  runtimeCatalog: RuntimeFiles["catalog"];
+  factions?: readonly [string, string];
+}
+
+function sourceOf(input: FieldingInput): FieldingSource {
+  return {
+    rules: input.rules,
+    catalog: input.catalog,
+    runtime: input.runtime,
+    runtimeCatalog: input.runtime.catalog,
+    factions: input.factions,
+  };
+}
+
+function sameSource(a: FieldingSource, b: FieldingSource): boolean {
   return (
     a.rules === b.rules &&
     a.catalog === b.catalog &&
     a.runtime === b.runtime &&
-    a.runtime.catalog === b.runtime.catalog &&
+    a.runtimeCatalog === b.runtimeCatalog &&
     a.factions?.[0] === b.factions?.[0] &&
     a.factions?.[1] === b.factions?.[1]
   );
 }
 
-function sameKinds(a: FieldingInput, b: FieldingInput): boolean {
-  return a.kinds.length === b.kinds.length && a.kinds.every((kind, i) => kind === b.kinds[i]);
+function sameKinds(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((kind, i) => kind === b[i]);
 }
 
 /** `kinds` of the session's unit `catalog` under `rules` (a scenario's

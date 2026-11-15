@@ -1374,3 +1374,23 @@ observer they needed are removed from the battle input. Still fully rough and
 casting no shadow. This supersedes the checkpoint's provisional resolution
 above. The kept shots in `assets/stand-in/look/` show the superseded red
 block; they are refreshed at closeout.
+
+**Pre-ship review, 2026-11-15.** An independent reading of the whole diff
+against staging ([findings](assets/pre-ship-review.md)) found nothing that
+blocks shipping and nothing wrong in the shared GPU lifetimes, reachable
+panics or leftovers. Its four "fix soon" findings:
+
+| Finding | State |
+| --- | --- |
+| The fielding owner compared the runtime catalog through the one library object, so a catalog reloaded inside a battle kept the old Rust fielding | Fixed: the owner keeps the catalog object it was made from |
+| A card's key includes the model texture arrays' edge, so a new type with a larger texture retires every card layer and rebuilds that array; two such arrivals in one battle would pass the dead-layer bound and start a fresh store mid-battle. The ledger's "monotonic growth creates no dead layers" is wrong for cards | Open. Not seen in the reference battle (no array was rebuilt). The fix is to make the array edge a scene constant from the catalog's largest texture |
+| `AtlasSource::PreferResident` is reached only by the card-reuse tests; no page asks for the runtime spec | Open: delete the resident path or give the workbench a use for it |
+| The scenery "needs placement" guard can no longer be true, and its only caller is a test | Open: delete it |
+
+**The engine's memory, 2026-11-15, open and blocking.** Slice 09's memory
+report measured the engine without the preload against the base, in the
+reference battle at deployment: 7.25 GB settled against 6.25 GB, all of the
+difference in the renderer process (4.5 GB against 3.5 GB); the GPU process
+is unchanged. That breaks decision 3, and the page's WASM modules have a
+4 GB ceiling. Attribution (which part of the page, which slice) is in
+progress; the engine is not pushed until it is found and fixed.
