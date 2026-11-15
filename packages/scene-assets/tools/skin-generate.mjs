@@ -1,90 +1,85 @@
-// Generate an airframe skin (`blender/aircraft_skin.py`) from its four guide
-// views (`blender/skin_views.py`), pay for it once and pin it:
+// Generate skins, pin them and log what they cost. Paid calls go through the
+// installed `bento` CLI (its login, its workspace), never a vendor key; every
+// one is logged in blender/skins/calls.jsonl, a request is never paid twice
+// (an unresolved one is resumed), and every candidate is kept beside the
+// pinned ones in assets/source/skins/<family>/.
 //
-//   FAL_KEY=... node packages/scene-assets/tools/skin-generate.mjs <family> <appearance> <views_dir> "<note>"
+//   image    <family> <key>...                 draw each soldier body's input image ($0.04)
+//   generate <family> <key>... [--image <png>] [--generator tripo|meshy] [--again]
+//                                              generate each body from its latest image
+//   pin      <family> <key> <request_id> [--note "<text>"]   choose a candidate (free)
+//   status   [<family>] [--army <id>]          missing, stale and unresolved bodies (free)
+//   costs    [<family>]                        spend per key, per army and overall (free)
+//   airframe <family> <appearance> <views_dir> "<note>"
+//            an airframe skin from its four guide views (blender/skin_views.py)
 //
-// Copies the views to assets/source/skins/<family>/<appearance>-<view>.png,
-// runs Hunyuan3D 3.1 Pro (geometry only) on fal with the right side as its
-// front, the left as its back, the top and the bottom, writes the GLB beside
-// them and replaces the appearance's pin in blender/skins/<family>.json.
-// `note` says what the views were drawn from.
-import { createHash } from "node:crypto";
-import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+// A soldier body's key is `<army>_<look>_<kind>` (blender/roster/armies.json).
+// `--again` pays for another candidate of a key that already has a pin;
+// `--concurrency` (default 6) bounds the jobs in flight. The modules under
+// skins/ say what each part owns.
+import { parseArgs } from "node:util";
 
-const ENDPOINT = "fal-ai/hunyuan-3d/v3.1/pro/image-to-3d";
-const FIELDS = {
-  right: "input_image_url",
-  left: "back_image_url",
-  top: "top_image_url",
-  bottom: "bottom_image_url",
+import { runBento } from "./skins/fal.mjs";
+import { pin } from "./skins/pins.mjs";
+import { REPO } from "./skins/prompt.mjs";
+import { costs, status } from "./skins/report.mjs";
+import { airframe, generate, image } from "./skins/steps.mjs";
+
+const { values: flags, positionals } = parseArgs({
+  allowPositionals: true,
+  options: {
+    image: { type: "string" },
+    generator: { type: "string", default: "tripo" },
+    again: { type: "boolean", default: false },
+    concurrency: { type: "string", default: "6" },
+    note: { type: "string" },
+    army: { type: "string" },
+  },
+});
+const [command, ...args] = positionals;
+const ctx = {
+  repo: REPO,
+  exec: runBento,
+  fetch: globalThis.fetch,
+  every: 15_000,
+  deadline: 40 * 60_000,
+  log: (line) => console.log(`${new Date().toISOString().slice(11, 19)} ${line}`),
 };
-const repo = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
-const [family, appearance, views, note] = process.argv.slice(2);
-if (!family || !appearance || !views || !note || !process.env.FAL_KEY) {
+const concurrency = Number(flags.concurrency);
+const usage = () => {
   console.error(
-    'usage: FAL_KEY=... node skin-generate.mjs <family> <appearance> <views_dir> "<note>"',
+    "usage: skin-generate.mjs image|generate|pin|status|costs|airframe … (see the head of this file)",
   );
   process.exit(2);
-}
-const call = async (url, init = {}) => {
-  const res = await fetch(url, {
-    ...init,
-    headers: { authorization: `Key ${process.env.FAL_KEY}`, "content-type": "application/json" },
-  });
-  if (!res.ok) throw new Error(`${url}: ${res.status} ${await res.text()}`);
-  return res.json();
 };
-const sha = async (path) =>
-  createHash("sha256")
-    .update(await readFile(join(repo, path)))
-    .digest("hex");
 
-const dir = `assets/source/skins/${family}`;
-await mkdir(join(repo, dir), { recursive: true });
-const input = { generate_type: "Geometry", face_count: 300000 };
-const inputs = {};
-for (const [view, field] of Object.entries(FIELDS)) {
-  const path = `${dir}/${appearance}-${view}.png`;
-  await copyFile(join(resolve(views), `${view}.png`), join(repo, path));
-  input[field] = `data:image/png;base64,${(await readFile(join(repo, path))).toString("base64")}`;
-  inputs[path] = await sha(path);
+try {
+  if (command === "image" && args.length >= 2) {
+    await image(ctx, args[0], args.slice(1), { again: flags.again, concurrency });
+  } else if (command === "generate" && args.length >= 2) {
+    const { generator, again } = flags;
+    await generate(ctx, args[0], args.slice(1), {
+      image: flags.image,
+      generator,
+      again,
+      concurrency,
+    });
+  } else if (command === "pin" && args.length === 3) {
+    pin(ctx, ...args, { note: flags.note });
+  } else if (command === "status") {
+    const { missing, stale, open } = status(ctx, args[0], { army: flags.army });
+    console.log(`missing (${missing.length}):${missing.map((k) => `\n  ${k}`).join("")}`);
+    console.log(`stale (${stale.length}):${stale.map((s) => `\n  ${s.key}: ${s.why}`).join("")}`);
+    console.log(
+      `unresolved (${open.length}):${open.map((l) => `\n  ${l.family} ${l.key} ${l.request_id} (${l.endpoint}, since ${l.at})`).join("")}`,
+    );
+    if (open.length) console.log("rerun the generate (or airframe) command for a key to resume it");
+  } else if (command === "costs") {
+    console.log(costs(ctx, args[0]));
+  } else if (command === "airframe" && args.length === 4) {
+    await airframe(ctx, ...args);
+  } else usage();
+} catch (error) {
+  console.error(error.message);
+  process.exit(1);
 }
-const job = await call(`https://queue.fal.run/${ENDPOINT}`, {
-  method: "POST",
-  body: JSON.stringify(input),
-});
-console.log(`queued ${job.request_id}`);
-for (const started = Date.now(); (await call(job.status_url)).status !== "COMPLETED"; ) {
-  if (Date.now() - started > 25 * 60_000)
-    throw new Error(`${job.request_id} did not finish in 25 minutes`);
-  await new Promise((r) => setTimeout(r, 5000));
-}
-const result = await call(job.response_url);
-const glb = `${dir}/${appearance}.glb`;
-await writeFile(
-  join(repo, glb),
-  Buffer.from(
-    await (await fetch(result.model_glb?.url ?? result.model_urls?.glb?.url)).arrayBuffer(),
-  ),
-);
-
-const pinsPath = join(repo, `packages/scene-assets/blender/skins/${family}.json`);
-const pins = existsSync(pinsPath)
-  ? JSON.parse(await readFile(pinsPath, "utf8")).filter((p) => p.glb !== glb)
-  : [];
-pins.push({
-  glb,
-  sha256: await sha(glb),
-  generator: `Hunyuan3D 3.1 Pro image to 3D, through fal (${ENDPOINT}), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom`,
-  request_id: job.request_id,
-  generated: new Date().toISOString().slice(0, 10),
-  terms:
-    "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
-  inputs,
-  note,
-});
-await writeFile(pinsPath, `${JSON.stringify(pins, null, 2)}\n`);
-console.log(`wrote ${glb} and its pin`);
