@@ -1,0 +1,18 @@
+[
+  {
+    "army": "us_army_ocp",
+    "look": "a",
+    "kind": "rifle",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/us_army_ocp_a_rifle.glb",
+    "sha256": "8fd4764d62b1eee6a85bce2615cd0da26a229350a15f0e99b9aed0439cde6edd",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1deba-e7f9-7aa1-bacd-7871c7bb4bc3",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/us_army_ocp_a_rifle-front.png": "dcc2a9d374605f66748f2d5d294d47780276b902647e67972f600430849ee312"
+    },
+    "note": "The input is a studio T-pose front of a US Army rifleman in OCP (ACH with a night vision mount, plate carrier with three magazine pouches, knee pads, coyote boots and gloves, no weapon), drawn by GPT Image 2.6 Flare through Bento's model gateway from a text prompt; the soldier-model comparison of specs/generated-soldiers chose this generation over Meshy 7.1, Tripo's multiview mode and Gemini Argon."
+  }
+]

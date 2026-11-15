@@ -28,6 +28,8 @@ from textures import UNIFORMS
 from infantry_rig import Rig, SCALE
 from mesh_lods import canonical, make_tiers, triangle_count
 import weapons
+import generated_body
+from infantry_preview import preview
 
 # An army's look of a kit, named as its reference variant
 # (assets/references/<kit>/): the uniform print (textures.UNIFORMS), whether
@@ -566,14 +568,20 @@ def build(unit, variant, mode, army=None):
     for name in ('Eyes','Eyebrows'):
         if name in bpy.data.objects: bpy.data.objects.remove(bpy.data.objects[name],do_unlink=True)
     kit=Kit(rig,look_of(kind,variant,ARMIES.get(army)))
-    kit.uniform();kit.boots();kit.plate_carrier();kit.molle()
-    if kit.look['pack']!='none':kit.pack_straps()
-    kit.belt();kit.chest_rig();kit.pack(kind);kit.hip_kit();kit.markings();kit.head_gear()
-    if kit.look['scarf']:kit.scarf()
-    if kit.look['collar'] or kit.look['groin']:kit.armour_collar_and_groin()
-    if kit.look['balaclava']:kit.balaclava()
-    kit.skin()
-    if spec.get('grenades'):
+    # A look with a pinned generated body wears it (clothing, kit and head
+    # in one); every other look builds its cloth shells and kit here.
+    body=generated_body.pin_of(army,variant,kind)
+    if body:
+        generated_body.wear(kit,body,kit.look['print'])
+    else:
+        kit.uniform();kit.boots();kit.plate_carrier();kit.molle()
+        if kit.look['pack']!='none':kit.pack_straps()
+        kit.belt();kit.chest_rig();kit.pack(kind);kit.hip_kit();kit.markings();kit.head_gear()
+        if kit.look['scarf']:kit.scarf()
+        if kit.look['collar'] or kit.look['groin']:kit.armour_collar_and_groin()
+        if kit.look['balaclava']:kit.balaclava()
+        kit.skin()
+    if spec.get('grenades') and not body:  # a generated body wears its own pouches
         for j,bearing in enumerate((-42,42)):
             at,out=kit.on_belt(bearing,.99);centre=at+out*.052
             grenade=cyl('fragmentation_grenade_'+str(j),.037,.070,centre,'Z',kit.m['launcher'],seg=12,bevel_=.014)
@@ -668,41 +676,6 @@ def receipt(unit):
             'variants':variants,
         },indent=2)+'\n')
     print('ROSTER_INFANTRY_RECEIPT',out)
-
-
-def preview(path,hold,directory):
-    """Reimport source and shared clip GLB; poses are the actual exported clips."""
-    bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.ops.import_scene.gltf(filepath=path)
-    body_arm=next(o for o in bpy.data.objects if o.type=='ARMATURE')
-    clip=os.path.join(REPO,'assets/source/infantry/clips_'+hold['family']+'.glb')
-    if open(clip,'rb').read(4)!=b'glTF':
-        raise SystemExit('Preview requires acquired shared clip source: '+clip)
-    before=set(bpy.data.objects);bpy.ops.import_scene.gltf(filepath=clip)
-    actions={a.name:a for a in bpy.data.actions}
-    for o in set(bpy.data.objects)-before:bpy.data.objects.remove(o,do_unlink=True)
-    for o in bpy.data.objects:
-        if o.type=='MESH':o.hide_render='_LOD' in o.name and not o.name.endswith('_LOD0')
-    scn=bpy.context.scene;scn.render.engine='BLENDER_EEVEE';scn.render.resolution_x=800;scn.render.resolution_y=800
-    scn.world=bpy.data.worlds.new('review_world');scn.world.use_nodes=True;scn.world.node_tree.nodes['Background'].inputs['Color'].default_value=(.32,.32,.32,1);scn.world.node_tree.nodes['Background'].inputs['Strength'].default_value=.8
-    scn.view_settings.exposure=1.0
-    bpy.ops.mesh.primitive_plane_add(size=100,location=(0,0,-.005))
-    floor=bpy.context.object;floor.name='review_ground';floor_mat=bpy.data.materials.new('review_ground');floor_mat.diffuse_color=(.22,.24,.20,1);floor.data.materials.append(floor_mat)
-    for loc in ((-3,-4,6),(4,3,4)):
-        bpy.ops.object.light_add(type='AREA',location=loc);light=bpy.context.object;light.data.energy=450;light.data.size=4;light.rotation_euler=(Vector((0,0,1))-light.location).to_track_quat('-Z','Y').to_euler()
-    bpy.ops.object.camera_add();cam=bpy.context.object;scn.camera=cam;cam.data.type='ORTHO'
-    os.makedirs(directory,exist_ok=True)
-    for pose in ('idle','stand_aim','kneel_fire','prone_pinned'):
-        body_arm.animation_data_create();action=next(a for n,a in actions.items() if n.split('.')[0]==pose)
-        body_arm.animation_data.action=action
-        if action.slots:body_arm.animation_data.action_slot=action.slots[0]
-        scn.frame_set(0);bpy.context.view_layer.update()
-        dg=bpy.context.evaluated_depsgraph_get()
-        points=[o.matrix_world@Vector(p) for o in bpy.data.objects if o.type=='MESH' and o.name.endswith('_LOD0') for p in o.evaluated_get(dg).bound_box]
-        lo=Vector(tuple(min(p[i] for p in points) for i in range(3)));hi=Vector(tuple(max(p[i] for p in points) for i in range(3)));target=(lo+hi)/2
-        cam.data.ortho_scale=max(hi.y-lo.y,hi.z-lo.z)*1.25
-        for label,offset in [('side',(-4,-.1,.6)),('front',(-2.7,-4,1.15))]:
-            cam.location=target+Vector(offset);cam.rotation_euler=(target-cam.location).to_track_quat('-Z','Y').to_euler();scn.render.filepath=os.path.join(directory,pose+'_'+label+'.png');bpy.ops.render.render(write_still=True)
 
 
 if __name__=='__main__':
