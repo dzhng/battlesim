@@ -439,11 +439,12 @@ export async function armyJourney(ctx) {
   await page.evaluate((ids) => window.__lab.route.select(ids), [rifle.id, truck.id]);
   await page.keyboard.press("c");
   // Frame the goal first: the truck may have drifted off screen or under
-  // the army bar, where a right-click lands on no ground.
+  // the army bar, where a click lands on no ground.
   await aim(page, goal);
   await presented(page);
   const point = await groundCss(page, goal);
-  await page.mouse.click(...point, { button: "right" });
+  // An armed command confirms with a left-click; a right-click would cancel it.
+  await page.mouse.click(...point);
   await page.waitForFunction(() => window.__lab.route.acks()[0]?.order.kind === "attack_move");
   const ack = await page.evaluate(() => window.__lab.route.acks()[0]);
   ctx.check(
