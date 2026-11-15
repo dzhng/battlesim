@@ -7,10 +7,12 @@ import {
   type LabModel,
   type ModelDetail,
 } from "../sim/presentationModels";
+import { appearanceContentKey } from "./contentIdentity";
 import type { ModelAsset } from "./modelAssets";
 
 interface Request {
   assets: readonly ModelAsset[];
+  content: string;
   models: readonly LabModel[];
   done: Promise<boolean>;
   resolve: (committed: boolean) => void;
@@ -34,11 +36,12 @@ export class SceneAppearances {
     private readonly detail: ModelDetail,
     private readonly redraw: () => void,
     private readonly failed: (error: unknown) => void,
-    initial?: { assets: readonly ModelAsset[]; models: readonly LabModel[] },
+    initial?: { assets: readonly ModelAsset[]; models: readonly LabModel[]; grass?: object | null },
   ) {
     if (initial)
       this.active = this.desired = {
         ...initial,
+        content: this.content(initial.assets, initial.grass),
         completed: true,
         done: Promise.resolve(true),
         resolve: () => {},
@@ -47,9 +50,14 @@ export class SceneAppearances {
 
   /** A newer catalog supersedes outstanding work without starting a second
    * candidate. A false result means this request never became current. */
-  request(assets: readonly ModelAsset[], models: readonly LabModel[]): Promise<boolean> {
+  request(
+    assets: readonly ModelAsset[],
+    models: readonly LabModel[],
+    grass?: object | null,
+  ): Promise<boolean> {
     if (this.disposed) return Promise.resolve(false);
-    if (this.desired?.assets === assets) {
+    const content = this.content(assets, grass);
+    if (this.desired?.content === content) {
       this.models(models);
       return this.desired.done;
     }
@@ -59,7 +67,7 @@ export class SceneAppearances {
     const done = new Promise<boolean>((complete) => {
       resolve = complete;
     });
-    this.desired = { assets, models, done, resolve, completed: false };
+    this.desired = { assets, content, models, done, resolve, completed: false };
     this.start();
     return done;
   }
@@ -125,6 +133,15 @@ export class SceneAppearances {
     this.disposed = true;
     if (this.desired) this.finish(this.desired, false);
     this.discardReady();
+  }
+
+  /** Grass retuning changes placement even when it names the same source art.
+   * Its authored rules are part of that explicit lab request, not an art change. */
+  private content(assets: readonly ModelAsset[], grass?: object | null): string {
+    return JSON.stringify([
+      appearanceContentKey(assets.map((asset) => [asset.name, asset])),
+      grass,
+    ]);
   }
 
   private start(): void {

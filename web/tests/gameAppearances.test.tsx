@@ -1,7 +1,7 @@
 import { renderInRouter as render } from "./support/router";
 import { cleanup, fireEvent, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { UnitCard } from "@packages/scene-assets/src/units";
+import type { UnitCard, UnitCatalog } from "@packages/scene-assets/src/units";
 import type { ObservationView } from "@web/battle/sim/observationView";
 import { afterEach, expect, test, vi } from "vitest";
 import { TEST_CATALOG } from "./catalog";
@@ -42,6 +42,8 @@ test("the player's enabled purchases are ready before any unit enters the battle
     scope: {},
     side: "blue",
     units: {
+      ids: ["buyable", "unavailable", "enemy", "scenario-unit"],
+      appearancesFor: (kinds: Iterable<string>) => new Set(kinds),
       cards: [
         card("buyable", "us", null),
         card("unavailable", "us", "planned"),
@@ -99,7 +101,11 @@ test("learned and fallen unit art stays until the battle or observing side chang
   const input = {
     scope: {},
     side: "blue",
-    units: { cards: [] },
+    units: {
+      ids: ["initial", "fallen", "remembered"],
+      cards: [],
+      appearancesFor: (kinds: Iterable<string>) => new Set(kinds),
+    },
     fielded: ["initial"],
     faction: null,
     observation: observation as ObservationView | null,
@@ -113,6 +119,38 @@ test("learned and fallen unit art stays until the battle or observing side chang
   expect(hook.result.current).toEqual(["initial"]);
   hook.rerender({ ...input, scope: {}, observation: null });
   expect(hook.result.current).toEqual(["initial"]);
+});
+
+test("a learned kind needing no new art is already fielded and cannot stage a second battle", async () => {
+  const { useBattleKinds } = await import("@apps/battle-lab/src/gameAppearances");
+  const worn: Record<string, string[]> = {
+    initial: ["shared"],
+    "same-art": ["shared"],
+    "new-art": ["shared", "new-hull"],
+  };
+  const units: Pick<UnitCatalog, "ids" | "cards" | "appearancesFor"> = {
+    ids: Object.keys(worn),
+    cards: [],
+    appearancesFor: (kinds) => new Set([...kinds].flatMap((kind) => worn[kind])),
+  };
+  const input = {
+    scope: {},
+    side: "blue",
+    units,
+    fielded: ["initial"],
+    faction: null,
+    observation: null,
+    purchasing: null as string | null,
+  };
+  const hook = renderHook((props) => useBattleKinds(props), { initialProps: input });
+  const initial = hook.result.current;
+  expect(initial).toEqual(["initial", "same-art"]);
+  expect([...units.appearancesFor(initial)]).toEqual(["shared"]);
+  hook.rerender({ ...input, purchasing: "same-art" });
+  expect(hook.result.current).toBe(initial);
+  hook.rerender({ ...input, purchasing: "new-art" });
+  expect(hook.result.current).toEqual(["initial", "new-art", "same-art"]);
+  expect([...units.appearancesFor(hook.result.current)]).toEqual(["shared", "new-hull"]);
 });
 
 test("required appearance rejection remains fatal on the menu", async () => {

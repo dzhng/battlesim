@@ -291,6 +291,7 @@
     "map": null,
     "catalog": "game",
     "loading": false,
+    "serial": true,
     "timeout_s": 900
   },
   {

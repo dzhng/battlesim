@@ -283,29 +283,32 @@ export async function run(ctx) {
   // synthetic bake is served under the test units' appearance names.
   const WORN = { tank: "test_tank", rifleman: "test_rifle" };
   const bakeModule = `/@fs${new URL("../../packages/scene-assets/src/bake.ts", import.meta.url).pathname}`;
-  const files = await wb(
-    page,
-    async ([bakeModule, worn]) => {
-      const s = await import("/tests/sceneAssets/synthetic.ts");
-      const { bakeCatalog, runtimeCatalogText } = await import(bakeModule);
-      const sources = s.testSources();
-      const result = await bakeCatalog(s.testCatalog(), async (path) => sources[path], {
-        authority: s.AUTHORITY,
-      });
-      result.runtime.appearances = Object.fromEntries(
-        Object.entries(result.runtime.appearances).map(([name, entry]) => [
-          worn[name] ?? name,
-          entry,
-        ]),
-      );
-      const out = {
-        "catalog.json": Array.from(new TextEncoder().encode(runtimeCatalogText(result.runtime))),
-      };
-      for (const [path, bytes] of result.files) out[path] = Array.from(bytes);
-      return out;
-    },
-    [bakeModule, WORN],
-  );
+  const bakeFiles = (era) =>
+    wb(
+      page,
+      async ([bakeModule, worn, era]) => {
+        const s = await import("/tests/sceneAssets/synthetic.ts");
+        const { bakeCatalog, runtimeCatalogText } = await import(bakeModule);
+        const sources = s.testSources();
+        sources["assets/source/test-tank.glb"] = s.tankGlb({ era });
+        const result = await bakeCatalog(s.testCatalog(), async (path) => sources[path], {
+          authority: s.AUTHORITY,
+        });
+        result.runtime.appearances = Object.fromEntries(
+          Object.entries(result.runtime.appearances).map(([name, entry]) => [
+            worn[name] ?? name,
+            entry,
+          ]),
+        );
+        const out = {
+          "catalog.json": Array.from(new TextEncoder().encode(runtimeCatalogText(result.runtime))),
+        };
+        for (const [path, bytes] of result.files) out[path] = Array.from(bytes);
+        return out;
+      },
+      [bakeModule, WORN, era],
+    );
+  let files = await bakeFiles(false);
   const served = await ctx.newPage({ viewport: VIEWPORT });
   await served.route(/\/(catalog\.json|[0-9a-f]{64}\/bundle\.bin)$/, (route) => {
     const path = new URL(route.request().url()).pathname.slice(1);
@@ -327,6 +330,39 @@ export async function run(ctx) {
   );
   await served.evaluate(() => window.__lab.frame());
   await writeFile(ctx.evidencePath("bundle-tank.png"), await served.screenshot());
+
+  // Re-baking the selected catalog name must replace its content through the
+  // same live admission, rather than treating an unchanged name as a hit.
+  await served.evaluate(() =>
+    window.__workbench.show({ figure: false, hitBox: false, sockets: false }),
+  );
+  await served.evaluate(() => window.__lab.frame());
+  const beforeRebake = await served.evaluate(() => window.__lab.stats().models);
+  const beforeRebakePixels = decode(await served.locator("canvas").first().screenshot());
+  files = await bakeFiles(true);
+  await served.evaluate(() => window.__workbench.reloadCatalog());
+  await served.evaluate(() => window.__lab.frame());
+  await served.evaluate((name) => window.__workbench.select(name), WORN.tank);
+  await served.waitForFunction(
+    (triangles) => window.__lab.stats().models.triangles > triangles,
+    beforeRebake.triangles,
+    { timeout: 30000 },
+  );
+  await served.evaluate(() => window.__lab.frame());
+  const afterRebake = await served.evaluate(() => window.__lab.stats().models);
+  const afterRebakePixels = decode(await served.locator("canvas").first().screenshot());
+  ctx.check(
+    "a re-bake under the same catalog name admits and draws the new geometry",
+    afterRebake.installed.length === beforeRebake.installed.length &&
+      afterRebake.installed.every((name, i) => name === beforeRebake.installed[i]) &&
+      afterRebake.triangles > beforeRebake.triangles &&
+      changed(beforeRebakePixels, afterRebakePixels) > 0,
+    JSON.stringify({
+      before: beforeRebake,
+      after: afterRebake,
+      changedPixels: changed(beforeRebakePixels, afterRebakePixels),
+    }),
+  );
 
   // ---- one mesh per kind, two armies: the side's tint recolours the masked cloth.
   await served.evaluate((name) => window.__workbench.select(name), WORN.rifleman);

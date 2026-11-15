@@ -11,6 +11,7 @@ import type { PaintStyle } from "@packages/battle-renderer/src/paintStyle";
 import { EMPTY_MESH, type Mesh } from "@packages/battle-renderer/src/mesh";
 import type { ScenePresentation } from "../sim/presentation";
 import type { AdmissionTransportWork, LabModel, ModelDetail } from "../sim/presentationModels";
+import { appearanceContentKey } from "./contentIdentity";
 import { modelAssetsOf, type ModelAsset } from "./modelAssets";
 import { isProxyAppearance, proxyModels } from "./proxyModels";
 import { SceneAppearances } from "./sceneAppearances";
@@ -126,7 +127,7 @@ export class BrowserScene {
       options.detail,
       options.redraw,
       options.failed,
-      { assets, models: this.modelList() },
+      { assets, models: this.modelList(), grass: this.grassRules },
     );
     this.fogProbes = {
       probe: (points) => {
@@ -191,9 +192,14 @@ export class BrowserScene {
       const transportWork = { bundlesEncoded: 0, bundleBytesSent: 0 };
       // Initial admission is private until every asset is ready. Live changes
       // use the asset-only transaction below and retain the current output.
-      presentation.installLabAssets(assets, options.detail);
+      const encoded = assets.map((asset) => ({
+        name: asset.name,
+        contentId: asset.contentId,
+        ...asset.encode(),
+      }));
+      presentation.installLabAssets(encoded, options.detail);
       presentation.setLabModels([...options.models, ...proxies.models]);
-      for (const asset of assets) {
+      for (const asset of encoded) {
         const bundle = asset.bundle;
         transportWork.bundlesEncoded++;
         transportWork.bundleBytesSent += bundle.byteLength;
@@ -253,7 +259,9 @@ export class BrowserScene {
     )
       return "rebuild";
     const artChanged =
-      installed !== this.desired ||
+      (installed !== this.desired &&
+        appearanceContentKey(installed?.appearances ?? []) !==
+          appearanceContentKey(this.desired?.appearances ?? [])) ||
       world.scenery !== previous.scenery ||
       world.grass !== previous.grass;
     const modelsChanged = models !== this.models;
@@ -514,7 +522,11 @@ export class BrowserScene {
   }
 
   private request(): Promise<boolean> {
-    return this.admission.request([...this.authored, ...this.proxies.assets], this.modelList());
+    return this.admission.request(
+      [...this.authored, ...this.proxies.assets],
+      this.modelList(),
+      this.grassRules,
+    );
   }
 }
 

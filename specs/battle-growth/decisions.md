@@ -555,3 +555,146 @@ before), 8.6 MB of vertices packed, 21 card read waits, no scenery work, 2
 art files read by fielding. Still whole: 178 texture layers written (slice
 04), 189 cards baked (slice 05), 203 bundles encoded and sent by the page
 (slice 08). The armory scene passes.
+
+
+**Slice 08, 2026-11-15.** Confirmed first with temporary fielding-input/result
+traces, removed after measurement. In `battle-growth`, learning
+`eastern_rifle_squad` changes only `fieldedBattle`'s `kinds` by value (the
+`factions` and `sun` references also change, with equal values). Its result
+adds only `battle.units.types.eastern_rifle_squad` and
+`battle.effects.types.eastern_rifle_squad`: no appearance or clip changes.
+That stages 143 already wanted appearances and commits zero new bundles,
+then the BTR stages 145 with its hull and wreck. The page sends 201 and 203
+bundles respectively. In the reference battle the order reverses: the BTR
+stages at 29,724 ms, the rifle description at 31,752 ms, both wanting exactly
+the same 145 appearances and identical name/content declarations. The second
+stage invalidates the build in flight, then a commit arrives at 34,053 ms.
+The baseline reference diff contains only those two rifle-description entries.
+This confirms the cause, rather than the earlier inference of another install.
+
+`useBattleKinds` now closes its learned/purchase art set over catalog kinds:
+any kind requiring only those appearance names is fielded with them. This
+adds descriptions, not art, and keeps the returned kinds stable when such a
+kind is learned. Rejecting the description, ignoring a genuinely changed
+battle, or deferring it with a debounce would either lose presentation facts
+or preserve the duplicate cause. A synthetic hook regression proves the
+closed set keeps exactly the original art and its identity until new art is
+wanted. Map/battle/observer changes still reset the learned set.
+
+Art and staged topology can arrive on separate frames. The old scene requested
+once on the source-object change (while its canonical names were still old),
+then again when the staged names arrived. Even a repeated same-set request
+invalidated the first candidate. Both frame orders are now exercised through
+`BrowserScene`: source arrival alone with no change to drawn names requests
+nothing; when both inputs are ready there is one committable admission.
+`SceneAppearances` compares sorted name/content pairs and retains the same
+candidate, promise and latest poses across repeated requests, including array
+reordering. No cancellation, debounce or retry was added.
+
+Delegated and discovered decisions:
+
+| Decision | Reason; alternative rejected |
+| --- | --- |
+| `ModelAsset.encode()` returns borrowed bundle, texture and optional skeleton transport | Rust's missing list is consulted before any encoding. The re-encoding getter and eager texture/skeleton encoding were deleted. Caching every encoded bundle would retain another catalog-sized copy. The first scene still calls `load_bundle` for every asset; encoding its transport once also supplies its initial presentation facts. |
+| One bulk `missing_content_ids` call, then one draft with every declaration and one payload per missing identity | Aliases share one payload. Property order in the identity object and order of the asset array cannot affect equality. Per-name queries and full resends were rejected. |
+| Explicit grass retuning carries authored rules in the admission identity beside the art set | Grass tuning changes placement without changing art. Suppressing that existing lab operation would break the grass experiments; an arbitrary force/retry flag would bypass content equality. Normal growth keeps the same rules. |
+| `battle-growth` is serial and its long-frame tripwire is 700 ms | This is about one quarter of slice 00's 2.5–2.9 s freeze, not a latency target. Another harness scene must not compete for GPU time. The fixture observes browser long-animation-frame entries and intersects their intervals with staging-to-commit, including a frame that starts just before staging. Production's timeline only logs frames above 1 s, so using those logs alone would silently miss a 700–999 ms violation. No production observation hook or diagnostic threshold change was added. |
+| Packed geometry is derived from observed arriving names' runtime bundle headers | The user's initial encoded-byte upper bound was corrected: 7,942,032 source bytes become 8,648,160 bytes in the GPU vertex layout. `48` is stated once in the gate, with its Rust owner `models/geometry.rs::VERTEX_BYTES`. Every mesh tier is counted, including every articulated node. Rigid arrivals must equal that sum exactly. Skinned art may additionally pack a posed copy per corpse pose; identical palettes share geometry, so headers establish a range from the live meshes to the live meshes plus all corpse copies, rather than exact multiplicity. Already held identities are excluded from the new-content set. |
+
+The growth gate uses existing `window.__lab.stats().models.installed` snapshots
+at `scene installed` and `art committed` and catalog identities, rather than
+roster pins or a new production hook. It requires one staging and commit,
+exact new-content encoding/decoding, fixture-derived geometry, no scenery work,
+one library install and at most the new bundles plus skeletons inflated. These
+replace slice 01's two weaker page relations. Texture-layer and card delta
+assertions have an explicitly marked insertion point inside the commit checks;
+slices 04 and 05 still own those, and their work remains whole in these runs.
+
+
+A second regression confirmed that an art-readiness false/true round trip for
+an already resolved fielding request manufactured a new `PresentedBattle`
+wrapper. `useBattleFielding` now retains that resolved result instead of
+restarting it. Its test was red before the guard and green afterwards; this
+keeps an unchanged battle's identity stable while the same art is preparing.
+
+Closing measurements at high graphics, scene harness 1280 × 800, with textures
+and cards still rebuilt for the whole catalog (223–230 texture layers,
+189–234 cards and 21–26 read waits). These are evidence, not timing targets:
+
+| Reference growth | Contents sent | Sent bytes | Stagings | Frame containing staging | Staging to commit | Other overlapping frames >100 ms |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| 1 | 2 | 7,942,032 | 1 | 784 ms | 3.695 s | 172 ms |
+| 2 | 2 | 5,090,704 | 1 | 1559 ms | 3.137 s | 175 ms |
+| 3 | 3 | 11,101,752 | 1 | 1165 ms | 3.661 s | 126 ms |
+| 4 | 2 | 4,326,540 | 1 | 717 ms | 2.140 s | 137 ms |
+| 5 | 2 | 9,068,036 | 1 | 694 ms | 2.996 s | 123 ms |
+| 6 | 9 | 33,341,936 | 1 | 869 ms | 3.302 s | 119 ms |
+
+Every reference growth committed once, with exactly its missing content sent and
+no scenery work. The small one-type arrival at high graphics waited **2.605 s**
+from staging to commit, including a **934 ms** staging frame. Its work was two
+bundles encoded/decoded, 8,648,160 packed vertex bytes, two files inflated and
+one library install; 178 layers, 189 cards and 21 card waits were still whole.
+The high-quality `battle-growth` invocation therefore failed the 700 ms
+tripwire while its deterministic work checks passed. The ordinary fixture's
+profile passed: **568 ms** at staging and **1.296 s** to commit. The tripwire
+was not relaxed to conceal the high-quality failure.
+
+The reference still stutters by the requested >100 ms criterion: every growth
+has a 694–1,559 ms staging frame plus a 119–175 ms frame before commit. The
+probe reports the heavy work inside the frame loop; it does not isolate
+texture, card, or other synchronous regions. No further optimization is
+attributed to a cause without that isolation. Texture/card reuse has not
+landed; these measurements are not final. The remaining stutter is recorded
+for the reslice trigger rather than patched in this slice.
+
+
+Workbench coverage now re-bakes its synthetic catalog tank with reactive armour,
+reloads through the existing workbench catalog controls and selects the same
+name. It compares installed names, triangle counts and canvas pixels; names must
+stay the same while the new geometry draws. The existing fixture writer is
+reused, rather than adding another catalog builder or a production test hook.
+The grass-only scene also passes its existing tuning experiments, confirming
+that explicit placement changes still prepare with held art.
+
+
+A deliberate multi-type reference arrival was then measured at high: the probe
+held new bundle responses after the first scene until the observation named
+two new vehicle kinds, BTR and Tigr, and released them together. This is a
+coalesced arrival experiment, not an ordinary network-latency sample. The
+committed-name snapshot confirms both hulls and both wrecks arrived in one
+staging/admission: **4 contents / 13,032,736 bytes sent**, **14,237,856 vertex
+bytes packed**, **3.869 s** from staging to commit. It still produced an
+**819 ms** staging frame and another **164 ms** frame. There were two loader
+installs while the requests accumulated, but only one GPU/catalog commit;
+no scenery work. Textures/cards were still whole: 223 layers, 189 cards,
+21 waits. This confirms the README's multi-type stutter reslice trigger;
+it is recorded without adding frame spreading or another optimization here.
+
+
+A later ordinary-profile run kept all work counts correct but hit **895 ms**
+at staging (**2.114 s** to commit). Another checkout's unlocked scene job
+was active concurrently; its process ancestry had no GPU-lock owner. This
+result is retained beside the earlier passing 568 ms sample, rather than
+silently treating the noisy run as green. A single isolated check was queued
+to distinguish that contention from a stable tripwire failure.
+
+
+The final timing attempt waited for the unlocked job before joining the shared
+GPU-lock queue, then still failed the unchanged **700 ms** tripwire at
+**824 ms** (**817 ms** attributed to the frame loop), with **1.882 s** from
+staging to commit. All work-count checks passed again. Therefore this slice
+does **not** establish a reliably green long-frame gate on the 42dd5dd15
+renderer base: the earlier 568 ms pass is not promoted over the later failures.
+Transport and duplicate admissions are fixed; the residual timing failure is
+handed back explicitly, with whole texture/card work and the multi-type
+reslice evidence. No threshold was widened and no extra Rust optimization
+was added to manufacture a green result.
+
+Validation on the final code: 52 focused browser tests plus four watcher/CPU
+workbench tests passed; typecheck and lint passed (one existing lint warning).
+All 29 requested presentation tests and 44 renderer tests passed, as did the
+native and WASM checks and WASM build. Armory, the workbench's explicit same-name
+re-bake (120 to 144 triangles, changed canvas pixels), and grass retuning passed.
+The red timing invocations and all commands/results are preserved in the scratch
+slice report. The spec README's status and checklist are unchanged.

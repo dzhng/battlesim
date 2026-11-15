@@ -29,6 +29,19 @@ The [benchmark](src/battle/benchmark/README.md) measures the actual simulation a
 renderer with a declared workload and camera tour. A route selection or successful
 startup alone does not prove its performance budget.
 
+Scene art is declared by wanted name and content identity. After the first
+scene, the page asks Rust which identities lack decoded sources or retained
+presentation facts, then encodes and copies only those contents, including
+their textures and skeletons. Parsed art stays the browser source; transport
+bytes are produced on request rather than on property access.
+
+[Appearance admission](src/battle/render/sceneAppearances.ts) keeps one candidate
+at a time. The set of names and content identities determines whether art changed;
+fresh source objects, array order and pose changes do not start another admission
+or supersede the same candidate. Explicit grass-rule changes also prepare their
+new placement. The battle's wanted kinds include every description whose art is
+already wanted, so learning another kind wearing that art does not stage it again.
+
 ## Build and serving
 
 [The web manifest](package.json) owns browser dependencies, WebAssembly compilation,
