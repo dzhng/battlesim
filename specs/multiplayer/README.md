@@ -21,50 +21,44 @@ simulation test build here, with other sessions building too. Check
 `df -h .` before any Rust build or new checkout. Under about 30 GB free, run
 Rust passes one or two at a time; under 5 GB, start nothing and ask the user.
 
-**Done and committed:** slices 02 to 08, 10 to 18 and 20 to 24,
-and the local half of 09; the
-endurance half of slice 01. The branch holds staging as of
-2026-11-15. **The first playable checkpoint is reached:** two browsers
-command opposite sides of one battle on a local server
-([how to run it](slices/08-command-any-seat.md)). The Multiplayer page and
-the room lobby exist; a room cannot start its battle until slice 18.
+**Done and committed:** slices 02 to 08, 10 to 18 and 20 to 24, and the
+local half of 09; the endurance half of slice 01. The branch holds staging
+as of 2026-11-15. **Rooms work end to end on a local server:** two browsers
+create a room, start its battle, survive a drop and finish
+([how to run it](slices/18-room-battle.md)).
 
 **Pick up here, in this order:**
 
-1. **Integrate slice 18,** the room battle, handed to Codex on 2026-11-15
-   in its own checkout with a report in `throwaway/multiplayer/` there. It
-   starts a room's battle, hands a dropped player's seat to its AI and back,
-   ends the room with the battle, and deletes the dev battle. Play it in two
-   browsers, get an unprimed critique, and show the user.
-   Then **slice 25,** the Frontline service, which needs 18.
-2. **Slice 09's push** waits for the user: ask before promoting a site
-   build, before deploying, and before making the address public. Its local
-   half is in, with a deploy step that is a dry run by default
-   ([what is left](slices/09-identity-build-deploy.md)).
-3. **Run slice 01's host half** (O1) on the probe app. `bun run server:soak`
-   is the workload: bundle it, run it on the host, and read its summary
-   line.
+1. **Integrate slice 25,** the Frontline service, handed to Codex on
+   2026-11-15 in its own checkout with a report in `throwaway/multiplayer/`
+   there. It touches the simulation's binding: every existing digest must
+   be unchanged.
+2. **Slice 26,** the briefing card and Play, which needs 25. It changes
+   what a player sees: look at the pictures, get an unprimed critique, and
+   show the user.
+3. **The three things that need the user's go-ahead,** all outward-facing:
+   slice 09's push (deploying the server), slice 01's host half (O1, the
+   late-tick measurement on the host: `bun run server:soak` is the
+   workload), and slice 19, the milestone (two people on two networks
+   finish a room battle). Ask before promoting a site build, before
+   deploying, and before making the address public.
+4. **Slice 27,** the closeout: the one full run, the docs, the plan
+   archived.
 
-**Broken by the staging merge of 2026-11-15, not by this work:**
-
-- The `online-battle` scene's three "armies meet" checks fail. Both units
-  are ordered to the middle of the map; since the merge Blue's vehicle
-  stops in the town with "route blocked", so the two never come into
-  sight. The scene's other checks pass. Slice 18 rewrites this scene to go
-  through a room: have it meet on ground both can reach, and tell the user
-  if a vehicle still cannot drive through the town.
-- Four approved `unit-roster` pictures differ. The camera did not change
-  here (slice 12 only renamed a variable); staging's road work changed how
-  the ground draws after those pictures were last approved. They are not
-  this plan's to re-approve: tell the user.
+**Not this plan's, and being handled by another session of the user's:**
+since the staging merge of 2026-11-15, four approved `unit-roster` pictures
+differ (staging's road and entry changes), and a vehicle ordered through a
+town on the default mixed map stopped with "route blocked". Leave both
+alone. The `online-battle` scene no longer drives through a town.
 
 **Waiting on the user, not blocking:**
 
-- **Deploying** (slice 09): now, or after rooms can start a battle (slice
-  18). Recommended: after.
-- **The main menu's approved picture** fails since the Multiplayer tile made
-  the menu one tile taller. The user is happy with the taller menu; the
-  picture is re-approved once they have accepted the tile's new art.
+- **Deploying** (slices 09, 01 and 19): rooms can now start a battle, so
+  nothing technical is in the way.
+- **The main menu's approved picture** fails: the menu is one tile taller
+  and the Multiplayer tile has its own art. Re-approve it once the user
+  accepts the art (they asked for people in front and vehicles behind, and
+  for the heads not to be cut off; both done).
 - **Lane numbers** (slice 12): kept as they are unless the user says
   otherwise.
 - **Frontline's length** (slice 21): 2,100 points, about an hour for the
@@ -74,7 +68,7 @@ the room lobby exist; a room cannot start its battle until slice 18.
 alpha (slice 20); the host sets an empty seat from one picker, Open or AI
 (slice 17); a room's buttons are the skirmish Reroll's height (slice 17);
 the result screen heads a commander's sides "YOUR SIDE" and "ENEMY"
-(slice 11).
+(slice 11); the Multiplayer tile's art shows people in front (slice 16).
 
 **How to work with Codex here.**
 
