@@ -266,6 +266,8 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
   "fit.eye": () => soldier({ eyeY: 1.3 }),
   "fit.muzzle": () => soldier({ muzzleY: 1.0 }),
   "fit.lies": () => soldier({}, {}, undefined, soldierRig({ corpseZ: 0.9 })),
+  "fit.facing": () => soldier({}, {}, undefined, soldierRig({ aimHeadDeg: 20 })),
+  "fit.cheek": () => soldier({ eyeY: 1.52, muzzleY: 1.49 }),
   "fit.hull_extents": () => tank({ hullHalfY: 2.2 }),
   "fit.vehicle_muzzle": () => tank({ muzzleX: 5.9 }),
   "fit.footprint": async () =>

@@ -68,12 +68,12 @@ import {
   type Material,
   type MaterialRole,
   type MeshData,
-  type PoseRef,
   type SkeletonClips,
   type SkinnedBundle,
   type StaticBundle,
   type Tolerances,
 } from "./schema.ts";
+import type { SkeletonRef } from "./skeletonFit.ts";
 import { finding, fmt } from "./finding.ts";
 
 export interface ValidationContext {
@@ -122,7 +122,7 @@ export interface AppearanceInput {
   /** Source bytes by catalog path (the entry's `source` or `states`). */
   files: Record<string, Uint8Array>;
   /** Skinned: the skeleton's clips and its aim reference pose. */
-  skeleton?: { clips: SkeletonClips; aim_reference: PoseRef };
+  skeleton?: SkeletonRef;
   /** Articulated: the unit types to fit it to; by default every type whose
    *  `appearance` names it (`name`). */
   types?: string[];

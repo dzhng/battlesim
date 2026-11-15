@@ -6,12 +6,20 @@ import { finding } from "./finding.ts";
 import { importScene } from "./scene.ts";
 import {
   INFANTRY_CLIPS,
+  type AimReference,
   type Finding,
   type PoseRef,
   type SkeletonClips,
   type SkeletonEntry,
 } from "./schema.ts";
 import { hasErrors, type Validation } from "./validate.ts";
+
+/** A skinned appearance's skeleton as validation reads it: its clips and its aim
+ *  reference pose. */
+export interface SkeletonRef {
+  clips: SkeletonClips;
+  aim_reference: AimReference;
+}
 
 export async function validateSkeleton(
   id: string,

@@ -2,7 +2,7 @@
 // aim (height, eye, muzzle, ground), a supported active kit's hold, and each
 // way he lies dead.
 
-import { vec3 } from "math";
+import { vec3, type Mat4, type Vec3 } from "math";
 import { groundFindings } from "./boxFit.ts";
 import { finding, fmt } from "./finding.ts";
 import {
@@ -16,11 +16,11 @@ import { pointAt } from "./trs.ts";
 import type { MountRow } from "./units.ts";
 import {
   INFANTRY_SOCKETS,
+  type AimReference,
   type Authority,
   type Finding,
   type Joint,
   type MeshData,
-  type PoseRef,
   type SkeletonClips,
   type SkinnedBundle,
   type Socket,
@@ -31,6 +31,10 @@ import {
  *  little, a body half buried does not. */
 export const CORPSE_SINK_M = 0.2;
 
+/** How far from level a shooter's face may point in his aim reference pose: he
+ *  looks down the sights at the target, not down at the weapon. */
+export const AIM_FACING_DEG = 8;
+
 /** The body standing aimed at its skeleton's `aim` reference, and holding each
  *  supported active kit of `grounded` at its mount's bore. */
 export function infantryFindings(
@@ -39,7 +43,7 @@ export function infantryFindings(
   mesh: MeshData,
   sockets: Socket[],
   clips: SkeletonClips,
-  aim: PoseRef,
+  aim: AimReference,
   authority: Authority,
   tolerances: Tolerances,
   grounded: readonly MountRow[],
@@ -117,6 +121,28 @@ export function infantryFindings(
         ),
       );
   }
+  const sightOverBore = aim.sight_over_bore_m;
+  if (eye && muzzle && clip && sightOverBore !== undefined && !grounded.length)
+    if (eye[2] - muzzle[2] < sightOverBore)
+      out.push(
+        finding(
+          "fit.cheek",
+          `${label}: eye ${fmt(eye[2] - muzzle[2])} m over the muzzle ${pose}; the sight line runs at least ${sightOverBore} m over the bore (aim_reference.sight_over_bore_m), so the weapon stands above the eye`,
+          "bring the eye onto the sight line: the head onto the stock, or the weapon lower in the shoulder",
+        ),
+      );
+  const head = joints.findIndex((j) => j.name === "Head");
+  if (head >= 0 && clip) {
+    const pitch = facingPitch(joints, worlds, head);
+    if (Math.abs(pitch) > AIM_FACING_DEG)
+      out.push(
+        finding(
+          "fit.facing",
+          `${label}: faces ${fmt(Math.abs(pitch))}° ${pitch < 0 ? "down" : "up"} ${pose}; a shooter looks level down the sights (± ${AIM_FACING_DEG}°)`,
+          "turn the head to look along the bore at the target",
+        ),
+      );
+  }
   for (const mount of grounded) {
     const hold = mount.operator_appearance!.active_pose!;
     const heldClip = clips.clips.find((c) => c.name === hold.clip);
@@ -149,6 +175,24 @@ export function infantryFindings(
       );
   }
   return out;
+}
+
+/** How far the `head` joint faces above level (degrees; below is negative) in
+ *  `worlds`: the direction it faced at bind, which is the character's forward (+X). */
+function facingPitch(joints: Joint[], worlds: Mat4[], head: number): number {
+  const bind = worldTransforms(
+    joints.map((j) => j.parent),
+    joints.map((j) => j.bind),
+  )[head];
+  const turn = (m: Mat4, d: Vec3) => vec3.sub([0, 0, 0], pointAt(m, d), pointAt(m, [0, 0, 0]));
+  // The forward direction in the head's own frame: each local axis's share of +X at bind.
+  const local: Vec3 = [
+    turn(bind, [1, 0, 0])[0],
+    turn(bind, [0, 1, 0])[0],
+    turn(bind, [0, 0, 1])[0],
+  ];
+  const facing = vec3.normalize([0, 0, 0], turn(worlds[head], local));
+  return (Math.asin(facing[2]) * 180) / Math.PI;
 }
 
 /**

@@ -102,3 +102,25 @@ test("kit standing on the ground by itself stays up when its operator dies: only
 test("how high a corpse may lie is the catalog's tolerance", async () => {
   expect(await lies(0.9, { soldier_lying_height_m: 1.5 })).toEqual([]);
 });
+
+test.each([
+  ["looking level down the sights", {}, []],
+  ["the head bowed onto the stock, looking down", { aimHeadDeg: 20 }, ["fit.facing"]],
+  [
+    "the eye under the sight line, the weapon up at the brow",
+    { eyeY: 1.52, muzzleY: 1.49 },
+    ["fit.cheek"],
+  ],
+])("a shouldered aim: %s", async (_, soldier: SoldierOptions, codes) => {
+  const result = await validateAppearance(
+    {
+      name: "soldier",
+      entry: { unit: "soldier", source: "s.glb", basis_yaw_deg: 90, skeleton: "test-rig" },
+      files: { "s.glb": soldierGlb({ animated: false, ...soldier }) },
+      skeleton: soldierRig(soldier),
+    },
+    context,
+  );
+  const aim = result.findings.filter((f) => f.code === "fit.facing" || f.code === "fit.cheek");
+  expect(aim.map((f) => f.code)).toEqual(codes);
+});

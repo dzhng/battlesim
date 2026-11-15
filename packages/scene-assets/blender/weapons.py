@@ -278,9 +278,9 @@ RIFLE_SCALE = 0.86
 
 # Rifle family (spike 03's holds): grip and support points in the weapon's frame; the
 # low-ready carry (stock at the right chest, muzzle forward-down and a little left);
-# the optic, 8 cm ahead of the eye when shouldered, halfway across toward the right
-# shoulder pocket; the kneel_fire recoil (frame, back m, up deg); prone with the butt
-# in the shoulder and the support hand 10 cm back on the handguard.
+# the top of the sight (the M68's), which the eye sits level with when shouldered; the kneel_fire
+# recoil (frame, back m, up deg). The support hand takes the support point, or as far
+# forward of the grip as the arm reaches (`Rig.within_reach`).
 RIFLE_HOLD = {
     "family": "rifle",
     "grip": (0, 0.06, -0.035),
@@ -288,15 +288,14 @@ RIFLE_HOLD = {
     "scale": RIFLE_SCALE,
     "low": weapon_matrix((-0.12, -0.22, 1.16), yaw_deg=25, pitch_deg=-38),
     "low_poles": ((-0.45, 0.25, 0.95), (0.35, -0.10, 0.85)),
-    "sight": (0, 0.005, 0.11),
+    "sight": (0, -0.04, 0.149),
     "cheek_blend": 0.5,
     "recoil": ((0, 0, 0), (3, 0, 0), (5, 0.06, 7.0), (8, 0.03, 3.5), (14, 0, 0), (36, 0, 0)),
     "butt": (0, 0.39, 0.03),
-    "prone_support_back": 0.1,
 }
 
 # Launcher family: the tube rides the right shoulder in the carry, level and pointing
-# forward; shouldered, the CLU's sight sits at the eye; the missile's launch jolt is
+# forward; shouldered, the CLU's eyepiece (`sight`) sits at the eye; the missile's launch jolt is
 # a short push back.
 LAUNCHER_HOLD = {
     "family": "launcher",
@@ -309,7 +308,6 @@ LAUNCHER_HOLD = {
     "cheek_blend": 0.0,
     "recoil": ((0, 0, 0), (3, 0, 0), (5, 0.03, 2.0), (9, 0.01, 0.8), (16, 0, 0), (36, 0, 0)),
     "butt": None,
-    "prone_support_back": 0.0,
 }
 
 FAMILIES = {"rifle": RIFLE_HOLD, "launcher": LAUNCHER_HOLD}

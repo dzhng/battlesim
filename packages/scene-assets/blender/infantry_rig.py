@@ -100,12 +100,28 @@ class Rig:
         wrist_l = weapon_mw @ Vector(support) - lh @ Vector((0, 0.07, 0)) - up * 0.03
         return (Matrix.Translation(wrist_r) @ rh.to_4x4(), Matrix.Translation(wrist_l) @ lh.to_4x4())
 
+    def within_reach(self, weapon_mw, grip, support):
+        """The support point the left hand can take: `support`, or as far forward of the
+        pistol grip as the arm reaches (`SUPPORT_REACH`) from the shoulder as posed now, but
+        no nearer the grip than `SUPPORT_NEAREST`."""
+        bpy.context.view_layer.update()
+        shoulder = self.arm.matrix_world @ self.arm.pose.bones["upperarm_l"].head
+        bones = self.arm.data.bones
+        reach = SUPPORT_REACH * (bones["upperarm_l"].length + bones["lowerarm_l"].length) * self.arm.matrix_world.to_scale().x
+        s = Vector(support)
+        while s.y < grip[1] - SUPPORT_NEAREST:
+            if (self.hold_targets(weapon_mw, grip, s)[1].translation - shoulder).length <= reach:
+                break
+            s.y += 0.01
+        return s
+
     def make_hold(self, tag, weapon_mw, grip, support, spine_follow=True):
-        """An anchor at the weapon placement with the two wrist targets under it."""
+        """An anchor at the weapon placement with the two wrist targets under it; the
+        support hand as far forward on the weapon as it reaches (`within_reach`)."""
         anchor = empty(f"anchor_{tag}", (0, 0, 0), size=0.05)
         anchor.matrix_world = weapon_mw
         bpy.context.view_layer.update()
-        right, left = self.hold_targets(weapon_mw, grip, support)
+        right, left = self.hold_targets(weapon_mw, grip, self.within_reach(weapon_mw, grip, support))
         tr = empty(f"ik_hand_r_{tag}", right.translation, size=0.03)
         tl = empty(f"ik_hand_l_{tag}", left.translation, size=0.03)
         tr.rotation_mode = tl.rotation_mode = "QUATERNION"
@@ -306,13 +322,19 @@ class Rig:
         bpy.context.view_layer.update()
 
     def eye_point(self):
-        """The right eye, in armature space: in the Head bone frame Y runs up the skull and Z to the back."""
+        """The right eye, in armature space: in the Head bone frame Y runs up the skull and Z out of the face."""
         bpy.context.view_layer.update()
         return self.arm.pose.bones["Head"].matrix @ EYE_IN_HEAD
 
 
-# The eye socket's offset in the Head bone's frame (spike 03's `eye_point`).
-EYE_IN_HEAD = Vector((-0.033, 0.09, 0.09))
+# The eye socket's offset in the Head bone's frame: at the right pupil of the generated
+# heads, 1.5 cm below spike 03's `eye_point` (which sat on the brow).
+EYE_IN_HEAD = Vector((-0.033, 0.075, 0.09))
+# How much of the arm's length the support hand reaches out to: the arm stays a little bent.
+SUPPORT_REACH = 0.95
+# How near the pistol grip the support hand may slide, weapon units: the handguard's rear,
+# ahead of the magazine well.
+SUPPORT_NEAREST = 0.16
 
 
 def frame_from(y_axis, n_axis):

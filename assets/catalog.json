@@ -120,7 +120,8 @@
       "sample_hz": 30,
       "aim_reference": {
         "clip": "stand_aim",
-        "phase": 0
+        "phase": 0,
+        "sight_over_bore_m": 0.05
       },
       "clips": {
         "idle": {

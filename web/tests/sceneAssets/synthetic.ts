@@ -154,6 +154,7 @@ export interface SoldierOptions {
   tint?: number; // the side-tint mask weight of its material (extras.tint)
   corpseZ?: number; // the pelvis height each corpse comes to rest at (default 0.15, lying)
   tripod?: boolean; // a 1.2 m tall launcher on its tripod, weighted wholly to the root (it stands by itself)
+  aimHeadDeg?: number; // how far the head bows in stand_aim, degrees (default 0, level)
 }
 
 /** Every role an infantry skeleton carries, and the standing-aim reference pose. */
@@ -246,15 +247,22 @@ export function soldierGlb(o: SoldierOptions = {}): Uint8Array {
     : [];
   g.roots(armature, ...bodyNodes, ...loose);
   if (o.animated !== false)
-    addSoldierClips(g, { pelvis, spine, hand }, o.clips ?? SOLDIER_CLIPS, (o.corpseZ ?? 0.15) * k);
+    addSoldierClips(
+      g,
+      { pelvis, spine, hand, head },
+      o.clips ?? SOLDIER_CLIPS,
+      (o.corpseZ ?? 0.15) * k,
+      o.aimHeadDeg ?? 0,
+    );
   return g.glb();
 }
 
 function addSoldierClips(
   g: GltfBuilder,
-  j: { pelvis: number; spine: number; hand: number },
+  j: { pelvis: number; spine: number; hand: number; head: number },
   names: string[],
   restY: number,
+  aimHeadDeg: number,
 ) {
   const sway = (deg: number) => [...qx(0), ...qx(deg), ...qx(0)];
   for (const name of names) {
@@ -267,7 +275,10 @@ function addSoldierClips(
         { node: j.hand, path: "rotation", times: [0, 1], values: [...qx(0), ...qx(90)] },
       ]);
     else if (name === "stand_aim")
-      g.animation(name, [{ node: j.spine, path: "rotation", times: [0], values: [...qx(0)] }]);
+      g.animation(name, [
+        { node: j.spine, path: "rotation", times: [0], values: [...qx(0)] },
+        { node: j.head, path: "rotation", times: [0], values: [...qx(aimHeadDeg)] },
+      ]);
     else
       g.animation(name, [
         {
@@ -284,7 +295,7 @@ export const SKELETON_ENTRY: SkeletonEntry = {
   source: "assets/source/test-rig.glb",
   basis_yaw_deg: 90,
   sample_hz: 30,
-  aim_reference: { clip: "stand_aim", phase: 0 },
+  aim_reference: { clip: "stand_aim", phase: 0, sight_over_bore_m: 0.05 },
   clips: Object.fromEntries(
     SOLDIER_CLIPS.map((name) => [
       name,

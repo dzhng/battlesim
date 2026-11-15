@@ -69,6 +69,10 @@ export const FINDING_CODES = [
   "fit.lies",
   "fit.eye",
   "fit.muzzle",
+  /** A soldier in his aim reference pose not looking level down the sights. */
+  "fit.facing",
+  /** A shouldered weapon's sight line above the eye: the weapon held up at the brow. */
+  "fit.cheek",
   "fit.hull_extents",
   "fit.vehicle_muzzle",
   "fit.muzzle_arc",
@@ -570,8 +574,15 @@ export interface SkeletonEntry {
   basis_yaw_deg: number;
   sample_hz: number;
   /** The standing-aim reference pose infantry fit is measured in. */
-  aim_reference: PoseRef;
+  aim_reference: AimReference;
   clips: Record<string, ClipDeclaration>;
+}
+
+/** A skeleton's aim reference pose, and the least height of its weapon's sight
+ *  over the bore, which the eye sits on (iron sights; an optic sits higher).
+ *  Absent where the sight sits beside the bore, as on a shoulder-fired launcher. */
+export interface AimReference extends PoseRef {
+  sight_over_bore_m?: number;
 }
 
 /** A soldier appearance's look per faction (`AppearanceEntry.factions`). */
