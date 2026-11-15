@@ -90,6 +90,8 @@ framing, so a shot in a narrow street may stand nearer than a player may zoom.
 
 [Online menu pages](src/online/README.md) draw the room service's latest views;
 the browser never predicts a seat or a setting after sending an action.
+Rooms and offline skirmish share one lobby view, with separate network and local
+drivers owning their state.
 
 [Online battle pages](src/routes/onlineBattle.tsx) prepare the map locally and
 check its hash before opening any server stream. Their session takes only seat

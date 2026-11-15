@@ -22,6 +22,8 @@ export async function roomRequest<T>(
 export function roomFailure(error: unknown): string {
   if (error instanceof StreamRefused) {
     switch (error.reason) {
+      case "removed":
+        return "You are no longer in that room.";
       case "full":
         return "The servers are full. Try again later.";
       case "unknown":

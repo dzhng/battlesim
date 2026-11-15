@@ -43,10 +43,10 @@ function PageView({ page }: { page: MenuPageId }) {
   // Bubbling on the window, so a control that handles Escape itself (the
   // lobby's dropdowns) has it first.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && back();
+    const onKey = (e: KeyboardEvent) => page !== "room" && e.key === "Escape" && back();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [back]);
+  }, [back, page]);
   const Contents = CONTENTS[page];
   return (
     <>

@@ -87,7 +87,13 @@ export function MultiplayerPage() {
               if (busy || name === assignedName.current) return;
               void run(async (signal) => {
                 setCallsign(name);
-                const assigned = await hello(address, signal);
+                const assigned = await hello(address, signal).catch((error: unknown) => {
+                  if (!signal.aborted) {
+                    setAvailable(false);
+                    lifetime.current?.abort();
+                  }
+                  throw error;
+                });
                 if (!signal.aborted) {
                   assignedName.current = assigned;
                   setName(assigned);

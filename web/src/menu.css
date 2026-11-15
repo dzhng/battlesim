@@ -1067,16 +1067,16 @@
    The Skirmish page spreads the plate over the screen: Blue's banners on the
    left, Red's on the right, the map between them under "N VS M", and a strip
    of the match's settings, the map's status, Reroll and Deploy below. */
-.menu[data-open="skirmish"] {
+.menu[data-lobby] {
   grid-template-columns: minmax(0, 1fr);
   justify-items: center;
   overflow: hidden;
   padding: 12px 20px;
 }
-.menu[data-open="skirmish"] .menu-slot {
+.menu[data-lobby] .menu-slot {
   grid-template-columns: minmax(0, 1fr);
 }
-.menu[data-open="skirmish"] .hud-panel.menu-body {
+.menu[data-lobby] .hud-panel.menu-body {
   /* Denser glass than the small pages': the film behind must not tint one
      side's column and not the other's. */
   --hud-glass-alpha: 0.9;
@@ -1463,7 +1463,7 @@ span.lobby-controller:not(.lobby-pick) {
   text-shadow: var(--hud-text-halo);
 }
 /* A closed size is there but unlit. */
-.hud-panel .lobby-options button:disabled {
+.hud-panel .lobby-options button:disabled:not([data-readonly]) {
   opacity: 1;
   color: rgb(var(--hud-dim) / 0.4);
   border-style: dashed;

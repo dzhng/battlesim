@@ -1,7 +1,12 @@
 import config from "@fixtures/generated-battle.json";
 import presets from "@fixtures/map-presets.json?raw";
 import templates from "@fixtures/prototype-building-templates.json?raw";
-import { battleRequest, type LobbyState, type SetupData } from "@packages/skirmish-setup/src/lobby";
+import {
+  battleRequest,
+  type LobbyState,
+  type LobbySetup,
+  type SetupData,
+} from "@packages/skirmish-setup/src/lobby";
 import type { MapGenerator } from "@web/maps/source";
 import type { AskedBattle } from "./battleLinks";
 import type { Wasm } from "@web/battle/sim/module";
@@ -10,7 +15,7 @@ export function setupData(generator: MapGenerator): SetupData {
   return { generator, presets, templates, limits: config.limits };
 }
 
-export function lobbyCandidate(generator: MapGenerator, lobby: LobbyState) {
+export function lobbyCandidate(generator: MapGenerator, lobby: LobbySetup) {
   return (seed: string) =>
     battleRequest({ ...lobby, map: { ...lobby.map, seed } }, setupData(generator));
 }

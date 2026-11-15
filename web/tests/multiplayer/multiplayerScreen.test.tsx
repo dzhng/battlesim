@@ -157,3 +157,25 @@ test("a valid private code enters its room without disclosing the credential", a
   await page.findByRole("heading", { name: "Room reached" });
   expect(page.container.textContent).not.toContain(browserId());
 });
+
+test("a build refusal while editing the callsign withdraws all online actions", async () => {
+  const page = await open();
+  await page.findByRole("status", { name: "No public rooms" });
+  const original = globalThis.fetch;
+  vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+    if (String(input).endsWith("/hello"))
+      return original(input, {
+        ...init,
+        body: JSON.stringify({
+          build: { commit: "changed-build", sim: "changed-sim" },
+          callsign: "SCOUT",
+        }),
+      });
+    return original(input, init);
+  });
+  fireEvent.change(page.getByRole("textbox", { name: "Callsign" }), { target: { value: "WING" } });
+  fireEvent.submit(page.getByRole("form", { name: "Callsign" }));
+  await page.findByRole("status", { name: "Online unavailable" });
+  expect(page.queryByRole("button", { name: "Create room" })).toBeNull();
+  expect(page.queryByRole("button", { name: "Join private room" })).toBeNull();
+});

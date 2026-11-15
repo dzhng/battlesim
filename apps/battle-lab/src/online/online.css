@@ -109,3 +109,115 @@
     padding-block: 4px;
   }
 }
+.online-room-header {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+.online-room-header > span {
+  color: rgb(var(--hud-dim));
+  font-size: 11px;
+}
+.online-room-header strong {
+  color: rgb(var(--hud-text));
+}
+.online-open-note {
+  margin: 8px 0 0;
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(var(--hud-dim));
+}
+.menu[data-open="room"] .lobby-map {
+  width: min(calc(100cqh - var(--lobby-vs) - 36px), calc(100cqw - 2 * (260px + 28px)));
+}
+.lobby-banner[data-kind="open"]::before {
+  background: none;
+  border: 1px dashed rgb(var(--side) / 0.55);
+  clip-path: none;
+}
+.lobby-banner[data-kind] {
+  min-height: 64px;
+  height: auto;
+  gap: 10px;
+}
+.hud-panel .online-sit {
+  flex: 1;
+  align-self: stretch;
+  text-align: inherit;
+  background: none;
+  border: 0;
+}
+.online-human {
+  display: grid;
+  gap: 4px;
+  overflow-wrap: anywhere;
+}
+.online-human small {
+  color: rgb(var(--hud-credits));
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+}
+.online-ready {
+  color: rgb(var(--hud-good));
+  font-size: 10px;
+  text-transform: uppercase;
+}
+.hud-panel button.online-set-seat {
+  margin-left: auto;
+  font-size: 9px;
+  padding: 4px;
+  white-space: nowrap;
+}
+.hud-panel button.online-start {
+  color: rgb(var(--hud-glass));
+  background: rgb(var(--hud-accent));
+  padding: 12px 24px;
+  font-size: 16px;
+  letter-spacing: 0.25em;
+}
+.hud-panel button.online-start:disabled {
+  color: rgb(var(--hud-dim));
+  background: none;
+  border-style: dashed;
+}
+
+/* Room callsigns are names on the banner, rather than offline controller tags. */
+.lobby-banner[data-kind="human"] span.lobby-controller:not(.lobby-pick) {
+  padding: 0;
+  border: 0;
+  color: rgb(var(--hud-text));
+  background: none;
+  box-shadow: none;
+}
+
+.lobby-side[data-side="red"] .lobby-banner[data-kind="open"]::before {
+  background: none;
+  border: 1px dashed rgb(var(--side) / 0.55);
+  clip-path: none;
+}
+/* The whole dashed seat is a target; its host controls remain separate targets. */
+.online-sit::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+.lobby-banner[data-kind="open"] :is(.online-set-seat, .lobby-remove) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Read-only settings keep their selected value legible. Disabled size floors stay unlit. */
+.lobby-options button[data-readonly],
+.lobby-pick[data-readonly] > button {
+  opacity: 1;
+  cursor: default;
+}
+.hud-panel .lobby-pick[data-readonly] > button::after {
+  display: none;
+}

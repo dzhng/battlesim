@@ -1,6 +1,6 @@
 import { spawn, execFileSync } from "node:child_process";
 import { once } from "node:events";
-import { mkdir, writeFile, readFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { randomBytes } from "node:crypto";
 
 export const root = new URL("../../", import.meta.url).pathname;
@@ -8,7 +8,7 @@ export const sizes = [
   { width: 1280, height: 720 },
   { width: 1920, height: 1080 },
 ];
-export const evidence = (slice) => `${root}throwaway/multiplayer/${slice}/`;
+export const evidence = (scene) => `${root}throwaway/multiplayer/${scene}/`;
 
 export async function roomServer() {
   execFileSync("bun", ["apps/game-server/build.mjs"], { cwd: root });
@@ -66,11 +66,11 @@ export async function onlinePage(ctx, local, name, path = "/multiplayer") {
     localStorage.setItem("battle.graphics", JSON.stringify({ mode: "high", detectedMode: "high" }));
   }, name);
   const handshake = page.waitForRequest((r) => r.url().endsWith("/hello"));
-  await page.goto(
-    `${new URL(ctx.url).origin}${path}?server=${encodeURIComponent(local.address)}&quality=${ctx.graphicsQuality}`,
-  );
+  await page.goto(`${new URL(ctx.url).origin}${path}?server=${encodeURIComponent(local.address)}`);
   const build = (await handshake).postDataJSON().build;
-  await page.getByRole("textbox", { name: "Callsign" }).waitFor({ timeout: 120_000 });
+  if (path.startsWith("/room/"))
+    await page.getByRole("region", { name: "Room lobby" }).waitFor({ timeout: 120_000 });
+  else await page.getByRole("textbox", { name: "Callsign" }).waitFor({ timeout: 120_000 });
   await page.getByTestId("loading").waitFor({ state: "hidden", timeout: 120_000 });
   await page.evaluate(() => document.fonts.ready);
   return { page, build };
@@ -118,41 +118,6 @@ export async function mockScreens(ctx) {
   ]) {
     await page.getByRole("button", { name: `${index} ${name}`, exact: true }).click();
     await page.locator("#stage").screenshot({ path: `${folder}screen${index}.png` });
-  }
-  await page.close();
-}
-
-/** Fixed offline intent for a strict before/after pixel comparison. */
-export async function offlinePictures(ctx, folder, before = false) {
-  const seedFile = `${evidence("slice16")}offline-seed.json`;
-  const seed = before ? "77" : JSON.parse(await readFile(seedFile, "utf8"));
-  const page = await ctx.newPage({ viewport: sizes[0] });
-  await page.addInitScript(() =>
-    localStorage.setItem("battle.graphics", JSON.stringify({ mode: "high", detectedMode: "high" })),
-  );
-  await page.goto(`${new URL(ctx.url).origin}/skirmish?seed=${seed}`);
-  await page
-    .locator('[data-testid=lobby-status][data-status="ready"]')
-    .waitFor({ timeout: 120_000 });
-  await page.locator("main.menu:not([inert])").waitFor({ timeout: 120_000 });
-  await page.getByTestId("loading").waitFor({ state: "hidden", timeout: 120_000 });
-  await page.evaluate(() => document.fonts.ready);
-  if (before) {
-    const admitted = new URL(
-      await page.getByTestId("menu-deploy").getAttribute("href"),
-      page.url(),
-    ).searchParams.get("seed");
-    await writeFile(seedFile, JSON.stringify(admitted));
-  }
-  for (const size of sizes) {
-    await page.setViewportSize(size);
-    await page.mouse.move(0, 0);
-    await page.locator(".menu-body").screenshot({
-      path: `${folder}offline-${size.width}x${size.height}.png`,
-      animations: "disabled",
-      caret: "hide",
-      style: ".menu-backdrop {visibility:hidden!important}",
-    });
   }
   await page.close();
 }

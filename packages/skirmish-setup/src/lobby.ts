@@ -23,14 +23,17 @@ import {
 
 export type LobbySide = SkirmishSide;
 export type LobbyPreset = "1v1" | "3v3" | "5v5";
-export interface LobbyState {
+export interface LobbySetup {
   seats: Seat[];
-  nextSeat: number;
   factions: Record<SkirmishSide, Faction>;
   map: MapChoice;
   battleSeed: number;
   lighting: string;
   rules?: PrepareBattleRequest["rules"];
+}
+/** Editable local/model state additionally owns the next seat identity. */
+export interface LobbyState extends LobbySetup {
+  nextSeat: number;
 }
 export interface SetupData {
   generator: MapGenerator;
@@ -44,13 +47,13 @@ export const DEFAULT_BATTLE_SEED = 20260925;
 export const DEFAULT_LIGHTING = presentation.light_preset;
 const countForPreset: Record<LobbyPreset, number> = { "1v1": 1, "3v3": 3, "5v5": 5 };
 
-function filled(state: LobbyState): Seat[] {
+function filled(state: Pick<LobbySetup, "seats">): Seat[] {
   return state.seats.filter((seat) => seat.occupant.kind !== "open");
 }
 function seatId(number: number): SeatId {
   return `seat-${number}`;
 }
-function floorFor(state: LobbyState): MapSize {
+function floorFor(state: Pick<LobbySetup, "seats">): MapSize {
   return sizeTier(filled(state).map((seat) => ({ side: seat.side }))).size;
 }
 function sizeRank(size: MapSize): number {
@@ -95,7 +98,7 @@ export function preset(kind: LobbyPreset, from?: LobbyState): LobbyState {
   return { ...state, map: { ...state.map, size: floor } };
 }
 
-export function sideFaction(state: LobbyState, side: LobbySide): Faction {
+export function sideFaction(state: Pick<LobbySetup, "factions">, side: LobbySide): Faction {
   return state.factions[side];
 }
 
@@ -186,7 +189,7 @@ function mapInputs(state: LobbyState) {
   };
 }
 
-export function battleRequest(lobby: LobbyState, data: SetupData): PrepareBattleRequest {
+export function battleRequest(lobby: LobbySetup, data: SetupData): PrepareBattleRequest {
   const { players } = battlePlayers(lobby.seats);
   const factioned = players.map((player) => ({
     ...player,
@@ -212,11 +215,11 @@ export function battleRequest(lobby: LobbyState, data: SetupData): PrepareBattle
   };
 }
 
-export function sizeFloor(state: LobbyState): MapSize {
+export function sizeFloor(state: Pick<LobbySetup, "seats">): MapSize {
   return floorFor(state);
 }
 
-export function lobbyPlayers(state: LobbyState): Player[] {
+export function lobbyPlayers(state: Pick<LobbySetup, "seats" | "factions">): Player[] {
   const { players } = battlePlayers(state.seats);
   return players.map((player) => ({
     ...player,

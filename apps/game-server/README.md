@@ -33,8 +33,9 @@ site's simulation and an archive of its commit; it defaults to a dry run.
 Rooms reserve battle capacity when created, before anyone gathers or readies.
 The [service](src/rooms.ts) holds them in memory; the shared room model alone
 owns their rules. Room and list streams use the battle transport's record
-framing, with a current snapshot on each open. Starting stops at the model's
-`starting` phase until battle creation is connected.
+framing, with a current snapshot on each open. A room stream opened with a resume cursor must still belong to its member;
+a removed player is refused `removed` instead of silently joining again.
+Starting stops at the model's `starting` phase until battle creation is connected.
 
 [Presence](src/presence.ts) counts all of a browser's open streams together.
 Its disconnect grace protects seats across stream cuts; a room's lifetime is

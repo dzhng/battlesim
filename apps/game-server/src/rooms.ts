@@ -193,6 +193,8 @@ export function createRoomService(options: {
     ): { close: () => void } | RoomRefusal {
       const stored = rooms.get(code);
       const returning = stored?.room.members.some((member) => member.who === who);
+      // A resume keeps an existing membership; it must never silently join again.
+      if (after !== null && !returning) return { refused: "removed" };
       if (!returning && (guesses.get(address)?.count ?? 0) >= THROTTLE_MAX_GUESSES)
         return { refused: "throttled" };
       if (!stored) {

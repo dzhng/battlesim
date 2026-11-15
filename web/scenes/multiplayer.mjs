@@ -5,16 +5,14 @@ import {
   evidence,
   mockScreens,
   onlinePage,
-  offlinePictures,
   root,
   roomServer,
 } from "./_rooms.mjs";
 
 export async function run(ctx) {
-  const folder = evidence("slice16");
+  const folder = evidence("multiplayer");
   await mkdir(folder, { recursive: true });
   await mockScreens(ctx);
-  await offlinePictures(ctx, folder, true);
   const local = await roomServer();
   try {
     const { page, build } = await onlinePage(ctx, local, "VIPER-41");
