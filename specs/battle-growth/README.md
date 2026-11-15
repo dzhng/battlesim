@@ -59,6 +59,7 @@ Checklist:
 - [ ] [02 Content identity](slices/02-content-identity.md)
 - [ ] [03 Geometry reuse](slices/03-geometry-reuse.md)
 - [ ] [04 Texture layers](slices/04-texture-layers.md)
+- [ ] [05a Cards bake together](slices/05a-cards-bake-together.md)
 - [ ] [05 Card reuse](slices/05-card-reuse.md)
 - [ ] [06 Statics carry](slices/06-statics-carry.md) (conditional)
 - [ ] [07 Catalog delta](slices/07-catalog-delta.md)
@@ -129,6 +130,7 @@ The reference workload is the player's large battle in
 00 proof ─┬─ 01 fielding and install ────────────────────┐
           ├─ 02 identity ─┬─ 03 geometry ─ 04 textures ─ 05 cards ─┤
           │               └─ 07 catalog delta ─────────────────────┼─ 08 transport + gate ─ 09 preload
+          ├─ 05a cards bake together ─ (05) ──────────────────────┤
           ├─ 06 statics carry (conditional) ─────────────────────┘
           └─ 10 stand-in mechanics ─ 11 stand-in look
 ```
@@ -144,6 +146,7 @@ are an independent track.
 | 02 | Nothing visible; identity tests |
 | 03 | The largest part of the freeze is gone; geometry bytes at growth equal the new type's |
 | 04 | Texture work at growth equals the new type's; swap memory no higher |
+| 05a | The wait after staging drops from a minute to seconds |
 | 05 | The wait after staging shrinks to the new type's cards |
 | 06 | No scenery or grass work at growth |
 | 07 | Nothing visible; the seam accepts a delta |

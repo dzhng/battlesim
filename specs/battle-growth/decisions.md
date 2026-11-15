@@ -192,3 +192,12 @@ Review findings to fix before it merges:
   carries bundle and skeleton content hashes, while `InstalledAppearance` and
   `ModelAsset` previously dropped them before the Rust seam. Both now carry the
   same pair through `add_bundle` and `load_bundle`.
+
+**Reslice, 2026-11-15.** "New cards bake together" left slice 05 and became
+[slice 05a](slices/05a-cards-bake-together.md), depending only on slice 00.
+It needs none of the reuse chain (identity, geometry, textures), it removes
+the minute between staging and commit on its own, and it can be built while
+that chain is. The alternative, leaving it inside 05, kept the longest wait
+the player sees behind three other slices. Its batches are bounded by bytes
+because one runtime card is about 3 MB across its targets and a full rebuild
+bakes about 190 of them.
