@@ -33,7 +33,11 @@ Scene art is declared by wanted name and content identity. After the first
 scene, the page asks Rust which identities lack decoded sources or retained
 presentation facts, then encodes and copies only those contents, including
 their textures and skeletons. Parsed art stays the browser source; transport
-bytes are produced on request rather than on property access.
+bytes are produced on request rather than on property access. A buffer made
+only to cross into Rust is [released](src/battle/transport.ts) as soon as its
+last reader has copied it, at the first scene as well as at growth: the page
+never holds a scene's encoded art at once, and never waits for the collector
+to notice a gigabyte it no longer needs.
 
 [Appearance admission](src/battle/render/sceneAppearances.ts) keeps one candidate
 at a time. The set of names and content identities determines whether art changed;

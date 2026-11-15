@@ -281,3 +281,68 @@ test("explicit grass-rule changes still prepare placement with held art", async 
   expect(scene.committed()).toEqual(["A"]);
   scene.owner.dispose();
 });
+
+test("geometry transport holds one owned packet and releases it after the draft copies it", async () => {
+  const input = [new Uint8Array([1, 2]), new Uint8Array([3, 4, 5]), new Uint8Array([6, 7, 8, 9])];
+  const owned: Uint8Array[] = [];
+  const copied: Uint8Array[] = [];
+  let peak = 0;
+  const art: ModelAsset[] = input.map((source, i) => ({
+    name: `test-${i}`,
+    contentId: { bundle: String(i).repeat(64), skeleton: null },
+    encode() {
+      const bundle = new Uint8Array(source);
+      owned.push(bundle);
+      peak = Math.max(
+        peak,
+        owned.reduce((sum, packet) => sum + packet.byteLength, 0),
+      );
+      return { bundle, textureIds: [], textureBytes: [] };
+    },
+  }));
+  const draft = {
+    declare() {},
+    add_bundle(_id: string, bundle: Uint8Array) {
+      copied.push(new Uint8Array(bundle));
+    },
+    free() {},
+  };
+  const renderer = {
+    missing_content_ids: () => JSON.stringify(art.map((asset) => asset.contentId)),
+    appearance_draft: () => draft,
+    prepare_appearances: async () => ({ free() {} }),
+  } as unknown as Parameters<typeof prepareAppearances>[0];
+  await prepareAppearances(renderer, {} as Presentation, art, detail);
+  expect(copied.map((bytes) => Array.from(bytes))).toEqual(input.map((bytes) => Array.from(bytes)));
+  expect(owned.map((packet) => packet.byteLength)).toEqual(input.map(() => 0));
+  expect(peak).toBe(Math.max(...input.map((packet) => packet.byteLength)));
+});
+
+test("geometry transport retires its packet when the draft refuses it", () => {
+  const packet = new Uint8Array([7, 9, 11]);
+  let freed = 0;
+  const art: ModelAsset[] = [
+    {
+      name: "test-rejected",
+      contentId: { bundle: "a".repeat(64), skeleton: null },
+      encode: () => ({ bundle: packet, textureIds: [], textureBytes: [] }),
+    },
+  ];
+  const renderer = {
+    missing_content_ids: () => JSON.stringify(art.map((asset) => asset.contentId)),
+    appearance_draft: () => ({
+      declare() {},
+      add_bundle() {
+        throw new Error("test draft refuses the source");
+      },
+      free() {
+        freed++;
+      },
+    }),
+  } as unknown as Parameters<typeof prepareAppearances>[0];
+  expect(() => prepareAppearances(renderer, {} as Presentation, art, detail)).toThrow(
+    "test draft refuses the source",
+  );
+  expect(packet.byteLength).toBe(0);
+  expect(freed).toBe(1);
+});

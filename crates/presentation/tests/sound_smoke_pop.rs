@@ -196,7 +196,7 @@ fn a_side_always_hears_its_own_units_pop() {
         factions: None,
     }
     .resolve(&mut Facts::default(), &|hash| {
-        runtime.read(hash, "bundle.bin")
+        runtime.read(hash, "bundle.bin").map(Into::into)
     })
     .unwrap()
     .typed()

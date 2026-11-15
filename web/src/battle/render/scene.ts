@@ -12,7 +12,8 @@ import { EMPTY_MESH, type Mesh } from "@packages/battle-renderer/src/mesh";
 import type { ScenePresentation } from "../sim/presentation";
 import type { AdmissionTransportWork, LabModel, ModelDetail } from "../sim/presentationModels";
 import { appearanceContentKey } from "./contentIdentity";
-import { modelAssetsOf, type ModelAsset } from "./modelAssets";
+import { modelAssetsOf, type LabAsset, type ModelAsset } from "./modelAssets";
+import { releaseTransport } from "../transport";
 import {
   BATTLE_STAND_IN_APPEARANCE,
   battleStandInAsset,
@@ -197,25 +198,31 @@ export class BrowserScene {
       const transportWork = { bundlesEncoded: 0, bundleBytesSent: 0 };
       // Initial admission is private until every asset is ready. Live changes
       // use the asset-only transaction below and retain the current output.
-      const encoded = assets.map((asset) => ({
-        name: asset.name,
-        contentId: asset.contentId,
-        ...asset.encode(),
-      }));
-      presentation.installLabAssets(encoded, options.detail);
-      presentation.setLabModels([...options.models, ...proxies.models]);
-      for (const asset of encoded) {
-        const bundle = asset.bundle;
-        transportWork.bundlesEncoded++;
-        transportWork.bundleBytesSent += bundle.byteLength;
-        renderer.load_bundle(
-          asset.name,
-          JSON.stringify(asset.contentId),
-          bundle,
-          asset.textureIds,
-          asset.textureBytes,
-        );
+      // Each packet has two readers: the renderer here, and presentation as
+      // it draws the packet from this generator. It is released before the
+      // next is encoded: the whole set encoded at once left about a gigabyte
+      // for the collector to find.
+      function* packets(): Generator<LabAsset> {
+        for (const asset of assets) {
+          const packet = asset.encode();
+          try {
+            transportWork.bundlesEncoded++;
+            transportWork.bundleBytesSent += packet.bundle.byteLength;
+            renderer.load_bundle(
+              asset.name,
+              JSON.stringify(asset.contentId),
+              packet.bundle,
+              packet.textureIds,
+              packet.textureBytes,
+            );
+            yield { name: asset.name, contentId: asset.contentId, ...packet };
+          } finally {
+            releaseTransport(packet.bundle);
+          }
+        }
       }
+      presentation.installLabAssets(packets(), options.detail);
+      presentation.setLabModels([...options.models, ...proxies.models]);
       renderer.load_effect_atlas(await loadEffectAtlasLayers());
       presentation.installGeometry(renderer, options.world);
       renderer.set_overlay_glow(options.overlayGlow.radius_px, options.overlayGlow.strength);

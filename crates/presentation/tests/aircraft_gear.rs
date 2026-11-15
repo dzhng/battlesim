@@ -55,7 +55,7 @@ fn roster_jet_units() -> (Vec<String>, presentation::world::UnitsSection) {
         factions: None,
     }
     .resolve(&mut Facts::default(), &|hash| {
-        runtime.read(hash, "bundle.bin")
+        runtime.read(hash, "bundle.bin").map(Into::into)
     })
     .unwrap()
     .typed()

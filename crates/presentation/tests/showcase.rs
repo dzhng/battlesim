@@ -51,7 +51,7 @@ fn fielded(kinds: &[&str], factions: Option<[&str; 2]>, edit: impl FnOnce(&mut V
         factions,
     }
     .resolve(&mut Facts::default(), &|hash| {
-        runtime.read(hash, "bundle.bin")
+        runtime.read(hash, "bundle.bin").map(Into::into)
     })
     .unwrap()
     .typed()
