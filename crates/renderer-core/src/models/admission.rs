@@ -61,32 +61,53 @@ impl Models {
             wanted.insert(content.clone(), bundle.materials.len());
             bundles.insert(name.to_owned(), (bundle, content));
         }
-        let (store, reason) = ArtStore::admit(store, &wanted)?;
+        let mut wanted_textures = std::collections::BTreeMap::new();
+        for (bundle, _) in bundles.values() {
+            for material in &bundle.materials {
+                for &index in material.textures.values() {
+                    let texture = &bundle.textures[index];
+                    wanted_textures.insert(texture.id.clone(), texture.clone());
+                }
+            }
+        }
+        let (store, reason) = ArtStore::admit(
+            store,
+            &wanted,
+            &wanted_textures,
+            device.limits().max_texture_array_layers,
+        )?;
         if reason.is_some() {
             work.rebuild_reason = reason;
         }
         let mut materials =
             vec![0.; store.lock().expect("art store lock").slots.len().max(1) * MATERIAL_ROWS * 4];
-        let mut layers = Layers::default();
+        let mut held = store.lock().expect("art store lock");
+        let policy = held.policy;
+        let [albedo, surface] = held.textures.admit(
+            device,
+            queue,
+            &wanted_textures,
+            policy.texture_spare_layers,
+            policy.report,
+            work,
+        );
         let mut written = std::collections::BTreeSet::new();
         for (bundle, content) in bundles.values() {
             if !written.insert(content) {
                 continue;
             }
-            let base = store
-                .lock()
-                .expect("art store lock")
-                .slots
-                .base(content)
-                .expect("reserved content");
+            let base = held.slots.base(content).expect("reserved content");
             for (i, m) in bundle.materials.iter().enumerate() {
-                let mut layer =
-                    |c: &str| layers.layer(m.textures.get(c).map(|&i| &bundle.textures[i]));
+                let mut layer = |c: &str| {
+                    held.textures
+                        .layer(m.textures.get(c).map(|&i| &bundle.textures[i]))
+                };
                 let at = (base + i) * MATERIAL_ROWS * 4;
                 materials[at..at + MATERIAL_ROWS * 4]
                     .copy_from_slice(&material_rows(m, &mut layer));
             }
         }
+        drop(held);
         let mut rows = Vec::new();
         for (r, a) in appearances.iter().enumerate() {
             // The scenery's rows are the scenery layer's (`scenery.rs`).
@@ -248,22 +269,6 @@ impl Models {
             "model-materials",
             BufferUsages::STORAGE | BufferUsages::COPY_DST,
             bytemuck::cast_slice(&materials),
-        );
-        let albedo = texture_array(
-            device,
-            queue,
-            "model-albedo",
-            TextureFormat::Rgba8UnormSrgb,
-            &layers.albedo,
-            work,
-        );
-        let surface = texture_array(
-            device,
-            queue,
-            "model-surface",
-            TextureFormat::Rgba8Unorm,
-            &layers.surface,
-            work,
         );
         let sampler = device.create_sampler(&SamplerDescriptor {
             label: Some("model-textures"),

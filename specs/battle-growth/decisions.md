@@ -555,3 +555,73 @@ before), 8.6 MB of vertices packed, 21 card read waits, no scenery work, 2
 art files read by fielding. Still whole: 178 texture layers written (slice
 04), 189 cards baked (slice 05), 203 bundles encoded and sent by the page
 (slice 08). The armory scene passes.
+**Slice 04, 2026-11-15.**
+
+- `ArtStore` owns stable per-channel layer slots by texture content id and weak
+  allocation records. Each generation holds `Arc<SharedTexture>`; the final
+  holder destroys the array. `Models::Drop` retains the generation-local
+  impostor-material buffer cleanup from 05a. Rejected: destroying shared arrays
+  at generation retirement or keeping arrays alive in a strong store cache.
+- A populated array reserves **one spare layer**, initially and after capacity
+  growth; growth allocates the required address range plus that one layer,
+  capped by the device limit. Only addresses the candidate can name need backing
+  capacity; reservations belonging solely to another pending generation do not
+  force an unnecessary third allocation. A regression expected zero copy bytes
+  here and first observed 168. Rejected: sizing every array to the global slot
+  watermark. Empty channels use one placeholder layer. This
+  deliberately modest step rejects geometric capacity doubling and its larger
+  overlap. Capacity pressure logs kind, value, bound, owner and GPU-copy outcome
+  through `ArtStorePolicy.report`. Existing written mip layers are copied
+  GPU-side; only new layers take CPU uploads.
+- Cancelled preparations leave slot assignments reserved. Their written layers
+  are reused while an allocation remains held. If a cancelled grown allocation
+  loses its last holder, it is destroyed; its weak record cannot preserve GPU
+  data. A later admission writes the needed data into its surviving/new array.
+  Rejected: recycling addresses while another generation can name them, and
+  retaining decoded CPU texture payloads for retired content in the store.
+- The dead-layer bound is **256 addresses absent from the prospective catalog**,
+  across both channels, including cancelled reservations. It tolerates discarded
+  small arrivals while bounding tooling's replacement history; monotonic battle
+  growth creates no dead addresses. Crossing it, or
+  exhausting historical device-layer addresses while the active catalog fits,
+  uses the existing fresh-store admission and reports `DeadTextureLayers` or
+  `TextureLayersExhausted`. It logs through the same policy sink. Active content
+  beyond the device's layer limit is refused. Rejected: unbounded dead slots or
+  a texture-specific full-admission path beside the store's existing one.
+- Array edge is an exact reuse input: an experiment holding a larger pending
+  array while committing the old small-edge catalog changed pixels when the
+  larger array was reused. An exact-edge surviving array is preferred. Edge
+  changes rebuild that channel using the unchanged CPU nearest upscale and
+  authored mip chain. `textureArraysRebuilt` counts these rebuilds; all their
+  layer writes and CPU bytes remain in the usual counters. Capacity-copy bytes
+  appear separately in `textureBytesCopied`. Rejected: a new resampling shader,
+  unreported edge rebuilds, or treating a larger edge as pixel-equivalent.
+- The player confirmed that the memory ceiling is the whole renderer against
+  the pre-plan two-generation overlap, including the duplicated geometry removed
+  by 03. Texture-only shape is asserted independently: fitting admissions add no
+  texture allocation; growth holds source plus destination, and retirement
+  releases the source. A synthetic small-array case measured:
+
+  | State | Buffer bytes | Texture bytes | Total bytes |
+  | --- | ---: | ---: | ---: |
+  | Live | 984 | 172 | 1,156 |
+  | Fitting overlap | 1,892 | 172 | 2,064 |
+  | Growing overlap | 1,892 | 508 | 2,400 |
+  | After retirement | 1,220 | 340 | 1,560 |
+  | Pre-plan exact-fit overlap | 2,204 | 344 | 2,548 |
+
+  A texture-only ceiling against two exact-fit arrays does **not** hold in this
+  small case: one old layer plus one spare and three new wanted layers plus one
+  spare occupy more than the old one-plus-three layout. The unchanged placeholder
+  is shared. Geometry reuse saves 312 bytes; the texture-only overage is 164
+  bytes, so total payload falls by 148 bytes. Expectations are derived from the
+  fixture and production `ResourceMemory`; these figures are evidence, not pins.
+- On the integrated tree (05a, 06 and 07), both `battle-growth` profiles write
+  exactly **three** new layers, **2,097,148 CPU bytes**, with **40,544,784 bytes**
+  copied GPU-side and no edge rebuild. A catalog probe found 175 to 178 referenced
+  texture ids; the delta is one sRGB and two linear textures, independently
+  matching those counts and the full upscaled mip bytes. The post-commit event
+  reports 500,921,853 total texture bytes in 48 allocations, versus 500,572,329 in
+  48 before this slice: the extra 349,524 bytes are one spare linear layer.
+  These events are after retirement; they do not measure the overlap peak. The
+  production-visitor fixture above owns that proof. Card-bake code was untouched.

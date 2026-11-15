@@ -12,6 +12,10 @@ pub enum RebuildReason {
     DeadMaterialSlots,
     /// The store could not assign a 16-bit material slot.
     MaterialSlotsExhausted,
+    /// Dead texture layers passed the store's tripwire bound.
+    DeadTextureLayers,
+    /// Historical texture layer addresses exceeded the device limit.
+    TextureLayersExhausted,
 }
 
 /// What admitting one complete appearance generation cost, counted where the
@@ -25,6 +29,11 @@ pub struct AdmissionWork {
     pub buffer_bytes_uploaded: u64,
     pub texture_layers_written: u32,
     pub texture_bytes_uploaded: u64,
+    /// Existing mip payload copied GPU-side when array capacity grows.
+    pub texture_bytes_copied: u64,
+    /// Existing arrays rebuilt at a different edge; their CPU writes are
+    /// also included in texture_layers_written and texture_bytes_uploaded.
+    pub texture_arrays_rebuilt: u32,
     pub cards_baked: u32,
     /// Concurrent readback groups awaited by the card bake.
     pub card_read_waits: u32,

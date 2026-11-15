@@ -10,7 +10,6 @@
 //! instances are written whole; the static world's batches are held between
 //! frames (`statics.rs`). Each batch is one run of instances over one row's
 //! tier.
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use presentation::records::{Joint, CAST_PASS, GHOST_PASS, HIGH_PASS, NONE, VIEW_PASS};
@@ -20,7 +19,7 @@ use wgpu::*;
 
 use crate::fog::Layer;
 
-use crate::bundle::{Bundle, BundleSource, Coverage, Material, Mesh, Shape, Texture};
+use crate::bundle::{Bundle, BundleSource, Coverage, Material, Mesh, Shape};
 use crate::pipelines::Pipelines;
 use crate::statics::Statics;
 
@@ -32,6 +31,8 @@ mod diagnostics;
 mod geometry;
 mod impostors;
 mod store;
+mod textures;
+use textures::SharedTexture;
 mod visibility;
 use crate::impostor::{CardInstance, Cards};
 pub use geometry::{pack_vertices, posed_mesh, VERTEX_BYTES};
@@ -181,114 +182,6 @@ pub struct Drawn {
     pub triangles: u64,
 }
 
-/// The installed textures, one layer each in two arrays:
-/// albedo (sRGB), and surface (normal and ORM, linear).
-#[derive(Default)]
-struct Layers {
-    albedo: Vec<Arc<Texture>>,
-    surface: Vec<Arc<Texture>>,
-    at: HashMap<String, usize>,
-}
-
-impl Layers {
-    fn layer(&mut self, t: Option<&Arc<Texture>>) -> f32 {
-        let Some(t) = t else { return -1.0 };
-        let next = if t.srgb {
-            self.albedo.len()
-        } else {
-            self.surface.len()
-        };
-        let layer = *self.at.entry(t.id.clone()).or_insert_with(|| {
-            let list = if t.srgb {
-                &mut self.albedo
-            } else {
-                &mut self.surface
-            };
-            list.push(t.clone());
-            next
-        });
-        layer as f32
-    }
-}
-
-/// One array texture holding `textures` with every level:
-/// the edge is the largest's, a smaller one upsampled into the finer levels.
-fn texture_array(
-    device: &Device,
-    queue: &Queue,
-    label: &str,
-    format: TextureFormat,
-    textures: &[Arc<Texture>],
-    work: &mut crate::runtime::AdmissionWork,
-) -> TextureView {
-    let size = textures.iter().map(|t| t.size).max().unwrap_or(1);
-    let levels = size.ilog2() + 1;
-    let texture = device.create_texture(&TextureDescriptor {
-        label: Some(label),
-        size: Extent3d {
-            width: size,
-            height: size,
-            depth_or_array_layers: textures.len().max(1) as u32,
-        },
-        mip_level_count: levels,
-        sample_count: 1,
-        dimension: TextureDimension::D2,
-        format,
-        usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
-        view_formats: &[],
-    });
-    work.texture_layers_written += textures.len() as u32;
-    for (layer, t) in textures.iter().enumerate() {
-        let shift = (size / t.size).ilog2();
-        for level in 0..levels {
-            let edge = size >> level;
-            let upsampled;
-            let data = if level >= shift {
-                &t.levels[(level - shift) as usize]
-            } else {
-                let (from, k) = (t.size as usize, t.size as f64 / f64::from(edge));
-                let src = &t.levels[0];
-                upsampled = (0..edge as usize * edge as usize)
-                    .flat_map(|i| {
-                        let (y, x) = (i / edge as usize, i % edge as usize);
-                        let s = ((y as f64 * k) as usize * from + (x as f64 * k) as usize) * 4;
-                        src[s..s + 4].to_vec()
-                    })
-                    .collect::<Vec<u8>>();
-                &upsampled
-            };
-            queue.write_texture(
-                TexelCopyTextureInfo {
-                    texture: &texture,
-                    mip_level: level,
-                    origin: Origin3d {
-                        x: 0,
-                        y: 0,
-                        z: layer as u32,
-                    },
-                    aspect: TextureAspect::All,
-                },
-                data,
-                TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(edge * 4),
-                    rows_per_image: Some(edge),
-                },
-                Extent3d {
-                    width: edge,
-                    height: edge,
-                    depth_or_array_layers: 1,
-                },
-            );
-            work.texture_bytes_uploaded += data.len() as u64;
-        }
-    }
-    texture.create_view(&TextureViewDescriptor {
-        dimension: Some(TextureViewDimension::D2Array),
-        ..Default::default()
-    })
-}
-
 /// A material's packed shader rows.
 fn material_rows(m: &Material, layer: &mut dyn FnMut(&str) -> f32) -> [f32; MATERIAL_ROWS * 4] {
     let normal = layer("normal");
@@ -390,8 +283,8 @@ pub struct Models {
     surfaces: [bool; 4],
     buildings_shown: bool,
     models_shown: bool,
-    albedo: TextureView,
-    surface: TextureView,
+    albedo: Arc<SharedTexture>,
+    surface: Arc<SharedTexture>,
     sampler: Sampler,
     palette: Buffer,
     instances: Buffer,
@@ -406,12 +299,12 @@ pub struct Models {
     pub(crate) store: SharedArtStore,
 }
 
-/// The texture arrays are destroyed with their owner, as the frame's targets
-/// are (`Targets`), rather than left for the browser's garbage collector.
+/// The immutable impostor material buffer belongs to this generation and is
+/// destroyed here rather than left for browser garbage collection. Shared
+/// texture arrays are destroyed by their final SharedTexture holder, so retiring
+/// this generation cannot invalidate another generation's material bindings.
 impl Drop for Models {
     fn drop(&mut self) {
-        self.albedo.texture().destroy();
-        self.surface.texture().destroy();
         if let Some(materials) = self.impostor_materials.get() {
             materials.destroy();
         }

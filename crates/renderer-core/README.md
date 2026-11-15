@@ -29,6 +29,23 @@ corpse palette and running-gear flags. Generations hold shared immutable tiers;
 the last holder destroys their GPU buffers. Neither a generation's drop nor the
 store explicitly destroys a buffer another generation can draw. Materials and
 row routing remain per generation, rebuilt against the stable slot addresses.
+Model texture arrays also have shared final-holder ownership. The art store
+assigns append-only layer slots by texture content id, independently for colour
+and linear surface data. An admission writes only previously unwritten slots in
+an array, before any committed material table can name them. Existing layers
+stay immutable while a candidate prepares. Unused layers from dropped work can
+be reused while their allocation survives; weak allocation records retain no
+GPU lifetime or CPU texture payload.
+
+Arrays reserve modest spare capacity. Capacity growth creates one destination
+array and copies existing mip levels GPU-side; it does not upload old textures
+again. An edge change rebuilds that channel's array with the same authored
+upsampling as a clean admission. Array edge is an exact reuse input because it
+affects filtered pixels. Admission work distinguishes GPU copies and edge
+rebuilds from ordinary new-layer writes. Material tables remain generation-local
+and select the store's stable layers; channel diagnostics change only those
+local tables. Retiring a generation cannot destroy another's arrays.
+
 Decoded bundles are keyed by the runtime catalog's `ContentId`: the bundle hash
 and, for skinned art, its skeleton hash. Names only route to that identity, so
 one name can replace its art and two names can share one decode. The library's
