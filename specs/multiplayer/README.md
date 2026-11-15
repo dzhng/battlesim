@@ -26,19 +26,17 @@ and the local half of 09; the
 endurance half of slice 01. The branch holds staging as of
 2026-11-15. **The first playable checkpoint is reached:** two browsers
 command opposite sides of one battle on a local server
-([how to run it](slices/08-command-any-seat.md)).
+([how to run it](slices/08-command-any-seat.md)). The Multiplayer page and
+the room lobby exist; a room cannot start its battle until slice 18.
 
 **Pick up here, in this order:**
 
-1. **Integrate what is with Codex** (all handed out on 2026-11-15, each in
-   its own checkout with a report in `throwaway/multiplayer/` there):
-   - **Slices 16 and 17,** the multiplayer screen and the room lobby
-     screen, from one agent as two commits. Both change what a player sees:
-     look at the pictures, get an unprimed critique, and show the user.
-   - **Slices 22 and 23,** the army hand-over and the seat reset, from one
-     agent as two commits. Every existing digest and replay must be
-     unchanged.
-   Then **slice 18,** the room battle, which needs 17.
+1. **Integrate slice 18,** the room battle, handed to Codex on 2026-11-15
+   in its own checkout with a report in `throwaway/multiplayer/` there. It
+   starts a room's battle, hands a dropped player's seat to its AI and back,
+   ends the room with the battle, and deletes the dev battle. Play it in two
+   browsers, get an unprimed critique, and show the user.
+   Then **slice 25,** the Frontline service, which needs 18.
 2. **Slice 09's push** waits for the user: ask before promoting a site
    build, before deploying, and before making the address public. Its local
    half is in, with a deploy step that is a dry run by default
@@ -49,15 +47,21 @@ command opposite sides of one battle on a local server
 
 **Waiting on the user, not blocking:**
 
-- **Deploying** (slice 09): now, or after rooms exist. Recommended: after,
-  because until then a deployed server must offer its dev battle to anyone
-  with the address.
+- **Deploying** (slice 09): now, or after rooms can start a battle (slice
+  18). Recommended: after.
+- **The main menu's approved picture** fails since the Multiplayer tile made
+  the menu one tile taller. Re-approve it once the user has seen the menu.
+  The tile wears Skirmish's picture until it has art of its own.
 - **The result screen's side names** (slice 11): keep "BLUE" and "RED", or
-  head the columns by role. Recommended: by role, with slice 18.
+  head the columns by role. Recommended: by role.
 - **Lane numbers** (slice 12): kept as they are unless the user says
   otherwise.
 - **Frontline's length** (slice 21): 2,100 points, about an hour for the
   leading side on the largest maps. The user's dial.
+
+**Decided by the user so far:** leave the AI's order pace alone for the
+alpha (slice 20); the host sets an empty seat from one picker, Open or AI
+(slice 17).
 
 **How to work with Codex here.**
 
