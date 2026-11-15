@@ -47,7 +47,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import weapons  # noqa: E402
 from common import (REPO, box, cyl, empty, export_glb, fbm, mat, obj_from_bm, paint, script_args,  # noqa: E402
                     texture_mean, texture_uvs)
-from infantry_rig import EYE_IN_HEAD, SCALE, Rig  # noqa: E402
+from infantry_rig import EYE_IN_HEAD, SCALE, Rig, back_y, bone_of  # noqa: E402
 from mesh_lods import canonical, make_tiers  # noqa: E402
 
 # Linear albedo palettes: each part's hue, baked into vertex colour over its
@@ -863,10 +863,7 @@ class Kit:
                 bpy.data.objects.remove(c, do_unlink=True)
         # Clear the pack's outer face in every LOOK, with the tube's high end
         # beside the head and its low end outside the opposite hip.
-        bpy.context.view_layer.update()
-        back = max((o.matrix_world @ Vector(c)).y
-                   for o in self.parts if bone_of(o) == "spine_03"
-                   for c in o.bound_box)
+        back = back_y(self.parts)
         tube_y = back + 0.095
         angle = math.radians(30)
         forward = Vector((-math.sin(angle), 0, math.cos(angle)))
@@ -1104,15 +1101,6 @@ def bvh_of(o):
     tree = BVHTree.FromBMesh(bm)
     bm.free()
     return tree
-
-
-def bone_of(o):
-    """The bone a rigid part rides: its own bone parent, or its nearest ancestor's."""
-    while o is not None:
-        if o.parent_type == "BONE" and o.parent_bone:
-            return o.parent_bone
-        o = o.parent
-    return None
 
 
 def fold_leaf_weights(o, arm):

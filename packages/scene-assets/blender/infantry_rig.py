@@ -372,3 +372,30 @@ def damp_rotation(act, bones, k):
                         kp.co.y = q2[i]
                         kp.handle_left.y = q2[i]
                         kp.handle_right.y = q2[i]
+
+
+def bone_of(o):
+    """The bone a rigid part rides: its own bone parent, or its nearest ancestor's."""
+    while o is not None:
+        if o.parent_type == "BONE" and o.parent_bone:
+            return o.parent_bone
+        o = o.parent
+    return None
+
+
+def back_y(parts):
+    """The rearmost point (largest Y: the rest pose faces -Y) of what rides the
+    upper back, where kit carried on the back (a slung launcher, a packed
+    tripod) stands off: rigid parts on `spine_03` by their bounds, skinned parts
+    (cloth, a generated body) by the vertices whose strongest weight is
+    `spine_03`."""
+    bpy.context.view_layer.update()
+    ys = []
+    for o in parts:
+        if bone_of(o) == "spine_03":
+            ys += [(o.matrix_world @ Vector(c)).y for c in o.bound_box]
+        elif "spine_03" in o.vertex_groups:
+            gi, mw = o.vertex_groups["spine_03"].index, o.matrix_world
+            ys += [(mw @ v.co).y for v in o.data.vertices
+                   if v.groups and max(v.groups, key=lambda e: e.weight).group == gi]
+    return max(ys)

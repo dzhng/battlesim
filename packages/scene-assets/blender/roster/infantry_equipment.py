@@ -23,9 +23,9 @@ import bpy
 import bmesh
 from mathutils import Matrix, Vector
 from common import REPO, box, cyl, empty, export_glb, fbm, script_args, texture_uvs, obj_from_bm
-from infantry_kit import COYOTE, RANGER, Kit, look_of, bone_of, scale3
+from infantry_kit import COYOTE, RANGER, Kit, look_of, scale3
 from textures import UNIFORMS
-from infantry_rig import Rig, SCALE
+from infantry_rig import Rig, SCALE, back_y
 from mesh_lods import canonical, make_tiers, triangle_count
 import weapons
 import generated_body
@@ -459,7 +459,7 @@ def tripod_equipment(kit, model, carried=False):
         for side in (-1,1):c('packed_tube_cap_'+str(side),.093 if model=='tow' else .086,.045,(0,side*length/2,.10),mat=dark)
         for j in range(3):c('folded_tripod_leg_'+str(j),.024,.79,(.12+j*.05,.06,.08),mat=dark)
         b('packed_optical_unit',(.23,.25,.24),(.22,.20,.19))
-        back=max((o.matrix_world@Vector(p)).y for o in kit.parts if bone_of(o)=='spine_03' for p in o.bound_box)
+        back=back_y(kit.parts)
         rotation=Matrix.Rotation(math.radians(24),4,'Y')@Matrix.Rotation(math.pi/2,4,'X')
         root.matrix_world=Matrix.Translation((0,back+.17,1.10))@rotation
         kit.rig.bone_parent(root,'spine_03')
@@ -559,7 +559,7 @@ def build(unit, variant, mode, army=None):
         # A rifle in the hands and the actual launcher slung behind the pack:
         # an RPG muzzle down; a missile tube muzzle up, with its sight (the
         # Javelin's CLU) facing out rather than into the pack.
-        back=max((o.matrix_world@Vector(c)).y for o in kit.parts if bone_of(o)=='spine_03' for c in o.bound_box)
+        back=back_y(kit.parts)
         rotation=Matrix.Rotation(math.radians(30),4,'Y')@Matrix.Rotation((1 if rpg else -1)*math.pi/2,4,'X')
         # A tube's middle at 1.12 m, whatever length rides behind its grip,
         # lowered for a tube longer than the Stinger's (the Igla): its upper

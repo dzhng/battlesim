@@ -46,3 +46,50 @@ this ledger from scratch against the shipped code.
 - **Proof against fresh references:** the Tigr's reference crew came from a
   freshly exported EMR soldier, which differs from the committed file (the
   pre-existing drift). Its proof re-exported that soldier first. Sound.
+
+## Slices 03 and 04
+
+- **`back_y` and `bone_of` live in `infantry_rig.py`**, the rig's attachment
+  helpers, not on `Kit`. Sound.
+  - *Why:* `infantry_kit.py` is over the size budget and may not grow.
+    `infantry_rig.py` already owns where things attach (the holds).
+  - *Rule:* rigid parts on `spine_03` count by their bounds, as before;
+    skinned parts count by their vertices whose strongest weight is
+    `spine_03`.
+- **`fit.lies` measures the body and what it carries, not kit that stands on
+  the ground by itself.** Sound, and a physical rule.
+  - *Why:* the bake's first run flagged every tripod ATGM (TOW and Kornet,
+    active) at 1.3–1.4 m. A tripod is weighted wholly to the root joint, and
+    after its operator dies it stays standing, as it would in reality.
+  - *Rule:* `lyingBounds` skips vertices weighted wholly to the root.
+  - *Test:* a lying soldier with a 1.2 m tripod passes.
+- **Procedural carried launchers and the test `at_carried` soldiers fail
+  `fit.lies`, and the bake stays red until slice 09.** Provisional; slice 09
+  must make the bake green.
+  - *The defect:* the slung tube stands 0.60–0.74 m on a face-down corpse, or
+    sinks up to 0.3 m into the ground on its back. It predates this work;
+    a fresh procedural export still fails. Generated carried kits pass.
+  - *The call:* the gate stays strict (0.6 m). These files are replaced in
+    slice 09 (roster) and slice 08 (test soldiers), so they aren't re-exported
+    procedurally first.
+  - *Until then:* slices 05–08 judge through per-file `asset validate` and
+    loose-GLB sheets, which don't need the bake.
+- **The pilot's torso is about 7% brighter than the procedural soldier's**
+  (front-crop mean red 126 against 118). Sound.
+  - *Why:* the generated carrier is coyote, as the US Army photos and the
+    prompt have it; the procedural one was printed in OCP. The overall cloth
+    mean matches by construction. A kit difference, not a grade error.
+- **The hydration hose standing off the vest at the crew tier is accepted.**
+  Provisional; re-judged at slice 09's crew review.
+  - *Why:* real kit has it, it is invisible at battle distance, and slice 05
+    regenerates this body.
+- **Slice 04's own calls** (from its report). Sound:
+  - an input image is keyed by its PNG's sha256, because the image command
+    prints no request id;
+  - images are never retried automatically, since a paid repeat is a
+    person's call;
+  - `--model` is passed explicitly, so `image_model` is accurate;
+  - a failure costs $0;
+  - airframes keep overwriting `<appearance>.glb`, which their exports read.
+  - *Accepted risk:* a submit retried after a 504 could pay twice if the first
+    submit actually landed. That is rare, and the ledger would show it.

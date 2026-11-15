@@ -12,6 +12,7 @@ import {
   soldierRig,
   syntheticUnits,
   tankMounts,
+  type SoldierOptions,
 } from "./synthetic";
 
 const context = { authority: AUTHORITY, tolerances: TOLERANCES };
@@ -65,12 +66,16 @@ test.each([0, 0.4])(
 
 /** The `fit.lies` findings of the synthetic soldier on a rig whose corpses
  *  come to rest with the pelvis at `corpseZ`. */
-async function lies(corpseZ: number, tolerances: Partial<Tolerances> = {}) {
+async function lies(
+  corpseZ: number,
+  tolerances: Partial<Tolerances> = {},
+  soldier: SoldierOptions = {},
+) {
   const result = await validateAppearance(
     {
       name: "soldier",
       entry: { unit: "soldier", source: "s.glb", basis_yaw_deg: 90, skeleton: "test-rig" },
-      files: { "s.glb": soldierGlb({ animated: false }) },
+      files: { "s.glb": soldierGlb({ animated: false, ...soldier }) },
       skeleton: soldierRig({ corpseZ }),
     },
     { ...context, tolerances: { ...TOLERANCES, ...tolerances } },
@@ -87,6 +92,11 @@ test("a corpse lies on the ground: not raised so it reads as a man, not sunk int
       ...INFANTRY_CORPSES,
     ]);
   }
+});
+
+test("kit standing on the ground by itself stays up when its operator dies: only the body lies", async () => {
+  // A tripod launcher weighted wholly to the root stands 1.2 m tall beside a lying corpse.
+  expect(await lies(0.15, {}, { tripod: true })).toEqual([]);
 });
 
 test("how high a corpse may lie is the catalog's tolerance", async () => {

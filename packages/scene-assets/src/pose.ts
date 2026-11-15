@@ -169,14 +169,27 @@ export function boundsSize(b: Bounds): { size: number; radius: number } {
   };
 }
 
-/** A body's finest tier lying dead at `pose`, one of its `corpse_poses`. */
+/** A body's finest tier lying dead at `pose`, one of its `corpse_poses`:
+ *  the body and what it carries, not kit standing on the ground by itself
+ *  (weighted wholly to the root joint, as a launcher on its tripod is). */
 export function lyingBounds(
   bundle: SkinnedBundle,
   skeleton: SkeletonClips | null,
   pose: PoseRef,
 ): Bounds {
+  const tier = bundle.tiers[0];
   const worlds = poseWorlds(bundle, skeleton, pose);
-  return positionsBounds(posedMesh(bundle.tiers[0], bundle.joints, worlds).positions);
+  const posed = posedMesh(tier, bundle.joints, worlds).positions;
+  const root = bundle.joints.findIndex((j) => j.parent < 0);
+  const { joints, weights } = tier;
+  if (!joints || !weights || root < 0) return positionsBounds(posed);
+  const body: number[] = [];
+  for (let v = 0; v < posed.length / 3; v++) {
+    let onRoot = 0;
+    for (let k = 0; k < 4; k++) if (joints[v * 4 + k] === root) onRoot += weights[v * 4 + k];
+    if (onRoot < 65535 * 0.999) body.push(posed[v * 3], posed[v * 3 + 1], posed[v * 3 + 2]);
+  }
+  return positionsBounds(new Float32Array(body));
 }
 
 /** A body's joint worlds in `pose` (its bind where the clip is missing). */

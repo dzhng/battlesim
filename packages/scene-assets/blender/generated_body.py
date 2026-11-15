@@ -16,8 +16,9 @@ body:
   sleeve standing off a thinner arm never picks up the torso.
 - Hands. The generator's hands are fused mittens that can't close on a grip.
   They are cut off at the wrist and replaced by the kit's own glove shell.
-- Surface. The generator's texture is kept, regraded so its cloth's mean
-  matches the army's cloth mean (`roster/armies.json`), and embedded at `ATLAS_PX`. Skin faces get
+- Surface. The generator's texture is kept, its cloth regraded so its mean
+  matches the army's cloth mean (`roster/armies.json`) with white flecks
+  clamped (`FLECK`); skin keeps its own colour. It is embedded at `ATLAS_PX`. Skin faces get
   their own material with no side tint. Every other face takes the full tint.
   Both materials share one atlas (`textures.ATLASES`, which keeps their UVs
   and embeds it). The vertex colour carries ambient occlusion at
@@ -46,6 +47,12 @@ BODY_TRIS = 22000
 # The soldier's height with his helmet on, metres: the validator holds the
 # stand-aim pose to the simulation's 1.70 m (fixtures/rules.json) within 5 cm.
 HEIGHT_M = 1.72
+# How wide a slice of the head band must be to be the head, of the soldier's
+# height: a helmet is ~15% of it, a whip antenna ~1%.
+HEAD_WIDE = 0.03
+# Cloth texels brighter than this many times the cloth mean are generator
+# flecks (white OCP specks): they are pulled down to it, toward the cloth's hue.
+FLECK = 2.0
 # How far past the shoulder joint an arm's seating move takes full effect (body units).
 ARM_BLEND = 0.08
 # How far from the hip and the ankle a leg's seating move takes full effect (body units).
@@ -114,16 +121,31 @@ def _sample(atlas, uv):
     return atlas[y, x]
 
 
+def _head_top(g, cx):
+    """The top of the head (helmet on): the highest slice of a central band
+    still `HEAD_WIDE` across, so a whip antenna or a ruck rising above the
+    helmet never sets the soldier's height."""
+    tall = g[:, 2].max() - g[:, 2].min()
+    band = g[np.abs(g[:, 0] - cx) < 0.07 * tall]
+    step, z = 0.005 * tall, band[:, 2].max()
+    while z > band[:, 2].min():
+        sl = band[(band[:, 2] <= z) & (band[:, 2] > z - 2 * step)]
+        if len(sl) and np.ptp(sl[:, 0]) > HEAD_WIDE * tall:
+            return z
+        z -= step
+    return band[:, 2].max()
+
+
 def _fit(gen, body, arm):
     """Scale and place the generated T-pose on the rig's rest pose: its height
-    (helmet on) to `HEIGHT_M`, its fingertip span to the body's, its feet on
+    (helmet on, `_head_top`) to `HEIGHT_M`, its fingertip span to the body's, its feet on
     the ground and its torso centred on the body's."""
     g = np.array([v.co[:] for v in gen.data.vertices])
     mw = body.matrix_world
     b = np.array([(mw @ v.co)[:] for v in body.data.vertices])
     g_half = (g[:, 0].max() - g[:, 0].min()) / 2
     g_cx = (g[:, 0].max() + g[:, 0].min()) / 2
-    sz = (HEIGHT_M / SCALE - b[:, 2].min()) / (g[:, 2].max() - g[:, 2].min())
+    sz = (HEIGHT_M / SCALE - b[:, 2].min()) / (_head_top(g, g_cx) - g[:, 2].min())
     sx = (b[:, 0].max() - b[:, 0].min()) / (2 * g_half)
 
     def torso_y(pts, lo, hi):
@@ -299,9 +321,15 @@ def _weights(gen, body, arm, scn):
 
 
 def _skin_like(rgb_linear):
-    """Bare skin: warm and brighter than the coyote and OCP around it."""
+    """Bare skin of any tone: an orange-red hue at a skin's saturation, from
+    fair to dark. Coyote and OCP tan sit at a yellower hue, a balaclava's green
+    and black kit outside it."""
     r, g, b = (float(c) ** (1 / 2.2) for c in rgb_linear)
-    return r > 0.42 and r - g > 0.09 and g - b > 0.02
+    hi, lo = max(r, g, b), min(r, g, b)
+    if hi < 0.06 or hi == lo or hi != r:
+        return False
+    hue = 60.0 * (g - b) / (hi - lo)
+    return 0.0 <= hue <= 32.0 and 0.15 <= (hi - lo) / hi <= 0.8
 
 
 def _surface(gen, atlas, cloth_mean):
@@ -331,12 +359,11 @@ def _surface(gen, atlas, cloth_mean):
     target = np.array(cloth_mean)
     gain = target / (acc / area)
     print(f"GENERATED_BODY cloth mean {np.round(acc / area, 4).tolist()} -> {np.round(target, 4).tolist()} gain {np.round(gain, 3).tolist()}")
-    graded = np.clip(atlas * gain, 0, 1)
-    h = graded.shape[0]
-    k = h // ATLAS_PX
-    if k > 1:
-        graded = graded.reshape(ATLAS_PX, k, ATLAS_PX, k, 3).mean((1, 3))
-    rows = graded[::-1]  # PNG rows run top first
+    k = atlas.shape[0] // ATLAS_PX
+    small = atlas.reshape(ATLAS_PX, k, ATLAS_PX, k, 3).mean((1, 3)) if k > 1 else atlas
+    skin_texels = _mask(me, uv, 1)
+    graded = np.where(skin_texels[..., None], small, _clamp_flecks(small * gain, target))
+    rows = np.clip(graded, 0, 1)[::-1]  # PNG rows run top first
     s = (ATLAS_PX, ATLAS_PX)
     albedo = np.concatenate([textures._u8(textures._srgb(rows)), np.full((*s, 1), 255, np.uint8)], -1)
     orm = np.stack([np.full(s, 255, np.uint8), np.full(s, 230, np.uint8),
@@ -345,6 +372,44 @@ def _surface(gen, atlas, cloth_mean):
     images = {"albedo": textures.png(albedo), "orm": textures.png(orm), "normal": textures.png(normal)}
     textures.ATLASES[cloth.name] = images
     textures.ATLASES[skin.name] = images
+
+
+def _mask(me, uv, material_index):
+    """The `ATLAS_PX` texels the faces of one material cover, from their UVs
+    (rows bottom first, as the atlas)."""
+    mask = np.zeros((ATLAS_PX, ATLAS_PX), bool)
+    for poly in me.polygons:
+        if poly.material_index != material_index:
+            continue
+        pts = [np.array(uv.data[li].uv) * ATLAS_PX for li in poly.loop_indices]
+        for i in range(1, len(pts) - 1):
+            a, b, c = pts[0], pts[i], pts[i + 1]
+            x0, y0 = np.floor(np.minimum(np.minimum(a, b), c)).astype(int)
+            x1, y1 = np.ceil(np.maximum(np.maximum(a, b), c)).astype(int)
+            x0, y0, x1, y1 = max(x0, 0), max(y0, 0), min(x1, ATLAS_PX), min(y1, ATLAS_PX)
+            if x1 <= x0 or y1 <= y0:
+                continue
+            ys, xs = np.mgrid[y0:y1, x0:x1] + 0.5
+            d = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1])
+            if abs(d) < 1e-12:
+                continue
+            w0 = ((b[1] - c[1]) * (xs - c[0]) + (c[0] - b[0]) * (ys - c[1])) / d
+            w1 = ((c[1] - a[1]) * (xs - c[0]) + (a[0] - c[0]) * (ys - c[1])) / d
+            mask[y0:y1, x0:x1] |= (w0 >= 0) & (w1 >= 0) & (w0 + w1 <= 1)
+    return mask
+
+
+def _clamp_flecks(rgb, target):
+    """Pull cloth texels brighter than `FLECK` times the cloth mean down to it,
+    halfway toward the cloth's own hue at that brightness."""
+    luma = np.array((0.2126, 0.7152, 0.0722))
+    cap = FLECK * float(target @ luma)
+    lum = rgb @ luma
+    over = lum > cap
+    scaled = rgb[over] * (cap / lum[over])[:, None]
+    rgb = rgb.copy()
+    rgb[over] = 0.5 * scaled + 0.5 * target * (cap / float(target @ luma))
+    return rgb
 
 
 def wear(kit, pin, cloth_mean):
