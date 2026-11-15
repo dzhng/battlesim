@@ -1,5 +1,5 @@
-//! Scene/device ownership of stable material slots and weak geometry reuse.
-use super::Drawable;
+//! Scene/device ownership of stable material and texture slots and shared art.
+use super::{textures::TextureStore, Drawable};
 use crate::runtime::RebuildReason;
 use contract::identity::ContentId;
 use std::collections::{BTreeMap, HashMap};
@@ -46,6 +46,8 @@ pub struct ArtStorePolicy {
     pub dead_material_slots: usize,
     /// Target and readback byte bound for each card-bake batch.
     pub card_bake_memory_bytes: u64,
+    pub dead_texture_layers: usize,
+    pub texture_spare_layers: u32,
     pub report: fn(&str),
 }
 
@@ -54,6 +56,8 @@ impl Default for ArtStorePolicy {
         Self {
             dead_material_slots: 8192,
             card_bake_memory_bytes: crate::impostor::DEFAULT_BAKE_MEMORY_BYTES,
+            dead_texture_layers: 256,
+            texture_spare_layers: 1,
             report: |message| eprintln!("{message}"),
         }
     }
@@ -70,11 +74,14 @@ pub(super) struct GeometryKey {
 /// Routing and placement rows share immutable geometry across generations.
 /// Corpse palettes and running-gear flags are inputs to the packed vertices.
 /// Only generations own buffers; the index cannot keep retired geometry alive.
+/// Texture allocations likewise have weak records; generation-held shared
+/// owners destroy their arrays only when the final holder retires.
 #[derive(Default)]
 pub struct ArtStore {
     pub(super) slots: MaterialSlots,
     geometry: HashMap<GeometryKey, Weak<[Drawable]>>,
-    policy: ArtStorePolicy,
+    pub(super) policy: ArtStorePolicy,
+    pub(super) textures: TextureStore,
 }
 
 pub type SharedArtStore = Arc<Mutex<ArtStore>>;
@@ -91,9 +98,11 @@ impl ArtStore {
         Arc::new(Mutex::new(Self::default()))
     }
 
-    /// Include geometry held by any live or pending generation in a scene's
-    /// memory snapshot. The visitor deduplicates buffers shared by generations.
+    /// Include shared geometry and texture allocations held by live or pending
+    /// generations. The visitor deduplicates handles shared with Models' own
+    /// memory snapshot.
     pub fn record_memory(&self, memory: &mut crate::memory::ResourceMemory) {
+        self.textures.record_memory(memory);
         for geometry in self.geometry.values().filter_map(Weak::upgrade) {
             for tier in geometry.iter() {
                 memory.buffer(&tier.vertices);
@@ -107,8 +116,13 @@ impl ArtStore {
     pub(super) fn admit(
         store: SharedArtStore,
         wanted: &BTreeMap<ContentId, usize>,
+        textures: &BTreeMap<String, Arc<crate::bundle::Texture>>,
+        layer_limit: u32,
     ) -> Result<(SharedArtStore, Option<RebuildReason>), String> {
         let mut held = store.lock().expect("art store lock");
+        let texture_pressure =
+            held.textures
+                .pressure(textures, layer_limit, held.policy.dead_texture_layers)?;
         let active: usize = wanted.values().sum();
         if active > MATERIAL_SLOT_LIMIT {
             return Err(format!(
@@ -141,11 +155,12 @@ impl ArtStore {
         } else {
             None
         };
+        let reason = reason.or(texture_pressure);
         if let Some((kind, value, bound)) = reason {
             (held.policy.report)(&format!("art-store tripwire kind={kind:?} value={value} bound={bound} owner=Runtime.art_store outcome=fresh-store"));
             let fresh = Arc::new(Mutex::new(Self::new(held.policy)));
             drop(held);
-            let (fresh, _) = Self::admit(fresh, wanted)?;
+            let (fresh, _) = Self::admit(fresh, wanted, textures, layer_limit)?;
             return Ok((fresh, Some(kind)));
         }
         for (id, &count) in wanted {

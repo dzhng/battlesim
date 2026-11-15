@@ -1,7 +1,7 @@
 # Battle growth: a new unit type costs only its own art
 
-**Status:** slices 00, 01, 02, 03, 05a, 06, 07 and 10 are done. Three
-slices are out with implementers (see the lanes below).
+**Status:** slices 00–04, 05a, 06, 07 and 10 are done. Three slices are
+out with implementers (see the lanes below).
 **Updated:** 2026-11-15.
 
 This plan replaces the "shared GPU assets across generations" placeholder. That
@@ -18,13 +18,14 @@ in its own checkout and thread:
 
 | Slice | Branch | State |
 | --- | --- | --- |
-| 04 | `t3/art-content-identity` (the checkout of slices 02 and 03) | Building. |
+| 05 | `t3/art-content-identity` (the checkout of slices 02–04) | Building. |
 | 08 | `t3/battle-growth-catalog-delta` (slice 07's checkout) | Building. Its gate leaves a marked place for the texture and card assertions, which slices 04 and 05 add when they land. |
 | 11 | `t3/battle-growth-stand-in-mechanics` (slice 10's checkout) | Building. |
 
 When one returns: read its whole diff (changed tests first), rerun its checks
-yourself, merge it into this branch, then start what it unblocks (05 after
-04; 09 after 08). The build output of the merged checkouts for
+yourself, merge it into this branch, then start what it unblocks (09 after 08).
+When 05 and 08 have both merged, add the texture and card assertions slices
+04 and 05 specified to the gate in `battle-growth`. The build output of the merged checkouts for
 slices 01, 05a and 06 has been removed.
 
 Read, in this order: this file, the [decisions ledger](decisions.md), the slice
@@ -59,7 +60,7 @@ Checklist:
 - [x] [01 Fielding and install](slices/01-fielding-and-install.md)
 - [x] [02 Content identity](slices/02-content-identity.md)
 - [x] [03 Geometry reuse](slices/03-geometry-reuse.md)
-- [ ] [04 Texture layers](slices/04-texture-layers.md)
+- [x] [04 Texture layers](slices/04-texture-layers.md)
 - [x] [05a Cards bake together](slices/05a-cards-bake-together.md)
 - [ ] [05 Card reuse](slices/05-card-reuse.md)
 - [x] [06 Statics carry](slices/06-statics-carry.md)

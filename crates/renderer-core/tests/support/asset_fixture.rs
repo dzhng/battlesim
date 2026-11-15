@@ -8,7 +8,13 @@ pub fn identity() -> Joint {
     }
 }
 
-pub fn bundle_bytes(kind: &str, max_z: u8, state: &str, tier_count: usize) -> Vec<u8> {
+pub fn bundle_bytes(
+    kind: &str,
+    max_z: u8,
+    state: &str,
+    tier_count: usize,
+    textures: &[(&str, usize)],
+) -> Vec<u8> {
     let mut body = Vec::new();
     let mut views = Vec::new();
     let mut array = |ty, bytes: Vec<u8>, length| {
@@ -20,7 +26,7 @@ pub fn bundle_bytes(kind: &str, max_z: u8, state: &str, tier_count: usize) -> Ve
     let mut mesh = json!({
         "positions": array("f32", [0_f32,0.,0., 4.,0.,0., 0.,4.,f32::from(max_z)].into_iter().flat_map(f32::to_le_bytes).collect(), 9),
         "normals": array("i16", [0_i16,0,32767,0].repeat(3).into_iter().flat_map(i16::to_le_bytes).collect(), 12),
-        "uvs": array("f32", vec![0; 24], 6),
+        "uvs": array("f32", [0_f32,0.,1.,0.,0.,1.].into_iter().flat_map(f32::to_le_bytes).collect(), 6),
         "colors": array("u8", vec![255; 12], 12),
         "indices": array("u16", vec![0, 0, 1, 0, 2, 0], 3),
         "draws": [{"material": 0, "first": 0, "count": 3}],
@@ -39,7 +45,8 @@ pub fn bundle_bytes(kind: &str, max_z: u8, state: &str, tier_count: usize) -> Ve
     }
     let mut content = json!({"kind": kind, "materials": [{
         "name": "synthetic", "base_color": [f32::from(max_z)/4., 0.25, 0.5, 1.], "metallic": 0,
-        "roughness": 1, "tint": 0, "coverage": {"kind":"opaque"}
+        "roughness": 1, "tint": 0, "coverage": {"kind":"opaque"},
+        "textures": textures.iter().copied().collect::<BTreeMap<_,_>>()
     }]});
     if kind == "skinned" {
         content["tiers"] = json!(vec![mesh; tier_count]);
@@ -120,11 +127,11 @@ pub fn catalog(
         .unwrap()
 }
 
-pub fn library(art: Art<'_>) -> Library {
+pub fn library(art: Art<'_>, textures: &[(&str, &[u8])]) -> Library {
     let mut library = Library::default();
     for (name, bytes) in art {
         library
-            .insert_bundle(name, content_id(bytes), bytes, &[])
+            .insert_bundle(name, content_id(bytes), bytes, textures)
             .unwrap();
     }
     library
@@ -135,13 +142,15 @@ pub fn models(art: Art<'_>) -> Vec<presentation::presentation::lab::ModelInput> 
         .iter()
         .enumerate()
         .map(|(i, (name, bytes))| {
-            let bundle = renderer_core::bundle::decode(name, bytes, &[]).unwrap();
-            let renderer_core::bundle::Shape::Static(states) = &bundle.shape else {
-                panic!("lab model fixture is static");
-            };
+            let bundle = presentation::assets::Container::<serde_json::Value>::parse(
+                bytes,
+                presentation::assets::BUNDLE,
+                name,
+            )
+            .unwrap();
             json!({
                 "appearance":name, "x":(i % 2) as f32 * 6., "y":(i / 2) as f32 * 6., "z":0, "yaw":0,
-                "tier":0, "pose":{"kind":"static", "state":states[0].name}
+                "tier":0, "pose":{"kind":"static", "state":bundle.content["states"][0]["name"]}
             })
         })
         .collect::<Vec<_>>()))
@@ -206,6 +215,7 @@ impl Stage {
         art: Art<'_>,
         config: RuntimeConfig,
         scenery: Option<&[u8]>,
+        textures: &[(&str, &[u8])],
     ) -> Self {
         let mut presentation = Presentation::new(None, 30.).unwrap();
         presentation.install_lab_assets(
@@ -221,7 +231,7 @@ impl Stage {
         );
         presentation.set_lab_models(models(art)).unwrap();
         ground(&mut presentation, scenery);
-        let mut library = library(art);
+        let mut library = library(art, textures);
         let mut runtime = Runtime::new(
             &gpu.device,
             &gpu.queue,
@@ -246,9 +256,10 @@ impl Stage {
         &mut self,
         gpu: &support::Gpu,
         art: Art<'_>,
+        textures: &[(&str, &[u8])],
     ) -> renderer_core::runtime::ReadyAssets {
         let draft = catalog(&self.presentation, art);
-        let mut library = library(art);
+        let mut library = library(art, textures);
         let work = library.take_admission_work();
         let pending = self
             .runtime
@@ -323,7 +334,7 @@ impl Stage {
 
 /// The same small mesh with enough material rows to exercise ABI capacity.
 pub fn material_bundle(count: usize) -> Vec<u8> {
-    let bytes = bundle_bytes("static", 1, "default", 1);
+    let bytes = bundle_bytes("static", 1, "default", 1, &[]);
     let header_len = u32::from_le_bytes(bytes[8..12].try_into().unwrap()) as usize;
     let mut header: serde_json::Value =
         serde_json::from_slice(&bytes[16..16 + header_len]).unwrap();
@@ -437,4 +448,76 @@ pub fn card_catalog(
         .stage_catalog(wanted, facts, detail(), Default::default())
         .unwrap();
     (library, catalog, models)
+}
+
+/// Deterministic nonuniform RGBA mips in the runtime texture wire format.
+pub fn texture_bytes(size: u32, srgb: bool, value: u8) -> Vec<u8> {
+    let format = if srgb {
+        "rgba8unorm-srgb"
+    } else {
+        "rgba8unorm"
+    };
+    let mut bytes = format!("{format} {size}x{size}\n").into_bytes();
+    for level in 0..=size.ilog2() {
+        let edge = size >> level;
+        for y in 0..edge {
+            for x in 0..edge {
+                bytes.extend([
+                    value.wrapping_add((x * 11) as u8),
+                    value.wrapping_add((y * 17) as u8),
+                    value,
+                    255,
+                ]);
+            }
+        }
+    }
+    bytes
+}
+
+pub fn admit_models(
+    gpu: &support::Gpu,
+    pipelines: &renderer_core::pipelines::Pipelines,
+    art: Art<'_>,
+    textures: &[(&str, &[u8])],
+    store: renderer_core::models::SharedArtStore,
+) -> (Models, AdmissionWork) {
+    let mut library = library(art, textures);
+    let mut names = String::new();
+    let mut rows = Vec::new();
+    for (name, _) in art {
+        rows.push(Appearance {
+            name: names.len() as u32,
+            name_len: name.len() as u32,
+            lies: NONE,
+            ..Default::default()
+        });
+        names.push_str(name);
+    }
+    let mut work = library.take_admission_work();
+    let models = Models::from_world(
+        &gpu.device,
+        &gpu.queue,
+        pipelines,
+        &library,
+        &rows,
+        &names,
+        |_| Some(vec![identity()]),
+        |_, _| None,
+        store,
+        &mut work,
+    )
+    .unwrap();
+    (models, work)
+}
+
+pub fn model_memory(
+    models: &[&Models],
+    store: &renderer_core::models::SharedArtStore,
+) -> renderer_core::memory::AllocationCounts {
+    let mut memory = renderer_core::memory::ResourceMemory::default();
+    store.lock().unwrap().record_memory(&mut memory);
+    for model in models {
+        model.record_memory(&mut memory);
+    }
+    memory.counts()
 }

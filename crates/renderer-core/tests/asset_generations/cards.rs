@@ -13,7 +13,7 @@ fn card_bake_reports_one_read_wait_per_memory_batch() {
         let Stage {
             mut presentation,
             mut runtime,
-        } = Stage::new(&gpu, &[], config, None);
+        } = Stage::new(&gpu, &[], config, None, &[]);
         assert_eq!(
             runtime.admission_work().card_read_waits,
             0,
@@ -65,7 +65,7 @@ fn cards_baked_in_one_batch_match_each_card_baked_alone() {
     let Stage {
         mut presentation,
         mut runtime,
-    } = Stage::new(&gpu, &[], config, None);
+    } = Stage::new(&gpu, &[], config, None, &[]);
     assert_eq!(
         runtime.admission_work().card_read_waits,
         0,
@@ -173,7 +173,7 @@ fn card_bake_uploads_the_authored_materials_once_per_stage() {
     let Stage {
         presentation,
         runtime,
-    } = Stage::new(&gpu, &[], config, None);
+    } = Stage::new(&gpu, &[], config, None, &[]);
     assert_eq!(
         runtime.admission_work().card_read_waits,
         0,
@@ -227,7 +227,7 @@ fn card_batch_split_uses_the_policy_sink_once_per_runtime() {
         let mut config = runtime_config();
         config.art_store.card_bake_memory_bytes = bound;
         config.art_store.report = report;
-        let stage = Stage::new(&gpu, &[], config, None);
+        let stage = Stage::new(&gpu, &[], config, None, &[]);
         for _ in 0..2 {
             let (mut library, catalog, _) = card_catalog(&stage.presentation);
             let cards = catalog
