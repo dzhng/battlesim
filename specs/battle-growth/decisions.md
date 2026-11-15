@@ -96,6 +96,35 @@ Decisions made where slice 00 was silent:
 | The first scene publishes no `art committed` event | Nothing gates on it; the Rust test covers a first admission |
 | The swap test compares the live report and the world's appearance names, not pixels | It proves a dropped, stale or failed candidate changes nothing live without a frame readback; pixel equality starts with slice 03 |
 
+**Slice 00's probe, 2026-11-14.** The reference battle at high graphics in the
+scene harness, five growths, run with
+[the probe](assets/growth-probe.mjs):
+
+| Growth | Freeze at staging | Staging to commit | Cards baked | Bundles sent | Installs |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1 (staged twice) | 2.8 s, then 3.2 s | 103 s | 189 | 216 | 4 |
+| 2 | 3.3 s | 66 s | 189 | 218 | 2 |
+| 3 | 3.0 s | 64 s | 189 | 220 | 2 |
+| 4 | 3.1 s | 62 s | 189 | 222 | 2 |
+| 5 | 3.5 s | 69 s | 207 | 228 | 2 |
+
+- **The long wait is the card bake.** After the freeze, the only work left
+  before the commit is baking every card. The same 189 cards took 1.4 s in the
+  small skirmish and over 60 s here, so the cost is not GPU work: each card
+  waits on three GPU reads in turn, and each read waits behind the battle's
+  own frames, about 0.1 s apiece. Slice 05 follows from this (see its seam).
+  Inferred from what the phase contains; no timer isolated the bake.
+- **A superseded build is thrown away and redone.** Growth 1 was staged twice
+  six seconds apart. The first build ran to the end of its bake and was
+  discarded, then the second began with its own freeze. That is the 103 s, and
+  it matches the 40 s waits in the player's report. Slices 01 and 08 remove
+  the doubled request; with reuse a build is short enough that a wasted one
+  costs little.
+- **Scenery and grass at growth:** one placement run and 24 MB uploaded, of
+  1.4 GB in all. Its time on this map is not measured; slice 06 times it first.
+- The player's own freezes were longer (2.9–9.9 s) on a larger window with the
+  battle running in real time.
+
 Known imprecision: the library's decode count is cumulative, so a runtime
 rebuilt after a lost GPU device reports decodes it did not redo. Slice 02
 reworks the library and settles the count's owner.

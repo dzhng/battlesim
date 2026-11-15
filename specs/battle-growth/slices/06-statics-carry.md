@@ -7,8 +7,10 @@ scenery and grass work?
 
 ## Run this slice only if
 
-Slice 00 measured more than about one frame of scenery and grass work at
-growth in the reference battle. If it measured less, record the number in the
+Scenery and grass work at growth takes more than about one frame in the
+reference battle. Slice 00 measured its size (one placement run, 24 MB
+uploaded) but not its time, so time it first, with a temporary timer and
+[the probe](../assets/growth-probe.mjs). If it takes less, record the number in the
 [ledger](../decisions.md), mark this slice dropped in the README's checklist,
 and move on: the margin is spent on keeping the admission simple.
 

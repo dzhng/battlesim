@@ -1,7 +1,7 @@
 # Battle growth: a new unit type costs only its own art
 
-**Status:** slice 00's code has landed; its probes have not run. Slice 10 is
-written but unreviewed-clean and uncommitted (see the warnings).
+**Status:** slice 00 is done. Slice 01 is next. Slice 10's first pass is
+written but must not merge as it is (see the warnings).
 **Updated:** 2026-11-14.
 
 This plan replaces the "shared GPU assets across generations" placeholder. That
@@ -11,9 +11,10 @@ player sees, and sharing GPU assets is one part of the fix.
 ## Next Agent Prompt
 
 You are fixing the multi-second freeze that happens whenever a running battle
-first fields a unit type it had not shown. The admission work report exists
-and `battle-growth` prints it. Next: run [slice 00](slices/00-proof-and-probes.md)'s
-probes in the reference battle, then build [slice 01](slices/01-fielding-and-install.md).
+first fields a unit type it had not shown. The admission work report exists,
+`battle-growth` prints it, and the [ledger](decisions.md) holds what it and
+the reference battle measured. Next: build
+[slice 01](slices/01-fielding-and-install.md).
 
 Read, in this order: this file, the [decisions ledger](decisions.md), the slice
 you are about to build, the [renderer contract](../../crates/renderer-core/README.md)
@@ -46,8 +47,7 @@ Warnings:
 
 Checklist:
 
-- [ ] [00 Proof and probes](slices/00-proof-and-probes.md): the report and
-  its tests are in; the probes in the reference battle remain
+- [x] [00 Proof and probes](slices/00-proof-and-probes.md)
 - [ ] [01 Fielding and install](slices/01-fielding-and-install.md)
 - [ ] [02 Content identity](slices/02-content-identity.md)
 - [ ] [03 Geometry reuse](slices/03-geometry-reuse.md)
@@ -218,8 +218,6 @@ Seen and not planned here, so they are not lost:
 
 - **A multi-type arrival still visibly stutters after slice 08.** Add a slice
   that spreads admission work over frames in shared Rust.
-- **The long wait in the reference battle is not the card bake** (slice 00
-  measures it). Cut a slice for the real cause before 05.
 - **A reuse key turns out to miss an input**, so a reused resource differs
   from a fresh one. Stop and widen the key in its owning slice.
 - **The ledger keeps filling from one slice.** Split it.
@@ -228,8 +226,7 @@ Seen and not planned here, so they are not lost:
 
 | Question | Unblocked by |
 | --- | --- |
-| Is the 11–40 s wait the card bake? | Slice 00 times the bake in the reference battle |
-| Does scenery placement cost a frame on a large map? | Slice 00; decides slice 06 |
+| Does scenery placement cost a frame on a large map? | Slice 06 times it first; slice 00 measured its bytes, not its time |
 | How deep does the preload go? | Slice 08 measures a one-type arrival; rule in slice 09 |
 | Does a multi-type arrival still stutter? | Slice 08 |
 | What does the preload cost in whole-browser memory? | Slice 09 |
