@@ -21,6 +21,14 @@ export function objectiveStanding(
   return owner === (viewer ?? "blue") ? "own" : "enemy";
 }
 
+/** What follows an objective's number on its flags: its capture share while
+ *  a side takes it uncontested, else nothing (a contested flag flashes). */
+export function captureShare(objective: ObjectiveView): string {
+  return !objective.contested && objective.capturing
+    ? ` · ${Math.floor(objective.captureProgress * 100)}%`
+    : "";
+}
+
 /** Public numbered flags connect the score strip to its actual capture areas. */
 export function ObjectiveMarkers({
   objectives,
@@ -68,9 +76,7 @@ export function ObjectiveMarkers({
         >
           <Icon path={hudIcon("objective")} />
           {index + 1}
-          {!objective.contested && objective.capturing
-            ? ` · ${Math.floor(objective.captureProgress * 100)}%`
-            : ""}
+          {captureShare(objective)}
         </span>
       ))}
     </div>

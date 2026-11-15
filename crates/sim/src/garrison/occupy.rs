@@ -53,10 +53,6 @@ fn rank(a: &Candidate, b: &Candidate) -> std::cmp::Ordering {
         .then(a.ordinal.cmp(&b.ordinal))
 }
 
-fn ranks_before(a: &Candidate, b: &Candidate) -> bool {
-    rank(a, b).is_lt()
-}
-
 struct RouteJob {
     candidate: Candidate,
     journey: Journey,
@@ -403,16 +399,15 @@ pub(crate) fn occupy(
     }
     jobs.sort_by(|a, b| rank(&a.candidate, &b.candidate));
     // Searches run one at a time, nearest straight-line bound first, each to
-    // its end. Sharing the work round-robin let dozens of entry searches
-    // round one obstacle spend it all with none finished, so a building a
-    // block away was never entered. A straight distance is a lower bound on
-    // its route: once the nearest unsearched bound cannot beat the best
+    // its end: work shared among dozens of entry searches round one obstacle
+    // runs out with none finished. A straight distance is a lower bound on
+    // its route, so once the nearest unsearched bound cannot beat the best
     // completed route, no search left can.
     let mut jobs = VecDeque::from(jobs);
     while let Some(job) = jobs.front() {
         if candidates
             .first()
-            .is_some_and(|best| !ranks_before(&job.candidate, best))
+            .is_some_and(|best| !rank(&job.candidate, best).is_lt())
         {
             jobs.clear();
             break;
