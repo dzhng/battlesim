@@ -170,5 +170,26 @@ by the second, on a Ryzen 9 9950X in France.
   percentile gap 34 ms). The gain is a few milliseconds: the wait is
   distance. A socket would simplify the transport, not speed it up.
 
+- **A native build helps only when it is built for the machine's CPU.**
+  Asked by the user on 2026-11-15. On one sandbox (an EPYC 9455: the
+  sandboxes are not all the same CPU), the 200-unit fight for ten simulated
+  minutes, same code, every variant at once on its own core:
+
+  | Build | Median tick, first and second five minutes | 95th percentile | Ticks over 33 ms |
+  |---|---|---|---|
+  | WebAssembly in the server's runtime | 7.9 and 15.4 ms | 36 and 47 ms | 13% |
+  | Native, the default x86 build | 7.6 and 14.2 ms | 42 and 59 ms | 19% |
+  | Native, built for the CPU (`target-cpu=native`) | 5.7 and 13.3 ms | 29 and 40 ms | 6% |
+  | Either native build with another allocator | no change | | |
+
+  The default x86 build may only use instructions from 2003, and loses to
+  WebAssembly at the tail; that is why native looked no faster on the VM
+  and on the first sandbox. Built for the CPU it halves the late ticks.
+  Every native variant ended on one digest, so the CPU's instructions do
+  not change a battle. It is a gain of about a fifth at the tail, not the
+  doubling a sandbox gave, and it does not need a server written in Rust:
+  the binding the server already loads as WebAssembly could be compiled as
+  a native module for the same server. Deferred; see the README.
+
 **What this changed:** the user chose a sandbox for each battle (decision
 68, slices 28 and 29).

@@ -97,3 +97,46 @@ E. A fresh small sandbox, seconds from the create call (driven by one CLI call a
   create returned 2.2; ready 3.4; 3 MB server bundle uploaded 6.1; server started 7.1; port hosted 8.0; first /hello answered 8.7
 
 F. Charged by Bento for the run: small 44 min 0.0159 USD, default 0.0319, large 0.0647, the timing machine 0.0054.
+
+G. WebSocket through a sandbox's token-protected HTTPS address from California, 420 s.
+  websocket open after 560 ms
+  lived 420.3 s (time limit); 12614 pushed frames, 48.0 kB/s
+  gap between pushed frames, ms: p50 33  p95 34  p99 37  max 293  (12613); over 100 ms: 6
+  websocket message round trip, ms: p50 173  p95 176  p99 200  max 344  (618)
+  HTTP POST round trip at the same time, ms: p50 177  p95 184  p99 202  max 558  (619)
+
+H. Native variants and WebAssembly of the same code on one sandbox (AMD EPYC 9455), each pinned to its own core, all at once.
+  23:23:09 23:28:46 
+  ==> build-base.log <==
+      Finished `release` profile [optimized] target(s) in 32.89s
+  
+  ==> build-native.log <==
+      Finished `release` profile [optimized] target(s) in 28.93s
+  /usr/lib/x86_64-linux-gnu/libjemalloc.so.2
+  == a-base (minutes | p50 | p95 | p99 | max | over 33 ms)
+   5 | 7.6 | 41.8 | 87.0 | 122 | 772 
+   10 | 14.2 | 59.4 | 92.1 | 164 | 2697 
+  == b-cpu-native (minutes | p50 | p95 | p99 | max | over 33 ms)
+   5 | 5.7 | 28.7 | 55.5 | 75 | 285 
+   10 | 13.3 | 40.3 | 59.8 | 86 | 858 
+  == c-jemalloc (minutes | p50 | p95 | p99 | max | over 33 ms)
+   5 | 7.9 | 42.6 | 88.5 | 123 | 794 
+   10 | 13.9 | 58.0 | 91.9 | 113 | 2667 
+  == e-both (minutes | p50 | p95 | p99 | max | over 33 ms)
+   5 | 5.8 | 28.6 | 55.2 | 80 | 292 
+   10 | 12.9 | 40.8 | 59.2 | 130 | 853 
+  == d-wasm alongside (minutes | mean | p50 | p95 | p99 | max | over)
+   5 | 12.2 | 7.9 | 36.0 | 66.8 | 137 | 567 
+   10 | 21.6 | 15.4 | 47.2 | 70.4 | 153 | 1812 
+   whole | 16.9 | 12.5 | 43.1 | 69.4 | 153 | 2379 
+  == d-wasm alone
+   5 | 11.5 | 7.5 | 33.7 | 64.0 | 110 | 465 
+   10 | 21.6 | 15.2 | 46.7 | 70.4 | 92 | 1846 
+   whole | 16.5 | 12.3 | 42.0 | 68.2 | 110 | 2311 
+  
+  a-base: digest eeea8a5d2c857d08.
+  b-cpu-native: digest eeea8a5d2c857d08.
+  c-jemalloc: digest eeea8a5d2c857d08.
+  e-both: digest eeea8a5d2c857d08.
+  d-wasm: digest 0cc50762354acfc8
+  avx avx2 avx512_bf16 avx512_bitalg avx512bw avx512cd avx512dq avx512f avx512ifma avx512vbmi avx512_vbmi2 avx512vl avx512_vnni avx512_vp2intersect avx512_vpopcntdq avx_vnni bmi1 bmi2 fma popcnt sse4_1 sse4_2 

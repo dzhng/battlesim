@@ -54,6 +54,17 @@ alone. The `online-battle` scene no longer drives through a town.
 starts a sandbox for every battle. The measurements behind it are in
 [slice 01](slices/01-probes.md); slices 28 and 29 build it.
 
+**Looked at on 2026-11-15 at the user's suggestion, and left for later:**
+
+- **WebSockets** work through a sandbox's address and save a few
+  milliseconds of about 175 an order. The transport stays as it is.
+- **A native simulation in the battle server** halves late ticks when built
+  for the machine's CPU, and gains nothing as a default x86 build. Worth
+  its own slice after slice 29, as the server's existing binding compiled
+  natively, not as a second server.
+
+Both are measured in [slice 01](slices/01-probes.md).
+
 **Known and not this plan's to fix:** the soak sheds ticks on every machine
 measured, the Mac included, once ten AIs have large armies. No host fixes
 that; it is the simulation's cost.
