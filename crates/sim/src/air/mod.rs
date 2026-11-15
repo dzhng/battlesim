@@ -55,8 +55,10 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
         .as_ref()
         .map_or(cruise, |air| air.velocity.xy().length().max(cruise));
     let current_order = unit.orders.front().cloned();
+    // A move ends on its circle; an attack-move goes on hunting round its
+    // goal until another order replaces it (`orders::task`).
     let goal = current_order.as_ref().and_then(|order| match order {
-        UnitOrder::Move(m) | UnitOrder::AttackMove(m) => Some(m.destination),
+        UnitOrder::Move(m) => Some(m.destination),
         _ => None,
     });
     let on_circle = goal.is_some_and(|centre| {
@@ -113,7 +115,6 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
     let pass_before = unit.air.as_ref().and_then(|air| air.pass);
     let task = orders::task(
         unit,
-        ctx.rules,
         ctx.knowledge[unit.side.index()],
         ctx.arsenal,
         pass_before.as_ref(),
@@ -135,11 +136,8 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
         }
         orders::AirTask::Hold => {
             unit.air.as_mut().expect("an aircraft's flight state").pass = None;
-            // An attack, or an attack-move whose target it killed, is over (D15).
-            if matches!(
-                unit.orders.front(),
-                Some(UnitOrder::Attack { .. } | UnitOrder::AttackMove(_))
-            ) {
+            // An attack whose target it killed is over (D15).
+            if matches!(unit.orders.front(), Some(UnitOrder::Attack { .. })) {
                 unit.orders.pop_front();
             }
             Intent::Orbit {
@@ -278,7 +276,7 @@ pub(crate) fn break_off(unit: &mut Unit) {
 
 /// Whether the side still knows where `target` is: a ground point always,
 /// a unit while it holds a track of it, a contact while it lives.
-fn knows_target(knowledge: &SideKnowledge, target: Target) -> bool {
+pub(super) fn knows_target(knowledge: &SideKnowledge, target: Target) -> bool {
     match target {
         Target::Unit(id) => knowledge.track(id).is_some(),
         Target::Contact(id) => knowledge.contact(id).is_some(),
