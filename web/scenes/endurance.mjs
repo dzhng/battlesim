@@ -323,15 +323,23 @@ async function measureModelCost(ctx) {
   const late = await modelCostAt(page, `late state (${LATE_CORPSES} fallen)`);
   const adapter = await page.evaluate(() => window.__lab.adapter);
   await ctx.writeEvidence("model-cost.json", { adapter, live, late });
-  // Presentation draws all realistic late-state corpses, up to `corpses.max`.
+  // The late state's cost has to be measured over a field of bodies. A side
+  // lays the fallen it knows of (its own, and the enemy's it saw fall or
+  // found), up to `corpses.max`, and draws those the framing does not cull.
+  // The battle is live, so both counts are read in one step, at the last
+  // framing measured (the widest).
+  const fallen = await lab(page, () => ({
+    known: window.__lab.route.observation().corpses.length,
+    drawn: window.__lab.stats().models.corpses,
+    soldierMeshes: window.__lab.stats().models.soldierMeshes,
+  }));
   ctx.check(
-    "the models layer draws the late state's corpses as static instances",
-    late.strategic.models.corpses === Math.min(CORPSE_CAP, LATE_CORPSES) &&
-      late.strategic.models.skinned < 2000,
-    JSON.stringify({
-      corpses: late.strategic.models.corpses,
-      skinned: late.strategic.models.skinned,
-    }),
+    "the late state's cost is measured over a field of bodies: the side knows most of the fallen and the widest framing draws most of those",
+    fallen.known > LATE_CORPSES / 2 &&
+      fallen.drawn <= Math.min(CORPSE_CAP, fallen.known) &&
+      fallen.drawn > fallen.known / 2 &&
+      fallen.soldierMeshes < 2000,
+    JSON.stringify(fallen),
   );
   await page.close();
 }

@@ -133,15 +133,11 @@ export async function growthArt(page, catalog, initialNames, names) {
       const header = headers.get(id);
       const body = header.content;
       let poses;
-      // Skinned art packs the living mesh and posed copies for corpses.
-      // Authored pose labels can yield identical palettes; compare the sampled
-      // palettes so both rest derivations and packed tiers count those once.
+      // Skinned art packs its living mesh once. Rest facts and cards follow
+      // the rendered palette, shared by rows whose sampled poses agree,
+      // independently of whether those rows draw living bodies or corpses.
       if (body.kind === "skinned") {
-        poses = new Set(
-          palettes[id].map((palette, i) =>
-            JSON.stringify([i === 0 ? "living" : "corpse", palette]),
-          ),
-        );
+        poses = new Set(palettes[id].map((palette) => JSON.stringify(palette)));
         for (const pose of poses) cards.add(JSON.stringify([id, pose, shape]));
       } else if (body.kind === "static") {
         poses = new Set(
@@ -151,11 +147,7 @@ export async function growthArt(page, catalog, initialNames, names) {
         poses = new Set(["articulated"]);
       }
       for (const pose of poses) rest.add(JSON.stringify([id, pose]));
-      if (added.has(id))
-        vertexBytes +=
-          meshVertices(header, body) *
-          PACKED_VERTEX_BYTES *
-          (body.kind === "skinned" ? poses.size : 1);
+      if (added.has(id)) vertexBytes += meshVertices(header, body) * PACKED_VERTEX_BYTES;
     }
     return { rest, cards, vertexBytes };
   };

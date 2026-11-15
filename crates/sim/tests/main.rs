@@ -44,6 +44,7 @@ mod flight_load;
 mod forest;
 mod formation;
 mod garrison;
+mod garrison_sight;
 mod ground;
 mod ground_delivery;
 mod ground_speed;

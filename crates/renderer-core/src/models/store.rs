@@ -71,12 +71,11 @@ impl Default for ArtStorePolicy {
 pub(super) struct GeometryKey {
     pub content: ContentId,
     pub state: String,
-    pub pose: Option<Vec<u8>>,
     pub tracks: Vec<u8>,
 }
 
 /// Routing and placement rows share immutable geometry across generations.
-/// Corpse palettes and running-gear flags are inputs to the packed vertices.
+/// Running-gear flags affect packed vertices; rest palettes do not.
 /// Only generations own buffers; the index cannot keep retired geometry alive.
 /// Texture allocations likewise have weak records; generation-held shared
 /// owners destroy their arrays only when the final holder retires.

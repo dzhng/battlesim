@@ -20,6 +20,7 @@ fn seen(rules: &Rules, kind: &str) -> contract::observation::IdentifiedUnit {
         reversing: false,
         smoking: false,
         member_leans: vec![],
+        building: None,
     }
 }
 
