@@ -15,11 +15,11 @@
   .dot.eye { background: var(--info, #4b9fd0); border-color: var(--info, #4b9fd0); }
   .dot.rule { background: var(--warning, #c9972b); border-color: var(--warning, #c9972b); }
   .dot.free { border-style: dashed; }
-  .cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
-  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
+  .cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: start; }
+  @media (max-width: 600px) { .cols { grid-template-columns: 1fr; } }
   h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 4px; }
-  .goal { color: var(--muted-foreground, #8a96a0); margin: 0 0 10px; font-size: 12px; min-height: 2.9em; }
-  .card { border: 1px solid var(--border, #2a3640); border-left-width: 3px; border-radius: var(--radius, 6px); padding: 8px 10px; margin-bottom: 7px; background: var(--card, transparent); }
+  .goal { color: var(--muted-foreground, #8a96a0); margin: 0 0 10px; font-size: 12px; min-height: 4.4em; }
+  .card { border: 1px solid var(--border, #2a3640); border-left-width: 3px; border-radius: var(--radius, 6px); padding: 7px 9px; margin-bottom: 6px; background: var(--card, transparent); }
   .card.free { border-left-style: dashed; }
   .card.eye { border-left-color: var(--info, #4b9fd0); }
   .card.rule { border-left-color: var(--warning, #c9972b); }
@@ -27,7 +27,7 @@
   .top { display: flex; gap: 8px; align-items: baseline; }
   .n { font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; color: var(--muted-foreground, #8a96a0); }
   .t { font-weight: 600; }
-  .needs { margin-left: auto; font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; color: var(--muted-foreground, #8a96a0); white-space: nowrap; }
+  .needs { display: block; margin-top: 3px; font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; color: var(--muted-foreground, #8a96a0); }
   .p { margin: 3px 0 0; font-size: 12px; }
   .burn { display: inline-block; margin-left: 6px; font-size: 10.5px; font-weight: 600; padding: 0 6px; border-radius: 999px; border: 1px solid var(--destructive, #d2553f); }
 </style>
@@ -83,9 +83,9 @@ document.getElementById("cols").innerHTML = STAGES.map(([name, goal, slices]) =>
   <section><h2>${name}</h2><p class="goal">${esc(goal)}</p>
   ${slices.map(([n, t, needs, proof, kind = "", burn = ""]) => `
     <div class="card ${kind}">
-      <div class="top"><span class="n">${n}</span><span class="t">${esc(t)}</span>
-        <span class="needs">${needs ? "after " + esc(needs) : ""}</span></div>
+      <div class="top"><span class="n">${n}</span><span class="t">${esc(t)}</span></div>
       <p class="p">${esc(proof)}${burn ? `<span class="burn">burns ${burn}</span>` : ""}</p>
+      ${needs ? `<span class="needs">after ${esc(needs)}</span>` : ""}
     </div>`).join("")}
   </section>`).join("");
 </script>
