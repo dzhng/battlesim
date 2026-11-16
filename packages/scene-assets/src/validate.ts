@@ -16,6 +16,7 @@ import { vec3, type Vec3 } from "math";
 import { encodeBundle } from "./codec.ts";
 import { FACTIONS, type UnitCatalog } from "./units.ts";
 import { SCENERY_KINDS } from "./scenery.ts";
+import { farFindings, farStatesFindings } from "./farMesh.ts";
 import {
   articulatedPositions,
   articulatedWorlds,
@@ -38,6 +39,7 @@ import { typeFindings } from "./vehicleFit.ts";
 import {
   INFANTRY_CLIPS,
   INFANTRY_CORPSES,
+  TIER_COUNT,
   UNIT_BUNDLE_KIND,
   type AppearanceEntry,
   type ArticulatedBundle,
@@ -182,6 +184,7 @@ async function staticState(
   const judged = { name: state, tiers: built.tiers, bounds };
   const rule = SCENERY_KINDS[input.entry.scenery ?? ""];
   const debris = rule?.debris?.state === state ? rule.debris : null;
+  findings.push(...farFindings(path, input.entry.scenery, rule, built.tiers));
   // A wreck's tiers are a unit's: it is drawn where its vehicle was. It
   // takes the default row (no vehicle class sets a ratio of its own yet).
   // A piece or its debris is part of its whole's tiers, so only the whole
@@ -191,7 +194,7 @@ async function staticState(
       ...tierFindings(
         path,
         imported.scene,
-        built.tiers.map(triangleCount),
+        built.tiers.slice(0, TIER_COUNT).map(triangleCount),
         rule?.pieces?.includes(state) || debris ? 1 : unitArtRule(null).tier_ratio,
       ),
     );
@@ -271,6 +274,7 @@ async function validateStaticAppearance(
   states.sort(
     (a, b) => Number(b.name === lead) - Number(a.name === lead) || a.name.localeCompare(b.name),
   );
+  findings.push(...farStatesFindings(input.name, states));
   const pieces = SCENERY_KINDS[entry.scenery ?? ""]?.pieces ?? [];
   const debrisState = SCENERY_KINDS[entry.scenery ?? ""]?.debris?.state;
   if (required) {
@@ -514,7 +518,8 @@ const union = (a: Bounds | null, b: Bounds): Bounds =>
     : b;
 
 function sumTiers(groups: MeshData[][]): Stats["tiers"] {
-  return groups[0].map((_, t) =>
+  const shared = Math.min(...groups.map((tiers) => tiers.length));
+  return groups[0].slice(0, shared).map((_, t) =>
     groups.reduce(
       (acc, tiers) => ({
         triangles: acc.triangles + triangleCount(tiers[t]),

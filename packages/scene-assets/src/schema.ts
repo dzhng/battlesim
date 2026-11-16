@@ -129,8 +129,13 @@ export interface Budget {
   textures?: number;
 }
 
-/** Mesh tiers, finest first. Source meshes carry them as a `_LOD<n>` name suffix. */
+/** Mesh tiers every bundle has, finest first. Source meshes carry them as a
+ *  `_LOD<n>` name suffix, and an unsuffixed mesh is in each of them. */
 export const TIER_COUNT = 4;
+/** The far mesh's index: the optional fifth, coarsest mesh a static prop's
+ *  state may carry past its `TIER_COUNT` tiers, its source's `_LOD4` meshes
+ *  and no others. The pair of `FAR` in `crates/presentation/src/view.rs`. */
+export const FAR_TIER = 4;
 
 export type BundleKind = "skinned" | "articulated" | "static";
 /** What an appearance draws. A soldier kind names soldier appearances as its
