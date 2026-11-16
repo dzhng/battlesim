@@ -85,7 +85,7 @@ def lean(z):
 def slab(name, pts, normal, mat, lods=None, thick=0.03):
     """A thin sheet through `pts` (a face's outline, in order), half of `thick` proud
     of the surface it lies on along `normal`. A parked car's far mesh carries it too."""
-    lods = lods or (TIERS if WRECK else TIERS + (FAR,))
+    lods = lods or TIERS + FAR_TOO
     n = Vector(normal).normalized() * (thick / 2)
 
     def build(bm, lod):
@@ -115,14 +115,19 @@ def along(a, b, t):
 
 
 # ------------------------------------------------------------------ body and greenhouse
+# A parked car's far mesh is tier 3 without its wheels: the side's sight test
+# judges each surface by its plane, so every surface the far mesh keeps is
+# tier 3's own (its body, floor pan, cabin and windows).
+FAR_TOO = () if WRECK else (FAR,)
 for lod, seg in zip(TIERS, (12, 8, 5, 3)):
     profile = body_profile(seg)
     if lod == 3 and not WRECK:
         # Keep the hull silhouette; the wheel-arch clearance is subpixel here.
         profile = profile[:2] + [(-2.1, SILL_Z), (2.1, SILL_Z)] + profile[-7:]
-    prism("body", profile, 2 * BODY_Y, (0, 0, 0), paint, car, bevel=0.04, lods=(lod,))
-box("floor_pan", (4.1, 1.36, 0.5), (0, 0, 0.5), under, car)
-prism("cabin", CABIN, 2 * CABIN_Y, (0, 0, 0), paint, car, bevel=0.03, taper_y=lean)
+    lods = (lod,) + (FAR_TOO if lod == 3 else ())
+    prism("body", profile, 2 * BODY_Y, (0, 0, 0), paint, car, bevel=0.04, lods=lods)
+box("floor_pan", (4.1, 1.36, 0.5), (0, 0, 0.5), under, car, lods=TIERS + FAR_TOO)
+prism("cabin", CABIN, 2 * CABIN_Y, (0, 0, 0), paint, car, bevel=0.03, taper_y=lean, lods=TIERS + FAR_TOO)
 
 # glass: the windscreen and the tailgate's window across the car, three windows a side
 for name, foot, head in (("windscreen", SCREEN_FOOT, SCREEN_HEAD), ("rear_window", GATE_FOOT, GATE_HEAD)):
@@ -163,36 +168,6 @@ for row, x in AXLES:
         cyl(n + "_tyre", TYRE_R, TYRE_W, at, "Y", rubber, car, seg=24, bevel=0.03)
         cyl(n + "_rim", 0.2, TYRE_W + 0.006, at, "Y", wheel_m, car, seg=16, lods=(0, 1, 2))
         cyl(n + "_hub", 0.07, TYRE_W + 0.02, at, "Y", trim, car, seg=8, lods=(0,))
-
-# ------------------------------------------------------------------ the far mesh
-def far_shell(name, faces, mat, inside):
-    """A far part: `faces` (outlines) each turned to face away from `inside`."""
-
-    def build(bm, lod):
-        for pts in faces:
-            face = bm.faces.new([bm.verts.new(p) for p in pts])
-            face.normal_update()
-            centre = sum((Vector(p) for p in pts), Vector()) / len(pts)
-            if face.normal.dot(centre - Vector(inside)) < 0:
-                face.normal_flip()
-
-    return mesh_part(name, build, mat, car, lods=(FAR,))
-
-
-if not WRECK:
-    # A few pixels long, a car is its painted hull down to the ground and its
-    # painted greenhouse, the windows lying on it as on tier 3 (`slab`). Wheels,
-    # arches, trim and bevels are under a pixel; the faces underneath are never
-    # seen.
-    hull = [(-2.2, 0.0), (2.2, 0.0), (2.2, 0.62), (1.0, BELT_Z), (-2.18, GATE_FOOT[1])]
-    sides = [[(x, s * BODY_Y, z) for x, z in hull] for s in (-1, 1)]
-    tops = [[(x0, -BODY_Y, z0), (x1, -BODY_Y, z1), (x1, BODY_Y, z1), (x0, BODY_Y, z0)]
-            for (x0, z0), (x1, z1) in zip(hull[1:], hull[2:] + hull[:1])]
-    far_shell("body", sides + tops, paint, (0, 0, 0.45))
-    green = [SCREEN_FOOT, SCREEN_HEAD, GATE_HEAD, GATE_FOOT]
-    ring = [[(x, -s * CABIN_Y * lean(z), z) for x, z in green] for s in (-1, 1)]
-    across = [[ring[0][i], ring[0][i + 1], ring[1][i + 1], ring[1][i]] for i in range(3)]
-    far_shell("cabin", across + ring, paint, (-0.6, 0, 1.15))
 
 # ------------------------------------------------------------------ the wreck
 if WRECK:
