@@ -45,3 +45,13 @@ and are not repeated here.
 - **The tutorial's "buy" picture shows the transport menu,** not the MBT tab: it is the new thing to learn, and still shows flat cards and the tabs. *Sound.*
 - **The pair total reads carrier + squad,** top to bottom like the cards above it. *Sound.*
 - **Four `unit-roster` world pictures re-approved:** they fail on the unchanged scene too; staging's map commits (`e9a3e5a82` homesteads, `7f0586bd9` road corners, `b4c1a620f` straight entry road) moved the seed's map after their last approval. Not this spec's regression. *Sound.*
+
+## Slice 3: the AI buys a squad with its ride
+
+- **Named digest change: AI self-play.** Every AI-shopping battle's digest moves (32 tournament and corpus battles, e.g. `self_play_9` `ea0d3d022c13c8b8 → 3e9f5e6f2336b78f`); no checked-in fixture replays an AI that shops, so no fixture was re-recorded. Before/after on the same seeds (23 battles): mean first capture 137.6 s → 124.1 s, earlier in 19 of 23; mean first-owner time 231.0 s → 230.9 s; accepted orders per battle second 2.62 → 2.45. *Sound.*
+- **A rotation squad whose credits cover it but not its ride waits and buys both.** Measured against buying it alone on the same seeds: saving captured earlier and kept first-owner time level; buying alone was 10 s later and left most reinforcement squads without a ride. *Sound, measured.*
+- **Exceptions buy the squad alone:** an air-defence squad (an answer to aircraft is urgent), the opening (its credits are fixed for one decision), and room under the cap for one unit only (so the last slot can be filled). *Sound.*
+- **Scripted plans pair too:** a squad card followed by a card that seats it is one purchase, and the cursor advances past both (`purchase_result(accepted, cards)`); an unaffordable pair falls back to the squad. *Sound.*
+- **One owner for "this carrier seats the whole squad":** `transport::seats_squad`, used by pairing and plans. *Sound.*
+- **The AI's shopping moved out of `skirmish_ai/mod.rs` into `purchase.rs`** (size ratchet), no behaviour change in that commit. *Sound.*
+- **The tournament report's opening lists a pair's carrier after its squad.** *Sound.*
