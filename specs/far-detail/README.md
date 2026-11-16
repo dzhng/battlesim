@@ -1,7 +1,7 @@
 # Far detail
 
-**Status:** 00, 01, 02 and 06 are done. 03 (parked cars) is in a fix round.
-04 (walls) and 05 (block-merge spike) are in progress. **Updated:** 2026-11-16.
+**Status:** 00, 01 and 02 are done. 03 (parked cars) is in a fix round and 04
+(walls) is in progress. Both spikes (05, 06) ended in no-go. **Updated:** 2026-11-16.
 
 In the wide view the game draws about 100,000 small props, most of them only a
 pixel or two across, at the same mesh it uses when they are twenty pixels tall.
@@ -42,10 +42,9 @@ You are implementing `specs/far-detail/` on branch
 - **[Slice 04](slices/04-next-kinds.md), courtyard walls, is being built** on
   branch `t3/far-mesh-prop-bundles`, against the integration branch with no car
   art, so the wall is its only variable.
-- **[Slice 05](slices/05-spike-block-merge.md), the block-merge spike, started
-  early** on branch `t3/far-detail-far-selection`. The fog rule may settle it
-  before any GPU work: a merged, simplified block is new surfaces by
-  construction.
+- **05 is done: no-go.** Separate props do not simplify across each other,
+  and any reshaping changes the fog look
+  ([verdict](assets/block-merge-verdict.md)).
 - Measure on the [fresh control](assets/control.json): the old receipt's digest
   no longer reproduces, because the generated map changed.
 - **06 is done: no-go.** On the map with the most terrain a player can get,
@@ -73,7 +72,7 @@ point, and any decision that moved into [the ledger](decisions.md).
 - [x] 02: presentation picks the far mesh, the renderer draws and counts it → [slice 02](slices/02-far-selection.md)
 - [ ] 03: parked cars carry one; the measured win → [slice 03](slices/03-parked-car.md)
 - [ ] 04: courtyard walls, then whatever the census ranks next → [slice 04](slices/04-next-kinds.md)
-- [ ] 05: spike, merging a block's props into one mesh → [slice 05](slices/05-spike-block-merge.md)
+- [x] 05: spike, merging a block's props into one mesh: no-go ([verdict](assets/block-merge-verdict.md)) → [slice 05](slices/05-spike-block-merge.md)
 - [x] 06: spike, cluster detail for terrain: no-go at the count ([verdict](assets/terrain-verdict.md)) → [slice 06](slices/06-spike-terrain.md)
 - [ ] 07: closeout → [slice 07](slices/07-closeout.md)
 
@@ -234,4 +233,3 @@ and only with the comparison as evidence.
 | --- | --- |
 | The far threshold's value | 03, from the zoom crops |
 | Whether a wall survives at a few pixels | 04 |
-| What is left for block merging after the far mesh ships | 05 |

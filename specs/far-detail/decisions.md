@@ -167,3 +167,19 @@ A fact slice 03 established: a model stays in the view list while its bounding
 sphere plus 3 m touches the frustum, so at the measured sun every car whose
 shadow can reach the frame is still drawn at its own tier.
 
+## From slice 05, 2026-11-16
+
+| # | Question | Decision and why | Verdict |
+| --- | --- | --- | --- |
+| 53 | Is merging a block's far props into one simplified mesh worth building? | No. Run through the pinned reference builder, separate props join in at most 0.4% of the triangles, even in a run of touching walls. Below about a tenth of a pixel of error nothing is saved; from 0.4 px on the saving is whole props deleted (at 1 px a block keeps 15 of 417), which breaks the rule that a visible object never vanishes. In between, each prop is simplified on its own, which is what a per-kind far mesh already does. | sound |
+| 54 | Can a merged mesh keep the look? | Only unsimplified. Fog judges each pixel by its surface's position and facing, and paint is per instance. Once simplified, 12 to 25% of the area lies in planes its prop never had, the change slice 03 showed is visible. | sound |
+| 55 | Start the spike before walls shipped, and skip its GPU ceiling? | Yes to both. The fog rule and the offline builder run each settle it alone, so no GPU session was spent. Cars were measured at tier 3 because their far mesh was not merged yet. | reviewer |
+
+What would reopen it: a fog rule that judges far props whole, accepted for its
+own look. Even then the first thing to test would be one hand-made prism per
+wall run, not a generated block.
+
+Not reached, because the first two rungs settled it: how many blocks would
+stay merged late in a battle, merged shadow casters, and a generated mesh's
+identity and lifetime.
+
