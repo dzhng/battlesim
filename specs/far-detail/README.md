@@ -1,6 +1,7 @@
 # Far detail
 
-**Status:** planned, nothing built. **Updated:** 2026-11-15.
+**Status:** slice 01 is on the feature branch; 00 and 02 are in progress.
+**Updated:** 2026-11-15.
 
 In the wide view the game draws about 100,000 small props, most of them only a
 pixel or two across, at the same mesh it uses when they are twenty pixels tall.
@@ -19,7 +20,9 @@ tested only where it could fit: across instances and on terrain.
 
 ## Next Agent Prompt
 
-You are implementing `specs/far-detail/`. Nothing is built yet.
+You are implementing `specs/far-detail/` on branch `t3/38678a68`. Slice 01 is
+merged there. Slices 00 and 02 are being built in their own checkouts. Nothing
+is on `staging` yet, and nothing goes there before slice 00 says go.
 
 1. Read this README and [the decisions](decisions.md), then
    [`renderer`](../../.agents/skills/renderer/SKILL.md) and
@@ -49,7 +52,7 @@ point, and any decision that moved into [the ledger](decisions.md).
 ### To do
 
 - [ ] 00: census of the wide view, and the ceiling probe's go or no-go → [slice 00](slices/00-census-and-ceiling.md)
-- [ ] 01: a static prop's bundle may carry a far mesh → [slice 01](slices/01-far-mesh-in-bundles.md)
+- [x] 01: a static prop's bundle may carry a far mesh → [slice 01](slices/01-far-mesh-in-bundles.md)
 - [ ] 02: presentation picks the far mesh, the renderer draws and counts it → [slice 02](slices/02-far-selection.md)
 - [ ] 03: parked cars carry one; the measured win → [slice 03](slices/03-parked-car.md)
 - [ ] 04: courtyard walls, then whatever the census ranks next → [slice 04](slices/04-next-kinds.md)

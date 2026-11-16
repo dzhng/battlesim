@@ -66,3 +66,22 @@ session's own noise and no defect a fresh critic can find.
 | `presentation.models` is checked only for finite numbers today | `crates/presentation/src/settings/validate.rs` |
 | Only parked cars budget their tiers; walls and planters use the plain `prop` rule | `packages/scene-assets/src/scenery.ts` |
 | The reference port's head is `b730aac13ab0ea67b75214613eea56c14151f6e5` | `git ls-remote`, 2026-11-15 |
+
+## From slice 01, 2026-11-15
+
+Decided by the implementer where the plan was silent; audited by the reviewer
+against the merged code.
+
+| # | Question | Decision and why | Verdict |
+| --- | --- | --- | --- |
+| 24 | `validate.ts` was already over the file-size limit and could not grow. How to make room? | The vehicle fit and the soldier fit moved to their own files, beside the existing box, tree and wreck fits, in a commit of their own before the change. The reviewer compared the removed lines with the new files: a pure move. | sound |
+| 25 | New finding codes for the far rules? | None. Each far rule is an existing rule's meaning: a wrong set of tiers, a tier not coarser than the one before, a tier over budget. | sound |
+| 26 | Where do the far rules live? | `packages/scene-assets/src/farMesh.ts`, called from the validator. | sound |
+| 27 | Does a wreck's tier-ratio rule cover its far mesh? | No. The far mesh has one triangle rule: at least one, fewer than tier 3. | sound |
+| 28 | Does the review sheet need a new layout? | No. The sheet, the workbench's tier picker and `asset validate` already list every mesh a state has, so a fifth number appears on its own. | sound |
+| 29 | What do the Blender helpers use for a far part's segment count and paint edge? | A fifth entry in each table (0.12 and 6 m), so `lods=(…, FAR)` works with every primitive. No source uses them yet. | provisional: slice 03 revisits them when the car's far mesh is authored |
+
+Confirmed in slice 01: skinned, articulated and kit sources already refused a
+`_LOD4` mesh before this work; the new refusal is for trees, dressing and
+grass. The whole catalog, baked with the new code, matches every one of the
+940 committed runtime files.
