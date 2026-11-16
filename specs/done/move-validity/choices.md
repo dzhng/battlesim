@@ -34,7 +34,7 @@ For a truck behind a tank, room to park does not prove that its approach works. 
 
 **When:** queue and upgrade integration. **Gap:** previews must describe the order that will actually be applied, including commands already accepted this tick.
 
-Suppose a truck is already ordered to leave, then receives Stop, and a jeep is ordered through its position. The check first applies those pending commands to its copy, so the jeep cannot depend on the stopped truck vacating. A queued move is checked after its existing finite waypoints and automatic garrison exit. An indefinite attack has no known completion, so a destination queued behind it cannot be promised. Attack-move legs are checked for physical travel; combat may still pause them later.
+Suppose a truck is already ordered to leave, then receives Stop, and a jeep is ordered through its position. The check first applies those pending commands to its copy, so the jeep cannot depend on the stopped truck vacating. A queued move is checked after its existing finite waypoints and automatic garrison exit. A destination queued behind an attack was at first refused, as an indefinite attack has no known completion; [queue behind attack](../../queue-behind-attack/README.md) reversed that: the attack now hands off after one volley, and the destination is planned from where the queued movement ends. Attack-move legs are checked for physical travel; combat may still pause them later.
 
 **Reach:** command application remains the shared owner of replacement, deployment and queue semantics. Changing a route policy must validate its changed queues before replacing them. **Verdict:** sound because order timing is part of reachability; **confidence:** high.
 

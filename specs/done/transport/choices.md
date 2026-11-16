@@ -201,7 +201,7 @@ Decisions the user made live in [map.md](map.md); change them there.
 - **Found:** soldiers under a hovering helicopter were drawn over its fuselage. That is a renderer depth bug for any low aircraft over infantry, sent to a renderer fix.
 
 ## Slice 11b
-- **The simulation says which steps unload:** `goal_unloads` on the own unit and `queue_unloads` beside `queue`, one flag per step. A step unloads when the order right after its move is an Unload; the rule lives only in the sim (`Unit::unloads_after`). The other option, turning `queue` into step records, would have changed every reader of `queue`.
+- **The simulation says which steps unload:** `goal_unloads` on the own unit and `queue_unloads` beside `queue`, one flag per step. A step unloads when the order right after its move is an Unload; the rule lives only in the sim (`Unit::unloads_after`). The other option, turning `queue` into step records, would have changed every reader of `queue`. ([Queue behind attack](../../queue-behind-attack/README.md) later took that option, when attacks and every other order kind joined the published queue.)
 - **Layout:** the own row gains `goalUnloads` (56 fields), and each queue step gains `unload`. `unloadPoints.ts` and its whole path are deleted.
 - **The unload mark is pixel-identical:** compared against a fresh run of the pre-11b build. Slice 11's saved evidence didn't match pixel for pixel even on the untouched move line.
 - **Captures re-recorded once** (`f8f276f0b`) for the hold, refusal and unload-step layout. Both scenes decode to the same observations as before, apart from the new fields.

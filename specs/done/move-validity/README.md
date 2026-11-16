@@ -11,7 +11,7 @@ Superseded (2026-10-05): the rehearsal of move orders and route upgrades. Garris
 ## The promise and its limits
 
 - Every displayed destination has standing room its unit can reach by terrain and known pockets. Failed placements are filtered from held, confirmation and committed markers. Bodies on the way are found on the way: a squad sent into a walled yard walks to it and stops outside.
-- A queued move behind an indefinite attack is not placed: an attack has no known end to set off from.
+- A queued move behind an attack is placed, planned from where the unit's queued movement ends; the attack hands off to it after one volley ([queue behind attack](../../queue-behind-attack/README.md)). It once was refused, as an attack has no known end.
 - Placement uses side knowledge only, and a query leaves live state, navigation charges, future digests and replay scheduling unchanged.
 - Orders are rate limited at `rules.commands.orders_per_s` (30) a side, a second's worth at most at once; one past it is dropped (`RateLimited`) and never shown. No player reaches it; it bounds a script's flood or a stuck input.
 - Conditions change after issuance: a newly discovered obstacle, a later Stop or combat changes execution.

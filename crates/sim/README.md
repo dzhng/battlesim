@@ -84,7 +84,20 @@ explaining where deliberate cinematic exceptions belong.
 [Move placement](src/battle/move_placement.rs) admits the ordered goal before
 spreading the formation around it. A disconnected goal is refused; a reachable
 goal lets individual slots search past closed pockets. Hulls retain their nearby
-parking resolution when the ordered ground cannot accommodate them.
+parking resolution when the ordered ground cannot accommodate them. A queued
+leg is planned from where the unit's queued movement ends, behind any order,
+an attack included.
+
+[The order queue](src/battle/apply_command.rs) admits an order either in place
+of a unit's queue or, queued, at its end; a queued order touches nothing on
+the current one and takes effect only when its turn comes (a queued attack
+chooses fire at will then). [When an attack ends](src/battle/attack_order.rs):
+with any order queued behind it, an attack fires one [volley](src/volley.rs)
+and hands off — one firing cycle (a burst, else a magazine, else one shot)
+from each weapon row working on its target, or for a jet attacking in runs,
+one run in which it fired; it hands off at once when nothing can act on its
+target. The last attack in a queue keeps on until its target is dead or lost
+(on the ground, for ever).
 
 [Skirmish authority](src/skirmish.rs) owns player wallets, preparation and pending
 reinforcements; [the player list](../contract/src/players.rs) says who plays.
