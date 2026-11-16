@@ -1,6 +1,6 @@
 # Shared hosts: buildings and transports admit squads alike
 
-**Status:** in progress; slices 00 to 06 done; 07 remains. **Updated:** 2026-11-16.
+**Status:** in progress; slices 00 to 06 done; 07's leftovers, recordings and docs done, its labs being merged. **Updated:** 2026-11-16.
 
 Several squads share a host (a building or a carrier) while seats remain, one
 seat per living soldier, squads whole. A squad gets in when it arrives and
@@ -17,10 +17,21 @@ the history of how each decision was reached, the
 superseded by this file). Before changing player text read
 [`game-ui`](../../.agents/skills/game-ui/SKILL.md).
 
-Next pickup: **[slice 07, labs, recordings, player text, docs and
-closeout](slices/07-labs-docs-closeout.md).** Its capture re-record must be
-a fresh browser run: the captures' battles have drifted, so the native
-re-publish can't stand in (ledger, Slice 05).
+Next pickup: **the rest of [slice 07](slices/07-labs-docs-closeout.md).**
+Its leftovers (the unread navigation rules, the tweak-mechanics principle),
+recordings (the browser captures, the counts fixture and what reads them;
+the menu reel confirmed unchanged) and docs are done (ledger, Slice 07
+recordings and docs). What remains, in order:
+
+1. Merge the labs part (garrison lab, transport controls fixture, their
+   descriptions, the tutorial line), built in a separate checkout, and run
+   its browser scenes and lab shot gates as the slice says.
+2. Run the full check ladder and the balance report once.
+3. Run the whole-spec [`review`](../../.agents/skills/review/SKILL.md).
+4. Consolidate the ledger: fold the slice sections into durable decisions.
+5. Run [`close-spec`](../../.agents/skills/close-spec/SKILL.md); when the plan
+   moves to `specs/done/`, repoint the superseded note in
+   `specs/done/battle-foundation/contracts.md`.
 
 The digest gates run with one command from the repository root:
 

@@ -484,3 +484,52 @@ things the plan left open.
 - **Human review** was shown non-blocking (shots in
   `throwaway/shared-hosts/shots-05/`) and got no reply; closed and continued
   on the evidence.
+
+## Slice 07 recordings and docs
+
+- **The unread navigation rules went with their paired records re-recorded
+  as a named decision.** `exact-numbers`, `skirmish-purchases` and
+  `skirmish-objectives` lose only the two keys: the two skirmish records
+  refused to parse under the cut contract, so they were hand-edited first,
+  and the bless then wrote them back byte for byte, every digest row
+  included. The generation corpus's frozen physical rules are hand-edited the
+  same way, as its doc requires. The probe at the cut is identical to the
+  starting commit (f843abb3ca) in all 61 cases.
+- **The tweak-mechanics principle now reads "a side plans from what it
+  knows: all of it, and nothing more".** The parts that named the snapshot's
+  machinery (journal cursors, retry budgets, timers prolonging a check) went
+  with it; what lasts is keeping every observed body and never reading, or
+  rebuilding, an opponent's private state.
+- **One browser run films both scenes**, as the fixture was last filmed:
+  indicators and cards off, so the manifests name the same layers as before.
+  The paris-corner run is copied as the browser wrote it. Its publications
+  are byte-identical to the native publisher's at every sample (the bless's
+  `capture_publication::refresh` rewrote the file only in key order, and was
+  undone), and its digests match today's battle, so the run also proves
+  slice 05's drift is the battle's, not the browser's. The market-town window
+  is rebuilt from the same run (`PARITY_RUN`), and its check against the run
+  passes.
+- **What moved, and why each part is explained.** Layout: `hostSeats` in the
+  own group, and the two refusal names slice 01 deleted, in both captures and
+  (the field only) the street layout. Battle: paris-corner observations and
+  fog vectors are identical up to tick 550 and differ from tick 551, the
+  drift slice 05 recorded; the market-town window differs throughout (its
+  recorded digests already disagreed at 1825). The street stream's fog frames
+  and stats are unchanged. No observation carries a building's `seats`: the
+  captures are blue's view and blue holds no building in either reel. Poses
+  moved because a fresh run has its own frame timing (4441 frames against
+  2460, so frame 435 is at 5.8 s instead of 9.3 s); their counts are
+  unchanged. The effects plate counts held without a bless.
+- **The native counts fixture needed its own count-only run** (the brief named
+  two captures; this paris-corner run is the third), since its old layout
+  refuses to decode and its refresh would assert the drifted digests.
+- **The menu reel is unchanged:** its four event-log tests pass unblessed.
+- **The garrison module doc needed no change;** an earlier slice wrote it for
+  shared hosts. The contract README now says a building publishes its seat
+  total and seats used is summed from holds. The defender's posting choice is
+  stated in `Post::Garrison`; the planner's module doc says "its own
+  building" only, because `encounter/mod.rs` is over the size budget and may
+  not grow.
+- **The battle-foundation superseded note links `../../shared-hosts/`,**
+  which `close-spec` must point at `specs/done/shared-hosts/` when it moves
+  this plan.
