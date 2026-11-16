@@ -130,7 +130,7 @@
     },
     "tank_ap": {
       "appearance": "tank_sabot",
-      "round_cost": 5,
+      "round_cost": 3,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 800, "scatter_mrad": 3.43 } },
       "name": "AP Shell",
       "description": "Armour-piercing sabot: the tank gun's answer to armour.",
@@ -152,7 +152,7 @@
     },
     "tank_he": {
       "appearance": "tank_he",
-      "round_cost": 5,
+      "round_cost": 3,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 800, "scatter_mrad": 3.43 } },
       "name": "HE Shell",
       "description": "High-explosive shell for troops, cover and buildings.",
