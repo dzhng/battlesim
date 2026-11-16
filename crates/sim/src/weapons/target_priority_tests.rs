@@ -1,6 +1,7 @@
 //! Which target a mount picks, and when a seeker may acquire one.
 
 use super::*;
+use contract::command::Engagement;
 use serde_json::json;
 
 #[test]
