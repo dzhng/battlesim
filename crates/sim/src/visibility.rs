@@ -42,6 +42,11 @@ struct TileRevision {
 }
 
 impl OcclusionGrid {
+    /// A fog cell's side in metres: the finest spot a side's sight resolves.
+    pub(crate) fn cell_m(&self) -> f64 {
+        self.cell
+    }
+
     /// Union an observer's complete field, reusing it only while every sweep
     /// input is unchanged. Terrain and grid belong to this grid's world for
     /// its lifetime; body edits and forest clearing invalidate independently.

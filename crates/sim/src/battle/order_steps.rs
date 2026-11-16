@@ -7,11 +7,13 @@ use contract::observation::{OrderStep, StepHost};
 
 use super::*;
 
-/// Each unit's queued return to base as last published: where the step
-/// before it ended, and the way home from there. Finding the way home
-/// searches a route per road in, so the step keeps its point while that
-/// origin holds. Presentation only, never in the digest.
-pub(super) type HomeWays = BTreeMap<UnitId, ([f64; 2], [f64; 2])>;
+/// Each queued return to base as last published, by its unit and its place
+/// in the unit's orders: where the step before it ended, and the way home
+/// from there. Finding the way home searches a route per road in, so the
+/// step keeps its point while that origin stays within a fog cell, the
+/// finest spot the side's sight resolves, as it does while a chase ahead of
+/// it drifts. Presentation only, never in the digest.
+pub(super) type HomeWays = BTreeMap<(UnitId, usize), ([f64; 2], [f64; 2])>;
 
 impl Battle {
     /// Each living unit of `side`'s steps, in unit order: what the side's
@@ -20,8 +22,8 @@ impl Battle {
         let known = std::mem::take(&mut self.home_ways);
         let units = &self.units;
         let mut ways: HomeWays = (known.iter())
-            .filter(|(u, _)| units[u.0 as usize].side != side)
-            .map(|(&u, &way)| (u, way))
+            .filter(|((u, _), _)| units[u.0 as usize].side != side)
+            .map(|(&key, &way)| (key, way))
             .collect();
         let knowledge = &self.knowledge[side.index()];
         let steps = (self.units.iter())
@@ -53,7 +55,7 @@ impl Battle {
             hold::Host::Carrier(_) => None,
         });
         let mut steps = Vec::with_capacity(unit.orders.len());
-        for order in &unit.orders {
+        for (index, order) in unit.orders.iter().enumerate() {
             let step = match order {
                 UnitOrder::Move(m) | UnitOrder::AttackMove(m) => {
                     from = xy(m.destination);
@@ -101,11 +103,16 @@ impl Battle {
                     }),
                 },
                 UnitOrder::Withdraw => {
-                    let home = match known.get(&unit.id) {
-                        Some(&(origin, home)) if origin == from => home,
-                        _ => self.way_home_from(unit.side, unit.id, from).0,
+                    let key = (unit.id, index);
+                    let near = |o: [f64; 2]| {
+                        libm::hypot(o[0] - from[0], o[1] - from[1]) <= self.occlusion.cell_m()
                     };
-                    ways.insert(unit.id, (from, home));
+                    let way = match known.get(&key) {
+                        Some(&(origin, home)) if near(origin) => (origin, home),
+                        _ => (from, self.way_home_from(unit.side, unit.id, from).0),
+                    };
+                    ways.insert(key, way);
+                    let home = way.1;
                     from = home;
                     OrderStep::ReturnToBase { point: home }
                 }

@@ -90,11 +90,17 @@ rewritten from scratch at closeout.
   where the track was last seen; after it the step publishes no target and no point
   (at its turn such an attack ends at once). The current attack keeps its `last_known`
   (decision 10). Pinned in `order_markers.rs`.
-- **A queued return to base keeps its way home while its origin holds.** *Agent*:
-  `way_home_from` searches a route per road in; computed every publication it cost a
-  waiting refund 0.8 ms a tick on the 800 × 600 test map (58 → 874 µs a tick), far more
-  on a city map. `Battle::home_ways` (presentation only, never in the digest) keeps each
-  unit's point keyed by where its step before ends: 60 µs a tick.
+- **A queued return to base keeps its way home while its origin stays within a fog
+  cell.** *Agent*: `way_home_from` searches a route per road in; computed every
+  publication it cost a waiting refund 0.8 ms a tick on the 800 × 600 test map (58 → 874
+  µs a tick), far more on a city map. `Battle::home_ways` (presentation only, never in
+  the digest) keeps each return's point keyed by its unit and its place in the queue,
+  with the origin it was found from, and searches again only once the step before ends
+  more than a fog cell (the finest spot the side's sight resolves) from that origin, so a
+  chase or a carrier ahead of it drifting doesn't search every tick. The published point
+  can lag that far behind the exact origin's, and depends on the publications before it,
+  as it already did on world changes since the search; it is never read back into the
+  battle. A pop moves every queued step's place, so it costs one search per return.
 - **The renderer's step is a kind and a point.** *Agent*: the view (`OrderStepView`)
   carries the target and host; the overlay (`orderSteps.ts`) takes only what it draws, and
   owns the step-kind union the view imports, so there is one copy of each. S8 resolves an
