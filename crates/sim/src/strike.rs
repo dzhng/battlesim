@@ -9,12 +9,12 @@ use crate::weapons::{Arsenal, Weapon};
 
 /// The radius round a ground aim `distance_m` from a unit of `kind` within
 /// which its strikes there can do damage: the farthest its rounds stray at the
-/// range they are fired from, plus their blast, plus half a salvo's walk along
-/// a jet's path. A ground unit fires every row that can strike an area, from
-/// where it stands, closing to its reach first: the widest counts. A jet
-/// makes its runs with the one weapon a pass chooses (`pass::choose_weapon`),
-/// from its run wherever it is now, and always moving. `None` without a row
-/// that strikes an area.
+/// range they are fired from, plus a cluster canister's bomblet disc, plus
+/// their blast, plus half a salvo's walk along a jet's path. A ground unit
+/// fires every row that can strike an area, from where it stands, closing to
+/// its reach first: the widest counts. A jet makes its runs with the one
+/// weapon a pass chooses (`pass::choose_weapon`), from its run wherever it is
+/// now, and always moving. `None` without a row that strikes an area.
 pub fn footprint_m(
     rules: &Rules,
     arsenal: &Arsenal,
@@ -57,8 +57,10 @@ pub fn footprint_m(
             let walk = weapon.def.magazine.map_or(0.0, |m| {
                 f64::from(m.rounds.saturating_sub(1)) * m.shot_interval_s * speed
             });
+            let canister = weapon.def.submunitions.map_or(0.0, |c| c.spread_m);
             Some(
                 crate::flight::scatter_reach_m(scatter, range)
+                    + canister
                     + weapon.def.blast_radius_m
                     + walk / 2.0,
             )

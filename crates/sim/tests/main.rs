@@ -17,6 +17,7 @@ mod attack_passes;
 mod attack_runs;
 mod battle_authority;
 mod bodies;
+mod bomb_strikes;
 mod build_identity;
 mod buildings;
 mod capture_files;

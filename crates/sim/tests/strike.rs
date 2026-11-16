@@ -113,27 +113,42 @@ fn a_footprint_holds_the_blast_and_grows_with_range_until_reach() {
 #[test]
 fn a_salvo_from_a_moving_jet_widens_by_its_walk() {
     let rules = roster();
-    let salvo: Vec<_> = types_with(&rules, |d| bomb(d) && d.magazine.is_some())
-        .into_iter()
-        .filter(|&t| jet(&rules, t))
-        .collect();
-    assert!(!salvo.is_empty(), "the roster flies salvo bombers");
-    let t = salvo[0];
-    let before = footprint_m(&rules, &Arsenal::new(&rules), t, 0.0).unwrap();
-    // The same salvo with one more round walks one more interval along the
-    // jet's path, half of it on each side of the aim.
+    let arsenal = Arsenal::new(&rules);
+    // The same salvos with one more round each walk one more interval along
+    // the jet's path, half of it on each side of the aim.
     let mut longer = rules.clone();
-    let mut step = 0.0;
     for def in longer.weapons.values_mut() {
-        if let (true, Some(m)) = (bomb(def), def.magazine.as_mut()) {
+        if let Some(m) = def.magazine.as_mut() {
             m.rounds += 1;
-            step = m.shot_interval_s;
         }
     }
-    let after = footprint_m(&longer, &Arsenal::new(&longer), t, 0.0).unwrap();
-    let speed = rules.catalog.get(t).mobility.speeds_kmh().0 / 3.6;
-    assert!(
-        (after - before - step * speed / 2.0).abs() < 1e-6,
-        "{before} -> {after}"
-    );
+    let longer_arsenal = Arsenal::new(&longer);
+    let mut walked = 0;
+    for t in (0..rules.catalog.ids().len() as u16).map(TypeIndex) {
+        if !jet(&rules, t) {
+            continue;
+        }
+        let (Some(before), Some(after)) = (
+            footprint_m(&rules, &arsenal, t, 0.0),
+            footprint_m(&longer, &longer_arsenal, t, 0.0),
+        ) else {
+            continue;
+        };
+        if after == before {
+            continue;
+        }
+        walked += 1;
+        let speed = rules.catalog.get(t).mobility.speeds_kmh().0 / 3.6;
+        let id = &rules.catalog.ids()[t.0 as usize];
+        assert!(
+            arsenal
+                .specs(t)
+                .iter()
+                .flat_map(|m| m.kinds.iter())
+                .filter_map(|&k| arsenal.weapons[k].def.magazine)
+                .any(|m| (after - before - m.shot_interval_s * speed / 2.0).abs() < 1e-6),
+            "{id}: {before} -> {after}"
+        );
+    }
+    assert!(walked > 0, "the roster flies jets that strike in salvos");
 }
