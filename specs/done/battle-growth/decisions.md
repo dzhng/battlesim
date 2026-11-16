@@ -102,6 +102,24 @@ agent's brief.
 - Finishing the fielding change with one presentation test known red, later
   settled as a stale recording from another session's merge.
 
+## The closing review
+
+Two readers who had not seen the work reviewed everything after the engine's
+pre-ship review for shape and diff (Rust and page separately). † Neither
+confirmed a correctness defect. What they found and what became of it:
+
+| Finding | Outcome |
+| --- | --- |
+| Clip tables are copied per skinned appearance at every arrival (predates this work). | Open; in the record's "Left open", first. |
+| A superseded staging discards what it warmed; overlapping arrivals are untested. | Open. |
+| The admission after warming plans twice; the warm-up's own "is it there" check restates the admission's rule. | Open; cost only. |
+| A fielded result on the page has no owner that frees it. | Open; the snapshot is maps of shared rows, so what waits on the collector is small. |
+| The WASM fielding binding keeps a byte-taking `resolve` and `contents` that only tests call, and the memory test measures that path, not the page's. | To fix. |
+| No Rust test covers a corpse's palette in a battle frame (only in the lab), and one card test lost its check that two names draw one layer. | To fix. |
+| No test covers disposing a scene during a budget wait. | To fix. |
+| The endurance late-state check is loose (more than half). | Stands; the scene cannot read how many bodies were culled. |
+| The budget wrapped the admission's promise without measuring it; a closed fielding owner kept absorbing; the warm-up's priority outlived its battle; stale and misplaced comments. | Fixed. |
+
 ## Process, stated plainly
 
 - **The engine went to staging holding about a gigabyte more settled

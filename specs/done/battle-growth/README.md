@@ -207,6 +207,19 @@ The two cohorts cannot be chained.
   late frame near commit of 71, 97 and 118 ms. None is attributed. The final
   admission, the bake and the commit run outside the per-frame budget
   (invariant 7), which is where to look first.
+- **Clip tables are copied for every skinned appearance at every arrival.**
+  Staging a battle's catalog clones each appearance that has art and gives it
+  its own copy of its skeleton's clip table (about 1.4 MB each, by one
+  estimate; two skeletons serve the whole roster). It predates this work and
+  is the catalog-shaped cost this work was meant to remove; it was found by
+  the closing review and is neither measured nor fixed. It sits in the
+  staging and commit frames that are still long.
+- A staging that is superseded while it spans frames drops what it supplied
+  and warmed, and the next one packs it again. No test or scene covers two
+  types sighted in quick succession.
+- The admission after warming plans the generation a second time.
+- A fielded result handed to the page is freed by the collector, not by an
+  owner.
 - A new bundle crosses into Rust twice, inflated for fielding's facts and
   encoded for the renderer, and its facts are derived on both sides (about
   3 ms a bundle each in one profiled run). One owner for both was not built.
