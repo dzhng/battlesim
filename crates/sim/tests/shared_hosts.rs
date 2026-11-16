@@ -1,6 +1,6 @@
 //! Shared hosts: several squads share a building or a carrier while seats
 //! remain, driven through commands, stepping and the side's observation.
-use contract::command::{CommandEnvelope, Order, OrderError};
+use contract::command::{CommandEnvelope, Order, OrderError, RoutePolicy};
 use contract::ids::{Side, UnitId};
 use contract::observation::{HoldPhase, HostRef};
 use serde_json::json;
@@ -177,9 +177,9 @@ fn a_squad_ordered_into_a_held_house_walks_in_when_its_holder_leaves() {
 
 /// One building order names three squads, two of them side by side west of
 /// the house: each gets its own approach, the squads' grounds apart, and walks
-/// to the house to step in.
+/// to the house to step in; a double right-click hurries them all.
 #[test]
-fn every_squad_a_building_order_names_walks_to_the_house() {
+fn every_squad_a_building_order_names_walks_to_the_house_and_a_double_click_hurries_them() {
     let map = json!({ "size": [800, 600], "fog_cell_m": 8, "height_grid_m": 4,
         "slope_cutoff_deg": 35, "props": [],
         "buildings": [common::building(BUILDING, TEMPLATE, [400.0, 300.0], 0.0)] })
@@ -232,6 +232,33 @@ fn every_squad_a_building_order_names_walks_to_the_house() {
             );
         }
     }
+    // A double right-click hurries the walk its first click started, and
+    // only that one: every squad walks in by the fastest route.
+    let walks = |b: &Battle| -> Vec<_> {
+        let own = &b.observe(Side::Blue).own;
+        (squads.iter())
+            .map(|&id| own.iter().find(|u| u.id == UnitId(id)).unwrap().policy)
+            .collect()
+    };
+    let upgrade = |gesture| Order::UpgradeMove {
+        gesture,
+        route: RoutePolicy::Fastest,
+    };
+    b.step();
+    accepted(&mut b, 2, upgrade(2));
+    b.step();
+    assert_eq!(
+        walks(&b),
+        [Some(RoutePolicy::Shortest); 3],
+        "another gesture's upgrade"
+    );
+    accepted(&mut b, 3, upgrade(1));
+    b.step();
+    assert_eq!(
+        walks(&b),
+        [Some(RoutePolicy::Fastest); 3],
+        "the hurried walk"
+    );
     let mut stepped_in = [false; 3];
     for _ in 0..3000 {
         b.step();

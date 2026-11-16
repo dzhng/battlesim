@@ -3070,15 +3070,16 @@ impl Battle {
             | Order::ConfirmPurchase { .. }
             | Order::CancelPending { .. }
             | Order::PopSmoke { .. } => {}
-            Order::OccupyBuilding { .. } => {
+            Order::OccupyBuilding { gesture, .. } => {
                 let plan = prepared.building.unwrap();
                 for entry in plan.entries {
-                    let approach = v2(entry.approach[0], entry.approach[1]);
                     push(
                         &mut movers[entry.unit.0 as usize],
                         UnitOrder::Garrison {
                             building: plan.building,
-                            approach,
+                            approach: v2(entry.approach[0], entry.approach[1]),
+                            gesture,
+                            policy: RoutePolicy::Shortest,
                         },
                     );
                 }
@@ -3308,20 +3309,7 @@ impl Battle {
             }
             Order::UpgradeMove { gesture, route } => {
                 for unit in movers.iter_mut().filter(|u| u.side == side) {
-                    let mut upgraded = false;
-                    for (k, order) in unit.orders.iter_mut().enumerate() {
-                        if let Some(m) = order.movement_mut() {
-                            if m.gesture == gesture && m.policy != route {
-                                m.policy = route;
-                                upgraded = true;
-                                if k == 0 {
-                                    unit.route = None; // replan the active order
-                                    unit.planned_goal = None;
-                                }
-                            }
-                        }
-                    }
-                    if upgraded {
+                    if unit.upgrade_walks(gesture, route) {
                         take_order(unit);
                     }
                 }

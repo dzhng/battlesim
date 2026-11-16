@@ -2,7 +2,7 @@
 use super::{Fallen, Unit, UnitOrder};
 use crate::digest::Digest;
 use crate::garrison::Windows;
-use contract::command::Engagement;
+use contract::command::{Engagement, RoutePolicy};
 
 impl Unit {
     /// Fold the unit's carried state and its owner's `PlayerIndex` into `d`;
@@ -90,11 +90,23 @@ impl Unit {
                     target.digest(d);
                     d.opt_v2(*last_known);
                 }
-                UnitOrder::Garrison { building, approach } => {
+                UnitOrder::Garrison {
+                    building,
+                    approach,
+                    gesture,
+                    policy,
+                } => {
                     d.u64(3)
                         .u64(*building as u64)
                         .f64(approach.x)
                         .f64(approach.y);
+                    // Folded only once upgraded: a walk in as ordered
+                    // keeps its digest.
+                    if *policy != RoutePolicy::Shortest {
+                        d.bytes(b"upgraded walk in")
+                            .u64(*policy as u64)
+                            .u64(*gesture);
+                    }
                 }
                 UnitOrder::Exit => {
                     d.u64(4);
