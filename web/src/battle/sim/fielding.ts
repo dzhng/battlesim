@@ -212,7 +212,7 @@ async function resolveFielding(
   }
   if (artWork.exhausted()) await artFrame();
   return artWork.run(() => {
-    const result = fielding.resolve(new Uint8Array(), new Uint32Array());
+    const result = fielding.resolve();
     diagnosticsEvent("battle fielded", JSON.parse(result.work()));
     return result;
   });
