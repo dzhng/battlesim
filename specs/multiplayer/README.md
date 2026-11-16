@@ -27,23 +27,28 @@ as of the evening of 2026-11-15 (merge `bab8d3c95`). **Rooms work end to end on 
 create a room, start its battle, survive a drop and finish
 ([how to run it](slices/18-room-battle.md)).
 
-**Pick up here, in this order:**
+**Pick up here, in this order.** The user said on 2026-11-16 to do all
+three of: fix Play's wait on an empty server, point the site at the lobby
+and promote it, and build the native simulation for the battle server.
 
-1. **Slice 29 is deployed and measured** (2026-11-16): the lobby is the
-   public app `battle-lobby` in the `armata` workspace, and a room battle
-   and a Frontline game both ran on sandboxes it rented, from a script and
-   from two real browser pages. What it still owes is listed at the end of
-   [the slice](slices/29-sandbox-per-battle.md): the plan's limits, the cost, the client
-   address header, and a game played to its end. **Redeploy after every
-   commit that players should reach:** the lobby admits only pages of its
-   own commit. Build the site, serve `web/dist`, and run
-   `bun run deploy:server --site <that address> --push --app battle-lobby
-   --workspace armata`.
-2. **Slice 19,** the milestone: two people on two networks finish a room
-   battle. **Ask the user before** putting the lobby's address in the site
-   and before promoting a site build.
-3. **Slice 27,** the closeout: the one full run, the docs, the plan
-   archived.
+1. **Slice 30,** one machine tries every draw: the fix for Play's 57
+   seconds. With Codex.
+2. **Ship it.** Merge staging, run the plan's one full run (slice 27's
+   steps 1 and 2), review, put the lobby's address in
+   `apps/battle-lab/src/online/server.json`, land on staging, promote, and
+   deploy the lobby from the promoted site's commit: the lobby admits only
+   pages of its own commit. Then slice 19, the milestone.
+3. **Slice 31,** the native simulation in the battle server, to be written
+   from slice 01's measurement once the site is live.
+4. **Slice 27's remaining steps:** the sweep, the docs check, the probes'
+   removal, the plan archived.
+
+**The lobby is live** as the public app `battle-lobby` in the `armata`
+workspace, each battle on its own sandbox. What slice 29 still owes is
+listed at the end of [the slice](slices/29-sandbox-per-battle.md).
+**Redeploy after every commit players should reach:** build the site,
+serve `web/dist`, and run `bun run deploy:server --site <that address>
+--push --app battle-lobby --workspace armata`.
 
 **Not this plan's, and being handled by another session of the user's:**
 since the staging merge of 2026-11-15, four approved `unit-roster` pictures
@@ -170,6 +175,7 @@ Hosting
 
 - [x] [28 A battle in its own process](slices/28-battle-process.md)
 - [x] [29 A sandbox for each battle](slices/29-sandbox-per-battle.md) (deployed; open measurements listed in the slice)
+- [ ] [30 One machine tries every draw](slices/30-one-machine-every-draw.md)
 - [ ] [27 Closeout](slices/27-closeout.md)
 
 ## Contracts this changes
@@ -226,6 +232,7 @@ The page's battle code keeps speaking the existing page-to-authority protocol
 | 26 | Briefing card and Play | → 25 | One click, a briefing, Deploy, fighting |
 | 28 | A battle in its own process | → 26 | A room battle with one more process on the computer for each battle |
 | 29 | A sandbox for each battle | → 28 | A room battle through the deployed lobby, each battle on its own sandbox |
+| 30 | One machine tries every draw | → 29 | Play on an empty server in well under a minute |
 | 27 | Closeout | → all | The one full run; docs; the plan archived |
 
 The same graph, drawn: [roadmap.html](visualizations/roadmap.html).
