@@ -173,3 +173,17 @@ refusals; the admitted battle is the battle that candidate makes alone
 (digest); a list with none admitted still rejects and leaves no thread
 running; on the deployed lobby, Play on an empty server several times.
 
+## Measured again with the draws side by side (2026-11-16)
+
+Play on an empty server on the deployed lobby, six times, each on one
+8 GB sandbox: 36, 52, 23, 42, 16 and 20 seconds. Before: 57 once, then 77,
+13 and 39. The worst case fell by a third and the usual case is twenty to
+forty seconds.
+
+What is left of the wait is the machine's start (about ten seconds) and
+map preparation itself. The 8 GB size prepares three draws at once, so a
+game whose first three draws are refused waits for a second round; the
+size above would prepare all five together at twice the price for the
+whole battle. Not taken. A player who joins a game already running does
+not wait for any of this.
+

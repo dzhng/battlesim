@@ -31,12 +31,10 @@ create a room, start its battle, survive a drop and finish
 three of: fix Play's wait on an empty server, point the site at the lobby
 and promote it, and build the native simulation for the battle server.
 
-1. **Slice 30 is half done.** One machine tries every draw (in, and
-   deployed): Play on an empty server took 77, 13 and 39 seconds. The
-   other half, draws prepared side by side, is with Codex. Still owed
-   after it: the `frontline` and `online-battle` scenes on the integrated
-   tree (the shared GPU lock was held by another session's stalled process
-   on 2026-11-16), and Play timed again on the deployed lobby.
+1. **Slice 30 is in and deployed:** one machine tries every draw, side by
+   side. Play on an empty server now takes 16 to 52 seconds (it was 57 to
+   77). Still owed: the `frontline` and `online-battle` scenes on the
+   integrated tree, when the shared GPU lock is free.
 2. **Slice 31,** a build is what both ends share. Without it the live
    lobby refuses every player after each promotion of the site.
 3. **Slice 33,** six-character rooms and one game a device. An
@@ -187,7 +185,7 @@ Hosting
 
 - [x] [28 A battle in its own process](slices/28-battle-process.md)
 - [x] [29 A sandbox for each battle](slices/29-sandbox-per-battle.md) (deployed; open measurements listed in the slice)
-- [ ] [30 One machine tries every draw](slices/30-one-machine-every-draw.md) (one machine: in; draws side by side: with Codex)
+- [x] [30 One machine tries every draw](slices/30-one-machine-every-draw.md) (its two scenes are still owed)
 - [ ] [31 A build is what both ends share](slices/31-a-build-is-what-both-ends-share.md)
 - [ ] [33 Six-character rooms, one game a device](slices/33-the-servers-face-strangers.md)
 - [ ] [27 Closeout](slices/27-closeout.md)
