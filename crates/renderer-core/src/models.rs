@@ -44,7 +44,7 @@ mod visibility;
 use crate::impostor::{CardInstance, Cards};
 pub use geometry::{pack_vertices, posed_mesh, VERTEX_BYTES};
 use rest_pose::RestPose;
-pub use store::{ArtStore, ArtStorePolicy, MaterialSlots, SharedArtStore};
+pub use store::{ArtStore, ArtStorePolicy, MaterialSlots, SharedArtStore, ART_WORK_BUDGET_MS};
 /// Material rows a material takes in the materials buffer (`MATERIAL_ROWS`).
 const MATERIAL_ROWS: usize = 5;
 

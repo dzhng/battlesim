@@ -7,6 +7,12 @@ use renderer_core::bundle::SourceDraft;
 use renderer_core::runtime::{PendingAssets, ReadyAssets};
 use std::collections::BTreeMap;
 
+/// The art store's work tripwire, shared by fielding and viewport scheduling.
+#[wasm_bindgen]
+pub fn art_work_budget_ms() -> f64 {
+    renderer_core::models::ART_WORK_BUDGET_MS
+}
+
 /// Owned source draft; adding or dropping it cannot change a live renderer.
 #[wasm_bindgen]
 pub struct AppearanceDraft {

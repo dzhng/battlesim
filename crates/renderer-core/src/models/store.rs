@@ -44,6 +44,10 @@ impl MaterialSlots {
     }
 }
 
+/// Three ordinary 6–8 ms content jobs leave drawing its own margin beneath
+/// a 52 ms vehicle arrival; the tripwire also admits several small supplies.
+pub const ART_WORK_BUDGET_MS: f64 = 24.;
+
 /// Scene art tripwires and the platform sink that reports when they fire.
 #[derive(Clone, Copy)]
 pub struct ArtStorePolicy {

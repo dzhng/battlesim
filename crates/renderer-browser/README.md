@@ -47,9 +47,11 @@ generated identity means what a catalog one does. The draft becomes an owned
 geometry warm-up before final preparation returns an owned promise; the caller
 may continue rendering or dispose its scene while cards bake. Latest-request
 scheduling belongs to the viewport, with one candidate at a time. It supplies
-one missing content or warms one missing geometry key after each presented
-frame. Superseding partial work drops it before starting the next candidate;
-submitted card baking finishes before the next candidate starts. It compares wanted names and content identities; repeating the
+missing contents and warms missing geometry keys until the shared art-work
+budget is spent, then resumes after a presented frame. Superseding partial
+work drops it before starting the next candidate; submitted card baking
+finishes before the next candidate starts. It compares wanted names and
+content identities; repeating the
 same set keeps the candidate committable. It commits only its desired complete
 candidate and latest model requests at a frame boundary, then publishes a fresh
 canonical frame. Retained source ownership changes with the GPU/catalog commit,

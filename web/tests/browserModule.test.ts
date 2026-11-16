@@ -14,8 +14,16 @@ import { resolveCatalogSet } from "@web/battle/catalog/sets";
 import { Counts } from "@packages/battle-renderer/src/records.gen";
 
 beforeEach(() => {
+  let frame = 0;
+  vi.stubGlobal("document", {
+    timeline: {
+      get currentTime() {
+        return frame;
+      },
+    },
+  });
   vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) =>
-    setImmediate(() => callback(performance.now())),
+    setImmediate(() => callback(++frame)),
   );
 });
 afterEach(() => vi.unstubAllGlobals());

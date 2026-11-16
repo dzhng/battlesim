@@ -7,7 +7,7 @@ import type { AppearanceLibrary } from "@packages/scene-assets/src/loader";
 import type { CatalogView } from "@packages/scene-assets/src/units";
 import { Fielding } from "@wasm/renderer_browser";
 import { releaseTransport } from "../transport";
-import { afterFrame } from "../frameBoundary";
+import { artFrame, artWork } from "../artWork";
 
 /** The runtime files a page's appearances were loaded from: the runtime
  *  catalog and its bundle contents by hash (`AppearanceLibrary`). */
@@ -55,7 +55,7 @@ export class FieldingOwner {
       const result = await resolveFielding(fielding, input);
       // Publish the whole result only after its resolve frame has presented.
       // Typed battle staging and GPU admission therefore cannot join that call.
-      await afterFrame();
+      if (artWork.exhausted()) await artFrame();
       if (this.closed) throw new Error("fielding owner is closed");
       this.last = { source, kinds: input.kinds, result };
       return result;
@@ -169,27 +169,34 @@ async function resolveFielding(
     for (const hash of hashes(content)) uses.set(hash, (uses.get(hash) ?? 0) + 1);
   const sources = new Map<string, Uint8Array<ArrayBuffer>>();
   try {
+    // Inflate independent inputs together through the existing reader. The
+    // browser streams gzip asynchronously; only absorption spends frame work.
+    const reads = await Promise.allSettled(
+      [...uses.keys()].map(async (hash) => {
+        const [file] = await input.runtime.contents([hash]);
+        sources.set(hash, file);
+      }),
+    );
+    const refused = reads.find((read) => read.status === "rejected");
+    if (refused?.status === "rejected") throw refused.reason;
     for (const content of pending) {
       const needed = hashes(content);
-      for (const hash of needed)
-        if (!sources.has(hash)) {
-          const [file] = await input.runtime.contents([hash]);
-          sources.set(hash, file);
+      if (artWork.exhausted()) await artFrame();
+      artWork.run(() => {
+        const files = needed.map((hash) => sources.get(hash)!);
+        const lengths = Uint32Array.from(files, (file) => file.length);
+        const bytes = new Uint8Array(files.reduce((sum, file) => sum + file.length, 0));
+        let at = 0;
+        for (const file of files) {
+          bytes.set(file, at);
+          at += file.length;
         }
-      await afterFrame();
-      const files = needed.map((hash) => sources.get(hash)!);
-      const lengths = Uint32Array.from(files, (file) => file.length);
-      const bytes = new Uint8Array(files.reduce((sum, file) => sum + file.length, 0));
-      let at = 0;
-      for (const file of files) {
-        bytes.set(file, at);
-        at += file.length;
-      }
-      try {
-        fielding.absorb(JSON.stringify(content), bytes, lengths);
-      } finally {
-        releaseTransport(bytes);
-      }
+        try {
+          fielding.absorb(JSON.stringify(content), bytes, lengths);
+        } finally {
+          releaseTransport(bytes);
+        }
+      });
       for (const hash of needed) {
         const left = uses.get(hash)! - 1;
         uses.set(hash, left);
@@ -199,19 +206,25 @@ async function resolveFielding(
         }
       }
     }
-    await afterFrame();
+    // The whole-result resolve is an accepted, indivisible step. A callback
+    // can join the paint after an asynchronous source read; cross that paint
+    // before its own frame. Content steps themselves yield only on budget.
+    await artFrame();
+    await artFrame();
   } finally {
     for (const file of sources.values()) releaseTransport(file);
   }
-  const sections = fielding.resolve(new Uint8Array(), new Uint32Array());
-  const { units, effects, tables } = JSON.parse(sections) as {
-    units: object;
-    effects: object;
-    tables: string[];
-  };
-  return {
-    units,
-    effects,
-    tables: new Map(tables.map((name, i) => [name, fielding.table(i)])),
-  };
+  return artWork.run(() => {
+    const sections = fielding.resolve(new Uint8Array(), new Uint32Array());
+    const { units, effects, tables } = JSON.parse(sections) as {
+      units: object;
+      effects: object;
+      tables: string[];
+    };
+    return {
+      units,
+      effects,
+      tables: new Map(tables.map((name, i) => [name, fielding.table(i)])),
+    };
+  });
 }

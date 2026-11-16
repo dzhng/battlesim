@@ -131,15 +131,16 @@ export class SceneAppearances {
     return waited;
   }
 
-  /** Release one unit of admission work only after the viewport presented. */
+  /** Resume budget-exhausted admission only after the viewport presented. */
   presented(): void {
     const waiting = this.waiting;
     this.waiting = null;
     if (waiting) waiting.resolve(!this.disposed && waiting.request === this.desired);
   }
 
-  private nextFrame(request: Request): Promise<boolean> {
+  private nextStep(request: Request, yieldFrame: boolean): Promise<boolean> {
     if (this.disposed || request !== this.desired) return Promise.resolve(false);
+    if (!yieldFrame) return Promise.resolve(true);
     this.redraw();
     return new Promise((resolve) => {
       this.waiting = { request, resolve };
@@ -173,7 +174,7 @@ export class SceneAppearances {
         this.renderer,
         request.assets,
         this.detail,
-        () => this.nextFrame(request),
+        (yieldFrame) => this.nextStep(request, yieldFrame),
       );
     } catch (error) {
       this.building = null;

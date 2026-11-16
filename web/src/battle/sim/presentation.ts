@@ -361,9 +361,9 @@ export class ScenePresentation {
     >,
     assets: readonly ModelAsset[],
     detail: ModelDetail,
-    nextFrame: () => Promise<boolean>,
+    nextStep: (yieldFrame: boolean) => Promise<boolean>,
   ): Promise<PreparedAppearances | null> {
-    return prepareAppearances(renderer, this.rust, assets, detail, nextFrame);
+    return prepareAppearances(renderer, this.rust, assets, detail, nextStep);
   }
 
   /** Call at a frame boundary, then publish a fresh canonical frame before drawing. */

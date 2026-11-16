@@ -1,9 +1,20 @@
-import { expect, test } from "vitest";
+import { afterEach, beforeAll, beforeEach, expect, test, vi } from "vitest";
 import type { Presentation, PreparedAppearances, Renderer } from "@wasm/renderer_browser";
 import type { ScenePresentation } from "../src/battle/sim/presentation";
 import type { ModelAsset } from "../src/battle/render/modelAssets";
 import { prepareAppearances, type LabModel } from "../src/battle/sim/presentationModels";
 import { SceneAppearances } from "../src/battle/render/sceneAppearances";
+
+beforeAll(async () => {
+  const { loadPresentation } = await import("../src/battle/sim/presentation");
+  await loadPresentation();
+});
+let testFrame = 0;
+beforeEach(() => vi.stubGlobal("document", { timeline: { currentTime: ++testFrame } }));
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 
 const detail = { lod_px: [100, 50, 25] as const, impostor_px: 10 };
 const model = (name: string, x = 0): LabModel => ({
@@ -222,6 +233,7 @@ function transportStage() {
 
 async function frames(owner: SceneAppearances, count = 12) {
   for (let i = 0; i < count; i++) {
+    Object.assign(document.timeline, { currentTime: Number(document.timeline.currentTime) + 1 });
     owner.presented();
     await Promise.resolve();
     await Promise.resolve();
@@ -368,14 +380,29 @@ test("geometry transport retires its packet when the draft refuses it", async ()
   expect(freed).toBe(1);
 });
 
-test("a multi-content growth supplies and warms over presented frames and swaps only once", async () => {
+test("a growth spends its frame budget before yielding, then finishes the same generation", async () => {
+  const { loadPresentation } = await import("../src/battle/sim/presentation");
+  const { art_work_budget_ms } = await import("@wasm/renderer_browser");
+  await loadPresentation();
+  const budget = art_work_budget_ms();
+  let now = 0;
+  const clock = vi.spyOn(performance, "now").mockImplementation(() => now);
   let frame = 0;
+  vi.stubGlobal("document", {
+    timeline: {
+      get currentTime() {
+        return frame;
+      },
+    },
+  });
   const steps: { frame: number; operation: string }[] = [];
   let release: ((go: boolean) => void) | undefined;
-  const nextFrame = () =>
-    new Promise<boolean>((resolve) => {
-      release = resolve;
-    });
+  const nextFrame = (yieldFrame = true) =>
+    !yieldFrame
+      ? Promise.resolve(true)
+      : new Promise<boolean>((resolve) => {
+          release = resolve;
+        });
   const art = [0, 1, 2].map((i) => ({
     name: `body-${i}`,
     contentId: { bundle: String(i).repeat(64), skeleton: null },
@@ -387,14 +414,17 @@ test("a multi-content growth supplies and warms over presented frames and swaps 
     appearance_draft: () => ({
       declare() {},
       add_bundle(id: string) {
+        now += budget / 5;
         steps.push({ frame, operation: `supply ${JSON.parse(id).bundle}` });
       },
       free() {},
     }),
     begin_appearances() {
+      now += budget / 5;
       steps.push({ frame, operation: "catalog" });
       return {
         step() {
+          now += budget / 5;
           steps.push({ frame, operation: "warm" });
           return warmed++ < art.length;
         },
@@ -402,27 +432,35 @@ test("a multi-content growth supplies and warms over presented frames and swaps 
       };
     },
     async prepare_appearances() {
+      now += budget / 5;
       steps.push({ frame, operation: "admit" });
       return { free() {} };
     },
   } as unknown as Parameters<typeof prepareAppearances>[0];
   const pending = prepareAppearances(renderer, {} as Presentation, art, detail, nextFrame);
   for (let i = 0; i < 10; i++) {
+    for (let task = 0; task < 30; task++) await Promise.resolve();
     frame++;
     release?.(true);
-    await Promise.resolve();
-    await Promise.resolve();
   }
   const result = await pending;
   expect(result).not.toBeNull();
   expect(steps.filter((s) => s.operation.startsWith("supply")).map((s) => s.operation)).toEqual(
     art.map((a) => `supply ${a.contentId.bundle}`),
   );
-  expect(new Set(steps.map((s) => s.frame)).size).toBe(steps.length);
+  expect(steps.slice(0, 3).map((s) => s.frame)).toEqual(
+    steps.slice(0, 3).map(() => steps[0].frame),
+  );
+  expect(new Set(steps.map((s) => s.frame)).size).toBeLessThan(steps.length);
+  expect(new Set(steps.map((s) => s.frame)).size).toBeGreaterThan(1);
+  clock.mockRestore();
   expect(steps.at(-1)?.operation).toBe("admit");
 });
 
 test("superseding a partial supply or warm discards it and commits only the latest catalog", async () => {
+  const { art_work_budget_ms } = await import("@wasm/renderer_browser");
+  let now = 0;
+  vi.spyOn(performance, "now").mockImplementation(() => now);
   for (const supersedeAt of ["supply", "warm"]) {
     let phase = "";
     let visible = ["live"];
@@ -445,6 +483,7 @@ test("superseding a partial supply or warm discards it and commits only the late
           },
           add_bundle() {
             phase = "supply";
+            now += art_work_budget_ms();
           },
           free() {
             retired.push(`supplied ${names.join()}`);
@@ -457,6 +496,7 @@ test("superseding a partial supply or warm discards it and commits only the late
           names: draft.names,
           step() {
             phase = "warm";
+            now += art_work_budget_ms();
             return remaining-- > 0;
           },
           free() {
@@ -478,7 +518,7 @@ test("superseding a partial supply or warm discards it and commits only the late
         r: Renderer,
         a: readonly ModelAsset[],
         d: typeof detail,
-        next: () => Promise<boolean>,
+        next: (yieldFrame: boolean) => Promise<boolean>,
       ) {
         return prepareAppearances(r, {} as Presentation, a, d, next);
       },

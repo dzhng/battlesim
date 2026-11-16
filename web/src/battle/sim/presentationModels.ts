@@ -4,6 +4,7 @@ import { type Presentation, type Renderer, type PreparedAppearances } from "@was
 import { contentIdKey } from "../render/contentIdentity";
 import type { ContentId } from "@packages/scene-assets/src/loader";
 import type { ModelAsset } from "../render/modelAssets";
+import { artWork } from "../artWork";
 import { releaseTransport } from "../transport";
 import {
   APPEARANCE_WORDS,
@@ -98,7 +99,7 @@ export async function prepareAppearances(
   presentation: Presentation,
   assets: readonly ModelAsset[],
   detail: ModelDetail,
-  nextFrame: () => Promise<boolean>,
+  nextStep: (yieldFrame: boolean) => Promise<boolean>,
 ): Promise<PreparedAppearances | null> {
   const missing = new Set(
     (
@@ -123,34 +124,37 @@ export async function prepareAppearances(
     }
     for (const asset of assets) {
       if (!missing.delete(contentIdKey(asset.contentId))) continue;
-      if (!(await nextFrame())) return null;
-      const { bundle, textureIds, textureBytes, skeleton } = asset.encode();
-      try {
-        work.bundlesEncoded++;
-        work.bundleBytesSent += bundle.byteLength;
-        draft.add_bundle(
-          JSON.stringify(asset.contentId),
-          bundle,
-          textureIds,
-          textureBytes,
-          skeleton,
-        );
-      } finally {
-        releaseTransport(bundle);
-      }
+      if (!(await nextStep(artWork.exhausted()))) return null;
+      const supplying = draft;
+      artWork.run(() => {
+        const { bundle, textureIds, textureBytes, skeleton } = asset.encode();
+        try {
+          work.bundlesEncoded++;
+          work.bundleBytesSent += bundle.byteLength;
+          supplying.add_bundle(
+            JSON.stringify(asset.contentId),
+            bundle,
+            textureIds,
+            textureBytes,
+            skeleton,
+          );
+        } finally {
+          releaseTransport(bundle);
+        }
+      });
     }
-    if (!(await nextFrame())) return null;
+    if (!(await nextStep(artWork.exhausted()))) return null;
     // Ownership moves into Rust even when synchronous catalog admission throws.
     const supplied = draft;
     draft = null;
-    warming = renderer.begin_appearances(presentation, supplied);
+    warming = artWork.run(() => renderer.begin_appearances(presentation, supplied));
     do {
-      if (!(await nextFrame())) return null;
-    } while (warming.step());
-    if (!(await nextFrame())) return null;
+      if (!(await nextStep(artWork.exhausted()))) return null;
+    } while (artWork.run(() => warming!.step()));
+    if (!(await nextStep(artWork.exhausted()))) return null;
     const complete = warming;
     warming = null;
-    const prepared = await renderer.prepare_appearances(complete);
+    const prepared = await artWork.run(() => renderer.prepare_appearances(complete));
     preparedTransportWork.set(prepared, work);
     return prepared;
   } finally {

@@ -10,8 +10,16 @@ import presentation from "@fixtures/presentation.json";
 import { FieldingOwner, type RuntimeFiles } from "@web/battle/sim/fielding";
 
 beforeEach(() => {
+  let frame = 0;
+  vi.stubGlobal("document", {
+    timeline: {
+      get currentTime() {
+        return frame;
+      },
+    },
+  });
   vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) =>
-    setImmediate(() => callback(performance.now())),
+    setImmediate(() => callback(++frame)),
   );
 });
 afterEach(() => {
@@ -173,4 +181,57 @@ test("fielding releases owned transport when a decoder refuses it", async () => 
   } finally {
     owner.free();
   }
+});
+
+test("fielding starts independent source reads together and releases every result after absorption", async () => {
+  await loadPresentation();
+  const set = await resolveCatalogSet("test");
+  const catalog = JSON.parse(readFileSync(new URL("catalog.json", runtime), "utf8"));
+  const input = {
+    rules: JSON.stringify(set.rules),
+    catalog: set.units.view,
+    kinds: ["test_tank"],
+  };
+  const fielding = new Fielding(
+    JSON.stringify(presentation),
+    input.rules,
+    JSON.stringify(input.catalog),
+    JSON.stringify(catalog),
+    JSON.stringify(input.kinds),
+  );
+  const wanted = fielding.contents();
+  fielding.free();
+  const requested: string[] = [];
+  const files: Uint8Array[] = [];
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const owner = new FieldingOwner();
+  const result = owner.field({
+    ...input,
+    runtime: {
+      catalog,
+      async contents(hashes) {
+        requested.push(...hashes);
+        await gate;
+        return hashes.map((hash) => {
+          const file = new Uint8Array(
+            gunzipSync(readFileSync(new URL(`${catalog.gzip[hash].hash}/bundle.bin`, runtime))),
+          );
+          files.push(file);
+          return file;
+        });
+      },
+    },
+  });
+  try {
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(new Set(requested)).toEqual(new Set(wanted));
+  } finally {
+    release();
+    await result;
+    owner.free();
+  }
+  expect(files.map((file) => file.byteLength)).toEqual(wanted.map(() => 0));
 });

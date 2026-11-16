@@ -79,14 +79,9 @@ impl GeometryDraft {
         Ok(true)
     }
 
-    pub fn admit(
-        mut self,
-        pipelines: &Pipelines,
-        work: &mut AdmissionWork,
-    ) -> Result<Models, String> {
-        // Native/cold callers can finish at once; the viewport calls step once
-        // per presented frame before reaching the same admission below.
-        while self.step(work)? {}
+    pub fn admit(self, pipelines: &Pipelines, work: &mut AdmissionWork) -> Result<Models, String> {
+        // Unwarmed callers reach the same admission directly; only explicitly
+        // stepped work needs the held rows above to keep its weak entries alive.
         Models::from_world(
             &self.device,
             &self.queue,
