@@ -1,6 +1,6 @@
 # Shared hosts: buildings and transports admit squads alike
 
-**Status:** in progress; slices 00 to 06 done; 07's leftovers, recordings and docs done, its labs being merged. **Updated:** 2026-11-16.
+**Status:** slices 00 to 07 implemented and checked; whole-spec review, ledger consolidation and close-spec remain. **Updated:** 2026-11-16.
 
 Several squads share a host (a building or a carrier) while seats remain, one
 seat per living soldier, squads whole. A squad gets in when it arrives and
@@ -10,26 +10,24 @@ decision (`specs/done/battle-look/decisions.md`).
 
 ## Next Agent Prompt
 
-You are implementing this plan from slice 07. Read, in order: this file, the
-[decisions ledger](decisions.md), the slice you are about to build, and, for
+You are closing this plan. Read, in order: this file, the
+[decisions ledger](decisions.md), the slices, and, for
 the history of how each decision was reached, the
 [unknowns map](unknowns-map.html) (its plan and prompt sections are
 superseded by this file). Before changing player text read
 [`game-ui`](../../.agents/skills/game-ui/SKILL.md).
 
-Next pickup: **the rest of [slice 07](slices/07-labs-docs-closeout.md).**
-Its leftovers (the unread navigation rules, the tweak-mechanics principle),
-recordings (the browser captures, the counts fixture and what reads them;
-the menu reel confirmed unchanged) and docs are done (ledger, Slice 07
-recordings and docs). What remains, in order:
+Next pickup: **the whole-spec review.** Slice 07 is done: labs, recordings,
+player text and docs, the full check ladder and the balance report (ledger,
+Slice 07 sections and Closeout). The Paris-corner menu reel is re-recorded
+and has lost its on-screen deaths; it needs the user's look and probably a
+re-direct (Closeout). Six browser scenes stay red, each failing the same way
+at this plan's first commit (Closeout); they are not this plan's. What
+remains, in order:
 
-1. Merge the labs part (garrison lab, transport controls fixture, their
-   descriptions, the tutorial line), built in a separate checkout, and run
-   its browser scenes and lab shot gates as the slice says.
-2. Run the full check ladder and the balance report once.
-3. Run the whole-spec [`review`](../../.agents/skills/review/SKILL.md).
-4. Consolidate the ledger: fold the slice sections into durable decisions.
-5. Run [`close-spec`](../../.agents/skills/close-spec/SKILL.md); when the plan
+1. Run the whole-spec [`review`](../../.agents/skills/review/SKILL.md).
+2. Consolidate the ledger: fold the slice sections into durable decisions.
+3. Run [`close-spec`](../../.agents/skills/close-spec/SKILL.md); when the plan
    moves to `specs/done/`, repoint the superseded note in
    `specs/done/battle-foundation/contracts.md`.
 
@@ -65,7 +63,7 @@ Checklist (each item is its slice's whole contract):
 - [x] 04 · Window swaps and reinforcement span the building ([slice](slices/04-building-wide-occupancy.md))
 - [x] 05 · Seat total published; the IN BUILDING row reads used/total ([slice](slices/05-seats-on-the-panel.md))
 - [x] 06 · One ring and one outline per house ([slice](slices/06-one-mark-per-house.md))
-- [ ] 07 · Labs, recordings, player text, docs and closeout ([slice](slices/07-labs-docs-closeout.md))
+- [x] 07 · Labs, recordings, player text, docs and closeout ([slice](slices/07-labs-docs-closeout.md))
 
 Warnings:
 

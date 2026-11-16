@@ -748,3 +748,38 @@ things the plan left open.
   No followed unit falls in either version. The reel was not rendered; it
   needs the user's look, and probably a re-direct (the open squad's
   `soldier_hp`, or the recon's start) to put deaths back on screen.
+- **The full check ladder ran once, at `f4168d40d`.** Format, lint
+  (ESLint, Clippy with warnings denied, Oxlint), the WebAssembly and tool
+  builds, typecheck and the Rust workspace (2,407 tests) pass. The web suite
+  had five failures, none from this plan: four read source art this
+  checkout had not fetched (each roster jet's source GLB, the disabled
+  cards' models, the Stinger gunner and the launcher clips: 40 LFS files,
+  now fetched, and the icon and jet tests pass), and one test fixture
+  was stale (`battleRules.test.ts`: fielding reads each type's mobility
+  before the mounted-look check, so its bare gunner row was refused for
+  that; the gunner is now the test tank's resolved type, its own commit).
+- **Every browser scene ran once.** The disk filled during the first run
+  (ENOSPC from the projectiles scene on), so every scene that failed or
+  never reported was run again after freeing this checkout's incremental
+  build cache. Two needed fixes: the city scenes needed their template
+  sources fetched, and `allies` drew no frame after aiming, so its box
+  projected through the previous camera and threw when the pair stood
+  behind it (its own commit; bisecting landed on a pure code move, so the
+  battle path only exposed the race). Left red, each failing with the same
+  numbers at this plan's first commit (e2c946e0a), so not this plan's:
+  `ground` (five checks: ruts, pavement, walks, town edge, grass on
+  paving), `facade` (a room takes no sun), `readouts` (the backing under
+  the bright underline), `sensors` (a firing contact's status line),
+  `sound` (the far sound's high end) and `unit-roster` (four approved
+  pictures, also recorded as predating the colour grade in
+  `specs/smoke-screen/choices.md`). They need their owners' decisions, not
+  a closeout fix.
+- **The balance report shows no shift.** Paired at the plan's first commit
+  and at this branch's head, both release builds: `skirmish_tournament
+  --corpus` gives the same battle digest, status, accepted orders, spend
+  and replay match in all nine rows, and `battle_sweep` (10 seeds of every
+  map type and size, 30 s) the same digest in all 120 rows, with the same
+  one refusal (metro medium seed 8 places no assault, a generation refusal
+  at both). Neither workload garrisons two squads in one house or engages a
+  garrison whose middle is inside its walls, so the plan's mechanics are
+  proven by their own tests and scenes, not by this report.
