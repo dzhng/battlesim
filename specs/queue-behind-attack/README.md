@@ -34,7 +34,7 @@ and tick the list.
 - [ ] [S4](slices/s4-jet-run-volley.md) a jet's volley is one run in which it fired
 - [ ] [S5](slices/s5-jet-lost-target.md) a jet's attack ends when its side loses the target
 - [x] [S6](slices/s6-step-records.md) step records end to end, no visual change (parity captures await one fresh recording, see the slice)
-- [ ] [S7](slices/s7-voice-steps.md) the voice queue reads the published steps
+- [x] [S7](slices/s7-voice-steps.md) the voice queue reads the published steps
 - [ ] [S8](slices/s8-attack-line.md) current attack line, reticle, chase-end reticle
 - [ ] [S9](slices/s9-queued-chain.md) the queued chain
 - [ ] [S10](slices/s10-closeout.md) docs, `/review`, closeout run, push part 1 to staging

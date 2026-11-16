@@ -63,3 +63,7 @@ rewritten from scratch at closeout.
   (`1230e0cf0`: digest `9683a2cdb73063a3` recorded, `3039b04038158163` replayed at tick 1),
   so its bytes can't be re-published natively, and the new layout can't read the old
   bytes. A fresh browser capture is the parent's call (see S6's state).
+- **The voice queue matches an errand to the front step by kind and named target.**
+  *Agent*: an attack whose target the side has lost publishes no target, so a missing id
+  matches; consecutive errands on one target merge and still end in order, since each
+  ended errand gives way to the next at once.

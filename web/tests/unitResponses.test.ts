@@ -21,6 +21,7 @@ const unit = (id: number, kind: string, extra: Partial<OwnUnitView> = {}): OwnUn
     id,
     kind,
     goal: null,
+    steps: [],
     withdrawing: false,
     hp: kind === "test_rifle" ? 0 : UNITS.hull(kind)!.hp,
     memberIds: kind === "test_rifle" ? [1, 2, 3, 4, 5, 6, 7, 8] : [],

@@ -27,11 +27,26 @@ export interface ResponseUnit {
   stressed: boolean;
 }
 
-/** An order as the battle sends it; a fire-policy order names its policy. */
+/** What an order acts on, as the battle names it: an attack's target. */
+interface Aimed {
+  kind: string;
+  id?: number;
+}
+
+/** An order as the battle sends it; a fire-policy order names its policy,
+ *  an attack its target. */
 export interface OrderLike {
   kind: string;
   policy?: string;
   units?: readonly number[];
+  target?: Aimed;
+}
+
+/** A unit's current order as the side publishes it (`OwnUnit.steps[0]`):
+ *  its kind and what it acts on, never where. */
+export interface FrontStep {
+  kind: string;
+  target?: Aimed;
 }
 
 export type ResponseEvent =
@@ -159,98 +174,114 @@ export function responseFor(event: ResponseEvent): ResponseRequest | null {
 export const ARRIVED_AFTER_S = 3;
 /** Orders whose end is an arrival. */
 const JOURNEYS = new Set(["move", "attack_move", "occupy_building", "board", "collect", "unload"]);
-/** Orders that end or replace a journey without arriving. */
-const HALTS = new Set(["stop", "attack", "refund", "exit_building"]);
+/** Orders that end without arriving, by the step each publishes. */
+const ERRANDS: Record<string, string> = {
+  attack: "attack",
+  exit_building: "exit",
+  refund: "return_to_base",
+};
 
-interface Journey {
-  group: string;
-  /** When the unit was first seen under way; null until then. */
+/** A step's kind and the id of what it acts on, if the side names one. */
+interface StepIdentity {
+  kind: string;
+  id: string | null;
+}
+
+const identity = (kind: string, target?: Aimed): StepIdentity => ({
+  kind,
+  id: target?.id === undefined ? null : `${target.kind}/${target.id}`,
+});
+
+/** The front step is still `errand`: the same kind, on the same target
+ *  while the side names one (a lost target's attack publishes none). */
+function still(errand: StepIdentity, front: FrontStep | null | undefined): boolean {
+  if (!front || front.kind !== errand.kind) return false;
+  const id = identity(front.kind, front.target).id;
+  return errand.id === null || id === null || id === errand.id;
+}
+
+/** One of a unit's orders, in turn: a journey, which ends when the unit
+ *  stops after being under way, or an errand (an attack, an exit, a return
+ *  to base), which ends when the published front step stops being it and
+ *  never arrives. */
+interface Entry {
+  /** A journey's group; null for an errand. */
+  group: string | null;
+  errand: StepIdentity | null;
+  /** When the unit was first seen under way on it; null until then. */
   since: number | null;
 }
 
 /**
  * R11 from what the side observes: a unit arrives when its ordered move ends
  * (`OwnUnit.goal` goes from a goal to none) after at least `afterS` under way.
- * A purchased unit entering the field under way is on a journey of its own. A
- * stop, an attack (which may chase) or a withdrawal ends a journey silently,
- * and a unit that starts moving with no order of the player's reports nothing.
- * A queued journey waits its turn and starts when the one before it ends: a
- * unit's stop, since some journeys (an unload, a board, a collect) publish no
- * goal to watch.
+ * A purchased unit entering the field under way is on a journey of its own.
+ * Every accepted order takes its turn in the unit's queue: a queued order
+ * starts when the one before it ends. A journey ends at the unit's stop,
+ * since some journeys (an unload, a board, a collect) publish no goal to
+ * watch; an attack (which may chase), an exit or a return to base ends when
+ * the published front step leaves it, silently. A stop drops them all, and a
+ * unit that starts moving with no order of the player's reports nothing.
  */
 export class Arrivals {
   private readonly known = new Set<number>();
-  private readonly journeys = new Map<number, Journey>();
-  /** Each unit's queued journeys' groups, in order, behind its current one. */
-  private readonly queued = new Map<number, string[]>();
+  /** Each unit's orders, the current one first. */
+  private readonly orders = new Map<number, Entry[]>();
   private readonly reported = new Set<string>();
 
   constructor(private readonly afterS = ARRIVED_AFTER_S) {}
 
   /** An accepted order, `group` naming its journey. A queued order waits behind the current one. */
   ordered(order: OrderLike, queued: boolean, group: string) {
+    const errand = ERRANDS[order.kind];
+    const entry: Entry | null = JOURNEYS.has(order.kind)
+      ? { group, errand: null, since: null }
+      : errand
+        ? { group: null, errand: identity(errand, order.target), since: null }
+        : null;
     for (const id of order.units ?? []) {
-      if (JOURNEYS.has(order.kind)) {
-        if (queued && this.journeys.has(id)) this.queued.set(id, [...this.waiting(id), group]);
-        else {
-          this.journeys.set(id, { group, since: null });
-          if (!queued) this.queued.delete(id);
-        }
-      } else if (HALTS.has(order.kind) && !queued) {
-        this.journeys.delete(id);
-        this.queued.delete(id);
-      }
+      const current = this.orders.get(id);
+      if (entry && queued && current) current.push({ ...entry });
+      else if (entry) this.orders.set(id, [{ ...entry }]);
+      else if (order.kind === "stop" && !queued) this.orders.delete(id);
     }
   }
 
-  private waiting(id: number): string[] {
-    return this.queued.get(id) ?? [];
-  }
-
-  /** Ends `id`'s journey and starts the next one queued behind it, if any. */
-  private next(id: number) {
-    const [group, ...rest] = this.waiting(id);
-    if (group === undefined) {
-      this.journeys.delete(id);
-      return;
-    }
-    this.journeys.set(id, { group, since: null });
-    if (rest.length) this.queued.set(id, rest);
-    else this.queued.delete(id);
-  }
-
-  /** The side's units at `time` seconds, each under way or not: who arrived, one per journey. */
+  /** The side's units at `time` seconds, each under way or not, with its
+   *  published front step: who arrived, one per journey. */
   observe(
-    units: readonly { id: number; moving: boolean }[],
+    units: readonly { id: number; moving: boolean; front?: FrontStep | null }[],
     time: number,
   ): { id: number; group: string }[] {
     const arrived: { id: number; group: string }[] = [];
     const present = new Set<number>();
-    for (const { id, moving } of units) {
+    for (const { id, moving, front } of units) {
       present.add(id);
       if (!this.known.has(id)) {
         this.known.add(id);
-        if (moving && !this.journeys.has(id))
-          this.journeys.set(id, { group: `unit/${id}`, since: null });
+        if (moving && !this.orders.has(id))
+          this.orders.set(id, [{ group: `unit/${id}`, errand: null, since: null }]);
       }
-      const journey = this.journeys.get(id);
-      if (!journey) continue;
-      if (moving) {
-        journey.since ??= time;
-        continue;
+      const orders = this.orders.get(id) ?? [];
+      // Each order that has ended gives way to the next, which may have
+      // ended too: an errand done before it was seen at the front.
+      for (let entry = orders[0]; entry; entry = orders[0]) {
+        if (entry.errand) {
+          if (still(entry.errand, front)) break;
+        } else if (moving) {
+          entry.since ??= time;
+          break;
+        } else if (entry.since === null) break;
+        orders.shift();
+        const { group, since } = entry;
+        if (group && since !== null && time - since >= this.afterS && !this.reported.has(group)) {
+          this.reported.add(group);
+          arrived.push({ id, group });
+        }
       }
-      if (journey.since === null) continue;
-      this.next(id);
-      if (time - journey.since >= this.afterS && !this.reported.has(journey.group)) {
-        this.reported.add(journey.group);
-        arrived.push({ id, group: journey.group });
-      }
+      if (!orders.length) this.orders.delete(id);
     }
-    for (const id of this.journeys.keys())
-      if (!present.has(id)) {
-        this.journeys.delete(id);
-        this.queued.delete(id);
-      }
+    for (const id of this.orders.keys()) if (!present.has(id)) this.orders.delete(id);
     return arrived;
   }
 }

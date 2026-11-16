@@ -12,3 +12,8 @@ nothing during X, "arrived" for B only after the front leaves X; two consecutive
 end separately; the existing queued-journey cases stay green.
 
 **Commit.** `feat(audio): the voice queue tracks every order step`.
+
+**State.** Done. Both new tests failed first (a false "arrived" mid-attack) and pass; the
+existing cases stay green. An errand (attack, exit, return to base) matches the front step
+by kind and, while the side names one, target: a lost target's attack still counts as the
+same attack, and an errand that ended before it was seen at the front gives way at once.

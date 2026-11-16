@@ -232,3 +232,55 @@ test("a fire-policy change or a queued stop leaves the journey running", () => {
   arrivals.ordered({ kind: "stop", units: [1] }, true, "order/3");
   expect(at(arrivals, 6, { 1: false })).toEqual([{ id: 1, group: "order/1" }]);
 });
+
+/** Own units at `time`: each id under way or not, and its published front
+ *  step (`OwnUnit.steps[0]`): a kind, an attack's target. */
+type Front = { kind: string; target?: { kind: string; id?: number } } | null;
+const seen = (arrivals: Arrivals, time: number, units: Record<number, [boolean, Front]>) =>
+  arrivals.observe(
+    Object.entries(units).map(([id, [moving, front]]) => ({ id: Number(id), moving, front })),
+    time,
+  );
+const attackOn = (id: number) => ({ kind: "attack", target: { kind: "identified", id } });
+const drive = { kind: "move" };
+
+test("a queued attack between two moves arrives at each move, never during the attack", () => {
+  const arrivals = new Arrivals(3);
+  seen(arrivals, 0, { 1: [false, null] });
+  arrivals.ordered({ kind: "move", units: [1] }, false, "order/1");
+  arrivals.ordered(
+    { kind: "attack", units: [1], target: { kind: "identified", id: 4 } },
+    true,
+    "order/2",
+  );
+  arrivals.ordered({ kind: "move", units: [1] }, true, "order/3");
+  seen(arrivals, 0.1, { 1: [true, drive] });
+  // At A: the attack comes to the front.
+  expect(seen(arrivals, 6, { 1: [false, attackOn(4)] })).toEqual([{ id: 1, group: "order/1" }]);
+  // It chases X, then stops in range and fires: no arrival.
+  seen(arrivals, 7, { 1: [true, attackOn(4)] });
+  expect(seen(arrivals, 15, { 1: [false, attackOn(4)] })).toEqual([]);
+  // X done, it drives to B and arrives there.
+  seen(arrivals, 16, { 1: [true, drive] });
+  expect(seen(arrivals, 25, { 1: [false, drive] })).toEqual([{ id: 1, group: "order/3" }]);
+});
+
+test("two queued attacks each end on their own before the move behind them", () => {
+  const arrivals = new Arrivals(3);
+  seen(arrivals, 0, { 1: [false, null] });
+  const attack = (id: number) => ({
+    kind: "attack",
+    units: [1],
+    target: { kind: "identified", id },
+  });
+  arrivals.ordered(attack(4), false, "order/1");
+  arrivals.ordered(attack(5), true, "order/2");
+  arrivals.ordered({ kind: "move", units: [1] }, true, "order/3");
+  seen(arrivals, 0.1, { 1: [true, attackOn(4)] });
+  expect(seen(arrivals, 6, { 1: [false, attackOn(4)] })).toEqual([]);
+  // X ends; chasing Y moves it and stops it again, still no arrival.
+  seen(arrivals, 7, { 1: [true, attackOn(5)] });
+  expect(seen(arrivals, 15, { 1: [false, attackOn(5)] })).toEqual([]);
+  seen(arrivals, 16, { 1: [true, drive] });
+  expect(seen(arrivals, 25, { 1: [false, drive] })).toEqual([{ id: 1, group: "order/3" }]);
+});
