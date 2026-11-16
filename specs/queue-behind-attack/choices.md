@@ -144,7 +144,13 @@ rewritten from scratch at closeout.
   board or collect ends at the carrier or squad with no ring of its own (their own
   circles show); an unload marks the ring before it; an attack whose target the side has
   lost draws nothing and the chain runs on from the step before. *Agent.*
-- **The building comes from the map's building index**, passed to `orderLayer` by the
-  battle view and the garrison lab; a lab without it draws a garrison as a leg to a
-  queued ring. *Agent*: the side's known props list only bodies that changed, so they
-  can't place an intact building.
+- **The simulation publishes the building's box on the garrison and exit steps**
+  (`footprint`, the step row's `hostX`, `hostY`, `hostHalfX`, `hostHalfY`): the building
+  as the map places it (`WorldGeometry::building_footprint`), in its own frame, by the
+  one envelope rule that also gives the held ring's live box (`structure_footprint`), so
+  the two match while it stands intact. *Agent*, after review: the lab's first
+  reconstruction from the map's parts drew a world-axis box, larger than the held ring
+  for a turned building. Not the live box: that would tell the side of a collapse its
+  units haven't seen (`garrison::an_unseen_collapse_cannot_change_a_garrison_order_until_discovered`
+  caught it); the map is known to both sides. A damaged building's queued ring can stand
+  wider than its held ring. An exit step's point is that box's centre.

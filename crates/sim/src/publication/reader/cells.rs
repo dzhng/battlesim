@@ -1,8 +1,8 @@
 //! Cells many rows pack the same way (`publication/cells.rs` packs the
 //! shared ones): an absent value, an exact integer in two limbs, and, by
 //! the writer's field names under the caller's `FIELDS`, a target
-//! (`target!`) and a host (`host!`).
-use super::{MountTarget, Name, Reader, Result, LIMB_BITS};
+//! (`target!`), a host (`host!`) and a building's footprint (`footprint!`).
+use super::{Footprint, MountTarget, Name, Reader, Result, LIMB_BITS};
 
 pub(super) const LIMB: f64 = (1u32 << LIMB_BITS) as f64;
 
@@ -36,7 +36,31 @@ macro_rules! host {
     };
 }
 
-pub(super) use {host, target};
+/// The building footprint `$row`'s `hostX`, `hostY`, `hostHalfX` and
+/// `hostHalfY` cells carry.
+macro_rules! footprint {
+    ($row:expr) => {
+        Footprint::from_cells([
+            v!($row, "hostX"),
+            v!($row, "hostY"),
+            v!($row, "hostHalfX"),
+            v!($row, "hostHalfY"),
+        ])
+    };
+}
+
+pub(super) use {footprint, host, target};
+
+impl Footprint {
+    /// A footprint from its centre and half-extent cells; none where the
+    /// writer leaves them NaN.
+    pub(super) fn from_cells([x, y, hx, hy]: [f64; 4]) -> Option<Self> {
+        (!x.is_nan()).then_some(Self {
+            center: [x, y],
+            half: [hx, hy],
+        })
+    }
+}
 
 impl Reader {
     /// A target from its kind (indexing targetKinds), id and point cells:

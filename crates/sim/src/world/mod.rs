@@ -359,24 +359,23 @@ impl WorldGeometry {
         let yaw = self
             .building(owner)
             .map_or(pivot.yaw, |b| b.geometry.frame.yaw);
-        let mut lo = v2(f64::INFINITY, f64::INFINITY);
-        let mut hi = v2(f64::NEG_INFINITY, f64::NEG_INFINITY);
-        for id in self.structure_parts(owner) {
-            let prop = self.prop(id)?;
-            let center = (prop.center - pivot.center).rotated(-yaw);
-            let (s, c) = libm::sincos(prop.yaw - yaw);
-            let half = v2(
-                c.abs() * prop.half.x + s.abs() * prop.half.y,
-                s.abs() * prop.half.x + c.abs() * prop.half.y,
-            );
-            lo = v2(lo.x.min(center.x - half.x), lo.y.min(center.y - half.y));
-            hi = v2(hi.x.max(center.x + half.x), hi.y.max(center.y + half.y));
-        }
-        Some(Obb2 {
-            center: pivot.center + ((lo + hi) * 0.5).rotated(yaw),
-            yaw,
-            half: (hi - lo) * 0.5,
-        })
+        let parts = (self.structure_parts(owner).into_iter())
+            .map(|id| self.prop(id).map(|p| (p.center, p.yaw, p.half.xy())))
+            .collect::<Option<Vec<_>>>()?;
+        Some(envelope(pivot.center, yaw, parts))
+    }
+
+    /// The building `part` belongs to as the map places it, whatever has
+    /// happened to it since: the envelope of its authored parts in its own
+    /// frame. Both sides know it, as they know the map.
+    pub fn building_footprint(&self, part: PropId) -> Option<Obb2> {
+        let geometry = &self.building(part)?.geometry;
+        let [x, y, _] = geometry.frame.translation;
+        let parts = geometry.parts.iter().map(|p| {
+            let [hx, hy, _] = p.half_extents;
+            (v2(p.center[0], p.center[1]), p.yaw, v2(hx, hy))
+        });
+        Some(envelope(v2(x, y), geometry.frame.yaw, parts))
     }
 
     pub(crate) fn replace_building_parts(
@@ -716,4 +715,27 @@ fn digest_pose(d: &mut crate::digest::Digest, p: &Prop) {
         .f64(p.center.y)
         .f64(p.yaw)
         .f64(p.base_z);
+}
+
+/// The tight box round `parts` (each its centre, yaw and half extents) in a
+/// frame turned `yaw`, measured around `pivot` so a distant origin cannot
+/// inflate arithmetic error.
+fn envelope(pivot: V2, yaw: f64, parts: impl IntoIterator<Item = (V2, f64, V2)>) -> Obb2 {
+    let mut lo = v2(f64::INFINITY, f64::INFINITY);
+    let mut hi = v2(f64::NEG_INFINITY, f64::NEG_INFINITY);
+    for (center, part_yaw, half) in parts {
+        let center = (center - pivot).rotated(-yaw);
+        let (s, c) = libm::sincos(part_yaw - yaw);
+        let half = v2(
+            c.abs() * half.x + s.abs() * half.y,
+            s.abs() * half.x + c.abs() * half.y,
+        );
+        lo = v2(lo.x.min(center.x - half.x), lo.y.min(center.y - half.y));
+        hi = v2(hi.x.max(center.x + half.x), hi.y.max(center.y + half.y));
+    }
+    Obb2 {
+        center: pivot + ((lo + hi) * 0.5).rotated(yaw),
+        yaw,
+        half: (hi - lo) * 0.5,
+    }
 }

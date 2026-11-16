@@ -1,5 +1,4 @@
 import type { ScenarioRules } from "./battleSessionOptions";
-import { stepBuildings, type StepBuildingIndex } from "./stepBuildings";
 // What one side's battle view draws from its own observation besides the
 // static world and its structures (the session's fitted props), one layer
 // per concern: contact glyphs, visible flight and strike marks, garrison
@@ -368,14 +367,11 @@ export function orderLayer(
     ghosts = false,
     allies = new Map(),
     hovered = null,
-    buildings = null,
   }: {
     stroke?: StrokeWidth;
     ghosts?: boolean;
     allies?: ReadonlyMap<number, unknown>;
     hovered?: number | null;
-    /** The map's buildings: a queued garrison or exit rings its building. */
-    buildings?: StepBuildingIndex | null;
   } = {},
 ): WorldMeshes {
   const aloft = ghostAloft(units, air);
@@ -399,7 +395,6 @@ export function orderLayer(
       u.id === hovered,
     ),
     ghostAloft: ghosts && reveal.has(u.id) ? aloft(u.kind) : 0,
-    steps: stepBuildings(u, buildings),
   }));
   return buildOrderOverlay(oneRingPerHouse(shown, views), z, gameOrderStyle, { stroke });
 }
@@ -510,7 +505,6 @@ export function battleOverlayParts(
     ghosts: showOrders,
     allies,
     hovered,
-    buildings,
   });
   const aircraft = aircraftLayer(units, o, z, stroke);
   const deployments = scenario.deployments.map((marker) =>

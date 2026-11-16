@@ -1,8 +1,9 @@
 //! An own unit's order step, decoded by the writer's field names: its kind,
 //! its point (none when the side knows none), the target an attack names and
-//! the host a step enters.
-use super::cells::{host, target};
-use super::{at, OrderStep, Reader, Result, StepHost};
+//! the host a step enters, and the footprint of the building a garrison
+//! enters or an exit leaves.
+use super::cells::{footprint, host, target};
+use super::{at, Footprint, OrderStep, Reader, Result, StepHost};
 use crate::publication::STEP_FIELDS;
 
 impl Reader {
@@ -15,6 +16,7 @@ impl Reader {
             attack_move: v!(p, "attackMove") == 1.0,
             target: target!(self, p)?,
             host,
+            building: footprint!(p),
         })
     }
 }

@@ -3,7 +3,7 @@
 //! from where the step before ends; nothing here plans a route for the unit
 //! or writes battle state.
 
-use contract::observation::{OrderStep, StepHost};
+use contract::observation::{Footprint, OrderStep, StepHost};
 
 use super::*;
 
@@ -47,7 +47,12 @@ impl Battle {
     ) -> Vec<OrderStep> {
         let xy = |p: V2| [p.x, p.y];
         let at = |id: UnitId| self.units[id.0 as usize].position.xy();
-        let centre = |b: u32| self.world.structure_footprint(b).map(|f| xy(f.center));
+        let footprint = |b: u32| {
+            (self.world.building_footprint(b)).map(|f| Footprint {
+                center: xy(f.center),
+                half: xy(f.half),
+            })
+        };
         let mut from = xy(unit.position.xy());
         // The building it is in, or will be in once a garrison step is done.
         let mut inside = unit.hold.as_ref().and_then(|h| match h.host {
@@ -75,11 +80,16 @@ impl Battle {
                     OrderStep::Garrison {
                         point: from,
                         building: *building,
+                        footprint: footprint(*building),
                     }
                 }
-                UnitOrder::Exit => OrderStep::Exit {
-                    point: inside.take().and_then(centre).unwrap_or(from),
-                },
+                UnitOrder::Exit => {
+                    let footprint = inside.take().and_then(footprint);
+                    OrderStep::Exit {
+                        point: footprint.map_or(from, |f| f.center),
+                        footprint,
+                    }
+                }
                 UnitOrder::Board { carrier, .. } => {
                     from = xy(at(*carrier));
                     OrderStep::Board {

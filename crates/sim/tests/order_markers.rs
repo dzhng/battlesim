@@ -332,7 +332,8 @@ fn nothing_of_the_enemys_plan_reaches_the_other_side() {
     assert_eq!(a, b, "blue's view never changes with red's orders");
 }
 
-/// A U.S. against Eastern skirmish on a map with a building (prop 0): blue
+/// A U.S. against Eastern skirmish on a map with a building (prop 0, turned
+/// off the world's axes): blue
 /// buys a `blue` and red a tank, and both drive in, holding their fire,
 /// and stand. A second blue player, who buys nothing, gives each side two
 /// roads in, blue's one by each side edge (`WEST`, `EAST`). Its commands go
@@ -360,7 +361,7 @@ impl Skirmish {
         }
         let mut s = crate::skirmish::match_on(rules);
         let house =
-            crate::common::building(0, "china-apartment-point-20x20-7f", [500.0, 150.0], 0.0);
+            crate::common::building(0, "china-apartment-point-20x20-7f", [500.0, 150.0], 0.5);
         let map = json!({ "size": [800, 600], "fog_cell_m": 8, "height_grid_m": 4,
             "slope_cutoff_deg": 35, "props": [], "buildings": [house] });
         s.map = crate::common::scenario_with(&map.to_string(), json!([]), json!([]), json!([])).map;
@@ -601,5 +602,57 @@ fn a_queued_attack_step_follows_its_target_holds_through_the_grace_then_names_no
     assert!(
         held > 0 && forgotten,
         "held through the grace ({held} ticks), then forgotten"
+    );
+}
+
+#[test]
+fn a_garrison_and_an_exit_step_carry_the_box_the_held_building_is_ringed_by() {
+    use contract::command::Order;
+    use contract::observation::{Footprint, HostRef, OrderStep};
+    let mut m = Skirmish::new("test_rifle");
+    let squad = m.own(Side::Blue).id;
+    let occupy = Order::OccupyBuilding {
+        units: vec![squad],
+        building: 0,
+        gesture: 1,
+    };
+    m.order(Side::Blue, occupy, false);
+    m.b.step();
+    let OrderStep::Garrison {
+        footprint: Some(queued),
+        ..
+    } = m.own(Side::Blue).steps[0]
+    else {
+        panic!(
+            "a garrison step with its footprint: {:?}",
+            m.own(Side::Blue).steps
+        );
+    };
+    let held = |m: &Skirmish| match m.own(Side::Blue).hold.map(|h| h.host) {
+        Some(HostRef::Building { center, half, .. }) => Some(Footprint { center, half }),
+        _ => None,
+    };
+    let mut inside = None;
+    for _ in 0..30 * 300 {
+        m.b.step();
+        inside = held(&m);
+        if inside.is_some() && m.own(Side::Blue).steps.is_empty() {
+            break;
+        }
+    }
+    // The map's building, standing intact: the box its hold rings.
+    assert_eq!(inside, Some(queued), "the step rings what the hold rings");
+    m.order(
+        Side::Blue,
+        Order::ExitBuilding { units: vec![squad] },
+        false,
+    );
+    m.b.step();
+    assert_eq!(
+        m.own(Side::Blue).steps[0],
+        OrderStep::Exit {
+            point: queued.center,
+            footprint: Some(queued)
+        }
     );
 }

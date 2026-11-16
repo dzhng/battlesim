@@ -153,7 +153,7 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
       control.selected,
       session.revealed,
       surfaceZ,
-      { stroke, hovered: session.hovered, buildings: session.buildingIndex },
+      { stroke, hovered: session.hovered },
     );
     const parts = [tracers, remains, held, garrisons, orders];
     return combineWorldMeshes(parts);

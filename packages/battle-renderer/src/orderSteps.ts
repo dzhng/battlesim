@@ -28,7 +28,7 @@ export interface OrderStep {
   /** An attack's target, by kind: a ground point's reticle carries a cross. */
   target?: { kind: string };
   /** The building a garrison step enters or an exit step leaves, as the
-   *  side knows it: its footprint's centre and half extents. */
+   *  map places it: its footprint's centre and half extents. */
   building?: { center: P2; half: P2 };
 }
 
