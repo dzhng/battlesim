@@ -1925,7 +1925,7 @@ fn air_ingress_jet_returns_through_west_edge_and_refunds_its_owner() {
         "units": [], "events": [], "scripts": [],
         "players": [
             { "id": "blue-1", "side": "blue", "faction": "us", "controller": "human", "human_capable": true },
-            { "id": "red-1", "side": "red", "faction": "eastern", "controller": "active_ai", "human_capable": false }
+            { "id": "red-1", "side": "red", "faction": "eastern", "controller": "passive_ai" }
         ],
         "skirmish": {
             "rules": { "credits_per_minute": 200, "starting_minutes": 5, "preparation_s": 0,
