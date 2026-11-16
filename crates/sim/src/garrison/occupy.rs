@@ -1,5 +1,6 @@
 //! Where each squad sent into a building walks to step in, planned on what
 //! its side knows of the building and the ground.
+use crate::arrangement;
 use crate::math::V2;
 use crate::movement::SideGeometry;
 use crate::navigation::Pockets;
@@ -8,9 +9,13 @@ use crate::world::{PropId, WorldGeometry};
 use contract::command::{BuildingEntry, BuildingPlacement, BuildingPreviewRequest, OrderError};
 use contract::scenario::Rules;
 
-/// The building order's plan: for each listed squad, from where its queue
-/// ends when the order is queued, otherwise from where it stands, the
-/// approach [`super::approach`] gives. A squad gets an entry if it stands
+/// The building order's plan: for each listed squad, in unit order, from
+/// where its queue ends when the order is queued, otherwise from where it
+/// stands, the approach [`super::approach`] gives. The first squad given an
+/// entry takes the nearest approach. Each later one takes the nearest it can
+/// reach whose ground (half its spread) stays the soldiers' spacing clear of
+/// every earlier entry's, else the nearest all the same, so squads sent in
+/// together don't stack on one spot. A squad gets an entry if it stands
 /// within entry reach of the building or its side's grid reaches that
 /// approach; otherwise it gets none. Who is inside is never read: whether a
 /// squad finds room is decided when it gets there.
@@ -49,24 +54,39 @@ pub(crate) fn occupy(
     let mut nav = known.clone();
     let grid = nav.grid(world, authored);
     let pockets = Pockets::default();
-    let entries = ids
-        .iter()
-        .filter_map(|&id| {
-            let u = &units[id.0 as usize];
-            let from = if request.queued {
-                queue_end(u)
-            } else {
-                u.position.xy()
-            };
-            let approach = super::approach(world, known, authored, owner, from, standoff)?;
-            (super::within_entry_reach(world, known, authored, owner, from, rules)
-                || grid.reaches(from, approach, u.ground(), &pockets))
-            .then_some(BuildingEntry {
+    let gap = rules.infantry_movement.spacing_m;
+    let mut entries = Vec::new();
+    // Where each entry stands, and the ground its squad covers there.
+    let mut taken: Vec<(V2, f64)> = Vec::new();
+    for &id in &ids {
+        let u = &units[id.0 as usize];
+        let from = if request.queued {
+            queue_end(u)
+        } else {
+            u.position.xy()
+        };
+        let living = u.members.iter().filter(|s| s.alive()).count();
+        let ground = arrangement::spread(&rules.infantry_movement, living) / 2.0;
+        let near = super::within_entry_reach(world, known, authored, owner, from, rules);
+        let reaches = |p: V2| near || grid.reaches(from, p, u.ground(), &pockets);
+        let apart = |p: V2| {
+            taken
+                .iter()
+                .all(|&(q, r)| (p - q).length() >= r + ground + gap)
+        };
+        let clear = |p: V2| taken.is_empty() || (apart(p) && reaches(p));
+        let Some(approach) = super::approach(world, known, authored, owner, from, standoff, clear)
+        else {
+            continue;
+        };
+        if reaches(approach) {
+            taken.push((approach, ground));
+            entries.push(BuildingEntry {
                 unit: id,
                 approach: [approach.x, approach.y],
-            })
-        })
-        .collect();
+            });
+        }
+    }
     Ok(BuildingPlacement {
         building: owner,
         entries,

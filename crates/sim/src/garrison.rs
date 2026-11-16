@@ -20,6 +20,7 @@
 use contract::command::OrderError;
 use contract::ids::{Tick, UnitId};
 use contract::map::MoverClass;
+use contract::templates::MaterializedEdge;
 
 use contract::scenario::Rules;
 
@@ -39,6 +40,9 @@ pub use windows::{SeatPlan, SeatSlot, Windows};
 const EXIT_STEP_M: f64 = 2.0;
 /// A leaving squad's middle stands this far beyond the building's walls.
 const EXIT_CLEARANCE_M: f64 = 1.0;
+/// Approach points are sampled this far apart along a facade when the
+/// nearest one is not clear.
+const APPROACH_STEP_M: f64 = 1.0;
 
 /// A squad's building-specific placement data. The host and timer live in `sim::hold`.
 #[derive(Clone, Debug)]
@@ -160,6 +164,9 @@ pub(crate) fn within_entry_reach(
 /// Approach the nearest exposed physical part using remembered poses: the
 /// nearest point outside a part when it faces out through an exposed facade,
 /// else the nearest point standing off one. Internal faces admit no entry.
+/// When that point is not `clear`, the nearest clear point standing off any
+/// exposed facade (sampled every [`APPROACH_STEP_M`] along it), else the
+/// nearest point all the same.
 pub(crate) fn approach(
     world: &WorldGeometry,
     known: &crate::movement::SideGeometry,
@@ -167,6 +174,7 @@ pub(crate) fn approach(
     owner: PropId,
     from: V2,
     standoff: f64,
+    clear: impl Fn(V2) -> bool,
 ) -> Option<V2> {
     let definition = world.building(owner)?;
     let parts: Vec<_> = world
@@ -174,7 +182,7 @@ pub(crate) fn approach(
         .into_iter()
         .filter_map(|id| known.prop(world, authored, id))
         .collect();
-    let mut candidates = Vec::new();
+    let mut facades = Vec::new();
     for part in &parts {
         let source = world.authored_prop(part.id)?;
         let reference = definition.parts.iter().find(|p| p.prop == source)?;
@@ -184,6 +192,18 @@ pub(crate) fn approach(
             .iter()
             .filter(|e| e.part == reference.part && e.exposed)
             .collect();
+        facades.push((part, edges));
+    }
+    let outside = |c: V2| !parts.iter().any(|p| p.footprint().contains(c, 0.0));
+    // The point `t` along `e` that stands `standoff` off it.
+    let standing_off = |part: &Prop, e: &MaterializedEdge, t: f64| {
+        let (normal, along, reach, _) = e.facade.axes([part.half.x, part.half.y, part.half.z]);
+        let n = v2(normal[0], normal[1]);
+        let a = v2(along[0], along[1]);
+        part.center + (n * (reach + standoff) + a * t).rotated(part.yaw)
+    };
+    let mut candidates = Vec::new();
+    for (part, edges) in &facades {
         let candidate = part.exterior_point(from, standoff);
         let local = part.footprint().to_local(candidate);
         let exposed = edges.iter().any(|e| {
@@ -194,28 +214,43 @@ pub(crate) fn approach(
             let t = local.dot(a).clamp(-half, half);
             local.dot(n) >= reach && t >= e.span_m[0] && t <= e.span_m[1]
         });
-        if exposed && !parts.iter().any(|p| p.footprint().contains(candidate, 0.0)) {
+        if exposed && outside(candidate) {
             candidates.push(candidate);
             continue;
         }
         for e in edges {
-            let (normal, along, reach, _) = e.facade.axes([part.half.x, part.half.y, part.half.z]);
-            let n = v2(normal[0], normal[1]);
-            let a = v2(along[0], along[1]);
+            let (_, along, _, _) = e.facade.axes([part.half.x, part.half.y, part.half.z]);
             let t = part
                 .footprint()
                 .to_local(from)
-                .dot(a)
+                .dot(v2(along[0], along[1]))
                 .clamp(e.span_m[0], e.span_m[1]);
-            let candidate = part.center + (n * (reach + standoff) + a * t).rotated(part.yaw);
-            if !parts.iter().any(|p| p.footprint().contains(candidate, 0.0)) {
+            let candidate = standing_off(part, e, t);
+            if outside(candidate) {
                 candidates.push(candidate)
             }
         }
     }
-    candidates
+    let distance = |a: &V2, b: &V2| (*a - from).length().total_cmp(&(*b - from).length());
+    let nearest = candidates.iter().copied().min_by(distance)?;
+    if clear(nearest) {
+        return Some(nearest);
+    }
+    let sampled = facades.iter().flat_map(|(part, edges)| {
+        edges.iter().flat_map(move |e| {
+            let [t0, t1] = e.span_m;
+            let steps = ((t1 - t0) / APPROACH_STEP_M).ceil().max(1.0) as usize;
+            (0..=steps)
+                .map(move |k| standing_off(part, e, t0 + (t1 - t0) * k as f64 / steps as f64))
+        })
+    });
+    let mut points: Vec<_> = candidates
         .into_iter()
-        .min_by(|a, b| (*a - from).length().total_cmp(&(*b - from).length()))
+        .chain(sampled)
+        .filter(|&c| outside(c))
+        .collect();
+    points.sort_by(distance);
+    Some(points.into_iter().find(|&c| clear(c)).unwrap_or(nearest))
 }
 
 /// Whether a squad other than the one at `i`, of either side, holds
