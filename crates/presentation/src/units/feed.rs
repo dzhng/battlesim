@@ -134,7 +134,15 @@ impl ObservationFeed {
                 poses: &u.weapon_poses,
             };
             let pinned = &*u.suppression == "pinned";
-            self.unit(slot(&mut list, n), pose, &u.kind, true, &published, pinned);
+            let engaged = !u.sees.is_empty() || u.shot_at;
+            self.unit(
+                slot(&mut list, n),
+                pose,
+                &u.kind,
+                true,
+                &published,
+                (pinned, engaged),
+            );
             n += 1;
         }
         for pose in &sample.identified {
@@ -148,8 +156,15 @@ impl ObservationFeed {
                 leans: &e.member_leans,
                 poses: &e.weapon_poses,
             };
-            // The side cannot know an enemy's suppression.
-            self.unit(slot(&mut list, n), pose, &e.kind, false, &published, false);
+            // The side cannot know an enemy's suppression or what it sees.
+            self.unit(
+                slot(&mut list, n),
+                pose,
+                &e.kind,
+                false,
+                &published,
+                (false, false),
+            );
             n += 1;
         }
         // A downed airframe falls on as the vehicle it was, crewless, its
@@ -173,6 +188,7 @@ impl ObservationFeed {
             }
             unit.deployment = None;
             unit.pinned = false;
+            unit.engaged = false;
             unit.attitude = Some((c.pitch, c.roll));
         }
         list.truncate(n);
@@ -188,7 +204,7 @@ impl ObservationFeed {
         kind: &Arc<str>,
         own: bool,
         published: &Published,
-        pinned: bool,
+        (pinned, engaged): (bool, bool),
     ) {
         let side = if own { &self.side } else { &self.enemy };
         out.id = pose.id;
@@ -198,6 +214,7 @@ impl ObservationFeed {
         out.yaw = pose.yaw;
         out.deployment = pose.deployment;
         out.pinned = pinned;
+        out.engaged = engaged;
         out.attitude = None;
         let mut n = 0;
         for (k, &position) in pose.members.iter().enumerate() {
