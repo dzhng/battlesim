@@ -15,10 +15,10 @@ A few terms used throughout:
   unit (`OwnUnit.steps`). The first step is the current order.
 
 **Review these first:** the two unsound entries (a dogfight's volley, which can starve a
-queued order, and a ground-point volley that a passing state, such as a rocket launcher
-arriving from a queued move, can end unfired); the queued AttackMove that still
-switches fire at will early; and the fixed reticle size. One bug, not a choice, also surfaced at close: a jet can hand off
-with its last guided missile still in flight (see the launcher entry).
+queued order, and a ground-point volley that a passing state can end unfired); the
+queued AttackMove that still switches fire at will early; and the fixed reticle size.
+The jet that handed off with its last guided missile in flight, found at close, is
+fixed (see the launcher entry).
 
 ## Unsound
 
@@ -71,8 +71,14 @@ has a test.
 here", wrong for a passing state. Corrected decision: with something queued, an
 attack-ground hands off at once only when no row could fire at the point from here at
 all (out of range, out of ammunition, no window facing it); a row that is momentarily
-unable (moving, setting up, a blocked or crossed line) is still a cycle to come. Write
-the rocket-launcher test first; it confirms the case.
+unable (moving, setting up, a blocked or crossed line) is still a cycle to come.
+
+*Checked after close:* the rocket-launcher case doesn't reproduce. In
+`order_queue::a_launcher_queued_through_an_attack_on_the_ground_fires_on_the_way` a
+launcher that must stand to fire, sent on "move → attack-ground → move", stops and fires
+its salvo before moving on: the attack's first counted fire step finds it standing. The
+test guards that case; a friendly crossing the line of fire for a tick is still
+unguarded.
 *Confidence:* low.
 
 ## Needs the user
@@ -384,11 +390,11 @@ Scenario: an ATGM team with a move queued fires its one missile. The cycle ends 
 launch, but the missile is wire-guided. If the team walked off, the missile would
 coast into the ground. The hand-off runs after the fire step's launches and waits
 while any row is guiding a round at the target. A jet's run waits for its missiles the
-same way, with one gap the close audit found: `Volley::observe_run` hands off as soon
-as the jet has nothing left to fly a run with, before checking guidance, so a run that
-spends its last run-capable guided missile hands off with the missile in flight. That
-is an ordering bug in `observe_run` (check guiding first, as `observe` does), not a
-different choice.
+same way. The close audit found that `Volley::observe_run` handed off as soon as the jet
+had nothing left to fly a run with, before checking guidance, so a run that spent its
+last guided missile handed off with the missile in flight; it now checks guidance first,
+as `observe` does (`order_queue::jets::a_jet_guides_its_last_missile_home_before_handing_off`,
+which failed before the fix).
 
 *The gap:* the walk's cycle rule counted the cycle's end, not the round's flight.
 *Verdict:* sound.

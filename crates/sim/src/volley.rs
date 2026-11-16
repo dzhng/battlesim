@@ -66,11 +66,15 @@ impl Volley {
             self.run_fired |= run.fired;
         }
         self.diving = run.diving;
+        // Nothing hands off while its missiles are still flying.
+        if run.guiding != 0 {
+            return false;
+        }
         if !run.can_act {
             return true;
         }
-        // A run that fired counts once its missiles are down.
-        let fired = !self.diving && self.run_fired && run.guiding == 0;
+        // A run that fired counts once it is over.
+        let fired = !self.diving && self.run_fired;
         if fired {
             self.run_fired = false;
         }
@@ -126,6 +130,17 @@ mod tests {
         );
         assert!(!v.observe_run(run(false, true)));
         assert!(v.observe_run(run(true, false)));
+    }
+
+    #[test]
+    fn a_jet_out_of_missiles_still_guides_its_last_one_home() {
+        let mut v = Volley::default();
+        let last = RunFire {
+            guiding: 0b1,
+            ..RunFire::default()
+        };
+        assert!(!v.observe_run(last), "handed off with a missile in flight");
+        assert!(v.observe_run(RunFire::default()));
     }
 
     #[test]
