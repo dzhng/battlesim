@@ -45,7 +45,11 @@ export async function buildProjectileReview(catalog: SessionCatalog) {
   };
   // Preserve the defender's fighting positions, with no retreating commander.
   for (const [unit, building] of s.opponent?.garrisons ?? [])
-    s.scripts.push({ tick: 1, side: "red", order: { kind: "garrison", units: [unit], building } });
+    s.scripts.push({
+      tick: 1,
+      side: "red",
+      order: { kind: "occupy_building", units: [unit], building, gesture: 0 },
+    });
   delete s.opponent;
   for (let i = 0; i < REVIEW_LANES.length; i++) {
     const lane = REVIEW_LANES[i];

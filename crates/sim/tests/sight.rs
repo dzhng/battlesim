@@ -244,8 +244,10 @@ fn a_garrison_sees_from_one_eye_per_facade_it_holds() {
         side: Side::Blue,
         player: None,
         seq: 1,
-        order: serde_json::from_value(json!({ "kind": "garrison", "units": [0], "building": 0 }))
-            .unwrap(),
+        order: serde_json::from_value(
+            json!({ "kind": "occupy_building", "units": [0], "building": 0, "gesture": 0 }),
+        )
+        .unwrap(),
         queued: false,
     });
     assert_eq!(ack.error, None);

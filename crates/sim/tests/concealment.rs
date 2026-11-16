@@ -188,9 +188,10 @@ fn garrisoned(concealment: f64) -> Battle {
         player: None,
         seq: 1,
         queued: false,
-        order: Order::Garrison {
+        order: Order::OccupyBuilding {
             units: vec![UnitId(1)],
             building: 0,
+            gesture: 0,
         },
     });
     assert_eq!(ack.error, None);

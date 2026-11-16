@@ -8,9 +8,8 @@
  * queues), right-click on an own carrier or squad to board or collect (Shift
  * queues), Unload (U then a left-click, or U twice), leaving buildings, stop,
  * the fire-policy toggle, deploy/pack, popping smoke, and the acknowledgement
- * log. Keys come from `CommandBindings`. Building clicks send the complete selection for
- * authoritative entry and outside gathering; deploy, boarding, unloading and
- * leaving a building reach only capable units (`commandReach.ts`). Labs and the
+ * log. Keys come from `CommandBindings`. Building clicks, deploy, boarding,
+ * unloading and leaving a building reach only capable units (`commandReach.ts`). Labs and the
  * battle route share it; it sends only real commands. Its events (`UnitControlEvents`)
  * let the battle hear orders, their acknowledgements and the selection's growth
  * (the order flash, and the units' spoken answers). In a team battle it orders
@@ -179,8 +178,6 @@ export function useUnitControl(
           return `${order.enabled ? "afterburners on" : "afterburners off"}: ${order.units.map(unitName).join(", ")}`;
         case "set_deployment":
           return `${order.deployed ? "deploy" : "pack"} ${order.units.map(unitName).join(", ")}`;
-        case "garrison":
-          return `garrison building ${order.building} with ${order.units.map(unitName).join(", ")}${queued ? " (queued)" : ""}`;
         case "occupy_building":
           return `occupy building ${order.building} with ${order.units.map(unitName).join(", ")}${queued ? " (queued)" : ""}`;
         case "exit_building":

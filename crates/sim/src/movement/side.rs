@@ -58,13 +58,6 @@ pub struct SideGeometry {
 pub(super) const ROUTE_RECHECK_REACH_M: f64 = 24.0;
 
 impl SideGeometry {
-    /// The scratch world owns a fresh clearance journal; its cursor starts there.
-    pub(crate) fn planning_snapshot(&self) -> Self {
-        let mut snapshot = self.clone();
-        snapshot.cleared_taken = 0;
-        snapshot
-    }
-
     /// A side that knows the map as `base` has it, and nothing else.
     pub fn new(base: Arc<NavBase>) -> Self {
         let [width, depth] = base.extent();
@@ -212,33 +205,6 @@ impl SideGeometry {
             p.base_z = seen.base_z;
         }
         Some(p)
-    }
-
-    /// Where this side plans otherwise than `world` stands: each body added
-    /// since setup it does not know (none), each it places elsewhere, and
-    /// each gone that it keeps standing. Every other body of `world` it plans
-    /// with as it stands, so this costs what the side has learned, not the
-    /// map's size.
-    pub(crate) fn beliefs<'a>(
-        &'a self,
-        world: &'a WorldGeometry,
-        authored: PropId,
-    ) -> impl Iterator<Item = (PropId, Option<Prop>)> + 'a {
-        let unknown = world
-            .props_from(authored)
-            .filter(move |p| !self.knows(p, authored))
-            .map(|p| (p.id, None));
-        let placed = self
-            .seen
-            .keys()
-            .filter_map(move |&id| Some((id, self.belief(world.prop(id)?, authored))));
-        let standing = self.standing.values().map(|p| (p.id, Some(p.clone())));
-        unknown.chain(placed).chain(standing)
-    }
-
-    /// The world as this side plans in it ([`Self::beliefs`]).
-    pub(crate) fn planning_world(&self, world: &WorldGeometry, authored: PropId) -> WorldGeometry {
-        world.planning_snapshot(self.beliefs(world, authored))
     }
 
     /// A body where this side knows it, including an unseen collapse.

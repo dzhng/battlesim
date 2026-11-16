@@ -19,7 +19,7 @@
 use std::collections::BTreeSet;
 
 use contract::command::OrderError;
-use contract::ids::{Side, Tick, UnitId};
+use contract::ids::{Tick, UnitId};
 use contract::map::MoverClass;
 
 use crate::hold::ticks;
@@ -34,7 +34,7 @@ use crate::world::{Prop, PropId, Slot, WorldGeometry};
 use contract::random::Rng;
 
 mod occupy;
-pub(crate) use occupy::{occupy, BuildingPlan, EntryAction};
+pub(crate) use occupy::occupy;
 
 /// Exit places are sampled this far apart around the building.
 const EXIT_STEP_M: f64 = 2.0;
@@ -266,86 +266,33 @@ pub(crate) fn held_by_another(units: &[Unit], building: PropId, i: usize) -> boo
         .any(|(j, u)| j != i && u.alive() && u.garrisoned() && held_building(u) == Some(building))
 }
 
-/// Command check (L08): infantry only, a building the side knows, one squad per
-/// building, and that squad fitting whole. The building is refused while
-/// another of the side's squads holds it, is entering it, has an order to
-/// (queued included), or was ordered in earlier this tick (`claimed`). Only
-/// the side's own units are counted here: a squad that finds an enemy squad
-/// holding it gives up its order where it stands ([`advance`]).
+/// Command check (L08): a standing building the side knows, and only
+/// infantry squads, each fitting whole. Who holds the building or is on its
+/// way in is never checked here: room is decided when a squad gets there,
+/// and a squad that finds an enemy squad holding it gives up its order where
+/// it stands ([`crate::hold::advance`]).
 pub fn validate(
     world: &WorldGeometry,
     units: &[Unit],
-    side: Side,
     ordered: &[UnitId],
     target: Option<Prop>,
-    claimed: bool,
     rules: &Rules,
 ) -> Result<(), OrderError> {
-    let target_prop = target
+    let target = target
         .filter(|p| p.body.garrison)
         .ok_or(OrderError::NotABuilding)?;
-    let capacity = seats_for_state(world, &target_prop, rules).len();
-    let target = target_prop.id;
+    let capacity = seats_for_state(world, &target, rules).len();
     // The command already checked each named unit is the side's own and alive.
-    let [id] = ordered else {
-        return Err(OrderError::OneSquadPerBuilding);
-    };
-    let squad = &units[id.0 as usize];
-    if squad.is_vehicle() {
-        return Err(OrderError::NotInfantry { unit: *id });
-    }
-    let heading_in = |u: &Unit| {
-        held_building(u) == Some(target)
-            || u.orders
-                .iter()
-                .any(|o| matches!(o, UnitOrder::Garrison { building, .. } if *building == target))
-    };
-    let taken = units
-        .iter()
-        .any(|u| u.side == side && u.alive() && u.id != *id && heading_in(u));
-    if claimed || taken {
-        return Err(OrderError::BuildingOccupied);
-    }
-    let living = squad.members.iter().filter(|s| s.alive()).count();
-    if living > capacity {
-        return Err(OrderError::CapacityFull);
-    }
-    Ok(())
-}
-
-/// An actual hold or entry phase this intent can retain. Future queued
-/// reservations are considered only after their physical prefix is proven.
-pub(crate) fn current_entry(unit: &Unit, building: PropId) -> Option<V2> {
-    if let Some(entry) = held_entry(unit, building) {
-        return Some(entry);
-    }
-    if let Some(hold) = unit
-        .hold
-        .as_ref()
-        .filter(|hold| hold.host.building() == Some(building))
-    {
-        if matches!(hold.phase, Phase::Entering(_))
-            && matches!(want(unit), Want::Enter(b) if b == building)
-        {
-            return Some(hold.building()?.entry);
+    for id in ordered {
+        let squad = &units[id.0 as usize];
+        if squad.is_vehicle() {
+            return Err(OrderError::NotInfantry { unit: *id });
+        }
+        if squad.members.iter().filter(|s| s.alive()).count() > capacity {
+            return Err(OrderError::CapacityFull);
         }
     }
-    None
-}
-
-pub(crate) fn held_entry(unit: &Unit, building: PropId) -> Option<V2> {
-    unit.hold
-        .as_ref()
-        .filter(|hold| {
-            hold.host.building() == Some(building)
-                && matches!(hold.phase, Phase::Inside)
-                && match want(unit) {
-                    Want::Stay => true,
-                    Want::Enter(b) => b == building,
-                    Want::Leave => false,
-                }
-        })
-        .and_then(|hold| hold.building().map(|g| g.entry))
+    Ok(())
 }
 
 /// What stops a soldier on foot: every prop that blocks infantry.

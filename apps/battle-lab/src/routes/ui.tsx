@@ -286,8 +286,8 @@ function Refusal() {
       {
         seq: 1,
         label: "Garrison",
-        order: { kind: "garrison", units: [1], building: 3 },
-        ack: { seq: 1, applied_tick: 0, error: { reason: "building_occupied" }, refused: [] },
+        order: { kind: "occupy_building", units: [1], building: 3, gesture: 1 },
+        ack: { seq: 1, applied_tick: 0, error: { reason: "capacity_full" }, refused: [] },
       },
     ]);
   }, []);

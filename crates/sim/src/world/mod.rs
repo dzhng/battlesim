@@ -135,46 +135,6 @@ pub struct WorldGeometry {
 }
 
 impl WorldGeometry {
-    /// Physical movement against one side's remembered bodies: this world's
-    /// bodies, except each of `beliefs` (the body the side plans with in
-    /// that id's place, or none; later entries win). Every body not listed
-    /// must be one the side plans with where it stands. Bodies, terrain and
-    /// paving are shared; mutations affect only this scratch world. Forest
-    /// ground begins uncleared so unseen clearing cannot certify a move.
-    pub(crate) fn planning_snapshot(
-        &self,
-        beliefs: impl Iterator<Item = (PropId, Option<Prop>)>,
-    ) -> Self {
-        let mut snapshot = Self {
-            field: Arc::clone(&self.field),
-            relief: self.relief.clone(),
-            slope_cutoff_deg: self.slope_cutoff_deg,
-            surfaces: Arc::clone(&self.surfaces),
-            speed_factors: self.speed_factors,
-            bridges: self.bridges.clone(),
-            forests: self.forests.clone(),
-            forest: self.forest.clone(),
-            props: self.props.planning_layer(beliefs),
-            buildings: Arc::clone(&self.buildings),
-            template_catalog_hash: self.template_catalog_hash.clone(),
-            regional_family: self.regional_family.clone(),
-            authored_props: self.authored_props,
-            authored_poses: self.authored_poses.clone(),
-            authored_digest: self.authored_digest,
-            authored_sources: self.authored_sources.clone(),
-            revision: 0,
-            types: self.types.clone(),
-            wreck_units: Arc::clone(&self.wreck_units),
-            moved: Default::default(),
-            touched: Vec::new(),
-            min_sight_gap_m: self.min_sight_gap_m,
-            // Smoke never changes where a body may go.
-            smoke: SmokeClouds::default(),
-        };
-        snapshot.forest.reset_cleared();
-        snapshot
-    }
-
     /// Bare level ground `size` metres across ([`MapDefinition::flat`]).
     pub fn flat(size: [f64; 2], rules: &Rules) -> Self {
         Self::new(&MapDefinition::flat(size), rules)

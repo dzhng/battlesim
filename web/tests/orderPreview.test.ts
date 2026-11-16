@@ -2,6 +2,7 @@ import { expect, test, vi } from "vitest";
 import { OrderPreview, type OrderPreviewSnapshot } from "@apps/battle-lab/src/orderPreview";
 import { cursorForIntent } from "@apps/battle-lab/src/pointerPaint";
 import type { MoveDestination } from "@web/battle/sim/protocol";
+import type { PointerIntent } from "@web/battle/input/pointerIntent";
 
 const move = (goal: [number, number], facing?: number) => ({
   kind: "move" as const,
@@ -160,84 +161,36 @@ test("a failed query remains pending and does not become blocked", async () => {
 test("a building shows the garrison badge at once; only the simulation's answer takes it away", async () => {
   type BuildingAnswer = {
     building: number;
-    entrant: { unit: number; approach: [number, number] } | null;
-    destinations: MoveDestination[];
-    unproven?: boolean;
+    entries: { unit: number; approach: [number, number] }[];
   };
   const blocked = deferred<BuildingAnswer>();
-  const pending = deferred<BuildingAnswer>();
   const admitted = deferred<BuildingAnswer>();
   const sim = client();
-  sim.previewBuilding
-    .mockReturnValueOnce(blocked.promise)
-    .mockReturnValueOnce(pending.promise)
-    .mockReturnValueOnce(admitted.promise);
+  sim.previewBuilding.mockReturnValueOnce(blocked.promise).mockReturnValueOnce(admitted.promise);
   const preview = new OrderPreview();
   const intent = {
     kind: "building" as const,
     request: { units: [1], building: 4 },
   };
-  const building = (
-    entrant: { unit: number; approach: [number, number] } | null,
-    unproven?: boolean,
-  ) => ({
-    building: 4,
-    entrant,
-    destinations: [{ ...destination([10, 10]), placed: false }],
-    ...(unproven === undefined ? {} : { unproven }),
-  });
+  const occupy: PointerIntent = { kind: "occupy_building", units: [1], building: 4, queued: false };
 
   // Asked, not yet answered: entering shows at once, as boarding does, for
   // a selection with someone who can enter; one with no one waits.
   const asked = preview.update(intent, sim, 1, "building");
-  const occupy = { kind: "occupy_building", units: [1], building: 4, queued: false } as const;
-  expect(cursorForIntent({ ...occupy, units: [1] }, asked, true)).toBe("garrison");
-  expect(cursorForIntent({ ...occupy, units: [1] }, asked, false)).toBe("default");
-  blocked.resolve(building(null));
+  expect(cursorForIntent(occupy, asked, true)).toBe("garrison");
+  expect(cursorForIntent(occupy, asked, false)).toBe("default");
+  // No squad can get there: the answer takes the badge away.
+  blocked.resolve({ building: 4, entries: [] });
   await blocked.promise;
   await settled();
-  const blockedSnapshot = preview.update(intent, sim, 1, "building");
-  expect(
-    cursorForIntent(
-      { kind: "occupy_building", units: [1], building: 4, queued: false },
-      blockedSnapshot,
-    ),
-  ).toBe("blocked");
+  expect(cursorForIntent(occupy, preview.update(intent, sim, 1, "building"), true)).toBe("blocked");
 
-  preview.update({ ...intent, request: { ...intent.request, facing: 1 } }, sim, 1, "building");
-  pending.resolve(building(null, true));
-  await pending.promise;
-  await settled();
-  const pendingSnapshot = preview.update(
-    { ...intent, request: { ...intent.request, facing: 1 } },
-    sim,
-    1,
-    "building",
-  );
-  expect(
-    cursorForIntent(
-      { kind: "occupy_building", units: [1], building: 4, queued: false },
-      pendingSnapshot,
-      true,
-    ),
-  ).toBe("garrison");
-
-  preview.update({ ...intent, request: { ...intent.request, facing: 2 } }, sim, 1, "building");
-  admitted.resolve(building({ unit: 1, approach: [10, 10] }));
+  const queued = { ...intent, request: { ...intent.request, queued: true } };
+  preview.update(queued, sim, 1, "building");
+  admitted.resolve({ building: 4, entries: [{ unit: 1, approach: [10, 10] }] });
   await admitted.promise;
   await settled();
-  const admittedSnapshot = preview.update(
-    { ...intent, request: { ...intent.request, facing: 2 } },
-    sim,
-    1,
-    "building",
-  );
-  expect(
-    cursorForIntent(
-      { kind: "occupy_building", units: [1], building: 4, queued: false },
-      admittedSnapshot,
-    ),
-  ).toBe("garrison");
+  expect(cursorForIntent(occupy, preview.update(queued, sim, 1, "building"))).toBe("garrison");
 });
 
 test("changing client revokes the old answer", async () => {

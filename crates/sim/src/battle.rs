@@ -1077,11 +1077,11 @@ impl Battle {
         self.admit(command.clone(), applied_tick).map_or_else(
             |e| ack(Some(e), None, None, Vec::new()),
             |(placement, building, refused)| {
-                let error = placement
+                let error = (placement
                     .as_ref()
-                    .filter(|p| p.destinations.iter().all(|d| !d.placed))
-                    .filter(|_| building.as_ref().is_none_or(|b| b.entrant.is_none()))
-                    .map(|_| OrderError::NoValidDestination);
+                    .is_some_and(|p| p.destinations.iter().all(|d| !d.placed))
+                    || building.as_ref().is_some_and(|b| b.entries.is_empty()))
+                .then_some(OrderError::NoValidDestination);
                 ack(error, placement, building, refused)
             },
         )
@@ -1129,7 +1129,7 @@ impl Battle {
         }
         let prepared = self.prepare(command, applied_tick.saturating_sub(1))?;
         let placement = prepared.placement.clone();
-        let building = prepared.building.as_ref().map(|p| p.placement.clone());
+        let building = prepared.building.clone();
         let refused = prepared.refused.clone();
         self.pending.push(prepared);
         Ok((placement, building, refused))
@@ -1329,30 +1329,6 @@ impl Battle {
                 }
                 units
             }
-            Order::Garrison { units, building } => {
-                self.validate_command_units(command, units)?;
-                // A squad ordered in earlier this tick holds no order yet.
-                let claimed = self.pending.iter().any(|c| {
-                    c.command.side == command.side
-                        && (matches!(c.command.order, Order::Garrison { building: b, .. } if self.world.remembered_structure_owner(b) == self.world.remembered_structure_owner(*building))
-                            || c.building.as_ref().is_some_and(|b| b.placement.entrant.is_some() && b.placement.building == self.world.remembered_structure_owner(*building)))
-                });
-                return garrison::validate(
-                    &self.world,
-                    &self.units,
-                    command.side,
-                    units,
-                    self.sides[command.side.index()]
-                        .prop(&self.world, self.authored_props, *building)
-                        .filter(|p| self.world.building_of(p.id).is_some())
-                        .map(|mut p| {
-                            p.id = self.world.remembered_structure_owner(p.id);
-                            p
-                        }),
-                    claimed,
-                    &self.rules,
-                );
-            }
             Order::Board { units, carrier, .. } => {
                 self.validate_command_units(command, units)?;
                 if units
@@ -1548,7 +1524,6 @@ impl Battle {
                 | Order::SetAfterburner { units, .. }
                 | Order::SetEngagement { units, .. }
                 | Order::SetDeployment { units, .. }
-                | Order::Garrison { units, .. }
                 | Order::OccupyBuilding { units, .. }
                 | Order::ExitBuilding { units }
                 | Order::Board { units, .. }
@@ -3024,21 +2999,16 @@ impl Battle {
             )?;
         }
         let building = if let Order::OccupyBuilding {
-            units,
-            building,
-            facing,
-            ..
+            units, building, ..
         } = &command.order
         {
-            Some(self.plan_building(
+            Some(self.preview_building(
                 command.side,
                 &BuildingPreviewRequest {
                     units: units.clone(),
                     building: *building,
-                    facing: *facing,
                     queued: command.queued,
                 },
-                planning_tick,
             )?)
         } else {
             None
@@ -3092,10 +3062,6 @@ impl Battle {
                         .collect(),
                 })
             }
-            Order::OccupyBuilding { gesture, .. } => Some(MovePlacement {
-                gesture: *gesture,
-                destinations: building.as_ref().unwrap().placement.destinations.clone(),
-            }),
             Order::Move {
                 units,
                 gesture,
@@ -3254,7 +3220,6 @@ impl Battle {
             | Order::SetAfterburner { units, .. }
             | Order::SetEngagement { units, .. }
             | Order::SetDeployment { units, .. }
-            | Order::Garrison { units, .. }
             | Order::OccupyBuilding { units, .. }
             | Order::ExitBuilding { units }
             | Order::Unload { units, .. }
@@ -3291,62 +3256,17 @@ impl Battle {
             | Order::ConfirmPurchase { .. }
             | Order::CancelPending { .. }
             | Order::PopSmoke { .. } => {}
-            Order::OccupyBuilding {
-                gesture, facing, ..
-            } => {
-                let garrison::BuildingPlan {
-                    placement: plan,
-                    entry_action,
-                } = prepared.building.unwrap();
-                if let Some(entry) = plan.entrant {
-                    let unit = &mut movers[entry.unit.0 as usize];
+            Order::OccupyBuilding { .. } => {
+                let plan = prepared.building.unwrap();
+                for entry in plan.entries {
                     let approach = v2(entry.approach[0], entry.approach[1]);
-                    if matches!(entry_action, garrison::EntryAction::Enter) {
-                        unit.enqueue(
-                            UnitOrder::Garrison {
-                                building: plan.building,
-                                approach,
-                            },
-                            false,
-                        );
-                    } else if matches!(entry_action, garrison::EntryAction::Route) {
-                        push(
-                            unit,
-                            UnitOrder::Move(MoveOrder {
-                                destination: approach,
-                                policy: RoutePolicy::Shortest,
-                                gesture,
-                                direction: Default::default(),
-                                facing: None,
-                                short: None,
-                            }),
-                        );
-                        unit.enqueue(
-                            UnitOrder::Garrison {
-                                building: plan.building,
-                                approach,
-                            },
-                            true,
-                        );
-                    }
-                }
-                for slot in plan.destinations {
-                    let unit = &mut movers[slot.unit.0 as usize];
-                    if slot.placed {
-                        push(
-                            unit,
-                            UnitOrder::Move(MoveOrder {
-                                destination: v2(slot.goal[0], slot.goal[1]),
-                                policy: RoutePolicy::Shortest,
-                                gesture,
-                                direction: Default::default(),
-                                facing,
-                                short: None,
-                            }),
-                        );
-                    } else if !queued {
-                        Self::hold_position(unit);
-                    }
+                    push(
+                        &mut movers[entry.unit.0 as usize],
+                        UnitOrder::Garrison {
+                            building: plan.building,
+                            approach,
+                        },
+                    );
                 }
             }
             Order::Move {
@@ -3429,24 +3349,6 @@ impl Battle {
                     if let Some(target) = dogfight {
                         crate::air::dogfight::set_target(unit, target);
                     }
-                }
-            }
-            Order::Garrison { units, building } => {
-                let building = self.world.remembered_structure_owner(building);
-                for id in units {
-                    let unit = &mut movers[id.0 as usize];
-                    let from = unit.position.xy();
-                    let Some(approach) = garrison::approach(
-                        &self.world,
-                        &self.sides[side.index()],
-                        self.authored_props,
-                        building,
-                        from,
-                        self.rules.garrison.entry_distance_m / 2.0,
-                    ) else {
-                        continue;
-                    };
-                    push(unit, UnitOrder::Garrison { building, approach });
                 }
             }
             Order::ExitBuilding { units } => {
@@ -3624,33 +3526,23 @@ impl Battle {
         unit.turn_to = None;
     }
 
-    /// Resolve entry and gathering using only this side's known, isolated state.
+    /// Plan a building order on this side's own knowledge, without
+    /// accepting it. A queued order sets off from where the side's orders
+    /// given this tick leave each squad.
     pub fn preview_building(
         &self,
         side: Side,
         request: &BuildingPreviewRequest,
     ) -> Result<BuildingPlacement, OrderError> {
-        self.plan_building(side, request, self.tick)
-            .map(|p| p.placement)
-    }
-
-    fn plan_building(
-        &self,
-        side: Side,
-        request: &BuildingPreviewRequest,
-        planning_tick: Tick,
-    ) -> Result<garrison::BuildingPlan, OrderError> {
         self.validate_units(side, &request.units)?;
-        if request.facing.is_some_and(|f| !f.is_finite()) {
-            return Err(OrderError::OutOfBounds);
-        }
-        let source = self.move_source(side);
-        // Live admission precedes its application tick; replay and scripts
-        // already entered that tick. Timed prefix prediction must start from
-        // the same prior-state tick in all three paths.
-        let mut ctx = self.movement_context();
-        ctx.tick = planning_tick;
-        garrison::occupy(&ctx, &self.sides[side.index()], &source, request)
+        garrison::occupy(
+            &self.world,
+            &self.sides[side.index()],
+            self.authored_props,
+            &self.move_source(side),
+            request,
+            &self.rules,
+        )
     }
 
     fn move_source(&self, side: Side) -> Vec<Unit> {
@@ -3693,20 +3585,6 @@ impl Battle {
             }
         }
         source
-    }
-
-    fn movement_context(&self) -> MovementContext<'_> {
-        MovementContext {
-            world: &self.world,
-            roads: &self.roads,
-            ground: &self.ground,
-            authored: self.authored_props,
-            tick: self.tick,
-            seed: self.seed,
-            rules: &self.rules,
-            knowledge: std::array::from_fn(|i| &self.knowledge[i]),
-            arsenal: &self.arsenal,
-        }
     }
 
     /// A soldier's resolved place and cover (D2+): his spot while moving, his
@@ -4199,7 +4077,7 @@ fn take_order(unit: &mut Unit) {
 struct PreparedCommand {
     command: CommandEnvelope,
     placement: Option<MovePlacement>,
-    building: Option<garrison::BuildingPlan>,
+    building: Option<BuildingPlacement>,
     /// Where a placed unit stops short ([`crate::units::StopShort`]).
     stops: BTreeMap<UnitId, crate::units::StopShort>,
     refused: Vec<contract::command::Refusal>,

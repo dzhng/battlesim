@@ -151,3 +151,62 @@ fn a_squad_ordered_into_a_held_house_walks_in_when_its_holder_leaves() {
     assert_eq!(phase(&b, B), Some(HoldPhase::Inside), "B ends inside");
     assert_eq!(living(&b, B), squad_b, "B is inside whole");
 }
+
+/// One building order names three squads standing round the house: each
+/// gets its own approach and walks to the house to step in.
+#[test]
+fn every_squad_a_building_order_names_walks_to_the_house() {
+    let map = json!({ "size": [800, 600], "fog_cell_m": 8, "height_grid_m": 4,
+        "slope_cutoff_deg": 35, "props": [],
+        "buildings": [common::building(BUILDING, TEMPLATE, [400.0, 300.0], 0.0)] })
+    .to_string();
+    let units = json!([
+        { "side": "blue", "kind": "test_rifle", "position": [300.0, 300.0] },
+        { "side": "blue", "kind": "test_recon", "position": [400.0, 180.0] },
+        { "side": "blue", "kind": "test_recon", "position": [520.0, 320.0] },
+    ]);
+    let mut b = Battle::new(&common::scenario_with(&map, units, json!([]), json!([])), 1);
+    let squads = [0, 1, 2];
+    let ack = b.accept(CommandEnvelope {
+        side: Side::Blue,
+        player: None,
+        seq: 1,
+        order: serde_json::from_value(json!({
+            "kind": "occupy_building", "units": squads, "building": BUILDING, "gesture": 1
+        }))
+        .unwrap(),
+        queued: false,
+    });
+    assert!(ack.error.is_none() && ack.refused.is_empty(), "{ack:?}");
+    let entries = ack.building.expect("a building plan").entries;
+    assert_eq!(
+        entries.iter().map(|e| e.unit.0).collect::<Vec<_>>(),
+        squads,
+        "one entry per squad"
+    );
+    // Each approach lies on the side of the house its squad comes from.
+    for (e, from) in entries
+        .iter()
+        .zip([[300.0, 300.0], [400.0, 180.0], [520.0, 320.0]])
+    {
+        let (to_squad, to_approach) = (
+            [from[0] - 400.0, from[1] - 300.0],
+            [e.approach[0] - 400.0, e.approach[1] - 300.0],
+        );
+        assert!(
+            to_squad[0] * to_approach[0] + to_squad[1] * to_approach[1] > 0.0,
+            "{e:?} faces away from its squad at {from:?}"
+        );
+    }
+    let mut stepped_in = [false; 3];
+    for _ in 0..3000 {
+        b.step();
+        for (k, &id) in squads.iter().enumerate() {
+            stepped_in[k] |= phase(&b, id).is_some();
+        }
+        if stepped_in.iter().all(|&s| s) {
+            break;
+        }
+    }
+    assert_eq!(stepped_in, [true; 3], "every squad reached the house");
+}

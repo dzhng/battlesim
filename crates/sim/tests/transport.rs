@@ -2043,14 +2043,12 @@ fn squad_in_a_building() -> Battle {
         ),
         7,
     );
-    let garrison = battle.accept(command(
-        1,
-        Order::Garrison {
-            units: vec![UnitId(1)],
-            building: 0,
-        },
-    ));
-    assert_eq!(garrison.error, None);
+    let order = Order::OccupyBuilding {
+        units: vec![UnitId(1)],
+        building: 0,
+        gesture: 0,
+    };
+    assert_eq!(battle.accept(command(1, order)).error, None);
     let inside = (0..battle.rules().tick_hz * 30).any(|_| {
         battle.step();
         battle.unit(UnitId(1)).unwrap().garrisoned()

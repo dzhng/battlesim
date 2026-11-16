@@ -72,9 +72,10 @@ fn battle(units: Value, seed: u64) -> Battle {
 }
 
 fn garrison(units: &[u32]) -> Order {
-    Order::Garrison {
+    Order::OccupyBuilding {
         units: units.iter().map(|&u| UnitId(u)).collect(),
         building: BUILDING,
+        gesture: 0,
     }
 }
 
@@ -179,53 +180,7 @@ fn full_building(seed: u64) -> (Battle, Commander) {
 mod occupy;
 
 #[test]
-fn a_building_takes_one_squad_and_a_second_is_refused_until_it_leaves() {
-    let mut b = battle(west_squads(&["test_rifle", "test_recon"]), 1);
-    let mut c = Commander::new();
-    // An order naming two squads is refused whole: nobody moves.
-    assert_eq!(
-        c.send(&mut b, Side::Blue, garrison(&[0, 1]), false),
-        Some(OrderError::OneSquadPerBuilding)
-    );
-    run(&mut b, 5);
-    assert!((0..2).all(|u| own(&b, Side::Blue, u).unwrap().goal.is_none()));
-    // A second squad ordered in the same tick is refused, as is one ordered
-    // while the first walks in, once it is inside, queued or not.
-    c.ok(&mut b, Side::Blue, garrison(&[0]));
-    assert_eq!(
-        c.send(&mut b, Side::Blue, garrison(&[1]), false),
-        Some(OrderError::BuildingOccupied),
-        "ordered in the same tick"
-    );
-    b.step();
-    assert_eq!(
-        c.send(&mut b, Side::Blue, garrison(&[1]), false),
-        Some(OrderError::BuildingOccupied),
-        "the first squad is on its way in"
-    );
-    until(&mut b, 1200, "the first squad inside", |b| inside(b, 0));
-    for queued in [false, true] {
-        assert_eq!(
-            c.send(&mut b, Side::Blue, garrison(&[1]), queued),
-            Some(OrderError::BuildingOccupied)
-        );
-    }
-    assert_eq!(phase(&b, Side::Blue, 1), None);
-    // Leaving frees the building, once the squad is out.
-    c.ok(&mut b, Side::Blue, exit(&[0]));
-    run(&mut b, 2);
-    assert_eq!(phase(&b, Side::Blue, 0), Some(HoldPhase::Exiting));
-    assert_eq!(
-        c.send(&mut b, Side::Blue, garrison(&[1]), false),
-        Some(OrderError::BuildingOccupied),
-        "still leaving"
-    );
-    until(&mut b, 200, "the first squad out", |b| {
-        b.unit(UnitId(0)).unwrap().hold.is_none()
-    });
-    c.ok(&mut b, Side::Blue, garrison(&[1]));
-    until(&mut b, 1200, "the second squad inside", |b| inside(b, 1));
-    // Non-infantry and non-buildings are refused.
+fn a_building_order_refuses_vehicles_and_bodies_that_are_no_building() {
     let mut v = battle(
         json!([{ "side": "blue", "kind": "test_tank", "position": [350, 300] }]),
         1,
@@ -246,9 +201,10 @@ fn a_building_takes_one_squad_and_a_second_is_refused_until_it_leaves() {
         cw.send(
             &mut w,
             Side::Blue,
-            Order::Garrison {
+            Order::OccupyBuilding {
                 units: vec![UnitId(0)],
-                building: 1
+                building: 1,
+                gesture: 0,
             },
             false
         ),
@@ -1850,9 +1806,10 @@ fn an_unseen_collapse_cannot_change_a_garrison_order_until_discovered() {
         player: None,
         seq: 1,
         queued: false,
-        order: Order::Garrison {
+        order: Order::OccupyBuilding {
             units: vec![UnitId(0)],
             building: BUILDING,
+            gesture: 0,
         },
     };
     assert_eq!(calm.accept(command.clone()).error, None);

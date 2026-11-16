@@ -56,7 +56,7 @@ pub struct MoveDestination {
     /// as a squad arriving there spreads out on the ground its side knows.
     /// The order draws its own arrangement and cover moves it, so this shows
     /// the squad's shape, not each soldier's final spot. Empty for a vehicle,
-    /// and for a gathering or a withdrawal, which spread out on arrival.
+    /// and for a withdrawal, which spreads out on arrival.
     pub spots: Vec<[f64; 2]>,
 }
 
@@ -79,12 +79,11 @@ pub struct MovePreviewRequest {
     pub queued: bool,
 }
 
-/// One side's combined entry and gathering intent, without accepting an order.
+/// One side's building order, planned without accepting it.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct BuildingPreviewRequest {
     pub units: Vec<UnitId>,
     pub building: u32,
-    pub facing: Option<f64>,
     #[serde(default)]
     pub queued: bool,
 }
@@ -95,15 +94,12 @@ pub struct BuildingEntry {
     pub approach: [f64; 2],
 }
 
-/// The exact entry and certified companion destinations prepared by admission.
+/// Where each listed squad that can get there walks to enter the building.
+/// A squad with no entry is one its side's ground can't take to the house.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct BuildingPlacement {
     pub building: u32,
-    pub entrant: Option<BuildingEntry>,
-    pub destinations: Vec<MoveDestination>,
-    /// Work ended before every possibility was proved; this is not impossibility.
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub unproven: bool,
+    pub entries: Vec<BuildingEntry>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -168,19 +164,12 @@ pub enum Order {
         units: Vec<UnitId>,
         deployed: bool,
     },
-    /// Walk one squad to a building, then enter after a stationary timer.
-    /// The complete squad must fit, or the order is refused.
-    Garrison {
-        units: Vec<UnitId>,
-        building: u32,
-    },
-    /// One eligible squad enters; selected companions gather on the approach side.
+    /// Walk each listed squad to the building, then step in after a
+    /// stationary timer. Each squad must fit the building whole.
     OccupyBuilding {
         units: Vec<UnitId>,
         building: u32,
         gesture: u64,
-        #[serde(default)]
-        facing: Option<f64>,
     },
     /// Leave the building after a stationary timer, to free ground outside.
     ExitBuilding {
@@ -290,11 +279,6 @@ pub enum OrderError {
     NotABuilding,
     /// The squad has more living soldiers than a building takes.
     CapacityFull,
-    /// A building takes one squad: the order names more than one.
-    OneSquadPerBuilding,
-    /// Another of the side's squads holds the building, is entering it, or
-    /// is on its way in.
-    BuildingOccupied,
     /// The unit is already riding in a carrier.
     Aboard {
         unit: UnitId,
@@ -330,7 +314,6 @@ impl OrderError {
             | Self::Destroyed { .. }
             | Self::NotInfantry { .. }
             | Self::NotABuilding
-            | Self::OneSquadPerBuilding
             | Self::Aboard { .. }
             | Self::NotACarrier => true,
             Self::MatchFinished
@@ -340,7 +323,6 @@ impl OrderError {
             | Self::NoValidDestination
             | Self::RateLimited
             | Self::CapacityFull
-            | Self::BuildingOccupied
             | Self::NoRoomToUnload => false,
         }
     }
@@ -372,8 +354,6 @@ impl OrderError {
             Self::NotInfantry { .. } => "not_infantry",
             Self::NotABuilding => "not_a_building",
             Self::CapacityFull => "capacity_full",
-            Self::OneSquadPerBuilding => "one_squad_per_building",
-            Self::BuildingOccupied => "building_occupied",
             Self::Aboard { .. } => "aboard",
             Self::NotACarrier => "not_a_carrier",
             Self::NoRoomToUnload => "no_room_to_unload",

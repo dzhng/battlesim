@@ -194,7 +194,7 @@ fn a_garrisoned_squad_is_reinforced_inside_its_building() {
         { "side": "blue", "kind": "test_rifle", "position": [150, 214], "engagement": "return_fire_only",
           "condition": { "casualties": 2 } },
     ]);
-    let scripts = json!([{ "tick": 1, "side": "blue", "order": { "kind": "garrison", "units": [1], "building": 0 } }]);
+    let scripts = json!([{ "tick": 1, "side": "blue", "order": { "kind": "occupy_building", "units": [1], "building": 0, "gesture": 0 } }]);
     let mut b = Battle::new(&common::scenario_with(&map, units, json!([]), scripts), 4);
     let every = service()["soldier_replacement_s"].as_f64().unwrap();
     let enter = common::game()["garrison"]["enter_exit_s"].as_f64().unwrap();

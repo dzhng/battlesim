@@ -191,9 +191,9 @@ test("building preview returns the entrant and companion placements without issu
     });
     const placement = {
       building: 9,
-      entrant: { unit: 1, approach: [40, 50] as [number, number] },
-      destinations: [
-        { unit: 2, goal: [30, 50] as [number, number], placed: true, facing: 0, spots: [] },
+      entries: [
+        { unit: 1, approach: [40, 50] as [number, number] },
+        { unit: 2, approach: [30, 50] as [number, number] },
       ],
     };
     deliver({ type: "building_preview", id: 1, placement });

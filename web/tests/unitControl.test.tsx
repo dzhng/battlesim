@@ -42,14 +42,14 @@ test("an unarmed selection right-clicking a contact moves there instead", async 
   expect(sent.map((s) => s.order.kind)).toEqual(["move"]);
 });
 
-test("a building click sends the mixed selection as one queued building intent", async () => {
-  const { sent, click } = await control();
+test("a building click sends the selection's squads alone; with none it moves", async () => {
+  const { hook, sent, click } = await control();
   await click({ building: 9, shift: true });
-  expect(sent).toEqual([
-    {
-      order: { kind: "occupy_building", units: [1, 2], building: 9, gesture: 1 },
-      queued: true,
-    },
+  act(() => hook.result.current.setSelected([2]));
+  await click({ building: 9 });
+  expect(sent.map((s) => [s.order.kind, "units" in s.order && s.order.units, s.queued])).toEqual([
+    ["occupy_building", [1], true],
+    ["move", [2], false],
   ]);
 });
 
@@ -271,8 +271,9 @@ test("a captured building intent keeps its selection, target and modifiers when 
   await act(async () =>
     hook.result.current.onPointer({ ...pick, shift: false, building: 9 }, held),
   );
+  // The captured selection's squad: the supply truck takes no building order.
   expect(sent).toEqual([
-    { order: { kind: "occupy_building", units: [1, 2], building: 7, gesture: 1 }, queued: true },
+    { order: { kind: "occupy_building", units: [1], building: 7, gesture: 1 }, queued: true },
   ]);
 });
 

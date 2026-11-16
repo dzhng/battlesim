@@ -63,8 +63,18 @@ const SQUADS = [
 
 /** Reference commands, exactly as a player would send them. */
 const DEMOS: Record<string, (o: ObservationView) => Order | null> = {
-  "Scouts garrison": () => ({ kind: "garrison", units: [2], building: BUILDING }),
-  "Rifle squad #0 garrisons": () => ({ kind: "garrison", units: [0], building: BUILDING }),
+  "Scouts garrison": () => ({
+    kind: "occupy_building",
+    units: [2],
+    building: BUILDING,
+    gesture: 0,
+  }),
+  "Rifle squad #0 garrisons": () => ({
+    kind: "occupy_building",
+    units: [0],
+    building: BUILDING,
+    gesture: 0,
+  }),
   "Scouts leave": () => ({ kind: "exit_building", units: [2] }),
   // Back west, out of red's sight behind the house: a squad in the open
   // behind it would be the tank's first target, one it holds fire on.

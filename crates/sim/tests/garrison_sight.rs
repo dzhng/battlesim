@@ -16,9 +16,10 @@ fn stepped_facade_eyes_stay_outside_every_shell_and_fire_past_the_whole_owner() 
         &mut b,
         Side::Blue,
         1,
-        contract::command::Order::Garrison {
+        contract::command::Order::OccupyBuilding {
             units: vec![contract::ids::UnitId(0)],
             building: 1,
+            gesture: 0,
         },
     );
     for _ in 0..600 {
@@ -88,9 +89,10 @@ fn each_directional_eye_is_an_occupied_seat_on_its_highest_held_floor() {
         &mut b,
         Side::Blue,
         1,
-        contract::command::Order::Garrison {
+        contract::command::Order::OccupyBuilding {
             units: vec![contract::ids::UnitId(0)],
             building: 0,
+            gesture: 0,
         },
     );
     for _ in 0..1000 {
@@ -152,9 +154,10 @@ fn a_third_floor_garrison_sees_over_a_two_storey_obstacle() {
         &mut b,
         Side::Blue,
         1,
-        contract::command::Order::Garrison {
+        contract::command::Order::OccupyBuilding {
             units: vec![contract::ids::UnitId(0)],
             building: 0,
+            gesture: 0,
         },
     );
     for _ in 0..1000 {
@@ -220,9 +223,10 @@ fn a_garrison_seen_at_its_windows_gives_away_its_building() {
         &mut b,
         Side::Blue,
         1,
-        contract::command::Order::Garrison {
+        contract::command::Order::OccupyBuilding {
             units: vec![contract::ids::UnitId(0)],
             building: 1,
+            gesture: 0,
         },
     );
     let held = |b: &Battle| b.observe(Side::Red).identified.first().map(|e| e.building);

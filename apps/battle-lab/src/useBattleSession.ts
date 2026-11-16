@@ -656,7 +656,7 @@ export function useBattleSession({
       `${shown?.tick ?? 0}:${control.acks[0]?.seq ?? 0}`,
       `${semanticRevision.current.version}:${held?.generation ?? (waiting ? pending.generation : 0)}`,
     );
-    const marks = pointerPaint.markers(previewSnapshot.destinations, shown?.own ?? []);
+    const marks = pointerPaint.markers(previewSnapshot, shown?.own ?? []);
     const showDestinations =
       queryIntent.kind === "move" ||
       queryIntent.kind === "occupy_building" ||
@@ -694,7 +694,7 @@ export function useBattleSession({
         // drawn at its opacity they would vanish. They show in full until
         // the order lands and the overlay's own flash takes over.
         preview = pointerPaint.markers(
-          accepted.placement?.destinations ?? accepted.building?.destinations ?? [],
+          { destinations: accepted.placement?.destinations ?? [], building: accepted.building },
           shown?.own ?? [],
         );
     }

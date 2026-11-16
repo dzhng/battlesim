@@ -33,11 +33,11 @@ function availability(
   destinations: readonly MoveDestination[],
   building: BuildingPlacement | null,
 ): PreviewAvailability {
-  return building?.entrant || destinations.some((destination) => destination.placed)
+  return building?.entries.length || destinations.some((destination) => destination.placed)
     ? "ready"
-    : !building || building.unproven
-      ? "pending"
-      : "blocked";
+    : building
+      ? "blocked"
+      : "pending";
 }
 
 /** Owns asynchronous move/building admission while pointer paint only draws it. */
@@ -107,10 +107,9 @@ export class OrderPreview {
         ? client
             .previewMove(intent.request)
             .then((destinations) => ({ destinations, building: null }))
-        : client.previewBuilding(intent.request).then((building) => ({
-            destinations: building.destinations,
-            building,
-          }));
+        : client
+            .previewBuilding(intent.request)
+            .then((building) => ({ destinations: [], building }));
     void query
       .then(
         ({ destinations, building }) => {
