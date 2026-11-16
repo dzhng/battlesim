@@ -16,7 +16,8 @@
  * only the player's own units (`controlled.ts`): a box or double-click takes
  * only them, and a click on an ally's unit selects it alone, to read, so
  * nothing selected then takes an order. It also keeps the control groups
- * (`controlGroups.ts`), since a group is a stored selection. */
+ * (`controlGroups.ts`), since a group is a stored selection. Ctrl-clicking an
+ * own unit adds or removes it, matching the army deck's card interaction. */
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import type { SeatClient } from "../sim/client";
 import { aboardCarrier, type ObservationView, type OwnUnitView } from "../sim/observationView";
@@ -295,13 +296,16 @@ export function useUnitControl(
           return;
         }
         setSelection((selection) => {
-          // Shift adds to your own units, never to an ally's being read.
+          // Shift and Ctrl add to your own units, never to an ally's being read.
+          // Ctrl mirrors the army deck: clicking an already selected unit
+          // removes it, while a click on the ground leaves the selection alone.
           const current = selection.filter((id) => own.some((u) => u.id === id));
+          const additive = pick.shift || pick.ctrl;
           return unit === null
-            ? pick.shift
+            ? additive
               ? current
               : []
-            : pick.shift
+            : additive
               ? current.includes(unit)
                 ? current.filter((u) => u !== unit)
                 : [...current, unit]
