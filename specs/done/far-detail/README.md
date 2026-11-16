@@ -29,7 +29,11 @@ a rasteriser WebGPU cannot host.
   the prop from that side. A source may author its own instead. The parked car
   does: a paint box under a dark glass box, 20 triangles against 172.
 - **Small props cast no shadow.** A prop whose projected footprint is under
-  `presentation.models.shadow_caster_px` casts nothing, in view or out of it.
+  `presentation.models.shadow_caster_px` (5) times the graphics tier's
+  `propShadowScale` casts nothing, in view or out of it: 5 pixels at High, 7
+  at Medium and 9 at Low, where at 9 a car's shadow stops at about 700 m of
+  camera depth and small props 260 m away at the tactical view start losing
+  theirs. The native client keeps the authored 5.
 
 Measured on the [control scene](assets/control.json) in interleaved pairs
 ([measurements](assets/measurements.md)), in two steps:

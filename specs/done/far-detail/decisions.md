@@ -21,11 +21,15 @@ grouped by how settled they are, least settled first.
    The user's idea: nobody notices a one-pixel car's shadow. It replaced a
    narrower candidate, off-view props casting with their far mesh, which was
    deleted.
-5. **The shadow threshold is 5, not higher.** It is one size for every kind.
-   At 9, which would cut a car's shadow at about 700 m, props 260 m away at
-   the tactical view lose their shadows. At 5 a car stops casting beyond about
-   1,280 m. The agent chose to keep the tactical view; raise it if far car
-   shadows should go sooner.
+5. **The shadow threshold follows the graphics tier: 5 at High, 7 at Medium,
+   9 at Low.** The user's choice. It is one size for every kind, authored once
+   as 5 and scaled by the tier's `propShadowScale` like the other detail
+   scales; the native client keeps 5. At 5 a car stops casting beyond about
+   1,280 m of camera depth. At 9 a car's shadow stops at about 700 m, and
+   small props 260 m away at the tactical view start losing theirs: counted
+   earlier as 17, 99, 289 and 541 casters lost across the four cascades of
+   about 4,700 to 13,300. High keeps the tactical view's shadows whole; the
+   cheaper tiers trade them for fewer casters.
 6. **Fog still judges a far prop surface by surface.** A box at the edge of
    sight can take the fog's unseen look differently from its real mesh.
    Changing that would only remove a difference nobody can see.

@@ -687,9 +687,11 @@ export class ScenePresentation {
   }
 
   /** Draws the units' tiers at `units` and the buildings' at `buildings`
-   *  times their authored thresholds (a graphics quality; 1 as authored). */
-  setDetailScale(units: number, buildings: number) {
-    this.rust.set_detail_scale(units, buildings);
+   *  times their authored thresholds, and casts prop shadows above
+   *  `propShadows` times their authored cutoff (a graphics quality; 1 as
+   *  authored). */
+  setDetailScale(units: number, buildings: number, propShadows: number) {
+    this.rust.set_detail_scale(units, buildings, propShadows);
   }
 
   free() {

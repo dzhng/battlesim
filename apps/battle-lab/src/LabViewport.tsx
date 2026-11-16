@@ -83,7 +83,7 @@ import {
 import { type FogRequest } from "@web/battle/sim/presentation";
 import type { Mesh } from "@packages/battle-renderer/src/mesh";
 import { pickBox, type PickBox } from "@packages/battle-renderer/src/picking";
-import { testQualityProfile, type GraphicsQualityProfile } from "./graphicsSettings";
+import { detailScales, testQualityProfile, type GraphicsQualityProfile } from "./graphicsSettings";
 import { SceneAdmission, type SceneAdmissionIdentity } from "./viewportSceneAdmission";
 import { ViewportSubmittedView } from "./viewportSubmittedView";
 
@@ -818,7 +818,7 @@ export function LabViewport({
                 detailed[3] !== shown.understorey
               ) {
                 detailed = [decoder, quality, shown.dressing, shown.understorey];
-                decoder.setDetailScale(quality?.unitLodScale ?? 1, quality?.buildingLodScale ?? 1);
+                decoder.setDetailScale(...detailScales(quality));
                 decoder.setSceneryQuality(
                   quality?.treeLodScale ?? 1,
                   (quality?.forestDressing ?? true) && shown.dressing,
