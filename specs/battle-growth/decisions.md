@@ -2292,3 +2292,37 @@ milliseconds and leaves the infantry hitch at about 160 ms).
   above and in the hand-back, rather than called fully satisfied. Full report
   and every raw run/receipt stay in `throwaway/slice12-budget/`. No spec status,
   checklist, slice file, scene, baseline or simulation rule changes.
+
+**Slice 12 as merged, 2026-11-15.** The first build stepped one content a
+frame and tripled the stand-in's time on screen (an RPG team 0.7 s to 1.9 s,
+a vehicle 0.2 s to 0.5 s), which is the slice's own "wrong trade" rule. The
+rule became a budget: a frame spends up to 24 ms on art work (supplies,
+fielding facts, geometry keys) and then yields; small steps share a frame.
+The value sits beside the store's bounds (`ART_WORK_BUDGET_MS`); 12 ms was
+tried and left waits that 24 ms does not.
+
+The implementer's reference runs, three each way: the RPG team's longest
+frame 216, 233 and 195 ms before, 94, 96 and 95 ms after; learning to commit
+0.76, 0.84 and 0.82 s before, 0.77, 0.83 and 0.82 s after; an assault squad's
+longest frame 146, 141 and 139 ms before, 102, 87 and 81 ms after. All 18
+paired admission-work reports are equal. The cost: a vehicle's stand-in is on
+screen 50–100 ms longer (the first vehicle 237, 221 and 246 ms before; 283,
+378 and 295 ms after) for no gain in its own frames, because the whole-result
+resolve now has a frame to itself.
+
+What is left in an infantry arrival is not content work: the whole-result
+resolve's frame (59 ms, slice 14), the commit frame (65–95 ms: commit itself
+is under 5 ms, the rest is the viewport's callback), and one frame of about
+100 ms while the GPU bakes 27 cards with 11 ms of script in it. The last two
+are not attributed further.
+
+Checked again on the merged tree, on the staging tip with the navigation
+changes: lint, the fielding and body tests, 32 page tests, the renderer's
+three GPU suites (38, 2 and 1), and the five scenes together, 102 checks.
+`battle-growth` recorded no long frame at its growth at all. The first
+build's two scene failures did not recur; the implementer traced them to its
+own profiling edits reloading the page mid-scene.
+
+Beside it, fixed apart: the `consequences` debris check that flaked under
+load read the last drawn frame's probe without waiting for a frame that
+shows the wreck. It waits for one now.
