@@ -36,6 +36,10 @@ enemy, so the attack never counts as unable to act. It never hands off, and the 
 move waits as long as the dogfight lasts. A jet with missiles, which lock and fire,
 does hand off; `order_queue/jets.rs` pins that case.
 
+*Since 2026-11-16:* dogfights are runs of head-on passes (air-war-flight D11′), so a
+gun-only jet's gun bears on its first pass and the queued move takes over after it;
+the never-bearing case above no longer arises between evenly matched jets.
+
 *The gap:* the walk said a jet attacking without passes uses the cycle rule, but not
 what happens when no weapon ever gets to fire.
 *The reach:* any queue behind an air-to-air attack by a gun-only jet.

@@ -223,8 +223,6 @@ fn a_jet_rolls_out_onto_its_heading_without_overshooting() {
         // So far off that its bearing stays put while the jet turns.
         let intent = Intent::Pursue {
             point: v2(libm::cos(wanted), libm::sin(wanted)) * 1e8,
-            vel: v2(0.0, 0.0),
-            lag_s: 0.0,
             agl: 250.0,
         };
         let mut s = state();
@@ -347,8 +345,6 @@ fn a_jet_flying_to_a_far_goal_holds_a_straight_heading() {
     let bounds = Bounds::new(v2(-2_000.0, -2_000.0), v2(2_000.0, 2_000.0));
     let intent = Intent::Pursue {
         point: v2(1_000.0, 0.0),
-        vel: v2(0.0, 0.0),
-        lag_s: 0.0,
         agl: 250.0,
     };
     for _ in 0..120 {
@@ -414,8 +410,6 @@ fn an_attack_circles_the_targets_current_position() {
         let command = steer(
             &Intent::Pursue {
                 point: target,
-                vel: v2(10.0, 0.0),
-                lag_s: 2.0,
                 agl: 100.0,
             },
             &s,

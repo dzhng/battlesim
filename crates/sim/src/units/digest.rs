@@ -60,6 +60,13 @@ impl Unit {
                 }
             }
             d.u64(a.pass_release as u64);
+            // Only a jet coming round in a dogfight folds this in.
+            if let Some((foe, side)) = a.come_round {
+                d.bytes(b"comes round")
+                    .u64(u64::from(foe.0))
+                    .f64(side.x)
+                    .f64(side.y);
+            }
         }
         match self.flares {
             Some(f) => d.u64(1).u64(f.charges as u64).u64(f.ready_tick),

@@ -123,6 +123,7 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
     // While it attacks, by order or answering fire, in passes or a
     // dogfight, where it is is where it circles once the attack ends.
     let attacking = matches!(task, orders::AirTask::Attack { .. });
+    let mut dogfighting = false;
     let intent = match task {
         // A withdrawing jet only flies for its back edge (air::edge).
         orders::AirTask::Withdraw => {
@@ -186,7 +187,8 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
                     .as_ref()
                     .and_then(|air| air.dogfight_target)
                     .or(ordered);
-                dogfight_intent(ctx, unit, &state, chase, point.xy())
+                dogfighting = true;
+                dogfight_intent(ctx, unit, &state, &limits, chase, point.xy())
             } else {
                 let weapons = pass_weapons(ctx, unit, target, point);
                 let chosen =
@@ -230,6 +232,9 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
             }
         }
     };
+    if !dogfighting {
+        dogfight::not_flown(unit);
+    }
     let mut command = steer(&intent, &state, &limits, &bounds, dt);
     command.burner = afterburner;
     let next = fly(
@@ -265,8 +270,8 @@ pub(crate) fn break_off(unit: &mut Unit) {
     if let Some(air) = unit.air.as_mut() {
         air.pass = None;
         air.pass_release = false;
-        air.dogfight_target = None;
     }
+    dogfight::clear(unit);
 }
 
 /// Whether the side still knows where `target` is: a ground point always,
@@ -283,22 +288,49 @@ pub(super) fn knows_target(knowledge: &SideKnowledge, target: Target) -> bool {
 /// circling `fallback` while it knows nothing of one.
 fn dogfight_intent(
     ctx: &MovementContext,
-    unit: &Unit,
+    unit: &mut Unit,
     state: &FixedWingState,
+    limits: &FixedWingLimits,
     target: Option<contract::ids::UnitId>,
     fallback: V2,
 ) -> Intent {
-    target
-        .and_then(|target| ctx.knowledge[unit.side.index()].track(target))
-        .map(|track| {
-            dogfight::intent(
-                state,
-                track,
-                mix(ctx.seed ^ u64::from(unit.id.0)),
-                &ctx.rules.air.fixed_wing,
-            )
-        })
-        .unwrap_or(Intent::Orbit { centre: fallback })
+    let Some(target) = target else {
+        dogfight::not_flown(unit);
+        return Intent::Orbit { centre: fallback };
+    };
+    let seed = mix(ctx.seed ^ u64::from(unit.id.0));
+    let knowledge = ctx.knowledge[unit.side.index()];
+    // A dogfight is fought in its own layer (`dogfight::can_dogfight`).
+    let layer = unit.layer();
+    let reach_m = ctx
+        .arsenal
+        .specs(unit.kind)
+        .iter()
+        .flat_map(|spec| spec.kinds.iter())
+        .filter_map(|&k| ctx.arsenal.weapons[k].def.against(layer))
+        .map(|fire| fire.range_m)
+        .fold(f64::INFINITY, f64::min);
+    let sight = crate::sight::of_layer(unit, ctx.rules, layer);
+    let geometry = dogfight::DogfightGeometry {
+        separation_m: ctx.rules.air.separation_m,
+        turn_rad_s: limits.turn_rad_s,
+        centre: v2(ctx.world.width(), ctx.world.depth()) * 0.5,
+        reach_m,
+        seen_behind_m: sight.range * sight.shape.rear,
+        seen_abeam_m: sight.range * sight.shape.side,
+    };
+    let air = unit.air.as_mut().expect("an aircraft's flight state");
+    let flight = &ctx.rules.air.fixed_wing;
+    dogfight::link_intent(
+        air,
+        target,
+        knowledge.track(target),
+        state,
+        seed,
+        flight,
+        &geometry,
+    )
+    .unwrap_or(Intent::Orbit { centre: fallback })
 }
 
 fn target_point(ctx: &MovementContext, unit: &Unit, target: Target) -> V3 {
