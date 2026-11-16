@@ -116,7 +116,8 @@ subjects carry them.
 - `Order::OccupyBuilding { units, building, gesture }` is the one building
   order; `Order::Garrison`, `OrderError::OneSquadPerBuilding` and
   `OrderError::BuildingOccupied` are gone (`crates/contract/src/command.rs`).
-  `gesture` has no reader (ledger U1).
+  Its `gesture` lets a double right-click hurry the squads' walk in, as
+  `Board`'s hurries the walk to a carrier (ledger S38).
 - The preview is `BuildingPreviewRequest { units, building, queued }`,
   answered by `BuildingPlacement { building, entries }`, one
   `BuildingEntry { unit, approach }` per squad that can get there.

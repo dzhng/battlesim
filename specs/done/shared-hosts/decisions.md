@@ -29,9 +29,8 @@ for one living soldier. A building's seats are its *windows*, the exposed
 facade bays its soldiers fight from, listed in the building's *window plan*.
 `CapacityFull` is the refusal the player reads as "TOO MANY TO FIT".
 
-**Review these first:** N1 (the Paris-corner menu reel lost its deaths), N2
-(aiming at seen soldiers is limited to garrisons), U1 (the building order
-carries a field nothing reads).
+**Review these first:** N1 (the Paris-corner menu reel lost its deaths) and
+N2 (aiming at seen soldiers is limited to garrisons).
 
 ## Needs user
 
@@ -99,32 +98,8 @@ carries a field nothing reads).
 
 ## Unsound
 
-### U1. The building order still carries a `gesture` nothing reads
-
-- **Who, when:** agent on the user's behalf (the plan's contract table kept
-  the field); slice 01 found that nothing reads it.
-- **Scenario:** Orders sent by a right-click carry a *gesture*: a token a
-  quick second right-click (`UpgradeMove`) uses to switch that click's walk
-  to the fastest route. `Board` passes its gesture into the squad's walk, so
-  that walk can be upgraded. Before this plan the building order's entering
-  squad also walked under a move carrying the gesture. Now
-  `OccupyBuilding { units, building, gesture }` becomes
-  `UnitOrder::Garrison { building, approach }` for each squad, which carries
-  no gesture, and the client upgrades only a right-click on open ground. The
-  field travels on the wire, the encounter defender fills it with 0, and
-  nothing reads it.
-- **Gap:** The plan deleted `facing` (only companion gathering read it) but
-  kept `gesture` without asking whether anything still read it.
-- **Reach:** A wire field that looks meaningful invites future code to rely
-  on it; it is the leftover the repository's "when something replaces an old
-  mechanism, delete the old one" rule forbids.
-- **Verdict:** unsound: a contract field with no reader. **Corrected
-  decision:** the building order carries only what the simulation reads, so
-  `gesture` leaves `OccupyBuilding` (Rust contract, TypeScript protocol,
-  defender). Whether a double right-click on a house should hurry the squad
-  in is a separate decision; if wanted, it carries the gesture into the
-  entry walk as `Board` does.
-- **Confidence:** low.
+None remain. U1 (the building order carried a `gesture` nothing read) was
+resolved after closeout and is now S38.
 
 ## Sound
 
@@ -766,6 +741,35 @@ Ranked least confident first. Every one is architecture the user now owns.
 - **Gap:** The ask itself.
 - **Reach:** Everything above.
 - **Verdict:** sound.
+- **Confidence:** high.
+
+### S38. A double right-click on a house hurries the squads walking in, as on a carrier
+
+- **Who, when:** agent on the user's behalf, after closeout, for
+  consistency with carriers once the user asked for buildings and transports
+  to behave alike. Formerly U1: the building order carried a `gesture`
+  nothing read, and the corrected decision was to delete it unless a double
+  right-click on a house should hurry the squads in.
+- **Scenario:** Orders sent by a right-click carry a *gesture*: a token a
+  quick second right-click (`UpgradeMove`) uses to switch that click's walk
+  to the fastest route. The player selects two squads, right-clicks a house
+  and right-clicks it again at once: both walk in by the fastest route.
+  `OccupyBuilding`'s gesture now lands on each squad's
+  `UnitOrder::Garrison`, whose walk carries its own route policy, and one
+  rule upgrades every walk a gesture ordered: a move, the walk `Board` or
+  `Collect` pushes toward its host, and a building's walk in
+  (`Unit::upgrade_walks`). The client had recognised the second click only
+  after a right-click on open ground, so a double right-click on a carrier
+  sent a second `Board` and hurried nothing. One recogniser
+  (`MoveGestures.rightClick`) now covers every right-click that sends units
+  walking: a move, a board, a collect and a building order.
+- **Gap:** U1 found the field unread and left open whether the house
+  should be hurried.
+- **Reach:** A single right-click on a house is unchanged and digests byte
+  for byte as before: the garrison order folds its route and gesture into
+  the digest only once upgraded.
+- **Verdict:** sound: one gesture and one upgrade rule for every walk,
+  buildings and carriers alike.
 - **Confidence:** high.
 
 ## Trivial discretion
