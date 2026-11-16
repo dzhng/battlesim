@@ -34,6 +34,7 @@ mod flown;
 mod move_placement;
 mod order_steps;
 mod purchase_preview;
+mod refusals;
 mod replay;
 mod replay_identity;
 mod return_to_base;
@@ -2768,24 +2769,7 @@ impl Battle {
             }
             _ => None,
         };
-        let mut refused =
-            hold::refuse_oversized_riders(&self.units, &mut command.order, &self.rules)
-                .unwrap_or(building_refused);
-        if let Order::Unload {
-            units, goal: None, ..
-        } = &command.order
-        {
-            for &unit in units {
-                if crate::carriage::unload_spots(&self.world, &self.units, unit, &self.rules)
-                    .is_none()
-                {
-                    refused.push(contract::command::Refusal {
-                        unit,
-                        reason: OrderError::NoRoomToUnload,
-                    });
-                }
-            }
-        }
+        let refused = self.refuse_at_command(&mut command, building_refused)?;
         Ok(PreparedCommand {
             command,
             placement,
