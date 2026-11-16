@@ -79,7 +79,7 @@ import {
   type UnitGhost,
 } from "./unitGhosts";
 import { byReference, heldGhost, pendingGhosts } from "./shopGhosts";
-import { modelProbes } from "./modelProbes";
+import { presentationProbes } from "./presentationProbes";
 
 export function useBattleSession({
   scenario,
@@ -697,17 +697,6 @@ export function useBattleSession({
             side: drawnObservation.current.groundPatch.side,
             epoch: drawnObservation.current.groundPatch.epoch,
           },
-    /** The static pieces the last drawn frame drew beside the posed units (a
-     *  cook-off's moving wreck and its debris): each one's appearance, state
-     *  and how far its motion lowers it, metres. */
-    cookOffPieces: () => presentationRef.current?.probe().cookOffPieces ?? [],
-    /** The soldiers the last drawn frame lays as static corpses. */
-    lying: () => presentationRef.current?.probe().lying ?? [],
-    /** Where the last drawn frame draws the muzzle of the shown side's
-     *  vehicle `id`'s mount `mount`, where its flash goes; null when no rig
-     *  draws it. */
-    drawnMuzzle: (id: number, mount: number): Vec3 | null =>
-      presentationRef.current?.drawnMuzzle(id, mount) ?? null,
     digest: () => sim.digest.current,
     error: () => sim.error,
     status: () => sim.status,
@@ -753,21 +742,7 @@ export function useBattleSession({
     craters: (binM = 16) => sim.ground.current && knownCraters(sim.ground.current, binM),
     /** Sound: voices, budget, holds and counts; null before audio starts. */
     sound: () => audio?.stats() ?? null,
-    /** Combat effects: running, drawn last frame, dropped, and the last tick noted. */
-    effects: () => presentationRef.current?.probe().effects ?? null,
-    /** The instances the effect pass drew last frame: shape (`SHAPE`), the
-     *  point it sits on (a streak's tail), its size, and a glow's rays. */
-    effectInstances: () => presentationRef.current?.probe().effectInstances ?? [],
-    /** The lights the effects offered last frame: where, how far, their
-     *  colour × intensity, and what cast each. */
-    castLights: () => presentationRef.current?.probe().castLights ?? [],
-    ...modelProbes(() => presentationRef.current),
-    /** What the props draw (`ScenePresentation.propStats`): the bodies drawn,
-     *  those a building draws, those no model draws, the models placed and
-     *  those drawing what the side knows. */
-    structureBodies: () => presentationRef.current?.propStats() ?? null,
-    /** Every prop model the side draws: appearance, state and placement. */
-    structures: () => presentationRef.current?.propModels() ?? [],
+    ...presentationProbes(() => presentationRef.current),
   };
 
   const visibleGhostReadouts = useMemo(
