@@ -180,3 +180,36 @@ things the plan left open.
   (paris-corner frame 0, the eyes upload), and its bless would also
   re-record every run and the street stream and layout's drifted `groups`
   and `propKinds`. That failure is open and unrelated to this plan.
+
+## Slice 02
+
+- **Confirmed first:** nothing recomputes a plan after entry. `seats_for_state`
+  is otherwise called only for capacity counts (`validate`, encounter posts).
+  The readers were the listed ten plus `battle/flown.rs` (a `DamageContext`)
+  and `battle/state_digest.rs`; `carriage` reads only `entry`.
+- **Readers are methods on `Windows`** (`seat`, `body_position`, `free_seat`,
+  `faces`, `changing_window`, `facade_eyes`, `allocate`, `digest_place`), not
+  free functions taking `&Windows`. Each finds a squad's plan through its
+  hold's building, and only while the squad is inside or leaving, as the old
+  per-squad copy was empty while it stepped in. `seat_evenly` takes the plan
+  itself because it runs before the plan opens.
+- **`&Windows` rides on `FireContext` and `DamageContext`.** Elsewhere it is
+  a parameter: `sensing::{eyes, evaluate, side_sees_round}`,
+  `SideKnowledge::identified`, `supply::service`, `Unit::digest`,
+  `hold::{digest, advance}`. `Battle::windows()` exposes it to tests. The fire
+  step builds its context twice (a local macro), because allocation changes
+  windows between choosing them and firing.
+- **Plans close once a tick, at the end of `hold::advance`,** not at every
+  place a hold ends (death, collapse, retirement, a crash). A plan whose last
+  holder died waits for the next advance; nothing reads it meanwhile, because
+  every reader goes through a squad inside or leaving. Opening a plan replaces
+  any left over, so a squad seated then starts with fresh window history, as
+  before. Slice 03 must keep the replace only for the first squad seated.
+- **The digest gates the plan on the hold's phase:** a squad stepping in folds
+  an empty plan even when another squad's plan is open for the building.
+- **`battle.rs` made room by a split:** each side's sensing pass (`sense`,
+  the fog sweep, `footprint_seen`) moved to `battle/seeing.rs`, changed only
+  by the windows it now passes. It shares the refactor's commit: the size
+  ratchet compares with the previous commit, and `battle.rs` stays over budget
+  after the move, so a separate move would leave the refactor's growth
+  refused.
