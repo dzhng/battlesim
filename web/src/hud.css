@@ -1609,6 +1609,16 @@ html {
   font-size: 10px;
   text-align: center;
 }
+.hud-purchase-icon {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.hud-purchase-icon svg {
+  width: 34px;
+  height: 34px;
+}
 /* A card never sold: its silhouette and name dimmed, as a greyed-out entry
    in the build list, the word saying why. */
 .hud-panel button.hud-purchase-card.unavailable {
