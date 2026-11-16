@@ -500,7 +500,7 @@ export async function run(ctx) {
     JSON.stringify({ entriesDoneAt: o?.tick ?? null, tankOpensFire: TANK_OPENS_FIRE, fellAt }),
   );
 
-  // Red's tank shells the house; blue answers outward.
+  // Red's tank shells the occupants its squad spots; blue answers outward.
   let own = 0,
     ownOnWall = 0,
     enemyOnWall = 0,

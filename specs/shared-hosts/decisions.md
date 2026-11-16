@@ -552,7 +552,9 @@ things the plan left open.
   once a rifle squad held the near facade's ground floor. Paint through a
   wall adds light. Not falsified against a body that really paints through
   (no such state is reachable without changing the renderer).
-- **Red's tank shells the house by a scripted ground attack**, not
+- *Superseded by "Garrisons are engageable" below: the tank is back on
+  `set_engagement fire_at_will` at tick 1500 and shells the occupants it
+  spots.* **Red's tank shells the house by a scripted ground attack**, not
   `set_engagement fire_at_will`. With 16 seats both squads sit on every
   facade, red's identified positions are their squads' middles inside the
   house, and the tank's every solution is `BlockedTrajectory` (a native run
@@ -714,3 +716,13 @@ things the plan left open.
   blurred, the icons are small and dim, and the occupant dots are faint.
 - **Human review** was shown non-blocking and got no reply; closed and
   continued on the evidence.
+## Closeout
+
+- **The garrison lab's tank is back on fire at will** (encounter tick 1500
+  `set_engagement fire_at_will`, the lab's `tankOpensFire` reads that
+  script, the lab's header comment and the scene's say so). The garrison
+  scene passes unchanged, all 40 checks: entries and the scouts' refusal
+  done at 1247, the tank free at 1500, its rounds on the house's walls by
+  1574, the house down at 1938, and both rifle squads and the scouts alive
+  afterwards, the scouts crossing round the ruin. No scene expectation
+  needed changing.

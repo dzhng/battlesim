@@ -8,7 +8,7 @@
   ],
   "scripts": [
     {"tick":400,"side":"red","order":{"kind":"move","units":[3],"gesture":1102,"goal":[475,250],"route":"shortest"}},
-    {"tick":1500,"side":"red","order":{"kind":"attack","units":[4],"target":{"kind":"ground","point":[360,250,4]}}}
+    {"tick":1500,"side":"red","order":{"kind":"set_engagement","units":[4],"policy":"fire_at_will"}}
   ],
   "overrides": {"buildings": {"capacity_soldiers": 16}}
 }

@@ -37,9 +37,9 @@ import { TickStatus } from "../TickStatus";
 // squad in is HIDDEN. At the encounter's scripted move it walks up close
 // enough to see them: an enemy blue sees, seeing the occupants, ends HIDDEN.
 // Red's tank, 250 m east, holds fire while blue's squads walk in (the
-// scene's entry steps), then shells the house itself at the encounter's
-// scripted attack until it falls: aimed at the occupants it would hold, for
-// their squads' middles lie behind the walls it can't see past. Held until
+// scene's entry steps), then fires at will at the encounter's scripted tick:
+// at the occupants its squad spots, at their windows, until the house falls
+// on them. Held until
 // then so its fire never brings the house down mid-entry: the entry steps
 // measure the stationary timer, not a collapse. Blue holds fire until fired
 // on, and the scouts turned away wait at the door, where the house hides
@@ -189,7 +189,7 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
     /** The tick red's squad starts its walk up to spot the occupants. */
     spotterWalksUp: scriptTick(battle, "move"),
     /** The tick red's tank starts shelling the house: after every entry. */
-    tankOpensFire: scriptTick(battle, "attack"),
+    tankOpensFire: scriptTick(battle, "set_engagement"),
   };
 
   if (!meshes) return null;
