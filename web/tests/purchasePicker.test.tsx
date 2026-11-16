@@ -462,3 +462,129 @@ test("the shop's keys do nothing while the battle is covered", () => {
   expect(tabAt(document.body)).toBe(true);
   expect(view.queryByRole("textbox", { name: "Search units" })).toBeNull();
 });
+
+test("a unit card's lookup opens on that exact variant, with Enter buying it", () => {
+  const cards = [
+    familyCard("base", "humvee", "HMMWV", "Base", "veh"),
+    familyCard("hmg", "humvee", "HMMWV", "HMG", "veh"),
+    // The same variant name under another family must not be found.
+    familyCard("other", "technical", "Technical", "HMG", "veh"),
+  ];
+  const choose = vi.fn();
+  const view = render(
+    <PurchasePicker
+      cards={cards}
+      faction="us"
+      match={match}
+      onChoose={choose}
+      rules={RULES}
+      lookup={{ card: "hmg", serial: 1 }}
+    />,
+  );
+  const field = view.getByRole("textbox", { name: "Search units" }) as HTMLInputElement;
+  expect(field.value).toBe("HMMWV HMG");
+  // The shop leaves the keyboard to the game; the open card is the next click.
+  expect(document.activeElement).not.toBe(field);
+  expect(view.queryByRole("button", { name: "Technical" })).toBeNull();
+  expect(view.getByRole("button", { name: "HMMWV" })).toBeTruthy();
+  // The family's info card is already open, and holds only the exact variant.
+  expect(view.getByRole("group", { name: "HMMWV variants" })).toBeTruthy();
+  expect(view.getByRole("button", { name: "HMG — 200 credits" })).toBeTruthy();
+  expect(view.queryByRole("button", { name: "Base — 200 credits" })).toBeNull();
+  fireEvent.keyDown(field, { key: "Enter" });
+  expect(choose).toHaveBeenCalledExactlyOnceWith("hmg");
+});
+
+test("a lookup is one shot: closing it and opening the shop starts fresh", () => {
+  const view = render(
+    <PurchasePicker
+      cards={[card("base", "SEP v2")]}
+      faction="us"
+      match={match}
+      onChoose={vi.fn()}
+      rules={RULES}
+      lookup={{ card: "base", serial: 1 }}
+    />,
+  );
+  const toggle = view.getByRole("button", { name: "Reinforcements" });
+  fireEvent.click(toggle);
+  expect(view.queryByRole("textbox", { name: "Search units" })).toBeNull();
+  fireEvent.click(toggle);
+  expect(view.getByRole("tab", { name: tab("rec") }).getAttribute("aria-selected")).toBe("true");
+  expect((view.getByRole("textbox", { name: "Search units" }) as HTMLInputElement).value).toBe("");
+});
+
+test("a second lookup moves the open store to the new exact card", () => {
+  const cards = [
+    familyCard("base", "humvee", "HMMWV", "Base", "veh"),
+    familyCard("hmg", "humvee", "HMMWV", "HMG", "veh"),
+  ];
+  const view = render(
+    <PurchasePicker
+      cards={cards}
+      faction="us"
+      match={match}
+      onChoose={vi.fn()}
+      rules={RULES}
+      lookup={{ card: "base", serial: 1 }}
+    />,
+  );
+  const field = () => view.getByRole("textbox", { name: "Search units" }) as HTMLInputElement;
+  expect(field().value).toBe("HMMWV Base");
+  view.rerender(
+    <PurchasePicker
+      cards={cards}
+      faction="us"
+      match={match}
+      onChoose={vi.fn()}
+      rules={RULES}
+      lookup={{ card: "hmg", serial: 2 }}
+    />,
+  );
+  expect(field().value).toBe("HMMWV HMG");
+  expect(view.getByRole("button", { name: "HMG — 200 credits" })).toBeTruthy();
+});
+
+test("a lookup's family card buys the exact variant, not a cheaper sibling", () => {
+  const cards = [
+    { ...familyCard("base", "humvee", "HMMWV", "Base", "veh"), cost: 80 },
+    { ...familyCard("hmg", "humvee", "HMMWV", "HMG", "veh"), cost: 95 },
+  ];
+  const choose = vi.fn();
+  const view = render(
+    <PurchasePicker
+      cards={cards}
+      faction="us"
+      match={match}
+      onChoose={choose}
+      rules={RULES}
+      lookup={{ card: "hmg", serial: 1 }}
+    />,
+  );
+  // The filtered family holds only the looked-up card, so its own click
+  // cannot fall through to the family's first (cheaper) variant.
+  fireEvent.click(view.getByRole("button", { name: "HMMWV" }));
+  expect(choose).toHaveBeenCalledExactlyOnceWith("hmg");
+});
+
+test("a taken lookup is cleared, so a remount cannot replay it", () => {
+  const props = {
+    cards: [card("base", "SEP v2")],
+    faction: "us" as const,
+    match,
+    onChoose: vi.fn(),
+    rules: RULES,
+  };
+  const handled = vi.fn();
+  const view = render(
+    <PurchasePicker {...props} lookup={{ card: "base", serial: 1 }} onLookupHandled={handled} />,
+  );
+  expect(handled).toHaveBeenCalledOnce();
+  expect(view.getByRole("textbox", { name: "Search units" })).toBeTruthy();
+  // The page clears the request after taking it; the menu stays open on the
+  // reveal it already took. A remount with the cleared request is a plain
+  // closed shop.
+  view.unmount();
+  const remounted = render(<PurchasePicker {...props} lookup={null} />);
+  expect(remounted.queryByRole("textbox", { name: "Search units" })).toBeNull();
+});
