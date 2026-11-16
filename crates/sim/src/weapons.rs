@@ -13,7 +13,7 @@ pub use arsenal::{Arsenal, MountSpec, Weapon};
 mod admission;
 mod assessment;
 pub use admission::check_rules;
-use assessment::{assess, Assessed, Ready};
+use assessment::{assess, seen_soldiers, Assessed, Ready};
 mod bearing;
 mod cycle;
 mod fire_point;
@@ -1356,22 +1356,9 @@ fn fire(
     } else {
         Vec::new()
     };
-    // Aim points: seen soldiers in turn, a sampled point in an area, or the point.
-    let seen: Vec<V3> = match target {
-        Target::Unit(u) if !units[u.0 as usize].is_vehicle() => knowledge
-            .track(u)
-            .map(|t| {
-                t.members
-                    .iter()
-                    .map(|&m| {
-                        units[u.0 as usize].members[m].exposed(ctx.tick)
-                            + v3(0.0, 0.0, ctx.rules.physics.infantry_aim_m)
-                    })
-                    .collect()
-            })
-            .unwrap_or_default(),
-        _ => Vec::new(),
-    };
+    // Aim points: seen soldiers in turn, from the one the assessment found,
+    // a sampled point in an area, or the point.
+    let seen = seen_soldiers(ctx, unit.side, units, target);
     // Cover comes from how the target is observed: a garrison at its
     // building's slots (Q22); a soldier aimed at in the open by his cover
     // body's tier (Q20), vehicles near him among them. Vehicles get none.
@@ -1413,7 +1400,7 @@ fn fire(
                     ctx.world.height_at(p.x, p.y).unwrap_or(0.0) + ctx.rules.physics.infantry_aim_m,
                 )
             }
-            _ if !seen.is_empty() => seen[n % seen.len()],
+            _ if !seen.is_empty() => seen[(n + ready.soldier) % seen.len()],
             _ => r.point,
         };
         // A soldier whose slot does not face this round's point holds it.
@@ -1432,7 +1419,7 @@ fn fire(
             leaning: false,
         };
         let soldier = member.map(|k| &unit.members[k]);
-        let turn = (0..seen.len()).map(|j| seen[(n + j) % seen.len()]);
+        let turn = (0..seen.len()).map(|j| seen[(n + ready.soldier + j) % seen.len()]);
         let found = turn.chain([point]).find_map(|p| {
             // A farther candidate can face a different side of the building.
             if unit.garrisoned() && !faces(p) {

@@ -1,6 +1,7 @@
 //! Whether a mount can shoot a target now: permitted, with a usable kind
 //! and a clear solution, assessed once per target each tick.
 use contract::catalog::AltitudeLayer;
+use contract::ids::Side;
 use contract::observation::ActionReason;
 
 use super::window_requests::assess_windows;
@@ -8,7 +9,8 @@ use super::{
     bearing_from, engage, guidance_clear, hull_fixed, nose_on, permitted, preferred_kind,
     seeker_in_fov, FireContext, Mount, MountSpec, Resolved, Target,
 };
-use crate::math::V3;
+use crate::flight::FiringSolution;
+use crate::math::{v3, V3};
 use crate::units::Unit;
 
 /// One mount's assessments this tick, by target: choosing its lock and then
@@ -21,12 +23,14 @@ pub(super) struct Assessed {
 }
 
 /// A shot an assessment found: the kind it would load, how long its round
-/// flies to meet the target and where it meets it.
+/// flies to meet the target and where it meets it, and the seen soldier
+/// ([`seen_soldiers`]) its rounds start from.
 #[derive(Clone, Copy)]
 pub(super) struct Ready {
     pub(super) kind: usize,
     pub(super) time_of_flight_s: f64,
     pub(super) intercept: V3,
+    pub(super) soldier: usize,
 }
 
 impl Assessed {
@@ -108,6 +112,86 @@ pub(super) fn assess(
             _ => {}
         }
     }
+    // A squad is aimed at the middle of what its side sees. A garrison is
+    // seen at windows round its building, so that middle may lie behind its
+    // own walls where no round or sight line reaches: a gun then aims at the
+    // soldiers its side sees at the windows, the first it can hit in the
+    // order its rounds walk them.
+    let at = |point| {
+        aim(
+            ctx,
+            unit,
+            units,
+            mount,
+            spec,
+            k,
+            target,
+            &Resolved { point, ..*r },
+        )
+    };
+    let (soldier, s) = match at(r.point) {
+        Err(why @ (ActionReason::BlockedTrajectory | ActionReason::NoOwnSight))
+            if garrisoned(units, target) =>
+        {
+            let seen = seen_soldiers(ctx, unit.side, units, target);
+            (seen.iter().enumerate())
+                .find_map(|(j, &p)| at(p).ok().map(|s| (j, s)))
+                .ok_or(why)?
+        }
+        solved => (0, solved?),
+    };
+    Ok(Ready {
+        kind: k,
+        time_of_flight_s: s.time_of_flight_s,
+        intercept: s.intercept,
+        soldier,
+    })
+}
+
+/// Whether `target` is a squad fighting from a building.
+fn garrisoned(units: &[Unit], target: Target) -> bool {
+    matches!(target, Target::Unit(u) if units[u.0 as usize].garrisoned())
+}
+
+/// Where to aim at the soldiers `side` saw of a squad at its last sighting:
+/// each one's body now, out on his lean if he leans
+/// ([`Soldier::exposed`](crate::units::Soldier::exposed)). Empty for a
+/// vehicle, an area, a point or a round.
+pub(super) fn seen_soldiers(
+    ctx: &FireContext,
+    side: Side,
+    units: &[Unit],
+    target: Target,
+) -> Vec<V3> {
+    let Target::Unit(u) = target else {
+        return Vec::new();
+    };
+    let unit = &units[u.0 as usize];
+    match ctx.knowledge[side.index()].track(u) {
+        Some(t) if !unit.is_vehicle() => (t.members.iter())
+            .map(|&m| {
+                unit.members[m].exposed(ctx.tick) + v3(0.0, 0.0, ctx.rules.physics.infantry_aim_m)
+            })
+            .collect(),
+        _ => Vec::new(),
+    }
+}
+
+/// Whether this mount, loading kind `k`, can fire at `r.point` from here:
+/// its seeker cone, a winged aircraft's nose, a guided round's sight line,
+/// and a clear solution ([`engage`]).
+#[allow(clippy::too_many_arguments)]
+fn aim(
+    ctx: &FireContext,
+    unit: &Unit,
+    units: &[Unit],
+    mount: &Mount,
+    spec: &MountSpec,
+    k: usize,
+    target: Target,
+    r: &Resolved,
+) -> Result<FiringSolution, ActionReason> {
+    let weapon = &ctx.arsenal.weapons[spec.kinds[k]].def;
     // A seeker only acquires inside its authored forward cone.  Once the
     // round is launched, its existing guidance contract takes over.
     if let Some(fov) = weapon.seeker_fov_deg {
@@ -148,9 +232,5 @@ pub(super) fn assess(
     {
         return Err(ActionReason::NoOwnSight);
     }
-    engage(ctx, unit, units, mount, spec, k, target, r).map(|s| Ready {
-        kind: k,
-        time_of_flight_s: s.time_of_flight_s,
-        intercept: s.intercept,
-    })
+    engage(ctx, unit, units, mount, spec, k, target, r)
 }

@@ -9,6 +9,7 @@ use sim::garrison::seats_for_state;
 
 use crate::common;
 
+mod engaged;
 mod occupancy;
 
 const TEMPLATE: &str = "china-apartment-point-20x20-7f";
