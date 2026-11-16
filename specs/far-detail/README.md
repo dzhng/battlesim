@@ -1,7 +1,7 @@
 # Far detail
 
 **Status:** 00, 01 and 02 are done; 03 (parked cars) is merged. 04 (walls)
-is in progress, and slice 03's shadow arm is built but not measured. Both spikes (05, 06) ended in no-go. **Updated:** 2026-11-16.
+is on a third attempt and slice 03's shadow arm is being measured. Both spikes (05, 06) ended in no-go. **Updated:** 2026-11-16.
 
 In the wide view the game draws about 100,000 small props, most of them only a
 pixel or two across, at the same mesh it uses when they are twenty pixels tall.
@@ -37,9 +37,20 @@ You are implementing `specs/far-detail/` on branch
 - **The rule every far mesh now follows:** the side's fog of war judges each
   surface by its own plane and facing, so a far mesh may drop geometry but may
   not reshape it. It draws only surfaces tier 3 draws.
-- **[Slice 04](slices/04-next-kinds.md), courtyard walls, is being built** on
-  branch `t3/far-mesh-prop-bundles`, against the integration branch with no car
-  art, so the wall is its only variable.
+- **[Slice 04](slices/04-next-kinds.md), courtyard walls, is on its third
+  attempt**, on branch `t3/far-mesh-prop-bundles`, nothing committed. Dropping
+  the piers failed on colour; dropping one pier failed an unprimed critique
+  (run ends and lone modules lose a post). The third drops only faces nothing
+  can ever see (undersides, faces buried in other parts) and keeps both piers,
+  and its bar is that the pictures do not change at all.
+- **Two follow-ups to the car are in flight** on that branch: a helper fix so
+  a far part is occluded as tier 3 is, and the same hidden-face reading for
+  the car.
+- **Slice 03's shadow arm is being measured** on branch
+  `t3/far-detail-census-ceiling`, at the day sun and the lowest authored sun.
+- **A first push to `staging` is being prepared** on branch
+  `t3/far-detail-staging-merge`: `staging` moved 104 commits and overlaps the
+  validator split, the count run and the simulation.
 - **05 is done: no-go.** Separate props do not simplify across each other,
   and any reshaping changes the fog look
   ([verdict](assets/block-merge-verdict.md)).

@@ -196,3 +196,13 @@ identity and lifetime.
 Decision 47's reason still holds for the shipped mesh: `far_px` stays 4.
 Decision 51 is moot for cars: the shipped far mesh adds no new parts.
 
+## From slice 04's first two attempts, 2026-11-16
+
+| # | Question | Decision and why | Verdict |
+| --- | --- | --- | --- |
+| 61 | The wall without its piers (40 of 88 triangles)? | Rejected by its implementer. Far walls read up to 3 levels darker with fog on or off: the piers' light tops carry the wall's look from above, the failure the older coarse wall had. | sound |
+| 62 | The wall with one pier per module (64 triangles)? | Not shipped. A fresh critic could not tell the builds apart at full size, but enlarged it found posts going dark at regular spacing, the fog rim's outline changing where a pier used to cross it, and a lopsided far level. Every run's end and every lone module loses a post, and a part of a visible object vanishing is what the plan forbids. | reviewer |
+| 63 | A third attempt, beyond the slice's two? | Yes, because it is a different idea. The model passes do not cull back faces, so tier 3's undersides and buried faces are rasterised today. Dropping only those keeps both piers and should change no pixel; the bar is that the pictures match as closely as two loads of one build do. About 30 of 88 triangles by the reviewer's count, to be checked against the geometry. | open |
+| 64 | How is a far part shaded in Blender? | As tier 3 is: same segment count, same paint split, and occluded by tier 3's parts. Before, a far part was occluded only by other far parts, so a far mesh baked lighter beside whatever it dropped. Found by slice 04; it replaces decision 29's provisional values. | sound |
+| 65 | Does the tactical view stay untouched? | Not for walls: at the shared threshold about 290 of 1,700 walls on screen at 260 m draw far, all in the far strip at the top of the frame. That is acceptable only for a far mesh that changes no pixel. | follows from 63 |
+
