@@ -1,6 +1,6 @@
 # Shared hosts: buildings and transports admit squads alike
 
-**Status:** in progress; slices 00, 01, 01a, 02, 03 and 04 done (06 in progress in a parallel checkout). **Updated:** 2026-11-16.
+**Status:** in progress; slices 00 to 06 done; 07 remains. **Updated:** 2026-11-16.
 
 Several squads share a host (a building or a carrier) while seats remain, one
 seat per living soldier, squads whole. A squad gets in when it arrives and
@@ -10,15 +10,17 @@ decision (`specs/done/battle-look/decisions.md`).
 
 ## Next Agent Prompt
 
-You are implementing this plan from slice 05. Slice 06 is being built in
-parallel in another checkout; don't take it up. Read, in order: this file, the
+You are implementing this plan from slice 07. Read, in order: this file, the
 [decisions ledger](decisions.md), the slice you are about to build, and, for
 the history of how each decision was reached, the
 [unknowns map](unknowns-map.html) (its plan and prompt sections are
-superseded by this file). Before slices 05–06 read
+superseded by this file). Before changing player text read
 [`game-ui`](../../.agents/skills/game-ui/SKILL.md).
 
-Next pickup: **[slice 05, seat total published](slices/05-seats-on-the-panel.md).**
+Next pickup: **[slice 07, labs, recordings, player text, docs and
+closeout](slices/07-labs-docs-closeout.md).** Its capture re-record must be
+a fresh browser run: the captures' battles have drifted, so the native
+re-publish can't stand in (ledger, Slice 05).
 
 The digest gates run with one command from the repository root:
 
@@ -40,8 +42,7 @@ It prints each case's first differing tick and exits 1 if anything outside
 checkout copies `throwaway/shared-hosts/` across.
 
 Host seats and admission live in `crate::hold` (`Seats`, `admit`,
-`Seats::free`); slice 05 publishes the building's total from the same
-`Seats` rule.
+`Seats::free`); a building's hold publishes `Seats`' total as `hostSeats`.
 
 Checklist (each item is its slice's whole contract):
 
@@ -51,7 +52,7 @@ Checklist (each item is its slice's whole contract):
 - [x] 02 · One window plan per building, outcomes unchanged ([slice](slices/02-one-window-plan.md))
 - [x] 03 · Admission on arrival for both hosts; the relief test goes green ([slice](slices/03-admission-on-arrival.md))
 - [x] 04 · Window swaps and reinforcement span the building ([slice](slices/04-building-wide-occupancy.md))
-- [ ] 05 · Seat total published; the IN BUILDING row reads used/total ([slice](slices/05-seats-on-the-panel.md))
+- [x] 05 · Seat total published; the IN BUILDING row reads used/total ([slice](slices/05-seats-on-the-panel.md))
 - [x] 06 · One ring and one outline per house ([slice](slices/06-one-mark-per-house.md))
 - [ ] 07 · Labs, recordings, player text, docs and closeout ([slice](slices/07-labs-docs-closeout.md))
 

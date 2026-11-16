@@ -417,3 +417,70 @@ things the plan left open.
   under the lab panel.
 - **Human review** was shown non-blocking and got no reply; closed and
   continued on the evidence.
+
+## Slice 05
+
+- **Confirmed first:** `seatsRow` counts every own squad whose hold names the
+  carrier, in any phase (boarding, aboard, getting out), by living soldiers.
+  The IN BUILDING count uses the same sum (`seatsTaken`) over the own squads
+  whose hold names the same building, so stepping in and stepping out count,
+  as admission's end check does. The side's whole list is counted, an ally's
+  squads included, as the simulation's `Seats` does.
+- **The published total is `hold::Seats::of(..).total`,** the number
+  admission counts against: the plan's length while a squad is inside or
+  leaving, else `seats_for_state` of the standing building. `hold::state`
+  therefore takes the units and the windows. The relief test asserts every
+  tick that each squad holding the house publishes that total (falsified by
+  publishing the plan's length alone: 0 while the first squad steps in).
+- **Wire name `hostSeats`,** an own-row field after `hostHalfY`, -1 for a
+  carrier or no hold. The reader's view and the browser's `HoldHostView`
+  carry it as `host.seats` on a building only.
+- **Row text `IN BUILDING · SEATS used/total`.** The first take,
+  `IN BUILDING used/total`, was read by the unprimed critique as men left of
+  a full squad (beside the strength pips); naming the count SEATS, the
+  carrier row's word, removes that and keeps one word for one concept. The
+  mid-dot is the panel's existing separator. Only the inside row changes:
+  entering and leaving keep their timer rows and show no count, and the
+  compact card still shows only the house icon by the name (the row is not
+  `compact`), because the slice variable is the row's text.
+- **Room under the size ratchet, moved by concept, in the same commit**
+  (the ratchet compares with the previous commit): a group's delivery
+  operations to `publication/operations.rs`, the reader's hold decode to
+  `publication/reader/hold.rs`, the carrier orders' command-time refusals
+  from `Battle` to `hold::refuse_oversized_riders`, and the shout
+  publication tests to `tests/publication/shouts.rs`. The probe of the moves
+  alone (before the field) was identical to the starting commit in every
+  group.
+- **Publication records.** Re-blessed natively: the five paired streams
+  change only `publication_sha256` (digests and fog hashes unchanged), and
+  `codec-vectors.json` changes only the own group's fields (`hostSeats`
+  inserted), one more word per vector, and `seats` added by hand to the
+  building hosts of its frames (12).
+- **Not re-recorded: the capture files and what reads them.** A new own
+  field makes every capture's layout unreadable to the reader, and
+  `fixtures/README.md` asks for a fresh browser run. The native re-publish
+  path (`capture_publication::refresh`) cannot stand in: each capture's
+  recorded battle digests no longer match today's battle (paris-corner run
+  and counts from tick 551, the market-town window at 1825), and the probe's
+  `BASELINE` already has today's digests at those ticks, so the drift
+  predates this plan. Left for slice 07's browser capture run, where the
+  plan already puts it (`native-parity-capture`, GPU, visible page): the
+  paris-corner run and
+  counts, the market-town window, both `*-observations.json`, and then one
+  `BLESS_PARITY=1` of `fog-sight-vectors.json` (its street layout and every
+  run), `poses` and `effects`. Until then `publication_reader`,
+  `captureObservations`, `fog_sight` and the presentation and native-client
+  tests that read the captures fail at the reader's layout check.
+- **Critique.** The second unprimed critique judged the new row better than
+  the bare IN BUILDING and saw no clipping. Its other findings predate the
+  slice or lie outside its variable: row order (lasting rows first), compact
+  cards and stepping in or out showing no count, the timer ring wider than
+  the icon column, repeated icons, faint empty pips, the small house glyph,
+  and the long row setting the panel's width.
+- **Panels baselines** re-approved after inspection: own states, own busiest
+  and over grass (the specimens inside a building, and the neighbours they
+  push right), both army-deck garrison-exit hovers, and the new shared-house
+  group.
+- **Human review** was shown non-blocking (shots in
+  `throwaway/shared-hosts/shots-05/`) and got no reply; closed and continued
+  on the evidence.
