@@ -1,89 +1,82 @@
-# 33 The servers face strangers
+# 33 Six-character rooms, one game a device
 
-**Stage:** Hosting. **Needs:** 31. **Carries:** P5, P25, decisions 14 and
-68. **Blocks** putting the lobby's address in the site.
+**Stage:** Hosting. **Needs:** 31. **Carries:** decision 68. **Changes**
+decision 14 and P25. **Blocks** putting the lobby's address in the site.
 
 ## Why
 
-Before the site points at the lobby, a reader with no history in this
-plan read the two servers as an attacker would (2026-11-16). Each finding
-below was then checked against the code. The lobby rents a machine on the
-owner's account for whoever asks, so the first group is about money as
-well as service.
+Before the site points at the lobby, a reader with no history in this plan
+read the two servers as an attacker would (2026-11-16) and found seven
+ways a stranger could cost the owner money or spoil other people's games.
+The user's ruling the same day: this is an alpha, not an enterprise app.
+Do not build a defence for each. One simple limit, the plain bugs fixed,
+and private rooms made easier to join, not harder to find.
 
-## What was found, and what must hold instead
+## Contract
 
-Anyone can do each of these with a browser id of their own making.
+- **A room's code is six characters,** from letters and digits that cannot
+  be mistaken for one another, typed in any case. It is the room's id and
+  its link, and it is not a secret: nothing counts wrong guesses and
+  nothing hides whether a room exists. The throttle on guesses goes, with
+  its refusal.
+- **One game a device.** A device may have one game of its own making
+  running at a time: a room it hosts, or a Frontline game it started.
+  Asking for a second is refused with a line that says so. A device is the
+  client's address as the host's proxy states it (`x-real-ip` on the
+  public route, read on 2026-11-16; a caller's own value for it does not
+  survive), and the browser id where there is no proxy. Joining somebody
+  else's room or game is never limited by this.
+- **Three plain bugs are fixed:**
+  - A room's map seed is a seed: anything else is refused. (Any text up to
+    the body limit was accepted and copied into the public list.)
+  - An order that names more units, or is larger, than a seat could mean
+    is refused before the battle sees it. (A stream of huge orders filled
+    the battle's memory and ended it for everyone.)
+  - A seat's place in its order sequence belongs to its occupant and is
+    new for the next one. (A player could leave a seat no later player
+    could give an order from.)
+- **A list that has not changed is not sent again.** Every room action
+  sent the whole public list to every reader.
 
-1. **Take every battle place, or rent machines without end.** One id can
-   host a room for every place the lobby has, and Start each one; a loop of
-   Play and leave rents a machine, draws its maps and gives it back, as
-   often as it likes.
-   **Instead:** a browser id hosts one room at a time. A client address
-   holds a small number of rooms and Frontline starts at once. The lobby
-   starts machines no faster than a rate set beside the other host
-   settings, and answers `full` beyond it.
-2. **Fill the lobby's memory, or everyone's bandwidth.** A room's map seed
-   may be any text up to the body limit, and is copied into the public
-   list; every action in a room sends the whole list to every reader again,
-   changed or not; a reader that stops reading is buffered for megabytes,
-   and nothing limits how many streams one client opens.
-   **Instead:** a seed is a seed and nothing longer. A list or room view
-   that has not changed is not sent. A browser id has one stream of each
-   kind, a client address a bounded number, and the server a ceiling. A
-   state stream's reader is given a small buffer.
-3. **Lock everyone out of joining rooms.** Wrong guesses at a room code
-   are counted against the socket's address, which behind the host's proxy
-   is the same for every player, and the count refuses right codes too.
-   **Instead:** guesses are counted against the client's own address, read
-   from the header the host's proxy sets and overwrites (checked on
-   2026-11-16: `x-real-ip` on the public route; a caller's own value for it
-   does not survive). The header's name is data under `deploy/`.
-4. **Find private rooms without guessing.** An action on a room answers
-   differently for a room that exists, with no throttle.
-   **Instead:** a caller who is not in a room is told `unknown`, whatever
-   they ask of it, and that counts as a guess.
-5. **End a battle for everyone.** An order may list any number of units
-   and be as large as the body limit; the simulation keeps every order it
-   is sent for the replay, refused or not.
-   **Instead:** an order names no more units and is no larger than a
-   bound, checked before the battle sees it, and a batch holds no more
-   orders than a seat may give in its window.
-6. **Break a seat for whoever sits in it next.** A seat's place in its
-   order sequence outlives its occupant, and a huge sequence number is
-   accepted.
-   **Instead:** a seat's transport state belongs to its occupant and is
-   new for the next one.
-7. **Predict room codes.** Codes come from the same ordinary random source
-   as the map seeds published beside them.
-   **Instead:** codes and keys come from the system's secure source.
+## Left as it is, by the user's ruling
 
-Also to do here, each small: a client address holds one seat in a battle
-(two ids from one person would otherwise read both sides); a log line
-cannot be split by a newline in a crash's text; the servers close
-connections that have gone quiet.
+Counting or limiting streams and connections; where room codes' randomness
+comes from; a client reading both sides with two ids; the order queue's
+length; the replay keeping refused orders. Named so nobody rediscovers
+them as news.
 
-## Not here
+## Seam
 
-- A cap on how many orders may wait in a unit's queue, and trimming the
-  replay's record of refused orders: both change the simulation and its
-  digests. Named for a later decision.
-- A longer room code. Decision 14 keeps `TANGO-4821`; with guesses counted
-  per client it holds for an alpha among friends.
-- The battle's seed in a ticket: a player facing AIs could replay the
-  battle ahead of it. Accepted for the alpha.
+`packages/multiplayer/src/room.ts` (the code, the seed's check) and
+[wire.md](../wire.md); `apps/game-server/src/rooms.ts`, `http/rooms.ts`,
+`frontline.ts`, `http/input.ts`, `http/seats.ts`; the Multiplayer page's
+join-by-code field and its refusal lines.
+
+## Run or see
+
+Create a private room: its code is six characters. Type it in lower case
+on another browser and you are in. Create a second room from the same
+device and you are told you already have one.
 
 ## Verification
 
-One test for each numbered finding, written as the attack: it succeeds on
-the code as it is and is refused after. Each against the real servers over
-HTTP, as the existing tests do.
+1. A code typed in another case, or with spaces around it, joins. Many
+   wrong codes in a row refuse nobody afterwards.
+2. One game a device: a second room, a Frontline start while hosting, and
+   a room while a Frontline game of one's own runs are each refused; a
+   second device is not; joining is not; the place frees when the game
+   ends.
+3. Each of the three bugs as its attack: accepted before, refused after,
+   and the battle or seat still works for the next player.
+4. A room action that changes nothing in the list sends no list record.
+5. A picture of the join field and the refusal line, with an unprimed
+   critique.
 
 ## Must stay green
 
-The multiplayer domain; `online-battle`, `room-lobby`, `frontline`.
+The multiplayer domain; `multiplayer`, `room-lobby`, `online-battle`.
 
 ## Delegated
 
-Every bound's value, as data beside its owner with a sentence saying what
-it protects; the refusals' names.
+The code's alphabet; the bounds on an order, as data beside their owner;
+the refusal's name and wording.

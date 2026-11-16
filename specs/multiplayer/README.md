@@ -39,9 +39,11 @@ and promote it, and build the native simulation for the battle server.
    on 2026-11-16), and Play timed again on the deployed lobby.
 2. **Slice 31,** a build is what both ends share. Without it the live
    lobby refuses every player after each promotion of the site.
-3. **Slice 33,** the servers face strangers: seven ways a stranger could
-   cost the owner money or end other people's games, found by an
-   independent read and checked. It blocks the site pointing at the lobby.
+3. **Slice 33,** six-character rooms and one game a device. An
+   independent read found seven ways a stranger could misuse the servers;
+   the user ruled on 2026-11-16 that an alpha gets one simple limit and
+   the plain bugs fixed, and that private rooms should be easier to join,
+   not secret. It blocks the site pointing at the lobby.
 4. **Ship it.** Merge staging, run the plan's one full run (slice 27's
    steps 1 and 2), review, put the lobby's address in
    `apps/battle-lab/src/online/server.json`, land on staging, promote, and
@@ -187,7 +189,7 @@ Hosting
 - [x] [29 A sandbox for each battle](slices/29-sandbox-per-battle.md) (deployed; open measurements listed in the slice)
 - [ ] [30 One machine tries every draw](slices/30-one-machine-every-draw.md) (one machine: in; draws side by side: with Codex)
 - [ ] [31 A build is what both ends share](slices/31-a-build-is-what-both-ends-share.md)
-- [ ] [33 The servers face strangers](slices/33-the-servers-face-strangers.md)
+- [ ] [33 Six-character rooms, one game a device](slices/33-the-servers-face-strangers.md)
 - [ ] [27 Closeout](slices/27-closeout.md)
 
 ## Contracts this changes
@@ -246,7 +248,7 @@ The page's battle code keeps speaking the existing page-to-authority protocol
 | 29 | A sandbox for each battle | → 28 | A room battle through the deployed lobby, each battle on its own sandbox |
 | 30 | One machine tries every draw | → 29 | Play on an empty server in well under a minute |
 | 31 | A build is what both ends share | → 30 | A page plays on a lobby deployed from another commit when nothing they share differs |
-| 33 | The servers face strangers | → 31 | Each attack in the slice, refused |
+| 33 | Six-character rooms, one game a device | → 31 | A six-character code typed in lower case joins; a second game from one device is refused |
 | 27 | Closeout | → all | The one full run; docs; the plan archived |
 
 The same graph, drawn: [roadmap.html](visualizations/roadmap.html).

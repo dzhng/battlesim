@@ -41,6 +41,7 @@ Game design stays with the user.
 | 11 | The game page stays on its current host and calls the server cross-origin. | Territory |
 | 67 | Bento's public route carries the stream as well as the private one. Each order or preview through it takes about 300 ms from California. | Territory |
 | 68 | The rooms and Frontline service stays on Bento's VM. Each battle runs on a Bento sandbox of its own, started for it and stopped when it ends. | You, 2026-11-15, after the hosts were measured (slice 01): the VM runs a full battle at half speed and a sandbox does not. |
+| 69 | Security for the alpha is one limit, a game a device, and the plain bugs fixed. A room's code is six characters and is not a secret: nothing throttles guesses or hides a room. This replaces the code of decision 14 and the throttle of P25. | You, 2026-11-16: "This is an alpha game, not an enterprise app." |
 | 13 | A battle is the WebAssembly sim on its own worker thread inside the Node server. Native was no faster on Bento, so it stays a later swap. | Agent |
 | 57 | One publisher per side. The server never waits for a player. One who falls behind or returns from a hidden tab gets a fresh snapshot, and so do their teammates. | Agent |
 | 56 | The server accepts only orders and previews from a page. Pause, tab-hidden, start, side switch, replay export and controller changes are the server's. | Agent |
