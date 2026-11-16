@@ -15,21 +15,14 @@ Every decision behind this plan was made with the user in a decision walk;
 
 ## Next Agent Prompt
 
-*Updated 2026-11-16.* You are implementing this spec. Done so far: the behaviour-neutral
-split `00e9efe87` (command application → `battle/apply_command.rs`, attack ending →
-`battle/attack_order.rs`), and FX1/FX2 written with tests seen failing first (see the
-slice files for state). Pick up at the first unchecked item below. Two lanes may run in
-parallel in separate worktrees: the **sim lane** (FX2, S1–S5) and the **presentation
-lane** (FX3, S6–S9); S6 merges after S2. Run only the domain tests a change reaches;
-the full closeout run happens once, in S10. Before ending a pass, update this section
-and tick the list.
-
-Presentation lane (branch `t3/queue-behind-attack-presentation`): FX3 and S6–S9 are done.
-Left for the integrator, each in its slice file: one fresh browser parity capture (S6; the
-capture's battle is stale on the base commit), the queued-step test behind an attack once
-S2 lands (S6), and decision 17's chain capture in a real skirmish (S9). The scene
-baselines (`unit-roster` and others with the top bar) predate staging's score meter and
-need a person to re-bless them.
+*Updated 2026-11-16.* Part 1 (FX1–FX3, S1–S10) is done, reviewed and pushed to
+`staging`. Pick up at **P1**, part 2: a jet's attack line drawn in 3D from the airframe to
+its target ([slice](slices/p1-jet-3d-attack-line.md)); its own push. Then close the
+spec with `close-spec`. Run only the tests of what the change touches (the user's
+call: no full closeout run). Open for the user's eye, not gating: at the zoom that
+fits a long queued chain, the overlay's existing stroke thinning and queued strength
+make the chain faint ([S9](slices/s9-queued-chain.md)). Update this section before
+ending a pass.
 
 - [x] Split `apply_units` / `update_pursuit` out of `battle.rs` (`00e9efe87`)
 - [x] [FX1](slices/fx1-garrisoned-attack-ends.md) garrisoned attack ends on target death (`fb32920bd`)
@@ -44,7 +37,7 @@ need a person to re-bless them.
 - [x] [S7](slices/s7-voice-steps.md) the voice queue reads the published steps
 - [x] [S8](slices/s8-attack-line.md) current attack line, reticle, chase-end reticle
 - [x] [S9](slices/s9-queued-chain.md) the queued chain
-- [ ] [S10](slices/s10-closeout.md) docs, `/review`, closeout run, push part 1 to staging
+- [x] [S10](slices/s10-closeout.md) docs, `/review` (two unprimed reviewers; fixes landed), re-recorded parity captures, re-approved unit-roster baselines, push part 1 to staging
 - [ ] [P1](slices/p1-jet-3d-attack-line.md) part 2: a jet's 3D attack line, its own push
 
 ## Contracts
