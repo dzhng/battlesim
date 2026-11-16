@@ -68,5 +68,7 @@ filter text alone.
 An unprimed critique of the first lookup shot flagged the auto-selected filter
 as a browser text selection. The lookup now opens without taking the keyboard,
 so the field keeps the store's ordinary text treatment and the already-open
-info card carries the cue. The final shot was checked again with fresh eyes
-against the approved search state.
+info card carries the cue. A second pass on that shot found the unfocused
+filter's rule too quiet, so the lookup marks the rule active without taking
+focus. The final shot was checked against the approved search state; the
+difference is the open info card and the exact term.

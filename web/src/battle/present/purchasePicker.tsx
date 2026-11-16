@@ -352,7 +352,7 @@ function PurchaseMenu({
             </button>
           ))}
         </div>
-        <label className="hud-purchase-search">
+        <label className="hud-purchase-search" data-lookup={revealed ? "true" : undefined}>
           <Icon path={hudIcon("search")} />
           <input
             ref={search}

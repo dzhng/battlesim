@@ -1560,6 +1560,12 @@ html {
   border-bottom-color: rgb(var(--hud-accent));
   box-shadow: 0 3px 6px -4px rgb(var(--hud-accent) / 0.8);
 }
+/* A lookup does not take the keyboard, but its filter still owns the store:
+   keep the term's rule at the active weight without a focus state. */
+.hud-purchase-search[data-lookup] input[type="text"] {
+  border-bottom-color: rgb(var(--hud-accent));
+  box-shadow: 0 3px 6px -4px rgb(var(--hud-accent) / 0.8);
+}
 .hud-purchase-search input::placeholder {
   color: rgb(var(--hud-text) / 0.45);
 }
