@@ -111,7 +111,9 @@ calls the same reader for workbench drafts.
   afterburner flame and engine trails and wingtip vapour, from the drawn
   models and their published flight.
 - [The view](src/view.rs): what the camera means for culling and detail, the one
-  tier rule every drawn model takes and the tier it casts with, and the
+  tier rule every drawn model takes and the tier it casts with (four mesh
+  tiers by projected size, then what the appearance carries past them: a
+  static prop's far mesh where its bundle has a fifth, or a unit's card), and the
   frame's `View` record (with the sky's corner rays) and camera uniform,
   the browser's camera math to the bit. Each batch also names the fog group
   it binds (`Batch.fog`). Battle and external tooling models take these same
