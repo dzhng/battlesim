@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import type { Faction, UnitCard } from "@packages/scene-assets/src/units";
 import { hudIcon } from "@packages/scene-assets/src/icons";
 import { isTypingTarget } from "../input/keyGuard";
@@ -10,8 +10,9 @@ import {
   cardPurchasable,
   enterChoice,
   filterCards,
+  shopOrder,
   UNIT_GROUPS,
-  familyGroups,
+  unitGroup,
   type BuyFacts,
   type UnitGroup,
 } from "./purchaseFilter";
@@ -34,10 +35,6 @@ function Price({ cost, credits, unsold }: { cost: number; credits: number; unsol
   const state = unsold ? " unsold" : cost > credits ? " too-dear" : "";
   return <span className={`hud-purchase-price${state}`}>{cost} CR</span>;
 }
-
-/** How long the pointer rests on another family, while a menu is open,
- *  before the hover moves to it. */
-const HOVER_INTENT_MS = 250;
 
 /** The shop's key. Tab, not a letter, so every letter stays a search
  *  character and no command key is spent: one key opens the shop, enters its
@@ -118,7 +115,8 @@ interface MenuProps extends Omit<PickerProps, "player"> {
   onClose: () => void;
 }
 
-/** Catalog families organize browsing; only a concrete available variant starts placement. */
+/** One card per variant, each under its own group's tab; clicking one starts
+ *  placing exactly that variant. */
 function PurchaseMenu({
   cards,
   faction,
@@ -131,9 +129,10 @@ function PurchaseMenu({
 }: MenuProps) {
   const catalog = useSessionCatalog();
   const [group, setGroup] = useState<UnitGroup>(UNIT_GROUPS[0].id);
-  const [family, setFamily] = useState<string | null>(null);
+  const [hovered, setHovered] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const search = useRef<HTMLInputElement>(null);
+  const infoId = useId();
   // The field waits for the key, so game keys stay the game's while the shop
   // is open; the key enters the field and, pressed in it, leaves it. Escape
   // anywhere but the field (which clears itself first) closes the shop ahead
@@ -165,109 +164,83 @@ function PurchaseMenu({
   };
   const available = cards.filter((c) => c.roster.factions.includes(faction));
   const searching = query.trim() !== "";
-  // The menu hangs from its family's card's top-left corner, measured
-  // after every render from the card itself (whatever chose the family),
-  // inside the picker's border, where absolute positions start.
+  // A search spans the roster; browsing shows the cards under the open tab.
+  const typeOf = (id: string) => (catalog.units.has(id) ? catalog.units.type(id) : null);
+  const shown = shopOrder(
+    searching
+      ? filterCards(available, query)
+      : available.filter((c) => unitGroup(c, typeOf(c.id)) === group),
+  );
+  const info = shown.find((c) => c.id === hovered);
+  // The info card hangs from its card's top-left corner, measured after every
+  // render from the card itself, inside the picker's border, where absolute
+  // positions start.
   const flyout = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const menu = flyout.current;
     const picker = menu?.closest<HTMLElement>(".hud-purchase-picker");
-    const card = picker?.querySelector<HTMLElement>(`[data-family="${family}"]`);
+    const card = picker?.querySelector<HTMLElement>(`[data-card="${hovered}"]`);
     if (!menu || !picker || !card) return;
     const at = card.getBoundingClientRect();
     const box = picker.getBoundingClientRect();
     menu.style.left = `${at.left - box.left - picker.clientLeft}px`;
     menu.style.top = `${at.top - box.top - picker.clientTop}px`;
   });
-  // Hover intent, as a web menu has it: while a menu is open, crossing
-  // another card on the way into the menu does not close it. Moving onto
-  // another family switches only after a pause; reaching the menu cancels.
-  const pendingHover = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const cancelHover = () => {
-    if (pendingHover.current) clearTimeout(pendingHover.current);
-    pendingHover.current = null;
-  };
-  const hover = (id: string | null, menuOpen: boolean) => {
-    cancelHover();
-    const show = () => setFamily(id);
-    if (menuOpen && id !== family) pendingHover.current = setTimeout(show, HOVER_INTENT_MS);
-    else show();
-  };
-  // A search spans the roster; browsing shows the group each family sits
-  // under (`familyGroups`). Both feed the same family grouping.
-  const typeOf = (id: string) => (catalog.units.has(id) ? catalog.units.type(id) : null);
-  const groupOf = familyGroups(available, typeOf);
-  const pool = searching
-    ? filterCards(available, query)
-    : available.filter((c) => groupOf(c) === group);
-  const families = new Map<string, UnitCard[]>();
-  for (const card of pool) {
-    const variants = families.get(card.family) ?? [];
-    variants.push(card);
-    families.set(card.family, variants);
-  }
-  const chosen = families.get(family ?? "") ?? [];
-  // Enter buys the sole family's first available variant; with several
-  // families shown, it no-ops.
-  const enter = searching ? enterChoice(pool, facts) : null;
+  // Enter buys the sole match; with several shown, it no-ops.
+  const enter = searching ? enterChoice(shown, facts) : null;
   // A tab is shown as soon as the pointer or focus reaches it; a click does
   // the same, for touch. Passing back over the shown tab changes nothing.
   const showGroup = (g: UnitGroup) => {
     if (searching || g === group) return;
     setGroup(g);
-    cancelHover();
-    setFamily(null);
+    setHovered(null);
   };
   return (
     <section
       className="hud-panel hud-purchase-picker"
       aria-label="Faction units"
-      onMouseLeave={() => hover(null, false)}
+      onMouseLeave={() => setHovered(null)}
     >
       <div
-        className="hud-purchase-families"
+        className="hud-purchase-cards"
         role="tabpanel"
         aria-label={searching ? "Search results" : UNIT_GROUPS.find((g) => g.id === group)?.label}
       >
-        {[...families].map(([id, variants]) => {
-          // Every card has its generated silhouette, keyed by card id: a
-          // unit type's from its model, a disabled card's from its source.
-          const unavailable = variants.every((v) => v.disabled_reason !== null);
-          const shown = variants.find((v) => v.disabled_reason === null) ?? variants[0];
-          const firstAvailable = variants.find((v) => cardPurchasable(v, facts));
+        {shown.map((card) => {
+          const unsold = card.disabled_reason !== null;
+          const purchasable = cardPurchasable(card, facts);
           return (
             <button
-              key={id}
+              key={card.id}
               type="button"
-              className={`hud-army-card hud-purchase-family${unavailable ? " unavailable" : firstAvailable ? "" : " short"}`}
-              aria-label={variants[0].roster.family_name}
-              aria-pressed={id === family}
-              data-family={id}
+              className={`hud-army-card hud-purchase-card${unsold ? " unavailable" : purchasable ? "" : " short"}`}
+              aria-label={card.name}
+              aria-disabled={!purchasable}
+              aria-pressed={card.id === hovered}
+              aria-describedby={card.id === hovered ? infoId : undefined}
+              data-card={card.id}
               // A click never takes the text cursor out of the field.
               onMouseDown={(event) => event.preventDefault()}
-              onMouseEnter={() => hover(id, chosen.length > 0)}
-              onFocus={() => hover(id, false)}
+              onMouseEnter={() => setHovered(card.id)}
+              onFocus={() => setHovered(card.id)}
               onClick={() => {
-                cancelHover();
-                setFamily(id);
-                if (firstAvailable) onChoose(firstAvailable.id);
+                setHovered(card.id);
+                if (purchasable) onChoose(card.id);
               }}
             >
-              <UnitFace kind={shown.id}>
-                <Price
-                  cost={Math.min(...variants.map((v) => v.cost))}
-                  credits={facts.credits}
-                  unsold={unavailable}
-                />
+              {/* Every card has its generated silhouette, keyed by card id: a
+                  unit type's from its model, a disabled card's from its source. */}
+              <UnitFace kind={card.id}>
+                <Price cost={card.cost} credits={facts.credits} unsold={unsold} />
               </UnitFace>
             </button>
           );
         })}
-        {searching && families.size === 0 && <p className="hud-purchase-empty">NO MATCH</p>}
+        {searching && shown.length === 0 && <p className="hud-purchase-empty">NO MATCH</p>}
       </div>
-      {/* The tabs stand under the cards, so a family's info cards, standing
-          on its card, never cover them. The filter stands at the row's right,
-          beside the tabs, and dims them while it owns the search. */}
+      {/* The tabs stand under the cards, so a card's info card, standing on
+          it, never covers them. The filter stands at the row's right, beside
+          the tabs, and dims them while it owns the search. */}
       <div className="hud-purchase-filter">
         <div className="hud-purchase-groups" role="tablist" aria-label="Unit groups">
           {UNIT_GROUPS.map(({ id, label }) => (
@@ -314,42 +287,27 @@ function PurchaseMenu({
           />
         </label>
       </div>
-      {/* The hovered family's info cards, one per variant (one for a
-          family of one), stacked in a hover menu standing on its card,
-          over the picker, so the picker never changes size: the deck's
-          own info panel, with the price. Clicking a card buys it. The
-          menu's transparent foot bridges the gap for the pointer;
-          leaving the picker closes it. */}
-      {chosen.length > 0 && (
-        <div className="hud-purchase-flyout" ref={flyout} onMouseEnter={cancelHover}>
+      {/* The hovered card's info card, standing on its card over the picker,
+          so the picker never changes size: the deck's own info panel, with
+          the price. It only shows; the pointer passes through it to the
+          cards beneath. */}
+      {info && (
+        <div className="hud-purchase-flyout" ref={flyout}>
           <div
-            className="hud-purchase-stack"
-            role="group"
-            aria-label={`${chosen[0].roster.family_name} variants`}
+            id={infoId}
+            role="tooltip"
+            aria-label={info.name}
+            className={`hud-panel hud-card hud-purchase-info${cardPurchasable(info, facts) ? "" : " short"}`}
           >
-            {/* The dearest on top, the cheapest nearest the pointer. */}
-            {[...chosen]
-              .sort((a, b) => b.cost - a.cost)
-              .map((card) => (
-                <button
-                  key={card.id}
-                  type="button"
-                  className="hud-panel hud-card hud-purchase-info"
-                  disabled={!cardPurchasable(card, facts)}
-                  aria-label={`${card.roster.variant} — ${card.cost} credits${card.disabled_reason !== null ? " — Unavailable" : ""}`}
-                  onClick={() => onChoose(card.id)}
-                >
-                  <InfoPanel panel={purchasePanel(catalog, card, rules)} />
-                  <span className="hud-purchase-info-foot">
-                    {card.disabled_reason !== null && <small>Unavailable</small>}
-                    <Price
-                      cost={card.cost}
-                      credits={facts.credits}
-                      unsold={card.disabled_reason !== null}
-                    />
-                  </span>
-                </button>
-              ))}
+            <InfoPanel panel={purchasePanel(catalog, info, rules)} />
+            <span className="hud-purchase-info-foot">
+              {info.disabled_reason !== null && <small>Unavailable</small>}
+              <Price
+                cost={info.cost}
+                credits={facts.credits}
+                unsold={info.disabled_reason !== null}
+              />
+            </span>
           </div>
         </div>
       )}

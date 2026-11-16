@@ -1580,7 +1580,7 @@ html {
   background: rgb(var(--hud-accent) / 0.16);
   box-shadow: inset 0 -2px 0 rgb(var(--hud-accent));
 }
-.hud-purchase-families {
+.hud-purchase-cards {
   display: grid;
   /* The army deck's own cards, at its size and spacing. */
   grid-template-columns: repeat(auto-fill, 64px);
@@ -1589,28 +1589,28 @@ html {
   overflow-y: auto;
 }
 /* The price stands where an owned unit's strength bar does. */
-.hud-panel button.hud-purchase-family {
+.hud-panel button.hud-purchase-card {
   padding-top: 10px;
   padding-bottom: 24px;
 }
-.hud-panel button.hud-purchase-family[aria-pressed="true"] {
+.hud-panel button.hud-purchase-card[aria-pressed="true"] {
   padding-top: 9px;
   padding-bottom: 23px;
 }
-.hud-purchase-family .hud-purchase-price {
+.hud-purchase-card .hud-purchase-price {
   position: absolute;
   bottom: 5px;
   inset-inline: 0;
   font-size: 10px;
   text-align: center;
 }
-/* A family no card of which can be bought: its silhouette and name dimmed,
-   as a greyed-out entry in the build list, the word saying why. */
-.hud-panel button.hud-purchase-family.unavailable {
+/* A card never sold: its silhouette and name dimmed, as a greyed-out entry
+   in the build list, the word saying why. */
+.hud-panel button.hud-purchase-card.unavailable {
   border-style: dashed;
   color: rgb(var(--hud-text) / 0.45);
 }
-.hud-purchase-family.unavailable > .ro-icon {
+.hud-purchase-card.unavailable > .ro-icon {
   opacity: 0.55;
 }
 /* What is never sold costs nothing the player can spend: its price stays
@@ -1622,49 +1622,41 @@ html {
 .hud-purchase-price.too-dear {
   color: rgb(var(--hud-bad));
 }
-/* A family that can't be bought now (credits, the unit cap, the battle over) is
-   dimmed as its variants' cards are; a family never sold is dashed besides.
-   An info card dims its words, never its plate: it stands over the picker. */
-.hud-panel button.hud-purchase-family.short,
-.hud-panel button.hud-purchase-info:disabled > * {
+/* A card that can't be bought now (credits, the unit cap, the battle over) is
+   dimmed, and so are its info card's words, never that card's plate: it
+   stands over the picker. A card never sold is dashed besides. */
+.hud-panel button.hud-purchase-card.short,
+.hud-purchase-info.short > * {
   opacity: 0.65;
-}
-.hud-panel button.hud-purchase-info:disabled {
-  opacity: 1;
 }
 .hud-purchase-price {
   font-size: 11px;
   color: rgb(var(--hud-credits));
 }
-/* A family's info cards, in a hover menu standing on the family's card (its
-   top-left corner is the anchor), over the picker's edge if need be. Its
-   transparent foot is the bridge the pointer climbs to reach it. */
+/* The hovered card's info card, standing on that card (its top-left corner
+   is the anchor), over the picker's edge if need be, 3 px clear of it. It
+   only shows: the pointer passes through to the cards it covers. */
 .hud-purchase-flyout {
   position: absolute;
   z-index: 1;
   transform: translateY(-100%);
   padding-bottom: 3px;
+  pointer-events: none;
 }
-/* One info card per variant, stacked, one width: the deck's info card (its
-   panel as the army card's hover draws it) with the price at its foot. */
-.hud-purchase-stack {
-  display: flex;
-  flex-direction: column;
-  /* The bridge's gap: one 3 px gap from card to card and down to the unit. */
-  gap: 3px;
-  width: max-content;
-}
-.hud-panel button.hud-purchase-info {
+/* The deck's info card (its panel as the army card's hover draws it) with
+   the price at its foot, in the shop's button lettering. */
+.hud-purchase-info {
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: 6px;
+  width: max-content;
   padding: 10px 12px;
   text-align: left;
   background: rgb(var(--hud-glass) / 0.98);
-}
-.hud-panel button.hud-purchase-info:hover:not(:disabled) {
-  border-color: rgb(var(--hud-accent) / 0.8);
 }
 .hud-purchase-info-foot {
   display: flex;

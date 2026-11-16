@@ -81,23 +81,25 @@ const card = (
   planned_weapons: [],
 });
 
-/** Each picker group the scene opens holds what its checks need: a family
- *  with an unsold variant (MBT), and beside a two-variant family one of a
- *  single variant, dearer than the short wallet (IFV·APC). */
-const CARDS: UnitCard[] = [
+/** Each picker group the scene opens holds what its checks need: two
+ *  siblings, one never sold (MBT), and beside two siblings a card of
+ *  another family, dearer than the short wallet (IFV·APC). The unsold card
+ *  borrows the first planned card's id for its silhouette, as the Armory's
+ *  planned card does. */
+const purchaseCards = (planned: string): UnitCard[] => [
   card("test_recon", "rec", "Recon Team", "Base", 120),
   card("test_rifle", "inf", "Rifle Section", "Base", 100),
   card("test_at", "inf", "AT Team", "Base", 150),
   card("test_tank", "veh", "Tank", "Base", 400),
-  card("test_tank_trophy", "veh", "Tank", "Trophy", 520, "Protection deferred"),
+  card(planned, "veh", "Tank", "Trophy", 520, "Protection deferred"),
   card("test_jeep", "veh", "Jeep", "Base", 80),
   card("test_gun_jeep", "veh", "Jeep", "HMG", 95),
   card("test_apc", "veh", "APC", "Base", 130),
   card("test_supply", "sup", "Supply Truck", "Base", 90),
 ];
 
-/** The Armory's fixed content: test units in every group but two, a family
- *  of two variants (Jeep), a card Europe fields too (Scout Car), and a
+/** The Armory's fixed content: test units in every group but two, two
+ *  sibling variants (Jeep), a card Europe fields too (Scout Car), and a
  *  planned card. The planned card borrows the first planned card's id for
  *  its silhouette, the one thing it cannot fabricate. */
 const armoryCards = (planned: string): UnitCard[] => [
@@ -240,6 +242,9 @@ function Purchase({ match }: { match: SkirmishView }) {
     specimenUnit(catalog, kind, { id: i + 1 }),
   );
   const armyState = useFeed({ own });
+  const [cards] = useState(() =>
+    purchaseCards(catalog.units.cards.find((c) => !catalog.units.has(c.id))!.id),
+  );
   return (
     <div className="hud">
       <ArmyDeck
@@ -250,7 +255,7 @@ function Purchase({ match }: { match: SkirmishView }) {
         contactLines={null}
         reinforcements={
           <PurchasePicker
-            cards={CARDS}
+            cards={cards}
             faction="us"
             match={match}
             player={match.players[0]}

@@ -46,7 +46,7 @@
   margin: 14px 16px 0;
 }
 
-/* ---- The list: faction tabs, group tabs, one tile per family ---------- */
+/* ---- The list: faction tabs, group tabs, one tile per card ------------ */
 .armory-list {
   position: relative;
   grid-column: 1;
@@ -103,8 +103,8 @@
   min-height: 0;
   overflow-y: auto;
 }
-/* The picker's family card, with its name above the price; its marks stand
-   on the name, so every tile's art sits on one line. */
+/* The picker's card, with its name above the price; its mark stands on the
+   name, so every tile's art sits on one line. */
 .hud-panel button.armory-tile {
   justify-content: flex-end;
   height: 128px;
@@ -256,11 +256,6 @@
   text-transform: uppercase;
   color: rgb(var(--hud-dim));
   border: 1px solid rgb(var(--hud-dim) / 0.6);
-}
-.armory-variants {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
 }
 .armory-description,
 .armory-planned {

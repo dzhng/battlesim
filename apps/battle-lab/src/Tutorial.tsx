@@ -176,14 +176,13 @@ export function Tutorial() {
             .
           </li>
           <li>
-            Each card is a family of units and shows its cheapest price, which warns you when you
-            cannot afford it. <strong>Hover</strong> a card to fan out its variants with their
-            weapons and prices, and click the one you want; click the card itself to take the first
-            one you can afford.
+            Each card is one unit, and its price warns you when you cannot afford it. Variants of
+            one design stand side by side, cheapest first. <strong>Hover</strong> a card to see its
+            name, weapons and price, and click it to buy that unit.
           </li>
           <li>
             Press <kbd>Tab</kbd> again to type a name into the search, and once more to leave it.{" "}
-            <kbd>Enter</kbd> buys when one family matches. <kbd>Esc</kbd> clears the search, then
+            <kbd>Enter</kbd> buys when one card matches. <kbd>Esc</kbd> clears the search, then
             closes the shop.
           </li>
           <li>
@@ -202,8 +201,8 @@ export function Tutorial() {
           </li>
         </ul>
         <Shot name="buy">
-          The MBT tab, the M1 Abrams family fanned out above its card: each variant&apos;s weapons,
-          ammunition and price.
+          The MBT tab, one tank&apos;s info card standing above its card: its weapons, ammunition
+          and price.
         </Shot>
         <Shot name="place" loop>
           Placing a rifle squad: its ghost shows where each soldier will stand. Over a building the
