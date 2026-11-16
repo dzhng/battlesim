@@ -42,7 +42,12 @@ test("fielding borrows source packets instead of copying the complete catalog in
     undefined,
   ];
   const source = new Fielding(...input);
-  const hashes = source.contents();
+  const pending = JSON.parse(source.pending_contents()) as { bundle: string; skeleton?: string }[];
+  const hashes = [
+    ...new Set(
+      pending.flatMap(({ bundle, skeleton }) => [bundle, ...(skeleton ? [skeleton] : [])]),
+    ),
+  ];
   source.free();
   // Unreferenced body padding is legal container data. It makes copying a whole
   // source observable without making its geometry or poses expensive to derive.
@@ -58,18 +63,19 @@ test("fielding borrows source packets instead of copying the complete catalog in
     return bytes;
   });
   expect(packets.length).toBeGreaterThan(1);
-  const lengths = Uint32Array.from(packets, (packet) => packet.length);
-  const bytes = new Uint8Array(packets.reduce((n, packet) => n + packet.length, 0));
-  let at = 0;
-  for (const packet of packets) {
-    bytes.set(packet, at);
-    at += packet.length;
-  }
+  const byHash = new Map(hashes.map((hash, i) => [hash, packets[i]]));
+  const contents = pending.map((content) => ({
+    content,
+    hashes: [content.bundle, ...(content.skeleton ? [content.skeleton] : [])],
+  }));
+  const largestContent = Math.max(
+    ...contents.map(({ hashes }) => hashes.reduce((n, hash) => n + byHash.get(hash)!.length, 0)),
+  );
+  const largestSource = Math.max(...packets.map((packet) => packet.length));
   const worker = new Worker(new URL("./harness/fielding-memory.mjs", import.meta.url), {
     workerData: {
       input,
-      bytes,
-      lengths,
+      sources: [...byHash],
       module: new URL("../src/wasm/renderer_browser/renderer_browser.js", import.meta.url).href,
       wasm: new URL("../src/wasm/renderer_browser/renderer_browser_bg.wasm", import.meta.url).href,
     },
@@ -78,7 +84,7 @@ test("fielding borrows source packets instead of copying the complete catalog in
     const result = await new Promise<{
       before: number;
       after: number;
-      missing: string[];
+      missing: typeof pending;
       work: { kinds: number; appearances: number };
     }>((resolve, reject) => {
       worker.once("message", resolve);
@@ -87,9 +93,10 @@ test("fielding borrows source packets instead of copying the complete catalog in
         if (code !== 0) reject(new Error(`fielding memory worker exited ${code}`));
       });
     });
-    // One concatenated boundary input plus at most one source's working space;
-    // retaining another complete set of packet bytes exceeds this budget.
-    expect(result.after - result.before).toBeLessThanOrEqual(bytes.length + Math.max(...lengths));
+    // The page sends one content at a time. Linear memory may hold that
+    // boundary input and one source's working space, never another complete
+    // set of padded sources. A smaller bound keeps the original no-copy claim.
+    expect(result.after - result.before).toBeLessThanOrEqual(largestContent + largestSource);
     expect(result.missing).toEqual([]);
     expect(result.work).toEqual({ kinds: 0, appearances: 0 });
   } finally {
@@ -199,7 +206,15 @@ test("fielding starts independent source reads together and releases every resul
     JSON.stringify(catalog),
     JSON.stringify(input.kinds),
   );
-  const wanted = fielding.contents();
+  const pending = JSON.parse(fielding.pending_contents()) as {
+    bundle: string;
+    skeleton?: string;
+  }[];
+  const wanted = [
+    ...new Set(
+      pending.flatMap(({ bundle, skeleton }) => [bundle, ...(skeleton ? [skeleton] : [])]),
+    ),
+  ];
   fielding.free();
   const requested: string[] = [];
   const files: Uint8Array[] = [];
