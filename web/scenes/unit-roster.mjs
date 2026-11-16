@@ -54,15 +54,16 @@ export async function run(ctx) {
   const cameraBeforePurchase = await page.evaluate(() => window.__lab.camera());
   await snapshot(ctx, page, "journey-zoom.png");
   await ctx.matchBaseline(page, "journey-zoom");
-  // Typing a family name and pressing Enter buys that family's first available
-  // variant and arms the ghost, the picker's own keyboard path.
+  // A search naming one variant, then Enter, buys it and arms the ghost: the
+  // picker's own keyboard path.
   await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
   const search = page.getByRole("textbox", { name: "Search units" });
-  await search.fill("abrams");
+  await search.fill("abrams sep v2 trophy");
   check(
     ctx,
-    (await page.locator(".hud-purchase-family").count()) === 1,
-    "a family-name filter narrows the picker to the one family",
+    (await page.getByRole("tabpanel", { name: "Search results" }).getByRole("button").count()) ===
+      1,
+    "a search naming one variant narrows the picker to its one card",
   );
   await search.press("Enter");
   await page.mouse.move(640, 340);
@@ -79,14 +80,13 @@ export async function run(ctx) {
   check(ctx, own(await obs(page)).credits === 1000, "Escape cancels the searched purchase free");
   await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
   await page.getByRole("tab", { name: "MBT", exact: true }).click();
-  await snapshot(ctx, page, "mbt-families.png");
-  // Hovering a family opens its variants' info cards over the picker;
-  // clicking the card would buy at once.
-  const abrams = page.getByRole("button", { name: "M1 Abrams", exact: true });
+  await snapshot(ctx, page, "mbt-cards.png");
+  // Hovering a card opens its variant's info card over the picker; clicking
+  // it places exactly that variant.
+  const abrams = page.getByRole("button", { name: "M1A2 SEP v2", exact: true });
   await abrams.hover();
-  await snapshot(ctx, page, "abrams-variants.png");
-  const variant = page.getByRole("button", { name: /^SEP v2 — \d+ credits$/ });
-  await variant.click();
+  await snapshot(ctx, page, "abrams-info.png");
+  await abrams.click();
   await page.mouse.move(640, 340);
   await page.waitForFunction(
     () => {
@@ -116,8 +116,7 @@ export async function run(ctx) {
   await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
   // The picker reopens on its first tab; pointing at a tab switches to it.
   await page.getByRole("tab", { name: "MBT", exact: true }).hover();
-  await page.getByRole("button", { name: "M1 Abrams", exact: true }).hover();
-  await page.getByRole("button", { name: /^SEP v2 — \d+ credits$/ }).click();
+  await page.getByRole("button", { name: "M1A2 SEP v2", exact: true }).click();
   await page.mouse.move(640, 340);
   await page.waitForTimeout(100);
   const cameraAtPlacement = await page.evaluate(() => window.__lab.camera());
@@ -150,8 +149,7 @@ export async function run(ctx) {
   // release. This is the second gesture the player uses in the same journey.
   await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
   await page.getByRole("tab", { name: "MBT", exact: true }).hover();
-  await page.getByRole("button", { name: "M1 Abrams", exact: true }).hover();
-  await page.getByRole("button", { name: /^SEP v2 — \d+ credits$/ }).click();
+  await page.getByRole("button", { name: "M1A2 SEP v2", exact: true }).click();
   const dragFrom = [560, 360];
   const dragTo = [700, 360];
   await page.mouse.move(...dragFrom);

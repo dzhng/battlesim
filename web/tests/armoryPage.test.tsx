@@ -1,10 +1,10 @@
 // The Armory page: a pick changes only the page's own state and the address
 // it mirrors, never the visit; an unknown unit opens the first tile; and the
-// tabs hold exactly what each faction fields, each family once, under its
-// own group. Every card of the catalog, never one roster entry.
+// tabs hold exactly what each faction fields, each card once, under its own
+// group, siblings together. Every card of the catalog, never one roster entry.
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test } from "vitest";
-import { FACTIONS } from "@packages/scene-assets/src/units";
+import { FACTIONS, type Faction, type UnitCard } from "@packages/scene-assets/src/units";
 import { ArmoryPage } from "@apps/battle-lab/src/armory/ArmoryPage";
 import { graphicsSettings } from "@apps/battle-lab/src/graphicsSettings";
 import { spoken } from "@apps/battle-lab/src/battleLinks";
@@ -22,9 +22,12 @@ afterEach(() => {
 
 const unit = () => new URLSearchParams(location.search).get("unit");
 const list = () => screen.getByRole("region", { name: "Units" });
-const tiles = () =>
-  within(list()).getByRole("tabpanel").querySelectorAll<HTMLButtonElement>("button[data-family]");
-const families = () => [...tiles()].map((t) => t.dataset.family!);
+const tiles = () => within(within(list()).getByRole("tabpanel")).getAllByRole("button");
+/** The card a tile of `faction` stands for: a name is unique in a faction. */
+const cardOf = (tile: HTMLElement, faction: Faction) =>
+  UNITS.cards.find(
+    (c) => c.name === tile.getAttribute("aria-label") && c.roster.factions.includes(faction),
+  )!;
 
 test("a pick replaces the address and never remounts the page", async () => {
   await visitApp(menuPage("armory").path);
@@ -53,7 +56,7 @@ test("an unknown unit falls back to the first tile and rewrites the address", as
   const first = tiles()[0];
   expect(first.getAttribute("aria-pressed")).toBe("true");
   const card = UNITS.cards.find((c) => c.id === unit());
-  expect(card?.family).toBe(first.dataset.family);
+  expect(card?.name).toBe(first.getAttribute("aria-label"));
   // The first group with a tile, under the first faction with one.
   const groups = within(list()).getByRole("tablist", { name: "Unit groups" });
   const open = within(groups)
@@ -62,15 +65,18 @@ test("an unknown unit falls back to the first tile and rewrites the address", as
   expect(open?.getAttribute("aria-selected")).toBe("true");
 });
 
-/** Every family each group tab of `faction` shows, by group. */
-function browse(faction: (typeof FACTIONS)[number]) {
+/** Every card each group tab of `faction` shows, in tile order, by group. */
+function browse(faction: Faction) {
   fireEvent.click(screen.getByRole("tab", { name: spoken(faction) }));
-  const shown = new Map<string, string[]>();
+  const shown = new Map<string, UnitCard[]>();
   for (const { id, label } of UNIT_GROUPS) {
     const tab = screen.getByRole("tab", { name: label });
     if (tab.hasAttribute("disabled")) continue;
     fireEvent.click(tab);
-    shown.set(id, families());
+    shown.set(
+      id,
+      tiles().map((t) => cardOf(t, faction)),
+    );
   }
   return shown;
 }
@@ -83,16 +89,16 @@ test("each faction tab lists exactly the cards that faction fields", () => {
   );
   for (const faction of FACTIONS) {
     const fielded = new Set(
-      UNITS.cards.filter((c) => c.roster.factions.includes(faction)).map((c) => c.family),
+      UNITS.cards.filter((c) => c.roster.factions.includes(faction)).map((c) => c.id),
     );
-    const shown = [...browse(faction).values()].flat();
-    // Each family once, under one group: a family never splits across tabs.
+    const shown = [...browse(faction).values()].flat().map((c) => c.id);
+    // Each card once, under one group.
     expect(shown.length, faction).toBe(new Set(shown).size);
     expect(new Set(shown), faction).toEqual(fielded);
   }
 });
 
-test("each group tab shows only its own group's cards", () => {
+test("each group tab shows its own group's cards, siblings together, cheapest first", () => {
   render(
     <WithTestCatalog>
       <ArmoryPage cards={UNITS.cards} />
@@ -100,19 +106,15 @@ test("each group tab shows only its own group's cards", () => {
   );
   for (const faction of FACTIONS)
     for (const [group, shown] of browse(faction)) {
-      const own = UNIT_GROUPS.find((g) => g.id === group)!;
-      for (const family of shown) {
-        const variants = UNITS.cards.filter(
-          (c) => c.family === family && c.roster.factions.includes(faction),
-        );
-        // Every variant is of the group's category, and at least one of
-        // them browses under the group by its own type.
-        for (const v of variants) expect(v.roster.category, v.id).toBe(own.category);
-        expect(
-          variants.some((v) => unitGroup(v, UNITS.has(v.id) ? UNITS.type(v.id) : null) === group),
-          `${faction} ${group} ${family}`,
-        ).toBe(true);
-      }
+      for (const c of shown)
+        expect(unitGroup(c, UNITS.has(c.id) ? UNITS.type(c.id) : null), c.id).toBe(group);
+      const families = shown.map((c) => c.family);
+      shown.forEach((c, k) => {
+        const next = shown[k + 1];
+        if (next?.family === c.family) expect(next.cost, next.id).toBeGreaterThanOrEqual(c.cost);
+        // A family, once left, never comes back.
+        else expect(families.slice(k + 1), `${faction} ${group}`).not.toContain(c.family);
+      });
     }
 });
 
@@ -129,12 +131,13 @@ test("a sheet heads its weapons only when it lists one", () => {
       const tab = screen.getByRole("tab", { name: label });
       if (tab.hasAttribute("disabled")) continue;
       fireEvent.click(tab);
-      for (const family of families()) {
-        fireEvent.click(list().querySelector(`button[data-family="${family}"]`)!);
+      for (const tile of tiles()) {
+        fireEvent.click(tile);
         const sheet = document.querySelector<HTMLElement>(".armory-sheet")!;
         const heading = within(sheet).queryByRole("heading", { name: "Weapons" });
         const mounts = sheet.querySelectorAll(".armory-mount").length;
-        expect(heading !== null, `${faction} ${family}: ${mounts} mounts`).toBe(mounts > 0);
+        const name = tile.getAttribute("aria-label");
+        expect(heading !== null, `${faction} ${name}: ${mounts} mounts`).toBe(mounts > 0);
         if (mounts === 0) unarmed++;
       }
     }

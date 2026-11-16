@@ -135,7 +135,7 @@ export async function run(ctx) {
   // Picks change the page in place: the list's element survives them all.
   await list.evaluate((e) => (window.__armoryList = e));
   const length = await page.evaluate(() => history.length);
-  const tiles = list.locator("button[data-family]");
+  const tiles = list.getByRole("tabpanel").getByRole("button");
   await tiles.nth(1).click();
   const picked = unit(page);
   await list
@@ -160,7 +160,7 @@ export async function run(ctx) {
   const kept = unit(page);
   await openMenu(page, page.url());
   await list.waitFor();
-  const pressed = await list.locator('button[data-family][aria-pressed="true"]').count();
+  const pressed = await list.getByRole("tabpanel").locator('button[aria-pressed="true"]').count();
   ctx.check(
     "a refresh reopens the same unit",
     unit(page) === kept && pressed === 1,
@@ -220,7 +220,7 @@ async function stageTour(ctx, page, list) {
     const group = await tab.getAttribute("aria-label");
     await tab.click();
     // The group's first typed tile: a planned one has nothing to stand.
-    const tile = list.locator("button[data-family]:not(.unavailable)").first();
+    const tile = list.getByRole("tabpanel").locator("button:not(.unavailable)").first();
     if ((await tile.count()) === 0) continue;
     if ((await tile.getAttribute("aria-pressed")) !== "true") await tile.click();
     const kind = unit(page);
@@ -335,7 +335,7 @@ async function roundTrip(ctx, origin) {
   let voices = 0;
   for (let g = 0; g < (await groups.count()) && voices === 0; g++) {
     await groups.nth(g).click();
-    const tile = list.locator("button[data-family]:not(.unavailable)").first();
+    const tile = list.getByRole("tabpanel").locator("button:not(.unavailable)").first();
     if ((await tile.getAttribute("aria-pressed")) !== "true") await tile.click();
     const kind = unit(page);
     await page.waitForFunction((k) => window.__armory?.shown()?.kind === k, kind, {

@@ -36,20 +36,20 @@ export function unitGroup(card: UnitCard, unit: Pick<UnitType, "roles"> | null):
   return (held || own[0]).id;
 }
 
-/** The group each of `cards` sits under. A family sits under the group of its
- *  first variant with a type (`typeOf`), so its tile never splits across two
- *  tabs; a family with no typed variant takes its category's first group, as
- *  `unitGroup` places a planned card. */
-export function familyGroups(
-  cards: readonly UnitCard[],
-  typeOf: (id: string) => Pick<UnitType, "roles"> | null,
-): (card: UnitCard) => UnitGroup {
-  const families = new Map<string, UnitGroup>();
-  for (const card of cards) {
-    const unit = families.has(card.family) ? null : typeOf(card.id);
-    if (unit) families.set(card.family, unitGroup(card, unit));
-  }
-  return (card) => families.get(card.family) ?? unitGroup(card, null);
+/** `cards` in shop order: siblings together, each family where its first
+ *  card stands, then cheapest first within it (catalog order breaks ties). */
+export function shopOrder(cards: readonly UnitCard[]): UnitCard[] {
+  const family = new Map<string, number>();
+  for (const card of cards) if (!family.has(card.family)) family.set(card.family, family.size);
+  return cards
+    .map((card, at) => ({ card, at }))
+    .sort(
+      (a, b) =>
+        family.get(a.card.family)! - family.get(b.card.family)! ||
+        a.card.cost - b.card.cost ||
+        a.at - b.at,
+    )
+    .map(({ card }) => card);
 }
 
 /** What the battle observes about buying right now. */
@@ -60,8 +60,8 @@ export interface BuyFacts {
   finished: boolean;
 }
 
-/** On sale, affordable, under the unit cap, battle running: the one answer the
- *  family card and the variant card both read. */
+/** On sale, affordable, under the unit cap, battle running: whether a card
+ *  can be bought now. */
 export function cardPurchasable(card: UnitCard, facts: BuyFacts): boolean {
   return (
     !facts.finished &&
@@ -82,9 +82,8 @@ export function filterCards(cards: readonly UnitCard[], query: string): UnitCard
   });
 }
 
-/** The card Enter buys: the sole matching family's first purchasable variant,
- *  or null with no family, several, or none purchasable. */
+/** The card Enter buys: the sole match, when it can be bought now; null with
+ *  none, several, or one not purchasable. */
 export function enterChoice(matches: readonly UnitCard[], facts: BuyFacts): UnitCard | null {
-  if (new Set(matches.map((card) => card.family)).size !== 1) return null;
-  return matches.find((card) => cardPurchasable(card, facts)) ?? null;
+  return matches.length === 1 && cardPurchasable(matches[0], facts) ? matches[0] : null;
 }
