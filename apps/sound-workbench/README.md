@@ -22,7 +22,7 @@ Audition centers mono material in stereo and uses a memoryless safety ceiling;
 safe brief attacks are not attenuated by a newly created compressor's startup.
 
 A weapon look's sound belongs to `presentation.json`: the Weapon looks tab
-selects a look, auditions its shot, blast, motor and material impacts, and edits
+selects a look, auditions its shot, blast, flight sound (at its starting pitch) and material impacts, and edits
 only `weapon_looks.<look>.sound`. Looks have no inheritance or delete-to-fallback
 control. Shared recording choices and material levels still come from the audio
 mix; auditioning a shared recording does not copy it into the look. Choosing

@@ -39,7 +39,7 @@ export function Library({
             sound.blast.far || snapshot.weaponDefaults.blast.far,
           ]
         : []),
-      ...(sound.motor ? [sound.motor.sound || snapshot.weaponDefaults.motor] : []),
+      ...(sound.flight ? [sound.flight.sound || snapshot.weaponDefaults.flight] : []),
     ]),
     ...Object.values(snapshot.weaponDefaults.impacts),
     ...Object.values(lookSounds).flatMap((sound) => Object.values(sound.impacts)),

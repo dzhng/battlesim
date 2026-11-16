@@ -1,7 +1,7 @@
 //! A weapon's appearance resolves once through the contract's ordinary catalog
 //! inheritance. Every presentation consumer reads the same admitted look.
 use crate::effects::tables::{FlashStyle, RoundScale, TracerStyle};
-use crate::sound::tables::{NearFar, OneShot};
+use crate::sound::tables::NearFar;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
@@ -44,11 +44,24 @@ pub struct LookSound {
     pub shot: Option<NearFar>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub blast: Option<NearFar>,
-    pub motor: Option<OneShot>,
+    pub flight: Option<FlightSound>,
     #[serde(default)]
     pub impacts: BTreeMap<String, String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub impact_scale: Option<f64>,
+}
+
+/// A flying round's loop, heard where it is until it lands: a rocket's
+/// motor, a bomb's whistle. Its pitch falls `glide_oct_per_s` octaves each
+/// second of the flight, as a falling bomb's whistle does in a war film.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct FlightSound {
+    #[serde(default)]
+    pub sound: String,
+    pub gain: f64,
+    #[serde(default)]
+    pub glide_oct_per_s: f64,
 }
 
 impl WeaponLook {
@@ -169,8 +182,8 @@ impl WeaponLooks {
                         && (look.blast.is_none() || look.sound.blast.is_none()),
                 ),
                 (
-                    "motor",
-                    row.ballistics.accel_mps2.is_some() && look.sound.motor.is_none(),
+                    "flight",
+                    row.ballistics.accel_mps2.is_some() && look.sound.flight.is_none(),
                 ),
             ];
             for (part, missing) in required {
@@ -254,9 +267,9 @@ impl WeaponLooks {
                     blast.far = audio.weapon_defaults.blast.far.clone();
                 }
             }
-            if let Some(m) = &mut s.motor {
+            if let Some(m) = &mut s.flight {
                 if m.sound.is_empty() {
-                    m.sound = audio.weapon_defaults.motor.clone();
+                    m.sound = audio.weapon_defaults.flight.clone();
                 }
             }
             for (hit, name) in &audio.weapon_defaults.impacts {
@@ -285,11 +298,14 @@ impl WeaponLooks {
                     "blast.far",
                     look.sound.blast.as_ref().map(|s| s.far.as_str()),
                 ),
-                ("motor", look.sound.motor.as_ref().map(|m| m.sound.as_str())),
+                (
+                    "flight",
+                    look.sound.flight.as_ref().map(|m| m.sound.as_str()),
+                ),
             ] {
                 if let Some(sound) = sound {
                     let recipe = catalog.sound(sound, &format!("{at}.{part}"))?;
-                    if recipe.looping != (part == "motor") {
+                    if recipe.looping != (part == "flight") {
                         return Err(format!(
                             "{at}.{part}: recording loop does not match its part"
                         ));

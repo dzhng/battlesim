@@ -8,7 +8,7 @@ use super::{
 
 impl Sound {
     /// Every loop wanted now: the bed, engines and running gear, turrets,
-    /// reverse, fires and motors; the loudest within the loop budget sound.
+    /// reverse, fires and flying rounds; the loudest within the loop budget sound.
     pub(super) fn update_loops(&mut self, clock: f64, now: f64, motion: &Motion, step: f64) {
         let tables = self.tables.clone();
         let p = &tables.audio;
@@ -107,27 +107,7 @@ impl Sound {
                 distance: p.distance[profile::BURNING],
             });
         }
-        for (key, m) in &self.motors.0 {
-            let u = clamp01((clock - m.t0) / self.dt);
-            let at = [0, 1, 2].map(|i| m.from[i] + u * (m.to[i] - m.from[i]));
-            let row = tables
-                .looks
-                .get(&m.kind)
-                .sound
-                .motor
-                .as_ref()
-                .expect("motor was admitted");
-            wants.push(LoopWant {
-                key: LoopKey::Motor(*key),
-                sound: row.sound.clone(),
-                bus: Bus::Effects,
-                gain: row.gain,
-                rate: 1.0,
-                position: Some(at),
-                priority: 0.0,
-                distance: p.distance[profile::WEAPONS],
-            });
-        }
+        self.flight_wants(clock, &mut wants);
         for w in &mut wants {
             w.priority = self.level(w.gain, w.position.as_ref(), w.distance);
         }

@@ -91,7 +91,7 @@ export function WeaponLooks({
       </section>
     );
   };
-  const motor = sound.motor;
+  const flight = sound.flight;
   const impacts = { ...snapshot.weaponDefaults.impacts, ...sound.impacts };
   return (
     <section className="sw-detail sw-global" data-weapon-looks>
@@ -116,34 +116,43 @@ export function WeaponLooks({
       {report("shot", "Shot", { near: "", far: "" })}
       {report("blast", "Blast", snapshot.weaponDefaults.blast)}
       <section className="sw-assignment">
-        <h3>Motor</h3>
-        {motor ? (
+        <h3>In flight</h3>
+        {flight ? (
           <div className="sw-controls">
-            {recipe("Motor recording", motor.sound || snapshot.weaponDefaults.motor, (value) =>
+            {recipe("Flight recording", flight.sound || snapshot.weaponDefaults.flight, (value) =>
               update((s) => {
-                s.motor!.sound = value;
+                s.flight!.sound = value;
               }),
             )}
             <NumberField
-              label="Motor gain"
-              value={motor.gain}
+              label="Flight gain"
+              value={flight.gain}
               max={100}
               onChange={(value) =>
                 update((s) => {
-                  s.motor!.gain = value;
+                  s.flight!.gain = value;
+                })
+              }
+            />
+            <NumberField
+              label="Pitch glide (octaves/s)"
+              value={flight.glide_oct_per_s ?? 0}
+              onChange={(value) =>
+                update((s) => {
+                  s.flight!.glide_oct_per_s = value;
                 })
               }
             />
             <button
               onClick={() =>
-                void play("sound", motor.sound || snapshot.weaponDefaults.motor, 0, motor.gain)
+                void play("sound", flight.sound || snapshot.weaponDefaults.flight, 0, flight.gain)
               }
             >
-              Play motor
+              Play flight
             </button>
           </div>
         ) : (
-          <p>No motor authored.</p>
+          <p>No flight sound authored.</p>
         )}
       </section>
       <section className="sw-assignment sw-look-impacts">

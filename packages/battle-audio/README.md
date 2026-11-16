@@ -32,6 +32,11 @@ its material, a glance by its ricochet, so a shell strikes and deflects off
 armour with weight a rifle round lacks. Its weapon look carries contact overrides and loudness; absent recording overrides
 use the mix's default for that part.
 
+A round seen in flight may carry a loop that follows it until it lands: a
+rocket's motor, a bomb's whistle (the look's `flight`). Its `glide_oct_per_s`
+lowers the loop's pitch for each second since the round was first heard, so a
+falling bomb's whistle drops as it nears the ground, as a war film plays it.
+
 A battle prepares only what it can play: the synthesized baselines and every
 assigned or replacing recipe. The rest of the library is stored for audition
 and downloads only when auditioned, so growing it costs a battle nothing. A synthesized baseline is

@@ -18,6 +18,7 @@ export const SOUNDS: Record<string, { loop: boolean }> = {
   explosion_far: { loop: false },
   footstep: { loop: false },
   motor: { loop: true },
+  whistle: { loop: true },
   engine_diesel: { loop: true },
   engine_small: { loop: true },
   rotor: { loop: true },

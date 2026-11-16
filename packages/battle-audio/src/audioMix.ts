@@ -107,7 +107,7 @@ export interface AudioMix {
     reverb_s: number;
     attack_s: number;
   };
-  /** Voices at once, of which `loops` may be loops (engines, fires, motors). */
+  /** Voices at once, of which `loops` may be loops (engines, fires, flying rounds). */
   budget: { voices: number; loops: number };
   /** The presentation clock standing still this long (wall seconds) is a hold
    *  (pause): transients fall silent, loops hold. */
@@ -125,7 +125,7 @@ export interface AudioMix {
   effects: Record<string, string>;
   weapon_defaults: {
     blast: { near: string; far: string };
-    motor: string;
+    flight: string;
     impacts: Record<string, string>;
   };
   vehicles: Record<string, VehicleSound>;

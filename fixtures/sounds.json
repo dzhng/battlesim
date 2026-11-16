@@ -5347,6 +5347,14 @@
       "gain": 1,
       "loop": true
     },
+    "whistle": {
+      "label": "Synth \u00b7 bomb whistle",
+      "clips": [],
+      "synth": "whistle",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": true
+    },
     "engine_diesel": {
       "label": "Synth \u00b7 engine diesel",
       "clips": [],

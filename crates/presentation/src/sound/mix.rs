@@ -149,7 +149,7 @@ impl AudioMix {
             "weapon_defaults.blast.near",
         )?;
         sound(&self.weapon_defaults.blast.far, "weapon_defaults.blast.far")?;
-        sound(&self.weapon_defaults.motor, "weapon_defaults.motor")?;
+        sound(&self.weapon_defaults.flight, "weapon_defaults.flight")?;
         for hit in self
             .impacts
             .keys()

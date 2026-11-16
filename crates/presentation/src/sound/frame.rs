@@ -17,7 +17,7 @@ use sim::publication::reader::{Shout as PublishedShout, SoundCue};
 
 pub use super::scripted::Scripted;
 pub use super::spatial::sector_pan;
-use super::tables::{pick, profile, Bus, Distance, SoundTables, VehicleSound};
+use super::tables::{pick, profile, Bus, Distance, SoundTables};
 use super::voices::{Request, Speakers};
 use crate::effects::cook_off::CookOffFeel;
 use crate::effects::launches::Launch;
@@ -26,8 +26,14 @@ use crate::records::{Emitter, NONE};
 use crate::seed::Key;
 use crate::world::Vec3;
 
+mod flight;
 mod loops;
+mod ordered;
 mod transients;
+mod vehicles;
+use flight::Flying;
+use ordered::Ordered;
+pub use vehicles::{vehicle_loops, VehicleLoop};
 
 /// Pending transients held at most; past it the oldest go.
 const PENDING_CAP: usize = 1024;
@@ -296,13 +302,13 @@ struct Sounding {
 }
 
 /// What a loop sounds for: one of a vehicle's layers (by its key's bits
-/// and slot), a fire (by its smoke source), a flying round's motor (by where
-/// its stretch ends), or the bed.
+/// and slot), a fire (by its smoke source), a flying round (by where its
+/// stretch ends), or the bed.
 #[derive(Clone, PartialEq)]
 enum LoopKey {
     Vehicle(u64, &'static str),
     Fire(String),
-    Motor([u64; 3]),
+    Flight([u64; 3]),
     Ambience,
 }
 
@@ -344,13 +350,6 @@ struct BurstVoice {
     heard: usize,
 }
 
-struct Motor {
-    kind: Arc<str>,
-    from: Vec3,
-    to: Vec3,
-    t0: f64,
-}
-
 /// A burning source's times (`presentation.effects.smoke`).
 #[derive(Clone, Copy, Debug, Deserialize)]
 pub struct SmokeTimes {
@@ -377,36 +376,6 @@ pub struct ShoutTake {
     pub duration: f64,
 }
 
-/// An insertion-ordered map: the order loops and fires were first wanted
-/// is the order they are stopped and ranked in.
-struct Ordered<K, T>(Vec<(K, T)>);
-
-impl<K: PartialEq, T> Ordered<K, T> {
-    fn get(&self, key: &K) -> Option<&T> {
-        self.0.iter().find(|(k, _)| k == key).map(|(_, v)| v)
-    }
-    fn get_mut(&mut self, key: &K) -> Option<&mut T> {
-        self.0.iter_mut().find(|(k, _)| k == key).map(|(_, v)| v)
-    }
-    fn remove(&mut self, key: &K) -> Option<T> {
-        let i = self.0.iter().position(|(k, _)| k == key)?;
-        Some(self.0.remove(i).1)
-    }
-    /// Sets `key`, keeping its place if it was already there.
-    fn set(&mut self, key: K, value: T) {
-        match self.get_mut(&key) {
-            Some(v) => *v = value,
-            None => self.0.push((key, value)),
-        }
-    }
-}
-
-impl<K, T> Default for Ordered<K, T> {
-    fn default() -> Self {
-        Self(Vec::new())
-    }
-}
-
 pub struct Sound {
     tables: Arc<SoundTables>,
     timing: Timing,
@@ -419,7 +388,7 @@ pub struct Sound {
     movers: HashMap<u64, Mover>,
     strides: HashMap<u64, Stride>,
     fires: Ordered<String, Fire>,
-    motors: Ordered<[u64; 3], Motor>,
+    flying: Ordered<[u64; 3], Flying>,
     bursts: HashMap<(u64, usize, Option<u64>), BurstVoice>,
     cue_heard: HashMap<(String, u64, Arc<str>), f64>,
     /// The enemy faction's shout pool, as far as the player has loaded it.
@@ -445,75 +414,12 @@ pub struct Sound {
     smoke_pops: super::smoke_pops::SmokePops,
 }
 
-/// Where a flying round's stretch ends, as a loop's key.
-fn end_key(p: &Vec3) -> [u64; 3] {
-    p.map(f64::to_bits)
-}
-
 fn clamp01(x: f64) -> f64 {
     x.clamp(0.0, 1.0)
 }
 
 fn lerp(a: f64, b: f64, t: f64) -> f64 {
     a + t * (b - a)
-}
-
-/// One of a vehicle's sounding loops.
-#[derive(Serialize)]
-pub struct VehicleLoop<'a> {
-    pub slot: &'static str,
-    pub distance: &'a str,
-    pub sound: &'a str,
-    pub gain: f64,
-    pub rate: f64,
-}
-
-/// The loops a vehicle of `row` sounds: its engine from idle to full `load`
-/// (a share of `full_speed_mps`), running gear rising with it, a turret's
-/// whine by `traverse` (a share of `full_traverse_rps`) and, `reversing`, the
-/// back-up beeper, steady whatever the speed, as an alarm is. A layer below
-/// audibility is left out.
-pub fn vehicle_loops(
-    row: &VehicleSound,
-    load: f64,
-    traverse: f64,
-    reversing: bool,
-) -> Vec<VehicleLoop<'_>> {
-    let mut loops = vec![VehicleLoop {
-        slot: "engine",
-        distance: &row.engine_distance,
-        sound: &row.engine,
-        gain: lerp(row.idle_gain, row.load_gain, load),
-        rate: lerp(row.idle_rate, row.load_rate, load),
-    }];
-    if let Some(running) = row.running.as_deref().filter(|_| load > 0.02) {
-        loops.push(VehicleLoop {
-            slot: "running",
-            distance: profile::SMALL_DETAILS,
-            sound: running,
-            gain: row.running_gain * load.sqrt(),
-            rate: 0.5 + load,
-        });
-    }
-    if let Some(turret) = row.turret.as_deref().filter(|_| traverse > 0.05) {
-        loops.push(VehicleLoop {
-            slot: "turret",
-            distance: profile::SMALL_DETAILS,
-            sound: turret,
-            gain: row.turret_gain * traverse,
-            rate: 0.9 + 0.2 * traverse,
-        });
-    }
-    if let Some(reverse) = row.reverse.as_deref().filter(|_| reversing && load > 0.02) {
-        loops.push(VehicleLoop {
-            slot: "reverse",
-            distance: profile::SMALL_DETAILS,
-            sound: reverse,
-            gain: row.reverse_gain,
-            rate: 1.0,
-        });
-    }
-    loops
 }
 
 impl Sound {
@@ -530,7 +436,7 @@ impl Sound {
             movers: HashMap::new(),
             strides: HashMap::new(),
             fires: Ordered::default(),
-            motors: Ordered::default(),
+            flying: Ordered::default(),
             bursts: HashMap::new(),
             cue_heard: HashMap::new(),
             shouts: Vec::new(),
@@ -660,7 +566,7 @@ impl Sound {
         self.movers.clear();
         self.strides.clear();
         self.fires.0.clear();
-        self.motors.0.clear();
+        self.flying.0.clear();
         self.bursts.clear();
         self.cue_heard.clear();
         self.barks.clear();
@@ -674,7 +580,7 @@ impl Sound {
 
     /// Takes one publication: what it shows happened becomes transients at
     /// their presentation times, and its smoke sources and flying rounds the
-    /// fire and motor loops. The same tick again is ignored.
+    /// fire and flight loops. The same tick again is ignored.
     pub fn note(&mut self, heard: &Heard, now: f64) -> &[Command] {
         self.out.clear();
         let fx = heard.effects;
@@ -774,7 +680,7 @@ impl Sound {
                 key,
             );
         }
-        let mut motors = Ordered::default();
+        let mut flying = Ordered::default();
         for s in &fx.segments {
             if s.path.len() < 2 {
                 continue;
@@ -837,24 +743,11 @@ impl Sound {
                     key,
                     key,
                 );
-            } else if tables.looks.get(&s.kind).sound.motor.is_some() {
-                // A motor loop follows connected stretches of the same round.
-                motors.set(
-                    end_key(&end),
-                    Motor {
-                        kind: s.kind.clone(),
-                        from: s.path[0],
-                        to: end,
-                        t0,
-                    },
-                );
-                let old = LoopKey::Motor(end_key(&s.path[0]));
-                if let Some(v) = self.loops.remove(&old) {
-                    self.loops.set(LoopKey::Motor(end_key(&end)), v);
-                }
+            } else if tables.looks.get(&s.kind).sound.flight.is_some() {
+                self.follow_flight(&mut flying, s, t0);
             }
         }
-        self.motors = motors;
+        self.flying = flying;
         for b in &fx.blasts {
             let s = tables
                 .looks
