@@ -253,6 +253,7 @@ impl Battle {
             .allocate(&mut self.units, &aims, &self.rules, self.tick);
         let shots =
             weapons::tick::advance(&context!(), &mut self.units, moved, &mut self.combat_rng);
+        self.hand_off_volleys(&shots);
         let fired = shots.iter().map(|s| s.unit).collect();
         for shot in shots {
             let side = self.units[shot.unit.0 as usize].side;

@@ -54,6 +54,46 @@ impl Battle {
         }
     }
 
+    /// Each attack with an order queued behind it counts this tick's fire
+    /// against its target, and hands off once its volley is done
+    /// ([`crate::volley`]). Measured right after the fire step, so the
+    /// rounds of the cycle that ends it have already left. A jet's attack
+    /// flown as runs is counted by its runs instead.
+    pub(super) fn hand_off_volleys(&mut self, shots: &[weapons::Shot]) {
+        for unit in &mut self.units {
+            if unit.orders.len() < 2 || unit.fixed_wing() && !dogfighting(unit) {
+                continue;
+            }
+            let (reach, garrisoned) = (unit.reach, unit.garrisoned());
+            let Some(UnitOrder::Attack {
+                target,
+                waiting: false,
+                volley,
+                ..
+            }) = unit.orders.front_mut()
+            else {
+                continue;
+            };
+            let ended = shots
+                .iter()
+                .filter(|s| s.unit == unit.id && s.target == *target && s.cycle_ended)
+                .fold(0, |rows, s| rows | 1 << s.mount);
+            let working = reach.ordered_firing;
+            let can_act = match target {
+                Target::Ground(_) => working != 0,
+                _ => reach.can_damage && (working != 0 || !garrisoned),
+            };
+            let fire = crate::volley::VolleyFire {
+                working,
+                ended,
+                can_act,
+            };
+            if volley.get_or_insert_default().observe(fire) {
+                unit.orders.pop_front();
+            }
+        }
+    }
+
     /// An attack pursues an identified target it cannot fire on from here, or
     /// its last reported place once identification lapses (W17); it ends on
     /// arriving there unseen, or when its area expires unidentified. A
@@ -112,4 +152,11 @@ impl Battle {
             }
         }
     }
+}
+
+/// A jet locked in a dogfight fires its guns in cycles, not in runs.
+fn dogfighting(unit: &Unit) -> bool {
+    unit.air
+        .as_ref()
+        .is_some_and(|air| air.dogfight_target.is_some())
 }

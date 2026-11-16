@@ -4,7 +4,7 @@
 garrisons and jets in a dogfight. C3's volley progress.
 
 **Seams.**
-- `crates/sim/src/attack/volley.rs` (new, pure, no `Battle`): `Volley` progress and two
+- `crates/sim/src/volley.rs` (new, pure, no `Battle`): `Volley` progress and two
   functions — `observe(volley, tick_report)` and `complete(volley, tick_report, aim) ->
   bool`. For a ground point, "can act" is "some row is firing"; for a unit or contact,
   "some row can damage it". Done when nothing can act, or something fired and every row

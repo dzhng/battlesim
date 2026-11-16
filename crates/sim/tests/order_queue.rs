@@ -36,9 +36,8 @@ fn alive(b: &Battle, id: u32) -> bool {
     b.unit(UnitId(id)).is_some_and(|u| u.alive())
 }
 
-/// A garrisoned squad told to attack an enemy, then to leave, leaves once
-/// the enemy is dead: the attack ends from inside the building as it does
-/// anywhere else.
+/// A garrisoned squad's attack ends once the enemy is dead: the attack
+/// ends from inside the building as it does anywhere else.
 #[test]
 fn a_garrisoned_attack_ends_when_its_target_dies() {
     let mut b = town(json!([
@@ -70,19 +69,9 @@ fn a_garrisoned_attack_ends_when_its_target_dies() {
             target: TargetRef::Identified { id: enemy },
         },
     );
-    let exit = Order::ExitBuilding {
-        units: vec![UnitId(0)],
-    };
-    assert_eq!(c.send(&mut b, Side::Blue, exit, true), None);
     until(&mut b, ticks(240.0), "the enemy dead", |b| !alive(b, 1));
     until(&mut b, ticks(5.0), "the attack over", |b| {
-        !matches!(
-            b.unit(UnitId(0)).unwrap().orders.front(),
-            Some(UnitOrder::Attack { .. })
-        )
-    });
-    until(&mut b, ticks(60.0), "the squad out", |b| {
-        !b.unit(UnitId(0)).unwrap().garrisoned()
+        b.unit(UnitId(0)).unwrap().orders.is_empty()
     });
 }
 
@@ -257,4 +246,323 @@ fn a_queued_attack_on_a_jet_starts_no_dogfight_before_its_turn() {
             "dogfighting before its turn"
         );
     }
+}
+
+/// A skirmish where blue buys one `blue` and red buys two rifle squads that
+/// can't hurt it; orders go through each side's player.
+struct Skirmish {
+    b: Battle,
+    seq: [u64; 2],
+}
+
+impl Skirmish {
+    fn new(blue: &str, category: &str) -> Self {
+        let mut rules = sim::fixtures::test_rules();
+        for (kind, faction, category) in [(blue, "us", category), ("test_rifle", "eastern", "inf")]
+        {
+            sim::fixtures::patch_catalog(
+                &mut rules,
+                "units",
+                kind,
+                json!({"roster":{"factions":[faction],"category":category,"family_name":"Test","variant":kind}}),
+            );
+        }
+        let setup = serde_json::from_value(json!({
+            "map":{"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[],"buildings":[]},
+            "rules":rules,"units":[],"events":[],"scripts":[],
+            "players": common::human_duel(),
+            "skirmish":{"rules":{"credits_per_minute":200,"starting_minutes":20,"preparation_s":0,"max_units":30,"max_players_per_side":10,"dispatch_interval_s":1,"capture_s":20,"majority_s":1800,"victory_score":1000},
+                "sites":{"entries":[{"side":"blue","center":[400,10],"yaw":0.0},{"side":"red","center":[400,590],"yaw":0.0}],
+                "objectives":[{"id":"center","center":[400,300],"radius_m":50,"kind":"junction","counterpart":null},{"id":"south","center":[150,450],"radius_m":40,"kind":"field","counterpart":"north"},{"id":"north","center":[650,450],"radius_m":40,"kind":"field","counterpart":"south"}]}}
+        }))
+        .unwrap();
+        let mut s = Skirmish {
+            b: Battle::new(&setup, 3),
+            seq: [0, 0],
+        };
+        s.ok(Side::Blue, Order::purchase(blue, [400.0, 60.0]), false);
+        s.ok(
+            Side::Red,
+            Order::purchase("test_rifle", [300.0, 540.0]),
+            false,
+        );
+        s.ok(
+            Side::Red,
+            Order::purchase("test_rifle", [500.0, 540.0]),
+            false,
+        );
+        s.ok(Side::Blue, Order::Ready, false);
+        s.ok(Side::Red, Order::Ready, false);
+        until(&mut s.b, ticks(60.0), "every purchase on the field", |b| {
+            b.observe(Side::Blue).own.len() == 1 && b.observe(Side::Red).own.len() == 2
+        });
+        // Nobody fires until blue's attack order chooses fire at will.
+        for side in [Side::Blue, Side::Red] {
+            let units = s.own(side);
+            let hold = Order::SetEngagement {
+                units,
+                policy: contract::command::Engagement::ReturnFireOnly,
+            };
+            s.ok(side, hold, false);
+        }
+        s
+    }
+
+    fn ok(&mut self, side: Side, order: Order, queued: bool) {
+        self.seq[side.index()] += 1;
+        let command = contract::command::CommandEnvelope {
+            queued,
+            ..crate::transport::side_command(side, self.seq[side.index()], order)
+        };
+        assert_eq!(self.b.accept(command).error, None);
+    }
+
+    fn own(&self, side: Side) -> Vec<UnitId> {
+        self.b.observe(side).own.iter().map(|u| u.id).collect()
+    }
+
+    /// Blue's view of the red squad standing nearest `p`.
+    fn seen_near(&mut self, p: [f64; 2]) -> contract::observation::ObservedTargetId {
+        until(&mut self.b, ticks(30.0), "both squads seen", |b| {
+            b.observe(Side::Blue).identified.len() == 2
+        });
+        let d = |t: &contract::observation::IdentifiedUnit| {
+            (t.position[0] - p[0]).hypot(t.position[1] - p[1])
+        };
+        let seen = &self.b.observe(Side::Blue).identified;
+        seen.iter().min_by(|a, c| d(a).total_cmp(&d(c))).unwrap().id
+    }
+}
+
+fn move_to(units: Vec<UnitId>, goal: [f64; 2]) -> Order {
+    Order::Move {
+        units,
+        gesture: 1,
+        goal,
+        route: contract::command::RoutePolicy::Shortest,
+        direction: contract::command::MoveDirection::Forward,
+        facing: None,
+    }
+}
+
+/// What a unit was doing, tick by tick: the kind of its current order,
+/// each run of one kind kept once, with the rounds it had fired by then and,
+/// for an attack, whether its target was still alive as it began.
+fn follow(b: &mut Battle, unit: UnitId, limit: u64) -> Vec<(&'static str, u32, bool)> {
+    let mut seen: Vec<(&'static str, u32, bool)> = Vec::new();
+    for _ in 0..limit {
+        let Some(u) = b.unit(unit).filter(|u| !u.retired) else {
+            return seen;
+        };
+        let shots: u32 = u.mounts.iter().map(|m| m.shots).sum();
+        let (kind, alive) = match u.orders.front() {
+            Some(UnitOrder::Attack { target, .. }) => (
+                "attack",
+                match target {
+                    sim::weapons::Target::Unit(id) => b.unit(*id).is_some_and(|t| t.alive()),
+                    _ => true,
+                },
+            ),
+            Some(UnitOrder::Withdraw) => ("home", true),
+            Some(UnitOrder::Move(_)) if u.withdrawing => ("home", true),
+            Some(UnitOrder::Move(_)) => ("move", true),
+            Some(_) => ("other", true),
+            None => ("idle", true),
+        };
+        match seen.last_mut() {
+            Some((k, _, _)) if *k == kind => {}
+            _ => seen.push((kind, shots, alive)),
+        }
+        b.step();
+    }
+    panic!("still on the field after {limit} ticks: {seen:?}");
+}
+
+/// The acceptance queue: attack → move → attack the same enemy → move →
+/// attack another → return to base, all shift-queued. Each attack fires a
+/// volley and hands off; every move is driven; the unit goes home.
+#[test]
+fn a_ground_unit_works_through_a_queue_of_attacks_moves_and_home() {
+    let mut s = Skirmish::new("test_tank", "veh");
+    let tank = s.own(Side::Blue)[0];
+    let squads = s.own(Side::Red);
+    s.ok(Side::Red, move_to(vec![squads[0]], [330.0, 420.0]), false);
+    s.ok(Side::Red, move_to(vec![squads[1]], [470.0, 420.0]), false);
+    s.ok(Side::Blue, move_to(vec![tank], [400.0, 280.0]), false);
+    until(&mut s.b, ticks(240.0), "everyone in place", |b| {
+        b.unit(tank).unwrap().orders.is_empty()
+            && squads.iter().all(|&q| b.unit(q).unwrap().orders.is_empty())
+    });
+    let a = s.seen_near([330.0, 420.0]);
+    let other = s.seen_near([470.0, 420.0]);
+    let attack = |id| Order::Attack {
+        units: vec![tank],
+        target: TargetRef::Identified { id },
+    };
+    s.ok(Side::Blue, attack(a), false);
+    s.ok(Side::Blue, move_to(vec![tank], [350.0, 300.0]), true);
+    s.ok(Side::Blue, attack(a), true);
+    s.ok(Side::Blue, move_to(vec![tank], [450.0, 300.0]), true);
+    s.ok(Side::Blue, attack(other), true);
+    s.ok(Side::Blue, Order::Refund { units: vec![tank] }, true);
+    s.b.step();
+    let seen = follow(&mut s.b, tank, ticks(300.0));
+    let kinds: Vec<_> = seen.iter().map(|(k, _, _)| *k).collect();
+    assert_eq!(
+        kinds,
+        ["attack", "move", "attack", "move", "attack", "home"],
+        "{seen:?}"
+    );
+    // The first attack fired a volley and handed off: the squad it hit
+    // was still alive for the second attack on it.
+    assert!(
+        seen[2].2,
+        "the first attack fought on until its target died: {seen:?}"
+    );
+    // An attack on a living target fires before it hands off; one whose
+    // target died meanwhile ends at once.
+    for w in seen.windows(2).filter(|w| w[0].0 == "attack" && w[0].2) {
+        assert!(
+            w[1].1 > w[0].1,
+            "an attack handed off without firing: {seen:?}"
+        );
+    }
+}
+
+fn ground_at(unit: u32, p: [f64; 2]) -> Order {
+    Order::Attack {
+        units: vec![UnitId(unit)],
+        target: TargetRef::Ground {
+            point: [p[0], p[1], 0.0],
+        },
+    }
+}
+
+/// The rounds the launcher's own mount has fired.
+fn salvo(b: &Battle) -> u32 {
+    b.unit(UnitId(0)).unwrap().mounts[0].shots
+}
+
+fn attacking(b: &Battle, unit: u32) -> bool {
+    matches!(
+        b.unit(UnitId(unit)).unwrap().orders.front(),
+        Some(UnitOrder::Attack { .. })
+    )
+}
+
+/// The test tank with its main gun reshaped into a salvo launcher: HE in a
+/// magazine of `rounds` with no burst and a long reload. (Its HMG stays.)
+fn launcher(rounds: u32) -> Battle {
+    let mut rules = sim::fixtures::test_rules();
+    rules["weapons"]["tank_he"]["magazine"] = json!({ "rounds": rounds, "shot_interval_s": 0.3 });
+    rules["weapons"]["tank_he"]["reload_s"] = json!(60.0);
+    rules["weapons"]["tank_he"]["ammo"] = json!(100);
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_tank",
+        json!({ "mounts": [{ "id": "cannon", "name": "Launcher", "weapons": ["tank_he"],
+            "turret": true, "pivot_m": [0, 0, 1.45], "muzzle_m": [5.9, 0, 0.55] }] }),
+    );
+    let setup = serde_json::from_value(json!({
+        "map": { "size": [800, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": rules,
+        "units": [{ "side": "blue", "kind": "test_tank", "position": [200.0, 300.0], "yaw": 0.0 }],
+        "events": [], "scripts": []
+    }))
+    .unwrap();
+    Battle::new(&setup, 1)
+}
+
+/// A launcher whose magazine has no burst fires the whole magazine as its
+/// volley, then drives the move queued behind it.
+#[test]
+fn a_salvo_launcher_fires_its_whole_magazine_as_one_volley() {
+    let mut b = launcher(4);
+    let mut c = Commander::new();
+    c.ok(&mut b, Side::Blue, ground_at(0, [400.0, 300.0]));
+    assert_eq!(
+        c.send(&mut b, Side::Blue, drive([200.0, 450.0]), true),
+        None
+    );
+    b.step();
+    until(&mut b, ticks(60.0), "the attack handed off", |b| {
+        !attacking(b, 0)
+    });
+    assert_eq!(salvo(&b), 4);
+}
+
+/// Queued mid-salvo, the launcher finishes the magazine it is firing: the
+/// cycle under way is the volley.
+#[test]
+fn queued_mid_salvo_a_launcher_fires_what_is_left() {
+    let mut b = launcher(4);
+    let mut c = Commander::new();
+    c.ok(&mut b, Side::Blue, ground_at(0, [400.0, 300.0]));
+    until(&mut b, ticks(60.0), "the salvo begun", |b| salvo(b) == 1);
+    assert_eq!(
+        c.send(&mut b, Side::Blue, drive([200.0, 450.0]), true),
+        None
+    );
+    b.step();
+    until(&mut b, ticks(60.0), "the attack handed off", |b| {
+        !attacking(b, 0)
+    });
+    assert_eq!(salvo(&b), 4);
+}
+
+/// The last attack-ground in a queue keeps firing salvo after salvo.
+#[test]
+fn the_last_attack_on_the_ground_keeps_firing() {
+    let mut b = launcher(2);
+    let mut c = Commander::new();
+    c.ok(&mut b, Side::Blue, ground_at(0, [400.0, 300.0]));
+    until(&mut b, ticks(240.0), "three salvos", |b| salvo(b) >= 6);
+    assert!(attacking(&b, 0));
+}
+
+/// Plain riflemen told to attack a tank, with a move queued, hand off at once:
+/// nothing they carry can hurt it.
+#[test]
+fn an_attack_nothing_can_hurt_hands_off_at_once() {
+    let mut b = field(json!([
+        { "side": "blue", "kind": "test_smoke_squad", "position": [300.0, 300.0], "engagement": "return_fire_only" },
+        { "side": "red", "kind": "test_tank", "position": [420.0, 300.0], "engagement": "return_fire_only" },
+    ]));
+    let mut c = Commander::new();
+    let enemy = seen(&mut b);
+    c.ok(&mut b, Side::Blue, attack(0, enemy));
+    assert_eq!(
+        c.send(&mut b, Side::Blue, drive([300.0, 450.0]), true),
+        None
+    );
+    b.step();
+    until(&mut b, 3, "the attack handed off", |b| !attacking(b, 0));
+}
+
+/// An attack on ground out of every gun's reach hands off at once when an
+/// order is queued behind it, and waits, aiming, as the last order.
+#[test]
+fn an_attack_on_ground_out_of_reach_hands_off_only_when_queued() {
+    let map = json!({ "size": [6000, 600], "fog_cell_m": 8, "height_grid_m": 4,
+        "slope_cutoff_deg": 35, "props": [] })
+    .to_string();
+    let units =
+        json!([{ "side": "blue", "kind": "test_tank", "position": [200.0, 300.0], "yaw": 0.0 }]);
+    let far = [5800.0, 300.0];
+    let mut last = Battle::new(&common::scenario(&map, units.clone(), json!([])), 1);
+    Commander::new().ok(&mut last, Side::Blue, ground_at(0, far));
+    for _ in 0..ticks(10.0) {
+        last.step();
+    }
+    assert!(attacking(&last, 0), "the last attack waits, aiming");
+    let mut b = Battle::new(&common::scenario(&map, units, json!([])), 1);
+    let mut c = Commander::new();
+    c.ok(&mut b, Side::Blue, ground_at(0, far));
+    assert_eq!(
+        c.send(&mut b, Side::Blue, drive([200.0, 450.0]), true),
+        None
+    );
+    b.step();
+    until(&mut b, 3, "the attack handed off", |b| !attacking(b, 0));
 }

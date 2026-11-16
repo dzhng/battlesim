@@ -91,6 +91,7 @@ impl Unit {
                     target,
                     last_known,
                     waiting,
+                    volley,
                 } => {
                     d.u64(2);
                     target.digest(d);
@@ -98,6 +99,10 @@ impl Unit {
                     // Only an attack queued behind other orders folds this in.
                     if *waiting {
                         d.bytes(b"waits its turn");
+                    }
+                    // Only an attack with an order behind it folds this in.
+                    if let Some(v) = volley {
+                        d.bytes(b"volley").u64(v.done);
                     }
                 }
                 UnitOrder::Garrison {

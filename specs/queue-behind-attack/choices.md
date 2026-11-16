@@ -38,3 +38,22 @@ rewritten from scratch at closeout.
 - **A queued attack's "waits its turn" mark is set when it joins a non-empty queue**
   and cleared at the start of `update_pursuit` once it is at the front; the dogfight
   check runs then, against positions at its turn.
+
+## S3
+
+- **"Working on the target" means a mount locked on the attack's target whose reason
+  is Firing, Aiming, Reloading, TurretTraversing or Guiding.** Anything else (out of
+  range, blocked, out of ammo, no window facing it, changing position, holding fire, a
+  stationary weapon on the move) doesn't count. A garrisoned squad with no window
+  facing the target therefore can't hold a volley; this follows from the reasons and
+  is not pinned by its own test.
+- **For a unit or contact target, "can act" is "a row can hurt it, and one is working
+  on it or the unit can go after it"** — so a garrisoned unit with a target out of
+  every window's view hands off, while a ground unit out of range chases.
+- **A jet's attack flown as runs is left to S4;** a jet in a dogfight uses the cycle rule.
+- **The volley lives in `crates/sim/src/volley.rs`** (one small module), not an
+  `attack/` folder.
+- **The plain-riflemen test uses `test_smoke_squad`:** `test_rifle`'s grenadier can hurt
+  the test tank's roof, so it correctly waits for its volley.
+- **FX1's test now has nothing queued behind the garrisoned attack:** with an order
+  queued, the attack correctly fires one volley and hands off before the enemy dies.

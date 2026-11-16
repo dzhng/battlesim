@@ -49,6 +49,7 @@ pub mod structures;
 pub mod supply;
 pub mod units;
 pub mod visibility;
+pub mod volley;
 pub mod weapons;
 pub mod world;
 

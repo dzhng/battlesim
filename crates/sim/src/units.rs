@@ -206,6 +206,8 @@ pub enum UnitOrder {
         /// Queued behind other orders: fire at will and a jet's dogfight
         /// take effect only when its turn comes.
         waiting: bool,
+        /// What it has fired since an order was first queued behind it.
+        volley: Option<crate::volley::Volley>,
     },
     /// Walk to `approach` beside the building by `policy`, then enter it
     /// (L08). A double right-click on `gesture` upgrades the walk.

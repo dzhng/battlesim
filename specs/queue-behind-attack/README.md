@@ -29,8 +29,8 @@ and tick the list.
 - [x] [FX2](slices/fx2-queued-command-keeps-current.md) a queued command breaks nothing off (`687cdd2ca`)
 - [ ] [FX3](slices/fx3-blocked-first-leg.md) a blocked unit's first queued leg is drawn
 - [x] [S1](slices/s1-cycle-end-and-ordered-fire.md) one owner for a cycle's end; per-mount ordered-fire report (`9e9825920`)
-- [x] [S2](slices/s2-admission-and-take-effect.md) queued orders admitted behind attacks; queued orders take effect at their turn
-- [ ] [S3](slices/s3-volley-handoff.md) the volley handoff (every attack not flown as a pass)
+- [x] [S2](slices/s2-admission-and-take-effect.md) queued orders admitted behind attacks; queued orders take effect at their turn (`0f2982a3f`)
+- [x] [S3](slices/s3-volley-handoff.md) the volley handoff (every attack not flown as a pass)
 - [ ] [S4](slices/s4-jet-run-volley.md) a jet's volley is one run in which it fired
 - [ ] [S5](slices/s5-jet-lost-target.md) a jet's attack ends when its side loses the target
 - [ ] [S6](slices/s6-step-records.md) step records end to end, no visual change
@@ -81,7 +81,7 @@ and tick the list.
 | When a round ends a firing cycle | `Cycle::spend_round` in `weapons/cycle.rs` | Re-derived from round arithmetic elsewhere |
 | Which mounts fire at the order this tick | the ordered-fire report from `weapons::tick::advance` | The previous tick's `unit.reach` |
 | "Can damage" | `weapons::compatible` | `air::engaging_rows` for this decision |
-| Volley progress and "is the volley done" | `crates/sim/src/attack/volley.rs` (pure) | Fields on `Unit` or `Mount` |
+| Volley progress and "is the volley done" | `crates/sim/src/volley.rs` (pure) | Fields on `Unit` or `Mount` |
 | When an attack takes effect, hands off or ends | `battle/attack_order.rs` | New pop sites in `battle.rs`, `air/`, `movement/` |
 | Replacing vs joining the queue | `battle/apply_command.rs` + `Unit::enqueue` | Per-order special cases elsewhere |
 | Order → published step | one sim function (`battle/order_steps.rs`) | The publisher matching `UnitOrder` itself |
@@ -142,7 +142,7 @@ for its end-to-end test of queued attack steps).
 |---|---|---|
 | FX1–FX2 | the test, then the diff | Fails before, passes after? `battle.rs` didn't grow? |
 | S1 | `cycle.rs`, `tick.rs` | Behaviour-identical (digests unchanged)? Instant refill still reports a boundary? |
-| S2–S3 | `attack/volley.rs`, `attack_order.rs`, tests | One rule, one function? Any path that can hang? Changed tests weakened? |
+| S2–S3 | `volley.rs`, `attack_order.rs`, tests | One rule, one function? Any path that can hang? Changed tests weakened? |
 | S4–S5 | `air/` diff | The bomb still drops on the run that ends the attack? |
 | S6 | `order_steps.rs`, step row, TS view, fixture diff | Zero visual change? Fixtures changed only by bless or by the plan's hand edits? |
 | S8–S9 | the screenshots, then the drawers | Reads as an RTS order chain at default and far zoom? |

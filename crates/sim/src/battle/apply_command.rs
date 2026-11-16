@@ -154,6 +154,7 @@ impl Battle {
                             target,
                             last_known: None,
                             waiting,
+                            volley: None,
                         },
                     );
                 }
