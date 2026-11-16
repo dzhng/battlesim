@@ -111,8 +111,8 @@ export async function streetLooks(ctx) {
   // The ground is judged, not what stands on it: street trees stand in the
   // walk and over the ground beside it, so every frame here is drawn without
   // them. The junction nearest the town's centre has its painted lines; its
-  // frontage is paved yards, so the walk beside a lawn is read where the
-  // town's yards stop.
+  // frontage is paved yards, so the walk beside a lawn is read on a street
+  // found from the ground's open yards, independently of the town's edge.
   const within =
     ([lo, hi]) =>
     (c) =>
@@ -146,7 +146,7 @@ export async function streetLooks(ctx) {
     return { shot, groups };
   };
   const centre = await framed("junction-65", ["core", "walk", "curb", "middle", "lane", "gutter"]);
-  const edge = await framed("town-edge-65", ["core", "walk", "lawn"]);
+  const edge = await framed("lawn-street-65", ["core", "walk", "lawn"]);
   // The street against the country road is read from the town at 250 m (at
   // one junction a block of flats can shade the whole of it) and from the
   // plain at 250 m, where the country road is gravel: through the town it
@@ -185,7 +185,7 @@ export async function streetLooks(ctx) {
     };
   };
   const roadbed = of(centre.groups.core.street, centre.shot);
-  // Beside a lawn, where the town's yards stop.
+  // The drawn street beside the open lawn.
   const edgeRoadbed = of(edge.groups.core.street, edge.shot);
   // Between tall blocks a road may be in the sun for a short stretch only:
   // each is read as its brightest tenth.

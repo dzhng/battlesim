@@ -124,7 +124,7 @@ models and empty effects streams were similarly transport evidence only.
 Loading the whole installed catalog exhausted browser WASM address space when
 this was measured, before decoded bundles shared their texture payloads and
 before a scene's art was stored once by content
-([battle growth](../../battle-growth/README.md)). The limit was not measured
+([battle growth](../battle-growth/README.md)). The limit was not measured
 again after either; the selection below stayed for what it costs in memory
 and load time, not because the catalog is known still not to fit.
 Admission follows the human's enabled purchase roster and the observer's learned

@@ -181,6 +181,27 @@ fn names_with_identical_content_bake_one_card_per_pose() {
         work.cards_baked as usize, distinct,
         "the second name bakes nothing; rest and corpse remain different cards"
     );
+    for pose in [json!({"kind":"rest"}), json!({"kind":"corpse","lies":0})] {
+        let at = |name| {
+            serde_json::from_value(json!([{
+                "appearance":name,"x":3,"y":3,"z":0,"yaw":0.4,
+                "tier":presentation::view::IMPOSTOR as u32,"pose":pose
+            }]))
+            .unwrap()
+        };
+        stage.presentation.set_lab_models(at("first")).unwrap();
+        let first = stage.pixels(&gpu);
+        assert_eq!(stage.runtime.models.drawn().impostors, 1);
+        stage.presentation.set_lab_models(at("second")).unwrap();
+        assert_eq!(
+            first,
+            stage.pixels(&gpu),
+            "names sharing content draw the same card for {pose}"
+        );
+        assert_eq!(stage.runtime.models.drawn().impostors, 1);
+        stage.presentation.set_lab_models(vec![]).unwrap();
+        assert_ne!(first, stage.pixels(&gpu), "the card comparison must draw");
+    }
 }
 
 #[test]
@@ -325,7 +346,7 @@ fn card_memory_shares_spares_grows_with_two_arrays_and_releases_the_last_holder(
         .0
         .iter()
         .any(|pixel| pixel[3] > 0));
-    println!("slice05 card memory live={one:?} fits={fit:?} overlap={overlap:?} committed={committed:?} baseline={baseline:?}");
+    println!("card memory live={one:?} fits={fit:?} overlap={overlap:?} committed={committed:?} baseline={baseline:?}");
 }
 
 #[test]

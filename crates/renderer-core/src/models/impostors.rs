@@ -120,7 +120,7 @@ impl Models {
                     .tiers
                     .first()
                     .ok_or("impostor appearance has no finest mesh")?;
-                let identity = crate::buffer(
+                let palette = crate::buffer(
                     device,
                     queue,
                     "impostor-palette",
@@ -130,7 +130,7 @@ impl Models {
                 let models = crate::model_material::ModelMaterialBindings::new(
                     device,
                     &self.layout,
-                    &identity,
+                    &palette,
                     materials,
                     &self.albedo,
                     &self.surface,

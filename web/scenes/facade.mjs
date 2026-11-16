@@ -13,11 +13,11 @@
 //
 // Rooms (behind every window of the block): dim, never a hole and never lit;
 // the same room whatever the camera, the tier or the packing order; and the
-// same picture under every sun.
+// same material picture under every sun, before bloom from its surroundings.
 //
 // `FACADE_COST=1` measures instead: the frame's GPU time with and without
 // each kind of surface (paired, interleaved) over a field of blocks.
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { median, rec709 as luminance } from "./_colour.mjs";
 import { gpuMs, gpuWarnings, lab } from "./_lab.mjs";
 import { PNG } from "pngjs";
@@ -42,8 +42,20 @@ function mean(png, p, r) {
   return total.map((v) => v / n);
 }
 
-async function open(ctx, query = "") {
+async function open(ctx, query = "", { bloom = true } = {}) {
   const page = await ctx.newPage({ viewport: VIEWPORT });
+  if (!bloom) {
+    const fixture = JSON.parse(
+      await readFile(new URL("../../fixtures/presentation.json", import.meta.url), "utf8"),
+    );
+    fixture.light.bloom.strength = 0;
+    await page.route("**/fixtures/presentation.json*", (route) =>
+      route.fulfill({
+        contentType: "text/javascript",
+        body: `export default ${JSON.stringify(fixture)};`,
+      }),
+    );
+  }
   const warnings = gpuWarnings(page);
   // The runner's URL already carries its own query (the graphics profile).
   const url = new URL(ctx.url);
@@ -406,6 +418,17 @@ async function glass(ctx) {
       // The room behind the pane, with no glass over it.
       room: mean(bare, panePx, 4),
     };
+    // A room takes no direct sun, but bloom can carry the wall's or sky's
+    // light across its pixels. Hold that post effect off for the material
+    // comparison; the ordinary sunlit pictures above keep the game's bloom.
+    if (name !== "fixture") {
+      const unlit = await open(ctx, `?azimuth=${azimuth}&sun=0.5`, { bloom: false });
+      await stand(unlit.page, "facade", "close");
+      await lab(unlit.page, () => window.__lab.suppressSurface("blended", true));
+      const room = await shot(ctx, unlit.page, `facade-room-${name}-before-bloom.png`);
+      windows[name].room = mean(room, panePx, 4);
+      await unlit.page.context().close();
+    }
     if (name === "fixture")
       cameras["facade-close"] = await lab(sunned.page, () => window.__lab.camera());
     warnings.push(...sunned.warnings);
@@ -533,7 +556,7 @@ async function rooms(ctx, suns) {
     ...lit.map((a) => Math.max(...lit.map((b) => Math.abs(a.wall - b.wall)))),
   );
   ctx.check(
-    "a room takes no sun: its picture is the same under every sun azimuth, while the wall beside it is lit and shaded",
+    "a room takes no direct sun: before bloom its picture is the same under every sun azimuth, while the wall is lit and shaded",
     roomSpread <= 4 && wallSpread >= 25,
     JSON.stringify({ roomSpread, wallSpread, suns: lit }),
   );

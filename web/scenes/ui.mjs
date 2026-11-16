@@ -292,6 +292,51 @@ async function picker(ctx, page, shot) {
     await ctx.matchBaseline(page, "purchase-search");
     await field.fill("");
   }
+  // A deck card's right-click opens the store on that exact variant: its
+  // full name is in the filter, its one card and info card are already
+  // open, and the next click buys it. Opening leaves the keyboard to the
+  // game.
+  await page.getByRole("button", { name: "Tank #1" }).click({ button: "right" });
+  const lookup = page.getByRole("textbox", { name: "Search units" });
+  await lookup.waitFor();
+  const found = await page.evaluate(() => ({
+    query: document.querySelector(".hud-purchase-search input").value,
+    cards: [...document.querySelectorAll(".hud-purchase-card")].map((c) =>
+      c.getAttribute("aria-label"),
+    ),
+    info: [...document.querySelectorAll(".hud-purchase-info")].map((c) =>
+      c.getAttribute("aria-label"),
+    ),
+  }));
+  ctx.check(
+    `${shot}: a card's right-click finds that exact variant in the store`,
+    found.query === "Tank Base" &&
+      JSON.stringify(found.cards) === JSON.stringify(["Tank Base"]) &&
+      JSON.stringify(found.info) === JSON.stringify(["Tank Base"]),
+    JSON.stringify(found),
+  );
+  const lookupBox = await lookup.boundingBox();
+  await page.mouse.move(lookupBox.x + lookupBox.width / 2, lookupBox.y + lookupBox.height / 2);
+  await contained(ctx, page, `${shot} lookup`);
+  await page.screenshot({ path: ctx.evidencePath(`${shot}-lookup.png`) });
+  const lookedUp = page.getByRole("button", { name: "Tank Base", exact: true });
+  if (short) {
+    ctx.check(
+      `${shot}: an unaffordable lookup's card refuses the purchase`,
+      (await lookedUp.getAttribute("aria-disabled")) === "true",
+    );
+    // Escape outside the field closes the shop, as it always has.
+    await page.keyboard.press("Escape");
+  } else await lookedUp.click();
+  ctx.check(
+    `${shot}: the lookup buys or closes and leaves the store`,
+    (await page.getByRole("textbox", { name: "Search units" }).count()) === 0,
+  );
+  // The request was cleared when taken; asking again still opens the store.
+  await page.getByRole("button", { name: "Tank #1" }).click({ button: "right" });
+  await lookup.waitFor();
+  ctx.check(`${shot}: asking again opens the same lookup`, await lookup.isVisible());
+  await page.keyboard.press("Escape");
 }
 
 /** A squad's transport menu with a ride pointed at: the menu stands on the

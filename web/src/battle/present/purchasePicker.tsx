@@ -27,6 +27,15 @@ import {
   transportOptions,
 } from "./transportMenu";
 import type { PlayerView, SkirmishView } from "../sim/observationView";
+
+/** A request to show one exact card in the store, from a unit card's
+ *  right-click. `serial` changes on every request, so asking for the same
+ *  unit twice opens it twice. */
+export interface PurchaseLookup {
+  card: string;
+  serial: number;
+}
+
 interface PickerProps {
   cards: readonly UnitCard[];
   faction: Faction;
@@ -38,6 +47,10 @@ interface PickerProps {
   rules: PanelRules;
   /** Whether the shop's key answers: off while a menu or result covers it. */
   enabled?: boolean;
+  /** A unit card was right-clicked: open the store on this exact variant. */
+  lookup?: PurchaseLookup | null;
+  /** The request was taken: the page clears it, so a remount cannot replay it. */
+  onLookupHandled?: () => void;
 }
 /** How long an open transport menu holds while the pointer heads into it
  *  across another card. Past it, the card the pointer stopped on takes over;
@@ -63,12 +76,34 @@ const isShopTab = (event: KeyboardEvent) =>
   !event.repeat;
 
 /** The Reinforcements button, its key and the credits. The menu exists only
- *  while open, so every opening starts fresh: first group, empty filter. */
-export function PurchasePicker({ match, player, enabled = true, ...menu }: PickerProps) {
+ *  while open, so every plain opening starts fresh: first group, empty
+ *  filter. A lookup instead opens on its exact card. */
+export function PurchasePicker({
+  match,
+  player,
+  enabled = true,
+  lookup,
+  onLookupHandled,
+  ...menu
+}: PickerProps) {
   const viewingPlayer = player ?? match.players[0];
-  if (!viewingPlayer) return null;
   const [open, setOpen] = useState(false);
+  const [reveal, setReveal] = useState<PurchaseLookup | null>(null);
+  const seenLookup = useRef(0);
   const button = useRef<HTMLButtonElement>(null);
+  // A unit card's right-click is one request: open the store on that exact
+  // card, and leave it there. Closing clears it, so the button opens fresh.
+  useEffect(() => {
+    if (!lookup || lookup.serial === seenLookup.current) return;
+    seenLookup.current = lookup.serial;
+    onLookupHandled?.();
+    setReveal(lookup);
+    setOpen(true);
+  }, [lookup, onLookupHandled]);
+  const close = () => {
+    setOpen(false);
+    setReveal(null);
+  };
   // The key opens the shop; once it is open, the menu owns the key.
   useEffect(() => {
     if (!enabled || open) return;
@@ -80,6 +115,7 @@ export function PurchasePicker({ match, player, enabled = true, ...menu }: Picke
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [enabled, open]);
+  if (!viewingPlayer) return null;
   return (
     <div className="hud-reinforcements" data-occludes-readouts>
       <div className="hud-purchase-controls">
@@ -91,7 +127,13 @@ export function PurchasePicker({ match, player, enabled = true, ...menu }: Picke
           aria-keyshortcuts={REINFORCEMENTS_KEY.label}
           aria-expanded={open}
           title={`Reinforcements (${REINFORCEMENTS_KEY.label})`}
-          onClick={() => setOpen(!open)}
+          onClick={() => {
+            if (open) close();
+            else {
+              setReveal(null);
+              setOpen(true);
+            }
+          }}
         >
           Reinforcements
         </button>
@@ -102,15 +144,17 @@ export function PurchasePicker({ match, player, enabled = true, ...menu }: Picke
       {open && (
         <PurchaseMenu
           {...menu}
+          key={reveal?.serial ?? "browse"}
+          reveal={reveal}
           enabled={enabled}
           match={match}
           player={viewingPlayer}
           onChoose={(...choice) => {
             menu.onChoose(...choice);
-            setOpen(false);
+            close();
           }}
           onClose={() => {
-            setOpen(false);
+            close();
             button.current?.focus();
           }}
         />
@@ -121,6 +165,8 @@ export function PurchasePicker({ match, player, enabled = true, ...menu }: Picke
 
 interface MenuProps extends Omit<PickerProps, "player"> {
   player: PlayerView;
+  /** The exact card a unit card's right-click asked for, if any. */
+  reveal?: PurchaseLookup | null;
   /** Escape (the field's once its filter is empty) closes the menu and
    *  returns focus to the button. */
   onClose: () => void;
@@ -137,14 +183,27 @@ function PurchaseMenu({
   rules,
   onClose,
   enabled,
+  reveal,
 }: MenuProps) {
   const catalog = useSessionCatalog();
-  const [group, setGroup] = useState<UnitGroup>(UNIT_GROUPS[0].id);
-  const [hovered, setHovered] = useState<string | null>(null);
+  const available = cards.filter((c) => c.roster.factions.includes(faction));
+  // A planned card has no type: it is neither a squad nor a carrier.
+  const typed = (id: string) => catalog.units.has(id);
+  const groupOf = (c: UnitCard) => unitGroup(c, typed(c.id) ? catalog.units.type(c.id) : null);
+  // A lookup starts on the exact card's group and shows that one card, with
+  // its info card open. Its filter holds the full name so the state explains
+  // itself; the id is what keeps the result exact.
+  const revealed = reveal ? (available.find((c) => c.id === reveal.card) ?? null) : null;
+  const [group, setGroup] = useState<UnitGroup>(revealed ? groupOf(revealed) : UNIT_GROUPS[0].id);
+  const [hovered, setHovered] = useState<string | null>(revealed?.id ?? null);
   // The transport menu's highlighted option, for the squad it was chosen in:
   // another squad's menu opens with nothing highlighted.
   const [pick, setPick] = useState<{ squad: string; option: string } | null>(null);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(
+    revealed ? `${revealed.roster.family_name} ${revealed.roster.variant}` : "",
+  );
+  /** The exact card a lookup holds, until the player edits the filter. */
+  const [exact, setExact] = useState<string | null>(revealed?.id ?? null);
   const search = useRef<HTMLInputElement>(null);
   // The card a heading-in pointer crossed, waiting to take over the menu.
   const crossed = useRef<string | null>(null);
@@ -182,15 +241,17 @@ function PurchaseMenu({
     maxUnits: player.cap,
     finished: match.phase === "finished",
   };
-  const available = cards.filter((c) => c.roster.factions.includes(faction));
-  const searching = query.trim() !== "";
+  const searching = query.trim() !== "" || exact !== null;
   // A search spans the roster; browsing shows the cards under the open tab.
-  // A planned card has no type: it is neither a squad nor a carrier.
-  const typed = (id: string) => catalog.units.has(id);
-  const groupOf = (c: UnitCard) => unitGroup(c, typed(c.id) ? catalog.units.type(c.id) : null);
+  // A lookup is the one exact card, by id rather than by a name another
+  // variant might share.
   const squadSize = (c: UnitCard) => (typed(c.id) ? catalog.units.squadSize(c.id) : 0);
   const shown = shopOrder(
-    searching ? filterCards(available, query) : available.filter((c) => groupOf(c) === group),
+    exact
+      ? available.filter((c) => c.id === exact)
+      : searching
+        ? filterCards(available, query)
+        : available.filter((c) => groupOf(c) === group),
   );
   const hoveredCard = shown.find((c) => c.id === hovered) ?? null;
   // A squad on sale has a transport menu: the hovered one's, or with nothing
@@ -363,7 +424,7 @@ function PurchaseMenu({
             </button>
           ))}
         </div>
-        <label className="hud-purchase-search">
+        <label className="hud-purchase-search" data-lookup={exact ? "true" : undefined}>
           <Icon path={hudIcon("search")} />
           <input
             ref={search}
@@ -373,7 +434,10 @@ function PurchaseMenu({
             autoComplete="off"
             spellCheck={false}
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setExact(null);
+            }}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
                 event.preventDefault();
@@ -383,8 +447,11 @@ function PurchaseMenu({
                 // Keep the page's own Escape (the pause menu) out of a field
                 // the player is using: clear first, then close.
                 event.preventDefault();
-                if (query) setQuery("");
-                else onClose();
+                if (searching) {
+                  setQuery("");
+                  setExact(null);
+                  point(null);
+                } else onClose();
               }
             }}
           />

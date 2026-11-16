@@ -167,7 +167,10 @@ export async function townGround(ctx) {
     beside.filter((road) => road.kind === kind && -road.inside >= from && -road.inside < to).length;
   const walk = street.walk.width_m;
   const grown = {
-    onRoad: beside.filter((road) => road.inside > 0.3).length,
+    // A dirt track may cross this view too; its centre strip grows grass.
+    onRoad: beside.filter(
+      (road) => ["road", "country_road"].includes(road.kind) && road.inside > 0.3,
+    ).length,
     walk: band("road", 0.3, walk - 0.3),
     pastWalk: band("road", walk + 1, walk + 6),
     shoulder: band("country_road", 0.5, walk),

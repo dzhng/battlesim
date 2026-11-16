@@ -154,7 +154,9 @@ export async function prepareAppearances(
     if (!(await nextStep(artWork.exhausted()))) return null;
     const complete = warming;
     warming = null;
-    const prepared = await artWork.run(() => renderer.prepare_appearances(complete));
+    // The admission and its card bake run inside this promise, outside the
+    // frame's art-work budget.
+    const prepared = await renderer.prepare_appearances(complete);
     preparedTransportWork.set(prepared, work);
     return prepared;
   } finally {
