@@ -2,9 +2,12 @@
  *  passed near it (the publication's `shotAt`), red when its unit was hurt
  *  (its health fell since the last publication). A blink finishes once
  *  started, except that red cuts into yellow; a card never shows the same
- *  colour again within `presentation.hud.fire_blink.wait_s`. Read once per
- *  publication, so a pass published for one tick is never missed, and timed
- *  in ticks, so the rules follow the battle and not the frame rate. */
+ *  colour again within `presentation.hud.fire_blink.wait_s`. A unit lost
+ *  (gone from the side without withdrawing, the one other way out) always
+ *  blinks red, and its card stays for that blink. Read once per publication,
+ *  so a pass published for one tick is never missed, and timed in ticks, so
+ *  the rules follow the battle and not the frame rate. A change of the side
+ *  watched starts over, as a new battle does. */
 import { Feed } from "@web/feed";
 import type { ObservationView, OwnUnitView } from "../sim/observationView";
 import { gameHud, type HudTheme } from "./hudTheme";
@@ -14,14 +17,17 @@ export type BlinkColour = "yellow" | "red";
 export interface CardBlink {
   colour: BlinkColour;
   serial: number;
+  /** Its unit was lost: the card stays until this blink has run. */
+  lost: boolean;
 }
 
 export type BlinkTiming = Pick<HudTheme["fire_blink"], "on_s" | "off_s" | "wait_s">;
 
 /** Plays a blink on its element as it mounts (a ref callback, so a stable
  *  function: it runs once per blink, never per render). Two pulses, each
- *  rising for half of `on_s`, easing off over the rest, and fading out over
- *  half of `off_s`, dark for the other half. */
+ *  lit for `on_s` and dark for `off_s`: it rises as fast as it fades (half of
+ *  `off_s`), so an alert lands at once, holds while easing off a little, and
+ *  is dark for the rest. */
 export function playBlink(el: HTMLElement | null, timing: BlinkTiming = gameHud.fire_blink) {
   if (!el?.animate || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const { on_s: on, off_s: off } = timing;
@@ -32,7 +38,7 @@ export function playBlink(el: HTMLElement | null, timing: BlinkTiming = gameHud.
     [0, on + off]
       .flatMap((p) => [
         frame(p, 0),
-        frame(p + on / 2, 1),
+        frame(p + Math.min(off, on) / 2, 1),
         frame(p + on, 0.85),
         frame(p + on + off / 2, 0),
       ])
@@ -50,7 +56,9 @@ export class FireBlinks {
   readonly feed = new Feed<ReadonlyMap<number, CardBlink>>(new Map());
   private readonly blinkTicks: number;
   private readonly waitTicks: number;
-  private health = new Map<number, number>();
+  /** Each unit's health and whether it was withdrawing, last publication. */
+  private last = new Map<number, { health: number; withdrawing: boolean }>();
+  private side: string | null = null;
   /** Each unit's current blink and the tick it started. */
   private started = new Map<number, { colour: BlinkColour; tick: number }>();
   /** The tick each unit last showed each colour. */
@@ -64,21 +72,28 @@ export class FireBlinks {
   }
 
   observe(o: ObservationView) {
-    if (o.tick < this.tick) this.reset();
+    if (o.tick < this.tick || o.groundPatch.side !== this.side) this.reset(o.groundPatch.side);
     this.tick = o.tick;
     const present = new Set(o.own.map((u) => u.id));
     let next: Map<number, CardBlink> | null = null;
-    for (const id of this.feed.current.keys()) {
+    for (const [id, blink] of this.feed.current) {
       const running = this.started.get(id);
-      if (present.has(id) && running && o.tick - running.tick < this.blinkTicks) continue;
+      const shown = present.has(id) || blink.lost;
+      if (shown && running && o.tick - running.tick < this.blinkTicks) continue;
       next ??= new Map(this.feed.current);
       next.delete(id);
     }
-    const measured = new Map<number, number>();
+    for (const [id, before] of this.last) {
+      if (present.has(id) || before.withdrawing) continue;
+      this.started.set(id, { colour: "red", tick: o.tick });
+      next ??= new Map(this.feed.current);
+      next.set(id, { colour: "red", serial: ++this.serial, lost: true });
+    }
+    const measured = new Map<number, { health: number; withdrawing: boolean }>();
     for (const unit of o.own) {
       const now = health(unit);
-      measured.set(unit.id, now);
-      const before = this.health.get(unit.id);
+      measured.set(unit.id, { health: now, withdrawing: unit.withdrawing });
+      const before = this.last.get(unit.id)?.health;
       const hurt = before !== undefined && now < before;
       // Red first; a hit inside red's wait still lets a pass show yellow.
       const colour = (["red", "yellow"] as const).find(
@@ -86,10 +101,10 @@ export class FireBlinks {
       );
       if (colour) {
         next ??= new Map(this.feed.current);
-        next.set(unit.id, { colour, serial: ++this.serial });
+        next.set(unit.id, { colour, serial: ++this.serial, lost: false });
       }
     }
-    this.health = measured;
+    this.last = measured;
     if (next) this.feed.set(next);
   }
 
@@ -106,8 +121,9 @@ export class FireBlinks {
     return true;
   }
 
-  private reset() {
-    this.health = new Map();
+  private reset(side: string) {
+    this.side = side;
+    this.last = new Map();
     this.started = new Map();
     this.shown = new Map();
     this.feed.set(new Map());

@@ -266,8 +266,8 @@ function DeckReview({ onBack }: { onBack: () => void }) {
     const serial = Date.now();
     blinks.set(
       new Map([
-        ...(shot ? [[shot.id, { colour: "yellow", serial }] as const] : []),
-        ...(hurt ? [[hurt.id, { colour: "red", serial }] as const] : []),
+        ...(shot ? [[shot.id, { colour: "yellow", serial, lost: false }] as const] : []),
+        ...(hurt ? [[hurt.id, { colour: "red", serial, lost: false }] as const] : []),
       ]),
     );
   };
