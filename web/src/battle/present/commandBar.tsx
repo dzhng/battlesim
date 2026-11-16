@@ -81,7 +81,7 @@ export type CommandControl = Pick<
   | "exitBuilding"
   | "pressUnload"
   | "popSmoke"
-> & { refund?: () => void; toggleAfterburner?: () => void };
+> & { refund?: (queued?: boolean) => void; toggleAfterburner?: () => void };
 
 export interface ArmyCommandState {
   control?: CommandControl;
@@ -178,7 +178,7 @@ export function CommandBar({
           icon: stateIcon("withdrawing"),
           label: `Refund · Return to base ${key("return_to_base")}`,
           disabled: n === 0,
-          onClick: control.refund,
+          onClick: () => control.refund?.(),
         })}
       {command({
         icon: hudIcon("unload"),

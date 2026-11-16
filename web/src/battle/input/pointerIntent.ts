@@ -1,6 +1,6 @@
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { aboardCarrier, type ObservationView, type OwnUnitView } from "../sim/observationView";
-import type { Order } from "../sim/protocol";
+import type { Order, UnloadInto } from "../sim/protocol";
 import { isAttackMoveClick } from "./commandBindings";
 import { reach } from "./commandReach";
 import { inReverseZone } from "./reverseZone";
@@ -126,6 +126,22 @@ function carriageIntent(
   return null;
 }
 
+/** The host under the pointer an unload hands its squads to: another
+ *  carrier the player orders, which they board, or a building, which they
+ *  garrison. Null over open ground. */
+function unloadInto(
+  pick: PointerPick,
+  carriers: readonly number[],
+  own: readonly OwnUnitView[],
+  yours: readonly OwnUnitView[],
+  catalog: UnitCatalog,
+): UnloadInto | null {
+  const target = pick.unit === null ? undefined : yours.find((u) => u.id === pick.unit);
+  if (target && !carriers.includes(target.id) && reach("collect", [target], catalog, own).length)
+    return { kind: "carrier", carrier: target.id };
+  return pick.building != null ? { kind: "building", building: pick.building } : null;
+}
+
 /** Hover and dispatch describe one intent; only dispatch mints its gesture.
  *  `own` is every unit on the side, the passengers among them; `yours` the
  *  ones the player orders (`controlled`), the only ones it boards or collects. */
@@ -146,7 +162,15 @@ export function pointerIntent(
     const carriers = reach("unload", selected, catalog, own).map((u) => u.id);
     if (!carriers.length) return { kind: "blocked", disarm: true };
     if (!pick.ground) return { kind: "blocked", disarm: false };
-    return { kind: "unload", units: carriers, goal: pick.ground, route: "shortest", queued };
+    const into = unloadInto(pick, carriers, own, yours, catalog);
+    return {
+      kind: "unload",
+      units: carriers,
+      goal: pick.ground,
+      route: "shortest",
+      queued,
+      ...(into ? { into } : {}),
+    };
   }
   if (mode === "attack_ground") {
     if (!pick.ground) return { kind: "blocked", disarm: false };

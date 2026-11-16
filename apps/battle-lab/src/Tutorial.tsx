@@ -149,9 +149,10 @@ export function Tutorial() {
           </li>
           <li>
             A unit you no longer need can be sent home with <strong>Refund · Return to base</strong>{" "}
-            on the command bar (or press <kbd>B</kbd>). It drives back to your entry point and, on
-            arrival, returns part of its price: more when it comes home healthy and with ammunition,
-            less the longer it has served.
+            on the command bar (or press <kbd>B</kbd>; <kbd>Shift+B</kbd> sends it once its other
+            orders are done). It drives back to your entry point and, on arrival, returns part of
+            its price: more when it comes home healthy and with ammunition, less the longer it has
+            served.
           </li>
           <li>
             You may field at most <strong>{skirmish.max_units} units</strong> at once, counting
@@ -290,7 +291,8 @@ export function Tutorial() {
             right-click your own squad with a transport selected to drive over and pick it up.
             Riders can&apos;t fight, and bail out hurt if their transport is destroyed.{" "}
             <kbd>{keyOf(CommandBindings.unload)}</kbd> then left-click drives there and lets them
-            out; press <kbd>{keyOf(CommandBindings.unload)}</kbd> twice to unload where it stands.
+            out; left-click a building or another transport instead, and they go straight into it.
+            Press <kbd>{keyOf(CommandBindings.unload)}</kbd> twice to unload where it stands.
           </li>
           <li>
             <kbd>{CommandBindings.stop.label}</kbd> stops the selection where it stands.

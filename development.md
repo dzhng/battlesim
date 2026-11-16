@@ -152,8 +152,7 @@ touched. A test outside your domain that refuses an LFS pointer is a missing
 asset, not a failure: don't fetch assets to chase it.
 
 Recordings follow the game, never the reverse. The menu reel is promotional
-footage on fake stats: when a game change moves it, keep the change and
-re-direct and re-record the reel
+footage on fake stats that changes as the game does
 ([the menu backdrop](fixtures/README.md#the-menu-reel)); it never blocks or
 narrows a mechanic.
 

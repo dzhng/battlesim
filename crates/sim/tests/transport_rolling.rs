@@ -85,6 +85,7 @@ fn unload_at(b: &mut Battle, seq: u64, goal: [f64; 2]) {
     let ack = b.accept(command(
         seq,
         Order::Unload {
+            into: None,
             units: vec![UnitId(0)],
             goal: Some(goal),
             gesture: seq,

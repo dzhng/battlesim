@@ -57,6 +57,15 @@ impl Host {
     }
 }
 
+impl From<contract::command::UnloadInto> for Host {
+    fn from(into: contract::command::UnloadInto) -> Self {
+        match into {
+            contract::command::UnloadInto::Building { building } => Self::Building(building),
+            contract::command::UnloadInto::Carrier { carrier } => Self::Carrier(carrier),
+        }
+    }
+}
+
 /// Host-specific placement data carried by a hold.
 #[derive(Clone, Debug)]
 pub enum Place {
@@ -465,17 +474,31 @@ pub(crate) fn advance(
                         if !unload_checked.insert(carrier) {
                             continue;
                         }
-                        let unloaded =
-                            crate::carriage::complete_unload(world, units, carrier, rules);
+                        let landed = crate::carriage::complete_unload(world, units, carrier, rules);
                         let carrier_orders = units
                             .get_mut(carrier.0 as usize)
                             .map(|host| &mut host.orders);
+                        let mut into = None;
                         if let Some(orders) = carrier_orders {
-                            if matches!(orders.front(), Some(UnitOrder::Unload)) {
+                            if let Some(UnitOrder::Unload { into: then }) = orders.front() {
+                                into = *then;
                                 orders.pop_front();
                             }
                         }
-                        if !unloaded {
+                        if let (Some(squads), Some(into)) = (&landed, into) {
+                            let side = units[i].side.index();
+                            crate::carriage::send_into(
+                                world,
+                                &sides[side],
+                                authored,
+                                units,
+                                squads,
+                                into,
+                                rules,
+                                &mut refusals[side],
+                            );
+                        }
+                        if landed.is_none() {
                             for passenger in crate::carriage::passengers(units, carrier) {
                                 units[passenger].hold.as_mut().expect("carrier hold").phase =
                                     Phase::Inside;

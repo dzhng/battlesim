@@ -55,18 +55,26 @@ export type Order =
   | { kind: "board"; units: number[]; carrier: number; gesture: number }
   | { kind: "collect"; units: number[]; squads: number[]; gesture: number }
   /** Drive to `goal` and unload there (Shift queues it), or with `goal`
-   *  null stop and unload in place, replacing the queue. */
+   *  null stop and unload in place, replacing the queue. With `into`, set
+   *  down beside that host instead, and its squads go straight into it. */
   | {
       kind: "unload";
       units: number[];
       goal: [number, number] | null;
       gesture: number;
       route: RoutePolicy;
+      into?: UnloadInto;
     }
   /** Each unit with a smoke charge spends one and pops a cloud where it
    *  stands; the rest ignore it. No unit's current order changes. */
   | { kind: "pop_smoke"; units: number[] }
   | { kind: "upgrade_move"; gesture: number; route: RoutePolicy };
+
+/** The host an unload hands its squads to: a building they garrison, or
+ *  another of the side's carriers they board. */
+export type UnloadInto =
+  | { kind: "building"; building: number }
+  | { kind: "carrier"; carrier: number };
 
 export interface MovePreviewRequest {
   /** Match execution: omitted route means shortest; omitted queued means replacement. */

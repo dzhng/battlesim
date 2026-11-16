@@ -33,6 +33,7 @@ mod move_placement;
 mod purchase_preview;
 mod replay;
 mod replay_identity;
+mod return_to_base;
 mod seats;
 mod seeing;
 mod skirmish_turn;
@@ -1225,8 +1226,21 @@ impl Battle {
                 }
                 units
             }
-            Order::Unload { units, goal, .. } => {
+            Order::Unload {
+                units, goal, into, ..
+            } => {
                 self.validate_command_units(command, units)?;
+                // Squads go into another carrier only as they would board it.
+                if let Some(contract::command::UnloadInto::Carrier { carrier }) = into {
+                    let c = (self.units.get(carrier.0 as usize))
+                        .filter(|c| c.side == command.side && !units.contains(carrier))
+                        .filter(|c| c.unit_type(&self.rules).capabilities.carriage.is_some())
+                        .ok_or(OrderError::NotACarrier)?;
+                    if !c.alive() {
+                        return Err(OrderError::Destroyed { unit: *carrier });
+                    }
+                    self.validate_player(command, *carrier)?;
+                }
                 if let Some(goal) = goal {
                     if self.world.height_at(goal[0], goal[1]).is_none() {
                         return Err(OrderError::OutOfBounds);
@@ -1431,6 +1445,7 @@ impl Battle {
             &mut self.refusals,
         );
         crate::carriage::copy_passenger_positions(&mut self.units);
+        self.start_withdrawals();
         self.update_pursuit();
         damage::recover(&mut self.units, &self.rules, self.tick);
         // Progress moves before movement, so the gate opens on the tick packing completes.
@@ -2700,55 +2715,42 @@ impl Battle {
         } else {
             (None, Vec::new())
         };
+        if let Order::Unload {
+            units,
+            goal,
+            into: Some(into),
+            ..
+        } = &mut command.order
+        {
+            let beside = crate::carriage::set_down_beside(
+                &self.world,
+                &self.sides[command.side.index()],
+                self.authored_props,
+                &self.units,
+                units,
+                *into,
+                *goal,
+                &self.rules,
+            )?;
+            *goal = Some(beside);
+        }
         let mut stops = BTreeMap::new();
         let placement = match &command.order {
-            Order::Refund { units } => {
-                let sites = self.skirmish.as_ref().unwrap().setup.sites.clone();
-                Some(MovePlacement {
-                    gesture: 0,
-                    destinations: units
-                        .iter()
-                        .map(|unit| {
-                            let current = &self.units[unit.0 as usize];
-                            let selected = if current.fixed_wing() {
-                                crate::entries::centre(&sites, command.side)
-                            } else {
-                                crate::entries::select(
-                                    &sites,
-                                    command.side,
-                                    current.kind,
-                                    [current.position.x, current.position.y],
-                                    |entry, kind, point| {
-                                        self.entry_route_time(
-                                            command.side,
-                                            kind,
-                                            entry.center,
-                                            point,
-                                        )
-                                    },
-                                )
-                            };
-                            let entry = crate::entries::site(&sites, selected);
-                            let (goal, facing) = if current.fixed_wing() {
-                                let edge =
-                                    crate::air::edge::back_edge(command.side, &sites, &self.world);
-                                let (point, heading) =
-                                    crate::air::edge::entry(&edge, current.position.xy());
-                                ([point.x, point.y], heading)
-                            } else {
-                                (entry.center, entry.yaw)
-                            };
-                            contract::command::MoveDestination {
-                                unit: *unit,
-                                goal,
-                                placed: true,
-                                facing,
-                                spots: vec![],
-                            }
-                        })
-                        .collect(),
-                })
-            }
+            Order::Refund { units } => Some(MovePlacement {
+                gesture: 0,
+                destinations: (units.iter())
+                    .map(|&unit| {
+                        let (goal, facing) = self.way_home(command.side, unit);
+                        contract::command::MoveDestination {
+                            unit,
+                            goal,
+                            placed: true,
+                            facing,
+                            spots: vec![],
+                        }
+                    })
+                    .collect(),
+            }),
             Order::Move {
                 units,
                 gesture,
@@ -2800,6 +2802,7 @@ impl Battle {
                 gesture,
                 goal: Some(goal),
                 route,
+                ..
             } => {
                 let (destinations, found) = self.place_move(
                     command.side,
@@ -2885,24 +2888,15 @@ impl Battle {
             }
         }
         match command.order {
+            // Queued, it waits its turn to find the way home from there.
+            Order::Refund { units } if queued => {
+                for id in units {
+                    movers[id.0 as usize].enqueue(UnitOrder::Withdraw, true);
+                }
+            }
             Order::Refund { .. } => {
                 for slot in prepared.placement.unwrap().destinations {
-                    if !slot.placed {
-                        continue;
-                    }
-                    let unit = &mut movers[slot.unit.0 as usize];
-                    unit.enqueue(
-                        UnitOrder::Move(MoveOrder {
-                            destination: v2(slot.goal[0], slot.goal[1]),
-                            policy: RoutePolicy::Fastest,
-                            gesture: 0,
-                            direction: Default::default(),
-                            facing: None,
-                            short: None,
-                        }),
-                        false,
-                    );
-                    unit.withdrawing = true;
+                    Self::head_home(&mut movers[slot.unit.0 as usize], slot.goal);
                 }
             }
             Order::Ready
@@ -3042,7 +3036,9 @@ impl Battle {
                 goal,
                 gesture,
                 route,
+                into,
             } => {
+                let into = into.map(hold::Host::from);
                 let refused: std::collections::BTreeSet<UnitId> = prepared
                     .refused
                     .iter()
@@ -3082,11 +3078,11 @@ impl Battle {
                                     short: prepared.stops.get(&id).cloned(),
                                 }),
                             );
-                            unit.enqueue(UnitOrder::Unload, true);
+                            unit.enqueue(UnitOrder::Unload { into }, true);
                         }
                         None => {
                             Self::hold_position(unit);
-                            unit.enqueue(UnitOrder::Unload, false);
+                            unit.enqueue(UnitOrder::Unload { into: None }, false);
                         }
                     }
                 }

@@ -1,5 +1,4 @@
 use crate::common;
-use crate::common::Seat;
 use contract::command::{
     CommandEnvelope, Engagement, MoveDirection, Order, OrderError, RoutePolicy,
 };
@@ -33,7 +32,7 @@ fn command(seq: u64, order: Order) -> CommandEnvelope {
     }
 }
 
-fn side_command(side: Side, seq: u64, order: Order) -> CommandEnvelope {
+pub(crate) fn side_command(side: Side, seq: u64, order: Order) -> CommandEnvelope {
     CommandEnvelope {
         side,
         player: Some(
@@ -344,6 +343,7 @@ fn a_helicopter_boards_and_unloads_from_its_low_hover() {
             .accept(command(
                 2,
                 Order::Unload {
+                    into: None,
                     units: vec![UnitId(0)],
                     goal: None,
                     gesture: 2,
@@ -472,7 +472,7 @@ fn a_retiring_helicopter_takes_its_passengers_with_it() {
     );
 }
 
-fn transport_skirmish_setup() -> contract::scenario::ScenarioDefinition {
+pub(crate) fn transport_skirmish_setup() -> contract::scenario::ScenarioDefinition {
     let mut rules = test_rules();
     for (kind, faction, category) in [
         ("test_apc", "us", "veh"),
@@ -829,6 +829,7 @@ fn unloaded_under_a_helicopter(riding: bool) -> Vec<sim::math::V3> {
     let over = battle.unit(UnitId(0)).unwrap().position.xy() - sim::math::v2(200.0, 200.0);
     assert!(over.length() < 1.0, "the helicopter is not over the APC");
     let unload = Order::Unload {
+        into: None,
         units: vec![UnitId(1)],
         goal: None,
         gesture: 4,
@@ -1111,6 +1112,7 @@ fn a_carrier_unloads_where_sent_and_queued_orders_follow() {
     let unload = battle.accept(command(
         2,
         Order::Unload {
+            into: None,
             units: vec![UnitId(0)],
             goal: Some([205.0, 200.0]),
             gesture: 2,
@@ -1171,6 +1173,7 @@ fn an_unload_with_no_room_is_refused_and_everyone_stays_aboard() {
     let refused = in_place.accept(command(
         2,
         Order::Unload {
+            into: None,
             units: vec![UnitId(0)],
             goal: None,
             gesture: 2,
@@ -1216,6 +1219,7 @@ fn an_unload_with_no_room_is_refused_and_everyone_stays_aboard() {
     let unload = arrival.accept(command(
         2,
         Order::Unload {
+            into: None,
             units: vec![UnitId(0)],
             goal: Some([201.0, 200.0]),
             gesture: 2,
@@ -1340,6 +1344,7 @@ fn boarding_through_an_unload(unload: UnloadDuringBoarding) -> BoardedThroughUnl
     };
     if unload != UnloadDuringBoarding::None {
         let unload = Order::Unload {
+            into: None,
             units: vec![UnitId(0)],
             goal: None,
             gesture: 2,
@@ -1414,84 +1419,6 @@ fn a_refused_unload_cuts_short_no_one_getting_in() {
         b.getting_in, undisturbed,
         "getting in took a different time"
     );
-}
-
-#[test]
-fn refunding_a_loaded_carrier_refunds_its_passengers() {
-    let mut battle = Battle::new(&transport_skirmish_setup(), 41);
-    assert!(battle
-        .accept(side_command(
-            Side::Blue,
-            1,
-            Order::purchase("test_apc", [300.0, 100.0]),
-        ))
-        .error
-        .is_none());
-    assert!(battle
-        .accept(side_command(
-            Side::Blue,
-            2,
-            Order::purchase("test_recon", [300.0, 100.0]),
-        ))
-        .error
-        .is_none());
-    battle.accept(side_command(Side::Blue, 3, Order::Ready));
-    battle.accept(side_command(Side::Red, 1, Order::Ready));
-    for _ in 0..(battle.rules().tick_hz * 30) {
-        battle.step();
-        if battle.unit(UnitId(1)).is_some() {
-            break;
-        }
-    }
-    assert!(battle.unit(UnitId(0)).is_some() && battle.unit(UnitId(1)).is_some());
-    assert!(battle
-        .accept(side_command(
-            Side::Blue,
-            4,
-            Order::Board {
-                units: vec![UnitId(1)],
-                carrier: UnitId(0),
-                gesture: 1,
-            },
-        ))
-        .error
-        .is_none());
-    for _ in 0..(battle.rules().tick_hz * 60) {
-        battle.step();
-        if !battle.unit(UnitId(1)).unwrap().on_field() {
-            break;
-        }
-    }
-    assert!(!battle.unit(UnitId(1)).unwrap().on_field());
-    let refused = battle.accept(side_command(
-        Side::Blue,
-        5,
-        Order::Refund {
-            units: vec![UnitId(1)],
-        },
-    ));
-    assert_eq!(refused.error, Some(OrderError::Aboard { unit: UnitId(1) }));
-    let before = battle.observe(Side::Blue).seat().credits;
-    assert!(battle
-        .accept(side_command(
-            Side::Blue,
-            6,
-            Order::Refund {
-                units: vec![UnitId(0)]
-            }
-        ))
-        .error
-        .is_none());
-    for _ in 0..(battle.rules().tick_hz * 30) {
-        battle.step();
-        if battle.unit(UnitId(0)).unwrap().retired {
-            break;
-        }
-    }
-    let after = battle.observe(Side::Blue).seat().credits;
-    assert!(after > before);
-    assert!(battle.unit(UnitId(0)).unwrap().retired);
-    assert!(battle.unit(UnitId(1)).unwrap().retired);
 }
 
 /// Blue's 1 hp APC with `squads` recon squads (units 1..=squads) boarding it
@@ -1707,6 +1634,7 @@ fn the_unload_step_of_a_queued_drive_unload_drive_is_published() {
     let mut unload = command(
         3,
         Order::Unload {
+            into: None,
             units: vec![UnitId(0)],
             goal: Some([280.0, 200.0]),
             gesture: 3,

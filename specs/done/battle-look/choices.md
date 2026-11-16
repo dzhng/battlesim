@@ -181,6 +181,8 @@ Taste, product direction or external cost: only you can settle these. Each carri
 
 **Verdict.** needs-user. Provisional: spotting uses the facade eyes, so the fog never lies. To reverse it, have `sensing::evaluate` read per-soldier eyes for a garrison while the fog sweep keeps `facade_eyes`. The drawn fog would then under-show what the garrison can spot.
 
+**Superseded 2026-11-16 by the user.** A garrison sees as if every window had a soldier at it: one eye per window column of its building, at the column's highest window (`garrison::Windows::window_eyes`), manned or not. Fog, spotting and the drawn fog still read the one list. On a test map with 11 garrisons and nothing in view, the eyes went from 45 to 197 and the battle cost from 10.0 to 10.6 million instructions per tick.
+
 ### The far view stays at the default's tilt instead of WARNO's horizon vista
 
 ***needs-user** · confidence **medium** · **provisional** · Camera and controls · from Slice 09*

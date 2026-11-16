@@ -18,7 +18,7 @@ pub(crate) fn transport_hold_in_progress(units: &[Unit], carrier: UnitId) -> boo
     let Some(host) = units.get(carrier.0 as usize) else {
         return false;
     };
-    if !host.orders.is_empty() && !matches!(host.orders.front(), Some(UnitOrder::Unload)) {
+    if !host.orders.is_empty() && !matches!(host.orders.front(), Some(UnitOrder::Unload { .. })) {
         return false;
     }
     let stepping = units.iter().any(|unit| {
@@ -28,7 +28,7 @@ pub(crate) fn transport_hold_in_progress(units: &[Unit], carrier: UnitId) -> boo
                     && matches!(hold.phase, Phase::Entering(_) | Phase::Exiting(_))
             })
     });
-    let unloading = matches!(host.orders.front(), Some(UnitOrder::Unload))
+    let unloading = matches!(host.orders.front(), Some(UnitOrder::Unload { .. }))
         && !passengers(units, carrier).is_empty();
     let pending = host.orders.is_empty()
         && units.iter().any(|unit| {
@@ -80,8 +80,8 @@ pub(crate) fn unload_due(units: &[Unit], carrier: UnitId, rules: &Rules) -> bool
         return false;
     };
     let due = match (host.orders.front(), host.orders.get(1)) {
-        (Some(UnitOrder::Unload), _) => true,
-        (Some(UnitOrder::Move(drive)), Some(UnitOrder::Unload)) => {
+        (Some(UnitOrder::Unload { .. }), _) => true,
+        (Some(UnitOrder::Move(drive)), Some(UnitOrder::Unload { .. })) => {
             reaches(host, drive.destination, rules)
         }
         _ => false,
@@ -95,9 +95,13 @@ pub(crate) fn within_reach(carrier: &Unit, passenger: &Unit, rules: &Rules) -> b
 
 /// Whether a squad standing at `point` is within the carrier's boarding reach.
 fn reaches(carrier: &Unit, point: V2, rules: &Rules) -> bool {
-    let hull_reach = carrier.hull.map_or(0.0, |h| h.xy().length());
     let reach = Host::Carrier(carrier.id).timing(rules).reach_m;
-    (carrier.position.xy() - point).length() <= reach + hull_reach
+    (carrier.position.xy() - point).length() <= reach + hull_reach(carrier)
+}
+
+/// How far a unit's hull reaches from its centre: none for a squad.
+fn hull_reach(unit: &Unit) -> f64 {
+    unit.hull.map_or(0.0, |h| h.xy().length())
 }
 
 /// Whether a carrier collecting a squad that stands at `point` may call it
@@ -233,20 +237,19 @@ pub(crate) fn unload_spots(
     Some(spots)
 }
 
-/// Commit an unload after its shared hold timer has completed. Spot search is
-/// all-or-nothing, so a failed search leaves every passenger aboard.
+/// Commit an unload after its shared hold timer has completed, returning the
+/// squads set down. Spot search is all-or-nothing, so a failed search
+/// (`None`) leaves every passenger aboard.
 pub(crate) fn complete_unload(
     world: &WorldGeometry,
     units: &mut [Unit],
     carrier: UnitId,
     rules: &Rules,
-) -> bool {
+) -> Option<Vec<usize>> {
     let passengers = passengers(units, carrier);
-    let Some(spots) = unload_spots(world, units, carrier, rules) else {
-        return false;
-    };
+    let spots = unload_spots(world, units, carrier, rules)?;
     let mut spots = spots.into_iter();
-    for index in passengers {
+    for &index in &passengers {
         let unit = &mut units[index];
         for soldier in unit.members.iter_mut().filter(|s| s.alive()) {
             soldier.position = spots.next().expect("unload spot count matches passengers");
@@ -260,7 +263,120 @@ pub(crate) fn complete_unload(
         unit.cover.due = true;
         unit.hold = None;
     }
-    true
+    Some(passengers)
+}
+
+/// Where `carriers` set down to unload `into` a host, from `clicked` (else
+/// the first carrier): beside the building's facade nearest the click, clear
+/// of the walls by the widest hull; or beside the other carrier, on the side
+/// they come from, clear of both hulls. A building must be one the side
+/// knows that takes a garrison; the command check has already admitted a
+/// carrier.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn set_down_beside(
+    world: &WorldGeometry,
+    known: &crate::movement::SideGeometry,
+    authored: crate::world::PropId,
+    units: &[Unit],
+    carriers: &[UnitId],
+    into: contract::command::UnloadInto,
+    clicked: Option<[f64; 2]>,
+    rules: &Rules,
+) -> Result<[f64; 2], contract::command::OrderError> {
+    use contract::command::{OrderError, UnloadInto};
+    let from = clicked.map_or_else(
+        || units[carriers[0].0 as usize].position.xy(),
+        |[x, y]| crate::math::v2(x, y),
+    );
+    let widest = (carriers.iter())
+        .map(|id| hull_reach(&units[id.0 as usize]))
+        .fold(0.0, f64::max);
+    let point = match into {
+        UnloadInto::Building { building } => {
+            let owner = world.remembered_structure_owner(building);
+            if !known
+                .prop(world, authored, owner)
+                .is_some_and(|p| p.body.garrison)
+            {
+                return Err(OrderError::NotABuilding);
+            }
+            let standoff = widest + rules.garrison.entry_distance_m / 2.0;
+            crate::garrison::approach(world, known, authored, owner, from, standoff, |_| true)
+                .ok_or(OrderError::NotABuilding)?
+        }
+        UnloadInto::Carrier { carrier } => {
+            let target = &units[carrier.0 as usize];
+            let at = target.position.xy();
+            let away = units[carriers[0].0 as usize].position.xy() - at;
+            let away = if away.length() > 0.0 {
+                away.normalized()
+            } else {
+                crate::math::v2(1.0, 0.0)
+            };
+            at + away * (hull_reach(target) + widest + rules.carriage.reach_m)
+        }
+    };
+    Ok([point.x, point.y])
+}
+
+/// Send `squads`, just set down, on into the host their unload named: each
+/// boards the carrier, or walks to the approach the building order would
+/// plan for it and steps in. They meet the host's refusals as if ordered
+/// there directly; one the host can't take stays where it landed.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn send_into(
+    world: &WorldGeometry,
+    known: &crate::movement::SideGeometry,
+    authored: crate::world::PropId,
+    units: &mut [Unit],
+    squads: &[usize],
+    into: Host,
+    rules: &Rules,
+    refusals: &mut Vec<contract::command::Refusal>,
+) {
+    let ids: Vec<UnitId> = squads.iter().map(|&i| units[i].id).collect();
+    match into {
+        Host::Carrier(carrier) => {
+            for &i in squads {
+                units[i].enqueue(
+                    UnitOrder::Board {
+                        carrier,
+                        gesture: 0,
+                    },
+                    false,
+                );
+            }
+        }
+        Host::Building(building) => {
+            let request = contract::command::BuildingPreviewRequest {
+                units: ids.clone(),
+                building,
+                queued: false,
+            };
+            match crate::garrison::occupy(world, known, authored, units, &request, rules) {
+                Ok((plan, refused)) => {
+                    refusals.extend(refused);
+                    for entry in plan.entries {
+                        units[entry.unit.0 as usize].enqueue(
+                            UnitOrder::Garrison {
+                                building: plan.building,
+                                approach: crate::math::v2(entry.approach[0], entry.approach[1]),
+                                gesture: 0,
+                                policy: contract::command::RoutePolicy::Shortest,
+                            },
+                            false,
+                        );
+                    }
+                }
+                Err(reason) => {
+                    refusals.extend(ids.into_iter().map(|unit| contract::command::Refusal {
+                        unit,
+                        reason: reason.clone(),
+                    }))
+                }
+            }
+        }
+    }
 }
 
 /// Whether unit `i` is walking or driving toward its Board or Collect target
@@ -319,7 +435,7 @@ pub(crate) fn advance(
     let empty_unloads: Vec<bool> = units
         .iter()
         .map(|unit| {
-            matches!(unit.orders.front(), Some(UnitOrder::Unload))
+            matches!(unit.orders.front(), Some(UnitOrder::Unload { .. }))
                 && passengers(units, unit.id).is_empty()
         })
         .collect();
