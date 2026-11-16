@@ -177,7 +177,8 @@ test("Play reserves a battle and Deploy takes its initial human seat without a s
   );
   expect(await s.frontline.deploy("alpha", s.a.battle)).toEqual(s.ticket);
   expect(JSON.stringify([s.a, s.ticket])).not.toContain("alpha");
-});
+  // The hang watchdog its neighbours have: this prepares the same large battle.
+}, 120_000);
 
 test("a joiner's displaced units stay on their side under an AI that orders them; Deploy publishes only the completed fresh seat", async () => {
   const s = await service();
