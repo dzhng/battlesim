@@ -2304,7 +2304,7 @@ tried and left waits that 24 ms does not.
 The implementer's reference runs, three each way: the RPG team's longest
 frame 216, 233 and 195 ms before, 94, 96 and 95 ms after; learning to commit
 0.76, 0.84 and 0.82 s before, 0.77, 0.83 and 0.82 s after; an assault squad's
-longest frame 146, 141 and 139 ms before, 102, 87 and 81 ms after. All 18
+longest frame 146, 141 and 139 ms before, 102, 82 and 81 ms after. All 18
 paired admission-work reports are equal. The cost: a vehicle's stand-in is on
 screen 50–100 ms longer (the first vehicle 237, 221 and 246 ms before; 283,
 378 and 295 ms after) for no gain in its own frames, because the whole-result
