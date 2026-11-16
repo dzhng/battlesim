@@ -334,8 +334,12 @@ fn nothing_of_the_enemys_plan_reaches_the_other_side() {
 
 /// A U.S. against Eastern skirmish on a map with a building (prop 0): blue
 /// buys a `blue` and red a tank, and both drive in, holding their fire,
-/// and stand. Its commands
-/// go out in each side's sequence, each admitted.
+/// and stand. A second blue player, who buys nothing, gives each side two
+/// roads in, blue's one by each side edge (`WEST`, `EAST`). Its commands go
+/// out in each side's sequence, each admitted.
+const WEST: [f64; 2] = [10.0, 150.0];
+const EAST: [f64; 2] = [790.0, 150.0];
+
 struct Skirmish {
     b: Battle,
     seq: [u64; 2],
@@ -360,6 +364,18 @@ impl Skirmish {
         let map = json!({ "size": [800, 600], "fog_cell_m": 8, "height_grid_m": 4,
             "slope_cutoff_deg": 35, "props": [], "buildings": [house] });
         s.map = crate::common::scenario_with(&map.to_string(), json!([]), json!([]), json!([])).map;
+        s.players.push(
+            serde_json::from_value(json!({ "id": "blue-2", "side": "blue",
+                "faction": "us", "controller": "human", "human_capable": true }))
+            .unwrap(),
+        );
+        let roads = json!([
+            { "side": "blue", "center": WEST, "yaw": 0.0 },
+            { "side": "blue", "center": EAST, "yaw": std::f64::consts::PI },
+            { "side": "red", "center": [400, 590], "yaw": -std::f64::consts::FRAC_PI_2 },
+            { "side": "red", "center": [600, 590], "yaw": -std::f64::consts::FRAC_PI_2 },
+        ]);
+        s.skirmish.as_mut().unwrap().sites.entries = serde_json::from_value(roads).unwrap();
         let mut m = Skirmish {
             b: Battle::new(&s, 1),
             seq: [0; 2],
@@ -371,6 +387,14 @@ impl Skirmish {
             false,
         );
         m.order(Side::Blue, Order::Ready, false);
+        let ready = m.b.accept(contract::command::CommandEnvelope {
+            side: Side::Blue,
+            player: Some("blue-2".into()),
+            seq: 1,
+            order: Order::Ready,
+            queued: false,
+        });
+        assert_eq!(ready.error, None, "{ready:?}");
         m.order(Side::Red, Order::Ready, false);
         let mut holding = [false; 2];
         for _ in 0..30 * 120 {
@@ -515,13 +539,10 @@ fn every_order_is_published_as_a_step_in_order() {
         matches!(garrison, OrderStep::Garrison { building: 0, .. }),
         "{garrison:?}"
     );
-    // The side's one road in is its way home.
-    assert_eq!(
-        home,
-        OrderStep::ReturnToBase {
-            point: [400.0, 10.0]
-        }
-    );
+    // The way home starts where the garrison ends, by the house: the east
+    // road, though the squad stands, and the move before ends, nearer the
+    // west one.
+    assert_eq!(home, OrderStep::ReturnToBase { point: EAST });
 }
 
 #[test]
