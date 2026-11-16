@@ -1,0 +1,166 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Queue Behind Attack</title>
+<style>
+:root{--red:rgb(255,115,102);--yel:rgb(255,230,77)}
+body{margin:0;font-family:var(--font-sans,system-ui);font-size:13.5px;line-height:1.5}
+h1{font-size:18px;margin:0 0 2px}
+.sub{color:var(--muted-foreground,#9ab);margin:0 0 14px}
+h2{font-size:14px;margin:22px 0 8px;display:flex;gap:8px;align-items:baseline}
+h2 .q{font-family:var(--font-mono,monospace);font-size:11px;padding:2px 7px;border-radius:999px;background:var(--secondary,#223);color:var(--secondary-foreground,#cde)}
+.box{background:var(--card,#111a20);border:1px solid var(--border,#234);border-radius:var(--radius,8px);padding:12px 14px;margin:8px 0}
+code{font-family:var(--font-mono,monospace);font-size:12px;background:var(--code-background,#0b1218);padding:1px 4px;border-radius:4px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid var(--border,#234)}
+th{color:var(--muted-foreground,#9ab);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em}
+.who{font-family:var(--font-mono,monospace);font-size:10.5px;padding:1px 6px;border-radius:999px;white-space:nowrap}
+.u{background:color-mix(in srgb,var(--info,#39f) 22%,transparent)}
+.t{background:color-mix(in srgb,var(--success,#3c6) 22%,transparent)}
+.a{background:color-mix(in srgb,var(--warning,#fa3) 25%,transparent)}
+.o{background:color-mix(in srgb,var(--destructive,#f44) 25%,transparent)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:8px}
+.card{background:var(--card,#111a20);border:1px solid var(--border,#234);border-radius:var(--radius,8px);padding:10px 12px}
+.card b{display:block;margin-bottom:3px}
+.card .s{font-size:11px;font-family:var(--font-mono,monospace);float:right}
+.card p{margin:3px 0;font-size:12.5px}
+.contract{border-left:3px solid var(--primary,#5bf)}
+ul{margin:4px 0;padding-left:18px}li{margin:2px 0}
+details{margin:6px 0}summary{cursor:pointer;font-weight:600}
+textarea{width:100%;box-sizing:border-box;min-height:220px;font-family:var(--font-mono,monospace);font-size:12px;background:var(--code-background,#0b1218);color:var(--foreground,#e6f5ff);border:1px solid var(--border,#234);border-radius:6px;padding:10px}
+button{margin-top:6px;font:inherit;padding:5px 12px;border-radius:6px;border:1px solid var(--border,#234);background:var(--secondary,#223);color:var(--secondary-foreground,#cde);cursor:pointer}
+.legend{font-size:11.5px;color:var(--muted-foreground,#9ab)}
+</style></head><body>
+<h1>Queue behind an attack: the map</h1>
+<p class="sub">You can now shift-queue a move (or anything else) behind an attack or attack-ground, for every unit, and the Space view shows the chain. Part 1 is the sim, the contract and ground units' overlay; part 2 is the jets' 3D attack line. Paths are relative to the battlesim worktree.</p>
+
+<div class="box contract"><b>Contract changes first</b>
+<ul>
+<li><b>Order admission:</b> a queued <code>Move</code>, <code>AttackMove</code> or <code>Unload</code> to a point behind an <code>Attack</code> is <b>placed</b> (it used to come back unplaced and be dropped without a word). The "queued move behind an indefinite attack" case of <code>NoValidDestination</code> goes away. The <code>Order</code> and <code>CommandEnvelope</code> shapes don't change.</li>
+<li><b>Own-unit observation:</b> <code>OwnUnit.queue: [x,y][]</code> and <code>queue_unloads: bool[]</code> are <b>replaced</b> by one ordered list of steps. Each step is <i>move</i> {point, unloads} or <i>attack</i> {target kind and id from the <code>targetKinds</code> table, plus a point}. The current order's attack target is published the same way. <code>goal</code> still means the chase point. There's no compatibility shim.</li>
+<li><b>Publication layout:</b> the own-unit row and queue section change shape. The codec vectors are hand-edited, the stream hashes re-blessed, and the parity captures recorded again once. <b>The server and web deploy together</b>, because an old client rejects the new layout.</li>
+<li><b>Battle digest:</b> unchanged for every battle that never queues behind an attack, including the skirmish AI, encounters and endurance runs, which never do. The new progress state is added to the digest only when present.</li><li><b>Every queued order is a step:</b> move, attack, garrison, board, collect, unload, exit and return to base (decision 15).</li>
+</ul></div>
+
+<h2><span class="q">Q1</span>Known knowns: settled ground</h2>
+<div class="box"><ul>
+<li><b>Where the refusal lives:</b> the <code>after_attack</code> check in <code>crates/sim/src/battle/move_placement.rs:181</code>. <code>apply_units</code> then skips the unplaced queued move (<code>crates/sim/src/battle.rs:2932</code>). It was introduced in <code>e5d49dc7c</code>, and the move-validity spec records it (<code>specs/done/move-validity/README.md:14</code>, <code>choices.md:37</code>).</li>
+<li><b>Which orders it hits:</b> only Move, AttackMove and Unload to a point, through <code>place_move</code> (<code>battle.rs:2763-2807</code>). Garrison already plans a queued order from the last move's end (<code>crates/sim/src/garrison/occupy.rs:102</code>). Board, Collect and Refund are never refused.</li>
+<li><b>The client already sends shift-click as <code>queued: true</code></b> for every order (<code>web/src/battle/input/pointerIntent.ts:158</code>). Only the sim refuses.</li>
+<li><b>Attack-ground never ends</b> for any unit (<code>battle.rs:2574</code>, <code>crates/sim/src/air/orders.rs:65</code>).</li>
+<li><b>The Space view is the order overlay</b> (<code>buildOrderOverlay</code>, which also flashes after an order is issued; <code>web/src/battle/present/orderReveal.ts</code>). Jets get no marker, no route and no goal circle, only a ghost and drop line at the end of their orders (<code>packages/battle-renderer/src/unitCircle.ts:114</code>, <code>orderOverlay.ts:662,678</code>).</li>
+<li><b>No test pins the refusal.</b></li>
+</ul></div>
+
+<h2><span class="q">Q2</span>Known unknowns: decision ledger</h2>
+<p class="legend"><span class="who u">user</span> you answered · <span class="who t">territory</span> the code answered, shown to you · <span class="who a">agent</span> answered on your behalf under delegation · <span class="who o">OPEN</span></p>
+<div class="box"><table>
+<tr><th>#</th><th>Decision</th><th>Why</th><th>Closed by</th></tr>
+<tr><td>1</td><td>Remove the refusal for every unit. Queued legs are planned from the last queued move's end, or the unit's position if there isn't one.</td><td>Reach is a connected-ground check, and chasing a target never leaves connected ground.</td><td><span class="who u">user</span></td></tr>
+<tr><td>2</td><td><b>Attack-ground follows the same rule as attacks:</b> with any order queued behind it, one volley; as the last order, today's behaviour (fire forever). A volley is one firing cycle per firing weapon, read from its data: its burst if it has one, else its whole magazine, else one shot. For a jet, one run in which its weapon fired. So a HIMARS GMLRS fires its full 6-rocket ripple, a HIMARS PrSM one missile, a Tornado-S 4 rockets. A launcher with a part-spent magazine fires what it has left, because running dry completes the cycle. <i>(You briefly made it "always one volley", then reverted.)</i></td><td>One rule for every attack, and the volley comes from the weapon's own data.</td><td><span class="who u">user</span></td></tr>
+<tr><td>3</td><td>For a volley, only weapons firing at the point count. If none can fire, the attack hands off at once. A last-order attack-ground out of range keeps today's behaviour (it waits, aiming).</td><td>No hang when the unit is out of range.</td><td><span class="who u">user</span></td></tr>
+<tr><td>4</td><td><b>An attack on a unit or contact with any order queued behind it fires one volley and hands off. The last attack in the queue keeps the full behaviour:</b> it stays on the target until the target dies or is lost. With something queued, a unit with no weapon that can damage the target hands off at once, and a target that dies or is lost mid-volley ends it early. <i>(Replaces "until dead even when queued", Q8.)</i></td><td>A shift-right-click on the same jet target twice queues two bombing runs; a plain right-click, or a move then shift-right-click, bombs it until it's dead.</td><td><span class="who u">user</span></td></tr>
+<tr><td>5</td><td>The overlay gets an attack line, and queued steps chain <i>through</i> the target.</td><td>You asked for an attack line.</td><td><span class="who u">user</span></td></tr>
+<tr><td>6</td><td>The published queue becomes ordered step records (see the contract box). This deliberately reverses <code>specs/done/transport/choices.md:205</code>.</td><td>One owner for the queue; queued attacks behind moves become visible too.</td><td><span class="who u">user</span></td></tr>
+<tr><td>7</td><td>Garrison, Board, Collect, Unload and Refund behind an attack need nothing beyond decision 1.</td><td>The refusal lives only in <code>place_move</code>.</td><td><span class="who t">territory</span></td></tr>
+<tr><td>a</td><td>The cycle count starts when the first order is queued behind the attack. A cycle under way counts once it finishes; a weapon not firing then must fire one full cycle.</td><td>Preference 2: responsive and never hangs.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>b</td><td>A cycle is measured by rounds fired at the point since counting started. Running dry also completes it.</td><td>Preference 1. Avoids the instant-refill rifle and leftover-counter traps.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>c</td><td>Squads count per weapon row; a row is done when the first of its guns finishes a cycle.</td><td>Preference 2. One blocked soldier can't hold up the queue.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>d</td><td>"Firing at the point" means aimed at it, decided right after the fire step. Anything the sim reports as unable doesn't count.</td><td>Preference 2. Avoids reading the previous tick's assessment.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>e</td><td>A jet run counts only if its weapon fired. A jet with no weapon able to fly a run ends at once.</td><td>Preferences 1 and 2.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>f</td><td>A jet that loses its target's track ends the attack. With nothing queued, it circles there.</td><td>Preference 2. Today it attacks forever.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>g</td><td>The garrison bug, the shift-click bug and the dropped first leg are each fixed in their own commit, first. The dropped-leg fix covers blocked units; jets stay as decision 11 says.</td><td>Preference 5, plus the repo's own-commit rule for unrelated fixes.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>h</td><td>A jet's "run done" is noted during movement, and the attack is removed after the fire step.</td><td>The bomb still drops.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>i</td><td>"Can damage" uses <code>compatible</code> (<code>weapons.rs:992</code>) for every unit, never <code>engaging_rows</code>.</td><td>Preference 1. One owner, and armour is respected.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>j</td><td>Progress state lives on the attack order and is added to the digest only when present.</td><td>Existing digests and replays stay byte-identical.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>k</td><td>Each step's point is worked out read-only from what the side knows. <code>last_known</code> is never written for queued attacks.</td><td>No change to digests or behaviour.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>l</td><td>Targets reuse the <code>targetKinds</code> encoding, with no new layout table.</td><td>Preference 1; cheaper re-bless.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>m</td><td><code>goal</code> stays the chase point.</td><td>The skirmish AI and voice "arrived" calls read it.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>n</td><td>A queued attack takes effect only when its turn comes: fire at will and a jet's dogfight target are set when it reaches the front, not when it is queued (<code>battle.rs:2989-2998</code>).</td><td>Preference 2: a queued order must not jump the queue.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>o</td><td>A queued return to base publishes its point read-only from where the queue before it ends: the back edge for a jet, the quickest road out for a ground unit (<code>way_home</code>, <code>battle/return_to_base.rs:9</code>). The route is planned when its turn comes.</td><td>Decision k's read-only rule.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>15</td><td><b>Every queued order becomes a published step</b> in part 1: move, attack, garrison, board, collect, unload, exit and return to base.</td><td>The chain never skips an order.</td><td><span class="who u">user</span></td></tr>
+<tr><td>16</td><td><b>The voice-line queue tracks every step kind,</b> attacks included (<code>packages/battle-audio/src/voices/responses.ts</code>).</td><td>No "arrived" in the middle of an attack.</td><td><span class="who u">user</span></td></tr>
+</table>
+<details><summary>Confirmed preferences and delegation scope</summary>
+<ol><li>Rules come from the data each unit and weapon carries, never special cases by unit type.</li><li>Never a silent hang or dropped order.</li><li>Readable, RTS-style feedback over minimal changes.</li><li>Nothing confusing for jets in the air; their visuals ship as their own part.</li><li>Ship clear wins first, in separate pushes.</li></ol>
+<p><b>Scope:</b> sim and contract details, for this walk only. Anything you'd see on screen, or that the preferences don't cover, still goes to you.</p></details>
+</div>
+
+<h2><span class="q">Q3</span>Unknown knowns: what got extracted</h2>
+<div class="box"><table>
+<tr><th>#</th><th>Decision</th><th>What it reshaped</th><th>Closed by</th></tr>
+<tr><td>8</td><td>Attack lines and reticles use <code>hud.bad</code> exactly, the attack-ground footprint's red. They differ from a blocked route by <b>shape</b>: solid with a reticle, versus dashed with a cross.</td><td>The mock's <code>hud.enemy</code> was a near-copy hue (card 13).</td><td><span class="who u">user</span></td></tr>
+<tr><td>9</td><td>Allies don't see your attack lines.</td><td>Same as your other orders.</td><td><span class="who u">user</span></td></tr>
+<tr><td>10</td><td>When the target is lost, the line points at its last known spot.</td><td>Needs decision k (read-only point).</td><td><span class="who u">user</span></td></tr>
+<tr><td>11</td><td><b>Part 1:</b> jets' look doesn't change (no ground chain, no ground reticle). <b>Part 2:</b> a jet's only new mark is an attack line drawn <b>in 3D from the jet model</b> to the target unit or ground point.</td><td>Lines on the ground under a high jet confuse. Part 2 can build on the overlay's mesh layer for marks in the air (<code>lines</code>, used for drop lines).</td><td><span class="who u">user</span></td></tr>
+<tr><td>12</td><td><b>Done:</b> a jet doing attack-ground → queued move in a real battle, with a before/after capture of the Space view.</td><td><i>Agent note:</i> since part 1 doesn't change jets' look, part 1's proof is a jet <i>flying</i> the queued move in a real battle plus a ground unit's chain in the Space view. The jet's capture with its line is part 2's proof.</td><td><span class="who u">user</span></td></tr>
+<tr><td>13</td><td>A unit in range draws a red line from its marker to the reticle. A unit chasing keeps its yellow route, which ends in the red reticle instead of the yellow circle. Queued legs continue from the reticle.</td><td>One mark per target, and yellow keeps meaning "where it drives".</td><td><span class="who u">user</span></td></tr>
+<tr><td>17</td><td><b>Acceptance test:</b> a jet and a ground unit each take, with Shift held: attack → move → attack (same enemy) → move → attack (a different enemy) → return to base. Every step runs in order, with a volley at each attack (every one has something behind it); nothing is dropped and nothing hangs. It's an end-to-end sim test for both, plus a Space-view capture of the ground unit's chain. Also: same jet target shift-clicked twice then a move gives two runs then the move; move then shift-attack bombs until dead.</td><td>Your example.</td><td><span class="who u">user</span></td></tr>
+<tr><td>18</td><td>Each queued step draws what that order draws when it's current, dashed and at queued strength: a garrison leg plus the building's ring, a leg to the carrier, the unload mark, a leg to the map-edge exit for return to base. No new marks beyond the reticle.</td><td>One concept, one look, current or queued.</td><td><span class="who u">user</span></td></tr>
+<tr><td>14</td><td><b>Order of work:</b> part 1, then <code>/review</code>, then push to staging. Part 2 goes in its own push afterwards.</td><td>Split the plan in two.</td><td><span class="who u">user</span></td></tr>
+</table></div>
+
+<h2><span class="q">Q4</span>Unknown unknowns: landmine cards</h2>
+<div class="cards">
+<div class="card"><span class="s who a">decided h</span><b>1 · Ending at run end loses the bomb</b><p>The run ends during movement (<code>air/pass.rs:325</code>), and <code>choose_lock</code> drops the ground aim once the order is gone (<code>weapons.rs:1041</code>) before the bomb is released in the fire step.</p></div>
+<div class="card"><span class="s who a">decided f</span><b>2 · A jet attacks a lost target forever</b><p>It only ends on a seen death (<code>air/orders.rs:65</code>). It keeps no last known spot, so it aims at itself (<code>air/mod.rs:309</code>).</p></div>
+<div class="card"><span class="s who a">decided g</span><b>3 · A garrisoned attack never ends</b><p><code>update_pursuit</code> skips garrisoned units before the dead-target check (<code>battle.rs:2535</code>). An existing bug that already holds up queued Exit, Garrison, Board and Refund.</p></div>
+<div class="card"><span class="s who a">decided e</span><b>4 · A jet with no run weapon circles forever</b><p><code>air/mod.rs:231</code>: an anti-air-only loadout, or bombs that can't reach the aim point.</p></div>
+<div class="card"><span class="s who a">decided g</span><b>5 · A shift-click breaks off a jet's run and withdrawal</b><p><code>take_order</code> runs for queued commands too (<code>battle.rs:3706</code>). An existing bug.</p></div>
+<div class="card"><span class="s who a">decided a–d</span><b>6 · Nothing records a weapon's cycle end</b><p>Boundaries exist only inside <code>weapons.rs::fire</code>. Traps: the instant-refill rifle, short last bursts, counters carried over, soldiers sitting out.</p></div>
+<div class="card"><span class="s who a">decided d</span><b>7 · The end check reads a stale assessment</b><p><code>update_pursuit</code> runs before the fire step (<code>tick.rs:436</code>).</p></div>
+<div class="card"><span class="s who a">decided i</span><b>8 · The jet's damage test ignores armour</b><p><code>engaging_rows</code> (<code>air/mod.rs:390</code>) versus <code>compatible</code>.</p></div>
+<div class="card"><span class="s who u">decided 6</span><b>9 · Reverses a recorded decision</b><p><code>specs/done/transport/choices.md:205</code> rejected step records.</p></div>
+<div class="card"><span class="s who a">decided l</span><b>10 · Fixtures pin the layout</b><p>The codec vectors are hand-edited, five stream hashes re-blessed, the parity captures re-recorded (<code>crates/sim/tests/common/capture_publication.rs</code>), and the server and web deploy together.</p></div>
+<div class="card"><span class="s who a">decided k</span><b>11 · <code>last_known</code> is in the digest</b><p>Writing it for queued attacks would change behaviour and digests. The points are worked out read-only.</p></div>
+<div class="card"><span class="s who a">decided g</span><b>12 · The first queued leg is dropped</b><p>A line with no start circle has zero length (<code>orderOverlay.ts:283</code>). This affects blocked units today.</p></div>
+<div class="card"><span class="s who u">decided 8</span><b>13 · Near-copy reds</b><p><code>hud.enemy</code> is almost <code>hud.bad</code>, which already marks attack-ground and blocked routes (<code>apps/battle-lab/src/gameOverlay.ts:48</code>).</p></div>
+<div class="card"><span class="s who u">decided 13</span><b>14 · The chase route marks the target twice</b><p>The chase point is already drawn as a yellow route and circle.</p></div>
+<div class="card"><span class="s who t">sharp edge</span><b>Unload without a goal still clears the queue</b><p>That's the documented contract (<code>crates/contract/src/command.rs:199</code>), so it's left alone.</p></div>
+<div class="card"><span class="s who t">sharp edge</span><b>Tests cast <code>OwnUnitView</code></b><p>Six web tests use <code>as unknown as</code>, so a rename type-checks and reads <code>undefined</code> at runtime. Update them by hand.</p></div>
+<div class="card"><span class="s who t">sharp edge</span><b>Ghost end has to skip attack steps</b><p><code>u.queue.at(-1) ?? u.goal</code> (<code>orderOverlay.ts:680</code>) and <code>unitGhosts.ts:127</code> must use the last <i>move</i> step.</p></div>
+<div class="card"><span class="s who u">decided 15</span><b>Other queued orders weren't published</b><p>Garrison, board and exit were missing from the queue. Now in part 1.</p></div>
+<div class="card"><span class="s who u">decided 16</span><b>The voice queue didn't track attacks</b><p><code>packages/battle-audio/src/voices/responses.ts</code> could call a false "arrived" mid-attack. Now fixed in part 1.</p></div>
+<div class="card"><span class="s who a">decided n</span><b>A queued attack jumped the queue</b><p>Queuing an attack set fire at will and a jet's dogfight target at once (<code>battle.rs:2989-2998</code>).</p></div>
+<div class="card"><span class="s who t">sharp edge</span><b>A queued attack-ground out of range is skipped</b><p>Ground units never move closer for attack-ground, so with something queued behind it the step hands off at once (decision 3). Today's attack-ground cursor already shows reach (<code>web/src/battle/input/commandReach.ts</code>).</p></div>
+</div>
+
+<h2>Builder confirms before coding</h2>
+<div class="box"><ul>
+<li>Re-read the claims from the search's cards 6–8 at their cited lines: <code>weapons.rs:1559-1576</code>, <code>tick.rs:125-176,436</code>, <code>assessment.rs:78</code>.</li>
+<li>That a garrisoned squad with no window facing the point reports "unable" through the existing assessment. If it doesn't, decision d needs that signal.</li>
+<li>How the parity captures are re-recorded (<code>capture_publication.rs</code>), and which LFS sources that needs.</li>
+<li>No reticle mark exists in the renderer yet. Build it with the <code>renderer</code> and <code>game-ui</code> skills, as one mark shared by the chase-end and in-range cases.</li>
+</ul></div>
+
+<div class="box contract"><b>Superseded:</b> the plan and prompt below were the walk's first draft. The build ladder, slices and handoff now live in <code>specs/queue-behind-attack/README.md</code>; decision p and the step-record refinements are in <code>choices.md</code>.</div>
+<h2>Tweakable plan</h2>
+<div class="box">
+<b>Judgment calls (most likely to change)</b>
+<ul>
+<li>The reticle's shape and size at default and far zoom (four brackets, as in mock A/B), judged against <code>journey-space-orders.png</code>.</li>
+<li>Decision c's squad rule (first gun per row) if a playtest shows squads leaving too early.</li>
+<li>Decision a's counting start, if the first shift-click feels too abrupt mid-burst.</li>
+</ul>
+<details><summary>Mechanical work (I trust you on that part)</summary>
+<ol>
+<li><b>fix(sim):</b> a garrisoned unit's attack ends when its target dies. Test first.</li>
+<li><b>fix(sim):</b> a queued command no longer breaks off a jet's run or withdrawal. Test first.</li>
+<li><b>fix(overlay):</b> a blocked unit's first queued leg is drawn.</li>
+<li><b>feat(sim):</b> delete the <code>after_attack</code> refusal, add the volley-unless-last rule for every attack (ground and unit), queued attacks taking effect at their turn, the can't-damage handoff, the jet's lost-target end and run-done timing. End-to-end sim tests: decision 17's acceptance queue for a jet and a ground unit; the last attack in a queue stays until the target is dead and a last attack-ground keeps firing, with digests unchanged; a queued HIMARS-style launcher fires its whole magazine as one volley; riflemen behind an attack on a tank move on at once.</li>
+<li><b>feat(audio):</b> the voice queue tracks every step kind.</li><li><b>feat(contract):</b> step records for every queued order kind in <code>OwnUnit</code>, publication, presentation-wasm reader, <code>OwnUnitView</code>; fixtures re-blessed and parity captures recorded once.</li>
+<li><b>feat(overlay):</b> the <code>hud.bad</code> attack line and reticle, the chase route ending in the reticle, the chain through targets, each queued step drawn as its current order draws, the ghost skipping attack steps. Run <code>screenshot-critique</code>, <code>compare-screenshots</code>, <code>preview-shots</code>.</li>
+<li><b>docs:</b> rewrite move-validity README line 14 and choices.md 37, add a note to transport choices, update the <code>NoValidDestination</code> doc.</li>
+<li>Run <code>/review</code>, then push to staging. Part 2 (jets' 3D attack line) goes in its own push.</li>
+</ol></details>
+</div>
+
+<h2>Implementation prompt</h2>
+<textarea id="p">Write the spec for "queue behind attack" with write-spec at specs/queue-behind-attack/, carrying every decision from the map at throwaway/queue-behind-attack-map.html verbatim as givens (1–14 and a–m, the contract box, the landmine cards, the builder-confirm list). Two parts:
+
+Part 1: the sim (remove the queued-move-behind-attack refusal; any attack or attack-ground with anything queued behind it fires one volley (a burst, else a whole magazine, else one shot; one fired jet run), while the last attack keeps today's behaviour; queued attacks take effect at their turn; the can't-damage handoff; the jet's lost-target end; run-done after the fire step), the OwnUnit step-record contract covering every queued order kind with fixtures re-blessed, the voice queue tracking every step, and ground units' overlay (a hud.bad attack line and reticle, the chase route ending in the reticle, the chain through targets, each queued step drawn like its current order). Decision 17's acceptance queue must pass for a jet and a ground unit. Land the three existing-bug fixes first, each in its own commit with a test written first. Then run /review and push to staging.
+
+Part 2 (a separate push after part 1 lands): jets show attack lines only, drawn in 3D from the jet model to the target unit or ground point.
+
+Then implement part 1 with implement-spec.</textarea>
+<button onclick="const t=document.getElementById('p');t.select();try{navigator.clipboard.writeText(t.value)}catch(e){document.execCommand('copy')}">Copy prompt</button>
+</body></html>
