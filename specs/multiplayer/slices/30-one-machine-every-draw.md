@@ -108,3 +108,30 @@ The `frontline` and `online-battle` scenes were **NOT RUN**: their command was
 queued behind another session's shared GPU lock. At the user's instruction,
 only this pass's queued command was cancelled; the parent will run both scenes
 at integration. No approved picture was changed or re-approved.
+
+## Measured on the deployed lobby (2026-11-16), and what it still owes
+
+Play on an empty server, three times, each on one machine: 77, 13 and 39
+seconds. Slice 29 measured 57 once. One machine a game took away the
+renting of a machine for each refused map, about ten seconds apiece. It
+did not take away the refused maps: a draw the generator refuses is
+prepared for many seconds first (about 15 on the dense map types), and the
+draws are tried one after another. Thirteen seconds is a first draw
+admitted; 77 is several refused first.
+
+### Draws are prepared side by side
+
+- **The candidates of a battle are prepared at the same time,** as many at
+  once as the machine has cores to spare, and the battle is the
+  lowest-numbered one admitted: the same battle that trying them in order
+  makes.
+- **A candidate above an admitted one is abandoned** as soon as every
+  lower one has answered. Nothing waits for it.
+- **The thread that prepared the winner is the battle's thread.** The map
+  is not built twice.
+
+Verification: the choice equals the in-order choice for every pattern of
+refusals; the admitted battle is the battle that candidate makes alone
+(digest); a list with none admitted still rejects and leaves no thread
+running; on the deployed lobby, Play on an empty server several times.
+

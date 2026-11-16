@@ -31,11 +31,12 @@ create a room, start its battle, survive a drop and finish
 three of: fix Play's wait on an empty server, point the site at the lobby
 and promote it, and build the native simulation for the battle server.
 
-1. **Slice 30 is in,** one machine tries every draw. Still owed: the
-   `frontline` and `online-battle` scenes on the integrated tree (the
-   shared GPU lock was held by another session's stalled process on
-   2026-11-16), and Play timed on the deployed lobby after the next
-   deploy.
+1. **Slice 30 is half done.** One machine tries every draw (in, and
+   deployed): Play on an empty server took 77, 13 and 39 seconds. The
+   other half, draws prepared side by side, is with Codex. Still owed
+   after it: the `frontline` and `online-battle` scenes on the integrated
+   tree (the shared GPU lock was held by another session's stalled process
+   on 2026-11-16), and Play timed again on the deployed lobby.
 2. **Slice 31,** a build is what both ends share. Without it the live
    lobby refuses every player after each promotion of the site.
 3. **Ship it.** Merge staging, run the plan's one full run (slice 27's
@@ -181,7 +182,7 @@ Hosting
 
 - [x] [28 A battle in its own process](slices/28-battle-process.md)
 - [x] [29 A sandbox for each battle](slices/29-sandbox-per-battle.md) (deployed; open measurements listed in the slice)
-- [x] [30 One machine tries every draw](slices/30-one-machine-every-draw.md) (its two scenes and the timing on the deployed lobby are still owed)
+- [ ] [30 One machine tries every draw](slices/30-one-machine-every-draw.md) (one machine: in; draws side by side: with Codex)
 - [ ] [31 A build is what both ends share](slices/31-a-build-is-what-both-ends-share.md)
 - [ ] [27 Closeout](slices/27-closeout.md)
 
