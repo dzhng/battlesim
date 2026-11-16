@@ -1,6 +1,7 @@
 # Far detail
 
-**Status:** slices 01 and 02 are on the feature branch; 00 is measuring.
+**Status:** slice 00 says go. Slices 01 and 02 are on the feature branch.
+Next: parked cars (03).
 **Updated:** 2026-11-15.
 
 In the wide view the game draws about 100,000 small props, most of them only a
@@ -20,23 +21,22 @@ tested only where it could fit: across instances and on terrain.
 
 ## Next Agent Prompt
 
-You are implementing `specs/far-detail/` on branch `t3/38678a68`. Slices 01
-and 02 are merged there. Slice 02 still owes its cross-language test (a bundle
-baked by the TypeScript bake, decoded and drawn by Rust) and its frame-baseline
-pixel check. Slice 00 is measuring in its own checkout. Nothing is on `staging`
-yet, and nothing goes there before slice 00 says go.
+You are implementing `specs/far-detail/` on branch
+`t3/renderer-technique-from-post`. Nothing is on `staging` yet.
 
-1. Read this README and [the decisions](decisions.md), then
-   [`renderer`](../../.agents/skills/renderer/SKILL.md) and
-   [`write-tests`](../../.agents/skills/write-tests/SKILL.md). The measured
-   background is in [the performance research](../done/performance/research.md)
-   ("Dominant prop appearances", "Direct culling audit", "Distant-wall
-   simplification rejected") and [distant detail](../done/distant-detail/README.md).
-2. Start [slice 00](slices/00-census-and-ceiling.md). It changes no production
-   code and decides whether the rest is worth building.
-3. Slices [01](slices/01-far-mesh-in-bundles.md) and
-   [02](slices/02-far-selection.md) may be written while 00 measures, in their
-   own checkouts. Nothing from them reaches `staging` before 00 says go.
+- **00 is done: go.** The probe cut the wide hold from 34.6 ms to 23.0 ms of
+  GPU time ([ceiling](assets/ceiling.md)). Parked cars and courtyard walls are
+  81% of the triangles props submit there, and their shadow casts are about
+  five times one view pass ([census](assets/census.md)).
+- **01 and 02 are merged.** 02 still owes its cross-language test (a bundle
+  baked by the TypeScript bake, decoded and drawn by Rust) and the workbench
+  picture.
+- **Next: [slice 03](slices/03-parked-car.md)**, the parked car. Measure on the
+  [fresh control](assets/control.json): the old receipt's digest no longer
+  reproduces, because the generated map changed.
+- [Slice 06](slices/06-spike-terrain.md) can run beside it. Its first rung is
+  nearly answered: terrain submits 10 triangles to the view and 2,871 to the
+  cascades at the wide hold on this flat city.
 
 Warnings:
 
@@ -53,7 +53,7 @@ point, and any decision that moved into [the ledger](decisions.md).
 
 ### To do
 
-- [ ] 00: census of the wide view, and the ceiling probe's go or no-go → [slice 00](slices/00-census-and-ceiling.md)
+- [x] 00: census of the wide view, and the ceiling probe's go or no-go → [slice 00](slices/00-census-and-ceiling.md)
 - [x] 01: a static prop's bundle may carry a far mesh → [slice 01](slices/01-far-mesh-in-bundles.md)
 - [ ] 02: presentation picks the far mesh, the renderer draws and counts it → [slice 02](slices/02-far-selection.md)
 - [ ] 03: parked cars carry one; the measured win → [slice 03](slices/03-parked-car.md)
@@ -154,11 +154,12 @@ path beside the tiers.
 
 Every timing claim in this plan uses this protocol.
 
-- **Scene.** The [frozen receipt](assets/baseline.json): Metro XL, seed 4, 100
-  units a side, Low graphics, tick 90 paused, digest `60ede87ba60aab0b`, held at
-  65 m, 260 m and 2,400 m. If today's build no longer reproduces the digest,
-  find the input that changed and record a fresh paired control. Never compare
-  unmatched workloads.
+- **Scene.** The [fresh control](assets/control.json): Metro XL, seed 4, 100
+  units a side, Low graphics, tick 90 paused, digest `ef325ab1cc76c583`, held at
+  65 m, 260 m and 2,400 m. It replaces the [older receipt](assets/baseline.json),
+  whose digest stopped reproducing when the map generator changed. If the
+  control's digest moves too, find the input that changed and record another.
+  Never compare unmatched workloads.
 - **Arms.** Two production builds held apart, interleaved A B A B A B under the
   GPU lock, plus one A against A pair first to learn the session's noise. The
   harness is the paused view-cost hold in `web/scenes/endurance.mjs` and
@@ -173,9 +174,15 @@ Every timing claim in this plan uses this protocol.
   no view's median GPU time rises more than 5%; CPU per frame and GPU memory
   stay within 5%. Missing one is a result to record, not a number to retune.
 
-The player's camera stops at `zoom_max`; slice 00 records whether 2,400 m is
-within it. A view the player cannot reach is a diagnostic, never an acceptance
-view.
+The player can reach all three holds: a battle widens the camera's `zoom_max`
+to one and a half times the map's span, 19,500 m on this map. A view the
+player cannot reach is a diagnostic, never an acceptance view.
+
+A timing session needs a quiet machine. Every far-detail checkout wraps its
+heavy work (compiles, bakes, production builds, timing sessions) in
+`lockf -k /Users/server/dev/battlesim/throwaway/far-detail-cpu.lock`, taken
+before the GPU lock and never while holding it, so a compile cannot land in
+the middle of a measurement.
 
 ## Looking
 
@@ -210,8 +217,6 @@ and only with the comparison as evidence.
 
 | Unknown | Settled by |
 | --- | --- |
-| Which kinds cost the most today, and how many cast | 00 |
-| Whether far geometry still saves GPU time now that tiny props skip their shadows | 00 |
 | The far threshold's value | 03, from the zoom crops |
 | Whether a wall survives at a few pixels | 04 |
 | What is left for block merging after the far mesh ships | 05 |

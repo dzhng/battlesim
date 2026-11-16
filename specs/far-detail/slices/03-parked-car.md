@@ -24,7 +24,10 @@ ground. **It drops** only what is under a pixel at the threshold: wheels and
 arches, glass as separate geometry, bevels, buried and bottom faces.
 
 **The threshold** is chosen from the zoom crops, not from the timing: the
-largest value at which the switch cannot be seen. Tests never read it.
+largest value at which the switch cannot be seen. Tests never read it. The
+[census](../assets/census.md) bounds it: at the wide hold cars are 0.8 to
+1.4 px and walls 0.5 to 0.9 px; at tactical range cars are 6 to 14 px and
+walls 4 to 8 px. A value under 4 leaves the tactical view untouched.
 
 ## Steps
 
@@ -32,7 +35,9 @@ largest value at which the switch cannot be seen. Tests never read it.
    the car's bundle and nothing else.
 2. Capture the review set below and pick `far_px`.
 3. Measure by [the protocol](../README.md#measuring) at all three holds,
-   against `staging`.
+   against `staging`. Hold the close view for more frames than the others:
+   slice 00 found three holds per batch cannot resolve 5% there. Add one
+   whole-map hold as a diagnostic, since the player can zoom out that far.
 4. Native: run the `counts` and `props` tests against the re-recorded count
    run, and take one native capture of the wide hold whose submitted counts
    match the browser's.
@@ -70,10 +75,17 @@ buildings, trees, units.
    paired crops for the user, wait about five minutes, then decide on the
    evidence, record it in [the ledger](../decisions.md), and close the shots.
 
-**One named extra arm**, only after the above passes: tier-3 cars also cast
-with the far mesh. Measure it and take the tactical-range shadow crop. Adopt
-it only if it wins by the same tripwires and the crop shows no change a fresh
-critic can find. Record the verdict either way.
+**Two named extra arms**, each on its own, only after the above passes. Adopt
+one only if it wins by the same tripwires and its crop shows no change a fresh
+critic can find. Record each verdict either way.
+
+1. *Small off-view casters cast far.* A prop outside the view casts with its
+   far mesh when it is small enough that it would draw it, and with tier 3
+   otherwise. Slice 00 counted these casters at a quarter of the car and wall
+   casts, about 8 of the 50 million triangles the probe removed. Crop: a
+   shadow landing in view from a car just outside it, at the wide hold and at
+   the close hold.
+2. *Tier-3 cars cast far.* Crop: car shadows at tactical range.
 
 ## Delegated
 

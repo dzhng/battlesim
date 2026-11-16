@@ -20,8 +20,9 @@ hypothesis the crops must prove, not an exemption.
 - Walls: `packages/scene-assets/blender/courts.py`, `courtyard_wall`. A wall
   is a module repeated along its run; each module carries its own far mesh.
   Merging a run into one piece belongs to [slice 05](05-spike-block-merge.md).
-- Planters and anything else: only if the census shows they are worth a
-  measurable share. Their sources are named by the census, not assumed.
+- Nothing else, on today's [census](../assets/census.md): after walls the next
+  kind is garden fences at 3.7% of prop triangles, and planters (2.3%) already
+  skip nearly all their shadows. Add a kind only if a later census moves it.
 - No per-kind threshold and no per-kind code. If a kind fails at the shared
   `far_px`, it does not carry a far mesh.
 

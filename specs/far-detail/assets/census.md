@@ -33,8 +33,10 @@ never in either timing arm) added them at the hold. The scratch build's
 selection, instance counts and per-pass submissions are identical to staging's
 (the ceiling's count checks compare every batch of both arms with it).
 
-Projected height is the measure every tier already uses: the model's height
-times pixels per metre over the eye's distance to its centre, in canvas pixels.
+Projected size is the measure every tier already uses: the model's size (the
+largest extent of its box, which for a car is its length) times pixels per
+metre over the eye's distance to its centre, in canvas pixels. The "Height px"
+column below is that size; a 4.4 m car at 2,400 m is about 1.2 px.
 
 ## The whole wide frame
 

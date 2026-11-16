@@ -21,7 +21,10 @@ the view and to each cascade, their share of all submitted triangles, and
 triangles per covered pixel. Do it for the receipt's city map and for the most
 hilly map the generator admits. Flat ground is already merged into large
 triangles (`crates/sim/src/world/terrain.rs`). If terrain is a small share
-and its triangles are a pixel or larger, the verdict is no-go.
+and its triangles are a pixel or larger, the verdict is no-go. Slice 00
+already counted the city: 10 triangles to the view and 2,871 to the cascades,
+against 12.5 million and 54 million for props. Only the hilly map is left to
+count.
 
 **2. Ceiling.** In scratch, draw the terrain from a uniformly coarser copy of
 itself (about a quarter, then a sixteenth, of its triangles; cracks ignored),

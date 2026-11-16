@@ -45,7 +45,7 @@ Where they split:
 | 17 | May the plumbing be written before the probe's verdict? | Yes, in its own checkouts, since the measurement holds the GPU and not the keyboard. It does not reach `staging` before a go. | strictly serial |
 | 18 | One slice per kind? | Cars alone first, as the measured win. Then one slice for the rest, with a verdict per kind. Walls have a failure on record and are judged on their own picture. | one production slice for everything; a slice per kind |
 | 19 | Hysteresis at the threshold? | None. No existing tier has it. If the zoom path shows chatter, that is a new slice. | planning it up front |
-| 20 | A view farther than 2,400 m as an acceptance view? | Only if the player can reach it. The camera's `zoom_max` in the fixture reads 2000; slice 00 records what that means for the 2,400 m hold. | the distant-impostors plan's "farther view" as a required gate |
+| 20 | A view farther than 2,400 m as an acceptance view? | Not a gate. Slice 00 settled reach: the fixture's `zoom_max` of 2000 is a base that each battle widens to one and a half times the map's span (19,500 m here), so all three holds are reachable. Slice 03 adds a whole-map hold as a diagnostic. | the distant-impostors plan's "farther view" as a required gate |
 | 21 | Hand-made far meshes or generated? | Hand-made, in the Blender sources, like the existing tiers. Automatic simplification may drop the colour bands that sank the wall. If slice 05 finds generated output acceptable, a follow-up can cover the long tail. | simplifying at bake or load |
 | 22 | The spikes as one slice or two? | Two. They share slice 00's session but stop at different rungs, and terrain can run early while block merging must wait for the shipped far mesh. | one merged spike |
 | 23 | A reference reproduction before each spike? | Inside each spike, and only after its ceiling clears. Reproducing the builder before knowing there is a prize is wasted. | a separate replication slice up front |
@@ -101,4 +101,26 @@ Found in slice 02, and older than this work: the native client's committed
 count run had been stale on `staging` since a publication-layout change, so
 its `counts` test already failed there. The one new recording fixes that and
 carries the five-number shape.
+
+## From slice 00, 2026-11-15
+
+| # | Question | Decision and why | Verdict |
+| --- | --- | --- | --- |
+| 36 | Go or no-go? | Go. The candidate won all three wide pairs by about 11.5 ms (34.6 to 23.0 ms), against an A-against-A spread of 0.03 ms or less. Counts were checked before timing: equal instances and exactly the expected triangle drop, in every batch. Three batches with load spikes were rerun once; the numbers agree within 0.25 ms. | sound |
+| 37 | The frozen receipt's digest no longer reproduces. What is measured against? | A fresh control at today's state (`assets/control.json`), same scene, settings and camera rule. The map generator moved three versions since the receipt. | sound |
+| 38 | The close view missed the 5% tripwire pair by pair (+7% and +11%; another pair fell 6%). Retune it? | No. Recorded as missed. Pooled over every hold the arms are equal (6.53 and 6.55 ms), and three holds per batch spread by up to 1.2 ms there. Slice 03 holds close for longer. | sound |
+| 39 | Which kinds after cars? | Courtyard walls only. Cars are 43% and walls 38% of the triangles props submit at the wide hold; the next kind is 3.7%. | sound |
+| 40 | Should small props outside the view cast with their far mesh? | Not in the first comparison (decision 9 stands). It becomes a named arm in slice 03: such a prop casts far only when it is small enough that it would draw far, so a shadow near a close camera cannot coarsen. Slice 00 counted these at about 8 of the 50 million triangles removed. | open: slice 03 measures it |
+
+Facts slice 00 established:
+
+- Shadow casts are most of the cost. Cars and walls stand about a pixel long
+  at the wide hold, yet nearly every one casts into three or four cascades.
+- The tiny-prop shadow skip (`shadow_caster_px`) skips no visible car there
+  and 2,740 of 51,990 walls, because it judges a conservative horizontal
+  footprint. Its value is outside this plan.
+- After props, buildings and scenery each submit about 9.5 million cascade
+  triangles at the wide hold. They become the larger share once the far mesh
+  ships.
+- Terrain submits almost nothing on the flat city (10 view triangles).
 
