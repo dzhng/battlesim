@@ -96,8 +96,8 @@ impl Way {
     fn new(from: V2, route: &[V2], reach: f64) -> Self {
         let points: Vec<V2> = std::iter::once(from).chain(route.iter().copied()).collect();
         let total: f64 = points.windows(2).map(|w| (w[1] - w[0]).length()).sum();
-        // Past the waypoint it could not turn to; one far off it may
-        // come round to anywhere on its way to.
+        // Past the waypoint it could not turn to; short of one far off, it
+        // may rejoin anywhere along the way to it.
         let first = (route[0] - from).length();
         let need = if first + ON_ROUTE_M <= reach {
             first + ON_ROUTE_M
@@ -217,22 +217,19 @@ pub fn search(
     held: &[Obb2],
     tick: u64,
 ) -> Shunt {
-    let none = |from| Shunt {
+    let here = unit.position.xy();
+    let none = || Shunt {
         legs: Vec::new(),
         driven_m: 0.0,
-        from,
+        from: here,
         tick,
     };
-    let here = unit.position.xy();
-    let (Some(drive), Some(route), Some(hull)) = (
-        unit.ground()
-            .drive
-            .filter(|d| !d.tracked && d.radius_m > 0.0),
-        unit.route.as_deref().filter(|r| !r.is_empty()),
-        unit.ground_footprint(),
-    ) else {
-        return none(here);
-    };
+    let drive = unit.ground().drive.expect("a vehicle has a drive");
+    let route = unit
+        .route
+        .as_deref()
+        .expect("a vehicle shunts onto its route");
+    let hull = unit.ground_footprint().expect("a vehicle has a hull");
     let order = drive::gear(unit);
     let radius = drive.radius_m;
     let reach = REACH_TURNS * (radius + hull.half.x);
@@ -269,7 +266,7 @@ pub fn search(
         corners: true,
     };
     room.corners = room.on_ground(here, unit.yaw);
-    let backing = 1.0 / drive.reverse_speed_factor.max(0.05);
+    let backing = 1.0 / drive.reverse_speed_factor;
     // Where the follower carries on from: the route's end just ahead, or
     // on the route facing along it with a hull's length clear ahead.
     let ahead = (2.0 * hull.half.x / ARC_M).ceil() as usize;
@@ -315,7 +312,7 @@ pub fn search(
         )
     };
     let moving = unit.drive_speed_mps;
-    let start_gear = if moving.abs() > 0.1 {
+    let start_gear = if moving.abs() > super::ROLLING_MPS {
         moving.signum()
     } else {
         0.0
@@ -373,7 +370,7 @@ pub fn search(
         }
     }
     let Some(mut i) = found else {
-        return none(here);
+        return none();
     };
     let mut arcs = Vec::new();
     while i != 0 {

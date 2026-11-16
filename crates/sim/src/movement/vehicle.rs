@@ -8,7 +8,7 @@ use crate::math::{Obb2, V2};
 use crate::units::Unit;
 use crate::world::WorldGeometry;
 
-use super::traffic::in_the_way;
+use super::traffic::{gives_way, in_the_way};
 use super::{
     arrive, drive, may_advance, push, MovementContext, Shove, SideGeometry, ENCOUNTER_RANGE_M,
     PROGRESS_EPSILON_M,
@@ -260,27 +260,6 @@ pub(super) fn step_vehicle(
     } else if left < unit.progress.0 - PROGRESS_EPSILON_M {
         unit.progress = (left, ctx.tick);
     }
-}
-
-/// Whether wheeled vehicle `i`, held by the vehicle `b`, now works its way
-/// round it. A driver waits for traffic that is moving, and for a moment
-/// for traffic that is not; past that (a stall) he goes round. Two that
-/// hold each other up do not both go round, into each other: the later
-/// (the higher id) gives way, unless it found no way round, when the other
-/// tries. A shunt already worked out is given its chance before another is.
-fn gives_way(ctx: &MovementContext, units: &[Unit], i: usize, b: contract::ids::UnitId) -> bool {
-    let (unit, other) = (&units[i], &units[b.0 as usize]);
-    let patience = (super::STALL_REPLAN_S * ctx.rules.tick_hz as f64) as u64;
-    let waited = |since: u64| ctx.tick.saturating_sub(since) > patience;
-    let wheeled = unit.ground().drive.is_some_and(|d| !d.tracked);
-    let standing = other.drive_speed_mps.abs() <= super::ROLLING_MPS;
-    let mutual = other.blocker == Some(unit.id);
-    let stuck = other.shunt.as_ref().is_some_and(|s| s.legs.is_empty());
-    wheeled
-        && standing
-        && (!mutual || unit.id > other.id || stuck)
-        && waited(unit.stalls.1)
-        && unit.shunt.as_ref().is_none_or(|s| waited(s.tick))
 }
 
 /// A rejected step may still let tracks pivot, but only into a clear pose.
