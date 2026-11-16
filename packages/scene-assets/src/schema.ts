@@ -134,7 +134,9 @@ export interface Budget {
 export const TIER_COUNT = 4;
 /** The far mesh's index: the optional fifth, coarsest mesh a static prop's
  *  state may carry past its `TIER_COUNT` tiers, its source's `_LOD4` meshes
- *  and no others. The pair of `FAR` in `crates/presentation/src/view.rs`. */
+ *  and no others. The pair of `FAR` in `crates/presentation/src/view.rs`:
+ *  `web/tests/sceneAssets/farBundle.test.ts` holds the bake to the bundle
+ *  the Rust renderer's test draws at that tier. */
 export const FAR_TIER = 4;
 
 export type BundleKind = "skinned" | "articulated" | "static";
