@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import type { RoomAction, RoomView } from "@packages/multiplayer/src/wire";
 import { PageHead } from "../menu/PageHead";
+import { PlateStatus } from "../menu/PlateStatus";
 import { Lobby } from "../lobby/Lobby";
 import { useRoom, useRoomDriver } from "./roomDriver";
 import "./online.css";
@@ -58,15 +59,15 @@ export function RoomPage() {
       {room.error && <p role="alert">{room.error}</p>}
       {copyError && <p role="alert">Could not copy the link.</p>}
       {room.unavailable ? (
-        <p role="status" aria-label="Online unavailable">
-          Online play is not available on this build.
-        </p>
+        <PlateStatus
+          label="Online unavailable"
+          detail="Online play is not available on this build."
+          failed
+        />
       ) : !room.view ? (
-        <p role="status">Joining room…</p>
+        <PlateStatus label="Joining room" />
       ) : room.view.phase.kind !== "lobby" ? (
-        <p role="status" aria-label="Starting">
-          Preparing the battlefield… This can take a few seconds.
-        </p>
+        <PlateStatus label="Preparing the battlefield" detail="This can take a few seconds." />
       ) : (
         <RoomLobby view={room.view} act={room.act} />
       )}
