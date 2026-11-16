@@ -1,7 +1,7 @@
 # Census of the wide view
 
 Which prop appearances cost the most at the wide hold today, counted.
-Recorded 2026-11-15 for [slice 00](../slices/00-census-and-ceiling.md) on base
+Recorded 2026-11-15 for [far detail](../README.md) on base
 commit 811bb8c27.
 
 ## The state counted
@@ -102,7 +102,7 @@ five with fewer than a dozen in view).
 - **Off-view casters are a quarter of the car and wall casts.** Of the 141,819
   car cast submissions, 35,054 come from the 10,861 cars outside the view; of
   the walls' 238,263, 47,025 come from off-view walls. In the finished design
-  ([decision 9](../decisions.md)) those keep casting tier 3, so they are not
+  ([decision 3](../decisions.md)) those keep casting tier 3, so they are not
   part of the far mesh's saving.
 - **At close and tactical range nothing changes.** At 65 m the nearest props
   are 13 to 58 px tall and draw tier 2 or 3; at 260 m cars are 6 to 14 px and

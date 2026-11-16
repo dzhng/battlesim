@@ -1,7 +1,7 @@
 # Terrain verdict
 
 Would a cluster hierarchy, coarser far from the camera, save GPU time worth
-owning? Rung 1 of [slice 06](../slices/06-spike-terrain.md), the count, recorded
+owning? The first rung of [far detail](../README.md)'s terrain spike, the count, recorded
 2026-11-15 on b0a60c7a3. No timing was run.
 
 ## Verdict: no-go at rung 1
@@ -26,7 +26,7 @@ and 1.6 million of 124 million at the whole-map view.
 ## Which map is the hilliest a player can get
 
 Players fight only on generated maps. No saved map is a player's
-([fixtures README](../../../fixtures/README.md): "player battles are generated
+([fixtures README](../../../../fixtures/README.md): "player battles are generated
 and never name one"). The skirmish choices are a type (open, mixed, metro), a
 size (small to XL) and a seed (`web/src/maps/source.ts`).
 
@@ -130,7 +130,7 @@ canvas; at the whole-map view, under 0.7% of what the map covers on screen.
   reach today.
 
 Rung 2, if it were scheduled, would draw the terrain from a coarser copy (a
-quarter, then a sixteenth) under [the protocol](../README.md#measuring), on
+quarter, then a sixteenth) under an interleaved A-against-B protocol, on
 the hilly map's worst wide view, with a quiet GPU. It competes with slice
 03's timing session. On these counts its prize is at most the GPU time of
 2.6% of the frame's triangles, so I do not propose it.
