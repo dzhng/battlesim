@@ -104,7 +104,7 @@ fn launch_red_round(
             unit: UnitId(1),
             side: Side::Red,
             seeker_target: None,
-            fused_target: None,
+            aimed_at: None,
             layer,
         },
     );

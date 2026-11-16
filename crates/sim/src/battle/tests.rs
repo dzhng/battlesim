@@ -190,7 +190,7 @@ fn a_seeker_flies_at_its_own_sides_contact() {
                 unit,
                 side,
                 seeker_target: Some(Target::Contact(blue_id)),
-                fused_target: None,
+                aimed_at: None,
                 layer: AltitudeLayer::Ground,
             },
         );
@@ -502,7 +502,7 @@ fn corpse_support_loss_is_physical_but_enemy_memory_waits_for_sight() {
                         unit: UnitId(1),
                         side: Side::Blue,
                         seeker_target: None,
-                        fused_target: None,
+                        aimed_at: None,
                         layer: AltitudeLayer::Ground,
                     },
                 );

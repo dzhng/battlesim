@@ -234,8 +234,20 @@ export function Tutorial() {
           </li>
           <li>
             Every unit you own also has a card in the army bar along the bottom: click it to select
-            that unit, <kbd>Shift</kbd>-click to add it, hover to see its details. Click a selected
-            card again, or double-click any card, to centre the camera on that unit.
+            that unit, hover to see its details. Click a selected card again, or double-click any
+            card, to centre the camera on that unit.
+          </li>
+          <li>
+            Click a card, then <kbd>Shift</kbd>-click another, to select both and every card between
+            them. <kbd>Ctrl</kbd>-click a card (<kbd>Cmd</kbd>-click on a Mac) to add it to the
+            selection, or remove it.
+          </li>
+          <li>
+            <kbd>Ctrl</kbd> + a number key (<kbd>1</kbd>–<kbd>0</kbd>) makes the selection a control
+            group: its cards gather at the left of the army bar under a white bracket marked with
+            its number. Press the number to select the group again, and press it twice to centre the
+            camera on it. <kbd>Shift</kbd> + the number adds the selection to the group. A unit is
+            in one group at a time, and hovering a group shows the × that deletes it.
           </li>
         </ul>
       </Section>

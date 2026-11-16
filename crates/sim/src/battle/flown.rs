@@ -226,7 +226,7 @@ impl Battle {
         );
         self.consequences(outcome);
         // The rounds that ended this tick are forgotten below.
-        self.shout_under_fire = shouts::under_fire(
+        self.near_rounds = shouts::NearRounds::read(
             &self.flight_events,
             &self.rounds,
             &self.units,
