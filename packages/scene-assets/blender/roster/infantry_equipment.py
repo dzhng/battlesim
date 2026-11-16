@@ -1,4 +1,4 @@
-"""Named roster equipment on the unchanged Quaternius infantry rig.
+"""Named roster equipment on the shared infantry rig (`infantry_rig.Rig`).
 
 Usage: infantry_equipment.py <kit> [a|b|c] [active|carried] [--army=<army>] [--preview=<dir>]
        infantry_equipment.py <kit> --receipt
@@ -6,7 +6,7 @@ Add --preview-only to inspect the existing source without rebuilding it;
 --receipt writes the kit's receipt once every look is exported.
 Writes into the kit's own directory, `assets/source/roster/infantry/<kit>/`.
 A kit is built in one of its armies' looks (`KITS`, its first by default):
-`<mode>_<look>.glb` for the first, `<faction>_<mode>_<look>.glb` for the
+`<mode>_<look>.glb` for the first, `<army>_<mode>_<look>.glb` for the
 others. Rifle-family grip, support and sight anchors stay identical to the
 shared clips. Lengths are world metres; geometry compensates for the shared
 hold and soldier scales, never the rig. Tripod ATGMs use a root-weighted kit
@@ -20,108 +20,27 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import bpy
-import bmesh
-from mathutils import Matrix, Vector
-from common import REPO, box, cyl, empty, export_glb, fbm, script_args, texture_uvs, obj_from_bm
-from infantry_kit import COYOTE, RANGER, Kit, look_of, bone_of, scale3
-from textures import UNIFORMS
-from infantry_rig import Rig, SCALE
-from mesh_lods import canonical, make_tiers, triangle_count
+from mathutils import Vector
+from common import REPO, box, cyl, empty, fbm, script_args
+from infantry_kit import dressed, export_soldier, scale3
+from infantry_rig import SCALE, SLUNG_MIDDLE
+from mesh_lods import triangle_count
 import weapons
+import skin_pins
+from infantry_roster import KITS, kind_of, source_path
+from infantry_preview import preview
+from support_weapons import lmg_equipment, rifle_equipment
 
-# An army's look of a kit, named as its reference variant
-# (assets/references/<kit>/): the uniform print (textures.UNIFORMS), whether
-# carrier, pouches and helmet cover are printed, helmet, boots, gloves,
-# webbing, squad rifle (weapons.RIFLES), and per look a, b, c what differs.
-ARMIES = {
-    "us_army_ocp": dict(
-        faction="us", print=UNIFORMS["us_army_ocp"], printed_gear=True, vest="print", pouch="print",
-        straps=COYOTE, accent="print", helmet="ach", boots=(0.075, 0.056, 0.036), gloves=(0.06, 0.05, 0.036),
-        rifle="m4a1", lmg="m249",
-        variants={"a": dict(head="nvg"), "b": dict(head="scrim", scarf=False), "c": dict(head="cover", pack="hydration")},
-    ),
-    # Marines wear MARPAT woodland under coyote nylon (Plate Carrier Gen III,
-    # pouches and packs), a woodland helmet cover, coyote boots, and the M27.
-    "usmc_marpat": dict(
-        faction="us", print=UNIFORMS["usmc_marpat"], printed_gear=False, printed_cover=True, vest=COYOTE,
-        pouch=COYOTE, straps=COYOTE, accent=COYOTE, helmet="ach", boots=(0.075, 0.056, 0.036),
-        gloves=(0.06, 0.05, 0.036), rifle="m27", lmg="m249",
-        variants={"a": dict(head="nvg"), "b": dict(head="cover", scarf=False, eyewear=True),
-                  "c": dict(head="cover", pack="hydration", vest=RANGER)},
-    ),
-    # Europe's shared kits wear the Bundeswehr's
-    # (specs/done/unit-models/choices.md): Flecktarn, a Flecktarn carrier and
-    # pouches, a covered helmet, black boots, olive webbing, and the G36.
-    "german_flecktarn": dict(
-        faction="europe", print=UNIFORMS["german_flecktarn"], printed_gear=True, vest="print", pouch="print",
-        straps=(0.055, 0.062, 0.038), accent="print", helmet="ach", boots=(0.018, 0.017, 0.015),
-        gloves=(0.025, 0.025, 0.021), rifle="g36", lmg="mg4",
-        variants={"a": dict(head="nvg", eyewear=False), "b": dict(head="cover", scarf=False),
-                  "c": dict(head="cover", pack="hydration", accent=COYOTE)},
-    ),
-    "eastern_emr": dict(
-        faction="eastern", print=UNIFORMS["eastern_emr"], printed_gear=True, vest="print", pouch="print",
-        straps=(0.07, 0.078, 0.048), accent="print", helmet="6b47", rails=False, headset=False, collar=True, groin=True,
-        boots=(0.018, 0.017, 0.015), gloves=(0.02, 0.02, 0.018), rifle="ak12", lmg="pkp",
-        variants={"a": dict(head="cover", eyewear=False, balaclava=True, knee_pads=False),
-                  "b": dict(head="cover", eyewear=False, balaclava=True, scarf=False, pack="none"),
-                  "c": dict(head="cover", eyewear=False, radio=False, pack="hydration")},
-    ),
-}
-
-# Each roster kit (a directory of assets/source/roster/infantry/): its
-# weapon (the army's squad rifle, or a `LENGTHS` model), whether its men are
-# scouts (the recon ruck, `infantry_kit.KIND_LOOKS`) and carry grenades, and
-# the armies it is built in, its default first: the faction its roster card
-# names first, and a faction look for every other faction that fields it.
-# A US Marine card is the Marines' look, an Eastern card the Russian army's
-# (the roster's Eastern infantry are all Russian weapons).
-KITS = {
-    "rifle_squad": dict(weapon="rifle", grenades=True, armies=("us_army_ocp", "eastern_emr", "german_flecktarn")),
-    "assault_squad": dict(weapon="rifle", grenades=True, armies=("german_flecktarn", "eastern_emr")),
-    "us_marine_squad_close_quarters_infantry": dict(weapon="rifle", grenades=True, armies=("usmc_marpat",)),
-    "us_army_scouts_light_patrol": dict(weapon="rifle", scout=True, armies=("us_army_ocp",)),
-    "us_force_recon_recon_patrol": dict(weapon="rifle", scout=True, grenades=True, armies=("usmc_marpat",)),
-    "eastern_scouts_light_patrol": dict(weapon="rifle", scout=True, armies=("eastern_emr",)),
-    "europe_recon_patrol_light_patrol": dict(weapon="rifle", scout=True, armies=("german_flecktarn",)),
-    "us_marksman_squad_m110_equipped_longer_range_infantry": dict(weapon="m110", armies=("us_army_ocp",)),
-    "eastern_marksman_squad_svd_equipped_longer_range_infantry": dict(weapon="svd", armies=("eastern_emr",)),
-    "europe_marksman_squad_longer_range_infantry": dict(weapon="g28", armies=("german_flecktarn",)),
-    "us_scout_snipers_m107_heavy_sniper_team": dict(weapon="m107", scout=True, armies=("usmc_marpat",)),
-    "eastern_sniper_team_asvk_heavy_sniper_team": dict(weapon="asvk", scout=True, armies=("eastern_emr",)),
-    "us_atgm_team_bgm_71_tow_2a": dict(weapon="tow", armies=("us_army_ocp",)),
-    "eastern_atgm_team_kornet": dict(weapon="kornet", armies=("eastern_emr",)),
-    "eastern_rpg_team_rpg_7": dict(weapon="rpg7", armies=("eastern_emr",)),
-    "eastern_rpg_team_rpg_29": dict(weapon="rpg29", armies=("eastern_emr",)),
-    # The FN-6 team wears the Eastern army's EMR, as every Eastern kit does;
-    # there is no Chinese uniform print yet. The Akeron is French, but Europe's
-    # kits all wear the Bundeswehr's look; there is no French uniform print.
-    "fgm_148_javelin_team": dict(weapon="javelin", armies=("us_army_ocp", "german_flecktarn")),
-    "fim_92_stinger_team": dict(weapon="stinger", armies=("us_army_ocp", "german_flecktarn")),
-    "eastern_air_defense_team_igla_s": dict(weapon="igla", armies=("eastern_emr",)),
-    "eastern_air_defense_team_fn_6": dict(weapon="fn6", armies=("eastern_emr",)),
-    "europe_atgm_team_akeron_mp": dict(weapon="akeron", armies=("german_flecktarn",)),
-    # A squad's machine gunner and, in the Marines' MARPAT, its machine gunner
-    # and marksman: each army's light machine gun (`ARMIES` lmg), the M110.
-    "machine_gunner": dict(weapon="lmg", armies=("us_army_ocp", "eastern_emr", "german_flecktarn")),
-    "us_marine_machine_gunner": dict(weapon="lmg", armies=("usmc_marpat",)),
-    "us_marine_marksman": dict(weapon="m110", armies=("usmc_marpat",)),
-}
-
-# Team weapons' lengths, world metres (the roster's equipment authoring):
-# complete unsuppressed rifles; launcher tubes loaded and packed; tripod
-# ATGMs' canister and bore height against the shared kneel_fire pose.
+# Team launchers' lengths, world metres (the roster's equipment authoring):
+# launcher tubes loaded and packed; tripod ATGMs' canister and bore height
+# against the shared kneel_fire pose. Team rifles' and LMGs' are support_weapons'.
 LENGTHS = {
-    "m110": dict(length_m=1.029), "g28": dict(length_m=1.08), "svd": dict(length_m=1.225),
-    "m107": dict(length_m=1.448), "asvk": dict(length_m=1.42),
     "rpg7": dict(length_m=0.95, packed_length_m=0.95), "rpg29": dict(length_m=1.85, packed_length_m=1.0),
     "tow": dict(tube_length_m=1.28, bore_m=1.066), "kornet": dict(tube_length_m=1.32, bore_m=1.18),
     # Shoulder-fired launch tubes (references: assets/references/<kit>/).
     "javelin": dict(length_m=1.20, radius_m=0.071), "stinger": dict(length_m=1.52, radius_m=0.035),
     "igla": dict(length_m=1.70, radius_m=0.036), "fn6": dict(length_m=1.49, radius_m=0.036),
     "akeron": dict(length_m=1.25, radius_m=0.075),
-    # Light machine guns, complete with stock extended.
-    "m249": dict(length_m=1.04), "mg4": dict(length_m=1.03), "pkp": dict(length_m=1.155),
 }
 # Launchers fired from the shoulder (the launcher hold), and those on a tripod.
 SHOULDER = ("rpg7", "rpg29", "javelin", "stinger", "igla", "fn6", "akeron")
@@ -131,198 +50,6 @@ MANPADS = ("stinger", "igla", "fn6")
 # a light olive between its black caps (references: assets/references/<kit>/).
 TUBE_PAINT = {"akeron": (0.24, 0.25, 0.16)}
 LAUNCHERS = ("tow", "kornet", *SHOULDER)
-
-
-def rifle_equipment(mats, model):
-    """A marksman's or sniper's rifle: distinct receiver, stock and optic
-    layouts on the shared wrist anchors. The M110 is flat dark earth, the
-    G28 its sand twin (references: both AR-10 pattern) with a sand scope."""
-    root = empty(model, (0, 0, 0))
-    black = mats['gun_black']
-    finish = mats['gun_fde'] if model in ('m110', 'g28') else black
-    optic = finish if model == 'g28' else black
-    # Named references are complete unsuppressed weapon lengths. Fixed rear
-    # anchor preserves shoulder fit; the barrel consumes the remaining length.
-    length = LENGTHS[model]['length_m']
-    rear = .40
-    front = rear - length / (SCALE * weapons.RIFLE_SCALE)
-    bore = .045
-
-    def b(name, size, loc, mat=black, rot=(0, 0, 0)):
-        return box(model+'_'+name, size, loc, mat, root, rot=rot, bevel_=.002)
-
-    def c(name, radius, depth, loc, mat=black):
-        return cyl(model+'_'+name, radius, depth, loc, 'Y', mat, root, seg=12)
-
-    b('pistol_grip', (.030, .038, .10), (0, .06, -.05), rot=(math.radians(22), 0, 0))
-    b('trigger_guard', (.035, .06, .013), (0, .017, -.044))
-    # The optic's eyepiece and the left wrist remain at the clip anchors.
-    slim = model in ('m110', 'g28', 'svd')
-    c('scope', .022 if slim else .029, .29, (0, -.075, .11), optic)
-    c('objective', .031 if slim else .038, .065, (0, -.23, .11), optic)
-    b('optic_mount', (.022, .12, .028), (0, -.05, .080))
-    cyl(model+'_scope_turret', .015, .047, (0, -.08, .143), 'Z', optic, root, seg=10)
-    if model in ('m110', 'g28'):
-        b('upper_receiver', (.039, .27, .06), (0, -.06, .043), finish)
-        b('lower_receiver', (.036, .18, .05), (0, .0, -.005), finish)
-        b('straight_magazine', (.032, .085, .12), (0, -.08, -.09))
-        if model == 'm110':
-            b('fixed_stock', (.045, .23, .09), (0, .285, .031), finish)
-        else:  # the G28's adjustable stock: a slim butt, a tall cheek riser
-            b('adjustable_stock', (.042, .2, .075), (0, .29, .022), finish)
-            b('cheek_riser', (.036, .13, .03), (0, .27, .075), finish)
-        c('buffer', .018, .12, (0, .16, .045), finish)
-        b('handguard', (.053, .34, .056), (0, -.335, .045), finish)
-        for side in (-1, 1):
-            for j in range(5):
-                b('vent_%s_%s'%(side,j), (.002, .033, .015), (side*.027, -.20-j*.058, .045))
-        barrel_start = -.505
-        brake = .045
-    elif model == 'svd':
-        b('slim_receiver', (.037, .26, .055), (0, -.055, .034))
-        b('wood_handguard', (.047, .35, .052), (0, -.34, .033), mats['gun_fde'])
-        # Open skeletal thumbhole stock, not a solid AR butt.
-        b('stock_top', (.036, .26, .028), (0, .265, .042), mats['gun_fde'])
-        b('stock_bottom', (.029, .24, .021), (0, .245, -.058), mats['gun_fde'], rot=(math.radians(-12), 0, 0))
-        b('buttplate', (.040, .027, .135), (0, rear-.013, -.01))
-        b('cheek_rest', (.043, .13, .030), (0, .29, .071), mats['gun_fde'])
-        b('side_scope_bracket', (.022, .12, .070), (.033, -.025, .065))
-        bm=bmesh.new()
-        edge=[(-.108+.035*(j/6)**2,-.039-.145*j/6) for j in range(7)]
-        profile=edge+[(y+.069,z) for y,z in reversed(edge)]
-        rings=[[bm.verts.new((x,y,z)) for y,z in profile] for x in (-.016,.016)]
-        bm.faces.new(rings[0][::-1]);bm.faces.new(rings[1])
-        for j in range(len(profile)):
-            k=(j+1)%len(profile);bm.faces.new((rings[0][j],rings[0][k],rings[1][k],rings[1][j]))
-        bmesh.ops.recalc_face_normals(bm,faces=bm.faces)
-        magazine=obj_from_bm('svd_curved_magazine',bm,[black],root)
-        for side in (-1,1):
-            for j in range(4):b('handguard_vent_%s_%s'%(side,j),(.002,.035,.015),(side*.024,-.22-j*.074,.034))
-        barrel_start = -.515
-        brake = .085
-        b('front_sight', (.021, .023, .068), (0, front+.13, .073))
-    elif model == 'm107':
-        b('large_rectangular_receiver', (.079, .61, .098), (0, -.045, .033))
-        b('stock', (.078, .17, .105), (0, .30, .022))
-        b('cheek_pad', (.064, .21, .025), (0, .235, .092))
-        b('large_magazine', (.055, .105, .15), (0, -.20, -.080))
-        b('carry_handle', (.016, .13, .024), (.063, -.17, .105))
-        b('ventilated_shroud_top',(.087,.31,.013),(0,-.505,bore+.04))
-        b('ventilated_shroud_bottom',(.087,.31,.013),(0,-.505,bore-.04))
-        for side in (-1,1):
-            for j in range(7):
-                b('shroud_web_%s_%s'%(side,j),(.009,.015,.07),(side*.039,-.36-j*.049,bore))
-        barrel_start = -.66
-        brake = .15
-        b('multiport_brake', (.099, brake, .062), (0, front+brake/2, bore))
-        for side in (-1,1):
-            for j in range(3):
-                b('brake_port_%s_%s'%(side,j), (.002, .025, .031), (side*.050, front+.029+j*.046, bore))
-    else:
-        b('bullpup_receiver', (.066, .55, .079), (0, .10, .036))
-        b('rear_magazine', (.046, .10, .145), (0, .26, -.078))
-        b('rear_buttplate', (.080, .027, .145), (0, rear-.013, .01))
-        b('cheek_rest', (.063, .18, .022), (0, .27, .09), mats['gun_fde'])
-        b('forward_handguard', (.048, .24, .034), (0, -.29, .015))
-        barrel_start = -.18
-        brake = .18
-        b('large_muzzle_brake', (.096, brake, .080), (0, front+brake/2, bore))
-        for side in (-1,1):
-            for j in range(2):
-                b('brake_port_%s_%s'%(side,j), (.002, .053, .042), (side*.049, front+.049+j*.082, bore))
-    barrel_end = front+brake
-    c('barrel', .011 if model in ('m110','svd') else .018, barrel_start-barrel_end, (0, (barrel_start+barrel_end)/2, bore))
-    if model in ('m110', 'svd'):
-        c('flash_hider', .017, brake, (0, front+brake/2, bore))
-    if model != 'svd':
-        # Folded legs are carried, not an invented deployed bipod animation.
-        for side in (-1,1):
-            b('folded_bipod_'+str(side), (.014, .25, .020), (side*.035, -.43, -.003))
-        c('bipod_hinge', .021, .025, (0, -.33, .015))
-    empty('muzzle', (0, front, bore), root, .02)
-    return root
-
-
-def lmg_equipment(mats, model):
-    """A squad's light machine gun on the rifle's wrist anchors: a deep
-    receiver under a hinged feed cover, the belt's box hanging under the
-    left of it, a carry handle over the barrel and a folded bipod. The M249
-    has the ribbed heat shield and the fixed stock; the MG4 is all polymer,
-    with a long top rail and a side-folding skeleton stock; the PKP is the
-    PK's slab receiver, its heavy fluted barrel, the shroud and handle near
-    the muzzle and the skeleton stock (references: assets/references/
-    machine_gunner/)."""
-    root = empty(model, (0, 0, 0))
-    black, poly = mats['gun_black'], mats['gun_polymer']
-    length = LENGTHS[model]['length_m']
-    rear = .40
-    front = rear - length / (SCALE * weapons.RIFLE_SCALE)
-    bore = .045
-
-    def b(name, size, loc, mat=black, rot=(0, 0, 0)):
-        return box(model+'_'+name, size, loc, mat, root, rot=rot, bevel_=.003)
-
-    def c(name, radius, depth, loc, mat=black, axis='Y'):
-        return cyl(model+'_'+name, radius, depth, loc, axis, mat, root, seg=12)
-
-    b('pistol_grip', (.032, .042, .10), (0, .06, -.05), poly, rot=(math.radians(20), 0, 0))
-    b('trigger_guard', (.034, .065, .013), (0, .017, -.044))
-    pkp = model == 'pkp'
-    # Receiver and feed cover: the gun's deep, square middle.
-    b('receiver', (.05, .30, .08), (0, -.08, .03), poly if model == 'mg4' else black)
-    b('feed_cover', (.054, .17, .024), (0, -.07, .082), poly if model == 'mg4' else black)
-    b('feed_tray', (.07, .05, .02), (.035, -.10, .05))
-    rail = .34 if model == 'mg4' else .14
-    b('top_rail', (.024, rail, .012), (0, -.07 - (rail - .14) / 2, .1))
-    b('optic', (.032, .07, .04), (0, -.04, .126))
-    # The belt's box (the M249's soft pouch, the MG4's and PKP's hard box)
-    # under the receiver's left, the belt rising into the feed tray.
-    box_size = (.08, .12, .12) if pkp else (.075, .11, .12)
-    b('ammo_box', box_size, (.03, -.10, -.065), mats['launcher'] if model == 'm249' else black)
-    b('belt', (.012, .04, .07), (.066, -.10, .02), mats['marking'])
-    if model == 'm249':
-        b('stock', (.046, .22, .09), (0, .29, .025))
-        b('stock_tube', (.03, .1, .03), (0, .15, .04))
-        b('butt_pad', (.05, .022, .12), (0, rear - .011, .02))
-        b('heat_shield', (.05, .22, .04), (0, -.33, .075))
-        for j in range(4):
-            b('shield_rib_%s' % j, (.054, .012, .044), (0, -.25 - j*.05, .075))
-        b('handguard', (.058, .14, .05), (0, -.29, .0), poly)
-    elif model == 'mg4':
-        b('stock_upper', (.03, .24, .026), (0, .26, .062), poly)
-        b('stock_lower', (.026, .23, .022), (0, .265, -.012), poly, rot=(math.radians(-6), 0, 0))
-        b('stock_hinge', (.036, .05, .07), (0, .11, .03), poly)
-        b('butt_plate', (.044, .03, .12), (0, rear - .015, .02), poly)
-        b('handguard', (.058, .18, .055), (0, -.30, .035), poly)
-    else:
-        # The PKP's open skeleton stock and thumbhole, in black polymer.
-        b('stock_top', (.036, .26, .028), (0, .265, .05), poly)
-        b('stock_bottom', (.03, .24, .022), (0, .25, -.05), poly, rot=(math.radians(-10), 0, 0))
-        b('buttplate', (.042, .027, .13), (0, rear - .013, .0), poly)
-        b('receiver_rivets', (.052, .2, .01), (0, -.09, .0))
-    # The barrel, with the PKP's fat finned barrel and muzzle shroud.
-    barrel_start = -.23
-    end = front + .06
-    c('barrel', .022 if pkp else .013, barrel_start - end, (0, (barrel_start + end) / 2, bore))
-    if pkp:
-        c('barrel_shroud', .03, .26, (0, front + .2, bore))
-        for j in range(4):
-            c('cooling_fin_%s' % j, .028, .012, (0, -.30 - j*.06, bore))
-    c('flash_hider', .02 if pkp else .017, .06, (0, front + .03, bore))
-    c('gas_tube', .01, .25, (0, -.35, bore - .03))
-    # The carry handle: the M249's over the barrel's breech, the MG4's and
-    # PKP's near the middle of the barrel.
-    handle_y = -.30 if model == 'm249' else front + .3
-    b('carry_handle', (.016, .14, .022), (.0, handle_y, bore + .085))
-    for k in (-1, 1):
-        b('handle_post_%s' % k, (.014, .018, .07), (0, handle_y + k*.06, bore + .05))
-    b('front_sight', (.02, .02, .05), (0, front + .1, bore + .04))
-    # Folded legs are carried, as on the marksman's rifle.
-    for side in (-1, 1):
-        b('folded_bipod_'+str(side), (.014, .26, .020), (side*.026, front + .26, bore - .026))
-    c('bipod_hinge', .02, .03, (0, front + .13, bore - .018))
-    empty('muzzle', (0, front, bore), root, .02)
-    return root
 
 
 def rpg_equipment(mats, model, socket=True):
@@ -486,15 +213,10 @@ def tripod_equipment(kit, model, carried=False):
         for side in (-1,1):c('packed_tube_cap_'+str(side),.093 if model=='tow' else .086,.045,(0,side*length/2,.10),mat=dark)
         for j in range(3):c('folded_tripod_leg_'+str(j),.024,.79,(.12+j*.05,.06,.08),mat=dark)
         b('packed_optical_unit',(.23,.25,.24),(.22,.20,.19))
-        back=max((o.matrix_world@Vector(p)).y for o in kit.parts if bone_of(o)=='spine_03' for p in o.bound_box)
-        rotation=Matrix.Rotation(math.radians(24),4,'Y')@Matrix.Rotation(math.pi/2,4,'X')
-        root.matrix_world=Matrix.Translation((0,back+.17,1.10))@rotation
-        kit.rig.bone_parent(root,'spine_03')
-        kit.parts.extend(o for o in root.children_recursive if o.type=='MESH')
-        for j,along in enumerate((-.32,.32)):
-            lug=root.matrix_world@Vector((-.045/SCALE,along/SCALE,.10/SCALE));anchor=Vector((j*.14-.07,back,1.10-along*.9));reach=lug-anchor
-            strap=box(model+'_retention_'+str(j),(.035,.014,reach.length),(anchor+lug)/2,kit.m['webbing'],rot=reach.to_track_quat('Z','Y').to_euler())
-            kit.rigid(strap,'spine_03')
+        # its middle at 1.10 m, lowered for a canister longer than the TOW's (the
+        # Kornet's), so its upper cap stays under the soldier's height at the 24° lean
+        overlong=max(0,length-LENGTHS['tow']['tube_length_m'])*math.cos(math.radians(24))/2
+        kit.sling(root,1.10-overlong/SCALE,.17,model,muzzle_up=False,lean_deg=24,straps=(-.32/SCALE,.32/SCALE))
         return
     # Full canister, not an enlarged missile or a generic shoulder CLU.
     c('launch_canister',.085 if model=='tow' else .078,length,(-.20,-.85,bore))
@@ -532,14 +254,6 @@ def tripod_equipment(kit, model, carried=False):
     kit.rig.bone_parent(empty('muzzle',Vector((-.20,-.85-length/2,bore))/SCALE,size=.02),'root')
 
 
-def source_path(unit, variant, mode, army=None):
-    """A kit's source: `<mode>_<look>.glb`, prefixed by the faction for an
-    army other than its first."""
-    armies=KITS[unit]['armies']
-    prefix='' if army is None or army==armies[0] else ARMIES[army]['faction']+'_'
-    return os.path.join(REPO,'assets/source/roster/infantry',unit,prefix+mode+'_'+variant+'.glb')
-
-
 def hold_of(unit, mode):
     """The clip family a kit's soldier is carried with: a launcher in the
     hands (the shoulder RPG, the tripod ATGM's operator) or a rifle."""
@@ -561,78 +275,38 @@ def build(unit, variant, mode, army=None):
     ground=model in ('tow','kornet')
     shoulder=model in SHOULDER and mode=='active'
     hold=hold_of(unit,mode)
-    kind='recon' if spec.get('scout') else 'rifle'
-    rig=Rig()
-    for name in ('Eyes','Eyebrows'):
-        if name in bpy.data.objects: bpy.data.objects.remove(bpy.data.objects[name],do_unlink=True)
-    kit=Kit(rig,look_of(kind,variant,ARMIES.get(army)))
-    kit.uniform();kit.boots();kit.plate_carrier();kit.molle()
-    if kit.look['pack']!='none':kit.pack_straps()
-    kit.belt();kit.chest_rig();kit.pack(kind);kit.hip_kit();kit.markings();kit.head_gear()
-    if kit.look['scarf']:kit.scarf()
-    if kit.look['collar'] or kit.look['groin']:kit.armour_collar_and_groin()
-    if kit.look['balaclava']:kit.balaclava()
-    kit.skin()
-    if spec.get('grenades'):
-        for j,bearing in enumerate((-42,42)):
-            at,out=kit.on_belt(bearing,.99);centre=at+out*.052
-            grenade=cyl('fragmentation_grenade_'+str(j),.037,.070,centre,'Z',kit.m['launcher'],seg=12,bevel_=.014)
-            kit.rigid(grenade,'pelvis')
-            neck=cyl('grenade_fuze_'+str(j),.012,.022,centre+Vector((0,0,.042)),'Z',kit.m['gun_black'],seg=8)
-            kit.rigid(neck,'pelvis')
-            lever=box('grenade_safety_lever_'+str(j),(.011,.017,.070),centre+Vector((.033,0,.015)),kit.m['gun_black'],rot=(0,math.radians(-12),0))
-            kit.rigid(lever,'pelvis')
+    kit=dressed(army,variant,kind_of(unit))
     if model in SHOULDER and mode=='carried':
         rpg=model.startswith('rpg')
         root=rpg_equipment(kit.m,model,False) if rpg else shoulder_tube_equipment(kit.m,model,False)
         # A rifle in the hands and the actual launcher slung behind the pack:
         # an RPG muzzle down; a missile tube muzzle up, with its sight (the
         # Javelin's CLU) facing out rather than into the pack.
-        back=max((o.matrix_world@Vector(c)).y for o in kit.parts if bone_of(o)=='spine_03' for c in o.bound_box)
-        rotation=Matrix.Rotation(math.radians(30),4,'Y')@Matrix.Rotation((1 if rpg else -1)*math.pi/2,4,'X')
-        # A tube's middle at 1.12 m, whatever length rides behind its grip,
-        # lowered for a tube longer than the Stinger's (the Igla): its upper
-        # cap stays under the soldier's height at the sling's 30° lean.
+        # A tube's middle at SLUNG_MIDDLE, whatever length rides behind its
+        # grip, lowered for a tube longer than the Stinger's (the Igla): its
+        # upper cap stays under the soldier's height at the sling's 30° lean.
         overlong=max(0,LENGTHS[model].get('length_m',0)-LENGTHS['stinger']['length_m'])
-        lift=1.1 if rpg else 1.12+bpy.data.objects[model+'_tube'].location.y-overlong*math.cos(math.radians(30))/2
+        lift=1.1 if rpg else SLUNG_MIDDLE+bpy.data.objects[model+'_tube'].location.y-overlong/SCALE*math.cos(math.radians(30))/2
         # A slim MANPADS tube lies on the pack by its own radius, its foot
         # tipped in to follow the soldier's forward lean; the Javelin's and
         # Akeron's sight blocks fill that gap themselves.
         slim=model in MANPADS
-        if slim:rotation=Matrix.Rotation(math.radians(10),4,'X')@rotation
         standoff=.13 if rpg else LENGTHS[model]['radius_m']+.01-.10 if slim else -.02
-        root.matrix_world=Matrix.Translation((0,back+standoff,lift))@rotation
-        rig.bone_parent(root,'spine_03')
-        kit.parts.extend(c for c in root.children_recursive if c.type=='MESH')
-        for j,along in enumerate((-.20,.30)):
-            lug=root.matrix_world@Vector((-.045,along,.10))
-            anchor=Vector((-.09 if j==0 else .09,back,1.1-along*.85))
-            reach=lug-anchor
-            strap=box('packed_'+('rpg' if rpg else model)+'_retention_'+str(j),(.035,.014,reach.length),(anchor+lug)/2,kit.m['webbing'],rot=reach.to_track_quat('Z','Y').to_euler())
-            kit.rigid(strap,'spine_03')
+        kit.sling(root,lift,standoff,'packed_'+('rpg' if rpg else model),muzzle_up=not rpg,tip_deg=10 if slim else 0)
     if ground:tripod_equipment(kit,model,mode=='carried')
     if not ground or mode=='carried':
         # A launcher team's carrier holds his army's rifle, as a rifleman does.
         constructor=((lambda m:rpg_equipment(m,model)) if shoulder and model.startswith('rpg')
                      else (lambda m:shoulder_tube_equipment(m,model)) if shoulder
-                     else (lambda m:weapons.RIFLES[kit.look['rifle']](m)) if model=='rifle' or mode=='carried'
-                     else (lambda m:lmg_equipment(m,kit.look['lmg'])) if model=='lmg'
+                     else (lambda m:weapons.RIFLES[kit.army['rifle']](m)) if model=='rifle' or mode=='carried'
+                     else (lambda m:lmg_equipment(m,kit.army['lmg'])) if model=='lmg'
                      else (lambda m:rifle_equipment(m,model)))
         kit.weapon({'hold':hold,'build':constructor})
     if model in TUBE_PAINT:
         rgb=TUBE_PAINT[model]
         kit.painters[model+'_tube']=lambda p,n:(scale3(rgb,.9+.2*fbm(p,40,97)),.3+.2*fbm(p,12,98))
-    kit.eye();kit.paint_all()
-    soldier=kit.join();kit.bake_ao(soldier)
-    tiers=make_tiers(soldier,'soldier')
-    for t in tiers:
-        canonical(t);t.parent=rig.arm;t.modifiers.new('armature','ARMATURE').object=rig.arm
-    rig.arm.scale=(SCALE,)*3;bpy.context.view_layer.update();texture_uvs(tiers)
-    for obj in list(bpy.data.objects):
-        if obj.type=='EMPTY' and obj.name not in ('eye','muzzle'):bpy.data.objects.remove(obj,do_unlink=True)
     path=source_path(unit,variant,mode,army)
-    os.makedirs(os.path.dirname(path),exist_ok=True)
-    export_glb(path,[rig.arm,*tiers,bpy.data.objects['eye'],bpy.data.objects['muzzle']])
+    tiers=export_soldier(kit,path)
     print('ROSTER_INFANTRY',json.dumps({'id':unit,'army':army,'equipment':model,'variant':variant,'mode':mode,'skeleton':'quaternius-ubc-'+hold['family'],'tris':[triangle_count(t) for t in tiers],'path':path}))
     return path,hold
 
@@ -658,51 +332,23 @@ def receipt(unit):
                 variants.append({'army':army,'mode':mode,'look':look,'source':os.path.relpath(path,REPO),
                                  'sha256':hashlib.sha256(data).hexdigest(),'bytes':len(data)})
     sha=lambda p:hashlib.sha256(open(p,'rb').read()).hexdigest()
+    loaded.add(os.path.join(os.path.dirname(os.path.abspath(__file__)),'armies.json'))
+    # The generated bodies its looks wore (`skin_pins`), their pinned hashes.
+    pins=[skin_pins.required('infantry',army=army,look=look,kind=kind_of(unit)) for army in spec['armies'] for look in 'abc']
+    worn={p['glb']:p['sha256'] for p in pins}
     out=os.path.join(REPO,'assets/source/roster/infantry',unit,'source-receipt.json')
     with open(out,'w') as f:
         f.write(json.dumps({
             'blender_version':bpy.app.version_string,
             'source_sha256':{os.path.relpath(p,REPO):sha(p) for p in sorted(loaded)},
             'references':f'assets/references/{unit}/references.json',
-            'authoring':'Original procedural kit on the shared Quaternius rig, built from the committed references; photos are visual reference only.',
+            'authoring':('Generated bodies (`skins`, pinned in blender/skins/) on the shared Quaternius rig, with the '
+                         'procedural weapon and fittings built from the committed references; photos are visual '
+                         'reference only.'),
+            'skins':worn,
             'variants':variants,
         },indent=2)+'\n')
     print('ROSTER_INFANTRY_RECEIPT',out)
-
-
-def preview(path,hold,directory):
-    """Reimport source and shared clip GLB; poses are the actual exported clips."""
-    bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.ops.import_scene.gltf(filepath=path)
-    body_arm=next(o for o in bpy.data.objects if o.type=='ARMATURE')
-    clip=os.path.join(REPO,'assets/source/infantry/clips_'+hold['family']+'.glb')
-    if open(clip,'rb').read(4)!=b'glTF':
-        raise SystemExit('Preview requires acquired shared clip source: '+clip)
-    before=set(bpy.data.objects);bpy.ops.import_scene.gltf(filepath=clip)
-    actions={a.name:a for a in bpy.data.actions}
-    for o in set(bpy.data.objects)-before:bpy.data.objects.remove(o,do_unlink=True)
-    for o in bpy.data.objects:
-        if o.type=='MESH':o.hide_render='_LOD' in o.name and not o.name.endswith('_LOD0')
-    scn=bpy.context.scene;scn.render.engine='BLENDER_EEVEE';scn.render.resolution_x=800;scn.render.resolution_y=800
-    scn.world=bpy.data.worlds.new('review_world');scn.world.use_nodes=True;scn.world.node_tree.nodes['Background'].inputs['Color'].default_value=(.32,.32,.32,1);scn.world.node_tree.nodes['Background'].inputs['Strength'].default_value=.8
-    scn.view_settings.exposure=1.0
-    bpy.ops.mesh.primitive_plane_add(size=100,location=(0,0,-.005))
-    floor=bpy.context.object;floor.name='review_ground';floor_mat=bpy.data.materials.new('review_ground');floor_mat.diffuse_color=(.22,.24,.20,1);floor.data.materials.append(floor_mat)
-    for loc in ((-3,-4,6),(4,3,4)):
-        bpy.ops.object.light_add(type='AREA',location=loc);light=bpy.context.object;light.data.energy=450;light.data.size=4;light.rotation_euler=(Vector((0,0,1))-light.location).to_track_quat('-Z','Y').to_euler()
-    bpy.ops.object.camera_add();cam=bpy.context.object;scn.camera=cam;cam.data.type='ORTHO'
-    os.makedirs(directory,exist_ok=True)
-    for pose in ('idle','stand_aim','kneel_fire','prone_pinned'):
-        body_arm.animation_data_create();action=next(a for n,a in actions.items() if n.split('.')[0]==pose)
-        body_arm.animation_data.action=action
-        if action.slots:body_arm.animation_data.action_slot=action.slots[0]
-        scn.frame_set(0);bpy.context.view_layer.update()
-        dg=bpy.context.evaluated_depsgraph_get()
-        points=[o.matrix_world@Vector(p) for o in bpy.data.objects if o.type=='MESH' and o.name.endswith('_LOD0') for p in o.evaluated_get(dg).bound_box]
-        lo=Vector(tuple(min(p[i] for p in points) for i in range(3)));hi=Vector(tuple(max(p[i] for p in points) for i in range(3)));target=(lo+hi)/2
-        cam.data.ortho_scale=max(hi.y-lo.y,hi.z-lo.z)*1.25
-        for label,offset in [('side',(-4,-.1,.6)),('front',(-2.7,-4,1.15))]:
-            cam.location=target+Vector(offset);cam.rotation_euler=(target-cam.location).to_track_quat('-Z','Y').to_euler();scn.render.filepath=os.path.join(directory,pose+'_'+label+'.png');bpy.ops.render.render(write_still=True)
 
 
 if __name__=='__main__':

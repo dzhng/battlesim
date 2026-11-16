@@ -87,10 +87,66 @@
    "licence": "CC-BY-4.0",
    "sha256": "1ed5cdd7d35e56b5cd2252ff0849b23a5f381c4bc2d661ce659a5e254e404d8b",
    "note": "Infantry standing at a parade rehearsal (2014), several from the side and behind: EMR uniform, vest back, helmets, AKs carried. Older pre-Ratnik helmets and vests on some; parade dress, not field kit."
+  },
+  {
+   "file": "pla_type21-three_quarter_rear.jpg",
+   "variant": "pla_type21",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:PLASHOOTER2021̠closeup01.jpg",
+   "author": "Ministry of Defence of the Russian Federation (mil.ru)",
+   "licence": "CC-BY-4.0",
+   "sha256": "ac6dddaf330d3c79347842923d592709dc8d5469c197cc5178a979333d5bc93b",
+   "note": "PLA soldier aiming at the 2021 International Army Games (frame from a mil.ru video), from behind and right, waist up: Xingkong woodland uniform (Type 19/21 cut not settled by the photo), Xingkong plate carrier with laser-cut panels and belt pouches, high-cut helmet with Xingkong cover, rails and headset (model not identified), QBZ-191 with optic."
+  },
+  {
+   "file": "pla_type21-side.jpg",
+   "variant": "pla_type21",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:PLA-TACSHOOTER2021.png",
+   "author": "Ministry of Defence of the Russian Federation (mil.ru)",
+   "licence": "CC-BY-4.0",
+   "sha256": "3b113a630e6b9ca657259353bdd40d453b3762a9ff4c521a6f7fcd2fa6b6388e",
+   "note": "PLA soldier aiming round a post at the 2021 International Army Games (cropped from a mil.ru video), near left profile from slightly behind, knees up: Xingkong woodland uniform, Xingkong plate carrier side and back, leg pouch and holster, covered high-cut helmet with headset, QBZ-191 with optic. Converted from PNG."
+  },
+  {
+   "file": "pla_type21-detail.jpg",
+   "variant": "pla_type21",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:PLASHOOTER2021̠closeup02.jpg",
+   "author": "Ministry of Defence of the Russian Federation (mil.ru)",
+   "licence": "CC-BY-4.0",
+   "sha256": "50f9db06c7bc486505bf0b95d62ac467b82f0b38ee54c07d7d41c71d357cee50",
+   "note": "PLA soldier aiming (2021 International Army Games, mil.ru video frame), close-up from the right: Xingkong helmet cover over a high-cut shell with side rails and headset, Xingkong sleeve with arm patch and pocket, QBZ-191 with magnified optic."
+  },
+  {
+   "file": "pla_type21-detail-2.jpg",
+   "variant": "pla_type21",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Xingkong_Starry_Sky_Jungle_Type_19_compared_to_Type_21_blouse.png",
+   "author": "Tahazu",
+   "licence": "CC0-1.0",
+   "sha256": "b44bda6da36a251abd376122b12c308ff0334e11b3393219578f4cb26eddedd4",
+   "note": "Type 21 (left) and Type 19 (right) field blouses in Xingkong jungle (woodland) camouflage, flat lay, front: pattern colours and scale, pocket and collar cut. Converted from PNG on white."
+  },
+  {
+   "file": "pla_type21-detail-3.jpg",
+   "variant": "pla_type21",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Xingkong_Starry_Sky_Jungle_Type_19_compared_to_Type_21_trousers.png",
+   "author": "Tahazu",
+   "licence": "CC0-1.0",
+   "sha256": "47e15df527d383774f6d1246c1242b00428ea0f92ba3a1e72914e065dd8cb358",
+   "note": "Type 21 (left) and Type 19 (right) trousers in Xingkong jungle (woodland) camouflage, flat lay, front: cargo pockets and knee shaping. Converted from PNG on white."
   }
  ],
  "gaps": [
   "fn_6: no licensable photo of the FN-6 itself (Commons' \"FN-6.jpg\" is a street sign); its successor the FN-16, same tube and gripstock layout, stands in",
-  "eastern_air_defense_team_fn_6: wears the Eastern army's EMR; no Chinese uniform print exists yet"
+  "eastern_air_defense_team_fn_6: wears the Eastern army's EMR; no Chinese uniform print exists yet",
+  "pla_type21: shared with rifle_squad; no front or three-quarter front, and no PLA soldier with a MANPADS, carried or deployed."
  ]
 }

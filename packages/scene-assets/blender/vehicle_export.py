@@ -18,8 +18,8 @@ does the rest, the same way for every family:
   carries (`wreckage.scatter`, seeded by the variant's id) and
   `wreckage.burn()`, written beside the live vehicle with its hull and turret
   pieces where it has a turret, and its debris;
-- visible crew after the paint is baked (they keep the soldier's own), and
-  their materials carried through the export;
+- visible crew after the paint is baked, wearing the army the family names
+  (`crew_army`) and keeping that soldier's own materials through the export;
 - tiers checked to reduce, the GLB exported, and the family's receipt;
   `--out=<path>` writes the one `--variant` there instead, without a
   receipt (a skin's guide model, `guides/<family>.py`).
@@ -47,6 +47,8 @@ import parts as P  # noqa: E402
 from catalog_frames import family_variants, roster_variant  # noqa: E402
 from parts import bare_steel, empty, finish, flat_paint, glass, reset, script_args, textured, track_steel, tyre, triangles_by_tier  # noqa: E402
 from wreckage import WRECK_ARG, burn, export_wreck, scatter  # noqa: E402
+import skin_pins  # noqa: E402
+from infantry_roster import crew_source  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[3]
 # Each articulation's nodes (MOUNT_NODES in packages/scene-assets/src/validate.ts).
@@ -177,7 +179,7 @@ def build_variant(variant, scheme, build, looks=None, wreck=False):
     return v
 
 
-def _export(variants, scheme, build, wreck, ao_distance, ao_rays, check=None, looks=None):
+def _export(variants, scheme, build, wreck, ao_distance, ao_rays, check=None, looks=None, crew_army=None):
     """Build and export each of `variants` (or the one `--variant=<id>` names),
     live or with `--wreck`; returns the receipt rows, or None for a partial run.
     `scheme` is one scheme or a scheme per variant id; `looks` are `materials`
@@ -213,8 +215,10 @@ def _export(variants, scheme, build, wreck, ao_distance, ao_rays, check=None, lo
         finish(ao_distance=ao_distance, ao_rays=ao_rays)
         source = None
         if v.crew and not wrecking:
-            from vehicle_crew import crew, soldier_source
-            source = soldier_source(variant["faction"])
+            from vehicle_crew import crew
+            if crew_army is None:
+                raise SystemExit(f"{variant['id']} carries crew: its family's run() must name crew_army")
+            source = crew_source(crew_army)
             for args_ in v.crew:
                 crew(*args_, source)
         counts = triangles_by_tier()
@@ -245,8 +249,8 @@ def _receipt(path, script, variants, frames, references=None):
     loaded = (Path(m.__file__).resolve() for m in list(sys.modules.values()) if getattr(m, "__file__", None))
     sources = sorted({p for p in loaded if p.is_relative_to(REPO) and p.is_file()} | {here / "roster" / script})
     family = script.removesuffix(".py")
-    # The generated skins an airframe wore (`aircraft_skin`), their pinned hashes.
-    worn = dict(getattr(sys.modules.get("aircraft_skin"), "WORN", {}))
+    # The generated skins the export wore (`skin_pins`), their pinned hashes.
+    worn = dict(skin_pins.WORN)
     scripted = any(p.name == "build.py" for p in sources)
     (REPO / path).write_text(json.dumps({
         "blender_version": bpy.app.version_string,
@@ -264,17 +268,18 @@ def _receipt(path, script, variants, frames, references=None):
 
 
 def run(family, scheme, build, wreck, ao_distance=1.0, ao_rays=8, references=None,
-        appearances=None, script=None, receipt_file=None, **looks):
+        appearances=None, script=None, receipt_file=None, crew_army=None, **looks):
     """Export every variant of `family` (or `--variant=<id>`), live or with
     `--wreck` its wreck, through `build` and `wreck` (see the module doc).
     `references` is its reference library's `references.json` where that is
     not `assets/references/<family>/`. A shared script can name `appearances`
     from several folders; `script` keeps its receipt tied to the actual source.
     `looks` are `materials` keywords (a
-    family's fittings, canvas or chip)."""
+    family's fittings, canvas or chip). A family whose vehicles carry crew
+    names the army they wear (`crew_army`, an `armies.json` id)."""
     variants = ([roster_variant(name, repo=REPO) for name in appearances]
                 if appearances is not None else family_variants(family, repo=REPO))
-    receipt = _export(variants, scheme, build, wreck, ao_distance, ao_rays, looks=looks)
+    receipt = _export(variants, scheme, build, wreck, ao_distance, ao_rays, looks=looks, crew_army=crew_army)
     if receipt is not None:
         _receipt(receipt_file or f"assets/source/roster/{family}/source-receipt.json",
                  script or f"{family}.py", receipt, "fixtures/catalog.json",

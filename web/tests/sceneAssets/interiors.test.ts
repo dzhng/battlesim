@@ -9,7 +9,8 @@ import {
   type Catalog,
   type StaticBundle,
 } from "@packages/scene-assets/src/schema.ts";
-import { AUTHORITY, TOLERANCES, bakedBundle, encodePng, panelGlb } from "./synthetic";
+import { encodePng } from "./png";
+import { AUTHORITY, TOLERANCES, bakedBundle, panelGlb } from "./synthetic";
 
 const { cells, cell_px, source_columns, columns } = INTERIOR_ATLAS;
 /** Cell `i`'s colour in the test sheets: every cell its own. */

@@ -22,16 +22,8 @@ import {
 import { pointAt } from "@packages/scene-assets/src/trs.ts";
 import type { ArticulatedBundle } from "@packages/scene-assets/src/schema.ts";
 import { validateAppearance } from "@packages/scene-assets/src/validate.ts";
-import {
-  AUTHORITY,
-  HELI_AUTHORITY,
-  HELI_ROTORS,
-  TANK_DRAWS,
-  TOLERANCES,
-  heliGlb,
-  tankGlb,
-  truckGlb,
-} from "./synthetic";
+import { AUTHORITY, HELI_AUTHORITY, TANK_DRAWS, TOLERANCES, tankGlb, truckGlb } from "./synthetic";
+import { HELI_ROTORS, heliGlb } from "./syntheticSpinning";
 
 async function built(
   unit: "tank" | "supply" | "heli",
