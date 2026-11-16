@@ -196,8 +196,7 @@ function PurchaseMenu({
   const revealed = reveal ? (available.find((c) => c.id === reveal.card) ?? null) : null;
   const [group, setGroup] = useState<UnitGroup>(revealed ? groupOf(revealed) : UNIT_GROUPS[0].id);
   const [hovered, setHovered] = useState<string | null>(revealed?.id ?? null);
-  // The transport menu's highlighted option, for the squad it was chosen in:
-  // another squad's menu opens with nothing highlighted.
+  // An explicitly hovered or keyboard-selected transport option, for its squad.
   const [pick, setPick] = useState<{ squad: string; option: string } | null>(null);
   const [query, setQuery] = useState(
     revealed ? `${revealed.roster.family_name} ${revealed.roster.variant}` : "",
@@ -268,7 +267,13 @@ function PurchaseMenu({
         groupOf,
       )
     : [];
-  const option = squad && pick?.squad === squad.id ? pick.option : null;
+  // Pointing at the base card previews buying the squad on foot.
+  const option =
+    squad && pick?.squad === squad.id
+      ? pick.option
+      : squad && squad === hoveredCard
+        ? ON_FOOT
+        : null;
   // A card without a transport menu shows its one info card.
   const info = squad ? null : hoveredCard;
   // The info card hangs from its card's top-left corner, measured after every
@@ -329,13 +334,12 @@ function PurchaseMenu({
     window.clearTimeout(crossTimer.current);
     crossed.current = null;
   };
-  // The pointer moves to another card, or off them all: a menu it opens
-  // again starts with nothing highlighted.
+  // Returning to a base card clears a ride preview, including in its own menu.
   const point = (id: string | null) => {
     cancelCrossing();
+    setPick(null);
     if (id === hovered) return;
     setHovered(id);
-    setPick(null);
   };
   // Whether the pointer is heading into the open transport menu: where it is
   // now lies in the triangle from where it was a few moves back to the

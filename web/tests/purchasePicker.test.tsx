@@ -455,9 +455,9 @@ test("hovering a squad opens its transport menu: on foot, then each tab's carrie
     [tab("ifv_apc"), [APC.name, SCOUT.name]],
     [tab("hel"), [HELI.name]],
   ]);
-  // Nothing is highlighted and no info card shows until the player points.
-  expect(highlighted(view)).toEqual([]);
-  expect(infoCards(view)).toEqual([]);
+  // The base card previews the same purchase as the On foot option.
+  expect(highlighted(view)).toEqual(["On foot"]);
+  expect(infoCards(view)).toEqual([TEAM.name]);
   // A bigger squad, once the pointer rests on it: the scout car can't seat it.
   fireEvent.mouseEnter(view.getByRole("button", { name: RIFLES.name }));
   act(() => vi.advanceTimersByTime(1000));
@@ -470,7 +470,7 @@ test("hovering a squad opens its transport menu: on foot, then each tab's carrie
   expect(view.getByRole("button", { name: APC.name }).textContent).toContain(`+${APC.cost} CR`);
 });
 
-test("a vehicle's card opens no transport menu, and a squad's info waits for its menu", () => {
+test("a vehicle's card shows its info without a transport menu", () => {
   const { view } = openOn("ifv_apc");
   fireEvent.mouseEnter(view.getByRole("button", { name: APC.name }));
   expect(transportMenu(view)).toBeNull();
@@ -494,11 +494,11 @@ test("pointing at an option shows what it buys: on foot the squad, a ride its ca
   // The hovered ride is described by everything it buys.
   const described = view.getByRole("button", { name: SCOUT.name }).getAttribute("aria-describedby");
   expect(described?.split(" ")).toContain(aboard.id);
-  // Leaving and coming back opens the menu fresh: nothing pointed at, nothing shown.
+  // Leaving and coming back resets the menu to the squad on foot.
   fireEvent.mouseLeave(view.getByRole("region", { name: "Faction units" }));
   fireEvent.mouseEnter(view.getByRole("button", { name: TEAM.name }));
-  expect(highlighted(view)).toEqual([]);
-  expect(infoCards(view)).toEqual([]);
+  expect(highlighted(view)).toEqual(["On foot"]);
+  expect(infoCards(view)).toEqual([TEAM.name]);
 });
 
 test("clicking a ride buys the squad in it; on foot or the squad's own card buys it alone", () => {
@@ -509,10 +509,23 @@ test("clicking a ride buys the squad in it; on foot or the squad's own card buys
   ] as const) {
     const { view, choose } = openOn("inf");
     fireEvent.mouseEnter(view.getByRole("button", { name: TEAM.name }));
+    // A previously inspected ride never changes what the base card buys.
+    fireEvent.mouseEnter(view.getByRole("button", { name: SCOUT.name }));
     fireEvent.click(view.getByRole("button", { name: target }));
     expect(choose, target).toHaveBeenCalledExactlyOnceWith(...expected);
     cleanup();
   }
+});
+
+test("returning from a ride to its base card previews on foot again", () => {
+  const { view } = openOn("inf");
+  const base = view.getByRole("button", { name: TEAM.name });
+  fireEvent.mouseEnter(base);
+  fireEvent.mouseEnter(view.getByRole("button", { name: SCOUT.name }));
+  expect(infoCards(view)).toEqual([SCOUT.name, TEAM.name]);
+  fireEvent.mouseEnter(base);
+  expect(highlighted(view)).toEqual(["On foot"]);
+  expect(infoCards(view)).toEqual([TEAM.name]);
 });
 
 test("a ride is refused when the credits or the unit cap can't take the pair, while on foot still buys", () => {
@@ -563,12 +576,12 @@ test("an open menu holds while the pointer heads into it across other cards; tur
   act(() => vi.advanceTimersByTime(1000));
   expect(scoutListed()).toBe(false);
   expect(highlighted(view)).toEqual([APC.name]);
-  // Along the row, the team's card takes over at once, nothing highlighted.
+  // Along the row, the team's card takes over at once, previewing on foot.
   moves([100, 150], [130, 150], [160, 150]);
   fireEvent.mouseEnter(view.getByRole("button", { name: TEAM.name }));
   moves([170, 150]);
   expect(scoutListed()).toBe(true);
-  expect(highlighted(view)).toEqual([]);
+  expect(highlighted(view)).toEqual(["On foot"]);
   // Heading in, then turning away on the rifles' card: it takes over.
   moves([200, 200], [210, 185], [220, 170]);
   fireEvent.mouseEnter(view.getByRole("button", { name: RIFLES.name }));
@@ -731,5 +744,5 @@ test("a squad lookup opens its transport menu on the exact squad", () => {
   expect(view.getByRole("button", { name: "Rifles Base" })).toBeTruthy();
   expect(view.getByRole("region", { name: "Transport" })).toBeTruthy();
   expect(view.getByRole("group", { name: "On foot" })).toBeTruthy();
-  expect(view.queryByRole("tooltip")).toBeNull();
+  expect(infoCards(view)).toEqual([RIFLES.name]);
 });
