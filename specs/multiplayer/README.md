@@ -34,11 +34,15 @@ create a room, start its battle, survive a drop and finish
    Checked without them on 2026-11-16: two browser pages on the production
    site made a room, joined it by its code, started, and both played at 30
    ticks a second.
-2. **Slice 32,** the native simulation in the battle server, to be written
-   from slice 01's measurements (a native build at the `x86-64-v4` level).
-   The user asked for it on 2026-11-16.
-3. **Slice 27's remaining steps:** the sweep (its list is in the slice),
-   the probes' removal, the plan archived.
+2. **Slice 27's remaining steps:** the sweep (with Codex since
+   2026-11-16; its list is in the slice) and the plan archived.
+
+**Measured and not built: a native simulation in the battle server.** The
+user asked for it on 2026-11-16. On the ten-AI battle the server runs, a
+native build at the machines' CPU level is a fifth faster than WebAssembly
+and plays the identical battle, but still cannot hold thirty ticks a
+second ([slice 01](slices/01-probes.md)). The lever is the simulation's
+step cost with ten AIs, which is its own work, for another plan.
 
 **Promotion keeps the lobby in step.** `bun run promote:main --yes` asks
 the live lobby whether it admits the promoted site and deploys it from the

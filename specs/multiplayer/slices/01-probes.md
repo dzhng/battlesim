@@ -217,5 +217,28 @@ by the second, on a Ryzen 9 9950X in France.
   half on the EPYC, for a native build at `v4`; nothing to be had from
   re-optimising the WebAssembly.
 
+- **The battle that actually runs slow, native beside WebAssembly**
+  (2026-11-16). The earlier native numbers were a 200-unit fight with no
+  AIs. This is the server's own ten-AI battle, one scenario file and seed,
+  fifteen simulated minutes flat out, each build on its own core of one
+  sandbox (Ryzen 9 9950X), native built at `x86-64-v4`:
+
+  | | WebAssembly | Native |
+  |---|---|---|
+  | Median tick | 37.3 ms | 29.9 ms |
+  | 95th percentile | 91.8 ms | 73.6 ms |
+  | Ticks over 33 ms | 56% | 44% |
+  | Median tick in the worst minute | 64.9 ms | 51.5 ms |
+
+  Every minute's digest was the same in both, and eighteen recorded map
+  generations came out byte for byte the same natively. So a native
+  battle server would be correct, and it would be a fifth faster. It
+  would not hold thirty ticks a second: from the fifth minute the native
+  median tick is itself over the budget. **Not built.** A native module
+  for the server is a second binding, a build on a rented machine at
+  every deploy and a CPU check, for a fifth; the cost that matters is the
+  simulation's own step with ten AIs and large armies, which a native
+  build does not change and every player's machine would also gain from.
+
 **What this changed:** the user chose a sandbox for each battle (decision
 68, slices 28 and 29).

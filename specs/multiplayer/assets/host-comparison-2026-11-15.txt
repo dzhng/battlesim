@@ -205,3 +205,44 @@ K. Native builds at each x86 feature level and WebAssembly as shipped and after 
    whole | 20.0 | 14.7 | 51.8 | 86.7 | 136 | 3229 
   digest 96b9a080ebb063fb
   
+
+L. The ten-AI battle the server actually runs (a generated 5v5, this build), stepped flat out for 15 simulated minutes from one scenario file and seed: native at x86-64-v4 beside WebAssembly, each on its own core of one rented machine, 2026-11-16. Map generation replayed natively for 18 recorded calls.
+  model name	: AMD Ryzen 9 9950X 16-Core Processor 4 
+  15:22:03 15:41:31 
+      Finished `release` profile [optimized] target(s) in 59.31s
+  == native-v4
+  maps: 18 byte-identical to WebAssembly's, 0 differ, 0 refused natively
+  min 1 p50 3.1 p95 12.5 over33 19 digest 06ba4df272323e43
+  min 2 p50 4.4 p95 15.8 over33 22 digest e4e3dcd7e28604c2
+  min 3 p50 6.2 p95 21.6 over33 23 digest 8975c2715280f953
+  min 4 p50 11.8 p95 38.8 over33 139 digest 7e6d942b795fd1cf
+  min 5 p50 30.5 p95 57.5 over33 796 digest e603ef04a84ab17e
+  min 6 p50 48.2 p95 84.4 over33 1549 digest 70ef72e633426fce
+  min 7 p50 43.6 p95 83.9 over33 1489 digest e21101fdc03879ec
+  min 8 p50 42.2 p95 79.4 over33 1434 digest 303703997d17aef8
+  min 9 p50 51.5 p95 92.9 over33 1615 digest 5e533ec2425f938e
+  min 10 p50 37.3 p95 86.3 over33 1030 digest 7dd6f2462dd2c0e0
+  min 11 p50 36.2 p95 75.3 over33 1058 digest edd9ea93c0f4bd25
+  min 12 p50 32.1 p95 76.4 over33 847 digest 87998c89b173f8e8
+  min 13 p50 28.3 p95 65.3 over33 674 digest e0f96edd0ec5a9a0
+  min 14 p50 24.0 p95 64.6 over33 648 digest f4b64e2e16c4bdcc
+  min 15 p50 22.4 p95 63.2 over33 581 digest fe0f94101e36f25f
+  whole p50 29.9 p95 73.6 over33 11924 of 27000 finished false
+  == wasm
+  min 1 p50 3.6 p95 14.1 over33 20 digest 06ba4df272323e43
+  min 2 p50 5.7 p95 19.3 over33 25 digest e4e3dcd7e28604c2
+  min 3 p50 8.1 p95 27.0 over33 32 digest 8975c2715280f953
+  min 4 p50 15.9 p95 47.3 over33 269 digest 7e6d942b795fd1cf
+  min 5 p50 37.9 p95 69.4 over33 1130 digest e603ef04a84ab17e
+  min 6 p50 61.3 p95 107.8 over33 1762 digest 70ef72e633426fce
+  min 7 p50 55.0 p95 106.3 over33 1770 digest e21101fdc03879ec
+  min 8 p50 51.6 p95 98.8 over33 1725 digest 303703997d17aef8
+  min 9 p50 64.9 p95 126.6 over33 1777 digest 5e533ec2425f938e
+  min 10 p50 45.0 p95 96.9 over33 1382 digest 7dd6f2462dd2c0e0
+  min 11 p50 44.6 p95 91.5 over33 1440 digest edd9ea93c0f4bd25
+  min 12 p50 35.1 p95 85.1 over33 979 digest 87998c89b173f8e8
+  min 13 p50 38.9 p95 89.2 over33 1155 digest e0f96edd0ec5a9a0
+  min 14 p50 30.1 p95 80.6 over33 803 digest f4b64e2e16c4bdcc
+  min 15 p50 34.0 p95 96.6 over33 919 digest fe0f94101e36f25f
+  whole p50 37.3 p95 91.8 over33 15188 of 27000 finished false
+  
