@@ -60,6 +60,15 @@ apart:
   Nothing in the lobby attaches a seat to a remote battle. Decide at the
   closeout whether the tests should reach seats the way players do.
 
+## Checked about the service on 2026-11-15
+
+Through the host's service route, with a scratch sandbox: labels given at
+creation come back on the sandbox and filter the list; values given as
+`env` are visible to commands run in it; `snapshots: false` is accepted; a
+port opened as public answers with no token; a stop took about two minutes
+to reach `archived` and four to settle. A fresh sandbox answered the game
+server's `/hello` nine seconds after the create call.
+
 ## Run or see
 
 A development page pointed at the deployed lobby with `?server=`: a room
