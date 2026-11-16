@@ -269,10 +269,11 @@ backend selection. Tests that need desktop replay, filesystem adapters or audio
 belong to the [native shell](../../native/client/README.md#checks).
 
 Asset-backed tests read the prepared runtime, so materialize its Git LFS files
-before running the suite. Serialize GPU work with other renderer checks:
+before running the suite. The tests need no GPU lock; [only a frame-timing
+measurement takes it](../../web/README.md):
 
 ```sh
 git lfs checkout assets/runtime
-CARGO_INCREMENTAL=0 lockf -k <main checkout>/throwaway/gpu.lock cargo test -p renderer-core
+CARGO_INCREMENTAL=0 cargo test -p renderer-core
 cargo check -p renderer-core --target wasm32-unknown-unknown
 ```

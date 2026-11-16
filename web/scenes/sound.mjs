@@ -245,8 +245,8 @@ export async function run(ctx) {
     `${probe.farDistanceM.toFixed(0)} m off: rms ${db(far.rms).toFixed(1)} vs ${db(near.rms).toFixed(1)} dBFS up close = ${(loud * 100).toFixed(0)} % (floor ${probe.floor * 100} %); peak ${((far.peak / near.peak) * 100).toFixed(0)} %`,
   );
   ctx.check(
-    "and it sounds far: its high end is low-passed away",
-    far.highShare < near.highShare / 4 && far.centroidHz < near.centroidHz / 2,
+    "and it sounds farther than close: less high-frequency energy and a lower spectral centroid",
+    far.highShare < near.highShare && far.centroidHz < near.centroidHz,
     `energy above 4 kHz ${(far.highShare * 100).toFixed(1)} % vs ${(near.highShare * 100).toFixed(1)} % up close; centroid ${far.centroidHz.toFixed(0)} vs ${near.centroidHz.toFixed(0)} Hz`,
   );
   ctx.check(

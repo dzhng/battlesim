@@ -85,7 +85,8 @@ export function knownStanding(
 
 /** What the presentation fits the props from (`PropInput`), as JSON: every
  *  installed static appearance with a footprint (its scenery kind, region,
- *  footprint, paints and its first state's bounds), each vehicle appearance's
+ *  footprint, paints, its first state's bounds and how many meshes it has,
+ *  five where it carries a far mesh), each vehicle appearance's
  *  own wreck, the stand-in kit's bounds where it is installed with its module,
  *  the map's regional family and the models' tiers. */
 export function propArt(
@@ -105,6 +106,7 @@ export function propArt(
       footprint: a.footprint,
       paints: a.paints,
       bounds: a.bundle.states[0].bounds,
+      meshes: a.bundle.states[0].tiers.length,
     });
   }
   const kit = installed.appearances.get(STAND_IN_KIT)?.bundle;

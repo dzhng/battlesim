@@ -21,7 +21,7 @@ import {
   type ObjectiveMarkersHandle,
 } from "@web/battle/present/objectiveMarkers";
 import type { PanelRules } from "@web/battle/present/panelRows";
-import { PurchasePicker } from "@web/battle/present/purchasePicker";
+import { PurchasePicker, type PurchaseLookup } from "@web/battle/present/purchasePicker";
 import {
   RangeRulerLabels,
   type RangeRulerLabelsHandle,
@@ -260,12 +260,20 @@ function Purchase({
   const [cards] = useState(() =>
     content(catalog.units.cards.find((c) => !catalog.units.has(c.id))!.id),
   );
+  // The scene right-clicks a deck card: the gallery wires the lookup the
+  // battle HUD wires, so the browser check exercises the whole path.
+  const [lookup, setLookup] = useState<PurchaseLookup | null>(null);
+  const lookupSerial = useRef(0);
   return (
     <div className="hud">
       <ArmyDeck
         state={armyState}
         selected={[1]}
         onSelect={() => {}}
+        onLookup={(unit) => {
+          lookupSerial.current += 1;
+          setLookup({ card: unit.kind, serial: lookupSerial.current });
+        }}
         rules={rules}
         contactLines={null}
         reinforcements={
@@ -276,6 +284,8 @@ function Purchase({
             player={match.players[0]}
             onChoose={() => {}}
             rules={rules}
+            lookup={lookup}
+            onLookupHandled={() => setLookup(null)}
           />
         }
       />

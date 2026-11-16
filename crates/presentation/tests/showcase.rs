@@ -335,6 +335,7 @@ fn a_shown_unit_s_rows_are_the_presentation_s_own_and_another_needs_its_own_pres
         Detail {
             lod_px: [80.0, 40.0, 20.0],
             impostor_px: 0.0,
+            far_px: 2.0,
             shadow_caster_px: 0.0,
         },
     );

@@ -73,8 +73,8 @@ const instanceCounts: InstanceCount[] = [
       stumps: [1, 0],
     },
     props: [
-      { appearance: "abrams_wreck", levels: [0, 1, 0, 2] },
-      { appearance: "car_wreck_sedan", levels: [3, 0, 0, 0] },
+      { appearance: "abrams_wreck", levels: [0, 1, 0, 2, 0] },
+      { appearance: "car_wreck_sedan", levels: [3, 0, 0, 0, 4] },
     ],
   },
 ];
@@ -206,7 +206,9 @@ test("instance counts hold one row per plate, a count per module and tier and th
   expect(reject({ scenery: unfelled })).toThrow(/instance/);
   expect(reject({ tier: 0 })).toThrow(/instance/);
   const [wreck] = row.props;
-  expect(reject({ props: [{ ...wreck, levels: [0, 1, 0, 0, 2] }] })).toThrow(/instance/);
+  // A prop is counted at each of its five mesh slots, the far mesh the fifth.
+  expect(reject({ props: [{ ...wreck, levels: [0, 1, 0, 2] }] })).toThrow(/instance/);
+  expect(reject({ props: [{ ...wreck, levels: [0, 1, 0, 2, 0, 0] }] })).toThrow(/instance/);
   expect(reject({ props: [wreck, wreck] })).toThrow(/instance/);
   const { props: _props, ...unknowing } = row;
   expect(() => validateVisualPresentation({ ...manifest, instanceCounts: [unknowing] })).toThrow(

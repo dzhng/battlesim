@@ -376,6 +376,7 @@
   "models": {
     "lod_px": [150, 60, 24],
     "impostor_px": 10,
+    "far_px": 4,
     "shadow_caster_px": 2
   },
   "buildings": {

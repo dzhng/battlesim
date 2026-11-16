@@ -399,7 +399,7 @@ fn authored_bake_and_runtime_cards_preserve_coverage_normals_tint_and_real_geome
         });
     let batch = Batch {
         count: 2,
-        tier: 4,
+        tier: presentation::view::IMPOSTOR as u32,
         fog: FOG_UNITS,
         pass: VIEW_PASS,
         caster: NONE,

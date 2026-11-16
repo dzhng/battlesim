@@ -71,8 +71,7 @@ and props, and the units its encounter fields with their effects
 crate and writes each plate the browser wrote, under the same name. A plate
 whose counts differ from the browser's fails the run: it exits with an error
 listing each difference after the report. Its argument parser (`args` in
-[`main_desktop.rs`](src/main_desktop.rs)) owns the flags. Run it under the GPU
-lock.
+[`main_desktop.rs`](src/main_desktop.rs)) owns the flags.
 
 `--fps` writes a clip instead of the plates: frames on the reel's clock over a
 window of it, with the sound cut to the same window. A record's sim time is the

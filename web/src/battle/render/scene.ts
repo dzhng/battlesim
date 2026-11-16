@@ -200,8 +200,8 @@ export class BrowserScene {
       // use the asset-only transaction below and retain the current output.
       // Each packet has two readers: the renderer here, and presentation as
       // it draws the packet from this generator. It is released before the
-      // next is encoded: the whole set encoded at once left about a gigabyte
-      // for the collector to find.
+      // next is encoded: encoded at once, the whole set would sit on the page
+      // until the collector ran.
       function* packets(): Generator<LabAsset> {
         for (const asset of assets) {
           const packet = asset.encode();

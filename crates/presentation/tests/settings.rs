@@ -36,6 +36,24 @@ fn reject_presentation(pointer: &str, value: Value, path: &str) {
 }
 
 #[test]
+fn model_thresholds_must_fall_and_the_far_mesh_sit_below_tier_3() {
+    let models = |lod_px: [f64; 3], far_px: f64| json!({"lod_px": lod_px, "impostor_px": 4, "far_px": far_px, "shadow_caster_px": 0});
+    let mut doc = fixture("presentation");
+    doc["models"] = models([100.0, 50.0, 20.0], 8.0);
+    presentation::settings::PresentationSettings::from_value(&doc).unwrap();
+    for far_px in [0.0, -1.0, 20.0, 25.0] {
+        reject_presentation(
+            "/models",
+            models([100.0, 50.0, 20.0], far_px),
+            "presentation.models.far_px",
+        );
+    }
+    for lod_px in [[50.0, 100.0, 20.0], [100.0, 50.0, 50.0], [100.0, 50.0, 0.0]] {
+        reject_presentation("/models", models(lod_px, 8.0), "presentation.models.lod_px");
+    }
+}
+
+#[test]
 fn movement_effect_spacing_must_advance_at_load() {
     for effect in ["dust", "wake"] {
         reject_presentation(

@@ -16,7 +16,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const detail = { lod_px: [100, 50, 25] as const, impostor_px: 10 };
+const detail = { lod_px: [100, 50, 25] as const, impostor_px: 10, far_px: 2 };
 const model = (name: string, x = 0): LabModel => ({
   appearance: name,
   x,
@@ -560,3 +560,67 @@ test("superseding a partial supply or warm discards it and commits only the late
     }
   }
 });
+
+test.each(["supply", "warm"])(
+  "departure during a %s budget wait settles false and frees its held candidate once",
+  async (phase) => {
+    const { art_work_budget_ms } = await import("@wasm/renderer_browser");
+    let now = 0;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    const draftFreed = vi.fn();
+    const warmingFreed = vi.fn();
+    const commit = vi.fn();
+    const prepare = vi.fn();
+    const redraw = vi.fn();
+    const errors = vi.fn();
+    const renderer = {
+      missing_content_ids: (_: unknown, ids: string) => ids,
+      appearance_draft: () => ({
+        declare() {},
+        add_bundle() {
+          if (phase === "supply") now += art_work_budget_ms();
+        },
+        free: draftFreed,
+      }),
+      begin_appearances: () => ({
+        step() {
+          now += art_work_budget_ms();
+          return true;
+        },
+        free: warmingFreed,
+      }),
+      prepare_appearances: prepare,
+    } as unknown as Renderer;
+    const presentation = {
+      prepareRendererAppearances(
+        r: Renderer,
+        art: readonly ModelAsset[],
+        d: typeof detail,
+        next: (yieldFrame: boolean) => Promise<boolean>,
+      ) {
+        return prepareAppearances(r, {} as Presentation, art, d, next);
+      },
+      commitRendererAppearances: commit,
+    } as unknown as ScenePresentation;
+    const owner = new SceneAppearances(renderer, presentation, detail, redraw, errors);
+    const requested = owner.request(assets("arriving"), []);
+    // A redraw request means the real admission helper spent its budget and
+    // is waiting for SceneAppearances to hear that a frame was presented.
+    await vi.waitFor(() => expect(redraw).toHaveBeenCalledTimes(1));
+    expect(draftFreed).not.toHaveBeenCalled();
+    expect(warmingFreed).not.toHaveBeenCalled();
+    owner.dispose();
+    expect(await requested).toBe(false);
+    await vi.waitFor(() =>
+      expect(phase === "supply" ? draftFreed : warmingFreed).toHaveBeenCalledTimes(1),
+    );
+    owner.dispose();
+    owner.presented();
+    expect(owner.flush()).toBe(false);
+    expect(draftFreed).toHaveBeenCalledTimes(phase === "supply" ? 1 : 0);
+    expect(warmingFreed).toHaveBeenCalledTimes(phase === "warm" ? 1 : 0);
+    expect(prepare).not.toHaveBeenCalled();
+    expect(commit).not.toHaveBeenCalled();
+    expect(errors).not.toHaveBeenCalled();
+  },
+);

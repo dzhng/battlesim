@@ -17,6 +17,8 @@ import { writeFile } from "node:fs/promises";
 import { PNG } from "pngjs";
 import { advance, aim, hideHud, lab, presented, snapshot } from "./_lab.mjs";
 import { decode } from "./_png.mjs";
+import { drawnRoads, generatedGround, townEdges } from "./_generatedGround.mjs";
+export { drawnRoads } from "./_generatedGround.mjs";
 
 /** A fixture, parsed: `path` under `fixtures/`. */
 export const fixture = (path) =>
@@ -122,11 +124,11 @@ export const STATION_MAPS = {
       // ways or more meet, and low along the edge of a plain street.
       "junction-65": ({ streets }) => at(streets.junction, 65),
       "street-edge-25": ({ streets }) => at(streets.edge, 25, LOW, streets.yaw),
-      // Where the town's yards stop and the fields begin, west of its
-      // centre; and where the country road through it leaves its streets
-      // (`townEdges`).
-      "town-edge-250": ({ edges }) => at(edges.yards, 250),
-      "town-edge-65": ({ edges }) => at(edges.yards, 65),
+      // Between the main town's yards and their nearest drilled field, a
+      // street beside a lawn, and where the country road leaves the streets
+      // (`townEdges`). Isolated farmyards beyond it are not the town's edge.
+      "town-edge-250": ({ edges }) => at(edges.yardField, 250),
+      "lawn-street-65": ({ edges }) => at(edges.lawnStreet, 65),
       "road-join-65": ({ edges }) => at(edges.join, 65),
       "road-join-25": ({ edges }) => at(edges.join, 25, LOW, edges.joinYaw),
       // The country road out in the plain, as far from every building as
@@ -426,175 +428,17 @@ const streetTrees = (page, centre) =>
     { centre, near: AVENUE_M, count: STREET_TREES },
   );
 
-/** The generated map's ground as the renderer builds it, in the page as
- *  `window.__generatedGround`: its terrain `surface` (the ground Rust
- *  resolved: its plots, its paved strokes as drawn), the map's `exports` and
- *  its world `layout`. The map is made again from the page's own request,
- *  under the rules a player's battle prepares it with (the game's catalog
- *  set: the generator reads the units' rules), and must be the map the
- *  page prepared. */
-const generatedGround = (page) =>
-  page.evaluate(
-    async (repo) => {
-      if (window.__generatedGround) return;
-      const file = (p) => `/@fs/${repo}${p}`;
-      const [wasm, { rules: gameRules }, mesh, biome, presets, templates] = await Promise.all([
-        import("/src/wasm/game_wasm.js"),
-        import(file("web/src/battle/catalog/sets.ts")).then((m) => m.catalogSet("game")),
-        import(file("packages/battle-renderer/src/worldMesh.ts")),
-        import(file("fixtures/biomes/summer.json")),
-        import(file("fixtures/map-presets.json?raw")),
-        import(file("fixtures/prototype-building-templates.json?raw")),
-      ]);
-      await wasm.default();
-      // The ground's shapes are resolved by the presentation module.
-      await (await import(file("web/src/battle/sim/presentation.ts"))).loadPresentation();
-      const prepared = window.__lab.route.prepared();
-      const rules = JSON.stringify(gameRules);
-      const outcome = JSON.parse(
-        wasm.generate_map(
-          JSON.stringify(prepared.request.map_source.request),
-          presets.default,
-          templates.default,
-          rules,
-        ),
-      );
-      if (outcome.status !== "ok") throw new Error(JSON.stringify(outcome.diagnostics));
-      const [made, played] = [outcome.result.identity, prepared.identity.generation];
-      if (made.map_hash !== played.map_hash)
-        throw new Error(
-          `the ground rig made map ${made.map_hash}; the page plays ${played.map_hash}`,
-        );
-      const view = new wasm.WorldView(JSON.stringify(outcome.result.map), rules);
-      try {
-        const exports = mesh.readWorldExports(view);
-        const layout = JSON.parse(wasm.world_layout(rules));
-        const surface = mesh.buildWorldGround(exports, layout, biome.default, "surface").terrain;
-        const { presentGround } = await import(
-          file("packages/battle-renderer/src/terrain/terrainSurface.ts")
-        );
-        window.__generatedGround = {
-          surface,
-          ground: presentGround(surface.input),
-          exports,
-          layout,
-        };
-      } finally {
-        view.free();
-      }
-    },
-    new URL("../../", import.meta.url).pathname,
-  );
-
-/** How far beside a carriageway `drawnRoads` still names it. */
-const BESIDE_ROAD_M = 10;
-
-/** At each point `[x, y]` of the generated map, the carriageway it lies
- *  deepest in or nearest beside, by the renderer's own strokes: the `kind`
- *  it is drawn as, and how far `inside` its edge the point is (negative
- *  beside it). Null with none within `BESIDE_ROAD_M`. */
-export async function drawnRoads(page, points) {
-  await generatedGround(page);
-  return page.evaluate(
-    ({ points, beside }) => {
-      const { ground, exports, layout } = window.__generatedGround;
-      const drawn = ground.ground_drawn_strokes() ?? exports.surfaceStrokes;
-      // A stretch: `ax, ay, bx, by, half width, kind, cut ends` (1 at a, 2 at b).
-      const stride = 7;
-      const isRoad = (tag) => layout.roadAreaKinds.includes(layout.surfaceAreaKinds[tag]);
-      /** How far `(x, y)` lies inside stretch `o`: its half width less the
-       *  distance to it, and past a cut end the distance to that square end. */
-      const strokeInside = (r, o, x, y) => {
-        const [ax, ay, bx, by, half, , cuts] = r.subarray(o, o + 7);
-        const [dx, dy] = [bx - ax, by - ay];
-        const length = Math.hypot(dx, dy);
-        const t = length
-          ? Math.min(1, Math.max(0, ((x - ax) * dx + (y - ay) * dy) / length ** 2))
-          : 0;
-        const inside = half - Math.hypot(x - ax - dx * t, y - ay - dy * t);
-        if (!cuts) return inside;
-        const along = ((x - ax) * dx + (y - ay) * dy) / length;
-        const past = Math.max(cuts & 1 ? -along : -Infinity, cuts & 2 ? along - length : -Infinity);
-        if (past <= 0) return Math.min(inside, -past);
-        const aside = Math.max(Math.abs((x - ax) * dy - (y - ay) * dx) / length - half, 0);
-        return -Math.hypot(aside, past);
-      };
-      return points.map(([x, y]) => {
-        let road = null;
-        for (let o = 0; o < drawn.length; o += stride) {
-          if (!isRoad(drawn[o + 5])) continue;
-          // A stretch's box first: a town has thousands.
-          const pad = drawn[o + 4] + beside;
-          if (
-            x < Math.min(drawn[o], drawn[o + 2]) - pad ||
-            x > Math.max(drawn[o], drawn[o + 2]) + pad ||
-            y < Math.min(drawn[o + 1], drawn[o + 3]) - pad ||
-            y > Math.max(drawn[o + 1], drawn[o + 3]) + pad
-          )
-            continue;
-          const inside = strokeInside(drawn, o, x, y);
-          if (inside > -beside && inside > (road?.inside ?? -Infinity))
-            road = { kind: layout.surfaceAreaKinds[drawn[o + 5]], inside };
-        }
-        return road;
-      });
-    },
-    { points, beside: BESIDE_ROAD_M },
-  );
-}
-
-/** A yard's last ground is followed by this much of anything else before
- *  the town has ended. */
-const TOWN_END_M = 300;
-
-/** Where the generated town round `centre` ends, by the renderer's own
- *  ground: `yards`, the last of its yards due west of its centre, where the
- *  fields begin; `join`, the nearest place to the centre where a road drawn
- *  as a street through the town turns back into the country road it is, and
- *  `joinYaw`, looking from there toward the town's centre. */
-async function townEdges(page, centre) {
-  await generatedGround(page);
-  return page.evaluate(
-    ({ centre: [cx, cy], end }) => {
-      const { surface, ground, exports } = window.__generatedGround;
-      const rules = surface.biome.field_rules;
-      const yard = surface.biome.plots.findIndex((p) => p.name === rules.settlement_kind);
-      const isYard = (x, y) => ground.ground_plot_kind_at(x, y) === yard;
-      let last = cx;
-      for (let x = cx; x > last - end && x > 0; x -= 2) if (isYard(x, cy)) last = x;
-      // A road stops, round, where it is drawn as a street from there on:
-      // at a point no exported stretch ends at.
-      const exported = exports.surfaceStrokes;
-      const drawn = ground.ground_drawn_strokes() ?? exported;
-      const stride = 7;
-      const ends = new Set();
-      for (let o = 0; o < exported.length; o += stride)
-        for (const k of [0, 2]) ends.add(`${exported[o + k]},${exported[o + k + 1]}`);
-      let join = null;
-      for (let o = 0; o < drawn.length; o += stride)
-        for (const [k, cut] of [
-          [0, 1],
-          [2, 2],
-        ]) {
-          const [x, y] = [drawn[o + k], drawn[o + k + 1]];
-          if (drawn[o + 6] & cut || ends.has(`${x},${y}`)) continue;
-          const d = Math.hypot(x - cx, y - cy);
-          if (!join || d < join.d) join = { d, at: [x, y] };
-        }
-      return {
-        yards: [last, cy],
-        join: join?.at,
-        joinYaw: join && Math.atan2(join.at[1] - cy, join.at[0] - cx),
-      };
-    },
-    { centre, end: TOWN_END_M },
-  );
-}
-
 /** A page on `map`'s route, paused at the stations' tick with the frozen set
  *  on. Shoot it with `shoot`. */
-export async function openStations(ctx, map) {
+export async function openStations(ctx, map, { biome } = {}) {
   const page = await ctx.newPage({ viewport: VIEWPORT });
+  if (biome)
+    await page.route("**/fixtures/biomes/summer.json*", (route) =>
+      route.fulfill({
+        contentType: "text/javascript",
+        body: `export default ${JSON.stringify(biome)};`,
+      }),
+    );
   // A generated map is prepared behind a loading screen first: wait it out.
   await page.goto(new URL(STATION_MAPS[map].route, ctx.url).href);
   await page.waitForFunction(

@@ -1,6 +1,6 @@
 // STAND_IN_LOOK_EVIDENCE=<throwaway directory> also captures matched near/far
 // open and native-fog views for the stand-in look review.
-// Slice 10: hold the growth admission's runtime responses at the browser
+// Hold the growth admission's runtime responses at the browser
 // network edge, inspect the live stand-ins, then release those same responses.
 // This growth battle has no own unfielded kind to select; Rust proves identical
 // picks before and after art commits. The browser gate checks drawn blocks and

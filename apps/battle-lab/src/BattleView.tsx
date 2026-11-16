@@ -9,7 +9,7 @@ import {
 // own readout (a battle's clock, a lab's telemetry) and
 // pause menu items (the scenario, replays, a lab's switches).
 import type { PreparedConnectionSession } from "@web/battle/prepare/client";
-import type { ObservationView } from "@web/battle/sim/observationView";
+import type { ObservationView, OwnUnitView } from "@web/battle/sim/observationView";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { contactFocusTargets } from "@web/battle/input/contactFocus";
 import { RejectedOrder } from "@web/battle/present/rejectedOrder";
@@ -19,7 +19,7 @@ import { ReadoutLayer } from "@web/battle/present/readouts";
 import { battleReadouts } from "./BattleReadouts";
 import { SkirmishStatus } from "./battleStatus";
 import { MatchResultOverlay } from "./MatchResultOverlay";
-import { PurchasePicker } from "@web/battle/present/purchasePicker";
+import { PurchasePicker, type PurchaseLookup } from "@web/battle/present/purchasePicker";
 import { ArmyDeck } from "@web/battle/present/armyDeck";
 import { ContactLines, contactLines } from "@web/battle/present/contactLines";
 import { useBattleOverlay } from "./useBattleOverlay";
@@ -113,6 +113,8 @@ export function BattleView({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [viewportReady, setViewportReady] = useState(false);
+  const [purchaseLookup, setPurchaseLookup] = useState<PurchaseLookup | null>(null);
+  const purchaseLookupSerial = useRef(0);
   const { cameraFocus, focusUnit } = useUnitFocus();
   // Every publication, not every render, so a pass published for one tick
   // still blinks its card.
@@ -189,6 +191,13 @@ export function BattleView({
   }, [sim.error]);
   // The battle accepts keys only while it is the thing on screen.
   const battleInput = !pause.open && !matchFinished && loadStage === "playable";
+  // A card's right-click asks the store for that exact card. A serial lets
+  // the same unit be asked for again after the store closed.
+  const lookupPurchase = useCallback((unit: OwnUnitView) => {
+    purchaseLookupSerial.current += 1;
+    setPurchaseLookup({ card: unit.kind, serial: purchaseLookupSerial.current });
+  }, []);
+  const clearPurchaseLookup = useCallback(() => setPurchaseLookup(null), []);
 
   const armyState = useFeed({ own: control.controlled, control: input ? control : undefined });
 
@@ -276,6 +285,7 @@ export function BattleView({
           selected={control.selected}
           onSelect={control.setSelected}
           onCenter={input ? focusUnit : undefined}
+          onLookup={battleInput && session.purchase ? lookupPurchase : undefined}
           groups={input ? control.groups : undefined}
           blinks={blinks.feed}
           onDeleteGroup={control.deleteGroup}
@@ -295,6 +305,8 @@ export function BattleView({
                   onChoose={session.purchase.choose}
                   rules={session.rules}
                   enabled={battleInput}
+                  lookup={purchaseLookup}
+                  onLookupHandled={clearPurchaseLookup}
                 />
               </>
             ) : undefined

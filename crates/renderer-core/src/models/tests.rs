@@ -196,6 +196,7 @@ fn admission_does_not_scroll_pitchless_track_nodes() {
         Detail {
             lod_px: [80.0, 40.0, 20.0],
             impostor_px: 4.0,
+            far_px: 2.0,
             shadow_caster_px: 0.0,
         },
     );
@@ -238,6 +239,7 @@ fn admission_does_not_scroll_pitchless_track_nodes() {
             Detail {
                 lod_px: [80.0, 40.0, 20.0],
                 impostor_px: 4.0,
+                far_px: 2.0,
                 shadow_caster_px: 0.0,
             },
             Default::default(),

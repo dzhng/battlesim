@@ -14,6 +14,7 @@
 
 import { assertMaterial } from "./material.ts";
 import {
+  FAR_TIER,
   TIER_COUNT,
   type Bundle,
   type MeshData,
@@ -228,9 +229,15 @@ function assertShape(bundle: Bundle) {
     assertTextures(bundle);
     bundle.materials.forEach(assertMaterial);
   }
-  const tiers = (list: MeshData[], skinned: boolean, where: string) => {
-    if (!Array.isArray(list) || list.length !== TIER_COUNT)
-      throw new Error(`${where}: expected ${TIER_COUNT} tiers`);
+  // Every bundle has its tiers; a static state may carry a far mesh past them.
+  const tiers = (list: MeshData[], skinned: boolean, where: string, far = false) => {
+    if (
+      !Array.isArray(list) ||
+      !(list.length === TIER_COUNT || (far && list.length === FAR_TIER + 1))
+    )
+      throw new Error(
+        `${where}: expected ${TIER_COUNT} tiers${far ? " and maybe a far mesh" : ""}`,
+      );
     list.forEach((mesh, t) => assertMesh(mesh, skinned, `${where} tier ${t}`));
   };
   switch (bundle.kind) {
@@ -252,7 +259,7 @@ function assertShape(bundle: Bundle) {
     case "static":
       if (!Array.isArray(bundle.states) || !bundle.states.length || !bundle.bounds)
         throw new Error("static bundle is incomplete");
-      bundle.states.forEach((state) => tiers(state.tiers, false, `state ${state.name}`));
+      bundle.states.forEach((state) => tiers(state.tiers, false, `state ${state.name}`, true));
       return;
     case "clips":
       if (!Array.isArray(bundle.joints) || !Array.isArray(bundle.clips))

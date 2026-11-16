@@ -36,8 +36,9 @@
 //! shove ends it holds there until that knowledge moves.
 //!
 //! Each drawn model takes the units' tier rule (`view::model_detail`) by its
-//! appearance's size grown by its largest scale, and is listed by look (its
-//! appearance, state, and whether movers stand on it) and tier.
+//! appearance's size grown by its largest scale, with the far mesh where its
+//! bundle has one, and is listed by look (its appearance, state, and whether
+//! movers stand on it) and tier.
 mod admission;
 mod bodies;
 pub use bodies::{map_props, KnownBody, MapProp};
@@ -48,7 +49,8 @@ use crate::shadow::{CasterVolumes, CASCADES};
 use crate::static_world::batches::{List, Population};
 use crate::static_world::index::BoundsIndex;
 use crate::static_world::walk::Record;
-use crate::view::{caster_tier, model_detail, model_fog, View, CULLED, SHADOW_MARGIN_M, TIERS};
+use crate::view::{caster_tier, model_detail, model_fog, Carries, View, CULLED, MESH_SLOTS};
+use crate::view::{SHADOW_MARGIN_M, TIERS};
 use crate::world::{Bounds, Corners, Detail};
 use serde::Deserialize;
 use sim::publication::reader::PropDisplayPose;
@@ -106,7 +108,8 @@ impl PropLayout {
 
 /// An installed static appearance a prop may be drawn as: its scenery kind,
 /// regional family, the box it is authored to (half extents), its paints
-/// (sRGB) and its first state's bounds, which say how big it is drawn.
+/// (sRGB), its first state's bounds, which say how big it is drawn, and how
+/// many meshes its bundle's states have (five carry a far mesh).
 #[derive(Clone, Debug, Deserialize)]
 pub struct Art {
     pub name: String,
@@ -118,6 +121,7 @@ pub struct Art {
     #[serde(default)]
     pub paints: Option<Vec<[f64; 3]>>,
     pub bounds: Corners,
+    pub meshes: usize,
 }
 
 /// What the props are drawn from: the installed appearances a prop may be
@@ -154,6 +158,7 @@ struct Candidate {
     /// Linear tints its paintable surfaces take.
     paints: Option<Vec<[f32; 3]>>,
     size: Bounds,
+    carries: Carries,
 }
 
 /// The fit: each bound kind's candidates in choosing order, each unit
@@ -207,13 +212,15 @@ impl Shoved {
 pub type Look = (String, String, u32);
 
 /// One model a prop draws: its look (an index into the looks), its record,
-/// and the height and reach its tier and culling are chosen by.
+/// the height and reach its tier and culling are chosen by, and what its
+/// look carries past tier 3.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Model {
     pub look: usize,
     pub record: Record,
     size: f64,
     radius: f64,
+    carries: Carries,
 }
 
 impl PropArt {
@@ -272,6 +279,7 @@ impl PropArt {
                     .as_ref()
                     .map(|p| p.iter().map(|&c| linear(c)).collect()),
                 size: a.bounds.bounds(),
+                carries: Carries::meshes(a.meshes),
             });
         }
         for (unit, model) in &art.layout.unit_appearance {
@@ -400,7 +408,8 @@ impl PropArt {
                 let tint = linear(self.layout.prop_appearance[&b.kind].stand_in_tint);
                 let look = looks.intern(STAND_IN_KIT, STAND_IN_MODULE, DRAWS_PROP);
                 let scale = [2.0 * hx, 2.0 * hy, 2.0 * hz];
-                out.push(placed(look, b, 0.0, scale, 0.0, tint, *size));
+                let size = (*size, Carries::Nothing);
+                out.push(placed(look, b, 0.0, scale, 0.0, tint, size));
             }
             return;
         };
@@ -408,7 +417,7 @@ impl PropArt {
         let [fx, fy, fz] = cand.footprint;
         let [hx, hy, hz] = b.half;
         let look = looks.intern(&cand.name, STATE, self.draws(&b.kind));
-        let size = cand.size;
+        let size = (cand.size, cand.carries);
         if !self.binding(&b.kind).is_some_and(|x| x.modular) {
             let tint = cand
                 .paints
@@ -464,7 +473,7 @@ fn placed(
     scale: [f64; 3],
     turn: f64,
     tint: [f32; 3],
-    size: Bounds,
+    (size, carries): (Bounds, Carries),
 ) -> Model {
     let yaw = b.yaw + turn;
     let at = [
@@ -483,6 +492,7 @@ fn placed(
         record,
         size: size.size * grow,
         radius: size.radius * grow,
+        carries,
     }
 }
 
@@ -716,12 +726,20 @@ impl Population for PropPopulation {
         self.known_candidates.sort_unstable();
         let mut lists = vec![Vec::new(); self.lists.len()];
         let this = &*self;
-        let n = self.looks.list.len() * TIERS;
+        let n = self.looks.list.len() * MESH_SLOTS;
         let mut take = |m: &Model| {
             let at = [m.record[0], m.record[1], m.record[2]].map(f64::from);
-            let tier = model_detail(&this.art.detail, view, at, m.size, m.radius, false, None);
+            let tier = model_detail(
+                &this.art.detail,
+                view,
+                at,
+                m.size,
+                m.radius,
+                m.carries,
+                None,
+            );
             if tier != CULLED {
-                lists[m.look * TIERS + tier as usize].push(m.record);
+                lists[m.look * MESH_SLOTS + tier as usize].push(m.record);
             }
             // Shadow membership is independent of camera visibility and detail.
             let [x, y, z] = at;
@@ -744,7 +762,7 @@ impl Population for PropPopulation {
                 };
                 for cascade in 0..CASCADES {
                     if mask & (1 << cascade) != 0 {
-                        lists[(1 + cascade) * n + m.look * TIERS + cast].push(m.record);
+                        lists[(1 + cascade) * n + m.look * MESH_SLOTS + cast].push(m.record);
                     }
                 }
             }
@@ -770,13 +788,13 @@ impl Population for PropPopulation {
     }
 
     fn each_list(&self, visit: &mut dyn FnMut(List)) {
-        let n = self.looks.list.len() * TIERS;
+        let n = self.looks.list.len() * MESH_SLOTS;
         for (index, list) in self.lists.iter().enumerate() {
             let k = index % n;
-            let tier = k % TIERS;
+            let tier = k % MESH_SLOTS;
             let pass = if index < n { VIEW_PASS } else { CAST_PASS };
             visit(List {
-                row: self.rows[k / TIERS],
+                row: self.rows[k / MESH_SLOTS],
                 tier: tier as u32,
                 pass,
                 caster: List::own_caster(pass, tier as u32),
@@ -784,7 +802,7 @@ impl Population for PropPopulation {
                 fog: model_fog(
                     false,
                     true,
-                    self.looks.list[k / TIERS].2 == DRAWS_PROP_GROUND,
+                    self.looks.list[k / MESH_SLOTS].2 == DRAWS_PROP_GROUND,
                 ),
                 records: list,
                 print: self.prints[index],
