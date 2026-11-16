@@ -10,7 +10,7 @@
 //! objective, and the two drives are held within the recipe's difference:
 //! the side with the longer drive starts further up its road. The objective
 //! is a settlement's centre. The defender's garrison rows stand at the doors
-//! of buildings round it, each squad whole within its building's seats, and
+//! of buildings round it, each squad whole within its own building's seats, and
 //! its overwatch rows at the settlement's edge, looking down the ways in:
 //! the road the attacker drives in by, and the measured open approaches on
 //! the attacker's side.
@@ -122,9 +122,9 @@ pub struct MapQueries<'a> {
     pub roads: &'a RoadNet,
 }
 
-/// The seats a building offers one squad: the exposed bays of its lower floor
-/// bands, by the same count the garrison order is admitted against. Zero for a
-/// body no squad can hold.
+/// A standing building's seats: the exposed bays of its lower floor bands, by
+/// the same count the building order is admitted against. Zero for a body no
+/// squad can hold.
 pub fn garrison_seats(q: &MapQueries, rules: &Rules, owner: u32) -> usize {
     q.world
         .prop(owner)

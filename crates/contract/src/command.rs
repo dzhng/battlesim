@@ -165,7 +165,10 @@ pub enum Order {
         deployed: bool,
     },
     /// Walk each listed squad to the building, then step in after a
-    /// stationary timer. Each squad must fit the building whole.
+    /// stationary timer. Squads share the building while its seats last,
+    /// one seat per living soldier: a squad steps in whole if it fits when
+    /// it arrives, and is refused at the command only when it is bigger
+    /// than the whole building.
     OccupyBuilding {
         units: Vec<UnitId>,
         building: u32,
@@ -175,7 +178,8 @@ pub enum Order {
     ExitBuilding {
         units: Vec<UnitId>,
     },
-    /// Walk selected squads to their own carrier and board after the timer.
+    /// Walk selected squads to their own carrier and board after the timer,
+    /// each whole while the carrier's seats last.
     Board {
         units: Vec<UnitId>,
         carrier: UnitId,
@@ -277,7 +281,9 @@ pub enum OrderError {
     },
     /// The prop is not a standing building.
     NotABuilding,
-    /// The squad has more living soldiers than a building takes.
+    /// The squad doesn't fit its host (a building or a carrier) whole: at
+    /// the command, more living soldiers than the whole host seats; on
+    /// arrival, more than the seats other squads have left.
     CapacityFull,
     /// The unit is already riding in a carrier.
     Aboard {

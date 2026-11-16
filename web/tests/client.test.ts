@@ -177,7 +177,7 @@ test.each([true, false])(
   },
 );
 
-test("building preview returns the entrant and companion placements without issuing a command", async () => {
+test("building preview returns every squad's entry without issuing a command", async () => {
   const { requests, deliver } = workerSeam();
   const client = createSimClient({ scenario: "{}", seed: 1, side: "blue", transport: "worker" });
   try {
