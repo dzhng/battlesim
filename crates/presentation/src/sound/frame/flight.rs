@@ -6,7 +6,7 @@ use super::{clamp01, profile, Bus, LoopKey, LoopWant, Ordered, Sound};
 use crate::effects::publication::Segment;
 use crate::world::Vec3;
 
-pub(super) struct Motor {
+pub(super) struct Flying {
     kind: Arc<str>,
     from: Vec3,
     to: Vec3,
@@ -21,20 +21,20 @@ fn end_key(p: &Vec3) -> [u64; 3] {
 }
 
 impl Sound {
-    /// Adds `s`, a round still flying after the tick from `t0`, to `motors`,
+    /// Adds `s`, a round still flying after the tick from `t0`, to `flying`,
     /// carrying over the loop of the stretch it continues.
-    pub(super) fn follow_motor(
+    pub(super) fn follow_flight(
         &mut self,
-        motors: &mut Ordered<[u64; 3], Motor>,
+        flying: &mut Ordered<[u64; 3], Flying>,
         s: &Segment,
         t0: f64,
     ) {
         let end = *s.path.last().expect("two points");
         let start = end_key(&s.path[0]);
-        let heard = self.motors.get(&start).map_or(t0, |m| m.heard);
-        motors.set(
+        let heard = self.flying.get(&start).map_or(t0, |m| m.heard);
+        flying.set(
             end_key(&end),
-            Motor {
+            Flying {
                 kind: s.kind.clone(),
                 from: s.path[0],
                 to: end,
@@ -42,16 +42,16 @@ impl Sound {
                 heard,
             },
         );
-        let old = LoopKey::Motor(start);
+        let old = LoopKey::Flight(start);
         if let Some(v) = self.loops.remove(&old) {
-            self.loops.set(LoopKey::Motor(end_key(&end)), v);
+            self.loops.set(LoopKey::Flight(end_key(&end)), v);
         }
     }
 
     /// Each flying round's loop at presentation time `clock`, where it is.
-    pub(super) fn motor_wants(&self, clock: f64, wants: &mut Vec<LoopWant>) {
+    pub(super) fn flight_wants(&self, clock: f64, wants: &mut Vec<LoopWant>) {
         let p = &self.tables.audio;
-        for (key, m) in &self.motors.0 {
+        for (key, m) in &self.flying.0 {
             let u = clamp01((clock - m.t0) / self.dt);
             let at = [0, 1, 2].map(|i| m.from[i] + u * (m.to[i] - m.from[i]));
             let row = self
@@ -59,11 +59,11 @@ impl Sound {
                 .looks
                 .get(&m.kind)
                 .sound
-                .motor
+                .flight
                 .as_ref()
-                .expect("motor was admitted");
+                .expect("flight sound was admitted");
             wants.push(LoopWant {
-                key: LoopKey::Motor(*key),
+                key: LoopKey::Flight(*key),
                 sound: row.sound.clone(),
                 bus: Bus::Effects,
                 gain: row.gain,

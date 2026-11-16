@@ -77,7 +77,7 @@ function fixture() {
       rifle: {
         sound: {
           shot: { near: "rifle", far: "rifle_far", gain: 0.35, far_m: 200 },
-          motor: null,
+          flight: null,
           impacts: {},
         },
       },
@@ -85,7 +85,7 @@ function fixture() {
         sound: {
           shot: { near: "launch", far: "rifle_far", gain: 0.4, far_m: 100 },
           blast: { gain: 0.6, far_m: 300 },
-          motor: { gain: 0.2 },
+          flight: { gain: 0.2 },
           impacts: { hull: "impact_hull" },
           impact_scale: 0.5,
         },
@@ -94,7 +94,7 @@ function fixture() {
     effects: {},
     weaponDefaults: {
       blast: { near: "explosion", far: "explosion_far" },
-      motor: "motor",
+      flight: "motor",
       impacts: { ground: "impact_ground", hull: "impact_hull" },
     },
     impacts: { ground: { gain: 0.2 }, hull: { gain: 0.4 } },
@@ -408,7 +408,7 @@ test("a selected look auditions every sound part, saves its level and reopens", 
     ["Play shot far", "rifle_far", 0.4],
     ["Play blast near", "explosion", 0.6],
     ["Play blast far", "explosion_far", 0.6],
-    ["Play motor", "motor", 0.2],
+    ["Play flight", "motor", 0.2],
     ["Play hull impact", "impact_hull", 0.2],
     ["Play ground impact", "impact_ground", 0.1],
   ] as const) {

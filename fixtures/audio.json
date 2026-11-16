@@ -408,7 +408,7 @@
       "near": "recorded-explosion",
       "far": "recorded-explosion"
     },
-    "motor": "recorded-motor",
+    "flight": "recorded-motor",
     "impacts": {
       "default": "impact_ground",
       "ground": "impact_ground",

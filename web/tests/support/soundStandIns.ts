@@ -19,8 +19,10 @@ export function standInPresentationRecordings(catalog: SoundCatalog, presentatio
     ]),
   ]);
   for (const row of Object.values(presentation.fires)) loops.add(row.sound);
-  for (const look of Object.values(presentationSettings.weapon_looks))
-    if (look.sound.motor) loops.add(presentation.weapon_defaults.motor);
+  for (const { sound } of Object.values(presentationSettings.weapon_looks)) {
+    const flight: { gain: number; sound?: string } | null = sound.flight;
+    if (flight) loops.add(flight.sound || presentation.weapon_defaults.flight);
+  }
   for (const [slot, name] of Object.entries(presentation.effects))
     if (SOUNDS[slot]?.loop) loops.add(name);
   const plays = new Set<string>([

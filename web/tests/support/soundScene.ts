@@ -25,7 +25,7 @@ export const AUDIO: AudioMix = {
   effects: {},
   weapon_defaults: {
     blast: { near: "explosion", far: "explosion_far" },
-    motor: "motor",
+    flight: "motor",
     impacts: {
       ...audioMix.weapon_defaults.impacts,
       ricochet: "ricochet",

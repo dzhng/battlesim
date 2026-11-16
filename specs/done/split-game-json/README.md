@@ -6,7 +6,7 @@ The old combined game fixture is split into files named for their readers:
 | --- | --- | --- |
 | [`fixtures/rules.json`](../../../fixtures/rules.json) | The battle rules, exactly what Rust's `Rules` reads | Hashed into `rules_hash`; encounters can override it field by field |
 | [`fixtures/presentation.json`](../../../fixtures/presentation.json) | Visual and handling settings, plus each weapon look (`weapon_looks`) | Admitted by the typed `PresentationSettings`; browser code reads the admitted JSON |
-| [`fixtures/audio.json`](../../../fixtures/audio.json) | The mix: buses, distances, cues, music direction, vehicle engines by class, per-material impacts, ambience, and the default blast, motor and impact recordings a look may leave empty (firing has no default) | `AudioMix` |
+| [`fixtures/audio.json`](../../../fixtures/audio.json) | The mix: buses, distances, cues, music direction, vehicle engines by class, per-material impacts, ambience, and the default blast, flight and impact recordings a look may leave empty (firing has no default) | `AudioMix` |
 | [`fixtures/sounds.json`](../../../fixtures/sounds.json) | The sound library: sources, their provenance receipts, clips, recipes, and the music tracks with their mood playlists | `SoundCatalog` |
 
 The [fixture contract](../../../fixtures/README.md) describes each file's

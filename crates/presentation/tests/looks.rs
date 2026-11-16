@@ -228,7 +228,7 @@ fn a_look_cannot_scale_a_misspelled_impact_material() {
 #[test]
 fn fielding_names_the_weapon_when_its_look_lacks_a_required_part() {
     for (weapon, part) in [
-        ("atgm", "motor"),
+        ("atgm", "flight"),
         ("tank_he", "blast"),
         ("tank_ap", "shot"),
         ("tank_ap", "flash"),
@@ -245,7 +245,7 @@ fn fielding_names_the_weapon_when_its_look_lacks_a_required_part() {
             .to_owned();
         if part == "appearance" {
             rules["weapons"][weapon]["appearance"] = json!("unknown_look");
-        } else if ["motor", "shot"].contains(&part) {
+        } else if ["flight", "shot"].contains(&part) {
             settings["weapon_looks"][&name]["sound"]
                 .as_object_mut()
                 .unwrap()

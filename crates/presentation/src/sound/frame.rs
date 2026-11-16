@@ -26,12 +26,12 @@ use crate::records::{Emitter, NONE};
 use crate::seed::Key;
 use crate::world::Vec3;
 
+mod flight;
 mod loops;
-mod motors;
 mod ordered;
 mod transients;
 mod vehicles;
-use motors::Motor;
+use flight::Flying;
 use ordered::Ordered;
 pub use vehicles::{vehicle_loops, VehicleLoop};
 
@@ -302,13 +302,13 @@ struct Sounding {
 }
 
 /// What a loop sounds for: one of a vehicle's layers (by its key's bits
-/// and slot), a fire (by its smoke source), a flying round's motor (by where
-/// its stretch ends), or the bed.
+/// and slot), a fire (by its smoke source), a flying round (by where its
+/// stretch ends), or the bed.
 #[derive(Clone, PartialEq)]
 enum LoopKey {
     Vehicle(u64, &'static str),
     Fire(String),
-    Motor([u64; 3]),
+    Flight([u64; 3]),
     Ambience,
 }
 
@@ -388,7 +388,7 @@ pub struct Sound {
     movers: HashMap<u64, Mover>,
     strides: HashMap<u64, Stride>,
     fires: Ordered<String, Fire>,
-    motors: Ordered<[u64; 3], Motor>,
+    flying: Ordered<[u64; 3], Flying>,
     bursts: HashMap<(u64, usize, Option<u64>), BurstVoice>,
     cue_heard: HashMap<(String, u64, Arc<str>), f64>,
     /// The enemy faction's shout pool, as far as the player has loaded it.
@@ -436,7 +436,7 @@ impl Sound {
             movers: HashMap::new(),
             strides: HashMap::new(),
             fires: Ordered::default(),
-            motors: Ordered::default(),
+            flying: Ordered::default(),
             bursts: HashMap::new(),
             cue_heard: HashMap::new(),
             shouts: Vec::new(),
@@ -566,7 +566,7 @@ impl Sound {
         self.movers.clear();
         self.strides.clear();
         self.fires.0.clear();
-        self.motors.0.clear();
+        self.flying.0.clear();
         self.bursts.clear();
         self.cue_heard.clear();
         self.barks.clear();
@@ -580,7 +580,7 @@ impl Sound {
 
     /// Takes one publication: what it shows happened becomes transients at
     /// their presentation times, and its smoke sources and flying rounds the
-    /// fire and motor loops. The same tick again is ignored.
+    /// fire and flight loops. The same tick again is ignored.
     pub fn note(&mut self, heard: &Heard, now: f64) -> &[Command] {
         self.out.clear();
         let fx = heard.effects;
@@ -680,7 +680,7 @@ impl Sound {
                 key,
             );
         }
-        let mut motors = Ordered::default();
+        let mut flying = Ordered::default();
         for s in &fx.segments {
             if s.path.len() < 2 {
                 continue;
@@ -743,11 +743,11 @@ impl Sound {
                     key,
                     key,
                 );
-            } else if tables.looks.get(&s.kind).sound.motor.is_some() {
-                self.follow_motor(&mut motors, s, t0);
+            } else if tables.looks.get(&s.kind).sound.flight.is_some() {
+                self.follow_flight(&mut flying, s, t0);
             }
         }
-        self.motors = motors;
+        self.flying = flying;
         for b in &fx.blasts {
             let s = tables
                 .looks

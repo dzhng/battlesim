@@ -7,7 +7,7 @@ export interface LookSound {
   shot?: NearFar;
   blast?: Pick<NearFar, "gain" | "far_m"> & Partial<Pick<NearFar, "near" | "far">>;
   /** A flying round's loop; its pitch falls `glide_oct_per_s` octaves a second of flight. */
-  motor:
+  flight:
     | (Pick<OneShot, "gain"> & Partial<Pick<OneShot, "sound">> & { glide_oct_per_s?: number })
     | null;
   impacts: Record<string, string>;

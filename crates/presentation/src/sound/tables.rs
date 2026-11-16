@@ -291,7 +291,7 @@ pub fn pick<'a, T>(table: &'a HashMap<String, T>, key: &str) -> &'a T {
 #[serde(deny_unknown_fields)]
 pub struct WeaponDefaults {
     pub blast: BlastRecording,
-    pub motor: String,
+    pub flight: String,
     pub impacts: std::collections::BTreeMap<String, String>,
 }
 #[derive(Clone, Debug, Deserialize, serde::Serialize)]
@@ -401,7 +401,7 @@ impl SoundTables {
             for part in [&s.shot, &s.blast].into_iter().flatten() {
                 names.extend([part.near.as_str(), part.far.as_str()]);
             }
-            names.extend(s.motor.as_ref().map(|m| m.sound.as_str()));
+            names.extend(s.flight.as_ref().map(|m| m.sound.as_str()));
             names.extend(s.impacts.values().map(String::as_str));
         }
         names.extend(self.audio.effects.values().map(String::as_str));

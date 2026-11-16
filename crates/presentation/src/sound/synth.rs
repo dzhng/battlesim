@@ -522,9 +522,9 @@ fn motor(sr: f64, rng: &mut Mulberry32) -> Vec<f32> {
     }))
 }
 
-/// A falling bomb's whistle: a breathy tone over rushing air, steady so it
-/// loops; the battle glides its pitch down as the bomb falls. Whole cycles of
-/// tone and warble fit the loop, so its seam keeps their phase.
+/// A falling bomb's whistle: a bird-high tone with a little breath and rushing
+/// air, steady so it loops; the battle glides its pitch down as the bomb falls.
+/// Whole cycles of tone and warble fit the loop, so its seam keeps their phase.
 fn whistle(sr: f64, rng: &mut Mulberry32) -> Vec<f32> {
     let n = len(1.0, sr);
     to_peak(seamless(n, len(0.1, sr), |m| {

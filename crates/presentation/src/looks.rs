@@ -44,7 +44,7 @@ pub struct LookSound {
     pub shot: Option<NearFar>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub blast: Option<NearFar>,
-    pub motor: Option<Flight>,
+    pub flight: Option<FlightSound>,
     #[serde(default)]
     pub impacts: BTreeMap<String, String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -56,16 +56,12 @@ pub struct LookSound {
 /// second of the flight, as a falling bomb's whistle does in a war film.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-pub struct Flight {
+pub struct FlightSound {
     #[serde(default)]
     pub sound: String,
     pub gain: f64,
-    #[serde(default, skip_serializing_if = "is_zero")]
+    #[serde(default)]
     pub glide_oct_per_s: f64,
-}
-
-fn is_zero(x: &f64) -> bool {
-    *x == 0.0
 }
 
 impl WeaponLook {
@@ -186,8 +182,8 @@ impl WeaponLooks {
                         && (look.blast.is_none() || look.sound.blast.is_none()),
                 ),
                 (
-                    "motor",
-                    row.ballistics.accel_mps2.is_some() && look.sound.motor.is_none(),
+                    "flight",
+                    row.ballistics.accel_mps2.is_some() && look.sound.flight.is_none(),
                 ),
             ];
             for (part, missing) in required {
@@ -271,9 +267,9 @@ impl WeaponLooks {
                     blast.far = audio.weapon_defaults.blast.far.clone();
                 }
             }
-            if let Some(m) = &mut s.motor {
+            if let Some(m) = &mut s.flight {
                 if m.sound.is_empty() {
-                    m.sound = audio.weapon_defaults.motor.clone();
+                    m.sound = audio.weapon_defaults.flight.clone();
                 }
             }
             for (hit, name) in &audio.weapon_defaults.impacts {
@@ -302,11 +298,14 @@ impl WeaponLooks {
                     "blast.far",
                     look.sound.blast.as_ref().map(|s| s.far.as_str()),
                 ),
-                ("motor", look.sound.motor.as_ref().map(|m| m.sound.as_str())),
+                (
+                    "flight",
+                    look.sound.flight.as_ref().map(|m| m.sound.as_str()),
+                ),
             ] {
                 if let Some(sound) = sound {
                     let recipe = catalog.sound(sound, &format!("{at}.{part}"))?;
-                    if recipe.looping != (part == "motor") {
+                    if recipe.looping != (part == "flight") {
                         return Err(format!(
                             "{at}.{part}: recording loop does not match its part"
                         ));
