@@ -54,6 +54,11 @@ On Windows, [`tools/setup-windows.ps1`](tools/setup-windows.ps1) checks the
 required tools and prepares the browser or [native](native/client/README.md)
 client.
 
+Online play needs the game server beside the page: `bun run server` in a
+second terminal. A page on your own computer finds it by itself; the
+[server's README](apps/game-server/README.md) says how rooms and battles are
+hosted.
+
 A battle's address is shareable: it names the admitted map and the player's
 choices, so a seeded battle opens the same fight again. The main menu teaches
 the game and browses the roster; its developer page holds the battle lab and

@@ -50,7 +50,9 @@ const STANDING_LABEL: Record<ObjectiveStanding, string> = {
 export function SkirmishStatus({
   match,
   viewer,
+  target,
 }: {
+  target: number;
   match: NonNullable<ObservationView["skirmish"]>;
   viewer: SideName | null;
 }) {
@@ -65,10 +67,10 @@ export function SkirmishStatus({
       ) : (
         <>
           <span className="hud-score" aria-label="Your victory score">
-            {Math.floor(own)} / 1,000
+            {Math.floor(own)} / {target.toLocaleString("en-US")}
           </span>
           <span className="hud-score hud-score-enemy" aria-label="Enemy victory score">
-            {Math.floor(enemy)} / 1,000
+            {Math.floor(enemy)} / {target.toLocaleString("en-US")}
           </span>
         </>
       )}

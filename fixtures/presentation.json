@@ -377,7 +377,7 @@
     "lod_px": [150, 60, 24],
     "impostor_px": 10,
     "far_px": 4,
-    "shadow_caster_px": 2
+    "shadow_caster_px": 5
   },
   "buildings": {
     "lod_px_per_m": [10, 4, 1.2],

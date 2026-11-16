@@ -18,14 +18,24 @@ test("objective capture and both scores publish exactly the native timeline", ()
     const decoder = new ScenePresentation(
       JSON.parse(battle.observation_layout()) as ObservationLayout,
     );
-    for (const command of record.commands)
-      expect(JSON.parse(battle.accept(JSON.stringify(command))).error).toBeNull();
+    for (const command of record.commands) {
+      expect(
+        JSON.parse(
+          battle.accept_order(
+            command.side,
+            command.player,
+            JSON.stringify(command.order),
+            command.queued,
+          ),
+        ).error,
+      ).toBeNull();
+    }
     for (const row of record.rows) {
       while (battle.tick() < row.tick) battle.step();
       expect(battle.digest()).toBe(row.digest);
       const length = battle.publish("blue");
       const view = decoder.decode(
-        new Float32Array(memory.buffer, battle.publication_ptr(), length).slice(),
+        new Float32Array(memory.buffer, battle.publication_ptr("blue"), length).slice(),
       )!.skirmish!;
       expect(view.result).toEqual(row.result);
       for (let side = 0; side < 2; side++)

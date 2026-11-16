@@ -2,8 +2,8 @@
 //! players that fight on it, and the battle's seed. Preparation resolves the
 //! map through the one map owner (`maps`), then fields both players' forces on its
 //! skirmish sites; the battle runs on the scenario that makes and never asks
-//! where it came from. Nothing is defaulted: a request without both players,
-//! or naming a field it does not read, is refused.
+//! where it came from. An absent rules selector uses the skirmish rules. A request
+//! without both players or naming a field it does not read is refused.
 use crate::maps::MapSource;
 use crate::players::Player;
 use serde::{Deserialize, Serialize};
@@ -21,6 +21,9 @@ pub struct PrepareBattleRequest {
     pub players: Vec<Player>,
     /// The battle's own random input, at most `BATTLE_SEED_MAX`.
     pub battle_seed: u64,
+    /// The match rule document; absent for an ordinary offline skirmish.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rules: Option<crate::skirmish::MatchRuleSet>,
 }
 
 /// Why a request cannot be prepared: the field at fault, as a JSON path.

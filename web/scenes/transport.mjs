@@ -259,16 +259,29 @@ const cursorBecomes = (page, action) =>
       () => true,
       () => false,
     );
-/** The page point over own unit `id`: a metre up its hull, or the chest of
- *  its soldier furthest from every other own unit (a squad is picked by its
- *  soldiers, and one just unloaded stands round its carrier). */
+/** The page point a metre up own vehicle `id`'s hull. */
 async function over(page, id) {
+  const p = (await obs(page)).own.find((x) => x.id === id).position;
+  return project(page, [p[0], p[1], p[2] + 1]);
+}
+/** A page point over squad `id` where the pointer's intent passes `wanted`,
+ *  as a player points until the cursor says the click does what they mean:
+ *  each soldier's chest, the clearest of every other body first. Null when
+ *  none does. */
+async function pointing(page, id, wanted) {
   const o = await obs(page);
   const u = o.own.find((x) => x.id === id);
-  const others = o.own.filter((x) => x !== u && !x.hold).map((x) => x.position);
+  const others = o.own
+    .filter((x) => x !== u && !x.hold)
+    .flatMap((x) => (x.members.length ? x.members : [x.position]));
   const clear = (p) => Math.min(...others.map((q) => Math.hypot(p[0] - q[0], p[1] - q[1])));
-  const p = u.members.toSorted((a, b) => clear(b) - clear(a))[0] ?? u.position;
-  return project(page, [p[0], p[1], p[2] + 1]);
+  for (const p of u.members.toSorted((a, b) => clear(b) - clear(a))) {
+    const at = await project(page, [p[0], p[1], p[2] + 1]);
+    await page.mouse.move(...at);
+    await page.evaluate(() => window.__lab.frame());
+    if (wanted(await lab(page, () => window.__lab.route.pointerIntent()))) return at;
+  }
+  return null;
 }
 /** Where `id` rides, or null on the field. */
 const host = (o, id) => {
@@ -550,20 +563,39 @@ async function controls(ctx) {
 
   // A carrier selected, right-click an own squad: it drives over and collects it.
   await select(page, [small]);
-  at = await over(page, fits);
-  await page.mouse.move(...at);
+  at = await pointing(
+    page,
+    fits,
+    (intent) =>
+      intent.kind === "collect" && JSON.stringify(intent.squads) === JSON.stringify([fits]),
+  );
+  if (!at) throw new Error(`no point over squad ${fits} collects it alone`);
   const collectCursor = await cursorBecomes(page, "board");
   seq = await newestSeq(page);
   await page.mouse.click(...at, { button: "right" });
   const collect = await ackAfter(page, seq);
   const collected = await until(page, (o) => host(o, fits) === small, 1200, 30);
+  const after = await obs(page);
+  const pose = (id) => {
+    const u = after.own.find((u) => u.id === id);
+    return (
+      u && { position: u.position, goal: u.goal, state: u.state, hold: u.hold, queue: u.queue }
+    );
+  };
   ctx.check(
     "right-clicking an own squad with a carrier selected collects it, under the board cursor",
     collectCursor &&
       collect.order.kind === "collect" &&
       JSON.stringify(collect.order.squads) === JSON.stringify([fits]) &&
       !!collected,
-    JSON.stringify({ order: collect.order, ack: collect.ack }),
+    JSON.stringify({
+      order: collect.order,
+      ack: collect.ack,
+      tick: after.tick,
+      carrier: pose(small),
+      squad: pose(fits),
+      refusals: after.refusals,
+    }),
   );
 
   // U twice: the small carrier stops and unloads where it stands. U reaches

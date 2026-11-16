@@ -410,5 +410,45 @@
     "serial": true,
     "catalog": "game",
     "loading": false
+  },
+  {
+    "id": "online-battle",
+    "route": "/multiplayer?scene=online-battle",
+    "describe": "Two commanders play a real local server: seat-owned orders, side-only observations, map identity refusal before streaming and no local authority controls.",
+    "map": null,
+    "catalog": "game",
+    "loading": false,
+    "serial": true,
+    "timeout_s": 600
+  },
+  {
+    "id": "multiplayer",
+    "route": "/multiplayer",
+    "describe": "Real room service: empty and changing room lists, open and full seats, unavailable builds and the Multiplayer menu entry, at both supported window sizes.",
+    "map": null,
+    "catalog": "game",
+    "loading": false,
+    "serial": true,
+    "timeout_s": 300
+  },
+  {
+    "id": "room-lobby",
+    "route": "/room",
+    "describe": "Real host and guest room pages: shared settings, fixed sides and map orientation, readiness and starting; paired captures and exact offline lobby pixel comparison.",
+    "map": null,
+    "catalog": "game",
+    "loading": false,
+    "serial": true,
+    "timeout_s": 400
+  },
+  {
+    "id": "frontline",
+    "route": "/multiplayer?scene=frontline",
+    "describe": "Frontline through the real local server: exact-map briefing, delayed first snapshot, opening wallet with no army, and a first purchase driving in; fresh and late briefings at both supported sizes.",
+    "map": null,
+    "catalog": "game",
+    "loading": false,
+    "serial": true,
+    "timeout_s": 900
   }
 ]

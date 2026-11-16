@@ -28,18 +28,21 @@ physical class, or soldier) in [unit art](src/unitArt.ts), as scenery's are
 per kind; each number there is a loose tripwire, raised when real art
 outgrows it and nothing visibly suffers.
 
-Every bundle has four tiers. A static prop may carry a fifth, coarsest mesh,
-its **far mesh**, for when it is only a few pixels tall: exactly the source's
-`_LOD4` meshes, so an unsuffixed mesh never joins it and no source gains one
-by accident ([far mesh](src/farMesh.ts)). It draws something and fewer
-triangles than tier 3, every state of the appearance carries one or none
-does, and a kind that budgets its tiers budgets it as a fifth entry. A far
-mesh drops geometry and never reshapes it: the side's fog of war judges each
-surface by its own plane and facing, so every surface it draws is one tier 3
-draws, or the prop changes its look where it switches
-([why](../../specs/done/far-detail/README.md)). Units,
-kits, trees, dressing and grass refuse one. A bundle records how many meshes
-each state has, so the format is the same with or without one.
+Every bundle has four tiers. A static prop carries a fifth, coarsest mesh,
+its **far mesh**, for when it is only a few pixels tall. By default the bake
+makes it ([far box](src/farBox.ts)): a box without its bottom, tier 3's height,
+its footprint sized to tier 3's own plan-view coverage so an airy prop does not
+become a solid block, and each face in the material that covers most of tier 3
+seen from that side, in its mean baked colour (so a painted prop keeps its paint
+slot). A source that names `_LOD4` meshes authors its own instead, exactly
+those meshes, so an unsuffixed mesh never joins it ([far mesh](src/farMesh.ts)).
+Either way it draws something and fewer triangles than tier 3 (a prop whose
+tier 3 is already about a box gets none), every state of the appearance
+carries one or none does, and a kind that budgets its tiers budgets it as a
+fifth entry. It is drawn only a few pixels tall, so it is judged by how the
+prop reads in a full frame at that size ([why](../../specs/done/far-detail/README.md)).
+Units, kits, trees, dressing and grass have none. A bundle records how many
+meshes each state has, so the format is the same with or without one.
 
 Skinned bodies share one skeleton's clip library. Bone-attached kit is baked into
 that skin, and sockets locate observed effects on the drawn weapon. A shot's

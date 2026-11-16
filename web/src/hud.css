@@ -1833,7 +1833,8 @@ html {
     0 24px 80px rgb(0 0 0 / 0.65),
     inset 0 0 0 1px rgb(255 255 255 / 0.05);
 }
-.match-result-red {
+.match-result-red,
+.match-result-enemy {
   border-color: rgb(var(--hud-enemy) / 0.75);
 }
 .match-result-draw {
@@ -1896,11 +1897,8 @@ html {
   margin: 0;
   font-size: 13px;
 }
-.match-result-score-blue {
-  color: rgb(var(--hud-accent));
-}
-.match-result-score-red {
-  color: rgb(var(--hud-enemy));
+.match-result-score > b {
+  color: rgb(var(--tone));
 }
 .match-result-sides {
   flex: none;

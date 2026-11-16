@@ -559,9 +559,18 @@ pub struct PropPopulation {
     pub rows: Vec<u32>,
     lists: Vec<Vec<Record>>,
     prints: Vec<u64>,
+    /// The shadow cutoff over its authored value (`set_shadow_caster_scale`).
+    shadow_caster_scale: f64,
 }
 
 impl PropPopulation {
+    /// Casts sun shadows only from props at least `scale` times the
+    /// authored `Detail::shadow_caster_px` (a graphics quality; 1 as
+    /// authored).
+    pub fn set_shadow_caster_scale(&mut self, scale: f64) {
+        self.shadow_caster_scale = scale;
+    }
+
     /// What the side knows from now on; true when that changed.
     pub fn set_known(&mut self, known: Vec<KnownBody>) -> bool {
         if known == self.known {
@@ -746,14 +755,13 @@ impl Population for PropPopulation {
             let center_z = z + m.size / 2.0;
             let r = m.radius;
             let bounds = [x - r, y - r, center_z - r, x + r, y + r, center_z + r];
-            // Offscreen models remain eligible: their shadow may still land in
-            // the visible ground. Only a visible model with an imperceptible
-            // conservative projected footprint may skip its caster pass.
-            let visible = view.sees_sphere([x, y, center_z], r);
-            let tiny_visible = visible
-                && this.art.detail.shadow_caster_px > 0.0
-                && projected_footprint_px(view, at, r) < this.art.detail.shadow_caster_px;
-            let mask = shadow.map_or(0, |s| if tiny_visible { 0 } else { s.mask(&bounds) });
+            // A model whose conservative projected footprint is imperceptible
+            // casts no shadow, whether the view sees it or not: its shadow
+            // would be about as small. Behind the camera the footprint is
+            // unbounded, so such a model keeps casting.
+            let cutoff = this.art.detail.shadow_caster_px * this.shadow_caster_scale;
+            let tiny = cutoff > 0.0 && projected_footprint_px(view, at, r) < cutoff;
+            let mask = shadow.map_or(0, |s| if tiny { 0 } else { s.mask(&bounds) });
             if mask != 0 {
                 let cast = if tier == CULLED {
                     TIERS - 1
@@ -811,8 +819,9 @@ impl Population for PropPopulation {
     }
 }
 
-/// Conservative screen footprint of a model's horizontal bound. This is used
-/// only for visible models; offscreen casters are retained for long shadows.
+/// Conservative screen footprint of a model's horizontal bound, seen from
+/// the camera whether it is in the view or not: what decides whether a prop
+/// casts (`Detail::shadow_caster_px`).
 fn projected_footprint_px(view: &View, at: [f64; 3], radius: f64) -> f64 {
     // Camera-forward depth, rather than Euclidean eye distance, stays
     // conservative for a visible model near a frustum edge. Subtracting the

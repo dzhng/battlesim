@@ -11,7 +11,7 @@ import type { Wasm } from "@web/battle/sim/module";
 import { cityContactTour } from "@web/battle/benchmark/camera";
 import type { BenchmarkPreset, BenchmarkScenario } from "@web/battle/benchmark/presets";
 import type { ResolvedRules } from "@web/battle/catalog/compose";
-import { playersFor } from "../skirmishSetup";
+import { playersFor } from "@packages/skirmish-setup/src/seats";
 
 function benchmarkPreparation(
   wasm: Wasm,

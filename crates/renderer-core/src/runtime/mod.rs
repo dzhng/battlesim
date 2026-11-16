@@ -231,7 +231,14 @@ impl Runtime {
         let waves = WaveField::new(device, &pipelines);
         fog.set_waves(device, waves.view());
         let water = WaterPass::new(device, &pipelines, &targets, fog.paint());
-        let fog_mask = fog_mask::fog_mask(device, queue, &pipelines, &targets, &config.fog_look);
+        let fog_mask = fog_mask::fog_mask(
+            device,
+            queue,
+            &pipelines,
+            &targets,
+            &environment,
+            &config.fog_look,
+        );
         let post = post::new(
             device,
             queue,
@@ -537,6 +544,7 @@ impl Runtime {
             queue,
             &self.pipelines,
             &self.targets,
+            &self.environment,
             &self.config.fog_look,
         );
         self.fog_mask

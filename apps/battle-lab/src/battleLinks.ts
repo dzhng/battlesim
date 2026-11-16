@@ -12,21 +12,21 @@
 // `&light=<look>` (a fixture look or `random`) picks the match's lighting,
 // and without it the battle plays the default look. A wrong value, or a parameter the battle does not read
 // (an old link's `faction` or `enemy`), is refused by name, never ignored.
-import { DEFAULT_BATTLE_SEED } from "@apps/battle-lab/src/lobby/defaults";
-import { DEFAULT_LIGHTING, parseLighting } from "./lobby/lighting";
+import { DEFAULT_BATTLE_SEED, DEFAULT_LIGHTING } from "@packages/skirmish-setup/src/lobby";
+import { parseLighting } from "./lobby/lighting";
 import { FACTIONS, type Faction } from "@packages/scene-assets/src/units";
+import { lobbyPlayers, type LobbyState } from "@packages/skirmish-setup/src/lobby";
 import type { Player } from "@web/battle/prepare/protocol";
 import { menuPage } from "./menu/pages";
 import {
   MAX_PLAYERS_PER_SIDE,
   sizeTier,
   skirmishPlayers,
-  type SkirmishBattle,
   type SkirmishSide,
-} from "./skirmishSetup";
-import presets from "@fixtures/map-presets.json";
+} from "@packages/skirmish-setup/src/seats";
 import {
   canonicalSeed,
+  MAP_REGIONS,
   MAP_SIZES,
   MAP_TYPES,
   type MapChoice,
@@ -35,7 +35,12 @@ import {
 
 /** What a battle address asks for, before it is pinned to this build. */
 export type AskedBattle =
-  | ({ kind: "generated" } & SkirmishBattle & { lighting: string })
+  | ({ kind: "generated" } & {
+      players: Player[];
+      map: MapChoice;
+      battleSeed: number;
+      lighting: string;
+    })
   | { kind: "replay" };
 
 /** Every parameter a battle address may hold. */
@@ -54,7 +59,7 @@ const PARAMETERS = new Set([
 ]);
 
 /** The regions a player may ask for: the presets' regional families. */
-export const REGIONS: readonly string[] = presets.parcels.regional_families;
+export const REGIONS: readonly string[] = MAP_REGIONS;
 /** Data names the player reads as another name. */
 const SAID: Readonly<Record<string, string>> = {
   small: "S",
@@ -138,6 +143,12 @@ export const battleHref = (
   ]
     .filter(Boolean)
     .join("&")}`;
+
+export const toUrl = (state: LobbyState): string =>
+  battleHref(state.map, lobbyPlayers(state), state.battleSeed, state.lighting).replace(
+    /^\/battle/,
+    "",
+  );
 /** The menu's Skirmish page opened on `choice`, or home without one. */
 export const menuHref = (choice: MapChoice | null) =>
   choice ? `${menuPage("skirmish").path}?${query(choice)}` : "/";
@@ -177,11 +188,6 @@ export function askedBattle(search: string): AskedBattle | { error: string } {
       codes.map((code) => ({ side, faction, controller: CONTROLLERS[code] })),
     ),
   );
-  // A battle without a human is watched (D34); one with humans is played by
-  // exactly one, on Blue.
-  const humans = players.filter((player) => player.controller === "human");
-  if (humans.length > 0 && (humans.length > 1 || humans[0].side !== "blue"))
-    return { error: "a link with a Human has exactly one Human on Blue" };
   const type = params.get("type") ?? ("mixed" satisfies MapType);
   // Without a size, the smallest map that fits the players, as in the lobby.
   const size = params.get("size") ?? sizeTier(players).size;

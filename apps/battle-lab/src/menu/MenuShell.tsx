@@ -122,6 +122,7 @@ export function MenuShell({ page, children }: { page: MenuPageId | "home"; child
       <main
         className="menu"
         data-open={page === "home" ? undefined : page}
+        data-lobby={page === "skirmish" || page === "room" || undefined}
         inert={displayLoading || pageLoading}
       >
         {/* A page with a scene of its own (the Armory's stage) reports it, so

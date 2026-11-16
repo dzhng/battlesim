@@ -110,6 +110,9 @@ fn castLight(base: vec3f, surfaceNormal: vec3f, position: vec3f) -> vec3f {
 // @block lighting_environment_effects
 @group(0) @binding(4) var<uniform> environment: Environment;
 
+// @block lighting_environment_composeLayout
+@group(0) @binding(7) var<uniform> environment: Environment;
+
 // @block lighting_castLights
 @group(GROUP) @binding(1) var<uniform> castLights: CastLights;
 
@@ -146,16 +149,35 @@ fn air(colour: vec3f, position: vec3f, eye: vec3f) -> vec4f {
   return applyAerial(vec4f(colour, 1f), position, eye, environment.observer.xyz, environment.sun.direction.xyz, environment.aerial, sky, environmentSampler);
 }
 
+// @block lighting_aerialMist
+/** How much of the low mist lies between the observer and `position`. */
+fn aerialMist(position: vec3f, distM: f32, air: Aerial) -> f32 {
+  let heightMist=1.0-smoothstep(air.mistHeightM.x,air.mistHeightM.y,position.z);
+  return heightMist*smoothstep(air.mistDistanceM.x,air.mistDistanceM.y,distM);
+}
+
+// @block lighting_aerialDistance
+/** The haze's distance to `position`: shortened as the camera pulls back past
+ *  `overviewFromM`, so an overview keeps its ground legible. */
+fn aerialDistance(position: vec3f, camera: vec3f, observer: vec3f, air: Aerial) -> f32 {
+  return length(position-observer)/max(1.0,distance(camera,observer)/air.overviewFromM);
+}
+
+// @block lighting_aerialTransmit
+/** The share of the surface at `position`, `distM` away through the haze
+ *  (`aerialDistance`), the air lets through, per channel. */
+fn aerialTransmit(position: vec3f, distM: f32, air: Aerial) -> vec3f {
+  let distKm=max(distM/1000.0-air.clearRadiusKm,0.0);
+  let rangeDepth=pow(max(distM-air.rangeNearM,0.0)/air.rangeFarM,air.rangePower)*air.rangeStrength;
+  let mist=aerialMist(position,distM,air);
+  return exp(-(air.extinction*distKm+vec3f(rangeDepth)+vec3f(mist*air.mistOpacity)));
+}
+
 // @block lighting_applyAerial
 fn applyAerial(surface: vec4f, position: vec3f, camera: vec3f, observer: vec3f, sun: vec3f, air: Aerial, lut: texture_2d<f32>, linearSampler: sampler) -> vec4f {
-    let reach=position-observer;
-    let distM=length(reach)/max(1.0,distance(camera,observer)/air.overviewFromM);
-    let distKm=max(distM/1000.0-air.clearRadiusKm,0.0);
-    let rangeDepth=pow(max(distM-air.rangeNearM,0.0)/air.rangeFarM,air.rangePower)*air.rangeStrength;
-    let heightMist=1.0-smoothstep(air.mistHeightM.x,air.mistHeightM.y,position.z);
-    let farMist=smoothstep(air.mistDistanceM.x,air.mistDistanceM.y,distM);
-    let mistWeight=heightMist*farMist;
-    let transmit=exp(-(air.extinction*distKm+vec3f(rangeDepth)+vec3f(mistWeight*air.mistOpacity)));
+    let distM=aerialDistance(position,camera,observer,air);
+    let transmit=aerialTransmit(position,distM,air);
+    let mistWeight=aerialMist(position,distM,air);
     let view=normalize(position-camera);
     let viewSky=textureSample(lut,linearSampler,equirectUv(normalize(vec3f(view.xy,max(view.z,4.0000000000000001e-3f))))).rgb;
     let horizonView=normalize(vec3f(view.x,view.y,4.0000000000000001e-3f));

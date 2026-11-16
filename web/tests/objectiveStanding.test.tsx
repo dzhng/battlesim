@@ -1,3 +1,4 @@
+import matchRules from "@fixtures/skirmish.json";
 // A capture area reads as the viewer's or the enemy's, whichever side the
 // player plays: its ring on the ground, its floating flag and its flag in the
 // score strip all take the HUD's own-side colour for the viewer's side and
@@ -96,6 +97,7 @@ test("a capture area's flags read as the viewer's when its side holds it", () =>
       <>
         <ObjectiveMarkers objectives={OBJECTIVES} viewer={viewer} handle={handle} />
         <SkirmishStatus
+          target={matchRules.victory_score}
           match={{
             phase: "active",
             players: [],

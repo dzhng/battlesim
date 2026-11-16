@@ -15,6 +15,14 @@ fields and invalid section ranges, including in encounter overrides.
 a world or battle is built. Application settings have separate owners and do not
 enter resolved battle rules.
 
+[Match rules](skirmish.json) own the economy and objective victory conditions.
+[Frontline](frontline.json) overrides that base through the simulation's
+[shared resolver](../crates/sim/src/skirmish.rs), used by native and WebAssembly
+preparation. Holding time decides when a side wins; the points target only
+scales its displayed score. Scaling both together preserves the scoring pace
+while lengthening a match. Default instant victory is omitted from serialization
+so existing scenarios retain their identity.
+
 [Map presets](map-presets.json) and the generator's [physical template library](prototype-building-templates.json)
 feed [mapgen](../crates/mapgen/README.md). Its templates are derived from accepted
 [city sets](../packages/scene-assets/README.md#city-buildings), and it is the one

@@ -29,7 +29,7 @@ import { useSessionCatalog } from "@web/battle/catalog/context";
 import { gameCamera } from "../gameCamera";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
 import type { BattleSession } from "../useBattleSession";
-import { skirmishRequest } from "../skirmishSetup";
+import { battleRequestForAsked } from "../skirmishData";
 
 /** The generated map a request asks for. */
 const generatedChoice = (request: PrepareBattleRequest): MapChoice => request.map_source.request;
@@ -119,7 +119,7 @@ export default function Battle() {
 /** The request for what the address asks, pinned to this build's generator,
  *  presets and catalogue. */
 function AskedBattleView({ asked }: { asked: Exclude<AskedBattle, { kind: "replay" }> }) {
-  const request = useBuiltScenario(asked, skirmishRequest);
+  const request = useBuiltScenario(asked, (wasm, match) => battleRequestForAsked(wasm, match));
   if (!request) return null;
   if (buildFailed(request))
     return (
@@ -258,10 +258,10 @@ function PreparedBattleView({
   if (!prepared || !view) return cover;
 
   const exportReplay = async ({ sim }: BattleSession) => {
-    if (!sim.client) return null;
+    if (!sim.local) return null;
     const file: ReplayFile = {
       battle: { scenario: prepared.scenario, report: prepared.report },
-      replay: await sim.client.replay(),
+      replay: await sim.local.replay(),
       light_preset: resolvedMatchLighting(replay, window.location.search, request),
     };
     const name = subject.toLowerCase().replaceAll(" · ", "-").replaceAll(" ", "");

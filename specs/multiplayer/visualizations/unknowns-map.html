@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multiplayer Map</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; font-family: var(--font-sans, system-ui, sans-serif); font-size: 13.5px; line-height: 1.5; color: var(--foreground, CanvasText); }
+  .sub { color: var(--muted-foreground, #8a96a0); margin: 0 0 14px; }
+  nav { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  nav button { font: inherit; font-size: 12px; padding: 6px 10px; border-radius: var(--radius, 6px); border: 1px solid var(--border, #2a3640); background: transparent; color: inherit; cursor: pointer; }
+  nav button[aria-pressed="true"] { background: var(--secondary, rgba(127,127,127,.16)); border-color: var(--ring, #4b9fd0); }
+  section { display: none; }
+  section.on { display: block; }
+  h2 { font-size: 14px; margin: 18px 0 8px; }
+  h2:first-child { margin-top: 0; }
+  .box { border: 1px solid var(--border, #2a3640); border-radius: var(--radius, 6px); padding: 16px; margin-bottom: 10px; background: var(--card, transparent); }
+  .box h3 { font-size: 13.5px; margin: 0 0 6px; }
+  .box p { margin: 4px 0; }
+  ul { margin: 6px 0; padding-left: 18px; }
+  li { margin: 3px 0; }
+  code { font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; background: var(--code-background, rgba(127,127,127,.12)); padding: 1px 4px; border-radius: 4px; }
+  .scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th, td { text-align: left; vertical-align: top; padding: 7px 8px; border-bottom: 1px solid var(--border, #2a3640); }
+  th { font-weight: 600; white-space: nowrap; }
+  td:first-child { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .who { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--border, #2a3640); white-space: nowrap; }
+  .who.you { border-color: var(--success, #3fa66a); }
+  .who.agent { border-color: var(--info, #4b9fd0); }
+  .who.land { border-color: var(--warning, #c9972b); }
+  .who.open { border-color: var(--destructive, #d2553f); }
+  .k { color: var(--muted-foreground, #8a96a0); }
+  pre { white-space: pre-wrap; font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; margin: 0; }
+  .copy { margin-top: 10px; font: inherit; font-weight: 600; padding: 7px 12px; border-radius: var(--radius, 6px); border: 0; background: var(--primary, #2f6fde); color: var(--primary-foreground, #fff); cursor: pointer; }
+  details { margin: 6px 0; }
+  summary { cursor: pointer; font-weight: 600; }
+</style>
+</head>
+<body>
+<p class="sub">Multiplayer: rooms and Frontline. Walked 2026-11-14. This is the record of the walk. The plan it led to is <code>specs/multiplayer/README.md</code>; where the two differ, the plan is right.</p>
+<nav id="nav"></nav>
+
+<section data-t="Known knowns">
+<h2>What is being built</h2>
+<div class="box">
+<p><b>Rooms.</b> A player creates a room, public or private. Public rooms are listed for anyone to join; a private room is entered by its code. The room is the current skirmish lobby with several humans in it, on either side.</p>
+<p><b>Frontline.</b> One button drops a player into a long battle that is already running, on the side that is losing. Each seat is played by a human or by its own AI, so there is always a fight.</p>
+</div>
+
+<h2>The contracts this touches</h2>
+<div class="scroll"><table>
+<tr><th>Contract</th><th>Today</th><th>What changes</th></tr>
+<tr><td>Player list</td><td>Fixed when the battle is built; at most one human, always on Blue (<code>apps/battle-lab/src/lobby/model.ts:50</code>)</td><td>Several humans on either side, with a seat identity that survives a neighbour leaving</td></tr>
+<tr><td>Controller</td><td>A seat's driver (human, active AI, passive AI) can already switch mid-battle and replays exactly (<code>crates/sim/src/battle/controllers.rs:50</code>)</td><td>This is dropping in and out. Unchanged for rooms.</td></tr>
+<tr><td>Command</td><td>One order, stamped with side, player and sequence number; the sim refuses orders for units you don't own (<code>crates/sim/src/battle.rs:1443</code>)</td><td>Travels as an HTTP request. The server stamps side, player and number.</td></tr>
+<tr><td>Publication</td><td>The per-tick record of what one side can see: a full snapshot when a stream opens, then changes only (<code>crates/sim/src/publication.rs:485</code>)</td><td>Produced on the server, one stream per side, resumable</td></tr>
+<tr><td>Match rules</td><td>One rule set for everyone (<code>fixtures/skirmish.json</code>); matches end in 30 to 40 minutes</td><td>Frontline adds a higher points target and turns off the instant win</td></tr>
+<tr><td>Unit ownership</td><td>A unit never changes owner (<code>crates/sim/src/units.rs:248</code>)</td><td>Frontline only: an army can pass from one seat to another, and a seat can be reset</td></tr>
+</table></div>
+
+<h2>Settled by the code</h2>
+<ul>
+<li>Each seat has its own wallet, 30-unit cap and army; a side shares vision, objectives and score. Every seat earns the same income whoever holds it (<code>crates/sim/src/skirmish.rs:221</code>).</li>
+<li>Every seat has an AI ready from the first tick, and the per-side planner re-reads who holds each seat within 5 seconds (<code>crates/sim/src/skirmish_ai/team/mod.rs:200</code>). Five AIs a side is a tested size.</li>
+<li>The rules allow 10 seats a side; the lobby's cap is 5 (<code>apps/battle-lab/src/skirmishSetup.ts:15</code>).</li>
+<li>The battle's owner in the browser takes its clock, timer and channel from its host, so Node can host it (<code>web/src/battle/sim/authority.ts:42</code>).</li>
+<li>The sim is single-threaded: one battle, one core.</li>
+<li>A running battle cannot be saved or restored. A joiner can only start from a per-side snapshot sent by a live battle.</li>
+<li>There is no backend, database, account or player name today. The site is static files on Vercel.</li>
+</ul>
+
+<h2>Measured on 2026-11-14</h2>
+<p class="k">The 200-unit endurance battle (100 a side, all fighting), ten simulated minutes. The tick budget is 33 ms.</p>
+<div class="scroll"><table>
+<tr><th>Where</th><th>Median tick</th><th>95th percentile</th><th>Ticks over budget</th></tr>
+<tr><td>Native, Mac (M6)</td><td>5.4 ms</td><td>19.5 ms</td><td>0.2%</td></tr>
+<tr><td>Node + WebAssembly, Mac</td><td>10.2 ms</td><td>39.9 ms</td><td>6.9%</td></tr>
+<tr><td>Node + WebAssembly, Bento</td><td>22.8 ms</td><td>97.5 ms</td><td>24%</td></tr>
+<tr><td>Native, Bento (tuned build)</td><td>18.5 ms</td><td>85.6 ms</td><td>23%</td></tr>
+</table></div>
+<ul>
+<li>One side's stream is about 2 KB a tick, roughly 60 KB/s. A join snapshot was 79 KB at the start and 0.6 to 0.9 MB after ten minutes.</li>
+<li>Bento's machine: Linux, 8 cores (Xeon Platinum 8259CL), 16 GB, Node 24, no Rust toolchain.</li>
+<li>Bento's private route passes a 30 Hz binary stream through unbuffered (one record per chunk, 33 ms apart), cuts it at 300 seconds, and cuts server-sent events at 240 seconds. An order's round trip from California was about 95 ms.</li>
+<li>Bento's public route, which anonymous players use, treats streams the same way: unbuffered, cut at 300 and 240 seconds, cross-origin headers intact. An order's round trip there was about 300 ms from California, three times the private route's.</li>
+<li>Bento apps do not support WebSockets. Convex cannot run a battle (1 second per function, 30 minutes per action).</li>
+</ul>
+</section>
+
+<section data-t="Decisions">
+<p class="k" style="border-left:3px solid var(--warning,#c9972b);padding-left:10px">The live ledger is <code>specs/multiplayer/decisions.md</code>. It carries every row below, and adds what the plan decided where the walk was silent. This tab is the walk's record as of 2026-11-14.</p>
+<h2>Confirmed preferences and delegation</h2>
+<div class="box">
+<ol style="margin:0;padding-left:18px">
+<li>Alpha first: the simplest thing that works. When two answers fit, prefer the simpler.</li>
+<li>Nothing persists: no database, no accounts; a restart wiping everything is fine.</li>
+<li>Use what is at hand and defer scale: Bento and Node now, faster servers later.</li>
+<li>One path for everything: rooms and Frontline share one server and one rule set.</li>
+<li>Zero friction for the player: one click to be in a fight.</li>
+<li>Normal rules, with resources as the only balance lever.</li>
+</ol>
+<p class="k">Scope delegated on 2026-11-14: the agent answers plumbing questions that follow from these; game design stays with the user. Each such answer is marked Agent below.</p>
+</div>
+
+<h2>Ledger</h2>
+<div class="scroll"><table>
+<tr><th>#</th><th>Decision</th><th>Closed by</th><th>Why</th></tr>
+<tr><td colspan="4"><b>Server and transport</b></td></tr>
+<tr><td>1</td><td>One game server runs every online battle, rooms and Frontline alike.</td><td><span class="who you">You</span></td><td>Hidden enemies stay off players' machines; a host leaving doesn't end a match.</td></tr>
+<tr><td>4</td><td>No Convex and no database. One Node server holds rooms, names and battles in memory.</td><td><span class="who you">You</span></td><td></td></tr>
+<tr><td>8</td><td>Bento (workspace <code>armata</code>) is a temporary host. A better server will be found later, so nothing in the design may depend on Bento beyond its address and its deploy step.</td><td><span class="who you">You</span></td><td>Said twice: server speed is not a blocker.</td></tr>
+<tr><td>9</td><td>Transport is one binary stream down and one small request per order up. No WebSockets.</td><td><span class="who land">Territory</span></td><td>Bento apps refuse WebSocket upgrades; the probe showed streams are not buffered.</td></tr>
+<tr><td>10</td><td>A stream resumes by record number after a cut; a full snapshot is sent only after a real gap.</td><td><span class="who land">Territory</span></td><td>Bento cuts every stream at 300 seconds.</td></tr>
+<tr><td>11</td><td>The game page stays on its current host and calls the server cross-origin.</td><td><span class="who land">Territory</span></td><td>The probe's cross-origin headers reached the browser unchanged.</td></tr>
+<tr><td>67</td><td>Bento's public route carries the battle stream as well as the private one does. Each order and preview through it takes about 300 ms from California.</td><td><span class="who land">Territory</span></td><td>Measured with the probe made public for seven minutes on 2026-11-14.</td></tr>
+<tr><td>13</td><td>A battle is the WebAssembly sim on its own worker thread inside the Node server.</td><td><span class="who agent">Agent</span></td><td>Simple (1): reuses the browser's battle module. Native was no faster on Bento, so it stays a later swap (3).</td></tr>
+<tr><td>57</td><td>One publisher per side. The server never waits for a player; one who falls behind or returns from a hidden tab gets a fresh snapshot, and so do their teammates.</td><td><span class="who agent">Agent</span></td><td>One path (4). Supersedes the detail of 16.</td></tr>
+<tr><td>56</td><td>The server accepts only orders and previews from a page. Pause, tab-hidden, start, side switch, replay export and controller changes are the server's.</td><td><span class="who agent">Agent</span></td><td>Otherwise one player can freeze the battle or read the other side.</td></tr>
+<tr><td>22, 28</td><td>The server stamps each order's side, player and sequence number from the seat. What the page claims is ignored.</td><td><span class="who agent">Agent</span></td><td>Stops one player ordering another's units, and fixes the refused first order after a takeover.</td></tr>
+<tr><td>60</td><td>Orders go one at a time per player and retry on a timeout.</td><td><span class="who agent">Agent</span></td><td>Separate requests can arrive out of order; today a lost reply freezes purchases for good.</td></tr>
+<tr><td>55</td><td>Move and purchase previews stay on the server, capped at about five a second per player.</td><td><span class="who agent">Agent</span></td><td>Simple (1). The trailing ghost is an accepted rough edge of the alpha.</td></tr>
+<tr><td>20</td><td>No pause or speed control online.</td><td><span class="who agent">Agent</span></td><td>The server owns the clock (4).</td></tr>
+<tr><td>14</td><td>A player's browser generates the map from the battle's settings and checks its identity against the server's.</td><td><span class="who agent">Agent</span></td><td>No map download to build (1).</td></tr>
+<tr><td>59</td><td>The server is deployed from the same commit as the live site, with the same simulation file and game data. Any other site build is told online play isn't available on it.</td><td><span class="who agent">Agent</span></td><td>Every staging build stays live and would otherwise reach the one server. Refines 15.</td></tr>
+<tr><td>62</td><td>At most one fewer battle than the machine has cores. Beyond that the menu says the servers are full.</td><td><span class="who agent">Agent</span></td><td>One battle uses one core (12).</td></tr>
+<tr><td>23</td><td>The room list and the lobby are event streams that resend the whole state when it changes.</td><td><span class="who agent">Agent</span></td><td>No diffing (1).</td></tr>
+
+<tr><td colspan="4"><b>Identity</b></td></tr>
+<tr><td>5</td><td>A callsign is typed in, remembered by the browser, and shown as <code>name#2</code> on a clash.</td><td><span class="who you">You</span></td><td></td></tr>
+<tr><td>46</td><td>The player is never asked: a random callsign is filled in and can be edited in the header.</td><td><span class="who you">You</span></td><td></td></tr>
+<tr><td>17</td><td>The browser makes a random id once and keeps it beside the callsign; that is how the server knows a returning player.</td><td><span class="who agent">Agent</span></td><td>No accounts (2, 5).</td></tr>
+<tr><td>63</td><td>A callsign has a length and character limit only. No word filter in alpha.</td><td><span class="who agent">Agent</span></td><td>Simple (1).</td></tr>
+
+<tr><td colspan="4"><b>Rooms</b></td></tr>
+<tr><td>33</td><td>The host runs the room: map, size, factions, seats and start. Start needs every human marked ready. If the host leaves, the human who has been there longest becomes host.</td><td><span class="who you">You</span></td><td></td></tr>
+<tr><td>—</td><td>Players move freely to any open seat on either side. The host sets a seat open or AI, and deletes seats; there is no closed seat.</td><td><span class="who you">You</span></td><td></td></tr>
+<tr><td>39</td><td>A seat still open when the battle starts is dropped. Only a seat set to AI is played by AI.</td><td><span class="who you">You</span></td><td></td></tr>
+<tr><td>35</td><td>Nobody joins a room battle after it starts. A player who drops has their seat run by its AI, with the army it has.</td><td><span class="who you">You</span></td><td></td></tr>
+<tr><td>37</td><td>A dropped player can return to their own seat at any point while the battle runs. Nobody else can take it.</td><td><span class="who agent">Agent</span></td><td>It is their army; taking it back needs no new rule (1).</td></tr>
+<tr><td>19, 49</td><td>A private room's code is made by the server, looks like <code>TANGO-4821</code>, and is also the room's id and its link.</td><td><span class="who you">You</span> <span class="who agent">Agent</span></td><td>Password-as-id is yours; server-generated avoids clashes.</td></tr>
+<tr><td>21, 38</td><td>A room is deleted when no human has been connected for about a minute.</td><td><span class="who you">You</span> <span class="who agent">Agent</span></td><td>The minute keeps a stream cut from ending a match.</td></tr>
+<tr><td>41</td><td>Open seats don't count toward the map's size or roads; only seats holding a human or an AI do.</td><td><span class="who agent">Agent</span></td><td>The sim refuses a battle whose map has a different number of roads than its players call for (<code>crates/contract/src/players.rs:136</code>).</td></tr>
+<tr><td>42</td><td>Each side needs at least one human or AI before the host can start.</td><td><span class="who land">Territory</span></td><td>The player contract requires it.</td></tr>
+<tr><td>43</td><td>Seats close up at the start, so roads follow the filled seats in order.</td><td><span class="who agent">Agent</span></td><td>Simple (1).</td></tr>
+<tr><td>48</td><td>Rooms whose battle has started are not listed.</td><td><span class="who you">You</span></td><td></td></tr>
+<tr><td>50</td><td>No chat in the lobby in alpha.</td><td><span class="who you">You</span></td><td></td></tr>
+
+<tr><td colspan="4"><b>Frontline</b></td></tr>
+<tr><td>2</td><td>Frontline is the normal rules with a higher points target. Its length is not a requirement.</td><td><span class="who you">You</span></td><td></td></tr>
+<tr><td>7</td><td>Frontline turns off the instant win for holding every objective; holding everything just scores fastest. Rooms keep it.</td><td><span class="who agent">Agent</span></td><td>Shown twice and not contested. Without it a higher target does not make a longer game.</td></tr>
+<tr><td>54</td><td>The points target starts at about an hour's play and rises once battles stop slowing with age.</td><td><span class="who agent">Agent</span></td><td>Every unit ever bought stays in the per-tick loops (landmine 1).</td></tr>
+<tr><td>21</td><td>A Frontline game is created the moment a human needs one and deleted when its last human leaves.</td><td><span class="who you">You</span></td><td></td></tr>
+<tr><td>24</td><td>No faction pick. One button, and you play what your side fields.</td><td><span class="who you">You</span></td><td></td></tr>
+<tr><td>25</td><td>A new game gets two different factions drawn at random.</td><td><span class="who agent">Agent</span></td><td>Different so the sides read apart.</td></tr>
+<tr><td>26</td><td>The button picks a running game whose losing side has a free seat, fullest first; if none, a new game. A game past 90% of its target is closed to joiners. The losing side is the one with the lower score.</td><td><span class="who you">You</span> <span class="who agent">Agent</span></td><td>Losing side and the last-10% rule are yours; fullest-first lets players find each other (5).</td></tr>
+<tr><td>Q5</td><td>Five seats a side, each played by a human or by its own AI. Every seat earns the same, so both sides always total the same. There is no other balance lever.</td><td><span class="who you">You</span></td><td>The existing AIs already coordinate per seat.</td></tr>
+<tr><td>30</td><td>A joiner gets the lowest-numbered seat an AI holds, from seats 1 to 4. Seat 5 is always AI.</td><td><span class="who agent">Agent</span></td><td>"One slot is always the AI" is yours; lowest-first is predictable.</td></tr>
+<tr><td>6</td><td>A joiner starts fresh with the opening credits and no units.</td><td><span class="who you">You</span></td><td>Asked twice; confirmed after the cost was shown.</td></tr>
+<tr><td>29, 31</td><td>The army and credits a joiner displaces, with purchases still on their way, pass to the AI seat on that side with the fewest units.</td><td><span class="who agent">Agent</span></td><td>One hand-over, not two (1).</td></tr>
+<tr><td>6</td><td>When a human leaves, their seat's AI carries on with their units and credits, and the seat is open to the next human.</td><td><span class="who you">You</span></td><td></td></tr>
+<tr><td>—</td><td>Starting credits are granted once per player per game.</td><td><span class="who you">You</span></td><td>Rules out leaving and rejoining to collect them again.</td></tr>
+<tr><td>18</td><td>If a connection drops, the AI drives the seat at once; back within about a minute and it is yours again.</td><td><span class="who agent">Agent</span></td><td>Streams are cut every five minutes, so a blip must not cost an army.</td></tr>
+<tr><td>61</td><td>After about three minutes without an order, an idle human's seat returns to its AI and reopens.</td><td><span class="who agent">Agent</span></td><td>Otherwise an idle tab holds a seat for hours.</td></tr>
+<tr><td>27</td><td>When a game ends the result shows, everyone returns to the menu, and the game is deleted.</td><td><span class="who agent">Agent</span></td><td>Nothing persists (2).</td></tr>
+<tr><td>34</td><td>The fresh start and the army hand-over apply to Frontline only.</td><td><span class="who you">You</span></td><td></td></tr>
+
+<tr><td colspan="4"><b>What the player sees</b></td></tr>
+<tr><td>44</td><td>One Multiplayer tile on the main menu, above Skirmish; Frontline and the rooms are inside it.</td><td><span class="who you">You</span></td><td></td></tr>
+<tr><td>45</td><td>The drop-in mode is called Frontline.</td><td><span class="who you">You</span></td><td></td></tr>
+<tr><td>47</td><td>A room row says the host, the map and the seats.</td><td><span class="who you">You</span></td><td></td></tr>
+<tr><td>51</td><td>Dropping in shows a briefing card first (side, seat, credits, score, who is fighting), then Deploy.</td><td><span class="who you">You</span></td><td>It also covers the 15 seconds a browser needs to build a large map.</td></tr>
+<tr><td>64</td><td>In battle your side is always the accent blue and the enemy is always red, whichever side you command. The lobby still names the sides Blue and Red.</td><td><span class="who you">You</span></td><td></td></tr>
+<tr><td>65</td><td>In battle, your side is always at the bottom of the screen.</td><td><span class="who you">You</span></td><td></td></tr>
+<tr><td>66</td><td>The lobby does not turn. Its sides stay left and right, and its map picture keeps one orientation for everyone.</td><td><span class="who you">You</span></td><td>Moving to a seat on the other side must not flip everything. Overturns the agent's first answer.</td></tr>
+
+<tr><td colspan="4"><b>Order of work</b></td></tr>
+<tr><td>40</td><td>Foundation, then rooms, then Frontline.</td><td><span class="who you">You</span></td><td>Rooms need no new battle rules.</td></tr>
+<tr><td>53</td><td>The first milestone is a friend and you finishing a room battle over the internet.</td><td><span class="who you">You</span></td><td></td></tr>
+</table></div>
+<p class="k">Overturned on the way: Convex for rooms (4), the AI playing every empty seat as one player (Q5), an open room seat being played by AI (39), mid-battle joins in rooms (35).</p>
+</section>
+
+<section data-t="Taste and context">
+<h2>What the mock-up drew out</h2>
+<p class="k">The clickable mock is <code>lobby-mock.html</code> beside this file. Its players and rooms are invented.</p>
+<ul>
+<li><b>Ready shows only when true.</b> A player who isn't ready has no mark.</li>
+<li><b>Seat strips in the room list:</b> solid for a player, dashed for open, dim for AI.</li>
+<li><b>"N VS M" counts only seats that will fight,</b> so open seats don't move it.</li>
+<li><b>The room reuses the skirmish lobby's layout:</b> side banners left and right, the map between, the settings strip below. A guest sees the settings but can't change them.</li>
+<li><b>The 5,000-point target on the briefing card is a placeholder.</b></li>
+</ul>
+
+<h2>Context nobody had written down</h2>
+<div class="scroll"><table>
+<tr><th>Asked</th><th>Answer</th><th>What it reshaped</th></tr>
+<tr><td>Who plays the alpha?</td><td>Friends sent a link, and anyone who finds the site</td><td>Bento's public route is the one that matters; callsigns and room names are seen by strangers</td></tr>
+<tr><td>Where are they?</td><td>Worldwide</td><td>One server region, behind a public route that already costs 300 ms per order from California. Filed as open item O6.</td></tr>
+<tr><td>What counts as "it works"?</td><td>A friend and you finish a room battle over the internet</td><td>Sets the first milestone and confirms rooms before Frontline</td></tr>
+</table></div>
+
+<h2>Taste shown by the corrections</h2>
+<ul>
+<li><b>Time is not a requirement.</b> A long game means more points to win, nothing else.</li>
+<li><b>Nothing runs for nobody.</b> A Frontline game exists only while a human is in it.</li>
+<li><b>Open is not AI.</b> In a room, an empty seat stays empty; AI is something the host chooses.</li>
+<li><b>Drop-in rules stay in the drop-in mode.</b> Rooms are ordinary matches with friends.</li>
+<li><b>In battle you are always blue, at the bottom.</b> The lobby never flips.</li>
+</ul>
+</section>
+
+<section data-t="Landmines">
+<p class="k">The sweep covered the browser's battle client and lobby (about 25 files), the simulation's battle, economy, objectives, AI and publication code, and the repo's build, deploy and check setup.</p>
+
+<div class="box"><h3>1. Battles slow down the longer they run <span class="who agent">decided: 54</span> <span class="who open">open: O3</span></h3>
+<p><b>Evidence.</b> Units are only ever appended (<code>crates/sim/src/battle/dispatch.rs:237</code>); about a dozen per-tick loops walk every unit, dead or retired (<code>crates/sim/src/battle.rs:1717, 2190, 2739, 4113</code>). Wrecks, corpses, the recorded order log and the AI's receipts are never trimmed. Each move order clones the whole unit list (<code>battle.rs:3657</code>).</p>
+<p><b>Why it bites.</b> A 35-minute match never notices. A multi-hour game with purchases that never stop pays for every unit ever bought, every tick.</p>
+<p><b>What it changes.</b> Frontline's target starts small. Making the sim forget the dead is its own piece of work before long games.</p></div>
+
+<div class="box"><h3>2. Aiming asks the battle, every time the mouse moves <span class="who agent">decided: 55</span></h3>
+<p><b>Evidence.</b> The move ghost and the purchase ghost are answered by the battle, re-asked whenever the cursor or the tick changes, limited only to one in flight (<code>web/src/battle/input/orderPreview.ts:79</code>, <code>purchasePlacement.ts:77</code>). Each answer runs path searches over cloned units (<code>crates/sim/src/battle/move_placement.rs:84</code>).</p>
+<p><b>Why it bites.</b> Online it is server work per player per mouse move, with no rate limit, and a ghost that trails the cursor by a round trip. A purchase can't be confirmed until its answer matches the cursor.</p></div>
+
+<div class="box"><h3>3. One page can freeze or spy on the battle <span class="who agent">decided: 56</span></h3>
+<p><b>Evidence.</b> The page sends pause on Esc and on every tab switch (<code>web/src/battle/sim/client.ts:344</code>), starts the clock, and can ask for another side's view (<code>authority.ts:290</code>) or the full order log.</p></div>
+
+<div class="box"><h3>4. The stream can't skip a record, and a snapshot is shared <span class="who agent">decided: 57</span></h3>
+<p><b>Evidence.</b> A skipped record is an error that fails the battle on the page (<code>crates/sim/src/publication/reader.rs:308</code>). The WebAssembly handle holds one publisher (<code>crates/game-wasm/src/lib.rs:647</code>), and a change of side empties its baseline (<code>publication.rs:533</code>).</p>
+<p><b>Why it bites.</b> Serving both sides from today's binding sends a full snapshot every tick. A per-side publisher means one player's resync reaches their teammates too. The page's three-buffer credit scheme would stall a server at any round trip over 100 ms.</p></div>
+
+<div class="box"><h3>5. Nobody has ever commanded Red <span class="who you">decided: 64, 65</span></h3>
+<p><b>Evidence.</b> The battle route passes no side or player and defaults to Blue (<code>web/src/battle/useBattleSession.ts:104</code>). The camera opens on the first human's road (<code>crates/sim/src/entries.rs:134</code>). Scores, objective rings and the result screen colour by Blue and Red (<code>web/src/hud.css:1593</code>, <code>battleOverlay.ts:421</code>). Every human banner reads "You" (<code>Lobby.tsx:303</code>). Links refuse a human on Red (<code>battleLinks.ts:181</code>).</p></div>
+
+<div class="box"><h3>6. The lobby code can't run on a server as it stands <span class="who agent">decided: 58</span></h3>
+<p><b>Evidence.</b> The lobby model reaches bundler-only imports and the renderer through <code>battleLinks.ts</code> and <code>skirmishSetup.ts</code>. Path aliases exist only in Vite and tsc. Lint, format and type-checking cover <code>packages apps web/src</code> only, and all JavaScript dependencies live in <code>web/package.json</code>.</p></div>
+
+<div class="box"><h3>7. Every staging build stays live <span class="who agent">decided: 59</span></h3>
+<p><b>Evidence.</b> Vercel keeps each staging deployment reachable and promotes one without a rebuild. A build can read no environment and no server address. The sim's build id is not exported; <code>buildIdentity.ts</code> hashes the served simulation file. The Vercel install doesn't pin wasm-pack, so two builds of one commit may differ.</p></div>
+
+<div class="box"><h3>8. Frontline's seat rule needs two new battle mechanics <span class="who you">decided: 6, 29</span></h3>
+<p><b>Evidence.</b> Nothing moves a unit, a wallet or a pending purchase between seats today, and nothing resets a seat. Refunds pay the original buyer (<code>battle.rs:595</code>); purchase numbers are per player and can clash (<code>battle.rs:1306</code>); the only cap check is on buying (<code>skirmish.rs:274</code>).</p>
+<p><b>Why it bites.</b> The receiving AI can hold up to 150 units: it stops buying, and it hits the 30-orders-a-second limit per player. Both mechanics need a recorded event, like the controller change has, to replay exactly.</p></div>
+
+<div class="box"><h3>9. Native and WebAssembly end on different digests <span class="who open">open: O2</span></h3>
+<p><b>Evidence.</b> The same battle ends on <code>63ca37e9b78dcd8a</code> natively (Mac and Linux) and <code>421fb87634122caa</code> in WebAssembly (Mac and Linux). After one simulated minute, before any shooting, both are <code>217810a3a7c10c42</code>.</p>
+<p><b>Why it bites.</b> It does not block a server-run battle. It does contradict the repo's parity tests for longer fights, and a server battle's replay may not match in a native tool.</p></div>
+
+<h2>Sharp edges</h2>
+<ul>
+<li><b>Bento's machine is slow per core.</b> About four times slower than the Mac for native code; 23 to 24% late ticks in the 200-unit fight, native or Node. <span class="who open">O1</span></li>
+<li><b>Bento's edge forwards its own credentials</b> in request headers to the app. The server must never log or echo request headers.</li>
+<li><b>Unit motion is timed by when records arrive</b> (<code>client.ts:277</code>), so network jitter shows as uneven movement.</li>
+<li><b>An AI taking over a mid-fight army is untested.</b> One returning to a seat reads the changed army as losses and may fall back. <span class="who open">O5</span></li>
+<li><b>An AI seat with no units</b> rebuilds at one purchase every 5 seconds and holds its side's push back for up to 30 seconds.</li>
+<li><b>Memory.</b> One battle used 556 MiB after ten minutes; a large map's ground alone can reach 300 MB. Memory may cap battles before cores do.</li>
+<li><b>A battle that crashes is lost.</b> A corpse sort panics on a bad position (<code>battle.rs:4139</code>); nothing recovers a battle.</li>
+<li><b>Orders are slow through Bento's public route.</b> About 300 ms per order or preview from California, against about 100 ms on the private route; Bento's docs say the public host is checked on every request. Players farther from Virginia will see more. The stream down is unaffected. <span class="who open">O6</span></li>
+<li><b>Refused and rate-limited orders are still recorded,</b> so a hostile page can grow a battle's order log.</li>
+</ul>
+</section>
+
+<section data-t="Open and to confirm">
+<p class="k" style="border-left:3px solid var(--warning,#c9972b);padding-left:10px">Each open item now has an owning slice, listed under "Open items" in <code>specs/multiplayer/README.md</code>. Each small fact below is carried by the slice that depends on it.</p>
+<h2>Open</h2>
+<div class="scroll"><table>
+<tr><th>#</th><th>Open question</th><th>What unblocks it</th></tr>
+<tr><td>O1</td><td>Can Bento's machine hold a real 5v5 at 30 ticks a second?</td><td>Run a generated 5v5 AI skirmish on the probe app and read the late ticks. If it can't, swap the host (decision 8).</td></tr>
+<tr><td>O2</td><td>Where do native and WebAssembly first disagree?</td><td>Step both runners over the endurance battle and compare digests tick by tick.</td></tr>
+<tr><td>O3</td><td>How fast does a battle slow with age?</td><td>Run a two-hour 5v5 AI match natively and plot tick time and memory. Sets Frontline's target (54).</td></tr>
+<tr><td>O4</td><td>How big is a join snapshot after hours on a large map?</td><td>The same long run, recording snapshot bytes. The code caps a record at 64 MiB.</td></tr>
+<tr><td>O5</td><td>Does an AI cope with an army it didn't buy, at 30 units and at 150?</td><td>A test that hands a fighting army to an AI seat and checks it keeps holding its objectives.</td></tr>
+<tr><td>O6</td><td>Is 300 ms or more per order acceptable for the alpha?</td><td>Play a room battle through the public route, with someone far away, and judge the feel. If it isn't, the host swap of decision 8 comes forward.</td></tr>
+</table></div>
+
+<h2>Small facts for the builder to confirm before coding</h2>
+<ul>
+<li>Seat ids are positions today (<code>blue-1</code>), so removing a seat renumbers the rest. Online needs a seat identity that doesn't move.</li>
+<li>The link parser and the lobby model refuse more than one human, and any human on Red. Relax both on purpose.</li>
+<li>A controller change does not touch a seat's ready flag; the preparation phase ends when everyone is ready or after 60 seconds.</li>
+<li>The result screen needs only the final observation, not the replay.</li>
+<li>Leaving sends no message today; the server learns of it when the stream closes.</li>
+<li>The double right-click that upgrades a move names the first click's order, so the two must arrive in order.</li>
+<li><code>useBattleSession.ts</code> is already over the file-size budget: it may shrink but not grow.</li>
+<li>Every response needs <code>Cache-Control: no-store</code>; Bento's public cache otherwise keeps a response for 60 seconds.</li>
+<li>Binary streams are cut at 300 seconds and event streams at 240.</li>
+<li>The server must load the very simulation file the site serves, not its own build of it.</li>
+<li>Lane numbers run from one fixed end of the map. With your side always at the bottom in battle, check how they read for a Red commander.</li>
+<li>The probe app <code>mp-probe</code> is still registered, private and idle, in the <code>armata</code> workspace.</li>
+</ul>
+</section>
+
+<section data-t="Build plan">
+<p class="k" style="border-left:3px solid var(--warning,#c9972b);padding-left:10px">Superseded by the ladder in <code>specs/multiplayer/README.md</code> and its 27 slice files. Kept as the walk's first sketch; do not build from it.</p>
+<p class="k">Sorted by how likely each part is to be tweaked, not by order of work. The order of work is decision 40: foundation, rooms, Frontline.</p>
+<h2>Judgment calls</h2>
+<div class="box"><h3>Frontline's battle rules</h3>
+<p>The points target, the instant win turned off, closing at 90%, the fresh start and the army hand-over. Alternatives already weighed: a joiner inheriting the seat as it stands (no new mechanics), and a catch-up bonus for the trailing side.</p></div>
+<div class="box"><h3>How aiming feels online</h3>
+<p>Server previews capped at five a second; through Bento's public route about three a second is all a round trip allows. The alternative, if the lag is unpleasant, is answering previews in the browser from what the player's own side knows.</p></div>
+<div class="box"><h3>Reconnects and snapshots</h3>
+<p>One publisher per side with a short backlog. The alternative is a publisher per player, which costs memory and saves teammates from each other's resyncs.</p></div>
+<div class="box"><h3>The room and Frontline screens</h3>
+<p>From the mock, built with the game's own lobby components. The briefing card and the room row are the two new surfaces.</p></div>
+<div class="box"><h3>Commanding Red</h3>
+<p>Always blue and always at the bottom in battle. The lobby stays as it is: sides left and right.</p></div>
+<h2>Mechanical work</h2>
+<details><summary>Foundation</summary><ul>
+<li>A server folder that joins lint, type-checking and tests; the lobby model split free of bundler-only imports.</li>
+<li>A per-side publisher binding in the WebAssembly build.</li>
+<li>The battle host on a worker thread: clock, orders in, records out, never waiting on a player.</li>
+<li>The remote channel in the browser, behind the existing client seam, with resume by record number.</li>
+<li>Callsign and browser id; build identity check; the Bento deploy from the site's commit.</li>
+</ul></details>
+<details><summary>Rooms</summary><ul>
+<li>Room list and lobby event streams; create, join by code, seat moves, open or AI, ready, host hand-over, start.</li>
+<li>Seats closing up at the start; drop and return to your own seat.</li>
+</ul></details>
+<details><summary>Frontline</summary><ul>
+<li>Placement, creating and deleting games, the idle rule.</li>
+<li>The two recorded mechanics, each with its tests, through the mechanics skill.</li>
+</ul></details>
+</section>
+
+<section data-t="Prompt">
+<p class="k" style="border-left:3px solid var(--warning,#c9972b);padding-left:10px">Used: the spec this prompt asks for is written. To build, start from the "Next Agent Prompt" in <code>specs/multiplayer/README.md</code>, not from here.</p>
+<div class="box">
+<pre id="prompt">Write the multiplayer spec from specs/multiplayer/visualizations/unknowns-map.html, using write-spec.
+
+Treat every row of the map's decision ledger as a given, and carry each one into the spec in its own words. Do not reopen them. Where the map is silent, decide and record it in the spec's choices ledger.
+
+Slice it in the order of decision 40: foundation, rooms, Frontline. The first playable checkpoint is two browsers in one server-run battle, one commanding each side, on a local server. The first milestone is decision 53: two people on different networks finish a room battle through the Bento server.
+
+Start by burning the open items that shape the slices: O1 (a generated 5v5 on the Bento probe app), O3 and O4 (a two-hour native 5v5: tick time, memory, snapshot size). O2 and O5 get their own slices.
+
+Rooms need no new battle rules; keep it that way. Frontline's fresh start and army hand-over are rule changes: use tweak-mechanics before proposing them, and give each a recorded event so replays stay exact. Use game-ui before any screen, and build the screens from lobby-mock.html with the game's own lobby components.
+
+Confirm the "small facts" list on the map's Open tab before writing code that depends on them.</pre>
+<button class="copy" id="copy">Copy prompt</button>
+</div>
+</section>
+
+<script>
+const sections = [...document.querySelectorAll('section')];
+const nav = document.getElementById('nav');
+function show(i) {
+  sections.forEach((s, j) => s.classList.toggle('on', i === j));
+  [...nav.children].forEach((b, j) => b.setAttribute('aria-pressed', String(i === j)));
+}
+sections.forEach((s, i) => {
+  const b = document.createElement('button');
+  b.textContent = s.dataset.t;
+  b.onclick = () => show(i);
+  nav.appendChild(b);
+});
+show(0);
+document.getElementById('copy').onclick = e => {
+  navigator.clipboard?.writeText(document.getElementById('prompt').textContent);
+  e.target.textContent = 'Copied';
+  setTimeout(() => (e.target.textContent = 'Copy prompt'), 1200);
+};
+</script>
+</body>
+</html>

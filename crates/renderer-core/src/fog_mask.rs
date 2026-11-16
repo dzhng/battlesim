@@ -4,6 +4,7 @@
 use presentation::records::FogLook;
 use wgpu::*;
 
+use crate::environment::Environment;
 use crate::pipelines::Pipelines;
 use crate::Targets;
 
@@ -58,6 +59,7 @@ pub fn fog_mask(
     queue: &Queue,
     pipelines: &Pipelines,
     targets: &Targets,
+    environment: &Environment,
     record: &FogLook,
 ) -> FogMaskResources {
     let look = crate::buffer(
@@ -101,6 +103,9 @@ pub fn fog_mask(
         tex(&targets.lit),
         tex(&targets.fog_mask),
         tex(&targets.fog_distance),
+        environment.camera_buffer.as_entire_binding(),
+        tex(&targets.depth),
+        environment.data.as_entire_binding(),
     ];
     let compose = screen(
         device,

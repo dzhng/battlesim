@@ -4,8 +4,8 @@ use contract::command::OrderError;
 use contract::ids::{Side, Tick, UnitId};
 use contract::players::{ControllerKind, Player, Seating};
 use contract::skirmish::{
-    MatchEvent, MatchReport, MatchTotals, MatchUnit, PendingPurchase, Phase, PurchaseId,
-    SkirmishSetup, SkirmishView,
+    MatchEvent, MatchReport, MatchRuleSet, MatchRules, MatchTotals, MatchUnit, PendingPurchase,
+    Phase, PurchaseId, SkirmishSetup, SkirmishView,
 };
 use std::collections::{BTreeMap, VecDeque};
 
@@ -14,12 +14,13 @@ use std::collections::{BTreeMap, VecDeque};
 pub fn setup_for<P: AsRef<[Player]>>(
     players: P,
     sites: contract::encounter::SkirmishSites,
+    rules: MatchRules,
 ) -> SkirmishSetup {
     let players = players.as_ref();
     debug_assert!(contract::players::validate_players(players, Seating::Skirmish).is_ok());
     debug_assert!(contract::players::validate_entry_counts(players, &sites.entries).is_ok());
     SkirmishSetup {
-        rules: starter_rules(),
+        rules,
         sites,
         openings: BTreeMap::new(),
     }
@@ -93,6 +94,7 @@ pub struct Reservation {
     pub price: u32,
     /// What `data.carrier` cost, when the purchase has one.
     pub carrier_price: Option<u32>,
+    /// Original buyer, retained for historical spending and spawn reports.
     pub player: usize,
 }
 
@@ -122,9 +124,16 @@ impl Purchase {
     }
 }
 pub const CREDIT_SCALE: u64 = 1_000_000;
+
+/// Opening money in wallet microcredits, for both admission and seat reset.
+pub(crate) fn opening_wallet(rules: &MatchRules) -> u64 {
+    u64::from(rules.credits_per_minute) * u64::from(rules.starting_minutes) * CREDIT_SCALE
+}
+
 pub struct EnteredUnit {
     pub price: u32,
     pub entered_tick: Tick,
+    /// Current refund beneficiary; price and entry time stay with the unit.
     pub player: usize,
 }
 
@@ -181,9 +190,7 @@ impl PlayerState {
 impl Skirmish {
     pub fn new(setup: SkirmishSetup, source: &[Player]) -> Self {
         let entry_count = setup.sites.entries.len();
-        let budget = u64::from(setup.rules.credits_per_minute)
-            * u64::from(setup.rules.starting_minutes)
-            * CREDIT_SCALE;
+        let budget = opening_wallet(&setup.rules);
         let players = source
             .iter()
             .map(|p| PlayerState::new(p, budget))
@@ -416,13 +423,17 @@ impl Skirmish {
         self.objectives.digest(d);
         self.settlement.digest(d);
         d.u64(self.phase as u64).u64(self.income_remainder);
-        for p in &self.players {
+        for (index, p) in self.players.iter().enumerate() {
             d.u64(p.side.index() as u64)
                 .u64(p.wallet)
                 .u64(p.ready as u64)
                 .u64(p.next_purchase as u64);
             d.u64(p.reservations.len() as u64);
             for r in &p.reservations {
+                // Only transferred reservations need separate buyer identity.
+                if r.player != index {
+                    d.u64(u64::MAX).u64(r.player as u64);
+                }
                 d.u64(r.data.id.0 as u64)
                     .u64(r.data.kind.0 as u64)
                     .f64(r.data.destination[0])
@@ -469,7 +480,27 @@ impl Skirmish {
         Ok(())
     }
 }
-pub fn starter_rules() -> contract::skirmish::MatchRules {
-    serde_json::from_str(include_str!("../../../fixtures/skirmish.json"))
-        .expect("authored match rules")
+pub fn starter_rules() -> MatchRules {
+    resolve_rules(MatchRuleSet::Skirmish)
+}
+
+/// Resolve the selected override document over the one base match rule record.
+/// Native tools and browser/server preparation all read these authored documents.
+pub fn resolve_rules(selection: MatchRuleSet) -> MatchRules {
+    let mut document: serde_json::Value =
+        serde_json::from_str(include_str!("../../../fixtures/skirmish.json"))
+            .expect("authored base match rules");
+    let overrides = match selection {
+        MatchRuleSet::Skirmish => None,
+        MatchRuleSet::Frontline => Some(include_str!("../../../fixtures/frontline.json")),
+    };
+    if let Some(overrides) = overrides {
+        let overrides: serde_json::Map<String, serde_json::Value> =
+            serde_json::from_str(overrides).expect("authored match rule overrides");
+        document
+            .as_object_mut()
+            .expect("base match rule object")
+            .extend(overrides);
+    }
+    serde_json::from_value(document).expect("authored resolved match rules")
 }

@@ -129,7 +129,7 @@ function FogLab({ scenario }: { scenario: string }) {
     side,
   });
   const { meshes, sim, world } = session;
-  useEffect(() => sim.client?.observeAs(side), [sim.client, side]);
+  useEffect(() => sim.local?.observeAs(side), [sim.local, side]);
   const { observation } = sim;
   const [view, setView] = useState<FrameView>("final");
   /** Eyes the scene substitutes for the published ones (a turned turret). */
@@ -161,7 +161,7 @@ function FogLab({ scenario }: { scenario: string }) {
     setEyes,
     // Sent now, so a following advance already publishes the new side.
     setSide: (next: SideName) => {
-      sim.client?.observeAs(next);
+      sim.local?.observeAs(next);
       setSide(next);
     },
     agreement: () => agreement(probes(), sim.latest.current!, heightAt),

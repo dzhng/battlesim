@@ -135,8 +135,12 @@ pub struct Detail {
     /// Below this a model whose bundle carries a far mesh draws it
     /// (`view::FAR`); under `lod_px[2]`.
     pub far_px: f64,
-    /// Minimum projected footprint for a visible model to cast a sun shadow;
-    /// zero keeps every caster (the authored production control).
+    /// Minimum conservative projected footprint, in pixels, for a prop to
+    /// cast a sun shadow, whether the view sees it or not; zero keeps every
+    /// caster. Scaled by the graphics tier (`Presentation::set_detail_scale`):
+    /// authored 5, drawn 5 at High, 7 at Medium and 9 at Low, since at 9 a
+    /// car's shadow already stops about 700 m from the camera. Buildings,
+    /// trees and units do not read it.
     #[serde(default)]
     pub shadow_caster_px: f64,
 }

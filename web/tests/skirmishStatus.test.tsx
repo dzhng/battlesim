@@ -1,3 +1,4 @@
+import matchRules from "@fixtures/skirmish.json";
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
 import { SkirmishStatus } from "@apps/battle-lab/src/battleStatus";
@@ -24,15 +25,29 @@ const match: SkirmishView = {
   report: null,
 };
 test("the public match readout follows preparation, both scores and the terminal result", () => {
-  const view = render(<SkirmishStatus match={match} viewer="blue" />);
+  const view = render(
+    <SkirmishStatus target={matchRules.victory_score} match={match} viewer="blue" />,
+  );
   expect(view.getByText("PREPARATION · 60 s")).toBeTruthy();
   view.rerender(
-    <SkirmishStatus match={{ ...match, phase: "active", scores: [345.8, 120.2] }} viewer="blue" />,
+    <SkirmishStatus
+      target={matchRules.victory_score}
+      match={{ ...match, phase: "active", scores: [345.8, 120.2] }}
+      viewer="blue"
+    />,
   );
-  expect(view.getByLabelText("Your victory score").textContent).toBe("345 / 1,000");
-  expect(view.getByLabelText("Enemy victory score").textContent).toBe("120 / 1,000");
+  expect(view.getByLabelText("Your victory score").textContent).toBe(
+    `345 / ${matchRules.victory_score.toLocaleString("en-US")}`,
+  );
+  expect(view.getByLabelText("Enemy victory score").textContent).toBe(
+    `120 / ${matchRules.victory_score.toLocaleString("en-US")}`,
+  );
   view.rerender(
-    <SkirmishStatus match={{ ...match, phase: "finished", result: "red" }} viewer="blue" />,
+    <SkirmishStatus
+      target={matchRules.victory_score}
+      match={{ ...match, phase: "finished", result: "red" }}
+      viewer="blue"
+    />,
   );
   expect(view.getByText("DEFEAT")).toBeTruthy();
 });
@@ -40,6 +55,7 @@ test("the public match readout follows preparation, both scores and the terminal
 test("contested objective flags expose a flashing state", () => {
   const view = render(
     <SkirmishStatus
+      target={matchRules.victory_score}
       match={{
         ...match,
         objectives: [
@@ -72,6 +88,7 @@ test("a human playing Red reads Red's score and objectives as theirs", () => {
   });
   const view = render(
     <SkirmishStatus
+      target={matchRules.victory_score}
       match={{
         ...match,
         phase: "active",
@@ -81,8 +98,27 @@ test("a human playing Red reads Red's score and objectives as theirs", () => {
       viewer="red"
     />,
   );
-  expect(view.getByLabelText("Your victory score").textContent).toBe("120 / 1,000");
-  expect(view.getByLabelText("Enemy victory score").textContent).toBe("345 / 1,000");
+  expect(view.getByLabelText("Your victory score").textContent).toBe(
+    `120 / ${matchRules.victory_score.toLocaleString("en-US")}`,
+  );
+  expect(view.getByLabelText("Enemy victory score").textContent).toBe(
+    `345 / ${matchRules.victory_score.toLocaleString("en-US")}`,
+  );
   expect(view.getByLabelText("Objective 1: yours")).toBeTruthy();
   expect(view.getByLabelText("Objective 2: enemy")).toBeTruthy();
+});
+
+test("the score strip uses the match's target rather than a fixed skirmish target", async () => {
+  const frontline = (await import("@fixtures/frontline.json")).default;
+  const view = render(
+    <SkirmishStatus
+      target={frontline.victory_score}
+      match={{ ...match, phase: "active" }}
+      viewer="blue"
+    />,
+  );
+  for (const label of ["Your victory score", "Enemy victory score"])
+    expect(view.getByLabelText(label).textContent).toBe(
+      `0 / ${frontline.victory_score.toLocaleString("en-US")}`,
+    );
 });

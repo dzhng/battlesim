@@ -5,6 +5,7 @@ import react from "@vitejs/plugin-react";
 import { mechanicsPlugin } from "../apps/mechanics-editor/server";
 import { mapWorkbenchPlugin } from "../apps/map-workbench/server";
 import { soundWorkbenchPlugin } from "../apps/sound-workbench/server";
+import { simulationBuild } from "./simulationBuild";
 import { GAME_NAME } from "../apps/battle-lab/src/gameName";
 
 // packages/* and apps/* are source-only directories outside this vite root.
@@ -88,6 +89,16 @@ function appCommit(): string {
   }
 }
 
+/** The full commit a site build records in `build.json`: where it was built
+ *  from, never something a server compares. */
+function buildCommit(): string {
+  try {
+    return execSync("git rev-parse HEAD").toString().trim();
+  } catch {
+    return "unknown";
+  }
+}
+
 export default defineConfig({
   define: {
     __APP_COMMIT__: JSON.stringify(appCommit()),
@@ -98,6 +109,7 @@ export default defineConfig({
   cacheDir: fileURLToPath(new URL("../throwaway/vite-cache/", import.meta.url)),
   plugins: [
     react(),
+    simulationBuild(fileURLToPath(new URL("..", import.meta.url)), buildCommit()),
     assetWatch(),
     // The page's title is the game's public name.
     {

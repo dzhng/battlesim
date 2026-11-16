@@ -1,7 +1,12 @@
 import { useLabLoading } from "./LabLoading";
-import type { PreparedConnectionSession } from "@web/battle/prepare/client";
+import type { BattleConnectionSession } from "@web/battle/prepare/client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createSimClient, type Publication, type SimClient } from "@web/battle/sim/client";
+import {
+  createSimClient,
+  type Publication,
+  type OnlineSimClient,
+  type SimClient,
+} from "@web/battle/sim/client";
 import type { LearnedGround } from "@web/battle/sim/presentationGround";
 import type { ObservationView, RefusalView } from "@web/battle/sim/observationView";
 import type { AuthorityStatus } from "@web/battle/sim/protocol";
@@ -10,7 +15,7 @@ import type { SideName } from "@web/battle/sim/protocol";
 export interface SimSessionOptions {
   scenario: string;
   seed: number;
-  prepared?: PreparedConnectionSession;
+  prepared?: BattleConnectionSession;
   side?: SideName;
   /** Player issuing commands in a player-owned scenario. */
   player?: string;
@@ -51,7 +56,7 @@ interface SessionStartup {
  * observations and status; this operation keeps continuations tied to the
  * client they were created for. */
 function startSessionStartup(
-  client: SimClient,
+  client: OnlineSimClient | SimClient,
   plan: ScriptedSim | undefined,
   onWarm: () => void,
   viewportInitiallyReady: boolean,
@@ -62,7 +67,7 @@ function startSessionStartup(
   const startWhenBothReady = () => {
     if (authorityReady && viewportReady && !cancelled) client.start();
   };
-  if (plan) {
+  if (plan && "pause" in client) {
     client.pause();
     void client
       .advance(plan.warmTo)
@@ -94,7 +99,7 @@ function startSessionStartup(
   };
 }
 
-/** One worker authority for a lab scenario. Publications are consumed (their
+/** One battle connection for the page. Publications are consumed (their
  *  credit returned) as soon as they are decoded, unless the lab holds credit
  *  to stall the producer; drawing interpolates between the last two frames.
  *  Reset disposes the client and starts again from the seed. */
@@ -109,7 +114,7 @@ export function useSimSession({
   side = "blue",
 }: SimSessionOptions) {
   const [generation, setGeneration] = useState(0);
-  const [client, setClient] = useState<SimClient | null>(null);
+  const [client, setClient] = useState<OnlineSimClient | SimClient | null>(null);
   /** Why the authority failed to start (for example a mismatched replay). */
   const [error, setError] = useState<string | null>(null);
   const [observation, setObservation] = useState<ObservationView | null>(null);
@@ -143,18 +148,25 @@ export function useSimSession({
   useEffect(() => {
     const plan = scriptedRef.current;
     // Restart is a new battle: its fresh worker prepares the same scenario once.
-    const next = createSimClient({
-      scenario,
-      seed,
-      side: openSide.current,
-      player,
-      transport: "worker",
-      replay,
-      // A prepared bundle connection owns one live authority. Once the
-      // session is replaced (for example by uploading a replay), start a
-      // fresh worker rather than sending init through the closed connection.
-      connect: generation === 0 && !replay ? prepared?.connect : undefined,
-    });
+    const next =
+      !!prepared && "transport" in prepared
+        ? createSimClient({
+            transport: "remote",
+            side: openSide.current,
+            connect: prepared.connect,
+          })
+        : createSimClient({
+            scenario,
+            seed,
+            side: openSide.current,
+            player,
+            transport: "worker",
+            replay,
+            // A prepared bundle connection owns one live authority. Once the
+            // session is replaced (for example by uploading a replay), start a
+            // fresh worker rather than sending init through the closed connection.
+            connect: generation === 0 && !replay ? prepared?.connect : undefined,
+          });
     let warm = !plan;
     const operation = startSessionStartup(
       next,
@@ -226,8 +238,18 @@ export function useSimSession({
     }
   }, []);
 
+  const local = client && "pause" in client ? client : null;
   return {
     client,
+    local,
+    authorityProbes: local
+      ? {
+          pause: () => local.pause(),
+          resume: () => local.resume(),
+          advance: (n: number) => local.advance(n),
+          reset: () => setGeneration((g) => g + 1),
+        }
+      : {},
     error,
     observation,
     refusals,

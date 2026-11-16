@@ -102,12 +102,14 @@ test("presets and Add/Delete set up any match, and the size follows the larger s
   expect(menu.getByTestId("lobby-vs").textContent).toBe("3 VS 4");
   expect(menu.getByRole("radio", { name: "3v3" }).getAttribute("aria-checked")).toBe("false");
 
-  // 2v3: one less on each side. You and a side's last player can't be removed.
+  // 2v3: one less on each side. The offline human stays seated; AI rows can
+  // still be removed.
   fireEvent.click(menu.getByRole("button", { name: "Remove Blue 3" }));
   fireEvent.click(menu.getByRole("button", { name: "Remove Red 4" }));
   expect(menu.getByTestId("lobby-vs").textContent).toBe("2 VS 3");
-  expect(side(menu, "Blue").queryByRole("button", { name: "Remove Blue 1" })).toBeNull();
+  expect(menu.queryByRole("button", { name: "Remove Blue 1" })).toBeNull();
   fireEvent.click(menu.getByRole("button", { name: "Remove Blue 2" }));
+  expect(banners(menu, "Blue")).toEqual(["1You"]);
   for (const red of ["Red 3", "Red 2"])
     fireEvent.click(menu.getByRole("button", { name: `Remove ${red}` }));
   expect(menu.getByTestId("lobby-vs").textContent).toBe("1 VS 1");

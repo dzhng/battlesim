@@ -1,12 +1,12 @@
 import type { PointerIntent, PointerPick } from "@web/battle/input/pointerIntent";
-import type { SimClient } from "@web/battle/sim/client";
+import type { OnlineSimClient } from "@web/battle/sim/client";
 import type { CommandAck, Order } from "@web/battle/sim/protocol";
 
 interface CapturedAction {
   pick: PointerPick;
   intent: PointerIntent;
   generation: number;
-  client: SimClient | null;
+  client: OnlineSimClient | null;
 }
 
 interface ReleasedActionRecord {
@@ -14,7 +14,7 @@ interface ReleasedActionRecord {
   order: Order;
   queued: boolean;
   generation: number;
-  client: SimClient | null;
+  client: OnlineSimClient | null;
   ack: CommandAck | null;
 }
 
@@ -25,7 +25,7 @@ export class ReleasedAction {
   private releasing = false;
   private current: ReleasedActionRecord | null = null;
 
-  capture(pick: PointerPick, intent: PointerIntent, client: SimClient | null): void {
+  capture(pick: PointerPick, intent: PointerIntent, client: OnlineSimClient | null): void {
     const captured = {
       pick,
       intent,
@@ -35,7 +35,7 @@ export class ReleasedAction {
     this.captured = captured;
   }
 
-  capturedFor(client: SimClient | null): CapturedAction | null {
+  capturedFor(client: OnlineSimClient | null): CapturedAction | null {
     return this.captured?.client === client ? this.captured : null;
   }
 
@@ -53,7 +53,7 @@ export class ReleasedAction {
   issue(
     order: Order,
     queued: boolean,
-    client: SimClient | null,
+    client: OnlineSimClient | null,
     releasedIntent: PointerIntent | null,
   ): void {
     const captured = this.releasing ? this.captured : null;
@@ -68,7 +68,12 @@ export class ReleasedAction {
     this.releasing = false;
   }
 
-  acknowledge(order: Order, ack: CommandAck, queued: boolean, client: SimClient | null): void {
+  acknowledge(
+    order: Order,
+    ack: CommandAck,
+    queued: boolean,
+    client: OnlineSimClient | null,
+  ): void {
     const current = this.current;
     if (
       !current ||

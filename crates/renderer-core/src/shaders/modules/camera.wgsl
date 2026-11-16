@@ -50,6 +50,9 @@ struct Rays {
 // @block camera_cam
 @group(0) @binding(0) var<uniform> cam: Camera;
 
+// @block camera_cam_composeLayout
+@group(0) @binding(5) var<uniform> cam: Camera;
+
 // @block camera_projScale
 /** Clip-space units per metre at unit depth, across and up. */
 fn projScale() -> vec2f {

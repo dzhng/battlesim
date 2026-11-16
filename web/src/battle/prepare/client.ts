@@ -39,6 +39,14 @@ export interface PreparedConnectionSession {
   connect: SimConnection;
 }
 
+/** A page adopts its preparation worker, or connects to a remote authority. */
+export type BattleConnectionSession =
+  | PreparedConnectionSession
+  | {
+      transport: "remote";
+      connect: SimConnection;
+    };
+
 export interface Preparation {
   readonly battle: Promise<PreparedSession>;
   /** Close the owned worker. A cancelled pending request never settles,
