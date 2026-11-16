@@ -42,6 +42,7 @@ export function isPreview(value: unknown): value is PreviewQuery {
   if (value.kind === "purchase")
     return (
       typeof value.variant === "string" &&
+      (value.carrier === undefined || typeof value.carrier === "string") &&
       Array.isArray(value.destination) &&
       value.destination.length === 2 &&
       value.destination.every((n) => typeof n === "number" && Number.isFinite(n))

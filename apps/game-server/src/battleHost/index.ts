@@ -328,6 +328,7 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
               id,
               side,
               variant: query.variant,
+              carrier: query.carrier,
               destination: query.destination,
             };
           if (query.kind === "move") return { type: "move_preview", id, side, move: query.move };

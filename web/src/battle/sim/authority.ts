@@ -31,7 +31,13 @@ export interface SimBattle {
     orderJson: string,
     queued: boolean,
   ): string;
-  preview_purchase(side: string, variant: string, x: number, y: number): string;
+  preview_purchase(
+    side: string,
+    variant: string,
+    carrier: string | undefined,
+    x: number,
+    y: number,
+  ): string;
   preview_move(side: string, moveJson: string): string;
   preview_building(side: string, buildingJson: string): string;
   step(): number;
@@ -286,7 +292,12 @@ export function createAuthority(host: AuthorityHost): Authority {
               type: "purchase_preview",
               id: request.id,
               placement: JSON.parse(
-                battle.preview_purchase(request.side, request.variant, ...request.destination),
+                battle.preview_purchase(
+                  request.side,
+                  request.variant,
+                  request.carrier,
+                  ...request.destination,
+                ),
               ),
             }),
           );

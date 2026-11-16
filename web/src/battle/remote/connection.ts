@@ -111,7 +111,12 @@ export function remoteConnection(
       activePreview = request;
       const query: PreviewQuery =
         request.type === "purchase_preview"
-          ? { kind: "purchase", variant: request.variant, destination: request.destination }
+          ? {
+              kind: "purchase",
+              variant: request.variant,
+              carrier: request.carrier,
+              destination: request.destination,
+            }
           : request.type === "move_preview"
             ? { kind: "move", move: request.move }
             : { kind: "building", building: request.building };

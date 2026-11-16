@@ -98,10 +98,7 @@ fn players_sequence_orders_independently_in_the_same_tick() {
             Side::Blue,
             player,
             1,
-            Order::ConfirmPurchase {
-                variant: "test_tank".into(),
-                destination: goal,
-            },
+            Order::purchase("test_tank", goal),
         ));
         assert_eq!(
             ack.error, None,
@@ -117,10 +114,7 @@ fn an_ally_cannot_ready_or_cancel_another_players_purchase() {
         Side::Blue,
         "blue-1",
         1,
-        Order::ConfirmPurchase {
-            variant: "test_tank".into(),
-            destination: [400.0, 300.0],
-        },
+        Order::purchase("test_tank", [400.0, 300.0]),
     ));
     assert_eq!(ack.error, None);
     battle.step();
@@ -146,6 +140,7 @@ fn a_player_cancels_their_own_purchase_while_another_holds_the_same_number() {
             1,
             Order::ConfirmPurchase {
                 variant: "test_tank".into(),
+                carrier: None,
                 destination: [400.0, 300.0],
             },
         ));
@@ -202,10 +197,7 @@ fn each_players_cap_is_independent() {
                 Side::Blue,
                 player,
                 seq,
-                Order::ConfirmPurchase {
-                    variant: "test_tank".into(),
-                    destination: [400.0, 300.0],
-                },
+                Order::purchase("test_tank", [400.0, 300.0]),
             ));
             assert_eq!(ack.error, None, "{player} purchase {seq}");
         }
@@ -216,10 +208,7 @@ fn each_players_cap_is_independent() {
                 Side::Blue,
                 "blue-1",
                 31,
-                Order::ConfirmPurchase {
-                    variant: "test_tank".into(),
-                    destination: [400.0, 300.0],
-                }
+                Order::purchase("test_tank", [400.0, 300.0])
             ))
             .error,
         Some(contract::command::OrderError::UnitLimitReached)

@@ -713,17 +713,21 @@ impl BattleHandle {
             .map_err(js_error)
     }
 
-    /// Check a ghost destination using only the purchasing side's geometry.
+    /// Check a ghost destination using only the purchasing side's geometry;
+    /// with a `carrier`, the squad `variant` bought aboard it.
     pub fn preview_purchase(
         &mut self,
         side: &str,
         variant: &str,
+        carrier: Option<String>,
         x: f64,
         y: f64,
     ) -> Result<String, JsError> {
         let side = parse_side(side)?;
-        serde_json::to_string(&self.battle.preview_purchase(side, variant, [x, y]))
-            .map_err(js_error)
+        let preview = self
+            .battle
+            .preview_purchase(side, variant, carrier.as_deref(), [x, y]);
+        serde_json::to_string(&preview).map_err(js_error)
     }
 
     /// Resolve a proposed formation without accepting an order or advancing time.

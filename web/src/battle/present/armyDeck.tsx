@@ -30,14 +30,16 @@ const sameSet = (a: readonly number[], b: readonly number[]) =>
  *  A click selects one card, Shift-click the run of cards from the last one
  *  clicked (the anchor), and Cmd- or Ctrl-click adds or removes one. A plain
  *  click on an already selected card asks the page to centre on it. Hovering
- *  a card hovers its unit, as the pointer over the unit would. Control
- *  groups lead the deck in key order, each under a bracket (`deckLayout.ts`)
- *  with its key, and its × while the pointer is over it. */
+ *  a card hovers its unit, as the pointer over the unit would. A right-click
+ *  asks the page to find that exact unit in the reinforcements store.
+ *  Control groups lead the deck in key order, each under a bracket
+ *  (`deckLayout.ts`) with its key, and its × while the pointer is over it. */
 export function ArmyDeck({
   state,
   selected,
   onSelect,
   onCenter,
+  onLookup,
   onHover,
   rules,
   contactLines,
@@ -53,6 +55,8 @@ export function ArmyDeck({
   onSelect: (ids: number[]) => void;
   /** A plain click on a card already in `selected`: show this unit on the map. */
   onCenter?: (unit: OwnUnitView) => void;
+  /** A right-click on a card: find this exact unit in the reinforcements store. */
+  onLookup?: (unit: OwnUnitView) => void;
   /** The unit the pointer is over by its card (a rider's, its carrier, as
    *  its click picks), or null when it leaves the card. */
   onHover?: (unit: number | null) => void;
@@ -99,7 +103,17 @@ export function ArmyDeck({
     lower.current!.style.setProperty("--hud-army-detail-height", `${card.offsetHeight}px`);
   });
   const { units } = useSessionCatalog();
-  const count = own.length + pending.length;
+  // A squad bought aboard a carrier waits as two cards: the carrier, then the
+  // squad marked aboard it, as a rider on the map is.
+  const waiting = pending.flatMap((purchase) =>
+    purchase.carrier
+      ? [
+          { purchase, kind: purchase.carrier, aboard: null, key: `${purchase.id}-carrier` },
+          { purchase, kind: purchase.kind, aboard: purchase.carrier, key: `${purchase.id}` },
+        ]
+      : [{ purchase, kind: purchase.kind, aboard: null, key: `${purchase.id}` }],
+  );
+  const count = own.length + waiting.length;
   const [availableWidth, setAvailableWidth] = useState(() =>
     typeof window === "undefined" ? 1280 : window.innerWidth,
   );
@@ -121,7 +135,7 @@ export function ArmyDeck({
     ...own.filter((u) => !groupOf.has(u.id)),
   ];
   const slots = deckSlots(
-    [...cards.map((u) => groupOf.get(u.id) ?? null), ...pending.map(() => null)],
+    [...cards.map((u) => groupOf.get(u.id) ?? null), ...waiting.map(() => null)],
     rows,
   );
   /** A card in its grid cell, with its group's bracket, key and ×. */
@@ -278,6 +292,12 @@ export function ArmyDeck({
                   // A click leaves keyboard focus where it was, so Enter and
                   // Space stay the game's rather than clicking the card again.
                   onMouseDown={(event) => event.preventDefault()}
+                  // The browser's menu would cover the store's own lookup.
+                  onContextMenu={(event) => {
+                    if (!onLookup) return;
+                    event.preventDefault();
+                    onLookup(unit);
+                  }}
                   onMouseEnter={(event) => {
                     alignDetail(event.currentTarget);
                     setHovered(unit.id);
@@ -299,8 +319,10 @@ export function ArmyDeck({
                 blinks.get(unit.id),
               );
             })}
-            {pending.map((unit, index) => {
-              const name = units.type(unit.kind).name;
+            {waiting.map(({ purchase: unit, kind, aboard, key }, index) => {
+              const name = aboard
+                ? `${units.type(kind).name}, aboard ${units.type(aboard).name}`
+                : units.type(kind).name;
               // A bought aircraft waiting off the map counts down to its
               // arrival (D42); anything else waits on the queue.
               const eta =
@@ -314,16 +336,17 @@ export function ArmyDeck({
                     ? "Entry blocked"
                     : "Will be deployed";
               return slot(
-                `pending-${unit.id}`,
+                `pending-${key}`,
                 cards.length + index,
                 <button
                   type="button"
                   className={`hud-army-card hud-army-pending${eta !== null ? " hud-army-arriving" : ""}`}
                   disabled
+                  data-aboard={aboard ? "true" : undefined}
                   aria-label={`${name} — ${state}`}
                   title={`${name} — ${state}`}
                 >
-                  <UnitFace kind={unit.kind}>
+                  <UnitFace kind={kind}>
                     {eta !== null ? (
                       <span className="hud-army-eta">
                         <span>Arriving in</span> <b>{`${eta}\u2009s`}</b>
@@ -332,6 +355,7 @@ export function ArmyDeck({
                       <StrengthMeter name={name} strength={1} />
                     )}
                   </UnitFace>
+                  {aboard && <Icon path={stateIcon("seats")} className="hud-army-aboard" />}
                 </button>,
               );
             })}

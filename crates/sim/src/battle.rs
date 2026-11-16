@@ -2860,29 +2860,9 @@ impl Battle {
                 .unwrap()
                 .cancel(player.expect("validated skirmish player"), purchase)?;
         }
-        if let Order::ConfirmPurchase {
-            variant,
-            destination,
-        } = &command.order
-        {
-            let preview = self.preview_purchase(command.side, variant, *destination)?;
-            let living = self
-                .units
-                .iter()
-                .filter(|u| {
-                    u.side == command.side
-                        && u.alive()
-                        && u.owner.as_deref() == command.player.as_deref()
-                })
-                .count() as u32;
-            self.skirmish.as_mut().unwrap().reserve_at(
-                player.expect("validated skirmish player"),
-                preview.kind,
-                preview.destination,
-                self.rules.catalog.get(preview.kind).cost,
-                (crate::entries::EntryIndex(preview.entry), planning_tick + 1),
-                living,
-            )?;
+        if let Order::ConfirmPurchase { .. } = &command.order {
+            let player = player.expect("validated skirmish player");
+            self.reserve_purchase(&command, player, planning_tick)?;
         }
         let building = if let Order::OccupyBuilding {
             units,

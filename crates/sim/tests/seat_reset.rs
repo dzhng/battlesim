@@ -100,6 +100,7 @@ fn a_humans_first_order_continues_the_ai_sequence_and_drives_in_by_its_sides_roa
         "blue-1",
         Order::ConfirmPurchase {
             variant: "test_tank".into(),
+            carrier: None,
             destination: [400.0, 100.0],
         },
     );

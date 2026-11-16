@@ -28,9 +28,10 @@ type Send = Parameters<PurchasePlacementControl["confirm"]>[0];
 
 export function usePurchasePlacement(client: OnlineSimClient | null) {
   const [placement] = useState(() => new PurchasePlacementControl());
-  /** The chosen reinforcement must be requested before the cursor asks the
-   *  presentation to draw its ghost.  Keep this in React state so the art
-   *  request advances on the same render as the picker choice. */
+  /** The unit that will enter the map (a squad's carrier, else the unit
+   *  chosen) must be requested before the cursor asks the presentation to draw
+   *  its ghost.  Keep this in React state so the art request advances on the
+   *  same render as the picker choice. */
   const [placing, setPlacing] = useState<string | null>(null);
   const ghost = useRef<PurchaseGhost | null>(null);
   /** The ghosts the authority accepted, for their facing: a pending purchase
@@ -42,9 +43,9 @@ export function usePurchasePlacement(client: OnlineSimClient | null) {
     setPlacing(null);
   }, [placement]);
   const choose = useCallback(
-    (variant: string) => {
-      placement.choose(variant);
-      setPlacing(variant);
+    (variant: string, carrier?: string) => {
+      placement.choose(variant, carrier ?? null);
+      setPlacing(placement.arriving);
     },
     [placement],
   );

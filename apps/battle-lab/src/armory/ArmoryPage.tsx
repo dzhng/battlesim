@@ -1,4 +1,4 @@
-// The Armory, layout A (U1): faction tabs, group tabs and one tile per family
+// The Armory, layout A (U1): faction tabs, group tabs and one tile per card
 // on the left, the selected card's full sheet on the right, and the stage
 // between them (`ArmoryStage` on the menu; none in the UI gallery, where the
 // centre stays clear). The selection is the page's own state, mirrored to the
@@ -8,7 +8,13 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { FACTIONS, type Faction, type UnitCard } from "@packages/scene-assets/src/units";
 import type { SessionCatalog } from "@web/battle/catalog/compose";
 import { SessionCatalogScope, useSessionCatalog } from "@web/battle/catalog/context";
-import { UNIT_GROUPS, familyGroups, type UnitGroup } from "@web/battle/present/purchaseFilter";
+import {
+  UNIT_GROUPS,
+  shopOrder,
+  unitGroup,
+  type UnitGroup,
+} from "@web/battle/present/purchaseFilter";
+import { Price } from "@web/battle/present/purchaseCard";
 import { UnitFace } from "@web/battle/present/unitFace";
 import { spoken } from "../battleLinks";
 import { ArmorySheet } from "./ArmorySheet";
@@ -28,13 +34,14 @@ export interface ArmoryRoster {
   groupOf(card: UnitCard): UnitGroup;
 }
 
-/** The roster, each card under its family's group (`familyGroups`). */
+/** The roster in the shop's order, each card under its own group, as the
+ *  shop places it. */
 export function armoryRoster(catalog: SessionCatalog, cards: readonly UnitCard[]): ArmoryRoster {
   const typeOf = (id: string) => (catalog.units.has(id) ? catalog.units.type(id) : null);
-  return { cards, groupOf: familyGroups(cards, typeOf) };
+  return { cards: shopOrder(cards), groupOf: (card) => unitGroup(card, typeOf(card.id)) };
 }
 
-/** The cards one faction fields under one group, in catalog order. */
+/** The cards one faction fields under one group, in the shop's order. */
 const shown = (roster: ArmoryRoster, faction: Faction, group: UnitGroup) =>
   roster.cards.filter((c) => c.roster.factions.includes(faction) && roster.groupOf(c) === group);
 
@@ -102,9 +109,6 @@ export function ArmoryPage({ cards, stage }: ArmoryPageProps) {
   const roster = useMemo(() => armoryRoster(catalog, cards), [catalog, cards]);
   const [selection, select] = useArmorySelection(roster);
   const card = roster.cards.find((c) => c.id === selection.card);
-  const families = new Map<string, UnitCard[]>();
-  for (const c of shown(roster, selection.faction, selection.group))
-    families.set(c.family, [...(families.get(c.family) ?? []), c]);
   const group = UNIT_GROUPS.find((g) => g.id === selection.group)!;
   return (
     <>
@@ -128,7 +132,7 @@ export function ArmoryPage({ cards, stage }: ArmoryPageProps) {
           <div className="armory-tabs armory-groups" role="tablist" aria-label="Unit groups">
             {UNIT_GROUPS.map(({ id, label }) => {
               // How many tiles the tab holds, beside its name.
-              const count = new Set(shown(roster, selection.faction, id).map((c) => c.family)).size;
+              const count = shown(roster, selection.faction, id).length;
               return (
                 <button
                   key={id}
@@ -147,31 +151,24 @@ export function ArmoryPage({ cards, stage }: ArmoryPageProps) {
             })}
           </div>
           <div className="armory-tiles" role="tabpanel" aria-label={group.label}>
-            {[...families].map(([family, variants]) => {
-              // A family is planned until one of its variants has a type: its
-              // tile is greyed, as the picker greys a family never sold.
-              const typed = variants.find((v) => catalog.units.has(v.id));
+            {shown(roster, selection.faction, selection.group).map((tile) => {
+              // A card is planned until it has a type: its tile is greyed, as
+              // the picker greys a card never sold.
+              const typed = catalog.units.has(tile.id);
               return (
                 <button
-                  key={family}
+                  key={tile.id}
                   type="button"
-                  className={`hud-army-card hud-purchase-family armory-tile${typed ? "" : " unavailable"}`}
-                  data-family={family}
+                  className={`hud-army-card hud-purchase-card armory-tile${typed ? "" : " unavailable"}`}
+                  aria-label={tile.name}
                   data-cue-hover="off"
-                  aria-pressed={family === card?.family}
-                  onClick={() => select({ card: variants[0].id })}
+                  aria-pressed={tile.id === card?.id}
+                  onClick={() => select({ card: tile.id })}
                 >
-                  {/* A planned family says so; a family of several, how many. */}
-                  {(!typed || variants.length > 1) && (
-                    <span className="armory-tile-tag">
-                      {typed ? `${variants.length} VAR` : "PLANNED"}
-                    </span>
-                  )}
-                  <UnitFace kind={(typed ?? variants[0]).id}>
-                    <span className="armory-tile-name">{variants[0].roster.family_name}</span>
-                    <span className={`hud-purchase-price${typed ? "" : " unsold"}`}>
-                      {Math.min(...variants.map((v) => v.cost))} CR
-                    </span>
+                  {!typed && <span className="armory-tile-tag">PLANNED</span>}
+                  <UnitFace kind={tile.id}>
+                    <span className="armory-tile-name">{tile.name}</span>
+                    <Price cost={tile.cost} payable unsold={!typed} />
                   </UnitFace>
                 </button>
               );
@@ -180,16 +177,7 @@ export function ArmoryPage({ cards, stage }: ArmoryPageProps) {
         </div>
       </section>
       <div className="armory-stage">{card && stage?.(card, selection.faction)}</div>
-      {card && (
-        <ArmorySheet
-          card={card}
-          group={group.label}
-          variants={shown(roster, selection.faction, selection.group).filter(
-            (v) => v.family === card.family,
-          )}
-          onVariant={(id) => select({ card: id })}
-        />
-      )}
+      {card && <ArmorySheet card={card} group={group.label} />}
     </>
   );
 }

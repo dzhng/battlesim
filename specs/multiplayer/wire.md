@@ -150,7 +150,7 @@ type UpReply =
 
 ```ts
 type PreviewQuery =
-  | { kind: "purchase"; variant: string; destination: [number, number] }
+  | { kind: "purchase"; variant: string; carrier?: string; destination: [number, number] }   // carrier: the squad bought aboard it
   | { kind: "move"; move: MovePreviewRequest }
   | { kind: "building"; building: BuildingPreviewRequest };
 type PreviewAnswer =

@@ -43,16 +43,16 @@ export async function prefetchRuntimeAssets(
         ...(catalog.textures?.[entry.bundle] ?? []),
         ...(entry.skeleton ? [catalog.skeletons[entry.skeleton]] : []),
       ];
+      const textures = new Set(catalog.textures?.[entry.bundle]);
+      // A hash with no transport record has no file to warm, here as below.
       byName.set(
         name,
-        hashes.map(
-          (hash) =>
-            `${baseUrl}${
-              (catalog.textures?.[entry.bundle] ?? []).includes(hash)
-                ? texturePath(catalog.gzip![hash].hash)
-                : bundlePath(catalog.gzip![hash].hash)
-            }`,
-        ),
+        hashes.flatMap((hash) => {
+          const transport = catalog.gzip?.[hash];
+          if (!transport) return [];
+          const path = textures.has(hash) ? texturePath : bundlePath;
+          return [`${baseUrl}${path(transport.hash)}`];
+        }),
       );
       add(entry.bundle, bundlePath);
     }
@@ -141,4 +141,5 @@ export function resetRuntimePrefetch(): void {
   if (prefetchTimer !== null) clearTimeout(prefetchTimer);
   prefetchTimer = null;
   prefetchStatus = { state: "idle" };
+  priority = () => [];
 }

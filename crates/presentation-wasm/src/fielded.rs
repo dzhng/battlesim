@@ -1,8 +1,9 @@
 //! What a battle's units and effects draw from (`presentation::fielded`),
-//! resolved for the page. The page reads the files and Rust decides: it
-//! names the runtime contents it reads (`contents`), the page fetches and
-//! inflates them as it does any bundle, and `resolve` builds `load_world`'s
-//! `units` and `effects` sections and clip tables from their bytes.
+//! resolved for the page. `pending_contents` names missing content and its
+//! sources. The page fetches and inflates those files, then `absorb` borrows
+//! one content's packed bytes to derive its facts. Argument-free `resolve`
+//! builds an immutable result from those facts; presentation loads its units,
+//! effects and clip tables without sending the descriptions through the page.
 use std::borrow::Cow;
 use std::collections::HashMap;
 
@@ -78,11 +79,6 @@ impl Fielding {
         Ok(())
     }
 
-    /// The runtime contents `resolve` reads, by hash.
-    pub fn contents(&self) -> Result<Vec<String>, JsError> {
-        self.fielding().contents(&self.facts).map_err(error)
-    }
-
     /// Content-sized facts missing from this fielding, including their source hashes.
     pub fn pending_contents(&self) -> Result<String, JsError> {
         serde_json::to_string(&self.fielding().pending(&self.facts).map_err(error)?).map_err(error)
@@ -129,27 +125,7 @@ impl Fielding {
 
     /// Resolve into an immutable Rust result. Its descriptions and clip tables
     /// stay in this module; freeing the source owner does not invalidate it.
-    pub fn resolve(&mut self, bytes: &[u8], lengths: &[u32]) -> Result<Fielded, JsError> {
-        let hashes = self.contents()?;
-        if hashes.len() != lengths.len() {
-            return Err(error(format!(
-                "{} contents read, {} named",
-                lengths.len(),
-                hashes.len()
-            )));
-        }
-        let mut read = HashMap::new();
-        let mut at = 0;
-        for (hash, &len) in hashes.iter().zip(lengths) {
-            let end = at + len as usize;
-            read.insert(
-                hash.as_str(),
-                bytes
-                    .get(at..end)
-                    .ok_or_else(|| error("contents run past their bytes"))?,
-            );
-            at = end;
-        }
+    pub fn resolve(&mut self) -> Result<Fielded, JsError> {
         let fielded = fielded::Fielding {
             presentation: &self.presentation,
             rules: &self.rules,
@@ -162,9 +138,7 @@ impl Fielding {
                 .map(|[blue, red]| [blue.as_str(), red.as_str()]),
         }
         .resolve(&mut self.facts, &|hash| {
-            read.get(hash)
-                .map(|b| Cow::Borrowed(*b))
-                .ok_or(format!("content {hash} was not read"))
+            Err(format!("content {hash} was not absorbed"))
         })
         .map_err(error)?;
         Ok(Fielded {
@@ -199,7 +173,7 @@ impl Fielded {
             .ok_or_else(|| error(format!("no unit type {kind}")))
     }
 
-    /// Description work for the existing admission diagnostics.
+    /// The description work this resolve did, for the admission diagnostics.
     pub fn work(&self) -> String {
         serde_json::to_string(&self.inner.work).expect("fielding work serializes")
     }

@@ -502,8 +502,8 @@ fn appearance_facts(
     let table = if table.is_empty() {
         None
     } else {
-        // Equal clip tables keep one stable name across discovery orders. Signed
-        // zero compares equal in the former table deduplication too.
+        // Equal clip tables keep one name whatever order they are found in:
+        // the name hashes their floats, and signed zeros count as equal.
         let bytes: Vec<u8> = table
             .iter()
             .flat_map(|&v| (if v == 0.0 { 0.0 } else { v }).to_le_bytes())

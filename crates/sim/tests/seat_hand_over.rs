@@ -46,6 +46,7 @@ pub(super) fn buy(battle: &mut Battle, player: &str, variant: &str) {
             player,
             Order::ConfirmPurchase {
                 variant: variant.into(),
+                carrier: None,
                 destination: [400.0, 100.0]
             }
         )
@@ -322,6 +323,7 @@ fn a_receiver_keeps_an_over_cap_army_and_can_buy_only_after_combat_losses() {
     battle.set_controllers(vec![("blue-2".into(), ControllerKind::Human)]);
     let purchase = || Order::ConfirmPurchase {
         variant: "test_tank".into(),
+        carrier: None,
         destination: [400.0, 100.0],
     };
     assert_eq!(
@@ -335,6 +337,7 @@ fn a_receiver_keeps_an_over_cap_army_and_can_buy_only_after_combat_losses() {
                 Some("red-1".into()),
                 Order::ConfirmPurchase {
                     variant: "test_seat_attacker".into(),
+                    carrier: None,
                     destination: [400.0, 100.0]
                 },
                 false

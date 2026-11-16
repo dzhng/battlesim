@@ -114,10 +114,7 @@ fn returns_home(rules: &Rules, (lane, objective, share): (usize, usize, f64)) ->
         encounter: None,
     };
     let mut battle = sim::battle::Battle::from_prepared(&setup, SEED, prepared);
-    let purchase = Order::ConfirmPurchase {
-        variant: TRUCK.into(),
-        destination: spot,
-    };
+    let purchase = Order::purchase(TRUCK, spot);
     assert!(battle
         .accept(command(1, Side::Blue, purchase))
         .error

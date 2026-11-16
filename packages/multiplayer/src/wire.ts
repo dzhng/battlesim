@@ -36,7 +36,8 @@ export type UpReply =
   | { seq: number; refused: "not_seated" | "rate" | "invalid" };
 
 export type PreviewQuery =
-  | { kind: "purchase"; variant: string; destination: [number, number] }
+  /** With `carrier`, the squad `variant` bought aboard it. */
+  | { kind: "purchase"; variant: string; carrier?: string; destination: [number, number] }
   | { kind: "move"; move: MovePreviewRequest }
   | { kind: "building"; building: BuildingPreviewRequest };
 export type PreviewAnswer =

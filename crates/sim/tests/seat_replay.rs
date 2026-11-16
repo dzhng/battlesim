@@ -113,6 +113,7 @@ fn no_seat_events_preserve_the_pre_feature_tick_digests_and_replay_shape() {
             for order in [
                 Order::ConfirmPurchase {
                     variant: "test_tank".into(),
+                    carrier: None,
                     destination: [400.0, 280.0],
                 },
                 Order::Ready,

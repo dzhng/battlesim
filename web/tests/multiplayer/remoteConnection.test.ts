@@ -99,6 +99,28 @@ test("only one order batch is in flight; its late reply retries the same seq and
   expect(c.failures).toEqual([]);
 });
 
+test("a purchase preview asks the server about the carrier the player chose", async () => {
+  vi.useFakeTimers();
+  const c = connected();
+  const asked: unknown[] = [];
+  c.port.onPreview((query) => {
+    asked.push(query);
+    return Promise.resolve({ dropped: true });
+  });
+  c.channel.send({
+    type: "purchase_preview",
+    id: 1,
+    side: "blue",
+    variant: "a squad",
+    carrier: "its carrier",
+    destination: [3, 4],
+  });
+  await flush();
+  expect(asked).toEqual([
+    { kind: "purchase", variant: "a squad", carrier: "its carrier", destination: [3, 4] },
+  ]);
+});
+
 test("previews keep only the newest waiting intent, settle dropped requests, and never retry", async () => {
   vi.useFakeTimers();
   const c = connected();

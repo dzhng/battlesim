@@ -10,7 +10,8 @@ component units, such as authored vehicle speeds, follow their own schema.
 [Commands](src/command.rs) address authoritative units or side-scoped target
 handles. [Observations](src/observation.rs) contain admitted side evidence; renderer
 knowledge cannot expand that vocabulary with hidden state. Board and Collect pair
-squads with a carrier, and Unload names only the carrier. A refusal that names one
+squads with a carrier, and Unload names only the carrier; a purchase may name a
+carrier too, buying the squad aboard it. A refusal that names one
 unit is a typed order error, at the order or later on the frame. A unit inside
 something publishes its host once, on its own row (`hold`); a carrier's seats used
 is derived from its riders, never published twice.

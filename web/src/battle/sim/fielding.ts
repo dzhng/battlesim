@@ -49,9 +49,10 @@ export class FieldingOwner {
       }
       const { fielding } = (this.made ??= { fielding: createFielding(input), source });
       fielding.set_kinds(JSON.stringify(input.kinds));
-      const result = await resolveFielding(fielding, input);
-      // Publishing and battle staging share the art-work budget. Yield when
-      // resolving spent it; small growths can finish in this same frame.
+      const result = await resolveFielding(fielding, input, () => this.closed);
+      // Yield when resolving spent this frame's art-work budget, so what the
+      // caller does with the result starts in a fresh frame; a small growth
+      // finishes in this one.
       if (artWork.exhausted()) await artFrame();
       if (this.closed) throw new Error("fielding owner is closed");
       this.last = { source, kinds: input.kinds, result };
@@ -152,6 +153,7 @@ async function resolveFielding(
   input: {
     runtime: RuntimeFiles;
   },
+  closed: () => boolean,
 ): Promise<FieldedUnits> {
   const pending = JSON.parse(fielding.pending_contents()) as {
     bundle: string;
@@ -166,8 +168,8 @@ async function resolveFielding(
     for (const hash of hashes(content)) uses.set(hash, (uses.get(hash) ?? 0) + 1);
   const sources = new Map<string, Uint8Array<ArrayBuffer>>();
   try {
-    // Inflate independent inputs together through the existing reader. The
-    // browser streams gzip asynchronously; only absorption spends frame work.
+    // Inflate independent inputs together: the browser streams gzip off the
+    // frame, and only absorption spends frame work.
     const reads = await Promise.allSettled(
       [...uses.keys()].map(async (hash) => {
         const [file] = await input.runtime.contents([hash]);
@@ -179,6 +181,8 @@ async function resolveFielding(
     for (const content of pending) {
       const needed = hashes(content);
       if (artWork.exhausted()) await artFrame();
+      // A battle that has ended stops spending the frames the next one needs.
+      if (closed()) throw new Error("fielding owner is closed");
       artWork.run(() => {
         const files = needed.map((hash) => sources.get(hash)!);
         const lengths = Uint32Array.from(files, (file) => file.length);
@@ -208,7 +212,7 @@ async function resolveFielding(
   }
   if (artWork.exhausted()) await artFrame();
   return artWork.run(() => {
-    const result = fielding.resolve(new Uint8Array(), new Uint32Array());
+    const result = fielding.resolve();
     diagnosticsEvent("battle fielded", JSON.parse(result.work()));
     return result;
   });

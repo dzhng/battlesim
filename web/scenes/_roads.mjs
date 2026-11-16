@@ -115,12 +115,16 @@ const lane = (mask, half, m, within) => [
 /** How much darker a road's ruts are than its surface beside them (midway
  *  from a rut's outer side to the road's edge), as a share of that surface,
  *  in a bare-ground frame. */
-function rutContrast({ bare, mask }, { row, half }) {
+function rutContrast({ bare, mask }, { row, half }, without) {
   const outer = Math.max(...row.ruts.offsets_m) + row.ruts.width_m / 2;
   const ruts = row.ruts.offsets_m.flatMap((m) => lane(mask, half, m, 0.07));
   const between = lane(mask, half, (outer + half) / 2, 0.15);
+  const contrast = (png) =>
+    1 - meanColour(png, ruts).luminance / meanColour(png, between).luminance;
   return {
-    contrast: 1 - meanColour(bare, ruts).luminance / meanColour(bare, between).luminance,
+    contrast: contrast(bare) - contrast(without.bare),
+    withRuts: contrast(bare),
+    withoutRuts: contrast(without.bare),
     pixels: [ruts.length, between.length],
   };
 }
@@ -245,10 +249,17 @@ export async function roadLooks(ctx) {
   const strip = stripHue(close, dirtTrack);
   const far = await stationFrame(river, "river", "track-250");
   const farStrip = stripHue(far, dirtTrack);
+  // Compare each band with itself with only the ruts absent. Surface grain
+  // can make two different bands unequal even when no rut is drawn.
+  const noRuts = structuredClone(BIOME);
+  noRuts.roads.dirt_track.ruts.tilt_deg = 0;
+  noRuts.roads.dirt_track.ruts.tint = 0;
+  const plain = await openStations(ctx, "river", { biome: noRuts });
   const ruts = {
-    "track-25": rutContrast(close, dirtTrack),
-    "track-250": rutContrast(far, dirtTrack),
+    "track-25": rutContrast(close, dirtTrack, await stationFrame(plain, "river", "track-25")),
+    "track-250": rutContrast(far, dirtTrack, await stationFrame(plain, "river", "track-250")),
   };
+  await plain.close();
   const junction = await stationFrame(river, "river", "junction-65");
   bands["river junction-65"] = coreAgainstGrass(junction);
   ctx.check(
@@ -309,7 +320,7 @@ export async function roadLooks(ctx) {
     JSON.stringify({ clumps, field }),
   );
   ctx.check(
-    "a track's ruts show from the ground camera and are gone at the tactical one",
+    "a track's ruts darken its bands close up and add no contrast at the tactical camera",
     ruts["track-25"].contrast > 0.02 &&
       Math.abs(ruts["track-250"].contrast) < 0.006 &&
       Object.values(ruts).every((r) => r.pixels.every((count) => count > 200)),

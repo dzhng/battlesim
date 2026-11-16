@@ -34,6 +34,7 @@ fn holding(rules: MatchRules, held: usize) -> Battle {
             1,
             Order::ConfirmPurchase {
                 variant: "test_tank".into(),
+                carrier: None,
                 destination,
             },
         ),

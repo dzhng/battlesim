@@ -88,6 +88,7 @@ fn assemble_army(battle: &mut Battle, size: usize) {
             Some(BLUE_PLAYER.into()),
             Order::ConfirmPurchase {
                 variant: "test_tank".into(),
+                carrier: None,
                 destination: [[300.0, 180.0], [600.0, 180.0], [900.0, 180.0]][index % 3],
             },
             false,
@@ -575,6 +576,7 @@ fn parade(size: usize, seed: u64) -> Battle {
             Some(BLUE_PLAYER.into()),
             Order::ConfirmPurchase {
                 variant: "test_tank".into(),
+                carrier: None,
                 destination: [[150.0, 300.0], [400.0, 300.0], [650.0, 300.0]][index % 3],
             },
             false,

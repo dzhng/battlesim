@@ -84,6 +84,7 @@ fn main() {
                 Some("blue-1".into()),
                 contract::command::Order::ConfirmPurchase {
                     variant: variant.clone(),
+                    carrier: None,
                     destination: [600.0, 180.0],
                 },
                 false,

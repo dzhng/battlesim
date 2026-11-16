@@ -1,4 +1,5 @@
 // @vitest-environment node
+import type { PreviewQuery } from "../../../packages/multiplayer/src/wire";
 import { afterEach, beforeAll, beforeEach, describe, expect, test } from "vitest";
 import { type BattleEnd } from "../../../apps/game-server/src/battleHost/index";
 import { loopback } from "../../../packages/multiplayer/src/link";
@@ -276,6 +277,19 @@ describe.each([false, true])("battle host (remote: %s)", (remote) => {
     // Both seats, the sender's included, go on giving orders.
     expect((await red.order({ kind: "ready" })).error).toBeNull();
     expect((await blue.order({ kind: "ready" })).error).toBeNull();
+  });
+
+  test("a purchase preview's carrier reaches the battle", async () => {
+    const b = await battle(duel);
+    const blue = seat(b, { side: "blue", player: "blue-1" });
+    await b.run(3);
+    const on: PreviewQuery = { kind: "purchase", variant: cards[0], destination: [0, 0] };
+    const onFoot = await blue.link.preview(on);
+    // A carrier the battle does not know is the battle's to refuse: the
+    // answer differs from the same purchase with none.
+    const aboard = await blue.link.preview({ ...on, carrier: "no such carrier" });
+    expect("purchase" in onFoot && "purchase" in aboard).toBe(true);
+    expect(aboard).not.toEqual(onFoot);
   });
 
   test("a battle whose simulation fails says it crashed, ends every stream and settles every request", async () => {

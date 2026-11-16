@@ -391,24 +391,18 @@
   align-items: start;
   color: rgb(var(--hud-dim));
 }
-/* Before a visitor plays: the game is unfinished, and its source is open.
-   Read once, so it stands small under the entries, behind a thin accent
-   rule; the repository's address is its one link. */
+/* A note read once, small under a page's entries, behind a thin accent
+   rule: on home that the game is unfinished, on the Developer page where its
+   source lives, the repository's address its one link. */
 .menu-notice {
-  display: grid;
-  gap: 4px;
   padding-left: 10px;
   border-left: 1px solid rgb(var(--hud-accent) / 0.45);
   font-size: 11px;
   line-height: 1.45;
-  color: rgb(var(--hud-dim));
+  color: rgb(var(--hud-text));
 }
 .menu-notice p {
   margin: 0;
-}
-/* What can go wrong reads first, in the plate's own text colour. */
-.menu-notice p:first-child {
-  color: rgb(var(--hud-text));
 }
 .hud-panel .menu-notice a {
   text-transform: none;

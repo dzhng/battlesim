@@ -55,7 +55,7 @@ test("wasm fielding admits an unmounted blast-only row and refuses mounted copie
       "[]",
     );
     try {
-      const resolve = () => fielding.resolve(new Uint8Array(), new Uint32Array());
+      const resolve = () => fielding.resolve();
       if (mounted)
         expect(resolve).toThrow("weapons.ambient_blast.appearance: missing firing tracer");
       else expect(resolve).not.toThrow();
@@ -148,17 +148,24 @@ test("consecutive wasm battles field and sound their own resolved encounter rule
     );
     let sound: SoundFrame | undefined;
     try {
-      const files = fielding
-        .contents()
-        .map((hash) =>
-          gunzipSync(
-            readFileSync(new URL(`${runtimeCatalog.gzip[hash].hash}/bundle.bin`, runtime)),
-          ),
+      const pending = JSON.parse(fielding.pending_contents()) as {
+        bundle: string;
+        skeleton?: string;
+      }[];
+      for (const content of pending) {
+        const files = [content.bundle, ...(content.skeleton ? [content.skeleton] : [])].map(
+          (hash) =>
+            gunzipSync(
+              readFileSync(new URL(`${runtimeCatalog.gzip[hash].hash}/bundle.bin`, runtime)),
+            ),
         );
-      const sections = fielding.resolve(
-        Buffer.concat(files),
-        Uint32Array.from(files, (f) => f.length),
-      );
+        fielding.absorb(
+          JSON.stringify(content),
+          new Uint8Array(Buffer.concat(files)),
+          Uint32Array.from(files, (file) => file.length),
+        );
+      }
+      const sections = fielding.resolve();
       const look = (
         changed ? "tank_he" : base.weapons.tank_ap.appearance
       ) as keyof typeof presentationSettings.weapon_looks;

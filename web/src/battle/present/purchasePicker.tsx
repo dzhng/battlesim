@@ -1,43 +1,64 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import type { Faction, UnitCard } from "@packages/scene-assets/src/units";
 import { hudIcon } from "@packages/scene-assets/src/icons";
+import type { Vec2 } from "math";
+import { triangle2 } from "math/shapes";
 import { isTypingTarget } from "../input/keyGuard";
 import { useSessionCatalog } from "../catalog/context";
 import { Icon } from "./icons";
-import { InfoPanel } from "./infoPanel";
 import { purchasePanel, type PanelRules } from "./panelRows";
+import { PurchaseInfo, ShopCard } from "./purchaseCard";
 import {
   cardPurchasable,
+  carrierSections,
   enterChoice,
   filterCards,
+  shopOrder,
   UNIT_GROUPS,
-  familyGroups,
+  unitGroup,
   type BuyFacts,
   type UnitGroup,
 } from "./purchaseFilter";
-import { UnitFace } from "./unitFace";
+import {
+  ON_FOOT,
+  optionCarrier,
+  optionPurchasable,
+  TransportMenu,
+  transportOptions,
+} from "./transportMenu";
 import type { PlayerView, SkirmishView } from "../sim/observationView";
+
+/** A request to show one exact card in the store, from a unit card's
+ *  right-click. `serial` changes on every request, so asking for the same
+ *  unit twice opens it twice. */
+export interface PurchaseLookup {
+  card: string;
+  serial: number;
+}
+
 interface PickerProps {
   cards: readonly UnitCard[];
   faction: Faction;
   match: SkirmishView;
   player?: PlayerView;
-  onChoose: (variant: string) => void;
+  /** Starts placing `variant`; a squad bought in a ride names its `carrier`. */
+  onChoose: (variant: string, carrier?: string) => void;
   /** What a purchase's info card is built with, as the deck's are. */
   rules: PanelRules;
   /** Whether the shop's key answers: off while a menu or result covers it. */
   enabled?: boolean;
+  /** A unit card was right-clicked: open the store on this exact variant. */
+  lookup?: PurchaseLookup | null;
+  /** The request was taken: the page clears it, so a remount cannot replay it. */
+  onLookupHandled?: () => void;
 }
-/** A price: gold when the credits can pay it, the "can't" red when they
- *  can't, and plain text for what is never sold, since no credits buy it. */
-function Price({ cost, credits, unsold }: { cost: number; credits: number; unsold: boolean }) {
-  const state = unsold ? " unsold" : cost > credits ? " too-dear" : "";
-  return <span className={`hud-purchase-price${state}`}>{cost} CR</span>;
-}
-
-/** How long the pointer rests on another family, while a menu is open,
- *  before the hover moves to it. */
-const HOVER_INTENT_MS = 250;
+/** How long an open transport menu holds while the pointer heads into it
+ *  across another card. Past it, the card the pointer stopped on takes over;
+ *  a pointer moving any other way switches at once. */
+const MENU_AIM_MS = 300;
+/** Pointer positions kept to read its heading: few enough to follow a turn,
+ *  enough to steady a shaky hand. */
+const HEADING_SAMPLES = 3;
 
 /** The shop's key. Tab, not a letter, so every letter stays a search
  *  character and no command key is spent: one key opens the shop, enters its
@@ -55,12 +76,34 @@ const isShopTab = (event: KeyboardEvent) =>
   !event.repeat;
 
 /** The Reinforcements button, its key and the credits. The menu exists only
- *  while open, so every opening starts fresh: first group, empty filter. */
-export function PurchasePicker({ match, player, enabled = true, ...menu }: PickerProps) {
+ *  while open, so every plain opening starts fresh: first group, empty
+ *  filter. A lookup instead opens on its exact card. */
+export function PurchasePicker({
+  match,
+  player,
+  enabled = true,
+  lookup,
+  onLookupHandled,
+  ...menu
+}: PickerProps) {
   const viewingPlayer = player ?? match.players[0];
-  if (!viewingPlayer) return null;
   const [open, setOpen] = useState(false);
+  const [reveal, setReveal] = useState<PurchaseLookup | null>(null);
+  const seenLookup = useRef(0);
   const button = useRef<HTMLButtonElement>(null);
+  // A unit card's right-click is one request: open the store on that exact
+  // card, and leave it there. Closing clears it, so the button opens fresh.
+  useEffect(() => {
+    if (!lookup || lookup.serial === seenLookup.current) return;
+    seenLookup.current = lookup.serial;
+    onLookupHandled?.();
+    setReveal(lookup);
+    setOpen(true);
+  }, [lookup, onLookupHandled]);
+  const close = () => {
+    setOpen(false);
+    setReveal(null);
+  };
   // The key opens the shop; once it is open, the menu owns the key.
   useEffect(() => {
     if (!enabled || open) return;
@@ -72,6 +115,7 @@ export function PurchasePicker({ match, player, enabled = true, ...menu }: Picke
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [enabled, open]);
+  if (!viewingPlayer) return null;
   return (
     <div className="hud-reinforcements" data-occludes-readouts>
       <div className="hud-purchase-controls">
@@ -83,7 +127,13 @@ export function PurchasePicker({ match, player, enabled = true, ...menu }: Picke
           aria-keyshortcuts={REINFORCEMENTS_KEY.label}
           aria-expanded={open}
           title={`Reinforcements (${REINFORCEMENTS_KEY.label})`}
-          onClick={() => setOpen(!open)}
+          onClick={() => {
+            if (open) close();
+            else {
+              setReveal(null);
+              setOpen(true);
+            }
+          }}
         >
           Reinforcements
         </button>
@@ -94,15 +144,17 @@ export function PurchasePicker({ match, player, enabled = true, ...menu }: Picke
       {open && (
         <PurchaseMenu
           {...menu}
+          key={reveal?.serial ?? "browse"}
+          reveal={reveal}
           enabled={enabled}
           match={match}
           player={viewingPlayer}
-          onChoose={(variant) => {
-            menu.onChoose(variant);
-            setOpen(false);
+          onChoose={(...choice) => {
+            menu.onChoose(...choice);
+            close();
           }}
           onClose={() => {
-            setOpen(false);
+            close();
             button.current?.focus();
           }}
         />
@@ -113,12 +165,15 @@ export function PurchasePicker({ match, player, enabled = true, ...menu }: Picke
 
 interface MenuProps extends Omit<PickerProps, "player"> {
   player: PlayerView;
+  /** The exact card a unit card's right-click asked for, if any. */
+  reveal?: PurchaseLookup | null;
   /** Escape (the field's once its filter is empty) closes the menu and
    *  returns focus to the button. */
   onClose: () => void;
 }
 
-/** Catalog families organize browsing; only a concrete available variant starts placement. */
+/** One card per variant, each under its own group's tab; clicking one starts
+ *  placing exactly that variant. Hovering a squad opens its transport menu. */
 function PurchaseMenu({
   cards,
   faction,
@@ -128,12 +183,34 @@ function PurchaseMenu({
   rules,
   onClose,
   enabled,
+  reveal,
 }: MenuProps) {
   const catalog = useSessionCatalog();
-  const [group, setGroup] = useState<UnitGroup>(UNIT_GROUPS[0].id);
-  const [family, setFamily] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
+  const available = cards.filter((c) => c.roster.factions.includes(faction));
+  // A planned card has no type: it is neither a squad nor a carrier.
+  const typed = (id: string) => catalog.units.has(id);
+  const groupOf = (c: UnitCard) => unitGroup(c, typed(c.id) ? catalog.units.type(c.id) : null);
+  // A lookup starts on the exact card's group and shows that one card, with
+  // its info card open. Its filter holds the full name so the state explains
+  // itself; the id is what keeps the result exact.
+  const revealed = reveal ? (available.find((c) => c.id === reveal.card) ?? null) : null;
+  const [group, setGroup] = useState<UnitGroup>(revealed ? groupOf(revealed) : UNIT_GROUPS[0].id);
+  const [hovered, setHovered] = useState<string | null>(revealed?.id ?? null);
+  // The transport menu's highlighted option, for the squad it was chosen in:
+  // another squad's menu opens with nothing highlighted.
+  const [pick, setPick] = useState<{ squad: string; option: string } | null>(null);
+  const [query, setQuery] = useState(
+    revealed ? `${revealed.roster.family_name} ${revealed.roster.variant}` : "",
+  );
+  /** The exact card a lookup holds, until the player edits the filter. */
+  const [exact, setExact] = useState<string | null>(revealed?.id ?? null);
   const search = useRef<HTMLInputElement>(null);
+  // The card a heading-in pointer crossed, waiting to take over the menu.
+  const crossed = useRef<string | null>(null);
+  const crossTimer = useRef<number | undefined>(undefined);
+  const trail = useRef<Vec2[]>([]);
+  const transport = useRef<HTMLElement>(null);
+  const infoId = useId();
   // The field waits for the key, so game keys stay the game's while the shop
   // is open; the key enters the field and, pressed in it, leaves it. Escape
   // anywhere but the field (which clears itself first) closes the shop ahead
@@ -157,117 +234,177 @@ function PurchaseMenu({
     window.addEventListener("keydown", onKey, { capture: true });
     return () => window.removeEventListener("keydown", onKey, { capture: true });
   }, [enabled]);
+  useEffect(() => () => window.clearTimeout(crossTimer.current), []);
   const facts: BuyFacts = {
     credits: player.credits,
     unitCount: player.unitCount,
     maxUnits: player.cap,
     finished: match.phase === "finished",
   };
-  const available = cards.filter((c) => c.roster.factions.includes(faction));
-  const searching = query.trim() !== "";
-  // The menu hangs from its family's card's top-left corner, measured
-  // after every render from the card itself (whatever chose the family),
-  // inside the picker's border, where absolute positions start.
+  const searching = query.trim() !== "" || exact !== null;
+  // A search spans the roster; browsing shows the cards under the open tab.
+  // A lookup is the one exact card, by id rather than by a name another
+  // variant might share.
+  const squadSize = (c: UnitCard) => (typed(c.id) ? catalog.units.squadSize(c.id) : 0);
+  const shown = shopOrder(
+    exact
+      ? available.filter((c) => c.id === exact)
+      : searching
+        ? filterCards(available, query)
+        : available.filter((c) => groupOf(c) === group),
+  );
+  const hoveredCard = shown.find((c) => c.id === hovered) ?? null;
+  // A squad on sale has a transport menu: the hovered one's, or with nothing
+  // hovered, the one squad a search narrows to.
+  const sole = searching && shown.length === 1 ? shown[0] : null;
+  const candidate = hoveredCard ?? sole;
+  const squad =
+    candidate && squadSize(candidate) > 0 && candidate.disabled_reason === null ? candidate : null;
+  const sections = squad
+    ? carrierSections(
+        squadSize(squad),
+        available,
+        (c) => (typed(c.id) ? catalog.units.seats(c.id) : 0),
+        groupOf,
+      )
+    : [];
+  const option = squad && pick?.squad === squad.id ? pick.option : null;
+  // A card without a transport menu shows its one info card.
+  const info = squad ? null : hoveredCard;
+  // The info card hangs from its card's top-left corner, measured after every
+  // render from the card itself, inside the picker's border, where absolute
+  // positions start.
   const flyout = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const menu = flyout.current;
     const picker = menu?.closest<HTMLElement>(".hud-purchase-picker");
-    const card = picker?.querySelector<HTMLElement>(`[data-family="${family}"]`);
+    const card = picker?.querySelector<HTMLElement>(`[data-card="${hovered}"]`);
     if (!menu || !picker || !card) return;
     const at = card.getBoundingClientRect();
     const box = picker.getBoundingClientRect();
     menu.style.left = `${at.left - box.left - picker.clientLeft}px`;
     menu.style.top = `${at.top - box.top - picker.clientTop}px`;
   });
-  // Hover intent, as a web menu has it: while a menu is open, crossing
-  // another card on the way into the menu does not close it. Moving onto
-  // another family switches only after a pause; reaching the menu cancels.
-  const pendingHover = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const cancelHover = () => {
-    if (pendingHover.current) clearTimeout(pendingHover.current);
-    pendingHover.current = null;
+  // Buys a transport option, when it can be bought now.
+  const buy = (rider: UnitCard, option: string) => {
+    const carrier = optionCarrier(sections, option);
+    if (!optionPurchasable(rider, carrier, facts)) return;
+    if (carrier) onChoose(rider.id, carrier.id);
+    else onChoose(rider.id);
   };
-  const hover = (id: string | null, menuOpen: boolean) => {
-    cancelHover();
-    const show = () => setFamily(id);
-    if (menuOpen && id !== family) pendingHover.current = setTimeout(show, HOVER_INTENT_MS);
-    else show();
+  // While a transport menu is open the arrow keys step its highlight, the
+  // camera's no longer: on foot, then each section cheapest first, round.
+  const step = useRef<(by: 1 | -1) => void>(() => {});
+  step.current = (by) => {
+    if (!squad) return;
+    const options = transportOptions(sections);
+    const at = option === null ? (by > 0 ? -1 : options.length) : options.indexOf(option);
+    const next = options[(at + by + options.length) % options.length];
+    setPick({ squad: squad.id, option: next });
   };
-  // A search spans the roster; browsing shows the group each family sits
-  // under (`familyGroups`). Both feed the same family grouping.
-  const typeOf = (id: string) => (catalog.units.has(id) ? catalog.units.type(id) : null);
-  const groupOf = familyGroups(available, typeOf);
-  const pool = searching
-    ? filterCards(available, query)
-    : available.filter((c) => groupOf(c) === group);
-  const families = new Map<string, UnitCard[]>();
-  for (const card of pool) {
-    const variants = families.get(card.family) ?? [];
-    variants.push(card);
-    families.set(card.family, variants);
-  }
-  const chosen = families.get(family ?? "") ?? [];
-  // Enter buys the sole family's first available variant; with several
-  // families shown, it no-ops.
-  const enter = searching ? enterChoice(pool, facts) : null;
+  const menuOpen = enabled && squad !== null;
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+      event.preventDefault();
+      event.stopPropagation();
+      step.current(event.key === "ArrowDown" ? 1 : -1);
+    };
+    window.addEventListener("keydown", onKey, { capture: true });
+    return () => window.removeEventListener("keydown", onKey, { capture: true });
+  }, [menuOpen]);
+  // Enter buys the sole match; a squad's, in the highlighted ride or on foot.
+  // With several shown, it no-ops.
+  const enter = () => {
+    if (squad && squad === sole) buy(squad, option ?? ON_FOOT);
+    else {
+      const choice = searching ? enterChoice(shown, facts) : null;
+      if (choice) onChoose(choice.id);
+    }
+  };
+  // A crossed card stops waiting: the pointer reached the menu or moved on.
+  const cancelCrossing = () => {
+    window.clearTimeout(crossTimer.current);
+    crossed.current = null;
+  };
+  // The pointer moves to another card, or off them all: a menu it opens
+  // again starts with nothing highlighted.
+  const point = (id: string | null) => {
+    cancelCrossing();
+    if (id === hovered) return;
+    setHovered(id);
+    setPick(null);
+  };
+  // Whether the pointer is heading into the open transport menu: where it is
+  // now lies in the triangle from where it was a few moves back to the
+  // menu's bottom corners. The menu stands on its card, so heading in is
+  // heading up; a pointer that hasn't moved heads nowhere.
+  const headingIn = () => {
+    const box = transport.current?.getBoundingClientRect();
+    const from = trail.current[0];
+    const at = trail.current[trail.current.length - 1];
+    if (!box || !from || !at || (from[0] === at[0] && from[1] === at[1])) return false;
+    return triangle2.containsPoint(from, [box.left, box.bottom], [box.right, box.bottom], at);
+  };
+  // Another card under a pointer heading into the open transport menu waits
+  // for the pointer to stop there or turn away; anything else follows at once.
+  const hoverCard = (id: string) => {
+    if (squad && squad.id === hovered && id !== hovered && headingIn()) {
+      window.clearTimeout(crossTimer.current);
+      crossed.current = id;
+      crossTimer.current = window.setTimeout(() => point(id), MENU_AIM_MS);
+    } else point(id);
+  };
+  // Every move reads the pointer's heading; one that turns away from the
+  // menu hands it to the card it crossed.
+  const move = (x: number, y: number) => {
+    trail.current = [...trail.current.slice(1 - HEADING_SAMPLES), [x, y]];
+    if (crossed.current && !headingIn()) point(crossed.current);
+  };
   // A tab is shown as soon as the pointer or focus reaches it; a click does
   // the same, for touch. Passing back over the shown tab changes nothing.
   const showGroup = (g: UnitGroup) => {
     if (searching || g === group) return;
     setGroup(g);
-    cancelHover();
-    setFamily(null);
+    point(null);
   };
   return (
     <section
       className="hud-panel hud-purchase-picker"
       aria-label="Faction units"
-      onMouseLeave={() => hover(null, false)}
+      onMouseMove={(event) => move(event.clientX, event.clientY)}
+      onMouseLeave={() => {
+        trail.current = [];
+        point(null);
+      }}
     >
       <div
-        className="hud-purchase-families"
+        className="hud-purchase-cards"
         role="tabpanel"
         aria-label={searching ? "Search results" : UNIT_GROUPS.find((g) => g.id === group)?.label}
       >
-        {[...families].map(([id, variants]) => {
-          // Every card has its generated silhouette, keyed by card id: a
-          // unit type's from its model, a disabled card's from its source.
-          const unavailable = variants.every((v) => v.disabled_reason !== null);
-          const shown = variants.find((v) => v.disabled_reason === null) ?? variants[0];
-          const firstAvailable = variants.find((v) => cardPurchasable(v, facts));
-          return (
-            <button
-              key={id}
-              type="button"
-              className={`hud-army-card hud-purchase-family${unavailable ? " unavailable" : firstAvailable ? "" : " short"}`}
-              aria-label={variants[0].roster.family_name}
-              aria-pressed={id === family}
-              data-family={id}
-              // A click never takes the text cursor out of the field.
-              onMouseDown={(event) => event.preventDefault()}
-              onMouseEnter={() => hover(id, chosen.length > 0)}
-              onFocus={() => hover(id, false)}
-              onClick={() => {
-                cancelHover();
-                setFamily(id);
-                if (firstAvailable) onChoose(firstAvailable.id);
-              }}
-            >
-              <UnitFace kind={shown.id}>
-                <Price
-                  cost={Math.min(...variants.map((v) => v.cost))}
-                  credits={facts.credits}
-                  unsold={unavailable}
-                />
-              </UnitFace>
-            </button>
-          );
-        })}
-        {searching && families.size === 0 && <p className="hud-purchase-empty">NO MATCH</p>}
+        {shown.map((card) => (
+          <ShopCard
+            key={card.id}
+            face={card}
+            label={card.name}
+            cost={card.cost}
+            payable={card.cost <= facts.credits}
+            purchasable={cardPurchasable(card, facts)}
+            pressed={card.id === hovered}
+            describedBy={card === info ? infoId : undefined}
+            data={{ "data-card": card.id }}
+            onHover={() => hoverCard(card.id)}
+            onChoose={() => onChoose(card.id)}
+          />
+        ))}
+        {searching && shown.length === 0 && <p className="hud-purchase-empty">NO MATCH</p>}
       </div>
-      {/* The tabs stand under the cards, so a family's info cards, standing
-          on its card, never cover them. The filter stands at the row's right,
-          beside the tabs, and dims them while it owns the search. */}
+      {/* The tabs stand under the cards, so a card's info card, standing on
+          it, never covers them. The filter stands at the row's right, beside
+          the tabs, and dims them while it owns the search. */}
       <div className="hud-purchase-filter">
         <div className="hud-purchase-groups" role="tablist" aria-label="Unit groups">
           {UNIT_GROUPS.map(({ id, label }) => (
@@ -287,7 +424,7 @@ function PurchaseMenu({
             </button>
           ))}
         </div>
-        <label className="hud-purchase-search">
+        <label className="hud-purchase-search" data-lookup={exact ? "true" : undefined}>
           <Icon path={hudIcon("search")} />
           <input
             ref={search}
@@ -297,61 +434,55 @@ function PurchaseMenu({
             autoComplete="off"
             spellCheck={false}
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setExact(null);
+            }}
             onKeyDown={(event) => {
-              if (event.key === "Enter" && enter) {
+              if (event.key === "Enter") {
                 event.preventDefault();
-                onChoose(enter.id);
+                enter();
               }
               if (event.key === "Escape") {
                 // Keep the page's own Escape (the pause menu) out of a field
                 // the player is using: clear first, then close.
                 event.preventDefault();
-                if (query) setQuery("");
-                else onClose();
+                if (searching) {
+                  setQuery("");
+                  setExact(null);
+                  point(null);
+                } else onClose();
               }
             }}
           />
         </label>
       </div>
-      {/* The hovered family's info cards, one per variant (one for a
-          family of one), stacked in a hover menu standing on its card,
-          over the picker, so the picker never changes size: the deck's
-          own info panel, with the price. Clicking a card buys it. The
-          menu's transparent foot bridges the gap for the pointer;
-          leaving the picker closes it. */}
-      {chosen.length > 0 && (
-        <div className="hud-purchase-flyout" ref={flyout} onMouseEnter={cancelHover}>
-          <div
-            className="hud-purchase-stack"
-            role="group"
-            aria-label={`${chosen[0].roster.family_name} variants`}
-          >
-            {/* The dearest on top, the cheapest nearest the pointer. */}
-            {[...chosen]
-              .sort((a, b) => b.cost - a.cost)
-              .map((card) => (
-                <button
-                  key={card.id}
-                  type="button"
-                  className="hud-panel hud-card hud-purchase-info"
-                  disabled={!cardPurchasable(card, facts)}
-                  aria-label={`${card.roster.variant} — ${card.cost} credits${card.disabled_reason !== null ? " — Unavailable" : ""}`}
-                  onClick={() => onChoose(card.id)}
-                >
-                  <InfoPanel panel={purchasePanel(catalog, card, rules)} />
-                  <span className="hud-purchase-info-foot">
-                    {card.disabled_reason !== null && <small>Unavailable</small>}
-                    <Price
-                      cost={card.cost}
-                      credits={facts.credits}
-                      unsold={card.disabled_reason !== null}
-                    />
-                  </span>
-                </button>
-              ))}
-          </div>
+      {/* The hovered card's info card, standing on its card over the picker,
+          so the picker never changes size. */}
+      {info && (
+        <div className="hud-purchase-flyout" ref={flyout}>
+          <PurchaseInfo
+            id={infoId}
+            card={info}
+            panel={purchasePanel(catalog, info, rules)}
+            credits={facts.credits}
+            short={!cardPurchasable(info, facts)}
+          />
         </div>
+      )}
+      {squad && (
+        <TransportMenu
+          key={squad.id}
+          squad={squad}
+          sections={sections}
+          facts={facts}
+          rules={rules}
+          option={option}
+          onOption={(option) => setPick({ squad: squad.id, option })}
+          onBuy={(option) => buy(squad, option)}
+          frame={transport}
+          onEnter={cancelCrossing}
+        />
       )}
     </section>
   );
