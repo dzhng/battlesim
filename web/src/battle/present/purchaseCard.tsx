@@ -6,6 +6,8 @@ import type { UnitCard } from "@packages/scene-assets/src/units";
 import { InfoPanel } from "./infoPanel";
 import type { Panel } from "./panelRows";
 import { UnitFace } from "./unitFace";
+import { hudIcon, type HudIcon } from "@packages/scene-assets/src/icons";
+import { Icon } from "./icons";
 
 /** A price: gold when the credits can pay it, the "can't" red when they
  *  can't, and plain text for what is never sold, since no credits buy it.
@@ -30,12 +32,13 @@ export function Price({
   );
 }
 
-/** A card for sale: `face`'s role and silhouette over its price. It can be
+/** A card for sale: a unit face or travel icon, with an optional price. It can be
  *  hovered whether or not it can be bought now (`aria-disabled` says it
  *  can't), so the player can still read what it is; a click buys only while
  *  `purchasable`. */
 export function ShopCard({
   face,
+  icon,
   label,
   cost,
   payable,
@@ -48,8 +51,11 @@ export function ShopCard({
   onChoose,
 }: {
   face: UnitCard;
+  /** A travel option's mark in place of the unit face. */
+  icon?: HudIcon;
   label: string;
-  cost: number;
+  /** No price for a travel choice that adds no carrier. */
+  cost?: number;
   payable: boolean;
   add?: boolean;
   purchasable: boolean;
@@ -79,11 +85,12 @@ export function ShopCard({
         if (purchasable) onChoose();
       }}
     >
-      {/* Every card has its generated silhouette, keyed by card id: a unit
-          type's from its model, a disabled card's from its source. */}
-      <UnitFace kind={face.id}>
-        <Price cost={cost} payable={payable} unsold={unsold} add={add} />
-      </UnitFace>
+      {icon ? (
+        <Icon path={hudIcon(icon)} className="hud-purchase-icon" />
+      ) : (
+        <UnitFace kind={face.id} />
+      )}
+      {cost !== undefined && <Price cost={cost} payable={payable} unsold={unsold} add={add} />}
     </button>
   );
 }

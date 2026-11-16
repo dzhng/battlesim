@@ -645,12 +645,17 @@ async function controls(ctx) {
   );
   await select(page, [small]);
   await page.keyboard.press("KeyU");
-  // The map's one building, a corner shop round (360, 250), brought into view.
-  await lab(page, () =>
-    window.__lab.setCamera({ ...window.__lab.camera(), target: [330, 240, 0] }),
-  );
+  // The map's building, brought into view and pointed at mid-height.
+  const shopProp = (await lab(page, () => window.__lab.route.buildings()))[0]?.parts[0];
+  if (!shopProp) throw new Error("the transport map has no building");
+  const [sx, sy] = shopProp.center;
+  await lab(page, (at) => window.__lab.setCamera({ ...window.__lab.camera(), target: at }), [
+    sx,
+    sy,
+    shopProp.baseZ,
+  ]);
   await page.evaluate(() => window.__lab.frame());
-  const shop = await project(page, [360, 250, 6]);
+  const shop = await project(page, [sx, sy, shopProp.baseZ + shopProp.half[2]]);
   await page.mouse.move(...shop);
   const intoCursor = await cursorBecomes(page, "unload_garrison");
   seq = await newestSeq(page);
