@@ -42,8 +42,8 @@ pub struct VolleyFire {
     /// its missile until it lands.
     pub guiding: u64,
     /// Something can still act on the target: for a ground point, a row
-    /// working on it; for a unit or contact, a row that can hurt it, while
-    /// one works on it or the unit can go after it.
+    /// working on it or the unit closing on it; for a unit or contact, a row
+    /// that can hurt it, while one works on it or the unit can go after it.
     pub can_act: bool,
 }
 

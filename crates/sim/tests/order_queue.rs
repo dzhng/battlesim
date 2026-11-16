@@ -571,22 +571,42 @@ fn an_attack_nothing_can_hurt_hands_off_at_once() {
     until(&mut b, 3, "the attack handed off", |b| !attacking(b, 0));
 }
 
-/// An attack on ground out of every gun's reach hands off at once when an
-/// order is queued behind it, and waits, aiming, as the last order.
+/// An attack on ground out of every gun's reach closes on its aim and fires
+/// its volley before an order queued behind it takes over; as the last
+/// order, it closes and keeps firing.
 #[test]
-fn an_attack_on_ground_out_of_reach_hands_off_only_when_queued() {
-    let map = json!({ "size": [6000, 600], "fog_cell_m": 8, "height_grid_m": 4,
+fn an_attack_on_ground_out_of_reach_closes_and_fires_before_handing_off() {
+    let map = json!({ "size": [3000, 600], "fog_cell_m": 8, "height_grid_m": 4,
         "slope_cutoff_deg": 35, "props": [] })
     .to_string();
     let units =
         json!([{ "side": "blue", "kind": "test_tank", "position": [200.0, 300.0], "yaw": 0.0 }]);
-    let far = [5800.0, 300.0];
+    let rules = common::rules();
+    let tank = rules.catalog.index("test_tank").unwrap();
+    let (_, reach) = sim::strike::reach_m(&rules, &sim::weapons::Arsenal::new(&rules), tank)
+        .expect("the tank strikes an area");
+    let far = [200.0 + reach + 300.0, 300.0];
     let mut last = Battle::new(&common::scenario(&map, units.clone(), json!([])), 1);
     Commander::new().ok(&mut last, Side::Blue, ground_at(0, far));
+    // Its rounds from any gun: the first to come in reach fires first.
+    let fired = |b: &Battle| {
+        b.unit(UnitId(0))
+            .unwrap()
+            .mounts
+            .iter()
+            .map(|m| m.shots)
+            .sum::<u32>()
+    };
+    until(
+        &mut last,
+        ticks(90.0),
+        "the last attack closed and fired",
+        |b| fired(b) > 0,
+    );
     for _ in 0..ticks(10.0) {
         last.step();
     }
-    assert!(attacking(&last, 0), "the last attack waits, aiming");
+    assert!(attacking(&last, 0), "the last attack fights on");
     let mut b = Battle::new(&common::scenario(&map, units, json!([])), 1);
     let mut c = Commander::new();
     c.ok(&mut b, Side::Blue, ground_at(0, far));
@@ -595,7 +615,34 @@ fn an_attack_on_ground_out_of_reach_hands_off_only_when_queued() {
         None
     );
     b.step();
-    until(&mut b, 3, "the attack handed off", |b| !attacking(b, 0));
+    until(&mut b, ticks(90.0), "the attack handed off", |b| {
+        !attacking(b, 0)
+    });
+    assert!(fired(&b) > 0, "it handed off without firing");
+}
+
+/// A garrison fires from its building or not at all: told to strike ground
+/// past every gun's reach with an order queued behind, it has nothing to do
+/// there and hands off at once, where a unit in the open closes first.
+#[test]
+fn a_garrison_hands_off_a_ground_aim_out_of_reach() {
+    let mut b = town(json!([{ "side": "blue", "kind": "test_rifle", "position": [350.0, 300.0] }]));
+    let mut c = Commander::new();
+    let inside = |b: &Battle| b.unit(UnitId(0)).unwrap().garrisoned();
+    let enter = Order::OccupyBuilding {
+        units: vec![UnitId(0)],
+        building: BUILDING,
+        gesture: 0,
+    };
+    c.ok(&mut b, Side::Blue, enter);
+    until(&mut b, ticks(90.0), "the squad inside", inside);
+    // The map's far corner: beyond a rifle's reach from the building.
+    c.ok(&mut b, Side::Blue, ground_at(0, [790.0, 590.0]));
+    let leave = Order::ExitBuilding {
+        units: vec![UnitId(0)],
+    };
+    assert_eq!(c.send(&mut b, Side::Blue, leave, true), None);
+    until(&mut b, ticks(20.0), "out of the building", |b| !inside(b));
 }
 
 /// An anti-tank team told to attack a vehicle, with a move queued, stays

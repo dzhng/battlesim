@@ -3,6 +3,8 @@
 //! strike at all. The page draws them round the attack-ground cursor and the
 //! unit, so the marks say what the simulation does.
 use contract::catalog::{AltitudeLayer, FlightModel, TypeIndex};
+use contract::command::{OrderError, Refusal};
+use contract::ids::UnitId;
 use contract::scenario::Rules;
 
 use crate::air::pass::{choose_weapon, firing_range_m, pass_weapon, PassWeapon};
@@ -43,6 +45,36 @@ pub fn reach_m(rules: &Rules, arsenal: &Arsenal, kind: TypeIndex) -> Option<(f64
             ))
         })
         .reduce(|(near, far), (n, f)| (near.min(n), far.max(f)))
+}
+
+/// Refuse at the command, one by one, every unit in an attack on the ground
+/// `point` that stands inside its minimum range of it ([`reach_m`]), keeping
+/// the rest; refused whole when none is left. Only an order taking effect
+/// now is judged: where a queued one sets off from is not known yet.
+pub(crate) fn refuse_too_close(
+    rules: &Rules,
+    arsenal: &Arsenal,
+    units: &[crate::units::Unit],
+    ordered: &mut Vec<UnitId>,
+    point: [f64; 3],
+) -> Result<Vec<Refusal>, OrderError> {
+    let mut refused = Vec::new();
+    ordered.retain(|&id| {
+        let unit = &units[id.0 as usize];
+        let distance = (unit.position.xy() - crate::math::v2(point[0], point[1])).length();
+        let close = reach_m(rules, arsenal, unit.kind).is_some_and(|(near, _)| distance < near);
+        if close {
+            refused.push(Refusal {
+                unit: id,
+                reason: OrderError::TooClose,
+            });
+        }
+        !close
+    });
+    if ordered.is_empty() {
+        return Err(OrderError::TooClose);
+    }
+    Ok(refused)
 }
 
 /// The radius round a ground aim `distance_m` from a unit of `kind` within

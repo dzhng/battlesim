@@ -25,7 +25,8 @@ garrisons and jets in a dogfight. C3's volley progress.
 - a launcher with a magazine and no burst fires its whole magazine as one volley; a
   part-spent magazine fires what is left (counts read from the test weapon's data);
 - riflemen attacking an armoured target with a move queued hand off on the first tick;
-- an attack-ground out of every row's range hands off when queued, waits aiming when last;
+- an attack-ground out of every row's range closes on its aim and fires its volley before
+  handing off when queued, and closes and keeps firing when last;
 - a garrisoned squad with no window facing the point hands off (known unknown 2).
 Unit test in `volley.rs`: the `complete` truth table.
 

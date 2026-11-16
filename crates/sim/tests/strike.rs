@@ -126,11 +126,9 @@ fn a_footprint_holds_the_blast_and_grows_with_range_within_reach() {
     );
 }
 
-/// The reach the page draws is the one the simulation holds to: ordered to
-/// strike just inside its reach a ground unit fires, and just past it, or
-/// just inside its minimum range, it holds where it stands.
-#[test]
-fn a_ground_unit_strikes_only_inside_its_reach_and_never_closes() {
+/// The test rules with the test jeep's one mount a launcher that strikes
+/// only between a minimum range and its reach.
+fn launcher_rules() -> serde_json::Value {
     let mut fixture = sim::fixtures::test_rules();
     fixture["weapons"]["test_launcher"] = json!({
         "extends": "artillery_mortar", "range_m": 650, "min_range_m": 200, "round_cost": 1,
@@ -145,56 +143,147 @@ fn a_ground_unit_strikes_only_inside_its_reach_and_never_closes() {
         json!({ "mounts": [{ "id": "HMG", "name": "Launcher", "weapons": ["test_launcher"],
             "turret": true, "pivot_m": [0, 0, 1.68], "muzzle_m": [1.43, 0, 0.32] }] }),
     );
+    fixture
+}
+
+/// Where the launcher stands, facing east along its aims.
+const AT: [f64; 2] = [100.0, 300.0];
+
+/// `units` of blue on a flat field under `fixture`, every one ordered to
+/// strike the ground `d` metres east of [`AT`]: the battle and the order's
+/// refusal, if it was refused whole.
+fn shelling(
+    fixture: &serde_json::Value,
+    units: serde_json::Value,
+    d: f64,
+) -> (Battle, Option<contract::command::OrderError>) {
+    let count = units.as_array().unwrap().len() as u32;
+    let setup = serde_json::from_value(json!({
+        "map": { "size": [1400, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": fixture, "units": units, "events": [], "scripts": [],
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    let ack = b.accept(CommandEnvelope {
+        side: Side::Blue,
+        player: None,
+        seq: 1,
+        queued: false,
+        order: Order::Attack {
+            units: (0..count).map(UnitId).collect(),
+            target: TargetRef::Ground {
+                point: [AT[0] + d, AT[1], 0.0],
+            },
+        },
+    });
+    (b, ack.error)
+}
+
+fn jeep() -> serde_json::Value {
+    json!({ "side": "blue", "kind": "test_jeep", "position": AT, "yaw": 0.0 })
+}
+
+/// Whether `unit` fired over `seconds`.
+fn fires(b: &mut Battle, unit: UnitId, seconds: u32) -> bool {
+    let mut fired = false;
+    for _ in 0..seconds * b.rules().tick_hz {
+        b.step();
+        fired |= b.rounds().any(|(_, r)| r.unit == unit);
+    }
+    fired
+}
+
+fn moved(b: &Battle, unit: UnitId, from: [f64; 2]) -> f64 {
+    (b.unit(unit).unwrap().position.xy() - sim::math::v2(from[0], from[1])).length()
+}
+
+/// The reach the page draws is the one the simulation holds to: a ground
+/// unit strikes an aim within it from where it stands, and only there.
+#[test]
+fn a_ground_unit_strikes_an_aim_within_its_reach_from_where_it_stands() {
+    let fixture = launcher_rules();
     let rules: Rules = serde_json::from_value(fixture.clone()).unwrap();
     let arsenal = Arsenal::new(&rules);
-    let jeep = rules.catalog.index("test_jeep").unwrap();
-    let (near, far) = reach_m(&rules, &arsenal, jeep).unwrap();
-    let at = [100.0, 300.0];
-    for (d, fires) in [
-        (near - 10.0, false),
-        (near + 10.0, true),
-        (far - 10.0, true),
-        (far + 10.0, false),
-    ] {
+    let kind = rules.catalog.index("test_jeep").unwrap();
+    let (near, far) = reach_m(&rules, &arsenal, kind).unwrap();
+    for d in [near - 10.0, far + 10.0] {
         assert_eq!(
-            footprint_m(&rules, &arsenal, jeep, d).is_some(),
-            fires,
+            footprint_m(&rules, &arsenal, kind, d),
+            None,
             "the footprint at {d} m"
         );
-        let setup = serde_json::from_value(json!({
-            "map": { "size": [1000, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
-            "rules": fixture,
-            "units": [{ "side": "blue", "kind": "test_jeep", "position": at, "yaw": 0.0 }],
-            "events": [], "scripts": [],
-        }))
-        .unwrap();
-        let mut b = Battle::new(&setup, 1);
-        let ack = b.accept(CommandEnvelope {
-            side: Side::Blue,
-            player: None,
-            seq: 1,
-            queued: false,
-            order: Order::Attack {
-                units: vec![UnitId(0)],
-                target: TargetRef::Ground {
-                    point: [at[0] + d, at[1], 0.0],
-                },
-            },
-        });
-        assert_eq!(ack.error, None);
-        let mut fired = false;
-        for _ in 0..30 * rules.tick_hz {
-            b.step();
-            fired |= b.rounds().any(|(_, r)| r.unit == UnitId(0));
-        }
-        assert_eq!(fired, fires, "struck at {d} m");
-        let moved = b.unit(UnitId(0)).unwrap().position.xy() - sim::math::v2(at[0], at[1]);
+    }
+    for d in [near + 10.0, far - 10.0] {
         assert!(
-            moved.length() < 0.5,
-            "it closed {:.1} m on an aim {d} m off",
-            moved.length()
+            footprint_m(&rules, &arsenal, kind, d).is_some(),
+            "the footprint at {d} m"
+        );
+        let (mut b, refused) = shelling(&fixture, json!([jeep()]), d);
+        assert_eq!(refused, None);
+        assert!(fires(&mut b, UnitId(0), 30), "it never struck at {d} m");
+        assert!(
+            moved(&b, UnitId(0), AT) < 0.5,
+            "it moved to strike at {d} m"
         );
     }
+}
+
+/// Ordered to strike past its reach, a unit drives toward the aim until it
+/// can strike it, stops there and fires, as an attack on a unit closes.
+#[test]
+fn an_attack_on_ground_past_reach_closes_until_it_can_strike() {
+    let fixture = launcher_rules();
+    let rules: Rules = serde_json::from_value(fixture.clone()).unwrap();
+    let kind = rules.catalog.index("test_jeep").unwrap();
+    let (_, far) = reach_m(&rules, &Arsenal::new(&rules), kind).unwrap();
+    let d = far + 300.0;
+    let (mut b, refused) = shelling(&fixture, json!([jeep()]), d);
+    assert_eq!(refused, None);
+    assert!(fires(&mut b, UnitId(0), 90), "it never struck");
+    let closed = moved(&b, UnitId(0), AT);
+    assert!(closed > 250.0, "it closed only {closed:.0} m of 300");
+    // Its reach runs from its muzzle, a little ahead of where it stands.
+    let left = d - (b.unit(UnitId(0)).unwrap().position.x - AT[0]);
+    assert!(
+        left < far + 5.0 && left > far - 100.0,
+        "it stopped {left:.0} m from the aim"
+    );
+}
+
+/// Ordered to strike inside its minimum range, the order is refused, and
+/// says so: alone, the whole order is refused; beside a unit that can strike
+/// there, that unit takes it and the one too close is refused on its own.
+#[test]
+fn an_attack_on_ground_inside_minimum_range_is_refused() {
+    let fixture = launcher_rules();
+    let rules: Rules = serde_json::from_value(fixture.clone()).unwrap();
+    let kind = rules.catalog.index("test_jeep").unwrap();
+    let (near, _) = reach_m(&rules, &Arsenal::new(&rules), kind).unwrap();
+    let d = near - 50.0;
+    let (mut b, refused) = shelling(&fixture, json!([jeep()]), d);
+    assert_eq!(refused, Some(contract::command::OrderError::TooClose));
+    assert!(!fires(&mut b, UnitId(0), 10), "it struck too close");
+
+    let tank = json!({ "side": "blue", "kind": "test_tank", "position": [AT[0], AT[1] + 30.0], "yaw": 0.0 });
+    let (mut b, refused) = shelling(&fixture, json!([jeep(), tank]), d);
+    assert_eq!(refused, None, "the tank can strike there");
+    b.step();
+    let told = b.observe(Side::Blue).refusals.clone();
+    assert_eq!(
+        told,
+        vec![contract::command::Refusal {
+            unit: UnitId(0),
+            reason: contract::command::OrderError::TooClose
+        }]
+    );
+    let (mut tank_fired, mut jeep_fired) = (false, false);
+    for _ in 0..20 * rules.tick_hz {
+        b.step();
+        tank_fired |= b.rounds().any(|(_, r)| r.unit == UnitId(1));
+        jeep_fired |= b.rounds().any(|(_, r)| r.unit == UnitId(0));
+    }
+    assert!(tank_fired, "the tank never struck");
+    assert!(!jeep_fired, "the jeep struck too close");
 }
 
 #[test]

@@ -100,6 +100,8 @@ fn only_a_contract_breaking_refusal_is_malformed() {
         OrderError::CapacityFull,
         OrderError::NoRoomToUnload,
         OrderError::MatchFinished,
+        // Judged from where the unit stands when the order takes effect.
+        OrderError::TooClose,
     ] {
         assert!(!world.is_malformed(), "{world:?}");
     }

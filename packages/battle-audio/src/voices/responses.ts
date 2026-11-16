@@ -107,6 +107,7 @@ export const REFUSALS: ReadonlySet<string> = new Set([
   "not_a_building",
   "capacity_full",
   "no_room_to_unload",
+  "too_close",
   "not_a_carrier",
   "aboard",
   "wrong_player",

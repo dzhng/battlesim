@@ -322,7 +322,8 @@ export function Tutorial() {
             <kbd>{CommandBindings.attack_ground.label}</kbd> then left-click to fire on a patch of
             ground, such as a treeline you suspect. Dashed rings show how near and far the unit can
             fire from where it stands, and the circle where its rounds can land shows only inside
-            them. Right-click cancels.
+            them. Aimed past the outer ring, the unit drives until it can fire; inside the inner
+            ring the order is refused as too close. Right-click cancels.
           </li>
           <li>
             <kbd>{CommandBindings.toggle_fire_policy.label}</kbd> switches between{" "}

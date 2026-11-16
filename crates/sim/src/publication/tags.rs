@@ -90,7 +90,7 @@ pub(super) const STEP_KINDS: [&str; 8] = [
 ];
 /// Every refusal the contract names, in its order; a new reason appends here
 /// and to the codec vectors.
-pub(super) const ORDER_ERROR_NAMES: [&str; 27] = [
+pub(super) const ORDER_ERROR_NAMES: [&str; 28] = [
     "passive_side",
     "not_skirmish",
     "match_finished",
@@ -118,6 +118,7 @@ pub(super) const ORDER_ERROR_NAMES: [&str; 27] = [
     "no_room_to_unload",
     "aboard",
     "ai_controlled",
+    "too_close",
 ];
 pub(super) const REASONS: [ActionReason; 16] = [
     ActionReason::Firing,

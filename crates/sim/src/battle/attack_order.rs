@@ -101,7 +101,8 @@ impl Battle {
                         .fold(0, |rows, s| rows | 1 << s.mount),
                     guiding,
                     can_act: match target {
-                        Target::Ground(_) => working != 0,
+                        // A garrison fires from its building or not at all.
+                        Target::Ground(_) => working != 0 || (reach.needs_closer && !garrisoned),
                         _ => reach.can_damage && (working != 0 || !garrisoned),
                     },
                 })
@@ -118,7 +119,8 @@ impl Battle {
 
     /// An attack pursues an identified target it cannot fire on from here, or
     /// its last reported place once identification lapses (W17); it ends on
-    /// arriving there unseen, or when its area expires unidentified. A
+    /// arriving there unseen, or when its area expires unidentified. An
+    /// attack on the ground closes on an aim no row reaches, and never ends. A
     /// garrisoned attack fires from the building and never walks out, so it
     /// ends as soon as its target is lost.
     pub(super) fn update_pursuit(&mut self) {
@@ -166,7 +168,16 @@ impl Battle {
                     },
                 },
                 Target::Contact(c) => knowledge.ground_contact(c).is_none(),
-                Target::Ground(_) => false,
+                // An aim past every row's reach is closed on until one reaches.
+                Target::Ground(p) => {
+                    if out_of_reach {
+                        unit.pursuit = Some(Pursuit {
+                            to: p.xy(),
+                            searching: false,
+                        });
+                    }
+                    false
+                }
                 Target::Round(_) => true,
             };
             if done {

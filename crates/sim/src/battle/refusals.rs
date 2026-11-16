@@ -1,5 +1,6 @@
 //! The units an order refuses one by one as it is given, keeping the rest:
-//! a squad too big for its carrier, a carrier with no room to unload.
+//! a squad too big for its carrier, a carrier with no room to unload, a unit
+//! inside its minimum range of a ground aim.
 
 use super::*;
 
@@ -15,6 +16,23 @@ impl Battle {
         let mut refused =
             hold::refuse_oversized_riders(&self.units, &mut command.order, &self.rules)
                 .unwrap_or(building_refused);
+        if let (
+            Order::Attack {
+                units,
+                target: TargetRef::Ground { point },
+            },
+            false,
+        ) = (&mut command.order, command.queued)
+        {
+            let point = *point;
+            refused.extend(crate::strike::refuse_too_close(
+                &self.rules,
+                &self.arsenal,
+                &self.units,
+                units,
+                point,
+            )?);
+        }
         if let Order::Unload {
             units, goal: None, ..
         } = &command.order
