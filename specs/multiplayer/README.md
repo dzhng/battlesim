@@ -23,18 +23,9 @@ Rust passes one or two at a time; under 5 GB, start nothing and ask the user.
 
 **Done and committed:** slices 02 to 08, 10 to 18, 20 to 26 and 28, and the
 local half of 09; the endurance half of slice 01. The branch holds staging
-as of the morning of 2026-11-15; staging has since gained about 80 commits
-(the battle-growth renderer work), which merge without conflict. Merge them
-after slice 26 is in and before the closeout's full run, not under a pass
-that is taking pictures. **Rooms work end to end on a local server:** two browsers
+as of the evening of 2026-11-15 (merge `bab8d3c95`). **Rooms work end to end on a local server:** two browsers
 create a room, start its battle, survive a drop and finish
 ([how to run it](slices/18-room-battle.md)).
-
-**Slice 28 as built:** local startup allocates one child process per battle,
-with acknowledged seating and an authenticated resumable control stream. The
-lobby no longer serves battle routes; tickets point at the battle listener.
-The [slice](slices/28-battle-process.md#as-built-2026-11-15) records the control
-contract and the ignored implementation report holds verification evidence.
 
 **Pick up here, in this order:**
 
