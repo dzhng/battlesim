@@ -633,6 +633,69 @@ test("oversized orders and batches are invalid before recording, and both seats 
   expect((await b.host.referee()).tick).toBeGreaterThan(tick);
 });
 
+test("an order too large to admit is refused to its page once, and the page's next order goes", async () => {
+  const { httpLink } = await import("../../src/battle/remote/httpLink");
+  const { remoteConnection } = await import("../../src/battle/remote/connection");
+  const b = await serving();
+  const pageClock = new PageClock();
+  const link = httpLink(b.base, "duel", blueId);
+  const replies: import("../../src/battle/sim/protocol").SimReply[] = [];
+  const attempts: number[] = [];
+  const channel = remoteConnection(
+    {
+      ...link,
+      up(batch) {
+        attempts.push(batch.seq);
+        return link.up(batch);
+      },
+    },
+    pageClock,
+  )(
+    (reply) => replies.push(reply),
+    () => {},
+  );
+  const seat = { side: "blue", player: "blue-1" } as const;
+  try {
+    const before = await b.host.replay();
+    channel.send({
+      type: "command",
+      id: 7,
+      order: { kind: "stop", units: Array(MAX_ORDER_UNITS + 1).fill(1) },
+      queued: false,
+      seat,
+    });
+    await vi.waitFor(() =>
+      expect(replies).toContainEqual({
+        type: "request_refused",
+        request: "command",
+        id: 7,
+        reason: "invalid",
+      }),
+    );
+    await pageClock.advance(60_000);
+    expect(attempts).toHaveLength(1);
+    expect(await b.host.replay()).toBe(before);
+    channel.send({
+      type: "command",
+      id: 8,
+      order: { kind: "ready" },
+      queued: false,
+      seat,
+    });
+    await vi.waitFor(() =>
+      expect(replies).toContainEqual(
+        expect.objectContaining({
+          type: "ack",
+          id: 8,
+          ack: expect.objectContaining({ error: null }),
+        }),
+      ),
+    );
+  } finally {
+    channel.close();
+  }
+});
+
 test("an older tab's sequence refusal settles its orders once and never retries them", async () => {
   const { httpLink } = await import("../../src/battle/remote/httpLink");
   const { remoteConnection } = await import("../../src/battle/remote/connection");
