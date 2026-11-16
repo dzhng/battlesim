@@ -1,5 +1,5 @@
 // Art against the simulation's box: a vehicle's hull, and a scenery prop's
-// footprint, face by face.
+// footprint, face by face, and the ground every model stands on.
 
 import type { Vec3 } from "math";
 import { positionsBounds } from "./pose.ts";
@@ -70,4 +70,17 @@ export function footprintFindings(
       fix: "fit the art to the simulation's box, or widen footprint_m for this appearance in the catalog (overhangs, rubble)",
     }),
   );
+}
+
+/** A model's lowest point, `minZ`, on the ground. */
+export function groundFindings(label: string, minZ: number, tolerances: Tolerances): Finding[] {
+  return Math.abs(minZ) > tolerances.ground_m
+    ? [
+        finding(
+          "basis.ground",
+          `${label}: lowest point is z ${fmt(minZ)} m, not 0 ± ${tolerances.ground_m}`,
+          "put the origin on the ground under the model (feet or tracks at z = 0)",
+        ),
+      ]
+    : [];
 }
