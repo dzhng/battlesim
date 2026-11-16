@@ -63,7 +63,8 @@ pub fn task(
                 )
         }
         Some(UnitOrder::Attack { target, .. }) => {
-            if target_is_destroyed(*target, knowledge) {
+            // Dead, or lost to its side: it has nothing left to attack.
+            if target_is_destroyed(*target, knowledge) || !super::knows_target(knowledge, *target) {
                 AirTask::Hold
             } else {
                 AirTask::Attack { target: *target }

@@ -136,7 +136,7 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
         }
         orders::AirTask::Hold => {
             unit.air.as_mut().expect("an aircraft's flight state").pass = None;
-            // An attack whose target it killed is over (D15).
+            // An attack whose target it killed (D15) or its side lost is over.
             if matches!(unit.orders.front(), Some(UnitOrder::Attack { .. })) {
                 unit.orders.pop_front();
             }

@@ -749,3 +749,40 @@ fn a_jet_works_through_a_queue_of_attacks_moves_and_home() {
         );
     }
 }
+
+/// A jet attacking a squad only its side's jeep can see ends the attack
+/// once the jeep drives off and the side loses the squad: it circles there
+/// rather than attacking nothing for ever.
+#[test]
+fn a_jets_attack_ends_when_its_side_loses_the_target() {
+    use crate::attack_runs::{run_field, run_rules, RUN_START};
+    let [x, y] = RUN_START;
+    let mut b = run_field(
+        run_rules(&["air_gun"]),
+        json!([
+            { "side": "blue", "kind": "test_jet", "position": [x, y - 1500.0], "yaw": 0.0 },
+            { "side": "blue", "kind": "test_jeep", "position": [x, y], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_smoke_squad", "position": [x + 150.0, y], "engagement": "return_fire_only" },
+        ]),
+    );
+    let mut c = Commander::new();
+    let squad = seen(&mut b);
+    c.ok(&mut b, Side::Blue, attack(0, squad));
+    let off = Order::Move {
+        units: vec![UnitId(1)],
+        gesture: 2,
+        goal: [x, y + 1800.0],
+        route: contract::command::RoutePolicy::Shortest,
+        direction: contract::command::MoveDirection::Forward,
+        facing: None,
+    };
+    c.ok(&mut b, Side::Blue, off);
+    until(&mut b, ticks(120.0), "the squad lost", |b| {
+        b.observe(Side::Blue).identified.is_empty()
+    });
+    until(&mut b, ticks(10.0), "the attack over", |b| !attacking(b, 0));
+    assert!(
+        b.unit(UnitId(2)).unwrap().alive(),
+        "the squad was killed, not lost"
+    );
+}
