@@ -668,3 +668,49 @@ things the plan left open.
   the house. Reverting the encounter's tick-1500 order, the lab's
   `tankOpensFire` script lookup and the scene's comment is left to the
   labs' owner (separate checkout).
+## Cards of a shared house
+
+- **What the labs' critique saw was the hovered card, not a shared anchor.**
+  A squad's card hangs off its members' middle, and the two rifle squads'
+  middles lie metres apart in the house. At near and default zoom their
+  compact cards sit apart and read. In the scene's frames the pointer rests
+  on the first squad's card, which opens in place over the card above it.
+  Every card has followed that rule since `2a71dd842` (hovering moves
+  nothing; a hover layout used to slide cards out from under the pointer),
+  so it stays.
+- **The shared spot is real from far off.** From about 900 m out to the
+  far view's switch, the two middles project inside each other's anchor
+  square. Each leader then started inside the other unit's square, the rule
+  that a leader keeps off other anchors refused every spot, and **both**
+  cards hid.
+- **Rule: units on one spot (`oneSpot` in `readoutLayout.ts`, each anchor in
+  the other's square) are spared the two rules their shared start breaks**:
+  a leader keeping off the other's anchor, and the two rises meeting. Every
+  other rule still holds between them: no overlap, no leader across a card,
+  no foot crossed. This is the existing collision layout, not a garrison
+  case: any units that project to one spot get it. Sparing them the "nearer
+  another unit" penalty as well was tried and dropped, because no case
+  needed it.
+- **Not changed:** in the far view (`overlap`), cards still sit at their
+  natural spots and overprint, as every far-view card does. With Space held,
+  open cards still overprint.
+- **Gates.** The test "squads on one spot all show" in
+  `web/tests/readoutLayout.test.ts` covers three squads on one point and
+  three a pixel or two apart. It was red before the fix (no card shown), and
+  so was the lab (both rifle cards hidden at 900 m, 950 m and 990 m). Each
+  half of the rule was falsified on its own: without the anchor exemption
+  both arrangements hide every card, and without the rise exemption the
+  on-one-point arrangement does. The garrison and panels scenes pass, with
+  every approved panels picture unchanged. Before and after
+  (`throwaway/shared-hosts/shots-cards/cmp/`): the near and default shots,
+  selected and unselected, are identical. At 950 m both rifle cards now show,
+  apart, their leaders splitting from the house.
+- **Critique.** The unprimed critique saw no card over another and no
+  leaders crossing in any state. Its other findings predate this change (the
+  near and default shots are unchanged) or fall outside it. Both cards read
+  "RIFLE SECTION" while the lab's buttons say "#0" and "#1". Leaders end on
+  the roof, and cards lie over the building. The far ring is a smudge, and
+  there is one ring whichever squad is selected. The card backing is
+  blurred, the icons are small and dim, and the occupant dots are faint.
+- **Human review** was shown non-blocking and got no reply; closed and
+  continued on the evidence.
