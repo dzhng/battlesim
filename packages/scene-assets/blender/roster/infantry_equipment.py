@@ -22,15 +22,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import bpy
 import bmesh
 from mathutils import Matrix, Vector
-from common import REPO, box, cyl, empty, export_glb, fbm, script_args, texture_uvs, obj_from_bm
-from infantry_kit import Kit, look_of, scale3
-from procedural_looks import PROCEDURAL_LOOKS, army_look
-from infantry_rig import Rig, SCALE, back_y
-from mesh_lods import canonical, make_tiers, triangle_count
+from common import REPO, box, cyl, empty, fbm, script_args, obj_from_bm
+from infantry_kit import SLUNG_MIDDLE_M, dressed, export_soldier, scale3
+from infantry_rig import SCALE, back_y
+from mesh_lods import triangle_count
 import weapons
-import generated_body
 import skin_pins
-import infantry_roster as roster
 from infantry_roster import KITS, kind_of, source_path
 from infantry_preview import preview
 
@@ -479,86 +476,38 @@ def build(unit, variant, mode, army=None):
     ground=model in ('tow','kornet')
     shoulder=model in SHOULDER and mode=='active'
     hold=hold_of(unit,mode)
-    kind=kind_of(unit)
-    rig=Rig()
-    for name in ('Eyes','Eyebrows'):
-        if name in bpy.data.objects: bpy.data.objects.remove(bpy.data.objects[name],do_unlink=True)
-    kit=Kit(rig,look_of(kind,variant,army_look(army)))
-    # A look with a pinned generated body wears it (clothing, kit and head
-    # in one); every other look builds its cloth shells and kit here.
-    body=skin_pins.pin_where('infantry',army=army,look=variant,kind=kind)
-    if body:
-        generated_body.wear(kit,body,roster.armies()[army]['cloth_mean'])
-    elif army not in PROCEDURAL_LOOKS:
-        raise SystemExit(f'{army} {variant} {kind} has no pinned body (skin-generate status infantry)')
-    else:
-        kit.uniform();kit.boots();kit.plate_carrier();kit.molle()
-        if kit.look['pack']!='none':kit.pack_straps()
-        kit.belt();kit.chest_rig();kit.pack(kind);kit.hip_kit();kit.markings();kit.head_gear()
-        if kit.look['scarf']:kit.scarf()
-        if kit.look['collar'] or kit.look['groin']:kit.armour_collar_and_groin()
-        if kit.look['balaclava']:kit.balaclava()
-        kit.skin()
-    if spec.get('grenades') and not body:  # a generated body wears its own pouches
-        for j,bearing in enumerate((-42,42)):
-            at,out=kit.on_belt(bearing,.99);centre=at+out*.052
-            grenade=cyl('fragmentation_grenade_'+str(j),.037,.070,centre,'Z',kit.m['launcher'],seg=12,bevel_=.014)
-            kit.rigid(grenade,'pelvis')
-            neck=cyl('grenade_fuze_'+str(j),.012,.022,centre+Vector((0,0,.042)),'Z',kit.m['gun_black'],seg=8)
-            kit.rigid(neck,'pelvis')
-            lever=box('grenade_safety_lever_'+str(j),(.011,.017,.070),centre+Vector((.033,0,.015)),kit.m['gun_black'],rot=(0,math.radians(-12),0))
-            kit.rigid(lever,'pelvis')
+    kit=dressed(army,variant,kind_of(unit))
     if model in SHOULDER and mode=='carried':
         rpg=model.startswith('rpg')
         root=rpg_equipment(kit.m,model,False) if rpg else shoulder_tube_equipment(kit.m,model,False)
         # A rifle in the hands and the actual launcher slung behind the pack:
         # an RPG muzzle down; a missile tube muzzle up, with its sight (the
         # Javelin's CLU) facing out rather than into the pack.
-        back=back_y(kit.parts)
-        rotation=Matrix.Rotation(math.radians(30),4,'Y')@Matrix.Rotation((1 if rpg else -1)*math.pi/2,4,'X')
-        # A tube's middle at 1.12 m, whatever length rides behind its grip,
-        # lowered for a tube longer than the Stinger's (the Igla): its upper
-        # cap stays under the soldier's height at the sling's 30° lean.
+        # A tube's middle at SLUNG_MIDDLE_M, whatever length rides behind its
+        # grip, lowered for a tube longer than the Stinger's (the Igla): its
+        # upper cap stays under the soldier's height at the sling's 30° lean.
         overlong=max(0,LENGTHS[model].get('length_m',0)-LENGTHS['stinger']['length_m'])
-        lift=1.1 if rpg else 1.12+bpy.data.objects[model+'_tube'].location.y-overlong*math.cos(math.radians(30))/2
+        lift=1.1 if rpg else SLUNG_MIDDLE_M+bpy.data.objects[model+'_tube'].location.y-overlong*math.cos(math.radians(30))/2
         # A slim MANPADS tube lies on the pack by its own radius, its foot
         # tipped in to follow the soldier's forward lean; the Javelin's and
         # Akeron's sight blocks fill that gap themselves.
         slim=model in MANPADS
-        if slim:rotation=Matrix.Rotation(math.radians(10),4,'X')@rotation
         standoff=.13 if rpg else LENGTHS[model]['radius_m']+.01-.10 if slim else -.02
-        root.matrix_world=Matrix.Translation((0,back+standoff,lift))@rotation
-        rig.bone_parent(root,'spine_03')
-        kit.parts.extend(c for c in root.children_recursive if c.type=='MESH')
-        for j,along in enumerate((-.20,.30)):
-            lug=root.matrix_world@Vector((-.045,along,.10))
-            anchor=Vector((-.09 if j==0 else .09,back,1.1-along*.85))
-            reach=lug-anchor
-            strap=box('packed_'+('rpg' if rpg else model)+'_retention_'+str(j),(.035,.014,reach.length),(anchor+lug)/2,kit.m['webbing'],rot=reach.to_track_quat('Z','Y').to_euler())
-            kit.rigid(strap,'spine_03')
+        kit.sling(root,lift,standoff,'packed_'+('rpg' if rpg else model),muzzle_up=not rpg,tip_deg=10 if slim else 0)
     if ground:tripod_equipment(kit,model,mode=='carried')
     if not ground or mode=='carried':
         # A launcher team's carrier holds his army's rifle, as a rifleman does.
         constructor=((lambda m:rpg_equipment(m,model)) if shoulder and model.startswith('rpg')
                      else (lambda m:shoulder_tube_equipment(m,model)) if shoulder
-                     else (lambda m:weapons.RIFLES[kit.look['rifle']](m)) if model=='rifle' or mode=='carried'
-                     else (lambda m:lmg_equipment(m,kit.look['lmg'])) if model=='lmg'
+                     else (lambda m:weapons.RIFLES[kit.army['rifle']](m)) if model=='rifle' or mode=='carried'
+                     else (lambda m:lmg_equipment(m,kit.army['lmg'])) if model=='lmg'
                      else (lambda m:rifle_equipment(m,model)))
         kit.weapon({'hold':hold,'build':constructor})
     if model in TUBE_PAINT:
         rgb=TUBE_PAINT[model]
         kit.painters[model+'_tube']=lambda p,n:(scale3(rgb,.9+.2*fbm(p,40,97)),.3+.2*fbm(p,12,98))
-    kit.eye();kit.paint_all()
-    soldier=kit.join();kit.bake_ao(soldier)
-    tiers=make_tiers(soldier,'soldier')
-    for t in tiers:
-        canonical(t);t.parent=rig.arm;t.modifiers.new('armature','ARMATURE').object=rig.arm
-    rig.arm.scale=(SCALE,)*3;bpy.context.view_layer.update();texture_uvs(tiers)
-    for obj in list(bpy.data.objects):
-        if obj.type=='EMPTY' and obj.name not in ('eye','muzzle'):bpy.data.objects.remove(obj,do_unlink=True)
     path=source_path(unit,variant,mode,army)
-    os.makedirs(os.path.dirname(path),exist_ok=True)
-    export_glb(path,[rig.arm,*tiers,bpy.data.objects['eye'],bpy.data.objects['muzzle']])
+    tiers=export_soldier(kit,path)
     print('ROSTER_INFANTRY',json.dumps({'id':unit,'army':army,'equipment':model,'variant':variant,'mode':mode,'skeleton':'quaternius-ubc-'+hold['family'],'tris':[triangle_count(t) for t in tiers],'path':path}))
     return path,hold
 
@@ -586,8 +535,8 @@ def receipt(unit):
     sha=lambda p:hashlib.sha256(open(p,'rb').read()).hexdigest()
     loaded.add(os.path.join(os.path.dirname(os.path.abspath(__file__)),'armies.json'))
     # The generated bodies its looks wore (`skin_pins`), their pinned hashes.
-    worn={p['glb']:p['sha256'] for army in spec['armies'] for look in 'abc'
-          for p in [skin_pins.pin_where('infantry',army=army,look=look,kind=kind_of(unit))] if p}
+    pins=[skin_pins.required('infantry',army=army,look=look,kind=kind_of(unit)) for army in spec['armies'] for look in 'abc']
+    worn={p['glb']:p['sha256'] for p in pins}
     out=os.path.join(REPO,'assets/source/roster/infantry',unit,'source-receipt.json')
     with open(out,'w') as f:
         f.write(json.dumps({
@@ -596,10 +545,8 @@ def receipt(unit):
             'references':f'assets/references/{unit}/references.json',
             'authoring':('Generated bodies (`skins`, pinned in blender/skins/) on the shared Quaternius rig, with the '
                          'procedural weapon and fittings built from the committed references; photos are visual '
-                         'reference only.' if worn else
-                         'Original procedural kit on the shared Quaternius rig, built from the committed references; '
-                         'photos are visual reference only.'),
-            **({'skins':worn} if worn else {}),
+                         'reference only.'),
+            'skins':worn,
             'variants':variants,
         },indent=2)+'\n')
     print('ROSTER_INFANTRY_RECEIPT',out)

@@ -11,16 +11,16 @@ REPO = os.path.abspath(os.path.join(HERE, "../../.."))
 
 # Each roster kit (a directory of assets/source/roster/infantry/): its
 # weapon (the army's squad rifle, or a `LENGTHS` model of the exporter), whether
-# its men are scouts (the recon kind) and carry grenades, and the armies it is
-# built in, its default first: the faction its roster card names first, and a
-# look for every other army that fields it.
+# its men are scouts (the recon kind), and the armies it is built in, its
+# default first: the faction its roster card names first, and a look for every
+# other army that fields it.
 KITS = {
-    "rifle_squad": dict(weapon="rifle", grenades=True,
+    "rifle_squad": dict(weapon="rifle",
                         armies=("us_army_ocp", "eastern_emr", "german_flecktarn", "pla_type21", "french_cce")),
-    "assault_squad": dict(weapon="rifle", grenades=True, armies=("german_flecktarn", "eastern_emr")),
-    "us_marine_squad_close_quarters_infantry": dict(weapon="rifle", grenades=True, armies=("usmc_marpat",)),
+    "assault_squad": dict(weapon="rifle", armies=("german_flecktarn", "eastern_emr")),
+    "us_marine_squad_close_quarters_infantry": dict(weapon="rifle", armies=("usmc_marpat",)),
     "us_army_scouts_light_patrol": dict(weapon="rifle", scout=True, armies=("us_army_ocp",)),
-    "us_force_recon_recon_patrol": dict(weapon="rifle", scout=True, grenades=True, armies=("usmc_marpat",)),
+    "us_force_recon_recon_patrol": dict(weapon="rifle", scout=True, armies=("usmc_marpat",)),
     "eastern_scouts_light_patrol": dict(weapon="rifle", scout=True, armies=("eastern_emr",)),
     "europe_recon_patrol_light_patrol": dict(weapon="rifle", scout=True, armies=("german_flecktarn",)),
     "us_marksman_squad_m110_equipped_longer_range_infantry": dict(weapon="m110", armies=("us_army_ocp",)),

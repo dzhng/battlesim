@@ -1,113 +1,52 @@
-"""Build one test infantry kind's body and kit on the rig, and export it as its
-appearance source (test unit art, never game content; the roster's kits reuse
-`Kit` from `roster/infantry_equipment.py`).
+"""Soldier assembly: a generated body on the rig, with the gloves, the weapon,
+the sockets, ambient occlusion and the tiers, exported as one appearance
+source. The roster's kits (`roster/infantry_equipment.py`) and the test
+soldiers below are both built through it.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/infantry_kit.py rifle|recon|at|at_carried [a|b|c]
 
-Writes assets/source/test/<kind>.glb (variant a) or <kind>_<variant>.glb:
-the rig (scaled to the simulation's soldier height, not turned) and one skinned
-mesh in four tiers (`soldier_LOD0..3`), plus the `eye` socket under `Head` and
-the weapon's `muzzle` socket under `hand_r`.
+Writes the test soldier assets/source/test/<kind>.glb (look a) or
+<kind>_<look>.glb (test unit art, never game content): the rig (scaled to the
+simulation's soldier height, not turned) and one skinned mesh in four tiers
+(`soldier_LOD0..3`), plus the `eye` socket under `Head` and the weapon's
+`muzzle` socket under `hand_r`. A test soldier wears a pinned body
+(`TEST_BODIES`) and keeps its test weapon and hold (`weapons.KINDS`).
 
-Variants (`LOOKS`) are the same kind on the same rig and clips with another
-head, kit and colouring: headgear, eyewear, vest colour, pack, pouches, skin
-and hair. A roster kit's army adds keys of its own (`ARMY_DEFAULTS`, set by
-`roster/infantry_equipment.py`): its uniform print, whether the carrier and
-pouches are printed too, its helmet, boots, gloves and webbing. The battle picks one per soldier id (`AppearanceCatalog.resolve`), so
-a squad never reads as copies of one man. The kind's own cue (the rifleman's
-assault pack and whip, the recon ruck, the launcher) stays in every variant
-that carries it.
-
-Method (spike 03's, kept; the modelling is new):
-- Clothing and soft kit are shells cut from the body, so they skin with the
-  body for free: uniform, boots, gloves, plate carrier, belt, knee pads, cargo
-  pockets, helmet, hair and eyewear. A shell smooths the anatomy away, pulls
-  limbs toward round tubes (the UBC body is a superhero), then stands off the
-  skin by a per-region offset, with a rim at its open edges.
-- Hard kit (pouches, pack, radio, helmet fittings, the weapon) is modelled in
-  place, flush on the shell it rides, and skinned 100% to one bone at join.
-- The weapon sits where its low-ready hold puts it and rides `hand_r` in
-  every clip of its hold family (`weapons.py`).
-- Surface pattern is baked into vertex colour: camouflage, dirt that rises
-  from the ground, wear, and ambient occlusion (Cycles, CPU, fixed seed).
-- Materials that take the side colour carry a `tint` weight (`common.mat`).
+Hard kit (the weapon, a slung launcher and its straps) is modelled in place
+and skinned 100% to one bone at join. The weapon sits where its low-ready hold
+puts it and rides `hand_r` in every clip of its hold family (`weapons.py`).
+Materials that take the side colour carry a `tint` weight (`common.mat`).
 """
 
 import math
 import os
-import random
 import sys
 
 import bmesh
 import bpy
 from mathutils import Matrix, Vector
-from mathutils.bvhtree import BVHTree
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import generated_body  # noqa: E402
+import infantry_roster as roster  # noqa: E402
+import skin_pins  # noqa: E402
 import weapons  # noqa: E402
-from common import (REPO, box, cyl, empty, export_glb, fbm, mat, obj_from_bm, paint, script_args,  # noqa: E402
-                    texture_mean, texture_uvs)
+from common import REPO, box, empty, export_glb, fbm, mat, paint, script_args, texture_uvs  # noqa: E402
 from infantry_rig import EYE_IN_HEAD, SCALE, Rig, back_y, bone_of  # noqa: E402
 from mesh_lods import canonical, make_tiers  # noqa: E402
 
-# Linear albedo palettes: each part's hue, baked into vertex colour over its
-# material's texture (the camouflage print itself is the texture's).
-COYOTE = (0.13, 0.108, 0.075)
-RANGER = (0.058, 0.064, 0.041)
-DUST = (0.15, 0.13, 0.1)  # field dust, lighter than the cloth it films
-BOOTS = (0.04, 0.031, 0.022)
-LACES = (0.14, 0.11, 0.075)
-PADS = (0.03, 0.03, 0.028)
-GLOVES = (0.035, 0.034, 0.03)
-SKIN = (0.4, 0.29, 0.23)
-SCARF = (0.16, 0.14, 0.1)  # a sand shemagh
-
-# Each variant's look. Per kind, `pack` and `head` may be overridden (`look_of`).
-LOOKS = {
-    "a": dict(head="nvg", eyewear=True, vest=RANGER, pouch=RANGER, pack="assault", radio=True, knee_pads=True,
-              scarf=False, mags=3, skin=SKIN, hair=(0.04, 0.03, 0.022), stubble=((0.12, 0.08, 0.06), 0.55)),
-    "b": dict(head="scrim", eyewear=False, vest=COYOTE, pouch=COYOTE, pack="hydration", radio=False, knee_pads=True,
-              scarf=True, mags=2, skin=(0.2, 0.135, 0.1), hair=(0.012, 0.011, 0.01), stubble=((0.03, 0.022, 0.018), 0.4)),
-    "c": dict(head="bare", eyewear=True, vest=RANGER, pouch=COYOTE, pack="none", radio=False, knee_pads=False,
-              scarf=False, mags=3, skin=(0.5, 0.35, 0.28), hair=(0.13, 0.09, 0.05), stubble=((0.1, 0.065, 0.035), 0.85)),
-}
-KIND_LOOKS = {
-    # the recon ruck is the kind's cue in every variant; the third wears a boonie hat
-    "recon": {"a": dict(pack="ruck"), "b": dict(pack="ruck_roll"), "c": dict(pack="ruck", head="boonie")},
+# Each test soldier kind and the pinned body it wears, as (army, body kind);
+# its look (a, b, c) is the body's.
+TEST_BODIES = {
+    "rifle": ("us_army_ocp", "rifle"),
+    "at": ("us_army_ocp", "rifle"),
+    "at_carried": ("us_army_ocp", "rifle"),
+    "recon": ("us_army_ocp", "recon"),
 }
 
 
-# What an army's look may set beyond a variant's, and the test art's values.
-# A colour may be "print": the uniform print as it is.
-ARMY_DEFAULTS = dict(
-    print="multicam_ripstop",  # the uniform's recipe (textures.UNIFORMS)
-    printed_gear=False,  # the carrier, pouches, pack and helmet cover in the print, not plain nylon
-    printed_cover=None,  # the helmet cover in the print (None: as the gear)
-    helmet="ach",  # "ach": a high-sided US shell; "6b47": the Russian, deeper over ears and nape
-    rails=True,  # helmet side rails
-    headset=True,  # comms headset cups
-    collar=False,  # a soft armour collar round the neck (6B45)
-    groin=False,  # a groin protector hanging from the carrier (6B45)
-    balaclava=False,  # face covered below the eyes
-    boots=BOOTS,
-    gloves=GLOVES,
-    straps=RANGER,  # belt, PALS, harness and pack straps
-    accent=COYOTE,  # the odd pouch and the assault pack
-)
-
-
-def look_of(kind, variant, army=None):
-    """A variant's look; with an army's (`ARMY_DEFAULTS` keys and its own
-    variants), that army's. The kind's cue (`KIND_LOOKS`) wins over both."""
-    look = {**ARMY_DEFAULTS, **LOOKS[variant]}
-    if army:
-        look.update({k: v for k, v in army.items() if k != "variants"}, **army.get("variants", {}).get(variant, {}))
-    look.update(KIND_LOOKS.get(kind, {}).get(variant, {}))
-    return look
-
-
-def lerp3(a, b, t):
-    return tuple(x + (y - x) * t for x, y in zip(a, b))
+# A slung missile tube's middle, metres above the ground (`Kit.sling`'s `lift`).
+SLUNG_MIDDLE_M = 1.12
 
 
 def scale3(a, k):
@@ -118,43 +57,21 @@ def clamp01(x):
     return 0.0 if x < 0 else 1.0 if x > 1 else x
 
 
-def grime(p, c, knees=True):
-    """Dust and mud rising from the ground, heavier on the knees: the cloth darkens
-    and its wear (the texture breaks it into spatter, the material's wear colour)
-    climbs. Returns (colour, wear) for a textured material's `paint`."""
-    z = p[2]
-    rise = clamp01((0.55 - z) / 0.5) * (0.35 + 0.65 * fbm(p, 9.0, 21.0))
-    if knees and 0.44 < z < 0.62:
-        rise = max(rise, 0.6 * fbm(p, 14.0, 22.0))
-    c = scale3(lerp3(c, DUST, rise * 0.5), 0.95 + 0.1 * fbm(p, 40.0, 23.0))
-    return c, clamp01(rise * 0.9)
-
-
 class Kit:
-    def __init__(self, rig, look):
+    def __init__(self, rig, army):
+        """`army` is the soldier's army (`roster/armies.json`): its gloves and webbing."""
         self.rig = rig
-        self.look = look
+        self.army = army
         self.arm = rig.arm
         self.body = rig.body
         self.parts = []  # every mesh that ends up in the soldier
         self.painters = {}  # object name -> colour_at(p, n)
-        pr = look["print"]
-        printed = look["printed_gear"]
-        # Material roles: cloth is fabric, the weapon's steel steel,
-        # lenses dark glass; leather, plastics and polymer take none.
-        m = self.mats = {
-            "uniform": mat("uniform", (1, 1, 1), rough=1.0, tint=1.0, texture=pr, role="fabric"),
+        # Material roles: the weapon's steel is steel, lenses dark glass, webbing
+        # fabric; leather, plastics and polymer take none.
+        m = self.m = {
             "pads": mat("pads", (1, 1, 1), rough=0.9, texture="hard_plastic"),
-            "gear": mat("gear", (1, 1, 1), rough=1.0, tint=0.6, texture=pr if printed else "cordura", role="fabric"),
-            "kit": mat("kit", (1, 1, 1), rough=1.0, tint=0.6, texture=pr if printed else "nylon", role="fabric"),
-            "boots": mat("boots", (1, 1, 1), rough=0.85, texture="leather"),
             "gloves": mat("gloves", (1, 1, 1), rough=0.85, texture="leather"),
-            "skin": mat("skin", (1, 1, 1), rough=0.6, texture="skin", role="skin"),
-            "hair": mat("hair", (1, 1, 1), rough=0.9),
             "lens": mat("lens", (1, 1, 1), rough=0.08, role="glass"),
-            "helmet": (mat("helmet", (1, 1, 1), rough=0.8, tint=1.0, texture="olive_paint", role="paint") if look["head"] == "bare"
-                       else mat("helmet", (1, 1, 1), rough=1.0, tint=1.0, texture=pr, role="fabric")),
-            "scarf": mat("scarf", (1, 1, 1), rough=1.0, texture="canvas", role="fabric"),
             "gun_black": mat("gun_black", (1, 1, 1), rough=0.45, metal=0.3, texture="gunmetal", role="steel"),
             "gun_fde": mat("gun_fde", (1, 1, 1), rough=0.6, texture="polymer"),
             "gun_polymer": mat("gun_polymer", (1, 1, 1), rough=0.7, texture="polymer"),
@@ -162,28 +79,18 @@ class Kit:
             "launcher": mat("launcher", (1, 1, 1), rough=0.7, texture="polymer"),
             "marking": mat("marking", (1, 1, 1), rough=0.75, role="marking"),
         }
-        self.m = m
-        mean = texture_mean(m["uniform"])
-        tone = lambda c: mean if c == "print" else c
-        self.vest_c, self.pouch_c = tone(look["vest"]), tone(look["pouch"])
-        self.strap_c, self.accent_c = tone(look["straps"]), tone(look["accent"])
-        self.flat = {"gear": self.vest_c, "kit": self.pouch_c, "pads": PADS, "marking": (0.3, 0.29, 0.2), "gun_black": (0.03, 0.03, 0.03), "gun_fde": (0.25, 0.20, 0.13),
-                     "gun_polymer": (0.03, 0.029, 0.027), "webbing": self.strap_c, "launcher": (0.075, 0.08, 0.052),
-                     "lens": (0.012, 0.014, 0.014)}
-        # region vertex groups
+        self.flat = {"pads": (0.03, 0.03, 0.028), "marking": (0.3, 0.29, 0.2), "gun_black": (0.03, 0.03, 0.03),
+                     "gun_fde": (0.25, 0.20, 0.13), "gun_polymer": (0.03, 0.029, 0.027), "webbing": army["webbing"],
+                     "launcher": (0.075, 0.08, 0.052), "lens": (0.012, 0.014, 0.014)}
         vg = self.body.vertex_groups
         self.g_hand = self.gidx([g.name for g in vg if g.name.startswith(("hand_", "index", "middle", "ring", "pinky", "thumb"))])
-        self.g_head = self.gidx(["Head", "neck_01"])
-        self.g_headonly = self.gidx(["Head"])
-        self.g_foot = self.gidx(["foot_l", "foot_r", "ball_l", "ball_r", "ball_leaf_l", "ball_leaf_r"])
-        self.g_pelvis = self.gidx(["pelvis", "spine_01"])
         self.slim_body()
 
     def slim_body(self):
-        """The UBC body is a superhero. Pull each vertex toward its dominant bone's segment,
-        by bone, before any shell is cut: narrower shoulders, thinner arms and neck, a
-        shallower chest. The legs keep their bulk (the trousers fill them out: `fill_legs`).
-        Joints stay where the rig has them."""
+        """The UBC body is a superhero. Pull each vertex toward its dominant bone's
+        segment, by bone: narrower shoulders, thinner arms and neck, a shallower
+        chest. The generated body takes its weights from this one. Joints stay
+        where the rig has them."""
         pull = {"clavicle": 0.25, "upperarm": 0.4, "lowerarm": 0.3, "spine_03": 0.22, "spine_02": 0.14,
                 "spine_01": 0.06, "neck_01": 0.2}
         bones = self.arm.data.bones
@@ -204,7 +111,6 @@ class Kit:
             q = a + ab * t
             v.co = q + (v.co - q) * (1.0 - f)
 
-    # ---------------------------------------------------------------- helpers
     def gidx(self, names):
         vg = self.body.vertex_groups
         return {vg[n].index for n in names if n in vg}
@@ -213,15 +119,12 @@ class Kit:
     def w(v, dl, groups):
         return sum(wt for gi, wt in v[dl].items() if gi in groups)
 
-    def shell(self, name, keep, material, offset, smooth=8, tube=0.0, rim=0.008, post=None, painter=None, source=None,
-              subdivide=False, relax=None, pin=True):
-        """A skinned shell cut from the body (or from another shell, for patches such as
-        pockets and pads). keep(co, normal, v, dl) picks vertices; offset(co, normal) is
-        the standoff along the smoothed normal."""
-        src = source or self.body
-        o = src.copy()
-        o.data = src.data.copy()
-        o.name = o.data.name = name
+    def gloves(self):
+        """The army's gloves: a thin shell cut from the body's hands, so they
+        skin with it, lightened in the budget."""
+        o = self.body.copy()
+        o.data = self.body.data.copy()
+        o.name = o.data.name = "gloves"
         self.rig.scn.collection.objects.link(o)
         for mod in list(o.modifiers):
             o.modifiers.remove(mod)
@@ -230,39 +133,23 @@ class Kit:
         dl = bm.verts.layers.deform.active
         bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5)
         bm.normal_update()
-        bmesh.ops.delete(bm, geom=[v for v in bm.verts if not keep(v.co, v.normal, v, dl)], context="VERTS")
-        if subdivide:
-            bmesh.ops.subdivide_edges(bm, edges=bm.edges[:], cuts=1, use_grid_fill=True)
-        # smooth the anatomy away, but pin the open edges so hems stay where they were cut
-        inner = [v for v in bm.verts if not (pin and v.is_boundary)]
-        for _ in range(smooth):
-            bmesh.ops.smooth_vert(bm, verts=inner, factor=0.5, use_axis_x=True, use_axis_y=True, use_axis_z=True)
-        if relax:  # (region(co), iterations): extra smoothing where the body shows through
-            region, iterations = relax
-            zone = [v for v in inner if region(v.co)]
-            for _ in range(iterations):
-                bmesh.ops.smooth_vert(bm, verts=zone, factor=0.5, use_axis_x=True, use_axis_y=True, use_axis_z=True)
-        if tube:
-            tubify(bm, tube)
+        bmesh.ops.delete(bm, geom=[v for v in bm.verts if self.w(v, dl, self.g_hand) <= 0.3], context="VERTS")
+        bmesh.ops.smooth_vert(bm, verts=list(bm.verts), factor=0.5, use_axis_x=True, use_axis_y=True, use_axis_z=True)
         bm.normal_update()
-        moves = [(v, v.normal * offset(v.co, v.normal)) for v in bm.verts]
-        for v, d in moves:
+        for v, d in [(v, v.normal * 0.004) for v in bm.verts]:
             v.co += d
-        if post:
-            post(bm)
         bm.normal_update()
-        if rim:
-            add_rim(bm, rim)
         for f in bm.faces:
             f.smooth = True
         bm.to_mesh(o.data)
         bm.free()
         o.data.materials.clear()
-        o.data.materials.append(material)
+        o.data.materials.append(self.m["gloves"])
         o.parent = self.arm
         self.parts.append(o)
-        if painter:
-            self.painters[o.name] = painter
+        rgb = self.army["gloves"]
+        self.painters[o.name] = lambda p, n: tuple(c * (0.85 + 0.3 * fbm(p, 50, 7)) for c in rgb)
+        o.modifiers.new("lighten", "DECIMATE").ratio = 0.6
         return o
 
     def rigid(self, o, bone, painter=None):
@@ -272,619 +159,27 @@ class Kit:
             self.painters[o.name] = painter
         return o
 
-    # ---------------------------------------------------------------- clothing
-    def uniform(self):
-        w, m = self.w, self.m
-
-        def keep(co, n, v, dl):
-            return (w(v, dl, self.g_hand) < 0.5 and w(v, dl, self.g_foot) < 0.5 and 0.16 < co.z < 1.62
-                    and w(v, dl, self.g_head) < 0.8)
-
-        def offset(co, n):
-            leg = co.z < 0.97 and abs(co.x) < 0.3
-            arm = abs(co.x) > 0.2 and co.z > 1.2
-            if leg:
-                base = 0.022
-                if co.z < 0.22:  # tucked into the boot shaft
-                    base = 0.012
-                elif co.z < 0.32:  # bloused over the boot top
-                    base += 0.016 * clamp01((0.32 - co.z) / 0.1)
-                bunch = 1.0 + 1.8 * math.exp(-(((co.z - 0.54) / 0.09) ** 2))  # behind and over the knee
-                bunch += 1.2 * math.exp(-(((co.z - 0.9) / 0.07) ** 2))  # the seat and crotch
-                base += 0.008 * bunch * (abs(math.sin(co.z * 40 + 6 * fbm(co, 8, 6))) - 0.64)  # sharp creases, soft crests
-            elif arm:
-                base = 0.02 + 0.008 * clamp01((abs(co.x) - 0.3) / 0.15)  # a sleeve, looser to the cuff
-                bunch = 1.0 + 1.8 * math.exp(-(((abs(co.x) - 0.46) / 0.08) ** 2))  # at the elbow
-                base += 0.009 * bunch * (abs(math.sin(abs(co.x) * 50 + 6 * fbm(co, 8, 5))) - 0.64)
-            else:
-                base = 0.018 if co.z > 1.5 and abs(co.x) < 0.11 else 0.014  # the collar stands
-            # loose cloth: soft wrinkles everywhere, a little slack
-            return base + 0.004 * (fbm(co, 18.0, 3.0) - 0.5)
-
-        def post(bm):
-            # a shirt hides the superhero's pectorals: the chest front falls toward one plane
-            zone = [v for v in bm.verts if abs(v.co.x) < 0.19 and 1.15 < v.co.z < 1.47 and v.normal.y < -0.3]
-            if zone:
-                plane = sorted(v.co.y for v in zone)[len(zone) // 2]
-                for v in zone:
-                    if v.co.y < plane:
-                        v.co.y += (plane - v.co.y) * 0.7
-            fill_legs(bm)
-
-        seat = (lambda co: 0.7 < co.z < 1.02 and abs(co.x) < 0.2, 24)  # crotch and seat
-        cloth = self.shell("uniform", keep, m["uniform"], offset, smooth=20, tube=1.0, rim=0.012, post=post, relax=seat,
-                           painter=lambda p, n: grime(p, texture_mean(m["uniform"])))
-        self.cloth_bvh = bvh_of(cloth)
-        # knee pads and cargo pockets: patches standing off the trouser shell
-        for side in (1, -1):
-            kx = 0.114 * side
-
-            def pad_keep(co, n, v, dl, kx=kx):
-                return abs(co.x - kx) < 0.08 and abs(co.z - 0.53) < 0.07 and n.y < -0.25
-
-            if self.look["knee_pads"]:
-                self.shell(f"knee_pad_{'l' if side > 0 else 'r'}", pad_keep, m["pads"],
-                           lambda co, n: 0.012, smooth=4, rim=0.014, source=cloth, pin=False,
-                           painter=lambda p, n: grime(p, scale3(PADS, 0.85 + 0.3 * fbm(p, 30, 5))))
-
-            def pocket_keep(co, n, v, dl, side=side):
-                return 0.6 < co.z < 0.8 and n.x * side > 0.45 and abs(co.x) > 0.11 and abs(co.x) < 0.3
-
-            self.shell(f"cargo_pocket_{'l' if side > 0 else 'r'}", pocket_keep, m["uniform"],
-                       lambda co, n: 0.012 + (0.005 if co.z > 0.75 else 0.0), smooth=1, rim=0.018, source=cloth, pin=False,
-                       painter=lambda p, n: grime(p, scale3(texture_mean(m["uniform"]), 0.92)))
-        # gloves: a thin shell, lightened in the budget
-        glove = self.shell("gloves", lambda co, n, v, dl: w(v, dl, self.g_hand) > 0.3, m["gloves"],
-                           lambda co, n: 0.004, smooth=1, rim=0.0, pin=False,
-                           painter=lambda p, n: scale3(self.look["gloves"], 0.85 + 0.3 * fbm(p, 50, 7)))
-        dec = glove.modifiers.new("lighten", "DECIMATE")
-        dec.ratio = 0.6
-
-    def boots(self):
-        w, m = self.w, self.m
-
-        def keep(co, n, v, dl):
-            return co.z < 0.23 and w(v, dl, self.g_hand) < 0.1
-
-        def offset(co, n):
-            if co.z < 0.12:
-                return 0.008 + (0.004 if co.y < -0.12 else 0.0)  # a toe cap
-            return 0.014  # the shaft laced round the ankle
-
-        def post(bm):
-            for v in bm.verts:  # the upper sits on the sole
-                if v.co.z < 0.024:
-                    v.co.z = 0.024 + (v.co.z - 0.024) * 0.2
-
-        def leather(p, n):
-            c = scale3(self.look["boots"], 0.8 + 0.35 * fbm(p, 35, 11))
-            z = p[2]
-            if n.y < -0.3 and 0.07 < z < 0.27 and abs(abs(p[0]) - 0.114) < 0.028:  # laces up the tongue
-                if (z * 70) % 1.0 < 0.4:
-                    c = LACES
-            if z > 0.205:  # the padded collar
-                c = scale3(c, 0.6)
-            return c, 0.75 * clamp01((0.1 - p[2]) / 0.1)
-
-        boots = self.shell("boots", keep, m["boots"], offset, smooth=5, rim=0.008, post=post, painter=leather,
-                           subdivide=True)
-        self.soles(boots)
-
-    def soles(self, boots):
-        """A sole under each boot: the upper's footprint, a lip wider, 3 cm thick, skinned to foot and ball."""
-        me = boots.data
-        for side in (1, -1):
-            pts = [v.co.copy() for v in me.vertices if v.co.z < 0.05 and v.co.x * side > 0]
-            hull = convex_hull_2d([(p.x, p.y) for p in pts])
-            cx = sum(p[0] for p in hull) / len(hull)
-            cy = sum(p[1] for p in hull) / len(hull)
-            ring = []
-            for x, y in hull:
-                d = Vector((x - cx, y - cy))
-                d = d.normalized() * (d.length + 0.006)
-                ring.append((cx + d.x, cy + d.y))
-            bm = bmesh.new()
-            low = [bm.verts.new((x, y, 0.0)) for x, y in ring]
-            high = [bm.verts.new((x, y, 0.026 + 0.012 * clamp01((y + 0.02) / 0.12))) for x, y in ring]  # a heel
-            bm.faces.new(low[::-1])
-            bm.faces.new(high)
-            for i in range(len(ring)):
-                j = (i + 1) % len(ring)
-                bm.faces.new((low[i], low[j], high[j], high[i]))
-            bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-            o = obj_from_bm(f"sole_{'l' if side > 0 else 'r'}", bm, [self.m["boots"]])
-            s = "l" if side > 0 else "r"
-            ball_y = -0.055
-            gf, gb = o.vertex_groups.new(name=f"foot_{s}"), o.vertex_groups.new(name=f"ball_{s}")
-            for v in o.data.vertices:
-                t = clamp01((ball_y + 0.02 - v.co.y) / 0.04)  # toward the toe: the ball bone
-                if t < 1:
-                    gf.add([v.index], 1 - t, "REPLACE")
-                if t > 0:
-                    gb.add([v.index], t, "REPLACE")
-            o.parent = self.arm
-            o.modifiers.new("bevel", "BEVEL").width = 0.005
-            self.parts.append(o)
-            self.painters[o.name] = lambda p, n: scale3((0.018, 0.017, 0.015), 0.9 + 0.2 * fbm(p, 60, 2))
-
-    # ---------------------------------------------------------------- torso kit
-    def plate_carrier(self):
-        w, m = self.w, self.m
-        # plate carrier: torso shell with deep, flat plate bags front and back, a
-        # cummerbund at the sides, and shoulder straps over the trapezius
-        def keep(co, n, v, dl):
-            if not (1.0 < co.z < 1.52 and abs(co.x) < 0.24):
-                return False
-            if w(v, dl, self.g_head) > 0.25:
-                return False
-            if co.z > 1.43:  # plate tops at the sternum, straps over the trapezius
-                return 0.055 < abs(co.x) < 0.15 or (co.z < 1.47 and co.y < -0.05 and abs(co.x) < 0.12)
-            return True
-
-        def offset(co, n):
-            plate = abs(co.x) < 0.15 and 1.1 < co.z < 1.47 and abs(n.y) > 0.35
-            return 0.075 if plate else 0.045
-
-        def post(bm):
-            for sign in (-1, 1):  # flatten each plate bag to a plane
-                zone = [v for v in bm.verts if abs(v.co.x) < 0.14 and 1.1 < v.co.z < 1.47 and v.normal.y * sign > 0.35]
-                if not zone:
-                    continue
-                plane = max(v.co.y * sign for v in zone)
-                for v in zone:
-                    v.co.y = sign * (v.co.y * sign + (plane - v.co.y * sign) * 0.95)
-
-        vest_c = self.vest_c
-        vest = self.shell("plate_carrier", keep, m["gear"], offset, smooth=8, rim=0.014, post=post, pin=False,
-                          painter=lambda p, n: grime(p, scale3(vest_c, 0.85 + 0.25 * fbm(p, 25, 31)), knees=False))
-        self.vest_bvh = bvh_of(vest)
-        self.vest = vest
-
-    def pack_straps(self):
-        """Shoulder straps from the pack over the carrier's straps and down onto the chest."""
-        def keep(co, n, v, dl):
-            return 0.07 < abs(co.x) < 0.135 and (co.z > 1.43 or (n.y < -0.2 and co.z > 1.27) or (n.y > 0.2 and co.z > 1.3))
-
-        self.shell("pack_straps", keep, self.m["webbing"], lambda co, n: 0.008, smooth=2, rim=0.016, source=self.vest, pin=False,
-                   painter=lambda p, n: scale3(self.strap_c, 0.8 + 0.2 * fbm(p, 40, 33)))
-
-    def belt(self, z=0.975, height=0.05, thick=0.012, steps=48):
-        """A riggers belt: a band round the trousers at the waist, traced by rays from the
-        body's axis so it sits flush all the way round; rigid on the pelvis."""
-        centre = Vector((0, 0.03, z))
-        ring = []
-        for k in range(steps):
-            b = 2 * math.pi * k / steps
-            out = Vector((math.sin(b), -math.cos(b), 0))
-            hit = self.cloth_bvh.ray_cast(centre + out * 0.6, -out)
-            r = (hit[0] - centre).length if hit[0] is not None else 0.17
-            ring.append((out, r + 0.002))
-        bm = bmesh.new()
-        rows = []
-        for dz, dr in ((-height / 2, 0.0), (-height / 2, thick), (height / 2, thick), (height / 2, 0.0)):
-            rows.append([bm.verts.new(centre + out * (r + dr) + Vector((0, 0, dz))) for out, r in ring])
-        for i in range(4):
-            a_, b_ = rows[i], rows[(i + 1) % 4]
-            for k in range(steps):
-                j = (k + 1) % steps
-                bm.faces.new((a_[k], a_[j], b_[j], b_[k]))
-        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-        belt = obj_from_bm("belt", bm, [self.m["webbing"]])
-        self.rigid(belt, "pelvis", lambda p, n: scale3(self.strap_c, 0.85 + 0.3 * fbm(p, 30, 41)))
-        buckle = box("belt_buckle", (0.06, 0.012, 0.045), centre + ring[0][0] * (ring[0][1] + thick + 0.004), self.m["gun_black"], bevel_=0.004)
-        self.rigid(buckle, "pelvis")
-        self.belt_bvh = bvh_of(belt)
-
-    def on_vest(self, x, z, facing):
-        """The vest surface point at (x, z), seen from the front (facing -1) or back (+1)."""
-        hit = self.vest_bvh.ray_cast(Vector((x, facing * 0.6, z)), Vector((0, -facing, 0)))
-        return hit[0] if hit[0] is not None else Vector((x, facing * 0.2, z))
-
-    def on_belt(self, bearing_deg, z):
-        """The belt's outer surface at a bearing about the waist (0 = front, 90 = his left)."""
-        b = math.radians(bearing_deg)
-        out = Vector((math.sin(b), -math.cos(b), 0))
-        centre = Vector((0, 0.03, z))
-        hit = self.belt_bvh.ray_cast(centre + out * 0.6, -out)
-        return (hit[0] if hit[0] is not None else centre + out * 0.2), out
-
-    def pouch(self, name, size, x, z, facing, bone="spine_03", mat_key="kit", flap=True, colour=None):
-        colour = colour or self.pouch_c
-        at = self.on_vest(x, z, facing)
-        centre = at + Vector((0, facing * size[1] / 2 * 0.9, 0))
-        body = box(name, size, centre, self.m[mat_key], bevel_=min(size) * 0.08, segments=2)
-        paint_fn = lambda p, n, c=colour: grime(p, scale3(c, 0.85 + 0.25 * fbm(p, 30, 17)), knees=False)
-        self.rigid(body, bone, paint_fn)
-        if flap:
-            f = box(name + "_flap", (size[0] * 1.04, size[1] * 1.08, size[2] * 0.28),
-                    centre + Vector((0, facing * 0.004, size[2] * 0.38)), self.m[mat_key], bevel_=0.006)
-            self.rigid(f, bone, lambda p, n, c=colour: scale3(c, 0.78 + 0.2 * fbm(p, 30, 19)))
-        return body
-
-    def belt_pouch(self, name, size, bearing, z, colour, flap=True):
-        at, out = self.on_belt(bearing, z)
-        centre = at + out * (size[1] / 2 * 0.9)
-        rot = (0, 0, math.radians(bearing))
-        body = box(name, size, centre, self.m["kit"], bevel_=min(size) * 0.2, rot=rot)
-        self.rigid(body, "pelvis", lambda p, n, c=colour: grime(p, scale3(c, 0.85 + 0.25 * fbm(p, 30, 71))))
-        if flap:
-            f = box(name + "_flap", (size[0] * 1.04, size[1] * 1.08, size[2] * 0.3),
-                    centre + out * 0.004 + Vector((0, 0, size[2] * 0.36)), self.m["kit"], bevel_=0.006, rot=rot)
-            self.rigid(f, "pelvis", lambda p, n, c=colour: scale3(c, 0.78 + 0.2 * fbm(p, 30, 72)))
-
-    def chest_rig(self):
-        c = self.pouch_c
-        xs = (-0.088, 0.0, 0.088) if self.look["mags"] == 3 else (-0.05, 0.04)
-        for i, x in enumerate(xs):
-            self.pouch(f"mag_pouch_{i}", (0.08, 0.06, 0.13), x, 1.17, -1, colour=c)
-        if self.look["mags"] < 3:  # a frag pouch where the third magazine rode
-            self.pouch("frag_pouch", (0.06, 0.06, 0.08), 0.12, 1.15, -1, colour=c)
-        self.pouch("admin_pouch", (0.18, 0.04, 0.08), 0.0, 1.32, -1, flap=False, colour=c)
-        self.pouch("tq_pouch", (0.045, 0.045, 0.1), 0.14, 1.31, -1, flap=False, colour=self.accent_c)
-
-    def molle(self):
-        """PALS webbing sewn across the plate bags, front and back: rows of flat
-        straps standing just proud of the carrier, the pouches hung on them."""
-        for facing in (-1, 1):
-            for k in range(6):
-                z = 1.14 + k * 0.05
-                at = self.on_vest(0.0, z, facing)
-                strap = box(f"pals_{'front' if facing < 0 else 'back'}_{k}", (0.25, 0.006, 0.026),
-                            at + Vector((0, facing * 0.003, 0)), self.m["webbing"])
-                self.rigid(strap, "spine_03", lambda p, n: scale3(self.strap_c, 0.8 + 0.2 * fbm(p, 40, 35)))
-
-    def markings(self):
-        """Subdued patches on both upper sleeves (in the T-pose the sleeve's outside
-        faces up): a dark badge on a lighter hook-and-loop field, stitched flat."""
-        for side, bone in ((1, "upperarm_l"), (-1, "upperarm_r")):
-            hit = self.cloth_bvh.ray_cast(Vector((side * 0.3, 0.06, 2.0)), Vector((0, 0, -1)))
-            if hit[0] is None:
-                continue
-            at = hit[0]
-            field = box(f"patch_field_{bone}", (0.075, 0.058, 0.004), at + Vector((0, 0, 0.001)), self.m["kit"])
-            badge = box(f"patch_badge_{bone}", (0.06, 0.044, 0.004), at + Vector((0, 0, 0.003)), self.m["kit"])
-            self.rigid(field, bone, lambda p, n: (0.07, 0.075, 0.05))
-            self.rigid(badge, bone, lambda p, n: (0.025, 0.028, 0.02))
-
-    def hip_kit(self):
-        self.belt_pouch("dump_pouch", (0.1, 0.07, 0.14), 100, 0.95, self.pouch_c)
-        self.belt_pouch("utility_pouch", (0.1, 0.06, 0.1), -100, 0.96, self.accent_c)
-        self.belt_pouch("ifak", (0.15, 0.07, 0.1), 180, 0.97, self.pouch_c, flap=False)
-        self.belt_pouch("canteen", (0.08, 0.07, 0.13), 140, 0.95, self.accent_c)
-
-    def hydration(self):
-        """A slim hydration carrier on the back plate."""
-        m = self.m
-        back = self.on_vest(0.0, 1.28, 1)
-        colour = self.pouch_c
-        centre = Vector((0.0, back.y + 0.028, 1.28))
-        body = box("hydration", (0.2, 0.05, 0.34), centre, m["kit"], bevel_=0.018, segments=2)
-        paint_fn = lambda p, n: grime(p, scale3(colour, 0.85 + 0.25 * fbm(p, 22, 57)), knees=False)
-        self.rigid(body, "spine_03", paint_fn)
-
-    def pack(self, kind):
-        m = self.m
-        style = self.look["pack"]
-        if style == "none":
-            return
-        if style == "hydration":
-            self.hydration()
-            return
-        back = self.on_vest(0.0, 1.26, 1)
-        if style.startswith("ruck"):  # a long-range ruck: the recon team's silhouette cue
-            size, z, colour = (0.3, 0.19, 0.46), 1.25, (0.09, 0.085, 0.06)
-            if style == "ruck_roll":  # the same ruck in ranger green, a sleeping mat rolled on top
-                colour = scale3(RANGER, 1.2)
-        else:  # an assault pack
-            size, z, colour = (0.28, 0.14, 0.38), 1.24, self.accent_c
-        centre = Vector((0.0, back.y + size[1] / 2 * 0.8, z))
-        bm = bmesh.new()
-        bmesh.ops.create_cube(bm, size=1.0)
-        bmesh.ops.subdivide_edges(bm, edges=bm.edges[:], cuts=2, use_grid_fill=True)
-        for v in bm.verts:  # a soft, slightly tapered bag
-            x, y, zz = v.co
-            taper = 1.0 - 0.12 * (zz + 0.5)
-            v.co = Vector((x * size[0] * taper, y * size[1] * (0.85 + 0.15 * (0.5 - abs(zz))), zz * size[2]))
-        pack = obj_from_bm("pack", bm, [m["kit"]])
-        pack.location = centre
-        sub = pack.modifiers.new("soft", "SUBSURF")
-        sub.levels = 1
-        paint_fn = lambda p, n, c=colour: grime(p, scale3(c, 0.85 + 0.25 * fbm(p, 22, 51)), knees=False)
-        self.rigid(pack, "spine_03", paint_fn)
-        lid = box("pack_lid", (size[0] * 0.92, size[1] * 0.8, 0.07), centre + Vector((0, 0.01, size[2] / 2 - 0.02)), m["kit"], bevel_=0.02)
-        self.rigid(lid, "spine_03", lambda p, n, c=colour: scale3(c, 0.75 + 0.2 * fbm(p, 22, 53)))
-        for sx in (-1, 1):  # compression straps
-            strap = box(f"pack_strap_{sx}", (0.022, size[1] * 1.02, size[2] * 0.8), centre + Vector((sx * size[0] * 0.3, 0.004, -0.02)), m["webbing"])
-            self.rigid(strap, "spine_03", lambda p, n: scale3(self.strap_c, 0.8 + 0.2 * fbm(p, 40, 55)))
-        side = box("pack_bottle", (0.06, 0.07, 0.16), centre + Vector((size[0] / 2 + 0.028, 0, -size[2] * 0.2)), m["kit"], bevel_=0.02)
-        self.rigid(side, "spine_03", paint_fn)
-        if style == "ruck_roll":
-            roll = cyl("pack_roll", 0.065, size[0] * 1.25, centre + Vector((0, 0.0, size[2] / 2 + 0.055)), "X", m["scarf"],
-                       seg=12, bevel_=0.01)
-            self.rigid(roll, "spine_03", lambda p, n: grime(p, scale3((0.06, 0.07, 0.045), 0.85 + 0.3 * fbm(p, 30, 59)),
-                                                             knees=False))
-        if style.startswith("ruck") or not self.look["radio"]:
-            aerial_foot, tall, lean = None, 0, 0  # the ruck is the recon team's cue, not a whip
-        else:
-            radio = box("radio", (0.075, 0.06, 0.14), Vector((-0.15, back.y + 0.02, 1.2)), m["kit"], bevel_=0.012)
-            self.rigid(radio, "spine_03", lambda p, n: scale3(self.strap_c, 0.8 + 0.2 * fbm(p, 30, 61)))
-            aerial_foot, tall, lean = Vector((-0.17, back.y + 0.04, 1.27)), 0.2, -40
-        if not tall:
-            return
-        # the whip antenna, swept back (it lies clear of the pack when he goes prone)
-        ant = cyl("radio_antenna", 0.004, tall, (0, 0, 0), "Z", m["gun_black"], seg=6)
-        ant.data.transform(Matrix.Rotation(math.radians(lean), 4, "X") @ Matrix.Translation((0, 0, tall / 2)))
-        ant.location = aerial_foot
-        self.rigid(ant, "spine_03")
-
-    # ---------------------------------------------------------------- head
-    def head_gear(self):
-        w, m = self.w, self.m
-
-        look = self.look
-        deep = look["helmet"] == "6b47"
-
-        def rim_z(co):
-            ang = math.atan2(co.x, -(co.y - 0.01))  # 0 front, +-pi back
-            front = math.cos(ang)
-            if deep:  # the 6B47 comes down over the ears and the nape, no ear cut
-                return 1.666 + 0.04 * max(0.0, front) - 0.045 * max(0.0, -front) - 0.012 * (1 - abs(front))
-            z = 1.672 + 0.034 * max(0.0, front) - 0.028 * max(0.0, -front)
-            if abs(co.x) > 0.06 and -0.03 < co.y < 0.06:  # ear cut
-                z += 0.022
-            return z
-
-        head = look["head"]
-        boonie = head == "boonie"
-
-        def keep(co, n, v, dl):
-            # a soft hat sits lower on the brow than a helmet's rim
-            return w(v, dl, self.g_headonly) > 0.5 and co.z > rim_z(co) - (0.012 if boonie else 0.0)
-
-        def helmet_paint(p, n):  # an olive cover, darker than the face below it
-            c = lerp3(scale3(RANGER, 1.25), texture_mean(m["helmet"]), 0.3)
-            return scale3(c, 0.9 + 0.2 * fbm(p, 40, 81))
-
-        def cover_paint(p, n):  # a cover in the uniform's print, faded on the crown
-            return scale3(texture_mean(m["helmet"]), 0.92 + 0.12 * clamp01((p[2] - 1.7) / 0.1) + 0.1 * fbm(p, 40, 81)), 0.15
-
-        def bare_paint(p, n):  # a painted shell: its paint's own green, scuffed
-            return scale3(lerp3(texture_mean(m["helmet"]), (0.05, 0.055, 0.04), 0.4), 0.9 + 0.2 * fbm(p, 40, 81)), 0.25
-
-        def hat_paint(p, n):  # the uniform's print, sun-faded
-            return scale3(texture_mean(m["helmet"]), 1.05 + 0.2 * fbm(p, 40, 81)), 0.2
-
-        printed_cover = look["printed_gear"] if look["printed_cover"] is None else look["printed_cover"]
-        painter = (bare_paint if head == "bare" else hat_paint if boonie
-                   else cover_paint if printed_cover else helmet_paint)
-
-        def standoff(co, n):  # a soft hat hugs the brow and stands its crown up, as tall as a helmet
-            return 0.012 + 0.024 * clamp01((co.z - 1.72) / 0.07) if boonie else 0.037 if deep else 0.03
-
-        crown = self.shell("helmet", keep, m["helmet"], standoff, smooth=12, rim=0.013, painter=painter, pin=False)
-        # short hair below the rim and over the ears
-        hair_c = look["hair"]
-        self.shell("hair", lambda co, n, v, dl: w(v, dl, self.g_headonly) > 0.5 and co.z > 1.6 and co.y > -0.02 and co.z > rim_z(co) - 0.07,
-                   m["hair"], lambda co, n: 0.005, smooth=4, rim=0.0, pin=False,
-                   painter=lambda p, n: scale3(hair_c, 0.8 + 0.4 * fbm(p, 60, 83)))
-        if look["eyewear"]:  # ballistic eyewear across the eyes
-            self.shell("eyewear", lambda co, n, v, dl: 1.655 < co.z < 1.705 and n.y < -0.35 and abs(co.x) < 0.075 and co.y < -0.05,
-                       m["lens"], lambda co, n: 0.011, smooth=3, rim=0.004, painter=lambda p, n: (0.012, 0.014, 0.014), pin=False)
-        black = m["gun_black"]
-        if boonie:
-            self.brim(crown)
-            return
-        rigid = [box("helmet_rail_l", (0.012, 0.10, 0.022), (0.121, 0.0, 1.705), black, bevel_=0.003),
-                 box("helmet_rail_r", (0.012, 0.10, 0.022), (-0.121, 0.0, 1.705), black, bevel_=0.003)] if look["rails"] else []
-        if head == "nvg":
-            rigid += [box("nvg_shroud", (0.05, 0.022, 0.04), (0, -0.150, 1.755), black, bevel_=0.006),
-                      box("counterweight", (0.09, 0.03, 0.05), (0, 0.145, 1.705), m["kit"], bevel_=0.01)]
-        for o in rigid:
-            self.rigid(o, "Head")
-        for side in (1, -1) if look["headset"] else ():  # comms headset cups
-            cup = cyl(f"headset_{'l' if side > 0 else 'r'}", 0.031, 0.028, (side * 0.093, 0.012, 1.648), "X", m["webbing"], seg=16, bevel_=0.005)
-            self.rigid(cup, "Head")
-        if head in ("scrim", "bare"):
-            self.helmet_band(crown, goggles=head == "scrim", scrim=head == "scrim")
-
-    def ring_on(self, bvh, centre, z, pad, steps=40):
-        """Points round `bvh`'s surface at height z, `pad` proud of it, traced by rays in
-        from outside toward the vertical axis through `centre`, and their outward directions."""
-        ring = []
-        for k in range(steps):
-            b = 2 * math.pi * k / steps
-            out = Vector((math.sin(b), -math.cos(b), 0))
-            hit = bvh.ray_cast(Vector((centre.x, centre.y, z)) + out * 0.5, -out)
-            r = (hit[0] - Vector((centre.x, centre.y, z))).length if hit[0] is not None else 0.12
-            ring.append((Vector((centre.x, centre.y, z)) + out * (r + pad), out))
-        return ring
-
-    def band(self, name, ring, height, thick, material, painter, bone="Head"):
-        """A closed band through `ring` (points and outward directions), `height` tall."""
-        bm = bmesh.new()
-        rows = []
-        for dz, dr in ((-height / 2, 0.0), (-height / 2, thick), (height / 2, thick), (height / 2, 0.0)):
-            rows.append([bm.verts.new(p + out * dr + Vector((0, 0, dz))) for p, out in ring])
-        n = len(ring)
-        for i in range(4):
-            a_, b_ = rows[i], rows[(i + 1) % 4]
-            for k in range(n):
-                j = (k + 1) % n
-                bm.faces.new((a_[k], a_[j], b_[j], b_[k]))
-        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-        return self.rigid(obj_from_bm(name, bm, [material]), bone, painter)
-
-    def helmet_band(self, crown, goggles, scrim):
-        """A rubber band round the helmet, and with it goggles pushed up on the front, or
-        burlap scrim tucked under it."""
-        m = self.m
-        bvh = bvh_of(crown)
-        centre = Vector((0.0, 0.01, 0.0))
-        self.band("helmet_band", self.ring_on(bvh, centre, 1.735, 0.0), 0.018, 0.005, m["gun_black"],
-                  lambda p, n: (0.02, 0.02, 0.018))
-        if goggles:
-            front = self.ring_on(bvh, centre, 1.738, 0.004, steps=40)
-            for side in (1, -1):
-                p, out = front[(40 - 3 * side) % 40]
-                lens = box(f"goggle_{'l' if side > 0 else 'r'}", (0.052, 0.022, 0.034), p + out * 0.008, m["lens"],
-                           bevel_=0.008, rot=(0, 0, math.atan2(out.x, -out.y)))
-                self.rigid(lens, "Head", lambda p, n: (0.012, 0.015, 0.014))
-                frame_ = box(f"goggle_frame_{'l' if side > 0 else 'r'}", (0.06, 0.016, 0.042), p + out * 0.002, m["gun_black"],
-                             bevel_=0.008, rot=(0, 0, math.atan2(out.x, -out.y)))
-                self.rigid(frame_, "Head", lambda p, n: (0.025, 0.025, 0.022))
-        if scrim:  # strips of burlap under the band, hanging over the shell
-            rng = random.Random(29)
-            ring = self.ring_on(bvh, centre, 1.735, 0.006, steps=28)
-            for k, (p, out) in enumerate(ring):
-                if 30 < math.degrees(math.atan2(out.x, -out.y)) % 360 < 330 or k % 3 == 0:
-                    tall = rng.uniform(0.03, 0.06)
-                    strip = box(f"scrim_{k}", (rng.uniform(0.012, 0.022), 0.006, tall), p + Vector((0, 0, -tall * 0.2)),
-                                m["scarf"], rot=(rng.uniform(-0.4, 0.4), rng.uniform(-0.3, 0.3), math.atan2(out.x, -out.y)))
-                    tone = rng.uniform(0.7, 1.2)
-                    self.rigid(strip, "Head", lambda p, n, t=tone: (scale3((0.07, 0.075, 0.045), t), 0.1))
-
-    def brim(self, crown):
-        """A boonie hat's soft brim: a drooping ring round the crown at the hat band."""
-        m = self.m
-        bvh = bvh_of(crown)
-        ring = self.ring_on(bvh, Vector((0.0, 0.01, 0.0)), 1.69, -0.004, steps=40)
-        bm = bmesh.new()
-        rows = []
-        for reach, drop, t in ((0.0, 0.0, 0.0), (0.035, 0.012, 0.0), (0.065, 0.03, 0.0), (0.065, 0.03, 0.006),
-                               (0.0, 0.006, 0.006)):
-            rows.append([bm.verts.new(p + out * reach + Vector((0, 0, -drop + t))) for p, out in ring])
-        n = len(ring)
-        for i in range(len(rows)):
-            a_, b_ = rows[i], rows[(i + 1) % len(rows)]
-            for k in range(n):
-                j = (k + 1) % n
-                bm.faces.new((a_[k], a_[j], b_[j], b_[k]))
-        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-        self.rigid(obj_from_bm("hat_brim", bm, [m["helmet"]]), "Head",
-                   lambda p, n: (scale3(texture_mean(m["helmet"]), 1.0 + 0.2 * fbm(p, 40, 85)), 0.3))
-        self.band("hat_band", self.ring_on(bvh, Vector((0.0, 0.01, 0.0)), 1.71, 0.0), 0.02, 0.004, m["webbing"],
-                  lambda p, n: scale3(RANGER, 0.9))
-
-    def balaclava(self):
-        """A knitted face cover pulled up over nose and chin, the eyes left
-        bare, its hem tucked into the collar: the Russian refs' commonest face."""
-        w = self.w
-
-        def keep(co, n, v, dl):
-            if w(v, dl, self.g_head) < 0.3 or co.z < 1.47 or co.z > 1.72:
-                return False
-            return not (1.648 < co.z < 1.712 and co.y < -0.03)  # the eye slot
-
-        self.shell("balaclava", keep, self.m["scarf"], lambda co, n: 0.007, smooth=4, rim=0.004, pin=False,
-                   painter=lambda p, n: (scale3((0.075, 0.08, 0.055), 0.85 + 0.3 * fbm(p, 50, 89)), 0.1))
-
-    def armour_collar_and_groin(self):
-        """The 6B45's soft collar standing round the neck, and its groin
-        protector hanging from the carrier's front, both in the print."""
-        m = self.m
-        bvh = bvh_of(self.vest)
-        if self.look["collar"]:
-            # traced from just outside the neck, never from the T-posed arms' reach
-            centre, z, ring = Vector((0.0, 0.02, 1.53)), 1.53, []
-            for k in range(32):
-                b = 2 * math.pi * k / 32
-                out = Vector((math.sin(b), -math.cos(b), 0))
-                hit = self.cloth_bvh.ray_cast(centre + out * 0.13, -out, 0.13)
-                r = min((hit[0] - centre).length, 0.1) if hit[0] is not None else 0.075
-                ring.append((centre + out * (r + 0.004), out))
-            self.band("armour_collar", ring, 0.06, 0.025, m["gear"],
-                      lambda p, n: grime(p, scale3(self.vest_c, 0.85 + 0.25 * fbm(p, 25, 37)), knees=False), bone="spine_03")
-        if self.look["groin"]:
-            hit = bvh.ray_cast(Vector((0, -0.6, 1.06)), Vector((0, 1, 0)))
-            y = hit[0].y if hit[0] is not None else -0.16
-            bm = bmesh.new()  # a tapered tongue, broad under the carrier, narrow at the crotch
-            pts = [(-0.11, 1.08), (0.11, 1.08), (0.075, 0.9), (0.03, 0.82), (-0.03, 0.82), (-0.075, 0.9)]
-            front = [bm.verts.new((x, y - 0.012, z)) for x, z in pts]
-            back = [bm.verts.new((x, y + 0.01, z)) for x, z in pts]
-            bm.faces.new(front[::-1])
-            bm.faces.new(back)
-            for k in range(len(pts)):
-                j = (k + 1) % len(pts)
-                bm.faces.new((front[k], front[j], back[j], back[k]))
-            bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-            flap = obj_from_bm("groin_protector", bm, [m["gear"]])
-            flap.modifiers.new("bevel", "BEVEL").width = 0.006
-            self.rigid(flap, "pelvis", lambda p, n: grime(p, scale3(self.vest_c, 0.85 + 0.25 * fbm(p, 25, 39)), knees=False))
-
-    def scarf(self):
-        """A shemagh wound round the neck over the collar, bunched."""
-        w = self.w
-
-        def keep(co, n, v, dl):
-            return 1.47 < co.z < 1.6 and w(v, dl, self.g_head) > 0.05 and w(v, dl, self.g_hand) < 0.1
-
-        def offset(co, n):
-            return 0.03 + 0.012 * fbm(co, 30.0, 3.0) + 0.012 * clamp01((1.53 - co.z) / 0.06)
-
-        self.shell("scarf", keep, self.m["scarf"], offset, smooth=6, rim=0.01, pin=False,
-                   painter=lambda p, n: (scale3(SCARF, 0.85 + 0.3 * fbm(p, 40, 87)), 0.15))
-
-    def skin(self):
-        skin, stubble = self.look["skin"], self.look["stubble"]
-
-        def face(p, n):  # skin, a stubbled jaw, darker brows and lips
-            c = scale3(skin, 0.88 + 0.2 * fbm(p, 30, 91))
-            front = n.y < -0.2
-            if front and 1.575 < p[2] < 1.625 and abs(p[0]) < 0.06 and p[1] < -0.07:
-                c = lerp3(c, stubble[0], stubble[1])  # stubble or a beard
-            if front and 1.605 < p[2] < 1.615 and abs(p[0]) < 0.022:
-                c = (0.22, 0.1, 0.08)  # lips
-            if front and 1.7 < p[2] < 1.712 and 0.012 < abs(p[0]) < 0.055:
-                c = (0.05, 0.035, 0.025)  # brows
-            return c
-
-        """The body under the clothes: head and neck only, with a little overlap."""
-        w = self.w
-        bm = bmesh.new()
-        bm.from_mesh(self.body.data)
-        dl = bm.verts.layers.deform.active
-        bmesh.ops.delete(bm, geom=[v for v in bm.verts if v.co.z < 1.40 or (v.co.z < 1.60 and w(v, dl, self.g_head) < 0.2)], context="VERTS")
-        bm.to_mesh(self.body.data)
-        bm.free()
-        for mod in list(self.body.modifiers):
-            self.body.modifiers.remove(mod)
-        self.body.data.materials.clear()
-        self.body.data.materials.append(self.m["skin"])
-        self.parts.append(self.body)
-        self.painters[self.body.name] = face
-
-    # ---------------------------------------------------------------- weapon, sockets
-    def carried_launcher(self):
-        """Strap the same launcher across the back, with its CLU facing out.
-        The tube and its retention straps ride the torso, never the rifle hand."""
-        root = weapons.launcher(self.m, "carried_launcher")
-        for c in list(root.children_recursive):
-            if c.type == "EMPTY":
-                bpy.data.objects.remove(c, do_unlink=True)
-        # Clear the pack's outer face in every LOOK, with the tube's high end
-        # beside the head and its low end outside the opposite hip.
+    def sling(self, root, lift, standoff, name, muzzle_up=True, tip_deg=0.0):
+        """Sling a carried launcher (`root`, its muzzle along its -Y) across the
+        back at a 30° lean, muzzle up or down, tipped in by `tip_deg`: its origin
+        `lift` high and `standoff` behind the back, on two retention straps
+        (`<name>_retention_<j>`). The tube and its straps ride the torso."""
         back = back_y(self.parts)
-        tube_y = back + 0.095
-        angle = math.radians(30)
-        forward = Vector((-math.sin(angle), 0, math.cos(angle)))
-        side = Vector((0, 1, 0))
-        up = side.cross(-forward)
-        rotation = Matrix((side, -forward, up)).transposed().to_4x4()
-        centre = Vector((0, tube_y, 1.15))
-        root.matrix_world = Matrix.Translation(centre - up * 0.1) @ rotation
+        rotation = Matrix.Rotation(math.radians(30), 4, "Y") @ Matrix.Rotation((-1 if muzzle_up else 1) * math.pi / 2, 4, "X")
+        if tip_deg:
+            rotation = Matrix.Rotation(math.radians(tip_deg), 4, "X") @ rotation
+        root.matrix_world = Matrix.Translation((0, back + standoff, lift)) @ rotation
         self.rig.bone_parent(root, "spine_03")
-        for c in root.children_recursive:
-            if c.type == "MESH":
-                self.parts.append(c)
-        for k, (along, x, z) in enumerate(((-0.4, -0.10, 1.42), (0.4, 0.10, 1.02))):
-            lug = root.matrix_world @ Vector((-0.075, along, 0.1))
-            anchor = Vector((x, back, z))
+        self.parts.extend(c for c in root.children_recursive if c.type == "MESH")
+        for j, along in enumerate((-.20, .30)):
+            lug = root.matrix_world @ Vector((-.045, along, .10))
+            anchor = Vector((-.09 if j == 0 else .09, back, 1.1 - along * .85))
             reach = lug - anchor
-            strap = box(f"launcher_retention_{k}", (0.035, 0.008, reach.length),
-                        (anchor + lug) * 0.5, self.m["webbing"],
+            strap = box(f"{name}_retention_{j}", (.035, .014, reach.length), (anchor + lug) / 2, self.m["webbing"],
                         rot=reach.to_track_quat("Z", "Y").to_euler())
             self.rigid(strap, "spine_03")
 
+    # ---------------------------------------------------------------- weapon, sockets
     def weapon(self, spec):
         """Place the weapon where its low-ready hold puts it and ride it on hand_r:
         in the clips, hand_r's armature-space matrix equals its IK target."""
@@ -981,128 +276,6 @@ class Kit:
         me.color_attributes.render_color_index = 0
 
 
-# ---------------------------------------------------------------- geometry helpers
-
-def tubify(bm, k):
-    """Pull limb vertices toward the mean radius of their slice about the limb's axis
-    (T-pose arms along X, legs from hip to ankle), so muscles read as cloth over a tube."""
-    arms = [v for v in bm.verts if abs(v.co.x) > 0.26 and v.co.z > 1.2]
-    legs = [v for v in bm.verts if v.co.z < 0.93 and abs(v.co.x) > 0.015]
-    groups = []
-    for v in arms:
-        axis = Vector((v.co.x, 0.07, 1.456))
-        groups.append((v, axis, round(v.co.x / 0.025) * (1 if v.co.x > 0 else -1)))
-    for v in legs:
-        side = 1 if v.co.x > 0 else -1
-        t = clamp01((0.971 - v.co.z) / (0.971 - 0.086))
-        axis = Vector((side * 0.114, 0.036 + 0.052 * t * t, v.co.z))
-        groups.append((v, axis, 1000 * side + round(v.co.z / 0.025)))
-    radii = {}
-    for v, axis, key in groups:
-        radii.setdefault(key, []).append((v.co - axis).length)
-    raw = {k: sum(r) / len(r) for k, r in radii.items()}
-    # cloth hangs straight over a muscle: average each slice's radius with its neighbours
-    # along the limb (the keys are consecutive 2.5 cm slices), so biceps and calves smooth away
-    mean = {}
-    for key in raw:
-        near = [raw[j] for j in range(key - 3, key + 4) if j in raw]
-        mean[key] = sum(near) / len(near)
-    for v, axis, key in groups:
-        d = v.co - axis
-        r = d.length
-        # The superhero's arms are a size too big: slim the sleeves away from the shoulder.
-        slim = 1.0 - 0.18 * clamp01((abs(v.co.x) - 0.26) / 0.12) if abs(v.co.x) > 0.26 and v.co.z > 1.2 else 1.0
-        if r > 1e-6:
-            v.co = axis + d * ((r + (mean[key] * slim - r) * k) / r)
-
-
-def bump(x, centre, width):
-    return math.exp(-(((x - centre) / width) ** 2))
-
-
-def smoothstep(e0, e1, x):
-    t = clamp01((x - e0) / (e1 - e0))
-    return t * t * (3 - 2 * t)
-
-
-def fill_legs(bm):
-    """Give the tubed trousers a man's legs: thighs full from above the knee,
-    deeper front to back than across and easing into narrow hips (a flare at
-    the hip reads as a woman's), a calf behind the shin, and a modest seat behind
-    the hips. Same leg axes as `tubify` (the soldier faces -Y, so +Y is behind him)."""
-    for v in bm.verts:
-        co = v.co
-        if co.z > 1.06 or co.z < 0.2 or (abs(co.x) > 0.26 and co.z > 1.2):
-            continue
-        side = 1 if co.x > 0 else -1
-        if co.z < 0.95:
-            t = clamp01((0.971 - co.z) / (0.971 - 0.086))
-            ax, ay = side * 0.114, 0.036 + 0.052 * t * t
-            dx, dy = co.x - ax, co.y - ay
-            # full from just above the knee, easing off into the hip so the hips stay narrow
-            thigh = smoothstep(0.52, 0.68, co.z) * (1 - smoothstep(0.84, 0.95, co.z) * 0.6)
-            outer = dx * side > 0
-            calf = bump(co.z, 0.40, 0.09)
-            fx = 1 + thigh * (LEG_FILL["thigh_across"] if outer else LEG_FILL["thigh_inner"]) + calf * LEG_FILL["calf"] * 0.4
-            fy = 1 + thigh * LEG_FILL["thigh_deep"]
-            if dy > 0:  # the calf behind the shin
-                fy += LEG_FILL["calf"] * calf
-            co.x = ax + dx * fx
-            co.y = ay + dy * fy
-        # the seat: a flat, square muscle behind the hip, fading at the waist and the thigh
-        if co.y > 0.0 and abs(co.x) < 0.22:
-            cheek = bump(abs(co.x), 0.07, 0.11)
-            co.y += LEG_FILL["seat"] * bump(co.z, 0.88, 0.075) * cheek * smoothstep(0.0, 0.08, co.y)
-
-
-# How far `fill_legs` swells each part: shares of the tube's radius, and the seat in metres.
-LEG_FILL = {"thigh_across": 0.12, "thigh_inner": 0.06, "thigh_deep": 0.3, "calf": 0.2, "seat": 0.032}
-
-
-def add_rim(bm, depth):
-    """Turn a shell's open edges inward by `depth`, so cut cloth shows a thickness."""
-    edges = [e for e in bm.edges if e.is_boundary]
-    if not edges:
-        return
-    ret = bmesh.ops.extrude_edge_only(bm, edges=edges)
-    new = [e for e in ret["geom"] if isinstance(e, bmesh.types.BMVert)]
-    for v in new:
-        n = Vector((0, 0, 0))
-        for f in v.link_faces:
-            n += f.normal
-        linked = [e.other_vert(v) for e in v.link_edges if e.other_vert(v) not in new]
-        base = linked[0].normal if linked else n
-        v.co -= base.normalized() * depth
-
-
-def convex_hull_2d(points):
-    pts = sorted(set((round(x, 5), round(y, 5)) for x, y in points))
-    if len(pts) < 3:
-        return pts
-
-    def cross(o, a, b):
-        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
-
-    lower, upper = [], []
-    for p in pts:
-        while len(lower) >= 2 and cross(lower[-2], lower[-1], p) <= 0:
-            lower.pop()
-        lower.append(p)
-    for p in reversed(pts):
-        while len(upper) >= 2 and cross(upper[-2], upper[-1], p) <= 0:
-            upper.pop()
-        upper.append(p)
-    return lower[:-1] + upper[:-1]
-
-
-def bvh_of(o):
-    bm = bmesh.new()
-    bm.from_mesh(o.data)
-    tree = BVHTree.FromBMesh(bm)
-    bm.free()
-    return tree
-
-
 def fold_leaf_weights(o, arm):
     """Move the weight of every `*_leaf` joint group onto its parent bone's group, so the
     body keeps exactly the skeleton clips' joints (the leaves carry no animation)."""
@@ -1117,42 +290,28 @@ def fold_leaf_weights(o, arm):
         vg.remove(g)
 
 
-def build(kind, variant):
+def dressed(army, look, kind):
+    """A fresh rig wearing `army`'s pinned generated body (`look`, `kind`): the
+    `Kit` ready for its weapon. A body with no pin is an error naming its key."""
+    pin = skin_pins.required("infantry", army=army, look=look, kind=kind)
     rig = Rig()
     for n in ("Eyes", "Eyebrows"):
         if n in bpy.data.objects:
             bpy.data.objects.remove(bpy.data.objects[n], do_unlink=True)
-    kit = Kit(rig, look_of(kind, variant))
-    kit.uniform()
-    kit.boots()
-    kit.plate_carrier()
-    kit.molle()
-    if kit.look["pack"] != "none":
-        kit.pack_straps()
-    kit.belt()
-    kit.chest_rig()
-    kit.pack(kind)
-    kit.hip_kit()
-    kit.markings()
-    kit.head_gear()
-    if kit.look["scarf"]:
-        kit.scarf()
-    kit.skin()
-    if kind == "at_carried":
-        kit.carried_launcher()
-    kit.weapon(weapons.KINDS[kind])
+    data = roster.armies()[army]
+    kit = Kit(rig, data)
+    generated_body.wear(kit, pin, data["cloth_mean"])
+    return kit
+
+
+def export_soldier(kit, path):
+    """Finish `kit` (eye socket, paint, join, AO, tiers, UVs) and export it to
+    `path` with its rig and sockets. Returns the tiers."""
+    rig = kit.rig
     kit.eye()
     kit.paint_all()
     soldier = kit.join()
     kit.bake_ao(soldier)
-    return rig, soldier
-
-
-def main():
-    args = script_args()
-    kind = args[0] if args else "rifle"
-    variant = args[1] if len(args) > 1 else "a"
-    rig, soldier = build(kind, variant)
     tiers = make_tiers(soldier, "soldier")
     for t in tiers:
         canonical(t)
@@ -1164,9 +323,35 @@ def main():
     for o in list(bpy.data.objects):
         if o.type == "EMPTY" and o.name not in ("eye", "muzzle"):
             bpy.data.objects.remove(o, do_unlink=True)
-    sockets = [bpy.data.objects["eye"], bpy.data.objects["muzzle"]]
-    rel = f"assets/source/test/{kind if variant == 'a' else f'{kind}_{variant}'}.glb"
-    export_glb(os.path.join(REPO, rel), [rig.arm, *tiers, *sockets])
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    export_glb(path, [rig.arm, *tiers, bpy.data.objects["eye"], bpy.data.objects["muzzle"]])
+    return tiers
+
+
+def carried_launcher(kit):
+    """Sling the test launcher as a roster missile tube is slung: muzzle up, its
+    CLU to the side, its middle at `SLUNG_MIDDLE_M`, its CLU filling the gap to
+    the back."""
+    root = weapons.launcher(kit.m, "carried_launcher")
+    for c in list(root.children_recursive):
+        if c.type == "EMPTY":
+            bpy.data.objects.remove(c, do_unlink=True)
+    kit.sling(root, SLUNG_MIDDLE_M + bpy.data.objects["carried_launcher_tube"].location.y, -.02, "carried_launcher")
+
+
+def main():
+    args = script_args()
+    kind = args[0] if args else "rifle"
+    look = args[1] if len(args) > 1 else "a"
+    if kind not in TEST_BODIES or look not in ("a", "b", "c"):
+        raise SystemExit(f"Usage: infantry_kit.py {'|'.join(TEST_BODIES)} [a|b|c]")
+    army, body = TEST_BODIES[kind]
+    kit = dressed(army, look, body)
+    if kind == "at_carried":
+        carried_launcher(kit)
+    kit.weapon(weapons.KINDS[kind])
+    rel = f"assets/source/test/{kind if look == 'a' else f'{kind}_{look}'}.glb"
+    export_soldier(kit, os.path.join(REPO, rel))
     print(f"wrote {rel}")
 
 

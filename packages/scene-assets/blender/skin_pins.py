@@ -22,9 +22,17 @@ def pins(family):
     return json.loads(path.read_text()) if path.exists() else []
 
 
-def pin_where(family, **key):
-    """The pin of `family` whose fields equal `key`, or None."""
-    return next((p for p in pins(family) if all(p.get(k) == v for k, v in key.items())), None)
+def required(family, **key):
+    """The pin of `family` whose fields equal `key`. A missing one is an error
+    naming the key (its values joined, as the generation tool writes it) and
+    the commands that make it."""
+    pin = next((p for p in pins(family) if all(p.get(k) == v for k, v in key.items())), None)
+    if pin is None:
+        name = "_".join(str(v) for v in key.values())
+        tool = "node packages/scene-assets/tools/skin-generate.mjs"
+        raise ValueError(f"no {family} skin is pinned for {name}: make one with `{tool} image {family} {name}`, "
+                         f"then `{tool} generate {family} {name}` and `{tool} pin {family} {name} <request_id>`")
+    return pin
 
 
 def verified(pin):

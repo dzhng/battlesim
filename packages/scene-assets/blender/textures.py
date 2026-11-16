@@ -591,18 +591,6 @@ def polymer():
     return Baked(col, 0.35 + 0.65 * fbm(10, 1005, 4), normals_from_height(stip, 0.8), 1.0, 0.42 + 0.18 * stip)
 
 
-@recipe("skin", tile=0.15, wear=(0.1, 0.08, 0.06, 0.8))
-def skin():
-    """Weathered skin: a neutral light ground the vertex colour tints (face, stubble,
-    lips), blotched warm and cool, with pores and a little oily sheen."""
-    blotch = fbm(6, 1151, 4)
-    pores = smoothstep(0.08, 0.0, worley(64, 1153)[0])
-    col = np.stack([0.8 + 0.06 * blotch, 0.78 - 0.02 * blotch, 0.77 - 0.04 * blotch], -1)
-    col = col * (1.0 - 0.08 * pores)[..., None]
-    h = -pores * 0.6 + fbm(24, 1155, 3) * 0.3
-    return Baked(col, 1.0, normals_from_height(h, 0.8), 1.0, 0.52 + 0.12 * blotch, tint=0.0)
-
-
 @recipe("hard_plastic", tile=0.25, wear=(0.2, 0.18, 0.14, 1.0))
 def hard_plastic():
     """Knee pads and helmet fittings: moulded plastic, a light texture, scuffed."""
@@ -1591,5 +1579,3 @@ def swatch(names, path, cols=4):
 
 # The aircraft schemes have their own owner; importing it registers them.
 import textures_air  # noqa: E402,F401
-# The uniform prints have their own owner; importing it registers them (and `UNIFORMS`).
-from textures_uniforms import UNIFORMS  # noqa: E402,F401

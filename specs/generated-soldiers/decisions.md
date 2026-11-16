@@ -243,3 +243,56 @@ this ledger from scratch against the shipped code.
   estimate. The overrun is the retakes above.
 - **Probe exports are committed as they stand** (the current code's output);
   slice 09 re-exports everything once more on the final code. Sound.
+## Slice 08
+
+- **`infantry_kit.py` keeps its name.** Sound. It still builds a soldier's
+  kit (body, gloves, weapon, sockets), and a rename would move the build
+  script's, the README's and a test's references for no reader's gain.
+- **The army's webbing colour is army data (`armies.json` `webbing`).** Sound.
+  - *Why:* the retention straps of carried launchers and the test launcher's
+    strap are painted in it, and it lived only in `PROCEDURAL_LOOKS`
+    (`straps`). Moving the values unchanged keeps every generated export byte
+    for byte.
+- **`Kit(rig, army)` takes the army's `armies.json` entry**, not a look.
+  Sound. It reads `gloves` and `webbing`; the exporter reads `rifle` and
+  `lmg` from it through `kit.army`.
+- **`Kit` keeps the `pads` material too.** Sound: the test launcher's ring
+  bands and end caps are made of it, so it is weapon material.
+- **The gloves are `Kit.gloves()`, not a general `shell`.** Sound. The gloves
+  were the only shell left, so the shell's options (tube, rim, post, source,
+  pinning, relax, subdivide) went with the clothing. `generated_body.wear`
+  calls it, and the operations are the same as before, in the same order.
+- **`export_soldier(kit, path)` takes no `rig`.** Sound: the kit holds its
+  rig, so a second argument could only disagree with it. A shared
+  `dressed(army, look, kind)` makes the rig, the kit and the worn body for
+  both builds, and looks the pin up first, so a missing pin fails before
+  Blender loads the rig.
+- **`skin_pins.required` replaces `pin_where`.** Sound: infantry was its only
+  user. The key in the error is the lookup's values joined with `_`, which is
+  the generation tool's `<army>_<look>_<kind>`. The message names the `image`,
+  `generate` and `pin` commands.
+- **The kit receipt always lists its skins**, and the procedural authoring
+  text is gone. Sound: a kit can't export without its pins any more.
+- **`KITS` loses `grenades`**: only the deleted grenade block read it.
+- **The `skin` texture recipe is deleted** with the uniform prints: only the
+  procedural face read it. The generated body's skin material has no recipe.
+- **`build_sources.sh` builds the soldiers before the jeep**, whose crew wear
+  `test/rifle.glb`. It stops at the first test soldier with no pin, which is
+  `recon a` until slice 07 pins the rest.
+- **The test that pins the batch's first call** now expects
+  `infantry_kit.py rifle a`.
+- **The test launcher is slung by the roster's sling (`Kit.sling`).** Sound:
+  one sling, and the roster's own exports stay byte-identical through the move.
+  The test tube now hangs muzzle up with its CLU to the side, its middle at
+  `SLUNG_MIDDLE_M`; before, its CLU stood straight out of the back.
+- **The test `at_carried` still fails `fit.lies`.** Provisional; slice 09
+  fixes the sling's corpse behaviour for every carried kit.
+  - *Measure:* face down, the tube reaches 0.648 m against the 0.6 m limit
+    (0.737 m with the old sling, which also sank 0.28 m face up).
+  - *Why it waits:* the roster's generated carried kits fail the same way
+    (the Akeron and the Javelin carried: 0.68–0.71 m face down, sinking
+    0.23–0.26 m face up). The bake is red until slice 09 anyway.
+- **Only three test soldiers are re-exported here** (`rifle`, `at` and
+  `at_carried`, look a), with the test jeep. The other nine wait for their
+  pins (US Army OCP rifle b and c, recon a, b and c), which are being made
+  elsewhere.

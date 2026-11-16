@@ -1,8 +1,8 @@
-"""A generated soldier body, worn on the infantry rig in place of the cloth shells.
+"""A generated soldier body, worn on the infantry rig.
 
 An image-to-3D generator's T-pose soldier (`skins/infantry.json`, one pin per
-army, look and kind) becomes the clothed body of a roster kit. The kit
-(`roster/infantry_equipment.py`) still adds the weapon, its hold, the sockets,
+army, look and kind) becomes the clothed body of every soldier. The assembly
+(`infantry_kit.py`) adds the gloves, the weapon, its hold, the sockets,
 ambient occlusion, the tiers and the export. This module only makes the
 body:
 
@@ -11,11 +11,11 @@ body:
   height (helmet on) to `HEIGHT_M`, its fingertip span to the body's, its
   feet to the ground, its thighs centred on the body's. Then each arm and leg
   is seated on its bones, so every joint bends inside its limb.
-- Weights. Each vertex takes its weights from the procedural (slimmed) body,
+- Weights. Each vertex takes its weights from the rig's (slimmed) UBC body,
   by nearest face. An arm vertex takes them only from the body's arm, so a
   sleeve standing off a thinner arm never picks up the torso.
 - Hands. The generator's hands are fused mittens that can't close on a grip.
-  They are cut off at the wrist and replaced by the kit's own glove shell.
+  They are cut off at the wrist and replaced by the kit's gloves (`Kit.gloves`).
 - Surface. The generator's texture is kept, its cloth regraded so its mean
   matches the army's cloth mean (`roster/armies.json`) with white flecks
   clamped (`FLECK`); skin keeps its own colour. It is embedded at `ATLAS_PX`. Skin faces get
@@ -35,7 +35,7 @@ from mathutils.bvhtree import BVHTree
 
 import skin_pins
 import textures
-from common import fbm, mat
+from common import mat
 from infantry_rig import SCALE
 
 # The atlas, square px. A soldier is at most ~150 px tall on screen at tier 0,
@@ -43,7 +43,7 @@ from infantry_rig import SCALE
 # (scene-assets unitArt), so 512 is the size that lets every look ship.
 ATLAS_PX = 512
 # The generated body's triangles before the kit joins it: with the gloves and
-# the weapon, tier 0 lands where the procedural soldiers' did (~28k).
+# the weapon, tier 0 lands at about 28k.
 BODY_TRIS = 22000
 # The soldier's height with his helmet on, metres: the validator holds the
 # stand-aim pose to the simulation's 1.70 m (fixtures/rules.json) within 5 cm.
@@ -282,7 +282,7 @@ def _smoothed(moves, reach=SEAT_SMOOTH):
 
 
 def _cut_hands(gen, arm):
-    """Drop everything past the wrists; the glove shell replaces it."""
+    """Drop everything past the wrists; the kit's gloves replace it."""
     wrist = min(abs(arm.data.bones["hand_l"].head_local.x), abs(arm.data.bones["hand_r"].head_local.x))
     bm = bmesh.new()
     bm.from_mesh(gen.data)
@@ -506,8 +506,8 @@ def _clamp_flecks(rgb, target):
 
 
 def wear(kit, pin, cloth_mean):
-    """Build the pinned generated body into `kit` (in place of its cloth shells)
-    and return it. Call before anything that seats kit on the clothing."""
+    """Build the pinned generated body and its gloves into `kit` and return the
+    body. Call before anything that seats kit on the body."""
     rig = kit.rig
     gen = _import(skin_pins.verified(pin), pin["front"])
     atlas = _atlas(gen)
@@ -524,11 +524,7 @@ def wear(kit, pin, cloth_mean):
     kit.parts.append(gen)
     # the vertex colour is a multiplier at COLOUR_SCALE: plain white, so AO alone shades it
     kit.painters[gen.name] = lambda p, n: (1 / textures.COLOUR_SCALE,) * 3
-    w = kit.w
-    glove = kit.shell("gloves", lambda co, n, v, dl: w(v, dl, kit.g_hand) > 0.3, kit.m["gloves"],
-                      lambda co, n: 0.004, smooth=1, rim=0.0, pin=False,
-                      painter=lambda p, n: tuple(c * (0.85 + 0.3 * fbm(p, 50, 7)) for c in kit.look["gloves"]))
-    glove.modifiers.new("lighten", "DECIMATE").ratio = 0.6
+    kit.gloves()
     return gen
 
 
