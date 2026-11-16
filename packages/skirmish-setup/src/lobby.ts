@@ -9,6 +9,7 @@ import { MAP_SIZES, MAP_TYPES, newSeed, generationRequest } from "../../../web/s
 import type { Player, PrepareBattleRequest } from "../../../web/src/battle/prepare/protocol";
 import type { Faction } from "../../scene-assets/src/units";
 import presentation from "../../../fixtures/presentation.json";
+import { DEFAULT_BATTLE_SEED } from "./defaults";
 import {
   battlePlayers,
   DEFAULT_FACTION,
@@ -43,7 +44,7 @@ export interface SetupData {
 }
 
 const DEFAULT_MAP: MapChoice = { type: "mixed", size: "small", profile: "skirmish", seed: "1" };
-export const DEFAULT_BATTLE_SEED = 20260925;
+export { DEFAULT_BATTLE_SEED } from "./defaults";
 export const DEFAULT_LIGHTING = presentation.light_preset;
 const countForPreset: Record<LobbyPreset, number> = { "1v1": 1, "3v3": 3, "5v5": 5 };
 

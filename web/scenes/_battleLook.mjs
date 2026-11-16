@@ -1,4 +1,4 @@
-import { DEFAULT_BATTLE_SEED } from "../../packages/skirmish-setup/src/lobby.ts";
+import { DEFAULT_BATTLE_SEED } from "../../packages/skirmish-setup/src/defaults.ts";
 // The street test map's battle as a game.
 //
 // On `/labs/street?watch` (scene `street-watch`: blue's start ordered onto
