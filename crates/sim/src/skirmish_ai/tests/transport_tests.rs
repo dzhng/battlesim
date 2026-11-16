@@ -3,7 +3,7 @@
 use super::*;
 
 /// The test deck with both test carriers on its cards: eight seats and three.
-fn transport_deck() -> serde_json::Value {
+pub(super) fn transport_deck() -> serde_json::Value {
     let mut rules = deck();
     for id in ["test_apc", "test_scout_car"] {
         crate::fixtures::patch_catalog(

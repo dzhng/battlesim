@@ -16,19 +16,22 @@ use crate::carriage::seats;
 /// take the whole squad, then the cheapest, then the smaller id. `None` for a
 /// hull (size 0) or a squad no card seats.
 pub(super) fn carrier_for(rules: &Rules, eligible: &[TypeIndex], size: usize) -> Option<TypeIndex> {
-    if size == 0 {
-        return None;
-    }
     eligible
         .iter()
         .copied()
-        .filter(|&k| seats(rules, k) >= size)
+        .filter(|&k| seats_squad(rules, k, size))
         .min_by(|&a, &b| {
             seats(rules, a)
                 .cmp(&seats(rules, b))
                 .then(rules.catalog.get(a).cost.cmp(&rules.catalog.get(b).cost))
                 .then(rules.catalog.id(a).cmp(rules.catalog.id(b)))
         })
+}
+
+/// Whether `carrier` seats every soldier of a squad of `size`; never a hull
+/// (size 0).
+pub(super) fn seats_squad(rules: &Rules, carrier: TypeIndex, size: usize) -> bool {
+    size > 0 && seats(rules, carrier) >= size
 }
 
 /// The seat count a squad card pairs with, if the deck seats it.

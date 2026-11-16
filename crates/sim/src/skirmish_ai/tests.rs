@@ -140,7 +140,7 @@ fn a_scripted_purchase_plan_replaces_the_doctrines_own_shopping() {
         "an affordable scripted opening is one batch"
     );
     for _ in 0..expected.len() {
-        ai.purchase_result(true);
+        ai.purchase_result(true, 1);
     }
     frame.tick += 5 * u64::from(rules.tick_hz);
     let second = ai
@@ -199,9 +199,9 @@ fn a_refused_scripted_purchase_is_retried_in_order() {
         .unwrap()
     };
     let first = purchase(&mut ai, &mut frame);
-    ai.purchase_result(false);
+    ai.purchase_result(false, 1);
     assert_eq!(purchase(&mut ai, &mut frame), first);
-    ai.purchase_result(true);
+    ai.purchase_result(true, 1);
     assert_eq!(
         purchase(&mut ai, &mut frame),
         rules.catalog.id(plan[1]).to_owned()
@@ -347,29 +347,13 @@ fn opening_is_bought_and_readied_in_the_first_decision_within_budget_pending_and
             &rules,
             |_, _| Some(1.0),
         ) {
-            let view = frame.skirmish.as_mut().unwrap();
             match order {
-                Order::ConfirmPurchase {
-                    variant,
-                    destination,
-                    ..
-                } => {
-                    let kind = rules.catalog.index(&variant).unwrap();
-                    let price = f64::from(rules.catalog.get(kind).cost);
-                    let me = &mut view.players[0];
-                    assert!(price <= me.credits && me.unit_count < me.cap);
-                    me.credits -= price;
-                    me.unit_count += 1;
-                    me.pending.push(pending(
-                        me.pending.len() as u32,
-                        kind,
-                        destination,
-                        frame.tick,
-                    ));
+                Order::ConfirmPurchase { .. } => {
+                    confirm_purchases(&rules, &mut frame, &[order]);
                 }
                 Order::Ready => {
                     ready = true;
-                    view.players[0].ready = true;
+                    me(&mut frame).ready = true;
                 }
                 _ => panic!("preparation must only buy or ready"),
             }
@@ -1171,8 +1155,9 @@ fn the_ai_sends_bought_jets_on_attack_move() {
     )));
 }
 
-/// Credit a wallet's purchases to the frame the way the match does: price
-/// out, slot taken, card pending. Returns the kinds bought.
+/// Credit a wallet's purchases to the frame the way the match does: prices
+/// out, a place per unit taken, purchase pending. Returns every kind bought,
+/// carriers included.
 fn confirm_purchases(
     rules: &Rules,
     frame: &mut ObservationFrame,
@@ -1184,21 +1169,25 @@ fn confirm_purchases(
     for order in orders {
         let Order::ConfirmPurchase {
             variant,
+            carrier,
             destination,
-            ..
         } = order
         else {
             continue;
         };
-        let kind = rules.catalog.index(variant).unwrap();
-        let price = f64::from(rules.catalog.get(kind).cost);
+        let mut row = pending(0, rules.catalog.index(variant).unwrap(), *destination, tick);
+        row.carrier = carrier.as_deref().and_then(|id| rules.catalog.index(id));
+        let price: f64 = row
+            .kinds()
+            .map(|k| f64::from(rules.catalog.get(k).cost))
+            .sum();
         let me = &mut view.players[0];
-        assert!(price <= me.credits && me.unit_count < me.cap);
+        assert!(price <= me.credits && me.unit_count + row.units() <= me.cap);
+        row.id = contract::skirmish::PurchaseId(me.pending.len() as u32);
         me.credits -= price;
-        me.unit_count += 1;
-        me.pending
-            .push(pending(me.pending.len() as u32, kind, *destination, tick));
-        bought.push(kind);
+        me.unit_count += row.units();
+        bought.extend(row.kinds());
+        me.pending.push(row);
     }
     bought
 }
@@ -1561,6 +1550,7 @@ mod backline;
 mod groups;
 mod parties;
 mod purchases;
+mod ride_purchases;
 mod smoke;
 mod transport_tests;
 

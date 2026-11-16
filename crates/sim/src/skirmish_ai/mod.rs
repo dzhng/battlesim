@@ -20,7 +20,7 @@ use artillery::{artillery_ground_guess, artillery_objective_guess};
 pub use capability::unit_engages_aircraft_in;
 use capability::{frame_has_layer_threat, unit_weapons};
 pub(crate) use capability::{unit_can_engage_ground, unit_can_engage_target};
-use purchase::own_player;
+use purchase::{own_player, PurchasePlan};
 use relocation::{Held, Relocation};
 mod transport;
 pub use team::{PlayerPlan, TeamMemory, TeamPlan};
@@ -176,13 +176,6 @@ pub struct BalancedDoctrine {
 }
 
 #[derive(Clone, Debug)]
-struct PurchasePlan {
-    cards: Vec<TypeIndex>,
-    next: usize,
-    repeat_from: Option<usize>,
-}
-
-#[derive(Clone, Debug)]
 struct ArtillerySighting {
     tick: Tick,
     position: [f64; 3],
@@ -230,40 +223,6 @@ impl BalancedDoctrine {
 
     pub fn pivot_count(&self) -> u32 {
         self.pivot_count
-    }
-
-    pub fn set_purchase_plan(&mut self, cards: Vec<TypeIndex>) {
-        self.set_purchase_plan_with_repeat(cards, None);
-    }
-
-    pub(crate) fn set_purchase_plan_with_repeat(
-        &mut self,
-        cards: Vec<TypeIndex>,
-        repeat_from: Option<usize>,
-    ) {
-        let repeat_from = repeat_from.filter(|&index| index < cards.len());
-        self.purchase_plan = Some(PurchasePlan {
-            cards,
-            next: 0,
-            repeat_from,
-        });
-    }
-
-    pub(crate) fn purchase_result(&mut self, accepted: bool) {
-        if !accepted {
-            return;
-        }
-        let Some(plan) = self.purchase_plan.as_mut() else {
-            return;
-        };
-        plan.next += 1;
-        if plan.next == plan.cards.len() {
-            plan.next = plan.repeat_from.unwrap_or(plan.cards.len());
-        }
-    }
-
-    pub(crate) fn has_purchase_plan(&self) -> bool {
-        self.purchase_plan.is_some()
     }
 
     pub(crate) fn wants_decision(&self, tick: Tick) -> bool {
@@ -445,9 +404,10 @@ impl BalancedDoctrine {
         };
         let mut orders = smoke.clone();
         let purchases = self.shopping(frame, rules, me, view.phase, &eligible);
-        for kind in purchases {
+        for purchase::Buy { kind, carrier } in purchases {
             // Support, carriers and the squads they will carry wait at base:
-            // a squad rides out from there (D17).
+            // a squad rides out from there (D17), as a squad bought aboard
+            // its ride is driven out (`unload`).
             let waits = rules.catalog.get(kind).has_role("logistics")
                 || crate::carriage::seats(rules, kind) > 0
                 || transport::carrier_for(rules, &eligible, rules.catalog.get(kind).squad_size())
@@ -474,7 +434,11 @@ impl BalancedDoctrine {
                     })
                     .map_or(entry.center, |o| o.center)
             };
-            orders.push(Order::purchase(rules.catalog.id(kind), destination));
+            orders.push(Order::ConfirmPurchase {
+                variant: rules.catalog.id(kind).into(),
+                carrier: carrier.map(|carrier| rules.catalog.id(carrier).into()),
+                destination,
+            });
         }
         if view.phase == Phase::Active {
             let carries =

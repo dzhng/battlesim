@@ -339,3 +339,50 @@ fn a_pair_is_refused_without_seats_for_the_squad_room_for_two_or_credits_for_bot
     assert!(poor.frame().seat().pending.is_empty());
     assert_eq!(poor.buy("test_apc", None), None);
 }
+
+/// An AI player's squad and its ride come as one purchase: the battle
+/// admits the pair, moves the AI's plan past both cards (so it buys no second
+/// carrier with the credits left), and the AI drives the loaded carrier out
+/// and lets the squad out nearer the objectives than its entry.
+#[test]
+fn an_ai_buys_a_squad_in_its_ride_and_drives_it_out() {
+    let mut setup = setup(SEATS, 30, 500);
+    setup.players[0].controller = contract::players::ControllerKind::ActiveAi;
+    let mut blue = Blue::new(&setup);
+    let card = |id: &str| blue.battle.rules().catalog.index(id).unwrap();
+    let plan = vec![card(SQUAD), card("test_apc")];
+    blue.battle.script_purchases("blue-1", plan, None);
+    blue.battle.step();
+    blue.battle.accept(CommandEnvelope {
+        side: Side::Red,
+        player: Some("red-1".into()),
+        seq: 1,
+        order: Order::Ready,
+        queued: false,
+    });
+    assert!(
+        blue.step_until(60, |b| !b.own("test_apc").is_empty()),
+        "the pair never arrived"
+    );
+    let ride = blue.own("test_apc")[0].id;
+    assert!(aboard(&blue.own(SQUAD)[0], ride), "the squad rides in");
+    let entry = [400.0, 10.0];
+    let objective = |at: [f64; 3]| {
+        [[400.0, 300.0], [200.0, 300.0], [600.0, 300.0]]
+            .map(|o: [f64; 2]| ((at[0] - o[0]).powi(2) + (at[1] - o[1]).powi(2)).sqrt())
+            .into_iter()
+            .fold(f64::INFINITY, f64::min)
+    };
+    assert!(
+        blue.step_until(180, |b| b.own(SQUAD)[0].hold.is_none()),
+        "the squad never got out"
+    );
+    let squad = &blue.own(SQUAD)[0];
+    assert!(
+        objective(squad.position) < objective([entry[0], entry[1], 0.0]),
+        "let out nearer the objectives: {:?}",
+        squad.position
+    );
+    assert_eq!(blue.own("test_apc").len(), 1, "no second carrier");
+    assert!(blue.frame().seat().pending.is_empty());
+}

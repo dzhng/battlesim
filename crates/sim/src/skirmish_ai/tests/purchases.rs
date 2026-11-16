@@ -25,7 +25,7 @@ fn seen(rules: &Rules, kind: &str) -> contract::observation::IdentifiedUnit {
     }
 }
 
-fn us_cards(rules: &Rules) -> Vec<TypeIndex> {
+pub(super) fn us_cards(rules: &Rules) -> Vec<TypeIndex> {
     rules
         .catalog
         .indices()
