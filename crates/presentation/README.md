@@ -155,7 +155,9 @@ calls the same reader for workbench drafts.
   `FogUpload` a renderer uploads as it is. A prop the side has not learned
   never reaches it. A cloud that comes, steps or goes rebuilds only the maps
   it reaches, under the moved eyes' budget. The unseen look is
-  [`fog`](src/fog/mod.rs)'s `FogLook`.
+  [`fog`](src/fog/mod.rs)'s `FogLook`. It lies on the ground, under the air:
+  as the haze hides unseen land, it hides the look too, so far land fades into
+  the horizon rather than ending against the sky.
 - [The sun's shadow](src/shadow.rs): each frame's cascades fitted over where the
   terrain is in view depth, as the receiver block and each cascade's caster camera
   (`Frame.shadow`, once `set_shadow` gives the light and immutable terrain).

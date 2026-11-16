@@ -1,12 +1,15 @@
 //! Debug views inspect the actual resolved fog mask; switching back restores
 //! the style and its display-space rim without replacing renderer resources.
+//! The style lies under the air: unseen ground the haze hides shows none of it.
+#[path = "support/effects.rs"]
+mod effects;
 #[path = "support/readback.rs"]
 mod readback;
 mod support;
 
 use presentation::records::FogLook;
+use presentation::view::{Camera as Eye, View as Framed};
 use renderer_core::fog_mask::{self, FogMaskView};
-use renderer_core::pipelines;
 use renderer_core::{Targets, HDR_FORMAT};
 use wgpu::*;
 
@@ -75,11 +78,39 @@ fn close(actual: [f32; 4], expected: [f32; 4]) {
         "expected {expected:?}, got {actual:?}"
     );
 }
+/// Every pixel's surface at reverse-Z `depth`: 1 is the near plane, at the
+/// camera; nearer 0 lies ever farther into the haze.
+fn surface_at(gpu: &support::Gpu, targets: &Targets, depth: f32) {
+    let mut encoder = gpu.device.create_command_encoder(&Default::default());
+    encoder.begin_render_pass(&RenderPassDescriptor {
+        color_attachments: &[],
+        depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
+            view: &targets.depth,
+            depth_ops: Some(Operations {
+                load: LoadOp::Clear(depth),
+                store: StoreOp::Store,
+            }),
+            stencil_ops: None,
+        }),
+        ..Default::default()
+    });
+    gpu.queue.submit([encoder.finish()]);
+}
 #[test]
 fn fog_ground_and_class_views_use_resolved_mask_and_suppress_the_rim() {
     let gpu = support::gpu().expect("real GPU");
-    let pipelines = pipelines::build_builtin(&gpu.device).unwrap();
-    let mut targets = Targets::new(&gpu.device, [8, 2]);
+    let eye = Eye {
+        eye: [0., 0., 40.],
+        target: [0., 0., 0.],
+        up: [0., 1., 0.],
+        fov_y: 0.6,
+        near: 0.1,
+        size: [8, 2],
+    };
+    let framed = Framed::new(&eye);
+    let (pipelines, mut targets, environment, _effects, _, _shadow) =
+        effects::stage(&gpu, [8, 2], &framed.record(&eye), &framed.camera(&eye, 0.));
+    surface_at(&gpu, &targets, 1.);
     let texture = |label, format| {
         gpu.device.create_texture(&TextureDescriptor {
             label: Some(label),
@@ -137,7 +168,14 @@ fn fog_ground_and_class_views_use_resolved_mask_and_suppress_the_rim() {
         reach_px: 4.,
         ..Default::default()
     };
-    let mut fog = fog_mask::fog_mask(&gpu.device, &gpu.queue, &pipelines, &targets, &look);
+    let mut fog = fog_mask::fog_mask(
+        &gpu.device,
+        &gpu.queue,
+        &pipelines,
+        &targets,
+        &environment,
+        &look,
+    );
     for (view, expected) in [
         (
             FogMaskView::Fog,
@@ -208,4 +246,11 @@ fn fog_ground_and_class_views_use_resolved_mask_and_suppress_the_rim() {
         rim[1][0] > 0.1,
         "ordinary view failed to restore seen-side rim"
     );
+    // The same unseen pixel a thousand kilometres off: the haze hides the
+    // ground, and the style with it.
+    surface_at(&gpu, &targets, 1e-7);
+    let mut encoder = gpu.device.create_command_encoder(&Default::default());
+    fog.encode(&mut encoder, &targets);
+    let pixels = read(&gpu, &targets.hdr, encoder);
+    close(pixels[0], [0.25, 0.5, 0.75, 1.]);
 }
