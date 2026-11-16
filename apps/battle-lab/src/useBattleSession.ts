@@ -34,7 +34,7 @@ import {
 } from "@web/battle/input/pointerIntent";
 import {
   PointerPaint,
-  attackGroundSpread,
+  attackGroundMarks,
   rulerAt,
   previewForIntent,
   pointerCursor,
@@ -638,7 +638,7 @@ export function useBattleSession({
         : null;
     const attackGround =
       active && intent.kind === "attack" && intent.target.kind === "ground" && shown
-        ? attackGroundSpread(
+        ? attackGroundMarks(
             [intent.target.point[0], intent.target.point[1]],
             control.selectedUnits,
             drawnAt.current,
