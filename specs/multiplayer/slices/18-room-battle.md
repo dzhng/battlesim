@@ -75,8 +75,8 @@ lobby instead of the menu.
   battle from the model's own setup (open seats dropped, the rest closed
   up) and the room turns to `starting`: off the list, closed to newcomers.
   When the battle's host is ready the service records the battle and each
-  member's view carries that member's own ticket. The page says "Preparing
-  the battlefield… This can take a few seconds." in between.
+  member's view carries that member's own ticket. In between, the page says
+  it is preparing the battlefield.
 - **Seats.** A room's battle is served at `/battles/:id` like any battle.
   The room service answers who sits where, from the room itself.
 - **Drop and return.** The one presence module decides. After the grace a

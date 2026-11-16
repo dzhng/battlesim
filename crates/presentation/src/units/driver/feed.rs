@@ -44,6 +44,10 @@ pub struct FeedUnit {
     pub deployment: Option<f64>,
     /// The squad is pinned, by the published tier (false where the side cannot know).
     pub pinned: bool,
+    /// The squad is in a fight this moment: its own sensors see an enemy, or
+    /// a round aimed at it passed near or struck it (false where the side
+    /// cannot know). Its own shots are read from its mounts.
+    pub engaged: bool,
     /// A downed airframe's (pitch, roll) as it falls, radians: nose up and
     /// right side down. None: a live unit.
     pub attitude: Option<(f64, f64)>,

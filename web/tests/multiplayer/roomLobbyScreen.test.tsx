@@ -194,7 +194,7 @@ test("Start follows canStart from the server and stops at starting", async () =>
   });
   await waitFor(() => expect(start.disabled).toBe(false));
   fireEvent.click(start);
-  await page.findByRole("status", { name: "Starting" });
+  await page.findByRole("status", { name: "Preparing the battlefield" });
   expect((await snapshot(code)).phase.kind).toBe("starting");
   expect(page.queryByRole("button", { name: "Start" })).toBeNull();
 });

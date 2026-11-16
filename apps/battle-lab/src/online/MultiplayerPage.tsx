@@ -5,6 +5,7 @@ import type { RoomList } from "@packages/multiplayer/src/wire";
 import { spoken } from "../battleLinks";
 import { PageHead } from "../menu/PageHead";
 import { useMenuShell } from "../menu/MenuShell";
+import { PlateStatus } from "../menu/PlateStatus";
 import { callsign, setCallsign } from "./identity";
 import { hello } from "./hello";
 import { serverAddress } from "./server";
@@ -116,11 +117,13 @@ export function MultiplayerPage() {
         )}
       </PageHead>
       {available === false ? (
-        <p role="status" aria-label="Online unavailable">
-          Online play is not available on this build.
-        </p>
+        <PlateStatus
+          label="Online unavailable"
+          detail="Online play is not available on this build."
+          failed
+        />
       ) : available === null ? (
-        <p role="status">Connecting…</p>
+        <PlateStatus label="Connecting" />
       ) : (
         <>
           <Frontline
