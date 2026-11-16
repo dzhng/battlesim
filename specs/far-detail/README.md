@@ -1,8 +1,7 @@
 # Far detail
 
-**Status:** 00, 01, 02 and 06 are done. Slice 03 (parked cars) is measured and
-wins, but its visual gate is red and it is not merged.
-**Updated:** 2026-11-15.
+**Status:** 00, 01, 02 and 06 are done. 03 (parked cars) is in a fix round.
+04 (walls) and 05 (block-merge spike) are in progress. **Updated:** 2026-11-16.
 
 In the wide view the game draws about 100,000 small props, most of them only a
 pixel or two across, at the same mesh it uses when they are twenty pixels tall.
@@ -30,15 +29,23 @@ You are implementing `specs/far-detail/` on branch
   five times one view pass ([census](assets/census.md)).
 - **01 and 02 are done and merged**, cross-language test included. The
   reviewer reran their tests on the merged code.
-- **[Slice 03](slices/03-parked-car.md) is in a fix round.** The car's far mesh
-  (40 triangles, `far_px` 4) is on branch `t3/far-detail-census-ceiling` at
-  `c5efadaf4`, not merged. It cuts the wide hold from 34.60 to 29.51 ms with
-  every count check and tripwire met. An unprimed critic then found two things
-  the reviewer confirmed by measurement: light-coloured cars read darker once
-  far-drawn (about 20 levels on one white car at the 600 m stop), and a pale
-  patch appears at the wide hold in the candidate only. Evidence is under
-  `throwaway/far-detail/review/`. Merge only when both are explained or fixed
-  and a fresh critic finds neither.
+- **[Slice 03](slices/03-parked-car.md) is in a fix round**, on branch
+  `t3/far-detail-census-ceiling`, not merged. Its first far mesh (40 triangles)
+  cut the wide hold from 34.60 to 29.51 ms but failed the unprimed critique:
+  light cars read darker and one car park showed a pale patch. The cause is the
+  rule below. The reworked mesh (`5fa0bad98`, tier 3 without its tyres, 92
+  triangles) is being timed. Merge only when a fresh critic finds no
+  difference.
+- **The rule every far mesh now follows:** the side's fog of war judges each
+  surface by its own plane and facing, so a far mesh may drop geometry but may
+  not reshape it. It draws only surfaces tier 3 draws.
+- **[Slice 04](slices/04-next-kinds.md), courtyard walls, is being built** on
+  branch `t3/far-mesh-prop-bundles`, against the integration branch with no car
+  art, so the wall is its only variable.
+- **[Slice 05](slices/05-spike-block-merge.md), the block-merge spike, started
+  early** on branch `t3/far-detail-far-selection`. The fog rule may settle it
+  before any GPU work: a merged, simplified block is new surfaces by
+  construction.
 - Measure on the [fresh control](assets/control.json): the old receipt's digest
   no longer reproduces, because the generated map changed.
 - **06 is done: no-go.** On the map with the most terrain a player can get,
