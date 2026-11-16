@@ -783,3 +783,58 @@ things the plan left open.
   at both). Neither workload garrisons two squads in one house or engages a
   garrison whose middle is inside its walls, so the plan's mechanics are
   proven by their own tests and scenes, not by this report.
+## Whole-spec review
+
+Scope: the whole feature's diff (`e2c946e0a..HEAD`), less the unrelated
+fixes the Closeout names (the `battleRules` fixture, `allies`' frame).
+
+- **Every invariant holds in the shipped code.** `hold::admit` is the only
+  constructor of `Phase::Entering` (the building path in `hold::advance` and
+  both `carriage::advance` boarding sites call it). Its start check counts
+  `Seats::staying` (stepping in or inside); `seated`, the end check, counts
+  `staying + leaving`. A refused squad pops its order and stands; nothing
+  queues it. Any other side's hold on the building, in any phase, makes the
+  entrant give up silently. A building hold starts at `Entering(1)` and is
+  not advanced that tick; a carrier hold, admitted in `carriage::advance`,
+  advances in the same tick's `hold::advance`.
+- **Every decision is implemented or needs no code.** The walk's and
+  drafts' rules each have their owner (seats and admission in `hold`, the
+  window plan and its per-window change time in `garrison::windows`, the
+  lowering in `garrison::occupy`, the ring and outline in the lab's
+  overlay, the IN BUILDING row in `panelRows`). Needing no code: no full-host
+  cursor warning, no new selection interaction, riders never reinforced
+  (`Unit::on_field` already excluded them). Not code: the Paris-corner reel
+  still wants the user's look (Closeout).
+- **No duplicate owners remained across slices.** Host seats, admission,
+  window plans, approach selection and command refusals each have one owner;
+  no building-only or carrier-only copy survives.
+- **The building badge's separate "someone can enter" flag went.** Since
+  slice 01 the pointer intent names only squads (`commandReach`) and falls
+  through to a ground move with none, so the flag the lab passed to
+  `cursorForIntent` was always true for a building intent. The badge now
+  shows while the answer is pending, as before, from the intent alone;
+  `useUnitControl`'s `entersBuildings` had no other reader.
+- **Leftovers of the planning snapshot deleted:** `WorldGeometry::props_from`
+  and `PropStore::iter_from` had no reader once `SideGeometry::beliefs`
+  went, and the world's prop-store comment still described a snapshot
+  sharing it.
+- **Old words in tests and a scene:** a test comment said move admission
+  "rehearses the walk" (it never did; that was the entry proof), a wait was
+  labelled "selected holder inside", the garrison scene's header named the
+  plan, and `garrison/occupy.rs` kept its own building-order helper beside
+  `garrison.rs`'s (the gesture it took is read by nothing). The order
+  planner counts a squad's seats through `hold::living`.
+- **Left as they are:** `PropStore` keeps its shared, copy-on-write bodies
+  (a cheap clone of the world, whoever clones it); `exit_spots` and the
+  movement code keep their own living counts (not seats). The navigation
+  search's "certified link" and the map generator's sight certificate are
+  their own concepts, not the deleted entry proof.
+- **Gates.** The probe at the review's last code commit (af9791674) is
+  identical to the head before the review (e9abab6cc) in all 61 cases,
+  `CONTESTED` included. Against `BASELINE` it moves only what the ledger
+  already names: the two contested demos and the three scenes
+  "Garrisons are engageable" moved. Clippy (sim, contract, all targets,
+  warnings denied), the sim's garrison, shared-hosts, transport, buildings,
+  supply and entry-reach tests with the world and hold unit tests, the web
+  typecheck, and the order-preview, unit-control, one-mark, readouts and
+  buildings web tests pass.

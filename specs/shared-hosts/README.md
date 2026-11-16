@@ -1,6 +1,6 @@
 # Shared hosts: buildings and transports admit squads alike
 
-**Status:** slices 00 to 07 implemented and checked; whole-spec review, ledger consolidation and close-spec remain. **Updated:** 2026-11-16.
+**Status:** slices 00 to 07 implemented and checked, whole-spec review done; ledger consolidation and close-spec remain. **Updated:** 2026-11-16.
 
 Several squads share a host (a building or a carrier) while seats remain, one
 seat per living soldier, squads whole. A squad gets in when it arrives and
@@ -17,17 +17,16 @@ the history of how each decision was reached, the
 superseded by this file). Before changing player text read
 [`game-ui`](../../.agents/skills/game-ui/SKILL.md).
 
-Next pickup: **the whole-spec review.** Slice 07 is done: labs, recordings,
-player text and docs, the full check ladder and the balance report (ledger,
-Slice 07 sections and Closeout). The Paris-corner menu reel is re-recorded
-and has lost its on-screen deaths; it needs the user's look and probably a
-re-direct (Closeout). Six browser scenes stay red, each failing the same way
-at this plan's first commit (Closeout); they are not this plan's. What
-remains, in order:
+Next pickup: **ledger consolidation.** Every slice is done, and the
+whole-spec review found every invariant holding and every decision
+implemented (ledger, Whole-spec review). The Paris-corner menu reel is
+re-recorded and has lost its on-screen deaths; it needs the user's look and
+probably a re-direct (Closeout). Six browser scenes stay red, each failing
+the same way at this plan's first commit (Closeout); they are not this
+plan's. What remains, in order:
 
-1. Run the whole-spec [`review`](../../.agents/skills/review/SKILL.md).
-2. Consolidate the ledger: fold the slice sections into durable decisions.
-3. Run [`close-spec`](../../.agents/skills/close-spec/SKILL.md); when the plan
+1. Consolidate the ledger: fold the slice sections into durable decisions.
+2. Run [`close-spec`](../../.agents/skills/close-spec/SKILL.md); when the plan
    moves to `specs/done/`, repoint the superseded note in
    `specs/done/battle-foundation/contracts.md`.
 
