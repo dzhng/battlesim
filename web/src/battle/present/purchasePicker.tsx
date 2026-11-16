@@ -1,6 +1,8 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import type { Faction, UnitCard } from "@packages/scene-assets/src/units";
 import { hudIcon } from "@packages/scene-assets/src/icons";
+import type { Vec2 } from "math";
+import { triangle2 } from "math/shapes";
 import { isTypingTarget } from "../input/keyGuard";
 import { useSessionCatalog } from "../catalog/context";
 import { Icon } from "./icons";
@@ -37,10 +39,13 @@ interface PickerProps {
   /** Whether the shop's key answers: off while a menu or result covers it. */
   enabled?: boolean;
 }
-/** How long the pointer must rest on another card before an open transport
- *  menu gives way to it, so crossing cards on the way into the menu never
- *  switches it. Single-card hovers switch at once. */
-const HOVER_INTENT_MS = 250;
+/** How long an open transport menu holds while the pointer heads into it
+ *  across another card. Past it, the card the pointer stopped on takes over;
+ *  a pointer moving any other way switches at once. */
+const MENU_AIM_MS = 300;
+/** Pointer positions kept to read its heading: few enough to follow a turn,
+ *  enough to steady a shaky hand. */
+const HEADING_SAMPLES = 3;
 
 /** The shop's key. Tab, not a letter, so every letter stays a search
  *  character and no command key is spent: one key opens the shop, enters its
@@ -142,6 +147,10 @@ function PurchaseMenu({
   const [query, setQuery] = useState("");
   const search = useRef<HTMLInputElement>(null);
   const intent = useRef<number | undefined>(undefined);
+  // The card a heading-in pointer crossed, waiting to take over the menu.
+  const crossed = useRef<string | null>(null);
+  const trail = useRef<Vec2[]>([]);
+  const transport = useRef<HTMLElement>(null);
   const infoId = useId();
   // The field waits for the key, so game keys stay the game's while the shop
   // is open; the key enters the field and, pressed in it, leaves it. Escape
@@ -258,17 +267,36 @@ function PurchaseMenu({
   // again starts with nothing highlighted.
   const point = (id: string | null) => {
     window.clearTimeout(intent.current);
+    crossed.current = null;
     if (id === hovered) return;
     setHovered(id);
     setPick(null);
   };
-  // Pointing at another card while a transport menu is open waits for the
-  // pointer to rest there; anything else follows at once.
+  // Whether the pointer is heading into the open transport menu: where it is
+  // now lies in the triangle from where it was a few moves back to the
+  // menu's bottom corners. The menu stands on its card, so heading in is
+  // heading up; a pointer that hasn't moved heads nowhere.
+  const headingIn = () => {
+    const box = transport.current?.getBoundingClientRect();
+    const from = trail.current[0];
+    const at = trail.current[trail.current.length - 1];
+    if (!box || !from || !at || (from[0] === at[0] && from[1] === at[1])) return false;
+    return triangle2.containsPoint(from, [box.left, box.bottom], [box.right, box.bottom], at);
+  };
+  // Another card under a pointer heading into the open transport menu waits
+  // for the pointer to stop there or turn away; anything else follows at once.
   const hoverCard = (id: string) => {
-    window.clearTimeout(intent.current);
-    if (squad && squad.id === hovered && id !== hovered)
-      intent.current = window.setTimeout(() => point(id), HOVER_INTENT_MS);
-    else point(id);
+    if (squad && squad.id === hovered && id !== hovered && headingIn()) {
+      window.clearTimeout(intent.current);
+      crossed.current = id;
+      intent.current = window.setTimeout(() => point(id), MENU_AIM_MS);
+    } else point(id);
+  };
+  // Every move reads the pointer's heading; one that turns away from the
+  // menu hands it to the card it crossed.
+  const move = (x: number, y: number) => {
+    trail.current = [...trail.current.slice(1 - HEADING_SAMPLES), [x, y]];
+    if (crossed.current && !headingIn()) point(crossed.current);
   };
   // A tab is shown as soon as the pointer or focus reaches it; a click does
   // the same, for touch. Passing back over the shown tab changes nothing.
@@ -281,7 +309,11 @@ function PurchaseMenu({
     <section
       className="hud-panel hud-purchase-picker"
       aria-label="Faction units"
-      onMouseLeave={() => point(null)}
+      onMouseMove={(event) => move(event.clientX, event.clientY)}
+      onMouseLeave={() => {
+        trail.current = [];
+        point(null);
+      }}
     >
       <div
         className="hud-purchase-cards"
@@ -377,7 +409,11 @@ function PurchaseMenu({
           option={option}
           onOption={(option) => setPick({ squad: squad.id, option })}
           onBuy={(option) => buy(squad, option)}
-          onEnter={() => window.clearTimeout(intent.current)}
+          frame={transport}
+          onEnter={() => {
+            window.clearTimeout(intent.current);
+            crossed.current = null;
+          }}
         />
       )}
     </section>

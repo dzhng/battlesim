@@ -8,11 +8,14 @@ it is not repeated here. Least confident first within each group.
 
 ## Provisional: a guess worth revisiting
 
-- **The transport menu waits 250 ms before following the pointer to another
-  card.** While a squad's menu is open, sweeping across other cards on the way
-  into it doesn't switch menus unless the pointer rests. The number was carried
-  over from the old picker, never tuned by feel (`HOVER_INTENT_MS`,
-  `purchasePicker.tsx`).
+- **An open transport menu reads the pointer's heading, and holds up to
+  300 ms.** A pointer crossing another card while heading into the menu (its
+  latest position inside the triangle from a few moves back to the menu's
+  bottom corners, the way mega-menus aim) keeps the menu until it stops there
+  or turns away; any other move switches at once, so sweeping along the
+  infantry row never waits. The 300 ms only bounds a pointer that stops
+  part-way; it sits among desktop submenu delays (about 225–400 ms) and was
+  never tuned by feel (`MENU_AIM_MS`, `purchasePicker.tsx`).
 
 ## Measured: chosen on evidence
 

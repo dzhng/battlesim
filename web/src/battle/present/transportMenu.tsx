@@ -1,7 +1,7 @@
 /** A squad's transport menu: over its card in the shop, the squad on foot
  *  and every carrier that seats it, by shop tab; the option the player points
  *  at (or steps to with the arrow keys) shows what it buys above the menu. */
-import { useId, useLayoutEffect, useRef } from "react";
+import { useId, useLayoutEffect, useRef, type RefObject } from "react";
 import type { UnitCard } from "@packages/scene-assets/src/units";
 import { Price, PurchaseInfo, ShopCard } from "./purchaseCard";
 import {
@@ -60,6 +60,7 @@ export function TransportMenu({
   onOption,
   onBuy,
   onEnter,
+  frame,
 }: {
   squad: UnitCard;
   sections: readonly CarrierSection[];
@@ -72,6 +73,8 @@ export function TransportMenu({
   onBuy: (option: string) => void;
   /** The pointer reached the menu. */
   onEnter: () => void;
+  /** The menu's panel, which the shop reads to tell a pointer heading in. */
+  frame: RefObject<HTMLElement | null>;
 }) {
   const catalog = useSessionCatalog();
   const infoId = useId();
@@ -126,7 +129,7 @@ export function TransportMenu({
       {/* The wrapper's foot bridges the gap down to the squad's card, so the
           pointer never leaves the menu on its way in. */}
       <div className="hud-transport" ref={menu} onMouseEnter={onEnter}>
-        <section className="hud-panel hud-transport-menu" aria-label="Transport">
+        <section ref={frame} className="hud-panel hud-transport-menu" aria-label="Transport">
           <div className="hud-transport-section" role="group" aria-label="On foot">
             <span className="hud-transport-label" aria-hidden>
               On foot

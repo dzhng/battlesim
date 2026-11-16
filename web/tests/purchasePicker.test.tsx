@@ -19,6 +19,7 @@ const render = (ui: Parameters<typeof renderView>[0]) =>
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 /** A variant of an invented family, named `<family> <variant>`. None is a
  *  catalog type, so each browses under its category's first group. */
@@ -538,24 +539,49 @@ test("a ride is refused when the credits or the unit cap can't take the pair, wh
   }
 });
 
-test("crossing other cards on the way into an open menu keeps it; resting on one switches", () => {
+test("an open menu holds while the pointer heads into it across other cards; turning away or stopping switches", () => {
   vi.useFakeTimers();
+  // The menu stands over the card row: 400 px wide, its foot at y = 100.
+  const box = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect");
+  box.mockImplementation(function (this: HTMLElement) {
+    const menu = this.getAttribute("aria-label") === "Transport";
+    return DOMRect.fromRect(menu ? { x: 0, y: 0, width: 400, height: 100 } : {});
+  });
   const { view } = openOn("inf");
+  const picker = view.getByRole("region", { name: "Faction units" });
+  const moves = (...path: [number, number][]) =>
+    path.forEach(([clientX, clientY]) => fireEvent.mouseMove(picker, { clientX, clientY }));
   const scoutListed = () => JSON.stringify(transportMenu(view)).includes(SCOUT.name);
   fireEvent.mouseEnter(view.getByRole("button", { name: RIFLES.name }));
   expect(scoutListed()).toBe(false);
-  // Across the team's card and into the rifles' menu.
+  // Up and right across the team's card, into the rifles' menu.
+  moves([30, 150], [60, 140], [90, 130]);
   fireEvent.mouseEnter(view.getByRole("button", { name: TEAM.name }));
+  moves([100, 126]);
   expect(scoutListed()).toBe(false);
   fireEvent.mouseEnter(view.getByRole("button", { name: APC.name }));
   act(() => vi.advanceTimersByTime(1000));
   expect(scoutListed()).toBe(false);
   expect(highlighted(view)).toEqual([APC.name]);
-  // Resting on the team's card opens its menu, nothing highlighted.
+  // Along the row, the team's card takes over at once, nothing highlighted.
+  moves([100, 150], [130, 150], [160, 150]);
   fireEvent.mouseEnter(view.getByRole("button", { name: TEAM.name }));
-  act(() => vi.advanceTimersByTime(1000));
+  moves([170, 150]);
   expect(scoutListed()).toBe(true);
   expect(highlighted(view)).toEqual([]);
+  // Heading in, then turning away on the rifles' card: it takes over.
+  moves([200, 200], [210, 185], [220, 170]);
+  fireEvent.mouseEnter(view.getByRole("button", { name: RIFLES.name }));
+  moves([225, 162]);
+  expect(scoutListed()).toBe(true);
+  moves([225, 190]);
+  expect(scoutListed()).toBe(false);
+  // Heading in and stopping on the team's card: it takes over once the wait ends.
+  moves([200, 200], [210, 185], [220, 170]);
+  fireEvent.mouseEnter(view.getByRole("button", { name: TEAM.name }));
+  expect(scoutListed()).toBe(false);
+  act(() => vi.advanceTimersByTime(1000));
+  expect(scoutListed()).toBe(true);
 });
 
 test("a search down to one squad opens its menu; Up and Down step through it, Enter buys", () => {
