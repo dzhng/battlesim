@@ -38,7 +38,7 @@ ending a pass.
 - [x] [S8](slices/s8-attack-line.md) current attack line, reticle, chase-end reticle
 - [x] [S9](slices/s9-queued-chain.md) the queued chain
 - [x] [S10](slices/s10-closeout.md) docs, `/review` (two unprimed reviewers; fixes landed), re-recorded parity captures, re-approved unit-roster baselines, push part 1 to staging
-- [ ] [P1](slices/p1-jet-3d-attack-line.md) part 2: a jet's 3D attack line, its own push
+- [x] [P1](slices/p1-jet-3d-attack-line.md) part 2: a jet's 3D attack line, its own push
 
 ## Contracts
 

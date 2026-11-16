@@ -1,12 +1,18 @@
 // @vitest-environment node
 // A ground unit's current attack: in range, a solid line from its circle to
 // a reticle on the target; chasing, its route ends in that reticle instead
-// of a destination circle. A winged aircraft draws none of it (part 2).
+// of a destination circle. A winged aircraft draws none of it on the ground:
+// its attack line stands in the air, from the airframe to its aim.
 import { expect, test } from "vitest";
 import { VERTEX_FLOATS, type Mesh } from "@packages/battle-renderer/src/mesh";
-import type { OrderView } from "@packages/battle-renderer/src/orderOverlay";
+import { buildOrderOverlay, type OrderView } from "@packages/battle-renderer/src/orderOverlay";
 import type { OrderStep } from "@packages/battle-renderer/src/orderSteps";
-import { gameOrderStyle } from "@apps/battle-lab/src/gameOverlay";
+import { gameOrderStyle, gameStroke } from "@apps/battle-lab/src/gameOverlay";
+import type {
+  IdentifiedView,
+  MountTargetView,
+  OrderStepView,
+} from "@web/battle/sim/observationView";
 import { along, orderView, painted } from "./support/orderMesh";
 
 type P2 = readonly [number, number];
@@ -65,9 +71,30 @@ test("chasing, the route ends in the reticle, with no destination circle at its 
   expect(route.at(-1)![1]).toBeGreaterThan(TARGET[0] - r - 1.5);
 });
 
-test("a winged aircraft's attack draws nothing new", () => {
-  const jet = { fixedWing: true, airborne: true, position: [0, 0, 300] as const };
-  expect(painted(view(jet))).toEqual(painted(view({ ...jet, steps: [] })));
+/** The marks a view draws standing in the air. */
+const aloft = (v: OrderView): Mesh =>
+  buildOrderOverlay([v], () => 0, gameOrderStyle, { stroke: gameStroke(0.05) }).opaque;
+
+test("a winged aircraft's attack is a line in the air from the airframe to its aim, nothing on the ground", () => {
+  const top = [0, 0, 300] as const;
+  const aim = [100, 0, 0] as const;
+  const jet = { fixedWing: true, airborne: true, position: top };
+  expect(painted(view({ ...jet, aimAloft: aim }))).toEqual(painted(view({ ...jet, steps: [] })));
+  const line = aloft(view({ ...jet, aimAloft: aim }));
+  expect(line.length).toBeGreaterThan(0);
+  // Every vertex lies on the segment, and the marks run from end to end.
+  const [dx, dz] = [aim[0] - top[0], aim[2] - top[2]];
+  const len = Math.hypot(dx, dz);
+  const ts: number[] = [];
+  for (let i = 0; i < line.length; i += VERTEX_FLOATS) {
+    const [x, y, z] = [line[i] - top[0], line[i + 1], line[i + 2] - top[2]];
+    expect(Math.abs(x * dz - z * dx) / len + Math.abs(y)).toBeLessThan(3);
+    ts.push((x * dx + z * dz) / len);
+  }
+  expect(Math.min(...ts)).toBeLessThan(len * 0.1);
+  expect(Math.max(...ts)).toBeGreaterThan(len * 0.9);
+  // With no aim, nothing stands in the air.
+  expect(aloft(view(jet)).length).toBe(0);
 });
 
 test("a ground point's reticle carries a centre cross; a unit's has none", () => {
@@ -75,4 +102,18 @@ test("a ground point's reticle carries a centre cross; a unit's has none", () =>
   const centre = (step: OrderStep) => around(painted(view({ steps: [step] })), TARGET, 0, 1.5);
   expect(centre(ground)).toBeGreaterThan(0);
   expect(centre(attack)).toBe(0);
+});
+
+test("a jet's attack aims at an enemy where it is seen, at a ground point as ordered, else on the ground", async () => {
+  const { attackAim } = await import("@apps/battle-lab/src/battleOverlay");
+  const ground = (x: number, y: number) => x / 10 + y;
+  const seen = { identified: [{ id: 9, position: [41, 3, 250] } as IdentifiedView] };
+  const aimAt = (target: MountTargetView) =>
+    attackAim({ steps: [{ kind: "attack", point: [40, 2], target }] }, seen, ground);
+  expect(aimAt({ kind: "identified", id: 9 })).toEqual([41, 3, 250]);
+  expect(aimAt({ kind: "ground", point: [40, 2, 7] })).toEqual([40, 2, 7]);
+  // An enemy the side no longer sees: its step's point, on the ground.
+  expect(aimAt({ kind: "identified", id: 4 })).toEqual([40, 2, 6]);
+  const moving: OrderStepView = { kind: "move", point: [1, 1] };
+  expect(attackAim({ steps: [moving] }, { identified: [] }, ground)).toBeUndefined();
 });

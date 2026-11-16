@@ -344,6 +344,25 @@ export function orderView(
   };
 }
 
+/** Where `u`'s current attack aims, as the side places it: an identified
+ *  enemy where it is seen (an aircraft in the air), a ground point as
+ *  ordered, else the step's point on the ground; undefined with no attack
+ *  or no point. A winged aircraft's attack line runs there. */
+export function attackAim(
+  u: Pick<OwnUnitView, "steps">,
+  o: Pick<ObservationView, "identified">,
+  z: SurfaceHeight,
+): readonly [number, number, number] | undefined {
+  const front = u.steps[0];
+  if (front?.kind !== "attack" || !front.point) return undefined;
+  const target = front.target;
+  if (target?.kind === "ground") return target.point;
+  const seen = target?.kind === "identified" && o.identified.find((e) => e.id === target.id);
+  if (seen) return seen.position;
+  const [x, y] = front.point;
+  return [x, y, z(x, y)];
+}
+
 /** The selection's markers under the units in `selected` (and the hovered
  *  unit's under `hovered`), the order
  *  marks (the Space view) of each unit `reveal` shows, at its opacity
@@ -395,6 +414,7 @@ export function orderLayer(
       u.id === hovered,
     ),
     ghostAloft: ghosts && reveal.has(u.id) ? aloft(u.kind) : 0,
+    aimAloft: fixedWing(units.type(u.kind)) ? attackAim(u, o, z) : undefined,
   }));
   return buildOrderOverlay(oneRingPerHouse(shown, views), z, gameOrderStyle, { stroke });
 }

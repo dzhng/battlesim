@@ -173,3 +173,12 @@ rewritten from scratch at closeout.
   units haven't seen (`garrison::an_unseen_collapse_cannot_change_a_garrison_order_until_discovered`
   caught it); the map is known to both sides. A damaged building's queued ring can stand
   wider than its held ring. An exit step's point is that box's centre.
+
+## P1
+
+- **A jet's attack line aims where the side places the target, resolved in the client**
+  (`attackAim` in `apps/battle-lab/src/battleOverlay.ts`): an identified enemy's observed
+  3D position, a ground point as ordered, else the step's 2D point on the ground. The step
+  record carries a 2D point, so this avoided a layout change and a third parity re-record.
+- **The line is dots, in the attack red, spaced as a drop line's**: the overlay's one look
+  for marks standing in the air. It draws the current attack only; nothing on the ground.

@@ -14,8 +14,9 @@
 // It is drawn as a holo-tactical projection: thin lines sized on screen
 // (`OrderStyle.line_px` at the camera's target, thinned as the camera pulls
 // out by the one stroke rule, `strokeWidth.ts`), no filled discs, all of it
-// paint on the ground but for an aircraft's drop
-// line, which stands in the air in the overlay (D18), glowing past its colour's
+// paint on the ground but for an aircraft's drop line and a winged
+// aircraft's attack line (dots from the airframe to where it aims), which
+// stand in the air in the overlay (D18), glowing past its colour's
 // full value by its role's `OrderStyle.glow`. Every ground unit's circle, under it or at
 // its destination, is one marker, "the unit plus its facing" (`unitMarker`):
 // a circle with a small filled arrowhead on its rim (the user's pick). A
@@ -179,6 +180,10 @@ export interface OrderView {
   /** It flies on wings: it never stops over a point, so it has no ground
    *  marker, drop line or destination circle. */
   fixedWing?: boolean;
+  /** Where a winged aircraft's current attack aims, in the air or on the
+   *  ground: its attack line runs there from the airframe, the one mark of
+   *  its attack (none on the ground). */
+  aimAloft?: readonly [number, number, number];
   /** Any airborne unit, including rotor aircraft that keep their marker. */
   airborne?: boolean;
   /** How high its ghost stands over where its orders end while one shows
@@ -272,6 +277,29 @@ function dropLine(
     const z = ground + dot / 2 + (i / (dots - 1)) * (span - dot);
     const fade = Math.min(1, 1 - (z - ground - fadeFrom) / fadeOver);
     line.mark([top[0], top[1], z], dot / 2, [r, g, b, alpha * fade]);
+  }
+}
+
+/** A winged aircraft's attack line: dots from the airframe (`from`) to
+ *  where its attack aims (`to`), in `color` at full brightness, spaced as a
+ *  drop line's. It stands in the air, so it is overlay geometry. */
+function attackAloft(
+  line: MeshBuilder,
+  pen: Pen,
+  from: readonly [number, number, number],
+  to: readonly [number, number, number],
+  color: Rgba,
+) {
+  const span = Math.hypot(to[0] - from[0], to[1] - from[1], to[2] - from[2]);
+  if (span < DROP_MIN_M) return;
+  const dot = Math.min(pen.drop, span / 2);
+  const pitch = Math.max(dot * pen.style.drop_line_spacing, span / DROP_MAX_DOTS);
+  const dots = Math.max(2, Math.floor((span - dot) / pitch) + 1);
+  const [r, g, b] = fullBright(color);
+  for (let i = 0; i < dots; i++) {
+    const t = i / (dots - 1);
+    const at = [0, 1, 2].map((k) => from[k] + (to[k] - from[k]) * t) as [number, number, number];
+    line.mark(at, dot / 2, [r, g, b, color[3]]);
   }
 }
 
@@ -537,6 +565,7 @@ export function buildOrderOverlay(
       );
     // The rest are order marks only.
     if (!shown) continue;
+    if (u.fixedWing && u.aimAloft) attackAloft(lines, pen, u.position, u.aimAloft, attack);
     // A holding squad's soldiers walking to their posts (cover, a step
     // out): each post is a marker only. An order is the unit's, one route
     // for the unit; no line ever runs from a soldier.
