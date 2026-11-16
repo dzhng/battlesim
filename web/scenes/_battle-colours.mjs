@@ -142,7 +142,7 @@ export async function resultColours(ctx, origin, evidence) {
       await page.getByRole("dialog", { name: "Match result" }).waitFor();
       const side = ["blue", "red", "spectator"][i];
       paints.push(
-        await page.getByRole("dialog", { name: "Match result" }).evaluate((dialog, side) => {
+        await page.getByRole("dialog", { name: "Match result" }).evaluate((dialog) => {
           const scores = dialog.querySelectorAll('[aria-label="Final score"] b');
           // A commander's own side comes first; a watcher's first is Blue.
           const groups = dialog.querySelectorAll('[role="group"]');

@@ -89,7 +89,15 @@ function appCommit(): string {
   }
 }
 
-const buildCommit = execSync("git rev-parse HEAD").toString().trim();
+/** The full commit a site build records in `build.json`: where it was built
+ *  from, never something a server compares. */
+function buildCommit(): string {
+  try {
+    return execSync("git rev-parse HEAD").toString().trim();
+  } catch {
+    return "unknown";
+  }
+}
 
 export default defineConfig({
   define: {
@@ -101,7 +109,7 @@ export default defineConfig({
   cacheDir: fileURLToPath(new URL("../throwaway/vite-cache/", import.meta.url)),
   plugins: [
     react(),
-    simulationBuild(fileURLToPath(new URL("..", import.meta.url)), buildCommit),
+    simulationBuild(fileURLToPath(new URL("..", import.meta.url)), buildCommit()),
     assetWatch(),
     // The page's title is the game's public name.
     {

@@ -1,6 +1,6 @@
 import { cleanCallsign } from "../../../../packages/multiplayer/src/callsign";
 
-function identity() {
+function playerIdentity() {
   let id: string | undefined;
   let name: string | undefined;
   const read = (key: string): string => {
@@ -49,4 +49,4 @@ function identity() {
 }
 
 /** One owner per loaded page, including when persistent storage is unavailable. */
-export const { browserId, callsign, setCallsign } = identity();
+export const { browserId, callsign, setCallsign } = playerIdentity();

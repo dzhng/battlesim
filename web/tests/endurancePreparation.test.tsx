@@ -92,9 +92,8 @@ test("generated endurance adopts its prepared authority instead of starting a se
       type: "init",
       scenario,
       seed: 7,
-      side: "blue",
+      sides: ["blue"],
       replay: undefined,
-      script: undefined,
     });
   });
   page.unmount();
