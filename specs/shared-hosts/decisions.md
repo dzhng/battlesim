@@ -726,3 +726,25 @@ things the plan left open.
   1574, the house down at 1938, and both rifle squads and the scouts alive
   afterwards, the scouts crossing round the ruin. No scene expectation
   needed changing.
+- **The Paris-corner menu reel is re-recorded (`BLESS_MENU_REEL=1`) after
+  inspection; the footage lost its casualties.** The log first differs at
+  tick 323 and ends at the same tick (1290); 1,983 events against 2,128.
+  Every move is unchanged: sampling every unit's position every 30 ticks,
+  the fix and the commit before it walk the same routes to within a metre
+  or two, the tank's four scripted moves and two ground attacks (HE at 944
+  and 1125) land the same, and nobody is stuck. What changed is only whom
+  blue shoots: blue's recon, under fire from red's garrisoned rifle squad,
+  now answers it (the return-fire threat ranks first, and the garrison is
+  now an assessable target), so most of its rounds strike the house's shell
+  (prop hits 64 to 108) and 5 strike the garrison's soldiers, while its
+  hits on red's squad in the open drop from 34 to 1. Under the fire coming
+  back, red's garrison fires 459 rifle rounds instead of 581. The mechanics
+  read right: a squad shot at from a house fires back at the house.
+- **The cost as footage: no one falls.** The approved reel had three red
+  deaths, all in the squad in the open: one to blue's recon (tick 537,
+  shot 3) and two to rounds from red's own garrison passing through its
+  squad (872 and 919, shot 5). The last shot frames that squad's position
+  (279, 211) with its three fallen; now it frames eight standing soldiers.
+  No followed unit falls in either version. The reel was not rendered; it
+  needs the user's look, and probably a re-direct (the open squad's
+  `soldier_hp`, or the recon's start) to put deaths back on screen.
