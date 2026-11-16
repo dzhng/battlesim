@@ -259,15 +259,9 @@ const cursorBecomes = (page, action) =>
       () => true,
       () => false,
     );
-/** The page point over own unit `id`: a metre up its hull, or the chest of
- *  its soldier furthest from every other own unit (a squad is picked by its
- *  soldiers, and one just unloaded stands round its carrier). */
+/** The page point a metre up own vehicle `id`'s hull. */
 async function over(page, id) {
-  const o = await obs(page);
-  const u = o.own.find((x) => x.id === id);
-  const others = o.own.filter((x) => x !== u && !x.hold).map((x) => x.position);
-  const clear = (p) => Math.min(...others.map((q) => Math.hypot(p[0] - q[0], p[1] - q[1])));
-  const p = u.members.toSorted((a, b) => clear(b) - clear(a))[0] ?? u.position;
+  const p = (await obs(page)).own.find((x) => x.id === id).position;
   return project(page, [p[0], p[1], p[2] + 1]);
 }
 /** A page point over squad `id` where the pointer's intent passes `wanted`,
@@ -575,7 +569,8 @@ async function controls(ctx) {
     (intent) =>
       intent.kind === "collect" && JSON.stringify(intent.squads) === JSON.stringify([fits]),
   );
-  const collectCursor = !!at && (await cursorBecomes(page, "board"));
+  if (!at) throw new Error(`no point over squad ${fits} collects it alone`);
+  const collectCursor = await cursorBecomes(page, "board");
   seq = await newestSeq(page);
   await page.mouse.click(...at, { button: "right" });
   const collect = await ackAfter(page, seq);

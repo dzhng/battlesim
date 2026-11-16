@@ -264,10 +264,10 @@ pub(crate) fn complete_unload(
 }
 
 /// Whether unit `i` is walking or driving toward its Board or Collect target
-/// and that walk is over: it is already within the hold's reach (a
-/// collecting carrier: or near enough to call its squad over, `calls_over`),
-/// or no target is left to reach (the carrier died, or every listed squad is gone
-/// or taken) and the order is refused instead. The approach
+/// and that walk is over: it is already within the hold's reach, a
+/// collecting carrier near enough to call its squad over (`calls_over`), or
+/// no target is left to reach (the carrier died, or every listed squad is
+/// gone or taken) and the order is refused instead. The approach
 /// aims at the target's centre, which a hull keeps it from ever standing on,
 /// so the walk ends here and the hold's own stillness test takes over.
 fn approach_over(units: &[Unit], i: usize, rules: &Rules) -> bool {
