@@ -622,3 +622,49 @@ things the plan left open.
   the house drawn as the x-ray silhouettes on the roof by design.
 - **Human review** was shown non-blocking and got no reply; closed and
   continued on the evidence.
+
+## Garrisons are engageable
+
+- **A gun aims at a garrison's soldiers at the windows its side sees.** A
+  squad is aimed at the middle of the soldiers its side saw at the last
+  sighting. Squads sharing a house stand at windows on every facade, so that
+  middle lies inside the walls, and every solution met the house's own
+  shell (`BlockedTrajectory`): the "Red's tank shells the house by a
+  scripted ground attack" finding above. Now, when a garrisoned target's
+  middle can't be reached or seen (`BlockedTrajectory`, `NoOwnSight`), the
+  assessment tries each soldier its side saw, in the order launch walks
+  them, and launch starts from the one it found. Every weapon reads it,
+  guided ones too; fog is kept (only soldiers in the side's track); the
+  shell still stops every round. Proof: `shared_hosts::engaged` (a tank off
+  a corner of a house two squads fill, every middle red holds inside the
+  walls) never fired before and fires now.
+- **Scoped to a garrisoned target, not to any squad whose middle is
+  blocked.** The general rule ("aim at seen soldiers whenever the middle
+  can't be fired at") also moved squads in the open: the air, lean and
+  collapse cases and the market-town menu. Scoping it to a middle inside a
+  body still moved two non-garrison moments: a street defender squad
+  standing round its house at tick 1, about to step in, and a Paris-corner
+  squad round a low prop. Both look wrong as footage today (a gunner holds
+  fire at seven soldiers because their middle is behind a car), so the
+  general version is an open follow-up for the user, not part of this fix.
+- **What moved** (probe, against this branch's head before the fix): the
+  contested garrison lab from tick 2013; `street/street` from tick 64,
+  `street/rear` from 62 and `paris-corner/corner` from 300, each first move
+  a shot at a squad inside a house (the street attackers at red's posted
+  defenders, Paris blue's recon at red's garrisoned rifle squad). Every
+  single-host case and every other scene, the market-town menu included,
+  is identical at every tick.
+- **The Paris-corner menu reel moved and is not blessed.** Its event log
+  first differs at event 48 (tick 323). Blue's recon and rifle squads now
+  fire on red's garrisoned rifle squad: blue rounds into the house's shell
+  rise (recon 64 to 108, tank 5 to 12), blue hits on the garrison's soldiers
+  go from 8 to 9, red's garrison fires 462 rounds instead of 585. Blue puts
+  far fewer rounds into red's second squad in the open (recon hits 34 to 1),
+  so that squad loses none of the three soldiers it lost before. It needs a
+  re-direct or re-record and the user's look before it is blessed.
+- **The garrison lab's tank can go back to fire at will.** Natively, with
+  the scene's entries scripted and `set_engagement fire_at_will` at tick
+  1500, the tank fires its first round at 1551 on the first rifle squad in
+  the house. Reverting the encounter's tick-1500 order, the lab's
+  `tankOpensFire` script lookup and the scene's comment is left to the
+  labs' owner (separate checkout).
