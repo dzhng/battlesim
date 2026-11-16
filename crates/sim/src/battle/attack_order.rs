@@ -10,20 +10,19 @@ const PURSUIT_ARRIVAL_M: f64 = 5.0;
 impl Battle {
     /// An attack pursues an identified target it cannot fire on from here, or
     /// its last reported place once identification lapses (W17); it ends on
-    /// arriving there unseen, or when its area expires unidentified.
+    /// arriving there unseen, or when its area expires unidentified. A
+    /// garrisoned attack fires from the building and never walks out, so it
+    /// ends as soon as its target is lost.
     pub(super) fn update_pursuit(&mut self) {
         for unit in &mut self.units {
             unit.pursuit = None;
-            // A garrisoned attack fires from the building; it never walks out.
-            if unit.garrisoned() {
-                continue;
-            }
             // Fixed-wing attacks are planned as passes by `air::step_fixed_wing`;
             // they never enter the generic ground-style hover pursuit.
             if unit.fixed_wing() {
                 continue;
             }
             let knowledge = &self.knowledge[unit.side.index()];
+            let garrisoned = unit.garrisoned();
             let Some(UnitOrder::Attack { target, last_known }) = unit.orders.front_mut() else {
                 continue;
             };
@@ -31,6 +30,7 @@ impl Battle {
             let done = match *target {
                 // A death the side watched completes the attack.
                 Target::Unit(u) if knowledge.knows_destroyed(u) => true,
+                Target::Unit(u) if garrisoned => knowledge.track(u).is_none(),
                 Target::Unit(u) => match knowledge.track(u) {
                     Some(track) => {
                         *last_known = Some(track.position.xy());

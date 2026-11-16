@@ -66,6 +66,7 @@ mod movement_scenarios;
 mod navigation;
 mod objectives;
 mod order_markers;
+mod order_queue;
 mod ordered_attacks;
 mod own_route;
 mod publication;
