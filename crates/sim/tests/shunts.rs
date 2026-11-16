@@ -210,3 +210,36 @@ fn a_truck_close_behind_a_parked_one_works_its_way_round_it() {
         truck.position.xy()
     );
 }
+
+/// The same truck under a commander who keeps changing his mind: sent on
+/// past the parked truck to one spot and then another every second and a
+/// half. A parked vehicle is going nowhere, so it does not wait on one at
+/// all; it goes round at once, whatever the next order says.
+#[test]
+fn a_truck_reordered_again_and_again_still_goes_round_a_parked_one() {
+    let truck = |x: f64| json!({ "side": "blue", "kind": "test_supply", "position": [x, 60], "yaw": 0, "engagement": "return_fire_only" });
+    let scripts: Vec<Value> = (0..30)
+        .map(|k| json!({ "tick": 1 + 45 * k, "side": "blue", "order": { "kind": "move", "units": [1],
+            "gesture": k + 1, "goal": [130, if k % 2 == 0 { 30 } else { 90 }], "route": "shortest", "direction": "forward" } }))
+        .collect();
+    let setup: ScenarioDefinition = serde_json::from_value(json!({
+        "map": { "size": [160, 120], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": sim::fixtures::test_rules(),
+        "units": [truck(80.0), truck(73.8)],
+        "events": [],
+        "scripts": scripts,
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    let hz = b.rules().tick_hz as u64;
+    for _ in 0..40 * hz {
+        b.step();
+    }
+    let truck = b.unit(UnitId(1)).unwrap();
+    assert!(
+        truck.position.x > 95.0,
+        "it is {:?} at {:?}, behind the parked truck",
+        truck.state,
+        truck.position.xy()
+    );
+}
