@@ -259,3 +259,52 @@ fn a_jet_fires_at_an_enemy_jet_then_flies_the_queued_move() {
 fn a_jet_fires_at_a_helicopter_then_flies_the_queued_move() {
     jet_attacks_aircraft_then_moves("test_heli");
 }
+
+/// A jet's last guided missile is flown home before the attack hands off to
+/// the move behind it, even though it then has nothing left to fly a run
+/// with.
+#[test]
+fn a_jet_guides_its_last_missile_home_before_handing_off() {
+    use crate::attack_runs::{run_field, run_rules, RUN_START};
+    let [x, y] = RUN_START;
+    let mut rules = run_rules(&["air_ground_missile"]);
+    rules["weapons"]["air_ground_missile"]["ammo"] = json!(1);
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jeep",
+        json!({ "body": { "hull": { "hp": 100000 } } }),
+    );
+    let mut b = run_field(
+        rules,
+        json!([
+            { "side": "blue", "kind": "test_jet", "position": [x, y], "yaw": 0.0 },
+            { "side": "red", "kind": "test_jeep", "position": [x + 1200.0, y], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_jeep", "position": [x + 1000.0, y], "engagement": "return_fire_only" },
+        ]),
+    );
+    let mut c = Commander::new();
+    let target = seen(&mut b);
+    c.ok(&mut b, Side::Blue, attack(0, target));
+    assert_eq!(
+        c.send(&mut b, Side::Blue, drive([x, y + 1200.0]), true),
+        None
+    );
+    // The commands apply on the next tick.
+    b.step();
+    let guiding = |b: &Battle| {
+        b.unit(UnitId(0))
+            .unwrap()
+            .mounts
+            .iter()
+            .any(|m| m.support.is_some())
+    };
+    until(&mut b, ticks(120.0), "the missile in flight", guiding);
+    until(&mut b, ticks(60.0), "the attack handed off", |b| {
+        assert!(
+            attacking(b, 0) || !guiding(b),
+            "handed off with its missile in flight"
+        );
+        !attacking(b, 0)
+    });
+}
