@@ -65,9 +65,11 @@ impl Unit {
             Some(f) => d.u64(1).u64(f.charges as u64).u64(f.ready_tick),
             None => d.u64(0),
         };
-        match self.manoeuvre {
-            Some(m) => d.u64(1).f64(m.turn).f64(m.driven_m),
-            None => d.u64(0),
+        match &self.shunt {
+            Some(s) => s.digest(d.u64(1)),
+            None => {
+                d.u64(0);
+            }
         };
         d.u64(self.orders.len() as u64);
         for o in &self.orders {

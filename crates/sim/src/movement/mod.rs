@@ -29,15 +29,17 @@ mod crowd;
 pub(crate) mod drive;
 mod final_leg;
 mod push;
+mod shunt;
 mod side;
 mod soldier;
 mod take_cover;
 mod traffic;
 mod vehicle;
 
-pub use drive::{final_facing, final_yaw, Manoeuvre};
+pub use drive::{final_facing, final_yaw};
 pub use final_leg::{final_leg, FinalLeg, FINE_CELL_M};
 pub use push::Shove;
+pub use shunt::Shunt;
 use side::ROUTE_RECHECK_REACH_M;
 pub use side::{Seen, SideGeometry};
 pub use soldier::{clear_of, soldier_steer, Around, Corridor, Steer, Threat};
@@ -50,7 +52,7 @@ const STALL_REPLAN_S: f64 = 2.0;
 /// How long a unit may get nowhere before it stops near enough to its goal
 /// or finds no way, and how long it holds blocked before it tries again
 /// (unless its side learns something new of the ground first): longer than
-/// a truck's three-point turn takes. Waiting behind a rolling vehicle is
+/// a truck's shunt out of a tight spot takes. Waiting behind a rolling vehicle is
 /// traffic, not a stall.
 const GIVE_UP_S: f64 = 30.0;
 /// A unit that has got no farther than this from where its stuck clock
@@ -367,7 +369,7 @@ fn request_route(
 
 /// Drop the waypoints of `route` (planned from `from`) that a vehicle now
 /// at `here` has passed: it picks the route up at its stretch nearest it.
-fn rejoin(here: V2, from: V2, route: &mut Vec<V2>) {
+pub(super) fn rejoin(here: V2, from: V2, route: &mut Vec<V2>) {
     let mut a = from;
     let mut nearest = (f64::INFINITY, 0);
     for (k, &b) in route.iter().enumerate() {
@@ -508,7 +510,7 @@ fn take_route(
         rejoin(unit.position.xy(), from, route);
     }
     if matches!(plan, Plan::Route(_)) {
-        unit.manoeuvre = None;
+        unit.shunt = None;
     }
     if !request.detour.is_empty() {
         // No way round keeps it waiting on the route it had; it may try
@@ -672,7 +674,7 @@ fn arrive(unit: &mut Unit) {
     }
     unit.route = None;
     unit.planned_goal = None;
-    unit.manoeuvre = None;
+    unit.shunt = None;
     unit.drive_speed_mps = 0.0;
     unit.state = if unit.orders.is_empty() {
         MoveState::Idle

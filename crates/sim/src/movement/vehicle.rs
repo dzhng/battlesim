@@ -67,7 +67,7 @@ pub(super) fn step_vehicle(
     let dt = 1.0 / ctx.rules.tick_hz as f64;
     units[i].reversing = false;
     if !may_advance(ctx, &mut units[i]) {
-        units[i].manoeuvre = None;
+        units[i].shunt = None;
         // With no orders, tracks pivot a gun fixed in the hull onto its
         // target (D8); wheels cannot turn on the spot, so they hold fire.
         let unit = &mut units[i];
@@ -83,7 +83,8 @@ pub(super) fn step_vehicle(
         }
         return;
     }
-    if drive::prune(ctx, sides, traffic, &mut units[i]) {
+    // A shunt keeps its legs to the end: only then does it pick up its route.
+    if units[i].shunt.is_none() && drive::prune(ctx, sides, traffic, &mut units[i]) {
         arrive(&mut units[i]);
         return;
     }
@@ -92,8 +93,16 @@ pub(super) fn step_vehicle(
     let here = unit.position.xy();
     let footing = ctx.ground.footing(ctx.world, here, &ctx.rules.ground);
     let speed = footing.map_or(0.0, |g| unit.ground().speed(g));
-    let before_manoeuvre = unit.manoeuvre;
-    let mut motion = drive::steer(ctx.world, &mut units[i], target, speed, dt, traffic);
+    let before_shunt = unit.shunt.clone();
+    let mut motion = drive::steer(
+        ctx.world,
+        &mut units[i],
+        target,
+        speed,
+        dt,
+        ctx.tick,
+        traffic,
+    );
     let unit = &units[i];
     let mut next = here + motion.heading * motion.step;
     let half = unit.hull.expect("a vehicle has a hull").xy();
@@ -116,13 +125,14 @@ pub(super) fn step_vehicle(
             .unwrap_or(0);
         // Shoving limits the target speed, not the already ramped velocity:
         // multiplying carried speed every tick would compound the slowdown.
-        units[i].manoeuvre = before_manoeuvre;
+        units[i].shunt = before_shunt;
         motion = drive::steer(
             ctx.world,
             &mut units[i],
             target,
             speed * push.shove_speed(heaviest),
             dt,
+            ctx.tick,
             traffic,
         );
         next = here + motion.heading * motion.step;
@@ -161,8 +171,12 @@ pub(super) fn step_vehicle(
         }
     }
     if let Some(b) = blocker {
+        let gives_way = gives_way(ctx, units, i, b);
         let held_yaw = stationary_yaw(ctx.world, units, i, motion.yaw);
         let unit = &mut units[i];
+        if gives_way {
+            drive::shunt(ctx.world, unit, traffic, &[], ctx.tick);
+        }
         unit.state = MoveState::Waiting;
         unit.blocker = Some(b);
         unit.yaw = held_yaw;
@@ -186,10 +200,12 @@ pub(super) fn step_vehicle(
     }
     let mut landed = land(ctx, units, i, &current, &motion);
     // A forward step held at its trailing end (a turn swinging the tail
-    // into a jammed body) rolls straight on instead, when that lands free.
+    // into a jammed body) rolls straight on instead, when that lands free;
+    // a shunt's leg keeps its line.
     if let Err(Some(body)) = landed {
         let trailing = current.to_local(body.closest(here)).x * drive::gear(&units[i]) < 0.0;
-        if trailing && !motion.backwards && motion.yaw != units[i].yaw {
+        let shunting = units[i].shunt.is_some();
+        if trailing && !shunting && !motion.backwards && motion.yaw != units[i].yaw {
             let straight = drive::Motion {
                 yaw: units[i].yaw,
                 heading: drive::travel_heading(&units[i]),
@@ -208,8 +224,12 @@ pub(super) fn step_vehicle(
             let unit = &mut units[i];
             unit.yaw = held_yaw;
             unit.drive_speed_mps = 0.0;
-            if let Some(body) = held_by.filter(|_| !motion.backwards) {
-                drive::held_ahead(unit, body, target);
+            // Held by a body anyway (a jammed shove, or a corner the arc's
+            // samples passed): a wheeled vehicle works out a shunt with it
+            // as solid, or it would pick the same step every tick.
+            let wheeled = unit.ground().drive.is_some_and(|d| !d.tracked);
+            if let Some(body) = held_by.filter(|_| wheeled) {
+                drive::shunt(ctx.world, unit, traffic, &[body], ctx.tick);
             }
             return;
         }
@@ -220,8 +240,8 @@ pub(super) fn step_vehicle(
     unit.position = next.with_z(ground.z);
     unit.reversing = motion.backwards && motion.step > 0.0;
     unit.drive_speed_mps = motion.step / dt * if motion.backwards { -1.0 } else { 1.0 };
-    if let Some(m) = unit.manoeuvre.as_mut() {
-        m.driven_m += motion.step;
+    if let Some(shunt) = unit.shunt.as_mut() {
+        shunt.driven_m += motion.step;
     }
     // Tracks backing to clear a pivot may move away from the waypoint.
     // Wheeled shuffling must still close on it, or traffic recovery never runs.
@@ -240,6 +260,27 @@ pub(super) fn step_vehicle(
     } else if left < unit.progress.0 - PROGRESS_EPSILON_M {
         unit.progress = (left, ctx.tick);
     }
+}
+
+/// Whether wheeled vehicle `i`, held by the vehicle `b`, now works its way
+/// round it. A driver waits for traffic that is moving, and for a moment
+/// for traffic that is not; past that (a stall) he goes round. Two that
+/// hold each other up do not both go round, into each other: the later
+/// (the higher id) gives way, unless it found no way round, when the other
+/// tries. A shunt already worked out is given its chance before another is.
+fn gives_way(ctx: &MovementContext, units: &[Unit], i: usize, b: contract::ids::UnitId) -> bool {
+    let (unit, other) = (&units[i], &units[b.0 as usize]);
+    let patience = (super::STALL_REPLAN_S * ctx.rules.tick_hz as f64) as u64;
+    let waited = |since: u64| ctx.tick.saturating_sub(since) > patience;
+    let wheeled = unit.ground().drive.is_some_and(|d| !d.tracked);
+    let standing = other.drive_speed_mps.abs() <= super::ROLLING_MPS;
+    let mutual = other.blocker == Some(unit.id);
+    let stuck = other.shunt.as_ref().is_some_and(|s| s.legs.is_empty());
+    wheeled
+        && standing
+        && (!mutual || unit.id > other.id || stuck)
+        && waited(unit.stalls.1)
+        && unit.shunt.as_ref().is_none_or(|s| waited(s.tick))
 }
 
 /// A rejected step may still let tracks pivot, but only into a clear pose.
