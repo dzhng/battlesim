@@ -4,8 +4,8 @@
 (slices 00–11), with the page-memory fix and the download warm-up. The GPU
 preload is cancelled: the player's rule is zero configuration, so nothing
 ships off by default. An infantry team's first sighting is down from
-0.3–0.4 s to frames of about 95 ms (slices 13 and 12); slice 14 is the floor
-under every arrival.
+0.3–0.4 s to frames of about 95 ms (slices 13 and 12), and every arrival's
+fielding step from about 40 ms to under 1 ms (slice 14).
 **Updated:** 2026-11-15.
 
 This plan replaces the "shared GPU assets across generations" placeholder. That
@@ -19,13 +19,13 @@ first fields a unit type it had not shown. The admission work report exists,
 `battle-growth` prints it, and the [ledger](decisions.md) holds what it and
 the reference battle measured. What is left, in order:
 
-1. **Slice 14, fielding's result follows the new kinds**
-   ([slice](slices/14-fielding-follows-the-new-kinds.md)): the floor under
-   every arrival. Each growth rebuilds and serialises the whole fielded
-   battle's description (2.6 million characters, a frame of about 59 ms).
-   Not started.
-2. Closeout: correct the stale WASM note in one-renderer, run everything
-   once, then `close-spec`.
+1. Closeout: correct the stale WASM note in one-renderer, run everything
+   once, then `close-spec`. One presentation test is red on staging from
+   another session's work (ledger, "A red test on staging"); settle it
+   before the full run is read.
+
+Left open on purpose: an infantry arrival still shows one frame of about
+70–120 ms near its commit, outside fielding and staging, not attributed.
 
 Settled since the engine shipped, all in the ledger: the page's lingering
 gigabyte (fixed, below the base now), the pre-ship review's findings, and
@@ -76,7 +76,7 @@ Checklist:
 - [x] [11 Stand-in look](slices/11-stand-in-look.md)
 - [x] [12 An arrival over frames](slices/12-an-arrival-over-frames.md)
 - [x] [13 A body draws its type's mesh](slices/13-a-body-draws-its-types-mesh.md)
-- [ ] [14 Fielding's result follows the new kinds](slices/14-fielding-follows-the-new-kinds.md)
+- [x] [14 Fielding's result follows the new kinds](slices/14-fielding-follows-the-new-kinds.md)
 - [ ] Closeout: correct the stale WASM note in
   [one-renderer](../done/one-renderer/README.md) (confirm first that the
   exhaustion predates texture sharing), run everything once, then

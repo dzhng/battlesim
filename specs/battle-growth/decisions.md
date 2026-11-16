@@ -2508,3 +2508,50 @@ shows the wreck. It waits for one now.
   assertion text, each command/result, every before/after run and frame over50 ms,
   phase timings, decisions, failure history and raw-run paths are in
   `throwaway/slice14/report.md`. Evidence and raw runs remain in `throwaway/`.
+
+**Slice 14 as merged, 2026-11-16.** Confirm-first, in a production build:
+the text round trip was 43–53% of the per-arrival fielding work, and the
+assembly behind it also grew with every fielded kind (about 5 ms with none,
+20–25 ms with 56). So both went: the fielding owner keeps checked, immutable
+descriptions and adds rows only for new kinds, and the page holds a handle
+(`Fielded`) instead of the sections. The page read one fact out of them, a
+type's `hull`, which is now a query on the handle. `load_world`,
+`stage_battle` and `set_showcase` take the handle with about 400 characters
+of page-owned settings, where the world input was over two million. The
+native client uses the same resolver.
+
+The implementer's runs, three each way: final fielding and handover 37–68 ms
+before, 0.35–0.59 ms after, for all six arrivals. Learning to commit for the
+first vehicle 341, 281 and 259 ms before, 187, 184 and 274 ms after (no frame
+over 50 ms recorded in any after run); a Tigr 196, 190 and 197 ms before, 98,
+122 and 128 ms after; the RPG team 830, 802 and 1,025 ms before, 809, 864 and
+945 ms after, unchanged because its wait is the card bake. All 36
+admission-work reports are equal.
+
+Checked again on the merged tree: lint; the whole presentation crate, 439
+tests passing; the native rules test; 69 page tests; the renderer's three GPU
+suites; and the five scenes together, 102 checks, with no long frame at
+`battle-growth`'s growth.
+
+Decisions in it: descriptions asked for and later not asked for stay in the
+owner and are filtered out of the snapshot (a battle's wanted kinds can
+narrow when its fielded list changes within a scope; rejected: forbidding
+that in the setter). Clip tables are named by their normalised contents, not
+by discovery order, so a growth and a cold resolve name them alike. Two page
+assertions that read the old sections became a check on the light a fired
+round casts; the implementer showed the earlier sound check was blind to the
+route (both tank rounds share a sound) and that the new check goes red when
+either the weapon kind or its look is broken.
+
+Still there after it: an infantry arrival's late frame near commit, 71, 97
+and 118 ms in the after runs against 109, 97 and 99 ms before. It is outside
+fielding and staging and is not attributed.
+
+**A red test on staging that is not this plan's, 2026-11-16.**
+`effects::a_fixture_runs_plate_counts_are_the_pages_replay_of_its_capture`
+(the `paris-corner` run capture replayed in Rust against the counts the page
+recorded) fails at `plate-1019.png`: no blast and 102 puffs where the
+manifest says one blast and 98. First bad commit by bisect: `a7b398381`,
+another session's merge of staging into its control-groups branch. Its
+re-record (`da9feeb27`) replaced the capture and left the manifest's counts
+as they were. The failure is identical with and without slice 14.
