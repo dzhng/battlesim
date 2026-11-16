@@ -82,5 +82,761 @@
     "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern US Marine in woodland MARPAT digital camouflage (small green, brown and black pixels on khaki, with no white): MCCUU blouse and trousers, coyote-brown combat boots and gloves, a coyote-brown plate carrier with magazine pouches, an ECH helmet in a woodland MARPAT cover, knee pads. A black night-vision mount on the front of the helmet, ballistic glasses, a medium skin tone. A large patrol rucksack on his back, its frame and top rising above his shoulders, its shoulder straps visible from the front.",
     "image_model": "openai/gpt-image-2.6-flare",
     "image_request_id": "942eaba2b1a0934aeb86037d1b6ee3d18cbc95bb997f49cf4943925fa800a8c5"
+  },
+  {
+    "army": "french_cce",
+    "look": "a",
+    "kind": "rifle",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/french_cce_a_rifle-01a1e133.glb",
+    "sha256": "469d156eb4d52e3889a5ceee63fce8096e7901d2d14d644392ff77680d5acb51",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1e133-1997-76a1-9bd9-ca0046da5747",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/french_cce_a_rifle-front-d98bf48b.png": "d98bf48b0e484d8c2c14693ca1abbb85581afbccacbcb76f816258c3d59602ea"
+    },
+    "note": "CCE woodland, coyote carrier, railed helmet with NVG mount; pack straps and whip read",
+    "endpoint": "tripo3d/h3.1/image-to-3d",
+    "options": {
+      "face_limit": 40000,
+      "geometry_quality": "detailed",
+      "texture_quality": "detailed",
+      "pbr": false,
+      "texture": true,
+      "orientation": "align_image"
+    },
+    "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern French Army soldier in CCE woodland camouflage (Camouflage Centre Europe: large green, brown, black and khaki blotches, with no white): F2 combat blouse and trousers, brown combat boots, dark gloves, a plate carrier in coyote with magazine pouches across the front, a modern ballistic helmet with side rails in a CCE cover, knee pads. A black night-vision mount on the front of the helmet, no glasses, a medium skin tone. A small coyote assault pack on his back, its shoulder straps visible from the front, with a radio whose thin whip antenna rises above his left shoulder.",
+    "image_model": "openai/gpt-image-2.6-flare",
+    "image_request_id": "d98bf48b0e484d8c2c14693ca1abbb85581afbccacbcb76f816258c3d59602ea"
+  },
+  {
+    "army": "eastern_emr",
+    "look": "b",
+    "kind": "rifle",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/eastern_emr_b_rifle-01a1e13b.glb",
+    "sha256": "b26022dc7899943dfb7d4a8652b6513e751947bb1ee9fb06aa34bea0fabe3072",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1e13b-06e2-7871-9ac4-15839487b460",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/eastern_emr_b_rifle-front-2e1cdec8.png": "2e1cdec8401e603b227eaa4cbf15058b4e34301ad2fb920369b2270587fc2d58"
+    },
+    "note": "batch probe",
+    "endpoint": "tripo3d/h3.1/image-to-3d",
+    "options": {
+      "face_limit": 40000,
+      "geometry_quality": "detailed",
+      "texture_quality": "detailed",
+      "pbr": false,
+      "texture": true,
+      "orientation": "align_image"
+    },
+    "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern Russian soldier in Ratnik EMR digital camouflage (pixelated grey-green, dark green and brown, with no white): field jacket and trousers, black boots and black gloves, a 6B45 body armour vest in EMR with its high collar, shoulder pads and groin flap, magazine pouches across the front, a 6B47 helmet in an EMR cover. A dark green balaclava covering the face except the eyes, knee pads. A small coyote assault pack on his back, its shoulder straps visible from the front, with a radio whose thin whip antenna rises above his left shoulder.",
+    "image_model": "openai/gpt-image-2.6-flare",
+    "image_request_id": "2e1cdec8401e603b227eaa4cbf15058b4e34301ad2fb920369b2270587fc2d58"
+  },
+  {
+    "army": "eastern_emr",
+    "look": "c",
+    "kind": "rifle",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/eastern_emr_c_rifle-01a1e13b.glb",
+    "sha256": "fbaff8acfac12a26847e633ec552498c0acb8ed0d3851807d2ff58c33325bd2a",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1e13b-0951-78c1-8699-2828c980a63c",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/eastern_emr_c_rifle-front-600bfaf0.png": "600bfaf0861adb5a1e7c8f54d890e54abd35ce98e45d76a891bbc15c4484d893"
+    },
+    "note": "batch probe",
+    "endpoint": "tripo3d/h3.1/image-to-3d",
+    "options": {
+      "face_limit": 40000,
+      "geometry_quality": "detailed",
+      "texture_quality": "detailed",
+      "pbr": false,
+      "texture": true,
+      "orientation": "align_image"
+    },
+    "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern Russian soldier in Ratnik EMR digital camouflage (pixelated grey-green, dark green and brown, with no white): field jacket and trousers, black boots and black gloves, a 6B45 body armour vest in EMR with its high collar, shoulder pads and groin flap, magazine pouches across the front, a 6B47 helmet in an EMR cover. The face uncovered, fair skin, light stubble, knee pads. A small coyote assault pack on his back, its shoulder straps visible from the front, with a radio whose thin whip antenna rises above his left shoulder.",
+    "image_model": "openai/gpt-image-2.6-flare",
+    "image_request_id": "600bfaf0861adb5a1e7c8f54d890e54abd35ce98e45d76a891bbc15c4484d893"
+  },
+  {
+    "army": "eastern_emr",
+    "look": "b",
+    "kind": "recon",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/eastern_emr_b_recon-01a1e13b.glb",
+    "sha256": "0efa53d01ac245832a7a103528c65941d87e1cf8c0829ae2bbd498246de88c4b",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1e13b-068a-7d33-a264-bfe58bdc61ad",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/eastern_emr_b_recon-front-2082e4f2.png": "2082e4f296e0f9a2997ff04a24d7df85bcd84a98b0e1dcc1fae46447e5862629"
+    },
+    "note": "batch probe",
+    "endpoint": "tripo3d/h3.1/image-to-3d",
+    "options": {
+      "face_limit": 40000,
+      "geometry_quality": "detailed",
+      "texture_quality": "detailed",
+      "pbr": false,
+      "texture": true,
+      "orientation": "align_image"
+    },
+    "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern Russian soldier in Ratnik EMR digital camouflage (pixelated grey-green, dark green and brown, with no white): field jacket and trousers, black boots and black gloves, a 6B45 body armour vest in EMR with its high collar, shoulder pads and groin flap, magazine pouches across the front, a 6B47 helmet in an EMR cover. A dark green balaclava covering the face except the eyes, knee pads. A large patrol rucksack on his back, its frame and top rising above his shoulders, its shoulder straps visible from the front.",
+    "image_model": "openai/gpt-image-2.6-flare",
+    "image_request_id": "2082e4f296e0f9a2997ff04a24d7df85bcd84a98b0e1dcc1fae46447e5862629"
+  },
+  {
+    "army": "german_flecktarn",
+    "look": "a",
+    "kind": "recon",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/german_flecktarn_a_recon-01a1e13a.glb",
+    "sha256": "82f8b4000cd140818420698003a1f067ad7d004008d62f8c7bf95c9f1986b03f",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1e13a-fe3f-7553-b003-fbdb8d616a4a",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/german_flecktarn_a_recon-front-fc348448.png": "fc348448f82e0f8ba9053169746d175174f29590681352290bc2f73b8c99dfbb"
+    },
+    "note": "batch probe",
+    "endpoint": "tripo3d/h3.1/image-to-3d",
+    "options": {
+      "face_limit": 40000,
+      "geometry_quality": "detailed",
+      "texture_quality": "detailed",
+      "pbr": false,
+      "texture": true,
+      "orientation": "align_image"
+    },
+    "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern German Bundeswehr soldier in Flecktarn camouflage (green, brown and black spots on a yellow-green ground, with no white): field blouse and trousers, black combat boots, dark gloves, a Flecktarn plate carrier with magazine pouches, olive webbing, a helmet in a Flecktarn cover, knee pads. A black night-vision mount on the front of the helmet, no glasses, a medium skin tone. A large patrol rucksack on his back, its frame and top rising above his shoulders, its shoulder straps visible from the front.",
+    "image_model": "openai/gpt-image-2.6-flare",
+    "image_request_id": "fc348448f82e0f8ba9053169746d175174f29590681352290bc2f73b8c99dfbb"
+  },
+  {
+    "army": "german_flecktarn",
+    "look": "b",
+    "kind": "recon",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/german_flecktarn_b_recon-01a1e13e.glb",
+    "sha256": "e92a09670fbf884991b4ee625a47285454d59a73585ce8e17801177716d7cafc",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1e13e-39cf-7b22-a9ba-89533ce1ce93",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/german_flecktarn_b_recon-front-9a525b71.png": "9a525b7160f60cd579e129d8522d25e04c88707c2ac310907316f5bdded35dfb"
+    },
+    "note": "batch probe",
+    "endpoint": "tripo3d/h3.1/image-to-3d",
+    "options": {
+      "face_limit": 40000,
+      "geometry_quality": "detailed",
+      "texture_quality": "detailed",
+      "pbr": false,
+      "texture": true,
+      "orientation": "align_image"
+    },
+    "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern German Bundeswehr soldier in Flecktarn camouflage (green, brown and black spots on a yellow-green ground, with no white): field blouse and trousers, black combat boots, dark gloves, a Flecktarn plate carrier with magazine pouches, olive webbing, a helmet in a Flecktarn cover, knee pads. A plain helmet cover, no glasses, dark skin. A large patrol rucksack on his back, its frame and top rising above his shoulders, its shoulder straps visible from the front.",
+    "image_model": "openai/gpt-image-2.6-flare",
+    "image_request_id": "9a525b7160f60cd579e129d8522d25e04c88707c2ac310907316f5bdded35dfb"
+  },
+  {
+    "army": "german_flecktarn",
+    "look": "c",
+    "kind": "recon",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/german_flecktarn_c_recon-01a1e13e.glb",
+    "sha256": "70094815a39be507ae2a14a02cd6349f4c006b7c7f398cc9ef944d62123ea795",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1e13e-40f2-78f0-8b74-f1da12672688",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/german_flecktarn_c_recon-front-8ef81de1.png": "8ef81de1cace1e9f6c746a5f5dbf4f54a1c748ef38d78b6bdf68365c0651f683"
+    },
+    "note": "batch probe",
+    "endpoint": "tripo3d/h3.1/image-to-3d",
+    "options": {
+      "face_limit": 40000,
+      "geometry_quality": "detailed",
+      "texture_quality": "detailed",
+      "pbr": false,
+      "texture": true,
+      "orientation": "align_image"
+    },
+    "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern German Bundeswehr soldier in Flecktarn camouflage (green, brown and black spots on a yellow-green ground, with no white): field blouse and trousers, black combat boots, dark gloves, a Flecktarn plate carrier with magazine pouches, olive webbing, a helmet in a Flecktarn cover, knee pads. A plain helmet cover, ballistic glasses, fair skin. A large patrol rucksack on his back, its frame and top rising above his shoulders, its shoulder straps visible from the front.",
+    "image_model": "openai/gpt-image-2.6-flare",
+    "image_request_id": "8ef81de1cace1e9f6c746a5f5dbf4f54a1c748ef38d78b6bdf68365c0651f683"
+  },
+  {
+    "army": "usmc_marpat",
+    "look": "c",
+    "kind": "rifle",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/usmc_marpat_c_rifle-01a1e145.glb",
+    "sha256": "fa4bf6acd36474914502281955b383d67be6e2a936b04952fa53c7a0eef01a68",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1e145-c406-7f71-b8b3-2974131d2d97",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/usmc_marpat_c_rifle-front-16f910fe.png": "16f910fe19859afded1ccdc7e63d6d040cf94656c06eb767ae6a01c5ba85c3a6"
+    },
+    "note": "batch probe",
+    "endpoint": "tripo3d/h3.1/image-to-3d",
+    "options": {
+      "face_limit": 40000,
+      "geometry_quality": "detailed",
+      "texture_quality": "detailed",
+      "pbr": false,
+      "texture": true,
+      "orientation": "align_image"
+    },
+    "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern US Marine in woodland MARPAT digital camouflage (small green, brown and black pixels on khaki, with no white): MCCUU blouse and trousers, coyote-brown combat boots and gloves, a coyote-brown plate carrier with magazine pouches, an ECH helmet in a woodland MARPAT cover, knee pads. A plain helmet cover, no glasses, fair skin. A small coyote assault pack on his back, its shoulder straps visible from the front, with a radio whose thin whip antenna rises above his left shoulder.",
+    "image_model": "openai/gpt-image-2.6-flare",
+    "image_request_id": "16f910fe19859afded1ccdc7e63d6d040cf94656c06eb767ae6a01c5ba85c3a6"
+  },
+  {
+    "army": "french_cce",
+    "look": "b",
+    "kind": "rifle",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/french_cce_b_rifle-01a1e13c.glb",
+    "sha256": "25991c6a893fd4465061e950a5a077190d71c327ce60f00a6a4ebe252aa88f04",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1e13c-c285-7ba1-8adc-cd7dbf91ffde",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/french_cce_b_rifle-front-bad8b80e.png": "bad8b80e0ef5039699db34581d21ecdc7460cf21a7c0b3c55882f1c45a94e0d6"
+    },
+    "note": "batch probe",
+    "endpoint": "tripo3d/h3.1/image-to-3d",
+    "options": {
+      "face_limit": 40000,
+      "geometry_quality": "detailed",
+      "texture_quality": "detailed",
+      "pbr": false,
+      "texture": true,
+      "orientation": "align_image"
+    },
+    "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern French Army soldier in CCE woodland camouflage (Camouflage Centre Europe: large green, brown, black and khaki blotches, with no white): F2 combat blouse and trousers, brown combat boots, dark gloves, a plate carrier in coyote with magazine pouches across the front, a modern ballistic helmet with side rails in a CCE cover, knee pads. A plain helmet cover, no glasses, dark skin. A small coyote assault pack on his back, its shoulder straps visible from the front, with a radio whose thin whip antenna rises above his left shoulder.",
+    "image_model": "openai/gpt-image-2.6-flare",
+    "image_request_id": "bad8b80e0ef5039699db34581d21ecdc7460cf21a7c0b3c55882f1c45a94e0d6"
+  },
+  {
+    "army": "french_cce",
+    "look": "c",
+    "kind": "rifle",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/french_cce_c_rifle-01a1e13c.glb",
+    "sha256": "803768db62040fbb31352dc43c86210196c1db3f0cfc312895ba0d5e45a394d7",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1e13c-b89b-7d52-bea6-6026974ffe80",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/french_cce_c_rifle-front-515a1089.png": "515a1089c41ef300114c3f8790d9ac596de6737b9adc6d00a250eba91d528166"
+    },
+    "note": "batch probe",
+    "endpoint": "tripo3d/h3.1/image-to-3d",
+    "options": {
+      "face_limit": 40000,
+      "geometry_quality": "detailed",
+      "texture_quality": "detailed",
+      "pbr": false,
+      "texture": true,
+      "orientation": "align_image"
+    },
+    "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern French Army soldier in CCE woodland camouflage (Camouflage Centre Europe: large green, brown, black and khaki blotches, with no white): F2 combat blouse and trousers, brown combat boots, dark gloves, a plate carrier in coyote with magazine pouches across the front, a modern ballistic helmet with side rails in a CCE cover, knee pads. A plain helmet cover, ballistic glasses, fair skin. A small coyote assault pack on his back, its shoulder straps visible from the front, with a radio whose thin whip antenna rises above his left shoulder.",
+    "image_model": "openai/gpt-image-2.6-flare",
+    "image_request_id": "515a1089c41ef300114c3f8790d9ac596de6737b9adc6d00a250eba91d528166"
+  },
+  {
+    "army": "german_flecktarn",
+    "look": "a",
+    "kind": "rifle",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/german_flecktarn_a_rifle-01a1e149.glb",
+    "sha256": "c02342d24fc6651303818dc9127df895b025d210222bc4cc360d99b8bd36f894",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1e149-1cb1-7c00-bc81-8580e2cea22a",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/german_flecktarn_a_rifle-front-13cf4a96.png": "13cf4a96ebc746310d382faf7b9966e4c92955581153980da7814bc8803b70cc"
+    },
+    "note": "batch probe",
+    "endpoint": "tripo3d/h3.1/image-to-3d",
+    "options": {
+      "face_limit": 40000,
+      "geometry_quality": "detailed",
+      "texture_quality": "detailed",
+      "pbr": false,
+      "texture": true,
+      "orientation": "align_image"
+    },
+    "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern German Bundeswehr soldier in Flecktarn camouflage (green, brown and black spots on a yellow-green ground, with no white): field blouse and trousers, black combat boots, dark gloves, a Flecktarn plate carrier with magazine pouches, olive webbing, a helmet in a Flecktarn cover, knee pads. A black night-vision mount on the front of the helmet, no glasses, a medium skin tone. A small coyote assault pack on his back, its shoulder straps visible from the front, with a radio whose thin whip antenna rises above his left shoulder.",
+    "image_model": "openai/gpt-image-2.6-flare",
+    "image_request_id": "13cf4a96ebc746310d382faf7b9966e4c92955581153980da7814bc8803b70cc"
+  },
+  {
+    "army": "german_flecktarn",
+    "look": "b",
+    "kind": "rifle",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/german_flecktarn_b_rifle-01a1e149.glb",
+    "sha256": "e9c81bb5d5c174417294840e9450152aa755142a39ce73d64e112873087f8c52",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1e149-1df4-7ea2-a811-9c1fd7146db9",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/german_flecktarn_b_rifle-front-fbb11672.png": "fbb116722cfc768322102fa4e319466d549e3d60995d5ebac3b6469b68dbb903"
+    },
+    "note": "batch probe",
+    "endpoint": "tripo3d/h3.1/image-to-3d",
+    "options": {
+      "face_limit": 40000,
+      "geometry_quality": "detailed",
+      "texture_quality": "detailed",
+      "pbr": false,
+      "texture": true,
+      "orientation": "align_image"
+    },
+    "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern German Bundeswehr soldier in Flecktarn camouflage (green, brown and black spots on a yellow-green ground, with no white): field blouse and trousers, black combat boots, dark gloves, a Flecktarn plate carrier with magazine pouches, olive webbing, a helmet in a Flecktarn cover, knee pads. A plain helmet cover, no glasses, dark skin. A small coyote assault pack on his back, its shoulder straps visible from the front, with a radio whose thin whip antenna rises above his left shoulder.",
+    "image_model": "openai/gpt-image-2.6-flare",
+    "image_request_id": "fbb116722cfc768322102fa4e319466d549e3d60995d5ebac3b6469b68dbb903"
+  },
+  {
+    "army": "german_flecktarn",
+    "look": "c",
+    "kind": "rifle",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/german_flecktarn_c_rifle-01a1e14b.glb",
+    "sha256": "c2157a413ad96c7046e9f0867487ac991a2a5d7366986260a0d735f936d796ab",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1e14b-d737-7a10-9526-e9a147eee7a0",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/german_flecktarn_c_rifle-front-a5437b09.png": "a5437b093a40c30d7e9a40a8d7b4434349217f656bf2eb69398052402df37ee5"
+    },
+    "note": "batch probe",
+    "endpoint": "tripo3d/h3.1/image-to-3d",
+    "options": {
+      "face_limit": 40000,
+      "geometry_quality": "detailed",
+      "texture_quality": "detailed",
+      "pbr": false,
+      "texture": true,
+      "orientation": "align_image"
+    },
+    "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern German Bundeswehr soldier in Flecktarn camouflage (green, brown and black spots on a yellow-green ground, with no white): field blouse and trousers, black combat boots, dark gloves, a Flecktarn plate carrier with magazine pouches, olive webbing, a helmet in a Flecktarn cover, knee pads. A plain helmet cover, ballistic glasses, fair skin. A small coyote assault pack on his back, its shoulder straps visible from the front, with a radio whose thin whip antenna rises above his left shoulder.",
+    "image_model": "openai/gpt-image-2.6-flare",
+    "image_request_id": "a5437b093a40c30d7e9a40a8d7b4434349217f656bf2eb69398052402df37ee5"
+  },
+  {
+    "army": "us_army_ocp",
+    "look": "b",
+    "kind": "recon",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/us_army_ocp_b_recon-01a1e14e.glb",
+    "sha256": "f5ed570a83ed7fb641f21686b79f76a2e9ab2ad4e05f92a853506d749133cb32",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1e14e-120b-7cc0-bed3-221f46e57710",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/us_army_ocp_b_recon-front-f165cf87.png": "f165cf876ee6d88609c475776e534616d6b2470305cf4e8d0c3d3b5b4ed36526"
+    },
+    "note": "batch probe",
+    "endpoint": "tripo3d/h3.1/image-to-3d",
+    "options": {
+      "face_limit": 40000,
+      "geometry_quality": "detailed",
+      "texture_quality": "detailed",
+      "pbr": false,
+      "texture": true,
+      "orientation": "align_image"
+    },
+    "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern US Army soldier in OCP camouflage (Operational Camouflage Pattern: tan, olive and brown, with no white): Army Combat Uniform blouse and trousers, black knee pads, coyote-brown combat boots and gloves, a coyote-brown plate carrier with three rifle magazine pouches across the front, an ACH helmet in an OCP cover. Loose scrim netting over the helmet, no glasses, dark skin, a sand shemagh at the neck. A large patrol rucksack on his back, its frame and top rising above his shoulders, its shoulder straps visible from the front.",
+    "image_model": "openai/gpt-image-2.6-flare",
+    "image_request_id": "f165cf876ee6d88609c475776e534616d6b2470305cf4e8d0c3d3b5b4ed36526"
+  },
+  {
+    "army": "us_army_ocp",
+    "look": "b",
+    "kind": "rifle",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/us_army_ocp_b_rifle-01a1e150.glb",
+    "sha256": "c0a18d812a8f5746c3863f82e29cff9b53a0a63f9b7b0cb84def4f7bb2f65716",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1e150-51e7-7183-94ed-8e29e4729c49",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/us_army_ocp_b_rifle-front-4ae69657.png": "4ae696572af2c4c8aadf0b8b5472fb22f4083076132dd9e6ff358c82f324aeed"
+    },
+    "note": "batch probe",
+    "endpoint": "tripo3d/h3.1/image-to-3d",
+    "options": {
+      "face_limit": 40000,
+      "geometry_quality": "detailed",
+      "texture_quality": "detailed",
+      "pbr": false,
+      "texture": true,
+      "orientation": "align_image"
+    },
+    "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern US Army soldier in OCP camouflage (Operational Camouflage Pattern: tan, olive and brown, with no white): Army Combat Uniform blouse and trousers, black knee pads, coyote-brown combat boots and gloves, a coyote-brown plate carrier with three rifle magazine pouches across the front, an ACH helmet in an OCP cover. Loose scrim netting over the helmet, no glasses, dark skin, a sand shemagh at the neck. A small coyote assault pack on his back, its shoulder straps visible from the front, with a radio whose thin whip antenna rises above his left shoulder.",
+    "image_model": "openai/gpt-image-2.6-flare",
+    "image_request_id": "4ae696572af2c4c8aadf0b8b5472fb22f4083076132dd9e6ff358c82f324aeed"
+  },
+  {
+    "army": "us_army_ocp",
+    "look": "c",
+    "kind": "rifle",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/us_army_ocp_c_rifle-01a1e153.glb",
+    "sha256": "7dfae699d2c1ee1df2cdb76412a2eb0fed638f303916232d0edd50ab314cb053",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1e153-cf45-7583-a5a1-43ad44ad36a5",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/us_army_ocp_c_rifle-front-63ea2fbf.png": "63ea2fbf755f7ec2dc2269b28c544de143343695a27c88901804b42fd680be2b"
+    },
+    "note": "batch probe",
+    "endpoint": "tripo3d/h3.1/image-to-3d",
+    "options": {
+      "face_limit": 40000,
+      "geometry_quality": "detailed",
+      "texture_quality": "detailed",
+      "pbr": false,
+      "texture": true,
+      "orientation": "align_image"
+    },
+    "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern US Army soldier in OCP camouflage (Operational Camouflage Pattern: tan, olive and brown, with no white): Army Combat Uniform blouse and trousers, black knee pads, coyote-brown combat boots and gloves, a coyote-brown plate carrier with three rifle magazine pouches across the front, an ACH helmet in an OCP cover. A plain helmet cover, ballistic glasses, fair skin. A small coyote assault pack on his back, its shoulder straps visible from the front, with a radio whose thin whip antenna rises above his left shoulder.",
+    "image_model": "openai/gpt-image-2.6-flare",
+    "image_request_id": "63ea2fbf755f7ec2dc2269b28c544de143343695a27c88901804b42fd680be2b"
+  },
+  {
+    "army": "us_army_ocp",
+    "look": "c",
+    "kind": "recon",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/us_army_ocp_c_recon-01a1e14e.glb",
+    "sha256": "1d98fb3525feaeb7698ba66c888c3f8b01b6eea37cad3e362f1cf0910cc4a9b6",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1e14e-d49c-7ed2-86df-59e7ef12539e",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/us_army_ocp_c_recon-front-9361f8c0.png": "9361f8c0726da2bc141e0147d0bcaf551a48ccaa32e7baf31c726cde69013c17"
+    },
+    "note": "batch probe",
+    "endpoint": "tripo3d/h3.1/image-to-3d",
+    "options": {
+      "face_limit": 40000,
+      "geometry_quality": "detailed",
+      "texture_quality": "detailed",
+      "pbr": false,
+      "texture": true,
+      "orientation": "align_image"
+    },
+    "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern US Army soldier in OCP camouflage (Operational Camouflage Pattern: tan, olive and brown, with no white): Army Combat Uniform blouse and trousers, black knee pads, coyote-brown combat boots and gloves, a coyote-brown plate carrier with three rifle magazine pouches across the front, an ACH helmet in an OCP cover. A plain helmet cover, ballistic glasses, fair skin. A large patrol rucksack on his back, its frame and top rising above his shoulders, its shoulder straps visible from the front.",
+    "image_model": "openai/gpt-image-2.6-flare",
+    "image_request_id": "9361f8c0726da2bc141e0147d0bcaf551a48ccaa32e7baf31c726cde69013c17"
+  },
+  {
+    "army": "us_army_ocp",
+    "look": "a",
+    "kind": "recon",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/us_army_ocp_a_recon-01a1e15d.glb",
+    "sha256": "f0809d73e3408ac927c5fc7b828cebd956e9466ff7ac029306da588eeebc3343",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1e15d-68b1-7ca3-ab41-671117f16935",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/us_army_ocp_a_recon-front-d50e3627.png": "d50e3627c29180ea6255c1d14c1c637fd73ab23d8835e82b65456ff5111d1e5d"
+    },
+    "note": "batch probe",
+    "endpoint": "tripo3d/h3.1/image-to-3d",
+    "options": {
+      "face_limit": 40000,
+      "geometry_quality": "detailed",
+      "texture_quality": "detailed",
+      "pbr": false,
+      "texture": true,
+      "orientation": "align_image"
+    },
+    "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern US Army soldier in OCP camouflage (Operational Camouflage Pattern: tan, olive and brown, with no white): Army Combat Uniform blouse and trousers, black knee pads, coyote-brown combat boots and gloves, a coyote-brown plate carrier with three rifle magazine pouches across the front, an ACH helmet in an OCP cover. A black night-vision mount on the front of the helmet, ballistic glasses, a medium skin tone. A large patrol rucksack on his back, its frame and top rising above his shoulders, its shoulder straps visible from the front.",
+    "image_model": "openai/gpt-image-2.6-flare",
+    "image_request_id": "d50e3627c29180ea6255c1d14c1c637fd73ab23d8835e82b65456ff5111d1e5d"
+  },
+  {
+    "army": "usmc_marpat",
+    "look": "a",
+    "kind": "rifle",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/usmc_marpat_a_rifle-01a1e156.glb",
+    "sha256": "675047bc164e510909ab56b4be516218ac242af7c686db7e8a6ad1cbc30a104d",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1e156-05f6-7cc2-b323-dc44749a5153",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/usmc_marpat_a_rifle-front-76f2274b.png": "76f2274bd138c13fc4b89a82084a8eeb0c7a1bdfaaa4cbcaf84cb658d0d217d3"
+    },
+    "note": "batch probe",
+    "endpoint": "tripo3d/h3.1/image-to-3d",
+    "options": {
+      "face_limit": 40000,
+      "geometry_quality": "detailed",
+      "texture_quality": "detailed",
+      "pbr": false,
+      "texture": true,
+      "orientation": "align_image"
+    },
+    "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern US Marine in woodland MARPAT digital camouflage (small green, brown and black pixels on khaki, with no white): MCCUU blouse and trousers, coyote-brown combat boots and gloves, a coyote-brown plate carrier with magazine pouches, an ECH helmet in a woodland MARPAT cover, knee pads. A black night-vision mount on the front of the helmet, ballistic glasses, a medium skin tone. A small coyote assault pack on his back, its shoulder straps visible from the front, with a radio whose thin whip antenna rises above his left shoulder.",
+    "image_model": "openai/gpt-image-2.6-flare",
+    "image_request_id": "76f2274bd138c13fc4b89a82084a8eeb0c7a1bdfaaa4cbcaf84cb658d0d217d3"
+  },
+  {
+    "army": "usmc_marpat",
+    "look": "b",
+    "kind": "rifle",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/usmc_marpat_b_rifle-01a1e158.glb",
+    "sha256": "105ede2313dfc7b5a2ef407c4b721839a77841c3a28df640ea261a9080355347",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1e158-42d7-7313-ae14-a52656118b25",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/usmc_marpat_b_rifle-front-77bb5a9e.png": "77bb5a9e7b73325ae3f48ca4ec6927312ac8b9fac0aeedf397b10098c2e0b116"
+    },
+    "note": "batch probe",
+    "endpoint": "tripo3d/h3.1/image-to-3d",
+    "options": {
+      "face_limit": 40000,
+      "geometry_quality": "detailed",
+      "texture_quality": "detailed",
+      "pbr": false,
+      "texture": true,
+      "orientation": "align_image"
+    },
+    "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern US Marine in woodland MARPAT digital camouflage (small green, brown and black pixels on khaki, with no white): MCCUU blouse and trousers, coyote-brown combat boots and gloves, a coyote-brown plate carrier with magazine pouches, an ECH helmet in a woodland MARPAT cover, knee pads. A plain helmet cover, wraparound ballistic glasses, dark skin. A small coyote assault pack on his back, its shoulder straps visible from the front, with a radio whose thin whip antenna rises above his left shoulder.",
+    "image_model": "openai/gpt-image-2.6-flare",
+    "image_request_id": "77bb5a9e7b73325ae3f48ca4ec6927312ac8b9fac0aeedf397b10098c2e0b116"
+  },
+  {
+    "army": "usmc_marpat",
+    "look": "b",
+    "kind": "recon",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/usmc_marpat_b_recon-01a1e153.glb",
+    "sha256": "d58ebdddb328bef471872a28d8d6e912f5212255c0ca58e24f78c443aa8ba0cb",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1e153-ce4c-79d3-9625-c9ca0d5804ae",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/usmc_marpat_b_recon-front-926f8f55.png": "926f8f55e2a5e7a6077087ec169801f95d2bb4ac2f9be8e0047abcfb781ef902"
+    },
+    "note": "batch probe",
+    "endpoint": "tripo3d/h3.1/image-to-3d",
+    "options": {
+      "face_limit": 40000,
+      "geometry_quality": "detailed",
+      "texture_quality": "detailed",
+      "pbr": false,
+      "texture": true,
+      "orientation": "align_image"
+    },
+    "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern US Marine in woodland MARPAT digital camouflage (small green, brown and black pixels on khaki, with no white): MCCUU blouse and trousers, coyote-brown combat boots and gloves, a coyote-brown plate carrier with magazine pouches, an ECH helmet in a woodland MARPAT cover, knee pads. A plain helmet cover, wraparound ballistic glasses, dark skin. A large patrol rucksack on his back, its frame and top rising above his shoulders, its shoulder straps visible from the front.",
+    "image_model": "openai/gpt-image-2.6-flare",
+    "image_request_id": "926f8f55e2a5e7a6077087ec169801f95d2bb4ac2f9be8e0047abcfb781ef902"
+  },
+  {
+    "army": "usmc_marpat",
+    "look": "c",
+    "kind": "recon",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/usmc_marpat_c_recon-01a1e156.glb",
+    "sha256": "d5cd976f498d5bacbf6cc7f921458cab9909e2ca986499d043bf6de0389ded5c",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1e156-05f5-7482-b5f1-09fa52c77852",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/usmc_marpat_c_recon-front-6fe1a052.png": "6fe1a05223026b75635951f58ce7e14602c7ef209e104c2818a7b5a186c420a8"
+    },
+    "note": "batch probe",
+    "endpoint": "tripo3d/h3.1/image-to-3d",
+    "options": {
+      "face_limit": 40000,
+      "geometry_quality": "detailed",
+      "texture_quality": "detailed",
+      "pbr": false,
+      "texture": true,
+      "orientation": "align_image"
+    },
+    "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern US Marine in woodland MARPAT digital camouflage (small green, brown and black pixels on khaki, with no white): MCCUU blouse and trousers, coyote-brown combat boots and gloves, a coyote-brown plate carrier with magazine pouches, an ECH helmet in a woodland MARPAT cover, knee pads. A plain helmet cover, no glasses, fair skin. A large patrol rucksack on his back, its frame and top rising above his shoulders, its shoulder straps visible from the front.",
+    "image_model": "openai/gpt-image-2.6-flare",
+    "image_request_id": "6fe1a05223026b75635951f58ce7e14602c7ef209e104c2818a7b5a186c420a8"
+  },
+  {
+    "army": "eastern_emr",
+    "look": "c",
+    "kind": "recon",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/eastern_emr_c_recon-01a1e173.glb",
+    "sha256": "2e82869ad05fe480b853a31cad02654879ad99f6c67c340ddfbc20edf464b4ee",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1e173-8b38-70c3-b4a0-8b44532c2f90",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/eastern_emr_c_recon-front-d270f7dc.png": "d270f7dc9cf2787fc1f109c83c54f03d9b9494a4ee4a875ff0d71227498be1ec"
+    },
+    "note": "third take, redrawn: the first two stood 0.60-0.63 m face down",
+    "endpoint": "tripo3d/h3.1/image-to-3d",
+    "options": {
+      "face_limit": 40000,
+      "geometry_quality": "detailed",
+      "texture_quality": "detailed",
+      "pbr": false,
+      "texture": true,
+      "orientation": "align_image"
+    },
+    "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern Russian soldier in Ratnik EMR digital camouflage (pixelated grey-green, dark green and brown, with no white): field jacket and trousers, black boots and black gloves, a 6B45 body armour vest in EMR with its high collar, shoulder pads and groin flap, magazine pouches across the front, a 6B47 helmet in an EMR cover. The face uncovered, fair skin, light stubble, knee pads. A large patrol rucksack on his back, its frame and top rising above his shoulders, its shoulder straps visible from the front.",
+    "image_model": "openai/gpt-image-2.6-flare",
+    "image_request_id": "d270f7dc9cf2787fc1f109c83c54f03d9b9494a4ee4a875ff0d71227498be1ec"
+  },
+  {
+    "army": "pla_type21",
+    "look": "a",
+    "kind": "rifle",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/pla_type21_a_rifle-01a1e19e.glb",
+    "sha256": "0968eb277ac15536602431b27abf451eb8d12a70dc116af43446541f1901b74c",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1e19e-6664-7482-b1ac-aa25c2566ceb",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/pla_type21_a_rifle-front-3fddffa0.png": "3fddffa0dd42927d050a3c5a03bfc22e75259a649413ac89d3668466a3683286"
+    },
+    "note": "slice 07 critique: corrected Type 21 prompt / hand hanging below the forearm",
+    "endpoint": "tripo3d/h3.1/image-to-3d",
+    "options": {
+      "face_limit": 40000,
+      "geometry_quality": "detailed",
+      "texture_quality": "detailed",
+      "pbr": false,
+      "texture": true,
+      "orientation": "align_image"
+    },
+    "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern Chinese PLA soldier in Type 21 (Xingkong) woodland camouflage (a fine digital pattern of bright mid green and olive green with brown and reddish-brown patches and a scatter of tiny dark specks, with no white): combat blouse and trousers, black combat boots, dark gloves, a plate carrier with laser-cut panels in the same camouflage and magazine pouches across the front, a high-cut helmet with side rails in a matching camouflage cover, electronic ear defenders, knee pads. A black night-vision mount on the front of the helmet, no glasses, a young Han Chinese man with a round face. A small coyote assault pack on his back, its shoulder straps visible from the front, with a radio whose thin whip antenna rises above his left shoulder.",
+    "image_model": "openai/gpt-image-2.6-flare",
+    "image_request_id": "3fddffa0dd42927d050a3c5a03bfc22e75259a649413ac89d3668466a3683286"
+  },
+  {
+    "army": "pla_type21",
+    "look": "b",
+    "kind": "rifle",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/pla_type21_b_rifle-01a1e19e.glb",
+    "sha256": "eab7359b8e1a9597dd0d1813687c692421767c64bfefd9e2e27fcc53f1d2ea02",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1e19e-648f-7681-86c8-22b0a90857b3",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/pla_type21_b_rifle-front-93e5f4af.png": "93e5f4aff8f6ff4081921b9d7578924c6f5b339c5177354e7d50115c4a980909"
+    },
+    "note": "slice 07 critique: corrected Type 21 prompt / hand hanging below the forearm",
+    "endpoint": "tripo3d/h3.1/image-to-3d",
+    "options": {
+      "face_limit": 40000,
+      "geometry_quality": "detailed",
+      "texture_quality": "detailed",
+      "pbr": false,
+      "texture": true,
+      "orientation": "align_image"
+    },
+    "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern Chinese PLA soldier in Type 21 (Xingkong) woodland camouflage (a fine digital pattern of bright mid green and olive green with brown and reddish-brown patches and a scatter of tiny dark specks, with no white): combat blouse and trousers, black combat boots, dark gloves, a plate carrier with laser-cut panels in the same camouflage and magazine pouches across the front, a high-cut helmet with side rails in a matching camouflage cover, electronic ear defenders, knee pads. A plain helmet cover, no glasses, a dark neck gaiter, a Han Chinese man with a broad face and a darker, tanned complexion. A small coyote assault pack on his back, its shoulder straps visible from the front, with a radio whose thin whip antenna rises above his left shoulder.",
+    "image_model": "openai/gpt-image-2.6-flare",
+    "image_request_id": "93e5f4aff8f6ff4081921b9d7578924c6f5b339c5177354e7d50115c4a980909"
+  },
+  {
+    "army": "pla_type21",
+    "look": "c",
+    "kind": "rifle",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/pla_type21_c_rifle-01a1e1a0.glb",
+    "sha256": "d38f0214f424ec1ec57d58cd80ddc6a069853bc4232d252ba2b427fb4ad07b1e",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1e1a0-9a37-76f3-a576-74b4479a16b6",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/pla_type21_c_rifle-front-eb30a309.png": "eb30a309c2a926e074df572b52631c4a8d76e3cf3cda37d2f463ce96dcffc81d"
+    },
+    "note": "slice 07 critique: corrected Type 21 prompt / hand hanging below the forearm",
+    "endpoint": "tripo3d/h3.1/image-to-3d",
+    "options": {
+      "face_limit": 40000,
+      "geometry_quality": "detailed",
+      "texture_quality": "detailed",
+      "pbr": false,
+      "texture": true,
+      "orientation": "align_image"
+    },
+    "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern Chinese PLA soldier in Type 21 (Xingkong) woodland camouflage (a fine digital pattern of bright mid green and olive green with brown and reddish-brown patches and a scatter of tiny dark specks, with no white): combat blouse and trousers, black combat boots, dark gloves, a plate carrier with laser-cut panels in the same camouflage and magazine pouches across the front, a high-cut helmet with side rails in a matching camouflage cover, electronic ear defenders, knee pads. A plain helmet cover, ballistic glasses, a lean Han Chinese man with a narrow face. A small coyote assault pack on his back, its shoulder straps visible from the front, with a radio whose thin whip antenna rises above his left shoulder.",
+    "image_model": "openai/gpt-image-2.6-flare",
+    "image_request_id": "eb30a309c2a926e074df572b52631c4a8d76e3cf3cda37d2f463ce96dcffc81d"
+  },
+  {
+    "army": "eastern_emr",
+    "look": "a",
+    "kind": "recon",
+    "front": "+x",
+    "glb": "assets/source/skins/infantry/eastern_emr_a_recon-01a1e1a0.glb",
+    "sha256": "c80a5a7ce6dea4cfd99f3e6e4c5993dd24bcf01294d2b64c51a394daf3ad1331",
+    "generator": "Tripo H3.1 image to 3D, through Bento's fal service proxy (tripo3d/h3.1/image-to-3d): textured (detailed texture, PBR off), detailed geometry, 40,000-face limit, orientation aligned to the image, from one front T-pose view",
+    "request_id": "01a1e1a0-9acd-7ca1-a972-e305636423c7",
+    "generated": "2026-11-15",
+    "terms": "A paid generation: fal lists the model for commercial use. Listed price $0.60 (HD texture $0.40 plus detailed geometry $0.20).",
+    "inputs": {
+      "assets/source/skins/infantry/eastern_emr_a_recon-front-de72b9a3.png": "de72b9a3e0ddea80bf12ad77e4575d164d513b4b238bda87753b87a451cc941e"
+    },
+    "note": "slice 07 critique: corrected Type 21 prompt / hand hanging below the forearm",
+    "endpoint": "tripo3d/h3.1/image-to-3d",
+    "options": {
+      "face_limit": 40000,
+      "geometry_quality": "detailed",
+      "texture_quality": "detailed",
+      "pbr": false,
+      "texture": true,
+      "orientation": "align_image"
+    },
+    "prompt": "Full-body 3D character reference render for a game: one person only, centred and filling the frame from helmet to boots, standing in a strict T-pose with arms straight out at shoulder height, palms down, fingers together, legs straight, feet a shoulder width apart, flat on the ground. Front view, camera level at chest height, orthographic-looking. Plain flat light grey studio background, soft even diffuse light from the front, no harsh shadows, no ground shadow. Photoreal materials. No weapon and nothing in the hands; no text, logos, patches, flags or watermark. An ordinary fit build, not muscular. A modern Russian soldier in Ratnik EMR digital camouflage (pixelated grey-green, dark green and brown, with no white): field jacket and trousers, black boots and black gloves, a 6B45 body armour vest in EMR with its high collar, shoulder pads and groin flap, magazine pouches across the front, a 6B47 helmet in an EMR cover. A dark green balaclava covering the face except the eyes, no knee pads. A large patrol rucksack on his back, its frame and top rising above his shoulders, its shoulder straps visible from the front.",
+    "image_model": "openai/gpt-image-2.6-flare",
+    "image_request_id": "de72b9a3e0ddea80bf12ad77e4575d164d513b4b238bda87753b87a451cc941e"
   }
 ]

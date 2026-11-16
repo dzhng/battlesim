@@ -452,7 +452,7 @@ def corpse(rig, hold, up=False):
     rig.clear_pose()
     rig.rot_world(P["pelvis"], "X", 90 * s)  # face down head forward (-Y); face up head back (+Y)
     rig.move_world(P["pelvis"], (0, 0.02, -k["up_z"] if up else -0.75))
-    rig.rot_world(P["pelvis"], "Y", k["roll"] * s)
+    rig.rot_world(P["pelvis"], "Y", k["roll_up"] if up else k["roll_down"])  # onto one side
     rig.rot_world(P["spine_03"], "Z", 8)
     rig.rot_world(P["neck_01"], "Y", k["cheek"] * 0.5 * s)
     rig.rot_world(P["Head"], "Y", k["cheek"] * 0.5 * s)
@@ -504,7 +504,7 @@ ARM_BONES = ("clavicle", "upperarm", "lowerarm", "hand", "index", "middle", "rin
 # The corpses: the hips' roll onto one side and the head's onto a cheek (degrees), how
 # far the left knee is drawn up (degrees), the weapon's height off the ground (m), and
 # face up, how far the hips sink (m: less than face down, the pack holds him up).
-CORPSE = dict(roll=10, cheek=70, knee=30, weapon_z=0.05, up_z=0.66)
+CORPSE = dict(roll_up=-10, roll_down=-30, cheek=70, knee=30, weapon_z=0.05, up_z=0.66)
 
 
 def deaths(rig, hold, res):

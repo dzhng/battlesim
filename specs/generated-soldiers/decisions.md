@@ -205,3 +205,41 @@ this ledger from scratch against the shipped code.
   - The Akeron guard rows (German scouts) had no user left, so they are
     deleted, along with the six German Javelin exports no row names.
   - Sound.
+
+## Slice 07 (every body generated and pinned)
+
+- **A face-down corpse rolls 30° onto one side** (`CORPSE["roll_down"]`; the
+  face-up corpse keeps 10°). Sound, and a physical rule: a dead man carrying a
+  large rucksack doesn't lie flat on his face.
+  - *Why:* rigid on the upper back, a scout's rucksack stood 0.60–0.65 m on a
+    flat face-down corpse, against the 0.6 m `fit.lies` limit.
+  - *What it fixes:* every rifle and recon kit now lies under the limit.
+  - *Range:* 40° raised a knee or arm to 0.64 m; rolling the other way buried
+    one side 0.4 m.
+  - *What it doesn't fix:* slung launchers stand too high, and sink face up,
+    whatever the roll. Slice 09 owns that.
+- **Rejected candidates are regenerated, never patched.**
+  - OCP recon `a` and EMR recon `c`: rucksacks too deep to lie flat. Each was
+    redrawn from a new image after two meshes failed.
+  - PLA `a`: came back untextured.
+  - EMR recon `a`: the generator's arms drooped so far that its left hand hung
+    below the forearm after seating.
+  - Sound.
+- **The PLA prompt was corrected after the unprimed critique.** It said "pale
+  grey-green", from washed-out field frames; it now gives the flat lay's green
+  with brown and reddish-brown patches and fine dark specks, and three more
+  distinct faces. All three PLA bodies were regenerated, and `cloth_mean` was
+  re-measured from the new look `a`. Sound: national identity comes first.
+- **Critique notes accepted, not acted on.** Provisional, re-judged at slice 09's
+  in-game review.
+  - *Generator limits:* blurry sleeves, paddle gloves and dark renders under the
+    offline light.
+  - *By design:* the same look scheme across armies (a night-vision mount on `a`,
+    the darker-skinned soldier on `b`).
+- **HTTP 409 refusals at submit were transient and charged nothing.** The tool
+  now prints the service's reason. Two jobs a disk-full failure left unresolved
+  were resumed, not resubmitted.
+- **Spend: $25.44** over 30 bodies and their retakes, against the spec's $16–22
+  estimate. The overrun is the retakes above.
+- **Probe exports are committed as they stand** (the current code's output);
+  slice 09 re-exports everything once more on the final code. Sound.

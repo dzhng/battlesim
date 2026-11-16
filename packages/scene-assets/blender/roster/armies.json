@@ -69,12 +69,12 @@
       "faction": "eastern",
       "rifle": "qbz191",
       "gloves": [0.03, 0.03, 0.025],
-      "cloth_mean": [0.088, 0.0799, 0.0593],
-      "prompt": "A modern Chinese PLA soldier in Type 21 (Xingkong) woodland camouflage (a fine pixelated pattern of pale grey-green, mid green, dark green and brown, with no white): combat blouse and trousers, black combat boots, dark gloves, a plate carrier with laser-cut panels in the same camouflage and magazine pouches across the front, a high-cut helmet with side rails in a matching camouflage cover, electronic ear defenders, knee pads.",
+      "cloth_mean": [0.0861, 0.0754, 0.0449],
+      "prompt": "A modern Chinese PLA soldier in Type 21 (Xingkong) woodland camouflage (a fine digital pattern of bright mid green and olive green with brown and reddish-brown patches and a scatter of tiny dark specks, with no white): combat blouse and trousers, black combat boots, dark gloves, a plate carrier with laser-cut panels in the same camouflage and magazine pouches across the front, a high-cut helmet with side rails in a matching camouflage cover, electronic ear defenders, knee pads.",
       "looks": {
-        "a": "A black night-vision mount on the front of the helmet, no glasses, East Asian features.",
-        "b": "A plain helmet cover, no glasses, East Asian features, a dark neck gaiter.",
-        "c": "A plain helmet cover, ballistic glasses, East Asian features."
+        "a": "A black night-vision mount on the front of the helmet, no glasses, a young Han Chinese man with a round face.",
+        "b": "A plain helmet cover, no glasses, a dark neck gaiter, a Han Chinese man with a broad face and a darker, tanned complexion.",
+        "c": "A plain helmet cover, ballistic glasses, a lean Han Chinese man with a narrow face."
       },
       "crew_kit": "rifle_squad"
     },
