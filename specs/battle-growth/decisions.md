@@ -2555,3 +2555,11 @@ manifest says one blast and 98. First bad commit by bisect: `a7b398381`,
 another session's merge of staging into its control-groups branch. Its
 re-record (`da9feeb27`) replaced the capture and left the manifest's counts
 as they were. The failure is identical with and without slice 14.
+
+**The stand-in scene after a movement change, 2026-11-16.** Another session's
+movement work left the scene's squad standing more spread out, and `stand-in`
+failed on staging with and without slice 14: two of eight bodies were outside
+a camera framed 22 m from one outer soldier, so they were culled and the
+count of drawn blocks was short. Their pick boxes were present. The two
+checks that count every body now frame all of them, at a distance set by
+their spread; the click checks keep the close framing.
