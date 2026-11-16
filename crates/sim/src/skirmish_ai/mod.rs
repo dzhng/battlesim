@@ -20,7 +20,7 @@ use artillery::{artillery_ground_guess, artillery_objective_guess};
 pub use capability::unit_engages_aircraft_in;
 use capability::{frame_has_layer_threat, unit_weapons};
 pub(crate) use capability::{unit_can_engage_ground, unit_can_engage_target};
-use purchase::{best_air_defender, own_player, pick};
+use purchase::{own_player, PurchasePlan};
 use relocation::{Held, Relocation};
 mod transport;
 pub use team::{PlayerPlan, TeamMemory, TeamPlan};
@@ -176,13 +176,6 @@ pub struct BalancedDoctrine {
 }
 
 #[derive(Clone, Debug)]
-struct PurchasePlan {
-    cards: Vec<TypeIndex>,
-    next: usize,
-    repeat_from: Option<usize>,
-}
-
-#[derive(Clone, Debug)]
 struct ArtillerySighting {
     tick: Tick,
     position: [f64; 3],
@@ -230,40 +223,6 @@ impl BalancedDoctrine {
 
     pub fn pivot_count(&self) -> u32 {
         self.pivot_count
-    }
-
-    pub fn set_purchase_plan(&mut self, cards: Vec<TypeIndex>) {
-        self.set_purchase_plan_with_repeat(cards, None);
-    }
-
-    pub(crate) fn set_purchase_plan_with_repeat(
-        &mut self,
-        cards: Vec<TypeIndex>,
-        repeat_from: Option<usize>,
-    ) {
-        let repeat_from = repeat_from.filter(|&index| index < cards.len());
-        self.purchase_plan = Some(PurchasePlan {
-            cards,
-            next: 0,
-            repeat_from,
-        });
-    }
-
-    pub(crate) fn purchase_result(&mut self, accepted: bool) {
-        if !accepted {
-            return;
-        }
-        let Some(plan) = self.purchase_plan.as_mut() else {
-            return;
-        };
-        plan.next += 1;
-        if plan.next == plan.cards.len() {
-            plan.next = plan.repeat_from.unwrap_or(plan.cards.len());
-        }
-    }
-
-    pub(crate) fn has_purchase_plan(&self) -> bool {
-        self.purchase_plan.is_some()
     }
 
     pub(crate) fn wants_decision(&self, tick: Tick) -> bool {
@@ -430,77 +389,6 @@ impl BalancedDoctrine {
                     .is_some_and(|r| r.factions.contains(&faction))
             })
             .collect();
-        // Within a role, the best card against the enemies identified (D56).
-        let threat = (!frame.identified.is_empty())
-            .then(|| team::Threat::of(rules, frame.identified.iter().map(|unit| unit.kind)));
-        let pick = |role: Option<&str>, category: Category, ordinal: usize| {
-            pick(rules, &eligible, threat.as_ref(), (role, category, ordinal))
-        };
-        let count = |kind: TypeIndex| {
-            frame.own.iter().filter(|u| u.kind == kind).count()
-                + me.pending
-                    .iter()
-                    .flat_map(|p| p.kinds())
-                    .filter(|&k| k == kind)
-                    .count()
-        };
-        let low_air_demand = frame_has_layer_threat(frame, rules, AltitudeLayer::LowAir);
-        let high_air_demand = frame_has_layer_threat(frame, rules, AltitudeLayer::HighAir);
-        let opening = match self.doctrine {
-            Doctrine::TankSwarm => [
-                ("mbt", Category::Veh, 0),
-                ("mbt", Category::Veh, 0),
-                ("mbt", Category::Veh, 1),
-                ("recon", Category::Rec, 0),
-                ("at", Category::Inf, 0),
-                ("infantry", Category::Inf, 0),
-                ("light_vehicle", Category::Veh, 0),
-                ("artillery", Category::Sup, 0),
-                ("logistics", Category::Sup, 0),
-            ],
-            Doctrine::AirDenial => [
-                ("recon", Category::Rec, 0),
-                ("infantry", Category::Inf, 0),
-                ("infantry", Category::Inf, 1),
-                ("at", Category::Inf, 0),
-                ("light_vehicle", Category::Veh, 0),
-                ("mbt", Category::Veh, 0),
-                ("recon", Category::Rec, 0),
-                ("artillery", Category::Sup, 0),
-                ("logistics", Category::Sup, 0),
-            ],
-            _ => [
-                ("infantry", Category::Inf, 0),
-                ("infantry", Category::Inf, 0),
-                ("infantry", Category::Inf, 1),
-                ("mbt", Category::Veh, 0),
-                ("recon", Category::Rec, 0),
-                ("at", Category::Inf, 0),
-                ("light_vehicle", Category::Veh, 0),
-                ("artillery", Category::Sup, 0),
-                ("logistics", Category::Sup, 0),
-            ],
-        };
-        let desired: Vec<_> = opening
-            .iter()
-            .filter_map(|&(role, category, ordinal)| pick(Some(role), category, ordinal))
-            .collect();
-        // AA is insurance every opening carries, picked by what its weapons
-        // engage. It goes first, so it is bought before any other role
-        // competes for credits or slots.
-        let high_air_defender = best_air_defender(rules, &eligible, frame, AltitudeLayer::HighAir);
-        let desired: Vec<_> = high_air_defender.iter().copied().chain(desired).collect();
-        // Each squad's carrier follows it (D17), and rides on it: it is
-        // bought only for a squad the player holds or buys with it.
-        let desired: Vec<(TypeIndex, bool)> = desired
-            .into_iter()
-            .flat_map(|kind| {
-                let size = rules.catalog.get(kind).squad_size();
-                std::iter::once((kind, false)).chain(
-                    transport::carrier_for(rules, &eligible, size).map(|carrier| (carrier, true)),
-                )
-            })
-            .collect();
         // A losing unit's smoke comes first, so the order rate limit never
         // drops its pop (D21).
         let smoke = match view.phase {
@@ -515,136 +403,11 @@ impl BalancedDoctrine {
             _ => vec![],
         };
         let mut orders = smoke.clone();
-        // The whole opening is bought in one decision, so the opponent is
-        // ready at once and the player's own readiness starts the battle.
-        let purchases: Vec<TypeIndex> = if let Some(plan) = self.purchase_plan.as_ref() {
-            let mut credits = me.credits;
-            let mut slots = me.unit_count;
-            let mut cursor = plan.next;
-            let mut purchases = Vec::new();
-            while slots < me.cap {
-                let Some(&kind) = plan.cards.get(cursor) else {
-                    break;
-                };
-                let cost = f64::from(rules.catalog.get(kind).cost);
-                if cost > credits {
-                    break;
-                }
-                purchases.push(kind);
-                credits -= cost;
-                slots += 1;
-                cursor += 1;
-                if cursor == plan.cards.len() {
-                    let Some(repeat_from) = plan.repeat_from else {
-                        break;
-                    };
-                    cursor = repeat_from;
-                }
-            }
-            purchases
-        } else if view.phase == Phase::Preparation {
-            let mut credits = me.credits;
-            let mut slots = me.unit_count;
-            let mut needed = BTreeMap::new();
-            let mut squad_held = false;
-            desired
-                .iter()
-                .copied()
-                .filter(|&(kind, rides)| {
-                    let wanted = needed.entry(kind).or_insert(0);
-                    *wanted += 1;
-                    let cost = f64::from(rules.catalog.get(kind).cost);
-                    let held = count(kind) >= *wanted;
-                    let buy = !held && (!rides || squad_held) && cost <= credits && slots < me.cap;
-                    if buy {
-                        credits -= cost;
-                        slots += 1;
-                    }
-                    squad_held = held || buy;
-                    buy
-                })
-                .map(|(kind, _)| kind)
-                .collect()
-        } else if me.unit_count < me.cap {
-            let purchase = {
-                let truck = pick(Some("logistics"), Category::Sup, 0);
-                if truck.is_some()
-                    && !frame
-                        .own
-                        .iter()
-                        .any(|u| rules.catalog.get(u.kind).has_role("logistics"))
-                    && !(me.pending.iter().flat_map(|p| p.kinds()))
-                        .any(|k| rules.catalog.get(k).has_role("logistics"))
-                {
-                    truck.filter(|&k| f64::from(rules.catalog.get(k).cost) <= me.credits)
-                } else {
-                    // Each role in turn, armour too (D2); helicopters as
-                    // light vehicles are (D35), then jets (the air category,
-                    // no role of their own). A deck without one buys the
-                    // next role; an unaffordable one is saved for.
-                    let roles = [
-                        (Some("infantry"), Category::Inf),
-                        (Some("recon"), Category::Rec),
-                        (Some("at"), Category::Inf),
-                        (Some("light_vehicle"), Category::Veh),
-                        (Some("mbt"), Category::Veh),
-                        (Some("artillery"), Category::Sup),
-                        (Some("helicopter"), Category::Hel),
-                        (None, Category::Air),
-                    ];
-                    let selected = if let Some(layer) = [
-                        (AltitudeLayer::HighAir, high_air_demand),
-                        (AltitudeLayer::LowAir, low_air_demand),
-                    ]
-                    .into_iter()
-                    .find_map(|(layer, demanded)| demanded.then_some(layer))
-                    {
-                        best_air_defender(rules, &eligible, frame, layer)
-                            .filter(|&k| f64::from(rules.catalog.get(k).cost) <= me.credits)
-                            .map(|k| (Some(0), k))
-                    } else if let Some(want) = transport::want(
-                        rules,
-                        &eligible,
-                        frame
-                            .own
-                            .iter()
-                            .map(|u| u.kind)
-                            .chain(me.pending.iter().flat_map(|p| p.kinds())),
-                    ) {
-                        // One carrier per squad comes before the rotation,
-                        // and is saved for like its next role: a lost
-                        // transport is rebought, a lost squad replaced (D17).
-                        let (transport::Want::Carrier(k) | transport::Want::Squad(k)) = want;
-                        (f64::from(rules.catalog.get(k).cost) <= me.credits).then_some((None, k))
-                    } else {
-                        // The next role in the rotation is a plan the AI
-                        // saves for: credits it can't yet spend on it wait,
-                        // so an expensive card is bought as surely as a
-                        // cheap one. Only a role the deck has no card for
-                        // is passed over.
-                        (0..roles.len())
-                            .find_map(|offset| {
-                                let index = (self.reinforcement + offset) % roles.len();
-                                pick(roles[index].0, roles[index].1, 0).map(|k| (Some(index), k))
-                            })
-                            .filter(|&(_, k)| f64::from(rules.catalog.get(k).cost) <= me.credits)
-                    };
-                    selected.map(|(index, k)| {
-                        if let Some(index) = index {
-                            self.reinforcement = (index + 1) % roles.len();
-                        }
-                        k
-                    })
-                }
-            };
-            purchase.into_iter().collect()
-        } else {
-            vec![]
-        };
-        let mut bought: Vec<[f64; 2]> = Vec::new();
-        for kind in purchases {
+        let purchases = self.shopping(frame, rules, me, view.phase, &eligible);
+        for purchase::Buy { kind, carrier } in purchases {
             // Support, carriers and the squads they will carry wait at base:
-            // a squad rides out from there (D17).
+            // a squad rides out from there (D17), as a squad bought aboard
+            // its ride is driven out (`unload`).
             let waits = rules.catalog.get(kind).has_role("logistics")
                 || crate::carriage::seats(rules, kind) > 0
                 || transport::carrier_for(rules, &eligible, rules.catalog.get(kind).squad_size())
@@ -671,8 +434,11 @@ impl BalancedDoctrine {
                     })
                     .map_or(entry.center, |o| o.center)
             };
-            bought.push(destination);
-            orders.push(Order::purchase(rules.catalog.id(kind), destination));
+            orders.push(Order::ConfirmPurchase {
+                variant: rules.catalog.id(kind).into(),
+                carrier: carrier.map(|carrier| rules.catalog.id(carrier).into()),
+                destination,
+            });
         }
         if view.phase == Phase::Active {
             let carries =
