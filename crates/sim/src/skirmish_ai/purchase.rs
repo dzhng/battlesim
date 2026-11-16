@@ -495,7 +495,7 @@ fn planned(rules: &Rules, me: &PlayerView, plan: &PurchasePlan) -> Vec<Buy> {
         let pair = Buy {
             kind,
             carrier: after.map(|next| plan.cards[next]).filter(|&carrier| {
-                transport::seats_squad(rules, carrier, rules.catalog.get(kind).squad_size())
+                crate::carriage::seats_squad(rules, carrier, rules.catalog.get(kind).squad_size())
             }),
         };
         let covered = |buy: Buy| buy.price(rules) <= credits && slots + buy.units() <= me.cap;

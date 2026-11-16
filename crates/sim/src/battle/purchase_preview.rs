@@ -131,12 +131,11 @@ impl Battle {
     /// checks seats for a squad that is already aboard, so a pair is admitted
     /// only when they fit, as boarding would insist.
     fn seats_squad(&self, kind: TypeIndex, carrier: TypeIndex) -> Result<(), OrderError> {
-        let squad = self.rules.catalog.get(kind);
-        let seats = crate::carriage::seats(&self.rules, carrier);
-        if seats == 0 || squad.hull().is_some() || squad.squad_size() == 0 {
+        let size = self.rules.catalog.get(kind).squad_size();
+        if size == 0 || crate::carriage::seats(&self.rules, carrier) == 0 {
             return Err(OrderError::NotACarrier);
         }
-        if seats < squad.squad_size() {
+        if !crate::carriage::seats_squad(&self.rules, carrier, size) {
             return Err(OrderError::CapacityFull);
         }
         Ok(())

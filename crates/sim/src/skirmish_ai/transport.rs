@@ -10,7 +10,7 @@ use contract::scenario::Rules;
 use std::collections::BTreeMap;
 
 use super::{distance, EntrySite, Side};
-use crate::carriage::seats;
+use crate::carriage::{seats, seats_squad};
 
 /// The card a squad of `size` soldiers is paired with: the fewest seats that
 /// take the whole squad, then the cheapest, then the smaller id. `None` for a
@@ -26,12 +26,6 @@ pub(super) fn carrier_for(rules: &Rules, eligible: &[TypeIndex], size: usize) ->
                 .then(rules.catalog.get(a).cost.cmp(&rules.catalog.get(b).cost))
                 .then(rules.catalog.id(a).cmp(rules.catalog.id(b)))
         })
-}
-
-/// Whether `carrier` seats every soldier of a squad of `size`; never a hull
-/// (size 0).
-pub(super) fn seats_squad(rules: &Rules, carrier: TypeIndex, size: usize) -> bool {
-    size > 0 && seats(rules, carrier) >= size
 }
 
 /// The seat count a squad card pairs with, if the deck seats it.
