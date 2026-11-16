@@ -1,12 +1,13 @@
 //! An own unit's order step: its kind (indexing stepKinds), its point (NaN
 //! when the side knows none), whether a move is an attack-move, the target
-//! an attack names and the host a step enters.
+//! an attack names, the host a step enters and the footprint of the
+//! building a garrison enters or an exit leaves.
 use contract::observation::{OrderStep, StepHost};
 
-use super::cells::{host_cells, target_cells};
+use super::cells::{footprint_cells, host_cells, target_cells};
 use super::tags::{tag, STEP_KINDS};
 
-pub(super) const STEP_FIELDS: [&str; 12] = [
+pub(super) const STEP_FIELDS: [&str; 16] = [
     "kind",
     "x",
     "y",
@@ -19,15 +20,19 @@ pub(super) const STEP_FIELDS: [&str; 12] = [
     "hostKind",
     "hostLo",
     "hostHi",
+    "hostX",
+    "hostY",
+    "hostHalfX",
+    "hostHalfY",
 ];
 
-pub(super) fn step_row(step: &OrderStep) -> [f32; 12] {
+pub(super) fn step_row(step: &OrderStep) -> [f32; 16] {
     let (kind, point, target, host) = match *step {
         OrderStep::Move { point, .. } => ("move", Some(point), None, None),
         OrderStep::Attack { target, point } => ("attack", point, target, None),
-        OrderStep::Garrison { point, building } => {
-            ("garrison", Some(point), None, Some(("building", building)))
-        }
+        OrderStep::Garrison {
+            point, building, ..
+        } => ("garrison", Some(point), None, Some(("building", building))),
         OrderStep::Board { point, carrier } => {
             ("board", Some(point), None, Some(("carrier", carrier.0)))
         }
@@ -41,8 +46,12 @@ pub(super) fn step_row(step: &OrderStep) -> [f32; 12] {
                 StepHost::Carrier { id } => ("carrier", id.0),
             }),
         ),
-        OrderStep::Exit { point } => ("exit", Some(point), None, None),
+        OrderStep::Exit { point, .. } => ("exit", Some(point), None, None),
         OrderStep::ReturnToBase { point } => ("return_to_base", Some(point), None, None),
+    };
+    let footprint = match *step {
+        OrderStep::Garrison { footprint, .. } | OrderStep::Exit { footprint, .. } => footprint,
+        _ => None,
     };
     let [x, y] = point.map_or([f32::NAN; 2], |p| [p[0] as f32, p[1] as f32]);
     let attack_move = matches!(
@@ -54,6 +63,7 @@ pub(super) fn step_row(step: &OrderStep) -> [f32; 12] {
     );
     let [tk, ti, tx, ty, tz] = target_cells(target);
     let [hk, hl, hh] = host_cells(host);
+    let [fx, fy, fhx, fhy] = footprint_cells(footprint.map(|f| (f.center, f.half)));
     [
         tag(&STEP_KINDS, &kind),
         x,
@@ -67,5 +77,9 @@ pub(super) fn step_row(step: &OrderStep) -> [f32; 12] {
         hk,
         hl,
         hh,
+        fx,
+        fy,
+        fhx,
+        fhy,
     ]
 }

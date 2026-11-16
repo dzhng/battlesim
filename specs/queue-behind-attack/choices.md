@@ -90,11 +90,17 @@ rewritten from scratch at closeout.
   where the track was last seen; after it the step publishes no target and no point
   (at its turn such an attack ends at once). The current attack keeps its `last_known`
   (decision 10). Pinned in `order_markers.rs`.
-- **A queued return to base keeps its way home while its origin holds.** *Agent*:
-  `way_home_from` searches a route per road in; computed every publication it cost a
-  waiting refund 0.8 ms a tick on the 800 × 600 test map (58 → 874 µs a tick), far more
-  on a city map. `Battle::home_ways` (presentation only, never in the digest) keeps each
-  unit's point keyed by where its step before ends: 60 µs a tick.
+- **A queued return to base keeps its way home while its origin stays within a fog
+  cell.** *Agent*: `way_home_from` searches a route per road in; computed every
+  publication it cost a waiting refund 0.8 ms a tick on the 800 × 600 test map (58 → 874
+  µs a tick), far more on a city map. `Battle::home_ways` (presentation only, never in
+  the digest) keeps each return's point keyed by its unit and its place in the queue,
+  with the origin it was found from, and searches again only once the step before ends
+  more than a fog cell (the finest spot the side's sight resolves) from that origin, so a
+  chase or a carrier ahead of it drifting doesn't search every tick. The published point
+  can lag that far behind the exact origin's, and depends on the publications before it,
+  as it already did on world changes since the search; it is never read back into the
+  battle. A pop moves every queued step's place, so it costs one search per return.
 - **The renderer's step is a kind and a point.** *Agent*: the view (`OrderStepView`)
   carries the target and host; the overlay (`orderSteps.ts`) takes only what it draws, and
   owns the step-kind union the view imports, so there is one copy of each. S8 resolves an
@@ -157,3 +163,13 @@ rewritten from scratch at closeout.
 - **Not done:** the acceptance tests' "fired before handing off" check counts every
   mount's rounds, not only those at the target; the volley tests pin target-only cycle
   ends directly.
+- **The simulation publishes the building's box on the garrison and exit steps**
+  (`footprint`, the step row's `hostX`, `hostY`, `hostHalfX`, `hostHalfY`): the building
+  as the map places it (`WorldGeometry::building_footprint`), in its own frame, by the
+  one envelope rule that also gives the held ring's live box (`structure_footprint`), so
+  the two match while it stands intact. *Agent*, after review: the lab's first
+  reconstruction from the map's parts drew a world-axis box, larger than the held ring
+  for a turned building. Not the live box: that would tell the side of a collapse its
+  units haven't seen (`garrison::an_unseen_collapse_cannot_change_a_garrison_order_until_discovered`
+  caught it); the map is known to both sides. A damaged building's queued ring can stand
+  wider than its held ring. An exit step's point is that box's centre.

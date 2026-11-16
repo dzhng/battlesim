@@ -42,7 +42,7 @@ mod smoke;
 mod step_row;
 mod tags;
 
-use cells::host_cells;
+use cells::{footprint_cells, host_cells};
 use crash_row::{crash_row, CRASH_FIELDS};
 pub use layout::layout_json;
 use layout::pose;
@@ -611,19 +611,18 @@ fn pack_record(
         frame.smoke_clouds.len() as f32,
     ]);
     for u in &frame.own {
-        let (host, host_center, host_half, host_seats) = match u.hold.map(|h| h.host) {
+        let (host, footprint, host_seats) = match u.hold.map(|h| h.host) {
             Some(HostRef::Building {
                 id,
                 center,
                 half,
                 seats,
-            }) => (Some(("building", id)), center, half, seats as f32),
-            Some(HostRef::Carrier { id }) => {
-                (Some(("carrier", id)), [f64::NAN; 2], [f64::NAN; 2], -1.0)
-            }
-            None => (None, [f64::NAN; 2], [f64::NAN; 2], -1.0),
+            }) => (Some(("building", id)), Some((center, half)), seats as f32),
+            Some(HostRef::Carrier { id }) => (Some(("carrier", id)), None, -1.0),
+            None => (None, None, -1.0),
         };
         let [host_kind, host_lo, host_hi] = host_cells(host);
+        let [host_x, host_y, half_x, half_y] = footprint_cells(footprint);
         let [gx, gy] = u.goal.map_or([f32::NAN; 2], |g| [g[0] as f32, g[1] as f32]);
         out.extend([
             u.id.0 as f32,
@@ -656,10 +655,10 @@ fn pack_record(
             host_hi,
             u.hold.map_or(-1.0, |h| tag(&HOLD_PHASES, &h.phase)),
             u.hold.map_or(-1.0, |h| h.progress as f32),
-            host_center[0] as f32,
-            host_center[1] as f32,
-            host_half[0] as f32,
-            host_half[1] as f32,
+            host_x,
+            host_y,
+            half_x,
+            half_y,
             host_seats,
             u.stock.map_or(-1.0, |n| n as f32),
             tag(&SERVICE_STATUSES, &u.service),

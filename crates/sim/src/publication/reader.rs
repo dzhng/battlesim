@@ -113,6 +113,7 @@ macro_rules! v {
     };
 }
 
+mod cells;
 mod crash;
 mod hold;
 mod mount;
@@ -121,20 +122,9 @@ mod report;
 mod skirmish;
 mod smoke;
 mod step;
+use cells::{limbs, present, LIMB};
 use poses::weapon_poses;
 use report::totals;
-
-const LIMB: f64 = (1u32 << LIMB_BITS) as f64;
-
-/// An exact integer from its limbs; none when absent.
-fn limbs(low: f64, high: f64) -> Option<f64> {
-    (low >= 0.0).then_some(low + high * LIMB)
-}
-
-/// A value, or none where the writer marks absence with a negative.
-fn present(v: f64) -> Option<f64> {
-    (v >= 0.0).then_some(v)
-}
 
 /// Fixed-width points of a flat section.
 fn each<const N: usize>(flat: &[f32]) -> std::slice::Iter<'_, [f32; N]> {

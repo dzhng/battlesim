@@ -6,7 +6,7 @@ use crate::ids::{Tick, UnitId};
 use serde::{Deserialize, Serialize};
 
 mod order_step;
-pub use order_step::{OrderStep, StepHost};
+pub use order_step::{Footprint, OrderStep, StepHost};
 mod sound;
 pub use sound::{Intensity, Shout, ShoutSpeaker, ShoutTrigger, SoundBand, SoundCategory, SoundCue};
 

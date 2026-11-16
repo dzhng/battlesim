@@ -189,6 +189,11 @@ export interface OrderStepView {
   attackMove?: boolean;
   target?: MountTargetView;
   host?: { kind: "building" | "carrier"; id: number };
+  /** The building a garrison step enters or an exit step leaves, as the
+   *  map places it: its box in its own frame, the one its held-building ring
+   *  (`HoldHostView`'s `center` and `half`) is drawn from while it stands
+   *  intact. */
+  building?: { center: Point2; half: Point2 };
 }
 
 /** A squad's suppression tier, as the simulation names it. */

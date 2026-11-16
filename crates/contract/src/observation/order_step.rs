@@ -21,8 +21,13 @@ pub enum OrderStep {
         target: Option<TargetRef>,
         point: Option<[f64; 2]>,
     },
-    /// Walk to `point` beside `building`, then enter it.
-    Garrison { point: [f64; 2], building: u32 },
+    /// Walk to `point` beside `building`, then enter it; `footprint` is the
+    /// building as the map places it.
+    Garrison {
+        point: [f64; 2],
+        building: u32,
+        footprint: Option<Footprint>,
+    },
     /// Board `carrier`, which stands at `point`.
     Board { point: [f64; 2], carrier: UnitId },
     /// Drive to the squads it collects, the first of them at `point`;
@@ -34,8 +39,12 @@ pub enum OrderStep {
         point: [f64; 2],
         into: Option<StepHost>,
     },
-    /// Leave the building at `point`.
-    Exit { point: [f64; 2] },
+    /// Leave the building at `point`, its footprint's centre, else where
+    /// the step before ends when it names no map building.
+    Exit {
+        point: [f64; 2],
+        footprint: Option<Footprint>,
+    },
     /// Drive off the map at `point`, the way home from where the step
     /// before ends.
     ReturnToBase { point: [f64; 2] },
@@ -47,4 +56,14 @@ pub enum OrderStep {
 pub enum StepHost {
     Building { id: u32 },
     Carrier { id: UnitId },
+}
+
+/// A building's box as the map places it, whatever has happened to it
+/// since: its centre and its half extents along its own axes, the box its
+/// held-building ring is drawn from while it stands intact. Both sides know
+/// the map, so it tells neither anything its units haven't seen.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Footprint {
+    pub center: [f64; 2],
+    pub half: [f64; 2],
 }

@@ -4,9 +4,10 @@
 // of a destination circle. A winged aircraft draws none of it (part 2).
 import { expect, test } from "vitest";
 import { VERTEX_FLOATS, type Mesh } from "@packages/battle-renderer/src/mesh";
-import { buildOrderOverlay, type OrderView } from "@packages/battle-renderer/src/orderOverlay";
+import type { OrderView } from "@packages/battle-renderer/src/orderOverlay";
 import type { OrderStep } from "@packages/battle-renderer/src/orderSteps";
-import { gameOrderStyle, gameStroke } from "@apps/battle-lab/src/gameOverlay";
+import { gameOrderStyle } from "@apps/battle-lab/src/gameOverlay";
+import { along, orderView, painted } from "./support/orderMesh";
 
 type P2 = readonly [number, number];
 const TARGET: P2 = [80, 0];
@@ -14,55 +15,12 @@ const HULL = 3;
 const CIRCLE_R = HULL + gameOrderStyle.vehicle_marker_margin_m;
 const attack: OrderStep = { kind: "attack", point: TARGET };
 
-function view(over: Partial<OrderView>): OrderView {
-  return {
-    position: [0, 0, 0],
-    goal: null,
-    state: "idle",
-    route: [],
-    steps: [attack],
-    members: [],
-    memberOrders: [],
-    finalFacing: 0,
-    yaw: 0,
-    direction: null,
-    area: null,
-    hullHalfLength: HULL,
-    building: null,
-    reveal: 1,
-    ...over,
-  };
-}
+const view = (over: Partial<OrderView>) =>
+  orderView({ hullHalfLength: HULL, steps: [attack], ...over });
 
-const painted = (v: OrderView): Mesh =>
-  buildOrderOverlay([v], () => 0, gameOrderStyle, { stroke: gameStroke(0.05) }).painted ??
-  new Float32Array();
-
-/** Each painted triangle as its three ground points. */
-function triangles(mesh: Mesh): P2[][] {
-  const out: P2[][] = [];
-  const TRI = 3 * VERTEX_FLOATS;
-  for (let i = 0; i + TRI <= mesh.length; i += TRI)
-    out.push([0, 1, 2].map((k) => [mesh[i + k * VERTEX_FLOATS], mesh[i + k * VERTEX_FLOATS + 1]]));
-  return out;
-}
-
-/** The stretches of the x axis (y = 0) that triangles lying on it cover. */
-function onAxis(mesh: Mesh): [number, number][] {
-  const spans = triangles(mesh)
-    .filter((t) => t.every(([, y]) => Math.abs(y) < 1))
-    .map(
-      (t) => [Math.min(...t.map(([x]) => x)), Math.max(...t.map(([x]) => x))] as [number, number],
-    )
-    .sort((a, b) => a[0] - b[0]);
-  const merged: [number, number][] = [];
-  for (const s of spans) {
-    const last = merged.at(-1);
-    if (last && s[0] <= last[1] + 1e-6) last[1] = Math.max(last[1], s[1]);
-    else merged.push([...s]);
-  }
-  return merged;
-}
+/** The stretches of the x axis (y = 0), ahead of the unit, that painted
+ *  triangles lying on it cover. */
+const onAxis = (mesh: Mesh) => along(mesh, [0, 0], [1000, 0]);
 
 /** Painted vertices whose distance from `c` lies in [r0, r1]. */
 function around(mesh: Mesh, c: P2, r0: number, r1: number): number {

@@ -66,10 +66,15 @@ view!(OwnUnit { id: f64, #[serde(skip_serializing_if = "Option::is_none")] owner
 view!(OrderStep { kind: Name, point: Option<Point2>,
     #[serde(skip_serializing_if = "std::ops::Not::not")] attack_move: bool,
     #[serde(skip_serializing_if = "Option::is_none")] target: Option<MountTarget>,
-    #[serde(skip_serializing_if = "Option::is_none")] host: Option<StepHost> });
+    #[serde(skip_serializing_if = "Option::is_none")] host: Option<StepHost>,
+    #[serde(skip_serializing_if = "Option::is_none")] building: Option<Footprint> });
 view!(StepHost {
     kind: Name,
     id: f64
+});
+view!(Footprint {
+    center: Point2,
+    half: Point2
 });
 view!(Protection { charges: f64, cooldown: Option<f64> });
 view!(MemberOrder { spot: Point2, cover_now: Option<Name>, cover_there: Option<Name> });

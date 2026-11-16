@@ -1,6 +1,8 @@
 // A unit's orders as the overlay takes them: the published step records,
 // the current order first (`OrderView.steps`). One owner says where the
-// orders end (the Space ghost and its drop line) and draws the queued legs.
+// orders end (the Space ghost and its drop line) and draws, from the steps,
+// the current attack's line and reticle and the queued chain, one drawer
+// per step kind for current and queued alike.
 import type { MeshBuilder, Rgba } from "./mesh";
 import type { OrderView } from "./orderOverlay";
 import { ring, routeBetween, unloadMark, type Pen } from "./orderPen";
@@ -28,7 +30,7 @@ export interface OrderStep {
   /** An attack's target, by kind: a ground point's reticle carries a cross. */
   target?: { kind: string };
   /** The building a garrison step enters or an exit step leaves, as the
-   *  side knows it: its footprint's centre and half extents. */
+   *  map places it: its footprint's centre and half extents. */
   building?: { center: P2; half: P2 };
 }
 
@@ -47,7 +49,7 @@ export function ordersEnd(steps: readonly OrderStep[], goal: P2 | null): P2 | nu
 export const currentUnloads = (steps: readonly OrderStep[]) => steps[1]?.kind === "unload";
 
 /** A queued waypoint's ring, and a blocked route's warning ring. */
-const QUEUED_R = 2.8;
+export const QUEUED_R = 2.8;
 const BLOCKED_R = 4.5;
 
 /** A blocked route's warning ring round its goal. */

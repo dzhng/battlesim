@@ -656,6 +656,10 @@ test("every frozen animation field and ground value decodes, integers exact past
     };
     const decoded = decodeVector(phase);
     expect(decoded.own[0].hold).toEqual(garrison);
+    // A garrison or exit step rings its building with the hold's own box.
+    const ringed = decoded.own[0].steps.filter((s) => s.building).map((s) => s.building);
+    const box = { center: garrison.host.center, half: garrison.host.half };
+    expect(ringed).toEqual(phase === "inside" ? [] : [box]);
     expect(decoded.knownProps[0]).toEqual({
       kind: "ruin",
       center: [360, 250],

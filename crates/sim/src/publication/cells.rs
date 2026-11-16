@@ -1,6 +1,7 @@
 //! Cells more than one row packs the same way: a target (`targetKind`
-//! indexes targetKinds; an id for a unit or contact, a point for ground) and
-//! a host (`hostKind` indexes hostKinds; its id in two limbs).
+//! indexes targetKinds; an id for a unit or contact, a point for ground), a
+//! host (`hostKind` indexes hostKinds; its id in two limbs) and a
+//! building's footprint (`hostX`, `hostY`, `hostHalfX`, `hostHalfY`).
 use contract::command::TargetRef;
 
 use super::limbs_or_absent;
@@ -23,4 +24,12 @@ pub(super) fn host_cells(host: Option<(&str, u32)>) -> [f32; 3] {
     let kind = host.map_or(-1.0, |(kind, _)| tag(&HOST_KINDS, &kind));
     let [lo, hi] = limbs_or_absent(host.map(|(_, id)| id));
     [kind, lo, hi]
+}
+
+/// A building's footprint, its centre and half extents in its own frame, as
+/// `hostX`, `hostY`, `hostHalfX`, `hostHalfY`: all NaN for none.
+pub(super) fn footprint_cells(footprint: Option<([f64; 2], [f64; 2])>) -> [f32; 4] {
+    footprint.map_or([f32::NAN; 4], |([x, y], [hx, hy])| {
+        [x as f32, y as f32, hx as f32, hy as f32]
+    })
 }

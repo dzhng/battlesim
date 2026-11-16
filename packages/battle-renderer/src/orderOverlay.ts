@@ -2,7 +2,8 @@
 // reveal shows (`OrderView.reveal`: every own unit with Space held, the units
 // of an order just given as it flashes and fades) at that opacity: remaining
 // routes draped on the walkable surface, the final marker with its facing
-// (Total War style), queued waypoints, a blocked route's mark, each
+// (Total War style), a current attack's line and reticle, the queued chain
+// of every step kind (`orderSteps.ts`), a blocked route's mark, each
 // soldier's resolved spot, a marker under each soldier's and vehicle's
 // current position and a cover pip on each soldier's marker (the cover he
 // has now at his current marker, the cover his spot gives at the final one).
@@ -25,7 +26,8 @@
 // plain ring holding his cover pip. A moving vehicle's travel shows as two
 // chevrons behind it, against its facing on a reverse move, with a pulse
 // marching along them. Colour carries meaning only where a player needs it:
-// the cover tiers, a blocked route, and the selection.
+// the cover tiers, a blocked route, an attack (its line and reticle in the
+// style's attack red), and the selection.
 import {
   concatMeshes,
   fadeAlpha,
