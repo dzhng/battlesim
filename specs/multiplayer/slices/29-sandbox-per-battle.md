@@ -237,3 +237,13 @@ keeps its tick rate. How it feels with someone far away is still slice
   the deployment. Both were started and watched running; neither was
   played out.
 
+## Promoted (2026-11-16)
+
+Production serves commit `2c2328133` with the lobby's address in it. The
+promotion found the lobby out of step (the site's own build of the
+simulation differs from a local one), deployed it from the promoted
+commit, and the lobby then stated the site's three hashes. Two browser
+pages on the production site played a room battle: both in the battle 53
+seconds after Start, most of it each fresh browser downloading the game,
+and 30 ticks a second after.
+

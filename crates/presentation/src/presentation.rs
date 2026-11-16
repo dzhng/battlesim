@@ -202,9 +202,9 @@ pub struct Presentation {
     props: Option<PropPopulation>,
     /// The fallen bodies the scenery last read.
     felled_from: Option<Shared<FallenBody>>,
-    /// The units' and the buildings' tier thresholds over their authored
-    /// values (`set_detail_scale`).
-    detail_scale: [f64; 2],
+    /// The units' and the buildings' tier thresholds and the props' shadow
+    /// cutoff over their authored values (`set_detail_scale`).
+    detail_scale: [f64; 3],
     world: World,
     catalog_state: catalog::CatalogState,
     lab: lab::Lab,
@@ -291,7 +291,7 @@ impl Presentation {
             cleared_from: (0, 0),
             props: None,
             felled_from: None,
-            detail_scale: [1.0, 1.0],
+            detail_scale: [1.0; 3],
             world: World::default(),
             catalog_state: catalog::CatalogState::new(),
             lab: lab::Lab::default(),
@@ -598,11 +598,16 @@ impl Presentation {
     }
 
     /// Draws the units' tiers at `units` and the buildings' at `buildings`
-    /// times their authored thresholds (a graphics quality; 1 as authored).
-    pub fn set_detail_scale(&mut self, units: f64, buildings: f64) {
-        self.detail_scale = [units, buildings];
+    /// times their authored thresholds, and casts prop shadows above
+    /// `prop_shadows` times their authored cutoff (a graphics quality; 1 as
+    /// authored).
+    pub fn set_detail_scale(&mut self, units: f64, buildings: f64, prop_shadows: f64) {
+        self.detail_scale = [units, buildings, prop_shadows];
         if let Some(b) = &mut self.buildings {
             b.walk.set_lod_scale(buildings);
+        }
+        if let Some(p) = &mut self.props {
+            p.set_shadow_caster_scale(prop_shadows);
         }
         self.statics.invalidate();
     }
@@ -656,7 +661,9 @@ impl Presentation {
     ) -> Result<(), String> {
         let layout = PropLayout::parse(layout)?;
         let props = crate::static_world::props::map_props(records, &layout);
-        self.props = Some(PropPopulation::new(PropArt::new(layout, input)?, props));
+        let mut props = PropPopulation::new(PropArt::new(layout, input)?, props);
+        props.set_shadow_caster_scale(self.detail_scale[2]);
+        self.props = Some(props);
         self.catalog_state.renew();
         self.known_from = KnownFrom::Unread;
         Ok(())

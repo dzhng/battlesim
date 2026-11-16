@@ -1,6 +1,6 @@
 # Multiplayer: rooms and Frontline
 
-**Status:** building. Rooms and Frontline run on the temporary host, each battle on its own sandbox (slices 28 and 29). The site does not point at it yet; the milestone and the closeout remain. **Updated:** 2026-11-15.
+**Status:** live. Online play was promoted to production on 2026-11-16 (commit `2c2328133`): the site points at the lobby, and each battle runs on its own sandbox. What is left is the milestone with a second person, the native simulation, and the closeout's sweep. **Updated:** 2026-11-16.
 
 Two online modes on one game server. **Rooms:** a host creates a public or
 private room, which is the skirmish lobby with several humans on either side,
@@ -27,34 +27,23 @@ as of 2026-11-16 (merge `450c9740d`). **Rooms work end to end on a local server:
 create a room, start its battle, survive a drop and finish
 ([how to run it](slices/18-room-battle.md)).
 
-**Pick up here, in this order.** The user said on 2026-11-16 to do all
-three of: fix Play's wait on an empty server, point the site at the lobby
-and promote it, and build the native simulation for the battle server.
+**Pick up here, in this order.**
 
-1. **Slice 30 is in and deployed:** one machine tries every draw, side by
-   side. Play on an empty server now takes 16 to 52 seconds (it was 57 to
-   77). Still owed: the `frontline` and `online-battle` scenes on the
-   integrated tree, when the shared GPU lock is free.
-2. **Slice 31 is in:** a build is what both ends share, and promotion
-   keeps the lobby in step. The site's `server.json` now holds the lobby's
-   address. The lobby must be redeployed once more for this change (its
-   identity changed shape), then only when the simulation, the shared
-   battle documents or the wire change.
-3. **Slice 33 is in:** six-character room codes with no guess throttle,
-   one game of its own making a device, and three plain bugs fixed, by the
-   user's ruling of 2026-11-16 that an alpha gets one simple limit.
-4. **Ship it.** Staging is merged (`450c9740d`, 2026-11-16) and the
-   lobby is deployed from that commit. The full check was started that
-   day; its log is `throwaway/multiplayer/full-check.log`, and the scene
-   suite (`bun run verify`) follows it. Then: review, push to staging, and
-   **show the user the commits that would ship before promoting** (other
-   sessions' commits ride along). Promotion checks the lobby by itself.
-   Then slice 19, the milestone.
-5. **Slice 32,** the native simulation in the battle server, to be written
-   from slice 01's measurements (a native build at the `x86-64-v4` level)
-   once the site is live.
-6. **Slice 27's remaining steps:** the sweep, the docs check, the probes'
-   removal, the plan archived.
+1. **Slice 19,** the milestone: two people on two networks finish a room
+   battle on the production site. It needs the user and a second person.
+   Checked without them on 2026-11-16: two browser pages on the production
+   site made a room, joined it by its code, started, and both played at 30
+   ticks a second.
+2. **Slice 32,** the native simulation in the battle server, to be written
+   from slice 01's measurements (a native build at the `x86-64-v4` level).
+   The user asked for it on 2026-11-16.
+3. **Slice 27's remaining steps:** the sweep (its list is in the slice),
+   the probes' removal, the plan archived.
+
+**Promotion keeps the lobby in step.** `bun run promote:main --yes` asks
+the live lobby whether it admits the promoted site and deploys it from the
+promoted commit when it does not; on 2026-11-16 it did exactly that. A
+lobby deploy ends the battles then running.
 
 **The lobby is live** as the public app `battle-lobby` in the `armata`
 workspace, each battle on its own sandbox. What slice 29 still owes is
@@ -190,7 +179,7 @@ Hosting
 - [x] [30 One machine tries every draw](slices/30-one-machine-every-draw.md) (its two scenes are still owed)
 - [x] [31 A build is what both ends share](slices/31-a-build-is-what-both-ends-share.md)
 - [x] [33 Six-character rooms, one game a device](slices/33-the-servers-face-strangers.md)
-- [ ] [27 Closeout](slices/27-closeout.md)
+- [ ] [27 Closeout](slices/27-closeout.md) (the full run is done; the sweep and the archive are left)
 
 ## Contracts this changes
 

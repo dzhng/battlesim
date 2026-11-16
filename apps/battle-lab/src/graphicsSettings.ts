@@ -18,6 +18,9 @@ export interface GraphicsQualityProfile {
   unitLodScale: number;
   buildingLodScale: number;
   treeLodScale: number;
+  /** The props' authored sun-shadow cutoff (a projected footprint in
+   *  pixels) times this: higher, small props stop casting nearer the eye. */
+  propShadowScale: number;
   grassDensity: number;
   /** Internal render resolution multiplier for bounded fill cost. */
   renderScale: number;
@@ -49,6 +52,7 @@ export const graphicsProfiles: Readonly<Record<GraphicsTier, GraphicsQualityProf
     unitLodScale: 1.6,
     buildingLodScale: 1.6,
     treeLodScale: 1.6,
+    propShadowScale: 1.8,
     grassDensity: 0.55,
     renderScale: 0.75,
     forestDressing: false,
@@ -65,6 +69,7 @@ export const graphicsProfiles: Readonly<Record<GraphicsTier, GraphicsQualityProf
     unitLodScale: 1.25,
     buildingLodScale: 1.25,
     treeLodScale: 1.25,
+    propShadowScale: 1.4,
     grassDensity: 0.75,
     renderScale: 1,
     forestDressing: true,
@@ -81,6 +86,7 @@ export const graphicsProfiles: Readonly<Record<GraphicsTier, GraphicsQualityProf
     unitLodScale: 1,
     buildingLodScale: 1,
     treeLodScale: 1,
+    propShadowScale: 1,
     grassDensity: 1,
     renderScale: 1,
     forestDressing: true,
@@ -100,6 +106,7 @@ export const sceneMinimumProfile: GraphicsQualityProfile = {
   unitLodScale: 2.2,
   buildingLodScale: 2.2,
   treeLodScale: 2.2,
+  propShadowScale: 2.2,
   grassDensity: 0.2,
   renderScale: 0.75,
   forestDressing: false,
@@ -112,6 +119,16 @@ export const sceneMinimumProfile: GraphicsQualityProfile = {
   authoredSunSky: true,
   effectMood: "full",
 };
+
+/** The units', the buildings' and the prop shadows' thresholds over their
+ *  authored values (`setDetailScale`); as authored without a profile. */
+export function detailScales(quality?: GraphicsQualityProfile): [number, number, number] {
+  return [
+    quality?.unitLodScale ?? 1,
+    quality?.buildingLodScale ?? 1,
+    quality?.propShadowScale ?? 1,
+  ];
+}
 
 function isTier(value: unknown): value is GraphicsTier {
   return value === "low" || value === "medium" || value === "high";

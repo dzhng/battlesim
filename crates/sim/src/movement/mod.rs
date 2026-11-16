@@ -70,8 +70,9 @@ const MAX_TRIES: u8 = 3;
 /// its way while the new one is worked out.
 const KEEP_ROUTE_M: f64 = 25.0;
 /// A unit stuck this near its goal, past its own hull, is as near as the
-/// ground lets it: it stops there and the move is done.
-const NEAR_GOAL_M: f64 = 12.0;
+/// ground lets it: it stops there and the move is done. A carrier this near
+/// a squad it collects calls it over (`carriage`).
+pub(crate) const NEAR_GOAL_M: f64 = 12.0;
 /// Progress shorter than this does not reset the stall watch.
 const PROGRESS_EPSILON_M: f64 = 0.5;
 /// A vehicle planning its way out of a traffic knot plans round every
