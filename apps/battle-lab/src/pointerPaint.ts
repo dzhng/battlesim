@@ -22,6 +22,7 @@ import {
   type UnitCircle,
 } from "@packages/battle-renderer/src/unitCircle";
 import { buildRangeRuler, type RulerLine } from "@packages/battle-renderer/src/rangeRulerOverlay";
+import type { BuildingIndex } from "@packages/battle-renderer/src/models/buildingReferences";
 import { airborne, fixedWing, type UnitCatalog } from "@packages/scene-assets/src/units";
 import { StrikeFootprints } from "@wasm/game_wasm";
 import type { PurchaseGhost } from "@web/battle/input/purchasePlacement";
@@ -44,7 +45,6 @@ import type {
 } from "@web/battle/sim/protocol";
 import type { Vec3 } from "math";
 import { garrisonTargetOutline, orderView } from "./battleOverlay";
-import type { BuildingIndex } from "@packages/battle-renderer/src/models/buildingReferences";
 import type { OrderPreviewSnapshot } from "./orderPreview";
 import { Feed } from "@web/feed";
 import { groundUnderRay, type StaticWorld } from "./useStaticWorld";

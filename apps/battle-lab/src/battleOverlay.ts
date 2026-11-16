@@ -13,8 +13,9 @@ import type { ScenarioRules } from "./battleSessionOptions";
 // combat effects (`effects/`) draw the flight, the flashes, the impacts and a
 // missile's flare and smoke trail, and one ring round a house says where its
 // garrison holds. The same outline marks the building a garrison order under
-// the pointer would enter (`garrisonTargetOutline`, the pointer's paint). Labs compose the layers their fixture exercises, the rest among
-// them as diagnostics.
+// the pointer would enter (`garrisonTargetOutline`, the pointer's paint).
+// Labs compose the layers their fixture exercises, the rest among them as
+// diagnostics.
 import type { StrokeWidth } from "@packages/battle-renderer/src/strokeWidth";
 import { gameHud } from "@web/battle/present/hudTheme";
 import type { SideName } from "@web/battle/sim/protocol";
