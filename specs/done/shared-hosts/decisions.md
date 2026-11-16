@@ -29,72 +29,74 @@ for one living soldier. A building's seats are its *windows*, the exposed
 facade bays its soldiers fight from, listed in the building's *window plan*.
 `CapacityFull` is the refusal the player reads as "TOO MANY TO FIT".
 
-**Review these first:** N1 (the Paris-corner menu reel lost its deaths) and
-N2 (aiming at seen soldiers is limited to garrisons).
+**Review these first:** N1 (the Paris-corner menu reel, re-directed after N2)
+and N2 (aiming at seen soldiers, now the general rule).
 
-## Needs user
+## Settled by the user after closeout
 
-### N1. The Paris-corner menu reel was re-recorded with no one falling
+### N1. The Paris-corner menu reel was re-directed so deaths land on camera
 
-- **Who, when:** implementer, at closeout, under the user's standing
-  permission to bless a recording after inspecting it.
+- **Who, when:** implementer, at closeout and again after N2, under the
+  user's standing rule that the reel follows the game and is re-directed,
+  never protected.
 - **Scenario:** The main menu plays a scripted battle at the Paris corner.
-  Blue's recon team comes under fire from a red rifle squad fighting from a
-  house. Before this plan no gun could fire at that squad (see S3), so blue's
-  recon shot at red's other squad, standing in the open, and killed one of
-  its soldiers; two more of that squad died to rounds from red's own
-  garrison passing through them. The reel's last shot framed the three
-  bodies. Now blue's recon answers the squad shooting at it, as a soldier
-  would: most of its rounds strike the house's walls, a few hit the
-  garrison, and the squad in the open loses nobody. Every unit walks the
-  same routes and the tank's scripted moves land the same; only whom blue
-  shoots changed. The reel was re-recorded as it now plays, so the menu
-  shows a firefight with no casualties, and its last shot frames eight
-  standing soldiers where the bodies lay.
-- **Gap:** The plan expected the menu reel not to move; the later
-  engagement fix (S3) moved it.
-- **Reach:** The reel is the first footage a player sees, and the
-  re-recorded event log is now what its tests compare against.
-- **Verdict:** needs-user. The mechanics read right; whether a reel with no
-  casualties is good footage is taste. **Provisional call:** keep the
-  re-recorded reel. **To reverse:** re-direct the reel's encounter
-  (`fixtures/maps/paris-corner/encounters/corner.json`, for example the open
-  squad's `soldier_hp` or the recon team's start) so deaths land on screen,
-  look at it, and re-record (`BLESS_MENU_REEL=1`). Never narrow the
-  engagement rule to get the old footage back.
-- **Confidence:** low.
+  Before this plan no gun could fire at red's garrisoned squad (see S3), so
+  blue's recon shot at red's other squad, standing in the open, and three of
+  its soldiers died. Once garrisons became targets, blue answered the
+  garrison instead and nobody died. N2 then let blue's rifle squad fire on
+  the open squad round its low prop, and two of its soldiers fell, but in
+  the closing wide shot, whose camera looks over a roof and shows no units.
+  The reel was re-directed through its own stat pin: the tank's HE round
+  (`tank_he` damage in the encounter's `overrides`,
+  `fixtures/maps/paris-corner/encounters/corner.json`) is now lethal, so the
+  shell the tank fires at the open squad's corner in shot 5, which follows
+  the tank, kills three soldiers crouched by the parked cars, and a fourth
+  falls to rifle fire in the same shot. Every unit, script and camera is
+  unchanged. The log was re-recorded (`BLESS_MENU_REEL=1`) and the reel
+  filmed and inspected.
+- **Gap:** The plan expected the menu reel not to move; S3 and N2 moved it.
+- **Reach:** The reel is the first footage a player sees. Still open for the
+  user: the closing wide shot frames a roof (it has since it was cut), and
+  from the high tank-follow camera the falling soldiers are small; both are
+  camera calls, which the reel's rules leave to the user.
+- **Verdict:** sound: the deaths are back, on camera, with the correct
+  engagement rule.
+- **Confidence:** medium.
 
-### N2. Guns aim at seen soldiers only when the target is a garrison
+### N2. Guns aim at seen soldiers for any squad whose middle is blocked
 
-- **Who, when:** implementer, after slice 07 (the "garrisons are engageable"
-  fix).
+- **Who, when:** user, after closeout (2026-11-16): "make the general rule".
+  The implementer first shipped it scoped to garrisons, after slice 07 (the
+  "garrisons are engageable" fix).
 - **Scenario:** A gun aims at a squad's middle: the average position of the
-  soldiers its side saw. S3 handles a garrison whose middle lies inside its
-  own walls by trying each seen soldier in turn. The same failure happens
-  away from buildings: seven soldiers crouched round a parked car have their
-  middle behind the car, every solution at the middle meets the car, and the
-  gunner holds fire although six of them stand in plain view. The general
-  rule ("whenever the middle can't be fired at or seen, try the seen
-  soldiers") fixes that too. It was tried and moved more than garrisons:
-  squads in the open in the air, lean and collapse test cases, the
-  market-town menu reel, a street defender squad bunched round its house
-  before stepping in, and a Paris-corner squad round a low prop. The shipped
-  rule is gated on the target being a squad fighting from a building
-  (`garrisoned` in `crates/sim/src/weapons/assessment.rs`).
+  soldiers its side saw. S3 handled a garrison whose middle lies inside its
+  own walls by trying each seen soldier in turn. The same failure happened
+  away from buildings: eight soldiers bunched round a parked car have their
+  middle on the car, every solution at the middle meets it, and a gun that
+  can't break the car held fire though they stood in plain view. Now, for
+  any squad, when the middle can't be reached (`BlockedTrajectory`) or seen
+  by a guided round (`NoOwnSight`), the assessment tries each soldier the
+  side saw, in the order its rounds walk them, and fires from the first it
+  can hit (`assess` in `crates/sim/src/weapons/assessment.rs`). Fog and
+  colliders are unchanged. A gun whose rounds can wear the blocker down
+  already fired before this (fire-through), and its rounds already walked
+  the seen soldiers at launch; what changed is that a gun that can't break
+  the blocker (a grenade launcher at a car, any gun at a stone wall) no
+  longer holds.
 - **Gap:** The plan never expected engagement to change; the garrison lab
-  exposed it.
-- **Reach:** Every weapon's target assessment. While the gate stays, a squad
-  bunched behind any body that isn't its building can't be shot at its
-  middle and isn't shot at its visible soldiers either.
-- **Verdict:** needs-user: product direction and the cost of re-recording.
-  **Provisional call:** keep the garrison scope. **To reverse:** drop the
-  `garrisoned` gate so the fallback serves any squad, then re-record and
-  inspect what moves. The audit leans toward the general rule: the gate is a
-  case the physical rule doesn't need, the behaviour it leaves looks wrong
-  on screen, and part of the reason for the scope was that the general
-  version moved recordings, which the user's standing rule says never to
-  protect.
-- **Confidence:** low.
+  exposed it, and the garrison-only scope was a case the physical rule
+  doesn't need.
+- **Reach:** Every weapon's target assessment. The new car test
+  (`crates/sim/tests/squad_aim.rs`) pins the open-ground case, and the
+  shared-garrison test still pins the house. Across the sim crate only the
+  two menu reels moved, both re-recorded. Paris corner: blue's rifle squad
+  now engages red's squad in the open round a low prop (26 hits, against 3)
+  and two of its soldiers fall; the reel was then re-directed (N1). Market
+  town: the battle retimes, with deaths in the same shots. The browser
+  capture records are decode fixtures of a past run and don't replay the
+  sim, so they did not move.
+- **Verdict:** sound, the user's call.
+- **Confidence:** high.
 
 ## Unsound
 
@@ -183,7 +185,7 @@ Ranked least confident first. Every one is architecture the user now owns.
 - **Gap:** Shared houses made a garrison's middle inside its walls routine
   and exposed the failure; nothing planned for it.
 - **Reach:** Garrisons are now targets in every scene; this is what moved
-  the Paris-corner reel (N1). Its scope is N2.
+  the Paris-corner reel (N1). N2 widened it to every squad.
 - **Verdict:** sound: a soldier in a window is visible and shootable, and
   this is what a viewer expects.
 - **Confidence:** medium.
