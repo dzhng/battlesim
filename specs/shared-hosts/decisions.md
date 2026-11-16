@@ -122,3 +122,61 @@ things the plan left open.
   tick 1. Both scenes need reshaping in slice 07 (slice 00, Confirm first).
 - **The commit key ignores changes under `crates/*/tests/`**: tests never move
   an outcome, so a run with only test edits keys as the clean commit.
+
+## Slice 01
+
+- **Grid reachability answers for a building behind a row.**
+  `NavGrid::reaches` (terrain connection plus the side's known pockets) on a
+  copy of the side's grid keeps the row-of-buildings test green; the planner
+  was not resliced. It calls open ground reachable even from a boxed-in start
+  ("the route search has the last word"), so a walled-in squad still gets an
+  entry and finds out on the way, as a `Board` would.
+- **Entries come out in unit order, each listed squad once,** so a preview
+  doesn't depend on selection order.
+- **A queued order sets off from the queue's last movement end** (a move's
+  destination or an entry's approach), with the side's orders accepted this
+  tick applied first (`Battle::move_source`), as move placement does. A
+  replacing order sets off from where the squad stands; that is the old
+  `Garrison` lowering exactly, so the defender's entries are unchanged.
+- **The clicked building resolves as the old occupy did:** the clicked part
+  as the side knows it, else another remembered part of the same building,
+  owned by its remembered structure owner.
+- **A vehicle, or a squad bigger than the whole building, refuses the whole
+  order** at the command (`NotInfantry`, `CapacityFull`), as `validate` did
+  for one squad. The client only sends squads (`commandReach`), so a mixed
+  selection never meets it; slice 03 turns the size check into per-squad
+  refusals.
+- **A squad with no entry is left as it was** (the old arm's `continue`); an
+  order where no squad gets an entry is acknowledged `NoValidDestination` and
+  applies as a no-op, like a move nobody can make.
+- **`gesture` stays on the wire but the simulation reads nothing from it:**
+  `UnitOrder::Garrison` carries none, so `UpgradeMove` never touches a
+  building order.
+- **The planning-snapshot machinery went with `certify.rs`:**
+  `WorldGeometry::planning_snapshot`, the `PropStore` overlay,
+  `SideGeometry::beliefs`/`planning_world`, the forest's clearance reset, the
+  route planner's per-request charges and `Battle::movement_context` had no
+  other reader. The probe stayed identical through their removal.
+- **`navigation.move_validation_work` and `move_rehearsal_m` now have no
+  reader.** Removing them changes the rules identity and re-records every
+  fixture that embeds the rules, which this slice's digest gates forbid; they
+  go in slice 07.
+- **A selection with no squad over a building moves to the ground point**
+  (a helicopter included). The sim test of a helicopter hovering by the
+  entrance went with companion gathering.
+- **The preview draws each entering squad's destination ring at its
+  approach, pointing the way it walks;** the accepted order then draws one
+  line per squad. Seen in the lab shot (three squads on one side of the
+  house): they share one approach, so the rings coincide (two radii for three
+  squads), sit half under the house, and the three order lines chain through
+  each other. That is `garrison::approach`'s nearest point, kept by the
+  binding lowering decision; an unprimed critique judged the shot clearer
+  than the old companion rings in the field. Not fixed here; revisit with
+  slice 06's marks if it reads badly in play.
+- **The publication vectors changed only in the refusal-name table.**
+  `codec-vectors.json` was re-blessed and its diff is `layout.orderErrors`
+  alone. `fog-sight-vectors.json` was edited by hand to drop the two names
+  from `streetLayout`: its test already fails at slice 00's commit
+  (paris-corner frame 0, the eyes upload), and its bless would also
+  re-record every run and the street stream and layout's drifted `groups`
+  and `propKinds`. That failure is open and unrelated to this plan.
