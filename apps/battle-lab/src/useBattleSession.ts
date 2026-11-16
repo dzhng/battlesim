@@ -52,9 +52,9 @@ import {
   cursorForRelease,
   intentForOrder,
   samePointerIntent,
-  previewContextIdentity,
 } from "./pointerPaint";
 import { OrderPreview } from "./orderPreview";
+import { usePreviewRevision } from "./previewRevision";
 import { ReleasedAction } from "./releasedAction";
 import type { KnownPropView, ObservationView } from "@web/battle/sim/observationView";
 import type { Order, SideName } from "@web/battle/sim/protocol";
@@ -518,41 +518,14 @@ export function useBattleSession({
     },
     [semanticPick, control, world, sim.client, purchasePlacement, clickPurchase, releasedAction],
   );
-  const eligibilityIdentity = JSON.stringify(
-    (observation?.own ?? []).map((u) => [
-      u.id,
-      u.kind,
-      u.members.length,
-      u.hold?.host.kind,
-      u.hold?.host.id,
-      u.hold?.phase,
-      u.queue,
-    ]),
+  const semanticRevision = usePreviewRevision(
+    side,
+    observation,
+    control.acks,
+    knownKey,
+    clearedCount,
+    clearingEpoch,
   );
-  const pendingClaims = JSON.stringify(
-    control.acks
-      .filter(({ ack }) => !ack.error && ack.applied_tick > (observation?.tick ?? 0))
-      .map(({ seq, order }) => [seq, order]),
-  );
-  const semanticIdentity = useMemo(
-    () =>
-      previewContextIdentity(
-        side,
-        knownKey,
-        eligibilityIdentity,
-        pendingClaims,
-        clearedCount,
-        clearingEpoch,
-      ),
-    [side, knownKey, eligibilityIdentity, pendingClaims, clearedCount, clearingEpoch],
-  );
-  const semanticRevision = useRef({ identity: "", version: 0 });
-  if (semanticRevision.current.identity !== semanticIdentity) {
-    semanticRevision.current = {
-      identity: semanticIdentity,
-      version: semanticRevision.current.version + 1,
-    };
-  }
   // eslint-disable-next-line complexity -- debt: held-drag intent, pending-order marks and ruler read the same closure refs; splitting needs a pure intent resolver that returns marks instead of writing refs.
   const onCursor: ViewportCursor = (pointer, camera, _project, renderScale) => {
     // The battle as the last frame drew it: the picks and drawn positions
