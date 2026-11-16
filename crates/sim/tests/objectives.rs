@@ -12,10 +12,7 @@ fn an_uncontested_ground_unit_captures_after_twenty_seconds_and_scores_without_c
     battle.accept(command(
         Side::Blue,
         1,
-        Order::ConfirmPurchase {
-            variant: "test_tank".into(),
-            destination: [400.0, 10.0],
-        },
+        Order::purchase("test_tank", [400.0, 10.0]),
     ));
     battle.accept(command(Side::Blue, 2, Order::Ready));
     battle.accept(command(Side::Red, 1, Order::Ready));
@@ -58,10 +55,7 @@ fn a_resupply_truck_cannot_capture_or_contest_a_flag() {
         .accept(command(
             Side::Blue,
             1,
-            Order::ConfirmPurchase {
-                variant: "test_supply".into(),
-                destination: [400.0, 10.0]
-            }
+            Order::purchase("test_supply", [400.0, 10.0])
         ))
         .error
         .is_none());
@@ -90,10 +84,7 @@ fn capturing_all_flags_finishes_and_freezes_the_authority() {
     battle.accept(command(
         Side::Blue,
         1,
-        Order::ConfirmPurchase {
-            variant: "test_tank".into(),
-            destination: [400.0, 10.0],
-        },
+        Order::purchase("test_tank", [400.0, 10.0]),
     ));
     battle.accept(command(Side::Blue, 2, Order::Ready));
     battle.accept(command(Side::Red, 1, Order::Ready));
@@ -121,14 +112,7 @@ fn objective_transitions_replay_and_have_a_paired_browser_record() {
     .unwrap();
     let setup = serde_json::from_value(saved["scenario"].clone()).unwrap();
     let commands = [
-        command(
-            Side::Blue,
-            1,
-            Order::ConfirmPurchase {
-                variant: "test_tank".into(),
-                destination: [400.0, 10.0],
-            },
-        ),
+        command(Side::Blue, 1, Order::purchase("test_tank", [400.0, 10.0])),
         command(Side::Blue, 2, Order::Ready),
         command(Side::Red, 1, Order::Ready),
     ];
@@ -178,10 +162,7 @@ fn a_helicopter_cannot_capture_or_contest_a_flag() {
         .accept(command(
             Side::Blue,
             1,
-            Order::ConfirmPurchase {
-                variant: "blue_test_heli".into(),
-                destination: [400.0, 10.0]
-            }
+            Order::purchase("blue_test_heli", [400.0, 10.0])
         ))
         .error
         .is_none());

@@ -521,6 +521,7 @@ fn a_lost_transport_is_rebought_and_a_lost_squad_replaced() {
         let Some(Order::ConfirmPurchase {
             variant,
             destination,
+            ..
         }) = orders
             .iter()
             .find(|o| matches!(o, Order::ConfirmPurchase { .. }))

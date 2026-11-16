@@ -424,10 +424,7 @@ fn a_retiring_helicopter_takes_its_passengers_with_it() {
         let bought = battle.accept(side_command(
             Side::Blue,
             seq,
-            Order::ConfirmPurchase {
-                variant: variant.into(),
-                destination: [300.0, 100.0],
-            },
+            Order::purchase(variant, [300.0, 100.0]),
         ));
         assert_eq!(bought.error, None);
     }
@@ -1492,10 +1489,7 @@ fn refunding_a_loaded_carrier_refunds_its_passengers() {
         .accept(side_command(
             Side::Blue,
             1,
-            Order::ConfirmPurchase {
-                variant: "test_apc".into(),
-                destination: [300.0, 100.0],
-            },
+            Order::purchase("test_apc", [300.0, 100.0]),
         ))
         .error
         .is_none());
@@ -1503,10 +1497,7 @@ fn refunding_a_loaded_carrier_refunds_its_passengers() {
         .accept(side_command(
             Side::Blue,
             2,
-            Order::ConfirmPurchase {
-                variant: "test_recon".into(),
-                destination: [300.0, 100.0],
-            },
+            Order::purchase("test_recon", [300.0, 100.0]),
         ))
         .error
         .is_none());

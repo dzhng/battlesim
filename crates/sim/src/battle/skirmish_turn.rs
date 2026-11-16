@@ -95,6 +95,7 @@ impl Battle {
                     .cloned()
                     .map(|purchase| Order::ConfirmPurchase {
                         variant: purchase.variant,
+                        carrier: purchase.carrier,
                         destination: purchase.destination,
                     })
                     .collect()

@@ -10,10 +10,7 @@ fn buy(battle: &mut Battle, player: &str, seq: u64, destination: [f64; 2]) {
         side: Side::Blue,
         player: Some(player.into()),
         seq,
-        order: Order::ConfirmPurchase {
-            variant: "test_tank".into(),
-            destination,
-        },
+        order: Order::purchase("test_tank", destination),
         queued: false,
     });
     assert_eq!(ack.error, None, "purchase {seq} refused");

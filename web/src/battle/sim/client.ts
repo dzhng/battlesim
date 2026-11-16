@@ -59,7 +59,12 @@ export interface SimClient {
   readonly paused: boolean;
   start(): void;
   command(order: Order, queued?: boolean): Promise<CommandAck>;
-  previewPurchase(variant: string, destination: [number, number]): Promise<PurchasePlacement>;
+  /** With `carrier`, the squad `variant` bought aboard it. */
+  previewPurchase(
+    variant: string,
+    destination: [number, number],
+    carrier?: string,
+  ): Promise<PurchasePlacement>;
   previewMove(move: MovePreviewRequest): Promise<MoveDestination[]>;
   previewBuilding(building: BuildingPreviewRequest): Promise<BuildingPlacement>;
   onPublication(consumer: (publication: Publication) => void): void;
@@ -363,13 +368,20 @@ export function createSimClient(options: SimClientOptions): SimClient {
         channel.send({ type: "command", command });
       });
     },
-    previewPurchase(variant, destination) {
+    previewPurchase(variant, destination, carrier) {
       if (lifetime.kind !== "active")
         return Promise.reject(lifetime.error ?? new Error("simulation client disposed"));
       const id = nextPreview++;
       return new Promise<PurchasePlacement>((resolve, reject) => {
         previews.set(id, { kind: "purchase", resolve, reject });
-        channel.send({ type: "purchase_preview", id, side: options.side, variant, destination });
+        channel.send({
+          type: "purchase_preview",
+          id,
+          side: options.side,
+          variant,
+          carrier,
+          destination,
+        });
       });
     },
     previewMove(move) {

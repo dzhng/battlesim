@@ -93,6 +93,9 @@ pub struct PurchaseId(pub u32);
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PurchasePreview {
     pub kind: TypeIndex,
+    /// The carrier `kind` arrives aboard; the placement is the carrier's.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub carrier: Option<TypeIndex>,
     /// The entry chosen for this purchase while it is being reserved.
     pub entry: usize,
     pub destination: [f64; 2],
@@ -106,6 +109,9 @@ pub struct PurchasePreview {
 pub struct PendingPurchase {
     pub id: PurchaseId,
     pub kind: TypeIndex,
+    /// The carrier bought with `kind`, which arrives with the squad aboard.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub carrier: Option<TypeIndex>,
     /// The entry chosen once, when the purchase is reserved (D37).
     #[serde(default)]
     pub entry: usize,
@@ -115,6 +121,23 @@ pub struct PendingPurchase {
     /// The tick a bought aircraft reaches the map, once its wait off the
     /// map has begun (D41); None for anything that enters through the queue.
     pub arrival_tick: Option<Tick>,
+}
+
+impl PendingPurchase {
+    /// The unit that enters the map: the carrier, else the unit bought.
+    pub fn arriving(&self) -> TypeIndex {
+        self.carrier.unwrap_or(self.kind)
+    }
+
+    /// Every unit type the purchase fields, the carrier last.
+    pub fn kinds(&self) -> impl Iterator<Item = TypeIndex> {
+        std::iter::once(self.kind).chain(self.carrier)
+    }
+
+    /// The places it holds under the unit cap: one per unit.
+    pub fn units(&self) -> u32 {
+        1 + u32::from(self.carrier.is_some())
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

@@ -20,7 +20,9 @@ export type TargetRef =
 export type Order =
   | { kind: "refund"; units: number[] }
   | { kind: "ready" }
-  | { kind: "confirm_purchase"; variant: string; destination: [number, number] }
+  /** With `carrier`, the squad `variant` is bought aboard that carrier, as
+   *  one purchase. Omitted: the unit alone. */
+  | { kind: "confirm_purchase"; variant: string; carrier?: string; destination: [number, number] }
   | { kind: "cancel_pending"; purchase: number }
   | {
       kind: "move";
@@ -129,6 +131,8 @@ export type PurchasePlacement =
   | {
       Ok: {
         kind: number;
+        /** The carrier `kind` arrives aboard; the placement is the carrier's. */
+        carrier?: number;
         destination: [number, number];
         spots: [number, number][];
         /** The area a squad holds round `destination` once it arrives; null for a vehicle. */
@@ -185,6 +189,7 @@ export type SimRequest =
       id: number;
       side: SideName;
       variant: string;
+      carrier?: string;
       destination: [number, number];
     }
   | { type: "command"; command: CommandEnvelope }

@@ -556,6 +556,8 @@ export interface PendingPurchaseView {
   blocked: boolean;
   /** The tick a waiting aircraft reaches the map; 0 when it doesn't wait. */
   arrivalTick: number;
+  /** The carrier a squad bought with it arrives aboard. */
+  carrier?: string;
 }
 
 export interface MatchReportView {
