@@ -82,16 +82,15 @@ def lean(z):
     return 1.0 - LEAN * max(0.0, min(1.0, (z - BELT_Z) / (ROOF_Z - BELT_Z)))
 
 
-def slab(name, pts, normal, mat, lods=None, thick=0.03):
+def slab(name, pts, normal, mat, lods=TIERS, thick=0.03):
     """A thin sheet through `pts` (a face's outline, in order), half of `thick` proud
-    of the surface it lies on along `normal`. A parked car's far mesh carries it too."""
-    lods = lods or TIERS + FAR_TOO
+    of the surface it lies on along `normal`."""
     n = Vector(normal).normalized() * (thick / 2)
 
     def build(bm, lod):
         # Below the distant tier's screen budget, the surface carries the
         # window; its buried back and thin edges add no readable detail.
-        if lod >= 3 and not WRECK:
+        if lod == 3 and not WRECK:
             hi = [bm.verts.new(Vector(p) + n) for p in pts]
             face = bm.faces.new(hi)
             face.normal_update()
@@ -115,19 +114,14 @@ def along(a, b, t):
 
 
 # ------------------------------------------------------------------ body and greenhouse
-# A parked car's far mesh is tier 3 without its wheels: the side's sight test
-# judges each surface by its plane, so every surface the far mesh keeps is
-# tier 3's own (its body, floor pan, cabin and windows).
-FAR_TOO = () if WRECK else (FAR,)
 for lod, seg in zip(TIERS, (12, 8, 5, 3)):
     profile = body_profile(seg)
     if lod == 3 and not WRECK:
         # Keep the hull silhouette; the wheel-arch clearance is subpixel here.
         profile = profile[:2] + [(-2.1, SILL_Z), (2.1, SILL_Z)] + profile[-7:]
-    lods = (lod,) + (FAR_TOO if lod == 3 else ())
-    prism("body", profile, 2 * BODY_Y, (0, 0, 0), paint, car, bevel=0.04, lods=lods)
-box("floor_pan", (4.1, 1.36, 0.5), (0, 0, 0.5), under, car, lods=TIERS + FAR_TOO)
-prism("cabin", CABIN, 2 * CABIN_Y, (0, 0, 0), paint, car, bevel=0.03, taper_y=lean, lods=TIERS + FAR_TOO)
+    prism("body", profile, 2 * BODY_Y, (0, 0, 0), paint, car, bevel=0.04, lods=(lod,))
+box("floor_pan", (4.1, 1.36, 0.5), (0, 0, 0.5), under, car)
+prism("cabin", CABIN, 2 * CABIN_Y, (0, 0, 0), paint, car, bevel=0.03, taper_y=lean)
 
 # glass: the windscreen and the tailgate's window across the car, three windows a side
 for name, foot, head in (("windscreen", SCREEN_FOOT, SCREEN_HEAD), ("rear_window", GATE_FOOT, GATE_HEAD)):
@@ -168,6 +162,31 @@ for row, x in AXLES:
         cyl(n + "_tyre", TYRE_R, TYRE_W, at, "Y", rubber, car, seg=24, bevel=0.03)
         cyl(n + "_rim", 0.2, TYRE_W + 0.006, at, "Y", wheel_m, car, seg=16, lods=(0, 1, 2))
         cyl(n + "_hub", 0.07, TYRE_W + 0.02, at, "Y", trim, car, seg=8, lods=(0,))
+
+# ------------------------------------------------------------------ the far mesh
+def far_box(name, lo, hi, mat):
+    """A far part: the box from `lo` to `hi` without its bottom, which stands on the
+    ground or on the box below it."""
+
+    def build(bm, lod):
+        (x0, y0, z0), (x1, y1, z1) = lo, hi
+        v = {(i, j, k): bm.verts.new((x, y, z)) for i, x in enumerate((x0, x1)) for j, y in enumerate((y0, y1))
+             for k, z in enumerate((z0, z1))}
+        for quad in (((0, 0, 1), (1, 0, 1), (1, 1, 1), (0, 1, 1)), ((0, 0, 0), (1, 0, 0), (1, 0, 1), (0, 0, 1)),
+                     ((1, 1, 0), (0, 1, 0), (0, 1, 1), (1, 1, 1)), ((1, 0, 0), (1, 1, 0), (1, 1, 1), (1, 0, 1)),
+                     ((0, 1, 0), (0, 0, 0), (0, 0, 1), (0, 1, 1))):
+            bm.faces.new([v[c] for c in quad])
+
+    return mesh_part(name, build, mat, car, lods=(FAR,))
+
+
+if not WRECK:
+    # A few pixels long, a car is a box of its paint up to the belt with a dark box of
+    # its glass on top, the cabin's footprint between its windscreen's and tailgate's
+    # middles. `roof` sorts after the near tiers' first glass, so no material moves.
+    far_box("body", (-2.2, -BODY_Y, 0.0), (2.2, BODY_Y, BELT_Z), paint)
+    far_box("roof", ((GATE_FOOT[0] + GATE_HEAD[0]) / 2, -CABIN_Y * lean(1.17), BELT_Z),
+            ((SCREEN_FOOT[0] + SCREEN_HEAD[0]) / 2, CABIN_Y * lean(1.17), ROOF_Z), glass)
 
 # ------------------------------------------------------------------ the wreck
 if WRECK:
