@@ -1,6 +1,6 @@
 # Shop variants and transports: one card per variant, squads bought in a ride
 
-**Status:** planned, not started.
+**Status:** slice 2 merged; slice 1 in flight; slice 4's picker half in flight.
 **Updated:** 2026-11-16.
 
 The reinforcements shop stops grouping catalog variants into family tiles: every
@@ -128,7 +128,7 @@ once; whole-spec review; consolidate the ledger; close the spec.
 ## Checklist
 
 - [ ] 1 The combined purchase
-- [ ] 2 Flat shop and Armory
+- [x] 2 Flat shop and Armory (`unit-roster` has four world-render baseline diffs unrelated to the HUD: owned by closeout)
 - [ ] 3 AI buys a squad with its ride
 - [ ] 4 Transport menu
 - [ ] 5 Tutorial, scenes, closeout
