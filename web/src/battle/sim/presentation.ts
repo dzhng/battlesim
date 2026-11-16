@@ -158,12 +158,11 @@ export interface PresentedBuildings {
   shells?: Iterable<string>;
 }
 
-/** What a battle loads into its presentation (`WorldInput`'s battle, as
- *  Rust resolves it from the files the page reads: `fieldUnits`), with
- *  each clip table's floats. */
+/** Page-owned world settings and a Rust-owned fielding snapshot. Descriptions
+ *  and clip tables stay in the module that presents them. */
 export interface PresentedBattle {
   world: object;
-  tables: ReadonlyMap<string, Float32Array>;
+  fielded: FieldedUnits;
 }
 
 /** One unit a presentation shows at rest (`presentation::presentation::showcase::ShowcaseInput`):
@@ -303,17 +302,16 @@ export class ScenePresentation {
     this.last = null;
   }
 
-  /** Load what the world draws (`WorldInput`: a battle's `units` and
-   *  `effects`, as Rust resolved them, with each clip table's
-   *  floats; the sun; the buildings' style, with the buildings); returns
+  /** Load what the world draws: page-owned sun and battle settings, the
+   *  fielding snapshot retained by Rust, and the buildings' style and contents;
+   *  returns
    *  the drawables its frames' batches name (`World.appearances`), by row.
    *  A template the art lacks is refused by name. */
   loadWorld(
     world: object,
-    tables: ReadonlyMap<string, Float32Array> = new Map(),
+    fielded?: FieldedUnits,
     buildings?: PresentedBuildings,
   ): PresentedAppearance[] {
-    for (const [name, floats] of tables) this.rust.add_clip_table(name, floats);
     if (buildings) {
       const { placed, art, partBuilding = new Map(), shells = [] } = buildings;
       const bounds = new Float32Array(art.bounds.length * 6).fill(Number.NaN);
@@ -331,7 +329,7 @@ export class ScenePresentation {
       );
     }
     // The call may grow memory: the views are taken after it.
-    return this.readWorld(this.rust.load_world(JSON.stringify(world)));
+    return this.readWorld(this.rust.load_world(JSON.stringify(world), fielded?.share()));
   }
 
   private readWorld(ptr: number): PresentedAppearance[] {
@@ -401,9 +399,7 @@ export class ScenePresentation {
    *  built on this presentation reloads (`BrowserScene.worldCurrent`). Once
    *  per presentation: another unit needs a presentation of its own. */
   setShowcase(fielded: FieldedUnits, input: ShowcaseInput): PresentedAppearance[] {
-    for (const [name, floats] of fielded.tables) this.rust.add_clip_table(name, floats);
-    const sections = JSON.stringify({ units: fielded.units });
-    return (this.loaded = this.readWorld(this.rust.set_showcase(sections, JSON.stringify(input))));
+    return (this.loaded = this.readWorld(this.rust.set_showcase(fielded, JSON.stringify(input))));
   }
 
   /** Battle/static source names exclude the replaceable tooling suffix. */
@@ -432,9 +428,8 @@ export class ScenePresentation {
     diagnosticsEvent("battle staged", { appearances: this.stagedAppearances().length });
   }
 
-  private stageBattle({ world, tables }: PresentedBattle): boolean {
-    for (const [name, floats] of tables) this.rust.add_clip_table(name, floats);
-    return this.rust.stage_battle(JSON.stringify(world));
+  private stageBattle({ world, fielded }: PresentedBattle): boolean {
+    return this.rust.stage_battle(JSON.stringify(world), fielded);
   }
 
   /** How many battles were staged in place: a scene admits art when it moves. */
@@ -602,7 +597,7 @@ export class ScenePresentation {
     };
     this.loaded = this.loadWorld(
       { ...battle?.world, ...lit, buildings: drawn ? style : undefined },
-      battle?.tables,
+      battle?.fielded,
       drawn
         ? {
             placed: drawn.placed,

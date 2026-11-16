@@ -188,7 +188,7 @@ pub struct Transition {
 /// unit type has no wreck drawn.
 pub fn transition_of(
     c: &CookOff,
-    looks: &BTreeMap<String, WreckLook>,
+    looks: &BTreeMap<String, std::sync::Arc<WreckLook>>,
     wrecks: &BTreeMap<String, Wreck>,
     tick_hz: f64,
 ) -> Option<Transition> {
@@ -324,7 +324,7 @@ impl LastSeenHulls {
         c: &CookOff,
         clock: f64,
         units: &UnitsSection,
-        looks: &BTreeMap<String, WreckLook>,
+        looks: &BTreeMap<String, std::sync::Arc<WreckLook>>,
     ) -> Option<LastHull> {
         let mut best: Option<(&VehiclePose, f64)> = None;
         for (_, pose, at) in &self.hulls {
@@ -441,7 +441,7 @@ impl CookOffs {
         o: &Observation,
         units: &UnitsSection,
         effects: &EffectsSection,
-        looks: &BTreeMap<String, WreckLook>,
+        looks: &BTreeMap<String, std::sync::Arc<WreckLook>>,
     ) -> Vec<publication::CookOff> {
         if o.tick < self.last_tick {
             self.moving.clear();
@@ -469,7 +469,7 @@ impl CookOffs {
         vehicles: &[VehiclePose],
         clock: f64,
         units: &UnitsSection,
-        looks: &BTreeMap<String, WreckLook>,
+        looks: &BTreeMap<String, std::sync::Arc<WreckLook>>,
         feel: &CookOffFeel,
         out: &mut Vec<PlacedModel>,
     ) {
@@ -526,7 +526,7 @@ mod tests {
             underside: 1.2,
             debris_top: Some(0.5),
         };
-        let looks = BTreeMap::from([("tank".to_owned(), look)]);
+        let looks = BTreeMap::from([("tank".to_owned(), look.into())]);
         let wrecks = BTreeMap::from([("tank_wreck".to_owned(), wreck)]);
         transition_of(&cook_off(), &looks, &wrecks, 30.0).expect("a drawn wreck")
     }

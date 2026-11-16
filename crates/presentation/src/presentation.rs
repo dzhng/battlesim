@@ -450,11 +450,12 @@ impl Presentation {
         };
         let units = Arc::new(input.units.clone());
         let tables = Arc::new(tables);
-        let presentation = EffectPresentation::from_value(&input.effects.presentation)?;
+        let presentation = input.effects.presentation.as_ref().clone();
         let capacity = presentation.capacity;
         let side = input.side.clone();
         let inverse_binds = posing::inverse_binds(&units);
         for (name, a) in &units.appearances {
+            let a = a.as_ref();
             posing::register_appearance(&mut self.world, name, a);
         }
         if let Some(stand_in) = input.stand_in.as_ref() {
@@ -780,7 +781,7 @@ impl Presentation {
 /// turret, and each drawn soldier.
 /// An appearance's drawn size: its far pose (`k` 0) or its `k − 1`th way of lying.
 fn bounds(units: &UnitsSection, name: &str, k: usize) -> Bounds {
-    match units.appearances.get(name) {
+    match units.appearances.get(name).map(AsRef::as_ref) {
         Some(Appearance::Skinned { bounds, .. } | Appearance::Articulated { bounds, .. }) => {
             bounds.get(k).copied().unwrap_or_default()
         }

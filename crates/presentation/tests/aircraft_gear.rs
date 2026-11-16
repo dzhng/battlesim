@@ -57,8 +57,6 @@ fn roster_jet_units() -> (Vec<String>, presentation::world::UnitsSection) {
     .resolve(&mut Facts::default(), &|hash| {
         runtime.read(hash, "bundle.bin").map(Into::into)
     })
-    .unwrap()
-    .typed()
     .unwrap();
     (kinds, fielded.units)
 }
@@ -128,7 +126,9 @@ fn every_roster_jet_flies_gear_up_and_stands_on_its_gear_at_rest() {
         let name = units
             .resolve(kind, "blue", i as f64, 0, None, None)
             .unwrap();
-        let Some(Appearance::Articulated { nodes, rig, .. }) = units.appearances.get(name) else {
+        let Some(Appearance::Articulated { nodes, rig, .. }) =
+            units.appearances.get(name).map(AsRef::as_ref)
+        else {
             panic!("{kind}: an articulated model");
         };
         assert!(

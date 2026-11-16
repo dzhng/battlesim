@@ -119,6 +119,7 @@ impl Showcase {
 
     pub(super) fn register_rows(&self, world: &mut World) {
         for (name, a) in &self.units.appearances {
+            let a = a.as_ref();
             posing::register_appearance(world, name, a);
         }
     }
