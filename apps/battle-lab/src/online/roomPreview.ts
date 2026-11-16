@@ -25,7 +25,7 @@ export function roomLobby(view: RoomView): LobbySetup {
   };
 }
 
-/** Exact room seed through the existing preview path; no local seed adoption. */
+/** The room's exact seed through the lobby's preview path; the page adopts no seed of its own. */
 export function useRoomPreview(lobby: LobbySetup) {
   const fighters = lobby.seats.filter((seat) => seat.occupant.kind !== "open");
   const bothSides = ["blue", "red"].every((side) => fighters.some((seat) => seat.side === side));

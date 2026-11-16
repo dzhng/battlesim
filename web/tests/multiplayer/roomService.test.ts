@@ -222,7 +222,10 @@ test.each([false, true])(
       expect(service.act("alpha", code, { kind: "start" })).toEqual({ ok: true });
     }
     host.close();
-    clock.advance(EMPTY_ROOM_TIMEOUT_MS - 1);
+    // A battle is held for its players to come back to. A lobby nobody is
+    // left in has nothing to hold: it goes once its last member has.
+    const held = start ? EMPTY_ROOM_TIMEOUT_MS : PRESENCE_GRACE_MS;
+    clock.advance(held - 1);
     expect(service.create("another", "public")).toEqual({ refused: "full" });
     clock.advance(1);
     expect(lists().at(-1)).toEqual({ rooms: [], frontline: { battles: 0, commanders: 0 } });
@@ -233,6 +236,16 @@ test.each([false, true])(
     expect(next).toEqual({ code: expect.any(String) });
   },
 );
+
+test("the last member leaving a lobby deletes it at once, and its maker may make another", () => {
+  const { service, code, open, lists } = setup(1);
+  const host = open("alpha");
+  expect(service.act("alpha", code, { kind: "leave" })).toEqual({ ok: true });
+  expect(lists().at(-1)).toEqual({ rooms: [], frontline: { battles: 0, commanders: 0 } });
+  expect(service.roomStream("stranger", code, null, () => true)).toEqual({ refused: "unknown" });
+  expect(service.create("alpha", "public")).toEqual({ code: expect.any(String) });
+  host.close();
+});
 
 test("creation reserves every available slot before any battle starts", () => {
   const { service } = setup(2);

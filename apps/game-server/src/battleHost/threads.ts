@@ -119,8 +119,8 @@ export function prepareOnThreads(options: {
       launch(next++);
     }
   }
-  // A room keeps the original one-thread path: no speculative workers, no
-  // parent round trip between preparation and starting the authority.
+  // One candidate needs no choosing: one thread prepares it and starts its
+  // authority without a round trip through the parent.
   if (candidates.length === 1) {
     winner = 0;
     running = true;

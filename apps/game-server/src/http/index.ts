@@ -1,5 +1,5 @@
-// HTTP owns credentials and sockets. The battle only sees the seat's port;
-// recordSource owns all history and the decision to resume or resync.
+// The lobby's routes: build identity, hello, rooms and Frontline. HTTP owns
+// credentials and sockets; the services see a browser id and a device.
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { httpServer } from "./server.ts";
 import type { BuildIdentity } from "../../../../packages/multiplayer/src/wire.ts";

@@ -148,10 +148,6 @@ export function createBattleServer(options: {
           return json(response, 200, await required().referee());
         case "/control/replay":
           return json(response, 200, await required().replay());
-        case "/control/stop":
-          json(response, 200, { ok: true });
-          setImmediate(stop);
-          return;
         default:
           throw new HttpRefusal(404, "unknown");
       }

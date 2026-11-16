@@ -83,3 +83,47 @@ stopped the whole scene suite. All fixed.
 
 Not rerun after those fixes: the whole of each suite. The affected tests,
 the lint and the scene suite were.
+
+## The sweep's list, from an independent read on 2026-11-16
+
+Fixed the same day: a lobby nobody is left in lingered for a minute with
+no host, shown in the public list, and held its maker's one game; the
+battle server's stop route had no caller; a test still named the dev
+battle; comments that told history.
+
+Left for the sweep (step 3), most valuable first:
+
+1. **The lobby's in-process battle path outlived the move to a battle
+   server for each battle.** The remote host's `attach` and the raw
+   `/control/seats/*` routes, the slot's `id` and `seatOf`,
+   `online.battle()`, the services' `createBattle` option and the
+   capacity-only form of the online state are reached by tests alone.
+   Tests should reach seats the way players do, and `BattleTicket.address`
+   becomes required.
+2. **The publication payload's layout** (tick, digest, step time, words)
+   is encoded once and decoded by hand in three places. One pair of
+   functions beside the record stream.
+3. **The browser id's format and its header's name** have no owner; the
+   control header has one.
+4. **Returning to Multiplayer with a notice** is spelled out six times
+   with bare state keys; "leave Frontline on the way out" twice.
+5. **The seat model keeps its position-based twin** (`SkirmishSeat`,
+   `skirmishPlayers`) for the shareable link's parser.
+6. **The room service turns the room model's sentences into wire codes**
+   by comparing strings.
+7. **Names:** `roomFailure` words Frontline's refusals too;
+   `OnlineSimClient` is what the offline input code takes; two types are
+   both called `Seat`; `http/seats.ts` owns `HttpRefusal`; `battles.ts`
+   beside `battle.ts`.
+8. **Smaller:** which lighting values are valid is decided twice; a random
+   seed and a clamped random index are each written twice; page wording
+   has drifted between files; `hello`'s error sentences are never shown,
+   so a server that is down reads as a wrong build; `keepBuiltMap` and
+   `OnlineMatchResult`'s optional return are test seams; the battle
+   process loads the simulation on its main thread for a field only tests
+   read; `Machine.control` equals `Machine.address` everywhere.
+
+Known and not fixed: two tabs of one browser in one seat. The older tab's
+orders are refused for their sequence number and retried for ever without
+a word to the player.
+

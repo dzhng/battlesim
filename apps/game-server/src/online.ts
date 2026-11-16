@@ -7,7 +7,7 @@ import { hostedBattles } from "./battles.ts";
 import type { BattleMachines } from "./machines/index.ts";
 import { createPresence, PRESENCE_GRACE_MS, type PresenceClock } from "./presence.ts";
 
-/** Slice 01's memory budget leaves room for a battle to grow toward an hour. */
+/** What a battle is budgeted: room to grow through an hour-long game. */
 export const BYTES_PER_BATTLE = 2 * 1024 ** 3;
 export function battleCapacity(cores = cpus().length, memoryBytes = totalmem()): number {
   return Math.max(0, Math.min(cores - 1, Math.floor(memoryBytes / BYTES_PER_BATTLE)));

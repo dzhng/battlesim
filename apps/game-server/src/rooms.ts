@@ -187,6 +187,13 @@ export function createRoomService(options: {
     if (next !== stored.room) {
       const previous = stored.room;
       stored.room = next;
+      // A lobby nobody is left in has no host to start it and nobody to
+      // come back to it: it goes with its last member.
+      if (next.phase === "lobby" && next.members.length === 0) {
+        remove(next.code);
+        for (const member of previous.members) releaseIfForgotten(member.who);
+        return { ok: true } as const;
+      }
       publishRoom(stored);
       for (const member of previous.members) releaseIfForgotten(member.who);
       if (previous.phase === "lobby" && next.phase === "starting") startBattle(stored);

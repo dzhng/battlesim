@@ -1,6 +1,6 @@
 import server from "./server.json";
 
-/** A localhost page uses the local authority even in a production build. */
+/** A localhost page uses the local server even in a production build. */
 export function serverAddress(location: Pick<Location, "hostname" | "search">): string {
   if (import.meta.env.DEV) {
     const override = new URLSearchParams(location.search).get("server");

@@ -1,4 +1,4 @@
-// Adapt a seat's wire protocol to the existing page/authority channel.
+// Adapt a seat's wire protocol to the page's channel to an authority.
 // No simulation controls cross this seam: only orders and previews go up.
 import type { SeatLink } from "../../../../packages/multiplayer/src/link";
 import type {

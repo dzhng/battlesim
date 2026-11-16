@@ -1,13 +1,13 @@
 // @vitest-environment node
-// The retired entry can no longer seat a browser or create a battle.
+// A path the lobby does not serve.
 import { expect, test } from "vitest";
 import { roomHttp } from "./support/roomHttp";
 
-test("the removed dev endpoint refuses every credential, carries transport headers, and never echoes credentials", async () => {
+test("an unknown path refuses every credential, carries transport headers, and never echoes credentials", async () => {
   const server = await roomHttp();
   try {
     for (const credential of ["short", "0123456789abcdef0123456789abcdef"]) {
-      const response = await fetch(`${server.address}/dev/battle`, {
+      const response = await fetch(`${server.address}/no/such/path`, {
         method: "POST",
         headers: { "X-Player": credential },
       });

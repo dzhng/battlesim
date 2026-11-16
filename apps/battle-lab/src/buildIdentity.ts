@@ -26,7 +26,7 @@ export async function buildIdentity(): Promise<BuildIdentity> {
   };
 }
 
-/** Keep the menu's existing eight-digit display and failed-load marker. */
+/** The menu's eight-digit build line, or its failed-load marker. */
 export function simFingerprint(): Promise<string> {
   return buildIdentity()
     .then(({ sim }) => sim.slice(0, 8))
