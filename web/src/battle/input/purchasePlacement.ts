@@ -24,7 +24,6 @@ export class PurchasePlacementControl {
   variant: string | null = null;
   /** The carrier the chosen squad rides in, or null on foot. */
   carrier: string | null = null;
-  private ghost: PurchaseGhost | null = null;
   private intent: {
     client: OnlineSimClient;
     /** The authority, variant and spot asked about. */
@@ -46,7 +45,8 @@ export class PurchasePlacementControl {
   private areaRadius: number | null = null;
   private previewRun: string | null = null;
   private generation = 0;
-  private confirmation: number | null = null;
+  /** Confirmations sent and not yet answered. */
+  private confirming = 0;
   private client: OnlineSimClient | null = null;
 
   /** The unit that enters the map: the carrier, else the variant. */
@@ -62,7 +62,6 @@ export class PurchasePlacementControl {
     this.generation++;
     this.variant = null;
     this.carrier = null;
-    this.ghost = null;
     this.intent = null;
     this.resolved = null;
     this.shape = [];
@@ -75,7 +74,6 @@ export class PurchasePlacementControl {
     facing = DEFAULT_PLACEMENT_FACING,
   ): PurchaseGhost | null {
     if (!this.variant || !destination || !client) {
-      this.ghost = null;
       this.intent = null;
       return null;
     }
@@ -98,7 +96,6 @@ export class PurchasePlacementControl {
       areaRadius: this.areaRadius,
     };
     this.intent = { client, spot, revision, cursor: destination, ghost };
-    this.ghost = ghost;
     this.resolve();
     return ghost;
   }
@@ -138,34 +135,42 @@ export class PurchasePlacementControl {
       });
   }
   /** The ghost the authority accepted, or null when nothing was placed.
-   *  `another` keeps the choice after an accepted placement, for the next. */
+   *  `another` keeps the choice after an accepted placement, for the next.
+   *
+   *  A click is for the spot under the pointer when it lands, whether or not
+   *  that spot's preview has answered yet: an unanswered one is asked now
+   *  and waited for, so a click never outruns the ghost. Only ground the
+   *  authority refuses (no standing room, off the map) buys nothing. */
   async confirm(
     send: (order: Order) => Promise<CommandAck | null | undefined>,
     another = false,
   ): Promise<PurchaseGhost | null> {
-    const ghost = this.ghost;
-    if (
-      !ghost ||
-      this.resolved?.spot !== this.intent?.spot ||
-      !this.resolved ||
-      !("Ok" in this.resolved.placement) ||
-      this.confirmation !== null
-    )
-      return null;
+    const intent = this.intent;
+    // A plain click while one is still being bought is the same click twice.
+    if (!intent || (this.confirming > 0 && !another)) return null;
     const generation = this.generation;
-    const confirmation = (this.confirmation = generation);
+    const answered = this.resolved?.spot === intent.spot ? this.resolved.placement : null;
+    this.confirming++;
     try {
+      const placement =
+        answered ??
+        (await intent.client
+          .previewPurchase(intent.ghost.variant, intent.cursor, intent.ghost.carrier)
+          .catch(() => null));
+      if (!placement || !("Ok" in placement) || generation !== this.generation) return null;
+      const { destination, spots } = placement.Ok;
+      const ghost: PurchaseGhost = { ...intent.ghost, destination, spots, valid: true };
       const ack = await send({
         kind: "confirm_purchase",
         variant: ghost.variant,
         ...(ghost.carrier && { carrier: ghost.carrier }),
-        destination: ghost.destination,
+        destination,
       });
       if (!ack || ack.error) return null;
-      if (confirmation === this.generation && !another) this.cancel();
-      return { ...ghost, valid: true };
+      if (generation === this.generation && !another) this.cancel();
+      return ghost;
     } finally {
-      if (this.confirmation === confirmation) this.confirmation = null;
+      this.confirming--;
     }
   }
 }
