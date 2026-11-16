@@ -114,7 +114,7 @@ function play(encounter: LabEncounter): Played {
       try {
         presentation.loadWorld(
           { sun_azimuth: 0, sun_elevation: 1, buildings: gameBuildingStyle },
-          new Map(),
+          undefined,
           {
             placed: index.placed,
             art: ART,

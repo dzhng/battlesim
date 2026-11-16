@@ -5,7 +5,8 @@
 import { presentationSettings } from "@web/presentationSettings";
 import type { AppearanceLibrary } from "@packages/scene-assets/src/loader";
 import type { CatalogView } from "@packages/scene-assets/src/units";
-import { Fielding } from "@wasm/renderer_browser";
+import { Fielding, type Fielded } from "@wasm/renderer_browser";
+import { diagnosticsEvent } from "@web/diagnostics";
 import { releaseTransport } from "../transport";
 import { artFrame, artWork } from "../artWork";
 
@@ -13,13 +14,9 @@ import { artFrame, artWork } from "../artWork";
  *  catalog and its bundle contents by hash (`AppearanceLibrary`). */
 export type RuntimeFiles = Pick<AppearanceLibrary, "catalog" | "contents">;
 
-/** The units and effects sections `kinds` draw from, and each clip table
- *  their bodies sample, by name. */
-export interface FieldedUnits {
-  units: object;
-  effects: object;
-  tables: ReadonlyMap<string, Float32Array>;
-}
+/** A Rust-owned immutable result. Only the hull query and work report cross
+ *  the boundary; presentation borrows its descriptions directly. */
+export type FieldedUnits = Fielded;
 
 type FieldingInput = Parameters<typeof createFielding>[0];
 
@@ -53,8 +50,8 @@ export class FieldingOwner {
       const { fielding } = (this.made ??= { fielding: createFielding(input), source });
       fielding.set_kinds(JSON.stringify(input.kinds));
       const result = await resolveFielding(fielding, input);
-      // Publish the whole result only after its resolve frame has presented.
-      // Typed battle staging and GPU admission therefore cannot join that call.
+      // Publishing and battle staging share the art-work budget. Yield when
+      // resolving spent it; small growths can finish in this same frame.
       if (artWork.exhausted()) await artFrame();
       if (this.closed) throw new Error("fielding owner is closed");
       this.last = { source, kinds: input.kinds, result };
@@ -206,25 +203,13 @@ async function resolveFielding(
         }
       }
     }
-    // The whole-result resolve is an accepted, indivisible step. A callback
-    // can join the paint after an asynchronous source read; cross that paint
-    // before its own frame. Content steps themselves yield only on budget.
-    await artFrame();
-    await artFrame();
   } finally {
     for (const file of sources.values()) releaseTransport(file);
   }
+  if (artWork.exhausted()) await artFrame();
   return artWork.run(() => {
-    const sections = fielding.resolve(new Uint8Array(), new Uint32Array());
-    const { units, effects, tables } = JSON.parse(sections) as {
-      units: object;
-      effects: object;
-      tables: string[];
-    };
-    return {
-      units,
-      effects,
-      tables: new Map(tables.map((name, i) => [name, fielding.table(i)])),
-    };
+    const result = fielding.resolve(new Uint8Array(), new Uint32Array());
+    diagnosticsEvent("battle fielded", JSON.parse(result.work()));
+    return result;
   });
 }

@@ -43,8 +43,10 @@ to notice a gigabyte it no longer needs.
 at a time. Supplies, content facts and geometry keys consume one shared
 frame-work budget owned by the art policy; preparation yields when that budget
 is spent, while small steps continue in the same frame. Only a complete
-generation can replace live art. Fielding absorbs missing content facts
-before its separate whole-result resolve; it publishes that result on a later frame so battle staging cannot join it.
+generation can replace live art. Fielding absorbs missing content facts and
+resolves descriptions only for added kinds. Its immutable result stays in Rust;
+the page passes a handle and its own world settings to presentation. Resolving
+and staging share the same work budget and yield only when it is spent.
 The set of names and content identities determines whether art changed;
 fresh source objects, array order and pose changes do not start another admission
 or supersede the same candidate. Explicit grass-rule changes also prepare their

@@ -44,6 +44,7 @@ pub(super) struct Scratch {
 pub(super) fn inverse_binds(units: &UnitsSection) -> HashMap<String, Vec<Mat4>> {
     let mut binds = HashMap::new();
     for (name, a) in &units.appearances {
+        let a = a.as_ref();
         if let Appearance::Skinned {
             joints,
             inverse_binds: given,
@@ -308,7 +309,7 @@ pub(super) fn rest_palette(
         far_pose,
         corpse_poses,
         ..
-    }) = units.appearances.get(name)
+    }) = units.appearances.get(name).map(AsRef::as_ref)
     else {
         return None;
     };
@@ -356,7 +357,7 @@ pub(super) fn pose_body(
         clips,
         table,
         ..
-    }) = units.appearances.get(name)
+    }) = units.appearances.get(name).map(AsRef::as_ref)
     else {
         return 0;
     };
@@ -385,7 +386,9 @@ pub(super) fn pose_vehicle(
     articulation: &Articulation,
     motion: Option<&Mat4>,
 ) -> (u32, [f64; 2]) {
-    let Some(Appearance::Articulated { nodes, rig, .. }) = units.appearances.get(name) else {
+    let Some(Appearance::Articulated { nodes, rig, .. }) =
+        units.appearances.get(name).map(AsRef::as_ref)
+    else {
         return (0, [0.0; 2]);
     };
     let Scratch { locals, worlds } = scratch;

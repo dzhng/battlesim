@@ -341,8 +341,8 @@ fn the_browser_s_poses_of_the_fixture_capture() {
     let tables: ClipTables = units
         .appearances
         .values()
-        .filter_map(|a| match a {
-            Appearance::Skinned { table, .. } => Some((table.clone(), clip_table(table))),
+        .filter_map(|a| match a.as_ref() {
+            Appearance::Skinned { table, .. } => Some((table.clone(), clip_table(table).into())),
             Appearance::Articulated { .. } => None,
         })
         .collect();
@@ -381,8 +381,10 @@ fn the_browser_s_poses_of_the_fixture_capture() {
 fn the_tank_articulates_as_the_browser_s() {
     let expected = read("poses/paris-corner-poses.json");
     let units: UnitsSection = serde_json::from_value(kicked_units()).unwrap();
-    let Some(Appearance::Articulated { nodes, rig, .. }) =
-        units.appearances.get(expected["vehicle"].as_str().unwrap())
+    let Some(Appearance::Articulated { nodes, rig, .. }) = units
+        .appearances
+        .get(expected["vehicle"].as_str().unwrap())
+        .map(AsRef::as_ref)
     else {
         panic!("the fixture's vehicle is articulated");
     };
@@ -435,7 +437,10 @@ fn a_body_s_joints_sample_as_the_browser_s() {
         clips,
         table,
         ..
-    }) = units.appearances.get(expected["body"].as_str().unwrap())
+    }) = units
+        .appearances
+        .get(expected["body"].as_str().unwrap())
+        .map(AsRef::as_ref)
     else {
         panic!("the fixture's body is skinned");
     };

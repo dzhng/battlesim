@@ -26,7 +26,6 @@ use presentation::sound::voices::{self, Request};
 use presentation::sound::{music, synth};
 use presentation::static_world::buildings::PlacedBuildings;
 use presentation::static_world::fallen::Known;
-use presentation::units::drawn::ClipTables;
 use presentation::view::Camera;
 use serde::Serialize;
 use sim::publication::reader::{Corpse, FallenBody, Fog, KnownProp, Shared};
@@ -35,7 +34,6 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 pub struct Presentation {
     inner: Inner,
-    tables: ClipTables,
     lab_assets: std::collections::BTreeMap<
         String,
         (
@@ -139,7 +137,6 @@ impl Presentation {
     pub fn new(layout: Option<String>, tick_hz: Option<f64>) -> Result<Presentation, JsError> {
         Ok(Presentation {
             inner: Inner::new(layout.as_deref(), tick_hz.unwrap_or(30.0)).map_err(error)?,
-            tables: ClipTables::new(),
             lab_assets: Default::default(),
             buildings: None,
             taken: None,

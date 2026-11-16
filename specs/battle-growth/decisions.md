@@ -2326,3 +2326,185 @@ own profiling edits reloading the page mid-scene.
 Beside it, fixed apart: the `consequences` debris check that flaked under
 load read the last drawn frame's probe without waiting for a frame that
 shows the wreck. It waits for one now.
+
+**Slice 14, confirm first, 2026-11-15.**
+
+- Branch `t3/battle-growth-fielding-result` from `origin/staging` `c969c293f`.
+  No production implementation change precedes these findings. Normal release
+  WASM and three frozen production baseline reference runs are captured first;
+  three separately instrumented production runs follow, without local builds
+  or a dev server running during measurement. Temporary timers/dependencies
+  are restored. Evidence is only in `throwaway/slice14/`.
+- Reader audit confirms the preferred handle seam. Production page code reads
+  just `units.types[kind].hull` in showcase setup. The showcase reserializes
+  units; battle composition forwards units/effects and clip tables into the
+  same WASM module. Capture uses that same path. Page tests additionally read
+  appearance names and mount weapon/effect-look propagation; their behavior
+  proofs must survive without a convenience copy of the sections on the page.
+  Native capture moves the typed sections into WorldInput and reads appearance
+  names for prop admission. Native sound/pose users and core tests read typed
+  fields, not a cross-WASM JSON copy. They can use typed data from the same
+  owner. Exact readers/paths: `reader-audit.md` and `readers.txt` in evidence.
+  `jg` requires authentication here; exact `rg` inventory was used instead.
+- The actual arrival call is `stage_battle`, not `load_world`: both use the
+  WorldInput parser, but a growth does not reload the live world. The binding's
+  initial `load_world` is also timed; arrival numbers below name the stage
+  parser honestly. Per-phase frame markers and all raw spans are retained.
+- Production vehicle timings, runs1/2/3 (ms): assembly25.770 /37.950 /26.275;
+  binding preamble1.310 /1.910 /1.575; result serialization10.550 /14.000
+  /10.460; page parse2.990 /4.205 /3.035; world stringify6.825 /9.530 /6.700;
+  typed world parse6.525 /8.435 /6.575; core staging1.270 /1.650 /1.300.
+  Measured end-to-end work totals59.975 /83.340 /60.000 ms; text accounts for
+  **44.8 /43.4 /44.6%**. Binary clip transfer is measured separately, not
+  counted as text savings.
+- RPG timings, runs1/2/3 (ms): assembly26.855 /20.715 /19.785;
+  binding preamble1.980 /1.500 /1.360; result serialization15.330 /12.015
+  /11.240; page parse5.090 /3.615 /3.570; world stringify11.000 /8.450 /8.155;
+  typed world parse9.185 /7.570 /7.505; core staging1.525 /1.245 /1.180.
+  Measured work77.070 /59.440 /57.020 ms; text is **52.7 /53.2 /53.4%**.
+  Thus the stop condition (text below one third) is not met: proceed.
+- Cached-source scaling in the same catalog, no missing contents before each
+  trial:139 physical types remain constant. At zero fielded kinds, core
+  assembly is4.390–6.070 ms;1 kind/1 appearance is4.440–7.000 ms;
+  28 kinds/85 appearances17.120–23.145 ms;56 kinds/122 appearances normally
+  20.030–24.590 ms, with one50.630 ms outlier. All nine trials per size are
+  kept, not only their ranges. At full size serialization is normally
+  11.505–17.825 ms, with the same run's25.045 ms outlier. Assembly really does
+  follow the whole accumulated description today and is most of resolve's
+  own cost, though the complete two-way text trip is still the larger measured
+  saving. Merely moving the current whole resolve behind a handle would not
+  meet the contract; its descriptions must be retained and new kinds assembled
+  incrementally as well.
+- Selected seam: the Rust fielding owner retains the typed result; presentation
+  receives a shared result handle inside the same module. Only page-owned
+  settings cross as JSON, and the page gets a narrow hull query. Native and
+  showcase use that same owner/result. Rejected: a page-merged JSON delta,
+  because the page does not need those sections; retaining both full page
+  copies or implementing a second native resolver would add another owner.
+  No fielding result cache or interface implementation is built before this
+  entry. Full before data and scaling trials: `before-timings.md/json`;
+  uninstrumented baseline runs: `reference/before-{1,2,3}.json`.
+
+### Slice 14, implementation checkpoint stopped at an unchanged assertion, 2026-11-15
+
+- The incremental fielding regression failed first on the old path (two kinds
+  assembled when one was added), then passed with shared typed descriptions and
+  full cold-result equality. The checkpoint keeps sections and clip tables in
+  Rust and hands presentation a snapshot handle; the page queries hull status
+  only and reports small description-work counters. Stable table names derive
+  from normalized float contents rather than discovery order. Rejected: retaining
+  old JSON sections on the page or a second native resolver.
+- The broader named presentation run stopped on the unchanged capture replay
+  assertion `a_fixture_runs_plate_counts_are_the_pages_replay_of_its_capture`,
+  `plate-1019.png`. Actual running counts `[6,3,24,0,1,102,0,24]`, instances
+  `[26,2,127,0,0]`, lights3; recorded running `[6,3,24,1,1,98,0,24]`, instances
+  `[28,2,123,0,0]`, lights3. The assertion and capture were not edited. Its cause
+  is not attributed; no claim that it is unrelated or a stale baseline is made.
+  Per the fixed assertion rule, production changes and remaining verification
+  stop at this finding. There are no after measurements or merge-ready claim.
+- Source ownership is unchanged: the scope's retained facts also retain its
+  resolved descriptions, and fixed settings stay fixed for that scope. Result
+  snapshots share immutable rows and survive freeing the source owner. The
+  optional WASM load argument consumes a cheap shared handle, because the binder
+  does not support an optional borrowed class. Rejected: copying descriptions
+  to make a transient fielding owner's result survive, or a raw handle registry.
+- Narrowing the requested kinds retains the previous setter's meaning, reusing
+  cached physical and art rows rather than imposing a new append-only API.
+  Its added regression has not executed after the stop. Full checkpoint report,
+  all three before runs, phase timings, errors and unfinished checks are in
+  `throwaway/slice14/report.md`. No source or fixture baseline was repinned.
+- Checkpoint commit was attempted with the normal hook and refused by the size
+  ratchet: `presentation.rs` is34 bytes above its already-over-budget baseline.
+  The hook then killed its concurrent format/eslint tasks; clippy did not run in
+  that attempt. No bypass was used and no commit was created. A conceptual move
+  is still required before committing; it is not performed after the unchanged
+  behavior assertion's stop. Work remains staged and is also preserved as
+  `throwaway/slice14/checkpoint.patch`.
+
+### Slice 14, completed after the known-red capture exception, 2026-11-15
+
+- At resume, fetched `origin/staging` was still `c969c293f`; no rebase was
+  needed. Reproduced the effect replay on that clean base, then on the finished
+  change: both fail at `plate-1019.png` with exactly the same running counts
+  `[6,3,24,0,1,102,0,24]`, instances `[26,2,127,0,0]`, lights3. The assertion
+  and fixture were not changed. The user bisected this staging failure to
+  `a7b398381`; it is being handled outside slice14. This is the sole authorized
+  known-red test, not a broader exclusion of effect verification.
+- The ratchet is satisfied by moving the whole canonical sound-readout concept
+  (launches, hearing, motion and emitters, including its comments) from
+  `presentation.rs` into `presentation/sound.rs`. Its isolated tests and normal
+  commit hook passed in `b60edce77`. Rejected: shortening comments or squeezing
+  the new shared-record reads into the over-budget parent.
+- The existing scope's facts owner now retains checked typed descriptions.
+  A resolve adds only new kinds and appearance rows, sharing old records, fixed
+  tuning and clip data with immutable snapshots. All catalog types still have
+  their physical facts before art. `fielded/result.rs` owns result assembly and
+  snapshots; content derivation remains with fielding's content facts. Rejected:
+  merely hiding the old full rebuild behind a handle, or adding another owner.
+- The page holds a Rust `Fielded` result, not units/effects objects or a clip
+  table map. Loading, staging and showcase read those sections inside the same
+  WASM module; the page passes its own metadata and asks the narrow hull query.
+  Native uses the same core result. The table export/import and intermediate
+  JSON sections are removed. Rejected: a page-merged delta, a convenience copy
+  of the sections, and a separate native resolver.
+- Stable clip table names hash normalized float contents rather than discovery
+  indices, so discovery order cannot renumber an old table. Immutable payloads
+  are shared with `Arc`; snapshots copy small routing maps. Rejected a persistent
+  map dependency or arena/handle registry, because measured result work already
+  has ample margin. Narrowing `set_kinds` reuses cached descriptions and physical
+  rows; rejected an undocumented append-only restriction on that setter.
+- `load_world` takes an owned optional shared handle because wasm-bindgen refuses
+  `Option<&Fielded>`; `share()` creates that cheap second holder. Stage/showcase
+  borrow directly, and a result outlives freeing its source owner. Rejected
+  copying the payload to extend its lifetime. New-row counts use the existing
+  diagnostic event stream. The shared art-work budget remains the only pacing;
+  unconditional double-RAF barriers are removed.
+- The old page sound assertion was insufficient: the two tank looks use the
+  same shot sound. The override fixture now distinguishes the mount's kind and
+  emitted flash light. Its new check reads normal `Frame.lights` records, with
+  expectations derived from the fixture colour. Forcing the fielded mount back
+  to its parent weapon went red at that light check; separately forcing the
+  effect look back to the parent's look went red there too. Restored both routes
+  and rebuilt. Rejected claiming coverage from shared sound, or adding a
+  whole-section accessor for tests. Red receipts and old/new assertion texts are
+  in `throwaway/slice14/report.md`.
+- Final fielding/result handover, runs1/2/3, ms (excludes content absorption,
+  network and GPU preparation; before includes section parse/table transfer,
+  after includes the small work diagnostic):
+
+  | Arrival | Before | After |
+  | --- | --- | --- |
+  | BTR | 43.375 / 60.820 / 43.375 | 0.385 / 0.480 / 0.560 |
+  | Assault squad | 68.065 / 56.585 / 44.635 | 0.480 / 0.590 / 0.565 |
+  | Tigr | 49.600 / 45.875 / 36.945 | 0.505 / 0.350 / 0.375 |
+  | RPG team | 52.505 / 40.165 / 38.190 | 0.465 / 0.590 / 0.515 |
+  | Mi-8 | 43.075 / 41.030 / 38.755 | 0.385 / 0.380 / 0.360 |
+  | Su-25 | 56.045 / 40.910 / 45.500 | 0.370 / 0.505 / 0.430 |
+
+- World metadata is401 characters after the change, with no section or clip
+  float round trip. Timings and both frame markers for every phase and arrival
+  are in the report. The three frame cohorts are uninstrumented frozen release
+  builds; separate three-run cohorts carry scratch timers, restored in `finally`.
+  The final normal WASM matches the uninstrumented candidate's SHA. All36
+  admission-work reports match exactly by arrival. Vehicle waits generally fall;
+  RPG learning→commit remains noisy: before830.025 /801.685 /1025.485 ms,
+  after809.175 /863.760 /944.820 ms. After run3 still has a117.805 ms late frame,
+  beginning460.295 ms after staging, outside this arrival's fielding/staging
+  calls. The remaining callback/GPU cause is not further attributed here; this
+  slice does not claim every peak or total wait improved.
+- Verification passed:110 tests in20 named presentation binaries plus the effect
+  vector test (capture replay remains the exact known red); clean combined
+  Rust check and native-client check; workspace/all-targets clippy; typecheck,
+  lint and58 page tests; fresh WASM builds; the three GPU suites (38+2+1); and
+  all five scenes together,102 checks. `consequences` needed no retry.
+  `battle-growth` reports no growth long frame,47 ms stage→commit; the700 ms
+  tripwire is untouched. The deterministic authority replay/digest check passes,
+  and its WASM is byte-identical to the baseline; no simulation/contract source
+  changed. GPU checks and scenes waited for the shared lock in the background.
+  No source was edited during the dev-server scene run.
+- Production diff, excluding docs and standalone tests, is+705/−469 lines in23
+  files, including the sound extraction. Owning README contract paragraphs are
+  updated; the active spec README and slice file are unchanged. Full old/new
+  assertion text, each command/result, every before/after run and frame over50 ms,
+  phase timings, decisions, failure history and raw-run paths are in
+  `throwaway/slice14/report.md`. Evidence and raw runs remain in `throwaway/`.
