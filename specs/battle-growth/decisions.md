@@ -2563,3 +2563,15 @@ a camera framed 22 m from one outer soldier, so they were culled and the
 count of drawn blocks was short. Their pick boxes were present. The two
 checks that count every body now frame all of them, at a distance set by
 their spread; the click checks keep the close framing.
+
+**The red capture test, settled, 2026-11-16.** The committed `paris-corner`
+run was stale, not the code wrong: two fresh browser runs each agree with the
+Rust replay of their own capture on all six plates and on every counted
+frame (704 and 717), and agree with each other on all 1,291 common ticks'
+publications and digests. The earlier re-record had renewed the capture's
+publications and left the page's plate counts as they were. The run is
+re-recorded whole by the fixtures' rule (capture, manifest, their gzipped
+copies for the native counts, and the pose vectors that index its frames);
+no test, assertion or source changed. The presentation crate is at 440
+passing and the native counts test passes, which had been refusing the old
+layout before it compared anything.
