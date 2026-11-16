@@ -87,10 +87,18 @@ impl Unit {
                     d.opt_f64(short.map(|s| s.detour_m));
                     d.opt_v2(short.and_then(|s| s.nearest.as_ref()).map(|n| n.0));
                 }
-                UnitOrder::Attack { target, last_known } => {
+                UnitOrder::Attack {
+                    target,
+                    last_known,
+                    waiting,
+                } => {
                     d.u64(2);
                     target.digest(d);
                     d.opt_v2(*last_known);
+                    // Only an attack queued behind other orders folds this in.
+                    if *waiting {
+                        d.bytes(b"waits its turn");
+                    }
                 }
                 UnitOrder::Garrison {
                     building,

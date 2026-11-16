@@ -10,7 +10,7 @@ draws a jet's attack line in 3D from the airframe to its target.
 
 Every decision behind this plan was made with the user in a decision walk;
 [visualizations/decision-map.html](visualizations/decision-map.html) is that record
-(decisions 1–18 and a–p, with who made each). This README carries them as givens.
+(decisions 1–18 and a–o, with who made each). This README carries them as givens.
 [choices.md](choices.md) records what implementation decides where the plan is silent.
 
 ## Next Agent Prompt
@@ -25,11 +25,11 @@ the full closeout run happens once, in S10. Before ending a pass, update this se
 and tick the list.
 
 - [x] Split `apply_units` / `update_pursuit` out of `battle.rs` (`00e9efe87`)
-- [ ] [FX1](slices/fx1-garrisoned-attack-ends.md) garrisoned attack ends on target death
-- [ ] [FX2](slices/fx2-queued-command-keeps-current.md) a queued command breaks nothing off
+- [x] [FX1](slices/fx1-garrisoned-attack-ends.md) garrisoned attack ends on target death (`fb32920bd`)
+- [x] [FX2](slices/fx2-queued-command-keeps-current.md) a queued command breaks nothing off (`687cdd2ca`)
 - [ ] [FX3](slices/fx3-blocked-first-leg.md) a blocked unit's first queued leg is drawn
-- [ ] [S1](slices/s1-cycle-end-and-ordered-fire.md) one owner for a cycle's end; per-mount ordered-fire report
-- [ ] [S2](slices/s2-admission-and-take-effect.md) queued orders admitted behind attacks; queued orders take effect at their turn
+- [x] [S1](slices/s1-cycle-end-and-ordered-fire.md) one owner for a cycle's end; per-mount ordered-fire report (`9e9825920`)
+- [x] [S2](slices/s2-admission-and-take-effect.md) queued orders admitted behind attacks; queued orders take effect at their turn
 - [ ] [S3](slices/s3-volley-handoff.md) the volley handoff (every attack not flown as a pass)
 - [ ] [S4](slices/s4-jet-run-volley.md) a jet's volley is one run in which it fired
 - [ ] [S5](slices/s5-jet-lost-target.md) a jet's attack ends when its side loses the target
@@ -45,7 +45,7 @@ and tick the list.
 | # | Contract | Before | After | Slice |
 |---|---|---|---|---|
 | C1 | **Order admission** (`battle/move_placement.rs`) | A queued Move, AttackMove or Unload-to-a-point behind an `Attack` is unplaced and dropped without a word (`after_attack`) | Placed, planned from the last queued move's end or the unit's position. The "queued behind an indefinite attack" case of `NoValidDestination` goes away. `Order` and `CommandEnvelope` don't change. | S2 |
-| C2 | **A queued command's immediate effect** (`battle/apply_command.rs`) | Every queue-joining command clears `withdrawing`, breaks off a jet's run and dogfight; a queued Attack/AttackMove switches the unit to fire at will and a queued air Attack starts its dogfight at once | A queued command touches nothing on the current order. Fire at will and the dogfight target are set when the order reaches the front. | FX2, S2 |
+| C2 | **A queued command's immediate effect** (`battle/apply_command.rs`) | Every queue-joining command clears `withdrawing`, breaks off a jet's run and dogfight; a queued Attack switches the unit to fire at will and a queued air Attack starts its dogfight at once | A queued command touches nothing on the current order. Fire at will and the dogfight target are set when the order reaches the front. | FX2, S2 |
 | C3 | **`UnitOrder::Attack`** (`units.rs`) | `{ target, last_known }` | Plus volley progress, absent until something is queued behind it, and a "waits its turn" mark. Each folds into the digest only when present. | S2, S3 |
 | C4 | **Cycle end** (`weapons/cycle.rs`) | Implicit inside `weapons.rs::fire` | One function spends a round and reports whether it ended a firing cycle; `Shot` carries it. | S1 |
 | C5 | **Ordered-fire report** (`weapons/tick.rs`) | Folded into `ordered_ok` / `ordered_far` | `advance` reports, per unit with an ordered target, which mounts are firing at it this tick (after the garrison window gate) and whether any can damage it. | S1 |

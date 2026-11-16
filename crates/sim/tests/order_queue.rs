@@ -135,3 +135,126 @@ fn drive(goal: [f64; 2]) -> Order {
         facing: None,
     }
 }
+
+fn field(units: Value) -> Battle {
+    let map = json!({ "size": [800, 600], "fog_cell_m": 8, "height_grid_m": 4,
+        "slope_cutoff_deg": 35, "props": [] })
+    .to_string();
+    Battle::new(&common::scenario(&map, units, json!([])), 1)
+}
+
+fn seen(b: &mut Battle) -> contract::observation::ObservedTargetId {
+    until(b, ticks(30.0), "the enemy seen", |b| {
+        !b.observe(Side::Blue).identified.is_empty()
+    });
+    b.observe(Side::Blue).identified[0].id
+}
+
+fn attack(unit: u32, id: contract::observation::ObservedTargetId) -> Order {
+    Order::Attack {
+        units: vec![UnitId(unit)],
+        target: TargetRef::Identified { id },
+    }
+}
+
+fn near(b: &Battle, unit: u32, goal: [f64; 2], within: f64) -> bool {
+    let at = b.unit(UnitId(unit)).unwrap().position.xy();
+    (at - sim::math::v2(goal[0], goal[1])).length() < within
+}
+
+/// A move shift-queued behind an attack is placed, and the unit drives
+/// there once the attack is over.
+#[test]
+fn a_move_queued_behind_an_attack_runs() {
+    let mut b = field(json!([
+        { "side": "blue", "kind": "test_tank", "position": [200.0, 300.0], "yaw": 0.0 },
+        { "side": "red", "kind": "test_jeep", "position": [420.0, 300.0], "engagement": "return_fire_only" },
+    ]));
+    let mut c = Commander::new();
+    let enemy = seen(&mut b);
+    c.ok(&mut b, Side::Blue, attack(0, enemy));
+    let goal = [200.0, 480.0];
+    let queued = contract::command::CommandEnvelope {
+        side: Side::Blue,
+        player: None,
+        seq: 2,
+        order: drive(goal),
+        queued: true,
+    };
+    let ack = b.accept(queued);
+    assert_eq!(ack.error, None);
+    assert!(
+        ack.placement.unwrap().destinations[0].placed,
+        "the queued move is placed"
+    );
+    until(&mut b, ticks(240.0), "the tank at the queued goal", |b| {
+        near(b, 0, goal, 10.0)
+    });
+}
+
+/// An attack queued behind a move leaves the unit's fire policy alone until
+/// the move is done: a queued order never acts before its turn.
+#[test]
+fn a_queued_attack_waits_its_turn_to_choose_fire_at_will() {
+    use contract::command::Engagement;
+    let mut b = field(json!([
+        { "side": "blue", "kind": "test_tank", "position": [200.0, 300.0], "yaw": 0.0, "engagement": "return_fire_only" },
+        { "side": "red", "kind": "test_jeep", "position": [420.0, 300.0], "engagement": "return_fire_only" },
+    ]));
+    let mut c = Commander::new();
+    let enemy = seen(&mut b);
+    let goal = [200.0, 420.0];
+    c.ok(&mut b, Side::Blue, drive(goal));
+    assert_eq!(c.send(&mut b, Side::Blue, attack(0, enemy), true), None);
+    b.step();
+    let engagement = |b: &Battle| b.unit(UnitId(0)).unwrap().engagement;
+    until(&mut b, ticks(120.0), "the move done", |b| {
+        assert_ne!(
+            (engagement(b), near(b, 0, goal, 3.0)),
+            (Engagement::FireAtWill, false),
+            "fire at will before the attack's turn"
+        );
+        !matches!(
+            b.unit(UnitId(0)).unwrap().orders.front(),
+            Some(UnitOrder::Move(_))
+        )
+    });
+    until(
+        &mut b,
+        ticks(2.0),
+        "fire at will on the attack's turn",
+        |b| engagement(b) == Engagement::FireAtWill,
+    );
+}
+
+/// A jet given an attack on an enemy jet behind a move flies the move first:
+/// the dogfight starts on the attack's turn, not when it is queued.
+#[test]
+fn a_queued_attack_on_a_jet_starts_no_dogfight_before_its_turn() {
+    use crate::attack_runs::{run_field, run_rules, RUN_START};
+    let mut b = run_field(
+        run_rules(&["air_gun"]),
+        json!([
+            { "side": "blue", "kind": "test_jet", "position": RUN_START, "yaw": 0.0 },
+            { "side": "red", "kind": "test_jet", "position": [RUN_START[0] + 600.0, RUN_START[1]], "yaw": std::f64::consts::PI },
+        ]),
+    );
+    let mut c = Commander::new();
+    let enemy = seen(&mut b);
+    c.ok(
+        &mut b,
+        Side::Blue,
+        drive([RUN_START[0], RUN_START[1] - 1500.0]),
+    );
+    assert_eq!(c.send(&mut b, Side::Blue, attack(0, enemy), true), None);
+    for _ in 0..ticks(3.0) {
+        b.step();
+        let jet = b.unit(UnitId(0)).unwrap();
+        assert!(matches!(jet.orders.front(), Some(UnitOrder::Move(_))));
+        assert_eq!(
+            jet.air.unwrap().dogfight_target,
+            None,
+            "dogfighting before its turn"
+        );
+    }
+}

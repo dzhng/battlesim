@@ -161,7 +161,6 @@ impl Battle {
         );
         // A placed marker is a place to stand that its unit can reach on the
         // ground its side knows; the way there is found and kept on the move.
-        let source = self.move_source(side);
         let shorts = shorts.into_inner();
         // Where each placed unit stops short, if it was placed where that
         // was worked out for.
@@ -178,13 +177,7 @@ impl Battle {
             .into_iter()
             .map(|slot| {
                 let u = &self.units[slot.id.0 as usize];
-                // An attack has no end to set a queued leg off from.
-                let after_attack = request.queued
-                    && source[slot.id.0 as usize]
-                        .orders
-                        .iter()
-                        .any(|o| matches!(o, UnitOrder::Attack { .. }));
-                let slot_point = slot.point.filter(|_| !after_attack);
+                let slot_point = slot.point;
                 let goal = slot_point.unwrap_or(u.position.xy());
                 let facing =
                     movement::final_yaw(u, request.facing, from(u), goal, request.direction);

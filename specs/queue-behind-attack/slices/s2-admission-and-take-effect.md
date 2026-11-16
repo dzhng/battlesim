@@ -1,6 +1,6 @@
 # S2 — queued orders admitted behind attacks; queued orders take effect at their turn
 
-**Unlocks.** C1, C2 (decision n, and p for AttackMove).
+**Unlocks.** C1, C2 (decision n).
 
 **Seams.**
 - `battle/move_placement.rs`: delete `after_attack`. `from` already plans from the last
@@ -9,8 +9,8 @@
   `apply_units` sets fire at will and the dogfight target only for an attack that takes
   effect now; `attack_order.rs` applies them when a waiting attack reaches the front
   (before the fixed-wing and garrison skips, so jets get their dogfight at their turn).
-  Folded into the digest only when set. Queued AttackMove likewise switches to fire at
-  will at its turn (decision p).
+  Folded into the digest only when set. (A queued AttackMove still chooses fire at will
+  when queued: see `choices.md`, p.)
 - Docs: `NoValidDestination` doc in `crates/contract/src/command.rs`.
 
 **Tests** (`crates/sim/tests/order_queue.rs`, end to end, test units):

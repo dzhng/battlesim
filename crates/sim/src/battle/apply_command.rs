@@ -144,17 +144,18 @@ impl Battle {
                         _ => None,
                     };
                     let unit = &mut movers[id.0 as usize];
-                    controllers::fire_at_will(unit);
+                    let waiting = queued && !unit.orders.is_empty();
+                    if !waiting {
+                        Self::take_effect(unit, dogfight);
+                    }
                     push(
                         unit,
                         UnitOrder::Attack {
                             target,
                             last_known: None,
+                            waiting,
                         },
                     );
-                    if let Some(target) = dogfight {
-                        crate::air::dogfight::set_target(unit, target);
-                    }
                 }
             }
             Order::ExitBuilding { units } => {

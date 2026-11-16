@@ -15,8 +15,11 @@ fn formation_rules() -> FormationRules {
     }
 }
 
+/// A destination queued behind an attack, even an endless attack on the
+/// ground, is placed: it is planned from where the unit's queued movement
+/// ends, and it runs once the attack hands off.
 #[test]
-fn queued_destinations_do_not_assume_an_unfinished_attack_will_end() {
+fn a_destination_queued_behind_an_attack_is_placed() {
     use contract::command::{CommandEnvelope, Order, TargetRef};
     use contract::ids::Side;
     use sim::battle::Battle;
@@ -55,9 +58,10 @@ fn queued_destinations_do_not_assume_an_unfinished_attack_will_end() {
         )
         .unwrap();
     assert!(
-        !preview[0].placed,
-        "an indefinite attack has no terminal pose for a queued move"
+        preview[0].placed,
+        "a queued move behind an attack is placed"
     );
+    assert_eq!(preview[0].goal, [200.0, 100.0]);
 }
 
 #[test]
