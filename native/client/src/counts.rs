@@ -64,7 +64,16 @@ impl Counted {
             let name = &world.strings[a.name as usize..(a.name + a.name_len) as usize];
             let tier = (b.tier as usize).min(TIERS - 1);
             if a.draws == DRAWS_PROP || a.draws == DRAWS_PROP_GROUND {
-                out.props.entry(name.to_owned()).or_default()[b.tier as usize] += b.count;
+                // A prop carries no card: its batches name one of its mesh
+                // slots, or presentation broke the tier rule.
+                let levels = out.props.entry(name.to_owned()).or_default();
+                let Some(level) = levels.get_mut(b.tier as usize) else {
+                    panic!(
+                        "prop {name}: a batch at tier {}, past its {MESH_SLOTS} mesh slots",
+                        b.tier
+                    );
+                };
+                *level += b.count;
             } else if a.draws == 0 {
                 if a.placed != 0 {
                     let at = b.appearance as usize * TIERS + tier;
