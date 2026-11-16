@@ -533,3 +533,92 @@ things the plan left open.
 - **The battle-foundation superseded note links `../../shared-hosts/`,**
   which `close-spec` must point at `specs/done/shared-hosts/` when it moves
   this plan.
+## Slice 07 labs
+
+- **The garrison lab's house seats the two rifle squads exactly, through the
+  encounter's own rules** (`overrides.buildings.capacity_soldiers`), shipped
+  rules untouched: the corner shop's windows seat all three squads otherwise.
+  The cast moved so arrival order tells the story: the first rifle squad
+  starts where the scouts stood, the second behind it, the scouts furthest
+  back, all on the house's east–west line, in its shadow from red's squad.
+- **The scene sends the second rifle squad and the scouts together, after
+  the first squad's HIDDEN and panel checks.** The second starts nearer, so
+  it is in before the scouts arrive; a staging check (seats left against the
+  scouts' size) guards that. Sending it at the start put its soldiers in
+  front of the first squad's projected heads during the walls-and-roofs check.
+- **The walls-and-roofs check counts added light only.** On the
+  overlays-on-black view a ground-floor occupant's body hid its own occupant
+  pad (light taken away), which the symmetric pixel difference read as paint
+  once a rifle squad held the near facade's ground floor. Paint through a
+  wall adds light. Not falsified against a body that really paints through
+  (no such state is reachable without changing the renderer).
+- **Red's tank shells the house by a scripted ground attack**, not
+  `set_engagement fire_at_will`. With 16 seats both squads sit on every
+  facade, red's identified positions are their squads' middles inside the
+  house, and the tank's every solution is `BlockedTrajectory` (a native run
+  of the encounter, and the lab scene, where it never fired in the 5,000
+  ticks after it was free to). With 32 seats the first squad's middle lay on
+  the east facade and it fired. This is a
+  simulation property the lab exposed, outside this plan: a garrison whose
+  middle lies behind its own walls is never engaged by a gun aimed at it.
+- **The scouts wait at the door after their refusal**; "Scouts fall back
+  west" is deleted. At (250, 250) the tank sees them past the house's south
+  corner and, with durable lab soldiers, shelled them indefinitely. At the
+  door the house hides them from both red units. They cross the ruin
+  afterwards (was the second rifle squad, now inside).
+- **No voice in the labs.** The refusal's voice line is `UnitResponses`
+  answering an observed refusal; labs run without sound, so the lab shows the
+  callout and the scenes check the published `capacity_full` refusal. The
+  voice path is covered in `web/tests/unitResponses.test.ts` (a refusal on
+  arrival is answered when the side observes it).
+- **The arrival callout reads "TOO MANY TO FIT"**, as the command-time one:
+  one reason, one text. Unchanged.
+- **The garrison lab shows per-unit refusals** (`RejectedOrder` gets
+  `session.refusals`, as the transport lab and `BattleView` already did);
+  before, an arrival refusal said nothing there.
+- **Scenes read an arrival refusal tick by tick** (`until` with a step of 1
+  while waiting): a refusal is in only its own tick's observation. A lab
+  probe of the accumulated log would grow `useBattleSession.ts`, over the
+  size budget.
+- **Transport controls adds a recon team.** The AT team and the recon team
+  share the APC; the rifle squad, which fits the APC alone so the order is
+  accepted, arrives to no room. `pairs` derives every role from catalog seats
+  and squad sizes. Collect moved after the APC's unload (the squad it
+  collects rides the APC until then), and `over` points at the soldier
+  furthest from other units: a squad just unloaded stands round its carrier,
+  and its first soldier was under the hull, so the click hit the carrier.
+  "U twice" now follows the collect at once, so it first waits for the
+  carrier's rider card: U reaches only a carrier the page has drawn with
+  riders, and with other scenes running beside it the first press once came
+  before that render and was dropped.
+- **The cursor scene's "every squad the order names steps in"** expected one
+  squad inside (the old one-squad rule; red at this branch's head). It now
+  expects both: the lab's house seats them.
+- **Legend:** own and enemy held outlines in their HUD side colours (was one
+  blue swatch for both), the selected squad's ring and route in the selection
+  orange (was a pink no mark uses), "blue fallen" removed (fallen soldiers are
+  models, not an overlay mark), "perimeter slot" now "window". The tutorial's
+  "shelters a whole squad" became "every soldier inside" with the building
+  line.
+- **The UI scene's `refused-order` picture was re-approved** after
+  inspection: since slice 01 its specimen refuses `capacity_full`, but the
+  approved picture still read the deleted "BUILDING TAKEN". Only the
+  callout's words changed.
+- **Gates.** The probe against this branch's head before the labs: every
+  single-host and other-scene case identical; only the two contested demos
+  moved. The garrison, transport, cursor and UI scenes pass. Before and after
+  (`throwaway/shared-hosts/shots-07/cmp/`): the scripted transport board
+  shot is identical; the garrison and controls shots differ only where the
+  cast, the staging and the legend changed.
+- **Critique.** The unprimed critique's first finding is real and comes from
+  sharing: two squads in one house anchor their info cards at the same
+  spot, so the second rifle squad's card lies hidden under the first (its
+  strength bar peeks out). Panel placement is outside the labs' scope; it
+  needs its own fix before close. Also from it: the hovered squad's cyan ring
+  had no legend entry (added). Its other findings predate this slice or are
+  intended: callouts under the lab panel, washed out in smoke or over the
+  fireball, a leader line through a callout's text, rounds drawn as thick
+  bars, translucent cards over the roof, and selected or own soldiers behind
+  the house drawn as the x-ray silhouettes on the roof by design.
+- **Human review** was shown non-blocking and got no reply; closed and
+  continued on the evidence.
