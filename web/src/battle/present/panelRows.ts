@@ -509,7 +509,8 @@ export interface Panel {
   /** Living members, including wounded soldiers; absent without known personnel. */
   personnel?: number;
   /** A mark before the name (under `assets/icons/`): an unidentified
-   *  report's; null for a known type. */
+   *  report's, or the seat mark of a squad bought aboard a carrier; null
+   *  otherwise. */
   mark: string | null;
   /** The player that owns an ally's unit, as its panel names it ("BLUE 2 ·
    *  AI", `allyOwners`); absent on the player's own and the enemy's. */
@@ -575,6 +576,28 @@ export function arrivingUnit(catalog: SessionCatalog, kind: string): OwnUnitView
     protection: protection ? { charges: protection.capacity, cooldown: null } : null,
     smoke: t.capabilities.smoke?.capacity ?? null,
   } as OwnUnitView;
+}
+
+/** The panels of a squad bought in a carrier, as the two arrive: the
+ *  carrier's with the squad in its seats, and the squad's, riding inside,
+ *  with the deck's seat mark before its name. Both cards are unit types. */
+export function purchasePairPanels(
+  catalog: SessionCatalog,
+  squad: UnitCard,
+  carrier: UnitCard,
+  rules: PanelRules,
+): { carrier: Panel; squad: Panel } {
+  const ride = arrivingUnit(catalog, carrier.id);
+  const rider: OwnUnitView = {
+    ...arrivingUnit(catalog, squad.id),
+    id: ride.id + 1,
+    hold: { host: { kind: "carrier", id: ride.id }, phase: "inside", progress: 1 },
+  };
+  const own = [ride, rider];
+  return {
+    carrier: ownPanel(catalog.units, ride, own, rules),
+    squad: { ...ownPanel(catalog.units, rider, own, rules), mark: stateIcon("seats") },
+  };
 }
 
 /** A purchase card's panel: its unit's own, as it arrives; or, for a card

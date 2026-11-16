@@ -1,7 +1,8 @@
 // The UI gallery, scripted: every shot the gallery lists, drawn alone at
 // 1280×800 and matched against its approved picture, with no panel's
 // content outside the panel; the reinforcements picker on its groups and
-// with a card's info card open; the Armory on fixed content; then every
+// with a card's info card open; a squad's transport menu with a ride
+// pointed at; the Armory on fixed content; then every
 // main-menu page. The panel workbench (`panels.mjs`) pins the info panels and
 // the deck, and the cursor lab (`cursor.mjs`) the cursor.
 import { pointerAway } from "./_baseline.mjs";
@@ -293,6 +294,65 @@ async function picker(ctx, page, shot) {
   }
 }
 
+/** A squad's transport menu with a ride pointed at: the menu stands on the
+ *  squad's card, every option is the shop's own card, and the ride's info
+ *  stack (its card, the squad's aboard, the total) stands on the whole menu
+ *  at the ride's left edge, inside the window. */
+async function transport(ctx, page, shot) {
+  await page.getByRole("button", { name: "Reinforcements" }).click();
+  await page.getByRole("tab", { name: "INF", exact: true }).click();
+  const squad = page.getByRole("button", { name: "AT Team Base", exact: true });
+  await squad.hover();
+  const menu = page.getByRole("region", { name: "Transport" });
+  const opened = { info: await page.getByRole("tooltip").count(), menu: await menu.count() };
+  ctx.check(
+    `${shot}: hovering a squad opens its menu with no info card showing`,
+    opened.menu === 1 && opened.info === 0,
+    JSON.stringify(opened),
+  );
+  const ride = menu.getByRole("button", { name: "APC Base", exact: true });
+  await ride.hover();
+  const m = await page.evaluate(() => {
+    const box = (e) => e.getBoundingClientRect();
+    const menu = document.querySelector("[aria-label=Transport]");
+    const info = [...document.querySelectorAll("[role=tooltip]")].map((t) => box(t));
+    const total = box(document.querySelector("[aria-label=Total]"));
+    const stack = info.length
+      ? { top: info[0].top, left: info[0].left, bottom: total.bottom }
+      : null;
+    const card = (e) => [Math.round(e.offsetWidth), Math.round(e.offsetHeight)];
+    return {
+      menu: box(menu),
+      squad: box(document.querySelector('.hud-purchase-cards [aria-label="AT Team Base"]')),
+      ride: box(menu.querySelector('[aria-label="APC Base"]')),
+      stack,
+      cards: [...menu.querySelectorAll("button")].map(card),
+      deck: card(document.querySelector(".hud-army .hud-army-card")),
+    };
+  });
+  ctx.check(
+    `${shot}: the menu stands on its squad's card, a few pixels clear`,
+    m.squad.top - m.menu.bottom >= 0 && m.squad.top - m.menu.bottom <= 6,
+    JSON.stringify({ menu: m.menu, squad: m.squad }),
+  );
+  ctx.check(
+    `${shot}: every option is the army's card, at its size`,
+    m.cards.length > 2 && m.cards.every(([w, h]) => w === m.deck[0] && h === m.deck[1]),
+    JSON.stringify({ deck: m.deck, cards: m.cards }),
+  );
+  ctx.check(
+    `${shot}: the ride's info stands on the whole menu at the ride's left edge, inside the window`,
+    m.stack !== null &&
+      m.menu.top - m.stack.bottom >= 0 &&
+      m.menu.top - m.stack.bottom <= 6 &&
+      Math.abs(m.stack.left - m.ride.left) < 0.5 &&
+      m.stack.top >= 0,
+    JSON.stringify({ stack: m.stack, menu: m.menu, ride: m.ride }),
+  );
+  await contained(ctx, page, shot);
+  await ctx.matchBaseline(page, shot);
+}
+
 export async function run(ctx) {
   const page = await ctx.newPage({ viewport: { width: 1280, height: 800 } });
   await page.addInitScript(() => {
@@ -320,6 +380,10 @@ export async function run(ctx) {
     await pointerAway(page);
     if (shot.startsWith("purchase")) {
       await picker(ctx, page, shot);
+      continue;
+    }
+    if (shot === "transport-menu") {
+      await transport(ctx, page, shot);
       continue;
     }
     await contained(ctx, page, shot);
