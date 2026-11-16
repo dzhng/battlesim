@@ -116,8 +116,12 @@ pub enum Order {
     CancelPending {
         purchase: crate::skirmish::PurchaseId,
     },
+    /// Buy `variant`; with `carrier`, buy that carrier too, as one purchase
+    /// whose squad arrives aboard it.
     ConfirmPurchase {
         variant: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        carrier: Option<String>,
         destination: [f64; 2],
     },
     Move {
@@ -233,6 +237,17 @@ pub struct CommandEnvelope {
     /// Shift: append to the queue instead of replacing it.
     #[serde(default)]
     pub queued: bool,
+}
+
+impl Order {
+    /// Buy `variant` on its own, with no carrier.
+    pub fn purchase(variant: impl Into<String>, destination: [f64; 2]) -> Self {
+        Self::ConfirmPurchase {
+            variant: variant.into(),
+            carrier: None,
+            destination,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

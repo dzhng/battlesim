@@ -29,6 +29,7 @@ impl Reader {
             confirmed_tick: v!(f, "confirmedLo") + v!(f, "confirmedHi") * LIMB,
             blocked: v!(f, "blocked") != 0.0,
             arrival_tick: v!(f, "arrivalLo") + v!(f, "arrivalHi") * LIMB,
+            carrier: self.optional("unitKinds", v!(f, "carrier"))?,
         })
     }
 

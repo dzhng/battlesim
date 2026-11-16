@@ -32,6 +32,7 @@ use crate::ground::GroundRunPatch;
 mod crash_row;
 mod layout;
 mod packing;
+mod pending_row;
 pub mod reader;
 mod report_row;
 mod smoke;
@@ -41,6 +42,7 @@ use crash_row::{crash_row, CRASH_FIELDS};
 pub use layout::layout_json;
 use layout::pose;
 use packing::{pack_ground, PackedCount, PackedSink, PackedWriter};
+use pending_row::{pending_row, PENDING_FIELDS};
 use report_row::{report_event_row, REPORT_EVENT_FIELDS};
 pub use smoke::smoke_looks;
 use smoke::{smoke_cloud_row, SMOKE_CLOUD_FIELDS};
@@ -149,19 +151,6 @@ const OBJECTIVE_FIELDS: [&str; 8] = [
     "capturing",
     "captureProgress",
     "contested",
-];
-const PENDING_FIELDS: [&str; 11] = [
-    "idLo",
-    "idHi",
-    "owner",
-    "kind",
-    "x",
-    "y",
-    "confirmedLo",
-    "confirmedHi",
-    "blocked",
-    "arrivalLo",
-    "arrivalHi",
 ];
 const GROUND_FIELDS: [&str; 4] = ["tile", "span", "craterScorch", "tracksTrampledCleared"];
 const CONTACT_FIELDS: [&str; 16] = [
@@ -1173,32 +1162,7 @@ fn pack_record(
     if let Some(skirmish) = &frame.skirmish {
         for player in &skirmish.players {
             for p in &player.pending {
-                let [lo, hi] = limbs(p.id.0);
-                let [tick_lo, tick_hi] = limbs(
-                    p.confirmed_tick
-                        .try_into()
-                        .map_err(|_| "purchase tick exceeds publication range")?,
-                );
-                // An aircraft's arrival tick, 0 for a purchase that doesn't wait.
-                let [arrival_lo, arrival_hi] = limbs(
-                    p.arrival_tick
-                        .unwrap_or(0)
-                        .try_into()
-                        .map_err(|_| "arrival tick exceeds publication range")?,
-                );
-                out.extend([
-                    lo,
-                    hi,
-                    f32::from(player.index.0),
-                    p.kind.0 as f32,
-                    p.destination[0] as f32,
-                    p.destination[1] as f32,
-                    tick_lo,
-                    tick_hi,
-                    p.blocked as u8 as f32,
-                    arrival_lo,
-                    arrival_hi,
-                ]);
+                out.extend(pending_row(player.index, p)?);
             }
         }
     }

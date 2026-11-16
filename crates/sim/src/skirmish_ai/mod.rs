@@ -12,6 +12,7 @@ use std::collections::BTreeMap;
 mod artillery;
 mod capability;
 mod purchase;
+use purchase::lane_purchase_destination;
 mod relocation;
 mod smoke;
 pub mod team;
@@ -437,7 +438,11 @@ impl BalancedDoctrine {
         };
         let count = |kind: TypeIndex| {
             frame.own.iter().filter(|u| u.kind == kind).count()
-                + me.pending.iter().filter(|p| p.kind == kind).count()
+                + me.pending
+                    .iter()
+                    .flat_map(|p| p.kinds())
+                    .filter(|&k| k == kind)
+                    .count()
         };
         let low_air_demand = frame_has_layer_threat(frame, rules, AltitudeLayer::LowAir);
         let high_air_demand = frame_has_layer_threat(frame, rules, AltitudeLayer::HighAir);
@@ -568,10 +573,8 @@ impl BalancedDoctrine {
                         .own
                         .iter()
                         .any(|u| rules.catalog.get(u.kind).has_role("logistics"))
-                    && !me
-                        .pending
-                        .iter()
-                        .any(|p| rules.catalog.get(p.kind).has_role("logistics"))
+                    && !(me.pending.iter().flat_map(|p| p.kinds()))
+                        .any(|k| rules.catalog.get(k).has_role("logistics"))
                 {
                     truck.filter(|&k| f64::from(rules.catalog.get(k).cost) <= me.credits)
                 } else {
@@ -606,7 +609,7 @@ impl BalancedDoctrine {
                             .own
                             .iter()
                             .map(|u| u.kind)
-                            .chain(me.pending.iter().map(|p| p.kind)),
+                            .chain(me.pending.iter().flat_map(|p| p.kinds())),
                     ) {
                         // One carrier per squad comes before the rotation,
                         // and is saved for like its next role: a lost
@@ -669,10 +672,7 @@ impl BalancedDoctrine {
                     .map_or(entry.center, |o| o.center)
             };
             bought.push(destination);
-            orders.push(Order::ConfirmPurchase {
-                variant: rules.catalog.id(kind).into(),
-                destination,
-            });
+            orders.push(Order::purchase(rules.catalog.id(kind), destination));
         }
         if view.phase == Phase::Active {
             let carries =
@@ -1224,30 +1224,6 @@ fn recon_post(
     [
         objective[0] - dx / approach * standoff,
         objective[1] - dy / approach * standoff,
-    ]
-}
-
-/// A ground purchase's lane reservation: follow the entry road heading a
-/// short distance, capped before the staging point.  The lane entry remains
-/// the route owner's nearest choice, but the arriving unit is clear of its
-/// footprint.
-pub(crate) fn lane_purchase_destination(
-    entry: &EntrySite,
-    staging: [f64; 2],
-    advance_m: f64,
-) -> [f64; 2] {
-    let span = distance(entry.center, staging);
-    let advance = advance_m.max(0.0).min(span * 0.5);
-    let toward = [staging[0] - entry.center[0], staging[1] - entry.center[1]];
-    let road = [libm::cos(entry.yaw), libm::sin(entry.yaw)];
-    let heading = if road[0] * toward[0] + road[1] * toward[1] >= 0.0 {
-        road
-    } else {
-        [-road[0], -road[1]]
-    };
-    [
-        entry.center[0] + heading[0] * advance,
-        entry.center[1] + heading[1] * advance,
     ]
 }
 

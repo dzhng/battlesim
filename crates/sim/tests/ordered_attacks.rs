@@ -290,10 +290,7 @@ fn a_bought_jet_circles_its_destination_on_a_move() {
     let ack = battle.accept(crate::common::command(
         Side::Blue,
         1,
-        Order::ConfirmPurchase {
-            variant: "test_jet".into(),
-            destination: [400.0, 300.0],
-        },
+        Order::purchase("test_jet", [400.0, 300.0]),
     ));
     assert_eq!(ack.error, None);
     battle.accept(crate::common::command(Side::Blue, 2, Order::Ready));

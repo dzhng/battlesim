@@ -21,7 +21,7 @@ fn a_purchase_preview_spreads_a_squad_round_its_destination_and_a_hull_stands_al
     );
     let mut battle = Battle::new(&match_on(rules), 1);
     let squad = battle
-        .preview_purchase(Side::Blue, "test_rifle", [400.0, 300.0])
+        .preview_purchase(Side::Blue, "test_rifle", None, [400.0, 300.0])
         .unwrap();
     let slots = battle
         .rules()
@@ -41,7 +41,7 @@ fn a_purchase_preview_spreads_a_squad_round_its_destination_and_a_hull_stands_al
         .iter()
         .all(|s| (s[0] - 400.0).hypot(s[1] - 300.0) < 15.0));
     let tank = battle
-        .preview_purchase(Side::Blue, "test_tank", [400.0, 300.0])
+        .preview_purchase(Side::Blue, "test_tank", None, [400.0, 300.0])
         .unwrap();
     assert!(tank.spots.is_empty(), "a vehicle stands as one body");
 }
@@ -60,7 +60,7 @@ fn a_purchase_ghost_keeps_its_shape_as_the_cursor_moves_over_open_ground() {
     let mut battle = Battle::new(&match_on(rules), 1);
     let shape = |battle: &mut Battle, at: [f64; 2]| -> Vec<(i64, i64)> {
         battle
-            .preview_purchase(Side::Blue, "test_rifle", at)
+            .preview_purchase(Side::Blue, "test_rifle", None, at)
             .unwrap()
             .spots
             .iter()
@@ -93,20 +93,17 @@ fn a_purchase_preview_names_the_area_its_squad_holds_once_it_arrives() {
     );
     let mut battle = Battle::new(&match_on(rules), 1);
     let preview = battle
-        .preview_purchase(Side::Blue, "test_rifle", [400.0, 300.0])
+        .preview_purchase(Side::Blue, "test_rifle", None, [400.0, 300.0])
         .unwrap();
     let radius = preview.area_radius_m.expect("a squad's ghost has an area");
     let tank = battle
-        .preview_purchase(Side::Blue, "test_tank", [400.0, 300.0])
+        .preview_purchase(Side::Blue, "test_tank", None, [400.0, 300.0])
         .unwrap();
     assert_eq!(tank.area_radius_m, None, "a vehicle has no area");
     let ack = battle.accept(command(
         Side::Blue,
         1,
-        Order::ConfirmPurchase {
-            variant: "test_rifle".into(),
-            destination: preview.destination,
-        },
+        Order::purchase("test_rifle", preview.destination),
     ));
     assert_eq!(ack.error, None);
     battle.accept(command(Side::Blue, 2, Order::Ready));

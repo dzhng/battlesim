@@ -189,7 +189,10 @@ view!(PendingPurchase {
     confirmed_tick: f64,
     blocked: bool,
     // The tick a waiting aircraft reaches the map; 0 when it doesn't wait.
-    arrival_tick: f64
+    arrival_tick: f64,
+    // The carrier a squad bought with it arrives aboard.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    carrier: Option<Name>
 });
 view!(Report { totals: Vec<ReportTotals>, events: Vec<ReportEvent> });
 view!(ReportTotals {

@@ -205,6 +205,7 @@ fn seeded_reinforcements_keep_the_wasm_choice_on_native() {
             id: contract::skirmish::PurchaseId(1),
             kind: rules.catalog.index("test_supply").unwrap(),
             entry: 0,
+            carrier: None,
             destination: entry.center,
             confirmed_tick: 0,
             blocked: false,

@@ -2,7 +2,8 @@
 //! within a role, cards are ranked by value per credit against the enemies
 //! the side has identified, the cheaper first on a tie. The air-threat
 //! pivot is the same ranking over the cards its weapon data makes
-//! specialists in the aircraft it answers.
+//! specialists in the aircraft it answers. Where a ground purchase is sent
+//! from its lane's entry is decided here too.
 
 use super::team::{specialized, unit_value, Threat};
 use super::*;
@@ -114,4 +115,28 @@ pub(super) fn best_air_defender(
     }
     rank(rules, &mut cards, Some(&threat));
     cards.first().copied()
+}
+
+/// A ground purchase's lane reservation: follow the entry road heading a
+/// short distance, capped before the staging point.  The lane entry remains
+/// the route owner's nearest choice, but the arriving unit is clear of its
+/// footprint.
+pub(super) fn lane_purchase_destination(
+    entry: &EntrySite,
+    staging: [f64; 2],
+    advance_m: f64,
+) -> [f64; 2] {
+    let span = distance(entry.center, staging);
+    let advance = advance_m.max(0.0).min(span * 0.5);
+    let toward = [staging[0] - entry.center[0], staging[1] - entry.center[1]];
+    let road = [libm::cos(entry.yaw), libm::sin(entry.yaw)];
+    let heading = if road[0] * toward[0] + road[1] * toward[1] >= 0.0 {
+        road
+    } else {
+        [-road[0], -road[1]]
+    };
+    [
+        entry.center[0] + heading[0] * advance,
+        entry.center[1] + heading[1] * advance,
+    ]
 }

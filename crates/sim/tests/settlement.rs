@@ -438,10 +438,7 @@ fn unseen_purchased_kill_changes_wallet_without_enemy_identity_and_replays() {
             &mut battle,
             side,
             1,
-            Order::ConfirmPurchase {
-                variant: "test_tank".into(),
-                destination,
-            },
+            Order::purchase("test_tank", destination),
         );
         send(&mut battle, side, 2, Order::Ready);
     }
