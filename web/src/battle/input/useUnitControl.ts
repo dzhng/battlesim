@@ -290,22 +290,18 @@ export function useUnitControl(
       }
       setMode("move");
       const { queued, ...command } = intent;
-      if (command.kind === "move") {
-        const order =
-          command.route === "fastest"
-            ? { ...command, gesture: gestures.current.token() }
-            : gestures.current.rightClick(
-                pick,
-                command.units,
-                command.goal,
-                command.direction,
-                command.facing,
-              );
-        void issue(order, order.kind === "move" && queued);
-      } else if (command.kind === "attack") {
+      if (command.kind === "attack") {
         void issue(command, queued);
-      } else {
+      } else if (
+        command.kind === "attack_move" ||
+        command.kind === "unload" ||
+        (command.kind === "move" && command.route === "fastest")
+      ) {
         void issue({ ...command, gesture: gestures.current.token() }, queued);
+      } else {
+        // A walk a double right-click can hurry: on ground or to a host.
+        const order = gestures.current.rightClick(pick, command);
+        void issue(order, order.kind !== "upgrade_move" && queued);
       }
     },
     [issue, setMode, intentAt, catalog, player],

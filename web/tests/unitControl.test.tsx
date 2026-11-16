@@ -601,6 +601,8 @@ async function carriers(riders = false) {
   } as unknown as ObservationView;
   const { client, sent } = recordingClient();
   const hook = renderHook(() => useUnitControl(client, observation), { wrapper });
+  // Each click a second after the last unless it says when: never a double.
+  let clock = 0;
   const click = async (pick: Partial<PointerPick>) => {
     await act(async () =>
       hook.result.current.onPointer({
@@ -610,7 +612,7 @@ async function carriers(riders = false) {
         ctrl: false,
         x: 0,
         y: 0,
-        time: 0,
+        time: (clock += 1000),
         ground: [50, 50],
         ...pick,
       }),
@@ -634,6 +636,21 @@ test("right-clicking an own carrier boards the selected squads; right-clicking a
     { order: { kind: "board", units: [1], carrier: 4, gesture: 2 }, queued: true },
     { order: { kind: "collect", units: [4], squads: [5], gesture: 3 }, queued: false },
     { order: { kind: "collect", units: [4], squads: [5], gesture: 4 }, queued: true },
+  ]);
+});
+
+test("a quick second right-click on a carrier or a building hurries the walk the first sent", async () => {
+  const { hook, sent, click } = await carriers();
+  act(() => hook.result.current.setSelected([1, 2]));
+  await click({ unit: 4, time: 10_000 });
+  await click({ unit: 4, time: 10_100 });
+  await click({ building: 9, time: 20_000 });
+  await click({ building: 9, time: 20_100 });
+  expect(sent).toEqual([
+    { order: { kind: "board", units: [1], carrier: 4, gesture: 1 }, queued: false },
+    { order: { kind: "upgrade_move", gesture: 1, route: "fastest" }, queued: false },
+    { order: { kind: "occupy_building", units: [1], building: 9, gesture: 2 }, queued: false },
+    { order: { kind: "upgrade_move", gesture: 2, route: "fastest" }, queued: false },
   ]);
 });
 
