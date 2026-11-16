@@ -24,6 +24,13 @@ lane** (FX3, S6–S9); S6 merges after S2. Run only the domain tests a change re
 the full closeout run happens once, in S10. Before ending a pass, update this section
 and tick the list.
 
+Presentation lane (branch `t3/queue-behind-attack-presentation`): FX3 and S6–S9 are done.
+Left for the integrator, each in its slice file: one fresh browser parity capture (S6; the
+capture's battle is stale on the base commit), the queued-step test behind an attack once
+S2 lands (S6), and decision 17's chain capture in a real skirmish (S9). The scene
+baselines (`unit-roster` and others with the top bar) predate staging's score meter and
+need a person to re-bless them.
+
 - [x] Split `apply_units` / `update_pursuit` out of `battle.rs` (`00e9efe87`)
 - [ ] [FX1](slices/fx1-garrisoned-attack-ends.md) garrisoned attack ends on target death
 - [ ] [FX2](slices/fx2-queued-command-keeps-current.md) a queued command breaks nothing off
