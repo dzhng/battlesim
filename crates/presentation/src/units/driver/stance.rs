@@ -6,9 +6,11 @@ use serde::Deserialize;
 use crate::static_world::ground::water::Wet;
 
 /// `presentation.pose.stance`: what share of men fire lying down or
-/// standing, kneel when pinned, and fall back onto their backs, and how
+/// standing, kneel when pinned, and fall back onto their backs, how
 /// high each posture (standing, kneeling, lying) holds a man's chest over
-/// the ground he stands on, metres.
+/// the ground he stands on, metres, and how long a man who went down stays
+/// down once his squad's engagement goes quiet (`engagement_grace_s`: no
+/// contact, no shot fired or taken, not pinned), seconds.
 #[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct StanceFeel {
@@ -17,6 +19,7 @@ pub struct StanceFeel {
     pub pinned_kneel: f64,
     pub fall_back: f64,
     pub chest_m: [f64; 3],
+    pub engagement_grace_s: f64,
 }
 
 /// Highest first: each holds his chest lower than the one before.
@@ -64,32 +67,44 @@ pub(super) struct Stance {
 }
 
 impl Stance {
-    /// His posture this moment. Out on his `lean` he kneels to fire, pinned
-    /// or not; otherwise, `pinned` or `firing`, he takes his own stance.
-    /// Lying down he can only crawl so fast: `fast`er, he goes crouched. In
-    /// the water he stands `wet` in, he rises until his chest is clear of it.
-    pub(super) fn posture(
+    /// The posture he holds this moment, before how fast he goes or the
+    /// water he stands in. Out on his `lean` he kneels to fire, pinned or
+    /// not; otherwise, `pinned` or `firing`, he takes his own stance; else,
+    /// down and his squad still engaged, he `stays` in the posture he went
+    /// down in, never standing up between bursts.
+    pub(super) fn held(
         self,
         lean: bool,
         pinned: bool,
         firing: bool,
-        fast: bool,
-        wet: impl FnOnce() -> Option<Wet>,
-        feel: &StanceFeel,
+        stays: Option<Posture>,
     ) -> Posture {
-        let held = if lean {
+        if lean {
             Posture::Kneel
         } else if pinned {
             self.pinned
         } else if firing {
             self.firing
         } else {
-            Posture::Stand
-        };
-        let posture = if held == Posture::Prone && fast {
+            stays.unwrap_or(Posture::Stand)
+        }
+    }
+}
+
+impl Posture {
+    /// The posture he takes holding `self`. Lying down he can only crawl so
+    /// fast: `fast`er, he goes crouched. In the water he stands `wet` in, he
+    /// rises until his chest is clear of it.
+    pub(super) fn taken(
+        self,
+        fast: bool,
+        wet: impl FnOnce() -> Option<Wet>,
+        feel: &StanceFeel,
+    ) -> Posture {
+        let posture = if self == Posture::Prone && fast {
             Posture::Kneel
         } else {
-            held
+            self
         };
         posture.above_water(|| wet().map_or(0.0, |w| w.depth_m), &feel.chest_m)
     }

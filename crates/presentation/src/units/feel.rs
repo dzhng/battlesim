@@ -152,6 +152,7 @@ impl PoseFeel {
                 "attitude.fixed_wing.smoothing_s",
                 self.attitude.fixed_wing.smoothing_s,
             ),
+            ("stance.engagement_grace_s", self.stance.engagement_grace_s),
         ] {
             range(
                 &format!("presentation.pose.{name}"),
