@@ -627,3 +627,28 @@ test("control groups lead the deck in key order, read their key, and delete from
   expect(onDeleteGroup).toHaveBeenCalledWith("0");
   expect(view.queryByRole("button", { name: "Delete group 2" })).toBeNull();
 });
+
+test("right-click asks the store for the exact unit, without selecting or centring it", () => {
+  const tank = specimenUnit(TEST_CATALOG, "test_tank", { id: 11 });
+  const onLookup = vi.fn();
+  const onSelect = vi.fn();
+  const onCenter = vi.fn();
+  const view = render(
+    <ArmyDeck
+      state={new Feed({ own: [tank] })}
+      selected={[]}
+      onSelect={onSelect}
+      onCenter={onCenter}
+      onLookup={onLookup}
+      rules={shippedRules as unknown as PanelRules}
+      contactLines={null}
+    />,
+  );
+  const card = view.getByRole("button", { name: "Tank #11" });
+  // The card's own context menu would cover the store.
+  expect(fireEvent.contextMenu(card)).toBe(false);
+  expect(onLookup).toHaveBeenCalledExactlyOnceWith(tank);
+  expect(onSelect).not.toHaveBeenCalled();
+  expect(onCenter).not.toHaveBeenCalled();
+  expect(card.getAttribute("aria-pressed")).toBe("false");
+});

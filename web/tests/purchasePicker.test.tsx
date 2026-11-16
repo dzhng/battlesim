@@ -628,3 +628,108 @@ test("a search down to one squad opens its menu; Up and Down step through it, En
     window.removeEventListener("keydown", camera);
   }
 });
+
+test("a unit card's lookup opens on that exact variant, with its info card", () => {
+  const choose = vi.fn();
+  const view = render(
+    <PurchasePicker
+      cards={[BASE, TROPHY]}
+      faction="us"
+      match={match}
+      onChoose={choose}
+      rules={RULES}
+      lookup={{ card: "base", serial: 1 }}
+    />,
+  );
+  const field = view.getByRole("textbox", { name: "Search units" }) as HTMLInputElement;
+  expect(field.value).toBe("M1 Abrams SEP v2");
+  // The shop leaves the keyboard to the game; the open card is the next click.
+  expect(document.activeElement).not.toBe(field);
+  expect(view.getByRole("button", { name: "M1 Abrams SEP v2" })).toBeTruthy();
+  expect(view.queryByRole("button", { name: "M1 Abrams SEP v2 Trophy" })).toBeNull();
+  expect(view.getByRole("tooltip", { name: "M1 Abrams SEP v2" })).toBeTruthy();
+  fireEvent.click(view.getByRole("button", { name: "M1 Abrams SEP v2" }));
+  expect(choose).toHaveBeenCalledExactlyOnceWith("base");
+});
+
+test("a lookup is one shot: closing it and opening the shop starts fresh", () => {
+  const view = render(
+    <PurchasePicker
+      cards={[BASE]}
+      faction="us"
+      match={match}
+      onChoose={vi.fn()}
+      rules={RULES}
+      lookup={{ card: "base", serial: 1 }}
+    />,
+  );
+  const toggle = view.getByRole("button", { name: "Reinforcements" });
+  fireEvent.click(toggle);
+  expect(view.queryByRole("textbox", { name: "Search units" })).toBeNull();
+  fireEvent.click(toggle);
+  expect(view.getByRole("tab", { name: tab("rec") }).getAttribute("aria-selected")).toBe("true");
+  expect((view.getByRole("textbox", { name: "Search units" }) as HTMLInputElement).value).toBe("");
+});
+
+test("a second lookup moves the open store to the new exact card", () => {
+  const view = render(
+    <PurchasePicker
+      cards={[BASE, TROPHY]}
+      faction="us"
+      match={match}
+      onChoose={vi.fn()}
+      rules={RULES}
+      lookup={{ card: "base", serial: 1 }}
+    />,
+  );
+  const field = () => view.getByRole("textbox", { name: "Search units" }) as HTMLInputElement;
+  expect(field().value).toBe("M1 Abrams SEP v2");
+  view.rerender(
+    <PurchasePicker
+      cards={[BASE, TROPHY]}
+      faction="us"
+      match={match}
+      onChoose={vi.fn()}
+      rules={RULES}
+      lookup={{ card: "trophy", serial: 2 }}
+    />,
+  );
+  expect(field().value).toBe("M1 Abrams SEP v2 Trophy");
+  expect(view.getByRole("tooltip", { name: "M1 Abrams SEP v2 Trophy" })).toBeTruthy();
+});
+
+test("a taken lookup is cleared, so a remount cannot replay it", () => {
+  const props = {
+    cards: [BASE],
+    faction: "us" as const,
+    match,
+    onChoose: vi.fn(),
+    rules: RULES,
+  };
+  const handled = vi.fn();
+  const view = render(
+    <PurchasePicker {...props} lookup={{ card: "base", serial: 1 }} onLookupHandled={handled} />,
+  );
+  expect(handled).toHaveBeenCalledOnce();
+  expect(view.getByRole("textbox", { name: "Search units" })).toBeTruthy();
+  view.unmount();
+  const remounted = render(<PurchasePicker {...props} lookup={null} />);
+  expect(remounted.queryByRole("textbox", { name: "Search units" })).toBeNull();
+});
+
+test("a squad lookup opens its transport menu on the exact squad", () => {
+  const view = render(
+    <PurchasePicker
+      cards={[RIFLES, APC]}
+      faction="us"
+      match={match}
+      onChoose={vi.fn()}
+      rules={RULES}
+      lookup={{ card: "test_rifle", serial: 1 }}
+    />,
+  );
+  expect(view.getByRole("button", { name: "Rifles Base" })).toBeTruthy();
+  expect(view.getByRole("region", { name: "Transport" })).toBeTruthy();
+  expect(view.getByRole("group", { name: "On foot" })).toBeTruthy();
+  expect(view.queryByRole("tooltip")).toBeNull();
+});
