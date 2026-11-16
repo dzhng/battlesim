@@ -48,10 +48,7 @@ fn multi_entry_purchases_use_their_route_owner() {
             side,
             player: Some(player.into()),
             seq,
-            order: Order::ConfirmPurchase {
-                variant: "test_tank".into(),
-                destination,
-            },
+            order: Order::purchase("test_tank", destination),
             queued: false,
         })
     };
@@ -89,10 +86,7 @@ fn a_returning_unit_reselects_the_nearest_entry_after_moving() {
         side: Side::Blue,
         player: Some("blue-2".into()),
         seq: 1,
-        order: Order::ConfirmPurchase {
-            variant: "test_tank".into(),
-            destination: [100.0, 50.0],
-        },
+        order: Order::purchase("test_tank", [100.0, 50.0]),
         queued: false,
     });
     assert!(buy.error.is_none());
@@ -294,20 +288,14 @@ fn confirmed_purchases_reserve_credits_and_slots_atomically_during_preparation()
         let ack = battle.accept(command(
             Side::Blue,
             seq,
-            Order::ConfirmPurchase {
-                variant: "test_tank".into(),
-                destination: [400.0, 300.0],
-            },
+            Order::purchase("test_tank", [400.0, 300.0]),
         ));
         assert!(ack.error.is_none(), "{ack:?}");
     }
     let ack = battle.accept(command(
         Side::Blue,
         6,
-        Order::ConfirmPurchase {
-            variant: "test_tank".into(),
-            destination: [400.0, 300.0],
-        },
+        Order::purchase("test_tank", [400.0, 300.0]),
     ));
     assert_eq!(
         ack.error,
@@ -334,10 +322,7 @@ fn cancelling_a_pending_purchase_returns_the_price_and_slot_once() {
         .accept(command(
             Side::Blue,
             1,
-            Order::ConfirmPurchase {
-                variant: "test_tank".into(),
-                destination: [400.0, 300.0]
-            }
+            Order::purchase("test_tank", [400.0, 300.0])
         ))
         .error
         .is_none());
@@ -367,10 +352,7 @@ fn paid_reinforcement_enters_at_base_once_and_moves_to_its_destination() {
         .accept(command(
             Side::Blue,
             1,
-            Order::ConfirmPurchase {
-                variant: "test_tank".into(),
-                destination: [400.0, 300.0]
-            }
+            Order::purchase("test_tank", [400.0, 300.0])
         ))
         .error
         .is_none());
@@ -405,9 +387,12 @@ fn terminal_report_records_spawn_actions_and_spend_for_both_sides() {
     skirmish
         .reserve_at(
             0,
-            common::unit_kind("test_tank"),
+            sim::skirmish::Purchase {
+                kind: common::unit_kind("test_tank"),
+                price: 200,
+                carrier: None,
+            },
             [400.0, 300.0],
-            200,
             (sim::entries::EntryIndex(0), 1),
             0,
         )
@@ -481,9 +466,12 @@ fn view_exposes_each_observed_players_economy_and_hides_the_enemy_side() {
     skirmish
         .reserve_at(
             2,
-            common::unit_kind("test_tank"),
+            sim::skirmish::Purchase {
+                kind: common::unit_kind("test_tank"),
+                price: 200,
+                carrier: None,
+            },
             [400.0, 300.0],
-            200,
             (sim::entries::EntryIndex(0), 7),
             4,
         )
@@ -521,10 +509,7 @@ fn occupied_entry_keeps_the_next_paid_unit_pending_without_overlap() {
             .accept(command(
                 Side::Blue,
                 seq,
-                Order::ConfirmPurchase {
-                    variant: "test_tank".into(),
-                    destination: [400.0, 10.0]
-                }
+                Order::purchase("test_tank", [400.0, 10.0])
             ))
             .error
             .is_none());
@@ -556,10 +541,7 @@ fn packed_match_header_exposes_players_and_pending_counts() {
     battle.accept(command(
         Side::Blue,
         1,
-        Order::ConfirmPurchase {
-            variant: "test_tank".into(),
-            destination: [400.0, 300.0],
-        },
+        Order::purchase("test_tank", [400.0, 300.0]),
     ));
     battle.step();
     let layout: serde_json::Value =
@@ -638,10 +620,7 @@ fn a_purchase_aimed_at_a_blocked_point_is_sent_to_the_nearest_open_ground() {
         let ack = battle.accept(command(
             Side::Blue,
             seq,
-            Order::ConfirmPurchase {
-                variant: variant.into(),
-                destination: [400.0, 300.0],
-            },
+            Order::purchase(variant, [400.0, 300.0]),
         ));
         assert_eq!(ack.error, None, "{variant} is accepted");
     }
@@ -690,14 +669,7 @@ fn purchase_admission_refuses_unavailable_wrong_faction_and_invalid_destination_
     ] {
         assert_eq!(
             battle
-                .accept(command(
-                    side,
-                    seq,
-                    Order::ConfirmPurchase {
-                        variant: variant.into(),
-                        destination
-                    }
-                ))
+                .accept(command(side, seq, Order::purchase(variant, destination)))
                 .error,
             Some(error)
         );
@@ -721,10 +693,7 @@ fn thirty_pending_units_fill_the_cap_even_when_credits_remain() {
             .accept(command(
                 Side::Blue,
                 seq,
-                Order::ConfirmPurchase {
-                    variant: "test_tank".into(),
-                    destination: [400.0, 300.0]
-                }
+                Order::purchase("test_tank", [400.0, 300.0])
             ))
             .error
             .is_none());
@@ -737,10 +706,7 @@ fn thirty_pending_units_fill_the_cap_even_when_credits_remain() {
             .accept(command(
                 Side::Blue,
                 31,
-                Order::ConfirmPurchase {
-                    variant: "test_tank".into(),
-                    destination: [400.0, 300.0]
-                }
+                Order::purchase("test_tank", [400.0, 300.0])
             ))
             .error,
         Some(contract::command::OrderError::UnitLimitReached)
@@ -760,14 +726,7 @@ fn purchase_commands_have_a_paired_native_browser_record() {
     .unwrap();
     let setup = serde_json::from_value(saved["scenario"].clone()).unwrap();
     let commands = [
-        command(
-            Side::Blue,
-            1,
-            Order::ConfirmPurchase {
-                variant: "test_tank".into(),
-                destination: [400.0, 300.0],
-            },
-        ),
+        command(Side::Blue, 1, Order::purchase("test_tank", [400.0, 300.0])),
         command(Side::Blue, 2, Order::Ready),
         command(Side::Red, 1, Order::Ready),
     ];
@@ -1098,10 +1057,7 @@ fn the_skirmish_ai_procures_artillery_and_replays_its_named_catalog_cutover() {
         .accept(command(
             Side::Blue,
             1,
-            Order::ConfirmPurchase {
-                variant: "test_tank".into(),
-                destination: [400.0, 300.0],
-            },
+            Order::purchase("test_tank", [400.0, 300.0]),
         ))
         .error
         .is_none());
@@ -1168,10 +1124,7 @@ fn a_refund_orders_a_vulnerable_return_and_pays_only_at_base() {
         .accept(command(
             Side::Blue,
             1,
-            Order::ConfirmPurchase {
-                variant: "test_tank".into(),
-                destination: [400.0, 150.0]
-            }
+            Order::purchase("test_tank", [400.0, 150.0])
         ))
         .error
         .is_none());
@@ -1236,10 +1189,7 @@ fn a_new_order_cancels_withdrawal_without_a_refund() {
     battle.accept(command(
         Side::Blue,
         1,
-        Order::ConfirmPurchase {
-            variant: "test_tank".into(),
-            destination: [400.0, 150.0],
-        },
+        Order::purchase("test_tank", [400.0, 150.0]),
     ));
     for (side, seq) in [(Side::Blue, 2), (Side::Red, 1)] {
         battle.accept(command(side, seq, Order::Ready));
@@ -1280,14 +1230,7 @@ fn a_destroyed_withdrawing_unit_never_refunds_or_retires() {
     let mut battle = Battle::new(&setup, 7);
     for (side, destination) in [(Side::Blue, [400.0, 150.0]), (Side::Red, [400.0, 110.0])] {
         assert!(battle
-            .accept(command(
-                side,
-                1,
-                Order::ConfirmPurchase {
-                    variant: "test_tank".into(),
-                    destination
-                }
-            ))
+            .accept(command(side, 1, Order::purchase("test_tank", destination)))
             .error
             .is_none());
         battle.accept(command(side, 2, Order::Ready));
@@ -1376,10 +1319,7 @@ fn changing_the_return_route_cancels_withdrawal_without_a_refund() {
     battle.accept(command(
         Side::Blue,
         1,
-        Order::ConfirmPurchase {
-            variant: "test_tank".into(),
-            destination: [400.0, 150.0],
-        },
+        Order::purchase("test_tank", [400.0, 150.0]),
     ));
     for (side, seq) in [(Side::Blue, 2), (Side::Red, 1)] {
         battle.accept(command(side, seq, Order::Ready));
@@ -1416,10 +1356,7 @@ fn an_occupied_base_keeps_the_returning_unit_and_its_slot_without_payment() {
     battle.accept(command(
         Side::Blue,
         1,
-        Order::ConfirmPurchase {
-            variant: "test_tank".into(),
-            destination: [400.0, 150.0],
-        },
+        Order::purchase("test_tank", [400.0, 150.0]),
     ));
     for (side, seq) in [(Side::Blue, 2), (Side::Red, 1)] {
         battle.accept(command(side, seq, Order::Ready));
@@ -1431,10 +1368,7 @@ fn an_occupied_base_keeps_the_returning_unit_and_its_slot_without_payment() {
     battle.accept(command(
         Side::Blue,
         3,
-        Order::ConfirmPurchase {
-            variant: "test_tank".into(),
-            destination: [400.0, 10.0],
-        },
+        Order::purchase("test_tank", [400.0, 10.0]),
     ));
     for _ in 0..60 {
         battle.step();
@@ -1501,10 +1435,7 @@ fn bought(battle: &mut Battle, purchases: &[(&str, [f64; 2])]) -> u64 {
         let ack = battle.accept(command(
             Side::Blue,
             seq as u64 + 1,
-            Order::ConfirmPurchase {
-                variant: (*variant).into(),
-                destination: *destination,
-            },
+            Order::purchase(*variant, *destination),
         ));
         assert!(ack.error.is_none(), "{variant}: {ack:?}");
     }
@@ -1692,15 +1623,12 @@ fn a_helicopter_the_player_buys_enters_and_flies_to_its_destination() {
     } } }));
     let mut battle = Battle::new(&match_on(rules), 1);
     battle
-        .preview_purchase(Side::Blue, "blue_test_heli", [400.0, 300.0])
+        .preview_purchase(Side::Blue, "blue_test_heli", None, [400.0, 300.0])
         .unwrap();
     let ack = battle.accept(command(
         Side::Blue,
         1,
-        Order::ConfirmPurchase {
-            variant: "blue_test_heli".into(),
-            destination: [400.0, 300.0],
-        },
+        Order::purchase("blue_test_heli", [400.0, 300.0]),
     ));
     assert!(ack.error.is_none(), "{ack:?}");
     battle.accept(command(Side::Blue, 2, Order::Ready));
@@ -1727,10 +1655,7 @@ fn inbound_transit_is_published_to_its_own_side_only() {
     battle.accept(command(
         Side::Blue,
         1,
-        Order::ConfirmPurchase {
-            variant: "test_jet".into(),
-            destination: [300.0, 300.0],
-        },
+        Order::purchase("test_jet", [300.0, 300.0]),
     ));
     battle.accept(command(Side::Blue, 2, Order::Ready));
     battle.accept(command(Side::Red, 1, Order::Ready));
@@ -1755,10 +1680,7 @@ fn an_inbound_transit_is_published_through_the_whole_delay() {
     battle.accept(command(
         Side::Blue,
         1,
-        Order::ConfirmPurchase {
-            variant: "test_jet".into(),
-            destination: [300.0, 300.0],
-        },
+        Order::purchase("test_jet", [300.0, 300.0]),
     ));
     battle.accept(command(Side::Blue, 2, Order::Ready));
     battle.accept(command(Side::Red, 1, Order::Ready));
@@ -1810,10 +1732,7 @@ fn nothing_senses_or_targets_a_jet_before_it_arrives() {
         .accept(command(
             Side::Blue,
             1,
-            Order::ConfirmPurchase {
-                variant: "test_jet".into(),
-                destination: [300.0, 300.0],
-            },
+            Order::purchase("test_jet", [300.0, 300.0]),
         ))
         .error
         .is_none());
@@ -1846,10 +1765,7 @@ fn withdrawal_retires_and_refunds_on_crossing_the_nearest_back_edge_point() {
         .accept(command(
             Side::Blue,
             1,
-            Order::ConfirmPurchase {
-                variant: "test_jet".into(),
-                destination: [300.0, 300.0],
-            },
+            Order::purchase("test_jet", [300.0, 300.0]),
         ))
         .error
         .is_none());
@@ -1884,10 +1800,7 @@ fn fuel_return_uses_the_edge_distance() {
         battle.accept(command(
             Side::Blue,
             1,
-            Order::ConfirmPurchase {
-                variant: "test_jet".into(),
-                destination,
-            },
+            Order::purchase("test_jet", destination),
         ));
         battle.accept(command(Side::Blue, 2, Order::Ready));
         battle.accept(command(Side::Red, 1, Order::Ready));
@@ -1957,10 +1870,7 @@ fn air_ingress_jet_returns_through_west_edge_and_refunds_its_owner() {
                 .accept(command(
                     Side::Blue,
                     seq,
-                    Order::ConfirmPurchase {
-                        variant: "f_16c_block_50".into(),
-                        destination
-                    },
+                    Order::purchase("f_16c_block_50", destination),
                 ))
                 .error,
             None

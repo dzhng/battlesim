@@ -167,9 +167,9 @@ const uncovered = () => waitFor(() => expect(screen.queryByTestId("loading")).to
 const stage = () => document.querySelector<HTMLElement>(".armory-stage")!;
 const unit = () => new URLSearchParams(location.search).get("unit");
 const tiles = () =>
-  within(screen.getByRole("region", { name: "Units" }))
-    .getByRole("tabpanel")
-    .querySelectorAll<HTMLButtonElement>("button[data-family]");
+  within(within(screen.getByRole("region", { name: "Units" })).getByRole("tabpanel")).getAllByRole(
+    "button",
+  );
 
 test("a stage failure stays on the Armory", async () => {
   stand.failure = new Error("bundle 404: the unit's art");
@@ -179,7 +179,7 @@ test("a stage failure stays on the Armory", async () => {
   expect(alert.textContent).toContain("bundle 404: the unit's art");
   expect(appResources.error()).toBeNull();
   // The list and the sheet still answer: another pick opens its sheet.
-  const other = [...tiles()].find((t) => t.getAttribute("aria-pressed") !== "true")!;
+  const other = tiles().find((t) => t.getAttribute("aria-pressed") !== "true")!;
   stand.failure = null;
   await act(async () => fireEvent.click(other));
   expect(unit()).not.toBe(typed[0].id);
@@ -233,14 +233,16 @@ test("a planned card never asks for a unit's art", async () => {
   await waitFor(() => expect(stand.shown).toEqual([null]));
   expect(stand.kinds).toEqual([null]);
   // A typed tile in the planned card's tab: its art is asked for.
-  const typedTile = [...tiles()].find((t) => !t.classList.contains("unavailable"));
-  expect(typedTile, "a typed family beside the planned one").toBeDefined();
+  const typedTile = tiles().find((t) =>
+    GAME.units.cards.some((c) => c.name === t.getAttribute("aria-label") && GAME.units.has(c.id)),
+  );
+  expect(typedTile, "a typed card beside the planned one").toBeDefined();
   await act(async () => fireEvent.click(typedTile!));
   await waitFor(() => expect(stand.shown).toHaveLength(2));
   expect(stand.kinds.at(-1)).toBe(stand.shown.at(-1));
   const asked = stand.asked;
   // Back to the planned card: the yard stands empty, and nothing is asked.
-  const plannedTile = [...tiles()].find((t) => t.dataset.family === planned.family)!;
+  const plannedTile = tiles().find((t) => t.getAttribute("aria-label") === planned.name)!;
   await act(async () => fireEvent.click(plannedTile));
   await waitFor(() => expect(stand.shown.at(-1)).toBeNull());
   expect(stand.asked).toBe(asked);

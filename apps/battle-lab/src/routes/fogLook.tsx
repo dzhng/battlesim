@@ -50,7 +50,7 @@ function contactRadius(units: UnitCatalog, kind: string): number {
   const m = shippedRules.infantry_movement;
   const footprint = hull
     ? Math.hypot(hull.half_extents_m[0], hull.half_extents_m[1])
-    : (m.spread_m * Math.sqrt(units.slots(kind).length / m.spread_squad_size)) / 2 +
+    : (m.spread_m * Math.sqrt(units.squadSize(kind) / m.spread_squad_size)) / 2 +
       shippedRules.physics.soldier_radius_m;
   return shippedRules.sensors.contact_radius_factor * footprint;
 }

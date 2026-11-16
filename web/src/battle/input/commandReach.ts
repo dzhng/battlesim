@@ -35,10 +35,9 @@ const CAN: Record<
   /** Infantry ride carriers, as they garrison buildings. */
   board: (u, units) => units.isInfantry(u.kind),
   /** Its type has seats. */
-  collect: (u, units) => !!units.type(u.kind).capabilities.carriage,
+  collect: (u, units) => units.seats(u.kind) > 0,
   /** It has seats and someone in them. */
-  unload: (u, units, own) =>
-    !!units.type(u.kind).capabilities.carriage && passengersOf(own, u.id).length > 0,
+  unload: (u, units, own) => units.seats(u.kind) > 0 && passengersOf(own, u.id).length > 0,
 };
 
 /** The units of `selection` that `command` reaches, in selection order.
