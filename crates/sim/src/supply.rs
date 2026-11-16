@@ -61,8 +61,7 @@ enum Need {
 }
 
 /// What the recipient needs next, in service order. `room`: a replacement
-/// soldier has somewhere to stand (a squad holding a building needs a free
-/// facade slot for him).
+/// soldier has a seat in the squad's host, if it has one.
 fn need(unit: &Unit, room: bool, arsenal: &Arsenal, rules: &Rules) -> Option<Need> {
     let specs = arsenal.specs(unit.kind);
     for (m, mount) in unit.mounts.iter().enumerate() {
@@ -192,7 +191,9 @@ pub fn service(
             } else if fired.contains(&unit.id) || weapons::engaged(unit) {
                 ServiceStatus::Firing
             } else {
-                let room = !unit.garrisoned() || windows.free_seat(unit).is_some();
+                let room = unit.hold.as_ref().is_none_or(|hold| {
+                    crate::hold::Seats::of(world, units, hold.host, windows, rules).free() > 0
+                });
                 match need(unit, room, arsenal, rules) {
                     None => ServiceStatus::Full,
                     Some(item) => {
@@ -276,11 +277,11 @@ fn serve(
         }
         Need::Soldier => {
             // A new soldier (new id) joins his squad where it fights: at a
-            // free facade slot while it holds a building
+            // window nobody holds while it holds a building
             // (`Windows::free_seat`), else at the free spot nearest the
             // squad's middle, spaced from his squadmates. The fallen one's
             // record stays where it lies.
-            let seat = windows.free_seat(&units[r]);
+            let seat = windows.free_seat(units, r);
             let unit = &mut units[r];
             let at = match seat {
                 Some((_, p)) => p,

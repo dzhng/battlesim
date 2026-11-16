@@ -165,6 +165,11 @@ impl Seats {
         }
         seats
     }
+
+    /// Seats nobody on the host takes, stepping out included.
+    pub(crate) fn free(&self) -> usize {
+        self.total.saturating_sub(self.staying + self.leaving)
+    }
 }
 
 /// Refuse at the command, one by one, every squad in `squads` bigger than a

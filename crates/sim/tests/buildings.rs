@@ -878,40 +878,6 @@ fn tall_buildings_leave_a_terminal_ungarrisonable_shell() {
 }
 
 #[test]
-fn a_squad_reinforced_during_entry_never_enters_only_partly_seated() {
-    let mut setup = compound_setup(json!([]));
-    setup.rules.buildings.capacity_soldiers = 7;
-    setup.rules.garrison.enter_exit_s = 15.0;
-    setup.rules.service.soldier_replacement_s = 0.1;
-    setup.units = serde_json::from_value(json!([
-        {"side":"blue","kind":"test_rifle","position":[380,300],"engagement":"return_fire_only","condition":{"casualties":2}},
-        {"side":"blue","kind":"test_supply","position":[380,330],"engagement":"return_fire_only"}
-    ])).unwrap();
-    let mut b = Battle::new(&setup, 11);
-    crate::common::order(
-        &mut b,
-        Side::Blue,
-        1,
-        contract::command::Order::OccupyBuilding {
-            units: vec![contract::ids::UnitId(0)],
-            building: 0,
-            gesture: 0,
-        },
-    );
-    for _ in 0..1400 {
-        b.step();
-    }
-    let u = b.unit(contract::ids::UnitId(0)).unwrap();
-    assert_eq!(
-        u.members.iter().filter(|m| m.alive()).count(),
-        8,
-        "the truck restored the squad before seating"
-    );
-    assert!(!u.garrisoned(), "the whole reinforced squad no longer fits");
-    assert!(u.orders.is_empty(), "refusal ends the entry attempt");
-}
-
-#[test]
 fn seeing_the_near_part_learns_replacements_beyond_the_eyes_reach() {
     let mut descriptor: contract::templates::BuildingTemplateDescriptor = serde_json::from_str(
         include_str!("../../../fixtures/parity/templates/asymmetric.json"),

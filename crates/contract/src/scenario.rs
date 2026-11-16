@@ -487,7 +487,7 @@ pub struct GarrisonRules {
     /// A slot faces a target only if the line to it leaves the facade by more
     /// than this angle, so no outgoing round grazes its own wall.
     pub slot_facing_min_deg: f64,
-    /// A soldier changing windows, and the squadmate he trades with, hold
+    /// A soldier changing windows, and the soldier he trades with, hold
     /// fire this long.
     pub window_swap_s: f64,
     /// A soldier who changed windows keeps his new one at least this long.
