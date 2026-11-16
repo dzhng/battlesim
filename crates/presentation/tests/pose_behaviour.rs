@@ -1,7 +1,8 @@
 //! What a player sees the pose driver do with soldiers, beyond the
 //! browser's vectors: each moves and faces by his own motion, a squad under
-//! fire is never a row of copies, the dying fall from the posture they are
-//! in and lie as they fell, a lean slides out and back, a shot kicks its
+//! fire is never a row of copies, a man down to fire stays down until the
+//! fight goes quiet, the dying fall from the posture they are in and lie as
+//! they fell, a lean slides out and back, a shot kicks its
 //! shooter back about his waist (and the drawn muzzle rides it), a paused
 //! clock holds, and the corpse cap gives way oldest first. Driven by
 //! synthetic feed frames over the fixture's real appearances and pose feel.
@@ -173,6 +174,107 @@ fn a_squad_under_fire_is_never_a_row_of_copies_and_each_man_falls_from_his_postu
     assert!(lain.soldiers.is_empty());
     let lying: BTreeSet<_> = lain.corpses.iter().map(|c| c.soldier as u32).collect();
     assert_eq!(lying, (1..=8).collect());
+}
+
+/// Down to fire, a man stays down through the pauses between bursts while
+/// his squad is engaged, never standing up between them; a man who fires
+/// standing lowers his weapon in each pause. Once the fight has gone quiet
+/// for the engagement grace, the men who were down stand.
+#[test]
+fn down_to_fire_he_stays_down_through_the_bursts_until_the_engagement_is_over() {
+    let units = units();
+    let none = fallen(&[]);
+    let hold = units.lean_hold;
+    let grace = feel(&units, "/stance/engagement_grace_s");
+    let mut driver = PoseDriver::new(&units).unwrap();
+    let ids: Vec<f64> = (1..=8).map(f64::from).collect();
+    let mut at = |time: f64, shots: f64, engaged: bool| {
+        let men = ids
+            .iter()
+            .map(|&id| man(id, id * 2.0, 0.0, shots))
+            .collect();
+        let mut unit = squad(men, false);
+        unit.mounts[0].shots = shots;
+        unit.engaged = engaged;
+        let poses = driver.update(&frame(time, vec![unit], &none), &units, None);
+        ids.iter().map(|&id| clip_of(poses, id)).collect::<Vec<_>>()
+    };
+    at(0.0, 0.0, true);
+    // A burst every `period`, its pause longer than the firing pose's hold.
+    let period = hold + 1.0;
+    let first = at(0.1, 1.0, true);
+    let down: Vec<bool> = first
+        .iter()
+        .map(|c| c == "kneel_fire" || c == "prone_pinned")
+        .collect();
+    assert!(down.iter().any(|&d| d), "some fire down: {first:?}");
+    assert!(down.iter().any(|&d| !d), "some fire standing: {first:?}");
+    let mut shots = 1.0;
+    let mut time = 0.1;
+    let mut lowered = false;
+    for burst in 1..=4 {
+        let next = 0.1 + period * f64::from(burst);
+        while time + 0.1 < next {
+            time += 0.1;
+            let clips = at(time, shots, true);
+            for ((clip, was), &d) in clips.iter().zip(&first).zip(&down) {
+                if d {
+                    assert_eq!(clip, was, "at {time:.1} s, between bursts, he stays down");
+                }
+            }
+            lowered |= clips.iter().zip(&down).any(|(c, &d)| !d && c == "idle");
+        }
+        shots += 1.0;
+        time = next;
+        assert_eq!(at(time, shots, true), first, "each burst, as the first");
+    }
+    assert!(lowered, "standing, he lowers his weapon in the pauses");
+    // The fight goes quiet: no shot, no contact. Down within the grace...
+    let quiet = time;
+    let clips = at(quiet + grace - 0.1, shots, false);
+    for ((clip, was), &d) in clips.iter().zip(&first).zip(&down) {
+        if d {
+            assert_eq!(clip, was, "within the grace, he stays down");
+        }
+    }
+    // ...and past it, every man is on his feet.
+    let clips = at(quiet + grace + 0.1, shots, false);
+    for clip in &clips {
+        assert!(
+            clip == "idle" || clip == "stand_aim",
+            "the engagement over, he stands: {clips:?}"
+        );
+    }
+}
+
+/// In contact without a shot of its own, a squad that went down stays down.
+#[test]
+fn in_contact_a_squad_that_went_down_stays_down_without_firing() {
+    let units = units();
+    let none = fallen(&[]);
+    let grace = feel(&units, "/stance/engagement_grace_s");
+    let mut driver = PoseDriver::new(&units).unwrap();
+    let ids: Vec<f64> = (1..=8).map(f64::from).collect();
+    let mut at = |time: f64, shots: f64, engaged: bool| {
+        let men = ids
+            .iter()
+            .map(|&id| man(id, id * 2.0, 0.0, shots))
+            .collect();
+        let mut unit = squad(men, false);
+        unit.mounts[0].shots = shots;
+        unit.engaged = engaged;
+        let poses = driver.update(&frame(time, vec![unit], &none), &units, None);
+        ids.iter().map(|&id| clip_of(poses, id)).collect::<Vec<_>>()
+    };
+    at(0.0, 0.0, true);
+    let first = at(0.1, 1.0, true);
+    // Long past the grace after his shot, still in contact: still down.
+    let later = at(0.1 + 3.0 * grace, 1.0, true);
+    for (now, was) in later.iter().zip(&first) {
+        if was == "kneel_fire" || was == "prone_pinned" {
+            assert_eq!(now, was, "in contact, he stays down");
+        }
+    }
 }
 
 #[test]
