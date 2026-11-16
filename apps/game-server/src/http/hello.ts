@@ -1,3 +1,4 @@
+import { sameBuild } from "../../../../packages/multiplayer/src/build.ts";
 import { cleanCallsign } from "../../../../packages/multiplayer/src/callsign.ts";
 import type { BuildIdentity } from "../../../../packages/multiplayer/src/wire.ts";
 
@@ -7,8 +8,7 @@ export function helloRegistry(build: BuildIdentity) {
   const hello = (id: string, value: unknown): { callsign: string } | { refused: string } => {
     if (!value || typeof value !== "object") return { refused: "invalid" };
     const page = value as { build?: BuildIdentity; callsign?: unknown };
-    if (page.build?.commit !== build.commit || page.build?.sim !== build.sim)
-      return { refused: "build" };
+    if (!sameBuild(page.build, build)) return { refused: "build" };
     if (typeof page.callsign !== "string") return { refused: "invalid" };
     const base = cleanCallsign(page.callsign);
     if (!base) return { refused: "callsign" };

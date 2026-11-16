@@ -35,8 +35,11 @@ and promote it, and build the native simulation for the battle server.
    side. Play on an empty server now takes 16 to 52 seconds (it was 57 to
    77). Still owed: the `frontline` and `online-battle` scenes on the
    integrated tree, when the shared GPU lock is free.
-2. **Slice 31,** a build is what both ends share. Without it the live
-   lobby refuses every player after each promotion of the site.
+2. **Slice 31 is in:** a build is what both ends share, and promotion
+   keeps the lobby in step. The site's `server.json` now holds the lobby's
+   address. The lobby must be redeployed once more for this change (its
+   identity changed shape), then only when the simulation, the shared
+   battle documents or the wire change.
 3. **Slice 33,** six-character rooms and one game a device. An
    independent read found seven ways a stranger could misuse the servers;
    the user ruled on 2026-11-16 that an alpha gets one simple limit and
@@ -55,10 +58,11 @@ and promote it, and build the native simulation for the battle server.
 
 **The lobby is live** as the public app `battle-lobby` in the `armata`
 workspace, each battle on its own sandbox. What slice 29 still owes is
-listed at the end of [the slice](slices/29-sandbox-per-battle.md).
-**Redeploy after every commit players should reach:** build the site,
-serve `web/dist`, and run `bun run deploy:server --site <that address>
---push --app battle-lobby --workspace armata`.
+listed at the end of [the slice](slices/29-sandbox-per-battle.md). **To
+deploy it by hand:** build the site (`bun run build:web`), serve `web/dist`
+on this computer, and run `bun run deploy:server --site <that address>
+--push`. Promotion does this by itself when a promoted site and the lobby
+no longer agree.
 
 **Not this plan's, and being handled by another session of the user's:**
 since the staging merge of 2026-11-15, four approved `unit-roster` pictures
@@ -186,7 +190,7 @@ Hosting
 - [x] [28 A battle in its own process](slices/28-battle-process.md)
 - [x] [29 A sandbox for each battle](slices/29-sandbox-per-battle.md) (deployed; open measurements listed in the slice)
 - [x] [30 One machine tries every draw](slices/30-one-machine-every-draw.md) (its two scenes are still owed)
-- [ ] [31 A build is what both ends share](slices/31-a-build-is-what-both-ends-share.md)
+- [x] [31 A build is what both ends share](slices/31-a-build-is-what-both-ends-share.md)
 - [ ] [33 Six-character rooms, one game a device](slices/33-the-servers-face-strangers.md)
 - [ ] [27 Closeout](slices/27-closeout.md)
 

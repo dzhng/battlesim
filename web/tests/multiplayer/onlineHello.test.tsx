@@ -16,6 +16,9 @@ import {
 import { jsonRecord, encodeRecord } from "../../../packages/multiplayer/src/stream/index";
 import type { OnlineBattleEntry } from "../../../apps/battle-lab/src/onlineSession";
 
+// These visits exercise a deliberately unconfigured production page.
+vi.mock("../../../apps/battle-lab/src/online/server.json", () => ({ default: { address: "" } }));
+
 const code = "TANGO-4821";
 afterEach(() => {
   cleanup();

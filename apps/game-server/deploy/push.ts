@@ -1,33 +1,31 @@
 // The temporary host boundary. The runner is injectable; dry runs never invoke it.
 import { execFileSync } from "node:child_process";
-import { readdir, writeFile } from "node:fs/promises";
+import { readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 
 export function describePush(report: (text: string) => void) {
   report(
     "Push is OFF. Would create remote folders, upload the listed files, then create or update and restart the app with services access.",
   );
-  report(
-    "Proxy client-address header is unconfigured: verify the public route before trusting one.",
-  );
 }
 export type CommandRunner = (command: string, args: string[]) => string | Promise<string>;
-const run: CommandRunner = (command, args) =>
-  execFileSync(command, args, { encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] });
+const run: CommandRunner = (command, args) => {
+  try {
+    return execFileSync(command, args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+  } catch {
+    throw new Error("Lobby host request failed");
+  }
+};
 
-/** Explicit --push only. Workspace comes from the caller, never repository data.
+/** Explicit push only. The archived settings own where this release lives.
  *  It never changes who can reach the app: making a lobby public is its
  *  operator's own step. */
 export async function push(
   folder: string,
-  app: string | undefined,
-  workspace = process.env.BENTO_WORKSPACE,
   runner: CommandRunner = run,
   pause: () => Promise<unknown> = () => new Promise((resolve) => setTimeout(resolve, 10_000)),
 ) {
-  if (!app || !/^[a-z0-9][a-z0-9-]*$/.test(app))
-    throw new Error("--push requires --app <app-slug>");
-  if (!workspace) throw new Error("--push requires --workspace or BENTO_WORKSPACE");
+  const { app, workspace } = JSON.parse(await readFile(join(folder, "settings.json"), "utf8"));
   const command = (...args: string[]) => runner("bento", [...args, "--workspace", workspace]);
   let exists = false;
   let cursor: string | null | undefined;
@@ -70,8 +68,8 @@ export async function push(
       try {
         await (attempt === 1 ? start() : command("app", "restart", "--app-slug", app));
         return;
-      } catch (cause) {
-        if (attempt === 6) throw cause;
+      } catch {
+        if (attempt === 6) throw new Error("Lobby host could not start the deployment");
         await pause();
       }
     }

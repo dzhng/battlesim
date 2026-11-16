@@ -131,7 +131,7 @@ export async function run(ctx) {
       return route.continue({
         postData: JSON.stringify({
           ...body,
-          build: { ...body.build, commit: "refused-scene-build" },
+          build: { ...body.build, wire: "refused-scene-build" },
         }),
       });
     });

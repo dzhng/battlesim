@@ -45,7 +45,7 @@ export type PreviewAnswer =
   | { building: BuildingPlacement | null }
   | { dropped: true };
 
-export type BuildIdentity = { commit: string; sim: string };
+export type BuildIdentity = { sim: string; data: string; wire: string };
 
 export type BattleSetup = {
   seats: { player: string; side: "blue" | "red"; controller: ControllerKind }[];

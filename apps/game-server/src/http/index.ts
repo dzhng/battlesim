@@ -45,6 +45,11 @@ export function createLobbyHttp(build: BuildIdentity, options: OnlineHttpOptions
   return server;
 
   async function route(request: IncomingMessage, response: ServerResponse, url: URL) {
+    if (url.pathname === "/build") {
+      if (request.method !== "GET") return json(response, 405, { refused: "method" });
+      const { sim, data, wire } = build;
+      return json(response, 200, { sim, data, wire });
+    }
     if (url.pathname === "/hello") {
       if (request.method !== "POST") return json(response, 405, { refused: "method" });
       const id = request.headers["x-player"];

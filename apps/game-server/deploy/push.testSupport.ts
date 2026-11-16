@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import settings from "./settings.json";
 
 /** A local interpreter of the host CLI's installed endpoint contract. Never executes. */
 export function pushStandIn() {
@@ -12,7 +13,7 @@ export function pushStandIn() {
   const runner = async (binary: string, args: string[]) => {
     if (binary !== "bento") throw new Error("Unexpected executable");
     const flag = (name: string) => args[args.indexOf(name) + 1];
-    if (!args.includes("--workspace") || flag("--workspace") !== "local-workspace")
+    if (!args.includes("--workspace") || flag("--workspace") !== settings.workspace)
       throw new Error("Workspace not supplied");
     const body = args.includes("--body-file")
       ? JSON.parse(await readFile(flag("--body-file"), "utf8"))

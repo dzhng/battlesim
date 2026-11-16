@@ -14,7 +14,13 @@ try {
     ttlSeconds: settings.ttlSeconds,
     archive: fileURLToPath(new URL("battle.tar.gz", import.meta.url)),
   });
-  startLobby(machines, new URL(import.meta.url), "0.0.0.0", Number(process.env.PORT));
+  startLobby(
+    machines,
+    new URL(import.meta.url),
+    "0.0.0.0",
+    Number(process.env.PORT),
+    settings.clientAddressHeader,
+  );
 } catch {
   console.error("Lobby machine provider could not start");
   process.exitCode = 1;

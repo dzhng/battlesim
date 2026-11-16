@@ -4,16 +4,19 @@ import { pendingBattle } from "./support/pendingBattle";
 import { timerClock } from "./timerClock";
 import { afterEach, expect, test, vi } from "vitest";
 import { createLobbyHttp } from "../../../apps/game-server/src/http/index";
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { join, dirname } from "node:path";
+import { buildInputs, sourceBuildIdentity } from "../../../packages/multiplayer/buildIdentity.ts";
 import type { BuildIdentity } from "../../../packages/multiplayer/src/wire";
 
-const build: BuildIdentity = { commit: "a".repeat(40), sim: "b".repeat(64) };
+const build: BuildIdentity = { sim: "b".repeat(64), data: "a".repeat(64), wire: "e".repeat(64) };
 const cleanup: (() => Promise<void>)[] = [];
 afterEach(async () => {
   for (const close of cleanup.splice(0)) await close();
   vi.restoreAllMocks();
 });
-async function serving() {
-  const server = createLobbyHttp(build, {
+async function serving(serverBuild = build) {
+  const server = createLobbyHttp(serverBuild, {
     machines: inProcessBattleMachines({
       capacity: 0,
       createBattle: pendingBattle,
@@ -31,18 +34,20 @@ async function serving() {
     server.closeAllConnections();
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });
-  return (pageBuild: BuildIdentity, callsign = "SCOUT", id = "1".repeat(32)) =>
+  const hello = (pageBuild: BuildIdentity, callsign = "SCOUT", id = "1".repeat(32)) =>
     fetch(`http://127.0.0.1:${address.port}/hello`, {
       method: "POST",
       headers: { "X-Player": id, "Content-Type": "application/json" },
       body: JSON.stringify({ build: pageBuild, callsign }),
     });
+  return Object.assign(hello, { address: `http://127.0.0.1:${address.port}` });
 }
 
-test("hello welcomes the matching build and refuses either different commit or simulation", async () => {
+test("hello welcomes the matching build and refuses any different shared part", async () => {
   const hello = await serving();
   for (const pageBuild of [
-    { ...build, commit: "c".repeat(40) },
+    { ...build, data: "c".repeat(64) },
+    { ...build, wire: "f".repeat(64) },
     { ...build, sim: "d".repeat(64) },
   ]) {
     const response = await hello(pageBuild);
@@ -87,7 +92,7 @@ test("hello responses and logs never expose credentials, including malformed inp
   const credential = "1234567890abcdef1234567890abcdef";
   const responses = [
     await hello(build, "SCOUT", credential),
-    await hello({ ...build, commit: "wrong" }, credential, credential),
+    await hello({ ...build, data: "wrong" }, credential, credential),
     await hello(build, "☃", credential),
     await hello(build, "SCOUT", "invalid-credential"),
     await hello(null as unknown as BuildIdentity, "SCOUT", credential),
@@ -101,4 +106,49 @@ test("hello responses and logs never expose credentials, including malformed inp
   }
   expect(JSON.stringify(spies.flatMap((spy) => spy.mock.calls)).includes(credential)).toBe(false);
   expect(spies.every((spy) => spy.mock.calls.length === 0)).toBe(true);
+});
+
+test("hello admits equal shared inputs from different page commits", async () => {
+  const hello = await serving();
+  const page = { ...build, commit: "a different page commit" };
+  const response = await hello(page);
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual({ callsign: "SCOUT" });
+});
+
+test("file bytes alone decide admission through real hello", async () => {
+  const root = join(import.meta.dirname, "../../..");
+  const folder = await mkdtemp(join(root, "throwaway/multiplayer/identity-"));
+  try {
+    const inputs = buildInputs(root);
+    for (const path of [inputs.sim, ...inputs.data, ...inputs.wire]) {
+      await mkdir(dirname(join(folder, path)), { recursive: true });
+      await cp(join(root, path), join(folder, path));
+    }
+    const serverBuild = sourceBuildIdentity(folder);
+    const hello = await serving(serverBuild);
+    await writeFile(join(folder, "README.md"), "Only this page's prose changed.");
+    const page = { ...sourceBuildIdentity(folder), commit: "different-provenance" };
+    expect(page).toMatchObject(serverBuild);
+    expect(await (await hello(page)).json()).toEqual({ callsign: "SCOUT" });
+    for (const path of [inputs.sim, inputs.data[0], inputs.wire[0]]) {
+      const original = await readFile(join(folder, path));
+      await writeFile(join(folder, path), Buffer.concat([original, Buffer.from("\n")]));
+      const response = await hello(sourceBuildIdentity(folder));
+      expect(response.status).toBe(409);
+      expect(await response.json()).toEqual({ refused: "build" });
+      await writeFile(join(folder, path), original);
+    }
+  } finally {
+    await rm(folder, { recursive: true, force: true });
+  }
+});
+
+test("the public build route states only shared hashes and never reserves a callsign", async () => {
+  const server = await serving({ ...build, commit: "private-provenance" } as BuildIdentity);
+  const response = await fetch(`${server.address}/build`);
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual(build);
+  expect(response.headers.get("cache-control")).toBe("no-store, no-transform");
+  expect(await (await server(build)).json()).toEqual({ callsign: "SCOUT" });
 });

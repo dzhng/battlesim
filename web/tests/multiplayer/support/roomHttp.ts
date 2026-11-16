@@ -6,7 +6,11 @@ import { pendingBattle } from "./pendingBattle";
 import { createLobbyHttp } from "@apps/game-server/src/http/index";
 import type { BuildIdentity } from "@packages/multiplayer/src/wire";
 
-export const build: BuildIdentity = { commit: "room-screen-test", sim: "room-screen-sim" };
+export const build: BuildIdentity = {
+  data: "room-screen-test",
+  wire: "room-screen-test",
+  sim: "room-screen-sim",
+};
 
 /** Real room HTTP service; no battle or external service is started. */
 export async function roomHttp(

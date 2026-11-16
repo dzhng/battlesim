@@ -206,6 +206,9 @@ so pushing `main` by hand ships nothing. Push `staging`, then run `bun run
 promote:main`: it lists the commits production lacks, and with `--yes` waits for
 that commit's staged deployment, promotes it to the production domain without a
 rebuild, and fast-forwards remote `main` to it without touching your checkout.
+Promotion keeps the live lobby in step: it redeploys only when the promoted
+site’s simulation, shared battle documents or multiplayer wire differ from
+the lobby’s, or the lobby cannot state an admitting identity.
 Promotion ships every commit on `staging`, whoever pushed it, so read the list
 before passing `--yes`. If `main` ever gets a commit `staging` lacks (a merge
 made on GitHub), merge `main` into `staging` and push `staging` before

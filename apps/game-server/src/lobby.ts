@@ -4,7 +4,17 @@ import type { BattleMachines } from "./machines/index.ts";
 import { MAP_ATTEMPTS } from "./serverData.ts";
 import { createLobbyHttp } from "./http/index.ts";
 
-export function startLobby(machines: BattleMachines, location: URL, host: string, port: number) {
+/** `clientAddressHeader` names the header a trusted proxy in front of this
+ *  lobby sets to the client's address, or is null where clients connect
+ *  directly: the header is believed only because the caller says a proxy
+ *  overwrites it. */
+export function startLobby(
+  machines: BattleMachines,
+  location: URL,
+  host: string,
+  port: number,
+  clientAddressHeader: string | null,
+) {
   const build: BuildIdentity = JSON.parse(readFileSync(new URL("build.json", location), "utf8"));
   const server = createLobbyHttp(build, {
     machines,
@@ -17,7 +27,7 @@ export function startLobby(machines: BattleMachines, location: URL, host: string
       },
     },
     random: Math.random,
-    clientAddressHeader: process.env.CLIENT_ADDRESS_HEADER ?? null,
+    clientAddressHeader,
   });
   server.listen(port, host, () => {
     const address = server.address();

@@ -94,7 +94,6 @@ const buildCommit = execSync("git rev-parse HEAD").toString().trim();
 export default defineConfig({
   define: {
     __APP_COMMIT__: JSON.stringify(appCommit()),
-    __BUILD_COMMIT__: JSON.stringify(buildCommit),
     // Vercel sets VERCEL on its builds; only its edge serves the analytics script.
     __ON_VERCEL__: JSON.stringify(Boolean(process.env.VERCEL)),
   },

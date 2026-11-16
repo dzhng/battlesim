@@ -7,7 +7,7 @@ import wasmUrl from "@wasm/game_wasm_bg.wasm?url";
 import type { BuildIdentity } from "../../../packages/multiplayer/src/wire";
 
 declare const __APP_COMMIT__: string;
-declare const __BUILD_COMMIT__: string;
+declare const __SHARED_BUILD__: Pick<BuildIdentity, "data" | "wire">;
 
 /** Where the game's source lives: it is open source and takes contributions. */
 export const SOURCE_REPO = "https://github.com/dzhng/battlesim";
@@ -21,7 +21,7 @@ export async function buildIdentity(): Promise<BuildIdentity> {
   if (!response.ok) throw new Error("The simulation build could not be checked.");
   const digest = await crypto.subtle.digest("SHA-256", await response.arrayBuffer());
   return {
-    commit: __BUILD_COMMIT__,
+    ...__SHARED_BUILD__,
     sim: Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join(""),
   };
 }

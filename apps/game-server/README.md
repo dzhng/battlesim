@@ -20,13 +20,16 @@ Open `http://127.0.0.1:5173/multiplayer` in two independent browser profiles.
 Create a room, share its link, ready both players and Start. Tabs in one profile
 share the credential kept in local storage. `PORT` chooses the server's listening
 port; a development page can use `?server=http://127.0.0.1:<port>`.
-The page checks its commit and simulation hash at `/hello` before opening a
-room. Local builds compare the checkout commit and the actual simulation file.
+The page checks its simulation, battle-data and multiplayer-wire hashes at
+`/hello` before opening a room. Different commits play together when those
+three agree. The public `GET /build` states only those hashes, without a
+credential or player registration.
 
 The local build snapshots its identity and runtime data beside the bundle, so
 changing the working directory or rebuilding the checkout cannot change a
 running bundle's identity. The [release preparation](deploy/README.md) uses the
-site's simulation and an archive of its commit; it defaults to a dry run.
+site's simulation and an archive of the commit named by the site, regardless
+of the checkout’s current commit; it defaults to a dry run.
 
 Rooms reserve battle capacity when created, before anyone gathers or readies.
 The [service](src/rooms.ts) holds them in memory; the shared room model alone

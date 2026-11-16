@@ -1,27 +1,25 @@
 import { parseArgs } from "node:util";
-import { fileURLToPath } from "node:url";
-import { prepareDeployment } from "./prepare.mjs";
-import { describePush, push } from "./push.ts";
+import { deployServer } from "./deployment.ts";
 
-try {
-  const { values } = parseArgs({
-    options: {
-      site: { type: "string" },
-      push: { type: "boolean", default: false },
-      app: { type: "string" },
-      workspace: { type: "string" },
-    },
-  });
-  if (!values.site)
-    throw new Error(
-      "Usage: bun run deploy:server --site <site-url> [--push --app <app-slug> --workspace <workspace>]",
+if (import.meta.main) {
+  try {
+    const { values } = parseArgs({
+      options: {
+        site: { type: "string" },
+        commit: { type: "string" },
+        push: { type: "boolean" },
+        check: { type: "boolean" },
+      },
+    });
+    if (!values.site || [values.push, values.check].filter(Boolean).length > 1)
+      throw new Error(
+        "Usage: bun run deploy:server --site <site-url> [--commit <sha>] [--push | --check]",
+      );
+    process.exitCode = await deployServer(values);
+  } catch {
+    console.error(
+      "Usage: bun run deploy:server --site <site-url> [--commit <sha>] [--push | --check]",
     );
-  const root = fileURLToPath(new URL("../../../", import.meta.url));
-  const folder = await prepareDeployment(root, values.site, console.log);
-  console.log(`Prepared folder: ${folder.slice(root.length)}`);
-  if (values.push) await push(folder, values.app, values.workspace);
-  else describePush(console.log);
-} catch (error) {
-  console.error(error instanceof Error ? error.message : "Deployment refused");
-  process.exitCode = 1;
+    process.exitCode = 1;
+  }
 }

@@ -20,6 +20,10 @@ nothing here may depend on a browser, a server, or the simulation's binding.
 - [Setup](src/setup.ts): how a lobby becomes the settings a ticket carries.
   Both ends build a battle from those settings with one function, which is
   why a page can check its map against the server's.
+- [Build admission](src/build.ts) compares the three shared hashes. The
+  [build-time owner](buildIdentity.ts), outside browser-neutral `src/`, defines
+  the simulation, battle-document and wire inputs for both build tools. A
+  source commit is provenance, not compatibility.
 - [Callsigns](src/callsign.ts): one rule for what a name may be, for page
   and server.
 

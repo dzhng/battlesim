@@ -35,6 +35,7 @@ and `Faction` (`packages/scene-assets/src/units.ts`).
 
 | Method and path | Body | Answer |
 |---|---|---|
+| `GET /build` | | `BuildIdentity` only; no credential and no player registration |
 | `POST /hello` | `{ build: BuildIdentity, callsign: string }` | `{ callsign }` (with `#2` on a clash), or refused `build` |
 | `GET /rooms` | | state stream of `RoomList` |
 | `POST /rooms` | `{ visibility: "public" \| "private" }` | `{ code: RoomCode }`, or refused `full` |
@@ -157,12 +158,22 @@ player and drops the rest.
 ## Build identity
 
 ```ts
-type BuildIdentity = { commit: string; sim: string };  // sim: SHA-256 of the served simulation file
+type BuildIdentity = { sim: string; data: string; wire: string };
 ```
 
-The page sends its own in `/hello`. The server compares it with the
-`build.json` it was deployed with. A page on any other build is told online
-play is not available on it.
+The page sends its own in `/hello`. The server refuses `build` exactly when
+one of these three differs from its deployed `build.json`. A different source
+commit with equal hashes is admitted. `sim` hashes the module bytes the page
+actually loads. `data` covers the documents both ends build and field a battle
+from, including JSON embedded in the bundle; `wire` covers multiplayer sources.
+The [build-time owner](../../packages/multiplayer/buildIdentity.ts) defines the
+file sets and hashes sorted paths, byte lengths and file bytes for the latter
+two. Development and production builds use it, as does the server bundle.
+
+The site's `build.json` also records its full source commit; the menu retains
+its app-commit line. Neither is compared for admission. The credential-free
+`GET /build` projects only the three hashes, so release preparation can ask if
+a live lobby admits a site without changing player state.
 
 ## Tickets
 

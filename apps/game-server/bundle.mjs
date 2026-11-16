@@ -1,6 +1,7 @@
-import { createHash } from "node:crypto";
-import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+
+import { buildInputs, sourceBuildIdentity } from "../../packages/multiplayer/buildIdentity.ts";
 
 /** Snapshot runtime data beside the bundle; startup never reads a live checkout. */
 export async function bundleServer(
@@ -22,20 +23,18 @@ export async function bundleServer(
     naming: "[name].mjs",
   });
   if (!result.success) throw new Error(result.logs.map(String).join("\n"));
-  const wasm = "web/src/wasm/game_wasm_bg.wasm";
-  for (const path of [
-    wasm,
-    "fixtures/catalog.json",
-    "fixtures/rules.json",
-    "fixtures/map-presets.json",
-    "fixtures/prototype-building-templates.json",
-  ]) {
+  const inputs = buildInputs(root);
+  for (const path of [inputs.sim, ...inputs.data]) {
     await mkdir(dirname(join(outdir, path)), { recursive: true });
     await copyFile(join(root, path), join(outdir, path));
   }
-  const sim = createHash("sha256")
-    .update(await readFile(join(outdir, wasm)))
-    .digest("hex");
-  await writeFile(join(outdir, "build.json"), JSON.stringify({ commit, sim }) + "\n");
-  return { commit, sim };
+  const build = { commit, ...sourceBuildIdentity(root) };
+  await writeFile(join(outdir, "build.json"), JSON.stringify(build) + "\n");
+  return build;
+}
+
+// Release preparation runs the bundler from the site's archived source.
+if (import.meta.main) {
+  const [root, outdir, commit, entry] = process.argv.slice(2);
+  await bundleServer(root, outdir, commit, entry);
 }

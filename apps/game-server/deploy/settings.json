@@ -1,4 +1,10 @@
 {
+  "app": "battle-lobby",
+  "appWhy": "The public lobby app replaced in place when a promoted site changes shared battle inputs.",
+  "workspace": "armata",
+  "workspaceWhy": "The workspace that owns the live lobby and its battle rentals.",
+  "clientAddressHeader": "x-real-ip",
+  "clientAddressHeaderWhy": "The header the host's public route sets to the client's address. Checked on 2026-11-16: a caller's own value for it does not survive.",
   "capacity": 8,
   "capacityWhy": "Maximum simultaneous battle allocations held by this lobby, including starts.",
   "machine": "default",

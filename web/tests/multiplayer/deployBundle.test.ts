@@ -30,10 +30,11 @@ vi.mock("node:child_process", async (original) => {
   };
 });
 import { gunzipSync } from "node:zlib";
-import { spawn } from "node:child_process";
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, test, vi } from "vitest";
+import { releaseRepository } from "../../../apps/game-server/deploy/repository.testSupport.ts";
+import { deployServer } from "../../../apps/game-server/deploy/deployment.ts";
 import { localSite } from "../../../apps/game-server/deploy/localSite.testSupport.ts";
 import { serviceStandIn } from "../../../apps/game-server/deploy/sandbox.testSupport";
 import { httpRecords } from "../../../packages/multiplayer/src/stream/http";
@@ -42,28 +43,23 @@ import type { RoomView } from "../../../packages/multiplayer/src/wire";
 
 const root = join(import.meta.dirname, "../../..");
 test("the deploy dry run lists its complete release and its hosted entry seats a player on a rented machine", async () => {
-  const site = await localSite(root);
+  const repository = await releaseRepository(root);
+  const site = await localSite(repository.folder, repository.sourceCommit);
+  expect(repository.head).not.toBe(site.build.commit);
   let lobby: Awaited<ReturnType<Awaited<ReturnType<typeof serviceStandIn>>["lobby"]>> | undefined;
   let service: Awaited<ReturnType<typeof serviceStandIn>> | undefined;
   const abort = new AbortController();
   try {
-    const output = await new Promise<string>((resolve, reject) => {
-      const child = spawn("bun", ["run", "deploy:server", "--site", site.address], {
-        cwd: root,
-        stdio: ["ignore", "pipe", "pipe"],
-      });
-      let text = "";
-      child.stdout.on("data", (b) => {
-        text += b;
-      });
-      child.stderr.on("data", (b) => {
-        text += b;
-      });
-      child.once("error", reject);
-      child.once("exit", (code) => (code === 0 ? resolve(text) : reject(new Error(text))));
-    });
+    const lines: string[] = [];
+    expect(
+      await deployServer(
+        { site: site.address },
+        { root: repository.folder, report: (line) => lines.push(line) },
+      ),
+    ).toBe(0);
+    const output = lines.join("\n");
     await writeFile(join(root, "throwaway/multiplayer/deploy-dry-run.log"), output);
-    const folder = join(root, /Prepared folder: (.+)/.exec(output)![1]);
+    const folder = join(repository.folder, /Prepared folder: (.+)/.exec(output)![1]);
     const files = (await readdir(folder)).sort();
     const reported = [...output.matchAll(/Would push: ([^\n]+) \(\d+ bytes\)/g)]
       .map((m) => m[1])
@@ -126,5 +122,36 @@ test("the deploy dry run lists its complete release and its hosted entry seats a
     await lobby?.close();
     await service?.close();
     await site.close();
+    await repository.close();
   }
 }, 60_000);
+
+test.each(["data", "wire"] as const)(
+  "preparation refuses a site's false %s identity before offering any upload",
+  async (part) => {
+    const { createHash } = await import("node:crypto");
+    const repository = await releaseRepository(root);
+    const site = await localSite(repository.folder, repository.sourceCommit);
+    try {
+      const falseBuild = {
+        ...site.build,
+        [part]: createHash("sha256")
+          .update(site.build[part] + "different source")
+          .digest("hex"),
+      };
+      await writeFile(join(site.folder, "build.json"), JSON.stringify(falseBuild));
+      const lines: string[] = [];
+      expect(
+        await deployServer(
+          { site: site.address },
+          { root: repository.folder, report: (line) => lines.push(line) },
+        ),
+      ).toBe(1);
+      expect(lines.join("\n")).toContain("Bundled server identity differs from site");
+      expect(lines.join("\n")).not.toContain("Would push:");
+    } finally {
+      await site.close();
+      await repository.close();
+    }
+  },
+);

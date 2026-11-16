@@ -549,7 +549,7 @@ test("localhost hello, briefing, deploy, battle stream and order share seating; 
     battleClock = new PageClock();
   const hosts: BattleHost[] = [];
   let draw = 0;
-  const build = { commit: "frontline-test", sim: "frontline-test" };
+  const build = { data: "frontline-test", wire: "frontline-test", sim: "frontline-test" };
   const server = createLobbyHttp(build, {
     clock,
     clientAddressHeader: null,

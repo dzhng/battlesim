@@ -407,7 +407,7 @@ test("localhost room streams deliver each ticket and route both seats' streams a
   const { ScenePresentation } = await import("../../src/battle/sim/presentation");
   const clock = new PageClock();
   let host!: BattleHost;
-  const build = { commit: "room-battle-test", sim: "room-battle-test" };
+  const build = { data: "room-battle-test", wire: "room-battle-test", sim: "room-battle-test" };
   const server = createLobbyHttp(build, {
     clock,
     random: Math.random,

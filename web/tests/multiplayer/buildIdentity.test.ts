@@ -1,7 +1,11 @@
 // @vitest-environment node
 import { createHash } from "node:crypto";
 import { afterEach, expect, test, vi } from "vitest";
-import { buildIdentity, simFingerprint } from "../../../apps/battle-lab/src/buildIdentity";
+import {
+  APP_COMMIT,
+  buildIdentity,
+  simFingerprint,
+} from "../../../apps/battle-lab/src/buildIdentity";
 
 afterEach(() => vi.unstubAllGlobals());
 test("the page sends a full hash of served bytes while the menu keeps its short fingerprint", async () => {
@@ -10,7 +14,7 @@ test("the page sends a full hash of served bytes while the menu keeps its short 
   const identity = await buildIdentity();
   const digest = createHash("sha256").update(bytes).digest("hex");
   expect(identity.sim).toBe(digest);
-  expect(identity.commit).toMatch(/^[a-f0-9]{40}$/);
+  expect(APP_COMMIT).toMatch(/^[a-f0-9]{7}(-dirty)?$/);
   expect(await simFingerprint()).toBe(digest.slice(0, 8));
 });
 

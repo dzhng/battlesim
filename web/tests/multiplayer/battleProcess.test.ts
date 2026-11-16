@@ -60,7 +60,7 @@ import { PRESENCE_GRACE_MS } from "../../../apps/game-server/src/presence";
 import { fork, spawn } from "node:child_process";
 import { once } from "node:events";
 
-const build = { commit: "process-test", sim: "process-test" };
+const build = { data: "process-test", wire: "process-test", sim: "process-test" };
 const ids = ["1".repeat(32), "2".repeat(32)];
 async function lobby() {
   const clock = new PageClock();

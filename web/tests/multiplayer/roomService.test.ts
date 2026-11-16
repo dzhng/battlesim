@@ -289,7 +289,7 @@ test("wrong code guesses throttle one address, another can still join, and the t
   allowed.close();
 });
 
-const build: BuildIdentity = { commit: "test-commit", sim: "test-sim" };
+const build: BuildIdentity = { data: "test-commit", wire: "test-commit", sim: "test-sim" };
 const ids = ["1".repeat(32), "2".repeat(32), "3".repeat(32), "4".repeat(32)];
 async function serving(clientAddressHeader: string | null = null) {
   const clock = new Clock();

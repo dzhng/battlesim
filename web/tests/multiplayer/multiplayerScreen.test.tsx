@@ -119,7 +119,10 @@ test("a refused build and a missing address offer no online action or list reque
     if (String(input).endsWith("/hello"))
       return original(input, {
         ...init,
-        body: JSON.stringify({ build: { commit: "wrong", sim: "wrong" }, callsign: "X" }),
+        body: JSON.stringify({
+          build: { data: "wrong", wire: "wrong", sim: "wrong" },
+          callsign: "X",
+        }),
       });
     return original(input, init);
   });
@@ -167,7 +170,7 @@ test("a build refusal while editing the callsign withdraws all online actions", 
       return original(input, {
         ...init,
         body: JSON.stringify({
-          build: { commit: "changed-build", sim: "changed-sim" },
+          build: { data: "changed-build", wire: "changed-build", sim: "changed-sim" },
           callsign: "SCOUT",
         }),
       });
