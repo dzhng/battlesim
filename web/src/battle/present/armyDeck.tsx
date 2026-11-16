@@ -2,17 +2,37 @@ import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react"
 import { carrierOf, type PendingPurchaseView, type OwnUnitView } from "../sim/observationView";
 import { useSessionCatalog } from "../catalog/context";
 import { StrengthMeter, UnitFace } from "./unitFace";
-import { stateIcon } from "@packages/scene-assets/src/icons";
+import { hudIcon, stateIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
 import { InfoPanel } from "./infoPanel";
 import { ownPanel, unitStrength, type PanelRules } from "./panelRows";
 import { unitName } from "./readouts";
 import { CommandBar, type ArmyCommandState } from "./commandBar";
-import { useFeedValue, type FeedSource } from "@web/feed";
+import { Feed, useFeedValue, type FeedSource } from "@web/feed";
+import { GROUP_KEYS, type ControlGroups, type GroupKey } from "../input/controlGroups";
+import { deckSlots } from "./deckLayout";
+import { playBlink, type CardBlink } from "./fireBlink";
 
-/** Own observations populate the army row; selection remains the input owner's,
- *  and a plain click on an already selected card asks the page to centre on it.
- *  Hovering a card hovers its unit, as the pointer over the unit would. */
+/** The unit a card's click selects: a rider's carrier, since a squad a
+ *  carrier holds can't be ordered (D10), else the unit itself. */
+function pickOf(unit: OwnUnitView, own: readonly OwnUnitView[]): number {
+  const host = carrierOf(unit);
+  return host !== null && own.some((u) => u.id === host) ? host : unit.id;
+}
+
+const NO_GROUPS: ControlGroups = new Map();
+const NO_BLINKS: FeedSource<ReadonlyMap<number, CardBlink>> = new Feed(new Map());
+
+const sameSet = (a: readonly number[], b: readonly number[]) =>
+  a.length === b.length && a.every((id) => b.includes(id));
+
+/** Own observations populate the army row; selection remains the input owner's.
+ *  A click selects one card, Shift-click the run of cards from the last one
+ *  clicked (the anchor), and Cmd- or Ctrl-click adds or removes one. A plain
+ *  click on an already selected card asks the page to centre on it. Hovering
+ *  a card hovers its unit, as the pointer over the unit would. Control
+ *  groups lead the deck in key order, each under a bracket (`deckLayout.ts`)
+ *  with its key, and its × while the pointer is over it. */
 export function ArmyDeck({
   state,
   selected,
@@ -24,6 +44,9 @@ export function ArmyDeck({
   reinforcements,
   pending = [],
   tick = 0,
+  groups = NO_GROUPS,
+  onDeleteGroup,
+  blinks: blinkFeed = NO_BLINKS,
 }: {
   state: FeedSource<ArmyCommandState>;
   selected: readonly number[];
@@ -39,12 +62,29 @@ export function ArmyDeck({
   pending?: PendingPurchaseView[];
   /** The observed tick, which a waiting aircraft's countdown runs from. */
   tick?: number;
+  /** The player's control groups (`useUnitControl`). */
+  groups?: ControlGroups;
+  /** A group's × was clicked. */
+  onDeleteGroup?: (key: GroupKey) => void;
+  /** Each unit's latest fire blink (`fireBlink.ts`). */
+  blinks?: FeedSource<ReadonlyMap<number, CardBlink>>;
 }) {
   const { own, control } = useFeedValue(state);
+  const blinks = useFeedValue(blinkFeed);
   const lower = useRef<HTMLDivElement>(null);
+  // The card a run starts from, and the selection the deck last asked for:
+  // once the selection changes any other way, the run starts over.
+  const anchor = useRef<number | null>(null);
+  const asked = useRef<readonly number[] | null>(null);
+  const select = (ids: number[], from: number | null) => {
+    asked.current = ids;
+    if (from !== null) anchor.current = from;
+    onSelect(ids);
+  };
   const deck = useRef<HTMLElement>(null);
   const [hintHost, setHintHost] = useState<HTMLDivElement | null>(null);
   const [hovered, setHovered] = useState<number | null>(null);
+  const [hoveredGroup, setHoveredGroup] = useState<GroupKey | null>(null);
   const [detailX, setDetailX] = useState(0);
   const [detailY, setDetailY] = useState(0);
   const tooltipId = useId();
@@ -73,12 +113,61 @@ export function ArmyDeck({
   }, []);
   const capacity = Math.max(1, Math.floor((availableWidth - 10 + 4) / 68));
   const rows = Math.max(1, Math.ceil(count / capacity));
-  const columns = Math.max(1, Math.ceil(count / rows));
-  const lastRow = count % columns;
-  const cardOffset = (index: number) =>
-    lastRow && index >= count - lastRow
-      ? { transform: `translateX(${(columns - lastRow) * 34}px)` }
-      : undefined;
+  // Groups first, 1 to 9 then 0, each in army order; then the rest.
+  const groupOf = new Map<number, GroupKey>();
+  for (const key of GROUP_KEYS) for (const id of groups.get(key) ?? []) groupOf.set(id, key);
+  const cards = [
+    ...GROUP_KEYS.flatMap((key) => own.filter((u) => groupOf.get(u.id) === key)),
+    ...own.filter((u) => !groupOf.has(u.id)),
+  ];
+  const slots = deckSlots(
+    [...cards.map((u) => groupOf.get(u.id) ?? null), ...pending.map(() => null)],
+    rows,
+  );
+  /** A card in its grid cell, with its group's bracket, key and ×. */
+  const slot = (key: string | number, index: number, children: ReactNode, blink?: CardBlink) => {
+    const { row, column, group, sides, keyTab, deleteTab } = slots[index];
+    return (
+      <div
+        key={key}
+        className="hud-army-slot"
+        style={{ gridRow: row + 1, gridColumn: column + 1 }}
+        data-group={group ?? undefined}
+        data-bracket={sides.length ? sides.join(" ") : undefined}
+        onMouseEnter={() => setHoveredGroup(group)}
+      >
+        {blink && (
+          // Behind the card's face, so its strength meter and symbols stay
+          // clean; a new serial is a new element, so the animation restarts.
+          <span
+            key={blink.serial}
+            ref={playBlink}
+            className="hud-army-blink"
+            data-colour={blink.colour}
+            aria-hidden="true"
+          />
+        )}
+        {children}
+        {keyTab && (
+          <span className="hud-army-group-key" aria-hidden="true">
+            {group}
+          </span>
+        )}
+        {deleteTab && group && hoveredGroup === group && onDeleteGroup && (
+          <button
+            type="button"
+            className="hud-army-group-delete"
+            aria-label={`Delete group ${group}`}
+            title={`Delete group ${group}`}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => onDeleteGroup(group)}
+          >
+            <Icon path={hudIcon("close")} />
+          </button>
+        )}
+      </div>
+    );
+  };
   const detail = own.find((unit) => unit.id === hovered);
   const alignDetail = (button: HTMLButtonElement) => {
     // Both popups anchor to the deck; contact lines above it must not inflate the gap.
@@ -121,11 +210,12 @@ export function ArmyDeck({
             className="hud-army"
             data-unit-count={count}
             data-army-rows={rows}
-            style={{ gridTemplateColumns: `repeat(${columns}, 64px)` }}
+            style={{ gridTemplateRows: `repeat(${rows}, auto)` }}
             role="group"
             aria-label="Your units"
+            onMouseLeave={() => setHoveredGroup(null)}
           >
-            {own.map((unit, index) => {
+            {cards.map((unit, index) => {
               const name = `${unitName(units, unit)} #${unit.id}`;
               const strength = unitStrength(units, unit);
               // A squad a carrier holds is still the player's, but can't be
@@ -133,34 +223,44 @@ export function ArmyDeck({
               // rides in, and picks its carrier.
               const host = carrierOf(unit);
               const carrier = host === null ? undefined : own.find((u) => u.id === host);
-              const picks = carrier?.id ?? unit.id;
+              const picks = pickOf(unit, own);
               const selectedHere = selected.includes(picks);
-              return (
+              const group = groupOf.get(unit.id);
+              return slot(
+                unit.id,
+                index,
                 <button
                   type="button"
-                  key={unit.id}
                   className="hud-army-card"
-                  style={cardOffset(index)}
                   data-unit={unit.id}
                   data-aboard={carrier ? "true" : undefined}
                   data-withdrawing={unit.withdrawing ? "true" : undefined}
                   aria-label={
-                    carrier
+                    (carrier
                       ? `${name}, aboard ${unitName(units, carrier)} #${carrier.id}`
                       : unit.withdrawing
                         ? `${name}, returning to base`
-                        : name
+                        : name) + (group ? `, group ${group}` : "")
                   }
                   aria-pressed={selectedHere}
                   aria-describedby={detail?.id === unit.id ? tooltipId : undefined}
                   onClick={(event) => {
-                    onSelect(
-                      event.shiftKey
-                        ? selectedHere
-                          ? selected.filter((id) => id !== picks)
-                          : [...selected, picks]
-                        : [picks],
-                    );
+                    const from = cards.findIndex((u) => u.id === anchor.current);
+                    const run =
+                      event.shiftKey &&
+                      from >= 0 &&
+                      asked.current &&
+                      sameSet(asked.current, selected);
+                    if (run) {
+                      const [a, b] = from < index ? [from, index] : [index, from];
+                      const picked = cards.slice(a, b + 1).map((u) => pickOf(u, own));
+                      select([...new Set(picked)], null);
+                    } else if (event.metaKey || event.ctrlKey) {
+                      select(
+                        selectedHere ? selected.filter((id) => id !== picks) : [...selected, picks],
+                        unit.id,
+                      );
+                    } else select([picks], unit.id);
                     // A double-click lands here twice: the first selects the card,
                     // the second sees it selected and centres. Modified clicks keep
                     // their selection meaning and never move the camera.
@@ -195,7 +295,8 @@ export function ArmyDeck({
                   {unit.withdrawing && (
                     <Icon path={stateIcon("withdrawing")} className="hud-army-withdrawing" />
                   )}
-                </button>
+                </button>,
+                blinks.get(unit.id),
               );
             })}
             {pending.map((unit, index) => {
@@ -212,12 +313,12 @@ export function ArmyDeck({
                   : unit.blocked
                     ? "Entry blocked"
                     : "Will be deployed";
-              return (
+              return slot(
+                `pending-${unit.id}`,
+                cards.length + index,
                 <button
-                  key={`pending-${unit.id}`}
                   type="button"
                   className={`hud-army-card hud-army-pending${eta !== null ? " hud-army-arriving" : ""}`}
-                  style={cardOffset(own.length + index)}
                   disabled
                   aria-label={`${name} — ${state}`}
                   title={`${name} — ${state}`}
@@ -231,7 +332,7 @@ export function ArmyDeck({
                       <StrengthMeter name={name} strength={1} />
                     )}
                   </UnitFace>
-                </button>
+                </button>,
               );
             })}
           </div>

@@ -355,11 +355,15 @@ export class ScenePresentation {
 
   /** Prepare a complete source/GPU generation while the active catalog stays live. */
   prepareRendererAppearances(
-    renderer: Pick<Renderer, "missing_content_ids" | "appearance_draft" | "prepare_appearances">,
+    renderer: Pick<
+      Renderer,
+      "missing_content_ids" | "appearance_draft" | "begin_appearances" | "prepare_appearances"
+    >,
     assets: readonly ModelAsset[],
     detail: ModelDetail,
-  ): Promise<PreparedAppearances> {
-    return prepareAppearances(renderer, this.rust, assets, detail);
+    nextStep: (yieldFrame: boolean) => Promise<boolean>,
+  ): Promise<PreparedAppearances | null> {
+    return prepareAppearances(renderer, this.rust, assets, detail, nextStep);
   }
 
   /** Call at a frame boundary, then publish a fresh canonical frame before drawing. */

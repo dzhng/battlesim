@@ -407,7 +407,9 @@ export class BrowserScene {
   }
 
   render(): boolean {
-    return !this.disposed && this.presentation.render(this.renderer) !== null;
+    const presented = !this.disposed && this.presentation.render(this.renderer) !== null;
+    if (presented) this.admission.presented();
+    return presented;
   }
 
   current(): boolean {

@@ -10,10 +10,11 @@ use contract::map::MoverClass;
 use contract::observation::{FlareReadiness, MoveState};
 use contract::scenario::{Armor, Rules};
 
+use crate::flight::BodyId;
 use crate::hold::{Hold, Phase};
 use crate::math::{Obb2, V2, V3};
 use crate::navigation::Mobility;
-use crate::weapons::{Mount, Target};
+use crate::weapons::{Mount, Target, VEHICLE_BODY_BASE};
 use crate::world::PropId;
 
 mod digest;
@@ -274,11 +275,15 @@ pub struct Unit {
     pub planned_revision: u64,
     /// Failure-to-advance watch: best distance to the next waypoint and when.
     pub progress: (f64, u64),
-    /// Give-up watch: the shortest way left seen at a stall, and the tick it
-    /// was seen; a way no shorter for long enough gives the move up
-    /// ([`MoveState::RouteBlocked`]). Blocked, the tick it last tried, which
+    /// The stuck clock: where it stood when the clock last started, and
+    /// when. Still within reach of that spot a give-up spell later, it stops
+    /// near enough to its goal or finds no way
+    /// ([`MoveState::RouteBlocked`]); blocked, the tick it last tried, which
     /// times its next try.
-    pub stalls: (f64, u64),
+    pub stalls: (V2, u64),
+    /// Times it has found no way to its current goal: the third time, it
+    /// gives the order up.
+    pub tries: u8,
     pub engagement: Engagement,
     /// While a passive AI holds the unit at return fire, the engagement it
     /// goes back to when that controller leaves: its authored or ordered one.
@@ -410,7 +415,7 @@ impl Unit {
         }
         if !queued {
             self.orders.clear();
-            self.route = None;
+            // Movement decides whether the way it has still serves.
             self.planned_goal = None;
             self.state = MoveState::Idle;
             self.turn_to = None;
@@ -663,4 +668,18 @@ impl Unit {
             _ => None,
         }
     }
+}
+
+/// Where a body lives: (unit index, soldier index) or a vehicle.
+pub fn locate(units: &[Unit], body: BodyId) -> Option<(usize, Option<usize>)> {
+    if body.0 >= VEHICLE_BODY_BASE {
+        let i = (body.0 - VEHICLE_BODY_BASE) as usize;
+        return (i < units.len()).then_some((i, None));
+    }
+    units.iter().enumerate().find_map(|(i, u)| {
+        u.members
+            .iter()
+            .position(|s| s.id == body.0)
+            .map(|k| (i, Some(k)))
+    })
 }

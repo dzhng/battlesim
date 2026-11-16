@@ -196,7 +196,8 @@ fn a_group_sent_into_a_court_lined_with_parked_cars_is_placed_whole() {
 
 /// The other half of that promise: a squad sent into a yard walled on every
 /// side walks there, finds no way in, and stops outside: it neither passes
-/// through a wall nor keeps searching for ever.
+/// through a wall nor keeps searching for ever (it tries again a couple of
+/// times, then gives the order up and stands).
 #[test]
 fn a_squad_sent_into_a_closed_yard_stops_outside_it() {
     let wall = |center: [f64; 2], half: [f64; 2]| {
@@ -237,10 +238,10 @@ fn a_squad_sent_into_a_closed_yard_stops_outside_it() {
         );
     }
     let squad = b.unit(UnitId(1)).unwrap();
-    assert_eq!(
+    assert!(
+        squad.state == contract::observation::MoveState::Idle && squad.orders.is_empty(),
+        "it is still at it ({:?}) at {:?}",
         squad.state,
-        contract::observation::MoveState::RouteBlocked,
-        "it stops at {:?} with no way left",
         squad.position.xy()
     );
 }

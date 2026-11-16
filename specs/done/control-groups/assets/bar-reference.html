@@ -1,0 +1,470 @@
+<title>Control Group Bar</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one battlefield stage with the real-size deck on its bottom edge,
+   variant switch above, the reply builder below. Single dark look by choice:
+   the HUD is dark glass over terrain in the game itself. */
+:root {
+  color-scheme: dark;
+  --accent: 115 219 255;      /* presentation.hud.accent */
+  --text: 230 245 255;        /* presentation.hud.text */
+  --dim: 143 173 194;         /* presentation.hud.dim */
+  --glass: 5 15 23;           /* presentation.hud.glass */
+  --credits: 250 199 64;      /* presentation.hud.credits */
+  --page: #0b1115;
+  --font: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html { -webkit-user-select: none; user-select: none; }
+body {
+  background: var(--page);
+  color: rgb(var(--text));
+  font: 12px/1.5 var(--font);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+h1 { font-size: 13px; letter-spacing: .18em; text-transform: uppercase; margin: 0; color: rgb(var(--accent)); font-weight: 700; }
+.lede { color: rgb(var(--dim)); margin: 4px 0 0; max-width: 80ch; }
+.keys { display: flex; flex-wrap: wrap; gap: 6px 16px; color: rgb(var(--dim)); font-size: 11px; }
+.keys b { color: rgb(var(--text)); font-weight: 600; }
+kbd { font: inherit; border: 1px solid rgb(var(--accent) / .4); padding: 0 4px; color: rgb(var(--text)); }
+
+.variants { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.variants span { color: rgb(var(--dim)); letter-spacing: .1em; text-transform: uppercase; font-size: 10.5px; margin-right: 6px; }
+.btn {
+  font: inherit; font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase;
+  color: rgb(var(--text)); background: rgb(var(--accent) / .05);
+  border: 1px solid rgb(var(--accent) / .32); padding: 5px 10px; cursor: pointer;
+}
+.btn:hover { border-color: rgb(var(--accent) / .85); box-shadow: 0 0 5px rgb(var(--accent) / .45); }
+.btn[aria-pressed="true"] { color: #fff; background: rgb(var(--accent) / .2); border-color: rgb(var(--accent)); box-shadow: 0 0 5px rgb(var(--accent) / .6), inset 0 0 8px rgb(var(--accent) / .35); }
+.btn:focus-visible, .card:focus-visible { outline: 1px dashed rgb(var(--accent)); outline-offset: 2px; }
+.vnote { color: rgb(var(--dim)); font-size: 11px; min-height: 1.5em; }
+
+/* The battlefield stand-in: ochre and olive fields like the screenshot. */
+.stage {
+  position: relative; overflow: hidden; min-height: 330px;
+  display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
+  background:
+    linear-gradient(115deg, transparent 0 38%, rgb(60 70 40 / .55) 38% 52%, transparent 52%),
+    linear-gradient(160deg, transparent 0 60%, rgb(35 60 45 / .5) 60% 70%, transparent 70%),
+    linear-gradient(20deg, #8a6a2c, #6f6a33 45%, #7d5f28 80%);
+  border: 1px solid rgb(var(--accent) / .15);
+}
+.status {
+  position: absolute; top: 12px; left: 14px; right: 14px;
+  display: flex; flex-direction: column; gap: 2px;
+  text-shadow: 0 0 2px #000, 0 0 5px rgb(0 0 0 / .7); font-size: 12px;
+}
+.status .sel { color: rgb(var(--text)); }
+.status .toast { color: rgb(var(--credits)); min-height: 1.5em; }
+
+/* ---- The deck, at the game's real sizes (hud.css) ---- */
+.deck {
+  position: relative; max-width: 100%;
+  background: rgb(var(--glass) / .76); backdrop-filter: blur(6px);
+  border: 1px solid rgb(var(--accent) / .28); border-inline: 0;
+  box-shadow: 0 0 5px rgb(var(--accent) / .18), inset 0 0 18px rgb(var(--accent) / .05);
+  padding: 5px 5px 6px; display: flex; flex-direction: column; gap: 6px;
+}
+.deck::before, .deck::after { content: ""; position: absolute; width: 12px; height: 12px; border: 0 solid rgb(var(--accent) / .9); filter: drop-shadow(0 0 3px rgb(var(--accent) / .8)); pointer-events: none; }
+.deck::before { top: -1px; left: -1px; border-top-width: 2px; border-left-width: 2px; }
+.deck::after { right: -1px; bottom: -1px; border-right-width: 2px; border-bottom-width: 2px; }
+.reinf { display: flex; justify-content: center; gap: 28px; letter-spacing: .1em; font-size: 11.5px; padding: 4px 0 2px; }
+.reinf b { color: rgb(var(--credits)); font-weight: 600; }
+.army { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: 4px; }
+.gap { width: 10px; }
+
+.card {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; width: 64px; height: 88px; padding: 14px 5px 10px;
+  background: rgb(var(--accent) / .05); border: 1px solid rgb(var(--accent) / .25);
+  color: rgb(var(--accent) / .75); cursor: pointer; font: inherit;
+}
+.card:hover { border-color: rgb(var(--accent) / .85); box-shadow: inset 0 0 8px rgb(var(--accent) / .16); }
+.card[aria-pressed="true"] { color: rgb(var(--accent)); border: 2px solid rgb(var(--accent)); padding: 13px 4px 9px; background: rgb(var(--accent) / .2); box-shadow: 0 0 5px rgb(var(--accent) / .6), inset 0 0 8px rgb(var(--accent) / .35); }
+.card.dimmed { opacity: .45; }
+.card.pending { opacity: .45; cursor: default; }
+.card .role svg { width: 25px; height: 25px; display: block; }
+.card .sil svg { width: 48px; height: 23px; display: block; }
+.card .seat { position: absolute; top: 5px; right: 5px; }
+.card .seat svg { width: 12px; height: 12px; display: block; }
+.card .meter { position: absolute; bottom: 4px; left: 5px; right: 5px; height: 3px; background: rgb(var(--accent) / .15); }
+.card .meter span { display: block; height: 100%; background: rgb(var(--accent)); }
+.card .corner { position: absolute; top: 3px; left: 5px; font-size: 11px; font-weight: 700; color: rgb(var(--text)); line-height: 1; }
+
+/* The bracket is drawn in the 4 px gap round the group's cards, piece by
+   piece per card, so grouping never moves a card: the pitch stays 68 px. */
+.army { display: grid; justify-content: center; column-gap: 4px; row-gap: 4px; }
+.army.tagged-rows { row-gap: 14px; }
+.card[data-g]::after {
+  content: ""; position: absolute; inset: -3px; pointer-events: none;
+  border: 0 solid rgb(var(--accent) / .5);
+}
+.card[data-g][data-l]::after { border-left-width: 1px; }
+.card[data-g][data-r]::after { border-right-width: 1px; }
+.card[aria-pressed="true"][data-g]::after { inset: -4px; }
+.card .tag { position: absolute; z-index: 2; font-size: 12px; line-height: 13px; font-weight: 700; color: rgb(var(--text)); }
+.edge .card .tag { top: -11px; left: 3px; padding: 0 3px; background: rgb(var(--glass)); }
+.corner .card .tag { top: 3px; left: 5px; }
+.card .x { position: absolute; z-index: 2; }
+.edge .card .x { top: -11px; right: 1px; }
+.corner .card .x { top: 2px; right: 2px; }
+.hover-x .card .x { opacity: 0; }
+.army .card.hot .x { opacity: 1; }
+.x {
+  font: inherit; font-size: 11px; line-height: 1; cursor: pointer;
+  width: 16px; height: 16px; padding: 0; display: grid; place-items: center;
+  color: rgb(var(--text)); background: rgb(var(--glass) / .95); border: 1px solid rgb(var(--accent) / .5);
+}
+.x:hover { border-color: rgb(var(--accent)); box-shadow: 0 0 5px rgb(var(--accent) / .6); color: #fff; }
+.x svg { width: 9px; height: 9px; display: block; }
+.box { position: relative; align-self: stretch; justify-self: stretch; pointer-events: none; margin: -3px; border: 1px solid rgb(var(--accent) / .5); z-index: 1; }
+.box .tag { position: absolute; top: -8px; left: 6px; padding: 0 3px; background: rgb(var(--glass)); font-size: 12px; line-height: 13px; font-weight: 700; color: rgb(var(--text)); }
+.box .x { position: absolute; top: -8px; right: 4px; pointer-events: auto; }
+.hover-x .box .x { opacity: 0; }
+.hover-x .box.hot .x { opacity: 1; }
+.card[data-t]::after { border-top-width: 1px; }
+.card[data-g]:not([data-t])::after { border-top-width: 0; }
+.card[data-g]:not([data-b])::after { border-bottom-width: 0; }
+
+/* ---- Round 4: white brackets, number tab flush in the corner ---- */
+#army { --bw: 1px; --line: rgb(var(--text)); --ink: rgb(14 92 138); --tab: 15px; --tabfont: 11px; }
+#army.k2 { --bw: 2px; --tab: 18px; --tabfont: 12.5px; }
+#army.k3 { --tab: 18px; --tabfont: 11.5px; }
+#army .box { margin: calc(-1 * var(--bw)); border: var(--bw) solid var(--line); box-shadow: 0 0 4px rgb(var(--text) / .35); }
+#army .card[data-g]::after { border-color: var(--line); inset: calc(-1 * var(--bw)); }
+#army .card[aria-pressed="true"][data-g]::after { inset: calc(-1 * var(--bw) - 1px); }
+#army .card[data-g][data-t]::after { border-top-width: var(--bw); }
+#army .card[data-g][data-b]::after { border-bottom-width: var(--bw); }
+#army .card[data-g][data-l]::after { border-left-width: var(--bw); }
+#army .card[data-g][data-r]::after { border-right-width: var(--bw); }
+#army .tag {
+  position: absolute; z-index: 3; display: grid; place-items: center;
+  min-width: var(--tab); height: var(--tab); padding: 0 2px; line-height: 1;
+  background: var(--line); color: var(--ink); font-size: var(--tabfont); font-weight: 800;
+}
+#army .box .tag { top: calc(-1 * var(--bw)); left: calc(-1 * var(--bw)); }
+#army .card .tag { top: calc(-1 * var(--bw)); left: calc(-1 * var(--bw)); }
+#army.k3 .tag { clip-path: polygon(0 0, 100% 0, 100% 55%, 55% 100%, 0 100%); place-items: start; padding: 1px 0 0 3px; }
+#army .x { width: var(--tab); height: var(--tab); border: 0; background: var(--line); color: var(--ink); z-index: 3; }
+#army .x:hover { box-shadow: 0 0 6px rgb(var(--text) / .8); color: rgb(var(--glass)); }
+#army .box .x { top: calc(-1 * var(--bw)); right: calc(-1 * var(--bw)); }
+#army .card .x { top: calc(-1 * var(--bw)); right: calc(-1 * var(--bw)); }
+#army.k3 .x { clip-path: polygon(0 0, 100% 0, 100% 100%, 45% 100%, 0 55%); }
+/* k4: the HUD's own corner brackets, in white, instead of a full line. */
+#army.k4 .box {
+  border-color: transparent; box-shadow: none;
+  background:
+    linear-gradient(var(--line), var(--line)) top left / 12px 2px no-repeat,
+    linear-gradient(var(--line), var(--line)) top left / 2px 12px no-repeat,
+    linear-gradient(var(--line), var(--line)) top right / 12px 2px no-repeat,
+    linear-gradient(var(--line), var(--line)) top right / 2px 12px no-repeat,
+    linear-gradient(var(--line), var(--line)) bottom left / 12px 2px no-repeat,
+    linear-gradient(var(--line), var(--line)) bottom left / 2px 12px no-repeat,
+    linear-gradient(var(--line), var(--line)) bottom right / 12px 2px no-repeat,
+    linear-gradient(var(--line), var(--line)) bottom right / 2px 12px no-repeat;
+  filter: drop-shadow(0 0 3px rgb(var(--text) / .5));
+}
+#army.k4 .box .tag, #army.k4 .box .x { top: 0; }
+#army.k4 .box .tag { left: 0; }
+#army.k4 .box .x { right: 0; }
+/* ---- Reply builder ---- */
+.reply { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+fieldset { border: 1px solid rgb(var(--accent) / .22); padding: 12px 14px 14px; margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+legend { padding: 0 6px; letter-spacing: .14em; text-transform: uppercase; font-size: 10.5px; color: rgb(var(--accent)); }
+label { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
+label small { display: block; color: rgb(var(--dim)); font-size: 10.5px; }
+input[type=radio], input[type=checkbox] { accent-color: rgb(var(--accent)); margin-top: 3px; }
+textarea {
+  width: 100%; min-height: 150px; resize: vertical; font: inherit; font-size: 11.5px;
+  color: rgb(var(--text)); background: rgb(var(--glass)); border: 1px solid rgb(var(--accent) / .3); padding: 8px;
+  -webkit-user-select: text; user-select: text;
+}
+input[type=text] { font: inherit; color: rgb(var(--text)); background: rgb(var(--glass)); border: 1px solid rgb(var(--accent) / .3); padding: 5px 7px; width: 100%; -webkit-user-select: text; user-select: text; }
+.copyrow { display: flex; gap: 10px; align-items: center; }
+.copied { color: rgb(var(--credits)); font-size: 11px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Control groups · one flow, round 5</h1>
+    <p class="lede">Concept 1 with hugging brackets. The bar is one sequence filled top to bottom, then left to right: groups 1 to 0 first, then ungrouped cards, then waiting reinforcements. A group doesn't have to start a new column, so a group's unused slot takes the next card and the bar never has a gap. Try 3 rows. Click a card, then Ctrl+3, to make a group that starts partway down a column.</p>
+  </header>
+
+  <div class="keys">
+    <span><b>Click</b> select · click again: centre</span>
+    <span><b>Shift-click</b> range from anchor</span>
+    <span><b>Cmd/Ctrl-click</b> add or remove one</span>
+    <span><kbd>Ctrl</kbd>+<kbd>N</kbd> make group</span>
+    <span><kbd>Shift</kbd>+<kbd>N</kbd> add to group</span>
+    <span><kbd>N</kbd> select · <kbd>N</kbd><kbd>N</kbd> centre</span>
+  </div>
+
+  
+  <div class="variants" role="group" aria-label="Mock controls">
+    <span>Rows</span>
+    <button class="btn" data-rows="1" aria-pressed="false">1</button>
+    <button class="btn" data-rows="2" aria-pressed="true">2</button>
+    <button class="btn" data-rows="3" aria-pressed="false">3</button>
+  </div>
+  
+  
+  <div class="vnote" id="vnote"></div>
+
+  <section class="stage" id="stage" tabindex="-1" aria-label="Battlefield">
+    <div class="status"><div class="sel" id="sel"></div><div class="toast" id="toast"></div></div>
+    <footer class="deck" id="deck">
+      <div class="reinf"><span>◇ REINFORCEMENTS</span><b>380 CR</b></div>
+      <div class="army hover-x edge" id="army" role="group" aria-label="Your units"></div>
+    </footer>
+  </section>
+
+  <div class="reply">
+    <fieldset>
+      <legend>Anything off?</legend>
+      <input type="text" id="other" placeholder="Anything else"><textarea id="out" readonly aria-label="Reply to paste" style="min-height:80px"></textarea>
+      <div class="copyrow"><button class="btn" id="copy">Copy reply</button><span class="copied" id="copied"></span></div>
+    </fieldset>
+  </div>
+</div>
+
+<script>
+const ICON = {"roles/infantry":"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 42 34\" width=\"42\" height=\"34\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"3\" width=\"36\" height=\"22\" fill=\"currentColor\" fill-opacity=\"0.28\"/><path d=\"M3 3l36 22M39 3L3 25\"/></svg>","roles/mbt":"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 42 34\" width=\"42\" height=\"34\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"3\" width=\"36\" height=\"22\" fill=\"currentColor\" fill-opacity=\"0.28\"/><rect x=\"11\" y=\"9\" width=\"20\" height=\"10\" rx=\"5\"/></svg>","roles/at":"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 42 34\" width=\"42\" height=\"34\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"3\" width=\"36\" height=\"22\" fill=\"currentColor\" fill-opacity=\"0.28\"/><path d=\"M3 3l36 22M39 3L3 25\"/><path d=\"M3 25L21 3l18 22\"/></svg>","roles/light_vehicle":"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 42 34\" width=\"42\" height=\"34\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"3\" width=\"36\" height=\"22\" fill=\"currentColor\" fill-opacity=\"0.28\"/><path d=\"M3 25L39 3\"/><circle cx=\"14\" cy=\"30\" r=\"2.2\" fill=\"currentColor\"/><circle cx=\"28\" cy=\"30\" r=\"2.2\" fill=\"currentColor\"/></svg>","roles/logistics":"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 42 34\" width=\"42\" height=\"34\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"3\" width=\"36\" height=\"22\" fill=\"currentColor\" fill-opacity=\"0.28\"/><path d=\"M3 17h36\"/></svg>","roles/recon":"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 42 34\" width=\"42\" height=\"34\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"3\" width=\"36\" height=\"22\" fill=\"currentColor\" fill-opacity=\"0.28\"/><path d=\"M3 25L39 3\"/></svg>","units/eastern_rifle_squad":"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 162 105\" width=\"162\" height=\"105\" fill=\"currentColor\" fill-rule=\"evenodd\"><path d=\"M3.5 103.5L15.5 103.8L16.7 103.5L17.4 102.5L10.5 99L9.5 97.5L10.5 94.5L13.9 90.5L17.2 80.5L17.9 79.5L18.2 77.5L19.1 76.5L20.1 71.5L21.9 69.5L22.5 66.5L23.5 66.1L24.2 68.5L26.8 71.5L26.9 72.5L27.3 78.5L27 82.5L27.5 86.5L27.1 91.5L28.5 98.5L27.9 103.5L28.5 104L43.5 104L44.5 103.5L43.5 102L39.5 100.9L35.1 98.5L34.5 92.5L36 90.5L35.5 82.5L35.7 77.5L36.5 74.5L36.4 71.5L35.5 69.5L35.3 65.5L34 61.5L31 55.5L31 53.5L29.3 51.5L29.1 50.5L30 48.5L33.5 45.8L34.6 46.5L35.5 48.9L36.5 48.9L39.2 47.5L37.9 42.5L36.5 42.2L35.9 41.5L36.5 40.5L41.5 39L42.5 39.8L44.5 40.4L48.5 38.9L51.5 37L54.5 38.9L59.5 39.5L59.5 41.5L63 43.5L62.5 44.7L60.9 45.5L61.4 47.5L60 49.5L60.8 51.5L61.2 55.5L63.8 56.5L62.8 63.5L61.7 66.5L61.7 71.5L60.5 73.5L60 76.5L56.8 85.5L55.1 88.5L53.8 97.5L52.3 101.5L52.5 103.2L55.5 103.8L64.5 103.8L66.5 103.1L66.5 102.2L59.5 98.8L58.8 97.5L59.6 94.5L63 90.5L67.1 77.5L68 76.5L68.5 74.5L68.3 72.5L69.6 69.5L70.2 64.5L71.1 61.5L71.5 60.8L72.5 60.5L74.9 66.5L75.2 68.5L76.9 71.5L77.5 84.5L76.8 91.5L78 98.5L77 103.5L78.5 104L93.5 103.8L93.8 103.5L93.5 102.5L86.5 99.8L84.5 98.5L84 97.5L83.5 93.5L83.6 92.5L85.1 90.5L84.5 82.5L84.8 76.5L85.5 73.5L84.8 70.5L84 69.5L83 65.5L79 56.5L78.8 54.5L77.6 51.5L79.3 48.5L82.5 45.8L83.5 46L84.5 47.6L88.5 46.6L89.5 45.8L89.8 45.5L88.4 41.5L89.2 40.5L90.5 40L93.5 40.5L96.5 39.5L100.5 37L103.5 38.8L106.5 39.5L108.5 39.2L108.9 41.5L109.5 42.3L112.3 43.5L111.1 45.5L111.6 47.5L109.8 48.5L109.2 49.5L110 51.5L111 58.5L110.4 63.5L109.2 66.5L110.3 71.5L109.3 73.5L108.8 76.5L107.1 79.5L106.1 84.5L104.1 88.5L102.8 98.5L101.5 102.5L102.5 103.5L104.5 103.8L114.5 103.8L115.5 103.5L116 102.5L115.5 102L110.5 99.8L108.5 98.6L108 97.5L109.1 94.5L111.9 91.5L112.9 89.5L113.2 87.5L114.6 84.5L116.5 78.5L117.8 76.5L118.2 72.5L120.8 68.5L121.5 65.2L123.2 69.5L125.2 71.5L125.8 73.5L126 78.5L125.5 80.5L126 85.5L125.8 91.5L127.2 98.5L126.2 103.5L127.5 104L142.5 104L143.1 103.5L142.5 102.1L140.5 101.8L135.5 99.7L133.2 97.5L133 92.5L134.8 90.5L134.2 88.5L134.1 82.5L134.2 77.5L135 74.5L135 71.5L134.9 70.5L134.1 69.5L134 65.5L130.1 56.5L129.6 53.5L128 51.5L127.9 50.5L128.5 50L131.5 49.9L132 49.5L132 46.5L132.5 45.7L133.5 45.5L134.5 47.5L134.6 48.5L133.8 49.5L134.2 50.5L136.5 52.6L138.7 50.5L137.1 48.5L137.9 47.5L138.1 46.5L136.1 41.5L135.1 40.5L136.5 39.6L139.5 38.9L140.5 39.1L141.5 40L144.5 40.8L149.5 37.2L150 36.5L149.8 34.5L151.8 33.5L151.5 32.8L150.2 32.5L148.5 29.9L147.5 32.2L142.5 33.9L138.2 29.5L138 28.5L136.6 27.5L136.9 25.5L136.1 24.5L133.5 22L132.5 23L130.2 21.5L129 16.5L129.5 15.5L131.5 16L132.5 15.7L134.5 13.2L135.9 12.5L135.7 10.5L137.4 8.5L136.8 5.5L136 4.5L133.5 2L130.5 1.1L128.5 1.2L126.5 2L123.5 4.3L122.5 3.8L121.2 5.5L123 7.5L123.2 8.5L124.1 9.5L124 12.5L122.1 13.5L120.5 16.3L119.5 17.2L115.5 17.2L114.5 17.8L110.5 16.5L107.5 16.8L106.6 19.5L105 20.5L104.8 22.5L101.8 30.5L100.5 32.4L99.5 31.1L97.5 31.9L96.5 31.7L95.5 30.2L91.5 31.8L91 31.5L89 29.5L88.8 28.5L87.3 27.5L87.7 25.5L86.9 24.5L84.5 22.2L83.5 23.2L81.1 21.5L80.5 20.5L79.8 16.5L80.5 15.5L82.5 16L86.5 12.6L86.2 10.5L88.1 8.5L86.9 4.5L84.5 2.2L82.5 1.2L78.5 1.4L76.5 2.5L74.5 4.4L73.5 3.9L72.2 4.5L71.9 5.5L72.3 6.5L73.8 7.5L74 8.5L74.9 9.5L74.7 12.5L72.5 14L70.5 17.1L66.5 17.2L65.5 17.7L61.5 16.5L58.5 16.6L57.2 18.5L57.2 19.5L55.8 20.5L55.9 21.5L52 31.5L44.5 34.1L43.5 33.9L38.1 27.5L38.2 25.5L37.5 24.3L35.5 22.7L34.5 23.6L32.5 21.8L31.4 21.5L30.5 16L31.5 15.5L33.5 16L35.5 13.4L37.2 12.5L37 10.5L39.2 8.5L37.5 4.5L35.5 2.4L33.5 1.4L31.5 1L29.5 1.2L27.5 2.2L25.5 4.2L23.5 3.9L22.7 5.5L23 6.5L24.6 7.5L25.5 9.5L25.2 12.5L23.5 13.7L21.5 17L15.5 17.7L12.5 16.5L9.5 16.5L8.5 17.3L8 19.5L7.5 19.9L6.5 19.5L5.8 23.5L1.2 35.5L1.5 36.5L4.5 38.7L7.5 39.5L9.5 39.2L10 39.5L10.5 41.9L13.8 43.5L13.2 44.5L11.8 45.5L12.1 47.5L10.8 49.5L12.6 59.5L10.9 66.5L11.9 71.5L8.2 80.5L7.8 83.5L5.2 89.5L3.9 99.5L3.1 101.5ZM87.5 36.6L86 35.5L86.5 35L87.8 35.5ZM133.5 36.7L133.5 36.3L134.5 36.4L135.5 34.8L136.9 35.5ZM93.5 33L92.7 32.5L93.5 32.1L94.5 32L95.2 32.5ZM152.5 33L160.5 30.9L160.9 30.5L160.6 29.5L152.5 32.1L151.6 32.5ZM34.5 23L34.8 22.5L34.5 22L34.2 22.5ZM83.5 21.9L83.5 21.2L83.2 21.5ZM33.5 21.1L33.9 20.5L33.5 19.8L32.9 20.5ZM82.5 21L83 20.5L82.5 19.2L82 19.5L82 20.5ZM131.5 20.9L132.2 20.5L131.5 19.2L131.1 19.5ZM40.5 9.4L41.6 8.5L41.6 7.5L40.5 7L39.7 8.5ZM89.5 9.2L90.5 9.1L90.9 8.5L90.5 7.1L89.3 7.5L88.8 8.5ZM138.5 8.9L139.5 9.4L140.2 7.5L139.5 7L138.7 7.5L137.8 8.5Z\"/></svg>","units/eastern_t_90_t_90m_proryv":"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 162 75\" width=\"162\" height=\"75\" fill=\"currentColor\" fill-rule=\"evenodd\"><path d=\"M16.5 73.7L90.5 73.8L91.5 73.5L92.5 72.2L95.5 67.2L100.5 67.4L103.2 69.5L102.5 70.5L103.5 70.8L107.5 69.8L109.8 67.5L110.3 63.5L112.5 62L114.5 61.3L114.7 59.5L112.5 57.3L110.5 56.2L100.5 52.8L98.5 52.5L96.5 52.8L93.5 51.6L93 49.5L92.5 49.2L90.5 50.8L87.5 50.8L85.5 49.2L82.5 49.1L81.5 48.5L82.5 47.4L89.5 46.8L102.5 46.8L108.5 47.4L114.5 46.8L154.5 46.8L156.5 46.5L160.5 46.8L161 44.5L159.5 43.2L158.5 43.9L156.5 44L115.5 43.8L111.5 42.8L104.5 42.8L101.5 43.8L85.5 43.5L82.5 43L80.5 41.2L76.5 40.9L75.5 40L68.5 38.2L67.2 34.5L67.5 33.5L68.5 33.5L62.5 33.5L61.5 33.3L60.5 32.2L57.5 32.2L55.5 32.8L53.5 30.5L52.5 32.8L44.5 32.8L43.8 33.5L43.8 34.5L44.5 35.5L48.5 35.5L49.5 35.1L50.5 35.5L50.3 36.5L47.5 38.1L46.5 38.2L45.5 39.1L42.5 38.9L42.2 37.5L41.5 37.2L40.5 39.2L33.5 39.5L32.5 39.2L31.5 35.8L30.5 38.5L29.5 39L13.5 39L7.5 40L3.5 39.8L2.8 40.5L2.8 46.5L4.5 48.5L1.8 50.5L1 52.5L2.6 57.5L1.5 57.7L1.1 58.5L1 63.5L2.5 66.5L2.1 67.5L4.5 70L5.5 69.5L5.9 70.5L6.5 70.8L8.2 70.5L8.1 69.5L9.5 69L11.5 67.4L12.5 67.5L13.1 69.5L14.4 71.5L12.8 72.5L15.5 73ZM22.5 73.1L21.7 72.5L23.9 70.5L25.5 67.2L26.5 67.7L27 69.5L28.3 71.5L29.9 72.5L28.5 73.2ZM36.5 73.1L35.7 72.5L37.9 70.5L39.5 67.2L40.5 67.8L42.3 71.5L43.8 72.5L42.5 73.2ZM50.5 73.1L49.7 72.5L51.9 70.5L53.5 67.2L54.5 67.9L55.5 70.5L57.6 72.5L56.5 73.2ZM64.5 73.1L63.7 72.5L65.8 70.5L67.5 67.2L68.5 68L69.5 70.5L71.5 72.5L70.5 73.2ZM78.5 73.1L77.6 72.5L79.8 70.5L81.5 67.5L82.5 68.3L83.4 70.5L85.5 72.5L84.5 73.2ZM93.5 72.6L96.3 72.5L94.5 72.2ZM9.5 71.6L11.7 71.5L10.5 71.2ZM98.5 71.8L100.8 71.5L98.5 71.2L97.8 71.5ZM2.5 62.1L1.8 60.5L1.8 59.5L2.5 58.9L3.5 59.1L3.9 60.5ZM9.5 50.7L8.2 49.5L8.5 48.5L9.5 48.5L10.5 47.5L33.5 47.5L40.5 47.8L41.8 48.5L41.5 49.8L38.5 50L37.5 51L36.5 50L35.5 49.8L29.5 49.8L28.5 51ZM4.5 46.5L4.2 41.5L4.5 41L7.5 41L7.9 41.5L8.2 43.5L7.5 46.5ZM60.5 38.1L60.2 36.5L60.5 36.1L60.8 36.5Z\"/></svg>","units/eastern_rpg_team_rpg_29":"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 162 75\" width=\"162\" height=\"75\" fill=\"currentColor\" fill-rule=\"evenodd\"><path d=\"M5.5 73.8L13.5 73.8L14.2 73.5L13.9 72.5L10.5 70.9L9 69.5L9.7 67.5L12.5 63.5L15.6 54.5L16.2 51.5L17.8 49.5L18.5 46.8L21.4 52.5L21.6 55.5L21.2 57.5L21.8 61.5L21.5 65.5L22.5 70.5L21.9 73.5L22.5 74L32.5 74L33.8 73.5L32.5 72.5L27.6 70.5L26.9 69.5L26.5 66.5L27.8 64.5L27.2 58.5L27.9 51.5L27.2 49.5L27.1 46.5L25.2 41.5L25.8 40.5L25.8 33.5L27.6 31.5L27.9 32.5L27.4 33.5L27.8 34.5L27 35.5L27.5 36.5L28.5 37L29.5 36.4L30 35.5L29.7 34.5L30.5 33.5L29.9 32.5L30.2 31.5L29.9 29.5L30.5 28.3L31.5 28.1L33.5 29.2L37.5 28L41.5 29.6L42.5 29.7L43.5 29.2L44.7 30.5L46.8 31.5L46.1 32.5L45.8 34.5L44.5 35.5L46 42.5L44.7 47.5L45.3 50.5L40.9 63.5L39.9 70.5L39 72.5L39.2 73.5L40.5 73.8L48.5 73.8L48.9 73.5L48.5 72.2L46.5 71.7L44.5 70.5L43.8 69.5L44.3 67.5L46.9 64.5L49.8 56.5L51 51.5L53.5 47.1L54.2 49.5L56 51.5L56.2 65.5L57.2 70.5L56.6 73.5L57.5 74L67.5 74L68.4 73.5L67.5 72.6L62.5 70.7L61.6 69.5L61.2 66.5L62.4 64.5L62 58.5L62.5 51.5L61.8 46.5L60.1 42.5L60 41.5L60.5 40.5L60.2 33.5L61.5 31.8L62.5 32.5L61.8 35.5L62.3 36.5L63.5 37L64.8 35.5L64.2 34.5L65.1 33.5L64.7 32.5L65.1 28.5L65.5 28.1L68.5 29.1L70.5 28.5L73.2 26.5L73 25.5L73.5 24.8L74.5 24L75.5 24L76 24.5L75.3 28.5L77.5 30L79.5 30.4L81.5 30L82.3 30.5L82.2 31.5L83.8 32.5L83.5 33.5L81.5 33.6L80.5 34.5L81 38.5L82 39.5L82.1 41.5L83.4 43.5L83.7 48.5L85 51.5L83.1 56.5L82.5 60.5L80.5 65.5L79.2 73.5L80.5 74L102.5 73.8L102.5 73.1L97.5 70.9L95.8 69.5L95.8 66.5L97 64.5L97.2 58.5L98.1 51.5L96.9 44.5L95.5 40.5L96.2 32.5L98.6 31.5L99.8 27.5L98 25.5L99 24.5L99.6 22.5L98.9 20.5L99 17.5L98.4 16.5L104.5 15L108.5 15L109.5 13.3L114.5 12.6L114.8 10.5L115.5 10L140.5 10L142.5 10.8L152.5 10.8L153.5 10L155.5 10L156.5 10.5L160.5 10L161 9.5L161 6.5L160.5 5.8L156.5 5.5L155.5 5.8L100.5 5.8L97.5 2.5L94.5 1.5L91.5 2.4L89.5 5.6L85.5 5.8L83.5 5.2L78.8 5.5L78.5 9.5L79.5 10.5L84.5 10.5L85.5 10L88.1 10.5L86.7 11.5L86.3 12.5L84.5 13.1L82.5 14.5L79.5 13.8L78.5 14.3L76 22.5L75.5 22.8L74.5 21.9L72.5 23.3L67.5 24.3L65 21.5L63.5 18.1L61.5 16.4L60.5 16.7L59.2 15.5L60.5 15.5L60.5 14.5L59.2 12.5L61.5 11.3L63.7 8.5L64.5 6.5L64.1 4.5L62.5 2.5L60.5 1.5L58.5 1.2L56.5 2L55 3.5L54.4 4.5L53.9 7.5L54.7 9.5L53.5 10.3L52.5 10.2L50.5 13L49.1 11.5L46.5 10.3L42.5 10.1L41.6 12.5L40.1 14.5L37.1 22.5L36.3 23.5L33.5 24.6L30.2 21.5L29 19.5L29.2 18.5L27.5 16.9L26.5 16.8L24.8 15.5L25.7 14.5L24.5 12.5L26.7 11.5L28.2 9.5L28.5 8.2L29.8 7.5L30 6.5L28.9 3.5L27.5 2.2L23.5 1.2L21.5 2.1L20.2 3.5L19.2 7.5L20 9.5L17.5 10.5L16.5 12.7L15.5 12.8L14.5 11.4L11.5 10.2L8.5 10L7.5 10.5L5.4 14.5L1.3 25.5L1.3 26.5L3.6 28.5L7.5 29.7L9.2 29.5L10 30.5L12 31.5L11.3 32.5L11.7 33.5L9.9 35.5L11.1 42.5L10 47.5L10.8 50.5L8.1 57.5L7.9 59.5L6.1 63.5L4.5 72.5L4.8 73.5ZM87.5 71.6L85.5 70.7L84.5 69.5L85.1 67.5L86.9 65.5L87.5 62.5L90 55.5L91.5 54.5L90.8 64.5L91.4 69.5L91.1 71.5L90.5 72.5ZM91.5 54.5L91 52.5L91.5 51.1L91.8 51.5ZM27.5 26.7L27.2 26.5L28.5 25.2L28.9 25.5L29 26.5L28.5 27ZM62.5 26.8L61.9 26.5L63.5 25.3L63.5 26.8ZM85.5 16.7L84.8 15.5L84.9 14.5L85.5 14L86.1 14.5Z\"/></svg>","units/eastern_btr_btr_82a":"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 162 91\" width=\"162\" height=\"91\" fill=\"currentColor\" fill-rule=\"evenodd\"><path d=\"M24.5 89.8L28.5 90L30.5 89.6L32.5 88.9L35.5 86.6L37.8 82.5L38 81.5L37.5 80.5L38.2 79.5L37.9 77.5L38.5 77L42.5 77L44 77.5L43.5 79.5L44.1 80.5L43.8 81.5L45.3 85.5L48.6 88.5L51.5 89.8L57.5 89.7L59.5 88.9L62.5 86.6L64.8 82.5L65 81.5L64.5 80.5L65.2 79.5L64.9 77.5L65.5 77L78.5 77L79.3 77.5L79 79.5L79.7 80.5L79.1 81.5L79.4 82.5L81.5 86.3L84.5 88.8L88.5 90L92.5 89.8L96.5 87.8L98.8 85.5L99.8 83.5L100.4 81.5L100 80.5L100.7 79.5L100.3 77.5L101.5 77L105.5 77L106.3 77.5L106 79.5L106.7 80.5L106.1 81.5L106.4 82.5L108.7 86.5L111.5 88.8L113.5 89.6L115.5 90L119.5 89.8L122.5 88.5L125.8 85.5L127.4 81.5L127 80.5L127.7 79.5L127.3 77.5L128.5 77L132.5 76.8L138.5 70.7L139.5 70.5L141.7 66.5L142.2 64.5L141.5 63.2L139.6 62.5L137.5 60.5L136.5 60.3L136.1 58.5L135.5 57.8L134.5 58.1L133.5 59.2L121.8 54.5L123.5 53.8L157.5 53.8L160.5 54.2L161 53.5L160.8 52.5L160.5 52.2L157.5 52.5L110.5 52.5L108.5 52L103.5 52L102.5 51.2L100.5 51L99.5 50L98.5 50L96.5 46.8L94.5 46.5L94 44.5L93.5 43.9L92.5 43.8L91.1 44.5L90.5 46.5L89.5 45.2L87.5 44.2L85.5 44.1L83.5 45L80.5 44.8L77.8 47.5L74.9 53.5L73.5 55L65.5 55L64.5 54.9L62.5 53.2L54.5 53.2L53.8 52.5L53.6 49.5L52.5 49.2L14.5 49.5L14 50.5L14 53.5L13.5 54.7L12.5 55L12 54.5L11.5 51.5L11.5 52.5L10.5 53.2L10.2 54.5L9.5 55L5.5 55L4.9 55.5L2.9 61.5L1 63.5L1.6 65.5L1.2 67.5L1.9 69.5L6.5 76.6L7.5 77L15.5 77L17 77.5L16.5 79.5L17.1 80.5L16.8 81.5L18.3 85.5L21.6 88.5ZM103.5 54.8L103.2 54.5L103.5 54.2L107.5 54.2L107.8 54.5L107.5 54.8ZM118.5 54.9L118 54.5L118.5 53.9L119.5 53.8L121 54.5Z\"/></svg>","units/eastern_ural_4320_general_resupply":"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 162 100\" width=\"162\" height=\"100\" fill=\"currentColor\" fill-rule=\"evenodd\"><path d=\"M27.5 98.8L34.5 98.8L38.5 97.1L41.6 94.5L43.5 91.5L44.8 86.5L43.7 80.5L44.5 80.2L47.3 80.5L46.2 86.5L48 92.5L50.5 95.7L53.5 97.8L56.5 98.8L63.5 98.8L67.5 97L70.4 94.5L71.8 92.5L73 89.5L73.4 84.5L72.5 80.5L73.5 80.2L81.5 80.2L82.2 81.5L82.2 85.5L83.5 86.5L100.5 86.5L101.5 85.5L101.5 81.5L101.8 80.5L102.5 80.2L109.2 80.5L109.5 84.5L107.2 85.5L107.5 86L112.5 86L113.2 85.5L111.5 85.2L110.8 84.5L110.8 81.5L111.5 80.2L121.5 80.2L121.8 81.5L120.9 84.5L121.1 89.5L123.9 94.5L126.5 96.9L130.5 98.7L136.5 99L138.5 98.6L140.5 97.9L143.5 95.9L145.7 93.5L146.9 91.5L148 86.5L147 80.5L147.5 80.2L153.5 80.2L154 79.5L154 75.5L153.5 75L141.5 75L138.3 73.5L139.5 73.2L155.5 73.2L156.5 72.7L157.5 71.5L157.3 60.5L153.5 57.3L151.5 56.6L126.5 54L126.2 50.5L124.9 48.5L124.8 45.5L123.5 44.5L122.5 42.7L120.5 41.5L119.5 40.2L117.5 41.2L102.5 41.2L101.3 40.5L100.5 37.2L99.5 41.5L100.1 42.5L99.5 45.5L99.5 51.5L98.5 52.5L97.5 50.5L97.5 39.5L97.8 38.5L97.5 37.2L94.5 37L93.5 37.5L93.8 44.5L93.5 45.2L92.5 45.5L90.5 45.5L89.8 44.5L89.8 38.5L88.9 36.5L87.5 36L2.5 36.1L1.5 36.9L1 38.5L1 63.5L1.5 65.5L1.5 73.5L2.5 74.5L1.2 75.5L1 76.5L1.5 77.9L2.5 77.9L2.8 77.5L2.5 75.5L3.5 74.5L4.5 74.8L4.8 76.5L6.5 78.5L5.5 79.5L4.5 78.8L3.5 78.8L2.5 79.3L2.2 80.5L3.5 81.8L4.5 81.8L6.5 79.5L7.5 80.2L17.5 80.2L18.5 80.5L17.5 84.5L17.8 85.5L17.5 86.5L18.2 90.5L19.1 92.5L21.5 95.7L24.5 97.6ZM156.5 79.8L158.5 80.1L160.7 79.5L160.5 78.5L159.5 79.1L159.1 78.5L158.5 75.5L156.5 75.6L156 76.5L156 78.5ZM88.5 74.6L87.5 74.5L88.5 74.4L89.2 73.5L89.5 70.5L93.5 70.8L93.8 72.5L92.5 75ZM98.5 75L97.5 72.5L97.5 65.5L98.5 63.5L99.5 64.5L99.5 74.5ZM126.5 75L125.8 74.5L125.9 73.5L126.5 73L130.5 73.5L127.5 75Z\"/></svg>","units/eastern_sukhoi_flanker_family_su_35s":"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 162 46\" width=\"162\" height=\"46\" fill=\"currentColor\" fill-rule=\"evenodd\"><path d=\"M72.5 44.5L74.5 45L76.1 44.5L78 42.5L78.5 40.2L88.5 40.5L93.4 39.5L90.5 38.5L92.5 37.9L100.5 37.7L102.9 30.5L103.5 29.9L104.5 29.9L115.5 31.8L127.5 33L128.8 34.5L128.8 36.5L129.5 37.5L131.5 37.8L131.8 38.5L131.8 39.5L130.1 41.5L130.1 43.5L131.5 44.9L133.5 44.8L134.7 43.5L134.8 42.5L134.7 41.5L133.2 39.5L133.1 38.5L133.5 37.5L135.5 37.5L136.5 33.2L142.5 32.8L153.5 31L157.5 28.5L158.4 27.5L154.5 25.2L150.5 24.2L146.5 23.8L138.5 22.2L133.5 21.9L132.5 21L131.5 21L130.5 21.8L128.5 21.8L124.5 19.1L119.5 16.6L111.5 17.3L110.5 17.8L104.5 18.8L90.5 20.2L80.5 21.8L70.5 22.2L69.5 21.3L67.5 22.5L65.5 22.8L52.5 23.2L45.5 23.8L44.5 23.3L39.2 16.5L31.9 3.5L30.5 1.8L21.5 1.8L21 2.5L21.2 6.5L22.9 24.5L21.5 25.2L1.5 27L1 27.5L1.5 28.5L6.5 28.5L11.3 30.5L11.5 36.5L12.5 37.2L16.5 37.5L43.5 37.2L67.5 38L68.1 38.5L68.1 40.5L70.5 41.3L71.4 43.5Z\"/></svg>","units/eastern_mig_29_fulcrum_mig_29smt":"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 162 47\" width=\"162\" height=\"47\" fill=\"currentColor\" fill-rule=\"evenodd\"><path d=\"M66.5 45.7L69.5 45.7L71.7 43.5L71.8 41.5L70.1 38.5L70.5 38.2L88.5 38.2L93.5 38.7L95.3 37.5L97.5 34.8L99.8 37.5L99.8 40.5L98.1 42.5L98.2 44.5L99.5 45.8L101.5 45.8L102.9 44.5L103.1 43.5L101.8 40.5L101.5 37.5L102 35.5L101.5 32.5L101.8 31.5L102.5 31.2L133.5 30.8L142.5 29.7L148.5 27.5L159.5 27.5L148.5 27.5L142.5 24.2L134.5 22L130.5 21.8L128.5 21.2L126.5 21.5L123.5 19.2L121.5 20L120.5 21.2L117.5 20.1L114.5 17.5L111.5 16.2L109.5 15.8L98.5 17.5L95.5 17.5L72.5 20.4L71.5 20.1L70.5 18.6L69.5 20.8L67.5 18.9L67.4 20.5L66.5 21.1L43.5 24L33.2 13.5L24.5 2L14.5 2L13.4 2.5L16.6 26.5L9.5 27.2L7.5 29L2.5 29.5L11.2 30.5L11.5 36.5L12.5 37.2L16.5 37.3L17.5 38.6L18.5 38.8L28.5 39L40.5 38.2L65.5 38.2L65.9 38.5L64.3 40.5L64 42.5L65 44.5ZM99.5 34.9L98.1 33.5L99.5 32.3L99.8 33.5Z\"/></svg>","units/eastern_su_25_frogfoot_su_25sm3":"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 162 50\" width=\"162\" height=\"50\" fill=\"currentColor\" fill-rule=\"evenodd\"><path d=\"M78.5 48.7L81.5 48.8L83.9 46.5L84 43.5L83.5 42.5L81.2 40.5L81.2 36.5L81.5 36.1L84.5 35.5L102.5 35.2L103.5 34.9L104.5 34L108.5 33.8L109.5 34.1L110.5 35.2L122.5 35.2L122.9 35.5L126.5 39.5L126.3 42.5L124.5 44.5L124.2 46.5L126.5 48.9L128.5 48.9L130 47.5L130.8 45.5L129 42.5L128.6 38.5L129.3 37.5L131.5 36.5L131.5 34.5L132.5 33.9L137.5 33.5L147.5 31.8L152.5 29L160.5 28.5L152.5 28L147.5 25.3L132.5 22.7L131.3 21.5L130.5 19.3L128.5 19.1L125.5 17.5L120.5 17.7L116.5 19L115.5 18.2L112.5 17.8L35.5 24L34 22.5L20.5 2.5L19.5 1.8L11.5 1.8L11 2.5L11 22.5L10.5 23.2L5.5 23.1L4.8 23.5L4.8 24.5L5.5 25.2L9.6 25.5L8.5 26L1.5 26.5L1 27.5L1 29.5L1.5 30.2L26.5 31.8L28.5 32.2L29.5 33.8L34.5 33.8L35.5 34.5L39.5 34.8L53.5 34.8L57.5 35.8L74.5 35.8L75.5 35.9L76.5 37.1L78.5 35.8L79 36.5L78 38.5L78.9 39.5L79 40.5L76.8 42.5L76 44.5L76.3 46.5ZM77.5 38.1L78.3 37.5L77.5 36.7L76.9 37.5ZM26.5 27.7L26.2 26.5L26.5 26.2L27 26.5L27 27.5Z\"/></svg>","states/seats":"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0.875 -1 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5.5 2h4v3h-4z\" fill=\"currentColor\"/><path d=\"M5.5 7h4l1.5 7H5.5z\" fill=\"currentColor\"/><path d=\"M5.5 15.5H18a2.25 2.25 0 0 1 0 4.5H5.5z\" fill=\"currentColor\"/></svg>"};
+const X_SVG = '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 2l6 6M8 2L2 8"/></svg>';
+
+// Example roster, laid out like the screenshot. x/y is a made-up map position for the centring readout.
+const UNITS = [
+  { id: 3,  name: "Rifle Squad", role: "infantry", sil: "eastern_rifle_squad", hp: 1,   x: 120, y: 80 },
+  { id: 4,  name: "Rifle Squad", role: "infantry", sil: "eastern_rifle_squad", hp: 1,   x: 135, y: 95 },
+  { id: 5,  name: "T-90M", role: "mbt", sil: "eastern_t_90_t_90m_proryv", hp: 1,      x: 160, y: 70 },
+  { id: 6,  name: "RPG-29 Team", role: "at", sil: "eastern_rpg_team_rpg_29", hp: .7,  x: 410, y: 300 },
+  { id: 7,  name: "T-90M", role: "mbt", sil: "eastern_t_90_t_90m_proryv", hp: 1,      x: 430, y: 320 },
+  { id: 8,  name: "T-90M", role: "mbt", sil: "eastern_t_90_t_90m_proryv", hp: 1,      x: 445, y: 310 },
+  { id: 9,  name: "Rifle Squad", role: "infantry", sil: "eastern_rifle_squad", hp: 1, aboard: 10, x: 150, y: 120 },
+  { id: 10, name: "BTR-82A", role: "light_vehicle", sil: "eastern_btr_btr_82a", hp: 1, x: 150, y: 120 },
+  { id: 11, name: "Ural-4320", role: "logistics", sil: "eastern_ural_4320_general_resupply", hp: 1, x: 60, y: 40 },
+  { id: 12, name: "Su-35S", role: "recon", sil: "eastern_sukhoi_flanker_family_su_35s", hp: 1, x: 700, y: 500 },
+  { id: 13, name: "Su-35S", role: "recon", sil: "eastern_sukhoi_flanker_family_su_35s", hp: 1, x: 720, y: 520 },
+  { id: 14, name: "Su-35S", role: "recon", sil: "eastern_sukhoi_flanker_family_su_35s", hp: 1, x: 300, y: 600 },
+  { id: 15, name: "MiG-29SMT", role: "recon", sil: "eastern_mig_29_fulcrum_mig_29smt", hp: 1, x: 740, y: 480 },
+];
+const PENDING = [{ name: "Su-25SM3", role: "recon", sil: "eastern_su_25_frogfoot_su_25sm3", eta: 24 }];
+const ORDER = UNITS.map(u => u.id);
+const byId = new Map(UNITS.map(u => [u.id, u]));
+const DIGITS = ["1","2","3","4","5","6","7","8","9","0"];
+
+let groups = new Map([["1", [3, 4, 5, 9]], ["2", [12, 13, 15]]]);
+let selected = [];
+let anchor = null;
+let variant = "A";
+let lastDigit = { d: null, at: 0 };
+const DOUBLE_MS = 400;
+
+const label = u => `${u.name} #${u.id}`;
+const picks = u => u.aboard ?? u.id;                 // a rider's card picks its carrier
+const onField = id => !byId.get(id).aboard;
+const groupOf = id => [...groups].find(([, ids]) => ids.includes(id))?.[0] ?? null;
+const sortRoster = ids => [...ids].sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b));
+
+/** The bar's order: groups 1..9,0 on the left, then ungrouped, then waiting cards. */
+function layout() {
+  const segs = [];
+  for (const d of DIGITS) {
+    const ids = groups.get(d);
+    if (ids?.length) segs.push({ digit: d, ids: sortRoster(ids) });
+  }
+  const loose = ORDER.filter(id => !groupOf(id));
+  segs.push({ digit: null, ids: loose });
+  return segs;
+}
+const barOrder = () => layout().flatMap(s => s.ids);
+
+function toast(msg) { document.getElementById("toast").textContent = msg; }
+
+function clickCard(u, e) {
+  const p = picks(u);
+  const toggle = e.metaKey || e.ctrlKey;
+  if (e.shiftKey && anchor !== null) {
+    const order = barOrder();
+    const [a, b] = [order.indexOf(anchor), order.indexOf(u.id)].sort((x, y) => x - y);
+    selected = [...new Set(order.slice(a, b + 1).map(id => picks(byId.get(id))))];
+    toast(`Range: ${b - a + 1} cards from the anchor`);
+  } else if (toggle) {
+    selected = selected.includes(p) ? selected.filter(id => id !== p) : [...selected, p];
+    anchor = u.id;
+    toast("");
+  } else {
+    if (selected.length === 1 && selected[0] === p) toast(`Camera → ${label(byId.get(p))}`);
+    else toast("");
+    selected = [p];
+    anchor = u.id;
+  }
+  render();
+}
+
+function assign(d, add) {
+  const ids = selected.filter(onField);
+  if (!ids.length) { toast("Nothing selected to group"); return; }
+  for (const [k, v] of groups) groups.set(k, v.filter(id => !ids.includes(id) || (add && k === d)));
+  const next = add ? [...new Set([...(groups.get(d) ?? []), ...ids])] : ids;
+  groups.set(d, next);
+  for (const [k, v] of groups) if (!v.length) groups.delete(k);
+  toast(add ? `Added ${ids.length} to group ${d}` : `Group ${d} = ${ids.length} units`);
+  render();
+}
+
+function recall(d) {
+  const ids = groups.get(d);
+  if (!ids) { toast(`No group ${d}`); return; }
+  const now = performance.now();
+  const twice = lastDigit.d === d && now - lastDigit.at <= DOUBLE_MS;
+  lastDigit = twice ? { d: null, at: 0 } : { d, at: now };
+  selected = sortRoster(ids.filter(onField));
+  if (twice) {
+    const pts = selected.map(id => byId.get(id));
+    const cx = pts.reduce((s, u) => s + u.x, 0) / pts.length, cy = pts.reduce((s, u) => s + u.y, 0) / pts.length;
+    const near = pts.reduce((b, u) => Math.hypot(u.x - cx, u.y - cy) < Math.hypot(b.x - cx, b.y - cy) ? u : b);
+    toast(`Camera → ${label(near)} (closest to group ${d}'s centre)`);
+  } else {
+    const riding = ids.length - selected.length;
+    toast(riding ? `Group ${d}: ${riding} riding, not selected` : "");
+  }
+  anchor = null;
+  render();
+}
+
+function removeGroup(d) { groups.delete(d); toast(`Group ${d} deleted`); render(); }
+
+let tagMode = "edge";
+let width = "wide";
+let hotGroup = null;
+
+function cardEl(u) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "card" + (u.aboard ? " dimmed" : "");
+  b.setAttribute("aria-pressed", String(selected.includes(picks(u))));
+  b.setAttribute("aria-label", u.aboard ? `${label(u)}, aboard ${label(byId.get(u.aboard))}` : label(u));
+  b.title = u.aboard ? `${label(u)} · aboard ${label(byId.get(u.aboard))}` : label(u);
+  b.innerHTML =
+    `<span class="role">${ICON["roles/" + u.role]}</span><span class="sil">${ICON["units/" + u.sil]}</span>` +
+    `<span class="meter"><span style="width:${u.hp * 100}%"></span></span>` +
+    (u.aboard ? `<span class="seat">${ICON["states/seats"]}</span>` : "");
+  b.addEventListener("mousedown", e => e.preventDefault());
+  b.addEventListener("click", e => clickCard(u, e));
+  return b;
+}
+function xEl(d) {
+  const x = document.createElement("button");
+  x.type = "button"; x.className = "x"; x.innerHTML = X_SVG;
+  x.setAttribute("aria-label", `Delete group ${d}`); x.title = `Delete group ${d}`;
+  x.addEventListener("mousedown", e => e.preventDefault());
+  x.addEventListener("click", e => { e.stopPropagation(); hotGroup = null; removeGroup(d); });
+  return x;
+}
+
+let rowsWanted = 2, looseMode = "col", holeMode = "hug", concept = "k1";
+/** Multi-row bar: each group is a block of whole columns filled top to bottom;
+ *  ungrouped cards follow, top to bottom (A) or left to right (B). */
+function render() {
+  const army = document.getElementById("army");
+  const rows = rowsWanted;
+  const segs = layout();
+  const loose = segs.find(s => s.digit === null).ids.map(id => ({ u: byId.get(id), g: null }));
+  PENDING.forEach(p => loose.push({ p, g: null }));
+  const flow = [];
+  for (const sg of segs) if (sg.digit !== null) sg.ids.forEach(id => flow.push({ u: byId.get(id), g: sg.digit }));
+  flow.push(...loose);
+  const cells = flow.map((it, i) => ({ it, row: i % rows, col: Math.floor(i / rows) }));
+  const blocks = [];
+  const columns = Math.ceil(flow.length / rows);
+  army.style.gridTemplateColumns = `repeat(${columns}, 64px)`;
+  army.style.gridTemplateRows = `repeat(${rows}, 88px)`;
+  army.className = `army hover-x edge ${concept}`;
+  army.innerHTML = "";
+  const at = new Map(cells.map(c => [`${c.row},${c.col}`, c]));
+  const groupAt = (r, c) => at.get(`${r},${c}`)?.it.g ?? null;
+  const hot = g => army.querySelectorAll("[data-g],[data-box]").forEach(e => e.classList.toggle("hot", g !== null && (e.dataset.g === g || e.dataset.box === g)));
+  for (const c of cells) {
+    let el;
+    if (c.it.p) {
+      el = document.createElement("button");
+      el.type = "button"; el.className = "card pending"; el.disabled = true;
+      el.title = `${c.it.p.name} — Arriving in ${c.it.p.eta} s`;
+      el.innerHTML = `<span class="role">${ICON["roles/" + c.it.p.role]}</span><span class="sil">${ICON["units/" + c.it.p.sil]}</span><span class="meter"><span style="width:100%"></span></span>`;
+    } else {
+      el = cardEl(c.it.u);
+      const g = c.it.g;
+      if (g) {
+        el.addEventListener("mouseenter", () => hot(g));
+        el.addEventListener("mouseleave", () => hot(null));
+        if (holeMode === "hug") {
+          el.dataset.g = g;
+          if (groupAt(c.row - 1, c.col) !== g) el.dataset.t = "";
+          if (groupAt(c.row + 1, c.col) !== g) el.dataset.b = "";
+          if (groupAt(c.row, c.col - 1) !== g) el.dataset.l = "";
+          if (groupAt(c.row, c.col + 1) !== g) el.dataset.r = "";
+          const mine = cells.filter(o => o.it.g === g);
+          if (mine[0] === c) { const t = document.createElement("span"); t.className = "tag"; t.textContent = g; el.append(t); }
+          const top = Math.min(...mine.map(o => o.row));
+          const xCell = mine.filter(o => o.row === top).at(-1);
+          if (xCell === c) el.append(xEl(g));
+        }
+      }
+    }
+    el.style.gridRow = String(c.row + 1);
+    el.style.gridColumn = String(c.col + 1);
+    army.append(el);
+  }
+  if (holeMode === "box") for (const b of blocks) {
+    const box = document.createElement("div");
+    box.className = "box"; box.dataset.box = b.g;
+    box.style.gridRow = `1 / ${rows + 1}`;
+    box.style.gridColumn = `${b.col + 1} / span ${b.w}`;
+    const t = document.createElement("span"); t.className = "tag"; t.textContent = b.g;
+    box.append(t, xEl(b.g));
+    box.addEventListener("mouseenter", () => hot(b.g));
+    box.addEventListener("mouseleave", () => hot(null));
+    army.append(box);
+  }
+  const names = selected.map(id => label(byId.get(id)));
+  document.getElementById("sel").textContent = names.length ? `Selected (${names.length}): ${names.join(", ")}` : "Nothing selected";
+}
+
+/** Bar order for range-select: the order the cards are laid out in. */
+function pressOne(sel, attr, value) {
+  document.querySelectorAll(sel).forEach(o => o.setAttribute("aria-pressed", String(o.getAttribute(attr) === value)));
+}
+document.querySelectorAll("[data-rows]").forEach(b => b.addEventListener("click", () => { rowsWanted = +b.dataset.rows; pressOne("[data-rows]", "data-rows", b.dataset.rows); render(); }));
+
+window.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+  const m = /^Digit([0-9])$/.exec(e.code);
+  if (!m || e.repeat || e.altKey) return;
+  const d = m[1];
+  e.preventDefault();
+  if (e.ctrlKey) assign(d, false);
+  else if (e.shiftKey) assign(d, true);
+  else if (!e.metaKey) recall(d);
+}, { capture: true });
+document.getElementById("stage").addEventListener("mousedown", e => { if (e.target.id === "stage") { selected = []; anchor = null; toast(""); render(); } });
+
+function compose() {
+  const other = document.getElementById("other")?.value.trim();
+  document.getElementById("out").value = other || "Layout looks right.";
+}
+document.querySelectorAll("input").forEach(i => i.addEventListener("input", compose));
+document.getElementById("copy").addEventListener("click", () => {
+  const out = document.getElementById("out");
+  navigator.clipboard?.writeText(out.value).then(
+    () => document.getElementById("copied").textContent = "Copied",
+    () => { out.select(); document.getElementById("copied").textContent = "Selected; press Cmd+C"; },
+  ) ?? (out.select(), document.getElementById("copied").textContent = "Selected; press Cmd+C");
+});
+
+render(); compose();
+</script>
