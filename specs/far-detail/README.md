@@ -21,7 +21,7 @@ tested only where it could fit: across instances and on terrain.
 ## Next Agent Prompt
 
 You are implementing `specs/far-detail/` on branch
-`t3/renderer-technique-from-post`. Nothing is on `staging` yet.
+`t3/renderer-technique-from-post`.
 
 - **00 is done: go.** The probe cut the wide hold from 34.6 ms to 23.0 ms of
   GPU time ([ceiling](assets/ceiling.md)). Parked cars and courtyard walls are
@@ -48,9 +48,9 @@ You are implementing `specs/far-detail/` on branch
   the car.
 - **Slice 03's shadow arm is being measured** on branch
   `t3/far-detail-census-ceiling`, at the day sun and the lowest authored sun.
-- **A first push to `staging` is being prepared** on branch
-  `t3/far-detail-staging-merge`: `staging` moved 104 commits and overlaps the
-  validator split, the count run and the simulation.
+- **On `staging` since 2026-11-16** (`916a75236`): slices 00 to 03, both
+  spike verdicts and the helper docs. Later work is pushed as each piece is
+  settled; merge `staging` little and often.
 - **05 is done: no-go.** Separate props do not simplify across each other,
   and any reshaping changes the fog look
   ([verdict](assets/block-merge-verdict.md)).
