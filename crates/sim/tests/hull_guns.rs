@@ -1,9 +1,10 @@
 //! A gun fixed in its hull bears where the body faces (D8): it fires only
 //! once the body has turned onto its target. A helicopter turns its airframe
 //! to aim while it flies on; tracks pivot it at rest; wheels, which cannot
-//! turn on the spot, hold fire. A turret keeps traversing on its own.
+//! turn on the spot, hold fire, until an attack order pivots any hull on the
+//! spot (a game rule). A turret keeps traversing on its own.
 
-use contract::command::{CommandEnvelope, MoveDirection, Order, RoutePolicy};
+use contract::command::{CommandEnvelope, MoveDirection, Order, RoutePolicy, TargetRef};
 use contract::ids::{Side, UnitId};
 use serde_json::{json, Value};
 use sim::battle::Battle;
@@ -110,6 +111,45 @@ fn a_wheeled_hull_gun_facing_away_holds_fire() {
         track.iter().all(|&(yaw, _)| yaw == 0.0),
         "wheels turned it on the spot"
     );
+}
+
+/// The player's attack order is the exception to wheels: ordered to strike a
+/// point behind it, a hull gun on tracks or wheels pivots where it stands
+/// (a game rule, not a three-point turn) and fires once it faces the point.
+#[test]
+fn an_attack_order_pivots_a_hull_gun_on_the_spot_onto_a_point_behind_it() {
+    for kind in ["test_hull_gun_tank", "test_hull_gun_jeep"] {
+        let mut b = battle(json!([
+            { "side": "blue", "kind": kind, "position": [400, 300], "yaw": 0.0 },
+        ]));
+        let ack = b.accept(CommandEnvelope {
+            side: Side::Blue,
+            player: None,
+            seq: 1,
+            order: Order::Attack {
+                units: vec![UnitId(0)],
+                target: TargetRef::Ground {
+                    point: [150.0, 300.0, 0.0],
+                },
+            },
+            queued: false,
+        });
+        assert_eq!(ack.error, None);
+        let start = b.unit(UnitId(0)).unwrap().position;
+        let tol = tolerance(&b);
+        let track = watch(&mut b, 30);
+        assert!(track.iter().any(|&(_, fired)| fired), "{kind} never fired");
+        for &(yaw, fired) in &track {
+            if fired {
+                assert!(
+                    off(yaw, PI) <= tol,
+                    "{kind} fired facing {yaw:.2}, not west"
+                );
+            }
+        }
+        let moved = (b.unit(UnitId(0)).unwrap().position - start).length();
+        assert!(moved < 0.5, "{kind} drove {moved:.1} m instead of pivoting");
+    }
 }
 
 #[test]
