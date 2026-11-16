@@ -138,3 +138,17 @@ A fact slice 06 turned up, outside this plan: at the whole-map view, which the
 player can reach, a frame submits 124 to 154 million triangles, and scenery
 (trees and dressing) is 87 to 98 million of them.
 
+## From slice 02's second pass, 2026-11-15
+
+| # | Question | Decision and why | Verdict |
+| --- | --- | --- | --- |
+| 44 | How do the two languages' far index stay honest? | One committed bundle, the bake of a synthetic far prop (`crates/renderer-core/tests/fixtures/far_prop.bundle`, 14 KB, a plain file outside LFS and outside anything served). A TypeScript test requires the bake to produce exactly those bytes; a Rust test decodes them, reads five meshes as presentation does, and draws the far tier. The TypeScript test rewrites the file when run with `UPDATE_FAR_BUNDLE=1`. | sound |
+| 45 | The workbench holds one model. Build a three-model page for the picture? | No new product code. The three models are shot one after another under one camera rule. | sound |
+| 46 | A prop batch naming a tier past its five slots: an error or a panic? | A panic that names the prop and the tier. It can only mean presentation broke its own rule. | sound |
+
+Found and fixed in that pass, older than this work: `asset sheet` failed on
+`staging` with a silent 60-second timeout, for two separate reasons. It never
+built the validator the workbench needs, which is fixed. And when art is
+still an unfetched LFS placeholder the page cannot load; the tool now quotes
+the page's own error, which names the file.
+

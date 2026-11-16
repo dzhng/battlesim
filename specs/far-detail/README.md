@@ -28,9 +28,8 @@ You are implementing `specs/far-detail/` on branch
   GPU time ([ceiling](assets/ceiling.md)). Parked cars and courtyard walls are
   81% of the triangles props submit there, and their shadow casts are about
   five times one view pass ([census](assets/census.md)).
-- **01 and 02 are merged.** 02 still owes its cross-language test (a bundle
-  baked by the TypeScript bake, decoded and drawn by Rust) and the workbench
-  picture.
+- **01 and 02 are done and merged**, cross-language test included. The
+  reviewer reran their tests on the merged code.
 - **Next: [slice 03](slices/03-parked-car.md)**, the parked car. Measure on the
   [fresh control](assets/control.json): the old receipt's digest no longer
   reproduces, because the generated map changed.
@@ -56,7 +55,7 @@ point, and any decision that moved into [the ledger](decisions.md).
 
 - [x] 00: census of the wide view, and the ceiling probe's go or no-go → [slice 00](slices/00-census-and-ceiling.md)
 - [x] 01: a static prop's bundle may carry a far mesh → [slice 01](slices/01-far-mesh-in-bundles.md)
-- [ ] 02: presentation picks the far mesh, the renderer draws and counts it → [slice 02](slices/02-far-selection.md)
+- [x] 02: presentation picks the far mesh, the renderer draws and counts it → [slice 02](slices/02-far-selection.md)
 - [ ] 03: parked cars carry one; the measured win → [slice 03](slices/03-parked-car.md)
 - [ ] 04: courtyard walls, then whatever the census ranks next → [slice 04](slices/04-next-kinds.md)
 - [ ] 05: spike, merging a block's props into one mesh → [slice 05](slices/05-spike-block-merge.md)
