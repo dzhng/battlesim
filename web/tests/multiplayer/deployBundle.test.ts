@@ -29,6 +29,7 @@ vi.mock("node:child_process", async (original) => {
     },
   };
 });
+import settings from "../../../apps/game-server/deploy/settings.json";
 import { gunzipSync } from "node:zlib";
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -93,7 +94,20 @@ test("the deploy dry run lists its complete release and its hosted entry seats a
       { kind: "start" },
     ])
       expect(await post(`/rooms/${code}/act`, act)).toEqual({ ok: true });
-    for await (const record of httpRecords(`${lobby.address}/rooms/${code}`, who, abort.signal)) {
+    // The hosted lobby sits behind the host's proxy, which states each
+    // client's address; a request that reached it without one is refused.
+    await expect(
+      (async () => {
+        for await (const _ of httpRecords(`${lobby!.address}/rooms/${code}`, who, abort.signal))
+          break;
+      })(),
+    ).rejects.toThrow();
+    const proxied = { "X-Player": who, [settings.clientAddressHeader]: "198.51.100.7" };
+    for await (const record of httpRecords(
+      `${lobby.address}/rooms/${code}`,
+      proxied,
+      abort.signal,
+    )) {
       if (record.kind === "end") throw new Error("Hosted battle failed before seating");
       if (record.kind !== "state") continue;
       const view = readJson<RoomView>(record);
