@@ -102,7 +102,10 @@ impl Unit {
                     }
                     // Only an attack with an order behind it folds this in.
                     if let Some(v) = volley {
-                        d.bytes(b"volley").u64(v.done);
+                        d.bytes(b"volley")
+                            .u64(v.done)
+                            .u64(v.diving as u64)
+                            .u64(v.run_fired as u64);
                     }
                 }
                 UnitOrder::Garrison {

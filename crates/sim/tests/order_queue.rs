@@ -248,47 +248,65 @@ fn a_queued_attack_on_a_jet_starts_no_dogfight_before_its_turn() {
     }
 }
 
-/// A skirmish where blue buys one `blue` and red buys two rifle squads that
-/// can't hurt it; orders go through each side's player.
+/// A skirmish where blue buys one `blue` (`unit`) and a rifle squad that
+/// spots for it (and holds the field for blue while a jet flies), and red
+/// buys two rifle squads that can't hurt it; orders go through each side's
+/// player.
 struct Skirmish {
     b: Battle,
     seq: [u64; 2],
+    unit: UnitId,
 }
 
 impl Skirmish {
-    fn new(blue: &str, category: &str) -> Self {
+    /// Positions are fractions of the map, whose size is `size`: a jet needs
+    /// room to fly its runs.
+    fn new(blue: &str, category: &str, size: [f64; 2]) -> Self {
         let mut rules = sim::fixtures::test_rules();
-        for (kind, faction, category) in [(blue, "us", category), ("test_rifle", "eastern", "inf")]
-        {
+        let [w, h] = size;
+        let at = |fx: f64, fy: f64| [w * fx, h * fy];
+        let roster = [
+            (blue, json!(["us"]), category),
+            ("test_rifle", json!(["us", "eastern"]), "inf"),
+        ];
+        for (kind, factions, category) in roster {
             sim::fixtures::patch_catalog(
                 &mut rules,
                 "units",
                 kind,
-                json!({"roster":{"factions":[faction],"category":category,"family_name":"Test","variant":kind}}),
+                json!({"roster":{"factions":factions,"category":category,"family_name":"Test","variant":kind}}),
             );
         }
+        let site = |id: &str, p: [f64; 2], kind: &str, counterpart: Value| json!({"id":id,"center":p,"radius_m":40,"kind":kind,"counterpart":counterpart});
         let setup = serde_json::from_value(json!({
-            "map":{"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[],"buildings":[]},
+            "map":{"size":size,"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[],"buildings":[]},
             "rules":rules,"units":[],"events":[],"scripts":[],
             "players": common::human_duel(),
             "skirmish":{"rules":{"credits_per_minute":200,"starting_minutes":20,"preparation_s":0,"max_units":30,"max_players_per_side":10,"dispatch_interval_s":1,"capture_s":20,"majority_s":1800,"victory_score":1000},
-                "sites":{"entries":[{"side":"blue","center":[400,10],"yaw":0.0},{"side":"red","center":[400,590],"yaw":0.0}],
-                "objectives":[{"id":"center","center":[400,300],"radius_m":50,"kind":"junction","counterpart":null},{"id":"south","center":[150,450],"radius_m":40,"kind":"field","counterpart":"north"},{"id":"north","center":[650,450],"radius_m":40,"kind":"field","counterpart":"south"}]}}
+                "sites":{"entries":[{"side":"blue","center":[w / 2.0, 10.0],"yaw":0.0},{"side":"red","center":[w / 2.0, h - 10.0],"yaw":0.0}],
+                "objectives":[site("center", at(0.5, 0.5), "junction", Value::Null),
+                    site("south", at(0.2, 0.75), "field", json!("north")),
+                    site("north", at(0.8, 0.75), "field", json!("south"))]}}
         }))
         .unwrap();
         let mut s = Skirmish {
             b: Battle::new(&setup, 3),
             seq: [0, 0],
+            unit: UnitId(0),
         };
-        s.ok(Side::Blue, Order::purchase(blue, [400.0, 60.0]), false);
         s.ok(
-            Side::Red,
-            Order::purchase("test_rifle", [300.0, 540.0]),
+            Side::Blue,
+            Order::purchase("test_rifle", at(0.375, 0.07)),
             false,
         );
         s.ok(
             Side::Red,
-            Order::purchase("test_rifle", [500.0, 540.0]),
+            Order::purchase("test_rifle", at(0.375, 0.9)),
+            false,
+        );
+        s.ok(
+            Side::Red,
+            Order::purchase("test_rifle", at(0.625, 0.9)),
             false,
         );
         s.ok(Side::Blue, Order::Ready, false);
@@ -298,13 +316,43 @@ impl Skirmish {
         });
         // Nobody fires until blue's attack order chooses fire at will.
         for side in [Side::Blue, Side::Red] {
-            let units = s.own(side);
             let hold = Order::SetEngagement {
-                units,
+                units: s.own(side),
                 policy: contract::command::Engagement::ReturnFireOnly,
             };
             s.ok(side, hold, false);
         }
+        let squads = s.own(Side::Red);
+        for (&q, p) in squads.iter().zip([at(0.4125, 0.7), at(0.5875, 0.7)]) {
+            s.ok(Side::Red, move_to(vec![q], p), false);
+        }
+        // Blue's squad walks up to spot them: a side sees what any of its
+        // units see, and a jet overhead can't pick out infantry lying still.
+        let spotter = s.own(Side::Blue);
+        s.ok(Side::Blue, move_to(spotter.clone(), at(0.5, 0.55)), false);
+        s.b.step();
+        until(&mut s.b, ticks(600.0), "everyone in place", |b| {
+            squads
+                .iter()
+                .chain(&spotter)
+                .all(|&q| b.unit(q).unwrap().orders.is_empty())
+        });
+        // The unit under test comes on last, fresh (a jet's fuel runs from
+        // when it arrives).
+        s.ok(Side::Blue, Order::purchase(blue, at(0.5, 0.1)), false);
+        until(&mut s.b, ticks(60.0), "the unit on the field", |b| {
+            b.observe(Side::Blue).own.len() == 2
+        });
+        let rifle = common::unit_kind("test_rifle");
+        s.unit = (s.b.observe(Side::Blue).own.iter())
+            .find(|u| u.kind != rifle)
+            .unwrap()
+            .id;
+        let hold = Order::SetEngagement {
+            units: vec![s.unit],
+            policy: contract::command::Engagement::ReturnFireOnly,
+        };
+        s.ok(Side::Blue, hold, false);
         s
     }
 
@@ -345,11 +393,20 @@ fn move_to(units: Vec<UnitId>, goal: [f64; 2]) -> Order {
     }
 }
 
-/// What a unit was doing, tick by tick: the kind of its current order,
-/// each run of one kind kept once, with the rounds it had fired by then and,
-/// for an attack, whether its target was still alive as it began.
-fn follow(b: &mut Battle, unit: UnitId, limit: u64) -> Vec<(&'static str, u32, bool)> {
-    let mut seen: Vec<(&'static str, u32, bool)> = Vec::new();
+/// One stretch of a unit doing one kind of order: the rounds it had fired
+/// as it began, and for an attack whether its target was alive as it began
+/// and as it handed off.
+#[derive(Debug)]
+struct Stretch {
+    kind: &'static str,
+    shots: u32,
+    alive_at_start: bool,
+    alive_at_end: bool,
+}
+
+/// What a unit was doing, tick by tick, as stretches of one kind of order.
+fn follow(b: &mut Battle, unit: UnitId, limit: u64) -> Vec<Stretch> {
+    let mut seen: Vec<Stretch> = Vec::new();
     for _ in 0..limit {
         let Some(u) = b.unit(unit).filter(|u| !u.retired) else {
             return seen;
@@ -370,8 +427,13 @@ fn follow(b: &mut Battle, unit: UnitId, limit: u64) -> Vec<(&'static str, u32, b
             None => ("idle", true),
         };
         match seen.last_mut() {
-            Some((k, _, _)) if *k == kind => {}
-            _ => seen.push((kind, shots, alive)),
+            Some(last) if last.kind == kind => last.alive_at_end = alive,
+            _ => seen.push(Stretch {
+                kind,
+                shots,
+                alive_at_start: alive,
+                alive_at_end: alive,
+            }),
         }
         b.step();
     }
@@ -383,15 +445,12 @@ fn follow(b: &mut Battle, unit: UnitId, limit: u64) -> Vec<(&'static str, u32, b
 /// volley and hands off; every move is driven; the unit goes home.
 #[test]
 fn a_ground_unit_works_through_a_queue_of_attacks_moves_and_home() {
-    let mut s = Skirmish::new("test_tank", "veh");
-    let tank = s.own(Side::Blue)[0];
-    let squads = s.own(Side::Red);
-    s.ok(Side::Red, move_to(vec![squads[0]], [330.0, 420.0]), false);
-    s.ok(Side::Red, move_to(vec![squads[1]], [470.0, 420.0]), false);
+    let mut s = Skirmish::new("test_tank", "veh", [800.0, 600.0]);
+    let tank = s.unit;
     s.ok(Side::Blue, move_to(vec![tank], [400.0, 280.0]), false);
-    until(&mut s.b, ticks(240.0), "everyone in place", |b| {
+    s.b.step();
+    until(&mut s.b, ticks(120.0), "the tank in place", |b| {
         b.unit(tank).unwrap().orders.is_empty()
-            && squads.iter().all(|&q| b.unit(q).unwrap().orders.is_empty())
     });
     let a = s.seen_near([330.0, 420.0]);
     let other = s.seen_near([470.0, 420.0]);
@@ -407,7 +466,7 @@ fn a_ground_unit_works_through_a_queue_of_attacks_moves_and_home() {
     s.ok(Side::Blue, Order::Refund { units: vec![tank] }, true);
     s.b.step();
     let seen = follow(&mut s.b, tank, ticks(300.0));
-    let kinds: Vec<_> = seen.iter().map(|(k, _, _)| *k).collect();
+    let kinds: Vec<_> = seen.iter().map(|s| s.kind).collect();
     assert_eq!(
         kinds,
         ["attack", "move", "attack", "move", "attack", "home"],
@@ -416,14 +475,14 @@ fn a_ground_unit_works_through_a_queue_of_attacks_moves_and_home() {
     // The first attack fired a volley and handed off: the squad it hit
     // was still alive for the second attack on it.
     assert!(
-        seen[2].2,
+        seen[0].alive_at_end,
         "the first attack fought on until its target died: {seen:?}"
     );
     // An attack on a living target fires before it hands off; one whose
     // target died meanwhile ends at once.
-    for w in seen.windows(2).filter(|w| w[0].0 == "attack" && w[0].2) {
+    for w in (seen.windows(2)).filter(|w| w[0].kind == "attack" && w[0].alive_at_start) {
         assert!(
-            w[1].1 > w[0].1,
+            w[1].shots > w[0].shots,
             "an attack handed off without firing: {seen:?}"
         );
     }
@@ -565,4 +624,128 @@ fn an_attack_on_ground_out_of_reach_hands_off_only_when_queued() {
     );
     b.step();
     until(&mut b, 3, "the attack handed off", |b| !attacking(b, 0));
+}
+
+/// A test jet carrying `weapons` on the run field, attacking `targets` on the
+/// ground in turn (each after the first shift-queued), then shift-moving.
+/// Returns the runs it flew that fired, before it turned to the move.
+fn jet_runs(weapons: &[&str], targets: &[[f64; 2]], window_s: f64) -> (Battle, u32) {
+    use crate::attack_runs::{run_field, run_rules, RUN_START};
+    use sim::air::pass::PassPhase;
+    let mut b = run_field(
+        run_rules(weapons),
+        json!([{ "side": "blue", "kind": "test_jet", "position": RUN_START, "yaw": 0.0 }]),
+    );
+    let mut c = Commander::new();
+    for (k, &p) in targets.iter().enumerate() {
+        assert_eq!(c.send(&mut b, Side::Blue, ground_at(0, p), k > 0), None);
+    }
+    let away = [RUN_START[0], RUN_START[1] + 1200.0];
+    assert_eq!(c.send(&mut b, Side::Blue, drive(away), true), None);
+    b.step();
+    let mut runs = 0;
+    let (mut diving, mut fired) = (false, false);
+    for _ in 0..ticks(window_s) {
+        let before = b
+            .unit(UnitId(0))
+            .unwrap()
+            .mounts
+            .iter()
+            .map(|m| m.shots)
+            .sum::<u32>();
+        b.step();
+        let jet = b.unit(UnitId(0)).unwrap();
+        let now = jet
+            .air
+            .unwrap()
+            .pass
+            .is_some_and(|p| p.phase == PassPhase::Dive);
+        fired |= jet.mounts.iter().map(|m| m.shots).sum::<u32>() > before;
+        if diving && !now && fired {
+            runs += 1;
+        }
+        if !now {
+            fired = false;
+        }
+        diving = now;
+        if !attacking(&b, 0) {
+            break;
+        }
+    }
+    (b, runs)
+}
+
+/// The same point shift-attacked twice, then a move: two bombing runs, then
+/// the move.
+#[test]
+fn a_jet_queued_twice_on_one_target_flies_two_runs_then_moves() {
+    let aim = [
+        crate::attack_runs::RUN_START[0] + 1500.0,
+        crate::attack_runs::RUN_START[1],
+    ];
+    let (b, runs) = jet_runs(&["air_bomb"], &[aim, aim], 240.0);
+    assert!(!attacking(&b, 0), "still attacking after the window");
+    assert_eq!(runs, 2);
+}
+
+/// A jet with nothing to fly a run at the ground with, told to attack it with
+/// a move queued, hands off at once.
+#[test]
+fn a_jet_with_no_ground_weapon_hands_off_at_once() {
+    let aim = [
+        crate::attack_runs::RUN_START[0] + 1500.0,
+        crate::attack_runs::RUN_START[1],
+    ];
+    let (b, runs) = jet_runs(&["air_missile"], &[aim], 2.0);
+    assert!(!attacking(&b, 0));
+    assert_eq!(runs, 0);
+}
+
+/// Near a corner of the field, where the edge guard breaks runs off, a jet
+/// still flies a run that fires and hands off.
+#[test]
+fn a_jet_near_a_corner_still_hands_off() {
+    let aim = [250.0, 250.0];
+    let (b, runs) = jet_runs(&["air_bomb"], &[aim], 360.0);
+    assert!(!attacking(&b, 0), "never handed off near the corner");
+    assert_eq!(runs, 1);
+}
+
+/// The acceptance queue for a jet, as for the ground unit: each attack is a
+/// fired run, every move is flown, and it goes home.
+#[test]
+fn a_jet_works_through_a_queue_of_attacks_moves_and_home() {
+    let mut s = Skirmish::new("test_jet", "air", [2400.0, 1800.0]);
+    let jet = s.unit;
+    s.ok(Side::Blue, move_to(vec![jet], [1200.0, 900.0]), false);
+    let a = s.seen_near([990.0, 1260.0]);
+    let other = s.seen_near([1410.0, 1260.0]);
+    let attack = |id| Order::Attack {
+        units: vec![jet],
+        target: TargetRef::Identified { id },
+    };
+    s.ok(Side::Blue, attack(a), false);
+    s.ok(Side::Blue, move_to(vec![jet], [600.0, 600.0]), true);
+    s.ok(Side::Blue, attack(a), true);
+    s.ok(Side::Blue, move_to(vec![jet], [1800.0, 600.0]), true);
+    s.ok(Side::Blue, attack(other), true);
+    s.ok(Side::Blue, Order::Refund { units: vec![jet] }, true);
+    s.b.step();
+    let seen = follow(&mut s.b, jet, ticks(600.0));
+    let kinds: Vec<_> = seen.iter().map(|s| s.kind).collect();
+    assert_eq!(
+        kinds,
+        ["attack", "move", "attack", "move", "attack", "home"],
+        "{seen:?}"
+    );
+    assert!(
+        seen[0].alive_at_end,
+        "the first attack fought on until its target died: {seen:?}"
+    );
+    for w in (seen.windows(2)).filter(|w| w[0].kind == "attack" && w[0].alive_at_start) {
+        assert!(
+            w[1].shots > w[0].shots,
+            "an attack handed off without firing: {seen:?}"
+        );
+    }
 }

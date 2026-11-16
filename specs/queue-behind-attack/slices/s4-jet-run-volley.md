@@ -3,10 +3,9 @@
 **Unlocks.** Decisions e and h; the jet half of decision 17.
 
 **Seams.**
-- `air::step_fixed_wing`: when `pass::advance` ends a run and the front order is an
-  attack with a volley, mark the run done on the volley. Movement never pops (the bomb
-  is released in the fire step of the same tick, and `choose_lock` drops a ground aim
-  whose order is gone).
+- The fire step reads the run's end from the pass leaving its dive (the volley keeps
+  "was diving"); movement never pops (the bomb is released in the fire step of the same
+  tick, and `choose_lock` drops a ground aim whose order is gone).
 - A run counts only if a shot was fired at the target during it; a run ended with
   nothing fired (edge guard) clears the mark.
 - No pass weapon able to fly a run (`pass_weapons` empty) reports "nothing can act", so

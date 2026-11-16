@@ -57,3 +57,20 @@ rewritten from scratch at closeout.
   the test tank's roof, so it correctly waits for its volley.
 - **FX1's test now has nothing queued behind the garrisoned attack:** with an order
   queued, the attack correctly fires one volley and hands off before the enemy dies.
+
+## S4
+
+- **A run's end is read in the fire step, from the pass leaving its dive**, not marked
+  in `air::step_fixed_wing`: the volley keeps "was diving" and "fired this run", so the
+  flight code gains no hook and nothing pops in movement. A bomb released on the cue
+  tick counts (the fire step runs after the cue).
+- **A jet attacks in runs anything but a target `air::dogfightable` names** (an enemy
+  jet in its layer), which uses the cycle rule. A run attack can act while the jet has a
+  pass planned and, on a unit, `Reach.can_damage`; with no pass (nothing to run with) it
+  hands off at once.
+- **The acceptance skirmish scales with the unit**: a jet needs a 2400 × 1800 field (an
+  800 × 600 one keeps every run inside the edge guard), comes on last (its fuel runs
+  from arrival), and blue's rifle squad walks up to spot (a jet overhead can't see
+  infantry lying still) and keeps blue on the field.
+- **"Move, then shift-attack: bombs until dead" has no test of its own**: it is the
+  unchanged last-attack path, which digests and the existing run tests cover.

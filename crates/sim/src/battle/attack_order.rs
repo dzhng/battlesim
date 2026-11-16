@@ -57,14 +57,17 @@ impl Battle {
     /// Each attack with an order queued behind it counts this tick's fire
     /// against its target, and hands off once its volley is done
     /// ([`crate::volley`]). Measured right after the fire step, so the
-    /// rounds of the cycle that ends it have already left. A jet's attack
-    /// flown as runs is counted by its runs instead.
+    /// rounds of the cycle or run that ends it have already left.
     pub(super) fn hand_off_volleys(&mut self, shots: &[weapons::Shot]) {
+        let knowledge = &self.knowledge;
         for unit in &mut self.units {
-            if unit.orders.len() < 2 || unit.fixed_wing() && !dogfighting(unit) {
+            if unit.orders.len() < 2 {
                 continue;
             }
-            let (reach, garrisoned) = (unit.reach, unit.garrisoned());
+            let (reach, garrisoned, layer) = (unit.reach, unit.garrisoned(), unit.layer());
+            let pass = unit.air.as_ref().and_then(|air| air.pass);
+            let fixed_wing = unit.fixed_wing();
+            let id = unit.id;
             let Some(UnitOrder::Attack {
                 target,
                 waiting: false,
@@ -74,21 +77,33 @@ impl Battle {
             else {
                 continue;
             };
-            let ended = shots
-                .iter()
-                .filter(|s| s.unit == unit.id && s.target == *target && s.cycle_ended)
-                .fold(0, |rows, s| rows | 1 << s.mount);
-            let working = reach.ordered_firing;
-            let can_act = match target {
-                Target::Ground(_) => working != 0,
-                _ => reach.can_damage && (working != 0 || !garrisoned),
+            let target = *target;
+            let at_target = |s: &&weapons::Shot| s.unit == id && s.target == target;
+            let volley = volley.get_or_insert_default();
+            // A jet attacks anything but an enemy jet in runs.
+            let done = if fixed_wing
+                && !crate::air::dogfightable(&knowledge[unit.side.index()], target, layer)
+            {
+                let hurts = matches!(target, Target::Ground(_)) || reach.can_damage;
+                volley.observe_run(crate::volley::RunFire {
+                    fired: shots.iter().any(|s| at_target(&s)),
+                    diving: pass.is_some_and(|p| p.phase == crate::air::pass::PassPhase::Dive),
+                    can_act: hurts && pass.is_some(),
+                })
+            } else {
+                let working = reach.ordered_firing;
+                volley.observe(crate::volley::VolleyFire {
+                    working,
+                    ended: (shots.iter().filter(at_target))
+                        .filter(|s| s.cycle_ended)
+                        .fold(0, |rows, s| rows | 1 << s.mount),
+                    can_act: match target {
+                        Target::Ground(_) => working != 0,
+                        _ => reach.can_damage && (working != 0 || !garrisoned),
+                    },
+                })
             };
-            let fire = crate::volley::VolleyFire {
-                working,
-                ended,
-                can_act,
-            };
-            if volley.get_or_insert_default().observe(fire) {
+            if done {
                 unit.orders.pop_front();
             }
         }
@@ -152,11 +167,4 @@ impl Battle {
             }
         }
     }
-}
-
-/// A jet locked in a dogfight fires its guns in cycles, not in runs.
-fn dogfighting(unit: &Unit) -> bool {
-    unit.air
-        .as_ref()
-        .is_some_and(|air| air.dogfight_target.is_some())
 }

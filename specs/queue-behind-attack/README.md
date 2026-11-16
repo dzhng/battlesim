@@ -30,8 +30,8 @@ and tick the list.
 - [ ] [FX3](slices/fx3-blocked-first-leg.md) a blocked unit's first queued leg is drawn
 - [x] [S1](slices/s1-cycle-end-and-ordered-fire.md) one owner for a cycle's end; per-mount ordered-fire report (`9e9825920`)
 - [x] [S2](slices/s2-admission-and-take-effect.md) queued orders admitted behind attacks; queued orders take effect at their turn (`0f2982a3f`)
-- [x] [S3](slices/s3-volley-handoff.md) the volley handoff (every attack not flown as a pass)
-- [ ] [S4](slices/s4-jet-run-volley.md) a jet's volley is one run in which it fired
+- [x] [S3](slices/s3-volley-handoff.md) the volley handoff (every attack not flown as a pass) (`2f1244b69`)
+- [x] [S4](slices/s4-jet-run-volley.md) a jet's volley is one run in which it fired
 - [ ] [S5](slices/s5-jet-lost-target.md) a jet's attack ends when its side loses the target
 - [ ] [S6](slices/s6-step-records.md) step records end to end, no visual change
 - [ ] [S7](slices/s7-voice-steps.md) the voice queue reads the published steps
