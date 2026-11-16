@@ -49,7 +49,15 @@ import {
   unloadMark,
   type Pen,
 } from "./orderPen";
-import { currentUnloads, ordersEnd, queuedLegs, warningRing, type OrderStep } from "./orderSteps";
+import {
+  currentAim,
+  currentAttack,
+  currentUnloads,
+  ordersEnd,
+  queuedLegs,
+  warningRing,
+  type OrderStep,
+} from "./orderSteps";
 import type { WorldMeshes } from "./scene";
 import type { StrokeWidth } from "./strokeWidth";
 
@@ -73,6 +81,10 @@ export interface OrderStyle {
   current_alpha: number;
   /** A route the unit can't take: the HUD's one "can't" colour. */
   blocked: Rgba;
+  /** An attack's line and reticle. */
+  attack: Rgba;
+  /** Half the side of an attack's reticle on its target. */
+  reticle_m: number;
   /** A selected unit's own marker (its circle and arrowhead) and its
    *  soldiers' markers. */
   selected: Rgba;
@@ -373,6 +385,32 @@ function allyMarker(
       soldierMark(soldiers, pen, [m[0], m[1]], null, color, pen.soldierSelected);
 }
 
+/** A holding unit's soldiers walking to their posts: a marker at each post
+ *  more than a body's width from where he stands. */
+function soldierPosts(
+  soldiers: MeshBuilder,
+  pen: Pen,
+  u: OrderView,
+  pipOf: (cover: CoverTierName | null) => Rgba | null,
+  color: Rgba,
+) {
+  u.memberOrders.forEach((m, k) => {
+    const p = u.members[k];
+    if (p && Math.hypot(m.spot[0] - p[0], m.spot[1] - p[1]) > 2 * SOLDIER_R)
+      soldierMark(soldiers, pen, m.spot, pipOf(m.coverThere), color);
+  });
+}
+
+/** An aircraft's ghost over where its orders end (`ghostAloft`), joined to
+ *  that end's marker by a drop line: in `color` at its current goal, or
+ *  `queued`'s when a queued step ends them. */
+function ghostDrop(lines: MeshBuilder, pen: Pen, u: OrderView, color: Rgba, queued: Rgba) {
+  const end = ordersEnd(u.steps, u.goal);
+  if (!u.ghostAloft || !end) return;
+  const top = [end[0], end[1], pen.z(end[0], end[1]) + u.ghostAloft] as const;
+  dropLine(lines, pen, top, end !== u.goal ? queued : color);
+}
+
 /** A unit's circle where it stands, in `color`: an aircraft's marker and
  *  drop line, or its circle marker, unless a housemate paints its house's
  *  ring (`ringShared`). */
@@ -495,17 +533,19 @@ export function buildOrderOverlay(
       );
     // The rest are order marks only.
     if (!shown) continue;
-    if (!u.goal) {
-      // A holding squad's soldiers walking to their posts (cover, a step
-      // out): each post is a marker only. An order is the unit's, one route
-      // for the unit; no line ever runs from a soldier.
-      u.memberOrders.forEach((m, k) => {
-        const p = u.members[k];
-        if (p && Math.hypot(m.spot[0] - p[0], m.spot[1] - p[1]) > 2 * SOLDIER_R)
-          soldierMark(soldiers, pen, m.spot, pipOf(m.coverThere), color);
-      });
+    // A holding squad's soldiers walking to their posts (cover, a step
+    // out): each post is a marker only. An order is the unit's, one route
+    // for the unit; no line ever runs from a soldier.
+    if (!u.goal) soldierPosts(soldiers, pen, u, pipOf, color);
+    const aim = currentAim(u);
+    if (aim) {
+      const attack = fade(glowing(style.attack, style.glow.order));
+      const reticle = currentAttack(paint, pen, u, circle, aim, attack, color);
+      queuedLegs(paint, pen, u, reticle, queued);
+      ghostDrop(lines, pen, u, color, queued);
       continue;
     }
+    if (!u.goal) continue;
     const blocked = u.state === "route_blocked";
     // The destination's circle marker: a squad's area ring (an order moves
     // its area, so a moving squad's is already the destination's), with
@@ -529,12 +569,7 @@ export function buildOrderOverlay(
           soldierMark(soldiers, pen, m.spot, pipOf(m.coverThere), color);
     }
     queuedLegs(paint, pen, u, dest, queued);
-    // Its ghost over where its orders end, joined to that end's marker.
-    if (u.ghostAloft) {
-      const end = ordersEnd(u.steps, u.goal) ?? u.goal;
-      const top = [end[0], end[1], pen.z(end[0], end[1]) + u.ghostAloft] as const;
-      dropLine(lines, pen, top, blocked ? blockedColor : end !== u.goal ? queued : color);
-    }
+    ghostDrop(lines, pen, u, blocked ? blockedColor : color, queued);
   }
   return {
     ...paintOnly(concatMeshes([paint.build(), soldiers.build()]), animated.build()),

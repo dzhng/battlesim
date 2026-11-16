@@ -4,6 +4,7 @@
 import type { MeshBuilder, Rgba } from "./mesh";
 import type { OrderView } from "./orderOverlay";
 import { ring, routeBetween, unloadMark, type Pen } from "./orderPen";
+import { reticleMark } from "./reticleMark";
 import type { UnitCircle } from "./unitCircle";
 
 /** The kinds of order a step can be, by the simulation's names. */
@@ -24,6 +25,8 @@ type P2 = readonly [number, number];
 export interface OrderStep {
   kind: OrderStepKind;
   point: P2 | null;
+  /** An attack's target, by kind: a ground point's reticle carries a cross. */
+  target?: { kind: string };
 }
 
 /** Where a unit's orders end: the point of its last queued step that takes
@@ -84,4 +87,35 @@ export function queuedLegs(
     }
     prev = next;
   }
+}
+
+/** Where the current order's attack aims, when the overlay draws it: a
+ *  ground unit's attack on a target the side places, and not stuck behind a
+ *  blocked route (that route's own mark says so). A winged aircraft's attack
+ *  keeps today's marks until its 3D line (part 2). */
+export function currentAim(u: Pick<OrderView, "steps" | "fixedWing" | "state">): P2 | null {
+  const front = u.steps[0];
+  if (front?.kind !== "attack" || u.fixedWing || u.state === "route_blocked") return null;
+  return front.point;
+}
+
+/** The current attack's marks, at `aim`: the reticle on the target and, in
+ *  range (no goal), a solid line in `color` from the unit's circle to it;
+ *  chasing, the unit's route in `routeColor` runs on into the reticle, where
+ *  a move's destination circle would be. The reticle's circle, where the
+ *  queued legs leave from. */
+export function currentAttack(
+  paint: MeshBuilder,
+  pen: Pen,
+  u: Pick<OrderView, "goal" | "route" | "steps">,
+  circle: UnitCircle | null,
+  aim: P2,
+  color: Rgba,
+  routeColor: Rgba,
+): UnitCircle {
+  const reticle: UnitCircle = { c: aim, r: pen.style.reticle_m, facing: null };
+  if (u.goal) routeBetween(paint, pen, circle, [...u.route, aim], reticle, routeColor);
+  else routeBetween(paint, pen, circle, [aim], reticle, color);
+  reticleMark(paint, pen, aim, reticle.r, color, { cross: u.steps[0]?.target?.kind === "ground" });
+  return reticle;
 }

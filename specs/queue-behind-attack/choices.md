@@ -67,3 +67,16 @@ rewritten from scratch at closeout.
   *Agent*: an attack whose target the side has lost publishes no target, so a missing id
   matches; consecutive errands on one target merge and still end in order, since each
   ended errand gives way to the next at once.
+- **The reticle is a fixed 6 m half side** (`presentation.overlay.orders.reticle_m`),
+  square to the world. *Agent*: it frames a vehicle at default zoom; an enemy squad
+  spreads past it. Sizing it from the target's footprint is the slice's named feedback
+  ("the reticle's size"), left for the user's eye.
+- **The step's point is the target's observed pose.** *Agent*: an identified target's
+  step point is its track, published the same tick as its `identified` pose, so the
+  overlay draws the step's point and resolves nothing more.
+- **A chase blocked behind its route draws the blocked marks, no reticle.** *Agent*: the
+  blocked route's cross sits on the chase point, which is the target; a reticle there
+  would stack two marks on one spot.
+- **The attack line uses the route's stroke** (`line_px`, the one stroke rule), so at far
+  zoom it thins like every route; red on green holds less contrast than the yellow route
+  there. Named for the human checkpoint, not changed.
