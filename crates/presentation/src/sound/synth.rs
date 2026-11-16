@@ -522,6 +522,26 @@ fn motor(sr: f64, rng: &mut Mulberry32) -> Vec<f32> {
     }))
 }
 
+/// A falling bomb's whistle: a breathy tone over rushing air, steady so it
+/// loops; the battle glides its pitch down as the bomb falls. Whole cycles of
+/// tone and warble fit the loop, so its seam keeps their phase.
+fn whistle(sr: f64, rng: &mut Mulberry32) -> Vec<f32> {
+    let n = len(1.0, sr);
+    to_peak(seamless(n, len(0.1, sr), |m| {
+        let mut x = tone(
+            m,
+            sr,
+            |t| 4000.0 * (1.0 + 0.006 * sin(TAU * 6.0 * t)),
+            |t| 0.8 + 0.2 * sin(TAU * 3.0 * t),
+        );
+        let breath = biquad(noise(m, rng), sr, Filter::Bandpass, 4000.0, 20.0);
+        let rush = biquad(noise(m, rng), sr, Filter::Bandpass, 5000.0, 0.9);
+        mix(&mut x, &breath, sr, 0.6, one, 0);
+        mix(&mut x, &rush, sr, 0.06, one, 0);
+        x
+    }))
+}
+
 /// A helicopter's rotor: rushing air slapped by each blade's pass, 17 a
 /// second at rate 1 (whole passes, so it loops), whatever its speed.
 fn rotor(sr: f64, rng: &mut Mulberry32) -> Vec<f32> {
@@ -728,6 +748,7 @@ const SOUNDS: &[(&str, Mono, bool)] = &[
     ),
     ("footstep", footstep, false),
     ("motor", motor, true),
+    ("whistle", whistle, true),
     (
         "engine_diesel",
         |sr, rng| engine(sr, rng, 28.0, 2.0, 0.2),

@@ -134,6 +134,16 @@ export function WeaponLooks({
                 })
               }
             />
+            <NumberField
+              label="Pitch glide (octaves/s)"
+              value={motor.glide_oct_per_s ?? 0}
+              onChange={(value) =>
+                update((s) => {
+                  if (value > 0) s.motor!.glide_oct_per_s = value;
+                  else delete s.motor!.glide_oct_per_s;
+                })
+              }
+            />
             <button
               onClick={() =>
                 void play("sound", motor.sound || snapshot.weaponDefaults.motor, 0, motor.gain)

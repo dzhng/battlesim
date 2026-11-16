@@ -6,7 +6,10 @@ import type { Replacement } from "../../fixture-publication/publication";
 export interface LookSound {
   shot?: NearFar;
   blast?: Pick<NearFar, "gain" | "far_m"> & Partial<Pick<NearFar, "near" | "far">>;
-  motor: (Pick<OneShot, "gain"> & Partial<Pick<OneShot, "sound">>) | null;
+  /** A flying round's loop; its pitch falls `glide_oct_per_s` octaves a second of flight. */
+  motor:
+    | (Pick<OneShot, "gain"> & Partial<Pick<OneShot, "sound">> & { glide_oct_per_s?: number })
+    | null;
   impacts: Record<string, string>;
   impact_scale?: number;
 }

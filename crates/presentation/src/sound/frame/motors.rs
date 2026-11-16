@@ -11,6 +11,8 @@ pub(super) struct Motor {
     from: Vec3,
     to: Vec3,
     t0: f64,
+    /// When this round was first heard in flight.
+    heard: f64,
 }
 
 /// Where a flying round's stretch ends, as a loop's key.
@@ -28,6 +30,8 @@ impl Sound {
         t0: f64,
     ) {
         let end = *s.path.last().expect("two points");
+        let start = end_key(&s.path[0]);
+        let heard = self.motors.get(&start).map_or(t0, |m| m.heard);
         motors.set(
             end_key(&end),
             Motor {
@@ -35,9 +39,10 @@ impl Sound {
                 from: s.path[0],
                 to: end,
                 t0,
+                heard,
             },
         );
-        let old = LoopKey::Motor(end_key(&s.path[0]));
+        let old = LoopKey::Motor(start);
         if let Some(v) = self.loops.remove(&old) {
             self.loops.set(LoopKey::Motor(end_key(&end)), v);
         }
@@ -62,7 +67,7 @@ impl Sound {
                 sound: row.sound.clone(),
                 bus: Bus::Effects,
                 gain: row.gain,
-                rate: 1.0,
+                rate: libm::exp2(-row.glide_oct_per_s * (clock - m.heard).max(0.0)),
                 position: Some(at),
                 priority: 0.0,
                 distance: p.distance[profile::WEAPONS],
