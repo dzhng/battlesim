@@ -110,7 +110,7 @@ test("hovering a card shows that variant's info card alone, at once", () => {
   expect(view.getAllByRole("tooltip").map((t) => t.getAttribute("aria-label"))).toEqual([
     BASE.name,
   ]);
-  // Straight onto its sibling: no hover-intent wait.
+  // Straight onto its sibling: no wait.
   fireEvent.mouseEnter(view.getByRole("button", { name: TROPHY.name }));
   expect(view.getAllByRole("tooltip").map((t) => t.getAttribute("aria-label"))).toEqual([
     TROPHY.name,

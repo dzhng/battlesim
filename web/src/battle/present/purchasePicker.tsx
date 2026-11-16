@@ -146,9 +146,9 @@ function PurchaseMenu({
   const [pick, setPick] = useState<{ squad: string; option: string } | null>(null);
   const [query, setQuery] = useState("");
   const search = useRef<HTMLInputElement>(null);
-  const intent = useRef<number | undefined>(undefined);
   // The card a heading-in pointer crossed, waiting to take over the menu.
   const crossed = useRef<string | null>(null);
+  const crossTimer = useRef<number | undefined>(undefined);
   const trail = useRef<Vec2[]>([]);
   const transport = useRef<HTMLElement>(null);
   const infoId = useId();
@@ -175,7 +175,7 @@ function PurchaseMenu({
     window.addEventListener("keydown", onKey, { capture: true });
     return () => window.removeEventListener("keydown", onKey, { capture: true });
   }, [enabled]);
-  useEffect(() => () => window.clearTimeout(intent.current), []);
+  useEffect(() => () => window.clearTimeout(crossTimer.current), []);
   const facts: BuyFacts = {
     credits: player.credits,
     unitCount: player.unitCount,
@@ -263,11 +263,15 @@ function PurchaseMenu({
       if (choice) onChoose(choice.id);
     }
   };
+  // A crossed card stops waiting: the pointer reached the menu or moved on.
+  const cancelCrossing = () => {
+    window.clearTimeout(crossTimer.current);
+    crossed.current = null;
+  };
   // The pointer moves to another card, or off them all: a menu it opens
   // again starts with nothing highlighted.
   const point = (id: string | null) => {
-    window.clearTimeout(intent.current);
-    crossed.current = null;
+    cancelCrossing();
     if (id === hovered) return;
     setHovered(id);
     setPick(null);
@@ -287,9 +291,9 @@ function PurchaseMenu({
   // for the pointer to stop there or turn away; anything else follows at once.
   const hoverCard = (id: string) => {
     if (squad && squad.id === hovered && id !== hovered && headingIn()) {
-      window.clearTimeout(intent.current);
+      window.clearTimeout(crossTimer.current);
       crossed.current = id;
-      intent.current = window.setTimeout(() => point(id), MENU_AIM_MS);
+      crossTimer.current = window.setTimeout(() => point(id), MENU_AIM_MS);
     } else point(id);
   };
   // Every move reads the pointer's heading; one that turns away from the
@@ -410,10 +414,7 @@ function PurchaseMenu({
           onOption={(option) => setPick({ squad: squad.id, option })}
           onBuy={(option) => buy(squad, option)}
           frame={transport}
-          onEnter={() => {
-            window.clearTimeout(intent.current);
-            crossed.current = null;
-          }}
+          onEnter={cancelCrossing}
         />
       )}
     </section>
