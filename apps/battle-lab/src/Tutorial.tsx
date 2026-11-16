@@ -521,9 +521,11 @@ export function Tutorial() {
             the spot.
           </li>
           <li>
-            The top bar shows both scores and every objective: whose it is, its capture progress, or{" "}
-            <em>Contested</em>. It reads <strong>Victory</strong>, <strong>Defeat</strong> or{" "}
-            <strong>Draw</strong> when the battle ends.
+            The top bar races both scores to its centre: your cells fill from the left, the
+            enemy&apos;s from the right, and the first side to reach the middle notch wins. The cell
+            a side is filling blinks while it is scoring. Under it sits every objective: whose it
+            is, its capture progress, or <em>Contested</em>. It reads <strong>Victory</strong>,{" "}
+            <strong>Defeat</strong> or <strong>Draw</strong> when the battle ends.
           </li>
         </ul>
         <Shot name="capture">
