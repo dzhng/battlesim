@@ -41,8 +41,8 @@ Provider startup stops leftovers labelled as this game's battles before the
 lobby accepts traffic. This assumes one lobby per workspace: restarting it ends
 its old battles. Stop captures redacted command diagnostics before requesting
 sandbox shutdown. Deletion waits asynchronously for archival; the finite rental
-bounds an orphan even if the lobby or service disappears. Capacity and rental
-length are provisional until the host measurements are complete.
+bounds an orphan even if the lobby or service disappears. Capacity is a first
+guess: the service's own limits on machines at once have not been probed.
 
 The push path remains explicit:
 

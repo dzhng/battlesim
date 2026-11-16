@@ -1,9 +1,12 @@
 # Multiplayer decisions
 
-Four parts. Part 1 is settled by the user or by measurement and is not
-reopened. Part 2 is what lost, and why. Part 3 is what this plan decided where
-the walk was silent; the user may overturn any row. Part 4 is where an
-implementer records a decision a slice forced on them.
+Four parts. Part 1 was settled by the user or by measurement. Part 2 is what
+lost, and why. Part 3 is what the plan decided where the walk was silent.
+Part 4 is what building it forced, in the order it was built.
+
+The work was built as a ladder of numbered slices, and rows name them. The
+slice files were removed when the spec closed; a number here is only the
+order things happened in, and git history holds the files.
 
 Numbers in part 1 are the walk's own, so they match
 [the map](visualizations/unknowns-map.html), which also holds the evidence.
@@ -183,7 +186,7 @@ those first.
 
 ## Part 4: decided while building
 
-Append here: the slice, the decision, why, and what it replaced.
+Each row: the slice, the decision, why, and what it replaced.
 
 | Slice | Decision | Why, and what it replaced |
 |---|---|---|
@@ -263,7 +266,7 @@ Append here: the slice, the decision, why, and what it replaced.
 | 25 | Rooms and Frontline share one count of battle slots, one presence module and one way of serving a battle. | A second copy of each in the Frontline service. |
 | 25 | A seat's readers can be ended alone (an idle player is told `idle`) without ending the side's stream. | Ending the whole side's stream, or leaving the idle page reading a seat it no longer holds. |
 | 20 | An AI handed a 30-unit army copes: every unit is ordered within one planner round and it fights better than an army nobody commands. Rooms may rely on a seat's AI. | Assuming it without a fight: the first tests had no enemy on the field. |
-| 20 | An AI handed 150 units gets only 30 orders through per planner round, because it gives them in one burst. Open, for the user before slice 22: spread the AI's orders (recommended) or cap what a seat may receive. | Counting issued orders as applied: the battle logs an order before it checks the rate limit. |
+| 20 | An AI handed 150 units gets only 30 orders through per planner round, because it gives them in one burst. Settled by the slice 20 row above on the AI's pace: it is left as it is. | Counting issued orders as applied: the battle logs an order before it checks the rate limit. |
 
 | 26 | Frontline counts travel in `RoomList` on the existing list stream. The lifecycle counts active human seats; the initial commander counts from tick zero, an existing game's reservation counts only after Deploy, and a departed command running under AI does not count. | A separate endpoint or stream, or counting remembered humans still held for return as active commanders. |
 | 26 | The briefing heads its teams by role and faction, with the viewer's own score first against the actual target. A battle under a minute reads “Battle just begun”. | Wire colour names that contradict the battle's role colours, the mock's target, and an unearned road-number promise. |
@@ -318,3 +321,8 @@ Append here: the slice, the decision, why, and what it replaced.
 
 | 27 sweep | Sequence refusals keep HTTP 409 and carry the refused batch's sequence in `UpReply`. The existing page refusal path settles each order and cancels its retry. | Returning 200 would change the operator-visible status; throwing a transport error would retry a permanently stale batch. |
 | 27 sweep | Hello exposes only typed build/unreachable reasons. Pages show that reason rather than a fixed sentence or arbitrary exception text. | Forwarding raw network or preparation errors could disclose diagnostic text; a fixed build sentence misidentifies an unreachable lobby. |
+| 31 | Promotion checks the lobby against the production site after promoting, not against the staged deployment's own address, and a dry run before promotion checks nothing. This corrects the earlier slice 31 row on promotion. | A staged deployment's address redirects to a sign-in page, so its `build.json` cannot be read by a tool. |
+| 33 | An independent read of both servers as a stranger would use them came back with a list of defences. The user ruled (decision 69) that an alpha gets one limit and its plain bugs fixed. | A throttle on room-code guesses and a secret room code, both built first and both removed. The earlier code was one radio-alphabet word and four digits. |
+| 34 | A native simulation in the battle server is not built. On the ten-AI battle the server runs, built at the `x86-64-v4` level, it is a fifth faster than WebAssembly and still falls behind real time (assets, section L). This closes decision 13 and the "later swap" in part 2. | A second binding to the simulation and a native build at every deploy, for a fifth. The lever is the simulation's step cost with large armies, which also helps every browser. |
+| 34 | The lobby's limit on battles at once is `capacity` in the deploy settings, a first guess of eight. This replaces decisions 62 and P26 for the deployed lobby; the cores-and-memory rule bounds battles run as local child processes, and how many candidate maps one machine prepares at once. | Deriving a rented fleet's limit from the lobby's own cores. |
+| 34 | Any refusal of an order batch settles it on the page: its orders are refused once and it is not sent again. Only a reply that did not arrive is retried. Found by the closing audit. | Settling only the three refusals that named their batch. An order too large to admit was answered without the batch's number, so the page sent it again every two seconds and nothing behind it ever left. |

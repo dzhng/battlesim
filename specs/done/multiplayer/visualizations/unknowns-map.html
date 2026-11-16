@@ -39,7 +39,7 @@
 </style>
 </head>
 <body>
-<p class="sub">Multiplayer: rooms and Frontline. Walked 2026-11-14. This is the record of the walk. The plan it led to is <code>specs/multiplayer/README.md</code>; where the two differ, the plan is right.</p>
+<p class="sub">Multiplayer: rooms and Frontline. Walked 2026-11-14. This is the record of the walk. The plan it led to was built; what shipped and why is in <code>specs/done/multiplayer/README.md</code>, and where the two differ, that record is right. File and line citations below are the code as it was on the day of the walk.</p>
 <nav id="nav"></nav>
 
 <section data-t="Known knowns">
@@ -90,7 +90,7 @@
 </section>
 
 <section data-t="Decisions">
-<p class="k" style="border-left:3px solid var(--warning,#c9972b);padding-left:10px">The live ledger is <code>specs/multiplayer/decisions.md</code>. It carries every row below, and adds what the plan decided where the walk was silent. This tab is the walk's record as of 2026-11-14.</p>
+<p class="k" style="border-left:3px solid var(--warning,#c9972b);padding-left:10px">The full ledger is <code>specs/done/multiplayer/decisions.md</code>. It carries every row below, and adds what the plan and the build decided where the walk was silent. This tab is the walk's record as of 2026-11-14.</p>
 <h2>Confirmed preferences and delegation</h2>
 <div class="box">
 <ol style="margin:0;padding-left:18px">
@@ -262,7 +262,7 @@
 </section>
 
 <section data-t="Open and to confirm">
-<p class="k" style="border-left:3px solid var(--warning,#c9972b);padding-left:10px">Each open item now has an owning slice, listed under "Open items" in <code>specs/multiplayer/README.md</code>. Each small fact below is carried by the slice that depends on it.</p>
+<p class="k" style="border-left:3px solid var(--warning,#c9972b);padding-left:10px">Each open item was given to a slice of the build and settled there; the outcomes are in <code>specs/done/multiplayer/decisions.md</code> and the measurements in <code>specs/done/multiplayer/assets/host-comparison-2026-11-15.txt</code>.</p>
 <h2>Open</h2>
 <div class="scroll"><table>
 <tr><th>#</th><th>Open question</th><th>What unblocks it</th></tr>
@@ -287,12 +287,12 @@
 <li>Binary streams are cut at 300 seconds and event streams at 240.</li>
 <li>The server must load the very simulation file the site serves, not its own build of it.</li>
 <li>Lane numbers run from one fixed end of the map. With your side always at the bottom in battle, check how they read for a Red commander.</li>
-<li>The probe app <code>mp-probe</code> is still registered, private and idle, in the <code>armata</code> workspace.</li>
+<li>The probe app <code>mp-probe</code> was deleted from the <code>armata</code> workspace on 2026-11-16.</li>
 </ul>
 </section>
 
 <section data-t="Build plan">
-<p class="k" style="border-left:3px solid var(--warning,#c9972b);padding-left:10px">Superseded by the ladder in <code>specs/multiplayer/README.md</code> and its 27 slice files. Kept as the walk's first sketch; do not build from it.</p>
+<p class="k" style="border-left:3px solid var(--warning,#c9972b);padding-left:10px">Superseded by the build ladder, whose slice files were removed when the spec closed. Kept as the walk's first sketch; do not build from it.</p>
 <p class="k">Sorted by how likely each part is to be tweaked, not by order of work. The order of work is decision 40: foundation, rooms, Frontline.</p>
 <h2>Judgment calls</h2>
 <div class="box"><h3>Frontline's battle rules</h3>
@@ -324,7 +324,7 @@
 </section>
 
 <section data-t="Prompt">
-<p class="k" style="border-left:3px solid var(--warning,#c9972b);padding-left:10px">Used: the spec this prompt asks for is written. To build, start from the "Next Agent Prompt" in <code>specs/multiplayer/README.md</code>, not from here.</p>
+<p class="k" style="border-left:3px solid var(--warning,#c9972b);padding-left:10px">Used: the spec this prompt asked for was written and built. Kept word for word as the hand-off the walk ended on, so its paths are the ones of that day; the folder is now <code>specs/done/multiplayer/</code>.</p>
 <div class="box">
 <pre id="prompt">Write the multiplayer spec from specs/multiplayer/visualizations/unknowns-map.html, using write-spec.
 

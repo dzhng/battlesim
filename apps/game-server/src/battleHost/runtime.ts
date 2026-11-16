@@ -67,7 +67,7 @@ export async function prepareBattle(
 }
 
 /** What the battle's thread tells the host. A publication arrives as the
- *  finished payload of its stream record (wire.md), already copied out of
+ *  finished payload of its stream record (`packages/multiplayer/wire.md`), already copied out of
  *  the authority's buffer. */
 export type RuntimeMessage =
   | Exclude<SimReply, { type: "publication" }>

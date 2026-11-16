@@ -7,7 +7,9 @@ import { hostedBattles } from "./hosting.ts";
 import type { BattleMachines } from "./machines/index.ts";
 import { createPresence, PRESENCE_GRACE_MS, type PresenceClock } from "./presence.ts";
 
-/** What a battle is budgeted: room to grow through an hour-long game. */
+/** A battle's share of this computer's memory when counting how many it may
+ *  run at once. A long ten-AI battle outgrows it; rented machines are sized
+ *  in the deploy settings. */
 export const BYTES_PER_BATTLE = 2 * 1024 ** 3;
 export function battleCapacity(cores = cpus().length, memoryBytes = totalmem()): number {
   return Math.max(0, Math.min(cores - 1, Math.floor(memoryBytes / BYTES_PER_BATTLE)));

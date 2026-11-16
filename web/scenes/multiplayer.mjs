@@ -3,7 +3,6 @@ import {
   capture,
   commander,
   evidence,
-  mockScreens,
   onlinePage,
   root,
   roomServer,
@@ -14,7 +13,6 @@ import {
 export async function run(ctx) {
   const folder = evidence("multiplayer");
   await mkdir(folder, { recursive: true });
-  await mockScreens(ctx);
   const local = await roomServer();
   try {
     const { page, build } = await onlinePage(ctx, local, "VIPER-41");

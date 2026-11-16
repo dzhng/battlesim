@@ -157,19 +157,3 @@ export async function capture(page, folder, name, allSizes = true) {
   }
   await page.setViewportSize(sizes[0]);
 }
-
-export async function mockScreens(ctx) {
-  const folder = evidence("mock");
-  await mkdir(folder, { recursive: true });
-  const page = await ctx.newPage({ viewport: sizes[0] });
-  await page.goto(`file://${root}specs/multiplayer/visualizations/lobby-mock.html`);
-  for (const [index, name] of [
-    [1, "Main menu"],
-    [2, "Multiplayer"],
-    [3, "Room lobby"],
-  ]) {
-    await page.getByRole("button", { name: `${index} ${name}`, exact: true }).click();
-    await page.locator("#stage").screenshot({ path: `${folder}screen${index}.png` });
-  }
-  await page.close();
-}
