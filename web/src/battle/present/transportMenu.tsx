@@ -166,8 +166,9 @@ export function TransportMenu({
                 aria-label="Total"
               >
                 <span>Total</span>
+                {/* The sum reads as the stack above it: carrier, then squad. */}
                 <span className="hud-purchase-sum">
-                  {squad.cost} + {carrier.cost} =
+                  {carrier.cost} + {squad.cost} =
                 </span>
                 <Price
                   cost={squad.cost + carrier.cost}
