@@ -20,11 +20,12 @@ import {
   type MapSize,
   type MapType,
 } from "../../../web/src/maps/source";
-import presentation from "../../../fixtures/presentation.json";
+import { isKnownLighting } from "../../skirmish-setup/src/lighting";
+import { drawIndex } from "./random";
 import {
   battlePlayers,
   type Occupant,
-  type Seat,
+  type LobbySeat,
   type SeatId,
 } from "../../skirmish-setup/src/seats";
 import { toBattleSetup } from "./setup";
@@ -47,7 +48,7 @@ export interface Member {
 
 export type RoomPhase = "lobby" | "starting" | "battle";
 export interface RoomBattle {
-  address?: string;
+  address: string;
   id: string;
   mapIdentity: string;
 }
@@ -69,20 +70,12 @@ export const ROOM_CODE_ALPHABET = "ACDEFHJKMNPRTUVWXY347";
 export function normalizeRoomCode(text: string): RoomCode {
   return text.replace(/[\s-]/g, "").toUpperCase();
 }
-function isKnownLighting(value: unknown): value is string {
-  return ["random", presentation.light_preset, ...Object.keys(presentation.light_presets)].includes(
-    value as string,
-  );
-}
-
 /** A short shareable room id; knowing it is enough to join. */
 export function roomCode(random: () => number): RoomCode {
-  const draw = () =>
-    Math.min(
-      ROOM_CODE_ALPHABET.length - 1,
-      Math.max(0, Math.floor(random() * ROOM_CODE_ALPHABET.length)),
-    );
-  return Array.from({ length: 6 }, () => ROOM_CODE_ALPHABET[draw()]).join("");
+  return Array.from(
+    { length: 6 },
+    () => ROOM_CODE_ALPHABET[drawIndex(random, ROOM_CODE_ALPHABET.length)],
+  ).join("");
 }
 
 /** A new room: a 1v1 on the map `seed` makes, its host on Blue and Red's
@@ -118,7 +111,7 @@ function memberOf(room: Room, who: string): Member | undefined {
   return room.members.find((member) => member.who === who);
 }
 
-function seatOf(room: Room, who: string): Seat | undefined {
+function seatOf(room: Room, who: string): LobbySeat | undefined {
   const member = memberOf(room, who);
   return member && room.lobby.seats.find((seat) => seat.id === member.seat);
 }
@@ -241,12 +234,12 @@ export function roomReduce(
 ): Room | RoomRefusal {
   if (action.kind === "join") {
     if (memberOf(room, by)) return room;
-    if (room.phase !== "lobby") return refusal("this room has started");
+    if (room.phase !== "lobby") return refusal("started");
     const sideOrder = [...SIDES].sort((a, b) => humanCount(room, a) - humanCount(room, b));
     const destination = sideOrder
       .flatMap((side) => room.lobby.seats.filter((seat) => seat.side === side))
       .find((seat) => seat.occupant.kind === "open");
-    if (!destination) return refusal("this room is full");
+    if (!destination) return refusal("no_open_seat");
     const lobby = setOccupant(room.lobby, destination.id, { kind: "human", who: by });
     return {
       ...room,
@@ -347,7 +340,7 @@ function ticketFor(room: Room, who: string): BattleTicket | null {
       room.members.map((member) => [playerOf[member.seat]!, member.callsign]),
     ),
     battle: room.battle.id,
-    ...(room.battle.address && { address: room.battle.address }),
+    address: room.battle.address,
     setup,
     mapIdentity: room.battle.mapIdentity,
     side: player.side,

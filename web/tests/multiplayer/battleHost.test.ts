@@ -234,7 +234,7 @@ describe.each([false, true])("battle host (remote: %s)", (remote) => {
     await b.run(3);
     expect(await ordersFor("blue-1")).toBe(0);
 
-    b.host.setController("blue-1", "active_ai");
+    await b.host.setController("blue-1", "active_ai");
     const refused = await blue.order({ kind: "ready" });
     expect(refused.error?.reason).toBe("ai_controlled");
     for (let i = 0; i < 3000 && !watching.latest?.own.length; i++) await b.run(1);
@@ -243,7 +243,7 @@ describe.each([false, true])("battle host (remote: %s)", (remote) => {
     expect(fromAi).toBeGreaterThan(0);
     expect(watching.latest!.own.length).toBeGreaterThan(0);
 
-    b.host.setController("blue-1", "human");
+    await b.host.setController("blue-1", "human");
     const unit = watching.latest!.own[0].id;
     const applied = await blue.order({ kind: "stop", units: [unit] });
     expect(applied.error).toBeNull();
@@ -287,6 +287,7 @@ describe.each([false, true])("battle host (remote: %s)", (remote) => {
     const onFoot = await blue.link.preview(on);
     // A carrier the battle does not know is the battle's to refuse: the
     // answer differs from the same purchase with none.
+    await b.run(b.ready.tickHz);
     const aboard = await blue.link.preview({ ...on, carrier: "no such carrier" });
     expect("purchase" in onFoot && "purchase" in aboard).toBe(true);
     expect(aboard).not.toEqual(onFoot);

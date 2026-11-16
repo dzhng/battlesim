@@ -33,7 +33,7 @@ export type UpBatch = {
 };
 export type UpReply =
   | { seq: number; results: { id: number; ack: CommandAck }[] }
-  | { seq: number; refused: "not_seated" | "rate" | "invalid" };
+  | { seq: number; refused: "not_seated" | "rate" | "invalid" | "sequence" };
 
 export type PreviewQuery =
   /** With `carrier`, the squad `variant` bought aboard it. */
@@ -57,8 +57,8 @@ export type BattleSetup = {
   rules: "skirmish" | "frontline";
 };
 export type BattleTicket = {
-  /** Omitted when the battle is served at the lobby address. */
-  address?: string;
+  /** The origin of the battle server serving this ticket. */
+  address: string;
   /** Public player names, keyed by battle player id; never browser credentials. */
   callsigns: Record<string, string>;
   battle: string;

@@ -54,9 +54,12 @@ function setup(capacity = 3) {
   const clock = new Clock();
   let draw = 0;
   const service = createRoomService({
-    createBattle: pendingBattle,
     online: createOnlineState({
-      capacity,
+      machines: inProcessBattleMachines({
+        capacity: capacity,
+        ordersPerSecond: 10000,
+        createBattle: pendingBattle,
+      }),
       clock,
       releaseCallsign: () => {},
       callsign: (who) => who.toUpperCase(),
@@ -449,9 +452,12 @@ test("a callsign stays reserved while a started room remembers its gone member, 
   const hello = helloRegistry(build);
   let draw = 0;
   const service = createRoomService({
-    createBattle: pendingBattle,
     online: createOnlineState({
-      capacity: 2,
+      machines: inProcessBattleMachines({
+        capacity: 2,
+        ordersPerSecond: 10000,
+        createBattle: pendingBattle,
+      }),
       clock: clock,
       callsign: hello.callsignOf,
       releaseCallsign: hello.release,

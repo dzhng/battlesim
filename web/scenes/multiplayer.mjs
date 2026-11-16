@@ -3,7 +3,6 @@ import {
   capture,
   commander,
   evidence,
-  mockScreens,
   onlinePage,
   root,
   roomServer,
@@ -14,7 +13,6 @@ import {
 export async function run(ctx) {
   const folder = evidence("multiplayer");
   await mkdir(folder, { recursive: true });
-  await mockScreens(ctx);
   const local = await roomServer();
   try {
     const { page, build } = await onlinePage(ctx, local, "VIPER-41");
@@ -142,9 +140,10 @@ export async function run(ctx) {
     await uncovered(refused);
     ctx.check(
       "the refusal's words are visible after the cover leaves",
-      (await refused.getByRole("status", { name: "Online unavailable" }).isVisible()) &&
-        (await refused.getByRole("status", { name: "Online unavailable" }).innerText()) ===
-          "Online play is not available on this build.",
+      await refused
+        .getByRole("status", { name: "Online unavailable" })
+        .getByText("Online play is not available on this build.", { exact: true })
+        .isVisible(),
     );
     ctx.check(
       "a refused build offers no online action",
@@ -152,6 +151,18 @@ export async function run(ctx) {
         (await refused.getByRole("button", { name: "Join private room" }).count()) === 0,
     );
     await capture(refused, folder, "refused");
+    await refused.unroute("**/hello");
+    await refused.route("**/hello", (route) => route.abort("connectionrefused"));
+    await refused.reload();
+    await refused.getByRole("status", { name: "Online unavailable" }).waitFor();
+    await uncovered(refused);
+    const unavailable = refused.getByRole("status", { name: "Online unavailable" });
+    ctx.check(
+      "an unreachable lobby offers no online action",
+      (await unavailable.isVisible()) &&
+        (await refused.getByRole("button", { name: "Create room" }).count()) === 0,
+    );
+    await capture(refused, folder, "unreachable", false);
     await refused.close();
   } finally {
     await local.stop(folder);

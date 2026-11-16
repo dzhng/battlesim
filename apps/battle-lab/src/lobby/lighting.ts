@@ -1,12 +1,14 @@
+import {
+  LIGHTING_RANDOM,
+  lightingPresetNames,
+  isKnownLighting,
+} from "@packages/skirmish-setup/src/lighting";
 // Match lighting: a lobby choice of Random or a fixture look, resolved
 // to one named preset so every client and a later replay draw the same sky.
 // Presentation only — nothing here enters the sim or its hashes.
 import { light_sun_azimuth, map_seed_index } from "@wasm/renderer_browser";
-import { lightPresetLabels, lightPresets } from "@web/presentationSettings";
+import { lightPresetLabels } from "@web/presentationSettings";
 import { DEFAULT_LIGHTING } from "@packages/skirmish-setup/src/lobby";
-
-/** The lobby's Random choice, not a fixture look. */
-export const LIGHTING_RANDOM = "random";
 
 /**
  * Default match lighting: Daylight (`day`), the shipped mid-morning look.
@@ -14,16 +16,6 @@ export const LIGHTING_RANDOM = "random";
  * silently change every existing battle's light.
  */
 export { DEFAULT_LIGHTING };
-
-/** Fixture lighting looks in a stable order, including `day`. */
-export function lightingPresetNames(): string[] {
-  return Object.keys(lightPresets).sort();
-}
-
-/** Lobby Lighting options: Random, then every fixture look. */
-export function lightingChoices(): string[] {
-  return [LIGHTING_RANDOM, ...lightingPresetNames()];
-}
 
 /** A look's display name from `presentation.light_preset_labels`. */
 export function lightingLabel(name: string): string {
@@ -38,8 +30,7 @@ export function lightingLabel(name: string): string {
 /** Read a `light=` query value, or why it is not a lobby lighting choice. */
 export function parseLighting(value: string | null | undefined): string | { error: string } {
   if (value === null || value === undefined || value === "") return DEFAULT_LIGHTING;
-  if (value === LIGHTING_RANDOM) return LIGHTING_RANDOM;
-  if (lightingPresetNames().includes(value)) return value;
+  if (isKnownLighting(value)) return value;
   return {
     error: `light must be random or one of ${lightingPresetNames().join(", ")}`,
   };

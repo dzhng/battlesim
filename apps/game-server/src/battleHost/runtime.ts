@@ -1,3 +1,4 @@
+import { encodePublication } from "../../../../packages/multiplayer/src/stream/publication.ts";
 // A battle on its own thread: the prepared world, the authority that ticks
 // it, and each publication turned into the bytes a seat's stream carries.
 // The worker thread runs this, and so does a test on its own clock.
@@ -66,24 +67,12 @@ export async function prepareBattle(
 }
 
 /** What the battle's thread tells the host. A publication arrives as the
- *  finished payload of its stream record (wire.md), already copied out of
+ *  finished payload of its stream record (`packages/multiplayer/wire.md`), already copied out of
  *  the authority's buffer. */
 export type RuntimeMessage =
   | Exclude<SimReply, { type: "publication" }>
   | { type: "prepared"; mapIdentity: string; candidate: number }
   | { type: "publication"; side: SideName; flags: number; payload: Uint8Array };
-
-/** `u32 tick`, 16 ASCII bytes of digest, `f32 stepMs`, then the words. */
-function publicationPayload(reply: Extract<SimReply, { type: "publication" }>): Uint8Array {
-  const bytes = reply.length * Float32Array.BYTES_PER_ELEMENT;
-  const payload = new Uint8Array(24 + bytes);
-  const view = new DataView(payload.buffer);
-  view.setUint32(0, reply.tick, true);
-  payload.set(new TextEncoder().encode(reply.digest).subarray(0, 16), 4);
-  view.setFloat32(20, reply.stepMs, true);
-  payload.set(new Uint8Array(reply.buffer, 0, bytes), 24);
-  return payload;
-}
 
 /** One worker message keeps the administrative transaction indivisible. */
 export type HostRequest =
@@ -142,7 +131,7 @@ export function createBattleRuntime(options: {
     const epoch = new Float32Array(reply.buffer, 0, reply.length)[epochAt];
     const keyframe = epoch > (epochs.get(reply.side) ?? 0);
     epochs.set(reply.side, epoch);
-    const payload = publicationPayload(reply);
+    const payload = encodePublication(reply);
     // The payload is the copy, so the authority has its buffer back before
     // anything crosses to another thread: the battle never waits for one.
     authority?.handle({ type: "credit", buffer: reply.buffer });

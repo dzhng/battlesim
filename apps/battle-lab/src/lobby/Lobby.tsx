@@ -1,3 +1,4 @@
+import { lightingChoices } from "@packages/skirmish-setup/src/lighting";
 // One order of battle: fixed Blue/Red columns, the admitted map and settings.
 // Drivers own mutations; this view renders their current seats and settings.
 import { useMemo } from "react";
@@ -6,7 +7,7 @@ import { MAP_SIZES, MAP_TYPES } from "@web/maps/source";
 import { REGIONS, type AskedLobby } from "../battleLinks";
 import { lobbyPlayers, sizeFloor, type LobbyPreset } from "@packages/skirmish-setup/src/lobby";
 import { battlePlayers } from "@packages/skirmish-setup/src/seats";
-import { lightingChoices, lightingLabel } from "./lighting";
+import { lightingLabel } from "./lighting";
 import { Choice } from "./Choices";
 import { holders, MapFrame, PreviewStatus } from "./MapFrame";
 import { SideColumn } from "./Seats";

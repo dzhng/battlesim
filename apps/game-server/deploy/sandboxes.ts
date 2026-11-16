@@ -1,3 +1,4 @@
+import { scrubCredentials } from "../../../packages/multiplayer/src/identity.ts";
 import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
@@ -25,11 +26,7 @@ export async function sandboxBattleMachines(options: SandboxOptions): Promise<Ba
   const error = options.error ?? ((text: string) => process.stderr.write(text));
   const archive = await readFile(options.archive);
   const api = `${options.apiUrl.replace(/\/$/, "")}/v1/services/boat`;
-  const scrub = (text: string) =>
-    text
-      .split(options.appKey)
-      .join("[credential]")
-      .replace(/[a-f0-9]{32}/gi, "[credential]");
+  const scrub = (text: string) => scrubCredentials(text.split(options.appKey).join("[credential]"));
   async function request(
     path: string,
     method = "GET",
@@ -210,7 +207,6 @@ export async function sandboxBattleMachines(options: SandboxOptions): Promise<Ba
             if (reply.ok)
               return {
                 address,
-                control: address,
                 stop() {
                   if (released) return;
                   release();

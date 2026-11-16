@@ -1,3 +1,4 @@
+import { lightingPresetNames } from "../../packages/skirmish-setup/src/lighting";
 // @vitest-environment node
 import { describe, expect, test } from "vitest";
 import {
@@ -19,7 +20,7 @@ import {
 } from "../../packages/skirmish-setup/src/lobby";
 import { battlePlayers } from "../../packages/skirmish-setup/src/seats";
 import { askedBattle, toUrl } from "../../apps/battle-lab/src/battleLinks";
-import { DEFAULT_LIGHTING, lightingPresetNames } from "../../apps/battle-lab/src/lobby/lighting";
+import { DEFAULT_LIGHTING } from "../../apps/battle-lab/src/lobby/lighting";
 import { battleRequestForAsked, lobbyCandidate } from "../../apps/battle-lab/src/skirmishData";
 import { loadWasm } from "../src/battle/sim/module";
 

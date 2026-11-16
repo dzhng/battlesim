@@ -1,3 +1,4 @@
+import { isBrowserId, BROWSER_ID_HEADER } from "../../../../packages/multiplayer/src/identity.ts";
 // The lobby's routes: build identity, hello, rooms and Frontline. HTTP owns
 // credentials and sockets; the services see a browser id and a device.
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -30,11 +31,10 @@ export function createLobbyHttp(build: BuildIdentity, options: OnlineHttpOptions
     callsign: hello.callsignOf,
     releaseCallsign: hello.release,
   });
-  const rooms = createRoomService({ ...options, online, createBattle: online.createBattle });
+  const rooms = createRoomService({ ...options, online });
   const frontline = createFrontlineService({
     ...options,
     online,
-    createBattle: online.createBattle,
   });
   const server = httpServer(route);
   server.once("close", () => {
@@ -52,9 +52,8 @@ export function createLobbyHttp(build: BuildIdentity, options: OnlineHttpOptions
     }
     if (url.pathname === "/hello") {
       if (request.method !== "POST") return json(response, 405, { refused: "method" });
-      const id = request.headers["x-player"];
-      if (typeof id !== "string" || !/^[a-f0-9]{32}$/.test(id))
-        return json(response, 403, { refused: "invalid" });
+      const id = request.headers[BROWSER_ID_HEADER.toLowerCase()];
+      if (!isBrowserId(id)) return json(response, 403, { refused: "invalid" });
       let value: unknown;
       try {
         value = await body(request);

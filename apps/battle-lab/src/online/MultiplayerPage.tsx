@@ -1,3 +1,4 @@
+import type { MultiplayerEntry } from "../onlineSession";
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { normalizeRoomCode } from "@packages/multiplayer/src/room";
@@ -5,11 +6,12 @@ import type { RoomList } from "@packages/multiplayer/src/wire";
 import { spoken } from "../battleLinks";
 import { PageHead } from "../menu/PageHead";
 import { useMenuShell } from "../menu/MenuShell";
+import { PlateStatus } from "../menu/PlateStatus";
 import { callsign, setCallsign } from "./identity";
-import { hello } from "./hello";
+import { hello, onlineUnavailable, ONLINE_BUILD_UNAVAILABLE, ONLINE_UNREACHABLE } from "./hello";
 import { serverAddress } from "./server";
 import { joinRoom, stateStream } from "./stateStream";
-import { roomFailure, onlineRequest } from "./requests";
+import { onlineFailure, onlineRequest } from "./requests";
 import { Frontline } from "./Frontline";
 import "./online.css";
 
@@ -21,9 +23,10 @@ export function MultiplayerPage() {
   const [name, setName] = useState(callsign);
   const assignedName = useRef(name);
   const [list, setList] = useState<RoomList | null>(null);
+  const [unavailableReason, setUnavailableReason] = useState(ONLINE_BUILD_UNAVAILABLE);
   const [available, setAvailable] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(
-    () => (location.state as { roomNotice?: string } | null)?.roomNotice ?? null,
+    () => (location.state as MultiplayerEntry | null)?.roomNotice ?? null,
   );
   const [create, setCreate] = useState(false);
   const [joining, setJoining] = useState(false);
@@ -47,11 +50,17 @@ export function MultiplayerPage() {
             visit.signal,
             setList,
             () => setError("The room service has closed."),
-            () => setAvailable(false),
+            () => {
+              setUnavailableReason(ONLINE_UNREACHABLE);
+              setAvailable(false);
+            },
           );
         })
-        .catch(() => {
-          if (!visit.signal.aborted) setAvailable(false);
+        .catch((error: unknown) => {
+          if (!visit.signal.aborted) {
+            setUnavailableReason(onlineUnavailable(error));
+            setAvailable(false);
+          }
         });
     return () => visit.abort();
   }, [address]);
@@ -62,7 +71,7 @@ export function MultiplayerPage() {
     try {
       await action(signal);
     } catch (error) {
-      if (!signal.aborted) setError(roomFailure(error));
+      if (!signal.aborted) setError(onlineFailure(error));
     } finally {
       if (!signal.aborted) setBusy(false);
     }
@@ -91,6 +100,7 @@ export function MultiplayerPage() {
                 setCallsign(name);
                 const assigned = await hello(address, signal).catch((error: unknown) => {
                   if (!signal.aborted) {
+                    setUnavailableReason(onlineUnavailable(error));
                     setAvailable(false);
                     lifetime.current?.abort();
                   }
@@ -116,11 +126,9 @@ export function MultiplayerPage() {
         )}
       </PageHead>
       {available === false ? (
-        <p role="status" aria-label="Online unavailable">
-          Online play is not available on this build.
-        </p>
+        <PlateStatus label="Online unavailable" detail={unavailableReason} failed />
       ) : available === null ? (
-        <p role="status">Connecting…</p>
+        <PlateStatus label="Connecting" />
       ) : (
         <>
           <Frontline

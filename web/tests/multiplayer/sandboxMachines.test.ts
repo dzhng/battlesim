@@ -204,7 +204,7 @@ test("a crashed battle's diagnostics reach lobby output, scrubbed, before its ma
   await host.ready;
   const who = key();
   s.diagnostic(`${credential}:${who}`);
-  const response = await fetch(`${m.control}/control/controller`, {
+  const response = await fetch(`${m.address}/control/controller`, {
     method: "POST",
     headers: { [CONTROL_HEADER]: credential, "Content-Type": "application/json" },
     body: JSON.stringify({ player: "blue-1", kind: `${credential}:${who}` }),

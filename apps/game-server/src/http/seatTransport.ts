@@ -1,4 +1,6 @@
-import type { Seat, SeatPort } from "../../../../packages/multiplayer/src/link.ts";
+// Browser seat transports own retry caches and per-occupant allowances.
+import { HttpRefusal } from "./refusal.ts";
+import type { BattleSeat, SeatPort } from "../../../../packages/multiplayer/src/link.ts";
 import type { UpReply } from "../../../../packages/multiplayer/src/wire.ts";
 import type { BattleHost } from "../battleHost/index.ts";
 
@@ -7,14 +9,6 @@ const PREVIEW_INTERVAL_MS = 200;
 /** Convert the simulation's per-second allowance to the transport's monotonic clock. */
 const ORDER_WINDOW_MS = 1000;
 
-export class HttpRefusal extends Error {
-  constructor(
-    readonly status: number,
-    readonly reason: string,
-  ) {
-    super(reason);
-  }
-}
 export type Handlers = {
   reader: Parameters<SeatPort["onReader"]>[0];
   up: Parameters<SeatPort["onUp"]>[0];
@@ -27,14 +21,14 @@ export type Handlers = {
  * is never copied into a reply. */
 export function battleRoute(
   host: Pick<BattleHost, "attach">,
-  seatOf: (browserId: string) => Seat | undefined,
+  seatOf: (browserId: string) => BattleSeat | undefined,
   ordersPerSecond: number,
   now: () => number = () => performance.now(),
 ) {
   const ports = new Map<string, { who: string; handlers: Handlers }>();
   return {
     /** Absence preserves a returning occupant; a different occupant retires their transport. */
-    seating(entries: [string, Seat][]) {
+    seating(entries: [string, BattleSeat][]) {
       for (const [who, seat] of entries) {
         const key = `${seat.side}/${seat.player}`;
         const previous = ports.get(key);
@@ -97,7 +91,7 @@ function limited(port: Handlers, ordersPerSecond: number, now: () => number): Ha
 }
 
 /** A raw seat port; browser allowances wrap it in battleRoute. */
-export function seatHandlers(host: Pick<BattleHost, "attach">, seat: Seat): Handlers {
+export function seatHandlers(host: Pick<BattleHost, "attach">, seat: BattleSeat): Handlers {
   let reader!: Handlers["reader"];
   let up!: Handlers["up"];
   let preview!: Handlers["preview"];

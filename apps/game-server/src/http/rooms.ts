@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { RoomService } from "../rooms.ts";
 import { afterId, body, clientDevice, json, player, stream } from "./io.ts";
 import { isRoomAction } from "./input.ts";
-import { HttpRefusal } from "./seats.ts";
+import { HttpRefusal } from "./refusal.ts";
 
 export async function roomRequest(
   request: IncomingMessage,

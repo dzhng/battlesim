@@ -46,7 +46,9 @@ their paths, titles and tiles. Every menu address is a visit inside [one menu
 shell](src/menu/MenuShell.tsx): one plate over the backdrop, its tiles
 title-only over generated military art. The shell owns the backdrop, graphics detection and
 the loading covers, so moving between pages replaces only the plate's contents,
-and the film behind never changes. The menu's own cover shows once, until the
+and the film behind never changes. A page with nothing to show yet, waiting on
+a server or refused by one, says so with [the plate's status](src/menu/PlateStatus.tsx)
+centred under its head. The menu's own cover shows once, until the
 backdrop is first ready; a page that loads a scene of its own stands under a
 cover of its own until that scene draws, so the film never stands in for it. A page opens under a Back button, and Escape
 is Back: a page opened from home goes back through history onto the tile it

@@ -351,10 +351,28 @@ async function transport(ctx, page, shot) {
   const menu = page.getByRole("region", { name: "Transport" });
   const opened = { info: await page.getByRole("tooltip").count(), menu: await menu.count() };
   ctx.check(
-    `${shot}: hovering a squad opens its menu with no info card showing`,
-    opened.menu === 1 && opened.info === 0,
+    `${shot}: hovering a squad previews it on foot with its info card`,
+    opened.menu === 1 &&
+      opened.info === 1 &&
+      (await menu.getByRole("button", { name: "On foot", pressed: true }).count()) === 1 &&
+      (await page.getByRole("tooltip", { name: "AT Team Base", exact: true }).count()) === 1,
     JSON.stringify(opened),
   );
+  const foot = await menu.getByRole("button", { name: "On foot", exact: true }).boundingBox();
+  const info = await page.getByRole("tooltip").boundingBox();
+  const frame = await menu.boundingBox();
+  ctx.check(
+    `${shot}: the on-foot info stands above its option and stays on screen`,
+    info.x >= 0 &&
+      info.y >= 0 &&
+      info.x + info.width <= page.viewportSize().width &&
+      Math.abs(info.x - foot.x) < 0.5 &&
+      frame.y - (info.y + info.height) >= 0 &&
+      frame.y - (info.y + info.height) <= 6,
+    JSON.stringify({ foot, info, frame }),
+  );
+  await contained(ctx, page, `${shot}: on foot`);
+  await ctx.matchBaseline(page, "transport-on-foot");
   const ride = menu.getByRole("button", { name: "APC Base", exact: true });
   await ride.hover();
   const m = await page.evaluate(() => {

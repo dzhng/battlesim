@@ -1,6 +1,7 @@
+import type { MultiplayerEntry } from "../onlineSession";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { BattleTicket, Briefing, RoomList } from "@packages/multiplayer/src/wire";
-import { StreamRefused } from "@packages/multiplayer/src/stream/http";
+import { RequestRefused } from "@packages/multiplayer/src/refusal";
 import { useLocation, useNavigate } from "react-router";
 import { SessionCatalogScope } from "@web/battle/catalog/context";
 import { followBattle } from "../onlineSession";
@@ -8,7 +9,7 @@ import { BriefingCard } from "./BriefingCard";
 import type { OnlineMap } from "./useOnlineMap";
 import { leaveFrontline } from "./frontlineRequests";
 import { hello } from "./hello";
-import { roomFailure, onlineRequest } from "./requests";
+import { onlineFailure, onlineRequest } from "./requests";
 import "./frontline.css";
 
 export function Frontline({
@@ -36,7 +37,7 @@ export function Frontline({
   }, [leave]);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(
-    () => (location.state as { frontlineNotice?: string } | null)?.frontlineNotice ?? null,
+    () => (location.state as MultiplayerEntry | null)?.frontlineNotice ?? null,
   );
   const pending = useRef(false);
   const play = async () => {
@@ -51,7 +52,7 @@ export function Frontline({
       try {
         briefing = await join();
       } catch (error) {
-        if (!(error instanceof StreamRefused) || error.reason !== "callsign") throw error;
+        if (!(error instanceof RequestRefused) || error.reason !== "callsign") throw error;
         const assigned = await hello(address, visit.signal);
         if (live.current) onCallsign(assigned);
         briefing = await join();
@@ -65,11 +66,11 @@ export function Frontline({
     } catch (error) {
       if (!live.current) return;
       setNotice(
-        error instanceof StreamRefused && error.reason === "unavailable"
+        error instanceof RequestRefused && error.reason === "unavailable"
           ? "No battlefield could be made. Try again."
-          : error instanceof StreamRefused &&
+          : error instanceof RequestRefused &&
               (error.reason === "full" || error.reason === "game_running")
-            ? roomFailure(error)
+            ? onlineFailure(error)
             : "Could not join Frontline. Try again.",
       );
     } finally {
@@ -115,7 +116,7 @@ export function Frontline({
       followBattle(navigate, { ticket, address }, location.search, prepared);
     } catch (error) {
       if (!live.current) return;
-      if (error instanceof StreamRefused && error.reason === "expired") {
+      if (error instanceof RequestRefused && error.reason === "expired") {
         held.current = null;
         setBriefing(null);
         setNotice("Your seat was given away. Press Play to find another command.");

@@ -174,6 +174,9 @@ const HUD_ICONS = {
   menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
   // The reinforcements filter: a lens and its handle.
   search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/>',
+  // A laced combat boot: buying infantry without a carrier.
+  on_foot:
+    '<path stroke-width="1.4" d="M4 3h8v7l4 4h4a3 3 0 0 1 3 3v3H3V11l1-3z"/><path stroke-width="1.4" d="M4 6h8M9 9l4-1M10 12l4-2M12 14l4-2M3 17h5l2 1h13M5 20v1M9 20v1M14 20v1M19 20v1"/>',
   // A bare chevron: back out of a menu page, unlike reverse's barred arrow.
   back: '<path d="M15 4l-8 8 8 8"/>',
   rejected: '<path d="M6 6l12 12M18 6L6 18"/>',

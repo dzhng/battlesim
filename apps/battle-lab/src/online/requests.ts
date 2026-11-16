@@ -1,7 +1,11 @@
-import { StreamRefused } from "@packages/multiplayer/src/stream/http";
+import { BROWSER_ID_HEADER } from "../../../../packages/multiplayer/src/identity";
+import { RequestRefused } from "@packages/multiplayer/src/refusal";
 import { browserId } from "./identity";
 
-export const BATTLE_FAILED_NOTICE = "The battle could not continue. The room has closed.";
+export const ROOM_CLOSED_NOTICE = "That room has closed.";
+export const ROOM_REMOVED_NOTICE = "You are no longer in that room.";
+
+export const ROOM_BATTLE_FAILED_NOTICE = "The battle could not continue. The room has closed.";
 
 export async function onlineRequest<T>(
   address: string,
@@ -11,21 +15,21 @@ export async function onlineRequest<T>(
 ): Promise<T> {
   const response = await fetch(`${address}${path}`, {
     method: "POST",
-    headers: { "X-Player": browserId(), "Content-Type": "application/json" },
+    headers: { [BROWSER_ID_HEADER]: browserId(), "Content-Type": "application/json" },
     body: JSON.stringify(value),
     signal,
   });
   const result = await response.json();
-  if ("refused" in result) throw new StreamRefused(result.refused);
+  if ("refused" in result) throw new RequestRefused(result.refused);
   if (!response.ok) throw new Error("Online request failed.");
   return result as T;
 }
 
-export function roomFailure(error: unknown): string {
-  if (error instanceof StreamRefused) {
+export function onlineFailure(error: unknown): string {
+  if (error instanceof RequestRefused) {
     switch (error.reason) {
       case "removed":
-        return "You are no longer in that room.";
+        return ROOM_REMOVED_NOTICE;
       case "game_running":
         return "You already have a game running.";
       case "full":

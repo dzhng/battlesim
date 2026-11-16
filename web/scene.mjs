@@ -43,6 +43,13 @@ const EVIDENCE_DIR = new URL("../throwaway/evidence/", HERE);
 const ROOT = new URL("..", HERE).pathname;
 const execFileAsync = promisify(execFile);
 
+/** A request that was on its way when its battle ended is answered 410, and
+ * the page drops it. The browser still logs the answer as an error; it is
+ * the contract working, not a failure. */
+function crossedBattleEnd(message) {
+  return /status of 410\b/.test(message.text()) && /\/battles\//.test(message.location().url);
+}
+
 /** Errors that make a lab page unable to become ready.  Catching these at the
  * runner boundary avoids turning one adapter-limit failure into a chain of
  * readiness timeouts. Scenes that intentionally exercise validation pass
@@ -376,7 +383,7 @@ export async function run(fixtures, { pinnedIds = new Set() } = {}) {
               if (fatalGpuMessage(e.message)) failForGpu(e.message);
             });
             page.on("console", (m) => {
-              if (m.type() !== "error") return;
+              if (m.type() !== "error" || crossedBattleEnd(m)) return;
               const text = m.text();
               recordPageError(`${fixture.id}: ${text}`);
               if (fatalGpuMessage(text)) failForGpu(text);

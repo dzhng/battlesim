@@ -58,9 +58,9 @@ export interface RemoteSimClientOptions {
   connect: SimConnection;
 }
 export type SimClientOptions = LocalSimClientOptions | RemoteSimClientOptions;
-/** Online seats offer only actions the server permits. Local clients add
+/** The actions shared by offline and online seats. Local clients add
  * authority controls below; both use the same decoder and request tracking. */
-export type OnlineSimClient = Pick<
+export type SeatClient = Pick<
   SimClient,
   | "ready"
   | "presentation"
@@ -158,9 +158,9 @@ function directChannel(receive: (reply: SimReply) => void): SimChannel {
   };
 }
 
-export function createSimClient(options: RemoteSimClientOptions): OnlineSimClient;
+export function createSimClient(options: RemoteSimClientOptions): SeatClient;
 export function createSimClient(options: LocalSimClientOptions): SimClient;
-export function createSimClient(options: SimClientOptions): OnlineSimClient | SimClient {
+export function createSimClient(options: SimClientOptions): SeatClient | SimClient {
   const online = options.transport === "remote";
   let decoder: ScenePresentation | null = null;
   let observedSide = options.side;
@@ -391,7 +391,7 @@ export function createSimClient(options: SimClientOptions): OnlineSimClient | Si
   if (!online && typeof document !== "undefined")
     document.addEventListener("visibilitychange", onVisibility);
 
-  const client: OnlineSimClient = {
+  const client: SeatClient = {
     ready,
     get presentation() {
       return decoder;

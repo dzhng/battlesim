@@ -175,7 +175,11 @@ test("the server records battle identity after the room enters starting", () => 
   state = changed(state, host.who, { kind: "ready", ready: true });
   const starting = changed(state, host.who, { kind: "start" });
   expect(roomView(starting, host.who).phase).toEqual({ kind: "starting" });
-  const battle = recordBattle(starting, { id: "battle-42", mapIdentity: "map-42" });
+  const battle = recordBattle(starting, {
+    address: "http://127.0.0.1:1234",
+    id: "battle-42",
+    mapIdentity: "map-42",
+  });
   expect(roomView(battle, host.who).phase).toMatchObject({
     kind: "battle",
     ticket: { battle: "battle-42", mapIdentity: "map-42" },
@@ -188,7 +192,11 @@ test("each human gets the battle player for their own seat and side", () => {
   state = changed(state, host.who, { kind: "ready", ready: true });
   state = changed(state, guest.who, { kind: "ready", ready: true });
   state = changed(state, host.who, { kind: "start" });
-  state = recordBattle(state, { id: "battle-42", mapIdentity: "map-42" });
+  state = recordBattle(state, {
+    address: "http://127.0.0.1:1234",
+    id: "battle-42",
+    mapIdentity: "map-42",
+  });
   const hostPhase = roomView(state, host.who).phase;
   const guestPhase = roomView(state, guest.who).phase;
   expect(hostPhase).toMatchObject({ kind: "battle", ticket: { side: "blue", player: "blue-1" } });
@@ -200,7 +208,11 @@ test("leaving after start keeps the member, seat and ticket", () => {
   state = changed(state, host.who, { kind: "set_seat", seat: "seat-2", to: "ai" });
   state = changed(state, host.who, { kind: "ready", ready: true });
   state = changed(state, host.who, { kind: "start" });
-  state = recordBattle(state, { id: "battle-42", mapIdentity: "map-42" });
+  state = recordBattle(state, {
+    address: "http://127.0.0.1:1234",
+    id: "battle-42",
+    mapIdentity: "map-42",
+  });
   const afterLeave = roomReduce(state, host.who, { kind: "leave" }, 30);
   expect(afterLeave).toEqual(state);
   expect(roomView(afterLeave as Room, host.who).phase).toMatchObject({

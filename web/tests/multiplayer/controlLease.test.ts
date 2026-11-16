@@ -37,7 +37,7 @@ test(
     const host = createRemoteBattleHost(
       { candidates: [duel] },
       "lease",
-      Promise.resolve({ address, control: address, stop: stopped }),
+      Promise.resolve({ address, stop: stopped }),
       "a".repeat(32),
     );
     host.onEnd((end) => ended.push(end));
@@ -88,7 +88,7 @@ test("a broken control stream fails explicitly even while its health checks answ
   const host = createRemoteBattleHost(
     { candidates: [duel] },
     "broken",
-    Promise.resolve({ address, control: address, stop() {} }),
+    Promise.resolve({ address, stop() {} }),
     "b".repeat(32),
   );
   host.onEnd((end) => ended.push(end));

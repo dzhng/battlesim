@@ -1,9 +1,10 @@
+import { isBrowserId, BROWSER_ID_HEADER } from "../../../../packages/multiplayer/src/identity.ts";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import {
   encodeRecord,
   type RecordSource,
 } from "../../../../packages/multiplayer/src/stream/index.ts";
-import { HttpRefusal } from "./seats.ts";
+import { HttpRefusal } from "./refusal.ts";
 
 /** Enough for a join snapshot, but a stalled socket must not retain history. */
 const SOCKET_QUEUE_BYTES = 4 * 1024 * 1024;
@@ -29,8 +30,8 @@ export async function body(request: IncomingMessage): Promise<unknown> {
   }
 }
 export function player(request: IncomingMessage): string {
-  const id = request.headers["x-player"];
-  if (typeof id !== "string" || !/^[a-f0-9]{32}$/.test(id)) throw new HttpRefusal(403, "invalid");
+  const id = request.headers[BROWSER_ID_HEADER.toLowerCase()];
+  if (!isBrowserId(id)) throw new HttpRefusal(403, "invalid");
   return id;
 }
 /** Only the configured proxy header defines a device; direct lobbies use the browser id. */

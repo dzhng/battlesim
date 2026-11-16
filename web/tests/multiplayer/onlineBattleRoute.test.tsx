@@ -34,6 +34,7 @@ vi.mock("@web/battle/prepare/client", () => ({
     preparation.calls++;
     return {
       cancel() {},
+      address: "http://127.0.0.1:1234",
       battle: preparation.hold
         ? new Promise(() => {})
         : Promise.resolve({
@@ -114,6 +115,7 @@ function entry(): OnlineBattleEntry {
     room: "TANGO-4821",
     address: "http://127.0.0.1:8787",
     ticket: {
+      address: "http://127.0.0.1:1234",
       battle: "room-match",
       setup,
       mapIdentity: "map",

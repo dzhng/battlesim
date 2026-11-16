@@ -1,4 +1,4 @@
-Host comparison, 2026-11-15. Scratch workloads; see slices/01-probes.md for the reading.
+Host comparison, 2026-11-15, with later sections dated where they were added. Scratch workloads; ../README.md has the reading.
 
 Machines
   Bento VM (workspace app runtime): Intel Xeon Platinum 8259CL 2.5 GHz, 8 vCPU, 16 GB, Node 24
@@ -205,3 +205,65 @@ K. Native builds at each x86 feature level and WebAssembly as shipped and after 
    whole | 20.0 | 14.7 | 51.8 | 86.7 | 136 | 3229 
   digest 96b9a080ebb063fb
   
+
+L. The ten-AI battle the server actually runs (a generated 5v5, this build), stepped flat out for 15 simulated minutes from one scenario file and seed: native at x86-64-v4 beside WebAssembly, each on its own core of one rented machine, 2026-11-16. Map generation replayed natively for 18 recorded calls.
+  model name	: AMD Ryzen 9 9950X 16-Core Processor 4 
+  15:22:03 15:41:31 
+      Finished `release` profile [optimized] target(s) in 59.31s
+  == native-v4
+  maps: 18 byte-identical to WebAssembly's, 0 differ, 0 refused natively
+  min 1 p50 3.1 p95 12.5 over33 19 digest 06ba4df272323e43
+  min 2 p50 4.4 p95 15.8 over33 22 digest e4e3dcd7e28604c2
+  min 3 p50 6.2 p95 21.6 over33 23 digest 8975c2715280f953
+  min 4 p50 11.8 p95 38.8 over33 139 digest 7e6d942b795fd1cf
+  min 5 p50 30.5 p95 57.5 over33 796 digest e603ef04a84ab17e
+  min 6 p50 48.2 p95 84.4 over33 1549 digest 70ef72e633426fce
+  min 7 p50 43.6 p95 83.9 over33 1489 digest e21101fdc03879ec
+  min 8 p50 42.2 p95 79.4 over33 1434 digest 303703997d17aef8
+  min 9 p50 51.5 p95 92.9 over33 1615 digest 5e533ec2425f938e
+  min 10 p50 37.3 p95 86.3 over33 1030 digest 7dd6f2462dd2c0e0
+  min 11 p50 36.2 p95 75.3 over33 1058 digest edd9ea93c0f4bd25
+  min 12 p50 32.1 p95 76.4 over33 847 digest 87998c89b173f8e8
+  min 13 p50 28.3 p95 65.3 over33 674 digest e0f96edd0ec5a9a0
+  min 14 p50 24.0 p95 64.6 over33 648 digest f4b64e2e16c4bdcc
+  min 15 p50 22.4 p95 63.2 over33 581 digest fe0f94101e36f25f
+  whole p50 29.9 p95 73.6 over33 11924 of 27000 finished false
+  == wasm
+  min 1 p50 3.6 p95 14.1 over33 20 digest 06ba4df272323e43
+  min 2 p50 5.7 p95 19.3 over33 25 digest e4e3dcd7e28604c2
+  min 3 p50 8.1 p95 27.0 over33 32 digest 8975c2715280f953
+  min 4 p50 15.9 p95 47.3 over33 269 digest 7e6d942b795fd1cf
+  min 5 p50 37.9 p95 69.4 over33 1130 digest e603ef04a84ab17e
+  min 6 p50 61.3 p95 107.8 over33 1762 digest 70ef72e633426fce
+  min 7 p50 55.0 p95 106.3 over33 1770 digest e21101fdc03879ec
+  min 8 p50 51.6 p95 98.8 over33 1725 digest 303703997d17aef8
+  min 9 p50 64.9 p95 126.6 over33 1777 digest 5e533ec2425f938e
+  min 10 p50 45.0 p95 96.9 over33 1382 digest 7dd6f2462dd2c0e0
+  min 11 p50 44.6 p95 91.5 over33 1440 digest edd9ea93c0f4bd25
+  min 12 p50 35.1 p95 85.1 over33 979 digest 87998c89b173f8e8
+  min 13 p50 38.9 p95 89.2 over33 1155 digest e0f96edd0ec5a9a0
+  min 14 p50 30.1 p95 80.6 over33 803 digest f4b64e2e16c4bdcc
+  min 15 p50 34.0 p95 96.6 over33 919 digest fe0f94101e36f25f
+  whole p50 37.3 p95 91.8 over33 15188 of 27000 finished false
+  
+
+M. Play on an empty server: seconds from pressing Play until the briefing answers, on the deployed lobby from California, 2026-11-16. Each Play rents a machine, uploads the battle server, starts it and prepares a new Frontline game's map.
+  One machine for each candidate map (first deploy):                 57
+  One machine tries the candidates one after another:                77.4  12.8  38.7
+  One machine prepares the candidates side by side (as shipped):     36.1  52.3  23.0  41.7  15.5  20.3
+  After Play: Deploy answered in 560 to 684 ms; first publication 0.9 to 1.1 s after opening the stream (52 kB snapshot);
+  30.6 to 31.3 publications a second, 16 to 17 kB/s once past the snapshot; empty order batch round trip p50 183 to 225 ms.
+
+N. One soak run to its end on the smallest rented size (2 vCPU, 4 GB), 2026-11-16: the server's generated 5v5 of ten AIs, real time, until a side won at 42 minutes. The raw log was not kept; these are the figures as read from it then.
+  Memory: 0.5 GB at 5 minutes, 3.0 GB at 42 minutes, rising throughout (about 65 MB a minute). An hour does not fit in 4 GB; battles rent the 8 GB size.
+  Speed: from minute 5 to minute 30 it kept 47 to 67% of real time, well below section B's soak on the same size (95% over ten minutes). Rented machines are shared and were seen with two CPU models; section B is one seed and one run.
+
+O. The production site and lobby, 2026-11-16: two browser pages on one computer in California, driven by a script. Seconds from the script's start.
+  21.5 host sees the Multiplayer page
+  23.1 room made
+  41.3 guest is in the room
+  41.9 Start pressed
+  95.2 both pages are in the battle, 53.3 s after Start
+  host: 30.0 ticks a second over 10 s. guest: 30.0 ticks a second over 10 s.
+
+A note on digests. Sections H and K time the 200-unit fight with two different probe programs, the native endurance report and a WebAssembly probe in Node, and the two end on different digests in both sections. That was not reconciled. Where the two builds were compared on one battle from one scenario and seed they agree: section L, and parity-endurance-checkpoints.txt for the endurance battle at 31 checkpoints over fifteen minutes (an hour's end digest also matched when that was measured; only the fifteen minutes are kept).

@@ -57,8 +57,8 @@ Shop and menu
 - **Up/Down wrap round the menu:** from nothing highlighted, Down goes to On foot
   and Up to the last ride. The shop takes the arrows from the camera only while
   a menu is open; Enter buys only from the search field.
-- **The highlight clears whenever the pointer moves to another card or leaves
-  the shop,** so a menu always reopens with nothing highlighted (`point`).
+- **A ride highlight clears when the pointer returns to a base card or leaves
+  the shop,** so hovering a base card previews buying its squad on foot (`point`).
 - **Shift-click repeats a pair without checking credits in the browser.** The
   simulation refuses a pair it can't take, as it does a single unit; one
   authority.

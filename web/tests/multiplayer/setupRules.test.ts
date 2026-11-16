@@ -42,7 +42,7 @@ test.each(["frontline", "skirmish"] as const)(
       module: readFileSync(join(root, "web/src/wasm/game_wasm_bg.wasm")),
     });
     const setup = toBattleSetup(preset("1v1"), rules);
-    const request = battleRequest(fromBattleSetup(setup), data);
+    const request = battleRequest(fromBattleSetup(setup), { ...data, generator: wasm });
     const page = await prepare(wasm, memory, request, data);
     const server = await prepareBattle(setup, data);
     const base = JSON.parse(readFileSync(join(root, "fixtures/skirmish.json"), "utf8"));

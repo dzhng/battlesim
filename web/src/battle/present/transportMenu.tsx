@@ -103,16 +103,16 @@ export function TransportMenu({
     info.style.left = `${clampLeft(picker, left, info.offsetWidth)}px`;
     info.style.top = `${top - info.offsetHeight}px`;
   });
-  // An option's card: the squad's own face on foot, a ride's face priced as
-  // what it adds, its price payable when the credits cover the two.
+  // On foot has a boot; a ride has its unit face and added price.
   const card = (id: string, ride: UnitCard | null) => {
     const face = ride ?? squad;
     return (
       <ShopCard
         key={id}
         face={face}
+        icon={ride ? undefined : "on_foot"}
         label={ride ? ride.name : "On foot"}
-        cost={face.cost}
+        cost={ride?.cost}
         payable={pairCost(squad, ride) <= facts.credits}
         add={ride !== null}
         purchasable={optionPurchasable(squad, ride, facts)}

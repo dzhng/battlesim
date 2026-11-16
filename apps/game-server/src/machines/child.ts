@@ -54,7 +54,7 @@ export function childBattleMachines(
         child.once("message", (message: { address?: string }) => {
           if (!message.address) return;
           clearTimeout(timer);
-          resolve({ address: message.address, control: message.address, stop });
+          resolve({ address: message.address, stop });
         });
       });
     },

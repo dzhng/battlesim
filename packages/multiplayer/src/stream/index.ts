@@ -1,5 +1,5 @@
 // The record stream: one framing, one bounded backlog and one resume rule for
-// every stream the game server sends. `specs/multiplayer/wire.md` is the
+// every stream the game server sends. `packages/multiplayer/wire.md` is the
 // contract; nothing here knows about HTTP or about battles.
 import type { RecordKind, StreamOpen, StreamRecord } from "../wire";
 

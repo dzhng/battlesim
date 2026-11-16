@@ -1,12 +1,14 @@
+import {
+  LIGHTING_RANDOM,
+  lightingChoices,
+  lightingPresetNames,
+} from "../../packages/skirmish-setup/src/lighting";
 // @vitest-environment node
 import { expect, test } from "vitest";
 import {
   DEFAULT_LIGHTING,
-  LIGHTING_RANDOM,
   lightWithMapSeed,
-  lightingChoices,
   lightingLabel,
-  lightingPresetNames,
   parseLighting,
   resolveLighting,
 } from "../../apps/battle-lab/src/lobby/lighting";
