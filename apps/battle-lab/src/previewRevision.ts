@@ -2,7 +2,7 @@
 // move or garrison query depends on, and a revision that counts its changes.
 import { useMemo, useRef } from "react";
 import type { AckEntry } from "@web/battle/input/useUnitControl";
-import type { ObservationView } from "@web/battle/sim/observationView";
+import type { ObservationView, OrderStepView } from "@web/battle/sim/observationView";
 import type { SideName } from "@web/battle/sim/protocol";
 
 /** A preview answer stands until the side's knowledge, its units, or its
@@ -25,6 +25,20 @@ export function previewContextIdentity(
   ]);
 }
 
+/** What a step was ordered at: its target or host, else its point; never
+ *  where a target, carrier or squad it follows stands now. */
+function stepIntent(step: OrderStepView) {
+  switch (step.kind) {
+    case "attack":
+      return [step.kind, step.target ?? null];
+    case "board":
+    case "collect":
+      return [step.kind, step.host?.id ?? null];
+    default:
+      return [step.kind, step.point, step.host?.id ?? null];
+  }
+}
+
 /** The preview context's revision: its `version` steps whenever the
  *  identity (`previewContextIdentity`) of `side`'s view changes. `knownKey`
  *  is the side's known props, and `clearedCount` and `clearingEpoch` its
@@ -45,7 +59,7 @@ export function usePreviewRevision(
       u.hold?.host.kind,
       u.hold?.host.id,
       u.hold?.phase,
-      u.queue,
+      u.steps.map(stepIntent),
     ]),
   );
   const pendingClaims = JSON.stringify(

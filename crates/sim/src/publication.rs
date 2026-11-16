@@ -28,6 +28,7 @@ use contract::scenario::CoverTier;
 use crate::battle::Battle;
 use crate::ground::GroundRunPatch;
 
+mod cells;
 mod crash_row;
 mod layout;
 mod mount_row;
@@ -38,8 +39,10 @@ mod publisher;
 pub mod reader;
 mod report_row;
 mod smoke;
+mod step_row;
 mod tags;
 
+use cells::host_cells;
 use crash_row::{crash_row, CRASH_FIELDS};
 pub use layout::layout_json;
 use layout::pose;
@@ -53,6 +56,7 @@ pub use publisher::{Publisher, Publishers};
 use report_row::{report_event_row, REPORT_EVENT_FIELDS};
 pub use smoke::smoke_looks;
 use smoke::{smoke_cloud_row, SMOKE_CLOUD_FIELDS};
+use step_row::{step_row, STEP_FIELDS};
 use tags::*;
 
 /// Atomic publication allowance; uniform Large ground plus finest fog is about
@@ -236,7 +240,7 @@ const KNOWN_PROP_FIELDS: [&str; 20] = [
     "authoredPropHi",
     "wreckOf",
 ];
-const OWN_FIELDS: [&str; 59] = [
+const OWN_FIELDS: [&str; 58] = [
     "id",
     "owner",
     "kind",
@@ -252,7 +256,7 @@ const OWN_FIELDS: [&str; 59] = [
     "state",
     "blocker",
     "routeCount",
-    "queueCount",
+    "stepCount",
     "memberCount",
     "seesCount",
     "engagement",
@@ -294,7 +298,6 @@ const OWN_FIELDS: [&str; 59] = [
     "protectionCooldownProgress",
     "smokeCharges",
     "smoking",
-    "goalUnloads",
     "shotAt",
 ];
 const IDENTIFIED_FIELDS: [&str; 15] = [
@@ -316,8 +319,6 @@ const IDENTIFIED_FIELDS: [&str; 15] = [
 ];
 const XY_FIELDS: [&str; 2] = ["x", "y"];
 const XYZ_FIELDS: [&str; 3] = ["x", "y", "z"];
-/// A queued order's destination, and 1 when it lets the passengers out there.
-const QUEUE_FIELDS: [&str; 3] = ["x", "y", "unload"];
 const MEMBER_ID_FIELDS: [&str; 4] = ["idLo", "idHi", "slot", "activeMount"];
 const MEMBER_ORDER_FIELDS: [&str; 4] = ["x", "y", "coverNow", "coverThere"];
 const RICOCHET_FIELDS: [&str; 4] = ["point", "nx", "ny", "nz"];
@@ -375,7 +376,7 @@ const GROUP_LAYOUTS: [GroupLayout; GROUPS] = [
         fields: &OWN_FIELDS,
         sections: &[
             section("route", "routeCount", &XY_FIELDS),
-            section("queue", "queueCount", &QUEUE_FIELDS),
+            section("steps", "stepCount", &STEP_FIELDS),
             section("members", "memberCount", &XYZ_FIELDS),
             section("memberHp", "memberCount", &["hp"]),
             section("memberIds", "memberCount", &MEMBER_ID_FIELDS),
@@ -610,30 +611,19 @@ fn pack_record(
         frame.smoke_clouds.len() as f32,
     ]);
     for u in &frame.own {
-        let (host_kind, host_id, host_center, host_half, host_seats) = match u.hold.map(|h| h.host)
-        {
+        let (host, host_center, host_half, host_seats) = match u.hold.map(|h| h.host) {
             Some(HostRef::Building {
                 id,
                 center,
                 half,
                 seats,
-            }) => (
-                tag(&HOST_KINDS, &"building"),
-                Some(id),
-                center,
-                half,
-                seats as f32,
-            ),
-            Some(HostRef::Carrier { id }) => (
-                tag(&HOST_KINDS, &"carrier"),
-                Some(id),
-                [f64::NAN; 2],
-                [f64::NAN; 2],
-                -1.0,
-            ),
-            None => (-1.0, None, [f64::NAN; 2], [f64::NAN; 2], -1.0),
+            }) => (Some(("building", id)), center, half, seats as f32),
+            Some(HostRef::Carrier { id }) => {
+                (Some(("carrier", id)), [f64::NAN; 2], [f64::NAN; 2], -1.0)
+            }
+            None => (None, [f64::NAN; 2], [f64::NAN; 2], -1.0),
         };
-        let [host_lo, host_hi] = limbs_or_absent(host_id);
+        let [host_kind, host_lo, host_hi] = host_cells(host);
         let [gx, gy] = u.goal.map_or([f32::NAN; 2], |g| [g[0] as f32, g[1] as f32]);
         out.extend([
             u.id.0 as f32,
@@ -651,7 +641,7 @@ fn pack_record(
             tag(&MOVE_STATES, &u.state),
             u.blocker.map_or(-1.0, |b| b.0 as f32),
             u.route.len() as f32,
-            u.queue.len() as f32,
+            u.steps.len() as f32,
             u.members.len() as f32,
             u.sees.len() as f32,
             tag(&ENGAGEMENTS, &u.engagement),
@@ -695,18 +685,12 @@ fn pack_record(
                 .map_or(-1.0, |p| p as f32),
             u.smoke.map_or(-1.0, |n| n as f32),
             u.smoking as u8 as f32,
-            u.goal_unloads as u8 as f32,
             u.shot_at as u8 as f32,
         ]);
     }
     for u in &frame.own {
         out.extend(u.route.iter().flat_map(|p| [p[0] as f32, p[1] as f32]));
-        out.extend(
-            u.queue
-                .iter()
-                .zip(&u.queue_unloads)
-                .flat_map(|(p, &unloads)| [p[0] as f32, p[1] as f32, unloads as u8 as f32]),
-        );
+        out.extend(u.steps.iter().flat_map(step_row));
         out.extend(
             u.members
                 .iter()
@@ -1193,7 +1177,7 @@ fn packed_len(frame: &ObservationFrame, fog: usize, runs: usize) -> Result<usize
     add(frame.own.len(), OWN_FIELDS.len())?;
     for u in &frame.own {
         add(u.route.len(), 2)?;
-        add(u.queue.len(), QUEUE_FIELDS.len())?;
+        add(u.steps.len(), STEP_FIELDS.len())?;
         add(u.members.len(), 3)?;
         add(u.member_hp.len(), 1)?;
         add(

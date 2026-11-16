@@ -579,7 +579,7 @@ async function controls(ctx) {
   const pose = (id) => {
     const u = after.own.find((u) => u.id === id);
     return (
-      u && { position: u.position, goal: u.goal, state: u.state, hold: u.hold, queue: u.queue }
+      u && { position: u.position, goal: u.goal, state: u.state, hold: u.hold, steps: u.steps }
     );
   };
   ctx.check(

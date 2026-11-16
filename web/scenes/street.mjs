@@ -2096,7 +2096,7 @@ async function muzzleTour(ctx) {
         return (
           u &&
           !u.goal &&
-          u.queue.length === 0 &&
+          u.steps.length === 0 &&
           Math.hypot(u.position[0] - corner[0], u.position[1] - corner[1]) < 1
         );
       },

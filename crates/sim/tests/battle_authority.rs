@@ -1,6 +1,7 @@
 //! The authority's command, tick and replay contracts.
 use contract::command::{CommandEnvelope, Order, OrderError, RoutePolicy};
 use contract::ids::{Side, UnitId};
+use contract::observation::OrderStep;
 use contract::scenario::ScenarioDefinition;
 use sim::battle::{Battle, ReplayError};
 
@@ -115,11 +116,17 @@ fn shift_queues_and_plain_orders_replace_and_stop_clears() {
     b.accept(mv(Side::Blue, 1, 0, [80.0, 150.0], false));
     b.accept(mv(Side::Blue, 2, 0, [80.0, 190.0], true));
     b.step();
-    assert_eq!(b.observe(Side::Blue).own[0].queue, vec![[80.0, 190.0]]);
+    assert_eq!(
+        b.observe(Side::Blue).own[0].steps[1..],
+        [OrderStep::Move {
+            point: [80.0, 190.0],
+            attack_move: false
+        }]
+    );
     b.accept(mv(Side::Blue, 3, 0, [50.0, 100.0], false));
     b.step();
     let own = &b.observe(Side::Blue).own[0];
-    assert_eq!((own.goal, own.queue.len()), (Some([50.0, 100.0]), 0));
+    assert_eq!((own.goal, own.steps.len()), (Some([50.0, 100.0]), 1));
     b.accept(CommandEnvelope {
         side: Side::Blue,
         player: None,

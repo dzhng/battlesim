@@ -32,6 +32,7 @@ mod dispatch;
 mod fire;
 mod flown;
 mod move_placement;
+mod order_steps;
 mod purchase_preview;
 mod replay;
 mod replay_identity;
@@ -236,6 +237,7 @@ pub struct Battle {
     seat_events: Vec<SeatEvent>,
     pending_seat_events: VecDeque<SeatEvent>,
     observations: [ObservationFrame; 3],
+    home_ways: order_steps::HomeWays,
     refusals: [Vec<contract::command::Refusal>; 3],
     pub(crate) shouts: [ShoutLedger; 3],
     /// Each unit as barks saw it at the start of this tick.
@@ -677,6 +679,7 @@ impl Battle {
             seat_events: Vec::new(),
             pending_seat_events: VecDeque::new(),
             observations: Default::default(),
+            home_ways: Default::default(),
             refusals: Default::default(),
             shouts: Default::default(),
             shout_before: Vec::new(),
@@ -2936,6 +2939,7 @@ impl Battle {
         let hulls = cover::hull_bodies(&crate::lean::hulls(&self.units, &self.rules));
         let low_hover = crate::movement::air::low_hover(&self.rules);
         for side in Side::ALL {
+            let mut steps = self.own_steps(side).into_iter();
             let knowledge = &self.knowledge[side.index()];
             let spotted_by_visible_enemy: BTreeSet<UnitId> = Side::ALL
                 .into_iter()
@@ -3112,7 +3116,6 @@ impl Battle {
                         position: [u.position.x, u.position.y, u.position.z],
                         yaw: u.yaw,
                         goal: u.movement_goal().map(|(g, _)| [g.x, g.y]),
-                        goal_unloads: u.movement_goal().is_some() && u.unloads_after(0),
                         policy: u.movement_goal().map(|(_, p)| p),
                         direction: u.movement_goal().map(|_| u.direction()),
                         reversing: u.reversing,
@@ -3121,8 +3124,7 @@ impl Battle {
                         // could name it anyway (Q14: contact reveals nothing).
                         blocker: u.blocker.filter(|b| self.units[b.0 as usize].side == side),
                         route: u.route.iter().flatten().map(|p| [p.x, p.y]).collect(),
-                        queue: u.queued_steps().map(|(p, _)| [p.x, p.y]).collect(),
-                        queue_unloads: u.queued_steps().map(|(_, unloads)| unloads).collect(),
+                        steps: steps.next().expect("one per own unit"),
                         members: u
                             .members
                             .iter()

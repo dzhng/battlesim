@@ -253,7 +253,7 @@ fn a_squad_that_finds_an_enemy_squad_inside_gives_up_its_order() {
         b.unit(UnitId(0)).unwrap().orders.is_empty()
     });
     let u = own(&b, Side::Blue, 0).unwrap();
-    assert!(u.goal.is_none() && u.queue.is_empty());
+    assert!(u.goal.is_none() && u.steps.is_empty());
     assert!(inside(&b, 1));
     // Red leaving later does not bring blue in.
     c.ok(&mut b, Side::Red, exit(&[1]));
@@ -304,7 +304,7 @@ fn a_squad_enters_after_arriving_and_a_stationary_timer() {
         panic!("garrison host is a building");
     };
     assert_eq!((center, half), (CENTRE, HALF));
-    assert!(u.goal.is_none() && u.queue.is_empty());
+    assert!(u.goal.is_none() && u.steps.is_empty());
 }
 
 #[test]

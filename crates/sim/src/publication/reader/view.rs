@@ -53,16 +53,24 @@ view!(SmokeCloudSpec {
     concealment: f64,
     look: Name
 });
-view!(OwnUnit { id: f64, #[serde(skip_serializing_if = "Option::is_none")] owner: Option<f64>, kind: Name, position: Point3, yaw: f64, goal: Option<Point2>, goal_unloads: bool, policy: Option<Name>,
+view!(OwnUnit { id: f64, #[serde(skip_serializing_if = "Option::is_none")] owner: Option<f64>, kind: Name, position: Point3, yaw: f64, goal: Option<Point2>, policy: Option<Name>,
     direction: Option<Name>, reversing: bool, withdrawing: bool, protection: Option<Protection>, state: Name,
     fuel_s: Option<f64>, afterburner: bool, in_dogfight: bool,
     flares: Option<Protection>,
-    blocker: Option<f64>, route: Vec<Point2>, queue: Vec<Point2>, queue_unloads: Vec<bool>, members: Vec<Point3>, member_ids: Vec<Option<f64>>,
+    blocker: Option<f64>, route: Vec<Point2>, steps: Vec<OrderStep>, members: Vec<Point3>, member_ids: Vec<Option<f64>>,
     member_slots: Vec<f64>, member_active_mounts: Vec<Option<f64>>, member_orders: Vec<MemberOrder>,
     member_leans: Vec<Option<MemberLean>>, area: Option<SquadArea>, final_facing: f64, sees: Vec<f64>,
     engagement: Name, mounts: Vec<Mount>, weapon_poses: Vec<WeaponPose>, hp: f64, smoking: bool, shot_at: bool, smoke: Option<f64>,
     member_hp: Vec<f64>, suppression: Name, concealed: bool, deployment: Option<Deployment>,
     hold: Option<Hold>, stock: Option<f64>, service: Name, sight: Sight });
+view!(OrderStep { kind: Name, point: Option<Point2>,
+    #[serde(skip_serializing_if = "std::ops::Not::not")] attack_move: bool,
+    #[serde(skip_serializing_if = "Option::is_none")] target: Option<MountTarget>,
+    #[serde(skip_serializing_if = "Option::is_none")] host: Option<StepHost> });
+view!(StepHost {
+    kind: Name,
+    id: f64
+});
 view!(Protection { charges: f64, cooldown: Option<f64> });
 view!(MemberOrder { spot: Point2, cover_now: Option<Name>, cover_there: Option<Name> });
 view!(MemberLean {

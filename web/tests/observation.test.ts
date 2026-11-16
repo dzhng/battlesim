@@ -478,11 +478,17 @@ test("every frozen animation field and ground value decodes, integers exact past
     "test_at",
   ]);
   expect(o.knownProps.map((p) => p.kind)).toEqual(["tank_wreck"]);
-  // Which of the unit's goal and queued steps let passengers out.
-  expect([o.own[0].goalUnloads, o.own[0].queueUnloads]).toEqual([true, [false, true]]);
-  expect(o.own[0].queue).toEqual([
-    [50, 20],
-    [60, 24],
+  // Its orders, current first: each kind with its point, an attack-move
+  // marked, an attack's target (none once lost), a host it unloads into.
+  expect(o.own[0].steps).toEqual([
+    { kind: "move", point: [40, 20] },
+    { kind: "unload", point: [40, 20] },
+    { kind: "move", point: [50, 20], attackMove: true },
+    { kind: "attack", point: [300, 20], target: { kind: "identified", id: 4 } },
+    { kind: "attack", point: null },
+    { kind: "move", point: [60, 24] },
+    { kind: "unload", point: [60, 24], host: { kind: "building", id: 0 } },
+    { kind: "return_to_base", point: [400, 0] },
   ]);
   // A heard helicopter's report keeps its height and band through the wire.
   expect(o.contacts).toEqual([
@@ -667,6 +673,10 @@ test("every frozen animation field and ground value decodes, integers exact past
   }
   const wide = decodeVector("wide");
   expect(wide.own[0].hold?.host.id).toBe(2 ** 32 - 1);
+  expect(wide.own[0].steps.map((s) => s.host)).toEqual([
+    { kind: "building", id: 2 ** 32 - 1 },
+    { kind: "carrier", id: 7 },
+  ]);
   expect(
     wide.knownProps.map(({ id, building, structureOwner, authoredProp, replaces }) => ({
       id,

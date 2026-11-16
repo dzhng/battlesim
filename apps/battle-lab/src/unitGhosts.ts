@@ -4,6 +4,7 @@ import { cruise_agl_m } from "@wasm/game_wasm";
 // preview, and every ordered destination with Space held. The UI says where
 // each body stands; the presentation fields and poses them (`GhostBody`).
 import type { SurfaceHeight } from "@packages/battle-renderer/src/orderOverlay";
+import { ordersEnd } from "@packages/battle-renderer/src/orderSteps";
 import type { WorldRay } from "@packages/renderer-core/src/camera3d";
 import { highAir, type UnitCatalog } from "@packages/scene-assets/src/units";
 import type { GhostReadout } from "@web/battle/present/readouts";
@@ -121,11 +122,11 @@ export function ownSoldiers(unit: OwnUnitView, spots: readonly (readonly [number
   }));
 }
 
-/** Where `unit` ends its orders, for Space: its last queued point, else its
- *  goal, with its soldiers' published spots carried there; null while it holds. */
+/** Where `unit` ends its orders, for Space (`ordersEnd`), with its
+ *  soldiers' published spots carried there; null while it holds. */
 export function orderedGhost(unit: OwnUnitView, look: number): UnitGhost | null {
-  if (!unit.goal) return null;
-  const end = unit.queue.at(-1) ?? unit.goal;
+  const end = ordersEnd(unit.steps, unit.goal);
+  if (!end || !unit.goal) return null;
   const [dx, dy] = [end[0] - unit.goal[0], end[1] - unit.goal[1]];
   return {
     kind: unit.kind,

@@ -2,7 +2,7 @@
 use contract::command::{CommandEnvelope, Order, RoutePolicy};
 use contract::ids::{Side, UnitId};
 use contract::map::MoverClass;
-use contract::observation::{MoveState, OwnUnit};
+use contract::observation::{MoveState, OrderStep, OwnUnit};
 use contract::scenario::ScenarioDefinition;
 use sim::battle::Battle;
 
@@ -593,9 +593,15 @@ fn double_click_upgrades_only_its_own_gesture_even_after_it_applied() {
     b.step();
     let u = own(&b, 0);
     assert_eq!(u.policy, Some(RoutePolicy::Fastest));
+    let queued: Vec<_> = (u.steps[1..].iter())
+        .map(|s| match s {
+            OrderStep::Move { point, .. } => *point,
+            other => panic!("only moves are queued, got {other:?}"),
+        })
+        .collect();
     assert_eq!(
-        u.queue,
-        vec![[150.0, 100.0], [150.0, 60.0]],
+        queued,
+        [[150.0, 100.0], [150.0, 60.0]],
         "no waypoint added or removed"
     );
     // Upgrading a finished gesture is an acknowledged no-op.

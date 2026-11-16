@@ -1,6 +1,7 @@
 //! A carrier lets its squads out where it is sent, or refuses an unload
 //! with no room for them, and publishes which of its steps lets them out.
 use super::*;
+use contract::observation::OrderStep;
 
 #[test]
 fn a_carrier_unloads_where_sent_and_queued_orders_follow() {
@@ -159,7 +160,7 @@ fn an_unload_with_no_room_is_refused_and_everyone_stays_aboard() {
     follow_command.queued = true;
     assert!(arrival.accept(follow_command).error.is_none());
     arrival.step();
-    assert_eq!(published_unloads(&arrival, UnitId(0)), (true, vec![false]));
+    assert_eq!(step_kinds(&arrival, UnitId(0)), ["move", "unload", "move"]);
     let mut seen = false;
     let mut saw_exiting = false;
     for _ in 0..(arrival.rules().tick_hz * 5) {
@@ -181,7 +182,7 @@ fn an_unload_with_no_room_is_refused_and_everyone_stays_aboard() {
     assert!(seen);
     // Refused: the step that would have unloaded is gone, and nothing
     // ahead unloads.
-    assert_eq!(published_unloads(&arrival, UnitId(0)), (false, vec![]));
+    assert_eq!(step_kinds(&arrival, UnitId(0)), ["move"]);
     assert!(!arrival.unit(UnitId(1)).unwrap().on_field());
     assert!(arrival.unit(UnitId(1)).unwrap().alive());
     assert!(matches!(
@@ -190,13 +191,18 @@ fn an_unload_with_no_room_is_refused_and_everyone_stays_aboard() {
     ));
 }
 
-/// Blue's published unload flags for unit `id`: its goal's, then each
-/// queued step's.
-fn published_unloads(battle: &Battle, id: UnitId) -> (bool, Vec<bool>) {
+/// Blue's published order steps for unit `id`, by kind: a drive that lets
+/// its passengers out is a move then an unload.
+fn step_kinds(battle: &Battle, id: UnitId) -> Vec<&'static str> {
     let observation = battle.observe(Side::Blue);
     let own = observation.own.iter().find(|u| u.id == id).unwrap();
-    assert_eq!(own.queue.len(), own.queue_unloads.len());
-    (own.goal_unloads, own.queue_unloads.clone())
+    (own.steps.iter())
+        .map(|step| match step {
+            OrderStep::Move { .. } => "move",
+            OrderStep::Unload { .. } => "unload",
+            other => panic!("only drives and unloads here, got {other:?}"),
+        })
+        .collect()
 }
 
 #[test]
@@ -252,21 +258,27 @@ fn the_unload_step_of_a_queued_drive_unload_drive_is_published() {
     assert!(battle.accept(onward).error.is_none());
     battle.step();
     assert_eq!(
-        published_unloads(&battle, UnitId(0)),
-        (false, vec![true, false])
+        step_kinds(&battle, UnitId(0)),
+        ["move", "move", "unload", "move"]
     );
+    // It lets them out where the drive before it ends.
+    let unload = OrderStep::Unload {
+        point: [280.0, 200.0],
+        into: None,
+    };
+    assert_eq!(battle.observe(Side::Blue).own[0].steps[2], unload);
 
     // The unload step becomes the goal: the flag goes with it.
     let mut heading_to_unload = false;
     for _ in 0..(battle.rules().tick_hz * 30) {
         battle.step();
-        if battle.observe(Side::Blue).own[0].queue.len() == 1 {
+        if battle.observe(Side::Blue).own[0].steps.len() == 3 {
             heading_to_unload = true;
             break;
         }
     }
     assert!(heading_to_unload);
-    assert_eq!(published_unloads(&battle, UnitId(0)), (true, vec![false]));
+    assert_eq!(step_kinds(&battle, UnitId(0)), ["move", "unload", "move"]);
 
     // Unloaded and driving on: no step unloads any more.
     for _ in 0..(battle.rules().tick_hz * 30) {
@@ -277,5 +289,5 @@ fn the_unload_step_of_a_queued_drive_unload_drive_is_published() {
     }
     assert!(battle.unit(UnitId(1)).unwrap().on_field());
     battle.step();
-    assert_eq!(published_unloads(&battle, UnitId(0)), (false, vec![]));
+    assert_eq!(step_kinds(&battle, UnitId(0)), ["move"]);
 }

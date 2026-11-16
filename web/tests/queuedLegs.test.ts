@@ -18,7 +18,10 @@ function view(over: Partial<OrderView>): OrderView {
     goal: GOAL,
     state: "moving",
     route: [GOAL],
-    queue: [QUEUED],
+    steps: [
+      { kind: "move", point: GOAL },
+      { kind: "move", point: QUEUED },
+    ],
     members: [],
     memberOrders: [],
     finalFacing: 0,
