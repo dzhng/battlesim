@@ -140,3 +140,33 @@ H. Native variants and WebAssembly of the same code on one sandbox (AMD EPYC 945
   e-both: digest eeea8a5d2c857d08.
   d-wasm: digest 0cc50762354acfc8
   avx avx2 avx512_bf16 avx512_bitalg avx512bw avx512cd avx512dq avx512f avx512ifma avx512vbmi avx512_vbmi2 avx512vl avx512_vnni avx512_vp2intersect avx512_vpopcntdq avx_vnni bmi1 bmi2 fma popcnt sse4_1 sse4_2 
+
+I. One seat's stream in this build's generated 5v5 of ten AIs, wire bytes per second (two soaks shared the Mac from minute 9, so fewer ticks ran then).
+  min  1: mean   61.0 kB/s  busiest second  114.6 kB/s  largest record  53.1 kB  ticks 1778  bytes a tick 2060
+  min  2: mean   98.1 kB/s  busiest second  119.8 kB/s  largest record  12.6 kB  ticks 1802  bytes a tick 3265
+  min  3: mean  117.9 kB/s  busiest second  146.5 kB/s  largest record  13.4 kB  ticks 1800  bytes a tick 3930
+  min  4: mean  123.2 kB/s  busiest second  140.4 kB/s  largest record  17.0 kB  ticks 1787  bytes a tick 4136
+  min  5: mean  108.2 kB/s  busiest second  129.0 kB/s  largest record  12.1 kB  ticks 1802  bytes a tick 3604
+  min  6: mean  111.3 kB/s  busiest second  143.3 kB/s  largest record  15.0 kB  ticks 1773  bytes a tick 3768
+  min  7: mean  122.7 kB/s  busiest second  172.1 kB/s  largest record  17.2 kB  ticks 1776  bytes a tick 4144
+  min  8: mean  107.9 kB/s  busiest second  133.2 kB/s  largest record  13.6 kB  ticks 1720  bytes a tick 3764
+  min  9: mean  102.5 kB/s  busiest second  145.6 kB/s  largest record  13.5 kB  ticks 1458  bytes a tick 4219
+  min 10: mean   81.8 kB/s  busiest second  125.4 kB/s  largest record  12.5 kB  ticks 1205  bytes a tick 4073
+  min 11: mean   67.9 kB/s  busiest second   92.6 kB/s  largest record  12.9 kB  ticks 1053  bytes a tick 3871
+  min 12: mean   61.1 kB/s  busiest second  108.6 kB/s  largest record  11.8 kB  ticks 1137  bytes a tick 3227
+  min 13: mean   71.9 kB/s  busiest second   99.0 kB/s  largest record  12.0 kB  ticks 1216  bytes a tick 3547
+  min 14: mean   89.3 kB/s  busiest second  118.2 kB/s  largest record  20.2 kB  ticks 1193  bytes a tick 4489
+  min 15: mean   71.9 kB/s  busiest second  107.2 kB/s  largest record  17.4 kB  ticks 911  bytes a tick 4655
+  compression of the publications of minute 4: {"event":"compression","records":1799,"rawBytes":7422916,"streamedDeflate":4285409,"gzipWhole":4257646,"brotliWhole":2750904}
+
+J. Sustained streams through a sandbox's token-protected HTTPS address from California, 60 s each, incompressible frames 30 times a second.
+  1 x 60 kB/s asked (0.48 Mbit/s); delivered 60 kB/s (0.48 Mbit/s) over 60 s; frames 1787, skipped 0
+    delay above the best frame, ms: p50 1  p95 3  p99 5  max 37; gap between frames p95 35 p99 37 max 69
+  1 x 195 kB/s asked (1.56 Mbit/s); delivered 194 kB/s (1.56 Mbit/s) over 60 s; frames 1796, skipped 0
+    delay above the best frame, ms: p50 1  p95 2  p99 6  max 96; gap between frames p95 35 p99 37 max 125
+  10 x 99 kB/s asked (7.92 Mbit/s); delivered 979 kB/s (7.83 Mbit/s) over 60 s; frames 17809, skipped 0
+    delay above the best frame, ms: p50 3  p95 7  p99 8  max 55; gap between frames p95 35 p99 37 max 86
+  10 x 195 kB/s asked (15.60 Mbit/s); delivered 1941 kB/s (15.53 Mbit/s) over 60 s; frames 17923, skipped 0
+    delay above the best frame, ms: p50 3  p95 7  p99 8  max 99; gap between frames p95 35 p99 36 max 103
+  10 x 480 kB/s asked (38.40 Mbit/s); delivered 4750 kB/s (38.00 Mbit/s) over 60 s; frames 17823, skipped 0
+    delay above the best frame, ms: p50 4  p95 8  p99 11  max 292; gap between frames p95 36 p99 38 max 158

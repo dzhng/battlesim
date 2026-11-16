@@ -191,5 +191,19 @@ by the second, on a Ryzen 9 9950X in France.
   the binding the server already loads as WebAssembly could be compiled as
   a native module for the same server. Deferred; see the README.
 
+- **Bandwidth: a player needs about 1 Mbit/s down, and the route has far
+  more.** Asked by the user on 2026-11-15. One seat's stream in the
+  generated 5v5 of ten AIs carries 3 to 5 kB a tick from the third minute:
+  0.8 to 1.1 Mbit/s at 30 ticks a second, 1.4 in its busiest second, over
+  fifteen minutes. Orders up are a few bytes. Through a sandbox's address,
+  ten streams at once were delivered whole at 8, 16 and 38 Mbit/s in all,
+  with the 99th percentile frame at most 11 ms later than the best: ten
+  humans in one battle need about 10 Mbit/s out of it. A minute of real
+  publications deflates to 58% of its size as a stream (37% with Brotli as
+  one file); the server sends them uncompressed today. Not measured: the
+  same stream late in an hour-long battle, where a join snapshot has
+  tripled; any cap or charge the provider puts on a sandbox's traffic; a
+  player on a poor link.
+
 **What this changed:** the user chose a sandbox for each battle (decision
 68, slices 28 and 29).
