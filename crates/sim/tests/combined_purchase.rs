@@ -288,6 +288,7 @@ fn a_squad_bought_in_a_helicopter_arrives_aboard_and_gets_off_on_order() {
     let (mut blue, ride, rider) = bought_aboard("test_transport_heli");
     assert_eq!(
         blue.order(Order::Unload {
+            into: None,
             units: vec![ride],
             goal: None,
             gesture: 1,

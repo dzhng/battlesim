@@ -559,9 +559,18 @@ pub struct PropPopulation {
     pub rows: Vec<u32>,
     lists: Vec<Vec<Record>>,
     prints: Vec<u64>,
+    /// The shadow cutoff over its authored value (`set_shadow_caster_scale`).
+    shadow_caster_scale: f64,
 }
 
 impl PropPopulation {
+    /// Casts sun shadows only from props at least `scale` times the
+    /// authored `Detail::shadow_caster_px` (a graphics quality; 1 as
+    /// authored).
+    pub fn set_shadow_caster_scale(&mut self, scale: f64) {
+        self.shadow_caster_scale = scale;
+    }
+
     /// What the side knows from now on; true when that changed.
     pub fn set_known(&mut self, known: Vec<KnownBody>) -> bool {
         if known == self.known {
@@ -750,8 +759,8 @@ impl Population for PropPopulation {
             // casts no shadow, whether the view sees it or not: its shadow
             // would be about as small. Behind the camera the footprint is
             // unbounded, so such a model keeps casting.
-            let tiny = this.art.detail.shadow_caster_px > 0.0
-                && projected_footprint_px(view, at, r) < this.art.detail.shadow_caster_px;
+            let cutoff = this.art.detail.shadow_caster_px * this.shadow_caster_scale;
+            let tiny = cutoff > 0.0 && projected_footprint_px(view, at, r) < cutoff;
             let mask = shadow.map_or(0, |s| if tiny { 0 } else { s.mask(&bounds) });
             if mask != 0 {
                 let cast = if tier == CULLED {

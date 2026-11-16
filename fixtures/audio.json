@@ -15,11 +15,48 @@
     "clip_db": -1
   },
   "distance": {
-    "ref_m": 150,
-    "rolloff": 1.2,
-    "max_m": 3000,
-    "floor": 0.15,
-    "cull": 0.004
+    "weapons": {
+      "ref_m": 150,
+      "rolloff": 1.2,
+      "max_m": 3000,
+      "floor": 0.15,
+      "cull": 0.004
+    },
+    "world_voices": {
+      "ref_m": 150,
+      "rolloff": 1.2,
+      "max_m": 3000,
+      "floor": 0.15,
+      "cull": 0.004
+    },
+    "burning": {
+      "ref_m": 10,
+      "rolloff": 12,
+      "max_m": 3000,
+      "floor": 0.005,
+      "cull": 0.001
+    },
+    "small_details": {
+      "ref_m": 45,
+      "rolloff": 2,
+      "max_m": 2500,
+      "floor": 0.01,
+      "cull": 0.004
+    },
+    "ground_engines": {
+      "ref_m": 45,
+      "rolloff": 2,
+      "max_m": 2500,
+      "floor": 0.01,
+      "cull": 0.004
+    },
+    "aircraft_engines": {
+      "ref_m": 60,
+      "rolloff": 1.8,
+      "max_m": 3000,
+      "floor": 0.02,
+      "cull": 0.004
+    }
   },
   "focus": { "share": 0.3, "inner_deg": 35, "outer_deg": 55 },
   "air": {
@@ -77,6 +114,7 @@
   },
   "vehicles": {
     "default": {
+      "engine_distance": "ground_engines",
       "engine": "engine_small",
       "idle_rate": 0.8,
       "load_rate": 1.4,
@@ -92,6 +130,7 @@
       "reverse_gain": 0.02
     },
     "tracked_heavy": {
+      "engine_distance": "ground_engines",
       "engine": "engine_diesel",
       "idle_rate": 0.8,
       "load_rate": 1.35,
@@ -107,6 +146,7 @@
       "reverse_gain": 0.03
     },
     "tracked_medium": {
+      "engine_distance": "ground_engines",
       "engine": "engine_diesel",
       "idle_rate": 0.8,
       "load_rate": 1.35,
@@ -122,6 +162,7 @@
       "reverse_gain": 0.03
     },
     "wheeled_light": {
+      "engine_distance": "ground_engines",
       "engine": "engine_small",
       "idle_rate": 0.95,
       "load_rate": 1.7,
@@ -137,6 +178,7 @@
       "reverse_gain": 0.03
     },
     "wheeled_medium": {
+      "engine_distance": "ground_engines",
       "engine": "engine_small",
       "idle_rate": 0.75,
       "load_rate": 1.3,
@@ -152,6 +194,7 @@
       "reverse_gain": 0.04
     },
     "wheeled_medium_logistics": {
+      "engine_distance": "ground_engines",
       "engine": "engine_small",
       "idle_rate": 0.75,
       "load_rate": 1.3,
@@ -167,6 +210,7 @@
       "reverse_gain": 0.04
     },
     "wheeled_heavy": {
+      "engine_distance": "ground_engines",
       "engine": "engine_diesel",
       "idle_rate": 0.75,
       "load_rate": 1.3,
@@ -182,6 +226,7 @@
       "reverse_gain": 0.05
     },
     "air_light": {
+      "engine_distance": "aircraft_engines",
       "engine": "rotor",
       "idle_rate": 1.1,
       "load_rate": 1.1,
@@ -197,6 +242,7 @@
       "reverse_gain": 0
     },
     "air_medium": {
+      "engine_distance": "aircraft_engines",
       "engine": "rotor",
       "idle_rate": 1,
       "load_rate": 1,
@@ -212,6 +258,7 @@
       "reverse_gain": 0
     },
     "air_heavy": {
+      "engine_distance": "aircraft_engines",
       "engine": "rotor",
       "idle_rate": 0.9,
       "load_rate": 0.9,
@@ -227,6 +274,7 @@
       "reverse_gain": 0
     },
     "high_air_light": {
+      "engine_distance": "aircraft_engines",
       "engine": "airwar-jet-engine",
       "idle_rate": 0.7,
       "load_rate": 1.25,
@@ -242,6 +290,7 @@
       "reverse_gain": 0
     },
     "high_air_medium": {
+      "engine_distance": "aircraft_engines",
       "engine": "airwar-jet-engine",
       "idle_rate": 0.7,
       "load_rate": 1.25,
@@ -257,6 +306,7 @@
       "reverse_gain": 0
     },
     "high_air_heavy": {
+      "engine_distance": "aircraft_engines",
       "engine": "airwar-jet-engine",
       "idle_rate": 0.7,
       "load_rate": 1.25,

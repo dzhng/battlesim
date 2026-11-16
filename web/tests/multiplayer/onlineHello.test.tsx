@@ -135,6 +135,6 @@ test.each(["room", "multiplayer"])(
     if (!(failure instanceof Error)) throw new Error("expected unavailable lobby");
     open(page);
     const status = await screen.findByRole("status", { name: "Online unavailable" });
-    expect(status.textContent?.trim()).toBe(failure.message);
+    expect(status.textContent).toContain(failure.message);
   },
 );

@@ -214,7 +214,7 @@ export interface SightShape {
  * `range * sightMultiplier(shape, b - forward)` (battle-renderer's sightOverlay).
  */
 export interface SightView {
-  /** The unit's eye, or one eye per facade a garrison holds. */
+  /** The unit's eye, or a garrison's eye at every window of its building. */
   eyes: Point3[];
   /** World bearing it looks along: a tank's turret, otherwise the hull. */
   forward: number;

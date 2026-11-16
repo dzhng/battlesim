@@ -4,8 +4,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PurchasePlacementControl, type PurchaseGhost } from "@web/battle/input/purchasePlacement";
 import type { SeatClient } from "@web/battle/sim/client";
+import type { ObservationView } from "@web/battle/sim/observationView";
 import type { WorldRay } from "@packages/renderer-core/src/camera3d";
 import type { LabPick } from "./LabViewport";
+import type { Bought } from "./shopGhosts";
 
 /** Where the reinforcement in hand stands for the pointer, and which way it
  *  faces: at the point `under` finds beneath the pointer's ray, or, while a
@@ -34,9 +36,12 @@ export function usePurchasePlacement(client: SeatClient | null) {
    *  same render as the picker choice. */
   const [placing, setPlacing] = useState<string | null>(null);
   const ghost = useRef<PurchaseGhost | null>(null);
-  /** The ghosts the authority accepted, for their facing: a pending purchase
-   *  carries only its kind and destination. */
+  /** The ghosts the authority accepted while preparing, for their facing: a
+   *  pending purchase carries only its kind and destination. */
   const placed = useRef<PurchaseGhost[]>([]);
+  /** The purchases bought in battle, whose ghosts linger a moment as the
+   *  sign each went through. */
+  const bought = useRef<Bought[]>([]);
   const cancel = useCallback(() => {
     placement.cancel();
     ghost.current = null;
@@ -50,13 +55,21 @@ export function usePurchasePlacement(client: SeatClient | null) {
     [placement],
   );
   /** A click with a unit in hand: the left button places it (with Shift
-   *  held, keeping it in hand for another), the right cancels. */
+   *  held, keeping it in hand for another), the right cancels. `shown` is
+   *  the battle as the click finds it. */
   const click = useCallback(
-    (pick: LabPick, send: Send) => {
+    (pick: LabPick, send: Send, shown: ObservationView | null) => {
       if (pick.button === "right") return cancel();
+      // In battle, what it buys is newer than every own unit now; while
+      // preparing, the placement stands until the battle starts.
+      const newest =
+        shown?.skirmish?.phase === "preparation"
+          ? null
+          : Math.max(-1, ...(shown?.own ?? []).map((u) => u.id));
       void placement.confirm(send, pick.shift).then((accepted) => {
         if (!accepted) return;
-        placed.current.push(accepted);
+        if (newest === null) placed.current.push(accepted);
+        else bought.current.push({ ghost: accepted, at: performance.now(), after: newest });
         if (!placement.variant) {
           ghost.current = null;
           setPlacing(null);
@@ -77,6 +90,7 @@ export function usePurchasePlacement(client: SeatClient | null) {
   useEffect(() => {
     cancel();
     placed.current = [];
+    bought.current = [];
   }, [client, cancel]);
-  return { placement, placing, ghost, placed, choose, click };
+  return { placement, placing, ghost, placed, bought, choose, click };
 }

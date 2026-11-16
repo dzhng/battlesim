@@ -26,7 +26,7 @@ const CAMERA: Camera3DParams = {
 const VARIANTS = {
   board: "Board and Collect are scripted from both directions.",
   controls:
-    "Right-click a carrier with squads selected to board, or a squad with a carrier selected to collect it. U then left-click unloads there; U twice unloads in place.",
+    "Right-click a carrier with squads selected to board, or a squad with a carrier selected to collect it. U then left-click unloads there, or into the building or carrier clicked; U twice unloads in place.",
   heli: "A transport helicopter collects a squad and unloads it further on, each at a low hover.",
 } as const;
 type Variant = keyof typeof VARIANTS;

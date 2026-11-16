@@ -461,8 +461,8 @@ export async function run(ctx) {
   );
   await lab(page, () => window.__lab.route.setEyes(null));
 
-  // Red's rifle squads garrison the street's buildings: one eye per facade
-  // they hold, each seeing out of its own facade.
+  // Red's rifle squads garrison the street's buildings: an eye at every
+  // window, each seeing out of its own facade.
   await showSide(page, "red");
   const garrisoned = await until(
     page,
@@ -471,7 +471,7 @@ export async function run(ctx) {
     30,
   );
   ctx.check(
-    "red's squads garrison with one eye per facade they hold",
+    "red's squads garrison with an eye at every window",
     !!garrisoned,
     JSON.stringify(garrisoned?.own.map((u) => [u.kind, u.hold?.phase, u.sight.eyes.length])),
   );
@@ -488,7 +488,7 @@ export async function run(ctx) {
     );
     const drawnEyes = await lab(page, () => window.__lab.stats().fog.eyes);
     const published = garrisoned.own.reduce((n, u) => n + u.sight.eyes.length, 0);
-    // Ground 25 m out from the building through each facade eye.
+    // Ground 25 m out from the building through each window's eye.
     const centre = eyes.reduce(
       (c, e) => [c[0] + e.position[0] / eyes.length, c[1] + e.position[1] / eyes.length],
       [0, 0],
@@ -513,13 +513,12 @@ export async function run(ctx) {
     await page.evaluate(() => window.__lab.frame());
     const seenSlots = fromSlots.filter(Boolean).length;
     ctx.check(
-      "a garrison's facade eyes are drawn and see out of their own facades",
+      "a garrison's window eyes are drawn and see out of their own facades",
       eyes.length === squad.sight.eyes.length &&
-        eyes.length <= 4 &&
         drawnEyes === published &&
         seenSlots >= 0.8 * eyes.length,
       JSON.stringify({
-        facades: eyes.length,
+        windows: eyes.length,
         drawnEyes,
         published,
         fromSlots: fromSlots.join(""),

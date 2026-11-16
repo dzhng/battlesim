@@ -9,7 +9,7 @@ use native_client::audio::{self, Audio, OutputSettings};
 use presentation::assets::RUNTIME;
 use presentation::effects::launches::Launch;
 use presentation::effects::publication::EffectPublication;
-use presentation::sound::frame::{distance_gain, Heard, Listener, Motion, Shout};
+use presentation::sound::frame::{Heard, Listener, Motion, Shout};
 use presentation::sound::voices::Speakers;
 use serde_json::{json, Value};
 
@@ -185,7 +185,7 @@ fn the_bed_dips_under_a_loud_shot_and_recovers_but_not_under_a_far_one() {
             + (p[1] - HERE.position[1]).powi(2)
             + (p[2] - HERE.position[2]).powi(2))
         .sqrt();
-        tables.shot("tank_ap").gain * distance_gain(&tables, d)
+        tables.shot("tank_ap").gain * tables.audio.distance["weapons"].gain(d)
     };
     let over = (level(NEAR) * level(FAR)).sqrt();
     assert!(level(NEAR) > 1.5 * over, "the shots are apart");

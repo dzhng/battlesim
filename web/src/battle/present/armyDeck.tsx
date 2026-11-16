@@ -33,7 +33,9 @@ const sameSet = (a: readonly number[], b: readonly number[]) =>
  *  a card hovers its unit, as the pointer over the unit would. A right-click
  *  asks the page to find that exact unit in the reinforcements store.
  *  Control groups lead the deck in key order, each under a bracket
- *  (`deckLayout.ts`) with its key, and its × while the pointer is over it. */
+ *  (`deckLayout.ts`) with its key, and its × while the pointer is over it.
+ *  A lost unit's card holds its place, emptied and out of reach, while its
+ *  red blink runs (`fireBlink.ts`). */
 export function ArmyDeck({
   state,
   selected,
@@ -79,6 +81,9 @@ export function ArmyDeck({
   // The card a run starts from, and the selection the deck last asked for:
   // once the selection changes any other way, the run starts over.
   const anchor = useRef<number | null>(null);
+  // The cards last drawn, each with its group: a lost unit's card is drawn
+  // from here, where it was, while its blink runs.
+  const drawn = useRef<{ unit: OwnUnitView; group: GroupKey | null }[]>([]);
   const asked = useRef<readonly number[] | null>(null);
   const select = (ids: number[], from: number | null) => {
     asked.current = ids;
@@ -113,7 +118,10 @@ export function ArmyDeck({
         ]
       : [{ purchase, kind: purchase.kind, aboard: null, key: `${purchase.id}` }],
   );
-  const count = own.length + waiting.length;
+  const present = new Set(own.map((u) => u.id));
+  const lingering = drawn.current.flatMap((card, index) =>
+    !present.has(card.unit.id) && blinks.get(card.unit.id)?.lost ? [{ ...card, index }] : [],
+  );
   const [availableWidth, setAvailableWidth] = useState(() =>
     typeof window === "undefined" ? 1280 : window.innerWidth,
   );
@@ -125,8 +133,6 @@ export function ArmyDeck({
     observer.observe(node);
     return () => observer.disconnect();
   }, []);
-  const capacity = Math.max(1, Math.floor((availableWidth - 10 + 4) / 68));
-  const rows = Math.max(1, Math.ceil(count / capacity));
   // Groups first, 1 to 9 then 0, each in army order; then the rest.
   const groupOf = new Map<number, GroupKey>();
   for (const key of GROUP_KEYS) for (const id of groups.get(key) ?? []) groupOf.set(id, key);
@@ -134,6 +140,16 @@ export function ArmyDeck({
     ...GROUP_KEYS.flatMap((key) => own.filter((u) => groupOf.get(u.id) === key)),
     ...own.filter((u) => !groupOf.has(u.id)),
   ];
+  for (const { unit, group, index } of lingering) {
+    cards.splice(Math.min(index, cards.length), 0, unit);
+    if (group) groupOf.set(unit.id, group);
+  }
+  useLayoutEffect(() => {
+    drawn.current = cards.map((unit) => ({ unit, group: groupOf.get(unit.id) ?? null }));
+  });
+  const count = cards.length + waiting.length;
+  const capacity = Math.max(1, Math.floor((availableWidth - 10 + 4) / 68));
+  const rows = Math.max(1, Math.ceil(count / capacity));
   const slots = deckSlots(
     [...cards.map((u) => groupOf.get(u.id) ?? null), ...waiting.map(() => null)],
     rows,
@@ -213,7 +229,7 @@ export function ArmyDeck({
         </div>
       )}
       <div className="hud-command-hint" ref={setHintHost} />
-      {(own.length > 0 || pending.length > 0 || reinforcements) && (
+      {(cards.length > 0 || pending.length > 0 || reinforcements) && (
         <footer
           ref={deck}
           className="hud-panel hud-bar hud-bottom hud-army-deck"
@@ -231,7 +247,8 @@ export function ArmyDeck({
           >
             {cards.map((unit, index) => {
               const name = `${unitName(units, unit)} #${unit.id}`;
-              const strength = unitStrength(units, unit);
+              const lost = !present.has(unit.id);
+              const strength = lost ? 0 : unitStrength(units, unit);
               // A squad a carrier holds is still the player's, but can't be
               // ordered (D10): its card is dimmed and marked with the seat it
               // rides in, and picks its carrier.
@@ -247,14 +264,17 @@ export function ArmyDeck({
                   type="button"
                   className="hud-army-card"
                   data-unit={unit.id}
+                  disabled={lost}
                   data-aboard={carrier ? "true" : undefined}
                   data-withdrawing={unit.withdrawing ? "true" : undefined}
                   aria-label={
-                    (carrier
-                      ? `${name}, aboard ${unitName(units, carrier)} #${carrier.id}`
-                      : unit.withdrawing
-                        ? `${name}, returning to base`
-                        : name) + (group ? `, group ${group}` : "")
+                    (lost
+                      ? `${name}, lost`
+                      : carrier
+                        ? `${name}, aboard ${unitName(units, carrier)} #${carrier.id}`
+                        : unit.withdrawing
+                          ? `${name}, returning to base`
+                          : name) + (group ? `, group ${group}` : "")
                   }
                   aria-pressed={selectedHere}
                   aria-describedby={detail?.id === unit.id ? tooltipId : undefined}
@@ -299,6 +319,7 @@ export function ArmyDeck({
                     onLookup(unit);
                   }}
                   onMouseEnter={(event) => {
+                    if (lost) return;
                     alignDetail(event.currentTarget);
                     setHovered(unit.id);
                     onHover?.(picks);

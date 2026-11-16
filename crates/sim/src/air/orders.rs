@@ -74,7 +74,8 @@ pub fn task(
             | UnitOrder::Exit
             | UnitOrder::Board { .. }
             | UnitOrder::Collect { .. }
-            | UnitOrder::Unload,
+            | UnitOrder::Unload { .. }
+            | UnitOrder::Withdraw,
         )
         | None => AirTask::Hold,
     }

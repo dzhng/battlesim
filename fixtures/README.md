@@ -48,30 +48,19 @@ the format; [the menu backdrop](captures/menu.json) is the one the main menu pla
 
 ## The menu reel
 
-> **The menu reel follows the game. It never blocks a game change.** It is a
-> promotional video staged on fake stats, not a test of the game. When a
-> mechanic, rule, map or roster change moves it, keep the change exactly as it
-> is and re-direct the reel: change its units' stats, its scenario or its map
-> however the shots need, re-record its log, and show the user the new footage.
-> Never revert, narrow, delay or special-case a game change for the reel, and
-> don't spend time working out which change moved it: that answer changes
-> nothing. Its [exact-shot test](../crates/sim/tests/menu_reel.rs) is a
-> tripwire that says "re-direct and re-record", never a gate a change must
-> pass as it stands.
+> **The menu reel follows the game.** It is promotional footage staged on fake
+> stats, not a test of the game, and nothing pins what happens in it: a
+> mechanic, rule, map or roster change may retime any shot. Never revert,
+> narrow or special-case a game change for the reel.
 
 Each of the backdrop's encounters is staged like a film, not balanced:
 set-pieces open fire on a schedule, set by how far each force starts from its
-enemy, so every cut has guns firing in frame. Cannon fire and
-blasts read at film distance; rifle fire barely does. A changed encounter or rule
-(movement included) retimes the set-pieces, so recheck each scene's cuts after
-either. Each battle is directed, not left to play out: starting health, scheduled
-fire policies and scripted attacks set who fires and who dies when, so a change
-keeps the cuts it was not asked to change and retimes the battle to them, never
-the reverse.
+enemy, so every cut has guns firing in frame. Cannon fire and blasts read at
+film distance; rifle fire barely does. Starting health, scheduled fire policies
+and scripted attacks set who fires and who dies when.
 
-**Directing the reel after a change.** You control the whole scenario; the shots
-are the fixed part. When a battle no longer plays a shot as approved, change the
-battle, never the shot:
+**Re-directing a shot that no longer reads.** When the reel is re-rendered and
+a shot looks wrong, change the battle, not the shot:
 
 - **A followed unit dies too early:** give it more health through the
   encounter's `overrides` (a scenario-only hero row), or delay or move what
@@ -82,29 +71,11 @@ battle, never the shot:
 - **Something new happens in a shot** (a rule now lets a unit fire): script it
   out, or move the unit out of frame.
 
-Only when the user asks for a new shot do a shot's camera, framing, timing or
-subject change. After re-recording the log, render the reel and show the user
-the footage to approve.
-
-The backdrop is directed footage, not a battle. It may field any units, including
-the [capture set's own](units/capture/) (`capture_*`, in the capture catalog set only) with
-whatever stats, hulls, weapons, scripts and positions it needs, and anything in it
-may change. What may not change is an approved shot: its camera, framing, timing
-and what happens in it (who fires, which round or missile flies, who is hit, who
-dies, and when). [The exact-shot test](../crates/sim/tests/menu_reel.rs) holds
-each scene's battle to the event log recorded from the approved reel, and no shot
-may open on a unit it follows that has already fallen. A battle this chaotic can
-only keep its log if its physics stays the same, so a capture unit extends the test
-unit whose part it plays, hull and all, and changes its look; one shared random
-stream means any physical difference retimes the whole scene. So each scene's
-encounter pins, in its `overrides`, every stat of every weapon its cast fires, at
-the values the approved reel was filmed with: the game's weapons are retuned all
-the time, and none of that retuning reaches the reel. The pins prevent only
-stat-driven reshoots: a change to a rule (a mechanic, a rules section, a test
-unit, the map) still retimes the battle. That is expected and fine: direct the
-battle back to its shots with the levers above, re-record the reel's log, and
-the user approves the new footage. The game is never held back to keep the
-reel.
+The backdrop may field any units, including the [capture set's own](units/capture/)
+(`capture_*`, in the capture catalog set only), with whatever stats, hulls,
+weapons, scripts and positions it needs. Each scene's encounter pins, in its
+`overrides`, the stats of every weapon its cast fires, so the game's weapon
+retuning doesn't reach the reel; rule changes still do.
 
 [Sound authoring](#sound-catalog) owns audio provenance and choices independently
 of gameplay weapon cycles. Saved maps, component inheritance and paired evidence

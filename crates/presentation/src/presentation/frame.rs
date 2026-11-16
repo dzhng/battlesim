@@ -325,11 +325,12 @@ impl Loaded {
                     None,
                 ),
             };
-            let colour = match g.look {
+            let mut colour = match g.look {
                 1 => xray.selected,
                 2 => input.blocked,
                 _ => xray.own,
             };
+            colour[3] *= g.opacity.clamp(0.0, 1.0);
             models.push(Model {
                 colour,
                 palette,

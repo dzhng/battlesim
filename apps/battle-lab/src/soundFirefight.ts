@@ -591,7 +591,7 @@ async function renderShot(
   return l.map((v, i) => (v + r[i]) / 2);
 }
 
-/** The same single shot heard up close (inside `distance.ref_m`) and from
+/** The same single shot heard up close (inside `distance.weapons.ref_m`) and from
  *  the camera at its farthest zoom looking at it, with the fixture's floor
  *  and far cutoff the sound scene measures them against. */
 export async function renderDistanceProbe(catalog: SoundCatalog = gameSounds) {
@@ -609,7 +609,7 @@ export async function renderDistanceProbe(catalog: SoundCatalog = gameSounds) {
     near: await renderShot(close, at, catalog),
     far: await renderShot(far, at, catalog),
     farDistanceM: Math.hypot(far.position[0], far.position[1], far.position[2] - at[2]),
-    floor: audioMix.distance.floor,
+    floor: audioMix.distance.weapons.floor,
     farHz: audioMix.air.far_hz,
   };
 }

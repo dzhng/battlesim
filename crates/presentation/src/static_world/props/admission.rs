@@ -62,6 +62,7 @@ impl PropPopulation {
             known_models: Vec::new(),
             known_bodies: 0,
             rows: Vec::new(),
+            shadow_caster_scale: 1.0,
         }
     }
 

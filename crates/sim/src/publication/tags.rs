@@ -61,11 +61,10 @@ pub(super) const ENCOUNTER_RESULTS: [EncounterResult; 4] = [
     EncounterResult::Defeated,
     EncounterResult::Inconclusive,
 ];
-pub(super) const SERVICE_STATUSES: [ServiceStatus; 7] = [
+pub(super) const SERVICE_STATUSES: [ServiceStatus; 6] = [
     ServiceStatus::OutOfRange,
     ServiceStatus::SourceNotDeployed,
     ServiceStatus::Moving,
-    ServiceStatus::Firing,
     ServiceStatus::Serving,
     ServiceStatus::NoStock,
     ServiceStatus::Full,

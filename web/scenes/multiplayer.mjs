@@ -140,9 +140,10 @@ export async function run(ctx) {
     await uncovered(refused);
     ctx.check(
       "the refusal's words are visible after the cover leaves",
-      (await refused.getByRole("status", { name: "Online unavailable" }).isVisible()) &&
-        (await refused.getByRole("status", { name: "Online unavailable" }).innerText()) ===
-          "Online play is not available on this build.",
+      await refused
+        .getByRole("status", { name: "Online unavailable" })
+        .getByText("Online play is not available on this build.", { exact: true })
+        .isVisible(),
     );
     ctx.check(
       "a refused build offers no online action",

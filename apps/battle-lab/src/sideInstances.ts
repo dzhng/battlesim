@@ -156,8 +156,8 @@ export function pickedUnit(drawn: Pick<DrawnInstances, "owners" | "enemies">, in
 
 /** A viewport pick in player terms: the own unit or identified enemy drawn
  *  under the pointer (its body, else its ring on the ground: `ringUnder`),
- *  the ground it meets and its contact area, and for a right-click the
- *  building it meets. */
+ *  the ground it meets and its contact area, and the building it meets
+ *  (a right-click garrisons it, an armed unload's left-click unloads into it). */
 export function pickToPointer(
   world: StaticWorld,
   drawn: Pick<DrawnInstances, "owners" | "enemies" | "rings">,
@@ -176,7 +176,7 @@ export function pickToPointer(
   return {
     ...pick,
     ...(ringed ?? pickedUnit(drawn, pick.instance)),
-    building: right ? buildingUnderRay(world, pick.ray) : null,
+    building: buildingUnderRay(world, pick.ray),
     ground: ground && [ground[0], ground[1]],
     ...picked(contactUnder(contacts, ground && [ground[0], ground[1]], pick.ray)),
     facingTo: faced && [faced[0], faced[1]],

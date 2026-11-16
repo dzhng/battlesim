@@ -1,9 +1,28 @@
 //! Mix admission and cross-document references, before voices are prepared.
-use super::{catalog::SoundCatalog, tables::AudioMix};
+use super::{
+    catalog::SoundCatalog,
+    tables::{profile, AudioMix, Distance},
+};
 use crate::settings::{
     read,
     validate::{numbers, range},
 };
+
+impl Distance {
+    fn check(&self, path: &str) -> Result<(), String> {
+        for (name, value) in [("ref_m", self.ref_m), ("rolloff", self.rolloff)] {
+            range(
+                &format!("{path}.{name}"),
+                value,
+                f64::MIN_POSITIVE,
+                f64::MAX,
+            )?;
+        }
+        range(&format!("{path}.floor"), self.floor, 0.0, 1.0)?;
+        range(&format!("{path}.max_m"), self.max_m, self.ref_m, f64::MAX)
+    }
+}
+
 impl AudioMix {
     pub fn from_value(value: &serde_json::Value) -> Result<Self, String> {
         let mix: Self = read(value, "audio")?;
@@ -13,6 +32,12 @@ impl AudioMix {
     pub fn check(&self) -> Result<(), String> {
         numbers(self, "audio", &[".threshold_db", ".clip_db"])?;
         self.voices.check()?;
+        for (name, profile) in &self.distance {
+            profile.check(&format!("audio.distance.{name}"))?;
+        }
+        for name in profile::REQUIRED {
+            self.check_distance(name, &format!("audio.distance.{name}"))?;
+        }
         for (name, has) in [
             ("impacts", self.impacts.contains_key("default")),
             ("vehicles", self.vehicles.contains_key("default")),
@@ -36,8 +61,6 @@ impl AudioMix {
             ("cues.shout.lowpass_hz", self.cues.shout.lowpass_hz),
             ("hold_s", self.hold_s),
             ("late_s", self.late_s),
-            ("distance.ref_m", self.distance.ref_m),
-            ("distance.rolloff", self.distance.rolloff),
             ("air.far_m", self.air.far_m),
             ("air.reverb_s", self.air.reverb_s),
             ("footsteps.stride_m", self.footsteps.stride_m),
@@ -51,7 +74,6 @@ impl AudioMix {
             positive(p, v)?;
         }
         for (p, v) in [
-            ("distance.floor", self.distance.floor),
             ("air.wet", self.air.wet),
             ("ambience.duck.depth", self.ambience.duck.depth),
             ("music.duck.depth", self.music.duck.depth),
@@ -64,12 +86,6 @@ impl AudioMix {
         range("audio.focus.inner_deg", focus.inner_deg, 0.0, 89.0)?;
         let inner = focus.inner_deg + 1e-6;
         range("audio.focus.outer_deg", focus.outer_deg, inner, 89.0)?;
-        range(
-            "audio.distance.max_m",
-            self.distance.max_m,
-            self.distance.ref_m,
-            f64::MAX,
-        )?;
         positive("air.far_hz", self.air.far_hz)?;
         range(
             "audio.air.near_hz",
@@ -88,6 +104,10 @@ impl AudioMix {
             return Err("audio.budget: voices must exceed loops".into());
         }
         for (kind, v) in &self.vehicles {
+            self.check_distance(
+                &v.engine_distance,
+                &format!("audio.vehicles.{kind}.engine_distance"),
+            )?;
             positive(&format!("vehicles.{kind}.idle_rate"), v.idle_rate)?;
             positive(&format!("vehicles.{kind}.load_rate"), v.load_rate)?;
             positive(&format!("vehicles.{kind}.full_speed_mps"), v.full_speed_mps)?;
@@ -98,6 +118,14 @@ impl AudioMix {
         }
         Ok(())
     }
+    fn check_distance(&self, name: &str, path: &str) -> Result<(), String> {
+        if self.distance.contains_key(name) {
+            Ok(())
+        } else {
+            Err(format!("{path}: unknown distance profile {name}"))
+        }
+    }
+
     pub fn check_sounds(&self, c: &SoundCatalog) -> Result<(), String> {
         let sound = |name: &str, at: &str| {
             c.sound(name, at)

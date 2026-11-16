@@ -82,7 +82,7 @@ test("looking at a battle on the horizon from high up, every shot is muffled", (
   for (const v of heard) {
     expect(v.lowpass).toBeLessThan(AUDIO.air.near_hz / 4);
     expect(v.gain).toBeLessThan(report.gain / 2);
-    expect(v.gain).toBeGreaterThanOrEqual(AUDIO.distance.floor * report.gain - 1e-9);
+    expect(v.gain).toBeGreaterThanOrEqual(AUDIO.distance.weapons.floor * report.gain - 1e-9);
   }
 });
 
@@ -96,7 +96,7 @@ test("a shot far across the map sounds far: muffled, wet, softened, never under 
   expect(far.length).toBeGreaterThan(0);
   expect(close.length).toBeGreaterThan(0);
   for (const v of far) {
-    expect(v.gain).toBeGreaterThanOrEqual(AUDIO.distance.floor * report.gain - 1e-9);
+    expect(v.gain).toBeGreaterThanOrEqual(AUDIO.distance.weapons.floor * report.gain - 1e-9);
     expect(v.gain).toBeLessThan(close[0].gain);
     expect(v.lowpass).toBeLessThan(Math.min(...close.map((c) => c.lowpass)));
     expect(v.wet).toBeGreaterThan(close[0].wet);

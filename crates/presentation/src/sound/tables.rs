@@ -75,6 +75,7 @@ pub struct Ambience {
 #[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct VehicleSound {
+    pub engine_distance: String,
     pub engine: String,
     pub idle_rate: f64,
     pub load_rate: f64,
@@ -125,6 +126,15 @@ pub struct Limiter {
     pub release_s: f64,
     pub ratio: f64,
     pub clip_db: f64,
+}
+
+/// Profiles selected by event type; engine profile names belong to vehicle rows.
+pub mod profile {
+    pub const WEAPONS: &str = "weapons";
+    pub const WORLD_VOICES: &str = "world_voices";
+    pub const BURNING: &str = "burning";
+    pub const SMALL_DETAILS: &str = "small_details";
+    pub const REQUIRED: [&str; 4] = [WEAPONS, WORLD_VOICES, BURNING, SMALL_DETAILS];
 }
 
 /// Full within `ref_m`, then inverse (`rolloff`) down toward `floor`, a
@@ -234,7 +244,7 @@ pub struct Focus {
 pub struct AudioMix {
     pub buses: Buses,
     pub limiter: Limiter,
-    pub distance: Distance,
+    pub distance: HashMap<String, Distance>,
     pub focus: Focus,
     pub air: Air,
     pub budget: Budget,

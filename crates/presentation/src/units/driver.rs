@@ -128,6 +128,11 @@ struct SoldierState {
     lean_at: Vec3,
     /// The posture he was last posed in: the one he falls from.
     posture: Posture,
+    /// The posture he went down in (kneeling or lying), kept while his
+    /// squad stays engaged; None standing.
+    down: Option<Posture>,
+    /// When his squad was last engaged: in contact, shot at or pinned.
+    engaged_at: f64,
     turn: f64,
     tempo: f64,
     watch: bool,
@@ -414,6 +419,8 @@ impl PoseDriver {
                         lean_t: 0.0,
                         lean_at: soldier.position,
                         posture: Posture::Stand,
+                        down: None,
+                        engaged_at: f64::NEG_INFINITY,
                         turn,
                         tempo,
                         watch,
@@ -479,6 +486,13 @@ impl PoseDriver {
             state.last_shots = shots;
             state.own_shots = soldier.shots;
             let firing = time - state.fired_at < self.lean_hold;
+            if unit.engaged || unit.pinned {
+                state.engaged_at = time;
+            }
+            // In a fight until it has gone quiet a while: no contact, no
+            // shot by him or his squad, none at them.
+            let engaged = time - state.engaged_at.max(state.alert_at).max(state.fired_at)
+                < feel.stance.engagement_grace_s;
             // His last shot's kick, by the round his selected weapon fires.
             pose.kick = match (&feel.soldier_kick, soldier.active_mount) {
                 (Some(kick), Some(m)) => {
@@ -501,9 +515,11 @@ impl PoseDriver {
             let wet = || water?.under(soldier.position);
             let lean = soldier.lean.is_some();
             let fast = speed >= gait.crawl_mps;
-            let posture = state
+            let held = state
                 .stance
-                .posture(lean, unit.pinned, firing, fast, wet, &feel.stance);
+                .held(lean, unit.pinned, firing, state.down.filter(|_| engaged));
+            state.down = (held != Posture::Stand).then_some(held);
+            let posture = held.taken(fast, wet, &feel.stance);
             state.posture = posture;
             let running = speed >= gait.run_mps;
             // Down or shooting, he keeps his weapon toward the threat whichever

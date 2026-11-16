@@ -1,6 +1,10 @@
 import { expect, test, vi } from "vitest";
 import { OrderPreview, type OrderPreviewSnapshot } from "@apps/battle-lab/src/orderPreview";
-import { cursorForIntent } from "@apps/battle-lab/src/pointerPaint";
+import {
+  cursorForIntent,
+  pointerCursor,
+  previewForIntent,
+} from "@apps/battle-lab/src/pointerPaint";
 import type { MoveDestination } from "@web/battle/sim/protocol";
 import type { PointerIntent } from "@web/battle/input/pointerIntent";
 
@@ -258,4 +262,26 @@ test("moving the goal keeps the cursor's availability until the new goal is plac
   expect(cursorForIntent(unload([20, 20]), preview.update(move([20, 20]), sim, 1, "goal-b"))).toBe(
     "default",
   );
+});
+
+test("unloading into a host badges the host at once, over another carrier too, with no hover placement", () => {
+  const into = (
+    host: { kind: "building"; building: number } | { kind: "carrier"; carrier: number },
+  ): PointerIntent => ({
+    kind: "unload",
+    units: [1],
+    goal: [10, 10],
+    route: "shortest",
+    queued: false,
+    into: host,
+  });
+  const building = into({ kind: "building", building: 3 });
+  const carrier = into({ kind: "carrier", carrier: 4 });
+  // The simulation picks where to set down beside the host: nothing to place.
+  expect(previewForIntent(building)).toBeNull();
+  const unanswered = { state: "pending", building: null } as const;
+  expect(cursorForIntent(building, unanswered)).toBe("unload_garrison");
+  expect(cursorForIntent(carrier, unanswered)).toBe("unload_board");
+  const preview = new OrderPreview().update(null, null, 0, "none");
+  expect(pointerCursor(carrier, true, null, { intent: carrier, preview })).toBe("unload_board");
 });

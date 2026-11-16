@@ -266,40 +266,53 @@ async function transportJourney(ctx, page, entry) {
   // Up the road from the entry, so the carrier drives in to get there.
   const placeAt = [640, 190];
   await page.mouse.move(...placeAt);
-  await page.waitForFunction(() => {
-    const ghost = window.__lab.route.purchaseGhost?.();
-    return ghost?.carrier && ghost.valid === true;
-  });
-  const ghost = await page.evaluate(() => window.__lab.route.purchaseGhost());
+  // Clicked as soon as its ghost is under the cursor, not once its preview
+  // has answered: the click still buys, where the authority sends it.
+  await page.waitForFunction(() => window.__lab.route.purchaseGhost?.()?.carrier);
   await page.mouse.click(...placeAt);
-  await advance(page, 1);
-  await page.waitForFunction(() =>
-    window.__lab.route
-      .acks()
-      .some(({ order, ack }) => order.kind === "confirm_purchase" && order.carrier && !ack.error),
-  );
+  const bought = () =>
+    page.evaluate(
+      () =>
+        window.__lab.route
+          .acks()
+          .find(
+            ({ order, ack }) => order.kind === "confirm_purchase" && order.carrier && !ack.error,
+          )?.order ?? null,
+    );
+  let purchase = null;
+  for (let step = 0; step < 60 && !purchase; step++) {
+    await advance(page, 1);
+    purchase = await bought();
+  }
+  check(ctx, purchase, "a purchase clicked before its preview answers is bought");
+  if (!purchase) return;
+  // Where it was placed, a fading ghost of the carrier says it went through.
+  await presented(page);
+  await snapshot(ctx, page, "journey-bought-ghost.png");
   // The carrier the player placed, and the squad it holds.
   const pair = (o) => {
-    const carrier = o.own.find((u) => u.kind === ghost.carrier);
+    const carrier = o.own.find((u) => u.kind === purchase.carrier);
     const squad = carrier && o.own.find((u) => u.hold?.host.id === carrier.id);
     return { carrier, squad };
   };
   const there = (u) =>
-    Math.hypot(u.position[0] - ghost.destination[0], u.position[1] - ghost.destination[1]) < 6;
+    Math.hypot(u.position[0] - purchase.destination[0], u.position[1] - purchase.destination[1]) <
+    6;
   const arrived = await until(
     page,
     (o) => {
       const { carrier, squad } = pair(o);
-      return squad?.kind === ghost.variant && carrier.goal === null && there(carrier);
+      return squad?.kind === purchase.variant && carrier.goal === null && there(carrier);
     },
     60 * 60,
     30,
   );
   check(
     ctx,
-    arrived && Math.hypot(ghost.destination[0] - entry[0], ghost.destination[1] - entry[1]) > 20,
+    arrived &&
+      Math.hypot(purchase.destination[0] - entry[0], purchase.destination[1] - entry[1]) > 20,
     "a squad bought with its ride arrives aboard it at the placed spot, in from the entry",
-    JSON.stringify({ entry, destination: ghost.destination }),
+    JSON.stringify({ entry, destination: purchase.destination }),
   );
   // Arriving is not unloading: a while later the squad is still aboard.
   await advance(page, 120);

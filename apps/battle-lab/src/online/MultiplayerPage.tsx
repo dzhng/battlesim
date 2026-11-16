@@ -6,6 +6,7 @@ import type { RoomList } from "@packages/multiplayer/src/wire";
 import { spoken } from "../battleLinks";
 import { PageHead } from "../menu/PageHead";
 import { useMenuShell } from "../menu/MenuShell";
+import { PlateStatus } from "../menu/PlateStatus";
 import { callsign, setCallsign } from "./identity";
 import { hello, onlineUnavailable, ONLINE_BUILD_UNAVAILABLE, ONLINE_UNREACHABLE } from "./hello";
 import { serverAddress } from "./server";
@@ -125,11 +126,9 @@ export function MultiplayerPage() {
         )}
       </PageHead>
       {available === false ? (
-        <p role="status" aria-label="Online unavailable">
-          {unavailableReason}
-        </p>
+        <PlateStatus label="Online unavailable" detail={unavailableReason} failed />
       ) : available === null ? (
-        <p role="status">Connecting…</p>
+        <PlateStatus label="Connecting" />
       ) : (
         <>
           <Frontline

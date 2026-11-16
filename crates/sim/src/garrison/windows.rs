@@ -117,29 +117,24 @@ impl Windows {
                 .is_some_and(|s| s.slot.faces(point.xy(), facing))
     }
 
-    /// One real occupied seat per directional group, on its highest held band.
-    /// Equal-height seats tie by plan order, so eyes never average into a wall.
-    pub fn facade_eyes(&self, unit: &Unit, rules: &Rules) -> Vec<V3> {
-        let Some((g, plan)) = self.held(unit) else {
+    /// Where a squad holding a building sees from: every window of it,
+    /// manned or not, as if a soldier stood at each. A window under another
+    /// sees nothing the one above it doesn't, so each column of windows
+    /// looks out from its highest.
+    pub fn window_eyes(&self, unit: &Unit, rules: &Rules) -> Vec<V3> {
+        let Some((_, plan)) = self.held(unit) else {
             return Vec::new();
         };
-        let mut held: [Option<usize>; 4] = [None; 4];
-        for (k, _) in unit.members.iter().enumerate().filter(|(_, m)| m.alive()) {
-            let Some(index) = g.seats[k] else { continue };
-            let seat = &plan[index];
-            let group = seat.slot.facade as usize;
-            if held[group].is_none_or(|old| {
-                seat.position.z > plan[old].position.z
-                    || (seat.position.z == plan[old].position.z && index < old)
-            }) {
-                held[group] = Some(index);
+        let mut eyes: Vec<V3> = Vec::new();
+        for window in plan {
+            let at = window.position.xy();
+            match eyes.iter_mut().find(|eye| eye.xy() == at) {
+                Some(eye) => eye.z = eye.z.max(window.position.z),
+                None => eyes.push(window.position),
             }
         }
         let lift = crate::math::v3(0.0, 0.0, rules.physics.infantry_eye_m);
-        held.into_iter()
-            .flatten()
-            .map(|index| plan[index].position + lift)
-            .collect()
+        eyes.into_iter().map(|eye| eye + lift).collect()
     }
 
     /// Fold a building hold's place into a digest: its entry, seats and the

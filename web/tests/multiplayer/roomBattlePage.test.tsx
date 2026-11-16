@@ -83,7 +83,7 @@ async function open() {
     expect((page.getByRole("button", { name: "Start" }) as HTMLButtonElement).disabled).toBe(false),
   );
   fireEvent.click(page.getByRole("button", { name: "Start" }));
-  await page.findByRole("status", { name: "Starting" });
+  await page.findByRole("status", { name: "Preparing the battlefield" });
   await hostCreated;
   return {
     page,

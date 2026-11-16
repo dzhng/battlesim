@@ -10,6 +10,7 @@ import type { Auditioner, LiveMix } from "../../apps/sound-workbench/src/auditio
 
 afterEach(cleanup);
 const VEHICLE: Snapshot["vehicles"][string] = {
+  engine_distance: "ground_engines",
   engine: "engine_small",
   idle_rate: 0.8,
   load_rate: 1.4,

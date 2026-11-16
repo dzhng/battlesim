@@ -345,8 +345,8 @@ export async function run(ctx) {
     await pair(ctx, host, guest, folder, "ready-to-start");
     await start.click();
     await Promise.all([
-      host.getByRole("status", { name: "Starting", exact: true }).waitFor(),
-      guest.getByRole("status", { name: "Starting", exact: true }).waitFor(),
+      host.getByRole("status", { name: "Preparing the battlefield", exact: true }).waitFor(),
+      guest.getByRole("status", { name: "Preparing the battlefield", exact: true }).waitFor(),
     ]);
     ctx.check(
       "Start sends its action and both pages stop at starting",

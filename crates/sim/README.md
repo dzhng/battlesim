@@ -128,13 +128,12 @@ need decides later.
 [Active protection](src/protection.rs) owns finite defensive charges and cooldowns.
 Flight offers it only an imminent swept hull collision at the authored standoff;
 ordinary projectiles, passes and cover remain ordinary flight events.
-[Supply service](src/supply.rs) works through a unit's needs in one order, each
-paid from the truck's finite stock: offensive ammunition, a protection charge,
-flares (at the service rules' `service.flare_service_s` and
-`service.stock_per_flare`), vehicle health, replacement soldiers, then smoke
-charges, one per delivery at the price and service time their capability
-authors. A jet never stands still in reach, so it rearms flares only by
-withdrawing.
+[Supply service](src/supply.rs) serves stationary units even during combat.
+Every mount's finite ammunition kinds replenish independently and concurrently,
+each paid from the truck's finite stock. Ammunition takes priority over the
+remaining recovery needs; the service owner defines their order. Partial
+progress belongs to the ammunition kind and pauses when service is unavailable.
+A jet never stands still in reach, so it rearms flares only by withdrawing.
 Protection state is part of the battle digest and never becomes an offensive
 weapon row.
 
@@ -160,7 +159,11 @@ in stands beside the carrier and shares none of its fate), and the one test of
 whether a carrier is low and slow enough to load or unload: a ground carrier
 rolling no faster than the rules' climbing speed takes squads on and lets them
 off, whatever its orders say, and riders getting off stand beside it where it
-is. [Bail-out](src/bail_out.rs)
+is. An unload into a host (a building, or another of the side's carriers) sets
+down beside it and hands the squads let off the order they would get sent
+there directly, so they meet that host's own admission. A return to base can
+wait in a unit's queue like any order: it finds the way home when its turn
+comes ([return to base](src/battle/return_to_base.rs)). [Bail-out](src/bail_out.rs)
 is the one forced exit from a destroyed carrier or a collapsing building: a
 rules row per kind of host sets the injury and death odds, each squad drawing
 from its own seed for the event, never from the combat stream. An explicit

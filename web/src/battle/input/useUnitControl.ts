@@ -432,10 +432,14 @@ export function useUnitControl(
     if (units.length) void issue({ kind: "pop_smoke", units });
   }, [issue]);
 
-  const refund = useCallback(() => {
-    const units = selectedUnitsRef.current.map((unit) => unit.id);
-    if (units.length) void issue({ kind: "refund", units });
-  }, [issue]);
+  /** Send the selection home; `queued` (Shift) once its other orders are done. */
+  const refund = useCallback(
+    (queued = false) => {
+      const units = selectedUnitsRef.current.map((unit) => unit.id);
+      if (units.length) void issue({ kind: "refund", units }, queued);
+    },
+    [issue],
+  );
 
   /** Ctrl+N stores the selection, Shift+N adds it, N selects the group's
    *  units on the field, and N again within a double-click centres on it. */
@@ -486,7 +490,7 @@ export function useUnitControl(
       else if (command === "toggle_afterburner") toggleAfterburner();
       else if (command === "unload") pressUnload();
       else if (command === "pop_smoke") popSmoke();
-      else if (command === "return_to_base" && observationRef.current?.skirmish) refund();
+      else if (command === "return_to_base" && observationRef.current?.skirmish) refund(e.shiftKey);
       else if (command === "attack_move" && any) setMode("attack_move");
       else if (command === "reverse_move" && any) setMode("reverse_move");
       else if (command === "attack_ground" && armed) setMode("attack_ground");

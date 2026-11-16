@@ -18,6 +18,8 @@ const LABELS: Record<CursorAction, string> = {
   garrison: "Garrison",
   board: "Board",
   unload: "Unload",
+  unload_garrison: "Unload into building",
+  unload_board: "Unload into carrier",
   fast_move: "Fast move",
   reverse_move: "Reverse move",
   blocked: "Blocked",

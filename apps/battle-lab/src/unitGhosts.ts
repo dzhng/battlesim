@@ -103,6 +103,8 @@ export interface UnitGhost {
   soldiers: readonly { at: readonly [number, number]; slot: number; id: number }[];
   yaw: number;
   look: number;
+  /** How much of its look's opacity it keeps as it fades (`GhostBody.opacity`). */
+  opacity?: number;
 }
 
 /** A squad's soldiers at `spots`, in slot order, as a purchase fields them. */
@@ -157,6 +159,7 @@ export function ghostBodies(
         z: z(at[0], at[1]) + altitude(ghost.kind),
         yaw: ghost.yaw,
         look: ghost.look,
+        ...(ghost.opacity !== undefined && { opacity: ghost.opacity }),
       }),
     ),
   );

@@ -149,9 +149,10 @@ export function Tutorial() {
           </li>
           <li>
             A unit you no longer need can be sent home with <strong>Refund · Return to base</strong>{" "}
-            on the command bar (or press <kbd>B</kbd>). It drives back to your entry point and, on
-            arrival, returns part of its price: more when it comes home healthy and with ammunition,
-            less the longer it has served.
+            on the command bar (or press <kbd>B</kbd>; <kbd>Shift+B</kbd> sends it once its other
+            orders are done). It drives back to your entry point and, on arrival, returns part of
+            its price: more when it comes home healthy and with ammunition, less the longer it has
+            served.
           </li>
           <li>
             You may field at most <strong>{skirmish.max_units} units</strong> at once, counting
@@ -203,7 +204,8 @@ export function Tutorial() {
           </li>
           <li>
             You can keep buying all battle: a unit bought mid-fight drives in from your entry point
-            to where you placed it, so place reinforcements where the road can bring them.
+            to where you placed it, so place reinforcements where the road can bring them. Its ghost
+            stays on the spot for a few seconds, fading, to show the purchase went through.
           </li>
         </ul>
         <Shot name="buy">
@@ -289,7 +291,8 @@ export function Tutorial() {
             right-click your own squad with a transport selected to drive over and pick it up.
             Riders can&apos;t fight, and bail out hurt if their transport is destroyed.{" "}
             <kbd>{keyOf(CommandBindings.unload)}</kbd> then left-click drives there and lets them
-            out; press <kbd>{keyOf(CommandBindings.unload)}</kbd> twice to unload where it stands.
+            out; left-click a building or another transport instead, and they go straight into it.
+            Press <kbd>{keyOf(CommandBindings.unload)}</kbd> twice to unload where it stands.
           </li>
           <li>
             <kbd>{CommandBindings.stop.label}</kbd> stops the selection where it stands.
@@ -406,8 +409,8 @@ export function Tutorial() {
           </li>
           <li>
             <strong>Supply:</strong> a deployed supply truck refills ammunition and smoke, repairs
-            vehicles and replaces fallen soldiers for friendly units that stop nearby and hold their
-            fire. Its stock does not refill, so a truck that runs dry is best refunded.
+            vehicles and replaces fallen soldiers for friendly units that stop nearby, even while
+            fighting. Its stock does not refill, so a truck that runs dry is best refunded.
           </li>
           <li>
             Turn your tanks&apos; fronts to the threat: reverse out of trouble rather than turning

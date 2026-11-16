@@ -3,8 +3,8 @@
 //! stationary timer; inside, each soldier fights from an exposed window slot
 //! just outside a facade, where its abstract hit capsule and muzzle are.
 //! Published body poses stand indoors behind those windows; the squad sees
-//! from one eye per building-frame direction it holds, at a real seat on the
-//! highest occupied band ([`Windows::facade_eyes`]). Rounds that miss a slot meet the building's
+//! from every window of the building, manned or not
+//! ([`Windows::window_eyes`]). Rounds that miss a slot meet the building's
 //! own shell, and any round toward something beyond it meets the shell too:
 //! no collider is ever switched off for a target. Collapse removes fighting
 //! floors: a low-rise leaves a lower ruin, while a tall terminal shell keeps

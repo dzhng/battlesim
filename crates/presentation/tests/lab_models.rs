@@ -69,7 +69,7 @@ fn tooling_detail_uses_its_admitted_thresholds_when_gameplay_quality_changes() {
     )
     .unwrap();
     let tier = p.frame(0.0, &camera(), &Ui::default(), 0).unwrap().batches[0].tier;
-    p.set_detail_scale(8.0, 8.0);
+    p.set_detail_scale(8.0, 8.0, 1.0);
     let changed = p.frame(0.0, &camera(), &Ui::default(), 0).unwrap();
     assert_eq!(
         changed.batches[0].tier, tier,
