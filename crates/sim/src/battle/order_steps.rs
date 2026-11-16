@@ -116,28 +116,33 @@ impl Battle {
     }
 }
 
+/// `target` as the side names it: a unit by its track's id while the side
+/// tracks it (none after), a contact, or a ground point. A round is never
+/// published.
+pub(crate) fn target_ref(knowledge: &SideKnowledge, target: Target) -> Option<TargetRef> {
+    match target {
+        Target::Unit(u) => knowledge
+            .track(u)
+            .map(|track| TargetRef::Identified { id: track.id }),
+        Target::Contact(c) => Some(TargetRef::Contact { id: c }),
+        Target::Ground(p) => Some(TargetRef::Ground {
+            point: [p.x, p.y, p.z],
+        }),
+        Target::Round(_) => None,
+    }
+}
+
 /// An attack's step: its target as the side names it (none once the side
 /// no longer tracks the unit it names), and where the side knows it to be:
 /// the target's track, else the attack's last known spot, else the contact,
 /// else the ground point.
 fn attack_step(target: Target, last_known: Option<V2>, knowledge: &SideKnowledge) -> OrderStep {
-    let (named, known) = match target {
-        Target::Unit(u) => {
-            let track = knowledge.track(u);
-            let id = track.map(|t| TargetRef::Identified { id: t.id });
-            (id, track.map(|t| t.position.xy()))
-        }
-        Target::Contact(c) => {
-            let id = Some(TargetRef::Contact { id: c });
-            (id, knowledge.contact(c).map(|c| c.center.xy()))
-        }
-        Target::Ground(p) => (
-            Some(TargetRef::Ground {
-                point: [p.x, p.y, p.z],
-            }),
-            Some(p.xy()),
-        ),
-        Target::Round(_) => (None, None),
+    let named = target_ref(knowledge, target);
+    let known = match target {
+        Target::Unit(u) => knowledge.track(u).map(|t| t.position.xy()),
+        Target::Contact(c) => knowledge.contact(c).map(|c| c.center.xy()),
+        Target::Ground(p) => Some(p.xy()),
+        Target::Round(_) => None,
     };
     let point = match target {
         Target::Unit(_) => known.or(last_known),

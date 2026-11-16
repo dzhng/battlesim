@@ -32,8 +32,9 @@ function stepIntent(step: OrderStepView) {
     case "attack":
       return [step.kind, step.target ?? null];
     case "board":
-    case "collect":
       return [step.kind, step.host?.id ?? null];
+    case "collect":
+      return [step.kind];
     default:
       return [step.kind, step.point, step.host?.id ?? null];
   }

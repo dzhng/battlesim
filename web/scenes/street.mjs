@@ -1072,7 +1072,7 @@ async function orderTour(ctx) {
 
   // Nothing of the enemy's plan is published: seen enemies carry no order.
   const leaks = o.identified.flatMap((e) =>
-    ["goal", "route", "queue", "memberOrders", "finalFacing", "direction", "area"].filter(
+    ["goal", "route", "steps", "memberOrders", "finalFacing", "direction", "area"].filter(
       (k) => k in e,
     ),
   );

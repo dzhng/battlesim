@@ -467,6 +467,17 @@ fn every_order_is_published_as_a_step_in_order() {
     let goal = [150.0, 100.0];
     m.move_then_attack(&[goal]);
     let squad = m.own(Side::Blue).id;
+    // Behind the attack, a move: it runs once the attack hands off.
+    let onward = [200.0, 100.0];
+    let drive = Order::Move {
+        units: vec![squad],
+        gesture: 3,
+        goal: onward,
+        route: contract::command::RoutePolicy::Shortest,
+        direction: contract::command::MoveDirection::Forward,
+        facing: None,
+    };
+    m.order(Side::Blue, drive, true);
     let occupy = Order::OccupyBuilding {
         units: vec![squad],
         building: 0,
@@ -476,8 +487,8 @@ fn every_order_is_published_as_a_step_in_order() {
     m.order(Side::Blue, Order::Refund { units: vec![squad] }, true);
     m.b.step();
     let tank = &m.b.observe(Side::Blue).identified[0];
-    let [move_step, attack, garrison, home] = m.own(Side::Blue).steps[..] else {
-        panic!("four steps, got {:?}", m.own(Side::Blue).steps);
+    let [move_step, attack, onward_step, garrison, home] = m.own(Side::Blue).steps[..] else {
+        panic!("five steps, got {:?}", m.own(Side::Blue).steps);
     };
     assert_eq!(
         move_step,
@@ -491,6 +502,13 @@ fn every_order_is_published_as_a_step_in_order() {
         OrderStep::Attack {
             target: Some(TargetRef::Identified { id: tank.id }),
             point: Some([tank.position[0], tank.position[1]]),
+        }
+    );
+    assert_eq!(
+        onward_step,
+        OrderStep::Move {
+            point: onward,
+            attack_move: false
         }
     );
     assert!(

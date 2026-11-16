@@ -75,5 +75,5 @@ Left for the parent:
   and FX1/S5 may move digests again, so record it once, after the sim lane lands.
 - **After S2**, extend `every_order_is_published_as_a_step_in_order` with a move queued
   behind the attack (move → attack → move → garrison → return to base), asserting that
-  move's step follows the attack and the garrison's way home starts from it. TODO, not yet
-  admitted on this branch.
+  move's step follows the attack and the garrison's way home starts from it. **Done after
+  the merge:** the move behind the attack publishes as its own step.

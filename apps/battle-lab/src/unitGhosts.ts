@@ -126,8 +126,11 @@ export function ownSoldiers(unit: OwnUnitView, spots: readonly (readonly [number
  *  soldiers' published spots carried there; null while it holds. */
 export function orderedGhost(unit: OwnUnitView, look: number): UnitGhost | null {
   const end = ordersEnd(unit.steps, unit.goal);
-  if (!end || !unit.goal) return null;
-  const [dx, dy] = [end[0] - unit.goal[0], end[1] - unit.goal[1]];
+  if (!end) return null;
+  // Its soldiers' spots are published round its goal, or round where it
+  // stands while it fires from there.
+  const from = unit.goal ?? [unit.position[0], unit.position[1]];
+  const [dx, dy] = [end[0] - from[0], end[1] - from[1]];
   return {
     kind: unit.kind,
     at: end,

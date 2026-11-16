@@ -187,9 +187,11 @@ interface StepIdentity {
   id: string | null;
 }
 
+/** A contact names no lasting target: identified mid-attack, the sim turns
+ *  the attack onto the unit, so any attack at the front is still it. */
 const identity = (kind: string, target?: Aimed): StepIdentity => ({
   kind,
-  id: target?.id === undefined ? null : `${target.kind}/${target.id}`,
+  id: target?.id === undefined || target.kind === "contact" ? null : `${target.kind}/${target.id}`,
 });
 
 /** The front step is still `errand`: the same kind, on the same target
@@ -208,6 +210,9 @@ interface Entry {
   /** A journey's group; null for an errand. */
   group: string | null;
   errand: StepIdentity | null;
+  /** When the order applies, in seconds: until then the old order still
+   *  shows, and an errand can't have ended. */
+  from: number;
   /** When the unit was first seen under way on it; null until then. */
   since: number | null;
 }
@@ -231,13 +236,14 @@ export class Arrivals {
 
   constructor(private readonly afterS = ARRIVED_AFTER_S) {}
 
-  /** An accepted order, `group` naming its journey. A queued order waits behind the current one. */
-  ordered(order: OrderLike, queued: boolean, group: string) {
+  /** An accepted order, `group` naming its journey, applying at `from`
+   *  seconds. A queued order waits behind the current one. */
+  ordered(order: OrderLike, queued: boolean, group: string, from = -Infinity) {
     const errand = ERRANDS[order.kind];
     const entry: Entry | null = JOURNEYS.has(order.kind)
-      ? { group, errand: null, since: null }
+      ? { group, errand: null, from, since: null }
       : errand
-        ? { group: null, errand: identity(errand, order.target), since: null }
+        ? { group: null, errand: identity(errand, order.target), from, since: null }
         : null;
     for (const id of order.units ?? []) {
       const current = this.orders.get(id);
@@ -260,14 +266,16 @@ export class Arrivals {
       if (!this.known.has(id)) {
         this.known.add(id);
         if (moving && !this.orders.has(id))
-          this.orders.set(id, [{ group: `unit/${id}`, errand: null, since: null }]);
+          this.orders.set(id, [
+            { group: `unit/${id}`, errand: null, from: -Infinity, since: null },
+          ]);
       }
       const orders = this.orders.get(id) ?? [];
       // Each order that has ended gives way to the next, which may have
       // ended too: an errand done before it was seen at the front.
       for (let entry = orders[0]; entry; entry = orders[0]) {
         if (entry.errand) {
-          if (still(entry.errand, front)) break;
+          if (time < entry.from || still(entry.errand, front)) break;
         } else if (moving) {
           entry.since ??= time;
           break;

@@ -3075,18 +3075,7 @@ impl Battle {
                     .filter(|(by, b)| *by == side || fog.visible(b.point[0], b.point[1]))
                     .map(|(_, b)| b.clone()),
             );
-            let target_ref = |t: Target| -> Option<TargetRef> {
-                match t {
-                    Target::Unit(u) => knowledge
-                        .track(u)
-                        .map(|tr| TargetRef::Identified { id: tr.id }),
-                    Target::Contact(c) => Some(TargetRef::Contact { id: c }),
-                    Target::Ground(p) => Some(TargetRef::Ground {
-                        point: [p.x, p.y, p.z],
-                    }),
-                    Target::Round(_) => None,
-                }
-            };
+            let target_ref = |t| order_steps::target_ref(knowledge, t);
             frame.own.clear();
             frame.own.extend(
                 self.units

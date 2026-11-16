@@ -93,7 +93,8 @@ export class UnitResponses {
     const left = new Set(refused.map(({ unit }) => unit));
     const accepted = ids.filter((unit) => !left.has(unit));
     if (!accepted.length) return;
-    this.arrivals.ordered({ ...order, units: accepted }, queued, `order/${id}`);
+    const applies = ack.applied_tick / this.tickHz;
+    this.arrivals.ordered({ ...order, units: accepted }, queued, `order/${id}`, applies);
     this.say({ kind: "accepted", order, units: this.answering(accepted), lead: this.lead, id });
   }
 

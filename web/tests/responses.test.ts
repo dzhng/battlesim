@@ -284,3 +284,43 @@ test("two queued attacks each end on their own before the move behind them", () 
   seen(arrivals, 16, { 1: [true, drive] });
   expect(seen(arrivals, 25, { 1: [false, drive] })).toEqual([{ id: 1, group: "order/3" }]);
 });
+
+test("an attack on a contact that is identified mid-attack is still the same attack", () => {
+  const arrivals = new Arrivals(3);
+  seen(arrivals, 0, { 1: [false, null] });
+  arrivals.ordered(
+    { kind: "attack", units: [1], target: { kind: "contact", id: 9 } },
+    false,
+    "order/1",
+  );
+  arrivals.ordered({ kind: "move", units: [1] }, true, "order/2");
+  const onContact = { kind: "attack", target: { kind: "contact", id: 9 } };
+  seen(arrivals, 0.1, { 1: [true, onContact] });
+  // The contact is identified: the attack now names the unit, chases, stops, fires.
+  seen(arrivals, 5, { 1: [true, attackOn(4)] });
+  expect(seen(arrivals, 10, { 1: [false, attackOn(4)] })).toEqual([]);
+  seen(arrivals, 11, { 1: [true, drive] });
+  expect(seen(arrivals, 20, { 1: [false, drive] })).toEqual([{ id: 1, group: "order/2" }]);
+});
+
+test("an attack is not over before it applies, while the old order still shows", () => {
+  const arrivals = new Arrivals(3);
+  seen(arrivals, 0, { 1: [false, null] });
+  arrivals.ordered({ kind: "move", units: [1] }, false, "order/1");
+  seen(arrivals, 0.1, { 1: [true, drive] });
+  // A fresh attack applies at t = 5, a move queued behind it.
+  arrivals.ordered(
+    { kind: "attack", units: [1], target: { kind: "identified", id: 4 } },
+    false,
+    "order/2",
+    5,
+  );
+  arrivals.ordered({ kind: "move", units: [1] }, true, "order/3");
+  // Until then the old move still shows, under way.
+  seen(arrivals, 4, { 1: [true, drive] });
+  // The attack applies: it chases, stops in range and fires; no arrival.
+  seen(arrivals, 5, { 1: [true, attackOn(4)] });
+  expect(seen(arrivals, 12, { 1: [false, attackOn(4)] })).toEqual([]);
+  seen(arrivals, 13, { 1: [true, drive] });
+  expect(seen(arrivals, 22, { 1: [false, drive] })).toEqual([{ id: 1, group: "order/3" }]);
+});

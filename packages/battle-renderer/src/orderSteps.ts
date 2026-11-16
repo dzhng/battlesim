@@ -34,9 +34,8 @@ export interface OrderStep {
 
 /** Where a unit's orders end: the point of its last queued step that takes
  *  it somewhere (never an attack's, which only aims), else its current
- *  goal; null while it holds. */
+ *  goal; null while it holds with nothing queued to move it. */
 export function ordersEnd(steps: readonly OrderStep[], goal: P2 | null): P2 | null {
-  if (!goal) return null;
   for (let k = steps.length - 1; k > 0; k--) {
     const { kind, point } = steps[k];
     if (kind !== "attack" && point) return point;

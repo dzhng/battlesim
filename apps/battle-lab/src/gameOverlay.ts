@@ -53,7 +53,7 @@ export const gameOrderStyle: OrderStyle = {
   blocked: CANNOT,
   // An attack's line and reticle: the attack-ground footprint's red, told
   // from a blocked route by its form (solid, a reticle), not its hue.
-  attack: CANNOT,
+  attack: [...gameHud.bad, 1],
   // The hovered unit's marker takes its card's colour, tying the two.
   hovered: [...gameHud.accent, 1],
   ally: [...gameHud.ally, 1],

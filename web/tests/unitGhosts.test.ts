@@ -104,6 +104,13 @@ test("a unit holding where it stands has no ghost", () => {
   expect(orderedGhost(squad({ goal: null }), LOOK)).toBeNull();
 });
 
+test("a unit firing where it stands with a move queued behind has its ghost at the move", () => {
+  const fire: OrderStepView = { kind: "attack", point: [140, 60], target: null };
+  const onward: OrderStepView = { kind: "move", point: [160, 80], attackMove: false };
+  const unit = squad({ goal: null, position: [150, 70, 0], steps: [fire, onward] });
+  expect(orderedGhost(unit, LOOK)?.at).toEqual([160, 80]);
+});
+
 test("Space aircraft cards follow the final order at flight altitude with the actual unit info", () => {
   const jet = squad({
     id: 7,
