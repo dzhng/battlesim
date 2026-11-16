@@ -104,6 +104,9 @@ the one list of deliberate hard-coded rules:
   to fire (he steps out past its edge, fires a burst, and tucks back in);
   everyone else's rounds still hit it;
 - suppression pins squads only; a vehicle's crew isn't suppressed;
+- an attack order pivots a vehicle on the spot to bring a gun fixed in its
+  hull onto its target, on wheels as on tracks; unordered, only tracks pivot
+  and wheels hold fire;
 - of two vehicles that hold each other up, the later one (the higher unit id)
   gives way and works its way round while the other waits, unless it finds
   no way round;

@@ -111,7 +111,8 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
         // Where a gun fixed in the hull needs the body to face.
         let mut face = None;
         let mut leaned: Vec<u32> = Vec::new();
-        // Ordered target: some compatible mount can shoot it / none can reach it.
+        // Ordered target: some compatible mount can shoot it (or strike its
+        // ground aim from here) / none can reach it.
         let (mut ordered_ok, mut ordered_far) = (false, false);
         let (mut ordered_working, mut can_damage) = (0u64, false);
         let mut plans = Vec::with_capacity(units[i].mounts.len());
@@ -169,7 +170,16 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
                 idle_reason,
                 ordered: ordered_shot,
             } = choose_lock(ctx, unit, units, &mut mount, spec, explicit, &mut assessed);
-            ordered_ok |= matches!(ordered_shot, Some(Ok(_)));
+            // A mount that reaches a ground aim strikes it from here or not
+            // at all: a crew under cover holds rather than driving at the
+            // point (launch clearance).
+            ordered_ok |= match ordered_shot {
+                Some(Ok(_)) => true,
+                Some(Err(ActionReason::BlockedTrajectory)) => {
+                    matches!(ordered, Some(Target::Ground(_)))
+                }
+                _ => false,
+            };
             ordered_far |= matches!(
                 ordered_shot,
                 Some(Err(

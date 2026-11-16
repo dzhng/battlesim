@@ -1,6 +1,7 @@
 // Pointer-following ground paint: the held destination/facing preview, the
-// Space range ruler and the outline of the building a garrison order would
-// enter share one feed, refreshed only when their geometry changes.
+// Space range ruler, the attack-ground cursor's footprint and reach rings and
+// the outline of the building a garrison order would enter share one feed,
+// refreshed only when their geometry changes.
 import type { WorldRay } from "@packages/renderer-core/src/camera3d";
 import {
   EMPTY_MESH,
@@ -24,7 +25,7 @@ import {
 import { buildRangeRuler, type RulerLine } from "@packages/battle-renderer/src/rangeRulerOverlay";
 import type { BuildingIndex } from "@packages/battle-renderer/src/models/buildingReferences";
 import { airborne, fixedWing, type UnitCatalog } from "@packages/scene-assets/src/units";
-import { StrikeFootprints } from "@wasm/game_wasm";
+import { GroundStrikes } from "@wasm/game_wasm";
 import type { PurchaseGhost } from "@web/battle/input/purchasePlacement";
 import {
   closestUnit,
@@ -50,39 +51,62 @@ import { Feed } from "@web/feed";
 import { groundUnderRay, type StaticWorld } from "./useStaticWorld";
 import { gameAttackGroundSpread, gameOrderStyle, gameRulerStyle, gameStroke } from "./gameOverlay";
 
-export interface AttackGroundSpread {
+/** The attack-ground cursor's marks: the circle its strikes there can
+ *  damage (`radius_m`, null when none of the selection reaches the aim), and
+ *  round the selected unit nearest the aim the nearest and farthest it
+ *  strikes from where it stands (`reach`, null for a selection with none: a
+ *  jet strikes from its runs). */
+export interface AttackGroundMarks {
   center: readonly [number, number];
-  radius_m: number;
+  radius_m: number | null;
+  reach: { from: readonly [number, number]; near_m: number; far_m: number } | null;
 }
 
-/** The simulation's strike footprints (`StrikeFootprints`) for a scenario's
+/** The simulation's ground strikes (`GroundStrikes`) for a scenario's
  *  resolved rules, admitted once per rules; the previous rules' are freed. */
-let footprints: { rules: string; owner: StrikeFootprints } | null = null;
-function strikeFootprints(rules: string): StrikeFootprints {
-  if (footprints?.rules !== rules) {
-    footprints?.owner.free();
-    footprints = { rules, owner: new StrikeFootprints(rules) };
+let strikes: { rules: string; owner: GroundStrikes } | null = null;
+function groundStrikes(rules: string): GroundStrikes {
+  if (strikes?.rules !== rules) {
+    strikes?.owner.free();
+    strikes = { rules, owner: new GroundStrikes(rules) };
   }
-  return footprints.owner;
+  return strikes.owner;
 }
 
-/** The attack-ground cursor's circle: the area the selected units' strikes
- *  there can damage under `rules` (a scenario's resolved rules), as the
- *  simulation's footprint says, the widest of them, never so small it
- *  vanishes close in. Null when none strikes an area. */
-export function attackGroundSpread(
+/** The attack-ground cursor's marks under `rules` (a scenario's resolved
+ *  rules), as the simulation's footprint and reach say. The circle is the
+ *  widest area the selected units' strikes there can damage, never so small
+ *  it vanishes close in, and absent when none of them can strike the aim
+ *  from where it stands. Null when none strikes an area. */
+export function attackGroundMarks(
   center: readonly [number, number],
   selected: readonly OwnUnitView[],
   drawnAt: ReadonlyMap<number, Readonly<Vec3>>,
   rules: string,
-): AttackGroundSpread | null {
-  const footprints = strikeFootprints(rules);
-  const radii = selected.flatMap((unit) => {
+): AttackGroundMarks | null {
+  const strikes = groundStrikes(rules);
+  const strikers = selected.map((unit) => {
     const at = drawnAt.get(unit.id) ?? unit.position;
-    const radius = footprints.radius_m(unit.kind, Math.hypot(center[0] - at[0], center[1] - at[1]));
-    return radius === undefined ? [] : [radius];
+    const distance = Math.hypot(center[0] - at[0], center[1] - at[1]);
+    const reach = strikes.reach_m(unit.kind);
+    return {
+      from: [at[0], at[1]] as const,
+      distance,
+      radius: strikes.radius_m(unit.kind, distance),
+      reach: reach ? { near_m: reach[0], far_m: reach[1] } : null,
+    };
   });
-  return radii.length ? { center, radius_m: Math.max(6, ...radii) } : null;
+  const radii = strikers.flatMap((s) => (s.radius === undefined ? [] : [s.radius]));
+  // One subject, one mark: the reach of the striker nearest the aim.
+  const nearest = strikers
+    .filter((s) => s.reach)
+    .reduce<(typeof strikers)[number] | null>(
+      (best, s) => (best && best.distance <= s.distance ? best : s),
+      null,
+    );
+  const reach = nearest?.reach ? { from: nearest.from, ...nearest.reach } : null;
+  if (!radii.length && !reach) return null;
+  return { center, radius_m: radii.length ? Math.max(6, ...radii) : null, reach };
 }
 
 /** The ruler shown, and the circle the orders draw round its unit (with
@@ -246,7 +270,7 @@ export class PointerPaint {
     preview: readonly (DestinationMarker & { unit: number })[],
     z: SurfaceHeight,
     metresPerPx: number,
-    attackGround: AttackGroundSpread | null = null,
+    attackGround: AttackGroundMarks | null = null,
     renderScale = 1,
     placing: PurchaseGhost | null = null,
     garrison: GarrisonTarget | null = null,
@@ -275,34 +299,52 @@ export class PointerPaint {
           [p.unit, ...p.c, p.r, p.facing ?? 0, p.placed, p.opacity, !!p.unload, metresPerPx].join(),
         )
         .join(";");
-    const spreadKey = attackGround
-      ? `:${attackGround.center.join(",")}:${attackGround.radius_m.toFixed(3)}:${metresPerPx}`
+    const marksKey = attackGround
+      ? `:${attackGround.center.join(",")}:${attackGround.radius_m?.toFixed(3)}:${
+          attackGround.reach
+            ? [...attackGround.reach.from, attackGround.reach.near_m, attackGround.reach.far_m]
+                .map((v) => v.toFixed(3))
+                .join(",")
+            : ""
+        }:${metresPerPx}`
       : ":";
     const hoverKey = hover
       ? `:${[...hover.c, hover.r, hover.facing ?? 0, metresPerPx].join()}`
       : ":";
     const nextKey =
-      key + spreadKey + hoverKey + `:${garrison?.building ?? ""}:${metresPerPx}:${renderScale}`;
+      key + marksKey + hoverKey + `:${garrison?.building ?? ""}:${metresPerPx}:${renderScale}`;
     if (nextKey === this.key) return;
     this.key = nextKey;
-    const spread = attackGround
+    const marks = attackGround
       ? (() => {
           const mesh = new MeshBuilder();
-          groundRing(
-            mesh,
-            attackGround.center,
-            attackGround.radius_m,
-            gameStroke(metresPerPx, renderScale)(1.6),
-            gameAttackGroundSpread,
-            { z, segments: 48 },
-          );
+          const width = gameStroke(metresPerPx, renderScale)(1.6);
+          if (attackGround.radius_m !== null)
+            groundRing(
+              mesh,
+              attackGround.center,
+              attackGround.radius_m,
+              width,
+              gameAttackGroundSpread,
+              { z, segments: 48 },
+            );
+          // The reach rings are where the ruler's reaches end (its tick),
+          // dashed as a limit, never a solid edge like sight's.
+          const reach = attackGround.reach;
+          for (const radius of reach ? [reach.near_m, reach.far_m] : [])
+            if (reach && radius > 0)
+              groundRing(mesh, reach.from, radius, width, gameRulerStyle.tick, {
+                z,
+                dashed: true,
+                segments: Math.min(512, Math.max(48, Math.ceil(radius / 5))),
+              });
           return mesh.build();
         })()
       : EMPTY_MESH;
     const stroke = gameStroke(metresPerPx, renderScale);
     this.feed.set(
       concatMeshes([
-        spread,
+        marks,
         garrison?.outline(stroke(gameOrderStyle.line_px)) ?? EMPTY_MESH,
         shown
           ? buildRangeRuler(

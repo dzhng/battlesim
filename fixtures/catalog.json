@@ -768,7 +768,7 @@
       }
     },
     {
-      "cost": 90,
+      "cost": 150,
       "description": "General resupply",
       "disabled_reason": null,
       "family": "ural_4320",
@@ -1312,7 +1312,7 @@
       }
     },
     {
-      "cost": 90,
+      "cost": 150,
       "description": "General resupply",
       "disabled_reason": null,
       "family": "man_hx",
@@ -2167,7 +2167,7 @@
       }
     },
     {
-      "cost": 90,
+      "cost": 150,
       "description": "General resupply",
       "disabled_reason": null,
       "family": "m977_hemtt",
@@ -3837,7 +3837,7 @@
             "conceals": 0.0,
             "cover_tier": "medium",
             "garrison": false,
-            "hp": 120.0,
+            "hp": 80.0,
             "metal": true,
             "occludes": false,
             "stops_rounds": true,
@@ -11910,11 +11910,11 @@
               "seconds": 3.0
             },
             "supply": {
-              "stock": 250
+              "stock": 1000
             }
           },
           "concealment": 2.4,
-          "cost": 90,
+          "cost": 150,
           "description": "General resupply",
           "faction": "eastern",
           "family": "ural_4320",
@@ -15621,11 +15621,11 @@
               "seconds": 3.0
             },
             "supply": {
-              "stock": 250
+              "stock": 1000
             }
           },
           "concealment": 2.8,
-          "cost": 90,
+          "cost": 150,
           "description": "General resupply",
           "faction": "europe",
           "family": "man_hx",
@@ -21250,11 +21250,11 @@
               "seconds": 3.0
             },
             "supply": {
-              "stock": 250
+              "stock": 1000
             }
           },
           "concealment": 2.8,
-          "cost": 90,
+          "cost": 150,
           "description": "General resupply",
           "faction": "us",
           "family": "m977_hemtt",
@@ -23571,7 +23571,7 @@
         "conceals": 0.0,
         "cover_tier": "medium",
         "garrison": false,
-        "hp": 120.0,
+        "hp": 80.0,
         "metal": true,
         "occludes": false,
         "stops_rounds": true,
@@ -32506,11 +32506,11 @@
           "seconds": 3.0
         },
         "supply": {
-          "stock": 250
+          "stock": 1000
         }
       },
       "concealment": 2.4,
-      "cost": 90,
+      "cost": 150,
       "description": "General resupply",
       "faction": "eastern",
       "family": "ural_4320",
@@ -36340,11 +36340,11 @@
           "seconds": 3.0
         },
         "supply": {
-          "stock": 250
+          "stock": 1000
         }
       },
       "concealment": 2.8,
-      "cost": 90,
+      "cost": 150,
       "description": "General resupply",
       "faction": "europe",
       "family": "man_hx",
@@ -42677,11 +42677,11 @@
           "seconds": 3.0
         },
         "supply": {
-          "stock": 250
+          "stock": 1000
         }
       },
       "concealment": 2.8,
-      "cost": 90,
+      "cost": 150,
       "description": "General resupply",
       "faction": "us",
       "family": "m977_hemtt",
@@ -44898,7 +44898,7 @@
       "interceptable": false,
       "lifetime_s": 35.0,
       "magazine": null,
-      "min_range_m": 180.0,
+      "min_range_m": 120.0,
       "name": "Mortar",
       "near_miss_suppression": 0.55,
       "partial_from": 0.08,

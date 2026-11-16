@@ -817,7 +817,7 @@
       "icon": "mortar",
       "stationary": true,
       "requires_clear_launch_path": true,
-      "min_range_m": 180,
+      "min_range_m": 120,
       "speed_mps": 145,
       "gravity_scale": 1,
       "lifetime_s": 35,
