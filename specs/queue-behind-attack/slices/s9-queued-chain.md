@@ -27,6 +27,13 @@ garrison, exit, move, attack; before, the chain skipped the garrison and exit),
 the ground, attack a squad). Queued legs keep today's queued strength, faint at normal
 size; named for the human checkpoint.
 
-TODO for the parent, after S2 admits a move behind an attack: capture decision 17's
-ground-unit chain (attack → move → attack the same enemy → move → attack another enemy →
-return to base) in the Space view of a real skirmish, part 1's visual proof (decision 12).
+**Decision 17's chain in a real battle** (consequences lab; return to base is refused
+there, it isn't a skirmish): [fitted to the whole chain](../assets/d17-chain-fitted.png),
+[closer](../assets/d17-chain-close.png). The steps publish in order (attack, move,
+attack the same tank, move, attack the squad). An unprimed critique and my own look
+agree it reads poorly at the zoom that fits a 300 m chain: the shared stroke rule thins
+every leg to a hairline, the dashed queued legs (queued strength) vanish on the fields,
+the 6 m reticles and rings are tiny, a ring under forest canopy is lost, and a chain that
+doubles back has no direction cue. These are the overlay's existing style rules (stroke
+thinning, `queued_alpha`, `reticle_m`), not this feature's logic; changing them restyles
+every order mark, so it is left to the user's eye as a follow-up, not a gate.
