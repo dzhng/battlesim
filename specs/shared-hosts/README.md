@@ -1,6 +1,6 @@
 # Shared hosts: buildings and transports admit squads alike
 
-**Status:** in progress; slices 00, 01, 01a, 02 and 03 done. **Updated:** 2026-11-16.
+**Status:** in progress; slices 00, 01, 01a, 02, 03 and 04 done (06 in progress in a parallel checkout). **Updated:** 2026-11-16.
 
 Several squads share a host (a building or a carrier) while seats remain, one
 seat per living soldier, squads whole. A squad gets in when it arrives and
@@ -10,15 +10,15 @@ decision (`specs/done/battle-look/decisions.md`).
 
 ## Next Agent Prompt
 
-You are implementing this plan from slice 04. Read, in order: this file, the
+You are implementing this plan from slice 05. Slice 06 is being built in
+parallel in another checkout; don't take it up. Read, in order: this file, the
 [decisions ledger](decisions.md), the slice you are about to build, and, for
 the history of how each decision was reached, the
 [unknowns map](unknowns-map.html) (its plan and prompt sections are
 superseded by this file). Before slices 05–06 read
-[`game-ui`](../../.agents/skills/game-ui/SKILL.md). Before slice 04 read
-[`tweak-mechanics`](../../.agents/skills/tweak-mechanics/SKILL.md).
+[`game-ui`](../../.agents/skills/game-ui/SKILL.md).
 
-Next pickup: **[slice 04, window swaps and reinforcement span the building](slices/04-building-wide-occupancy.md).**
+Next pickup: **[slice 05, seat total published](slices/05-seats-on-the-panel.md).**
 
 The digest gates run with one command from the repository root:
 
@@ -39,8 +39,9 @@ It prints each case's first differing tick and exits 1 if anything outside
 `throwaway/` is ignored, so the probe exists only in this checkout; another
 checkout copies `throwaway/shared-hosts/` across.
 
-Host seats and admission live in `crate::hold` (`Seats`, `admit`); slice 04
-builds the host-wide free seat on `Seats`.
+Host seats and admission live in `crate::hold` (`Seats`, `admit`,
+`Seats::free`); slice 05 publishes the building's total from the same
+`Seats` rule.
 
 Checklist (each item is its slice's whole contract):
 
@@ -49,7 +50,7 @@ Checklist (each item is its slice's whole contract):
 - [x] 01a · Spread entries: several squads in one order take approach points apart ([slice](slices/01a-spread-entries.md))
 - [x] 02 · One window plan per building, outcomes unchanged ([slice](slices/02-one-window-plan.md))
 - [x] 03 · Admission on arrival for both hosts; the relief test goes green ([slice](slices/03-admission-on-arrival.md))
-- [ ] 04 · Window swaps and reinforcement span the building ([slice](slices/04-building-wide-occupancy.md))
+- [x] 04 · Window swaps and reinforcement span the building ([slice](slices/04-building-wide-occupancy.md))
 - [ ] 05 · Seat total published; the IN BUILDING row reads used/total ([slice](slices/05-seats-on-the-panel.md))
 - [ ] 06 · One ring and one outline per house ([slice](slices/06-one-mark-per-house.md))
 - [ ] 07 · Labs, recordings, player text, docs and closeout ([slice](slices/07-labs-docs-closeout.md))

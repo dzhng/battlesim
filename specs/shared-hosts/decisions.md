@@ -313,3 +313,71 @@ things the plan left open.
   shop's seats hold all three squads, so its "no room" demo needs slice 07's
   reshaping); transport controls at tick 344 (the AT squad is refused when it
   arrives instead of stepping in and failing at its end check 29 ticks later).
+
+## Slice 04
+
+- **Requesters go in unit order, then today's order within a squad** (its
+  mounts in turn, each mount's shooters in member order), not strictly by
+  member index. Allocation keeps its per-squad loop over
+  `garrison_aims`; buildings never share windows, so one pass over squads in
+  unit order is the per-building pass. *Why:* a strict (unit, member) order
+  would reorder a lone squad's requests (the rifles before the launcher) and
+  move single-squad window fights, which `UNCHANGED_SINGLE_HOSTS` forbids.
+- **Who may be displaced:** a living soldier of a squad inside the building
+  whose claim, by his own squad's aims, is below the requester's need. A
+  soldier of a squad stepping out is never displaced (it keeps its windows
+  until it has left) and its windows are not free. No test pins the leaver
+  rule; the slice's test list names none.
+- **The host's free seat is `hold::Seats::free`**: total less those stepping
+  in, inside and stepping out, the same count the end check uses, so a
+  replacement can never make a squad fail its own end check. For a squad
+  inside a building that count already implies a window nobody holds, so
+  supply asks only `Seats`, and `Windows::free_seat` (now host-wide, still
+  balancing the squad's own facades) only picks the window.
+- **"Checks room when choosing the next need and again when delivering" is
+  one check.** `supply::service` chooses the need on the tick it delivers it,
+  for each recipient in turn after earlier recipients were served, so a
+  second check at delivery could never differ. With no room the need falls
+  through (to smoke, or nothing): no stock and no soldier id are spent, and
+  the replacement clock pauses, as it does for any ineligible recipient.
+- **A squad stepping into a building can be reinforced** while seats remain;
+  the replacement stands on the ground beside it and is seated with the
+  squad at the end of its timer.
+- **Where the tests live.** The new test and the rewritten
+  `a_squad_reinforced_during_entry_never_enters_only_partly_seated` live in
+  `tests/shared_hosts/occupancy.rs`, a submodule of `shared_hosts.rs` (as
+  `garrison/occupy.rs`): with the new test `shared_hosts.rs` passed the size
+  budget, and `buildings.rs`, already over it, could not take the rewrite
+  without growing. The rewrite is about host seats, not aggregate building
+  ownership, which is `buildings.rs`'s subject.
+- **The test's casualty is a tank shell with lethality the test sets**
+  (`tank_he` damage, and `building_fragment_probability_multiplier` 1): a
+  scripted burst wears props but never hurts soldiers, and with shipped
+  numbers one fragment cannot kill. The tank shells the gunner's window and
+  stops after the first death; the AT team answers and kills it, after which
+  service resumes. The rifles' alternating fire is east and west, away from
+  the tank, so their rounds don't start a fight.
+- **"Doesn't fire while changing windows" is read through
+  `Windows::changing_window`**, as the existing window tests do, and the hold
+  is checked per window from observed changes: no window changes hands within
+  `window_hold_s` of its last change, across both squads.
+- **Falsified:** holders only from the requester's own squad (the gunner
+  stacks onto the rifleman's window), claims by the requester's aims (no AT
+  rifleman ever trades), room as a free window only (the stepping-in carrier
+  and building squads are reinforced past the seats), the free window judged
+  by the squad's own soldiers (two soldiers at one window after a
+  replacement), and no room check (reinforced into the full house).
+- **Gates.** Against the branch head before this slice (2d4a124d7d),
+  `UNCHANGED_SINGLE_HOSTS` and `UNCHANGED_OTHER_SCENES` are identical.
+  `SHARED_OCCUPANCY_BEFORE_AFTER` moved only the garrison lab, first at
+  tick 1231, when the scouts are seated beside the first rifle squad. Before,
+  each squad saw the others' windows as free, so the scouts and then the
+  second rifle squad moved onto the first squad's east windows (two or three
+  soldiers per window), and the red tank's shells on those windows killed all
+  three squads by tick 1991. Now every soldier keeps his own window and the
+  garrison survives the 3000-tick run. Transport controls is identical (no
+  building, and no truck).
+- **Also fixed:** `garrison::shell` duplicated `garrison::garrisoned_in`;
+  window requests now take the hold and plan from `Windows::held`. The
+  `window_swap_s` doc said "squadmate"; it is whichever soldier he trades
+  with.
