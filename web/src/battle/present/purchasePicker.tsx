@@ -368,7 +368,6 @@ function PurchaseMenu({
   const showGroup = (g: UnitGroup) => {
     if (searching || g === group) return;
     setGroup(g);
-    setExact(null);
     point(null);
   };
   return (
