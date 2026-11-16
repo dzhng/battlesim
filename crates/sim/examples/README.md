@@ -42,7 +42,8 @@ fallback. A route fit and cost comparison does not prove actual unit arrival;
 movement and played-battle checks answer that separate question.
 
 [Endurance](endurance_report.rs) and [city-scale reporting](city_report.rs) measure
-long-battle and full-extent simulation workloads. Their accelerated native time
+long-battle and full-extent simulation workloads. [Replay reporting](replay_report.rs)
+measures a battle a player exported, tick by tick against the real-time budget. Their accelerated native time
 is not rendered FPS. Shared instruction counters separate load-independent work
 from wall-time contention; [the browser benchmark](../../../web/src/battle/benchmark/README.md)
 owns real frame cost. Keep scratch output under `throwaway/` and preserve the

@@ -162,6 +162,16 @@ pub(super) fn engage(
         let Some(reach) = r.fire(&weapon.def).map(|fire| fire.range_m) else {
             return Err(ActionReason::OutOfRange);
         };
+        // The shot must meet its target within its layer's reach, not
+        // merely start inside it: the lead's meeting point is the one point
+        // the aim uses and the one the reach is judged at. The round flies
+        // no longer than its lifetime, so the target closes by at most its
+        // speed over that: when even the nearest meeting point is past
+        // reach, it is out of range before any arc is solved or flown.
+        let nearest_meeting = distance - r.velocity.length() * weapon.profile.lifetime_s;
+        if nearest_meeting > reach {
+            return Err(ActionReason::OutOfRange);
+        }
         let aim = Aim {
             origin,
             target: r.point,
@@ -178,9 +188,7 @@ pub(super) fn engage(
         ) {
             Err(NoSolution::OutOfReach) => Err(ActionReason::OutOfRange),
             Err(NoSolution::Blocked { .. }) => Err(ActionReason::BlockedTrajectory),
-            // The shot must meet its target within its layer's reach, not
-            // merely start inside it: the lead's meeting point is the one
-            // point the aim uses and the one the reach is judged at.
+            // The same reach, judged at the meeting point the arc found.
             Ok((s, _)) if (s.intercept - origin).length() > reach => Err(ActionReason::OutOfRange),
             Ok((s, _))
                 if weapon.def.requires_clear_launch_path

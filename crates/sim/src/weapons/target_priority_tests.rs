@@ -1,4 +1,5 @@
-//! Which target a mount picks, and when a seeker may acquire one.
+//! Which target a mount picks, whether its rounds can reach it, and when a
+//! seeker may acquire one.
 
 use super::*;
 use contract::command::Engagement;
@@ -235,4 +236,84 @@ fn frozen_observation_keeps_priority_with_hidden_ammo_reload_orders_and_pose_cha
         }
     }
     assert_eq!(choose(&units), Some(Target::Unit(UnitId(2))));
+}
+
+#[test]
+fn reach_is_judged_where_the_round_meets_its_target_before_the_line_of_fire() {
+    // A tank behind nothing, a tall wall 100 m east of it, and a cannon whose
+    // reach the test sets.
+    let reach = 300.0;
+    let mut game = crate::fixtures::test_rules();
+    game["weapons"]["tank_ap"]["targets"]["ground"]["range_m"] = json!(reach);
+    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
+        "map":{"size":[1000,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
+            "props":[{"kind":"wall","center":[200,300],"yaw":0,"half_extents":[1,50,5]}]},
+        "rules":game,"units":[{"side":"blue","kind":"test_tank","position":[100,300]}],
+        "events":[],"scripts":[]
+    }))
+    .unwrap();
+    let battle = crate::battle::Battle::new(&setup, 5);
+    let knowledge = [
+        SideKnowledge::new(1, battle.ground()),
+        SideKnowledge::new(2, battle.ground()),
+        SideKnowledge::new(3, battle.ground()),
+    ];
+    let ctx = FireContext {
+        world: battle.world(),
+        windows: battle.windows(),
+        structures: battle.structures(),
+        ground: battle.ground(),
+        arsenal: battle.arsenal(),
+        rules: &setup.rules,
+        tick: 0,
+        knowledge: &knowledge,
+        rounds: &[],
+    };
+    let units = [battle.unit(UnitId(0)).unwrap().clone()];
+    let tank = &units[0];
+    let spec = &ctx.arsenal.specs(tank.kind)[0];
+    let k = (0..spec.kinds.len())
+        .find(|&k| ctx.arsenal.weapons[spec.kinds[k]].id == "tank_ap")
+        .unwrap();
+    let speed = ctx.arsenal.weapons[spec.kinds[k]].profile.speed_mps;
+    let shoot = |x: f64, y: f64, velocity: V3| {
+        let point = v3(x, y, 1.0);
+        engage(
+            &ctx,
+            tank,
+            &units,
+            &tank.mounts[0],
+            spec,
+            k,
+            Target::Ground(point),
+            &Resolved {
+                point,
+                velocity,
+                current: true,
+                armor: Some(None),
+                layer: AltitudeLayer::Ground,
+                class: Some(TargetClass::Vehicle),
+                emits: false,
+            },
+        )
+    };
+    let still = v3(0.0, 0.0, 0.0);
+    // Behind the wall: within reach the wall holds the gun; past reach it is
+    // out of range, whatever stands in the way.
+    assert_eq!(
+        shoot(300.0, 300.0, still).err(),
+        Some(ActionReason::BlockedTrajectory)
+    );
+    assert_eq!(
+        shoot(100.0 + reach + 100.0, 300.0, still).err(),
+        Some(ActionReason::OutOfRange)
+    );
+    // Clear of the wall: a target within reach is engaged.
+    assert!(shoot(300.0, 480.0, still).is_ok());
+    // Clear of the wall and past reach now, but closing fast enough to be met
+    // inside it: the shot meets it where the reach is judged, so it is engaged.
+    let toward = v3(-1.0, -1.0, 0.0).normalized();
+    let start = v3(100.0, 300.0, 0.0) - toward * (reach + 40.0);
+    let closing = shoot(start.x, start.y, toward * (speed * 0.5)).expect("met inside reach");
+    assert!((closing.intercept - tank.position).length() <= reach);
 }
