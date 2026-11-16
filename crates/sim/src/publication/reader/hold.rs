@@ -1,7 +1,8 @@
 //! An own unit's hold, decoded by the writer's field names: its host (a
 //! building's footprint and seat total, or a carrier's id), phase and
 //! progress.
-use super::{at, limbs, Hold, Host, Reader, Result};
+use super::cells::host;
+use super::{at, Hold, Host, Reader, Result};
 use crate::publication::OWN_FIELDS;
 
 impl Reader {
@@ -10,8 +11,7 @@ impl Reader {
         const FIELDS: &[&str] = &OWN_FIELDS;
         self.optional("holdPhases", v!(f, "holdPhase"))?
             .map(|phase| -> Result<Hold> {
-                let id = limbs(v!(f, "hostLo"), v!(f, "hostHi")).unwrap_or(0.0);
-                let kind = self.name("hostKinds", v!(f, "hostKind"))?;
+                let (kind, id) = host!(self, f)?.ok_or("a hold names no host")?;
                 let host = if &*kind == "building" {
                     Host::Building {
                         id,
