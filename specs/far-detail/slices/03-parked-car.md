@@ -39,8 +39,9 @@ walls 4 to 8 px. A value under 4 leaves the tactical view untouched.
    slice 00 found three holds per batch cannot resolve 5% there. Add one
    whole-map hold as a diagnostic, since the player can zoom out that far.
 4. Native: run the `counts` and `props` tests against the re-recorded count
-   run, and take one native capture of the wide hold whose submitted counts
-   match the browser's.
+   run. There is no native capture of the wide hold: the native client replays
+   only saved parity reels, and this generated battle is not one
+   ([decision 49](../decisions.md)).
 
 ## What the user can see
 
@@ -75,17 +76,17 @@ buildings, trees, units.
    paired crops for the user, wait about five minutes, then decide on the
    evidence, record it in [the ledger](../decisions.md), and close the shots.
 
-**Two named extra arms**, each on its own, only after the above passes. Adopt
-one only if it wins by the same tripwires and its crop shows no change a fresh
-critic can find. Record each verdict either way.
+**One named extra arm**, on its own pass, after walls so it covers both kinds:
+*small off-view casters cast far.* A prop outside the view casts with its far
+mesh when it is small enough that it would draw it, and with tier 3 otherwise.
+Slice 03 counted 34,817 car casts at the wide hold that stay at tier 3 this
+way. They come from cars more than their radius plus 3 m outside the frustum,
+whose shadows cannot reach visible ground at this sun, so the arm should change
+no pixel there. Adopt it only if it wins by the same tripwires and a fresh
+critic finds no change, at this sun and at a low one.
 
-1. *Small off-view casters cast far.* A prop outside the view casts with its
-   far mesh when it is small enough that it would draw it, and with tier 3
-   otherwise. Slice 00 counted these casters at a quarter of the car and wall
-   casts, about 8 of the 50 million triangles the probe removed. Crop: a
-   shadow landing in view from a car just outside it, at the wide hold and at
-   the close hold.
-2. *Tier-3 cars cast far.* Crop: car shadows at tactical range.
+The second arm the plan first named, tier-3 cars casting far, is dropped
+unbuilt ([decision 48](../decisions.md)).
 
 ## Delegated
 

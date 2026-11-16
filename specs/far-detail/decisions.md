@@ -152,3 +152,18 @@ built the validator the workbench needs, which is fixed. And when art is
 still an unfetched LFS placeholder the page cannot load; the tool now quotes
 the page's own error, which names the file.
 
+## From slice 03, 2026-11-15
+
+| # | Question | Decision and why | Verdict |
+| --- | --- | --- | --- |
+| 47 | `far_px`? | 4. At 6, 32 cars at the tactical hold drew far and street rows at 550 m lost detail. At 4 the close and tactical frames are pixel-identical to `staging`. | sound |
+| 48 | Build the "tier-3 cars cast far" arm? | No. At the wide hold every car in view is already far-drawn, so it can save nothing there; it would only change shadows at tactical range, where a few thousand props are drawn. | reviewer, on slice 03's counts |
+| 49 | A native capture of the wide hold? | None. The native client replays only saved parity reels, and the committed reel never draws a car far. Native's far path rests on the shared renderer's GPU test and the count reader's unit test. A later pass checks whether the reel can take one far-camera frame cheaply. | accepted gap |
+| 50 | Does a far part's name matter? | Yes. The exporter orders materials by first use in object-name order, so a far part that introduces a material earlier than the near tiers do renumbers tiers 0 to 3. The car's far parts reuse the existing window objects. Walls must check the same. | sound |
+| 51 | The helper's fifth segment and paint-edge entries (decision 29)? | They stand for the car: its far parts use no cylinders and no edge is long enough to split. Walls check again. | sound for cars |
+| 52 | Accept the car's far mesh on its numbers? | Not yet. The timing and counts pass (wide 34.60 to 29.51 ms, three of three pairs, an A-against-A spread of 0.00 ms; 1,008 count checks). An unprimed critic found light cars darker once far-drawn and a pale patch in the candidate's wide frame; the reviewer re-measured both. Sent back with that evidence. | open |
+
+A fact slice 03 established: a model stays in the view list while its bounding
+sphere plus 3 m touches the frustum, so at the measured sun every car whose
+shadow can reach the frame is still drawn at its own tier.
+

@@ -1,7 +1,7 @@
 # Far detail
 
-**Status:** slice 00 says go. Slices 01 and 02 are on the feature branch.
-Next: parked cars (03).
+**Status:** 00, 01, 02 and 06 are done. Slice 03 (parked cars) is measured and
+wins, but its visual gate is red and it is not merged.
 **Updated:** 2026-11-15.
 
 In the wide view the game draws about 100,000 small props, most of them only a
@@ -30,9 +30,17 @@ You are implementing `specs/far-detail/` on branch
   five times one view pass ([census](assets/census.md)).
 - **01 and 02 are done and merged**, cross-language test included. The
   reviewer reran their tests on the merged code.
-- **Next: [slice 03](slices/03-parked-car.md)**, the parked car. Measure on the
-  [fresh control](assets/control.json): the old receipt's digest no longer
-  reproduces, because the generated map changed.
+- **[Slice 03](slices/03-parked-car.md) is in a fix round.** The car's far mesh
+  (40 triangles, `far_px` 4) is on branch `t3/far-detail-census-ceiling` at
+  `c5efadaf4`, not merged. It cuts the wide hold from 34.60 to 29.51 ms with
+  every count check and tripwire met. An unprimed critic then found two things
+  the reviewer confirmed by measurement: light-coloured cars read darker once
+  far-drawn (about 20 levels on one white car at the 600 m stop), and a pale
+  patch appears at the wide hold in the candidate only. Evidence is under
+  `throwaway/far-detail/review/`. Merge only when both are explained or fixed
+  and a fresh critic finds neither.
+- Measure on the [fresh control](assets/control.json): the old receipt's digest
+  no longer reproduces, because the generated map changed.
 - **06 is done: no-go.** On the map with the most terrain a player can get,
   terrain is at most 2.6% of the triangles a frame submits
   ([verdict](assets/terrain-verdict.md)). Generated maps have no hills, only
