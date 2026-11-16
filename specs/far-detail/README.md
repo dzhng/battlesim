@@ -1,7 +1,7 @@
 # Far detail
 
-**Status:** 00, 01 and 02 are done; 03 (parked cars) is merged. 04 (walls)
-is on a third attempt. Both spikes (05, 06) ended in no-go. **Updated:** 2026-11-16.
+**Status:** 00, 01 and 02 are done; 03 (parked cars) is merged and on
+`staging`. 04 (walls) is dropped. Only the closeout (07) is left. Both spikes (05, 06) ended in no-go. **Updated:** 2026-11-16.
 
 In the wide view the game draws about 100,000 small props, most of them only a
 pixel or two across, at the same mesh it uses when they are twenty pixels tall.
@@ -37,15 +37,9 @@ You are implementing `specs/far-detail/` on branch
 - **The rule every far mesh now follows:** the side's fog of war judges each
   surface by its own plane and facing, so a far mesh may drop geometry but may
   not reshape it. It draws only surfaces tier 3 draws.
-- **[Slice 04](slices/04-next-kinds.md), courtyard walls, is on its third
-  attempt**, on branch `t3/far-mesh-prop-bundles`, nothing committed. Dropping
-  the piers failed on colour; dropping one pier failed an unprimed critique
-  (run ends and lone modules lose a post). The third drops only faces nothing
-  can ever see (undersides, faces buried in other parts) and keeps both piers,
-  and its bar is that the pictures do not change at all.
-- **Two follow-ups to the car are in flight** on that branch: a helper fix so
-  a far part is occluded as tier 3 is, and the same hidden-face reading for
-  the car.
+- **04 is closed: walls do not get a far mesh** ([decision 69](decisions.md)).
+  With the look held fixed, a wall can lose 10 of its 88 triangles. Only
+  parked cars carry a far mesh.
 - **Slice 03's shadow arm is measured and not adopted**
   ([decision 66](decisions.md)): half a millisecond for a second shadow rule.
 - **On `staging` since 2026-11-16** (`916a75236`): slices 00 to 03, both
@@ -81,7 +75,7 @@ point, and any decision that moved into [the ledger](decisions.md).
 - [x] 01: a static prop's bundle may carry a far mesh → [slice 01](slices/01-far-mesh-in-bundles.md)
 - [x] 02: presentation picks the far mesh, the renderer draws and counts it → [slice 02](slices/02-far-selection.md)
 - [x] 03: parked cars carry one; the measured win → [slice 03](slices/03-parked-car.md)
-- [ ] 04: courtyard walls, then whatever the census ranks next → [slice 04](slices/04-next-kinds.md)
+- [x] 04: courtyard walls: dropped, no far mesh → [slice 04](slices/04-next-kinds.md)
 - [x] 05: spike, merging a block's props into one mesh: no-go ([verdict](assets/block-merge-verdict.md)) → [slice 05](slices/05-spike-block-merge.md)
 - [x] 06: spike, cluster detail for terrain: no-go at the count ([verdict](assets/terrain-verdict.md)) → [slice 06](slices/06-spike-terrain.md)
 - [ ] 07: closeout → [slice 07](slices/07-closeout.md)
@@ -242,4 +236,3 @@ and only with the comparison as evidence.
 | Unknown | Settled by |
 | --- | --- |
 | The far threshold's value | 03, from the zoom crops |
-| Whether a wall survives at a few pixels | 04 |

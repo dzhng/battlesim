@@ -218,3 +218,19 @@ A correction the measurement made to the arm's own report: at the tactical
 hold it is not a no-op. 88 cars beyond 700 m in the widest cascade would cast
 with their far mesh.
 
+## From slice 04's third attempt, 2026-11-16
+
+| # | Question | Decision and why | Verdict |
+| --- | --- | --- | --- |
+| 69 | Do walls get a far mesh? | No. Dropping only unseen faces left 66 of 88 triangles, but 12 of the dropped faces still moved pixels: the undersides lying in the terrain's plane and at the plinth's top sit at exactly the nearest depth, and the colour pass's depth test lets an equal depth paint. Keeping them leaves 78 triangles, a saving estimated at a few tenths of a millisecond that may sit inside the noise, for a face-dropping helper, wall art and 23 moved pixels. Not worth owning. | reviewer |
+| 70 | The same hidden-face reading for the car (92 to 86)? | Dropped with it. Six triangles a car is nothing measurable. | reviewer |
+| 71 | Keep the one-pier wall (64 triangles) anywhere? | On branch `t3/far-detail-wall-one-pier`, unmerged and unmeasured, in case the user accepts its look: far walls lose one post at run ends and on lone modules. Its saving was estimated at 1.7 ms at the wide hold. | user may adopt |
+
+What the three wall attempts and the car established about a far mesh, with
+the look held fixed. It may not reshape a surface (fog is judged per
+surface), it may not drop a part a player can see (a post), and it may not
+even drop a face that ties the nearest depth. What is left is small: tyres on
+a car, nothing useful on a wall. The slice-00 probe's 11.5 ms came from
+reshaped hulls. Reaching for that again means changing how fog treats far
+props (decision 57), which is the user's call.
+
