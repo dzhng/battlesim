@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
-import { expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { Presentation, bytes_hash } from "@wasm/renderer_browser";
 import {
   ScenePresentation,
@@ -12,6 +12,21 @@ import { fieldUnits, type RuntimeFiles } from "@web/battle/sim/fielding";
 import { loadWasm } from "@web/battle/sim/module";
 import { resolveCatalogSet } from "@web/battle/catalog/sets";
 import { Counts } from "@packages/battle-renderer/src/records.gen";
+
+beforeEach(() => {
+  let frame = 0;
+  vi.stubGlobal("document", {
+    timeline: {
+      get currentTime() {
+        return frame;
+      },
+    },
+  });
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) =>
+    setImmediate(() => callback(++frame)),
+  );
+});
+afterEach(() => vi.unstubAllGlobals());
 
 function words(frame: PresentedFrame) {
   const { header, ...sections } = frame;

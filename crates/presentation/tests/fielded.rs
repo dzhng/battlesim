@@ -284,3 +284,47 @@ fn each_factions_gauge_drives_its_own_track_travel() {
         );
     }
 }
+
+#[test]
+fn fielding_absorbs_one_content_then_resolves_without_reading_and_matches_cold() {
+    use presentation::assets::Runtime;
+    use presentation::fielded::{Facts, Fielding};
+    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let rules = sim::fixtures::test_rules();
+    let typed: contract::scenario::Rules = serde_json::from_value(rules.clone()).unwrap();
+    let catalog = typed.catalog.view();
+    let runtime = Runtime::open(&root.join("assets/runtime")).unwrap();
+    let settings =
+        serde_json::from_slice(&std::fs::read(root.join("fixtures/presentation.json")).unwrap())
+            .unwrap();
+    let kinds = vec!["test_rifle".into(), "test_tank".into()];
+    let fielding = Fielding {
+        presentation: &settings,
+        rules: &rules,
+        catalog: &catalog,
+        runtime: &runtime.catalog,
+        kinds: &kinds,
+        factions: None,
+    };
+    let read = |hash: &str| runtime.read(hash, "bundle.bin").map(Into::into);
+    let cold = fielding.resolve(&mut Facts::default(), &read).unwrap();
+    let mut facts = Facts::default();
+    let pending = fielding.pending(&facts).unwrap();
+    assert!(pending.len() > 1, "fixture must need multiple contents");
+    for (index, content) in pending.iter().enumerate() {
+        fielding.absorb(&mut facts, content, &read).unwrap();
+        assert_eq!(
+            fielding.pending(&facts).unwrap().len(),
+            pending.len() - index - 1,
+            "one supplied content is absorbed without consuming the rest"
+        );
+    }
+    let warm = fielding
+        .resolve(&mut facts, &|hash| {
+            panic!("cached resolve must not read {hash}")
+        })
+        .unwrap();
+    assert_eq!(warm.units, cold.units);
+    assert_eq!(warm.effects, cold.effects);
+    assert_eq!(warm.tables, cold.tables);
+}

@@ -6,56 +6,63 @@ use presentation::presentation::catalog::{CatalogDraft, CatalogView};
 use presentation::presentation::lab::ModelInput;
 use presentation::static_world::ground::grass::Quality;
 
-struct Assets {
-    models: Models,
-    scenery: Scenery,
-    /// None retains the live owner; Some(None) replaces it with disabled grass.
-    grass: Option<Option<Grass>>,
-}
-
 /// Owns all resources needed by asynchronous card baking. No Runtime or
 /// Presentation borrow survives synchronous admission.
-pub struct PendingAssets {
+struct Generation {
     device: Device,
     queue: Queue,
     pipelines: Arc<Pipelines>,
     catalog: CatalogDraft,
-    assets: Assets,
+    scenery: Scenery,
+    grass: Option<Option<Grass>>,
     statics: StaticIdentity,
     work: AdmissionWork,
     art_store_policy: crate::models::ArtStorePolicy,
     card_bake_split_reported: Arc<AtomicBool>,
 }
 
+/// Holds prospective rows and warm geometry without changing the live picture.
+pub struct PendingAssets {
+    generation: Generation,
+    geometry: crate::models::GeometryDraft,
+}
+
 /// An opaque complete generation. Dropping stale work never changes active art.
-pub struct ReadyAssets(PendingAssets);
-
-impl PendingAssets {
-    pub fn work(&self) -> &AdmissionWork {
-        &self.work
-    }
-}
-
-impl ReadyAssets {
-    pub fn work(&self) -> &AdmissionWork {
-        &self.0.work
-    }
+pub struct ReadyAssets {
+    generation: Generation,
+    models: Models,
 }
 
 impl PendingAssets {
-    pub async fn prepare(mut self) -> Result<ReadyAssets, String> {
-        self.assets
-            .models
+    /// Pack one missing geometry key and its rest facts, holding what was made.
+    pub fn step(&mut self) -> Result<bool, String> {
+        self.geometry.step(&mut self.generation.work)
+    }
+    pub fn work(&self) -> &AdmissionWork {
+        &self.generation.work
+    }
+
+    pub async fn prepare(self) -> Result<ReadyAssets, String> {
+        let mut generation = self.generation;
+        let mut models = self
+            .geometry
+            .admit(&generation.pipelines, &mut generation.work)?;
+        models
             .bake_cards(
-                &self.device,
-                &self.queue,
-                &self.pipelines,
-                self.art_store_policy,
-                &self.card_bake_split_reported,
-                &mut self.work,
+                &generation.device,
+                &generation.queue,
+                &generation.pipelines,
+                generation.art_store_policy,
+                &generation.card_bake_split_reported,
+                &mut generation.work,
             )
             .await?;
-        Ok(ReadyAssets(self))
+        Ok(ReadyAssets { generation, models })
+    }
+}
+impl ReadyAssets {
+    pub fn work(&self) -> &AdmissionWork {
+        &self.generation.work
     }
 }
 
@@ -87,10 +94,9 @@ impl Runtime {
             work.scenery_placements += 1;
         }
         let view = catalog.view(presentation)?;
-        let models = Models::new(
+        let geometry = crate::models::GeometryDraft::new(
             device,
             queue,
-            &self.pipelines,
             library,
             view,
             self.art_store.clone(),
@@ -116,19 +122,19 @@ impl Runtime {
             None
         };
         Ok(PendingAssets {
-            device: device.clone(),
-            queue: queue.clone(),
-            pipelines: self.pipelines.clone(),
-            catalog,
-            assets: Assets {
-                models,
+            geometry,
+            generation: Generation {
+                device: device.clone(),
+                queue: queue.clone(),
+                pipelines: self.pipelines.clone(),
+                catalog,
                 scenery,
                 grass,
+                statics,
+                work,
+                art_store_policy: self.config.art_store,
+                card_bake_split_reported: self.card_bake_split_reported.clone(),
             },
-            statics,
-            work,
-            art_store_policy: self.config.art_store,
-            card_bake_split_reported: self.card_bake_split_reported.clone(),
         })
     }
 
@@ -142,7 +148,7 @@ impl Runtime {
         ready: ReadyAssets,
         models: Vec<ModelInput>,
     ) -> Result<bool, String> {
-        let pending = ready.0;
+        let pending = ready.generation;
         if &pending.device != device
             || !Arc::ptr_eq(&pending.pipelines, &self.pipelines)
             || !pending.catalog.is_current(presentation)
@@ -152,10 +158,10 @@ impl Runtime {
         if !presentation.commit_catalog(pending.catalog, models)? {
             return Ok(false);
         }
-        self.models = pending.assets.models;
+        self.models = ready.models;
         self.art_store = self.models.store.clone();
-        self.scenery = pending.assets.scenery;
-        if let Some(grass) = pending.assets.grass {
+        self.scenery = pending.scenery;
+        if let Some(grass) = pending.grass {
             self.grass = grass;
         }
         self.statics_identity = pending.statics;
