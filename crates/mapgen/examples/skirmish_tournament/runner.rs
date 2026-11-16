@@ -517,8 +517,11 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
         if tick > preparation_ticks {
             continue;
         }
-        if let Order::ConfirmPurchase { variant, .. } = command.order {
-            report.opening[command.side.index()].push(variant);
+        if let Order::ConfirmPurchase {
+            variant, carrier, ..
+        } = command.order
+        {
+            report.opening[command.side.index()].extend(std::iter::once(variant).chain(carrier));
         }
     }
     report.replay_digest = contract::identity::json_hash(&battle.replay()).ok();

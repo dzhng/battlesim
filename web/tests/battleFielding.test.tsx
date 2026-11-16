@@ -27,8 +27,14 @@ test("new art keeps the last complete battle drawing until matching topology and
   };
   const firstArt = art(1),
     secondArt = art(2);
-  const firstBattle = { world: { first: true }, tables: new Map() } as unknown as PresentedBattle;
-  const nextBattle = { world: { next: true }, tables: new Map() } as unknown as PresentedBattle;
+  const firstBattle = {
+    world: { first: true },
+    fielded: {} as PresentedBattle["fielded"],
+  } as unknown as PresentedBattle;
+  const nextBattle = {
+    world: { next: true },
+    fielded: {} as PresentedBattle["fielded"],
+  } as unknown as PresentedBattle;
   type Props = {
     scope: object;
     request: Parameters<typeof fieldedBattle>[0];
@@ -84,7 +90,10 @@ test("an art-readiness round trip keeps the already resolved battle instead of s
   const art = { appearances, models: appearances };
   const request = {} as Parameters<typeof fieldedBattle>[0];
   const scope = {};
-  const battle = { world: { battle: true }, tables: new Map() } as PresentedBattle;
+  const battle = {
+    world: { battle: true },
+    fielded: {} as PresentedBattle["fielded"],
+  } as PresentedBattle;
   const hook = renderHook(
     (p: { art: BattleArt | null }) => useBattleFielding(scope, request, p.art),
     { initialProps: { art: art as BattleArt | null } },

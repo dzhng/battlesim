@@ -240,5 +240,5 @@ function describe({ units, weapons }: SessionCatalog, u: OwnUnitView): string {
       ),
     )
     .join(", ");
-  return `${who}: ${u.members.length}/${units.slots(u.kind).length} soldiers${ammo ? `, ${ammo}` : ""}`;
+  return `${who}: ${u.members.length}/${units.squadSize(u.kind)} soldiers${ammo ? `, ${ammo}` : ""}`;
 }

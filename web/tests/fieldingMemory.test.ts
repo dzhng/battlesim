@@ -79,7 +79,7 @@ test("fielding borrows source packets instead of copying the complete catalog in
       before: number;
       after: number;
       missing: string[];
-      same: boolean;
+      work: { kinds: number; appearances: number };
     }>((resolve, reject) => {
       worker.once("message", resolve);
       worker.once("error", reject);
@@ -91,7 +91,7 @@ test("fielding borrows source packets instead of copying the complete catalog in
     // retaining another complete set of packet bytes exceeds this budget.
     expect(result.after - result.before).toBeLessThanOrEqual(bytes.length + Math.max(...lengths));
     expect(result.missing).toEqual([]);
-    expect(result.same).toBe(true);
+    expect(result.work).toEqual({ kinds: 0, appearances: 0 });
   } finally {
     await worker.terminate();
   }

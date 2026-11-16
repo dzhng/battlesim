@@ -224,7 +224,7 @@ test("a presentation shows one fielded squad at rest with no battle, and clearin
     });
     // The unit's art is among the presentation's own rows: a scene built
     // on it loads that art.
-    const drawn = Object.keys((fielded.units as { appearances: object }).appearances);
+    const drawn = set.units.appearancesFor([kind]);
     const shown = scene.canonicalAppearanceRows().slice(before);
     expect(shown.length).toBeGreaterThan(0);
     for (const row of shown) expect(drawn).toContain(row.name);

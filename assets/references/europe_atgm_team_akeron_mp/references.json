@@ -109,9 +109,87 @@
    "licence": "public-domain",
    "sha256": "df1f7cec592a0208de3be21c0a55af4bb8c0895cf3b69d6856eda91335cbc433",
    "note": "German sniper prone, close: Flecktarn boonie hat and jacket, flag on the sleeve, sand-wrapped rifle on a bipod."
+  },
+  {
+   "file": "french_cce-three_quarter_front.jpg",
+   "variant": "french_cce",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Drones_test_multinational_forces_from_the_sky_at_Saber_Junction_23_(8015931).jpg",
+   "author": "U.S. Army Reserve photo by Michel Sauret",
+   "licence": "public-domain",
+   "sha256": "d2862309352e28d56781104026985555623f819ce7277c0d3949974a0323c1c7",
+   "note": "French infantryman (92e RI, Saber Junction 23, Sept. 2023) standing beside a VBCI, front-left quarter, full body: CCE uniform, coyote plate carrier with chest pouches and name tape, helmet hidden under a scrim of burlap, HK416 F with optic held low, brown boots."
+  },
+  {
+   "file": "french_cce-three_quarter_front-2.jpg",
+   "variant": "french_cce",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:92e_régiment_d’infanterie_at_JMRC_(8009910).jpg",
+   "author": "U.S. Army photo by Sgt. Christian Aquino",
+   "licence": "public-domain",
+   "sha256": "8dcc7eee59ddd922f91b8dfffce5c9431e0c586af8c6ee5e4c19756b65a05d33",
+   "note": "French squad (92e RI, Saber Junction 23, Sept. 2023) walking in file, front quarter, full body: CCE uniforms, coyote plate carriers with pouches, helmets dressed in burlap scrim, HK416 F rifles, flag patches; sunny, small figures."
+  },
+  {
+   "file": "french_cce-front.jpg",
+   "variant": "french_cce",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Drones_test_multinational_forces_from_the_sky_at_Saber_Junction_23_(8015944).jpg",
+   "author": "U.S. Army Reserve photo by Michel Sauret",
+   "licence": "public-domain",
+   "sha256": "22a2292bb30fdf88db58ccdc7587ec55e8222b34419eb74e38d6b75552e22d9e",
+   "note": "Three French soldiers (92e RI, Sept. 2023) standing, front, knees up: CCE uniforms; F3-type helmets, one bare coyote with NVG shroud and rails, two covered or scrimmed; coyote modular plate carriers with magazine and utility pouches; HK416 F rifles with training markers."
+  },
+  {
+   "file": "french_cce-side.jpg",
+   "variant": "french_cce",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Drones_test_multinational_forces_from_the_sky_at_Saber_Junction_23_(8015938).jpg",
+   "author": "U.S. Army Reserve photo by Michel Sauret",
+   "licence": "public-domain",
+   "sha256": "86f86fbdcbd64169093447d6379115809aae03244d53f9833c34488fba6524f5",
+   "note": "French sergeant (92e RI, Sept. 2023) moving, near left profile, upper body only: covered F3 helmet showing its side rail and chinstrap, coyote plate carrier shoulder and side pouches, CCE sleeve with flag and rank patches, HK416 F carried."
+  },
+  {
+   "file": "french_cce-three_quarter_rear.jpg",
+   "variant": "french_cce",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Drones_test_multinational_forces_from_the_sky_at_Saber_Junction_23_(8015935).jpg",
+   "author": "U.S. Army Reserve photo by Michel Sauret",
+   "licence": "public-domain",
+   "sha256": "a51ed44fb9a92c0fa087a577106d7bbd45570b0080fa5f9276a832aa87049e6b",
+   "note": "French soldier (92e RI, Sept. 2023) running, from behind and left, full body: back panel of the coyote plate carrier (laser-cut slots), dump pouch and belt, CCE trousers, covered helmet with scrim; VBCI behind."
+  },
+  {
+   "file": "french_cce-detail.jpg",
+   "variant": "french_cce",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Drones_test_multinational_forces_from_the_sky_at_Saber_Junction_23_(8015943).jpg",
+   "author": "U.S. Army Reserve photo by Michel Sauret",
+   "licence": "public-domain",
+   "sha256": "f9302c607c1f77f425cfcc835b8b372d76cbeeb0e8336bbbd66321f05a92d470",
+   "note": "French soldier (92e RI, Sept. 2023) portrait, front, waist up: F3 helmet with scrimmed cover and NVG shroud, headset, mesh face scarf, coyote plate carrier front, CCE jacket, HK416 F-C with holographic sight held across the chest."
+  },
+  {
+   "file": "akeron_mp-three_quarter_front-2.jpg",
+   "variant": "akeron_mp",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:French_Missile_Moyenne_Portee_(8017658).jpg",
+   "author": "U.S. Army photo by Sgt. Christian Aquino",
+   "licence": "public-domain",
+   "sha256": "0509a2604b7883bbee1fdcd115ab2a8c62a8d69b6b59245bf7e1f42da30a2427",
+   "note": "Akeron MP (MMP) firing post deployed on its tripod in woodland, front-left, a French gunner (92e RI, Saber Junction 23, Sept. 2023) kneeling at the sight: CCE uniform, covered helmet, coyote carrier; the launcher's sight and firing unit box from the front."
   }
  ],
  "gaps": [
-  "akeron_mp: display photos of the launcher only (the MMP side view could not be fetched: Commons rate limit); the Europe kit wears the Bundeswehr look (slice 17)"
+  "akeron_mp: display photos of the launcher only (the MMP side view could not be fetched: Commons rate limit); the Europe kit wears the Bundeswehr look (slice 17)",
+  "french_cce: shared with rifle_squad; the Akeron MP team photo is one gunner at a deployed firing post (Saber Junction 23); no photo of the post carried on the march."
  ]
 }

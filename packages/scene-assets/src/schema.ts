@@ -65,8 +65,14 @@ export const FINDING_CODES = [
   "basis.up",
   // fit to authority
   "fit.soldier_height",
+  /** A corpse that stands taller than a lying body, or sinks into the ground. */
+  "fit.lies",
   "fit.eye",
   "fit.muzzle",
+  /** A soldier in his aim reference pose not looking level down the sights. */
+  "fit.facing",
+  /** A shouldered weapon's sight line above the eye: the weapon held up at the brow. */
+  "fit.cheek",
   "fit.hull_extents",
   "fit.vehicle_muzzle",
   "fit.muzzle_arc",
@@ -511,6 +517,10 @@ export type SideTints = Record<Side, Vec3>;
 export interface Tolerances {
   ground_m: number;
   soldier_height_m: number;
+  /** The highest a soldier may reach lying dead, at each of his `corpse_poses`:
+   *  above it a corpse reads as a man still kneeling or sitting up. An
+   *  absolute height, not a deviation; the simulation has no corpse height. */
+  soldier_lying_height_m: number;
   eye_m: number;
   muzzle_m: number;
   /** Every face of a vehicle's hull box, its top too. What may stand
@@ -564,8 +574,15 @@ export interface SkeletonEntry {
   basis_yaw_deg: number;
   sample_hz: number;
   /** The standing-aim reference pose infantry fit is measured in. */
-  aim_reference: PoseRef;
+  aim_reference: AimReference;
   clips: Record<string, ClipDeclaration>;
+}
+
+/** A skeleton's aim reference pose, and the least height of its weapon's sight
+ *  over the bore, which the eye sits on (iron sights; an optic sits higher).
+ *  Absent where the sight sits beside the bore, as on a shoulder-fired launcher. */
+export interface AimReference extends PoseRef {
+  sight_over_bore_m?: number;
 }
 
 /** A soldier appearance's look per faction (`AppearanceEntry.factions`). */
@@ -766,12 +783,10 @@ export const MAP_DOWNLOAD_MAX_BYTES = 256 * 1024 * 1024;
 /** Aggregate wire bytes of what a page downloads with the catalog, before its
  * first frame (`catalogLoadBytes`): every appearance not fetched on request,
  * the skeleton clips, their textures once each, and the template library. A
- * loose tripwire against gross growth, set from the measured load with room
- * for the rebuilt models (specs/done/unit-models/choices.md), not a target.
- * Raised for the tracked armour's script-built bodies (specs/done/tracked-armour-models,
- * R5): about 637 MiB with every unit's art after the first two, and about
- * 3 MiB more for each of the other 33, most of it in the wreck. */
-export const CATALOG_LOAD_MAX_BYTES = 768 * 1024 * 1024;
+ * loose tripwire against gross growth, not a target: the measured load with
+ * every unit's art (775.3 MiB with the generated soldier bodies,
+ * specs/done/generated-soldiers), rounded up to the next 32 MiB. */
+export const CATALOG_LOAD_MAX_BYTES = 800 * 1024 * 1024;
 /** The fewest texture array layers the target machine's adapter grants (the
  * Mac mini, `maxTextureArrayLayers`). The device requests the adapter's own
  * limit; the bake holds each array's distinct layers to this floor, so a new

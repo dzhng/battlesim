@@ -7,15 +7,14 @@ use super::*;
 /// fielded type's hull and mount muzzles, the prop kinds that smoke once
 /// known, and each installed hull's wreck: what a cook-off throws, how it is
 /// fitted and how hard the dead hull stops.
-pub(super) fn section(
-    presentation: &PresentationSettings,
-    weapon_looks: &crate::looks::WeaponLooks,
+pub(super) fn extend(
+    section: &mut EffectsSection,
     rules: &Value,
     catalog: &Catalog,
     art: &Art,
     bundle_facts: &mut BundleFacts,
     kinds: &[String],
-) -> Result<Value, String> {
+) -> Result<(), String> {
     let vec3 = |v: &Value| -> Value {
         match v.as_array() {
             Some(a) if a.len() >= 3 => json!([a[0], a[1], a[2]]),
@@ -42,22 +41,9 @@ pub(super) fn section(
             .collect();
         types.insert(kind.clone(), json!({ "muzzles": muzzles }));
     }
-    let mut smokes = Map::new();
-    let (remains, shells) = building_remains(catalog.view);
-    for kind in remains {
-        smokes.insert(kind, json!("ruin"));
-    }
-    for kind in shells {
-        smokes.insert(kind, json!("gutted"));
-    }
-    for id in catalog.ids() {
-        if let Some(wreck) = catalog.hull(id)?.and_then(|h| h["wreck"].as_str()) {
-            smokes.insert(wreck.to_owned(), json!("wreck"));
-        }
-    }
     let wreck_stop_s = number(rules, "movement.drive", "wreck_stop_s")?;
     let (mut wrecks, mut looks) = (Map::new(), Map::new());
-    for (unit, name) in hull_wrecks(catalog, art) {
+    for (unit, name) in hull_wrecks(catalog, art, kinds) {
         let name = name.as_str();
         let footprint = &art.entry(name)["footprint_half_m"];
         let wreck = wreck_facts(bundle_facts.facts, art, bundle_facts.bytes, name)?;
@@ -83,6 +69,44 @@ pub(super) fn section(
             }),
         );
     }
+    section.types.extend(
+        serde_json::from_value::<BTreeMap<String, Arc<crate::world::EffectType>>>(Value::Object(
+            types,
+        ))
+        .map_err(|e| e.to_string())?,
+    );
+    section.wrecks.extend(
+        serde_json::from_value::<BTreeMap<String, crate::world::Wreck>>(Value::Object(wrecks))
+            .map_err(|e| e.to_string())?,
+    );
+    section.wreck_looks.extend(
+        serde_json::from_value::<BTreeMap<String, Arc<crate::world::WreckLook>>>(Value::Object(
+            looks,
+        ))
+        .map_err(|e| e.to_string())?,
+    );
+    Ok(())
+}
+
+/// The fixed effects settings and prop knowledge belong to the battle scope.
+pub(super) fn initial(
+    presentation: &PresentationSettings,
+    weapon_looks: &crate::looks::WeaponLooks,
+    catalog: &Catalog,
+) -> Result<EffectsSection, String> {
+    let mut smokes = Map::new();
+    let (remains, shells) = building_remains(catalog.view);
+    for kind in remains {
+        smokes.insert(kind, json!("ruin"));
+    }
+    for kind in shells {
+        smokes.insert(kind, json!("gutted"));
+    }
+    for id in catalog.ids() {
+        if let Some(wreck) = catalog.hull(id)?.and_then(|h| h["wreck"].as_str()) {
+            smokes.insert(wreck.to_owned(), json!("wreck"));
+        }
+    }
     let effect_settings = {
         let mut effects = serde_json::to_value(&presentation.effects).map_err(|e| e.to_string())?;
         effects["looks"] = serde_json::to_value(weapon_looks).map_err(|e| e.to_string())?;
@@ -90,13 +114,11 @@ pub(super) fn section(
             serde_json::to_value(&presentation.smoke_screen_looks).map_err(|e| e.to_string())?;
         effects
     };
-    Ok(json!({
-        "presentation": effect_settings,
-        "types": types,
-        "smokes": smokes,
-        "wrecks": wrecks,
-        "wreckLooks": looks,
+    serde_json::from_value(json!({
+        "presentation": effect_settings, "types": {}, "smokes": smokes,
+        "wrecks": {}, "wreckLooks": {},
     }))
+    .map_err(|e| format!("effects: {e}"))
 }
 
 pub(super) fn wreck_facts(

@@ -2,7 +2,6 @@
 use presentation::effects::{
     frame::{EffectBatch, EffectFrame},
     publication::EffectFeed,
-    tables::EffectPresentation,
 };
 use presentation::fielded::Facts;
 use serde_json::{json, Value};
@@ -49,10 +48,8 @@ fn second_round(case: &str) {
     .resolve(&mut Facts::default(), &|hash| {
         runtime.read(hash, "bundle.bin").map(Into::into)
     })
-    .unwrap()
-    .typed()
     .unwrap();
-    let p = EffectPresentation::from_value(&fielded.effects.presentation).unwrap();
+    let p = fielded.effects.presentation.as_ref().clone();
     let cause = format!("flash:{}", p.looks.name("tank_he"));
     let mut batch = EffectBatch::new(p.capacity);
     let mut effects = EffectFrame::new(30.0, p);

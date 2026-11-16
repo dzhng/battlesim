@@ -426,13 +426,7 @@ fn bought_jet_arrives_and_withdraws_on_low_fuel(row: &str) {
         order,
         queued: false,
     };
-    let ack = battle.accept(envelope(
-        1,
-        Order::ConfirmPurchase {
-            variant: row.into(),
-            destination: [1500.0, 1500.0],
-        },
-    ));
+    let ack = battle.accept(envelope(1, Order::purchase(row, [1500.0, 1500.0])));
     assert!(ack.error.is_none(), "{row}: {ack:?}");
     battle.accept(envelope(2, Order::Ready));
     battle.accept(CommandEnvelope {

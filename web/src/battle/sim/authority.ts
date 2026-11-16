@@ -23,7 +23,13 @@ export interface SimBattle {
   observation_layout(): string;
   set_controllers(controllersJson: string): void;
   accept(commandJson: string): string;
-  preview_purchase(side: string, variant: string, x: number, y: number): string;
+  preview_purchase(
+    side: string,
+    variant: string,
+    carrier: string | undefined,
+    x: number,
+    y: number,
+  ): string;
   preview_move(side: string, moveJson: string): string;
   preview_building(side: string, buildingJson: string): string;
   step(): number;
@@ -230,6 +236,7 @@ export function createAuthority(host: AuthorityHost): Authority {
               activeResources().battle.preview_purchase(
                 request.side,
                 request.variant,
+                request.carrier,
                 ...request.destination,
               ),
             ),

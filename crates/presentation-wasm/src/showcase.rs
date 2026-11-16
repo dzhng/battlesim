@@ -1,28 +1,21 @@
 //! One unit at rest with no battle (`presentation::presentation::showcase`)
 //! and the loops it idles with.
-use presentation::sound::idle;
-use presentation::world::UnitsSection;
-use serde::Deserialize;
-use wasm_bindgen::prelude::*;
-
 use super::{error, Presentation};
-
-/// The `units` section `Fielding::resolve` returned for the shown unit, its
-/// clip tables added with `add_clip_table`.
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Sections {
-    units: UnitsSection,
-}
+use presentation::sound::idle;
+use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 impl Presentation {
     /// Shows one unit at rest (`ShowcaseInput` JSON) drawn from `fielded`
-    /// (`{units}` JSON) and the clip tables added before; returns the
+    /// (its retained Rust units and clip tables); returns the
     /// `WorldHeader`'s address, its rows changed.
-    pub fn set_showcase(&mut self, fielded: &str, input: &str) -> Result<u32, JsError> {
-        let Sections { units } = serde_json::from_str(fielded).map_err(error)?;
-        let tables = std::mem::take(&mut self.tables);
+    pub fn set_showcase(
+        &mut self,
+        fielded: &crate::fielded::Fielded,
+        input: &str,
+    ) -> Result<u32, JsError> {
+        let units = fielded.inner.units.clone();
+        let tables = fielded.inner.tables.clone();
         self.inner
             .set_showcase(units, tables, serde_json::from_str(input).map_err(error)?)
             .map_err(error)?;

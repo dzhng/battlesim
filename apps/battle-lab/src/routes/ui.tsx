@@ -81,23 +81,34 @@ const card = (
   planned_weapons: [],
 });
 
-/** Each picker group the scene opens holds what its checks need: a family
- *  with an unsold variant (MBT), and beside a two-variant family one of a
- *  single variant, dearer than the short wallet (IFV·APC). */
-const CARDS: UnitCard[] = [
+/** Each picker group the scene opens holds what its checks need: two
+ *  siblings, one never sold (MBT), and beside two siblings a card of
+ *  another family, dearer than the short wallet (IFV·APC). The unsold card
+ *  borrows the first planned card's id for its silhouette, as the Armory's
+ *  planned card does. */
+const purchaseCards = (planned: string): UnitCard[] => [
   card("test_recon", "rec", "Recon Team", "Base", 120),
   card("test_rifle", "inf", "Rifle Section", "Base", 100),
   card("test_at", "inf", "AT Team", "Base", 150),
   card("test_tank", "veh", "Tank", "Base", 400),
-  card("test_tank_trophy", "veh", "Tank", "Trophy", 520, "Protection deferred"),
+  card(planned, "veh", "Tank", "Trophy", 520, "Protection deferred"),
   card("test_jeep", "veh", "Jeep", "Base", 80),
   card("test_gun_jeep", "veh", "Jeep", "HMG", 95),
   card("test_apc", "veh", "APC", "Base", 130),
   card("test_supply", "sup", "Supply Truck", "Base", 90),
 ];
 
-/** The Armory's fixed content: test units in every group but two, a family
- *  of two variants (Jeep), a card Europe fields too (Scout Car), and a
+/** The picker's content beside two more carriers, so a squad's transport
+ *  menu has rides under two tabs: the scout car seats only the small team,
+ *  the helicopter is beyond the short wallet with any squad aboard. */
+const transportCards = (planned: string): UnitCard[] => [
+  ...purchaseCards(planned),
+  card("test_scout_car", "veh", "Scout Car", "Base", 110),
+  card("test_transport_heli", "hel", "Lift Heli", "Base", 300),
+];
+
+/** The Armory's fixed content: test units in every group but two, two
+ *  sibling variants (Jeep), a card Europe fields too (Scout Car), and a
  *  planned card. The planned card borrows the first planned card's id for
  *  its silhouette, the one thing it cannot fabricate. */
 const armoryCards = (planned: string): UnitCard[] => [
@@ -233,13 +244,22 @@ function Status({ match }: { match: SkirmishView }) {
 }
 
 /** The deck with its reinforcements, as a battle in preparation shows it. */
-function Purchase({ match }: { match: SkirmishView }) {
+function Purchase({
+  match,
+  content = purchaseCards,
+}: {
+  match: SkirmishView;
+  content?: (planned: string) => UnitCard[];
+}) {
   const catalog = useSessionCatalog();
   const rules = catalog.rules as unknown as PanelRules;
   const own = ["test_tank", "test_rifle", "test_at"].map((kind, i) =>
     specimenUnit(catalog, kind, { id: i + 1 }),
   );
   const armyState = useFeed({ own });
+  const [cards] = useState(() =>
+    content(catalog.units.cards.find((c) => !catalog.units.has(c.id))!.id),
+  );
   // The scene right-clicks a deck card: the gallery wires the lookup the
   // battle HUD wires, so the browser check exercises the whole path.
   const [lookup, setLookup] = useState<PurchaseLookup | null>(null);
@@ -258,7 +278,7 @@ function Purchase({ match }: { match: SkirmishView }) {
         contactLines={null}
         reinforcements={
           <PurchasePicker
-            cards={CARDS}
+            cards={cards}
             faction="us"
             match={match}
             player={match.players[0]}
@@ -409,6 +429,19 @@ const SHOTS: { id: string; draw: () => ReactNode }[] = [
           ...MATCH,
           phase: "preparation",
           players: [{ ...MATCH.players[0], ready: false, credits: 110 }],
+        }}
+      />
+    ),
+  },
+  {
+    id: "transport-menu",
+    draw: () => (
+      <Purchase
+        content={transportCards}
+        match={{
+          ...MATCH,
+          phase: "preparation",
+          players: [{ ...MATCH.players[0], ready: false, credits: 350 }],
         }}
       />
     ),

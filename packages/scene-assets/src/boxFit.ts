@@ -1,5 +1,5 @@
 // Art against the simulation's box: a vehicle's hull, and a scenery prop's
-// footprint, face by face.
+// footprint, face by face, and every model against the ground it stands on.
 
 import type { Vec3 } from "math";
 import { positionsBounds } from "./pose.ts";
@@ -13,6 +13,19 @@ export interface ExtentRule {
   rule: string;
   tolerance: number;
   fix: string;
+}
+
+/** The lowest point of a model standing at rest: its origin is the ground. */
+export function groundFindings(label: string, minZ: number, tolerances: Tolerances): Finding[] {
+  return Math.abs(minZ) > tolerances.ground_m
+    ? [
+        finding(
+          "basis.ground",
+          `${label}: lowest point is z ${fmt(minZ)} m, not 0 ± ${tolerances.ground_m}`,
+          "put the origin on the ground under the model (feet or tracks at z = 0)",
+        ),
+      ]
+    : [];
 }
 
 /** The five faces (±x, ±y, top) of `positions` against a box of half extents

@@ -1,5 +1,6 @@
-"""The infantry rig: the Quaternius UBC body and 65-joint rig, the UAL library
-clips, and the weapon-hold machinery every infantry clip and kit is built on.
+"""The infantry rig: the Quaternius UBC body and its 65-joint rig plus one bone of
+ours (`sling`, what a slung launcher rides), the UAL library clips, and the
+weapon-hold machinery every infantry clip and kit is built on.
 
 Ported from spike 03's `soldier.py` (the frozen winner, specs/done/battle-look/
 assets/spikes/03/scripts): same imports, same hand orientation, same IK hold
@@ -30,6 +31,15 @@ TORSO = ["root", "pelvis", "spine_01", "spine_02", "spine_03", "neck_01", "Head"
          "thigh_l", "thigh_r", "foot_l", "foot_r", "ball_l", "ball_r"]
 
 
+# A slung launcher's middle above the ground, and the frame it rides: on the upper
+# back at the sling's 30° lean, muzzle up. Both in the rig's build space (Z up,
+# facing -Y, unscaled; the export scales it by `SCALE` into metres). The `sling` bone rests on this frame, so a tube slung by `Kit.sling` rides
+# the back while he lives and falls with the bone when he dies.
+SLUNG_MIDDLE = 1.12
+SLING_FRAME = (Matrix.Translation((0, 0.15, SLUNG_MIDDLE)) @ Matrix.Rotation(math.radians(30), 4, "Y")
+               @ Matrix.Rotation(-math.pi / 2, 4, "X"))
+
+
 class Rig:
     """The imported rig plus its library actions, in rest space."""
 
@@ -50,6 +60,7 @@ class Rig:
         for a in bpy.data.actions:
             a.use_fake_user = True
         self.arm.animation_data_create()
+        self._add_sling()
         self.rest_b = {b.name: b.matrix_local.to_3x3() for b in self.arm.data.bones}
         self.fingers = [b.name for b in self.arm.pose.bones if b.name.startswith(FINGER_PREFIXES)]
         self.rest_mode(False)
@@ -57,6 +68,17 @@ class Rig:
         self.set_action(None)
         self.rest_mode(True)
         self.constraints = []  # every hold constraint, so `only` can mute the rest
+
+    def _add_sling(self):
+        """The `sling` bone, a child of `spine_03` resting on `SLING_FRAME`: what a
+        slung launcher rides, so the death clips can drop it beside the body."""
+        bpy.context.view_layer.objects.active = self.arm
+        bpy.ops.object.mode_set(mode="EDIT")
+        bone = self.arm.data.edit_bones.new("sling")
+        bone.tail = (0, 0.2, 0)
+        bone.matrix = SLING_FRAME
+        bone.parent = self.arm.data.edit_bones["spine_03"]
+        bpy.ops.object.mode_set(mode="OBJECT")
 
     # ------------------------------------------------------------ state
     def set_action(self, act):
@@ -100,12 +122,28 @@ class Rig:
         wrist_l = weapon_mw @ Vector(support) - lh @ Vector((0, 0.07, 0)) - up * 0.03
         return (Matrix.Translation(wrist_r) @ rh.to_4x4(), Matrix.Translation(wrist_l) @ lh.to_4x4())
 
+    def within_reach(self, weapon_mw, grip, support):
+        """The support point the left hand can take: `support`, or as far forward of the
+        pistol grip as the arm reaches (`SUPPORT_REACH`) from the shoulder as posed now, but
+        no nearer the grip than `SUPPORT_NEAREST`."""
+        bpy.context.view_layer.update()
+        shoulder = self.arm.matrix_world @ self.arm.pose.bones["upperarm_l"].head
+        bones = self.arm.data.bones
+        reach = SUPPORT_REACH * (bones["upperarm_l"].length + bones["lowerarm_l"].length) * self.arm.matrix_world.to_scale().x
+        s = Vector(support)
+        while s.y < grip[1] - SUPPORT_NEAREST:
+            if (self.hold_targets(weapon_mw, grip, s)[1].translation - shoulder).length <= reach:
+                break
+            s.y += 0.01
+        return s
+
     def make_hold(self, tag, weapon_mw, grip, support, spine_follow=True):
-        """An anchor at the weapon placement with the two wrist targets under it."""
+        """An anchor at the weapon placement with the two wrist targets under it; the
+        support hand as far forward on the weapon as it reaches (`within_reach`)."""
         anchor = empty(f"anchor_{tag}", (0, 0, 0), size=0.05)
         anchor.matrix_world = weapon_mw
         bpy.context.view_layer.update()
-        right, left = self.hold_targets(weapon_mw, grip, support)
+        right, left = self.hold_targets(weapon_mw, grip, self.within_reach(weapon_mw, grip, support))
         tr = empty(f"ik_hand_r_{tag}", right.translation, size=0.03)
         tl = empty(f"ik_hand_l_{tag}", left.translation, size=0.03)
         tr.rotation_mode = tl.rotation_mode = "QUATERNION"
@@ -306,13 +344,19 @@ class Rig:
         bpy.context.view_layer.update()
 
     def eye_point(self):
-        """The right eye, in armature space: in the Head bone frame Y runs up the skull and Z to the back."""
+        """The right eye, in armature space: in the Head bone frame Y runs up the skull and Z out of the face."""
         bpy.context.view_layer.update()
         return self.arm.pose.bones["Head"].matrix @ EYE_IN_HEAD
 
 
-# The eye socket's offset in the Head bone's frame (spike 03's `eye_point`).
-EYE_IN_HEAD = Vector((-0.033, 0.09, 0.09))
+# The eye socket's offset in the Head bone's frame: at the right pupil of the
+# generated heads.
+EYE_IN_HEAD = Vector((-0.033, 0.075, 0.09))
+# How much of the arm's length the support hand reaches out to: the arm stays a little bent.
+SUPPORT_REACH = 0.95
+# How near the pistol grip the support hand may slide, weapon units: the handguard's rear,
+# ahead of the magazine well.
+SUPPORT_NEAREST = 0.16
 
 
 def frame_from(y_axis, n_axis):
@@ -372,3 +416,29 @@ def damp_rotation(act, bones, k):
                         kp.co.y = q2[i]
                         kp.handle_left.y = q2[i]
                         kp.handle_right.y = q2[i]
+
+
+def bone_of(o):
+    """The bone a rigid part rides: its own bone parent, or its nearest ancestor's."""
+    while o is not None:
+        if o.parent_type == "BONE" and o.parent_bone:
+            return o.parent_bone
+        o = o.parent
+    return None
+
+
+def back_y(parts):
+    """The rearmost point (largest Y: the rest pose faces -Y) of what rides the
+    upper back, where kit carried on the back (a slung launcher, a packed
+    tripod) stands off: rigid parts on `spine_03` by their bounds, a skinned part
+    (the generated body) by its vertices whose strongest weight is `spine_03`."""
+    bpy.context.view_layer.update()
+    ys = []
+    for o in parts:
+        if bone_of(o) == "spine_03":
+            ys += [(o.matrix_world @ Vector(c)).y for c in o.bound_box]
+        elif "spine_03" in o.vertex_groups:
+            gi, mw = o.vertex_groups["spine_03"].index, o.matrix_world
+            ys += [(mw @ v.co).y for v in o.data.vertices
+                   if v.groups and max(v.groups, key=lambda e: e.weight).group == gi]
+    return max(ys)
