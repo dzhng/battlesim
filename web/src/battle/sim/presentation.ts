@@ -100,6 +100,9 @@ export interface GhostBody {
   yaw: number;
   /** 0 the side's own colour, 1 the selection's, 2 a purchase refused. */
   look: number;
+  /** How much of its look's opacity it keeps, 0 to 1, as it fades out;
+   *  absent, all of it. */
+  opacity?: number;
 }
 
 /** What the UI decides of a frame: the selection, whether own units hidden

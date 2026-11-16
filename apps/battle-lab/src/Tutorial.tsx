@@ -203,7 +203,8 @@ export function Tutorial() {
           </li>
           <li>
             You can keep buying all battle: a unit bought mid-fight drives in from your entry point
-            to where you placed it, so place reinforcements where the road can bring them.
+            to where you placed it, so place reinforcements where the road can bring them. Its ghost
+            stays on the spot for a few seconds, fading, to show the purchase went through.
           </li>
         </ul>
         <Shot name="buy">

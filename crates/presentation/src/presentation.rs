@@ -107,6 +107,14 @@ pub struct Ghost {
     pub yaw: f64,
     /// 0 the side's own colour, 1 the selection's, 2 a refused purchase.
     pub look: u32,
+    /// How much of its look's opacity it keeps, 0 to 1, as it fades out;
+    /// absent, all of it.
+    #[serde(default = "opaque")]
+    pub opacity: f64,
+}
+
+fn opaque() -> f64 {
+    1.0
 }
 
 /// One drawn frame's records; the effects and lights are
