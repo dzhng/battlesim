@@ -44897,7 +44897,7 @@
       "interceptable": false,
       "lifetime_s": 35.0,
       "magazine": null,
-      "min_range_m": 180.0,
+      "min_range_m": 120.0,
       "name": "Mortar",
       "near_miss_suppression": 0.55,
       "partial_from": 0.08,
