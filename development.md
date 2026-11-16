@@ -104,6 +104,9 @@ the one list of deliberate hard-coded rules:
   to fire (he steps out past its edge, fires a burst, and tucks back in);
   everyone else's rounds still hit it;
 - suppression pins squads only; a vehicle's crew isn't suppressed;
+- of two vehicles that hold each other up, the later one (the higher unit id)
+  gives way and works its way round while the other waits, unless it finds
+  no way round;
 - active protection (a Trophy) is a simple capability, not an interceptor
   weapon: while it has charges, any interceptable missile that comes within its
   standoff is destroyed, with no sight, cone, or range of its own;

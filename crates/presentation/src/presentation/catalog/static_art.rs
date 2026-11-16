@@ -157,7 +157,7 @@ fn patch_props(
             Some(placement) => {
                 appearances.remove(name);
                 if let Some(footprint) = placement.footprint {
-                    let bounds = asset.first_corners().ok_or_else(|| {
+                    let (bounds, meshes) = asset.first_state().ok_or_else(|| {
                         format!("{name}: prop placement requires static state bounds")
                     })?;
                     appearances.insert(
@@ -169,13 +169,14 @@ fn patch_props(
                             footprint,
                             paints: placement.paints.clone(),
                             bounds,
+                            meshes,
                         },
                     );
                 }
             }
             None => {
                 if let Some(existing) = appearances.get_mut(name) {
-                    existing.bounds = asset.first_corners().ok_or_else(|| {
+                    (existing.bounds, existing.meshes) = asset.first_state().ok_or_else(|| {
                         format!("{name}: prop replacement requires static state bounds")
                     })?;
                 }

@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { readBundle } from "../../packages/scene-assets/src/gzip";
-import { typeFindings } from "../../packages/scene-assets/src/validate";
+import { typeFindings } from "../../packages/scene-assets/src/vehicleFit";
 import { UnitCatalog, type CatalogView } from "../../packages/scene-assets/src/units";
 import type { Catalog, RuntimeCatalog } from "../../packages/scene-assets/src/schema";
 import type { JsonObject } from "./src/protocol";

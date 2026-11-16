@@ -1,0 +1,786 @@
+{
+ "note": "Receipt for block-merge-verdict.md (slice 05), 2026-11-16, branch t3/far-detail-far-selection at 09c85b870. Scratch only; numbers are what the scripts printed.",
+ "map": {
+  "generator_version": "layout-22",
+  "preset_revision": "layout-presets-22",
+  "seed": "4",
+  "config_hash": "2f901508b3ee36cb58ba81f37497317dc5b93bb1288fd0ffe9b054dbc3325a8f",
+  "template_catalog_hash": "9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7",
+  "map_hash": "28fec86e17ff054e056c42c7d042fe0b929f05ff1ec6a67a531c40ab701cd8a1"
+ },
+ "scene": "control.json's wide hold: target (4864.04, 4851.69, 0), 2,400 m, pitch 0.8860277, yaw -1.57, fovY 0.8, canvas 960x540 (638.61 px per metre at 1 m). Whole-map view: 19,500 m.",
+ "propsInView": {
+  "models": 213874,
+  "inView": 120762,
+  "finerThanTier3": 0
+ },
+ "reference": {
+  "repo": "three-nanite",
+  "commit": "b730aac13ab0ea67b75214613eea56c14151f6e5",
+  "meshoptimizer": "1.3.0",
+  "builder": "src/build.js buildClod, unchanged, lods:false for blocks"
+ },
+ "reproduction": {
+  "checks": {
+   "sourceTris262144": true,
+   "deepHierarchy": true,
+   "rootFewClusters": true,
+   "noCracks": true,
+   "fewerFar": true
+  },
+  "verify": {
+   "ok": true,
+   "extraOpenEdges": 0,
+   "monotonicityViolations": 0
+  },
+  "levels": 11,
+  "coarsestTris": 94,
+  "buildMs": 728,
+  "cutStats": [
+   {
+    "distance": 1.5,
+    "px1": 225116,
+    "px2": 134652,
+    "px4": 81132
+   },
+   {
+    "distance": 3,
+    "px1": 120092,
+    "px2": 62620,
+    "px4": 34540
+   },
+   {
+    "distance": 6,
+    "px1": 53596,
+    "px2": 28316,
+    "px4": 14516
+   },
+   {
+    "distance": 12,
+    "px1": 25700,
+    "px2": 8844,
+    "px4": 7112
+   },
+   {
+    "distance": 25,
+    "px1": 8844,
+    "px2": 6456,
+    "px4": 2758
+   },
+   {
+    "distance": 50,
+    "px1": 5008,
+    "px2": 2758,
+    "px4": 2758
+   },
+   {
+    "distance": 100,
+    "px1": 2758,
+    "px2": 2758,
+    "px4": 94
+   },
+   {
+    "distance": 200,
+    "px1": 2758,
+    "px2": 94,
+    "px4": 94
+   }
+  ]
+ },
+ "cases": {
+  "block-128": {
+   "block": [
+    4288,
+    4544,
+    128
+   ],
+   "members": 417,
+   "instancedTris": 46780,
+   "sharedPositions": 1733,
+   "levels": 9,
+   "coarsestTris": 54,
+   "distWide": 2311.5,
+   "buildMs": 209,
+   "rssDeltaMB": 51.6,
+   "kinds": [
+    {
+     "look": "bench_china",
+     "models": 10,
+     "triangles": 720
+    },
+    {
+     "look": "bike_rack",
+     "models": 16,
+     "triangles": 2304
+    },
+    {
+     "look": "bins_china",
+     "models": 9,
+     "triangles": 864
+    },
+    {
+     "look": "bollard",
+     "models": 1,
+     "triangles": 40
+    },
+    {
+     "look": "courtyard_wall",
+     "models": 247,
+     "triangles": 21736
+    },
+    {
+     "look": "hydrant",
+     "models": 2,
+     "triangles": 200
+    },
+    {
+     "look": "lamp",
+     "models": 9,
+     "triangles": 720
+    },
+    {
+     "look": "parked_car",
+     "models": 110,
+     "triangles": 18920
+    },
+    {
+     "look": "pingpong_table",
+     "models": 2,
+     "triangles": 120
+    },
+    {
+     "look": "planter",
+     "models": 10,
+     "triangles": 1120
+    },
+    {
+     "look": "utility_box",
+     "models": 1,
+     "triangles": 36
+    }
+   ],
+   "cuts": [
+    {
+     "view": "wide",
+     "px": 0.05,
+     "errorM": 0.181,
+     "tris": 46780,
+     "across": 0,
+     "props": 417,
+     "newPlaneArea": 0
+    },
+    {
+     "view": "wide",
+     "px": 0.1,
+     "errorM": 0.362,
+     "tris": 33716,
+     "across": 41,
+     "props": 413,
+     "newPlaneArea": 0.1239
+    },
+    {
+     "view": "wide",
+     "px": 0.15,
+     "errorM": 0.543,
+     "tris": 11862,
+     "across": 39,
+     "props": 395,
+     "newPlaneArea": 0.2436
+    },
+    {
+     "view": "wide",
+     "px": 0.2,
+     "errorM": 0.724,
+     "tris": 11146,
+     "across": 35,
+     "props": 392,
+     "newPlaneArea": 0.2453
+    },
+    {
+     "view": "wide",
+     "px": 0.25,
+     "errorM": 0.905,
+     "tris": 10020,
+     "across": 12,
+     "props": 388,
+     "newPlaneArea": 0.2478
+    },
+    {
+     "view": "wide",
+     "px": 0.3,
+     "errorM": 1.086,
+     "tris": 5628,
+     "across": 4,
+     "props": 376,
+     "newPlaneArea": 0.5156
+    },
+    {
+     "view": "wide",
+     "px": 0.4,
+     "errorM": 1.448,
+     "tris": 1614,
+     "across": 0,
+     "props": 304,
+     "newPlaneArea": 0.8156
+    },
+    {
+     "view": "wide",
+     "px": 0.5,
+     "errorM": 1.81,
+     "tris": 54,
+     "across": 0,
+     "props": 15,
+     "newPlaneArea": 1
+    },
+    {
+     "view": "wide",
+     "px": 1,
+     "errorM": 3.62,
+     "tris": 54,
+     "across": 0,
+     "props": 15,
+     "newPlaneArea": 1
+    },
+    {
+     "view": "whole map",
+     "px": 0.05,
+     "errorM": 1.527,
+     "tris": 1098,
+     "across": 0,
+     "props": 256,
+     "newPlaneArea": 0.819
+    },
+    {
+     "view": "whole map",
+     "px": 0.1,
+     "errorM": 3.054,
+     "tris": 54,
+     "across": 0,
+     "props": 15,
+     "newPlaneArea": 1
+    },
+    {
+     "view": "whole map",
+     "px": 0.15,
+     "errorM": 4.58,
+     "tris": 54,
+     "across": 0,
+     "props": 15,
+     "newPlaneArea": 1
+    },
+    {
+     "view": "whole map",
+     "px": 0.2,
+     "errorM": 6.107,
+     "tris": 54,
+     "across": 0,
+     "props": 15,
+     "newPlaneArea": 1
+    },
+    {
+     "view": "whole map",
+     "px": 0.25,
+     "errorM": 7.634,
+     "tris": 54,
+     "across": 0,
+     "props": 15,
+     "newPlaneArea": 1
+    },
+    {
+     "view": "whole map",
+     "px": 0.3,
+     "errorM": 9.161,
+     "tris": 54,
+     "across": 0,
+     "props": 15,
+     "newPlaneArea": 1
+    },
+    {
+     "view": "whole map",
+     "px": 0.4,
+     "errorM": 12.214,
+     "tris": 54,
+     "across": 0,
+     "props": 15,
+     "newPlaneArea": 1
+    },
+    {
+     "view": "whole map",
+     "px": 0.5,
+     "errorM": 15.268,
+     "tris": 54,
+     "across": 0,
+     "props": 15,
+     "newPlaneArea": 1
+    },
+    {
+     "view": "whole map",
+     "px": 1,
+     "errorM": 30.535,
+     "tris": 54,
+     "across": 0,
+     "props": 15,
+     "newPlaneArea": 1
+    }
+   ]
+  },
+  "block-256": {
+   "block": [
+    4608,
+    4608,
+    256
+   ],
+   "members": 1439,
+   "instancedTris": 161908,
+   "sharedPositions": 4665,
+   "levels": 11,
+   "coarsestTris": 50,
+   "distWide": 2332.1,
+   "buildMs": 813,
+   "rssDeltaMB": 216.3,
+   "kinds": [
+    {
+     "look": "bench_china",
+     "models": 38,
+     "triangles": 2736
+    },
+    {
+     "look": "bike_rack",
+     "models": 42,
+     "triangles": 6048
+    },
+    {
+     "look": "bins_china",
+     "models": 40,
+     "triangles": 3840
+    },
+    {
+     "look": "bollard",
+     "models": 6,
+     "triangles": 240
+    },
+    {
+     "look": "courtyard_wall",
+     "models": 802,
+     "triangles": 70576
+    },
+    {
+     "look": "dumpster",
+     "models": 1,
+     "triangles": 60
+    },
+    {
+     "look": "hedge",
+     "models": 2,
+     "triangles": 36
+    },
+    {
+     "look": "hydrant",
+     "models": 6,
+     "triangles": 600
+    },
+    {
+     "look": "lamp",
+     "models": 36,
+     "triangles": 2880
+    },
+    {
+     "look": "laundry_poles",
+     "models": 10,
+     "triangles": 600
+    },
+    {
+     "look": "outdoor_gym",
+     "models": 8,
+     "triangles": 384
+    },
+    {
+     "look": "parked_car",
+     "models": 405,
+     "triangles": 69660
+    },
+    {
+     "look": "pingpong_table",
+     "models": 6,
+     "triangles": 360
+    },
+    {
+     "look": "planter",
+     "models": 18,
+     "triangles": 2016
+    },
+    {
+     "look": "playground_frame",
+     "models": 3,
+     "triangles": 648
+    },
+    {
+     "look": "scooter",
+     "models": 8,
+     "triangles": 864
+    },
+    {
+     "look": "swing",
+     "models": 3,
+     "triangles": 180
+    },
+    {
+     "look": "utility_box",
+     "models": 5,
+     "triangles": 180
+    }
+   ],
+   "cuts": [
+    {
+     "view": "wide",
+     "px": 0.05,
+     "errorM": 0.183,
+     "tris": 161144,
+     "across": 0,
+     "props": 1439,
+     "newPlaneArea": 0.0017
+    },
+    {
+     "view": "wide",
+     "px": 0.1,
+     "errorM": 0.365,
+     "tris": 100599,
+     "across": 147,
+     "props": 1418,
+     "newPlaneArea": 0.177
+    },
+    {
+     "view": "wide",
+     "px": 0.15,
+     "errorM": 0.548,
+     "tris": 39796,
+     "across": 105,
+     "props": 1361,
+     "newPlaneArea": 0.2267
+    },
+    {
+     "view": "wide",
+     "px": 0.2,
+     "errorM": 0.73,
+     "tris": 39212,
+     "across": 101,
+     "props": 1358,
+     "newPlaneArea": 0.2266
+    },
+    {
+     "view": "wide",
+     "px": 0.25,
+     "errorM": 0.913,
+     "tris": 36341,
+     "across": 91,
+     "props": 1342,
+     "newPlaneArea": 0.2468
+    },
+    {
+     "view": "wide",
+     "px": 0.3,
+     "errorM": 1.096,
+     "tris": 19939,
+     "across": 15,
+     "props": 1260,
+     "newPlaneArea": 0.4926
+    },
+    {
+     "view": "wide",
+     "px": 0.4,
+     "errorM": 1.461,
+     "tris": 3484,
+     "across": 0,
+     "props": 804,
+     "newPlaneArea": 0.8796
+    },
+    {
+     "view": "wide",
+     "px": 0.5,
+     "errorM": 1.826,
+     "tris": 50,
+     "across": 0,
+     "props": 10,
+     "newPlaneArea": 1
+    },
+    {
+     "view": "wide",
+     "px": 1,
+     "errorM": 3.652,
+     "tris": 50,
+     "across": 0,
+     "props": 10,
+     "newPlaneArea": 1
+    },
+    {
+     "view": "whole map",
+     "px": 0.05,
+     "errorM": 1.527,
+     "tris": 1288,
+     "across": 0,
+     "props": 355,
+     "newPlaneArea": 0.9118
+    },
+    {
+     "view": "whole map",
+     "px": 0.1,
+     "errorM": 3.054,
+     "tris": 50,
+     "across": 0,
+     "props": 10,
+     "newPlaneArea": 1
+    },
+    {
+     "view": "whole map",
+     "px": 0.15,
+     "errorM": 4.58,
+     "tris": 50,
+     "across": 0,
+     "props": 10,
+     "newPlaneArea": 1
+    },
+    {
+     "view": "whole map",
+     "px": 0.2,
+     "errorM": 6.107,
+     "tris": 50,
+     "across": 0,
+     "props": 10,
+     "newPlaneArea": 1
+    },
+    {
+     "view": "whole map",
+     "px": 0.25,
+     "errorM": 7.634,
+     "tris": 50,
+     "across": 0,
+     "props": 10,
+     "newPlaneArea": 1
+    },
+    {
+     "view": "whole map",
+     "px": 0.3,
+     "errorM": 9.161,
+     "tris": 50,
+     "across": 0,
+     "props": 10,
+     "newPlaneArea": 1
+    },
+    {
+     "view": "whole map",
+     "px": 0.4,
+     "errorM": 12.214,
+     "tris": 50,
+     "across": 0,
+     "props": 10,
+     "newPlaneArea": 1
+    },
+    {
+     "view": "whole map",
+     "px": 0.5,
+     "errorM": 15.268,
+     "tris": 50,
+     "across": 0,
+     "props": 10,
+     "newPlaneArea": 1
+    },
+    {
+     "view": "whole map",
+     "px": 1,
+     "errorM": 30.535,
+     "tris": 50,
+     "across": 0,
+     "props": 10,
+     "newPlaneArea": 1
+    }
+   ]
+  },
+  "walls-128": {
+   "block": [
+    4288,
+    4544,
+    128
+   ],
+   "members": 247,
+   "instancedTris": 21736,
+   "sharedPositions": 1733,
+   "levels": 8,
+   "coarsestTris": 44,
+   "distWide": 2311.5,
+   "buildMs": 152,
+   "rssDeltaMB": 31,
+   "kinds": [
+    {
+     "look": "courtyard_wall",
+     "models": 247,
+     "triangles": 21736
+    }
+   ],
+   "cuts": [
+    {
+     "view": "wide",
+     "px": 0.05,
+     "errorM": 0.181,
+     "tris": 21736,
+     "across": 0,
+     "props": 247,
+     "newPlaneArea": 0
+    },
+    {
+     "view": "wide",
+     "px": 0.1,
+     "errorM": 0.362,
+     "tris": 19760,
+     "across": 0,
+     "props": 247,
+     "newPlaneArea": 0.0368
+    },
+    {
+     "view": "wide",
+     "px": 0.15,
+     "errorM": 0.543,
+     "tris": 5100,
+     "across": 18,
+     "props": 247,
+     "newPlaneArea": 0.1526
+    },
+    {
+     "view": "wide",
+     "px": 0.2,
+     "errorM": 0.724,
+     "tris": 5100,
+     "across": 18,
+     "props": 247,
+     "newPlaneArea": 0.1526
+    },
+    {
+     "view": "wide",
+     "px": 0.25,
+     "errorM": 0.905,
+     "tris": 5100,
+     "across": 18,
+     "props": 247,
+     "newPlaneArea": 0.1526
+    },
+    {
+     "view": "wide",
+     "px": 0.3,
+     "errorM": 1.086,
+     "tris": 2484,
+     "across": 0,
+     "props": 247,
+     "newPlaneArea": 0.3813
+    },
+    {
+     "view": "wide",
+     "px": 0.4,
+     "errorM": 1.448,
+     "tris": 1424,
+     "across": 0,
+     "props": 233,
+     "newPlaneArea": 0.583
+    },
+    {
+     "view": "wide",
+     "px": 0.5,
+     "errorM": 1.81,
+     "tris": 890,
+     "across": 0,
+     "props": 174,
+     "newPlaneArea": 0.5945
+    },
+    {
+     "view": "wide",
+     "px": 1,
+     "errorM": 3.62,
+     "tris": 44,
+     "across": 0,
+     "props": 15,
+     "newPlaneArea": 0.8958
+    },
+    {
+     "view": "whole map",
+     "px": 0.05,
+     "errorM": 1.527,
+     "tris": 1424,
+     "across": 0,
+     "props": 233,
+     "newPlaneArea": 0.583
+    },
+    {
+     "view": "whole map",
+     "px": 0.1,
+     "errorM": 3.054,
+     "tris": 44,
+     "across": 0,
+     "props": 15,
+     "newPlaneArea": 0.8958
+    },
+    {
+     "view": "whole map",
+     "px": 0.15,
+     "errorM": 4.58,
+     "tris": 44,
+     "across": 0,
+     "props": 15,
+     "newPlaneArea": 0.8958
+    },
+    {
+     "view": "whole map",
+     "px": 0.2,
+     "errorM": 6.107,
+     "tris": 44,
+     "across": 0,
+     "props": 15,
+     "newPlaneArea": 0.8958
+    },
+    {
+     "view": "whole map",
+     "px": 0.25,
+     "errorM": 7.634,
+     "tris": 44,
+     "across": 0,
+     "props": 15,
+     "newPlaneArea": 0.8958
+    },
+    {
+     "view": "whole map",
+     "px": 0.3,
+     "errorM": 9.161,
+     "tris": 44,
+     "across": 0,
+     "props": 15,
+     "newPlaneArea": 0.8958
+    },
+    {
+     "view": "whole map",
+     "px": 0.4,
+     "errorM": 12.214,
+     "tris": 44,
+     "across": 0,
+     "props": 15,
+     "newPlaneArea": 0.8958
+    },
+    {
+     "view": "whole map",
+     "px": 0.5,
+     "errorM": 15.268,
+     "tris": 44,
+     "across": 0,
+     "props": 15,
+     "newPlaneArea": 0.8958
+    },
+    {
+     "view": "whole map",
+     "px": 1,
+     "errorM": 30.535,
+     "tris": 44,
+     "across": 0,
+     "props": 15,
+     "newPlaneArea": 0.8958
+    }
+   ]
+  }
+ },
+ "wasm32": "crate meshopt 0.4.1 (meshoptimizer C++ via cc): compiles for wasm32-unknown-unknown, link fails on macOS (rust-lld: undefined symbol meshopt_simplify; Apple ar/ranlib writes no wasm symbol index; the build script uses llvm-ar only on Windows hosts). Native build links."
+}

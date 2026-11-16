@@ -12,11 +12,17 @@ fn detail() -> Detail {
     Detail {
         lod_px: [80.0, 40.0, 20.0],
         impostor_px: 4.0,
+        far_px: 2.0,
         shadow_caster_px: 0.0,
     }
 }
 fn asset() -> Asset {
-    let head=serde_json::to_vec(&json!({"content":{"kind":"static","states":[{"name":"default","bounds":{"min":[-2,-1,0],"max":[2,1,2]},"tiers":[{},{},{},{}]}]},"views":[]})).unwrap();
+    asset_with(presentation::view::TIERS)
+}
+/// A static asset whose one state has `meshes` meshes (five carry a far mesh).
+fn asset_with(meshes: usize) -> Asset {
+    let tiers = vec![json!({}); meshes];
+    let head=serde_json::to_vec(&json!({"content":{"kind":"static","states":[{"name":"default","bounds":{"min":[-2,-1,0],"max":[2,1,2]},"tiers":tiers}]},"views":[]})).unwrap();
     let mut bytes = Vec::new();
     for word in [0x5441_4742u32, 4, head.len() as u32, 0] {
         bytes.extend(word.to_le_bytes());
@@ -43,8 +49,8 @@ fn staged(
         [(content, asset)].into(),
     )
 }
-#[test]
-fn same_name_props_refit_new_footprints_and_paint_using_knowledge_current_at_commit() {
+/// A presentation with one crate prop drawn from four-mesh `crate-art` under `detail`.
+fn one_crate(detail: Detail) -> Presentation {
     let mut p = Presentation::new(None, 30.0).unwrap();
     let layout=json!({"propKinds":["crate"],"propAppearance":{"crate":{"drawn_by":"crate","stand_in_tint":[0.5,0.5,0.5]}},"blockingPropKinds":{"wheeled":["crate"]},"unitKinds":[],"unitAppearance":{}}).to_string();
     let mut record = vec![0.0; sim::world::export::PROP_STRIDE];
@@ -65,11 +71,12 @@ fn same_name_props_refit_new_footprints_and_paint_using_knowledge_current_at_com
                     min: [-1.0, -1.0, 0.0],
                     max: [1.0, 1.0, 2.0],
                 },
+                meshes: presentation::view::TIERS,
             }],
             wrecks: Default::default(),
             stand_in: None,
             family: None,
-            detail: detail(),
+            detail,
             dynamic: true,
         },
     )
@@ -85,6 +92,62 @@ fn same_name_props_refit_new_footprints_and_paint_using_knowledge_current_at_com
         None,
     )
     .unwrap();
+    p
+}
+
+#[test]
+fn replacing_a_props_art_with_a_far_mesh_and_back_changes_its_tier_and_keeps_what_the_side_knows() {
+    use presentation::view::{FAR, TIERS};
+    // Every size this camera sees the crate at is below tier 3's threshold
+    // and the far mesh's.
+    let mut p = one_crate(Detail {
+        far_px: 19.0,
+        ..detail()
+    });
+    let camera = presentation::view::Camera {
+        eye: [0.0, -1000.0, 300.0],
+        target: [0.0; 3],
+        up: [0.0, 0.0, 1.0],
+        fov_y: 1.0,
+        near: 0.1,
+        size: [640, 480],
+    };
+    let known: Vec<_> = serde_json::from_value(json!([{"id":10,"authoredProp":1,"kind":"crate","center":[3,0],"half":[4,2,1],"yaw":0,"baseZ":0}])).unwrap();
+    let ui = Ui {
+        known: Some(&known),
+        ..Default::default()
+    };
+    let drawn = |p: &mut Presentation| {
+        let f = p.frame(1.0, &camera, &ui, 0).unwrap();
+        f.batches
+            .iter()
+            .filter(|b| b.pass == presentation::records::VIEW_PASS)
+            .map(|b| (b.tier, f.instances[b.first as usize].placement[0]))
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(drawn(&mut p), [(3, 3.0)]);
+    let replace = |p: &mut Presentation, meshes, placements| {
+        let (wanted, facts) = staged("crate-art", asset_with(meshes));
+        let candidate = p
+            .stage_catalog(wanted, facts, detail(), placements)
+            .unwrap();
+        assert!(p.commit_catalog(candidate, Vec::new()).unwrap());
+    };
+    // New bytes under the same name and placement: the far mesh draws.
+    replace(&mut p, TIERS + 1, Default::default());
+    assert_eq!(drawn(&mut p), [(FAR as u32, 3.0)]);
+    // Placed again from four-mesh art: tier 3 again, the known crate where it was.
+    let placement: Placement = serde_json::from_value(
+        json!({"footprint":[1,1,1],"scenery":"crate","family":null,"paints":null,"wreck":null}),
+    )
+    .unwrap();
+    replace(&mut p, TIERS, [("crate-art".into(), placement)].into());
+    assert_eq!(drawn(&mut p), [(3, 3.0)]);
+}
+
+#[test]
+fn same_name_props_refit_new_footprints_and_paint_using_knowledge_current_at_commit() {
+    let mut p = one_crate(detail());
     let camera = presentation::view::Camera {
         eye: [0.0, -20.0, 15.0],
         target: [0.0; 3],

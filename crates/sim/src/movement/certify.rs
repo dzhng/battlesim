@@ -22,7 +22,7 @@ fn stand(unit: &mut Unit) {
     unit.planned_goal = None;
     unit.pursuit = None;
     unit.turn_to = None;
-    unit.manoeuvre = None;
+    unit.shunt = None;
     unit.drive_speed_mps = 0.0;
     unit.state = MoveState::Idle;
 }
@@ -243,7 +243,7 @@ fn carry(
         unit.position = rear;
         unit.yaw = yaw;
         unit.drive_speed_mps = 0.0;
-        unit.manoeuvre = None;
+        unit.shunt = None;
         unit.blocker = None;
         return true;
     }

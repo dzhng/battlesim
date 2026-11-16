@@ -1,5 +1,6 @@
 //! Build one loaded battle frame from the sampled publication.
 use super::*;
+use crate::view::Carries;
 
 impl Loaded {
     #[allow(clippy::too_many_arguments)]
@@ -148,7 +149,7 @@ impl Loaded {
                 t.position,
                 far.size,
                 far.radius,
-                false,
+                Carries::Nothing,
                 Some(shadow),
             );
             if tier == CULLED {
@@ -188,7 +189,15 @@ impl Loaded {
             }
             let at = [c.position[0], c.position[1], c.position[2] - sink];
             let size = bounds(units, name, 1 + c.lies);
-            let tier = model_detail(&detail, view, at, size.size, size.radius, true, None);
+            let tier = model_detail(
+                &detail,
+                view,
+                at,
+                size.size,
+                size.radius,
+                Carries::Card,
+                None,
+            );
             if tier == CULLED {
                 continue;
             }
@@ -236,7 +245,7 @@ impl Loaded {
                 piece.position,
                 size.size * grow,
                 size.radius * grow + moved,
-                false,
+                Carries::Nothing,
                 None,
             );
             if tier == CULLED {
@@ -279,7 +288,15 @@ impl Loaded {
             };
             let at = [g.x, g.y, g.z];
             let far = bounds(units, name, 0);
-            let tier = model_detail(&detail, view, at, far.size, far.radius, false, None);
+            let tier = model_detail(
+                &detail,
+                view,
+                at,
+                far.size,
+                far.radius,
+                Carries::Nothing,
+                None,
+            );
             if tier == CULLED {
                 continue;
             }

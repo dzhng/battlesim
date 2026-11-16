@@ -106,7 +106,7 @@ function articulatedBundle(): Uint8Array {
 test("external model admission publishes canonical joints and keeps the prior catalog after failed replacement", async () => {
   await loadPresentation();
   const scene = new ScenePresentation();
-  const detail = { lod_px: [80, 40, 20] as const, impostor_px: 4 };
+  const detail = { lod_px: [80, 40, 20] as const, impostor_px: 4, far_px: 2 };
   const camera = {
     eye: [12, -20, 30],
     target: [0, 0, 0],

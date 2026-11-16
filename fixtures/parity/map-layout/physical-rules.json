@@ -99,8 +99,8 @@
       "turn_in_place_deg": 60,
       "abeam_m": 1.5,
       "abeam_deg": 60,
-      "min_leg_m": 1,
-      "circle_margin_m": 0.5,
+      
+      
       "turning_deg": 20,
       "turn_speed_factor": 0.5
     }

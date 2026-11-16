@@ -1,7 +1,7 @@
 // Scenery: every drawn thing that is not a soldier, a vehicle or a building's
 // kit: props, trees, hedgerows, grass. Each scenery kind is a static bundle (one
-// mesh per state, four LOD tiers, instanced at draw) whose appearance entry is
-// `{unit: "scenery", scenery: "<kind>"}`.
+// mesh per state, four LOD tiers and a prop's optional far mesh, instanced at
+// draw) whose appearance entry is `{unit: "scenery", scenery: "<kind>"}`.
 //
 // This table is the art side's: a new kind of drawn thing (a grass kind per
 // biome plot, a fence) adds one row, the states its art must carry and what
@@ -42,10 +42,13 @@ export interface SceneryRule {
   /** The art is blade strips the grass field instances and bends in the
    *  wind: every tier the same blades in one layout (`grass.ts`). */
   blades?: true;
-  /** The most triangles each tier may draw, finest first. The kind is
+  /** The most triangles each tier may draw, finest first, and the far
+   *  mesh's (`FAR_TIER`) fifth where the kind's art carries one. The kind is
    *  instanced by the hundred, so its tiers are the forest's frame cost
    *  (`budget.tier_triangles`). */
-  tier_triangles?: readonly [number, number, number, number];
+  tier_triangles?:
+    | readonly [number, number, number, number]
+    | readonly [number, number, number, number, number];
   /** The one size every appearance of the kind is built to, so species
    *  differ in shape and never in size (`fit.tree_size`): its top, and its
    *  bole's radius at `breast_m` above the foot (that of a round bole of the
@@ -96,7 +99,7 @@ export const SCENERY_KINDS: Record<string, SceneryRule> = {
   // The street's bodies (fixtures/props/city/street.json), one kind per row.
   // A parked car's destroyed state is the wreck's own row.
   // Dense parking repeats this mesh across thousands of distant instances.
-  parked_car: { ...prop, tier_triangles: [8000, 3000, 800, 200] },
+  parked_car: { ...prop, tier_triangles: [8000, 3000, 800, 200, 120] },
   car_wreck: prop,
   jersey_barrier: prop,
   bollard: prop,

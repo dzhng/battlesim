@@ -64,6 +64,7 @@ pub fn detail() -> presentation::world::Detail {
     presentation::world::Detail {
         lod_px: [80., 40., 20.],
         impostor_px: 4.,
+        far_px: 2.,
         shadow_caster_px: 0.,
     }
 }

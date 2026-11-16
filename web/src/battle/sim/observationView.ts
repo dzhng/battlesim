@@ -110,8 +110,8 @@ export interface OwnUnitView {
   policy: string | null;
   /** Which way the current move drives (Q31); null without a move. */
   direction: MoveDirection | null;
-  /** Driving backwards this tick: a reverse move or a three-point turn's
-   *  reversing leg (the reverse beeper's cue). */
+  /** Driving backwards this tick: a reverse move or a shunt's reversing
+   *  leg (the reverse beeper's cue). */
   reversing: boolean;
   state: string;
   /** The friendly unit this one waits for. */

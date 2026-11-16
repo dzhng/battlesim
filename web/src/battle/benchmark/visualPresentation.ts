@@ -118,11 +118,15 @@ export interface GrassCount {
  *  (`scene-assets` `TIER_COUNT`). */
 export const TIERS = 4;
 
+/** The mesh slots a prop is counted at: the four tiers, then the far mesh
+ *  some static props carry (presentation's `view::MESH_SLOTS`). */
+export const PROP_LEVELS = 5;
+
 /** What a plate's frame drew of the buildings, the scenery and the props
  *  (the shared renderer's drawn-instance snapshot): per kit module the buildings' walk draws
  *  and tier, `module · TIERS + tier`; per population, scenery appearance (the
  *  ground's `scenery_kinds`) and tier likewise; the stumps per appearance
- *  alone; the props per appearance, at each tier. */
+ *  alone; the props per appearance, at each of its `PROP_LEVELS`. */
 export interface InstanceCount extends DrawnInstances {
   plate: string;
 }
@@ -176,7 +180,7 @@ function isDrawn(value: unknown): boolean {
       (p) =>
         hasKeys(p, ["appearance", "levels"]) &&
         text(p.appearance) &&
-        numbers(p.levels, TIERS, count),
+        numbers(p.levels, PROP_LEVELS, count),
     ) &&
     distinct(props.map((p) => p.appearance)) &&
     Array.isArray(value.buildings) &&

@@ -9,7 +9,7 @@
 //! arc is tried moved out from the corner and in toward it a metre at a
 //! time, eased into and out of with a short straight. Corners close
 //! together (a bend of short runs) are rounded as one. A corner no arc fits
-//! is left for the follower's three-point turn. Each step tries one arc, so
+//! is left for the follower to shunt round. Each step tries one arc, so
 //! rounding is counted planning work like the rest of a journey.
 use super::{Mobility, NavGrid};
 use crate::digest::Digest;
