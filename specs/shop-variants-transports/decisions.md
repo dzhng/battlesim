@@ -25,3 +25,16 @@ and are not repeated here.
 - **`Order::purchase(variant, destination)` constructor** for the no-carrier order, so call sites over the size budget didn't grow. *Sound.*
 - **Size-budget splits:** the pending row writer (`publication/pending_row.rs`), lane purchase destination (`skirmish_ai/purchase.rs`) and purchase admission moved out of their files by concept. *Sound.*
 - **Merge with staging:** `fog-sight-vectors.json` conflicted (staging re-recorded it); resolved by applying slice 1's two layout edits (pending fields + copy alignment) to staging's version. *Sound.*
+
+## Slice 4: transport menu and placement
+
+- **"Marked aboard" is the deck's seat mark before the squad's name,** and the carrier's card counts the squad in its seats (SEATS 8/8). A word "ABOARD" beside a carrier reading SEATS 0/8 contradicted itself (caught by the unprimed critique). *Sound.*
+- **A never-sold squad shows its plain info card, no menu;** an unaffordable squad still opens its menu with every option dimmed, so the player reads why. *Sound.*
+- **A ride's "+N CR" turns red when squad plus carrier exceed the credits.** The price says what decides. *Sound.*
+- **Up/Down wrap; from nothing highlighted Down goes to On foot, Up to the last ride; they are captured from the camera whenever a menu is open; Enter buys only from the search field.** *Sound.*
+- **Hover intent while a menu is open is 250 ms,** a guess carried from the old picker. *Provisional: tune on feel.*
+- **One owner for seats and squad size:** `UnitCatalog.seats(id)` and `squadSize(id)` replace inline reads (panel rows, command reach, labs). *Sound.*
+- **`purchaseCard.tsx` owns the card face, price and info card** for the shop grid, the menu and the Armory. *Sound.*
+- **Shift-click repeats the pair without a client-side re-check;** the authority refuses a pair the credits or cap can't take, as it does a single unit. *Sound: one authority.*
+- **The ghost of the purchase in hand moved beside the pending ghosts (`heldGhost`)** to keep `useBattleSession.ts` within its size ratchet; one owner for purchase ghosts. *Sound.*
+- **A pending pair is two deck cards keyed `<id>-carrier` and `<id>`.** *Sound.*
