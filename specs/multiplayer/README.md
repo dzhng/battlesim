@@ -23,7 +23,7 @@ Rust passes one or two at a time; under 5 GB, start nothing and ask the user.
 
 **Done and committed:** slices 02 to 08, 10 to 18, 20 to 26 and 28, and the
 local half of 09; the endurance half of slice 01. The branch holds staging
-as of 2026-11-16 (merge `cbff20c54`). **Rooms work end to end on a local server:** two browsers
+as of 2026-11-16 (merge `450c9740d`). **Rooms work end to end on a local server:** two browsers
 create a room, start its battle, survive a drop and finish
 ([how to run it](slices/18-room-battle.md)).
 
@@ -43,11 +43,13 @@ and promote it, and build the native simulation for the battle server.
 3. **Slice 33 is in:** six-character room codes with no guess throttle,
    one game of its own making a device, and three plain bugs fixed, by the
    user's ruling of 2026-11-16 that an alpha gets one simple limit.
-4. **Ship it.** Merge staging, run the plan's one full run (slice 27's
-   steps 1 and 2), review, put the lobby's address in
-   `apps/battle-lab/src/online/server.json`, land on staging, promote, and
-   deploy the lobby from the promoted site's commit: the lobby admits only
-   pages of its own commit. Then slice 19, the milestone.
+4. **Ship it.** Staging is merged (`450c9740d`, 2026-11-16) and the
+   lobby is deployed from that commit. The full check was started that
+   day; its log is `throwaway/multiplayer/full-check.log`, and the scene
+   suite (`bun run verify`) follows it. Then: review, push to staging, and
+   **show the user the commits that would ship before promoting** (other
+   sessions' commits ride along). Promotion checks the lobby by itself.
+   Then slice 19, the milestone.
 5. **Slice 32,** the native simulation in the battle server, to be written
    from slice 01's measurements (a native build at the `x86-64-v4` level)
    once the site is live.

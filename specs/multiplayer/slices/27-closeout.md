@@ -45,3 +45,15 @@ lives, and archived.
 ## Results
 
 Not run yet.
+
+Notes for the run (2026-11-16):
+
+- Staging's merge of that day brought buying a squad aboard a carrier. The
+  online purchase preview dropped the carrier; it now carries it (wire,
+  server, battle host), with tests.
+- Three approved result-screen pictures (`ui/report-*`) conflicted in that
+  merge and staging's were taken. They must be looked at and re-approved
+  against this branch's "YOUR SIDE" and "ENEMY" headings.
+- The `ui` scene's `menu` picture still waits on the user accepting the
+  Multiplayer tile's art.
+
