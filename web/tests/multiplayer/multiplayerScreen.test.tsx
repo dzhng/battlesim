@@ -2,7 +2,6 @@
 import { act, cleanup, fireEvent, render, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router";
-import { THROTTLE_MAX_GUESSES } from "@apps/game-server/src/rooms";
 import { roomHttp, build } from "./support/roomHttp";
 import { MultiplayerPage } from "@apps/battle-lab/src/online/MultiplayerPage";
 import { browserId, setCallsign } from "@apps/battle-lab/src/online/identity";
@@ -52,24 +51,6 @@ test("an empty list says so, then follows rooms created and changed elsewhere", 
   });
   fireEvent.click(await within(row).findByRole("button", { name: /Join/ }));
   await page.findByRole("heading", { name: "Room reached" });
-});
-test("a wrong private code stays on the list with a reason; repeated guesses say to wait", async () => {
-  const page = await open();
-  await page.findByRole("status", { name: "No public rooms" });
-  fireEvent.click(page.getByRole("button", { name: "Join private room" }));
-  fireEvent.change(page.getByRole("textbox", { name: "Room code" }), {
-    target: { value: "MISSING-0000" },
-  });
-  for (let i = 0; i <= THROTTLE_MAX_GUESSES; i++) {
-    fireEvent.click(page.getByRole("button", { name: "Enter room" }));
-    await waitFor(() =>
-      expect(page.getByRole("button", { name: "Enter room" }).hasAttribute("disabled")).toBe(false),
-    );
-    expect(page.getByRole("alert").textContent).toMatch(
-      i < THROTTLE_MAX_GUESSES ? /code.*not found/i : /wait.*try again/i,
-    );
-    expect(page.queryByRole("heading", { name: "Room reached" })).toBeNull();
-  }
 });
 test("creation reports full capacity, and public and private creation both enter the room", async () => {
   const page = await open(0);
@@ -154,7 +135,9 @@ test("a valid private code enters its room without disclosing the credential", a
   const room = await service.post("/rooms", other, { visibility: "private" });
   fireEvent.click(page.getByRole("button", { name: "Join private room" }));
   fireEvent.change(page.getByRole("textbox", { name: "Room code" }), {
-    target: { value: room.code.toLowerCase() },
+    target: {
+      value: ` ${room.code.slice(0, 2).toLowerCase()} - ${room.code.slice(2).toLowerCase()} `,
+    },
   });
   fireEvent.click(page.getByRole("button", { name: "Enter room" }));
   await page.findByRole("heading", { name: "Room reached" });

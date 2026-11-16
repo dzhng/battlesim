@@ -8,6 +8,7 @@ import {
   battleSetup,
   recordBattle,
   roomCode,
+  normalizeRoomCode,
   roomReduce,
   roomView,
   type Room,
@@ -23,16 +24,13 @@ import type { RoomAction, RoomList } from "../../../packages/multiplayer/src/wir
 import { seedFrom } from "../../../web/src/maps/source.ts";
 import { PRESENCE_GRACE_MS } from "./presence.ts";
 
-/** Bound wrong guesses before a client can search a private code's small space. */
-export const THROTTLE_MAX_GUESSES = 5;
-/** Let a mistyping client try again after a short pause. */
-export const THROTTLE_WINDOW_MS = 10_000;
 /** Reclaim a battle slot after a minute without any connected human member. */
 export const EMPTY_ROOM_TIMEOUT_MS = 60_000;
 
 type Deliver = Parameters<RecordSource["attach"]>[1];
 type StoredRoom = {
   room: Room;
+  releaseGame: () => void;
   slot: BattleSlot;
   source: RecordSource;
   idle: { cancel: () => void } | null;
@@ -47,7 +45,6 @@ export function createRoomService(options: {
   const { online } = options;
   const { clock, presence, releaseIfForgotten } = online;
   const rooms = new Map<string, StoredRoom>();
-  const guesses = new Map<string, { count: number; cancel: () => void }>();
 
   const roomList = (): RoomList => ({
     frontline: online.frontline(),
@@ -75,14 +72,22 @@ export function createRoomService(options: {
     () => ({}),
     () => publishList(),
   );
-  const publishList = () => append(listSource, roomList());
+  let lastList: string | undefined;
+  const publishList = () => {
+    const next = roomList();
+    const encoded = JSON.stringify(next);
+    if (encoded === lastList) return;
+    lastList = encoded;
+    append(listSource, next);
+  };
   const unlistenList = online.onFrontlineChanged(publishList);
 
   const remove = (code: string, reason = "room_deleted") => {
-    const stored = rooms.get(code);
+    const stored = rooms.get(normalizeRoomCode(code));
     if (!stored) return;
     stored.idle?.cancel();
-    rooms.delete(code);
+    rooms.delete(stored.room.code);
+    stored.releaseGame();
     stored.slot.release();
     stored.battle?.host.dispose();
     stored.source.end(reason);
@@ -210,10 +215,19 @@ export function createRoomService(options: {
   return {
     presence,
     battle: online.battle,
-    create(who: string, visibility: Room["visibility"]): { code: string } | RoomRefusal {
-      if (!online.slotFree()) return { refused: "full" };
+    create(
+      who: string,
+      visibility: Room["visibility"],
+      device = who,
+    ): { code: string } | RoomRefusal {
       const callsign = online.callsign(who);
       if (!callsign) return { refused: "callsign" };
+      const releaseGame = online.claimGame(device);
+      if (!releaseGame) return { refused: "game_running" };
+      if (!online.slotFree()) {
+        releaseGame();
+        return { refused: "full" };
+      }
       presence.track(who);
       let code: string;
       do {
@@ -225,6 +239,7 @@ export function createRoomService(options: {
         () => append(source, roomView(stored.room, "")),
       );
       const stored: StoredRoom = {
+        releaseGame,
         slot: online.reserve()!,
         room: createRoom(
           { who, callsign },
@@ -253,28 +268,14 @@ export function createRoomService(options: {
     roomStream(
       who: string,
       code: string,
-      address: string,
       after: number | null,
       deliver: Deliver,
     ): { close: () => void } | RoomRefusal {
-      const stored = rooms.get(code);
+      const stored = rooms.get(normalizeRoomCode(code));
       const returning = stored?.room.members.some((member) => member.who === who);
       // A resume keeps an existing membership; it must never silently join again.
       if (after !== null && !returning) return { refused: "removed" };
-      if (!returning && (guesses.get(address)?.count ?? 0) >= THROTTLE_MAX_GUESSES)
-        return { refused: "throttled" };
-      if (!stored) {
-        let guess = guesses.get(address);
-        if (!guess) {
-          guess = {
-            count: 0,
-            cancel: clock.schedule(() => guesses.delete(address), THROTTLE_WINDOW_MS),
-          };
-          guesses.set(address, guess);
-        }
-        guess.count++;
-        return { refused: "unknown" };
-      }
+      if (!stored) return { refused: "unknown" };
       const callsign = online.callsign(who);
       if (!callsign) return { refused: "callsign" };
       const joined = transition(stored, who, { kind: "join", callsign });
@@ -299,19 +300,18 @@ export function createRoomService(options: {
       };
     },
     act(who: string, code: string, action: RoomAction): { ok: true } | RoomRefusal {
-      const stored = rooms.get(code);
+      const stored = rooms.get(normalizeRoomCode(code));
       return stored ? transition(stored, who, action) : { refused: "unknown" };
     },
     dispose() {
       for (const stored of rooms.values()) {
+        stored.releaseGame();
         stored.idle?.cancel();
         stored.battle?.host.dispose();
         stored.slot.release();
         stored.source.end("disposed");
       }
-      for (const guess of guesses.values()) guess.cancel();
       rooms.clear();
-      guesses.clear();
       listSource.end("disposed");
       unsubscribe();
       unlistenList();

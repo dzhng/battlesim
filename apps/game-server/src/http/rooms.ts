@@ -1,18 +1,8 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { RoomService } from "../rooms.ts";
-import { afterId, body, json, player, stream } from "./io.ts";
+import { afterId, body, clientDevice, json, player, stream } from "./io.ts";
 import { isRoomAction } from "./input.ts";
 import { HttpRefusal } from "./seats.ts";
-
-/** The deploy boundary supplies the trusted header name, or null for a direct socket. */
-function clientAddress(request: IncomingMessage, headerName: string | null): string {
-  if (headerName !== null) {
-    const address = request.headers[headerName.toLowerCase()];
-    if (typeof address !== "string" || address.length === 0) throw new HttpRefusal(400, "address");
-    return address;
-  }
-  return request.socket.remoteAddress!;
-}
 
 export async function roomRequest(
   request: IncomingMessage,
@@ -22,6 +12,7 @@ export async function roomRequest(
   clientAddressHeader: string | null,
 ) {
   const who = player(request);
+  const device = clientDevice(request, clientAddressHeader, who);
   if (url.pathname === "/rooms") {
     if (request.method === "GET")
       return stream(response, (deliver) => rooms.listStream(who, afterId(url), deliver));
@@ -35,7 +26,7 @@ export async function roomRequest(
       (value.visibility !== "public" && value.visibility !== "private")
     )
       throw new HttpRefusal(400, "invalid");
-    const result = rooms.create(who, value.visibility);
+    const result = rooms.create(who, value.visibility, device);
     return json(response, "refused" in result ? 409 : 200, result);
   }
   const match = /^\/rooms\/([^/]+)(\/act)?$/.exec(url.pathname);
@@ -44,15 +35,13 @@ export async function roomRequest(
   if (match[2]) {
     const value = await body(request);
     if (!isRoomAction(value)) throw new HttpRefusal(400, "invalid");
-    const result = rooms.act(who, match[1], value);
+    const result = rooms.act(who, decodeURIComponent(match[1]), value);
     return json(response, "refused" in result ? 409 : 200, result);
   }
   const after = afterId(url);
-  const address = clientAddress(request, clientAddressHeader);
   return stream(response, (deliver) => {
-    const opened = rooms.roomStream(who, match[1], address, after, deliver);
-    if ("refused" in opened)
-      throw new HttpRefusal(opened.refused === "throttled" ? 429 : 409, opened.refused);
+    const opened = rooms.roomStream(who, decodeURIComponent(match[1]), after, deliver);
+    if ("refused" in opened) throw new HttpRefusal(409, opened.refused);
     return opened.close;
   });
 }

@@ -4,6 +4,11 @@ import type {
   UpBatch,
 } from "../../../../packages/multiplayer/src/wire.ts";
 
+/** Keep a whole army selectable while bounding unit-id arrays copied into the battle's history. */
+export const MAX_ORDER_UNITS = 4096;
+/** Bound each order retained by the battle, including oversized strings and extra JSON fields. */
+export const MAX_ORDER_BYTES = 32 * 1024;
+
 const object = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
 const natural = (value: unknown): value is number =>
@@ -23,7 +28,12 @@ export function isBatch(value: unknown): value is UpBatch {
         natural(item.id) &&
         typeof item.queued === "boolean" &&
         object(item.order) &&
-        typeof item.order.kind === "string",
+        typeof item.order.kind === "string" &&
+        [item.order.units, item.order.squads].reduce<number>(
+          (count, ids) => count + (Array.isArray(ids) ? ids.length : 0),
+          0,
+        ) <= MAX_ORDER_UNITS &&
+        Buffer.byteLength(JSON.stringify(item.order), "utf8") <= MAX_ORDER_BYTES,
     )
   );
 }

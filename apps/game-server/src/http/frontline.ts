@@ -1,18 +1,19 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { FrontlineService } from "../frontline.ts";
-import { json } from "./io.ts";
+import { clientDevice, json, player } from "./io.ts";
 
 export async function frontlineRequest(
   request: IncomingMessage,
   response: ServerResponse,
   url: URL,
   service: FrontlineService,
+  clientAddressHeader: string | null,
 ) {
   if (request.method !== "POST") return json(response, 405, { refused: "method" });
-  const who = request.headers["x-player"];
-  if (typeof who !== "string" || !/^[a-f0-9]{32}$/.test(who))
-    return json(response, 403, { refused: "invalid" });
-  if (url.pathname === "/frontline/join") return json(response, 200, await service.join(who));
+  const who = player(request);
+  const device = clientDevice(request, clientAddressHeader, who);
+  if (url.pathname === "/frontline/join")
+    return json(response, 200, await service.join(who, device));
   const match = /^\/frontline\/([^/]+)\/(deploy|leave)$/.exec(url.pathname);
   if (!match) return json(response, 404, { refused: "unknown" });
   return json(

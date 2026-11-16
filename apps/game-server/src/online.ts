@@ -28,6 +28,7 @@ export function createOnlineState(
   },
 ) {
   const members = new Set<Member>();
+  const devicesWithGame = new Set<string>();
   let frontline: RoomList["frontline"] = { battles: 0, commanders: 0 };
   const listListeners = new Set<() => void>();
   const slots = new Map<object, ServedBattle | null>();
@@ -51,6 +52,14 @@ export function createOnlineState(
   const battles = "machines" in options ? hostedBattles(options.machines, presence) : undefined;
   const capacity = "machines" in options ? options.machines.capacity : options.capacity;
   return {
+    /** Claimed before preparation awaits; the mode releases it only when its game is removed. */
+    claimGame(device: string): (() => void) | null {
+      if (devicesWithGame.has(device)) return null;
+      devicesWithGame.add(device);
+      return () => {
+        devicesWithGame.delete(device);
+      };
+    },
     createBattle: (candidates: BattleSetup[], id: string): BattleHost => {
       if (!battles) throw new Error("battle machines missing");
       return battles.create(candidates, id);
@@ -101,6 +110,7 @@ export function createOnlineState(
       battles?.dispose();
       presence.dispose();
       slots.clear();
+      devicesWithGame.clear();
       members.clear();
       listListeners.clear();
     },

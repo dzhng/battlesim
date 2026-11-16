@@ -80,3 +80,37 @@ The multiplayer domain; `multiplayer`, `room-lobby`, `online-battle`.
 
 The code's alphabet; the bounds on an order, as data beside their owner;
 the refusal's name and wording.
+
+## As built (2026-11-16)
+
+The shared room model owns six-character generation and typed-code
+normalisation; page and server both consume it. Codes are shareable ids, with
+no guessing counter, timer or refusal. The alphabet avoids the common
+letter/digit lookalikes; no old-link compatibility remains.
+
+HTTP IO owns device identity from the configured address header or browser id.
+Shared online state owns one creation claim per device. Rooms claim on creation;
+Frontline claims only when Play must make a game, before preparation awaits.
+Joining and resuming do not claim. The creating device keeps its claim through
+host succession and departure until removal; finish, crash, empty-game cleanup,
+timeouts and failed preparation release it. `game_running` reads "You already
+have a game running." on either Multiplayer action.
+
+Room settings use the map generator's canonical seed admission. HTTP input
+bounds order bytes and unit references, including collect squads; the seat
+transport uses the existing per-window allowance to bound batch length. An
+invalid batch never reaches the battle. A new seat occupant gets a fresh
+sequence cache and allowances; a reconnecting occupant keeps theirs. The battle
+and its simulation rules are unchanged.
+
+The room-list publisher appends only changed public snapshots. Room-only facts,
+identical settings and private-room actions do not republish the list; opening
+a stream still supplies its current state.
+
+Verification receipts and remaining visual gates are in the ignored
+`throwaway/multiplayer/slice33-report.md`. The domain run had 318 passes and one preparation timeout; that test passed
+alone with its watchdog unchanged. Final focused checks passed. GPU scenes
+were not started because the shared GPU lock was already held; it was neither
+waited on nor changed. Isolated real-component captures of the field and both
+refusal locations were inspected at 1280×720 and received an unprimed critique;
+these do not substitute for the pending GPU scenes.

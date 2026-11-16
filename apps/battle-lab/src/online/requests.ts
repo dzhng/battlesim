@@ -26,12 +26,12 @@ export function roomFailure(error: unknown): string {
     switch (error.reason) {
       case "removed":
         return "You are no longer in that room.";
+      case "game_running":
+        return "You already have a game running.";
       case "full":
         return "The servers are full. Try again later.";
       case "unknown":
         return "Room code not found. Check it and try again.";
-      case "throttled":
-        return "Too many guesses. Wait a moment and try again.";
       case "no_open_seat":
         return "That room has no open seats.";
       case "started":

@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { createBattleServer } from "../../../apps/game-server/src/http/control";
 import { CONTROL_HEADER } from "../../../apps/game-server/src/http/controlProtocol";
+import { MAX_ORDER_UNITS, MAX_ORDER_BYTES } from "../../../apps/game-server/src/http/input";
 import { battleRoute } from "../../../apps/game-server/src/http/seats";
 import { createBattleHost, type BattleClock } from "../../../apps/game-server/src/battleHost/index";
 import { nodeSetupData } from "../../../apps/game-server/src/serverData";
@@ -452,7 +453,7 @@ test("the online client decodes a real loopback battle, survives visibility chan
       expect(action in client).toBe(false);
     // A rate refusal rejects this action rather than fabricating an ack or
     // failing the battle; a later command still gets a real simulation ack.
-    const flood = Array.from({ length: b.ordersPerSecond + 1 }, () =>
+    const flood = Array.from({ length: b.ordersPerSecond }, () =>
       client.command({ kind: "ready" }),
     );
     expect(
@@ -505,4 +506,124 @@ test("a reservation for a seat the host does not have gets an honest HTTP refusa
       })
     ).json(),
   ).toMatchObject({ results: [{ ack: { error: null } }] });
+});
+
+test("a replacement seat occupant starts with a fresh sequence and allowance; the same occupant keeps theirs", async () => {
+  const b = await serving();
+  const items = Array.from({ length: b.ordersPerSecond }, (_, id) => ({
+    id,
+    queued: false,
+    order: { kind: "not-an-order" },
+  }));
+  const batch = { seq: Number.MAX_SAFE_INTEGER - 1, items };
+  const first = await (await b.request("/battles/duel/up", batch)).json();
+  expect(first).toEqual({ seq: batch.seq, refused: "invalid" });
+  await b.control("seating", [
+    [blueId, b.seats.get(blueId)],
+    [redId, b.seats.get(redId)],
+  ]);
+  expect(await (await b.request("/battles/duel/up", batch)).json()).toEqual(first);
+  expect(
+    await (
+      await b.request("/battles/duel/up", {
+        seq: batch.seq + 1,
+        items: [{ id: 1, queued: false, order: { kind: "ready" } }],
+      })
+    ).json(),
+  ).toEqual({ seq: batch.seq + 1, refused: "rate" });
+  const before = JSON.parse(await b.host.replay()).accepted;
+  const ready = [{ id: 1, queued: false, order: { kind: "ready" } }];
+  const newcomer = "3".repeat(32);
+  // A new occupant need not send a request to make the old occupant's state obsolete.
+  await b.control("seating", [
+    [newcomer, b.seats.get(blueId)],
+    [redId, b.seats.get(redId)],
+  ]);
+  await b.control("seating", [
+    [blueId, b.seats.get(blueId)],
+    [redId, b.seats.get(redId)],
+  ]);
+  const next = await (await b.request("/battles/duel/up", { seq: 1, items: ready })).json();
+  expect(next.results?.[0].ack.error).toBeNull();
+  expect(next.results[0].ack.applied_tick).toBeGreaterThan(0);
+  expect(JSON.parse(await b.host.replay()).accepted).toHaveLength(before.length + 1);
+  await b.control("seating", [
+    [newcomer, b.seats.get(blueId)],
+    [redId, b.seats.get(redId)],
+  ]);
+  const replacement = await (
+    await b.request("/battles/duel/up", { seq: 1, items: ready }, newcomer)
+  ).json();
+  expect(replacement.results?.[0].ack.error).toBeNull();
+});
+
+test("oversized orders and batches are invalid before recording, and both seats keep playing", async () => {
+  const b = await serving();
+  const before = await b.host.replay();
+  const item = (order: unknown, id = 1) => ({ id, order, queued: false });
+  const attacks = [
+    [item({ kind: "stop", units: Array(MAX_ORDER_UNITS + 1).fill(1) })],
+    [item({ kind: "collect", units: [], squads: Array(MAX_ORDER_UNITS + 1).fill(1), gesture: 1 })],
+    [item({ kind: "ready", padding: "x".repeat(MAX_ORDER_BYTES) })],
+    Array.from({ length: b.ordersPerSecond + 1 }, (_, id) => item({ kind: "ready" }, id)),
+  ];
+  let seq = 0;
+  for (const items of attacks) {
+    const reply = await (await b.request("/battles/duel/up", { seq: ++seq, items })).json();
+    expect(reply.refused).toBe("invalid");
+    expect(await b.host.replay()).toBe(before);
+  }
+  // The admitted maximum represents more than a whole army. It reaches the
+  // simulation; absent unit ids are the simulation's decision, not a transport refusal.
+  const wholeArmy = await (
+    await b.request("/battles/duel/up", {
+      seq: ++seq,
+      items: [
+        item({ kind: "stop", units: Array.from({ length: MAX_ORDER_UNITS }, (_, i) => i + 1) }),
+      ],
+    })
+  ).json();
+  expect(wholeArmy.results).toHaveLength(1);
+  for (const id of [blueId, redId]) {
+    const reply = await (
+      await b.request("/battles/duel/up", { seq: ++seq, items: [item({ kind: "ready" })] }, id)
+    ).json();
+    expect(reply.results[0].ack.error).toBeNull();
+  }
+  const { nodeCatalogSet } = await import("../../src/battle/catalog/node");
+  const cards = (await nodeCatalogSet("game", root)).units.view.cards.filter(
+    (c) => c.disabled_reason === null,
+  );
+  let bought = false;
+  for (const card of cards) {
+    const reply = await (
+      await b.request("/battles/duel/up", {
+        seq: ++seq,
+        items: [item({ kind: "confirm_purchase", variant: card.id, destination: [0, 0] })],
+      })
+    ).json();
+    if (reply.results[0].ack.error === null) {
+      bought = true;
+      break;
+    }
+    await b.run(b.ready.tickHz + 1);
+  }
+  expect(bought).toBe(true);
+  const { loadPresentation } = await import("../../src/battle/sim/presentation");
+  await loadPresentation();
+  const { seat } = await import("./support/battle");
+  const watching = seat(b, { side: "blue", player: "blue-1" }).read();
+  for (let i = 0; i < 2000 && !watching.latest?.own.length; i++) await b.run(1);
+  const army = watching.latest!.own.map((unit) => unit.id);
+  expect(army.length).toBeGreaterThan(0);
+  const selected = await (
+    await b.request("/battles/duel/up", {
+      seq: ++seq,
+      items: [item({ kind: "stop", units: army })],
+    })
+  ).json();
+  expect(selected.results[0].ack.error).toBeNull();
+  const tick = (await b.host.referee()).tick;
+  await b.run(5);
+  expect((await b.host.referee()).tick).toBeGreaterThan(tick);
 });

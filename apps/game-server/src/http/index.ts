@@ -68,7 +68,7 @@ export function createLobbyHttp(build: BuildIdentity, options: OnlineHttpOptions
     if (url.pathname === "/rooms" || url.pathname.startsWith("/rooms/"))
       return roomRequest(request, response, url, rooms, options.clientAddressHeader);
     if (url.pathname.startsWith("/frontline/"))
-      return frontlineRequest(request, response, url, frontline);
+      return frontlineRequest(request, response, url, frontline, options.clientAddressHeader);
     json(response, 404, { refused: "unknown" });
   }
 }

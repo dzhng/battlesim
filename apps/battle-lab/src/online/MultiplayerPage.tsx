@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
+import { normalizeRoomCode } from "@packages/multiplayer/src/room";
 import type { RoomList } from "@packages/multiplayer/src/wire";
 import { spoken } from "../battleLinks";
 import { PageHead } from "../menu/PageHead";
@@ -152,7 +153,7 @@ export function MultiplayerPage() {
                 className="online-room-tools"
                 onSubmit={(event) => {
                   event.preventDefault();
-                  void enter(code.trim().toUpperCase());
+                  void enter(normalizeRoomCode(code));
                 }}
               >
                 <label>
@@ -164,7 +165,7 @@ export function MultiplayerPage() {
                     autoFocus
                   />
                 </label>
-                <button type="submit" disabled={busy || !code.trim()}>
+                <button type="submit" disabled={busy || !normalizeRoomCode(code)}>
                   Enter room
                 </button>
               </form>

@@ -24,6 +24,7 @@ type Reservation = {
   opening: boolean;
 };
 type Game = {
+  releaseGame: () => void;
   setup: BattleSetup;
   host: BattleHost;
   slot: BattleSlot;
@@ -38,7 +39,7 @@ type Game = {
 
 /** `full`: no battle slot is free. `unavailable`: no battlefield could be
  *  made just now. `callsign`: the caller has not said hello. */
-type JoinRefusal = "full" | "unavailable" | "callsign";
+type JoinRefusal = "full" | "unavailable" | "callsign" | "game_running";
 
 export function createFrontlineService(options: {
   /** How many maps a new game may draw before giving up. */
@@ -72,6 +73,7 @@ export function createFrontlineService(options: {
   const player = (g: Game, index: number) => g.setup.seats[index].player;
   const remove = (g: Game) => {
     if (!games.delete(g.view.battle)) return;
+    g.releaseGame();
     publishCounts();
     g.cancel();
     g.slot.release();
@@ -234,7 +236,7 @@ export function createFrontlineService(options: {
 
   return {
     battle: online.battle,
-    join(who: string): Promise<Briefing | { refused: JoinRefusal }> {
+    join(who: string, device = who): Promise<Briefing | { refused: JoinRefusal }> {
       admitting.set(who, (admitting.get(who) ?? 0) + 1);
       return serial<Briefing | { refused: JoinRefusal }>(async () => {
         if (!online.callsign(who)) return { refused: "callsign" };
@@ -261,8 +263,13 @@ export function createFrontlineService(options: {
           options.random,
           online.slotFree(),
         );
-        if ("full" in placement) return { refused: "full" };
-        if ("create" in placement) {
+        if ("full" in placement || "create" in placement) {
+          const releaseGame = online.claimGame(device);
+          if (!releaseGame) return { refused: "game_running" };
+          if ("full" in placement) {
+            releaseGame();
+            return { refused: "full" };
+          }
           const slot = online.reserve()!;
           let host: BattleHost | undefined;
           try {
@@ -280,11 +287,13 @@ export function createFrontlineService(options: {
             if (disposed) {
               host.dispose();
               slot.release();
+              releaseGame();
               return { refused: "unavailable" };
             }
             const { setup, view, index } = drawn.draws[ready.candidate];
             const referee = await host.referee();
             const g: Game = {
+              releaseGame,
               setup,
               host,
               slot,
@@ -317,6 +326,7 @@ export function createFrontlineService(options: {
             reserve(g, who, index, "initial", true);
             return briefing(g, index, true);
           } catch (error) {
+            releaseGame();
             host?.dispose();
             slot.release();
             return { refused: error instanceof MachineUnavailable ? "full" : "unavailable" };

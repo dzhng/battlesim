@@ -21,7 +21,7 @@ export type Handlers = {
   preview: Parameters<SeatPort["onPreview"]>[0];
 };
 
-/** One cache and allowance per actual seat, shared by all its sockets.
+/** One cache and allowance per seat occupant, shared by all their sockets.
  * `seatOf` is whoever knows which browser sits where: it is asked on every
  * request, so a seat may change hands while the battle runs. A credential
  * is never copied into a reply. */
@@ -31,16 +31,24 @@ export function battleRoute(
   ordersPerSecond: number,
   now: () => number = () => performance.now(),
 ) {
-  const ports = new Map<string, Handlers>();
+  const ports = new Map<string, { who: string; handlers: Handlers }>();
   return {
+    /** Absence preserves a returning occupant; a different occupant retires their transport. */
+    seating(entries: [string, Seat][]) {
+      for (const [who, seat] of entries) {
+        const key = `${seat.side}/${seat.player}`;
+        const previous = ports.get(key);
+        if (previous && previous.who !== who) ports.delete(key);
+      }
+    },
     seat(browserId: string): Handlers | undefined {
       const seat = seatOf(browserId);
       if (!seat) return;
       const key = `${seat.side}/${seat.player}`;
       const existing = ports.get(key);
-      if (existing) return existing;
+      if (existing?.who === browserId) return existing.handlers;
       const handlers = limited(seatHandlers(host, seat), ordersPerSecond, now);
-      ports.set(key, handlers);
+      ports.set(key, { who: browserId, handlers });
       return handlers;
     },
   };
@@ -56,6 +64,8 @@ function limited(port: Handlers, ordersPerSecond: number, now: () => number): Ha
   return {
     reader: port.reader,
     up(batch) {
+      if (batch.items.length > ordersPerSecond)
+        return Promise.resolve({ seq: batch.seq, refused: "invalid" });
       if (last?.seq === batch.seq) return last.reply;
       if ((last && batch.seq < last.seq) || pending) throw new HttpRefusal(409, "sequence");
       const at = now();

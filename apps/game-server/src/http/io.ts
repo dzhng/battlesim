@@ -33,6 +33,17 @@ export function player(request: IncomingMessage): string {
   if (typeof id !== "string" || !/^[a-f0-9]{32}$/.test(id)) throw new HttpRefusal(403, "invalid");
   return id;
 }
+/** Only the configured proxy header defines a device; direct lobbies use the browser id. */
+export function clientDevice(
+  request: IncomingMessage,
+  headerName: string | null,
+  who: string,
+): string {
+  if (headerName === null) return who;
+  const address = request.headers[headerName.toLowerCase()];
+  if (typeof address !== "string" || address.length === 0) throw new HttpRefusal(400, "address");
+  return address;
+}
 export function afterId(url: URL): number | null {
   const parameter = url.searchParams.get("after");
   if (parameter === null) return null;

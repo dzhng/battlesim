@@ -55,7 +55,7 @@ async function room() {
   const code = made.code;
   function open(who: string) {
     const records: StreamRecord[] = [];
-    const stream = service.roomStream(who, code, "local", null, (r) => {
+    const stream = service.roomStream(who, code, null, (r) => {
       records.push(r);
       return true;
     });
@@ -120,7 +120,7 @@ test("Start unlists and locks the room; each member receives only their own comp
   const [a, g] = [ticket(r.alpha.view()), ticket(r.bravo.view())];
   expect(ticket(r.open("bravo").view())).toEqual(g);
   expect(r.list.at(-1)).toEqual({ rooms: [], frontline: { battles: 0, commanders: 0 } });
-  expect(r.service.roomStream("stranger", r.code, "other", null, () => true)).toEqual({
+  expect(r.service.roomStream("stranger", r.code, null, () => true)).toEqual({
     refused: "started",
   });
   expect(a).toMatchObject({
@@ -190,7 +190,7 @@ test("one presence grace hands a dropped army to AI; returning reclaims it and r
   expect(commandsArmy(aiOrders)).toBe(true);
   const returned = r.open("alpha");
   expect(ticket(returned.view())).toEqual(a);
-  expect(r.service.roomStream("stranger", r.code, "other", null, () => true)).toEqual({
+  expect(r.service.roomStream("stranger", r.code, null, () => true)).toEqual({
     refused: "started",
   });
   expect((await alpha.order({ kind: "stop", units: [unit] })).error).toBeNull();
@@ -255,7 +255,7 @@ test("a crashed battle ends every room stream, deletes the battle and frees its 
   for (const member of [r.alpha, r.bravo])
     expect(readJson(member.records.at(-1)!)).toEqual({ reason: "battle_failed" });
   expect(r.service.battle(id)).toBeUndefined();
-  expect(r.service.roomStream("alpha", r.code, "local", null, () => true)).toEqual({
+  expect(r.service.roomStream("alpha", r.code, null, () => true)).toEqual({
     refused: "unknown",
   });
   expect(r.service.create("stranger", "public")).toEqual({ code: expect.any(String) });
@@ -349,7 +349,7 @@ test("normal skirmish victory publishes the final result to both seats, ends eac
   }
   for (const member of [r.alpha, r.bravo])
     expect(readJson(member.records.at(-1)!)).toEqual({ reason: "battle_finished" });
-  expect(r.service.roomStream("alpha", r.code, "local", null, () => true)).toEqual({
+  expect(r.service.roomStream("alpha", r.code, null, () => true)).toEqual({
     refused: "unknown",
   });
   expect(r.service.battle(a.battle)).toBeUndefined();
@@ -385,7 +385,7 @@ test("a room whose map fails preparation closes honestly and releases its capaci
   const made = service.create("alpha", "public");
   if ("refused" in made) throw new Error(made.refused);
   const records: StreamRecord[] = [];
-  const stream = service.roomStream("alpha", made.code, "local", null, (r) => {
+  const stream = service.roomStream("alpha", made.code, null, (r) => {
     records.push(r);
     return true;
   });

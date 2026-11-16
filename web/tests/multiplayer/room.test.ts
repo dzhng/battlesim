@@ -5,6 +5,7 @@ import {
   canStart,
   createRoom,
   roomCode,
+  ROOM_CODE_ALPHABET,
   recordBattle,
   roomReduce,
   roomView,
@@ -276,9 +277,9 @@ test("room setup and its lobby round trip produce one battle request", () => {
   expect(setup.seats.map((seat) => seat.player)).toEqual(["blue-1", "red-1"]);
 });
 
-test("a room code has a word and four digits", () => {
-  expect(roomCode(() => 0)).toMatch(/^ALFA-\d{4}$/);
-  expect(roomCode(() => 0.999999)).toMatch(/^ZULU-\d{4}$/);
+test("a room code has six unambiguous characters at either end of the draw", () => {
+  expect(roomCode(() => 0)).toBe(ROOM_CODE_ALPHABET[0].repeat(6));
+  expect(roomCode(() => 0.999999)).toBe(ROOM_CODE_ALPHABET.at(-1)!.repeat(6));
 });
 
 test("open seats disappear from a battle setup", () => {

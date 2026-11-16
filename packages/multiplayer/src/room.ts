@@ -13,6 +13,7 @@ import {
 } from "../../skirmish-setup/src/lobby";
 import { FACTIONS, type Faction } from "../../scene-assets/src/units";
 import {
+  canonicalSeed,
   MAP_REGIONS,
   MAP_SIZES,
   MAP_TYPES,
@@ -63,44 +64,25 @@ export interface Room {
 export type RoomRefusal = { refused: string };
 export type RoomRequest = RoomAction | { kind: "join"; callsign: string };
 const SIDES = ["blue", "red"] as const;
-const WORDS = [
-  "ALFA",
-  "BRAVO",
-  "CHARLIE",
-  "DELTA",
-  "ECHO",
-  "FOXTROT",
-  "GOLF",
-  "HOTEL",
-  "INDIA",
-  "JULIETT",
-  "KILO",
-  "LIMA",
-  "MIKE",
-  "NOVEMBER",
-  "OSCAR",
-  "PAPA",
-  "QUEBEC",
-  "ROMEO",
-  "SIERRA",
-  "TANGO",
-  "UNIFORM",
-  "VICTOR",
-  "WHISKEY",
-  "XRAY",
-  "YANKEE",
-  "ZULU",
-] as const;
+/** Omit ambiguous letters/digits even when a code is read in lower case. */
+export const ROOM_CODE_ALPHABET = "ACDEFHJKMNPRTUVWXY347";
+export function normalizeRoomCode(text: string): RoomCode {
+  return text.replace(/[\s-]/g, "").toUpperCase();
+}
 function isKnownLighting(value: unknown): value is string {
   return ["random", presentation.light_preset, ...Object.keys(presentation.light_presets)].includes(
     value as string,
   );
 }
 
-/** A room id is both its private password and its shareable link. */
+/** A short shareable room id; knowing it is enough to join. */
 export function roomCode(random: () => number): RoomCode {
-  const draw = (size: number) => Math.min(size - 1, Math.max(0, Math.floor(random() * size)));
-  return `${WORDS[draw(WORDS.length)]}-${draw(10_000).toString().padStart(4, "0")}`;
+  const draw = () =>
+    Math.min(
+      ROOM_CODE_ALPHABET.length - 1,
+      Math.max(0, Math.floor(random() * ROOM_CODE_ALPHABET.length)),
+    );
+  return Array.from({ length: 6 }, () => ROOM_CODE_ALPHABET[draw()]).join("");
 }
 
 /** A new room: a 1v1 on the map `seed` makes, its host on Blue and Red's
@@ -185,7 +167,8 @@ function validateMap(value: unknown): RoomRefusal | null {
   if (map.size !== undefined && !isKnownMapSize(map.size)) return refusal("unknown map size");
   if (map.region !== undefined && map.region !== null && !MAP_REGIONS.includes(map.region))
     return refusal("unknown map region");
-  if (map.seed !== undefined && typeof map.seed !== "string") return refusal("unknown map seed");
+  if (map.seed !== undefined && (typeof map.seed !== "string" || canonicalSeed(map.seed) === null))
+    return refusal("unknown map seed");
   return null;
 }
 
@@ -227,7 +210,7 @@ function applySettings(room: Room, patch: RoomSettingsPatch): Room | RoomRefusal
   if (map?.size !== undefined) lobby = setSize(lobby, map.size);
   if (map && Object.hasOwn(map, "region"))
     lobby = setRegion(lobby, map.region === null ? undefined : map.region);
-  if (map?.seed !== undefined) lobby = reroll(lobby, map.seed);
+  if (map?.seed !== undefined) lobby = reroll(lobby, canonicalSeed(map.seed)!);
   if (patch.lighting !== undefined) lobby = setLighting(lobby, patch.lighting);
   return { ...room, lobby };
 }

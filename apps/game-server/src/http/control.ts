@@ -115,6 +115,7 @@ export function createBattleServer(options: {
         }
         case "/control/seating": {
           const entries = (await body(request)) as [string, Seat][];
+          players?.seating(entries);
           seating.clear();
           for (const [who, seat] of entries) seating.set(who, seat);
           return json(response, 200, { ok: true });

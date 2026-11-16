@@ -78,7 +78,12 @@ test("the deploy dry run lists its complete release and its hosted entry seats a
       return (
         await fetch(`${address}${path}`, {
           method: "POST",
-          headers: { "X-Player": who, "Content-Type": "application/json" },
+          // As the host's proxy states each client's address.
+          headers: {
+            "X-Player": who,
+            "Content-Type": "application/json",
+            [settings.clientAddressHeader]: "198.51.100.7",
+          },
           body: JSON.stringify(body),
         })
       ).json();
@@ -94,14 +99,17 @@ test("the deploy dry run lists its complete release and its hosted entry seats a
       { kind: "start" },
     ])
       expect(await post(`/rooms/${code}/act`, act)).toEqual({ ok: true });
-    // The hosted lobby sits behind the host's proxy, which states each
-    // client's address; a request that reached it without one is refused.
-    await expect(
-      (async () => {
-        for await (const _ of httpRecords(`${lobby!.address}/rooms/${code}`, who, abort.signal))
-          break;
-      })(),
-    ).rejects.toThrow();
+    // A request that reached the hosted lobby without the proxy's word on
+    // who sent it is refused rather than counted against nobody.
+    expect(
+      (
+        await fetch(`${lobby.address}/rooms`, {
+          method: "POST",
+          headers: { "X-Player": who, "Content-Type": "application/json" },
+          body: JSON.stringify({ visibility: "private" }),
+        })
+      ).status,
+    ).toBe(400);
     const proxied = { "X-Player": who, [settings.clientAddressHeader]: "198.51.100.7" };
     for await (const record of httpRecords(
       `${lobby.address}/rooms/${code}`,

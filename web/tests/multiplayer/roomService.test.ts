@@ -7,12 +7,7 @@ import {
 import { pendingBattle } from "./support/pendingBattle";
 // @vitest-environment node
 import { afterEach, expect, test, vi } from "vitest";
-import {
-  EMPTY_ROOM_TIMEOUT_MS,
-  THROTTLE_MAX_GUESSES,
-  THROTTLE_WINDOW_MS,
-  createRoomService,
-} from "../../../apps/game-server/src/rooms";
+import { EMPTY_ROOM_TIMEOUT_MS, createRoomService } from "../../../apps/game-server/src/rooms";
 import { PRESENCE_GRACE_MS, type PresenceClock } from "../../../apps/game-server/src/presence";
 import { helloRegistry } from "../../../apps/game-server/src/http/hello";
 import { createLobbyHttp } from "../../../apps/game-server/src/http/index";
@@ -71,9 +66,9 @@ function setup(capacity = 3) {
   cleanup.push(service.dispose);
   const made = service.create("alpha", "public");
   if ("refused" in made) throw new Error(made.refused);
-  const open = (who: string, code = made.code, after: number | null = null, address = "client") => {
+  const open = (who: string, code = made.code, after: number | null = null) => {
     const records: StreamRecord[] = [];
-    const opened = service.roomStream(who, code, address, after, (record) => {
+    const opened = service.roomStream(who, code, after, (record) => {
       records.push(record);
       return true;
     });
@@ -103,7 +98,7 @@ test("each new room opens on a map of its own", () => {
     const made = service.create(who, "public");
     if ("refused" in made) throw new Error(made.refused);
     let view: RoomView | undefined;
-    const opened = service.roomStream(who, made.code, "client", null, (record) => {
+    const opened = service.roomStream(who, made.code, null, (record) => {
       if (record.kind === "state") view = readJson<RoomView>(record);
       return true;
     });
@@ -167,7 +162,7 @@ test("the list publishes a public lobby and removes it on start while a private 
   const reopened = open("alpha", code, host.records.at(-1)!.id);
   expect(reopened.states().at(-1)?.you).toBe(host.states().at(-1)?.you);
   expect(reopened.states().at(-1)?.phase).toEqual({ kind: "starting" });
-  expect(service.roomStream("newcomer", code, "another", null, () => true)).toEqual({
+  expect(service.roomStream("newcomer", code, null, () => true)).toEqual({
     refused: "started",
   });
   host.close();
@@ -231,7 +226,7 @@ test.each([false, true])(
     expect(service.create("another", "public")).toEqual({ refused: "full" });
     clock.advance(1);
     expect(lists().at(-1)).toEqual({ rooms: [], frontline: { battles: 0, commanders: 0 } });
-    expect(service.roomStream("alpha", code, "address", null, () => true)).toEqual({
+    expect(service.roomStream("alpha", code, null, () => true)).toEqual({
       refused: "unknown",
     });
     const next = service.create("another", "public");
@@ -250,43 +245,6 @@ test("capacity is bounded by both the machine's spare cores and its battle memor
   expect(battleCapacity(3, BYTES_PER_BATTLE * 20)).toBe(2);
   expect(battleCapacity(1, BYTES_PER_BATTLE * 20)).toBe(0);
   expect(battleCapacity(8, BYTES_PER_BATTLE / 2)).toBe(0);
-});
-
-test("wrong code guesses throttle one address, another can still join, and the throttle expires", () => {
-  const { service, clock, open } = setup();
-  const made = service.create("private-host", "private");
-  if ("refused" in made) throw new Error(made.refused);
-  for (let i = 0; i < THROTTLE_MAX_GUESSES; i++) {
-    expect(
-      service.roomStream(`rotated-${i}`, "WRONG-CODE", "guessing-address", null, () => true),
-    ).toEqual({ refused: "unknown" });
-  }
-  expect(
-    service.roomStream("outsider", "WRONG-CODE", "guessing-address", null, () => true),
-  ).toEqual({ refused: "throttled" });
-  expect(service.roomStream("outsider", made.code, "guessing-address", null, () => true)).toEqual({
-    refused: "throttled",
-  });
-  const owner = open("private-host", made.code);
-  const other = open("other", made.code, null, "other-address");
-  expect(
-    other
-      .states()
-      .at(-1)
-      ?.seats.find((seat) => seat.id === other.states().at(-1)?.you)?.occupant,
-  ).toMatchObject({ callsign: "OTHER" });
-  expect(service.act("other", made.code, { kind: "leave" })).toEqual({ ok: true });
-  other.close();
-  clock.advance(THROTTLE_WINDOW_MS);
-  const allowed = open("outsider", made.code, null, "guessing-address");
-  expect(
-    allowed
-      .states()
-      .at(-1)
-      ?.seats.find((seat) => seat.id === allowed.states().at(-1)?.you)?.occupant,
-  ).toMatchObject({ callsign: "OUTSIDER" });
-  owner.close();
-  allowed.close();
 });
 
 const build: BuildIdentity = { data: "test-commit", wire: "test-commit", sim: "test-sim" };
@@ -448,54 +406,20 @@ test("localhost routes create, list, join and act; both streams update from thei
   expect(spies.flatMap((spy) => spy.mock.calls)).toEqual([]);
 });
 
-test.each([null, "X-Trusted-Client"])(
-  "HTTP code throttling uses the configured address boundary (%s)",
-  async (header) => {
-    const http = await serving(header);
-    await http.hello(ids[0], "HOST");
-    await http.hello(ids[1], "GUEST");
-    const guestList = await http.open("/rooms", ids[1]);
-    await guestList.state();
-    const { code } = await http.reply("/rooms", { visibility: "private" });
-    const from = (address: string) => ({ "X-Trusted-Client": address });
-    const owner = await http.open(`/rooms/${code}`, ids[0], from("owner"));
-    await owner.state();
-    for (let i = 0; i < THROTTLE_MAX_GUESSES; i++) {
-      expect(
-        await http.reply(
-          "/rooms/WRONG-CODE",
-          undefined,
-          i.toString(16).padStart(32, "0"),
-          from("guesser"),
-        ),
-      ).toEqual({ refused: "unknown" });
-    }
-    const blocked = await http.request("/rooms/WRONG-CODE", undefined, ids[1], from("guesser"));
-    expect(blocked.status).toBe(429);
-    expect(await blocked.json()).toEqual({ refused: "throttled" });
-    if (header) {
-      expect(await http.reply(`/rooms/${code}`, undefined, ids[1])).toEqual({ refused: "address" });
-      const other = await http.open(`/rooms/${code}`, ids[1], from("other-address"));
-      expect(
-        (await other.state<RoomView>()).seats.some(
-          (seat) => seat.occupant.kind === "human" && seat.occupant.callsign === "GUEST",
-        ),
-      ).toBe(true);
-    } else {
-      // An unconfigured, caller-supplied header cannot split the socket's allowance.
-      expect(
-        await http.reply(`/rooms/${code}`, undefined, ids[1], from("spoofed-address")),
-      ).toEqual({ refused: "throttled" });
-      http.clock.advance(THROTTLE_WINDOW_MS);
-      const allowed = await http.open(`/rooms/${code}`, ids[1], from("spoofed-address"));
-      expect(
-        (await allowed.state<RoomView>()).seats.some(
-          (seat) => seat.occupant.kind === "human" && seat.occupant.callsign === "GUEST",
-        ),
-      ).toBe(true);
-    }
-  },
-);
+test("HTTP typed codes ignore case, spaces and dashes, and guesses never block a later join", async () => {
+  const http = await serving();
+  await http.hello(ids[0], "HOST");
+  await http.hello(ids[1], "GUEST");
+  const { code } = await http.reply("/rooms", { visibility: "private" });
+  expect(code).toHaveLength(6);
+  for (let i = 0; i < 40; i++)
+    expect(await http.reply("/rooms/WRONG", undefined, ids[1])).toEqual({ refused: "unknown" });
+  const typed = ` ${code.slice(0, 2).toLowerCase()} - ${code.slice(2).toLowerCase()} `;
+  const guest = await http.open(`/rooms/${encodeURIComponent(typed)}`, ids[1]);
+  const view = await guest.state<RoomView>();
+  expect(view.code).toBe(code);
+  expect(view.seats.find((s) => s.id === view.you)?.occupant).toMatchObject({ callsign: "GUEST" });
+});
 
 test("hello names are released when a browser without any stream has been forgotten by its lobby", async () => {
   const http = await serving();
@@ -524,10 +448,10 @@ test("a callsign stays reserved while a started room remembers its gone member, 
   cleanup.push(service.dispose);
   expect(hello(ids[0], { build, callsign: "SCOUT" })).toEqual({ callsign: "SCOUT" });
   const first = service.create(ids[0], "public");
-  const second = service.create(ids[0], "private");
+  const second = service.create(ids[0], "private", "second-device");
   if ("refused" in first || "refused" in second) throw new Error("creation refused");
   const view: RoomView[] = [];
-  const open = service.roomStream(ids[0], second.code, "address", null, (record) => {
+  const open = service.roomStream(ids[0], second.code, null, (record) => {
     if (record.kind === "state") view.push(readJson<RoomView>(record));
     return true;
   });
@@ -543,4 +467,47 @@ test("a callsign stays reserved while a started room remembers its gone member, 
   expect(hello(ids[1], { build, callsign: "SCOUT" })).toEqual({ callsign: "SCOUT#2" });
   clock.advance(EMPTY_ROOM_TIMEOUT_MS - PRESENCE_GRACE_MS);
   expect(hello(ids[2], { build, callsign: "SCOUT" })).toEqual({ callsign: "SCOUT" });
+});
+
+test("HTTP refuses a non-seed before it can become public map settings", async () => {
+  const http = await serving();
+  await http.hello(ids[0], "HOST");
+  const { code } = await http.reply("/rooms", { visibility: "public" });
+  const room = await http.open(`/rooms/${code}`);
+  const initial = await room.state<RoomView>();
+  for (const seed of ["not-a-seed", "-1", "1.5", "18446744073709551616", "9".repeat(2000)])
+    expect(
+      await http.reply(`/rooms/${code}/act`, { kind: "settings", patch: { map: { seed } } }),
+    ).toEqual({ refused: "unknown map seed" });
+  const reopened = await http.open(`/rooms/${code}`);
+  expect((await reopened.state<RoomView>()).settings.map).toEqual(initial.settings.map);
+  expect(
+    await http.reply(`/rooms/${code}/act`, {
+      kind: "settings",
+      patch: { map: { seed: " 00042 " } },
+    }),
+  ).toEqual({ ok: true });
+  expect((await room.state<RoomView>()).settings.map.seed).toBe("42");
+});
+
+test("HTTP list subscribers receive only changed public facts, including on a fresh subscriber", async () => {
+  const http = await serving();
+  await http.hello(ids[0], "HOST");
+  await http.hello(ids[1], "PRIVATE");
+  const { code } = await http.reply("/rooms", { visibility: "public" });
+  const list = await http.open("/rooms");
+  const initial = await list.state<RoomList>();
+  const id = list.records.at(-1)!.id;
+  await http.reply(`/rooms/${code}/act`, { kind: "ready", ready: true });
+  await http.reply(`/rooms/${code}/act`, { kind: "settings", patch: {} });
+  await http.reply(`/rooms/${code}/act`, {
+    kind: "settings",
+    patch: { map: initial.rooms[0].map },
+  });
+  await http.reply("/rooms", { visibility: "private" }, ids[1]);
+  const other = await http.open("/rooms", ids[1]);
+  expect(await other.state()).toEqual(initial);
+  await http.reply(`/rooms/${code}/act`, { kind: "set_seat", seat: "seat-2", to: "ai" });
+  expect(await list.state()).toEqual({ ...initial, rooms: [{ ...initial.rooms[0], red: ["ai"] }] });
+  expect(list.records.at(-1)!.id).toBe(id + 1);
 });

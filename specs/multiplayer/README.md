@@ -40,11 +40,9 @@ and promote it, and build the native simulation for the battle server.
    address. The lobby must be redeployed once more for this change (its
    identity changed shape), then only when the simulation, the shared
    battle documents or the wire change.
-3. **Slice 33,** six-character rooms and one game a device. An
-   independent read found seven ways a stranger could misuse the servers;
-   the user ruled on 2026-11-16 that an alpha gets one simple limit and
-   the plain bugs fixed, and that private rooms should be easier to join,
-   not secret. It blocks the site pointing at the lobby.
+3. **Slice 33 is in:** six-character room codes with no guess throttle,
+   one game of its own making a device, and three plain bugs fixed, by the
+   user's ruling of 2026-11-16 that an alpha gets one simple limit.
 4. **Ship it.** Merge staging, run the plan's one full run (slice 27's
    steps 1 and 2), review, put the lobby's address in
    `apps/battle-lab/src/online/server.json`, land on staging, promote, and
@@ -191,7 +189,7 @@ Hosting
 - [x] [29 A sandbox for each battle](slices/29-sandbox-per-battle.md) (deployed; open measurements listed in the slice)
 - [x] [30 One machine tries every draw](slices/30-one-machine-every-draw.md) (its two scenes are still owed)
 - [x] [31 A build is what both ends share](slices/31-a-build-is-what-both-ends-share.md)
-- [ ] [33 Six-character rooms, one game a device](slices/33-the-servers-face-strangers.md)
+- [x] [33 Six-character rooms, one game a device](slices/33-the-servers-face-strangers.md)
 - [ ] [27 Closeout](slices/27-closeout.md)
 
 ## Contracts this changes

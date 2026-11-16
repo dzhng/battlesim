@@ -67,7 +67,8 @@ export function Frontline({
       setNotice(
         error instanceof StreamRefused && error.reason === "unavailable"
           ? "No battlefield could be made. Try again."
-          : error instanceof StreamRefused && error.reason === "full"
+          : error instanceof StreamRefused &&
+              (error.reason === "full" || error.reason === "game_running")
             ? roomFailure(error)
             : "Could not join Frontline. Try again.",
       );

@@ -15,7 +15,8 @@ nothing here may depend on a browser, a server, or the simulation's binding.
   it runs in the same process or over HTTP. A battle sees a seat's port and
   never a credential.
 - [The room model](src/room.ts) and [Frontline placement](src/frontline.ts):
-  pure rules. A server holds the state and applies them; a page only shows
+  pure rules. The room model also owns shareable code normalisation and defers
+  seed admission to the map owner. A server holds the state and applies them; a page only shows
   what the server last sent.
 - [Setup](src/setup.ts): how a lobby becomes the settings a ticket carries.
   Both ends build a battle from those settings with one function, which is

@@ -17,6 +17,7 @@ export async function roomHttp(
   capacity = 8,
   createBattle: (setup: BattleSetup) => BattleHost = pendingBattle,
   clock?: PresenceClock,
+  clientAddressHeader: string | null = null,
 ) {
   const server = createLobbyHttp(build, {
     machines: inProcessBattleMachines({
@@ -33,18 +34,18 @@ export async function roomHttp(
       },
     },
     random: Math.random,
-    clientAddressHeader: null,
+    clientAddressHeader,
   });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
   return {
     address,
     cut: () => server.closeAllConnections(),
-    async post(path: string, who: string, value: unknown) {
+    async post(path: string, who: string, value: unknown, headers: Record<string, string> = {}) {
       return (
         await fetch(`${address}${path}`, {
           method: "POST",
-          headers: { "X-Player": who, "Content-Type": "application/json" },
+          headers: { "X-Player": who, "Content-Type": "application/json", ...headers },
           body: JSON.stringify(value),
         })
       ).json();

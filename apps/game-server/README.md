@@ -55,7 +55,12 @@ Callsigns are assigned by `/hello` and held while connected or remembered by an
 online mode, including admission still preparing a battle. Once both have
 forgotten a browser, its name is available again.
 
-The client-address trust boundary belongs to [deployment](deploy/README.md).
+A device may keep one game of its own making alive. [Online state](src/online.ts)
+owns that creation claim across rooms and Frontline until removal, including
+preparation; joining never takes a claim. [HTTP IO](src/http/io.ts) derives the
+device from the configured trusted address header or, on a direct lobby, the
+browser id. The client-address trust boundary belongs to
+[deployment](deploy/README.md).
 
 [Online state](src/online.ts) owns battle admission and presence across modes.
 A lobby holds a slot before it starts; Frontline holds one while preparing or

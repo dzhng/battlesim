@@ -38,10 +38,10 @@ and `Faction` (`packages/scene-assets/src/units.ts`).
 | `GET /build` | | `BuildIdentity` only; no credential and no player registration |
 | `POST /hello` | `{ build: BuildIdentity, callsign: string }` | `{ callsign }` (with `#2` on a clash), or refused `build` |
 | `GET /rooms` | | state stream of `RoomList` |
-| `POST /rooms` | `{ visibility: "public" \| "private" }` | `{ code: RoomCode }`, or refused `full` |
-| `GET /rooms/:code` | | state stream of `RoomView`; opening it joins the room. A newcomer is refused `unknown`, `started`, `no_open_seat` or `throttled` |
+| `POST /rooms` | `{ visibility: "public" \| "private" }` | `{ code: RoomCode }`, or refused `full`, `game_running` or `callsign` |
+| `GET /rooms/:code` |  | state stream of `RoomView`; opening it joins the room. A newcomer is refused `unknown`, `started`, `no_open_seat` or `callsign` |
 | `POST /rooms/:code/act` | `RoomAction` | `{ ok: true }`, or refused with the rule that said no |
-| `POST /frontline/join` | | `Briefing`, or refused `full` (no battle slot), `unavailable` (no battlefield could be made) or `callsign` |
+| `POST /frontline/join` |  | `Briefing`, or refused `full` (no battle slot), `unavailable` (no battlefield could be made), `callsign` or `game_running` |
 | `POST /frontline/:battle/deploy` | | `BattleTicket`, or refused `expired` |
 | `POST /frontline/:battle/leave` | | `{ ok: true }`. The seat goes back to its AI. |
 | `GET /battles/:id/stream?after=<id>` | | battle stream for the caller's side |
@@ -135,8 +135,16 @@ type UpReply =
   server keeps each seat's last `seq` and reply, and answers a repeat from that
   record without applying it twice.
 - The battle stamps side, player and sequence. The page names none of them.
-- Orders past the simulation's per-player rate are refused `rate` before they
-  reach the battle, so a hostile page cannot grow the order log.
+- A batch beyond the simulation's per-player allowance for one window is
+  `invalid`; a batch within that bound but beyond its occupant's remaining
+  allowance is `rate`. Both are refused before reaching the battle.
+- HTTP input bounds each order's encoded size and unit references (including
+  `collect` squads), before any item in the batch reaches the battle. The
+  bounds live with `apps/game-server/src/http/input.ts`; ordinary whole-army
+  selections fit. An offending batch is `invalid`, without spending allowance.
+- The sequence cache and transport allowances belong to a seat's occupant.
+  Reconnecting the same browser keeps them; seating a different browser resets
+  them, even if that browser has not yet sent an order.
 
 ## Previews
 
@@ -208,7 +216,7 @@ a player's credential, and other players see a callsign.
 ## Rooms
 
 ```ts
-type RoomCode = string;         // "TANGO-4821": the id, the password and the link
+type RoomCode = string;         // six unambiguous letters/digits: the id and shareable link
 type SeatId = string;           // minted once, never renumbered
 type SeatView = {
   id: SeatId; side: "blue" | "red";
@@ -249,11 +257,34 @@ type RoomSettingsPatch = {      // exactly what a host may set; anything else is
 };
 ```
 
+Room codes are not secrets. `normalizeRoomCode` in the shared room model
+removes whitespace and ASCII dashes anywhere, then uppercases. The page and
+server use it; links carry the canonical code. No wrong guesses are counted,
+and no refusal conceals whether a room exists. The alphabet is data in that
+same owner; old word-and-digits links have no compatibility path.
+
+A device may have one game of its own making: a room it created or a Frontline
+game whose initial Play created it. `game_running` says that place is already
+held; the page says "You already have a game running." Joining existing games
+is unrestricted. Ownership begins before preparation and lasts until the game
+is removed, including when another player inherits hosting or keeps playing.
+All removal paths and failed preparations release it.
+
+The lobby's configured `clientAddressHeader` names the trusted proxy header.
+Room and Frontline requests without it are refused `address`; without a
+configured header, the device is `X-Player`, never the socket address. Device
+identity and game ownership each have one shared server owner and appear in
+no public view or response.
+
 A host's settings come from the network. Each value is checked against the
 game's own lists and applied through the lobby's own rules, so a size below
-the floor is raised to it and an unknown value is refused.
+the floor is raised to it and an unknown value is refused. A map seed must
+be accepted by the map generator's `canonicalSeed`; the room stores its
+canonical decimal value. Other values are `unknown map seed`.
 
-The room list stream also republishes when either Frontline count changes.
+The room list publishes only when its public snapshot changes, including
+either Frontline count. Ready, identical settings, and private-room changes
+send no list record. A new subscriber still receives the current snapshot.
 Reservations in an existing game are not seated humans; the first commander
 of a new game is seated from tick zero. A departed seat running on AI does
 not count as a human.
