@@ -34,9 +34,10 @@ You are implementing `specs/far-detail/` on branch
 - **Next: [slice 03](slices/03-parked-car.md)**, the parked car. Measure on the
   [fresh control](assets/control.json): the old receipt's digest no longer
   reproduces, because the generated map changed.
-- [Slice 06](slices/06-spike-terrain.md) can run beside it. Its first rung is
-  nearly answered: terrain submits 10 triangles to the view and 2,871 to the
-  cascades at the wide hold on this flat city.
+- **06 is done: no-go.** On the map with the most terrain a player can get,
+  terrain is at most 2.6% of the triangles a frame submits
+  ([verdict](assets/terrain-verdict.md)). Generated maps have no hills, only
+  carved rivers and swamps.
 
 Warnings:
 
@@ -59,7 +60,7 @@ point, and any decision that moved into [the ledger](decisions.md).
 - [ ] 03: parked cars carry one; the measured win → [slice 03](slices/03-parked-car.md)
 - [ ] 04: courtyard walls, then whatever the census ranks next → [slice 04](slices/04-next-kinds.md)
 - [ ] 05: spike, merging a block's props into one mesh → [slice 05](slices/05-spike-block-merge.md)
-- [ ] 06: spike, cluster detail for terrain → [slice 06](slices/06-spike-terrain.md)
+- [x] 06: spike, cluster detail for terrain: no-go at the count ([verdict](assets/terrain-verdict.md)) → [slice 06](slices/06-spike-terrain.md)
 - [ ] 07: closeout → [slice 07](slices/07-closeout.md)
 
 ## Contracts
@@ -220,4 +221,3 @@ and only with the comparison as evidence.
 | The far threshold's value | 03, from the zoom crops |
 | Whether a wall survives at a few pixels | 04 |
 | What is left for block merging after the far mesh ships | 05 |
-| Whether terrain geometry costs enough to simplify | 06 |

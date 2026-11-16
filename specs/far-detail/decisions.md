@@ -124,3 +124,17 @@ Facts slice 00 established:
   ships.
 - Terrain submits almost nothing on the flat city (10 view triangles).
 
+## From slice 06, 2026-11-15
+
+| # | Question | Decision and why | Verdict |
+| --- | --- | --- | --- |
+| 41 | Is terrain geometry worth a cluster hierarchy? | No. On the map with the most terrain a player can get (mixed XL, seed 12), terrain is at most 2.6% of a frame's submitted triangles, and 1.3% at the whole-map view. Generated maps have no hills: the only height is one river at most and swamps, carved down to about 10 m below flat land. The spike stopped at its first rung. | sound |
+| 42 | The slice's rule said no-go needs a small share *and* triangles a pixel or larger. Carved ground is finer than a pixel (about a third of one at the wide hold). Run the timing rung anyway? | No. The rule's second half was the agent's guess at how to tell there is no prize. The share settles it: a terrain that cost nothing would remove a fortieth of the frame's triangles. | sound |
+| 43 | Which map counts as hilliest? | The one with the most terrain triangles among 72 generated XL maps, not the deepest, since triangle count is what the GPU sees. | sound |
+
+Reopen the terrain question only if the generator gains real relief.
+
+A fact slice 06 turned up, outside this plan: at the whole-map view, which the
+player can reach, a frame submits 124 to 154 million triangles, and scenery
+(trees and dressing) is 87 to 98 million of them.
+
