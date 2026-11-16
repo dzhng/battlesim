@@ -3041,7 +3041,7 @@
       "roles": [
         "logistics"
       ],
-      "cost": 90,
+      "cost": 180,
       "roster": {
         "factions": [
           "eastern"
@@ -3093,7 +3093,7 @@
           "pack_seconds": 1
         },
         "supply": {
-          "stock": 250
+          "stock": 750
         }
       }
     },
