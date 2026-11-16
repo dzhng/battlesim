@@ -11,14 +11,14 @@ export class StreamRefused extends StreamBroken {
 /** One HTTP response, shared by battle and state streams. Resume lives above it. */
 export async function* httpRecords(
   url: string,
-  browserId: string,
+  credential: string | Record<string, string>,
   signal: AbortSignal,
 ): AsyncGenerator<StreamRecord> {
   const connection = new AbortController();
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   try {
     const response = await fetch(url, {
-      headers: { "X-Player": browserId },
+      headers: typeof credential === "string" ? { "X-Player": credential } : credential,
       signal: AbortSignal.any([signal, connection.signal]),
     });
     if (!response.ok) {

@@ -8,6 +8,7 @@ export async function bundleServer(root, outdir, commit) {
   const result = await Bun.build({
     entrypoints: [
       join(root, "apps/game-server/src/main.ts"),
+      join(root, "apps/game-server/src/battle.ts"),
       join(root, "apps/game-server/src/battleHost/worker.ts"),
     ],
     outdir,

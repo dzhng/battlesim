@@ -1,8 +1,10 @@
-// Shared admission, battle routing and presence for every online mode.
+// Shared admission, battle allocation and presence for every online mode.
 import { cpus, totalmem } from "node:os";
-import type { RoomList } from "../../../packages/multiplayer/src/wire.ts";
+import type { BattleSetup, RoomList } from "../../../packages/multiplayer/src/wire.ts";
 import type { Seat } from "../../../packages/multiplayer/src/link.ts";
 import type { BattleHost } from "./battleHost/index.ts";
+import { hostedBattles } from "./battles.ts";
+import type { BattleMachines } from "./machines/index.ts";
 import { createPresence, PRESENCE_GRACE_MS, type PresenceClock } from "./presence.ts";
 
 /** Slice 01's memory budget leaves room for a battle to grow toward an hour. */
@@ -18,12 +20,13 @@ type Member = {
   remembers(who: string): boolean;
 };
 
-export function createOnlineState(options: {
-  capacity: number;
-  clock: PresenceClock;
-  callsign(who: string): string | undefined;
-  releaseCallsign(who: string): void;
-}) {
+export function createOnlineState(
+  options: ({ capacity: number } | { machines: BattleMachines }) & {
+    clock: PresenceClock;
+    callsign(who: string): string | undefined;
+    releaseCallsign(who: string): void;
+  },
+) {
   const members = new Set<Member>();
   let frontline: RoomList["frontline"] = { battles: 0, commanders: 0 };
   const listListeners = new Set<() => void>();
@@ -45,7 +48,14 @@ export function createOnlineState(options: {
       releaseIfForgotten(who);
     },
   );
+  const battles = "machines" in options ? hostedBattles(options.machines, presence) : undefined;
+  const capacity = "machines" in options ? options.machines.capacity : options.capacity;
   return {
+    createBattle: (setup: BattleSetup, id: string): BattleHost => {
+      if (!battles) throw new Error("battle machines missing");
+      return battles.create(setup, id);
+    },
+    battleAddress: (host: BattleHost) => battles?.address(host),
     frontline: () => frontline,
     publishFrontline(next: RoomList["frontline"]) {
       if (next.battles === frontline.battles && next.commanders === frontline.commanders) return;
@@ -64,16 +74,22 @@ export function createOnlineState(options: {
       members.add(member);
       return () => members.delete(member);
     },
-    slotFree: () => slots.size < options.capacity,
+    slotFree: () => slots.size < capacity,
     reserve() {
-      if (slots.size >= options.capacity) return null;
+      if (slots.size >= capacity) return null;
       const key = {};
       slots.set(key, null);
       return {
         serve(value: ServedBattle) {
           slots.set(key, value);
         },
+        seating(entries: [string, Seat][]): Promise<void> {
+          const served = slots.get(key);
+          return served && battles ? battles.seating(served.host, entries) : Promise.resolve();
+        },
         release() {
+          const served = slots.get(key);
+          if (served) battles?.release(served.host);
           slots.delete(key);
         },
       };
@@ -82,6 +98,7 @@ export function createOnlineState(options: {
       return [...slots.values()].find((b) => b?.id === id) ?? undefined;
     },
     dispose() {
+      battles?.dispose();
       presence.dispose();
       slots.clear();
       members.clear();

@@ -1,3 +1,4 @@
+import { inProcessBattleMachines } from "../../../apps/game-server/src/machines/inProcess";
 import {
   createOnlineState,
   battleCapacity,
@@ -14,7 +15,7 @@ import {
 } from "../../../apps/game-server/src/rooms";
 import { PRESENCE_GRACE_MS, type PresenceClock } from "../../../apps/game-server/src/presence";
 import { helloRegistry } from "../../../apps/game-server/src/http/hello";
-import { createBattleHttp } from "../../../apps/game-server/src/http/index";
+import { createLobbyHttp } from "../../../apps/game-server/src/http/index";
 import { recordDecoder, readJson } from "../../../packages/multiplayer/src/stream/index";
 import type {
   BuildIdentity,
@@ -292,11 +293,13 @@ const build: BuildIdentity = { commit: "test-commit", sim: "test-sim" };
 const ids = ["1".repeat(32), "2".repeat(32), "3".repeat(32), "4".repeat(32)];
 async function serving(clientAddressHeader: string | null = null) {
   const clock = new Clock();
-  const server = createBattleHttp(() => undefined, build, {
-    createBattle: pendingBattle,
+  const server = createLobbyHttp(build, {
+    machines: inProcessBattleMachines({
+      capacity: 3,
+      createBattle: pendingBattle,
+      ordersPerSecond: 100,
+    }),
     mapAttempts: 1,
-    ordersPerSecond: 100,
-    capacity: 3,
     clock,
     random: Math.random,
     clientAddressHeader,

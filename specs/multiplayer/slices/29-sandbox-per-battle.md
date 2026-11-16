@@ -39,6 +39,27 @@
   the deployed route, and the feel of a room battle from two browsers.
   The sandboxes measured so far were all in France.
 
+## Carried over from slice 28's integration
+
+Slice 28 was built and proven between processes on one computer. Three of
+its choices need a second look once a lobby and a battle are an ocean
+apart:
+
+- **One late answer ends a battle.** The lobby asks the battle server it
+  is alive every two seconds and treats one answer slower than five as a
+  crash; the battle server stops if it hears nothing for ten. Measure the
+  link between the lobby and a sandbox and set these so a blip does not
+  end a battle.
+- **Why a battle crashed stays on its machine.** The lobby is told only
+  that it failed; the reason is written to the battle server's own error
+  output. A sandbox is deleted when its battle ends, so bring that output
+  back first.
+- **The control surface shares the players' port.** It is guarded by the
+  battle's key alone. On a sandbox that port is public.
+- **The remote host's raw seat routes serve only the contract tests.**
+  Nothing in the lobby attaches a seat to a remote battle. Decide at the
+  closeout whether the tests should reach seats the way players do.
+
 ## Run or see
 
 A development page pointed at the deployed lobby with `?server=`: a room

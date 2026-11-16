@@ -7,7 +7,9 @@ export function pendingBattle(): BattleHost {
     attach() {
       throw new Error("battle still preparing");
     },
-    setController() {},
+    setController() {
+      return Promise.resolve();
+    },
     referee() {
       return Promise.reject(new Error("battle still preparing"));
     },
@@ -15,7 +17,9 @@ export function pendingBattle(): BattleHost {
       return Promise.reject(new Error("battle still preparing"));
     },
     onOrder() {},
-    endSeat() {},
+    endSeat() {
+      return Promise.resolve();
+    },
     onEnd() {},
     dispose() {},
     replay() {

@@ -1,3 +1,4 @@
+import { inProcessBattleMachines } from "../../../apps/game-server/src/machines/inProcess";
 // @vitest-environment node
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { createFrontlineService } from "../../../apps/game-server/src/frontline";
@@ -153,7 +154,9 @@ test("Play draws another map when the generator refuses one, and says so honestl
   expect(await frontline.join("alpha")).toEqual({ refused: "unavailable" });
   expect(made).toHaveLength(MAP_ATTEMPTS);
   expect(online.slotFree()).toBe(true);
-});
+  // Like the adjacent large-battle cases, allow preparation under parallel CPU
+  // load. This is a hang watchdog; every retry and capacity assertion stays exact.
+}, 120_000);
 
 test("Play reserves a battle and Deploy takes its initial human seat without a seat event", async () => {
   const s = await service();
@@ -532,7 +535,7 @@ test("a remote connection refuses referee and seat-event requests before they re
 });
 
 test("localhost hello, briefing, deploy, battle stream and order share seating; strangers and administrative HTTP requests are refused", async () => {
-  const { createBattleHttp } = await import("../../../apps/game-server/src/http/index");
+  const { createLobbyHttp } = await import("../../../apps/game-server/src/http/index");
   const { httpRecords } = await import("../../../packages/multiplayer/src/stream/http");
   const { readJson } = await import("../../../packages/multiplayer/src/stream/index");
   const { GONE_TIMEOUT_MS } = await import("../../../packages/multiplayer/src/frontline");
@@ -541,18 +544,21 @@ test("localhost hello, briefing, deploy, battle stream and order share seating; 
   const hosts: BattleHost[] = [];
   let draw = 0;
   const build = { commit: "frontline-test", sim: "frontline-test" };
-  const server = createBattleHttp(() => undefined, build, {
-    capacity: 1,
+  const server = createLobbyHttp(build, {
     clock,
     clientAddressHeader: null,
     random: () => [0, 0, 0.5, 0, 1 / 2 ** 32, 0, 0][draw++ % 7],
     mapAttempts: 1,
-    ordersPerSecond: JSON.parse(data.rules).commands.orders_per_s,
-    createBattle(setup) {
-      const host = createBattleHost({ setup }, { clock: battleClock, generator }, data);
-      hosts.push(host);
-      return host;
-    },
+    machines: inProcessBattleMachines({
+      capacity: 1,
+      now: battleClock.now,
+      ordersPerSecond: JSON.parse(data.rules).commands.orders_per_s,
+      createBattle(spec) {
+        const host = createBattleHost(spec, { clock: battleClock, generator }, data);
+        hosts.push(host);
+        return host;
+      },
+    }),
   });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
@@ -561,12 +567,16 @@ test("localhost hello, briefing, deploy, battle stream and order share seating; 
     records: import("../../../packages/multiplayer/src/wire").StreamRecord[] = [];
   const abort = new AbortController();
   let reading: Promise<void> = Promise.resolve();
+  let battleAddress = address;
   const post = async (path: string, value: unknown = {}, who = ids[0]) => {
-    const response = await fetch(`${address}${path}`, {
-      method: "POST",
-      headers: { "X-Player": who, "Content-Type": "application/json" },
-      body: JSON.stringify(value),
-    });
+    const response = await fetch(
+      `${path.startsWith("/battles/") ? battleAddress : address}${path}`,
+      {
+        method: "POST",
+        headers: { "X-Player": who, "Content-Type": "application/json" },
+        body: JSON.stringify(value),
+      },
+    );
     const result = await response.json();
     replies.push(result);
     return result;
@@ -592,13 +602,14 @@ test("localhost hello, briefing, deploy, battle stream and order share seating; 
       { side: briefing.side, callsign: "SCOUT-0" },
     ]);
     const ticket = (await post(`/frontline/${briefing.battle}/deploy`)) as BattleTicket;
+    battleAddress = ticket.address ?? address;
     expect(ticket.callsigns[ticket.player]).toBe("SCOUT-0");
     const host = hosts[0];
     const ready = await host.ready;
     reading = (async () => {
       try {
         for await (const r of httpRecords(
-          `${address}/battles/${ticket.battle}/stream`,
+          `${battleAddress}/battles/${ticket.battle}/stream`,
           ids[0],
           abort.signal,
         ))
@@ -628,7 +639,7 @@ test("localhost hello, briefing, deploy, battle stream and order share seating; 
       ),
     ).toBe(true);
     for (const suffix of ["stream", "preview", "up"]) {
-      const response = await fetch(`${address}/battles/${ticket.battle}/${suffix}`, {
+      const response = await fetch(`${battleAddress}/battles/${ticket.battle}/${suffix}`, {
         method: suffix === "stream" ? "GET" : "POST",
         headers: { "X-Player": ids[2], "Content-Type": "application/json" },
         body:

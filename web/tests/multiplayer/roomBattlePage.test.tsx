@@ -30,15 +30,22 @@ async function open() {
   vi.stubGlobal("Worker", PreviewWorker);
   let ready!: (value: Awaited<BattleHost["ready"]>) => void;
   let end!: (value: BattleEnd) => void;
+  let created!: () => void;
+  const hostCreated = new Promise<void>((resolve) => {
+    created = resolve;
+  });
   service = await roomHttp(1, () => ({
     ready: new Promise((resolve) => {
       ready = resolve;
+      created();
     }),
     onEnd: (handle) => {
       end = handle;
     },
     attach() {},
-    setController() {},
+    setController() {
+      return Promise.resolve();
+    },
     referee() {
       return Promise.reject(new Error("battle still preparing"));
     },
@@ -46,7 +53,9 @@ async function open() {
       return Promise.reject(new Error("battle still preparing"));
     },
     onOrder() {},
-    endSeat() {},
+    endSeat() {
+      return Promise.resolve();
+    },
     dispose() {},
     replay: async () => "",
   }));
@@ -74,6 +83,7 @@ async function open() {
   );
   fireEvent.click(page.getByRole("button", { name: "Start" }));
   await page.findByRole("status", { name: "Starting" });
+  await hostCreated;
   return {
     page,
     code,

@@ -44,7 +44,7 @@ export function createFrontlineService(options: {
   /** How many maps a new game may draw before giving up. */
   mapAttempts: number;
   online: OnlineState;
-  createBattle(setup: BattleSetup): BattleHost;
+  createBattle(setup: BattleSetup, id: string): BattleHost;
   random(): number;
 }) {
   const { online } = options;
@@ -86,10 +86,28 @@ export function createFrontlineService(options: {
     if (!held || held.goneSince !== null) return;
     held.goneSince = clock.now();
     held.lastOrderAt = clock.now();
-    g.host.setController(player(g, index), "active_ai");
+    void g.host.setController(player(g, index), "active_ai").catch(() => remove(g));
     if (why === "drop") g.drops.add(held.who);
-    else g.host.endSeat(player(g, index), why);
+    else void g.host.endSeat(player(g, index), why).catch(() => remove(g));
   };
+  const seatOf = (g: Game, who: string) => {
+    const index = g.view.seats.findIndex((s) => s.held?.who === who);
+    if (
+      index < 0 ||
+      g.reservations.has(who) ||
+      (g.view.seats[index].held!.goneSince !== null && !g.drops.has(who))
+    )
+      return;
+    return { side: g.view.seats[index].side, player: player(g, index) };
+  };
+  const publishSeating = (g: Game) =>
+    g.slot.seating(
+      g.view.seats.flatMap((s) => {
+        if (!s.held) return [];
+        const seat = seatOf(g, s.held.who);
+        return seat ? [[s.held.who, seat] as [string, typeof seat]] : [];
+      }),
+    );
   const maintain = (g: Game) => {
     if (!games.has(g.view.battle)) return;
     g.cancel();
@@ -101,7 +119,7 @@ export function createFrontlineService(options: {
       seat.reservedUntil = null;
       if (reservation.kind === "initial") {
         seat.held = null;
-        g.host.setController(player(g, reservation.index), "active_ai");
+        void g.host.setController(player(g, reservation.index), "active_ai").catch(() => remove(g));
       }
       online.releaseIfForgotten(who);
     }
@@ -119,6 +137,7 @@ export function createFrontlineService(options: {
     }
     if (!occupied(g)) return remove(g);
     publishCounts();
+    void publishSeating(g).catch(() => remove(g));
     const deadlines = [...g.reservations.values()].map((r) => r.until);
     for (const s of g.view.seats)
       if (s.held && !g.reservations.has(s.held.who))
@@ -151,6 +170,7 @@ export function createFrontlineService(options: {
     );
   const ticket = (g: Game, index: number): BattleTicket => ({
     battle: g.view.battle,
+    ...(online.battleAddress(g.host) && { address: online.battleAddress(g.host) }),
     setup: g.setup,
     mapIdentity: g.mapIdentity,
     side: g.view.seats[index].side,
@@ -190,7 +210,7 @@ export function createFrontlineService(options: {
         const held = g.view.seats[index].held!;
         held.goneSince = null;
         held.lastOrderAt = clock.now();
-        g.host.setController(player(g, index), "human");
+        void g.host.setController(player(g, index), "human").catch(() => remove(g));
         maintain(g);
       }
     },
@@ -269,7 +289,7 @@ export function createFrontlineService(options: {
                 (s) => s.side === initial.side && s.number === initial.seat,
               );
               setup.seats[index].controller = "human";
-              host = options.createBattle(setup);
+              host = options.createBattle(setup, view.battle);
               const ready = await host.ready;
               if (disposed) {
                 host.dispose();
@@ -297,16 +317,7 @@ export function createFrontlineService(options: {
               slot.serve({
                 id: view.battle,
                 host,
-                seatOf(browser) {
-                  const i = view.seats.findIndex((s) => s.held?.who === browser);
-                  if (
-                    i < 0 ||
-                    g.reservations.has(browser) ||
-                    (view.seats[i].held!.goneSince !== null && !g.drops.has(browser))
-                  )
-                    return;
-                  return { side: view.seats[i].side, player: player(g, i) };
-                },
+                seatOf: (browser) => seatOf(g, browser),
               });
               host.onEnd(() => remove(g));
               host.onOrder((id) => {
@@ -358,7 +369,7 @@ export function createFrontlineService(options: {
         }
         try {
           if (r.kind === "join") await g.host.seatHuman(player(g, r.index), r.opening);
-          else g.host.setController(player(g, r.index), "human");
+          else await g.host.setController(player(g, r.index), "human");
           if (!games.has(id)) return { refused: "expired" };
           g.reservations.delete(who);
           const s = g.view.seats[r.index];
@@ -368,6 +379,7 @@ export function createFrontlineService(options: {
           if (r.opening && !g.view.granted.includes(who)) g.view.granted.push(who);
           presence.expectStream(who);
           maintain(g);
+          await publishSeating(g);
           return ticket(g, r.index);
         } catch {
           remove(g);
@@ -384,7 +396,7 @@ export function createFrontlineService(options: {
         g.view.seats[r.index].reservedUntil = null;
         if (r.kind === "initial") {
           g.view.seats[r.index].held = null;
-          g.host.setController(player(g, r.index), "active_ai");
+          void g.host.setController(player(g, r.index), "active_ai").catch(() => remove(g));
         }
       }
       const index = g.view.seats.findIndex((s) => s.held?.who === who);

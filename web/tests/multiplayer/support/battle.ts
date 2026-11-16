@@ -1,6 +1,9 @@
 // @vitest-environment node
 // The battle host, on a clock the test drives, over in-memory seat links.
 import { join } from "node:path";
+import { randomBytes } from "node:crypto";
+import { inProcessBattleMachines } from "../../../../apps/game-server/src/machines/inProcess";
+import { createRemoteBattleHost } from "../../../../apps/game-server/src/battleHost/remote";
 
 import { KEYFRAME, readJson } from "../../../../packages/multiplayer/src/stream/index";
 import { loopback } from "../../../../packages/multiplayer/src/link";
@@ -80,6 +83,21 @@ class TestClock implements BattleClock {
   }
 }
 
+let remoteHosts = false;
+/** Run a contract suite against either host with the same simulation clock. */
+export const useRemoteHosts = (remote: boolean) => {
+  remoteHosts = remote;
+};
+export function testHost(setup: BattleSetup, clock: BattleClock): BattleHost {
+  if (!remoteHosts) return createBattleHost({ setup }, { clock, generator }, data);
+  const key = randomBytes(16).toString("hex");
+  const machines = inProcessBattleMachines({
+    capacity: 8,
+    createBattle: (spec) => createBattleHost(spec, { clock, generator }, data),
+    ordersPerSecond: JSON.parse(data.rules).commands.orders_per_s,
+  });
+  return createRemoteBattleHost({ setup }, "contract", machines.start(key), key);
+}
 export const hosts: BattleHost[] = [];
 export function disposeBattles() {
   for (const host of hosts.splice(0)) host.dispose();
@@ -88,20 +106,27 @@ export function disposeBattles() {
 /** A battle on a test clock. `run(ticks)` lets that much battle time pass. */
 export async function battle(setup: BattleSetup) {
   const clock = new TestClock();
-  const host = createBattleHost({ setup }, { clock, generator }, data);
+  const host = testHost(setup, clock);
   hosts.push(host);
   const ended: BattleEnd[] = [];
   host.onEnd((end) => ended.push(end));
   const ready = await host.ready;
   const run = async (ticks: number) => {
     for (let i = 0; i < ticks; i++) {
+      if (remoteHosts && !ended.length) await host.referee();
       clock.advance(1000 / ready.tickHz);
+      await flush();
+      if (remoteHosts && !ended.length) await host.referee().catch(() => {});
       await flush();
     }
   };
-  return { host, ready, run, ended };
+  const advance = async () => {
+    clock.advance(1000 / ready.tickHz);
+    await flush();
+  };
+  return { host, ready, run, advance, ended };
 }
-type Battle = Awaited<ReturnType<typeof battle>>;
+type Battle = Pick<Awaited<ReturnType<typeof battle>>, "host" | "ready" | "run">;
 
 /** What one reader made of one publication. */
 export interface Seen {

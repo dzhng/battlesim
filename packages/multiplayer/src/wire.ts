@@ -56,6 +56,8 @@ export type BattleSetup = {
   rules: "skirmish" | "frontline";
 };
 export type BattleTicket = {
+  /** Omitted when the battle is served at the lobby address. */
+  address?: string;
   /** Public player names, keyed by battle player id; never browser credentials. */
   callsigns: Record<string, string>;
   battle: string;

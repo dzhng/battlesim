@@ -1,30 +1,21 @@
 // HTTP owns credentials and sockets. The battle only sees the seat's port;
 // recordSource owns all history and the decision to resume or resync.
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import type {
-  BuildIdentity,
-  PreviewQuery,
-  UpBatch,
-} from "../../../../packages/multiplayer/src/wire.ts";
+import type { IncomingMessage, ServerResponse } from "node:http";
+import { httpServer } from "./server.ts";
+import type { BuildIdentity } from "../../../../packages/multiplayer/src/wire.ts";
 import { helloRegistry } from "./hello.ts";
-import { isBatch, isPreview } from "./input.ts";
-import { battleRoute, HttpRefusal, type BattleRoute } from "./seats.ts";
-export { battleRoute };
 
-import { afterId, body, json, stream } from "./io.ts";
+import { body, json } from "./io.ts";
 import { createOnlineState } from "../online.ts";
 import { createFrontlineService } from "../frontline.ts";
 import { frontlineRequest } from "./frontline.ts";
 import { roomRequest } from "./rooms.ts";
 import { createRoomService } from "../rooms.ts";
-import type { BattleSetup } from "../../../../packages/multiplayer/src/wire.ts";
-import type { BattleHost } from "../battleHost/index.ts";
+import type { BattleMachines } from "../machines/index.ts";
 import type { PresenceClock } from "../presence.ts";
 
 export type OnlineHttpOptions = {
-  createBattle: (setup: BattleSetup) => BattleHost;
-  ordersPerSecond: number;
-  capacity: number;
+  machines: BattleMachines;
   clock: PresenceClock;
   random: () => number;
   /** How many maps a new Frontline game may draw before giving up. */
@@ -32,34 +23,20 @@ export type OnlineHttpOptions = {
   clientAddressHeader: string | null;
 };
 
-export function createBattleHttp(
-  battle: (id: string) => BattleRoute | undefined,
-  build: BuildIdentity,
-  options: OnlineHttpOptions,
-) {
+export function createLobbyHttp(build: BuildIdentity, options: OnlineHttpOptions) {
   const hello = helloRegistry(build);
   const online = createOnlineState({
     ...options,
     callsign: hello.callsignOf,
     releaseCallsign: hello.release,
   });
-  const rooms = createRoomService({ ...options, online });
-  const frontline = createFrontlineService({ ...options, online });
-  const battleRoutes = new WeakMap<BattleHost, BattleRoute>();
-  const server = createServer((request, response) => {
-    response.setHeader("Cache-Control", "no-store, no-transform");
-    response.setHeader("Access-Control-Allow-Origin", "*");
-    response.setHeader("Access-Control-Allow-Headers", "X-Player, Content-Type");
-    response.setHeader("Access-Control-Max-Age", "7200");
-    response.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    void route(request, response).catch((error: unknown) => {
-      // Neither headers nor exception text may cross this boundary.
-      if (response.headersSent) response.destroy();
-      else if (error instanceof HttpRefusal)
-        json(response, error.status, { refused: error.reason });
-      else json(response, 410, { refused: "unavailable" });
-    });
+  const rooms = createRoomService({ ...options, online, createBattle: online.createBattle });
+  const frontline = createFrontlineService({
+    ...options,
+    online,
+    createBattle: online.createBattle,
   });
+  const server = httpServer(route);
   server.once("close", () => {
     rooms.dispose();
     frontline.dispose();
@@ -67,13 +44,7 @@ export function createBattleHttp(
   });
   return server;
 
-  async function route(request: IncomingMessage, response: ServerResponse) {
-    if (request.method === "OPTIONS") {
-      response.writeHead(204);
-      response.end();
-      return;
-    }
-    const url = new URL(request.url!, "http://localhost");
+  async function route(request: IncomingMessage, response: ServerResponse, url: URL) {
     if (url.pathname === "/hello") {
       if (request.method !== "POST") return json(response, 405, { refused: "method" });
       const id = request.headers["x-player"];
@@ -93,50 +64,6 @@ export function createBattleHttp(
       return roomRequest(request, response, url, rooms, options.clientAddressHeader);
     if (url.pathname.startsWith("/frontline/"))
       return frontlineRequest(request, response, url, frontline);
-    const match = /^\/battles\/([^/]+)\/(stream|up|preview)$/.exec(url.pathname);
-    const hosted = match && online.battle(match[1]);
-    let found = match && battle(match[1]);
-    if (hosted) {
-      found = battleRoutes.get(hosted.host);
-      if (!found) {
-        found = battleRoute(hosted.host, hosted.seatOf, options.ordersPerSecond, options.clock.now);
-        battleRoutes.set(hosted.host, found);
-      }
-    }
-    if (!match || !found) return json(response, 404, { refused: "unknown" });
-    const action = match[2];
-    if (request.method !== (action === "stream" ? "GET" : "POST"))
-      return json(response, 405, { refused: "method" });
-    let value: unknown;
-    try {
-      if (action !== "stream") value = await body(request);
-    } catch {
-      return json(response, 400, { refused: "invalid" });
-    }
-    if ((action === "up" && !isBatch(value)) || (action === "preview" && !isPreview(value)))
-      return json(response, 400, { refused: "invalid" });
-    const id = request.headers["x-player"];
-    const handlers = typeof id === "string" ? found.seat(id) : undefined;
-    if (!handlers)
-      return json(
-        response,
-        403,
-        action === "up"
-          ? { seq: (value as UpBatch)?.seq, refused: "not_seated" }
-          : { refused: "not_seated" },
-      );
-    if (action === "stream") {
-      const after = afterId(url);
-      return stream(response, (deliver) => {
-        const closePresence = online.presence.open(id as string);
-        const detach = handlers.reader(after, deliver);
-        return () => {
-          detach();
-          closePresence();
-        };
-      });
-    }
-    if (action === "up") return json(response, 200, await handlers.up(value as UpBatch));
-    return json(response, 200, await handlers.preview(value as PreviewQuery));
+    json(response, 404, { refused: "unknown" });
   }
 }

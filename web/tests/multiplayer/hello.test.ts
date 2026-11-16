@@ -1,8 +1,9 @@
+import { inProcessBattleMachines } from "../../../apps/game-server/src/machines/inProcess";
 import { pendingBattle } from "./support/pendingBattle";
 // @vitest-environment node
 import { timerClock } from "./timerClock";
 import { afterEach, expect, test, vi } from "vitest";
-import { createBattleHttp } from "../../../apps/game-server/src/http/index";
+import { createLobbyHttp } from "../../../apps/game-server/src/http/index";
 import type { BuildIdentity } from "../../../packages/multiplayer/src/wire";
 
 const build: BuildIdentity = { commit: "a".repeat(40), sim: "b".repeat(64) };
@@ -12,11 +13,13 @@ afterEach(async () => {
   vi.restoreAllMocks();
 });
 async function serving() {
-  const server = createBattleHttp(() => undefined, build, {
-    createBattle: pendingBattle,
+  const server = createLobbyHttp(build, {
+    machines: inProcessBattleMachines({
+      capacity: 0,
+      createBattle: pendingBattle,
+      ordersPerSecond: 100,
+    }),
     mapAttempts: 1,
-    ordersPerSecond: 100,
-    capacity: 0,
     clock: timerClock(),
     random: Math.random,
     clientAddressHeader: null,

@@ -103,3 +103,72 @@ The whole multiplayer domain and the three scenes above.
 
 The control surface's encoding; ports; how the child is started and
 stopped; names.
+
+## As built (2026-11-15)
+
+The lobby answers hello, rooms and Frontline. A battle server answers only its
+own battle's player routes and its authenticated control surface. Local startup
+always allocates one child process per battle; that process uses the unchanged
+worker-backed authority. The in-process provider uses the same HTTP server and
+control protocol with the caller's test authority.
+
+`BattleMachines` and `Machine` match the interface above. Capacity comes from
+the provider; the child provider uses `battleCapacity()`. The key is 16 random
+bytes, passed through the child's environment and `X-Battle-Key` headers.
+Startup IPC carries only the listening address. Child diagnostics redact the
+key and seated browser credentials before the provider forwards them.
+
+The private control surface is owned by `apps/game-server/src/http/control.ts`:
+
+| Method and route                                                                                             | Request / response                                                                                                                                                                                                           |
+| ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /control/start`                                                                                        | `{ id, setup }`; returns layout, tick rate and admitted map hash. Failed preparation is a refusal, with no ticket. Only one start is accepted.                                                                               |
+| `POST /control/seating`                                                                                      | Complete `[browser id, seat]` entries; acknowledges only `ok`.                                                                                                                                                               |
+| `POST /control/controller`                                                                                   | `{ player, kind }`; acknowledges enqueueing the controller change.                                                                                                                                                           |
+| `POST /control/human`                                                                                        | `{ player, opening }`; acknowledges the existing atomic hand-over, reset and human controller after publication.                                                                                                             |
+| `POST /control/end-seat`                                                                                     | `{ player, reason }`; ends just that seat's readers (`idle` or `leave`).                                                                                                                                                     |
+| `POST /control/referee`                                                                                      | Existing referee view, without credentials.                                                                                                                                                                                  |
+| `POST /control/replay`                                                                                       | Existing replay JSON as a JSON string.                                                                                                                                                                                       |
+| `POST /control/ping`                                                                                         | Renews the lobby lease; acknowledges `ok`.                                                                                                                                                                                   |
+| `POST /control/stop`                                                                                         | Acknowledges `ok`, then disposes the host and listener.                                                                                                                                                                      |
+| `GET /control/events?after=<id>`                                                                             | Existing record framing, ring and resume rule. `state` records describe order activity, opened/closed player connections and battle end. A gap gets a keyframe containing current connections and per-player order counters. |
+| `GET /control/seats/:player/stream`, `POST /control/seats/:player/up`, `POST /control/seats/:player/preview` | The authenticated raw seat-port transport used by the remote `BattleHost.attach` contract. It uses the same request parsing and stream framing as player routes. Browser allowances remain on player routes.                 |
+
+All control routes require the key, including the raw seat ports. No credential
+appears in their replies or events. Connection ids are correlation ids, not
+credentials. Start failures use the shared generic `unavailable` refusal; the
+server logs a redacted diagnostic and Frontline retains its bounded map retry.
+
+Rooms and Frontline still hold `BattleHost`. `setController` and `endSeat` now
+return promises: crossing the control boundary needs an acknowledged enqueue or
+reader termination. Seat-ending reasons are the lifecycle vocabulary `idle` and `leave`.
+Both host implementations retain synchronous unknown-player
+validation where it existed. The lobby's hosting owner, separate from the host
+interface, publishes credentials/seating and translates connection events into
+calls to the existing presence module. Seating is acknowledged before a ticket
+is published. Neither service branches on host implementation.
+
+`BattleTicket.address` is present for the separate battle listener, and absent
+for a host at the lobby origin. The page changes only the address passed to its
+battle link. The lobby's battle router and the old injected lookup argument are
+deleted; its HTTP constructor is named `createLobbyHttp`. Browser request validation, seat allowances, HTTP IO, record history,
+presence grace, AI takeover, idle timing and replay remain with their owners.
+
+A lost control surface or battle process follows `onEnd(crashed)`: its room
+ends `battle_failed` and frees its place, or its Frontline game is removed.
+Running battles require a renewable lease. Preparation holds a bounded lease
+through its live start request, so a slow map does not look like a lost lobby.
+A broken start request stops preparation. Locally, parent disconnect also stops
+the child. Disposal stops the listener and worker, with bounded termination of
+a child that does not exit.
+
+Verification and implementation decisions are recorded in the ignored
+`throwaway/multiplayer/slice28-report.md` and part 4 of the decisions ledger.
+
+The requested multiplayer domain passed all 282 tests, including the contract
+suite against both hosts. The final process-failure suite passed all 13 tests.
+Typecheck, changed-file linters and the size ratchet pass. The local-process
+`online-battle`, `room-lobby` and `frontline` scenes passed without changing any
+approval. The manual HTTP room-battle probe recorded one additional child while
+running and none after the existing empty-room end. No simulation or fixture
+changed.

@@ -1,8 +1,9 @@
+import { inProcessBattleMachines } from "../../../../apps/game-server/src/machines/inProcess";
 import type { BattleHost } from "@apps/game-server/src/battleHost/index";
 import type { BattleSetup } from "@packages/multiplayer/src/wire";
 import type { PresenceClock } from "@apps/game-server/src/presence";
 import { pendingBattle } from "./pendingBattle";
-import { createBattleHttp } from "@apps/game-server/src/http/index";
+import { createLobbyHttp } from "@apps/game-server/src/http/index";
 import type { BuildIdentity } from "@packages/multiplayer/src/wire";
 
 export const build: BuildIdentity = { commit: "room-screen-test", sim: "room-screen-sim" };
@@ -13,11 +14,13 @@ export async function roomHttp(
   createBattle: (setup: BattleSetup) => BattleHost = pendingBattle,
   clock?: PresenceClock,
 ) {
-  const server = createBattleHttp(() => undefined, build, {
-    createBattle,
+  const server = createLobbyHttp(build, {
+    machines: inProcessBattleMachines({
+      capacity,
+      createBattle: (spec) => createBattle(spec.setup),
+      ordersPerSecond: 100,
+    }),
     mapAttempts: 1,
-    ordersPerSecond: 100,
-    capacity,
     clock: clock ?? {
       now: () => Date.now(),
       schedule: (run, delay) => {

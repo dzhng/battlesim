@@ -1,6 +1,6 @@
 # Multiplayer: rooms and Frontline
 
-**Status:** building. Rooms and Frontline work end to end on a local server. What is left is hosting: a sandbox for each battle (slices 28 and 29), the milestone and the closeout. **Updated:** 2026-11-15.
+**Status:** building. Rooms and Frontline work end to end on a local server. The local lobby/battle-process split is built (slice 28); remote allocation, the milestone and closeout remain. **Updated:** 2026-11-15.
 
 Two online modes on one game server. **Rooms:** a host creates a public or
 private room, which is the skirmish lobby with several humans on either side,
@@ -21,7 +21,7 @@ simulation test build here, with other sessions building too. Check
 `df -h .` before any Rust build or new checkout. Under about 30 GB free, run
 Rust passes one or two at a time; under 5 GB, start nothing and ask the user.
 
-**Done and committed:** slices 02 to 08, 10 to 18 and 20 to 26, and the
+**Done and committed:** slices 02 to 08, 10 to 18, 20 to 26 and 28, and the
 local half of 09; the endurance half of slice 01. The branch holds staging
 as of the morning of 2026-11-15; staging has since gained about 80 commits
 (the battle-growth renderer work), which merge without conflict. Merge them
@@ -30,17 +30,21 @@ that is taking pictures. **Rooms work end to end on a local server:** two browse
 create a room, start its battle, survive a drop and finish
 ([how to run it](slices/18-room-battle.md)).
 
+**Slice 28 as built:** local startup allocates one child process per battle,
+with acknowledged seating and an authenticated resumable control stream. The
+lobby no longer serves battle routes; tickets point at the battle listener.
+The [slice](slices/28-battle-process.md#as-built-2026-11-15) records the control
+contract and the ignored implementation report holds verification evidence.
+
 **Pick up here, in this order:**
 
-1. **Slice 28,** a battle in its own process: the split between the lobby
-   and a battle server, built and proven on one computer. Hand it to Codex.
-2. **Slice 29,** a sandbox for each battle, and the lobby deployed on the
+1. **Slice 29,** a sandbox for each battle, and the lobby deployed on the
    temporary host. The user has said to deploy there. It replaces slice
    09's push and burns O6.
-3. **Slice 19,** the milestone: two people on two networks finish a room
+2. **Slice 19,** the milestone: two people on two networks finish a room
    battle. **Ask the user before** putting the lobby's address in the site
    and before promoting a site build.
-4. **Slice 27,** the closeout: the one full run, the docs, the plan
+3. **Slice 27,** the closeout: the one full run, the docs, the plan
    archived.
 
 **Not this plan's, and being handled by another session of the user's:**
@@ -166,7 +170,7 @@ Frontline
 
 Hosting
 
-- [ ] [28 A battle in its own process](slices/28-battle-process.md)
+- [x] [28 A battle in its own process](slices/28-battle-process.md)
 - [ ] [29 A sandbox for each battle](slices/29-sandbox-per-battle.md)
 - [ ] [27 Closeout](slices/27-closeout.md)
 

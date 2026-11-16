@@ -40,7 +40,7 @@ type StoredRoom = {
 };
 
 export function createRoomService(options: {
-  createBattle: (setup: BattleSetup) => BattleHost;
+  createBattle: (setup: BattleSetup, id: string) => BattleHost;
   online: OnlineState;
   random: () => number;
 }) {
@@ -120,13 +120,15 @@ export function createRoomService(options: {
     const player = battlePlayers(stored.room.lobby.seats).playerOf[member.seat]!;
     if (battle.controllers.get(player) === kind) return;
     battle.controllers.set(player, kind);
-    battle.host.setController(player, kind);
+    void battle.host
+      .setController(player, kind)
+      .catch(() => remove(stored.room.code, "battle_failed"));
   };
   const startBattle = (stored: StoredRoom) => {
     try {
       const setup = battleSetup(stored.room);
-      const host = options.createBattle(setup);
       const id = randomUUID();
+      const host = options.createBattle(setup, id);
       stored.battle = {
         id,
         host,
@@ -142,9 +144,10 @@ export function createRoomService(options: {
           controller(stored, member.who, "active_ai");
       }
       void host.ready
-        .then(({ mapIdentity }) => {
+        .then(async ({ mapIdentity }) => {
           if (rooms.get(stored.room.code) !== stored) return;
-          stored.room = recordBattle(stored.room, { id, mapIdentity });
+          const address = online.battleAddress(host);
+          stored.room = recordBattle(stored.room, { id, mapIdentity, ...(address && { address }) });
           stored.slot.serve({
             id,
             host,
@@ -155,7 +158,14 @@ export function createRoomService(options: {
               return { side, player };
             },
           });
-          publishRoom(stored);
+          await stored.slot.seating(
+            stored.room.members.map((member) => {
+              const { phase } = roomView(stored.room, member.who);
+              if (phase.kind !== "battle") throw new Error("battle ticket missing");
+              return [member.who, { side: phase.ticket.side, player: phase.ticket.player }];
+            }),
+          );
+          if (rooms.get(stored.room.code) === stored) publishRoom(stored);
         })
         .catch(() => ended("battle_failed"));
     } catch {

@@ -39,22 +39,7 @@ export function battleRoute(
       const key = `${seat.side}/${seat.player}`;
       const existing = ports.get(key);
       if (existing) return existing;
-      let reader!: Handlers["reader"];
-      let up!: Handlers["up"];
-      let preview!: Handlers["preview"];
-      host.attach({
-        seat,
-        onReader: (handle) => {
-          reader = handle;
-        },
-        onUp: (handle) => {
-          up = handle;
-        },
-        onPreview: (handle) => {
-          preview = handle;
-        },
-      });
-      const handlers = limited({ reader, up, preview }, ordersPerSecond, now);
+      const handlers = limited(seatHandlers(host, seat), ordersPerSecond, now);
       ports.set(key, handlers);
       return handlers;
     },
@@ -99,4 +84,24 @@ function limited(port: Handlers, ordersPerSecond: number, now: () => number): Ha
       return port.preview(query);
     },
   };
+}
+
+/** A raw seat port; browser allowances wrap it in battleRoute. */
+export function seatHandlers(host: Pick<BattleHost, "attach">, seat: Seat): Handlers {
+  let reader!: Handlers["reader"];
+  let up!: Handlers["up"];
+  let preview!: Handlers["preview"];
+  host.attach({
+    seat,
+    onReader: (h) => {
+      reader = h;
+    },
+    onUp: (h) => {
+      up = h;
+    },
+    onPreview: (h) => {
+      preview = h;
+    },
+  });
+  return { reader, up, preview };
 }

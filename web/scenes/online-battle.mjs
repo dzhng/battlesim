@@ -1,59 +1,13 @@
 import { purchase } from "./_battlePurchases.mjs";
-// Two real pages, two credentials, one threaded local authority.
-import { spawn, execFileSync } from "node:child_process";
+// Two real pages, two credentials, one battle process.
 import { mkdir, writeFile } from "node:fs/promises";
-import { once } from "node:events";
 import { captureSeats, resultColours } from "./_battle-colours.mjs";
 import { openingView, screenControls, screenUpOrder } from "./_battleOrientation.mjs";
-import { onlinePage } from "./_rooms.mjs";
+import { onlinePage, roomServer } from "./_rooms.mjs";
 import { encodeRecord, jsonRecord } from "../../packages/multiplayer/src/stream/index.ts";
 
-const root = new URL("../../", import.meta.url).pathname;
 const evidence = new URL("../../throwaway/multiplayer/online-battle/", import.meta.url).pathname;
 const observation = (page) => page.evaluate(() => window.__lab.route.observation());
-
-async function server() {
-  execFileSync("bun", ["apps/game-server/build.mjs"], { cwd: root });
-  const child = spawn("node", ["throwaway/game-server/main.mjs"], {
-    cwd: root,
-    env: { ...process.env, PORT: "0" },
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  let log = "";
-  child.stderr.on("data", (data) => {
-    log += data;
-  });
-  const address = await new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      child.kill();
-      reject(new Error(`server startup: ${log}`));
-    }, 30_000);
-    child.once("exit", (code) => {
-      clearTimeout(timeout);
-      reject(new Error(`server exited ${code}: ${log}`));
-    });
-    child.stdout.on("data", (data) => {
-      log += data;
-      const match = /Game server: (http:\/\/127\.0\.0\.1:\d+)/.exec(log);
-      if (match) {
-        clearTimeout(timeout);
-        resolve(match[1]);
-      }
-    });
-  });
-  return {
-    address,
-    hold: () => child.kill("SIGSTOP"),
-    resume: () => child.kill("SIGCONT"),
-    async stop() {
-      const exited = once(child, "exit");
-      child.kill("SIGCONT");
-      child.kill("SIGTERM");
-      await exited;
-      await writeFile(`${evidence}server.log`, log);
-    },
-  };
-}
 
 async function controls(ctx, page, side) {
   const before = (await observation(page)).tick;
@@ -139,7 +93,7 @@ export async function run(ctx) {
   const captures = process.env.SLICE11_BEFORE ? `${colours}before/` : colours;
   await mkdir(captures, { recursive: true });
   await resultColours(ctx, new URL(ctx.url).origin, captures);
-  const local = await server();
+  const local = await roomServer();
   const base = `${new URL(ctx.url).origin}`;
   const onlineQuery = `?server=${encodeURIComponent(local.address)}&quality=${ctx.graphicsQuality}`;
   const pages = [];
@@ -448,7 +402,7 @@ export async function run(ctx) {
     await pages[0].evaluate(() => window.__cutBattleStreams());
     await pages[1].waitForTimeout(6000);
     const handedOver = await (
-      await fetch(`${local.address}/battles/${tickets[0].battle}/up`, {
+      await fetch(`${tickets[0].address ?? local.address}/battles/${tickets[0].battle}/up`, {
         method: "POST",
         headers: { "X-Player": credential, "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -568,7 +522,7 @@ export async function run(ctx) {
     throw error;
   } finally {
     for (const page of pages) if (!page.isClosed()) await page.close();
-    await local.stop();
+    await local.stop(evidence);
     await writeFile(`${evidence}http-refusals.json`, JSON.stringify(refusedRequests, null, 2));
   }
 }

@@ -1,10 +1,10 @@
-import { pendingBattle } from "./support/pendingBattle";
 // @vitest-environment node
-import { timerClock } from "./timerClock";
 import { PageClock } from "./pageClock";
 import { join } from "node:path";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
-import { createBattleHttp, battleRoute } from "../../../apps/game-server/src/http/index";
+import { createBattleServer } from "../../../apps/game-server/src/http/control";
+import { CONTROL_HEADER } from "../../../apps/game-server/src/http/controlProtocol";
+import { battleRoute } from "../../../apps/game-server/src/http/seats";
 import { createBattleHost, type BattleClock } from "../../../apps/game-server/src/battleHost/index";
 import { nodeSetupData } from "../../../apps/game-server/src/serverData";
 import type { Seat } from "../../../packages/multiplayer/src/link";
@@ -67,24 +67,28 @@ async function serving() {
     [redId, { side: "red", player: "red-1" }],
   ]);
   const route = battleRoute(host, (id) => seats.get(id), ordersPerSecond, clock.now);
-  const routes = new Map([["duel", route]]);
-  const server = createBattleHttp(
-    (id) => routes.get(id),
-    { commit: "test", sim: "test" },
-    {
-      createBattle: pendingBattle,
-      mapAttempts: 1,
-      ordersPerSecond: 100,
-      capacity: 0,
-      clock: timerClock(),
-      random: Math.random,
-      clientAddressHeader: null,
-    },
-  );
+  const key = "a".repeat(32);
+  const { server } = createBattleServer({
+    key,
+    createBattle: () => host,
+    ordersPerSecond,
+    now: clock.now,
+  });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
   if (!address || typeof address === "string") throw new Error("no TCP address");
   const base = `http://127.0.0.1:${address.port}`;
+  async function control(action: string, value: unknown) {
+    const response = await fetch(`${base}/control/${action}`, {
+      method: "POST",
+      headers: { [CONTROL_HEADER]: key, "Content-Type": "application/json" },
+      body: JSON.stringify(value),
+    });
+    if (!response.ok) throw new Error("control refused");
+    return response.json();
+  }
+  await control("start", { id: "duel", setup });
+  await control("seating", [...seats]);
   cleanup.push(async () => {
     host.dispose();
     server.closeAllConnections();
@@ -96,7 +100,8 @@ async function serving() {
     clock,
     ready,
     route,
-    routes,
+    control,
+    seats,
     ordersPerSecond,
     async run(ticks: number) {
       for (let i = 0; i < ticks; i++) {
@@ -485,17 +490,13 @@ test("malformed bodies and cursors are refused without ending or recording into 
 
 test("a reservation for a seat the host does not have gets an honest HTTP refusal", async () => {
   const b = await serving();
-  b.routes.set(
-    "bad",
-    battleRoute(
-      b.host,
-      (id) => (id === blueId ? { side: "blue", player: "missing" } : undefined),
-      b.ordersPerSecond,
-    ),
-  );
-  const response = await b.request("/battles/bad/up", { seq: 1, items: [] });
+  b.seats.set(blueId, { side: "blue", player: "missing" });
+  await b.control("seating", [...b.seats]);
+  const response = await b.request("/battles/duel/up", { seq: 1, items: [] });
   expect(response.status).toBe(410);
   expect(await response.json()).toEqual({ refused: "unavailable" });
+  b.seats.set(blueId, { side: "blue", player: "blue-1" });
+  await b.control("seating", [...b.seats]);
   expect(
     await (
       await b.request("/battles/duel/up", {

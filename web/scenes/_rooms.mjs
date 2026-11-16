@@ -39,8 +39,27 @@ export async function roomServer() {
       }
     });
   });
+  // Photographs hold the authority process, including its worker, while
+  // the lobby stays available to the pages' state streams.
+  const signalBattles = (signal) => {
+    const rows = execFileSync("ps", ["-axo", "pid=,ppid=,command="], { encoding: "utf8" }).split(
+      "\n",
+    );
+    for (const row of rows) {
+      const match = /^\s*(\d+)\s+(\d+)\s+(.+)$/.exec(row);
+      if (match && Number(match[2]) === child.pid && match[3].includes("/battle.mjs")) {
+        try {
+          process.kill(Number(match[1]), signal);
+        } catch (error) {
+          if (error.code !== "ESRCH") throw error;
+        }
+      }
+    }
+  };
   return {
     address,
+    hold: () => signalBattles("SIGSTOP"),
+    resume: () => signalBattles("SIGCONT"),
     async post(path, who, value) {
       return (
         await fetch(`${address}${path}`, {
@@ -51,6 +70,7 @@ export async function roomServer() {
       ).json();
     },
     async stop(folder) {
+      signalBattles("SIGCONT");
       const exited = once(child, "exit");
       child.kill();
       await exited;

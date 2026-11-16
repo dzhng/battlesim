@@ -1,8 +1,12 @@
 # Game server
 
-The server owns online battle authority. Each battle runs on its own thread;
-HTTP owns sockets and credentials, and a seat lookup binds each request to the
-player it may command. Neither a ticket nor the battle setup contains a browser
+The lobby owns rooms, Frontline, admission and presence. Each battle runs in
+its own process, with the simulation on that process's worker thread. The
+[battle server](src/http/control.ts) owns that battle's player routes;
+[the lobby's hosting owner](src/battles.ts) reaches it through authenticated
+control requests and one resumable event stream. HTTP owns sockets and
+credentials, and seating supplied by the lobby binds each player request to the
+seat it may command. Neither a ticket nor the battle setup contains a browser
 credential.
 
 For local play, from the repository root:
@@ -30,7 +34,7 @@ owns their rules. Room and list streams use the battle transport's record
 framing, with a current snapshot on each open. A room stream opened with a resume cursor must still belong to its member;
 a removed player is refused `removed` instead of silently joining again.
 Start prepares the room's skirmish on a battle host, then publishes each
-member's own ticket with the admitted map identity. A ticket's callsigns map
+member's own ticket with the admitted map identity and battle address. A ticket's callsigns map
 contains public names indexed by battle player, never credentials.
 The room link restores a returning member's seat while its battle runs.
 A finished or failed battle deletes its room and frees the reserved capacity;
@@ -52,7 +56,23 @@ The client-address trust boundary belongs to [deployment](deploy/README.md).
 
 [Online state](src/online.ts) owns battle admission and presence across modes.
 A lobby holds a slot before it starts; Frontline holds one while preparing or
-running. Both register the same seat lookup and use the same battle transport.
+running. Both publish seating through the same hosting owner and use the same battle
+transport. The [machine provider](src/machines/index.ts) owns capacity and
+allocation; local startup uses child processes, and tests can use real HTTP
+listeners inside their process. A machine exposes player and control addresses
+and a stop operation, with no assumption that the two addresses coincide.
+
+The lobby mints one private key per battle. Only control request headers and
+the child's startup environment carry it. Control replies and events contain
+no credentials; stream presence names a battle player and an opaque connection,
+which the lobby maps back to its browser. Crash diagnostics remove credentials
+before logging. Player orders and previews go directly to the ticket's address;
+room and Frontline state stay at the lobby.
+
+A running battle requires a renewable lobby lease. A live, bounded preparation
+request holds the lease while its map is built. Closing that request stops
+preparation; losing the lobby stops a running battle. Locally the child also
+observes its parent connection, and lobby shutdown disposes all its machines.
 
 [Frontline](src/frontline.ts) reserves a seat while the briefing builds the map,
 then Deploy takes it. A new game's first commander owns their seat from tick
@@ -72,7 +92,8 @@ ends the game, even if an AI still holds an absent commander's seat.
 
 The referee view is server accounting, read directly from battle state. It is
 separate from either side's fog-limited publication. Administrative seat events
-and this view have no remote-connection or HTTP entry point.
+and this view are available only to the lobby on the authenticated control
+surface; player routes cannot express them.
 
 Frontline's activity is part of the room-list state. The Frontline lifecycle
 counts running games and actively seated humans; the shared online state

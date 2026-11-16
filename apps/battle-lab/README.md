@@ -96,7 +96,7 @@ drivers owning their state.
 [Online battle pages](src/routes/onlineBattle.tsx) prepare the map locally and
 check its hash before opening any server stream. Their session takes only seat
 actions; local authority controls stay with offline battles. The
-[game server](../game-server/README.md) owns local startup and dev seating.
+[game server](../game-server/README.md) owns local startup, room seating and battle transport.
 
 [The shared battle view](src/BattleView.tsx) composes page resources and observation
 feeds. [Session ownership](src/useBattleSession.ts) keeps worker preparation and

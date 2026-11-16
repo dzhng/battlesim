@@ -28,6 +28,7 @@ const KEYFRAME_EVERY_MS = 1000;
 
 type Side = "blue" | "red";
 const SIDES: Side[] = ["blue", "red"];
+export type SeatEndReason = "idle" | "leave";
 export type BattleEnd = { kind: "finished" } | { kind: "crashed"; message: string };
 
 export interface BattleSpec {
@@ -49,12 +50,12 @@ export interface BattleHost {
   ready: Promise<{ layout: string; tickHz: number; mapIdentity: string }>;
   /** Serve a seat. The port's seat is the transport's word for who this is. */
   attach(port: SeatPort): void;
-  setController(player: string, kind: ControllerKind): void;
+  setController(player: string, kind: ControllerKind): Promise<void>;
   referee(): Promise<RefereeView>;
   seatHuman(player: string, opening: boolean): Promise<void>;
   onOrder(handle: (player: string) => void): void;
   /** End this seat's readers without ending its side. */
-  endSeat(player: string, reason: string): void;
+  endSeat(player: string, reason: SeatEndReason): Promise<void>;
   onEnd(handle: (end: BattleEnd) => void): void;
   /** The battle's recorded orders so far. */
   replay(): Promise<string>;
@@ -327,6 +328,7 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
     setController(player, kind) {
       if (!players.has(player)) throw new Error(`${player} is not a player of this battle`);
       send({ type: "controllers", controllers: JSON.stringify([[player, kind]]) });
+      return Promise.resolve();
     },
     referee: () => ask(referees, (id) => ({ type: "referee", id })),
     seatHuman(player, opening) {
@@ -338,6 +340,7 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
     },
     endSeat(player, reason) {
       for (const end of readers.get(player) ?? []) end(reason);
+      return Promise.resolve();
     },
     onEnd(handle) {
       if (end) handle(end);

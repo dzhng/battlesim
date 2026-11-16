@@ -1,3 +1,4 @@
+import { inProcessBattleMachines } from "../../../apps/game-server/src/machines/inProcess";
 import { createOnlineState } from "../../../apps/game-server/src/online";
 import { nodeCatalogSet } from "../../src/battle/catalog/node";
 import { join } from "node:path";
@@ -395,21 +396,23 @@ test("a room whose map fails preparation closes honestly and releases its capaci
 });
 
 test("localhost room streams deliver each ticket and route both seats' streams and orders through /battles, refusing a stranger", async () => {
-  const { createBattleHttp } = await import("../../../apps/game-server/src/http/index");
+  const { createLobbyHttp } = await import("../../../apps/game-server/src/http/index");
   const { httpRecords } = await import("../../../packages/multiplayer/src/stream/http");
   const { ScenePresentation } = await import("../../src/battle/sim/presentation");
   const clock = new PageClock();
   let host!: BattleHost;
   const build = { commit: "room-battle-test", sim: "room-battle-test" };
-  const server = createBattleHttp(() => undefined, build, {
-    capacity: 1,
+  const server = createLobbyHttp(build, {
     clock,
     random: Math.random,
     clientAddressHeader: null,
-    createBattle: (setup) => (host = createBattleHost({ setup }, { clock, generator }, data)),
+    machines: inProcessBattleMachines({
+      capacity: 1,
+      now: clock.now,
+      createBattle: (spec) => (host = createBattleHost(spec, { clock, generator }, data)),
+      ordersPerSecond: JSON.parse(data.rules).commands.orders_per_s,
+    }),
     mapAttempts: 1,
-    ordersPerSecond: (JSON.parse(data.rules) as { commands: { orders_per_s: number } }).commands
-      .orders_per_s,
   });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
@@ -418,8 +421,10 @@ test("localhost room streams deliver each ticket and route both seats' streams a
   const recordings: StreamRecord[][] = [];
   const readers: Promise<void>[] = [];
   const replies: unknown[] = [];
+  let battleAddress = address;
+  const target = (path: string) => (path.startsWith("/battles/") ? battleAddress : address);
   async function post(path: string, value: unknown, who = ids[0]) {
-    const response = await fetch(`${address}${path}`, {
+    const response = await fetch(`${target(path)}${path}`, {
       method: "POST",
       headers: { "X-Player": who, "Content-Type": "application/json" },
       body: JSON.stringify(value),
@@ -436,7 +441,7 @@ test("localhost room streams deliver each ticket and route both seats' streams a
     readers.push(
       (async () => {
         try {
-          for await (const r of httpRecords(`${address}${path}`, who, signal)) records.push(r);
+          for await (const r of httpRecords(`${target(path)}${path}`, who, signal)) records.push(r);
         } catch (error) {
           if (!signal.aborted) throw error;
         }
@@ -466,6 +471,7 @@ test("localhost room streams deliver each ticket and route both seats' streams a
     for (const id of ids.slice(0, 2))
       expect(await post(`${path}/act`, { kind: "ready", ready: true }, id)).toEqual({ ok: true });
     expect(await post(`${path}/act`, { kind: "start" })).toEqual({ ok: true });
+    await until(() => !!host);
     const ready = await host.ready;
     const view = (records: StreamRecord[]) =>
       records
@@ -474,6 +480,7 @@ test("localhost room streams deliver each ticket and route both seats' streams a
         .at(-1)!;
     await until(() => [blue, red].every((records) => view(records)?.phase.kind === "battle"));
     const tickets = [ticket(view(blue)), ticket(view(red))];
+    battleAddress = tickets[0].address ?? address;
     expect(tickets.map((t) => [t.side, t.player])).toEqual([
       ["blue", "blue-1"],
       ["red", "red-1"],
@@ -512,7 +519,7 @@ test("localhost room streams deliver each ticket and route both seats' streams a
         replay.accepted.some(([, c]) => c.player === t.player && c.order.kind === "ready"),
       ).toBe(true);
     for (const suffix of ["stream", "up"]) {
-      const response = await fetch(`${address}/battles/${tickets[0].battle}/${suffix}`, {
+      const response = await fetch(`${battleAddress}/battles/${tickets[0].battle}/${suffix}`, {
         method: suffix === "stream" ? "GET" : "POST",
         headers: { "X-Player": ids[2], "Content-Type": "application/json" },
         body: suffix === "up" ? JSON.stringify({ seq: 2, items: [] }) : undefined,
@@ -523,7 +530,7 @@ test("localhost room streams deliver each ticket and route both seats' streams a
     expect(await post("/hello", { build, callsign: "COMMANDER-2" }, ids[2])).toEqual({
       callsign: "COMMANDER-2",
     });
-    const joined = await fetch(`${address}${path}`, { headers: { "X-Player": ids[2] } });
+    const joined = await fetch(`${target(path)}${path}`, { headers: { "X-Player": ids[2] } });
     expect(await joined.json()).toEqual({ refused: "started" });
     // An order the battle cannot read is refused to its sender, quotes
     // nothing back (here it carried the sender's own credential), and ends

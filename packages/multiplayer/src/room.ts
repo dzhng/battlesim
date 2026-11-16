@@ -46,6 +46,7 @@ export interface Member {
 
 export type RoomPhase = "lobby" | "starting" | "battle";
 export interface RoomBattle {
+  address?: string;
   id: string;
   mapIdentity: string;
 }
@@ -363,6 +364,7 @@ function ticketFor(room: Room, who: string): BattleTicket | null {
       room.members.map((member) => [playerOf[member.seat]!, member.callsign]),
     ),
     battle: room.battle.id,
+    ...(room.battle.address && { address: room.battle.address }),
     setup,
     mapIdentity: room.battle.mapIdentity,
     side: player.side,

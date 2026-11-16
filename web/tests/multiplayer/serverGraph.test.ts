@@ -21,6 +21,10 @@ const entries = [
   "apps/game-server/src/soak.ts",
   "apps/game-server/src/http/index.ts",
   "apps/game-server/src/main.ts",
+  "apps/game-server/src/battle.ts",
+  "apps/game-server/src/battleHost/remote.ts",
+  "apps/game-server/src/machines/child.ts",
+  "apps/game-server/src/machines/inProcess.ts",
 ];
 
 test("multiplayer packages bundle for Node without browser aliases or asset loaders", () => {

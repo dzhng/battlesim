@@ -15,8 +15,10 @@ and `Faction` (`packages/scene-assets/src/units.ts`).
 ## Every request and response
 
 - **Request header `X-Player`:** the browser id, 128 random bits in hex. It is
-  the only credential. The server derives the seat from it and ignores any
-  side, player or seat a body claims.
+  the player credential. The private lobby-to-battle control surface uses a
+  separate per-battle key in `X-Battle-Key`; players never receive it. Player
+  routes derive the seat from `X-Player` and ignore any side, player or seat
+  a body claims.
 - **Response headers:** `Cache-Control: no-store, no-transform`;
   `Access-Control-Allow-Origin: *`; `Access-Control-Allow-Headers: X-Player,
   Content-Type`; `Access-Control-Max-Age: 7200`. Streams add
@@ -59,7 +61,7 @@ u32 payloadBytes | u32 id | u8 kind | u8 flags | u16 0 | payload
 | `open` | JSON `StreamOpen` | First record of every response |
 | `publication` | binary | One tick of one side: `u32 tick`, 16 ASCII bytes of digest, `f32 stepMs`, then the publication's `f32` words |
 | `status` | JSON `{ status, slow }` | The battle's status changed (`running`, `finished`, `failed`), or it began or stopped running behind its clock (`slow`) |
-| `state` | JSON | The whole current `RoomList` or `RoomView` |
+| `state` | JSON | The whole current `RoomList` or `RoomView`; the private control stream uses events and its reconciliation snapshot |
 | `end` | JSON `{ reason }` | The server's last word on this stream |
 
 `flags` bit 0 marks a keyframe: a publication that is a full snapshot.
@@ -94,6 +96,10 @@ The reader reconnects with `?after=<last id it handled>`.
 - **An `end` record** is the last: the reader stops and does not reconnect.
   Until then a reader reconnects at once after a connection that delivered
   something, and backs off while connections deliver nothing.
+
+The private control stream uses the same framing and resume rule, with `state`
+records for events and a keyframe snapshot of live connections and order
+activity after a gap. It never contains a browser id or the battle key.
 
 State streams need no ring: on any open the server sends the current state.
 
@@ -158,6 +164,7 @@ type BattleSetup = {            // what both ends feed the one request builder
   rules: "skirmish" | "frontline";
 };
 type BattleTicket = {
+  address?: string;             // battle origin, omitted when it is the lobby origin
   battle: string;               // the id in /battles/:id
   setup: BattleSetup;
   mapIdentity: string;          // the server's map hash; the page refuses to start on a mismatch
@@ -166,6 +173,11 @@ type BattleTicket = {
   callsigns: Record<string, string>;  // public names, keyed by battle player id
 };
 ```
+
+The lobby serves the room and Frontline endpoints. The battle server alone
+serves `/battles/:id/{stream,up,preview}`. The page uses `ticket.address` for
+its battle link, falling back to the lobby address only when the field is
+absent. Room/list presence, leave and deploy still use the lobby address.
 
 A ticket carries the settings, not the prepared battle. The page builds the
 map itself from the settings and checks its identity against the server's.

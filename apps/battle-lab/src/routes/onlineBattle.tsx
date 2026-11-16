@@ -125,7 +125,9 @@ function PreparedOnlineBattle({
         },
         session: {
           transport: "remote",
-          connect: remoteConnection(httpLink(address, ticket.battle, browserId())),
+          connect: remoteConnection(
+            httpLink(ticket.address ?? address, ticket.battle, browserId()),
+          ),
         },
       });
       setStage("world");
