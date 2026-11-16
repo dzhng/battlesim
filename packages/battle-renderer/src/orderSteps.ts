@@ -27,6 +27,9 @@ export interface OrderStep {
   point: P2 | null;
   /** An attack's target, by kind: a ground point's reticle carries a cross. */
   target?: { kind: string };
+  /** The building a garrison step enters or an exit step leaves, as the
+   *  side knows it: its footprint's centre and half extents. */
+  building?: { center: P2; half: P2 };
 }
 
 /** Where a unit's orders end: the point of its last queued step that takes
@@ -41,17 +44,6 @@ export function ordersEnd(steps: readonly OrderStep[], goal: P2 | null): P2 | nu
   return goal;
 }
 
-/** Each queued move after the current order, its point and whether the
- *  step after it lets passengers out there: the queued legs the overlay
- *  draws (other kinds draw nothing yet). */
-function queuedMoves(steps: readonly OrderStep[]): { point: P2; unloads: boolean }[] {
-  return steps.flatMap((step, k) =>
-    k > 0 && step.kind === "move" && step.point
-      ? [{ point: step.point, unloads: steps[k + 1]?.kind === "unload" }]
-      : [],
-  );
-}
-
 /** The current order lets passengers out where it ends: an unload follows it. */
 export const currentUnloads = (steps: readonly OrderStep[]) => steps[1]?.kind === "unload";
 
@@ -62,31 +54,107 @@ const BLOCKED_R = 4.5;
 /** A blocked route's warning ring round its goal. */
 export const warningRing = (goal: P2): UnitCircle => ({ c: goal, r: BLOCKED_R, facing: null });
 
-/** A unit's queued legs after its goal: each a dashed route to a small
- *  ring, with an unload mark, pointing along the leg, where that step lets
- *  passengers out. The first leaves the circle where the current order
- *  ends: its destination's (`dest`), else a blocked route's warning ring.
- *  A winged aircraft, circling its goal, has neither: no ground leg runs to
- *  its first queued point. */
+/** What a unit's queued chain draws in, at queued strength: its routes'
+ *  colour and its attacks'. */
+export interface ChainColors {
+  route: Rgba;
+  attack: Rgba;
+}
+
+/** The ring round a building a step enters or leaves: its corners plus
+ *  the style's margin, as a held building's. */
+const buildingRing = (pen: Pen, b: NonNullable<OrderStep["building"]>): UnitCircle => ({
+  c: b.center,
+  r: Math.hypot(b.half[0], b.half[1]) + pen.style.building_marker_margin_m,
+  facing: null,
+});
+
+/** An attack's marks: a line from `from` along `route` to a reticle on
+ *  `aim` (a centre cross on a ground point), dashed while queued. The
+ *  reticle's circle, where the next leg leaves from. One drawer for the
+ *  current attack and every queued one. */
+function aimAt(
+  paint: MeshBuilder,
+  pen: Pen,
+  from: UnitCircle | null,
+  route: readonly P2[],
+  aim: P2,
+  step: OrderStep,
+  { line, mark, dashed = false }: { line: Rgba; mark: Rgba; dashed?: boolean },
+): UnitCircle {
+  const reticle: UnitCircle = { c: aim, r: pen.style.reticle_m, facing: null };
+  routeBetween(paint, pen, from, [...route, aim], reticle, line, { dashed });
+  reticleMark(paint, pen, aim, reticle.r, mark, { cross: step.target?.kind === "ground" });
+  return reticle;
+}
+
+/** One queued step, from `prev` (the mark the step before ends in), drawn
+ *  as its order draws when current, its leg dashed: a move or a return to
+ *  base, a leg to a ring; an attack, a line to its reticle; a garrison, a
+ *  leg to the building's ring; an exit, a leg out to the building's ring
+ *  it leaves; a board or a collect, a leg to the carrier or the squad; an
+ *  unload, the unload mark on `prev`, facing the way the leg came in from
+ *  `behind`. The mark it ends in, or `prev` where it draws none. */
+function queuedStep(
+  paint: MeshBuilder,
+  pen: Pen,
+  step: OrderStep,
+  prev: UnitCircle | null,
+  behind: P2 | null,
+  colors: ChainColors,
+): UnitCircle | null {
+  const q = step.point;
+  if (step.kind === "unload") {
+    if (prev && behind)
+      unloadMark(
+        paint,
+        pen,
+        prev,
+        Math.atan2(prev.c[1] - behind[1], prev.c[0] - behind[0]),
+        colors.route,
+      );
+    return prev;
+  }
+  if (!q) return prev;
+  if (step.kind === "attack")
+    return aimAt(paint, pen, prev, [], q, step, {
+      line: colors.attack,
+      mark: colors.attack,
+      dashed: true,
+    });
+  const house = step.building && (step.kind === "garrison" || step.kind === "exit");
+  const to: UnitCircle = house
+    ? buildingRing(pen, step.building!)
+    : { c: q, r: QUEUED_R, facing: null };
+  routeBetween(paint, pen, prev, [to.c], to, colors.route, { dashed: true });
+  const ringed = step.kind === "move" || step.kind === "return_to_base" || step.kind === "garrison";
+  if (ringed) ring(paint, pen, to.c, to.r, colors.route);
+  return to;
+}
+
+/** A unit's queued steps after its current order, one continuous chain:
+ *  the first leaves the circle where the current order ends (its
+ *  destination's, `dest`, else a blocked route's warning ring), each next
+ *  one the mark the step before ends in. An unload straight after the
+ *  current order is that order's own mark. A winged aircraft, circling its
+ *  goal, keeps only its queued moves and no ground leg to the first. */
 export function queuedLegs(
   paint: MeshBuilder,
   pen: Pen,
   u: Pick<OrderView, "steps" | "goal" | "state" | "fixedWing">,
   dest: UnitCircle | null,
-  color: Rgba,
+  colors: ChainColors,
 ) {
   const blocked = u.state === "route_blocked" && !u.fixedWing;
   let prev = dest ?? (blocked && u.goal ? warningRing(u.goal) : null);
-  for (const { point: q, unloads } of queuedMoves(u.steps)) {
-    const next: UnitCircle = { c: q, r: QUEUED_R, facing: null };
-    routeBetween(paint, pen, prev, [q], next, color, { dashed: true });
-    ring(paint, pen, q, QUEUED_R, color);
-    if (unloads) {
-      const from = prev?.c ?? u.goal ?? q;
-      unloadMark(paint, pen, next, Math.atan2(q[1] - from[1], q[0] - from[0]), color);
-    }
+  let behind: P2 | null = u.goal;
+  u.steps.forEach((step, k) => {
+    if (k === 0 || (k === 1 && step.kind === "unload")) return;
+    if (u.fixedWing && step.kind !== "move") return;
+    const next = queuedStep(paint, pen, step, prev, behind, colors);
+    if (next !== prev) behind = prev?.c ?? behind;
     prev = next;
-  }
+  });
 }
 
 /** Where the current order's attack aims, when the overlay draws it: a
@@ -113,9 +181,6 @@ export function currentAttack(
   color: Rgba,
   routeColor: Rgba,
 ): UnitCircle {
-  const reticle: UnitCircle = { c: aim, r: pen.style.reticle_m, facing: null };
-  if (u.goal) routeBetween(paint, pen, circle, [...u.route, aim], reticle, routeColor);
-  else routeBetween(paint, pen, circle, [aim], reticle, color);
-  reticleMark(paint, pen, aim, reticle.r, color, { cross: u.steps[0]?.target?.kind === "ground" });
-  return reticle;
+  const line = u.goal ? routeColor : color;
+  return aimAt(paint, pen, circle, u.goal ? u.route : [], aim, u.steps[0], { line, mark: color });
 }

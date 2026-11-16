@@ -80,3 +80,13 @@ rewritten from scratch at closeout.
 - **The attack line uses the route's stroke** (`line_px`, the one stroke rule), so at far
   zoom it thins like every route; red on green holds less contrast than the yellow route
   there. Named for the human checkpoint, not changed.
+- **Each queued step's mark, by kind** (decision 18, where it was silent): a move and a
+  return to base end in the queued ring; a garrison in its building's ring (its corners
+  plus `building_marker_margin_m`, as a held building's), an exit leaves that ring; a
+  board or collect ends at the carrier or squad with no ring of its own (their own
+  circles show); an unload marks the ring before it; an attack whose target the side has
+  lost draws nothing and the chain runs on from the step before. *Agent.*
+- **The building comes from the map's building index**, passed to `orderLayer` by the
+  battle view and the garrison lab; a lab without it draws a garrison as a leg to a
+  queued ring. *Agent*: the side's known props list only bodies that changed, so they
+  can't place an intact building.

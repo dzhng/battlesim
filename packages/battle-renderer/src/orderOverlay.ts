@@ -472,6 +472,8 @@ export function buildOrderOverlay(
     const color = fade(order);
     const current = fade(fadeAlpha(order, style.current_alpha));
     const queued = fade(fadeAlpha(order, style.queued_alpha));
+    const attack = fade(glowing(style.attack, style.glow.order));
+    const chain = { route: queued, attack: fadeAlpha(attack, style.queued_alpha) };
     const blockedColor = fade(cannot);
     const pipOf = (cover: CoverTierName | null | undefined) =>
       shown && cover ? fade(style.cover[cover]) : null;
@@ -539,9 +541,8 @@ export function buildOrderOverlay(
     if (!u.goal) soldierPosts(soldiers, pen, u, pipOf, color);
     const aim = currentAim(u);
     if (aim) {
-      const attack = fade(glowing(style.attack, style.glow.order));
       const reticle = currentAttack(paint, pen, u, circle, aim, attack, color);
-      queuedLegs(paint, pen, u, reticle, queued);
+      queuedLegs(paint, pen, u, reticle, chain);
       ghostDrop(lines, pen, u, color, queued);
       continue;
     }
@@ -568,7 +569,7 @@ export function buildOrderOverlay(
         for (const m of u.memberOrders)
           soldierMark(soldiers, pen, m.spot, pipOf(m.coverThere), color);
     }
-    queuedLegs(paint, pen, u, dest, queued);
+    queuedLegs(paint, pen, u, dest, chain);
     ghostDrop(lines, pen, u, blocked ? blockedColor : color, queued);
   }
   return {

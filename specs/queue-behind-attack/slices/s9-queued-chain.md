@@ -17,3 +17,16 @@ six-step chain in the Space view in a real battle — part 1's visual proof (dec
 show the user inline; non-blocking.
 
 **Commit.** `feat(overlay): queued orders chain through their targets`.
+
+**State.** Done for the chains this branch admits. `web/tests/orderChain.test.ts` failed
+before (the chain skipped every step but moves) and passes. Evidence:
+[a garrison chain before/after](../assets/s9-garrison-chain-before-after.png) (move,
+garrison, exit, move, attack; before, the chain skipped the garrison and exit),
+[the same at full size](../assets/s9-garrison-chain.png), and
+[a chain of queued attacks](../assets/s9-attack-chain.png) (move, attack a tank, attack
+the ground, attack a squad). Queued legs keep today's queued strength, faint at normal
+size; named for the human checkpoint.
+
+TODO for the parent, after S2 admits a move behind an attack: capture decision 17's
+ground-unit chain (attack → move → attack the same enemy → move → attack another enemy →
+return to base) in the Space view of a real skirmish, part 1's visual proof (decision 12).

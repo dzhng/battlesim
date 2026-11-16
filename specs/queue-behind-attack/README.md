@@ -36,7 +36,7 @@ and tick the list.
 - [x] [S6](slices/s6-step-records.md) step records end to end, no visual change (parity captures await one fresh recording, see the slice)
 - [x] [S7](slices/s7-voice-steps.md) the voice queue reads the published steps
 - [x] [S8](slices/s8-attack-line.md) current attack line, reticle, chase-end reticle
-- [ ] [S9](slices/s9-queued-chain.md) the queued chain
+- [x] [S9](slices/s9-queued-chain.md) the queued chain
 - [ ] [S10](slices/s10-closeout.md) docs, `/review`, closeout run, push part 1 to staging
 - [ ] [P1](slices/p1-jet-3d-attack-line.md) part 2: a jet's 3D attack line, its own push
 
