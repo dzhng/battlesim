@@ -16,6 +16,7 @@ import {
   CHANNEL_ANIMATED,
   CHANNEL_CONSTANT,
   TEXTURE_CHANNELS,
+  FAR_TIER,
   TIER_COUNT,
   type MaterialTextures,
   type Texture,
@@ -185,11 +186,14 @@ function writeInfluences(mesh: MeshData, o: number, part: MeshPart, v: number) {
 
 export const triangleCount = (mesh: MeshData) => mesh.indices.length / 3;
 
-/** Mesh nodes by tier; checks four `_LOD<n>` tiers, finest first. */
+/** Mesh nodes by tier; checks four `_LOD<n>` tiers, finest first. Where
+ *  `far` allows it, a source naming `_LOD4` gets a fifth list of only those
+ *  meshes, its far mesh: an unsuffixed mesh is in the four tiers alone. */
 function tierParts(
   scene: Scene,
   add: AddFinding,
   part: (node: number, primitive: Primitive) => MeshPart | null,
+  far = false,
 ): MeshPart[][] {
   const tiers: MeshPart[][] = Array.from({ length: TIER_COUNT }, () => []);
   const named = new Set<number>();
@@ -197,15 +201,16 @@ function tierParts(
     if (node.mesh === null || !node.live) continue;
     const tier = meshTier(node.name);
     if (tier !== null) named.add(tier);
+    if (tier === FAR_TIER && far) tiers[FAR_TIER] ??= [];
     for (const primitive of scene.meshes[node.mesh]?.primitives ?? []) {
       const made = part(node.index, primitive);
       if (!made) continue;
-      if (tier === null) tiers.forEach((t) => t.push(made));
-      else if (tier < TIER_COUNT) tiers[tier].push(made);
+      if (tier === null) tiers.slice(0, TIER_COUNT).forEach((t) => t.push(made));
+      else tiers[tier]?.push(made);
     }
   }
-  const expected = Array.from({ length: TIER_COUNT }, (_, i) => i);
-  if (named.size !== TIER_COUNT || !expected.every((t) => named.has(t)))
+  const expected = Array.from({ length: tiers.length }, (_, i) => i);
+  if (named.size !== tiers.length || !expected.every((t) => named.has(t)))
     add(
       "structure.tier_count",
       `mesh tiers ${
@@ -215,7 +220,7 @@ function tierParts(
               .map((t) => `_LOD${t}`)
               .join(", ")
           : "(none named)"
-      }; expected _LOD0.._LOD${TIER_COUNT - 1}`,
+      }; expected _LOD0.._LOD${TIER_COUNT - 1}${far ? ", and a far mesh _LOD4 or none" : ""}`,
       `name each mesh object <part>_LOD0 (finest) to <part>_LOD${TIER_COUNT - 1}; unsuffixed meshes appear in every tier`,
     );
   return tiers;
@@ -736,13 +741,19 @@ export function buildStaticState(
       `${scene.skins.length} skin(s); buildings are static`,
       "apply the armature and remove it",
     );
-  const tiers = tierParts(scene, add, (nodeIndex, primitive) => ({
-    primitive,
-    material: materials.slot(scene.materials[primitive.material]),
-    transform: scene.nodes[nodeIndex].world,
-  }));
+  const tiers = tierParts(
+    scene,
+    add,
+    (nodeIndex, primitive) => ({
+      primitive,
+      material: materials.slot(scene.materials[primitive.material]),
+      transform: scene.nodes[nodeIndex].world,
+    }),
+    true,
+  );
   const meshes = tiers.map((parts) => mergeParts(parts, false));
-  checkTierOrder(meshes.map(triangleCount), add);
+  // The far mesh's own rule is the validator's (`farFindings`).
+  checkTierOrder(meshes.slice(0, TIER_COUNT).map(triangleCount), add);
   return { tiers: meshes, findings };
 }
 

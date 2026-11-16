@@ -1,0 +1,20 @@
+{
+  "scenario": "Metro XL",
+  "seed": 4,
+  "unitsPerSide": 100,
+  "graphics": "low",
+  "renderScale": 0.75,
+  "viewport": [1280, 720],
+  "tick": 90,
+  "digest": "60ede87ba60aab0b",
+  "target": [4918.4868, 4247.6187, 0],
+  "yaw": -1.57,
+  "fovY": 0.8,
+  "aspect": 1.7777777778,
+  "near": 1,
+  "views": {
+    "close": { "distance": 65, "pitch": 0.85 },
+    "tactical": { "distance": 260, "pitch": 0.85 },
+    "wide": { "distance": 2400, "pitch": 0.8860277 }
+  }
+}

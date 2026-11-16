@@ -6,6 +6,11 @@ and their `impostor_px` data are separate production behavior and are not this
 experiment's contract.
 **Updated:** 2026-10-22.
 
+A coarser far *mesh* for props is planned separately in
+[far detail](../far-detail/README.md). It is not a card and does not answer this
+placeholder's questions; it does change the baseline any card would be
+measured against.
+
 ## Next Agent Prompt
 
 You are picking up a bounded investigation into 2D impostors for objects that

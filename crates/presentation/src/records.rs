@@ -256,7 +256,7 @@ crate::records! {
         key: u32,
         /// `World.appearances` row.
         appearance: u32,
-        /// Detail tier, 0 finest; 4 is the impostor card.
+        /// Detail tier, 0 finest; 4 is a static prop's far mesh, 5 the impostor card.
         tier: u32,
         /// Rust pass names: `VIEW_PASS`, `CAST_PASS`, `GHOST_PASS` or `HIGH_PASS`.
         pass: u32,

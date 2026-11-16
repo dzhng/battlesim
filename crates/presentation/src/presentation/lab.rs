@@ -4,6 +4,7 @@ use super::*;
 use crate::assets::{Container, BUNDLE};
 use crate::records::FOG_UNITS;
 use crate::static_world::props::{DRAWS_PROP, DRAWS_PROP_GROUND};
+use crate::view::Carries;
 use crate::world::{Corners, Detail};
 use contract::identity::ContentId;
 use std::collections::BTreeMap;
@@ -72,11 +73,13 @@ impl Asset {
         };
         states.iter().find(|s| s.name == state).map(|s| s.corners)
     }
-    pub(super) fn first_corners(&self) -> Option<Corners> {
+    /// The first state's bounds and how many meshes it has: what a prop
+    /// drawn as this asset is sized and tiered by.
+    pub(super) fn first_state(&self) -> Option<(Corners, usize)> {
         let Self::Static(states) = self else {
             return None;
         };
-        states.first().map(|s| s.corners)
+        states.first().map(|s| (s.corners, s.tiers as usize))
     }
 
     pub(super) fn palette(&self, pose: &Pose) -> Option<(Vec<Joint>, [f64; 2])> {
@@ -350,6 +353,11 @@ impl Lab {
             };
             let at = [m.x, m.y, m.z];
             let has_card = card && m.ghost.is_none() && !m.highlight;
+            let carries = if has_card {
+                Carries::Card
+            } else {
+                Carries::meshes(tiers as usize)
+            };
             let tier = match m.tier {
                 Some(t) if t == IMPOSTOR as u32 && has_card => t as i32,
                 Some(t) => t.min(tiers - 1) as i32,
@@ -359,7 +367,7 @@ impl Lab {
                     at,
                     bounds.size * scale,
                     (bounds.radius + motion_reach) * scale,
-                    has_card,
+                    carries,
                     None,
                 ),
             };

@@ -11,7 +11,7 @@ use presentation::presentation::Presentation;
 use presentation::records::{Counts, VIEW_PASS};
 use presentation::static_world::ground::walk::Draws;
 use presentation::static_world::props::{DRAWS_PROP, DRAWS_PROP_GROUND};
-use presentation::view::TIERS;
+use presentation::view::{MESH_SLOTS, TIERS};
 use serde_json::Value;
 
 /// The scenery's populations, in `Draws` order before the stumps.
@@ -24,8 +24,8 @@ pub struct Counted {
     pub shapes: [u32; SHAPE_NAMES.len()],
     /// The building modules in view, `row · TIERS + tier`.
     pub buildings: Vec<u32>,
-    /// The props in view, by appearance, per tier.
-    pub props: BTreeMap<String, [u32; TIERS]>,
+    /// The props in view, by appearance, per mesh slot (the far mesh fifth).
+    pub props: BTreeMap<String, [u32; MESH_SLOTS]>,
     /// The scenery in view per population, `kind · TIERS + tier`, the kind
     /// being the ground's `scenery_kinds` index.
     pub scenery: [Vec<u32>; 5],
@@ -64,7 +64,16 @@ impl Counted {
             let name = &world.strings[a.name as usize..(a.name + a.name_len) as usize];
             let tier = (b.tier as usize).min(TIERS - 1);
             if a.draws == DRAWS_PROP || a.draws == DRAWS_PROP_GROUND {
-                out.props.entry(name.to_owned()).or_default()[tier] += b.count;
+                // A prop carries no card: its batches name one of its mesh
+                // slots, or presentation broke the tier rule.
+                let levels = out.props.entry(name.to_owned()).or_default();
+                let Some(level) = levels.get_mut(b.tier as usize) else {
+                    panic!(
+                        "prop {name}: a batch at tier {}, past its {MESH_SLOTS} mesh slots",
+                        b.tier
+                    );
+                };
+                *level += b.count;
             } else if a.draws == 0 {
                 if a.placed != 0 {
                     let at = b.appearance as usize * TIERS + tier;
@@ -169,33 +178,47 @@ impl Counted {
     }
 
     fn prop_mismatches(&self, at: &str, want: &Value) -> Vec<String> {
-        let want: BTreeMap<String, [u32; TIERS]> = want
+        let mut out = Vec::new();
+        let want: BTreeMap<String, [u32; MESH_SLOTS]> = want
             .as_array()
             .into_iter()
             .flatten()
             .map(|p| {
                 let levels = list(&p["levels"]);
-                let level = |t: usize| levels.get(t).copied().unwrap_or(u32::MAX);
                 let name = p["appearance"].as_str().unwrap_or("").to_owned();
+                if levels.len() != MESH_SLOTS {
+                    out.push(format!(
+                        "{at} props {name}: {} levels counted, not {MESH_SLOTS}",
+                        levels.len()
+                    ));
+                }
+                let level = |t: usize| levels.get(t).copied().unwrap_or(u32::MAX);
                 (name, std::array::from_fn(level))
             })
             .collect();
         let got = &self.props;
-        let total = |m: &BTreeMap<String, [u32; TIERS]>| -> u32 { m.values().flatten().sum() };
+        // A missing level reads as `u32::MAX`; the total saturates on it.
+        let total = |m: &BTreeMap<String, [u32; MESH_SLOTS]>| -> u32 {
+            m.values()
+                .flatten()
+                .fold(0, |sum, &n| sum.saturating_add(n))
+        };
         let names: BTreeSet<&String> = want.keys().chain(got.keys()).collect();
-        names
-            .into_iter()
-            .filter(|n| want.get(*n) != got.get(*n))
-            .map(|n| {
-                format!(
-                    "{at} props {n}: {:?} against {:?} (all props {} against {})",
-                    got.get(n),
-                    want.get(n),
-                    total(got),
-                    total(&want)
-                )
-            })
-            .collect()
+        out.extend(
+            names
+                .into_iter()
+                .filter(|n| want.get(*n) != got.get(*n))
+                .map(|n| {
+                    format!(
+                        "{at} props {n}: {:?} against {:?} (all props {} against {})",
+                        got.get(n),
+                        want.get(n),
+                        total(got),
+                        total(&want)
+                    )
+                }),
+        );
+        out
     }
 
     fn scenery_mismatches(&self, at: &str, want: &Value) -> Vec<String> {
@@ -226,4 +249,41 @@ fn list(v: &Value) -> Vec<u32> {
                 .collect()
         })
         .unwrap_or_default()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use presentation::view::{FAR, MESH_SLOTS};
+    use serde_json::json;
+
+    /// What native counted: one prop appearance drawn twice at its far mesh.
+    fn far_counted() -> Counted {
+        let mut levels = [0; MESH_SLOTS];
+        levels[FAR as usize] = 2;
+        Counted {
+            frame: Counts::default(),
+            shapes: [0; SHAPE_NAMES.len()],
+            buildings: Vec::new(),
+            props: [("test_car".to_owned(), levels)].into(),
+            scenery: Default::default(),
+            stumps: Vec::new(),
+        }
+    }
+
+    fn prop_mismatches(levels: Value) -> Vec<String> {
+        far_counted().prop_mismatches("f", &json!([{"appearance": "test_car", "levels": levels}]))
+    }
+
+    #[test]
+    fn a_props_far_mesh_is_counted_at_its_own_level_and_four_levels_are_refused() {
+        let mut levels = vec![0; MESH_SLOTS];
+        levels[FAR as usize] = 2;
+        assert!(prop_mismatches(json!(levels)).is_empty());
+        // The far count does not hide in tier 3.
+        assert!(!prop_mismatches(json!([0, 0, 0, 2, 0])).is_empty());
+        // A row of four levels is the old shape, never read as four tiers.
+        let old = prop_mismatches(json!([0, 0, 0, 2]));
+        assert!(old.iter().any(|m| m.contains("levels")), "{old:?}");
+    }
 }

@@ -82,15 +82,16 @@ def lean(z):
     return 1.0 - LEAN * max(0.0, min(1.0, (z - BELT_Z) / (ROOF_Z - BELT_Z)))
 
 
-def slab(name, pts, normal, mat, lods=TIERS, thick=0.03):
+def slab(name, pts, normal, mat, lods=None, thick=0.03):
     """A thin sheet through `pts` (a face's outline, in order), half of `thick` proud
-    of the surface it lies on along `normal`."""
+    of the surface it lies on along `normal`. A parked car's far mesh carries it too."""
+    lods = lods or TIERS + FAR_TOO
     n = Vector(normal).normalized() * (thick / 2)
 
     def build(bm, lod):
         # Below the distant tier's screen budget, the surface carries the
         # window; its buried back and thin edges add no readable detail.
-        if lod == 3 and not WRECK:
+        if lod >= 3 and not WRECK:
             hi = [bm.verts.new(Vector(p) + n) for p in pts]
             face = bm.faces.new(hi)
             face.normal_update()
@@ -114,14 +115,19 @@ def along(a, b, t):
 
 
 # ------------------------------------------------------------------ body and greenhouse
+# A parked car's far mesh is tier 3 without its wheels: the side's sight test
+# judges each surface by its plane, so every surface the far mesh keeps is
+# tier 3's own (its body, floor pan, cabin and windows).
+FAR_TOO = () if WRECK else (FAR,)
 for lod, seg in zip(TIERS, (12, 8, 5, 3)):
     profile = body_profile(seg)
     if lod == 3 and not WRECK:
         # Keep the hull silhouette; the wheel-arch clearance is subpixel here.
         profile = profile[:2] + [(-2.1, SILL_Z), (2.1, SILL_Z)] + profile[-7:]
-    prism("body", profile, 2 * BODY_Y, (0, 0, 0), paint, car, bevel=0.04, lods=(lod,))
-box("floor_pan", (4.1, 1.36, 0.5), (0, 0, 0.5), under, car)
-prism("cabin", CABIN, 2 * CABIN_Y, (0, 0, 0), paint, car, bevel=0.03, taper_y=lean)
+    lods = (lod,) + (FAR_TOO if lod == 3 else ())
+    prism("body", profile, 2 * BODY_Y, (0, 0, 0), paint, car, bevel=0.04, lods=lods)
+box("floor_pan", (4.1, 1.36, 0.5), (0, 0, 0.5), under, car, lods=TIERS + FAR_TOO)
+prism("cabin", CABIN, 2 * CABIN_Y, (0, 0, 0), paint, car, bevel=0.03, taper_y=lean, lods=TIERS + FAR_TOO)
 
 # glass: the windscreen and the tailgate's window across the car, three windows a side
 for name, foot, head in (("windscreen", SCREEN_FOOT, SCREEN_HEAD), ("rear_window", GATE_FOOT, GATE_HEAD)):

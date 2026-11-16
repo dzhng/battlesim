@@ -18,11 +18,8 @@ import {
   type RuntimeCatalog,
 } from "@packages/scene-assets/src/schema.ts";
 import { UnitCatalog, type CatalogView } from "@packages/scene-assets/src/units.ts";
-import {
-  typeAppearanceFindings,
-  typeFindings,
-  validateAppearance,
-} from "@packages/scene-assets/src/validate.ts";
+import { typeAppearanceFindings, validateAppearance } from "@packages/scene-assets/src/validate.ts";
+import { typeFindings } from "@packages/scene-assets/src/vehicleFit.ts";
 import { AUTHORITY, TANK_DRAWS, TOLERANCES, tankGlb } from "./synthetic";
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url));

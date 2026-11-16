@@ -5,7 +5,7 @@ use crate::assets::Runtime;
 use crate::static_world::buildings::{Placed, PlacedBuildings};
 use crate::static_world::ground::biome::Biome;
 use crate::static_world::ground::{self, Source, Tuning};
-use crate::static_world::library::{kit_bounds, state_corners, Bounds, Library};
+use crate::static_world::library::{kit_bounds, static_states, Bounds, Library};
 use crate::static_world::props::{Art, PropInput, STAND_IN_KIT, STAND_IN_MODULE};
 use crate::world::BuildingStyle;
 use contract::maps::MapCategory;
@@ -123,7 +123,7 @@ pub fn side_foliage(world: &World, learned: &crate::scars::LearnedGround) -> Vec
 /// appearances `wearing` installs it (`propArt` over what the page loads):
 /// every static appearance with a footprint the catalog load takes (scenery
 /// of no region, and of the wrecks only the worn vehicles' own) or the map's
-/// family fetches, each read for its first state's bounds; each worn
+/// family fetches, each read for its first state's bounds and mesh count; each worn
 /// vehicle's wreck; the stand-in kit's box where the catalog has its module;
 /// and the fixture's model tiers. Prop bindings in the layout own stand-in tints.
 pub fn prop_art(root: &Path, family: Option<&str>, wearing: &[&str]) -> Result<PropInput, String> {
@@ -144,7 +144,7 @@ pub fn prop_art(root: &Path, family: Option<&str>, wearing: &[&str]) -> Result<P
         let hash = entry["bundle"]
             .as_str()
             .ok_or(format!("{name}: no bundle"))?;
-        state_corners(
+        static_states(
             runtime.reader(hash, "bundle.bin")?,
             &format!("bundle {name}"),
         )
@@ -163,7 +163,7 @@ pub fn prop_art(root: &Path, family: Option<&str>, wearing: &[&str]) -> Result<P
         if !loaded || e["kind"] != "static" || footprint.is_null() {
             continue;
         }
-        let Some((_, bounds)) = states(name, e)?.into_iter().next() else {
+        let Some((_, bounds, meshes)) = states(name, e)?.into_iter().next() else {
             return Err(format!("bundle {name}: no states"));
         };
         appearances.push(Art {
@@ -175,13 +175,14 @@ pub fn prop_art(root: &Path, family: Option<&str>, wearing: &[&str]) -> Result<P
             paints: serde_json::from_value(e["paints"].clone())
                 .map_err(|e| format!("{name}: paints: {e}"))?,
             bounds,
+            meshes,
         });
     }
     let stand_in = match entries.get(STAND_IN_KIT) {
         Some(kit) if kit["kind"] == "static" => {
             let states = states(STAND_IN_KIT, kit)?;
-            let has_module = states.iter().any(|(n, _)| n == STAND_IN_MODULE);
-            states.first().filter(|_| has_module).map(|(_, b)| *b)
+            let has_module = states.iter().any(|(n, ..)| n == STAND_IN_MODULE);
+            states.first().filter(|_| has_module).map(|(_, b, _)| *b)
         }
         _ => None,
     };

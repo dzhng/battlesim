@@ -56,7 +56,7 @@ export const Batch = {
   key: 0,
   /** `World.appearances` row. (u32) */
   appearance: 1,
-  /** Detail tier, 0 finest; 4 is the impostor card. (u32) */
+  /** Detail tier, 0 finest; 4 is a static prop's far mesh, 5 the impostor card. (u32) */
   tier: 2,
   /** Rust pass names: `VIEW_PASS`, `CAST_PASS`, `GHOST_PASS` or `HIGH_PASS`. (u32) */
   pass: 3,

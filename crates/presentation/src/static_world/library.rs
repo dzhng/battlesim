@@ -156,17 +156,19 @@ struct Cornered {
 struct CorneredState {
     name: String,
     bounds: Corners,
+    /// Each mesh's typed-array references, only counted.
+    tiers: Vec<serde::de::IgnoredAny>,
 }
 
-/// A static bundle's states, each with its bounds, from the head of the
-/// bundle as it travels, inflating as it is read (`read`): the header alone
-/// is read, never the meshes.
-pub fn state_corners(read: impl Read, what: &str) -> Result<Vec<(String, Corners)>, String> {
+/// A static bundle's states, each with its bounds and how many meshes it
+/// has, from the head of the bundle as it travels, inflating as it is read
+/// (`read`): the header alone is read, never the meshes.
+pub fn static_states(read: impl Read, what: &str) -> Result<Vec<(String, Corners, usize)>, String> {
     let content: Cornered = assets::content(read, BUNDLE, what)?;
     Ok(content
         .states
         .into_iter()
-        .map(|s| (s.name, s.bounds))
+        .map(|s| (s.name, s.bounds, s.tiers.len()))
         .collect())
 }
 
