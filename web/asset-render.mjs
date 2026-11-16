@@ -10,6 +10,20 @@ const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 const catalog = () => readJson(join(ROOT, "assets/catalog.json"));
 const repoPath = (path) => relative(ROOT, resolve(path));
 
+/** What a page that never became ready says went wrong: its failure panel's
+ *  message and details (a missing resource names its file), else its text. */
+async function pageFailure(page) {
+  const details = page.locator('[data-testid="error"] [aria-expanded="false"]');
+  if (await details.count()) await details.first().click();
+  return page.evaluate(() => {
+    const failure = document.querySelector('[data-testid="error"]');
+    if (!failure) return document.body.innerText.trim().slice(0, 600);
+    const lines = [...failure.querySelectorAll('[data-testid="error-details"] li')];
+    const message = failure.querySelector(".hud-error")?.textContent ?? "";
+    return [message, ...lines.map((li) => li.textContent)].join("\n  ");
+  });
+}
+
 export async function sheet(args) {
   const { values, positionals } = parseArgs({
     args,
@@ -53,9 +67,15 @@ export async function sheet(args) {
     });
     page.on("pageerror", (e) => console.error(`page: ${e.message}`));
     await page.goto(`${server.url}/workbench`);
-    await page.waitForFunction(() => window.__lab?.ready && window.__workbench, undefined, {
-      timeout: 60000,
-    });
+    await page
+      .waitForFunction(() => window.__lab?.ready && window.__workbench, undefined, {
+        timeout: 60000,
+      })
+      .catch(async (error) => {
+        throw new Error(`the workbench never became ready: ${await pageFailure(page)}`, {
+          cause: error,
+        });
+      });
     if (file)
       await page.evaluate(
         ([n, bytes, opts]) =>
