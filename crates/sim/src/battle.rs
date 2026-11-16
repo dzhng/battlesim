@@ -1487,8 +1487,7 @@ impl Battle {
             }
         }
         self.prune_attackers();
-        let fired = self.fire(&moved);
-        self.shout_fired = fired.clone();
+        self.shout_fired = self.fire(&moved);
         supply::service(
             &self.world,
             &mut self.units,
@@ -1496,7 +1495,6 @@ impl Battle {
             &self.arsenal,
             &self.rules,
             &moved.units,
-            &fired,
             &mut self.last_soldier,
         );
         self.retire_withdrawals();

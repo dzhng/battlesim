@@ -163,6 +163,7 @@ impl Arsenal {
             .enumerate()
             .map(|(i, spec)| Mount {
                 spec: i,
+                resupply_s: vec![0.0; spec.kinds.len()],
                 ammo: spec
                     .kinds
                     .iter()

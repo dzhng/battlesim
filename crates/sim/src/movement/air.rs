@@ -148,10 +148,10 @@ pub(super) fn step_aircraft(
     }
 }
 
-/// The one low-hover predicate (D10, transport D6): resupply keeps its
-/// existing no-order/no-engagement rule, while a carrier hold also sinks the
-/// helicopter through boarding or unloading regardless of engagement. An
-/// unrelated order lifts it. Its height alone never counts as moving (D37).
+/// The low hover (D10, transport D6) requires no orders or engagement when
+/// resupplying; these gate descent, not service. A carrier hold also sinks
+/// the helicopter through boarding or unloading regardless of engagement.
+/// An unrelated order lifts it. Height alone never counts as moving (D37).
 fn sinks(units: &[Unit], index: usize) -> bool {
     let unit = &units[index];
     let resupply = unit.orders.is_empty()

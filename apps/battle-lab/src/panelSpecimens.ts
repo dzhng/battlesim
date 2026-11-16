@@ -604,7 +604,7 @@ export function panelSpecimens(
     c,
     "tank, supply blocked",
     panelOf(
-      specimenUnit(catalog, "test_tank", { service: "firing" }, [
+      specimenUnit(catalog, "test_tank", { service: "no_stock" }, [
         { loaded: null, reloading: 0, reload: 0.8, ammo: [2, 0], reason: "reloading" },
         { reason: "friendly_in_line" },
       ]),

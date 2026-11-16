@@ -113,12 +113,13 @@ pub struct Lock {
 #[derive(Clone, Debug)]
 pub struct Mount {
     pub spec: usize,
-    /// Total rounds left per kind, including loaded magazines; `None` is unlimited.
+    /// Rounds per kind, including magazines; `None` means unlimited.
     pub ammo: Vec<Option<u32>>,
+    /// Pausable service seconds toward each kind's next round.
+    pub resupply_s: Vec<f64>,
     /// One physical gun per carrier; transferable/hull weapons use owner None.
     pub cycles: Vec<Cycle>,
-    /// Current operator of a single infantry weapon; None on hulls, grouped
-    /// rifles and unoperated spares. Identity and cycle stay with the mount.
+    /// Infantry operator; None for hulls, grouped rifles and unoperated spares.
     pub operator: Option<u32>,
     pub lock: Option<Lock>,
     /// The missile this mount is guiding, if any (one at a time).
@@ -144,11 +145,13 @@ impl Mount {
         self.ammo.iter().all(|a| *a == Some(0))
     }
 
-    /// Fold the mount's battle state into `d`.
     pub fn digest(&self, d: &mut Digest) {
         d.u64(self.spec as u64).u64(self.ammo.len() as u64);
         for a in &self.ammo {
             d.u64(a.map_or(u64::MAX, |n| n as u64));
+        }
+        for &seconds in &self.resupply_s {
+            d.f64(seconds);
         }
         d.u64(self.operator.map_or(u64::MAX, u64::from));
         d.f64(self.bearing)
@@ -1648,8 +1651,7 @@ fn participant_of(unit: &Unit, body: BodyId) -> usize {
 }
 
 /// Whether a unit is fighting: a mount aiming at, reloading on, traversing to
-/// or firing at a target, or guiding a missile. A fighting unit is "firing"
-/// for service (L04), not only on the tick a round leaves.
+/// or firing at a target, or guiding a missile.
 pub fn engaged(unit: &Unit) -> bool {
     unit.mounts
         .iter()
