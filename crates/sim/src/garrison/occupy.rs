@@ -1,706 +1,113 @@
-//! One side-known plan for an entry and its companions' gathering movement.
-use crate::formation::{self, Member, Slot};
-use crate::math::{v2, V2};
-use crate::movement::{self, MovementContext, SideGeometry};
-use crate::navigation::{Journey, Leg, Plan, NAV_CELL_M};
-use crate::units::{MoveOrder, Unit, UnitOrder};
+//! Where each squad sent into a building walks to step in, planned on what
+//! its side knows of the building and the ground.
+use crate::arrangement;
+use crate::math::V2;
+use crate::movement::SideGeometry;
+use crate::navigation::Pockets;
+use crate::units::{Unit, UnitOrder};
+use crate::world::{PropId, WorldGeometry};
 use contract::command::{
-    BuildingEntry, BuildingPlacement, BuildingPreviewRequest, MoveDestination, OrderError,
-    RoutePolicy,
+    BuildingEntry, BuildingPlacement, BuildingPreviewRequest, OrderError, Refusal,
 };
-use contract::ids::UnitId;
-use std::collections::VecDeque;
+use contract::scenario::Rules;
 
-#[derive(Clone, Copy)]
-struct EntryPoint {
-    at: V2,
-    outward: V2,
-}
-
-#[derive(Clone, Copy)]
-pub(crate) enum EntryAction {
-    /// The entrant's current entry work stands.
-    Keep,
-    /// The entrant is ordered in from where it stands: it holds the
-    /// building already, or stands within entry reach of it.
-    Enter,
-    /// The entrant walks to its entry point, then goes in.
-    Route,
-}
-
-#[derive(Clone)]
-pub(crate) struct BuildingPlan {
-    pub placement: BuildingPlacement,
-    pub entry_action: EntryAction,
-}
-
-struct Candidate {
-    unit: UnitId,
-    entry: EntryPoint,
-    route: Vec<V2>,
-    distance: f64,
-    ordinal: usize,
-    action: EntryAction,
-    /// It goes in without a proof: it is inside already, or within entry
-    /// reach of the building.
-    assured: bool,
-}
-/// Shorter route first; ties keep a stable unit, then edge, order.
-fn rank(a: &Candidate, b: &Candidate) -> std::cmp::Ordering {
-    a.distance
-        .total_cmp(&b.distance)
-        .then(a.unit.cmp(&b.unit))
-        .then(a.ordinal.cmp(&b.ordinal))
-}
-
-struct RouteJob {
-    candidate: Candidate,
-    journey: Journey,
-}
-
-fn points(ctx: &MovementContext, known: &SideGeometry, owner: u32, from: V2) -> Vec<EntryPoint> {
-    let Some(definition) = ctx.world.building(owner) else {
-        return Vec::new();
-    };
-    let parts: Vec<_> = ctx
-        .world
-        .structure_parts(owner)
-        .into_iter()
-        .filter_map(|id| known.prop(ctx.world, ctx.authored, id))
-        .collect();
-    let mut points = Vec::new();
-    for part in &parts {
-        let Some(reference) = ctx
-            .world
-            .authored_prop(part.id)
-            .and_then(|id| definition.parts.iter().find(|p| p.prop == id))
-        else {
-            continue;
-        };
-        for edge in definition
-            .geometry
-            .edges
-            .iter()
-            .filter(|e| e.part == reference.part && e.exposed)
-        {
-            let (normal, along, reach, _) =
-                edge.facade.axes([part.half.x, part.half.y, part.half.z]);
-            let n = v2(normal[0], normal[1]);
-            let a = v2(along[0], along[1]);
-            let projected = part
-                .footprint()
-                .to_local(from)
-                .dot(a)
-                .clamp(edge.span_m[0], edge.span_m[1]);
-            let span = edge.span_m[1] - edge.span_m[0];
-            let count = (span / NAV_CELL_M).ceil() as usize;
-            let samples = std::iter::once(projected)
-                .chain((0..=count).map(|k| edge.span_m[0] + span * k as f64 / count.max(1) as f64));
-            for t in samples {
-                let at = part.center
-                    + (n * (reach + ctx.rules.garrison.entry_distance_m / 2.0) + a * t)
-                        .rotated(part.yaw);
-                if !parts.iter().any(|p| p.footprint().contains(at, 0.0))
-                    && !points
-                        .iter()
-                        .any(|p: &EntryPoint| (p.at - at).length() < 1e-9)
-                {
-                    points.push(EntryPoint {
-                        at,
-                        outward: n.rotated(part.yaw),
-                    });
-                }
-            }
-        }
-    }
-    points
-}
-
-fn member(ctx: &MovementContext, u: &Unit) -> Member {
-    Member {
-        id: u.id,
-        position: u.position.xy(),
-        yaw: u.yaw,
-        radius: crate::formation::member_radius(ctx.rules, u.unit_type(ctx.rules)),
-    }
-}
-
-/// Every queued action must preserve the hold, even if an earlier attack expires.
-fn entry_work_keeps_building(unit: &Unit, owner: u32) -> bool {
-    for order in &unit.orders {
-        match order {
-            UnitOrder::Exit => return false,
-            UnitOrder::Garrison { building, .. } if *building != owner => return false,
-            order if order.movement().is_some() => return false,
-            _ => {}
-        }
-    }
-    true
-}
-
+/// The building order's plan: for each listed squad, in unit order, from
+/// where its queue ends when the order is queued, otherwise from where it
+/// stands, the approach [`super::approach`] gives. The first squad given an
+/// entry takes the nearest approach. Each later one takes the nearest it can
+/// reach whose ground (half its spread) stays the soldiers' spacing clear of
+/// every earlier entry's, else the nearest all the same, so squads sent in
+/// together don't stack on one spot. A squad gets an entry if it stands
+/// within entry reach of the building or its side's grid reaches that
+/// approach; otherwise it gets none. Only a squad bigger than the whole
+/// building is refused, one by one; who is inside is never read: whether a
+/// squad finds room is decided when it gets there.
 pub(crate) fn occupy(
-    ctx: &MovementContext,
+    world: &WorldGeometry,
     known: &SideGeometry,
-    source: &[Unit],
+    authored: PropId,
+    units: &[Unit],
     request: &BuildingPreviewRequest,
-) -> Result<BuildingPlan, OrderError> {
+    rules: &Rules,
+) -> Result<(BuildingPlacement, Vec<Refusal>), OrderError> {
     let mut ids = request.units.clone();
     ids.sort();
     ids.dedup();
-    let side = source[ids[0].0 as usize].side;
-    let world = known.planning_world(ctx.world, ctx.authored);
-    let local = MovementContext {
-        world: &world,
-        ground: ctx.knowledge[side.index()].ground().layer(),
-        ..*ctx
-    };
-    let ctx = &local;
-    let mut owner = ctx.world.remembered_structure_owner(request.building);
-    let mut target = known.prop(ctx.world, ctx.authored, request.building);
-    if target.is_none() {
-        target = ctx
-            .world
-            .historical_building_parts(owner)
-            .iter()
-            .filter_map(|&id| known.prop(ctx.world, ctx.authored, id))
-            .next();
-    }
-    let Some(mut target) = target.filter(|p| ctx.world.building_of(p.id).is_some()) else {
-        return Err(OrderError::NotABuilding);
-    };
-    owner = ctx.world.remembered_structure_owner(target.id);
-    target = known.prop(ctx.world, ctx.authored, owner).unwrap_or(target);
-    target.id = owner;
-    target.center = ctx
-        .world
-        .structure_footprint(owner)
-        .map_or(target.center, |footprint| footprint.center);
-    let mut allowance = ctx.rules.navigation.move_validation_work as u64;
-    let mut origins = source.to_vec();
-    let mut eligible = vec![true; ids.len()];
-    let mut prefix_unproven = false;
-    if request.queued {
-        let slots: Vec<_> = ids
-            .iter()
-            .map(|&id| {
-                let u = &source[id.0 as usize];
-                Slot {
-                    id,
-                    point: Some(
-                        u.orders
-                            .back()
-                            .and_then(|o| match o {
-                                UnitOrder::Move(m) | UnitOrder::AttackMove(m) => {
-                                    Some(m.destination)
-                                }
-                                UnitOrder::Garrison { approach, .. } => Some(*approach),
-                                _ => None,
-                            })
-                            .unwrap_or(u.position.xy()),
-                    ),
-                }
-            })
-            .collect();
-        // Reserve most work for the new action rather than spending it on a prefix.
-        let mut prefix_work = allowance / 3;
-        let before = prefix_work;
-        let proof = movement::certify_orders(
-            ctx,
-            source,
-            known,
-            movement::ProofRequest {
-                slots: &slots,
-                orders: None,
-                queued: true,
-            },
-            &mut prefix_work,
-        );
-        prefix_unproven = proof.unproven || !proof.stable;
-        allowance -= before - prefix_work;
-        for (i, id) in ids.iter().enumerate() {
-            eligible[i] = proof.stable && proof.arrivals[i].is_some();
-            if eligible[i] {
-                origins[id.0 as usize] = proof.arrivals[i].as_ref().unwrap().clone();
-            }
-        }
-    }
-    // A finite predecessor with no proven origin may still supply the
-    // shortest entrant. Indefinite attacks are known noncandidates instead.
-    let unresolved_competitor = prefix_unproven
-        && ids.iter().enumerate().any(|(i, &id)| {
-            !eligible[i]
-                && source[id.0 as usize]
-                    .orders
-                    .iter()
-                    .all(|o| !matches!(o, UnitOrder::Attack { .. }))
-                && super::validate(
-                    ctx.world,
-                    source,
-                    side,
-                    &[id],
-                    Some(target.clone()),
-                    false,
-                    ctx.rules,
-                )
-                .is_ok()
-        });
-    let centre = ids.iter().fold(v2(0.0, 0.0), |p, id| {
-        p + origins[id.0 as usize].position.xy()
-    }) * (1.0 / ids.len() as f64);
-    let selected_holder = ids.iter().find_map(|&id| {
-        let actual = &source[id.0 as usize];
-        let i = ids.iter().position(|&u| u == id).unwrap();
-        let u = if request.queued && eligible[i] {
-            &origins[id.0 as usize]
-        } else {
-            actual
-        };
-        let hold = u
-            .hold
-            .as_ref()
-            .filter(|hold| hold.host.building() == Some(owner))?;
-        hold.building()?;
-        let held = matches!(hold.phase, crate::hold::Phase::Inside);
-        let entering = matches!(hold.phase, crate::hold::Phase::Entering(_));
-        if request.queued {
-            if !eligible[i] && !entry_work_keeps_building(actual, owner) {
-                return None;
-            }
-            super::current_entry(u, owner).map(|at| {
-                (
-                    id,
-                    at,
-                    EntryAction::Keep,
-                    held && super::held_entry(actual, owner).is_some(),
-                )
-            })
-        } else if held || entering {
-            let action = if super::current_entry(actual, owner).is_some()
-                && entry_work_keeps_building(actual, owner)
-            {
-                EntryAction::Keep
-            } else {
-                EntryAction::Enter
-            };
-            Some((id, hold.building()?.entry, action, held))
-        } else {
-            None
-        }
+    // The clicked part as the side knows it, or, once it is gone, another
+    // part of the same building.
+    let clicked = world.remembered_structure_owner(request.building);
+    let target = known
+        .prop(world, authored, request.building)
+        .or_else(|| {
+            world
+                .historical_building_parts(clicked)
+                .iter()
+                .find_map(|&id| known.prop(world, authored, id))
+        })
+        .filter(|p| world.building_of(p.id).is_some());
+    let target = target.map(|part| {
+        let owner = world.remembered_structure_owner(part.id);
+        let mut owner_prop = known.prop(world, authored, owner).unwrap_or(part);
+        owner_prop.id = owner;
+        owner_prop
     });
-    // Replacement supersedes selected deferred claims. Actual occupants still
-    // reserve their building; queued intents keep every original claim.
-    let mut validation_source = source.to_vec();
-    if !request.queued {
-        for &id in &ids {
-            validation_source[id.0 as usize].orders.clear();
-        }
-    }
-    let mut proof_source = source.to_vec();
-    if let Some((id, at, EntryAction::Enter, _)) = selected_holder {
-        proof_source[id.0 as usize].enqueue(
-            UnitOrder::Garrison {
-                building: owner,
-                approach: at,
-            },
-            false,
-        );
-    }
-    if let Some((id, _, EntryAction::Keep, false)) = selected_holder {
-        let i = ids.iter().position(|&u| u == id).unwrap();
-        if request.queued && !eligible[i] {
-            // Certify the current entry, whose later indefinite attack does
-            // not move its holder. Application keeps the original suffix.
-            proof_source[id.0 as usize].orders.truncate(1);
-        }
-    }
-    let source = proof_source.as_slice();
-    let mut nav = known.planning_snapshot();
-    let grid = nav.grid(ctx.world, ctx.authored);
-    let mut candidates = Vec::new();
-    // Each search spends from one finite selection-wide allowance. Completed
-    // shortest-policy paths are ranked by physical length, never travel time.
-    let mut route_work = allowance / 3;
-    let route_before = route_work;
-    let mut jobs = Vec::new();
-    if selected_holder.is_none() && !unresolved_competitor && target.body.garrison {
-        for (i, &id) in ids.iter().enumerate() {
-            if !eligible[i]
-                || source[id.0 as usize].is_vehicle()
-                || super::validate(
-                    ctx.world,
-                    &validation_source,
-                    side,
-                    &[id],
-                    Some(target.clone()),
-                    false,
-                    ctx.rules,
-                )
-                .is_err()
-            {
-                continue;
-            }
-            let u = &origins[id.0 as usize];
-            let from = u.position.xy();
-            // A squad already within entry reach steps in from where it
-            // stands, with no route to plan and nothing to prove. One still
-            // in a host (leaving it, say) is no squad standing there yet.
-            if !request.queued
-                && u.hold.is_none()
-                && super::within_entry_reach(ctx.world, known, ctx.authored, owner, from, ctx.rules)
-            {
-                candidates.push(Candidate {
-                    unit: id,
-                    entry: EntryPoint {
-                        at: from,
-                        outward: (from - target.center).normalized(),
-                    },
-                    route: vec![from],
-                    distance: 0.0,
-                    ordinal: 0,
-                    action: EntryAction::Enter,
-                    assured: true,
-                });
-                continue;
-            }
-            for (ordinal, entry) in points(ctx, known, owner, from).into_iter().enumerate() {
-                if !crate::arrangement::standing_room(
-                    ctx.world,
-                    entry.at,
-                    u.ground().half_width_m,
-                    &super::solid,
-                ) {
-                    continue;
-                }
-                let journey = Journey::new(
-                    None,
-                    Leg {
-                        from,
-                        goal: entry.at,
-                        m: u.ground(),
-                        policy: RoutePolicy::Shortest,
-                        avoid: &[],
-                    },
-                    &ctx.rules.navigation,
-                );
-                jobs.push(RouteJob {
-                    candidate: Candidate {
-                        unit: id,
-                        entry,
-                        route: vec![from],
-                        distance: (entry.at - from).length(),
-                        ordinal,
-                        action: EntryAction::Route,
-                        assured: false,
-                    },
-                    journey,
-                });
-            }
-        }
-    }
-    jobs.sort_by(|a, b| rank(&a.candidate, &b.candidate));
-    // Searches run one at a time, nearest straight-line bound first, each to
-    // its end: work shared among dozens of entry searches round one obstacle
-    // runs out with none finished. A straight distance is a lower bound on
-    // its route, so once the nearest unsearched bound cannot beat the best
-    // completed route, no search left can.
-    let mut jobs = VecDeque::from(jobs);
-    while let Some(job) = jobs.front() {
-        if candidates
-            .first()
-            .is_some_and(|best| !rank(&job.candidate, best).is_lt())
-        {
-            jobs.clear();
-            break;
-        }
-        if route_work == 0 {
-            break;
-        }
-        let mut job = jobs.pop_front().unwrap();
-        let spent = job.journey.advance(grid, ctx.roads, route_work);
-        route_work = route_work.saturating_sub(spent.max(1));
-        match job.journey.plan() {
-            Some(Plan::Route(route)) => {
-                job.candidate.route.extend(route.iter().copied());
-                job.candidate.distance = job
-                    .candidate
-                    .route
-                    .windows(2)
-                    .map(|w| (w[1] - w[0]).length())
-                    .sum();
-                candidates.push(job.candidate);
-                candidates.sort_by(rank);
-            }
-            Some(Plan::Blocked(_)) => {}
-            None => {
-                jobs.push_front(job);
-                break;
-            }
-        }
-    }
-    // Searches that could still beat the best route when the work ran out.
-    let route_unproven = !jobs.is_empty();
-    allowance -= route_before - route_work;
-    if let Some((unit, at, action, held)) = selected_holder {
-        candidates.insert(
-            0,
-            Candidate {
-                unit,
-                entry: EntryPoint {
-                    at,
-                    outward: (at - target.center).normalized(),
-                },
-                route: Vec::new(),
-                distance: 0.0,
-                ordinal: 0,
-                action,
-                assured: held,
-            },
-        );
-    }
-    // Failed entrants remain at their source positions during the next proof.
-    let fallback_work = allowance / 3;
-    allowance -= fallback_work;
-    let mut entry_unproven = false;
-    // When the work ran out first, the best completed route still enters:
-    // the plan says it is unproven, but a far building is entered rather
-    // than refused.
-    for candidate in &candidates {
-        let mut outcome = gather(
-            ctx,
-            known,
-            source,
-            &origins,
-            &ids,
-            &eligible,
-            request,
-            &target,
-            centre,
-            Some(candidate),
-            &mut allowance,
-        );
-        let undecided = outcome.unproven;
-        entry_unproven |= undecided;
-        outcome.unproven |= route_unproven || prefix_unproven;
-        if outcome.entrant.is_some() {
-            return Ok(BuildingPlan {
-                placement: outcome,
-                entry_action: candidate.action,
+    let target = super::validate(units, &ids, target)?;
+    let total = super::seats_for_state(world, &target, rules).len();
+    let refused = crate::hold::refuse_oversized(units, &mut ids, total);
+    let owner = target.id;
+    let standoff = rules.garrison.entry_distance_m / 2.0;
+    let mut nav = known.clone();
+    let grid = nav.grid(world, authored);
+    let pockets = Pockets::default();
+    let gap = rules.infantry_movement.spacing_m;
+    let mut entries = Vec::new();
+    // Where each entry stands, and the ground its squad covers there.
+    let mut taken: Vec<(V2, f64)> = Vec::new();
+    for &id in &ids {
+        let u = &units[id.0 as usize];
+        let from = if request.queued {
+            queue_end(u)
+        } else {
+            u.position.xy()
+        };
+        let living = crate::hold::living(u);
+        let ground = arrangement::spread(&rules.infantry_movement, living) / 2.0;
+        let near = super::within_entry_reach(world, known, authored, owner, from, rules);
+        let reaches = |p: V2| near || grid.reaches(from, p, u.ground(), &pockets);
+        let apart = |p: V2| {
+            taken
+                .iter()
+                .all(|&(q, r)| (p - q).length() >= r + ground + gap)
+        };
+        let clear = |p: V2| taken.is_empty() || (apart(p) && reaches(p));
+        let Some(approach) = super::approach(world, known, authored, owner, from, standoff, clear)
+        else {
+            continue;
+        };
+        if reaches(approach) {
+            taken.push((approach, ground));
+            entries.push(BuildingEntry {
+                unit: id,
+                approach: [approach.x, approach.y],
             });
         }
-        if undecided || allowance == 0 {
-            break;
-        }
     }
-    allowance += fallback_work;
-    let mut outcome = gather(
-        ctx,
-        known,
-        source,
-        &origins,
-        &ids,
-        &eligible,
-        request,
-        &target,
-        centre,
-        None,
-        &mut allowance,
-    );
-    outcome.unproven |= route_unproven || prefix_unproven || entry_unproven;
-    Ok(BuildingPlan {
-        placement: outcome,
-        entry_action: EntryAction::Route,
-    })
+    let placement = BuildingPlacement {
+        building: owner,
+        entries,
+    };
+    Ok((placement, refused))
 }
 
-#[allow(clippy::too_many_arguments)]
-fn gather(
-    ctx: &MovementContext,
-    known: &SideGeometry,
-    source: &[Unit],
-    origins: &[Unit],
-    ids: &[UnitId],
-    eligible: &[bool],
-    request: &BuildingPreviewRequest,
-    target: &crate::world::Prop,
-    centre: V2,
-    candidate: Option<&Candidate>,
-    allowance: &mut u64,
-) -> BuildingPlacement {
-    let owner = target.id;
-    let mut outward = (centre - target.center).normalized();
-    if outward.length() == 0.0 {
-        outward = candidate.map_or_else(
-            || (origins[ids[0].0 as usize].position.xy() - target.center).normalized(),
-            |c| c.entry.outward,
-        );
-        if outward.length() == 0.0 {
-            outward = v2(1.0, 0.0);
-        }
-    }
-    let entry = points(ctx, known, owner, centre)
-        .into_iter()
-        .min_by(|a, b| {
-            (a.at - centre)
-                .length()
-                .total_cmp(&(b.at - centre).length())
-        })
-        .unwrap_or(EntryPoint {
-            at: target.exterior_point(centre, ctx.rules.garrison.entry_distance_m / 2.0),
-            outward,
-        });
-    let gatherers: Vec<_> = ids
+/// Where a squad will stand once its queued movement is done.
+fn queue_end(u: &Unit) -> V2 {
+    u.orders
         .iter()
-        .filter(|&&id| candidate.is_none_or(|c| c.unit != id))
-        .map(|id| member(ctx, &origins[id.0 as usize]))
-        .collect();
-    let max_radius = gatherers.iter().map(|m| m.radius).fold(0.0, f64::max);
-    let anchor = entry.at + outward * (max_radius + ctx.rules.formation.spacing_m);
-    let facing = request
-        .facing
-        .unwrap_or(libm::atan2(-outward.y, -outward.x));
-    let mut nav = known.planning_snapshot();
-    let grid = nav.grid(ctx.world, ctx.authored);
-    let pockets = crate::navigation::Pockets::default();
-    let plan = formation::place(
-        &gatherers,
-        anchor,
-        Some(facing),
-        &ctx.rules.formation,
-        libm::hypot(ctx.world.width(), ctx.world.depth()),
-        |id, point| {
-            let i = ids.iter().position(|&u| u == id).unwrap();
-            if !eligible[i] {
-                return None;
-            }
-            let u = &origins[id.0 as usize];
-            // An aircraft hovers over its point, whatever stands there.
-            if u.airborne() {
-                return Some(point);
-            }
-            let point = grid.destination_point(
-                point,
-                u.ground(),
-                u.hull.map(|h| crate::navigation::Parking {
-                    half: h.xy(),
-                    facing: None,
-                }),
-                u.position.xy(),
-                &pockets,
-            )?;
-            if (point - entry.at).dot(outward) < u.ground().half_width_m {
-                return None;
-            }
-            if let Some(c) = candidate {
-                let radius = member(ctx, u).radius
-                    + origins[c.unit.0 as usize].ground().half_width_m
-                    + ctx.rules.formation.spacing_m;
-                let mut left = 0.0;
-                for w in c.route.windows(2).rev() {
-                    if contract::ground::segment_distance(
-                        [w[0].x, w[0].y],
-                        [w[1].x, w[1].y],
-                        [point.x, point.y],
-                    ) < radius
-                    {
-                        return None;
-                    }
-                    left += (w[1] - w[0]).length();
-                    if left >= ctx.rules.navigation.move_rehearsal_m {
-                        break;
-                    }
-                }
-            }
-            Some(point)
-        },
-    );
-    let mut slots = plan.slots;
-    let mut orders: Vec<_> = slots
-        .iter()
-        .map(|s| {
-            vec![UnitOrder::Move(MoveOrder {
-                destination: s.point.unwrap_or(source[s.id.0 as usize].position.xy()),
-                policy: RoutePolicy::Shortest,
-                gesture: 0,
-                direction: Default::default(),
-                facing: request.facing,
-                short: None,
-            })]
+        .rev()
+        .find_map(|o| match o {
+            UnitOrder::Move(m) | UnitOrder::AttackMove(m) => Some(m.destination),
+            UnitOrder::Garrison { approach, .. } => Some(*approach),
+            _ => None,
         })
-        .collect();
-    if let Some(c) = candidate.filter(|c| !c.assured) {
-        slots.push(Slot {
-            id: c.unit,
-            point: Some(c.entry.at),
-        });
-        orders.push(if !matches!(c.action, EntryAction::Route) {
-            Vec::new()
-        } else {
-            vec![
-                UnitOrder::Move(MoveOrder {
-                    destination: c.entry.at,
-                    policy: RoutePolicy::Shortest,
-                    gesture: 0,
-                    direction: Default::default(),
-                    facing: None,
-                    short: None,
-                }),
-                UnitOrder::Garrison {
-                    building: owner,
-                    approach: c.entry.at,
-                },
-            ]
-        });
-    }
-    let proof = movement::certify_orders(
-        ctx,
-        source,
-        known,
-        movement::ProofRequest {
-            slots: &slots,
-            orders: Some(&orders),
-            queued: request.queued,
-        },
-        allowance,
-    );
-    let entrant = candidate
-        .filter(|c| {
-            c.assured
-                || proof.stable
-                    && proof
-                        .arrivals
-                        .last()
-                        .and_then(Option::as_ref)
-                        .is_some_and(|u| {
-                            u.garrisoned()
-                                && u.hold
-                                    .as_ref()
-                                    .is_some_and(|hold| hold.host.building() == Some(owner))
-                        })
-        })
-        .map(|c| BuildingEntry {
-            unit: c.unit,
-            approach: [c.entry.at.x, c.entry.at.y],
-        });
-    let destinations = slots
-        .iter()
-        .take(gatherers.len())
-        .enumerate()
-        .map(|(i, slot)| {
-            let u = &source[slot.id.0 as usize];
-            let at = slot.point.unwrap_or(u.position.xy());
-            MoveDestination {
-                unit: slot.id,
-                goal: [at.x, at.y],
-                placed: proof.stable && proof.facings[i].is_some(),
-                facing: proof.facings[i].unwrap_or(u.yaw),
-                spots: vec![],
-            }
-        })
-        .collect();
-    BuildingPlacement {
-        building: owner,
-        entrant,
-        destinations,
-        unproven: proof.unproven || !proof.stable,
-    }
+        .unwrap_or(u.position.xy())
 }

@@ -5,7 +5,8 @@
 // each weapon situation (unlimited, counts, empty, aiming, reloading, the
 // cannon's loaded kind, guiding, every reason a weapon can't fire); every
 // state row alone and in the longest realistic combinations; carriers
-// empty, partly full and full, with their riders' cards under them; every
+// empty, partly full and full, with their riders' cards under them; a house
+// three squads share, inside, stepping in and stepping out; every
 // heard weapon mix; selected and not; the default and the far zoom. A test
 // (`web/tests/panelWorkbench.test.ts`) holds this list to every row kind the
 // derivation can produce.
@@ -373,7 +374,11 @@ export function panelSpecimens(
   add(s, "supply full", panelOf(specimenUnit(catalog, "test_rifle", { service: "full" })));
   add(s, "cannot supply", panelOf(specimenUnit(catalog, "test_at", { service: "moving" })));
   const inside = (phase: string, progress: number) => ({
-    hold: { host: { kind: "building", id: 3, center: [0, 0], half: [10, 10] }, phase, progress },
+    hold: {
+      host: { kind: "building", id: 3, center: [0, 0], half: [10, 10], seats: 12 },
+      phase,
+      progress,
+    },
     concealed: phase === "inside" || phase === "exiting",
   });
   add(
@@ -489,6 +494,34 @@ export function panelSpecimens(
     });
     add(t, label, ownPanel(catalog.units, u, [carrier, u], rules));
   }
+
+  // A shared house: three squads hold one building of 16 seats, one inside,
+  // one stepping in and one stepping out. The squad inside counts every
+  // squad holding the house, whatever its phase; the others keep their
+  // timers. Stand-ins of set sizes, as the carriers' riders are.
+  const h = "shared house";
+  const house = [
+    ["inside", "test_rifle", 6, "inside", 1],
+    ["stepping in", "test_at", 3, "entering", 0.4],
+    ["stepping out", "test_recon", 3, "exiting", 0.6],
+  ] as const;
+  const housemates = house.map(([, kind, soldiers, phase, progress], k) =>
+    specimenUnit(catalog, kind, {
+      id: 20 + k,
+      memberHp: Array.from({ length: soldiers }, (_, i) => (i === 1 ? 45 : 100)),
+      hold: {
+        host: { kind: "building", id: 4, center: [0, 0], half: [10, 10], seats: 16 },
+        phase,
+        progress,
+      },
+      concealed: phase !== "entering",
+    }),
+  );
+  house.forEach(([label], k) => {
+    const panel = ownPanel(catalog.units, housemates[k], housemates, rules);
+    add(h, label, panel);
+    add(h, `${label}, compact`, panel, "own", { zoom: "compressed" });
+  });
 
   // An aircraft's rows. They come from the published air state alone, never
   // the kind, and no stand-in flies, so they ride the jeep.

@@ -459,9 +459,10 @@ fn corpse_support_loss_is_physical_but_enemy_memory_waits_for_sight() {
             player: None,
             seq: 1,
             queued: false,
-            order: Order::Garrison {
+            order: Order::OccupyBuilding {
                 units: vec![UnitId(0)],
                 building: 0,
+                gesture: 0,
             },
         });
         assert_eq!(ack.error, None);
@@ -522,6 +523,7 @@ fn corpse_support_loss_is_physical_but_enemy_memory_waits_for_sight() {
         damage::resolve(
             &DamageContext {
                 world: &battle.world,
+                windows: &battle.windows,
                 ground: &battle.ground,
                 arsenal: &battle.arsenal,
                 rules: &battle.rules,

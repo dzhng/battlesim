@@ -48,12 +48,26 @@ fn composeFog(pixel: vec2f) -> vec4f {
   }
   if (m.x <= 0.0) { return lit; }
   let s = look;
-  var unseen = m.x;
+  // The look lies on the surface, under the air: it fades as the haze hides
+  // the surface, so far unseen land dissolves into the horizon as it does.
+  var unseen = m.x * aerialTransmitAtPixel(p);
   if (s.edgeSoftnessPx > 0.0) {
     let toSeen = textureLoad(maskDistance, p, 0).y * FOG_MASK_DISTANCE_CAP_PX;
     unseen *= smoothstep(0.0, 1.0, (toSeen - 0.5) / s.edgeSoftnessPx);
   }
   return vec4f(mix(lit.xyz, fogLook(lit.xyz, pixel, s), unseen), lit.w);
+}
+
+// @block fog_masks_sceneDepth
+@group(0) @binding(6) var sceneDepth: texture_depth_multisampled_2d;
+
+// @block fog_masks_aerialTransmitAtPixel
+/** The share of the surface drawn at pixel `p` the air lets through. */
+fn aerialTransmitAtPixel(p: vec2i) -> f32 {
+  let world = worldAtPixel(vec4f(vec2f(p), textureLoad(sceneDepth, p, 0), 1.0));
+  let air = environment.aerial;
+  let distM = aerialDistance(world, cam.eye, environment.observer.xyz, air);
+  return dot(aerialTransmit(world, distM, air), LUMA);
 }
 
 // @block fog_masks_view

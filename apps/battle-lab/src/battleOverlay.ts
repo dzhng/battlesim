@@ -11,9 +11,11 @@ import type { ScenarioRules } from "./battleSessionOptions";
 // The battle view composes the contacts, supply, orders, aircraft, held
 // buildings, zone and border (an aircraft's ground marker and drop line, own or enemy, D18):
 // combat effects (`effects/`) draw the flight, the flashes, the impacts and a
-// missile's flare and smoke trail, and a garrisoned squad's circle says where
-// it holds. Labs compose the layers their fixture exercises, the rest among
-// them as diagnostics.
+// missile's flare and smoke trail, and one ring round a house says where its
+// garrison holds. The same outline marks the building a garrison order under
+// the pointer would enter (`garrisonTargetOutline`, the pointer's paint).
+// Labs compose the layers their fixture exercises, the rest among them as
+// diagnostics.
 import type { StrokeWidth } from "@packages/battle-renderer/src/strokeWidth";
 import { gameHud } from "@web/battle/present/hudTheme";
 import type { SideName } from "@web/battle/sim/protocol";
@@ -212,36 +214,69 @@ export function garrisonLayer(o: ObservationView, z: SurfaceHeight): WorldMeshes
   );
 }
 
+/** The map building (its index in `buildings`) that prop `id` is part of:
+ *  any part's prop, or a remains prop whose authored source is one. */
+function buildingOfProp(
+  o: Pick<ObservationView, "knownProps">,
+  buildings: Pick<BuildingIndex, "partBuilding">,
+  id: number,
+): number | undefined {
+  return (
+    buildings.partBuilding.get(id) ??
+    buildings.partBuilding.get(o.knownProps.find((k) => k.id === id)?.authoredProp ?? -1)
+  );
+}
+
+/** The outline of the building prop `id` belongs to, in the side's own
+ *  colour, as a garrison it holds would draw it: the building an order
+ *  under the pointer would garrison. Null when it is no known building. */
+export function garrisonTargetOutline(
+  o: Pick<ObservationView, "knownProps">,
+  buildings: Pick<BuildingIndex, "partBuilding" | "parts">,
+  id: number,
+  line: number,
+  z: SurfaceHeight,
+): Mesh | null {
+  const i = buildingOfProp(o, buildings, id);
+  return i === undefined
+    ? null
+    : buildGarrisonOutlines(
+        [{ parts: buildings.parts[i], color: [...gameHud.accent, 1] }],
+        line,
+        gameOrderStyle.garrison_outline_margin_m,
+        z,
+      );
+}
+
 /** The buildings the side knows a garrison holds (inside or leaving): its
  *  own squads' in its own colour, and an identified enemy's in the enemy's,
- *  while it is seen. A held id is any part's prop, or a remains prop whose
- *  authored source is one; the outline traces the map's parts. */
+ *  while it is seen (`buildingOfProp` finds each); the outline traces the
+ *  map's parts, one outline per building however many squads hold it. */
 export function heldBuildingsLayer(
   o: ObservationView,
   buildings: Pick<BuildingIndex, "partBuilding" | "parts">,
   line: number,
   z: SurfaceHeight,
 ): Partial<WorldMeshes> {
-  const building = (id: number) =>
-    buildings.partBuilding.get(id) ??
-    buildings.partBuilding.get(o.knownProps.find((k) => k.id === id)?.authoredProp ?? -1);
-  const held = (id: number, color: Rgba): HeldBuilding[] => {
-    const i = building(id);
-    return i === undefined ? [] : [{ parts: buildings.parts[i], color }];
+  // Each building once, by its index; one side holds a building at a time.
+  const marks = new Map<number, HeldBuilding>();
+  const held = (id: number, color: Rgba) => {
+    const i = buildingOfProp(o, buildings, id);
+    if (i !== undefined && !marks.has(i)) marks.set(i, { parts: buildings.parts[i], color });
   };
   const own: Rgba = [...gameHud.accent, 1];
   const enemy: Rgba = [...gameHud.enemy, 1];
-  const marks = [
-    ...o.own.flatMap((u) =>
-      u.hold?.host.kind === "building" && u.hold.phase !== "entering"
-        ? held(u.hold.host.id, own)
-        : [],
-    ),
-    ...o.identified.flatMap((e) => (e.building === null ? [] : held(e.building, enemy))),
-  ];
-  return marks.length
+  for (const u of o.own)
+    if (u.hold?.host.kind === "building" && u.hold.phase !== "entering") held(u.hold.host.id, own);
+  for (const e of o.identified) if (e.building !== null) held(e.building, enemy);
+  return marks.size
     ? {
-        painted: buildGarrisonOutlines(marks, line, gameOrderStyle.garrison_outline_margin_m, z),
+        painted: buildGarrisonOutlines(
+          [...marks.values()],
+          line,
+          gameOrderStyle.garrison_outline_margin_m,
+          z,
+        ),
       }
     : {};
 }
@@ -340,32 +375,59 @@ export function orderLayer(
   } = {},
 ): WorldMeshes {
   const aloft = ghostAloft(units, air);
-  return buildOrderOverlay(
-    o.own
-      // A squad a carrier holds has no marks of its own: it is off the field.
-      .filter((u) => !aboardCarrier(u))
-      .filter(
-        (u) =>
-          selected.includes(u.id) ||
-          u.id === hovered ||
-          reveal.has(u.id) ||
-          airborne(units.type(u.kind)),
-      )
-      .map((u) => ({
-        ...orderView(
-          units,
-          u,
-          selected.includes(u.id),
-          reveal.get(u.id),
-          allies.has(u.id),
-          u.id === hovered,
-        ),
-        ghostAloft: ghosts && reveal.has(u.id) ? aloft(u.kind) : 0,
-      })),
-    z,
-    gameOrderStyle,
-    { stroke },
-  );
+  const shown = o.own
+    // A squad a carrier holds has no marks of its own: it is off the field.
+    .filter((u) => !aboardCarrier(u))
+    .filter(
+      (u) =>
+        selected.includes(u.id) ||
+        u.id === hovered ||
+        reveal.has(u.id) ||
+        airborne(units.type(u.kind)),
+    );
+  const views = shown.map((u) => ({
+    ...orderView(
+      units,
+      u,
+      selected.includes(u.id),
+      reveal.get(u.id),
+      allies.has(u.id),
+      u.id === hovered,
+    ),
+    ghostAloft: ghosts && reveal.has(u.id) ? aloft(u.kind) : 0,
+  }));
+  return buildOrderOverlay(oneRingPerHouse(shown, views), z, gameOrderStyle, { stroke });
+}
+
+/** How brightly an occupant's marker reads: selected, then hovered, then
+ *  the player's own over an ally's, then a moving one, then by its
+ *  reveal's opacity. */
+const ringRank = (v: OrderView) =>
+  (v.selected ? 8 : 0) +
+  (v.hovered ? 4 : 0) +
+  (v.ally ? 0 : 2) +
+  (v.goal && v.state !== "route_blocked" ? 1 : 0) +
+  (v.reveal ?? 0) / 2;
+
+/** One ring per house: of the occupants whose circle is their building's
+ *  ring (inside or leaving), keyed by the building's structure owner (the
+ *  host's id), only the brightest (`ringRank`) paints it; the others keep it
+ *  as the circle their routes leave from. `views` are `own`'s, in order. */
+function oneRingPerHouse(own: readonly OwnUnitView[], views: OrderView[]): OrderView[] {
+  const house = (k: number) => {
+    const host = own[k].hold?.host;
+    return views[k].building && host?.kind === "building" ? host.id : null;
+  };
+  const painter = new Map<number, OrderView>();
+  views.forEach((v, k) => {
+    const id = house(k);
+    const best = id === null ? undefined : painter.get(id);
+    if (id !== null && (!best || ringRank(v) > ringRank(best))) painter.set(id, v);
+  });
+  return views.map((v, k) => {
+    const id = house(k);
+    return id !== null && painter.get(id) !== v ? { ...v, ringShared: true } : v;
+  });
 }
 
 /** An identified enemy aircraft as its marker reads it. */

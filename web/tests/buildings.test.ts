@@ -148,7 +148,13 @@ test("the public picker and delivered replacements share one physical building o
           },
         ],
         events: [],
-        scripts: [{ tick: 1, side: "blue", order: { kind: "garrison", units: [0], building: 1 } }],
+        scripts: [
+          {
+            tick: 1,
+            side: "blue",
+            order: { kind: "occupy_building", units: [0], building: 1, gesture: 0 },
+          },
+        ],
       }),
       11,
     );
@@ -165,7 +171,13 @@ test("the public picker and delivered replacements share one physical building o
         if (state?.phase === "inside") break;
       }
       expect(state).toEqual({
-        host: { kind: "building", id: 0, center: [402, 300], half: [6, 3] },
+        host: {
+          kind: "building",
+          id: 0,
+          center: [402, 300],
+          half: [6, 3],
+          seats: expect.any(Number),
+        },
         phase: "inside",
         progress: 1,
       });

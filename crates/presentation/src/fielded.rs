@@ -502,13 +502,7 @@ fn appearance_facts(
     let table = if table.is_empty() {
         None
     } else {
-        // Equal clip tables keep one name whatever order they are found in:
-        // the name hashes their floats, and signed zeros count as equal.
-        let bytes: Vec<u8> = table
-            .iter()
-            .flat_map(|&v| (if v == 0.0 { 0.0 } else { v }).to_le_bytes())
-            .collect();
-        let name = format!("clips-{}", contract::identity::bytes_hash(&bytes));
+        let name = crate::appearance::clip_table_name(&table);
         record["table"] = json!(name);
         Some((name, Arc::new(table)))
     };

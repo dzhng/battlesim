@@ -95,6 +95,7 @@ impl Battle {
                         &self.world,
                         &self.rules,
                         &self.units,
+                        &self.windows,
                         side,
                         p.position,
                         round.layer,
@@ -221,6 +222,7 @@ impl Battle {
                                 &self.world,
                                 &self.rules,
                                 &self.units,
+                                &self.windows,
                                 side,
                                 p.position,
                                 round.layer,
@@ -229,19 +231,28 @@ impl Battle {
                     })
             })
             .collect();
-        let ctx = FireContext {
-            world: &self.world,
-            structures: &self.structures,
-            ground: &self.ground,
-            arsenal: &self.arsenal,
-            rules: &self.rules,
-            tick: self.tick,
-            knowledge: &self.knowledge,
-            rounds: &rounds,
-        };
-        let aims = weapons::garrison_aims(&ctx, &self.units);
-        garrison::allocate_slots(&mut self.units, &aims, &self.rules, self.tick);
-        let shots = weapons::tick::advance(&ctx, &mut self.units, moved, &mut self.combat_rng);
+        // Windows change between choosing them and firing, so each step
+        // borrows them afresh.
+        macro_rules! context {
+            () => {
+                FireContext {
+                    world: &self.world,
+                    windows: &self.windows,
+                    structures: &self.structures,
+                    ground: &self.ground,
+                    arsenal: &self.arsenal,
+                    rules: &self.rules,
+                    tick: self.tick,
+                    knowledge: &self.knowledge,
+                    rounds: &rounds,
+                }
+            };
+        }
+        let aims = weapons::garrison_aims(&context!(), &self.units);
+        self.windows
+            .allocate(&mut self.units, &aims, &self.rules, self.tick);
+        let shots =
+            weapons::tick::advance(&context!(), &mut self.units, moved, &mut self.combat_rng);
         let fired = shots.iter().map(|s| s.unit).collect();
         for shot in shots {
             let side = self.units[shot.unit.0 as usize].side;

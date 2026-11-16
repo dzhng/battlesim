@@ -182,7 +182,7 @@ test("a paused formation preview returns only own destinations without issuing a
 test("building previews preserve battle outcomes and an invalid query leaves the authority usable", async () => {
   const setup = labScenario(loadMap("garrison").definition, [
     { side: "blue", kind: "test_recon", position: [325, 250] },
-    { side: "blue", kind: "test_tank", position: [290, 250] },
+    { side: "blue", kind: "test_rifle", position: [290, 250] },
   ]);
   const queried = harness();
   const untouched = harness();
@@ -200,11 +200,7 @@ test("building previews preserve battle outcomes and an invalid query leaves the
     building: { units: [0, 1], building: 0 },
   });
   expect(queried.replies.find((r) => r.type === "building_preview" && r.id === 1)).toMatchObject({
-    placement: {
-      building: 0,
-      entrant: { unit: 0 },
-      destinations: [{ unit: 1, placed: true }],
-    },
+    placement: { building: 0, entries: [{ unit: 0 }, { unit: 1 }] },
   });
   queried.authority.handle({
     type: "building_preview",

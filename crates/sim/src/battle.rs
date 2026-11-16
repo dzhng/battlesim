@@ -34,6 +34,7 @@ mod purchase_preview;
 mod replay;
 mod replay_identity;
 mod seats;
+mod seeing;
 mod skirmish_turn;
 mod spawn;
 mod state_digest;
@@ -48,6 +49,7 @@ use crate::flight::{
 use crate::garrison;
 use crate::ground::{GroundLayer, KnownGround, Wear};
 use crate::hearing;
+use crate::hold;
 use crate::knowledge::SideKnowledge;
 use crate::math::{body_distance, v2, v3, Obb2, Rotation, V2, V3};
 use crate::movement::{self, MovementContext, SideGeometry};
@@ -192,6 +194,8 @@ pub struct Battle {
     arsenal: Arsenal,
     /// Building health and the ruins collapses left.
     structures: Structures,
+    /// The windows of every held building.
+    windows: garrison::Windows,
     /// Craters and wear on the ground.
     ground: GroundLayer,
     projectiles: Projectiles,
@@ -268,27 +272,6 @@ fn policy_for_player(seed: u64, index: usize) -> crate::skirmish_ai::BalancedDoc
         seed ^ (index as u64 + 1).wrapping_mul(0x9e37_79b9_7f4a_7c15) ^ 0x4241_4c41_4e43_4544,
     );
     crate::skirmish_ai::BalancedDoctrine::new(stream)
-}
-
-/// Whether any fog cell under a prop's footprint is seen: large remains
-/// (a ruin) are learned when any of them is in view, not only their middle.
-fn footprint_seen(field: &VisibilityField, prop: &crate::world::Prop) -> bool {
-    let step = field.cell_m / 2.0;
-    let rotation = Rotation::new(prop.yaw);
-    let (nx, ny) = (
-        (2.0 * prop.half.x / step).ceil().max(1.0) as usize,
-        (2.0 * prop.half.y / step).ceil().max(1.0) as usize,
-    );
-    (0..=nx).any(|i| {
-        (0..=ny).any(|j| {
-            let local = v2(
-                -prop.half.x + 2.0 * prop.half.x * i as f64 / nx as f64,
-                -prop.half.y + 2.0 * prop.half.y * j as f64 / ny as f64,
-            );
-            let p = prop.center + rotation.apply(local);
-            field.visible(p.x, p.y)
-        })
-    })
 }
 
 /// Authored starting wear: vehicle health, fallen soldiers (their records lie
@@ -647,6 +630,7 @@ impl Battle {
             projectiles: Projectiles::new(arsenal.config.clone()),
             arsenal,
             structures,
+            windows: garrison::Windows::default(),
             ground,
             rounds: BTreeMap::new(),
             suppressed: BTreeMap::new(),
@@ -815,6 +799,11 @@ impl Battle {
         &self.structures
     }
 
+    /// The windows of every held building, for native tests.
+    pub fn windows(&self) -> &garrison::Windows {
+        &self.windows
+    }
+
     /// Craters and wear on the ground, for native tests and reports. Players
     /// only ever receive a side's [`Battle::known_ground`].
     pub fn ground(&self) -> &GroundLayer {
@@ -942,11 +931,12 @@ impl Battle {
         self.admit(command.clone(), applied_tick).map_or_else(
             |e| ack(Some(e), None, None, Vec::new()),
             |(placement, building, refused)| {
-                let error = placement
+                let error = (placement
                     .as_ref()
-                    .filter(|p| p.destinations.iter().all(|d| !d.placed))
-                    .filter(|_| building.as_ref().is_none_or(|b| b.entrant.is_none()))
-                    .map(|_| OrderError::NoValidDestination);
+                    .is_some_and(|p| p.destinations.iter().all(|d| !d.placed))
+                    || (building.as_ref().is_some_and(|b| b.entries.is_empty())
+                        && refused.is_empty()))
+                .then_some(OrderError::NoValidDestination);
                 ack(error, placement, building, refused)
             },
         )
@@ -991,7 +981,7 @@ impl Battle {
         }
         let prepared = self.prepare(command, applied_tick.saturating_sub(1))?;
         let placement = prepared.placement.clone();
-        let building = prepared.building.as_ref().map(|p| p.placement.clone());
+        let building = prepared.building.clone();
         let refused = prepared.refused.clone();
         self.pending.push(prepared);
         Ok((placement, building, refused))
@@ -1192,30 +1182,6 @@ impl Battle {
                 }
                 units
             }
-            Order::Garrison { units, building } => {
-                self.validate_command_units(command, units)?;
-                // A squad ordered in earlier this tick holds no order yet.
-                let claimed = self.pending.iter().any(|c| {
-                    c.command.side == command.side
-                        && (matches!(c.command.order, Order::Garrison { building: b, .. } if self.world.remembered_structure_owner(b) == self.world.remembered_structure_owner(*building))
-                            || c.building.as_ref().is_some_and(|b| b.placement.entrant.is_some() && b.placement.building == self.world.remembered_structure_owner(*building)))
-                });
-                return garrison::validate(
-                    &self.world,
-                    &self.units,
-                    command.side,
-                    units,
-                    self.sides[command.side.index()]
-                        .prop(&self.world, self.authored_props, *building)
-                        .filter(|p| self.world.building_of(p.id).is_some())
-                        .map(|mut p| {
-                            p.id = self.world.remembered_structure_owner(p.id);
-                            p
-                        }),
-                    claimed,
-                    &self.rules,
-                );
-            }
             Order::Board { units, carrier, .. } => {
                 self.validate_command_units(command, units)?;
                 if units
@@ -1411,7 +1377,6 @@ impl Battle {
                 | Order::SetAfterburner { units, .. }
                 | Order::SetEngagement { units, .. }
                 | Order::SetDeployment { units, .. }
-                | Order::Garrison { units, .. }
                 | Order::OccupyBuilding { units, .. }
                 | Order::ExitBuilding { units }
                 | Order::Board { units, .. }
@@ -1451,14 +1416,16 @@ impl Battle {
         crate::carriage::advance(
             &self.world,
             &mut self.units,
+            &self.windows,
             &self.rules,
             &mut self.refusals,
         );
-        crate::hold::advance(
+        hold::advance(
             &self.world,
             &self.sides,
             self.authored_props,
             &mut self.units,
+            &mut self.windows,
             &self.rules,
             self.seed,
             &mut self.refusals,
@@ -1525,6 +1492,7 @@ impl Battle {
         supply::service(
             &self.world,
             &mut self.units,
+            &self.windows,
             &self.arsenal,
             &self.rules,
             &moved.units,
@@ -2182,6 +2150,7 @@ impl Battle {
         let at = crate::crash::burst_point(crash.position);
         let ctx = DamageContext {
             world: &self.world,
+            windows: &self.windows,
             ground: &self.ground,
             arsenal: &self.arsenal,
             rules: &self.rules,
@@ -2696,153 +2665,6 @@ impl Battle {
         }
     }
 
-    /// This side's own sensors, folded into its knowledge: the observers
-    /// due this tick (`all`: every one) identify afresh, the rest keep their
-    /// last sightings ([`sensing::SENSE_EVERY`]).
-    fn sense(&mut self, side: Side, all: bool) {
-        let tick = self.tick;
-        let due = |u: &Unit| all || sensing::due(u, tick);
-        let units = &self.units;
-        let mut sightings: Vec<Sighting> = self.sightings[side.index()]
-            .iter()
-            .filter(|s| !due(&units[s.observer.0 as usize]))
-            .filter_map(|s| sensing::kept(s, units, &self.rules))
-            .collect();
-        sightings.extend(sensing::evaluate(
-            &self.world,
-            units,
-            &self.rules,
-            side,
-            due,
-        ));
-        sightings.sort_by_key(|s| (s.observer, s.target));
-        let identified = self.knowledge[side.index()].update(tick, &sightings, units, &self.rules);
-        self.knowledge[side.index()].update_radar(tick, side, units, &self.rules);
-        self.sightings[side.index()] = sightings;
-        // An attack on an area whose cause is now identified carries over to
-        // that enemy, queued ones too, as if the player had right-clicked it.
-        for (area, enemy) in identified {
-            for unit in self.units.iter_mut().filter(|u| u.side == side) {
-                for order in &mut unit.orders {
-                    match order {
-                        UnitOrder::Attack { target, .. } if *target == Target::Contact(area) => {
-                            *target = Target::Unit(enemy);
-                        }
-                        _ => {}
-                    }
-                }
-            }
-        }
-    }
-
-    /// Recompute what ground this side sees, and learn any new obstacle in view.
-    fn sweep_fog(&mut self, side: Side) {
-        self.sweep_fog_profiled(side, &mut |_| {});
-    }
-
-    fn sweep_fog_profiled(&mut self, side: Side, completed: &mut impl FnMut(TickPhase)) {
-        let mut field = self.occlusion.field();
-        let mut candidates = Vec::new();
-        let mut remembered = Vec::new();
-        let mut views = Vec::new();
-        for unit in self.units.iter().filter(|u| u.side == side && u.on_field()) {
-            // What doesn't see the ground never lights its fog; the optical
-            // sensing pass still handles air targets separately.
-            if !sensing::sees_ground(unit) {
-                continue;
-            }
-            let sight = sight::of(unit, &self.rules);
-            let eyes = sensing::eyes(unit, &self.rules);
-            for eye in &eyes {
-                // A ray can step one cell past its reach, and the marked cell
-                // can contain a footprint sample a diagonal farther away.
-                views.push((eye.xy(), sight.max_range() + 3.0 * field.cell_m));
-            }
-            self.occlusion.sweep_observer(
-                &self.world,
-                &self.rules.sensors,
-                unit.id,
-                &eyes,
-                &sight,
-                &mut field,
-            );
-        }
-        self.world.prop_ids_near_many(&views, &mut candidates);
-        self.sides[side.index()].standing_ids_near_many(&views, &mut remembered);
-        completed(TickPhase::Fog);
-        // Enemy fallen in view are remembered, and the ground in view learned.
-        let knowledge = &mut self.knowledge[side.index()];
-        knowledge.learn_ground(&self.ground, &field);
-        for f in self.fallen.values() {
-            if field.visible(f.at[0], f.at[1]) {
-                knowledge.learn_fallen(f.prop);
-            }
-        }
-        for u in self.units.iter().filter(|u| u.side != side) {
-            for s in &u.members {
-                if let Some(fallen) = s.corpse.filter(|f| field.visible(f.at.x, f.at.y)) {
-                    knowledge.note_corpse(s.id, fallen);
-                }
-            }
-        }
-        // Bodies in view are learned where they stand: new ones, and known
-        // ones seen moved (L1, L2); trees seen fallen are gone (Q16).
-        let known = &mut self.sides[side.index()];
-        let revealed: std::collections::BTreeSet<_> = candidates
-            .iter()
-            .filter_map(|&id| self.world.prop(id))
-            .chain(remembered.iter().filter_map(|id| known.standing().get(id)))
-            .filter_map(|p| self.world.building_of(p.id).map(|owner| (owner, p)))
-            .filter(|(_, p)| footprint_seen(&field, p))
-            .map(|(owner, _)| owner)
-            .collect();
-        // Seeing one physical part reveals the entire aggregate, including
-        // parts beyond the eye's reach. Keep learning in ascending prop order.
-        candidates.extend(
-            revealed
-                .iter()
-                .flat_map(|&owner| self.world.current_building_parts(owner).iter().copied()),
-        );
-        candidates.sort_unstable();
-        candidates.dedup();
-        remembered.extend(
-            revealed
-                .iter()
-                .flat_map(|&owner| self.world.historical_building_parts(owner).iter().copied()),
-        );
-        remembered.sort_unstable();
-        remembered.dedup();
-        let fallen: Vec<PropId> = remembered
-            .into_iter()
-            .filter_map(|id| known.standing().get(&id))
-            .filter(|p| {
-                footprint_seen(&field, p)
-                    || self
-                        .world
-                        .building_of(p.id)
-                        .is_some_and(|id| revealed.contains(&id))
-            })
-            .map(|p| p.id)
-            .collect();
-        for id in fallen {
-            known.saw_fallen(id);
-        }
-        let relearn = self.rules.pushing.relearn_m;
-        for prop in candidates.into_iter().filter_map(|id| self.world.prop(id)) {
-            if (prop.id >= self.authored_props || known.seen.contains_key(&prop.id))
-                && (footprint_seen(&field, prop)
-                    || self
-                        .world
-                        .building_of(prop.id)
-                        .is_some_and(|id| revealed.contains(&id)))
-            {
-                let resting = self.world.resting(prop.id, self.tick);
-                known.learn(prop, self.authored_props, relearn, resting);
-            }
-        }
-        self.fog[side.index()] = field;
-    }
-
     fn prepare(
         &mut self,
         mut command: CommandEnvelope,
@@ -2864,25 +2686,21 @@ impl Battle {
             let player = player.expect("validated skirmish player");
             self.reserve_purchase(&command, player, planning_tick)?;
         }
-        let building = if let Order::OccupyBuilding {
-            units,
-            building,
-            facing,
-            ..
+        let (building, building_refused) = if let Order::OccupyBuilding {
+            units, building, ..
         } = &command.order
         {
-            Some(self.plan_building(
+            let (plan, refused) = self.plan_building(
                 command.side,
                 &BuildingPreviewRequest {
                     units: units.clone(),
                     building: *building,
-                    facing: *facing,
                     queued: command.queued,
                 },
-                planning_tick,
-            )?)
+            )?;
+            (Some(plan), refused)
         } else {
-            None
+            (None, Vec::new())
         };
         let mut stops = BTreeMap::new();
         let placement = match &command.order {
@@ -2933,10 +2751,6 @@ impl Battle {
                         .collect(),
                 })
             }
-            Order::OccupyBuilding { gesture, .. } => Some(MovePlacement {
-                gesture: *gesture,
-                destinations: building.as_ref().unwrap().placement.destinations.clone(),
-            }),
             Order::Move {
                 units,
                 gesture,
@@ -3007,43 +2821,9 @@ impl Battle {
             }
             _ => None,
         };
-        let mut refused = Vec::new();
-        if let Order::Collect { squads, .. } = &mut command.order {
-            // A squad listed twice is collected once; the list keeps its order.
-            let mut seen = std::collections::BTreeSet::new();
-            squads.retain(|id| seen.insert(*id));
-        }
-        if let Order::Board { units, carrier, .. } = &mut command.order {
-            let mut ordered = units.clone();
-            ordered.sort_by(|a, b| {
-                let ca = (self.units[a.0 as usize].position.xy()
-                    - self.units[carrier.0 as usize].position.xy())
-                .length();
-                let cb = (self.units[b.0 as usize].position.xy()
-                    - self.units[carrier.0 as usize].position.xy())
-                .length();
-                ca.total_cmp(&cb).then(a.cmp(b))
-            });
-            // A squad listed twice boards once.
-            ordered.dedup();
-            let capacity = crate::carriage::seats(&self.rules, self.units[carrier.0 as usize].kind);
-            let used = crate::carriage::seats_used(&self.units, *carrier);
-            let mut left = capacity.saturating_sub(used);
-            let mut accepted = Vec::new();
-            for id in ordered {
-                let need = crate::carriage::living(&self.units[id.0 as usize]);
-                if need <= left {
-                    left -= need;
-                    accepted.push(id);
-                } else {
-                    refused.push(contract::command::Refusal {
-                        unit: id,
-                        reason: OrderError::CapacityFull,
-                    });
-                }
-            }
-            *units = accepted;
-        }
+        let mut refused =
+            hold::refuse_oversized_riders(&self.units, &mut command.order, &self.rules)
+                .unwrap_or(building_refused);
         if let Order::Unload {
             units, goal: None, ..
         } = &command.order
@@ -3095,7 +2875,6 @@ impl Battle {
             | Order::SetAfterburner { units, .. }
             | Order::SetEngagement { units, .. }
             | Order::SetDeployment { units, .. }
-            | Order::Garrison { units, .. }
             | Order::OccupyBuilding { units, .. }
             | Order::ExitBuilding { units }
             | Order::Unload { units, .. }
@@ -3132,62 +2911,18 @@ impl Battle {
             | Order::ConfirmPurchase { .. }
             | Order::CancelPending { .. }
             | Order::PopSmoke { .. } => {}
-            Order::OccupyBuilding {
-                gesture, facing, ..
-            } => {
-                let garrison::BuildingPlan {
-                    placement: plan,
-                    entry_action,
-                } = prepared.building.unwrap();
-                if let Some(entry) = plan.entrant {
-                    let unit = &mut movers[entry.unit.0 as usize];
-                    let approach = v2(entry.approach[0], entry.approach[1]);
-                    if matches!(entry_action, garrison::EntryAction::Enter) {
-                        unit.enqueue(
-                            UnitOrder::Garrison {
-                                building: plan.building,
-                                approach,
-                            },
-                            false,
-                        );
-                    } else if matches!(entry_action, garrison::EntryAction::Route) {
-                        push(
-                            unit,
-                            UnitOrder::Move(MoveOrder {
-                                destination: approach,
-                                policy: RoutePolicy::Shortest,
-                                gesture,
-                                direction: Default::default(),
-                                facing: None,
-                                short: None,
-                            }),
-                        );
-                        unit.enqueue(
-                            UnitOrder::Garrison {
-                                building: plan.building,
-                                approach,
-                            },
-                            true,
-                        );
-                    }
-                }
-                for slot in plan.destinations {
-                    let unit = &mut movers[slot.unit.0 as usize];
-                    if slot.placed {
-                        push(
-                            unit,
-                            UnitOrder::Move(MoveOrder {
-                                destination: v2(slot.goal[0], slot.goal[1]),
-                                policy: RoutePolicy::Shortest,
-                                gesture,
-                                direction: Default::default(),
-                                facing,
-                                short: None,
-                            }),
-                        );
-                    } else if !queued {
-                        Self::hold_position(unit);
-                    }
+            Order::OccupyBuilding { gesture, .. } => {
+                let plan = prepared.building.unwrap();
+                for entry in plan.entries {
+                    push(
+                        &mut movers[entry.unit.0 as usize],
+                        UnitOrder::Garrison {
+                            building: plan.building,
+                            approach: v2(entry.approach[0], entry.approach[1]),
+                            gesture,
+                            policy: RoutePolicy::Shortest,
+                        },
+                    );
                 }
             }
             Order::Move {
@@ -3270,24 +3005,6 @@ impl Battle {
                     if let Some(target) = dogfight {
                         crate::air::dogfight::set_target(unit, target);
                     }
-                }
-            }
-            Order::Garrison { units, building } => {
-                let building = self.world.remembered_structure_owner(building);
-                for id in units {
-                    let unit = &mut movers[id.0 as usize];
-                    let from = unit.position.xy();
-                    let Some(approach) = garrison::approach(
-                        &self.world,
-                        &self.sides[side.index()],
-                        self.authored_props,
-                        building,
-                        from,
-                        self.rules.garrison.entry_distance_m / 2.0,
-                    ) else {
-                        continue;
-                    };
-                    push(unit, UnitOrder::Garrison { building, approach });
                 }
             }
             Order::ExitBuilding { units } => {
@@ -3433,20 +3150,7 @@ impl Battle {
             }
             Order::UpgradeMove { gesture, route } => {
                 for unit in movers.iter_mut().filter(|u| u.side == side) {
-                    let mut upgraded = false;
-                    for (k, order) in unit.orders.iter_mut().enumerate() {
-                        if let Some(m) = order.movement_mut() {
-                            if m.gesture == gesture && m.policy != route {
-                                m.policy = route;
-                                upgraded = true;
-                                if k == 0 {
-                                    unit.route = None; // replan the active order
-                                    unit.planned_goal = None;
-                                }
-                            }
-                        }
-                    }
-                    if upgraded {
+                    if unit.upgrade_walks(gesture, route) {
                         take_order(unit);
                     }
                 }
@@ -3465,33 +3169,33 @@ impl Battle {
         unit.turn_to = None;
     }
 
-    /// Resolve entry and gathering using only this side's known, isolated state.
+    /// Plan a building order on this side's own knowledge, without
+    /// accepting it. A queued order sets off from where the side's orders
+    /// given this tick leave each squad.
     pub fn preview_building(
         &self,
         side: Side,
         request: &BuildingPreviewRequest,
     ) -> Result<BuildingPlacement, OrderError> {
-        self.plan_building(side, request, self.tick)
-            .map(|p| p.placement)
+        self.plan_building(side, request).map(|(plan, _)| plan)
     }
 
+    /// [`Self::preview_building`], with the squads too big for the whole
+    /// building refused one by one.
     fn plan_building(
         &self,
         side: Side,
         request: &BuildingPreviewRequest,
-        planning_tick: Tick,
-    ) -> Result<garrison::BuildingPlan, OrderError> {
+    ) -> Result<(BuildingPlacement, Vec<contract::command::Refusal>), OrderError> {
         self.validate_units(side, &request.units)?;
-        if request.facing.is_some_and(|f| !f.is_finite()) {
-            return Err(OrderError::OutOfBounds);
-        }
-        let source = self.move_source(side);
-        // Live admission precedes its application tick; replay and scripts
-        // already entered that tick. Timed prefix prediction must start from
-        // the same prior-state tick in all three paths.
-        let mut ctx = self.movement_context();
-        ctx.tick = planning_tick;
-        garrison::occupy(&ctx, &self.sides[side.index()], &source, request)
+        garrison::occupy(
+            &self.world,
+            &self.sides[side.index()],
+            self.authored_props,
+            &self.move_source(side),
+            request,
+            &self.rules,
+        )
     }
 
     fn move_source(&self, side: Side) -> Vec<Unit> {
@@ -3534,20 +3238,6 @@ impl Battle {
             }
         }
         source
-    }
-
-    fn movement_context(&self) -> MovementContext<'_> {
-        MovementContext {
-            world: &self.world,
-            roads: &self.roads,
-            ground: &self.ground,
-            authored: self.authored_props,
-            tick: self.tick,
-            seed: self.seed,
-            rules: &self.rules,
-            knowledge: std::array::from_fn(|i| &self.knowledge[i]),
-            arsenal: &self.arsenal,
-        }
     }
 
     /// A soldier's resolved place and cover (D2+): his spot while moving, his
@@ -3640,9 +3330,12 @@ impl Battle {
             let frame = &mut self.observations[side.index()];
             frame.tick = self.tick;
             frame.identified.clear();
-            frame
-                .identified
-                .extend(knowledge.identified(self.tick, &self.units, &self.rules));
+            frame.identified.extend(knowledge.identified(
+                self.tick,
+                &self.units,
+                &self.windows,
+                &self.rules,
+            ));
             frame.ground_visibility.clone_from(fog);
             frame.smoke_clouds.clear();
             let seen = crate::smoke::seen(self.world.smoke(), side, fog);
@@ -3813,7 +3506,7 @@ impl Battle {
                             .enumerate()
                             .filter(|(_, s)| s.alive())
                             .map(|(k, _)| {
-                                let p = garrison::body_position(u, k, &self.rules);
+                                let p = self.windows.body_position(u, k, &self.rules);
                                 [p.x, p.y, p.z]
                             })
                             .collect(),
@@ -3896,14 +3589,14 @@ impl Battle {
                             && u.attackers.is_empty(),
                         stock: u.stock,
                         service: u.service,
-                        hold: crate::hold::state(&self.world, u, &self.rules),
+                        hold: hold::state(&self.world, &self.units, u, &self.windows, &self.rules),
                         sight: {
                             let s = sight::of(u, &self.rules);
                             UnitSight {
                                 // The side's drawn fog follows its rules: a
                                 // unit that doesn't see the ground lights none.
                                 eyes: if sensing::sees_ground(u) {
-                                    sensing::eyes(u, &self.rules)
+                                    sensing::eyes(u, &self.windows, &self.rules)
                                         .into_iter()
                                         .map(|e| [e.x, e.y, e.z])
                                         .collect()
@@ -4025,7 +3718,7 @@ fn take_order(unit: &mut Unit) {
 struct PreparedCommand {
     command: CommandEnvelope,
     placement: Option<MovePlacement>,
-    building: Option<garrison::BuildingPlan>,
+    building: Option<BuildingPlacement>,
     /// Where a placed unit stops short ([`crate::units::StopShort`]).
     stops: BTreeMap<UnitId, crate::units::StopShort>,
     refused: Vec<contract::command::Refusal>,

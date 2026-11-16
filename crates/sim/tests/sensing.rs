@@ -10,7 +10,15 @@ use crate::common;
 /// battle placed.
 fn blue_sees_round(b: &Battle, at: sim::math::V3, layer: contract::catalog::AltitudeLayer) -> bool {
     let units: Vec<_> = (0..).map_while(|i| b.unit(UnitId(i)).cloned()).collect();
-    sim::sensing::side_sees_round(b.world(), b.rules(), &units, Side::Blue, at, layer)
+    sim::sensing::side_sees_round(
+        b.world(),
+        b.rules(),
+        &units,
+        b.windows(),
+        Side::Blue,
+        at,
+        layer,
+    )
 }
 
 /// A round is a target like any other: high air, which never sees the
@@ -64,8 +72,10 @@ fn a_garrison_sees_a_round_from_its_facades() {
         side: Side::Blue,
         player: None,
         seq: 1,
-        order: serde_json::from_value(json!({ "kind": "garrison", "units": [0], "building": 0 }))
-            .unwrap(),
+        order: serde_json::from_value(
+            json!({ "kind": "occupy_building", "units": [0], "building": 0, "gesture": 0 }),
+        )
+        .unwrap(),
         queued: false,
     });
     assert_eq!(ack.error, None);
@@ -444,7 +454,14 @@ fn each_observer_identifies_on_alternate_ticks_and_never_more_than_one_tick_late
         let fresh = |b: &Battle| -> [bool; 2] {
             let units: Vec<sim::units::Unit> =
                 (0..3).map(|i| b.unit(UnitId(i)).unwrap().clone()).collect();
-            let seen = sim::sensing::evaluate(b.world(), &units, b.rules(), Side::Blue, |_| true);
+            let seen = sim::sensing::evaluate(
+                b.world(),
+                &units,
+                b.windows(),
+                b.rules(),
+                Side::Blue,
+                |_| true,
+            );
             [0, 1].map(|o| seen.iter().any(|s| s.observer.0 == o))
         };
         // What each scout's own sensors report identified this tick.
@@ -518,7 +535,9 @@ fn squad_identification_requires_twenty_percent_of_living_members() {
     }
     units[1].members[0].position = sim::math::v3(100.0, 580.0, 0.0);
     let seen = |units: &[sim::units::Unit]| {
-        sim::sensing::evaluate(b.world(), units, b.rules(), Side::Blue, |_| true)
+        sim::sensing::evaluate(b.world(), units, b.windows(), b.rules(), Side::Blue, |_| {
+            true
+        })
     };
     assert!(
         seen(&units).is_empty(),

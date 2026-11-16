@@ -147,8 +147,15 @@ fractional carry belong to settlement.
 
 [Holds](src/hold.rs) own a unit being inside something, a building or a carrier,
 with one entering and exiting timer and one cancellation rule; each host only
-supplies its timing and where its occupants stand. [Carriage](src/carriage.rs)
-owns seats, boarding and unloading, which squads ride inside (one still getting
+supplies its timing, its seat total and where its occupants stand. Holds also
+own host seats and admission for both hosts: squads share a host while seats
+last, one per living soldier; a squad is admitted when it starts stepping in
+(squads stepping out don't count) and checked again, counting everyone, when
+its timer ends; only a squad bigger than the whole host is refused at the
+command. A building's hold shows its side the seat total admission counts
+against (a carrier's is its type's), so the panel reads seats used of total
+for both hosts. [Carriage](src/carriage.rs)
+owns boarding and unloading, which squads ride inside (one still getting
 in stands beside the carrier and shares none of its fate), and the one test of
 whether a carrier is low and slow enough to load or unload: a ground carrier
 rolling no faster than the rules' climbing speed takes squads on and lets them

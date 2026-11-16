@@ -18,6 +18,7 @@ import type { SessionCatalog } from "../catalog/compose";
 import {
   passengersOf,
   type ContactView,
+  type HoldHostView,
   type MountView,
   type OwnUnitView,
 } from "../sim/observationView";
@@ -54,7 +55,7 @@ export const STATE_ROWS = {
   deployed: { icon: stateIcon("deployed"), word: () => "DEPLOYED", lasting: true },
   in_building: {
     icon: stateIcon("building"),
-    word: () => "IN BUILDING",
+    word: (n: number | string) => `IN BUILDING · SEATS ${n}`,
     lasting: true,
     byName: true,
   },
@@ -220,12 +221,16 @@ function serviceRow(service: string): StateRow | null {
   return service === "serving" ? row("resupplying") : null;
 }
 
-/** A hold's row by its host's kind and its phase. Riding inside a carrier
- *  says nothing: the rider's card stacks under its carrier's. */
-const HOLD_ROWS: Record<string, Record<string, (progress: number) => StateRow | null>> = {
+/** A hold's row by its host's kind and its phase. Inside a building it
+ *  reads the house's seats, used of total; riding inside a carrier says
+ *  nothing: the rider's card stacks under its carrier's. */
+const HOLD_ROWS: Record<
+  string,
+  Record<string, (progress: number, seats: string) => StateRow | null>
+> = {
   building: {
     entering: (p) => row("entering", { progress: p }),
-    inside: () => row("in_building"),
+    inside: (_, seats) => row("in_building", { n: seats }),
     exiting: (p) => row("leaving", { progress: p }),
   },
   carrier: {
@@ -235,16 +240,28 @@ const HOLD_ROWS: Record<string, Record<string, (progress: number) => StateRow | 
   },
 };
 
+/** The seats `squads` take on a host: their living soldiers, whatever phase
+ *  each is in (stepping in, inside or stepping out), as the host counts
+ *  them. */
+const seatsTaken = (squads: readonly OwnUnitView[]) =>
+  squads.reduce((sum, p) => sum + p.memberHp.filter((hp) => hp > 0).length, 0);
+
 /** A carrier's Seats row: the living soldiers of the squads it holds
  *  against its catalog seats; null for a unit that carries no one. */
 function seatsRow(units: UnitCatalog, u: OwnUnitView, own: readonly OwnUnitView[]) {
   const seats = units.seats(u.kind);
   if (!seats) return null;
-  const used = passengersOf(own, u.id).reduce(
-    (sum, p) => sum + p.memberHp.filter((hp) => hp > 0).length,
-    0,
+  return row("seats", { n: `${seatsTaken(passengersOf(own, u.id))}/${seats}` });
+}
+
+/** A building's seats, used of its published total: the own squads whose
+ *  holds name the same building; "" for a carrier. */
+function buildingSeats(host: HoldHostView, own: readonly OwnUnitView[]): string {
+  if (host.kind !== "building") return "";
+  const housemates = own.filter(
+    (o) => o.hold?.host.kind === "building" && o.hold.host.id === host.id,
   );
-  return row("seats", { n: `${used}/${seats}` });
+  return `${seatsTaken(housemates)}/${host.seats}`;
 }
 
 /** A supply vehicle is supplying while it stands set up and a unit in its
@@ -279,7 +296,10 @@ export function ownStateRows(
   if (u.smoke != null) rows.push(row("smoke", { n: u.smoke }));
   if (u.withdrawing) rows.push(row("withdrawing"));
   rows.push(seatsRow(units, u, own));
-  if (u.hold) rows.push(HOLD_ROWS[u.hold.host.kind]?.[u.hold.phase]?.(u.hold.progress) ?? null);
+  if (u.hold) {
+    const { host, phase, progress } = u.hold;
+    rows.push(HOLD_ROWS[host.kind]?.[phase]?.(progress, buildingSeats(host, own)) ?? null);
+  }
   if (u.concealed) rows.push(row("hidden"));
   if (u.engagement === "return_fire_only") rows.push(row("hold_fire"));
   if (u.suppression !== "none") rows.push(row(u.suppression));

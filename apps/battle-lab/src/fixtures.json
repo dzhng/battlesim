@@ -201,14 +201,14 @@
   {
     "id": "transport",
     "route": "/labs/transport",
-    "describe": "Passenger transport: squads board an APC and scout car from both directions, ride hidden, and drive past an enemy and an objective; their carriers' Seats rows and stacked rider cards. The controls variant drives the player's own controls: right-click boarding both ways under the board cursor, a squad refused for want of seats, its deck card while aboard, U then a click with the unload mark on its order line, and U twice. The heli variant: a transport helicopter flies to a squad, sinks to a low hover, the squad boards, it flies on and sinks again at its goal, and the squad gets out onto the ground beneath it.",
+    "describe": "Passenger transport: squads board an APC and scout car from both directions, ride hidden, and drive past an enemy and an objective; their carriers' Seats rows and stacked rider cards. The controls variant drives the player's own controls: right-click boarding both ways under the board cursor, a squad too big for the carrier refused at the order, two squads sharing one carrier and a third that walks over, finds no room on arrival and stays on the field, a rider's deck card, U then a click with the unload mark on its order line, and U twice. The heli variant: a transport helicopter flies to a squad, sinks to a low hover, the squad boards, it flies on and sinks again at its goal, and the squad gets out onto the ground beneath it.",
     "map": "transport",
     "catalog": "test"
   },
   {
     "id": "garrison",
     "route": "/labs/garrison",
-    "describe": "Buildings as fighting positions: the closest eligible blue squad enters a building while selected companions gather outside; direct entry admits one squad whole, enter and leave on a timer, and fire outward from perimeter slots while red's rounds hit occupants or the walls; a red squad behind the building is seen only once occupants stand on that facade, and the occupants are HIDDEN until it walks up close enough to see them; red's tank brings the building down into a lower, impassable ruin and survivors escape pinned. Includes delayed admission, queued cursor, refusal callout and edge-readout cursor checks.",
+    "describe": "Buildings as fighting positions squads share: two blue rifle squads enter one house on a timer, each whole and every soldier at a window of his own, and the scouts who arrive after them find no room, are told so beside their card and stay outside; occupants fire outward from their windows while red's rounds hit them or the walls; a red squad behind the building is seen only once occupants stand on that facade, and the occupants are HIDDEN until it walks up close enough to see them; red's tank brings the building down into a lower, impassable ruin and survivors escape pinned. Includes delayed admission (every squad an order names steps in), queued cursor, refusal callout and edge-readout cursor checks.",
     "map": "garrison"
   },
   {

@@ -170,10 +170,10 @@ fn approach_speed(unit: &Unit, surface_speed: f64, gear: f64) -> f64 {
 }
 
 /// Whether `target` lies inside the turning circle on side `side` of a hull
-/// at `at` travelling along `heading`, by more than `margin`.
-fn inside_circle(at: V2, heading: f64, side: f64, radius: f64, target: V2, margin: f64) -> bool {
+/// at `at` travelling along `heading`.
+fn inside_circle(at: V2, heading: f64, side: f64, radius: f64, target: V2) -> bool {
     let centre = at + dir(heading + side * std::f64::consts::FRAC_PI_2) * radius;
-    (target - centre).length() < radius - margin
+    (target - centre).length() < radius
 }
 
 /// Whether a hull at `center`/`yaw` would stand in a body that stops it, or
@@ -374,7 +374,7 @@ pub fn steer(
         return motion;
     }
     // A waypoint inside the turning circle needs room worked out first.
-    if distance > drive.feel.abeam_m && inside_circle(here, heading, side, radius, target, 0.0) {
+    if distance > drive.feel.abeam_m && inside_circle(here, heading, side, radius, target) {
         return shunt(world, unit, traffic, &[], tick);
     }
     let desired = turn_speed(&drive, speed_in(&drive, gear, speed), error)
@@ -643,8 +643,7 @@ pub(super) fn prune(
         // Never the route's end: that is where it must stand.
         let side = if signed >= 0.0 { 1.0 } else { -1.0 };
         let passed = route.len() > 1
-            && (inside_circle(here, heading, side, drive.radius_m, wp, 0.0)
-                || hull.contains(wp, 0.0))
+            && (inside_circle(here, heading, side, drive.radius_m, wp) || hull.contains(wp, 0.0))
             && known
                 .grid(ctx.world, ctx.authored)
                 .way_fits(here, route[1], &mobility, &others());

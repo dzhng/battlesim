@@ -5,7 +5,7 @@ use contract::catalog::TypeIndex;
 use contract::ids::UnitId;
 use contract::scenario::Rules;
 
-use crate::hold::{Hold, Host, Phase, Place};
+use crate::hold::{Hold, Host, Phase};
 use crate::math::{V2, V3};
 use crate::units::{MoveOrder, Unit, UnitOrder};
 use crate::world::WorldGeometry;
@@ -58,26 +58,6 @@ pub(crate) fn seats(rules: &Rules, kind: TypeIndex) -> usize {
 /// the AI's pairing both ask it.
 pub(crate) fn seats_squad(rules: &Rules, carrier: TypeIndex, size: usize) -> bool {
     size > 0 && seats(rules, carrier) >= size
-}
-
-/// The seats a squad takes: one per living soldier.
-pub(crate) fn living(unit: &Unit) -> usize {
-    unit.members.iter().filter(|s| s.alive()).count()
-}
-
-/// The seats taken on `carrier`: every squad holding on it, getting out,
-/// aboard or still getting in. A squad getting in has its seats reserved, so
-/// two squads can never both be admitted into the last ones.
-pub(crate) fn seats_used(units: &[Unit], carrier: UnitId) -> usize {
-    units
-        .iter()
-        .filter(|u| {
-            u.hold
-                .as_ref()
-                .is_some_and(|h| h.host == Host::Carrier(carrier))
-        })
-        .map(living)
-        .sum()
 }
 
 pub(crate) fn stationary(unit: &Unit) -> bool {
@@ -150,11 +130,6 @@ pub(crate) fn ready_to_board(
 /// at its low hover.
 pub(crate) fn at_loading_height(world: &WorldGeometry, host: &Unit, rules: &Rules) -> bool {
     !host.airborne() || crate::movement::air::low_hover_settled(world, host, rules)
-}
-
-/// Whether every squad holding on `carrier` fits its seats.
-pub(crate) fn fits(units: &[Unit], carrier: UnitId, rules: &Rules) -> bool {
-    seats_used(units, carrier) <= seats(rules, units[carrier.0 as usize].kind)
 }
 
 fn push_target_move(unit: &mut Unit, target: V2, gesture: u64) {
@@ -315,21 +290,13 @@ fn collectable(carrier: &Unit, squad: &Unit) -> bool {
             .is_none_or(|hold| hold.host.carrier().is_none())
 }
 
-/// Start a squad getting in to `carrier`; [`crate::hold::advance`] runs its
-/// timer from here.
-fn start_boarding(squad: &mut Unit, carrier: UnitId) {
-    squad.hold = Some(Hold {
-        host: Host::Carrier(carrier),
-        phase: Phase::Entering(1),
-        place: Place::Carrier,
-    });
-}
-
-/// Lower Board and Collect orders into movement or a shared hold. Timer and
-/// phase progression belongs to [`crate::hold::advance`].
+/// Lower Board and Collect orders into movement, or start a squad beside its
+/// carrier getting in ([`crate::hold::admit`]). Timer and phase progression
+/// belongs to [`crate::hold::advance`].
 pub(crate) fn advance(
     world: &WorldGeometry,
     units: &mut [Unit],
+    windows: &crate::garrison::Windows,
     rules: &Rules,
     refusals: &mut [Vec<contract::command::Refusal>; 3],
 ) {
@@ -386,7 +353,8 @@ pub(crate) fn advance(
                     continue;
                 }
                 if ready_to_board(world, units, i, carrier, rules) {
-                    start_boarding(&mut units[i], carrier);
+                    let host = Host::Carrier(carrier);
+                    crate::hold::admit(world, units, i, host, windows, rules, refusals);
                 } else {
                     // The destination is the carrier centre; movement stops at
                     // the same hull envelope used by hold admission.
@@ -452,7 +420,8 @@ pub(crate) fn advance(
                             gesture,
                         });
                         if near {
-                            start_boarding(squad, carrier_id);
+                            let host = Host::Carrier(carrier_id);
+                            crate::hold::admit(world, units, k, host, windows, rules, refusals);
                         }
                     }
                     units[i].orders.pop_front();

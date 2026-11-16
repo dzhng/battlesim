@@ -72,9 +72,10 @@ fn battle(units: Value, seed: u64) -> Battle {
 }
 
 fn garrison(units: &[u32]) -> Order {
-    Order::Garrison {
+    Order::OccupyBuilding {
         units: units.iter().map(|&u| UnitId(u)).collect(),
         building: BUILDING,
+        gesture: 0,
     }
 }
 
@@ -179,53 +180,7 @@ fn full_building(seed: u64) -> (Battle, Commander) {
 mod occupy;
 
 #[test]
-fn a_building_takes_one_squad_and_a_second_is_refused_until_it_leaves() {
-    let mut b = battle(west_squads(&["test_rifle", "test_recon"]), 1);
-    let mut c = Commander::new();
-    // An order naming two squads is refused whole: nobody moves.
-    assert_eq!(
-        c.send(&mut b, Side::Blue, garrison(&[0, 1]), false),
-        Some(OrderError::OneSquadPerBuilding)
-    );
-    run(&mut b, 5);
-    assert!((0..2).all(|u| own(&b, Side::Blue, u).unwrap().goal.is_none()));
-    // A second squad ordered in the same tick is refused, as is one ordered
-    // while the first walks in, once it is inside, queued or not.
-    c.ok(&mut b, Side::Blue, garrison(&[0]));
-    assert_eq!(
-        c.send(&mut b, Side::Blue, garrison(&[1]), false),
-        Some(OrderError::BuildingOccupied),
-        "ordered in the same tick"
-    );
-    b.step();
-    assert_eq!(
-        c.send(&mut b, Side::Blue, garrison(&[1]), false),
-        Some(OrderError::BuildingOccupied),
-        "the first squad is on its way in"
-    );
-    until(&mut b, 1200, "the first squad inside", |b| inside(b, 0));
-    for queued in [false, true] {
-        assert_eq!(
-            c.send(&mut b, Side::Blue, garrison(&[1]), queued),
-            Some(OrderError::BuildingOccupied)
-        );
-    }
-    assert_eq!(phase(&b, Side::Blue, 1), None);
-    // Leaving frees the building, once the squad is out.
-    c.ok(&mut b, Side::Blue, exit(&[0]));
-    run(&mut b, 2);
-    assert_eq!(phase(&b, Side::Blue, 0), Some(HoldPhase::Exiting));
-    assert_eq!(
-        c.send(&mut b, Side::Blue, garrison(&[1]), false),
-        Some(OrderError::BuildingOccupied),
-        "still leaving"
-    );
-    until(&mut b, 200, "the first squad out", |b| {
-        b.unit(UnitId(0)).unwrap().hold.is_none()
-    });
-    c.ok(&mut b, Side::Blue, garrison(&[1]));
-    until(&mut b, 1200, "the second squad inside", |b| inside(b, 1));
-    // Non-infantry and non-buildings are refused.
+fn a_building_order_refuses_vehicles_and_bodies_that_are_no_building() {
     let mut v = battle(
         json!([{ "side": "blue", "kind": "test_tank", "position": [350, 300] }]),
         1,
@@ -246,9 +201,10 @@ fn a_building_takes_one_squad_and_a_second_is_refused_until_it_leaves() {
         cw.send(
             &mut w,
             Side::Blue,
-            Order::Garrison {
+            Order::OccupyBuilding {
                 units: vec![UnitId(0)],
-                building: 1
+                building: 1,
+                gesture: 0,
             },
             false
         ),
@@ -257,17 +213,10 @@ fn a_building_takes_one_squad_and_a_second_is_refused_until_it_leaves() {
 }
 
 #[test]
-fn a_squad_larger_than_the_building_is_refused_and_a_smaller_one_enters_whole() {
-    // Buildings that take six: the rifle squad's eight are refused, the
-    // scouts' four enter, every one of them at a slot.
+fn a_squad_smaller_than_the_building_enters_whole_each_soldier_at_a_slot() {
+    // A building that takes six: the scouts' four enter, every one at a slot.
     let mut b = battle_with_capacity(west_squads(&["test_rifle", "test_recon"]), 1, 6);
     let mut c = Commander::new();
-    assert_eq!(
-        c.send(&mut b, Side::Blue, garrison(&[0]), false),
-        Some(OrderError::CapacityFull)
-    );
-    run(&mut b, 5);
-    assert!(own(&b, Side::Blue, 0).unwrap().goal.is_none());
     c.ok(&mut b, Side::Blue, garrison(&[1]));
     until(&mut b, 1200, "the scouts inside", |b| inside(b, 1));
     let g = b
@@ -284,9 +233,8 @@ fn a_squad_larger_than_the_building_is_refused_and_a_smaller_one_enters_whole() 
 
 #[test]
 fn a_squad_that_finds_an_enemy_squad_inside_gives_up_its_order() {
-    // Neither side knows the other's orders at the command: blue's order is
-    // accepted, and at the end of its entry timer blue finds red inside. The
-    // order lapses and blue stands where it is; it never waits for room.
+    // Blue's order is accepted; when blue would step in it finds red inside.
+    // The order lapses silently where blue stands; it never waits for room.
     let mut b = battle(
         json!([
             { "side": "blue", "kind": "test_rifle", "position": [350.0, 300.0], "engagement": "return_fire_only" },
@@ -298,11 +246,11 @@ fn a_squad_that_finds_an_enemy_squad_inside_gives_up_its_order() {
     c.ok(&mut b, Side::Red, garrison(&[1]));
     until(&mut b, 1200, "red inside", |b| inside(b, 1));
     c.ok(&mut b, Side::Blue, garrison(&[0]));
-    until(&mut b, 1500, "blue entering", |b| {
-        phase(b, Side::Blue, 0) == Some(HoldPhase::Entering)
-    });
-    until(&mut b, 600, "blue's order lapsed", |b| {
-        phase(b, Side::Blue, 0).is_none()
+    run(&mut b, 1);
+    until(&mut b, 1500, "blue's order lapsed", |b| {
+        assert_eq!(phase(b, Side::Blue, 0), None, "blue stepped in");
+        assert!(b.observe(Side::Blue).refusals.is_empty(), "blue was told");
+        b.unit(UnitId(0)).unwrap().orders.is_empty()
     });
     let u = own(&b, Side::Blue, 0).unwrap();
     assert!(u.goal.is_none() && u.queue.is_empty());
@@ -375,7 +323,8 @@ fn occupants_publish_interior_bodies_at_distinct_window_slots() {
         for (k, q) in positions.iter().enumerate() {
             let slot = g.seats[k].unwrap();
             assert!(seen.insert(slot), "slot {slot} held twice");
-            *per_facade.entry(g.slots[slot].slot.facade).or_default() += 1;
+            let facade = b.windows().seat(u, k).unwrap().slot.facade;
+            *per_facade.entry(facade).or_default() += 1;
             // Just outside the facade, never inside the shell.
             assert!((outside_by(&p, q.xy()) - standoff).abs() < 1e-9, "{q:?}");
         }
@@ -556,16 +505,8 @@ fn only_soldiers_at_facing_windows_fire_and_free_facing_slots_fill() {
             }
         }
     }
-    let north_slots = b
-        .unit(UnitId(0))
-        .unwrap()
-        .hold
-        .as_ref()
-        .unwrap()
-        .building()
-        .unwrap()
-        .slots
-        .iter()
+    let held = sim::garrison::garrisoned_in(b.unit(UnitId(0)).unwrap()).unwrap();
+    let north_slots = (b.windows().plan(held).iter())
         .filter(|s| s.slot.facade == 1)
         .count();
     assert_eq!(
@@ -1113,8 +1054,8 @@ fn survivors_sent_past_the_ruin_walk_round_it_and_arrive() {
     // centroid into another point inside the blocked footprint.
     let radius = num("physics", "soldier_radius_m");
     let goal = v2(from.x, centre.y - FELLED_HALF[1] - radius - 1.0);
-    // Open ground 10 m past the far wall gets its marker too: admission
-    // rehearses the walk to its end. (Live, the fire from the north cuts
+    // Open ground 10 m past the far wall gets its marker too: its side's
+    // grid reaches it. (Live, the fire from the north cuts
     // this squad down on the longer way round, so only the nearer order is
     // walked below.)
     let beyond = goal - v2(0.0, 10.0);
@@ -1221,12 +1162,9 @@ fn occupants_see_only_from_unit_count_and_are_seen_only_there() {
     until(&mut b, 1200, "inside", |b| inside(b, 0));
     run(&mut b, 3);
     let u = b.unit(UnitId(0)).unwrap();
-    let g = u.hold.as_ref().unwrap().building().unwrap();
-    let facades: BTreeSet<u8> = g
-        .seats
-        .iter()
-        .flatten()
-        .map(|&s| g.slots[s].slot.facade)
+    let facades: BTreeSet<u8> = (0..u.members.len())
+        .filter_map(|k| b.windows().seat(u, k))
+        .map(|s| s.slot.facade)
         .collect();
     assert!(
         !facades.contains(&3),
@@ -1399,8 +1337,7 @@ fn garrison_orders_replay_every_tick_exactly() {
 /// The facade (0 east, 1 north, 2 west, 3 south) member `k` of squad `id`
 /// holds a window on, while inside.
 fn facade_of(b: &Battle, id: u32, k: usize) -> Option<u8> {
-    let g = b.unit(UnitId(id))?.hold.as_ref()?.building()?.clone();
-    g.seats[k].map(|s| g.slots[s].slot.facade)
+    Some(b.windows().seat(b.unit(UnitId(id))?, k)?.slot.facade)
 }
 
 /// Ticks from the fixture's `garrison` section.
@@ -1449,9 +1386,8 @@ fn a_grounded_launcher_leaves_its_occupied_window_at_the_declared_bore() {
     let u = b.unit(UnitId(0)).unwrap();
     let m = &u.mounts[1];
     let soldier = u.members.iter().find(|s| Some(s.id) == m.operator).unwrap();
-    let g = u.hold.as_ref().unwrap().building().unwrap();
     let member = u.members.iter().position(|s| s.id == soldier.id).unwrap();
-    let seat = g.slots[g.seats[member].unwrap()].position;
+    let seat = b.windows().seat(u, member).unwrap().position;
     assert!(
         (seat - soldier.position).length() < 1e-9,
         "operator occupies the firing window"
@@ -1500,16 +1436,11 @@ fn an_atgm_gunner_trades_windows_with_a_rifleman_to_face_armour() {
         Some(0),
         "the rifleman at the gunner's"
     );
-    let g = b
-        .unit(UnitId(0))
+    let u = b.unit(UnitId(0)).unwrap();
+    let moved = b
+        .windows()
+        .seat(u, gunner)
         .unwrap()
-        .hold
-        .as_ref()
-        .unwrap()
-        .building()
-        .unwrap()
-        .clone();
-    let moved = g.slots[g.seats[gunner].unwrap()]
         .changed
         .expect("he changed windows");
     assert_eq!(moved, b.tick());
@@ -1517,7 +1448,8 @@ fn an_atgm_gunner_trades_windows_with_a_rifleman_to_face_armour() {
     let r: contract::scenario::Rules = serde_json::from_value(rules()).unwrap();
     let swap = garrison_ticks("window_swap_s");
     let changing = |b: &Battle, k: usize, tick: u64| {
-        sim::garrison::changing_window(b.unit(UnitId(0)).unwrap(), k, &r, tick)
+        b.windows()
+            .changing_window(b.unit(UnitId(0)).unwrap(), k, &r, tick)
     };
     for k in [gunner, rifleman] {
         assert!(changing(&b, k, moved + swap - 1) && !changing(&b, k, moved + swap));
@@ -1850,9 +1782,10 @@ fn an_unseen_collapse_cannot_change_a_garrison_order_until_discovered() {
         player: None,
         seq: 1,
         queued: false,
-        order: Order::Garrison {
+        order: Order::OccupyBuilding {
             units: vec![UnitId(0)],
             building: BUILDING,
+            gesture: 0,
         },
     };
     assert_eq!(calm.accept(command.clone()).error, None);

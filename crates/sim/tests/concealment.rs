@@ -56,7 +56,15 @@ fn reach(b: &Battle) -> f64 {
         .step_by(20)
         .filter(|&distance| {
             units[0].position = sim::math::v3(at.x + distance as f64, at.y, 0.0);
-            !sim::sensing::evaluate(b.world(), &units, b.rules(), Side::Blue, |_| true).is_empty()
+            !sim::sensing::evaluate(
+                b.world(),
+                &units,
+                b.windows(),
+                b.rules(),
+                Side::Blue,
+                |_| true,
+            )
+            .is_empty()
         })
         .max()
         .expect("identified up close") as f64
@@ -188,9 +196,10 @@ fn garrisoned(concealment: f64) -> Battle {
         player: None,
         seq: 1,
         queued: false,
-        order: Order::Garrison {
+        order: Order::OccupyBuilding {
             units: vec![UnitId(1)],
             building: 0,
+            gesture: 0,
         },
     });
     assert_eq!(ack.error, None);

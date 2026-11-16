@@ -243,6 +243,9 @@ export async function run(ctx) {
   const together = pair;
   await aim(page, centroid(together), { distance: Math.max(220, 3 * dist(...pair)) });
   await presented(page);
+  // Projection reads the camera of the last drawn frame; a paused battle
+  // already presented draws none on its own, so draw one at the new aim.
+  await lab(page, () => window.__lab.frame());
   const box = await lab(
     page,
     (ids) =>

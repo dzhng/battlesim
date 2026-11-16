@@ -15,7 +15,7 @@ use std::collections::{BTreeSet, BinaryHeap};
 
 use contract::map::MoverClass;
 
-use crate::math::{v2, wrap_angle, Obb2, V2};
+use crate::math::{wrap_angle, Obb2, V2};
 use crate::units::Unit;
 use crate::world::WorldGeometry;
 
@@ -62,7 +62,8 @@ pub struct Shunt {
     pub legs: Vec<Leg>,
     /// Metres of the first leg driven.
     pub driven_m: f64,
-    /// Where it stood when it worked the shunt out: its route runs on from there.
+    /// Where its route runs on from: where it stood when it worked the shunt
+    /// out, or when it took up a new route since.
     pub from: V2,
     /// When it worked the shunt out.
     pub tick: u64,
@@ -96,8 +97,8 @@ impl Way {
     fn new(from: V2, route: &[V2], reach: f64) -> Self {
         let points: Vec<V2> = std::iter::once(from).chain(route.iter().copied()).collect();
         let total: f64 = points.windows(2).map(|w| (w[1] - w[0]).length()).sum();
-        // Past the waypoint it could not turn to; one far off it may
-        // come round to anywhere on its way to.
+        // Past the waypoint it could not turn to; short of one far off, it
+        // may rejoin anywhere along the way to it.
         let first = (route[0] - from).length();
         let need = if first + ON_ROUTE_M <= reach {
             first + ON_ROUTE_M
@@ -138,28 +139,33 @@ impl Way {
     }
 }
 
-/// What stops a hull in the search: the bodies it cannot shove and the
-/// vehicles where they stand (none it already touches: it may always draw
-/// away from those), and ground it cannot cross.
+/// What stops a hull in the search: the bodies it cannot shove (none it
+/// already touches: it may always draw away from those), the vehicles where
+/// they stand, kept clear of as traffic keeps clear of them, and ground it
+/// cannot cross.
 struct Room<'a> {
     world: &'a WorldGeometry,
     solids: Vec<(Obb2, f64)>,
+    traffic: Vec<Obb2>,
     half: V2,
     corners: bool,
 }
 
 impl Room<'_> {
-    fn free(&self, at: V2, yaw: f64) -> bool {
-        let hull = Obb2 {
-            center: at,
-            yaw,
-            half: self.half,
-        };
+    /// Whether the hull may step from `before` to `after`: into no body,
+    /// and by traffic's own rule past every vehicle.
+    fn free(&self, before: Obb2, after: Obb2) -> bool {
         let reach = self.half.length();
+        let near =
+            |c: V2, r: f64| (c - after.center).length() < reach + r + super::TRAFFIC_MARGIN_M;
         !self
             .solids
             .iter()
-            .any(|(body, r)| (body.center - at).length() < reach + r && hull.overlaps(body))
+            .any(|(body, r)| near(body.center, *r) && after.overlaps(body))
+            && !self.traffic.iter().any(|other| {
+                near(other.center, other.half.length())
+                    && super::hull_conflict(before, after, *other)
+            })
     }
 
     /// Whether the hull stands on ground it can cross: its corners too,
@@ -184,12 +190,18 @@ impl Room<'_> {
     fn arc(&self, at: V2, yaw: f64, gear: f64, turn: f64) -> Option<(V2, f64)> {
         let pieces = (ARC_M / SAMPLE_M).ceil() as usize;
         let piece = ARC_M / pieces as f64;
+        let hull = |center, yaw| Obb2 {
+            center,
+            yaw,
+            half: self.half,
+        };
         let (mut at, mut yaw) = (at, yaw);
         for _ in 0..pieces {
+            let before = hull(at, yaw);
             let dyaw = turn * piece;
             at = at + drive::dir(drive::travel(yaw, gear) + dyaw / 2.0) * piece;
             yaw += dyaw;
-            if !self.free(at, yaw) {
+            if !self.free(before, hull(at, yaw)) {
                 return None;
             }
         }
@@ -217,22 +229,19 @@ pub fn search(
     held: &[Obb2],
     tick: u64,
 ) -> Shunt {
-    let none = |from| Shunt {
+    let here = unit.position.xy();
+    let none = || Shunt {
         legs: Vec::new(),
         driven_m: 0.0,
-        from,
+        from: here,
         tick,
     };
-    let here = unit.position.xy();
-    let (Some(drive), Some(route), Some(hull)) = (
-        unit.ground()
-            .drive
-            .filter(|d| !d.tracked && d.radius_m > 0.0),
-        unit.route.as_deref().filter(|r| !r.is_empty()),
-        unit.ground_footprint(),
-    ) else {
-        return none(here);
-    };
+    let drive = unit.ground().drive.expect("a vehicle has a drive");
+    let route = unit
+        .route
+        .as_deref()
+        .expect("a vehicle shunts onto its route");
+    let hull = unit.ground_footprint().expect("a vehicle has a hull");
     let order = drive::gear(unit);
     let radius = drive.radius_m;
     let reach = REACH_TURNS * (radius + hull.half.x);
@@ -246,30 +255,25 @@ pub fn search(
         .filter(|p| p.blocks(MoverClass::Vehicle) && !push.pushes(p.body.weight_class))
         .map(|p| p.footprint())
         .chain(held.iter().copied())
-        .chain(
-            // Kept as far from as traffic keeps.
-            traffic
-                .iter()
-                .enumerate()
-                .filter(|&(id, _)| id != unit.id.0 as usize)
-                .filter_map(|(_, h)| *h)
-                .filter(|h| (h.center - here).length() < around + h.half.length())
-                .map(|h| Obb2 {
-                    half: h.half + v2(super::TRAFFIC_MARGIN_M, super::TRAFFIC_MARGIN_M),
-                    ..h
-                }),
-        )
         .filter(|b| !touching(b))
         .map(|b| (b, b.half.length()))
+        .collect();
+    let traffic = traffic
+        .iter()
+        .enumerate()
+        .filter(|&(id, _)| id != unit.id.0 as usize)
+        .filter_map(|(_, h)| *h)
+        .filter(|h| (h.center - here).length() < around + h.half.length())
         .collect();
     let mut room = Room {
         world,
         solids,
+        traffic,
         half: hull.half,
         corners: true,
     };
     room.corners = room.on_ground(here, unit.yaw);
-    let backing = 1.0 / drive.reverse_speed_factor.max(0.05);
+    let backing = 1.0 / drive.reverse_speed_factor;
     // Where the follower carries on from: the route's end just ahead, or
     // on the route facing along it with a hull's length clear ahead.
     let ahead = (2.0 * hull.half.x / ARC_M).ceil() as usize;
@@ -315,7 +319,7 @@ pub fn search(
         )
     };
     let moving = unit.drive_speed_mps;
-    let start_gear = if moving.abs() > 0.1 {
+    let start_gear = if moving.abs() > super::ROLLING_MPS {
         moving.signum()
     } else {
         0.0
@@ -373,7 +377,7 @@ pub fn search(
         }
     }
     let Some(mut i) = found else {
-        return none(here);
+        return none();
     };
     let mut arcs = Vec::new();
     while i != 0 {

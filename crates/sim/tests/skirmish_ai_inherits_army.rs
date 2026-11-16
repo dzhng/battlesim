@@ -227,7 +227,6 @@ fn order_units(order: &Order) -> Vec<UnitId> {
         | Order::SetEngagement { units, .. }
         | Order::SetAfterburner { units, .. }
         | Order::SetDeployment { units, .. }
-        | Order::Garrison { units, .. }
         | Order::OccupyBuilding { units, .. }
         | Order::ExitBuilding { units }
         | Order::Board { units, .. }

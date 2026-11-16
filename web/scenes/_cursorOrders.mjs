@@ -217,6 +217,11 @@ export async function garrisonCursor(ctx) {
       resolution: window.__lab.route.pointerResolution(),
     })),
   );
+  ctx.check(
+    "the building the garrison badge offers is outlined",
+    (await lab(page, () => window.__lab.route.garrisonTarget())) ===
+      (await lab(page, () => window.__lab.route.pointerIntent().building)),
+  );
   await capture(ctx, page, "garrison-hover", p);
   await infoCardCursor(ctx, page);
   await onBuilding(page, [360, 250], 8);
@@ -224,6 +229,10 @@ export async function garrisonCursor(ctx) {
   // Recompute without a pointer event, while paused.
   await select(page, []);
   await expects(page, "default");
+  ctx.check(
+    "with nothing to garrison it, the building is not outlined",
+    (await lab(page, () => window.__lab.route.garrisonTarget())) === null,
+  );
   await select(page, [0, 2]);
   await expects(page, "garrison");
   await page.keyboard.down("Control");
@@ -259,10 +268,16 @@ export async function garrisonCursor(ctx) {
 
   // A real refused acknowledgement beside the composite cursor.
   const rejected = await lab(page, () =>
-    window.__lab.route.command({ kind: "garrison", units: [0, 2], building: 0 }),
+    window.__lab.route.command({
+      kind: "move",
+      units: [0, 2],
+      gesture: 8401,
+      goal: [-50, -50],
+      route: "shortest",
+    }),
   );
   ctx.check(
-    "direct multi-squad entry still refuses through native admission",
+    "a move off the map refuses through native admission",
     !!rejected.error,
     JSON.stringify(rejected),
   );
@@ -270,7 +285,7 @@ export async function garrisonCursor(ctx) {
   await capture(ctx, page, "refused-callout", p, true);
 
   await page.getByTestId("rejected-order").waitFor({ state: "hidden" });
-  // Hold, drag facing, then retain released marks across actual worker latency.
+  // Hold and drag, then retain released marks across actual worker latency.
   await page.evaluate(() => {
     window.__delayCommandAcks = 800;
   });
@@ -286,7 +301,7 @@ export async function garrisonCursor(ctx) {
   await page.waitForTimeout(100);
   const released = await lab(page, () => window.__lab.route.movePreview());
   ctx.check(
-    "released facing preview remains visible until delayed acknowledgement",
+    "released entry marks remain visible until delayed acknowledgement",
     released.length > 0 && JSON.stringify(released) === JSON.stringify(held.marks),
     JSON.stringify(released),
   );
@@ -297,11 +312,12 @@ export async function garrisonCursor(ctx) {
     window.__lab.route.acks().find(({ order }) => order.kind === "occupy_building"),
   );
   ctx.check(
-    "building release sends the captured combined selection and facing",
+    "building release sends the captured selection, one entry per squad",
     !accepted.ack.error &&
       accepted.order.units.join() === "0,2" &&
       accepted.order.building === 0 &&
-      Math.abs(accepted.order.facing - held.intent.facing) < 1e-6 &&
+      accepted.order.facing === undefined &&
+      accepted.ack.building.entries.map((e) => e.unit).join() === "0,2" &&
       !accepted.queued,
     JSON.stringify(accepted),
   );
@@ -309,26 +325,16 @@ export async function garrisonCursor(ctx) {
   await expects(page, "garrison");
   await capture(ctx, page, "accepted-building", p);
   await advance(page, accepted.ack.applied_tick - (await obs(page)).tick);
-  const arrived = await until(
-    page,
-    (o) =>
-      o.own.some((u) => u.hold?.phase === "inside") &&
-      accepted.ack.building.destinations
-        .filter((d) => d.placed)
-        .every((d) => {
-          const u = o.own.find((u) => u.id === d.unit);
-          return (
-            u.route.length === 0 &&
-            Math.hypot(u.position[0] - d.goal[0], u.position[1] - d.goal[1]) < 1
-          );
-        }),
-    900,
-  );
+  // Every squad named walks to the house and steps in: the lab's house has
+  // seats for both (the garrison scene shows one arriving to no room).
+  const inside = (o) =>
+    accepted.ack.building.entries.every(
+      (e) => o.own.find((u) => u.id === e.unit)?.hold?.phase === "inside",
+    );
+  const arrived = await until(page, inside, 1500);
   ctx.check(
-    "the combined order actually enters one squad and gathers its companion",
-    !!arrived &&
-      arrived.own.filter((u) => u.hold?.phase === "inside").length === 1 &&
-      arrived.own.find((u) => u.id === accepted.ack.building.destinations[0]?.unit)?.hold == null,
+    "every squad the order names walks to the house and steps in",
+    !!arrived,
     JSON.stringify(
       arrived?.own.map((u) => ({
         id: u.id,
@@ -425,7 +431,7 @@ export async function movementCursor(ctx) {
   await capture(ctx, page, "mixed-building-hover", p);
   await page.mouse.down({ button: "right" });
   await page.waitForFunction(() =>
-    window.__lab.route.movePreview().some((mark) => mark.unit === 0),
+    window.__lab.route.movePreview().some((mark) => mark.unit === 2),
   );
   await capture(ctx, page, "mixed-building-held", p);
   await page.mouse.up({ button: "right" });
@@ -436,42 +442,29 @@ export async function movementCursor(ctx) {
     window.__lab.route.acks().find(({ order }) => order.kind === "occupy_building"),
   );
   ctx.check(
-    "mixed squad and vehicle pointer order admits entry and gathering",
+    "a mixed selection's building order goes to its squad alone",
     !accepted.ack.error &&
-      accepted.order.units.join() === "0,2" &&
-      accepted.ack.building.entrant?.unit === 2 &&
-      accepted.ack.building.destinations.some((mark) => mark.unit === 0 && mark.placed),
+      accepted.order.units.join() === "2" &&
+      accepted.ack.building.entries.map((e) => e.unit).join() === "2",
     JSON.stringify(accepted),
   );
   await capture(ctx, page, "mixed-building-accepted", p);
-  const tankGoal = accepted.ack.building.destinations.find((mark) => mark.unit === 0)?.goal;
   const arrived = await until(
     page,
-    (o) =>
-      o.own.find((u) => u.id === 2)?.hold?.phase === "inside" &&
-      o.own.find((u) => u.id === 0)?.route.length === 0 &&
-      Math.hypot(
-        ...o.own
-          .find((u) => u.id === 0)
-          .position.slice(0, 2)
-          .map((v, i) => v - tankGoal[i]),
-      ) < 1,
+    (o) => o.own.find((u) => u.id === 2)?.hold?.phase === "inside",
     1600,
   );
   ctx.check(
-    "vehicle actually gathers while the selected squad enters",
+    "the squad enters while the vehicle stays put",
     !!arrived,
     JSON.stringify(arrived?.own.filter((u) => [0, 2].includes(u.id))),
   );
   await capture(ctx, page, "mixed-building-arrived", p);
-  // A fresh own entry claim changes availability immediately, even paused.
+  // A held house still offers entry: room is decided on arrival.
   await select(page, [3]);
   await page.mouse.move(...p);
-  await expects(page, "default");
-  ctx.check(
-    "known occupied building falls back to the plain movement cursor",
-    (await action(page)) === "default",
-  );
+  await expects(page, "garrison");
+  ctx.check("a held building still shows the entry badge", (await action(page)) === "garrison");
   await capture(ctx, page, "building-fallback", p);
   await page.close();
 }
@@ -672,15 +665,29 @@ export async function queuedBuildingCursor(ctx) {
   );
   await advance(page, accepted.ack.applied_tick - (await obs(page)).tick);
   const after = await obs(page);
+  await capture(ctx, page, "queued-building", p);
+  // Each squad finishes its move, then heads for the approach planned from
+  // that move's end.
+  const entries = accepted.ack.building?.entries ?? [];
+  const approaching = (o, e) => {
+    const u = o.own.find((u) => u.id === e.unit);
+    return (
+      !!u.hold ||
+      (!!u.goal && Math.hypot(u.goal[0] - e.approach[0], u.goal[1] - e.approach[1]) < 0.01)
+    );
+  };
+  const entering = await until(page, (o) => entries.every((e) => approaching(o, e)), 1200);
   ctx.check(
-    "Shift captured at press queues entry and gathering behind the current moves",
+    "Shift captured at press queues each squad's entry behind its current move",
     !accepted.ack.error &&
       accepted.label.endsWith("(queued)") &&
+      entries.map((e) => e.unit).join() === "0,2" &&
       [0, 2].every((id) => {
         const a = after.own.find((u) => u.id === id),
           b = before.own.find((u) => u.id === id);
-        return JSON.stringify(a.goal) === JSON.stringify(b.goal) && a.queue.length > 0;
-      }),
+        return JSON.stringify(a.goal) === JSON.stringify(b.goal);
+      }) &&
+      !!entering,
     JSON.stringify({
       accepted,
       units: after.own
@@ -688,7 +695,6 @@ export async function queuedBuildingCursor(ctx) {
         .map((u) => ({ id: u.id, goal: u.goal, queue: u.queue, hold: u.hold })),
     }),
   );
-  await capture(ctx, page, "queued-building", p);
   await page.close();
 }
 
@@ -740,64 +746,38 @@ export async function attackCursor(ctx) {
 }
 
 export async function partialBuildingCursor(ctx) {
-  for (const viewport of [
-    { width: 1280, height: 800 },
-    { width: 430, height: 800 },
-  ]) {
-    const page = await openBattle(ctx, {
-      url: `${base(ctx)}/labs/garrison?cursor=1`,
-      tick: 40,
-      viewport,
-    });
-    await select(page, [0, 1]);
-    const p = await onBuilding(page, [360, 250], 8);
-    await page.mouse.click(...p, { button: "right" });
-    await page.waitForFunction(() =>
-      window.__lab.route.acks().some(({ order }) => order.kind === "occupy_building"),
-    );
-    const accepted = await lab(page, () =>
-      window.__lab.route.acks().find(({ order }) => order.kind === "occupy_building"),
-    );
-    ctx.check(
-      "partial entry succeeds while the isolated vehicle holds",
-      !accepted.ack.error &&
-        accepted.ack.building.entrant?.unit === 1 &&
-        accepted.ack.building.destinations.some((d) => d.unit === 0 && !d.placed),
-      JSON.stringify(accepted),
-    );
-    await page.getByTestId("rejected-order").waitFor();
-    await capture(
-      ctx,
-      page,
-      viewport.width === 430 ? "partial-callout-narrow" : "partial-callout",
-      p,
-      true,
-    );
-    ctx.check(
-      "partial refusal stays fully visible and clear of the composite cursor",
-      await calloutFits(page, p),
-    );
-    const arrived = await until(
-      page,
-      (o) => o.own.find((u) => u.id === 1)?.hold?.phase === "inside",
-      600,
-    );
-    const heldVehicle = arrived?.own.find((u) => u.id === 0);
-    ctx.check(
-      "successful partial entry applies while the failed vehicle holds",
-      !!arrived &&
-        heldVehicle.goal === null &&
-        heldVehicle.route.length === 0 &&
-        Math.hypot(heldVehicle.position[0] - 160, heldVehicle.position[1] - 160) < 0.01,
-    );
-    await capture(
-      ctx,
-      page,
-      viewport.width === 430 ? "partial-arrived-narrow" : "partial-arrived",
-      p,
-    );
-    await page.close();
-  }
+  const page = await openBattle(ctx, { url: `${base(ctx)}/labs/garrison?cursor=1`, tick: 40 });
+  await select(page, [0, 1]);
+  const p = await onBuilding(page, [360, 250], 8);
+  await page.mouse.click(...p, { button: "right" });
+  await page.waitForFunction(() =>
+    window.__lab.route.acks().some(({ order }) => order.kind === "occupy_building"),
+  );
+  const accepted = await lab(page, () =>
+    window.__lab.route.acks().find(({ order }) => order.kind === "occupy_building"),
+  );
+  ctx.check(
+    "a vehicle and a squad on a building: the order goes to the squad alone",
+    !accepted.ack.error &&
+      accepted.order.units.join() === "1" &&
+      accepted.ack.building.entries.map((e) => e.unit).join() === "1",
+    JSON.stringify(accepted),
+  );
+  const arrived = await until(
+    page,
+    (o) => o.own.find((u) => u.id === 1)?.hold?.phase === "inside",
+    600,
+  );
+  const vehicle = arrived?.own.find((u) => u.id === 0);
+  ctx.check(
+    "the squad enters while the vehicle holds where it stands",
+    !!arrived &&
+      vehicle.goal === null &&
+      vehicle.route.length === 0 &&
+      Math.hypot(vehicle.position[0] - 160, vehicle.position[1] - 160) < 0.01,
+  );
+  await capture(ctx, page, "partial-arrived", p);
+  await page.close();
 }
 
 /** The refusal callout lies inside the viewport and clear of the cursor the
@@ -825,7 +805,13 @@ export async function narrowRefusal(ctx) {
   await select(page, [0, 1]);
   const p = await onBuilding(page, [360, 250], 8);
   await lab(page, () =>
-    window.__lab.route.command({ kind: "garrison", units: [1, 2], building: 0 }),
+    window.__lab.route.command({
+      kind: "move",
+      units: [1, 2],
+      gesture: 8403,
+      goal: [-50, -50],
+      route: "shortest",
+    }),
   );
   await page.getByTestId("rejected-order").waitFor();
   await capture(ctx, page, "refused-callout-narrow", p, true);
