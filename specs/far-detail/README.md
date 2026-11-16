@@ -1,6 +1,6 @@
 # Far detail
 
-**Status:** slice 01 is on the feature branch; 00 and 02 are in progress.
+**Status:** slices 01 and 02 are on the feature branch; 00 is measuring.
 **Updated:** 2026-11-15.
 
 In the wide view the game draws about 100,000 small props, most of them only a
@@ -20,9 +20,11 @@ tested only where it could fit: across instances and on terrain.
 
 ## Next Agent Prompt
 
-You are implementing `specs/far-detail/` on branch `t3/38678a68`. Slice 01 is
-merged there. Slices 00 and 02 are being built in their own checkouts. Nothing
-is on `staging` yet, and nothing goes there before slice 00 says go.
+You are implementing `specs/far-detail/` on branch `t3/38678a68`. Slices 01
+and 02 are merged there. Slice 02 still owes its cross-language test (a bundle
+baked by the TypeScript bake, decoded and drawn by Rust) and its frame-baseline
+pixel check. Slice 00 is measuring in its own checkout. Nothing is on `staging`
+yet, and nothing goes there before slice 00 says go.
 
 1. Read this README and [the decisions](decisions.md), then
    [`renderer`](../../.agents/skills/renderer/SKILL.md) and
@@ -86,7 +88,8 @@ it becomes.
    casts with its far mesh. A prop outside the view still casts with tier 3.
    Which props cast, and into which cascades, does not change at all.
 4. **Threshold (`fixtures/presentation.json`).** `presentation.models` gains a
-   required `far_px`, in the same projected-height pixels as `lod_px`. Loading
+   required `far_px`, in the same pixels as `lod_px`: a model's largest extent
+   as projected on screen. Loading
    refuses it unless `0 < far_px < lod_px[2]`, and now also refuses `lod_px`
    that does not fall and stay positive. There is no off value and no setting.
 5. **Drawn-instance counts (renderer ↔ browser capture ↔ native).** Today the

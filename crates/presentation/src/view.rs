@@ -48,7 +48,8 @@ pub struct View {
 }
 
 pub const CULLED: i32 = -1;
-/// The far mesh: a fifth mesh some static props carry, coarser than tier 3.
+/// The far mesh: a fifth mesh some static props carry, coarser than tier 3
+/// (`FAR_TIER` in `packages/scene-assets/src/schema.ts`).
 pub const FAR: i32 = 4;
 pub const IMPOSTOR: i32 = 5;
 /// Mesh tiers every appearance carries, finest first (`TIER_COUNT`).

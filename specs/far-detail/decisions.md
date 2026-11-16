@@ -35,7 +35,7 @@ Where they split:
 | 7 | Bump the bundle format version? | No. A bundle already records each state's mesh count, and the Rust decoder reads any count. Widening what the validator allows is not a layout change, so no file without a far mesh changes. | a version bump and a full re-encode |
 | 8 | What does a tier-3 prop cast with? | Tier 3, as today. Only a prop drawn with its far mesh casts with it. In the wide view every small prop is far-drawn, so this keeps the saving there and changes no shadow at tactical range, which makes the first comparison a single variable. | "one coarser among what it carries" (tier 3 casts far): kept as a named, separately measured arm in slice 03 |
 | 9 | What does a prop outside the view cast with? | Tier 3, as today. Few props are outside the view at the wide hold, and a coarse shadow near a close camera would show. | far mesh for off-view casters |
-| 10 | Which size decides the far tier? | The projected height every tier already uses. One measure keeps one rule. | a conservative whole-bound projection for the far band: adopted only if a long, low kind fails where cars pass |
+| 10 | Which size decides the far tier? | The one every tier already uses. One measure keeps one rule. The plan first called it the model's height; slice 02 found it is the largest of the box's three extents (`world::bounds_size`), so a long, low prop is already judged by its length. | a second, separate measure for the far band |
 | 11 | The card's new number? | 5, next to the far mesh's 4. Every reader is Rust and uses the constant. | 15 (the top of the four-bit tier key) |
 | 12 | How does `view.rs` learn what an appearance carries? | One value (nothing, far mesh, or card) replacing the `impostor` flag, so "card and far mesh" cannot be written. | a second flag; a coarsest-tier number |
 | 13 | Where is the threshold? | Its own field, `presentation.models.far_px`. | a fourth `lod_px` entry, which tangles with the card's order |
@@ -85,3 +85,20 @@ Confirmed in slice 01: skinned, articulated and kit sources already refused a
 `_LOD4` mesh before this work; the new refusal is for trees, dressing and
 grass. The whole catalog, baked with the new code, matches every one of the
 940 committed runtime files.
+
+## From slice 02, 2026-11-15
+
+| # | Question | Decision and why | Verdict |
+| --- | --- | --- | --- |
+| 30 | What does presentation receive about a prop's art? | The raw mesh count of its first state (`Art.meshes`), from the decoded bytes. One Rust function turns a count into "carries a far mesh", so no client decides it. | sound |
+| 31 | Where does a prop remember what it carries? | On each placed model, set from its candidate. A parallel per-look list would have to be kept in step when looks are refitted. | sound |
+| 32 | What does the model lab hold a model at? | Its card when it shows one; otherwise what its mesh count says. A forced tier clamps to the meshes the art has. | sound |
+| 33 | The first `far_px`? | 4. Inert until art carries a far mesh. | provisional: slice 03 sets the shipped value from the zoom crops |
+| 34 | How was "the game does not change" proved? | A fresh browser count run from the branch, replayed through the base commit's presentation with each prop row cut back to four numbers: equal on all 699 counted frames, and the far slot sums to zero. Chosen over a two-build GPU session while slice 00 held the GPU. | sound for counts; the pixel check against the frame baselines is separate |
+| 35 | Which per-tier arrays widened? | The props' counts, as planned, and also the renderer's two non-building diagnostic arrays, which a prop's tier indexes. No reader checks their length. | sound |
+
+Found in slice 02, and older than this work: the native client's committed
+count run had been stale on `staging` since a publication-layout change, so
+its `counts` test already failed there. The one new recording fixes that and
+carries the five-number shape.
+

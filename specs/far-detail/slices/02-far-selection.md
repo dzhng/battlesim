@@ -22,8 +22,9 @@ pixels, counts and digests do not change.
   otherwise. Anything else takes tier 3.
 - `caster_tier` keeps today's answer for tiers 0 to 3 and returns `FAR` for
   `FAR`. `batch_caster` follows it.
-- The projected size is the one every tier already uses: the model's height in
-  pixels at its distance.
+- The projected size is the one every tier already uses: the model's largest
+  extent (`world::bounds_size`) in pixels at its distance. A long, low prop is
+  therefore judged by its length, which is the conservative reading.
 
 **Data.**
 
@@ -122,6 +123,3 @@ baselines, pixel for pixel.
 - "Tier-3 props should cast with the far mesh too": it saves more shadow work
   and changes shadows at tactical range. It is one line in `caster_tier`, and
   it is measured as its own named arm in slice 03 before it is adopted.
-- "Use the prop's longest side, not its height": a long low prop would then
-  switch later. Adopt it only if a kind's crop fails at the size where cars
-  pass.

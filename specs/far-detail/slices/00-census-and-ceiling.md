@@ -39,7 +39,7 @@ mesh in the finished feature too.
    is inside it.
 2. Write the census to `assets/census.md`: per appearance, instances in view at
    each tier, tier-3 triangles, view triangles, how many cast and into how many
-   cascades, and the projected height in pixels (5th, 50th and 95th centile) at
+   cascades, and the projected size in pixels (5th, 50th and 95th centile) at
    the wide hold. Rank by submitted triangles, view and cast together.
 3. Author far-class tier-3 meshes for the top one or two kinds. Parked cars
    are expected first.
