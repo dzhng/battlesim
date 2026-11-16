@@ -253,3 +253,63 @@ things the plan left open.
   approach. Its other findings (no ring-to-squad link, overlapping rings, no
   markers while walking, identical labels, the panel over a squad, hover
   feedback) predate this slice and belong to slices 06–07.
+
+## Slice 03
+
+- **Confirmed first:** commands apply, then `carriage::advance`, then
+  `hold::advance`, then movement; `Host::timing` is one timer for both
+  directions. A squad ordered back into the building it is leaving does *not*
+  turn back: an entry order is not "wants to stay", so it finishes stepping
+  out and walks in again through admission. Only an order that keeps it in
+  place (a Stop) cancels its exit, and the tests turn a leaver back that way.
+- **The relief test was already green when this slice began.** Squad B walks
+  150 m, long after A has gone, and slice 01 had deleted the companion
+  parking; the test is un-ignored as a guard. This slice's red-to-green proof
+  is the both-hosts test, red at its first command before the code.
+- **One function, `hold::admit`, starts every hold**, called from the building
+  path in `hold::advance` and both `carriage::advance` boarding sites; the end
+  check is `hold`'s `seated`. Both read `hold::Seats::of`. The building path
+  stops the squad's movement before admission whatever the outcome, so a
+  refused squad stands where it reached the building.
+- **"Another side's squad in the building" is any hold on it** (stepping in,
+  inside or stepping out) by a living squad of another side. Same-side squads
+  share; the give-up stays silent and pops the order.
+- **A building's total is its plan's length while a living squad holds it,
+  else `seats_for_state` of the standing building.** "First squad seated"
+  (which alone opens or replaces the plan) reads the same condition
+  (`garrison::held`, which `Windows::close_unheld` now also uses), so a plan
+  left by squads that died earlier in the tick never sets the total.
+- **Seating takes windows no living soldier of a squad inside or stepping out
+  holds**, round the facades in today's order. A first squad sees none taken,
+  so single-squad seating is byte-identical.
+- **Command answers.** `hold::refuse_oversized` refuses, one by one, a squad
+  whose living soldiers exceed the whole host: Board against its carrier,
+  Collect against the largest listed carrier, `OccupyBuilding` against the
+  building's `seats_for_state` as the side knows it. A refused squad keeps its
+  orders and gets no entry. An `OccupyBuilding` whose every squad is refused
+  has no whole-order error, as Board doesn't; `NoValidDestination` now means
+  no squad got an entry *and* none was refused. Board's duplicate removal
+  keeps the order given (no closest-first sort).
+- **The building end-of-timer failure publishes `CapacityFull`** (was silent),
+  and the old silent "more soldiers than windows" drop is that same check.
+- **Tests.** `a_building_takes_one_squad_and_a_second_is_refused_until_it_leaves`
+  was already gone (slice 01's contract cut). `squads_beyond_the_seats_are_refused_closest_first`
+  merged into `a_squad_boarding_a_carrier_another_squad_fills_finds_no_room`
+  (the command refuses nothing; the latecomer hears `CapacityFull` on
+  arrival; the first stays in). The building size refusal moved into the
+  both-hosts test, leaving `a_squad_smaller_than_the_building_enters_whole_each_soldier_at_a_slot`.
+  The enemy-inside test now asserts blue never steps in and hears nothing.
+  The both-hosts test turns leavers on the building only (the carrier shares
+  `Seats`, `admit` and `seated`); its carrier half lengthens `board_s` itself
+  so the third squad of an overflowing Collect arrives while the first two
+  still step in. Each claim was falsified once: start check counting leavers,
+  no end check, no start check, and seating over held windows each turn it
+  red at the matching step.
+- **Gates.** Against the branch head before this slice (bfe6b738cc),
+  `UNCHANGED_SINGLE_HOSTS` and `UNCHANGED_OTHER_SCENES` are identical.
+  `ARRIVAL_ADMISSION_BEFORE_AFTER` moved both contested runs: the garrison
+  lab first differs at tick 1231 (the
+  scouts, then the second rifle squad, now get in beside the first: the corner
+  shop's seats hold all three squads, so its "no room" demo needs slice 07's
+  reshaping); transport controls at tick 344 (the AT squad is refused when it
+  arrives instead of stepping in and failing at its end check 29 ticks later).
