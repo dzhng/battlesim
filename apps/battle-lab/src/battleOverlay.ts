@@ -56,6 +56,7 @@ import type { EntryLane } from "@web/battle/prepare/lanes";
 import {
   aboardCarrier,
   inBuilding,
+  type ContactView,
   type IdentifiedView,
   type ObservationView,
   type OwnUnitView,
@@ -344,23 +345,32 @@ export function orderView(
   };
 }
 
+/** What `attackAim` reads of the side's view: where it sees each enemy,
+ *  and where each contact's area lies. */
+export interface SeenTargets {
+  identified: readonly Pick<IdentifiedView, "id" | "position">[];
+  contacts: readonly Pick<ContactView, "id" | "center" | "aloft">[];
+}
+
 /** Where `u`'s current attack aims, as the side places it: an identified
- *  enemy where it is seen (an aircraft in the air), a ground point as
- *  ordered, else the step's point on the ground; undefined with no attack
- *  or no point. A winged aircraft's attack line runs there. */
+ *  enemy where it is seen (an aircraft in the air), a contact's area where
+ *  it hangs (in the air or on the ground), a ground point as ordered, else
+ *  the step's point on the ground; undefined with no attack or no point. A
+ *  winged aircraft's attack line runs there. */
 export function attackAim(
   u: Pick<OwnUnitView, "steps">,
-  o: Pick<ObservationView, "identified">,
+  seen: SeenTargets,
   z: SurfaceHeight,
 ): readonly [number, number, number] | undefined {
   const front = u.steps[0];
   if (front?.kind !== "attack" || !front.point) return undefined;
   const target = front.target;
   if (target?.kind === "ground") return target.point;
-  const seen = target?.kind === "identified" && o.identified.find((e) => e.id === target.id);
-  if (seen) return seen.position;
-  const [x, y] = front.point;
-  return [x, y, z(x, y)];
+  const enemy = target?.kind === "identified" && seen.identified.find((e) => e.id === target.id);
+  if (enemy) return enemy.position;
+  const contact = target?.kind === "contact" && seen.contacts.find((c) => c.id === target.id);
+  const [x, y] = contact ? contact.center : front.point;
+  return contact && contact.aloft ? contact.center : [x, y, z(x, y)];
 }
 
 /** The selection's markers under the units in `selected` (and the hovered
@@ -368,7 +378,8 @@ export function attackAim(
  *  marks (the Space view) of each unit `reveal` shows, at its opacity
  *  (`OrderReveal`), with an unload mark where a carrier's published
  *  order lets its passengers out, and every own aircraft's marker and drop
- *  line; a unit in `allies` (an ally's) takes the ally's marker. With
+ *  line, and a winged aircraft's attack line in the air from the airframe
+ *  to where it aims; a unit in `allies` (an ally's) takes the ally's marker. With
  *  `ghosts` (Space held: each revealed unit's ghost stands where its orders
  *  end) an aircraft's ghost is joined to that end's marker by its drop
  *  line too. Lines are the style's pixel widths resolved by the
@@ -404,18 +415,21 @@ export function orderLayer(
         reveal.has(u.id) ||
         airborne(units.type(u.kind)),
     );
-  const views = shown.map((u) => ({
-    ...orderView(
+  const views = shown.map((u) => {
+    const view = orderView(
       units,
       u,
       selected.includes(u.id),
       reveal.get(u.id),
       allies.has(u.id),
       u.id === hovered,
-    ),
-    ghostAloft: ghosts && reveal.has(u.id) ? aloft(u.kind) : 0,
-    aimAloft: fixedWing(units.type(u.kind)) ? attackAim(u, o, z) : undefined,
-  }));
+    );
+    return {
+      ...view,
+      ghostAloft: ghosts && reveal.has(u.id) ? aloft(u.kind) : 0,
+      attackAim: view.fixedWing ? attackAim(u, o, z) : undefined,
+    };
+  });
   return buildOrderOverlay(oneRingPerHouse(shown, views), z, gameOrderStyle, { stroke });
 }
 

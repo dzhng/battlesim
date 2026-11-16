@@ -158,10 +158,10 @@ export function queuedLegs(
   });
 }
 
-/** Where the current order's attack aims, when the overlay draws it: a
- *  ground unit's attack on a target the side places, and not stuck behind a
- *  blocked route (that route's own mark says so). A winged aircraft's attack
- *  keeps today's marks until its 3D line (part 2). */
+/** Where the current order's attack aims, when the overlay draws it on the
+ *  ground: a ground unit's attack on a target the side places, and not stuck
+ *  behind a blocked route (that route's own mark says so). A winged
+ *  aircraft's attack draws only its line in the air (`OrderView.attackAim`). */
 export function currentAim(u: Pick<OrderView, "steps" | "fixedWing" | "state">): P2 | null {
   const front = u.steps[0];
   if (front?.kind !== "attack" || u.fixedWing || u.state === "route_blocked") return null;

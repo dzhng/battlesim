@@ -5,7 +5,7 @@ overlay's opaque mesh layer for marks in the air (where drop lines draw), from t
 model's position to the target's 3D point or the ground point. No ground chain, ground
 line or reticle (decision 11). It draws the current attack only.
 
-**Tests.** `web/tests/attackLine.test.ts`: a fixed-wing attack yields one segment in the
+**Tests.** `web/tests/attackLine.test.ts`: a fixed-wing attack yields dots in the
 air layer from the airframe to the target point, and nothing in paint.
 
 **Visual.** A jet doing attack-ground → queued move in a real battle, before and after
@@ -15,10 +15,10 @@ show the user inline.
 **Commit and push.** `feat(overlay): a jet draws its attack line in the air`, `/review`,
 push `staging`, verify the ancestor check, then `close-spec`.
 
-**State.** Done. `OrderView.aimAloft` carries where a winged aircraft's current attack
+**State.** Done. `OrderView.attackAim` carries where a winged aircraft's current attack
 aims; the lab's `attackAim` resolves it from what the side sees (an identified enemy's
 observed position, a ground point as ordered, else the step's point on the ground), so
-no publication layout changed. `orderOverlay`'s `attackAloft` draws dots in the attack
+no publication layout changed. `orderOverlay`'s `airAttackLine` draws dots in the attack
 red from the airframe to it, spaced as a drop line's, in the overlay's air layer; nothing
 is painted on the ground. `web/tests/attackLine.test.ts` failed before and passes.
 

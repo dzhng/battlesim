@@ -15,14 +15,10 @@ Every decision behind this plan was made with the user in a decision walk;
 
 ## Next Agent Prompt
 
-*Updated 2026-11-16.* Part 1 (FX1–FX3, S1–S10) is done, reviewed and pushed to
-`staging`. Pick up at **P1**, part 2: a jet's attack line drawn in 3D from the airframe to
-its target ([slice](slices/p1-jet-3d-attack-line.md)); its own push. Then close the
-spec with `close-spec`. Run only the tests of what the change touches (the user's
-call: no full closeout run). Open for the user's eye, not gating: at the zoom that
-fits a long queued chain, the overlay's existing stroke thinning and queued strength
-make the chain faint ([S9](slices/s9-queued-chain.md)). Update this section before
-ending a pass.
+*Updated 2026-11-16.* Parts 1 and 2 are done, reviewed and on `staging`. Close the spec
+with `close-spec`. Open for the user's eye, not gating: at the zoom that fits a long
+queued chain, the overlay's existing stroke thinning and queued strength make the chain
+faint ([S9](slices/s9-queued-chain.md)).
 
 - [x] Split `apply_units` / `update_pursuit` out of `battle.rs` (`00e9efe87`)
 - [x] [FX1](slices/fx1-garrisoned-attack-ends.md) garrisoned attack ends on target death (`fb32920bd`)

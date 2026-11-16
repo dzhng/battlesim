@@ -132,7 +132,8 @@ export interface OrderStyle {
    *  share of the height it holds that opacity to; and the share it has
    *  faded out by, short of the airframe, so it points up at it rather than
    *  tying on. Its colour is the marker's at full brightness, so it reads
-   *  as the ring's glowing paint does. */
+   *  as the ring's glowing paint does. A winged aircraft's attack line,
+   *  the other mark in the air, takes the same dot size and pitch. */
   drop_line_px: number;
   drop_line_spacing: number;
   drop_line_alpha: number;
@@ -182,8 +183,8 @@ export interface OrderView {
   fixedWing?: boolean;
   /** Where a winged aircraft's current attack aims, in the air or on the
    *  ground: its attack line runs there from the airframe, the one mark of
-   *  its attack (none on the ground). */
-  aimAloft?: readonly [number, number, number];
+   *  its attack (none on the ground). Absent for every other unit. */
+  attackAim?: readonly [number, number, number];
   /** Any airborne unit, including rotor aircraft that keep their marker. */
   airborne?: boolean;
   /** How high its ghost stands over where its orders end while one shows
@@ -220,10 +221,12 @@ export type SurfaceHeight = (x: number, y: number) => number;
 const CHEVRONS_GAP_M = 1;
 type P2 = readonly [number, number];
 
-/** An airframe this close to the ground under it draws no drop line. */
-const DROP_MIN_M = 0.5;
-/** The most dots a drop line draws: past it, a close camera spaces them wider. */
-const DROP_MAX_DOTS = 48;
+/** A line in the air this short (an airframe this close to the ground under
+ *  it) draws no dots. */
+const AIR_LINE_MIN_M = 0.5;
+/** The most dots a line in the air draws: past it, a close camera spaces
+ *  them wider. */
+const AIR_DOTS_MAX = 48;
 
 /** Where an aircraft is over the ground (D18): its marker on the ground
  *  under it (paint, in `paint`), and a dotted drop line rising from the
@@ -250,6 +253,35 @@ export function fullBright(color: Rgba): [number, number, number] {
   return [color[0] * k, color[1] * k, color[2] * k];
 }
 
+/** Dots in the air from `from` to `to`, in `color` at full brightness, each
+ *  at the opacity `alphaAt` gives for how far along it stands (metres, with
+ *  the pitch between dots): the one dotted line of the marks that stand in
+ *  the air. A dot's size and pitch are the drop line's (`drop_line_px`,
+ *  `drop_line_spacing`), never more than `AIR_DOTS_MAX` dots. */
+function airDots(
+  line: MeshBuilder,
+  pen: Pen,
+  from: readonly [number, number, number],
+  to: readonly [number, number, number],
+  color: Rgba,
+  alphaAt: (metres: number, pitch: number) => number,
+) {
+  const span = Math.hypot(to[0] - from[0], to[1] - from[1], to[2] - from[2]);
+  if (span <= 0) return;
+  const dot = Math.min(pen.drop, span / 2);
+  const pitch = Math.max(dot * pen.style.drop_line_spacing, span / AIR_DOTS_MAX);
+  const dots = Math.max(2, Math.floor((span - dot) / pitch) + 1);
+  const [r, g, b] = fullBright(color);
+  // The end dots sit just inside the ends, a half dot in.
+  const [t0, t1] = [dot / 2 / span, 1 - dot / 2 / span];
+  const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+  for (let i = 0; i < dots; i++) {
+    const t = lerp(t0, t1, i / (dots - 1));
+    const at = [lerp(from[0], to[0], t), lerp(from[1], to[1], t), lerp(from[2], to[2], t)] as const;
+    line.mark(at, dot / 2, [r, g, b, alphaAt(t * span, pitch)]);
+  }
+}
+
 /** A drop line of dots rising from the ground under `top` toward it, in
  *  `color` at full brightness: `drop_line_alpha` from the ground up to
  *  `drop_line_hold` of the height, then fading out by `drop_line_reach` of
@@ -262,45 +294,28 @@ function dropLine(
 ) {
   const ground = pen.z(top[0], top[1]);
   const height = top[2] - ground;
-  if (height < DROP_MIN_M) return;
+  if (height < AIR_LINE_MIN_M) return;
   const { drop_line_alpha: alpha, drop_line_hold: hold, drop_line_reach: reach } = pen.style;
   const span = height * reach;
-  const dot = Math.min(pen.drop, span / 2);
-  const pitch = Math.max(dot * pen.style.drop_line_spacing, span / DROP_MAX_DOTS);
-  const dots = Math.max(2, Math.floor((span - dot) / pitch) + 1);
-  const [r, g, b] = fullBright(color);
   // Past the hold, each dot fades by how far it stands toward the reach;
   // the last is the faintest, never quite gone: the next would be.
   const fadeFrom = height * hold;
-  const fadeOver = span - fadeFrom + pitch;
-  for (let i = 0; i < dots; i++) {
-    const z = ground + dot / 2 + (i / (dots - 1)) * (span - dot);
-    const fade = Math.min(1, 1 - (z - ground - fadeFrom) / fadeOver);
-    line.mark([top[0], top[1], z], dot / 2, [r, g, b, alpha * fade]);
-  }
+  const fade = (m: number, pitch: number) =>
+    alpha * Math.min(1, 1 - (m - fadeFrom) / (span - fadeFrom + pitch));
+  airDots(line, pen, [top[0], top[1], ground], [top[0], top[1], ground + span], color, fade);
 }
 
-/** A winged aircraft's attack line: dots from the airframe (`from`) to
- *  where its attack aims (`to`), in `color` at full brightness, spaced as a
- *  drop line's. It stands in the air, so it is overlay geometry. */
-function attackAloft(
+/** A winged aircraft's attack line: dots from the airframe to where its
+ *  attack aims, at `color`'s opacity, standing in the air. */
+function airAttackLine(
   line: MeshBuilder,
   pen: Pen,
   from: readonly [number, number, number],
   to: readonly [number, number, number],
   color: Rgba,
 ) {
-  const span = Math.hypot(to[0] - from[0], to[1] - from[1], to[2] - from[2]);
-  if (span < DROP_MIN_M) return;
-  const dot = Math.min(pen.drop, span / 2);
-  const pitch = Math.max(dot * pen.style.drop_line_spacing, span / DROP_MAX_DOTS);
-  const dots = Math.max(2, Math.floor((span - dot) / pitch) + 1);
-  const [r, g, b] = fullBright(color);
-  for (let i = 0; i < dots; i++) {
-    const t = i / (dots - 1);
-    const at = [0, 1, 2].map((k) => from[k] + (to[k] - from[k]) * t) as [number, number, number];
-    line.mark(at, dot / 2, [r, g, b, color[3]]);
-  }
+  if (Math.hypot(to[0] - from[0], to[1] - from[1], to[2] - from[2]) < AIR_LINE_MIN_M) return;
+  airDots(line, pen, from, to, color, () => color[3]);
 }
 
 /** A soldier's marker: a plain ring (the unit's marker carries the facing),
@@ -469,7 +484,8 @@ export function buildOrderOverlay(
   const paint = new MeshBuilder();
   const soldiers = new MeshBuilder();
   const animated = new MeshBuilder();
-  // Aircraft drop lines: overlay, the one mark standing in the air.
+  // Marks standing in the air (aircraft drop lines, a winged aircraft's
+  // attack line): overlay.
   const lines = new MeshBuilder();
   const order = glowing(style.color, style.glow.order);
   const selected = glowing(style.selected, style.glow.selected);
@@ -565,7 +581,7 @@ export function buildOrderOverlay(
       );
     // The rest are order marks only.
     if (!shown) continue;
-    if (u.fixedWing && u.aimAloft) attackAloft(lines, pen, u.position, u.aimAloft, attack);
+    if (u.attackAim) airAttackLine(lines, pen, u.position, u.attackAim, attack);
     // A holding squad's soldiers walking to their posts (cover, a step
     // out): each post is a marker only. An order is the unit's, one route
     // for the unit; no line ever runs from a soldier.

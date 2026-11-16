@@ -5,15 +5,17 @@
 // its attack line stands in the air, from the airframe to its aim.
 import { expect, test } from "vitest";
 import { VERTEX_FLOATS, type Mesh } from "@packages/battle-renderer/src/mesh";
-import { buildOrderOverlay, type OrderView } from "@packages/battle-renderer/src/orderOverlay";
+import type { OrderView } from "@packages/battle-renderer/src/orderOverlay";
 import type { OrderStep } from "@packages/battle-renderer/src/orderSteps";
+import type { UnitCatalog } from "@packages/scene-assets/src/units";
+import { attackAim, orderLayer, type SeenTargets } from "@apps/battle-lab/src/battleOverlay";
 import { gameOrderStyle, gameStroke } from "@apps/battle-lab/src/gameOverlay";
 import type {
-  IdentifiedView,
   MountTargetView,
+  ObservationView,
   OrderStepView,
 } from "@web/battle/sim/observationView";
-import { along, orderView, painted } from "./support/orderMesh";
+import { aloft, along, orderView, painted } from "./support/orderMesh";
 
 type P2 = readonly [number, number];
 const TARGET: P2 = [80, 0];
@@ -71,16 +73,12 @@ test("chasing, the route ends in the reticle, with no destination circle at its 
   expect(route.at(-1)![1]).toBeGreaterThan(TARGET[0] - r - 1.5);
 });
 
-/** The marks a view draws standing in the air. */
-const aloft = (v: OrderView): Mesh =>
-  buildOrderOverlay([v], () => 0, gameOrderStyle, { stroke: gameStroke(0.05) }).opaque;
-
 test("a winged aircraft's attack is a line in the air from the airframe to its aim, nothing on the ground", () => {
   const top = [0, 0, 300] as const;
   const aim = [100, 0, 0] as const;
   const jet = { fixedWing: true, airborne: true, position: top };
-  expect(painted(view({ ...jet, aimAloft: aim }))).toEqual(painted(view({ ...jet, steps: [] })));
-  const line = aloft(view({ ...jet, aimAloft: aim }));
+  expect(painted(view({ ...jet, attackAim: aim }))).toEqual(painted(view({ ...jet, steps: [] })));
+  const line = aloft(view({ ...jet, attackAim: aim }));
   expect(line.length).toBeGreaterThan(0);
   // Every vertex lies on the segment, and the marks run from end to end.
   const [dx, dz] = [aim[0] - top[0], aim[2] - top[2]];
@@ -104,16 +102,92 @@ test("a ground point's reticle carries a centre cross; a unit's has none", () =>
   expect(centre(attack)).toBe(0);
 });
 
-test("a jet's attack aims at an enemy where it is seen, at a ground point as ordered, else on the ground", async () => {
-  const { attackAim } = await import("@apps/battle-lab/src/battleOverlay");
+test("a jet's attack aims at an enemy or a contact where it is seen, at a ground point as ordered, else on the ground", () => {
   const ground = (x: number, y: number) => x / 10 + y;
-  const seen = { identified: [{ id: 9, position: [41, 3, 250] } as IdentifiedView] };
+  const seen: SeenTargets = {
+    identified: [{ id: 9, position: [41, 3, 250] }],
+    contacts: [
+      { id: 5, center: [60, 8, 240], aloft: true },
+      { id: 6, center: [70, 9, 0], aloft: false },
+    ],
+  };
   const aimAt = (target: MountTargetView) =>
     attackAim({ steps: [{ kind: "attack", point: [40, 2], target }] }, seen, ground);
   expect(aimAt({ kind: "identified", id: 9 })).toEqual([41, 3, 250]);
   expect(aimAt({ kind: "ground", point: [40, 2, 7] })).toEqual([40, 2, 7]);
+  // An air contact where it hangs; a contact on the ground, on the ground.
+  expect(aimAt({ kind: "contact", id: 5 })).toEqual([60, 8, 240]);
+  expect(aimAt({ kind: "contact", id: 6 })).toEqual([70, 9, 16]);
   // An enemy the side no longer sees: its step's point, on the ground.
   expect(aimAt({ kind: "identified", id: 4 })).toEqual([40, 2, 6]);
   const moving: OrderStepView = { kind: "move", point: [1, 1] };
-  expect(attackAim({ steps: [moving] }, { identified: [] }, ground)).toBeUndefined();
+  expect(attackAim({ steps: [moving] }, { identified: [], contacts: [] }, ground)).toBeUndefined();
+});
+
+/** An own aircraft of `flight` at 300 m over the origin, attacking the enemy
+ *  the side sees at [100, 0, 250]. */
+function attackingAircraft(flight: "fixed_wing" | "rotor") {
+  const units = {
+    type: () => ({
+      mobility: {
+        air: { cruise_kmh: 500, turn_deg_s: 30, climb_mps: 8, layer: "low_air", flight },
+      },
+    }),
+    hull: () => ({ half_extents_m: [6, 2, 1.5] }),
+  } as unknown as UnitCatalog;
+  const unit = {
+    id: 1,
+    kind: "plane",
+    position: [0, 0, 300],
+    yaw: 0,
+    hold: null,
+    stock: null,
+    members: [],
+    memberOrders: [],
+    area: null,
+    goal: null,
+    route: [],
+    finalFacing: 0,
+    direction: null,
+    state: "idle",
+    steps: [{ kind: "attack", point: [100, 0], target: { kind: "identified", id: 9 } }],
+  };
+  const o = {
+    tick: 0,
+    own: [unit],
+    identified: [{ id: 9, kind: "plane", position: [100, 0, 250] }],
+    knownProps: [],
+    contacts: [],
+    encounter: null,
+    skirmish: null,
+  } as unknown as ObservationView;
+  const air = {} as Parameters<typeof orderLayer>[1];
+  return (reveal: number) =>
+    orderLayer(units, air, o, [], new Map(reveal ? [[1, reveal]] : []), () => 0, {
+      stroke: gameStroke(0.05),
+    });
+}
+
+/** Vertices of `mesh` more than `d` metres from the vertical through the origin. */
+const awayFromOrigin = (mesh: Mesh, d: number) => {
+  let n = 0;
+  for (let i = 0; i < mesh.length; i += VERTEX_FLOATS)
+    if (Math.hypot(mesh[i], mesh[i + 1]) > d) n++;
+  return n;
+};
+
+test("the battle view gives a revealed jet's attack its line in the air, and nothing more", () => {
+  const jet = attackingAircraft("fixed_wing");
+  // Revealed: dots run out from the airframe toward the enemy.
+  expect(awayFromOrigin(jet(1).opaque, 20)).toBeGreaterThan(0);
+  // Not revealed: no order marks, so nothing stands in the air.
+  expect(awayFromOrigin(jet(0).opaque, 20)).toBe(0);
+});
+
+test("a helicopter's attack keeps its marks on the ground and draws no line in the air", () => {
+  const heli = attackingAircraft("rotor");
+  // Its drop line stands straight under it; nothing runs off toward the enemy.
+  expect(awayFromOrigin(heli(1).opaque, 20)).toBe(0);
+  // Its reticle is painted on the ground at the enemy.
+  expect(awayFromOrigin(heli(1).painted ?? new Float32Array(), 90)).toBeGreaterThan(0);
 });

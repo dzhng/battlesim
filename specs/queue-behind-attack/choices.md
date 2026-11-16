@@ -182,3 +182,10 @@ rewritten from scratch at closeout.
   record carries a 2D point, so this avoided a layout change and a third parity re-record.
 - **The line is dots, in the attack red, spaced as a drop line's**: the overlay's one look
   for marks standing in the air. It draws the current attack only; nothing on the ground.
+- **(review) An attack on a contact aims where the contact's area hangs** (in the air for
+  an air contact), and the drop line and the attack line share one dotted-line helper
+  (`airDots`), the drop line's look kept exact.
+- **Known limitation, left as is:** the line starts at the jet's latest published position,
+  which runs up to a tick ahead of the model drawn between ticks; the existing drop lines
+  have the same lag. A fix belongs to all marks in the air at once (drawn per frame from
+  the drawn positions), not to this line alone.

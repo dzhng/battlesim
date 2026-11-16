@@ -34,6 +34,11 @@ export const painted = (v: OrderView): Mesh =>
   buildOrderOverlay([v], () => 0, gameOrderStyle, { stroke: gameStroke(0.05) }).painted ??
   new Float32Array();
 
+/** The game's order marks for `v` that stand in the air (drop lines, a
+ *  winged aircraft's attack line), at a close zoom's stroke. */
+export const aloft = (v: OrderView): Mesh =>
+  buildOrderOverlay([v], () => 0, gameOrderStyle, { stroke: gameStroke(0.05) }).opaque;
+
 /** The stretches of segment a→b, in metres from a, that painted triangles
  *  lying along it (each corner within `band` metres of its line, and no
  *  further than `band` past either end) cover, merged where they touch. */
