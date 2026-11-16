@@ -376,14 +376,7 @@ fn battle_art_replacement_changes_live_joint_facts_without_restarting_the_observ
     let draft = p
         .stage_catalog(
             [(name, id.clone())].into(),
-            [(
-                id,
-                Asset::Animated {
-                    appearance: Box::new(replacement),
-                    table: Vec::new(),
-                },
-            )]
-            .into(),
+            [(id, Asset::animated(replacement, Vec::new()))].into(),
             detail,
             Default::default(),
         )

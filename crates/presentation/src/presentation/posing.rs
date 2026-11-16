@@ -12,7 +12,7 @@ use crate::world::{BodyBox, Detail, StandIn};
 pub(super) struct UnitArt<'a> {
     pub units: &'a UnitsSection,
     pub tables: &'a ClipTables,
-    pub inverse_binds: &'a HashMap<String, Vec<Mat4>>,
+    pub inverse_binds: &'a HashMap<String, Arc<Vec<Mat4>>>,
     pub world: &'a World,
     pub view: &'a View,
     pub detail: Detail,
@@ -42,7 +42,7 @@ pub(super) struct Scratch {
 }
 
 /// Each skinned appearance's inverse binds, by name.
-pub(super) fn inverse_binds(units: &UnitsSection) -> HashMap<String, Vec<Mat4>> {
+pub(super) fn inverse_binds(units: &UnitsSection) -> HashMap<String, Arc<Vec<Mat4>>> {
     let mut binds = HashMap::new();
     for (name, a) in &units.appearances {
         let a = a.as_ref();
@@ -52,7 +52,7 @@ pub(super) fn inverse_binds(units: &UnitsSection) -> HashMap<String, Vec<Mat4>> 
             ..
         } = a
         {
-            binds.insert(name.clone(), skin::inverse_binds(joints, given));
+            binds.insert(name.clone(), Arc::new(skin::inverse_binds(joints, given)));
         }
     }
     binds
@@ -303,7 +303,7 @@ impl UnitArt<'_> {
 pub(super) fn rest_palette(
     units: &UnitsSection,
     tables: &ClipTables,
-    inverse_binds: &HashMap<String, Vec<Mat4>>,
+    inverse_binds: &HashMap<String, Arc<Vec<Mat4>>>,
     name: &str,
     lies: u32,
 ) -> Option<Vec<Joint>> {
@@ -337,7 +337,7 @@ pub(super) fn rest_palette(
     Some(
         worlds
             .iter()
-            .zip(ibs)
+            .zip(ibs.iter())
             .map(|(w, ib)| joint(&skin::affine(&skin::mul(w, ib))))
             .collect(),
     )
@@ -348,7 +348,7 @@ pub(super) fn rest_palette(
 pub(super) fn pose_body(
     units: &UnitsSection,
     tables: &ClipTables,
-    inverse_binds: &HashMap<String, Vec<Mat4>>,
+    inverse_binds: &HashMap<String, Arc<Vec<Mat4>>>,
     worlds: &mut Vec<Mat4>,
     palettes: &mut Vec<Joint>,
     name: &str,
@@ -375,7 +375,7 @@ pub(super) fn pose_body(
     palettes.extend(
         worlds
             .iter()
-            .zip(ibs)
+            .zip(ibs.iter())
             .map(|(w, ib)| joint(&skin::affine(&skin::mul(w, ib)))),
     );
     first

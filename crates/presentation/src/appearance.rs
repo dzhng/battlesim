@@ -6,6 +6,16 @@ use serde_json::{json, Map, Value};
 use std::collections::BTreeMap;
 use std::f64::consts::PI;
 
+/// Equal clip tables keep one name whatever order they are found in:
+/// the name hashes their floats, and signed zeros count as equal.
+pub(crate) fn clip_table_name(table: &[f32]) -> String {
+    let bytes: Vec<u8> = table
+        .iter()
+        .flat_map(|&v| (if v == 0.0 { 0.0 } else { v }).to_le_bytes())
+        .collect();
+    format!("clips-{}", contract::identity::bytes_hash(&bytes))
+}
+
 /// Floats per joint sample in a clip table: rotation, translation, scale.
 const SAMPLE_FLOATS: usize = 8;
 /// A skeleton clip channel's modes (`CHANNEL_ABSENT`, `CHANNEL_ANIMATED`).

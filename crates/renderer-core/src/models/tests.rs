@@ -220,7 +220,9 @@ fn admission_does_not_scroll_pitchless_track_nodes() {
     let Asset::Animated { appearance, .. } = &mut candidate else {
         unreachable!()
     };
-    let presentation::world::Appearance::Articulated { rig, .. } = appearance.as_mut() else {
+    let presentation::world::Appearance::Articulated { rig, .. } =
+        std::sync::Arc::make_mut(appearance)
+    else {
         unreachable!()
     };
     rig.tracks.clear();
