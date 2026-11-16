@@ -1,7 +1,8 @@
 //! A physical gun owns its magazine and timing independently of targeting.
 use super::{MountSpec, Weapon};
 use crate::digest::Digest;
-use contract::weapons::AmmoCapacity;
+use contract::random::Rng;
+use contract::weapons::{AmmoCapacity, WeaponDefinition};
 
 /// Magazine, aim and timing of one physical weapon; the mount selects its target.
 #[derive(Clone, Debug)]
@@ -57,6 +58,38 @@ impl Cycle {
         self.cooldown = (self.cooldown - dt).max(0.0);
         self.aim = 0.0;
         self.started = false;
+    }
+
+    /// Spend one round of `def` from the magazine; whether it ended a firing
+    /// cycle: emptied the magazine (read before a reload-free weapon tops it
+    /// straight back up), closed a burst, or was a single shot. The gap to
+    /// the next round is a burst's seeded pause or the shot interval.
+    pub(super) fn spend_round(&mut self, def: &WeaponDefinition, rng: &mut Rng) -> bool {
+        self.rounds -= 1;
+        let closes_burst = |m: contract::weapons::Magazine| {
+            m.burst
+                .is_some_and(|b| (m.rounds - self.rounds).is_multiple_of(b.rounds))
+        };
+        let ended = self.rounds == 0 || def.magazine.is_some_and(closes_burst);
+        if self.rounds == 0 && def.reload_s == 0.0 {
+            if let Some(magazine) = def.magazine {
+                self.rounds = magazine.rounds;
+            }
+        }
+        if self.rounds == 0 {
+            self.loaded = None;
+            if def.magazine.is_some_and(|m| m.burst.is_some()) {
+                self.started = false;
+            }
+        } else if let Some(magazine) = def.magazine {
+            self.cooldown = magazine
+                .burst
+                .filter(|b| (magazine.rounds - self.rounds).is_multiple_of(b.rounds))
+                .map_or(magazine.shot_interval_s, |b| {
+                    (rng.unit() * b.aim_max_s).max(magazine.shot_interval_s)
+                });
+        }
+        ended
     }
 
     pub fn needs_reload(&self, weapons: &[Weapon], ammo: &[Option<u32>], spec: &MountSpec) -> bool {
@@ -121,5 +154,82 @@ impl Cycle {
             }
             _ => None,
         };
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use contract::weapons::{Burst, Magazine};
+
+    /// A weapon row of the given magazine shape and reload time.
+    fn shaped(magazine: Option<Magazine>, reload_s: f64) -> WeaponDefinition {
+        let rules: contract::scenario::Rules =
+            serde_json::from_value(crate::fixtures::test_rules()).expect("rules");
+        let mut def = rules.weapons.into_values().next().expect("a weapon row");
+        def.magazine = magazine;
+        def.reload_s = reload_s;
+        def
+    }
+
+    fn magazine(rounds: u32, burst: Option<u32>) -> Option<Magazine> {
+        Some(Magazine {
+            rounds,
+            shot_interval_s: 0.1,
+            burst: burst.map(|rounds| Burst {
+                rounds,
+                aim_max_s: 0.5,
+            }),
+        })
+    }
+
+    /// Which of `shots` rounds, fired back to back, ended a cycle (1-based),
+    /// reloading the gun whenever its magazine empties.
+    fn ends(def: &WeaponDefinition, shots: u32) -> Vec<u32> {
+        let full = def.magazine.map_or(1, |m| m.rounds);
+        let mut cycle = Cycle {
+            owner: None,
+            loaded: Some(0),
+            reload: None,
+            aim: 0.0,
+            rounds: full,
+            cooldown: 0.0,
+            started: true,
+        };
+        let mut rng = Rng::new(1);
+        (1..=shots)
+            .filter(|_| {
+                let ended = cycle.spend_round(def, &mut rng);
+                if cycle.rounds == 0 {
+                    (cycle.rounds, cycle.loaded) = (full, Some(0));
+                }
+                ended
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_burst_that_divides_the_magazine_ends_a_cycle_each_burst() {
+        assert_eq!(ends(&shaped(magazine(9, Some(3)), 2.0), 9), [3, 6, 9]);
+    }
+
+    #[test]
+    fn the_short_last_burst_ends_on_the_empty_magazine() {
+        assert_eq!(ends(&shaped(magazine(8, Some(3)), 2.0), 8), [3, 6, 8]);
+    }
+
+    #[test]
+    fn a_reload_free_magazine_ends_a_cycle_each_time_it_empties() {
+        assert_eq!(ends(&shaped(magazine(5, None), 0.0), 10), [5, 10]);
+    }
+
+    #[test]
+    fn a_magazine_without_bursts_is_one_cycle() {
+        assert_eq!(ends(&shaped(magazine(6, None), 9.0), 6), [6]);
+    }
+
+    #[test]
+    fn a_single_shot_weapon_ends_a_cycle_every_shot() {
+        assert_eq!(ends(&shaped(None, 5.0), 3), [1, 2, 3]);
     }
 }

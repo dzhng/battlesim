@@ -234,6 +234,9 @@ pub struct Shot {
     pub weapon: usize,
     pub launches: Vec<Launch>,
     pub target: Target,
+    /// A gun finished a firing cycle with this shot ([`Cycle::spend_round`]),
+    /// or the mount ran dry.
+    pub cycle_ended: bool,
 }
 
 pub struct FireContext<'a> {
@@ -1225,6 +1228,11 @@ pub struct Reach {
     pub needs_closer: bool,
     /// The heading a gun fixed in the hull needs the body to turn to (D8).
     pub face: Option<f64>,
+    /// The mounts (a bit per index) working on the attack order's target
+    /// this tick: firing, aiming, reloading or traversing onto it.
+    pub ordered_firing: u64,
+    /// Some mount can hurt the attack order's target ([`compatible`]).
+    pub can_damage: bool,
 }
 
 /// Candidate targeting, assessed before any soldier works a gun this tick.
@@ -1375,6 +1383,7 @@ fn fire(
         Vec::new()
     };
     let mut launches = Vec::new();
+    let mut cycle_ended = false;
     for (n, (origin, body, member)) in shooters.into_iter().enumerate() {
         let owner = spec.squad.then_some(body.0);
         let cycle = mount
@@ -1556,25 +1565,7 @@ fn fire(
             if let Some(n) = mount.ammo[k].as_mut() {
                 *n -= 1;
             }
-            cycle.rounds -= 1;
-            if cycle.rounds == 0 && weapon.def.reload_s == 0.0 {
-                if let Some(magazine) = weapon.def.magazine {
-                    cycle.rounds = magazine.rounds;
-                }
-            }
-            if cycle.rounds == 0 {
-                cycle.loaded = None;
-                if weapon.def.magazine.is_some_and(|m| m.burst.is_some()) {
-                    cycle.started = false;
-                }
-            } else if let Some(magazine) = weapon.def.magazine {
-                cycle.cooldown = magazine
-                    .burst
-                    .filter(|b| (magazine.rounds - cycle.rounds).is_multiple_of(b.rounds))
-                    .map_or(magazine.shot_interval_s, |b| {
-                        (rng.unit() * b.aim_max_s).max(magazine.shot_interval_s)
-                    });
-            }
+            cycle_ended |= cycle.spend_round(&weapon.def, rng);
             if from.leaning {
                 leaned.push(body.0);
             }
@@ -1584,6 +1575,7 @@ fn fire(
         if cycle.loaded.is_some_and(|k| mount.ammo[k] == Some(0)) {
             cycle.loaded = None;
             cycle.rounds = 0;
+            cycle_ended = true;
         }
     }
     let last = launches.last()?.velocity;
@@ -1596,6 +1588,7 @@ fn fire(
         weapon: weapon_index,
         launches,
         target,
+        cycle_ended,
     })
 }
 

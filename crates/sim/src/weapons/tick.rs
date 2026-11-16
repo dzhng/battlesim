@@ -113,6 +113,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
         let mut leaned: Vec<u32> = Vec::new();
         // Ordered target: some compatible mount can shoot it / none can reach it.
         let (mut ordered_ok, mut ordered_far) = (false, false);
+        let (mut ordered_firing, mut can_damage) = (0u64, false);
         let mut plans = Vec::with_capacity(units[i].mounts.len());
         for m in 0..units[i].mounts.len() {
             let unit = &units[i];
@@ -161,6 +162,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
                 continue;
             }
             let explicit = ordered.filter(|&t| compatible(ctx, &mount, spec, t, units));
+            can_damage |= explicit.is_some();
             let previous = mount.lock.as_ref().map(|l| l.target);
             let mut assessed = Assessed::default();
             let LockChoice {
@@ -415,6 +417,17 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
             if let Some(lock) = mount.lock.as_mut() {
                 lock.engaging = engaging;
             }
+            let working = matches!(
+                mount.reason,
+                ActionReason::Firing
+                    | ActionReason::Aiming
+                    | ActionReason::Reloading
+                    | ActionReason::TurretTraversing
+                    | ActionReason::Guiding
+            );
+            if working && ordered.is_some() && mount.lock.as_ref().map(|l| l.target) == ordered {
+                ordered_firing |= 1 << m;
+            }
             units[i].mounts[m] = mount;
         }
         // Who fired from his lean point stays out on it a while; after a
@@ -437,6 +450,8 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
             can_engage,
             needs_closer: ordered_far && !ordered_ok,
             face,
+            ordered_firing,
+            can_damage,
         };
     }
     shots
