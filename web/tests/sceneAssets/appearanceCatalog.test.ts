@@ -14,13 +14,13 @@ import type { Catalog } from "@packages/scene-assets/src/schema.ts";
 import { UnitCatalog } from "@packages/scene-assets/src/units.ts";
 import {
   AUTHORITY,
-  GltfBuilder,
   soldierGlb,
   syntheticUnits,
   tankMounts,
   testCatalog,
   testSources,
 } from "./synthetic";
+import { GltfBuilder } from "./gltfBuilder";
 
 async function install(
   catalog: Catalog = testCatalog(),

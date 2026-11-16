@@ -1,4 +1,4 @@
-import { useFeed } from "@web/feed";
+import { Feed, useFeed } from "@web/feed";
 import { useLabLoading } from "../LabLoading";
 // The panel workbench: every info panel the battle can draw (the specimens
 // in `panelSpecimens.ts`), through the battle's own `InfoPanel`, on a plain
@@ -14,6 +14,8 @@ import { panelSpecimens, specimenUnit, type Specimen } from "../panelSpecimens";
 
 import type { CommandControl } from "@web/battle/present/commandBar";
 import { ArmyDeck } from "@web/battle/present/armyDeck";
+import type { ControlGroups } from "@web/battle/input/controlGroups";
+import type { CardBlink } from "@web/battle/present/fireBlink";
 import { PurchasePicker } from "@web/battle/present/purchasePicker";
 import { ContactLines } from "@web/battle/present/contactLines";
 
@@ -100,6 +102,7 @@ function DeckReview({ onBack }: { onBack: () => void }) {
     units: ReturnType<typeof specimenUnit>[];
     replay?: boolean;
     selected?: number[];
+    groups?: ControlGroups;
   }[] = [
     { name: "Rifle squad", units: [specimenUnit(catalog, "test_rifle")] },
     { name: "Tank ammunition", units: [specimenUnit(catalog, "test_tank")] },
@@ -192,6 +195,42 @@ function DeckReview({ onBack }: { onBack: () => void }) {
         specimenUnit(catalog, "test_rifle", { id, suppression: "suppressed", service: "serving" }),
       ),
     },
+    // Group 1 holds a squad riding the APC; at two rows group 2's three
+    // cards leave their column's foot to the next card, an L.
+    {
+      name: "Control groups",
+      units: [
+        "test_tank",
+        "test_tank",
+        "test_apc",
+        "test_rifle",
+        "test_jet",
+        "test_jet",
+        "test_jet",
+        "test_recon",
+        "test_supply",
+        "test_at",
+        "test_rifle",
+        "test_jeep",
+        "test_tank",
+        "test_rifle",
+        "test_at",
+        "test_heli",
+      ].map((kind, id) =>
+        specimenUnit(catalog, kind, {
+          id: id + 1,
+          ...(id === 3 && {
+            hold: { host: { kind: "carrier" as const, id: 3 }, phase: "inside", progress: 1 },
+          }),
+        }),
+      ),
+      selected: [5, 6, 7],
+      groups: new Map([
+        ["1", [1, 2, 3, 4]],
+        ["2", [5, 6, 7]],
+        ["0", [8]],
+      ]),
+    },
     {
       name: "No selection",
       units: [specimenUnit(catalog, "test_rifle"), specimenUnit(catalog, "test_tank", { id: 2 })],
@@ -219,6 +258,19 @@ function DeckReview({ onBack }: { onBack: () => void }) {
     own: selection.units,
     control: selection.replay ? undefined : control,
   });
+  // "Fire blink": the first card is shot at and the third hurt, again on
+  // every press, so the blink can be watched and shot.
+  const [blinks] = useState(() => new Feed<ReadonlyMap<number, CardBlink>>(new Map()));
+  const fireBlink = () => {
+    const [shot, , hurt] = selection.units;
+    const serial = Date.now();
+    blinks.set(
+      new Map([
+        ...(shot ? [[shot.id, { colour: "yellow", serial }] as const] : []),
+        ...(hurt ? [[hurt.id, { colour: "red", serial }] as const] : []),
+      ]),
+    );
+  };
 
   const skirmish = {
     phase: "preparation" as const,
@@ -255,6 +307,7 @@ function DeckReview({ onBack }: { onBack: () => void }) {
         }}
       >
         <button onClick={onBack}>Info panels</button>
+        <button onClick={fireBlink}>Fire blink</button>
         {cases.map((c, index) => (
           <button
             key={c.name}
@@ -275,6 +328,9 @@ function DeckReview({ onBack }: { onBack: () => void }) {
           state={armyState}
           selected={selected}
           onSelect={setSelected}
+          groups={selection.groups}
+          blinks={blinks}
+          onDeleteGroup={(key) => setAction(`Delete group ${key}`)}
           rules={rules}
           contactLines={<ContactLines lines={[{ key: 1, text: "Unknown, last seen" }]} />}
           reinforcements={

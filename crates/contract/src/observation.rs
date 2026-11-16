@@ -546,6 +546,10 @@ pub struct OwnUnit {
     /// It trails smoke (D34), by the same rule an enemy's is published.
     #[serde(default)]
     pub smoking: bool,
+    /// An enemy round aimed at it passed near it this tick, or struck it:
+    /// presentation evidence like shouts, outside the battle digest.
+    #[serde(default)]
+    pub shot_at: bool,
     /// Its smoke charges left, for a unit that carries smoke (never
     /// `smoking`, which is damage).
     pub smoke: Option<u32>,

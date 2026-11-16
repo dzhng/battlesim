@@ -140,7 +140,7 @@ fn a_scripted_purchase_plan_replaces_the_doctrines_own_shopping() {
         "an affordable scripted opening is one batch"
     );
     for _ in 0..expected.len() {
-        ai.purchase_result(true);
+        ai.purchase_result(true, 1);
     }
     frame.tick += 5 * u64::from(rules.tick_hz);
     let second = ai
@@ -199,9 +199,9 @@ fn a_refused_scripted_purchase_is_retried_in_order() {
         .unwrap()
     };
     let first = purchase(&mut ai, &mut frame);
-    ai.purchase_result(false);
+    ai.purchase_result(false, 1);
     assert_eq!(purchase(&mut ai, &mut frame), first);
-    ai.purchase_result(true);
+    ai.purchase_result(true, 1);
     assert_eq!(
         purchase(&mut ai, &mut frame),
         rules.catalog.id(plan[1]).to_owned()
@@ -287,6 +287,7 @@ fn reinforcement_replaces_a_lost_truck_before_more_combat_units() {
     let Order::ConfirmPurchase {
         variant,
         destination,
+        ..
     } = &orders[0]
     else {
         panic!("replace truck")
@@ -296,15 +297,7 @@ fn reinforcement_replaces_a_lost_truck_before_more_combat_units() {
     assert_eq!(*destination, entry.center);
     me(&mut frame)
         .pending
-        .push(contract::skirmish::PendingPurchase {
-            id: contract::skirmish::PurchaseId(1),
-            kind,
-            entry: 0,
-            destination: *destination,
-            confirmed_tick: 0,
-            blocked: false,
-            arrival_tick: None,
-        });
+        .push(pending(1, kind, *destination, 0));
     assert!(ai
         .decide(
             DecisionInput {
@@ -354,31 +347,13 @@ fn opening_is_bought_and_readied_in_the_first_decision_within_budget_pending_and
             &rules,
             |_, _| Some(1.0),
         ) {
-            let view = frame.skirmish.as_mut().unwrap();
             match order {
-                Order::ConfirmPurchase {
-                    variant,
-                    destination,
-                } => {
-                    let kind = rules.catalog.index(&variant).unwrap();
-                    let price = f64::from(rules.catalog.get(kind).cost);
-                    let me = &mut view.players[0];
-                    assert!(price <= me.credits && me.unit_count < me.cap);
-                    me.credits -= price;
-                    me.unit_count += 1;
-                    me.pending.push(contract::skirmish::PendingPurchase {
-                        id: contract::skirmish::PurchaseId(me.pending.len() as u32),
-                        kind,
-                        entry: 0,
-                        destination,
-                        confirmed_tick: frame.tick,
-                        blocked: false,
-                        arrival_tick: None,
-                    });
+                Order::ConfirmPurchase { .. } => {
+                    confirm_purchases(&rules, &mut frame, &[order]);
                 }
                 Order::Ready => {
                     ready = true;
-                    view.players[0].ready = true;
+                    me(&mut frame).ready = true;
                 }
                 _ => panic!("preparation must only buy or ready"),
             }
@@ -534,6 +509,7 @@ fn zero_unit_opening_uses_an_affordable_admitted_faction_purchase() {
     let Order::ConfirmPurchase {
         variant,
         destination,
+        ..
     } = orders.first().expect("buy an opening unit")
     else {
         panic!("first command must purchase")
@@ -583,17 +559,12 @@ fn different_seeds_can_change_a_reinforcement_choice_without_changing_legality()
     frame.skirmish.as_mut().unwrap().phase = Phase::Active;
     me(&mut frame).unit_count = 1;
     me(&mut frame).credits = 500.0;
-    me(&mut frame)
-        .pending
-        .push(contract::skirmish::PendingPurchase {
-            id: contract::skirmish::PurchaseId(1),
-            kind: rules.catalog.index("test_supply").unwrap(),
-            entry: 0,
-            destination: entry.center,
-            confirmed_tick: 0,
-            blocked: false,
-            arrival_tick: None,
-        });
+    me(&mut frame).pending.push(pending(
+        1,
+        rules.catalog.index("test_supply").unwrap(),
+        entry.center,
+        0,
+    ));
     let mut variants = std::collections::BTreeSet::new();
     for seed in 0..32 {
         let orders = BalancedDoctrine::new(seed).decide(
@@ -655,15 +626,7 @@ fn identified_helicopter_selects_a_catalog_unit_that_can_engage_low_air() {
     let supply = rules.catalog.index("test_supply").unwrap();
     me(&mut frame)
         .pending
-        .push(contract::skirmish::PendingPurchase {
-            id: contract::skirmish::PurchaseId(1),
-            kind: supply,
-            entry: 0,
-            destination: entry.center,
-            confirmed_tick: 0,
-            blocked: false,
-            arrival_tick: None,
-        });
+        .push(pending(1, supply, entry.center, 0));
     frame.own.clear();
     frame
         .identified
@@ -1075,15 +1038,12 @@ fn the_ai_buys_more_high_air_defence_when_it_sees_enemy_jets() {
     let me = &mut view.players[0];
     me.credits = 500.0;
     me.unit_count = 1;
-    me.pending.push(contract::skirmish::PendingPurchase {
-        id: contract::skirmish::PurchaseId(1),
-        kind: rules.catalog.index("test_supply").unwrap(),
-        entry: 0,
-        destination: entry.center,
-        confirmed_tick: 0,
-        blocked: false,
-        arrival_tick: None,
-    });
+    me.pending.push(pending(
+        1,
+        rules.catalog.index("test_supply").unwrap(),
+        entry.center,
+        0,
+    ));
     let ordinary = BalancedDoctrine::default().decide(
         DecisionInput {
             side: Side::Red,
@@ -1162,15 +1122,12 @@ fn the_ai_sends_bought_jets_on_attack_move() {
     let me = &mut view.players[0];
     me.credits = 500.0;
     me.unit_count = 1;
-    me.pending.push(contract::skirmish::PendingPurchase {
-        id: contract::skirmish::PurchaseId(1),
-        kind: rules.catalog.index("test_supply").unwrap(),
-        entry: 0,
-        destination: entry.center,
-        confirmed_tick: 0,
-        blocked: false,
-        arrival_tick: None,
-    });
+    me.pending.push(pending(
+        1,
+        rules.catalog.index("test_supply").unwrap(),
+        entry.center,
+        0,
+    ));
     let jet = rules.catalog.index("test_jet").unwrap();
     assert_eq!(frame.own[0].kind, jet);
     let mut ai = BalancedDoctrine {
@@ -1198,8 +1155,9 @@ fn the_ai_sends_bought_jets_on_attack_move() {
     )));
 }
 
-/// Credit a wallet's purchases to the frame the way the match does: price
-/// out, slot taken, card pending. Returns the kinds bought.
+/// Credit a wallet's purchases to the frame the way the match does: prices
+/// out, a place per unit taken, purchase pending. Returns every kind bought,
+/// carriers included.
 fn confirm_purchases(
     rules: &Rules,
     frame: &mut ObservationFrame,
@@ -1211,27 +1169,25 @@ fn confirm_purchases(
     for order in orders {
         let Order::ConfirmPurchase {
             variant,
+            carrier,
             destination,
         } = order
         else {
             continue;
         };
-        let kind = rules.catalog.index(variant).unwrap();
-        let price = f64::from(rules.catalog.get(kind).cost);
+        let mut row = pending(0, rules.catalog.index(variant).unwrap(), *destination, tick);
+        row.carrier = carrier.as_deref().and_then(|id| rules.catalog.index(id));
+        let price: f64 = row
+            .kinds()
+            .map(|k| f64::from(rules.catalog.get(k).cost))
+            .sum();
         let me = &mut view.players[0];
-        assert!(price <= me.credits && me.unit_count < me.cap);
+        assert!(price <= me.credits && me.unit_count + row.units() <= me.cap);
+        row.id = contract::skirmish::PurchaseId(me.pending.len() as u32);
         me.credits -= price;
-        me.unit_count += 1;
-        me.pending.push(contract::skirmish::PendingPurchase {
-            id: contract::skirmish::PurchaseId(me.pending.len() as u32),
-            kind,
-            entry: 0,
-            destination: *destination,
-            confirmed_tick: tick,
-            blocked: false,
-            arrival_tick: None,
-        });
-        bought.push(kind);
+        me.unit_count += row.units();
+        bought.extend(row.kinds());
+        me.pending.push(row);
     }
     bought
 }
@@ -1594,5 +1550,25 @@ mod backline;
 mod groups;
 mod parties;
 mod purchases;
+mod ride_purchases;
 mod smoke;
 mod transport_tests;
+
+/// A purchase of `kind` alone, confirmed at `tick` and not yet entering.
+fn pending(
+    id: u32,
+    kind: TypeIndex,
+    destination: [f64; 2],
+    tick: Tick,
+) -> contract::skirmish::PendingPurchase {
+    contract::skirmish::PendingPurchase {
+        id: contract::skirmish::PurchaseId(id),
+        kind,
+        carrier: None,
+        entry: 0,
+        destination,
+        confirmed_tick: tick,
+        blocked: false,
+        arrival_tick: None,
+    }
+}

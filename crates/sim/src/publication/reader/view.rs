@@ -60,7 +60,7 @@ view!(OwnUnit { id: f64, #[serde(skip_serializing_if = "Option::is_none")] owner
     blocker: Option<f64>, route: Vec<Point2>, queue: Vec<Point2>, queue_unloads: Vec<bool>, members: Vec<Point3>, member_ids: Vec<Option<f64>>,
     member_slots: Vec<f64>, member_active_mounts: Vec<Option<f64>>, member_orders: Vec<MemberOrder>,
     member_leans: Vec<Option<MemberLean>>, area: Option<SquadArea>, final_facing: f64, sees: Vec<f64>,
-    engagement: Name, mounts: Vec<Mount>, weapon_poses: Vec<WeaponPose>, hp: f64, smoking: bool, smoke: Option<f64>,
+    engagement: Name, mounts: Vec<Mount>, weapon_poses: Vec<WeaponPose>, hp: f64, smoking: bool, shot_at: bool, smoke: Option<f64>,
     member_hp: Vec<f64>, suppression: Name, concealed: bool, deployment: Option<Deployment>,
     hold: Option<Hold>, stock: Option<f64>, service: Name, sight: Sight });
 view!(Protection { charges: f64, cooldown: Option<f64> });
@@ -190,7 +190,10 @@ view!(PendingPurchase {
     confirmed_tick: f64,
     blocked: bool,
     // The tick a waiting aircraft reaches the map; 0 when it doesn't wait.
-    arrival_tick: f64
+    arrival_tick: f64,
+    // The carrier a squad bought with it arrives aboard.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    carrier: Option<Name>
 });
 view!(Report { totals: Vec<ReportTotals>, events: Vec<ReportEvent> });
 view!(ReportTotals {

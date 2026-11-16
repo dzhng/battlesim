@@ -1,3 +1,4 @@
+import type { PresentedBattle } from "@web/battle/sim/presentation";
 import { act, cleanup, fireEvent } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { Feed } from "@web/feed";
@@ -209,7 +210,7 @@ test("appearance updates reconcile on a frame and unmount releases the scene", a
 test("a complete topology/art replacement bypasses asset-only admission on the old renderer", async () => {
   const { ScenePresentation } = await import("@web/battle/sim/presentation");
   const decoder = new ScenePresentation();
-  decoder.setBattle({ world: {}, tables: new Map() });
+  decoder.setBattle({ world: {}, fielded: {} as PresentedBattle["fielded"] });
   const art = (generation: number): InstalledAppearances => ({
     generation,
     sides: { blue: [1, 1, 1], red: [1, 1, 1] },
@@ -276,7 +277,7 @@ test("battle GPU admission waits for canonical topology before the worker publis
   const { view, advance, frames } = await mount({
     presentation: new Feed<ScenePresentation | null>(decoder),
     frame: () => {
-      if (loaded) decoder.setBattle({ world: {}, tables: new Map() });
+      if (loaded) decoder.setBattle({ world: {}, fielded: {} as PresentedBattle["fielded"] });
       return null;
     },
   });
@@ -297,7 +298,7 @@ test("a session replaced while awaiting topology admits the latest observer", as
   const { ScenePresentation } = await import("@web/battle/sim/presentation");
   const before = new ScenePresentation(),
     after = new ScenePresentation();
-  after.setBattle({ world: {}, tables: new Map() });
+  after.setBattle({ world: {}, fielded: {} as PresentedBattle["fielded"] });
   const observer = new Feed<ScenePresentation | null>(before);
   const { advance, view } = await mount({ presentation: observer, frame: () => null });
   await act(async () => {});
@@ -593,8 +594,8 @@ test("failed admission of a retired observer yields to the latest session", asyn
   const { ScenePresentation } = await import("@web/battle/sim/presentation");
   const before = new ScenePresentation(),
     after = new ScenePresentation();
-  before.setBattle({ world: {}, tables: new Map() });
-  after.setBattle({ world: {}, tables: new Map() });
+  before.setBattle({ world: {}, fielded: {} as PresentedBattle["fielded"] });
+  after.setBattle({ world: {}, fielded: {} as PresentedBattle["fielded"] });
   const observer = new Feed<ScenePresentation | null>(before);
   const { advance, view } = await mount({ presentation: observer, frame: () => null });
   await building();

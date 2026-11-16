@@ -5,7 +5,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Wordmark } from "../Wordmark";
-import { APP_COMMIT, SOURCE_REPO, simFingerprint } from "../buildIdentity";
+import { APP_COMMIT, simFingerprint } from "../buildIdentity";
 import { MENU_PAGES, menuPage, type MenuPageId } from "./pages";
 import { FROM_MENU, useMenuShell } from "./MenuShell";
 
@@ -28,18 +28,11 @@ function BuildLine() {
 }
 
 /** What a visitor should know before playing, under the pre-alpha tag beside
- *  the name: the game is unfinished, and its source is open to read and to
- *  contribute to. */
+ *  the name: the game is unfinished. */
 function ReleaseNotice() {
   return (
     <aside className="menu-notice" aria-label="About this build">
       <p>In active development: things can break at any time.</p>
-      <p>
-        Open source, and contributors are welcome:{" "}
-        <a href={SOURCE_REPO} target="_blank" rel="noreferrer">
-          {SOURCE_REPO.replace(/^https:\/\//, "")}
-        </a>
-      </p>
     </aside>
   );
 }

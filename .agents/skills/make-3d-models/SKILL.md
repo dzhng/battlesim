@@ -170,6 +170,12 @@ result as it lands, polling briefly, and keep test renders small.
   weather differently. The tell is dirt on one model and none on its plainer
   neighbour.
 
+- **A generated limb sits off its bones.** A generator's T-pose arms droop
+  and its knees stand forward of the rig's, so a joint lands at the sleeve's
+  edge and bends the limb about its surface. The tell is an elbow or knee
+  that swings out or up when bent (a corpse's raised knee too high). Seat
+  each limb on its bones before weighting it.
+
 - **A face built from a corner list faces the way its corners turn.** A wall
   listed by hand rather than made by a primitive can face inward. It still
   draws, but lit from behind, so it reads near-black in every light. The tell

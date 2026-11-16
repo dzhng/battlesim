@@ -4,6 +4,9 @@ import type { SimClient } from "../sim/client";
 export const DEFAULT_PLACEMENT_FACING = -Math.PI / 2;
 export interface PurchaseGhost {
   variant: string;
+  /** The carrier `variant` is bought aboard; the ghost is drawn as it, since
+   *  it is what arrives. Absent for a unit bought on its own. */
+  carrier?: string;
   /** Where the unit is sent: the cursor, snapped by the authority to the
    *  nearest ground the unit stands on once a preview answers. */
   destination: [number, number];
@@ -19,6 +22,8 @@ export interface PurchaseGhost {
 /** Free previews are coalesced; only an acknowledgement commits a purchase. */
 export class PurchasePlacementControl {
   variant: string | null = null;
+  /** The carrier the chosen squad rides in, or null on foot. */
+  carrier: string | null = null;
   private ghost: PurchaseGhost | null = null;
   private intent: {
     client: SimClient;
@@ -44,13 +49,19 @@ export class PurchasePlacementControl {
   private confirmation: number | null = null;
   private client: SimClient | null = null;
 
-  choose(variant: string) {
+  /** The unit that enters the map: the carrier, else the variant. */
+  get arriving(): string | null {
+    return this.carrier ?? this.variant;
+  }
+  choose(variant: string, carrier: string | null = null) {
     this.cancel();
     this.variant = variant;
+    this.carrier = carrier;
   }
   cancel() {
     this.generation++;
     this.variant = null;
+    this.carrier = null;
     this.ghost = null;
     this.intent = null;
     this.resolved = null;
@@ -74,11 +85,12 @@ export class PurchasePlacementControl {
       this.resolved = null;
     }
     // Admission depends on where the ghost stands, never on how it is turned.
-    const spot = JSON.stringify([this.generation, this.variant, destination]);
+    const spot = JSON.stringify([this.generation, this.variant, this.carrier, destination]);
     const placement = this.resolved?.spot === spot ? this.resolved.placement : null;
     const at = placement && "Ok" in placement ? placement.Ok.destination : destination;
-    const ghost = {
+    const ghost: PurchaseGhost = {
       variant: this.variant,
+      ...(this.carrier && { carrier: this.carrier }),
       destination: at,
       facing,
       valid: placement ? "Ok" in placement : null,
@@ -100,7 +112,7 @@ export class PurchasePlacementControl {
       return;
     const run = (this.previewRun = intent.spot);
     void intent.client
-      .previewPurchase(intent.ghost.variant, intent.cursor)
+      .previewPurchase(intent.ghost.variant, intent.cursor, intent.ghost.carrier)
       .then(
         (placement) => {
           if (this.intent?.spot !== run) return;
@@ -146,6 +158,7 @@ export class PurchasePlacementControl {
       const ack = await send({
         kind: "confirm_purchase",
         variant: ghost.variant,
+        ...(ghost.carrier && { carrier: ghost.carrier }),
         destination: ghost.destination,
       });
       if (!ack || ack.error) return null;

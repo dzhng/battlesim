@@ -62,6 +62,7 @@ use crate::visibility::OcclusionGrid;
 use crate::weapons::{self, Arsenal, FireContext, Support, Target, VEHICLE_BODY_BASE};
 use crate::world::{PropId, WorldGeometry};
 use contract::random::Rng;
+pub use fire::Round;
 use flown::{clip_to_seen, Flown};
 use replay_identity::{config_digest, scenario_digest};
 use spawn::spawn_unit;
@@ -92,22 +93,6 @@ const RICOCHET_STREAM: u64 = 0x7269_636f_6368_6574;
 /// An attack reaching its target's last reported place within this distance,
 /// without regaining sight, is complete.
 const PURSUIT_ARRIVAL_M: f64 = 5.0;
-
-/// Where a round in flight came from, for consequences and visibility.
-#[derive(Clone, Copy, Debug)]
-pub struct Round {
-    pub weapon: usize,
-    pub unit: UnitId,
-    pub side: Side,
-    /// A seeker missile keeps its target independently of launcher support.
-    pub seeker_target: Option<Target>,
-    /// The unit it was fired at, for its proximity fuse (seeker or not):
-    /// a fuse bursts near whatever its round was aimed at.
-    pub fused_target: Option<UnitId>,
-    /// The height band its shooter fired it from, for its whole flight:
-    /// what an interceptor reaches it by. Never read from its height.
-    pub layer: AltitudeLayer,
-}
 
 /// Where everything stood at one moment of a tick: each unit's pose, and
 /// each soldier's position in unit then member order.
@@ -319,7 +304,7 @@ pub struct Battle {
     shout_evidence: ShoutEvidence,
     shout_fired: BTreeSet<UnitId>,
     shout_kills: BTreeSet<UnitId>,
-    shout_under_fire: BTreeSet<UnitId>,
+    near_rounds: shouts::NearRounds,
     /// Per listening side, the enemies that shouted unseen since the last
     /// sound bucket.
     shouted_unseen: [BTreeSet<UnitId>; 3],
@@ -757,7 +742,7 @@ impl Battle {
             shout_evidence: ShoutEvidence::default(),
             shout_fired: BTreeSet::new(),
             shout_kills: BTreeSet::new(),
-            shout_under_fire: BTreeSet::new(),
+            near_rounds: Default::default(),
             shouted_unseen: Default::default(),
             scenario_digest: scenario_digest(setup),
             config_digest: config_digest(setup),
@@ -2777,9 +2762,9 @@ impl Battle {
                 f.ready_tick =
                     self.tick + (flare.reload_s * self.rules.tick_hz as f64).round() as u64;
             }
-            // A spoofed round's fuse no longer looks for the unit.
+            // A spoofed round no longer flies at the unit.
             let round = self.rounds.get_mut(&projectile).expect("checked above");
-            round.fused_target = None;
+            round.aimed_at = None;
             if round.seeker_target.take().is_some() {
                 self.projectiles.decoy_seeker(
                     projectile,
@@ -2821,29 +2806,9 @@ impl Battle {
                 .unwrap()
                 .cancel(player.expect("validated skirmish player"), purchase)?;
         }
-        if let Order::ConfirmPurchase {
-            variant,
-            destination,
-        } = &command.order
-        {
-            let preview = self.preview_purchase(command.side, variant, *destination)?;
-            let living = self
-                .units
-                .iter()
-                .filter(|u| {
-                    u.side == command.side
-                        && u.alive()
-                        && u.owner.as_deref() == command.player.as_deref()
-                })
-                .count() as u32;
-            self.skirmish.as_mut().unwrap().reserve_at(
-                player.expect("validated skirmish player"),
-                preview.kind,
-                preview.destination,
-                self.rules.catalog.get(preview.kind).cost,
-                (crate::entries::EntryIndex(preview.entry), planning_tick + 1),
-                living,
-            )?;
+        if let Order::ConfirmPurchase { .. } = &command.order {
+            let player = player.expect("validated skirmish player");
+            self.reserve_purchase(&command, player, planning_tick)?;
         }
         let (building, building_refused) = if let Order::OccupyBuilding {
             units, building, ..
@@ -3432,11 +3397,12 @@ impl Battle {
             .flat_map(|side| self.knowledge[side.index()].identified_now(self.tick))
             .map(|(id, _)| (id, self.units[id.0 as usize].layer()))
             .collect();
+        let near = std::mem::take(&mut self.near_rounds);
         self.shout_evidence = if self.tick == 0 {
             ShoutEvidence::default()
         } else {
             let physical = shouts::Physical {
-                under_fire: std::mem::take(&mut self.shout_under_fire),
+                under_fire: near.under_fire,
                 incoming: shouts::incoming(
                     &self.world,
                     self.projectiles.active(),
@@ -3733,6 +3699,7 @@ impl Battle {
                         deployment: deployment::state(u),
                         hp: u.hp,
                         smoking: u.smoking(&self.rules),
+                        shot_at: near.shot_at.contains(&u.id),
                         smoke: u.smoke.map(|s| s.charges),
                         member_hp: u
                             .members

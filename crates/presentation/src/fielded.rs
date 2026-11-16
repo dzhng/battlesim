@@ -21,47 +21,42 @@ use contract::catalog::Mobility;
 use serde_json::{json, Map, Value};
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::sync::Arc;
 
 /// A wreck's pieces a cook-off throws (`WRECK_PIECES`) and its debris state.
 const WRECK_HULL: &str = "hull";
 const WRECK_TURRET: &str = "turret";
 const WRECK_DEBRIS: &str = "debris";
 
-/// A battle's units and effects, and the clip tables its bodies sample.
+/// An immutable battle description. Cloning its maps shares descriptions and
+/// clip data; a growth constructs only the rows it adds.
+#[derive(Clone, Debug, serde::Serialize)]
 pub struct Fielded {
     pub units: UnitsSection,
     pub effects: EffectsSection,
     pub tables: ClipTables,
+    #[serde(skip)]
+    pub work: FieldingWork,
 }
 
-/// [`Fielded`]'s sections as `load_world` reads them, before its reader
-/// checks them.
-pub struct Sections {
-    pub units: Value,
-    pub effects: Value,
-    pub tables: ClipTables,
-}
-
-impl Sections {
-    /// The sections as `load_world` checks them.
-    pub fn typed(self) -> Result<Fielded, String> {
-        Ok(Fielded {
-            units: serde_json::from_value(self.units).map_err(|e| format!("units: {e}"))?,
-            effects: serde_json::from_value(self.effects).map_err(|e| format!("effects: {e}"))?,
-            tables: self.tables,
-        })
-    }
+/// Description work performed by a resolve, separate from deriving content facts.
+#[derive(Default, Clone, Debug, serde::Serialize)]
+pub struct FieldingWork {
+    pub kinds: usize,
+    pub appearances: usize,
 }
 
 /// A runtime content's bytes, inflated, by its hash. File readers can own
 /// these; a boundary can lend its input without another complete catalog copy.
 pub type Read<'a> = dyn Fn(&str) -> Result<Cow<'a, [u8]>, String> + 'a;
 
-/// Facts derived from runtime bundles by a reusable fielding owner.
+/// One battle scope's content facts and immutable resolved descriptions.
+/// Rules, catalogs, presentation settings and factions stay fixed for its life.
 #[derive(Default)]
 pub struct Facts {
     appearances: HashMap<(String, Option<String>), AppearanceFacts>,
     wrecks: HashMap<String, WreckFacts>,
+    resolved: Option<result::Resolved>,
 }
 
 pub(crate) struct BundleFacts<'a> {
@@ -71,8 +66,8 @@ pub(crate) struct BundleFacts<'a> {
 
 #[derive(Clone)]
 struct AppearanceFacts {
-    record: Value,
-    table: Option<Vec<f32>>,
+    record: Arc<crate::world::Appearance>,
+    table: Option<(String, Arc<Vec<f32>>)>,
 }
 
 #[derive(Clone)]
@@ -98,98 +93,131 @@ pub struct Fielding<'a> {
     pub factions: Option<[&'a str; 2]>,
 }
 
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum Content {
+    Appearance {
+        name: String,
+        bundle: String,
+        skeleton: Option<String>,
+    },
+    Wreck {
+        name: String,
+        bundle: String,
+    },
+}
+impl Content {
+    pub fn hashes(&self) -> Vec<String> {
+        match self {
+            Self::Appearance {
+                bundle, skeleton, ..
+            } => std::iter::once(bundle.clone())
+                .chain(skeleton.clone())
+                .collect(),
+            Self::Wreck { bundle, .. } => vec![bundle.clone()],
+        }
+    }
+}
+
 impl Fielding<'_> {
-    /// The runtime contents [`Fielding::resolve`] reads, by hash, sorted:
-    /// each drawn appearance's bundle, each fielded hull's wreck and every
-    /// skeleton's clips.
-    pub fn contents(&self, facts: &Facts) -> Result<Vec<String>, String> {
+    /// Absorb one authored content into the battle's retained facts.
+    pub fn absorb(
+        &self,
+        facts: &mut Facts,
+        content: &Content,
+        read: &Read<'_>,
+    ) -> Result<(), String> {
         let catalog = Catalog::new(self.catalog)?;
         let art = Art::new(self.runtime, &catalog, self.kinds, self.factions)?;
-        let (_, drawn) = unit_types(&catalog, &art, self.kinds, self.factions)?;
-        let mut contents = BTreeSet::new();
+        let bytes = content
+            .hashes()
+            .into_iter()
+            .map(|hash| {
+                let bytes = read(&hash)?;
+                Ok((hash, bytes))
+            })
+            .collect::<Result<HashMap<_, _>, String>>()?;
+        match content {
+            Content::Appearance { name, .. } => {
+                appearance_facts(facts, &art, &bytes, name)?;
+            }
+            Content::Wreck { name, .. } => {
+                effects::wreck_facts(facts, &art, &bytes, name)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Missing fact contents, with the source hashes each derivation needs.
+    pub fn pending(&self, facts: &Facts) -> Result<Vec<Content>, String> {
+        let kinds: Vec<_> = self
+            .kinds
+            .iter()
+            .filter(|k| {
+                facts
+                    .resolved
+                    .as_ref()
+                    .is_none_or(|s| !s.kinds.contains(*k))
+            })
+            .cloned()
+            .collect();
+        let catalog = Catalog::new(self.catalog)?;
+        let art = Art::new(self.runtime, &catalog, &kinds, self.factions)?;
+        let (_, drawn) = unit_types(
+            &catalog,
+            &art,
+            &kinds,
+            self.factions,
+            kinds.iter().map(String::as_str),
+        )?;
+        let mut pending = BTreeMap::new();
         for name in drawn {
             let (bundle, skeleton) = art.key(&name)?;
             if !facts
                 .appearances
                 .contains_key(&(bundle.clone(), skeleton.clone()))
             {
-                contents.insert(bundle);
-                if let Some(skeleton) = skeleton {
-                    contents.insert(skeleton);
-                }
+                pending
+                    .entry((bundle.clone(), skeleton.clone()))
+                    .or_insert(Content::Appearance {
+                        name,
+                        bundle,
+                        skeleton,
+                    });
             }
         }
-        for name in hull_wrecks(&catalog, &art).values() {
+        for name in hull_wrecks(&catalog, &art, &kinds).values() {
             let bundle = art.bundle(name)?.to_owned();
             if !facts.wrecks.contains_key(&bundle) {
-                contents.insert(bundle);
-            }
-        }
-        Ok(contents.into_iter().collect())
-    }
-
-    /// The battle's sections, each content [`Fielding::contents`] names
-    /// read by `read`.
-    pub fn resolve(&self, facts: &mut Facts, read: &Read<'_>) -> Result<Sections, String> {
-        let presentation = PresentationSettings::from_value(self.presentation)?;
-        let catalog = Catalog::new(self.catalog)?;
-        let looks = crate::looks::WeaponLooks::new(
-            presentation.weapon_looks.clone(),
-            &self.rules["weapons"],
-        )?;
-        looks.check_mounts(self.catalog)?;
-        effects::check_smoke_screen_looks(&presentation, &catalog, self.kinds)?;
-        let bytes: HashMap<String, Cow<'_, [u8]>> = self
-            .contents(facts)?
-            .into_iter()
-            .map(|hash| {
-                let value = read(&hash)?;
-                Ok((hash, value))
-            })
-            .collect::<Result<_, String>>()?;
-        let art = Art::new(self.runtime, &catalog, self.kinds, self.factions)?;
-        let mut bundle_facts = BundleFacts {
-            facts,
-            bytes: &bytes,
-        };
-        let (mut units, tables) = units(
-            &presentation,
-            self.rules,
-            &catalog,
-            &art,
-            &mut bundle_facts,
-            self.kinds,
-            self.factions,
-        )?;
-        for unit in units["types"].as_object_mut().unwrap().values_mut() {
-            for mount in unit["mounts"].as_array_mut().unwrap() {
-                mount["weapons"] = Value::Array(
-                    mount["weapons"]
-                        .as_array()
-                        .unwrap()
-                        .iter()
-                        .map(|id| {
-                            let weapon = id.as_str().unwrap();
-                            json!({"kind": weapon, "kick": looks.get(weapon).kick.expect("fielded firing kick")})
-                        })
-                        .collect(),
+                pending.insert(
+                    (bundle.clone(), None),
+                    Content::Wreck {
+                        name: name.clone(),
+                        bundle,
+                    },
                 );
             }
         }
-        let effects = effects::section(
-            &presentation,
-            &looks,
-            self.rules,
-            &catalog,
-            &art,
-            &mut bundle_facts,
-            self.kinds,
-        )?;
-        Ok(Sections {
-            units,
-            effects,
-            tables,
-        })
+        Ok(pending.into_values().collect())
+    }
+
+    /// The runtime contents [`Fielding::resolve`] reads, by hash, sorted:
+    /// each drawn appearance's bundle, each fielded hull's wreck and every
+    /// skeleton's clips.
+    pub fn contents(&self, facts: &Facts) -> Result<Vec<String>, String> {
+        Ok(self
+            .pending(facts)?
+            .iter()
+            .flat_map(Content::hashes)
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect())
+    }
+
+    /// Resolve new kinds into the retained description. Existing descriptions
+    /// remain shared with earlier results; no text crosses the client boundary.
+    pub fn resolve(&self, facts: &mut Facts, read: &Read<'_>) -> Result<Fielded, String> {
+        result::resolve(self, facts, read)
     }
 }
 
@@ -197,6 +225,7 @@ impl Fielding<'_> {
 pub use files::{encounter_kinds, fielded};
 
 mod effects;
+mod result;
 #[cfg(all(feature = "files", not(target_arch = "wasm32")))]
 mod files {
     use super::{Facts, Fielded, Fielding};
@@ -251,8 +280,7 @@ mod files {
         }
         .resolve(&mut facts, &|hash| {
             runtime.read(hash, "bundle.bin").map(Into::into)
-        })?
-        .typed()
+        })
     }
 }
 
@@ -459,7 +487,7 @@ fn appearance_facts(
     let what = format!("bundle {name}");
     let bundle = Container::<Value>::parse(bundle_bytes, BUNDLE, &what)?;
     let fail = |e: String| format!("appearance {name}: {e}");
-    let (record, table) = match bundle.content["kind"].as_str() {
+    let (mut record, table) = match bundle.content["kind"].as_str() {
         Some("skinned") => {
             let skeleton_hash = key.1.as_ref().ok_or("no skeleton")?;
             let skeleton_bytes = bytes
@@ -471,9 +499,24 @@ fn appearance_facts(
         Some("articulated") => (articulated(&bundle).map_err(fail)?, Vec::new()),
         other => return Err(fail(format!("draws a unit but is an {other:?} bundle"))),
     };
+    let table = if table.is_empty() {
+        None
+    } else {
+        // Equal clip tables keep one stable name across discovery orders. Signed
+        // zero compares equal in the former table deduplication too.
+        let bytes: Vec<u8> = table
+            .iter()
+            .flat_map(|&v| (if v == 0.0 { 0.0 } else { v }).to_le_bytes())
+            .collect();
+        let name = format!("clips-{}", contract::identity::bytes_hash(&bytes));
+        record["table"] = json!(name);
+        Some((name, Arc::new(table)))
+    };
     let derived = AppearanceFacts {
-        record,
-        table: (!table.is_empty()).then_some(table),
+        record: Arc::new(
+            serde_json::from_value(record).map_err(|e| format!("appearance {name}: {e}"))?,
+        ),
+        table,
     };
     facts.appearances.insert(key, derived.clone());
     Ok(derived)
@@ -491,11 +534,12 @@ fn track_gauge(art: &Art, name: &str) -> Result<f64, String> {
 
 /// Every catalog type's facts and the appearance sets fielded types draw from
 /// per side, and every appearance those sets name.
-fn unit_types(
+fn unit_types<'a>(
     catalog: &Catalog,
     art: &Art,
     kinds: &[String],
     factions: Option<[&str; 2]>,
+    ids: impl Iterator<Item = &'a str>,
 ) -> Result<(Map<String, Value>, BTreeSet<String>), String> {
     let look = |side: usize, list: &mut dyn Iterator<Item = String>| -> Vec<String> {
         list.filter(|n| art.has(n))
@@ -511,7 +555,7 @@ fn unit_types(
     let mut types = Map::new();
     let mut drawn = BTreeSet::new();
     let fielded: BTreeSet<&str> = kinds.iter().map(String::as_str).collect();
-    for kind in catalog.ids().collect::<BTreeSet<_>>() {
+    for kind in ids.collect::<BTreeSet<_>>() {
         let t = catalog.get(kind)?;
         let has_art = fielded.contains(kind);
         let hull = catalog.hull(kind)?;
@@ -635,70 +679,13 @@ fn unit_types(
     Ok((types, drawn))
 }
 
-/// The `units` section and its clip tables: each fielded type's facts and
-/// the appearance sets it draws from per side, and every one of those
-/// appearances' joints and clips, or rig.
-fn units(
-    presentation: &PresentationSettings,
-    rules: &Value,
-    catalog: &Catalog,
-    art: &Art,
-    bundle_facts: &mut BundleFacts,
-    kinds: &[String],
-    factions: Option<[&str; 2]>,
-) -> Result<(Value, ClipTables), String> {
-    let (types, drawn) = unit_types(catalog, art, kinds, factions)?;
-    let mut body_half = Map::new();
-    for kind in catalog.ids() {
-        let half = catalog.hull(kind)?.map(|h| {
-            json!([
-                h["half_extents_m"][0],
-                h["half_extents_m"][1],
-                h["half_extents_m"][2]
-            ])
-        });
-        body_half.insert(kind.to_owned(), half.unwrap_or(Value::Null));
-    }
-    let mut appearances = Map::new();
-    let mut tables = ClipTables::new();
-    let mut table_of: Vec<(Vec<f32>, String)> = Vec::new();
-    for name in &drawn {
-        let appearance = appearance_facts(bundle_facts.facts, art, bundle_facts.bytes, name)?;
-        let mut record = appearance.record;
-        if let Some(table) = appearance.table {
-            let table_name = match table_of.iter().find(|(t, _)| *t == table) {
-                Some((_, n)) => n.clone(),
-                None => {
-                    let n = format!("clips-{}", table_of.len());
-                    tables.insert(n.clone(), table.clone());
-                    table_of.push((table, n.clone()));
-                    n
-                }
-            };
-            record["table"] = json!(table_name);
-        }
-        appearances.insert(name.clone(), record);
-    }
-    let sides = &art.runtime["sides"];
-    let units = json!({
-        "pose": presentation.pose,
-        "transit": presentation.transit,
-        "leanHold": number(rules, "cover", "lean_hold_s")?,
-        "detail": presentation.models,
-        "tints": { "blue": sides["blue"], "red": sides["red"] },
-        "bodyHalf": body_half,
-        "types": types,
-        "appearances": appearances,
-    });
-    Ok((units, tables))
-}
-
 /// Each hulled unit type's wreck, where its installed model (its
 /// `appearance`, as `layout.unitAppearance` names it) has an installed one,
 /// by type.
-fn hull_wrecks(catalog: &Catalog, art: &Art) -> BTreeMap<String, String> {
-    catalog
-        .ids()
+fn hull_wrecks(catalog: &Catalog, art: &Art, kinds: &[String]) -> BTreeMap<String, String> {
+    kinds
+        .iter()
+        .map(String::as_str)
         .filter_map(|unit| {
             let t = catalog.types.get(unit)?;
             t["body"].get("hull")?;

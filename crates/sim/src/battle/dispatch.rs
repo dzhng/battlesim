@@ -24,7 +24,7 @@ impl Battle {
             // clock starts with combat, and it enters when the clock runs out,
             // whatever the queue holds. Until then its approach is drawn.
             for reservation in &mut skirmish.players[player_index].reservations {
-                let t = self.rules.catalog.get(reservation.data.kind);
+                let t = self.rules.catalog.get(reservation.data.arriving());
                 if reservation.data.arrival_tick.is_some() {
                     continue;
                 }
@@ -55,7 +55,7 @@ impl Battle {
                         continue;
                     }
                     Some(due) => {
-                        let t = self.rules.catalog.get(reservation.data.kind);
+                        let t = self.rules.catalog.get(reservation.data.arriving());
                         let units::Motion::Air(flight) = units::motion(t, &self.rules) else {
                             unreachable!("only an aircraft waits off the map")
                         };
@@ -68,7 +68,7 @@ impl Battle {
                         let z = self.world.height_at(point.x, point.y).unwrap_or(0.0)
                             + flight.cruise_agl_m;
                         self.air_transits[index].push(AirTransit {
-                            kind: reservation.data.kind,
+                            kind: reservation.data.arriving(),
                             point: [point.x, point.y, z],
                             heading,
                             speed_mps: flight.cruise_mps,
@@ -107,7 +107,7 @@ impl Battle {
                 let selected_point = v2(selected.center[0], selected.center[1]);
                 let selected_yaw = selected.yaw;
                 let reservation = &mut skirmish.players[player_index].reservations[next];
-                let t = self.rules.catalog.get(reservation.data.kind);
+                let t = self.rules.catalog.get(reservation.data.arriving());
                 // An aircraft flies in at cruise height over whatever
                 // stands there; a ground unit needs its entry site clear.
                 let clear = match units::ground_mobility(t, &self.rules) {
@@ -159,7 +159,7 @@ impl Battle {
                     skirmish.next_entry_player(entry_index, player_index);
             }
             for reservation in arrived {
-                let t = self.rules.catalog.get(reservation.data.kind);
+                let t = self.rules.catalog.get(reservation.data.arriving());
                 let destination = v2(
                     reservation.data.destination[0],
                     reservation.data.destination[1],
@@ -189,7 +189,11 @@ impl Battle {
                 let setup = contract::scenario::UnitSetup {
                     side,
                     owner: Some(skirmish.players[player_index].id.clone()),
-                    kind: self.rules.catalog.id(reservation.data.kind).to_string(),
+                    kind: self
+                        .rules
+                        .catalog
+                        .id(reservation.data.arriving())
+                        .to_string(),
                     position: [at.x, at.y],
                     yaw,
                     engagement: None,
@@ -219,8 +223,46 @@ impl Battle {
                     facing: None,
                     short: None,
                 }));
+                let carrier = unit.id;
+                let price = reservation.carrier_price.unwrap_or(reservation.price);
                 skirmish.entered.insert(
                     unit.id,
+                    crate::skirmish::EnteredUnit {
+                        price,
+                        entered_tick: self.tick,
+                        player: player_index,
+                    },
+                );
+                skirmish.record_spawn(player_index, unit.id, unit.kind, price, self.tick);
+                self.units.push(unit);
+                if reservation.data.carrier.is_none() {
+                    continue;
+                }
+                // A squad bought in a carrier enters on the carrier's tick,
+                // already aboard and under no order: the carrier's move takes
+                // it there, and its player unloads it (M13).
+                let setup = contract::scenario::UnitSetup {
+                    kind: self.rules.catalog.id(reservation.data.kind).to_string(),
+                    ..setup
+                };
+                let mut squad = spawn_unit(
+                    self.units.len(),
+                    &setup,
+                    &self.world,
+                    &self.rules,
+                    &self.arsenal,
+                    &mut self.last_soldier,
+                    self.seed,
+                );
+                super::controllers::put_under(&mut squad, &controller);
+                squad.settle();
+                squad.hold = Some(crate::hold::Hold {
+                    host: crate::hold::Host::Carrier(carrier),
+                    phase: crate::hold::Phase::Inside,
+                    place: crate::hold::Place::Carrier,
+                });
+                skirmish.entered.insert(
+                    squad.id,
                     crate::skirmish::EnteredUnit {
                         price: reservation.price,
                         entered_tick: self.tick,
@@ -229,12 +271,13 @@ impl Battle {
                 );
                 skirmish.record_spawn(
                     player_index,
-                    unit.id,
-                    unit.kind,
+                    squad.id,
+                    squad.kind,
                     reservation.price,
                     self.tick,
                 );
-                self.units.push(unit);
+                self.units.push(squad);
+                crate::carriage::copy_passenger_positions(&mut self.units);
             }
         }
     }

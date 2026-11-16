@@ -18,6 +18,9 @@ optimization that changes a digest has changed behavior, even if a picture looks
 the same. Seeded randomness and iteration order are part of that contract. A body
 still where the map authored it is held by one digest of the authored props, taken
 when the world is built, so a tick's digest costs what changed, not the map's size.
+Per-tick presentation evidence (the shouts, an own unit's `shot_at`) is
+published but kept out of the digest: it is derived from digested state, such
+as the target a round carries (`Round.aimed_at`), so replays reproduce it.
 
 Seed a draw by what it decides, never by when it is asked. A draw that settles a
 decision (where a squad stands at its goal, where it steps out of a building) is
@@ -87,7 +90,12 @@ parking resolution when the ordered ground cannot accommodate them.
 reinforcements; [the player list](../contract/src/players.rs) says who plays.
 A confirmed purchase reserves both its cost and a place under the player's unit
 cap; physical entry converts that reservation to a living unit only when the road-edge footprint
-is clear. Browser previews use side knowledge, while actual entry checks physical
+is clear. A squad bought with a carrier is one purchase of two units: admitted only
+when the carrier seats every soldier, it holds two places and both prices, enters as
+the carrier on one tick with the squad already aboard, and from then on each unit
+keeps its own price for refunds, bounties and settlement.
+
+Browser previews use side knowledge, while actual entry checks physical
 bodies. These are different questions and must not expose private occupancy through
 a free preview. [Match contracts](../contract/src/skirmish.rs) carry setup and the
 side's observation through the existing publication owner.
@@ -102,6 +110,9 @@ read lanes from it, and none numbers a road itself.
 observation, and everything it decides is an ordinary command. A unit of its
 own that is losing a fight pops its smoke and reverses out of the cloud
 ([smoke](src/skirmish_ai/smoke.rs)); a player's units only pop when ordered.
+A squad it buys where no carrier waits for it comes aboard the carrier that
+seats it, as one purchase ([purchase](src/skirmish_ai/purchase.rs)); boarding
+pairs a squad with a carrier it already has, as after a loss.
 [Team planning](src/skirmish_ai/team/) is the side's level of it: it spreads
 the side's AI players over lanes and objectives and sends help between them.
 Each AI opens on the lane its slot holds; that pull fades over the battle, so

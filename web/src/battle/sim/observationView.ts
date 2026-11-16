@@ -148,6 +148,9 @@ export interface OwnUnitView {
   hp: number;
   /** It trails smoke, by the rule an enemy's is published (`IdentifiedView`). */
   smoking: boolean;
+  /** An enemy round aimed at it passed near it on this publication's tick,
+   *  or struck it. True for that one tick: read it every publication. */
+  shotAt: boolean;
   /** Its smoke charges left; null for a unit that carries no smoke. */
   smoke: number | null;
   /** Health of each living soldier, in `members` order. */
@@ -555,6 +558,8 @@ export interface PendingPurchaseView {
   blocked: boolean;
   /** The tick a waiting aircraft reaches the map; 0 when it doesn't wait. */
   arrivalTick: number;
+  /** The carrier a squad bought with it arrives aboard. */
+  carrier?: string;
 }
 
 export interface MatchReportView {

@@ -20,7 +20,6 @@
 //! row, so the rules may hold at most [`MAX_WEAPON_ROWS`] (64) weapon rows:
 //! the mask travels as three floats of 24 bits (`heardLow`, `heardMid`,
 //! `heardHigh`), and rules with more rows are refused at load.
-use contract::command::TargetRef;
 use contract::ids::Side;
 use contract::observation::{HostRef, MemberLean, ObservationFrame, ShoutSpeaker, ShoutTrigger};
 use contract::players::ControllerKind;
@@ -31,8 +30,10 @@ use crate::ground::GroundRunPatch;
 
 mod crash_row;
 mod layout;
+mod mount_row;
 mod operations;
 mod packing;
+mod pending_row;
 pub mod reader;
 mod report_row;
 mod smoke;
@@ -41,10 +42,12 @@ mod tags;
 use crash_row::{crash_row, CRASH_FIELDS};
 pub use layout::layout_json;
 use layout::pose;
+use mount_row::{mount_row, MOUNT_FIELDS};
 use operations::{
     changed_ranges, compare_rows, measure_group, pack_group, source_copies, VARIABLE_ANCHOR_WORDS,
 };
 use packing::{pack_ground, PackedCount, PackedWriter};
+use pending_row::{pending_row, PENDING_FIELDS};
 use report_row::{report_event_row, REPORT_EVENT_FIELDS};
 pub use smoke::smoke_looks;
 use smoke::{smoke_cloud_row, SMOKE_CLOUD_FIELDS};
@@ -66,24 +69,6 @@ pub const MAX_AMMO_KINDS: usize = 2;
 pub const MAX_WEAPON_ROWS: usize = u64::BITS as usize;
 const HEARD_WORD_BITS: usize = 24;
 const HEARD_WORDS: usize = MAX_WEAPON_ROWS.div_ceil(HEARD_WORD_BITS);
-const MOUNT_FIELDS: [&str; 15] = [
-    "mount",
-    "loaded",
-    "ammo0",
-    "ammo1",
-    "aim",
-    "reload",
-    "targetKind",
-    "targetId",
-    "targetX",
-    "targetY",
-    "targetZ",
-    "reason",
-    "kinds",
-    "guiding",
-    "reloadKind",
-];
-
 const POSE_FIELDS: [&str; 8] = [
     "mount",
     "bearing",
@@ -153,19 +138,6 @@ const OBJECTIVE_FIELDS: [&str; 8] = [
     "capturing",
     "captureProgress",
     "contested",
-];
-const PENDING_FIELDS: [&str; 11] = [
-    "idLo",
-    "idHi",
-    "owner",
-    "kind",
-    "x",
-    "y",
-    "confirmedLo",
-    "confirmedHi",
-    "blocked",
-    "arrivalLo",
-    "arrivalHi",
 ];
 const GROUND_FIELDS: [&str; 4] = ["tile", "span", "craterScorch", "tracksTrampledCleared"];
 const CONTACT_FIELDS: [&str; 16] = [
@@ -262,7 +234,7 @@ const KNOWN_PROP_FIELDS: [&str; 20] = [
     "authoredPropHi",
     "wreckOf",
 ];
-const OWN_FIELDS: [&str; 58] = [
+const OWN_FIELDS: [&str; 59] = [
     "id",
     "owner",
     "kind",
@@ -321,6 +293,7 @@ const OWN_FIELDS: [&str; 58] = [
     "smokeCharges",
     "smoking",
     "goalUnloads",
+    "shotAt",
 ];
 const IDENTIFIED_FIELDS: [&str; 15] = [
     "id",
@@ -884,6 +857,7 @@ fn pack_record(
             u.smoke.map_or(-1.0, |n| n as f32),
             u.smoking as u8 as f32,
             u.goal_unloads as u8 as f32,
+            u.shot_at as u8 as f32,
         ]);
     }
     for u in &frame.own {
@@ -916,32 +890,7 @@ fn pack_record(
         }));
         out.extend(u.member_leans.iter().flat_map(lean));
         out.extend(u.sees.iter().map(|id| id.0 as f32));
-        for m in &u.mounts {
-            let ammo = |k: usize| m.ammo.get(k).map_or(-2.0, |a| a.map_or(-1.0, |n| n as f32));
-            let (kind, id, p) = match m.target {
-                None => (0.0, -1.0, [0.0; 3]),
-                Some(TargetRef::Identified { id }) => (1.0, id.0 as f32, [0.0; 3]),
-                Some(TargetRef::Contact { id }) => (2.0, id.0 as f32, [0.0; 3]),
-                Some(TargetRef::Ground { point }) => (3.0, -1.0, point.map(|v| v as f32)),
-            };
-            out.extend([
-                m.mount as f32,
-                m.loaded.map_or(-1.0, |k| k as f32),
-                ammo(0),
-                ammo(1),
-                m.aim as f32,
-                m.reload as f32,
-                kind,
-                id,
-                p[0],
-                p[1],
-                p[2],
-                tag(&REASONS, &m.reason),
-                m.ammo.len() as f32,
-                m.guiding as u8 as f32,
-                m.reloading.map_or(-1.0, |k| k as f32),
-            ]);
-        }
+        out.extend(u.mounts.iter().flat_map(mount_row));
         // One pose per mount: the section is counted by mountCount.
         assert_eq!(u.weapon_poses.len(), u.mounts.len());
         out.extend(u.weapon_poses.iter().flat_map(pose));
@@ -1190,32 +1139,7 @@ fn pack_record(
     if let Some(skirmish) = &frame.skirmish {
         for player in &skirmish.players {
             for p in &player.pending {
-                let [lo, hi] = limbs(p.id.0);
-                let [tick_lo, tick_hi] = limbs(
-                    p.confirmed_tick
-                        .try_into()
-                        .map_err(|_| "purchase tick exceeds publication range")?,
-                );
-                // An aircraft's arrival tick, 0 for a purchase that doesn't wait.
-                let [arrival_lo, arrival_hi] = limbs(
-                    p.arrival_tick
-                        .unwrap_or(0)
-                        .try_into()
-                        .map_err(|_| "arrival tick exceeds publication range")?,
-                );
-                out.extend([
-                    lo,
-                    hi,
-                    f32::from(player.index.0),
-                    p.kind.0 as f32,
-                    p.destination[0] as f32,
-                    p.destination[1] as f32,
-                    tick_lo,
-                    tick_hi,
-                    p.blocked as u8 as f32,
-                    arrival_lo,
-                    arrival_hi,
-                ]);
+                out.extend(pending_row(player.index, p)?);
             }
         }
     }

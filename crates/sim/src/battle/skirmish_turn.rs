@@ -95,6 +95,7 @@ impl Battle {
                     .cloned()
                     .map(|purchase| Order::ConfirmPurchase {
                         variant: purchase.variant,
+                        carrier: purchase.carrier,
                         destination: purchase.destination,
                     })
                     .collect()
@@ -120,7 +121,14 @@ impl Battle {
             // readiness and movement, are still issued (I10).
             let mut purchase_refused = false;
             for order in orders {
-                let purchase = matches!(order, contract::command::Order::ConfirmPurchase { .. });
+                // The cards a purchase names: two for a squad with its ride.
+                let cards = match &order {
+                    contract::command::Order::ConfirmPurchase { carrier, .. } => {
+                        1 + usize::from(carrier.is_some())
+                    }
+                    _ => 0,
+                };
+                let purchase = cards > 0;
                 if purchase && purchase_refused {
                     continue;
                 }
@@ -144,7 +152,7 @@ impl Battle {
                 );
                 if purchase {
                     if let Some(ai) = self.skirmish_ai.get_mut(&player) {
-                        ai.purchase_result(accepted);
+                        ai.purchase_result(accepted, cards);
                     }
                 }
                 self.ai_receipts.push(AiReceipt {

@@ -69,9 +69,8 @@ import { useSimSession } from "./useSimSession";
 import type { BattleSessionOptions, ScenarioRules } from "./battleSessionOptions";
 import { groundUnderRay, useMapBuildings, useStaticWorld } from "./useStaticWorld";
 import { createBattleAudio } from "./soundFeed";
-import { UnitResponses } from "./unitResponses";
-import { assignments as voiceAssignments } from "@fixtures/voices.json";
-import { factionVoices } from "@packages/battle-audio/src/voices/voiceCatalog";
+import type { UnitResponses } from "./unitResponses";
+import { useUnitVoices } from "./useUnitVoices";
 import { frameCounts, presentedCamera } from "./presentedFrame";
 import type { FogRequest, ScenePresentation } from "@web/battle/sim/presentation";
 import type { ViewportCamera } from "@packages/renderer-core/src/viewportCamera";
@@ -79,10 +78,8 @@ import { useAppAudio } from "./AppAudio";
 import { useFeed } from "@web/feed";
 import type { Vec3 } from "math";
 import {
-  GHOST_BLOCKED,
   GHOST_OWN,
   GHOST_SELECTED,
-  fieldedSoldiers,
   ghostBodies,
   ghostAloft,
   aircraftOrderReadouts,
@@ -91,7 +88,7 @@ import {
   placementUnder,
   type UnitGhost,
 } from "./unitGhosts";
-import { byReference, pendingGhosts } from "./pendingGhosts";
+import { byReference, heldGhost, pendingGhosts } from "./shopGhosts";
 import { modelProbes } from "./modelProbes";
 
 export function useBattleSession({
@@ -104,6 +101,7 @@ export function useBattleSession({
   player,
   sound = false,
   inputEnabled = true,
+  onCenter,
   xray = true,
   prepared,
   scenarioArt = false,
@@ -183,10 +181,6 @@ export function useBattleSession({
     choose: chooseVariant,
     click: clickPurchase,
   } = usePurchasePlacement(sim.client);
-  useEffect(() => {
-    responses.current =
-      audio && sim.client ? new UnitResponses(audio, units, faction, rules.tick_hz) : null;
-  }, [audio, sim.client, units, faction, rules.tick_hz]);
   const { observation } = sim;
   const sceneryForArt = useMemo(() => {
     if (!scenarioArt) return undefined;
@@ -195,20 +189,10 @@ export function useBattleSession({
       ? null
       : undefined;
   }, [map, scenarioArt]);
-  // A shout heard in the open is a bark in its kind's set for its side's
-  // faction; an unseen enemy's is drawn from the enemy faction's sets. The
-  // requested kinds still scope the simulation's descriptions and voices;
+  // The requested kinds still scope the simulation's descriptions and voices;
   // map art is scoped to this session, independently of the page's asset cache.
-  // Outside a skirmish the factions are unknown, so shouts are silent.
   const enemy = skirmish ? sideFaction(side === "blue" ? "red" : "blue") : null;
-  useEffect(() => {
-    if (!audio || !faction || !enemy) return;
-    const rows = units.ids.map((id) => ({ id, factions: units.type(id).roster?.factions ?? [] }));
-    audio.speakers({
-      own: factionVoices(voiceAssignments, rows, faction),
-      enemy: factionVoices(voiceAssignments, rows, enemy),
-    });
-  }, [audio, units, faction, enemy]);
+  useUnitVoices(responses, audio, sim.client, units, faction, enemy, rules.tick_hz);
   const contactPresentation = useMemo(
     () => (sim.client ? new ContactPresentation(rules.tick_hz, gameContactStyle.fade_s) : null),
     [sim.client, rules.tick_hz],
@@ -249,6 +233,7 @@ export function useBattleSession({
         responses.current?.acknowledged(order, ack, queued);
       },
       onSelect: (added, clicked) => responses.current?.selected(added, clicked),
+      onCenter,
     },
     inputEnabled && takesOrders(players, commanding),
     commanding,
@@ -256,10 +241,10 @@ export function useBattleSession({
   /** The side's units an ally owns, with their panels' owner lines. */
   const allies = useMemo(() => allyOwners(observation, commanding), [observation, commanding]);
   const choosePurchase = useCallback(
-    (variant: string) => {
+    (variant: string, carrier?: string) => {
       control.setSelected([]);
       control.setMode("move");
-      chooseVariant(variant);
+      chooseVariant(variant, carrier);
     },
     [control, chooseVariant],
   );
@@ -440,14 +425,7 @@ export function useBattleSession({
           const ghost = orderedGhost(unit, GHOST_OWN);
           if (ghost) ghosts.push(ghost);
         }
-      if (placement && inputEnabled)
-        ghosts.push({
-          kind: placement.variant,
-          at: placement.destination,
-          soldiers: fieldedSoldiers(placement.spots),
-          yaw: placement.facing,
-          look: placement.valid === false ? GHOST_BLOCKED : GHOST_SELECTED,
-        });
+      if (placement && inputEnabled) ghosts.push(heldGhost(placement));
       const presented = presentation.frame(
         time,
         presentedCamera(viewport),
@@ -590,12 +568,12 @@ export function useBattleSession({
       (!pointer.rightPress || releasedAction.capturedFor(sim.client) !== null) &&
       sim.client &&
       world;
-    if (purchasePlacement.variant) {
+    if (purchasePlacement.arriving) {
       const pose =
         active && inputEnabled
           ? placementPose(
               pointer,
-              placementUnder(units, purchasePlacement.variant, aloft, surfaceZ, world.view),
+              placementUnder(units, purchasePlacement.arriving, aloft, surfaceZ, world.view),
             )
           : null;
       purchaseGhost.current = purchasePlacement.at(

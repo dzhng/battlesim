@@ -43,10 +43,15 @@ alone, with their textures and skeletons. What is held is the
 the draft. A name only routes to its identity. A draft that names retired
 content refuses preparation and leaves live art as it was. Page-generated
 bundles are hashed by the contract crate's own function, exported here, so a
-generated identity means what a catalog one does. Preparation returns an owned promise; the caller
+generated identity means what a catalog one does. The draft becomes an owned
+geometry warm-up before final preparation returns an owned promise; the caller
 may continue rendering or dispose its scene while cards bake. Latest-request
-scheduling belongs to the viewport, with one candidate at a time and no
-cancellation. It compares wanted names and content identities; repeating the
+scheduling belongs to the viewport, with one candidate at a time. It supplies
+missing contents and warms missing geometry keys until the shared art-work
+budget is spent, then resumes after a presented frame. Superseding partial
+work drops it before starting the next candidate; submitted card baking
+finishes before the next candidate starts. It compares wanted names and
+content identities; repeating the
 same set keeps the candidate committable. It commits only its desired complete
 candidate and latest model requests at a frame boundary, then publishes a fresh
 canonical frame. Retained source ownership changes with the GPU/catalog commit,

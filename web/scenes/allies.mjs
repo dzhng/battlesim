@@ -13,8 +13,9 @@ import { advance, aim, groundCss, lab, obs, presented, snapshot, until } from ".
  *  blue-1, your ally blue-2). */
 const YOU = 0;
 const ALLY = 1;
-/** What you buy: two tanks, so both armies field vehicles. */
-const FAMILY = "abrams";
+/** What you buy: two tanks, so both armies field vehicles, found by a search
+ *  that names one variant. */
+const QUERY = "abrams sep v2 trophy";
 const BUY = 2;
 
 const dist = (a, b) => Math.hypot(a.position[0] - b.position[0], a.position[1] - b.position[1]);
@@ -64,11 +65,11 @@ export async function run(ctx) {
     distance: 160,
   });
   await presented(page);
-  // Buy through the picker's own keyboard path (a family name, then Enter
-  // arms its first variant's ghost), then ready.
+  // Buy through the picker's own keyboard path (a search that matches one
+  // card, then Enter arms its ghost), then ready.
   await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
   const search = page.getByRole("textbox", { name: "Search units" });
-  await search.fill(FAMILY);
+  await search.fill(QUERY);
   await search.press("Enter");
   // A Shift-click places a tank and keeps the ghost in hand for the next;
   // the last, plain click places one more and puts the ghost away. Every

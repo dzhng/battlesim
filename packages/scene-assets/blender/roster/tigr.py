@@ -189,4 +189,4 @@ def wreck(variant, v):
     rest_on_ground(0.004)
 
 
-run("tigr", "russian_green", build, wreck, chip=0.6)
+run("tigr", "russian_green", build, wreck, chip=0.6, crew_army="eastern_emr")

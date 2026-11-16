@@ -121,12 +121,10 @@ export async function fieldedBattle(
   },
   owner?: FieldingOwner,
 ): Promise<PresentedBattle> {
-  const { units, effects, tables } = owner ? await owner.field(input) : await fieldUnits(input);
+  const fielded = owner ? await owner.field(input) : await fieldUnits(input);
   return {
     world: {
       battle: {
-        units,
-        effects,
         side: input.side,
         tick_hz: input.tickHz,
         soldier: {
@@ -145,7 +143,7 @@ export async function fieldedBattle(
       sun_azimuth: input.sun.azimuth,
       sun_elevation: input.sun.elevation,
     },
-    tables,
+    fielded,
   };
 }
 

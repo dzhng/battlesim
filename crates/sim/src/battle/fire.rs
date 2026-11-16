@@ -3,6 +3,22 @@
 
 use super::*;
 
+/// Where a round in flight came from, for consequences and visibility.
+#[derive(Clone, Copy, Debug)]
+pub struct Round {
+    pub weapon: usize,
+    pub unit: UnitId,
+    pub side: Side,
+    /// A seeker missile keeps its target independently of launcher support.
+    pub seeker_target: Option<Target>,
+    /// The unit it was fired at, until a flare spoofs it: what its
+    /// proximity fuse bursts near, and whom its passing shoots at.
+    pub aimed_at: Option<UnitId>,
+    /// The height band its shooter fired it from, for its whole flight:
+    /// what an interceptor reaches it by. Never read from its height.
+    pub layer: AltitudeLayer,
+}
+
 impl Battle {
     /// Where each soldier stands, not where he leans out to: leaning is not
     /// moving.
@@ -257,7 +273,7 @@ impl Battle {
                         unit: shot.unit,
                         side,
                         seeker_target: seeker.then_some(shot.target),
-                        fused_target: match shot.target {
+                        aimed_at: match shot.target {
                             Target::Unit(target) => Some(target),
                             _ => None,
                         },

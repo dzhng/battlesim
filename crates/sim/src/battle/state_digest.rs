@@ -89,7 +89,7 @@ impl Battle {
             } else {
                 d.u64(0);
             }
-            if let Some(target) = r.fused_target {
+            if let Some(target) = r.aimed_at {
                 d.u64(1).u64(target.0 as u64);
             } else {
                 d.u64(0);

@@ -3469,7 +3469,7 @@ fn test_a_target_met_past_reach_is_passed_over_for_one_in_reach() {
     for _ in 0..600 {
         b.step();
         if let Some((_, round)) = b.rounds().find(|(_, r)| r.unit == UnitId(0)) {
-            assert_eq!(round.fused_target, Some(UnitId(2)), "the first shot");
+            assert_eq!(round.aimed_at, Some(UnitId(2)), "the first shot");
             return;
         }
     }

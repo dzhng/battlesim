@@ -108,7 +108,7 @@ so a stale deploy or cache shows on screen. Art uses
 installs previews through the same appearance loader used by battles.
 
 [The Armory page](src/armory/ArmoryPage.tsx) browses the game's roster by
-faction, group and family, and shows the open card's sheet, which
+faction and group, one tile per card, and shows the open card's sheet, which
 [`unitSheet`](../../web/src/battle/present/unitSheet.ts) reads from the catalog
 and its published weapon facts, never recomputing them. Its selection is the
 page's own state, mirrored to `?unit=` with a raw `replaceState`, so a pick
@@ -143,6 +143,12 @@ fog, effects and complete unit observations behind the feed boundary. Consumers
 that render React views subscribe to the same feed, publishing before paint so
 cards and commands agree with the committed selection. This keeps full observations
 out of development profiling details.
+
+React sees at most one observation a frame, so a fact true for a single tick
+(an own unit's `shotAt`, which blinks its card) is read from every decoded
+publication instead: [the battle view](src/BattleView.tsx) gives the session an
+`onDecoded` that hands each one to the
+[fire blink](../../web/src/battle/present/fireBlink.ts).
 
 [Page resources](src/appResources.ts) retain the admitted GPU across screen changes;
 [the viewport](src/LabViewport.tsx) owns the canvas configuration and scene

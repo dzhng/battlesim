@@ -142,8 +142,10 @@ impl Unit {
         d.u64(self.planned_revision)
             .f64(self.progress.0)
             .u64(self.progress.1)
-            .f64(self.stalls.0)
-            .u64(self.stalls.1);
+            .f64(self.stalls.0.x)
+            .f64(self.stalls.0.y)
+            .u64(self.stalls.1)
+            .u64(self.tries as u64);
         d.f64(self.hp).f64(self.suppression).u64(self.suppressed_at);
         d.u64(self.stock.map_or(u64::MAX, u64::from));
         d.u64(self.protection.is_some() as u64);

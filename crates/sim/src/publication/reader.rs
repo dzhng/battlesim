@@ -115,6 +115,7 @@ macro_rules! v {
 
 mod crash;
 mod hold;
+mod mount;
 mod poses;
 mod report;
 mod skirmish;
@@ -775,6 +776,7 @@ impl Reader {
             weapon_poses: weapon_poses(poses),
             hp: v!(f, "hp"),
             smoking: v!(f, "smoking") == 1.0,
+            shot_at: v!(f, "shotAt") == 1.0,
             smoke: present(v!(f, "smokeCharges")),
             member_hp: column(member_hp),
             suppression: self.name("suppressionTiers", v!(f, "suppression"))?,
@@ -806,41 +808,6 @@ impl Reader {
         Ok(Refusal {
             unit: limbs(v!(r.fields, "unitLo"), v!(r.fields, "unitHi")).unwrap_or(0.0),
             reason: self.name("orderErrors", v!(r.fields, "reason"))?,
-        })
-    }
-
-    fn mount(&self, p: &[f32; MOUNT_FIELDS.len()]) -> Result<Mount> {
-        const FIELDS: &[&str] = &MOUNT_FIELDS;
-        // Ammo per kind: -1 unlimited, -2 no such kind on this mount.
-        let ammo = [v!(p, "ammo0"), v!(p, "ammo1")]
-            .into_iter()
-            .take(v!(p, "kinds").max(0.0) as usize)
-            .map(|n| (n != -1.0).then_some(n))
-            .collect();
-        let kind = self.name("targetKinds", v!(p, "targetKind"))?;
-        let target = match &*kind {
-            "none" => None,
-            "ground" => Some(MountTarget {
-                kind,
-                id: None,
-                point: Some([v!(p, "targetX"), v!(p, "targetY"), v!(p, "targetZ")]),
-            }),
-            _ => Some(MountTarget {
-                kind,
-                id: Some(v!(p, "targetId")),
-                point: None,
-            }),
-        };
-        Ok(Mount {
-            mount: v!(p, "mount"),
-            loaded: present(v!(p, "loaded")),
-            ammo,
-            aim: v!(p, "aim"),
-            reload: v!(p, "reload"),
-            target,
-            reason: self.name("actionReasons", v!(p, "reason"))?,
-            guiding: v!(p, "guiding") == 1.0,
-            reloading: present(v!(p, "reloadKind")),
         })
     }
 

@@ -1,7 +1,9 @@
-//! The battle's one route planner. A unit that needs a route asks for one
-//! and holds where it is; the planner spends each tick's allowance of work
+//! The battle's one route planner. A unit that needs a route asks for one;
+//! the planner spends each tick's allowance of work
 //! (`navigation.work_per_tick`) across every waiting unit's [`Journey`], and
-//! hands back each route on the tick it is whole. Nothing here reads the clock: a
+//! hands back each route on the tick it is whole, with the knowledge
+//! revision it was searched against: the mover checks it against what its
+//! side learned since, as it checks every later change. Nothing here reads the clock: a
 //! route's tick follows from the work counted, so a replay plans the same.
 use std::collections::BTreeMap;
 
@@ -11,7 +13,7 @@ use contract::scenario::NavigationRules;
 
 use crate::digest::Digest;
 use crate::math::{Obb2, V2};
-use crate::navigation::{Journey, Leg, Mobility, NavGrid, Plan, RoadNet, RouteCheck, Scratch};
+use crate::navigation::{Journey, Leg, Mobility, NavGrid, Plan, RoadNet, Scratch};
 
 /// One unit's request for a route, and what its mover needs back with it.
 #[derive(Clone, Debug)]
@@ -34,16 +36,13 @@ struct Job {
     request: Request,
     /// The side's knowledge revision the journey started against.
     revision: u64,
-    stage: Stage,
-}
-
-enum Stage {
-    Planning(Option<Box<Journey>>),
-    Checking(Box<RouteCheck>),
+    journey: Option<Box<Journey>>,
 }
 
 impl Job {
-    /// Spend the allowance on searching and checking against new knowledge.
+    /// Spend the allowance on the journey; its plan, and the revision it
+    /// was planned against, once whole. What the side learned meanwhile is
+    /// the mover's to check, as it checks every change along its route.
     fn advance(
         &mut self,
         (rules, roads): (&NavigationRules, &RoadNet),
@@ -52,73 +51,27 @@ impl Job {
         allowance: u64,
     ) -> (u64, Option<Plan>) {
         let before = grid.work();
-        let plan = loop {
-            let left = allowance.saturating_sub(grid.work() - before);
-            if left == 0 {
-                break None;
-            }
-            let r = &self.request;
-            match &mut self.stage {
-                Stage::Planning(held) => {
-                    let journey = held.get_or_insert_with(|| {
-                        self.revision = revision;
-                        Box::new(Journey::new(
-                            spare.pop(),
-                            Leg {
-                                from: r.from,
-                                goal: r.goal,
-                                m: &r.mobility,
-                                policy: r.policy,
-                                avoid: &r.detour,
-                            },
-                            rules,
-                        ))
-                    });
-                    journey.advance(grid, roads, allowance.saturating_sub(grid.work() - before));
-                    if journey.plan().is_none() {
-                        break None;
-                    }
-                    let (plan, scratch) = held.take().expect("a journey").finish();
-                    spare.extend(scratch);
-                    let plan = plan.expect("a completed journey");
-                    if self.revision == revision {
-                        break Some(plan);
-                    }
-                    self.revision = revision;
-                    if let Plan::Route(route) = plan {
-                        self.stage =
-                            Stage::Checking(Box::new(RouteCheck::new(r.from, route, r.mobility)));
-                    }
-                }
-                Stage::Checking(check) => {
-                    if self.revision != revision {
-                        let Stage::Checking(check) =
-                            std::mem::replace(&mut self.stage, Stage::Planning(None))
-                        else {
-                            unreachable!()
-                        };
-                        self.revision = revision;
-                        self.stage = Stage::Checking(Box::new(RouteCheck::new(
-                            r.from,
-                            check.finish(),
-                            r.mobility,
-                        )));
-                        continue;
-                    }
-                    let Some(safe) = check.step(grid) else {
-                        continue;
-                    };
-                    let Stage::Checking(check) =
-                        std::mem::replace(&mut self.stage, Stage::Planning(None))
-                    else {
-                        unreachable!()
-                    };
-                    if safe {
-                        break Some(Plan::Route(check.finish()));
-                    }
-                }
-            }
-        };
+        let r = &self.request;
+        let journey = self.journey.get_or_insert_with(|| {
+            self.revision = revision;
+            Box::new(Journey::new(
+                spare.pop(),
+                Leg {
+                    from: r.from,
+                    goal: r.goal,
+                    m: &r.mobility,
+                    policy: r.policy,
+                    avoid: &r.detour,
+                },
+                rules,
+            ))
+        });
+        journey.advance(grid, roads, allowance);
+        if journey.plan().is_none() {
+            return (grid.work() - before, None);
+        }
+        let (plan, scratch) = self.journey.take().expect("a journey").finish();
+        spare.extend(scratch);
         (grid.work() - before, plan)
     }
 }
@@ -148,7 +101,7 @@ impl RoutePlanner {
             Job {
                 request,
                 revision: 0,
-                stage: Stage::Planning(None),
+                journey: None,
             },
         );
     }
@@ -156,7 +109,7 @@ impl RoutePlanner {
     /// Drop `unit`'s request, if it has one: its route will never arrive.
     pub fn cancel(&mut self, unit: UnitId) {
         if let Some(Job {
-            stage: Stage::Planning(Some(journey)),
+            journey: Some(journey),
             ..
         }) = self.jobs.remove(&unit)
         {
@@ -188,13 +141,14 @@ impl RoutePlanner {
     /// units, in equal shares, round and round in unit order from where the
     /// last tick stopped. `grids` holds each side's grid and knowledge
     /// revision (for every side with a unit waiting); `roads` is the map's
-    /// road graph. Returns the routes that are whole, in unit order.
+    /// road graph. Returns the routes that are whole, in unit order, each
+    /// with the knowledge revision it was planned against.
     pub fn advance(
         &mut self,
         rules: &NavigationRules,
         roads: &RoadNet,
         grids: [Option<(&NavGrid, u64)>; 3],
-    ) -> Vec<(UnitId, Request, Plan)> {
+    ) -> Vec<(UnitId, Request, Plan, u64)> {
         let allowance = rules.work_per_tick as u64;
         let mut left = allowance.saturating_sub(self.overdraft);
         self.overdraft = self.overdraft.saturating_sub(allowance);
@@ -228,7 +182,7 @@ impl RoutePlanner {
                 match plan {
                     Some(plan) => {
                         let job = self.jobs.remove(&id).expect("the job just advanced");
-                        finished.push((id, job.request, plan));
+                        finished.push((id, job.request, plan, job.revision));
                     }
                     None => still.push(id),
                 }
@@ -274,17 +228,13 @@ impl RoutePlanner {
                 d.f64(p.x).f64(p.y);
             }
             d.u64(job.revision);
-            match &job.stage {
-                Stage::Planning(None) => {
+            match &job.journey {
+                None => {
                     d.u64(0);
                 }
-                Stage::Planning(Some(journey)) => {
+                Some(journey) => {
                     d.u64(1);
                     journey.digest(d);
-                }
-                Stage::Checking(check) => {
-                    d.u64(2);
-                    check.digest(d);
                 }
             }
         }

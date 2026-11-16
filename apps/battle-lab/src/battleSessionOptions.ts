@@ -5,7 +5,7 @@ import type { SoldierBody } from "@packages/battle-renderer/src/picking";
 import type { ResolvedRules } from "@web/battle/catalog/compose";
 import type { PanelRules } from "@web/battle/present/panelRows";
 import type { RulerRules } from "@web/battle/present/rangeRuler";
-import type { ObservationView } from "@web/battle/sim/observationView";
+import type { ObservationView, OwnUnitView } from "@web/battle/sim/observationView";
 import type { SideName } from "@web/battle/sim/protocol";
 import type { ScriptedSim } from "./useSimSession";
 import type { AirLayers } from "./unitGhosts";
@@ -30,6 +30,8 @@ export interface BattleSessionOptions {
   sound?: boolean;
   /** Menus and loading covers suspend command input without losing selection. */
   inputEnabled?: boolean;
+  /** Show this own unit on the map (a control group's key pressed twice). */
+  onCenter?: (unit: OwnUnitView) => void;
   /** Own units hidden by the world are drawn through it (the player's x-ray);
    *  off, the picture shows only what the camera sees. */
   xray?: boolean;

@@ -236,9 +236,7 @@ fn a_road_away_from_rivers_and_swamps_holds_no_water_and_a_squad_on_it_makes_no_
         "gesture": 1, "goal": [400.0, 440.0], "route": "shortest" } }]);
     let scenario: ScenarioDefinition = serde_json::from_value(v).unwrap();
     let f = fielded::fielded(&root(), &scenario.rules, &["test_rifle".to_owned()]).unwrap();
-    let presentation =
-        presentation::effects::tables::EffectPresentation::from_value(&f.effects.presentation)
-            .unwrap();
+    let presentation = f.effects.presentation.as_ref().clone();
     let mut frame = presentation::effects::frame::EffectFrame::new(30.0, presentation);
     let (mut waded, mut made, mut walked) = (0, vec![], 0.0f64);
     watch(&scenario, 60 * 30, |o, p| {
