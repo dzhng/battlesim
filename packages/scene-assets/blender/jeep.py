@@ -278,9 +278,10 @@ if WRECK:  # debris thrown clear, as every roster wreck's (sim hull half extents
 rest_on_ground(0.006 if WRECK else 0.0)
 finish(ao_distance=1.0)
 if not WRECK:
-    from vehicle_crew import REPO, crew
+    from common import REPO
+    from vehicle_crew import crew
     # The jeep is a test unit with no faction; its crew wear the test soldier.
-    CREW = str(REPO / "assets/source/test/rifle.glb")
+    CREW = os.path.join(REPO, "assets/source/test/rifle.glb")
     crew("driver", body, (-0.32, 0.37, 0.96),
          ((0.1, 0.51, 1.24), (0.1, 0.23, 1.24)),
          ((0.35, 0.49, 0.6), (0.35, 0.25, 0.6)), CREW)

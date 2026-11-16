@@ -652,10 +652,7 @@ fn a_skirmish_aircraft_with_low_fuel_turns_home_and_is_refunded() {
                 player: Some("blue-1".into()),
                 seq: 2,
                 queued: false,
-                order: Order::ConfirmPurchase {
-                    variant: "test_heli".into(),
-                    destination: [400.0, 300.0]
-                }
+                order: Order::purchase("test_heli", [400.0, 300.0])
             })
             .error,
         None

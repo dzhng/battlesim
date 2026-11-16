@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 use contract::catalog::{AltitudeLayer, FlightModel};
 use serde::Deserialize;
 use serde_json::Value;
+use std::sync::Arc;
 
 use crate::effects::transit::TransitFeel;
 
@@ -19,7 +20,7 @@ pub fn length(v: Vec3) -> f64 {
     libm::hypot(libm::hypot(v[0], v[1]), v[2])
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
 pub struct WorldInput {
     /// What a battle's units and effects draw from; none for a world of
     /// statics alone (a lab with no battle).
@@ -45,7 +46,7 @@ pub struct BuildingStyle {
     pub tint_jitter: f64,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
 pub struct BattleInput {
     pub units: UnitsSection,
     pub effects: EffectsSection,
@@ -64,7 +65,7 @@ pub struct BattleInput {
     pub stand_in: Option<StandIn>,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StandIn {
     pub appearance: String,
@@ -77,13 +78,13 @@ pub struct StandIn {
     pub shadow: bool,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
 pub struct SoldierBody {
     pub radius_m: f64,
     pub height_m: f64,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
 pub struct Xray {
     pub own: [f64; 4],
     pub selected: [f64; 4],
@@ -92,24 +93,25 @@ pub struct Xray {
 }
 
 /// A node's or joint's local transform.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
 pub struct Trs {
     pub t: Vec3,
     pub r: Quat,
     pub s: Vec3,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
 pub struct PoseRef {
     pub clip: String,
     pub phase: f64,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UnitsSection {
     /// `presentation.pose`, as the pose driver reads it.
-    pub pose: Value,
+    #[serde(deserialize_with = "read_pose")]
+    pub pose: Arc<crate::units::feel::PoseFeel>,
     /// `presentation.transit`, the visible approach and departure durations.
     pub transit: TransitFeel,
     pub lean_hold: f64,
@@ -119,8 +121,8 @@ pub struct UnitsSection {
     /// including types whose art is not fielded yet.
     #[serde(rename = "bodyHalf")]
     pub body_half: BTreeMap<String, Option<Vec3>>,
-    pub types: BTreeMap<String, UnitType>,
-    pub appearances: BTreeMap<String, Appearance>,
+    pub types: BTreeMap<String, Arc<UnitType>>,
+    pub appearances: BTreeMap<String, Arc<Appearance>>,
 }
 
 /// `presentation.models`: mesh tiers by projected size, and the card's and
@@ -151,7 +153,7 @@ impl Detail {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UnitType {
     pub hull: bool,
@@ -186,7 +188,7 @@ impl UnitType {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TypeMount {
     pub weapons: Vec<MountWeapon>,
@@ -194,13 +196,13 @@ pub struct TypeMount {
     pub active_pose: Option<PoseRef>,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
 pub struct MountWeapon {
     pub kind: String,
     pub kick: crate::looks::Kick,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
 pub struct Draws {
     #[serde(rename = "halfTrack")]
     pub half_track: f64,
@@ -209,20 +211,20 @@ pub struct Draws {
     pub operated: Vec<Option<Operated>>,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
 pub struct Operated {
     pub active: Vec<String>,
     pub carried: Vec<String>,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
 pub struct Node {
     pub name: String,
     pub parent: i32,
     pub bind: Trs,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Clip {
     pub offset: usize,
@@ -234,7 +236,7 @@ pub struct Clip {
     pub stride: Option<f64>,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
 pub struct Muzzle {
     pub joint: usize,
     pub offset: Trs,
@@ -242,7 +244,7 @@ pub struct Muzzle {
 
 /// How big a model is drawn, for its tier and culling (`view::model_detail`):
 /// standing height and reach from its foot, metres.
-#[derive(Clone, Copy, Debug, Default, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, serde::Serialize)]
 pub struct Bounds {
     pub size: f64,
     pub radius: f64,
@@ -250,7 +252,7 @@ pub struct Bounds {
 
 /// A box as a bundle's state gives it (`bounds`): its least and greatest
 /// corners, metres.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
 pub struct Corners {
     pub min: Vec3,
     pub max: Vec3,
@@ -275,7 +277,7 @@ pub fn bounds_size([min, max]: [Vec3; 2]) -> Bounds {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum Appearance {
     #[serde(rename_all = "camelCase")]
@@ -312,7 +314,7 @@ pub enum Appearance {
     },
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Rig {
     pub turret: i32,
@@ -332,13 +334,13 @@ pub struct Rig {
     pub muzzles: BTreeMap<String, usize>,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
 pub struct RigPitch {
     pub gun: [f64; 2],
     pub hmg: [f64; 2],
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
 pub struct Wheel {
     pub node: usize,
     pub radius: f64,
@@ -384,7 +386,7 @@ pub struct Track {
     pub link_pitch: f64,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
 pub struct Rotor {
     pub node: usize,
     pub radius: f64,
@@ -396,7 +398,7 @@ pub struct Rotor {
     pub mast_radius: f64,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
 pub struct Deploy {
     pub node: usize,
     pub start: f64,
@@ -406,27 +408,28 @@ pub struct Deploy {
     pub turn: Vec3,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EffectsSection {
     /// `presentation.effects`, each weapon's rows resolved (`gameEffects`).
-    pub presentation: Value,
-    pub types: BTreeMap<String, EffectType>,
+    #[serde(deserialize_with = "read_effects")]
+    pub presentation: Arc<crate::effects::tables::EffectPresentation>,
+    pub types: BTreeMap<String, Arc<EffectType>>,
     /// Prop kinds that smoke once known, each with its look.
-    pub smokes: BTreeMap<String, String>,
+    pub smokes: Arc<BTreeMap<String, String>>,
     pub wrecks: BTreeMap<String, Wreck>,
     /// By unit type: how its hull dies.
     #[serde(default)]
-    pub wreck_looks: BTreeMap<String, WreckLook>,
+    pub wreck_looks: BTreeMap<String, Arc<WreckLook>>,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
 pub struct EffectType {
     pub muzzles: Vec<Option<MountMuzzle>>,
 }
 
 /// A hull mount's muzzle model (`mountMuzzle.ts`).
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
 pub struct MountMuzzle {
     pub on: Option<usize>,
     pub pivot: Vec3,
@@ -438,7 +441,7 @@ pub struct MountMuzzle {
 /// and its `looks`), that wreck's footprint (half extents) and its whole
 /// `default` state's resting bounds (min, max), and how hard the dead hull
 /// brakes to a stop, m/s² (top speed over `movement.drive.wreck_stop_s`).
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
 pub struct WreckLook {
     pub appearance: String,
     pub footprint: Vec3,
@@ -446,7 +449,7 @@ pub struct WreckLook {
     pub braking: f64,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Wreck {
     pub lies: Option<Vec3>,
@@ -514,4 +517,22 @@ impl<'a> BodyBox<'a> {
             Some(self.soldier_half)
         }
     }
+}
+
+// File inputs and retained fielding results have the same checked tuning.
+fn read_pose<'de, D: serde::Deserializer<'de>>(
+    d: D,
+) -> Result<Arc<crate::units::feel::PoseFeel>, D::Error> {
+    let value = Value::deserialize(d)?;
+    crate::units::feel::PoseFeel::from_value(&value)
+        .map(Arc::new)
+        .map_err(serde::de::Error::custom)
+}
+fn read_effects<'de, D: serde::Deserializer<'de>>(
+    d: D,
+) -> Result<Arc<crate::effects::tables::EffectPresentation>, D::Error> {
+    let value = Value::deserialize(d)?;
+    crate::effects::tables::EffectPresentation::from_value(&value)
+        .map(Arc::new)
+        .map_err(serde::de::Error::custom)
 }

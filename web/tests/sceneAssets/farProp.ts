@@ -3,7 +3,8 @@
 
 import type { Vec3 } from "math";
 import type { GltfJson } from "@packages/scene-assets/src/glb.ts";
-import { GltfBuilder, gBox, withJson } from "./synthetic";
+import { GltfBuilder } from "./gltfBuilder";
+import { gBox, withJson } from "./synthetic";
 
 /** The far mesh's slab (`farPropGlb`): squat, at the walls' foot, so its
  *  bounds tell it apart from every tier. */

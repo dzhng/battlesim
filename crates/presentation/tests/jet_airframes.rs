@@ -74,8 +74,6 @@ fn drawn_roster() -> Vec<(String, String, DrawnJet, [f64; 4], f64)> {
     .resolve(&mut Facts::default(), &|hash| {
         runtime.read(hash, "bundle.bin").map(Into::into)
     })
-    .unwrap()
-    .typed()
     .unwrap();
     let units = Arc::new(fielded.units);
     let mut drawn = DrawnModels::new(units.clone(), Arc::new(fielded.tables), "blue");
@@ -102,7 +100,8 @@ fn drawn_roster() -> Vec<(String, String, DrawnJet, [f64; 4], f64)> {
         .enumerate()
         .map(|(i, ((id, family), jet))| {
             let name = units.resolve(&id, "blue", i as f64, 0, None, None).unwrap();
-            let Some(Appearance::Articulated { plan, bounds, .. }) = units.appearances.get(name)
+            let Some(Appearance::Articulated { plan, bounds, .. }) =
+                units.appearances.get(name).map(AsRef::as_ref)
             else {
                 panic!("{id}: an articulated model");
             };

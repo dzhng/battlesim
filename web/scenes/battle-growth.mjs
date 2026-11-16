@@ -177,8 +177,7 @@ export async function run(ctx) {
       JSON.stringify({ cards: art.cards, core: work?.core }),
     );
   }
-  // A loose tripwire at 700 ms, about one quarter of slice 00's 2.5–2.9 s
-  // freeze at this profile. Work counts above are the performance contract.
+  // A loose tripwire at 700 ms. Work counts above are the performance contract.
   const frames = timeline.filter(
     (e) =>
       e.kind === "long frame" &&

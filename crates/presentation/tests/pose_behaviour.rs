@@ -373,7 +373,10 @@ fn a_kick_turns_his_upper_body_back_about_his_waist_the_muzzle_climbs_the_hips_s
         table,
         muzzle: Some(socket),
         ..
-    }) = units.appearances.get("rifle_squad_active_a")
+    }) = units
+        .appearances
+        .get("rifle_squad_active_a")
+        .map(AsRef::as_ref)
     else {
         panic!("the fixture's rifleman is skinned, with a muzzle");
     };
@@ -447,7 +450,7 @@ fn a_soldier_s_flash_sits_on_his_muzzle_as_his_body_is_drawn_mid_crossfade_and_k
         table,
         muzzle: Some(socket),
         ..
-    }) = units.appearances.get(&name)
+    }) = units.appearances.get(&name).map(AsRef::as_ref)
     else {
         panic!("{name} is skinned, with a muzzle");
     };
@@ -475,7 +478,7 @@ fn a_soldier_s_flash_sits_on_his_muzzle_as_his_body_is_drawn_mid_crossfade_and_k
         ]
     };
     let mut tables = ClipTables::new();
-    tables.insert(table.clone(), samples.clone());
+    tables.insert(table.clone(), samples.clone().into());
     let mut drawn = DrawnModels::new(Arc::new(units.clone()), Arc::new(tables), "blue");
     let mut flash_at = |pose: &SoldierPose| {
         drawn.update(&PoseFrame {

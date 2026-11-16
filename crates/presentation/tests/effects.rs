@@ -164,7 +164,7 @@ fn a_fixture_runs_plate_counts_are_the_pages_replay_of_its_capture() {
         &kinds,
     )
     .unwrap();
-    let p = EffectPresentation::from_value(&effects.presentation).expect("presentation");
+    let p = effects.presentation.as_ref().clone();
     let mut batch = EffectBatch::new(p.capacity);
     let mut frame = EffectFrame::new(capture["tickHz"].as_f64().unwrap(), p);
     let mut reader = Reader::new(capture["layout"].as_str().unwrap()).expect("layout");

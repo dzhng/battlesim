@@ -25,7 +25,11 @@ pub fn units() -> UnitsSection {
 }
 
 pub fn feel(units: &UnitsSection, path: &str) -> f64 {
-    units.pose.pointer(path).and_then(Value::as_f64).unwrap()
+    serde_json::to_value(&units.pose)
+        .unwrap()
+        .pointer(path)
+        .and_then(Value::as_f64)
+        .unwrap()
 }
 
 /// A rifleman at (x, y) with his rifle up, `shots` rounds fired.

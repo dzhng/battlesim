@@ -1,11 +1,10 @@
 // The appearance validator. Isomorphic: it takes bytes and data, never paths
-// to read, so the CLI, the bake and tests share it. `validateAppearance` and
-// `validateSkeleton` import, build and check one catalog entry; they return the
-// findings, stats and — when nothing is an error — the bundle to encode.
+// to read, so the CLI, the bake and tests share it. `validateAppearance` (and
+// `validateSkeleton`, in skeleton.ts) import, build and check one catalog entry;
+// they return the findings, stats and — when nothing is an error — the bundle.
 
 import {
   buildArticulated,
-  buildClips,
   buildKitModules,
   buildSkinned,
   buildStaticState,
@@ -33,11 +32,10 @@ import { textureFindings } from "./texture.ts";
 import { grassStripFindings } from "./grass.ts";
 import { canopyFindings, sizeFindings } from "./treeFit.ts";
 import { debrisFindings, pieceFindings } from "./wreckFit.ts";
-import { footprintFindings, groundFindings } from "./boxFit.ts";
-import { infantryFindings } from "./infantryFit.ts";
+import { extentFindings, footprintFindings, groundFindings } from "./boxFit.ts";
+import { infantryFindings, lyingFindings } from "./soldierFit.ts";
 import { typeFindings } from "./vehicleFit.ts";
 import {
-  INFANTRY_CLIPS,
   INFANTRY_CORPSES,
   TIER_COUNT,
   UNIT_BUNDLE_KIND,
@@ -53,13 +51,12 @@ import {
   type Material,
   type MaterialRole,
   type MeshData,
-  type PoseRef,
   type SkeletonClips,
-  type SkeletonEntry,
   type SkinnedBundle,
   type StaticBundle,
   type Tolerances,
 } from "./schema.ts";
+import type { SkeletonRef } from "./skeleton.ts";
 import { finding, fmt } from "./finding.ts";
 
 export interface ValidationContext {
@@ -100,54 +97,6 @@ const surfaceFindings = (label: string, bundle: Exclude<Bundle, SkeletonClips>) 
   ...materialFindings(label, bundle),
 ];
 
-// ---------------------------------------------------------------- skeleton clips
-
-export async function validateSkeleton(
-  id: string,
-  entry: SkeletonEntry,
-  bytes: Uint8Array,
-): Promise<Validation<SkeletonClips>> {
-  const { scene, findings } = importScene(bytes, entry.source, entry.basis_yaw_deg);
-  if (!scene) return { findings, stats: null, bundle: null, preview: null };
-  const built = buildClips(scene, entry.source, id, entry.sample_hz, entry.clips);
-  findings.push(...built.findings);
-  if (!built.built) return { findings, stats: null, bundle: null, preview: null };
-  findings.push(...clipRoleFindings(built.built, entry.aim_reference, entry.source));
-  const clips = built.built;
-  return {
-    findings,
-    stats: {
-      kind: "clips",
-      tiers: [],
-      joints: clips.joints.length,
-      clips: clips.clips.map((c) => ({
-        name: c.name,
-        loop: c.loop,
-        duration: c.duration,
-        frames: c.frames,
-      })),
-      source_bytes: bytes.byteLength,
-    },
-    bundle: hasErrors(findings) ? null : clips,
-    preview: clips,
-  };
-}
-
-function clipRoleFindings(clips: SkeletonClips, aim: PoseRef, label: string): Finding[] {
-  const names = new Set(clips.clips.map((c) => c.name));
-  return [...INFANTRY_CLIPS, aim.clip]
-    .filter((name, i, all) => all.indexOf(name) === i && !names.has(name))
-    .map((name) =>
-      finding(
-        "structure.clips",
-        `${label}: skeleton ${clips.id} lacks clip "${name}"`,
-        name === aim.clip
-          ? "author the standing-aim reference pose infantry fit is measured in"
-          : `author the "${name}" role on the skeleton`,
-      ),
-    );
-}
-
 // ---------------------------------------------------------------- appearances
 
 export interface AppearanceInput {
@@ -156,7 +105,7 @@ export interface AppearanceInput {
   /** Source bytes by catalog path (the entry's `source` or `states`). */
   files: Record<string, Uint8Array>;
   /** Skinned: the skeleton's clips and its aim reference pose. */
-  skeleton?: { clips: SkeletonClips; aim_reference: PoseRef };
+  skeleton?: SkeletonRef;
   /** Articulated: the unit types to fit it to; by default every type whose
    *  `appearance` names it (`name`). */
   types?: string[];
@@ -429,6 +378,7 @@ export async function validateAppearance(
   };
   findings.push(
     ...surfaceFindings(path, bundle),
+    ...lyingFindings(path, bundle, skeleton.clips, tolerances),
     ...unitArtFindings(path, imported.scene, bundle, tiers.map(triangleCount), [SOLDIER_CLASS]),
   );
   return {

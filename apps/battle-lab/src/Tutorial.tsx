@@ -176,14 +176,19 @@ export function Tutorial() {
             .
           </li>
           <li>
-            Each card is a family of units and shows its cheapest price, which warns you when you
-            cannot afford it. <strong>Hover</strong> a card to fan out its variants with their
-            weapons and prices, and click the one you want; click the card itself to take the first
-            one you can afford.
+            Each card is one unit, and its price warns you when you cannot afford it. Variants of
+            one design stand side by side, cheapest first. <strong>Hover</strong> a card to see its
+            name, weapons and price, and click it to buy that unit.
+          </li>
+          <li>
+            <strong>Hover</strong> a squad to pick its ride: a menu over its card offers{" "}
+            <strong>On foot</strong>, what a plain click on the squad buys, and every vehicle or
+            helicopter with a seat for each soldier; click a ride to buy both, and the squad arrives
+            aboard it and stays in until you unload it.
           </li>
           <li>
             Press <kbd>Tab</kbd> again to type a name into the search, and once more to leave it.{" "}
-            <kbd>Enter</kbd> buys when one family matches. <kbd>Esc</kbd> clears the search, then
+            <kbd>Enter</kbd> buys when one card matches. <kbd>Esc</kbd> clears the search, then
             closes the shop.
           </li>
           <li>
@@ -192,9 +197,9 @@ export function Tutorial() {
             <kbd>Esc</kbd> cancels without spending anything.
           </li>
           <li>
-            The price is paid when you confirm, and each placement buys one unit. Hold{" "}
-            <kbd>Shift</kbd> as you click to keep the unit in hand and place another of the same; a
-            click without <kbd>Shift</kbd> places the last one.
+            The price is paid when you confirm, and each placement buys one unit, or a squad and its
+            ride. Hold <kbd>Shift</kbd> as you click to keep it in hand and place another of the
+            same; a click without <kbd>Shift</kbd> places the last one.
           </li>
           <li>
             You can keep buying all battle: a unit bought mid-fight drives in from your entry point
@@ -202,8 +207,8 @@ export function Tutorial() {
           </li>
         </ul>
         <Shot name="buy">
-          The MBT tab, the M1 Abrams family fanned out above its card: each variant&apos;s weapons,
-          ammunition and price.
+          A rifle squad&apos;s transport menu over the INF tab. Pointing at a ride stacks its info
+          card above the squad&apos;s, which is marked aboard, with the total for both.
         </Shot>
         <Shot name="place" loop>
           Placing a rifle squad: its ghost shows where each soldier will stand. Over a building the

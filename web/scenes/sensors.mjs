@@ -237,9 +237,12 @@ async function contactChecks(ctx) {
   );
   const lines = await page.getByTestId("contact-lines").locator("li").allTextContents();
   ctx.check(
-    "the firing contact gets a status line, and heard sounds get none",
-    lines.length > 0 && !lines.some((text) => text.startsWith("Heard")),
-    lines.join(" | "),
+    "firing evidence keeps its UNKNOWN map card without a status line; heard sounds add none",
+    o.contacts.every((c) => c.source === "firing") &&
+      labels.length === 1 &&
+      /UNKNOWN/.test(labels[0]) &&
+      lines.length === 0,
+    JSON.stringify({ contacts: o.contacts, labels, lines }),
   );
   await writeFile(ctx.evidencePath("contact-lines.txt"), lines.join("\n"));
   await page.close();

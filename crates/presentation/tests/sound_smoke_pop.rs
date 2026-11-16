@@ -199,8 +199,6 @@ fn a_side_always_hears_its_own_units_pop() {
     .resolve(&mut Facts::default(), &|hash| {
         runtime.read(hash, "bundle.bin").map(Into::into)
     })
-    .unwrap()
-    .typed()
     .unwrap();
     let mut reader = Reader::new(&sim::publication::layout_json(&battle)).unwrap();
     let mut publisher = Publisher::new();

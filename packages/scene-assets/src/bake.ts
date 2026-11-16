@@ -36,10 +36,10 @@ import {
   wreckFindings,
   factionLookFindings,
   validateAppearance,
-  validateSkeleton,
   type Stats,
   type ValidationContext,
 } from "./validate.ts";
+import { validateSkeleton } from "./skeleton.ts";
 import type { MountDraws } from "./units.ts";
 
 export interface BakeReport {

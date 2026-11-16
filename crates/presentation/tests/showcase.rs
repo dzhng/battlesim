@@ -54,8 +54,6 @@ fn fielded(kinds: &[&str], factions: Option<[&str; 2]>, edit: impl FnOnce(&mut V
         runtime.read(hash, "bundle.bin").map(Into::into)
     })
     .unwrap()
-    .typed()
-    .unwrap()
 }
 
 fn plain(kind: &str) -> Fielded {
@@ -228,7 +226,8 @@ fn a_parked_rotorcraft_draws_its_blades_at_rest_and_throws_no_effects() {
             p.effects().is_empty(),
             "frame {k}: a parked rotorcraft throws no effects, no rotor disc"
         );
-        let Some(Appearance::Articulated { rig, .. }) = appearances.get(&name) else {
+        let Some(Appearance::Articulated { rig, .. }) = appearances.get(&name).map(AsRef::as_ref)
+        else {
             panic!("{name} is not articulated");
         };
         assert!(!rig.rotors.is_empty(), "{name} has rotors");

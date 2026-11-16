@@ -5,20 +5,18 @@
 import { presentationSettings } from "@web/presentationSettings";
 import type { AppearanceLibrary } from "@packages/scene-assets/src/loader";
 import type { CatalogView } from "@packages/scene-assets/src/units";
-import { Fielding } from "@wasm/renderer_browser";
+import { Fielding, type Fielded } from "@wasm/renderer_browser";
+import { diagnosticsEvent } from "@web/diagnostics";
 import { releaseTransport } from "../transport";
+import { artFrame, artWork } from "../artWork";
 
 /** The runtime files a page's appearances were loaded from: the runtime
  *  catalog and its bundle contents by hash (`AppearanceLibrary`). */
 export type RuntimeFiles = Pick<AppearanceLibrary, "catalog" | "contents">;
 
-/** The units and effects sections `kinds` draw from, and each clip table
- *  their bodies sample, by name. */
-export interface FieldedUnits {
-  units: object;
-  effects: object;
-  tables: ReadonlyMap<string, Float32Array>;
-}
+/** A Rust-owned immutable result. Only the hull query and work report cross
+ *  the boundary; presentation borrows its descriptions directly. */
+export type FieldedUnits = Fielded;
 
 type FieldingInput = Parameters<typeof createFielding>[0];
 
@@ -51,7 +49,12 @@ export class FieldingOwner {
       }
       const { fielding } = (this.made ??= { fielding: createFielding(input), source });
       fielding.set_kinds(JSON.stringify(input.kinds));
-      const result = await resolveFielding(fielding, input);
+      const result = await resolveFielding(fielding, input, () => this.closed);
+      // Yield when resolving spent this frame's art-work budget, so what the
+      // caller does with the result starts in a fresh frame; a small growth
+      // finishes in this one.
+      if (artWork.exhausted()) await artFrame();
+      if (this.closed) throw new Error("fielding owner is closed");
       this.last = { source, kinds: input.kinds, result };
       return result;
     });
@@ -150,30 +153,67 @@ async function resolveFielding(
   input: {
     runtime: RuntimeFiles;
   },
+  closed: () => boolean,
 ): Promise<FieldedUnits> {
-  const files = await input.runtime.contents(fielding.contents());
-  const lengths = Uint32Array.from(files, (f) => f.length);
-  const bytes = new Uint8Array(lengths.reduce((n, l) => n + l, 0));
-  let at = 0;
-  for (const f of files) {
-    bytes.set(f, at);
-    at += f.length;
-    releaseTransport(f);
-  }
-  let sections: string;
+  const pending = JSON.parse(fielding.pending_contents()) as {
+    bundle: string;
+    skeleton?: string | null;
+  }[];
+  const hashes = (content: (typeof pending)[number]) => [
+    content.bundle,
+    ...(content.skeleton ? [content.skeleton] : []),
+  ];
+  const uses = new Map<string, number>();
+  for (const content of pending)
+    for (const hash of hashes(content)) uses.set(hash, (uses.get(hash) ?? 0) + 1);
+  const sources = new Map<string, Uint8Array<ArrayBuffer>>();
   try {
-    sections = fielding.resolve(bytes, lengths);
+    // Inflate independent inputs together: the browser streams gzip off the
+    // frame, and only absorption spends frame work.
+    const reads = await Promise.allSettled(
+      [...uses.keys()].map(async (hash) => {
+        const [file] = await input.runtime.contents([hash]);
+        sources.set(hash, file);
+      }),
+    );
+    const refused = reads.find((read) => read.status === "rejected");
+    if (refused?.status === "rejected") throw refused.reason;
+    for (const content of pending) {
+      const needed = hashes(content);
+      if (artWork.exhausted()) await artFrame();
+      // A battle that has ended stops spending the frames the next one needs.
+      if (closed()) throw new Error("fielding owner is closed");
+      artWork.run(() => {
+        const files = needed.map((hash) => sources.get(hash)!);
+        const lengths = Uint32Array.from(files, (file) => file.length);
+        const bytes = new Uint8Array(files.reduce((sum, file) => sum + file.length, 0));
+        let at = 0;
+        for (const file of files) {
+          bytes.set(file, at);
+          at += file.length;
+        }
+        try {
+          fielding.absorb(JSON.stringify(content), bytes, lengths);
+        } finally {
+          releaseTransport(bytes);
+        }
+      });
+      for (const hash of needed) {
+        const left = uses.get(hash)! - 1;
+        uses.set(hash, left);
+        if (!left) {
+          releaseTransport(sources.get(hash)!);
+          sources.delete(hash);
+        }
+      }
+    }
   } finally {
-    releaseTransport(bytes);
+    for (const file of sources.values()) releaseTransport(file);
   }
-  const { units, effects, tables } = JSON.parse(sections) as {
-    units: object;
-    effects: object;
-    tables: string[];
-  };
-  return {
-    units,
-    effects,
-    tables: new Map(tables.map((name, i) => [name, fielding.table(i)])),
-  };
+  if (artWork.exhausted()) await artFrame();
+  return artWork.run(() => {
+    const result = fielding.resolve();
+    diagnosticsEvent("battle fielded", JSON.parse(result.work()));
+    return result;
+  });
 }

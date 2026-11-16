@@ -511,9 +511,19 @@ export class UnitCatalog {
     return "squad" in body ? body.squad.slots : [];
   }
 
+  /** A squad's soldiers at full strength, one per slot; 0 for a hull. */
+  squadSize(id: string): number {
+    return this.slots(id).length;
+  }
+
   /** Infantry: it has soldier slots. */
   isInfantry(id: string): boolean {
-    return this.slots(id).length > 0;
+    return this.squadSize(id) > 0;
+  }
+
+  /** The soldiers a carrier seats; 0 for a type that carries no one. */
+  seats(id: string): number {
+    return this.type(id).capabilities.carriage?.seats ?? 0;
   }
 
   soldier(kind: string): SoldierKind {

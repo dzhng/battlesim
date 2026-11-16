@@ -33,8 +33,8 @@ import {
   testCatalog,
   testSources,
   withJson,
-  type GltfBuilder,
 } from "./synthetic";
+import type { GltfBuilder } from "./gltfBuilder";
 
 const context = { authority: AUTHORITY, tolerances: TOLERANCES };
 
