@@ -23,7 +23,7 @@ first kind.
 What the probe overstates: its tier 3 is the far mesh everywhere, so it also
 coarsens the casts of cars and walls outside the view, and the tactical view.
 The finished design keeps tier 3 for casters outside the view
-([decision 3](../decisions.md)). Those casters are 8.1 million of the 50.6
+(as first built; [the shadow rule](../decisions.md) later removed those casts). Those casters are 8.1 million of the 50.6
 million triangles removed (5.05 million from cars, 3.01 million from walls), so
 the finished feature will save less at the wide hold. If time followed
 triangles linearly, the saving would be about 9.7 ms, but that is an
