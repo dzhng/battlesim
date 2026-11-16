@@ -176,10 +176,11 @@ player's `low` profile instead, because its regression is judged on the setting
 humans see; the runner derives this from that directory and `--visual` selects
 the same set. `SCENE_GRAPHICS_QUALITY` moves the other scenes off `minimum` for a
 run; it never changes the setting pictures are judged at.
-Rendering jobs from separate checkouts still share one GPU, so run them under
-the repository lock, for example
-`lockf -k <main checkout>/throwaway/gpu.lock bun run --cwd web scene -- <fixture-id>`
-(`flock` on Linux). [The runner's usage comment](scene.mjs) owns the flags and
+Checkouts share one GPU. Only a frame-timing measurement needs it alone, so
+only that takes the repository lock, for example
+`lockf -k <main checkout>/throwaway/gpu.lock bun run --cwd web scene -- <timing-fixture>`
+(`flock` on Linux). Pictures, recordings and GPU tests never wait on it: a
+job that queues behind another checkout's run delays a merge for nothing. [The runner's usage comment](scene.mjs) owns the flags and
 environment settings.
 
 [The asset CLI](asset.mjs) is file IO around [scene-assets](../packages/scene-assets/README.md).

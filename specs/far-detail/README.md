@@ -63,8 +63,9 @@ You are implementing `specs/far-detail/` on branch
 
 Warnings:
 
-- Every GPU run, in any checkout, goes through the one lock:
-  `lockf -k /Users/server/dev/battlesim/throwaway/gpu.lock <command>`.
+- Only a timing session takes the GPU lock
+  (`lockf -k /Users/server/dev/battlesim/throwaway/gpu.lock <command>`).
+  Pictures, recordings and GPU tests never wait on it.
 - Check `df` before a build. Each checkout's build is 8 to 22 GB.
 - Fetch only the LFS files a slice names. Run only the tests a change reaches;
   the whole repository runs once, in [slice 07](slices/07-closeout.md).
@@ -202,10 +203,10 @@ to one and a half times the map's span, 19,500 m on this map. A view the
 player cannot reach is a diagnostic, never an acceptance view.
 
 A timing session needs a quiet machine. Every far-detail checkout wraps its
-heavy work (compiles, bakes, production builds, timing sessions) in
-`lockf -k /Users/server/dev/battlesim/throwaway/far-detail-cpu.lock`, taken
-before the GPU lock and never while holding it, so a compile cannot land in
-the middle of a measurement.
+heavy work (compiles, bakes, production builds, pictures, timing sessions) in
+`lockf -k /Users/server/dev/battlesim/throwaway/far-detail-cpu.lock`, so none
+of our own jobs can land in the middle of one of our measurements. A timing
+session takes the GPU lock as well, after that one.
 
 ## Looking
 
