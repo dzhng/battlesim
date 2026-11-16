@@ -716,7 +716,7 @@ fn blast(
             None => {
                 // An occupied building shelters its occupants through its
                 // cover factor once, not as an extra wall (contracts).
-                let shell = crate::garrison::shell(unit);
+                let shell = crate::garrison::garrisoned_in(unit);
                 let shelter = crate::garrison::shelter(unit);
                 for k in 0..unit.members.len() {
                     let s = &unit.members[k];

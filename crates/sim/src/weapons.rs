@@ -1911,10 +1911,7 @@ fn assess_windows(
     if current.is_ok() || !permitted(ctx, &prospective, target) {
         return current;
     }
-    let g = (unit.hold.as_ref())
-        .and_then(|h| h.building())
-        .expect("a garrison requests windows");
-    let plan = (ctx.windows).plan(crate::garrison::shell(unit).expect("a garrison"));
+    let (g, plan) = ctx.windows.held(unit).expect("a garrison requests windows");
     let facing = ctx.rules.garrison.slot_facing_min_deg.to_radians();
     for member in candidates(unit, mount, spec) {
         for (seat, window) in plan

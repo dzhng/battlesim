@@ -377,14 +377,6 @@ pub fn shelter(unit: &Unit) -> f64 {
     }
 }
 
-/// The building a garrisoned unit's soldiers stand against.
-pub fn shell(unit: &Unit) -> Option<PropId> {
-    unit.hold
-        .as_ref()
-        .filter(|_| unit.garrisoned())
-        .and_then(|hold| hold.host.building())
-}
-
 /// A building collapsed (L10) and its ruin stands in its place. Every living
 /// occupant takes the building bail-out injury, then either escapes to a clear
 /// surface or dies; survivors leave pinned. Squads still entering stand outside.

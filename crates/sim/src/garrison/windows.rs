@@ -56,7 +56,7 @@ impl Windows {
 
     /// The squad's building hold and that building's windows while it fights
     /// from it (inside or leaving, not entering).
-    fn held<'a>(&'a self, unit: &'a Unit) -> Option<(&'a Garrison, &'a [SeatSlot])> {
+    pub(crate) fn held<'a>(&'a self, unit: &'a Unit) -> Option<(&'a Garrison, &'a [SeatSlot])> {
         let building = super::garrisoned_in(unit)?;
         Some((unit.hold.as_ref()?.building()?, self.plan(building)))
     }
