@@ -78,7 +78,10 @@ observes its parent connection, and lobby shutdown disposes all its machines.
 
 [Frontline](src/frontline.ts) reserves a seat while the briefing builds the map,
 then Deploy takes it. A new game draws its candidate maps and initial placements up front; one
-machine tries them in order, and the admitted setup owns the briefing and tickets.
+machine prepares them concurrently within its CPU and memory budget and picks the
+first admitted in draw order. The admitted setup owns the briefing and tickets.
+The [battle host](src/battleHost/) retains that world on its preparation thread
+and stops the other candidates before readiness.
 Its first commander owns their seat from tick
 zero; later arrivals displace its army through recorded events. The host sends
 both seat events and the human controller in one worker message, and acknowledges

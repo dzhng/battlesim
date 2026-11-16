@@ -1,6 +1,5 @@
 // One battle that never waits for a player: orders in from each seat's port,
 // each side's records out. It knows nothing of HTTP, rooms or presence.
-import { Worker } from "node:worker_threads";
 import type { SeatPort } from "../../../../packages/multiplayer/src/link.ts";
 import type {
   BattleSetup,
@@ -19,7 +18,8 @@ import {
   type RuntimeMessage,
   type HostRequest,
 } from "./runtime.ts";
-import type { WorkerInit } from "./worker.ts";
+import { prepareOnThreads } from "./threads.ts";
+import { prepareInOrder } from "./candidates.ts";
 
 /** How much of a side's stream is kept for a reader to resume from. */
 const RING_BYTES = 600 * 1024;
@@ -243,23 +243,11 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
   };
 
   if (run === "thread") {
-    const worker = new Worker(new URL("./worker.mjs", import.meta.url));
-    worker.on("message", onMessage);
-    worker.on("error", crash);
-    worker.on("exit", (code) => crash(`the battle's thread exited with code ${code}`));
-    send = (request) => worker.postMessage(request);
-    stop = () => void worker.terminate();
-    const { presets, templates, limits, rules, root } = data;
-    worker.postMessage({
-      type: "battle-host-init",
-      candidates: spec.candidates,
-      data: { presets, templates, limits, rules, root },
-    } satisfies WorkerInit);
+    const threads = prepareOnThreads({ spec, data, post: onMessage, crash });
+    send = threads.send;
+    stop = threads.stop;
   } else {
     const runtime = createBattleRuntime({
-      candidates: spec.candidates,
-      data,
-      generator: run.generator,
       now: clock.now,
       schedule: clock.schedule,
       post: onMessage,
@@ -267,7 +255,9 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
     });
     send = (request) => runtime.handle(request);
     stop = () => runtime.handle({ type: "dispose" });
-    runtime.start().catch(crash);
+    prepareInOrder(spec.candidates, data, run.generator)
+      .then(({ prepared, candidate }) => runtime.start(prepared, candidate))
+      .catch(crash);
   }
 
   /** Ask the battle something and wait for its answer by id. */

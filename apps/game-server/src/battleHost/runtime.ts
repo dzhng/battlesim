@@ -27,6 +27,7 @@ export interface PreparedBattle {
   seed: number;
   /** The generated map's hash: what a page checks its own map against. */
   mapIdentity: string;
+  dispose(): void;
 }
 
 /** Generate the map and field the battle `setup` describes. `generator`
@@ -60,6 +61,7 @@ export async function prepareBattle(
     scenario: prepared.scenario,
     seed: setup.battleSeed,
     mapIdentity: identity.generation.map_hash,
+    dispose: () => prepared.world.free(),
   };
 }
 
@@ -94,21 +96,19 @@ export type HostRequest =
     };
 
 export interface BattleRuntime {
-  /** Prepare the battle and start it. Requests before then wait their turn. */
-  start(): Promise<void>;
+  /** Adopt the prepared world. Requests before then wait their turn. */
+  start(prepared: PreparedBattle, candidate: number): void;
   handle(request: HostRequest): void;
 }
 
 export function createBattleRuntime(options: {
-  candidates: BattleSetup[];
-  data: BattleData;
-  generator?: MapGenerator;
   now: () => number;
   schedule: (run: () => void, delayMs: number) => void;
   post: (message: RuntimeMessage, transfer?: ArrayBuffer[]) => void;
   close: () => void;
 }): BattleRuntime {
   let authority: Authority | null = null;
+  let disposed = false;
   const backlog: HostRequest[] = [];
   /** Where a publication's header holds its epoch, from the layout. */
   let epochAt = -1;
@@ -153,8 +153,12 @@ export function createBattleRuntime(options: {
   };
 
   const handle = (request: HostRequest) => {
+    if (request.type === "dispose") {
+      disposed = true;
+      backlog.length = 0;
+    }
     if (!authority) {
-      backlog.push(request);
+      if (!disposed) backlog.push(request);
       return;
     }
     if (request.type === "seat_human") {
@@ -169,23 +173,11 @@ export function createBattleRuntime(options: {
     } else authority.handle(request);
   };
   return {
-    async start() {
-      let prepared: PreparedBattle | undefined;
-      let candidate = 0;
-      for (; candidate < options.candidates.length; candidate++) {
-        try {
-          prepared = await prepareBattle(
-            options.candidates[candidate],
-            options.data,
-            options.generator,
-          );
-          break;
-        } catch {
-          // A refused draw has no authority or history. Only the admitted world runs.
-        }
+    start(admitted, candidate) {
+      if (disposed) {
+        admitted.dispose();
+        return;
       }
-      if (!prepared) throw new Error("no battle candidate could be prepared");
-      const admitted = prepared;
       options.post({ type: "prepared", mapIdentity: admitted.mapIdentity, candidate });
       authority = createAuthority({
         post,

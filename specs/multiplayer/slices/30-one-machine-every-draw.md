@@ -65,8 +65,8 @@ archive's compression.
 
 A service asks `createBattle(candidates: BattleSetup[], id)` for one host.
 `BattleSpec` carries `candidates` to either host and the worker; the shared
-runtime tries preparation in order and starts one authority on the first
-admitted world. `BattleHost.ready` adds `candidate`, the zero-based index,
+candidate chooser preserves draw order across preparation answers and starts one
+authority on the first admitted world. `BattleHost.ready` adds `candidate`, the zero-based index,
 to its existing layout, tick rate and map identity. Exhaustion rejects readiness
 and settles waiting operations and readers. A room supplies its one setup.
 
@@ -108,6 +108,44 @@ The `frontline` and `online-battle` scenes were **NOT RUN**: their command was
 queued behind another session's shared GPU lock. At the user's instruction,
 only this pass's queued command was cancelled; the parent will run both scenes
 at integration. No approved picture was changed or re-approved.
+
+### Side-by-side preparation (2026-11-16)
+
+The public host and control contracts are unchanged. Each candidate has its own
+worker and prepared world. The [thread coordinator](../../../apps/game-server/src/battleHost/threads.ts)
+uses the machine's available parallelism, leaving a core for the event loop,
+and Node's available memory, including the process/container limit. Both a
+prepared world and a running battle consume one place in the existing
+[`battleCapacity`](../../../apps/game-server/src/online.ts) budget. A battle
+already allocated a place retains at least its one worker; extra workers need
+CPU and memory room. There are no configuration switches.
+
+The [shared chooser](../../../apps/game-server/src/battleHost/candidates.ts)
+returns the lowest admitted index only after every lower candidate has refused.
+The in-process host prepares sequentially on its injected generator and clock,
+and uses that same chooser. A higher admission waits without an authority, so
+neither its ticks nor its commands can precede selection. Unstarted candidates
+above a known admission are unnecessary and never launch.
+
+The winning worker starts the authority on its retained world; no map crosses
+threads or is prepared again. Selection immediately terminates every other
+worker and waits for their termination before starting that authority, so
+readiness leaves no preparing worker. Refusal frees a slot only after its
+worker stops. Exhaustion waits for all workers before rejecting readiness;
+disposal stops all workers and prevents replacements. A preparation exception
+or a worker dying before selection refuses only that candidate. Once selected,
+a battle thread or authority failure remains the existing terminal crash.
+A sole candidate starts its authority directly after preparation, with one
+worker and no selection round trip.
+
+The real-thread regressions compare both the digest stream and replay with the
+winning candidate alone, check cleanup and bounded replacements, and use
+controlled setup delays to distinguish overlap from serial preparation. The
+chooser is checked exhaustively through four candidates, including every
+answer-arrival prefix. Exact commands, deliberate failing checks, five local
+HTTP join timings and remaining integration limits live in
+`throwaway/multiplayer/slice30b-report.md`. No simulation, digest or replay
+fixture was changed, and no hosting service was contacted.
 
 ## Measured on the deployed lobby (2026-11-16), and what it still owes
 
