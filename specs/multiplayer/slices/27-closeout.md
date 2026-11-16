@@ -51,9 +51,35 @@ Notes for the run (2026-11-16):
 - Staging's merge of that day brought buying a squad aboard a carrier. The
   online purchase preview dropped the carrier; it now carries it (wire,
   server, battle host), with tests.
-- Three approved result-screen pictures (`ui/report-*`) conflicted in that
-  merge and staging's were taken. They must be looked at and re-approved
-  against this branch's "YOUR SIDE" and "ENEMY" headings.
-- The `ui` scene's `menu` picture still waits on the user accepting the
-  Multiplayer tile's art.
+- The three result-screen pictures (`ui/report-*`) are re-approved: the
+  only difference from the approved ones was the headings, "YOUR SIDE" and
+  "ENEMY". The main menu's picture is re-approved with the Multiplayer
+  tile, whose art the user approved on 2026-11-16.
 
+## Results (2026-11-16)
+
+The one full run, on the branch with staging merged (`1ac47e628`) and the
+fixes that followed it.
+
+- **Format, lint, typecheck, the WebAssembly build:** pass.
+- **The Rust workspace, run to the end:** 165 test groups pass. One
+  failed, the digest pins in `seat_replay`, which matched staging's own
+  values and are retired (decisions, part 4).
+- **The web suite:** 1,856 of 1,857 pass. One Frontline test timed out
+  inside the whole suite and passes alone; it has its neighbours' hang
+  watchdog now.
+- **The scene suite:** 1,669 checks pass. Four pictures are re-approved
+  (above). Two failures are staging's own, shown by running the same
+  scenes on a plain staging checkout the same day, and are left to the
+  sessions that own that work: `allies` (your tanks do not reach your
+  ally's force) and `frame`'s `river` picture (3 pixels).
+
+What the run found that the multiplayer tests could not: a release-order
+test that runs the real promotion script; a stale expectation of the
+authority's opening request; a site build that threw where git cannot be
+run; a function name the math-owner check reads as a matrix helper; a
+scene helper that imported a module the scene runner cannot load, which
+stopped the whole scene suite. All fixed.
+
+Not rerun after those fixes: the whole of each suite. The affected tests,
+the lint and the scene suite were.

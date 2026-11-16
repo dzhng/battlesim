@@ -94,10 +94,6 @@ that; it is the simulation's cost.
 
 - **Deploying** (slices 09, 01 and 19): rooms can now start a battle, so
   nothing technical is in the way.
-- **The main menu's approved picture** fails: the menu is one tile taller
-  and the Multiplayer tile has its own art. Re-approve it once the user
-  accepts the art (they asked for people in front and vehicles behind, and
-  for the heads not to be cut off; both done).
 - **Lane numbers** (slice 12): kept as they are unless the user says
   otherwise.
 - **A dropped opponent is silent** (slice 18): nothing tells a player that
@@ -110,7 +106,9 @@ that; it is the simulation's cost.
 alpha (slice 20); the host sets an empty seat from one picker, Open or AI
 (slice 17); a room's buttons are the skirmish Reroll's height (slice 17);
 the result screen heads a commander's sides "YOUR SIDE" and "ENEMY"
-(slice 11); the Multiplayer tile's art shows people in front (slice 16).
+(slice 11); the Multiplayer tile's art shows people in front (slice 16), and the
+user approved that art on 2026-11-16, so the main menu's picture is
+re-approved with it.
 
 **How to work with Codex here.**
 
