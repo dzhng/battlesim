@@ -33,8 +33,6 @@
     "max_expansions": 8
   },
   "navigation": {
-    "move_validation_work": 375000,
-    "move_rehearsal_m": 60,
     "work_per_tick": 4000,
     "search_cells_base": 20000,
     "search_cells_per_m": 200,
@@ -99,8 +97,6 @@
       "turn_in_place_deg": 60,
       "abeam_m": 1.5,
       "abeam_deg": 60,
-      
-      
       "turning_deg": 20,
       "turn_speed_factor": 0.5
     }

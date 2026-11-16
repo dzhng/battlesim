@@ -77,7 +77,7 @@ test("orders without pointer feedback keep a null released intent", () => {
   const bridge = new ReleasedAction();
   bridge.capture(pick, intent([10, 10]), client);
   bridge.beginRelease();
-  bridge.issue({ kind: "garrison", units: [1], building: 7 }, false, client, null);
+  bridge.issue({ kind: "exit_building", units: [1] }, false, client, null);
 
   expect(bridge.released?.intent).toBeNull();
 });

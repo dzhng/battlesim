@@ -100,11 +100,10 @@ fn a_squad_boards_a_carrier_whose_route_is_blocked() {
 }
 
 /// A squad already standing within entry reach of a building's wall enters
-/// it even when admission can prove no route to an entry point: here the
-/// admission's route work is too small to finish any search.
+/// it from where it stands.
 #[test]
 fn a_squad_at_the_wall_enters_without_a_planned_approach() {
-    let mut setup = common::scenario_with(
+    let setup = common::scenario_with(
         &map(
             json!([]),
             json!([common::building(
@@ -118,7 +117,6 @@ fn a_squad_at_the_wall_enters_without_a_planned_approach() {
         json!([]),
         json!([]),
     );
-    setup.rules.navigation.move_validation_work = 1;
     let mut b = Battle::new(&setup, 7);
     let ack = b.accept(command(
         1,
@@ -126,11 +124,14 @@ fn a_squad_at_the_wall_enters_without_a_planned_approach() {
             units: vec![UnitId(0)],
             building: 0,
             gesture: 1,
-            facing: None,
         },
     ));
     assert_eq!(ack.error, None, "{ack:?}");
-    let entrant = ack.building.as_ref().and_then(|p| p.entrant.clone());
-    assert_eq!(entrant.map(|e| e.unit), Some(UnitId(0)), "{ack:?}");
+    let entries = ack.building.as_ref().map(|p| p.entries.clone());
+    assert_eq!(
+        entries.map(|e| e.iter().map(|e| e.unit).collect::<Vec<_>>()),
+        Some(vec![UnitId(0)]),
+        "{ack:?}"
+    );
     assert!(within(&mut b, 30, 0), "the squad at the wall never went in");
 }

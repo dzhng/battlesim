@@ -13,8 +13,9 @@ knowledge cannot expand that vocabulary with hidden state. Board and Collect pai
 squads with a carrier, and Unload names only the carrier; a purchase may name a
 carrier too, buying the squad aboard it. A refusal that names one
 unit is a typed order error, at the order or later on the frame. A unit inside
-something publishes its host once, on its own row (`hold`); a carrier's seats used
-is derived from its riders, never published twice.
+something publishes its host once, on its own row (`hold`), with a building's seat
+total (a carrier's comes from its type); seats used is summed from the holds that
+name the host, never published.
 
 [Players](src/players.rs) are the one player list a scenario, skirmish and
 preparation request share: a player's id is its identity in authoring, links

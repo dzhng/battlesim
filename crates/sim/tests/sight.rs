@@ -244,8 +244,10 @@ fn a_garrison_sees_from_one_eye_per_facade_it_holds() {
         side: Side::Blue,
         player: None,
         seq: 1,
-        order: serde_json::from_value(json!({ "kind": "garrison", "units": [0], "building": 0 }))
-            .unwrap(),
+        order: serde_json::from_value(
+            json!({ "kind": "occupy_building", "units": [0], "building": 0, "gesture": 0 }),
+        )
+        .unwrap(),
         queued: false,
     });
     assert_eq!(ack.error, None);
@@ -729,7 +731,7 @@ fn separate_observers_learn_bodies_without_leaking_between_views() {
     for id in [UnitId(0), UnitId(1)] {
         let u = battle.unit(id).unwrap();
         let sight = sim::sight::of(u, battle.rules());
-        for eye in sim::sensing::eyes(u, battle.rules()) {
+        for eye in sim::sensing::eyes(u, battle.windows(), battle.rules()) {
             sim::visibility::sweep(
                 battle.world(),
                 &mut grid,

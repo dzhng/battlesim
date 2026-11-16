@@ -52,7 +52,7 @@ test("entering a building is the unit's row; its weapons wait unmarked", () => {
   const { container, shows } = card(
     {
       hold: {
-        host: { kind: "building", id: 3, center: [0, 0], half: [10, 10] },
+        host: { kind: "building", id: 3, center: [0, 0], half: [10, 10], seats: 12 },
         phase: "entering",
         progress: 0.5,
       },

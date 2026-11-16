@@ -506,6 +506,7 @@ impl SideKnowledge {
         &'a self,
         tick: Tick,
         units: &'a [Unit],
+        windows: &'a crate::garrison::Windows,
         rules: &'a Rules,
     ) -> impl Iterator<Item = IdentifiedUnit> + 'a {
         self.tracks
@@ -524,7 +525,7 @@ impl SideKnowledge {
                         .members
                         .iter()
                         .map(|&k| {
-                            let p = crate::garrison::body_position(unit, k, rules);
+                            let p = windows.body_position(unit, k, rules);
                             [p.x, p.y, p.z]
                         })
                         .collect(),

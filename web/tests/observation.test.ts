@@ -637,7 +637,7 @@ test("every frozen animation field and ground value decodes, integers exact past
     ["exiting", 0.75],
   ] as const) {
     const garrison = {
-      host: { kind: "building", id: 0, center: [360, 250], half: [12, 12] },
+      host: { kind: "building", id: 0, center: [360, 250], half: [12, 12], seats: 12 },
       phase,
       progress,
     };

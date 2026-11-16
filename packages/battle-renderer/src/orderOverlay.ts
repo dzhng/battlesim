@@ -152,6 +152,9 @@ export interface OrderView {
    *  footprint's centre and half extents; null otherwise. The squad's circle
    *  encloses it, `building_marker_margin_m` past its corners. */
   building: { center: readonly [number, number]; half: readonly [number, number] } | null;
+  /** Its circle is a house's ring another occupant's mark paints: the
+   *  circle still meets its routes, but is not painted again. */
+  ringShared?: boolean;
   /** It flies on wings: it never stops over a point, so it has no ground
    *  marker, drop line or destination circle. */
   fixedWing?: boolean;
@@ -484,11 +487,27 @@ function allyMarker(
   color: Rgba,
 ) {
   const circle = unitCircle(u, pen.style);
-  if (circle) ring(paint, pen, circle.c, circle.r, color, { width: pen.line, dashed: true });
+  if (circle && !u.ringShared)
+    ring(paint, pen, circle.c, circle.r, color, { width: pen.line, dashed: true });
   if (circle && u.airborne) dropLine(lines, pen, u.position, color);
   if (u.selected)
     for (const m of u.members)
       soldierMark(soldiers, pen, [m[0], m[1]], null, color, pen.soldierSelected);
+}
+
+/** A unit's circle where it stands, in `color`: an aircraft's marker and
+ *  drop line, or its circle marker, unless a housemate paints its house's
+ *  ring (`ringShared`). */
+function standingCircle(
+  paint: MeshBuilder,
+  lines: MeshBuilder,
+  pen: Pen,
+  u: OrderView,
+  circle: UnitCircle,
+  color: Rgba,
+) {
+  if (u.airborne) aircraftMarker(paint, lines, pen, u.position, circle, color);
+  else if (!u.ringShared) circleMarker(paint, pen, circle, color);
 }
 
 /** A unit's queued legs after its goal: each a dashed route to a small
@@ -576,19 +595,25 @@ export function buildOrderOverlay(
     // A squad with no circle to draw (no area) still shows its soldiers'
     // markers when the unit's marker would.
     if (circle || shown || highlight) {
-      if (circle && u.airborne)
-        // An aircraft's marker shows whatever the reveal: at the current
-        // markers' alpha, brighter only while a shown order moves it.
-        aircraftMarker(
+      if (circle)
+        standingCircle(
           paint,
           lines,
           pen,
-          u.position,
+          u,
           circle,
           highlight ??
-            fadeAlpha(order, moving ? Math.max(reveal, style.current_alpha) : style.current_alpha),
+            (u.airborne
+              ? // An aircraft's marker shows whatever the reveal: at the current
+                // markers' alpha, brighter only while a shown order moves it.
+                fadeAlpha(
+                  order,
+                  moving ? Math.max(reveal, style.current_alpha) : style.current_alpha,
+                )
+              : moving
+                ? color
+                : current),
         );
-      else if (circle) circleMarker(paint, pen, circle, highlight ?? (moving ? color : current));
       // Each soldier's marker, with his cover now when shown.
       const mark = highlight ?? current;
       u.members.forEach((m, k) =>

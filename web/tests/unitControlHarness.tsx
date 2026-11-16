@@ -52,6 +52,8 @@ export async function control(contacts: ContactView[] = []) {
   const { client, sent } = recordingClient();
   const hook = renderHook(() => useUnitControl(client, observation), { wrapper });
   act(() => hook.result.current.setSelected([1, 2]));
+  // Each click a second after the last unless it says when: never a double.
+  let clock = 0;
   const click = async (pick: Partial<PointerPick>) => {
     await act(async () =>
       hook.result.current.onPointer({
@@ -61,7 +63,7 @@ export async function control(contacts: ContactView[] = []) {
         ctrl: false,
         x: 0,
         y: 0,
-        time: 0,
+        time: (clock += 1000),
         ground: [50, 50],
         ...pick,
       }),
