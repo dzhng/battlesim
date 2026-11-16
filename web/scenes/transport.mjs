@@ -625,5 +625,54 @@ async function controls(ctx) {
     JSON.stringify({ order: inPlace.order, ack: inPlace.ack, stood, there }),
   );
   await snapshot(ctx, page, "controls-unloaded.png");
+
+  // Back aboard, then U and a left-click on the map's building: the cursor
+  // badges the garrison, and the squad set down beside it steps in.
+  await select(page, [small]);
+  const again = await pointing(page, fits, (intent) => intent.kind === "collect");
+  if (!again) throw new Error(`no point over squad ${fits} collects it again`);
+  seq = await newestSeq(page);
+  await page.mouse.click(...again, { button: "right" });
+  await ackAfter(page, seq);
+  if (!(await until(page, (o) => host(o, fits) === small, 900, 15)))
+    throw new Error(`squad ${fits} never boarded carrier ${small} again`);
+  await page.waitForFunction(
+    ({ small, fits }) =>
+      !!document.querySelector(
+        `.ro-unit[data-unit="${small}"] > .ro-aboard > [data-passenger][data-unit="${fits}"]`,
+      ),
+    { small, fits },
+  );
+  await select(page, [small]);
+  await page.keyboard.press("KeyU");
+  // The map's one building, a corner shop round (360, 250), brought into view.
+  await lab(page, () =>
+    window.__lab.setCamera({ ...window.__lab.camera(), target: [330, 240, 0] }),
+  );
+  await page.evaluate(() => window.__lab.frame());
+  const shop = await project(page, [360, 250, 6]);
+  await page.mouse.move(...shop);
+  const intoCursor = await cursorBecomes(page, "unload_garrison");
+  seq = await newestSeq(page);
+  await page.mouse.click(...shop);
+  const into = await ackAfter(page, seq);
+  const garrisoned = await until(
+    page,
+    (o) => {
+      const hold = o.own.find((u) => u.id === fits)?.hold;
+      return hold?.host?.kind === "building" && hold.phase === "inside";
+    },
+    2400,
+    30,
+  );
+  ctx.check(
+    "U then a left-click on a building unloads into it, under the garrison badge",
+    intoCursor &&
+      into.order.kind === "unload" &&
+      into.order.into?.kind === "building" &&
+      !into.ack.error &&
+      !!garrisoned,
+    JSON.stringify({ intoCursor, order: into.order, ack: into.ack }),
+  );
   await page.close();
 }
