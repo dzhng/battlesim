@@ -225,7 +225,7 @@ pub(super) fn step_vehicle(
             // as solid, or it would pick the same step every tick.
             let wheeled = unit.ground().drive.is_some_and(|d| !d.tracked);
             if let Some(body) = held_by.filter(|_| wheeled) {
-                drive::shunt(ctx.world, unit, traffic, &[body], ctx.tick, None);
+                drive::shunt(ctx.world, unit, traffic, &[body], ctx.tick);
             }
             return;
         }

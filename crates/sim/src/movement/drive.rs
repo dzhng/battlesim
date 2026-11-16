@@ -370,12 +370,12 @@ pub fn steer(
     let side = if error >= 0.0 { 1.0 } else { -1.0 };
     let curvature = |v: f64| (1.0 / radius).min(drive.turn_rad_s / v.max(1e-9));
     let heading = travel(unit.yaw, gear);
-    if let Some(motion) = super::shunt::drive_on(world, unit, speed, dt, tick, 1.0 / dt) {
+    if let Some(motion) = super::shunt::drive_on(world, unit, speed, dt, tick) {
         return motion;
     }
     // A waypoint inside the turning circle needs room worked out first.
     if distance > drive.feel.abeam_m && inside_circle(here, heading, side, radius, target, 0.0) {
-        return shunt(world, unit, traffic, &[], tick, None);
+        return shunt(world, unit, traffic, &[], tick);
     }
     let desired = turn_speed(&drive, speed_in(&drive, gear, speed), error)
         .min(approach_speed(unit, speed, gear));
@@ -427,21 +427,20 @@ pub fn steer(
                 making_space: false,
                 blocker: Some(id),
             },
-            ArcBlock::Solid { .. } => shunt(world, unit, traffic, &[], tick, None),
+            ArcBlock::Solid { .. } => shunt(world, unit, traffic, &[], tick),
         };
     }
     turning
 }
 
 /// Work out `unit`'s shunt onto its route, with the bodies in `held` as
-/// solid, and stand this tick (waiting on `blocker`, if a vehicle).
+/// solid, and stand this tick.
 pub(super) fn shunt(
     world: &WorldGeometry,
     unit: &mut Unit,
     traffic: &[Option<Obb2>],
     held: &[Obb2],
     tick: u64,
-    blocker: Option<UnitId>,
 ) -> Motion {
     unit.shunt = Some(super::shunt::search(world, unit, traffic, held, tick));
     Motion {
@@ -450,7 +449,7 @@ pub(super) fn shunt(
         step: 0.0,
         backwards: false,
         making_space: false,
-        blocker,
+        blocker: None,
     }
 }
 

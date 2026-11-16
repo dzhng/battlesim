@@ -414,11 +414,10 @@ pub(super) fn drive_on(
     speed: f64,
     dt: f64,
     tick: u64,
-    hz: f64,
 ) -> Option<Motion> {
     let shunt = unit.shunt.as_mut()?;
     if shunt.legs.is_empty() {
-        if (tick.saturating_sub(shunt.tick) as f64) < RETRY_S * hz {
+        if (tick.saturating_sub(shunt.tick) as f64) < RETRY_S * (1.0 / dt) {
             return Some(hold(unit));
         }
         unit.shunt = None;
