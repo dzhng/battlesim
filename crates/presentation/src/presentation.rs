@@ -145,7 +145,7 @@ struct Loaded {
     input: BattleInput,
     units: Arc<UnitsSection>,
     tables: Arc<ClipTables>,
-    inverse_binds: HashMap<String, Vec<Mat4>>,
+    inverse_binds: HashMap<String, Arc<Vec<Mat4>>>,
     feed: ObservationFeed,
     driver: PoseDriver,
     drawn: DrawnModels,

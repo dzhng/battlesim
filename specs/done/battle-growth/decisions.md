@@ -110,13 +110,13 @@ confirmed a correctness defect. What they found and what became of it:
 
 | Finding | Outcome |
 | --- | --- |
-| Clip tables are copied per skinned appearance at every arrival (predates this work). | Open; in the record's "Left open", first. |
+| Clip tables are copied per skinned appearance at every arrival (predates this work). | Fixed afterwards as a measured spike: 92–115 MB copied per staged catalog became two shared tables, and the staging step 9.5–15.6 ms became about 0.2 ms (implementer, 3 runs). The late infantry frame did not move: 83 / 81 / 86 ms before, 111 / 79 / 84 ms after. |
 | A superseded staging discards what it warmed; overlapping arrivals are untested. | Open. |
 | The admission after warming plans twice; the warm-up's own "is it there" check restates the admission's rule. | Open; cost only. |
 | A fielded result on the page has no owner that frees it. | Open; the snapshot is maps of shared rows, so what waits on the collector is small. |
-| The WASM fielding binding keeps a byte-taking `resolve` and `contents` that only tests call, and the memory test measures that path, not the page's. | To fix. |
-| No Rust test covers a corpse's palette in a battle frame (only in the lab), and one card test lost its check that two names draw one layer. | To fix. |
-| No test covers disposing a scene during a budget wait. | To fix. |
+| The WASM fielding binding kept a byte-taking `resolve` and `contents` that only tests called, and the memory test measured that path, not the page's. | Fixed: the binding exposes the page's path alone and the memory test drives it, with a tighter bound. |
+| No Rust test covered a corpse's palette in a battle frame (only in the lab), and one card test had lost its check that two names draw one card. | Fixed: both tests added, each shown red against the fault it guards. |
+| No test covered disposing a scene during a budget wait. | Fixed: covered in both waits. |
 | The endurance late-state check is loose (more than half). | Stands; the scene cannot read how many bodies were culled. |
 | The budget wrapped the admission's promise without measuring it; a closed fielding owner kept absorbing; the warm-up's priority outlived its battle; stale and misplaced comments. | Fixed. |
 

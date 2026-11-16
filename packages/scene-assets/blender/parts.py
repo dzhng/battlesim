@@ -26,11 +26,13 @@ import textures  # noqa: E402
 TIERS = (0, 1, 2, 3)
 # A static prop's far mesh, past the four tiers (FAR_TIER in the bake's
 # schema.ts): a part reaches it only by naming it, lods=(..., FAR), and an
-# unsuffixed mesh never joins it.
+# unsuffixed mesh never joins it. A far part is built, painted and occluded
+# as tier 3 is, so one tier 3 also draws is tier 3's very surface and colour:
+# the side's fog judges each surface by its own plane and facing.
 FAR = 4
-SEG_SCALE = (1.0, 0.6, 0.36, 0.2, 0.12)
+SEG_SCALE = (1.0, 0.6, 0.36, 0.2, 0.2)
 # Longest edge a painted face keeps, per tier: the pattern lives on vertices.
-PAINT_EDGE_M = (0.28, 0.55, 1.2, 3.0, 6.0)
+PAINT_EDGE_M = (0.28, 0.55, 1.2, 3.0, 3.0)
 MAX_TIER_SPLIT = 12
 
 
@@ -626,7 +628,7 @@ def finish(ao_distance=1.2, ao_strength=0.8, ao_rays=12, ground_ao=True, paint_s
     dirs = _hemisphere(ao_rays)
     far = (FAR,) if any(tier_of(o) == FAR for o in meshes) else ()
     for tier in TIERS + far:
-        group = [o for o in meshes if tier_of(o) == tier or (tier != FAR and tier_of(o) is None)]
+        group = [o for o in meshes if tier_of(o) in (TIERS[-1] if tier == FAR else tier, None)]
         verts, polys = [], []
         for o in group:
             mw = o.matrix_world
@@ -638,10 +640,9 @@ def finish(ao_distance=1.2, ao_strength=0.8, ao_rays=12, ground_ao=True, paint_s
             verts.extend([Vector((-40, -40, -0.001)), Vector((40, -40, -0.001)), Vector((40, 40, -0.001)), Vector((-40, 40, -0.001))])
             polys.append([base, base + 1, base + 2, base + 3])
         tree = BVHTree.FromPolygons(verts, polys, epsilon=0.0)
-        for o in group:
-            if tier_of(o) != tier:
-                continue
-            _colour(o, tree, dirs, ao_distance, ao_strength)
+        for o in meshes:
+            if tier_of(o) == tier:
+                _colour(o, tree, dirs, ao_distance, ao_strength)
 
 
 def _colour(o, tree, dirs, dist, strength):

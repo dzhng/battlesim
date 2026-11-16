@@ -62,7 +62,9 @@ calls the same reader for workbench drafts.
   names to `ContentId`s and new facts are supplied by identity; presentation
   retains one immutable `Arc<Asset>` per content identity. Names only route to
   those identities; stages share held facts and discard undeclared supplied
-  facts. Initial tooling installation retains the same facts as catalog commit,
+  facts. A scene stores each clip table once per content, shared by all
+  appearances and catalog generations that use it. Initial tooling installation
+  retains the same facts as catalog commit,
   so a delta has the
   same complete catalog as a full admission. A draft rebuilds the
   battle's rows, which renumbers those after them, so every static population

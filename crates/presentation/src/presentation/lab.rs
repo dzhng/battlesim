@@ -12,8 +12,9 @@ use std::collections::BTreeMap;
 /// Geometry facts and authored poses, independent of a battle roster.
 pub enum Asset {
     Animated {
-        appearance: Box<Appearance>,
-        table: Vec<f32>,
+        appearance: Arc<Appearance>,
+        table: Arc<Vec<f32>>,
+        inverse_binds: Arc<Vec<Mat4>>,
     },
     Static(Vec<State>),
 }
@@ -60,11 +61,34 @@ impl Asset {
                     .map(Self::Static);
             }
         };
+        // Skinned deserialization requires the field; animated assigns its content name.
         value["table"] = serde_json::json!("lab");
-        Ok(Self::Animated {
-            appearance: Box::new(serde_json::from_value(value).map_err(|e| e.to_string())?),
+        Ok(Self::animated(
+            serde_json::from_value(value).map_err(|e| e.to_string())?,
             table,
-        })
+        ))
+    }
+
+    /// Hold immutable pose facts once, including their content-named clip table
+    /// and the inverse binds every battle and tooling palette reads.
+    pub fn animated(mut appearance: Appearance, table: Vec<f32>) -> Self {
+        let inverse_binds = match &mut appearance {
+            Appearance::Skinned {
+                table: key,
+                joints,
+                inverse_binds,
+                ..
+            } => {
+                *key = crate::appearance::clip_table_name(&table);
+                skin::inverse_binds(joints, inverse_binds)
+            }
+            Appearance::Articulated { .. } => Vec::new(),
+        };
+        Self::Animated {
+            appearance: Arc::new(appearance),
+            table: Arc::new(table),
+            inverse_binds: Arc::new(inverse_binds),
+        }
     }
 
     pub(super) fn state_corners(&self, state: &str) -> Option<Corners> {
@@ -104,13 +128,17 @@ impl Asset {
                 [0.0; 2],
             )),
             _ => {
-                let Self::Animated { appearance, table } = self else {
+                let Self::Animated {
+                    appearance,
+                    table,
+                    inverse_binds,
+                } = self
+                else {
                     return None;
                 };
                 match appearance.as_ref() {
                     Appearance::Skinned {
                         joints,
-                        inverse_binds,
                         clips,
                         far_pose,
                         corpse_poses,
@@ -130,12 +158,11 @@ impl Asset {
                         }
                         let mut worlds = Vec::new();
                         skin::joint_worlds(joints, clips, table, clip, phase, None, &mut worlds);
-                        let inverse = skin::inverse_binds(joints, inverse_binds);
                         Some((
                             worlds
                                 .iter()
-                                .zip(inverse)
-                                .map(|(w, i)| joint(&skin::affine(&skin::mul(w, &i))))
+                                .zip(inverse_binds.iter())
+                                .map(|(w, i)| joint(&skin::affine(&skin::mul(w, i))))
                                 .collect(),
                             [0.0; 2],
                         ))
@@ -265,7 +292,7 @@ impl Presentation {
         detail: Detail,
     ) {
         self.catalog_state.renew();
-        self.lab.assets = Facts::installed(assets);
+        self.lab.assets = Facts::installed(assets, self.loaded.as_ref().map(|l| l.tables.as_ref()));
         self.lab.detail = Some(detail);
         self.register_lab_rows();
     }
