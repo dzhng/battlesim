@@ -44,9 +44,9 @@ impl MaterialSlots {
     }
 }
 
-/// Art work a frame may spend at an arrival before it yields. Three ordinary
-/// 6–8 ms content jobs fit, and several small supplies; half as much left
-/// waits this does not.
+/// The art work one frame may spend at an arrival before staging yields to
+/// the next frame. It fits three ordinary content jobs of 6–8 ms. Half as
+/// much kept the stand-in on screen longer for no smoother a frame.
 pub const ART_WORK_BUDGET_MS: f64 = 24.;
 
 /// Scene art tripwires and the platform sink that reports when they fire.

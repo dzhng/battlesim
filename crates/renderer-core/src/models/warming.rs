@@ -1,4 +1,5 @@
-//! A pending generation holds one geometry key's work per step, never live rows.
+//! A pending generation warms one geometry key a step and holds what it packed
+//! until its admission. It never touches a live generation's rows.
 use super::admission_plan::AdmissionPlan;
 use super::store::GeometryKey;
 use super::*;

@@ -777,8 +777,6 @@ impl Presentation {
     }
 }
 
-/// What audio hears move this frame: each drawn vehicle's tracks and
-/// turret, and each drawn soldier.
 /// An appearance's drawn size: its far pose (`k` 0) or its `k − 1`th way of lying.
 fn bounds(units: &UnitsSection, name: &str, k: usize) -> Bounds {
     match units.appearances.get(name).map(AsRef::as_ref) {

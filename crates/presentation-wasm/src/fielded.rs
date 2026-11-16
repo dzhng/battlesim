@@ -199,7 +199,7 @@ impl Fielded {
             .ok_or_else(|| error(format!("no unit type {kind}")))
     }
 
-    /// Description work for the existing admission diagnostics.
+    /// The description work this resolve did, for the admission diagnostics.
     pub fn work(&self) -> String {
         serde_json::to_string(&self.inner.work).expect("fielding work serializes")
     }

@@ -134,7 +134,7 @@ impl Renderer {
         })
     }
 
-    /// Finish the existing admission and await its cards after geometry warming.
+    /// Run the admission over the warmed store and await its cards.
     #[wasm_bindgen(unchecked_return_type = "Promise<PreparedAppearances>")]
     pub fn prepare_appearances(
         &self,
