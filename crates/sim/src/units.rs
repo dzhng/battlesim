@@ -224,8 +224,14 @@ pub enum UnitOrder {
         squads: Vec<UnitId>,
         gesture: u64,
     },
-    /// Unload passengers from the carrier at its current position.
-    Unload,
+    /// Unload passengers from the carrier at its current position; with
+    /// `into`, the squads it lets off go on into that host.
+    Unload {
+        into: Option<crate::hold::Host>,
+    },
+    /// Return to base. It waits in the queue like any order and becomes the
+    /// drive to the side's way out when its turn comes.
+    Withdraw,
 }
 
 impl UnitOrder {
@@ -608,7 +614,7 @@ impl Unit {
     /// The order at `index` lets the passengers out where it ends: an
     /// Unload follows it.
     pub fn unloads_after(&self, index: usize) -> bool {
-        matches!(self.orders.get(index + 1), Some(UnitOrder::Unload))
+        matches!(self.orders.get(index + 1), Some(UnitOrder::Unload { .. }))
     }
 
     /// The destinations of the movement orders queued behind the current
@@ -662,7 +668,8 @@ impl Unit {
             UnitOrder::Exit
             | UnitOrder::Board { .. }
             | UnitOrder::Collect { .. }
-            | UnitOrder::Unload => None,
+            | UnitOrder::Unload { .. }
+            | UnitOrder::Withdraw => None,
         }
     }
 

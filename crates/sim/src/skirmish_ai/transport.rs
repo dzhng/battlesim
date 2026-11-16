@@ -350,6 +350,7 @@ impl super::BalancedDoctrine {
             return None;
         }
         let order = |goal| Order::Unload {
+            into: None,
             units: vec![carrier.id],
             goal,
             gesture: frame.tick,

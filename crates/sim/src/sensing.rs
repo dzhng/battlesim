@@ -71,17 +71,16 @@ pub fn eye(unit: &Unit, rules: &Rules) -> V3 {
     unit.position + crate::math::v3(0.0, 0.0, rules.physics.eye_m(unit.unit_type(rules)))
 }
 
-/// Where a unit's sight starts: its eye, or in a building one eye per
-/// occupied facade (27 perf, see
-/// [`crate::garrison::Windows::facade_eyes`]). The fog sweep, identification and the
-/// published `UnitSight::eyes` the renderer's fog draws all read this one
-/// list. There is no extra all-round roof sensor.
+/// Where a unit's sight starts: its eye, or in a building an eye at every
+/// window ([`crate::garrison::Windows::window_eyes`]). The fog sweep,
+/// identification and the published `UnitSight::eyes` the renderer's fog
+/// draws all read this one list. There is no extra all-round roof sensor.
 pub fn eyes(unit: &Unit, windows: &Windows, rules: &Rules) -> Vec<V3> {
-    let facades = windows.facade_eyes(unit, rules);
-    if facades.is_empty() {
+    let windows = windows.window_eyes(unit, rules);
+    if windows.is_empty() {
         vec![eye(unit, rules)]
     } else {
-        facades
+        windows
     }
 }
 

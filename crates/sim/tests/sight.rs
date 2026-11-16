@@ -219,7 +219,7 @@ fn sight_shape_consumers_agree() {
 }
 
 #[test]
-fn a_garrison_sees_from_one_eye_per_facade_it_holds() {
+fn a_garrison_sees_out_of_every_facade_of_its_building() {
     // garrison-lab's one building: a three-storey corner shop 12 m square
     // round (360, 250), yaw 0, on flat ground.
     let map = common::saved_map("garrison");
@@ -270,38 +270,23 @@ fn a_garrison_sees_from_one_eye_per_facade_it_holds() {
         .as_f64()
         .unwrap();
     let out = 6.0 + standoff;
-    // Facades in order +x, +y, -x, -y: each occupied facade gives one
-    // exterior eye; the published soldier body stands just inside it.
+    // Facades in order +x, +y, -x, -y: every window looks out, so each
+    // facade has eyes, and every eye stands just outside one.
     let facades = [[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0], [0.0, -1.0]];
-    assert_eq!(
-        squad.sight.eyes.len(),
-        4,
-        "the squad holds all four directions"
-    );
-    // Published bodies tuck inside the shell; sight uses the exposed combat seats.
-    let seated = &b.unit(UnitId(0)).unwrap().members;
+    let on = |eye: &[f64; 3], n: &[f64; 2]| {
+        (eye[0] - (360.0 + n[0] * out)).abs() < 1e-9 && n[0] != 0.0
+            || (eye[1] - (250.0 + n[1] * out)).abs() < 1e-9 && n[1] != 0.0
+    };
     for eye_point in &squad.sight.eyes {
-        let normal = facades
-            .iter()
-            .find(|n| {
-                (eye_point[0] - (360.0 + n[0] * out)).abs() < 1e-9 && n[0] != 0.0
-                    || (eye_point[1] - (250.0 + n[1] * out)).abs() < 1e-9 && n[1] != 0.0
-            })
-            .expect("an eye belongs to an exterior facade");
         assert!(
-            seated.iter().any(|m| m.alive()
-                && eye_point[0] == m.position.x
-                && eye_point[1] == m.position.y
-                && eye_point[2] == m.position.z + eye("infantry_eye_m")),
-            "each eye is at a living occupied seat"
+            facades.iter().any(|n| on(eye_point, n)),
+            "eye {eye_point:?} belongs to an exterior facade"
         );
+    }
+    for n in &facades {
         assert!(
-            squad.members.iter().any(|m| {
-                (eye_point[0] - (m[0] + normal[0] * 2.0 * standoff)).abs() < 1e-9
-                    && (eye_point[1] - (m[1] + normal[1] * 2.0 * standoff)).abs() < 1e-9
-                    && eye_point[2] == m[2] + eye("infantry_eye_m")
-            }),
-            "each exterior eye belongs to a living soldier inside its facade"
+            squad.sight.eyes.iter().any(|e| on(e, n)),
+            "facade {n:?} looks out"
         );
     }
     assert_eq!(squad.sight.range, base_range("test_rifle"));

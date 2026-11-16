@@ -122,8 +122,21 @@ impl Unit {
                         d.u64(squad.0 as u64);
                     }
                 }
-                UnitOrder::Unload => {
+                UnitOrder::Unload { into } => {
                     d.u64(7);
+                    // Folded only when given: a plain unload keeps its digest.
+                    match into {
+                        None => {}
+                        Some(crate::hold::Host::Building(id)) => {
+                            d.bytes(b"into building").u64(*id as u64);
+                        }
+                        Some(crate::hold::Host::Carrier(id)) => {
+                            d.bytes(b"into carrier").u64(id.0 as u64);
+                        }
+                    }
+                }
+                UnitOrder::Withdraw => {
+                    d.u64(8);
                 }
             }
         }

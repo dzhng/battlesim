@@ -197,12 +197,15 @@ pub enum Order {
     },
     /// Drive carriers to a point and unload, or unload in place when no goal
     /// is supplied. Shift queues a goal unload; an in-place unload replaces
-    /// the queue.
+    /// the queue. With `into`, the carriers set down beside that host instead
+    /// of at the goal, and the squads they let off go straight into it.
     Unload {
         units: Vec<UnitId>,
         goal: Option<[f64; 2]>,
         gesture: u64,
         route: RoutePolicy,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        into: Option<UnloadInto>,
     },
     /// Each unit with a smoke charge spends one and pops a cloud where it
     /// stands; the rest ignore it. No unit's current order changes.
@@ -215,6 +218,15 @@ pub enum Order {
         gesture: u64,
         route: RoutePolicy,
     },
+}
+
+/// The host an unload hands its squads to: a building they garrison, or
+/// another of the side's carriers they board.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum UnloadInto {
+    Building { building: u32 },
+    Carrier { carrier: UnitId },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

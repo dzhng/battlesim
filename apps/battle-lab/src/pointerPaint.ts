@@ -349,9 +349,10 @@ export function previewForIntent(intent: PointerIntent): PointerPreview | null {
         kind: "move",
         request: { units: intent.units, goal: intent.goal, queued: intent.queued },
       };
-    // Unloading at a point is placed as the move that takes it there.
+    // Unloading at a point is placed as the move that takes it there; into a
+    // host, the simulation picks where to set down, and admission shows it.
     case "unload":
-      return intent.goal
+      return intent.goal && !intent.into
         ? {
             kind: "move",
             request: {
@@ -390,6 +391,9 @@ export function cursorForIntent(
   if (intent.kind === "attack") return intent.target.kind === "ground" ? "attack_ground" : "attack";
   // Boarding is the simulation's to admit; its refusal names the squads left out.
   if (intent.kind === "board" || intent.kind === "collect") return "board";
+  // So is unloading into a host, which no hover preview places.
+  if (intent.kind === "unload" && intent.into)
+    return intent.into.kind === "building" ? "unload_garrison" : "unload_board";
   if (state === "blocked") return "blocked";
   // Entering a building shows at once, as boarding does (the intent names
   // only squads); only an answer that gives no squad an entry takes the
@@ -416,7 +420,11 @@ export function pointerCursor(
   release: { released: PointerIntent; ack: CommandAck } | null,
   query: { intent: PointerIntent; preview: OrderPreviewSnapshot },
 ): CursorAction {
-  if (overOwnUnit && intent.kind !== "board" && intent.kind !== "collect") return "default";
+  const intoUnit =
+    intent.kind === "board" ||
+    intent.kind === "collect" ||
+    (intent.kind === "unload" && intent.into?.kind === "carrier");
+  if (overOwnUnit && !intoUnit) return "default";
   const acknowledged = release && cursorForRelease(intent, release.released, release.ack);
   if (acknowledged) return acknowledged;
   return cursorForIntent(
@@ -434,9 +442,13 @@ export function garrisonTarget(
   buildings: Pick<BuildingIndex, "partBuilding" | "parts"> | null,
   z: SurfaceHeight,
 ): GarrisonTarget | null {
-  if (action !== "garrison" || intent.kind !== "occupy_building" || !shown || !buildings)
-    return null;
-  const { building } = intent;
+  const building =
+    action === "garrison" && intent.kind === "occupy_building"
+      ? intent.building
+      : action === "unload_garrison" && intent.kind === "unload" && intent.into?.kind === "building"
+        ? intent.into.building
+        : null;
+  if (building === null || !shown || !buildings) return null;
   return {
     building,
     outline: (line) => garrisonTargetOutline(shown, buildings, building, line, z),
@@ -466,6 +478,10 @@ export function samePointerIntent(a: PointerIntent, b: PointerIntent): boolean {
     return (
       JSON.stringify([a.units, a.target, a.queued]) ===
       JSON.stringify([b.units, b.target, b.queued])
+    );
+  if (a.kind === "unload" && b.kind === "unload" && (a.into || b.into))
+    return (
+      JSON.stringify([a.units, a.into, a.queued]) === JSON.stringify([b.units, b.into, b.queued])
     );
   const request = previewForIntent(a);
   return request !== null && JSON.stringify(request) === JSON.stringify(previewForIntent(b));

@@ -722,6 +722,50 @@ test("U then a ground click unloads there, only the carriers holding passengers;
   ]);
 });
 
+test("U then a click on a building or another carrier unloads into it", async () => {
+  const { hook, sent, click, key } = await carriers(true);
+  act(() => hook.result.current.setSelected([6]));
+  await key("KeyU");
+  await click({ button: "left", building: 3, ground: [60, 60] });
+  await key("KeyU");
+  await click({ button: "left", unit: 4, ground: [40, 40] });
+  // The unloading carrier itself is no host: a click on it unloads beside it.
+  await key("KeyU");
+  await click({ button: "left", unit: 6, ground: [50, 50] });
+  expect(sent.map(({ order }) => order)).toEqual([
+    {
+      kind: "unload",
+      units: [6],
+      goal: [60, 60],
+      route: "shortest",
+      gesture: 1,
+      into: { kind: "building", building: 3 },
+    },
+    {
+      kind: "unload",
+      units: [6],
+      goal: [40, 40],
+      route: "shortest",
+      gesture: 2,
+      into: { kind: "carrier", carrier: 4 },
+    },
+    { kind: "unload", units: [6], goal: [50, 50], route: "shortest", gesture: 3 },
+  ]);
+});
+
+test("B sends the selection home at once; Shift+B once its other orders are done", async () => {
+  const { hook, sent, key, observation } = await carriers(true);
+  (observation as { skirmish?: unknown }).skirmish = {};
+  hook.rerender();
+  act(() => hook.result.current.setSelected([6]));
+  await key("KeyB");
+  await key("KeyB", true);
+  expect(sent).toEqual([
+    { order: { kind: "refund", units: [6] }, queued: false },
+    { order: { kind: "refund", units: [6] }, queued: true },
+  ]);
+});
+
 test("U pressed again while armed unloads in place at once, replacing the queue", async () => {
   const { hook, sent, key } = await carriers(true);
   act(() => hook.result.current.setSelected([1, 6]));

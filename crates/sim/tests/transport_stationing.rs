@@ -54,6 +54,7 @@ fn dropped_off_squads_hold_the_landing_area_when_they_spot_an_enemy() {
             &mut battle,
             2,
             Order::Unload {
+                into: None,
                 units: vec![UnitId(0)],
                 goal: Some([500.0, 300.0]),
                 gesture: 2,

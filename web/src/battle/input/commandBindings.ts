@@ -37,7 +37,8 @@ export const CommandBindings: Readonly<Record<KeyCommand, CommandBinding>> = {
   unload: { code: "KeyU", label: "U" },
   /** X is the camera's pitch key, so smoke takes H. */
   pop_smoke: { code: "KeyH", label: "H" },
-  /** Refund: the selection heads home and is refunded on arrival. */
+  /** Refund: the selection heads home and is refunded on arrival; Shift
+   *  sends it once its other orders are done. */
   return_to_base: { code: "KeyB", label: "B" },
   disarm: { code: "Escape", label: "Esc" },
 };

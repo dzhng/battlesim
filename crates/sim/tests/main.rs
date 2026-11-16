@@ -99,9 +99,11 @@ mod suppression;
 mod swamps;
 mod top_attack;
 mod transport;
+mod transport_refund;
 mod transport_rolling;
 mod transport_stationing;
 mod turret_reset;
+mod unload_into;
 mod weapons;
 mod world_geometry;
 

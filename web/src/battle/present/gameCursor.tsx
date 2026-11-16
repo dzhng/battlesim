@@ -11,12 +11,19 @@ const ACTION_ICONS = {
   garrison: stateIcon("building"),
   board: hudIcon("board"),
   unload: hudIcon("unload"),
+  unload_garrison: hudIcon("unload"),
+  unload_board: hudIcon("unload"),
   fast_move: hudIcon("fast_move"),
   reverse_move: hudIcon("reverse"),
   blocked: hudIcon("rejected"),
 } as const;
 
 export type CursorAction = "default" | keyof typeof ACTION_ICONS;
+/** The host an unload goes into, badged above the unload's own. */
+const INTO_ICONS: Partial<Record<CursorAction, string>> = {
+  unload_garrison: ACTION_ICONS.garrison,
+  unload_board: ACTION_ICONS.board,
+};
 export const CURSOR_ACTIONS = ["default", ...Object.keys(ACTION_ICONS)] as CursorAction[];
 
 const CURSOR_SCALE = 0.7;
@@ -46,7 +53,8 @@ function nested(path: string, x: number, y: number, size: number, colour: string
 }
 
 /** The cursor for `action` as an SVG image `scale` device pixels per CSS
- *  pixel: the arrow tip at (HOTSPOT_PX, HOTSPOT_PX), its badge below right. */
+ *  pixel: the arrow tip at (HOTSPOT_PX, HOTSPOT_PX), its badge below right,
+ *  and an unload's host above that. */
 export function cursorImage(action: CursorAction, scale = 1): string {
   const icon = action === "default" ? null : ACTION_ICONS[action];
   const badge =
@@ -74,6 +82,8 @@ export function cursorImage(action: CursorAction, scale = 1): string {
       `rgb(${channels(gameHud.glass)} / 0.9)`,
     ) +
     (icon ? nested(icon, 22, 19, 19, channels(badge)) : "") +
+    // Clear of the arrow, whose art ends 23 units across.
+    (INTO_ICONS[action] ? nested(INTO_ICONS[action], 26, 0, 15, channels(badge)) : "") +
     `</g></svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
