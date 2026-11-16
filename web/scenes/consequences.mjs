@@ -39,6 +39,8 @@ export async function run(ctx) {
       Math.hypot(wreck.center[0] - 520, wreck.center[1] - 390) < 2,
     JSON.stringify({ attack, wreck }),
   );
+  // The pieces are the last drawn frame's: wait for one that shows this tick.
+  await presented(page);
   const debris = await lab(page, () => window.__lab.route.cookOffPieces?.() ?? []);
   ctx.check(
     "a destroyed hull draws debris",
