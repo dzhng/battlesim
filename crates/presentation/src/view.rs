@@ -59,9 +59,8 @@ pub const MESH_SLOTS: usize = FAR as usize + 1;
 
 /// What an appearance carries past its four meshes: nothing, a far mesh (a
 /// static prop whose bundle has a fifth), or an impostor card (a unit's).
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Carries {
-    #[default]
     Nothing,
     Far,
     Card,
