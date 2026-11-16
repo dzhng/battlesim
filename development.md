@@ -13,7 +13,9 @@ Subsystem READMEs own commands and contracts for their code.
 | [Presentation](crates/presentation/README.md)             | Per-side frame publications: interpolation, poses, effects, cook-offs, tiers, and cast lights.       |
 | [Browser application](web/README.md)                      | Workers, map adapters, player input, readouts, build configuration, and browser verification.        |
 | [Battle lab](apps/battle-lab/README.md)                   | Player pages, shareable battle addresses, and focused developer fixtures.                            |
-| [Online authority](apps/game-server/README.md) | In-memory rooms, stream presence, admission capacity, and online battle transport. |
+| [Online servers](apps/game-server/README.md) | The lobby (rooms, Frontline, presence, admission), the battle server each battle runs in, and the deploy step, the only code that knows the host. |
+| [Multiplayer contract](packages/multiplayer/README.md) | The wire types, the record stream and its resume rule, and the room and Frontline rules both ends share. |
+| [Skirmish setup](packages/skirmish-setup/README.md) | Seats, sides and map choice for offline skirmish, rooms and the server, and the battle request they become. |
 | [Browser camera primitives](packages/renderer-core/README.md) | Camera/depth contracts, view control, camera rays and clearance.                                           |
 | [Browser render inputs](packages/battle-renderer/README.md) | Plain scene contracts, external geometry and material inputs.                                   |
 | [Scene assets](packages/scene-assets/README.md)           | Appearance contracts, validation, baking, loading, and Blender authoring.                            |
