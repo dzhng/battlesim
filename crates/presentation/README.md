@@ -234,7 +234,10 @@ unit catalog so it enforces the same rule before preparing voices.
 Soldier poses follow actual published soldiers rather than formation slots. A
 soldier down in a posture, or shooting, keeps his weapon toward the threat as he
 moves and steps, crouches or crawls the way he goes, with a clip for every way;
-otherwise, and at a run, he turns to face where he is going. No posture slides
+otherwise, and at a run, he turns to face where he is going. A soldier who went
+down to fire, or was pinned, stays down between bursts while his squad is in a
+fight, and stands only once it has gone quiet for `pose.stance`'s engagement
+grace: no enemy his squad sees, no round fired by or at it. No posture slides
 along the ground. His gait reads his speed, ground over time, so while the clock
 stands still (paused, or between ticks) he holds mid-stride and resumes the same
 step. A soldier dies from the posture he is in, never getting up to

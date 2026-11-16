@@ -16,7 +16,7 @@ use presentation::units::drawn::{ClipTables, DrawnModels};
 use presentation::units::driver::PoseDriver;
 use presentation::units::pose::{ClipBlend, Kick, PoseFrame, SoldierPose};
 use presentation::units::skin::{joint_worlds, kick_worlds, mul, trs, Mat4};
-use presentation::world::{Appearance, Vec3};
+use presentation::world::{Appearance, UnitsSection, Vec3};
 use serde_json::json;
 
 mod common;
@@ -183,22 +183,11 @@ fn a_squad_under_fire_is_never_a_row_of_copies_and_each_man_falls_from_his_postu
 #[test]
 fn down_to_fire_he_stays_down_through_the_bursts_until_the_engagement_is_over() {
     let units = units();
-    let none = fallen(&[]);
     let hold = units.lean_hold;
     let grace = feel(&units, "/stance/engagement_grace_s");
     let mut driver = PoseDriver::new(&units).unwrap();
-    let ids: Vec<f64> = (1..=8).map(f64::from).collect();
-    let mut at = |time: f64, shots: f64, engaged: bool| {
-        let men = ids
-            .iter()
-            .map(|&id| man(id, id * 2.0, 0.0, shots))
-            .collect();
-        let mut unit = squad(men, false);
-        unit.mounts[0].shots = shots;
-        unit.engaged = engaged;
-        let poses = driver.update(&frame(time, vec![unit], &none), &units, None);
-        ids.iter().map(|&id| clip_of(poses, id)).collect::<Vec<_>>()
-    };
+    let mut at =
+        |time, shots, engaged| rifle_squad_clips(&mut driver, &units, time, shots, engaged);
     at(0.0, 0.0, true);
     // A burst every `period`, its pause longer than the firing pose's hold.
     let period = hold + 1.0;
@@ -251,30 +240,42 @@ fn down_to_fire_he_stays_down_through_the_bursts_until_the_engagement_is_over() 
 #[test]
 fn in_contact_a_squad_that_went_down_stays_down_without_firing() {
     let units = units();
-    let none = fallen(&[]);
     let grace = feel(&units, "/stance/engagement_grace_s");
     let mut driver = PoseDriver::new(&units).unwrap();
-    let ids: Vec<f64> = (1..=8).map(f64::from).collect();
-    let mut at = |time: f64, shots: f64, engaged: bool| {
-        let men = ids
-            .iter()
-            .map(|&id| man(id, id * 2.0, 0.0, shots))
-            .collect();
-        let mut unit = squad(men, false);
-        unit.mounts[0].shots = shots;
-        unit.engaged = engaged;
-        let poses = driver.update(&frame(time, vec![unit], &none), &units, None);
-        ids.iter().map(|&id| clip_of(poses, id)).collect::<Vec<_>>()
-    };
+    let mut at =
+        |time, shots, engaged| rifle_squad_clips(&mut driver, &units, time, shots, engaged);
     at(0.0, 0.0, true);
     let first = at(0.1, 1.0, true);
+    let down = |c: &String| c == "kneel_fire" || c == "prone_pinned";
+    assert!(first.iter().any(down), "some fire down: {first:?}");
     // Long past the grace after his shot, still in contact: still down.
     let later = at(0.1 + 3.0 * grace, 1.0, true);
     for (now, was) in later.iter().zip(&first) {
-        if was == "kneel_fire" || was == "prone_pinned" {
+        if down(was) {
             assert_eq!(now, was, "in contact, he stays down");
         }
     }
+}
+
+/// One rifle squad of eight at `time`, each man and the squad's rifle having
+/// fired `shots`, `engaged` or not: each man's clip, by id.
+fn rifle_squad_clips(
+    driver: &mut PoseDriver,
+    units: &UnitsSection,
+    time: f64,
+    shots: f64,
+    engaged: bool,
+) -> Vec<String> {
+    let ids = (1..=8).map(f64::from);
+    let men = ids
+        .clone()
+        .map(|id| man(id, id * 2.0, 0.0, shots))
+        .collect();
+    let mut unit = squad(men, false);
+    unit.mounts[0].shots = shots;
+    unit.engaged = engaged;
+    let poses = driver.update(&frame(time, vec![unit], &fallen(&[])), units, None);
+    ids.map(|id| clip_of(poses, id)).collect()
 }
 
 #[test]

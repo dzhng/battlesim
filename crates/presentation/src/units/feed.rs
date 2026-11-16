@@ -29,6 +29,13 @@ struct Published<'a> {
     poses: &'a [WeaponPose],
 }
 
+/// What a side knows of its own squad's state and never of an enemy's.
+#[derive(Clone, Copy, Default)]
+struct OwnState {
+    pinned: bool,
+    engaged: bool,
+}
+
 pub struct ObservationFeed {
     side: Arc<str>,
     enemy: Arc<str>,
@@ -133,16 +140,11 @@ impl ObservationFeed {
                 leans: &u.member_leans,
                 poses: &u.weapon_poses,
             };
-            let pinned = &*u.suppression == "pinned";
-            let engaged = !u.sees.is_empty() || u.shot_at;
-            self.unit(
-                slot(&mut list, n),
-                pose,
-                &u.kind,
-                true,
-                &published,
-                (pinned, engaged),
-            );
+            let own = OwnState {
+                pinned: &*u.suppression == "pinned",
+                engaged: !u.sees.is_empty() || u.shot_at,
+            };
+            self.unit(slot(&mut list, n), pose, &u.kind, Some(own), &published);
             n += 1;
         }
         for pose in &sample.identified {
@@ -156,15 +158,7 @@ impl ObservationFeed {
                 leans: &e.member_leans,
                 poses: &e.weapon_poses,
             };
-            // The side cannot know an enemy's suppression or what it sees.
-            self.unit(
-                slot(&mut list, n),
-                pose,
-                &e.kind,
-                false,
-                &published,
-                (false, false),
-            );
+            self.unit(slot(&mut list, n), pose, &e.kind, None, &published);
             n += 1;
         }
         // A downed airframe falls on as the vehicle it was, crewless, its
@@ -202,19 +196,23 @@ impl ObservationFeed {
         out: &mut FeedUnit,
         pose: &Pose,
         kind: &Arc<str>,
-        own: bool,
+        own: Option<OwnState>,
         published: &Published,
-        (pinned, engaged): (bool, bool),
     ) {
-        let side = if own { &self.side } else { &self.enemy };
+        let side = if own.is_some() {
+            &self.side
+        } else {
+            &self.enemy
+        };
         out.id = pose.id;
         out.kind = kind.clone();
         out.side = side.clone();
         out.position = pose.position;
         out.yaw = pose.yaw;
         out.deployment = pose.deployment;
-        out.pinned = pinned;
-        out.engaged = engaged;
+        let known = own.unwrap_or_default();
+        out.pinned = known.pinned;
+        out.engaged = known.engaged;
         out.attitude = None;
         let mut n = 0;
         for (k, &position) in pose.members.iter().enumerate() {
