@@ -209,7 +209,7 @@ impl<'a> CatalogView<'a> {
         }
         if let Some(appearance) = self
             .battle_units()
-            .and_then(|units| units.appearances.get(name))
+            .and_then(|units| units.appearances.get(name).map(AsRef::as_ref))
         {
             return Some(CatalogAppearance::Battle(appearance));
         }
@@ -352,6 +352,7 @@ impl Presentation {
         }
         if let Some(battle) = &battle {
             for (name, appearance) in &battle.units.appearances {
+                let appearance = appearance.as_ref();
                 posing::register_appearance(&mut world, name, appearance);
             }
             if let Some(name) = self.loaded.as_ref().and_then(|l| l.input.stand_in.as_ref()) {
@@ -436,7 +437,7 @@ impl Presentation {
         let (Some(loaded), Some(battle)) = (&self.loaded, input.battle) else {
             return Ok(false);
         };
-        let effects = EffectPresentation::from_value(&battle.effects.presentation)?;
+        let effects = battle.effects.presentation.as_ref().clone();
         let (a, b) = (&loaded.input, &battle);
         let same = a.side == b.side
             && a.tick_hz == b.tick_hz
@@ -506,18 +507,19 @@ impl Presentation {
             let Asset::Animated { appearance, table } = asset else {
                 return Err(format!("{name}: battle appearance must remain animated"));
             };
-            if std::mem::discriminant(old) != std::mem::discriminant(appearance.as_ref()) {
+            if std::mem::discriminant(old.as_ref()) != std::mem::discriminant(appearance.as_ref()) {
                 return Err(format!("{name}: battle appearance changed model kind"));
             }
-            *old = *appearance.clone();
-            if let Appearance::Skinned { table: key, .. } = old {
+            *old = Arc::new(*appearance.clone());
+            if let Appearance::Skinned { table: key, .. } = Arc::make_mut(old) {
                 *key = format!("catalog:{name}");
-                tables.insert(key.clone(), table.clone());
+                tables.insert(key.clone(), table.clone().into());
             }
         }
         loaded.driver.validate_catalog(&units)?;
         let mut inverse_binds = HashMap::new();
         for (name, a) in &units.appearances {
+            let a = a.as_ref();
             if let Appearance::Skinned {
                 joints,
                 inverse_binds: given,
@@ -531,7 +533,7 @@ impl Presentation {
             units
                 .appearances
                 .values()
-                .any(|a| matches!(a,Appearance::Skinned {table,..} if table==key))
+                .any(|a| matches!(a.as_ref(),Appearance::Skinned {table,..} if table==key))
         });
         Ok(Some(BattleCatalog {
             units: Arc::new(units),

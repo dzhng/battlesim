@@ -20,7 +20,6 @@
 //! row, so the rules may hold at most [`MAX_WEAPON_ROWS`] (64) weapon rows:
 //! the mask travels as three floats of 24 bits (`heardLow`, `heardMid`,
 //! `heardHigh`), and rules with more rows are refused at load.
-use contract::command::TargetRef;
 use contract::ids::Side;
 use contract::observation::{HostRef, MemberLean, ObservationFrame, ShoutSpeaker, ShoutTrigger};
 use contract::players::ControllerKind;
@@ -31,6 +30,7 @@ use crate::ground::GroundRunPatch;
 
 mod crash_row;
 mod layout;
+mod mount_row;
 mod packing;
 mod publisher;
 pub mod reader;
@@ -41,6 +41,7 @@ mod tags;
 use crash_row::{crash_row, CRASH_FIELDS};
 pub use layout::layout_json;
 use layout::pose;
+use mount_row::{mount_row, MOUNT_FIELDS};
 use packing::{pack_ground, PackedCount, PackedSink, PackedWriter};
 pub use publisher::{Publisher, Publishers};
 use report_row::{report_event_row, REPORT_EVENT_FIELDS};
@@ -64,24 +65,6 @@ pub const MAX_AMMO_KINDS: usize = 2;
 pub const MAX_WEAPON_ROWS: usize = u64::BITS as usize;
 const HEARD_WORD_BITS: usize = 24;
 const HEARD_WORDS: usize = MAX_WEAPON_ROWS.div_ceil(HEARD_WORD_BITS);
-const MOUNT_FIELDS: [&str; 15] = [
-    "mount",
-    "loaded",
-    "ammo0",
-    "ammo1",
-    "aim",
-    "reload",
-    "targetKind",
-    "targetId",
-    "targetX",
-    "targetY",
-    "targetZ",
-    "reason",
-    "kinds",
-    "guiding",
-    "reloadKind",
-];
-
 const POSE_FIELDS: [&str; 8] = [
     "mount",
     "bearing",
@@ -260,7 +243,7 @@ const KNOWN_PROP_FIELDS: [&str; 20] = [
     "authoredPropHi",
     "wreckOf",
 ];
-const OWN_FIELDS: [&str; 57] = [
+const OWN_FIELDS: [&str; 58] = [
     "id",
     "owner",
     "kind",
@@ -318,6 +301,7 @@ const OWN_FIELDS: [&str; 57] = [
     "smokeCharges",
     "smoking",
     "goalUnloads",
+    "shotAt",
 ];
 const IDENTIFIED_FIELDS: [&str; 15] = [
     "id",
@@ -706,6 +690,7 @@ fn pack_record(
             u.smoke.map_or(-1.0, |n| n as f32),
             u.smoking as u8 as f32,
             u.goal_unloads as u8 as f32,
+            u.shot_at as u8 as f32,
         ]);
     }
     for u in &frame.own {
@@ -738,32 +723,7 @@ fn pack_record(
         }));
         out.extend(u.member_leans.iter().flat_map(lean));
         out.extend(u.sees.iter().map(|id| id.0 as f32));
-        for m in &u.mounts {
-            let ammo = |k: usize| m.ammo.get(k).map_or(-2.0, |a| a.map_or(-1.0, |n| n as f32));
-            let (kind, id, p) = match m.target {
-                None => (0.0, -1.0, [0.0; 3]),
-                Some(TargetRef::Identified { id }) => (1.0, id.0 as f32, [0.0; 3]),
-                Some(TargetRef::Contact { id }) => (2.0, id.0 as f32, [0.0; 3]),
-                Some(TargetRef::Ground { point }) => (3.0, -1.0, point.map(|v| v as f32)),
-            };
-            out.extend([
-                m.mount as f32,
-                m.loaded.map_or(-1.0, |k| k as f32),
-                ammo(0),
-                ammo(1),
-                m.aim as f32,
-                m.reload as f32,
-                kind,
-                id,
-                p[0],
-                p[1],
-                p[2],
-                tag(&REASONS, &m.reason),
-                m.ammo.len() as f32,
-                m.guiding as u8 as f32,
-                m.reloading.map_or(-1.0, |k| k as f32),
-            ]);
-        }
+        out.extend(u.mounts.iter().flat_map(mount_row));
         // One pose per mount: the section is counted by mountCount.
         assert_eq!(u.weapon_poses.len(), u.mounts.len());
         out.extend(u.weapon_poses.iter().flat_map(pose));

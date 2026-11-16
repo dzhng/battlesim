@@ -42,7 +42,6 @@ use crate::world::PropId;
 pub mod air;
 mod base;
 mod cells;
-mod check;
 mod corners;
 mod foot;
 mod journey;
@@ -55,7 +54,6 @@ mod route_checks;
 mod search;
 mod slow;
 mod terrain;
-pub use check::RouteCheck;
 mod update;
 
 use base::Body;

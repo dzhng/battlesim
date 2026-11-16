@@ -43,7 +43,8 @@ fn wet_ground() -> Ground {
 
 /// How high each posture (standing, kneeling, lying) holds a man's chest.
 fn chest(units: &UnitsSection) -> [f64; 3] {
-    serde_json::from_value(units.pose["stance"]["chest_m"].clone()).unwrap()
+    serde_json::from_value(serde_json::to_value(&units.pose).unwrap()["stance"]["chest_m"].clone())
+        .unwrap()
 }
 
 /// Every clip twelve men with their feet at (x, y, z) play, first pinned,

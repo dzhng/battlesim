@@ -10,6 +10,7 @@ import { composeScenarioCatalog } from "@web/battle/catalog/compose";
 import { resolveCatalogSet } from "@web/battle/catalog/sets";
 import { presentationSettings } from "@web/presentationSettings";
 import { createBattleAudio } from "@apps/battle-lab/src/soundFeed";
+import { frameViews } from "@packages/battle-renderer/src/records.gen";
 import { Fielding, Presentation, weapon_looks } from "@wasm/renderer_browser";
 import {
   SoundFrame,
@@ -50,7 +51,7 @@ test("wasm fielding admits an unmounted blast-only row and refuses mounted copie
       settings,
       JSON.stringify({ ...rules, weapons }),
       JSON.stringify(catalog),
-      "{}",
+      JSON.stringify({ sides: { blue: [0, 0, 0], red: [0, 0, 0] } }),
       "[]",
     );
     try {
@@ -67,7 +68,7 @@ test("wasm fielding admits an unmounted blast-only row and refuses mounted copie
 test("consecutive wasm battles field and sound their own resolved encounter rules", async () => {
   const wasm = await loadWasm();
   const sim = await loadSimModule();
-  await loadPresentation();
+  const { memory } = await loadPresentation();
   const base = await resolveCatalogSet("test");
   const runtimeCatalog = JSON.parse(readFileSync(new URL("catalog.json", runtime), "utf8"));
   const map = JSON.stringify({
@@ -87,6 +88,10 @@ test("consecutive wasm battles field and sound their own resolved encounter rule
   } as unknown as AppAudio;
   for (const changed of [false, true]) {
     const weapon = changed ? "encounter_gun" : "tank_ap";
+    const settings = structuredClone(presentationSettings);
+    // Different emitted light makes the two admitted routes observable even
+    // when the fixture's tank looks happen to share the same shot sound.
+    settings.weapon_looks.tank_he.flash.cast.color = [0.8, 0.3, 0.1];
     const overrides = {
       units: {
         test_tank: {
@@ -103,8 +108,7 @@ test("consecutive wasm battles field and sound their own resolved encounter rule
       ...(changed
         ? {
             weapons: {
-              tank_ap: { appearance: "tank_he" },
-              encounter_gun: { extends: "tank_ap", name: "Encounter gun" },
+              encounter_gun: { extends: "tank_ap", name: "Encounter gun", appearance: "tank_he" },
             },
             tick_hz: 20,
             air: { low_air: { cruise_agl_m: 25 } },
@@ -136,7 +140,7 @@ test("consecutive wasm battles field and sound their own resolved encounter rule
     const battle = sim.createBattle(JSON.stringify(scenario), 7);
     const presentation = new Presentation(battle.observation_layout(), hz);
     const fielding = new Fielding(
-      JSON.stringify(presentationSettings),
+      JSON.stringify(settings),
       JSON.stringify(session.rules),
       JSON.stringify(session.units.view),
       JSON.stringify(runtimeCatalog),
@@ -151,25 +155,18 @@ test("consecutive wasm battles field and sound their own resolved encounter rule
             readFileSync(new URL(`${runtimeCatalog.gzip[hash].hash}/bundle.bin`, runtime)),
           ),
         );
-      const sections = JSON.parse(
-        fielding.resolve(
-          Buffer.concat(files),
-          Uint32Array.from(files, (f) => f.length),
-        ),
+      const sections = fielding.resolve(
+        Buffer.concat(files),
+        Uint32Array.from(files, (f) => f.length),
       );
       const look = (
         changed ? "tank_he" : base.weapons.tank_ap.appearance
       ) as keyof typeof presentationSettings.weapon_looks;
-      expect(sections.units.types.test_tank.mounts[0].weapons[0].kind).toBe(weapon);
-      expect(sections.effects.presentation.looks.weapons[weapon]).toBe(look);
-      sections.tables.forEach((name: string, i: number) =>
-        presentation.add_clip_table(name, fielding.table(i)),
-      );
+      // A changed mounted weapon and its look must reach the rendered flash,
+      // rather than merely appearing in an exported description.
       presentation.load_world(
         JSON.stringify({
           battle: {
-            units: sections.units,
-            effects: sections.effects,
             side: "blue",
             tick_hz: hz,
             soldier: {
@@ -182,14 +179,23 @@ test("consecutive wasm battles field and sound their own resolved encounter rule
           sun_azimuth: 0,
           sun_elevation: 1,
         }),
+        sections.share(),
       );
+      sections.free();
       createBattleAudio(app, 7, session);
       const active = frames.at(-1)!;
       sound = active.frame;
       const expected = presentationSettings.weapon_looks[look].sound.shot.near;
+      const row = settings.weapon_looks[look];
+      if (!("flash" in row) || !row.flash.cast) throw new Error("test look needs a cast flash");
+      const total = row.flash.cast.color.reduce((sum, v) => sum + v, 0);
+      const expectedColor = row.flash.cast.color.map((v) => v / total);
+      const colors: number[][] = [];
+      const sawFlash = () =>
+        colors.some((c) => c.every((v, i) => Math.abs(v - expectedColor[i]) < 1e-5));
       for (
         let tick = 0;
-        tick < 300 && !active.sink.started.some((v) => v.sound === expected);
+        tick < 300 && (!active.sink.started.some((v) => v.sound === expected) || !sawFlash());
         tick++
       ) {
         const length = battle.publish("blue");
@@ -200,6 +206,22 @@ test("consecutive wasm battles field and sound their own resolved encounter rule
         ).slice();
         const time = battle.tick() / hz;
         presentation.push_publication(words, time);
+        const ptr = presentation.frame(
+          time,
+          new Float64Array([100, 170, 20, 150, 200, 0, 0, 0, 1, 1, 0.1, 640, 480]),
+          new Uint32Array(),
+          false,
+          undefined,
+          "",
+          "",
+          0,
+        );
+        const lights = frameViews(memory.buffer, ptr).lights;
+        for (let i = 0; i < lights.count; i++) {
+          const rgb = Array.from(lights.f32.subarray(i * 8 + 4, i * 8 + 7));
+          const intensity = rgb.reduce((sum, v) => sum + v, 0);
+          if (intensity > 0) colors.push(rgb.map((v) => v / intensity));
+        }
         active.sink.time = time;
         sound.notePresented(presentation);
         sound.update(
@@ -211,6 +233,7 @@ test("consecutive wasm battles field and sound their own resolved encounter rule
         battle.step();
       }
       expect(active.sink.started.map((v) => v.sound)).toContain(expected);
+      expect(colors).toContainEqual(expectedColor.map((v) => expect.closeTo(v, 5)));
       expect(ghostAloft(session.units, session.rules.air)("test_transport_heli")).toBe(
         changed ? 25 : 30,
       );

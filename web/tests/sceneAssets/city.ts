@@ -12,7 +12,8 @@ import type {
 } from "@packages/scene-assets/src/templateSource.ts";
 import { physicalTemplates } from "@web/maps/node";
 import { UnitCatalog } from "@packages/scene-assets/src/units.ts";
-import { AUTHORITY, GltfBuilder, TOLERANCES, gBox } from "./synthetic";
+import { GltfBuilder } from "./gltfBuilder";
+import { AUTHORITY, TOLERANCES, gBox } from "./synthetic";
 
 export const KIT = "city_kit_test";
 export const KIT_SOURCE = "assets/source/city/test/kit.glb";

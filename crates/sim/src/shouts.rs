@@ -10,10 +10,10 @@ use contract::observation::{
 use contract::scenario::Rules;
 
 use crate::battle::Round;
-use crate::flight::{FlightEvent, Projectile, ProjectileId};
+use crate::flight::{FlightEvent, Projectile, ProjectileId, Struck};
 use crate::knowledge::SideKnowledge;
-use crate::math::Obb2;
-use crate::units::Unit;
+use crate::math::{v3, Obb2};
+use crate::units::{locate, Unit};
 use crate::weapons::{Arsenal, Target};
 use crate::world::WorldGeometry;
 
@@ -52,7 +52,7 @@ pub struct ShoutEvidence {
 /// The physical moments flight leaves behind for one tick.
 #[derive(Clone, Debug, Default)]
 pub struct Physical {
-    /// Units an enemy round passed or landed near ([`under_fire`]).
+    /// Units an enemy round passed or landed near ([`NearRounds`]).
     pub under_fire: BTreeSet<UnitId>,
     /// Units that see an enemy missile steering onto them ([`incoming`]).
     pub incoming: BTreeSet<UnitId>,
@@ -135,62 +135,91 @@ fn tier_rank(tier: SuppressionTier) -> u8 {
     }
 }
 
-/// Every unit that heard an enemy round this tick: one passed it, struck
-/// it, glanced off it or landed within the round's suppression radius of
-/// it, scored as suppression scores a near miss. Hulls hear rounds too;
-/// a unit's own side's rounds never count. Read before flight forgets the
-/// rounds that ended this tick.
-pub fn under_fire(
-    events: &[FlightEvent],
-    rounds: &BTreeMap<ProjectileId, Round>,
-    units: &[Unit],
-    arsenal: &Arsenal,
-    rules: &Rules,
-) -> BTreeSet<UnitId> {
-    let mut out = BTreeSet::new();
-    for event in events {
-        let (projectile, point) = match event {
-            FlightEvent::NearMiss(n) => (n.projectile, None),
-            FlightEvent::Impact(i) => (i.projectile, Some(i.point)),
-            FlightEvent::Ricochet(r) => (r.projectile, Some(r.point)),
-            FlightEvent::Expired(_) | FlightEvent::Pass(_) => continue,
-        };
-        let Some(round) = rounds.get(&projectile) else {
-            continue;
-        };
-        let def = &arsenal.weapons[round.weapon].def;
-        let enemy = |unit: &&Unit| unit.side != round.side && unit.on_field();
-        let Some(point) = point else {
-            // A near miss: flight measured the pass to the unit's nearest body.
-            let FlightEvent::NearMiss(n) = event else {
+/// What enemy rounds did near units this tick. Presentation evidence like
+/// barks: never in the battle digest. Read before flight forgets the rounds
+/// that ended this tick.
+#[derive(Clone, Debug, Default)]
+pub struct NearRounds {
+    /// Every unit that heard an enemy round: one passed it, struck it,
+    /// glanced off it or landed within the round's suppression radius of
+    /// it, scored as suppression scores a near miss. Hulls hear rounds too;
+    /// a unit's own side's rounds never count.
+    pub under_fire: BTreeSet<UnitId>,
+    /// Every unit that heard a round aimed at it, or was struck by one,
+    /// heard or not (B8): its published `shot_at`.
+    pub shot_at: BTreeSet<UnitId>,
+}
+
+impl NearRounds {
+    pub fn read(
+        events: &[FlightEvent],
+        rounds: &BTreeMap<ProjectileId, Round>,
+        units: &[Unit],
+        arsenal: &Arsenal,
+        rules: &Rules,
+    ) -> Self {
+        let mut out = Self::default();
+        for event in events {
+            let (projectile, point, struck) = match event {
+                FlightEvent::NearMiss(n) => (n.projectile, None, None),
+                FlightEvent::Impact(i) => (
+                    i.projectile,
+                    Some(i.point),
+                    match i.struck {
+                        Struck::Body(b) => Some(b),
+                        _ => None,
+                    },
+                ),
+                FlightEvent::Ricochet(r) => (r.projectile, Some(r.point), Some(r.body)),
+                FlightEvent::Expired(_) | FlightEvent::Pass(_) => continue,
+            };
+            let Some(round) = rounds.get(&projectile) else {
                 continue;
             };
-            let unit = &units[n.unit.0 as usize];
-            if enemy(&unit) && crate::damage::near_miss(def, n.distance) > 0.0 {
-                out.insert(n.unit);
-            }
-            continue;
-        };
-        for unit in units.iter().filter(enemy) {
-            let distance = match unit.hull {
-                Some(_) => unit.hull_distance(point),
-                None => unit
-                    .members
-                    .iter()
-                    .filter(|m| m.alive())
-                    .map(|m| {
-                        (m.position + crate::math::v3(0.0, 0.0, rules.physics.infantry_center_m)
-                            - point)
-                            .length()
-                    })
-                    .fold(f64::INFINITY, f64::min),
+            let def = &arsenal.weapons[round.weapon].def;
+            let enemy = |unit: &&Unit| unit.side != round.side && unit.on_field();
+            let mut heard = |unit: &Unit, distance: f64| {
+                if crate::damage::near_miss(def, distance) > 0.0 {
+                    out.under_fire.insert(unit.id);
+                    if round.aimed_at == Some(unit.id) {
+                        out.shot_at.insert(unit.id);
+                    }
+                }
             };
-            if crate::damage::near_miss(def, distance) > 0.0 {
-                out.insert(unit.id);
+            let Some(point) = point else {
+                // A near miss: flight measured the pass to the unit's nearest body.
+                let FlightEvent::NearMiss(n) = event else {
+                    continue;
+                };
+                let unit = &units[n.unit.0 as usize];
+                if enemy(&unit) {
+                    heard(unit, n.distance);
+                }
+                continue;
+            };
+            for unit in units.iter().filter(enemy) {
+                let distance = match unit.hull {
+                    Some(_) => unit.hull_distance(point),
+                    None => unit
+                        .members
+                        .iter()
+                        .filter(|m| m.alive())
+                        .map(|m| {
+                            let centre = v3(0.0, 0.0, rules.physics.infantry_center_m);
+                            (m.position + centre - point).length()
+                        })
+                        .fold(f64::INFINITY, f64::min),
+                };
+                heard(unit, distance);
+            }
+            if let Some((i, _)) = struck.and_then(|b| locate(units, b)) {
+                if round.aimed_at == Some(units[i].id) {
+                    out.shot_at.insert(units[i].id);
+                }
             }
         }
+        out
     }
-    out
 }
 
 /// Whether `point` lies on the unit: within its hull's extents seen from

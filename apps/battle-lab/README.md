@@ -153,6 +153,12 @@ that render React views subscribe to the same feed, publishing before paint so
 cards and commands agree with the committed selection. This keeps full observations
 out of development profiling details.
 
+React sees at most one observation a frame, so a fact true for a single tick
+(an own unit's `shotAt`, which blinks its card) is read from every decoded
+publication instead: [the battle view](src/BattleView.tsx) gives the session an
+`onDecoded` that hands each one to the
+[fire blink](../../web/src/battle/present/fireBlink.ts).
+
 [Page resources](src/appResources.ts) retain the admitted GPU across screen changes;
 [the viewport](src/LabViewport.tsx) owns the canvas configuration and scene
 allocations. [Session telemetry](src/useViewportGpu.ts) borrows that live renderer;

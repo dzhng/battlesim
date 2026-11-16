@@ -38,6 +38,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from common import REPO, empty, export_glb, reparent_keep, script_args  # noqa: E402
 from infantry_rig import SCALE, TORSO, Rig, iter_fcurves, weapon_matrix  # noqa: E402
 from weapons import FAMILIES  # noqa: E402
+from shouldering import PRONE_POCKET, lean_in, shouldered, weld_cheek  # noqa: E402
 
 
 def bake_family(rig, hold):
@@ -59,6 +60,9 @@ def bake_family(rig, hold):
     res["run"] = rig.composite("run", "Jog_Fwd_Loop", hold_cons,
                                damp=(["spine_01", "spine_02", "spine_03", "neck_01"], RUN_TWIST),
                                layers=RUN_LAYERS, damp_legs=RUN_STRIDE, grounded=True)
+    # Each authored clip below releases its constraints once baked (`Rig.release`): muted
+    # IK stacked on a bone misplaces the live chain.
+    rig.release(list(rig.constraints))
 
     # ---- kneel_fire (authored)
     work = bpy.data.actions.new("_work_kneel_fire")
@@ -69,16 +73,14 @@ def bake_family(rig, hold):
     for n, d in (("spine_01", 4), ("spine_02", 4), ("spine_03", 3)):
         rig.rot_world(P[n], "X", d)
     rig.rot_world(P["spine_03"], "Z", 10)  # square the chest back toward the target
-    rig.rot_world(P["neck_01"], "X", 6)
-    rig.rot_world(P["Head"], "X", 6)
-    rig.rot_world(P["neck_01"], "Y", -10)
-    rig.rot_world(P["Head"], "Y", -10)  # cheek down onto the stock
+    lean_in(rig)
     for fr in (0, 36):
         rig.key_bones(TORSO, fr)
         rig.apply_fist(fr)
     rig.scn.frame_set(0)
     bpy.context.view_layer.update()
     kneel_mw = shouldered(rig, hold)
+    kneel_mw = weld_cheek(rig, hold, kneel_mw, (0, 36))
     anchor_k, tr_k, tl_k = rig.make_hold("kneel", kneel_mw, grip, support, spine_follow=True)
     recoil = empty("recoil_kneel", (0, 0, 0), size=0.03)
     recoil.parent = anchor_k
@@ -91,8 +93,8 @@ def bake_family(rig, hold):
         recoil.rotation_euler = (-up * 3.141592653589793 / 180, 0, 0)
         recoil.keyframe_insert("location", frame=fr)
         recoil.keyframe_insert("rotation_euler", frame=fr)
-    pk_r = rig.pole("pole_kneel_r", (-0.55, 0.05, 0.85))
-    pk_l = rig.pole("pole_kneel_l", (0.20, -0.30, 0.50))
+    pk_r = rig.pole("pole_kneel_r", (-0.45, 0.10, 0.55))
+    pk_l = rig.pole("pole_kneel_l", (0.15, -0.30, 0.15))
     kcons = rig.arm_constraints(tr_k, tl_k, pk_r, pk_l)
     fl = rig.world_empty("ik_foot_l", (0.17, -0.40, 0.095))
     fr_ = rig.world_empty("ik_foot_r", (-0.10, 0.44, 0.13))
@@ -101,7 +103,7 @@ def bake_family(rig, hold):
     lcons = rig.leg_constraints(fl, fr_, pl, pr)
     rig.only(kcons + lcons)
     res["kneel_fire"] = (rig.bake("kneel_fire", 0, 36), (0, 36))
-    rig.only([])
+    rig.release(list(rig.constraints))
 
     # ---- prone_pinned (authored). Spike 03's pose lay face-down in the ground with the left
     # hand 0.18 m short of the handguard (critique: "face crater", "no hand on the rifle",
@@ -115,23 +117,22 @@ def bake_family(rig, hold):
     work = bpy.data.actions.new("_work_stand_aim")
     rig.set_action(work)
     rig.clear_pose()
-    rig.move_world(P["pelvis"], (0, 0.02, -0.03))
+    rig.move_world(P["pelvis"], (0, 0.02, 0.0))  # stood up, the knees soft (the leg IK bends them)
     rig.rot_world(P["pelvis"], "Z", -16)
     for n, d in (("spine_01", 6), ("spine_02", 4), ("spine_03", 2)):
         rig.rot_world(P[n], "X", d)
     rig.rot_world(P["spine_03"], "Z", 10)
-    rig.rot_world(P["neck_01"], "X", 5)
-    rig.rot_world(P["Head"], "X", 5)
-    rig.rot_world(P["neck_01"], "Y", -10)
-    rig.rot_world(P["Head"], "Y", -10)
+    lean_in(rig)
     for fr in (0, 30):
         rig.key_bones(TORSO, fr)
         rig.apply_fist(fr)
     rig.scn.frame_set(0)
     bpy.context.view_layer.update()
-    anchor_a, tr_a, tl_a = rig.make_hold("aim", shouldered(rig, hold), grip, support, spine_follow=True)
-    pa_r = rig.pole("pole_aim_r", (-0.55, 0.05, 1.25))
-    pa_l = rig.pole("pole_aim_l", (0.20, -0.30, 0.90))
+    aim_mw = shouldered(rig, hold)
+    aim_mw = weld_cheek(rig, hold, aim_mw, (0, 30))
+    anchor_a, tr_a, tl_a = rig.make_hold("aim", aim_mw, grip, support, spine_follow=True)
+    pa_r = rig.pole("pole_aim_r", (-0.45, 0.10, 0.95))
+    pa_l = rig.pole("pole_aim_l", (0.15, -0.30, 0.55))  # the support elbow hangs under the weapon
     acons = rig.arm_constraints(tr_a, tl_a, pa_r, pa_l)
     fl = rig.world_empty("ik_foot_l_aim", (0.13, -0.08, 0.086))
     fr_ = rig.world_empty("ik_foot_r_aim", (-0.17, 0.2, 0.086))
@@ -148,7 +149,7 @@ def bake_family(rig, hold):
     rig.constraints.extend(acons[-2:])
     rig.only(acons)
     res["stand_aim"] = (rig.bake("stand_aim", 0, 30), (0, 30))
-    rig.only([])
+    rig.release(list(rig.constraints))
 
     # ---- moving in a posture, each way he can go in it: stepping upright or crouched
     # with the weapon up, and crawling on his belly. Each clip starts from a rig with no
@@ -245,16 +246,10 @@ def prone(rig, hold, name="prone_pinned", frames=PRONE_LOOP, pose=None, weapon=N
     rig.scn.frame_set(0)
     bpy.context.view_layer.update()
     sh_r = rig.arm.pose.bones["upperarm_r"].head.copy()
-    if hold["prone_butt"] is not None:
-        # the butt in the right shoulder pocket, the weapon level and pointing forward
-        pocket = sh_r + Vector((0.06, -0.05, 0.02))
-        placed = Matrix.Translation(pocket - Vector(hold["prone_butt"]) * hold["scale"])
-    else:
-        placed = shouldered(rig, hold)
-    # prone, the support hand may take the rear of the handguard, nearer the grip;
+    placed = shouldered(rig, hold, PRONE_POCKET)
+    placed = weld_cheek(rig, hold, placed, [k[0] for k in PRONE_KEYS] if pose is None else list(range(frames + 1)))
     # the anchor rides the chest, so the flinch carries the weapon and both hands
-    support = Vector(hold["support"]) + Vector((0, hold["prone_support_back"], 0))
-    anchor, tr, tl = rig.make_hold("prone", placed, hold["grip"], support, spine_follow=True)
+    anchor, tr, tl = rig.make_hold("prone", placed, hold["grip"], hold["support"], spine_follow=True)
     if weapon is not None:
         carry(rig, anchor, frames, weapon)
     pr = rig.world_empty(f"pole_{name}_r", (sh_r.x - 0.45, sh_r.y + 0.05, -0.4))
@@ -262,7 +257,7 @@ def prone(rig, hold, name="prone_pinned", frames=PRONE_LOOP, pose=None, weapon=N
     cons = rig.arm_constraints(tr, tl, pr, pl)
     rig.only(cons)
     act = rig.bake(name, 0, frames)
-    rig.only([])
+    rig.release(cons)
     return act, (0, frames)
 
 
@@ -348,17 +343,16 @@ def stepping(rig, hold, name, g, d):
         rig.rot_world(P["spine_03"], "Z", -g["blade"])
         if not lateral:
             rig.rot_world(P["spine_01"], "Z", -4 * math.sin(2 * math.pi * mid) * dy)
-        rig.rot_world(P["neck_01"], "X", 5 - g["lean"] * 0.45)
-        rig.rot_world(P["Head"], "X", 5 - g["lean"] * 0.3)
-        rig.rot_world(P["neck_01"], "Y", -10)
-        rig.rot_world(P["Head"], "Y", -10)
+        lean_in(rig)
         rig.key_bones(TORSO, f)
         rig.apply_fist(f)
     rig.scn.frame_set(0)
     bpy.context.view_layer.update()
-    anchor, tr, tl = rig.make_hold(name, shouldered(rig, hold), hold["grip"], hold["support"], spine_follow=True)
-    cons = rig.arm_constraints(tr, tl, rig.pole(f"pole_{name}_r", (-0.55, 0.05, 1.25 - g["drop"])),
-                               rig.pole(f"pole_{name}_l", (0.20, -0.30, 0.90 - g["drop"])))
+    placed = shouldered(rig, hold)
+    placed = weld_cheek(rig, hold, placed, list(range(n + 1)))
+    anchor, tr, tl = rig.make_hold(name, placed, hold["grip"], hold["support"], spine_follow=True)
+    cons = rig.arm_constraints(tr, tl, rig.pole(f"pole_{name}_r", (-0.45, 0.10, 0.95 - g["drop"])),
+                               rig.pole(f"pole_{name}_l", (0.15, -0.30, 0.55 - g["drop"])))
     # Animated targets stay unparented: parented to the rig whose IK reads them, they
     # would form a dependency cycle and the legs would solve to a stale frame. The rig
     # stands unturned at the origin while building, so rest space is world space.
@@ -392,7 +386,7 @@ def stepping(rig, hold, name, g, d):
             locks[s].keyframe_insert("rotation_quaternion", frame=f)
     rig.only(cons)
     act = rig.bake(name, 0, n)
-    rig.only([])
+    rig.release(cons)
     return act, (0, n)
 
 
@@ -458,7 +452,7 @@ def corpse(rig, hold, up=False):
     rig.clear_pose()
     rig.rot_world(P["pelvis"], "X", 90 * s)  # face down head forward (-Y); face up head back (+Y)
     rig.move_world(P["pelvis"], (0, 0.02, -k["up_z"] if up else -0.75))
-    rig.rot_world(P["pelvis"], "Y", k["roll"] * s)
+    rig.rot_world(P["pelvis"], "Y", k["roll_up"] if up else k["roll_down"])  # onto one side
     rig.rot_world(P["spine_03"], "Z", 8)
     rig.rot_world(P["neck_01"], "Y", k["cheek"] * 0.5 * s)
     rig.rot_world(P["Head"], "Y", k["cheek"] * 0.5 * s)
@@ -466,6 +460,7 @@ def corpse(rig, hold, up=False):
         rig.rot_world(P["thigh_l"], "X", -k["knee"])  # the left knee raised
         rig.rot_world(P["calf_l"], "X", k["knee"] * 1.8)
         rig.rot_world(P["thigh_l"], "Z", 10)
+        rig.rot_world(P["thigh_l"], "Y", 20)  # the raised knee lolls outward, as a dead man's does
         rig.rot_world(P["thigh_r"], "Z", -8)
         rig.rot_world(P["foot_l"], "Y", -35)  # toes up, falling outward
         rig.rot_world(P["foot_r"], "Y", 35)
@@ -483,6 +478,10 @@ def corpse(rig, hold, up=False):
         rig.rot_world(P["upperarm_l"], "Y", 15)  # the arms down onto the ground
         rig.rot_world(P["upperarm_l"], "Z", -45)  # the left by his head, elbow bent
         rig.rot_world(P["lowerarm_l"], "Z", -70)
+    # a slung launcher has fallen off him: it lies flat on the ground by his left side
+    hips = P["pelvis"].head
+    x, toward_head, z = k["sling"]
+    P["sling"].matrix = Matrix.Translation((hips.x + x, hips.y + (toward_head if up else -toward_head), z))
     for n, q in rig.fist.items():  # the right hand still grips; the left lies open
         if n.endswith("_r"):
             P[n].rotation_quaternion = q
@@ -508,8 +507,10 @@ def corpse(rig, hold, up=False):
 ARM_BONES = ("clavicle", "upperarm", "lowerarm", "hand", "index", "middle", "ring", "pinky", "thumb")
 # The corpses: the hips' roll onto one side and the head's onto a cheek (degrees), how
 # far the left knee is drawn up (degrees), the weapon's height off the ground (m), and
-# face up, how far the hips sink (m: less than face down, the pack holds him up).
-CORPSE = dict(roll=10, cheek=70, knee=30, weapon_z=0.05, up_z=0.66)
+# face up, how far the hips sink (m: less than face down, the pack holds him up), and
+# where a slung launcher lies once it falls off him, from his hips (m: out to his left,
+# toward his head, off the ground).
+CORPSE = dict(roll_up=-10, roll_down=-30, cheek=70, knee=30, weapon_z=0.05, up_z=0.66, sling=(0.7, 0.2, 0.1))
 
 
 def deaths(rig, hold, res):
@@ -591,18 +592,6 @@ def key_fall(rig, name, keys):
                 kp.easing = "EASE_IN"
     rig.set_action(None)
     return act, (0, keys[-1][0])
-
-
-def shouldered(rig, hold):
-    """A weapon placement with its sight 8 cm ahead of the eye, pulled `cheek_blend` of the
-    way across toward the right shoulder pocket (spike 03's kneel_fire bore line)."""
-    eye = rig.eye_point()
-    sh = rig.arm.pose.bones["upperarm_r"].head.copy()
-    sight = Vector(hold["sight"]) * hold["scale"]
-    pocket = sh + Vector((0.09, -0.05, 0.0))
-    k = hold["cheek_blend"]
-    grip = Vector((eye.x + (pocket.x - eye.x) * k, eye.y - 0.08, eye.z)) - sight
-    return Matrix.Translation(grip)
 
 
 def export_clips(rig, res, path):

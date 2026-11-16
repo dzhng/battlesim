@@ -16,7 +16,8 @@
  * (the order flash, and the units' spoken answers). In a team battle it orders
  * only the player's own units (`controlled.ts`): a box or double-click takes
  * only them, and a click on an ally's unit selects it alone, to read, so
- * nothing selected then takes an order. */
+ * nothing selected then takes an order. It also keeps the control groups
+ * (`controlGroups.ts`), since a group is a stored selection. */
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import type { OnlineSimClient } from "../sim/client";
 import { aboardCarrier, type ObservationView, type OwnUnitView } from "../sim/observationView";
@@ -36,6 +37,16 @@ import { reach } from "./commandReach";
 import { SelectClicks, similarUnits } from "./selectSimilar";
 import { useSessionCatalog } from "../catalog/context";
 import { controlled } from "./controlled";
+import {
+  groupKeyPress,
+  liveGroups,
+  nearestCentre,
+  storeGroup,
+  type ControlGroups,
+  type GroupAction,
+  type GroupKey,
+} from "./controlGroups";
+import { DOUBLE_CLICK_MS } from "./moveGestures";
 
 export interface AckEntry {
   seq: number;
@@ -54,6 +65,8 @@ export interface UnitControlEvents {
   onAck?(order: Order, ack: CommandAck, queued: boolean): void;
   /** The selection gained `added`; `clicked` is the unit clicked to gain them, if one was. */
   onSelect?(added: readonly number[], clicked: number | null): void;
+  /** A control group's key pressed twice: show this, its member nearest its centre. */
+  onCenter?(unit: OwnUnitView): void;
 }
 
 export function useUnitControl(
@@ -102,6 +115,25 @@ export function useUnitControl(
     () => selected.flatMap((id) => yours.find((u) => u.id === id && !aboardCarrier(u)) ?? []),
     [yours, selected],
   );
+  const [stored, setStored] = useState<ControlGroups>(() => new Map());
+  /** The groups over the units still on the side: a squad aboard a carrier
+   *  stays in its group; the dead drop out. */
+  const groups = useMemo(
+    () => liveGroups(stored, new Set(yours.map((u) => u.id))),
+    [stored, yours],
+  );
+  const groupsRef = useRef(groups);
+  groupsRef.current = groups;
+  const lastRecall = useRef<{ key: GroupKey; at: number } | null>(null);
+  const deleteGroup = useCallback(
+    (key: GroupKey) =>
+      setStored((current) => {
+        const next = new Map(current);
+        next.delete(key);
+        return next;
+      }),
+    [],
+  );
   const [acks, setAcks] = useState<AckEntry[]>([]);
   const [mode, setModeState] = useState<CommandMode>("move");
   // The armed mode as last set, ahead of the render: a key pressed right
@@ -134,6 +166,7 @@ export function useUnitControl(
   useEffect(() => {
     clientRef.current = client;
     setSelection([]);
+    setStored(new Map());
     setAcks([]);
     setMode("move");
     gestures.current = new MoveGestures();
@@ -411,10 +444,42 @@ export function useUnitControl(
     if (units.length) void issue({ kind: "refund", units });
   }, [issue]);
 
-  // Command keys, from the one binding table.
+  /** Ctrl+N stores the selection, Shift+N adds it, N selects the group's
+   *  units on the field, and N again within a double-click centres on it. */
+  const pressGroup = useCallback(
+    (key: GroupKey, action: GroupAction, at: number) => {
+      if (action !== "recall") {
+        const units = selectedUnitsRef.current.map((u) => u.id);
+        setStored((current) => storeGroup(current, key, units, action === "add"));
+        return;
+      }
+      // A key with no group leaves the selection alone (RTS convention).
+      const members = groupsRef.current.get(key);
+      if (!members) return;
+      const onField = members.flatMap(
+        (id) => yoursRef.current.find((u) => u.id === id && !aboardCarrier(u)) ?? [],
+      );
+      setSelected(onField.map((u) => u.id));
+      const last = lastRecall.current;
+      const twice = last?.key === key && at - last.at <= DOUBLE_CLICK_MS;
+      lastRecall.current = twice ? null : { key, at };
+      const centre = twice ? nearestCentre(onField) : null;
+      if (centre) eventsRef.current?.onCenter?.(centre);
+    },
+    [setSelected],
+  );
+
+  // Command keys, from the one binding table; group keys, from theirs.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!enabledRef.current) return;
+      // A replay or a script has no client: its keys stay the browser's.
+      const group = clientRef.current ? groupKeyPress(e) : null;
+      if (group) {
+        e.preventDefault();
+        pressGroup(group.key, group.action, e.timeStamp);
+        return;
+      }
       const command = commandForKey(e);
       // Esc is the unit control's only while a command is armed; otherwise
       // it goes on to the page (the battle's pause menu).
@@ -449,6 +514,7 @@ export function useUnitControl(
     setMode,
     catalog,
     ownUnits,
+    pressGroup,
   ]);
 
   return {
@@ -460,6 +526,8 @@ export function useUnitControl(
     selected,
     setSelected,
     selectedUnits,
+    groups,
+    deleteGroup,
     acks,
     issue,
     onPointer,

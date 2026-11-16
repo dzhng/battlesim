@@ -1139,12 +1139,111 @@ html {
   width: 100%;
   max-width: none;
 }
+/* Each card's cell is placed from its slot (`deckLayout.ts`): one sequence
+   filled top to bottom, then across, so the deck never has a gap. */
 .hud-army {
   display: grid;
+  grid-auto-columns: 64px;
   justify-content: center;
   gap: 4px;
   width: 100%;
   overflow: visible;
+}
+/* A card's cell. A control group's bracket, key and × sit on the cards'
+   outer edge, so grouping moves no card: the white line covers the card's
+   own border wherever the neighbour is outside the group. */
+.hud-army-slot {
+  position: relative;
+  display: flex;
+}
+/* Each piece reaches across the 4 px gap on its inner sides, so the pieces
+   of neighbouring cards meet, an L's inner corner included. */
+.hud-army-slot[data-bracket]::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  z-index: 1;
+  pointer-events: none;
+  border: 0 solid rgb(var(--hud-text));
+}
+.hud-army-slot[data-bracket~="top"]::after {
+  top: 0;
+  border-top-width: 1px;
+}
+.hud-army-slot[data-bracket~="right"]::after {
+  right: 0;
+  border-right-width: 1px;
+}
+.hud-army-slot[data-bracket~="bottom"]::after {
+  bottom: 0;
+  border-bottom-width: 1px;
+}
+.hud-army-slot[data-bracket~="left"]::after {
+  left: 0;
+  border-left-width: 1px;
+}
+/* The group's key and its ×: white tabs flush in the bracket's corners. */
+.hud-army-group-key,
+.hud-panel button.hud-army-group-delete {
+  position: absolute;
+  top: 0;
+  z-index: 2;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 2px;
+  border: 0;
+  color: rgb(var(--hud-group-ink));
+  background: rgb(var(--hud-text));
+}
+.hud-army-group-key {
+  left: 0;
+  pointer-events: none;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0;
+}
+.hud-panel button.hud-army-group-delete {
+  right: 0;
+  width: 15px;
+  padding: 0;
+}
+.hud-army-group-delete .ro-icon {
+  margin: 0;
+}
+.hud-army-group-delete .ro-icon svg {
+  width: 13px;
+  height: 13px;
+}
+/* A card's fire blink (`fireBlink.ts`): light rising from its foot, the
+   end its strength meter sits at, spilling softly below the card. Yellow
+   when its unit was shot at, red when hurt; each mixed from the panel glass
+   toward the HUD's warning or damage colour, so it fades in and out of the
+   deck's dark blue. It lies under the card's translucent face, which keeps
+   its meter, symbols and the group's white bracket on top. It rests unseen;
+   `playBlink` animates its two pulses. */
+.hud-army-blink {
+  --blink: color-mix(in srgb, rgb(var(--hud-warn)) var(--hud-blink-depth), rgb(var(--hud-glass)));
+  position: absolute;
+  inset: -1px;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  border-bottom: 2px solid var(--blink);
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--blink) 80%, transparent),
+    color-mix(in srgb, var(--blink) 25%, transparent) 45%,
+    transparent 75%
+  );
+  box-shadow: 0 calc(4px * var(--hud-blink-glow)) calc(10px * var(--hud-blink-glow))
+    calc(-2px * var(--hud-blink-glow)) color-mix(in srgb, var(--blink) 80%, transparent);
+}
+.hud-army-blink[data-colour="red"] {
+  --blink: color-mix(in srgb, rgb(var(--hud-bad)) var(--hud-blink-depth), rgb(var(--hud-glass)));
 }
 /* Not on the field: a purchase waiting to deploy, or a squad riding a
    carrier (its card picks the carrier). */

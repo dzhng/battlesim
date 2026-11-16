@@ -22,7 +22,7 @@ use crate::flight::{
 };
 use crate::ground::GroundLayer;
 use crate::math::{v3, V2, V3};
-use crate::units::{hull_face_at, Unit};
+use crate::units::{hull_face_at, locate, Unit};
 use crate::weapons::{Arsenal, VEHICLE_BODY_BASE};
 use crate::world::{PropId, WorldGeometry};
 use contract::random::Rng;
@@ -260,7 +260,7 @@ impl ImpactResolver for HullResolver<'_> {
         let round = self.rounds.get(&projectile)?;
         let def = &self.arsenal.weapons[round.weapon].def;
         let fuse = def.proximity_fuse_m?;
-        let target = round.fused_target?;
+        let target = round.aimed_at?;
         let unit = self.units.get(target.0 as usize)?;
         unit.on_field().then_some((target, fuse))
     }
@@ -339,20 +339,6 @@ pub struct StructuralHit {
     pub prop: PropId,
     pub amount: f64,
     pub toward: V2,
-}
-
-/// Where a body lives: (unit index, soldier index) or a vehicle.
-fn locate(units: &[Unit], body: BodyId) -> Option<(usize, Option<usize>)> {
-    if body.0 >= VEHICLE_BODY_BASE {
-        let i = (body.0 - VEHICLE_BODY_BASE) as usize;
-        return (i < units.len()).then_some((i, None));
-    }
-    units.iter().enumerate().find_map(|(i, u)| {
-        u.members
-            .iter()
-            .position(|s| s.id == body.0)
-            .map(|k| (i, Some(k)))
-    })
 }
 
 /// Apply this tick's flight events in order. `suppressed` carries, per round

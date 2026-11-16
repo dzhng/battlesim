@@ -17,7 +17,9 @@ impl PoseDriver {
             ) else {
                 continue;
             };
-            let Some(Appearance::Skinned { clips, .. }) = units.appearances.get(name) else {
+            let Some(Appearance::Skinned { clips, .. }) =
+                units.appearances.get(name).map(AsRef::as_ref)
+            else {
                 continue;
             };
             for clip in
@@ -46,7 +48,9 @@ impl PoseDriver {
             ) else {
                 continue;
             };
-            let Some(Appearance::Skinned { corpse_poses, .. }) = units.appearances.get(name) else {
+            let Some(Appearance::Skinned { corpse_poses, .. }) =
+                units.appearances.get(name).map(AsRef::as_ref)
+            else {
                 continue;
             };
             if corpse_poses.get(corpse.lies).is_none() {

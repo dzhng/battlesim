@@ -4,10 +4,12 @@
 // break exactly one rule each (the golden failures). Adapted from ~/dev/game's
 // `bake/make-test-glb.mjs`: generated in code, never a checked-in blob.
 
-import { encodeGlb, type GltfJson } from "@packages/scene-assets/src/glb.ts";
-import { quat, type Mat4, type Quat, type Vec3 } from "math";
-import { inverse, mul, trsMatrix } from "@packages/scene-assets/src/trs.ts";
+import { buildClips } from "@packages/scene-assets/src/build.ts";
+import type { GltfJson } from "@packages/scene-assets/src/glb.ts";
+import { importScene } from "@packages/scene-assets/src/scene.ts";
+import { quat, type Quat, type Vec3 } from "math";
 import { readBundle } from "@packages/scene-assets/src/gzip.ts";
+import { GltfBuilder } from "./gltfBuilder";
 import { hullType } from "./unitType.ts";
 import type {
   AppearanceEntry,
@@ -19,7 +21,11 @@ import type {
   SkeletonEntry,
   Tolerances,
 } from "@packages/scene-assets/src/schema.ts";
-import { INFANTRY_CLIPS, INFANTRY_DEATHS } from "@packages/scene-assets/src/schema.ts";
+import {
+  INFANTRY_CLIPS,
+  INFANTRY_CORPSES,
+  INFANTRY_DEATHS,
+} from "@packages/scene-assets/src/schema.ts";
 import {
   UnitCatalog,
   type MountRow,
@@ -119,6 +125,7 @@ export const HELI_AUTHORITY: Authority = {
 export const TOLERANCES: Tolerances = {
   ground_m: 0.01,
   soldier_height_m: 0.05,
+  soldier_lying_height_m: 0.6,
   eye_m: 0.08,
   muzzle_m: 0.1,
   hull_extent_m: 0.1,
@@ -127,261 +134,7 @@ export const TOLERANCES: Tolerances = {
   muzzle_arc_m: 0.01,
 };
 
-interface NodeSpec {
-  name: string;
-  t?: Vec3;
-  r?: Quat;
-  s?: Vec3;
-  mesh?: number;
-  skin?: number;
-  children?: number[];
-  extras?: Record<string, unknown>;
-}
-
-/** A minimal glTF writer: accessors, box meshes, nodes, one skin, animations. */
-export class GltfBuilder {
-  json: GltfJson = {
-    asset: { version: "2.0", generator: "scene-assets synthetic" },
-    scene: 0,
-    scenes: [{ nodes: [] }],
-    nodes: [],
-    meshes: [],
-    accessors: [],
-    bufferViews: [],
-    materials: [
-      {
-        name: "paint",
-        pbrMetallicRoughness: {
-          baseColorFactor: [0.4, 0.45, 0.3, 1],
-          metallicFactor: 0,
-          roughnessFactor: 0.8,
-        },
-      },
-    ],
-  };
-  private chunks: Uint8Array[] = [];
-  private length = 0;
-  /** Boxes carry UVs (one per face, metres) and, unless false, tangents. */
-  surface: { tangents: boolean } | null = null;
-  /** Every box vertex's colour (glTF `COLOR_0`, linear rgba), when set. */
-  colour: [number, number, number, number] | null = null;
-
-  private view(bytes: Uint8Array): number {
-    const padded = new Uint8Array(Math.ceil(bytes.byteLength / 4) * 4);
-    padded.set(bytes);
-    this.json.bufferViews.push({
-      buffer: 0,
-      byteOffset: this.length,
-      byteLength: bytes.byteLength,
-    });
-    this.chunks.push(padded);
-    this.length += padded.byteLength;
-    return this.json.bufferViews.length - 1;
-  }
-
-  /** Embed a square RGBA8 image as a PNG; returns its glTF texture index. */
-  texture(size: number, pixel: (x: number, y: number) => [number, number, number, number]): number {
-    const rgba = new Uint8Array(size * size * 4);
-    for (let y = 0; y < size; y++)
-      for (let x = 0; x < size; x++) rgba.set(pixel(x, y), (y * size + x) * 4);
-    const bufferView = this.view(encodePng(size, size, rgba));
-    this.json.images = [...(this.json.images ?? []), { bufferView, mimeType: "image/png" }];
-    this.json.textures = [...(this.json.textures ?? []), { source: this.json.images.length - 1 }];
-    return this.json.textures.length - 1;
-  }
-
-  /** Give material 0 an albedo, a flat normal map and an ORM image, each `size` px. */
-  textureMaterial(size: number) {
-    const albedo = this.texture(size, (x, y) => [(x * 37) & 255, (y * 91) & 255, 90, 200]);
-    const normal = this.texture(size, () => [128, 128, 255, 255]);
-    const orm = this.texture(size, (x) => [255, 180 + (x & 7), 0, 255]);
-    const m = this.json.materials[0];
-    m.pbrMetallicRoughness.baseColorTexture = { index: albedo };
-    m.pbrMetallicRoughness.metallicRoughnessTexture = { index: orm };
-    m.occlusionTexture = { index: orm };
-    m.normalTexture = { index: normal };
-  }
-
-  accessor(
-    data: Float32Array | Uint16Array | Uint32Array,
-    type: string,
-    extra: GltfJson = {},
-  ): number {
-    const view = this.view(new Uint8Array(data.buffer, data.byteOffset, data.byteLength));
-    const componentType =
-      data instanceof Float32Array ? 5126 : data instanceof Uint16Array ? 5123 : 5125;
-    const width = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4, MAT4: 16 }[type]!;
-    this.json.accessors.push({
-      bufferView: view,
-      componentType,
-      type,
-      count: data.length / width,
-      ...extra,
-    });
-    return this.json.accessors.length - 1;
-  }
-
-  /** An axis-aligned box from `min` to `max`, flat-shaded; `influence(p)` skins each vertex. */
-  box(
-    min: Vec3,
-    max: Vec3,
-    influence?: (p: Vec3) => [number[], number[]],
-    attributes: GltfJson = {},
-  ): number {
-    const positions: number[] = [];
-    const normals: number[] = [];
-    const joints: number[] = [];
-    const weights: number[] = [];
-    const uvs: number[] = [];
-    const tangents: number[] = [];
-    const indices: number[] = [];
-    const faces: [number, number][] = [
-      [0, 1],
-      [0, -1],
-      [1, 1],
-      [1, -1],
-      [2, 1],
-      [2, -1],
-    ];
-    for (const [axis, sign] of faces) {
-      const [u, v] = [(axis + 1) % 3, (axis + 2) % 3];
-      const base = positions.length / 3;
-      for (const [a, b] of [
-        [0, 0],
-        [1, 0],
-        [1, 1],
-        [0, 1],
-      ]) {
-        const p: Vec3 = [0, 0, 0];
-        p[axis] = sign > 0 ? max[axis] : min[axis];
-        p[u] = a ? max[u] : min[u];
-        p[v] = b ? max[v] : min[v];
-        positions.push(...p);
-        const n = [0, 0, 0];
-        n[axis] = sign;
-        normals.push(...n);
-        uvs.push(p[u], p[v]);
-        const t = [0, 0, 0, sign];
-        t[u] = 1;
-        tangents.push(...t);
-        if (influence) {
-          const [j, w] = influence(p);
-          joints.push(...j);
-          weights.push(...w);
-        }
-      }
-      indices.push(
-        ...(sign > 0
-          ? [base, base + 1, base + 2, base, base + 2, base + 3]
-          : [base, base + 2, base + 1, base, base + 3, base + 2]),
-      );
-    }
-    const attrs: GltfJson = {
-      POSITION: this.accessor(Float32Array.from(positions), "VEC3", { min, max }),
-      NORMAL: this.accessor(Float32Array.from(normals), "VEC3"),
-      ...attributes,
-    };
-    if (this.surface) {
-      attrs.TEXCOORD_0 = this.accessor(Float32Array.from(uvs), "VEC2");
-      if (this.surface.tangents) attrs.TANGENT = this.accessor(Float32Array.from(tangents), "VEC4");
-    }
-    if (this.colour) {
-      const count = positions.length / 3;
-      const colours = new Float32Array(count * 4);
-      for (let v = 0; v < count; v++) colours.set(this.colour, v * 4);
-      attrs.COLOR_0 = this.accessor(colours, "VEC4");
-    }
-    if (influence) {
-      attrs.JOINTS_0 = this.accessor(Uint16Array.from(joints), "VEC4");
-      attrs.WEIGHTS_0 = this.accessor(Float32Array.from(weights), "VEC4");
-    }
-    this.json.meshes.push({
-      primitives: [
-        {
-          attributes: attrs,
-          indices: this.accessor(Uint16Array.from(indices), "SCALAR"),
-          material: 0,
-        },
-      ],
-    });
-    return this.json.meshes.length - 1;
-  }
-
-  node(spec: NodeSpec): number {
-    const node: GltfJson = { name: spec.name };
-    if (spec.t) node.translation = spec.t;
-    if (spec.r) node.rotation = spec.r;
-    if (spec.s) node.scale = spec.s;
-    if (spec.mesh !== undefined) node.mesh = spec.mesh;
-    if (spec.skin !== undefined) node.skin = spec.skin;
-    if (spec.children?.length) node.children = spec.children;
-    if (spec.extras) node.extras = spec.extras;
-    this.json.nodes.push(node);
-    return this.json.nodes.length - 1;
-  }
-
-  roots(...roots: number[]) {
-    this.json.scenes[0].nodes = roots;
-  }
-
-  /** World matrix of a node in glTF space (parents must be linked already). */
-  world(index: number): Mat4 {
-    const parent = this.json.nodes.findIndex((n: GltfJson) => n.children?.includes(index));
-    const n = this.json.nodes[index];
-    const local = trsMatrix({
-      t: n.translation ?? [0, 0, 0],
-      r: n.rotation ?? [0, 0, 0, 1],
-      s: n.scale ?? [1, 1, 1],
-    });
-    return parent < 0 ? local : mul(this.world(parent), local);
-  }
-
-  skin(joints: number[]): number {
-    const inverseBinds = joints.flatMap((j) => inverse(this.world(j)));
-    this.json.skins = [
-      ...(this.json.skins ?? []),
-      { joints, inverseBindMatrices: this.accessor(Float32Array.from(inverseBinds), "MAT4") },
-    ];
-    return this.json.skins.length - 1;
-  }
-
-  animation(
-    name: string,
-    channels: {
-      node: number;
-      path: "rotation" | "translation";
-      times: number[];
-      values: number[];
-    }[],
-  ) {
-    const samplers: GltfJson[] = [];
-    const out: GltfJson[] = [];
-    for (const c of channels) {
-      samplers.push({
-        input: this.accessor(Float32Array.from(c.times), "SCALAR", {
-          min: [c.times[0]],
-          max: [c.times[c.times.length - 1]],
-        }),
-        output: this.accessor(Float32Array.from(c.values), c.path === "rotation" ? "VEC4" : "VEC3"),
-        interpolation: "LINEAR",
-      });
-      out.push({ sampler: samplers.length - 1, target: { node: c.node, path: c.path } });
-    }
-    this.json.animations = [...(this.json.animations ?? []), { name, samplers, channels: out }];
-  }
-
-  glb(): Uint8Array {
-    const bin = new Uint8Array(this.length);
-    let offset = 0;
-    for (const chunk of this.chunks) {
-      bin.set(chunk, offset);
-      offset += chunk.byteLength;
-    }
-    return encodeGlb(this.json, bin);
-  }
-}
-
-const qx = (deg: number): Quat =>
+export const qx = (deg: number): Quat =>
   quat.setAxisAngle(quat.create(), [1, 0, 0], (deg * Math.PI) / 180);
 
 // ---------------------------------------------------------------- rifleman
@@ -399,6 +152,9 @@ export interface SoldierOptions {
   clips?: string[]; // animations to include
   animated?: boolean; // include animations at all (default true)
   tint?: number; // the side-tint mask weight of its material (extras.tint)
+  corpseZ?: number; // the pelvis height each corpse comes to rest at (default 0.15, lying)
+  tripod?: boolean; // a 1.2 m tall launcher on its tripod, weighted wholly to the root (it stands by itself)
+  aimHeadDeg?: number; // how far the head bows in stand_aim, degrees (default 0, level)
 }
 
 /** Every role an infantry skeleton carries, and the standing-aim reference pose. */
@@ -471,6 +227,13 @@ export function soldierGlb(o: SoldierOptions = {}): Uint8Array {
       ]);
       bodyNodes.push(g.node({ name: `pack${suffix}`, mesh: pack, skin }));
     }
+    if (tier === 0 && o.tripod) {
+      const tripod = g.box([0.5, lift, -0.1], [0.7, 1.2 + lift, 0.1], () => [
+        [slot(root), 0, 0, 0],
+        [1, 0, 0, 0],
+      ]);
+      bodyNodes.push(g.node({ name: `tripod${suffix}`, mesh: tripod, skin }));
+    }
     if (tier === 0) {
       const pouch = g.box([-0.1, 0.85 + lift, 0.15], [0.1, 1.0 + lift, 0.2], () => [
         [slot(pelvis), 0, 0, 0],
@@ -483,25 +246,39 @@ export function soldierGlb(o: SoldierOptions = {}): Uint8Array {
     ? [g.node({ name: "loose_crate", mesh: g.box([1, 0, 1], [1.2, 0.2, 1.2]) })]
     : [];
   g.roots(armature, ...bodyNodes, ...loose);
-  if (o.animated !== false) addSoldierClips(g, { root, pelvis, spine }, o.clips ?? SOLDIER_CLIPS);
+  if (o.animated !== false)
+    addSoldierClips(
+      g,
+      { pelvis, spine, hand, head },
+      o.clips ?? SOLDIER_CLIPS,
+      (o.corpseZ ?? 0.15) * k,
+      o.aimHeadDeg ?? 0,
+    );
   return g.glb();
 }
 
 function addSoldierClips(
   g: GltfBuilder,
-  j: { root: number; pelvis: number; spine: number },
+  j: { pelvis: number; spine: number; hand: number; head: number },
   names: string[],
+  restY: number,
+  aimHeadDeg: number,
 ) {
   const sway = (deg: number) => [...qx(0), ...qx(deg), ...qx(0)];
   for (const name of names) {
-    if (name === "death")
-      // Falls backwards: the pelvis pitches 90° about the character's left-right axis.
+    if ((INFANTRY_CORPSES as readonly string[]).includes(name))
+      // Falls backwards, the pelvis pitching 90° about the character's
+      // left-right axis down to `restY`, the rifle lowered along the body.
       g.animation(name, [
         { node: j.pelvis, path: "rotation", times: [0, 1], values: [...qx(0), ...qx(-90)] },
-        { node: j.pelvis, path: "translation", times: [0, 1], values: [0, 1.8, 0, 0, 0.3, 0] },
+        { node: j.pelvis, path: "translation", times: [0, 1], values: [0, 1.8, 0, 0, restY, 0] },
+        { node: j.hand, path: "rotation", times: [0, 1], values: [...qx(0), ...qx(90)] },
       ]);
     else if (name === "stand_aim")
-      g.animation(name, [{ node: j.spine, path: "rotation", times: [0], values: [...qx(0)] }]);
+      g.animation(name, [
+        { node: j.spine, path: "rotation", times: [0], values: [...qx(0)] },
+        { node: j.head, path: "rotation", times: [0], values: [...qx(aimHeadDeg)] },
+      ]);
     else
       g.animation(name, [
         {
@@ -518,7 +295,7 @@ export const SKELETON_ENTRY: SkeletonEntry = {
   source: "assets/source/test-rig.glb",
   basis_yaw_deg: 90,
   sample_hz: 30,
-  aim_reference: { clip: "stand_aim", phase: 0 },
+  aim_reference: { clip: "stand_aim", phase: 0, sight_over_bore_m: 0.05 },
   clips: Object.fromEntries(
     SOLDIER_CLIPS.map((name) => [
       name,
@@ -527,10 +304,19 @@ export const SKELETON_ENTRY: SkeletonEntry = {
   ),
 };
 
+/** `soldierGlb(o)`'s skeleton clips as the bake builds them, with its aim reference. */
+export function soldierRig(o: SoldierOptions = {}) {
+  const { scene } = importScene(soldierGlb(o), "rig.glb", 90);
+  return {
+    clips: buildClips(scene!, "rig.glb", "test-rig", 30, SKELETON_ENTRY.clips).built!,
+    aim_reference: SKELETON_ENTRY.aim_reference,
+  };
+}
+
 // ---------------------------------------------------------------- vehicles (engine space)
 
 /** Engine space (Z up, +X forward) → glTF (Y up): (x, y, z) → (x, z, −y). */
-const g3 = ([x, y, z]: Vec3): Vec3 => [x, z, -y];
+export const g3 = ([x, y, z]: Vec3): Vec3 => [x, z, -y];
 export const gBox = (b: GltfBuilder, min: Vec3, max: Vec3) => {
   const [a, c] = [g3(min), g3(max)];
   return b.box(
@@ -540,13 +326,13 @@ export const gBox = (b: GltfBuilder, min: Vec3, max: Vec3) => {
 };
 
 /** Mesh tier suffixes, finest first; `UNSUFFIXED` names a mesh no tier owns. */
-const LODS = ["_LOD0", "_LOD1", "_LOD2", "_LOD3"];
+export const LODS = ["_LOD0", "_LOD1", "_LOD2", "_LOD3"];
 const UNSUFFIXED = [""];
 
 /** One part drawn in its finest `tiers` tiers: a `<name>_LOD0` node with
  *  the coarser tiers' nodes (the same mesh) under it. With `UNSUFFIXED`
  *  suffixes, one node named `name`. */
-function tieredPart(
+export function tieredPart(
   b: GltfBuilder,
   name: string,
   mesh: number,
@@ -995,79 +781,6 @@ export function testSources(): Record<string, Uint8Array> {
   };
 }
 
-const CRC_TABLE = Array.from({ length: 256 }, (_, n) => {
-  let c = n;
-  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-  return c >>> 0;
-});
-
-function crc32(bytes: Uint8Array): number {
-  let c = 0xffffffff;
-  for (const b of bytes) c = CRC_TABLE[(c ^ b) & 255] ^ (c >>> 8);
-  return (c ^ 0xffffffff) >>> 0;
-}
-
-/**
- * An RGBA8 PNG with stored (uncompressed) deflate blocks: synchronous and
- * isomorphic, so the builders run in the browser scenes as well as vitest.
- */
-export function encodePng(width: number, height: number, rgba: Uint8Array): Uint8Array {
-  const row = width * 4;
-  const raw = new Uint8Array(height * (row + 1));
-  for (let y = 0; y < height; y++)
-    raw.set(rgba.subarray(y * row, (y + 1) * row), y * (row + 1) + 1);
-  const blocks = Math.max(1, Math.ceil(raw.length / 65535));
-  const zlib = new Uint8Array(2 + raw.length + blocks * 5 + 4);
-  const z = new DataView(zlib.buffer);
-  zlib.set([0x78, 0x01]);
-  let at = 2;
-  for (let i = 0; i < blocks; i++) {
-    const part = raw.subarray(i * 65535, (i + 1) * 65535);
-    zlib[at] = i === blocks - 1 ? 1 : 0;
-    z.setUint16(at + 1, part.length, true);
-    z.setUint16(at + 3, ~part.length & 0xffff, true);
-    zlib.set(part, at + 5);
-    at += 5 + part.length;
-  }
-  let a = 1;
-  let b = 0;
-  for (const v of raw) {
-    a = (a + v) % 65521;
-    b = (b + a) % 65521;
-  }
-  z.setUint32(at, ((b << 16) | a) >>> 0);
-  const chunk = (type: string, data: Uint8Array) => {
-    const out = new Uint8Array(12 + data.length);
-    const v = new DataView(out.buffer);
-    v.setUint32(0, data.length);
-    out.set(
-      [...type].map((ch) => ch.charCodeAt(0)),
-      4,
-    );
-    out.set(data, 8);
-    v.setUint32(8 + data.length, crc32(out.subarray(4, 8 + data.length)));
-    return out;
-  };
-  const ihdr = new Uint8Array(13);
-  const h = new DataView(ihdr.buffer);
-  h.setUint32(0, width);
-  h.setUint32(4, height);
-  ihdr.set([8, 6, 0, 0, 0], 8);
-  const parts = [
-    new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
-    chunk("IHDR", ihdr),
-    chunk("IDAT", zlib),
-    chunk("IEND", new Uint8Array()),
-  ];
-  const png = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
-  let o = 0;
-  for (const p of parts) {
-    png.set(p, o);
-    o += p.length;
-  }
-  return png;
-}
-
 /** A baked bundle, read from the bake's files through the one transport. */
 export function bakedBundle(
   result: { runtime: RuntimeCatalog; files: ReadonlyMap<string, Uint8Array> },
@@ -1078,95 +791,4 @@ export function bakedBundle(
     if (!bytes) throw new Error(`${path}: not baked`);
     return bytes;
   });
-}
-
-/** A skid helicopter's stand-in: a fuselage block resting on two skid rails
- *  of painted metal; no wheels. */
-export function skidGlb(): Uint8Array {
-  const b = new GltfBuilder();
-  const body = tieredPart(b, "fuselage", gBox(b, [-4, -0.8, 0.3], [4, 0.8, 2.2]), LODS.length);
-  const rails = ["L", "R"].map((s, k) => {
-    const y = k === 0 ? 1 : -1;
-    return tieredPart(b, `rail_${s}`, gBox(b, [-2, y - 0.05, 0], [2, y + 0.05, 0.1]), LODS.length);
-  });
-  b.roots(b.node({ name: "heli", children: [body, ...rails] }));
-  return b.glb();
-}
-
-/** The synthetic helicopter's main rotor and tail rotor radii (blade tip
- *  from the hub, measured as the renderer does: the box corner's reach). */
-export const HELI_ROTORS = { main: Math.hypot(5, 0.15), tail: Math.hypot(0.7, 0.08) };
-
-/** A helicopter in engine space, fitting the synthetic `heli` type's hull
- *  [4, 0.8, 1.2]: a fuselage block on skid rails, a mast to the rotor head
- *  at z 2.4 (its top 0.2 m the rotor's own), and its rotors, each a `rotor_*` node turning about its local
- *  Z: the main rotor's blade 10 m tip to tip along +X at rest (far past the
- *  hull), the tail rotor's 1.4 m on the boom's left, turned on its side. */
-export function heliGlb(): Uint8Array {
-  const b = new GltfBuilder();
-  // Boxes per tier, 12 triangles each: 6, 4, 3, 2.
-  const part = (name: string, min: Vec3, max: Vec3, tiers = LODS.length) =>
-    tieredPart(b, name, gBox(b, min, max), tiers);
-  const main = b.node({
-    name: "rotor_main",
-    t: g3([0.5, 0, 2.4]),
-    children: [
-      part("blade_main_0", [-5, -0.15, -0.03], [5, 0.15, 0.03]),
-      // Its mast, down from the hub to the hull's, as an exporter builds one.
-      part("rotor_main_mast", [-0.08, -0.08, -0.2], [0.08, 0.08, 0], 2),
-    ],
-  });
-  const tail = b.node({
-    name: "rotor_tail",
-    t: g3([-3.8, 0.9, 1.6]),
-    r: qx(-90),
-    children: [part("blade_tail_0", [-0.7, -0.08, -0.02], [0.7, 0.08, 0.02], 3)],
-  });
-  const hull = b.node({
-    name: "hull",
-    children: [
-      part("fuselage", [-4, -0.8, 0.3], [4, 0.8, 2.2]),
-      part("mast", [0.4, -0.1, 2.2], [0.6, 0.1, 2.4], 2),
-      ...["L", "R"].map((s, k) => {
-        const y = k === 0 ? 0.75 : -0.75;
-        return part(`rail_${s}`, [-2, y - 0.05, 0], [2, y + 0.05, 0.1], 1);
-      }),
-      main,
-      tail,
-    ],
-  });
-  b.roots(b.node({ name: "heli", children: [hull] }));
-  return b.glb();
-}
-
-/** A cart on four rubber tyres (material role `rubber`), each tyre under
- *  its own `wheel_*` node, or, with `spinning` false, fixed to the body. */
-export function cartGlb(spinning = true): Uint8Array {
-  const b = new GltfBuilder();
-  b.json.materials.push({
-    name: "rubber",
-    pbrMetallicRoughness: {
-      baseColorFactor: [0.02, 0.02, 0.02, 1],
-      metallicFactor: 0,
-      roughnessFactor: 0.9,
-    },
-    extras: { role: "rubber" },
-  });
-  const body = tieredPart(b, "body", gBox(b, [-2, -1, 0.5], [2, 1, 1.5]), LODS.length);
-  const tyres = [
-    ["FL", 1.5, 1],
-    ["FR", 1.5, -1],
-    ["RL", -1.5, 1],
-    ["RR", -1.5, -1],
-  ].map(([name, x, y]) => {
-    const mesh = gBox(b, [-0.4, -0.15, -0.4], [0.4, 0.15, 0.4]);
-    b.json.meshes[mesh].primitives[0].material = 1;
-    const tyre = tieredPart(b, `tyre_${name}`, mesh, LODS.length);
-    const at = g3([x as number, y as number, 0.4]);
-    return spinning
-      ? b.node({ name: `wheel_${name}`, t: at, children: [tyre] })
-      : b.node({ name: `hub_${name}`, t: at, children: [tyre] });
-  });
-  b.roots(b.node({ name: "cart", children: [body, ...tyres] }));
-  return b.glb();
 }

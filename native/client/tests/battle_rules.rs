@@ -4,7 +4,7 @@ use std::path::Path;
 use contract::ids::Side;
 use native_client::audio;
 use presentation::{
-    effects::{frame::EffectFrame, publication::EffectFeed, tables::EffectPresentation},
+    effects::{frame::EffectFrame, publication::EffectFeed},
     fielded,
     sound::frame::{Command, Heard, Listener, Motion, Sound},
 };
@@ -120,7 +120,7 @@ fn consecutive_battles_present_their_encounters_rules() {
             fielded.units.types["test_tank"].mounts[0].weapons[0].kind,
             weapon
         );
-        let effects = EffectPresentation::from_value(&fielded.effects.presentation).unwrap();
+        let effects = fielded.effects.presentation.as_ref().clone();
         let look = if changed {
             "tank_he"
         } else {
