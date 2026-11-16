@@ -233,9 +233,15 @@ and prevents late admission.
 
 A battle listens from the camera's eye, and the camera is a directional mic:
 what it looks at is heard nearer than it is, louder and clearer than the same
-sound off screen or behind it, so the battle on screen sounds close at any zoom
+sound off screen or behind it, so weapon reports on screen sound close at any zoom
 and one on the horizon sounds far
 ([`sound::spatial`](../../crates/presentation/src/sound/spatial.rs)).
+The mix owns named distance profiles by sound use, independently of recordings
+and starting volume. Engines name their profile in their authored vehicle row;
+mechanical details and footsteps share the small-details profile. Burning and
+smouldering use the burning profile, so crackle stays strong close up but
+recedes to a faint background at the RTS camera. Weapon reports and world voices
+each have their own profile. Camera focus and air treatment are shared.
 
 The bed keeps its level between shots and makes room under a loud one, as a
 film mix does: a sound at least `audio.ambience.duck_over` loud

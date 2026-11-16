@@ -104,6 +104,16 @@ fn hull_reach(unit: &Unit) -> f64 {
     unit.hull.map_or(0.0, |h| h.xy().length())
 }
 
+/// Whether a carrier collecting a squad that stands at `point` may call it
+/// over and stop: near it (as near as movement lets a unit get to its goal),
+/// and slow enough to climb on. Whatever keeps the carrier from closing in
+/// (a vehicle the squad stands round, its men in the way), the squad walks
+/// the rest, as a squad out of reach does.
+fn calls_over(carrier: &Unit, point: V2, rules: &Rules) -> bool {
+    let near = carrier.hull.map_or(0.0, |h| h.x) + crate::movement::NEAR_GOAL_M;
+    climbable(carrier, rules) && (carrier.position.xy() - point).length() <= near
+}
+
 /// Where a collecting carrier meets `squad`: where it stands, or for a squad
 /// in a building, the spot outside where it went in.
 fn meeting_point(squad: &Unit) -> V2 {
@@ -370,9 +380,10 @@ pub(crate) fn send_into(
 }
 
 /// Whether unit `i` is walking or driving toward its Board or Collect target
-/// and that walk is over: it is already within the hold's reach, or no
-/// target is left to reach (the carrier died, or every listed squad is gone
-/// or taken) and the order is refused instead. The approach
+/// and that walk is over: it is already within the hold's reach, a
+/// collecting carrier near enough to call its squad over (`calls_over`), or
+/// no target is left to reach (the carrier died, or every listed squad is
+/// gone or taken) and the order is refused instead. The approach
 /// aims at the target's centre, which a hull keeps it from ever standing on,
 /// so the walk ends here and the hold's own stillness test takes over.
 fn approach_over(units: &[Unit], i: usize, rules: &Rules) -> bool {
@@ -389,7 +400,11 @@ fn approach_over(units: &[Unit], i: usize, rules: &Rules) -> bool {
                 .filter_map(|id| units.get(id.0 as usize))
                 .filter(|s| collectable(&units[i], s))
                 .peekable();
-            left.peek().is_none() || left.any(|s| reaches(&units[i], meeting_point(s), rules))
+            left.peek().is_none()
+                || left.any(|s| {
+                    let at = meeting_point(s);
+                    reaches(&units[i], at, rules) || calls_over(&units[i], at, rules)
+                })
         }
         _ => false,
     }
@@ -516,7 +531,7 @@ pub(crate) fn advance(
                     continue;
                 };
                 let target = meeting_point(&units[target_id.0 as usize]);
-                if reaches(&units[i], target, rules) && stationary(&units[i]) {
+                if calls_over(&units[i], target, rules) && stationary(&units[i]) {
                     // Every listed squad is handed a Board order; one already
                     // beside the carrier, still and in nothing starts its hold
                     // now, the rest (a squad in a building too) walk over first.
@@ -542,8 +557,8 @@ pub(crate) fn advance(
                     }
                     units[i].orders.pop_front();
                 } else {
-                    // Keep steering at the squad until the shared hold near
-                    // test accepts the physical hull envelope.
+                    // Keep steering at the squad until it is near enough to
+                    // call over.
                     push_target_move(&mut units[i], target, gesture);
                 }
             }

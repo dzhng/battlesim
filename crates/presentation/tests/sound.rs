@@ -347,7 +347,7 @@ fn a_cannon_sounds_near_close_and_far_away_quieter_but_never_below_the_floor() {
     assert_eq!(near.sound, row.near);
     assert_eq!(far.sound, row.far);
     assert!(far.gain < near.gain);
-    let floor = s.tables().audio.distance.floor;
+    let floor = s.tables().audio.distance["weapons"].floor;
     assert!(far.gain >= row.gain * floor);
     assert!(far.lowpass < near.lowpass && far.wet > near.wet);
 }
@@ -703,7 +703,7 @@ fn a_bark_is_spoken_where_it_was_shouted_and_an_answer_stays_dry() {
     // Farther is quieter, duller and wetter, by the unit sounds' own curves
     // (a bark within their full-level reach is as loud as the radio).
     assert!(level >= near.gain && near.gain > far.gain);
-    let floor = s.tables().audio.distance.floor;
+    let floor = s.tables().audio.distance["world_voices"].floor;
     assert!(far.gain >= level * floor);
     assert!(near.lowpass > far.lowpass && near.wet < far.wet);
 }

@@ -9,6 +9,7 @@ import { specimenUnit } from "@apps/battle-lab/src/panelSpecimens";
 import type { PanelRules } from "../src/battle/present/panelRows";
 import type { CommandControl } from "../src/battle/present/commandBar";
 import { ArmyDeck } from "../src/battle/present/armyDeck";
+import type { CardBlink } from "../src/battle/present/fireBlink";
 
 /** Views render under the test set, as a lab page provides it. */
 const render = (ui: Parameters<typeof renderView>[0]) =>
@@ -497,6 +498,57 @@ test("a unit returning to base says so on its army card", () => {
     "true",
   );
   expect(view.getByRole("button", { name: /#5$/ }).dataset.withdrawing).toBeUndefined();
+});
+
+test("a lost unit's card holds its place, out of reach, while its blink runs, then goes", () => {
+  const [a, b, c] = [11, 12, 13].map((id) => specimenUnit(TEST_CATALOG, "test_tank", { id }));
+  const state = new Feed({ own: [a, b, c] });
+  const blinks = new Feed<ReadonlyMap<number, CardBlink>>(new Map());
+  const onSelect = vi.fn();
+  const view = render(
+    <ArmyDeck
+      state={state}
+      selected={[]}
+      onSelect={onSelect}
+      rules={shippedRules as unknown as PanelRules}
+      contactLines={null}
+      blinks={blinks}
+    />,
+  );
+  /** Each card's unit, and whether it can be pressed. */
+  const deck = () =>
+    view
+      .getAllByRole("button")
+      .filter((card) => card.dataset.unit)
+      .map((card) => [Number(card.dataset.unit), !(card as HTMLButtonElement).disabled]);
+  const lost = (...ids: number[]) =>
+    new Map(ids.map((id) => [id, { colour: "red" as const, serial: id, lost: true }]));
+
+  act(() => {
+    blinks.set(lost(12));
+    state.set({ own: [a, c] });
+  });
+  expect(deck()).toEqual([
+    [11, true],
+    [12, false],
+    [13, true],
+  ]);
+  fireEvent.click(view.getByRole("button", { name: /#12/ }));
+  expect(onSelect).not.toHaveBeenCalled();
+  act(() => blinks.set(new Map()));
+  expect(deck()).toEqual([
+    [11, true],
+    [13, true],
+  ]);
+  // The last units lost still show theirs.
+  act(() => {
+    blinks.set(lost(11, 13));
+    state.set({ own: [] });
+  });
+  expect(deck()).toEqual([
+    [11, false],
+    [13, false],
+  ]);
 });
 
 test("a squad aboard a carrier keeps its card, dimmed as aboard, and clicking it selects its carrier", () => {

@@ -9,7 +9,42 @@ The whole-map view is the same target at the player's farthest zoom, 19,500 m.
 Recorded 2026-11-15 and 16. The pictures and per-batch logs were scratch and
 were not kept.
 
-## The shipped car: its coarsest tier without its tyres, 92 of 172 triangles
+## What ships: a box for every prop, and no shadow from small props
+
+A is the build with the tyres-only car below. B adds the generated ten-triangle
+far box on every static prop (183 appearances), the car's authored two boxes
+(20 triangles), and `shadow_caster_px` raised from 2 to 5 and applied to
+props outside the view. The session ran under load from other work; the
+1-minute load is shown per batch.
+
+| View | A against A | Pair 1 | Pair 2 | Pair 3 | Pooled |
+| --- | --- | --- | --- | --- | --- |
+| Close | 8.10 / 6.98 | 7.06 to 6.99 | 6.62 to 6.35 | 7.38 to 7.83 | 6.95 to 6.95 |
+| Tactical | 7.81 / 8.18 | 7.88 to 7.63 | 7.58 to 7.42 | 7.51 to 7.83 | 7.56 to 7.46 |
+| Wide | 31.96 / 31.95 | 31.95 to 18.69 | 31.95 to 18.83 | 31.99 to 18.78 | 31.95 to 18.75 |
+| Whole map | 50.54 / 50.47 | 50.51 to 42.69 | 50.69 to 42.39 | 50.45 to 42.37 | 50.51 to 42.46 |
+| Load, A then B | 20 to 10, 10 to 3 | 3 to 4, 4 to 8 | 8 to 5, 5 to 3 | 3 to 3, 3 to 3 | |
+
+At the wide view every prop in view draws far (28,660 before, 119,014
+after). Model shadow casts per cascade fall from 111,282 / 126,513 / 138,678 /
+145,638 to 8,566 / 9,553 / 9,812 / 10,030, and cast triangles from 45.9 to
+2.4 million. GPU buffers fall from 647 to 536 MB. Buildings, scenery and
+terrain submit the same in every pass.
+
+At the tactical view 655 props in the frame's far strip draw far (290 walls
+and 365 small props), and casts per cascade go from 4,736 / 7,138 / 10,182 /
+13,340 to 4,736 / 7,138 / 10,177 / 13,326. The close view is identical in
+every count.
+
+The shadow threshold was counted at 2, 5, 6, 7 and 9. At 9, which would cut a
+car's shadow at about 700 m, the tactical view's cascades lose 17, 99, 289 and
+541 casters. At 5 a car stops casting beyond about 1,280 m of camera depth.
+
+The user judged full frames at 65, 260, 460, 600, 850 and 2,400 m, the whole
+map, a street dense with small props at 500 m, and 850 and 2,400 m at golden
+hour, and saw no difference.
+
+## The first shipped car: its coarsest tier without its tyres, 92 of 172 triangles
 
 A is the build before it; B carries it at `far_px` 4.
 

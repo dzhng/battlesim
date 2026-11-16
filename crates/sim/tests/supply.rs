@@ -125,6 +125,140 @@ fn rounds_refill_to_capacity_at_their_price_and_rate() {
     assert_eq!(at.service, ServiceStatus::Full);
 }
 
+fn concurrent_setup(stock: u32) -> contract::scenario::ScenarioDefinition {
+    let mut rules = sim::fixtures::test_rules();
+    rules["service"]["ammo_rounds_per_s"] = json!(2.0);
+    rules["service"]["radius_m"] = json!(80.0);
+    for (weapon, cost) in [("tank_ap", 2), ("tank_he", 3), ("hmg", 1)] {
+        rules["weapons"][weapon]["ammo"] = json!(4);
+        rules["weapons"][weapon]["round_cost"] = json!(cost);
+    }
+    serde_json::from_value(json!({
+        "rules": rules,
+        "map": { "size": [800, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "units": [
+            truck(Some(stock)),
+            holding("test_tank", 130.0,
+                json!({"spent": {"tank_ap": 3, "tank_he": 3, "hmg": 3}}))
+        ]
+    }))
+    .unwrap()
+}
+
+fn tank_ammo(b: &Battle) -> Vec<Vec<Option<u32>>> {
+    own(b, Side::Blue, 1)
+        .unwrap()
+        .mounts
+        .into_iter()
+        .map(|m| m.ammo)
+        .collect()
+}
+
+#[test]
+fn all_mounts_and_ammunition_kinds_refill_together_at_their_rate_and_price() {
+    let setup = concurrent_setup(100);
+    let mut b = Battle::new(&setup, 2);
+    let mut digests = Vec::new();
+    // Include deployment and partial service progress in replay evidence.
+    let mut served_ticks = 0;
+    for _ in 0..10 * b.rules().tick_hz {
+        b.step();
+        digests.push(b.digest());
+        if b.unit(UnitId(1)).unwrap().service == ServiceStatus::Serving {
+            served_ticks += 1;
+        }
+        if served_ticks == b.rules().tick_hz / 2 - 1 {
+            assert_eq!(tank_ammo(&b), vec![vec![Some(1), Some(1)], vec![Some(1)]]);
+            assert_eq!(stock(&b), 100, "no payment before delivery");
+        }
+        if served_ticks == b.rules().tick_hz / 2 {
+            assert_eq!(
+                tank_ammo(&b),
+                vec![vec![Some(2), Some(2)], vec![Some(2)]],
+                "both cannon rounds and the separate HMG replenish together"
+            );
+            assert_eq!(stock(&b), 94, "each delivered round pays its own price");
+        }
+    }
+    assert!(served_ticks >= b.rules().tick_hz / 2, "service started");
+    assert_eq!(tank_ammo(&b), vec![vec![Some(4), Some(4)], vec![Some(4)]]);
+    assert_eq!(stock(&b), 82, "only missing rounds are paid for");
+    assert_eq!(b.unit(UnitId(1)).unwrap().service, ServiceStatus::Full);
+    let mut replay = Battle::from_replay(&setup, &b.replay()).unwrap();
+    for expected in digests {
+        replay.step();
+        assert_eq!(replay.digest(), expected);
+    }
+}
+
+#[test]
+fn scarce_stock_is_paid_in_mount_order_and_each_kind_keeps_its_partial_progress() {
+    let mut setup = concurrent_setup(3);
+    let reserve = serde_json::from_value(json!({
+        "side": "blue", "kind": "test_supply", "position": [220, 240], "stock": 100
+    }))
+    .unwrap();
+    setup.units.push(reserve);
+    let mut b = Battle::new(&setup, 3);
+    let hz = u64::from(b.rules().tick_hz);
+    run(&mut b, 6 * hz);
+    // AP pays first. HE cannot pay on that tick, but the cheaper HMG can.
+    assert_eq!(tank_ammo(&b), vec![vec![Some(2), Some(1)], vec![Some(2)]]);
+    assert_eq!(
+        stock(&b),
+        0,
+        "deliveries are paid whole, without overdrawing"
+    );
+    assert_eq!(b.unit(UnitId(1)).unwrap().service, ServiceStatus::NoStock);
+    assert_eq!(
+        b.accept(CommandEnvelope {
+            side: Side::Blue,
+            player: None,
+            seq: 1,
+            queued: false,
+            order: Order::Move {
+                units: vec![UnitId(2)],
+                gesture: 1,
+                goal: [160.0, 240.0],
+                route: RoutePolicy::Shortest,
+                direction: contract::command::MoveDirection::Forward,
+                facing: None,
+            },
+        })
+        .error,
+        None
+    );
+    for _ in 0..60 * b.rules().tick_hz {
+        b.step();
+        if b.unit(UnitId(1)).unwrap().service == ServiceStatus::Serving {
+            break;
+        }
+    }
+    assert_eq!(
+        b.unit(UnitId(1)).unwrap().service,
+        ServiceStatus::Serving,
+        "the reserve truck arrived and deployed: position {:?}, goal {:?}, deployment {:?}, stock {:?}",
+        b.unit(UnitId(2)).unwrap().position,
+        b.unit(UnitId(2)).unwrap().movement_goal(),
+        b.unit(UnitId(2)).unwrap().deployment,
+        b.unit(UnitId(2)).unwrap().stock,
+    );
+    assert_eq!(
+        tank_ammo(&b),
+        vec![vec![Some(2), Some(2)], vec![Some(2)]],
+        "HE completes its paused delivery; the other kinds start new ones"
+    );
+    let period = b.rules().tick_hz / 2;
+    run(&mut b, u64::from(period - 2));
+    assert_eq!(tank_ammo(&b), vec![vec![Some(2), Some(2)], vec![Some(2)]]);
+    b.step();
+    assert_eq!(
+        tank_ammo(&b),
+        vec![vec![Some(3), Some(2)], vec![Some(3)]],
+        "AP and HMG keep their own clocks independently of HE"
+    );
+}
+
 #[test]
 fn vehicles_are_repaired_but_the_truck_never_serves_itself() {
     let mut b = battle(
@@ -240,23 +374,15 @@ fn an_eliminated_squad_is_never_resurrected() {
 }
 
 #[test]
-fn moving_or_firing_recipients_wait() {
+fn moving_recipients_wait() {
     let mut b = battle(
         json!([
             truck(None),
-            { "side": "blue", "kind": "test_rifle", "position": [140, 230], "condition": { "casualties": 1 } },
-            // The rifles plink at a tank they cannot hurt (W09).
-            { "side": "red", "kind": "test_tank", "position": [480, 230], "engagement": "return_fire_only" },
+            holding("test_rifle", 140.0, json!({ "casualties": 1 })),
         ]),
         6,
     );
     run(&mut b, deploy_ticks() + 2);
-    let mut firing_seen = false;
-    for _ in 0..120 {
-        b.step();
-        firing_seen |= own(&b, Side::Blue, 1).is_some_and(|u| u.service == ServiceStatus::Firing);
-    }
-    assert!(firing_seen, "a recipient firing this tick is not served");
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
         player: None,
@@ -403,34 +529,53 @@ fn service_repeats_from_its_seed() {
 }
 
 #[test]
-fn a_unit_in_a_fight_is_not_served_between_its_shots() {
-    // Rifles plinking at a tank they cannot hurt (W09) stay engaged the whole
-    // time: no replacement arrives while they fight.
-    let mut b = battle(
-        json!([
-            truck(None),
-            { "side": "blue", "kind": "test_rifle", "position": [140, 230], "condition": { "casualties": 2 } },
-            { "side": "red", "kind": "test_tank", "position": [480, 230], "engagement": "return_fire_only" },
-        ]),
-        11,
+fn a_unit_is_served_while_firing_and_between_its_shots() {
+    let mut rules = sim::fixtures::test_rules();
+    rules["service"]["vehicle_hp_per_s"] = json!(2.0);
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jeep",
+        json!({"body": {"hull": {"hp": 100}}}),
     );
+    // An unarmed target survives the whole fight and cannot disrupt service.
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_supply",
+        json!({"body": {"hull": {"hp": 1.0e6}}}),
+    );
+    let setup = serde_json::from_value(json!({
+        "rules": rules,
+        "map": { "size": [800, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "units": [
+            truck(None),
+            { "side": "blue", "kind": "test_jeep", "position": [140, 200], "condition": { "hp": 20 } },
+            { "side": "red", "kind": "test_supply", "position": [300, 200] }
+        ]
+    })).unwrap();
+    let mut b = Battle::new(&setup, 11);
     run(&mut b, deploy_ticks());
-    // The tank answers and may kill some, but none is replaced. Soldiers may
-    // shift into the craters its shells dig: moving, still unserved.
-    let mut standing = own(&b, Side::Blue, 1).unwrap().members.len();
-    for _ in 0..30 * 15 {
+    let initial_hp = b.unit(UnitId(1)).unwrap().hp;
+    let mut shots = b.unit(UnitId(1)).unwrap().mounts[0].shots;
+    let (mut served_firing, mut served_between) = (false, false);
+    for _ in 0..10 * b.rules().tick_hz {
         b.step();
-        let Some(squad) = own(&b, Side::Blue, 1) else {
-            break;
-        };
-        assert!(squad.members.len() <= standing, "replaced while fighting");
-        standing = squad.members.len();
-        assert!(
-            matches!(squad.service, ServiceStatus::Firing | ServiceStatus::Moving),
-            "{:?}",
-            squad.service
-        );
+        let unit = b.unit(UnitId(1)).unwrap();
+        let now = unit.mounts[0].shots;
+        if sim::weapons::engaged(unit) {
+            assert_eq!(unit.service, ServiceStatus::Serving);
+            served_firing |= now > shots;
+            served_between |= now == shots;
+        }
+        shots = now;
     }
+    assert!(served_firing, "service continues on firing ticks");
+    assert!(served_between, "service continues between shots");
+    assert!(
+        b.unit(UnitId(1)).unwrap().hp > initial_hp,
+        "repaired during combat"
+    );
 }
 
 #[test]
@@ -562,7 +707,6 @@ fn a_truck_on_the_move_serves_nobody() {
 /// charges: one per flare service time, at the flare price, up to capacity.
 #[test]
 fn test_a_truck_refills_a_vehicles_spent_flares() {
-    use std::collections::BTreeSet;
     let mut rules = sim::fixtures::test_rules();
     rules["service"]["flare_service_s"] = json!(2.0);
     rules["service"]["stock_per_flare"] = json!(3);
@@ -602,7 +746,6 @@ fn test_a_truck_refills_a_vehicles_spent_flares() {
                 battle.arsenal(),
                 battle.rules(),
                 &[false, false],
-                &BTreeSet::new(),
                 &mut next_soldier,
             );
         }

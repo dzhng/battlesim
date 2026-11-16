@@ -2,7 +2,7 @@
 import { expect, test, vi } from "vitest";
 import { PurchasePlacementControl } from "@web/battle/input/purchasePlacement";
 import type { SimClient } from "@web/battle/sim/client";
-import type { PurchasePlacement } from "@web/battle/sim/protocol";
+import type { CommandAck, PurchasePlacement } from "@web/battle/sim/protocol";
 const settle = async () => {
   await Promise.resolve();
   await Promise.resolve();
@@ -133,6 +133,76 @@ test("a completed preview can confirm without another pointer movement", async (
     variant: "test_scout",
     destination: [10, 20],
   });
+});
+
+test("a click that outruns the preview still buys, where the authority sends it", async () => {
+  // Every answer comes a moment after it is asked, as from a remote authority.
+  const client = {
+    previewPurchase: vi.fn(async (_variant: string, [x, y]: [number, number]) => {
+      await settle();
+      return { Ok: { kind: 1, destination: [x + 2, y], spots: [], area_radius_m: null } };
+    }),
+  } as unknown as SimClient;
+  const control = new PurchasePlacementControl();
+  control.choose("test_scout");
+  control.at([10, 20], client, "1");
+  const send = vi.fn(async () => ({ seq: 1, applied_tick: 2, error: null, refused: [] }));
+  const placed = control.confirm(send);
+  // The pointer moves on before any answer: the click was for (10, 20).
+  control.at([50, 60], client, "1");
+  expect(await placed).toMatchObject({ destination: [12, 20], valid: true });
+  expect(send).toHaveBeenCalledExactlyOnceWith({
+    kind: "confirm_purchase",
+    variant: "test_scout",
+    destination: [12, 20],
+  });
+});
+
+test("a click on ground the authority refuses buys nothing, answered or not", async () => {
+  const client = {
+    previewPurchase: vi.fn(async () => {
+      await settle();
+      return { Err: { reason: "no_valid_destination" } };
+    }),
+  } as unknown as SimClient;
+  const control = new PurchasePlacementControl();
+  control.choose("test_scout");
+  control.at([10, 20], client, "1");
+  const send = vi.fn(async () => ({ seq: 1, applied_tick: 2, error: null, refused: [] }));
+  expect(await control.confirm(send)).toBeNull();
+  control.at([10, 20], client, "1");
+  await settle();
+  expect(control.at([10, 20], client, "1")?.valid).toBe(false);
+  expect(await control.confirm(send)).toBeNull();
+  expect(send).not.toHaveBeenCalled();
+  expect(control.variant).toBe("test_scout");
+});
+
+test("placing several in a row buys each, though the last is not yet acknowledged", async () => {
+  const client = {
+    previewPurchase: vi.fn(async (_variant: string, at: [number, number]) => ({
+      Ok: { kind: 1, destination: at, spots: [], area_radius_m: null },
+    })),
+  } as unknown as SimClient;
+  const control = new PurchasePlacementControl();
+  control.choose("test_scout");
+  const acks: (() => void)[] = [];
+  const send = vi.fn(
+    () =>
+      new Promise<CommandAck>((reply) =>
+        acks.push(() => reply({ seq: 1, applied_tick: 2, error: null, refused: [] })),
+      ),
+  );
+  control.at([10, 20], client, "1");
+  await settle();
+  const first = control.confirm(send, true);
+  control.at([30, 40], client, "1");
+  await settle();
+  const second = control.confirm(send, true);
+  await settle();
+  for (const ack of acks) ack();
+  expect(await first).toMatchObject({ destination: [10, 20] });
+  expect(await second).toMatchObject({ destination: [30, 40] });
 });
 
 test("deployment ghosts face the opposing edge by default and track a drag bearing", () => {

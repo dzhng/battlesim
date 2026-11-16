@@ -221,6 +221,7 @@ export const sectorPan = (sector: number, forward: P3): number =>
 
 /** One of a vehicle's sounding loops. */
 export interface VehicleLoop {
+  distance: string;
   slot: "engine" | "running" | "turret" | "reverse";
   sound: string;
   gain: number;

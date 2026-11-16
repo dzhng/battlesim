@@ -118,8 +118,11 @@ impl StaticDraft {
             }
             buildings.walk.set_lod_scale(p.detail_scale[1]);
         }
-        if let (Some(next), Some(active)) = (&mut self.props, &p.props) {
-            next.adopt_knowledge(active);
+        if let Some(next) = &mut self.props {
+            if let Some(active) = &p.props {
+                next.adopt_knowledge(active);
+            }
+            next.set_shadow_caster_scale(p.detail_scale[2]);
         }
         if let (Some(next), Some(active)) = (&mut self.scenery, &p.scenery) {
             next.adopt_view_state(active, p.ground().ok_or("scenery requires ground")?);

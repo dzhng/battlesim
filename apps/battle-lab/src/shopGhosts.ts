@@ -1,9 +1,10 @@
-// Purchases as ghosts: the one in hand on the cursor, and a skirmish's
-// pending purchases, each placed during preparation standing where it will
-// go, turned as it was placed, until the battle starts. A squad bought aboard
-// a carrier stands as its carrier.
+// Purchases as ghosts: the one in hand on the cursor; a skirmish's pending
+// purchases, each placed during preparation standing where it will go,
+// turned as it was placed, until the battle starts; and in battle, each one
+// just bought, fading where it was placed as the sign it went through. A
+// squad bought aboard a carrier stands as its carrier.
 import { DEFAULT_PLACEMENT_FACING, type PurchaseGhost } from "@web/battle/input/purchasePlacement";
-import type { PendingPurchaseView } from "@web/battle/sim/observationView";
+import type { OwnUnitView, PendingPurchaseView } from "@web/battle/sim/observationView";
 import {
   GHOST_BLOCKED,
   GHOST_OWN,
@@ -22,6 +23,47 @@ export function heldGhost(placement: PurchaseGhost): UnitGhost {
     yaw: placement.facing,
     look: placement.valid === false ? GHOST_BLOCKED : GHOST_SELECTED,
   };
+}
+
+/** A purchase made in battle: its ghost, when the authority accepted it
+ *  (the page's performance clock, ms), and the newest own unit id before
+ *  it, so the unit it bought is a newer one. */
+export interface Bought {
+  ghost: PurchaseGhost;
+  at: number;
+  after: number;
+}
+
+/** How long a bought unit's ghost lingers where it was placed, fading. */
+export const BOUGHT_FADE_MS = 5000;
+/** How near its spot the bought unit comes to take its ghost's place. */
+const ARRIVED_M = 8;
+
+/** The purchases made in the last moments, as ghosts fading where they
+ *  were placed: each gone once faded, or once the unit it bought (an own
+ *  unit of its kind newer than the purchase) reaches its spot. */
+export function boughtGhosts(
+  bought: readonly Bought[],
+  now: number,
+  own: readonly OwnUnitView[],
+): UnitGhost[] {
+  return bought.flatMap(({ ghost, at, after }) => {
+    const age = (now - at) / BOUGHT_FADE_MS;
+    if (age >= 1) return [];
+    const kind = ghost.carrier ?? ghost.variant;
+    const [x, y] = ghost.destination;
+    const arrived = own.some(
+      (unit) =>
+        unit.id > after &&
+        unit.kind === kind &&
+        Math.hypot(unit.position[0] - x, unit.position[1] - y) <= ARRIVED_M,
+    );
+    if (arrived) return [];
+    // A ghost draws every surface of its model, so a pixel stacks several
+    // layers and reads near solid until its opacity is low: a steep curve
+    // is what the eye sees as a steady fade.
+    return [{ ...heldGhost(ghost), opacity: (1 - Math.max(0, age)) ** 1.5 }];
+  });
 }
 
 /** How near a pending purchase's published destination is to the placed one. */

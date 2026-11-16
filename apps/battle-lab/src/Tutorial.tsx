@@ -204,7 +204,8 @@ export function Tutorial() {
           </li>
           <li>
             You can keep buying all battle: a unit bought mid-fight drives in from your entry point
-            to where you placed it, so place reinforcements where the road can bring them.
+            to where you placed it, so place reinforcements where the road can bring them. Its ghost
+            stays on the spot for a few seconds, fading, to show the purchase went through.
           </li>
         </ul>
         <Shot name="buy">
@@ -408,8 +409,8 @@ export function Tutorial() {
           </li>
           <li>
             <strong>Supply:</strong> a deployed supply truck refills ammunition and smoke, repairs
-            vehicles and replaces fallen soldiers for friendly units that stop nearby and hold their
-            fire. Its stock does not refill, so a truck that runs dry is best refunded.
+            vehicles and replaces fallen soldiers for friendly units that stop nearby, even while
+            fighting. Its stock does not refill, so a truck that runs dry is best refunded.
           </li>
           <li>
             Turn your tanks&apos; fronts to the threat: reverse out of trouble rather than turning

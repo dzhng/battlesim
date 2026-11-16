@@ -257,9 +257,11 @@ impl Presentation {
     }
 
     /// Draws the units' tiers at `units` and the buildings' at `buildings`
-    /// times their authored thresholds (a graphics quality; 1 as authored).
-    pub fn set_detail_scale(&mut self, units: f64, buildings: f64) {
-        self.inner.set_detail_scale(units, buildings);
+    /// times their authored thresholds, and casts prop shadows above
+    /// `prop_shadows` times their authored cutoff (a graphics quality; 1 as
+    /// authored).
+    pub fn set_detail_scale(&mut self, units: f64, buildings: f64, prop_shadows: f64) {
+        self.inner.set_detail_scale(units, buildings, prop_shadows);
     }
 
     /// The buildings' walk as the last frame left it: chunks, coarse rows,

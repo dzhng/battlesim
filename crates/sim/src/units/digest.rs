@@ -168,8 +168,7 @@ impl Unit {
             protection.digest(d);
         }
         let p = self.progress_service;
-        d.f64(p.ammo_s)
-            .f64(p.protection_s)
+        d.f64(p.protection_s)
             .f64(p.flare_s)
             .f64(p.hp_s)
             .f64(p.soldier_s)

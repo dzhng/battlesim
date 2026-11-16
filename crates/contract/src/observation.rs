@@ -634,7 +634,7 @@ pub enum SuppressionTier {
     Pinned,
 }
 
-/// Why a unit is or is not being served by a supply vehicle (L03, L04).
+/// Why a unit is or is not being served by a supply vehicle.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ServiceStatus {
@@ -644,11 +644,9 @@ pub enum ServiceStatus {
     SourceNotDeployed,
     /// Recipients must be stationary.
     Moving,
-    /// Recipients must not be firing this tick.
-    Firing,
     /// Being replenished, repaired or reinforced.
     Serving,
-    /// In range and deployed, but the stock cannot pay for the next item.
+    /// In range and deployed, but no outstanding item can be paid from stock.
     NoStock,
     /// Nothing missing.
     Full,

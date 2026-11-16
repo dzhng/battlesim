@@ -307,13 +307,13 @@ pub struct SightShape {
     pub rear: f64,
 }
 
-/// How a deployed supplier serves (the fixture's `service` section); its
-/// stock and deploy time are its type's capabilities.
+/// Supply rates; stock and deployment belong to unit capabilities.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ServiceRules {
-    /// Recipients within this distance of a deployed supply vehicle are served.
+    /// Service reach from a deployed truck.
     pub radius_m: f64,
+    /// Rounds per second for each ammunition kind on each mount, concurrently.
     pub ammo_rounds_per_s: f64,
     pub vehicle_hp_per_s: f64,
     pub stock_per_hp: u32,

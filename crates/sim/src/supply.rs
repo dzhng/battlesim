@@ -1,13 +1,10 @@
 //! Recovery with finite stock. A fully deployed supply vehicle
-//! serves its side's living units within its radius that stand still and did
-//! not fire this tick (L03, L04): finite ammunition first, defensive charges
+//! serves its side's living units within its radius that stand still:
+//! finite ammunition in parallel first, defensive charges
 //! (active protection, then flares), then vehicle health, then replacement
 //! soldiers, then smoke charges, each at its configured rate and paid from the
 //! vehicle's stock. Stock is debited whole and in ascending unit order, never
 //! below zero, and never refilled (L05). Readiness is the deployment module's.
-use std::collections::BTreeSet;
-
-use contract::ids::UnitId;
 use contract::map::MoverClass;
 use contract::observation::ServiceStatus;
 use contract::scenario::Rules;
@@ -18,7 +15,6 @@ use crate::deployment;
 use crate::garrison;
 use crate::math::V2;
 use crate::units::{Soldier, Unit};
-use crate::weapons;
 use crate::weapons::Arsenal;
 use crate::world::{Prop, WorldGeometry};
 
@@ -26,7 +22,6 @@ use crate::world::{Prop, WorldGeometry};
 /// not lost, while the recipient is ineligible.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Progress {
-    pub ammo_s: f64,
     pub protection_s: f64,
     pub flare_s: f64,
     pub hp_s: f64,
@@ -60,57 +55,61 @@ enum Need {
     },
 }
 
-/// What the recipient needs next, in service order. `room`: a replacement
-/// soldier has a seat in the squad's host, if it has one.
-fn need(unit: &Unit, room: bool, arsenal: &Arsenal, rules: &Rules) -> Option<Need> {
+/// All missing ammunition kinds, or the next recovery item in service order.
+/// `room`: a replacement soldier has a seat in the squad's host, if it has one.
+fn needs(unit: &Unit, room: bool, arsenal: &Arsenal, rules: &Rules) -> Vec<Need> {
     let specs = arsenal.specs(unit.kind);
+    let mut ammunition = Vec::new();
     for (m, mount) in unit.mounts.iter().enumerate() {
         for (k, &row) in specs[mount.spec].kinds.iter().enumerate() {
             if let (AmmoCapacity::Rounds(cap), Some(n)) =
                 (&arsenal.weapons[row].def.ammo, mount.ammo[k])
             {
                 if n < *cap {
-                    return Some(Need::Round(m, k, row));
+                    ammunition.push(Need::Round(m, k, row));
                 }
             }
         }
+    }
+    if !ammunition.is_empty() {
+        return ammunition;
     }
     if let (Some(state), Some(cap)) = (
         unit.protection,
         &unit.unit_type(rules).capabilities.active_protection,
     ) {
         if state.charges < cap.capacity {
-            return Some(Need::Protection {
+            return vec![Need::Protection {
                 capacity: cap.capacity,
                 service_s: cap.service_s,
                 stock_per_charge: cap.stock_per_charge,
-            });
+            }];
         }
     }
     if let (Some(state), Some(cap)) = (unit.flares, &unit.unit_type(rules).capabilities.flares) {
         if state.charges < cap.capacity {
-            return Some(Need::Flare {
+            return vec![Need::Flare {
                 capacity: cap.capacity,
-            });
+            }];
         }
     }
     if unit.hull.is_some() && unit.hp < unit.max_hp(rules) {
-        return Some(Need::Health);
+        return vec![Need::Health];
     }
     let living = unit.members.iter().filter(|s| s.alive()).count();
     if unit.hull.is_none() && room && living < unit.unit_type(rules).squad_size() {
-        return Some(Need::Soldier);
+        return vec![Need::Soldier];
     }
     if let (Some(state), Some(cap)) = (unit.smoke, &unit.unit_type(rules).capabilities.smoke) {
         if state.charges < cap.capacity {
-            return Some(Need::Smoke {
+            return vec![Need::Smoke {
                 capacity: cap.capacity,
                 service_s: cap.service_s,
                 stock_per_charge: cap.stock_per_charge,
-            });
+            }];
         }
     }
-    None
+    Vec::new()
 }
 
 /// The stock an item costs.
@@ -147,10 +146,8 @@ pub(crate) fn validate(rules: &Rules) -> Result<(), crate::RulesError> {
 }
 
 /// Serve one tick. Recipients go in ascending unit order, so an earlier unit
-/// pays first; each takes the first set-up truck in reach that can pay.
-/// `fired` holds the units that launched this tick; `next_soldier` issues
-/// fresh soldier ids for replacements.
-#[allow(clippy::too_many_arguments)]
+/// pays first; each item takes the first set-up truck in reach that can pay.
+/// `next_soldier` issues fresh soldier ids for replacements.
 pub fn service(
     world: &WorldGeometry,
     units: &mut [Unit],
@@ -158,7 +155,6 @@ pub fn service(
     arsenal: &Arsenal,
     rules: &Rules,
     moved: &[bool],
-    fired: &BTreeSet<UnitId>,
     next_soldier: &mut u32,
 ) {
     let radius = rules.service.radius_m;
@@ -188,36 +184,37 @@ pub fn service(
                 // Standing still means the unit's position did not change;
                 // turning in place still counts as standing.
                 ServiceStatus::Moving
-            } else if fired.contains(&unit.id) || weapons::engaged(unit) {
-                ServiceStatus::Firing
             } else {
                 let room = unit.hold.as_ref().is_none_or(|hold| {
                     crate::hold::Seats::of(world, units, hold.host, windows, rules).free() > 0
                 });
-                match need(unit, room, arsenal, rules) {
-                    None => ServiceStatus::Full,
-                    Some(item) => {
-                        let cost = price(item, arsenal, rules);
-                        match ready
-                            .into_iter()
-                            .find(|&s| units[s].stock.is_some_and(|n| n >= cost))
-                        {
-                            // Never partly paid, never below zero: wait (L05).
-                            None => ServiceStatus::NoStock,
-                            Some(src) => serve(
-                                world,
-                                units,
-                                windows,
-                                src,
-                                r,
-                                item,
-                                cost,
-                                rules,
-                                next_soldier,
-                            ),
-                        }
+                let items = needs(unit, room, arsenal, rules);
+                let mut status = if items.is_empty() {
+                    ServiceStatus::Full
+                } else {
+                    ServiceStatus::NoStock
+                };
+                for item in items {
+                    let cost = price(item, arsenal, rules);
+                    if let Some(src) = ready
+                        .iter()
+                        .copied()
+                        .find(|&s| units[s].stock.is_some_and(|n| n >= cost))
+                    {
+                        status = serve(
+                            world,
+                            units,
+                            windows,
+                            src,
+                            r,
+                            item,
+                            cost,
+                            rules,
+                            next_soldier,
+                        );
                     }
                 }
+                status
             };
         }
         units[r].service = status;
@@ -239,9 +236,10 @@ fn serve(
 ) -> ServiceStatus {
     let s = &rules.service;
     let dt = 1.0 / rules.tick_hz as f64;
-    let progress = &mut units[r].progress_service;
+    let unit = &mut units[r];
+    let progress = &mut unit.progress_service;
     let (clock, period) = match need {
-        Need::Round(..) => (&mut progress.ammo_s, 1.0 / s.ammo_rounds_per_s),
+        Need::Round(m, k, _) => (&mut unit.mounts[m].resupply_s[k], 1.0 / s.ammo_rounds_per_s),
         Need::Protection { service_s, .. } => (&mut progress.protection_s, service_s),
         Need::Flare { .. } => (&mut progress.flare_s, s.flare_service_s),
         Need::Health => (&mut progress.hp_s, 1.0 / s.vehicle_hp_per_s),

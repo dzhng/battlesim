@@ -100,6 +100,9 @@ export interface GhostBody {
   yaw: number;
   /** 0 the side's own colour, 1 the selection's, 2 a purchase refused. */
   look: number;
+  /** How much of its look's opacity it keeps, 0 to 1, as it fades out;
+   *  absent, all of it. */
+  opacity?: number;
 }
 
 /** What the UI decides of a frame: the selection, whether own units hidden
@@ -687,9 +690,11 @@ export class ScenePresentation {
   }
 
   /** Draws the units' tiers at `units` and the buildings' at `buildings`
-   *  times their authored thresholds (a graphics quality; 1 as authored). */
-  setDetailScale(units: number, buildings: number) {
-    this.rust.set_detail_scale(units, buildings);
+   *  times their authored thresholds, and casts prop shadows above
+   *  `propShadows` times their authored cutoff (a graphics quality; 1 as
+   *  authored). */
+  setDetailScale(units: number, buildings: number, propShadows: number) {
+    this.rust.set_detail_scale(units, buildings, propShadows);
   }
 
   free() {

@@ -133,7 +133,7 @@ fn it_climbs_on_engagement() {
     let mut highest = low;
     for _ in 0..10 * b.rules().tick_hz {
         b.step();
-        engaged |= b.unit(HELI).unwrap().service == ServiceStatus::Firing;
+        engaged |= sim::weapons::engaged(b.unit(HELI).unwrap());
         highest = highest.max(heli_z(&b));
     }
     assert!(engaged, "it never engaged the squad");

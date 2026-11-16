@@ -353,7 +353,6 @@ fn production_resolver_prevents_hull_damage_but_keeps_ordinary_collateral_and_so
 fn supply_restores_one_charge_per_ten_seconds_with_finite_stock_and_unchanged_cooldown() {
     use serde_json::json;
     use sim::battle::Battle;
-    use std::collections::BTreeSet;
     let mut rules = sim::fixtures::test_rules();
     sim::fixtures::patch_catalog(
         &mut rules,
@@ -384,7 +383,6 @@ fn supply_restores_one_charge_per_ten_seconds_with_finite_stock_and_unchanged_co
             battle.arsenal(),
             battle.rules(),
             &[false, false],
-            &BTreeSet::new(),
             next_soldier,
         )
     };

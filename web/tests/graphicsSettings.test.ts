@@ -101,6 +101,12 @@ describe("quality profiles", () => {
     );
     expect(graphicsProfiles.low.shadowReach).toBeLessThan(graphicsProfiles.medium.shadowReach);
     expect(graphicsProfiles.medium.shadowReach).toBeLessThan(graphicsProfiles.high.shadowReach);
+    expect(graphicsProfiles.low.propShadowScale).toBeGreaterThan(
+      graphicsProfiles.medium.propShadowScale,
+    );
+    expect(graphicsProfiles.medium.propShadowScale).toBeGreaterThan(
+      graphicsProfiles.high.propShadowScale,
+    );
   });
 
   test("scene minimum is cheaper than player low without changing mood", async () => {
@@ -110,6 +116,9 @@ describe("quality profiles", () => {
       graphicsProfiles.low.buildingLodScale,
     );
     expect(sceneMinimumProfile.treeLodScale).toBeGreaterThan(graphicsProfiles.low.treeLodScale);
+    expect(sceneMinimumProfile.propShadowScale).toBeGreaterThan(
+      graphicsProfiles.low.propShadowScale,
+    );
     expect(sceneMinimumProfile.grassDensity).toBeLessThan(graphicsProfiles.low.grassDensity);
     expect(sceneMinimumProfile.grassDensity).toBeGreaterThan(0);
     expect(sceneMinimumProfile.forestDressing).toBe(false);
