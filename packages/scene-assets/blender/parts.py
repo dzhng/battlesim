@@ -24,9 +24,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import textures  # noqa: E402
 
 TIERS = (0, 1, 2, 3)
-SEG_SCALE = (1.0, 0.6, 0.36, 0.2)
+# A static prop's far mesh, past the four tiers (FAR_TIER in the bake's
+# schema.ts): a part reaches it only by naming it, lods=(..., FAR), and an
+# unsuffixed mesh never joins it.
+FAR = 4
+SEG_SCALE = (1.0, 0.6, 0.36, 0.2, 0.12)
 # Longest edge a painted face keeps, per tier: the pattern lives on vertices.
-PAINT_EDGE_M = (0.28, 0.55, 1.2, 3.0)
+PAINT_EDGE_M = (0.28, 0.55, 1.2, 3.0, 6.0)
 MAX_TIER_SPLIT = 12
 
 
@@ -620,8 +624,9 @@ def finish(ao_distance=1.2, ao_strength=0.8, ao_rays=12, ground_ao=True, paint_s
             coarse = TEXTURED_EDGE_SCALE if mat.name in TEXTURED else 1.0
             _split_long_edges(o.data, PAINT_EDGE_M[t] * paint_scale * coarse)
     dirs = _hemisphere(ao_rays)
-    for tier in TIERS:
-        group = [o for o in meshes if tier_of(o) in (tier, None)]
+    far = (FAR,) if any(tier_of(o) == FAR for o in meshes) else ()
+    for tier in TIERS + far:
+        group = [o for o in meshes if tier_of(o) == tier or (tier != FAR and tier_of(o) is None)]
         verts, polys = [], []
         for o in group:
             mw = o.matrix_world
@@ -683,7 +688,9 @@ def _colour(o, tree, dirs, dist, strength):
 
 # ---------------------------------------------------------------- stats and export
 def triangles_by_tier():
-    out = [0, 0, 0, 0]
+    """Triangles per tier, and the far mesh's fifth where there is one."""
+    far = any(o.type == "MESH" and tier_of(o) == FAR for o in bpy.data.objects)
+    out = [0] * (len(TIERS) + far)
     for o in bpy.data.objects:
         if o.type != "MESH":
             continue
@@ -691,8 +698,8 @@ def triangles_by_tier():
         me.calc_loop_triangles()
         n = len(me.loop_triangles)
         t = tier_of(o)
-        for k in TIERS:
-            if t is None or t == k:
+        for k in range(len(out)):
+            if t == k or (t is None and k != FAR):
                 out[k] += n
     return out
 
