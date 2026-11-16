@@ -2336,7 +2336,7 @@
       "roles": [
         "logistics"
       ],
-      "cost": 180,
+      "cost": 150,
       "roster": {
         "factions": [
           "europe"
@@ -2388,7 +2388,7 @@
           "pack_seconds": 1
         },
         "supply": {
-          "stock": 750
+          "stock": 1000
         }
       }
     },
