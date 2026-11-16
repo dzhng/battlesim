@@ -233,7 +233,7 @@ impl Battle {
                         player: player_index,
                     },
                 );
-                skirmish.record_spawn(player_index, unit.id, unit.kind, price, self.tick);
+                skirmish.record_spawn(reservation.player, unit.id, unit.kind, price, self.tick);
                 self.units.push(unit);
                 if reservation.data.carrier.is_none() {
                     continue;
@@ -270,7 +270,7 @@ impl Battle {
                     },
                 );
                 skirmish.record_spawn(
-                    player_index,
+                    reservation.player,
                     squad.id,
                     squad.kind,
                     reservation.price,

@@ -15,7 +15,12 @@ pub fn synthetic_skirmish_setup(size_json: &str, players_json: &str) -> Result<S
     let players: Vec<Player> = serde_json::from_str(players_json).map_err(js_error)?;
     contract::players::validate_players(&players, Seating::Skirmish).map_err(js_error)?;
     let sites = sim::skirmish::synthetic_sites(size, contract::players::entries_per_side(&players));
-    serde_json::to_string(&sim::skirmish::setup_for(&players, sites)).map_err(js_error)
+    serde_json::to_string(&sim::skirmish::setup_for(
+        &players,
+        sites,
+        sim::skirmish::starter_rules(),
+    ))
+    .map_err(js_error)
 }
 
 /// Each entry's lane, in list order, as `{ side, lane, holder }` (the

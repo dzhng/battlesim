@@ -46,7 +46,7 @@ function SensorsLab({ battle }: { battle: SavedBattle }) {
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
 
-  useEffect(() => sim.client?.observeAs(side), [sim.client, side]);
+  useEffect(() => sim.local?.observeAs(side), [sim.local, side]);
 
   const fog = fogOn ? session.fog : null;
   const fogFeed = useFeed(fog);
@@ -68,7 +68,7 @@ function SensorsLab({ battle }: { battle: SavedBattle }) {
     ...session.probes,
     // Sent now, so a following advance already publishes the new side.
     setSide: (next: SideName) => {
-      sim.client?.observeAs(next);
+      sim.local?.observeAs(next);
       setSide(next);
     },
     setFog: setFogOn,

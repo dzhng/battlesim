@@ -36,8 +36,10 @@ export const gameCamera = {
       ...gameCamera.lens,
     };
   },
-  /** Opening battle framing: put the eye on the player's entry edge and look
-   *  across the map so that own reinforcements are always in the foreground. */
+  /** Opening battle framing: put the eye on the commanding player's entry edge
+   *  and turn that edge to screen-bottom. This is the one orientation owner;
+   *  the viewport controller starts from its yaw and keeps every later input
+   *  in screen coordinates. */
   fromStart(start: readonly [number, number], size: readonly [number, number]): Camera3DParams {
     const center: [number, number] = [size[0] / 2, size[1] / 2];
     const dx = start[0] - center[0];
@@ -48,7 +50,7 @@ export const gameCamera = {
     const edgeY = Math.min(start[1], size[1] - start[1]);
     const edgeDirection: [number, number] =
       edgeX < edgeY ? [start[0] < center[0] ? -1 : 1, 0] : [0, start[1] < center[1] ? -1 : 1];
-    const heading = Math.atan2(edgeDirection[1], edgeDirection[0]);
+    const entryOutwardYaw = Math.atan2(edgeDirection[1], edgeDirection[0]);
     const radial = Math.hypot(dx, dy);
     // A slightly higher opening elevation keeps the entry chevrons legible on
     // the ground.
@@ -70,7 +72,7 @@ export const gameCamera = {
       pitch,
       // The eye stands out over the entry edge on that edge's axis, looking
       // across the map, so the map's borders stay parallel to the view.
-      yaw: heading,
+      yaw: entryOutwardYaw,
       ...gameCamera.lens,
     };
   },

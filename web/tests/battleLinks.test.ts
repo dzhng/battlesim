@@ -2,7 +2,7 @@
 import { expect, test } from "vitest";
 import { askedBattle, battleHref, spoken } from "../../apps/battle-lab/src/battleLinks";
 import { lightingPresetNames } from "../../apps/battle-lab/src/lobby/lighting";
-import { sizeTier } from "../../apps/battle-lab/src/skirmishSetup";
+import { sizeTier } from "../../packages/skirmish-setup/src/seats";
 import { MAP_SIZES } from "@web/maps/source";
 
 test("size labels use the lobby's S/M/L/XL vocabulary", () => {
@@ -58,16 +58,38 @@ test.each([
   expect(askedBattle(search)).toMatchObject({ error: expect.stringMatching(message) });
 });
 
-test.each([
-  ["h", "h"],
-  ["h,h,a", "a,a,a"],
-  ["a,a,a", "h,a,a"],
-  ["h,a", "a,h,a"],
-])("a link with humans has exactly one, on Blue: refuses blue=%s red=%s", (blue, red) => {
-  const search = `?type=mixed&size=large&seed=1&battle=1&blue=${blue}&red=${red}&blue_faction=us&red_faction=eastern`;
-  expect(askedBattle(search)).toMatchObject({
-    error: expect.stringMatching(/exactly one Human on Blue/),
+test("a link may place humans on either side", () => {
+  expect(
+    askedBattle(
+      "?type=mixed&size=large&seed=1&battle=1&blue=h&red=h&blue_faction=us&red_faction=eastern",
+    ),
+  ).toMatchObject({
+    kind: "generated",
+    players: [
+      expect.objectContaining({ side: "blue", controller: "human" }),
+      expect.objectContaining({ side: "red", controller: "human" }),
+    ],
   });
+});
+
+test.each([
+  ["h,h", "h,a"],
+  ["a", "h"],
+])("human seats round trip on either team: %s versus %s", (blue, red) => {
+  const asked = askedBattle(`?blue=${blue}&red=${red}&blue_faction=us&red_faction=eastern`);
+  if (!("kind" in asked) || asked.kind !== "generated") throw new Error(JSON.stringify(asked));
+  const link = battleHref(asked.map, asked.players, asked.battleSeed, asked.lighting);
+  expect(askedBattle(new URL(link, "https://battle.invalid").search)).toEqual(asked);
+  expect(asked.players.filter((p) => p.controller === "human").map((p) => p.side)).toEqual([
+    ...blue
+      .split(",")
+      .filter((c) => c === "h")
+      .map(() => "blue"),
+    ...red
+      .split(",")
+      .filter((c) => c === "h")
+      .map(() => "red"),
+  ]);
 });
 
 test("a link with no human is an AI-only battle at any size", () => {

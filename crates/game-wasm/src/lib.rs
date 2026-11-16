@@ -1,6 +1,6 @@
 //! Thin WASM boundary for physical preparation and side-filtered battle runtime.
 use contract::ballistics::WeaponBallistics;
-use contract::command::CommandEnvelope;
+use contract::command::Order;
 use contract::ids::{Side, UnitId};
 use contract::map::MapDefinition;
 use contract::random::Rng;
@@ -13,7 +13,7 @@ use sim::flight::{
     FlightEvent, ImpactContext, NoSolution, Pose, ProjectileId, Projectiles, Shape, Struck,
 };
 use sim::math::{v3, V3};
-use sim::publication::{self, Publisher};
+use sim::publication::{self, Publishers};
 use sim::world::WorldGeometry;
 use wasm_bindgen::prelude::*;
 
@@ -648,8 +648,8 @@ fn parse_side(side: &str) -> Result<Side, JsError> {
 #[wasm_bindgen(js_name = Battle)]
 pub struct BattleHandle {
     battle: Battle,
-    /// Packs each publication and keeps the consumer's ground cursor.
-    publisher: Publisher,
+    /// Packs each side's publications and keeps that side's baseline.
+    publishers: Publishers,
 }
 
 #[wasm_bindgen(js_class = Battle)]
@@ -660,16 +660,29 @@ impl BattleHandle {
         sim::admit(&setup.rules).map_err(js_error)?;
         Ok(BattleHandle {
             battle: Battle::new(&setup, seed as u64),
-            publisher: Publisher::new(),
+            publishers: Publishers::new(),
         })
     }
 
-    /// Set play-time controller ownership before the first tick.
+    /// Record play-time controller ownership at the current boundary.
     pub fn set_controllers(&mut self, controllers_json: &str) -> Result<(), JsError> {
         let controllers: Vec<(String, contract::bundle::ControllerKind)> =
             serde_json::from_str(controllers_json).map_err(js_error)?;
         self.battle.set_controllers(controllers);
         Ok(())
+    }
+
+    /// Server-only accounting, independent of side publications.
+    pub fn referee_view(&self) -> Result<String, JsError> {
+        serde_json::to_string(&self.battle.referee()).map_err(js_error)
+    }
+
+    pub fn hand_over(&mut self, player: &str) -> Result<(), JsError> {
+        self.battle.hand_over(player).map_err(js_error)
+    }
+
+    pub fn reset_seat(&mut self, player: &str, opening: bool) -> Result<(), JsError> {
+        self.battle.reset_seat(player, opening).map_err(js_error)
     }
 
     /// A battle that re-applies a recorded replay and refuses live commands.
@@ -681,14 +694,23 @@ impl BattleHandle {
             Battle::from_replay(&setup, &replay).map_err(|e| JsError::new(&e.to_string()))?;
         Ok(BattleHandle {
             battle,
-            publisher: Publisher::new(),
+            publishers: Publishers::new(),
         })
     }
 
-    /// Returns the acknowledgement as JSON.
-    pub fn accept(&mut self, command_json: &str) -> Result<String, JsError> {
-        let command: CommandEnvelope = serde_json::from_str(command_json).map_err(js_error)?;
-        serde_json::to_string(&self.battle.accept(command)).map_err(js_error)
+    /// Accept a live order. The simulation supplies its side/player sequence stamp.
+    pub fn accept_order(
+        &mut self,
+        side: &str,
+        player: Option<String>,
+        order_json: &str,
+        queued: bool,
+    ) -> Result<String, JsError> {
+        let side = parse_side(side)?;
+        let order: Order =
+            serde_json::from_str(order_json).map_err(|_| JsError::new("invalid order"))?;
+        serde_json::to_string(&self.battle.accept_order(side, player, order, queued))
+            .map_err(js_error)
     }
 
     /// Check a ghost destination using only the purchasing side's geometry;
@@ -757,24 +779,26 @@ impl BattleHandle {
     }
 
     /// Pack `side`'s observation with visibility and learned-ground changes
-    /// (all of them after a side change or `resync_observation`); returns its
-    /// length in f32s. Read it at `publication_ptr()` before any other call
+    /// (all of them in its first record and after `resync_observation`);
+    /// returns its length in f32s. Read it at `publication_ptr(side)` before any other call
     /// that may grow memory.
     pub fn publish(&mut self, side: &str) -> Result<usize, JsError> {
         let side = parse_side(side)?;
-        self.publisher
+        self.publishers
             .publish(&self.battle, side)
             .map(|record| record.len())
             .map_err(js_error)
     }
 
-    pub fn publication_ptr(&self) -> *const f32 {
-        self.publisher.record().as_ptr()
+    pub fn publication_ptr(&self, side: &str) -> Result<*const f32, JsError> {
+        Ok(self.publishers.record(parse_side(side)?).as_ptr())
     }
 
-    /// The next publication opens a new epoch with full visibility and learned ground.
-    pub fn resync_observation(&mut self) {
-        self.publisher.resync();
+    /// The next publication for `side` opens a new epoch with full visibility
+    /// and learned ground. The other sides' streams carry on.
+    pub fn resync_observation(&mut self, side: &str) -> Result<(), JsError> {
+        self.publishers.resync(parse_side(side)?);
+        Ok(())
     }
 }
 
@@ -798,3 +822,6 @@ pub fn report_panics() {
         report_panic(&format!("simulation panic: {info}"))
     }));
 }
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod battle_tests;

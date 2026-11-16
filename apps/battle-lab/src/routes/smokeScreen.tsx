@@ -31,7 +31,7 @@ export default function SmokeScreen() {
   const [side, setSide] = useState<SideName>("blue");
   // Sent now, so a following advance already publishes the new side.
   const observeAs = (session: BattleSession, next: SideName) => {
-    session.sim.client?.observeAs(next);
+    session.sim.local?.observeAs(next);
     setSide(next);
   };
   return (

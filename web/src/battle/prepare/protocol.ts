@@ -10,7 +10,8 @@ import type { MapDiagnostic, MapSource } from "../../maps/source.ts";
 import type { MapExtents } from "@packages/battle-renderer/src/worldMesh";
 
 /** Mirrors `contract::preparation::PrepareBattleRequest`, which checks it.
- *  Everything preparation needs to create a new battle; nothing is defaulted. */
+ *  Everything preparation needs to create a new battle. An absent rule selector
+ *  uses the ordinary skirmish rules. */
 export interface PrepareBattleRequest {
   map_source: MapSource;
   /** The admitted players, in stable authoring order. */
@@ -18,6 +19,9 @@ export interface PrepareBattleRequest {
   /** The battle's own random input: a whole number a JS number holds
    *  exactly, as the battle's constructor takes it. */
   battle_seed: number;
+  /** The document of match rules laid over the skirmish rules, when there is
+   *  one. A battle on the skirmish rules names none: one way to say it. */
+  rules?: "frontline";
 }
 
 export type ControllerKind = "human" | "active_ai" | "passive_ai";

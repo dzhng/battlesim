@@ -1,8 +1,7 @@
 // One visit inside the menu shell: home, or a page under its title and a Back
 // button. Escape is Back, as in a game's menus.
-import { lazy, Suspense, useEffect, useRef, type ComponentType, type Ref } from "react";
-import { hudIcon } from "@packages/scene-assets/src/icons";
-import { Icon } from "@web/battle/present/icons";
+import { lazy, Suspense, useEffect, useRef, type ComponentType } from "react";
+import { PageHead } from "./PageHead";
 import { Tutorial } from "../Tutorial";
 import { DeveloperPage } from "./DeveloperPage";
 import { Home } from "./Home";
@@ -10,6 +9,8 @@ import { useLabLoading } from "../LabLoading";
 import { useMenuShell } from "./MenuShell";
 import { menuPage, type MenuPageId } from "./pages";
 import { SettingsPage } from "./SettingsPage";
+import { MultiplayerPage } from "../online/MultiplayerPage";
+import { RoomPage } from "../online/RoomPage";
 import { SkirmishPage } from "./SkirmishPage";
 
 /** The Armory loads with its page: its stage, its yard document and its art
@@ -21,6 +22,8 @@ const ArmoryVisit = lazy(() =>
 
 /** What each page draws under its title. */
 const CONTENTS: Record<MenuPageId, ComponentType> = {
+  multiplayer: MultiplayerPage,
+  room: RoomPage,
   skirmish: SkirmishPage,
   tutorial: Tutorial,
   armory: ArmoryVisit,
@@ -40,14 +43,16 @@ function PageView({ page }: { page: MenuPageId }) {
   // Bubbling on the window, so a control that handles Escape itself (the
   // lobby's dropdowns) has it first.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && back();
+    const onKey = (e: KeyboardEvent) => page !== "room" && e.key === "Escape" && back();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [back]);
+  }, [back, page]);
   const Contents = CONTENTS[page];
   return (
     <>
-      <PageHead title={menuPage(page).title} onBack={back} backRef={backButton} />
+      {page !== "multiplayer" && page !== "room" && (
+        <PageHead title={menuPage(page).title} onBack={back} backRef={backButton} />
+      )}
       <Suspense fallback={<PageLoading />}>
         <Contents />
       </Suspense>
@@ -60,24 +65,4 @@ function PageView({ page }: { page: MenuPageId }) {
 function PageLoading() {
   useLabLoading("preparation", false);
   return null;
-}
-
-/** A page's head: Back at its top left and the page's name beside it. */
-export function PageHead({
-  title,
-  onBack,
-  backRef,
-}: {
-  title: string;
-  onBack: () => void;
-  backRef?: Ref<HTMLButtonElement>;
-}) {
-  return (
-    <header className="menu-page-head">
-      <button ref={backRef} type="button" className="menu-back" aria-label="Back" onClick={onBack}>
-        <Icon path={hudIcon("back")} />
-      </button>
-      <h2>{title}</h2>
-    </header>
-  );
 }

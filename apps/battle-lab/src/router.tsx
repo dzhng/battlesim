@@ -107,6 +107,9 @@ export function LabRouter() {
   );
 }
 
+const OnlineBattle = lazy(() => import("./routes/onlineBattle"));
+const ONLINE_BATTLE_PATH = /^\/online\/battle\/[^/]+$/;
+
 const EDITORS: Record<string, LazyExoticComponent<ComponentType>> = {
   "/labs/sound-workbench": SoundWorkbench,
   "/labs/map-workbench": MapWorkbench,
@@ -127,7 +130,9 @@ function resolvePage(path: string) {
  *  address that nothing else owns. Null for the lab and battle routes. */
 export function menuPageOf(pathname: string): MenuPageId | "home" | null {
   const page = resolvePage(pathname);
-  if (page.editor || page.Route || page.path === "/labs") return null;
+  if (page.editor || page.Route || page.path === "/labs" || ONLINE_BATTLE_PATH.test(page.path))
+    return null;
+  if (/^\/room\/[^/]+$/.test(page.path)) return "room";
   return MENU_PAGES.find((row) => row.path === page.path)?.id ?? "home";
 }
 
@@ -148,6 +153,14 @@ export function labIndexSections() {
 
 function LabPage({ path: requestedPath }: { path: string }) {
   const { path, editor: Editor, fixture, Route } = resolvePage(requestedPath);
+  if (ONLINE_BATTLE_PATH.test(path))
+    return (
+      <SessionCatalogScope set="game">
+        <Suspense fallback={null}>
+          <OnlineBattle />
+        </Suspense>
+      </SessionCatalogScope>
+    );
   if (Editor)
     return (
       <Suspense fallback={null}>

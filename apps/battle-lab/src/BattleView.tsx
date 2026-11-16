@@ -8,7 +8,7 @@ import {
 // command bar, subtitles, and the pause menu. Routes compose it with their
 // own readout (a battle's clock, a lab's telemetry) and
 // pause menu items (the scenario, replays, a lab's switches).
-import type { PreparedConnectionSession } from "@web/battle/prepare/client";
+import type { BattleConnectionSession } from "@web/battle/prepare/client";
 import type { ObservationView, OwnUnitView } from "@web/battle/sim/observationView";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { contactFocusTargets } from "@web/battle/input/contactFocus";
@@ -69,13 +69,16 @@ export function BattleView({
   cover,
   onLoadStage,
   onFailure,
+  onLeave,
   onDecoded,
+  result,
 }: {
+  result?: (session: BattleSession) => ReactNode;
   fixture: string;
   /** The scenario JSON the authority runs; the view draws its map. */
   scenario: string;
   seed: number;
-  prepared?: PreparedConnectionSession;
+  prepared?: BattleConnectionSession;
   /** Uploaded resolved sandbox bundles can narrow art to their fielded map. */
   scenarioArt?: boolean;
   /** Player issuing commands in a player-owned scenario; null when the
@@ -108,6 +111,8 @@ export function BattleView({
   /** The battle's authority refused or failed it: the route's cover shows the
    *  refusal, and nothing is drawn under it. Without one, the HUD says why. */
   onFailure?: (error: string) => void;
+  /** Route-owned departure through the existing confirmation. */
+  onLeave?: () => void;
   /** Scenario/runtime audio may react to the first authoritative publication. */
   onDecoded?: (observation: ObservationView, digest: string) => void;
 }) {
@@ -146,6 +151,10 @@ export function BattleView({
   blinksRef.current = blinks;
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
+  const matchTarget = useMemo(() => {
+    const setup = JSON.parse(scenario).skirmish as { rules: { victory_score: number } } | undefined;
+    return setup?.rules.victory_score;
+  }, [scenario]);
   const matchFinished = observation?.skirmish?.phase === "finished";
   const viewingPlayer = commandedEconomy(observation?.skirmish, session.viewer?.id);
   const { contacts } = session;
@@ -158,7 +167,7 @@ export function BattleView({
   const { pointerPaint } = session;
   const rulerLabels = useRef<RangeRulerLabelsHandle>(null);
   const objectiveMarkers = useRef<ObjectiveMarkersHandle>(null);
-  const pause = usePauseMenu(sim.client, menuOpen, setMenuOpen);
+  const pause = usePauseMenu(sim.local, menuOpen, setMenuOpen);
   const graphics = useSyncExternalStore(graphicsSettings.subscribe, graphicsSettings.get);
   const quality =
     testQualityProfile(window.location.search) ??
@@ -168,7 +177,7 @@ export function BattleView({
     audio?.reset();
   }, [sim.client, audio]);
 
-  const overlay = useBattleOverlay(session, { scenario, side, camera });
+  const overlay = useBattleOverlay(session, { scenario, camera });
 
   // Loading: the static world's meshes, then the viewport's first frame, then
   // the battle's first observation, which is when the player can act.
@@ -257,7 +266,11 @@ export function BattleView({
         <header className="hud-panel hud-top" data-occludes-readouts>
           {!sim.error &&
             (observation?.skirmish ? (
-              <SkirmishStatus match={observation.skirmish} viewer={session.viewer?.side ?? null} />
+              <SkirmishStatus
+                target={matchTarget!}
+                match={observation.skirmish}
+                viewer={session.viewer?.side ?? null}
+              />
             ) : (
               status(session)
             ))}
@@ -317,9 +330,11 @@ export function BattleView({
       {!sim.error && loadStage !== "playable" && cover}
       {pause.open && (
         <PauseMenu
+          onLeave={onLeave}
+          online={!!prepared && "transport" in prepared}
           onClose={() => pause.show(false)}
           onRestart={
-            scripted?.pilot
+            !sim.local || scripted?.pilot
               ? undefined
               : () => {
                   pause.show(false);
@@ -331,13 +346,15 @@ export function BattleView({
           {menu?.(session)}
         </PauseMenu>
       )}
-      {observation?.skirmish && (
-        <MatchResultOverlay
-          match={observation.skirmish}
-          seats={session.seats}
-          viewer={session.viewer?.id ?? null}
-        />
-      )}
+      {result
+        ? result(session)
+        : observation?.skirmish && (
+            <MatchResultOverlay
+              match={observation.skirmish}
+              seats={session.seats}
+              viewer={session.viewer?.id ?? null}
+            />
+          )}
     </SessionCatalogProvider>
   );
 }

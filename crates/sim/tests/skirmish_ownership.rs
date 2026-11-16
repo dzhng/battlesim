@@ -128,6 +128,47 @@ fn an_ally_cannot_ready_or_cancel_another_players_purchase() {
     assert!(cancel.error.is_some());
 }
 
+/// Each player numbers their own purchases, so two players' first purchases
+/// share a number. Cancelling by number reaches the canceller's own.
+#[test]
+fn a_player_cancels_their_own_purchase_while_another_holds_the_same_number() {
+    let mut battle = Battle::new(&setup(), 1);
+    for player in ["blue-1", "blue-2"] {
+        let ack = battle.accept(command(
+            Side::Blue,
+            player,
+            1,
+            Order::ConfirmPurchase {
+                variant: "test_tank".into(),
+                carrier: None,
+                destination: [400.0, 300.0],
+            },
+        ));
+        assert_eq!(ack.error, None);
+    }
+    battle.step();
+    let pending = |battle: &Battle| -> Vec<usize> {
+        let view = battle.observe(Side::Blue).skirmish.clone().unwrap();
+        view.players.iter().map(|p| p.pending.len()).collect()
+    };
+    let before = battle.observe(Side::Blue).skirmish.clone().unwrap();
+    assert_eq!(pending(&battle)[..2], [1, 1]);
+    let purchase = before.players[0].pending[0].id;
+    assert_eq!(purchase, before.players[1].pending[0].id);
+
+    let cancel = battle.accept(command(
+        Side::Blue,
+        "blue-1",
+        2,
+        Order::CancelPending { purchase },
+    ));
+    assert_eq!(cancel.error, None);
+    battle.step();
+    let after = battle.observe(Side::Blue).skirmish.clone().unwrap();
+    assert_eq!(pending(&battle)[..2], [0, 1], "only the canceller's own");
+    assert!(after.players[0].credits > before.players[0].credits);
+}
+
 #[test]
 fn one_player_ready_does_not_start_the_match() {
     let mut battle = Battle::new(&setup(), 1);

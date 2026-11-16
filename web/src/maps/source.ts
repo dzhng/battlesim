@@ -6,11 +6,14 @@
 //
 // Plain TypeScript with no bundler features, so Node tools import it too.
 import type { MapIdentity, ResolvedMap } from "./resolve.ts";
+import presets from "../../../fixtures/map-presets.json";
 
 export type MapType = "open" | "mixed" | "metro";
 export type MapSize = "small" | "medium" | "large" | "xl";
 export const MAP_TYPES: readonly MapType[] = ["open", "mixed", "metro"];
 export const MAP_SIZES: readonly MapSize[] = ["small", "medium", "large", "xl"];
+/** The regional families authored by the map presets. */
+export const MAP_REGIONS: readonly string[] = presets.parcels.regional_families;
 
 /** What a player chooses: the two composition controls, the seed, and
  *  optionally the region its buildings are of. */
@@ -109,6 +112,12 @@ export function canonicalSeed(text: string): string | null {
 export function newSeed(): string {
   const [high, low] = crypto.getRandomValues(new Uint32Array(2));
   return ((BigInt(high) << 32n) | BigInt(low)).toString();
+}
+
+/** A map seed from a caller's source of randomness (values in [0, 1)). */
+export function seedFrom(random: () => number): string {
+  const word = () => BigInt(Math.floor(random() * 2 ** 32));
+  return ((word() << 32n) | word()).toString();
 }
 
 /** `choice` pinned to this build's generator, the presets' revision and the

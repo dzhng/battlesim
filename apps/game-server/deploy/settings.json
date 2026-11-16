@@ -1,0 +1,17 @@
+{
+  "app": "battle-lobby",
+  "appWhy": "The public lobby app replaced in place when a promoted site changes shared battle inputs.",
+  "workspace": "armata",
+  "workspaceWhy": "The workspace that owns the live lobby and its battle rentals.",
+  "clientAddressHeader": "x-real-ip",
+  "clientAddressHeaderWhy": "The header the host's public route sets to the client's address. Checked on 2026-11-16: a caller's own value for it does not survive.",
+  "capacity": 8,
+  "capacityWhy": "Maximum simultaneous battle allocations held by this lobby, including starts.",
+  "machine": "default",
+  "machineWhy": "The service's 8 GB size. A five-a-side of AIs reached 3 GB in 42 minutes on the 4 GB size and was still growing.",
+  "ttlSeconds": 10800,
+  "ttlWhy": "Three hours bounds an orphan's rental and leaves room for a Frontline battle.",
+  "startupMs": 120000,
+  "pollMs": 1000,
+  "port": 8788
+}

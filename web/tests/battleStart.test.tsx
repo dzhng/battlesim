@@ -9,7 +9,7 @@ import { cleanup, fireEvent } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { askedBattle, battleHref } from "@apps/battle-lab/src/battleLinks";
 import { DEFAULT_LIGHTING } from "@apps/battle-lab/src/lobby/lighting";
-import { skirmishPlayers } from "@apps/battle-lab/src/skirmishSetup";
+import { skirmishPlayers } from "@packages/skirmish-setup/src/seats";
 import type { Faction } from "@packages/scene-assets/src/units";
 import { admitBattle } from "../src/battle/prepare/admission";
 import { PreparationFailed, prepareBattle } from "../src/battle/prepare/client";

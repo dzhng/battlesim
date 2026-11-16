@@ -714,10 +714,7 @@ export function useBattleSession({
     showOrders: () => control.showOrders,
     acks: () => control.acks,
     command: (order: Order, queued = false) => control.issue(order, queued),
-    pause: () => sim.client?.pause(),
-    resume: () => sim.client?.resume(),
-    advance: (n: number) => sim.client!.advance(n),
-    reset: () => sim.restart(),
+    ...sim.authorityProbes,
     surfaceZ,
     /** The static ground under a point: its kind and whether units cross it;
      *  null off the map. */

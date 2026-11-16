@@ -48,7 +48,7 @@ function Shelling({ battle }: { battle: SavedBattle }) {
   const { meshes, sim } = session;
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
-  useEffect(() => sim.client?.observeAs(side), [sim.client, side]);
+  useEffect(() => sim.local?.observeAs(side), [sim.local, side]);
 
   // The rig for this map: its wheel reaches out to the whole map.
   const cameraConfig = useMemo(() => gameCamera.forMap(battle.map.size), [battle]);
@@ -68,7 +68,7 @@ function Shelling({ battle }: { battle: SavedBattle }) {
     side: () => side,
     // Sent now, so a following advance already publishes the new side.
     setSide: (next: SideName) => {
-      sim.client?.observeAs(next);
+      sim.local?.observeAs(next);
       setSide(next);
     },
     /** How far off a building changes to tier 1, 2 and 3 in this window. */

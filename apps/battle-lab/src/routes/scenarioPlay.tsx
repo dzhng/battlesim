@@ -358,7 +358,7 @@ function ScenarioBattle({
               type="button"
               className="hud-menu-item"
               onClick={() =>
-                void battleSession.sim.client?.replay().then((replay) => {
+                void battleSession.sim.local?.replay().then((replay) => {
                   const text = JSON.stringify({ scenario: prepared.scenario, replay });
                   const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
                   const anchor = document.createElement("a");
@@ -399,7 +399,7 @@ function ScenarioBattle({
                 type="button"
                 className="hud-menu-item"
                 onClick={() => {
-                  battleSession.sim.client?.setControllers(
+                  battleSession.sim.local?.setControllers(
                     JSON.stringify([[report.active_human_player, "active_ai"]]),
                   );
                   setTakenOver(true);

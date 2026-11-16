@@ -12,7 +12,6 @@ import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
 import * as gameWasm from "@wasm/game_wasm";
 import { lanesOf } from "@web/battle/prepare/lanes";
 import type { Player } from "@web/battle/prepare/protocol";
-import type { SideName } from "@web/battle/sim/protocol";
 import { useFeed } from "@web/feed";
 import {
   battleOverlayParts,
@@ -29,27 +28,23 @@ import type { BattleSession } from "./useBattleSession";
 const ZOOM_BASE = 1.25;
 const zoomStep = (distance: number) => Math.round(Math.log(distance) / Math.log(ZOOM_BASE));
 
-/** The overlay `session`'s view of `scenario` draws for `side` (blue when
- *  omitted) through a camera opening at `camera`; nothing when not `shown`.
+/** The overlay draws for the session's commanding viewer (Blue's colours
+ *  when watching) through a camera opening at `camera`; nothing when not `shown`.
  *  `overlayFeed` is what the viewport uploads, and `partsFeed` the layers it
  *  combines (`battleOverlayParts`), set together. Call `follow` with each
  *  frame's camera and render scale. */
 export function useBattleOverlay(
   session: BattleSession,
-  {
-    scenario,
-    side,
-    camera,
-    shown = true,
-  }: { scenario: string; side?: SideName; camera: Camera3DParams; shown?: boolean },
+  { scenario, camera, shown = true }: { scenario: string; camera: Camera3DParams; shown?: boolean },
 ) {
+  const side = session.viewer?.side ?? "blue";
   // The roads in are numbered by `sim::entries`.
   const parsed = useMemo(() => {
     const s = JSON.parse(scenario) as OverlayScenarioSource & { players?: Player[] };
     const lanes = s.skirmish
       ? lanesOf(gameWasm, JSON.stringify(s.skirmish.sites), s.players ?? []).entries
       : [];
-    return { size: s.map.size, drawn: battleOverlayScenario(s, lanes, side ?? "blue") };
+    return { size: s.map.size, drawn: battleOverlayScenario(s, lanes, side) };
   }, [scenario, side]);
   // The border and the orders are rebuilt only when the zoom crosses a step
   // (×1.25), so their widths hold near their `_px` widths on screen.

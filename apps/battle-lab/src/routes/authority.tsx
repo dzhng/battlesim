@@ -44,7 +44,7 @@ function AuthorityLab({ battle }: { battle: SavedBattle }) {
   });
   const { meshes, sim, control } = session;
   const worldFeed = useFeed(meshes);
-  const { client, observation, status } = sim;
+  const { local: client, observation, status } = sim;
   const [withhold, setWithhold] = useState(false);
   const [paused, setPaused] = useState(false);
   const [replayCheck, setReplayCheck] = useState<ReplayCheck | null>(null);

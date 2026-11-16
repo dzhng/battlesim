@@ -3,7 +3,7 @@
 // or cancel. A new battle drops all of it.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PurchasePlacementControl, type PurchaseGhost } from "@web/battle/input/purchasePlacement";
-import type { SimClient } from "@web/battle/sim/client";
+import type { OnlineSimClient } from "@web/battle/sim/client";
 import type { WorldRay } from "@packages/renderer-core/src/camera3d";
 import type { LabPick } from "./LabViewport";
 
@@ -26,7 +26,7 @@ export function placementPose(
 
 type Send = Parameters<PurchasePlacementControl["confirm"]>[0];
 
-export function usePurchasePlacement(client: SimClient | null) {
+export function usePurchasePlacement(client: OnlineSimClient | null) {
   const [placement] = useState(() => new PurchasePlacementControl());
   /** The unit that will enter the map (a squad's carrier, else the unit
    *  chosen) must be requested before the cursor asks the presentation to draw

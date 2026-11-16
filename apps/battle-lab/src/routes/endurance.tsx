@@ -17,7 +17,7 @@ import type { BattleSession } from "../useBattleSession";
 import { gameCamera } from "../gameCamera";
 import { createViewMeasurement } from "../benchmark/viewMeasurement";
 import { CameraController } from "@packages/renderer-core/src/cameraController";
-import { playersFor } from "../skirmishSetup";
+import { playersFor } from "@packages/skirmish-setup/src/seats";
 
 const CAMERA: Camera3DParams = {
   target: [1500, 1000, 0],

@@ -13,7 +13,8 @@ import { mapPreviews, type PreviewState } from "@web/battle/prepare/preview";
 import { loadWasm, type Wasm } from "@web/battle/sim/module";
 import { MAP_SIZES, type MapSize } from "@web/maps/source";
 
-import { add, lobbyCandidate, preset, type LobbyState } from "../lobby/model";
+import { add, preset, sizeFloor, type LobbyState } from "@packages/skirmish-setup/src/lobby";
+import { lobbyCandidate } from "../skirmishData";
 
 const PAIRINGS: Record<string, () => LobbyState> = {
   "1v1": () => preset("1v1"),
@@ -131,7 +132,7 @@ export default function MapPicture() {
  *  preview is doing. */
 function PictureFrame({ cell, state }: { cell: Cell; state: PreviewState }) {
   const lobby = PAIRINGS[cell.pairing]();
-  const belowFloor = MAP_SIZES.indexOf(cell.size) < MAP_SIZES.indexOf(lobby.sizeFloor);
+  const belowFloor = MAP_SIZES.indexOf(cell.size) < MAP_SIZES.indexOf(sizeFloor(lobby));
   return (
     <div className="mp-frame" data-status={state.status}>
       {state.status === "ready" ? (

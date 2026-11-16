@@ -7,7 +7,7 @@ import { beforeAll, expect, test } from "vitest";
 import * as wasm from "@wasm/game_wasm.js";
 import matchRules from "@fixtures/skirmish.json";
 import { builderEconomy, emptyBuilderMap } from "@apps/battle-lab/src/scenario-builder/model";
-import { playersFor } from "@apps/battle-lab/src/skirmishSetup";
+import { playersFor } from "@packages/skirmish-setup/src/seats";
 
 beforeAll(() => {
   const module = wasm.initSync({

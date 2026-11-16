@@ -68,15 +68,6 @@ export type Order =
   | { kind: "pop_smoke"; units: number[] }
   | { kind: "upgrade_move"; gesture: number; route: RoutePolicy };
 
-export interface CommandEnvelope {
-  side: SideName;
-  /** Player issuing the order in a player-owned scenario. */
-  player?: string;
-  seq: number;
-  order: Order;
-  queued: boolean;
-}
-
 export interface MovePreviewRequest {
   /** Match execution: omitted route means shortest; omitted queued means replacement. */
   route?: RoutePolicy;
@@ -162,14 +153,30 @@ export type AuthorityStatus =
   | "failed"
   | "disposed";
 
+/** Server accounting, never sent through a remote connection. */
+export interface RefereeView {
+  tick: number;
+  scores: [number, number];
+  target: number;
+  phase: "preparation" | "active" | "finished";
+  result: { kind: "winner"; side: "blue" | "red" } | { kind: "draw" } | null;
+  opening_credits: number;
+  seats: {
+    player: string;
+    side: "blue" | "red";
+    controller: import("../prepare/protocol").ControllerKind;
+    living: number;
+    credits: number;
+  }[];
+}
+
 export type SimRequest =
+  | { type: "connect"; side: SideName }
   | {
       type: "init";
       scenario: string;
       seed: number;
-      side: SideName;
-      /** Player issuing commands for a player-owned scenario. */
-      player?: string;
+      sides: SideName[];
       /** Replay these accepted commands instead of taking input. */
       replay?: string;
     }
@@ -183,7 +190,16 @@ export type SimRequest =
       carrier?: string;
       destination: [number, number];
     }
-  | { type: "command"; command: CommandEnvelope }
+  | {
+      type: "command";
+      id: number;
+      order: Order;
+      queued: boolean;
+      /** Who gives the order. Whoever owns this end of the channel says: the
+       *  page for its own battle, a server from the port the order came in
+       *  on. Never a value read off a network. */
+      seat: { side: SideName; player?: string };
+    }
   | {
       type: "move_preview";
       id: number;
@@ -204,15 +220,22 @@ export type SimRequest =
   /** Advance up to `ticks` or match completion while paused, as fast as credit allows. */
   | { type: "advance"; id: number; ticks: number }
   | { type: "replay" }
-  /** Lab diagnostic: publish the other side's observation from now on. Its
-   *  ground arrives as a new epoch's full snapshot. */
-  | { type: "side"; side: SideName }
+  /** Lab diagnostic: publish these side observations from now on. A newly
+   *  listed side opens with a full snapshot. */
+  | { type: "sides"; sides: SideName[] }
   | { type: "controllers"; controllers: string }
+  /** Administrative requests are available to the local host only. */
+  | { type: "hand_over"; player: string }
+  | { type: "reset_seat"; id: number; player: string; opening: boolean }
+  | { type: "referee"; id: number }
+  /** `side`'s next publication is a full snapshot: a reader needs one. */
+  | { type: "resync"; side: SideName }
   | { type: "dispose" };
 
 export type SimReply =
+  | { type: "request_refused"; request: "command" | "preview"; id: number; reason: string }
   | { type: "ready"; layout: string; tickHz: number; tick: number }
-  | { type: "ack"; ack: CommandAck }
+  | { type: "ack"; id: number; ack: CommandAck }
   | { type: "purchase_preview"; id: number; placement: PurchasePlacement }
   | { type: "move_preview"; id: number; destinations: MoveDestination[] }
   | {
@@ -223,6 +246,7 @@ export type SimReply =
     }
   | {
       type: "publication";
+      side: SideName;
       tick: number;
       digest: string;
       length: number;
@@ -233,4 +257,7 @@ export type SimReply =
   | { type: "status"; status: AuthorityStatus; slow: boolean }
   | { type: "advanced"; id: number; tick: number }
   | { type: "replay"; json: string }
+  | { type: "referee"; id: number; view: RefereeView }
+  | { type: "seat_reset"; id: number }
+  | { type: "order_applied"; player: string }
   | { type: "error"; message: string };

@@ -72,13 +72,17 @@ const questions = {
 
 export function PauseMenu({
   onClose,
+  online = false,
   onRestart,
+  onLeave,
   onSettingsApply,
   children,
 }: {
   onClose: () => void;
+  online?: boolean;
   /** Restart the battle from its seed; none where a run can't restart. */
   onRestart?: () => void;
+  onLeave?: () => void;
   onSettingsApply?: () => void | Promise<void>;
   /** The route's own items. */
   children?: ReactNode;
@@ -108,14 +112,18 @@ export function PauseMenu({
           className="hud-panel hud-menu"
           role="dialog"
           aria-modal="true"
-          aria-label={question ? question.title : "Paused"}
+          aria-label={question ? question.title : online ? "Menu" : "Paused"}
           aria-hidden={tutorialOpen || settingsOpen || undefined}
           inert={tutorialOpen || settingsOpen || undefined}
         >
           {question ? (
             <>
               <strong className="hud-menu-title">{question.title}</strong>
-              <div className="hud-menu-note">Progress in this battle will be lost.</div>
+              <div className="hud-menu-note">
+                {online
+                  ? "An AI will take command of your units."
+                  : "Progress in this battle will be lost."}
+              </div>
               <button
                 type="button"
                 className="hud-menu-item"
@@ -124,7 +132,11 @@ export function PauseMenu({
               >
                 {question.back}
               </button>
-              {asking === "leave" ? (
+              {asking === "leave" && onLeave ? (
+                <button type="button" className="hud-menu-item" onClick={onLeave}>
+                  {question.go}
+                </button>
+              ) : asking === "leave" ? (
                 <Link className="hud-menu-item" to="/">
                   {question.go}
                 </Link>
@@ -136,9 +148,9 @@ export function PauseMenu({
             </>
           ) : (
             <>
-              <strong className="hud-menu-title">Paused</strong>
+              <strong className="hud-menu-title">{online ? "Menu" : "Paused"}</strong>
               <button type="button" className="hud-menu-item" onClick={onClose} autoFocus>
-                Resume
+                {online ? "Back to battle" : "Resume"}
               </button>
               <button type="button" className="hud-menu-item" onClick={() => setTutorialOpen(true)}>
                 Tutorial
@@ -157,7 +169,7 @@ export function PauseMenu({
               )}
               {children}
               <button type="button" className="hud-menu-item" onClick={() => setAsking("leave")}>
-                Main menu
+                {onLeave ? "Multiplayer" : "Main menu"}
               </button>
             </>
           )}

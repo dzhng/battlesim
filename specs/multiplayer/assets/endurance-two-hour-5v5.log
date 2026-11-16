@@ -1,0 +1,19 @@
+native O3/O4 endurance probe
+seed=2; map=generated mixed xl; players_per_side=5; horizon_minutes=120
+map_identity={"generator_version":"layout-22","preset_revision":"layout-presets-21","seed":"2","config_hash":"705da9d423bd23edc31a84d5d561fdb86d1949992e635e49cdaa920e9602d0fd","template_catalog_hash":"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7","map_hash":"0fb8734c021f36754a5c3c2f40664a11d2b1d6d41c63a97e41a65e05e4b1563a"}; setup_ms=30.8; host=macos aarch64
+objective_override=capture_s:1000000000, majority_s:1000000000, victory_score:1000000000000; purpose=avoid ordinary instant/score finish for this scratch measurement
+columns: minutes | wall_p50_ms | wall_p95_ms | step_instr_p50_M/tick | step_instr_p95_M/tick | rss_MiB | snapshot_blue_B | snapshot_red_B | live_units | units_ever_bought
+|---|---|---|---|---|---|---|---|---|---|
+| 10 | 15.7 | 70.9 | 264.838 | 507.963 | 469 | 663604 | 672092 | 183 | 213 |
+| 20 | 19.4 | 60.9 | 337.021 | 714.704 | 787 | 962008 | 1229804 | 229 | 284 |
+| 30 | 12.8 | 25.9 | 287.508 | 595.437 | 1332 | 1213944 | 1580156 | 210 | 303 |
+| 40 | 17.6 | 34.9 | 357.410 | 623.601 | 745 | 1565556 | 1791784 | 202 | 327 |
+| 50 | 19.3 | 43.9 | 359.877 | 636.669 | 1362 | 1883152 | 1964956 | 225 | 365 |
+| 60 | 12.3 | 21.1 | 319.239 | 557.385 | 1781 | 2049144 | 2142556 | 217 | 371 |
+| 70 | 13.3 | 22.7 | 348.892 | 603.201 | 2110 | 2163124 | 2246196 | 215 | 375 |
+| 80 | 15.9 | 25.4 | 364.263 | 620.516 | 2390 | 2305792 | 2324252 | 210 | 386 |
+| 90 | 13.9 | 23.4 | 341.123 | 600.161 | 2624 | 2456832 | 2398016 | 205 | 388 |
+| 100 | 16.3 | 26.5 | 410.997 | 683.189 | 2828 | 2546068 | 2451640 | 203 | 391 |
+| 110 | 14.5 | 23.6 | 393.466 | 643.411 | 3031 | 2605624 | 2504284 | 202 | 398 |
+| 120 | 14.7 | 23.9 | 401.729 | 657.252 | 3169 | 2648588 | 2573512 | 215 | 418 |
+finished: simulated_minutes=120; ticks=216000; digest=1f1ae448087f02ed

@@ -13,6 +13,7 @@ export interface MenuPageRow {
 }
 
 export const MENU_PAGES = [
+  { id: "multiplayer", path: "/multiplayer", title: "Multiplayer", tile: true },
   { id: "skirmish", path: "/skirmish", title: "Skirmish", tile: true },
   { id: "tutorial", path: "/tutorial", title: "Tutorial", tile: true },
   { id: "armory", path: "/armory", title: "Armory", tile: true },
@@ -21,9 +22,17 @@ export const MENU_PAGES = [
   { id: "developer", path: "/developer", title: "Developer", tile: false },
 ] as const satisfies readonly MenuPageRow[];
 
-export type MenuPageId = (typeof MENU_PAGES)[number]["id"];
+/** A room is an addressed visit, not an entry in home's navigation. */
+const ROOM_PAGE = {
+  id: "room",
+  path: "/room",
+  title: "Room lobby",
+  tile: false,
+} as const satisfies MenuPageRow;
+
+export type MenuPageId = (typeof MENU_PAGES)[number]["id"] | typeof ROOM_PAGE.id;
 
 /** The row of page `id`. */
 export function menuPage(id: MenuPageId): MenuPageRow {
-  return MENU_PAGES.find((row) => row.id === id)!;
+  return id === ROOM_PAGE.id ? ROOM_PAGE : MENU_PAGES.find((row) => row.id === id)!;
 }

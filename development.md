@@ -13,6 +13,9 @@ Subsystem READMEs own commands and contracts for their code.
 | [Presentation](crates/presentation/README.md)             | Per-side frame publications: interpolation, poses, effects, cook-offs, tiers, and cast lights.       |
 | [Browser application](web/README.md)                      | Workers, map adapters, player input, readouts, build configuration, and browser verification.        |
 | [Battle lab](apps/battle-lab/README.md)                   | Player pages, shareable battle addresses, and focused developer fixtures.                            |
+| [Online servers](apps/game-server/README.md) | The lobby (rooms, Frontline, presence, admission), the battle server each battle runs in, and the deploy step, the only code that knows the host. |
+| [Multiplayer contract](packages/multiplayer/README.md) | The wire types, the record stream and its resume rule, and the room and Frontline rules both ends share. |
+| [Skirmish setup](packages/skirmish-setup/README.md) | Seats, sides and map choice for offline skirmish, rooms and the server, and the battle request they become. |
 | [Browser camera primitives](packages/renderer-core/README.md) | Camera/depth contracts, view control, camera rays and clearance.                                           |
 | [Browser render inputs](packages/battle-renderer/README.md) | Plain scene contracts, external geometry and material inputs.                                   |
 | [Scene assets](packages/scene-assets/README.md)           | Appearance contracts, validation, baking, loading, and Blender authoring.                            |
@@ -121,6 +124,12 @@ the one list of deliberate hard-coded rules:
   team to coordinate by; an AI opens on its own lane and lets the pull fade as
   the battle goes on, and every purchase still arrives by the side's quickest
   road;
+- a recorded army hand-over passes a seat’s living units, wallet and pending
+  purchases to the other AI-held seat on its side with the fewest living units,
+  ties broken by seat order; it may exceed the receiver’s buying cap;
+- a recorded seat reset requires no living units or pending purchases, then
+  replaces that seat’s wallet with opening credits or zero as its caller
+  decides; human identity and once-per-person grants belong to the server;
 - the skirmish AI and the scripted encounter defender choose their behaviour by
   role tags (logistics, artillery, recon, AT, MBT). They are opponents'
   playbooks, not rules of the battle.
@@ -200,6 +209,9 @@ so pushing `main` by hand ships nothing. Push `staging`, then run `bun run
 promote:main`: it lists the commits production lacks, and with `--yes` waits for
 that commit's staged deployment, promotes it to the production domain without a
 rebuild, and fast-forwards remote `main` to it without touching your checkout.
+Promotion keeps the live lobby in step: it redeploys only when the promoted
+site’s simulation, shared battle documents or multiplayer wire differ from
+the lobby’s, or the lobby cannot state an admitting identity.
 Promotion ships every commit on `staging`, whoever pushed it, so read the list
 before passing `--yes`. If `main` ever gets a commit `staging` lacks (a merge
 made on GitHub), merge `main` into `staging` and push `staging` before

@@ -32,9 +32,8 @@ test("development Restart recreates the authority with the page's captured scena
     type: "init",
     scenario: "captured scenario",
     seed: 7,
-    side: "blue",
+    sides: ["blue"],
     replay: undefined,
-    script: undefined,
   };
   const { result } = renderHook(() => useSimSession({ scenario: init.scenario, seed: init.seed }));
   expect(workers[0].requests[0]).toEqual(init);
@@ -100,9 +99,20 @@ test("ticks published within one frame render once, the latest, while each is st
       for (let tick = 1; tick <= 3; tick++) {
         battle.step();
         const length = battle.publish("blue");
-        const buffer = new Float32Array(memory.buffer, battle.publication_ptr(), length).slice()
-          .buffer;
-        deliver({ type: "publication", tick, digest: battle.digest(), length, buffer, stepMs: 0 });
+        const buffer = new Float32Array(
+          memory.buffer,
+          battle.publication_ptr("blue"),
+          length,
+        ).slice().buffer;
+        deliver({
+          type: "publication",
+          side: "blue",
+          tick,
+          digest: battle.digest(),
+          length,
+          buffer,
+          stepMs: 0,
+        });
       }
     });
     expect(decoded).toEqual([1, 2, 3]);
@@ -174,9 +184,11 @@ test("a held warm-up continuation cannot act after Restart replaces its session"
     deliver(workers[0], { type: "advanced", id: 1, tick: 1 });
     battle.step();
     const length = battle.publish("blue");
-    const buffer = new Float32Array(memory.buffer, battle.publication_ptr(), length).slice().buffer;
+    const buffer = new Float32Array(memory.buffer, battle.publication_ptr("blue"), length).slice()
+      .buffer;
     deliver(workers[0], {
       type: "publication",
+      side: "blue",
       tick: 1,
       digest: battle.digest(),
       length,

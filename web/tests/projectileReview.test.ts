@@ -43,13 +43,16 @@ test("review combat keeps firing with unlimited reserves and leaves every body a
     ),
     12,
   );
-  const decoder = new ScenePresentation(
-    JSON.parse(battle.observation_layout()) as ObservationLayout,
-  );
+  const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
+  const decoders = {
+    blue: new ScenePresentation(layout),
+    red: new ScenePresentation(layout),
+  };
   const observe = (side: string) => {
+    const decoder = decoders[side as "blue" | "red"];
     const length = battle.publish(side);
     return decoder.decode(
-      new Float32Array(memory.buffer, battle.publication_ptr(), length).slice(),
+      new Float32Array(memory.buffer, battle.publication_ptr(side), length).slice(),
     )!;
   };
   try {

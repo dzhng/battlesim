@@ -4,7 +4,7 @@ import { useEffect, type RefObject } from "react";
 import { assignments as voiceAssignments } from "@fixtures/voices.json";
 import { factionVoices } from "@packages/battle-audio/src/voices/voiceCatalog";
 import type { Faction, UnitCatalog } from "@packages/scene-assets/src/units";
-import type { SimClient } from "@web/battle/sim/client";
+import type { OnlineSimClient } from "@web/battle/sim/client";
 import type { BattleAudio } from "@packages/battle-audio/src/battleAudio";
 import { UnitResponses } from "./unitResponses";
 
@@ -13,7 +13,7 @@ import { UnitResponses } from "./unitResponses";
 export function useUnitVoices(
   responses: RefObject<UnitResponses | null>,
   audio: BattleAudio | null,
-  client: SimClient | null,
+  client: OnlineSimClient | null,
   units: UnitCatalog,
   faction: Faction | null,
   enemy: Faction | null,

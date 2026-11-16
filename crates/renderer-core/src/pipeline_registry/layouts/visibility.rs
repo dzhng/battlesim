@@ -501,6 +501,35 @@ pub(super) fn mask_compose() -> LayoutSpec {
                     multisampled: false,
                 },
             ),
+            // The camera, the scene's depth and the environment: where each
+            // pixel's surface lies, and how much of it the haze lets through.
+            entry(
+                5,
+                ShaderStages::FRAGMENT,
+                BindingType::Buffer {
+                    ty: BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+            ),
+            entry(
+                6,
+                ShaderStages::FRAGMENT,
+                BindingType::Texture {
+                    sample_type: TextureSampleType::Depth,
+                    view_dimension: TextureViewDimension::D2,
+                    multisampled: true,
+                },
+            ),
+            entry(
+                7,
+                ShaderStages::FRAGMENT,
+                BindingType::Buffer {
+                    ty: BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+            ),
         ],
     )
 }

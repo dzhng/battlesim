@@ -1,3 +1,4 @@
+import matchRules from "@fixtures/skirmish.json";
 import { shippedRules } from "@web/shippedRules";
 import { useFeed } from "@web/feed";
 import { useLabLoading } from "../LabLoading";
@@ -38,7 +39,7 @@ import { specimenUnit } from "../panelSpecimens";
 import { MatchResultOverlay } from "../MatchResultOverlay";
 import { reportSpecimen } from "../reportSpecimens";
 import { ArmoryPage } from "../armory/ArmoryPage";
-import { PageHead } from "../menu/MenuVisit";
+import { PageHead } from "../menu/PageHead";
 import { menuPage } from "../menu/pages";
 
 const MATCH: SkirmishView = {
@@ -225,7 +226,7 @@ function Status({ match }: { match: SkirmishView }) {
   return (
     <div className="hud">
       <header className="hud-panel hud-top" data-occludes-readouts>
-        <SkirmishStatus match={match} viewer="blue" />
+        <SkirmishStatus target={matchRules.victory_score} match={match} viewer="blue" />
       </header>
       {match.phase === "preparation" && (
         <div className="hud-ready-layer" data-occludes-readouts>

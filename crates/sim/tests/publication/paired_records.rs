@@ -77,7 +77,9 @@ fn publication_stream(record: Value, path: &str, combat: bool) {
     let mut battle = Battle::new(&setup, record["seed"].as_u64().unwrap());
     let layout: Value = serde_json::from_str(&publication::layout_json(&battle)).unwrap();
     let header = names(&layout["header"]);
-    let mut publisher = publication::Publisher::new();
+    // One consumer follows the stream: it reopens (`resync`) the side it
+    // moves to, as the page does when it changes the side it watches.
+    let mut publishers = publication::Publishers::new();
     let mut bits: Vec<u32> = Vec::new();
     let mut snapshots = 0;
     let mut deltas = 0;
@@ -89,9 +91,9 @@ fn publication_stream(record: Value, path: &str, combat: bool) {
         battle.step();
         let side: Side = serde_json::from_value(row["side"].clone()).unwrap();
         if row["resync"].as_bool().unwrap() {
-            publisher.resync();
+            publishers.resync(side);
         }
-        let words = publisher.publish(&battle, side).unwrap();
+        let words = publishers.publish(&battle, side).unwrap();
         let head = |name: &str| words[header.iter().position(|f| f == name).unwrap()];
         let count = head("fogFloats") as usize;
         let field_words = (head("fogNx") as usize * head("fogNy") as usize).div_ceil(32);

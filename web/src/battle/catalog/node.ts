@@ -15,7 +15,6 @@ import {
 } from "./compose.ts";
 
 const ROOT = join(import.meta.dirname, "../../../..");
-const WASM = join(import.meta.dirname, "../../wasm/game_wasm_bg.wasm");
 
 /** Every `.json` under `dir`, in path order; none when it is absent. */
 function jsonFiles(dir: string): string[] {
@@ -38,12 +37,13 @@ export async function nodeCatalogSet(set: CatalogSetName, root = ROOT): Promise<
   const read = (path: string) => readFileSync(path, "utf8");
   const gameView = JSON.parse(read(join(root, "fixtures/catalog.json"))) as GameView;
   const added = ownDocuments(set, root);
-  if (!existsSync(WASM))
+  const file = join(root, "web/src/wasm/game_wasm_bg.wasm");
+  if (!existsSync(file))
     throw new Error(
-      `the simulation's WebAssembly is not built (${WASM}): run \`bun run build:wasm\``,
+      `the simulation's WebAssembly is not built (${file}): run \`bun run build:wasm\``,
     );
   const wasm = await import("../../wasm/game_wasm.js");
-  wasm.initSync({ module: readFileSync(WASM) });
+  wasm.initSync({ module: readFileSync(file) });
   return composeCatalog(
     set,
     JSON.parse(read(join(root, "fixtures/rules.json"))),

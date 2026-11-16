@@ -103,10 +103,10 @@ function play(encounter: LabEncounter): Played {
     },
     sees(side) {
       // A whole publication, read by a decoder with nothing behind it.
-      battle.resync_observation();
+      battle.resync_observation(side);
       const len = battle.publish(side);
       return new ScenePresentation(observations).decode(
-        new Float32Array(memory.buffer, battle.publication_ptr(), len),
+        new Float32Array(memory.buffer, battle.publication_ptr(side), len),
       )!;
     },
     drawn(side) {
@@ -122,9 +122,9 @@ function play(encounter: LabEncounter): Played {
             shells: buildingRemains(UNITS).shells,
           },
         );
-        battle.resync_observation();
+        battle.resync_observation(side);
         const len = battle.publish(side);
-        presentation.decode(new Float32Array(memory.buffer, battle.publication_ptr(), len));
+        presentation.decode(new Float32Array(memory.buffer, battle.publication_ptr(side), len));
         presentation.frame(0, OVERHEAD, { selected: [], xray: false, ghosts: [] }, 0);
         return presentation.fallenBuildings();
       } finally {

@@ -97,7 +97,11 @@ fn returns_home(rules: &Rules, (lane, objective, share): (usize, usize, f64)) ->
         entry[1] + (target[1] - entry[1]) * share,
     ];
     let setup = ScenarioDefinition {
-        skirmish: Some(sim::skirmish::setup_for(&players, sites)),
+        skirmish: Some(sim::skirmish::setup_for(
+            &players,
+            sites,
+            sim::skirmish::starter_rules(),
+        )),
         players,
         map: result.map,
         rules: rules.clone(),

@@ -9,6 +9,7 @@ import { loadWasm, type Wasm } from "@web/battle/sim/module";
 export function useBuiltScenario<Options, Built = string>(
   options: Options,
   build: (wasm: Wasm, options: Options, signal: AbortSignal) => Built | Promise<Built>,
+  reportLoading = true,
 ): Built | { error: string } | null {
   const key = JSON.stringify(options);
   const [built, setBuilt] = useState<{ key: string; value: Built } | { error: string } | null>(
@@ -38,8 +39,8 @@ export function useBuiltScenario<Options, Built = string>(
   }, [key]);
   useLabLoading(
     "preparation",
-    !!built && !("error" in built) && built.key === key,
-    built && "error" in built ? built.error : null,
+    reportLoading ? !!built && !("error" in built) && built.key === key : null,
+    reportLoading && built && "error" in built ? built.error : null,
   );
   if (built && "error" in built) return built;
   return built?.key === key ? built.value : null;

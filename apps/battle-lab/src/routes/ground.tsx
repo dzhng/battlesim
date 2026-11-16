@@ -1,4 +1,4 @@
-import { DEFAULT_BATTLE_SEED } from "@apps/battle-lab/src/lobby/defaults";
+import { DEFAULT_BATTLE_SEED } from "@packages/skirmish-setup/src/lobby";
 import { shippedRules } from "@web/shippedRules";
 import { gameStroke, OPENING_METRES_PER_PX } from "../gameOverlay";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -226,7 +226,7 @@ function GroundInspector({ scenario, seed, camera, legend, extra }: InspectorPro
     });
   const observeAs = (next: SideName) => {
     setSide(next);
-    client?.observeAs(next);
+    sim.local?.observeAs(next);
   };
 
   // Lab-only probes for the scene harness; rebuilt each render.

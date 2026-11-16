@@ -27,7 +27,9 @@ afterEach(() => {
  *  stock pre-push installed the way `git lfs install` leaves it, a stand-in
  *  `git-lfs` on the path that records what each push handed it, and a
  *  stand-in Vercel (`bun x vercel@…`) serving `vercel.json`'s deployments and
- *  recording each promotion, so the test never reaches the real project. */
+ *  recording each promotion, so the test never reaches the real project, and
+ *  a stand-in for the lobby's deploy step (`bun run deploy:server`) that
+ *  records what it was asked and says the lobby is in step. */
 function fixture() {
   const root = mkdtempSync(join(tmpdir(), "git-hooks-"));
   roots.push(root);
@@ -51,9 +53,11 @@ else if (command === "inspect" && target === "www.armata.game") console.log(JSON
 else if (command === "promote") writeFileSync(${JSON.stringify(vercel)}, JSON.stringify({ ...state, served: target, promoted: [...state.promoted, target] }));
 `,
   );
+  const lobbyLog = join(root, "lobby.log");
+  writeFileSync(lobbyLog, "");
   writeFileSync(
     join(bin, "bun"),
-    `#!/bin/sh\ncase "$2" in vercel@*) [ "$1" = x ] && shift 2 && exec node "${join(root, "vercel.mjs")}" "$@";; esac\nexec "${realBun}" "$@"\n`,
+    `#!/bin/sh\ncase "$2" in vercel@*) [ "$1" = x ] && shift 2 && exec node "${join(root, "vercel.mjs")}" "$@";; esac\nif [ "$1" = run ] && [ "$2" = deploy:server ]; then shift 2; echo "$@" >> "${lobbyLog}"; exit 0; fi\nexec "${realBun}" "$@"\n`,
   );
   chmodSync(join(bin, "bun"), 0o755);
   const env = {
@@ -103,11 +107,12 @@ else if (command === "promote") writeFileSync(${JSON.stringify(vercel)}, JSON.st
       }),
     );
   const promoted = () => JSON.parse(readFileSync(vercel, "utf8")).promoted;
-  return { work, lfsLog, run, tip, deploy, promoted };
+  const lobbyAsked = () => readFileSync(lobbyLog, "utf8").split("\n").filter(Boolean);
+  return { work, lfsLog, run, tip, deploy, promoted, lobbyAsked };
 }
 
 test("main is refused until staging holds it, promote fast-forwards it there, staging is refused behind main, and Git LFS still sees every allowed push", () => {
-  const { work, lfsLog, run, tip, deploy, promoted } = fixture();
+  const { work, lfsLog, run, tip, deploy, promoted, lobbyAsked } = fixture();
   expect(run(work, "node", "tools/install-git-hooks.mjs").status).toBe(0);
   writeFileSync(lfsLog, "");
 
@@ -133,9 +138,13 @@ test("main is refused until staging holds it, promote fast-forwards it there, st
   expect(listed.output).toMatch(/rerun with --yes/);
   expect(tip("main")).toBe(before);
   expect(promoted()).toEqual([]);
+  // The lobby is checked against a site only once that site is promoted.
+  expect(lobbyAsked()).toEqual([]);
   const shipped = run(work, "bun", "tools/promote-main.mjs", "--yes");
   expect(shipped.status, shipped.output).toBe(0);
   expect(promoted()).toEqual([`${second}.vercel.app`]);
+  expect(lobbyAsked()).toHaveLength(1);
+  expect(lobbyAsked()[0]).toContain(`--commit ${second} --check`);
   expect(tip("staging")).toBe(second);
   expect(tip("main")).toBe(second);
   expect(run(work, "git", "status", "--porcelain").output).toBe(status);

@@ -22,7 +22,15 @@ export interface SimBattle {
   /** The publication layout: offsets, tags and this battle's round kinds. */
   observation_layout(): string;
   set_controllers(controllersJson: string): void;
-  accept(commandJson: string): string;
+  hand_over(player: string): void;
+  reset_seat(player: string, opening: boolean): void;
+  referee_view(): string;
+  accept_order(
+    side: string,
+    player: string | undefined,
+    orderJson: string,
+    queued: boolean,
+  ): string;
   preview_purchase(
     side: string,
     variant: string,
@@ -40,8 +48,8 @@ export interface SimBattle {
   /** Pack `side`'s observation with visibility and learned-ground changes. */
   publish(side: string): number;
   /** The next publication opens a new epoch with full visibility and learned ground. */
-  resync_observation(): void;
-  publication_ptr(): number;
+  resync_observation(side: string): void;
+  publication_ptr(side: string): number;
   free(): void;
 }
 
@@ -66,7 +74,7 @@ export function createAuthority(host: AuthorityHost): Authority {
   type Resources = { sim: SimModule; battle: SimBattle };
   type Lifetime = { kind: "loading" } | { kind: "live"; resources: Resources } | { kind: "closed" };
   let lifetime: Lifetime = { kind: "loading" };
-  let side: SideName = "blue";
+  let sides: SideName[] = ["blue"];
   // The rules' rate, kept as given: the page's presentation times every
   // effect from it, so a rate derived back from `tickMs` would drift.
   let tickHz = 30;
@@ -80,8 +88,23 @@ export function createAuthority(host: AuthorityHost): Authority {
   let status: AuthorityStatus = "loading";
   let script: { id: number; target: number } | null = null;
   const credits: ArrayBuffer[] = [];
+  let pumping = false;
+  const resets: { id: number; tick: number }[] = [];
+  const applied: { player: string; tick: number }[] = [];
   // Requests that arrive while the module loads keep their order.
   const backlog: SimRequest[] = [];
+
+  /** An order or preview the battle cannot read is refused, and the battle
+   *  goes on: one seat's bad input is not every seat's crash. A trap in the
+   *  simulation is not bad input, and still ends the battle. */
+  const refusing = (request: "command" | "preview", id: number, answer: () => void) => {
+    try {
+      answer();
+    } catch (error) {
+      if (error instanceof WebAssembly.RuntimeError) throw error;
+      host.post({ type: "request_refused", request, id, reason: "invalid" });
+    }
+  };
 
   const activeResources = (): Resources => {
     if (lifetime.kind !== "live") throw new Error("simulation resources are not admitted");
@@ -116,23 +139,44 @@ export function createAuthority(host: AuthorityHost): Authority {
     const started = host.now();
     const tick = b.step();
     const stepMs = host.now() - started;
-    const length = b.publish(side);
-    // Re-derive the view every time: memory may have grown since the last tick.
-    const view = new Float32Array(resources.sim.memory.buffer, b.publication_ptr(), length);
-    let buffer = credits.pop()!;
-    // Declared admission point: a publication larger than its credit gets a
-    // bigger buffer, never a truncated copy.
-    if (buffer.byteLength < length * 4)
-      buffer = new ArrayBuffer(Math.max(length * 4, buffer.byteLength * 2));
-    new Float32Array(buffer, 0, length).set(view);
-    host.post({ type: "publication", tick, digest: b.digest(), length, buffer, stepMs }, [buffer]);
+    for (const side of sides) {
+      const length = b.publish(side);
+      // Re-derive the view every time: memory may have grown since the last tick.
+      const view = new Float32Array(resources.sim.memory.buffer, b.publication_ptr(side), length);
+      let buffer = credits.pop()!;
+      // Declared admission point: a publication larger than its credit gets a
+      // bigger buffer, never a truncated copy.
+      if (buffer.byteLength < length * 4)
+        buffer = new ArrayBuffer(Math.max(length * 4, buffer.byteLength * 2));
+      new Float32Array(buffer, 0, length).set(view);
+      host.post({ type: "publication", side, tick, digest: b.digest(), length, buffer, stepMs }, [
+        buffer,
+      ]);
+    }
+    while (resets.length && resets[0].tick <= tick)
+      host.post({ type: "seat_reset", id: resets.shift()!.id });
+    while (applied.length && applied[0].tick <= tick)
+      host.post({ type: "order_applied", player: applied.shift()!.player });
     if (script && (tick >= script.target || b.finished())) {
       host.post({ type: "advanced", id: script.id, tick });
       script = null;
     }
   }
 
+  /** Runs the ticks that are due. A host that returns a credit from inside
+   *  `post` re-enters here through `handle`; the run in progress picks the
+   *  credit up, so the inner call has nothing to do. */
   function pump() {
+    if (pumping) return;
+    pumping = true;
+    try {
+      runDue();
+    } finally {
+      pumping = false;
+    }
+  }
+
+  function runDue() {
     if (lifetime.kind !== "live" || !started) return;
     const resources = lifetime.resources;
     const battle = resources.battle;
@@ -144,7 +188,7 @@ export function createAuthority(host: AuthorityHost): Authority {
       return setStatus("finished");
     }
     if (script) {
-      while (script && credits.length > 0) stepAndPublish(resources);
+      while (script && credits.length >= sides.length) stepAndPublish(resources);
       if (script) return setStatus("waiting-consumer");
       nextTickAt = host.now();
     }
@@ -160,7 +204,7 @@ export function createAuthority(host: AuthorityHost): Authority {
     }
     let ran = 0;
     while (now >= nextTickAt && ran < MAX_CATCHUP_TICKS) {
-      if (credits.length === 0) {
+      if (credits.length < sides.length) {
         waitingForCredit = true;
         return setStatus("waiting-consumer");
       }
@@ -193,7 +237,8 @@ export function createAuthority(host: AuthorityHost): Authority {
     try {
       switch (request.type) {
         case "init": {
-          side = request.side;
+          sides = [...new Set(request.sides)];
+          if (sides.length === 0) throw new Error("at least one publication side is required");
           tickHz = JSON.parse(request.scenario).rules.tick_hz;
           tickMs = 1000 / tickHz;
           // A refused scenario or replay throws while building: report it too.
@@ -205,7 +250,8 @@ export function createAuthority(host: AuthorityHost): Authority {
                 ? module.replayBattle(request.scenario, request.replay)
                 : module.createBattle(request.scenario, request.seed);
               lifetime = { kind: "live", resources: { sim: module, battle } };
-              for (let i = 0; i < PUBLICATION_POOL; i++) credits.push(new ArrayBuffer(4096));
+              for (let i = 0; i < PUBLICATION_POOL * sides.length; i++)
+                credits.push(new ArrayBuffer(4096));
               host.post({
                 type: "ready",
                 layout: battle.observation_layout(),
@@ -222,35 +268,54 @@ export function createAuthority(host: AuthorityHost): Authority {
           started = true;
           nextTickAt = host.now();
           break;
-        case "command":
-          host.post({
-            type: "ack",
-            ack: JSON.parse(activeResources().battle.accept(JSON.stringify(request.command))),
-          });
-          return;
-        case "purchase_preview":
-          host.post({
-            type: "purchase_preview",
-            id: request.id,
-            placement: JSON.parse(
-              activeResources().battle.preview_purchase(
-                request.side,
-                request.variant,
-                request.carrier,
-                ...request.destination,
+        case "command": {
+          const { battle } = activeResources();
+          refusing("command", request.id, () => {
+            const ack = JSON.parse(
+              battle.accept_order(
+                request.seat.side,
+                request.seat.player,
+                JSON.stringify(request.order),
+                request.queued,
               ),
-            ),
+            );
+            if (ack.error === null && request.seat.player)
+              applied.push({ player: request.seat.player, tick: ack.applied_tick });
+            host.post({ type: "ack", id: request.id, ack });
           });
           return;
-        case "move_preview":
-          host.post({
-            type: "move_preview",
-            id: request.id,
-            destinations: JSON.parse(
-              activeResources().battle.preview_move(request.side, JSON.stringify(request.move)),
-            ),
-          });
+        }
+        case "purchase_preview": {
+          const { battle } = activeResources();
+          refusing("preview", request.id, () =>
+            host.post({
+              type: "purchase_preview",
+              id: request.id,
+              placement: JSON.parse(
+                battle.preview_purchase(
+                  request.side,
+                  request.variant,
+                  request.carrier,
+                  ...request.destination,
+                ),
+              ),
+            }),
+          );
           return;
+        }
+        case "move_preview": {
+          const { battle } = activeResources();
+          refusing("preview", request.id, () =>
+            host.post({
+              type: "move_preview",
+              id: request.id,
+              destinations: JSON.parse(
+                battle.preview_move(request.side, JSON.stringify(request.move)),
+              ),
+            }),
+          );
+          return;
+        }
         case "building_preview": {
           // A changing selection can invalidate a preview without failing the battle.
           try {
@@ -294,12 +359,34 @@ export function createAuthority(host: AuthorityHost): Authority {
         case "replay":
           host.post({ type: "replay", json: activeResources().battle.replay_json() });
           return;
-        case "side":
-          side = request.side;
-          activeResources().battle.resync_observation();
+        case "sides": {
+          const nextSides = [...new Set(request.sides)];
+          if (nextSides.length === 0) throw new Error("at least one publication side is required");
+          const previous = new Set(sides);
+          sides = nextSides;
+          for (const side of sides)
+            if (!previous.has(side)) activeResources().battle.resync_observation(side);
           return;
+        }
         case "controllers":
           activeResources().battle.set_controllers(request.controllers);
+          return;
+        case "hand_over":
+          activeResources().battle.hand_over(request.player);
+          return;
+        case "reset_seat":
+          activeResources().battle.reset_seat(request.player, request.opening);
+          resets.push({ id: request.id, tick: activeResources().battle.tick() + 1 });
+          return;
+        case "referee":
+          host.post({
+            type: "referee",
+            id: request.id,
+            view: JSON.parse(activeResources().battle.referee_view()),
+          });
+          return;
+        case "resync":
+          activeResources().battle.resync_observation(request.side);
           return;
       }
       pump();
