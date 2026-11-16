@@ -1,6 +1,8 @@
 use super::*;
 use crate::view::Camera;
 
+mod far;
+
 /// Walls (modular), cars (painted), wrecks, a lamp with no art, a
 /// forest's trunk and a building's part; a car and a wall stop movers, a
 /// lamp and a deck don't.
@@ -38,6 +40,7 @@ fn art(name: &str, scenery: &str, family: Option<&str>, footprint: [f64; 3]) -> 
             min: [-1.0, 0.0, 0.0],
             max: [1.0, 0.0, 0.0],
         },
+        meshes: TIERS,
     }
 }
 
@@ -64,6 +67,7 @@ fn input() -> PropInput {
         detail: Detail {
             lod_px: [200.0, 80.0, 30.0],
             impostor_px: 10.0,
+            far_px: 2.0,
             shadow_caster_px: 0.0,
         },
         dynamic: true,

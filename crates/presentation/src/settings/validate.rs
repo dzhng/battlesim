@@ -65,6 +65,16 @@ pub(super) fn presentation(s: &PresentationSettings) -> Result<(), String> {
     numbers(&s.hud, "presentation.hud", &[])?;
     numbers(&s.contacts, "presentation.contacts", &[".hatch_angle_deg"])?;
     numbers(&s.models, "presentation.models", &[])?;
+    let lod = s.models.lod_px;
+    if !lod.windows(2).all(|w| w[0] > w[1]) || lod[2] <= 0.0 {
+        return Err("presentation.models.lod_px: must fall and remain positive".into());
+    }
+    if !(s.models.far_px > 0.0 && s.models.far_px < lod[2]) {
+        return Err(format!(
+            "presentation.models.far_px: must be above 0 and below lod_px[2] ({}), got {}",
+            lod[2], s.models.far_px
+        ));
+    }
     numbers(&s.buildings, "presentation.buildings", &[])?;
     numbers(&s.transit, "presentation.transit", &[])?;
     range(

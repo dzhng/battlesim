@@ -5,7 +5,7 @@ import type { ModelAsset } from "../src/battle/render/modelAssets";
 import { prepareAppearances, type LabModel } from "../src/battle/sim/presentationModels";
 import { SceneAppearances } from "../src/battle/render/sceneAppearances";
 
-const detail = { lod_px: [100, 50, 25] as const, impostor_px: 10 };
+const detail = { lod_px: [100, 50, 25] as const, impostor_px: 10, far_px: 2 };
 const model = (name: string, x = 0): LabModel => ({
   appearance: name,
   x,
