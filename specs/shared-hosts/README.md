@@ -46,6 +46,7 @@ Checklist (each item is its slice's whole contract):
 
 - [x] 00 · The relief test, red, and the digest probe baseline ([slice](slices/00-proof-and-probes.md))
 - [x] 01 · One building order: contract cutover and every squad routed in ([slice](slices/01-one-building-order.md))
+- [ ] 01a · Spread entries: several squads in one order take approach points apart ([slice](slices/01a-spread-entries.md))
 - [ ] 02 · One window plan per building, outcomes unchanged ([slice](slices/02-one-window-plan.md))
 - [ ] 03 · Admission on arrival for both hosts; the relief test goes green ([slice](slices/03-admission-on-arrival.md))
 - [ ] 04 · Window swaps and reinforcement span the building ([slice](slices/04-building-wide-occupancy.md))
@@ -108,7 +109,7 @@ transitional scaffolding survives a slice.
 ## Slice graph
 
 ```
-00 → 01 → 02 → 03 → 04 → 05 → 06 → 07
+00 → 01 → 02 → 01a → 03 → 04 → 05 → 06 → 07
 ```
 
 Serial on purpose: each behavioural cut must be the only possible cause of the

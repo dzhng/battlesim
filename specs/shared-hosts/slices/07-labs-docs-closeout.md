@@ -32,6 +32,14 @@
   and "one squad to a building" in `crates/contract/src/encounter.rs` and
   `crates/sim/src/encounter/mod.rs` as a posting choice.
 
+## Leftovers from earlier slices
+
+- Delete the rules slice 01 left without a reader (`navigation.move_validation_work`,
+  `navigation.move_rehearsal_m`), and re-record the fixtures that embed the
+  rules as a named decision (rules identity only; battle digests unchanged).
+- The `tweak-mechanics` skill still states a principle about planning
+  snapshots, which slice 01 deleted; reword it as a timeless principle.
+
 ## Verification
 
 - The garrison, transport, panels, UI and cursor browser scenes, once.
