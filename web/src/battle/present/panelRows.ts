@@ -238,8 +238,8 @@ const HOLD_ROWS: Record<string, Record<string, (progress: number) => StateRow | 
 /** A carrier's Seats row: the living soldiers of the squads it holds
  *  against its catalog seats; null for a unit that carries no one. */
 function seatsRow(units: UnitCatalog, u: OwnUnitView, own: readonly OwnUnitView[]) {
-  const seats = units.type(u.kind).capabilities.carriage?.seats;
-  if (seats === undefined) return null;
+  const seats = units.seats(u.kind);
+  if (!seats) return null;
   const used = passengersOf(own, u.id).reduce(
     (sum, p) => sum + p.memberHp.filter((hp) => hp > 0).length,
     0,
