@@ -1,6 +1,6 @@
 # Shared hosts: buildings and transports admit squads alike
 
-**Status:** in progress; slices 00, 01 and 02 done. **Updated:** 2026-11-16.
+**Status:** in progress; slices 00, 01, 01a and 02 done. **Updated:** 2026-11-16.
 
 Several squads share a host (a building or a carrier) while seats remain, one
 seat per living soldier, squads whole. A squad gets in when it arrives and
@@ -10,7 +10,7 @@ decision (`specs/done/battle-look/decisions.md`).
 
 ## Next Agent Prompt
 
-You are implementing this plan from slice 01a. Read, in order: this file, the
+You are implementing this plan from slice 03. Read, in order: this file, the
 [decisions ledger](decisions.md), the slice you are about to build, and, for
 the history of how each decision was reached, the
 [unknowns map](unknowns-map.html) (its plan and prompt sections are
@@ -18,7 +18,7 @@ superseded by this file). Before slices 05–06 read
 [`game-ui`](../../.agents/skills/game-ui/SKILL.md). Before slice 03 read
 [`tweak-mechanics`](../../.agents/skills/tweak-mechanics/SKILL.md).
 
-Next pickup: **[slice 01a, spread entries](slices/01a-spread-entries.md).**
+Next pickup: **[slice 03, admission on arrival](slices/03-admission-on-arrival.md).**
 
 The digest gates run with one command from the repository root:
 
@@ -46,7 +46,7 @@ Checklist (each item is its slice's whole contract):
 
 - [x] 00 · The relief test, red, and the digest probe baseline ([slice](slices/00-proof-and-probes.md))
 - [x] 01 · One building order: contract cutover and every squad routed in ([slice](slices/01-one-building-order.md))
-- [ ] 01a · Spread entries: several squads in one order take approach points apart ([slice](slices/01a-spread-entries.md))
+- [x] 01a · Spread entries: several squads in one order take approach points apart ([slice](slices/01a-spread-entries.md))
 - [x] 02 · One window plan per building, outcomes unchanged ([slice](slices/02-one-window-plan.md))
 - [ ] 03 · Admission on arrival for both hosts; the relief test goes green ([slice](slices/03-admission-on-arrival.md))
 - [ ] 04 · Window swaps and reinforcement span the building ([slice](slices/04-building-wide-occupancy.md))

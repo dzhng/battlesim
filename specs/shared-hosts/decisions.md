@@ -213,3 +213,43 @@ things the plan left open.
   ratchet compares with the previous commit, and `battle.rs` stays over budget
   after the move, so a separate move would leave the refactor's growth
   refused.
+
+## Slice 01a
+
+- **"A squad's spacing" is the soldiers' ground, not the drawn ring.** Two
+  entries stand at least the two squads' half spreads
+  (`arrangement::spread` of each squad's living soldiers) plus
+  `infantry_movement.spacing_m` apart, so their soldiers don't mingle.
+  *Alternative:* the formation's spacing (`formation::member_radius`, the
+  cover area, plus `formation.spacing_m`), which keeps destination rings
+  clear of each other as a group move does. Lost because around a lab-sized
+  house no two points are that far apart, so every later squad would fall
+  back to the shared nearest point. The drawn rings (cover area at
+  `area_draw_scale`) therefore still overlap each other and the house; they
+  no longer coincide.
+- **A later squad's point must also be reachable.** Its candidate must be
+  apart from earlier entries *and* pass the entry's own reach test (within
+  entry reach, or the side's grid reaches it), so a spread point on a walled
+  courtyard facade never costs a squad the entry the nearest point would have
+  given it. The first squad (an empty list of earlier entries) skips both,
+  which keeps it on exactly today's path.
+- **Sampling** (delegated): the nearest-point candidates `garrison::approach`
+  always had, plus points every `APPROACH_STEP_M` along each side-known
+  exposed edge's span, standing off it like the edge candidates; points inside
+  any part are dropped; the nearest clear one wins, ties by facade order. The
+  samples are only built when the nearest point is not clear.
+- **Earlier entries are those actually given in this order.** A listed squad
+  that gets no entry reserves nothing.
+- **Gates.** The probe is identical to slice 02's commit in every group,
+  `CONTESTED` included: the garrison lab and transport demos send one squad
+  per order. Against `BASELINE` only `contested/garrison/garrison` differs
+  (tick 30), as since slice 01.
+- **The three-squad shot** (`throwaway/shared-hosts/shots/spread-*`): three
+  distinct rings (west, north-east, south-east of the house) and three order
+  lines ending at them, where slice 01 had two concentric rings and one
+  chained line. The unprimed critique still reads the lines as a chain near
+  the squads, because the lab's three squads stand in a row toward the house
+  and each line passes the squads ahead of it; that is the staging, not the
+  approach. Its other findings (no ring-to-squad link, overlapping rings, no
+  markers while walking, identical labels, the panel over a squad, hover
+  feedback) predate this slice and belong to slices 06–07.
