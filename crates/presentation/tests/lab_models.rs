@@ -346,7 +346,12 @@ fn battle_and_lab_instances_of_one_appearance_share_one_batch_without_replacing_
         .units
         .appearances
         .iter()
-        .find(|(_, a)| matches!(a, presentation::world::Appearance::Articulated { .. }))
+        .find(|(_, a)| {
+            matches!(
+                a.as_ref(),
+                presentation::world::Appearance::Articulated { .. }
+            )
+        })
         .unwrap();
     let (name, appearance) = (name.clone(), appearance.clone());
     let detail = fielded.units.detail;
@@ -389,7 +394,7 @@ fn battle_and_lab_instances_of_one_appearance_share_one_batch_without_replacing_
         [installed(
             &name,
             Asset::Animated {
-                appearance: Box::new(appearance),
+                appearance: Box::new(appearance.as_ref().clone()),
                 table: Vec::new(),
             },
         )]

@@ -49,8 +49,10 @@ calls the same reader for workbench drafts.
   the runtime contents it reads; the caller reads them (native from the
   runtime directory, feature `files`; the page by fetching them, through
   [its WebAssembly binding](../presentation-wasm/README.md)), and it decides.
-  Source bytes can be borrowed for a resolve; only derived facts survive it.
-  A byte cache must not duplicate a complete boundary input: even temporary
+  The battle scope retains content facts and checked, immutable descriptions.
+  Resolving added kinds shares existing descriptions and clip tables with earlier
+  snapshots, so a growth neither assembles nor reads the old sections again.
+  Source bytes can be borrowed for a resolve. A byte cache must not duplicate a complete boundary input: even temporary
   copies permanently raise a WebAssembly module’s linear-memory capacity.
 - [External models](src/presentation/lab.rs): tooling admits authored art and
   descriptive poses independently of a battle roster. Its instances supplement

@@ -68,7 +68,7 @@ fn clip_of<'u>(units: &'u UnitsSection, pose: &SoldierPose, name: &str) -> Optio
         pose.operator_mount,
         pose.active_mount,
     )?;
-    match units.appearances.get(a)? {
+    match units.appearances.get(a).map(AsRef::as_ref)? {
         Appearance::Skinned { clips, .. } => clips.get(name),
         Appearance::Articulated { .. } => None,
     }
@@ -290,7 +290,7 @@ pub struct PoseDriver {
 impl PoseDriver {
     /// A driver for `units`' pose feel and lean hold.
     pub fn new(units: &UnitsSection) -> Result<Self, String> {
-        let feel = PoseFeel::from_value(&units.pose)?;
+        let feel = units.pose.as_ref().clone();
         Ok(Self {
             feel,
             lean_hold: units.lean_hold,

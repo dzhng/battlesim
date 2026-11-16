@@ -8,9 +8,11 @@ try {
   const before = memory.buffer.byteLength;
   const first = fielding.resolve(workerData.bytes, workerData.lengths);
   const after = memory.buffer.byteLength;
+  first.free();
   const missing = fielding.contents();
   const warm = fielding.resolve(new Uint8Array(), new Uint32Array());
-  parentPort.postMessage({ before, after, missing, same: first === warm });
+  parentPort.postMessage({ before, after, missing, work: JSON.parse(warm.work()) });
+  warm.free();
 } finally {
   fielding.free();
   parentPort.close();

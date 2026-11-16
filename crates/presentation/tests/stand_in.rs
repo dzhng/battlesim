@@ -39,17 +39,11 @@ fn setup() -> (Battle, presentation::fielded::Fielded) {
 }
 
 fn with_art_withheld(mut units: UnitsSection) -> UnitsSection {
-    units
-        .types
-        .get_mut("test_tank")
-        .unwrap()
+    std::sync::Arc::make_mut(units.types.get_mut("test_tank").unwrap())
         .draws
         .values_mut()
         .for_each(|d| d.hull.clear());
-    units
-        .types
-        .get_mut("test_rifle")
-        .unwrap()
+    std::sync::Arc::make_mut(units.types.get_mut("test_rifle").unwrap())
         .draws
         .values_mut()
         .for_each(|d| {

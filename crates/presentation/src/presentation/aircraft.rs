@@ -41,7 +41,9 @@ pub(super) fn high_air_shadows(
             .filter(|(kind, ..)| units.types.get(*kind).is_some_and(|t| t.high_air()))
             .filter_map(|(kind, on, unit, at, yaw)| {
                 let name = units.resolve(kind, on, unit, 0, None, None)?;
-                let Some(Appearance::Articulated { plan, .. }) = units.appearances.get(name) else {
+                let Some(Appearance::Articulated { plan, .. }) =
+                    units.appearances.get(name).map(AsRef::as_ref)
+                else {
                     return None;
                 };
                 Some(high_air_ground_shadow(at, yaw, *plan, height, &style))
