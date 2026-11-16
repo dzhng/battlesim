@@ -180,3 +180,33 @@ fn trucks_meeting_nose_to_nose_in_a_street_get_past_each_other() {
         );
     }
 }
+
+/// A truck pulled up nose to tail behind a parked one, closer than traffic
+/// keeps, and sent on past it. It waits a moment, then works its way round
+/// the parked truck and gets where it was sent; its way round never starts
+/// with a step the traffic rule refuses, which left it waiting for minutes.
+#[test]
+fn a_truck_close_behind_a_parked_one_works_its_way_round_it() {
+    let truck = |x: f64| json!({ "side": "blue", "kind": "test_supply", "position": [x, 60], "yaw": 0, "engagement": "return_fire_only" });
+    let setup: ScenarioDefinition = serde_json::from_value(json!({
+        "map": { "size": [160, 120], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": sim::fixtures::test_rules(),
+        "units": [truck(80.0), truck(73.8)],
+        "events": [],
+        "scripts": [{ "tick": 1, "side": "blue", "order": { "kind": "move", "units": [1],
+            "gesture": 1, "goal": [130, 60], "route": "shortest", "direction": "forward" } }],
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    let hz = b.rules().tick_hz as u64;
+    for _ in 0..60 * hz {
+        b.step();
+    }
+    let truck = b.unit(UnitId(1)).unwrap();
+    assert!(
+        (truck.position.xy() - sim::math::v2(130.0, 60.0)).length() < 2.0,
+        "it is {:?} at {:?}",
+        truck.state,
+        truck.position.xy()
+    );
+}

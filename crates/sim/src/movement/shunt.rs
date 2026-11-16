@@ -15,7 +15,7 @@ use std::collections::{BTreeSet, BinaryHeap};
 
 use contract::map::MoverClass;
 
-use crate::math::{v2, wrap_angle, Obb2, V2};
+use crate::math::{wrap_angle, Obb2, V2};
 use crate::units::Unit;
 use crate::world::WorldGeometry;
 
@@ -138,28 +138,33 @@ impl Way {
     }
 }
 
-/// What stops a hull in the search: the bodies it cannot shove and the
-/// vehicles where they stand (none it already touches: it may always draw
-/// away from those), and ground it cannot cross.
+/// What stops a hull in the search: the bodies it cannot shove (none it
+/// already touches: it may always draw away from those), the vehicles where
+/// they stand, kept clear of as traffic keeps clear of them, and ground it
+/// cannot cross.
 struct Room<'a> {
     world: &'a WorldGeometry,
     solids: Vec<(Obb2, f64)>,
+    traffic: Vec<Obb2>,
     half: V2,
     corners: bool,
 }
 
 impl Room<'_> {
-    fn free(&self, at: V2, yaw: f64) -> bool {
-        let hull = Obb2 {
-            center: at,
-            yaw,
-            half: self.half,
-        };
+    /// Whether the hull may step from `before` to `after`: into no body,
+    /// and by traffic's own rule past every vehicle.
+    fn free(&self, before: Obb2, after: Obb2) -> bool {
         let reach = self.half.length();
+        let near =
+            |c: V2, r: f64| (c - after.center).length() < reach + r + super::TRAFFIC_MARGIN_M;
         !self
             .solids
             .iter()
-            .any(|(body, r)| (body.center - at).length() < reach + r && hull.overlaps(body))
+            .any(|(body, r)| near(body.center, *r) && after.overlaps(body))
+            && !self.traffic.iter().any(|other| {
+                near(other.center, other.half.length())
+                    && super::hull_conflict(before, after, *other)
+            })
     }
 
     /// Whether the hull stands on ground it can cross: its corners too,
@@ -184,12 +189,18 @@ impl Room<'_> {
     fn arc(&self, at: V2, yaw: f64, gear: f64, turn: f64) -> Option<(V2, f64)> {
         let pieces = (ARC_M / SAMPLE_M).ceil() as usize;
         let piece = ARC_M / pieces as f64;
+        let hull = |center, yaw| Obb2 {
+            center,
+            yaw,
+            half: self.half,
+        };
         let (mut at, mut yaw) = (at, yaw);
         for _ in 0..pieces {
+            let before = hull(at, yaw);
             let dyaw = turn * piece;
             at = at + drive::dir(drive::travel(yaw, gear) + dyaw / 2.0) * piece;
             yaw += dyaw;
-            if !self.free(at, yaw) {
+            if !self.free(before, hull(at, yaw)) {
                 return None;
             }
         }
@@ -243,25 +254,20 @@ pub fn search(
         .filter(|p| p.blocks(MoverClass::Vehicle) && !push.pushes(p.body.weight_class))
         .map(|p| p.footprint())
         .chain(held.iter().copied())
-        .chain(
-            // Kept as far from as traffic keeps.
-            traffic
-                .iter()
-                .enumerate()
-                .filter(|&(id, _)| id != unit.id.0 as usize)
-                .filter_map(|(_, h)| *h)
-                .filter(|h| (h.center - here).length() < around + h.half.length())
-                .map(|h| Obb2 {
-                    half: h.half + v2(super::TRAFFIC_MARGIN_M, super::TRAFFIC_MARGIN_M),
-                    ..h
-                }),
-        )
         .filter(|b| !touching(b))
         .map(|b| (b, b.half.length()))
+        .collect();
+    let traffic = traffic
+        .iter()
+        .enumerate()
+        .filter(|&(id, _)| id != unit.id.0 as usize)
+        .filter_map(|(_, h)| *h)
+        .filter(|h| (h.center - here).length() < around + h.half.length())
         .collect();
     let mut room = Room {
         world,
         solids,
+        traffic,
         half: hull.half,
         corners: true,
     };
