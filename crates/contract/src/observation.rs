@@ -495,8 +495,8 @@ pub struct OwnUnit {
     pub policy: Option<RoutePolicy>,
     /// Which way the current move drives (Q31); `None` without a move.
     pub direction: Option<crate::command::MoveDirection>,
-    /// Driving backwards this tick: a reverse move, or a three-point turn's
-    /// reversing leg (the reverse beeper's cue).
+    /// Driving backwards this tick: a reverse move, or a shunt's reversing
+    /// leg (the reverse beeper's cue).
     pub reversing: bool,
     pub state: MoveState,
     /// The friendly unit this one is waiting for (an enemy it waits for,

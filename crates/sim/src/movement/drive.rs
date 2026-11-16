@@ -12,17 +12,14 @@
 //! turns only as the hull rolls, at most `1 / radius` per metre, so a
 //! U-turn is an arc. A waypoint inside the turning circle, or already under
 //! the hull, is dropped when the straight way past it is clear ([`prune`]).
-//! The route's end, a corner it cannot cut, or a turn whose next metre runs
-//! into a solid starts a three-point turn: a leg driven against the order's
-//! direction that keeps turning the same way, until the forward arc to the
-//! waypoint is clear. A leg that cannot turn its way (a hull nosed into a
-//! gap between parked cars) backs out straight, or turning the other way. A
-//! blocked turn rolls straight on instead, while straight ahead is clear,
+//! A blocked turn rolls straight on instead, while straight ahead is clear,
 //! when the way lies ahead or the block is at the trailing end (a tail in
-//! an alley's mouth, which backing would drive further in). Every arc is
-//! swept for bodies finer than a corner can swing through one, and the step
-//! itself must land clear; a step held at the nose anyway (a jammed shove)
-//! starts the reverse leg ([`held_ahead`]).
+//! an alley's mouth, which backing would drive further in). Otherwise the
+//! route's end or a corner inside the turning circle, a turn whose next
+//! metre runs into a solid, or a step held anyway (a jammed shove) has it
+//! work out a shunt: the forward and reverse legs that put it back on its
+//! route ([`super::shunt`]). Every arc is swept for bodies finer than a
+//! corner can swing through one, and the step itself must land clear.
 //!
 //! A reverse move (Q31) drives the same way with the travel direction
 //! behind the hull, so the facing is held, at the reverse fraction of the
@@ -45,14 +42,6 @@ const SAMPLE_M: f64 = 0.1;
 /// Room for a blocked tracked turn is looked for this often along the hull.
 const ROOM_STEP_M: f64 = 0.25;
 
-/// A three-point turn's leg against the order's direction (Q29): it turns
-/// the hull toward `turn` (+1 counter-clockwise, -1 clockwise).
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Manoeuvre {
-    pub turn: f64,
-    pub driven_m: f64,
-}
-
 /// One tick's motion: the yaw the hull ends at, the unit direction its
 /// centre moves along, and how far.
 #[derive(Clone, Copy, Debug)]
@@ -60,9 +49,11 @@ pub struct Motion {
     pub yaw: f64,
     pub heading: V2,
     pub step: f64,
-    /// Driving backwards (a reverse move, or a leg of a three-point turn).
+    /// Driving backwards (a reverse move, or a leg of a shunt).
     pub backwards: bool,
-    /// Backing to make room for a tracked pivot counts as progress away from its waypoint.
+    /// Working toward its way while moving off the line to its waypoint
+    /// (backing to make room for a tracked pivot, or a shunt) counts as
+    /// progress.
     pub making_space: bool,
     /// Traffic that rejected the look-ahead arc, even when the step is zero.
     pub blocker: Option<UnitId>,
@@ -96,7 +87,7 @@ pub(super) fn travel_heading(unit: &Unit) -> V2 {
 }
 
 /// The travel heading of a hull at `yaw` in `gear` (+1 forward, -1 back).
-fn travel(yaw: f64, gear: f64) -> f64 {
+pub(super) fn travel(yaw: f64, gear: f64) -> f64 {
     if gear < 0.0 {
         yaw + std::f64::consts::PI
     } else {
@@ -104,11 +95,11 @@ fn travel(yaw: f64, gear: f64) -> f64 {
     }
 }
 
-fn dir(angle: f64) -> V2 {
+pub(super) fn dir(angle: f64) -> V2 {
     v2(libm::cos(angle), libm::sin(angle))
 }
 
-fn speed_in(drive: &Drive, gear: f64, speed: f64) -> f64 {
+pub(super) fn speed_in(drive: &Drive, gear: f64, speed: f64) -> f64 {
     if gear < 0.0 {
         speed * drive.reverse_speed_factor
     } else {
@@ -117,7 +108,7 @@ fn speed_in(drive: &Drive, gear: f64, speed: f64) -> f64 {
 }
 
 /// Approach a speed limit without banking speed during a stop or gear change.
-fn accelerate(unit: &Unit, desired: f64, gear: f64, dt: f64) -> f64 {
+pub(super) fn accelerate(unit: &Unit, desired: f64, gear: f64, dt: f64) -> f64 {
     let drive = unit.ground().drive.expect("a vehicle has a drive");
     let current = (unit.drive_speed_mps * gear).max(0.0);
     let seconds = if desired > current {
@@ -179,10 +170,10 @@ fn approach_speed(unit: &Unit, surface_speed: f64, gear: f64) -> f64 {
 }
 
 /// Whether `target` lies inside the turning circle on side `side` of a hull
-/// at `at` travelling along `heading`, by more than `margin`.
-fn inside_circle(at: V2, heading: f64, side: f64, radius: f64, target: V2, margin: f64) -> bool {
+/// at `at` travelling along `heading`.
+fn inside_circle(at: V2, heading: f64, side: f64, radius: f64, target: V2) -> bool {
     let centre = at + dir(heading + side * std::f64::consts::FRAC_PI_2) * radius;
-    (target - centre).length() < radius - margin
+    (target - centre).length() < radius
 }
 
 /// Whether a hull at `center`/`yaw` would stand in a body that stops it, or
@@ -336,6 +327,7 @@ pub fn steer(
     target: V2,
     speed: f64,
     dt: f64,
+    tick: u64,
     traffic: &[Option<Obb2>],
 ) -> Motion {
     let drive = unit.ground().drive.expect("a vehicle has a drive");
@@ -346,7 +338,6 @@ pub fn steer(
     let bearing = libm::atan2(to.y, to.x);
     let error = wrap_angle(bearing - travel(unit.yaw, gear));
     if drive.tracked {
-        unit.manoeuvre = None;
         let max = drive.turn_rad_s * dt;
         let yaw = unit.yaw + error.clamp(-max, max);
         let remaining = wrap_angle(bearing - travel(yaw, gear)).abs();
@@ -379,62 +370,12 @@ pub fn steer(
     let side = if error >= 0.0 { 1.0 } else { -1.0 };
     let curvature = |v: f64| (1.0 / radius).min(drive.turn_rad_s / v.max(1e-9));
     let heading = travel(unit.yaw, gear);
-    // A waypoint inside the turning circle needs a leg the other way first.
-    if unit.manoeuvre.is_none()
-        && distance > drive.feel.abeam_m
-        && inside_circle(here, heading, side, radius, target, 0.0)
-    {
-        unit.manoeuvre = Some(Manoeuvre {
-            turn: side,
-            driven_m: 0.0,
-        });
+    if let Some(motion) = super::shunt::drive_on(world, unit, speed, dt, tick) {
+        return motion;
     }
-    if let Some(m) = unit.manoeuvre {
-        // The leg ends once the forward arc to the waypoint is clear, or
-        // after a quarter circle.
-        let sweep = error.abs().min(std::f64::consts::PI) * radius;
-        let done = m.driven_m >= radius * std::f64::consts::FRAC_PI_2
-            || (m.driven_m >= drive.feel.min_leg_m
-                && !inside_circle(
-                    here,
-                    heading,
-                    side,
-                    radius,
-                    target,
-                    -drive.feel.circle_margin_m,
-                )
-                && arc_clear(world, unit, gear, side / radius, sweep, traffic).is_ok());
-        if done {
-            unit.manoeuvre = None;
-        }
-    }
-    if let Some(m) = unit.manoeuvre {
-        let back = -gear;
-        let v = accelerate(unit, speed_in(&drive, back, speed), back, dt);
-        let step = v * dt;
-        // The leg turns its own way where it can; nosed into a gap, it
-        // backs out however the space behind lets it: straight, or the
-        // other way.
-        let full = m.turn * curvature(v);
-        for turn in [full, 0.0, -full] {
-            let dyaw = turn * step;
-            let leg = Motion {
-                yaw: unit.yaw + dyaw,
-                heading: dir(travel(unit.yaw, back) + dyaw / 2.0),
-                step,
-                backwards: back < 0.0,
-                making_space: false,
-                blocker: None,
-            };
-            if arc_clear(world, unit, back, turn, PROBE_M, traffic).is_ok()
-                && lands(world, unit, &leg, back).is_none()
-            {
-                return leg;
-            }
-        }
-        // Nothing behind is clear either: the leg ends, and the forward arc
-        // decides again.
-        unit.manoeuvre = None;
+    // A waypoint inside the turning circle needs room worked out first.
+    if distance > drive.feel.abeam_m && inside_circle(here, heading, side, radius, target) {
+        return shunt(world, unit, traffic, &[], tick);
     }
     let desired = turn_speed(&drive, speed_in(&drive, gear, speed), error)
         .min(approach_speed(unit, speed, gear));
@@ -474,53 +415,53 @@ pub fn steer(
         {
             return straight;
         }
-        // The forward arc runs into a solid: back up, still turning the same way.
-        unit.manoeuvre = Some(Manoeuvre {
-            turn: side,
-            driven_m: 0.0,
-        });
-        return Motion {
-            yaw: unit.yaw,
-            heading: dir(heading),
-            step: 0.0,
-            backwards: false,
-            making_space: false,
-            blocker: match block {
-                ArcBlock::Vehicle(id) => Some(id),
-                ArcBlock::Solid { .. } => None,
+        // A vehicle in the way is waited for, as traffic (how long is the
+        // vehicle tick's to say); a solid has it work out a shunt.
+        return match block {
+            ArcBlock::Vehicle(id) => Motion {
+                yaw: unit.yaw,
+                heading: dir(heading),
+                step: 0.0,
+                backwards: false,
+                making_space: false,
+                blocker: Some(id),
             },
+            ArcBlock::Solid { .. } => shunt(world, unit, traffic, &[], tick),
         };
     }
     turning
 }
 
-/// A wheeled vehicle whose forward step `body` holds at its leading end (a
-/// jammed shove, or a corner the arc's samples passed) backs up turning
-/// toward `target`, as when its arc is blocked; otherwise the follower picks
-/// the same step every tick.
-pub fn held_ahead(unit: &mut Unit, body: Obb2, target: V2) {
-    let wheeled = unit.ground().drive.is_some_and(|d| !d.tracked);
-    let Some(hull) = unit.ground_footprint() else {
-        return;
-    };
-    let gear = gear_sign(unit.direction());
-    let leading = hull.to_local(body.closest(hull.center)).x * gear > 0.0;
-    if !wheeled || !leading || unit.manoeuvre.is_some() {
-        return;
+/// Work out `unit`'s shunt onto its route, with the bodies in `held` as
+/// solid, and stand this tick.
+pub(super) fn shunt(
+    world: &WorldGeometry,
+    unit: &mut Unit,
+    traffic: &[Option<Obb2>],
+    held: &[Obb2],
+    tick: u64,
+) -> Motion {
+    unit.shunt = Some(super::shunt::search(world, unit, traffic, held, tick));
+    Motion {
+        yaw: unit.yaw,
+        heading: travel_heading(unit),
+        step: 0.0,
+        backwards: false,
+        making_space: false,
+        blocker: None,
     }
-    let to = target - hull.center;
-    let error = wrap_angle(libm::atan2(to.y, to.x) - travel(unit.yaw, gear));
-    unit.manoeuvre = Some(Manoeuvre {
-        turn: if error >= 0.0 { 1.0 } else { -1.0 },
-        driven_m: 0.0,
-    });
 }
 
 /// What stops `motion`'s own step, travelling in `gear`, if anything (as
 /// [`solid_at`]). The arc's samples, a tenth of a metre apart, can pass a
 /// corner that grazes a body within the first few millimetres; the step
 /// itself must still land clear, or the follower picks it again every tick.
-fn lands(world: &WorldGeometry, unit: &Unit, motion: &Motion, gear: f64) -> Option<bool> {
+pub(super) fn lands(
+    world: &WorldGeometry,
+    unit: &Unit,
+    motion: &Motion,
+    gear: f64,
+) -> Option<bool> {
     let at = unit.position.xy() + motion.heading * motion.step;
     solid_at(world, unit, at, motion.yaw, gear)
 }
@@ -571,8 +512,8 @@ pub fn final_yaw(
 
 /// The heading a wheeled hull arriving from `from` can drive in to `end`
 /// on: the ordered `facing`, turned toward its approach by at most a right
-/// angle, so the last turn is an ordinary forward one, never a three-point
-/// turn. A facing straight back the way it came ends square to it.
+/// angle, so the last turn is an ordinary forward one, never a shunt. A
+/// facing straight back the way it came ends square to it.
 pub fn line_up_heading(from: V2, end: V2, facing: f64) -> Option<f64> {
     let leg = end - from;
     let approach = libm::atan2(leg.y, leg.x);
@@ -702,8 +643,7 @@ pub(super) fn prune(
         // Never the route's end: that is where it must stand.
         let side = if signed >= 0.0 { 1.0 } else { -1.0 };
         let passed = route.len() > 1
-            && (inside_circle(here, heading, side, drive.radius_m, wp, 0.0)
-                || hull.contains(wp, 0.0))
+            && (inside_circle(here, heading, side, drive.radius_m, wp) || hull.contains(wp, 0.0))
             && known
                 .grid(ctx.world, ctx.authored)
                 .way_fits(here, route[1], &mobility, &others());

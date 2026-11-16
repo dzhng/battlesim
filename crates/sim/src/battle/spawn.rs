@@ -120,7 +120,7 @@ pub(super) fn spawn_unit(
             at: xy,
             halt: false,
         }),
-        manoeuvre: None,
+        shunt: None,
         reversing: false,
         drive_speed_mps: 0.0,
         turn_to: None,
