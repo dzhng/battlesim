@@ -32,7 +32,7 @@ import { textureFindings } from "./texture.ts";
 import { grassStripFindings } from "./grass.ts";
 import { canopyFindings, sizeFindings } from "./treeFit.ts";
 import { debrisFindings, pieceFindings } from "./wreckFit.ts";
-import { extentFindings, footprintFindings, groundFindings } from "./boxFit.ts";
+import { footprintFindings, groundFindings } from "./boxFit.ts";
 import { infantryFindings, lyingFindings } from "./soldierFit.ts";
 import { typeFindings } from "./vehicleFit.ts";
 import {
