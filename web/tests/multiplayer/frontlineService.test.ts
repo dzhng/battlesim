@@ -218,7 +218,8 @@ test("idle ends only that player's stream with a reason, its AI commands the arm
   await s.run(1);
   await s.clock.advance(IDLE_TIMEOUT_MS / 2);
   await s.run(1);
-  expect(s.seen.end).toBe("idle");
+  // The stream's last record crosses the control stream before it reaches a reader.
+  await vi.waitFor(() => expect(s.seen.end).toBe("idle"));
   expect((await s.alpha.order({ kind: "ready" })).error?.reason).toBe("ai_controlled");
   const ordersArmy = async () =>
     (
