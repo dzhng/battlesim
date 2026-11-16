@@ -6,15 +6,15 @@ pixels long. Two wider ideas were tested and rejected. **Closed:** 2026-11-16.
 ## What it is for
 
 In the wide view the game draws about 120,000 props, most of them a pixel or
-two across, each at the same mesh it uses at twenty pixels. Parked cars and
+so across, each at the same mesh it uses at twenty pixels. Parked cars and
 courtyard walls are 81% of the triangles those props submit there, and their
 shadow casts cost about five times one view pass ([census](assets/census.md)).
 
 The idea came from Unreal's Nanite and its three.js port,
 [three-nanite](https://github.com/apekshik/three-nanite/tree/b730aac13ab0ea67b75214613eea56c14151f6e5):
 choose how much geometry to draw from its error on screen. Only that idea
-transfers. Our props are already smaller than one of its 128-triangle
-clusters, and its answer to many triangles inside a pixel is a rasteriser
+transfers. Our props' coarsest meshes are 40 to 170 triangles, about one of
+its 128-triangle clusters, and its answer to many triangles inside a pixel is a rasteriser
 WebGPU cannot host.
 
 ## What shipped
@@ -26,7 +26,7 @@ does. Parked cars carry one: their coarsest tier without its four tyres, 92
 triangles against 172.
 
 Measured on the [control scene](assets/control.json), three interleaved pairs
-against the build before it:
+against the build before it ([measurements](assets/measurements.md)):
 
 | View | Change in GPU time |
 | --- | --- |
@@ -60,6 +60,10 @@ came out of holding to that, and they bind any later far mesh.
 
 What is left to drop is a car's tyres. On a wall it is 10 of 88 triangles,
 which is not worth owning, so walls carry no far mesh.
+
+Nothing checks these three rules. The bake holds a far mesh to its count, its
+states and its kind; what it may draw is an authoring rule, stated where far
+parts are made ([`parts.py`](../../../packages/scene-assets/blender/parts.py)).
 
 ## Invariants
 
@@ -110,7 +114,7 @@ far cases in [`bake.test.ts`](../../../web/tests/sceneAssets/bake.test.ts).
   Terrain is at most 2.6% of a frame's triangles. Generated maps have no
   hills, only carved rivers and swamps.
 - **Small props outside the view casting with their far mesh.** 0.49 ms at the
-  wide view for a second shadow rule. Left on branch
+  wide view for a second shadow rule. Left on the local branch
   `t3/far-detail-offview-casters-far`.
 - **Raising the tier count to five everywhere, or re-cutting tier 3.** The
   first touches every unit, kit and tree for a need one prop kind has; the
@@ -130,6 +134,8 @@ frame of well over a hundred million triangles.
 ## Evidence
 
 - [The census](assets/census.md) and [the first probe](assets/ceiling.md).
+- [What was measured after the probe](assets/measurements.md): the shipped
+  car, and each rejected candidate.
 - [The control scene](assets/control.json); the [older receipt](assets/baseline.json)
   stopped reproducing when the map generator changed.
 - [Block merge](assets/block-merge-verdict.md) and [terrain](assets/terrain-verdict.md),
