@@ -32,7 +32,7 @@ import infantry_roster as roster  # noqa: E402
 import skin_pins  # noqa: E402
 import weapons  # noqa: E402
 from common import REPO, box, empty, export_glb, fbm, mat, paint, script_args, texture_uvs  # noqa: E402
-from infantry_rig import EYE_IN_HEAD, SCALE, Rig, back_y, bone_of  # noqa: E402
+from infantry_rig import EYE_IN_HEAD, SCALE, SLUNG_MIDDLE_M, Rig, back_y, bone_of  # noqa: E402
 from mesh_lods import canonical, make_tiers  # noqa: E402
 
 # Each test soldier kind and the pinned body it wears, as (army, body kind);
@@ -43,10 +43,6 @@ TEST_BODIES = {
     "at_carried": ("us_army_ocp", "rifle"),
     "recon": ("us_army_ocp", "recon"),
 }
-
-
-# A slung missile tube's middle, metres above the ground (`Kit.sling`'s `lift`).
-SLUNG_MIDDLE_M = 1.12
 
 
 def scale3(a, k):
@@ -163,13 +159,14 @@ class Kit:
         """Sling a carried launcher (`root`, its muzzle along its -Y) across the
         back at a 30° lean, muzzle up or down, tipped in by `tip_deg`: its origin
         `lift` high and `standoff` behind the back, on two retention straps
-        (`<name>_retention_<j>`). The tube and its straps ride the torso."""
+        (`<name>_retention_<j>`). The tube and its straps ride the `sling` bone:
+        the back while he lives, the ground beside him when he dies."""
         back = back_y(self.parts)
         rotation = Matrix.Rotation(math.radians(30), 4, "Y") @ Matrix.Rotation((-1 if muzzle_up else 1) * math.pi / 2, 4, "X")
         if tip_deg:
             rotation = Matrix.Rotation(math.radians(tip_deg), 4, "X") @ rotation
         root.matrix_world = Matrix.Translation((0, back + standoff, lift)) @ rotation
-        self.rig.bone_parent(root, "spine_03")
+        self.rig.bone_parent(root, "sling")
         self.parts.extend(c for c in root.children_recursive if c.type == "MESH")
         for j, along in enumerate((-.20, .30)):
             lug = root.matrix_world @ Vector((-.045, along, .10))
@@ -177,7 +174,7 @@ class Kit:
             reach = lug - anchor
             strap = box(f"{name}_retention_{j}", (.035, .014, reach.length), (anchor + lug) / 2, self.m["webbing"],
                         rot=reach.to_track_quat("Z", "Y").to_euler())
-            self.rigid(strap, "spine_03")
+            self.rigid(strap, "sling")
 
     # ---------------------------------------------------------------- weapon, sockets
     def weapon(self, spec):

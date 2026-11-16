@@ -30,6 +30,15 @@ TORSO = ["root", "pelvis", "spine_01", "spine_02", "spine_03", "neck_01", "Head"
          "thigh_l", "thigh_r", "foot_l", "foot_r", "ball_l", "ball_r"]
 
 
+# A slung launcher's middle, metres above the ground, and the frame it rides: on
+# the upper back at the sling's 30° lean, muzzle up (armature space, Z up, facing
+# -Y). The `sling` bone rests on this frame, so a tube slung by `Kit.sling` rides
+# the back while he lives and falls with the bone when he dies.
+SLUNG_MIDDLE_M = 1.12
+SLING_FRAME = (Matrix.Translation((0, 0.15, SLUNG_MIDDLE_M)) @ Matrix.Rotation(math.radians(30), 4, "Y")
+               @ Matrix.Rotation(-math.pi / 2, 4, "X"))
+
+
 class Rig:
     """The imported rig plus its library actions, in rest space."""
 
@@ -50,6 +59,7 @@ class Rig:
         for a in bpy.data.actions:
             a.use_fake_user = True
         self.arm.animation_data_create()
+        self._add_sling()
         self.rest_b = {b.name: b.matrix_local.to_3x3() for b in self.arm.data.bones}
         self.fingers = [b.name for b in self.arm.pose.bones if b.name.startswith(FINGER_PREFIXES)]
         self.rest_mode(False)
@@ -57,6 +67,17 @@ class Rig:
         self.set_action(None)
         self.rest_mode(True)
         self.constraints = []  # every hold constraint, so `only` can mute the rest
+
+    def _add_sling(self):
+        """The `sling` bone, a child of `spine_03` resting on `SLING_FRAME`: what a
+        slung launcher rides, so the death clips can drop it beside the body."""
+        bpy.context.view_layer.objects.active = self.arm
+        bpy.ops.object.mode_set(mode="EDIT")
+        bone = self.arm.data.edit_bones.new("sling")
+        bone.tail = (0, 0.2, 0)
+        bone.matrix = SLING_FRAME
+        bone.parent = self.arm.data.edit_bones["spine_03"]
+        bpy.ops.object.mode_set(mode="OBJECT")
 
     # ------------------------------------------------------------ state
     def set_action(self, act):

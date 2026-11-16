@@ -22,8 +22,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import bpy
 from mathutils import Matrix, Vector
 from common import REPO, box, cyl, empty, fbm, script_args
-from infantry_kit import SLUNG_MIDDLE_M, dressed, export_soldier, scale3
-from infantry_rig import SCALE, back_y
+from infantry_kit import dressed, export_soldier, scale3
+from infantry_rig import SCALE, SLUNG_MIDDLE_M, back_y
 from mesh_lods import triangle_count
 import weapons
 import skin_pins
@@ -215,13 +215,16 @@ def tripod_equipment(kit, model, carried=False):
         b('packed_optical_unit',(.23,.25,.24),(.22,.20,.19))
         back=back_y(kit.parts)
         rotation=Matrix.Rotation(math.radians(24),4,'Y')@Matrix.Rotation(math.pi/2,4,'X')
-        root.matrix_world=Matrix.Translation((0,back+.17,1.10))@rotation
-        kit.rig.bone_parent(root,'spine_03')
+        # its middle at 1.10 m, lowered for a canister longer than the TOW's (the
+        # Kornet's), so its upper cap stays under the soldier's height at the 24° lean
+        overlong=max(0,length-LENGTHS['tow']['tube_length_m'])*math.cos(math.radians(24))/2
+        root.matrix_world=Matrix.Translation((0,back+.17,1.10-overlong/SCALE))@rotation
+        kit.rig.bone_parent(root,'sling')  # it falls beside him when he dies, as a slung tube does
         kit.parts.extend(o for o in root.children_recursive if o.type=='MESH')
         for j,along in enumerate((-.32,.32)):
             lug=root.matrix_world@Vector((-.045/SCALE,along/SCALE,.10/SCALE));anchor=Vector((j*.14-.07,back,1.10-along*.9));reach=lug-anchor
             strap=box(model+'_retention_'+str(j),(.035,.014,reach.length),(anchor+lug)/2,kit.m['webbing'],rot=reach.to_track_quat('Z','Y').to_euler())
-            kit.rigid(strap,'spine_03')
+            kit.rigid(strap,'sling')
         return
     # Full canister, not an enlarged missile or a generic shoulder CLU.
     c('launch_canister',.085 if model=='tow' else .078,length,(-.20,-.85,bore))

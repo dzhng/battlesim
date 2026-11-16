@@ -478,6 +478,10 @@ def corpse(rig, hold, up=False):
         rig.rot_world(P["upperarm_l"], "Y", 15)  # the arms down onto the ground
         rig.rot_world(P["upperarm_l"], "Z", -45)  # the left by his head, elbow bent
         rig.rot_world(P["lowerarm_l"], "Z", -70)
+    # a slung launcher has fallen off him: it lies flat on the ground by his left side
+    hips = P["pelvis"].head
+    x, toward_head, z = k["sling"]
+    P["sling"].matrix = Matrix.Translation((hips.x + x, hips.y + (toward_head if up else -toward_head), z))
     for n, q in rig.fist.items():  # the right hand still grips; the left lies open
         if n.endswith("_r"):
             P[n].rotation_quaternion = q
@@ -503,8 +507,10 @@ def corpse(rig, hold, up=False):
 ARM_BONES = ("clavicle", "upperarm", "lowerarm", "hand", "index", "middle", "ring", "pinky", "thumb")
 # The corpses: the hips' roll onto one side and the head's onto a cheek (degrees), how
 # far the left knee is drawn up (degrees), the weapon's height off the ground (m), and
-# face up, how far the hips sink (m: less than face down, the pack holds him up).
-CORPSE = dict(roll_up=-10, roll_down=-30, cheek=70, knee=30, weapon_z=0.05, up_z=0.66)
+# face up, how far the hips sink (m: less than face down, the pack holds him up), and
+# where a slung launcher lies once it falls off him, from his hips (m: out to his left,
+# toward his head, off the ground).
+CORPSE = dict(roll_up=-10, roll_down=-30, cheek=70, knee=30, weapon_z=0.05, up_z=0.66, sling=(0.7, 0.2, 0.1))
 
 
 def deaths(rig, hold, res):

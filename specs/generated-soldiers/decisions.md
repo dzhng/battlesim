@@ -296,3 +296,27 @@ this ledger from scratch against the shipped code.
   `at_carried`, look a), with the test jeep. The other nine wait for their
   pins (US Army OCP rifle b and c, recon a, b and c), which are being made
   elsewhere.
+
+## Slice 09 (ship)
+
+- **A slung launcher falls off a dead man.** Sound, and a physical rule: in a
+  war film a dead gunner's launcher lies on the ground beside him; it doesn't
+  stand off his back or sink into the earth.
+  - *How:* the rig gains a `sling` bone, a child of `spine_03`, resting on the
+    slung tube's frame (`SLING_FRAME`).
+  - *Who rides it:* every slung tube, its straps and the packed tripod ride it,
+    for the roster and the test soldier alike.
+  - *The clips:* living clips bake it at rest. The two corpse poses lay it flat
+    on the ground at his left side, 0.7 m out (`CORPSE["sling"]`), clear of a
+    drawn-up knee or a flung-out arm.
+  - *Result:* every carried kit lies under `fit.lies` and no longer sinks. This
+    replaces the provisional slice 03 and slice 08 entries on carried
+    launchers.
+  - *Ruled out:*
+    - any carry position (a rigid tube longer than the torso stands up or
+      sinks whatever its angle);
+    - riding the root (a prone soldier's tube would stay standing);
+    - a leaf bone (it follows its parent).
+- **A packed canister longer than the TOW's sits lower on the back**, as long
+  MANPADS tubes already do, so the Kornet carried kit stands 1.73 m, not
+  1.753. Sound: one rule for both, measured against the TOW's canister.
