@@ -1,7 +1,7 @@
 # Far detail
 
-**Status:** 00, 01 and 02 are done. 03 (parked cars) is in a fix round and 04
-(walls) is in progress. Both spikes (05, 06) ended in no-go. **Updated:** 2026-11-16.
+**Status:** 00, 01 and 02 are done; 03 (parked cars) is merged. 04 (walls)
+is in progress, and slice 03's shadow arm is built but not measured. Both spikes (05, 06) ended in no-go. **Updated:** 2026-11-16.
 
 In the wide view the game draws about 100,000 small props, most of them only a
 pixel or two across, at the same mesh it uses when they are twenty pixels tall.
@@ -29,13 +29,11 @@ You are implementing `specs/far-detail/` on branch
   five times one view pass ([census](assets/census.md)).
 - **01 and 02 are done and merged**, cross-language test included. The
   reviewer reran their tests on the merged code.
-- **[Slice 03](slices/03-parked-car.md) is in a fix round**, on branch
-  `t3/far-detail-census-ceiling`, not merged. Its first far mesh (40 triangles)
-  cut the wide hold from 34.60 to 29.51 ms but failed the unprimed critique:
-  light cars read darker and one car park showed a pale patch. The cause is the
-  rule below. The reworked mesh (`5fa0bad98`, tier 3 without its tyres, 92
-  triangles) is being timed. Merge only when a fresh critic finds no
-  difference.
+- **03 is merged: parked cars carry a far mesh.** It is tier 3 without its
+  tyres, 92 triangles against 172, at `far_px` 4. The wide hold falls from
+  34.59 to 31.94 ms of GPU time; close and tactical are unchanged. A fresh
+  critic could not tell the builds apart without a difference image
+  ([decision 52](decisions.md)).
 - **The rule every far mesh now follows:** the side's fog of war judges each
   surface by its own plane and facing, so a far mesh may drop geometry but may
   not reshape it. It draws only surfaces tier 3 draws.
@@ -70,7 +68,7 @@ point, and any decision that moved into [the ledger](decisions.md).
 - [x] 00: census of the wide view, and the ceiling probe's go or no-go → [slice 00](slices/00-census-and-ceiling.md)
 - [x] 01: a static prop's bundle may carry a far mesh → [slice 01](slices/01-far-mesh-in-bundles.md)
 - [x] 02: presentation picks the far mesh, the renderer draws and counts it → [slice 02](slices/02-far-selection.md)
-- [ ] 03: parked cars carry one; the measured win → [slice 03](slices/03-parked-car.md)
+- [x] 03: parked cars carry one; the measured win (its shadow arm is still open) → [slice 03](slices/03-parked-car.md)
 - [ ] 04: courtyard walls, then whatever the census ranks next → [slice 04](slices/04-next-kinds.md)
 - [x] 05: spike, merging a block's props into one mesh: no-go ([verdict](assets/block-merge-verdict.md)) → [slice 05](slices/05-spike-block-merge.md)
 - [x] 06: spike, cluster detail for terrain: no-go at the count ([verdict](assets/terrain-verdict.md)) → [slice 06](slices/06-spike-terrain.md)

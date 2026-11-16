@@ -161,7 +161,7 @@ the page's own error, which names the file.
 | 49 | A native capture of the wide hold? | None. The native client replays only saved parity reels, and the committed reel never draws a car far. Native's far path rests on the shared renderer's GPU test and the count reader's unit test. A later pass checks whether the reel can take one far-camera frame cheaply. | accepted gap |
 | 50 | Does a far part's name matter? | Yes. The exporter orders materials by first use in object-name order, so a far part that introduces a material earlier than the near tiers do renumbers tiers 0 to 3. The car's far parts reuse the existing window objects. Walls must check the same. | sound |
 | 51 | The helper's fifth segment and paint-edge entries (decision 29)? | They stand for the car: its far parts use no cylinders and no edge is long enough to split. Walls check again. | sound for cars |
-| 52 | Accept the car's far mesh on its numbers? | Not yet. The timing and counts pass (wide 34.60 to 29.51 ms, three of three pairs, an A-against-A spread of 0.00 ms; 1,008 count checks). An unprimed critic found light cars darker once far-drawn and a pale patch in the candidate's wide frame; the reviewer re-measured both. Sent back with that evidence. | open |
+| 52 | The car's far mesh? | Tier 3 without its four tyres: 92 triangles against 172. The first version (40 triangles, a simplified body) won 5.1 ms at the wide hold but failed an unprimed critique: light cars read about 20 levels darker and one car park showed a pale patch. Cause: the side's fog of war judges each surface by its own plane and facing, so reshaped faces pass or fail the "seen" test differently. With fog off the builds matched. The shipped mesh draws only tier 3's own surfaces. It wins 2.65 ms at the wide hold (34.59 to 31.94 ms, three of three pairs) and 1.95 ms at the whole-map view. A second fresh critic could not tell the builds apart at full size or in crops without a difference image; what remains is single pixels where black tyres stood. | sound; the smaller win is the price of an unchanged look |
 
 A fact slice 03 established: a model stays in the view list while its bounding
 sphere plus 3 m touches the frustum, so at the measured sun every car whose
@@ -182,4 +182,17 @@ wall run, not a generated block.
 Not reached, because the first two rungs settled it: how many blocks would
 stay merged late in a battle, merged shadow casters, and a generated mesh's
 identity and lifetime.
+
+## From slice 03's second round, 2026-11-16
+
+| # | Question | Decision and why | Verdict |
+| --- | --- | --- | --- |
+| 56 | What may a far mesh change? | It may drop geometry. It may not reshape it: every surface it draws is one tier 3 draws, in the same plane and facing, because fog is judged per surface. This binds walls and any later kind. | sound |
+| 57 | Change how fog treats far props instead, to keep the larger saving? | No, not in this plan. It would change how every far prop meets the edge of sight, which is a look for the user to judge for its own sake. | user may reopen |
+| 58 | The reviewer's colour bar read literally is zero difference, and one mid-toned car is 0.8 of a level over. Hold the mesh back? | No. Two loads of the same build differ by more than that elsewhere in the frame (soldier poses). The bar was the reviewer's pick; the test that matters is the fresh critic, who found nothing without a difference image. | reviewer |
+| 59 | A small difference on a lawn near the camera, found by the second critic? | Page-load noise. Two loads of the baseline differ at the same spot, and the second baseline load matches the candidate there exactly. | checked |
+| 60 | The close view rose 17% in one timing pair. | Recorded as a miss in a pair run during a load spike from other sessions. Its rerun reads 4% lower and the pooled close view is 2.5% lower. | not retuned |
+
+Decision 47's reason still holds for the shipped mesh: `far_px` stays 4.
+Decision 51 is moot for cars: the shipped far mesh adds no new parts.
 

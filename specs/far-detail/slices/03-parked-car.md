@@ -18,10 +18,11 @@ Content and data only; no new code path.
   its fifth entry.
 - `fixtures/presentation.json`: `models.far_px` gets its shipped value.
 
-**The far mesh keeps:** the car's outer silhouette (length, width, roofline),
-its paint slot so each car keeps its own colour, and its contact with the
-ground. **It drops** only what is under a pixel at the threshold: wheels and
-arches, glass as separate geometry, bevels, buried and bottom faces.
+**The far mesh is tier 3 without its tyres.** The side's fog of war judges
+each surface by its own plane and facing, so the far mesh draws only surfaces
+tier 3 draws: its body, floor pan, cabin and windows. A first version that
+replaced them with a few large faces read differently under fog and was
+rejected ([decision 52](../decisions.md)).
 
 **The threshold** is chosen from the zoom crops, not from the timing: the
 largest value at which the switch cannot be seen. Tests never read it. The
