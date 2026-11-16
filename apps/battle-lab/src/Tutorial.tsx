@@ -263,9 +263,9 @@ export function Tutorial() {
             behind a single selected vehicle, backs it up without turning round.
           </li>
           <li>
-            <kbd>Right-click</kbd> a building with infantry selected to garrison it: one squad per
-            building, and the whole squad must fit. <strong>Leave building</strong> on the command
-            bar brings them out.
+            <kbd>Right-click</kbd> a building with infantry selected to garrison it. Squads share a
+            building while its seats last, each squad whole; one that arrives to a full house stays
+            outside. <strong>Leave building</strong> on the command bar brings them out.
           </li>
           <li>
             <kbd>Right-click</kbd> your own transport with infantry selected to board it, or
@@ -380,7 +380,7 @@ export function Tutorial() {
         <ul>
           <li>
             <strong>Cover:</strong> infantry behind walls, wrecks, trees or in craters is much
-            harder to hit. A garrisoned building shelters a whole squad, until it collapses.
+            harder to hit. A garrisoned building shelters every soldier inside, until it collapses.
           </li>
           <li>
             <strong>Suppression:</strong> rounds landing close make soldiers <em>Suppressed</em> and
