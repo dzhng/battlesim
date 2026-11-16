@@ -358,7 +358,7 @@ fn texture_overlap_uses_spares_then_grows_within_the_preplan_total_payload() {
         "commit releases the old array"
     );
     assert_eq!(committed.textures, destination.textures);
-    println!("slice04 memory live={live_memory:?} fits={fit_memory:?} grows={overlap:?} committed={committed:?} preplan={preplan:?}");
+    println!("texture memory live={live_memory:?} fits={fit_memory:?} grows={overlap:?} committed={committed:?} preplan={preplan:?}");
 }
 
 #[test]

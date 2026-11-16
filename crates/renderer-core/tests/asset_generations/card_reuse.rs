@@ -325,7 +325,7 @@ fn card_memory_shares_spares_grows_with_two_arrays_and_releases_the_last_holder(
         .0
         .iter()
         .any(|pixel| pixel[3] > 0));
-    println!("slice05 card memory live={one:?} fits={fit:?} overlap={overlap:?} committed={committed:?} baseline={baseline:?}");
+    println!("card memory live={one:?} fits={fit:?} overlap={overlap:?} committed={committed:?} baseline={baseline:?}");
 }
 
 #[test]
