@@ -428,11 +428,6 @@ impl PropStore {
         self.shared.props.iter().filter_map(Option::as_ref)
     }
 
-    /// Bodies with ids from `first` on, ascending.
-    pub fn iter_from(&self, first: PropId) -> impl Iterator<Item = &Prop> {
-        (first..self.len() as PropId).filter_map(|id| self.get(id))
-    }
-
     /// Add a body under the next id.
     pub fn push(&mut self, prop: Prop) {
         debug_assert_eq!(prop.id as usize, self.len());

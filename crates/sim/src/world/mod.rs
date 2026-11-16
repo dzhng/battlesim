@@ -103,8 +103,7 @@ pub struct WorldGeometry {
     forests: Vec<Forest>,
     /// The forests at runtime: foliage per fog cell and the cleared mask.
     forest: forest::ForestState,
-    /// Every body and the bucket index over them; a planning snapshot
-    /// shares the world's and holds only what its side believes otherwise.
+    /// Every body and the bucket index over them.
     props: PropStore,
     buildings: Arc<buildings::Buildings>,
     template_catalog_hash: Option<String>,
@@ -619,12 +618,6 @@ impl WorldGeometry {
 
     pub fn props(&self) -> impl Iterator<Item = &Prop> {
         self.props.iter()
-    }
-
-    /// Every body with an id from `first` on: those added after `first`
-    /// was, by ascending id.
-    pub fn props_from(&self, first: PropId) -> impl Iterator<Item = &Prop> {
-        self.props.iter_from(first)
     }
 
     /// The props' share of the battle's digest: how many stand, and the pose
