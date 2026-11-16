@@ -222,10 +222,10 @@ export async function run(ctx) {
     );
     ctx.check("the first purchase drives in", true);
     for (const name of ["Your victory score", "Enemy victory score"]) {
-      const shown = await page.getByLabel(name, { exact: true }).innerText();
+      const shown = await page.getByLabel(name, { exact: true }).getAttribute("aria-valuemax");
       ctx.check(
         `${name}: the battle uses the briefing's actual target`,
-        shown.split("/").at(-1).trim() === briefing.target.toLocaleString("en-US"),
+        Number(shown) === briefing.target,
         shown,
       );
     }

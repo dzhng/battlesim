@@ -860,9 +860,11 @@ html {
   padding: 5px 18px;
   white-space: nowrap;
 }
+/* The ready button hangs clear under the top strip's two rows (the countdown
+   over the flags). */
 .hud-ready-layer {
   position: fixed;
-  top: 58px;
+  top: 76px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 4;
@@ -1737,12 +1739,64 @@ html {
   color: rgb(var(--hud-text) / 0.7);
   font-variant-numeric: tabular-nums;
 }
-.hud-score {
-  color: rgb(var(--hud-accent));
-  font-variant-numeric: tabular-nums;
+/* A skirmish's top strip: any phase or result word, the score meter, then
+   the flags. */
+.hud-match {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
 }
-.hud-score-enemy {
-  color: rgb(var(--hud-enemy));
+/* The score meter: a race to the centre. Each side's cells fill from its own
+   end, yours from the left, and the first to reach the finish notch wins. */
+.hud-score {
+  align-self: stretch;
+  display: flex;
+  gap: 2px;
+  min-width: 260px;
+  height: 8px;
+  margin-top: 3px;
+}
+/* A half carries its side's role paint, as the flags do. */
+.hud-score-half {
+  --score: var(--hud-accent);
+  color: rgb(var(--score));
+  flex: 1;
+  display: flex;
+  gap: 1px;
+}
+.hud-score-half[data-owner="enemy"] {
+  --score: var(--hud-enemy);
+  flex-direction: row-reverse;
+}
+.hud-score-half > i {
+  flex: 1;
+  background: rgb(var(--hud-text) / 0.08);
+}
+.hud-score-half > [data-lit="part"] {
+  background: rgb(var(--score) / 0.5);
+}
+.hud-score-half > [data-lit="full"] {
+  background: rgb(var(--score) / 0.85);
+  box-shadow: 0 0 4px rgb(var(--score) / 0.4);
+}
+/* The cell a scoring side is filling blinks lit, so the strip says who is
+   gaining right now. */
+.hud-score-half > [data-filling] {
+  animation: score-cell-filling 1s steps(1, end) infinite;
+}
+@keyframes score-cell-filling {
+  50%,
+  100% {
+    background: rgb(var(--score) / 0.85);
+    box-shadow: 0 0 4px rgb(var(--score) / 0.4);
+  }
+}
+.hud-score-finish {
+  width: 2px;
+  margin: -3px 1px;
+  background: rgb(var(--hud-text) / 0.9);
+  box-shadow: 0 0 4px rgb(var(--hud-text) / 0.7);
 }
 .hud-objective-flags {
   display: flex;

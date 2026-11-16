@@ -1,4 +1,4 @@
-// The top bar of a battle: the clock, and a skirmish's scores and
+// The top bar of a battle: the clock, and a skirmish's score meter and
 // objectives.
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { hudIcon } from "@packages/scene-assets/src/icons";
@@ -43,10 +43,56 @@ const STANDING_LABEL: Record<ObjectiveStanding, string> = {
   neutral: "neutral",
 };
 
+/** How many cells each side's half of the score meter is cut into. */
+const SCORE_CELLS = 20;
+
+/** One side's half of the score meter: cells lit for what it has scored,
+ *  filling from the outer end toward the finish at the centre. The cell it is
+ *  filling blinks while the side is scoring. */
+function ScoreMeter({
+  label,
+  standing,
+  score,
+  target,
+  scoring,
+}: {
+  label: string;
+  standing: "own" | "enemy";
+  score: number;
+  target: number;
+  scoring: boolean;
+}) {
+  const filled = Math.min(1, score / target) * SCORE_CELLS;
+  const whole = Math.floor(filled);
+  const points = Math.floor(score);
+  return (
+    <div
+      className="hud-score-half"
+      data-owner={standing}
+      role="meter"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={target}
+      aria-valuenow={points}
+      title={`${points} / ${target.toLocaleString("en-US")}`}
+    >
+      {Array.from({ length: SCORE_CELLS }, (_, cell) => (
+        <i
+          key={cell}
+          data-lit={cell < whole ? "full" : cell < filled ? "part" : undefined}
+          data-filling={scoring && cell === whole ? true : undefined}
+        />
+      ))}
+    </div>
+  );
+}
+
 /** Match authority publishes both teams' progress; territory funds victory
  *  only. `viewer` is the side of the human the client plays, null when it
  *  watches; a watching client reads the match as Blue, whose observation it
- *  sees. Scores are published Blue then Red. */
+ *  sees. Scores are published Blue then Red. A side scores while it holds a
+ *  flag no enemy stands on. The preparation countdown stands where the score
+ *  meter will, which has nothing to show until the battle starts. */
 export function SkirmishStatus({
   match,
   viewer,
@@ -58,26 +104,41 @@ export function SkirmishStatus({
 }) {
   const ours: SideName = viewer ?? "blue";
   const [own, enemy] = ours === "blue" ? match.scores : [match.scores[1], match.scores[0]];
+  const scoring = (standing: ObjectiveStanding) =>
+    match.result === null &&
+    match.objectives.some(
+      (objective) =>
+        !objective.contested && objectiveStanding(objective.owner, viewer) === standing,
+    );
   return (
-    <>
+    <div className="hud-match">
+      {match.result && (
+        <span className="hud-objective" role="status">
+          {outcome(match.result, viewer)}
+        </span>
+      )}
       {match.phase === "preparation" ? (
         <span className="hud-objective">
           PREPARATION · {Math.ceil(match.preparationRemainingS)} s
         </span>
       ) : (
-        <>
-          <span className="hud-score" aria-label="Your victory score">
-            {Math.floor(own)} / {target.toLocaleString("en-US")}
-          </span>
-          <span className="hud-score hud-score-enemy" aria-label="Enemy victory score">
-            {Math.floor(enemy)} / {target.toLocaleString("en-US")}
-          </span>
-        </>
-      )}
-      {match.result && (
-        <span className="hud-objective" role="status">
-          {outcome(match.result, viewer)}
-        </span>
+        <div className="hud-score">
+          <ScoreMeter
+            label="Your victory score"
+            standing="own"
+            score={own}
+            target={target}
+            scoring={scoring("own")}
+          />
+          <span className="hud-score-finish" />
+          <ScoreMeter
+            label="Enemy victory score"
+            standing="enemy"
+            score={enemy}
+            target={target}
+            scoring={scoring("enemy")}
+          />
+        </div>
       )}
       <div className="hud-objective-flags" aria-label="Objectives">
         {match.objectives.map((objective, index) => {
@@ -96,6 +157,6 @@ export function SkirmishStatus({
           );
         })}
       </div>
-    </>
+    </div>
   );
 }

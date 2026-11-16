@@ -198,6 +198,15 @@ const OBJECTIVES: ObjectiveView[] = [
   },
 ];
 
+/** The same capture areas before the battle starts: nobody holds any yet. */
+const UNCLAIMED: ObjectiveView[] = OBJECTIVES.map((objective) => ({
+  ...objective,
+  owner: null,
+  capturing: null,
+  captureProgress: 0,
+  contested: false,
+}));
+
 const RULER: RangeRuler = {
   unit: 1,
   from: [-110, 40, 0],
@@ -367,6 +376,7 @@ const SHOTS: { id: string; draw: () => ReactNode }[] = [
           players: [{ ...MATCH.players[0], ready: false }],
           preparationRemainingS: 42,
           scores: [0, 0],
+          objectives: UNCLAIMED,
         }}
       />
     ),
@@ -381,6 +391,7 @@ const SHOTS: { id: string; draw: () => ReactNode }[] = [
           players: [{ ...MATCH.players[0], ready: true }],
           preparationRemainingS: 42,
           scores: [0, 0],
+          objectives: UNCLAIMED,
         }}
       />
     ),
@@ -389,19 +400,40 @@ const SHOTS: { id: string; draw: () => ReactNode }[] = [
   {
     id: "status-won",
     draw: () => (
-      <Status match={{ ...MATCH, phase: "finished", result: "blue", scores: [500, 310] }} />
+      <Status
+        match={{
+          ...MATCH,
+          phase: "finished",
+          result: "blue",
+          scores: [matchRules.victory_score, matchRules.victory_score * 0.62],
+        }}
+      />
     ),
   },
   {
     id: "status-lost",
     draw: () => (
-      <Status match={{ ...MATCH, phase: "finished", result: "red", scores: [280, 500] }} />
+      <Status
+        match={{
+          ...MATCH,
+          phase: "finished",
+          result: "red",
+          scores: [matchRules.victory_score * 0.56, matchRules.victory_score],
+        }}
+      />
     ),
   },
   {
     id: "status-draw",
     draw: () => (
-      <Status match={{ ...MATCH, phase: "finished", result: "draw", scores: [500, 500] }} />
+      <Status
+        match={{
+          ...MATCH,
+          phase: "finished",
+          result: "draw",
+          scores: [matchRules.victory_score, matchRules.victory_score],
+        }}
+      />
     ),
   },
   {
