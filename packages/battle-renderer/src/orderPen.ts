@@ -1,6 +1,8 @@
 // The pen every order mark is drawn with: one draw's widths at the camera's
-// zoom, and the strokes the marks are made of (a ribbon, a ring, a filled
-// rim arrowhead, a unit's circle marker), each lying on the ground.
+// zoom, and the strokes the marks are made of (a ribbon, a ring, a pip, a
+// cross, a filled rim arrowhead, a unit's circle marker, a route clipped at
+// the circles it joins, a travel chevron, the unload mark), each lying on
+// the ground.
 import { vec2, type Vec2 } from "math";
 import {
   glowing,

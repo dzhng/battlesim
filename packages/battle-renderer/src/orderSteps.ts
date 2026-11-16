@@ -1,6 +1,8 @@
 // A unit's orders as the overlay takes them: the published step records,
 // the current order first (`OrderView.steps`). One owner says where the
-// orders end (the Space ghost and its drop line) and draws the queued legs.
+// orders end (the Space ghost and its drop line) and draws, from the steps,
+// the current attack's line and reticle and the queued chain, one drawer
+// per step kind for current and queued alike.
 import type { MeshBuilder, Rgba } from "./mesh";
 import type { OrderView } from "./orderOverlay";
 import { ring, routeBetween, unloadMark, type Pen } from "./orderPen";
