@@ -27,9 +27,11 @@ use crate::seed::Key;
 use crate::world::Vec3;
 
 mod loops;
+mod motors;
 mod ordered;
 mod transients;
 mod vehicles;
+use motors::Motor;
 use ordered::Ordered;
 pub use vehicles::{vehicle_loops, VehicleLoop};
 
@@ -348,13 +350,6 @@ struct BurstVoice {
     heard: usize,
 }
 
-struct Motor {
-    kind: Arc<str>,
-    from: Vec3,
-    to: Vec3,
-    t0: f64,
-}
-
 /// A burning source's times (`presentation.effects.smoke`).
 #[derive(Clone, Copy, Debug, Deserialize)]
 pub struct SmokeTimes {
@@ -417,11 +412,6 @@ pub struct Sound {
     ambience_dipped: Option<f64>,
     /// The smoke clouds the side has heard pop.
     smoke_pops: super::smoke_pops::SmokePops,
-}
-
-/// Where a flying round's stretch ends, as a loop's key.
-fn end_key(p: &Vec3) -> [u64; 3] {
-    p.map(f64::to_bits)
 }
 
 fn clamp01(x: f64) -> f64 {
@@ -754,20 +744,7 @@ impl Sound {
                     key,
                 );
             } else if tables.looks.get(&s.kind).sound.motor.is_some() {
-                // A motor loop follows connected stretches of the same round.
-                motors.set(
-                    end_key(&end),
-                    Motor {
-                        kind: s.kind.clone(),
-                        from: s.path[0],
-                        to: end,
-                        t0,
-                    },
-                );
-                let old = LoopKey::Motor(end_key(&s.path[0]));
-                if let Some(v) = self.loops.remove(&old) {
-                    self.loops.set(LoopKey::Motor(end_key(&end)), v);
-                }
+                self.follow_motor(&mut motors, s, t0);
             }
         }
         self.motors = motors;
