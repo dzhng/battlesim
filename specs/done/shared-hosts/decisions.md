@@ -194,15 +194,19 @@ Ranked least confident first. Every one is architecture the user now owns.
   facade. A tank sees them and its side records where each soldier was. Its
   gun aims at the squad's middle, the average of those positions, which
   lies inside the house: every firing solution met the house's own walls,
-  and a tank at fire at will never fired at a full house. Now, when a
+  and a tank at fire at will never fired at a full house. A lone garrison
+  spread round its facades can have the same blocked or unseen middle
+  (blue never fired on the Paris-corner reel's lone red garrison before
+  this fix). Now, for any garrison, lone or
+  sharing, when a
   garrison's middle can't be reached or seen (`BlockedTrajectory`,
   `NoOwnSight`), the assessment tries each soldier the side saw at the last
   sighting, in the order its rounds walk them, and fires from the first one
   it can hit. Every weapon reads it, guided ones included. Fog is kept (only
   soldiers in the side's track count), and the building's shell still stops
   every round that meets it.
-- **Gap:** Shared houses were the first time a garrison's middle sat inside
-  its walls; nothing planned for it.
+- **Gap:** Shared houses made a garrison's middle inside its walls routine
+  and exposed the failure; nothing planned for it.
 - **Reach:** Garrisons are now targets in every scene; this is what moved
   the Paris-corner reel (N1). Its scope is N2.
 - **Verdict:** sound: a soldier in a window is visible and shootable, and
@@ -288,7 +292,8 @@ Ranked least confident first. Every one is architecture the user now owns.
   "companion" of an entering squad; companion gathering is gone.
 - **Gap:** Deleting companion gathering left vehicles' building clicks
   undefined.
-- **Reach:** Mixed selections: the squads get the entry, vehicles move.
+- **Reach:** Mixed selections: the squads get the entry, and the selected
+  vehicles get no order from that click.
 - **Verdict:** sound.
 - **Confidence:** medium.
 
@@ -300,7 +305,8 @@ Ranked least confident first. Every one is architecture the user now owns.
   panel's IN BUILDING row shows the house's seats taken of its total, the
   word SEATS as on a carrier's row. *Used* counts the living soldiers of
   every squad on the player's side whose hold names that house, in any
-  phase, allies included, as admission counts. The first take,
+  phase (stepping out included), allies included, as the end-of-timer check
+  and `hold::Seats` count. The first take,
   `IN BUILDING used/total`, was read beside the strength pips as men missing
   from the squad; naming the count SEATS fixed that. Only the inside row
   changes: stepping in and out keep their timer rows, and the compact card
@@ -486,13 +492,14 @@ Ranked least confident first. Every one is architecture the user now owns.
   keeps its orders; the others get entries. An order naming something that
   isn't a building is refused whole (`NotABuilding`), as is one naming a
   vehicle (`NotInfantry`), though the client only sends squads. A squad with
-  no entry (S1) is left as it was. If no squad got an entry and none was
+  no entry (S1) keeps its orders. If no squad got an entry and none was
   refused, the order is acknowledged `NoValidDestination` and does nothing,
   like a move nobody can make; if every squad was refused, there is no
   whole-order error, as with `Board`. For carriers, `Board` refuses a squad
   bigger than its carrier and `Collect` one bigger than the largest carrier
-  it lists. A squad listed twice is taken once, in the order given; the old
-  closest-first trimming is gone. Who finds room is decided on arrival. This
+  it lists. In a carrier order a squad listed twice is taken once, in the
+  order given (the old closest-first trimming is gone); the building order
+  takes its squads in unit order (S20). Who finds room is decided on arrival. This
   also fixed a `Collect` bug: before, an overflowing `Collect` refused
   whichever squad finished its timer first, because later squads'
   reservations already counted.
@@ -527,8 +534,9 @@ Ranked least confident first. Every one is architecture the user now owns.
 - **Scenario:** A blue squad reaches a house where a red squad is stepping
   out. Any hold on the building by a living squad of another side
   (stepping in, inside or stepping out) makes blue give up its order
-  silently when it would start stepping in, as before. Same-side squads,
-  allies included, share.
+  silently when it would start stepping in. Before, the same silent give-up
+  came at the end of the entry timer and counted only squads inside or
+  stepping out. Same-side squads, allies included, share.
 - **Gap:** "Enemy inside" didn't say which phases.
 - **Reach:** Close-quarters fights over houses stay out of this rule.
 - **Verdict:** sound.
@@ -540,9 +548,10 @@ Ranked least confident first. Every one is architecture the user now owns.
 - **Scenario:** Squad B starts stepping in beside A, which is leaving. A
   turns back (S6's Stop). When B's timer ends, everyone stepping in, inside
   or stepping out no longer fits, so B drops its hold, ends its order and
-  publishes `CapacityFull`. Before, a building's end-of-timer failure was
-  silent, and so was the old drop of soldiers beyond the window count; both
-  are this one check now.
+  publishes `CapacityFull`. Before, a squad with more soldiers than free
+  windows was dropped silently when its timer ended; that is this check now.
+  The other silent end-of-timer failure, an enemy inside, moved to the start
+  of stepping in and stays silent (S21).
 - **Gap:** The plan had to say how the end check tells the player.
 - **Reach:** Every refusal for lack of room reads the same.
 - **Verdict:** sound.
