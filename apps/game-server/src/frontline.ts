@@ -14,7 +14,7 @@ import type {
 import type { RefereeView } from "../../../web/src/battle/sim/protocol.ts";
 import { MachineUnavailable } from "./machines/index.ts";
 import { drawFrontlineCandidates } from "./frontlineDraws.ts";
-import type { BattleHost } from "./battleHost/index.ts";
+import type { HostedBattle } from "./battleHost/remote.ts";
 import type { BattleSlot, OnlineState } from "./online.ts";
 
 type Reservation = {
@@ -26,7 +26,7 @@ type Reservation = {
 type Game = {
   releaseGame: () => void;
   setup: BattleSetup;
-  host: BattleHost;
+  host: HostedBattle;
   slot: BattleSlot;
   view: GameView;
   referee: RefereeView;
@@ -45,7 +45,6 @@ export function createFrontlineService(options: {
   /** How many maps a new game may draw before giving up. */
   mapAttempts: number;
   online: OnlineState;
-  createBattle(candidates: BattleSetup[], id: string): BattleHost;
   random(): number;
 }) {
   const { online } = options;
@@ -172,7 +171,7 @@ export function createFrontlineService(options: {
     );
   const ticket = (g: Game, index: number): BattleTicket => ({
     battle: g.view.battle,
-    ...(online.battleAddress(g.host) && { address: online.battleAddress(g.host) }),
+    address: online.battleAddress(g.host),
     setup: g.setup,
     mapIdentity: g.mapIdentity,
     side: g.view.seats[index].side,
@@ -235,7 +234,6 @@ export function createFrontlineService(options: {
   });
 
   return {
-    battle: online.battle,
     join(who: string, device = who): Promise<Briefing | { refused: JoinRefusal }> {
       admitting.set(who, (admitting.get(who) ?? 0) + 1);
       return serial<Briefing | { refused: JoinRefusal }>(async () => {
@@ -271,7 +269,7 @@ export function createFrontlineService(options: {
             return { refused: "full" };
           }
           const slot = online.reserve()!;
-          let host: BattleHost | undefined;
+          let host: HostedBattle | undefined;
           try {
             const drawn = drawFrontlineCandidates(
               who,
@@ -279,7 +277,7 @@ export function createFrontlineService(options: {
               options.mapAttempts,
               options.random,
             );
-            host = options.createBattle(
+            host = online.createBattle(
               drawn.draws.map((d) => d.setup),
               drawn.battle,
             );
@@ -310,11 +308,7 @@ export function createFrontlineService(options: {
             view.granted.push(who);
             view.seats[index].held = { who, lastOrderAt: clock.now(), goneSince: null };
             games.set(view.battle, g);
-            slot.serve({
-              id: view.battle,
-              host,
-              seatOf: (browser) => seatOf(g, browser),
-            });
+            slot.serve(host);
             host.onEnd(() => remove(g));
             host.onOrder((id) => {
               const held = view.seats[setup.seats.findIndex((s) => s.player === id)]?.held;

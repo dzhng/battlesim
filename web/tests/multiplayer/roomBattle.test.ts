@@ -1,9 +1,12 @@
+import { testBrowser } from "./support/player";
+import { decodePublication } from "../../../packages/multiplayer/src/stream/publication";
+import { seatedPlayers, seatRequest } from "./support/player";
 import { inProcessBattleMachines } from "../../../apps/game-server/src/machines/inProcess";
 import { createOnlineState } from "../../../apps/game-server/src/online";
 import { nodeCatalogSet } from "../../src/battle/catalog/node";
 import { join } from "node:path";
 // @vitest-environment node
-import { afterEach, beforeAll, expect, test } from "vitest";
+import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { createRoomService, EMPTY_ROOM_TIMEOUT_MS } from "../../../apps/game-server/src/rooms";
 import {
   createBattleHost,
@@ -38,19 +41,27 @@ async function room() {
   const clock = new PageClock();
   let host!: BattleHost;
   let draw = 0;
-  const service = createRoomService({
-    online: createOnlineState({
+  const online = createOnlineState({
+    machines: inProcessBattleMachines({
       capacity: 1,
-      clock: clock,
-      callsign: (who) => ({ alpha: "SCOUT", bravo: "WING", stranger: "STRANGER" })[who],
-      releaseCallsign: () => {},
+      ordersPerSecond: 10000,
+      createBattle: (spec) =>
+        ((candidates) => (host = createBattleHost({ candidates }, { clock, generator }, data)))(
+          spec.candidates,
+        ),
     }),
-    random: () => (++draw % 1000) / 1000,
-    createBattle: (candidates) =>
-      (host = createBattleHost({ candidates }, { clock, generator }, data)),
+    clock: clock,
+    callsign: (who) =>
+      ({
+        [testBrowser("alpha")]: "SCOUT",
+        [testBrowser("bravo")]: "WING",
+        [testBrowser("stranger")]: "STRANGER",
+      })[who],
+    releaseCallsign: () => {},
   });
-  cleanups.push(service.dispose);
-  const made = service.create("alpha", "public");
+  const service = createRoomService({ online, random: () => (++draw % 1000) / 1000 });
+  cleanups.push(online.dispose, service.dispose);
+  const made = service.create(testBrowser("alpha"), "public");
   if ("refused" in made) throw new Error(made.refused);
   const code = made.code;
   function open(who: string) {
@@ -67,16 +78,16 @@ async function room() {
       view: () => readJson<RoomView>(records.filter((r) => r.kind === "state").at(-1)!),
     };
   }
-  const alpha = open("alpha");
-  const bravo = open("bravo");
+  const alpha = open(testBrowser("alpha"));
+  const bravo = open(testBrowser("bravo"));
   const list: RoomList[] = [];
   cleanups.push(
-    service.listStream("stranger", null, (r) => {
+    service.listStream(testBrowser("stranger"), null, (r) => {
       if (r.kind === "state") list.push(readJson<RoomList>(r));
       return true;
     }),
   );
-  const act = (kind: Parameters<typeof service.act>[2], who = "alpha") => {
+  const act = (kind: Parameters<typeof service.act>[2], who = testBrowser("alpha")) => {
     expect(service.act(who, code, kind)).toEqual({ ok: true });
   };
   // A hole before a filled seat proves compaction, rather than just filtering a trailing seat.
@@ -85,12 +96,19 @@ async function room() {
   act({ kind: "sit", seat: "seat-3" });
   act({ kind: "settings", patch: { map: { seed: "77" } } });
   act({ kind: "ready", ready: true });
-  act({ kind: "ready", ready: true }, "bravo");
+  act({ kind: "ready", ready: true }, testBrowser("bravo"));
   const start = async () => {
     act({ kind: "start" });
     expect(alpha.view().phase).toEqual({ kind: "starting" });
+    await vi.waitFor(() => expect(host).toBeDefined());
     const ready = await host.ready;
-    await flush();
+    await vi.waitFor(() => expect(alpha.view().phase.kind).toBe("battle"));
+    const a = ticket(alpha.view()),
+      g = ticket(bravo.view());
+    seatedPlayers(host, a.address, a.battle, [
+      [testBrowser("alpha"), a],
+      [testBrowser("bravo"), g],
+    ]);
     const ended: BattleEnd[] = [];
     host.onEnd((e) => ended.push(e));
     const run = async (ticks: number) => {
@@ -118,9 +136,9 @@ test("Start unlists and locks the room; each member receives only their own comp
   const r = await room();
   const b = await r.start();
   const [a, g] = [ticket(r.alpha.view()), ticket(r.bravo.view())];
-  expect(ticket(r.open("bravo").view())).toEqual(g);
+  expect(ticket(r.open(testBrowser("bravo")).view())).toEqual(g);
   expect(r.list.at(-1)).toEqual({ rooms: [], frontline: { battles: 0, commanders: 0 } });
-  expect(r.service.roomStream("stranger", r.code, null, () => true)).toEqual({
+  expect(r.service.roomStream(testBrowser("stranger"), r.code, null, () => true)).toEqual({
     refused: "started",
   });
   expect(a).toMatchObject({
@@ -148,9 +166,9 @@ test("Start unlists and locks the room; each member receives only their own comp
     [...seen.latest!.skirmish!.players, ...redSeen.latest!.skirmish!.players].map((p) => p.id),
   ).toEqual(a.setup.seats.map((p) => p.player));
   expect((await right.order({ kind: "ready" })).error).toBeNull();
-  expect(r.service.battle(a.battle)?.seatOf("alpha")).toEqual({ player: a.player, side: a.side });
-  expect(r.service.battle(a.battle)?.seatOf("bravo")).toEqual({ player: g.player, side: g.side });
-  expect(r.service.battle(a.battle)?.seatOf("stranger")).toBeUndefined();
+  expect(await seatRequest(a.address, a.battle, testBrowser("alpha"))).toBe(200);
+  expect(await seatRequest(a.address, a.battle, testBrowser("bravo"))).toBe(200);
+  expect(await seatRequest(a.address, a.battle, testBrowser("stranger"))).toBe(403);
   for (const member of [r.alpha, r.bravo]) {
     for (const view of member.records
       .filter((x) => x.kind === "state")
@@ -188,9 +206,14 @@ test("one presence grace hands a dropped army to AI; returning reclaims it and r
   const aiOrders = await orders(b.host, a.player);
   expect(aiOrders.length).toBeGreaterThan(before);
   expect(commandsArmy(aiOrders)).toBe(true);
-  const returned = r.open("alpha");
+  const returned = r.open(testBrowser("alpha"));
+  await vi.waitFor(async () =>
+    expect((await b.host.referee()).seats.find((s) => s.player === a.player)!.controller).toBe(
+      "human",
+    ),
+  );
   expect(ticket(returned.view())).toEqual(a);
-  expect(r.service.roomStream("stranger", r.code, null, () => true)).toEqual({
+  expect(r.service.roomStream(testBrowser("stranger"), r.code, null, () => true)).toEqual({
     refused: "started",
   });
   expect((await alpha.order({ kind: "stop", units: [unit] })).error).toBeNull();
@@ -238,7 +261,7 @@ test("an AI-run dropped seat does not hold preparation open, and controller chan
   const ready = [...seen.latest!.skirmish!.players, ...other.latest!.skirmish!.players].map(
     (p) => p.ready,
   );
-  r.open("alpha");
+  r.open(testBrowser("alpha"));
   await b.run(3);
   expect(
     [...seen.latest!.skirmish!.players, ...other.latest!.skirmish!.players].map((p) => p.ready),
@@ -248,17 +271,16 @@ test("an AI-run dropped seat does not hold preparation open, and controller chan
 test("a crashed battle ends every room stream, deletes the battle and frees its slot", async () => {
   const r = await room(),
     b = await r.start();
-  const id = ticket(r.alpha.view()).battle;
   b.host.setController("blue-1", "no such controller" as ControllerKind);
   await flush();
   expect(b.ended.map((e) => e.kind)).toEqual(["crashed"]);
   for (const member of [r.alpha, r.bravo])
     expect(readJson(member.records.at(-1)!)).toEqual({ reason: "battle_failed" });
-  expect(r.service.battle(id)).toBeUndefined();
-  expect(r.service.roomStream("alpha", r.code, null, () => true)).toEqual({
+  await expect(b.host.referee()).rejects.toThrow(/ended/);
+  expect(r.service.roomStream(testBrowser("alpha"), r.code, null, () => true)).toEqual({
     refused: "unknown",
   });
-  expect(r.service.create("stranger", "public")).toEqual({ code: expect.any(String) });
+  expect(r.service.create(testBrowser("stranger"), "public")).toEqual({ code: expect.any(String) });
 });
 
 test("a minute without connected humans deletes the room and disposes its battle", async () => {
@@ -270,12 +292,12 @@ test("a minute without connected humans deletes the room and disposes its battle
   r.alpha.close();
   r.bravo.close();
   await r.clock.advance(EMPTY_ROOM_TIMEOUT_MS - 1);
-  expect(r.service.create("stranger", "public")).toEqual({ refused: "full" });
+  expect(r.service.create(testBrowser("stranger"), "public")).toEqual({ refused: "full" });
   await r.clock.advance(1);
-  expect(r.service.battle(a.battle)).toBeUndefined();
+  await expect(b.host.referee()).rejects.toThrow(/ended/);
   await expect(b.host.replay()).rejects.toThrow(/ended/);
   expect(watching.end).toBe("disposed");
-  expect(r.service.create("stranger", "public")).toEqual({ code: expect.any(String) });
+  expect(r.service.create(testBrowser("stranger"), "public")).toEqual({ code: expect.any(String) });
 }, 120_000);
 
 test("normal skirmish victory publishes the final result to both seats, ends each room stream and frees the battle slot", async () => {
@@ -349,11 +371,11 @@ test("normal skirmish victory publishes the final result to both seats, ends eac
   }
   for (const member of [r.alpha, r.bravo])
     expect(readJson(member.records.at(-1)!)).toEqual({ reason: "battle_finished" });
-  expect(r.service.roomStream("alpha", r.code, null, () => true)).toEqual({
+  expect(r.service.roomStream(testBrowser("alpha"), r.code, null, () => true)).toEqual({
     refused: "unknown",
   });
-  expect(r.service.battle(a.battle)).toBeUndefined();
-  expect(r.service.create("stranger", "public")).toEqual({ code: expect.any(String) });
+  await expect(b.host.referee()).rejects.toThrow(/ended/);
+  expect(r.service.create(testBrowser("stranger"), "public")).toEqual({ code: expect.any(String) });
 }, 180_000);
 
 test("a room whose map fails preparation closes honestly and releases its capacity", async () => {
@@ -363,42 +385,48 @@ test("a room whose map fails preparation closes honestly and releases its capaci
   let failed!: BattleHost;
   const service = createRoomService({
     online: createOnlineState({
-      capacity: 1,
+      machines: inProcessBattleMachines({
+        capacity: 1,
+        ordersPerSecond: 10000,
+        createBattle: (spec) =>
+          ((candidates) =>
+            (failed = createBattleHost(
+              {
+                candidates: candidates.map((setup) => ({
+                  ...setup,
+                  map: { ...setup.map, type: "unmakeable test map" as never },
+                })),
+              },
+              { clock: r.clock, generator },
+              data,
+            )))(spec.candidates),
+      }),
       clock: r.clock,
       callsign: () => "SCOUT",
       releaseCallsign: () => {},
     }),
     random: () => 0.1,
-    createBattle: (candidates) =>
-      (failed = createBattleHost(
-        {
-          candidates: candidates.map((setup) => ({
-            ...setup,
-            map: { ...setup.map, type: "unmakeable test map" as never },
-          })),
-        },
-        { clock: r.clock, generator },
-        data,
-      )),
   });
   cleanups.push(service.dispose);
-  const made = service.create("alpha", "public");
+  const made = service.create(testBrowser("alpha"), "public");
   if ("refused" in made) throw new Error(made.refused);
   const records: StreamRecord[] = [];
-  const stream = service.roomStream("alpha", made.code, null, (r) => {
+  const stream = service.roomStream(testBrowser("alpha"), made.code, null, (r) => {
     records.push(r);
     return true;
   });
   if ("refused" in stream) throw new Error(stream.refused);
   cleanups.push(stream.close);
-  service.act("alpha", made.code, { kind: "set_seat", seat: "seat-2", to: "ai" });
-  service.act("alpha", made.code, { kind: "ready", ready: true });
-  expect(service.act("alpha", made.code, { kind: "start" })).toEqual({ ok: true });
+  service.act(testBrowser("alpha"), made.code, { kind: "set_seat", seat: "seat-2", to: "ai" });
+  service.act(testBrowser("alpha"), made.code, { kind: "ready", ready: true });
+  expect(service.act(testBrowser("alpha"), made.code, { kind: "start" })).toEqual({ ok: true });
+  await vi.waitFor(() => expect(failed).toBeDefined());
   await expect(failed.ready).rejects.toThrow();
+  await vi.waitFor(() => expect(records.at(-1)?.kind).toBe("end"));
   await flush();
   expect(records.at(-1)?.kind).toBe("end");
   expect(readJson(records.at(-1)!)).toEqual({ reason: "battle_failed" });
-  expect(service.create("bravo", "public")).toEqual({ code: expect.any(String) });
+  expect(service.create(testBrowser("bravo"), "public")).toEqual({ code: expect.any(String) });
 });
 
 test("localhost room streams deliver each ticket and route both seats' streams and orders through /battles, refusing a stranger", async () => {
@@ -486,7 +514,7 @@ test("localhost room streams deliver each ticket and route both seats' streams a
         .at(-1)!;
     await until(() => [blue, red].every((records) => view(records)?.phase.kind === "battle"));
     const tickets = [ticket(view(blue)), ticket(view(red))];
-    battleAddress = tickets[0].address ?? address;
+    battleAddress = tickets[0].address;
     expect(tickets.map((t) => [t.side, t.player])).toEqual([
       ["blue", "blue-1"],
       ["red", "red-1"],
@@ -505,7 +533,7 @@ test("localhost room streams deliver each ticket and route both seats' streams a
       const decoder = new ScenePresentation(ready.layout);
       const frames = records
         .filter((r) => r.kind === "publication")
-        .map((r) => decoder.decode(new Float32Array(r.payload.slice(24).buffer))!);
+        .map((r) => decoder.decode(new Float32Array(decodePublication(r.payload).buffer))!);
       expect(frames.length).toBeGreaterThan(0);
       expect(new Set(frames.map((f) => f.groundPatch.side))).toEqual(new Set([tickets[i].side]));
       expect(frames.at(-1)!.skirmish!.players.map((p) => p.id)).toEqual([tickets[i].player]);

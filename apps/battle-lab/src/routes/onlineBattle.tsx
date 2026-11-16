@@ -1,9 +1,5 @@
-import {
-  FRONTLINE_FAILED_NOTICE,
-  FRONTLINE_IDLE_NOTICE,
-  leaveFrontline,
-} from "../online/frontlineRequests";
-import { BATTLE_FAILED_NOTICE } from "../online/requests";
+import { FRONTLINE_FAILED_NOTICE, FRONTLINE_IDLE_NOTICE } from "../online/frontlineRequests";
+import { ROOM_BATTLE_FAILED_NOTICE } from "../online/requests";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import type { BattleConnectionSession } from "@web/battle/prepare/client";
@@ -15,11 +11,16 @@ import { remoteConnection } from "@web/battle/remote/connection";
 import { streamEnded } from "@web/battle/remote/streamEnd";
 import { useOnlineMap, type OnlineMap } from "../online/useOnlineMap";
 import { useOnlineBattlePresence } from "../online/battlePresence";
-import { OnlineMatchResult } from "../online/OnlineMatchResult";
+import { MatchResultOverlay } from "../MatchResultOverlay";
 import { BattleView } from "../BattleView";
 import { BattleClock } from "../battleStatus";
 import { LoadingScreen } from "../LoadingScreen";
-import { builtMap, type OnlineBattleEntry } from "../onlineSession";
+import {
+  builtMap,
+  returnToMultiplayer,
+  leaveOnlineBattle,
+  type OnlineBattleEntry,
+} from "../onlineSession";
 import { browserId } from "../online/identity";
 import { gameCamera } from "../gameCamera";
 import { resolveLighting } from "../lobby/lighting";
@@ -76,8 +77,7 @@ function PrepareTicket({ entry }: { entry: OnlineBattleEntry }) {
     return (
       <Cover
         onLeave={() => {
-          if (entry.ticket.setup.rules === "frontline")
-            void leaveFrontline(entry.address, entry.ticket.battle).catch(() => {});
+          leaveOnlineBattle(entry);
         }}
         stage={map.status === "preparing" ? map.stage : "map"}
         error={map.status === "failed" ? map.error : null}
@@ -87,12 +87,13 @@ function PrepareTicket({ entry }: { entry: OnlineBattleEntry }) {
 }
 
 function PreparedOnlineBattle({
-  entry: { ticket, address },
+  entry,
   prepared: { request, battle },
 }: {
   entry: OnlineBattleEntry;
   prepared: OnlineMap;
 }) {
+  const { ticket, address } = entry;
   const navigate = useNavigate();
   const location = useLocation();
   const active = usePageVisitActive();
@@ -125,9 +126,7 @@ function PreparedOnlineBattle({
         },
         session: {
           transport: "remote",
-          connect: remoteConnection(
-            httpLink(ticket.address ?? address, ticket.battle, browserId()),
-          ),
+          connect: remoteConnection(httpLink(ticket.address, ticket.battle, browserId())),
         },
       });
       setStage("world");
@@ -151,16 +150,9 @@ function PreparedOnlineBattle({
       },
     [world],
   );
-  const leave = () => {
-    if (ticket.setup.rules === "frontline")
-      void leaveFrontline(address, ticket.battle).catch(() => {});
-  };
+  const leave = () => leaveOnlineBattle(entry);
   const back = (notice?: string) =>
-    navigate(`/multiplayer${location.search}`, {
-      replace: true,
-      state:
-        ticket.setup.rules === "frontline" ? { frontlineNotice: notice } : { roomNotice: notice },
-    });
+    returnToMultiplayer(navigate, location.search, ticket.setup.rules, notice);
   const cover = <Cover stage={stage} error={error} onLeave={leave} />;
   if (!world || !view || error) return cover;
   return (
@@ -184,21 +176,25 @@ function PreparedOnlineBattle({
             ? FRONTLINE_IDLE_NOTICE
             : ticket.setup.rules === "frontline"
               ? FRONTLINE_FAILED_NOTICE
-              : BATTLE_FAILED_NOTICE,
+              : ROOM_BATTLE_FAILED_NOTICE,
         )
       }
-      result={(session) => (
-        <OnlineMatchResult
-          match={session.sim.observation?.skirmish ?? null}
-          seats={session.seats}
-          viewer={ticket.player}
-          callsigns={ticket.callsigns}
-          onReturn={() => {
-            leave();
-            back();
-          }}
-        />
-      )}
+      result={(session) =>
+        session.sim.observation?.skirmish ? (
+          <MatchResultOverlay
+            match={session.sim.observation.skirmish}
+            seats={session.seats}
+            viewer={ticket.player}
+            online={{
+              callsigns: ticket.callsigns,
+              onReturn: () => {
+                leave();
+                back();
+              },
+            }}
+          />
+        ) : null
+      }
       onLoadStage={(loaded) => {
         if (loaded === "world") setStage("renderer");
       }}

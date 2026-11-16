@@ -9,7 +9,7 @@ import { MultiplayerPage } from "@apps/battle-lab/src/online/MultiplayerPage";
 import { jsonRecord } from "@packages/multiplayer/src/stream/index";
 import { browserId } from "@apps/battle-lab/src/online/identity";
 import type { BattleConnectionSession } from "@web/battle/prepare/client";
-import { keepBuiltMap, type OnlineBattleEntry } from "@apps/battle-lab/src/onlineSession";
+import { followBattle, type OnlineBattleEntry } from "@apps/battle-lab/src/onlineSession";
 import type { OnlineMap } from "@apps/battle-lab/src/online/useOnlineMap";
 import { roomHttp, build } from "./support/roomHttp";
 import { frontlineHost } from "./support/frontlineHost";
@@ -85,7 +85,7 @@ test("an idle battle stream returns to Multiplayer with the reason while waiting
     address: service.address,
     ticket: { ...ticket, player: "commander" },
   } as unknown as OnlineBattleEntry;
-  keepBuiltMap(ticket.battle, {
+  followBattle(() => {}, entry, "", {
     request: { map_source: { request: { seed: "1" } }, battle_seed: 1 },
     battle: {
       scenario: JSON.stringify({

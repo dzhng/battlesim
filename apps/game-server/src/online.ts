@@ -1,9 +1,9 @@
 // Shared admission, battle allocation and presence for every online mode.
 import { cpus, totalmem } from "node:os";
 import type { BattleSetup, RoomList } from "../../../packages/multiplayer/src/wire.ts";
-import type { Seat } from "../../../packages/multiplayer/src/link.ts";
-import type { BattleHost } from "./battleHost/index.ts";
-import { hostedBattles } from "./battles.ts";
+import type { BattleSeat } from "../../../packages/multiplayer/src/link.ts";
+import type { HostedBattle } from "./battleHost/remote.ts";
+import { hostedBattles } from "./hosting.ts";
 import type { BattleMachines } from "./machines/index.ts";
 import { createPresence, PRESENCE_GRACE_MS, type PresenceClock } from "./presence.ts";
 
@@ -13,25 +13,23 @@ export function battleCapacity(cores = cpus().length, memoryBytes = totalmem()):
   return Math.max(0, Math.min(cores - 1, Math.floor(memoryBytes / BYTES_PER_BATTLE)));
 }
 
-type ServedBattle = { id: string; host: BattleHost; seatOf(who: string): Seat | undefined };
 type Member = {
   changed(who: string): void;
   gone(who: string): void;
   remembers(who: string): boolean;
 };
 
-export function createOnlineState(
-  options: ({ capacity: number } | { machines: BattleMachines }) & {
-    clock: PresenceClock;
-    callsign(who: string): string | undefined;
-    releaseCallsign(who: string): void;
-  },
-) {
+export function createOnlineState(options: {
+  machines: BattleMachines;
+  clock: PresenceClock;
+  callsign(who: string): string | undefined;
+  releaseCallsign(who: string): void;
+}) {
   const members = new Set<Member>();
   const devicesWithGame = new Set<string>();
   let frontline: RoomList["frontline"] = { battles: 0, commanders: 0 };
   const listListeners = new Set<() => void>();
-  const slots = new Map<object, ServedBattle | null>();
+  const slots = new Map<object, HostedBattle | null>();
   const releaseIfForgotten = (who: string) => {
     const absent = presence.goneFor(who);
     if (absent === null || absent < PRESENCE_GRACE_MS || [...members].some((m) => m.remembers(who)))
@@ -49,8 +47,8 @@ export function createOnlineState(
       releaseIfForgotten(who);
     },
   );
-  const battles = "machines" in options ? hostedBattles(options.machines, presence) : undefined;
-  const capacity = "machines" in options ? options.machines.capacity : options.capacity;
+  const battles = hostedBattles(options.machines, presence);
+  const capacity = options.machines.capacity;
   return {
     /** Claimed before preparation awaits; the mode releases it only when its game is removed. */
     claimGame(device: string): (() => void) | null {
@@ -60,11 +58,10 @@ export function createOnlineState(
         devicesWithGame.delete(device);
       };
     },
-    createBattle: (candidates: BattleSetup[], id: string): BattleHost => {
-      if (!battles) throw new Error("battle machines missing");
+    createBattle: (candidates: BattleSetup[], id: string): HostedBattle => {
       return battles.create(candidates, id);
     },
-    battleAddress: (host: BattleHost) => battles?.address(host),
+    battleAddress: (host: HostedBattle) => battles.address(host),
     frontline: () => frontline,
     publishFrontline(next: RoomList["frontline"]) {
       if (next.battles === frontline.battles && next.commanders === frontline.commanders) return;
@@ -89,25 +86,22 @@ export function createOnlineState(
       const key = {};
       slots.set(key, null);
       return {
-        serve(value: ServedBattle) {
+        serve(value: HostedBattle) {
           slots.set(key, value);
         },
-        seating(entries: [string, Seat][]): Promise<void> {
+        seating(entries: [string, BattleSeat][]): Promise<void> {
           const served = slots.get(key);
-          return served && battles ? battles.seating(served.host, entries) : Promise.resolve();
+          return served ? battles.seating(served, entries) : Promise.resolve();
         },
         release() {
           const served = slots.get(key);
-          if (served) battles?.release(served.host);
+          if (served) battles.release(served);
           slots.delete(key);
         },
       };
     },
-    battle(id: string) {
-      return [...slots.values()].find((b) => b?.id === id) ?? undefined;
-    },
     dispose() {
-      battles?.dispose();
+      battles.dispose();
       presence.dispose();
       slots.clear();
       devicesWithGame.clear();

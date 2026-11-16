@@ -51,3 +51,8 @@ to AI. An idle stream returns to the Frontline band with its reason. Losing a
 connection or reloading keeps the server's return grace: Play asks placement
 to resume the command. No client-side seat or credit accounting substitutes
 for that decision.
+
+[Online session navigation](../onlineSession.ts) owns return notices and chosen
+battle departure. History carries public tickets and notices only. Admission
+failures distinguish build incompatibility from an unreachable lobby without
+showing network diagnostics to the player.

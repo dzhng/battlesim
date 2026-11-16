@@ -1,3 +1,4 @@
+import { returnToMultiplayer } from "../onlineSession";
 import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import type { RoomAction, RoomView } from "@packages/multiplayer/src/wire";
@@ -15,7 +16,7 @@ export function RoomPage() {
   const [copyError, setCopyError] = useState(false);
   const leave = useCallback(() => {
     if (room.view) room.act({ kind: "leave" });
-    else navigate(`/multiplayer${location.search}`, { replace: true });
+    else returnToMultiplayer(navigate, location.search);
   }, [room.view, room.act, navigate, location.search]);
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
@@ -59,7 +60,7 @@ export function RoomPage() {
       {copyError && <p role="alert">Could not copy the link.</p>}
       {room.unavailable ? (
         <p role="status" aria-label="Online unavailable">
-          Online play is not available on this build.
+          {room.unavailable}
         </p>
       ) : !room.view ? (
         <p role="status">Joining room…</p>

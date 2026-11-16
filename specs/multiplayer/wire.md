@@ -126,11 +126,13 @@ type UpBatch = {
 };
 type UpReply =
   | { seq: number; results: { id: number; ack: CommandAck }[] }
-  | { seq: number; refused: "not_seated" | "rate" | "invalid" };
+  | { seq: number; refused: "not_seated" | "rate" | "invalid" | "sequence" };
 ```
 
 - A page has one batch in flight. Orders issued meanwhile wait and leave
   together in the next batch, in the order they were given.
+- A batch refused `sequence` (for example, after another tab of the same browser
+  sent a later batch) settles its orders as refusals and is never retried.
 - A batch whose reply does not arrive is sent again with the same `seq`. The
   server keeps each seat's last `seq` and reply, and answers a repeat from that
   record without applying it twice.
@@ -193,7 +195,7 @@ type BattleSetup = {            // what both ends feed the one request builder
   rules: "skirmish" | "frontline";
 };
 type BattleTicket = {
-  address?: string;             // battle origin, omitted when it is the lobby origin
+  address: string;              // battle origin
   battle: string;               // the id in /battles/:id
   setup: BattleSetup;
   mapIdentity: string;          // the server's map hash; the page refuses to start on a mismatch
@@ -205,8 +207,7 @@ type BattleTicket = {
 
 The lobby serves the room and Frontline endpoints. The battle server alone
 serves `/battles/:id/{stream,up,preview}`. The page uses `ticket.address` for
-its battle link, falling back to the lobby address only when the field is
-absent. Room/list presence, leave and deploy still use the lobby address.
+its battle link. Room/list presence, leave and deploy still use the lobby address.
 
 A ticket carries the settings, not the prepared battle. The page builds the
 map itself from the settings and checks its identity against the server's.

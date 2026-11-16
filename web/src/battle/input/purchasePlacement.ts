@@ -1,5 +1,5 @@
 import type { CommandAck, Order, PurchasePlacement } from "../sim/protocol";
-import type { OnlineSimClient } from "../sim/client";
+import type { SeatClient } from "../sim/client";
 /** A placed ghost faces the opposing edge unless it is turned as it is placed. */
 export const DEFAULT_PLACEMENT_FACING = -Math.PI / 2;
 export interface PurchaseGhost {
@@ -26,7 +26,7 @@ export class PurchasePlacementControl {
   carrier: string | null = null;
   private ghost: PurchaseGhost | null = null;
   private intent: {
-    client: OnlineSimClient;
+    client: SeatClient;
     /** The authority, variant and spot asked about. */
     spot: string;
     /** The side's knowledge the question was asked of. */
@@ -47,7 +47,7 @@ export class PurchasePlacementControl {
   private previewRun: string | null = null;
   private generation = 0;
   private confirmation: number | null = null;
-  private client: OnlineSimClient | null = null;
+  private client: SeatClient | null = null;
 
   /** The unit that enters the map: the carrier, else the variant. */
   get arriving(): string | null {
@@ -70,7 +70,7 @@ export class PurchasePlacementControl {
   }
   at(
     destination: [number, number] | null,
-    client: OnlineSimClient | null,
+    client: SeatClient | null,
     revision: string,
     facing = DEFAULT_PLACEMENT_FACING,
   ): PurchaseGhost | null {

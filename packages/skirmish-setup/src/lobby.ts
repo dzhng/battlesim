@@ -17,7 +17,7 @@ import {
   MAX_PLAYERS_PER_SIDE,
   sizeTier,
   type Occupant,
-  type Seat,
+  type LobbySeat,
   type SeatId,
   type SkirmishSide,
 } from "./seats";
@@ -25,7 +25,7 @@ import {
 export type LobbySide = SkirmishSide;
 export type LobbyPreset = "1v1" | "3v3" | "5v5";
 export interface LobbySetup {
-  seats: Seat[];
+  seats: LobbySeat[];
   factions: Record<SkirmishSide, Faction>;
   map: MapChoice;
   battleSeed: number;
@@ -48,7 +48,7 @@ export { DEFAULT_BATTLE_SEED } from "./defaults";
 export const DEFAULT_LIGHTING = presentation.light_preset;
 const countForPreset: Record<LobbyPreset, number> = { "1v1": 1, "3v3": 3, "5v5": 5 };
 
-function filled(state: Pick<LobbySetup, "seats">): Seat[] {
+function filled(state: Pick<LobbySetup, "seats">): LobbySeat[] {
   return state.seats.filter((seat) => seat.occupant.kind !== "open");
 }
 function seatId(number: number): SeatId {
@@ -66,13 +66,13 @@ function ratchetSize(state: LobbyState, size: MapSize): MapSize {
 }
 function withSeats(
   state: LobbyState,
-  seats: readonly Seat[],
+  seats: readonly LobbySeat[],
   nextSeat = state.nextSeat,
 ): LobbyState {
   const next = { ...state, seats: [...seats] };
   return { ...next, nextSeat, map: { ...next.map, size: ratchetSize(next, next.map.size) } };
 }
-function targetId(target: Seat | SeatId): SeatId {
+function targetId(target: LobbySeat | SeatId): SeatId {
   return typeof target === "string" ? target : target.id;
 }
 
@@ -114,7 +114,7 @@ export function add(state: LobbyState, side: LobbySide): LobbyState {
   );
 }
 
-export function remove(state: LobbyState, target: Seat | SeatId): LobbyState {
+export function remove(state: LobbyState, target: LobbySeat | SeatId): LobbyState {
   const id = targetId(target);
   const seat = state.seats.find((candidate) => candidate.id === id);
   if (!seat) return state;
@@ -126,7 +126,11 @@ export function remove(state: LobbyState, target: Seat | SeatId): LobbyState {
   );
 }
 
-export function seatHuman(state: LobbyState, target: Seat | SeatId, who = "human"): LobbyState {
+export function seatHuman(
+  state: LobbyState,
+  target: LobbySeat | SeatId,
+  who = "human",
+): LobbyState {
   const id = targetId(target);
   return setOccupant(state, id, { kind: "human", who });
 }

@@ -1,13 +1,19 @@
-import { followBattle } from "../onlineSession";
+import { followBattle, returnToMultiplayer } from "../onlineSession";
 import { newSeed } from "@web/maps/source";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import type { RoomAction, RoomView } from "@packages/multiplayer/src/wire";
 import type { LobbyDriver } from "../lobby/driver";
 import { serverAddress } from "./server";
-import { hello } from "./hello";
+import { hello, onlineUnavailable, ONLINE_BUILD_UNAVAILABLE } from "./hello";
 import { stateStream } from "./stateStream";
-import { BATTLE_FAILED_NOTICE, roomFailure, onlineRequest } from "./requests";
+import {
+  ROOM_BATTLE_FAILED_NOTICE,
+  ROOM_CLOSED_NOTICE,
+  ROOM_REMOVED_NOTICE,
+  onlineFailure,
+  onlineRequest,
+} from "./requests";
 import { roomLobby, useRoomPreview } from "./roomPreview";
 
 export function useRoom(code: string) {
@@ -15,12 +21,12 @@ export function useRoom(code: string) {
   const location = useLocation();
   const [address] = useState(() => serverAddress(window.location));
   const [view, setView] = useState<RoomView | null>(null);
-  const [unavailable, setUnavailable] = useState(false);
+  const [unavailable, setUnavailable] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const lifetime = useRef<AbortController | null>(null);
   const leavePage = useCallback(
     (notice?: string) => {
-      navigate(`/multiplayer${location.search}`, { replace: true, state: { roomNotice: notice } });
+      returnToMultiplayer(navigate, location.search, "skirmish", notice);
     },
     [navigate, location.search],
   );
@@ -28,7 +34,7 @@ export function useRoom(code: string) {
     const visit = new AbortController();
     lifetime.current = visit;
     if (!address) {
-      setUnavailable(true);
+      setUnavailable(ONLINE_BUILD_UNAVAILABLE);
       return () => visit.abort();
     }
     void hello(address, visit.signal)
@@ -40,7 +46,7 @@ export function useRoom(code: string) {
           visit.signal,
           (next) => {
             if (!next.you) {
-              leavePage("You are no longer in that room.");
+              leavePage(ROOM_REMOVED_NOTICE);
               return;
             }
             if (next.phase.kind === "battle") {
@@ -55,12 +61,12 @@ export function useRoom(code: string) {
             setView(next);
           },
           (reason) =>
-            leavePage(reason === "battle_failed" ? BATTLE_FAILED_NOTICE : "That room has closed."),
-          (error) => leavePage(roomFailure(error)),
+            leavePage(reason === "battle_failed" ? ROOM_BATTLE_FAILED_NOTICE : ROOM_CLOSED_NOTICE),
+          (error) => leavePage(onlineFailure(error)),
         );
       })
-      .catch(() => {
-        if (!visit.signal.aborted) setUnavailable(true);
+      .catch((error: unknown) => {
+        if (!visit.signal.aborted) setUnavailable(onlineUnavailable(error));
       });
     return () => visit.abort();
   }, [address, code, leavePage, navigate, location.search]);
@@ -73,7 +79,7 @@ export function useRoom(code: string) {
           if (!signal.aborted && action.kind === "leave") leavePage();
         })
         .catch((error: unknown) => {
-          if (!signal.aborted) setError(roomFailure(error));
+          if (!signal.aborted) setError(onlineFailure(error));
         });
     },
     [address, code, leavePage],

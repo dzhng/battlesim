@@ -30,3 +30,9 @@ nothing here may depend on a browser, a server, or the simulation's binding.
 
 A browser id and a battle's key are credentials. Nothing in this package
 puts one in a type that is sent to another player.
+
+[Browser identity](src/identity.ts) owns credential validation and its header.
+Diagnostics scrub credential-shaped text through that same owner; request
+refusals carry public codes, never arbitrary request text.
+[Publication payloads](src/stream/publication.ts) have one encoder and decoder,
+so runtime, page and measurement readers agree on the bytes inside a record.

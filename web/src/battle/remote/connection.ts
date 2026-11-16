@@ -1,3 +1,4 @@
+import { decodePublication } from "../../../../packages/multiplayer/src/stream/publication";
 // Adapt a seat's wire protocol to the page's channel to an authority.
 // No simulation controls cross this seam: only orders and previews go up.
 import type { SeatLink } from "../../../../packages/multiplayer/src/link";
@@ -166,8 +167,6 @@ export function remoteConnection(
             }),
         },
       );
-    const tickOf = (payload: Uint8Array) =>
-      new DataView(payload.buffer, payload.byteOffset, payload.byteLength).getUint32(0, true);
 
     /** Learn the battle's layout, rate and tick, then let the stream go. A
      *  page may take as long as it likes to load: until it starts, nothing
@@ -186,7 +185,7 @@ export function remoteConnection(
             type: "ready",
             layout: description.layout,
             tickHz: description.tickHz,
-            tick: tickOf(record.payload),
+            tick: decodePublication(record.payload).tick,
           });
           return;
         }
@@ -238,21 +237,8 @@ export function remoteConnection(
               const { status } = readJson<StreamOpen>(record);
               if (status) feed.push({ type: "status", ...status }, clock.now());
             } else if (record.kind === "publication") {
-              const buffer = record.payload.slice(24).buffer;
               feed.push(
-                {
-                  type: "publication",
-                  side,
-                  tick: tickOf(record.payload),
-                  digest: new TextDecoder().decode(record.payload.subarray(4, 20)),
-                  stepMs: new DataView(
-                    record.payload.buffer,
-                    record.payload.byteOffset,
-                    record.payload.byteLength,
-                  ).getFloat32(20, true),
-                  buffer,
-                  length: buffer.byteLength / 4,
-                },
+                { type: "publication", side, ...decodePublication(record.payload) },
                 clock.now(),
               );
             } else if (record.kind === "status") {

@@ -12,7 +12,7 @@ export const DEFAULT_FACTION: Readonly<Record<SkirmishSide, Faction>> = {
 
 export type SeatId = string;
 export type Occupant = { kind: "human"; who: string } | { kind: "ai" } | { kind: "open" };
-export interface Seat {
+export interface LobbySeat {
   id: SeatId;
   side: SkirmishSide;
   occupant: Occupant;
@@ -33,7 +33,7 @@ function controllerOf(occupant: Occupant): Player["controller"] | null {
   return null;
 }
 
-export function battlePlayers(seats: readonly Seat[]): {
+export function battlePlayers(seats: readonly LobbySeat[]): {
   players: Player[];
   playerOf: Record<SeatId, string>;
 } {

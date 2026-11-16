@@ -1,3 +1,4 @@
+import { drawIndex } from "./random";
 import { FACTIONS, type Faction } from "../../scene-assets/src/units";
 import { MAP_REGIONS, MAP_TYPES, type MapType } from "../../../web/src/maps/source";
 import { preset, reroll, setFaction, setRegion, setType } from "../../skirmish-setup/src/lobby";
@@ -20,9 +21,6 @@ export interface GameView {
 export const IDLE_TIMEOUT_MS = 3 * 60 * 1000;
 export const GONE_TIMEOUT_MS = 60 * 1000;
 const SIDES = ["blue", "red"] as const;
-
-const drawIndex = (random: () => number, length: number) =>
-  Math.min(length - 1, Math.max(0, Math.floor(random() * length)));
 
 function draw<T>(values: readonly T[], random: () => number): T {
   return values[drawIndex(random, values.length)]!;

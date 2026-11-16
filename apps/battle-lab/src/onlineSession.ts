@@ -1,6 +1,7 @@
 // The ticket and address travel in history state, never credentials.
 import type { NavigateFunction } from "react-router";
 import type { OnlineMap } from "./online/useOnlineMap";
+import { leaveFrontline } from "./online/frontlineRequests";
 import type { BattleTicket } from "@packages/multiplayer/src/wire";
 
 export interface OnlineBattleEntry {
@@ -33,7 +34,25 @@ export function followBattle(
 export const builtMap = (battle: string): OnlineMap | null =>
   built?.battle === battle ? built.map : null;
 
-/** For a page entered without `followBattle`: a test's, or a scene's. */
-export function keepBuiltMap(battle: string, map: OnlineMap) {
-  built = { battle, map };
+/** A return carries public notices only, never online credentials. */
+export interface MultiplayerEntry {
+  roomNotice?: string;
+  frontlineNotice?: string;
+}
+
+export function returnToMultiplayer(
+  navigate: NavigateFunction,
+  search: string,
+  mode: "skirmish" | "frontline" = "skirmish",
+  notice?: string,
+) {
+  const state: MultiplayerEntry =
+    mode === "frontline" ? { frontlineNotice: notice } : { roomNotice: notice };
+  navigate(`/multiplayer${search}`, { replace: true, state });
+}
+
+/** A chosen departure gives Frontline's command back to its AI. */
+export function leaveOnlineBattle(entry: OnlineBattleEntry) {
+  if (entry.ticket.setup.rules === "frontline")
+    void leaveFrontline(entry.address, entry.ticket.battle).catch(() => {});
 }

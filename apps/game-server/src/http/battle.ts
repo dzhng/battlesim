@@ -1,10 +1,11 @@
+import { HttpRefusal } from "./refusal.ts";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { PreviewQuery, UpBatch } from "../../../../packages/multiplayer/src/wire.ts";
-import type { Handlers } from "./seats.ts";
+import type { Handlers } from "./seatTransport.ts";
 import { afterId, body, json, stream } from "./io.ts";
 import { isBatch, isPreview } from "./input.ts";
 
-/** The player and authenticated control-seat paths share request semantics. */
+/** Player requests bind orders, previews and stream reads to the seated browser. */
 export async function battleRequest(
   request: IncomingMessage,
   response: ServerResponse,
@@ -28,6 +29,13 @@ export async function battleRequest(
     );
   if (action === "stream")
     return stream(response, (deliver) => handlers.reader(afterId(url), deliver));
-  if (action === "up") return json(response, 200, await handlers.up(value as UpBatch));
+  if (action === "up") {
+    try {
+      return json(response, 200, await handlers.up(value as UpBatch));
+    } catch (error) {
+      if (!(error instanceof HttpRefusal) || error.reason !== "sequence") throw error;
+      return json(response, error.status, { seq: (value as UpBatch).seq, refused: "sequence" });
+    }
+  }
   json(response, 200, await handlers.preview(value as PreviewQuery));
 }

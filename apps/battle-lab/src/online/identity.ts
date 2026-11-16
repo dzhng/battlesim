@@ -1,3 +1,4 @@
+import { isBrowserId } from "../../../../packages/multiplayer/src/identity";
 import { cleanCallsign } from "../../../../packages/multiplayer/src/callsign";
 
 function playerIdentity() {
@@ -26,7 +27,7 @@ function playerIdentity() {
     browserId(): string {
       if (id) return id;
       const stored = read("battle.browser-id");
-      id = /^[a-f0-9]{32}$/.test(stored)
+      id = isBrowserId(stored)
         ? stored
         : Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) =>
             byte.toString(16).padStart(2, "0"),

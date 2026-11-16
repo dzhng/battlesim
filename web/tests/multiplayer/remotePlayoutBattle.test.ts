@@ -1,3 +1,4 @@
+import { decodePublication } from "../../../packages/multiplayer/src/stream/publication";
 // @vitest-environment node
 import { join } from "node:path";
 import { expect, test } from "vitest";
@@ -22,11 +23,7 @@ test("jittery real battle records all decode contiguously; after a long stall a 
     "skirmish",
   );
   const battleClock = new PageClock();
-  const host = createBattleHost(
-    { candidates: [setup] },
-    { clock: battleClock, generator: data.generator },
-    data,
-  );
+  const host = createBattleHost({ candidates: [setup] }, { clock: battleClock }, data);
   const { tickHz } = await host.ready;
   const pageClock = new PageClock();
   const pair = loopback({ side: "blue", player: "blue-1" });
@@ -44,10 +41,7 @@ test("jittery real battle records all decode contiguously; after a long stall a 
         pipes.add(pipe);
         const detach = handle(after, (record) => {
           if (record.kind === "publication") {
-            currentTick = new DataView(record.payload.buffer, record.payload.byteOffset).getUint32(
-              0,
-              true,
-            );
+            currentTick = decodePublication(record.payload).tick;
             if (record.flags & KEYFRAME) keyframes.push(currentTick);
           }
           pipe.queue.push(record);

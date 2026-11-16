@@ -1,10 +1,8 @@
-// The seam a transport implements. The battle host and the room code speak to
-// a `SeatPort`; the page's battle code speaks to a `SeatLink`. HTTP is one way
-// to join the two, a WebSocket would be another, and `loopback` joins them in
-// memory for tests.
+// A seat's transport boundary. The battle runtime speaks SeatPort, and the
+// page speaks SeatLink. HTTP joins them; loopback joins them in tests.
 import type { PreviewAnswer, PreviewQuery, StreamRecord, UpBatch, UpReply } from "./wire";
 
-export interface Seat {
+export interface BattleSeat {
   side: "blue" | "red";
   player: string;
 }
@@ -23,7 +21,7 @@ export interface SeatLink {
 /** The server's end of one seat. The seat is the transport's word, taken from
  *  who connected, never from what a request says. */
 export interface SeatPort {
-  seat: Seat;
+  seat: BattleSeat;
   /** A reader opened the seat's stream. `deliver` returns false when the
    *  reader can take no more. The handler's result is called when that
    *  reader goes away. */
@@ -36,7 +34,7 @@ export interface SeatPort {
 
 /** A link and a port joined in memory. `cut` drops every open connection the
  *  way a network would, leaving the link free to open another. */
-export function loopback(seat: Seat): { link: SeatLink; port: SeatPort; cut(): void } {
+export function loopback(seat: BattleSeat): { link: SeatLink; port: SeatPort; cut(): void } {
   let reader: Parameters<SeatPort["onReader"]>[0] | undefined;
   let up: ((batch: UpBatch) => Promise<UpReply>) | undefined;
   let preview: ((query: PreviewQuery) => Promise<PreviewAnswer>) | undefined;

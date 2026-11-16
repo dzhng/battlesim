@@ -1,6 +1,7 @@
+import { BROWSER_ID_HEADER } from "../../../../packages/multiplayer/src/identity.ts";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { json } from "./io.ts";
-import { HttpRefusal } from "./seats.ts";
+import { HttpRefusal } from "./refusal.ts";
 
 /** Common HTTP boundary. Exception text and request headers never leave it. */
 export function httpServer(
@@ -9,7 +10,7 @@ export function httpServer(
   return createServer((request, response) => {
     response.setHeader("Cache-Control", "no-store, no-transform");
     response.setHeader("Access-Control-Allow-Origin", "*");
-    response.setHeader("Access-Control-Allow-Headers", "X-Player, Content-Type");
+    response.setHeader("Access-Control-Allow-Headers", `${BROWSER_ID_HEADER}, Content-Type`);
     response.setHeader("Access-Control-Max-Age", "7200");
     response.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     if (request.method === "OPTIONS") {

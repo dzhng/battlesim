@@ -1,3 +1,4 @@
+import { testBrowser } from "./support/player";
 // @vitest-environment node
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { inProcessBattleMachines } from "../../../apps/game-server/src/machines/inProcess";
@@ -67,12 +68,11 @@ test.each([false, true])(
     let draw = 0;
     const frontline = createFrontlineService({
       online,
-      createBattle: online.createBattle,
       mapAttempts: MAP_ATTEMPTS,
       random: () => [0, 0, 0.5, 0, 1 / 2 ** 32, 0, 0][draw++ % 7],
     });
     cleanups.push(online.dispose, frontline.dispose);
-    const result = await frontline.join("alpha");
+    const result = await frontline.join(testBrowser("alpha"));
     expect(starts).toBe(1);
     expect(attempts).toBe(MAP_ATTEMPTS);
     if (allRefused) {
@@ -85,7 +85,7 @@ test.each([false, true])(
       const ready = await hosts[0].ready;
       expect(ready.candidate).toBe(MAP_ATTEMPTS - 1);
       expect(result.mapIdentity).toBe(ready.mapIdentity);
-      const ticket = await frontline.deploy("alpha", result.battle);
+      const ticket = await frontline.deploy(testBrowser("alpha"), result.battle);
       if ("refused" in ticket) throw new Error(ticket.refused);
       expect(ticket.setup).toEqual(result.setup);
       expect(ticket.mapIdentity).toBe(result.mapIdentity);
@@ -115,12 +115,11 @@ test("a machine allocation refusal answers full and releases the game's slot", a
   });
   const frontline = createFrontlineService({
     online,
-    createBattle: online.createBattle,
     mapAttempts: MAP_ATTEMPTS,
     random: () => 0.25,
   });
   cleanups.push(online.dispose, frontline.dispose);
-  expect(await frontline.join("alpha")).toEqual({ refused: "full" });
+  expect(await frontline.join(testBrowser("alpha"))).toEqual({ refused: "full" });
   expect(starts).toBe(1);
   expect(online.slotFree()).toBe(true);
 });
@@ -135,7 +134,15 @@ test("eager candidates keep each map draw followed by its initial seat draw", as
   const expectedRandom = () => values[expectedAt++ % values.length];
   const selected = [0, MAP_ATTEMPTS - 1, 0];
   const online = createOnlineState({
-    capacity: 1,
+    machines: inProcessBattleMachines({
+      capacity: 1,
+      ordersPerSecond: 10000,
+      createBattle(spec) {
+        const candidate = selected[game++];
+        const host = frontlineHost(spec.candidates[candidate]);
+        return { ...host, ready: host.ready.then((ready) => ({ ...ready, candidate })) };
+      },
+    }),
     clock: new PageClock(),
     callsign: () => "SCOUT",
     releaseCallsign: () => {},
@@ -144,11 +151,6 @@ test("eager candidates keep each map draw followed by its initial seat draw", as
     online,
     mapAttempts: MAP_ATTEMPTS,
     random: () => values[sourceAt++ % values.length],
-    createBattle(candidates) {
-      const candidate = selected[game++];
-      const host = frontlineHost(candidates[candidate]);
-      return { ...host, ready: host.ready.then((ready) => ({ ...ready, candidate })) };
-    },
   });
   cleanups.push(online.dispose, frontline.dispose);
   for (const candidate of selected) {
@@ -163,12 +165,12 @@ test("eager candidates keep each map draw followed by its initial seat draw", as
         side = drawnSide;
       }
     }
-    const result = await frontline.join("alpha");
+    const result = await frontline.join(testBrowser("alpha"));
     if ("refused" in result) throw new Error(result.refused);
     expect(result.setup).toEqual(expected);
     expect(result.side).toBe(side);
     expect(result.roster.filter((s) => s.callsign)).toEqual([{ side, callsign: "SCOUT" }]);
-    frontline.leave("alpha", result.battle);
+    frontline.leave(testBrowser("alpha"), result.battle);
     expect(online.slotFree()).toBe(true);
   }
 });

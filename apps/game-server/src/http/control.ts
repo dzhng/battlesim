@@ -1,9 +1,10 @@
+import { scrubCredentials, isBrowserId } from "../../../../packages/multiplayer/src/identity.ts";
 import { randomUUID, timingSafeEqual } from "node:crypto";
-import type { Seat } from "../../../../packages/multiplayer/src/link.ts";
-import type { BattleSetup } from "../../../../packages/multiplayer/src/wire.ts";
+import type { BattleSeat } from "../../../../packages/multiplayer/src/link.ts";
 import type { BattleHost, BattleSpec } from "../battleHost/index.ts";
-import { afterId, body, json, stream } from "./io.ts";
-import { battleRoute, seatHandlers, HttpRefusal, type Handlers } from "./seats.ts";
+import { afterId, body, json, stream, player } from "./io.ts";
+import { battleRoute } from "./seatTransport.ts";
+import { HttpRefusal } from "./refusal.ts";
 import { battleRequest } from "./battle.ts";
 import { httpServer } from "./server.ts";
 import { controlEvents } from "./controlEvents.ts";
@@ -18,8 +19,7 @@ export function createBattleServer(options: {
 }) {
   let host: BattleHost | undefined;
   let id: string | undefined;
-  const seating = new Map<string, Seat>();
-  const raw = new Map<string, Handlers>();
+  const seating = new Map<string, BattleSeat>();
   let players: ReturnType<typeof battleRoute> | undefined;
   let touched = performance.now();
   const events = controlEvents();
@@ -35,17 +35,6 @@ export function createBattleServer(options: {
       if (url.pathname === "/control/events") {
         if (request.method !== "GET") throw new HttpRefusal(405, "method");
         return stream(response, (deliver) => events.source.attach(afterId(url), deliver));
-      }
-      const seatPath = /^\/control\/seats\/([^/]+)\/(stream|up|preview)$/.exec(url.pathname);
-      if (seatPath) {
-        const seat = host && setup?.seats.find((s) => s.player === seatPath[1]);
-        if (!seat || !host) throw new HttpRefusal(403, "not_seated");
-        let handlers = raw.get(seat.player);
-        if (!handlers) {
-          handlers = seatHandlers(host, seat);
-          raw.set(seat.player, handlers);
-        }
-        return battleRequest(request, response, url, seatPath[2], () => handlers);
       }
       if (request.method !== "POST") throw new HttpRefusal(405, "method");
       switch (url.pathname) {
@@ -98,14 +87,13 @@ export function createBattleServer(options: {
           host.onEnd((end) => {
             if (end.kind === "crashed") {
               // Credentials remain private after a seat is released too.
-              const message = end.message.replace(/[a-f0-9]{32}/gi, "[credential]");
+              const message = scrubCredentials(end.message);
               console.error(`A battle crashed: ${message}`);
             }
             events.end(end);
           });
           try {
             const ready = await host.ready;
-            setup = value.candidates[ready.candidate];
             touched = performance.now();
             json(response, 200, ready);
           } finally {
@@ -114,7 +102,8 @@ export function createBattleServer(options: {
           return;
         }
         case "/control/seating": {
-          const entries = (await body(request)) as [string, Seat][];
+          const entries = (await body(request)) as [string, BattleSeat][];
+          if (entries.some(([who]) => !isBrowserId(who))) throw new HttpRefusal(400, "invalid");
           players?.seating(entries);
           seating.clear();
           for (const [who, seat] of entries) seating.set(who, seat);
@@ -155,11 +144,9 @@ export function createBattleServer(options: {
     const match = /^\/battles\/([^/]+)\/(stream|up|preview)$/.exec(url.pathname);
     if (!match || match[1] !== id || !players) throw new HttpRefusal(404, "unknown");
     return battleRequest(request, response, url, match[2], () => {
-      const who = request.headers["x-player"];
-      return typeof who === "string" ? players!.seat(who) : undefined;
+      return players!.seat(player(request));
     });
   });
-  let setup: BattleSetup | undefined;
   function required() {
     if (!host) throw new HttpRefusal(409, "not_started");
     return host;

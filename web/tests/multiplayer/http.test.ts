@@ -1,3 +1,4 @@
+import { decodePublication } from "../../../packages/multiplayer/src/stream/publication";
 // @vitest-environment node
 import { PageClock } from "./pageClock";
 import { join } from "node:path";
@@ -5,10 +6,10 @@ import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { createBattleServer } from "../../../apps/game-server/src/http/control";
 import { CONTROL_HEADER } from "../../../apps/game-server/src/http/controlProtocol";
 import { MAX_ORDER_UNITS, MAX_ORDER_BYTES } from "../../../apps/game-server/src/http/input";
-import { battleRoute } from "../../../apps/game-server/src/http/seats";
+import { battleRoute } from "../../../apps/game-server/src/http/seatTransport";
 import { createBattleHost, type BattleClock } from "../../../apps/game-server/src/battleHost/index";
 import { nodeSetupData } from "../../../apps/game-server/src/serverData";
-import type { Seat } from "../../../packages/multiplayer/src/link";
+import type { BattleSeat } from "../../../packages/multiplayer/src/link";
 import { toBattleSetup } from "../../../packages/multiplayer/src/setup";
 import { preset, setOccupant } from "../../../packages/skirmish-setup/src/lobby";
 import type { MapGenerator } from "../../src/maps/source";
@@ -20,11 +21,15 @@ let data: Awaited<ReturnType<typeof nodeSetupData>>;
 let generator: MapGenerator;
 beforeAll(async () => {
   data = await nodeSetupData(root);
+  const wasm = await import("@wasm/game_wasm.js");
+  const { readFileSync } = await import("node:fs");
+  wasm.initSync({ module: readFileSync(join(root, "web/src/wasm/game_wasm_bg.wasm")) });
+
   const maps = new Map<string, string>();
   generator = {
-    ...data.generator,
+    ...wasm,
     generate_map(request, ...documents) {
-      if (!maps.has(request)) maps.set(request, data.generator.generate_map(request, ...documents));
+      if (!maps.has(request)) maps.set(request, wasm.generate_map(request, ...documents));
       return maps.get(request)!;
     },
   };
@@ -63,7 +68,7 @@ async function serving() {
   const ready = await host.ready;
   const ordersPerSecond = (JSON.parse(data.rules) as { commands: { orders_per_s: number } })
     .commands.orders_per_s;
-  const seats = new Map<string, Seat>([
+  const seats = new Map<string, BattleSeat>([
     [blueId, { side: "blue", player: "blue-1" }],
     [redId, { side: "red", player: "red-1" }],
   ]);
@@ -139,7 +144,7 @@ test("every response forbids caching and the cross-origin preflight permits the 
   expect(preflight.headers.get("access-control-max-age")).toBe("7200");
   const missing = await b.request("/missing");
   expect(missing.status).toBe(404);
-  const stranger = await b.request("/battles/duel/up", { seq: 1, items: [] }, "unseated");
+  const stranger = await b.request("/battles/duel/up", { seq: 1, items: [] }, "f".repeat(32));
   expect(await stranger.json()).toEqual({ seq: 1, refused: "not_seated" });
   const up = await b.request("/battles/duel/up", { seq: 1, items: [] });
   expect(await up.json()).toEqual({ seq: 1, results: [] });
@@ -217,7 +222,7 @@ test("a cut HTTP stream resumes by id with every actual battle tick decoded once
       if (record.kind === "publication")
         actual.set(
           new DataView(record.payload.buffer, record.payload.byteOffset).getUint32(0, true),
-          new TextDecoder().decode(record.payload.subarray(4, 20)),
+          decodePublication(record.payload).digest,
         );
     }
   })();
@@ -245,7 +250,7 @@ test("a cut HTTP stream resumes by id with every actual battle tick decoded once
       if (record.kind === "end") return;
       if (record.id) ids.push(record.id);
       if (record.kind !== "publication") continue;
-      const frame = decoder.decode(new Float32Array(record.payload.slice(24).buffer));
+      const frame = decoder.decode(new Float32Array(decodePublication(record.payload).buffer));
       if (!frame) throw new Error("page dropped an HTTP publication");
       const tick = new DataView(record.payload.buffer, record.payload.byteOffset).getUint32(
         0,
@@ -253,7 +258,7 @@ test("a cut HTTP stream resumes by id with every actual battle tick decoded once
       );
       expect(frame.tick).toBe(tick);
       ticks.push(tick);
-      frames.push({ tick, digest: new TextDecoder().decode(record.payload.subarray(4, 20)) });
+      frames.push({ tick, digest: decodePublication(record.payload).digest });
     }
   })().catch((error) => {
     readingError = error;
@@ -280,7 +285,7 @@ test("an unseated browser is refused before its order can enter the battle", asy
   const response = await b.request(
     "/battles/duel/up",
     { seq: 9, items: [{ id: 8, queued: false, order: { kind: "ready" } }], player: "blue-1" },
-    "stranger",
+    "e".repeat(32),
   );
   expect(response.status).toBe(403);
   expect(await response.json()).toEqual({ seq: 9, refused: "not_seated" });
@@ -626,4 +631,57 @@ test("oversized orders and batches are invalid before recording, and both seats 
   const tick = (await b.host.referee()).tick;
   await b.run(5);
   expect((await b.host.referee()).tick).toBeGreaterThan(tick);
+});
+
+test("an older tab's sequence refusal settles its orders once and never retries them", async () => {
+  const { httpLink } = await import("../../src/battle/remote/httpLink");
+  const { remoteConnection } = await import("../../src/battle/remote/connection");
+  const b = await serving();
+  const pageClock = new PageClock();
+  const older = httpLink(b.base, "duel", blueId);
+  const newer = httpLink(b.base, "duel", blueId);
+  const replies: import("../../src/battle/sim/protocol").SimReply[] = [];
+  const attempts: number[] = [];
+  const channel = remoteConnection(
+    {
+      ...older,
+      up(batch) {
+        attempts.push(batch.seq);
+        return older.up(batch);
+      },
+    },
+    pageClock,
+  )(
+    (reply) => replies.push(reply),
+    () => {},
+  );
+  try {
+    const fresh = await newer.up({
+      seq: Date.now(),
+      items: [{ id: 1, order: { kind: "ready" }, queued: false }],
+    });
+    expect(fresh).toMatchObject({ results: [{ ack: { error: null } }] });
+    const before = await b.host.replay();
+    channel.send({
+      type: "command",
+      id: 41,
+      order: { kind: "ready" },
+      queued: false,
+      seat: { side: "blue", player: "blue-1" },
+    });
+    await vi.waitFor(() =>
+      expect(replies).toContainEqual({
+        type: "request_refused",
+        request: "command",
+        id: 41,
+        reason: "sequence",
+      }),
+    );
+    await pageClock.advance(60_000);
+    expect(attempts).toHaveLength(1);
+    expect(await b.host.replay()).toBe(before);
+  } finally {
+    channel.close();
+    newer.close();
+  }
 });

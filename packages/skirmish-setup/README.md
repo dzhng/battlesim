@@ -6,6 +6,8 @@ room and the server all use it, so a seat means the same thing in each.
 
 - [Seats](src/seats.ts): a seat has an id that is made once and never
   renumbered; its number on screen is its lane, derived from where it sits.
+- [Lighting](src/lighting.ts): the valid authored choices shared by the room
+  model and the page; presentation owns how an admitted choice is drawn.
 - [The lobby](src/lobby.ts): the presets, every edit a host may make, and
   the one function that turns a lobby into a battle request.
 

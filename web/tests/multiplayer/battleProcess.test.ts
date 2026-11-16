@@ -28,7 +28,7 @@ async function machine() {
 test("a battle refuses an unauthenticated controller and an unseated browser without disclosing credentials", async () => {
   const { m, key } = await machine();
   const who = randomBytes(16).toString("hex");
-  const denied = await fetch(`${m.control}/control/referee`, { method: "POST" });
+  const denied = await fetch(`${m.address}/control/referee`, { method: "POST" });
   expect(denied.status).toBe(403);
   expect((await denied.text()).includes(key), "credential appeared in readable output").toBe(false);
   const host = createRemoteBattleHost({ candidates: [duel] }, "duel", Promise.resolve(m), key);
@@ -153,7 +153,7 @@ async function lobby() {
     return ticket;
   }
   async function control(action: string) {
-    const response = await fetch(`${remote.control}/control/${action}`, {
+    const response = await fetch(`${remote.address}/control/${action}`, {
       method: "POST",
       headers: { [CONTROL_HEADER]: key },
     });
@@ -300,7 +300,7 @@ test("stopping the lobby stops its running battle", async () => {
 
 test("a battle stops itself when its authenticated lobby stops renewing the lease", async () => {
   const { m, key } = await machine();
-  const response = await fetch(`${m.control}/control/start`, {
+  const response = await fetch(`${m.address}/control/start`, {
     method: "POST",
     headers: { [CONTROL_HEADER]: key, "Content-Type": "application/json" },
     body: JSON.stringify({ id: "lease", candidates: [duel] }),
@@ -442,7 +442,7 @@ test("a battle key and seated browser credential never appear in readable replie
 test("an unreachable control surface is a failed room and its machine is stopped", async () => {
   const l = await lobby();
   const ticket = await l.room();
-  l.remote().control += "/unreachable";
+  l.remote().address += "/unreachable";
   await vi.waitFor(
     () =>
       expect(l.records.filter((r) => r.kind === "end").map((r) => readJson(r))).toEqual([
@@ -487,7 +487,7 @@ test("a dead Frontline battle is removed and releases the shared battle place", 
 test("the lobby's record stream resumes after a cut without losing or repeating player activity", async () => {
   const { m, key } = await machine();
   async function post(path: string, value: unknown, control = true) {
-    const response = await fetch(`${m.control}${path}`, {
+    const response = await fetch(`${m.address}${path}`, {
       method: "POST",
       headers: {
         ...(control ? { [CONTROL_HEADER]: key } : { "X-Player": ids[0] }),
@@ -502,7 +502,7 @@ test("the lobby's record stream resumes after a cut without losing or repeating 
   await post("/control/seating", [[ids[0], { side: "blue", player: "blue-1" }]]);
   const abort = new AbortController();
   const reader = httpRecords(
-    `${m.control}/control/events`,
+    `${m.address}/control/events`,
     { [CONTROL_HEADER]: key },
     abort.signal,
   )[Symbol.asyncIterator]();
@@ -526,7 +526,7 @@ test("the lobby's record stream resumes after a cut without losing or repeating 
   await order(2);
   const back = new AbortController();
   const resumed = httpRecords(
-    `${m.control}/control/events?after=${first.id}`,
+    `${m.address}/control/events?after=${first.id}`,
     { [CONTROL_HEADER]: key },
     back.signal,
   )[Symbol.asyncIterator]();
@@ -582,7 +582,7 @@ test("a malformed request target is refused without killing the battle server", 
     pending.end();
   });
   expect(reply).toEqual({ status: 410, body: JSON.stringify({ refused: "unavailable" }) });
-  const ping = await fetch(`${m.control}/control/ping`, {
+  const ping = await fetch(`${m.address}/control/ping`, {
     method: "POST",
     headers: { [CONTROL_HEADER]: key },
   });
@@ -609,7 +609,7 @@ test("a machine that cannot start releases its allocation for a later battle", a
   }
   const m = await provider.start(key);
   cleanups.push(m.stop);
-  const ping = await fetch(`${m.control}/control/ping`, {
+  const ping = await fetch(`${m.address}/control/ping`, {
     method: "POST",
     headers: { [CONTROL_HEADER]: key },
   });

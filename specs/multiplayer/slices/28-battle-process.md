@@ -18,8 +18,7 @@ slice 29 puts the battle's half on a sandbox.
   serves that battle's `stream`, `up` and `preview` to its players, and
   answers the lobby on a control surface.
 - **A ticket says where its battle lives.** `BattleTicket` gains
-  `address?: string`, present when the battle's three routes are not at the
-  lobby's address. The page uses it for the battle's link and nothing else.
+  `address: string`, the battle server's origin. The page uses it for the battle's link and nothing else.
 - **The lobby asks a provider for a machine,** and knows nothing about what
   kind it is:
 
@@ -29,8 +28,7 @@ slice 29 puts the battle's half on a sandbox.
     start(key: string): Promise<Machine>;   // rejects when none can be had
   }
   interface Machine {
-    address: string;   // for players
-    control: string;   // for the lobby; may be the same
+    address: string;   // player and authenticated control routes
     stop(): void;
   }
   ```

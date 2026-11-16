@@ -1,7 +1,6 @@
-/** A battle's player address and private control address may share a listener. */
+/** A battle exposes one address; control requests authenticate in headers. */
 export interface Machine {
   address: string;
-  control: string;
   stop(): void;
 }
 export interface BattleMachines {

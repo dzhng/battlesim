@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createSimClient,
   type Publication,
-  type OnlineSimClient,
+  type SeatClient,
   type SimClient,
 } from "@web/battle/sim/client";
 import type { LearnedGround } from "@web/battle/sim/presentationGround";
@@ -56,7 +56,7 @@ interface SessionStartup {
  * observations and status; this operation keeps continuations tied to the
  * client they were created for. */
 function startSessionStartup(
-  client: OnlineSimClient | SimClient,
+  client: SeatClient | SimClient,
   plan: ScriptedSim | undefined,
   onWarm: () => void,
   viewportInitiallyReady: boolean,
@@ -114,7 +114,7 @@ export function useSimSession({
   side = "blue",
 }: SimSessionOptions) {
   const [generation, setGeneration] = useState(0);
-  const [client, setClient] = useState<OnlineSimClient | SimClient | null>(null);
+  const [client, setClient] = useState<SeatClient | SimClient | null>(null);
   /** Why the authority failed to start (for example a mismatched replay). */
   const [error, setError] = useState<string | null>(null);
   const [observation, setObservation] = useState<ObservationView | null>(null);

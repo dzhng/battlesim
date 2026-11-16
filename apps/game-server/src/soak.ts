@@ -1,3 +1,4 @@
+import { decodePublication } from "../../../packages/multiplayer/src/stream/publication.ts";
 // `bun run server:soak [seconds]`: a generated 5v5 of AIs on a battle thread,
 // watched through one seat's stream. Each second it prints the ticks run,
 // how many took longer than a tick's budget, the 95th percentile step time,
@@ -67,9 +68,8 @@ function stop() {
 const stream = (async () => {
   for await (const record of observer.link.records(null)) {
     if (record.kind !== "publication") continue;
-    const view = new DataView(record.payload.buffer, record.payload.byteOffset);
-    latestTick = view.getUint32(0, true);
-    const stepMs = view.getFloat32(20, true);
+    const { tick, stepMs } = decodePublication(record.payload);
+    latestTick = tick;
     allStepMs.push(stepMs);
     secondStepMs.push(stepMs);
     secondTicks++;

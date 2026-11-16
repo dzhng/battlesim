@@ -3,7 +3,7 @@
 The lobby owns rooms, Frontline, admission and presence. Each battle runs in
 its own process, with the simulation on that process's worker thread. The
 [battle server](src/http/control.ts) owns that battle's player routes;
-[the lobby's hosting owner](src/battles.ts) reaches it through authenticated
+[the lobby's hosting owner](src/hosting.ts) reaches it through authenticated
 control requests and one resumable event stream. HTTP owns sockets and
 credentials, and seating supplied by the lobby binds each player request to the
 seat it may command. Neither a ticket nor the battle setup contains a browser
@@ -64,11 +64,12 @@ browser id. The client-address trust boundary belongs to
 
 [Online state](src/online.ts) owns battle admission and presence across modes.
 A lobby holds a slot before it starts; Frontline holds one while preparing or
-running. Both publish seating through the same hosting owner and use the same battle
+running. Both hold control operations only; player traffic always goes to the
+battle server named by its ticket. Both publish seating through the same hosting owner and use the same battle
 transport. The [machine provider](src/machines/index.ts) owns capacity and
 allocation; local startup uses child processes, and tests can use real HTTP
-listeners inside their process. A machine exposes player and control addresses
-and a stop operation, with no assumption that the two addresses coincide.
+listeners inside their process. A machine exposes one address and a stop operation. Player and authenticated
+control requests share its listener.
 
 The lobby mints one private key per battle. Only control request headers and
 the machine's startup environment carry it. Control replies and events contain

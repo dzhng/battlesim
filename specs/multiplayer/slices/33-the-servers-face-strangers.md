@@ -49,7 +49,7 @@ them as news.
 
 `packages/multiplayer/src/room.ts` (the code, the seed's check) and
 [wire.md](../wire.md); `apps/game-server/src/rooms.ts`, `http/rooms.ts`,
-`frontline.ts`, `http/input.ts`, `http/seats.ts`; the Multiplayer page's
+`frontline.ts`, `http/input.ts`, `http/seatTransport.ts`; the Multiplayer page's
 join-by-code field and its refusal lines.
 
 ## Run or see

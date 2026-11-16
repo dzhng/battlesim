@@ -1,6 +1,10 @@
 import { FACTIONS } from "@packages/scene-assets/src/units";
 import { sideFaction, type LobbySide } from "@packages/skirmish-setup/src/lobby";
-import { battlePlayers, MAX_PLAYERS_PER_SIDE, type Seat } from "@packages/skirmish-setup/src/seats";
+import {
+  battlePlayers,
+  MAX_PLAYERS_PER_SIDE,
+  type LobbySeat,
+} from "@packages/skirmish-setup/src/seats";
 import { spoken } from "../battleLinks";
 import { Pick } from "./Choices";
 import type { LobbyDriver } from "./driver";
@@ -67,7 +71,7 @@ function Banner({
   count,
   driver,
 }: {
-  seat: Seat;
+  seat: LobbySeat;
   index: number;
   player?: string;
   count: number;

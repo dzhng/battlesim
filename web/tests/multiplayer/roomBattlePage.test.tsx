@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
-import { MemoryRouter, Route, Routes, useLocation } from "react-router";
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router";
 import { RoomPage } from "@apps/battle-lab/src/online/RoomPage";
 import { MultiplayerPage } from "@apps/battle-lab/src/online/MultiplayerPage";
-import { OnlineMatchResult } from "@apps/battle-lab/src/online/OnlineMatchResult";
+import { MatchResultOverlay } from "@apps/battle-lab/src/MatchResultOverlay";
+import { returnToMultiplayer } from "@apps/battle-lab/src/onlineSession";
 import { browserId } from "@apps/battle-lab/src/online/identity";
 import type { BattleHost, BattleEnd } from "@apps/game-server/src/battleHost/index";
 import type { OnlineBattleEntry } from "@apps/battle-lab/src/onlineSession";
@@ -117,34 +118,39 @@ test("a battle failing during server preparation sends the member to Multiplayer
   expect(page.queryByLabelText("Battle ticket")).toBeNull();
   expect(page.container.textContent).not.toContain("private worker failure");
 });
+function FinishedPage() {
+  const navigate = useNavigate();
+  return (
+    <WithTestCatalog>
+      <MatchResultOverlay
+        match={{
+          phase: "finished",
+          result: "blue",
+          scores: [1, 0],
+          objectives: [],
+          preparationRemainingS: 0,
+          players: [],
+          report: { totals: [], events: [] },
+        }}
+        seats={[
+          { id: "blue-1", side: "blue", controller: "human" },
+          { id: "red-1", side: "red", controller: "human" },
+        ]}
+        viewer="red-1"
+        online={{
+          callsigns: { "blue-1": "SCOUT", "red-1": "WING" },
+          onReturn: () => returnToMultiplayer(navigate, ""),
+        }}
+      />
+    </WithTestCatalog>
+  );
+}
+
 test("the final online observation names callsigns in player rows, heads the sides by what they are to the viewer, and returns to Multiplayer", async () => {
   const page = render(
     <MemoryRouter initialEntries={["/online/battle/finished"]}>
       <Routes>
-        <Route
-          path="/online/battle/:id"
-          element={
-            <WithTestCatalog>
-              <OnlineMatchResult
-                match={{
-                  phase: "finished",
-                  result: "blue",
-                  scores: [1, 0],
-                  objectives: [],
-                  preparationRemainingS: 0,
-                  players: [],
-                  report: { totals: [], events: [] },
-                }}
-                seats={[
-                  { id: "blue-1", side: "blue", controller: "human" },
-                  { id: "red-1", side: "red", controller: "human" },
-                ]}
-                viewer="red-1"
-                callsigns={{ "blue-1": "SCOUT", "red-1": "WING" }}
-              />
-            </WithTestCatalog>
-          }
-        />
+        <Route path="/online/battle/:id" element={<FinishedPage />} />
         <Route path="/multiplayer" element={<h1>Multiplayer</h1>} />
       </Routes>
     </MemoryRouter>,

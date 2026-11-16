@@ -1,10 +1,13 @@
 // Lobby-side hosting: machines, their control links and reported stream presence.
-// Rooms and Frontline hold only the simulation's BattleHost interface.
+// Rooms and Frontline hold the hosted battle's control operations.
 import { randomBytes } from "node:crypto";
-import type { Seat } from "../../../packages/multiplayer/src/link.ts";
+import type { BattleSeat } from "../../../packages/multiplayer/src/link.ts";
 import type { BattleSetup } from "../../../packages/multiplayer/src/wire.ts";
-import type { BattleHost } from "./battleHost/index.ts";
-import { createRemoteBattleHost, type RemoteBattleHost } from "./battleHost/remote.ts";
+import {
+  createRemoteBattleHost,
+  type RemoteBattleHost,
+  type HostedBattle,
+} from "./battleHost/remote.ts";
 import type { BattleMachines } from "./machines/index.ts";
 import type { createPresence } from "./presence.ts";
 
@@ -13,21 +16,21 @@ export function hostedBattles(
   presence: ReturnType<typeof createPresence>,
 ) {
   const active = new Map<
-    BattleHost,
+    HostedBattle,
     {
       remote: RemoteBattleHost;
-      seating: Map<string, Seat>;
+      seating: Map<string, BattleSeat>;
       connections: Map<string, () => void>;
       pending: Promise<void>;
     }
   >();
   return {
-    create(candidates: BattleSetup[], id: string): BattleHost {
+    create(candidates: BattleSetup[], id: string): HostedBattle {
       const key = randomBytes(16).toString("hex");
       const remote = createRemoteBattleHost({ candidates }, id, machines.start(key), key);
       const entry = {
         remote,
-        seating: new Map<string, Seat>(),
+        seating: new Map<string, BattleSeat>(),
         connections: new Map<string, () => void>(),
         pending: Promise.resolve(),
       };
@@ -51,10 +54,12 @@ export function hostedBattles(
       });
       return remote;
     },
-    address(host: BattleHost) {
-      return active.get(host)?.remote.address;
+    address(host: HostedBattle) {
+      const address = active.get(host)?.remote.address;
+      if (!address) throw new Error("battle address unavailable");
+      return address;
     },
-    async seating(host: BattleHost, entries: [string, Seat][]) {
+    async seating(host: HostedBattle, entries: [string, BattleSeat][]) {
       const entry = active.get(host);
       if (!entry) return;
       if (
@@ -69,7 +74,7 @@ export function hostedBattles(
       entry.pending = entry.remote.setSeating(entries);
       await entry.pending;
     },
-    release(host: BattleHost) {
+    release(host: HostedBattle) {
       const entry = active.get(host);
       if (!entry) return;
       for (const close of entry.connections.values()) close();

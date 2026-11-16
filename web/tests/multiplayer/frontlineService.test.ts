@@ -1,127 +1,28 @@
+import { testBrowser, seatRequest } from "./support/player";
+import { cleanups, service, unmakeable } from "./support/frontlineService";
 import { inProcessBattleMachines } from "../../../apps/game-server/src/machines/inProcess";
 // @vitest-environment node
-import { afterEach, beforeAll, expect, test } from "vitest";
+import { afterEach, beforeAll, beforeEach, expect, test, vi } from "vitest";
 import { createFrontlineService } from "../../../apps/game-server/src/frontline";
 import { createOnlineState } from "../../../apps/game-server/src/online";
 import { createBattleHost } from "../../../apps/game-server/src/battleHost/index";
 import type { BattleHost } from "../../../apps/game-server/src/battleHost/index";
 import { PageClock } from "./pageClock";
-import { loadBattleSupport, data, generator, flush, seat, recordHost } from "./support/battle";
-import type { BattleSetup, BattleTicket, Briefing } from "../../../packages/multiplayer/src/wire";
+import { loadBattleSupport, data, generator, flush, seat } from "./support/battle";
+import type { BattleTicket, Briefing } from "../../../packages/multiplayer/src/wire";
 import { MAP_ATTEMPTS } from "../../../apps/game-server/src/serverData";
 
 beforeAll(loadBattleSupport, 60_000);
-const cleanups: (() => void)[] = [];
+// Lease timing has its own process/lease suites. In-process map generation
+// must not spend a running game's wall-clock lease while this test thread is
+// busy preparing another game; the lifecycle below uses its explicit clocks.
+beforeEach(() =>
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval"] }),
+);
 afterEach(() => {
   for (const close of cleanups.splice(0).reverse()) close();
+  vi.useRealTimers();
 });
-
-/** The same game on a map the generator will not make. */
-const unmakeable = (setup: BattleSetup): BattleSetup => ({
-  ...setup,
-  map: { ...setup.map, type: "no such map type" as never },
-});
-
-/** `refusedMaps`: how many of the first drawn maps the generator refuses. */
-async function service(capacity = 2, admissionMs = 0, refusedMaps = 0) {
-  const clock = new PageClock();
-  const battleClock = new PageClock();
-  const hosts: BattleHost[] = [];
-  const failures: string[] = [];
-  const records: ReturnType<typeof recordHost>[] = [];
-  const forgotten = new Set<string>();
-  const online = createOnlineState({
-    capacity,
-    clock,
-    callsign: (who) => (forgotten.has(who) ? undefined : "SCOUT"),
-    releaseCallsign: (who) => {
-      forgotten.add(who);
-    },
-  });
-  online.presence.track("alpha");
-  let draw = 0;
-  let refusals = refusedMaps;
-  const frontline = createFrontlineService({
-    online,
-    mapAttempts: MAP_ATTEMPTS,
-    random: () => [0, 0, 0.5, 0, 1 / 2 ** 32, 0, 0][draw++ % 7],
-    createBattle(candidates) {
-      const host = createBattleHost(
-        { candidates: candidates.map((setup) => (refusals-- > 0 ? unmakeable(setup) : setup)) },
-        { clock: battleClock, generator },
-        data,
-      );
-      clock.suspend(admissionMs);
-      void clock.advance(0);
-      hosts.push(host);
-      host.onEnd((end) => {
-        if (end.kind === "crashed") failures.push(end.message);
-      });
-      records.push(recordHost(host, candidates[0].seats[0]));
-      return host;
-    },
-  });
-  cleanups.push(online.dispose, frontline.dispose);
-  const join = async (who: string) => {
-    const result = await frontline.join(who);
-    if ("refused" in result) throw new Error(failures.join("; ") || result.refused);
-    return result;
-  };
-  const a = await join("alpha");
-  const host = hosts.at(-1)!;
-  const ready = await host.ready;
-  const ended: Parameters<Parameters<BattleHost["onEnd"]>[0]>[0][] = [];
-  host.onEnd((end) => ended.push(end));
-  const run = async (ticks: number) => {
-    for (let i = 0; i < ticks; i++) await battleClock.advance(1000 / ready.tickHz);
-  };
-  const b = { host, ready, ended, run };
-  const deploy = async (who: string, briefing: Briefing): Promise<BattleTicket> => {
-    let done = false;
-    const pending = frontline.deploy(who, briefing.battle).finally(() => {
-      done = true;
-    });
-    for (let i = 0; i < 10 && !done; i++) {
-      await flush();
-      await run(1);
-    }
-    const result = await pending;
-    if ("refused" in result) throw new Error(result.refused);
-    return result;
-  };
-  const present = (who: string) => {
-    const close = online.presence.open(who);
-    cleanups.push(close);
-    return close;
-  };
-  const closeAlpha = present("alpha");
-  const ticket = await deploy("alpha", a);
-  const alpha = seat(b, ticket),
-    seen = alpha.read();
-  for (let i = 0; i < ready.tickHz * 3 && !seen.latest; i++) await run(1);
-  if (!seen.latest) throw new Error("the initial reader never received its snapshot");
-  return {
-    clock,
-    battleClock,
-    hosts,
-    records,
-    online,
-    frontline,
-    join,
-    a,
-    ticket,
-    alpha,
-    seen,
-    present,
-    closeAlpha,
-    nextMap: () => {
-      draw = 6;
-    },
-    deploy,
-    b,
-    run,
-  };
-}
 
 test("Play draws another map when the generator refuses one, and says so honestly when it refuses them all", async () => {
   // One refusal short of the game's limit: the last draw is admitted.
@@ -132,7 +33,21 @@ test("Play draws another map when the generator refuses one, and says so honestl
 
   // Every draw refused: not "full", and the battle slot is free again.
   const online = createOnlineState({
-    capacity: 1,
+    machines: inProcessBattleMachines({
+      capacity: 1,
+      ordersPerSecond: 10000,
+      createBattle: (spec) => {
+        const candidates = spec.candidates;
+        made.push(
+          createBattleHost(
+            { candidates: candidates.map(unmakeable) },
+            { clock: new PageClock(), generator },
+            data,
+          ),
+        );
+        return made.at(-1)!;
+      },
+    }),
     clock: new PageClock(),
     callsign: () => "SCOUT",
     releaseCallsign: () => {},
@@ -142,20 +57,10 @@ test("Play draws another map when the generator refuses one, and says so honestl
     online,
     mapAttempts: MAP_ATTEMPTS,
     random: () => 0.25,
-    createBattle(candidates) {
-      made.push(
-        createBattleHost(
-          { candidates: candidates.map(unmakeable) },
-          { clock: new PageClock(), generator },
-          data,
-        ),
-      );
-      return made.at(-1)!;
-    },
   });
   cleanups.push(online.dispose, frontline.dispose);
-  online.presence.track("alpha");
-  expect(await frontline.join("alpha")).toEqual({ refused: "unavailable" });
+  online.presence.track(testBrowser("alpha"));
+  expect(await frontline.join(testBrowser("alpha"))).toEqual({ refused: "unavailable" });
   expect(made).toHaveLength(1);
   await expect(made[0].ready).rejects.toThrow();
   expect(online.slotFree()).toBe(true);
@@ -167,24 +72,21 @@ test("Play reserves a battle and Deploy takes its initial human seat without a s
   const s = await service();
   expect(s.ticket.battle).toBe(s.a.battle);
   expect(s.ticket.mapIdentity).toBe(s.a.mapIdentity);
-  expect(s.frontline.battle(s.a.battle)?.seatOf("alpha")).toEqual({
-    side: s.ticket.side,
-    player: s.ticket.player,
-  });
+  expect(await seatRequest(s.ticket.address, s.ticket.battle, testBrowser("alpha"))).toBe(200);
   expect(JSON.parse(await s.b.host.replay()).seat_events).toBeUndefined();
   expect(s.seen.latest!.skirmish!.players.find((p) => p.id === s.ticket.player)!.controller).toBe(
     "human",
   );
-  expect(await s.frontline.deploy("alpha", s.a.battle)).toEqual(s.ticket);
-  expect(JSON.stringify([s.a, s.ticket])).not.toContain("alpha");
+  expect(await s.frontline.deploy(testBrowser("alpha"), s.a.battle)).toEqual(s.ticket);
+  expect(JSON.stringify([s.a, s.ticket])).not.toContain(testBrowser("alpha"));
   // The hang watchdog its neighbours have: this prepares the same large battle.
 }, 120_000);
 
 test("a joiner's displaced units stay on their side under an AI that orders them; Deploy publishes only the completed fresh seat", async () => {
   const s = await service();
   expect((await s.alpha.order({ kind: "ready" })).error).toBeNull();
-  const briefing = await s.join("bravo");
-  s.present("bravo");
+  const briefing = await s.join(testBrowser("bravo"));
+  s.present(testBrowser("bravo"));
   const index = s.ticket.setup.seats.findIndex(
     (p) => p.side === briefing.side && p.player.endsWith(`-${briefing.seat}`),
   );
@@ -204,7 +106,7 @@ test("a joiner's displaced units stay on their side under an AI that orders them
   );
   s.b.host.setController(id, "active_ai");
   const before = JSON.parse(await s.b.host.replay()).accepted.length;
-  const ticket = await s.deploy("bravo", briefing);
+  const ticket = await s.deploy(testBrowser("bravo"), briefing);
   const view = await s.b.host.referee();
   expect(view.seats[index]).toMatchObject({
     controller: "human",
@@ -248,21 +150,21 @@ test("a joiner's displaced units stay on their side under an AI that orders them
 
 test("leaving and returning while held restores the same army and records only controllers", async () => {
   const s = await service();
-  s.present("bravo");
-  const other = await s.deploy("bravo", await s.join("bravo"));
+  s.present(testBrowser("bravo"));
+  const other = await s.deploy(testBrowser("bravo"), await s.join(testBrowser("bravo")));
   expect(other.side).not.toBe(s.ticket.side);
   const { buy, firstUnit } = await import("./support/battle");
   await buy(s.alpha);
   await s.alpha.order({ kind: "ready" });
   const unit = await firstUnit(s.b, s.seen);
   const before = JSON.parse(await s.b.host.replay()).seat_events;
-  s.frontline.leave("alpha", s.a.battle);
+  s.frontline.leave(testBrowser("alpha"), s.a.battle);
   await s.run(1);
   expect((await s.alpha.order({ kind: "ready" })).error?.reason).toBe("ai_controlled");
   const { GONE_TIMEOUT_MS } = await import("../../../packages/multiplayer/src/frontline");
   await s.clock.advance(GONE_TIMEOUT_MS - 1);
-  const returned = await s.join("alpha");
-  const ticket = await s.deploy("alpha", returned);
+  const returned = await s.join(testBrowser("alpha"));
+  const ticket = await s.deploy(testBrowser("alpha"), returned);
   expect([ticket.player, ticket.side, ticket.battle]).toEqual([
     s.ticket.player,
     s.ticket.side,
@@ -278,13 +180,13 @@ test("leaving and returning while held restores the same army and records only c
 
 test("a player returning after the hold joins afresh without another opening grant", async () => {
   const s = await service();
-  s.present("bravo");
-  await s.deploy("bravo", await s.join("bravo"));
-  s.frontline.leave("alpha", s.a.battle);
+  s.present(testBrowser("bravo"));
+  await s.deploy(testBrowser("bravo"), await s.join(testBrowser("bravo")));
+  s.frontline.leave(testBrowser("alpha"), s.a.battle);
   const { GONE_TIMEOUT_MS } = await import("../../../packages/multiplayer/src/frontline");
   await s.clock.advance(GONE_TIMEOUT_MS);
-  const returned = await s.join("alpha");
-  const ticket = await s.deploy("alpha", returned);
+  const returned = await s.join(testBrowser("alpha"));
+  const ticket = await s.deploy(testBrowser("alpha"), returned);
   const view = await s.b.host.referee();
   expect(view.seats.find((p) => p.player === ticket.player)).toMatchObject({
     controller: "human",
@@ -301,8 +203,8 @@ test("a player returning after the hold joins afresh without another opening gra
 
 test("idle ends only that player's stream with a reason, its AI commands the army and the hold then opens to a joiner", async () => {
   const s = await service();
-  s.present("bravo");
-  const bt = await s.deploy("bravo", await s.join("bravo"));
+  s.present(testBrowser("bravo"));
+  const bt = await s.deploy(testBrowser("bravo"), await s.join(testBrowser("bravo")));
   const bravo = seat(s.b, bt);
   const { buy, firstUnit } = await import("./support/battle");
   await buy(s.alpha);
@@ -330,26 +232,28 @@ test("idle ends only that player's stream with a reason, its AI commands the arm
   for (let i = 0; i < 900 && !(await ordersArmy()); i++) await s.run(1);
   expect(await ordersArmy()).toBe(true);
   await s.clock.advance(GONE_TIMEOUT_MS);
-  const joiner = await s.join("charlie");
+  const joiner = await s.join(testBrowser("charlie"));
   expect([joiner.battle, joiner.side, joiner.seat]).toEqual([s.a.battle, s.a.side, s.a.seat]);
 }, 120_000);
 
 test("an undeployed reservation lapses and late Deploy is expired while its seat is offered again", async () => {
   const s = await service();
-  const reserved = await s.join("bravo");
-  expect(await s.join("bravo")).toEqual(reserved);
-  expect(s.frontline.battle(reserved.battle)?.seatOf("bravo")).toBeUndefined();
+  const reserved = await s.join(testBrowser("bravo"));
+  expect(await s.join(testBrowser("bravo"))).toEqual(reserved);
+  expect(await seatRequest(s.ticket.address, reserved.battle, testBrowser("bravo"))).toBe(403);
   const { GONE_TIMEOUT_MS } = await import("../../../packages/multiplayer/src/frontline");
   await s.clock.advance(GONE_TIMEOUT_MS);
-  expect(await s.frontline.deploy("bravo", reserved.battle)).toEqual({ refused: "expired" });
-  const next = await s.join("charlie");
+  expect(await s.frontline.deploy(testBrowser("bravo"), reserved.battle)).toEqual({
+    refused: "expired",
+  });
+  const next = await s.join(testBrowser("charlie"));
   expect([next.battle, next.side, next.seat]).toEqual([
     reserved.battle,
     reserved.side,
     reserved.seat,
   ]);
-  s.present("charlie");
-  const ticket = await s.deploy("charlie", next);
+  s.present(testBrowser("charlie"));
+  const ticket = await s.deploy(testBrowser("charlie"), next);
   expect((await s.b.host.referee()).seats.find((p) => p.player === ticket.player)!.controller).toBe(
     "human",
   );
@@ -376,10 +280,10 @@ test("a battle beyond its joining point refuses a newcomer, then its final obser
     await s.run(1);
   const scoring = await s.b.host.referee();
   expect(scoring.scores[0]).not.toBe(scoring.scores[1]);
-  const second = await s.join("second");
+  const second = await s.join(testBrowser("second"));
   expect(second.side).toBe(scoring.scores[0] < scoring.scores[1] ? "blue" : "red");
-  s.present("second");
-  const secondTicket = await s.deploy("second", second);
+  s.present(testBrowser("second"));
+  const secondTicket = await s.deploy(testBrowser("second"), second);
   expect(
     (await s.b.host.referee()).seats.find((p) => p.player === secondTicket.player)!.controller,
   ).toBe("human");
@@ -399,14 +303,14 @@ test("a battle beyond its joining point refuses a newcomer, then its final obser
     }),
   ).toBeGreaterThan(view.target * 0.9);
   expect(view.phase).toBe("active");
-  expect(await s.frontline.join("bravo")).toEqual({ refused: "full" });
+  expect(await s.frontline.join(testBrowser("bravo"))).toEqual({ refused: "full" });
   for (let i = 0; i < 3000 && !s.b.ended.length; i++) await s.run(1);
   expect(s.b.ended).toEqual([{ kind: "finished" }]);
   for (const seen of [s.seen, enemy]) {
     expect(seen.latest!.skirmish).toMatchObject({ phase: "finished", result: s.ticket.side });
     expect(seen.end).toBe("finished");
   }
-  expect(s.frontline.battle(s.a.battle)).toBeUndefined();
+  await expect(s.b.host.referee()).rejects.toThrow(/ended/);
   expect(s.online.slotFree()).toBe(true);
 }, 120_000);
 
@@ -415,17 +319,17 @@ test("the last human leaving or dropping deletes the battle and releases its slo
   for (const end of ["leave", "drop", "crash"] as const) {
     const s = await service(1);
     expect(s.online.slotFree()).toBe(false);
-    if (end === "leave") s.frontline.leave("alpha", s.a.battle);
+    if (end === "leave") s.frontline.leave(testBrowser("alpha"), s.a.battle);
     if (end === "drop") {
       // End all streams in the shared presence, not the test's observation tap.
       s.closeAlpha();
       await s.clock.advance(PRESENCE_GRACE_MS - 1);
-      expect(s.frontline.battle(s.a.battle)).toBeDefined();
+      expect(await s.b.host.referee()).toMatchObject({ tick: expect.any(Number) });
       await s.clock.advance(1);
     }
     if (end === "crash") s.b.host.setController(s.ticket.player, "invalid" as never);
     await flush();
-    expect(s.frontline.battle(s.a.battle)).toBeUndefined();
+    await expect(s.b.host.referee()).rejects.toThrow(/ended/);
     expect(s.online.slotFree()).toBe(true);
     await expect(s.b.host.referee()).rejects.toThrow(/ended/);
   }
@@ -437,22 +341,20 @@ test("rooms and Frontline reserve the same battle slots", async () => {
   const room = createRoomService({
     online: s.online,
     random: () => 0.1,
-    createBattle: (candidates) =>
-      createBattleHost({ candidates }, { clock: s.battleClock, generator }, data),
   });
   cleanups.push(room.dispose);
-  expect(room.create("bravo", "public")).toEqual({ refused: "full" });
-  s.frontline.leave("alpha", s.a.battle);
-  const made = room.create("bravo", "public");
+  expect(room.create(testBrowser("bravo"), "public")).toEqual({ refused: "full" });
+  s.frontline.leave(testBrowser("alpha"), s.a.battle);
+  const made = room.create(testBrowser("bravo"), "public");
   expect(made).toEqual({ code: expect.any(String) });
-  expect(await s.frontline.join("alpha")).toEqual({ refused: "full" });
+  expect(await s.frontline.join(testBrowser("alpha"))).toEqual({ refused: "full" });
 }, 120_000);
 
 test("placement fills seats on the losing side in the fullest game and never offers its permanent AI", async () => {
   const s = await service(2);
-  const held = [{ who: "alpha", side: s.ticket.side }];
+  const held = [{ who: testBrowser("alpha"), side: s.ticket.side }];
   for (let i = 0; i < 7; i++) {
-    const who = `commander-${i}`;
+    const who = testBrowser(`commander-${i}`);
     s.present(who);
     const briefing = await s.join(who);
     expect(briefing.battle).toBe(s.a.battle);
@@ -465,33 +367,31 @@ test("placement fills seats on the losing side in the fullest game and never off
     held.push({ who, side: ticket.side });
   }
   s.nextMap();
-  const sparse = await s.join("sparse");
+  const sparse = await s.join(testBrowser("sparse"));
   expect(sparse.battle).not.toBe(s.a.battle);
-  const ready = await s.hosts[1].ready;
-  const deploy = s.frontline.deploy("sparse", sparse.battle);
-  await s.battleClock.advance(1000 / ready.tickHz);
-  await deploy;
-  s.present("sparse");
+  await s.hosts[1].ready;
+  await s.deploy(testBrowser("sparse"), sparse);
+  s.present(testBrowser("sparse"));
   for (const side of ["blue", "red"] as const)
     s.frontline.leave(held.find((p) => p.side === side)!.who, s.a.battle);
   const { GONE_TIMEOUT_MS } = await import("../../../packages/multiplayer/src/frontline");
   await s.clock.advance(GONE_TIMEOUT_MS);
-  const next = await s.join("next");
+  const next = await s.join(testBrowser("next"));
   expect(next.battle).toBe(s.a.battle);
   expect(next.seat).toBeLessThan(5);
 }, 120_000);
 
 test("the whole game's seat events and controller changes replay to the live digest at every tick", async () => {
   const s = await service();
-  s.present("bravo");
-  await s.deploy("bravo", await s.join("bravo"));
+  s.present(testBrowser("bravo"));
+  await s.deploy(testBrowser("bravo"), await s.join(testBrowser("bravo")));
   const { buy, firstUnit, yardstick } = await import("./support/battle");
   await buy(s.alpha);
   await s.alpha.order({ kind: "ready" });
   await firstUnit(s.b, s.seen);
-  s.frontline.leave("alpha", s.a.battle);
+  s.frontline.leave(testBrowser("alpha"), s.a.battle);
   await s.run(180);
-  await s.deploy("alpha", await s.join("alpha"));
+  await s.deploy(testBrowser("alpha"), await s.join(testBrowser("alpha")));
   await s.run(30);
   const replay = await s.b.host.replay();
   expect(JSON.parse(replay).seat_events.map((e: { kind: string }) => e.kind)).toEqual([
@@ -707,8 +607,8 @@ test("localhost hello, briefing, deploy, battle stream and order share seating; 
 
 test("presence uses one grace before AI takes a dropped army and a returning stream restores it without seat events", async () => {
   const s = await service();
-  s.present("bravo");
-  await s.deploy("bravo", await s.join("bravo"));
+  s.present(testBrowser("bravo"));
+  await s.deploy(testBrowser("bravo"), await s.join(testBrowser("bravo")));
   const { buy, firstUnit } = await import("./support/battle");
   const { PRESENCE_GRACE_MS } = await import("../../../apps/game-server/src/presence");
   await buy(s.alpha);
@@ -724,11 +624,13 @@ test("presence uses one grace before AI takes a dropped army and a returning str
   expect(
     (await s.b.host.referee()).seats.find((p) => p.player === s.ticket.player)!.controller,
   ).toBe("active_ai");
-  s.present("alpha");
-  expect(s.frontline.battle(s.a.battle)?.seatOf("alpha")).toEqual({
-    side: s.ticket.side,
-    player: s.ticket.player,
-  });
+  s.present(testBrowser("alpha"));
+  await vi.waitFor(async () =>
+    expect(
+      (await s.b.host.referee()).seats.find((p) => p.player === s.ticket.player)!.controller,
+    ).toBe("human"),
+  );
+  expect(await seatRequest(s.ticket.address, s.ticket.battle, testBrowser("alpha"))).toBe(200);
   expect((await s.alpha.order({ kind: "stop", units: [unit] })).error).toBeNull();
   await s.run(1);
   expect(JSON.parse(await s.b.host.replay()).seat_events).toEqual(events);

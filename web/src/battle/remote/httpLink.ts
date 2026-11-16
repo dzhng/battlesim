@@ -1,3 +1,4 @@
+import { BROWSER_ID_HEADER } from "../../../../packages/multiplayer/src/identity";
 // One HTTP connection per records() call. resumingReader, above this seam,
 // decides when to reconnect and which id to carry to the next connection.
 import type { SeatLink } from "../../../../packages/multiplayer/src/link";
@@ -13,15 +14,18 @@ export function httpLink(address: string, battle: string, browserId: string): Se
   async function post<T>(action: string, value: unknown, signal: AbortSignal): Promise<T> {
     const response = await fetch(`${base}/${action}`, {
       method: "POST",
-      headers: { "X-Player": browserId, "Content-Type": "application/json" },
+      headers: { [BROWSER_ID_HEADER]: browserId, "Content-Type": "application/json" },
       body: JSON.stringify(value),
       signal: AbortSignal.any([lifetime.signal, signal]),
     });
     const reply = await response.json();
-    // A seat/rate refusal is part of UpReply; route failures are not.
+    // Seat, rate and sequence refusals settle orders through UpReply.
     if (
       !response.ok &&
-      !(action === "up" && (reply.refused === "not_seated" || reply.refused === "rate"))
+      !(
+        action === "up" &&
+        (reply.refused === "not_seated" || reply.refused === "rate" || reply.refused === "sequence")
+      )
     )
       throw new Error(`Battle request failed (${response.status})`);
     return reply as T;

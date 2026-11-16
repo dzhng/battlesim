@@ -4,6 +4,8 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router";
 import { PageVisit } from "../../../apps/battle-lab/src/navigation";
+import { MultiplayerPage } from "../../../apps/battle-lab/src/online/MultiplayerPage";
+import { hello } from "../../../apps/battle-lab/src/online/hello";
 import { RoomPage } from "../../../apps/battle-lab/src/online/RoomPage";
 import { browserId } from "../../../apps/battle-lab/src/online/identity";
 import {
@@ -19,6 +21,10 @@ import type { OnlineBattleEntry } from "../../../apps/battle-lab/src/onlineSessi
 // These visits exercise a deliberately unconfigured production page.
 vi.mock("../../../apps/battle-lab/src/online/server.json", () => ({ default: { address: "" } }));
 
+vi.mock("../../../apps/battle-lab/src/menu/MenuShell", () => ({
+  useMenuShell: () => ({ back() {} }),
+}));
+
 const code = "TANGO-4821";
 afterEach(() => {
   cleanup();
@@ -30,15 +36,19 @@ function BattleArrival() {
   const entry = useLocation().state as OnlineBattleEntry;
   return <output aria-label="Arrived battle">{entry.ticket.battle}</output>;
 }
-function open() {
-  window.history.replaceState(null, "", `/room/${code}?server=http://127.0.0.1:8787`);
+function open(page = "room") {
+  window.history.replaceState(
+    null,
+    "",
+    `${page === "room" ? `/room/${code}` : "/multiplayer"}?server=http://127.0.0.1:8787`,
+  );
   render(
     <BrowserRouter>
       <PageVisit>
         <Routes>
           <Route path="/room/:code" element={<RoomPage />} />
           <Route path="/online/battle/:id" element={<BattleArrival />} />
-          <Route path="/multiplayer" element={<h1>Multiplayer</h1>} />
+          <Route path="/multiplayer" element={<MultiplayerPage />} />
         </Routes>
       </PageVisit>
     </BrowserRouter>,
@@ -53,7 +63,11 @@ function network(refused: boolean) {
     { kind: "start" },
   ] as const)
     room = roomReduce(room, browserId(), action, 0) as Room;
-  room = recordBattle(room, { id: "room-battle", mapIdentity: "generated-map" });
+  room = recordBattle(room, {
+    address: "http://127.0.0.1:1234",
+    id: "room-battle",
+    mapIdentity: "generated-map",
+  });
   vi.stubGlobal("fetch", async (input: string) => {
     const path = new URL(input, "http://localhost").pathname;
     paths.push(path);
@@ -104,3 +118,23 @@ test("a production page without a committed server address offers no online entr
   expect(screen.queryByLabelText("Arrived battle")).toBeNull();
   expect(screen.getByRole("button", { name: "Back" })).toBeTruthy();
 });
+
+test.each(["room", "multiplayer"])(
+  "%s shows hello's failure reason when the lobby cannot be reached",
+  async (page) => {
+    network(false);
+    const ordinary = globalThis.fetch;
+    vi.stubGlobal("fetch", async (...args: Parameters<typeof fetch>) => {
+      if (new URL(String(args[0]), window.location.origin).pathname === "/hello")
+        throw new TypeError("simulated connection failure");
+      return ordinary(...args);
+    });
+    const failure = await hello("http://127.0.0.1:8787", new AbortController().signal).catch(
+      (error) => error as Error,
+    );
+    if (!(failure instanceof Error)) throw new Error("expected unavailable lobby");
+    open(page);
+    const status = await screen.findByRole("status", { name: "Online unavailable" });
+    expect(status.textContent?.trim()).toBe(failure.message);
+  },
+);

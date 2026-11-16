@@ -1,7 +1,6 @@
 import { battlePlayers } from "../../../packages/skirmish-setup/src/seats.ts";
 import { randomUUID } from "node:crypto";
-import type { BattleSetup } from "../../../packages/multiplayer/src/wire.ts";
-import type { BattleHost } from "./battleHost/index.ts";
+import type { HostedBattle } from "./battleHost/remote.ts";
 import type { OnlineState, BattleSlot } from "./online.ts";
 import {
   createRoom,
@@ -34,14 +33,10 @@ type StoredRoom = {
   slot: BattleSlot;
   source: RecordSource;
   idle: { cancel: () => void } | null;
-  battle: { id: string; host: BattleHost; controllers: Map<string, string> } | null;
+  battle: { host: HostedBattle; controllers: Map<string, string> } | null;
 };
 
-export function createRoomService(options: {
-  createBattle: (candidates: BattleSetup[], id: string) => BattleHost;
-  online: OnlineState;
-  random: () => number;
-}) {
+export function createRoomService(options: { online: OnlineState; random: () => number }) {
   const { online } = options;
   const { clock, presence, releaseIfForgotten } = online;
   const rooms = new Map<string, StoredRoom>();
@@ -133,9 +128,8 @@ export function createRoomService(options: {
     try {
       const setup = battleSetup(stored.room);
       const id = randomUUID();
-      const host = options.createBattle([setup], id);
+      const host = online.createBattle([setup], id);
       stored.battle = {
-        id,
         host,
         controllers: new Map(setup.seats.map((s) => [s.player, s.controller])),
       };
@@ -152,17 +146,8 @@ export function createRoomService(options: {
         .then(async ({ mapIdentity }) => {
           if (rooms.get(stored.room.code) !== stored) return;
           const address = online.battleAddress(host);
-          stored.room = recordBattle(stored.room, { id, mapIdentity, ...(address && { address }) });
-          stored.slot.serve({
-            id,
-            host,
-            seatOf(who) {
-              const view = roomView(stored.room, who);
-              if (view.phase.kind !== "battle") return;
-              const { side, player } = view.phase.ticket;
-              return { side, player };
-            },
-          });
+          stored.room = recordBattle(stored.room, { id, mapIdentity, address });
+          stored.slot.serve(host);
           await stored.slot.seating(
             stored.room.members.map((member) => {
               const { phase } = roomView(stored.room, member.who);
@@ -220,8 +205,6 @@ export function createRoomService(options: {
   });
 
   return {
-    presence,
-    battle: online.battle,
     create(
       who: string,
       visibility: Room["visibility"],
@@ -286,11 +269,7 @@ export function createRoomService(options: {
       const callsign = online.callsign(who);
       if (!callsign) return { refused: "callsign" };
       const joined = transition(stored, who, { kind: "join", callsign });
-      if ("refused" in joined) {
-        if (joined.refused === "this room has started") return { refused: "started" };
-        if (joined.refused === "this room is full") return { refused: "no_open_seat" };
-        return joined;
-      }
+      if ("refused" in joined) return joined;
       const closePresence = presence.open(who);
       const detach = stored.source.attach(after, (record) =>
         deliver(

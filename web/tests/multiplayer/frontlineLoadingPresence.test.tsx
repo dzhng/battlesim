@@ -11,7 +11,7 @@ import { PRESENCE_GRACE_MS } from "@apps/game-server/src/presence";
 import { roomHttp, build } from "./support/roomHttp";
 import { frontlineHost } from "./support/frontlineHost";
 import { PageClock } from "./pageClock";
-import { keepBuiltMap, type OnlineBattleEntry } from "@apps/battle-lab/src/onlineSession";
+import { followBattle, type OnlineBattleEntry } from "@apps/battle-lab/src/onlineSession";
 import type { OnlineMap } from "@apps/battle-lab/src/online/useOnlineMap";
 import type { BattleConnectionSession } from "@web/battle/prepare/client";
 const state = vi.hoisted(() => ({ described: false, detached: false }));
@@ -77,7 +77,7 @@ test("Frontline remains present after its description stream closes while the fi
     address: service.address,
     ticket: { ...ticket, player: "commander" },
   } as unknown as OnlineBattleEntry;
-  keepBuiltMap(ticket.battle, {
+  followBattle(() => {}, entry, "", {
     request: { map_source: { request: { seed: "1" } }, battle_seed: 1 },
     battle: {
       scenario: JSON.stringify({

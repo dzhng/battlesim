@@ -18,7 +18,7 @@
  * nothing selected then takes an order. It also keeps the control groups
  * (`controlGroups.ts`), since a group is a stored selection. */
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
-import type { OnlineSimClient } from "../sim/client";
+import type { SeatClient } from "../sim/client";
 import { aboardCarrier, type ObservationView, type OwnUnitView } from "../sim/observationView";
 import type { CommandAck, Order } from "../sim/protocol";
 import { commandForKey, ShowOrdersBinding } from "./commandBindings";
@@ -69,7 +69,7 @@ export interface UnitControlEvents {
 }
 
 export function useUnitControl(
-  client: OnlineSimClient | null,
+  client: SeatClient | null,
   observation: ObservationView | null,
   events?: UnitControlEvents,
   enabled = true,

@@ -1,12 +1,7 @@
 import { setTimeout as delay } from "node:timers/promises";
-import type { Seat, SeatPort } from "../../../../packages/multiplayer/src/link.ts";
-import {
-  jsonRecord,
-  readJson,
-  resumingReader,
-} from "../../../../packages/multiplayer/src/stream/index.ts";
+import type { BattleSeat } from "../../../../packages/multiplayer/src/link.ts";
+import { readJson, resumingReader } from "../../../../packages/multiplayer/src/stream/index.ts";
 import { httpRecords } from "../../../../packages/multiplayer/src/stream/http.ts";
-import type { PreviewAnswer, UpReply } from "../../../../packages/multiplayer/src/wire.ts";
 import type { RefereeView } from "../../../../web/src/battle/sim/protocol.ts";
 import { MachineUnavailable, type Machine } from "../machines/index.ts";
 import {
@@ -20,9 +15,11 @@ import type { ControlEvent, StreamPresence } from "../http/controlEvents.ts";
 import type { BattleEnd, BattleHost, BattleSpec } from "./index.ts";
 
 /** These operations belong to hosting, outside the simulation host interface. */
-export interface RemoteBattleHost extends BattleHost {
+export type HostedBattle = Omit<BattleHost, "attach">;
+
+export interface RemoteBattleHost extends HostedBattle {
   readonly address: string | undefined;
-  setSeating(entries: [string, Seat][]): Promise<void>;
+  setSeating(entries: [string, BattleSeat][]): Promise<void>;
   onStream(handle: (streams: StreamPresence[]) => void): void;
 }
 
@@ -38,7 +35,6 @@ export function createRemoteBattleHost(
   const orders: ((player: string) => void)[] = [];
   const listeners: ((streams: StreamPresence[]) => void)[] = [];
   const streams = new Map<string, StreamPresence>();
-  const readers = new Set<(reason: string) => void>();
   const counts: Record<string, number> = {};
   let m: Machine | undefined;
   let end: BattleEnd | null = null;
@@ -61,8 +57,6 @@ export function createRemoteBattleHost(
     clearTimeout(ping);
     clearTimeout(silence);
     lifetime.abort();
-    for (const finish of readers) finish(reason);
-    readers.clear();
     streams.clear();
     tellStreams();
     m?.stop();
@@ -75,7 +69,7 @@ export function createRemoteBattleHost(
     try {
       const remote = await machine;
       if (over) throw endedError();
-      const response = await fetch(`${remote.control}/control/${path}`, {
+      const response = await fetch(`${remote.address}/control/${path}`, {
         method: "POST",
         headers: { [CONTROL_HEADER]: key, "Content-Type": "application/json" },
         body: value === undefined ? undefined : JSON.stringify(value),
@@ -102,7 +96,7 @@ export function createRemoteBattleHost(
   async function heartbeat() {
     if (over || !m) return;
     try {
-      const response = await fetch(`${m.control}/control/ping`, {
+      const response = await fetch(`${m.address}/control/ping`, {
         method: "POST",
         headers: { [CONTROL_HEADER]: key },
         signal: AbortSignal.any([lifetime.signal, AbortSignal.timeout(CONTROL_PING_TIMEOUT_MS)]),
@@ -120,7 +114,7 @@ export function createRemoteBattleHost(
       for await (const record of resumingReader(
         (after) =>
           httpRecords(
-            `${m!.control}/control/events${after === null ? "" : `?after=${after}`}`,
+            `${m!.address}/control/events${after === null ? "" : `?after=${after}`}`,
             { [CONTROL_HEADER]: key },
             lifetime.signal,
           ),
@@ -211,69 +205,6 @@ export function createRemoteBattleHost(
     onStream: (handle) => {
       listeners.push(handle);
       handle([...streams.values()]);
-    },
-    attach(port: SeatPort) {
-      const seat = players.get(port.seat.player);
-      if (!seat || seat.side !== port.seat.side) throw new Error("unknown battle seat");
-      const path = `seats/${encodeURIComponent(seat.player)}`;
-      port.onUp((batch) =>
-        serial(async () => {
-          await ready;
-          return post<UpReply>(`${path}/up`, batch);
-        }),
-      );
-      port.onPreview((query) =>
-        serial(async () => {
-          await ready;
-          return post<PreviewAnswer>(`${path}/preview`, query);
-        }),
-      );
-      port.onReader((after, deliver) => {
-        const connection = new AbortController();
-        let finished = false;
-        const finish = (reason: string) => {
-          if (finished) return;
-          finished = true;
-          deliver(jsonRecord("end", { reason }));
-          connection.abort();
-          readers.delete(finish);
-        };
-        readers.add(finish);
-        void (async () => {
-          if (over) {
-            deliver(jsonRecord("open", { resume: "continued" }));
-            finish(over);
-            return;
-          }
-          await ready;
-          await mutations;
-          const signal = AbortSignal.any([lifetime.signal, connection.signal]);
-          for await (const record of resumingReader(
-            (cursor) =>
-              httpRecords(
-                `${m!.control}/control/${path}/stream${(cursor ?? after) === null ? "" : `?after=${cursor ?? after}`}`,
-                { [CONTROL_HEADER]: key },
-                signal,
-              ),
-            { sleep: (ms) => delay(ms, undefined, { signal }) },
-          )) {
-            if (finished) return;
-            if (!deliver(record) || record.kind === "end") {
-              finished = true;
-              connection.abort();
-              readers.delete(finish);
-              return;
-            }
-          }
-        })().catch(() => {
-          if (!connection.signal.aborted && !over) crash();
-        });
-        return () => {
-          finished = true;
-          connection.abort();
-          readers.delete(finish);
-        };
-      });
     },
     setController(player, kind) {
       check(player);

@@ -1,5 +1,7 @@
+import { decodePublication } from "../../../../packages/multiplayer/src/stream/publication";
 // @vitest-environment node
 // The battle host, on a clock the test drives, over in-memory seat links.
+import { playerPort, playerLink } from "./player";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 import { inProcessBattleMachines } from "../../../../apps/game-server/src/machines/inProcess";
@@ -7,7 +9,7 @@ import { createRemoteBattleHost } from "../../../../apps/game-server/src/battleH
 
 import { KEYFRAME, readJson } from "../../../../packages/multiplayer/src/stream/index";
 import { loopback } from "../../../../packages/multiplayer/src/link";
-import type { Seat } from "../../../../packages/multiplayer/src/link";
+import type { BattleSeat } from "../../../../packages/multiplayer/src/link";
 import type { BattleSetup, StreamOpen } from "../../../../packages/multiplayer/src/wire";
 import { preset, setOccupant } from "../../../../packages/skirmish-setup/src/lobby";
 import { toBattleSetup } from "../../../../packages/multiplayer/src/setup";
@@ -41,11 +43,15 @@ export let squad: BattleSetup;
 export async function loadBattleSupport() {
   await loadPresentation();
   data = await nodeSetupData(ROOT);
+  const wasm = await import("@wasm/game_wasm.js");
+  const { readFileSync } = await import("node:fs");
+  wasm.initSync({ module: readFileSync(join(ROOT, "web/src/wasm/game_wasm_bg.wasm")) });
+
   const made = new Map<string, string>();
   generator = {
-    ...data.generator,
+    ...wasm,
     generate_map(request, ...documents) {
-      if (!made.has(request)) made.set(request, data.generator.generate_map(request, ...documents));
+      if (!made.has(request)) made.set(request, wasm.generate_map(request, ...documents));
       return made.get(request)!;
     },
   };
@@ -93,10 +99,29 @@ export function testHost(candidates: BattleSetup[], clock: BattleClock): BattleH
   const key = randomBytes(16).toString("hex");
   const machines = inProcessBattleMachines({
     capacity: 8,
+    now: clock.now,
     createBattle: (spec) => createBattleHost(spec, { clock, generator }, data),
     ordersPerSecond: JSON.parse(data.rules).commands.orders_per_s,
   });
-  return createRemoteBattleHost({ candidates }, "contract", machines.start(key), key);
+  const remote = createRemoteBattleHost({ candidates }, "contract", machines.start(key), key);
+  let ended: string | null = null;
+  remote.onEnd((end) => {
+    ended = end.kind === "finished" ? "finished" : "crashed";
+  });
+  return {
+    ...remote,
+    dispose() {
+      ended = "disposed";
+      remote.dispose();
+    },
+    attach(port) {
+      if (
+        !candidates[0].seats.some((s) => s.player === port.seat.player && s.side === port.seat.side)
+      )
+        throw new Error("unknown battle seat");
+      playerPort(remote, "contract", port, () => ended);
+    },
+  };
 }
 export const hosts: BattleHost[] = [];
 export function disposeBattles() {
@@ -142,10 +167,23 @@ export interface Seen {
 
 /** A page at a seat: its link, and one connection read through the page's
  *  own decoder for as long as the connection lasts. */
-export function seat(b: Battle, who: Seat) {
-  const { link, port, cut } = loopback(who);
-  b.host.attach(port);
-  const sent: { tick: number; seat: Seat; order: Order }[] = [];
+export function seat(b: Battle, who: BattleSeat) {
+  const pair = loopback(who);
+  const transport = playerLink(b.host, who) ?? pair.link;
+  const link = {
+    ...transport,
+    up(batch: Parameters<typeof transport.up>[0]) {
+      seq = Math.max(seq, batch.seq);
+      return transport.up(batch);
+    },
+  };
+  const cut = () => {
+    pair.cut();
+  };
+  // The runtime tap preserves observations while the browser is disconnected;
+  // player orders and previews still go through the authenticated route.
+  b.host.attach(pair.port);
+  const sent: { tick: number; seat: BattleSeat; order: Order }[] = [];
   let seq = 0;
   return {
     link,
@@ -173,22 +211,19 @@ export function seat(b: Battle, who: Seat) {
       };
       void (async () => {
         try {
-          for await (const record of link.records(after)) {
+          for await (const record of pair.link.records(after)) {
             if (record.kind === "open") reading.opens.push(readJson<StreamOpen>(record));
             if (record.kind === "end") reading.end = readJson<{ reason: string }>(record).reason;
             if (record.kind !== "publication") continue;
-            const { buffer, byteOffset, byteLength } = record.payload;
-            const view = new DataView(buffer, byteOffset, byteLength);
-            const frame = decoder.decode(
-              new Float32Array(buffer.slice(byteOffset + 24, byteOffset + byteLength)),
-            );
+            const publication = decodePublication(record.payload);
+            const frame = decoder.decode(new Float32Array(publication.buffer));
             if (!frame) throw new Error(`the page's reader dropped record ${record.id}`);
             reading.latest = frame;
             reading.lastId = record.id;
             reading.seen.push({
               id: record.id,
-              tick: view.getUint32(0, true),
-              digest: new TextDecoder().decode(record.payload.subarray(4, 20)),
+              tick: publication.tick,
+              digest: publication.digest,
               keyframe: (record.flags & KEYFRAME) !== 0,
               side: frame.groundPatch.side,
               epoch: frame.groundPatch.epoch,
@@ -276,14 +311,14 @@ export async function yardstick(setup: BattleSetup, replay?: string) {
     runTo(target: number) {
       if (target > tick) authority.handle({ type: "advance", id: 1, ticks: target - tick });
     },
-    order(from: Seat, order: Order) {
+    order(from: BattleSeat, order: Order) {
       authority.handle({ type: "command", id: 1, seat: from, order, queued: false });
     },
   };
 }
 
 /** Record from before preparation, including the first authoritative tick. */
-export function recordHost(host: BattleHost, who: Seat) {
+export function recordHost(host: BattleHost, who: BattleSeat) {
   const frames = new Map<number, string>();
   let detach = () => {};
   host.attach({
@@ -291,11 +326,8 @@ export function recordHost(host: BattleHost, who: Seat) {
     onReader(read) {
       detach = read(null, (record) => {
         if (record.kind === "publication") {
-          const view = new DataView(record.payload.buffer, record.payload.byteOffset);
-          frames.set(
-            view.getUint32(0, true),
-            new TextDecoder().decode(record.payload.subarray(4, 20)),
-          );
+          const { tick, digest } = decodePublication(record.payload);
+          frames.set(tick, digest);
         }
         return true;
       });

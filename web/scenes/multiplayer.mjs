@@ -152,6 +152,18 @@ export async function run(ctx) {
         (await refused.getByRole("button", { name: "Join private room" }).count()) === 0,
     );
     await capture(refused, folder, "refused");
+    await refused.unroute("**/hello");
+    await refused.route("**/hello", (route) => route.abort("connectionrefused"));
+    await refused.reload();
+    await refused.getByRole("status", { name: "Online unavailable" }).waitFor();
+    await uncovered(refused);
+    const unavailable = refused.getByRole("status", { name: "Online unavailable" });
+    ctx.check(
+      "an unreachable lobby offers no online action",
+      (await unavailable.isVisible()) &&
+        (await refused.getByRole("button", { name: "Create room" }).count()) === 0,
+    );
+    await capture(refused, folder, "unreachable", false);
     await refused.close();
   } finally {
     await local.stop(folder);

@@ -1,7 +1,8 @@
+import { lightingPresetNames } from "../../packages/skirmish-setup/src/lighting";
 // @vitest-environment node
 import { expect, test } from "vitest";
 import { askedBattle, battleHref, spoken } from "../../apps/battle-lab/src/battleLinks";
-import { lightingPresetNames } from "../../apps/battle-lab/src/lobby/lighting";
+
 import { sizeTier } from "../../packages/skirmish-setup/src/seats";
 import { MAP_SIZES } from "@web/maps/source";
 

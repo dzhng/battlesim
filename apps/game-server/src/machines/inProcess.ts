@@ -37,7 +37,6 @@ export function inProcessBattleMachines(options: {
       const base = `http://127.0.0.1:${address.port}`;
       return {
         address: base,
-        control: base,
         stop: () => {
           release();
           battle.stop();
