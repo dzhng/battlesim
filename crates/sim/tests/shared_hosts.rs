@@ -73,7 +73,6 @@ fn phase(b: &Battle, id: u32) -> Option<HoldPhase> {
 }
 
 #[test]
-#[ignore = "shared hosts: green from slice 03"]
 fn a_squad_ordered_into_a_held_house_walks_in_when_its_holder_leaves() {
     let mut b = relief_battle();
     let building = b.world().prop(BUILDING).cloned().unwrap();
@@ -220,4 +219,304 @@ fn every_squad_a_building_order_names_walks_to_the_house() {
         }
     }
     assert_eq!(stepped_in, [true; 3], "every squad reached the house");
+}
+
+/// Blue's refusals this tick for `id`.
+fn refused(b: &Battle, id: u32) -> Vec<OrderError> {
+    let frame = b.observe(Side::Blue);
+    (frame.refusals.iter())
+        .filter(|r| r.unit == UnitId(id))
+        .map(|r| r.reason.clone())
+        .collect()
+}
+
+/// Step at least once and until `test` holds, collecting `watched`'s
+/// refusals on the way; panics after `limit` ticks.
+fn until(
+    b: &mut Battle,
+    limit: u32,
+    watched: u32,
+    what: &str,
+    mut test: impl FnMut(&Battle) -> bool,
+) -> Vec<OrderError> {
+    let mut seen = Vec::new();
+    for _ in 0..limit {
+        b.step();
+        seen.extend(refused(b, watched));
+        if test(b) {
+            return seen;
+        }
+    }
+    panic!("{what} within {limit} ticks");
+}
+
+/// Whether a squad holds no host and has no orders left.
+fn idle(b: &Battle, id: u32) -> bool {
+    let unit = b.unit(UnitId(id)).unwrap();
+    unit.hold.is_none() && unit.orders.is_empty()
+}
+
+/// Where each living soldier of the squads inside `ids` stands.
+fn at_windows(b: &Battle, ids: &[u32]) -> Vec<(u32, [i64; 3])> {
+    let mut held = Vec::new();
+    for &id in ids {
+        let unit = b.unit(UnitId(id)).unwrap();
+        if !unit.garrisoned() {
+            continue;
+        }
+        for s in unit.members.iter().filter(|s| s.alive()) {
+            let p = s.position;
+            let mm = |v: f64| (v * 1000.0).round() as i64;
+            held.push((id, [mm(p.x), mm(p.y), mm(p.z)]));
+        }
+    }
+    held
+}
+
+/// Send `order` for blue; returns the units refused one by one.
+fn send(b: &mut Battle, seq: &mut u64, order: Order) -> Vec<(UnitId, OrderError)> {
+    *seq += 1;
+    let ack = b.accept(CommandEnvelope {
+        side: Side::Blue,
+        player: None,
+        seq: *seq,
+        order,
+        queued: false,
+    });
+    assert!(ack.error.is_none(), "{ack:?}");
+    ack.refused
+        .into_iter()
+        .map(|r| (r.unit, r.reason))
+        .collect()
+}
+
+#[test]
+fn squads_share_a_host_while_seats_remain_and_a_latecomer_finds_no_room() {
+    // A building: three AT squads, any two of which fill it, and a rifle
+    // squad bigger than the whole building. The test sets the seats itself.
+    let (a, b_, c, big) = (0, 1, 2, 3);
+    let map = json!({ "size": [800, 600], "fog_cell_m": 8, "height_grid_m": 4,
+        "slope_cutoff_deg": 35, "props": [],
+        "buildings": [common::building(BUILDING, TEMPLATE, [400.0, 300.0], 0.0)] })
+    .to_string();
+    let units = json!([
+        { "side": "blue", "kind": "test_at", "position": [360.0, 290.0] },
+        { "side": "blue", "kind": "test_at", "position": [360.0, 310.0] },
+        { "side": "blue", "kind": "test_at", "position": [330.0, 300.0] },
+        { "side": "blue", "kind": "test_rifle", "position": [360.0, 270.0] },
+    ]);
+    let mut setup = common::scenario_with(&map, units, json!([]), json!([]));
+    let size = |id: u32| {
+        Battle::new(&setup, 1)
+            .unit(UnitId(id))
+            .unwrap()
+            .members
+            .len() as u32
+    };
+    setup.rules.buildings.capacity_soldiers = size(a) + size(b_);
+    let mut w = Battle::new(&setup, 1);
+    let house = w.world().prop(BUILDING).cloned().unwrap();
+    let seats = seats_for_state(w.world(), &house, w.rules()).len();
+    assert!(
+        living(&w, a) + living(&w, b_) <= seats
+            && living(&w, a) + living(&w, b_) + living(&w, c) > seats
+            && living(&w, big) > seats,
+        "two AT squads fill the {seats} seats and the rifles alone overflow them"
+    );
+    let mut seq = 0;
+    let occupy = |units: &[u32]| -> Order {
+        serde_json::from_value(json!({
+            "kind": "occupy_building", "units": units, "building": BUILDING, "gesture": 1
+        }))
+        .unwrap()
+    };
+    let exit = |id: u32| Order::ExitBuilding {
+        units: vec![UnitId(id)],
+    };
+
+    // Only a squad bigger than the whole building is refused at the command.
+    assert_eq!(
+        send(&mut w, &mut seq, occupy(&[big])),
+        [(UnitId(big), OrderError::CapacityFull)]
+    );
+    assert!(idle(&w, big), "the refused squad was given nothing");
+
+    // Two squads share it, each at its own windows.
+    assert_eq!(send(&mut w, &mut seq, occupy(&[a, b_])), []);
+    until(&mut w, 3000, a, "A and B inside", |w| {
+        phase(w, a) == Some(HoldPhase::Inside) && phase(w, b_) == Some(HoldPhase::Inside)
+    });
+    let windows = |w: &Battle| at_windows(w, &[a, b_, c]);
+    let distinct = |held: &[(u32, [i64; 3])]| {
+        let spots: std::collections::BTreeSet<_> = held.iter().map(|(_, p)| *p).collect();
+        spots.len() == held.len()
+    };
+    assert!(distinct(&windows(&w)), "two soldiers at one window");
+
+    // A third walks over, finds no room and hears why; it doesn't wait.
+    assert_eq!(send(&mut w, &mut seq, occupy(&[c])), []);
+    let heard = until(&mut w, 3000, c, "C's order ends", |w| idle(w, c));
+    assert_eq!(heard, [OrderError::CapacityFull], "C hears no room once");
+    assert!(phase(&w, a).is_some() && phase(&w, b_).is_some());
+
+    // A leaves and its seats free up; C stays where it gave up.
+    assert_eq!(send(&mut w, &mut seq, exit(a)), []);
+    until(&mut w, 600, c, "A out", |w| phase(w, a).is_none());
+    for _ in 0..60 {
+        w.step();
+        assert!(idle(&w, c), "C came back on its own");
+    }
+
+    // A goes back in and leaves again; C, sent in while A steps out, is
+    // admitted: a leaver's seats don't count when stepping in starts.
+    assert_eq!(send(&mut w, &mut seq, occupy(&[a])), []);
+    until(&mut w, 600, a, "A back inside", |w| {
+        phase(w, a) == Some(HoldPhase::Inside)
+    });
+    assert_eq!(send(&mut w, &mut seq, exit(a)), []);
+    until(&mut w, 60, a, "A stepping out", |w| {
+        phase(w, a) == Some(HoldPhase::Exiting)
+    });
+    let staying = windows(&w);
+    assert_eq!(send(&mut w, &mut seq, occupy(&[c])), []);
+    until(&mut w, 60, c, "C stepping in", |w| {
+        phase(w, c) == Some(HoldPhase::Entering)
+    });
+    assert_eq!(
+        phase(&w, a),
+        Some(HoldPhase::Exiting),
+        "C admitted beside a leaver"
+    );
+    let heard = until(&mut w, 600, c, "C inside", |w| {
+        phase(w, c) == Some(HoldPhase::Inside)
+    });
+    assert_eq!(heard, []);
+    let now = windows(&w);
+    assert!(distinct(&now), "C took a window someone holds");
+    for held in staying.iter().filter(|(id, _)| *id == b_) {
+        assert!(now.contains(held), "B's soldier moved when C came in");
+    }
+
+    // B starts out, A is sent in, then B turns back: A is admitted past the
+    // leaver, and at the end of its timer finds everyone and no room.
+    assert_eq!(send(&mut w, &mut seq, exit(b_)), []);
+    until(&mut w, 60, b_, "B stepping out", |w| {
+        phase(w, b_) == Some(HoldPhase::Exiting)
+    });
+    assert_eq!(send(&mut w, &mut seq, occupy(&[a])), []);
+    until(&mut w, 60, a, "A stepping in", |w| {
+        phase(w, a) == Some(HoldPhase::Entering)
+    });
+    assert_eq!(
+        send(
+            &mut w,
+            &mut seq,
+            Order::Stop {
+                units: vec![UnitId(b_)]
+            }
+        ),
+        []
+    );
+    let heard = until(&mut w, 600, a, "A's order ends", |w| idle(w, a));
+    assert_eq!(
+        heard,
+        [OrderError::CapacityFull],
+        "A hears no room at its end check"
+    );
+    assert_eq!(phase(&w, b_), Some(HoldPhase::Inside), "B turned back");
+    assert_eq!(phase(&w, c), Some(HoldPhase::Inside));
+
+    // A carrier: two scout squads beside an APC that seats both, a third a
+    // short walk off, and a scout car too small for any of them. Getting in
+    // takes long enough that the third arrives while the two still are.
+    let units = json!([
+        { "side": "blue", "kind": "test_apc", "position": [200.0, 200.0] },
+        { "side": "blue", "kind": "test_scout_car", "position": [200.0, 260.0] },
+        { "side": "blue", "kind": "test_recon", "position": [195.0, 200.0] },
+        { "side": "blue", "kind": "test_recon", "position": [196.0, 203.0] },
+        { "side": "blue", "kind": "test_recon", "position": [200.0, 210.0] },
+    ]);
+    let (apc, car, p, q, s) = (0, 1, 2, 3, 4);
+    let map = json!({ "size": [800, 600], "fog_cell_m": 8, "height_grid_m": 4,
+        "slope_cutoff_deg": 35, "props": [], "buildings": [] })
+    .to_string();
+    let mut setup = common::scenario_with(&map, units, json!([]), json!([]));
+    setup.rules.carriage.board_s = 30.0;
+    let mut v = Battle::new(&setup, 1);
+    let carries = |v: &Battle, id: u32| {
+        let kind = v.unit(UnitId(id)).unwrap().kind;
+        v.rules()
+            .catalog
+            .get(kind)
+            .capabilities
+            .carriage
+            .unwrap()
+            .seats as usize
+    };
+    assert!(
+        living(&v, p) + living(&v, q) <= carries(&v, apc)
+            && living(&v, p) + living(&v, q) + living(&v, s) > carries(&v, apc)
+            && living(&v, s) > carries(&v, car),
+        "the APC seats two squads, not three; the scout car none"
+    );
+    let mut seq = 0;
+    // Bigger than the carrier, or than every carrier a Collect lists.
+    assert_eq!(
+        send(
+            &mut v,
+            &mut seq,
+            Order::Board {
+                units: vec![UnitId(s)],
+                carrier: UnitId(car),
+                gesture: 1
+            }
+        ),
+        [(UnitId(s), OrderError::CapacityFull)]
+    );
+    assert_eq!(
+        send(
+            &mut v,
+            &mut seq,
+            Order::Collect {
+                units: vec![UnitId(car)],
+                squads: vec![UnitId(s)],
+                gesture: 2
+            }
+        ),
+        [(UnitId(s), OrderError::CapacityFull)]
+    );
+    // The side hears those two refusals as the orders apply.
+    v.step();
+    // An overflowing Collect: the squad that gets there last finds no room,
+    // though the two before it are still getting in; they finish.
+    assert_eq!(
+        send(
+            &mut v,
+            &mut seq,
+            Order::Collect {
+                units: vec![UnitId(apc)],
+                squads: vec![UnitId(p), UnitId(q), UnitId(s)],
+                gesture: 3
+            }
+        ),
+        []
+    );
+    let heard = until(&mut v, 1200, s, "S's order ends", |v| idle(v, s));
+    assert_eq!(heard, [OrderError::CapacityFull], "S hears no room once");
+    let getting_in = |v: &Battle, id: u32| {
+        (v.unit(UnitId(id)).and_then(|u| u.hold.as_ref()))
+            .is_some_and(|h| matches!(h.phase, sim::hold::Phase::Entering(_)))
+    };
+    assert!(
+        getting_in(&v, p) && getting_in(&v, q),
+        "S came too late to matter"
+    );
+    let heard = until(&mut v, 1200, p, "P and Q aboard", |v| {
+        [p, q].iter().all(|&id| {
+            v.unit(UnitId(id))
+                .and_then(|u| u.hold.as_ref())
+                .is_some_and(|h| h.phase == sim::hold::Phase::Inside)
+        })
+    });
+    assert_eq!(heard, [], "P, first to finish, is never refused");
 }

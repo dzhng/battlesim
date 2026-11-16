@@ -701,31 +701,6 @@ fn a_squad_boards_only_its_own_players_carrier() {
 }
 
 #[test]
-fn squads_beyond_the_seats_are_refused_closest_first() {
-    let mut battle = Battle::new(
-        &setup(json!([
-            {"side":"blue","kind":"test_apc","position":[200,200]},
-            {"side":"blue","kind":"test_rifle","position":[214,200]},
-            {"side":"blue","kind":"test_recon","position":[202,200]}
-        ])),
-        9,
-    );
-    let ack = battle.accept(command(
-        1,
-        Order::Board {
-            units: vec![UnitId(1), UnitId(2)],
-            carrier: UnitId(0),
-            gesture: 1,
-        },
-    ));
-    assert_eq!(
-        ack.refused.iter().map(|r| r.unit).collect::<Vec<_>>(),
-        vec![UnitId(1)]
-    );
-    assert_eq!(ack.refused[0].reason, OrderError::CapacityFull);
-}
-
-#[test]
 fn a_carrier_drives_to_a_squad_and_takes_it_aboard() {
     let mut battle = Battle::new(
         &setup(json!([
@@ -1110,7 +1085,7 @@ fn catalog_rejects_invalid_carriage_seats_and_squads() {
 }
 
 #[test]
-fn capacity_lost_during_boarding_is_published_as_refusal() {
+fn a_squad_boarding_a_carrier_another_squad_fills_finds_no_room() {
     let mut battle = Battle::new(
         &setup(json!([
             {"side":"blue","kind":"test_apc","position":[200,200]},
@@ -1119,37 +1094,42 @@ fn capacity_lost_during_boarding_is_published_as_refusal() {
         ])),
         12,
     );
-    assert!(battle
-        .accept(command(
-            1,
+    let board = |seq, unit| {
+        command(
+            seq,
             Order::Board {
-                units: vec![UnitId(1)],
+                units: vec![UnitId(unit)],
                 carrier: UnitId(0),
-                gesture: 1,
+                gesture: seq,
             },
-        ))
-        .error
-        .is_none());
-    assert!(battle
-        .accept(command(
-            2,
-            Order::Board {
-                units: vec![UnitId(2)],
-                carrier: UnitId(0),
-                gesture: 2,
-            },
-        ))
-        .error
-        .is_none());
-    let mut seen = false;
+        )
+    };
+    let hold = |b: &Battle, id| b.unit(UnitId(id)).unwrap().hold.as_ref().map(|h| h.phase);
+    assert!(battle.accept(board(1, 1)).error.is_none());
+    battle.step();
+    assert!(matches!(
+        hold(&battle, 1),
+        Some(sim::hold::Phase::Entering(_))
+    ));
+    // The command promises nothing and refuses nothing: room is decided on
+    // arrival.
+    let ack = battle.accept(board(2, 2));
+    assert_eq!((ack.error, ack.refused), (None, vec![]));
+    let mut heard = Vec::new();
     for _ in 0..(battle.rules().tick_hz * 2) {
         battle.step();
-        seen |= battle.observe(Side::Blue).refusals.iter().any(|refusal| {
-            matches!(refusal.unit, UnitId(1) | UnitId(2))
-                && refusal.reason == OrderError::CapacityFull
-        });
+        heard.extend(battle.observe(Side::Blue).refusals.clone());
     }
-    assert!(seen);
+    assert_eq!(
+        heard,
+        [contract::command::Refusal {
+            unit: UnitId(2),
+            reason: OrderError::CapacityFull
+        }]
+    );
+    assert_eq!(hold(&battle, 1), Some(sim::hold::Phase::Inside));
+    let late = battle.unit(UnitId(2)).unwrap();
+    assert!(late.hold.is_none() && late.orders.is_empty());
 }
 
 #[test]

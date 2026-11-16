@@ -1068,7 +1068,8 @@ impl Battle {
                 let error = (placement
                     .as_ref()
                     .is_some_and(|p| p.destinations.iter().all(|d| !d.placed))
-                    || building.as_ref().is_some_and(|b| b.entries.is_empty()))
+                    || (building.as_ref().is_some_and(|b| b.entries.is_empty())
+                        && refused.is_empty()))
                 .then_some(OrderError::NoValidDestination);
                 ack(error, placement, building, refused)
             },
@@ -1550,6 +1551,7 @@ impl Battle {
         crate::carriage::advance(
             &self.world,
             &mut self.units,
+            &self.windows,
             &self.rules,
             &mut self.refusals,
         );
@@ -2842,20 +2844,21 @@ impl Battle {
                 living,
             )?;
         }
-        let building = if let Order::OccupyBuilding {
+        let (building, building_refused) = if let Order::OccupyBuilding {
             units, building, ..
         } = &command.order
         {
-            Some(self.preview_building(
+            let (plan, refused) = self.plan_building(
                 command.side,
                 &BuildingPreviewRequest {
                     units: units.clone(),
                     building: *building,
                     queued: command.queued,
                 },
-            )?)
+            )?;
+            (Some(plan), refused)
         } else {
-            None
+            (None, Vec::new())
         };
         let mut stops = BTreeMap::new();
         let placement = match &command.order {
@@ -2976,43 +2979,23 @@ impl Battle {
             }
             _ => None,
         };
-        let mut refused = Vec::new();
-        if let Order::Collect { squads, .. } = &mut command.order {
-            // A squad listed twice is collected once; the list keeps its order.
-            let mut seen = std::collections::BTreeSet::new();
-            squads.retain(|id| seen.insert(*id));
-        }
-        if let Order::Board { units, carrier, .. } = &mut command.order {
-            let mut ordered = units.clone();
-            ordered.sort_by(|a, b| {
-                let ca = (self.units[a.0 as usize].position.xy()
-                    - self.units[carrier.0 as usize].position.xy())
-                .length();
-                let cb = (self.units[b.0 as usize].position.xy()
-                    - self.units[carrier.0 as usize].position.xy())
-                .length();
-                ca.total_cmp(&cb).then(a.cmp(b))
-            });
-            // A squad listed twice boards once.
-            ordered.dedup();
-            let capacity = crate::carriage::seats(&self.rules, self.units[carrier.0 as usize].kind);
-            let used = crate::carriage::seats_used(&self.units, *carrier);
-            let mut left = capacity.saturating_sub(used);
-            let mut accepted = Vec::new();
-            for id in ordered {
-                let need = crate::carriage::living(&self.units[id.0 as usize]);
-                if need <= left {
-                    left -= need;
-                    accepted.push(id);
-                } else {
-                    refused.push(contract::command::Refusal {
-                        unit: id,
-                        reason: OrderError::CapacityFull,
-                    });
-                }
+        let mut seen = std::collections::BTreeSet::new();
+        let seats =
+            |id: &UnitId| crate::carriage::seats(&self.rules, self.units[id.0 as usize].kind);
+        let mut refused = match &mut command.order {
+            Order::Board { units, carrier, .. } => {
+                // A squad listed twice boards once.
+                units.retain(|id| seen.insert(*id));
+                crate::hold::refuse_oversized(&self.units, units, seats(carrier))
             }
-            *units = accepted;
-        }
+            Order::Collect { units, squads, .. } => {
+                // A squad listed twice is collected once; the list keeps its order.
+                squads.retain(|id| seen.insert(*id));
+                let largest = units.iter().map(seats).max().unwrap_or(0);
+                crate::hold::refuse_oversized(&self.units, squads, largest)
+            }
+            _ => building_refused,
+        };
         if let Order::Unload {
             units, goal: None, ..
         } = &command.order
@@ -3378,6 +3361,16 @@ impl Battle {
         side: Side,
         request: &BuildingPreviewRequest,
     ) -> Result<BuildingPlacement, OrderError> {
+        self.plan_building(side, request).map(|(plan, _)| plan)
+    }
+
+    /// [`Self::preview_building`], with the squads too big for the whole
+    /// building refused one by one.
+    fn plan_building(
+        &self,
+        side: Side,
+        request: &BuildingPreviewRequest,
+    ) -> Result<(BuildingPlacement, Vec<contract::command::Refusal>), OrderError> {
         self.validate_units(side, &request.units)?;
         garrison::occupy(
             &self.world,

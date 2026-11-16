@@ -1,9 +1,10 @@
 //! The windows of each held building: one plan per building, keyed by its
 //! structure owner and owned by the battle. A plan is the building's exposed
 //! facade bays ([`super::seats_for_state`]), each remembering when a soldier
-//! last came to it. It opens when the first squad is seated and closes once
-//! no living squad holds the building (inside or leaving). A squad's own hold
-//! keeps only which window each member stands at ([`Garrison::seats`]).
+//! last came to it. It opens when the first squad is seated (later squads take
+//! the windows nobody holds) and closes once no living squad holds the
+//! building (inside or leaving). A squad's own hold keeps only which window
+//! each member stands at ([`Garrison::seats`]).
 use std::collections::{BTreeMap, BTreeSet};
 
 use contract::ids::Tick;
@@ -49,11 +50,8 @@ impl Windows {
 
     /// Close the plan of every building no living squad holds.
     pub(crate) fn close_unheld(&mut self, units: &[Unit]) {
-        self.plans.retain(|&building, _| {
-            units
-                .iter()
-                .any(|u| u.alive() && super::garrisoned_in(u) == Some(building))
-        });
+        self.plans
+            .retain(|&building, _| super::held(units, building));
     }
 
     /// The squad's building hold and that building's windows while it fights
@@ -257,12 +255,21 @@ impl Windows {
     }
 }
 
-/// Seat every living member, spreading the squad evenly around the facades:
-/// the next slot of each facade in turn.
-pub(crate) fn seat_evenly(plan: &[SeatSlot], unit: &Unit) -> Vec<Option<usize>> {
+/// Seat every living member of squad `i`, stepping into the building whose
+/// windows `plan` are, at windows no squad there holds, spreading it evenly
+/// round the facades: the next free window of each facade in turn. Nobody
+/// already inside moves.
+pub(crate) fn seat_evenly(plan: &[SeatSlot], units: &[Unit], i: usize) -> Vec<Option<usize>> {
+    let building = super::held_building(&units[i]).expect("a squad stepping into a building");
+    let taken: BTreeSet<usize> = (units.iter())
+        .filter(|u| u.alive() && super::garrisoned_in(u) == Some(building))
+        .filter_map(|u| Some(taken_slots(&u.hold.as_ref()?.building()?.seats, &u.members)))
+        .flatten()
+        .collect();
+    let unit = &units[i];
     let mut facades: [Vec<usize>; 4] = Default::default();
-    for (i, s) in plan.iter().enumerate() {
-        facades[s.slot.facade as usize].push(i);
+    for (k, s) in plan.iter().enumerate().filter(|(k, _)| !taken.contains(k)) {
+        facades[s.slot.facade as usize].push(k);
     }
     let longest = facades.iter().map(Vec::len).max().unwrap_or(0);
     let mut free = (0..longest).flat_map(|j| facades.iter().filter_map(move |f| f.get(j).copied()));
@@ -272,7 +279,7 @@ pub(crate) fn seat_evenly(plan: &[SeatSlot], unit: &Unit) -> Vec<Option<usize>> 
         .collect()
 }
 
-/// Slots the squad's living soldiers hold: it is the building's one occupant.
+/// Slots a squad's living soldiers hold.
 fn taken_slots(seats: &[Option<usize>], members: &[Soldier]) -> BTreeSet<usize> {
     seats
         .iter()

@@ -1,10 +1,10 @@
 //! Buildings as abstract fighting positions (L08–L10, P12). A building takes
-//! one squad, whole and within the soldier capacity, after a stationary
-//! timer; inside, each soldier fights from an exposed window slot just outside
-//! a facade, where its abstract hit capsule and muzzle are. Published body
-//! poses stand indoors behind those windows; the squad sees from one eye
-//! per building-frame direction it holds, at a real seat on the highest occupied
-//! band ([`Windows::facade_eyes`]). Rounds that miss a slot meet the building's
+//! squads whole while its seats last ([`crate::hold::Seats`]), each after a
+//! stationary timer; inside, each soldier fights from an exposed window slot
+//! just outside a facade, where its abstract hit capsule and muzzle are.
+//! Published body poses stand indoors behind those windows; the squad sees
+//! from one eye per building-frame direction it holds, at a real seat on the
+//! highest occupied band ([`Windows::facade_eyes`]). Rounds that miss a slot meet the building's
 //! own shell, and any round toward something beyond it meets the shell too:
 //! no collider is ever switched off for a target. Collapse removes fighting
 //! floors: a low-rise leaves a lower ruin, while a tall terminal shell keeps
@@ -60,6 +60,11 @@ fn held_building(unit: &Unit) -> Option<PropId> {
 /// The building a squad fights from (inside or leaving, not entering).
 pub fn garrisoned_in(unit: &Unit) -> Option<PropId> {
     held_building(unit).filter(|_| unit.garrisoned())
+}
+
+/// Whether a living squad holds `building` (inside or leaving).
+pub(crate) fn held(units: &[Unit], building: PropId) -> bool {
+    (units.iter()).any(|u| u.alive() && garrisoned_in(u) == Some(building))
 }
 
 /// The one band policy used by seating and building bulk integrity.
@@ -253,42 +258,24 @@ pub(crate) fn approach(
     Some(points.into_iter().find(|&c| clear(c)).unwrap_or(nearest))
 }
 
-/// Whether a squad other than the one at `i`, of either side, holds
-/// `building` (inside or leaving): a building takes one squad.
-pub(crate) fn held_by_another(units: &[Unit], building: PropId, i: usize) -> bool {
-    units
-        .iter()
-        .enumerate()
-        .any(|(j, u)| j != i && u.alive() && u.garrisoned() && held_building(u) == Some(building))
-}
-
 /// Command check (L08): a standing building the side knows, and only
-/// infantry squads, each fitting whole. Who holds the building or is on its
-/// way in is never checked here: room is decided when a squad gets there,
-/// and a squad that finds an enemy squad holding it gives up its order where
-/// it stands ([`crate::hold::advance`]).
+/// infantry squads. Who holds the building or is on its way in is never
+/// checked here: room is decided when a squad gets there, and a squad that
+/// finds an enemy squad there gives up its order where it stands
+/// ([`crate::hold::admit`]).
 pub fn validate(
-    world: &WorldGeometry,
     units: &[Unit],
     ordered: &[UnitId],
     target: Option<Prop>,
-    rules: &Rules,
-) -> Result<(), OrderError> {
+) -> Result<Prop, OrderError> {
     let target = target
         .filter(|p| p.body.garrison)
         .ok_or(OrderError::NotABuilding)?;
-    let capacity = seats_for_state(world, &target, rules).len();
     // The command already checked each named unit is the side's own and alive.
-    for id in ordered {
-        let squad = &units[id.0 as usize];
-        if squad.is_vehicle() {
-            return Err(OrderError::NotInfantry { unit: *id });
-        }
-        if squad.members.iter().filter(|s| s.alive()).count() > capacity {
-            return Err(OrderError::CapacityFull);
-        }
+    if let Some(&unit) = ordered.iter().find(|id| units[id.0 as usize].is_vehicle()) {
+        return Err(OrderError::NotInfantry { unit });
     }
-    Ok(())
+    Ok(target)
 }
 
 /// What stops a soldier on foot: every prop that blocks infantry.

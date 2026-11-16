@@ -6,7 +6,9 @@ use crate::movement::SideGeometry;
 use crate::navigation::Pockets;
 use crate::units::{Unit, UnitOrder};
 use crate::world::{PropId, WorldGeometry};
-use contract::command::{BuildingEntry, BuildingPlacement, BuildingPreviewRequest, OrderError};
+use contract::command::{
+    BuildingEntry, BuildingPlacement, BuildingPreviewRequest, OrderError, Refusal,
+};
 use contract::scenario::Rules;
 
 /// The building order's plan: for each listed squad, in unit order, from
@@ -17,7 +19,8 @@ use contract::scenario::Rules;
 /// every earlier entry's, else the nearest all the same, so squads sent in
 /// together don't stack on one spot. A squad gets an entry if it stands
 /// within entry reach of the building or its side's grid reaches that
-/// approach; otherwise it gets none. Who is inside is never read: whether a
+/// approach; otherwise it gets none. Only a squad bigger than the whole
+/// building is refused, one by one; who is inside is never read: whether a
 /// squad finds room is decided when it gets there.
 pub(crate) fn occupy(
     world: &WorldGeometry,
@@ -26,7 +29,7 @@ pub(crate) fn occupy(
     units: &[Unit],
     request: &BuildingPreviewRequest,
     rules: &Rules,
-) -> Result<BuildingPlacement, OrderError> {
+) -> Result<(BuildingPlacement, Vec<Refusal>), OrderError> {
     let mut ids = request.units.clone();
     ids.sort();
     ids.dedup();
@@ -48,8 +51,10 @@ pub(crate) fn occupy(
         owner_prop.id = owner;
         owner_prop
     });
-    super::validate(world, units, &ids, target.clone(), rules)?;
-    let owner = target.expect("validated building").id;
+    let target = super::validate(units, &ids, target)?;
+    let total = super::seats_for_state(world, &target, rules).len();
+    let refused = crate::hold::refuse_oversized(units, &mut ids, total);
+    let owner = target.id;
     let standoff = rules.garrison.entry_distance_m / 2.0;
     let mut nav = known.clone();
     let grid = nav.grid(world, authored);
@@ -87,10 +92,11 @@ pub(crate) fn occupy(
             });
         }
     }
-    Ok(BuildingPlacement {
+    let placement = BuildingPlacement {
         building: owner,
         entries,
-    })
+    };
+    Ok((placement, refused))
 }
 
 /// Where a squad will stand once its queued movement is done.

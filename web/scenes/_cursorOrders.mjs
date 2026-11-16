@@ -316,8 +316,8 @@ export async function garrisonCursor(ctx) {
   await expects(page, "garrison");
   await capture(ctx, page, "accepted-building", p);
   await advance(page, accepted.ack.applied_tick - (await obs(page)).tick);
-  // Every squad named walks to the house; while a building takes one squad,
-  // the first in holds it and the other gives its order up at the door.
+  // Every squad named walks to the house and steps in while seats remain;
+  // one that finds no room gives its order up at the door.
   const entering = new Set();
   const arrived = await until(
     page,

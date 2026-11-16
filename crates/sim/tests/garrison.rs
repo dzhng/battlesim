@@ -213,17 +213,10 @@ fn a_building_order_refuses_vehicles_and_bodies_that_are_no_building() {
 }
 
 #[test]
-fn a_squad_larger_than_the_building_is_refused_and_a_smaller_one_enters_whole() {
-    // Buildings that take six: the rifle squad's eight are refused, the
-    // scouts' four enter, every one of them at a slot.
+fn a_squad_smaller_than_the_building_enters_whole_each_soldier_at_a_slot() {
+    // A building that takes six: the scouts' four enter, every one at a slot.
     let mut b = battle_with_capacity(west_squads(&["test_rifle", "test_recon"]), 1, 6);
     let mut c = Commander::new();
-    assert_eq!(
-        c.send(&mut b, Side::Blue, garrison(&[0]), false),
-        Some(OrderError::CapacityFull)
-    );
-    run(&mut b, 5);
-    assert!(own(&b, Side::Blue, 0).unwrap().goal.is_none());
     c.ok(&mut b, Side::Blue, garrison(&[1]));
     until(&mut b, 1200, "the scouts inside", |b| inside(b, 1));
     let g = b
@@ -240,9 +233,8 @@ fn a_squad_larger_than_the_building_is_refused_and_a_smaller_one_enters_whole() 
 
 #[test]
 fn a_squad_that_finds_an_enemy_squad_inside_gives_up_its_order() {
-    // Neither side knows the other's orders at the command: blue's order is
-    // accepted, and at the end of its entry timer blue finds red inside. The
-    // order lapses and blue stands where it is; it never waits for room.
+    // Blue's order is accepted; when blue would step in it finds red inside.
+    // The order lapses silently where blue stands; it never waits for room.
     let mut b = battle(
         json!([
             { "side": "blue", "kind": "test_rifle", "position": [350.0, 300.0], "engagement": "return_fire_only" },
@@ -254,11 +246,11 @@ fn a_squad_that_finds_an_enemy_squad_inside_gives_up_its_order() {
     c.ok(&mut b, Side::Red, garrison(&[1]));
     until(&mut b, 1200, "red inside", |b| inside(b, 1));
     c.ok(&mut b, Side::Blue, garrison(&[0]));
-    until(&mut b, 1500, "blue entering", |b| {
-        phase(b, Side::Blue, 0) == Some(HoldPhase::Entering)
-    });
-    until(&mut b, 600, "blue's order lapsed", |b| {
-        phase(b, Side::Blue, 0).is_none()
+    run(&mut b, 1);
+    until(&mut b, 1500, "blue's order lapsed", |b| {
+        assert_eq!(phase(b, Side::Blue, 0), None, "blue stepped in");
+        assert!(b.observe(Side::Blue).refusals.is_empty(), "blue was told");
+        b.unit(UnitId(0)).unwrap().orders.is_empty()
     });
     let u = own(&b, Side::Blue, 0).unwrap();
     assert!(u.goal.is_none() && u.queue.is_empty());
