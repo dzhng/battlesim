@@ -17,10 +17,15 @@ fn installed(name: &str, asset: Asset) -> (String, (ContentId, Asset)) {
 }
 
 fn static_asset() -> Asset {
+    static_asset_with(presentation::view::TIERS)
+}
+
+/// A static asset whose one state has `meshes` meshes (five carry a far mesh).
+fn static_asset_with(meshes: usize) -> Asset {
     let head = serde_json::to_vec(&json!({
         "content": {"kind":"prop", "states":[{
             "name":"default", "bounds":{"min":[-1,-1,0], "max":[1,1,2]},
-            "tiers":[{}, {}, {}, {}]
+            "tiers": vec![json!({}); meshes]
         }]}, "views":[]
     }))
     .unwrap();
@@ -51,6 +56,7 @@ fn tooling_detail_uses_its_admitted_thresholds_when_gameplay_quality_changes() {
         Detail {
             lod_px: [80.0, 40.0, 20.0],
             impostor_px: 0.0,
+            far_px: 2.0,
             shadow_caster_px: 0.0,
         },
     );
@@ -72,6 +78,46 @@ fn tooling_detail_uses_its_admitted_thresholds_when_gameplay_quality_changes() {
 }
 
 #[test]
+fn the_lab_holds_a_far_carrying_model_at_its_far_mesh_and_picks_it_when_small() {
+    use presentation::view::{FAR, TIERS};
+    let mut p = Presentation::new(None, 30.0).unwrap();
+    p.install_lab_assets(
+        [
+            installed("far", static_asset_with(TIERS + 1)),
+            installed("plain", static_asset()),
+        ]
+        .into(),
+        // Everything this camera sees is under the far mesh's threshold.
+        Detail {
+            lod_px: [800.0, 600.0, 400.0],
+            impostor_px: 4.0,
+            far_px: 399.0,
+            shadow_caster_px: 0.0,
+        },
+    );
+    let tiers = |p: &mut Presentation, tier: Option<i32>| {
+        let models = ["far", "plain"].map(|name| {
+            json!({"appearance":name,"x":if name == "far" { 0 } else { 3 },"y":0,"z":0,"yaw":0,
+                   "tier":tier,"pose":{"kind":"static","state":"default"}})
+        });
+        p.set_lab_models(serde_json::from_value(json!(models)).unwrap())
+            .unwrap();
+        let f = p.frame(0.0, &camera(), &Ui::default(), 0).unwrap();
+        let tier_at = |x: f32| {
+            let b = f
+                .batches
+                .iter()
+                .find(|b| f.instances[b.first as usize].placement[0] == x);
+            (b.unwrap().tier, b.unwrap().caster)
+        };
+        [tier_at(0.0), tier_at(3.0)]
+    };
+    let far = FAR as u32;
+    assert_eq!(tiers(&mut p, Some(FAR)), [(far, far), (3, 3)]);
+    assert_eq!(tiers(&mut p, None), [(far, far), (3, 3)]);
+}
+
+#[test]
 fn lab_models_compose_named_states_motion_and_ghosts_in_the_canonical_frame() {
     let mut p = Presentation::new(None, 30.0).unwrap();
     p.install_lab_assets(
@@ -79,6 +125,7 @@ fn lab_models_compose_named_states_motion_and_ghosts_in_the_canonical_frame() {
         Detail {
             lod_px: [80.0, 40.0, 20.0],
             impostor_px: 4.0,
+            far_px: 2.0,
             shadow_caster_px: 0.0,
         },
     );
@@ -92,7 +139,7 @@ fn lab_models_compose_named_states_motion_and_ghosts_in_the_canonical_frame() {
             {"appearance":"tool-model","x":2,"y":2,"z":3,"yaw":0,
              "tier":0,"pose":{"kind":"static","state":"default","ground":true}},
             {"appearance":"tool-model","x":3,"y":2,"z":3,"yaw":0,
-             "tier":4,"pose":{"kind":"static","state":"default"},
+             "tier":presentation::view::IMPOSTOR,"pose":{"kind":"static","state":"default"},
              "ghost":[0.2,0.4,0.6,0.5],"xray":[1,0,0,1]}
         ]))
         .unwrap(),
@@ -194,18 +241,20 @@ fn skinned_lab_bodies_and_corpses_select_cards_and_ghosts_keep_meshes() {
         Detail {
             lod_px: [80.0, 40.0, 20.0],
             impostor_px: 1000.0,
+            far_px: 2.0,
             shadow_caster_px: 0.0,
         },
     );
+    let card = presentation::view::IMPOSTOR;
     p.set_lab_models(
         serde_json::from_value(json!([
             {"appearance":"body","x":0,"y":0,"z":0,"yaw":0,
              "pose":{"kind":"rest"}},
-            {"appearance":"body","x":1,"y":0,"z":0,"yaw":0,"tier":4,
+            {"appearance":"body","x":1,"y":0,"z":0,"yaw":0,"tier":card,
              "pose":{"kind":"corpse","lies":0}},
-            {"appearance":"body","x":2,"y":0,"z":0,"yaw":0,"tier":4,
+            {"appearance":"body","x":2,"y":0,"z":0,"yaw":0,"tier":card,
              "pose":{"kind":"rest"},"ghost":[0.1,0.5,1,0.4]},
-            {"appearance":"body","x":3,"y":0,"z":0,"yaw":0,"tier":4,
+            {"appearance":"body","x":3,"y":0,"z":0,"yaw":0,"tier":card,
              "pose":{"kind":"rest"},"highlight":true}
         ]))
         .unwrap(),
@@ -224,7 +273,11 @@ fn skinned_lab_bodies_and_corpses_select_cards_and_ghosts_keep_meshes() {
             .unwrap()
     };
     for x in [0.0, 1.0] {
-        assert_eq!(at(x).tier, 4, "admitted authored pose must use its card");
+        assert_eq!(
+            at(x).tier,
+            card as u32,
+            "admitted authored pose must use its card"
+        );
         assert_eq!(at(x).caster, NONE);
     }
     assert_eq!(at(2.0).tier, 3, "a ghost always keeps actual geometry");
@@ -247,6 +300,7 @@ fn authored_clips_rest_corpses_and_supplied_palettes_share_the_frame_pose_contra
         Detail {
             lod_px: [80.0, 40.0, 20.0],
             impostor_px: 4.0,
+            far_px: 2.0,
             shadow_caster_px: 0.0,
         },
     );
@@ -442,6 +496,7 @@ fn replacing_a_tooling_catalog_removes_rows_the_new_gpu_library_cannot_load() {
     let detail = Detail {
         lod_px: [80.0, 40.0, 20.0],
         impostor_px: 4.0,
+        far_px: 2.0,
         shadow_caster_px: 0.0,
     };
     p.install_lab_assets([installed("retired", static_asset())].into(), detail);
@@ -482,6 +537,7 @@ fn corpses_share_one_actual_rest_palette_per_drawn_row_each_frame() {
         Detail {
             lod_px: [80.0, 40.0, 20.0],
             impostor_px: 4.0,
+            far_px: 2.0,
             shadow_caster_px: 0.0,
         },
     );

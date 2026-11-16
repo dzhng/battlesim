@@ -75,6 +75,7 @@ export interface ModelStats {
   paletteMatrices: number;
   /** Living soldiers drawn as meshes; cards and bodies lying dead are counted apart. */
   soldierMeshes: number;
+  /** Instances per mesh slot: four tiers, then a prop's far mesh. */
   tiers: number[];
   bodyTiers: number[];
   cards: number;
@@ -170,7 +171,8 @@ export interface SceneryCounts {
   stumps: number[];
 }
 /** Last prepared camera populations. These count objects once, while
- * SubmittedFrame counts each issued surface/pass separately. */
+ * SubmittedFrame counts each issued surface/pass separately. A building
+ * module counts at four tiers; a prop at five mesh slots, its far mesh fifth. */
 export interface DrawnInstances {
   buildings: number[];
   scenery: SceneryCounts;

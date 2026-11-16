@@ -123,12 +123,16 @@ pub struct UnitsSection {
     pub appearances: BTreeMap<String, Appearance>,
 }
 
-/// `presentation.models`: mesh tiers by projected height, and the card size.
+/// `presentation.models`: mesh tiers by projected size, and the card's and
+/// the far mesh's sizes.
 #[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Detail {
     pub lod_px: [f64; 3],
     pub impostor_px: f64,
+    /// Below this a model whose bundle carries a far mesh draws it
+    /// (`view::FAR`); under `lod_px[2]`.
+    pub far_px: f64,
     /// Minimum projected footprint for a visible model to cast a sun shadow;
     /// zero keeps every caster (the authored production control).
     #[serde(default)]
@@ -137,7 +141,8 @@ pub struct Detail {
 
 impl Detail {
     /// These tiers with their mesh thresholds scaled by `scale`: the units'
-    /// detail scale (`Presentation::set_detail_scale`).
+    /// detail scale (`Presentation::set_detail_scale`). No unit carries a far
+    /// mesh, so `far_px` is left as it is.
     pub fn scaled(self, scale: f64) -> Self {
         Self {
             lod_px: self.lod_px.map(|v| v * scale),

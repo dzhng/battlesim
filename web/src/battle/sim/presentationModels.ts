@@ -28,6 +28,7 @@ export function preparedAdmissionWork(prepared: PreparedAppearances): AdmissionT
 export interface ModelDetail {
   lod_px: readonly [number, number, number];
   impostor_px: number;
+  far_px: number;
   shadow_caster_px?: number;
 }
 

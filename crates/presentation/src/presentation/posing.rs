@@ -3,6 +3,7 @@
 //! alike.
 use super::*;
 use crate::units::pose::{SoldierPose, VehiclePose};
+use crate::view::Carries;
 use crate::world::{BodyBox, Detail, StandIn};
 
 /// What units are drawn from: their section, each skinned body's clip table
@@ -193,7 +194,11 @@ impl UnitArt<'_> {
                 s.position,
                 far.size,
                 far.radius,
-                !is_stand_in,
+                if is_stand_in {
+                    Carries::Nothing
+                } else {
+                    Carries::Card
+                },
                 None,
             );
             if tier == CULLED {
@@ -260,7 +265,7 @@ impl UnitArt<'_> {
                 v.position,
                 far.size,
                 far.radius,
-                false,
+                Carries::Nothing,
                 shadow,
             );
             if tier == CULLED {

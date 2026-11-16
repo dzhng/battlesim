@@ -40,7 +40,7 @@ impl PropPopulation {
             chunk.models.push(i);
         }
         let chunks: Vec<_> = cells.into_values().collect();
-        let lists = vec![Vec::new(); looks.list.len() * TIERS * (1 + CASCADES)];
+        let lists = vec![Vec::new(); looks.list.len() * MESH_SLOTS * (1 + CASCADES)];
         PropPopulation {
             hidden: vec![false; map.len()],
             prints: vec![0; lists.len()],

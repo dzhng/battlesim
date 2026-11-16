@@ -4,7 +4,8 @@
 //! renderer uploads as they are (`camera3d.ts`' math, to the bit). The one
 //! tier rule every drawn model takes, a lab's own included, is
 //! [`model_detail`]: nothing off screen, one of four mesh tiers by projected
-//! height, or the impostor card; and what it casts with, [`caster_tier`].
+//! size, or past them what the appearance [`Carries`] (a static prop's far
+//! mesh, a unit's impostor card); and what it casts with, [`caster_tier`].
 use crate::records::{
     Camera as CameraRecord, View as ViewRecord, FOG_FACES, FOG_GROUND, FOG_PAINTED_FACES,
     FOG_UNITS, NONE, VIEW_PASS,
@@ -47,14 +48,44 @@ pub struct View {
 }
 
 pub const CULLED: i32 = -1;
-pub const IMPOSTOR: i32 = 4;
+/// The far mesh: a fifth mesh some static props carry, coarser than tier 3.
+pub const FAR: i32 = 4;
+pub const IMPOSTOR: i32 = 5;
 /// Mesh tiers every appearance carries, finest first (`TIER_COUNT`).
 pub const TIERS: usize = 4;
+/// Mesh slots a drawn tier can name: the four every appearance carries and
+/// the far mesh.
+pub const MESH_SLOTS: usize = FAR as usize + 1;
+
+/// What an appearance carries past its four meshes: nothing, a far mesh (a
+/// static prop whose bundle has a fifth), or an impostor card (a unit's).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Carries {
+    Nothing,
+    Far,
+    Card,
+}
+
+impl Carries {
+    /// What a static appearance whose states have `meshes` meshes carries.
+    pub fn meshes(meshes: usize) -> Self {
+        if meshes > TIERS {
+            Self::Far
+        } else {
+            Self::Nothing
+        }
+    }
+}
 
 /// The tier a model drawn at `tier` casts into the sun's cascades with: one
-/// coarser, since a cascade texel is larger than the detail between tiers.
+/// coarser, since a cascade texel is larger than the detail between tiers,
+/// never past tier 3; a model drawn with its far mesh casts with it.
 pub fn caster_tier(tier: usize) -> usize {
-    (tier + 1).min(TIERS - 1)
+    if tier == FAR as usize {
+        tier
+    } else {
+        (tier + 1).min(TIERS - 1)
+    }
 }
 /// Stable identity reserves four bits each for pass, tier and cascade mask.
 /// Dynamic and static appearances use the same row stride.
@@ -305,8 +336,9 @@ impl View {
     }
 }
 
-/// The tier (0–3) or [`IMPOSTOR`] for a model `size` metres tall at `distance`.
-pub fn detail_at(detail: &Detail, view: &View, size: f64, distance: f64, impostor: bool) -> i32 {
+/// The tier (0–3), [`FAR`] or [`IMPOSTOR`] for a model `size` metres tall at
+/// `distance` that `carries` what it does past tier 3.
+pub fn detail_at(detail: &Detail, view: &View, size: f64, distance: f64, carries: Carries) -> i32 {
     let px = size * view.pixels_per_metre / distance.max(1e-3);
     let [t0, t1, t2] = detail.lod_px;
     if px > t0 {
@@ -315,14 +347,16 @@ pub fn detail_at(detail: &Detail, view: &View, size: f64, distance: f64, imposto
         1
     } else if px > t2 {
         2
-    } else if impostor && px < detail.impostor_px {
-        IMPOSTOR
     } else {
-        3
+        match carries {
+            Carries::Card if px < detail.impostor_px => IMPOSTOR,
+            Carries::Far if px < detail.far_px => FAR,
+            _ => 3,
+        }
     }
 }
 
-/// [`CULLED`], a tier, or [`IMPOSTOR`] for a model standing at `at`, `size`
+/// [`CULLED`], or [`detail_at`]'s tier for a model standing at `at`, `size`
 /// metres tall and within `radius` of its centre (half its size up). A model
 /// in the air casts its shadow far from itself: given where its foot's
 /// shadow lands (`shadow_at`), it draws while either is in view.
@@ -332,7 +366,7 @@ pub fn model_detail(
     at: Vec3,
     size: f64,
     radius: f64,
-    impostor: bool,
+    carries: Carries,
     shadow_at: Option<Vec3>,
 ) -> i32 {
     let c = [at[0], at[1], at[2] + size / 2.0];
@@ -349,7 +383,7 @@ pub fn model_detail(
         view,
         size,
         (d[0] * d[0] + d[1] * d[1] + d[2] * d[2]).sqrt(),
-        impostor,
+        carries,
     )
 }
 
@@ -373,6 +407,8 @@ mod tests {
         assert_eq!(batch_caster(2, VIEW_PASS), 3);
         // The coarsest tier has none coarser: it casts from itself.
         assert_eq!(batch_caster(3, VIEW_PASS), 3);
+        // A far mesh casts with itself, as a lab's far-drawn model does.
+        assert_eq!(batch_caster(FAR as u32, VIEW_PASS), FAR as u32);
         assert_eq!(batch_caster(IMPOSTOR as u32, VIEW_PASS), NONE);
         assert_eq!(batch_caster(1, GHOST_PASS), NONE);
     }
@@ -413,7 +449,14 @@ mod tests {
     #[test]
     fn a_soldiers_tier_falls_with_his_projected_height_to_a_card_only_if_he_has_one() {
         let (detail, v) = (detail(), view());
-        let at = |d: f64, card: bool| detail_at(&detail, &v, SOLDIER, d, card);
+        let at = |d: f64, card: bool| {
+            let carries = if card {
+                Carries::Card
+            } else {
+                Carries::Nothing
+            };
+            detail_at(&detail, &v, SOLDIER, d, carries)
+        };
         let tiers: Vec<i32> = [10.0, 20.0, 40.0, 80.0, 160.0, 400.0]
             .map(|d| at(d, true))
             .to_vec();
@@ -431,9 +474,52 @@ mod tests {
     }
 
     #[test]
+    fn a_card_carrying_model_takes_its_card_and_never_the_far_mesh() {
+        // The test's own thresholds, the far band above the card's so a
+        // card-carrying model passes through it on the way down.
+        let detail = Detail {
+            lod_px: [200.0, 80.0, 30.0],
+            impostor_px: 10.0,
+            far_px: 20.0,
+            shadow_caster_px: 0.0,
+        };
+        let v = view();
+        let at = |px: f64, carries| {
+            detail_at(
+                &detail,
+                &v,
+                SOLDIER,
+                SOLDIER * v.pixels_per_metre / px,
+                carries,
+            )
+        };
+        for px in [29.0, 21.0, 19.0, 15.0, 10.5] {
+            assert_eq!(at(px, Carries::Card), 3, "card at {px} px");
+        }
+        for px in [9.5, 4.0, 0.5] {
+            assert_eq!(at(px, Carries::Card), IMPOSTOR, "card at {px} px");
+        }
+        // The same sizes on a far-carrying model, and on one carrying nothing.
+        assert_eq!(at(21.0, Carries::Far), 3);
+        assert_eq!(at(19.0, Carries::Far), FAR);
+        assert_eq!(at(0.5, Carries::Far), FAR);
+        assert_eq!(at(0.5, Carries::Nothing), 3);
+    }
+
+    #[test]
     fn a_model_off_screen_is_culled_only_past_its_shadows_reach() {
         let (detail, v) = (detail(), view());
-        let tier = |x: f64| model_detail(&detail, &v, [x, 0.0, 0.0], SOLDIER, 1.0, true, None);
+        let tier = |x: f64| {
+            model_detail(
+                &detail,
+                &v,
+                [x, 0.0, 0.0],
+                SOLDIER,
+                1.0,
+                Carries::Card,
+                None,
+            )
+        };
         assert_ne!(tier(0.0), CULLED);
         assert_eq!(tier(400.0), CULLED);
         let edge = (0..)
@@ -449,7 +535,7 @@ mod tests {
     fn an_airframe_off_screen_draws_while_its_shadow_is_in_view_at_its_own_tier() {
         let (detail, v) = (detail(), view());
         let at = [400.0, 0.0, 20.0];
-        let tier = |shadow| model_detail(&detail, &v, at, 3.2, 8.0, true, shadow);
+        let tier = |shadow| model_detail(&detail, &v, at, 3.2, 8.0, Carries::Card, shadow);
         assert_eq!(tier(None), CULLED);
         let c = [at[0] - v.eye[0], at[1] - v.eye[1], at[2] + 1.6 - v.eye[2]];
         let own = detail_at(
@@ -457,7 +543,7 @@ mod tests {
             &v,
             3.2,
             (c[0] * c[0] + c[1] * c[1] + c[2] * c[2]).sqrt(),
-            true,
+            Carries::Card,
         );
         assert_eq!(tier(Some([0.0, 0.0, 0.0])), own);
     }
@@ -478,8 +564,8 @@ mod tests {
             for y in (-40..=400).step_by(7) {
                 let at = [f64::from(x), f64::from(y), 0.0];
                 assert_eq!(
-                    model_detail(&detail, &from_record, at, SOLDIER, 1.0, true, None),
-                    model_detail(&detail, &v, at, SOLDIER, 1.0, true, None),
+                    model_detail(&detail, &from_record, at, SOLDIER, 1.0, Carries::Card, None),
+                    model_detail(&detail, &v, at, SOLDIER, 1.0, Carries::Card, None),
                     "at {at:?}"
                 );
             }
