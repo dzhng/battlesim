@@ -266,8 +266,34 @@ about $19, or about $25 allowing retries. The trial already spent about $8.60:
 - 2 Meshy calls: $2.40;
 - one Argon round: $3.46.
 
-Slice 09 reports actual spend from the ledger: per body, per army, total, and
-per shipped soldier GLB.
+### Actual spend (the ledger, `skin-generate costs infantry`)
+
+- **Total: $25.44** over 76 paid calls (36 drawings at $0.04, 40 Tripo meshes at
+  $0.60). Every attempt is included, rejected ones too; no Meshy call was
+  needed. The trial's $8.60 before the ledger existed comes on top: **$34.04 in
+  all.**
+- **Per body:** $0.64 for a body accepted at the first attempt (22 of 30); up
+  to $1.88 with retakes. That's an average of **$0.85**.
+  - *Retakes:*
+    - two recon bodies whose rucksack stood too high on a corpse;
+    - two images redrawn after that;
+    - an untextured PLA mesh;
+    - a hand left hanging below the forearm;
+    - the PLA's corrected camouflage (three bodies).
+- **Per army:**
+
+  | Army | Bodies | Spend |
+  |---|---|---|
+  | `us_army_ocp` | 6 | $5.72 |
+  | `eastern_emr` | 6 | $5.68 |
+  | `pla_type21` | 3 | $4.44 |
+  | `german_flecktarn` | 6 | $3.84 |
+  | `usmc_marpat` | 6 | $3.84 |
+  | `french_cce` | 3 | $1.92 |
+
+- **Per shipped soldier GLB: $0.19** ($25.44 over the 132 roster kit GLBs). The
+  six crewed vehicles and the 12 test soldiers wear the same bodies at no
+  further cost.
 
 ## Risks
 

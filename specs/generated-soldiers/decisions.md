@@ -320,3 +320,15 @@ this ledger from scratch against the shipped code.
 - **A packed canister longer than the TOW's sits lower on the back**, as long
   MANPADS tubes already do, so the Kornet carried kit stands 1.73 m, not
   1.753. Sound: one rule for both, measured against the TOW's canister.
+- **The catalog load budget is 800 MiB** (`CATALOG_LOAD_MAX_BYTES`): the
+  measured 775.3 MiB with every unit's art, rounded up to the next 32 MiB, as
+  the slice's rule says. Sound. Nothing was retired: the deleted print recipes
+  were never part of the load.
+- **The `assets/review/` folders are not re-accepted.** Sound.
+  - *What they are:* `rifle-reference`, `infantry-equipment` and `at_carried*`
+    came in with a done spec as an archive of reviewed visual provenance
+    ("Keep only pose reference images in the equipment archive").
+  - *Why leave them:* no tool regenerates them, and rewriting them would
+    falsify that record.
+  - *What moves:* the live baselines are the browser scenes', judged at the
+    closeout.
