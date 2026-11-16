@@ -47,7 +47,7 @@ export function ordersEnd(steps: readonly OrderStep[], goal: P2 | null): P2 | nu
 export const currentUnloads = (steps: readonly OrderStep[]) => steps[1]?.kind === "unload";
 
 /** A queued waypoint's ring, and a blocked route's warning ring. */
-const QUEUED_R = 2.8;
+export const QUEUED_R = 2.8;
 const BLOCKED_R = 4.5;
 
 /** A blocked route's warning ring round its goal. */
