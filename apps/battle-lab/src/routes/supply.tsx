@@ -193,19 +193,13 @@ const SERVICE_TEXT: Record<string, string> = {
   out_of_range: "no supply vehicle in reach",
   source_not_deployed: "supply vehicle not set up yet",
   moving: "must stand still",
-  firing: "fired this moment",
   serving: "being served",
-  no_stock: "the truck cannot pay for the next item",
+  no_stock: "no missing item can be paid from stock",
   full: "nothing missing",
 };
 
 /** Service states in which a unit in a truck's reach waits to be served. */
-const SERVICE_WAITING: ReadonlySet<string> = new Set([
-  "moving",
-  "firing",
-  "no_stock",
-  "source_not_deployed",
-]);
+const SERVICE_WAITING: ReadonlySet<string> = new Set(["moving", "no_stock", "source_not_deployed"]);
 
 /** A unit's supply state in words: "waiting for supply: <why>" while it
  *  waits, else the state itself. */

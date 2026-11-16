@@ -1,5 +1,5 @@
 //! Shared listener direction and distance attenuation for native and browser sound.
-use super::tables::SoundTables;
+use super::tables::{Distance, SoundTables};
 use crate::world::Vec3;
 use serde::{Deserialize, Serialize};
 
@@ -33,15 +33,15 @@ pub fn heard_distance(tables: &SoundTables, listener: &Listener, position: &Vec3
     d * (1.0 - (1.0 - f.share) * t * t * (3.0 - 2.0 * t))
 }
 
-/// The share of a sound's gain heard `d` metres off: full within `ref_m`,
-/// then inverse distance easing down to `floor`, and nothing past `max_m`.
-pub fn distance_gain(tables: &SoundTables, d: f64) -> f64 {
-    let p = tables.audio.distance;
-    if d > p.max_m {
-        return 0.0;
+impl Distance {
+    /// Distance attenuation for this source's authored reach.
+    pub fn gain(&self, d: f64) -> f64 {
+        if d > self.max_m {
+            return 0.0;
+        }
+        let inverse = self.ref_m / (self.ref_m + self.rolloff * (d - self.ref_m).max(0.0));
+        self.floor + (1.0 - self.floor) * inverse
     }
-    let inverse = p.ref_m / (p.ref_m + p.rolloff * (d - p.ref_m).max(0.0));
-    p.floor + (1.0 - p.floor) * inverse
 }
 
 /// The listener: where it stands, which way it faces (level, for panning)

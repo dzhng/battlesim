@@ -194,6 +194,7 @@ fn the_encoder_packs_the_codec_vectors_the_web_decoder_reads() {
         "soundCategories",
         "shoutTriggers",
         "intensities",
+        "serviceStatuses",
         "hostKinds",
         "holdPhases",
         "orderErrors",

@@ -77,7 +77,7 @@ import {
   placementUnder,
   type UnitGhost,
 } from "./unitGhosts";
-import { byReference, heldGhost, pendingGhosts } from "./shopGhosts";
+import { boughtGhosts, byReference, heldGhost, pendingGhosts } from "./shopGhosts";
 import { presentationProbes } from "./presentationProbes";
 
 export function useBattleSession({
@@ -167,6 +167,7 @@ export function useBattleSession({
     placing: purchasing,
     ghost: purchaseGhost,
     placed: placedGhosts,
+    bought: boughtPurchases,
     choose: chooseVariant,
     click: clickPurchase,
   } = usePurchasePlacement(sim.client);
@@ -377,10 +378,12 @@ export function useBattleSession({
         revealedRef.current = reveal;
         setRevealed(reveal);
       }
-      // Ghosts: purchases placed, every ordered destination with Space held,
-      // a held right-drag's destinations, and the purchase being placed.
+      // Ghosts: purchases placed (in battle, those just bought, fading),
+      // every ordered destination with Space held, a held right-drag's
+      // destinations, and the purchase being placed.
       const placement = purchaseGhost.current;
       const ghosts = [...placedGhostList.of(published.skirmish), ...dragGhosts.current];
+      ghosts.push(...boughtGhosts(boughtPurchases.current, now, published.own));
       if (control.showOrders)
         for (const unit of published.own) {
           if (!reveal.has(unit.id)) continue;
@@ -431,6 +434,7 @@ export function useBattleSession({
       control.selected,
       xray,
       placedGhostList,
+      boughtPurchases,
       purchaseGhost,
       inputEnabled,
       aloft,
@@ -463,7 +467,7 @@ export function useBattleSession({
   );
   const onPick = useCallback(
     (pick: LabPick) => {
-      if (purchasePlacement.variant) return clickPurchase(pick, control.issue);
+      if (purchasePlacement.variant) return clickPurchase(pick, control.issue, sim.latest.current);
       const held = releasedAction.capturedFor(sim.client);
       if (pick.button === "right") {
         // A reset cancels the old press; its release cannot command the new battle.
@@ -478,7 +482,16 @@ export function useBattleSession({
         if (pointer) control.onPointer(pointer);
       }
     },
-    [semanticPick, control, world, sim.client, purchasePlacement, clickPurchase, releasedAction],
+    [
+      semanticPick,
+      control,
+      world,
+      sim.client,
+      sim.latest,
+      purchasePlacement,
+      clickPurchase,
+      releasedAction,
+    ],
   );
   const semanticRevision = usePreviewRevision(
     side,

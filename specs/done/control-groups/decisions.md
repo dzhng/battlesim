@@ -116,13 +116,24 @@ hurt. A hit inside red's wait still lets a simultaneous pass show yellow.
 **A finished blink leaves the feed.**
 Making a group reorders the deck, and the browser restarts any animation on
 an element it moves. So a blink is dropped once it has run, and with its unit
-when the unit is gone. A card shot at a minute ago never flashes again.
+when the unit withdrew. A card shot at a minute ago never flashes again.
 *Confidence:* high.
+
+**A lost unit's card blinks red, then goes.** (Player, after play.)
+A unit destroyed in one hit used to vanish from the deck with no red at all.
+A unit leaves its side only by being lost or by withdrawing, and a withdrawing
+unit says so in the publication before it goes, so the deck needs no new
+observation fact: a unit gone that was not withdrawing was lost. It always
+blinks red, whatever its waits, and its card holds its place, emptied and
+out of reach, until that blink has run. A change of the side watched starts
+the blinks over, so a lab's side switch never reads as the whole army lost.
 
 **The blink honours `on_s` and `off_s` separately.**
 It's a Web Animation built from both values, started once as the element
-mounts. CSS keyframes could only honour their sum. At the shipped values it
-matches the mock's curve exactly. *Confidence:* high.
+mounts. CSS keyframes could only honour their sum. The player found the
+first, brief blinks easy to miss and asked that each hold its colour longer;
+a pulse now rises as fast as it fades, so a longer `on_s` lengthens the hold
+and never slows the alert. *Confidence:* high.
 
 **The flag is `OwnUnit.shot_at`, published as `shotAt`.**
 Every round records the unit it was aimed at in `Round.aimed_at`, which

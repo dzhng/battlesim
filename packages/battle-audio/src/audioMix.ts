@@ -33,6 +33,7 @@ export interface Duck {
 /** A vehicle kind's loops: engine (idle to load), running gear (tracks or
  *  wheels, by speed), turret traverse, and reverse beeper. A null sound is none. */
 export interface VehicleSound {
+  engine_distance: string;
   engine: string;
   /** Engine playback rate at idle and at full load. */
   idle_rate: number;
@@ -75,19 +76,21 @@ export interface AudioMix {
   buses: Record<Bus | "master" | "music", number>;
   /** The master's limiter and clip, the last stage before the output. */
   limiter: Limiter;
-  /** Distance attenuation from the listener (the camera's eye), as its
+  /** Named distance profiles from the listener (the camera's eye), as its
    *  `focus` hears the distance: full within `ref_m`, then inverse (`rolloff`)
    *  down toward `floor`, a share of the sound's gain it never drops below
-   *  within `max_m` (so the side always hears its own battle, even from the
-   *  farthest zoom), and silent past `max_m`. A voice quieter than `cull` at
+   *  within `max_m`, and silent past it. A voice quieter than `cull` at
    *  the listener is not started. */
-  distance: {
-    ref_m: number;
-    rolloff: number;
-    max_m: number;
-    floor: number;
-    cull: number;
-  };
+  distance: Record<
+    string,
+    {
+      ref_m: number;
+      rolloff: number;
+      max_m: number;
+      floor: number;
+      cull: number;
+    }
+  >;
   /** The camera's directional mic: a sound within `inner_deg` of where it
    *  looks is heard as if `share` of its distance away, louder and clearer,
    *  easing back to its whole distance by `outer_deg` (`heard_distance`). */
