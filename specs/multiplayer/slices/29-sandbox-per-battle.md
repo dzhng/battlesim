@@ -216,8 +216,16 @@ keeps its tick rate. How it feels with someone far away is still slice
 
 **Still open here:**
 
-- **The machine's size.** A one-hour soak on the smallest sandbox was
-  started to read its memory; its result goes here.
+- **The machine's size is settled: 8 GB.** On the smallest sandbox (2
+  vCPU, 4 GB) a five-a-side of ten AIs used 0.5 GB at five minutes and 3.0
+  GB at 42, when a side won; it grew about 65 MB a minute throughout. An
+  hour would not fit in 4 GB. The size is data in `deploy/settings.json`.
+- **A sandbox is not always a fast one.** That same soak ran well below
+  the earlier ones on the same size: from the fifth minute to the thirtieth
+  it kept 47 to 67% of real time, where slice 01's sandboxes kept 95%.
+  The machines differ (slice 01 saw two CPU models) and are shared. Expect
+  a full AI battle to run slow on some of them. The CPU-built native
+  simulation measured in slice 01 is the known remedy, and still deferred.
 - **The plan's limits** on sandboxes at once and starts a minute: not
   probed. `capacity` is still the first guess of eight.
 - **What a battle costs:** not read from the service. By its price list

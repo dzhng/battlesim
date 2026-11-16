@@ -139,7 +139,7 @@ export async function sandboxBattleMachines(options: SandboxOptions): Promise<Ba
       let uncertain = false;
       try {
         const body = {
-          type: "small",
+          type: settings.machine,
           ttlSeconds: options.ttlSeconds,
           noEnv: true,
           visibility: "private",

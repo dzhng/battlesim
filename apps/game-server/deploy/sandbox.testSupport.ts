@@ -92,7 +92,7 @@ export async function serviceStandIn(archive: string) {
           !body.noEnv ||
           body.visibility !== "private" ||
           body.snapshots !== false ||
-          body.type !== "small" ||
+          body.type !== settings.machine ||
           !body.ttlSeconds
         )
           return send({}, 400);

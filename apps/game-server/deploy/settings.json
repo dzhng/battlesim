@@ -1,6 +1,8 @@
 {
   "capacity": 8,
   "capacityWhy": "Maximum simultaneous battle allocations held by this lobby, including starts.",
+  "machine": "default",
+  "machineWhy": "The service's 8 GB size. A five-a-side of AIs reached 3 GB in 42 minutes on the 4 GB size and was still growing.",
   "ttlSeconds": 10800,
   "ttlWhy": "Three hours bounds an orphan's rental and leaves room for a Frontline battle.",
   "startupMs": 120000,

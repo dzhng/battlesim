@@ -42,8 +42,7 @@ contract and the ignored implementation report holds verification evidence.
    public app `battle-lobby` in the `armata` workspace, and a room battle
    and a Frontline game both ran on sandboxes it rented, from a script and
    from two real browser pages. What it still owes is listed at the end of
-   [the slice](slices/29-sandbox-per-battle.md): the machine's size (a
-   memory soak is running), the plan's limits, the cost, the client
+   [the slice](slices/29-sandbox-per-battle.md): the plan's limits, the cost, the client
    address header, and a game played to its end. **Redeploy after every
    commit that players should reach:** the lobby admits only pages of its
    own commit. Build the site, serve `web/dist`, and run
