@@ -110,6 +110,17 @@ pub struct Purchase {
     pub price: u32,
     pub carrier: Option<(TypeIndex, u32)>,
 }
+
+impl Purchase {
+    /// How many units it fields: the unit, and its carrier when it has one.
+    pub fn units(&self) -> u32 {
+        1 + u32::from(self.carrier.is_some())
+    }
+    /// Everything it costs.
+    pub fn total(&self) -> u32 {
+        self.price + self.carrier.map_or(0, |(_, price)| price)
+    }
+}
 pub const CREDIT_SCALE: u64 = 1_000_000;
 pub struct EnteredUnit {
     pub price: u32,
@@ -294,11 +305,10 @@ impl Skirmish {
             .players
             .get_mut(player)
             .ok_or(OrderError::MissingPlayer)?;
-        let units = 1 + u32::from(purchase.carrier.is_some());
-        if living + p.reserved_units() + units > self.setup.rules.max_units {
+        if living + p.reserved_units() + purchase.units() > self.setup.rules.max_units {
             return Err(OrderError::UnitLimitReached);
         }
-        let price = purchase.price + purchase.carrier.map_or(0, |(_, price)| price);
+        let price = purchase.total();
         let micros = u64::from(price) * CREDIT_SCALE;
         if p.wallet < micros {
             return Err(OrderError::InsufficientCredits);

@@ -6,6 +6,7 @@ import type { UnitCard } from "@packages/scene-assets/src/units";
 import { Price, PurchaseInfo, ShopCard } from "./purchaseCard";
 import {
   cardPurchasable,
+  pairCost,
   pairPurchasable,
   type BuyFacts,
   type CarrierSection,
@@ -109,7 +110,7 @@ export function TransportMenu({
         face={face}
         label={ride ? ride.name : "On foot"}
         cost={face.cost}
-        payable={(ride?.cost ?? 0) + squad.cost <= facts.credits}
+        payable={pairCost(squad, ride) <= facts.credits}
         add={ride !== null}
         purchasable={optionPurchasable(squad, ride, facts)}
         pressed={id === option}
@@ -171,8 +172,8 @@ export function TransportMenu({
                   {carrier.cost} + {squad.cost} =
                 </span>
                 <Price
-                  cost={squad.cost + carrier.cost}
-                  payable={squad.cost + carrier.cost <= facts.credits}
+                  cost={pairCost(squad, carrier)}
+                  payable={pairCost(squad, carrier) <= facts.credits}
                 />
               </div>
             </>

@@ -493,6 +493,11 @@ test("pointing at an option shows what it buys: on foot the squad, a ride its ca
   // The hovered ride is described by everything it buys.
   const described = view.getByRole("button", { name: SCOUT.name }).getAttribute("aria-describedby");
   expect(described?.split(" ")).toContain(aboard.id);
+  // Leaving and coming back opens the menu fresh: nothing pointed at, nothing shown.
+  fireEvent.mouseLeave(view.getByRole("region", { name: "Faction units" }));
+  fireEvent.mouseEnter(view.getByRole("button", { name: TEAM.name }));
+  expect(highlighted(view)).toEqual([]);
+  expect(infoCards(view)).toEqual([]);
 });
 
 test("clicking a ride buys the squad in it; on foot or the squad's own card buys it alone", () => {

@@ -254,30 +254,34 @@ function PurchaseMenu({
       if (choice) onChoose(choice.id);
     }
   };
+  // The pointer moves to another card, or off them all: a menu it opens
+  // again starts with nothing highlighted.
+  const point = (id: string | null) => {
+    window.clearTimeout(intent.current);
+    if (id === hovered) return;
+    setHovered(id);
+    setPick(null);
+  };
   // Pointing at another card while a transport menu is open waits for the
   // pointer to rest there; anything else follows at once.
   const hoverCard = (id: string) => {
     window.clearTimeout(intent.current);
     if (squad && squad.id === hovered && id !== hovered)
-      intent.current = window.setTimeout(() => setHovered(id), HOVER_INTENT_MS);
-    else setHovered(id);
+      intent.current = window.setTimeout(() => point(id), HOVER_INTENT_MS);
+    else point(id);
   };
   // A tab is shown as soon as the pointer or focus reaches it; a click does
   // the same, for touch. Passing back over the shown tab changes nothing.
   const showGroup = (g: UnitGroup) => {
     if (searching || g === group) return;
-    window.clearTimeout(intent.current);
     setGroup(g);
-    setHovered(null);
+    point(null);
   };
   return (
     <section
       className="hud-panel hud-purchase-picker"
       aria-label="Faction units"
-      onMouseLeave={() => {
-        window.clearTimeout(intent.current);
-        setHovered(null);
-      }}
+      onMouseLeave={() => point(null)}
     >
       <div
         className="hud-purchase-cards"

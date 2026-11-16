@@ -1,5 +1,7 @@
-/** The reinforcements picker's filter: the groups it browses by, matching,
- *  buyability and the Enter choice, as pure data. */
+/** The reinforcements picker's rules, as pure data: the groups it browses
+ *  by and the order cards stand in, matching and the Enter choice, what can
+ *  be bought (a card, or a squad with its carrier, and what the pair costs),
+ *  and the carriers that can take a squad. */
 import type { UnitCard, UnitCategory, UnitType } from "@packages/scene-assets/src/units";
 
 /** A browsing group: one category's cards, narrowed by role. */
@@ -71,6 +73,9 @@ export function cardPurchasable(card: UnitCard, facts: BuyFacts): boolean {
   );
 }
 
+/** What a squad costs with its ride, or alone on foot (`ride` null). */
+export const pairCost = (squad: UnitCard, ride: UnitCard | null) => squad.cost + (ride?.cost ?? 0);
+
 /** On sale both, both prices within the credits, room under the cap for two
  *  units, battle running: whether a squad can be bought with its carrier. */
 export function pairPurchasable(squad: UnitCard, carrier: UnitCard, facts: BuyFacts): boolean {
@@ -78,7 +83,7 @@ export function pairPurchasable(squad: UnitCard, carrier: UnitCard, facts: BuyFa
     !facts.finished &&
     squad.disabled_reason === null &&
     carrier.disabled_reason === null &&
-    squad.cost + carrier.cost <= facts.credits &&
+    pairCost(squad, carrier) <= facts.credits &&
     facts.unitCount + 2 <= facts.maxUnits
   );
 }

@@ -88,7 +88,7 @@ import {
   placementUnder,
   type UnitGhost,
 } from "./unitGhosts";
-import { byReference, heldGhost, pendingGhosts } from "./pendingGhosts";
+import { byReference, heldGhost, pendingGhosts } from "./shopGhosts";
 import { modelProbes } from "./modelProbes";
 
 export function useBattleSession({
