@@ -23,7 +23,7 @@ export async function prepareDeployment(root, siteAddress, report) {
   report(`Verified checkout commit: ${commit}`);
   report(`Verified simulation SHA-256: ${sim}`);
   const glue = await download(site, "sim/game_wasm.js");
-  const scratch = join(root, "throwaway/multiplayer/slice09");
+  const scratch = join(root, "throwaway/multiplayer/slice29");
   await mkdir(scratch, { recursive: true });
   const staging = await mkdtemp(join(scratch, "deploy-"));
   const source = join(staging, "source");
@@ -43,6 +43,7 @@ export async function prepareDeployment(root, siteAddress, report) {
         "archive",
         commit,
         "apps/game-server/src",
+        "apps/game-server/deploy",
         "packages",
         "web/src",
         "fixtures",
@@ -63,11 +64,34 @@ export async function prepareDeployment(root, siteAddress, report) {
       await mkdir(dirname(join(simFolder, path)), { recursive: true });
       await writeFile(join(simFolder, path), await download(site, `sim/${path.slice(2)}`));
     }
-    const bundled = await bundleServer(source, folder, commit);
+    const battleFolder = join(staging, "battle");
+    const bundled = await bundleServer(source, battleFolder, commit);
+    await mkdir(folder);
+    execFileSync("tar", [
+      "-cf",
+      join(folder, "battle.tar"),
+      "-C",
+      battleFolder,
+      "battle.mjs",
+      "worker.mjs",
+      "build.json",
+      "fixtures",
+      "web",
+    ]);
+    await rm(battleFolder, { recursive: true, force: true });
+    await bundleServer(source, folder, commit, "apps/game-server/deploy/lobby.ts");
+    // The lobby never hosts a simulation worker or a child battle.
+    for (const file of ["main.mjs", "battle.mjs", "worker.mjs", "web", "fixtures"])
+      await rm(join(folder, file), { recursive: true, force: true });
+    await writeFile(
+      join(folder, "settings.json"),
+      await readFile(join(source, "apps/game-server/deploy/settings.json")),
+    );
     if (bundled.sim !== sim) throw new Error("Bundled simulation differs from site");
     await writeFile(
       join(folder, "package.json"),
-      JSON.stringify({ private: true, type: "module", scripts: { start: "node main.mjs" } }) + "\n",
+      JSON.stringify({ private: true, type: "module", scripts: { start: "node lobby.mjs" } }) +
+        "\n",
     );
     report("Verified server bundle and game data extracted from that commit");
     for (const path of (await readdir(folder, { recursive: true, withFileTypes: true })).filter(

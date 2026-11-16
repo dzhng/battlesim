@@ -32,5 +32,5 @@
     },
     "types": ["@webgpu/types", "vite/client", "node"]
   },
-  "include": ["src", "tests", "../packages/*/src", "../apps/*/src"]
+  "include": ["src", "tests", "../packages/*/src", "../apps/*/src", "../apps/game-server/deploy"]
 }

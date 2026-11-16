@@ -1,0 +1,9 @@
+{
+  "capacity": 8,
+  "capacityWhy": "Maximum simultaneous battle allocations held by this lobby, including starts.",
+  "ttlSeconds": 10800,
+  "ttlWhy": "Three hours bounds an orphan's rental and leaves room for a Frontline battle.",
+  "startupMs": 120000,
+  "pollMs": 1000,
+  "port": 8788
+}

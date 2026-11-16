@@ -63,13 +63,15 @@ listeners inside their process. A machine exposes player and control addresses
 and a stop operation, with no assumption that the two addresses coincide.
 
 The lobby mints one private key per battle. Only control request headers and
-the child's startup environment carry it. Control replies and events contain
+the machine's startup environment carry it. Control replies and events contain
 no credentials; stream presence names a battle player and an opaque connection,
 which the lobby maps back to its browser. Crash diagnostics remove credentials
 before logging. Player orders and previews go directly to the ticket's address;
 room and Frontline state stay at the lobby.
 
-A running battle requires a renewable lobby lease. A live, bounded preparation
+A running battle requires a renewable lobby lease. Successful control answers
+renew one silence deadline; an individual stalled ping is retried inside it.
+[The control protocol](src/http/controlProtocol.ts) owns both ends' timing. A live, bounded preparation
 request holds the lease while its map is built. Closing that request stops
 preparation; losing the lobby stops a running battle. Locally the child also
 observes its parent connection, and lobby shutdown disposes all its machines.

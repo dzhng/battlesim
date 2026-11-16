@@ -134,6 +134,12 @@ Found while measuring hosts (slice 01), before any real deploy:
 - `deploy/bento.mjs` can only register a new app. A second deploy needs it
   to write the files and restart the existing one.
 
+The [slice 29 code half](29-sandbox-per-battle.md#as-built-code-half-2026-11-15)
+applies these corrections. The current adapter is
+[`deploy/push.ts`](../../../apps/game-server/deploy/push.ts); the references to
+`bento.mjs` above describe the original local-half implementation. Real deploy
+and public-route measurements still belong to slice 29 integration.
+
 ## Results
 
 Not run yet.

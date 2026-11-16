@@ -15,7 +15,7 @@ export function childBattleMachines(
       running++;
       return new Promise<Machine>((resolve, reject) => {
         const child = fork(entry, [], {
-          env: { ...process.env, BATTLE_KEY: key },
+          env: { ...process.env, BATTLE_KEY: key, HOST: "127.0.0.1", PORT: "0" },
           stdio: ["ignore", "ignore", "pipe", "ipc"],
         });
         child.stderr?.on("data", (chunk) => {

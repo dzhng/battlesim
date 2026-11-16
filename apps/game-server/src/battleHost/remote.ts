@@ -9,7 +9,13 @@ import { httpRecords } from "../../../../packages/multiplayer/src/stream/http.ts
 import type { PreviewAnswer, UpReply } from "../../../../packages/multiplayer/src/wire.ts";
 import type { RefereeView } from "../../../../web/src/battle/sim/protocol.ts";
 import type { Machine } from "../machines/index.ts";
-import { CONTROL_HEADER, CONTROL_REQUEST_TIMEOUT_MS } from "../http/controlProtocol.ts";
+import {
+  CONTROL_HEADER,
+  CONTROL_REQUEST_TIMEOUT_MS,
+  LOBBY_LEASE_MS,
+  CONTROL_PING_EVERY_MS,
+  CONTROL_PING_TIMEOUT_MS,
+} from "../http/controlProtocol.ts";
 import type { ControlEvent, StreamPresence } from "../http/controlEvents.ts";
 import type { BattleEnd, BattleHost, BattleSpec } from "./index.ts";
 
@@ -19,8 +25,6 @@ export interface RemoteBattleHost extends BattleHost {
   setSeating(entries: [string, Seat][]): Promise<void>;
   onStream(handle: (streams: StreamPresence[]) => void): void;
 }
-const PING_EVERY_MS = 2000;
-const PING_TIMEOUT_MS = 5000;
 
 export function createRemoteBattleHost(
   spec: BattleSpec,
@@ -40,6 +44,12 @@ export function createRemoteBattleHost(
   let end: BattleEnd | null = null;
   let over: string | null = null;
   let ping: ReturnType<typeof setTimeout> | undefined;
+  let silence: ReturnType<typeof setTimeout> | undefined;
+  let leased = false;
+  const answered = () => {
+    clearTimeout(silence);
+    if (!over && leased) silence = setTimeout(crash, LOBBY_LEASE_MS);
+  };
   let mutations: Promise<unknown> = Promise.resolve();
   let stopped: Promise<unknown> = Promise.resolve();
   const tellStreams = () => {
@@ -50,6 +60,7 @@ export function createRemoteBattleHost(
     over = reason;
     end = result;
     clearTimeout(ping);
+    clearTimeout(silence);
     lifetime.abort();
     for (const finish of readers) finish(reason);
     readers.clear();
@@ -60,7 +71,7 @@ export function createRemoteBattleHost(
       stopped = fetch(`${m.control}/control/stop`, {
         method: "POST",
         headers: { [CONTROL_HEADER]: key },
-        signal: AbortSignal.timeout(PING_TIMEOUT_MS),
+        signal: AbortSignal.timeout(CONTROL_PING_TIMEOUT_MS),
       })
         .catch(() => {})
         .finally(() => m!.stop());
@@ -80,9 +91,10 @@ export function createRemoteBattleHost(
         signal: AbortSignal.any([lifetime.signal, AbortSignal.timeout(CONTROL_REQUEST_TIMEOUT_MS)]),
       });
       if (!response.ok) throw endedError();
-      return (await response.json()) as T;
+      const result = (await response.json()) as T;
+      answered();
+      return result;
     } catch {
-      crash();
       throw endedError();
     }
   }
@@ -102,12 +114,14 @@ export function createRemoteBattleHost(
       const response = await fetch(`${m.control}/control/ping`, {
         method: "POST",
         headers: { [CONTROL_HEADER]: key },
-        signal: AbortSignal.any([lifetime.signal, AbortSignal.timeout(PING_TIMEOUT_MS)]),
+        signal: AbortSignal.any([lifetime.signal, AbortSignal.timeout(CONTROL_PING_TIMEOUT_MS)]),
       });
       if (!response.ok) throw endedError();
-      if (!over) ping = setTimeout(() => void heartbeat(), PING_EVERY_MS);
+      answered();
     } catch {
-      crash();
+      // Silence, rather than an individual slow or failed request, ends the battle.
+    } finally {
+      if (!over) ping = setTimeout(() => void heartbeat(), CONTROL_PING_EVERY_MS);
     }
   }
   async function events() {
@@ -122,6 +136,7 @@ export function createRemoteBattleHost(
         { sleep: (ms) => delay(ms, undefined, { signal: lifetime.signal }) },
       )) {
         if (over) return;
+        answered();
         if (record.kind === "end") {
           const { reason } = readJson<{ reason: string }>(record);
           close(
@@ -159,6 +174,8 @@ export function createRemoteBattleHost(
         }
       }
     } catch {
+      // The resumable reader retries dropped connections itself. Reaching this
+      // catch means the stream broke its contract, or our lifetime ended.
       crash();
     }
   }
@@ -171,6 +188,8 @@ export function createRemoteBattleHost(
       }
       void events();
       const ready = await post<Awaited<BattleHost["ready"]>>("start", { id, setup: spec.setup });
+      leased = true;
+      answered();
       void heartbeat();
       return ready;
     } catch {

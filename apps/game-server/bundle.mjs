@@ -3,11 +3,16 @@ import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 /** Snapshot runtime data beside the bundle; startup never reads a live checkout. */
-export async function bundleServer(root, outdir, commit) {
+export async function bundleServer(
+  root,
+  outdir,
+  commit,
+  lobbyEntry = "apps/game-server/src/main.ts",
+) {
   await mkdir(outdir, { recursive: true });
   const result = await Bun.build({
     entrypoints: [
-      join(root, "apps/game-server/src/main.ts"),
+      join(root, lobbyEntry),
       join(root, "apps/game-server/src/battle.ts"),
       join(root, "apps/game-server/src/battleHost/worker.ts"),
     ],

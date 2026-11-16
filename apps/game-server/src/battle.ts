@@ -18,7 +18,7 @@ const battle = createBattleServer({
 process.once("disconnect", battle.stop);
 process.once("SIGTERM", battle.stop);
 process.once("SIGINT", battle.stop);
-battle.server.listen(0, "127.0.0.1", () => {
+battle.server.listen(Number(process.env.PORT ?? 0), process.env.HOST ?? "127.0.0.1", () => {
   const address = battle.server.address();
   if (address && typeof address !== "string")
     process.send?.({ address: `http://127.0.0.1:${address.port}` });

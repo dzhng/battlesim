@@ -96,3 +96,85 @@ Slice 28's tests and scenes on the local providers.
 
 The lease; the bundle's way onto the sandbox; labels for finding
 leftovers.
+
+
+## As built: code half (2026-11-15)
+
+`deploy/sandboxes.ts` implements the unchanged `BattleMachines` contract. Its
+async factory sweeps game-labelled leftovers before the lobby listens. Each
+start reserves capacity, creates with an idempotency UUID and a private finite
+rental, polls usable state, uploads one archive through a headerless upload URL,
+launches the standalone battle process, exposes its player/control port and
+waits for an authenticated control ping. Ambiguous create replies replay the
+same request; a final ambiguous failure reconciles by a nonsecret allocation
+label. Refused or timed-out starts reject with a generic error and reclaim any
+known allocation. Service exception bodies never become diagnostics.
+
+Stop is idempotent and returns immediately. It retrieves command stderr before
+sandbox shutdown, removing the app credential and the same credential-shaped
+hex strings slice 28 removes. It then stops, polls for archival and deletes;
+transient cleanup failures retry within a finite bound. Startup attempts every
+matching leftover even if one cleanup fails, and refuses to serve if a stop
+cannot be acknowledged. The rental remains the final bound if service access
+is lost. Other labels are untouched. The game label assumes one lobby per
+workspace; restarting the lobby ends its old battles.
+
+`deploy/settings.json` owns provisional capacity (8) and rental (10,800
+seconds), with their rationale. The host entry passes them to the provider.
+`src/lobby.ts` owns shared startup; `src/main.ts` supplies local children,
+`deploy/lobby.ts` supplies rented machines. The battle entry reads `HOST` and
+`PORT` with local defaults, reports readiness over IPC when there is a parent,
+and otherwise needs only its control listener. Local children explicitly use
+loopback and an ephemeral port instead of inheriting their lobby's port.
+
+`http/controlProtocol.ts` owns the control timing: a 12-second running silence
+lease, a one-second ping interval and a four-second attempt timeout. Any
+successful control answer renews the lobby's lease; a failed attempt does not
+end a battle. Preparation retains its separate bounded 120-second live request.
+The battle side retains its lease check and immediate local parent-disconnect
+shutdown. Twelve seconds allows a several-second stall and preserves slice
+28's existing tests requiring dead-process detection inside fifteen seconds.
+The real cross-ocean measurement is still outstanding. Transport drops are
+retried by the existing resumable reader; a terminal protocol error still fails
+the battle, rather than silently losing its presence and ending events.
+
+The deploy dry run archives committed deployment code with the existing source
+and data, uses the site's exact simulation bytes, and prepares the hosted lobby
+and a battle archive. The explicit push adapter accepts an injected runner,
+creates remote folders first, takes the workspace from the operator, requests
+service capability, lets the host choose the port, and updates/restarts an
+existing app. Its command construction is checked locally against the installed
+CLI endpoint contracts. No push or real deployment belongs to this code pass.
+
+The local rehearsal runs the actual deploy CLI against a static site with the
+normal identity/simulation layout, then runs the resulting hosted entry against
+the stand-in service and seats a player on a separate battle process. Provider,
+lease, process, multiplayer-domain and local-scene evidence, deliberate failing
+mutations and remaining manual operations are recorded in the ignored
+`throwaway/multiplayer/slice29-report.md`. Host latency, battle-length memory,
+cost, plan limits, public-route identity and two-network play remain the parent
+agent's half of this slice; the slice is not marked complete by the code pass.
+
+### Corrected at integration, against the real service (2026-11-15)
+
+The code half was written against a stand-in. Three things only the
+service could show, each checked with a scratch sandbox or a read-only
+command, and each now what the stand-in does too:
+
+- **A sandbox made without snapshots is erased by its stop.** About nine
+  seconds after the stop it answers "not found"; it never reports
+  `archived`, and there is nothing to delete. The service's list keeps a
+  row for it, in its last live state. The provider now treats "not found"
+  as gone. As written it would have asked about each such machine every
+  second for three hours, and a lobby restarted after any battle would
+  have refused to start.
+- **The host's command-line tool:** its app list is `{ items, nextCursor }`
+  at the top level, and registering an app takes the slug as a flag.
+- **The push no longer makes the app public.** Who can reach a lobby is its
+  operator's own step, on the first deploy and on every later one.
+
+Also confirmed: a file uploaded with a relative path and a command with no
+directory both use the same folder, so the fixed start command finds the
+archive; the battle server's error output can be read until the stop and
+not after, so reading it first is required, not a nicety.
+

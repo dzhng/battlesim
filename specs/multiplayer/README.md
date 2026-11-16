@@ -39,14 +39,13 @@ contract and the ignored implementation report holds verification evidence.
 **Pick up here, in this order:**
 
 1. **Slice 29,** a sandbox for each battle, and the lobby deployed on the
-   temporary host. The user has said to deploy there. It replaces slice
-   09's push and burns O6. **Its code half is with Codex** (handed over on
-   2026-11-15, in its own checkout, told to make no request to any host):
-   the sandbox provider, the lobby's entry point for the host, the lease
-   rule and the corrected deploy step. Integrate it, then do the real
-   deploy and the measurements yourself: you hold the login. The service's
-   facts the provider relies on were checked that day and are in the
-   slice.
+   temporary host. The user has said to deploy there. **Its code half is
+   in** (the sandbox provider, the lobby's entry point for the host, the
+   lease rule, the deploy step), corrected against the real service.
+   **What is left is the real deploy and the measurements,** which need
+   the host login: see the slice's "To measure and decide here". A
+   one-hour memory soak on the smallest sandbox was started on 2026-11-16
+   to choose the machine's size.
 2. **Slice 19,** the milestone: two people on two networks finish a room
    battle. **Ask the user before** putting the lobby's address in the site
    and before promoting a site build.
