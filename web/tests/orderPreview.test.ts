@@ -267,15 +267,14 @@ test("moving the goal keeps the cursor's availability until the new goal is plac
 test("unloading into a host badges the host at once, over another carrier too, with no hover placement", () => {
   const into = (
     host: { kind: "building"; building: number } | { kind: "carrier"; carrier: number },
-  ) =>
-    ({
-      kind: "unload",
-      units: [1],
-      goal: [10, 10],
-      route: "shortest",
-      queued: false,
-      into: host,
-    }) as const;
+  ): PointerIntent => ({
+    kind: "unload",
+    units: [1],
+    goal: [10, 10],
+    route: "shortest",
+    queued: false,
+    into: host,
+  });
   const building = into({ kind: "building", building: 3 });
   const carrier = into({ kind: "carrier", carrier: 4 });
   // The simulation picks where to set down beside the host: nothing to place.
