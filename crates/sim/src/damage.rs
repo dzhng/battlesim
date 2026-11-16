@@ -32,6 +32,7 @@ const BLAST_LIFT_M: f64 = 0.05;
 
 pub struct DamageContext<'a> {
     pub world: &'a WorldGeometry,
+    pub windows: &'a crate::garrison::Windows,
     pub ground: &'a GroundLayer,
     pub arsenal: &'a Arsenal,
     pub rules: &'a Rules,
@@ -623,11 +624,8 @@ fn casualties(
                         unit.garrisoned()
                             && at.z > ctx.world.surface_at(at.x, at.y).map_or(0.0, |s| s.z)
                     })
-                    .and_then(|hold| match hold.host {
-                        crate::hold::Host::Building(id) => Some(id),
-                        crate::hold::Host::Carrier(_) => None,
-                    });
-                let body = crate::garrison::body_position(unit, k, ctx.rules);
+                    .and_then(|hold| hold.host.building());
+                let body = ctx.windows.body_position(unit, k, ctx.rules);
                 unit.members[k].fall(body, unit.yaw, support);
             }
         }

@@ -56,7 +56,15 @@ fn reach(b: &Battle) -> f64 {
         .step_by(20)
         .filter(|&distance| {
             units[0].position = sim::math::v3(at.x + distance as f64, at.y, 0.0);
-            !sim::sensing::evaluate(b.world(), &units, b.rules(), Side::Blue, |_| true).is_empty()
+            !sim::sensing::evaluate(
+                b.world(),
+                &units,
+                b.windows(),
+                b.rules(),
+                Side::Blue,
+                |_| true,
+            )
+            .is_empty()
         })
         .max()
         .expect("identified up close") as f64

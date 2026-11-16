@@ -331,7 +331,8 @@ fn occupants_publish_interior_bodies_at_distinct_window_slots() {
         for (k, q) in positions.iter().enumerate() {
             let slot = g.seats[k].unwrap();
             assert!(seen.insert(slot), "slot {slot} held twice");
-            *per_facade.entry(g.slots[slot].slot.facade).or_default() += 1;
+            let facade = b.windows().seat(u, k).unwrap().slot.facade;
+            *per_facade.entry(facade).or_default() += 1;
             // Just outside the facade, never inside the shell.
             assert!((outside_by(&p, q.xy()) - standoff).abs() < 1e-9, "{q:?}");
         }
@@ -512,16 +513,8 @@ fn only_soldiers_at_facing_windows_fire_and_free_facing_slots_fill() {
             }
         }
     }
-    let north_slots = b
-        .unit(UnitId(0))
-        .unwrap()
-        .hold
-        .as_ref()
-        .unwrap()
-        .building()
-        .unwrap()
-        .slots
-        .iter()
+    let held = sim::garrison::garrisoned_in(b.unit(UnitId(0)).unwrap()).unwrap();
+    let north_slots = (b.windows().plan(held).iter())
         .filter(|s| s.slot.facade == 1)
         .count();
     assert_eq!(
@@ -1177,12 +1170,9 @@ fn occupants_see_only_from_unit_count_and_are_seen_only_there() {
     until(&mut b, 1200, "inside", |b| inside(b, 0));
     run(&mut b, 3);
     let u = b.unit(UnitId(0)).unwrap();
-    let g = u.hold.as_ref().unwrap().building().unwrap();
-    let facades: BTreeSet<u8> = g
-        .seats
-        .iter()
-        .flatten()
-        .map(|&s| g.slots[s].slot.facade)
+    let facades: BTreeSet<u8> = (0..u.members.len())
+        .filter_map(|k| b.windows().seat(u, k))
+        .map(|s| s.slot.facade)
         .collect();
     assert!(
         !facades.contains(&3),
@@ -1355,8 +1345,7 @@ fn garrison_orders_replay_every_tick_exactly() {
 /// The facade (0 east, 1 north, 2 west, 3 south) member `k` of squad `id`
 /// holds a window on, while inside.
 fn facade_of(b: &Battle, id: u32, k: usize) -> Option<u8> {
-    let g = b.unit(UnitId(id))?.hold.as_ref()?.building()?.clone();
-    g.seats[k].map(|s| g.slots[s].slot.facade)
+    Some(b.windows().seat(b.unit(UnitId(id))?, k)?.slot.facade)
 }
 
 /// Ticks from the fixture's `garrison` section.
@@ -1405,9 +1394,8 @@ fn a_grounded_launcher_leaves_its_occupied_window_at_the_declared_bore() {
     let u = b.unit(UnitId(0)).unwrap();
     let m = &u.mounts[1];
     let soldier = u.members.iter().find(|s| Some(s.id) == m.operator).unwrap();
-    let g = u.hold.as_ref().unwrap().building().unwrap();
     let member = u.members.iter().position(|s| s.id == soldier.id).unwrap();
-    let seat = g.slots[g.seats[member].unwrap()].position;
+    let seat = b.windows().seat(u, member).unwrap().position;
     assert!(
         (seat - soldier.position).length() < 1e-9,
         "operator occupies the firing window"
@@ -1456,16 +1444,11 @@ fn an_atgm_gunner_trades_windows_with_a_rifleman_to_face_armour() {
         Some(0),
         "the rifleman at the gunner's"
     );
-    let g = b
-        .unit(UnitId(0))
+    let u = b.unit(UnitId(0)).unwrap();
+    let moved = b
+        .windows()
+        .seat(u, gunner)
         .unwrap()
-        .hold
-        .as_ref()
-        .unwrap()
-        .building()
-        .unwrap()
-        .clone();
-    let moved = g.slots[g.seats[gunner].unwrap()]
         .changed
         .expect("he changed windows");
     assert_eq!(moved, b.tick());
@@ -1473,7 +1456,8 @@ fn an_atgm_gunner_trades_windows_with_a_rifleman_to_face_armour() {
     let r: contract::scenario::Rules = serde_json::from_value(rules()).unwrap();
     let swap = garrison_ticks("window_swap_s");
     let changing = |b: &Battle, k: usize, tick: u64| {
-        sim::garrison::changing_window(b.unit(UnitId(0)).unwrap(), k, &r, tick)
+        b.windows()
+            .changing_window(b.unit(UnitId(0)).unwrap(), k, &r, tick)
     };
     for k in [gunner, rifleman] {
         assert!(changing(&b, k, moved + swap - 1) && !changing(&b, k, moved + swap));

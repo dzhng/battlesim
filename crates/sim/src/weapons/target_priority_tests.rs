@@ -28,6 +28,7 @@ fn a_claimed_lean_preserves_the_launchers_full_bore_offset() {
     ];
     let ctx = FireContext {
         world: battle.world(),
+        windows: battle.windows(),
         structures: battle.structures(),
         ground: battle.ground(),
         arsenal: battle.arsenal(),
@@ -84,6 +85,7 @@ fn known_infantry_bore_turns_toward_us_from_the_observed_center() {
     ];
     let ctx = FireContext {
         world: battle.world(),
+        windows: battle.windows(),
         structures: battle.structures(),
         ground: battle.ground(),
         arsenal: battle.arsenal(),
@@ -137,6 +139,7 @@ fn known_return_fire_threat_requires_a_clear_physical_trajectory() {
         ];
         let ctx = FireContext {
             world: battle.world(),
+            windows: battle.windows(),
             structures: battle.structures(),
             ground: battle.ground(),
             arsenal: battle.arsenal(),
@@ -196,6 +199,7 @@ fn frozen_observation_keeps_priority_with_hidden_ammo_reload_orders_and_pose_cha
     knowledge[0].update(0, &sightings, &units, &setup.rules);
     let ctx = FireContext {
         world: battle.world(),
+        windows: battle.windows(),
         structures: battle.structures(),
         ground: battle.ground(),
         arsenal: battle.arsenal(),

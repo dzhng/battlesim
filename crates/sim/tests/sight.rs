@@ -731,7 +731,7 @@ fn separate_observers_learn_bodies_without_leaking_between_views() {
     for id in [UnitId(0), UnitId(1)] {
         let u = battle.unit(id).unwrap();
         let sight = sim::sight::of(u, battle.rules());
-        for eye in sim::sensing::eyes(u, battle.rules()) {
+        for eye in sim::sensing::eyes(u, battle.windows(), battle.rules()) {
             sim::visibility::sweep(
                 battle.world(),
                 &mut grid,

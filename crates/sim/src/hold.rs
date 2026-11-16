@@ -145,7 +145,7 @@ pub fn state(world: &WorldGeometry, unit: &Unit, rules: &Rules) -> Option<HoldSt
 }
 
 /// Fold a unit's hold into a digest, with presence and length tags.
-pub fn digest(unit: &Unit, d: &mut Digest) {
+pub fn digest(unit: &Unit, windows: &garrison::Windows, d: &mut Digest) {
     d.u64(unit.hold.is_some() as u64);
     let Some(hold) = &unit.hold else {
         return;
@@ -161,19 +161,23 @@ pub fn digest(unit: &Unit, d: &mut Digest) {
         }
         Host::Building(building) => {
             d.u64(building as u64).u64(tag).u64(n as u64);
-            garrison::digest_place(hold.building().expect("a building hold's place"), d);
+            let place = hold.building().expect("a building hold's place");
+            windows.digest_place(building, hold.phase, place, d);
         }
     }
 }
 
 /// Advance every unit's hold through one shared phase and timer. Host-specific
 /// checks and admission remain in garrison/carriage; this function owns the
-/// stationary state machine for both hosts.
+/// stationary state machine for both hosts, and opens and closes each
+/// building's window plan as squads take and leave it.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn advance(
     world: &WorldGeometry,
     sides: &[crate::movement::SideGeometry; 3],
     authored: PropId,
     units: &mut [Unit],
+    windows: &mut garrison::Windows,
     rules: &Rules,
     seed: u64,
     refusals: &mut [Vec<contract::command::Refusal>; 3],
@@ -216,7 +220,6 @@ pub(crate) fn advance(
                     host: Host::Building(building),
                     phase: Phase::Entering(1),
                     place: Place::Building(Garrison {
-                        slots: Vec::new(),
                         seats: Vec::new(),
                         entry: at,
                     }),
@@ -339,29 +342,26 @@ pub(crate) fn advance(
                             .expect("building hold")
                             .entry;
                         let prop = garrison::building(world, building).expect("standing building");
-                        let slots = garrison::seats_for_state(world, prop, rules);
-                        if units[i].members.iter().filter(|s| s.alive()).count() > slots.len() {
+                        let plan = garrison::seats_for_state(world, prop, rules);
+                        if units[i].members.iter().filter(|s| s.alive()).count() > plan.len() {
                             units[i].hold = None;
                             units[i].orders.pop_front();
                             continue;
                         }
-                        let seats = garrison::seat_evenly(&slots, &units[i]);
+                        let seats = garrison::seat_evenly(&plan, &units[i]);
                         let unit = &mut units[i];
                         for (s, seat) in unit.members.iter_mut().zip(&seats) {
                             if let Some(k) = seat {
-                                s.position = slots[*k].position;
+                                s.position = plan[*k].position;
                             }
                         }
                         unit.settle();
                         unit.hold = Some(Hold {
                             host: Host::Building(building),
                             phase: Phase::Inside,
-                            place: Place::Building(Garrison {
-                                slots,
-                                seats,
-                                entry,
-                            }),
+                            place: Place::Building(Garrison { seats, entry }),
                         });
+                        windows.open(building, plan);
                         unit.orders.pop_front();
                     }
                     (Phase::Inside, Want::Enter(target)) if target == building => {
@@ -422,4 +422,5 @@ pub(crate) fn advance(
             }
         }
     }
+    windows.close_unheld(units);
 }

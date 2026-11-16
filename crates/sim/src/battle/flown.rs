@@ -211,6 +211,7 @@ impl Battle {
         }
         let ctx = DamageContext {
             world: &self.world,
+            windows: &self.windows,
             ground: &self.ground,
             arsenal: &self.arsenal,
             rules: &self.rules,

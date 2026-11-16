@@ -39,7 +39,7 @@ fn stepped_facade_eyes_stay_outside_every_shell_and_fire_past_the_whole_owner() 
         ([402.0, 300.0], [6.0, 3.0]),
         "the delivered footprint must include every current physical part"
     );
-    let eyes = sim::garrison::facade_eyes(unit, &setup.rules);
+    let eyes = b.windows().facade_eyes(unit, &setup.rules);
     for eye in &eyes {
         assert!(
             b.world()
@@ -103,8 +103,7 @@ fn each_directional_eye_is_an_occupied_seat_on_its_highest_held_floor() {
     }
     let u = b.unit(contract::ids::UnitId(0)).unwrap();
     assert!(u.garrisoned());
-    let g = u.hold.as_ref().unwrap().building().unwrap();
-    let eyes = sim::garrison::facade_eyes(u, &setup.rules);
+    let eyes = b.windows().facade_eyes(u, &setup.rules);
     assert!(eyes.len() <= 4);
     for f in 0..4 {
         let held: Vec<_> = u
@@ -112,7 +111,7 @@ fn each_directional_eye_is_an_occupied_seat_on_its_highest_held_floor() {
             .iter()
             .enumerate()
             .filter(|(_, m)| m.alive())
-            .filter_map(|(k, _)| g.seat(k))
+            .filter_map(|(k, _)| b.windows().seat(u, k))
             .filter(|s| s.slot.facade == f)
             .collect();
         if held.is_empty() {

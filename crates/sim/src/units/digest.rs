@@ -1,11 +1,13 @@
 //! The ordered unit state folded into battle replay identity.
 use super::{Fallen, Unit, UnitOrder};
 use crate::digest::Digest;
+use crate::garrison::Windows;
 use contract::command::Engagement;
 
 impl Unit {
-    /// Fold the unit's carried state and its owner's `PlayerIndex` into `d`.
-    pub fn digest(&self, d: &mut Digest, owner: Option<usize>) {
+    /// Fold the unit's carried state and its owner's `PlayerIndex` into `d`;
+    /// a garrison folds its building's windows from `windows`.
+    pub fn digest(&self, d: &mut Digest, owner: Option<usize>, windows: &Windows) {
         d.u64(self.id.0 as u64);
         if let Some(owner) = owner {
             d.u64(owner as u64);
@@ -153,7 +155,7 @@ impl Unit {
             Some(a) => d.u64(1).f64(a.at.x).f64(a.at.y).u64(a.halt as u64),
             None => d.u64(0),
         };
-        crate::hold::digest(self, d);
+        crate::hold::digest(self, windows, d);
         d.u64(self.members.len() as u64);
         for s in &self.members {
             d.u64(s.id as u64)

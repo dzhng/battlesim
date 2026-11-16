@@ -372,13 +372,13 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
                         ActionReason::Guiding
                     } else if unit.garrisoned()
                         && !participants(unit, &mount, spec)
-                            .any(|k| crate::garrison::faces(unit, k, r.point, ctx.rules, ctx.tick))
+                            .any(|k| ctx.windows.faces(unit, k, r.point, ctx.rules, ctx.tick))
                     {
                         // No shooter at a window facing it yet: wait, never
                         // fire through the squad's own shell.
                         engaging = false;
                         if participants(unit, &mount, spec)
-                            .any(|k| crate::garrison::changing_window(unit, k, ctx.rules, ctx.tick))
+                            .any(|k| ctx.windows.changing_window(unit, k, ctx.rules, ctx.tick))
                         {
                             ActionReason::ChangingPosition
                         } else {

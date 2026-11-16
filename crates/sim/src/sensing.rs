@@ -8,6 +8,7 @@ use contract::catalog::AltitudeLayer;
 use contract::ids::{Side, UnitId};
 use contract::scenario::{Rules, SensorRules};
 
+use crate::garrison::Windows;
 use crate::math::V3;
 use crate::sight::Sight;
 use crate::units::Unit;
@@ -72,11 +73,11 @@ pub fn eye(unit: &Unit, rules: &Rules) -> V3 {
 
 /// Where a unit's sight starts: its eye, or in a building one eye per
 /// occupied facade (27 perf, see
-/// [`crate::garrison::facade_eyes`]). The fog sweep, identification and the
+/// [`crate::garrison::Windows::facade_eyes`]). The fog sweep, identification and the
 /// published `UnitSight::eyes` the renderer's fog draws all read this one
 /// list. There is no extra all-round roof sensor.
-pub fn eyes(unit: &Unit, rules: &Rules) -> Vec<V3> {
-    let facades = crate::garrison::facade_eyes(unit, rules);
+pub fn eyes(unit: &Unit, windows: &Windows, rules: &Rules) -> Vec<V3> {
+    let facades = windows.facade_eyes(unit, rules);
     if facades.is_empty() {
         vec![eye(unit, rules)]
     } else {
@@ -130,6 +131,7 @@ pub fn side_sees_round(
     world: &WorldGeometry,
     rules: &Rules,
     units: &[Unit],
+    windows: &Windows,
     side: Side,
     position: V3,
     layer: AltitudeLayer,
@@ -139,7 +141,7 @@ pub fn side_sees_round(
             return false;
         }
         let sight = crate::sight::of_layer(u, rules, layer);
-        eyes(u, rules)
+        eyes(u, windows, rules)
             .into_iter()
             .any(|eye| sees_point(world, eye, position, &sight, 1.0, &rules.sensors))
     })
@@ -233,6 +235,7 @@ pub fn concealed(world: &WorldGeometry, target: &Unit, rules: &Rules) -> bool {
 pub fn evaluate(
     world: &WorldGeometry,
     units: &[Unit],
+    windows: &Windows,
     rules: &Rules,
     side: Side,
     due: impl Fn(&Unit) -> bool,
@@ -261,7 +264,7 @@ pub fn evaluate(
         // optical pass for air targets, so air-to-air sensing remains
         // authoritative here.
         let sees_ground = sees_ground(observer);
-        let from = eyes(observer, rules);
+        let from = eyes(observer, windows, rules);
         let spotting = observer.unit_type(rules).sensors.spotting;
         let observer_radius = observer.footprint_radius(body);
         for (target, target_radius, samples) in &targets {

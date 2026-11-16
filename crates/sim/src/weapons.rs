@@ -228,6 +228,7 @@ pub struct Shot {
 
 pub struct FireContext<'a> {
     pub world: &'a WorldGeometry,
+    pub windows: &'a crate::garrison::Windows,
     pub structures: &'a crate::structures::Structures,
     pub ground: &'a crate::ground::GroundLayer,
     pub arsenal: &'a Arsenal,
@@ -660,17 +661,13 @@ fn engage(
             Ok((s, _)) => Ok(s),
         }
     };
-    if let Some(garrison) = unit
-        .hold
-        .as_ref()
-        .filter(|_| unit.garrisoned())
-        .and_then(|hold| hold.building())
-    {
+    if unit.garrisoned() {
         let facing = ctx.rules.garrison.slot_facing_min_deg.to_radians();
         let mut result = Err(ActionReason::NoFacingSlot);
         for k in candidates(unit, mount, spec) {
-            let Some(seat) = garrison
-                .seat(k)
+            let Some(seat) = ctx
+                .windows
+                .seat(unit, k)
                 .filter(|s| s.slot.faces(r.point.xy(), facing))
             else {
                 continue;
@@ -1539,6 +1536,10 @@ fn fire(
         {
             continue;
         }
+        let faces = |p| {
+            ctx.windows
+                .faces(unit, participant_of(unit, body), p, ctx.rules, ctx.tick)
+        };
         let point = match target {
             Target::Contact(c) => {
                 let contact = knowledge.ground_contact(c)?;
@@ -1553,9 +1554,7 @@ fn fire(
             _ => r.point,
         };
         // A soldier whose slot does not face this round's point holds it.
-        if unit.garrisoned()
-            && !crate::garrison::faces(unit, participant_of(unit, body), point, ctx.rules, ctx.tick)
-        {
+        if unit.garrisoned() && !faces(point) {
             cycle.started = false;
             continue;
         }
@@ -1573,9 +1572,7 @@ fn fire(
         let turn = (0..seen.len()).map(|j| seen[(n + j) % seen.len()]);
         let found = turn.chain([point]).find_map(|p| {
             // A farther candidate can face a different side of the building.
-            if unit.garrisoned()
-                && !crate::garrison::faces(unit, participant_of(unit, body), p, ctx.rules, ctx.tick)
-            {
+            if unit.garrisoned() && !faces(p) {
                 return None;
             }
             let from = match soldier {
@@ -1914,15 +1911,13 @@ fn assess_windows(
     if current.is_ok() || !permitted(ctx, &prospective, target) {
         return current;
     }
-    let g = unit
-        .hold
-        .as_ref()
-        .and_then(|hold| hold.building())
+    let g = (unit.hold.as_ref())
+        .and_then(|h| h.building())
         .expect("a garrison requests windows");
+    let plan = (ctx.windows).plan(crate::garrison::shell(unit).expect("a garrison"));
     let facing = ctx.rules.garrison.slot_facing_min_deg.to_radians();
     for member in candidates(unit, mount, spec) {
-        for (seat, window) in g
-            .slots
+        for (seat, window) in plan
             .iter()
             .enumerate()
             .filter(|(_, w)| w.slot.faces(resolved.point.xy(), facing))

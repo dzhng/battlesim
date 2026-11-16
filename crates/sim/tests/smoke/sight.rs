@@ -245,7 +245,7 @@ fn from_outside_a_near_observer_sees_a_target_at_the_rim_and_a_far_one_does_not(
     run(&mut b, 4);
     let sightings = |b: &Battle, observer: u32| {
         let units: Vec<_> = (0..4).map(|i| b.unit(UnitId(i)).unwrap().clone()).collect();
-        sim::sensing::evaluate(b.world(), &units, b.rules(), Side::Red, |u| {
+        sim::sensing::evaluate(b.world(), &units, b.windows(), b.rules(), Side::Red, |u| {
             u.id == UnitId(observer)
         })
         .into_iter()

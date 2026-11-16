@@ -523,6 +523,7 @@ fn corpse_support_loss_is_physical_but_enemy_memory_waits_for_sight() {
         damage::resolve(
             &DamageContext {
                 world: &battle.world,
+                windows: &battle.windows,
                 ground: &battle.ground,
                 arsenal: &battle.arsenal,
                 rules: &battle.rules,

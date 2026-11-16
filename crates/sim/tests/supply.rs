@@ -212,7 +212,10 @@ fn a_garrisoned_squad_is_reinforced_inside_its_building() {
     let g = squad.hold.as_ref().unwrap().building().unwrap();
     let mut seats = Vec::new();
     for (k, s) in squad.members.iter().enumerate().filter(|(_, s)| s.alive()) {
-        let seat = g.seat(k).expect("every living soldier holds a slot");
+        let seat = b
+            .windows()
+            .seat(squad, k)
+            .expect("every living soldier holds a slot");
         assert_eq!(s.position, seat.position, "each stands on his slot");
         seats.push(g.seats[k]);
     }
@@ -595,6 +598,7 @@ fn test_a_truck_refills_a_vehicles_spent_flares() {
             sim::supply::service(
                 battle.world(),
                 units,
+                battle.windows(),
                 battle.arsenal(),
                 battle.rules(),
                 &[false, false],

@@ -616,28 +616,17 @@ fn a_holdable_replacement_uses_current_parts_and_its_fresh_owner() {
         }
     }
     let unit = b.unit(contract::ids::UnitId(0)).unwrap();
-    assert!(unit.garrisoned());
+    let plan = b
+        .windows()
+        .plan(sim::garrison::garrisoned_in(unit).unwrap());
     assert!(
-        unit.hold
-            .as_ref()
-            .unwrap()
-            .building()
-            .unwrap()
-            .slots
-            .iter()
+        plan.iter()
             .all(|s| s.position.z < b.world().prop(3).unwrap().top_z()),
         "a holdable replacement cannot seat soldiers above its live roof"
     );
 
     assert!(
-        unit.hold
-            .as_ref()
-            .unwrap()
-            .building()
-            .unwrap()
-            .slots
-            .iter()
-            .all(|s| s.position.z == 0.0),
+        plan.iter().all(|s| s.position.z == 0.0),
         "only the original ground-floor bays remain below this two-metre shell"
     );
     assert!(matches!(
