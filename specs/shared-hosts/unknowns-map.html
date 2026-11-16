@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shared Hosts Map</title>
+<style>
+:root{--bg:#f6f5f1;--card:#fff;--ink:#1d1f22;--mute:#5d6470;--line:#dcdad3;--accent:#0b6e8a;--user:#1f7a3a;--agent:#8a5a00;--terr:#4a4fb0;--open:#b02a2a;--edge:#6b6f78}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121417;--card:#1b1e23;--ink:#e6e7ea;--mute:#9aa1ad;--line:#2c3038;--accent:#5cc3dd;--user:#5fcf7f;--agent:#e0b04a;--terr:#9ea3ff;--open:#ff7a7a;--edge:#a3a8b2}}
+:root[data-theme="dark"]{--bg:#121417;--card:#1b1e23;--ink:#e6e7ea;--mute:#9aa1ad;--line:#2c3038;--accent:#5cc3dd;--user:#5fcf7f;--agent:#e0b04a;--terr:#9ea3ff;--open:#ff7a7a;--edge:#a3a8b2}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:1040px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:24px;margin:0 0 4px}h2{font-size:18px;margin:32px 0 10px;color:var(--accent)}
+p.lead{color:var(--mute);margin:0 0 16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.card b{display:block;margin-bottom:4px}
+code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;background:color-mix(in srgb,var(--line) 45%,transparent);padding:0 4px;border-radius:4px}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+th,td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line)}
+th{font-size:13px;color:var(--mute);font-weight:600}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.user{color:var(--user)}.agent{color:var(--agent)}.terr{color:var(--terr)}.open{color:var(--open)}.edge{color:var(--edge)}
+ul{margin:6px 0 0;padding-left:20px}li{margin:2px 0}
+details{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-top:10px}
+summary{cursor:pointer;font-weight:600}
+pre{white-space:pre-wrap;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;font:13px/1.5 ui-monospace,Menlo,monospace}
+.wrap{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<h1>Shared hosts: buildings and transports admit squads alike</h1>
+<p class="lead">Unknowns map from the 2026-11-16 walk. Several squads share a host while seats remain; a squad gets in when it arrives and fits.</p>
+<div class="card" style="border-color:var(--open)"><b class="open">Superseded in part by the plan (README.md, decisions.md, slices/)</b>This map is the record of how the decisions were reached. Where it differs from the plan, the plan wins: card 3's "window-change time moves to the soldier" is reversed (it stays per window), card 5's per-squad route proof is replaced by the old Garrison lowering with no proof, and the "Confirm before coding", "Tweakable plan" and "Implementation prompt" sections are replaced by README.md and the slice files.</div>
+
+<h2>1 · Known knowns</h2>
+<div class="grid">
+<div class="card"><b>Transport today</b>Seats per unit type (3, 8 or 16), one per living soldier, squads board whole, any number that fit (<code>carriage::seats</code>, <code>seats_used</code>, crates/sim/src/carriage.rs). <code>Board</code> and <code>Collect</code> accept closest-first at the command and refuse the rest with <code>CapacityFull</code> (crates/sim/src/battle.rs:3170–3205).</div>
+<div class="card"><b>Building today</b>Seats = exposed window bays on the bottom three floor bands, capped by <code>buildings.capacity_soldiers</code> (<code>seat_plan</code>, garrison.rs:119). One squad only: <code>OneSquadPerBuilding</code>, <code>BuildingOccupied</code> at the command (garrison.rs:275); any squad of either side inside makes a late entrant give up (garrison.rs:262).</div>
+<div class="card"><b>Shared machinery</b>One enter / inside / exit state machine for both hosts (<code>hold::advance</code>, hold.rs:172). Each host uses one timer for both directions (<code>Host::timing</code>, hold.rs:32).</div>
+<div class="card"><b>History</b>One squad per building was the user's own call on 2026-09-28, "for simplicity" (specs/done/battle-look/decisions.md:500). That change deleted the waiting phase, the command-time occupancy sum and slot sharing between squads. This walk reverses it.</div>
+<div class="card"><b>Orders</b>Players enter with <code>OccupyBuilding</code> (preview, one entrant plus gathering companions, garrison/occupy.rs). <code>Garrison</code> is sent only by the encounter defender (encounter/defender.rs:28), labs and tests. Riders can't be ordered; garrisoned squads can.</div>
+<div class="card"><b>Assumptions kept</b>Squads enter whole, never split. One side in a building at a time. Building capacity stays the bay count. Not-a-building, not-infantry and enemy-inside failures stay.</div>
+</div>
+
+<h2>2 · Known unknowns: decision ledger</h2>
+<div class="wrap"><table>
+<tr><th>#</th><th>Decision</th><th>Why</th><th>By</th></tr>
+<tr><td>Q1</td><td>Ordering several squads into a host (building or transport): those that fit go in; the rest end up outside.</td><td>One rule for both hosts.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>Q2</td><td>Seats are taken when a squad starts stepping in, never at the command. First to arrive gets in. At the command only a squad bigger than the whole host is refused (<code>CapacityFull</code>).</td><td>Simpler and physical; deletes order-time bookkeeping. Later locked by the user's relief manoeuvre (U3).</td><td><span class="tag agent">agent, on your behalf</span> then confirmed by U3</td></tr>
+<tr><td>Q3</td><td>A squad that arrives to no room ends its order where it stands, with a <code>CapacityFull</code> notice and voice line. It never waits.</td><td>Player learns why; no waiting phase returns.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>Q4</td><td>One building order, <code>OccupyBuilding</code>: every listed squad gets its own entry and route, all drawn in the preview. <code>Order::Garrison</code>, companion gather destinations, <code>OneSquadPerBuilding</code> and <code>BuildingOccupied</code> are deleted. The defender sends <code>OccupyBuilding</code>.</td><td>One owner per concept; arrival decides who's in, so nobody needs gathering spots.</td><td><span class="tag terr">territory + follow-on</span></td></tr>
+<tr><td>Q5</td><td>Window swaps work across every squad in the building: one allocation over all occupants.</td><td>A veteran expects the AT gunner at the window facing the tank, whoever's rifleman held it.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>L1</td><td>The check when a squad starts stepping in ignores squads stepping out; the check when its timer ends counts everyone.</td><td>Equal in/out timers mean a squad already leaving is gone first; makes the relief manoeuvre work.</td><td><span class="tag user">user</span></td></tr>
+</table></div>
+<p><b>Delegation scope.</b> The user delegated Q2 only ("you choose, and change it during implementation if better"). No broad answer-on-my-behalf opt-in was made.</p>
+
+<h2>3 · Unknown knowns: extracted</h2>
+<div class="grid">
+<div class="card"><b>U1 · One ring</b>A shared house shows one ring, whichever of its squads are selected. The ring means "in this building", not a squad count. <span class="tag user">user</span></div>
+<div class="card"><b>U2 · Seats readout</b>A garrisoned squad's IN BUILDING row gains seats used / total, like a carrier's Seats row. <span class="tag user">user</span></div>
+<div class="card"><b>U3 · No full warning; relief is a feature</b>No cursor warning on a host your squads fill. Send B to a house A holds, order A out, and B walks in when it arrives. <b>This scenario is a required end-to-end sim test.</b> Reshaped Q2 from revisable to locked. <span class="tag user">user</span></div>
+<div class="card"><b>U4 · Labs show the rule</b>The garrison lab and transport controls fixture show two squads sharing and a third arriving to "no room". Re-record and inspect anything that moves. <span class="tag user">user</span></div>
+</div>
+
+<h2>4 · Unknown unknowns: landmine cards</h2>
+<div class="grid">
+<div class="card"><b>1 · Leavers held seats</b>Evidence: <code>seats_used</code> (carriage.rs:64), <code>held_by_another</code> counts leaving squads (garrison.rs:262). Bites: B arriving mid-exit was refused. <span class="tag user">decided: L1</span></div>
+<div class="card"><b>2 · Reinforcement seats</b>Evidence: <code>free_seat</code> reads only the squad's own slots (supply.rs:193, 272). Bites: a new soldier could take another squad's window or overfill. Decision: reinforcement needs a free seat in the host, both hosts. <span class="tag terr">decided, shown</span></div>
+<div class="card"><b>3 · Per-squad copy of the window plan</b>Evidence: <code>Garrison.slots</code> with per-slot <code>changed</code> (garrison.rs:45). Bites: copies drift under cross-squad swaps. Plan: one shared plan from <code>seats_for_state</code>; soldiers point at a window; window-change time moves to the soldier. <span class="tag agent">agent's call</span></div>
+<div class="card"><b>4 · Collect refuses at the command</b>Evidence: battle.rs:3170. Switches to arrival admission like <code>Board</code>. <span class="tag terr">decided, follows Q1–Q2</span></div>
+<div class="card"><b>5 · Entry planner proves one route</b>Evidence: <code>occupy</code> picks one entrant within one work budget (garrison/occupy.rs:141). Bites: many squads could come back <code>unproven</code>. Plan: route each squad the way move placement does. <span class="tag edge">sharp edge / risk</span></div>
+<div class="card"><b>6 · Same-tick arrivals</b>Unit order decides who starts stepping in first; "one side at a time" is checked when stepping in starts. <span class="tag edge">sharp edge, decided</span></div>
+<div class="card"><b>7 · Outline drawn per squad</b>Evidence: <code>heldBuildingsLayer</code> adds one outline per occupying squad (apps/battle-lab/src/battleOverlay.ts:228). Draw once per building. <span class="tag edge">sharp edge</span></div>
+<div class="card"><b>8 · Stale entries</b>Voice refusals for the deleted reasons (packages/battle-audio/src/voices/responses.ts:95–96); UI lab ack sample (apps/battle-lab/src/routes/ui.tsx:290); dead <code>waiting_for_room</code> panel entries; old rule in specs/done/battle-foundation/contracts.md:66 and the <code>garrison.rs</code> module doc. <span class="tag edge">delete / supersede</span></div>
+<div class="card"><b>9 · Digest expectation</b>A host with one squad behaves as before. Only scenes where squads compete for seats may move (garrison lab, transport controls fixture). Any other moving digest is a bug. <span class="tag edge">named decision</span></div>
+<div class="card"><b>10 · Neighbouring specs</b>specs/separate-farm-buildings says "seat one squad per group": reword. Encounter posts keep one squad per building as a posting choice. <code>capacity_soldiers</code> sits at its admitted maximum, so bays decide. <span class="tag edge">awareness</span></div>
+</div>
+
+<h2>Confirm before coding</h2>
+<div class="card"><ul>
+<li>The building preview contract: <code>BuildingPlacement.entrant</code> becomes a list of entries and <code>destinations</code> goes. Does <code>OccupyBuilding.facing</code> still mean anything once companions are gone? Delete it if not.</li>
+<li>Where the IN BUILDING seats total comes from: a carrier's Seats row is built client-side from catalog seats (apps/battle-lab/src/panelSpecimens.ts:432). A building's seat count isn't published yet; decide the publication field.</li>
+<li>How clicking a held building picks squads when several are inside.</li>
+<li>Whether supply ever reinforces a squad riding in a carrier, which decides whether card 2 touches carriage at all.</li>
+<li>Helicopter low hover: a squad with a pending <code>Board</code> it won't fit still holds the hover until it arrives (carriage.rs:17). Acceptable or not.</li>
+</ul></div>
+
+<h2>Tweakable plan</h2>
+<p class="lead">Ordered by how likely you are to tweak each item, not by build order.</p>
+<details open><summary>Judgment calls</summary><ul>
+<li>Arrival admission with leavers excluded at the start check (Q2, L1). Alternative: command-time promises. Ruled out by U3.</li>
+<li>One ring per house and seats on IN BUILDING (U1, U2). Alternatives: nested rings, no readout.</li>
+<li>Window allocation across squads (Q5). Alternative: per-squad split at entry.</li>
+<li>Per-squad entry routes in <code>OccupyBuilding</code> (card 5).</li>
+</ul></details>
+<details><summary>Mechanical work (I trust you on that part)</summary><ul>
+<li>Contract: drop <code>OneSquadPerBuilding</code>, <code>BuildingOccupied</code>, <code>Order::Garrison</code>; <code>CapacityFull</code> = too big for the host, or no room on arrival.</li>
+<li><code>hold::advance</code>: one admission check for both hosts when stepping in starts, a final check when it ends; remove command-time capacity from <code>Board</code> and <code>Collect</code>.</li>
+<li>Garrison: shared seat plan, building-wide <code>allocate_slots</code>, host-wide free seat, occupancy by seats instead of "held by another".</li>
+<li>Supply: reinforcement needs a free host seat.</li>
+<li>Defender sends <code>OccupyBuilding</code>.</li>
+<li>Presentation: outline once per building, IN BUILDING seats, voice and stale entries.</li>
+<li>Tests: the relief manoeuvre end to end; overflow arriving to "no room"; cross-squad window swap. Prefer one bigger functional test.</li>
+<li>Labs and recordings: garrison lab, transport controls fixture, menu reel inspected.</li>
+<li>Docs: <code>garrison.rs</code> module doc, contracts.md superseded note, decisions record, farm spec wording.</li>
+</ul></details>
+
+<h2>Implementation prompt</h2>
+<pre>Implement specs/shared-hosts (read README.md and unknowns-map.html first). Buildings and transports admit squads the same way: several squads share a host while seats remain, one seat per living soldier, squads whole. Seats are taken when a squad starts stepping in (ignoring squads stepping out); the end-of-timer check counts everyone. A squad arriving to no room ends its order with CapacityFull and never waits. Only a squad bigger than the whole host is refused at the command. Delete Order::Garrison, OneSquadPerBuilding, BuildingOccupied and OccupyBuilding's companion gathering; OccupyBuilding routes every listed squad in. Window swaps are building-wide. Reinforcements need a free host seat. Write the relief-manoeuvre end-to-end test first (A holds a house, B ordered in, A ordered out, B enters on arrival). Only contested scenes may change digests. Then the presentation (one ring, IN BUILDING seats, outline once per building), labs, voice lines and docs. Settle the "confirm before coding" list as you go.</pre>
+</main>
+</body>
+</html>
