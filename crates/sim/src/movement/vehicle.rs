@@ -67,7 +67,7 @@ pub(super) fn step_vehicle(
     let dt = 1.0 / ctx.rules.tick_hz as f64;
     units[i].reversing = false;
     if !may_advance(ctx, &mut units[i]) {
-        units[i].manoeuvre = None;
+        units[i].shunt = None;
         // With no orders, tracks pivot a gun fixed in the hull onto its
         // target (D8); wheels cannot turn on the spot, so they hold fire.
         let unit = &mut units[i];
@@ -83,7 +83,8 @@ pub(super) fn step_vehicle(
         }
         return;
     }
-    if drive::prune(ctx, sides, traffic, &mut units[i]) {
+    // A shunt keeps its legs to the end: only then does it pick up its route.
+    if units[i].shunt.is_none() && drive::prune(ctx, sides, traffic, &mut units[i]) {
         arrive(&mut units[i]);
         return;
     }
@@ -92,8 +93,16 @@ pub(super) fn step_vehicle(
     let here = unit.position.xy();
     let footing = ctx.ground.footing(ctx.world, here, &ctx.rules.ground);
     let speed = footing.map_or(0.0, |g| unit.ground().speed(g));
-    let before_manoeuvre = unit.manoeuvre;
-    let mut motion = drive::steer(ctx.world, &mut units[i], target, speed, dt, traffic);
+    let before_shunt = unit.shunt.clone();
+    let mut motion = drive::steer(
+        ctx.world,
+        &mut units[i],
+        target,
+        speed,
+        dt,
+        ctx.tick,
+        traffic,
+    );
     let unit = &units[i];
     let mut next = here + motion.heading * motion.step;
     let half = unit.hull.expect("a vehicle has a hull").xy();
@@ -116,13 +125,14 @@ pub(super) fn step_vehicle(
             .unwrap_or(0);
         // Shoving limits the target speed, not the already ramped velocity:
         // multiplying carried speed every tick would compound the slowdown.
-        units[i].manoeuvre = before_manoeuvre;
+        units[i].shunt = before_shunt;
         motion = drive::steer(
             ctx.world,
             &mut units[i],
             target,
             speed * push.shove_speed(heaviest),
             dt,
+            ctx.tick,
             traffic,
         );
         next = here + motion.heading * motion.step;
@@ -186,10 +196,12 @@ pub(super) fn step_vehicle(
     }
     let mut landed = land(ctx, units, i, &current, &motion);
     // A forward step held at its trailing end (a turn swinging the tail
-    // into a jammed body) rolls straight on instead, when that lands free.
+    // into a jammed body) rolls straight on instead, when that lands free;
+    // a shunt's leg keeps its line.
     if let Err(Some(body)) = landed {
         let trailing = current.to_local(body.closest(here)).x * drive::gear(&units[i]) < 0.0;
-        if trailing && !motion.backwards && motion.yaw != units[i].yaw {
+        let shunting = units[i].shunt.is_some();
+        if trailing && !shunting && !motion.backwards && motion.yaw != units[i].yaw {
             let straight = drive::Motion {
                 yaw: units[i].yaw,
                 heading: drive::travel_heading(&units[i]),
@@ -208,8 +220,12 @@ pub(super) fn step_vehicle(
             let unit = &mut units[i];
             unit.yaw = held_yaw;
             unit.drive_speed_mps = 0.0;
-            if let Some(body) = held_by.filter(|_| !motion.backwards) {
-                drive::held_ahead(unit, body, target);
+            // Held by a body anyway (a jammed shove, or a corner the arc's
+            // samples passed): a wheeled vehicle works out a shunt with it
+            // as solid, or it would pick the same step every tick.
+            let wheeled = unit.ground().drive.is_some_and(|d| !d.tracked);
+            if let Some(body) = held_by.filter(|_| wheeled) {
+                drive::shunt(ctx.world, unit, traffic, &[body], ctx.tick, None);
             }
             return;
         }
@@ -220,8 +236,8 @@ pub(super) fn step_vehicle(
     unit.position = next.with_z(ground.z);
     unit.reversing = motion.backwards && motion.step > 0.0;
     unit.drive_speed_mps = motion.step / dt * if motion.backwards { -1.0 } else { 1.0 };
-    if let Some(m) = unit.manoeuvre.as_mut() {
-        m.driven_m += motion.step;
+    if let Some(shunt) = unit.shunt.as_mut() {
+        shunt.driven_m += motion.step;
     }
     // Tracks backing to clear a pivot may move away from the waypoint.
     // Wheeled shuffling must still close on it, or traffic recovery never runs.

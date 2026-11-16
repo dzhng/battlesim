@@ -1,0 +1,145 @@
+//! A wheeled vehicle in a tight spot works its way out as a driver would:
+//! it looks at the room around it and drives the forward and reverse legs
+//! that get it onto its way, never a fixed turn that wedges it.
+use contract::ids::UnitId;
+use contract::observation::MoveState;
+use contract::scenario::ScenarioDefinition;
+use serde_json::{json, Value};
+use sim::battle::Battle;
+use std::f64::consts::{FRAC_PI_2, PI};
+
+/// A residential courtyard as a played battle's air-defence launcher met
+/// it (metro, seed 3), shifted to this map: planters round its trees,
+/// concrete ping-pong tables, the yard's wall, and the blocks closing it to
+/// the east and south. Its way out is to the west; open ground beyond.
+fn courtyard() -> Value {
+    let body = |kind: &str, at: [f64; 2], yaw: f64, half: [f64; 3]| json!({ "kind": kind, "center": [at[0] - 1200.0, at[1] - 700.0], "yaw": yaw, "half_extents": half });
+    let planter = |at, yaw| body("planter", at, yaw, [0.8, 0.4, 0.4]);
+    let tree = |at| body("street_tree", at, FRAC_PI_2, [0.35, 0.35, 5.0]);
+    let table = |at| body("pingpong_table", at, FRAC_PI_2, [1.37, 0.76, 0.45]);
+    let wall = |at| body("courtyard_wall", at, -0.1, [5.29, 0.12, 1.0]);
+    let block = |at, half: [f64; 2]| body("wall", at, 0.0, [half[0], half[1], 6.0]);
+    json!([
+        table([1269.0, 768.9]),
+        table([1269.0, 762.9]),
+        planter([1260.8, 776.0], -PI),
+        planter([1261.2, 777.2], FRAC_PI_2),
+        planter([1259.6, 776.4], FRAC_PI_2),
+        planter([1260.0, 777.6], -PI),
+        tree([1260.3, 776.8]),
+        planter([1276.4, 768.5], 0.0),
+        planter([1276.0, 767.3], -FRAC_PI_2),
+        planter([1277.6, 768.1], -FRAC_PI_2),
+        planter([1277.2, 766.9], 0.0),
+        tree([1276.8, 767.7]),
+        tree([1276.0, 776.4]),
+        tree([1256.8, 769.0]),
+        tree([1252.0, 780.0]),
+        tree([1249.3, 772.9]),
+        tree([1284.3, 768.5]),
+        tree([1284.3, 764.1]),
+        tree([1280.5, 758.2]),
+        wall([1267.2, 785.1]),
+        wall([1277.7, 784.1]),
+        wall([1256.7, 786.2]),
+        block([1292.0, 770.0], [2.0, 20.0]),
+        block([1270.0, 752.0], [20.0, 2.0]),
+    ])
+}
+
+/// A truck as long, wide and wide-turning as the launcher, standing at
+/// `at` (game coordinates) facing `yaw`, sent out of the courtyard to the
+/// open ground south-west of it.
+fn launcher(at: [f64; 2], yaw: f64) -> Battle {
+    let mut rules = sim::fixtures::test_rules();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_supply",
+        json!({
+            "body": { "hull": { "half_extents_m": [5.168, 1.25, 1.8] } },
+            "mobility": { "wheeled": { "turning_radius_m": 8 } },
+        }),
+    );
+    let setup: ScenarioDefinition = serde_json::from_value(json!({
+        "map": { "size": [160, 120], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+                 "props": courtyard() },
+        "rules": rules,
+        "units": [{ "side": "blue", "kind": "test_supply", "position": [at[0] - 1200.0, at[1] - 700.0],
+                    "yaw": yaw, "engagement": "return_fire_only" }],
+        "events": [],
+        "scripts": [{ "tick": 1, "side": "blue", "order": { "kind": "move", "units": [0],
+            "gesture": 1, "goal": GOAL, "route": "shortest", "direction": "forward" } }],
+    }))
+    .unwrap();
+    Battle::new(&setup, 1)
+}
+
+const GOAL: [f64; 2] = [32.0, 45.0];
+
+/// How a drive went: whether it reversed on the way, and the seconds it
+/// took to finish.
+struct Drove {
+    reversed: bool,
+    seconds: f64,
+}
+
+fn run(b: &mut Battle, seconds: f64) -> Drove {
+    let hz = b.rules().tick_hz as u64;
+    let mut drove = Drove {
+        reversed: false,
+        seconds: f64::INFINITY,
+    };
+    for tick in 1..=(seconds * hz as f64) as u64 {
+        b.step();
+        let unit = b.unit(UnitId(0)).unwrap();
+        drove.reversed |= unit.reversing;
+        if tick > 2 && unit.state == MoveState::Idle {
+            drove.seconds = tick as f64 / hz as f64;
+            break;
+        }
+    }
+    drove
+}
+
+fn at_goal(b: &Battle) -> f64 {
+    (b.unit(UnitId(0)).unwrap().position.xy() - sim::math::v2(GOAL[0], GOAL[1])).length()
+}
+
+/// The moment the audit found: the launcher has swung round against a
+/// ping-pong table, a planter at its tail, its way out behind it. Backing
+/// or turning toward its way meets one or the other within a metre, but
+/// the courtyard ahead and to its left is open. A driver pulls forward
+/// into the open and backs out the way he came; before, it stood there
+/// "moving" for the rest of the battle.
+#[test]
+fn a_launcher_wedged_against_a_table_pulls_forward_and_backs_out() {
+    let mut b = launcher([1267.276, 773.425], -0.5102);
+    let drove = run(&mut b, 90.0);
+    assert!(
+        at_goal(&b) < 2.0,
+        "it never got out: {:?} at {:?}",
+        b.unit(UnitId(0)).unwrap().state,
+        b.unit(UnitId(0)).unwrap().position.xy()
+    );
+    assert!(drove.reversed, "it got out without backing");
+    assert!(drove.seconds < 60.0, "it took {} s", drove.seconds);
+}
+
+/// The launcher parked nose-in where it set up, the courtyard's way out
+/// behind it and no room for a U-turn. A driver shunts out, backing where
+/// he must, and drives off; in the battle it pulled forward, backed round
+/// and wedged itself against the table for the rest of the game.
+#[test]
+fn a_launcher_parked_nose_in_in_a_courtyard_shunts_out() {
+    let mut b = launcher([1266.7, 771.7], 0.31);
+    let drove = run(&mut b, 90.0);
+    assert!(
+        at_goal(&b) < 2.0,
+        "it never got out: {:?} at {:?}",
+        b.unit(UnitId(0)).unwrap().state,
+        b.unit(UnitId(0)).unwrap().position.xy()
+    );
+    assert!(drove.reversed, "it came round in the yard without backing");
+    assert!(drove.seconds < 45.0, "it took {} s", drove.seconds);
+}

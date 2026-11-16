@@ -154,10 +154,6 @@ pub struct DriveRules {
     pub abeam_m: f64,
     /// Headings further off than this count as abeam or behind.
     pub abeam_deg: f64,
-    /// A reversing leg of a three-point turn drives at least this far.
-    pub min_leg_m: f64,
-    /// The waypoint must lie this far outside the turning circle to end a leg.
-    pub circle_margin_m: f64,
     /// Beyond this heading error a wheeled turn counts as progress rather
     /// than a stall while it swings away from the waypoint.
     pub turning_deg: f64,

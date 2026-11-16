@@ -323,11 +323,11 @@ pub struct Unit {
     /// in. Only an order moves it (a move's destination, an attack-move's
     /// halt, a script or a placement), never where the soldiers stand.
     pub anchor: Option<crate::cover::Anchor>,
-    /// A wheeled vehicle's three-point turn in progress: the leg it drives
-    /// against its order's direction (Q29).
-    pub manoeuvre: Option<crate::movement::Manoeuvre>,
+    /// A wheeled vehicle's shunt out of a tight spot (Q29): the legs it
+    /// drives, forward and back, onto its route.
+    pub shunt: Option<crate::movement::Shunt>,
     /// The vehicle drove backwards this tick: an ordered reverse move or a
-    /// three-point turn's reversing leg (the reverse beeper's cue).
+    /// shunt's reversing leg (the reverse beeper's cue).
     pub reversing: bool,
     /// Actual accepted hull speed; negative while reversing.
     pub drive_speed_mps: f64,

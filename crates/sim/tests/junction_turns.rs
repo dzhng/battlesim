@@ -119,7 +119,7 @@ fn a_truck_turning_off_a_town_road_sweeps_round_the_corner_without_stopping() {
         {
             doubled_back.get_or_insert((tick, way[k]));
         }
-        if battle.unit(UnitId(0)).unwrap().manoeuvre.is_some() {
+        if battle.unit(UnitId(0)).unwrap().reversing {
             reversed_at.get_or_insert((tick, here));
         }
         if own.state == MoveState::Idle {

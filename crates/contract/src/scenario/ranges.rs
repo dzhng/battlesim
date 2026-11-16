@@ -142,13 +142,7 @@ impl MovementRules {
             d.turn_speed_factor,
             true,
         )?;
-        nonnegative(
-            "movement.drive",
-            &[
-                ("min_leg_m", d.min_leg_m),
-                ("circle_margin_m", d.circle_margin_m),
-            ],
-        )
+        nonnegative("movement.drive", &[])
     }
 }
 
