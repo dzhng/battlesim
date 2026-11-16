@@ -36,7 +36,7 @@ function occupant(id: number, house: typeof HOUSE, goal: P2 | null = null) {
     position: [x, y, 0],
     yaw: 0,
     hold: {
-      host: { kind: "building", ...house },
+      host: { kind: "building", ...house, seats: 12 },
       phase: goal ? "exiting" : "inside",
       progress: goal ? 0.2 : 1,
     },

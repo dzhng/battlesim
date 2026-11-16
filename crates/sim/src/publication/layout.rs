@@ -128,7 +128,8 @@ pub fn layout_json(battle: &Battle) -> String {
         // deployProgress and deployTarget are -1 for units that never deploy.
         // hostKind, both host limbs, holdPhase and holdProgress are -1 without
         // a hold. hostX, hostY, hostHalfX and hostHalfY carry a building
-        // footprint and are NaN for a carrier or no hold.
+        // footprint and are NaN for a carrier or no hold; hostSeats is the
+        // building's seat total, -1 for a carrier or no hold.
         // Known body IDs and associations use exact limbs; absent pairs are (-1,-1).
         // sightForward is the bearing sight looks along at this tick (never
         // interpolated); reach toward bearing b is sightRange * m, with

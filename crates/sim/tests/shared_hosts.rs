@@ -74,6 +74,25 @@ fn phase(b: &Battle, id: u32) -> Option<HoldPhase> {
     matches!(hold.host, HostRef::Building { id, .. } if id == BUILDING).then_some(hold.phase)
 }
 
+/// Every own squad holding the building publishes the seat total admission
+/// counts against, stepping in, inside and stepping out alike.
+fn assert_published_seats(b: &Battle, seats: usize) {
+    for unit in &b.observe(Side::Blue).own {
+        if let Some(HostRef::Building {
+            id, seats: shown, ..
+        }) = unit.hold.map(|h| h.host)
+        {
+            assert_eq!(
+                (id, shown as usize),
+                (BUILDING, seats),
+                "tick {}: unit {} publishes the house's seats",
+                b.tick(),
+                unit.id.0
+            );
+        }
+    }
+}
+
 #[test]
 fn a_squad_ordered_into_a_held_house_walks_in_when_its_holder_leaves() {
     let mut b = relief_battle();
@@ -90,6 +109,7 @@ fn a_squad_ordered_into_a_held_house_walks_in_when_its_holder_leaves() {
     while phase(&b, A) != Some(HoldPhase::Inside) {
         assert!(t < limit, "A inside within {limit} ticks");
         b.step();
+        assert_published_seats(&b, seats);
         t += 1;
     }
 
@@ -116,6 +136,7 @@ fn a_squad_ordered_into_a_held_house_walks_in_when_its_holder_leaves() {
                 .filter(|r| r.unit == UnitId(B))
                 .map(|r| r.reason.clone()),
         );
+        assert_published_seats(&b, seats);
         let (pa, pb) = (phase(&b, A), phase(&b, B));
         a_left |= pa == Some(HoldPhase::Exiting);
         if pb.is_some() {

@@ -114,6 +114,7 @@ macro_rules! v {
 }
 
 mod crash;
+mod hold;
 mod poses;
 mod report;
 mod skirmish;
@@ -784,27 +785,7 @@ impl Reader {
                     progress: v!(f, "deployProgress"),
                     target,
                 }),
-            hold: self
-                .optional("holdPhases", v!(f, "holdPhase"))?
-                .map(|phase| -> Result<Hold> {
-                    let id = limbs(v!(f, "hostLo"), v!(f, "hostHi")).unwrap_or(0.0);
-                    let kind = self.name("hostKinds", v!(f, "hostKind"))?;
-                    let host = if &*kind == "building" {
-                        Host::Building {
-                            id,
-                            center: [v!(f, "hostX"), v!(f, "hostY")],
-                            half: [v!(f, "hostHalfX"), v!(f, "hostHalfY")],
-                        }
-                    } else {
-                        Host::Carrier { id }
-                    };
-                    Ok(Hold {
-                        host,
-                        phase,
-                        progress: v!(f, "holdProgress"),
-                    })
-                })
-                .transpose()?,
+            hold: self.hold(f)?,
             stock: present(v!(f, "stock")),
             service: self.name("serviceStatuses", v!(f, "service"))?,
             sight: Sight {

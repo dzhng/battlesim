@@ -110,7 +110,7 @@ use crate::arrangement;
 use crate::digest::Digest;
 use crate::garrison::{self, Want};
 use crate::world::WorldGeometry;
-use contract::command::{OrderError, Refusal};
+use contract::command::{Order, OrderError, Refusal};
 use contract::ids::UnitId;
 use contract::observation::{HoldPhase, HoldState, HostRef, MoveState};
 
@@ -194,6 +194,39 @@ pub(crate) fn refuse_oversized(
     refused
 }
 
+/// A carrier order's answers at the command, None for any other order. A
+/// squad listed twice boards (or is collected) once, keeping the order
+/// given; `Board` then refuses every squad bigger than its carrier, and
+/// `Collect` every squad bigger than the largest carrier it lists.
+pub(crate) fn refuse_oversized_riders(
+    units: &[Unit],
+    order: &mut Order,
+    rules: &Rules,
+) -> Option<Vec<Refusal>> {
+    let mut seen = BTreeSet::new();
+    let seats = |id: &UnitId| crate::carriage::seats(rules, units[id.0 as usize].kind);
+    match order {
+        Order::Board {
+            units: squads,
+            carrier,
+            ..
+        } => {
+            squads.retain(|id| seen.insert(*id));
+            Some(refuse_oversized(units, squads, seats(carrier)))
+        }
+        Order::Collect {
+            units: carriers,
+            squads,
+            ..
+        } => {
+            squads.retain(|id| seen.insert(*id));
+            let largest = carriers.iter().map(seats).max().unwrap_or(0);
+            Some(refuse_oversized(units, squads, largest))
+        }
+        _ => None,
+    }
+}
+
 /// End squad `i`'s front order, telling its side why.
 fn refuse(units: &mut [Unit], i: usize, reason: OrderError, refusals: &mut [Vec<Refusal>; 3]) {
     units[i].orders.pop_front();
@@ -269,8 +302,15 @@ pub(crate) fn ticks(seconds: f64, rules: &Rules) -> u32 {
     ((seconds * rules.tick_hz as f64).round() as u32).max(1)
 }
 
-/// What the owning side sees of a squad's hold.
-pub fn state(world: &WorldGeometry, unit: &Unit, rules: &Rules) -> Option<HoldState> {
+/// What the owning side sees of a squad's hold; a building also tells its
+/// seat total, as admission counts it.
+pub fn state(
+    world: &WorldGeometry,
+    units: &[Unit],
+    unit: &Unit,
+    windows: &garrison::Windows,
+    rules: &Rules,
+) -> Option<HoldState> {
     let hold = unit.hold.as_ref()?;
     let host = match hold.host {
         Host::Carrier(id) => HostRef::Carrier { id: id.0 },
@@ -280,6 +320,7 @@ pub fn state(world: &WorldGeometry, unit: &Unit, rules: &Rules) -> Option<HoldSt
                 id: building,
                 center: [footprint.center.x, footprint.center.y],
                 half: [footprint.half.x, footprint.half.y],
+                seats: Seats::of(world, units, hold.host, windows, rules).total as u32,
             }
         }
     };

@@ -46,6 +46,7 @@ use crate::flight::{
 use crate::garrison;
 use crate::ground::{GroundLayer, KnownGround, Wear};
 use crate::hearing;
+use crate::hold;
 use crate::knowledge::SideKnowledge;
 use crate::math::{body_distance, v2, v3, Obb2, Rotation, V2, V3};
 use crate::movement::{self, MovementContext, SideGeometry};
@@ -1555,7 +1556,7 @@ impl Battle {
             &self.rules,
             &mut self.refusals,
         );
-        crate::hold::advance(
+        hold::advance(
             &self.world,
             &self.sides,
             self.authored_props,
@@ -2979,23 +2980,9 @@ impl Battle {
             }
             _ => None,
         };
-        let mut seen = std::collections::BTreeSet::new();
-        let seats =
-            |id: &UnitId| crate::carriage::seats(&self.rules, self.units[id.0 as usize].kind);
-        let mut refused = match &mut command.order {
-            Order::Board { units, carrier, .. } => {
-                // A squad listed twice boards once.
-                units.retain(|id| seen.insert(*id));
-                crate::hold::refuse_oversized(&self.units, units, seats(carrier))
-            }
-            Order::Collect { units, squads, .. } => {
-                // A squad listed twice is collected once; the list keeps its order.
-                squads.retain(|id| seen.insert(*id));
-                let largest = units.iter().map(seats).max().unwrap_or(0);
-                crate::hold::refuse_oversized(&self.units, squads, largest)
-            }
-            _ => building_refused,
-        };
+        let mut refused =
+            hold::refuse_oversized_riders(&self.units, &mut command.order, &self.rules)
+                .unwrap_or(building_refused);
         if let Order::Unload {
             units, goal: None, ..
         } = &command.order
@@ -3771,7 +3758,7 @@ impl Battle {
                             && u.attackers.is_empty(),
                         stock: u.stock,
                         service: u.service,
-                        hold: crate::hold::state(&self.world, u, &self.rules),
+                        hold: hold::state(&self.world, &self.units, u, &self.windows, &self.rules),
                         sight: {
                             let s = sight::of(u, &self.rules);
                             UnitSight {

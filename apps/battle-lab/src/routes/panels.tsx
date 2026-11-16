@@ -155,7 +155,7 @@ function DeckReview({ onBack }: { onBack: () => void }) {
       units: [
         specimenUnit(catalog, "test_rifle", {
           hold: {
-            host: { kind: "building", id: 3, center: [0, 0], half: [10, 10] },
+            host: { kind: "building", id: 3, center: [0, 0], half: [10, 10], seats: 12 },
             phase: "inside",
             progress: 1,
           },

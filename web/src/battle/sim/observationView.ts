@@ -220,9 +220,11 @@ export interface SightView {
   range: number;
 }
 
-/** A unit's host while entering, inside or leaving it. */
+/** A unit's host while entering, inside or leaving it. A building names
+ *  its seat total, which every own squad holding it shares; a carrier's
+ *  seats are its type's. */
 export type HoldHostView =
-  | { kind: "building"; id: number; center: Point2; half: Point2 }
+  | { kind: "building"; id: number; center: Point2; half: Point2; seats: number }
   | { kind: "carrier"; id: number };
 
 /** Whether a carrier holds `u` (boarding, aboard or getting out): it is
