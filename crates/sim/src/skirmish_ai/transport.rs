@@ -10,19 +10,16 @@ use contract::scenario::Rules;
 use std::collections::BTreeMap;
 
 use super::{distance, EntrySite, Side};
-use crate::carriage::seats;
+use crate::carriage::{seats, seats_squad};
 
 /// The card a squad of `size` soldiers is paired with: the fewest seats that
 /// take the whole squad, then the cheapest, then the smaller id. `None` for a
 /// hull (size 0) or a squad no card seats.
 pub(super) fn carrier_for(rules: &Rules, eligible: &[TypeIndex], size: usize) -> Option<TypeIndex> {
-    if size == 0 {
-        return None;
-    }
     eligible
         .iter()
         .copied()
-        .filter(|&k| seats(rules, k) >= size)
+        .filter(|&k| seats_squad(rules, k, size))
         .min_by(|&a, &b| {
             seats(rules, a)
                 .cmp(&seats(rules, b))

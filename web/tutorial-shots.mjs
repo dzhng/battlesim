@@ -214,14 +214,19 @@ async function preparation(page) {
   // so the HUD's text stays near its own size.
   await still(page, "overview", { x: 450, y: 0, width: 800, height: 450 });
 
-  // The shop: the MBT tab, a family's variants fanned out under the cursor,
+  // The shop: a rifle squad's transport menu over the INF tab, a ride under
+  // the cursor with its info, the squad's and their total stacked above it,
   // and the group tabs under the cards.
   await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
-  await page.getByRole("tab", { name: "MBT", exact: true }).click();
-  await page.getByRole("button", { name: "M1 Abrams", exact: true }).hover();
+  await page.getByRole("tab", { name: "INF", exact: true }).click();
+  await page.getByRole("button", { name: "Rifle Squad", exact: true }).hover();
+  await page
+    .getByRole("region", { name: "Transport", exact: true })
+    .getByRole("button", { name: "Stryker ICV", exact: true })
+    .hover();
   await settle(page, 300);
   const boxes = await page
-    .locator(".hud-purchase-stack, .hud-purchase-families, .hud-purchase-filter")
+    .locator(".hud-transport-stack, .hud-transport-menu, .hud-purchase-cards, .hud-purchase-filter")
     .evaluateAll((els) => els.map((e) => e.getBoundingClientRect().toJSON()));
   await still(page, "buy", fit(boxes, 16));
   // Escape here would open the pause menu: it cancels a placement, not the shop.

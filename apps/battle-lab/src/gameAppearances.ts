@@ -326,7 +326,7 @@ export function useBattleKinds(input: {
   const learned = useMemo(() => {
     for (const kind of observedKinds(observation)) retained.add(kind);
     for (const pending of observation?.skirmish?.players.flatMap((player) => player.pending) ?? [])
-      retained.add(pending.kind);
+      for (const kind of [pending.kind, pending.carrier]) if (kind) retained.add(kind);
     if (purchasing) retained.add(purchasing);
     return [...retained].sort().join("\0");
   }, [retained, observation, purchasing]);

@@ -2,6 +2,7 @@
 //! weapon-made answers to aircraft, and armour in the recipe.
 
 use super::*;
+use crate::skirmish_ai::purchase::pick;
 
 fn seen(rules: &Rules, kind: &str) -> contract::observation::IdentifiedUnit {
     let kind = rules.catalog.index(kind).unwrap();
@@ -24,7 +25,7 @@ fn seen(rules: &Rules, kind: &str) -> contract::observation::IdentifiedUnit {
     }
 }
 
-fn us_cards(rules: &Rules) -> Vec<TypeIndex> {
+pub(super) fn us_cards(rules: &Rules) -> Vec<TypeIndex> {
     rules
         .catalog
         .indices()
@@ -205,6 +206,7 @@ fn seeded_reinforcements_keep_the_wasm_choice_on_native() {
             id: contract::skirmish::PurchaseId(1),
             kind: rules.catalog.index("test_supply").unwrap(),
             entry: 0,
+            carrier: None,
             destination: entry.center,
             confirmed_tick: 0,
             blocked: false,

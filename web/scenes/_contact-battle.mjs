@@ -15,8 +15,7 @@ export async function approachContact(page) {
   const [cx, cy] = [view.width / 2, view.height / 2];
   await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
   await page.getByRole("tab", { name: "REC", exact: true }).click();
-  await page.getByRole("button", { name: "M3 Bradley CFV", exact: true }).hover();
-  await page.getByRole("button", { name: /^M3A3 — \d+ credits$/ }).click();
+  await page.getByRole("button", { name: "M3A3 Bradley", exact: true }).click();
   await page.mouse.move(cx, cy);
   await page.waitForTimeout(100);
   await page.mouse.click(cx, cy);

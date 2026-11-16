@@ -69,10 +69,7 @@ fn order(b: &mut Battle, side: Side, player: &str, seq: u64, order: Order) {
 }
 
 fn buy(kind: &str, at: [f64; 2]) -> Order {
-    Order::ConfirmPurchase {
-        variant: kind.into(),
-        destination: at,
-    }
+    Order::purchase(kind, at)
 }
 
 /// A blue player's carrier, as blue sees it: its strength and charges, or

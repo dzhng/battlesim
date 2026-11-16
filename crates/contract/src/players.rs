@@ -28,6 +28,9 @@ pub struct Player {
 #[serde(deny_unknown_fields)]
 pub struct OpeningPurchase {
     pub variant: String,
+    /// The carrier the squad is bought in, as in a confirmed purchase.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub carrier: Option<String>,
     pub destination: [f64; 2],
 }
 

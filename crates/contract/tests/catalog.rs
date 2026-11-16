@@ -574,23 +574,6 @@ fn one_variant_serves_every_faction_it_names() {
     assert!(error.contains("distinct factions"), "{error}");
 }
 
-/// A faction's deck groups variants into family cards, at most ten to a
-/// category: an eleventh family is refused, wherever its variants come from.
-#[test]
-fn a_faction_holds_at_most_ten_families_in_a_category() {
-    let mut entries = json!({ "base": base_tank() });
-    for k in 0..10 {
-        entries[format!("own{k}")] = card(&format!("family{k}"), &["us"]);
-        // A second variant of the same family adds no family.
-        entries[format!("own{k}b")] = card(&format!("family{k}"), &["us"]);
-    }
-    entries["other"] = card("other", &["europe"]);
-    assert!(resolve(&units(entries.clone())).is_ok());
-    entries["shared"] = card("shared", &["europe", "us"]);
-    let error = resolve(&units(entries)).unwrap_err().to_string();
-    assert!(error.contains("ten families"), "{error}");
-}
-
 /// Everything a card shows is a concise label authored beside its id
 /// (`contract::labels`): a type's name, its family's, each mount's, a
 /// planned unit's and its planned weapons', and an active protection's.
