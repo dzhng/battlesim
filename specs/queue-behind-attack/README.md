@@ -24,19 +24,26 @@ lane** (FX3, S6–S9); S6 merges after S2. Run only the domain tests a change re
 the full closeout run happens once, in S10. Before ending a pass, update this section
 and tick the list.
 
+Presentation lane (branch `t3/queue-behind-attack-presentation`): FX3 and S6–S9 are done.
+Left for the integrator, each in its slice file: one fresh browser parity capture (S6; the
+capture's battle is stale on the base commit), the queued-step test behind an attack once
+S2 lands (S6), and decision 17's chain capture in a real skirmish (S9). The scene
+baselines (`unit-roster` and others with the top bar) predate staging's score meter and
+need a person to re-bless them.
+
 - [x] Split `apply_units` / `update_pursuit` out of `battle.rs` (`00e9efe87`)
 - [x] [FX1](slices/fx1-garrisoned-attack-ends.md) garrisoned attack ends on target death (`fb32920bd`)
 - [x] [FX2](slices/fx2-queued-command-keeps-current.md) a queued command breaks nothing off (`687cdd2ca`)
-- [ ] [FX3](slices/fx3-blocked-first-leg.md) a blocked unit's first queued leg is drawn
+- [x] [FX3](slices/fx3-blocked-first-leg.md) a blocked unit's first queued leg is drawn
 - [x] [S1](slices/s1-cycle-end-and-ordered-fire.md) one owner for a cycle's end; per-mount ordered-fire report (`9e9825920`)
 - [x] [S2](slices/s2-admission-and-take-effect.md) queued orders admitted behind attacks; queued orders take effect at their turn (`0f2982a3f`)
 - [x] [S3](slices/s3-volley-handoff.md) the volley handoff (every attack not flown as a pass) (`2f1244b69`)
 - [x] [S4](slices/s4-jet-run-volley.md) a jet's volley is one run in which it fired (`9ca23cbab`)
-- [x] [S5](slices/s5-jet-lost-target.md) a jet's attack ends when its side loses the target
-- [ ] [S6](slices/s6-step-records.md) step records end to end, no visual change
-- [ ] [S7](slices/s7-voice-steps.md) the voice queue reads the published steps
-- [ ] [S8](slices/s8-attack-line.md) current attack line, reticle, chase-end reticle
-- [ ] [S9](slices/s9-queued-chain.md) the queued chain
+- [x] [S5](slices/s5-jet-lost-target.md) a jet's attack ends when its side loses the target (`6a4bce2cf`)
+- [x] [S6](slices/s6-step-records.md) step records end to end, no visual change (parity captures await one fresh recording, see the slice)
+- [x] [S7](slices/s7-voice-steps.md) the voice queue reads the published steps
+- [x] [S8](slices/s8-attack-line.md) current attack line, reticle, chase-end reticle
+- [x] [S9](slices/s9-queued-chain.md) the queued chain
 - [ ] [S10](slices/s10-closeout.md) docs, `/review`, closeout run, push part 1 to staging
 - [ ] [P1](slices/p1-jet-3d-attack-line.md) part 2: a jet's 3D attack line, its own push
 

@@ -20,3 +20,10 @@ checkpoint never blocks: give ~5 minutes, then decide on the evidence and record
 `journey-space-orders.png` stays matched.
 
 **Commit.** `fix(overlay): a blocked unit's first queued leg is drawn`.
+
+**State.** Done. `web/tests/queuedLegs.test.ts` failed before the fix and passes after.
+The picture ([assets/fx3-blocked-first-leg-before-after.png](../assets/fx3-blocked-first-leg-before-after.png),
+before left, after right) differs only by the dashed leg from the blocked ring to the
+queued point (pixel diff). `journey-space-orders` differs from its baseline only in the
+top score bar, on the base commit too: the baseline predates staging's score meter and
+needs a person to re-bless it.

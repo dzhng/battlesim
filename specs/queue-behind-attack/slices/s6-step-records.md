@@ -60,3 +60,20 @@ transport-unload shot, before against after, must match. Say so in the commit.
 
 **Commit.** `feat(contract): the own unit publishes its orders as step records` (notes
 that server and web deploy together).
+
+**State.** Done on the presentation branch except the parity captures. Contract, publisher,
+row, reader, TS view, renderer port, ghost, preview identity, scenes and tests moved to
+`steps`; the old fields are deleted. No battle digest moved: the five paired stream records
+re-blessed changed only their `publication_sha256` columns. `journey-space-orders` and
+`journey-transport-arrived` are pixel-identical before and after (pixelmatch 0).
+
+Left for the parent:
+- **One fresh browser capture** (`native-parity-capture`, as `cd1297886` did), then
+  `BLESS_PARITY=1` on `publication_reader`, presentation `effects`/`fog_sight`/`poses`, and
+  `web/tests/captureObservations.test.ts`. Until then those capture-replay tests fail on
+  the old layout. The capture's battle is already stale on the base commit (choices.md),
+  and FX1/S5 may move digests again, so record it once, after the sim lane lands.
+- **After S2**, extend `every_order_is_published_as_a_step_in_order` with a move queued
+  behind the attack (move → attack → move → garrison → return to base), asserting that
+  move's step follows the attack and the garrison's way home starts from it. TODO, not yet
+  admitted on this branch.

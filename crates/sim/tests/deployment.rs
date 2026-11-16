@@ -277,7 +277,7 @@ fn stop_clears_movement_and_returns_the_desired_state_to_deployed() {
     run(&mut b, 30);
     let u = own(&b, SUPPLY);
     assert_eq!(u.goal, Some([300.0, 200.0]));
-    assert_eq!(u.queue.len(), 1);
+    assert_eq!(u.steps.len(), 2, "the move and the one queued behind it");
     assert_eq!(u.deployment.unwrap().target, Posture::Packed);
     let before = current(&b);
     c.stop(&mut b, SUPPLY);
@@ -285,7 +285,7 @@ fn stop_clears_movement_and_returns_the_desired_state_to_deployed() {
     let u = own(&b, SUPPLY);
     assert_eq!(u.goal, None, "the move is cleared");
     assert!(
-        u.queue.is_empty() && u.route.is_empty(),
+        u.steps.is_empty() && u.route.is_empty(),
         "the queue is cleared"
     );
     assert_eq!(u.state, MoveState::Idle);

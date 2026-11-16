@@ -123,6 +123,7 @@ fn overlay_constraints_are_owned_by_document_admission() {
         ("/overlay/orders/drop_line_alpha", 0.0),
         ("/overlay/orders/drop_line_reach", 0.0),
         ("/overlay/orders/drop_line_hold", 1.0),
+        ("/overlay/orders/reticle_m", 0.0),
         ("/overlay/ruler/line_px", 0.0),
         ("/overlay/ruler/tick_px", 0.0),
         ("/overlay/ruler/tick_line_px", 0.0),

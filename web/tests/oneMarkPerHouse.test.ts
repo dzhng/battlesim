@@ -49,7 +49,7 @@ function occupant(id: number, house: typeof HOUSE, goal: P2 | null = null) {
     area: { anchor: goal ?? [x, y], radius: 6 },
     goal,
     route: goal ? [goal] : [],
-    queue: [],
+    steps: [],
     finalFacing: 0,
     direction: null,
     state: goal ? "moving" : "idle",

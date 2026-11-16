@@ -18,8 +18,8 @@ import {
   type Mesh,
   type Rgba,
 } from "./mesh";
-import { marchChevron, type OrderStyle, type SurfaceHeight } from "./orderOverlay";
-import { along, orderPen, type Pen } from "./orderPen";
+import type { OrderStyle, SurfaceHeight } from "./orderOverlay";
+import { along, marchChevron, orderPen, type Pen } from "./orderPen";
 import type { StrokeWidth } from "./strokeWidth";
 
 type P2 = readonly [number, number];

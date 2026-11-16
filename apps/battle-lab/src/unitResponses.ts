@@ -42,7 +42,9 @@ export class UnitResponses {
     private readonly assignments: VoiceCatalog["assignments"] = voiceAssignments,
   ) {}
 
-  /** A publication: the sets its units speak with load, and arrivals report. */
+  /** A publication: the sets its units speak with load, and arrivals report
+   *  (each unit's journey ends where it stops, an errand when its front step
+   *  moves on). */
   observed(observation: ObservationView) {
     this.own = observation.own;
     const kinds = new Set(observation.own.map((unit) => unit.kind));
@@ -52,6 +54,7 @@ export class UnitResponses {
     const moving = observation.own.map((unit) => ({
       id: unit.id,
       moving: unit.goal !== null && !unit.withdrawing,
+      front: unit.steps[0] ?? null,
     }));
     for (const { id, group } of this.arrivals.observe(moving, observation.tick / this.tickHz)) {
       const unit = this.answering([id])[0];

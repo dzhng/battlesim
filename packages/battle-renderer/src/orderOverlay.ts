@@ -26,7 +26,6 @@
 // chevrons behind it, against its facing on a reverse move, with a pulse
 // marching along them. Colour carries meaning only where a player needs it:
 // the cover tiers, a blocked route, and the selection.
-import { vec2, type Vec2 } from "math";
 import {
   concatMeshes,
   fadeAlpha,
@@ -36,14 +35,29 @@ import {
   type Mesh,
   type Rgba,
 } from "./mesh";
+import { SOLDIER_R, unitCircle, destinationCircle, type UnitCircle } from "./unitCircle";
 import {
-  SOLDIER_R,
-  circleReach,
-  unitCircle,
-  destinationCircle,
-  type UnitCircle,
-} from "./unitCircle";
-import { along, circleMarker, crossMark, orderPen, pip, ribbon, ring, type Pen } from "./orderPen";
+  CHEVRON_M,
+  along,
+  circleMarker,
+  crossMark,
+  marchChevron,
+  orderPen,
+  pip,
+  ring,
+  routeBetween,
+  unloadMark,
+  type Pen,
+} from "./orderPen";
+import {
+  currentAim,
+  currentAttack,
+  currentUnloads,
+  ordersEnd,
+  queuedLegs,
+  warningRing,
+  type OrderStep,
+} from "./orderSteps";
 import type { WorldMeshes } from "./scene";
 import type { StrokeWidth } from "./strokeWidth";
 
@@ -67,6 +81,10 @@ export interface OrderStyle {
   current_alpha: number;
   /** A route the unit can't take: the HUD's one "can't" colour. */
   blocked: Rgba;
+  /** An attack's line and reticle. */
+  attack: Rgba;
+  /** Half the side of an attack's reticle on its target. */
+  reticle_m: number;
   /** A selected unit's own marker (its circle and arrowhead) and its
    *  soldiers' markers. */
   selected: Rgba;
@@ -130,7 +148,8 @@ export interface OrderView {
   goal: readonly [number, number] | null;
   state: string;
   route: readonly (readonly [number, number])[];
-  queue: readonly (readonly [number, number])[];
+  /** Its orders, the current one first (`OrderStep`). */
+  steps: readonly OrderStep[];
   /** Living soldiers' positions (empty for a vehicle). */
   members: readonly (readonly [number, number, number])[];
   /** Each living soldier's resolved spot and cover, in `members` order. */
@@ -165,12 +184,6 @@ export interface OrderView {
    *  to that end's marker, as one joins the airframe to its own. 0 or
    *  absent: no ghost, no line. */
   ghostAloft?: number;
-  /** Its goal's order lets its passengers out there: the goal's mark
-   *  carries the unload mark. */
-  goalUnloads?: boolean;
-  /** Whether each `queue` step lets its passengers out there, as the
-   *  goal's. */
-  queueUnloads?: readonly boolean[];
   /** In the player's selection: the marker under it is `selected`'s. */
   selected?: boolean;
   /** Under the pointer (its model or its card): its marker shows as a
@@ -198,12 +211,6 @@ export type SurfaceHeight = (x: number, y: number) => number;
 
 /** How far outside a vehicle's marker its travel chevrons start. */
 const CHEVRONS_GAP_M = 1;
-/** A queued waypoint's ring, and a blocked route's warning ring. */
-const QUEUED_R = 2.8;
-const BLOCKED_R = 4.5;
-/** A travel chevron: length along the travel and spread across it. */
-const CHEVRON_M: readonly [number, number] = [0.9, 1.7];
-
 type P2 = readonly [number, number];
 
 /** An airframe this close to the ground under it draws no drop line. */
@@ -266,36 +273,6 @@ function dropLine(
   }
 }
 
-/** A route from the unit's own circle to a destination circle, clipped at
- *  both: it leaves from the first's rim and ends at the second's, at the
- *  arrowhead's tip where it leaves or arrives along the facing. Either circle may be absent
- *  (not drawn): the route runs to the centre there. */
-function routeBetween(
-  mesh: MeshBuilder,
-  pen: Pen,
-  from: UnitCircle | null,
-  route: readonly P2[],
-  to: UnitCircle | null,
-  color: Rgba,
-  { dashed = false } = {},
-) {
-  const start = from?.c ?? route[0];
-  if (!start || route.length === 0) return;
-  // Where it leaves or arrives along a circle's facing, it clears the
-  // circle's arrowhead (to its tip), never running over it.
-  const reach = circleReach;
-  const first = route[0];
-  const head = from ? reach(from, Math.atan2(first[1] - start[1], first[0] - start[0])) : 0;
-  let tail = 0;
-  if (to) {
-    const last = route.length > 1 ? route[route.length - 2] : start;
-    const end = route[route.length - 1];
-    tail = reach(to, Math.atan2(last[1] - end[1], last[0] - end[0]));
-  }
-  for (const [a, b] of trimmed(start, route, head, tail))
-    ribbon(mesh, pen, a, b, color, pen.line, { dashed });
-}
-
 /** A soldier's marker: a plain ring (the unit's marker carries the facing),
  *  with a cover tier's pip (in `pipColor`) in its middle when he has cover
  *  and the order marks show. */
@@ -343,98 +320,11 @@ function travelChevrons(
   });
 }
 
-/** One open chevron whose vertices carry `normal` for the overlay's march. */
-export function marchChevron(
-  mesh: MeshBuilder,
-  pen: Pen,
-  tip: P2,
-  bearing: number,
-  color: Rgba,
-  normal: readonly [number, number, number],
-  size = CHEVRON_M,
-  line = pen.line,
-) {
-  const [length, spread] = size;
-  const width = line;
-  const at = (p: P2) => [p[0], p[1], pen.z(p[0], p[1])] as const;
-  const fx = Math.cos(bearing),
-    fy = Math.sin(bearing);
-  for (const side of [-1, 1]) {
-    const end: P2 = [
-      tip[0] - fx * length - fy * side * (spread / 2),
-      tip[1] - fy * length + fx * side * (spread / 2),
-    ];
-    const [dx, dy] = [tip[0] - end[0], tip[1] - end[1]];
-    const n = Math.hypot(dx, dy) || 1;
-    const [nx, ny] = [(-dy / n) * (width / 2), (dx / n) * (width / 2)];
-    // Keep each arm at a constant width, then use a short mitered point for
-    // the join. Letting both full-width strips run all the way to `tip`
-    // creates the square artifact visible in a close crop.
-    const near: P2 = [tip[0] - (dx / n) * width * 0.55, tip[1] - (dy / n) * width * 0.55];
-    const a = at([end[0] - nx, end[1] - ny]);
-    const b = at([end[0] + nx, end[1] + ny]);
-    const c = at([near[0] - nx, near[1] - ny]);
-    const d = at([near[0] + nx, near[1] + ny]);
-    const point = at(tip);
-    mesh.vertex(a, normal, color).vertex(b, normal, color).vertex(d, normal, color);
-    mesh.vertex(a, normal, color).vertex(d, normal, color).vertex(c, normal, color);
-    mesh.vertex(c, normal, color).vertex(d, normal, color).vertex(point, normal, color);
-  }
-}
-
-/** `points` from `from` with `head` metres cut off its start and `tail` off
- *  its end, as the segments left. */
-function trimmed(from: P2, points: readonly P2[], head: number, tail: number): [P2, P2][] {
-  const path: P2[] = [from, ...points];
-  const lengths = path.slice(1).map((p, k) => Math.hypot(p[0] - path[k][0], p[1] - path[k][1]));
-  const total = lengths.reduce((a, b) => a + b, 0);
-  const [s0, s1] = [head, total - tail];
-  if (s1 <= s0) return [];
-  const out: [P2, P2][] = [];
-  let at = 0;
-  lengths.forEach((l, k) => {
-    const [a, b] = [path[k], path[k + 1]];
-    const [t0, t1] = [Math.max(s0, at), Math.min(s1, at + l)];
-    if (t1 > t0 && l > 1e-9) {
-      const point = (t: number) =>
-        vec2.lerp(vec2.create(), a as Vec2, b as Vec2, (t - at) / l) as unknown as P2;
-      out.push([point(t0), point(t1)]);
-    }
-    at += l;
-  });
-  return out;
-}
-
 export interface DestinationMarker extends UnitCircle {
   placed: boolean;
   opacity: number;
   /** The order lets passengers out here: the unload mark. */
   unload?: boolean;
-}
-
-/** An unload chevron: its length over its circle's radius, and at least
- *  this many route widths, so it still reads when the view pulls out; its
- *  spread over its length; its gap from the rim, and from the chevron
- *  inside it, in route widths. */
-const UNLOAD_CHEVRON = 0.3;
-const UNLOAD_CHEVRON_LINES = 2;
-const UNLOAD_SPREAD = 1.6;
-const UNLOAD_GAP_LINES = 1;
-const STILL: readonly [number, number, number] = [0, 0, 0];
-
-/** The unload mark on a destination's circle: off each side of `bearing`
- *  (the way it ends up facing), two chevrons pointing out the way its
- *  passengers get out, the travel chevrons' form for going that way. */
-function unloadMark(mesh: MeshBuilder, pen: Pen, c: UnitCircle, bearing: number, color: Rgba) {
-  const length = Math.max(c.r * UNLOAD_CHEVRON, pen.line * UNLOAD_CHEVRON_LINES);
-  const gap = pen.line * UNLOAD_GAP_LINES;
-  for (const side of [-1, 1]) {
-    const out = bearing + (side * Math.PI) / 2;
-    for (const k of [1, 2]) {
-      const tip = along(c.c, out, c.r + k * (gap + length));
-      marchChevron(mesh, pen, tip, out, color, STILL, [length, length * UNLOAD_SPREAD]);
-    }
-  }
 }
 
 /** A destination and its facing while the player holds a right-drag. */
@@ -495,6 +385,32 @@ function allyMarker(
       soldierMark(soldiers, pen, [m[0], m[1]], null, color, pen.soldierSelected);
 }
 
+/** A holding unit's soldiers walking to their posts: a marker at each post
+ *  more than a body's width from where he stands. */
+function soldierPosts(
+  soldiers: MeshBuilder,
+  pen: Pen,
+  u: OrderView,
+  pipOf: (cover: CoverTierName | null) => Rgba | null,
+  color: Rgba,
+) {
+  u.memberOrders.forEach((m, k) => {
+    const p = u.members[k];
+    if (p && Math.hypot(m.spot[0] - p[0], m.spot[1] - p[1]) > 2 * SOLDIER_R)
+      soldierMark(soldiers, pen, m.spot, pipOf(m.coverThere), color);
+  });
+}
+
+/** An aircraft's ghost over where its orders end (`ghostAloft`), joined to
+ *  that end's marker by a drop line: in `color` at its current goal, or
+ *  `queued`'s when a queued step ends them. */
+function ghostDrop(lines: MeshBuilder, pen: Pen, u: OrderView, color: Rgba, queued: Rgba) {
+  const end = ordersEnd(u.steps, u.goal);
+  if (!u.ghostAloft || !end) return;
+  const top = [end[0], end[1], pen.z(end[0], end[1]) + u.ghostAloft] as const;
+  dropLine(lines, pen, top, end !== u.goal ? queued : color);
+}
+
 /** A unit's circle where it stands, in `color`: an aircraft's marker and
  *  drop line, or its circle marker, unless a housemate paints its house's
  *  ring (`ringShared`). */
@@ -508,29 +424,6 @@ function standingCircle(
 ) {
   if (u.airborne) aircraftMarker(paint, lines, pen, u.position, circle, color);
   else if (!u.ringShared) circleMarker(paint, pen, circle, color);
-}
-
-/** A unit's queued legs after its goal: each a dashed route to a small
- *  ring, with an unload mark, pointing along the leg, where that step lets
- *  passengers out. */
-function queuedLegs(
-  paint: MeshBuilder,
-  pen: Pen,
-  u: OrderView,
-  dest: UnitCircle | null,
-  color: Rgba,
-) {
-  let prev = dest;
-  for (const [k, q] of u.queue.entries()) {
-    const next: UnitCircle = { c: q, r: QUEUED_R, facing: null };
-    routeBetween(paint, pen, prev, [q], next, color, { dashed: true });
-    ring(paint, pen, q, QUEUED_R, color);
-    if (u.queueUnloads?.[k]) {
-      const from = prev?.c ?? u.goal ?? q;
-      unloadMark(paint, pen, next, Math.atan2(q[1] - from[1], q[0] - from[0]), color);
-    }
-    prev = next;
-  }
 }
 
 export function buildOrderOverlay(
@@ -579,6 +472,8 @@ export function buildOrderOverlay(
     const color = fade(order);
     const current = fade(fadeAlpha(order, style.current_alpha));
     const queued = fade(fadeAlpha(order, style.queued_alpha));
+    const attack = fade(glowing(style.attack, style.glow.order));
+    const chain = { route: queued, attack: fadeAlpha(attack, style.queued_alpha) };
     const blockedColor = fade(cannot);
     const pipOf = (cover: CoverTierName | null | undefined) =>
       shown && cover ? fade(style.cover[cover]) : null;
@@ -640,17 +535,18 @@ export function buildOrderOverlay(
       );
     // The rest are order marks only.
     if (!shown) continue;
-    if (!u.goal) {
-      // A holding squad's soldiers walking to their posts (cover, a step
-      // out): each post is a marker only. An order is the unit's, one route
-      // for the unit; no line ever runs from a soldier.
-      u.memberOrders.forEach((m, k) => {
-        const p = u.members[k];
-        if (p && Math.hypot(m.spot[0] - p[0], m.spot[1] - p[1]) > 2 * SOLDIER_R)
-          soldierMark(soldiers, pen, m.spot, pipOf(m.coverThere), color);
-      });
+    // A holding squad's soldiers walking to their posts (cover, a step
+    // out): each post is a marker only. An order is the unit's, one route
+    // for the unit; no line ever runs from a soldier.
+    if (!u.goal) soldierPosts(soldiers, pen, u, pipOf, color);
+    const aim = currentAim(u);
+    if (aim) {
+      const reticle = currentAttack(paint, pen, u, circle, aim, attack, color);
+      queuedLegs(paint, pen, u, reticle, chain);
+      ghostDrop(lines, pen, u, color, queued);
       continue;
     }
+    if (!u.goal) continue;
     const blocked = u.state === "route_blocked";
     // The destination's circle marker: a squad's area ring (an order moves
     // its area, so a moving squad's is already the destination's), with
@@ -662,24 +558,19 @@ export function buildOrderOverlay(
       blocked || u.fixedWing ? null : destinationCircle(u, u.goal, style);
     routeBetween(paint, pen, circle, u.route, dest, color);
     if (blocked) {
-      const warning: UnitCircle = { c: u.goal, r: BLOCKED_R, facing: null };
+      const warning = warningRing(u.goal);
       routeBetween(paint, pen, circle, [u.goal], warning, blockedColor, { dashed: true });
       crossMark(paint, pen, u.goal, 6, blockedColor);
-      ring(paint, pen, u.goal, BLOCKED_R, blockedColor, { width: pen.line });
+      ring(paint, pen, u.goal, warning.r, blockedColor, { width: pen.line });
     } else if (dest) {
       circleMarker(paint, pen, dest, color);
-      if (u.goalUnloads) unloadMark(paint, pen, dest, u.finalFacing, color);
+      if (currentUnloads(u.steps)) unloadMark(paint, pen, dest, u.finalFacing, color);
       if (squad)
         for (const m of u.memberOrders)
           soldierMark(soldiers, pen, m.spot, pipOf(m.coverThere), color);
     }
-    queuedLegs(paint, pen, u, dest, queued);
-    // Its ghost over where its orders end, joined to that end's marker.
-    if (u.ghostAloft) {
-      const end = u.queue.at(-1) ?? u.goal;
-      const top = [end[0], end[1], pen.z(end[0], end[1]) + u.ghostAloft] as const;
-      dropLine(lines, pen, top, blocked ? blockedColor : u.queue.length ? queued : color);
-    }
+    queuedLegs(paint, pen, u, dest, chain);
+    ghostDrop(lines, pen, u, blocked ? blockedColor : color, queued);
   }
   return {
     ...paintOnly(concatMeshes([paint.build(), soldiers.build()]), animated.build()),

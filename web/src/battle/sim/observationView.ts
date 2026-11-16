@@ -3,6 +3,7 @@
  * reads. Integers that outgrow a float32's exact range (soldier ids, shot
  * counters) arrive whole; an absent one is null. */
 
+import type { OrderStepKind } from "@packages/battle-renderer/src/orderSteps";
 import type { MoveDirection } from "./protocol";
 
 /** The ground grid and exact tile-local run packing. */
@@ -79,6 +80,9 @@ export interface ObservationLayout {
   /** Which way a soldier leans out round his cover: left, right. */
   leanSides: string[];
   hostKinds: string[];
+  /** An own unit's order steps: move, attack, garrison, board, collect,
+   *  unload, exit, return_to_base. */
+  stepKinds: OrderStepKind[];
   holdPhases: string[];
   orderErrors: string[];
   serviceStatuses: string[];
@@ -105,8 +109,6 @@ export interface OwnUnitView {
   position: Point3;
   yaw: number;
   goal: Point2 | null;
-  /** The current movement order lets its passengers out at `goal`. */
-  goalUnloads: boolean;
   policy: string | null;
   /** Which way the current move drives (Q31); null without a move. */
   direction: MoveDirection | null;
@@ -117,9 +119,8 @@ export interface OwnUnitView {
   /** The friendly unit this one waits for. */
   blocker: number | null;
   route: Point2[];
-  queue: Point2[];
-  /** Whether each `queue` order lets its passengers out at its destination. */
-  queueUnloads: boolean[];
+  /** Its orders, the current one first, then each queued one. */
+  steps: OrderStepView[];
   members: Point3[];
   /** Each living soldier's id, in `members` order. */
   memberIds: number[];
@@ -171,6 +172,23 @@ export interface OwnUnitView {
   service: string;
   /** Where this unit's own sight reaches at the published tick. */
   sight: SightView;
+}
+
+/** One order of an own unit, as the simulation publishes it. `point` is
+ *  where the side knows the order takes the unit or what it acts on: a
+ *  move's destination, an attack's target (its track, else its last known
+ *  spot, the contact or the ground), a building's approach, the carrier, the
+ *  first squad collected, where it lets passengers out, the building it
+ *  leaves, the way home; null when the side knows none. An attack names its
+ *  `target` (absent once the side no longer tracks the unit); a garrison,
+ *  boarding or unload into a host names its `host`. */
+export interface OrderStepView {
+  kind: OrderStepKind;
+  point: Point2 | null;
+  /** A move that halts while it can engage; absent for any other step. */
+  attackMove?: boolean;
+  target?: MountTargetView;
+  host?: { kind: "building" | "carrier"; id: number };
 }
 
 /** A squad's suppression tier, as the simulation names it. */

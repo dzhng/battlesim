@@ -4,24 +4,32 @@
 use super::*;
 
 impl Battle {
-    /// Where `unit` leaves the map going home, and the heading it leaves
-    /// on: a winged aircraft by its side's back edge, anything else by the
-    /// side's quickest road from where it is.
+    /// Where `unit` leaves the map going home from where it is.
     pub(super) fn way_home(&self, side: Side, unit: UnitId) -> ([f64; 2], f64) {
+        let p = self.units[unit.0 as usize].position;
+        self.way_home_from(side, unit, [p.x, p.y])
+    }
+
+    /// Where `unit` leaves the map going home from `origin`, and the
+    /// heading it leaves on: a winged aircraft by its side's back edge,
+    /// anything else by the side's quickest road from there.
+    pub(super) fn way_home_from(
+        &self,
+        side: Side,
+        unit: UnitId,
+        origin: [f64; 2],
+    ) -> ([f64; 2], f64) {
         let sites = &self.skirmish.as_ref().expect("skirmish refund").setup.sites;
         let current = &self.units[unit.0 as usize];
         if current.fixed_wing() {
             let edge = crate::air::edge::back_edge(side, sites, &self.world);
-            let (point, heading) = crate::air::edge::entry(&edge, current.position.xy());
+            let (point, heading) = crate::air::edge::entry(&edge, v2(origin[0], origin[1]));
             return ([point.x, point.y], heading);
         }
-        let selected = crate::entries::select(
-            sites,
-            side,
-            current.kind,
-            [current.position.x, current.position.y],
-            |entry, kind, point| self.entry_route_time(side, kind, entry.center, point),
-        );
+        let selected =
+            crate::entries::select(sites, side, current.kind, origin, |entry, kind, point| {
+                self.entry_route_time(side, kind, entry.center, point)
+            });
         let entry = crate::entries::site(sites, selected);
         (entry.center, entry.yaw)
     }

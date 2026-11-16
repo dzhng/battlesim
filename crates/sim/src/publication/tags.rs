@@ -77,6 +77,17 @@ pub(super) const SUPPRESSION_TIERS: [SuppressionTier; 3] = [
 pub(super) const HOLD_PHASES: [HoldPhase; 3] =
     [HoldPhase::Entering, HoldPhase::Inside, HoldPhase::Exiting];
 pub(super) const HOST_KINDS: [&str; 2] = ["building", "carrier"];
+/// An own unit's order steps (`OrderStep`), by their contract names.
+pub(super) const STEP_KINDS: [&str; 8] = [
+    "move",
+    "attack",
+    "garrison",
+    "board",
+    "collect",
+    "unload",
+    "exit",
+    "return_to_base",
+];
 /// Every refusal the contract names, in its order; a new reason appends here
 /// and to the codec vectors.
 pub(super) const ORDER_ERROR_NAMES: [&str; 27] = [

@@ -43,7 +43,7 @@ const vehicle = (id: number, position: P3) => ({
   area: null,
   goal: null,
   route: [],
-  queue: [],
+  steps: [],
   state: "idle",
 });
 const observation = {

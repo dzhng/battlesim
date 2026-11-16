@@ -5,6 +5,9 @@ import { lab, groundCss, presented } from "./_lab.mjs";
 import { paintOnly } from "./_overlays.mjs";
 import { hull, visuals } from "./_units.mjs";
 
+/** A unit's queued moves' points: its order steps after the current one
+ *  that are moves. */
+const queuedMoves = (u) => u.steps.filter((s, k) => k > 0 && s.kind === "move").map((s) => s.point);
 const unit = (page, id) =>
   lab(page, (i) => window.__lab.route.observation().own.find((u) => u.id === i), id);
 /** Advance until `id` has its route, or knows it has none: a unit holds,
@@ -61,7 +64,7 @@ export async function run(ctx) {
   ctx.check(
     "double right-click upgrades the same gesture to the fast route",
     /upgrade gesture \d+ to fast route/.test(log) &&
-      (await unit(page, recon.id)).queue.length === 0,
+      queuedMoves(await unit(page, recon.id)).length === 0,
     log,
   );
   const later = await lab(page, () => window.__lab.projectToCss(95, 230, 0));
@@ -70,7 +73,7 @@ export async function run(ctx) {
   await page.keyboard.up("Shift");
   await until(
     page,
-    (id) => window.__lab.route.observation().own.find((u) => u.id === id).queue.length === 1,
+    (id) => window.__lab.route.observation().own.find((u) => u.id === id).steps.length === 2,
     recon.id,
     5000,
   );
@@ -85,7 +88,7 @@ export async function run(ctx) {
   const stopped = await unit(page, recon.id);
   ctx.check(
     "Backspace stops and clears the queue",
-    stopped.queue.length === 0 && stopped.goal === null,
+    stopped.steps.length === 0 && stopped.goal === null,
     JSON.stringify(stopped.state),
   );
   await page.close();
@@ -194,7 +197,7 @@ async function paintOnDeckAndWater(ctx) {
   const across = onLine(384, 396);
   const paint = await paintAt(across[across.length >> 1], "water");
   const [over, before] = [await inkOf(paint, across), await inkOf(paint, onLine(368, 378))];
-  const water = { queue: queuedTruck.queue, over, before };
+  const water = { queue: queuedMoves(queuedTruck), over, before };
   // The tank, parked on the deck.
   await move(tank.id, DECK, 80);
   for (let i = 0; i < 80; i++) {

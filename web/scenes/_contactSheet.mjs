@@ -132,7 +132,7 @@ async function stageContact(ctx, page) {
     return (
       unit &&
       !unit.goal &&
-      unit.queue.length === 0 &&
+      unit.steps.length === 0 &&
       Math.hypot(unit.area.anchor[0] - goal[0], unit.area.anchor[1] - goal[1]) < 1 &&
       Math.hypot(unit.position[0] - goal[0], unit.position[1] - goal[1]) < unit.area.radius
     );

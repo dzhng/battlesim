@@ -621,22 +621,6 @@ impl Unit {
         }
     }
 
-    /// The order at `index` lets the passengers out where it ends: an
-    /// Unload follows it.
-    pub fn unloads_after(&self, index: usize) -> bool {
-        matches!(self.orders.get(index + 1), Some(UnitOrder::Unload { .. }))
-    }
-
-    /// The destinations of the movement orders queued behind the current
-    /// one, each with whether it lets the passengers out there.
-    pub fn queued_steps(&self) -> impl Iterator<Item = (V2, bool)> + '_ {
-        self.orders
-            .iter()
-            .enumerate()
-            .skip(1)
-            .filter_map(|(k, o)| o.movement().map(|m| (m.destination, self.unloads_after(k))))
-    }
-
     /// Switch every walk `gesture` ordered to `route`, a building's walk in
     /// included: a double right-click. The active walk replans. Whether any
     /// walk changed.

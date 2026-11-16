@@ -29,8 +29,8 @@ use super::{
     COPY_FIELDS, CORPSE_FIELDS, DELIVERY_FIELDS, FALLEN_BODY_FIELDS, GRIND_FIELDS, GROUND_FIELDS,
     GROUP_ENCODINGS, GROUP_LAYOUTS, GUIDED_FIELDS, HEADER, HEARD_WORD_BITS, IDENTIFIED_FIELDS,
     KNOWN_PROP_FIELDS, LEAN_FIELDS, LIMB_BITS, MEMBER_ID_FIELDS, MEMBER_ORDER_FIELDS, MOUNT_FIELDS,
-    OWN_FIELDS, PROJECTILE_FIELDS, PROP_DISPLAY_POSE_FIELDS, QUEUE_FIELDS, RANGE_FIELDS,
-    REFUSAL_FIELDS, SHOUT_FIELDS,
+    OWN_FIELDS, PROJECTILE_FIELDS, PROP_DISPLAY_POSE_FIELDS, RANGE_FIELDS, REFUSAL_FIELDS,
+    SHOUT_FIELDS, STEP_FIELDS,
 };
 
 pub use view::*;
@@ -120,6 +120,7 @@ mod poses;
 mod report;
 mod skirmish;
 mod smoke;
+mod step;
 use poses::weapon_poses;
 use report::totals;
 
@@ -711,7 +712,7 @@ impl Reader {
         const FIELDS: &[&str] = &OWN_FIELDS;
         let f = r.fields;
         // Sections in the writer's order (`GROUP_LAYOUTS`).
-        let [route, queue, members, member_hp, member_ids, orders, leans, sees, mounts, poses, eyes] =
+        let [route, steps, members, member_hp, member_ids, orders, leans, sees, mounts, poses, eyes] =
             r.sections[..]
         else {
             unreachable!("own rows carry eleven sections")
@@ -740,7 +741,6 @@ impl Reader {
             position: [v!(f, "x"), v!(f, "y"), v!(f, "z")],
             yaw: v!(f, "yaw"),
             goal: (!v!(f, "goalX").is_nan()).then(|| [v!(f, "goalX"), v!(f, "goalY")]),
-            goal_unloads: v!(f, "goalUnloads") == 1.0,
             policy: self.optional("policies", v!(f, "policy"))?,
             direction: self.optional("directions", v!(f, "direction"))?,
             reversing: v!(f, "reversing") == 1.0,
@@ -751,12 +751,9 @@ impl Reader {
             state: self.name("moveStates", v!(f, "state"))?,
             blocker: present(v!(f, "blocker")),
             route: points(route),
-            queue: each::<{ QUEUE_FIELDS.len() }>(queue)
-                .map(|&[x, y, _]| [x as f64, y as f64])
-                .collect(),
-            queue_unloads: each::<{ QUEUE_FIELDS.len() }>(queue)
-                .map(|&[_, _, unloads]| unloads == 1.0)
-                .collect(),
+            steps: each::<{ STEP_FIELDS.len() }>(steps)
+                .map(|p| self.step(p))
+                .collect::<Result<_>>()?,
             members: points(members),
             member_ids: member_column(member_ids, |p| limbs(p[0] as f64, p[1] as f64)),
             member_slots: member_column(member_ids, |p| p[2] as f64),

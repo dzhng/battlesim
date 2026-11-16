@@ -196,7 +196,7 @@ function MovementLab({ battle }: { battle: SavedBattle }) {
 
 function describeUnit(u: OwnUnitView, name: (id: number) => string): string {
   const who = `${u.kind} #${u.id}`;
-  const queued = u.queue.length ? `, then ${u.queue.length} more` : "";
+  const queued = u.steps.length > 1 ? `, then ${u.steps.length - 1} more` : "";
   switch (u.state) {
     case "route_blocked":
       return `${who}: route blocked — no known way to (${u.goal!.map((v) => v.toFixed(0)).join(", ")}); keeps the order`;

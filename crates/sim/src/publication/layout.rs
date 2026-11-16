@@ -103,6 +103,7 @@ pub fn layout_json(battle: &Battle) -> String {
         "coverTiers": names(&COVER_TIERS),
         "leanSides": names(&LEAN_SIDES),
         "hostKinds": HOST_KINDS,
+        "stepKinds": STEP_KINDS,
         "holdPhases": names(&HOLD_PHASES),
         "orderErrors": ORDER_ERROR_NAMES,
         "serviceStatuses": names(&SERVICE_STATUSES),

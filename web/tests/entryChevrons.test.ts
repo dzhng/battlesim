@@ -72,7 +72,7 @@ const TANK = {
   hold: null,
   stock: null,
   members: [],
-  queue: [],
+  steps: [],
   goal: null,
   state: "idle",
 };

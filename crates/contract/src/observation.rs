@@ -5,6 +5,8 @@ use crate::command::{Engagement, RoutePolicy, TargetRef};
 use crate::ids::{Tick, UnitId};
 use serde::{Deserialize, Serialize};
 
+mod order_step;
+pub use order_step::{OrderStep, StepHost};
 mod sound;
 pub use sound::{Intensity, Shout, ShoutSpeaker, ShoutTrigger, SoundBand, SoundCategory, SoundCue};
 
@@ -494,8 +496,6 @@ pub struct OwnUnit {
     pub yaw: f64,
     /// Destination of the current movement order, if any.
     pub goal: Option<[f64; 2]>,
-    /// The current movement order lets the passengers out at `goal`.
-    pub goal_unloads: bool,
     pub policy: Option<RoutePolicy>,
     /// Which way the current move drives (Q31); `None` without a move.
     pub direction: Option<crate::command::MoveDirection>,
@@ -508,10 +508,8 @@ pub struct OwnUnit {
     pub blocker: Option<UnitId>,
     /// Remaining waypoints of the current route.
     pub route: Vec<[f64; 2]>,
-    /// Destinations of the orders queued behind the current one.
-    pub queue: Vec<[f64; 2]>,
-    /// Whether each `queue` order lets the passengers out at its destination.
-    pub queue_unloads: Vec<bool>,
+    /// Its orders, the current one first, then each queued one.
+    pub steps: Vec<OrderStep>,
     /// Living squad members' body poses (infantry only).
     /// Garrison bodies stand indoors behind their abstract window exposure points.
     pub members: Vec<[f64; 3]>,

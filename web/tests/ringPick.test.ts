@@ -18,7 +18,7 @@ const own = (u: Partial<OwnUnitView>) =>
     goal: null,
     state: "idle",
     route: [],
-    queue: [],
+    steps: [],
     members: [],
     memberOrders: [],
     area: null,

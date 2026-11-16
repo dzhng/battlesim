@@ -34,7 +34,7 @@ function standing(kind: string, patch: Partial<OwnUnitView> = {}) {
     yaw: FACING,
     goal: null,
     route: [],
-    queue: [],
+    steps: [],
     members: [],
     memberOrders: [],
     area: null,

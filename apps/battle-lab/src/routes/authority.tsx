@@ -130,7 +130,7 @@ function AuthorityLab({ battle }: { battle: SavedBattle }) {
                 <div key={u.id}>
                   {u.kind} #{u.id}:{" "}
                   {u.goal ? `moving to (${u.goal.map((v) => v.toFixed(0)).join(", ")})` : "holding"}
-                  {u.queue.length ? `, ${u.queue.length} queued` : ""}
+                  {u.steps.length > 1 ? `, ${u.steps.length - 1} queued` : ""}
                 </div>
               ))}
         </div>

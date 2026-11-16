@@ -30,3 +30,10 @@ then decide and record).
 **Feedback that would change it.** The reticle's shape or size at far zoom.
 
 **Commit.** `feat(overlay): an attack draws a red line to a reticle`.
+
+**State.** Done. `web/tests/attackLine.test.ts` failed before (no line, a destination circle
+under the chase) and passes. Evidence: [default zoom](../assets/s8-attack-default-zoom.png)
+(a squad on a squad, a tank's reticle), [before/after](../assets/s8-attack-before-after.png),
+[a blocked truck beside the attacking tank](../assets/s8-blocked-beside-attack-before-after.png)
+(its blocked state injected, as FX3's), [a ground point's cross](../assets/s8-ground-attack.png).
+The critique (no-sub-agent fallback) and the far-zoom note are in choices.md.

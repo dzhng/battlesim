@@ -692,7 +692,7 @@ export async function queuedBuildingCursor(ctx) {
       accepted,
       units: after.own
         .filter((u) => [0, 2].includes(u.id))
-        .map((u) => ({ id: u.id, goal: u.goal, queue: u.queue, hold: u.hold })),
+        .map((u) => ({ id: u.id, goal: u.goal, steps: u.steps, hold: u.hold })),
     }),
   );
   await page.close();

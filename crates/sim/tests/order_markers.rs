@@ -331,3 +331,236 @@ fn nothing_of_the_enemys_plan_reaches_the_other_side() {
     );
     assert_eq!(a, b, "blue's view never changes with red's orders");
 }
+
+/// A U.S. against Eastern skirmish on a map with a building (prop 0): blue
+/// buys a `blue` and red a tank, and both drive in, holding their fire,
+/// and stand. Its commands
+/// go out in each side's sequence, each admitted.
+struct Skirmish {
+    b: Battle,
+    seq: [u64; 2],
+}
+
+impl Skirmish {
+    fn new(blue: &str) -> Self {
+        use contract::command::Order;
+        let mut rules = rules();
+        for (kind, faction, category) in [(blue, "us", "inf"), ("test_tank", "eastern", "veh")] {
+            sim::fixtures::patch_catalog(
+                &mut rules,
+                "units",
+                kind,
+                json!({ "cost": 100,
+                "roster": { "factions": [faction], "category": category, "family_name": "Test", "variant": "Test" } }),
+            );
+        }
+        let mut s = crate::skirmish::match_on(rules);
+        let house =
+            crate::common::building(0, "china-apartment-point-20x20-7f", [500.0, 150.0], 0.0);
+        let map = json!({ "size": [800, 600], "fog_cell_m": 8, "height_grid_m": 4,
+            "slope_cutoff_deg": 35, "props": [], "buildings": [house] });
+        s.map = crate::common::scenario_with(&map.to_string(), json!([]), json!([]), json!([])).map;
+        let mut m = Skirmish {
+            b: Battle::new(&s, 1),
+            seq: [0; 2],
+        };
+        m.order(Side::Blue, Order::purchase(blue, [300.0, 100.0]), false);
+        m.order(
+            Side::Red,
+            Order::purchase("test_tank", [330.0, 180.0]),
+            false,
+        );
+        m.order(Side::Blue, Order::Ready, false);
+        m.order(Side::Red, Order::Ready, false);
+        let mut holding = [false; 2];
+        for _ in 0..30 * 120 {
+            m.b.step();
+            // Each holds its fire as it arrives: neither starts a fight.
+            for side in [Side::Blue, Side::Red] {
+                let Some(u) = m.b.observe(side).own.first().map(|u| u.id) else {
+                    continue;
+                };
+                if !std::mem::replace(&mut holding[side.index()], true) {
+                    let policy = contract::command::Engagement::ReturnFireOnly;
+                    m.order(
+                        side,
+                        Order::SetEngagement {
+                            units: vec![u],
+                            policy,
+                        },
+                        false,
+                    );
+                }
+            }
+            let (blue, red) = (m.b.observe(Side::Blue), m.b.observe(Side::Red));
+            let stands = |o: &contract::observation::ObservationFrame| {
+                o.own
+                    .first()
+                    .is_some_and(|u| u.state == MoveState::Idle && u.steps.is_empty())
+            };
+            if stands(blue) && stands(red) && blue.identified.len() == 1 {
+                return m;
+            }
+        }
+        panic!("the two never stood within sight");
+    }
+
+    fn order(&mut self, side: Side, order: contract::command::Order, queued: bool) {
+        let seq = &mut self.seq[side.index()];
+        *seq += 1;
+        let player = Some(
+            if side == Side::Blue {
+                "blue-1"
+            } else {
+                "red-1"
+            }
+            .into(),
+        );
+        let envelope = contract::command::CommandEnvelope {
+            side,
+            player,
+            seq: *seq,
+            order,
+            queued,
+        };
+        let ack = self.b.accept(envelope);
+        assert_eq!(ack.error, None, "{ack:?}");
+    }
+
+    fn own(&self, side: Side) -> &OwnUnit {
+        &self.b.observe(side).own[0]
+    }
+
+    /// Blue's unit drives through `legs`, then, queued, attacks red's tank.
+    fn move_then_attack(&mut self, legs: &[[f64; 2]]) {
+        use contract::command::{Order, RoutePolicy, TargetRef};
+        let unit = self.own(Side::Blue).id;
+        let tank = self.b.observe(Side::Blue).identified[0].id;
+        for (k, &goal) in legs.iter().enumerate() {
+            let walk = Order::Move {
+                units: vec![unit],
+                gesture: k as u64 + 1,
+                goal,
+                route: RoutePolicy::Shortest,
+                direction: Default::default(),
+                facing: None,
+            };
+            self.order(Side::Blue, walk, k > 0);
+        }
+        let target = TargetRef::Identified { id: tank };
+        self.order(
+            Side::Blue,
+            Order::Attack {
+                units: vec![unit],
+                target,
+            },
+            true,
+        );
+    }
+}
+
+#[test]
+fn every_order_is_published_as_a_step_in_order() {
+    use contract::command::{Order, TargetRef};
+    use contract::observation::OrderStep;
+    let mut m = Skirmish::new("test_rifle");
+    let goal = [150.0, 100.0];
+    m.move_then_attack(&[goal]);
+    let squad = m.own(Side::Blue).id;
+    let occupy = Order::OccupyBuilding {
+        units: vec![squad],
+        building: 0,
+        gesture: 2,
+    };
+    m.order(Side::Blue, occupy, true);
+    m.order(Side::Blue, Order::Refund { units: vec![squad] }, true);
+    m.b.step();
+    let tank = &m.b.observe(Side::Blue).identified[0];
+    let [move_step, attack, garrison, home] = m.own(Side::Blue).steps[..] else {
+        panic!("four steps, got {:?}", m.own(Side::Blue).steps);
+    };
+    assert_eq!(
+        move_step,
+        OrderStep::Move {
+            point: goal,
+            attack_move: false
+        }
+    );
+    assert_eq!(
+        attack,
+        OrderStep::Attack {
+            target: Some(TargetRef::Identified { id: tank.id }),
+            point: Some([tank.position[0], tank.position[1]]),
+        }
+    );
+    assert!(
+        matches!(garrison, OrderStep::Garrison { building: 0, .. }),
+        "{garrison:?}"
+    );
+    // The side's one road in is its way home.
+    assert_eq!(
+        home,
+        OrderStep::ReturnToBase {
+            point: [400.0, 10.0]
+        }
+    );
+}
+
+#[test]
+fn a_queued_attack_step_follows_its_target_holds_through_the_grace_then_names_nothing() {
+    use contract::command::{Order, RoutePolicy};
+    use contract::observation::OrderStep;
+    // An unarmed truck: nothing it does provokes the tank.
+    let mut m = Skirmish::new("test_supply");
+    // Drives that keep it well away from the tank, then the attack.
+    m.move_then_attack(&[[60.0, 100.0], [300.0, 20.0], [60.0, 20.0]]);
+    let attack = |m: &Skirmish| {
+        let steps = &m.own(Side::Blue).steps;
+        assert!(steps.len() > 1, "the attack is still queued");
+        match *steps.last().unwrap() {
+            OrderStep::Attack { target, point } => (target, point),
+            step => panic!("the attack is the last step, got {step:?}"),
+        }
+    };
+    let away = Order::Move {
+        units: vec![m.own(Side::Red).id],
+        gesture: 9,
+        goal: [330.0, 560.0],
+        route: RoutePolicy::Shortest,
+        direction: Default::default(),
+        facing: None,
+    };
+    m.order(Side::Red, away, false);
+    let (mut seen, mut followed, mut held, mut forgotten) = (None, 0, 0, false);
+    for _ in 0..30 * 40 {
+        m.b.step();
+        let (target, point) = attack(&m);
+        match m.b.observe(Side::Blue).identified.first() {
+            Some(t) => {
+                let at = [t.position[0], t.position[1]];
+                assert_eq!(point, Some(at), "the point follows the track");
+                followed += usize::from(seen.is_some_and(|s| s != at));
+                seen = Some(at);
+            }
+            // Unseen, the side keeps its track through the grace, then
+            // forgets the unit: the attack names nothing and knows no spot.
+            None if point.is_some() && !forgotten => {
+                assert_eq!(point, seen, "the point holds where it was lost");
+                held += 1;
+            }
+            None => {
+                assert_eq!(
+                    (target, point),
+                    (None, None),
+                    "once forgotten, nothing comes back"
+                );
+                forgotten = true;
+            }
+        }
+    }
+    assert!(followed > 10, "the target moved while seen");
+    assert!(
+        held > 0 && forgotten,
+        "held through the grace ({held} ticks), then forgotten"
+    );
+}

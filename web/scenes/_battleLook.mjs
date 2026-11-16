@@ -257,7 +257,7 @@ export async function woodsTour(ctx) {
     if (
       cornerUnit &&
       !cornerUnit.goal &&
-      cornerUnit.queue.length === 0 &&
+      cornerUnit.steps.length === 0 &&
       dist(cornerUnit.position, corner) < 1
     ) {
       atCorner = true;
@@ -273,7 +273,7 @@ export async function woodsTour(ctx) {
       position: cornerUnit?.position,
       goal: cornerUnit?.goal,
       state: cornerUnit?.state,
-      queue: cornerUnit?.queue,
+      steps: cornerUnit?.steps,
       living: cornerUnit?.members.length,
     }),
   );

@@ -159,6 +159,8 @@ pub struct OverlayOrders {
     pub drop_line_alpha: f64,
     pub drop_line_hold: f64,
     pub drop_line_reach: f64,
+    /// Half the side of an attack's reticle on its target, in metres.
+    pub reticle_m: f64,
     pub flash: OverlayOrdersFlash,
 }
 
@@ -391,6 +393,7 @@ impl Overlay {
                 self.orders.garrison_outline_margin_m,
             ),
             ("orders.drop_line_px", self.orders.drop_line_px),
+            ("orders.reticle_m", self.orders.reticle_m),
             ("capture_curtain.height_m", self.capture_curtain.height_m),
             ("ruler.line_px", self.ruler.line_px),
             ("ruler.tick_px", self.ruler.tick_px),

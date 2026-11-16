@@ -3,7 +3,7 @@ import { loadWasm } from "@web/battle/sim/module";
 beforeAll(() => loadWasm());
 // @vitest-environment node
 import { beforeAll, expect, test } from "vitest";
-import type { OwnUnitView } from "@web/battle/sim/observationView";
+import type { OrderStepView, OwnUnitView } from "@web/battle/sim/observationView";
 import {
   GHOST_SELECTED,
   ghostBodies,
@@ -52,7 +52,7 @@ const squad = (over: Partial<OwnUnitView>) =>
   ({
     kind: "squad",
     goal: [100, 100],
-    queue: [],
+    steps: [{ kind: "move", point: [100, 100] }],
     finalFacing: 0.5,
     memberSlots: [0, 1],
     memberIds: [7, 8],
@@ -75,20 +75,29 @@ test("with Space held a moving squad's soldiers stand where its orders end, faci
     look: LOOK,
   });
   // Queued legs: the squad's shape is carried to the last queued point.
+  const legs = (...steps: OrderStepView[]) =>
+    orderedGhost(squad({ steps: [{ kind: "move", point: [100, 100] }, ...steps] }), LOOK);
   expect(
-    orderedGhost(
-      squad({
-        queue: [
-          [150, 100],
-          [200, 120],
-        ],
-      }),
-      LOOK,
-    )?.soldiers,
+    legs({ kind: "move", point: [150, 100] }, { kind: "move", point: [200, 120] })?.soldiers,
   ).toEqual([
     { at: [199, 120], slot: 0, id: 7 },
     { at: [201, 122], slot: 1, id: 8 },
   ]);
+  // An attack only aims: a queued one never moves where the orders end.
+  const fire: OrderStepView = {
+    kind: "attack",
+    point: [300, 300],
+    target: { kind: "identified", id: 4 },
+  };
+  expect(legs({ kind: "move", point: [150, 100] }, fire)?.at).toEqual([150, 100]);
+  expect(legs(fire)?.at).toEqual([100, 100]);
+  // Any other step that takes it somewhere does: here, into a building.
+  const enter: OrderStepView = {
+    kind: "garrison",
+    point: [180, 90],
+    host: { kind: "building", id: 2 },
+  };
+  expect(legs(fire, enter)?.at).toEqual([180, 90]);
 });
 
 test("a unit holding where it stands has no ghost", () => {
@@ -96,7 +105,15 @@ test("a unit holding where it stands has no ghost", () => {
 });
 
 test("Space aircraft cards follow the final order at flight altitude with the actual unit info", () => {
-  const jet = squad({ id: 7, kind: "jet", queue: [[250, 180]], fuelS: 95 });
+  const jet = squad({
+    id: 7,
+    kind: "jet",
+    steps: [
+      { kind: "move", point: [100, 100] },
+      { kind: "move", point: [250, 180] },
+    ],
+    fuelS: 95,
+  });
   const heli = squad({ id: 8, kind: "heli" });
   const holding = squad({ id: 9, kind: "jet", goal: null });
   const isHighAir = (kind: string) => kind === "jet";
