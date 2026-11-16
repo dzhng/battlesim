@@ -85,6 +85,50 @@ impl Fielding {
         self.fielding().contents(&self.facts).map_err(error)
     }
 
+    /// Content-sized facts missing from this fielding, including their source hashes.
+    pub fn pending_contents(&self) -> Result<String, JsError> {
+        serde_json::to_string(&self.fielding().pending(&self.facts).map_err(error)?).map_err(error)
+    }
+
+    /// Absorb one pending content; resolve afterwards reads no supplied bytes.
+    pub fn absorb(&mut self, content: &str, bytes: &[u8], lengths: &[u32]) -> Result<(), JsError> {
+        let content: fielded::Content = serde_json::from_str(content).map_err(error)?;
+        let hashes = content.hashes();
+        if hashes.len() != lengths.len() {
+            return Err(error("content lengths differ from its sources"));
+        }
+        let mut at = 0;
+        let mut source = HashMap::new();
+        for (hash, &len) in hashes.iter().zip(lengths) {
+            let end = at + len as usize;
+            source.insert(
+                hash.as_str(),
+                bytes
+                    .get(at..end)
+                    .ok_or_else(|| error("content runs past its bytes"))?,
+            );
+            at = end;
+        }
+        fielded::Fielding {
+            presentation: &self.presentation,
+            rules: &self.rules,
+            catalog: &self.catalog,
+            runtime: &self.runtime,
+            kinds: &self.kinds,
+            factions: self
+                .factions
+                .as_ref()
+                .map(|f| [f[0].as_str(), f[1].as_str()]),
+        }
+        .absorb(&mut self.facts, &content, &|hash| {
+            source
+                .get(hash)
+                .map(|bytes| Cow::Borrowed(*bytes))
+                .ok_or_else(|| format!("content {hash} was not supplied"))
+        })
+        .map_err(error)
+    }
+
     /// Resolves the battle from each content `contents` named, inflated, in
     /// its order: `bytes` holds them end to end, `lengths` their lengths.
     /// Returns `{units, effects, tables}` JSON, `tables` naming each clip

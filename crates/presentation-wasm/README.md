@@ -31,7 +31,10 @@ output. The core owns [device reconstruction](../renderer-core/README.md#device-
 The page still owns asset transport, input, UI observations and probes. Fielding
 names the authored contents it needs, and the page fetches them without
 reinterpreting their battle meaning. Fielding borrows the boundary’s packed
-source bytes for the resolve and retains only derived facts. It must not make
+source bytes to absorb one content's facts at a time and retains only derived
+facts. Once all missing contents are absorbed, the whole-result resolve reads
+no source bytes; the page isolates that result rebuild from battle staging.
+It must not make
 another complete byte copy inside the non-shrinking linear memory.
 
 External tooling art is admitted as an atomic catalog generation before its

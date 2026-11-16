@@ -3,7 +3,9 @@
 **Status:** the engine, the transport and the stand-in are on `staging`
 (slices 00–11), with the page-memory fix and the download warm-up. The GPU
 preload is cancelled: the player's rule is zero configuration, so nothing
-ships off by default. One hitch is left, slice 12.
+ships off by default. An infantry team's first sighting is down from
+0.3–0.4 s to frames of about 95 ms (slices 13 and 12); slice 14 is the floor
+under every arrival.
 **Updated:** 2026-11-15.
 
 This plan replaces the "shared GPU assets across generations" placeholder. That
@@ -17,20 +19,12 @@ first fields a unit type it had not shown. The admission work report exists,
 `battle-growth` prints it, and the [ledger](decisions.md) holds what it and
 the reference battle measured. What is left, in order:
 
-1. **Slice 12, an arrival over frames**
-   ([slice](slices/12-an-arrival-over-frames.md)). With the corpse copies
-   gone (slice 13) an infantry team's first sighting is still one frame of
-   about 0.2–0.25 s: fielding, nine supplies and their packing all run
-   without yielding. Staging has to do one content's work a frame. Its
-   second confirm-first measurement is taken (ledger): the parts divide,
-   3–8 ms a content each, and the last step is fielding's whole-result
-   resolve at 35–40 ms. A step is judged against a one-vehicle arrival's
-   frame (about 52 ms), not the steady frame budget.
-2. **Slice 14, fielding's result follows the new kinds**
+1. **Slice 14, fielding's result follows the new kinds**
    ([slice](slices/14-fielding-follows-the-new-kinds.md)): the floor under
    every arrival. Each growth rebuilds and serialises the whole fielded
-   battle's description (2.6 million characters). Not started.
-3. Closeout: correct the stale WASM note in one-renderer, run everything
+   battle's description (2.6 million characters, a frame of about 59 ms).
+   Not started.
+2. Closeout: correct the stale WASM note in one-renderer, run everything
    once, then `close-spec`.
 
 Settled since the engine shipped, all in the ledger: the page's lingering
@@ -52,8 +46,9 @@ Warnings:
   what you found into the ledger.
 - A decision the slice does not make and does not delegate is a gap in this
   plan. Record it in the ledger; do not settle it silently.
-- Slice 12 judges a step against a one-vehicle arrival's frame, not the
-  steady frame budget (ledger, "Slice 12 goes ahead").
+- Art work at an arrival shares one per-frame budget (`ART_WORK_BUDGET_MS`).
+  Anything new that runs at staging goes through it, or it brings the burst
+  back.
 - Each checkout's Rust build adds 3–22 GB. Check free space before a cold
   build, and remove a checkout's build output when its branch has merged. A
   burst of unrelated failures after a build usually means it ran out of space.
@@ -79,7 +74,7 @@ Checklist:
 - [x] [09 Warm-up and large arrivals](slices/09-preload.md)
 - [x] [10 Stand-in mechanics](slices/10-stand-in-mechanics.md)
 - [x] [11 Stand-in look](slices/11-stand-in-look.md)
-- [ ] [12 An arrival over frames](slices/12-an-arrival-over-frames.md)
+- [x] [12 An arrival over frames](slices/12-an-arrival-over-frames.md)
 - [x] [13 A body draws its type's mesh](slices/13-a-body-draws-its-types-mesh.md)
 - [ ] [14 Fielding's result follows the new kinds](slices/14-fielding-follows-the-new-kinds.md)
 - [ ] Closeout: correct the stale WASM note in
@@ -254,7 +249,7 @@ Seen and not planned here, so they are not lost:
 | Question | Unblocked by |
 | --- | --- |
 | Does scenery placement cost a frame on a large map? | Slice 06 times it first; slice 00 measured its bytes, not its time |
-| Does a large arrival still stutter? | Yes: 194–256 ms for an infantry team after slice 13. Slice 12 |
+| Does a large arrival still stutter? | Frames of about 95 ms for an infantry team after slices 13 and 12; the rest is slice 14 and unattributed commit and bake frames |
 
 ## Background
 

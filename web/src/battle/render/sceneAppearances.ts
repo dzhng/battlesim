@@ -29,6 +29,7 @@ export class SceneAppearances {
   private ready: { request: Request; assets: PreparedAppearances } | null = null;
   private latestWork: AdmissionTransportWork = { bundlesEncoded: 0, bundleBytesSent: 0 };
   private disposed = false;
+  private waiting: { request: Request; resolve: (current: boolean) => void } | null = null;
 
   constructor(
     private readonly renderer: Renderer,
@@ -62,6 +63,8 @@ export class SceneAppearances {
       return this.desired.done;
     }
     if (this.desired) this.finish(this.desired, false);
+    this.waiting?.resolve(false);
+    this.waiting = null;
     this.discardReady();
     let resolve!: Request["resolve"];
     const done = new Promise<boolean>((complete) => {
@@ -128,9 +131,26 @@ export class SceneAppearances {
     return waited;
   }
 
+  /** Resume budget-exhausted admission only after the viewport presented. */
+  presented(): void {
+    const waiting = this.waiting;
+    this.waiting = null;
+    if (waiting) waiting.resolve(!this.disposed && waiting.request === this.desired);
+  }
+
+  private nextStep(request: Request, yieldFrame: boolean): Promise<boolean> {
+    if (this.disposed || request !== this.desired) return Promise.resolve(false);
+    if (!yieldFrame) return Promise.resolve(true);
+    this.redraw();
+    return new Promise((resolve) => {
+      this.waiting = { request, resolve };
+    });
+  }
+
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.presented();
     if (this.desired) this.finish(this.desired, false);
     this.discardReady();
   }
@@ -148,12 +168,13 @@ export class SceneAppearances {
     const request = this.desired;
     if (this.disposed || this.building || this.ready || !request || request.completed) return;
     this.building = request;
-    let pending: Promise<PreparedAppearances>;
+    let pending: Promise<PreparedAppearances | null>;
     try {
       pending = this.presentation.prepareRendererAppearances(
         this.renderer,
         request.assets,
         this.detail,
+        (yieldFrame) => this.nextStep(request, yieldFrame),
       );
     } catch (error) {
       this.building = null;
@@ -163,8 +184,8 @@ export class SceneAppearances {
     void pending.then(
       (assets) => {
         this.building = null;
-        if (this.disposed || this.desired !== request) {
-          assets.free();
+        if (!assets || this.disposed || this.desired !== request) {
+          assets?.free();
           this.start();
           return;
         }

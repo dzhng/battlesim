@@ -98,34 +98,108 @@ pub struct Fielding<'a> {
     pub factions: Option<[&'a str; 2]>,
 }
 
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum Content {
+    Appearance {
+        name: String,
+        bundle: String,
+        skeleton: Option<String>,
+    },
+    Wreck {
+        name: String,
+        bundle: String,
+    },
+}
+impl Content {
+    pub fn hashes(&self) -> Vec<String> {
+        match self {
+            Self::Appearance {
+                bundle, skeleton, ..
+            } => std::iter::once(bundle.clone())
+                .chain(skeleton.clone())
+                .collect(),
+            Self::Wreck { bundle, .. } => vec![bundle.clone()],
+        }
+    }
+}
+
 impl Fielding<'_> {
-    /// The runtime contents [`Fielding::resolve`] reads, by hash, sorted:
-    /// each drawn appearance's bundle, each fielded hull's wreck and every
-    /// skeleton's clips.
-    pub fn contents(&self, facts: &Facts) -> Result<Vec<String>, String> {
+    /// Absorb one authored content into the battle's retained facts.
+    pub fn absorb(
+        &self,
+        facts: &mut Facts,
+        content: &Content,
+        read: &Read<'_>,
+    ) -> Result<(), String> {
+        let catalog = Catalog::new(self.catalog)?;
+        let art = Art::new(self.runtime, &catalog, self.kinds, self.factions)?;
+        let bytes = content
+            .hashes()
+            .into_iter()
+            .map(|hash| {
+                let bytes = read(&hash)?;
+                Ok((hash, bytes))
+            })
+            .collect::<Result<HashMap<_, _>, String>>()?;
+        match content {
+            Content::Appearance { name, .. } => {
+                appearance_facts(facts, &art, &bytes, name)?;
+            }
+            Content::Wreck { name, .. } => {
+                effects::wreck_facts(facts, &art, &bytes, name)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Missing fact contents, with the source hashes each derivation needs.
+    pub fn pending(&self, facts: &Facts) -> Result<Vec<Content>, String> {
         let catalog = Catalog::new(self.catalog)?;
         let art = Art::new(self.runtime, &catalog, self.kinds, self.factions)?;
         let (_, drawn) = unit_types(&catalog, &art, self.kinds, self.factions)?;
-        let mut contents = BTreeSet::new();
+        let mut pending = BTreeMap::new();
         for name in drawn {
             let (bundle, skeleton) = art.key(&name)?;
             if !facts
                 .appearances
                 .contains_key(&(bundle.clone(), skeleton.clone()))
             {
-                contents.insert(bundle);
-                if let Some(skeleton) = skeleton {
-                    contents.insert(skeleton);
-                }
+                pending
+                    .entry((bundle.clone(), skeleton.clone()))
+                    .or_insert(Content::Appearance {
+                        name,
+                        bundle,
+                        skeleton,
+                    });
             }
         }
         for name in hull_wrecks(&catalog, &art).values() {
             let bundle = art.bundle(name)?.to_owned();
             if !facts.wrecks.contains_key(&bundle) {
-                contents.insert(bundle);
+                pending.insert(
+                    (bundle.clone(), None),
+                    Content::Wreck {
+                        name: name.clone(),
+                        bundle,
+                    },
+                );
             }
         }
-        Ok(contents.into_iter().collect())
+        Ok(pending.into_values().collect())
+    }
+
+    /// The runtime contents [`Fielding::resolve`] reads, by hash, sorted:
+    /// each drawn appearance's bundle, each fielded hull's wreck and every
+    /// skeleton's clips.
+    pub fn contents(&self, facts: &Facts) -> Result<Vec<String>, String> {
+        Ok(self
+            .pending(facts)?
+            .iter()
+            .flat_map(Content::hashes)
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect())
     }
 
     /// The battle's sections, each content [`Fielding::contents`] names
