@@ -38,9 +38,12 @@ export async function sheet(args) {
     (file ? basename(file, ".glb") : target).replace(/[^\w.-]+/g, "_") +
     (side === "blue" ? "" : `-${side}`);
   const out = resolve(values.out ?? join(ROOT, "throwaway/sheets", name));
-  const { startServer } = await import("./scene.mjs");
+  const { startServer, ensureNativeTools } = await import("./scene.mjs");
   const { launchBrowser } = await import("./browser.mjs");
   const { PNG } = await import("pngjs");
+  // The workbench loads its unit catalog through the mechanics validator;
+  // without it the page never mounts and readiness times out with no cause.
+  await ensureNativeTools();
   const server = await startServer();
   const browser = await launchBrowser();
   try {
