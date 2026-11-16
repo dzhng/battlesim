@@ -182,9 +182,9 @@ pub(crate) fn advance(
 /// its side now knows is blocked, or a stall. A vehicle with a way to the
 /// same place drives on along it meanwhile; otherwise the unit holds until
 /// the route comes ([`plan_routes`]). A goal that moves on meanwhile asks
-/// again. A unit no closer to its goal for a give-up spell stops if it is
-/// near enough, and otherwise finds no way, tries again, and the third time
-/// gives the order up: no unit is stuck for good.
+/// again. A unit that gets nowhere for a give-up spell stops if it is near
+/// enough to its goal, and otherwise finds no way, tries again, and the
+/// third time gives the order up: no unit is stuck for good.
 fn request_route(
     ctx: &MovementContext,
     unit: &mut Unit,
@@ -255,7 +255,7 @@ fn request_route(
         {
             planner.cancel(unit.id);
             let reach = unit.hull.map_or(0.0, |h| h.x) + NEAR_GOAL_M;
-            if (goal - unit.position.xy()).within_radius(reach) {
+            if (goal - here).within_radius(reach) {
                 // As near as the ground (or what stands on the marker) lets it.
                 arrive(unit);
             } else {
