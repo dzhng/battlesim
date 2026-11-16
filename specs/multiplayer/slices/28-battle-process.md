@@ -44,8 +44,9 @@ slice 29 puts the battle's half on a sandbox.
 - **The control surface** is the lobby's alone. Each battle has a key the
   lobby makes (128 random bits), sent in a header. It is a credential like a
   browser id: never in a URL, a reply, an error or a log line. Over it the
-  lobby starts the battle from a `BattleSetup` and gets back what `ready`
-  gives today (or the refusal of a map that was not admitted), says who is
+  lobby starts the battle from ordered `BattleSetup[]` candidates and gets back
+  the layout, tick rate, admitted map hash and zero-based admitted index (or a
+  refusal when none is admitted), says who is
   seated where, sets a controller, seats a human, ends a seat, asks for the
   referee's view and the replay, and stops the battle. Back comes one
   resumable record stream of what the lobby must hear: a player gave an
@@ -122,7 +123,7 @@ The private control surface is owned by `apps/game-server/src/http/control.ts`:
 
 | Method and route                                                                                             | Request / response                                                                                                                                                                                                           |
 | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST /control/start`                                                                                        | `{ id, setup }`; returns layout, tick rate and admitted map hash. Failed preparation is a refusal, with no ticket. Only one start is accepted.                                                                               |
+| `POST /control/start`                                                                                        | `{ id, candidates: BattleSetup[] }`; returns layout, tick rate, admitted map hash and zero-based `candidate` index. Failed preparation is a refusal, with no ticket. Only one start is accepted.                                                                               |
 | `POST /control/seating`                                                                                      | Complete `[browser id, seat]` entries; acknowledges only `ok`.                                                                                                                                                               |
 | `POST /control/controller`                                                                                   | `{ player, kind }`; acknowledges enqueueing the controller change.                                                                                                                                                           |
 | `POST /control/human`                                                                                        | `{ player, opening }`; acknowledges the existing atomic hand-over, reset and human controller after publication.                                                                                                             |
@@ -137,7 +138,7 @@ The private control surface is owned by `apps/game-server/src/http/control.ts`:
 All control routes require the key, including the raw seat ports. No credential
 appears in their replies or events. Connection ids are correlation ids, not
 credentials. Start failures use the shared generic `unavailable` refusal; the
-server logs a redacted diagnostic and Frontline retains its bounded map retry.
+server logs a redacted diagnostic. One host tries the bounded candidate list in order, inside shared battle preparation (slice 30).
 
 Rooms and Frontline still hold `BattleHost`. `setController` and `endSeat` now
 return promises: crossing the control boundary needs an acknowledged enqueue or

@@ -31,7 +31,7 @@ test("a battle refuses an unauthenticated controller and an unseated browser wit
   const denied = await fetch(`${m.control}/control/referee`, { method: "POST" });
   expect(denied.status).toBe(403);
   expect((await denied.text()).includes(key), "credential appeared in readable output").toBe(false);
-  const host = createRemoteBattleHost({ setup: duel }, "duel", Promise.resolve(m), key);
+  const host = createRemoteBattleHost({ candidates: [duel] }, "duel", Promise.resolve(m), key);
   cleanups.push(host.dispose);
   await host.ready;
   const reply = await fetch(`${m.address}/battles/duel/up`, {
@@ -303,7 +303,7 @@ test("a battle stops itself when its authenticated lobby stops renewing the leas
   const response = await fetch(`${m.control}/control/start`, {
     method: "POST",
     headers: { [CONTROL_HEADER]: key, "Content-Type": "application/json" },
-    body: JSON.stringify({ id: "lease", setup: duel }),
+    body: JSON.stringify({ id: "lease", candidates: [duel] }),
   });
   expect(response.status).toBe(200);
   await unreachableAfterLease(m.address);
@@ -422,7 +422,7 @@ test("a battle key and seated browser credential never appear in readable replie
     responses.push(await response.text());
     return response.status;
   }
-  expect(await post("start", { id: "credentials", setup: duel })).toBe(200);
+  expect(await post("start", { id: "credentials", candidates: [duel] })).toBe(200);
   expect(await post("seating", [[who, { side: "blue", player: "blue-1" }]])).toBe(200);
   expect(await post("referee", {}, null)).toBe(403);
   expect(await post("controller", "{")).toBe(400);
@@ -498,7 +498,7 @@ test("the lobby's record stream resumes after a cut without losing or repeating 
     expect(response.status).toBe(200);
     return response.json();
   }
-  await post("/control/start", { id: "resume", setup: duel });
+  await post("/control/start", { id: "resume", candidates: [duel] });
   await post("/control/seating", [[ids[0], { side: "blue", player: "blue-1" }]]);
   const abort = new AbortController();
   const reader = httpRecords(
@@ -551,14 +551,14 @@ test("a refused map releases its machine before the next battle is admitted", as
   });
   const key = randomBytes(16).toString("hex");
   const refused = createRemoteBattleHost(
-    { setup: { ...duel, map: { ...duel.map, type: "unadmitted" as never } } },
+    { candidates: [{ ...duel, map: { ...duel.map, type: "unadmitted" as never } }] },
     "refused",
     provider.start(key),
     key,
   );
   cleanups.push(refused.dispose);
   await expect(refused.ready).rejects.toThrow();
-  const next = createRemoteBattleHost({ setup: duel }, "admitted", provider.start(key), key);
+  const next = createRemoteBattleHost({ candidates: [duel] }, "admitted", provider.start(key), key);
   cleanups.push(next.dispose);
   expect(await next.ready).toMatchObject({
     layout: expect.any(String),

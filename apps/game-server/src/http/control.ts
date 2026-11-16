@@ -57,10 +57,9 @@ export function createBattleServer(options: {
           response.once("close", () => {
             if (phase === "preparing") stop();
           });
-          const value = (await body(request)) as { id: string; setup: BattleSetup };
-          setup = value.setup;
+          const value = (await body(request)) as BattleSpec & { id: string };
           id = value.id;
-          host = options.createBattle({ setup });
+          host = options.createBattle({ candidates: value.candidates });
           const observed: Pick<BattleHost, "attach"> = {
             attach(port) {
               host!.attach({
@@ -106,6 +105,7 @@ export function createBattleServer(options: {
           });
           try {
             const ready = await host.ready;
+            setup = value.candidates[ready.candidate];
             touched = performance.now();
             json(response, 200, ready);
           } finally {

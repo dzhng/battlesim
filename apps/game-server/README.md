@@ -77,7 +77,9 @@ preparation; losing the lobby stops a running battle. Locally the child also
 observes its parent connection, and lobby shutdown disposes all its machines.
 
 [Frontline](src/frontline.ts) reserves a seat while the briefing builds the map,
-then Deploy takes it. A new game's first commander owns their seat from tick
+then Deploy takes it. A new game draws its candidate maps and initial placements up front; one
+machine tries them in order, and the admitted setup owns the briefing and tickets.
+Its first commander owns their seat from tick
 zero; later arrivals displace its army through recorded events. The host sends
 both seat events and the human controller in one worker message, and acknowledges
 a deploy only after their boundary has been published. A resume changes only

@@ -60,3 +60,51 @@ The multiplayer domain; the `frontline` and `online-battle` scenes.
 
 Whether the admitted candidate is named by index or sent back whole; the
 archive's compression.
+
+## As built (2026-11-16)
+
+A service asks `createBattle(candidates: BattleSetup[], id)` for one host.
+`BattleSpec` carries `candidates` to either host and the worker; the shared
+runtime tries preparation in order and starts one authority on the first
+admitted world. `BattleHost.ready` adds `candidate`, the zero-based index,
+to its existing layout, tick rate and map identity. Exhaustion rejects readiness
+and settles waiting operations and readers. A room supplies its one setup.
+
+The authenticated `POST /control/start` takes `{ id, candidates }` and returns
+`{ layout, tickHz, mapIdentity, candidate }`. A second start is still refused.
+The selected setup owns the server's raw seat routes and both hosts' seat
+validation. No credentials enter the start reply.
+
+Frontline draws the candidates and their initial placements together before
+creating one host. The admitted index selects the setup, placement view and
+initial commander used by briefing, roster, tickets and lifecycle accounting.
+`mapAttempts` still comes from the game's admission data. Each attempt draws
+its map and then its initial seat in the same order as before. The whole batch
+is drawn up front, including the suffix that is not prepared after an earlier
+candidate wins. Allocation failure answers `full`; exhausted preparation
+answers `unavailable` and releases the game. Machine stop belongs
+to the provider; the remote host no longer waits for a control-stop round trip
+before rejecting readiness.
+
+Release preparation writes `battle.tar.gz` with `tar -czf`. The provider uploads
+that archive and uses the fixed command
+`tar -xzf battle.tar.gz && exec node battle.mjs`. The key remains solely in the
+startup environment and control headers. The local stand-in executes the same
+command against a compressed archive.
+
+This pass is local only. Verification, deliberate failing checks, Play timings
+and remaining limits are recorded in `throwaway/multiplayer/slice30-report.md`.
+The deployed comparison against slice 29's 57 seconds remains an integration
+measurement; no hosting service was contacted by this pass.
+
+Local verification covered all 308 multiplayer-domain cases across the full
+run and targeted reruns of two migrated control-protocol fixtures. Host
+contracts, real processes, compressed provider/release tests, typecheck and
+changed-file linters pass. Three empty-server HTTP Play requests each started
+one battle process and left none after leave. No simulation or parity fixture
+changed.
+
+The `frontline` and `online-battle` scenes were **NOT RUN**: their command was
+queued behind another session's shared GPU lock. At the user's instruction,
+only this pass's queued command was cancelled; the parent will run both scenes
+at integration. No approved picture was changed or re-approved.

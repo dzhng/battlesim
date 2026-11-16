@@ -16,7 +16,7 @@ if (duration !== null && (!Number.isFinite(duration) || duration < 0))
 
 const data = await nodeSetupData(root);
 const setup = toBattleSetup(allAi(preset("5v5")), "skirmish");
-const host = createBattleHost({ setup }, "thread", data);
+const host = createBattleHost({ candidates: [setup] }, "thread", data);
 const observer = loopback({ side: "blue", player: "blue-1" });
 host.attach(observer.port);
 let tickHz = 0;

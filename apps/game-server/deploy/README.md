@@ -13,7 +13,7 @@ bun run deploy:server --site <site-url>
 The default is a dry run. It verifies identity, prepares an ignored folder and
 lists every file it would send, without invoking the host CLI. The folder holds
 the hosted lobby, its build identity and [allocation data](settings.json), plus
-one battle archive containing the standalone server, worker and runtime data.
+one gzip-compressed battle archive (`battle.tar.gz`) containing the standalone server, worker and runtime data.
 All runtime paths resolve beside the bundles, independently of the working
 directory. [The local static-site fixture](localSite.testSupport.ts) publishes
 the existing simulation bytes with this same layout for the deploy rehearsal;

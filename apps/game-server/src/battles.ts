@@ -22,9 +22,9 @@ export function hostedBattles(
     }
   >();
   return {
-    create(setup: BattleSetup, id: string): BattleHost {
+    create(candidates: BattleSetup[], id: string): BattleHost {
       const key = randomBytes(16).toString("hex");
-      const remote = createRemoteBattleHost({ setup }, id, machines.start(key), key);
+      const remote = createRemoteBattleHost({ candidates }, id, machines.start(key), key);
       const entry = {
         remote,
         seating: new Map<string, Seat>(),

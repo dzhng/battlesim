@@ -46,7 +46,8 @@ async function room() {
       releaseCallsign: () => {},
     }),
     random: () => (++draw % 1000) / 1000,
-    createBattle: (setup) => (host = createBattleHost({ setup }, { clock, generator }, data)),
+    createBattle: (candidates) =>
+      (host = createBattleHost({ candidates }, { clock, generator }, data)),
   });
   cleanups.push(service.dispose);
   const made = service.create("alpha", "public");
@@ -368,9 +369,14 @@ test("a room whose map fails preparation closes honestly and releases its capaci
       releaseCallsign: () => {},
     }),
     random: () => 0.1,
-    createBattle: (setup) =>
+    createBattle: (candidates) =>
       (failed = createBattleHost(
-        { setup: { ...setup, map: { ...setup.map, type: "unmakeable test map" as never } } },
+        {
+          candidates: candidates.map((setup) => ({
+            ...setup,
+            map: { ...setup.map, type: "unmakeable test map" as never },
+          })),
+        },
         { clock: r.clock, generator },
         data,
       )),

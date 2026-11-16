@@ -1,9 +1,7 @@
 // Frontline lifecycle. Placement and deadlines belong to the pure model.
-import { randomUUID } from "node:crypto";
 import {
   place,
   seatsToFree,
-  newGame,
   GONE_TIMEOUT_MS,
   IDLE_TIMEOUT_MS,
   type GameView,
@@ -14,6 +12,8 @@ import type {
   Briefing,
 } from "../../../packages/multiplayer/src/wire.ts";
 import type { RefereeView } from "../../../web/src/battle/sim/protocol.ts";
+import { MachineUnavailable } from "./machines/index.ts";
+import { drawFrontlineCandidates } from "./frontlineDraws.ts";
 import type { BattleHost } from "./battleHost/index.ts";
 import type { BattleSlot, OnlineState } from "./online.ts";
 
@@ -44,7 +44,7 @@ export function createFrontlineService(options: {
   /** How many maps a new game may draw before giving up. */
   mapAttempts: number;
   online: OnlineState;
-  createBattle(setup: BattleSetup, id: string): BattleHost;
+  createBattle(candidates: BattleSetup[], id: string): BattleHost;
   random(): number;
 }) {
   const { online } = options;
@@ -264,77 +264,63 @@ export function createFrontlineService(options: {
         if ("full" in placement) return { refused: "full" };
         if ("create" in placement) {
           const slot = online.reserve()!;
-          // The generator refuses some drawn maps, and another draw is
-          // usually admitted: draw again, up to the game's own limit.
-          for (let attempt = 0; attempt < options.mapAttempts; attempt++) {
-            let host: BattleHost | undefined;
-            try {
-              const setup = newGame(options.random);
-              // Let the placement owner choose the initial human, too.
-              const view: GameView = {
-                battle: randomUUID(),
-                scores: [0, 0],
-                target: Infinity,
-                granted: [],
-                seats: setup.seats.map((s) => ({
-                  side: s.side,
-                  number: setup.seats.filter((p) => p.side === s.side).indexOf(s) + 1,
-                  held: null,
-                  reservedUntil: null,
-                })),
-              };
-              const initial = place([view], who, clock.now(), options.random, false);
-              if (!("join" in initial)) throw new Error("a fresh battle has no seat");
-              const index = view.seats.findIndex(
-                (s) => s.side === initial.side && s.number === initial.seat,
-              );
-              setup.seats[index].controller = "human";
-              host = options.createBattle(setup, view.battle);
-              const ready = await host.ready;
-              if (disposed) {
-                host.dispose();
-                slot.release();
-                return { refused: "unavailable" };
-              }
-              const referee = await host.referee();
-              const g: Game = {
-                setup,
-                host,
-                slot,
-                view,
-                referee,
-                mapIdentity: ready.mapIdentity,
-                reservations: new Map(),
-                drops: new Set(),
-                cancel: () => {},
-                tickHz: ready.tickHz,
-              };
-              view.target = referee.target;
-              view.scores = referee.scores;
-              view.granted.push(who);
-              view.seats[index].held = { who, lastOrderAt: clock.now(), goneSince: null };
-              games.set(view.battle, g);
-              slot.serve({
-                id: view.battle,
-                host,
-                seatOf: (browser) => seatOf(g, browser),
-              });
-              host.onEnd(() => remove(g));
-              host.onOrder((id) => {
-                const held = view.seats[setup.seats.findIndex((s) => s.player === id)]?.held;
-                if (held && held.goneSince === null) {
-                  held.lastOrderAt = clock.now();
-                  maintain(g);
-                }
-              });
-              reserve(g, who, index, "initial", true);
-              return briefing(g, index, true);
-            } catch {
-              host?.dispose();
+          let host: BattleHost | undefined;
+          try {
+            const drawn = drawFrontlineCandidates(
+              who,
+              clock.now(),
+              options.mapAttempts,
+              options.random,
+            );
+            host = options.createBattle(
+              drawn.draws.map((d) => d.setup),
+              drawn.battle,
+            );
+            const ready = await host.ready;
+            if (disposed) {
+              host.dispose();
+              slot.release();
+              return { refused: "unavailable" };
             }
+            const { setup, view, index } = drawn.draws[ready.candidate];
+            const referee = await host.referee();
+            const g: Game = {
+              setup,
+              host,
+              slot,
+              view,
+              referee,
+              mapIdentity: ready.mapIdentity,
+              reservations: new Map(),
+              drops: new Set(),
+              cancel: () => {},
+              tickHz: ready.tickHz,
+            };
+            view.target = referee.target;
+            view.scores = referee.scores;
+            view.granted.push(who);
+            view.seats[index].held = { who, lastOrderAt: clock.now(), goneSince: null };
+            games.set(view.battle, g);
+            slot.serve({
+              id: view.battle,
+              host,
+              seatOf: (browser) => seatOf(g, browser),
+            });
+            host.onEnd(() => remove(g));
+            host.onOrder((id) => {
+              const held = view.seats[setup.seats.findIndex((s) => s.player === id)]?.held;
+              if (held && held.goneSince === null) {
+                held.lastOrderAt = clock.now();
+                maintain(g);
+              }
+            });
+            reserve(g, who, index, "initial", true);
+            return briefing(g, index, true);
+          } catch (error) {
+            host?.dispose();
+            slot.release();
+            return { refused: error instanceof MachineUnavailable ? "full" : "unavailable" };
           }
-          slot.release();
-          return { refused: "unavailable" };
         }
         const id = "resume" in placement ? placement.resume : placement.join;
         const g = games.get(id)!;

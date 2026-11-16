@@ -32,7 +32,7 @@ export type SeatEndReason = "idle" | "leave";
 export type BattleEnd = { kind: "finished" } | { kind: "crashed"; message: string };
 
 export interface BattleSpec {
-  setup: BattleSetup;
+  candidates: BattleSetup[];
 }
 
 export interface BattleClock {
@@ -46,8 +46,16 @@ export interface BattleClock {
  *  its `generator` stands in for the simulation's map generator. */
 export type BattleRun = "thread" | { clock: BattleClock; generator?: MapGenerator };
 
+export type BattleReady = {
+  layout: string;
+  tickHz: number;
+  mapIdentity: string;
+  /** Zero-based index into the requested candidates. */
+  candidate: number;
+};
+
 export interface BattleHost {
-  ready: Promise<{ layout: string; tickHz: number; mapIdentity: string }>;
+  ready: Promise<BattleReady>;
   /** Serve a seat. The port's seat is the transport's word for who this is. */
   attach(port: SeatPort): void;
   setController(player: string, kind: ControllerKind): Promise<void>;
@@ -71,12 +79,14 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
     run === "thread"
       ? { now: () => performance.now(), schedule: (task, ms) => void setTimeout(task, ms) }
       : run.clock;
-  const seats = new Set(spec.setup.seats.map((seat) => `${seat.side}/${seat.player}`));
-  const players = new Set(spec.setup.seats.map((seat) => seat.player));
+  const seats = new Set(
+    (spec.candidates[0]?.seats ?? []).map((seat) => `${seat.side}/${seat.player}`),
+  );
+  const players = new Set((spec.candidates[0]?.seats ?? []).map((seat) => seat.player));
 
   let layout = "";
   let tickHz = 0;
-  let mapIdentity: string | null = null;
+  let prepared: { mapIdentity: string; candidate: number } | null = null;
   /** Why the battle is over, once it is. */
   let over: string | null = null;
   let end: BattleEnd | null = null;
@@ -89,10 +99,8 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
   const resets = new Map<number, Waiter<void>>();
   const orders: ((player: string) => void)[] = [];
   const readers = new Map<string, Set<(reason: string) => void>>();
-  let ready!: Waiter<{ layout: string; tickHz: number; mapIdentity: string }>;
-  const readiness = new Promise<{ layout: string; tickHz: number; mapIdentity: string }>(
-    (resolve, reject) => (ready = { resolve, reject }),
-  );
+  let ready!: Waiter<BattleReady>;
+  const readiness = new Promise<BattleReady>((resolve, reject) => (ready = { resolve, reject }));
   // A battle nobody awaited may still fail to prepare; `onEnd` reports it.
   readiness.catch(() => {});
 
@@ -177,12 +185,23 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
     if (over !== null) return;
     switch (message.type) {
       case "prepared":
-        mapIdentity = message.mapIdentity;
+        prepared = message;
+        seats.clear();
+        players.clear();
+        for (const seat of spec.candidates[message.candidate].seats) {
+          seats.add(`${seat.side}/${seat.player}`);
+          players.add(seat.player);
+        }
         return;
       case "ready":
-        if (mapIdentity === null) return crash("the battle was ready before its map");
+        if (prepared === null) return crash("the battle was ready before its map");
         ({ layout, tickHz } = message);
-        return ready.resolve({ layout, tickHz, mapIdentity });
+        return ready.resolve({
+          layout,
+          tickHz,
+          mapIdentity: prepared.mapIdentity,
+          candidate: prepared.candidate,
+        });
       case "publication":
         sources[message.side as Side].append("publication", message.flags, message.payload);
         return;
@@ -233,12 +252,12 @@ export function createBattleHost(spec: BattleSpec, run: BattleRun, data: BattleD
     const { presets, templates, limits, rules, root } = data;
     worker.postMessage({
       type: "battle-host-init",
-      setup: spec.setup,
+      candidates: spec.candidates,
       data: { presets, templates, limits, rules, root },
     } satisfies WorkerInit);
   } else {
     const runtime = createBattleRuntime({
-      setup: spec.setup,
+      candidates: spec.candidates,
       data,
       generator: run.generator,
       now: clock.now,

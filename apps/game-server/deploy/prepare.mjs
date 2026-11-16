@@ -68,8 +68,8 @@ export async function prepareDeployment(root, siteAddress, report) {
     const bundled = await bundleServer(source, battleFolder, commit);
     await mkdir(folder);
     execFileSync("tar", [
-      "-cf",
-      join(folder, "battle.tar"),
+      "-czf",
+      join(folder, "battle.tar.gz"),
       "-C",
       battleFolder,
       "battle.mjs",

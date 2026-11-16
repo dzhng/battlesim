@@ -68,7 +68,7 @@ export async function prepareBattle(
  *  the authority's buffer. */
 export type RuntimeMessage =
   | Exclude<SimReply, { type: "publication" }>
-  | { type: "prepared"; mapIdentity: string }
+  | { type: "prepared"; mapIdentity: string; candidate: number }
   | { type: "publication"; side: SideName; flags: number; payload: Uint8Array };
 
 /** `u32 tick`, 16 ASCII bytes of digest, `f32 stepMs`, then the words. */
@@ -100,7 +100,7 @@ export interface BattleRuntime {
 }
 
 export function createBattleRuntime(options: {
-  setup: BattleSetup;
+  candidates: BattleSetup[];
   data: BattleData;
   generator?: MapGenerator;
   now: () => number;
@@ -170,19 +170,34 @@ export function createBattleRuntime(options: {
   };
   return {
     async start() {
-      const prepared = await prepareBattle(options.setup, options.data, options.generator);
-      options.post({ type: "prepared", mapIdentity: prepared.mapIdentity });
+      let prepared: PreparedBattle | undefined;
+      let candidate = 0;
+      for (; candidate < options.candidates.length; candidate++) {
+        try {
+          prepared = await prepareBattle(
+            options.candidates[candidate],
+            options.data,
+            options.generator,
+          );
+          break;
+        } catch {
+          // A refused draw has no authority or history. Only the admitted world runs.
+        }
+      }
+      if (!prepared) throw new Error("no battle candidate could be prepared");
+      const admitted = prepared;
+      options.post({ type: "prepared", mapIdentity: admitted.mapIdentity, candidate });
       authority = createAuthority({
         post,
         now: options.now,
         schedule,
         close: options.close,
-        load: async () => prepared.sim,
+        load: async () => admitted.sim,
       });
       authority.handle({
         type: "init",
-        scenario: prepared.scenario,
-        seed: prepared.seed,
+        scenario: admitted.scenario,
+        seed: admitted.seed,
         sides: ["blue", "red"],
       });
       authority.handle({ type: "start" });

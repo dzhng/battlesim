@@ -58,7 +58,7 @@ async function serving() {
     "skirmish",
   );
   const clock = new Clock();
-  const host = createBattleHost({ setup }, { clock, generator }, data);
+  const host = createBattleHost({ candidates: [setup] }, { clock, generator }, data);
   const ready = await host.ready;
   const ordersPerSecond = (JSON.parse(data.rules) as { commands: { orders_per_s: number } })
     .commands.orders_per_s;
@@ -87,7 +87,7 @@ async function serving() {
     if (!response.ok) throw new Error("control refused");
     return response.json();
   }
-  await control("start", { id: "duel", setup });
+  await control("start", { id: "duel", candidates: [setup] });
   await control("seating", [...seats]);
   cleanup.push(async () => {
     host.dispose();

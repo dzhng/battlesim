@@ -88,15 +88,15 @@ let remoteHosts = false;
 export const useRemoteHosts = (remote: boolean) => {
   remoteHosts = remote;
 };
-export function testHost(setup: BattleSetup, clock: BattleClock): BattleHost {
-  if (!remoteHosts) return createBattleHost({ setup }, { clock, generator }, data);
+export function testHost(candidates: BattleSetup[], clock: BattleClock): BattleHost {
+  if (!remoteHosts) return createBattleHost({ candidates }, { clock, generator }, data);
   const key = randomBytes(16).toString("hex");
   const machines = inProcessBattleMachines({
     capacity: 8,
     createBattle: (spec) => createBattleHost(spec, { clock, generator }, data),
     ordersPerSecond: JSON.parse(data.rules).commands.orders_per_s,
   });
-  return createRemoteBattleHost({ setup }, "contract", machines.start(key), key);
+  return createRemoteBattleHost({ candidates }, "contract", machines.start(key), key);
 }
 export const hosts: BattleHost[] = [];
 export function disposeBattles() {
@@ -104,9 +104,9 @@ export function disposeBattles() {
 }
 
 /** A battle on a test clock. `run(ticks)` lets that much battle time pass. */
-export async function battle(setup: BattleSetup) {
+export async function battle(setup: BattleSetup, candidates = [setup]) {
   const clock = new TestClock();
-  const host = testHost(setup, clock);
+  const host = testHost(candidates, clock);
   hosts.push(host);
   const ended: BattleEnd[] = [];
   host.onEnd((end) => ended.push(end));

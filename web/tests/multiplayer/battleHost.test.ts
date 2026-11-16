@@ -31,6 +31,27 @@ describe.each([false, true])("battle host (remote: %s)", (remote) => {
   beforeEach(() => useRemoteHosts(remote));
   afterEach(() => useRemoteHosts(false));
 
+  test("candidates are tried in order and the admitted battle has the same digests and replay as that candidate alone", async () => {
+    const refused = { ...duel, map: { ...duel.map, type: "no such map type" as never } };
+    const later = { ...duel, battleSeed: duel.battleSeed + 1 };
+    const retried = await battle(duel, [refused, refused, duel, later]);
+    const alone = await battle(duel);
+    expect(retried.ready.candidate).toBe(2);
+    expect(retried.ready.mapIdentity).toBe(alone.ready.mapIdentity);
+    const observed = seat(retried, { side: "blue", player: "blue-1" }).read();
+    const control = seat(alone, { side: "blue", player: "blue-1" }).read();
+    await retried.run(30);
+    await alone.run(30);
+    expect(observed.seen.length).toBeGreaterThan(0);
+    const direct = await yardstick(duel);
+    direct.runTo(Math.max(tickOf(observed), tickOf(control)));
+    for (const reading of [observed, control])
+      expect(
+        [...digests(reading)].filter(([tick, digest]) => direct.seen.get(tick) !== digest),
+      ).toEqual([]);
+    expect(await retried.host.replay()).toBe(await alone.host.replay());
+  }, 120_000);
+
   test("two seats' orders through the host make the battle the same orders make without it, and its replay makes it again", async () => {
     const b = await battle(duel);
     const blue = seat(b, { side: "blue", player: "blue-1" });
@@ -296,7 +317,7 @@ describe.each([false, true])("battle host (remote: %s)", (remote) => {
 
   test("a battle whose map cannot be made never becomes ready and says it crashed", async () => {
     const unmakeable = { ...duel, map: { ...duel.map, type: "no such map type" as never } };
-    const host = testHost(unmakeable, new PageClock());
+    const host = testHost([unmakeable], new PageClock());
     hosts.push(host);
     const ended: BattleEnd[] = [];
     host.onEnd((end) => ended.push(end));
@@ -310,6 +331,32 @@ describe.each([false, true])("battle host (remote: %s)", (remote) => {
       if (last === "end") break;
     }
     expect(last).toBe("end");
+  });
+
+  test("no admitted candidate rejects readiness and settles every queued request and reader", async () => {
+    const refused = { ...duel, map: { ...duel.map, type: "no such map type" as never } };
+    const host = testHost([refused, refused], new PageClock());
+    hosts.push(host);
+    const { link, port } = loopback({ side: "blue", player: "blue-1" });
+    host.attach(port);
+    const reading = (async () => {
+      const kinds: string[] = [];
+      for await (const record of link.records(null)) {
+        kinds.push(record.kind);
+        if (record.kind === "end") break;
+      }
+      return kinds;
+    })();
+    const waiting = Promise.allSettled([
+      host.ready,
+      host.referee(),
+      host.replay(),
+      host.seatHuman("blue-1", true),
+      link.up({ seq: 1, items: [{ id: 1, order: { kind: "ready" }, queued: false }] }),
+      link.preview({ kind: "purchase", variant: cards[0], destination: [0, 0] }),
+    ]);
+    expect((await waiting).map((result) => result.status)).toEqual(Array(6).fill("rejected"));
+    expect((await reading).at(-1)).toBe("end");
   });
 
   test("a request still waiting when the battle is disposed is settled", async () => {

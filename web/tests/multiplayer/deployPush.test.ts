@@ -18,7 +18,7 @@ test("deployment registers with service access, a second deploy updates files an
     await mkdir(join(folder, "fixtures"));
     await writeFile(join(folder, "lobby.mjs"), "entry");
     await writeFile(join(folder, "fixtures/rules.json"), "rules");
-    await writeFile(join(folder, "battle.tar"), "archive");
+    await writeFile(join(folder, "battle.tar.gz"), "archive");
     await push(folder, "test-battles", "local-workspace", host.runner);
     expect(host.apps.get("test-battles")).toMatchObject({
       apiScopes: ["services"],
@@ -28,7 +28,7 @@ test("deployment registers with service access, a second deploy updates files an
       expect.arrayContaining([
         ["apps/test-battles/lobby.mjs", "entry"],
         ["apps/test-battles/fixtures/rules.json", "rules"],
-        ["apps/test-battles/battle.tar", "archive"],
+        ["apps/test-battles/battle.tar.gz", "archive"],
       ]),
     );
     await writeFile(join(folder, "lobby.mjs"), "new entry");

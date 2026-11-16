@@ -19,7 +19,9 @@ test(
     let answers = 0;
     const server = createServer((request, response) => {
       if (request.url === "/control/start")
-        response.end(JSON.stringify({ layout: "{}", tickHz: 30, mapIdentity: "test" }));
+        response.end(
+          JSON.stringify({ layout: "{}", tickHz: 30, mapIdentity: "test", candidate: 0 }),
+        );
       else if (request.url === "/control/events") {
         response.writeHead(200);
         response.flushHeaders();
@@ -33,7 +35,7 @@ test(
     const ended: BattleEnd[] = [];
     const stopped = vi.fn();
     const host = createRemoteBattleHost(
-      { setup: duel },
+      { candidates: [duel] },
       "lease",
       Promise.resolve({ address, control: address, stop: stopped }),
       "a".repeat(32),
@@ -77,14 +79,14 @@ test("a broken control stream fails explicitly even while its health checks answ
       response.writeHead(200);
       response.flushHeaders();
     } else if (request.url === "/control/start")
-      response.end(JSON.stringify({ layout: "{}", tickHz: 30, mapIdentity: "test" }));
+      response.end(JSON.stringify({ layout: "{}", tickHz: 30, mapIdentity: "test", candidate: 0 }));
     else response.end(JSON.stringify({ ok: true }));
   });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
   const ended: BattleEnd[] = [];
   const host = createRemoteBattleHost(
-    { setup: duel },
+    { candidates: [duel] },
     "broken",
     Promise.resolve({ address, control: address, stop() {} }),
     "b".repeat(32),

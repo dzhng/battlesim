@@ -173,7 +173,7 @@ export async function sandboxBattleMachines(options: SandboxOptions): Promise<Ba
         const upload = await request(
           `/sandboxes/${id}/files/upload-url`,
           "POST",
-          { path: "battle.tar", ttlSeconds: Math.ceil(startupMs / 1000) },
+          { path: "battle.tar.gz", ttlSeconds: Math.ceil(startupMs / 1000) },
           {},
           signal,
         );
@@ -188,7 +188,7 @@ export async function sandboxBattleMachines(options: SandboxOptions): Promise<Ba
         ({ processId } = await request(
           `/sandboxes/${id}/commands`,
           "POST",
-          { command: "tar -xf battle.tar && exec node battle.mjs", detached: true },
+          { command: "tar -xzf battle.tar.gz && exec node battle.mjs", detached: true },
           {},
           signal,
         ));

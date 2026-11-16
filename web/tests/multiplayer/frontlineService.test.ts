@@ -45,9 +45,9 @@ async function service(capacity = 2, admissionMs = 0, refusedMaps = 0) {
     online,
     mapAttempts: MAP_ATTEMPTS,
     random: () => [0, 0, 0.5, 0, 1 / 2 ** 32, 0, 0][draw++ % 7],
-    createBattle(setup) {
+    createBattle(candidates) {
       const host = createBattleHost(
-        { setup: refusals-- > 0 ? unmakeable(setup) : setup },
+        { candidates: candidates.map((setup) => (refusals-- > 0 ? unmakeable(setup) : setup)) },
         { clock: battleClock, generator },
         data,
       );
@@ -57,7 +57,7 @@ async function service(capacity = 2, admissionMs = 0, refusedMaps = 0) {
       host.onEnd((end) => {
         if (end.kind === "crashed") failures.push(end.message);
       });
-      records.push(recordHost(host, setup.seats[0]));
+      records.push(recordHost(host, candidates[0].seats[0]));
       return host;
     },
   });
@@ -126,9 +126,9 @@ async function service(capacity = 2, admissionMs = 0, refusedMaps = 0) {
 test("Play draws another map when the generator refuses one, and says so honestly when it refuses them all", async () => {
   // One refusal short of the game's limit: the last draw is admitted.
   const s = await service(1, 0, MAP_ATTEMPTS - 1);
-  expect(s.hosts).toHaveLength(MAP_ATTEMPTS);
+  expect((await s.b.host.ready).candidate + 1).toBe(MAP_ATTEMPTS);
   expect(s.seen.latest).not.toBeNull();
-  for (const refused of s.hosts.slice(0, -1)) await expect(refused.ready).rejects.toThrow();
+  expect(s.hosts).toHaveLength(1);
 
   // Every draw refused: not "full", and the battle slot is free again.
   const online = createOnlineState({
@@ -142,9 +142,13 @@ test("Play draws another map when the generator refuses one, and says so honestl
     online,
     mapAttempts: MAP_ATTEMPTS,
     random: () => 0.25,
-    createBattle(setup) {
+    createBattle(candidates) {
       made.push(
-        createBattleHost({ setup: unmakeable(setup) }, { clock: new PageClock(), generator }, data),
+        createBattleHost(
+          { candidates: candidates.map(unmakeable) },
+          { clock: new PageClock(), generator },
+          data,
+        ),
       );
       return made.at(-1)!;
     },
@@ -152,7 +156,8 @@ test("Play draws another map when the generator refuses one, and says so honestl
   cleanups.push(online.dispose, frontline.dispose);
   online.presence.track("alpha");
   expect(await frontline.join("alpha")).toEqual({ refused: "unavailable" });
-  expect(made).toHaveLength(MAP_ATTEMPTS);
+  expect(made).toHaveLength(1);
+  await expect(made[0].ready).rejects.toThrow();
   expect(online.slotFree()).toBe(true);
   // Like the adjacent large-battle cases, allow preparation under parallel CPU
   // load. This is a hang watchdog; every retry and capacity assertion stays exact.
@@ -431,7 +436,8 @@ test("rooms and Frontline reserve the same battle slots", async () => {
   const room = createRoomService({
     online: s.online,
     random: () => 0.1,
-    createBattle: (setup) => createBattleHost({ setup }, { clock: s.battleClock, generator }, data),
+    createBattle: (candidates) =>
+      createBattleHost({ candidates }, { clock: s.battleClock, generator }, data),
   });
   cleanups.push(room.dispose);
   expect(room.create("bravo", "public")).toEqual({ refused: "full" });

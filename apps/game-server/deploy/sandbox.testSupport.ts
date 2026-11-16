@@ -82,7 +82,7 @@ export async function serviceStandIn(archive: string) {
           Number(request.headers["content-length"]) !== bytes.length
         )
           return send({}, 403);
-        await writeFile(join(machines.get(path.split("/")[2])!.folder, "battle.tar"), bytes);
+        await writeFile(join(machines.get(path.split("/")[2])!.folder, "battle.tar.gz"), bytes);
         return send({});
       }
       if (request.headers.authorization !== "Bearer stand-in-app-key") return send({}, 403);

@@ -1,4 +1,34 @@
 // @vitest-environment node
+vi.mock("node:child_process", async (original) => {
+  const actual = await original<typeof import("node:child_process")>();
+  const permitted = (command: unknown) => {
+    if (!["bun", "node", "git", "tar", "/bin/sh"].includes(String(command)))
+      throw new Error("External process execution forbidden in deploy tests");
+  };
+  return {
+    ...actual,
+    execFileSync: (...args: Parameters<typeof actual.execFileSync>) => {
+      permitted(args[0]);
+      return actual.execFileSync(...args);
+    },
+    spawn: (...args: Parameters<typeof actual.spawn>) => {
+      permitted(args[0]);
+      return actual.spawn(...args);
+    },
+    exec: () => {
+      throw new Error("Shell execution forbidden in deploy tests");
+    },
+    execSync: () => {
+      throw new Error("Shell execution forbidden in deploy tests");
+    },
+    execFile: () => {
+      throw new Error("Process execution forbidden in deploy tests");
+    },
+    fork: () => {
+      throw new Error("Process execution forbidden in deploy tests");
+    },
+  };
+});
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { join } from "node:path";
@@ -9,12 +39,12 @@ import { CONTROL_HEADER } from "../../../apps/game-server/src/http/controlProtoc
 import { httpRecords } from "../../../packages/multiplayer/src/stream/http";
 import { duel, loadBattleSupport } from "./support/battle";
 const root = join(import.meta.dirname, "../../..");
-const archive = join(root, "throwaway/multiplayer/test-battle.tar");
+const archive = join(root, "throwaway/multiplayer/test-battle.tar.gz");
 const cleanup: (() => Promise<unknown> | void)[] = [];
 beforeAll(async () => {
   execFileSync("bun", ["apps/game-server/build.mjs"], { cwd: root });
   execFileSync("tar", [
-    "-cf",
+    "-czf",
     archive,
     "-C",
     join(root, "throwaway/game-server"),
@@ -37,8 +67,8 @@ beforeAll(async () => {
     { cwd: root },
   );
   execFileSync("tar", [
-    "-cf",
-    join(root, "throwaway/multiplayer/finish-battle.tar"),
+    "-czf",
+    join(root, "throwaway/multiplayer/finish-battle.tar.gz"),
     "-C",
     join(root, "throwaway/multiplayer/finish"),
     "battle.mjs",
@@ -66,7 +96,12 @@ test("an allocated remote battle seats a player, publishes and accepts a real or
   const provider = await s.provider();
   const credential = key();
   const m = await provider.start(credential);
-  const host = createRemoteBattleHost({ setup: duel }, "playable", Promise.resolve(m), credential);
+  const host = createRemoteBattleHost(
+    { candidates: [duel] },
+    "playable",
+    Promise.resolve(m),
+    credential,
+  );
   cleanup.push(host.dispose);
   await host.ready;
   const who = key();
@@ -159,7 +194,12 @@ test("a crashed battle's diagnostics reach lobby output, scrubbed, before its ma
   const provider = await s.provider();
   const credential = key();
   const m = await provider.start(credential);
-  const host = createRemoteBattleHost({ setup: duel }, "crash", Promise.resolve(m), credential);
+  const host = createRemoteBattleHost(
+    { candidates: [duel] },
+    "crash",
+    Promise.resolve(m),
+    credential,
+  );
   cleanup.push(host.dispose);
   await host.ready;
   const who = key();
@@ -184,11 +224,11 @@ test("a crashed battle's diagnostics reach lobby output, scrubbed, before its ma
 test("a normally ended battle automatically stops and deletes its machine", async () => {
   const s = await service();
   const provider = await s.provider({
-    archive: join(root, "throwaway/multiplayer/finish-battle.tar"),
+    archive: join(root, "throwaway/multiplayer/finish-battle.tar.gz"),
   });
   const credential = key();
   const host = createRemoteBattleHost(
-    { setup: duel },
+    { candidates: [duel] },
     "finish",
     provider.start(credential),
     credential,

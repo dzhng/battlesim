@@ -47,6 +47,16 @@ and `Faction` (`packages/scene-assets/src/units.ts`).
 | `POST /battles/:id/up` | `UpBatch` | `UpReply` |
 | `POST /battles/:id/preview` | `PreviewQuery` | `PreviewAnswer` |
 
+## Private battle start
+
+The lobby asks one battle server to try ordered candidates with authenticated
+`POST /control/start`: `{ id: string, candidates: BattleSetup[] }`. Success is
+`{ layout: string, tickHz: number, mapIdentity: string, candidate: number }`,
+where `candidate` is the zero-based admitted index. No admitted candidate gives
+the existing generic `unavailable` refusal. A second start is refused `started`.
+Browser credentials and the battle key never appear in the reply. Player-facing
+tickets and briefings carry only the admitted setup, with the existing shapes.
+
 ## Record framing
 
 One framing for every stream. Little-endian, a 12-byte header so that `f32`

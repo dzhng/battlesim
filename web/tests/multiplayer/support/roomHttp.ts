@@ -17,7 +17,7 @@ export async function roomHttp(
   const server = createLobbyHttp(build, {
     machines: inProcessBattleMachines({
       capacity,
-      createBattle: (spec) => createBattle(spec.setup),
+      createBattle: (spec) => createBattle(spec.candidates[0]),
       ordersPerSecond: 100,
     }),
     mapAttempts: 1,

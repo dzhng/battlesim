@@ -7,7 +7,12 @@ import { pendingBattle } from "./pendingBattle";
 export function frontlineHost(setup: BattleSetup): BattleHost {
   return {
     ...pendingBattle(),
-    ready: Promise.resolve({ mapIdentity: "frontline-map", tickHz: 30, layout: "test-layout" }),
+    ready: Promise.resolve({
+      mapIdentity: "frontline-map",
+      tickHz: 30,
+      layout: "test-layout",
+      candidate: 0,
+    }),
     referee: async () => ({
       tick: 0,
       scores: [0, 0],

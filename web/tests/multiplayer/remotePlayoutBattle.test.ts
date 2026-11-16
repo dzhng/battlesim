@@ -22,7 +22,11 @@ test("jittery real battle records all decode contiguously; after a long stall a 
     "skirmish",
   );
   const battleClock = new PageClock();
-  const host = createBattleHost({ setup }, { clock: battleClock, generator: data.generator }, data);
+  const host = createBattleHost(
+    { candidates: [setup] },
+    { clock: battleClock, generator: data.generator },
+    data,
+  );
   const { tickHz } = await host.ready;
   const pageClock = new PageClock();
   const pair = loopback({ side: "blue", player: "blue-1" });

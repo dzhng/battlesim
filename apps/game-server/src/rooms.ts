@@ -40,7 +40,7 @@ type StoredRoom = {
 };
 
 export function createRoomService(options: {
-  createBattle: (setup: BattleSetup, id: string) => BattleHost;
+  createBattle: (candidates: BattleSetup[], id: string) => BattleHost;
   online: OnlineState;
   random: () => number;
 }) {
@@ -128,7 +128,7 @@ export function createRoomService(options: {
     try {
       const setup = battleSetup(stored.room);
       const id = randomUUID();
-      const host = options.createBattle(setup, id);
+      const host = options.createBattle([setup], id);
       stored.battle = {
         id,
         host,

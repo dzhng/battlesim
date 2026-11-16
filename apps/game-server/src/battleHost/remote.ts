@@ -8,7 +8,7 @@ import {
 import { httpRecords } from "../../../../packages/multiplayer/src/stream/http.ts";
 import type { PreviewAnswer, UpReply } from "../../../../packages/multiplayer/src/wire.ts";
 import type { RefereeView } from "../../../../web/src/battle/sim/protocol.ts";
-import type { Machine } from "../machines/index.ts";
+import { MachineUnavailable, type Machine } from "../machines/index.ts";
 import {
   CONTROL_HEADER,
   CONTROL_REQUEST_TIMEOUT_MS,
@@ -33,7 +33,7 @@ export function createRemoteBattleHost(
   key: string,
 ): RemoteBattleHost {
   const lifetime = new AbortController();
-  const players = new Map(spec.setup.seats.map((s) => [s.player, s]));
+  const players = new Map((spec.candidates[0]?.seats ?? []).map((s) => [s.player, s]));
   const endings: ((end: BattleEnd) => void)[] = [];
   const orders: ((player: string) => void)[] = [];
   const listeners: ((streams: StreamPresence[]) => void)[] = [];
@@ -51,7 +51,6 @@ export function createRemoteBattleHost(
     if (!over && leased) silence = setTimeout(crash, LOBBY_LEASE_MS);
   };
   let mutations: Promise<unknown> = Promise.resolve();
-  let stopped: Promise<unknown> = Promise.resolve();
   const tellStreams = () => {
     for (const handle of listeners) handle([...streams.values()]);
   };
@@ -66,15 +65,7 @@ export function createRemoteBattleHost(
     readers.clear();
     streams.clear();
     tellStreams();
-    // The stop reply gets a turn before the provider terminates the machine.
-    if (m)
-      stopped = fetch(`${m.control}/control/stop`, {
-        method: "POST",
-        headers: { [CONTROL_HEADER]: key },
-        signal: AbortSignal.timeout(CONTROL_PING_TIMEOUT_MS),
-      })
-        .catch(() => {})
-        .finally(() => m!.stop());
+    m?.stop();
     if (result) for (const handle of endings) handle(result);
   };
   const crash = () => close("crashed", { kind: "crashed", message: "battle server unavailable" });
@@ -181,21 +172,27 @@ export function createRemoteBattleHost(
   }
   const ready = (async () => {
     try {
-      m = await machine;
+      m = await machine.catch(() => {
+        throw new MachineUnavailable();
+      });
       if (over) {
         m.stop();
         throw endedError();
       }
       void events();
-      const ready = await post<Awaited<BattleHost["ready"]>>("start", { id, setup: spec.setup });
+      const ready = await post<Awaited<BattleHost["ready"]>>("start", {
+        id,
+        candidates: spec.candidates,
+      });
+      players.clear();
+      for (const seat of spec.candidates[ready.candidate].seats) players.set(seat.player, seat);
       leased = true;
       answered();
       void heartbeat();
       return ready;
-    } catch {
+    } catch (error) {
       crash();
-      // A refused map must release its allocation before admission retries.
-      await stopped;
+      if (error instanceof MachineUnavailable) throw error;
       throw endedError();
     }
   })();

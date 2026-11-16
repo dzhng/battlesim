@@ -1,4 +1,35 @@
 // @vitest-environment node
+vi.mock("node:child_process", async (original) => {
+  const actual = await original<typeof import("node:child_process")>();
+  const permitted = (command: unknown) => {
+    if (!["bun", "node", "git", "tar", "/bin/sh"].includes(String(command)))
+      throw new Error("External process execution forbidden in deploy tests");
+  };
+  return {
+    ...actual,
+    execFileSync: (...args: Parameters<typeof actual.execFileSync>) => {
+      permitted(args[0]);
+      return actual.execFileSync(...args);
+    },
+    spawn: (...args: Parameters<typeof actual.spawn>) => {
+      permitted(args[0]);
+      return actual.spawn(...args);
+    },
+    exec: () => {
+      throw new Error("Shell execution forbidden in deploy tests");
+    },
+    execSync: () => {
+      throw new Error("Shell execution forbidden in deploy tests");
+    },
+    execFile: () => {
+      throw new Error("Process execution forbidden in deploy tests");
+    },
+    fork: () => {
+      throw new Error("Process execution forbidden in deploy tests");
+    },
+  };
+});
+import { gunzipSync } from "node:zlib";
 import { spawn } from "node:child_process";
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -40,7 +71,10 @@ test("the deploy dry run lists its complete release and its hosted entry seats a
     expect(reported).toEqual(files);
     expect(output).toContain("Push is OFF");
     expect(JSON.parse(await readFile(join(folder, "build.json"), "utf8"))).toEqual(site.build);
-    service = await serviceStandIn(join(folder, "battle.tar"));
+    const archive = join(folder, "battle.tar.gz");
+    const compressed = await readFile(archive);
+    expect(gunzipSync(compressed).length).toBeGreaterThan(compressed.length);
+    service = await serviceStandIn(archive);
     lobby = await service.lobby(folder);
     const who = "d".repeat(32);
     async function post(path: string, body: unknown, address = lobby!.address) {

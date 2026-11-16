@@ -8,7 +8,7 @@ import {
   type HostRequest,
 } from "./runtime.ts";
 
-export type WorkerInit = { type: "battle-host-init"; setup: BattleSetup; data: BattleData };
+export type WorkerInit = { type: "battle-host-init"; candidates: BattleSetup[]; data: BattleData };
 
 const port = parentPort;
 if (!port) throw new Error("the battle worker runs only as a worker thread");
@@ -20,7 +20,7 @@ port.on("message", (message: WorkerInit | HostRequest) => {
     return;
   }
   runtime = createBattleRuntime({
-    setup: message.setup,
+    candidates: message.candidates,
     data: message.data,
     now: () => performance.now(),
     schedule: (run, delayMs) => void setTimeout(run, delayMs),

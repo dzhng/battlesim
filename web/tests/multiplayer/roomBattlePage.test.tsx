@@ -87,7 +87,7 @@ async function open() {
   return {
     page,
     code,
-    ready: () => ready({ layout: "layout", tickHz: 30, mapIdentity: "map-identity" }),
+    ready: () => ready({ layout: "layout", tickHz: 30, mapIdentity: "map-identity", candidate: 0 }),
     crash: () => end({ kind: "crashed", message: "private worker failure" }),
   };
 }

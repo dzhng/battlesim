@@ -51,9 +51,9 @@ export function createOnlineState(
   const battles = "machines" in options ? hostedBattles(options.machines, presence) : undefined;
   const capacity = "machines" in options ? options.machines.capacity : options.capacity;
   return {
-    createBattle: (setup: BattleSetup, id: string): BattleHost => {
+    createBattle: (candidates: BattleSetup[], id: string): BattleHost => {
       if (!battles) throw new Error("battle machines missing");
-      return battles.create(setup, id);
+      return battles.create(candidates, id);
     },
     battleAddress: (host: BattleHost) => battles?.address(host),
     frontline: () => frontline,

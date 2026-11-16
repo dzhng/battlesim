@@ -12,7 +12,7 @@ try {
     appKey,
     capacity: settings.capacity,
     ttlSeconds: settings.ttlSeconds,
-    archive: fileURLToPath(new URL("battle.tar", import.meta.url)),
+    archive: fileURLToPath(new URL("battle.tar.gz", import.meta.url)),
   });
   startLobby(machines, new URL(import.meta.url), "0.0.0.0", Number(process.env.PORT));
 } catch {
