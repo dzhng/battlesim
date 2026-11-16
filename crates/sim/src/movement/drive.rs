@@ -415,9 +415,8 @@ pub fn steer(
         {
             return straight;
         }
-        // A vehicle in the way is waited for, as traffic (one that stays
-        // put is the stuck clock's to plan round); a solid has it work out
-        // a shunt.
+        // A vehicle in the way is waited for, as traffic (how long is the
+        // vehicle tick's to say); a solid has it work out a shunt.
         return match block {
             ArcBlock::Vehicle(id) => Motion {
                 yaw: unit.yaw,

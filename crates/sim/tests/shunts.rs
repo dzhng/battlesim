@@ -143,3 +143,40 @@ fn a_launcher_parked_nose_in_in_a_courtyard_shunts_out() {
     assert!(drove.reversed, "it came round in the yard without backing");
     assert!(drove.seconds < 45.0, "it took {} s", drove.seconds);
 }
+
+/// Two trucks meet nose to nose in a street, each sent past the other.
+/// Each waits a moment for the other; when neither gives way, both work
+/// their way round, and both get where they were sent. Neither waits on
+/// the other for ever.
+#[test]
+fn trucks_meeting_nose_to_nose_in_a_street_get_past_each_other() {
+    let wall = |y: f64| json!({ "kind": "wall", "center": [80, y], "yaw": 0, "half_extents": [60, 0.5, 3] });
+    let truck = |x: f64, yaw: f64| json!({ "side": "blue", "kind": "test_supply", "position": [x, 60], "yaw": yaw, "engagement": "return_fire_only" });
+    let order = |unit: u32, goal: [f64; 2]| {
+        json!({ "tick": 1, "side": "blue", "order": { "kind": "move", "units": [unit],
+        "gesture": unit + 1, "goal": goal, "route": "shortest", "direction": "forward" } })
+    };
+    let setup: ScenarioDefinition = serde_json::from_value(json!({
+        "map": { "size": [160, 120], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+                 "props": [wall(51.5), wall(68.5)] },
+        "rules": sim::fixtures::test_rules(),
+        "units": [truck(74.0, 0.0), truck(82.0, PI)],
+        "events": [],
+        "scripts": [order(0, [130.0, 60.0]), order(1, [30.0, 60.0])],
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    let hz = b.rules().tick_hz as u64;
+    for _ in 0..90 * hz {
+        b.step();
+    }
+    for (unit, goal) in [(0, [130.0, 60.0]), (1, [30.0, 60.0])] {
+        let truck = b.unit(UnitId(unit)).unwrap();
+        assert!(
+            (truck.position.xy() - sim::math::v2(goal[0], goal[1])).length() < 2.0,
+            "truck {unit} is {:?} at {:?}",
+            truck.state,
+            truck.position.xy()
+        );
+    }
+}
