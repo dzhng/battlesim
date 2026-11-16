@@ -62,7 +62,8 @@ pub struct Shunt {
     pub legs: Vec<Leg>,
     /// Metres of the first leg driven.
     pub driven_m: f64,
-    /// Where it stood when it worked the shunt out: its route runs on from there.
+    /// Where its route runs on from: where it stood when it worked the shunt
+    /// out, or when it took up a new route since.
     pub from: V2,
     /// When it worked the shunt out.
     pub tick: u64,

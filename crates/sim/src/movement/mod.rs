@@ -1,15 +1,14 @@
-//! Ground movement each tick: ask for a route when one is needed and hold
-//! until the planner has it ([`RoutePlanner`]), follow the route toward surface
+//! Ground movement each tick: ask for a route when one is needed and hold until
+//! the planner has it ([`RoutePlanner`]), follow the route toward surface
 //! speed, and learn obstacles by running into them. A vehicle drives its route
-//! as one hull, waits for every other vehicle whatever its side (Q14) until
-//! one standing in its way has stalled it ([`traffic`]), never for soldiers,
-//! and shoves bodies lighter than its push class aside ([`push`]). A wheeled
-//! vehicle in a tight spot works out the legs it shunts through ([`shunt`]).
-//! A squad
-//! plans one corridor on the coarse grid; each soldier walks it as a body of
-//! his own ([`soldier`]), with his own route on the exact bodies for the
-//! final stretch ([`final_leg`]). Craters slow a driving vehicle here, in
-//! integration only: planning never reads them.
+//! as one hull, waits for every other vehicle whatever its side (Q14) until one
+//! standing in its way has stalled it, and not at all on one parked there
+//! ([`traffic`]), never for soldiers, and shoves bodies lighter than its push
+//! class aside ([`push`]). A wheeled vehicle in a tight spot works out the legs
+//! it shunts through ([`shunt`]). A squad plans one corridor on the coarse
+//! grid; each soldier walks it as a body of his own ([`soldier`]), with his own
+//! route on the exact bodies for the final stretch ([`final_leg`]). Craters
+//! slow a driving vehicle here, in integration only: planning never reads them.
 
 use contract::command::MoveDirection;
 use contract::ids::Tick;
