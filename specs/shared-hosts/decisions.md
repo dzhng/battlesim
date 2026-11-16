@@ -1,840 +1,769 @@
 # Shared hosts: decisions ledger
 
-Settled decisions, with why and what lost. Sources: the 2026-11-16 unknowns
-walk with the user ([map](unknowns-map.html)) and four independent plan drafts
-(fewest slices, risk first, seam quality, determinism) synthesised into the
-[README](README.md). Add new entries at the bottom as implementation decides
-things the plan left open.
+The final ledger, re-audited against the shipped code when the plan closed
+(2026-11-16). Each entry is a decision the code now carries that the original
+ask did not spell out, or that the user made in the walk. Calls a later pass
+superseded or reverted are gone, and duplicates are merged. Entries are
+grouped by verdict, least confident first within each group.
 
-## From the walk
+**Who decided:**
 
-- **Several squads share a host; overflow ends up outside** (user, Q1). The
-  same for buildings and transports: the user widened the question from
-  buildings to both hosts.
-- **Seats are taken when a squad starts stepping in, never at the command**
-  (Q2; agent on the user's behalf, then locked by the user's relief remark).
-  First to arrive gets in. At the command only a squad bigger than the whole
-  host is refused. *Why:* the user's own example, "I can have one squad walk
-  over, then tell the other squad to leave, and by the time the other squad
-  reaches it'll be empty. This is GOOD, it's a feature." Lost: promising seats
-  at the command, which would refuse that manoeuvre.
-- **A squad arriving to no room ends its order with `CapacityFull`, never
-  waits** (user, Q3). The player hears why. Lost: a waiting phase (deleted in
-  September; stays deleted).
-- **One building order, `OccupyBuilding`** (territory, Q4). `Order::Garrison`,
-  `OneSquadPerBuilding`, `BuildingOccupied` and companion gathering are
-  deleted; the defender sends `OccupyBuilding`.
-- **Window swaps span every squad in the building** (user, Q5). The AT gunner
-  takes the window facing the tank whoever's rifleman held it. Lost: per-squad
-  windows split at entry.
-- **The start check ignores squads stepping out; the end check counts
-  everyone** (user, L1). Equal in and out timers per host mean a squad that
-  began leaving before you arrived is gone before you finish stepping in.
-  Lost: leavers keeping their seats (makes the relief manoeuvre a timing
-  trick).
-- **One ring per house** (user, U1): the same ring whichever occupants are
-  selected; it means "in this building", not a count.
-- **The IN BUILDING row shows seats used/total** (user, U2), like the carrier
-  Seats row.
-- **No full-host cursor warning** (user, U3). It would discourage the relief
-  manoeuvre.
-- **The relief manoeuvre is a required end-to-end test** (user).
-- **Labs show the new rule** (user, U4): two squads share, a third arrives to
-  "no room", in the garrison lab and the transport controls fixture.
-- **No backward compatibility, no migrations** (user). Hard cutover.
-- **Reinforcement needs a free seat in the host**, both hosts (shown, card 2).
+- **user**: the user's own call, in the 2026-11-16 unknowns walk
+  ([map](unknowns-map.html)) or after it.
+- **agent on the user's behalf**: decided while planning, before any code
+  (the one walk question the user delegated, or the synthesis of four
+  independent plan drafts), and not confirmed one by one by the user.
+- **territory**: forced by the existing code or the repository's standing
+  principles; the plan only had to notice it.
+- **implementer**: decided during the build, where the plan was silent or
+  delegated the choice.
 
-## From the drafts
+**Confidence** is how sure the audit is that the user would have made the
+same call.
 
-- **Entries use the old `Garrison` lowering; the proof machinery is deleted.**
-  Each listed squad's approach is `garrison::approach` from its queue's end (or
-  where it stands), with the same reach the old order used; applying the order
-  pushes `UnitOrder::Garrison { building, approach }` exactly as the old order
-  did. A squad is kept if it is within entry reach or the side's grid reaches
-  its approach. `movement/certify.rs`, the candidate search and `unproven` go.
-  *Why:* `Board` has no proof, so this is the consistent rule; the defender's
-  entries stay byte-identical by construction (the menu reel); and the old
-  proof replays the battle and requires the entrant to end up inside, which
-  the relief manoeuvre would fail. *Alternative (three of four drafts):* keep
-  the bounded proof, route each squad, and change its success to "reached the
-  building". Lost because it keeps 25 KB of machinery built for the companion
-  plan and risks changing the defender's lowering. If grid reachability gives
-  wrong answers for buildings behind rows, stop and reslice slice 01.
-- **Window-change time stays per window, on the shared plan** (three drafts;
-  corrects the map's card 3). Moving it onto soldiers changes the digest of
-  every scene with a window swap, including empty windows' history.
-- **The shared plan lives on `Battle`, keyed by the building's structure
-  owner**, created on the first admission and dropped when no living squad
-  holds the building. The digest folds it inside each occupant's hold digest
-  exactly where `digest_place` folds it today. *Alternative:* an `Arc` shared
-  between holds (one draft), lost because the per-window change time needs
-  mutation.
-- **No new selection interaction** (determinism draft). Overlapping rings keep
-  today's nearest-centre pick; soldiers and deck cards still select single
-  squads. *Alternative (three drafts):* clicking a held house selects every
-  own squad inside. Lost to the scope firewall; revisit only if the user asks.
-- **Collect refuses at the command only a squad bigger than every listed
-  carrier.** Its overflow is decided on arrival. This also fixes a latent bug:
-  an overflowing Collect today refuses whichever squad finishes its timer
-  first, because later squads' reservations already count.
-- **The building's end-of-timer failure now publishes `CapacityFull`** (it
-  drops silently today). An enemy inside stays a silent give-up.
-- **Riders are never reinforced** (`Unit::on_field` excludes them), so
-  reinforcement only touches buildings and squads stepping in beside a
-  carrier. At full capacity, supply spends neither stock nor a soldier id.
-- **The building seat total is published on `HostRef::Building`; used is
-  summed client-side** with the same phase rule as the carrier Seats row.
-  Enemy panels gain no capacity.
-- **`OccupyBuilding` goes only to infantry**, through the existing
-  `commandReach` predicate, so a mixed selection doesn't refuse the whole
-  order.
+**Terms used throughout.** A *host* is anything a squad can be inside: a
+building or a carrier (a vehicle that carries infantry). A squad's *hold* is
+its state on a host, in one of three phases: *stepping in* (its entry timer
+runs), *inside*, and *stepping out* (its exit timer runs). A *seat* is room
+for one living soldier. A building's seats are its *windows*, the exposed
+facade bays its soldiers fight from, listed in the building's *window plan*.
+`CapacityFull` is the refusal the player reads as "TOO MANY TO FIT".
 
-## Slice 00
+**Review these first:** N1 (the Paris-corner menu reel lost its deaths), N2
+(aiming at seen soldiers is limited to garrisons), U1 (the building order
+carries a field nothing reads).
 
-- **The relief test sends `OccupyBuilding` in its wire form** (JSON, no
-  `facing`), so it compiles unchanged through slice 01's contract cut. Today
-  that order is accepted and B is parked as a companion; the slice's "refused
-  with `BuildingOccupied`" holds only inside `garrison::occupy`'s entrant
-  search, not as a published refusal (slice 00, Done).
-- **The test sets its own bound**: `buildings.capacity_soldiers` is set to
-  two squads less one soldier, read from the squad's size, and the seat total
-  comes from `seats_for_state`. It asserts the scene seats either squad but
-  not both before anything else.
-- **"Seats taken never exceed the total" is asserted two ways each tick**:
-  soldiers of squads stepping in or inside (the start check's count), and
-  soldiers inside or stepping out (those at windows).
-- **The probe plays every shipped encounter**, not only the defender ones the
-  slice lists, because `UNCHANGED_OTHER_SCENES` means every encounter but the
-  contested two. Rules follow the map's category (test maps: the game's set
-  plus the test units, as labs run; capture maps: the capture set), seed 1,
-  a fixed tick count. The menu scenes therefore run seed 1, not the reel's
-  seeds; the reel's own event-log tests cover those.
-- **Single-host building cases mirror existing tests** (entry and exit with
-  re-entry, `an_atgm_gunner_trades_windows…`, the garrisoned reinforcement in
-  `supply.rs`, the `shelled` collapse); `transport/board` (`Board`, `Collect`)
-  and `transport/heli` are the single-host carrier cases.
-- **A single-squad entry is sent as `garrison` while that order exists, else
-  as `occupy_building`.** Slice 01's claim is that the second lowers exactly as
-  the first, and `UNCHANGED_SINGLE_HOSTS` checks it. Each run's `INDEX` says
-  which form ran.
-- **Contested demos**: garrison lab, rifle squads ordered in at ticks 30 and
-  330, scouts at 900; transport controls, both squads `Board` the APC at
-  tick 1. Both scenes need reshaping in slice 07 (slice 00, Confirm first).
-- **The commit key ignores changes under `crates/*/tests/`**: tests never move
-  an outcome, so a run with only test edits keys as the clean commit.
+## Needs user
 
-## Slice 01
+### N1. The Paris-corner menu reel was re-recorded with no one falling
 
-- **Grid reachability answers for a building behind a row.**
-  `NavGrid::reaches` (terrain connection plus the side's known pockets) on a
-  copy of the side's grid keeps the row-of-buildings test green; the planner
-  was not resliced. It calls open ground reachable even from a boxed-in start
-  ("the route search has the last word"), so a walled-in squad still gets an
-  entry and finds out on the way, as a `Board` would.
-- **Entries come out in unit order, each listed squad once,** so a preview
-  doesn't depend on selection order.
-- **A queued order sets off from the queue's last movement end** (a move's
-  destination or an entry's approach), with the side's orders accepted this
-  tick applied first (`Battle::move_source`), as move placement does. A
-  replacing order sets off from where the squad stands; that is the old
-  `Garrison` lowering exactly, so the defender's entries are unchanged.
-- **The clicked building resolves as the old occupy did:** the clicked part
-  as the side knows it, else another remembered part of the same building,
-  owned by its remembered structure owner.
-- **A vehicle, or a squad bigger than the whole building, refuses the whole
-  order** at the command (`NotInfantry`, `CapacityFull`), as `validate` did
-  for one squad. The client only sends squads (`commandReach`), so a mixed
-  selection never meets it; slice 03 turns the size check into per-squad
-  refusals.
-- **A squad with no entry is left as it was** (the old arm's `continue`); an
-  order where no squad gets an entry is acknowledged `NoValidDestination` and
-  applies as a no-op, like a move nobody can make.
-- **`gesture` stays on the wire but the simulation reads nothing from it:**
-  `UnitOrder::Garrison` carries none, so `UpgradeMove` never touches a
-  building order.
-- **The planning-snapshot machinery went with `certify.rs`:**
-  `WorldGeometry::planning_snapshot`, the `PropStore` overlay,
-  `SideGeometry::beliefs`/`planning_world`, the forest's clearance reset, the
-  route planner's per-request charges and `Battle::movement_context` had no
-  other reader. The probe stayed identical through their removal.
-- **`navigation.move_validation_work` and `move_rehearsal_m` now have no
-  reader.** Removing them changes the rules identity and re-records every
-  fixture that embeds the rules, which this slice's digest gates forbid; they
-  go in slice 07.
-- **A selection with no squad over a building moves to the ground point**
-  (a helicopter included). The sim test of a helicopter hovering by the
-  entrance went with companion gathering.
-- **The preview draws each entering squad's destination ring at its
-  approach, pointing the way it walks;** the accepted order then draws one
-  line per squad. Seen in the lab shot (three squads on one side of the
-  house): they share one approach, so the rings coincide (two radii for three
-  squads), sit half under the house, and the three order lines chain through
-  each other. That is `garrison::approach`'s nearest point, kept by the
-  binding lowering decision; an unprimed critique judged the shot clearer
-  than the old companion rings in the field. Not fixed here; revisit with
-  slice 06's marks if it reads badly in play.
-- **The publication vectors changed only in the refusal-name table.**
-  `codec-vectors.json` was re-blessed and its diff is `layout.orderErrors`
-  alone. `fog-sight-vectors.json` was edited by hand to drop the two names
-  from `streetLayout`: its test already fails at slice 00's commit
-  (paris-corner frame 0, the eyes upload), and its bless would also
-  re-record every run and the street stream and layout's drifted `groups`
-  and `propKinds`. That failure is open and unrelated to this plan.
+- **Who, when:** implementer, at closeout, under the user's standing
+  permission to bless a recording after inspecting it.
+- **Scenario:** The main menu plays a scripted battle at the Paris corner.
+  Blue's recon team comes under fire from a red rifle squad fighting from a
+  house. Before this plan no gun could fire at that squad (see S3), so blue's
+  recon shot at red's other squad, standing in the open, and killed one of
+  its soldiers; two more of that squad died to rounds from red's own
+  garrison passing through them. The reel's last shot framed the three
+  bodies. Now blue's recon answers the squad shooting at it, as a soldier
+  would: most of its rounds strike the house's walls, a few hit the
+  garrison, and the squad in the open loses nobody. Every unit walks the
+  same routes and the tank's scripted moves land the same; only whom blue
+  shoots changed. The reel was re-recorded as it now plays, so the menu
+  shows a firefight with no casualties, and its last shot frames eight
+  standing soldiers where the bodies lay.
+- **Gap:** The plan expected the menu reel not to move; the later
+  engagement fix (S3) moved it.
+- **Reach:** The reel is the first footage a player sees, and the
+  re-recorded event log is now what its tests compare against.
+- **Verdict:** needs-user. The mechanics read right; whether a reel with no
+  casualties is good footage is taste. **Provisional call:** keep the
+  re-recorded reel. **To reverse:** re-direct the reel's encounter
+  (`fixtures/maps/paris-corner/encounters/corner.json`, for example the open
+  squad's `soldier_hp` or the recon team's start) so deaths land on screen,
+  look at it, and re-record (`BLESS_MENU_REEL=1`). Never narrow the
+  engagement rule to get the old footage back.
+- **Confidence:** low.
 
-## Slice 02
+### N2. Guns aim at seen soldiers only when the target is a garrison
 
-- **Confirmed first:** nothing recomputes a plan after entry. `seats_for_state`
-  is otherwise called only for capacity counts (`validate`, encounter posts).
-  The readers were the listed ten plus `battle/flown.rs` (a `DamageContext`)
-  and `battle/state_digest.rs`; `carriage` reads only `entry`.
-- **Readers are methods on `Windows`** (`seat`, `body_position`, `free_seat`,
-  `faces`, `changing_window`, `facade_eyes`, `allocate`, `digest_place`), not
-  free functions taking `&Windows`. Each finds a squad's plan through its
-  hold's building, and only while the squad is inside or leaving, as the old
-  per-squad copy was empty while it stepped in. `seat_evenly` takes the plan
-  itself because it runs before the plan opens.
-- **`&Windows` rides on `FireContext` and `DamageContext`.** Elsewhere it is
-  a parameter: `sensing::{eyes, evaluate, side_sees_round}`,
-  `SideKnowledge::identified`, `supply::service`, `Unit::digest`,
-  `hold::{digest, advance}`. `Battle::windows()` exposes it to tests. The fire
-  step builds its context twice (a local macro), because allocation changes
-  windows between choosing them and firing.
-- **Plans close once a tick, at the end of `hold::advance`,** not at every
-  place a hold ends (death, collapse, retirement, a crash). A plan whose last
-  holder died waits for the next advance; nothing reads it meanwhile, because
-  every reader goes through a squad inside or leaving. Opening a plan replaces
-  any left over, so a squad seated then starts with fresh window history, as
-  before. Slice 03 must keep the replace only for the first squad seated.
-- **The digest gates the plan on the hold's phase:** a squad stepping in folds
-  an empty plan even when another squad's plan is open for the building.
-- **`battle.rs` made room by a split:** each side's sensing pass (`sense`,
-  the fog sweep, `footprint_seen`) moved to `battle/seeing.rs`, changed only
-  by the windows it now passes. It shares the refactor's commit: the size
-  ratchet compares with the previous commit, and `battle.rs` stays over budget
-  after the move, so a separate move would leave the refactor's growth
-  refused.
+- **Who, when:** implementer, after slice 07 (the "garrisons are engageable"
+  fix).
+- **Scenario:** A gun aims at a squad's middle: the average position of the
+  soldiers its side saw. S3 handles a garrison whose middle lies inside its
+  own walls by trying each seen soldier in turn. The same failure happens
+  away from buildings: seven soldiers crouched round a parked car have their
+  middle behind the car, every solution at the middle meets the car, and the
+  gunner holds fire although six of them stand in plain view. The general
+  rule ("whenever the middle can't be fired at or seen, try the seen
+  soldiers") fixes that too. It was tried and moved more than garrisons:
+  squads in the open in the air, lean and collapse test cases, the
+  market-town menu reel, a street defender squad bunched round its house
+  before stepping in, and a Paris-corner squad round a low prop. The shipped
+  rule is gated on the target being a squad fighting from a building
+  (`garrisoned` in `crates/sim/src/weapons/assessment.rs`).
+- **Gap:** The plan never expected engagement to change; the garrison lab
+  exposed it.
+- **Reach:** Every weapon's target assessment. While the gate stays, a squad
+  bunched behind any body that isn't its building can't be shot at its
+  middle and isn't shot at its visible soldiers either.
+- **Verdict:** needs-user: product direction and the cost of re-recording.
+  **Provisional call:** keep the garrison scope. **To reverse:** drop the
+  `garrisoned` gate so the fallback serves any squad, then re-record and
+  inspect what moves. The audit leans toward the general rule: the gate is a
+  case the physical rule doesn't need, the behaviour it leaves looks wrong
+  on screen, and part of the reason for the scope was that the general
+  version moved recordings, which the user's standing rule says never to
+  protect.
+- **Confidence:** low.
 
-## Slice 01a
+## Unsound
 
-- **"A squad's spacing" is the soldiers' ground, not the drawn ring.** Two
-  entries stand at least the two squads' half spreads
-  (`arrangement::spread` of each squad's living soldiers) plus
-  `infantry_movement.spacing_m` apart, so their soldiers don't mingle.
-  *Alternative:* the formation's spacing (`formation::member_radius`, the
-  cover area, plus `formation.spacing_m`), which keeps destination rings
-  clear of each other as a group move does. Lost because around a lab-sized
-  house no two points are that far apart, so every later squad would fall
-  back to the shared nearest point. The drawn rings (cover area at
-  `area_draw_scale`) therefore still overlap each other and the house; they
-  no longer coincide.
-- **A later squad's point must also be reachable.** Its candidate must be
-  apart from earlier entries *and* pass the entry's own reach test (within
-  entry reach, or the side's grid reaches it), so a spread point on a walled
-  courtyard facade never costs a squad the entry the nearest point would have
-  given it. The first squad (an empty list of earlier entries) skips both,
-  which keeps it on exactly today's path.
-- **Sampling** (delegated): the nearest-point candidates `garrison::approach`
-  always had, plus points every `APPROACH_STEP_M` along each side-known
-  exposed edge's span, standing off it like the edge candidates; points inside
-  any part are dropped; the nearest clear one wins, ties by facade order. The
-  samples are only built when the nearest point is not clear.
-- **Earlier entries are those actually given in this order.** A listed squad
-  that gets no entry reserves nothing.
-- **Gates.** The probe is identical to slice 02's commit in every group,
-  `CONTESTED` included: the garrison lab and transport demos send one squad
-  per order. Against `BASELINE` only `contested/garrison/garrison` differs
-  (tick 30), as since slice 01.
-- **The three-squad shot** (`throwaway/shared-hosts/shots/spread-*`): three
-  distinct rings (west, north-east, south-east of the house) and three order
-  lines ending at them, where slice 01 had two concentric rings and one
-  chained line. The unprimed critique still reads the lines as a chain near
-  the squads, because the lab's three squads stand in a row toward the house
-  and each line passes the squads ahead of it; that is the staging, not the
-  approach. Its other findings (no ring-to-squad link, overlapping rings, no
-  markers while walking, identical labels, the panel over a squad, hover
-  feedback) predate this slice and belong to slices 06–07.
+### U1. The building order still carries a `gesture` nothing reads
 
-## Slice 03
+- **Who, when:** agent on the user's behalf (the plan's contract table kept
+  the field); slice 01 found that nothing reads it.
+- **Scenario:** Orders sent by a right-click carry a *gesture*: a token a
+  quick second right-click (`UpgradeMove`) uses to switch that click's walk
+  to the fastest route. `Board` passes its gesture into the squad's walk, so
+  that walk can be upgraded. Before this plan the building order's entering
+  squad also walked under a move carrying the gesture. Now
+  `OccupyBuilding { units, building, gesture }` becomes
+  `UnitOrder::Garrison { building, approach }` for each squad, which carries
+  no gesture, and the client upgrades only a right-click on open ground. The
+  field travels on the wire, the encounter defender fills it with 0, and
+  nothing reads it.
+- **Gap:** The plan deleted `facing` (only companion gathering read it) but
+  kept `gesture` without asking whether anything still read it.
+- **Reach:** A wire field that looks meaningful invites future code to rely
+  on it; it is the leftover the repository's "when something replaces an old
+  mechanism, delete the old one" rule forbids.
+- **Verdict:** unsound: a contract field with no reader. **Corrected
+  decision:** the building order carries only what the simulation reads, so
+  `gesture` leaves `OccupyBuilding` (Rust contract, TypeScript protocol,
+  defender). Whether a double right-click on a house should hurry the squad
+  in is a separate decision; if wanted, it carries the gesture into the
+  entry walk as `Board` does.
+- **Confidence:** low.
 
-- **Confirmed first:** commands apply, then `carriage::advance`, then
-  `hold::advance`, then movement; `Host::timing` is one timer for both
-  directions. A squad ordered back into the building it is leaving does *not*
-  turn back: an entry order is not "wants to stay", so it finishes stepping
-  out and walks in again through admission. Only an order that keeps it in
-  place (a Stop) cancels its exit, and the tests turn a leaver back that way.
-- **The relief test was already green when this slice began.** Squad B walks
-  150 m, long after A has gone, and slice 01 had deleted the companion
-  parking; the test is un-ignored as a guard. This slice's red-to-green proof
-  is the both-hosts test, red at its first command before the code.
-- **One function, `hold::admit`, starts every hold**, called from the building
-  path in `hold::advance` and both `carriage::advance` boarding sites; the end
-  check is `hold`'s `seated`. Both read `hold::Seats::of`. The building path
-  stops the squad's movement before admission whatever the outcome, so a
-  refused squad stands where it reached the building.
-- **"Another side's squad in the building" is any hold on it** (stepping in,
-  inside or stepping out) by a living squad of another side. Same-side squads
-  share; the give-up stays silent and pops the order.
-- **A building's total is its plan's length while a living squad holds it,
-  else `seats_for_state` of the standing building.** "First squad seated"
-  (which alone opens or replaces the plan) reads the same condition
-  (`garrison::held`, which `Windows::close_unheld` now also uses), so a plan
-  left by squads that died earlier in the tick never sets the total.
-- **Seating takes windows no living soldier of a squad inside or stepping out
-  holds**, round the facades in today's order. A first squad sees none taken,
-  so single-squad seating is byte-identical.
-- **Command answers.** `hold::refuse_oversized` refuses, one by one, a squad
-  whose living soldiers exceed the whole host: Board against its carrier,
-  Collect against the largest listed carrier, `OccupyBuilding` against the
-  building's `seats_for_state` as the side knows it. A refused squad keeps its
-  orders and gets no entry. An `OccupyBuilding` whose every squad is refused
-  has no whole-order error, as Board doesn't; `NoValidDestination` now means
-  no squad got an entry *and* none was refused. Board's duplicate removal
-  keeps the order given (no closest-first sort).
-- **The building end-of-timer failure publishes `CapacityFull`** (was silent),
-  and the old silent "more soldiers than windows" drop is that same check.
-- **Tests.** `a_building_takes_one_squad_and_a_second_is_refused_until_it_leaves`
-  was already gone (slice 01's contract cut). `squads_beyond_the_seats_are_refused_closest_first`
-  merged into `a_squad_boarding_a_carrier_another_squad_fills_finds_no_room`
-  (the command refuses nothing; the latecomer hears `CapacityFull` on
-  arrival; the first stays in). The building size refusal moved into the
-  both-hosts test, leaving `a_squad_smaller_than_the_building_enters_whole_each_soldier_at_a_slot`.
-  The enemy-inside test now asserts blue never steps in and hears nothing.
-  The both-hosts test turns leavers on the building only (the carrier shares
-  `Seats`, `admit` and `seated`); its carrier half lengthens `board_s` itself
-  so the third squad of an overflowing Collect arrives while the first two
-  still step in. Each claim was falsified once: start check counting leavers,
-  no end check, no start check, and seating over held windows each turn it
-  red at the matching step.
-- **Gates.** Against the branch head before this slice (bfe6b738cc),
-  `UNCHANGED_SINGLE_HOSTS` and `UNCHANGED_OTHER_SCENES` are identical.
-  `ARRIVAL_ADMISSION_BEFORE_AFTER` moved both contested runs: the garrison
-  lab first differs at tick 1231 (the
-  scouts, then the second rifle squad, now get in beside the first: the corner
-  shop's seats hold all three squads, so its "no room" demo needs slice 07's
-  reshaping); transport controls at tick 344 (the AT squad is refused when it
-  arrives instead of stepping in and failing at its end check 29 ticks later).
+## Sound
 
-## Slice 04
+Ranked least confident first. Every one is architecture the user now owns.
 
-- **Requesters go in unit order, then today's order within a squad** (its
-  mounts in turn, each mount's shooters in member order), not strictly by
-  member index. Allocation keeps its per-squad loop over
-  `garrison_aims`; buildings never share windows, so one pass over squads in
-  unit order is the per-building pass. *Why:* a strict (unit, member) order
-  would reorder a lone squad's requests (the rifles before the launcher) and
-  move single-squad window fights, which `UNCHANGED_SINGLE_HOSTS` forbids.
-- **Who may be displaced:** a living soldier of a squad inside the building
-  whose claim, by his own squad's aims, is below the requester's need. A
-  soldier of a squad stepping out is never displaced (it keeps its windows
-  until it has left) and its windows are not free. No test pins the leaver
-  rule; the slice's test list names none.
-- **The host's free seat is `hold::Seats::free`**: total less those stepping
-  in, inside and stepping out, the same count the end check uses, so a
-  replacement can never make a squad fail its own end check. For a squad
-  inside a building that count already implies a window nobody holds, so
-  supply asks only `Seats`, and `Windows::free_seat` (now host-wide, still
-  balancing the squad's own facades) only picks the window.
-- **"Checks room when choosing the next need and again when delivering" is
-  one check.** `supply::service` chooses the need on the tick it delivers it,
-  for each recipient in turn after earlier recipients were served, so a
-  second check at delivery could never differ. With no room the need falls
-  through (to smoke, or nothing): no stock and no soldier id are spent, and
-  the replacement clock pauses, as it does for any ineligible recipient.
-- **A squad stepping into a building can be reinforced** while seats remain;
-  the replacement stands on the ground beside it and is seated with the
-  squad at the end of its timer.
-- **Where the tests live.** The new test and the rewritten
-  `a_squad_reinforced_during_entry_never_enters_only_partly_seated` live in
-  `tests/shared_hosts/occupancy.rs`, a submodule of `shared_hosts.rs` (as
-  `garrison/occupy.rs`): with the new test `shared_hosts.rs` passed the size
-  budget, and `buildings.rs`, already over it, could not take the rewrite
-  without growing. The rewrite is about host seats, not aggregate building
-  ownership, which is `buildings.rs`'s subject.
-- **The test's casualty is a tank shell with lethality the test sets**
-  (`tank_he` damage, and `building_fragment_probability_multiplier` 1): a
-  scripted burst wears props but never hurts soldiers, and with shipped
-  numbers one fragment cannot kill. The tank shells the gunner's window and
-  stops after the first death; the AT team answers and kills it, after which
-  service resumes. The rifles' alternating fire is east and west, away from
-  the tank, so their rounds don't start a fight.
-- **"Doesn't fire while changing windows" is read through
-  `Windows::changing_window`**, as the existing window tests do, and the hold
-  is checked per window from observed changes: no window changes hands within
-  `window_hold_s` of its last change, across both squads.
-- **Falsified:** holders only from the requester's own squad (the gunner
-  stacks onto the rifleman's window), claims by the requester's aims (no AT
-  rifleman ever trades), room as a free window only (the stepping-in carrier
-  and building squads are reinforced past the seats), the free window judged
-  by the squad's own soldiers (two soldiers at one window after a
-  replacement), and no room check (reinforced into the full house).
-- **Gates.** Against the branch head before this slice (2d4a124d7d),
-  `UNCHANGED_SINGLE_HOSTS` and `UNCHANGED_OTHER_SCENES` are identical.
-  `SHARED_OCCUPANCY_BEFORE_AFTER` moved only the garrison lab, first at
-  tick 1231, when the scouts are seated beside the first rifle squad. Before,
-  each squad saw the others' windows as free, so the scouts and then the
-  second rifle squad moved onto the first squad's east windows (two or three
-  soldiers per window), and the red tank's shells on those windows killed all
-  three squads by tick 1991. Now every soldier keeps his own window and the
-  garrison survives the 3000-tick run. Transport controls is identical (no
-  building, and no truck).
-- **Also fixed:** `garrison::shell` duplicated `garrison::garrisoned_in`;
-  window requests now take the hold and plan from `Windows::held`. The
-  `window_swap_s` doc said "squadmate"; it is whichever soldier he trades
-  with.
-## Slice 06
+### S1. A squad gets an entry if its side's grid reaches the approach; nothing proves the route
 
-- **The ring's key is the hold's host id, which is already the structure
-  owner.** `garrison::occupy` sends `remembered_structure_owner` of the clicked
-  part, and the hold keeps it, so `orderLayer` groups by `hold.host.id` with no
-  building index. The outline resolves through the map's building index
-  (`partBuilding`, then a remains prop's `authoredProp`), because an identified
-  enemy's `building` may name any part or its ruin.
-- **The brightest occupant paints the ring** (`ringRank`: selected, hovered,
-  the player's own over an ally's, moving, then reveal opacity). The others are
-  marked `ringShared`: their circle is unchanged, so routes still leave it and
-  picking (`unitCircle`) never sees the grouping; only the paint is skipped.
-  *Alternative:* draw the first occupant's ring. Lost because a selected squad
-  beside a revealed housemate would then read in the reveal's colour.
-- **The outline takes the first holder's colour, own before enemy.** One side
-  holds a building at a time; only a stale identification could disagree.
-- **Seen in the shots** (`throwaway/shared-hosts/shots-06/`, garrison lab, both
-  rifle squads sent in at tick 40; the enemy house by intercepting the
-  encounter fetch so two red squads occupy it, tree untouched): the leaving
-  shot's ring was the selection colour mixed with the leaver's gold and is now
-  the selection colour alone; two selected now matches one selected; the Space
-  ring was two stacked current-alpha rings and is now one, so it reads fainter.
-  Outlines, own and enemy, were coincident duplicates and are now drawn once.
-- **A squad stepping out publishes no goal**, its move waiting behind the exit,
-  so it draws no route until it is out; it then has its own moving ring and
-  route beside the house's ring. Not changed here (simulation, out of scope).
-- **Critique.** The unprimed critique saw one ring and one outline per house in
-  every state, never doubled, drawn under the model. Its other findings are
-  outside the slice variable or predate it: the Space ring's weak contrast
-  (ring colour and width are out of scope), the lab legend not matching the
-  marks (ring and route colours, the red outline, hollow occupant markers;
-  slice 07's labs), info panels over the ring, occupants drawn on the roof,
-  a sliver of fog hatching along the enemy house's wall, and a label leader
-  under the lab panel.
-- **Human review** was shown non-blocking and got no reply; closed and
-  continued on the evidence.
+- **Who, when:** agent on the user's behalf (one plan draft, over the other
+  three); slice 01.
+- **Scenario:** The player selects a squad and right-clicks a house behind a
+  row of other buildings. The order works out the squad's *approach*, the
+  point outside the house where it will stand to step in
+  (`garrison::approach`). The squad gets that entry if it already stands
+  within entry reach of the building, or if its side's navigation grid,
+  built from what the side knows, connects its start to the approach
+  (`NavGrid::reaches`). Before, the order replayed the battle ahead to
+  *prove* the squad would end up inside, which the relief manoeuvre (S36)
+  fails: the house is still full when the proof runs. Now nothing is proved;
+  like `Board`, the squad sets off and finds out on the way. The grid calls
+  open ground reachable even from a boxed-in start, so a walled-in squad
+  also gets an entry and meets the wall en route. The rejected alternative
+  (three drafts) kept the bounded proof with "reached the building" as its
+  success, about 25 KB of machinery built for companion gathering, and
+  risked changing how the encounter defenders enter.
+- **Gap:** The plan had to say how an order naming several squads decides
+  which of them can get there.
+- **Reach:** Anything that later wants guaranteed reachability at the
+  command needs its own check. The building order and `Board` share the
+  stance.
+- **Verdict:** sound: one rule with `Board`, keeps the relief manoeuvre
+  possible, and the building-behind-a-row case answers correctly.
+- **Confidence:** medium.
 
-## Slice 05
+### S2. Squads sent into one house together take approaches apart
 
-- **Confirmed first:** `seatsRow` counts every own squad whose hold names the
-  carrier, in any phase (boarding, aboard, getting out), by living soldiers.
-  The IN BUILDING count uses the same sum (`seatsTaken`) over the own squads
-  whose hold names the same building, so stepping in and stepping out count,
-  as admission's end check does. The side's whole list is counted, an ally's
-  squads included, as the simulation's `Seats` does.
-- **The published total is `hold::Seats::of(..).total`,** the number
-  admission counts against: the plan's length while a squad is inside or
-  leaving, else `seats_for_state` of the standing building. `hold::state`
-  therefore takes the units and the windows. The relief test asserts every
-  tick that each squad holding the house publishes that total (falsified by
-  publishing the plan's length alone: 0 while the first squad steps in).
-- **Wire name `hostSeats`,** an own-row field after `hostHalfY`, -1 for a
-  carrier or no hold. The reader's view and the browser's `HoldHostView`
-  carry it as `host.seats` on a building only.
-- **Row text `IN BUILDING · SEATS used/total`.** The first take,
-  `IN BUILDING used/total`, was read by the unprimed critique as men left of
-  a full squad (beside the strength pips); naming the count SEATS, the
-  carrier row's word, removes that and keeps one word for one concept. The
-  mid-dot is the panel's existing separator. Only the inside row changes:
-  entering and leaving keep their timer rows and show no count, and the
-  compact card still shows only the house icon by the name (the row is not
-  `compact`), because the slice variable is the row's text.
-- **Room under the size ratchet, moved by concept, in the same commit**
-  (the ratchet compares with the previous commit): a group's delivery
-  operations to `publication/operations.rs`, the reader's hold decode to
-  `publication/reader/hold.rs`, the carrier orders' command-time refusals
-  from `Battle` to `hold::refuse_oversized_riders`, and the shout
-  publication tests to `tests/publication/shouts.rs`. The probe of the moves
-  alone (before the field) was identical to the starting commit in every
-  group.
-- **Publication records.** Re-blessed natively: the five paired streams
-  change only `publication_sha256` (digests and fog hashes unchanged), and
-  `codec-vectors.json` changes only the own group's fields (`hostSeats`
-  inserted), one more word per vector, and `seats` added by hand to the
-  building hosts of its frames (12).
-- **Not re-recorded: the capture files and what reads them.** A new own
-  field makes every capture's layout unreadable to the reader, and
-  `fixtures/README.md` asks for a fresh browser run. The native re-publish
-  path (`capture_publication::refresh`) cannot stand in: each capture's
-  recorded battle digests no longer match today's battle (paris-corner run
-  and counts from tick 551, the market-town window at 1825), and the probe's
-  `BASELINE` already has today's digests at those ticks, so the drift
-  predates this plan. Left for slice 07's browser capture run, where the
-  plan already puts it (`native-parity-capture`, GPU, visible page): the
-  paris-corner run and
-  counts, the market-town window, both `*-observations.json`, and then one
-  `BLESS_PARITY=1` of `fog-sight-vectors.json` (its street layout and every
-  run), `poses` and `effects`. Until then `publication_reader`,
-  `captureObservations`, `fog_sight` and the presentation and native-client
-  tests that read the captures fail at the reader's layout check.
-- **Critique.** The second unprimed critique judged the new row better than
-  the bare IN BUILDING and saw no clipping. Its other findings predate the
-  slice or lie outside its variable: row order (lasting rows first), compact
-  cards and stepping in or out showing no count, the timer ring wider than
-  the icon column, repeated icons, faint empty pips, the small house glyph,
-  and the long row setting the panel's width.
-- **Panels baselines** re-approved after inspection: own states, own busiest
-  and over grass (the specimens inside a building, and the neighbours they
-  push right), both army-deck garrison-exit hovers, and the new shared-house
-  group.
-- **Human review** was shown non-blocking (shots in
-  `throwaway/shared-hosts/shots-05/`) and got no reply; closed and continued
-  on the evidence.
+- **Who, when:** implementer (slice 01a, added after an unprimed critique of
+  slice 01's preview; the sampling was delegated).
+- **Scenario:** Three squads on one side of a house are sent in by one
+  order. With only the nearest approach, all three would stand on the same
+  point: their destination rings stacked half under the house and their
+  order lines chained through each other. Now squads are taken in unit order.
+  The first takes the nearest approach exactly as a lone squad would. Each
+  later squad takes the nearest point it can reach whose ground (half its
+  soldiers' spread, `arrangement::spread`) stays
+  `infantry_movement.spacing_m` clear of every earlier entry's ground, so
+  their soldiers don't mingle; with no such point it takes the nearest
+  anyway. Candidates are the old nearest-point ones plus points sampled at a
+  fixed step along each exposed facade the side knows, dropped if inside any
+  part. Only squads actually given an entry reserve ground. The preview
+  draws each squad's destination ring at its approach, and the accepted
+  order draws one line per squad. The rejected spacing was the formation's
+  (the drawn ring's size), which around a lab-sized house left no two points
+  far enough apart; so the drawn rings still overlap each other and the
+  house, but no longer coincide.
+- **Gap:** The plan gave each squad the old single approach; the shot showed
+  it stacking.
+- **Reach:** Any later entry feature (a waiting area, a group entry
+  formation) starts from this spacing rule.
+- **Verdict:** sound: spacing by the soldiers' real ground is the physical
+  quantity, and a single squad's path is untouched.
+- **Confidence:** medium.
 
-## Slice 07 recordings and docs
+### S3. A gun fires at a garrison's soldiers at the windows its side sees
 
-- **The unread navigation rules went with their paired records re-recorded
-  as a named decision.** `exact-numbers`, `skirmish-purchases` and
-  `skirmish-objectives` lose only the two keys: the two skirmish records
-  refused to parse under the cut contract, so they were hand-edited first,
-  and the bless then wrote them back byte for byte, every digest row
-  included. The generation corpus's frozen physical rules are hand-edited the
-  same way, as its doc requires. The probe at the cut is identical to the
-  starting commit (f843abb3ca) in all 61 cases.
-- **The tweak-mechanics principle now reads "a side plans from what it
-  knows: all of it, and nothing more".** The parts that named the snapshot's
-  machinery (journal cursors, retry budgets, timers prolonging a check) went
-  with it; what lasts is keeping every observed body and never reading, or
-  rebuilding, an opponent's private state.
-- **One browser run films both scenes**, as the fixture was last filmed:
-  indicators and cards off, so the manifests name the same layers as before.
-  The paris-corner run is copied as the browser wrote it. Its publications
-  are byte-identical to the native publisher's at every sample (the bless's
-  `capture_publication::refresh` rewrote the file only in key order, and was
-  undone), and its digests match today's battle, so the run also proves
-  slice 05's drift is the battle's, not the browser's. The market-town window
-  is rebuilt from the same run (`PARITY_RUN`), and its check against the run
-  passes.
-- **What moved, and why each part is explained.** Layout: `hostSeats` in the
-  own group, and the two refusal names slice 01 deleted, in both captures and
-  (the field only) the street layout. Battle: paris-corner observations and
-  fog vectors are identical up to tick 550 and differ from tick 551, the
-  drift slice 05 recorded; the market-town window differs throughout (its
-  recorded digests already disagreed at 1825). The street stream's fog frames
-  and stats are unchanged. No observation carries a building's `seats`: the
-  captures are blue's view and blue holds no building in either reel. Poses
-  moved because a fresh run has its own frame timing (4441 frames against
-  2460, so frame 435 is at 5.8 s instead of 9.3 s); their counts are
-  unchanged. The effects plate counts held without a bless.
-- **The native counts fixture needed its own count-only run** (the brief named
-  two captures; this paris-corner run is the third), since its old layout
-  refuses to decode and its refresh would assert the drifted digests.
-- **The menu reel is unchanged:** its four event-log tests pass unblessed.
-- **The garrison module doc needed no change;** an earlier slice wrote it for
-  shared hosts. The contract README now says a building publishes its seat
-  total and seats used is summed from holds. The defender's posting choice is
-  stated in `Post::Garrison`; the planner's module doc says "its own
-  building" only, because `encounter/mod.rs` is over the size budget and may
-  not grow.
-- **The battle-foundation superseded note links `../../shared-hosts/`,**
-  which `close-spec` must point at `specs/done/shared-hosts/` when it moves
-  this plan.
-## Slice 07 labs
+- **Who, when:** implementer, after slice 07.
+- **Scenario:** Two squads share a house and stand at windows on every
+  facade. A tank sees them and its side records where each soldier was. Its
+  gun aims at the squad's middle, the average of those positions, which
+  lies inside the house: every firing solution met the house's own walls,
+  and a tank at fire at will never fired at a full house. Now, when a
+  garrison's middle can't be reached or seen (`BlockedTrajectory`,
+  `NoOwnSight`), the assessment tries each soldier the side saw at the last
+  sighting, in the order its rounds walk them, and fires from the first one
+  it can hit. Every weapon reads it, guided ones included. Fog is kept (only
+  soldiers in the side's track count), and the building's shell still stops
+  every round that meets it.
+- **Gap:** Shared houses were the first time a garrison's middle sat inside
+  its walls; nothing planned for it.
+- **Reach:** Garrisons are now targets in every scene; this is what moved
+  the Paris-corner reel (N1). Its scope is N2.
+- **Verdict:** sound: a soldier in a window is visible and shootable, and
+  this is what a viewer expects.
+- **Confidence:** medium.
 
-- **The garrison lab's house seats the two rifle squads exactly, through the
-  encounter's own rules** (`overrides.buildings.capacity_soldiers`), shipped
-  rules untouched: the corner shop's windows seat all three squads otherwise.
-  The cast moved so arrival order tells the story: the first rifle squad
-  starts where the scouts stood, the second behind it, the scouts furthest
-  back, all on the house's east–west line, in its shadow from red's squad.
-- **The scene sends the second rifle squad and the scouts together, after
-  the first squad's HIDDEN and panel checks.** The second starts nearer, so
-  it is in before the scouts arrive; a staging check (seats left against the
-  scouts' size) guards that. Sending it at the start put its soldiers in
-  front of the first squad's projected heads during the walls-and-roofs check.
-- **The walls-and-roofs check counts added light only.** On the
-  overlays-on-black view a ground-floor occupant's body hid its own occupant
-  pad (light taken away), which the symmetric pixel difference read as paint
-  once a rifle squad held the near facade's ground floor. Paint through a
-  wall adds light. Not falsified against a body that really paints through
-  (no such state is reachable without changing the renderer).
-- *Superseded by "Garrisons are engageable" below: the tank is back on
-  `set_engagement fire_at_will` at tick 1500 and shells the occupants it
-  spots.* **Red's tank shells the house by a scripted ground attack**, not
-  `set_engagement fire_at_will`. With 16 seats both squads sit on every
-  facade, red's identified positions are their squads' middles inside the
-  house, and the tank's every solution is `BlockedTrajectory` (a native run
-  of the encounter, and the lab scene, where it never fired in the 5,000
-  ticks after it was free to). With 32 seats the first squad's middle lay on
-  the east facade and it fired. This is a
-  simulation property the lab exposed, outside this plan: a garrison whose
-  middle lies behind its own walls is never engaged by a gun aimed at it.
-- **The scouts wait at the door after their refusal**; "Scouts fall back
-  west" is deleted. At (250, 250) the tank sees them past the house's south
-  corner and, with durable lab soldiers, shelled them indefinitely. At the
-  door the house hides them from both red units. They cross the ruin
-  afterwards (was the second rifle squad, now inside).
-- **No voice in the labs.** The refusal's voice line is `UnitResponses`
-  answering an observed refusal; labs run without sound, so the lab shows the
-  callout and the scenes check the published `capacity_full` refusal. The
-  voice path is covered in `web/tests/unitResponses.test.ts` (a refusal on
-  arrival is answered when the side observes it).
-- **The arrival callout reads "TOO MANY TO FIT"**, as the command-time one:
-  one reason, one text. Unchanged.
-- **The garrison lab shows per-unit refusals** (`RejectedOrder` gets
-  `session.refusals`, as the transport lab and `BattleView` already did);
-  before, an arrival refusal said nothing there.
-- **Scenes read an arrival refusal tick by tick** (`until` with a step of 1
-  while waiting): a refusal is in only its own tick's observation. A lab
-  probe of the accumulated log would grow `useBattleSession.ts`, over the
-  size budget.
-- **Transport controls adds a recon team.** The AT team and the recon team
-  share the APC; the rifle squad, which fits the APC alone so the order is
-  accepted, arrives to no room. `pairs` derives every role from catalog seats
-  and squad sizes. Collect moved after the APC's unload (the squad it
-  collects rides the APC until then), and `over` points at the soldier
-  furthest from other units: a squad just unloaded stands round its carrier,
-  and its first soldier was under the hull, so the click hit the carrier.
-  "U twice" now follows the collect at once, so it first waits for the
-  carrier's rider card: U reaches only a carrier the page has drawn with
-  riders, and with other scenes running beside it the first press once came
-  before that render and was dropped.
-- **The cursor scene's "every squad the order names steps in"** expected one
-  squad inside (the old one-squad rule; red at this branch's head). It now
-  expects both: the lab's house seats them.
-- **Legend:** own and enemy held outlines in their HUD side colours (was one
-  blue swatch for both), the selected squad's ring and route in the selection
-  orange (was a pink no mark uses), "blue fallen" removed (fallen soldiers are
-  models, not an overlay mark), "perimeter slot" now "window". The tutorial's
-  "shelters a whole squad" became "every soldier inside" with the building
-  line.
-- **The UI scene's `refused-order` picture was re-approved** after
-  inspection: since slice 01 its specimen refuses `capacity_full`, but the
-  approved picture still read the deleted "BUILDING TAKEN". Only the
-  callout's words changed.
-- **Gates.** The probe against this branch's head before the labs: every
-  single-host and other-scene case identical; only the two contested demos
-  moved. The garrison, transport, cursor and UI scenes pass. Before and after
-  (`throwaway/shared-hosts/shots-07/cmp/`): the scripted transport board
-  shot is identical; the garrison and controls shots differ only where the
-  cast, the staging and the legend changed.
-- **Critique.** The unprimed critique's first finding is real and comes from
-  sharing: two squads in one house anchor their info cards at the same
-  spot, so the second rifle squad's card lies hidden under the first (its
-  strength bar peeks out). Panel placement is outside the labs' scope; it
-  needs its own fix before close. Also from it: the hovered squad's cyan ring
-  had no legend entry (added). Its other findings predate this slice or are
-  intended: callouts under the lab panel, washed out in smoke or over the
-  fireball, a leader line through a callout's text, rounds drawn as thick
-  bars, translucent cards over the roof, and selected or own soldiers behind
-  the house drawn as the x-ray silhouettes on the roof by design.
-- **Human review** was shown non-blocking and got no reply; closed and
-  continued on the evidence.
+### S4. Window swaps run over every squad in a house, and a leaving squad keeps its windows
 
-## Garrisons are engageable
+- **Who, when:** implementer (slice 04), within the user's decision that
+  swaps span the building (S33).
+- **Scenario:** A house holds squad A (riflemen) and squad B (an AT
+  gunner). A tank appears east. The gunner wants the east window, which A's
+  rifleman holds. Each tick the building's soldiers request windows facing
+  what their weapons aim at: squads in unit order, and within a squad its
+  weapons in turn, each weapon's shooters in member order. A soldier facing
+  already stays; otherwise he takes a free facing window, or trades with the
+  soldier at the nearest facing window who needs it less. *Needs it less* is
+  judged by that soldier's own squad's aims: the lone operator of a weapon
+  (the AT gunner, a grenadier) outranks one of a squad's many riflemen,
+  whichever squad either is in, never the reverse. A squad stepping out is
+  never displaced and its windows are not free until it has left. The
+  rejected order, strictly by (unit, member), would have reordered a lone
+  squad's own requests and changed single-squad window fights.
+- **Gap:** The plan said "stable unit and member order" without seeing it
+  would reorder a lone squad.
+- **Reach:** Every garrison fight. No test pins the leaver rule.
+- **Verdict:** sound: one allocation per building, single squads unchanged.
+- **Confidence:** medium.
 
-- **A gun aims at a garrison's soldiers at the windows its side sees.** A
-  squad is aimed at the middle of the soldiers its side saw at the last
-  sighting. Squads sharing a house stand at windows on every facade, so that
-  middle lies inside the walls, and every solution met the house's own
-  shell (`BlockedTrajectory`): the "Red's tank shells the house by a
-  scripted ground attack" finding above. Now, when a garrisoned target's
-  middle can't be reached or seen (`BlockedTrajectory`, `NoOwnSight`), the
-  assessment tries each soldier its side saw, in the order launch walks
-  them, and launch starts from the one it found. Every weapon reads it,
-  guided ones too; fog is kept (only soldiers in the side's track); the
-  shell still stops every round. Proof: `shared_hosts::engaged` (a tank off
-  a corner of a house two squads fill, every middle red holds inside the
-  walls) never fired before and fires now.
-- **Scoped to a garrisoned target, not to any squad whose middle is
-  blocked.** The general rule ("aim at seen soldiers whenever the middle
-  can't be fired at") also moved squads in the open: the air, lean and
-  collapse cases and the market-town menu. Scoping it to a middle inside a
-  body still moved two non-garrison moments: a street defender squad
-  standing round its house at tick 1, about to step in, and a Paris-corner
-  squad round a low prop. Both look wrong as footage today (a gunner holds
-  fire at seven soldiers because their middle is behind a car), so the
-  general version is an open follow-up for the user, not part of this fix.
-- **What moved** (probe, against this branch's head before the fix): the
-  contested garrison lab from tick 2013; `street/street` from tick 64,
-  `street/rear` from 62 and `paris-corner/corner` from 300, each first move
-  a shot at a squad inside a house (the street attackers at red's posted
-  defenders, Paris blue's recon at red's garrisoned rifle squad). Every
-  single-host case and every other scene, the market-town menu included,
-  is identical at every tick.
-- **The Paris-corner menu reel moved and is not blessed.** Its event log
-  first differs at event 48 (tick 323). Blue's recon and rifle squads now
-  fire on red's garrisoned rifle squad: blue rounds into the house's shell
-  rise (recon 64 to 108, tank 5 to 12), blue hits on the garrison's soldiers
-  go from 8 to 9, red's garrison fires 462 rounds instead of 585. Blue puts
-  far fewer rounds into red's second squad in the open (recon hits 34 to 1),
-  so that squad loses none of the three soldiers it lost before. It needs a
-  re-direct or re-record and the user's look before it is blessed.
-- **The garrison lab's tank can go back to fire at will.** Natively, with
-  the scene's entries scripted and `set_engagement fire_at_will` at tick
-  1500, the tank fires its first round at 1551 on the first rifle squad in
-  the house. Reverting the encounter's tick-1500 order, the lab's
-  `tankOpensFire` script lookup and the scene's comment is left to the
-  labs' owner (separate checkout).
-## Cards of a shared house
+### S5. A squad stepping into a building can be reinforced while seats remain
 
-- **What the labs' critique saw was the hovered card, not a shared anchor.**
-  A squad's card hangs off its members' middle, and the two rifle squads'
-  middles lie metres apart in the house. At near and default zoom their
-  compact cards sit apart and read. In the scene's frames the pointer rests
-  on the first squad's card, which opens in place over the card above it.
-  Every card has followed that rule since `2a71dd842` (hovering moves
-  nothing; a hover layout used to slide cards out from under the pointer),
-  so it stays.
-- **The shared spot is real from far off.** From about 900 m out to the
-  far view's switch, the two middles project inside each other's anchor
-  square. Each leader then started inside the other unit's square, the rule
-  that a leader keeps off other anchors refused every spot, and **both**
-  cards hid.
-- **Rule: units on one spot (`oneSpot` in `readoutLayout.ts`, each anchor in
-  the other's square) are spared the two rules their shared start breaks**:
-  a leader keeping off the other's anchor, and the two rises meeting. Every
-  other rule still holds between them: no overlap, no leader across a card,
-  no foot crossed. This is the existing collision layout, not a garrison
-  case: any units that project to one spot get it. Sparing them the "nearer
-  another unit" penalty as well was tried and dropped, because no case
-  needed it.
-- **Not changed:** in the far view (`overlap`), cards still sit at their
-  natural spots and overprint, as every far-view card does. With Space held,
-  open cards still overprint.
-- **Gates.** The test "squads on one spot all show" in
-  `web/tests/readoutLayout.test.ts` covers three squads on one point and
-  three a pixel or two apart. It was red before the fix (no card shown), and
-  so was the lab (both rifle cards hidden at 900 m, 950 m and 990 m). Each
-  half of the rule was falsified on its own: without the anchor exemption
-  both arrangements hide every card, and without the rise exemption the
-  on-one-point arrangement does. The garrison and panels scenes pass, with
-  every approved panels picture unchanged. Before and after
-  (`throwaway/shared-hosts/shots-cards/cmp/`): the near and default shots,
-  selected and unselected, are identical. At 950 m both rifle cards now show,
-  apart, their leaders splitting from the house.
-- **Critique.** The unprimed critique saw no card over another and no
-  leaders crossing in any state. Its other findings predate this change (the
-  near and default shots are unchanged) or fall outside it. Both cards read
-  "RIFLE SECTION" while the lab's buttons say "#0" and "#1". Leaders end on
-  the roof, and cards lie over the building. The far ring is a smudge, and
-  there is one ring whichever squad is selected. The card backing is
-  blurred, the icons are small and dim, and the occupant dots are faint.
-- **Human review** was shown non-blocking and got no reply; closed and
-  continued on the evidence.
-## Closeout
+- **Who, when:** implementer (slice 04).
+- **Scenario:** A squad of seven is walking into a house with ten seats
+  free when a supply truck delivers a replacement soldier. He is added to
+  the squad while it is still stepping in: he stands on the ground beside it
+  and is seated with the squad when its entry timer ends. If the house had
+  no free seat, he would not be delivered (S18).
+- **Gap:** The plan named reinforcement inside and at carriers, not during
+  entry.
+- **Reach:** Supply and entry timing interact here; the end-of-timer check
+  (S35) counts him.
+- **Verdict:** sound: the seat count already includes squads stepping in,
+  so he can never make his own squad fail.
+- **Confidence:** medium.
 
-- **The garrison lab's tank is back on fire at will** (encounter tick 1500
-  `set_engagement fire_at_will`, the lab's `tankOpensFire` reads that
-  script, the lab's header comment and the scene's say so). The garrison
-  scene passes unchanged, all 40 checks: entries and the scouts' refusal
-  done at 1247, the tank free at 1500, its rounds on the house's walls by
-  1574, the house down at 1938, and both rifle squads and the scouts alive
-  afterwards, the scouts crossing round the ruin. No scene expectation
-  needed changing.
-- **The Paris-corner menu reel is re-recorded (`BLESS_MENU_REEL=1`) after
-  inspection; the footage lost its casualties.** The log first differs at
-  tick 323 and ends at the same tick (1290); 1,983 events against 2,128.
-  Every move is unchanged: sampling every unit's position every 30 ticks,
-  the fix and the commit before it walk the same routes to within a metre
-  or two, the tank's four scripted moves and two ground attacks (HE at 944
-  and 1125) land the same, and nobody is stuck. What changed is only whom
-  blue shoots: blue's recon, under fire from red's garrisoned rifle squad,
-  now answers it (the return-fire threat ranks first, and the garrison is
-  now an assessable target), so most of its rounds strike the house's shell
-  (prop hits 64 to 108) and 5 strike the garrison's soldiers, while its
-  hits on red's squad in the open drop from 34 to 1. Under the fire coming
-  back, red's garrison fires 459 rifle rounds instead of 581. The mechanics
-  read right: a squad shot at from a house fires back at the house.
-- **The cost as footage: no one falls.** The approved reel had three red
-  deaths, all in the squad in the open: one to blue's recon (tick 537,
-  shot 3) and two to rounds from red's own garrison passing through its
-  squad (872 and 919, shot 5). The last shot frames that squad's position
-  (279, 211) with its three fallen; now it frames eight standing soldiers.
-  No followed unit falls in either version. The reel was not rendered; it
-  needs the user's look, and probably a re-direct (the open squad's
-  `soldier_hp`, or the recon's start) to put deaths back on screen.
-- **The full check ladder ran once, at `f4168d40d`.** Format, lint
-  (ESLint, Clippy with warnings denied, Oxlint), the WebAssembly and tool
-  builds, typecheck and the Rust workspace (2,407 tests) pass. The web suite
-  had five failures, none from this plan: four read source art this
-  checkout had not fetched (each roster jet's source GLB, the disabled
-  cards' models, the Stinger gunner and the launcher clips: 40 LFS files,
-  now fetched, and the icon and jet tests pass), and one test fixture
-  was stale (`battleRules.test.ts`: fielding reads each type's mobility
-  before the mounted-look check, so its bare gunner row was refused for
-  that; the gunner is now the test tank's resolved type, its own commit).
-- **Every browser scene ran once.** The disk filled during the first run
-  (ENOSPC from the projectiles scene on), so every scene that failed or
-  never reported was run again after freeing this checkout's incremental
-  build cache. Two needed fixes: the city scenes needed their template
-  sources fetched, and `allies` drew no frame after aiming, so its box
-  projected through the previous camera and threw when the pair stood
-  behind it (its own commit; bisecting landed on a pure code move, so the
-  battle path only exposed the race). Left red, each failing with the same
-  numbers at this plan's first commit (e2c946e0a), so not this plan's:
-  `ground` (five checks: ruts, pavement, walks, town edge, grass on
-  paving), `facade` (a room takes no sun), `readouts` (the backing under
-  the bright underline), `sensors` (a firing contact's status line),
-  `sound` (the far sound's high end) and `unit-roster` (four approved
-  pictures, also recorded as predating the colour grade in
-  `specs/smoke-screen/choices.md`). They need their owners' decisions, not
-  a closeout fix.
-- **The balance report shows no shift.** Paired at the plan's first commit
-  and at this branch's head, both release builds: `skirmish_tournament
-  --corpus` gives the same battle digest, status, accepted orders, spend
-  and replay match in all nine rows, and `battle_sweep` (10 seeds of every
-  map type and size, 30 s) the same digest in all 120 rows, with the same
-  one refusal (metro medium seed 8 places no assault, a generation refusal
-  at both). Neither workload garrisons two squads in one house or engages a
-  garrison whose middle is inside its walls, so the plan's mechanics are
-  proven by their own tests and scenes, not by this report.
-## Whole-spec review
+### S6. A squad ordered back into the building it is leaving finishes leaving, then is admitted again
 
-Scope: the whole feature's diff (`e2c946e0a..HEAD`), less the unrelated
-fixes the Closeout names (the `battleRules` fixture, `allies`' frame).
+- **Who, when:** territory (existing hold behaviour, confirmed in slice 03).
+- **Scenario:** Squad A is stepping out of a house. The player orders it
+  back in. An entry order is not "stay where you are", so A finishes
+  stepping out, walks to the approach, and goes through admission like
+  anyone else; if another squad took the seats meanwhile, A is refused.
+  Only an order that keeps A in place (a Stop) cancels its exit and keeps
+  its seat.
+- **Gap:** The plan asked whether a re-entry order cancels an exit.
+- **Reach:** The relief manoeuvre's timing, and any future "turn back"
+  control.
+- **Verdict:** sound: one admission path; no seat is held by intent.
+- **Confidence:** medium.
 
-- **Every invariant holds in the shipped code.** `hold::admit` is the only
-  constructor of `Phase::Entering` (the building path in `hold::advance` and
-  both `carriage::advance` boarding sites call it). Its start check counts
-  `Seats::staying` (stepping in or inside); `seated`, the end check, counts
-  `staying + leaving`. A refused squad pops its order and stands; nothing
-  queues it. Any other side's hold on the building, in any phase, makes the
-  entrant give up silently. A building hold starts at `Entering(1)` and is
-  not advanced that tick; a carrier hold, admitted in `carriage::advance`,
-  advances in the same tick's `hold::advance`.
-- **Every decision is implemented or needs no code.** The walk's and
-  drafts' rules each have their owner (seats and admission in `hold`, the
-  window plan and its per-window change time in `garrison::windows`, the
-  lowering in `garrison::occupy`, the ring and outline in the lab's
-  overlay, the IN BUILDING row in `panelRows`). Needing no code: no full-host
-  cursor warning, no new selection interaction, riders never reinforced
-  (`Unit::on_field` already excluded them). Not code: the Paris-corner reel
-  still wants the user's look (Closeout).
-- **No duplicate owners remained across slices.** Host seats, admission,
-  window plans, approach selection and command refusals each have one owner;
-  no building-only or carrier-only copy survives.
-- **The building badge's separate "someone can enter" flag went.** Since
-  slice 01 the pointer intent names only squads (`commandReach`) and falls
-  through to a ground move with none, so the flag the lab passed to
-  `cursorForIntent` was always true for a building intent. The badge now
-  shows while the answer is pending, as before, from the intent alone;
-  `useUnitControl`'s `entersBuildings` had no other reader.
-- **Leftovers of the planning snapshot deleted:** `WorldGeometry::props_from`
-  and `PropStore::iter_from` had no reader once `SideGeometry::beliefs`
-  went, and the world's prop-store comment still described a snapshot
-  sharing it.
-- **Old words in tests and a scene:** a test comment said move admission
-  "rehearses the walk" (it never did; that was the entry proof), a wait was
-  labelled "selected holder inside", the garrison scene's header named the
-  plan, and `garrison/occupy.rs` kept its own building-order helper beside
-  `garrison.rs`'s (the gesture it took is read by nothing). The order
-  planner counts a squad's seats through `hold::living`.
-- **Left as they are:** `PropStore` keeps its shared, copy-on-write bodies
-  (a cheap clone of the world, whoever clones it); `exit_spots` and the
-  movement code keep their own living counts (not seats). The navigation
-  search's "certified link" and the map generator's sight certificate are
-  their own concepts, not the deleted entry proof.
-- **Gates.** The probe at the review's last code commit (af9791674) is
-  identical to the head before the review (e9abab6cc) in all 61 cases,
-  `CONTESTED` included. Against `BASELINE` it moves only what the ledger
-  already names: the two contested demos and the three scenes
-  "Garrisons are engageable" moved. Clippy (sim, contract, all targets,
-  warnings denied), the sim's garrison, shared-hosts, transport, buildings,
-  supply and entry-reach tests with the world and hold unit tests, the web
-  typecheck, and the order-preview, unit-control, one-mark, readouts and
-  buildings web tests pass.
+### S7. No new selection interaction for a shared house
+
+- **Who, when:** agent on the user's behalf (one plan draft, kept as a scope
+  firewall).
+- **Scenario:** Two of the player's squads share a house and draw one ring
+  (S24). Clicking it selects one squad, the one whose centre is nearest the
+  click, as overlapping rings always did; clicking a soldier or a deck card
+  selects that squad. The rejected alternative (three drafts) made a click
+  on a held house select every own squad inside.
+- **Gap:** One ring per house raised what clicking it selects.
+- **Reach:** A player can't grab a whole shared garrison in one click.
+- **Verdict:** sound: no new interaction without the user asking.
+  Revisit only if the user wants it; it would be its own selection change.
+- **Confidence:** medium.
+
+### S8. A right-click on a building with no squad selected moves to the ground point
+
+- **Who, when:** implementer (slice 01).
+- **Scenario:** The player selects a tank (or a helicopter) and right-clicks
+  a house. The building order goes only to infantry squads
+  (`commandReach`), so with no squad selected the click is an ordinary move
+  to that point. A helicopter used to hover by the entrance as a
+  "companion" of an entering squad; companion gathering is gone.
+- **Gap:** Deleting companion gathering left vehicles' building clicks
+  undefined.
+- **Reach:** Mixed selections: the squads get the entry, vehicles move.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### S9. The IN BUILDING row reads `IN BUILDING · SEATS used/total`
+
+- **Who, when:** user (seats used of total on the row, like the carrier's
+  Seats row); implementer for the wording (slice 05).
+- **Scenario:** A player selects one of two squads sharing a house. Its
+  panel's IN BUILDING row shows the house's seats taken of its total, the
+  word SEATS as on a carrier's row. *Used* counts the living soldiers of
+  every squad on the player's side whose hold names that house, in any
+  phase, allies included, as admission counts. The first take,
+  `IN BUILDING used/total`, was read beside the strength pips as men missing
+  from the squad; naming the count SEATS fixed that. Only the inside row
+  changes: stepping in and out keep their timer rows, and the compact card
+  shows only the house icon.
+- **Gap:** The user named the content, not the words.
+- **Reach:** One word for one concept on both hosts' panels.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### S10. The garrison scene's walls-and-roofs check counts added light only
+
+- **Who, when:** implementer (slice 07).
+- **Scenario:** A browser scene checks that occupant overlays never paint
+  through walls: it renders overlays on black and compares pixels. Once a
+  rifle squad held the near facade's ground floor, an occupant's body hid
+  his own pad, which takes light away, and the symmetric pixel difference
+  read that as paint. Paint through a wall adds light, so the check now
+  counts only added light. It was never tested against a body that really
+  paints through, because no such state can be reached without changing the
+  renderer.
+- **Gap:** The check assumed one occupant per facade.
+- **Reach:** Whoever touches overlay depth testing relies on this check.
+- **Verdict:** sound: it measures what the rule is about. It is not
+  falsified against a real failure.
+- **Confidence:** medium.
+
+### S11. A building's window plan closes once a tick, after every hold has advanced
+
+- **Who, when:** implementer (slices 02 and 03).
+- **Scenario:** The last squad in a house dies to a shell. Its plan isn't
+  dropped at the death; plans whose building no living squad holds are
+  closed once per tick at the end of `hold::advance`
+  (`Windows::close_unheld`). Nothing reads the plan meanwhile, because every
+  reader goes through a squad inside or leaving. The first squad seated in a
+  house no living squad holds opens a fresh plan, replacing any leftover, so
+  it starts with fresh window history.
+- **Gap:** The plan said "dropped when no living squad holds it", not when.
+- **Reach:** Any new place that ends a hold need not remember to close the
+  plan.
+- **Verdict:** sound: one closing point instead of one per way a hold ends.
+- **Confidence:** medium.
+
+### S12. Units that project to one screen spot each show their card
+
+- **Who, when:** implementer, after slice 07.
+- **Scenario:** Two squads share a house and the camera pulls back far.
+  Their middles, metres apart, project inside each other's anchor square.
+  The card layout refused every card whose leader started inside another
+  unit's anchor, so both cards hid. Now units on one spot (`oneSpot` in
+  `web/src/battle/present/readoutLayout.ts`) are spared the two rules their
+  shared start breaks (a leader keeping off the other's anchor, and two
+  leaders' rises meeting); every other rule (no overlap, no leader across a
+  card, no foot crossed) still holds. It is the general card layout, not a
+  garrison case. Up close, a hovered card still opens in place over its
+  neighbour, the standing rule that hovering moves nothing; the far view
+  still overprints.
+- **Gap:** Sharing created the first case of two units on one spot.
+- **Reach:** Any stacked units (a convoy, a crowd) now show every card.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### S13. What the plan left alone
+
+- **Who, when:** agent on the user's behalf (the plan's scope firewall; the
+  posting choice from the walk's map).
+- **Scenario:** Sharing changed admission, not the hosts themselves. A
+  building's seat count (its window bays, bounded by
+  `buildings.capacity_soldiers`) is computed as before, as are carrier
+  sizes, unloading, bail-out, exit spots and collapse, and the skirmish AI's
+  strategy. A helicopter whose squad has a pending `Board` it won't fit
+  still holds its low hover until the squad arrives and is refused. An
+  encounter still posts one defender squad per building, as a posting
+  choice (`Post::Garrison`), not a rule.
+- **Gap:** The plan had to bound itself.
+- **Reach:** Each is free to change later on its own.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### S14. The labs show the rule with their own staging
+
+- **Who, when:** user (the labs show two squads sharing and a third finding
+  no room); implementer for the staging (slice 07).
+- **Scenario:** In the garrison lab the house seats exactly the two rifle
+  squads, set by the encounter's own override of
+  `buildings.capacity_soldiers` (shipped rules untouched). The cast stands
+  on one line so arrival order tells the story: the first rifle squad goes
+  in, the second follows, and the scouts arrive to "TOO MANY TO FIT" and
+  wait at the door, where the house hides them. Red's tank is set to fire at
+  will and shells the house's occupants it sees (S3); the house comes down
+  and the scouts cross the ruin. In the transport controls lab an AT team
+  and a recon team share the APC, and a rifle squad, small enough for the
+  APC alone so its order is accepted, arrives to no room. Both labs show
+  per-unit refusals on screen. Labs run without sound, so the refusal's
+  voice line is covered by its own test, not the lab.
+- **Gap:** The plan named the story, not the cast.
+- **Reach:** The labs are developer arenas; their scenes are the browser
+  proof of the rule.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### S15. A building's seat total is its window plan's while a squad holds it
+
+- **Who, when:** implementer (slice 03).
+- **Scenario:** A house's seats are its exposed window bays, which shelling
+  can take away. While a living squad holds the house, its total is the
+  length of the window plan opened when the first squad was seated; with
+  nobody inside, it is the bays the standing building offers now
+  (`seats_for_state`). "Is this the first squad seated?" reads the same
+  condition (`garrison::held`), so a plan left by squads that died earlier
+  in the tick never sets the total. The command-time size check uses the
+  standing building as the side knows it.
+- **Gap:** The plan said "plan total, or `seats_for_state` before a plan
+  exists".
+- **Reach:** Admission, reinforcement and the published total (S25) all
+  read this one number (`hold::Seats`).
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### S16. A squad entering a shared house takes the windows nobody holds
+
+- **Who, when:** agent on the user's behalf (plan); implementer for the
+  detail (slice 03).
+- **Scenario:** Squad A holds a house. Squad B finishes stepping in. B's
+  soldiers are spread round the facades as a lone squad would be, the next
+  free window of each facade in turn, skipping every window a living soldier
+  inside or stepping out holds. Nobody already inside moves on entry. A
+  first squad sees none taken, so a lone squad is seated exactly as before.
+- **Gap:** The plan said "windows nobody holds"; whether leavers' windows
+  count was open.
+- **Reach:** Entry never reshuffles a fight in progress; swaps (S4) do that.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### S17. One window plan per building, owned by the battle; window-change time stays per window
+
+- **Who, when:** agent on the user's behalf (three of four drafts, reversing
+  the walk map's card 3, which put the time on soldiers); implementer for
+  the threading (slice 02).
+- **Scenario:** Before, each squad in a house kept its own copy of the
+  window plan; with several squads the copies would drift apart. Now one
+  plan per building lives on `Battle` (`garrison::Windows`), keyed by the
+  building's structure owner (the part that stands for the whole building).
+  A squad's hold keeps only which window each of its soldiers stands at.
+  Each window remembers when a soldier last came to it, which is what the
+  hold time after a swap reads; moving that onto soldiers would have changed
+  the digest of every scene with a window swap. The battle digest folds the
+  plan inside each occupant's hold, where the old copy was, and a squad
+  still stepping in folds none. Code reaches the plan through methods on
+  `Windows`, and fire and damage carry it in their contexts. The rejected
+  alternative (one draft) shared a plan between holds by reference, which
+  can't record the per-window time.
+- **Gap:** The plan had to give shared windows one owner.
+- **Reach:** Every reader of a garrison's windows (sight, fire, damage,
+  supply, digest).
+- **Verdict:** sound: a lone squad's digest is byte-identical.
+- **Confidence:** high.
+
+### S18. A reinforcement needs a free seat in its host
+
+- **Who, when:** user (shown on the walk map's card 2); implementer for the
+  check (slice 04); territory for riders.
+- **Scenario:** A full house's squad loses a soldier and a supply truck is
+  near. A replacement is delivered only while the host has a free seat:
+  total less everyone stepping in, inside and stepping out
+  (`hold::Seats::free`), the same count the end-of-timer check uses, so a
+  replacement can never make a squad fail its own entry. Supply picks the
+  next need on the tick it delivers it, so one check is enough. With no
+  room the need falls through to the next (smoke, or nothing): no stock and
+  no soldier id are spent, and the replacement clock pauses. Squads riding a
+  carrier are never reinforced (`Unit::on_field` already excluded them).
+- **Gap:** The plan said "check when choosing and when delivering"; they
+  are the same moment.
+- **Reach:** Supply and host seats share one count.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### S19. What the command refuses, and what it leaves to arrival
+
+- **Who, when:** agent on the user's behalf (drafts); implementer for the
+  detail (slices 01 and 03).
+- **Scenario:** The player sends four squads into a house; one is bigger
+  than the whole house. That one is refused at once with `CapacityFull` and
+  keeps its orders; the others get entries. An order naming something that
+  isn't a building is refused whole (`NotABuilding`), as is one naming a
+  vehicle (`NotInfantry`), though the client only sends squads. A squad with
+  no entry (S1) is left as it was. If no squad got an entry and none was
+  refused, the order is acknowledged `NoValidDestination` and does nothing,
+  like a move nobody can make; if every squad was refused, there is no
+  whole-order error, as with `Board`. For carriers, `Board` refuses a squad
+  bigger than its carrier and `Collect` one bigger than the largest carrier
+  it lists. A squad listed twice is taken once, in the order given; the old
+  closest-first trimming is gone. Who finds room is decided on arrival. This
+  also fixed a `Collect` bug: before, an overflowing `Collect` refused
+  whichever squad finished its timer first, because later squads'
+  reservations already counted.
+- **Gap:** The plan said "only a squad bigger than the whole host" without
+  the edge cases.
+- **Reach:** The command-time answers for all three host orders come from
+  `hold::refuse_oversized`.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### S20. How the building order plans each squad's start
+
+- **Who, when:** implementer (slice 01).
+- **Scenario:** The player Shift-queues a building order after a move.
+  Squads are taken in unit order, each once, so the preview doesn't depend
+  on selection order. A queued squad sets off from where its queue ends (a
+  move's destination or an earlier entry's approach), counting orders its
+  side had accepted earlier in the same tick, as move placement does; a
+  replacing order sets off from where it stands, exactly the old lowering,
+  so the encounter defenders enter unchanged. The clicked building resolves
+  as before: the clicked part as the side knows it, else another remembered
+  part of the same building, filed under its structure owner.
+- **Gap:** Delegated to the implementer.
+- **Reach:** Previews and queued orders read the same plan.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### S21. Another side's squad in a building, in any phase, turns an entrant back silently
+
+- **Who, when:** user (one side in a building at a time, kept from before);
+  implementer for "any phase" (slice 03).
+- **Scenario:** A blue squad reaches a house where a red squad is stepping
+  out. Any hold on the building by a living squad of another side
+  (stepping in, inside or stepping out) makes blue give up its order
+  silently when it would start stepping in, as before. Same-side squads,
+  allies included, share.
+- **Gap:** "Enemy inside" didn't say which phases.
+- **Reach:** Close-quarters fights over houses stay out of this rule.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### S22. A squad found too many at the end of its entry timer hears `CapacityFull`
+
+- **Who, when:** agent on the user's behalf (drafts); slice 03.
+- **Scenario:** Squad B starts stepping in beside A, which is leaving. A
+  turns back (S6's Stop). When B's timer ends, everyone stepping in, inside
+  or stepping out no longer fits, so B drops its hold, ends its order and
+  publishes `CapacityFull`. Before, a building's end-of-timer failure was
+  silent, and so was the old drop of soldiers beyond the window count; both
+  are this one check now.
+- **Gap:** The plan had to say how the end check tells the player.
+- **Reach:** Every refusal for lack of room reads the same.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### S23. A refusal on arrival reads exactly like the one at the command
+
+- **Who, when:** implementer (slice 07).
+- **Scenario:** A squad refused at the command (too big) and one refused on
+  arrival (no room) both show the callout "TOO MANY TO FIT" and get the
+  same voice line, which answers any refusal the side observes. One reason,
+  one text.
+- **Gap:** The plan didn't say whether arrival needed its own words.
+- **Reach:** `CapacityFull` stays one concept to the player.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### S24. One ring and one outline per house
+
+- **Who, when:** user (one ring whichever occupants are selected; it means
+  "in this building", not a count); implementer for the drawing (slice 06).
+- **Scenario:** Two own squads hold a house; one is selected and the other
+  revealed. The overlay groups occupants by their hold's host, which is the
+  structure owner. The brightest occupant paints the ring (selected, then
+  hovered, then own over ally, then moving, then reveal strength); the
+  others keep their circle, so routes still leave it and picking never sees
+  the grouping, but skip the paint. The house's outline is drawn once, in
+  the first holder's colour, own before enemy, resolved through the map's
+  building index so an identified enemy naming any part or its ruin draws
+  the same outline. The rejected alternative, painting the first occupant's
+  ring, would show a selected squad in its housemate's reveal colour.
+- **Gap:** The user named the result, not the drawing rule.
+- **Reach:** Any later marker for shared positions builds on this grouping.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### S25. A held building publishes its seat total; used is summed by the reader
+
+- **Who, when:** agent on the user's behalf (drafts); implementer for the
+  wire (slice 05).
+- **Scenario:** The browser must show S9's row. The simulation publishes
+  the building's seat total (S15) on the player's own unit rows as
+  `hostSeats` (−1 for a carrier or no hold), and the observation's
+  `HostRef::Building` carries it as `seats`. Seats used is not published; the
+  client sums its side's holds on that building, with the carrier row's
+  phase rule. Enemy panels gain no capacity.
+- **Gap:** Building seats weren't published at all.
+- **Reach:** A publication layout field; captures and parity vectors carry
+  it.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### S26. The entry proof's planning-snapshot machinery is gone, and the principle reworded
+
+- **Who, when:** implementer (slice 01, then slice 07 for the skill text).
+- **Scenario:** The deleted entry proof (S1) was the only reader of a
+  planning snapshot: a side's private replay of the world (a prop overlay,
+  its believed geometry, per-request route budgets). It all went, along with
+  the two navigation rules only it read (`navigation.move_validation_work`
+  and `navigation.move_rehearsal_m`); the fixtures that embed the rules were
+  re-recorded, with no battle digest moving. The `tweak-mechanics` skill's
+  principle now reads "a side plans from what it knows: all of it, and
+  nothing more", without naming the deleted machinery.
+- **Gap:** Deleting the proof left machinery and rules with no reader.
+- **Reach:** A future planner that needs foresight builds it fresh.
+- **Verdict:** sound: when a mechanism is replaced, the old one goes.
+- **Confidence:** high.
+
+### S27. The building cursor badge reads the pointer intent alone
+
+- **Who, when:** implementer (whole-spec review).
+- **Scenario:** Hovering a house with squads selected shows the enter
+  badge. The intent only ever names squads and becomes a ground move with
+  none (S8), so the separate "someone can enter" flag the cursor took was
+  always true for a building intent; it went.
+- **Gap:** A leftover of the old preview.
+- **Reach:** None beyond the cursor.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### S28. Same-tick arrivals resolve in unit order, and the timers keep their cadence
+
+- **Who, when:** agent on the user's behalf (the walk map's card 6, and the
+  plan's invariants).
+- **Scenario:** Two squads reach a house with room for one on the same
+  tick. The lower unit index is admitted first; no test relies on which. A
+  carrier hold starts and advances in the same tick, and a building hold
+  starts one step into its entry timer, as before; flattening that would
+  have moved every single-host digest. Before admission the squad's
+  movement stops whatever the outcome, so a refused squad stands where it
+  reached the building.
+- **Gap:** The plan had to fix an order for simultaneous arrivals.
+- **Reach:** Determinism: a single-squad host behaves byte for byte as
+  before.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### S29. One building order: `OccupyBuilding`
+
+- **Who, when:** territory (one owner per concept), in the walk (Q4).
+- **Scenario:** There were two ways in: the player's `OccupyBuilding`
+  (one entrant plus companions gathered nearby) and `Order::Garrison`, sent
+  by the encounter defender, labs and tests. `Order::Garrison`, companion
+  gathering, `OneSquadPerBuilding` and `BuildingOccupied` are deleted.
+  `OccupyBuilding { units, building, gesture }` gives each listed squad its
+  own entry, applied as the internal `UnitOrder::Garrison { building,
+  approach }` exactly as the old order lowered (no move in front), so the
+  defenders' entries are byte-identical. The building preview became
+  `BuildingPreviewRequest { units, building, queued }` answered by
+  `BuildingPlacement { building, entries }`.
+- **Gap:** Arrival admission made gathering spots and one-squad refusals
+  meaningless.
+- **Reach:** Every script, lab and fixture sends `occupy_building`.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### S30. No backward compatibility and no migrations
+
+- **Who, when:** user.
+- **Scenario:** Old `garrison` orders in scripts, labs and fixtures were
+  rewritten as `occupy_building`, never aliased; fixtures that changed were
+  re-recorded.
+- **Gap:** A contract cutover always asks this.
+- **Reach:** No shim to maintain.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### S31. No full-host warning at the cursor
+
+- **Who, when:** user (U3 in the walk).
+- **Scenario:** Hovering a house your squads fill shows the ordinary enter
+  cursor. A warning would discourage sending a squad to a house you are
+  about to empty (S36).
+- **Gap:** A full host invites a warning.
+- **Reach:** The player learns of a full host only on arrival.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### S32. Squads enter whole; one side per building
+
+- **Who, when:** user (assumptions kept from before the walk).
+- **Scenario:** A squad of eight never splits to fill five free seats: it
+  fits whole or is refused. One seat is one living soldier. A building holds
+  one side at a time (S21).
+- **Gap:** Sharing could have reopened either.
+- **Reach:** Seat arithmetic counts squads' living soldiers
+  (`hold::living`).
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### S33. Window swaps span every squad in the building
+
+- **Who, when:** user (Q5).
+- **Scenario:** The AT gunner of one squad takes the window facing the
+  tank, whoever's rifleman held it. The rejected alternative split windows
+  per squad at entry. S4 is how.
+- **Gap:** Sharing raised whose windows a soldier may take.
+- **Reach:** Squads sharing a house fight as one garrison.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### S34. A squad that arrives to no room ends its order and never waits
+
+- **Who, when:** user (Q3).
+- **Scenario:** The scouts reach a full house. They hear "TOO MANY TO FIT",
+  their order ends, and they stand where they reached it. If a seat frees a
+  minute later, they stay outside until ordered in again. A waiting phase
+  existed once and was deleted in September; it stays deleted.
+- **Gap:** Overflow had to go somewhere.
+- **Reach:** No queue of waiting squads exists anywhere.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### S35. The check when stepping in starts ignores leavers; the check when it ends counts everyone
+
+- **Who, when:** user (L1).
+- **Scenario:** A house holds squad A, and A is stepping out when squad B
+  arrives. B's start check counts squads stepping in or inside, not A, so B
+  starts stepping in. A host uses one timer for both directions, so A is
+  gone before B finishes. B's end check counts everyone, so if A turned back
+  (S6), B is refused then (S22). The rejected alternative, leavers keeping
+  their seats, would have made the relief manoeuvre a timing trick.
+- **Gap:** Leavers' seats were undefined.
+- **Reach:** `hold::admit` (start) and `seated` (end) read this rule.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### S36. Seats are taken when stepping in starts, never at the command; the relief manoeuvre is a feature
+
+- **Who, when:** agent on the user's behalf (Q2, the one question the user
+  delegated), then locked by the user's own example (U3).
+- **Scenario:** Squad A holds a house. The player sends squad B to it, then
+  orders A out; by the time B arrives the house is empty and B walks in.
+  The user: "This is GOOD, it's a feature." First to arrive gets in; at the
+  command only a squad bigger than the whole host is refused. This
+  manoeuvre is the required end-to-end test. The rejected alternative,
+  promising seats at the command, would refuse B.
+- **Gap:** When seats are claimed decides everything else.
+- **Reach:** Nothing about who is inside is read at the command; the order
+  planner never reads occupants.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### S37. Several squads share a host, buildings and carriers alike
+
+- **Who, when:** user (Q1), who widened the question from buildings to both
+  hosts. It reverses the 2026-09-28 "a building takes one squad" decision.
+- **Scenario:** Two squads walk into one house, or board one APC, while
+  seats remain, one seat per living soldier. Those that don't fit end up
+  outside. Seats and admission are one rule with one owner (`crate::hold`)
+  for both hosts.
+- **Gap:** The ask itself.
+- **Reach:** Everything above.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+## Trivial discretion
+
+About a dozen implementer calls with no behaviour of their own, not listed:
+which test files hold the new tests and the file splits the size ratchet
+forced, internal type and method names, how scenes wait for an arrival
+refusal or a carrier's rider card, lab legend wording, and leaving
+`PropStore`'s copy-on-write bodies and the movement code's own living counts
+as they were.
