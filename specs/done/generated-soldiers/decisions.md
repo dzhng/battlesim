@@ -10,7 +10,7 @@ Grouped by how sure each call is, least sure first. Each entry stands alone.
   - *What the critics saw:*
     - Flecktarn reads as a generic green woodland;
     - OCP leans grey-green;
-    - sleeves are soft and gloves look like paddles;
+    - sleeves are soft;
     - the Russian body's helmet cover has a sharp fin at the back.
   - *By design, not defects:*
     - The German, Russian and Chinese armies share a green palette (the game
@@ -23,11 +23,11 @@ Grouped by how sure each call is, least sure first. Each entry stands alone.
   - *How:* the neck cranes up to 36° (`NECK_CRANE_DEG`), and the butt slides at
     most 4 cm on the shoulder (`POCKET_SLIDE`).
   - *Result:*
-    - On the M4s the eye is 0.2–1 cm above the scope.
+    - On the M4s the eye is 0.2–1 cm above the optic.
     - On the AK-12 it is 3 cm above, because one hold serves every rifle and
-      the AK has no optic.
-- **A dead man with a big rucksack lies rolled 30° onto one side**, not flat on
-  his face (`CORPSE["roll_down"]`).
+      the AK's low collimator sits about 3 cm under the M4's optic.
+- **Face down, every dead man lies rolled 30° onto one side**, not flat on his
+  face (`CORPSE["roll_down"]`), so a big rucksack stays under the lying limit.
   - *Why:* flat, a scout's rigid rucksack stood 0.60–0.65 m, over the 0.6 m
     lying limit.
   - *Range:* at 40° a knee or an arm rose to 0.64 m instead.
@@ -42,7 +42,8 @@ Grouped by how sure each call is, least sure first. Each entry stands alone.
     - riding the root: a prone soldier's tube would stay standing;
     - a spare leaf bone: it follows its parent.
 - **The eye socket sits at the pupil**, measured on three generated heads. The
-  simulation's eye therefore stands 1.5 cm lower than before; `fit.eye` holds.
+  model's eye therefore sits 1.5 cm lower than before; the simulation's eye
+  height is unchanged, and `fit.eye` holds.
 - **The walking and running low-ready support hand is 1.7 cm short of the
   handguard.** Accepted (it was 5.3 cm). The walk animation swings the shoulder
   back, and the hand is already at the magazine well.
@@ -50,7 +51,7 @@ Grouped by how sure each call is, least sure first. Each entry stands alone.
   - *Which:* native `counts` (a browser parity capture against the newer sim
     publication layout) and web `battleRules` (fielding now checks mobility
     first).
-  - *Why:* this branch's code is identical to staging's there, and both areas
+  - *Why:* this work's code was identical to staging's there, and both areas
     belonged to other threads' active work.
   - *Also not fetched:* the two audio tests refusing LFS pointers are missing
     assets, per development.md.
@@ -61,31 +62,36 @@ Grouped by how sure each call is, least sure first. Each entry stands alone.
 
 ### The roster and its data
 
-- **Army data lives in `roster/armies.json`:** each army's rifle, light machine
-  gun, gloves, webbing, cloth mean, prompt, three look clauses and crew kit.
+- **Army data lives in `roster/armies.json`:** each army's rifle, gloves,
+  webbing, cloth mean, prompt, three look clauses and crew kit, and a light
+  machine gun for the four original armies.
   Nothing reads a faction there, so there is none. The kit matrix (`KITS`) stays
   Python, in `infantry_roster.py` at the Blender folder's root, where every
   script can import it.
-- **A kit names the body kind its men wear** (`kind="recon"` for scouts; `rifle`
-  otherwise), the same word the pins and the generation tool use.
+- **A kit names the body kind its men wear** (`kind="recon"` for scouts and the
+  heavy sniper teams; `rifle` otherwise), the same word the pins and the
+  generation tool use.
 - **A new army's cloth mean is its look `a` body's own measured mean** (French
   `[0.0965, 0.0735, 0.0461]`, PLA `[0.0861, 0.0754, 0.0449]`). With no print
   recipe to match, look `a` keeps its colours and looks `b` and `c` grade to
   it.
 - **The PLA army is `pla_type21`**, Type 21 woodland. Shippable photos of the
   uniform, helmet and carrier exist.
-  - *What the prompt says:* "a high-cut helmet with side rails and ear
-    defenders", which is what the photos show; they don't confirm a QGF-11.
+  - *What the prompt says:* "a high-cut helmet with side rails in a matching
+    camouflage cover, electronic ear defenders", which is what the photos
+    show; they don't confirm a QGF-11.
   - *The camouflage:* the flat lay's green with brown patches, after the first
     take read grey.
-- **References may be CC-BY-SA**, as the library already allows. The French
+- **References may be CC-BY, CC-BY-SA or CC0**, as the library already allows. The French
   Army's own photos (Licence Ouverte) are refused, so the French references are
   public-domain US DoD photos from Saber Junction 23.
 - **The new rifles (HK416 F, QBZ-191) follow the M4/M27 construction**, with
   the optic's top at the shared hold's sight height. The aim rule holds for them
   with no new hold.
-- **Catalog rows are named by army** (`rifle_squad_pla_…`, `rifle_squad_french_…`),
-  since two armies now share each faction.
+- **The new armies' catalog rows are named by army** (`rifle_squad_pla_…`,
+  `rifle_squad_french_…`), since two armies now share each faction; the
+  original rows keep their faction names (`rifle_squad_eastern_…`,
+  `rifle_squad_europe_…`).
   - *Who uses them:* the FN-6 team names the PLA riflemen, the Akeron team the
     French, and the Javelin guard's Europe variant the French rifleman.
   - *What went:* the German Akeron guards and German Javelin exports no longer
@@ -100,9 +106,9 @@ Grouped by how sure each call is, least sure first. Each entry stands alone.
 - **The height fit ignores anything behind the head band**, so a ruck's top
   can't set a soldier's height.
 - **Leg slices centre on the midpoint of their 15th and 85th percentiles.**
-  Moves are smoothed over ±4 slices and the whole leg moves together. Extents
-  followed knee pads, filtering tore the shins, and the median followed vertex
-  density.
+  Each slice moves by its own amount, smoothed over ±4 slices, and every
+  vertex in the leg moves. Extents followed knee pads, filtering tore the
+  shins, and the median followed vertex density.
 - **Back kit rides one bone whole** (`_strap_packs`).
   - *What counts as kit:* anything above mid-thigh behind the back plane, or
     standing off the body (a whip beside the head).
@@ -142,7 +148,8 @@ Grouped by how sure each call is, least sure first. Each entry stands alone.
 - **`fit.lies` measures the body and what it carries, not kit standing on the
   ground by itself.** A tripod weighted wholly to the root stays standing when
   its gunner dies.
-- **`fit.facing` and `fit.cheek` check every aim pose.**
+- **`fit.facing` and `fit.cheek` check the skeleton's aim reference pose**
+  (stand-aim); `fit.cheek` skips a soldier serving tripod kit.
   - *`fit.facing`:* the head within 8° of level.
   - *`fit.cheek`:* the eye at least the skeleton's `sight_over_bore_m` over the
     muzzle. That's 0.05 for the rifle skeleton and none for the launcher's,
@@ -165,5 +172,6 @@ Grouped by how sure each call is, least sure first. Each entry stands alone.
 - **The tool's tests run in the root `test` script** (`test:skins`).
 - **The catalog load budget is 800 MiB**: the measured 775.3 MiB with every
   unit's art, rounded up to the next 32 MiB.
-- **`assets/review/` is left as it is.** Those folders are a done spec's archive
-  of reviewed visuals, which no tool regenerates.
+- **`assets/review/` is left as it is.** Those folders are
+  specs/done/infantry-weapon-use's archive of reviewed visuals, which no tool
+  regenerates.

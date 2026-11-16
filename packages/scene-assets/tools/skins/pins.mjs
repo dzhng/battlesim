@@ -1,5 +1,5 @@
 // The only writer of `blender/skins/<family>.json`; `blender/skin_pins.py` is
-// the only reader. A soldier body's pin is keyed by (army, look, kind) and
+// the exporters' only reader (this tool reads it too, for `status`). A soldier body's pin is keyed by (army, look, kind) and
 // says which candidate the export wears, with its hash, the request that made
 // it, its input and the prompt that drew the input (`status` compares that
 // prompt with `compose` to find stale bodies).
