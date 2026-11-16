@@ -114,14 +114,6 @@ pub use forest::{ForestRule, ForestRules};
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct NavigationRules {
-    /// Motion steps and route work allowed to prove one garrison entry.
-    /// A long leg's initial route uses the live planner's separate bound;
-    /// shorter initial routes and repeated searches spend this allowance.
-    pub move_validation_work: u32,
-    /// How much of each end of a leg certification drives, and of the
-    /// approach to a vehicle bend, intermediate hull or prop: the stretch
-    /// between is taken on the route.
-    pub move_rehearsal_m: f64,
     /// Planning work every side's units share each tick: one unit is about
     /// one grid cell searched.
     pub work_per_tick: u32,
@@ -150,9 +142,6 @@ impl NavigationRules {
     }
 
     fn check(&self) -> Result<(), String> {
-        if self.move_validation_work == 0 {
-            return Err("move validation work must be positive".into());
-        }
         if self.work_per_tick == 0 {
             return Err("work_per_tick must be positive: no route would ever finish".into());
         }
@@ -165,7 +154,6 @@ impl NavigationRules {
         for (name, v) in [
             ("road_leg_m", self.road_leg_m),
             ("road_access_m", self.road_access_m),
-            ("move_rehearsal_m", self.move_rehearsal_m),
         ] {
             if !v.is_finite() || v < 0.0 {
                 return Err(format!(
