@@ -2,6 +2,7 @@
 //! weapon-made answers to aircraft, and armour in the recipe.
 
 use super::*;
+use crate::skirmish_ai::purchase::pick;
 
 fn seen(rules: &Rules, kind: &str) -> contract::observation::IdentifiedUnit {
     let kind = rules.catalog.index(kind).unwrap();
